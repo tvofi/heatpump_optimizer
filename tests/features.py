@@ -48,7 +48,7 @@ from heatpump_optimizer.external_heat import (
     ExternalHeatObservation,
 )
 from heatpump_optimizer import inputs as inputs_mod
-from heatpump_optimizer import pump_mode, pump_signals
+from heatpump_optimizer import flow_lift, pump_mode, pump_signals
 from heatpump_optimizer.pump_signals import PumpSignals
 from heatpump_optimizer.inputs import (
     InputReader,
@@ -4261,6 +4261,11 @@ class _CopGate:
         self._cop_ratio_ewma = None
         self._last_measured_cop = None
         self._immersion_active = False
+        # #1067: the supply/return learner the reference curve consults.
+        # Inert unless a test gives it a supply reading, so every check
+        # written before it existed judges against the bare curve exactly
+        # as it did.
+        self._flow_bias = flow_lift.FlowCurveBias()
         self.cop_health_calls: list = []
 
     def _learning_frozen(self, *entities):
@@ -4482,6 +4487,9 @@ class _LearnPersist:
         self._curve_learner = _CL()
         from heatpump_optimizer.freq_control import FrequencyMap as _FM
         self._freq_map = _FM()
+        # #1067: the payload producer above is the production one, so a
+        # learner it serialises has to exist here too.
+        self._flow_bias = flow_lift.FlowCurveBias()
         self._freq_fallback = False
 
     def _apply_buffer_cooling_rate(self, rate: float) -> None:
@@ -19888,6 +19896,906 @@ R.check(
     and _cop_pair._last_cop_dhw_temp is None,
     f"cop {_cop_pair._last_measured_cop} dhw={_cop_pair._last_cop_curve_dhw}",
 )
+
+R.section("#1067 — the pump's own electric heat and its night mode")
+
+# Three more optional slots, read by ``pump_signals.read_electric_heat``. They
+# exist because ``_detect_immersion`` infers a resistive element from a power
+# meter reading above nameplate x IMMERSION_FACTOR, and the pump this was
+# built against publishes no power meter at all — its Tuya POWER datapoint is
+# a unit-less demand level, which ``inputs.normalize_power_kw`` refuses — so
+# on such an install that latch can never fire while the pump's own two
+# heaters are exactly the "different appliance on the same meter" it models.
+#
+# DESIGN CHOICE, pinned below: they extend the immersion latch's reach and
+# are deliberately NOT a freeze reason. A freeze is plant-wide, and a backup
+# heater runs for hours in exactly the cold snaps that carry the most
+# heat-loss information; the heat it delivers is real heat into the house and
+# only the electrical attribution is wrong.
+
+_EH_CFG = {
+    "heat_pump_backup_heater_entity": "switch.pump_backup_heater",
+    "heat_pump_dhw_booster_entity": "switch.pump_dhw_booster",
+    "heat_pump_capacity_limited_entity": "switch.pump_night_mode",
+}
+
+
+def _eh_read(states, *, previous=None, config=None, age=2):
+    """One cycle of the three electric-heat slots, through the real reader."""
+    stamped = {
+        entity: (
+            state
+            if state is None or isinstance(state, FakeState)
+            else _ps_state(entity, state, age)
+        )
+        for entity, state in states.items()
+    }
+    reader = InputReader(
+        FakeHass({k: v for k, v in stamped.items() if v is not None}),
+        _EH_CFG if config is None else config,
+        now=lambda: _PS_NOW,
+    )
+    return pump_signals.read_electric_heat(reader, previous), reader
+
+
+# -- the null case: three empty slots must change nothing --------------------
+_eh_none, _ = _eh_read({}, config={})
+R.check(
+    "with no electric-heat slot configured every flag is None",
+    _eh_none.backup_heater is None
+    and _eh_none.dhw_booster is None
+    and _eh_none.capacity_limited is None,
+    f"{_eh_none.as_dict()} — absence must never act",
+)
+R.check(
+    "and nothing derived from them acts either",
+    not _eh_none.resistive_heat
+    and not _eh_none.compressor_draw_distorted
+    and not _eh_none.dhw_booster_started,
+    f"{_eh_none.as_dict()}",
+)
+R.check(
+    "which is exactly what an unconfigured PumpSignals carries",
+    pump_signals.PumpSignals().electric_heat == _eh_none,
+    "the default_factory is what makes every pre-#1067 install bit-identical",
+)
+
+# -- a value acts ------------------------------------------------------------
+_eh_backup, _ = _eh_read({"switch.pump_backup_heater": "on"})
+R.check(
+    "the space backup heater reads true and is resistive heat",
+    _eh_backup.backup_heater is True
+    and _eh_backup.resistive_heat
+    and _eh_backup.compressor_draw_distorted,
+    f"{_eh_backup.as_dict()}",
+)
+_eh_boost, _ = _eh_read({"switch.pump_dhw_booster": "on"})
+R.check(
+    "so does the DHW tank booster, on its own",
+    _eh_boost.dhw_booster is True and _eh_boost.resistive_heat,
+    f"{_eh_boost.as_dict()}",
+)
+_eh_night, _ = _eh_read({"switch.pump_night_mode": "on"})
+R.check(
+    "night mode distorts the compressor reading without being resistive heat",
+    _eh_night.capacity_limited is True
+    and not _eh_night.resistive_heat
+    and _eh_night.compressor_draw_distorted,
+    f"{_eh_night.as_dict()} — a capped compressor is still the compressor, "
+    "so the two derived answers must differ here",
+)
+_eh_off, _ = _eh_read(
+    {
+        "switch.pump_backup_heater": "off",
+        "switch.pump_dhw_booster": "off",
+        "switch.pump_night_mode": "off",
+    }
+)
+R.check(
+    "a legible off is False, not None, and acts on nothing",
+    _eh_off.backup_heater is False
+    and _eh_off.dhw_booster is False
+    and _eh_off.capacity_limited is False
+    and not _eh_off.resistive_heat
+    and not _eh_off.compressor_draw_distorted,
+    f"{_eh_off.as_dict()}",
+)
+
+# -- and its absence never does ---------------------------------------------
+_eh_unavail, _eh_unavail_reader = _eh_read(
+    {"switch.pump_backup_heater": "unavailable"}
+)
+R.check(
+    "an unavailable heater flag is no evidence, not 'the heater is off'",
+    _eh_unavail.backup_heater is None and not _eh_unavail.resistive_heat,
+    f"{_eh_unavail.as_dict()}",
+)
+R.check(
+    "but it is visible in the diagnostics rather than silent",
+    _eh_unavail_reader.health.readings[
+        "heat_pump_backup_heater_entity"
+    ].problem
+    == "unavailable",
+    "a slot nobody can read must be reportable, it just must not act",
+)
+_eh_stale, _ = _eh_read(
+    {
+        "switch.pump_dhw_booster": FakeState(
+            "on", last_updated=minutes_ago(90, _PS_NOW)
+        )
+    }
+)
+R.check(
+    "staleness demotes a heater flag to silence, never to bad news",
+    _eh_stale.dhw_booster is None and not _eh_stale.resistive_heat,
+    "a booster that latched on yesterday must not still be excluding today's "
+    "COP samples — the horizon expires evidence, it never manufactures any",
+)
+
+# -- the rising edge fires exactly once -------------------------------------
+_edge1, _ = _eh_read({"switch.pump_dhw_booster": "off"})
+R.check(
+    "cycle 1, booster off: no edge",
+    not _edge1.dhw_booster_started,
+)
+_edge2, _ = _eh_read(
+    {"switch.pump_dhw_booster": "on"},
+    previous=pump_signals.PumpSignals(electric_heat=_edge1),
+)
+R.check(
+    "cycle 2, booster on after a legible off: the edge fires",
+    _edge2.dhw_booster_started and _edge2.dhw_booster is True,
+)
+_edge3, _ = _eh_read(
+    {"switch.pump_dhw_booster": "on"},
+    previous=pump_signals.PumpSignals(electric_heat=_edge2),
+)
+R.check(
+    "cycle 3, still on: it does NOT fire again",
+    not _edge3.dhw_booster_started and _edge3.dhw_booster is True,
+    "a booster left on all day is one event, which is what the meter-driven "
+    "latch books per latch — level would book one per cycle",
+)
+_edge_cold, _ = _eh_read({"switch.pump_dhw_booster": "on"}, previous=None)
+R.check(
+    "and no previous cycle cannot manufacture an edge",
+    not _edge_cold.dhw_booster_started,
+    "a restart, or a booster already running before Home Assistant started, "
+    "books nothing rather than a phantom event",
+)
+_edge_from_stale, _ = _eh_read(
+    {"switch.pump_dhw_booster": "on"},
+    previous=pump_signals.PumpSignals(electric_heat=_eh_stale),
+)
+R.check(
+    "nor can a previous cycle whose reading was stale",
+    not _edge_from_stale.dhw_booster_started,
+    "None is not a falling edge, so it cannot make a rising one",
+)
+
+# -- through read(), where the coordinator calls it -------------------------
+_eh_via_read, _ = _ps_read({}, config={})
+R.check(
+    "read() hangs an all-None PumpElectricHeat on an unconfigured install",
+    _eh_via_read.electric_heat == pump_signals.PumpElectricHeat(),
+    f"{_eh_via_read.as_dict()}",
+)
+R.check(
+    "and the diagnostics carry all five electric-heat answers",
+    {
+        "backup_heater",
+        "dhw_booster",
+        "capacity_limited",
+        "dhw_booster_started",
+        "resistive_heat",
+    }
+    <= set(_eh_via_read.as_dict()),
+    f"{sorted(_eh_via_read.as_dict())} — a user must be able to see what the "
+    "integration read",
+)
+
+# -- the coordinator seams ---------------------------------------------------
+# The COP learner, and everything hanging off its tail. `_CopGate` is the
+# fixture the v5.3.0 COP tests use; the positive control comes first so a
+# guard that refused everything could not pass these.
+_EH_BOOSTER_SIG = pump_signals.PumpSignals(
+    electric_heat=pump_signals.PumpElectricHeat(dhw_booster=True)
+)
+_EH_BACKUP_SIG = pump_signals.PumpSignals(
+    electric_heat=pump_signals.PumpElectricHeat(backup_heater=True)
+)
+_EH_NIGHT_SIG = pump_signals.PumpSignals(
+    electric_heat=pump_signals.PumpElectricHeat(capacity_limited=True)
+)
+
+_eh_cop_ok = _CopGate(outdoor=8.0)
+_eh_cop_ok._learn_measured_cop()
+R.check(
+    "the control: the same interval with no electric-heat evidence folds",
+    _eh_cop_ok._cop_samples == 1 and _eh_cop_ok.cop_health_calls,
+    f"{_eh_cop_ok._cop_samples} samples",
+)
+for _eh_name, _eh_sig in (
+    ("the DHW booster", _EH_BOOSTER_SIG),
+    ("the backup heater", _EH_BACKUP_SIG),
+    ("night mode", _EH_NIGHT_SIG),
+):
+    _eh_cop = _CopGate(outdoor=8.0, signals=_eh_sig)
+    _eh_cop._learn_measured_cop()
+    R.check(
+        f"with {_eh_name} on, no COP sample and no health observation",
+        _eh_cop._cop_samples == 0
+        and _eh_cop._cop_scale == 1.0
+        and not _eh_cop.cop_health_calls,
+        f"{_eh_cop._cop_samples} samples, scale {_eh_cop._cop_scale:.4f}, "
+        f"{len(_eh_cop.cop_health_calls)} health calls",
+    )
+
+
+def _eh_envelope_coord(signals):
+    """A real coordinator whose interval would fold the capacity envelope."""
+    c = _t2_coord(capacity_curve_enabled=True, heat_pump_power_entity="sensor.hp_power")
+    c._current_state.outdoor_temperature = 8.0
+    # Near nameplate (5.0 kW), which is what the envelope accepts as evidence.
+    c._current_action = {"power": 4.9}
+    c._measured_power = 4.6
+    c._immersion_active = False
+    c._pump_signals = signals
+    c._learn_measured_cop()
+    return c
+
+
+_eh_env_ok = _eh_envelope_coord(PumpSignals())
+R.check(
+    "the control: a near-nameplate interval folds the capacity envelope",
+    bool(_eh_env_ok._capacity_envelope) and _eh_env_ok._cop_samples == 1,
+    f"envelope {_eh_env_ok._capacity_envelope}, "
+    f"{_eh_env_ok._cop_samples} COP samples",
+)
+_eh_env_boost = _eh_envelope_coord(_EH_BOOSTER_SIG)
+R.check(
+    "with the DHW booster on the envelope does not move either",
+    not _eh_env_boost._capacity_envelope and _eh_env_boost._cop_samples == 0,
+    f"envelope {_eh_env_boost._capacity_envelope} — it is fed from "
+    "_learn_measured_cop's vetted tail, so it inherits the guard for free",
+)
+_eh_env_night = _eh_envelope_coord(_EH_NIGHT_SIG)
+R.check(
+    "and night mode keeps it still too",
+    not _eh_env_night._capacity_envelope and _eh_env_night._cop_samples == 0,
+    f"envelope {_eh_env_night._capacity_envelope} — a capped compressor's "
+    "delivery is the cap's ceiling, not the machine's",
+)
+
+# The frequency map.
+_eh_freq_ok = _freq_coord()
+_eh_freq_ok._observe_frequency(_T6)
+R.check(
+    "the control: an ordinary cycle still folds the frequency map",
+    bool(_eh_freq_ok._freq_map.buckets),
+)
+for _eh_name, _eh_sig in (
+    ("resistive heat", _EH_BACKUP_SIG),
+    ("night mode", _EH_NIGHT_SIG),
+):
+    _eh_freq = _freq_coord()
+    _eh_freq._pump_signals = _eh_sig
+    _eh_freq._observe_frequency(_T6)
+    R.check(
+        f"{_eh_name} never teaches the kW-per-Hz map",
+        not _eh_freq._freq_map.buckets,
+        "the map is a compressor curve: resistive kilowatts are a different "
+        "appliance's, and a capped compressor draws less at the same Hz",
+    )
+
+# The asymmetry that is the whole point of this group: capacity_limited stops
+# the EFFICIENCY reads above and must NOT stop the space-power attribution.
+_EH_HEAT_NIGHT = pump_signals.PumpSignals(
+    mode=pump_mode.capability("HEAT"),
+    mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+    electric_heat=pump_signals.PumpElectricHeat(capacity_limited=True),
+)
+_EH_HEAT_BOOST = pump_signals.PumpSignals(
+    mode=pump_mode.capability("HEAT"),
+    mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+    electric_heat=pump_signals.PumpElectricHeat(dhw_booster=True),
+)
+R.check(
+    "the control: in `heat` with no electric-heat evidence the meter is the "
+    "space figure",
+    _Split(_HEAT_ONLY)._interval_space_power() == 2.0,
+)
+R.check(
+    "under night mode the measured figure is STILL the space figure",
+    _Split(_EH_HEAT_NIGHT)._interval_space_power() == 2.0,
+    "a frequency-capped compressor draws exactly what the meter says, so the "
+    "interval replay's input is unchanged; skipping it would starve the "
+    "house heat-loss learner of every night for nothing",
+)
+R.check(
+    "while resistive heat does skip the sample",
+    _Split(_EH_HEAT_BOOST)._interval_space_power() is None,
+    "those kilowatts are a different appliance's on the same meter, which is "
+    "the immersion latch's contract",
+)
+
+# The booster's rising edge books one immersion event per run.
+_eh_ev = _t2_coord()
+_eh_ev._measured_power = 0.0
+_eh_ev._current_action = {"power": 0.0}
+for _eh_cycle in range(3):
+    _eh_ev._pump_signals = pump_signals.PumpSignals(
+        electric_heat=pump_signals.PumpElectricHeat(
+            dhw_booster=True, dhw_booster_started=_eh_cycle == 0
+        )
+    )
+    _eh_ev._detect_immersion()
+R.check(
+    "three consecutive booster-on cycles book exactly one immersion event",
+    len(_eh_ev._immersion_events) == 1,
+    f"{_eh_ev._immersion_events} — one per run, matching what the "
+    "meter-driven detector books per latch",
+)
+R.check(
+    "and the meter's own latch is untouched by the flag",
+    not _eh_ev._immersion_active,
+    "that latch is the meter's, released by the meter; a flag cannot set or "
+    "release it",
+)
+_eh_no_ev = _t2_coord()
+_eh_no_ev._measured_power = 0.0
+_eh_no_ev._current_action = {"power": 0.0}
+_eh_no_ev._detect_immersion()
+R.check(
+    "the null control: an install with no booster slot books nothing",
+    _eh_no_ev._immersion_events == [],
+    f"{_eh_no_ev._immersion_events}",
+)
+R.check(
+    "and the feedback margin is off by default, so the event is inert",
+    _eh_ev._immersion_dhw_margin(dt_util.now()) == 0.0,
+    "CONF_IMMERSION_FEEDBACK_ENABLED defaults off; the events only count for "
+    "a user who opted in",
+)
+
+
+R.section("#1067 — the pump's own supply and return water, and the flow bias")
+
+# Two more optional slots and a learner. ``ThermalModel.compute_cop`` has
+# always taken a ``flow_temp``, and the only value ever passed is the buffer
+# tank's, gated on ``cop_flow_carnot`` — which follows the mixing-valve mode.
+# On a DIRECT plant (a monoblock feeding the emitters, no buffer, no valve)
+# the lift term is therefore never applied at all, so the efficiency learner
+# judged every interval against a curve that ignored how hard the machine was
+# lifting.
+#
+# SCOPE, pinned below: this is the learner half. Nothing here changes what the
+# solver prices; the scale trajectory with no supply slot mapped is unmoved,
+# and a check says so in those words so the next seat cannot read this group
+# as having already stopped the walk.
+
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+    CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
+    INPUT_MAX_AGE_MINUTES,
+    CONF_OUTDOOR_TEMP_ENTITY,
+    CONF_POWER_ENTITY,
+)
+from heatpump_optimizer.coordinator import _fold_flow_lift  # noqa: E402
+
+_FL_CFG = {
+    CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: "sensor.hp_supply",
+    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: "sensor.hp_return",
+}
+
+
+def _fl_read(states, *, config=None):
+    """One cycle of the two water slots, through the production reader."""
+    reader = InputReader(
+        FakeHass(states),
+        _FL_CFG if config is None else config,
+        now=lambda: _PS_NOW,
+    )
+    return flow_lift.read_water_temps(reader), reader
+
+
+# -- reader behaviour: absent, unavailable, stale, and a unit to convert -----
+(_fl_absent_s, _fl_absent_r), _ = _fl_read({}, config={})
+R.check(
+    "with neither water slot configured both readings are None",
+    _fl_absent_s is None and _fl_absent_r is None,
+    "absence must never act: this is what keeps every pre-#1067 install "
+    "judged against exactly the curve it was judged against before",
+)
+(_fl_ok_s, _fl_ok_r), _ = _fl_read(
+    {
+        "sensor.hp_supply": FakeState(
+            "48.5", unit="°C", last_updated=minutes_ago(2, _PS_NOW)
+        ),
+        "sensor.hp_return": FakeState(
+            "41.0", unit="°C", last_updated=minutes_ago(2, _PS_NOW)
+        ),
+    }
+)
+R.check(
+    "a fresh pair reads through as degC",
+    _fl_ok_s == 48.5 and _fl_ok_r == 41.0,
+    f"supply {_fl_ok_s}, return {_fl_ok_r}",
+)
+(_fl_unav_s, _fl_unav_r), _fl_unav_reader = _fl_read(
+    {
+        "sensor.hp_supply": FakeState(
+            "unavailable", unit="°C", last_updated=minutes_ago(2, _PS_NOW)
+        ),
+        "sensor.hp_return": FakeState(
+            "41.0", unit="°C", last_updated=minutes_ago(2, _PS_NOW)
+        ),
+    }
+)
+R.check(
+    "an unavailable supply probe is no evidence, and does not take the return with it",
+    _fl_unav_s is None and _fl_unav_r == 41.0,
+    f"supply {_fl_unav_s}, return {_fl_unav_r} — each slot is filled "
+    "independently, so each must fail independently",
+)
+R.check(
+    "and the unreadable slot is visible in the diagnostics rather than silent",
+    _fl_unav_reader.health.readings[
+        CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY
+    ].problem
+    == "unavailable",
+    "a slot nobody can read must be reportable; it just must not act",
+)
+_FL_HORIZON = INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY]
+(_fl_stale_s, _fl_stale_r), _fl_stale_reader = _fl_read(
+    {
+        "sensor.hp_supply": FakeState(
+            "48.5",
+            unit="°C",
+            last_updated=minutes_ago(_FL_HORIZON * 2.0, _PS_NOW),
+        ),
+        "sensor.hp_return": FakeState(
+            "41.0",
+            unit="°C",
+            last_updated=minutes_ago(_FL_HORIZON * 2.0, _PS_NOW),
+        ),
+    }
+)
+R.check(
+    "past its horizon a water temperature is demoted to silence",
+    _fl_stale_s is None and _fl_stale_r is None,
+    "supply water swings several K inside one compressor cycle, so a reading "
+    "an hour old describes another operating point, not this interval's lift",
+)
+R.check(
+    "and it is the staleness horizon that did it, not a parse failure",
+    _fl_stale_reader.health.readings[
+        CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY
+    ].problem
+    == "stale",
+)
+R.check(
+    "the supply horizon is the power meter's, not the outdoor forecast's",
+    _FL_HORIZON
+    == INPUT_MAX_AGE_MINUTES[CONF_POWER_ENTITY]
+    == INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_RETURN_TEMP_ENTITY]
+    and _FL_HORIZON < INPUT_MAX_AGE_MINUTES[CONF_OUTDOOR_TEMP_ENTITY],
+    f"supply {_FL_HORIZON}, power "
+    f"{INPUT_MAX_AGE_MINUTES[CONF_POWER_ENTITY]}, outdoor "
+    f"{INPUT_MAX_AGE_MINUTES[CONF_OUTDOOR_TEMP_ENTITY]} — the precedent is "
+    "what the signal is, not which page it sits on",
+)
+(_fl_f_s, _fl_f_r), _ = _fl_read(
+    {
+        "sensor.hp_supply": FakeState(
+            "122.0", unit="°F", last_updated=minutes_ago(2, _PS_NOW)
+        ),
+        "sensor.hp_return": FakeState(
+            "104.0", unit="°F", last_updated=minutes_ago(2, _PS_NOW)
+        ),
+    }
+)
+R.check(
+    "a US instance's °F probe is converted, not adopted at face value",
+    abs(_fl_f_s - 50.0) < 1e-9 and abs(_fl_f_r - 40.0) < 1e-9,
+    f"supply {_fl_f_s}, return {_fl_f_r} — 122 °F is 50 °C; adopting the raw "
+    "number would hand the lift a 122 °C supply and a 70 K bias",
+)
+
+# -- the learner at both ends of its range ----------------------------------
+_fl_inert = flow_lift.FlowCurveBias()
+R.check(
+    "with zero evidence the bias is exactly 0.0 and the sample count 0",
+    _fl_inert.bias_k == 0.0 and _fl_inert.samples == 0,
+    f"{_fl_inert.as_dict()} — an install that never maps the slot must be "
+    "inert, not approximately inert",
+)
+R.check(
+    "and that is what it persists",
+    _fl_inert.as_dict() == {"bias_k": 0.0, "samples": 0},
+    f"{_fl_inert.as_dict()}",
+)
+R.check(
+    "its two readings start empty too",
+    _fl_inert.last_supply_c is None and _fl_inert.last_return_c is None,
+)
+_fl_lapse = flow_lift.FlowCurveBias()
+_fl_lapse.observe_temps(48.5, 41.0)
+_fl_had = (_fl_lapse.last_supply_c, _fl_lapse.last_return_c)
+_fl_lapse.observe_temps(None, None)
+R.check(
+    "a reading that lapses is cleared, never kept as this cycle's",
+    _fl_had == (48.5, 41.0)
+    and _fl_lapse.last_supply_c is None
+    and _fl_lapse.last_return_c is None,
+    f"before {_fl_had}, after {(_fl_lapse.last_supply_c, _fl_lapse.last_return_c)}"
+    " — an unreadable slot must not keep folding its last supply as fresh",
+)
+_fl_lapse.observe_temps(float("nan"), float("inf"))
+R.check(
+    "and a non-finite reading is no reading",
+    _fl_lapse.last_supply_c is None and _fl_lapse.last_return_c is None,
+)
+R.check(
+    "the clamp is 15 K, the number the module justifies",
+    flow_lift.FLOW_BIAS_CLAMP_K == 15.0,
+    f"{flow_lift.FLOW_BIAS_CLAMP_K}",
+)
+_fl_zero = flow_lift.FlowCurveBias.from_dict({"bias_k": 5.0, "samples": 0})
+_fl_one = flow_lift.FlowCurveBias.from_dict({"bias_k": 5.0, "samples": 1})
+R.check(
+    "a stored bias with zero samples loads as exactly 0.0",
+    _fl_zero.bias_k == 0.0 and _fl_zero.samples == 0,
+    f"{_fl_zero.as_dict()} — no evidence is inert, which is what G3 is told",
+)
+R.check(
+    "the positive control: one sample loads the stored bias",
+    _fl_one.bias_k == 5.0 and _fl_one.samples == 1,
+    f"{_fl_one.as_dict()}",
+)
+
+_fl_hot = flow_lift.FlowCurveBias()
+_fl_hot_worst = 0.0
+for _ in range(200):
+    _fl_hot.observe(75.0, 30.0)
+    _fl_hot_worst = max(_fl_hot_worst, abs(_fl_hot.bias_k))
+R.check(
+    "a stream of large one-sided residuals pins at the clamp, it does not run away",
+    _fl_hot.bias_k == flow_lift.FLOW_BIAS_CLAMP_K
+    and _fl_hot_worst == flow_lift.FLOW_BIAS_CLAMP_K,
+    f"bias {_fl_hot.bias_k} after {_fl_hot.samples} samples of +45 K, worst "
+    f"{_fl_hot_worst} — 45 K past the curve is a probe in the wrong pipe, "
+    "not an installer offset",
+)
+_fl_cold = flow_lift.FlowCurveBias()
+for _ in range(200):
+    _fl_cold.observe(20.0, 65.0)
+R.check(
+    "and it pins on the cold side too, at the same distance",
+    _fl_cold.bias_k == -flow_lift.FLOW_BIAS_CLAMP_K,
+    f"bias {_fl_cold.bias_k}",
+)
+_fl_small = flow_lift.FlowCurveBias()
+for _ in range(200):
+    _fl_small.observe(32.0, 30.0)
+R.check(
+    "the null control: residuals inside the band never reach the clamp",
+    abs(_fl_small.bias_k - 2.0) < 1e-9,
+    f"bias {_fl_small.bias_k} — if the clamp check above passed because the "
+    "learner simply saturates on anything, this would read 15.0 too",
+)
+_fl_seed = flow_lift.FlowCurveBias()
+_fl_seed.observe(40.0, 30.0)
+R.check(
+    "the first sample is the mean, not a tenth of itself",
+    _fl_seed.bias_k == 10.0 and _fl_seed.samples == 1,
+    f"{_fl_seed.as_dict()} — an EWMA seeded at 0.0 would report 1.0 K after "
+    "a 10 K residual and take a week to say what one reading already said",
+)
+
+# -- one place says what the curve is ---------------------------------------
+_fl_model = ThermalModel(ThermalParameters())
+R.check(
+    "curve_supply_temp IS the model's own flow_target_for_indoor",
+    flow_lift.curve_supply_temp(_fl_model, -5.0, 21.0)
+    == _fl_model.flow_target_for_indoor(21.0, -5.0),
+    "W1067-G3 must apply exactly the curve this bias was learned against, so "
+    "there must be one expression of it and this is the check that says so",
+)
+R.check(
+    "and the curve moves with the weather, so the pin above is not vacuous",
+    flow_lift.curve_supply_temp(_fl_model, -15.0, 21.0)
+    > flow_lift.curve_supply_temp(_fl_model, 10.0, 21.0),
+    f"{flow_lift.curve_supply_temp(_fl_model, -15.0, 21.0)} at -15 °C against "
+    f"{flow_lift.curve_supply_temp(_fl_model, 10.0, 21.0)} at 10 °C",
+)
+R.check(
+    "a non-finite outdoor temperature produces no curve rather than a number",
+    flow_lift.curve_supply_temp(_fl_model, float("nan"), 21.0) is None
+    and flow_lift.curve_supply_temp(_fl_model, 0.0, float("nan")) is None,
+    "a NaN residual folded and clamped is silently a sample; None is not",
+)
+
+# -- the efficiency reference is the plan's COP, not the measured lift -------
+# ``_learn_measured_cop`` credits ``modelled_cop * commanded / measured``: the
+# heat the plan intended is commanded power times the COP the plan PRICED, and
+# delivering it at a different electrical input changes the COP by the ratio
+# of the two. A harder lift therefore already arrives as a larger ``measured``.
+# Round 1 of #1068 lifted the reference as well and counted the lift twice.
+# These checks drive a pump generated from the model's own Carnot lift under
+# exactly that model -- true COP Ct = C0 * L(S), drawing P / L(S) -- and pin
+# that the credit is Ct with or without a supply reading. A "lower" check could
+# not separate a correction from a double count; an exact value can.
+_fl_lift_params = ThermalParameters()
+_fl_lift_params.cop_flow_carnot = True
+_fl_lifted = ThermalModel(_fl_lift_params)
+_fl_c0_model = ThermalModel(ThermalParameters())
+
+
+def _fl_model1_gate(outdoor, supply_phys, mapped):
+    """A _CopGate whose pump runs at ``supply_phys`` under the learner's model."""
+    c0 = _fl_c0_model.compute_cop(outdoor)
+    ct = _fl_lifted.compute_cop(outdoor, flow_temp=supply_phys)
+    commanded = 3.0
+    measured = commanded * c0 / ct
+    gate = _CopGate(outdoor=outdoor, action={"power": commanded})
+    gate._measured_power = measured
+    # A persistent ratio, not a blip: the tracking gate judges against it.
+    gate._cop_ratio_ewma = measured / commanded
+    if mapped:
+        gate._flow_bias.observe_temps(supply_phys, supply_phys - 5.0)
+    gate._learn_measured_cop()
+    return gate, c0, ct, measured
+
+
+_fl_m55, _fl_c0, _fl_ct55, _fl_meas55 = _fl_model1_gate(8.0, 55.0, True)
+_fl_u55 = _fl_model1_gate(8.0, 55.0, False)[0]
+_fl_m35, _, _fl_ct35, _ = _fl_model1_gate(8.0, 35.0, True)
+_fl_u35 = _fl_model1_gate(8.0, 35.0, False)[0]
+_fl_cred55 = _fl_m55.cop_health_calls[0][0] if _fl_m55.cop_health_calls else None
+_fl_cred35 = _fl_m35.cop_health_calls[0][0] if _fl_m35.cop_health_calls else None
+R.check(
+    "the reference with a 55 °C supply reading IS the plan's bare curve",
+    _fl_m55._cop_reference_curve()[0]
+    == _fl_m55._thermal_model.compute_cop(8.0)
+    == _fl_u55._cop_reference_curve()[0],
+    f"mapped {_fl_m55._cop_reference_curve()[0]!r}, its own curve "
+    f"{_fl_m55._thermal_model.compute_cop(8.0)!r}, unmapped "
+    f"{_fl_u55._cop_reference_curve()[0]!r}",
+)
+R.check(
+    "at 55 °C, supply mapped, the credited COP is the pump's true COP",
+    _fl_cred55 is not None and abs(_fl_cred55 - _fl_ct55) < 1e-9,
+    f"credited {_fl_cred55!r} against true {_fl_ct55!r} (8 °C outdoor, "
+    f"measured {_fl_meas55:.4f} kW for 3.0 kW commanded)",
+)
+R.check(
+    "and that value is the reviewer's control, 2.2285, not the double count 1.3844",
+    _fl_cred55 is not None
+    and abs(_fl_cred55 - 2.2285) < 5e-5
+    and abs(_fl_cred55 - _fl_ct55 * _fl_ct55 / _fl_c0) > 0.5,
+    f"credited {_fl_cred55!r}; a reference lifted as well would credit "
+    f"{_fl_ct55 * _fl_ct55 / _fl_c0:.4f}",
+)
+R.check(
+    "mapping the supply slot changes nothing the learner credits, bit for bit",
+    _fl_m55.cop_health_calls == _fl_u55.cop_health_calls
+    and _fl_m55._last_measured_cop == _fl_u55._last_measured_cop
+    and _fl_m55._cop_scale == _fl_u55._cop_scale,
+    f"mapped {_fl_m55.cop_health_calls} / {_fl_m55._cop_scale!r}; unmapped "
+    f"{_fl_u55.cop_health_calls} / {_fl_u55._cop_scale!r}",
+)
+R.check(
+    "the accuracy residual reads the true gap between the plan's curve and the pump",
+    _fl_cred55 is not None
+    and abs((_fl_cred55 - _fl_c0_model.compute_cop(8.0)) - (-1.3590)) < 5e-5,
+    f"residual {(_fl_cred55 or 0.0) - _fl_c0_model.compute_cop(8.0):+.4f}; the "
+    "credit and the curve it subtracts are the same curve's",
+)
+R.check(
+    "the envelope's thermal kW is the heat actually delivered",
+    _fl_cred55 is not None
+    and abs(_fl_cred55 * _fl_meas55 - 3.0 * _fl_c0) < 1e-9
+    and abs(_fl_cred55 * _fl_meas55 - 10.7625) < 5e-5,
+    f"{(_fl_cred55 or 0.0) * _fl_meas55:.4f} kW against 10.7625",
+)
+R.check(
+    "the null control: at 35 °C, the reference flow, mapped equals unmapped equals true",
+    _fl_cred35 is not None
+    and abs(_fl_cred35 - _fl_ct35) < 1e-9
+    and _fl_m35.cop_health_calls == _fl_u35.cop_health_calls,
+    f"credited {_fl_cred35!r}, true {_fl_ct35!r}",
+)
+# The measured finding this group must NOT be read as having fixed. The scale
+# update is ``cop_scale * commanded / measured``; the reference curve is not
+# in that expression at all, so no reference can stop it absorbing the lift.
+# What walks with the weather is ``commanded``, which the SOLVER produces --
+# W1067-G3's half.
+_fl_traj_bare, _fl_traj_55 = [], []
+_fl_walk_bare, _fl_walk_55 = _CopGate(outdoor=8.0), _CopGate(outdoor=8.0)
+_fl_walk_55._flow_bias.observe_temps(55.0, 47.0)
+for _ in range(30):
+    _fl_walk_bare._learn_measured_cop()
+    _fl_walk_55._learn_measured_cop()
+    _fl_traj_bare.append(_fl_walk_bare._cop_scale)
+    _fl_traj_55.append(_fl_walk_55._cop_scale)
+R.check(
+    "over thirty samples the scale trajectories with and without a supply reading are identical",
+    _fl_traj_bare == _fl_traj_55,
+    f"bare ends {_fl_traj_bare[-1]!r}, 55 °C ends {_fl_traj_55[-1]!r} — "
+    "target_scale reads no curve, so only pricing the lift (G3) can move it",
+)
+R.check(
+    "and that trajectory is not a flat line the equality could hide behind",
+    _fl_traj_bare[0] != _fl_traj_bare[-1],
+    f"{_fl_traj_bare[0]!r} -> {_fl_traj_bare[-1]!r}",
+)
+
+# -- the fold and its gates --------------------------------------------------
+def _fl_coord(supply=55.0, returned=47.0, action=None, **extra):
+    """A real coordinator on an interval the flow-bias fold should accept."""
+    c = _t2_coord(**extra)
+    c._current_state.outdoor_temperature = -5.0
+    c._current_action = (
+        dict(action) if action else {"power": 3.0, "dhw_power": 0.0}
+    )
+    c._measured_power = 2.6
+    c._flow_bias.observe_temps(supply, returned)
+    return c
+
+
+_fl_fold_ok = _fl_coord()
+_fl_expected_curve = flow_lift.curve_supply_temp(
+    _fl_fold_ok._thermal_model, -5.0, _fl_fold_ok.target_temperature
+)
+# The supply sits 6 K above THAT curve, inside the clamp. At a fixed 55 degC
+# the residual passed the clamp, the expected value was clipped as well, and
+# the check below held with the curve read at the wrong outdoor temperature:
+# a residual pinned at the clamp cannot say which curve produced it.
+_fl_fold_supply = _fl_expected_curve + 6.0
+_fl_fold_ok._flow_bias.observe_temps(_fl_fold_supply, 47.0)
+_fold_flow_lift(_fl_fold_ok, _T6)
+R.check(
+    "the control: a space-dominant interval with a fresh supply reading folds",
+    _fl_fold_ok._flow_bias.samples == 1,
+    f"{_fl_fold_ok._flow_bias.as_dict()}",
+)
+_fl_expected_bias = _fl_fold_supply - _fl_expected_curve
+R.check(
+    "and what it folded is the measured supply against THAT curve",
+    _fl_fold_ok._flow_bias.bias_k == _fl_expected_bias
+    and abs(_fl_expected_bias) < flow_lift.FLOW_BIAS_CLAMP_K,
+    f"bias {_fl_fold_ok._flow_bias.bias_k} against a curve of "
+    f"{_fl_expected_curve:.3f} °C, expected {_fl_expected_bias} — inside "
+    "the clamp, so a fold against any other curve reads a different number",
+)
+R.check(
+    "the return reading is held but is not what the bias is learned from",
+    _fl_fold_ok._flow_bias.last_return_c == 47.0,
+    "the curve is a SUPPLY curve; the return is held for the diagnostics and "
+    "for W1067-G3",
+)
+for _fl_name, _fl_kwargs, _fl_mutate in (
+    ("no supply reading at all", {"supply": None}, None),
+    (
+        "a duty below the efficiency learner's own floor",
+        {"action": {"power": 0.4, "dhw_power": 0.0}},
+        None,
+    ),
+    (
+        "a hot-water-dominant commanded split",
+        {"action": {"power": 0.2, "dhw_power": 3.0}},
+        None,
+    ),
+    (
+        "learners frozen",
+        {},
+        lambda c: setattr(c, "_external_heat_active", True),
+    ),
+    (
+        "the meter's own immersion latch",
+        {},
+        lambda c: setattr(c, "_immersion_active", True),
+    ),
+    (
+        "the pump's own backup heater",
+        {},
+        lambda c: setattr(
+            c,
+            "_pump_signals",
+            pump_signals.PumpSignals(
+                electric_heat=pump_signals.PumpElectricHeat(
+                    backup_heater=True
+                )
+            ),
+        ),
+    ),
+    (
+        "night mode",
+        {},
+        lambda c: setattr(
+            c,
+            "_pump_signals",
+            pump_signals.PumpSignals(
+                electric_heat=pump_signals.PumpElectricHeat(
+                    capacity_limited=True
+                )
+            ),
+        ),
+    ),
+):
+    _fl_blocked = _fl_coord(**_fl_kwargs)
+    if _fl_mutate is not None:
+        _fl_mutate(_fl_blocked)
+    _fold_flow_lift(_fl_blocked, _T6)
+    R.check(
+        f"with {_fl_name} nothing folds",
+        _fl_blocked._flow_bias.samples == 0
+        and _fl_blocked._flow_bias.bias_k == 0.0,
+        f"{_fl_blocked._flow_bias.as_dict()}",
+    )
+
+# -- persistence is additive -------------------------------------------------
+_fl_store = _t2_coord()
+_fl_store._flow_bias.observe(40.0, 34.0)
+_fl_payload = _fl_store._thermal_learning_payload()
+R.check(
+    "the bias rides the thermal-learning payload",
+    _fl_payload["flow_bias"] == {"bias_k": 6.0, "samples": 1},
+    f"{_fl_payload.get('flow_bias')}",
+)
+_fl_load = _t2_coord()
+_fl_load._load_t4b_learners(_fl_payload)
+R.check(
+    "and comes back through the one parser both the store and the snapshot use",
+    _fl_load._flow_bias.bias_k == 6.0 and _fl_load._flow_bias.samples == 1,
+    f"{_fl_load._flow_bias.as_dict()}",
+)
+_fl_old = _t2_coord()
+_fl_old._load_t4b_learners({"cop_scale": 1.0})
+R.check(
+    "a payload from before the key existed loads to inert, not to a crash",
+    _fl_old._flow_bias.samples == 0 and _fl_old._flow_bias.bias_k == 0.0,
+    "that is what 'additive' has to mean, and why no store version was bumped",
+)
+R.check(
+    "corrupt stored state restores to inert too",
+    flow_lift.FlowCurveBias.from_dict({"bias_k": "nonsense"}).samples == 0
+    and flow_lift.FlowCurveBias.from_dict(None).bias_k == 0.0
+    and flow_lift.FlowCurveBias.from_dict(
+        {"bias_k": 900.0, "samples": 3}
+    ).bias_k
+    == flow_lift.FLOW_BIAS_CLAMP_K,
+    "a store written by a build with a wider clamp must not reintroduce a "
+    "bias this build would never have learned",
+)
+
+# -- and a snapshot restore RESETS it ---------------------------------------
+_fl_snap = _t2_coord()
+_fl_snap._flow_bias.observe(40.0, 34.0)
+_fl_snap._apply_learner_payloads({"thermal_learning": {"cop_scale": 1.0}})
+R.check(
+    "restoring a snapshot from before this feature existed yields no evidence",
+    _fl_snap._flow_bias.samples == 0 and _fl_snap._flow_bias.bias_k == 0.0,
+    f"{_fl_snap._flow_bias.as_dict()} — without the reset the parser leaves "
+    "today's drifted bias in place and the rollback silently keeps the thing "
+    "it was asked to roll back",
+)
+_fl_snap_ok = _t2_coord()
+_fl_snap_ok._flow_bias.observe(40.0, 34.0)
+_fl_snap_ok._apply_learner_payloads(
+    {"thermal_learning": {"flow_bias": {"bias_k": 3.5, "samples": 9}}}
+)
+R.check(
+    "the positive control: a snapshot that carries one restores exactly it",
+    _fl_snap_ok._flow_bias.bias_k == 3.5
+    and _fl_snap_ok._flow_bias.samples == 9,
+    f"{_fl_snap_ok._flow_bias.as_dict()} — if the reset above passed because "
+    "the restore path simply never writes a bias, this would read 0.0",
+)
+
 
 R.section("v5.3.0 — defrost: duty is measured, the derate is physics")
 

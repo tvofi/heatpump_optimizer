@@ -263,11 +263,16 @@
    "resets": 0
   },
   "heat_pump_signals": {
+   "backup_heater": null,
+   "capacity_limited": null,
+   "compressor_draw_distorted": false,
    "concurrent_duties": false,
    "cooling": false,
    "defrosting": null,
    "dhw_available": true,
    "dhw_blocked": false,
+   "dhw_booster": null,
+   "dhw_booster_started": false,
    "fault": null,
    "freeze_reason": null,
    "mode": "Unknown",
@@ -275,6 +280,7 @@
    "mode_source": "absent",
    "mode_state": null,
    "online": null,
+   "resistive_heat": false,
    "space_blocked": false,
    "space_heat_available": true
   },

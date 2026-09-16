@@ -32,8 +32,17 @@ finding), C9 having been turned true by its own fix already:
     RESULT claims_unverifiable=2    (1 with --links; the checker runs the default)
     RESULT config_defaults_compared=82   (76 until #937's rows landed)
     RESULT config_ranges_compared=86     (76 until #937's rows landed)
-    RESULT arch_modules_on_disk=56       (architecture.md said 45)
-    RESULT arch_map_listed=56            (was 45; 11 were missing)
+    RESULT arch_modules_on_disk=57       (architecture.md said 45; 56 until
+                                         #1067's learner half added
+                                         flow_lift.py, which the module map
+                                         and the opening counts gained in the
+                                         same commit -- this header is an
+                                         ASSERTION tests/harness_headers.py
+                                         executes, reached by a shell-out no
+                                         closure records, so it never reddens
+                                         a pull request and is re-measured by
+                                         whoever changes what it prints)
+    RESULT arch_map_listed=57            (was 45; 11 were missing)
     RESULT arch_map_missing=0            (was 11)
     RESULT ha_module_level_importers=21  (architecture.md said 10; now says 21)
 

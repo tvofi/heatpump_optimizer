@@ -235,3 +235,38 @@
 # byte-identically, which is why recording here is honest. (That diff is
 # this file's BASELINE since the merge that resolved this conflict: its
 # claims were consumed there and are not restated.)
+
+# Wave 1067 (the Rotenso Windmi optional inputs): this branch claims the five
+# coordinator captures and config_flow, and the direction is ADD-ONLY on all
+# six. Nothing else moved: every plan fixture is byte-identical here.
+#
+# The coordinator captures gain exactly six keys under
+# data.heat_pump_signals -- the two heater flags, the capacity-limited flag,
+# the two derived predicates and the booster's rising edge -- because
+# PumpElectricHeat.as_dict() is splatted into PumpSignals.as_dict(). Every
+# one lands at its no-evidence value, null or false, so an install mapping
+# none of the three new slots publishes what it always did. Measured, not
+# assumed: `git diff --numstat` over the five captures is 6 insertions and
+# 0 deletions each, and no pre-existing leaf appears in the diff at all.
+#
+# config_flow gains fifteen leaves: five new option keys, each appearing in
+# the plain render, the seeded render and the seed map that #547 added.
+# Recording as well as claiming is correct for this fixture and only this
+# one, for #547's reason -- it is the single fixture carries_floats()
+# reports False for, so env_drift compares it EXACTLY at level 1, and a
+# claim alone would leave that level failing against a file the code no
+# longer produces.
+#
+# Why claimed rather than only re-recorded: the two seats that produced
+# these commits both reasoned that a new key path is a re-record and not a
+# claim, and left the claim file untouched. env_drift refuted that -- a
+# fixture that moved against the baseline and is not may-drift must be
+# declared whatever the shape of the move -- and it failed the gate until
+# this entry existed. The re-record is how the committed file stops being
+# stale; the claim is how the branch states that it moved it on purpose.
+coord_minimal  # ADD-ONLY: six new heat_pump_signals keys, all null/false
+coord_dhw  # ADD-ONLY: six new heat_pump_signals keys, all null/false
+coord_two_zone  # ADD-ONLY: six new heat_pump_signals keys, all null/false
+coord_grid_fee  # ADD-ONLY: six new heat_pump_signals keys, all null/false
+coord_all_features  # ADD-ONLY: six new heat_pump_signals keys, all null/false
+config_flow  # ADD-ONLY: five new option keys across plain, seeded and seed map

@@ -3439,7 +3439,7 @@ async def registry_walk_recurses():
     one-level walk over a grouped page returns nothing and every assertion
     built on it passes vacuously. The wide pages are grouped in this branch;
     this check still uses a synthetic wrap of the ungrouped pump page so the
-    recursion is proved against a known four-key set, not only against the
+    recursion is proved against a known, named key set, not only against the
     production grouping.
     """
     R.section("options: the registry walk reaches fields inside a section()")
@@ -3467,11 +3467,20 @@ async def registry_walk_recurses():
         const.CONF_HEAT_PUMP_DEFROST_ENTITY,
         const.CONF_HEAT_PUMP_ONLINE_ENTITY,
         const.CONF_HEAT_PUMP_FAULT_ENTITY,
+        # #1067: the pump's own electric heat and its night mode, on the same
+        # page. Named here rather than counted for the reason above -- a
+        # count would go on agreeing while a picker stopped rendering.
+        const.CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
+        const.CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
+        const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
+        # #1067 again: the pump's own supply and return water, same page.
+        const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
+        const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
     }
     check(
         "registry",
         "happy",
-        "the four pump signals are reached through a section() too",
+        "every pump-telemetry picker is reached through a section() too",
         set(offered_entity_fields(grouped(inner))) == signals
         and set(flat_fields) == signals,
         f"flat {sorted(flat_fields)}, "

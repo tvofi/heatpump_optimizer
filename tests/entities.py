@@ -4433,6 +4433,27 @@ _SIGNAL_KEYS = (
     const.CONF_HEAT_PUMP_ONLINE_ENTITY,
     const.CONF_HEAT_PUMP_FAULT_ENTITY,
 )
+# #1067: three more, on the same page and just as optional -- the pump's own
+# electric backup heater, its hot-water tank booster, and night (silent) mode.
+# They are OPTIONS-ONLY: deliberately absent from ``topology._SLOTS``, on the
+# precedent of the compressor-frequency keys, because they are not places on
+# the plant diagram. That is what keeps ``ASSIGNABLE_KEYS`` at the size
+# ``assign_entity`` and docs/configuration.md both document, so the checks
+# below that read ``ASSIGNABLE_KEYS`` run over the card-slot subset only.
+_PUMP_ONLY_KEYS = (
+    const.CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
+    const.CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
+    const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
+)
+# #1067 again, with the group's second half: the pump's own supply (flow) and
+# return water. Options-only for the same reason -- a reading off the machine
+# is not a place on the plant diagram -- but a TEMPERATURE picker rather than
+# a flag one, so they get their own loop below.
+_PUMP_TEMP_KEYS = (
+    const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
+    const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+)
+_PUMP_PAGE_KEYS = _SIGNAL_KEYS + _PUMP_ONLY_KEYS + _PUMP_TEMP_KEYS
 # The four pump signals moved to entities_pump when the entities page split (#198).
 _pump_flow = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t"}))
 _pump_flow.hass = FakeHass()
@@ -4441,7 +4462,14 @@ _pump_schema = _pump_form["data_schema"]
 _pump_fields = {
     str(getattr(k, "schema", k)): k for k in _pump_schema.schema
 }
-for _key in _SIGNAL_KEYS:
+def _pump_domains(key):
+    """The domains the page's picker for ``key`` actually offers."""
+    return list(
+        _pump_schema.schema[_pump_fields[key]].config["filter"][0]["domain"]
+    )
+
+
+for _key in _PUMP_PAGE_KEYS:
     R.check(
         f"{_key} is offered on the entities_pump page",
         _key in _pump_fields,
@@ -4456,6 +4484,10 @@ for _key in _SIGNAL_KEYS:
         _key in options._ENTITIES_PUMP_KEYS,
         "options merge over setup data, so an absent key restores the old value",
     )
+# The card-slot subset: these four have a row in ``topology._SLOTS``, so the
+# picker and the assign service must offer one list rather than two spellings
+# of it.
+for _key in _SIGNAL_KEYS:
     R.check(
         f"{_key} is a topology slot, so the card and the service agree",
         _key in topology.ASSIGNABLE_KEYS,
@@ -4463,14 +4495,63 @@ for _key in _SIGNAL_KEYS:
     R.check(
         f"the picker for {_key} offers exactly its slot's domains",
         _pump_fields[_key] is not None
-        and list(
-            _pump_schema.schema[_pump_fields[_key]].config["filter"][0][
-                "domain"
-            ]
-        )
-        == list(topology.ASSIGNABLE_KEYS[_key]),
+        and _pump_domains(_key) == list(topology.ASSIGNABLE_KEYS[_key]),
         "one list, or the diagram offers what the service would refuse",
     )
+# The options-only three have no slot to agree with, so what they owe instead
+# is that they are NOT assignable -- adding them would change the documented
+# key list `assign_entity` publishes -- and that their pickers still come from
+# the one flag-domain tuple rather than a repeated literal.
+for _key in _PUMP_ONLY_KEYS:
+    R.check(
+        f"{_key} is options-only, not a card slot",
+        _key not in topology.ASSIGNABLE_KEYS,
+        "assign_entity's key list and docs/configuration.md document a fixed "
+        "set of assignable slots; these three are not places on the diagram",
+    )
+    R.check(
+        f"the picker for {_key} offers the shared flag domains",
+        _pump_domains(_key) == list(topology.FLAG_DOMAINS),
+        f"{_pump_domains(_key)} against {list(topology.FLAG_DOMAINS)} -- one "
+        "tuple, not a second spelling of it",
+    )
+# The two water slots owe the same "not a card slot", plus the one thing a
+# temperature picker owes that a flag picker does not: a device class, so the
+# list a user scrolls is thermometers rather than every sensor in the house.
+for _key in _PUMP_TEMP_KEYS:
+    R.check(
+        f"{_key} is options-only, not a card slot",
+        _key not in topology.ASSIGNABLE_KEYS,
+        "a reading off the pump is not a place on the plant diagram, and "
+        "adding it would change the documented assignable key list",
+    )
+    R.check(
+        f"the picker for {_key} is a temperature sensor picker",
+        _pump_domains(_key) == ["sensor"]
+        and list(
+            _pump_schema.schema[_pump_fields[_key]].config["filter"][0][
+                "device_class"
+            ]
+        )
+        == ["temperature"],
+        "the same narrowing every other water temperature on the plant uses",
+    )
+R.check(
+    "and it really narrows: a flag slot on the same page offers no device class",
+    "device_class"
+    not in _pump_schema.schema[
+        _pump_fields[const.CONF_HEAT_PUMP_FAULT_ENTITY]
+    ].config["filter"][0],
+    "the null control for the check above: if every picker on this page "
+    "carried a device class, asserting one would prove nothing",
+)
+R.check(
+    "and the flag-domain tuple really is the one the card slots use",
+    list(topology.ASSIGNABLE_KEYS[const.CONF_HEAT_PUMP_FAULT_ENTITY])
+    == list(topology.FLAG_DOMAINS),
+    "the null control for the check above: if FLAG_DOMAINS were a private "
+    "copy, comparing against it would prove nothing",
+)
 
 # Round trip: set all four, save, read them back; then clear them and check
 # the clearing sticks rather than being undone by the options merge.
@@ -4481,6 +4562,11 @@ _sig_values = {
     const.CONF_HEAT_PUMP_DEFROST_ENTITY: "binary_sensor.pump_defrost",
     const.CONF_HEAT_PUMP_ONLINE_ENTITY: "binary_sensor.pump_online",
     const.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.pump_fault",
+    const.CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY: "switch.pump_backup_heater",
+    const.CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY: "switch.pump_dhw_booster",
+    const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "switch.pump_night_mode",
+    const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: "sensor.hp_supply_temp",
+    const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: "sensor.hp_return_temp",
 }
 _sig_form = asyncio.run(_sig_flow.async_step_entities_pump(None))
 _sig_result = asyncio.run(
@@ -4526,9 +4612,9 @@ _sig_cleared_result = asyncio.run(
 )
 _sig_cleared = _sig_cleared_result.get("data") or {}
 R.check(
-    "and clearing all four sticks",
-    all(_sig_cleared.get(_key) is None for _key in _SIGNAL_KEYS),
-    str({k: _sig_cleared.get(k) for k in _SIGNAL_KEYS}),
+    "and clearing every one of them sticks",
+    all(_sig_cleared.get(_key) is None for _key in _PUMP_PAGE_KEYS),
+    str({k: _sig_cleared.get(k) for k in _PUMP_PAGE_KEYS}),
 )
 
 # The null case, which is the one every existing install runs: nothing

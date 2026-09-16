@@ -80,7 +80,18 @@ _TEMP = ("sensor", "number", "input_number")
 # binary_sensor, as a switch (some integrations expose writable DPs that way),
 # as an input_boolean mirroring one, or as a plain sensor carrying the raw
 # code — so all four are accepted and `inputs.parse_bool` reconciles them.
-_FLAG = ("binary_sensor", "switch", "input_boolean", "sensor")
+#: Public because the options flow needs the same four domains for the
+#: electric-heat and night-mode slots, which are options-only and so have no
+#: row in ``_SLOTS`` to read them from. One tuple, not two spellings of one:
+#: a picker that offers what the assign service would refuse is the defect
+#: this table exists to prevent.
+FLAG_DOMAINS: tuple[str, ...] = (
+    "binary_sensor",
+    "switch",
+    "input_boolean",
+    "sensor",
+)
+_FLAG = FLAG_DOMAINS
 _MODE = ("select", "sensor", "input_select")
 
 # What a slot is asking for, where the answer is narrower than the domains it
