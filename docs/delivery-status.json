@@ -1,9 +1,39 @@
 {
-  "verdict": "EMPTY",
+  "verdict": "OK",
   "stale_after_commits": 12,
-  "merges": [],
+  "merges": [
+    {
+      "number": 1058,
+      "title": "Records the owner's 2026-09-16 ruling: merge commits are correct, and the",
+      "merge_sha": "cb30d98bfb677d2bd4f73054ee716a9359e3adfa",
+      "commits_after": 0,
+      "state": "rowed"
+    },
+    {
+      "number": 1054,
+      "title": "prepr.sh could not fire the ## Approval requirement, so a body that owed one",
+      "merge_sha": "dfd9b545f69b8f0435ece9d5fde68486840819e4",
+      "commits_after": 1,
+      "state": "rowed"
+    },
+    {
+      "number": 1056,
+      "title": "The delivery ledger collected nothing, so its OVERDUE detector could not fire.",
+      "merge_sha": "c6622741293d97f02bd433ccf678b6ace894554c",
+      "commits_after": 2,
+      "state": "rowed"
+    },
+    {
+      "number": 1055,
+      "title": "An unresolvable --since ref printed a confident zero at rc=0.",
+      "merge_sha": "a462c5058a1e7dabecf608e0682869f0f4a9e696",
+      "commits_after": 3,
+      "state": "rowed"
+    }
+  ],
+  "unattributed": [],
   "counts": {
-    "rowed": 0,
+    "rowed": 4,
     "pending": 0,
     "overdue": 0
   }
