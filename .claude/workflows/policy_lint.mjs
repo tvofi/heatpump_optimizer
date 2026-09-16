@@ -332,7 +332,7 @@ function uncoveredPolicyFiles(files = null) {
 // an earlier version of this comment openly invited, and it silently voids the
 // check, because the loop passes the POLICY FILE list and every policy file is
 // covered by definition. Hence the name, and hence asserting names.
-const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'orphanCapsOverTree', 'requiredContextsOverTree', 'checkProvenance']
+const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'orphanCapsOverTree', 'requiredContextsOverTree', 'checkProvenance', 'rowFreezeOverPlan']
 
 // THE RECORD MODE'S CHECKS, enumerated HERE beside the corpus list rather than
 // in the mutation lane, for the reason the corpus list gives about itself: a
@@ -1429,6 +1429,50 @@ const MERGE_SUBJECT_RE = /\(#(\d+)\)\s*$/
 // from a checkout.
 const DISPOSITION_FILES = ['docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md']
 
+// AND ONE FILE PER PULL REQUEST, `docs/delivery/<N>.md` -- the owner's choice on
+// #201 (comment 5704121269) of the countermeasure costed in 5704098870. Every
+// branch appended its row at the same seam of one table, so each merge left
+// every open branch DIRTY: 31 row-only conflicts over 40 merges. A file per
+// number shares no seam with any other. A file speaks for <N> only through a
+// line anchoring <N> itself (`rowAnchor`), so a misnamed file dispositions nobody.
+const ROW_DIR = 'docs/delivery'
+function rowFiles() {
+  let names = []
+  try { names = fs.readdirSync(path.join(ROOT, ROW_DIR)) } catch { return {} }
+  return Object.fromEntries(names.flatMap((n) => (/^\d+\.md$/.test(n) ? [[n.slice(0, -3), read(`${ROW_DIR}/${n}`) ?? '']] : [])))
+}
+
+// The table stops growing. What it held when the files began stays a valid
+// disposition, as do the rows four open branches (#1068 two, #1073, #1074,
+// #1077) had already written; past these counts a new row is refused before it
+// merges and belongs in a file. One-sided, like a budget: moving rows out is free.
+const ROW_FREEZE = { rows: 41, anchors: 354 }
+// A corpus check, so it runs pre-merge on every pull request and the mutation
+// lane empties it; the source is swapped by the acceptance, as coverage's is.
+let rowFreezeSource = () => read(DISPOSITION_FILES[0]) ?? ''
+function rowFreezeOverPlan() {
+  return checkRowFreeze(rowFreezeSource())
+}
+function checkRowFreeze(planText, freeze = ROW_FREEZE) {
+  let inside = false
+  let table = 0 // 0 before the section's first table, 1 inside it, 2 after
+  const n = { rows: 0, anchors: 0 }
+  for (const line of planText.split('\n')) {
+    const h2 = /^##\s+(.*?)\s*$/.exec(line)
+    if (h2) { inside = h2[1] === RECORD_SECTION; continue }
+    if (!inside) continue
+    if (table < 2 && line.startsWith('|')) { table = 1; if (!/^\|[\s|:-]+\|\s*$/.test(line)) n.rows++ }
+    else if (table === 1) table = 2
+    if (rowAnchor(line)) n.anchors++
+  }
+  return Object.keys(freeze).filter((k) => n[k] > freeze[k]).map((k) => ({
+    severity: 'error',
+    check: 'row-freeze',
+    where: DISPOSITION_FILES[0],
+    message: `\`## ${RECORD_SECTION}\` holds ${n[k]} ${k === 'rows' ? 'rows in its first table' : 'anchored pull-request rows'}, over the ${freeze[k]} frozen when rows moved to one file per pull request. Write the row as ${ROW_DIR}/<N>.md, anchored \`- [#N](.../pull/N)\`, and take it out of the table: a row at the table's end conflicts with every other open branch.`,
+  }))
+}
+
 function mainRef() {
   const ok = git(['rev-parse', '--verify', '--quiet', 'origin/main'], { allowFail: true }).trim()
   return ok ? 'origin/main' : 'HEAD'
@@ -1581,7 +1625,7 @@ export function enumSkipLine(why) {
 // defect from an unrecorded merge and reads nothing like it.
 const RECORD_SECTION = 'Delivery status'
 
-function recordRegion(planText, handoverText) {
+function recordRegion(planText, handoverText, files = {}) {
   const out = []
   let inside = false
   for (const line of planText.split('\n')) {
@@ -1589,7 +1633,8 @@ function recordRegion(planText, handoverText) {
     if (h2) inside = h2[1] === RECORD_SECTION
     else if (inside) out.push(line)
   }
-  return { region: out.join('\n') + '\n' + handoverText, sectionFound: out.length > 0 }
+  const rows = Object.entries(files).flatMap(([n, text]) => text.split('\n').filter((l) => rowAnchor(l) === n))
+  return { region: [...out, ...rows].join('\n') + '\n' + handoverText, sectionFound: out.length > 0 }
 }
 
 // --record. Pure over its two inputs so the acceptance can hand it a fixture
@@ -2381,7 +2426,7 @@ const REQUIRED_ROT = {
   },
 }
 
-CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance)
+CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan)
 
 // SILENT ON A HEALTHY INPUT. A count-and-substring pin proves a check can still
 // refuse; it cannot prove the check is not refusing everything. Each loop mode
@@ -2784,6 +2829,27 @@ function assertAcceptance(derived) {
   const regCrossLink = recordRegion(
     `## ${RECORD_SECTION}\n- [#9112](x/pull/9113) the anchor text and the link disagree. #9114 landed here.\n`, '')
   if (checkRecord([{ pr: '9114', subject: 's' }], regCrossLink.region).length !== 0) regFail.push('a row whose anchor text and link name different pull requests suppressed a mention')
+  // AND THE ROW FILES. A file dispositions its own number and nothing else: a
+  // misnamed file, or another number in its prose, is refused; and files alone
+  // never stand in for a missing section. Then the freeze, both counts, at the
+  // cap and one over, with a second table and a later section as null controls.
+  pins += 10
+  const rowIn = recordRegion('## other\n', '', { 9115: '- [#9115](x/pull/9115) merged\n' })
+  const rowBad = recordRegion(`## ${RECORD_SECTION}\n`, '', { 9116: '- [#9117](x/pull/9117) misnamed. #9118 too.\n' })
+  if (checkRecord([{ pr: '9115', subject: 's' }], rowIn.region).length !== 0) regFail.push('a row file did not disposition its own pull request')
+  if (checkRecord([{ pr: '9116', subject: 's' }, { pr: '9117', subject: 's' }, { pr: '9118', subject: 's' }], rowBad.region).length !== 3) regFail.push('a misnamed row file, or a number in its prose, counted as a disposition')
+  if (rowIn.sectionFound) regFail.push('row files stood in for a missing section')
+  const frz = (rows, anchors) => `## ${RECORD_SECTION}\n| a |\n|---|\n${'| r |\n'.repeat(rows)}\n| b |\n|---|\n| other table |\n${'- [#9120](x/pull/9120) r\n'.repeat(anchors)}## later\n| r |\n- [#9121](x/pull/9121) r\n`
+  const cap = { rows: 3, anchors: 2 }
+  if (checkRowFreeze(frz(2, 2), cap).length !== 0) regFail.push('a table AT its freeze was refused, or a second table or a later section was counted')
+  if (checkRowFreeze(frz(3, 2), cap).length !== 1) regFail.push('a first table one row over its freeze was not refused')
+  if (checkRowFreeze(frz(2, 3), cap).length !== 1) regFail.push('one anchored row over the freeze was not refused')
+  if (checkRowFreeze(frz(3, 3), cap).length !== 2) regFail.push('the two freeze counts are not independent')
+  if (checkRowFreeze(`# plan\n${'| r |\n'.repeat(50)}`, cap).length !== 0) regFail.push('rows outside the section were counted')
+  const liveSource = rowFreezeSource
+  rowFreezeSource = () => frz(ROW_FREEZE.rows, 0)
+  if (rowFreezeOverPlan().length !== 1) regFail.push('the wired freeze check does not read its source, or reads it against no freeze')
+  rowFreezeSource = liveSource
   if (regFail.length) {
     console.log(`\nFIXTURE VACUOUS: recordRegion ${JSON.stringify(regFail)}. The record's region is what makes a mention a disposition; unpinned, it can be widened back to the whole file with every other count unchanged.`)
     return 1
@@ -4039,7 +4105,7 @@ function cmdRecordDispositions(since) {
   // verdict lines below keep their semantics, so what a seat reads beside them
   // is the marker, not a silent green.
   if (enumerated.why) console.log(enumSkipLine(enumerated.why))
-  const { region, sectionFound } = recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '')
+  const { region, sectionFound } = recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '', rowFiles())
   const all = sectionFound
     ? checkRecord(prs, region)
     : [{ severity: 'error', check: 'record', where: DISPOSITION_FILES[0],
@@ -4200,7 +4266,7 @@ function main() {
     // the record class over a window it could not derive would write `0` into
     // the known-bad file as a MEASUREMENT. `requireSince` only refuses a ref
     // that was given, so the no-window reseed below is unaffected.
-    if (since) findings.push(...checkRecord(mergedPRsFromWindow(requireSince(since, '--record-known-bad')).prs, recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '').region))
+    if (since) findings.push(...checkRecord(mergedPRsFromWindow(requireSince(since, '--record-known-bad')).prs, recordRegion(read(DISPOSITION_FILES[0]) ?? '', read(DISPOSITION_FILES[1]) ?? '', rowFiles()).region))
     return cmdRecord(findings, { measuredRecord: !!since }), process.exit(0)
   }
 

@@ -75,7 +75,7 @@ matches it, with a cap in `policy_budgets.json`.
 | `claim-files.md` | the `claimnotes` merge driver and its refusal; a branch that claims nothing leaves both claim files byte-identical; a `DIRTY` pull request does not go red, it cannot run |
 | `comment-readback.md` | post an issue or pull-request comment by running `gh_comment.py`, and read back what landed — a read-back leaves an artifact another seat reads, which a warning about the flag does not |
 | `defect-root-cause.md` | a defect that reached a release, or turned a PR red on a check a cheaper detector could have run, owes a cause, a process state and a countermeasure or a recorded refusal |
-| `delivery-status-tracking.md` | Delivery-status, roster `resume`, and one #201 comment per state change — at each merge, not at session end; the table outranks any wave body that disagrees |
+| `delivery-status-tracking.md` | a PR's row as `docs/delivery/<N>.md`, roster `resume`, and one #201 comment per state change — at each merge, not at session end; the record outranks any wave body |
 | `finding-propagation.md` | a finding that changes how a later stage must work goes into that stage's own brief before the producing pull request merges — a PR comment records it, it does not propagate it |
 | `gate-scoping.md` | how to run the scoped gate, the `gate_lock.py` lease, and never a full `derive_closures.sh` off Linux — that path replaced the Linux recordings and cost one lane most of its closure |
 | `ratchet-budgets.md` | three one-sided caps, because the floor prices a session that opens nothing and a split lowers it without deleting a line; re-record it only alongside a flat corpus and flat role caps |
@@ -191,9 +191,9 @@ Tracking issue **#201**; its newest comment is the live state, and nothing in
 the tree competes with it for that job.
 
 Four places carry the rest, and each answers a different question. The plan of
-record is `docs/plan-2026-09-open-issues.md`, whose Delivery-status table is
-authoritative where it and a wave body disagree — so if that table looks stale
-against #201, the table is the bug and fixing it is the first task.
+record is `docs/plan-2026-09-open-issues.md`; its frozen Delivery-status table
+and `docs/delivery/` outrank a wave body that disagrees — if they look stale
+against #201, they are the bug and fixing them comes first.
 `docs/HANDOVER.md` carries what the code cannot say: decisions and why,
 corrections to the record, the traps a previous session hit, and owed work.
 `.claude/workflows/wave-*-groups.json` hold the per-group briefs, each with a

@@ -63,6 +63,14 @@ Five principles decide it, each a measured fact rather than a preference.
 Updated as the program lands; each row names the release that carried it.
 Where this table and a wave body disagree, this table is the truth.
 
+**Frozen for new pull-request rows** (owner, #201 comment 5704121269): every
+branch appended here, so each merge left every other open branch `DIRTY` — 31
+row-only conflicts in 40 merges (5704098870). A pull request now writes its row
+as `docs/delivery/<N>.md`, anchored `- [#N](…/pull/N)`. `policy_lint --record`
+reads both; its default run, on every pull request, refuses this table or the
+anchored rows below growing past the counts frozen with it. Rows already here
+stay valid.
+
 | Wave | Scope | Issues | Release | Status |
 |---|---|---|---|---|
 | 0 | stamp REST fallback (#376); then #367, #368 | #364, #282 | **v6.3.10** | **done** — all three merged, both reviews `merge`, tag `d7fa97f`, 0 unstamped |
@@ -698,7 +706,8 @@ conflict; only the total is stated here. The geometry was right and the adoption
 was zero, because nothing routes a row anywhere and this paragraph is the only
 thing that asks.
 
-**So do not read the two insertion points as a mechanism.** There is no
+**Superseded on 2026-09-16 by one file per pull request** — the note at the top of
+this section; what follows is history. **So do not read the two insertion points as a mechanism.** There is no
 mechanical notion of a lane here to enforce one with — branch prefixes name
 sessions, not lanes, and one session uses several. **Append wherever the
 document reads best and expect to resolve the seam by hand**, per row against
