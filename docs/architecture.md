@@ -153,7 +153,7 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-21 of the 56 modules import `homeassistant` at module level: `__init__`,
+21 of the 57 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `away`, `boost`, `currency`, `dhw_learning`,
