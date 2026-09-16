@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: d1a531beefac5fe0c96d3ef63266dc0e5e4d27dd
+updated-for: cb30d98bfb677d2bd4f73054ee716a9359e3adfa
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is
@@ -39,6 +39,12 @@ the harness loads on this very path. Delivery status is
 - **Every sentence earns its place** (owner-directed, 2026-09-07). The rule, its
   scope and its controls are in `.claude/rules/writing-for-agents.md`; recorded
   here so that the decision to adopt it is not relitigated.
+- **A body long from disclosed self-corrections is re-cut by relocating them
+  here** (PR #1058 `## Friction`, seen by the owner). `fixer.md`'s fourth-round
+  re-cut and `writing-for-agents.md`'s *cutting evidence is never compliance*
+  pointed opposite ways and neither said which wins. The tie-break: `CLAUDE.md`
+  gives this file *corrections to the record*, and a disclosed self-correction
+  is one — move them into that section and re-cut the body with nothing cut.
 - **A policy merge needs the owner's approval, per pull request** (owner,
   2026-09-09, ADR 0007). A **session grant** of the 0001/0006 shape is the
   option, not the default: it names the session, restates the six
@@ -229,7 +235,8 @@ in its own pull request.
     `datetime.fromisoformat` with an explicit UTC now.
 17. **Backticks inside a double-quoted shell string are command substitution.**
     Three review comments were posted with their SHAs silently missing. Write
-    the body to a file with a quoted heredoc and pass `-F body=@file`.
+    the body to a file with a quoted heredoc and hand it to `gh_comment.py
+    --body-file`.
 18. **A citation and its referent can live on two branches, and the relation
     between them is invisible to every branch-scoped check.** Two green branches
     merged to a red `main` with no conflict and no shared file: one landed a
@@ -266,7 +273,9 @@ in its own pull request.
     Map by commit subject and verify the tip's pin count: by index once shifted
     eight branches by one, and only that count noticed.
 25. **A citation repointed to a commit that resolves but lacks the file is
-    worse than a dead one.** `git cat-file -e <sha>:<path>`, not per directory.
+    worse than a dead one.** Graduated for the corpus and the rosters:
+    `citations` refuses a tag-cited path the tag does not carry. Elsewhere,
+    `git cat-file -e <sha>:<path>`, not per directory.
 26. **A body's count of its own diff must come from the diff.** #621's body
     said five disposition rows; the diff added nine, because the author counted
     what they remembered writing. Derive a body's counts by mutating the
@@ -365,6 +374,14 @@ in its own pull request.
     backticked text first** — 12 table rows here before the repair, 0 after.
     Without it the bullet arm fires on already-repaired prose, and #582's row
     on its own leftover; **count those with your own vocabulary.**
+37. **A read-back that checks an id and a URL passes a body the API rewrote.**
+    PR #1058's provenance comment published a script whose field separator was
+    a JSON unicode escape for the unit separator; the API converted the escape
+    to the control character, so the published script was not the script that
+    ran — `identical=False`, 6505 bytes against 6508. The correcting paragraph
+    failed the same way, because describing the escape writes it; words, on the
+    third attempt, passed. Byte-identity against the sent file
+    (`comment-readback.md`) is the only read-back that fails all three.
 
 ## Owed — post-hoc reviews
 
@@ -418,34 +435,6 @@ markers, and nothing under `.claude/workflows/` or `tests/` reads a workflow
 ref (grep at merge base `c62210e`) -- so until the weekly `record` beat
 (#959) grows one, an upstream fix reaches this repository only when a seat
 re-pins deliberately.
-
-**Owed from 2026-09-15: the delivery ledger is blind to the merge method this
-repository now uses.** `tests/delivery_status.py`'s `gather` walks
-`git log --first-parent` and keeps only subjects ending `(#N)` — the squash
-shape. `main`'s first-parent subjects are `Merge pull request #N from …`, which
-that pattern cannot match, so the ledger collects nothing and **the OVERDUE
-detector cannot fire**: overdue is a subset of rows, so an empty gather forces
-`EMPTY` by construction. **While the repository merges this way, not
-permanently** — squash merging is still enabled on it, so one squash-merged
-pull request repopulates the pattern, and the blindness is a function of merge
-convention rather than of the code alone. **Process state (d)** — the
-process was sound and its precondition, the merge method, changed underneath
-it. The changeover is datable: the newest first-parent subject the pattern
-matches is `0e3da75` (#1019, 2026-09-14T16:30:20+02:00), and
-`git log --first-parent --format='%s' 0e3da75..origin/main | grep -cE
-'\(#[0-9]+\)$'` prints how many have matched since. `policy_lint --record`'s
-API enumerator counts the same window correctly, so the disposition obligation
-is unaffected; the check is not required and nothing went red. What is owed is
-the alarm; origin #1050's third residual.
-
-**Owed from 2026-09-15: an unresolvable `--since` ref prints a vacuous zero.**
-`VERSION` holds `6.5.0` and the tag is `v6.5.0`, so `--since $(cat VERSION)` —
-the composition briefs reach for — names no revision. `git` writes
-one `fatal:` to stderr and both consumers carry on at **rc=0** over a window
-that is not empty: `RECORD: 0` and `WOULD OPEN: 0`. The `UNCHECKED` marker #1050 landed covers a dead
-*fetch*, not a bad *ref*, so this arm is marker-less by construction. Pass
-`v$(cat VERSION)`, and check the window against `git rev-list <tag>..origin/main`
-rather than against an exit code; origin #1050's second residual.
 
 ## The machine this runs on — measure it, do not read it
 

@@ -104,7 +104,7 @@ Under `tools/audit/briefs/`. Each says what its role owes and what blocks it.
 | `root-cause.md` | runs beside a fix and never inside it; owes a named cause, a process state, a cost test and a countermeasure or a refusal |
 | `judge.md` | decides; a finding whose harness does not move under its own perturbation is **void**, whatever the votes said |
 | `verifier.md` | one of three on a panel, receiving findings with claim, evidence, harness, metric and perturbation |
-| `COMMON.md` | **the finder's contract** — every audit dimension. An argument is not a finding; a number you did not execute is not a finding |
+| `COMMON.md` | **the finder's contract** — every audit dimension: what a finding is, what a non-finding is, and the report shape |
 
 **There is exactly one `COMMON.md`, and it is the finder's contract.** A running
 session may also hand its seats an out-of-tree shared block, named
@@ -131,6 +131,7 @@ individually, because a range reads as complete while covering a fraction:
 | `D10.md` | Home Assistant integration quality scale |
 | `D11.md` | governance mechanisms and policy |
 | `D12.md` | generalization |
+| `D13.md` | process yield and cost |
 
 ### The suite, the register, the handover
 
