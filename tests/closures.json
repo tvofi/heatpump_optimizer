@@ -26,8 +26,8 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 21.2,
-   "rc": 1
+   "seconds": 27.2,
+   "rc": 0
   },
   "tests/env_drift.py": {
    "seconds": 0.5,
@@ -383,9 +383,12 @@
    ".claude/workflows/vendor/markdown-it.LICENSE",
    ".claude/workflows/vendor/markdown-it.min.js",
    ".gitattributes",
+   ".github/workflows/codeql.yml",
    ".github/workflows/governance.yml",
+   ".github/workflows/hassfest.yml",
    ".github/workflows/release.yml",
    ".github/workflows/tests.yml",
+   ".github/workflows/validate.yml",
    "README.md",
    "RELEASE_NOTES.md",
    "VERSION",
