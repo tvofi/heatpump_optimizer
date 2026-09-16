@@ -83,10 +83,12 @@ identity authored and approved. `0009`'s identities remove that premise: seats
 author as a write collaborator that is not the owner, so the owner's review is
 no longer a self-approval GitHub refuses, and the form can bind.
 
-So the decision above stands and its form changes. **The owner's per-pull-request
-approval of a policy change is given as an approving GitHub review**, required
-by `.github/CODEOWNERS` once `main-protect` carries the code-owner rule (`0009`,
-as amended the same day). **A session grant becomes a code-owner exception for a
+So the decision above stands and its form changes. **Once `main-protect`
+carries the code-owner rule (`0009` step 6, as amended the same day), the
+owner's per-pull-request approval of a policy change is given as an approving
+GitHub review**, required by `.github/CODEOWNERS`. Until then it is given in
+session and recorded on #201, as before: nothing requires the review, and while
+seats author as `tvofi` the owner cannot give it on their pull requests. **A session grant becomes a code-owner exception for a
 named session**: still the owner's act, still naming its session and reverting
 when it ends; only how it is exercised on GitHub changes. The invariant is
 unchanged: a policy merge needs a reader who is not its author. `pr-contract`'s

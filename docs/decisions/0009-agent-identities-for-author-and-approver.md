@@ -199,8 +199,11 @@ set: it carries state, not rules.
 and `require_code_owner_review: true`. A pull request touching no owned path is
 satisfied by the App's approving review, given for the reviewer seats. One
 touching an owned path additionally needs the owner's approving review, which
-is how the owner's approval of a policy change is now given; `CLAUDE.md`'s
-sentence says so. "No separate human approval is required" above holds for
+is how the owner's approval of a policy change is given **once step 6 lands**.
+Until then nothing requires that review, and while seats still author as
+`tvofi` (step 3) the owner cannot give it, because GitHub refuses an author's
+approval of their own pull request; the approval is given in session and
+recorded on #201. `CLAUDE.md`'s sentence says both. "No separate human approval is required" above holds for
 every other path. How the code-owner requirement treats the unowned files of a
 mixed pull request is not stated in GitHub's documentation and is probed on a
 throwaway branch before step 6.

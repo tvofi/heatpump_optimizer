@@ -10,9 +10,9 @@ file is.
 ## Four rules that will refuse your pull request
 
 1. **The gate is scoped by measured dependency closures.** `GATE_SCOPE=auto`
-   runs only the scripts your diff can reach, decided from `tests/closures.json`
-   rather than from anyone's opinion. A push to `main` forces `full`: if a
-   closure is ever wrong, main goes red within one merge instead of never.
+   runs only the scripts your diff can reach, as measured in
+   `tests/closures.json`. A push to `main` forces `full`: if a closure is ever
+   wrong, main goes red within one merge instead of never.
    **`MODE: SCOPED — 0 script(s) run` and `MODE: FULL` both print zero and mean
    opposite things.** Key on the mode line, never the count — but that line
    only exists on a branch; a push to `main` prints none at all, because the
@@ -52,11 +52,12 @@ with *"these force the FULL suite when touched"*.
 ## Where the policy is — the whole set, and who each part binds
 
 Everything named here but `docs/HANDOVER.md` is **policy**, and so is this file.
-The owner approves a change to any of it by an approving review on the pull
-request, which `.github/CODEOWNERS` requires before **merging**, not drafting —
-so open the pull request and surface it. Every rewrite looks like a correction
-from the inside; if the honest description is *"this changes what a seat must
-do"*, it is policy however small the diff.
+The owner approves a change to any of it before **merging**, not drafting — so
+open the pull request and surface it. Approval is the owner's approving review,
+which `.github/CODEOWNERS` requires once `main-protect` has the code-owner rule
+(0009 step 6); until then, in session, recorded on #201. Every rewrite looks
+like a correction from the inside; if the honest description is *"this changes
+what a seat must do"*, it is policy however small the diff.
 
 ### The project policies, loaded when they bind
 
@@ -201,5 +202,3 @@ corrections to the record, the traps a previous session hit, and owed work.
 already **established and refuted**, so reading only the issue body will have
 you implement a plan that was overturned. `docs/audit-2026-09.md` is the
 evidence register the plan delivers against.
-
-When this programme closes, delete this block. The sections above stand alone.
