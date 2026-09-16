@@ -11,6 +11,24 @@ been executed and written into this record's status line; until then this
 record is a plan with its checks written down — the shape 0008 landed in — and
 #954 stays open.
 
+> **Status note, 2026-09-16.** Landed, measured at `5ffe0d9`:
+> `GET repos/tvofi/heatpump_optimizer/collaborators` lists `tvofi-seat-author`
+> with role `write` (step 2's author half); the write deploy key `hpo-stamp`
+> (id 163516584) exists; and the bypass probes passed both arms on throwaway
+> branches and rulesets (#201 comments 5701766255 and 5701850207). The approver
+> is the GitHub App `hpo-approver` (id 4968222), reported installed with
+> pull-request write on 2026-09-16; `GET .../installation` needs the App's own
+> token, so the seat recording this note could not re-read it. Step 3b landed
+> with #1071 (`059f047`): the `delivery-status-publish` lane pushes as
+> `tvofi-seat-author` (#1065's force-push at 19:37:11Z, #201 comment
+> 5703429662). **Not landed:** the rest of step 3 — seats still authenticate as
+> `tvofi` (`gh api user --jq .login`), so the author half of step 4 is
+> unverified, and the App has not yet approved a pull request the machine
+> account authored (its APPROVED review 5227837364 on #1065, authored by
+> `github-actions[bot]`, is not the demonstration: #201 comment 5703923412); step 5,
+> `main-protect`'s `bypass_actors` still `[{RepositoryRole 5, always}]`; and
+> step 6, no `pull_request` rule. The code-owner half is amended below.
+
 ## Context
 
 0008 accepted the two-identity design in principle, in the order that cannot
@@ -89,6 +107,11 @@ of after it.
 
 ## CODEOWNERS does not land in this change
 
+> **Amended 2026-09-16** (see "Amendment: the code owner is the owner, for
+> policy only", below). Two sentences of this section are superseded: the file
+> had already landed, at #756 under 0008, naming `@tvofi`; and its code owner is
+> not the approver identity.
+
 The approver handle a code-owner line must name does not exist yet. CODEOWNERS
 is the change that **follows identity verification**, per 0008's own order —
 0008 step 3(d): the file may merge before the rule, because without the rule
@@ -111,6 +134,9 @@ derivation is the instrument that closes it, and this record's verification
 step writes into a tree the instrument watches.
 
 ## The boundary this record does not cross
+
+> **Amended 2026-09-16:** the owner has rewritten that sentence, in the pull
+> request carrying the amendment below.
 
 `CLAUDE.md`'s sentence — "The owner's approval is required before merging a
 change to any of it" (its "Where the policy is" section) — is a separate text.
@@ -151,4 +177,38 @@ changes and budget raises after the session. Same shape as decisions
   "owner approval per pull request" is satisfied for GitHub by an approving
   seat rather than the owner, on the mechanism this checklist builds; the
   sentence-level practice keeps its own boundary until `CLAUDE.md` is
-  rewritten, as above.
+  rewritten, as above. *(Amended 2026-09-16: for a policy path it is satisfied
+  by the owner's code-owner review, below.)*
+
+## Amendment: the code owner is the owner, for policy only (2026-09-16)
+
+The owner approved this in session (#201 comments 5702359298, *"Approved"*,
+and 5702401684, *"Add all but HANDOVER.md"*).
+
+**An App cannot be the code owner.** GitHub's CODEOWNERS documentation lists
+users and teams with explicit `write` access as code owners and names no App
+form, and a personal repository has no teams. The approver this record creates
+is an App, so "the approver identity, not `@tvofi`" cannot be written in the
+file. The revision of 0008 step 2 is withdrawn: **the code owner is `@tvofi`**.
+
+**`.github/CODEOWNERS` already exists**, since #756 under 0008. It now names
+`@tvofi` on `CLAUDE.md`, `AGENTS.md`, `.claude/rules/`, `.cursor/rules/`,
+`tools/audit/briefs/` with `COMMON.md` unowned, `tests/README.md`,
+`tools/audit/README.md`, `tools/audit/harnesses/README.md`,
+`.github/PULL_REQUEST_TEMPLATE.md`, `.claude/skills/steward/SKILL.md`,
+`.claude/workflows/web-fragments.md`, `docs/decisions/` and itself. Every other
+path has no code owner. `docs/HANDOVER.md` is left out and leaves the policy
+set: it carries state, not rules.
+
+**Step 6's rule carries both parameters**: `required_approving_review_count: 1`
+and `require_code_owner_review: true`. A pull request touching no owned path is
+satisfied by the App's approving review, given for the reviewer seats. One
+touching an owned path additionally needs the owner's approving review, which
+is how the owner's approval of a policy change is given **once step 6 lands**.
+Until then nothing requires that review, and while seats still author as
+`tvofi` (step 3) the owner cannot give it, because GitHub refuses an author's
+approval of their own pull request; the approval is given in session and
+recorded on #201. `CLAUDE.md`'s sentence says both. "No separate human approval is required" above holds for
+every other path. How the code-owner requirement treats the unowned files of a
+mixed pull request is not stated in GitHub's documentation and is probed on a
+throwaway branch before step 6.

@@ -10,9 +10,9 @@ file is.
 ## Four rules that will refuse your pull request
 
 1. **The gate is scoped by measured dependency closures.** `GATE_SCOPE=auto`
-   runs only the scripts your diff can reach, decided from `tests/closures.json`
-   rather than from anyone's opinion. A push to `main` forces `full`: if a
-   closure is ever wrong, main goes red within one merge instead of never.
+   runs only the scripts your diff can reach, as measured in
+   `tests/closures.json`. A push to `main` forces `full`: if a closure is ever
+   wrong, main goes red within one merge instead of never.
    **`MODE: SCOPED — 0 script(s) run` and `MODE: FULL` both print zero and mean
    opposite things.** Key on the mode line, never the count — but that line
    only exists on a branch; a push to `main` prints none at all, because the
@@ -51,11 +51,13 @@ with *"these force the FULL suite when touched"*.
 
 ## Where the policy is — the whole set, and who each part binds
 
-Everything named here is **policy**, and so is this file. The owner's approval is
-required before **merging** a change to any of it, not before drafting one — so
-open the pull request and surface it. Every rewrite looks like a correction from
-the inside; if the honest description is *"this changes what a seat must do"*, it
-is policy however small the diff.
+Everything named here but `docs/HANDOVER.md` is **policy**, and so is this file.
+The owner approves a change to any of it before **merging**, not drafting — so
+open the pull request and surface it. Approval is the owner's approving review,
+which `.github/CODEOWNERS` requires once `main-protect` has the code-owner rule
+(0009 step 6); until then, in session, recorded on #201. Every rewrite looks
+like a correction from the inside; if the honest description is *"this changes
+what a seat must do"*, it is policy however small the diff.
 
 ### The project policies, loaded when they bind
 
@@ -65,8 +67,8 @@ and an orphan `.mdc`.
 
 `AGENTS.md`, at the root, is the entry point for a harness that auto-loads that
 name instead of this one (ZCode, Codex); it states no policy of its own and
-binds the seat to this file. It is measured policy: a `POLICY_GLOBS` pattern
-matches it, with a cap in `policy_budgets.json`.
+binds the seat to this file. It is measured policy: `POLICY_GLOBS` matches it
+and `policy_budgets.json` caps it.
 
 | rule | what it binds |
 |---|---|
@@ -138,9 +140,8 @@ individually, because a range reads as complete while covering a fraction:
 - `tests/README.md` — what each script pins, how the scoped gate selects, why a
   test that re-implements a production formula pins nothing.
 - `tools/audit/README.md` — how a round is run and where its evidence lands.
-- `docs/HANDOVER.md` — the single durable handover; its rules and the split
-  against #201 that keeps it non-redundant are in `writing-for-agents.md`, and
-  `tests/entities.py` refuses a second one anywhere under `docs/`.
+- `docs/HANDOVER.md` — state, not policy: the one durable handover, ruled by
+  `writing-for-agents.md`; `tests/entities.py` refuses a second under `docs/`.
 
 ## Fix it; if you cannot, verify it independently; only then file it
 
@@ -201,5 +202,3 @@ corrections to the record, the traps a previous session hit, and owed work.
 already **established and refuted**, so reading only the issue body will have
 you implement a plan that was overturned. `docs/audit-2026-09.md` is the
 evidence register the plan delivers against.
-
-When this programme closes, delete this block. The sections above stand alone.

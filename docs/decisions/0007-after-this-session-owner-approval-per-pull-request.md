@@ -1,6 +1,6 @@
 # 0007 — After this session: owner approval per pull request, with a session grant as the option
 
-Status: accepted, 2026-09-09, by the repository owner.
+Status: accepted, 2026-09-09, by the repository owner; amended 2026-09-16 (the last section).
 
 ## Context
 
@@ -71,3 +71,26 @@ and assuming it carried. `0001` named its session by id and said so; the
 inheriting session asked instead of assuming, and was re-granted. **Asking is
 the protocol, and it belongs at the start of a session, before the first policy
 pull request is merged, not when one is reached.**
+
+## Amendment, 2026-09-16: the approval is a code-owner review
+
+The owner approved this in session (#201 comments 5702359298, *"Approved"*, and
+5702401684, *"Add all but HANDOVER.md"*).
+
+"What this does not decide" set aside the mechanical form — CODEOWNERS with a
+required review — because `0005` measured that it could not bind while one
+identity authored and approved. `0009`'s identities remove that premise once
+seats author as a write collaborator that is not the owner (`0009` step 3): the
+owner's review is then no longer a self-approval GitHub refuses, and the form
+can bind.
+
+So the decision above stands and its form changes. **Once `main-protect`
+carries the code-owner rule (`0009` step 6, as amended the same day), the
+owner's per-pull-request approval of a policy change is given as an approving
+GitHub review**, required by `.github/CODEOWNERS`. Until then it is given in
+session and recorded on #201, as before: nothing requires the review, and while
+seats author as `tvofi` the owner cannot give it on their pull requests. **A session grant becomes a code-owner exception for a
+named session**: still the owner's act, still naming its session and reverting
+when it ends; only how it is exercised on GitHub changes. The invariant is
+unchanged: a policy merge needs a reader who is not its author. `pr-contract`'s
+`## Approval` section stays, carrying what the review event does not.

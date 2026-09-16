@@ -252,7 +252,6 @@ const POLICY_GLOBS = [
   // escape this check exists for, whether or not anyone meant it as one.
   /^tools\/audit\/harnesses\/README\.md$/,
   /^tests\/README\.md$/,
-  /^docs\/HANDOVER\.md$/,
   /^\.claude\/workflows\/web-fragments\.md$/,
   // A skill is seat-facing text loaded by the harness at the moment a pull
   // request event arrives, which makes it policy with an unusually short path
@@ -434,6 +433,12 @@ const CORPUS_EXCLUDED = new Set([
   'docs/plan-2026-09-open-issues.md', // plan of record
   'DISCLAIMER.md',                    // user-facing, same ground as README.md
   'docs/backlog.md',                  // superseded record, kept for history
+  // The living handover left POLICY_GLOBS by the owner's decision of 2026-09-16
+  // (#201 comment 5702401684): it carries state, not rules, changes with nearly
+  // every record PR, and so owes no `## Approval` and no code-owner review. Its
+  // cap went with it. The residual risk is ADRs' below: prose moved into it
+  // leaves the corpus, and only a reviewer reading the diff sees that.
+  'docs/HANDOVER.md',
   // The architecture decision records. An ADR states a decision ALREADY TAKEN
   // and the measurement behind it; it binds no seat and no seat is sent to one
   // to learn what it must do. The corpus machinery is built for text that binds

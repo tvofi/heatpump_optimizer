@@ -24,12 +24,12 @@ for. The rule reads one line at a time, so each sits on its own line, and a
 deleted line is a control lost. The first two put an issue number where a cap would go;
 they stay silent because no shape of the rule consumes a `#`, and a shape that
 did -- the mutation arm inserts `#?` before the number -- reports 608 here.
-capped `docs/HANDOVER.md` at #608, and that is an issue number, not a cap.
-`docs/HANDOVER.md` was capped at #608, and that is an issue number too.
-#607 added 43 lines to `docs/HANDOVER.md` and merged 56 minutes later, a plain number off the cap word.
+capped `tests/README.md` at #608, and that is an issue number, not a cap.
+`tests/README.md` was capped at #608, and that is an issue number too.
+#607 added 43 lines to `tests/README.md` and merged 56 minutes later, a plain number off the cap word.
 `README.md` has a cap of 999, but that name resolves to two files, so it is nobody's claim.
-`docs/HANDOVER.md` at 999 lines exceeds its cap, and a length before the word lines is not a cap.
-#608 raised `docs/HANDOVER.md`'s cap from 273 to 1000, which is true, because the claim is the number after "to".
-the #608-line cap on `docs/HANDOVER.md`, where the number-first form meets an issue number.
-#608 capped `docs/HANDOVER.md` on 2026-09-07, and a date after the file name is not a cap.
-the cap on `docs/HANDOVER.md` refused 24 lines, and a count after the file name is not a cap either.
+`tests/README.md` at 999 lines exceeds its cap, and a length before the word lines is not a cap.
+#608 raised `tests/README.md`'s cap from 273 to 800, which is true, because the claim is the number after "to".
+the #608-line cap on `tests/README.md`, where the number-first form meets an issue number.
+#608 capped `tests/README.md` on 2026-09-07, and a date after the file name is not a cap.
+the cap on `tests/README.md` refused 24 lines, and a count after the file name is not a cap either.
