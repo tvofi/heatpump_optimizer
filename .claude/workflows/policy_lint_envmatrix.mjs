@@ -28,6 +28,12 @@ const git = (dir, args) => sh('git', ['-C', dir, ...args])
 // so the matrix reports five shapes while running four.
 const BUILT = new Set()
 
+// A name that cannot resolve anywhere and is not a path in the tree either, so
+// `^{commit}` is the only thing being asked of it. Asserted non-resolving in the
+// clone before the shape runs: a bad ref that turned out to be good would make
+// every row below pass for the wrong reason.
+const BAD_REF = 'no-such-ref-6f2a1c9e-policy-lint-envmatrix'
+
 function build(name, mutate) {
   const dir = path.join(WORK, name)
   // And a work directory that already holds this shape is refused rather than
@@ -181,6 +187,50 @@ else {
       r.rc !== 0, `rc=${r.rc}; ${(r.out.match(/^\d+ passed.*$/m)||[''])[0]}`)
 }
 
+// ---- shape 6: a window ref that does not resolve -------------------------
+// The environment fact here is the ARGUMENT, and it is the one shape where the
+// run used to disclose nothing at all. `git log <bad>..origin/main` is fatal,
+// `firstParentCommits` returns [], the commit-to-PR fetch over zero commits
+// succeeds trivially, and every loop mode printed a measured-looking zero at
+// rc=0 -- the same output an empty window that WAS derived prints.
+//
+// This lives in the matrix rather than in the in-process acceptance because
+// what it pins is the WIRING. The acceptance pins the marker's shape and the
+// predicate's two directions; all three stay green if the guard is simply
+// unplugged from `requireSince`. Only a subprocess with a real ref and a real
+// exit code can see that, which is what this file is for.
+const badref = build('since-ref', (d) => {
+  if (!mainTip) return 'no refs/heads/main in the source repo'
+  const r = git(d, ['update-ref', 'refs/remotes/origin/main', mainTip])
+  if (r.rc) return 'update-ref failed'
+  return git(d, ['rev-parse', '--verify', '--quiet', `${BAD_REF}^{commit}`]).out.trim()
+    ? `${BAD_REF} resolves in the clone, so this shape would test nothing`
+    : null
+})
+if (badref.error) add('since-ref / built', false, badref.error)
+else {
+  const marked = (o) => /^\s*refuse\s+since-ref\b/m.test(o)
+  const rec = sh('node', ['.claude/workflows/policy_lint.mjs', '--record', '--since', BAD_REF], { cwd: badref.dir })
+  add('since-ref / --record refuses an underivable window instead of counting zero errors over it',
+      rec.rc === 2 && marked(rec.out),
+      `rc=${rec.rc} (want 2) marker=${marked(rec.out)}; ${why(rec.out)}`)
+  const st = sh('node', ['.claude/workflows/policy_lint.mjs', '--stats', '--since', BAD_REF], { cwd: badref.dir })
+  // No `WOULD OPEN` line is the half friction_issues.mjs acts on: it refuses a
+  // stats file without one, so the filer cannot conclude "no friction" from a
+  // window nothing enumerated.
+  add('since-ref / --stats refuses it too and prints no histogram for the filer to believe',
+      st.rc === 2 && marked(st.out) && !/WOULD OPEN/.test(st.out),
+      `rc=${st.rc} (want 2) marker=${marked(st.out)} wouldOpen=${/WOULD OPEN/.test(st.out)}; ${why(st.out)}`)
+  // THE NULL CONTROL, and the row that separates this guard from an over-fire.
+  // `HEAD` resolves and, in this clone, names a window with nothing in it: the
+  // same zero, the opposite verdict. A guard that refused here would have
+  // converted a silent zero into a noisy lie.
+  const okRef = sh('node', ['.claude/workflows/policy_lint.mjs', '--record', '--since', 'HEAD'], { cwd: badref.dir })
+  add('since-ref / a ref that DOES resolve over an empty window still measures, unmarked',
+      okRef.rc === 0 && !marked(okRef.out) && /RECORD: \d+ merged pull request/.test(okRef.out),
+      `rc=${okRef.rc} (want 0) marker=${marked(okRef.out)}; ${why(okRef.out)}`)
+}
+
 // ---- report --------------------------------------------------------------
 //
 // THE ROW ROSTER, named one by one. A count is satisfied by a duplicate and by
@@ -203,9 +253,12 @@ const DECLARED_ROWS = [
   'shallow / policy_lint rc=0',
   'shallow / an undrivable arm is said out loud and not claimed',
   'no-rosters / a roster scan over zero rosters does not report ok',
+  'since-ref / --record refuses an underivable window instead of counting zero errors over it',
+  'since-ref / --stats refuses it too and prints no histogram for the filer to believe',
+  'since-ref / a ref that DOES resolve over an empty window still measures, unmarked',
 ]
-const EXPECTED_SHAPES = 5
-const built = ['pr','push-main','no-remote','shallow','no-rosters'].filter((n) => BUILT.has(n))
+const EXPECTED_SHAPES = 6
+const built = ['pr','push-main','no-remote','shallow','no-rosters','since-ref'].filter((n) => BUILT.has(n))
 console.log(`  baseline ${mainRef || '(no main ref found)'} = ${mainTip.slice(0, 7) || '-'}`)
 for (const r of rows) console.log(`  ${(r.ok ? 'ok' : 'FAIL').padEnd(5)} ${r.name}${r.ok ? '' : `  --  ${r.detail}`}`)
 const bad = rows.filter((r) => !r.ok)
