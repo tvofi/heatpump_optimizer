@@ -61,7 +61,8 @@ Five principles decide it, each a measured fact rather than a preference.
 ## Delivery status
 
 Updated as the program lands; each row names the release that carried it.
-Where this table and a wave body disagree, this table is the truth.
+Where this record — the frozen table plus `docs/delivery/` — and a wave body
+disagree, the record is the truth.
 
 **Frozen for new pull-request rows** (owner, #201 comment 5704121269): every
 branch appended here, so each merge left every other open branch `DIRTY` — 31
@@ -1658,7 +1659,8 @@ session reads this file first.
   `may-drift`. Value-bearing fixtures are **never re-recorded on this box** —
   only an environment that records them all can honestly re-record one — so
   value drift is claimed and `golden.py --record --only` is for new key paths.
-- **Stamps.** Only `tools/release/stamp.py --push`, only after the merge
+- **Stamps.** Only `tools/release/stamp.py --push --push-key ~/.zcode/stamp-deploy.key
+  --known-hosts ~/.zcode/github_known_hosts`, from the local box, only after the merge
   commit's own `fast` and `closures` are green, with a notes section naming
   every PR since the last tag. Never by hand, never in a branch. No new branch
   is cut between a fixture-mover's merge and its stamp.
