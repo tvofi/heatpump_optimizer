@@ -16701,6 +16701,216 @@ R.check(
     "is legitimately empty, and reporting OK there is the vacuous green this "
     "repository refuses",
 )
+# THE COLLECTOR, AND THE PRECONDITION THAT MOVED UNDER IT.
+#
+# `classify` above was driven from fixtures from the first day and is right.
+# `gather` was not driven by anything, and it was the half that broke: its
+# subject rule took only the SQUASH shape `<title> (#N)`, this repository moved
+# to merge commits, and the ledger collected nothing over a window that held
+# nothing but merges -- reporting the same EMPTY it reports right after a
+# stamp. Every state below is driven through `collect`, because a pure
+# classifier pinned on both sides of its threshold proves nothing about a
+# window that never reaches it.
+def _ds_commit(sha, subject, parents=2, body=""):
+    return {"sha": sha, "subject": subject, "parents": parents, "body": body}
+
+
+# A window spanning the changeover: the squash shape that dominates main's
+# older history, the merge shape that is all of its newer history, a
+# single-parent release stamp, and a single-parent `record:` commit. The last
+# two are the guard's own null control -- both are direct pushes that name no
+# pull request, and a guard keyed on the SUBJECT rather than on the parent
+# count reports them as merges it could not read.
+_DS_WINDOW = [
+    _ds_commit("aaaaaaa", "Merge pull request #1052 from tvofi/fix/d11-pins",
+               body="fix(#960): SHA-pin every workflow uses ref"),
+    _ds_commit("bbbbbbb", "record: leftover rows for #201", parents=1),
+    _ds_commit("ccccccc", "v6.5.0: stamp wave 3, and the #996 fail-fast",
+               parents=1),
+    _ds_commit("ddddddd", "feat: the input_problem names its sources (#1019)",
+               parents=1),
+]
+_ds_win_merges, _ds_win_blind = _ds.collect(_DS_WINDOW)
+R.check(
+    "both merge-subject conventions are collected, and neither direct push is",
+    [m["number"] for m in _ds_win_merges] == [1052, 1019]
+    and _ds_win_blind == []
+    and _ds_win_merges[0]["title"] == "fix(#960): SHA-pin every workflow uses "
+                                      "ref"
+    and _ds_win_merges[0]["commits_after"] == 0
+    and _ds_win_merges[1]["commits_after"] == 3,
+    f"collected {[m['number'] for m in _ds_win_merges]} from a four-commit "
+    f"window holding one merge-shaped subject, one squash-shaped subject, a "
+    f"`record:` direct push naming #201 and a release stamp naming #996; "
+    f"unattributed {_ds_win_blind}. The squash shape is HISTORY and the merge "
+    "shape is the present, so a rule taking either one alone goes blind at the "
+    "changeover -- which is the defect: taking only the squash shape returned "
+    "[] over a window of merge commits and reported EMPTY. `record:` and the "
+    "stamp are not merges and must not be collected; #201 and #996 in their "
+    "subjects are mentions, and a collector taking a mention would file the "
+    "tracking issue itself as a merged pull request. `commits_after` is the "
+    "first-parent depth and counts the direct pushes, because what makes a row "
+    "late is every commit that went past it, not only the merges",
+)
+R.check(
+    "a merge commit's title comes from its body, not from the branch it names",
+    _ds.subject_title("Merge pull request #1052 from tvofi/fix/d11-pins",
+                      "\nfix(#960): SHA-pin every workflow uses ref\n")
+    == "fix(#960): SHA-pin every workflow uses ref"
+    and _ds.subject_title("feat: names its sources (#1019)", "")
+    == "feat: names its sources",
+    "a merge subject names a BRANCH; GitHub puts the pull request's title on "
+    "the body's first non-blank line. `pending #1049 fix/d11-publish-"
+    "concurrency` tells a seat nothing about what is waiting on it, and the "
+    "pending list is the whole product this check replaced a tick with",
+)
+R.check(
+    "a subject that only MENTIONS a pull request is not taken as being it",
+    _ds.subject_number("Record #424 W1-G14 merge in delivery-status") is None
+    and _ds.subject_number("Merge pull request #13: Broaden the disclaimer")
+    == 13
+    and _ds.subject_number("W2-G5: record settle power (#277 #244 #325)")
+    is None,
+    f"a `Record #424 ...` subject -> "
+    f"{_ds.subject_number('Record #424 W1-G14 merge in delivery-status')!r}; "
+    f"the oldest merge shape here, with a colon rather than ` from `, -> "
+    f"{_ds.subject_number('Merge pull request #13: Broaden the disclaimer')!r}."
+    " The merge rule is anchored at the start and the squash rule at the end, "
+    "so a subject naming several issues mid-line is neither; an unanchored "
+    "rule would collect main's own `record:` commits as the merges they are "
+    "recording, and report a row as written by the commit that failed to "
+    "write it",
+)
+# The guard: a merge commit no rule can attribute. THIS is what separates a run
+# that could not look from a run that looked and found nothing -- the two were
+# byte-identical before, and the second is a legitimate green right after a
+# stamp, so the first was permanently invisible.
+_DS_BLIND_WINDOW = [
+    _ds_commit("eeeeeee", "Integrated PR 9001 via the new bot"),
+    _ds_commit("fffffff", "v6.5.0: stamp wave 3", parents=1),
+]
+_ds_blind_merges, _ds_blind = _ds.collect(_DS_BLIND_WINDOW)
+_ds_unchecked = _ds.classify(_ds_blind_merges, _DS_ROWED,
+                             unattributed=_ds_blind)
+_ds_stamp_merges, _ds_stamp_blind = _ds.collect(
+    [_ds_commit("fffffff", "v6.5.0: stamp wave 3", parents=1)])
+_ds_stamp_only = _ds.classify(_ds_stamp_merges, _DS_ROWED,
+                              unattributed=_ds_stamp_blind)
+R.check(
+    "an unattributable merge is UNCHECKED, loudly, and never EMPTY",
+    [b["sha"] for b in _ds_blind] == ["eeeeeee"]
+    and _ds_unchecked["verdict"] == _ds.UNCHECKED
+    and _ds_unchecked["verdict"] != _ds.EMPTY
+    and _ds_unchecked["verdict"] != _ds.OK
+    and "UNCHECKED this run, not confirmed empty"
+    in _ds.unchecked_line(_ds_blind)
+    and "UNCHECKED this run, not confirmed empty"
+    in _ds.render_markdown(_ds_unchecked)
+    and _ds_empty["unattributed"] == []
+    and _ds_empty["verdict"] == _ds.EMPTY,
+    f"a window whose only merge commit no rule can attribute -> "
+    f"{_ds_unchecked['verdict']!r}, with the merge named; a window with no "
+    f"merge at all -> {_ds_empty['verdict']!r}. Widening a pattern fixes the "
+    "instance and only this fixes the CLASS: the subject convention is a "
+    "precondition, it moved once already, and when it moves again the "
+    "collector must say it could not look rather than print the counts of a "
+    "window it never read. The words are `policy_lint.mjs`'s `enumSkipLine` "
+    "(#1050), which landed this same discipline for this same end-anchored "
+    "`(#N)` one file over -- a second vocabulary for one fact costs a reader a "
+    "translation and buys nothing",
+)
+R.check(
+    "a release stamp alone is EMPTY, not UNCHECKED -- the guard keys on "
+    "parents",
+    _ds_stamp_only["verdict"] == _ds.EMPTY
+    and _ds_stamp_only["unattributed"] == [],
+    f"a window holding only a single-parent release stamp -> "
+    f"{_ds_stamp_only['verdict']!r}. The stamp names no pull request and is "
+    "not supposed to, so a guard asking `does this subject mention a number` "
+    "would redden every window that opens on one -- which is every window for "
+    "the first commits after a release. Two parents on main's first-parent "
+    "line IS a pull-request merge under the ruleset, so a merge the rules "
+    "cannot attribute is the collector going blind and is nothing else",
+)
+# The alarm, end to end through the collector rather than from hand-built ledger
+# entries: the OVERDUE state has to be reachable from a LOG, which is the thing
+# that stopped being true.
+_ds_alarm_window = [
+    _ds_commit(f"{i:07x}", f"record: filler {i}", parents=1)
+    for i in range(_ds.STALE_AFTER_COMMITS)
+] + [_ds_commit("9001abc", "Merge pull request #9001 from o/topic",
+                body="fix: the thing that has no row")]
+_ds_alarm_merges, _ds_alarm_blind = _ds.collect(_ds_alarm_window)
+_ds_alarm = _ds.classify(_ds_alarm_merges, _DS_ROWED,
+                         unattributed=_ds_alarm_blind)
+R.check(
+    "the OVERDUE alarm is reachable from a first-parent LOG, not only from "
+    "hand-built entries",
+    [m["number"] for m in _ds_alarm_merges] == [9001]
+    and _ds_alarm_merges[0]["commits_after"] == _ds.STALE_AFTER_COMMITS
+    and _ds_alarm["verdict"] == _ds.OVERDUE
+    and _ds_alarm["counts"]["overdue"] == 1,
+    f"a rowless merge-commit merge with {_ds.STALE_AFTER_COMMITS} commits past "
+    f"it -> {_ds_alarm['verdict']!r}. The threshold checks above drive "
+    "`classify` from fixtures and passed throughout the whole period the "
+    "detector could not fire: `gather` returned [] for every real window, so "
+    "nothing ever entered the set that ages into OVERDUE. A detector is "
+    "reachable from its INPUT or it is not reachable",
+)
+# THE WINDOW'S START, pinned on the argv this file runs rather than on a copy.
+# The guard above cannot see this one: a `describe` that answers the wrong tag
+# yields an empty LOG, so there is no merge commit to be unattributable and the
+# run reports a truthful EMPTY about the wrong window.
+_DS_WINDOW_STEP = _workflow_job(
+    Path(".github/workflows/governance.yml").read_text(), "record")
+_DS_MATCH_IN_STEP = "--match '" + "v*'" in _DS_WINDOW_STEP
+R.check(
+    "the ledger and the record lane pick the window with the same tag filter",
+    "--match" in _ds.DESCRIBE_ARGV
+    and "v*" in _ds.DESCRIBE_ARGV
+    and _DS_MATCH_IN_STEP,
+    f"the ledger's describe argv is {_ds.DESCRIBE_ARGV}; the `record` job's "
+    f"window step carries the same filter: {_DS_MATCH_IN_STEP}"
+    ". `git describe --tags --abbrev=0` answers the newest tag of ANY shape, "
+    "and this repository makes non-release tags -- `governance.yml` carries "
+    "this flag because `archive-rosters-2026-09` was newer than the release "
+    "tag and gave it an empty window. Two lanes reporting on `the window` "
+    "have to agree on which window, and the ledger had no filter at all",
+)
+# `--check`'s EXIT SEMANTICS, which this change widened, driven through `main`
+# rather than asserted in prose. `--from` reads a recorded ledger and runs no
+# query, so the four verdicts are driven offline with no repo and no token --
+# the reason that flag exists.
+def _ds_check_rc(ledger):
+    import contextlib as _ctx
+    import io as _io
+    with _tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "ledger.json"
+        path.write_text(json.dumps(ledger))
+        argv = sys.argv
+        sys.argv = ["delivery_status.py", "--from", str(path), "--check"]
+        try:
+            with _ctx.redirect_stdout(_io.StringIO()):
+                return _ds.main()
+        finally:
+            sys.argv = argv
+
+
+_DS_RCS = {v: _ds_check_rc(l) for v, l in (
+    ("OVERDUE", _ds_overdue), ("UNCHECKED", _ds_unchecked),
+    ("OK", _ds_all_rowed), ("EMPTY", _ds_empty))}
+R.check(
+    "--check raises OVERDUE and UNCHECKED, and passes OK and EMPTY",
+    _DS_RCS == {"OVERDUE": 1, "UNCHECKED": 1, "OK": 0, "EMPTY": 0},
+    f"exit codes by verdict: {_DS_RCS}. Raising UNCHECKED is a DELIBERATE "
+    "widening of this flag, recorded here because a seat reading the job "
+    "cannot otherwise tell it from a regression: a reporter whose subject is "
+    "noticing that something went dark must not report a pass in the one "
+    "state where it cannot see. PENDING stays green -- batching is the "
+    "protocol and the whole case for replacing the old check was that it "
+    "reddened on the protocol's steady state -- and `delivery-status` is not "
+    "a required context, so neither red gates a merge",
+)
 R.check(
     "a disposition is matched on the whole number, in both spellings",
     _ds.mentions(88, ["a row for #885 and #8850"]) is False
