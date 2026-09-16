@@ -58,6 +58,8 @@ from .const import (
     CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
     CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
     CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
+    CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
+    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
     CONF_SOLAR_FORECAST_SOURCE,
     CONF_SOLAR_LOCATION,
@@ -1406,6 +1408,13 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities_pump", CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY, _STORED, _entity_of(list(topology.FLAG_DOMAINS))),
     _F("entities_pump", CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY, _STORED, _entity_of(list(topology.FLAG_DOMAINS))),
     _F("entities_pump", CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY, _STORED, _entity_of(list(topology.FLAG_DOMAINS))),
+    # The water the pump is moving (#1067). Options-only for the same reason
+    # the three flags above are: they are readings off the pump, not places
+    # on the plant diagram, and ``ASSIGNABLE_KEYS`` is the documented set the
+    # card and `assign_entity` share. A temperature device class each, the
+    # same picker every other water temperature on the plant uses.
+    _F("entities_pump", CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature')),
+    _F("entities_pump", CONF_HEAT_PUMP_RETURN_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature')),
     # -- comfort
     _F("comfort", CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP, _number(15, 28, 0.5, '°C', slider=True), required=True, group="band"),
     _F("comfort", CONF_MIN_TEMP, DEFAULT_MIN_TEMP, _number(14, 25, 0.5, '°C', slider=True), required=True, group="band"),

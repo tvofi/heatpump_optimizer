@@ -4286,7 +4286,15 @@ _PUMP_ONLY_KEYS = (
     const.CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
     const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
 )
-_PUMP_PAGE_KEYS = _SIGNAL_KEYS + _PUMP_ONLY_KEYS
+# #1067 again, with the group's second half: the pump's own supply (flow) and
+# return water. Options-only for the same reason -- a reading off the machine
+# is not a place on the plant diagram -- but a TEMPERATURE picker rather than
+# a flag one, so they get their own loop below.
+_PUMP_TEMP_KEYS = (
+    const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
+    const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+)
+_PUMP_PAGE_KEYS = _SIGNAL_KEYS + _PUMP_ONLY_KEYS + _PUMP_TEMP_KEYS
 # The four pump signals moved to entities_pump when the entities page split (#198).
 _pump_flow = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t"}))
 _pump_flow.hass = FakeHass()
@@ -4348,6 +4356,36 @@ for _key in _PUMP_ONLY_KEYS:
         f"{_pump_domains(_key)} against {list(topology.FLAG_DOMAINS)} -- one "
         "tuple, not a second spelling of it",
     )
+# The two water slots owe the same "not a card slot", plus the one thing a
+# temperature picker owes that a flag picker does not: a device class, so the
+# list a user scrolls is thermometers rather than every sensor in the house.
+for _key in _PUMP_TEMP_KEYS:
+    R.check(
+        f"{_key} is options-only, not a card slot",
+        _key not in topology.ASSIGNABLE_KEYS,
+        "a reading off the pump is not a place on the plant diagram, and "
+        "adding it would change the documented assignable key list",
+    )
+    R.check(
+        f"the picker for {_key} is a temperature sensor picker",
+        _pump_domains(_key) == ["sensor"]
+        and list(
+            _pump_schema.schema[_pump_fields[_key]].config["filter"][0][
+                "device_class"
+            ]
+        )
+        == ["temperature"],
+        "the same narrowing every other water temperature on the plant uses",
+    )
+R.check(
+    "and it really narrows: a flag slot on the same page offers no device class",
+    "device_class"
+    not in _pump_schema.schema[
+        _pump_fields[const.CONF_HEAT_PUMP_FAULT_ENTITY]
+    ].config["filter"][0],
+    "the null control for the check above: if every picker on this page "
+    "carried a device class, asserting one would prove nothing",
+)
 R.check(
     "and the flag-domain tuple really is the one the card slots use",
     list(topology.ASSIGNABLE_KEYS[const.CONF_HEAT_PUMP_FAULT_ENTITY])
@@ -4368,6 +4406,8 @@ _sig_values = {
     const.CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY: "switch.pump_backup_heater",
     const.CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY: "switch.pump_dhw_booster",
     const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "switch.pump_night_mode",
+    const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: "sensor.hp_supply_temp",
+    const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: "sensor.hp_return_temp",
 }
 _sig_form = asyncio.run(_sig_flow.async_step_entities_pump(None))
 _sig_result = asyncio.run(

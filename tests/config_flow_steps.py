@@ -3473,6 +3473,9 @@ async def registry_walk_recurses():
         const.CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
         const.CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
         const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
+        # #1067 again: the pump's own supply and return water, same page.
+        const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
+        const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
     }
     check(
         "registry",

@@ -918,6 +918,8 @@
   "heat_pump_mode_entity": "sensor.seed_heat_pump_mode_entity",
   "heat_pump_online_entity": "sensor.seed_heat_pump_online_entity",
   "heat_pump_power_entity": "sensor.seed_heat_pump_power_entity",
+  "heat_pump_return_temp_entity": "sensor.seed_heat_pump_return_temp_entity",
+  "heat_pump_supply_temp_entity": "sensor.seed_heat_pump_supply_temp_entity",
   "heat_pump_switch_entity": "sensor.seed_heat_pump_switch_entity",
   "holiday_calendar_entity": "sensor.seed_holiday_calendar_entity",
   "house_power_entity": "sensor.seed_house_power_entity",
@@ -2042,6 +2044,22 @@
      "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
     },
     "default": "'sensor.seed_heat_pump_online_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
+   "heat_pump_return_temp_entity": {
+    "config": {
+     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+    },
+    "default": "'sensor.seed_heat_pump_return_temp_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
+   "heat_pump_supply_temp_entity": {
+    "config": {
+     "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+    },
+    "default": "'sensor.seed_heat_pump_supply_temp_entity'",
     "required": "Optional",
     "selector": "EntitySelector"
    }
@@ -4237,6 +4255,22 @@
   "heat_pump_online_entity": {
    "config": {
     "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "heat_pump_return_temp_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "heat_pump_supply_temp_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor'], 'device_class': ['temperature']}]"
    },
    "default": null,
    "required": "Optional",

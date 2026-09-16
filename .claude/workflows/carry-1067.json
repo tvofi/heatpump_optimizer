@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Carry destination for issue #1067's remaining stage, W1067-G3 (the solver",
+    "half of the supply-temperature work). No roster group in this tree claims",
+    "#1067, so this file is that stage's brief. Shape and required fields:",
+    ".claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1067,
+  "stage": "W1067-G3, the solver half of #1067: pricing the measured supply-temperature lift into the horizon behind its own flag",
+  "carries": [
+    {
+      "from": "W1067-G2, the learner half, whose own brief predicted that judging the efficiency reference against the measured lift would make the learned scale move less per sample",
+      "effect": "invalidates",
+      "control": "The assumption invalidated: that a lift-aware efficiency REFERENCE slows cop_scale walking with the weather. It cannot, and the reason is in the learner's own arithmetic rather than in any number -- target_scale is cop_scale * commanded / measured, an expression the reference curve does not appear in, so no reference can move it. Measured on a 180-row grid (six outdoor temperatures x thirty consecutive folds) built from the production _learn_measured_cop: with a 55 degC supply reading against no supply reading, the rows whose cop_scale differed were zero, and the rows whose credited COP differed were 150 of 180 -- the other thirty are the one outdoor value inside the frost band, where the learner returns before folding at all. The null control ran the same grid against the merge base with no supply slot mapped and diffed byte for byte: identical, so the harness does separate trees when there is something to separate. What the learner half therefore delivers is a correct credited COP and a correct degradation baseline, plus the bias itself; what it does NOT deliver is an unwalked cop_scale.",
+      "remeasure": "Rebuild the grid at your own merge base rather than trusting these counts: drive the production _learn_measured_cop through a shim carrying _flow_bias, once with observe_temps(55.0, 47.0) and once without, and diff. Judge your own change on whether the cop_scale column separates, because that is the column this group could not move.",
+      "brief": "Applying the lift to what the solver prices. The bias to apply is FlowCurveBias.bias_k in flow_lift.py, and the curve it was learned against is curve_supply_temp -- call that function, do not re-derive the curve, because a bias learned against one curve and spent against another is a silent offset. The lift itself is ThermalModel.compute_cop_at_flow, which applies the Carnot term with no mixing-valve gate; compute_cop keeps its cop_flow_carnot gate and both share the extracted _flow_lift_factor, so change that helper only if you intend to change both. Precondition on spending the bias at all: it is legitimate only where the supply reading that produced it was fresh and the interval was space-dominant, which is what _fold_flow_lift in coordinator.py already gates on -- a bias with samples == 0 is exactly 0.0 and must stay inert rather than being treated as a measured zero. The learner half deliberately left every golden fixture except the config-flow schema capture byte-identical; yours will move solver fixtures, so the drift is claimed in tests/golden/claimed_drift.txt with its direction rather than re-recorded."
+    }
+  ]
+}

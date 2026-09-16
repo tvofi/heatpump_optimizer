@@ -382,6 +382,19 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Space backup heater | none | a flag entity | On while the pump's own electric backup heater runs in the space heating circuit. Those kilowatts are not the compressor, so the optimizer stops reading the meter as an efficiency measurement while it is on — but the heat still counts, because it is real heat into the house. Worth filling in mainly on a pump that publishes no power meter, where there is otherwise no way to notice the element at all. |
 | Hot water tank booster | none | a flag entity | On while the electric heater in the hot water tank runs. Treated like the backup heater above, and each switch-on is also recorded as a hot water rescue: if those recur and you have turned on immersion feedback, the plan starts heating the tank a little earlier. |
 | Capacity limited (night mode) | none | a flag entity | On while the pump runs at a reduced compressor speed — night or silent mode on most units. Efficiency and capacity are not learned from those intervals, because what the machine shows then is the cap's. Cost and heat accounting still use the measured power: a speed-capped compressor draws exactly what the meter says. |
+| Supply (flow) water temperature | none | a `temperature` sensor | The water the pump is sending out to the heating system. A machine pushing 55 °C water is lifting further than one pushing 35 °C, and until this reading existed that difference was blamed on the pump losing efficiency instead. Most useful on a system with no buffer tank, where the pump feeds the radiators or floor loops directly. |
+| Return water temperature | none | a `temperature` sensor | The water coming back to the pump. **Check which pipe this is.** See the note below. |
+
+**The return slot is the pump loop's return, not necessarily the floor's.**
+If the pump feeds your floor loops directly, with no buffer tank and no mixing
+valve in between, the two are the same water and the same sensor may go in both
+this field and *Floor return temperature* on the sensors page. Behind a buffer
+tank or a mixing valve they are **different water**: the pump's return comes
+back from the tank, the floor's from the slab, and they can differ by ten
+degrees or more. *Floor return temperature* is what the optimizer estimates
+your slab temperature from, so filling it with the pump's return on such a
+system tells it the slab is far hotter or colder than it is, and it will
+under- or over-heat the lower floor accordingly.
 
 ### Heating system and heat storage
 

@@ -144,6 +144,30 @@ CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: Final = (
     "heat_pump_capacity_limited_entity"
 )
 
+# --- The water the pump is actually moving (#1067) -------------------------
+#
+# Two more optional read-only slots, on the same page, read through the same
+# reader. ``ThermalModel.compute_cop`` already takes a ``flow_temp``, but the
+# only value ever passed is the buffer tank's, and only while a mixing valve
+# throttles (``cop_flow_carnot``). On a direct plant -- a monoblock feeding
+# the emitters with no buffer, which is what this hardware is sold into --
+# the lift term therefore never applies at all, so the efficiency learner
+# attributes the whole commanded-versus-measured ratio to ``cop_scale``
+# whatever lift the machine was working at, and that scale then walks with
+# the weather.
+#
+#   * Supply (flow) water temperature. What the pump is sending out.
+#   * Return water temperature. What comes back to the pump.
+#
+# THE TRAP on the return slot, stated again in the field's data_description
+# and in docs/configuration.md: this is the PUMP LOOP's return. On a
+# direct-to-floor plant that is also the floor loop's return and may already
+# be in ``CONF_FLOOR_RETURN_TEMP_ENTITY``, which seeds the slab estimate;
+# behind a buffer or a mixing valve it is different water entirely, and
+# filling the floor-return slot with it gives a wrong slab.
+CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: Final = "heat_pump_supply_temp_entity"
+CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: Final = "heat_pump_return_temp_entity"
+
 # Power units the optional entities may report in, normalised to kW. Assuming
 # kW because the internal model uses kW misreads a 3000 W draw as 3000 kW.
 POWER_UNIT_TO_KW: Final = {
@@ -1346,4 +1370,13 @@ INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_ONLINE_ENTITY] = 30.0
 INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY] = 30.0
 INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY] = 30.0
 INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY] = 30.0
+# Supply and return water are the FASTEST temperatures on the plant: they
+# swing several K within one compressor cycle, so a reading half an hour old
+# describes a different operating point, not this interval's lift. The power
+# meter's horizon is the right precedent -- both are "what the machine is
+# doing right now", read on the same cycle -- and the outdoor forecast's
+# three hours is exactly the wrong one, because that horizon is generous
+# precisely because outdoor air does not move fast.
+INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY] = 30.0
+INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_RETURN_TEMP_ENTITY] = 30.0
 
