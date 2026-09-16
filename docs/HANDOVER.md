@@ -146,10 +146,10 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
 - **The red-check refusal fires; it never had until #1040 (`f605da4`).** The
   entry that stood here — that the list `checkPrBody` iterates was empty on
   every pull request this repository had run — was true when written and is
-  not. **Date it by the SHA, not by a day**: run `34903020012` on throwaway
-  branch `demo/d11-956-a` concluded `failure` at 2026-09-14T22:15:44Z, two
-  hours BEFORE that merge, being #1040's own demonstration. `CLAUDE.md`'s
-  "only the red-check trigger is enforced" is a measurement from `f605da4` on.
+  not. **Date it by the SHA, not by a day**: run `34903020012` concluded
+  `failure` at 2026-09-14T22:15:44Z, two hours BEFORE that merge, being
+  #1040's own demonstration on a throwaway branch. `CLAUDE.md`'s "only the
+  red-check trigger is enforced" is a measurement from `f605da4` on.
 - **`GET /repos/.../rules/branches/<branch>` is not bypass-aware.** It lists
   the rules configured for the branch, not the rules that would apply to you:
   emptying the bypass-actors list and re-reading returns an identical list. Reading it
@@ -355,16 +355,16 @@ in its own pull request.
     structure: a second declaration cannot learn the original moved (#851).
     Fifth shape: a mutant that cannot PARSE reports a pass, which here reads as
     a finding about production. Assert it parses.
-36. **The leftover sweep reads part of a row, and a stale row hides its state
-    in the rest.** #690's rule — read the row's own verdict, exclude quoted
-    prose — applied literally reads the first `**…**` span. #678's row opened
-    on its root-cause verdict, carried `**IN REVIEW as #715**` further along the
-    same cell, and ended `governance, in review` in plain unbolded text that no
-    bold-span rule reaches either; #715 merged `015fdbd` on 2026-09-10 and shut
-    #678 a second later, and the row stood five days and several record beats
-    on. **Scan the whole row**, and check every PR number in it against that
-    pull request's own `state` field, by the `web-fragments.md` mapping. The
-    miss was the parser's; a firmer instruction changes nothing.
+36. **The leftover sweep reads part of a row; a stale row hides its state in
+    the rest.** #690's rule — the row's own verdict, quoted prose excluded —
+    applied literally reads the first `**…**` span. #678's row opened on its
+    root-cause verdict, carried `**IN REVIEW as #715**` later in that cell, and
+    ended `governance, in review` unbolded; #715 merged `015fdbd` and the row
+    stood five days of record beats on. **The rule that holds both ends: in a
+    table row every cell, in a bullet the leading verdict, both with quoted
+    and backticked text dropped first.** Here: 12 rows before the repair, 0
+    after, no bullet either way; **drop the exclusion and the bullets alone
+    give 14 false positives**, all about rows already repaired.
 
 ## Owed — post-hoc reviews
 
@@ -436,16 +436,16 @@ matches is `0e3da75` (#1019, 2026-09-14T16:30:20+02:00), and
 '\(#[0-9]+\)$'` prints how many have matched since. `policy_lint --record`'s
 API enumerator counts the same window correctly, so the disposition obligation
 is unaffected; the check is not required and nothing went red. What is owed is
-the alarm. Origin: #1050's third residual.
+the alarm; origin #1050's third residual.
 
 **Owed from 2026-09-15: an unresolvable `--since` ref prints a vacuous zero.**
 `VERSION` holds `6.5.0` and the tag is `v6.5.0`, so `--since $(cat VERSION)` —
-the composition a dispatch brief reaches for — names no revision. `git` writes
+the composition briefs reach for — names no revision. `git` writes
 one `fatal:` to stderr and both consumers carry on at **rc=0** over a window
 that is not empty: `RECORD: 0` and `WOULD OPEN: 0`. The `UNCHECKED` marker #1050 landed covers a dead
 *fetch*, not a bad *ref*, so this arm is marker-less by construction. Pass
 `v$(cat VERSION)`, and check the window against `git rev-list <tag>..origin/main`
-rather than against an exit code. Origin: #1050's second residual.
+rather than against an exit code; origin #1050's second residual.
 
 ## The machine this runs on — measure it, do not read it
 
