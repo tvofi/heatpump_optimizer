@@ -1,17 +1,17 @@
 {
   "_comment": "One-sided caps on the governance corpus. A policy file may shrink freely; growing past its cap is refused. Deliberately NOT the two-sided ratchet tests/structure.py applies to code: an 'improved and not yet recorded' refusal on prose would punish deletion, which is the behaviour this corpus most needs. Raising a cap is a deliberate edit to this file, visible in the diff a reviewer reads.",
   "_measured": "Caps recorded at the values measured when policy_lint landed. Governance prose had added 6.8 lines for every line deleted, with no governance document ever getting shorter.",
-  "always_loaded_tokens": 3343,
+  "always_loaded_tokens": 3352,
   "_always_loaded_target": 6000,
   "_floor_is_not_the_cost": "always_loaded_tokens measures a session that opens nothing. Moving prose out of CLAUDE.md into a paths:-scoped rule lowers it without deleting a line: across the index split the floor fell by more than half while corpus_tokens moved a fraction of a percent. The two caps below are what stop that drop being recorded as headroom -- corpus_tokens does not move when prose moves, and roles charge a seat for what it loads once it opens a file. Policy: .claude/rules/ratchet-budgets.md.",
-  "corpus_tokens": 62925,
+  "corpus_tokens": 64072,
   "roles": {
     "fixer": {
       "opens": [
         "tests/entities.py",
         "custom_components/heatpump_optimizer/coordinator.py"
       ],
-      "cap": 5799
+      "cap": 5808
     },
     "record": {
       "opens": [
@@ -19,14 +19,14 @@
         "docs/HANDOVER.md",
         ".claude/workflows/wave-4-groups.json"
       ],
-      "cap": 6898
+      "cap": 6907
     },
     "policy": {
       "opens": [
         "tools/audit/briefs/fixer.md",
         ".github/workflows/tests.yml"
       ],
-      "cap": 9487
+      "cap": 9496
     }
   },
   "_roles": "opens is a representative file per surface, not an exhaustive list. The cap ratchets a fixed sample; widening the sample is a visible edit here rather than a silent re-measurement.",
@@ -46,7 +46,7 @@
     ".claude/workflows/web-fragments.md": 168,
     ".github/PULL_REQUEST_TEMPLATE.md": 38,
     "AGENTS.md": 13,
-    "CLAUDE.md": 204,
+    "CLAUDE.md": 205,
     "docs/HANDOVER.md": 1000,
     "tests/README.md": 800,
     "tools/audit/README.md": 250,
@@ -56,6 +56,7 @@
     "tools/audit/briefs/D10.md": 43,
     "tools/audit/briefs/D11.md": 103,
     "tools/audit/briefs/D12.md": 71,
+    "tools/audit/briefs/D13.md": 79,
     "tools/audit/briefs/D2.md": 51,
     "tools/audit/briefs/D3.md": 46,
     "tools/audit/briefs/D4.md": 48,
