@@ -42,27 +42,21 @@ Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- too
    Read the finding's own judge ruling first — #290's brief still prescribes a
    harness its judge already refused.
 
-10. **Check the forward-carry before you return `merge`.** If the fixer's work
-    produced a finding that changes how a later stage must work — a technique
-    refused, an assumption invalidated, an option removed — the PR body names
-    where it was written, and you open that destination and confirm it is there,
-    carrying the control and stated as a precondition rather than an
-    opportunity. A finding that exists only in this PR's comments has been
-    recorded, not propagated, and that is
-    `blocked <sha> carry-missing: not carried to <stage>`. See
-    `.cursor/rules/finding-propagation.mdc`.
-11. **A red check owes an answer.** `.cursor/rules/defect-root-cause.mdc`
-    triggers on a defect that turned a check red where a cheaper detector could
-    have run, and this step is where that trigger is checked. Read the PR's own
-    checks — `get_check_runs`, or the commit's own `check-runs` API — not the
-    body's account, and never a listing that shows one run per check. For each gate check that went red, the body names it
-    and answers the question: the cheaper detector with its standing cost, or the
-    finding that none exists. Both answers pass; silence does not, and that is
-    `blocked <sha> root-cause-unanswered: <check> went red, unanswered`. The failures
-    `ci-autofix.mdc` already repairs — `UNDER-SCOPED`, `INHERITED CLAIMS` — are
-    answered by naming them: their countermeasure is the autofix job that exists.
-    You are checking that the trigger was answered, not adjudicating the answer
-    — the analysis is a separate seat, `tools/audit/briefs/root-cause.md`.
+10. **Check the forward-carry before you return `merge`.** The PR body names
+    where a finding that changes a later stage was written; open that
+    destination and confirm it is there, carrying the control and stated as a
+    precondition (`finding-propagation.md`). A finding that exists only in this
+    PR's comments is `blocked <sha> carry-missing: not carried to <stage>`.
+11. **A red check owes an answer.** This is where `defect-root-cause.md`'s
+    second trigger is checked. Read the PR's own checks — `get_check_runs`, or
+    the commit's own `check-runs` API — not the body's account, and never a
+    listing that shows one run per check. For each gate check that went red,
+    the body names it and answers: the cheaper detector with its standing cost,
+    or the finding that none exists. Both pass; silence is
+    `blocked <sha> root-cause-unanswered: <check> went red, unanswered`.
+    `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
+    (`ci-autofix.md`). You check that the trigger was answered, not the answer
+    — the analysis is a separate seat, `root-cause.md`.
     **A red `nightly-status` is not this pull request's** unless its diff reaches
     the nightly lane: #713 attached the check to every pull request and it
     reports `main`'s cron, not this head. The control, re-run at your own base —
@@ -86,10 +80,9 @@ Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- too
     recurs.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
-    DIRTY` on a pull request is computed by GitHub, which cannot run this
-    repository's `claimnotes` merge driver — git never clones config. Every open
-    pull request therefore goes `DIRTY` the moment `main` touches a claim file,
-    whether or not it conflicts with anything. Confirm before you block:
+    DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run
+    (`claim-files.md`), so every open pull request goes `DIRTY` the moment
+    `main` touches a claim file. Confirm before you block:
 
     ```
     git merge-tree --write-tree origin/main <head>
@@ -123,8 +116,8 @@ Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- too
     when one is lost. A rule of the form "a conflict confined to the `#`
     comment notes is merge-prep" therefore waves through a real refusal, on a
     file with no bare claim lines on any side. Read the marker instead. Why
-    the driver refuses at all is in `CLAUDE.md` under the `claimnotes` driver;
-    that is one rule and it lives there.
+    the driver refuses at all is `claim-files.md`'s; that is one rule and it
+    lives there.
 
 Return a verdict with your RESULT lines, in the exact shape your dispatch
 prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first

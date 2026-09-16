@@ -17138,7 +17138,10 @@ R.check(
 # first that adds no write at all: `pr-contract` reads the head's check runs
 # through `/commits/<sha>/check-runs`, which the token refuses without
 # `checks: read`, so its block is the `nightly-status` precedent in tests.yml
-# -- a read-only widening on the one job that reads the API.
+# -- a read-only widening on the one job that reads the API. The same job's
+# second read, `pull-requests: read`, is for the body: it is read off
+# `/pulls/<number>` at run time rather than out of the event payload, because
+# a payload is a snapshot and a re-run replays it (the pin below).
 _DS_GOV = Path(".github/workflows/governance.yml").read_text()
 _DS_PUB_JOB = _workflow_job(_DS_GOV, "delivery-status-publish")
 _DS_SPLICE_JOB = (
@@ -17166,13 +17169,48 @@ R.check(
     "and the contract lane's widening is the one read it needs",
     bool(_PC_PERMS)
     and sorted(_PC_PERMS.group(1).split()) == sorted(
-        ["checks:", "contents:", "read", "read"]),
+        ["checks:", "contents:", "pull-requests:", "read", "read", "read"]),
     f"pr-contract permissions: "
     f"{_PC_PERMS.group(1).split() if _PC_PERMS else None} -- `checks: read` "
-    "lists the head's check runs for the red-check arm (#956) and "
-    "`contents: read` restates the floor a job-level block replaces; the "
-    "nightly-status precedent, a read-only widening on the one job that "
-    "reads the API",
+    "lists the head's check runs for the red-check arm (#956), "
+    "`pull-requests: read` fetches the body off `/pulls/<number>` at run "
+    "time, and `contents: read` restates the floor a job-level block "
+    "replaces; the nightly-status precedent, read-only widenings on the one "
+    "job that reads the API",
+)
+# THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.
+# `${{ github.event.pull_request.body }}` is the body as it stood when the
+# event fired, and `gh run rerun` replays that payload: a body corrected after
+# the event never reached the check. Measured on #1059 at head `a93a43b`: the
+# body was edited to name `a93a43b`, run 35093322057 was re-run twice
+# (attempts 2 and 3) and refused both times with "`## Head` does not name
+# a93a43b" while `GET /pulls/1059` showed the corrected body; a close/reopen
+# -- a fresh event, same head, no tree change -- passed as run 35098726083.
+# The ledger lane one job down edits its own PR's body with GITHUB_TOKEN,
+# whose edits fire no `pull_request` event at all, so a manual re-run was the
+# ONLY route to a green `pr-contract` there, and it was the route that could
+# not work. Three strings are pinned: the API read of the pull request's own
+# resource, `--jq` on its body field, and the ABSENCE of the payload context
+# anywhere in the job -- delete the read and keep the context and this pin
+# fails on the third arm, which is the one the mutation lands on. Read over
+# the job's NON-COMMENT lines: the step's own comment names the context it
+# replaced, and a pin that cannot tell a comment from a grant would refuse
+# the sentence that explains the grant.
+_PC_BODY_STEP = "\n".join(
+    _l for _l in _workflow_job(_DS_GOV, "pr-contract").split("\n")
+    if not _l.lstrip().startswith("#"))
+_PC_API_READ = "/pulls/${PR_NUMBER}" in _PC_BODY_STEP
+_PC_BODY_FIELD = "--jq '.body" in _PC_BODY_STEP
+_PC_PAYLOAD_ABSENT = "github.event.pull_request.body" not in _PC_BODY_STEP
+R.check(
+    "the contract lane reads the body off the API at run time, not the payload",
+    _PC_API_READ and _PC_BODY_FIELD and _PC_PAYLOAD_ABSENT,
+    f"api_read={_PC_API_READ}, body_field={_PC_BODY_FIELD}, "
+    f"payload_absent={_PC_PAYLOAD_ABSENT}; "
+    "the payload is a snapshot a re-run replays (#1059, runs 35093322057 "
+    "against 35098726083 at the same head), so a body corrected after the "
+    "event never reached the check and the ledger lane's GITHUB_TOKEN edits, "
+    "which fire no event, had no route to green at all",
 )
 # #956: the red-check trigger CLAUDE.md calls enforced is enforced by THIS
 # wiring, and nothing else. Before it, the body-contract step invoked

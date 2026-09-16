@@ -449,15 +449,20 @@ rm -f /tmp/prepr-hooks.$$
 # one where it did. CI's `wave-script` job is unconditional, so nothing shipped
 # unmeasured -- but a local gate that skips exactly when the change is in scope
 # teaches a seat that the check is covered when it is not.
+# THE BRIEFS ARE A FOURTH INPUT, and the same shape repeated once more (#1062):
+# the checker parses every backticked verdict example out of tools/audit/briefs/
+# against VERDICT_RE, so a briefs-only branch that shortened one example was
+# printed `skip` here and went red on CI's unconditional job.
 if ! git diff --quiet "$BASE"...HEAD -- \
      .claude/workflows/web-fix-wave.js \
      .claude/workflows/check-wave-script.mjs \
-     '.claude/workflows/wave-*-groups.json'; then
+     '.claude/workflows/wave-*-groups.json' \
+     'tools/audit/briefs/*.md'; then
   node .claude/workflows/check-wave-script.mjs >/tmp/prepr-wave.$$ 2>&1
   step "wave-script" $? "$(tail -1 /tmp/prepr-wave.$$)"
   rm -f /tmp/prepr-wave.$$
 else
-  say skip "wave-script" "no change to the script, the checker or the rosters"
+  say skip "wave-script" "no change to the script, the checker, the rosters or the briefs"
 fi
 
 # --- 5. VERSION, the manifest and the notes heading are untouched.
