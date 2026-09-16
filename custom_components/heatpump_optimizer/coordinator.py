@@ -3457,23 +3457,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         hypothetical on the hardware this release targets — because one ratio
         cannot be attributed to two curves.
 
-        #1067. The space reference was ``compute_cop(outdoor)`` with no lift
-        at all: the only flow temperature the model ever sees is a buffer
-        tank's, and only while a valve throttles, so a direct plant was judged
-        against a curve that ignored how hard the machine was lifting. Where a
-        FRESH supply reading exists the reference is the measured lift instead
-        (``compute_cop_at_flow``, the same Carnot term with no valve gate).
-        With no supply slot mapped ``last_supply_c`` is ``None`` and this is
-        the old line, bit for bit.
+        #1067: the space reference is the COP the PLAN priced, never a lift
+        measured at the supply pipe. ``_learn_measured_cop`` credits
+        ``modelled_cop * commanded / measured``, so a harder lift already
+        arrives as a larger ``measured``; lifting this reference as well
+        counts it twice (-24 to -38 % at a 55 degC supply).
         """
         ctx = getattr(self, "_ctx", self)
         outdoor = ctx._current_state.outdoor_temperature
-        supply = self._flow_bias.last_supply_c
-        space_curve = (
-            self._thermal_model.compute_cop(outdoor)
-            if supply is None
-            else self._thermal_model.compute_cop_at_flow(outdoor, supply)
-        )
+        space_curve = self._thermal_model.compute_cop(outdoor)
         space_ref = (space_curve, False, None)
         if not self._pump_signals.mode_observed:
             return space_ref
@@ -5183,7 +5175,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # rules are in ``flow_lift.read_water_temps``). Written every cycle
         # INCLUDING the unreadable case: ``observe_temps`` clears what it is
         # not given, and "there is a fresh supply reading" is the gate the
-        # efficiency reference below is chosen on.
+        # flow-bias fold is taken on.
         self._flow_bias.observe_temps(*read_water_temps(reader))
 
         # The four heat-pump signals (v5.3.0). Read through the same reader

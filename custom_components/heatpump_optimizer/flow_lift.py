@@ -149,7 +149,7 @@ class FlowCurveBias:
         unavailable or stale. Clearing rather than keeping is the whole point:
         a supply temperature from forty minutes ago describes a different
         operating point, and "there is a fresh supply reading" is the gate the
-        efficiency reference is chosen on.
+        bias fold is taken on.
         """
         self.last_supply_c = (
             float(supply)
@@ -187,7 +187,7 @@ class FlowCurveBias:
 
         The two readings are absent on purpose. They are one cycle's
         measurement of water that has since cooled, and restoring one hours
-        later would hand the efficiency reference a "fresh" supply temperature
+        later would hand the bias fold a "fresh" supply temperature
         that is nothing of the kind -- the exact failure the horizons in
         ``INPUT_MAX_AGE_MINUTES`` exist to prevent.
         """
@@ -208,6 +208,11 @@ class FlowCurveBias:
         except (TypeError, ValueError, OverflowError):
             return learner
         if not np.isfinite(bias) or samples < 0:
+            return learner
+        # Zero samples is the inert state, whatever the stored bias says: a
+        # bias with no evidence behind it is exactly 0.0 (the class
+        # docstring's promise, and what W1067-G3 is told it may rely on).
+        if samples == 0:
             return learner
         # Re-clamped on load rather than trusted: a store written by a build
         # with a wider clamp, or simply corrupt, must not reintroduce a bias

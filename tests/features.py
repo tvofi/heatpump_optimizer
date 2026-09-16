@@ -20421,6 +20421,40 @@ R.check(
     "its two readings start empty too",
     _fl_inert.last_supply_c is None and _fl_inert.last_return_c is None,
 )
+_fl_lapse = flow_lift.FlowCurveBias()
+_fl_lapse.observe_temps(48.5, 41.0)
+_fl_had = (_fl_lapse.last_supply_c, _fl_lapse.last_return_c)
+_fl_lapse.observe_temps(None, None)
+R.check(
+    "a reading that lapses is cleared, never kept as this cycle's",
+    _fl_had == (48.5, 41.0)
+    and _fl_lapse.last_supply_c is None
+    and _fl_lapse.last_return_c is None,
+    f"before {_fl_had}, after {(_fl_lapse.last_supply_c, _fl_lapse.last_return_c)}"
+    " — an unreadable slot must not keep folding its last supply as fresh",
+)
+_fl_lapse.observe_temps(float("nan"), float("inf"))
+R.check(
+    "and a non-finite reading is no reading",
+    _fl_lapse.last_supply_c is None and _fl_lapse.last_return_c is None,
+)
+R.check(
+    "the clamp is 15 K, the number the module justifies",
+    flow_lift.FLOW_BIAS_CLAMP_K == 15.0,
+    f"{flow_lift.FLOW_BIAS_CLAMP_K}",
+)
+_fl_zero = flow_lift.FlowCurveBias.from_dict({"bias_k": 5.0, "samples": 0})
+_fl_one = flow_lift.FlowCurveBias.from_dict({"bias_k": 5.0, "samples": 1})
+R.check(
+    "a stored bias with zero samples loads as exactly 0.0",
+    _fl_zero.bias_k == 0.0 and _fl_zero.samples == 0,
+    f"{_fl_zero.as_dict()} — no evidence is inert, which is what G3 is told",
+)
+R.check(
+    "the positive control: one sample loads the stored bias",
+    _fl_one.bias_k == 5.0 and _fl_one.samples == 1,
+    f"{_fl_one.as_dict()}",
+)
 
 _fl_hot = flow_lift.FlowCurveBias()
 _fl_hot_worst = 0.0
@@ -20484,119 +20518,101 @@ R.check(
     "a NaN residual folded and clamped is silently a sample; None is not",
 )
 
-# -- the Carnot extraction is a pure move -----------------------------------
-# The lift block was lifted out of ``compute_cop`` into ``_flow_lift_factor``
-# so ``compute_cop_at_flow`` could reuse it rather than carry a second copy.
-# What that has to mean: with the valve gate ON, the gated path and the
-# ungated one are the same arithmetic on every point of a grid.
-_fl_gate_params = ThermalParameters()
-_fl_gate_params.cop_flow_carnot = True
-_fl_gated = ThermalModel(_fl_gate_params)
-_fl_move_diffs = []
-for _fl_o in (-30.0, -20.0, -10.0, -5.0, 0.0, 5.0, 10.0, 20.0, 30.0):
-    for _fl_f in (20.0, 30.0, 35.0, 40.0, 45.0, 55.0, 65.0, 80.0):
-        _fl_lhs = _fl_gated.compute_cop(_fl_o, flow_temp=_fl_f)
-        _fl_rhs = _fl_gated.compute_cop_at_flow(_fl_o, _fl_f)
-        if _fl_lhs != _fl_rhs:
-            _fl_move_diffs.append((_fl_o, _fl_f, _fl_lhs, _fl_rhs))
-R.check(
-    "with the valve gate on, the extracted lift reproduces compute_cop exactly",
-    not _fl_move_diffs,
-    f"{_fl_move_diffs[:4]} — a copied Carnot block is what the duplication "
-    "ratchet exists to refuse, and two copies of it would drift",
-)
-R.check(
-    "and that grid is not vacuous: most of it is actually lifted",
-    sum(
-        1
-        for _fl_o in (-30.0, -10.0, 0.0, 10.0, 30.0)
-        for _fl_f in (40.0, 45.0, 55.0, 65.0, 80.0)
-        if _fl_gated.compute_cop(_fl_o, flow_temp=_fl_f)
-        != _fl_gated.compute_cop(_fl_o)
-    )
-    > 15,
-    "if the gate never fired, the identity above would hold for the trivial "
-    "reason that nothing multiplied",
-)
-R.check(
-    "compute_cop_at_flow applies the lift with NO valve gate",
-    _fl_model.compute_cop(0.0, flow_temp=55.0) == _fl_model.compute_cop(0.0)
-    and _fl_model.compute_cop_at_flow(0.0, 55.0) < _fl_model.compute_cop(0.0),
-    f"gated {_fl_model.compute_cop(0.0, flow_temp=55.0)} against ungated "
-    f"{_fl_model.compute_cop_at_flow(0.0, 55.0)} — a direct plant has no "
-    "valve at all, which is where the gate made the term unreachable",
-)
-R.check(
-    "at the model's own reference flow it is the bare curve, bit for bit",
-    _fl_model.compute_cop_at_flow(
-        0.0, _fl_model.params.cop_flow_reference_temp
-    )
-    == _fl_model.compute_cop(0.0),
-    "the reference temperature is where the ratio is 1; anything else there "
-    "would be a bias applied to every install that reads its own curve",
-)
-R.check(
-    "and the resistive floor still holds under a deep-cold high-lift point",
-    _fl_model.compute_cop_at_flow(-30.0, 80.0) >= 1.0,
-    f"{_fl_model.compute_cop_at_flow(-30.0, 80.0)} — no vapour-compression "
-    "cycle returns less heat than the electricity it is charged for",
-)
+# -- the efficiency reference is the plan's COP, not the measured lift -------
+# ``_learn_measured_cop`` credits ``modelled_cop * commanded / measured``: the
+# heat the plan intended is commanded power times the COP the plan PRICED, and
+# delivering it at a different electrical input changes the COP by the ratio
+# of the two. A harder lift therefore already arrives as a larger ``measured``.
+# Round 1 of #1068 lifted the reference as well and counted the lift twice.
+# These checks drive a pump generated from the model's own Carnot lift under
+# exactly that model -- true COP Ct = C0 * L(S), drawing P / L(S) -- and pin
+# that the credit is Ct with or without a supply reading. A "lower" check could
+# not separate a correction from a double count; an exact value can.
+_fl_lift_params = ThermalParameters()
+_fl_lift_params.cop_flow_carnot = True
+_fl_lifted = ThermalModel(_fl_lift_params)
+_fl_c0_model = ThermalModel(ThermalParameters())
 
-# -- the efficiency reference ------------------------------------------------
-_fl_bare = _CopGate(outdoor=8.0)
-_fl_55 = _CopGate(outdoor=8.0)
-_fl_55._flow_bias.observe_temps(55.0, 47.0)
-_fl_35 = _CopGate(outdoor=8.0)
-_fl_35._flow_bias.observe_temps(35.0, 30.0)
-_fl_ref_bare = _fl_bare._cop_reference_curve()[0]
-_fl_ref_55 = _fl_55._cop_reference_curve()[0]
-_fl_ref_35 = _fl_35._cop_reference_curve()[0]
+
+def _fl_model1_gate(outdoor, supply_phys, mapped):
+    """A _CopGate whose pump runs at ``supply_phys`` under the learner's model."""
+    c0 = _fl_c0_model.compute_cop(outdoor)
+    ct = _fl_lifted.compute_cop(outdoor, flow_temp=supply_phys)
+    commanded = 3.0
+    measured = commanded * c0 / ct
+    gate = _CopGate(outdoor=outdoor, action={"power": commanded})
+    gate._measured_power = measured
+    # A persistent ratio, not a blip: the tracking gate judges against it.
+    gate._cop_ratio_ewma = measured / commanded
+    if mapped:
+        gate._flow_bias.observe_temps(supply_phys, supply_phys - 5.0)
+    gate._learn_measured_cop()
+    return gate, c0, ct, measured
+
+
+_fl_m55, _fl_c0, _fl_ct55, _fl_meas55 = _fl_model1_gate(8.0, 55.0, True)
+_fl_u55 = _fl_model1_gate(8.0, 55.0, False)[0]
+_fl_m35, _, _fl_ct35, _ = _fl_model1_gate(8.0, 35.0, True)
+_fl_u35 = _fl_model1_gate(8.0, 35.0, False)[0]
+_fl_cred55 = _fl_m55.cop_health_calls[0][0] if _fl_m55.cop_health_calls else None
+_fl_cred35 = _fl_m35.cop_health_calls[0][0] if _fl_m35.cop_health_calls else None
 R.check(
-    "the null control: with no supply slot mapped the reference IS the bare curve",
-    _fl_ref_bare == ThermalModel(ThermalParameters()).compute_cop(8.0),
-    f"{_fl_ref_bare!r} — an install that never fills the slot must be judged "
-    "against exactly the line that was there before this group",
+    "the reference with a 55 °C supply reading IS the plan's bare curve",
+    _fl_m55._cop_reference_curve()[0]
+    == _fl_m55._thermal_model.compute_cop(8.0)
+    == _fl_u55._cop_reference_curve()[0],
+    f"mapped {_fl_m55._cop_reference_curve()[0]!r}, its own curve "
+    f"{_fl_m55._thermal_model.compute_cop(8.0)!r}, unmapped "
+    f"{_fl_u55._cop_reference_curve()[0]!r}",
 )
 R.check(
-    "the reference at a measured 55 °C supply is below the bare curve's",
-    _fl_ref_55 < _fl_ref_bare,
-    f"{_fl_ref_55:.4f} against {_fl_ref_bare:.4f} — a machine pushing 55 °C "
-    "water is lifting further, and that is physics, not degradation",
+    "at 55 °C, supply mapped, the credited COP is the pump's true COP",
+    _fl_cred55 is not None and abs(_fl_cred55 - _fl_ct55) < 1e-9,
+    f"credited {_fl_cred55!r} against true {_fl_ct55!r} (8 °C outdoor, "
+    f"measured {_fl_meas55:.4f} kW for 3.0 kW commanded)",
 )
 R.check(
-    "at 35 °C, the model's own reference flow, it is the bare curve again",
-    _fl_ref_35 == _fl_ref_bare,
-    f"{_fl_ref_35!r} against {_fl_ref_bare!r}",
-)
-for _fl_gate in (_fl_bare, _fl_55, _fl_35):
-    _fl_gate._learn_measured_cop()
-R.check(
-    "so the COP the interval is credited with is lower, and the health watch sees it",
-    _fl_55._last_measured_cop < _fl_bare._last_measured_cop
-    and _fl_55.cop_health_calls[0][0] < _fl_bare.cop_health_calls[0][0],
-    f"55 °C: {_fl_55._last_measured_cop} / {_fl_55.cop_health_calls}; bare: "
-    f"{_fl_bare._last_measured_cop} / {_fl_bare.cop_health_calls} — the "
-    "weeks-scale degradation watch is what stops seeing a phantom shortfall",
+    "and that value is the reviewer's control, 2.2285, not the double count 1.3844",
+    _fl_cred55 is not None
+    and abs(_fl_cred55 - 2.2285) < 5e-5
+    and abs(_fl_cred55 - _fl_ct55 * _fl_ct55 / _fl_c0) > 0.5,
+    f"credited {_fl_cred55!r}; a reference lifted as well would credit "
+    f"{_fl_ct55 * _fl_ct55 / _fl_c0:.4f}",
 )
 R.check(
-    "and at the reference flow the credited COP is unchanged",
-    _fl_35._last_measured_cop == _fl_bare._last_measured_cop,
-    f"{_fl_35._last_measured_cop} against {_fl_bare._last_measured_cop}",
+    "mapping the supply slot changes nothing the learner credits, bit for bit",
+    _fl_m55.cop_health_calls == _fl_u55.cop_health_calls
+    and _fl_m55._last_measured_cop == _fl_u55._last_measured_cop
+    and _fl_m55._cop_scale == _fl_u55._cop_scale,
+    f"mapped {_fl_m55.cop_health_calls} / {_fl_m55._cop_scale!r}; unmapped "
+    f"{_fl_u55.cop_health_calls} / {_fl_u55._cop_scale!r}",
+)
+R.check(
+    "the accuracy residual reads the true gap between the plan's curve and the pump",
+    _fl_cred55 is not None
+    and abs((_fl_cred55 - _fl_c0_model.compute_cop(8.0)) - (-1.3590)) < 5e-5,
+    f"residual {(_fl_cred55 or 0.0) - _fl_c0_model.compute_cop(8.0):+.4f}; the "
+    "credit and the curve it subtracts are the same curve's",
+)
+R.check(
+    "the envelope's thermal kW is the heat actually delivered",
+    _fl_cred55 is not None
+    and abs(_fl_cred55 * _fl_meas55 - 3.0 * _fl_c0) < 1e-9
+    and abs(_fl_cred55 * _fl_meas55 - 10.7625) < 5e-5,
+    f"{(_fl_cred55 or 0.0) * _fl_meas55:.4f} kW against 10.7625",
+)
+R.check(
+    "the null control: at 35 °C, the reference flow, mapped equals unmapped equals true",
+    _fl_cred35 is not None
+    and abs(_fl_cred35 - _fl_ct35) < 1e-9
+    and _fl_m35.cop_health_calls == _fl_u35.cop_health_calls,
+    f"credited {_fl_cred35!r}, true {_fl_ct35!r}",
 )
 # The measured finding this group must NOT be read as having fixed. The scale
 # update is ``cop_scale * commanded / measured``; the reference curve is not
-# in that expression at all, so it cannot move per sample however far the
-# measured supply sits from the curve. What walks with the weather is
-# ``commanded``, which the SOLVER produces — W1067-G3's half.
-R.check(
-    "the learned SCALE is unmoved by the reference, at either supply temperature",
-    _fl_55._cop_scale == _fl_35._cop_scale == _fl_bare._cop_scale
-    and _fl_55._cop_samples == _fl_bare._cop_samples == 1,
-    f"55 °C {_fl_55._cop_scale!r}, 35 °C {_fl_35._cop_scale!r}, bare "
-    f"{_fl_bare._cop_scale!r} — target_scale is cop_scale * commanded / "
-    "measured and reads no curve, so the learner half cannot stop cop_scale "
-    "absorbing the lift; only pricing the lift can, which is G3",
-)
+# in that expression at all, so no reference can stop it absorbing the lift.
+# What walks with the weather is ``commanded``, which the SOLVER produces --
+# W1067-G3's half.
 _fl_traj_bare, _fl_traj_55 = [], []
 _fl_walk_bare, _fl_walk_55 = _CopGate(outdoor=8.0), _CopGate(outdoor=8.0)
 _fl_walk_55._flow_bias.observe_temps(55.0, 47.0)
@@ -20606,10 +20622,10 @@ for _ in range(30):
     _fl_traj_bare.append(_fl_walk_bare._cop_scale)
     _fl_traj_55.append(_fl_walk_55._cop_scale)
 R.check(
-    "over thirty samples the two scale trajectories are identical",
+    "over thirty samples the scale trajectories with and without a supply reading are identical",
     _fl_traj_bare == _fl_traj_55,
     f"bare ends {_fl_traj_bare[-1]!r}, 55 °C ends {_fl_traj_55[-1]!r} — "
-    "stated as a check so the next seat reads the constraint, not the hope",
+    "target_scale reads no curve, so only pricing the lift (G3) can move it",
 )
 R.check(
     "and that trajectory is not a flat line the equality could hide behind",

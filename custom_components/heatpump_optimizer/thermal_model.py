@@ -1349,56 +1349,6 @@ class ThermalModel:
     # Common helpers
     # ------------------------------------------------------------------
 
-    def _flow_lift_factor(self, outdoor_temp: float, flow_temp: float) -> float:
-        """The COP factor for lifting water to ``flow_temp``, 1.0 when none.
-
-        Extracted verbatim from :meth:`compute_cop`, where it was inline, so
-        that :meth:`compute_cop_at_flow` can apply the same arithmetic instead
-        of carrying a second copy of it. A copy is what would drift: this is a
-        Carnot ratio with two clamps and a floor, every one of which is load
-        bearing, and the comments below record which defect each closes.
-
-        Lifting water to a higher flow temperature costs COP. Carnot-derived
-        rather than a fitted %/K: a linear term is fine over the 5-15 K a
-        weather curve moves through, but storage deliberately goes far beyond
-        that, and at 2 %/K a 70 degC flow costs 70 % of COP and hits the floor.
-        A real unit manages 1.5-2.0 there, which the Carnot ratio reproduces
-        because it is the actual shape of the physics.
-
-        The gates the CALLER owns are not here: whether a flow temperature was
-        supplied at all, and ``params.cop_flow_carnot``. That is deliberate --
-        :meth:`compute_cop_at_flow` exists precisely to apply this lift
-        against a measured supply temperature with no valve gate, and folding
-        the gate in here would make that impossible without a second copy.
-        """
-        ref = self.params.cop_flow_reference_temp
-        if flow_temp <= ref:
-            return 1.0
-        # The ratio of two Carnot COPs falls as outdoor rises. Past the
-        # nameplate reference that drop outruns the 2.5 %/K curve and
-        # inverts COP (#776). Cap the outdoor the ratio sees; colder than
-        # the reference is unchanged. The factor's own 0.3 floor pins it
-        # below ref - (1.0 - 0.3) / 0.025, and a pinned factor cannot
-        # outrun the ratio's fall either -- so the same cap has a floor:
-        # inside the floored band the ratio is frozen at the band's edge
-        # (#928), which leaves the product flat there instead of falling as
-        # the weather warms. Edit this together with compute_cop's factor
-        # line if the floor or the slope ever changes.
-        t_ratio = min(
-            max(
-                outdoor_temp,
-                self.params.cop_reference_temp - (1.0 - 0.3) / 0.025,
-            ),
-            self.params.cop_reference_temp,
-        )
-        t_out = t_ratio + 273.15
-        # A minimum lift keeps this finite as outdoor approaches flow.
-        carnot_flow = (flow_temp + 273.15) / max(flow_temp + 273.15 - t_out, 1.0)
-        carnot_ref = (ref + 273.15) / max(ref + 273.15 - t_out, 1.0)
-        if carnot_ref <= 1e-9:
-            return 1.0
-        return max(0.25, carnot_flow / carnot_ref)
-
     def compute_cop(
         self,
         outdoor_temp: float,
@@ -1434,15 +1384,42 @@ class ThermalModel:
             if humidity is None:
                 humidity = self.params.ambient_humidity
             cop *= derate.factor(outdoor_temp, humidity)
-        # Lifting water to a higher flow temperature costs COP; the arithmetic
-        # is :meth:`_flow_lift_factor`, which returns 1.0 when there is no
-        # lift to charge for. The two gates stay HERE rather than inside it:
-        # whether the caller supplied a flow temperature at all, and whether a
-        # valve can actually charge the tank (``cop_flow_carnot``, which
-        # follows the mixing-valve mode). ``compute_cop_at_flow`` is the same
-        # arithmetic without the second gate.
+        # Lifting water to a higher flow temperature costs COP. Carnot-derived
+        # rather than a fitted %/K: a linear term is fine over the 5-15 K a
+        # weather curve moves through, but storage deliberately goes far beyond
+        # that, and at 2 %/K a 70 °C flow costs 70 % of COP and hits the floor.
+        # A real unit manages 1.5-2.0 there, which the Carnot ratio reproduces
+        # because it is the actual shape of the physics.
         if flow_temp is not None and self.params.cop_flow_carnot:
-            cop *= self._flow_lift_factor(outdoor_temp, flow_temp)
+            ref = self.params.cop_flow_reference_temp
+            if flow_temp > ref:
+                # The ratio of two Carnot COPs falls as outdoor rises.
+                # Past the nameplate reference that drop outruns the
+                # 2.5 %/K curve and inverts COP (#776). Cap the outdoor
+                # the ratio sees; colder than the reference is unchanged.
+                # The factor's own 0.3 floor pins it below
+                # ref - (1.0 - 0.3) / 0.025, and a pinned factor cannot
+                # outrun the ratio's fall either -- so the same cap has a
+                # floor: inside the floored band the ratio is frozen at the
+                # band's edge (#928), which leaves the product flat there
+                # instead of falling as the weather warms. Edit this
+                # together with the factor line above if the floor or the
+                # slope ever changes.
+                t_ratio = min(
+                    max(
+                        outdoor_temp,
+                        self.params.cop_reference_temp - (1.0 - 0.3) / 0.025,
+                    ),
+                    self.params.cop_reference_temp,
+                )
+                t_out = t_ratio + 273.15
+                # A minimum lift keeps this finite as outdoor approaches flow.
+                carnot_flow = (flow_temp + 273.15) / max(
+                    flow_temp + 273.15 - t_out, 1.0
+                )
+                carnot_ref = (ref + 273.15) / max(ref + 273.15 - t_out, 1.0)
+                if carnot_ref > 1e-9:
+                    cop *= max(0.25, carnot_flow / carnot_ref)
         # The corrections above multiply in after the nameplate curve's own
         # factor floor, so their product can cross 1.0 in deep cold (#928):
         # each factor is individually bounded, the product is not. Floor the
@@ -1454,34 +1431,6 @@ class ThermalModel:
         # leaves in the floored band also stops the Carnot ratio's fall
         # from inverting the curve as outdoor rises.
         return max(cop, 1.0)
-
-    def compute_cop_at_flow(
-        self,
-        outdoor_temp: float,
-        flow_temp: float,
-        humidity: float | None = None,
-    ) -> float:
-        """The COP at a MEASURED supply temperature, with no valve gate (#1067).
-
-        :meth:`compute_cop`'s lift is gated on ``cop_flow_carnot``, which
-        follows the mixing-valve mode, because there the flow temperature is a
-        tank the valve is charging and the derate only means anything while a
-        valve can charge it. Here the flow temperature is not a modelled tank:
-        it is a thermometer in the pump's supply pipe, and the lift it implies
-        is being paid whether or not the plant owns a valve. A direct
-        monoblock, which is the install this exists for, has no valve at all
-        and is exactly where the gate made the term unreachable.
-
-        So this applies the lift unconditionally and then the same resistive
-        floor :meth:`compute_cop` applies -- no vapour-compression cycle
-        returns less heat than the electricity it is charged for. Flooring the
-        product of an already-floored base is not a second floor doing
-        something new: the lift factor is bounded to (0, 1], so whenever the
-        base is at its floor the product is at or below 1.0 and comes back as
-        1.0, which is what applying the lift before the floor also gives.
-        """
-        base = self.compute_cop(outdoor_temp, humidity=humidity)
-        return max(base * self._flow_lift_factor(outdoor_temp, flow_temp), 1.0)
 
     def marginal_cop(
         self,
