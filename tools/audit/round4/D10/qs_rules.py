@@ -35,8 +35,11 @@ EXPECTED (re-recorded on this tree by #951, the #979/#984 style; the
     exchange, which no tree-local walk can see, and the docs grep this
     harness used could no longer tell listed from in-repo-only -- so it
     would have read done against an honestly-todo register and fired the
-    drift alarm on a fixed tree. The row is pinned todo by entities.py,
-    which is where the flip re-records.
+    drift alarm on a fixed tree. The row stays unmeasured here for that
+    same reason now that it reads done: the listing exists (verified
+    2026-09-16, cited on the register row), but a forum is still not
+    something this walk can see. entities.py carries the pin, re-taken at
+    the flip, and derives the manifest's declared tier from the register.
     Every other RESULT is a count; tolerance 0 (they are AST/grep counts,
     contention-immune).
 MACHINE: 8-core Apple M1, 8 GB, macOS 25.6.0, Python 3.11.5.
@@ -421,7 +424,8 @@ def gold() -> None:
          f"(#218): the rule's bar is a listing in the home-assistant.io "
          f"blueprint exchange, no tree-local walk can see it, and a docs "
          f"grep cannot tell listed from in-repo-only -- the register row is "
-         f"pinned todo by tests/entities.py, the #951 coverage-row split")
+         f"pinned by tests/entities.py against the listing URL as a "
+         f"literal, the #951 coverage-row split")
 
     kl = len(re.findall(r"^#{1,4}\s*.*known limitation", doc, re.I | re.M))
     kl_word = len(re.findall(r"limitation", doc, re.I))
