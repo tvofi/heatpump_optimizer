@@ -130,15 +130,17 @@ def push_key_problem(key: str, known_hosts: str) -> str | None:
     push time, which is after the stamp commit and tag exist locally. The
     pinned host file must exist and be writable by its owner only, because a
     host file anyone can rewrite pins nothing. Neither path may be empty or
-    carry whitespace or a quote: ssh re-parses `-o UserKnownHostsFile=` on its
-    own, so such a path fails at push time even though the shell quoting holds.
+    carry whitespace, a quote or `%`: ssh re-parses `-o UserKnownHostsFile=` on
+    its own and expands `%` tokens in both paths, so such a path fails at push
+    time even though the shell quoting holds.
     """
     if not key or not known_hosts:
         return "the deploy key and the known_hosts path must both be non-empty"
     key_path, hosts_path = Path(key).expanduser(), Path(known_hosts).expanduser()
     for label, path in (("deploy key", key_path), ("known_hosts file", hosts_path)):
-        if any(ch.isspace() or ch in "'\"" for ch in str(path)):
-            return f"{label} path {str(path)!r} carries whitespace or a quote, which ssh re-splits"
+        if any(ch.isspace() or ch in "'\"%" for ch in str(path)):
+            return (f"{label} path {str(path)!r} carries whitespace, a quote or %, "
+                    "which ssh re-splits or expands")
     if not key_path.is_file():
         return f"deploy key {key_path} does not exist or is not a file"
     if not hosts_path.is_file():
@@ -695,14 +697,11 @@ def self_test() -> int:
           all(part in _ssh for part in ("-i /k/stamp.key", "IdentitiesOnly=yes",
                                          "UserKnownHostsFile=/k/hosts",
                                          "StrictHostKeyChecking=yes")))
-    # ssh keeps the FIRST value of an option, so a substring check passes an
-    # earlier `=no`; every value given is read instead.
-    _words = shlex.split(_ssh)
-    _opts = [_words[i + 1] for i, w in enumerate(_words) if w == "-o" and i + 1 < len(_words)]
-    check("push: strict host checking is the only value given",
-          [o for o in _opts if o.startswith("StrictHostKeyChecking=")] == ["StrictHostKeyChecking=yes"])
-    check("push: the ssh connect is bounded",
-          f"ConnectTimeout={SSH_CONNECT_TIMEOUT_S}" in _opts and SSH_CONNECT_TIMEOUT_S > 0)
+    # ssh keeps the FIRST value of an option, in any of its spellings (`-oKey=v`,
+    # `-o 'Key v'`), so no parse of the options pins them: the whole string is.
+    check("push: the ssh command is exactly the measured one, options in order",
+          _ssh == "ssh -i /k/stamp.key -o IdentitiesOnly=yes -o UserKnownHostsFile=/k/hosts "
+                  "-o StrictHostKeyChecking=yes -o ConnectTimeout=30")
     check("push: a path with a space is quoted, not split",
           "-i '/k/my key'" in key_ssh_command("/k/my key", "/k/hosts"))
     calls.clear()
@@ -751,14 +750,14 @@ def self_test() -> int:
         _hosts.chmod(0o644)
         check("key: an empty key path refuses",
               "non-empty" in (push_key_problem("", str(_hosts)) or ""))
-        for _bad in ("sp ace", "quo'te", 'dq"te', "tab\tbed"):
+        for _bad in ("sp ace", "quo'te", 'dq"te', "tab\tbed", "pct%h"):
             _odd = Path(_d) / _bad
             _odd.write_text("h")
             _odd.chmod(0o600)
             check(f"key: a known_hosts path with {_bad!r} refuses before push time",
-                  "whitespace or a quote" in (push_key_problem(str(_key), str(_odd)) or ""))
+                  "whitespace, a quote or %" in (push_key_problem(str(_key), str(_odd)) or ""))
             check(f"key: a key path with {_bad!r} refuses before push time",
-                  "whitespace or a quote" in (push_key_problem(str(_odd), str(_hosts)) or ""))
+                  "whitespace, a quote or %" in (push_key_problem(str(_odd), str(_hosts)) or ""))
 
     # Where main() pushes from. Every pure piece above is correct while the
     # call site still builds its own `git push origin` -- so the region is read.
@@ -780,6 +779,10 @@ def self_test() -> int:
           "    if args.push_key is not None:\n        problem = push_key_problem" in _pre)
     check("push: main refreshes origin after a key push",
           "        if args.push_key is not None:\n            warning = refresh_origin()" in _pr)
+    # Before the tag push: that push may fail and `return 3`, and origin/main
+    # must show the stamp commit either way.
+    check("push: the refresh runs before the tag push",
+          -1 < _pr.find("warning = refresh_origin()") < _pr.find('push_via(f"v{nxt}"'))
     print(f"RESULT stamp_self_test={'pass' if ok else 'fail'}")
     return 0 if ok else 1
 
