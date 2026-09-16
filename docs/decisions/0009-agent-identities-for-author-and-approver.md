@@ -23,7 +23,9 @@ record is a plan with its checks written down — the shape 0008 landed in — a
 > `tvofi-seat-author` (#1065's force-push at 19:37:11Z, #201 comment
 > 5703429662). **Not landed:** the rest of step 3 — seats still authenticate as
 > `tvofi` (`gh api user --jq .login`), so the author half of step 4 is
-> unverified and no approving review from the App exists yet; step 5,
+> unverified, and the App has not yet approved a pull request the machine
+> account authored (its APPROVED review 5227837364 on #1065, authored by
+> `github-actions[bot]`, is not the demonstration: #201 comment 5703923412); step 5,
 > `main-protect`'s `bypass_actors` still `[{RepositoryRole 5, always}]`; and
 > step 6, no `pull_request` rule. The code-owner half is amended below.
 
