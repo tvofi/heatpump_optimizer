@@ -17027,8 +17027,9 @@ R.check(
 # (attempts 2 and 3) and refused both times with "`## Head` does not name
 # a93a43b" while `GET /pulls/1059` showed the corrected body; a close/reopen
 # -- a fresh event, same head, no tree change -- passed as run 35098726083.
-# The ledger lane one job down edits its own PR's body with GITHUB_TOKEN,
-# whose edits fire no `pull_request` event at all, so a manual re-run was the
+# The ledger lane one job down edited its own PR's body with GITHUB_TOKEN
+# until decision 0009 step 3b moved that write to the seat author, and those
+# edits fired no `pull_request` event at all, so a manual re-run was the
 # ONLY route to a green `pr-contract` there, and it was the route that could
 # not work. Three strings are pinned: the API read of the pull request's own
 # resource, `--jq` on its body field, and the ABSENCE of the payload context
@@ -17050,8 +17051,8 @@ R.check(
     f"payload_absent={_PC_PAYLOAD_ABSENT}; "
     "the payload is a snapshot a re-run replays (#1059, runs 35093322057 "
     "against 35098726083 at the same head), so a body corrected after the "
-    "event never reached the check and the ledger lane's GITHUB_TOKEN edits, "
-    "which fire no event, had no route to green at all",
+    "event never reached the check and the ledger lane's GITHUB_TOKEN edits "
+    "before 0009 step 3b, which fired no event, had no route to green at all",
 )
 # #956: the red-check trigger CLAUDE.md calls enforced is enforced by THIS
 # wiring, and nothing else. Before it, the body-contract step invoked
