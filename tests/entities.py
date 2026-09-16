@@ -17126,13 +17126,16 @@ R.check(
     and len(_SA_STEPS) == 1
     and "HEAD:refs/heads/ci/delivery-ledger" in _SA_STEP
     and "/pulls" in _SA_STEP
+    and "--rawfile body" in _SA_STEP and "body=@" not in _SA_STEP
     and "GH_TOKEN: ${{ secrets.SEAT_AUTHOR_TOKEN }}" in _SA_STEP,
     f"references per workflow file: "
     f"{ {k: v for k, v in _SA_FILES.items() if v} }; in the publishing job: "
     f"{_DS_PUB_CODE.count(_SA_REF)} across {len(_SA_STEPS)} step(s); that "
     f"step pushes the branch="
     f"{'HEAD:refs/heads/ci/delivery-ledger' in _SA_STEP}, writes the PR="
-    f"{'/pulls' in _SA_STEP}. Any other reference is a surface the secret "
+    f"{'/pulls' in _SA_STEP}, body from the file's bytes="
+    f"{'--rawfile body' in _SA_STEP and 'body=@' not in _SA_STEP}. Any other "
+    "reference is a surface the secret "
     "does not need -- and on a `pull_request` path, one a fork can reach",
 )
 _DS_PUB_BOT_CREDS = [

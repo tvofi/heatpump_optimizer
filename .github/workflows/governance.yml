@@ -778,7 +778,9 @@ jobs:
       # clears any helper the runner image configures. The PR is written
       # through the REST pulls endpoint rather than `gh pr create/edit`,
       # whose GraphQL reads can ask a classic `public_repo` token for scopes
-      # it does not carry.
+      # it does not carry, and its JSON is built by `jq --rawfile` and sent
+      # with `--input`, so no `body=@FILE` field flag is anywhere near it
+      # (the one-letter trap the comment-poster self-test above exists for).
       #
       # ORDER (the steward skill's S10): the push now fires `synchronize`
       # runs that execute rather than wait, and `pr-contract` reads the body
@@ -807,15 +809,19 @@ jobs:
             "repos/${GITHUB_REPOSITORY}/pulls?head=${GITHUB_REPOSITORY_OWNER}:ci/delivery-ledger&state=open" \
             --jq '.[0].number // empty')
           if [ -n "$NUMBER" ]; then
-            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}" \
-              -f title="$TITLE" -F body=@"$RUNNER_TEMP/body.md" --silent
+            jq -n --arg title "$TITLE" --rawfile body "$RUNNER_TEMP/body.md" \
+              '{title: $title, body: $body}' \
+              | gh api -X PATCH "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}" \
+                --input - --silent
             push_ledger
             echo "LEDGER: open PR #${NUMBER} updated at $SHA"
           else
             push_ledger
-            NUMBER=$(gh api -X POST "repos/${GITHUB_REPOSITORY}/pulls" \
-              -f base=main -f head=ci/delivery-ledger -f title="$TITLE" \
-              -F body=@"$RUNNER_TEMP/body.md" --jq .number)
+            NUMBER=$(jq -n --arg title "$TITLE" \
+              --rawfile body "$RUNNER_TEMP/body.md" \
+              '{base: "main", head: "ci/delivery-ledger", title: $title, body: $body}' \
+              | gh api -X POST "repos/${GITHUB_REPOSITORY}/pulls" \
+                --input - --jq .number)
             echo "LEDGER: PR #${NUMBER} opened at $SHA"
           fi
 
