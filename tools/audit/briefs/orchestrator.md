@@ -249,7 +249,8 @@ which is exactly the shape that lets a real error be waved through.
   reason why an older verdict carries — the authored diff proved byte-identical,
   not assumed.
 - **Any red check on the branch is answered in the body**, or the reviewer
-  returns `blocked <sha> root-cause-unanswered` (`defect-root-cause.md`).
+  returns `blocked <sha> root-cause-unanswered: <check> went red, unanswered`
+  (`defect-root-cause.md`).
 - The merge message passes section 4.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
