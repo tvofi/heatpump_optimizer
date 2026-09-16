@@ -53,7 +53,7 @@ if [ "${1:-}" = "--self-test" ]; then
   touches_policy 'tools/audit/briefs/fixer.md'                 ; st $? 0 "a contract turn runs it"
   touches_policy '.github/workflows/governance.yml'            ; st $? 0 "a workflow turn runs it"
   touches_policy 'docs/HANDOVER.md'                            ; st $? 0 "the handover runs it"
-  touches_policy 'docs/plan-2026-09-open-issues.md'            ; st $? 1 "another docs/ file does not -- only the handover is policy there"
+  touches_policy 'docs/plan-2026-09-open-issues.md'            ; st $? 1 "another docs/ file does not -- the prefix list names only the handover there"
   printf 'a\ncustom_components/x.py\n.claude/rules/y.md\nb\n' >/dev/null
   touches_policy "$(printf 'custom_components/x.py\n.claude/rules/y.md')"; st $? 0 "one policy path among several is enough"
 
