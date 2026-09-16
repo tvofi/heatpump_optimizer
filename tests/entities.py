@@ -12735,10 +12735,9 @@ R.check(
 # could not simply gain a member.
 #
 # The last three inert workflows made the same move for decision 0009 step 3b
-# (#954): the seat-author pins below count `secrets.SEAT_AUTHOR_TOKEN` across
-# EVERY workflow file, because a reference in any job that runs on
-# `pull_request` breaks the property they pin, and all three of these run on
-# `pull_request`. So none is inert any more; each is read by this script and
+# (#954), and the reason outlived it: the ledger-lane pin below requires
+# `SEAT_AUTHOR_TOKEN` in NO workflow file (#1086 removed its one use), so an
+# edit to any of these three must select this script. So none is inert any more; each is read by this script and
 # classified the way `governance.yml` and `release.yml` are below.
 _NON_GATE_WORKFLOWS = [
     ".github/workflows/hassfest.yml",
@@ -17253,37 +17252,25 @@ R.check(
 # The permission widening, checked as a PROPERTY rather than as its instance:
 # the whole set of jobs in governance.yml that override the workflow's
 # `contents: read` floor. A job-level block REPLACES the floor for that job and
-# is inherited by none, so the set IS the blast radius.
-#
-# This pin was `record-status`'s and came out with it, and it is UPDATED rather
+# is inherited by none, so the set IS the blast radius. It is UPDATED rather
 # than dropped each time the publishing lane moves, because the set is the
-# argument. #1011's owner decision (Option 2) made it three: the publishing
-# lane gave up `issues: write` when the #201 splice moved to the merge of the
-# ledger PR, and `delivery-status-splice` took that grant over -- a write
-# MOVED to the lane that uses it. #956 made it four, and the fourth is the
-# first that adds no write at all: `pr-contract` reads the head's check runs
-# through `/commits/<sha>/check-runs`, which the token refuses without
-# `checks: read`, so its block is the `nightly-status` precedent in tests.yml
-# -- a read-only widening on the one job that reads the API. The same job's
-# second read, `pull-requests: read`, is for the body: it is read off
-# `/pulls/<number>` at run time rather than out of the event payload, because
-# a payload is a snapshot and a re-run replays it (the pin below).
+# argument: the ledger's #201 splice is back in the publishing lane, whose
+# `issues: write` the deleted `delivery-status-splice` job had held, so the
+# set is three. #956's `pr-contract` adds no write at all: it reads the head's
+# check runs through `/commits/<sha>/check-runs`, which the token refuses
+# without `checks: read`, and the body off `/pulls/<number>` at run time
+# rather than out of the event payload, which a re-run replays (the pin below).
 _DS_GOV = Path(".github/workflows/governance.yml").read_text()
 _DS_PUB_JOB = _workflow_job(_DS_GOV, "delivery-status-publish")
-_DS_SPLICE_JOB = (
-    _workflow_job(_DS_GOV, "delivery-status-splice")
-    if "\n  delivery-status-splice:\n" in _DS_GOV else "")
 _DS_OVERRIDES = sorted(
     _m.group(1) for _m in re.finditer(
         r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
         _DS_GOV, re.M | re.S)
 )
 R.check(
-    "exactly four governance jobs override the workflow's read-only floor",
-    _DS_OVERRIDES
-    == ["delivery-status-publish", "delivery-status-splice", "pr-contract",
-        "record"],
-    f"jobs with a permissions block: {_DS_OVERRIDES}. A fifth has to be argued "
+    "exactly three governance jobs override the workflow's read-only floor",
+    _DS_OVERRIDES == ["delivery-status-publish", "pr-contract", "record"],
+    f"jobs with a permissions block: {_DS_OVERRIDES}. A fourth has to be argued "
     "for rather than land, and the reporting lane is deliberately NOT one: "
     "`delivery-status` runs on pull requests with no widening at all, because "
     "it only reads the tree it is already checked out in",
@@ -17364,107 +17351,47 @@ R.check(
 _DS_PUB_PERMS = re.search(
     r"^    permissions:\n((?:^      .*\n)+)", _DS_PUB_JOB, re.M)
 R.check(
-    "and the publishing lane's GITHUB_TOKEN grant is the one read it uses",
+    "and the publishing lane's grant is the one write it uses",
     bool(_DS_PUB_PERMS)
     and sorted(_DS_PUB_PERMS.group(1).split()) == sorted(
-        ["contents:", "read"]),
+        ["contents:", "read", "issues:", "write"]),
     f"delivery-status-publish permissions: "
     f"{_DS_PUB_PERMS.group(1).split() if _DS_PUB_PERMS else None} -- "
-    "the branch push and the PR write go through SEAT_AUTHOR_TOKEN (decision "
-    "0009 step 3b), so GITHUB_TOKEN only checks the tree out; a write grant "
-    "left behind is scope the job holds and no step uses",
+    "`issues: write` edits #201's region and `contents: read` restates the "
+    "floor a job-level block replaces; the lane writes nothing else",
 )
-# Decision 0009 step 3b (#954, owner-approved 2026-09-16): the ledger lane
-# pushes `ci/delivery-ledger` and opens or edits its PR as the machine account
-# `tvofi-seat-author`, because GitHub gates a workflow run on its ACTOR and a
-# GITHUB_TOKEN actor put every run on every cycle PR at `action_required`.
-# Three properties, each keyed on the wiring rather than on a sentence about
-# it, and each over the NON-COMMENT lines so the comments may name what they
-# replaced:
-#   1. the secret is referenced exactly once across every workflow file, in
-#      one step of this job, and that step is the one that pushes and writes
-#      the PR -- so it never reaches a `pull_request` path, where a fork
-#      could reach it, and never a step that does not need it;
-#   2. no GITHUB_TOKEN credential is left in the job and the checkout
-#      persists none, so no step can push or write the PR as the bot, and a
-#      fallback to it cannot be wired in silently;
-#   3. an absent secret fails the step loudly, naming the secret, before any
-#      push or API write: a silent fallback would reintroduce the approval
-#      gate with nothing reporting it.
+# THE FIXED POINT (#201 root cause, 2026-09-17). Merging a ledger PR was a push
+# to main, the push re-ran this lane, and the ledger moves on every push, so a
+# new ledger PR opened 14-22 s after each merge -- nine of eleven. The lane is
+# at a fixed point only while nothing it writes can land on main, which is
+# pinned on the wiring, over NON-COMMENT lines: no push, no PR write, no
+# machine token anywhere in the workflows (decision 0009 step 3b's only
+# consumer went with the PR), and no workflow that an issue-body edit starts.
 def _code_lines(text: str) -> str:
     return "\n".join(
         _l for _l in text.split("\n") if not _l.lstrip().startswith("#"))
 
 
-_SA_REF = "secrets.SEAT_AUTHOR_TOKEN"
-_SA_FILES = {
-    _f.name: _code_lines(_f.read_text()).count(_SA_REF)
-    for _f in sorted(Path(".github/workflows").glob("*.y*ml"))}
 _DS_PUB_CODE = _code_lines(_DS_PUB_JOB)
-_DS_PUB_STEPS = _DS_PUB_CODE.split("\n      - ")[1:]
-_SA_STEPS = [_st for _st in _DS_PUB_STEPS if _SA_REF in _st]
-_SA_STEP = _SA_STEPS[0] if len(_SA_STEPS) == 1 else ""
+_DS_WRITES = [_t for _t in (r"(?<![\w'])push\s", r"/pulls", r"gh pr ",
+                            r"git commit") if re.search(_t, _DS_PUB_CODE)]
+_SA_FILES = {
+    _f.name: _code_lines(_f.read_text())
+    for _f in sorted(Path(".github/workflows").glob("*.y*ml"))}
+_SA_REFS = [_n for _n, _t in _SA_FILES.items() if "SEAT_AUTHOR_TOKEN" in _t]
+_ISSUE_TRIGGERED = [_n for _n, _t in _SA_FILES.items()
+                    if re.search(r"^  (issues|issue_comment):", _t, re.M)]
 R.check(
-    "the seat author's token is held by one step, the ledger push and PR write",
-    sum(_SA_FILES.values()) == 1
-    and _DS_PUB_CODE.count(_SA_REF) == 1
-    and len(_SA_STEPS) == 1
-    and "HEAD:refs/heads/ci/delivery-ledger" in _SA_STEP
-    and "/pulls" in _SA_STEP
-    and "--rawfile body" in _SA_STEP and "body=@" not in _SA_STEP
-    and "GH_TOKEN: ${{ secrets.SEAT_AUTHOR_TOKEN }}" in _SA_STEP,
-    f"references per workflow file: "
-    f"{ {k: v for k, v in _SA_FILES.items() if v} }; in the publishing job: "
-    f"{_DS_PUB_CODE.count(_SA_REF)} across {len(_SA_STEPS)} step(s); that "
-    f"step pushes the branch="
-    f"{'HEAD:refs/heads/ci/delivery-ledger' in _SA_STEP}, writes the PR="
-    f"{'/pulls' in _SA_STEP}, body from the file's bytes="
-    f"{'--rawfile body' in _SA_STEP and 'body=@' not in _SA_STEP}. Any other "
-    "reference is a surface the secret "
-    "does not need -- and on a `pull_request` path, one a fork can reach",
-)
-_DS_PUB_BOT_CREDS = [
-    _t for _t in ("secrets.GITHUB_TOKEN", "github.token")
-    if _t in _DS_PUB_CODE]
-_DS_PUB_CHECKOUT = next(
-    (_st for _st in _DS_PUB_STEPS if "actions/checkout@" in _st), "")
-R.check(
-    "and no step of the publishing lane can push or write the PR as the bot",
-    not _DS_PUB_BOT_CREDS
-    and "persist-credentials: false" in _DS_PUB_CHECKOUT,
-    f"GITHUB_TOKEN references left in the job: {_DS_PUB_BOT_CREDS}; checkout "
-    f"persists no credential="
-    f"{'persist-credentials: false' in _DS_PUB_CHECKOUT}. A persisted checkout "
-    "token is what `git push origin` used before 3b, and a GH_TOKEN of "
-    "GITHUB_TOKEN is the bot actor whose runs wait on approval",
-)
-_SA_GUARD = re.search(
-    r'if \[ -z "\$GH_TOKEN" \]; then\n\s*echo "::error::[^"\n]*'
-    r'SEAT_AUTHOR_TOKEN[^"\n]*"\n\s*exit 1\n', _SA_STEP)
-_SA_FIRST_USE = min(
-    (_i for _i in (_SA_STEP.find("git "), _SA_STEP.find("gh api")) if _i >= 0),
-    default=-1)
-R.check(
-    "and an absent seat-author secret fails the lane loudly, before any write",
-    bool(_SA_GUARD) and _SA_FIRST_USE > _SA_GUARD.start(),
-    f"guard={bool(_SA_GUARD)}, precedes the first git/gh call="
-    f"{bool(_SA_GUARD) and _SA_FIRST_USE > _SA_GUARD.start()}; on a fork, or "
-    "after the owner rotates or deletes the secret, the step must go red "
-    "naming SEAT_AUTHOR_TOKEN -- a fallback to GITHUB_TOKEN would put the "
-    "cycle PR's runs back behind approval with nothing reporting it",
-)
-_DS_SPLICE_PERMS = re.search(
-    r"^    permissions:\n((?:^      .*\n)+)", _DS_SPLICE_JOB, re.M)
-R.check(
-    "the splice lane's grant is the one write it kept",
-    bool(_DS_SPLICE_PERMS)
-    and sorted(_DS_SPLICE_PERMS.group(1).split()) == sorted(
-        ["contents:", "read", "issues:", "write"]),
-    f"delivery-status-splice permissions: "
-    f"{_DS_SPLICE_PERMS.group(1).split() if _DS_SPLICE_PERMS else None} -- "
-    "`issues: write` edits #201's region and `contents: read` restates the "
-    "floor a job-level block replaces; it is the grant the publishing lane "
-    "held before #1011, moved to the only lane that still uses it",
+    "the publishing lane writes nothing that lands on main, so its own "
+    "write cannot re-run it",
+    not _DS_WRITES and not _SA_REFS and not _ISSUE_TRIGGERED
+    and "persist-credentials: false" in _DS_PUB_CODE
+    and "#201's region is already current" in _DS_PUB_CODE,
+    f"writes in the lane: {_DS_WRITES}; workflows naming SEAT_AUTHOR_TOKEN: "
+    f"{_SA_REFS}; workflows an issue edit starts: {_ISSUE_TRIGGERED}. Each "
+    "must be empty: a commit, push or PR the lane makes lands on main as a "
+    "push that runs the lane again, and the ledger's `commits_after` moves "
+    "on every push, so no ledger it lands is ever the ledger it regenerates",
 )
 # #959 (option B): the `record` job -- already one of the three overrides for
 # its read grant -- WIDENED that grant with `issues: write` so its filing step
@@ -17472,8 +17399,8 @@ R.check(
 # a fourth override: the job was already in the set above, which is why the
 # count pin does not move. The write itself is owner-approved (#201 comment
 # 5670207248, item 4), and it is pinned to exactly what the step uses so it
-# cannot grow past the approval in silence -- the same property the two
-# publishing-lane pins above assert for their jobs.
+# cannot grow past the approval in silence -- the same property the
+# publishing-lane pin above asserts for its job.
 _REC_JOB = _workflow_job(_DS_GOV, "record")
 _REC_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _REC_JOB, re.M)
 # Comment lines inside the block carry the argument; the GRANT is what remains
@@ -17531,68 +17458,6 @@ R.check(
     "a write-scoped job reachable from a pull request is a write-scoped job "
     "reachable from a fork, and the ledger it publishes is about `main`'s "
     "history rather than about any branch",
-)
-# #1011, the owner's Option 2. The direct bot push this job shipped with never
-# landed once: GH013 declined it on every push since the job arrived, because
-# a GITHUB_TOKEN push cannot satisfy main's required-checks rule, so no
-# `ci: regenerate the delivery ledger` commit exists anywhere in main's
-# history. The PR path is pinned on its two load-bearing strings -- the branch
-# it pushes and the command that opens the PR -- and on the ABSENCE of the
-# never-landed one, so the dead path cannot come back commented out, behind a
-# fallback branch, or as a "temporary" manual override.
-R.check(
-    "the publishing lane lands the ledger through a PR, never a bot push",
-    "HEAD:main" not in _DS_PUB_JOB
-    and "ci/delivery-ledger" in _DS_PUB_JOB
-    and '-X POST "repos/${GITHUB_REPOSITORY}/pulls"' in _DS_PUB_JOB,
-    f"pushes ci/delivery-ledger={'ci/delivery-ledger' in _DS_PUB_JOB}, "
-    f"opens a PR={'-X POST' in _DS_PUB_JOB and '/pulls' in _DS_PUB_JOB}, "
-    f"direct push to main={'HEAD:main' in _DS_PUB_JOB} (must be False); "
-    "`git push origin HEAD:main` is the never-landed path #1011 deleted, not "
-    "disabled",
-)
-R.check(
-    "and an unchanged ledger still exits green without opening anything",
-    "ledger unchanged; nothing to commit" in _DS_PUB_JOB,
-    "the unchanged path is this job's ordinary success -- the only shape it "
-    "was ever green in -- and a re-run at the same window must not open a PR "
-    "any more than it must add an empty commit",
-)
-# The #201 splice sits on the MERGE of that PR, not on the push lane: it used
-# to run after the push step, so GH013's exit 1 meant it never ran at all and
-# #201's body carries no delivery-status region. Three facts decide whether it
-# runs, and each is a fact about the wiring rather than the tree -- the
-# env-matrix lesson: the workflow must hear `closed`, the job must demand
-# `merged` and the ledger branch (a declined PR or any other merge must not
-# edit #201), and it must read the merge commit, so the issue carries what
-# main carries rather than a branch's proposal.
-_DS_TYPES = re.search(r"^    types: \[([^\]]*)\]", _DS_GOV, re.M)
-R.check(
-    "the workflow hears `closed`, so the splice can run at all",
-    bool(_DS_TYPES)
-    and "closed" in [t.strip() for t in _DS_TYPES.group(1).split(",")],
-    f"pull_request types: {_DS_TYPES.group(1) if _DS_TYPES else None}; a job "
-    "keyed on a merge event fires only if its activity type is subscribed, "
-    "and without this the splice is green-skipped on every merge -- the "
-    "shape `policy_lint_envmatrix.mjs` exists to catch",
-)
-_DS_SPLICE_HEAD = _DS_SPLICE_JOB.split("\n    steps:")[0]
-R.check(
-    "the splice fires on the ledger PR's merge alone",
-    "github.event.pull_request.merged == true" in _DS_SPLICE_HEAD
-    and "'ci/delivery-ledger'" in _DS_SPLICE_HEAD,
-    f"merged-guard={'merged == true' in _DS_SPLICE_HEAD}, "
-    f"branch-guard={'ci/delivery-ledger' in _DS_SPLICE_HEAD}; a PR closed "
-    "unmerged, or any other merge, must not edit #201 -- the only body this "
-    "lane may rewrite is one the ledger PR landed",
-)
-R.check(
-    "and splices the landed ledger, not the branch's proposal",
-    "merge_commit_sha" in _DS_SPLICE_JOB,
-    "the checkout is the merge commit, where docs/delivery-status.json is "
-    "main's; reading a branch head instead would publish content a review "
-    "had not yet accepted, which is what moving the splice onto the merge "
-    "exists to prevent",
 )
 R.check(
     "the ledger script is classified: NOT_A_TEST, and not on INERT",
