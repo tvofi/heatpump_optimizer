@@ -125,6 +125,48 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
 
 ## Corrections to the record
 
+- **The seven open `[policy] recurring friction:` issues were filed by a
+  histogram that keyed on the spelling a seat typed and counted entries rather
+  than pull requests.** Both are fixed (#1119). **The corrected rule RE-KEYS
+  these issues; it does not retract them** — at `e467026`, over
+  `v6.5.1..origin/main`, 52 merged pull requests, six of the seven are over the
+  threshold under their new key: #1070 9/9, #1095 7/9, #1078 5/7, #1079 5/5,
+  #1069 4/5, #1087 4/4, as PRs / entries. Nothing here says the friction was not
+  real, and the issues are not re-titled. **Every count in this entry carries the
+  head it was taken at, because they move with nobody editing them** — #1070 read
+  7/7 at `c71c53c` and 9/9 one day of merges later.
+- **#1094 is the one that changes character, and the reason is worth the
+  paragraph.** Its title key, `orchestrator`, is a ROLE NAME, and a role name
+  designates a seat as readily as that seat's contract. Every entry behind it
+  records friction with a **dispatch brief** — the lease tool named as
+  `tools/audit/gate_lock.py` when the tree has `tests/`, a G3 premise that
+  cannot hold on the stock house, a G4 derate range, a claim-files
+  contradiction — and none with `tools/audit/briefs/orchestrator.md`, which does
+  not govern any of it. `.github/PULL_REQUEST_TEMPLATE.md` offers one field,
+  `<rule_id>`, and no field for a brief, which is why the two subjects arrive
+  under one shape. So `tools/audit/briefs/*.md` resolves only from an id that
+  names it as a FILE, and a bare or suffix-qualified role name stays verbatim.
+  At `e467026` the dispatch key reads 2/4 and the contract key 2/2, and neither
+  clears the threshold in that window. **Its two controls, because a disposition
+  has to state both its key and its window:** the same key over
+  `v6.6.0..origin/main` reads 1 distinct pull request, and `main`'s
+  un-normalised classifier splits the same entries into `orchestrator` 4 and
+  `orchestrator.md` 2. A count that moves under either is a count whose key and
+  window were never stated. An earlier draft of this entry said recurrence did
+  not support #1094; that was written about the raw key and is **withdrawn** —
+  the rule re-keys the issue, it does not retract it.
+- **Do not carry any of those counts.** `<ref>..origin/main` is enumerated
+  against `origin/main`'s tip at the moment of the run, so every one of them is
+  a sliding figure; seven merges landed during #1119's own review and moved all
+  of them. A seat disposing one of the seven re-derives with
+  `node .claude/workflows/policy_lint.mjs --stats --since <newest tag>`, reads
+  the `PRs / entries` column, and resolves its own key with
+  `--normalize-friction-keys` rather than assuming the title is the key. The
+  filing lane re-measures every open issue on each beat and comments when its
+  key is below threshold in the current window; it never closes, so the
+  disposition is still a seat's. A key below threshold in one window is not a
+  fixed problem — the window moved when the last tag was cut, and the friction
+  may be older than it.
 - **This file is NOT policy for the budget and approval machinery, and seats are
   still being briefed that it is.** `docs/HANDOVER.md` sits in `CORPUS_EXCLUDED`
   and matches no `POLICY_GLOBS` pattern (owner, 2026-09-16, #201 comment

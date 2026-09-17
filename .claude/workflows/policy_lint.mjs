@@ -393,6 +393,13 @@ const LOOP_CHECK_NAMES = [
   // silent shape the shared parser replaced.
   { name: 'checkPrBody', file: 'policy_lint.mjs', kind: 'return' },
   { name: 'frictionEntries', file: 'policy_lint.mjs', kind: 'return' },
+  // The histogram's KEYING, which is a second silent shape beside the grammar's:
+  // `frictionEntries` decides what an entry IS, `frictionKey` decides which key
+  // it counts under, and an emptied keyer leaves every entry parsed, every
+  // count printed, and every rule filed under whichever spelling a seat typed.
+  // That is the defect this entry arrived with, and it was invisible to the
+  // whole acceptance until the keying window pinned it.
+  { name: 'frictionKey', file: 'policy_lint.mjs', kind: 'return' },
 ]
 
 // WHAT THIS PIN DOES NOT COVER, stated rather than implied. It compares the
@@ -2100,9 +2107,118 @@ function verdictClasses(text = read(WAVE_SCRIPT)) {
 // it ran, still shows.
 const FRICTION_UNLABELLED = '(unlabelled friction bullet)'
 
+// KEY NORMALIZATION. The id is whatever a seat typed, and the histogram used to
+// key on it verbatim, so one rule reached the filer as several keys and several
+// rules reached it as none. Measured at 598ad6d over `--since v6.5.1`:
+// `gate-scoping` 5 and `gate-scoping.md` 3 filed #1095 and #1093 for one rule
+// file; `finding-propagation` 4 and `finding-propagation.md` 3 did the same;
+// and `defect-root-cause` 1 + `defect-root-cause.md` 2, and `steward` 2 +
+// `steward-S10` 1, each summed to the threshold while neither half reached it,
+// so two rules with recurring friction surfaced nowhere at all.
+//
+// THE RULE, in one sentence: the key is the POLICY FILE the entry names, when
+// it names one, and the id verbatim when it does not. So the key is always a
+// path `git ls-files` confirms, which is what a disposer opens, and the
+// normalization is never a guess -- an id that resolves to nothing is left
+// exactly as typed rather than folded into something that looks close.
+//
+// Three steps, each with the thing it must NOT do:
+//   1. A `#fragment` names a section of a document, not a second document, so
+//      it is dropped: `CLAUDE.md#budgets` and `CLAUDE.md#rule-4` are CLAUDE.md.
+//   2. The id, then the id without a trailing `.md`, is looked up.
+//   3. Failing both, the longest `-`-delimited PREFIX that resolves is used --
+//      `steward-S10` and `fixer-step-5` are the steward skill and the fixer
+//      contract, because a suffix that is not itself a policy file is a section
+//      pointer. `fixer-dispatch` goes the same way, which the triage counted
+//      separately: a seat writing it named the fixer contract, the issue a
+//      disposer would open is that contract, and there is no evidence in the
+//      tree for any other reading. The rule is self-repairing -- add
+//      `.claude/rules/fixer-dispatch.md` and step 2 resolves it to itself.
+//      Prefixes are tried LONGEST FIRST and only against files that exist, so
+//      `defect-root-cause` resolves at step 2 and never walks down to
+//      `root-cause`, which is a different policy file; the two stay two keys.
+//
+// An id claimed by more than one policy file resolves to NONE of them. `README`
+// is claimed by three, and merging three documents under one key is exactly the
+// silent merge this rule exists to refuse, so ambiguity is left unresolved and
+// the id stays verbatim.
+const BRIEF_FILE = /^tools\/audit\/briefs\//
+let POLICY_KEY_INDEX = null
+function policyKeyIndex(files = null) {
+  const claims = new Map()
+  const claim = (cand, p) => {
+    if (!cand) return
+    if (!claims.has(cand)) claims.set(cand, new Set())
+    claims.get(cand).add(p)
+  }
+  for (const p of files ?? policyFiles()) {
+    claim(p, p)
+    const skill = /^\.claude\/skills\/([^/]+)\/SKILL\.md$/.exec(p)
+    if (skill) {
+      // A skill is named by its DIRECTORY; every skill's basename is
+      // `SKILL.md`, so claiming that would make one ambiguous candidate and
+      // resolve nothing.
+      claim(skill[1], p)
+      continue
+    }
+    const base = p.slice(p.lastIndexOf('/') + 1)
+    claim(base, p)
+    // A ROLE CONTRACT'S BARE NAME IS NOT CLAIMED, and this is the same
+    // ambiguity guard as the `README` one below, not an exception to it.
+    // `tools/audit/briefs/*.md` are what CLAUDE.md calls "Role contracts --
+    // open the one you are", so `orchestrator` names a SEAT as readily as that
+    // seat's contract, and a seat also writes the dispatch briefs it hands out.
+    // Measured over `v6.5.1..origin/main` at c71c53c: the bare key
+    // `orchestrator` held 4 entries across 2 pull requests and every one of
+    // them records friction with a DISPATCH brief -- "the dispatch brief named
+    // the lease tool tools/audit/gate_lock.py", "the plan's G3 test cannot pass
+    // on the stock house", "the plan's G4 brief gives the derate range as
+    // 0.3-1.0", "the brief said the claim files stay untouched" -- while the
+    // separate key `orchestrator.md`, 2 entries across 2 pull requests, names
+    // the contract by section ("in section 13, rule 4 means stamp.py's notes
+    // rule"). Resolving the first onto the second files the contract for
+    // something it does not govern. `fixer-dispatch` measured the same way:
+    // both its entries are about a dispatch. The template offers one field,
+    // `<rule_id>`, and there is no field for a brief, which is why the two
+    // subjects arrive under one shape.
+    //
+    // So a briefs document resolves only from an id that names it as a FILE --
+    // `orchestrator.md`, or its repo-relative path -- and a bare or
+    // suffix-qualified role name stays verbatim. It costs `fixer-step-5`, which
+    // did name the contract; that is the price of a rule with no list in it,
+    // and a verbatim key blames nobody.
+    //
+    // `.claude/rules/` and `.claude/skills/` are NOT carved out, and the same
+    // measurement is why: there is no "gate-scoping seat", and all three
+    // `steward` entries in that window name S9 and S10, sections of the skill
+    // document itself.
+    if (!BRIEF_FILE.test(p)) claim(base.replace(/\.md$/, ''), p)
+  }
+  const index = new Map()
+  for (const [cand, set] of claims) if (set.size === 1) index.set(cand, [...set][0])
+  return index
+}
+
+function frictionKey(id) {
+  if (id === FRICTION_UNLABELLED) return id
+  const raw = String(id ?? '').trim()
+  const bare = raw.replace(/^`+|`+$/g, '').replace(/#.*$/, '')
+  if (!bare) return raw
+  POLICY_KEY_INDEX ??= policyKeyIndex()
+  if (POLICY_KEY_INDEX.has(bare)) return POLICY_KEY_INDEX.get(bare)
+  const noExt = bare.replace(/\.md$/, '')
+  if (POLICY_KEY_INDEX.has(noExt)) return POLICY_KEY_INDEX.get(noExt)
+  const parts = noExt.split('-')
+  for (let n = parts.length - 1; n >= 1; n -= 1) {
+    const stem = parts.slice(0, n).join('-')
+    if (POLICY_KEY_INDEX.has(stem)) return POLICY_KEY_INDEX.get(stem)
+  }
+  return bare
+}
+
 function frictionIds(body) {
   const section = sections(String(body ?? '')).get('Friction') ?? ''
-  return frictionEntries(section).map((e) => e.id ?? FRICTION_UNLABELLED)
+  return frictionEntries(section).map((e) => frictionKey(e.id ?? FRICTION_UNLABELLED))
 }
 
 // The plan's threshold: three or more of one key inside the window opens a
@@ -2111,6 +2227,22 @@ function frictionIds(body) {
 // only then file it" makes filing the last resort of a seat that has measured,
 // not something a cron job does on a count.
 const FRICTION_THRESHOLD = 3
+
+// THE THRESHOLD'S UNIT IS THE PULL REQUEST, not the entry. "Recurring" is a
+// claim about recurrence, and a key written three times inside one body has
+// happened once: it is one seat, one session, one occasion. Measured at 598ad6d
+// over `--since v6.5.1`, `orchestrator` reached 4 entries from 2 pull requests,
+// 3 of them in a single body, and that is what filed #1094; `gate-scoping` over
+// the same window reached its count from 4 separate pull requests and fires
+// under either rule. Both counts are kept and both are printed -- the entry
+// count is still the volume of friction -- but only the distinct-PR count is
+// compared against the threshold.
+const bump = (hist, key, pr) => {
+  if (!hist.has(key)) hist.set(key, { entries: 0, prs: new Set() })
+  const cell = hist.get(key)
+  cell.entries += 1
+  cell.prs.add(pr)
+}
 
 function statsHistogram(prs, fetched, classes) {
   const verdicts = new Map()
@@ -2132,10 +2264,9 @@ function statsHistogram(prs, fetched, classes) {
         unclassified.push(`#${pr}: ${first.slice(0, 70)}`)
         continue
       }
-      const k = m[1].toLowerCase()
-      verdicts.set(k, (verdicts.get(k) ?? 0) + 1)
+      bump(verdicts, m[1].toLowerCase(), pr)
     }
-    for (const id of frictionIds(f.body)) friction.set(id, (friction.get(id) ?? 0) + 1)
+    for (const id of frictionIds(f.body)) bump(friction, id, pr)
   }
   return { verdicts, friction, unclassified }
 }
@@ -2155,15 +2286,41 @@ function statsFindings({ prs, fetched, fetchError, classes, passing = passingVer
   }
   const { verdicts, friction, unclassified } = statsHistogram(prs, fetched, classes)
   const out = []
+  // THE VERDICT ARM IS A TAUTOLOGY WHILE THE GRAMMAR IS BINARY. The classes are
+  // read from the wave script, and it teaches exactly two: `blocked` and
+  // `merge`. `merge` is withheld as the passing verdict (below), so `blocked`
+  // is the only key this arm can ever emit -- and every window with three
+  // reviewed pull requests in it clears a threshold of three, so the arm's
+  // answer is a constant and carries no information. It filed #1041.
+  //
+  // What is excluded is therefore the CONDITION, not the arm: an arm whose
+  // non-passing half has one class proposes nothing. That is the exclusion of
+  // the arm today, said in a way that names why -- and if the wave script ever
+  // teaches a third verdict, `blocked` becomes informative again and the arm
+  // resumes proposing without anyone remembering to delete a permanent
+  // exclusion. The histogram still PRINTS the class and its count either way;
+  // only the issue proposal is withheld.
+  const nonPassing = classes.filter((c) => !(passing && c === passing))
+  const verdictArmInforms = nonPassing.length > 1
   for (const [kind, hist] of [['verdict class', verdicts], ['friction rule id', friction]]) {
-    for (const [k, n] of [...hist.entries()].sort((a, b) => b[1] - a[1])) {
+    for (const [k, cell] of [...hist.entries()].sort((a, b) => b[1].prs.size - a[1].prs.size)) {
+      const n = cell.prs.size
       if (n < FRICTION_THRESHOLD) continue
       if (kind === 'verdict class' && passing && k === passing) {
         out.push({
           severity: 'info',
           check: 'stats',
           where: '(window)',
-          message: `not opened: verdict class "${k}" at ${n} is the passing verdict ${WAVE_SCRIPT} requires before a merge, so it counts rework nowhere. Friction is rework.`,
+          message: `not opened: verdict class "${k}" at ${n} pull request(s) is the passing verdict ${WAVE_SCRIPT} requires before a merge, so it counts rework nowhere. Friction is rework.`,
+        })
+        continue
+      }
+      if (kind === 'verdict class' && !verdictArmInforms) {
+        out.push({
+          severity: 'info',
+          check: 'stats',
+          where: '(window)',
+          message: `not opened: verdict class "${k}" at ${n} pull request(s) is the only non-passing class in the grammar ${JSON.stringify(classes)} read from ${WAVE_SCRIPT}, so it is the only key this arm can emit and any active window clears the threshold. A constant is not a measurement; it is printed and proposes nothing. A third verdict class in that grammar makes this arm informative again.`,
         })
         continue
       }
@@ -2171,7 +2328,7 @@ function statsFindings({ prs, fetched, fetchError, classes, passing = passingVer
         severity: 'info',
         check: 'stats',
         where: '(window)',
-        message: `would open "[policy] recurring friction: ${k}" -- ${kind} at ${n} in this window, threshold ${FRICTION_THRESHOLD}. Not opened here: a seat measures and files, a report does not.`,
+        message: `would open "[policy] recurring friction: ${k}" -- ${kind} at ${n} in this window, threshold ${FRICTION_THRESHOLD}. Counted as DISTINCT pull requests (${cell.entries} entr${cell.entries === 1 ? 'y' : 'ies'} in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.`,
       })
     }
   }
@@ -2262,7 +2419,11 @@ function checkSunset(rows, { friction, fires, today }) {
           })
           continue
         }
-        if (friction.has(id)) continue
+        // Through the same normalization the histogram keys with: the friction
+        // map is now keyed on the policy FILE an entry names, so an honour rule
+        // written as a bare rule id would otherwise miss its own friction and
+        // be proposed for sunset while the window was recording it.
+        if (friction.has(id) || friction.has(frictionKey(id))) continue
         if (/#\d+/.test(line)) continue
         if (quiet.length) {
           out.push({
@@ -2581,7 +2742,7 @@ const CHECKS = [
   { name: 'required-contexts', what: 'the corpus\'s required-context literals and recorded shape match the live ruleset', fixture: '(driven in assertAcceptance; live state, never fixtures, in production)' },
   { name: 'record', what: 'every merged pull request has a disposition (refuses)', fixture: 'fixtures/policy-loop/merged-subjects.txt' },
   { name: 'render', what: 'disposition documents render with the same structure as their source', fixture: 'fixtures/policy-loop/render-cells-rotten.md' },
-  { name: 'stats', what: 'verdict and friction histograms, and what they would open', fixture: 'fixtures/policy-loop/pr-payloads.json' },
+  { name: 'stats', what: 'verdict and friction histograms, and what they would open', fixture: 'fixtures/policy-loop/pr-payloads.json + friction-keys.json' },
   { name: 'sunset', what: 'rules that have outlived the reason they were written', fixture: 'fixtures/policy-loop/sunset-rules.md' },
 ]
 
@@ -2685,18 +2846,54 @@ const REQUIRED_ROT = {
     mustNot: ['merged pull request #8888'],
   },
   stats: {
-    count: 5,
+    count: 13,
     must: [
-      'would open "[policy] recurring friction: CLAUDE.md#budgets"',  // a rule id at threshold
-      'would open "[policy] recurring friction: blocked"',            // a verdict class at threshold
-      'is the passing verdict',                                       // ...and the class that is not rework
+      // The rule id at threshold, keyed on the FILE the entry names: the
+      // fixture writes it `CLAUDE.md#budgets`, and a fragment names a section
+      // of a document rather than a second document.
+      'would open "[policy] recurring friction: CLAUDE.md" --',
+      'is the passing verdict',                                       // the class that is not rework
       'outside the grammar in .claude/workflows/web-fix-wave.js',     // the grammar drifting
       'could not fetch pull-request bodies and comments',             // the opposite-claims guard
+      // The tautology: with `blocked` the whole non-passing half of a two-class
+      // grammar, the verdict arm can emit no other key, so it prints and
+      // proposes nothing.
+      'the only non-passing class',
+      // fixtures/policy-loop/friction-keys.json. Three spellings of one rule
+      // over three pull requests collapse to one key at 3 distinct PRs...
+      'would open "[policy] recurring friction: .claude/rules/gate-scoping.md"',
+      // ...a section-qualified spelling goes with its stem...
+      'would open "[policy] recurring friction: .claude/skills/steward/SKILL.md"',
+      // ...and the null control on that suffix rule: two ids that each resolve
+      // in their own right stay two keys, at 3 apiece rather than one at 6.
+      'would open "[policy] recurring friction: .claude/rules/defect-root-cause.md"',
+      'would open "[policy] recurring friction: tools/audit/briefs/root-cause.md"',
+      // ...and the role-name carve-out, both directions. A BARE role name is
+      // the seat, not the seat's contract -- it files under its own text...
+      'would open "[policy] recurring friction: orchestrator"',
+      'would open "[policy] recurring friction: fixer-dispatch"',
     ],
-    // The fixture puts the passing class OVER the threshold on purpose, so this
-    // is a pin and not a vacuous one: without the exclusion the same window
-    // produces this line.
-    mustNot: ['would open "[policy] recurring friction: merge"'],
+    // The fixture puts the passing class OVER the threshold on purpose, so the
+    // first of these is a pin and not a vacuous one: without the exclusion the
+    // same window produces that line. The rest are the three ways the keying
+    // was wrong -- a verdict key that could only ever be `blocked`, a rule
+    // filed twice under two spellings, and a key that recurs in one body and
+    // nowhere else.
+    mustNot: [
+      'would open "[policy] recurring friction: merge"',
+      'would open "[policy] recurring friction: blocked"',
+      'would open "[policy] recurring friction: gate-scoping.md"',
+      'would open "[policy] recurring friction: steward-S10"',
+      'would open "[policy] recurring friction: CLAUDE.md#budgets"',
+      'would open "[policy] recurring friction: claim-files"',
+      'would open "[policy] recurring friction: .claude/rules/claim-files.md"',
+      // ...and the contract is never filed for a dispatch's friction. The
+      // fixture puts three bare `orchestrator` entries on three pull requests
+      // beside ONE `orchestrator.md`, so without the carve-out this line is
+      // exactly what the same window produces, at 4.
+      'would open "[policy] recurring friction: tools/audit/briefs/orchestrator.md"',
+      'would open "[policy] recurring friction: tools/audit/briefs/fixer.md"',
+    ],
   },
   sunset: {
     count: 5,
@@ -2933,6 +3130,9 @@ function assertAcceptance(derived) {
 
   found.push(...statsFindings({ prs: loop.prs, fetched: loop.fetched, fetchError: null, classes: loop.classes }))
   found.push(...statsFindings({ prs: loop.prs, fetched: new Map(), fetchError: 'fixture: the API was not reachable', classes: loop.classes }))
+  // The keying window: normalization, distinct-PR recurrence, and the verdict
+  // arm's tautology, each with its null control inside the fixture.
+  found.push(...statsFindings({ prs: loop.keysPrs, fetched: loop.keysFetched, fetchError: null, classes: loop.classes }))
   found.push(...checkSunset(loop.sunsetRot, { friction: loop.friction, fires: loop.fires, today: loop.today }))
   found.push(...checkSunset(loop.sunsetRot, { friction: null, fires: loop.fires, today: loop.today }))
 
@@ -4066,10 +4266,26 @@ function loopFixtures() {
     const healthy = new Set(payloads._healthy ?? [])
     const classes = verdictClasses()
     if (!classes) return null
+    // The keying window. Its pull-request numbers are NOT in
+    // merged-subjects.txt, on purpose: that list is also `record`'s
+    // undispositioned-merge witness, so numbers added there would move
+    // checkRecord's rot count and need matching rows in dispositions-healthy.md
+    // to keep its silent arm silent. statsFindings is pure over injected
+    // inputs, so this window is handed to it directly.
+    const keys = JSON.parse(read(`${dir}/friction-keys.json`))
+    const keysFetched = new Map()
+    for (const [k, v] of Object.entries(keys)) {
+      if (k.startsWith('_')) continue
+      keysFetched.set(k, v)
+    }
+    const keysPrs = (keys._window ?? []).map((pr) => ({ pr }))
+    if (!keysPrs.length) return null
     return {
       prs,
       healthyPrs: prs.filter((p) => healthy.has(p.pr)),
       fetched,
+      keysPrs,
+      keysFetched,
       classes,
       dispositionsRotten: read(`${dir}/dispositions-rotten.md`),
       dispositionsHealthy: read(`${dir}/dispositions-healthy.md`),
@@ -4510,6 +4726,28 @@ function cmdCorpusFilter() {
   }
 }
 
+// Reads one friction rule id per line on stdin and prints `<raw>\t<key>`, one
+// row per input line, in order. Same channel and same argument as
+// `--corpus-filter` above: friction_issues.mjs needs to know which key an
+// ALREADY-FILED issue's title normalizes to before it can say that key is below
+// threshold, and a second copy of the normalization there would be a second
+// definition of what one rule is. A blank line is skipped; every other line
+// answers, so a consumer can check the row count against what it sent and
+// refuse a partial answer rather than read a short list as "no match".
+function cmdNormalizeKeys() {
+  let raw = ''
+  try {
+    raw = fs.readFileSync(0, 'utf8')
+  } catch {
+    raw = ''
+  }
+  for (const line of raw.split('\n')) {
+    const id = line.trim()
+    if (!id) continue
+    console.log(`${id}\t${frictionKey(id)}`)
+  }
+}
+
 function cmdBudgets(files) {
   const b = policyBudgets()
   const rows = sizes(files)
@@ -4819,12 +5057,24 @@ function cmdStats(since) {
   console.log(`STATS: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; verdict grammar ${JSON.stringify(classes)} read from ${WAVE_SCRIPT}`)
   if (!fetchError) {
     const { verdicts, friction } = statsHistogram(prs, fetched, classes)
+    // Both counts in the table, threshold on the left one, because a reader who
+    // sees only "4" cannot tell 4 occasions from one body written four times.
     for (const [label, hist] of [['verdict class', verdicts], ['friction rule id', friction]]) {
-      console.log(`\n${label}:`)
-      const rows = [...hist.entries()].sort((a, b) => b[1] - a[1])
+      console.log(`\n${label} (PRs / entries):`)
+      const rows = [...hist.entries()].sort((a, b) => b[1].prs.size - a[1].prs.size || b[1].entries - a[1].entries)
       if (!rows.length) console.log('  (none in this window)')
-      for (const [k, n] of rows) console.log(`  ${String(n).padStart(4)}  ${k}${n >= FRICTION_THRESHOLD ? '   <- at or over threshold' : ''}`)
+      for (const [k, cell] of rows) {
+        const n = cell.prs.size
+        console.log(`  ${String(n).padStart(4)} / ${String(cell.entries).padEnd(4)}  ${k}${n >= FRICTION_THRESHOLD ? '   <- at or over threshold' : ''}`)
+      }
+      // The machine-readable census, tab-separated with the key LAST because
+      // one key -- the unlabelled bucket -- carries spaces. friction_issues.mjs
+      // reads it to re-measure the keys of issues it already filed: the
+      // would-open lines alone name only the keys still over the threshold, and
+      // a close path needs the count of the ones that are not.
+      for (const [k, cell] of rows) console.log(`CENSUS\t${label}\t${cell.prs.size}\t${cell.entries}\t${k}`)
     }
+    console.log(`\nCENSUS: ${verdicts.size + friction.size} key(s)`)
   }
   const found = statsFindings({ prs, fetched, fetchError, classes })
   console.log(`\nthreshold: ${FRICTION_THRESHOLD} or more of one key in the window opens "[policy] recurring friction: <key>". Nothing is opened here.`)
@@ -4872,6 +5122,7 @@ function main() {
 
   if (argv[0] === '--list') return cmdList(), process.exit(0)
   if (argv[0] === '--corpus-filter') return cmdCorpusFilter(), process.exit(0)
+  if (argv[0] === '--normalize-friction-keys') return cmdNormalizeKeys(), process.exit(0)
   if (argv[0] === '--rule-binding') return cmdRuleBinding(), process.exit(0)
 
   // Exact-string, and --record-known-bad is tested FIRST, so the reseed can
