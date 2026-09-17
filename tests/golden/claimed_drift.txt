@@ -264,9 +264,11 @@
 # declared whatever the shape of the move -- and it failed the gate until
 # this entry existed. The re-record is how the committed file stops being
 # stale; the claim is how the branch states that it moved it on purpose.
-coord_minimal  # ADD-ONLY: six new heat_pump_signals keys, all null/false
-coord_dhw  # ADD-ONLY: six new heat_pump_signals keys, all null/false
-coord_two_zone  # ADD-ONLY: six new heat_pump_signals keys, all null/false
-coord_grid_fee  # ADD-ONLY: six new heat_pump_signals keys, all null/false
-coord_all_features  # ADD-ONLY: six new heat_pump_signals keys, all null/false
-config_flow  # ADD-ONLY: five new option keys across plain, seeded and seed map
+#
+# #1067 W1067-G3 (the solver half): the list above was #1068's, inherited at
+# an unchanged VERSION, and env_drift refused it as INHERITED CLAIMS before
+# capturing anything. This branch moves exactly one existing fixture:
+# config_flow gains the building page's new boolean, flow_curve_cop_enabled,
+# re-recorded for #547's reason above. direct_flow_carnot is a NEW fixture
+# and is not claimed; every other fixture is byte-identical.
+config_flow  # ADD-ONLY: one new building-page option key, flow_curve_cop_enabled
