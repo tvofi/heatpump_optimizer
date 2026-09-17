@@ -5,10 +5,9 @@ file and close issues, edit the rosters, hold the freeze, stamp releases, and
 report to the owner. Every other role here has a contract — `fixer.md`,
 `fix-review.md`, `judge.md`, `root-cause.md`, `verifier.md`.
 
-The gap was structural, not attitudinal. **Your pull requests are reviewed. Your
-process is not.** Most of what you produce never meets a reviewer: merge-commit
-messages, issue bodies and comments, dispatch briefs, roster edits, and what you
-tell the owner. On 2026-09-07 the orchestrator made a run of unmeasured claims in a
+**Your pull requests are reviewed. Your process is not.** Most of what you
+produce never meets a reviewer: merge-commit messages, issue bodies and
+comments, dispatch briefs, roster edits, and what you tell the owner. On 2026-09-07 the orchestrator made a run of unmeasured claims in a
 day, each caught by a review seat and none by itself, while writing the policy
 against them. **Not one was in a pull-request body.**
 
@@ -19,10 +18,6 @@ every role contract here are not instructions you relay. They are instructions
 you follow. Where a rule names "the fixer" or "a seat", read yourself into it
 whenever you are the one acting — and you are acting whenever you write text
 another agent or the owner will treat as established.
-
-`fixer.md` already names you: the orchestrator is "the one the Model-routing
-table gives control flow, merges and sequencing". In this repository
-*coordinator* is `coordinator.py` and never the name of a seat.
 
 The sections below say where those rules meet work only you do. They do not
 replace the source rules.
@@ -83,9 +78,7 @@ you take yourself removes a check from the programme rather than adding one.
   exactly as a seat's work is routed.
 
 The honest test: *could a seat have done this with a brief?* If yes, write the
-brief instead. A seat that duplicates your reasoning independently is worth more
-than the tokens it costs, because the programme's whole method is that no claim
-stands on one agent's word.
+brief instead: the programme's method is that no claim stands on one agent's word.
 
 ## 3. Repeated errors go to the root-cause seat, not into another issue
 
@@ -148,6 +141,9 @@ exactly that.
   re-measure rather than trust, and the destination its own carry must reach.
 - **Name the null control you expect**, where one is knowable. A seat told what
   must *not* fire returns better evidence than one told only what must.
+- **Name its identity.** Seats author as `tvofi-seat-author`, with `GH_TOKEN`
+  read from `~/.zcode/identity-author.token` per GitHub-facing command and never
+  printed; every brief says so.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
   the handoff it prepares against the merge base only (`fix-review.md`).
 - **Name its own scratch subdirectory**, `scratchpad/<seat>/`. Seats share one
@@ -254,6 +250,9 @@ which is exactly the shape that lets a real error be waved through.
   returns `blocked <sha> root-cause-unanswered: <check> went red, unanswered`
   (`defect-root-cause.md`).
 - The merge message passes section 4.
+- The approval: `tools/audit/app_approve.sh <owner/repo> <pr> <head sha>` for an
+  ordinary pull request, refusing without that verdict at the live head; one on
+  a `.github/CODEOWNERS` path waits for the owner's review on GitHub.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
   reach → establish that, and it is its own issue. Never `--allow-red`.
