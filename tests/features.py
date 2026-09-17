@@ -37803,6 +37803,8 @@ R.check(
 R.section("#1067 W1067-G5 — the disinfection switch, observe first")
 
 import json as _json  # noqa: E402
+
+from harness import FakeServices as _HarnessFakeServices  # noqa: E402
 import logging as _g5_logging  # noqa: E402
 
 from homeassistant.helpers import storage as _g5_storage  # noqa: E402
@@ -37846,17 +37848,33 @@ def _g5_captured(run):
 
 
 class _G5Service:
-    """An injected service callable: records every call, raises on demand."""
+    """An injected service callable shaped like ``hass.services.async_call``.
+
+    Records every call and fails on demand -- and, like Home Assistant core, a
+    failure reaches the caller only for ``blocking=True``: a non-blocking call
+    runs its handler in the background, where core logs the error and the
+    caller returns normally (#1106 review round 2, measured against core
+    2026.2.3).
+    """
 
     def __init__(self):
         self.calls = []
+        self.blocking = []
         self.raise_next = 0
+        self.hang_next = 0
 
-    async def __call__(self, domain, service, data):
+    async def __call__(self, domain, service, data, blocking=False):
         self.calls.append((domain, service, dict(data)))
+        self.blocking.append(blocking)
+        if self.hang_next:
+            self.hang_next -= 1
+            if blocking:
+                await _asyncio.sleep(3600)
+            return
         if self.raise_next:
             self.raise_next -= 1
-            raise RuntimeError("entity unavailable")
+            if blocking:
+                raise RuntimeError("entity unavailable")
 
 
 def _g5_unit(observed=False, **config):
@@ -37936,6 +37954,57 @@ R.check(
     and _g5_sw.failed is False,
     f"calls={_g5_svc.calls} owned={_g5_sw.owned!r} failed={_g5_sw.failed!r}",
 )
+# Every write is blocking, so a failure is seen; and bounded, so a device that
+# never answers cannot stall the update cycle.
+_g5_sw, _g5_svc = _g5_unit(**_G5_CONTROL_CFG)
+_g5_on(_g5_sw)
+R.check(
+    "every write asks Home Assistant to block until the service call has finished",
+    _g5_svc.blocking == [True],
+    f"blocking={_g5_svc.blocking}",
+)
+_g5_sw, _g5_svc = _g5_unit(**_G5_CONTROL_CFG)
+_g5_svc.hang_next = 1
+_g5_timeout_saved = _g5_dis.WRITE_TIMEOUT_S
+_g5_dis.WRITE_TIMEOUT_S = 0.05
+try:
+    _g5_hung = (_g5_on(_g5_sw), _g5_sw.failed, list(_g5_sw.owned), _g5_sw.memo)
+finally:
+    _g5_dis.WRITE_TIMEOUT_S = _g5_timeout_saved
+R.check(
+    "a write that does not finish within the timeout is a failed write: no memo, "
+    "no ownership, retried next cycle",
+    _g5_hung == (False, True, [], None),
+    f"(returned, failed, owned, memo)={_g5_hung}",
+)
+R.check(
+    "the write timeout is bounded well inside one update cycle",
+    0 < _g5_timeout_saved <= 30.0,
+    f"WRITE_TIMEOUT_S={_g5_timeout_saved}",
+)
+
+
+async def _g5_refuse_call(call):
+    raise RuntimeError("switch unavailable")
+
+
+_g5_ctl = _G5HaServices()
+_g5_ctl.async_register("homeassistant", "turn_off", _g5_refuse_call)
+_g5_ctl_arms = {}
+for _blocking in (False, True):
+    try:
+        _asyncio.run(_g5_ctl.async_call(
+            "homeassistant", "turn_off", {"entity_id": _G5_SWITCH}, blocking=_blocking))
+        _g5_ctl_arms[_blocking] = None
+    except RuntimeError as err:
+        _g5_ctl_arms[_blocking] = str(err)
+R.check(
+    "control for the test registry: a rejected write raises only for blocking=True, "
+    "as in Home Assistant core",
+    _g5_ctl_arms == {False: None, True: "switch unavailable"},
+    f"arms={_g5_ctl_arms}",
+)
+
 # Release: in any mode, only an owned switch, and only from a real reading.
 _G5_NOW = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
 
@@ -38029,8 +38098,28 @@ async def _g5_refuse(call):
     raise RuntimeError("switch unavailable")
 
 
+class _G5HaServices(_HarnessFakeServices):
+    """The harness registry with Home Assistant core's failure visibility.
+
+    ``FakeServices.async_call`` awaits the handler and lets its exception out
+    whatever ``blocking`` says. Core does that only for ``blocking=True``; a
+    non-blocking call's handler error is logged and never reaches the caller.
+    """
+
+    async def async_call(self, domain, service, data=None, blocking=False, **kwargs):
+        if blocking:
+            return await super().async_call(domain, service, data, **kwargs)
+        try:
+            await super().async_call(domain, service, data, **kwargs)
+        except Exception:  # noqa: BLE001 - core logs it; the caller never sees it
+            pass
+        return None
+
+
 def _g5_hardware(hass, **initial):
     """Register a working switch on ``hass``; ``initial`` maps entity -> state."""
+    if not isinstance(hass.services, _G5HaServices):
+        hass.services = _G5HaServices()
     for entity, state in initial.items():
         hass.states.set(entity, FakeState(state))
 
