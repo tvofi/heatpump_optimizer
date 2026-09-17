@@ -1346,9 +1346,15 @@ states its window or it states nothing.
     that carried the count, not the fix working**: RCA #1087 (comment
     [5719932299](https://github.com/tvofi/heatpump_optimizer/issues/1087#issuecomment-5719932299))
     established the count is a property of the keying rule and of
-    already-merged bodies, and every one of those nine predates #1122, so
-    #1122 cannot have caused this clearing — the tag cut (`v6.6.2`) did,
-    exactly as the RCA predicted it eventually would.
+    already-merged bodies: eight of the nine predate #1122, and the ninth
+    **is #1122 itself** — its own PR body carries a self-reported `##
+    Friction` bullet (`gate-scoping: unclear: HPO_GATE_LOCK_LABEL set
+    without the take above fails at once...`), merged at `e467026`, which
+    is inside `v6.6.2..origin/main` and is the sole entry the `1 / 1`
+    figure counts. So #1122 cannot have caused this clearing — the tag cut
+    (`v6.6.2`) did, exactly as the RCA predicted it eventually would — and
+    the fix's own body still carrying an unresolved friction note against
+    the rule it fixes is further evidence for that reading, not against it.
   **Recommended: ADDRESSED, window-cleared-not-fix-confirmed** — leave open
   rather than close on either fact alone. **What would have to change for
   this to be closable**: either the owner accepts that a countermeasure plus
