@@ -15007,6 +15007,16 @@ R.check(
     _g6_sc._freq_mode() == FREQ_MODE_OBSERVE and not _g6_sc.hass.services.calls,
     f"mode={_g6_sc._freq_mode()!r} calls={_g6_sc.hass.services.calls!r}",
 )
+_g6_sw = _g6_sensor_coord(freq_control_mode="control")
+_g6_sw._freq_watchdog.note_command(90.0)
+for _ in range(FREQ_WATCHDOG_TICKS + 2):
+    _g6_sw._observe_frequency(_T6)
+R.check(
+    "no number, no watchdog: a sensor diverging from a stale command never stands anything down",
+    not _g6_sw._freq_fallback and not _g6_sw._freq_watchdog.strikes,
+    f"fallback={_g6_sw._freq_fallback!r} strikes={_g6_sw._freq_watchdog.strikes!r} -- "
+    "nothing was written through a sensor, so its divergence is no evidence",
+)
 _g6_num_view = _freq_coord()._freq_view()
 R.check(
     "a number install publishes source=number beside its unchanged keys",
