@@ -1683,7 +1683,10 @@ async def options_walk():
         "happy",
         "the grid page saves, converting the window dropdown to minutes",
         shows_menu(result, "init")
-        and entry.options.get(const.CONF_PEAK_TARIFF_WINDOW) == 60
+        # "60" is the default; it is not written for an entry that never
+        # stored the window (_omit_unstored_defaults), and runs as 60 absent.
+        and entry.options.get(const.CONF_PEAK_TARIFF_WINDOW, const.DEFAULT_PEAK_TARIFF_WINDOW) == 60
+        and not isinstance(entry.options.get(const.CONF_PEAK_TARIFF_WINDOW), str)
         and entry.options.get(const.CONF_PEAK_TARIFF_MONTHS) == "nov-feb"
         and entry.options.get(const.CONF_GRID_FEE_ENTITY) is None,
         f"window={entry.options.get(const.CONF_PEAK_TARIFF_WINDOW)!r} "
@@ -1721,7 +1724,7 @@ async def options_walk():
             const.CONF_TARGET_TEMP,
             const.CONF_DHW_SETPOINT,
             const.CONF_PRICE_WEIGHT,
-            const.CONF_PEAK_TARIFF_WINDOW,
+            const.CONF_PEAK_TARIFF_MONTHS,
             const.CONF_AWAY_TEMPERATURE,
         )
         if key not in entry.options
@@ -1748,7 +1751,7 @@ async def options_walk():
         and close_data.get(const.CONF_PRICE_WEIGHT) == 3.0
         and close_data.get(const.CONF_TARGET_TEMP) == 21.0
         and close_data.get(const.CONF_AWAY_TEMPERATURE) == 17.0
-        and close_data.get(const.CONF_PEAK_TARIFF_WINDOW) == 60
+        and close_data.get(const.CONF_PEAK_TARIFF_MONTHS) == "nov-feb"
         and const.CONF_AFTER_SAVE not in close_data
     )
     check(
@@ -1945,7 +1948,13 @@ async def options_advanced_pages():
         "opt_building",
         "happy",
         "the 'indoor' write-target kind round-trips through the page (#398)",
-        entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        # 'indoor' is the default, so an entry that never stored the kind
+        # runs with it absent rather than having it written.
+        not result.get("errors")
+        and entry.options.get(
+            const.CONF_MIXING_VALVE_WRITE_TARGET_KIND,
+            const.DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND,
+        )
         == config_flow.mixing_valve.WRITE_TARGET_INDOOR,
         str(entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)),
     )
@@ -2246,7 +2255,10 @@ async def options_advanced_pages():
         "the heat curve page saves its MQTT wiring",
         shows_menu(result, "advanced")
         and entry.options.get(const.CONF_ECL110_COMMAND_TOPIC) == "ecl/cmd"
-        and entry.options.get(const.CONF_ECL110_PID_TIME_CONSTANT) == 1.5,
+        # 1.5 h is the default: unwritten for an entry that never stored it.
+        and entry.options.get(
+            const.CONF_ECL110_PID_TIME_CONSTANT, const.DEFAULT_ECL110_PID_TIME_CONSTANT
+        ) == 1.5,
         str({k: entry.options.get(k) for k in HEAT_CURVE_ANSWERS}),
     )
 
@@ -2669,7 +2681,11 @@ async def options_error_branches():
         "grid",
         {**GRID_PEAK_ANSWERS, const.CONF_PEAK_TARIFF_WINDOW: "half an hour"},
     )
-    stored_window = entry.options.get(const.CONF_PEAK_TARIFF_WINDOW)
+    # The fallback IS the default, so for an entry that never stored a window
+    # it is not written at all (_omit_unstored_defaults): absent runs as it.
+    stored_window = entry.options.get(
+        const.CONF_PEAK_TARIFF_WINDOW, const.DEFAULT_PEAK_TARIFF_WINDOW
+    )
     check(
         "opt_grid",
         "happy",
@@ -4537,6 +4553,518 @@ def pin_number_selector_convention():
     )
 
 
+# ---------------------------------------------------------------------------
+# Untouched option pages do not reload (the no-op half of v5.1.1's #70 fix).
+#
+# v5.1.1 pinned one no-op shape -- a key copied from data with its own value
+# (tests/features.py). An untouched page posts something else: the default
+# the form SHOWS for every key the entry never stored, and None for every
+# empty entity slot. That changed the options dict on 19 of 20 pages of an
+# install never saved page by page, so async_update_options reloaded on each.
+# config_flow._omit_unstored_defaults now drops those posts, and only where
+# _ABSENT_FALLBACKS says the integration already runs with that value while
+# the key is absent. The first block below is the proof of that table; the
+# second drives the pages.
+# ---------------------------------------------------------------------------
+_NOOP_BASE = {
+    "name": "Home",
+    const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+    const.CONF_PRICE_ENTITY: "sensor.prices",
+    const.CONF_WEATHER_ENTITY: "weather.home",
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+    const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+}
+# A key the plain refresh never reads is judged under a context that reaches
+# its reader, with a perturbation that reader distinguishes.
+_NOOP_CONTEXT = {
+    const.CONF_PEAK_TARIFF_PRICE: {const.CONF_PEAK_TARIFF_ENABLED: True},
+    const.CONF_PEAK_TARIFF_MONTHS: {const.CONF_PEAK_TARIFF_ENABLED: True},
+    const.CONF_PEAK_TARIFF_HOURS: {const.CONF_PEAK_TARIFF_ENABLED: True},
+    const.CONF_PV_PRODUCTION_ENTITY: {const.CONF_PV_ENABLED: True, const.CONF_PV_PEAK_KW: 5.0},
+    const.CONF_AWAY_DHW_MIN_TEMP: {const.CONF_AWAY_PRESENCE_ENTITY: "input_boolean.away"},
+    const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: {
+        const.CONF_MIXING_VALVE_MODE: "smart_write",
+        const.CONF_MIXING_VALVE_WRITE_ENTITY: "number.valve",
+    },
+}
+_NOOP_ALT = {
+    const.CONF_MIXING_VALVE_MODE: "manual",
+    const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: "flow",
+    const.CONF_AWAY_PRESENCE_ENTITY: "input_boolean.away",
+    const.CONF_PEAK_TARIFF_MONTHS: "1,2,3",
+    const.CONF_PEAK_TARIFF_HOURS: "7-20",
+    const.CONF_PV_PRODUCTION_ENTITY: "sensor.pv",
+    const.CONF_HOLIDAY_DHW_WINDOWS: "10:00-12:00",
+    const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.heat_pump",
+}
+# diagnostics.py echoes the stored entry verbatim, so every key differs there
+# by construction; config_flow.py is the writer under test; const.py names.
+_NOOP_STATIC_SKIP = ("config_flow.py", "const.py", "diagnostics.py")
+
+
+def _noop_hass(now):
+    from datetime import timedelta
+
+    hass = FakeHass()
+    start = now.replace(minute=0, second=0, microsecond=0)
+    hass.states.set("sensor.prices", FakeState("0.5", attributes={"raw_today": [
+        {"start": (start + timedelta(hours=h)).isoformat(), "value": round(0.5 + 0.1 * (h % 4), 3)}
+        for h in range(48)
+    ]}))
+    hass.states.set("sensor.indoor", FakeState("21.0", unit="°C"))
+    hass.states.set("sensor.outdoor", FakeState("2.0", unit="°C"))
+    hass.states.set("input_boolean.away", FakeState("on"))
+    hass.states.set("sensor.pv", FakeState("1500", unit="W"))
+    hass.states.set("switch.heat_pump", FakeState("on"))
+    return hass
+
+
+def _noop_snap(obj, seen=None, depth=0):
+    """Everything the integration derived, as plain data (hass/entry excluded)."""
+    import dataclasses
+    import datetime as _dt
+    import enum
+    import math
+
+    import numpy as np
+
+    seen = set() if seen is None else seen
+    if depth > 7:
+        return "<deep>"
+    if obj is None or isinstance(obj, (bool, int, str)):
+        return obj
+    if isinstance(obj, float):
+        return "nan" if math.isnan(obj) else obj
+    if isinstance(obj, (enum.Enum, _dt.date, _dt.timedelta)):
+        return str(obj)
+    if isinstance(obj, (np.ndarray, np.generic)):
+        return _noop_snap(obj.tolist(), seen, depth + 1)
+    if isinstance(obj, dict):
+        return {str(k): _noop_snap(v, seen, depth + 1) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple, set, frozenset)):
+        items = [_noop_snap(v, seen, depth + 1) for v in obj]
+        return sorted(items, key=repr) if isinstance(obj, (set, frozenset)) else items
+    if id(obj) in seen:
+        return "<cycle>"
+    seen.add(id(obj))
+    if dataclasses.is_dataclass(obj):
+        return {f.name: _noop_snap(getattr(obj, f.name), seen, depth + 1) for f in dataclasses.fields(obj)}
+    if not type(obj).__module__.startswith("heatpump_optimizer") or callable(obj):
+        return f"<{type(obj).__name__}>"
+    skip = {"hass", "entry", "logger", "config_entry", "_listeners", "_background_tasks", "_refresh_task"}
+    return {
+        k: _noop_snap(v, seen, depth + 1)
+        for k, v in vars(obj).items()
+        if k not in skip and not callable(v)
+    }
+
+
+def _noop_diff(a, b, path="", out=None):
+    out = [] if out is None else out
+    if len(out) >= 3:
+        return out
+    if type(a) is not type(b):
+        out.append(f"{path}: {a!r:.60} != {b!r:.60}")
+    elif isinstance(a, dict):
+        for k in sorted(set(a) | set(b)):
+            if k not in a or k not in b:
+                out.append(f"{path}.{k}: only one side")
+            else:
+                _noop_diff(a[k], b[k], f"{path}.{k}", out)
+    elif isinstance(a, list) and len(a) == len(b):
+        for i, (x, y) in enumerate(zip(a, b)):
+            _noop_diff(x, y, f"{path}[{i}]", out)
+    elif a != b:
+        out.append(f"{path}: {a!r:.60} != {b!r:.60}")
+    return out
+
+
+def _noop_drop_key(snapshot, key, base):
+    """Remove ``key`` from every copy of the stored config inside a snapshot.
+
+    A copy is a dict carrying every ``base`` entry; the key under test is the
+    only thing removed from it, so the stored dict itself cannot be the diff.
+    """
+    import copy
+
+    snapshot = copy.deepcopy(snapshot)
+
+    def walk(node):
+        if isinstance(node, dict):
+            if all(node.get(k) == v for k, v in base.items()):
+                node.pop(key, None)
+            for v in node.values():
+                walk(v)
+        elif isinstance(node, list):
+            for v in node:
+                walk(v)
+
+    walk(snapshot)
+    return snapshot
+
+
+async def _noop_run(coordinator_mod, config, canned, now):
+    """Build a coordinator from ``config``, refresh once, snapshot what it derived."""
+    import copy
+
+    captured = {}
+
+    async def solve(hass, optimizer, state, *positional, **keywords):
+        captured["solve"] = _noop_snap((optimizer, state, positional, keywords))
+        return copy.deepcopy(canned)
+
+    coordinator_mod._await_optimize = solve
+    coord = coordinator_mod.HeatPumpOptimizerCoordinator(
+        _noop_hass(now), FakeEntry(data=dict(config))
+    )
+    built = _noop_snap(coord)
+    try:
+        data = await coord._async_update_data()
+    except Exception as err:  # noqa: BLE001 - a raise is itself an observable
+        data = f"raised {type(err).__name__}: {err}"
+    result = {
+        "built": built,
+        "after": _noop_snap(coord),
+        "data": _noop_snap(data),
+        # The setup picture every entity slot is read into, by table rather
+        # than by name (topology._SLOTS), published on the sensors.
+        "setup": _noop_snap(coord.describe_setup()),
+        **captured,
+    }
+    await coord.async_shutdown()
+    return result
+
+
+def _noop_candidates():
+    """Every unstored key an untouched page can post, with the value it posts."""
+    out = {}
+    for row in config_flow._OPTION_FIELDS:
+        fallback = config_flow._absent_fallback(row)
+        if fallback is not config_flow._STORED:
+            out[row.key] = fallback
+    out.update(config_flow._QUESTIONNAIRE_DEFAULTS)
+    return out
+
+
+def _noop_computed(base):
+    """The ``_Computed`` defaults ``_omit_unstored_computed`` drops, at ``base``."""
+    return {
+        row.key: row.default.of(dict(base), FakeHass())
+        for row in config_flow._OPTION_FIELDS
+        if isinstance(row.default, config_flow._Computed)
+    }
+
+
+def _noop_static_reads(fallbacks):
+    """Judge every NAMED production read of each key: absent vs its fallback.
+
+    A read is proven when ``.get(K, D)`` has a resolvable ``D`` equal to the
+    fallback; when ``.get(K)`` meets a None fallback; when a falsy fallback
+    feeds ``or``/``not``/a truth test; or when ``.get(K)`` is an argument of
+    a resolvable function whose other arguments are resolvable and which
+    returns the same for None and for the fallback (it is called to find
+    out). A key used as a dict-literal KEY is a write, not a read. Any other
+    reference -- ``K in config``, a table row, a subscript -- is unproven.
+    Only names and dotted attributes are resolved; no source is evaluated.
+    """
+    import importlib
+    from pathlib import Path
+
+    unknown = object()
+    conf_values = {v for k, v in vars(const).items() if k.startswith("CONF_") and isinstance(v, str)}
+
+    def resolve(node, mod):
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+            v = resolve(node.operand, mod)
+            return -v if isinstance(v, (int, float)) and not isinstance(v, bool) else unknown
+        if isinstance(node, ast.Name):
+            return vars(mod).get(node.id, unknown)
+        if isinstance(node, ast.Attribute):
+            base = resolve(node.value, mod)
+            return unknown if base is unknown else getattr(base, node.attr, unknown)
+        return unknown
+
+    def key_of(node, mod, literal=False):
+        if isinstance(node, (ast.Name, ast.Attribute)):
+            name = node.id if isinstance(node, ast.Name) else node.attr
+            value = resolve(node, mod) if name.startswith("CONF_") else unknown
+            return value if isinstance(value, str) and value in fallbacks else None
+        if literal and isinstance(node, ast.Constant) and node.value in conf_values and node.value in fallbacks:
+            return node.value
+        return None
+
+    def judge(get, parent, mod, fb):
+        if len(get.args) > 1:
+            d = resolve(get.args[1], mod)
+            return d is not unknown and config_flow._same_setting(fb, d)
+        if fb is None:
+            return True
+        if isinstance(parent, ast.BoolOp) and isinstance(parent.op, ast.Or) and parent.values[0] is get:
+            return not fb or (len(parent.values) == 2 and resolve(parent.values[1], mod) == fb)
+        if isinstance(parent, ast.UnaryOp) and isinstance(parent.op, ast.Not):
+            return not fb
+        if isinstance(parent, (ast.If, ast.IfExp, ast.While)) and parent.test is get:
+            return not fb
+        if isinstance(parent, ast.Call) and get in parent.args and not parent.keywords:
+            fn = resolve(parent.func, mod)
+            args = [None if a is get else resolve(a, mod) for a in parent.args]
+            if not callable(fn) or unknown in args:
+                return False
+            try:
+                return fn(*args) == fn(*[fb if a is get else v for a, v in zip(parent.args, args)])
+            except Exception:  # noqa: BLE001 - a wrapper that raises proves nothing
+                return False
+        return False
+
+    unproven = set()
+    package = Path(config_flow.__file__).parent
+    for path in sorted(package.glob("*.py")):
+        if path.name in _NOOP_STATIC_SKIP:
+            continue
+        mod = importlib.import_module(f"heatpump_optimizer.{path.stem}")
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        parents = {id(c): n for n in ast.walk(tree) for c in ast.iter_child_nodes(n)}
+        settled = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Dict):
+                settled.update(id(k) for k in node.keys if k is not None)
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "get" and node.args):
+                key = key_of(node.args[0], mod, literal=True)
+                if key is not None:
+                    settled.add(id(node.args[0]))
+                    if not judge(node, parents.get(id(node)), mod, fallbacks[key]):
+                        unproven.add(key)
+        for node in ast.walk(tree):
+            key = key_of(node, mod)
+            if key is not None and id(node) not in settled:
+                unproven.add(key)
+    return unproven
+
+
+def _noop_alt(key, fb):
+    if key in _NOOP_ALT:
+        return _NOOP_ALT[key]
+    if fb is None:
+        return "sensor.indoor"
+    if isinstance(fb, bool):
+        return not fb
+    if isinstance(fb, (int, float)):
+        return fb + 1
+    return f"{fb}_x" if fb else "x"
+
+
+async def absent_fallbacks_are_proven():
+    """``_ABSENT_FALLBACKS`` holds exactly the keys whose absence is the default."""
+    R.section("options: an absent key runs exactly as its form default")
+    from heatpump_optimizer import coordinator as coordinator_mod
+    from heatpump_optimizer.optimizer import optimize_in_process
+    from homeassistant.util import dt as dt_util
+
+    real_solve, real_now, real_utcnow = (
+        coordinator_mod._await_optimize, dt_util.now, dt_util.utcnow)
+    now = real_now().replace(minute=7, second=0, microsecond=0)
+    dt_util.now = lambda *a, **k: now
+    dt_util.utcnow = lambda *a, **k: now
+    try:
+        box = {}
+
+        async def solve_once(hass, optimizer, state, *positional, **keywords):
+            box["plan"] = optimize_in_process(optimizer, state, positional, keywords)
+            return box["plan"]
+
+        coordinator_mod._await_optimize = solve_once
+        seed = coordinator_mod.HeatPumpOptimizerCoordinator(
+            _noop_hass(now), FakeEntry(data=dict(_NOOP_BASE)))
+        await seed._async_update_data()
+        await seed.async_shutdown()
+        canned = box["plan"]
+
+        base = await _noop_run(coordinator_mod, _NOOP_BASE, canned, now)
+        null = _noop_diff(base, await _noop_run(coordinator_mod, _NOOP_BASE, canned, now))
+        R.check("null control: two identical configs snapshot identically", not null, "; ".join(null))
+
+        listed = _noop_candidates()
+        computed = _noop_computed(_NOOP_BASE)
+        candidates = {**listed, **computed}
+        static_unproven = _noop_static_reads(candidates)
+        differ, unobserved, equivalent = {}, set(), set()
+        for key, fb in candidates.items():
+            config = {k: v for k, v in {**_NOOP_BASE, **_NOOP_CONTEXT.get(key, {})}.items() if k != key}
+            ref = _noop_drop_key(await _noop_run(coordinator_mod, config, canned, now), key, config)
+            stored = _noop_drop_key(
+                await _noop_run(coordinator_mod, {**config, key: fb}, canned, now), key, config)
+            found = _noop_diff(ref, stored)
+            if found:
+                differ[key] = found
+                continue
+            moved = _noop_drop_key(
+                await _noop_run(coordinator_mod, {**config, key: _noop_alt(key, fb)}, canned, now),
+                key, config)
+            if not _noop_diff(ref, moved):
+                unobserved.add(key)
+            equivalent.add(key)
+        safe = {k for k in equivalent if k not in unobserved or k not in static_unproven}
+
+        # Positive control: the comparator sees a stored value the absence
+        # does not run with. price_vat is read on every refresh.
+        wrong = _noop_diff(
+            _noop_drop_key(base, const.CONF_PRICE_VAT, _NOOP_BASE),
+            _noop_drop_key(await _noop_run(
+                coordinator_mod, {**_NOOP_BASE, const.CONF_PRICE_VAT: 2.0}, canned, now),
+                const.CONF_PRICE_VAT, _NOOP_BASE))
+        R.check("positive control: a non-default stored value is seen", bool(wrong), "no diff")
+    finally:
+        coordinator_mod._await_optimize = real_solve
+        dt_util.now, dt_util.utcnow = real_now, real_utcnow
+
+    print(f"  .. {len(candidates)} candidate key(s): {len(equivalent)} behave identically, "
+          f"{len(differ)} differ, {len(unobserved)} unobserved by the refresh, "
+          f"{len(static_unproven)} with a named read not proven; {len(safe)} proven safe")
+    for key, found in sorted(differ.items()):
+        print(f"  .. differs when stored at its default: {key}: {found[0]}")
+    for key in sorted(candidates.keys() - safe - differ.keys()):
+        print(f"  .. unproven (unobserved and a named read not proven): {key}")
+    # _omit_unstored_computed predates this and drops a computed default the
+    # posted value EQUALS; that arm is not re-judged here. What this change
+    # added is its type-insensitive arm (_same_setting), which only the
+    # string-valued window dropdown reaches -- so that key must be proven.
+    R.check(
+        "the peak window a retyped post now omits runs as its absence",
+        const.CONF_PEAK_TARIFF_WINDOW in safe,
+        f"differs: {differ.get(const.CONF_PEAK_TARIFF_WINDOW)}",
+    )
+    safe -= set(computed)
+    R.check(
+        "_ABSENT_FALLBACKS is exactly the proven set",
+        set(config_flow._ABSENT_FALLBACKS) == safe,
+        f"unproven but listed: {sorted(set(config_flow._ABSENT_FALLBACKS) - safe)}; "
+        f"proven but missing: {sorted(safe - set(config_flow._ABSENT_FALLBACKS))}",
+    )
+    R.check(
+        "_ABSENT_IS_NOT_DEFAULT is exactly the rest, none of it padding",
+        set(config_flow._ABSENT_IS_NOT_DEFAULT) == set(listed) - safe,
+        f"listed: {sorted(config_flow._ABSENT_IS_NOT_DEFAULT)}; derived: {sorted(set(listed) - safe)}",
+    )
+    R.check(
+        "every listed fallback is the value the form shows while the key is absent",
+        all(config_flow._same_setting(candidates[k], v) for k, v in config_flow._ABSENT_FALLBACKS.items()),
+        str({k: (v, candidates.get(k)) for k, v in config_flow._ABSENT_FALLBACKS.items() if candidates.get(k) != v}),
+    )
+
+
+def _untouched_post(schema):
+    """What the frontend posts for a form nobody edited: shown defaults and suggestions."""
+    out = {}
+    for marker, value in schema.schema.items():
+        key = str(getattr(marker, "schema", marker))
+        inner = _nested_schema(value)
+        if inner is not None:
+            out[key] = _untouched_post(inner)
+            continue
+        default = getattr(marker, "default", vol.UNDEFINED)
+        if default is not vol.UNDEFINED:
+            out[key] = default() if callable(default) else default
+            continue
+        suggested = (getattr(marker, "description", None) or {}).get("suggested_value")
+        if suggested is not None:
+            out[key] = suggested
+    return out
+
+
+async def _walk_untouched(data, options, edit=None):
+    """Submit every options page untouched; return the pages whose save reloaded."""
+    import heatpump_optimizer as integration
+    from harness import ha_setup_entry, ha_unload_entry
+
+    from homeassistant.util import dt as dt_util
+
+    hass = _noop_hass(dt_util.now())
+    entry = FakeEntry(data=dict(data), options=dict(options))
+    await ha_setup_entry(integration, hass, entry)
+    reloaded = []
+    for page in config_flow._OPTION_PAGES:
+        if page.step == "setup_overview":
+            continue
+        flow = config_flow.HeatPumpOptimizerConfigFlow.async_get_options_flow(entry)
+        flow.hass = hass
+        shown = await getattr(flow, f"async_step_{page.step}")(None)
+        posted = shown["data_schema"](_untouched_post(shown["data_schema"]))
+        if edit and page.step in edit:
+            posted.update(edit[page.step])
+        before = dict(entry.options)
+        await getattr(flow, f"async_step_{page.step}")(posted)
+        if dict(entry.options) != before:  # Home Assistant fires the listener only then
+            count = len(hass.config_entries.reloaded)
+            await integration.async_update_options(hass, entry)
+            if len(hass.config_entries.reloaded) > count:
+                reloaded.append(page.step)
+            entry.options = before  # judge every page against the built config
+    await ha_unload_entry(integration, hass, entry)
+    return reloaded
+
+
+async def untouched_option_pages_do_not_reload():
+    R.section("options: an untouched page does not reload")
+    minimal = dict(_NOOP_BASE)
+    reloads = await _walk_untouched(minimal, {})
+    # The only reload left is a page that posts a key whose absence the
+    # integration does NOT run as its default (the DHW pair switches hot-water
+    # planning on): that save changes behaviour, so it must reload.
+    expected = [
+        page.step for page in config_flow._OPTION_PAGES
+        if any(
+            row.key in config_flow._ABSENT_IS_NOT_DEFAULT and row.key not in minimal
+            and config_flow._absent_fallback(row) is not config_flow._STORED
+            for row in config_flow._page_rows(page.step, minimal)
+        )
+    ]
+    R.check(
+        "never saved page by page: only the pages posting a behaviour-changing default reload",
+        reloads == expected,
+        f"reloaded {reloads}; expected {expected}",
+    )
+    # Priced from an entity rather than Tibber: the stub has no HTTP session.
+    offline = {
+        **BASE_ENTRY_DATA,
+        const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+        const.CONF_PRICE_ENTITY: "sensor.prices",
+    }
+    walked = await _walk_untouched(offline, {})
+    R.check(
+        "an install from the full initial walk: no untouched page reloads",
+        walked == [],
+        f"reloaded {walked}",
+    )
+    seed = _nightly._seed_payload(thermometers=True)
+    upgraded = {
+        k: v for k, v in seed["options"].items()
+        if k not in (
+            const.CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY, const.CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
+            const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY, const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
+            const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY, const.CONF_FLOW_CURVE_COP_ENABLED,
+        )
+    }
+    price = {k: _NOOP_BASE[k] for k in (const.CONF_PRICE_SOURCE, const.CONF_PRICE_ENTITY)}
+    upgraded = {**upgraded, **price}
+    upgraded_data = {**seed["data"], **price}
+    shaped = await _walk_untouched(upgraded_data, upgraded)
+    R.check(
+        "a v6.5.1 install upgraded to 6.6.0 (six new keys absent): no untouched page reloads",
+        shaped == [],
+        f"reloaded {shaped}",
+    )
+    changed = await _walk_untouched(
+        offline, {}, edit={"tuning": {const.CONF_COMFORT_WEIGHT: 7.5}})
+    R.check(
+        "null control: one changed value on one page reloads exactly that page",
+        changed == ["tuning"],
+        f"reloaded {changed}",
+    )
+
+
 async def main() -> int:
     if "--self-check" in sys.argv:
         return await self_check()
@@ -4572,6 +5100,8 @@ async def main() -> int:
     await widening_refusals()
     await menu_label_translations()
     await reconfigure_flow()
+    await absent_fallbacks_are_proven()
+    await untouched_option_pages_do_not_reload()
 
     print()
     LEDGER.print_result_lines()
