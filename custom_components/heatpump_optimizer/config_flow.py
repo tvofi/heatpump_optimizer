@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, Protocol, cast
 
 import aiohttp
@@ -302,6 +302,8 @@ from .const import (
     DEFAULT_PEAK_GUARD_MARGIN_KW,
     CAPACITY_FLOOR_FRACTION,
     CONF_SILENT_MODE_WINDOWS,
+    CONF_MODBUS_PREFILL_PREFIX,
+    DEFAULT_MODBUS_PREFILL_PREFIX,
     DEFAULT_SILENT_MODE_WINDOWS,
     CONF_SILENT_MODE_FRACTION,
     DEFAULT_SILENT_MODE_FRACTION,
@@ -375,7 +377,7 @@ from .const import (
     DEFAULT_BUILDING_PRESET_ENABLED,
     DEFAULT_HEATED_AREA,
 )
-from . import comfort_band, grid_fee, mixing_valve, presets, topology
+from . import comfort_band, grid_fee, mixing_valve, modbus_prefill, presets, topology
 from .wood_fuel import wood_furnace_on
 from .currency import resolve_currency
 from .dhw_schedule import (
@@ -1364,6 +1366,7 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
     _P("grid_connection", "Fuse and peak guards", _ADVANCED),
     _P("grid_fees", "Transfer fees and contract", _ADVANCED),
     _P("heat_curve", "Heat curve control (ECL110)", _ADVANCED),
+    _P("modbus_prefill", "Pre-fill from a Modbus heat pump", _ADVANCED),
 )
 
 #: Every field the options flow presents, in the order each page renders them.
@@ -1583,6 +1586,9 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("learning_features", CONF_SOLAR_APERTURE_LEARNING_ENABLED, DEFAULT_SOLAR_APERTURE_LEARNING_ENABLED, bool, group="model"),
     _F("learning_features", CONF_INTERNAL_GAINS_LEARNING_ENABLED, DEFAULT_INTERNAL_GAINS_LEARNING_ENABLED, bool, group="model"),
     _F("learning_features", CONF_CURVE_LEARNING_ENABLED, DEFAULT_CURVE_LEARNING_ENABLED, bool, group="model"),
+    # -- modbus_prefill: only the prefix is a row; the preview it opens is
+    # built from the rows of the keys it suggests (``_prefill_schema``).
+    _F("modbus_prefill", CONF_MODBUS_PREFILL_PREFIX, DEFAULT_MODBUS_PREFILL_PREFIX, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT))),
 )
 
 
@@ -1702,6 +1708,64 @@ def _page_schema(
         )
         emitted_group = True
     return _options_schema(fields)
+
+
+def _prefill_row(key: str) -> _F:
+    """The first registry row presenting ``key``; its widget renders the suggestion."""
+    return next(row for row in _OPTION_FIELDS if row.key == key)
+
+
+def _prefill_fits(key: str, value: Any) -> bool:
+    """A suggestion its own field would accept: a number inside its range.
+
+    A register can hold what a field refuses -- the pump's economic hot water
+    setpoint reaches 63 degrees, the hot water minimum stops at 55 -- and a
+    suggestion outside the range would reach the form as a widened field with
+    an error on it, for a value nobody typed.
+    """
+    widget = _prefill_row(key).widget
+    if not isinstance(widget, selector.NumberSelector):
+        return True
+    return bool(widget.config["min"] <= value <= widget.config["max"])
+
+
+def _prefill_schema(keys: Iterable[str], values: Mapping[str, Any]) -> vol.Schema:
+    """The pre-fill preview: one flat, suggested field per key.
+
+    Flat, because a suggested value does not reach a field inside a
+    ``section()``; suggested rather than defaulted, so a field the user
+    clears is absent from the submit and nothing is written for it.
+    """
+    return _options_schema({
+        (
+            vol.Optional(key, description={"suggested_value": values[key]})
+            if key in values
+            else vol.Optional(key)
+        ): _prefill_row(key).widget
+        for key in keys
+    })
+
+
+def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str, str]:
+    """The refusals of the pages the suggested keys live on, for this save.
+
+    A pair rule is judged only when the save carries half of that pair, so a
+    stored pair the pre-fill never touched cannot block it.
+    """
+    errors: dict[str, str] = {}
+    for key in (CONF_DHW_WINDOWS, CONF_SILENT_MODE_WINDOWS):
+        problem = dhw_spec_problem(saved[key]) if key in saved else None
+        if problem == DHW_ERROR_TOO_SHORT and key == CONF_SILENT_MODE_WINDOWS:
+            problem = "silent_mode_window_too_short"
+        if problem is not None:
+            errors[key] = problem
+    if {CONF_DHW_SETPOINT, CONF_DHW_MIN_TEMP} & saved.keys() and _dhw_min_too_close(
+        saved, current
+    ):
+        errors["base"] = "dhw_min_too_close"
+    if CONF_HEAT_PUMP_MAX_POWER in saved and _power_errors(saved, current):
+        errors["base"] = "min_power_above_max"
+    return errors
 
 
 def _omit_unstored_computed(
@@ -3100,3 +3164,66 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             step_id="learning_features",
             data_schema=_page_schema("learning_features", self._current, self.hass),
         )
+
+    #: The preview a first submit of the pre-fill page computed: the prefix to
+    #: store with the save (None when it found nothing, so nothing is written),
+    #: the suggested keys the preview shows, and what the page says about them.
+    _prefill: tuple[str | None, tuple[str, ...], dict[str, str]] | None = None
+
+    def _prefill_form(
+        self, schema: vol.Schema, notes: dict[str, str], errors: dict[str, str]
+    ) -> ConfigFlowResult:
+        return self.async_show_form(
+            step_id="modbus_prefill",
+            errors=errors,
+            description_placeholders={**_WINDOW_PLACEHOLDERS, **notes},
+            data_schema=schema,
+        )
+
+    async def async_step_modbus_prefill(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Suggest option values from a GCHV heat pump's Modbus package (#1067).
+
+        One page, submitted twice. The first submit names the package's
+        entity-id prefix and opens a preview of what its registers suggest
+        (``modbus_prefill.infer``); the second saves what the user kept of
+        it, dropping every field left blank, under the refusals of the pages
+        those keys live on. Opening the page again starts over.
+        """
+        current = self._current
+        if user_input is None:
+            self._prefill = None
+            return self._prefill_form(
+                _page_schema("modbus_prefill", current, self.hass),
+                modbus_prefill.notes({}),
+                {},
+            )
+        if self._prefill is None:
+            prefix = str(
+                user_input.get(CONF_MODBUS_PREFILL_PREFIX) or DEFAULT_MODBUS_PREFILL_PREFIX
+            )
+            snap = modbus_prefill.snapshot(self.hass.states.get, prefix)
+            suggested = {
+                key: value
+                for key, value in modbus_prefill.infer(
+                    snap, {**_ABSENT_FALLBACKS, **current}
+                ).items()
+                if _prefill_fits(key, value)
+            }
+            notes = modbus_prefill.notes(snap)
+            self._prefill = (prefix if snap else None, tuple(suggested), notes)
+            return self._prefill_form(_prefill_schema(suggested, suggested), notes, {})
+        prefix, keys, notes = self._prefill
+        saved = {
+            key: value
+            for key, value in _flatten_section_input(user_input).items()
+            if value not in (None, "")
+        }
+        errors = _prefill_errors(saved, current)
+        if errors:
+            return self._prefill_form(_prefill_schema(keys, saved), notes, errors)
+        self._prefill = None
+        if prefix is not None:
+            saved[CONF_MODBUS_PREFILL_PREFIX] = prefix
+        return await self._save_or_menu(saved)

@@ -64,7 +64,7 @@ pass on an unmodified tree; the self-check must fail on the broken one.
 
 Expected (tolerance 0): every RESULT line reads full coverage --
 ``flow_checks_covered=<checks>`` with no failures, every step
-``happy=P/P error_branches=P/P``, ``options_steps_covered=23/23``,
+``happy=P/P error_branches=P/P``, ``options_steps_covered=24/24``,
 ``reauth_round_trips=1``, ``reconfigure_round_trips=1``,
 ``duplicate_aborts=1``.  Baseline measured: 87645f8, re-verified
 identical at 6d83f0b (tranche 1; ``config_flow.py`` byte-identical
@@ -520,6 +520,7 @@ class Ledger:
             "opt_away",
             "opt_learning",
             "opt_learning_features",
+            "opt_modbus_prefill",
         )
         covered = 0
         for step in options_steps:
@@ -1534,6 +1535,7 @@ async def options_menus():
             "grid_connection",
             "grid_fees",
             "heat_curve",
+            "modbus_prefill",
         ],
         str(list(advanced.get("menu_options", {}))),
     )
@@ -3351,6 +3353,11 @@ async def options_cross_page_save_scope():
             except Exception:
                 pass
         result = await submit(flow, page, answers)
+        if result.get("type") == "form" and result.get("step_id") == page and not result.get("errors"):
+            # A page whose submit opens a preview of its own step (the Modbus
+            # pre-fill) saves on the preview's submit: press Save there too,
+            # still editing nothing.
+            result = await submit(flow, page, {})
         clobbered = {
             key: entry.options.get(key)
             for key, value in CROSS_PAGE_SEED.items()
