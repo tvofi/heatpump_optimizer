@@ -3203,7 +3203,9 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             prefix = str(
                 user_input.get(CONF_MODBUS_PREFILL_PREFIX) or DEFAULT_MODBUS_PREFILL_PREFIX
             )
-            snap = modbus_prefill.snapshot(self.hass.states.get, prefix)
+            snap = modbus_prefill.snapshot(
+                self.hass.states.get, modbus_prefill.candidates(prefix)
+            )
             suggested = {
                 key: value
                 for key, value in modbus_prefill.infer(

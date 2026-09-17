@@ -37879,7 +37879,8 @@ def _g7_hass(spelling="name", raw=None, named=None, prefix="hp"):
 def _g7_infer(current=None, **hass_kwargs):
     """infer() over a snapshot of a FakeHass built by ``_g7_hass``."""
     hass = _g7_hass(**hass_kwargs)
-    return _g7_mp.infer(_g7_mp.snapshot(hass.states.get, hass_kwargs.get("prefix", "hp")), dict(current or {}))
+    prefix = hass_kwargs.get("prefix", "hp")
+    return _g7_mp.infer(_g7_mp.snapshot(hass.states.get, _g7_mp.candidates(prefix)), dict(current or {}))
 
 
 _G7_EXPECTED = {
@@ -37910,7 +37911,7 @@ R.check(
 _g7_both = _g7_hass(spelling="name", raw={404: "600"})
 for _g7_addr, _g7_val in _G7_VALUES.items():
     _g7_both.states.set(f"sensor.{_G7_RAW[_g7_addr][0]}", FakeState(_g7_val))
-_g7_both_snap = _g7_mp.snapshot(_g7_both.states.get, "hp")
+_g7_both_snap = _g7_mp.snapshot(_g7_both.states.get, _g7_mp.candidates("hp"))
 R.check(
     "with both spellings present the unique_id spelling wins, and the snapshot names it",
     _g7_mp.infer(_g7_both_snap, {})[_g7_c.CONF_DHW_SETPOINT] == 52.0
@@ -37935,9 +37936,39 @@ R.check(
     f"{_g7_infer(prefix='wp')}",
 )
 
+# The resolver seam (forward carry for W1067-G7b, pre-fill from a heat-pump
+# device): which entity id plays a role is an input to snapshot(), and the
+# prefix lookup is one resolver of it. A resolver handing back ids that share
+# no prefix -- as a device's entity-registry entries may -- must reach the
+# same suggestions from the same states.
+_g7_device = FakeHass()
+_g7_device_ids = {}
+for _g7_role in _g7_mp.candidates("hp"):
+    _g7_device_ids[_g7_role] = (f"sensor.windmi_{_g7_role}_device",)
+for _g7_addr, _g7_val in _G7_VALUES.items():
+    _g7_device.states.set(f"sensor.windmi_r{_g7_addr}_device", FakeState(_g7_val))
+for _g7_role, _g7_val in _G7_NAMED_VALUES.items():
+    _g7_device.states.set(f"sensor.windmi_{_g7_role}_device", FakeState(_g7_val))
+_g7_device_snap = _g7_mp.snapshot(_g7_device.states.get, _g7_device_ids)
+_g7_device_infer = _g7_mp.infer(_g7_device_snap, {})
+R.check(
+    "a resolver returning non-prefix ids gives the same suggestions for the same values",
+    {k: v for k, v in _g7_device_infer.items() if k not in _G7_NAMED}
+    == {k: v for k, v in _G7_EXPECTED.items() if k not in _G7_NAMED}
+    and {k: v for k, v in _g7_device_infer.items() if k in _G7_NAMED}
+    == {k: f"sensor.windmi_{k}_device" for k in _G7_NAMED if k != "unit_capacity"}
+    and _g7_mp.notes(_g7_device_snap) == _g7_mp.notes(_g7_mp.snapshot(_g7_hass().states.get, _g7_mp.candidates("hp"))),
+    f"{_g7_device_infer}",
+)
+R.check(
+    "and snapshot() tries a role's ids in the order the resolver gives them",
+    _g7_mp.snapshot(_g7_device.states.get, {"r404": ("sensor.absent", "sensor.windmi_r404_device", "sensor.windmi_r405_device")})
+    == {"r404": ("sensor.windmi_r404_device", "520")},
+)
+
 # Null control: an install with no Modbus entities.
 _g7_empty = FakeHass()
-_g7_empty_snap = _g7_mp.snapshot(_g7_empty.states.get, "hp")
+_g7_empty_snap = _g7_mp.snapshot(_g7_empty.states.get, _g7_mp.candidates("hp"))
 R.check(
     "null control: no Modbus entities, an empty snapshot and no suggestions",
     _g7_empty_snap == {} and _g7_mp.infer(_g7_empty_snap, {}) == {}
@@ -37946,9 +37977,9 @@ R.check(
 )
 R.check(
     "the notes carry the count read and the backup heater type register",
-    _g7_mp.notes(_g7_mp.snapshot(_g7_hass().states.get, "hp"))
+    _g7_mp.notes(_g7_mp.snapshot(_g7_hass().states.get, _g7_mp.candidates("hp")))
     == {"found": str(len(_G7_RAW) + len(_G7_NAMED)), "backup_heater_type": "6"},
-    f"{_g7_mp.notes(_g7_mp.snapshot(_g7_hass().states.get, 'hp'))}",
+    f"{_g7_mp.notes(_g7_mp.snapshot(_g7_hass().states.get, _g7_mp.candidates('hp')))}",
 )
 
 # Each formula class, at a value that tells it from its neighbours.

@@ -278,3 +278,11 @@
 # two new option keys, silent_mode_windows and silent_mode_power_fraction,
 # in the plain render and the seeded render, re-recorded for #547's reason
 # above. Every other fixture is byte-identical: both keys default inert.
+#
+# #1067 W1067-G7 (the Modbus pre-fill page): the v6.6.1 stamp emptied G4's
+# claim; this branch restates its own footprint. It moves exactly one
+# existing fixture: config_flow gains the advanced menu's modbus_prefill entry
+# and that page's prefix field, in the plain render and the seeded render,
+# re-recorded for #547's reason above. Every other fixture is byte-identical:
+# the page reads entity states only when submitted, and no plan reads its key.
+config_flow  # ADD-ONLY: one new advanced page, modbus_prefill, with one option key, modbus_prefill_prefix

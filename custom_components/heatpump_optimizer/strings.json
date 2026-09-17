@@ -373,7 +373,8 @@
           "learning_features": "Advanced learning features",
           "grid_connection": "Fuse and peak guards",
           "grid_fees": "Transfer fees and contract",
-          "heat_curve": "Heat curve control (ECL110)"
+          "heat_curve": "Heat curve control (ECL110)",
+          "modbus_prefill": "Pre-fill from a Modbus heat pump"
         }
       },
       "setup_overview": {
@@ -1076,6 +1077,48 @@
           "split": {
             "name": "Heat split"
           }
+        }
+      },
+      "modbus_prefill": {
+        "title": "Pre-fill from a Modbus heat pump",
+        "description": "For a Rotenso Windmi or another GCHV-built heat pump read through the tuya_heat_pump project's Modbus package. Name the package's entity prefix and submit: the next form suggests values read from the pump's own registers - the hot water set-points and schedule, the anti-legionella days, the night mode schedule, whether the pump steers on water temperature, and the pump's own sensors for sensor slots that are still empty. Edit or clear any of them; only what you keep is saved, and a field you clear is left as it was. Nothing about the house or its heating system can be read this way.\n\nEntities read: {found}. Backup heater type register: {backup_heater_type} - any value but 7 means the pump has electric heat of its own, which the heater slots on Heat pump telemetry are there to watch.",
+        "data": {
+          "modbus_prefill_prefix": "Modbus package entity prefix",
+          "dhw_setpoint": "Highest tank temperature to charge to",
+          "dhw_min_temperature": "Hot water temperature you need",
+          "dhw_windows": "When you need hot water",
+          "dhw_legionella_temperature": "Anti-legionella temperature",
+          "dhw_legionella_interval_days": "Anti-legionella interval",
+          "silent_mode_windows": "Heat pump silent mode schedule",
+          "heat_pump_max_power": "Heat pump max power (kW)",
+          "space_setpoint_unit": "What that set-point entity expects",
+          "mixing_valve_write_target_kind": "What the control entity expects",
+          "outdoor_temp_entity": "Outdoor temperature sensor",
+          "dhw_temp_entity": "Hot water tank temperature sensor",
+          "heat_pump_supply_temp_entity": "Supply (flow) water temperature",
+          "heat_pump_return_temp_entity": "Return water temperature",
+          "compressor_freq_sensor": "Actual frequency sensor (recommended for control)",
+          "heat_pump_capacity_limited_entity": "Capacity limited (night mode)",
+          "after_save": "After saving"
+        },
+        "data_description": {
+          "modbus_prefill_prefix": "The start of the package's entity ids: \"hp\" for sensor.hp_outdoor_air_temperature. It is saved only when the package was found under it.",
+          "dhw_setpoint": "Read from the pump's DHW normal setpoint register (0194H), times 0.1.",
+          "dhw_min_temperature": "Read from the pump's DHW economic setpoint register (0196H), times 0.1.",
+          "dhw_windows": "Read from the pump's DHW schedule start and stop registers (02C8H, 02C9H), each hour times 256 plus minute, only while that schedule has a day set. Saving a hot water time frame here turns hot water planning on, as it does on the Hot water page.",
+          "dhw_legionella_temperature": "Read from the pump's DHW anti-legionella setpoint register (0195H), times 0.1.",
+          "dhw_legionella_interval_days": "Seven days divided by the number of days set in the pump's anti-legionella schedule (02CAH), rounded down.",
+          "silent_mode_windows": "Read from the pump's night mode start and end registers (0206H, 0207H), each hour times 256 plus minute.",
+          "heat_pump_max_power": "The pump's unit capacity register, in kW of heat, divided by the nominal COP in force.",
+          "space_setpoint_unit": "Suggested as flow when the pump's control mode register (100DH) is water temperature control.",
+          "mixing_valve_write_target_kind": "Suggested as flow on water temperature control, only where the two-zone model the building page requires for it is configured.",
+          "outdoor_temp_entity": "The package's outdoor air temperature sensor, suggested only while this slot is empty.",
+          "dhw_temp_entity": "The package's hot water tank temperature sensor, suggested only while this slot is empty.",
+          "heat_pump_supply_temp_entity": "The package's leaving water temperature (T1) sensor, suggested only while this slot is empty.",
+          "heat_pump_return_temp_entity": "The package's entering water temperature (Tw-in) sensor, suggested only while this slot is empty.",
+          "compressor_freq_sensor": "The package's actual compressor frequency sensor, suggested only while this slot is empty.",
+          "heat_pump_capacity_limited_entity": "The package's night mode (frequency reduction) active sensor, suggested only while this slot is empty.",
+          "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       }
     },

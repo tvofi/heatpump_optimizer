@@ -23,6 +23,14 @@ Three rules are the contract, and ``tests/features.py`` pins each:
   ``sensor.hp_gchv_r404_0194h`` or ``sensor.hp_gchv_r404``. Both are tried,
   the unique id's spelling first, and the first that resolves wins.
 
+Where an entity id comes from is an input, not part of the inference. A
+*role* is a register (``r404``) or an entity slot the package fills
+(``outdoor_temp_entity``); :func:`snapshot` takes, per role, the entity ids to
+try in order, and :func:`candidates` is one resolver of them, the prefix and
+its two spellings. A resolver that finds a pump's entities another way -- a
+device's entity-registry entries -- hands :func:`snapshot` its own mapping,
+and :func:`infer` suggests the same values from the same states.
+
 What no register says is anything about the house or the heating circuit:
 the building, its emitters and its thermal model stay the user's to describe.
 
@@ -32,7 +40,7 @@ Kept free of Home Assistant imports so it can be unit-tested directly, like
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from .const import (
@@ -83,7 +91,7 @@ _WATER_TEMPERATURE_CONTROL = 0
 
 
 def candidates(prefix: str) -> dict[str, tuple[str, ...]]:
-    """Every entity id tried per label, in the order the first match wins."""
+    """The prefix resolver: the entity ids tried per role, first match wins."""
     p = prefix.strip().lower()
     found: dict[str, tuple[str, ...]] = {
         f"r{addr}": (f"sensor.{p}_gchv_r{addr}", f"sensor.{p}_gchv_r{addr}_{addr:04x}h")
@@ -94,11 +102,15 @@ def candidates(prefix: str) -> dict[str, tuple[str, ...]]:
 
 
 def snapshot(
-    get: Callable[[str], Any], prefix: str
+    get: Callable[[str], Any], resolved: Mapping[str, Sequence[str]]
 ) -> dict[str, tuple[str, str]]:
-    """``label -> (entity_id, state)`` for every label some candidate resolves."""
+    """``role -> (entity_id, state)`` for every role one of its ids resolves.
+
+    ``get`` is a plain state lookup (``hass.states.get``); ``resolved`` maps
+    each role to the entity ids to try, in order.
+    """
     snap: dict[str, tuple[str, str]] = {}
-    for label, entity_ids in candidates(prefix).items():
+    for label, entity_ids in resolved.items():
         for entity_id in entity_ids:
             state = get(entity_id)
             if state is not None:

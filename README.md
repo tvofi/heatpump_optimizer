@@ -717,7 +717,7 @@ Full theory, with every mechanism and its defaults:
 ## Changing settings after setup
 
 Open the integration and choose **Configure**. Instead of one long form you get a
-menu of 21 pages — 20 you can edit plus a read-only overview — and each can be
+menu of 22 pages — 21 you can edit plus a read-only overview — and each can be
 edited independently. The pages you revisit sit at the top; everything you
 typically set once lives one click further, under **Advanced settings**.
 
@@ -747,6 +747,7 @@ typically set once lives one click further, under **Advanced settings**.
 | Fuse and peak guards | Main fuse, the fuse cap, the live peak guard |
 | Transfer fees and contract | DSO product, per-kWh fees, the fixed-contract comparison |
 | Heat curve control (ECL110) | MQTT topics, displace limits and the controller time constant |
+| Pre-fill from a Modbus heat pump | Suggested values read from a Rotenso Windmi or other GCHV pump's Modbus package, edited before they are saved |
 
 Every sensor you picked during setup can be re-pointed here, and clearing a field
 genuinely clears it. On the **Thermal model (expert)** page a field left empty
