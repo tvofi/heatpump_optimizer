@@ -442,6 +442,15 @@ in its own pull request.
     pull request is open, which is what orders the two. Read it with the
     commit's `check-runs` API (correction above), and answer it in the body by
     naming the superseded head rather than re-running anything.
+    **Instances: #1116, then #1121. This is a named recurrence at two, recorded
+    here so the next seat knows where it stands** — at a third,
+    `defect-root-cause.md`'s recurrence trigger fires and the answer is a
+    root-cause seat, not a third pull-request paragraph explaining the same red.
+    No countermeasure is proposed at two, and that is the decision rather than
+    an omission: a check that suppressed this red would have to stop reporting a
+    body genuinely stale at the head, which is what `pr-contract` is for, and
+    the gap itself exists only between two API calls that `push.sh`'s own header
+    says it cannot make atomic.
 
 ## Owed — post-hoc reviews
 
@@ -487,6 +496,17 @@ flagged it rather than claiming a carry it had not made.
   revised on 2026-09-14 and `docs/decisions/0009-*` is the live one; 0008 alone
   reads as its opposite** — agent identities author and approve, no human in
   the loop; the order above is unchanged. #954 closes at that verification.
+
+**Owed: an instrument over the plan's open-issue dispositions, or a decision
+not to build one.** `recordRegion` reads the plan's `## Delivery status`
+section, `docs/delivery/` and this file; every other `##` in the plan is outside
+it. So `## Open friction issues — dispositions` (#1121) is unread by any check —
+deleting it whole leaves `--record` byte-identical, `RENDER` included — while
+`delivery-status-tracking.md` section 5 obliges a disposition for every open
+issue. The obligation is real and the coverage is a seat's grep. **What the
+detector would have to avoid** is the shape #658 already narrowed the record
+region to escape: a check that accepts an issue number mentioned anywhere
+dispositions it by mention, which is the defect, not the fix.
 
 **Owed from #1116, two items its merged body left open.**
 
