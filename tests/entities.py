@@ -13458,21 +13458,48 @@ for _job in ("closures-autofix", "claims-autofix"):
     )
 # A GITHUB_TOKEN push's `pull_request` runs are held `action_required` with
 # zero jobs until a maintainer approves them (5511f23 on #1068, dac077e on
-# #1090), so every required context the push must re-satisfy needs another
-# route. Tests/Hassfest/Validate/CodeQL are dispatched, and their check runs
-# land on the pushed SHA. Governance is refused a dispatch: `pr-contract` is
-# `if: pull_request`, and a skipped job satisfies a required context without
-# checking the body. Its route is the body PATCH's unheld `edited` run, which
-# pr-contract's `## Head` rule forces anyway. dac077e had no `Analyze` check
-# run at all before CodeQL was dispatched.
+# #1090), so each required context needs another route. Tests, Hassfest,
+# Validate and CodeQL are dispatched from the push step; dispatch run
+# 35187949244 put all three `Analyze (…)` check runs on 9eab006. Whether a
+# merge accepts a dispatch-produced context is NOT measured.
+#
+# Governance is refused a dispatch. `pr-contract` is `if: pull_request`, so a
+# dispatched run skips it. Whether a skipped required context satisfies the
+# ruleset is disputed in this tree: docs/HANDOVER.md records a probe that says
+# it does, and tests.yml's `closures` comment records #1022/#1025/#1027
+# needing `--admin` because it did not. If it does, the dispatch is a green
+# `pr-contract` that never read the body. If not, it buys nothing. `record`
+# would also run on the branch with `issues: write`. Governance's route is the
+# body PATCH `## Head` forces after a new head: its `edited` run is unheld and
+# carried all four Governance contexts at dac077e (run 35166880265).
+#
+# Parsed from the push step's non-comment lines only: a commented-out
+# dispatch, or one moved into the `always()` report step (which also runs when
+# nothing was pushed), must not count.
 _AF_DISPATCHED = {"tests.yml", "hassfest.yml", "validate.yml", "codeql.yml"}
+
+
+def _af_dispatches(step: str) -> set[str]:
+    live = "\n".join(ln for ln in step.splitlines()
+                     if not ln.lstrip().startswith("#"))
+    return set(re.findall(r"gh workflow run (\S+)", live))
+
+
 for _job in ("closures-autofix", "claims-autofix"):
-    _runs = set(re.findall(r"gh workflow run (\S+)",
-                           _workflow_job(_TESTS_YML, _job)))
+    _steps = _workflow_job(_TESTS_YML, _job).split("\n      - ")
+    _push = [s for s in _steps if re.match(r"name: Push\b", s)]
+    _elsewhere = set().union(*(_af_dispatches(s) for s in _steps
+                               if s not in _push))
     R.check(
         f"{_job} dispatches every workflow owning a required context but Governance",
-        _runs == _AF_DISPATCHED,
-        f"dispatched={sorted(_runs)}; a held run leaves the rest unsatisfied",
+        len(_push) == 1 and _af_dispatches(_push[0]) == _AF_DISPATCHED,
+        f"push steps={len(_push)} dispatched="
+        f"{sorted(_af_dispatches(_push[0])) if _push else []}",
+    )
+    R.check(
+        f"{_job} dispatches from the push step only",
+        not _elsewhere,
+        f"elsewhere={sorted(_elsewhere)}; only a pushed SHA needs a retrigger",
     )
 _CODEQL_ON = (pathlib.Path(__file__).resolve().parents[1] / ".github"
               / "workflows" / "codeql.yml").read_text()
