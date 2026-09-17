@@ -87,8 +87,28 @@ def short_sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
+SHARED_ROOTS = ("/tmp", "/private/tmp", "/var/tmp", "/private/var/tmp")
+
+
+def in_shared_root(path: str) -> bool:
+    """True when the file sits directly in a directory every seat writes to.
+
+    Seats of one session share a scratchpad and a machine shares /tmp, so a
+    body.md there is overwritten by the next seat choosing the obvious name --
+    the #201 root-cause comment for the pull request that added this counts the
+    instances. `tools/audit/prepr.sh`'s `shared_root` is the same predicate.
+    """
+    d = os.path.realpath(os.path.dirname(os.path.abspath(path)))
+    tmpdir = os.environ.get("TMPDIR")
+    return (d in SHARED_ROOTS or os.path.basename(d) == "scratchpad"
+            or bool(tmpdir) and d == os.path.realpath(tmpdir))
+
+
 def read_body(path: str) -> str:
     """Read the body file, or refuse. Never returns a body it cannot vouch for."""
+    if in_shared_root(path):                     # fail closed on a shared root
+        die(f"body file {path} sits directly in a root other seats write to; "
+            "move it to your own subdirectory, e.g. scratchpad/<seat>/")
     try:
         with open(path, encoding="utf-8") as fh:
             body = fh.read()
@@ -327,6 +347,15 @@ def self_test() -> int:
     except Refused as exc:
         check(f"arm4_accepts_body_at_cap ({exc})", False)
     check("arm4_accepts_body_at_cap", at_cap is not None and len(at_cap) == MAX_BODY)
+
+    # -- Arm 5: a body in a shared root is refused, a seat's own is not -------
+    os.makedirs(os.path.join(tmp, "scratchpad", "seat"))
+    hit, _ = refuses(lambda: read_body(wrote("scratchpad/body.md", healthy)))
+    check("arm5_refuses_body_directly_in_scratchpad", hit)
+    check("arm5_refuses_body_directly_in_tmp", in_shared_root("/tmp/body.md"))
+    hit, _ = refuses(lambda: read_body(wrote("scratchpad/seat/body.md", healthy)))
+    check("arm5_accepts_body_in_seat_subdirectory", not hit)
+    check("arm5_accepts_body_in_mkdtemp", not in_shared_root(os.path.join(tmp, "b.md")))
 
     hit, _ = refuses(lambda: positive_int("not-a-number", "--comment"))
     check("arm4_refuses_non_integer_id", hit)

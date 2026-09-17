@@ -164,6 +164,20 @@ body_check() { # body file, head sha, title, paths file
     --title "$3" --paths-file "$4"
 }
 
+# A BODY IN A SHARED ROOT IS ANOTHER SEAT'S BODY WAITING TO HAPPEN. Seats of one
+# session are all told the same scratchpad, and a machine has one `/tmp`, so a
+# `body.md` written directly in either is overwritten by the next seat that picks
+# the obvious name -- five destroyed files and one pattern kill on 2026-09-16/17,
+# in the root-cause comment on #201 for the pull request that added this. Refused
+# only at the root: `scratchpad/<seat>/body.md` and any `mktemp -d` path pass.
+shared_root() { # body path -> 0 when its directory is one every seat shares
+  local d
+  d=$(cd "$(dirname -- "$1")" 2>/dev/null && pwd -P) || return 1
+  case "$d" in /tmp|/private/tmp|/var/tmp|/private/var/tmp) return 0 ;; esac
+  [ -n "${TMPDIR:-}" ] && [ "$d" = "$(cd "$TMPDIR" 2>/dev/null && pwd -P)" ] && return 0
+  [ "$(basename -- "$d")" = scratchpad ]
+}
+
 push_order() { # own remote branch's sha ('' or '-' for none), behind, ahead
   case "${1:-}" in ''|-) return 3 ;; esac   # 3 no remote branch: nothing to compare
   if [ "${2:-0}" -gt 0 ]; then
@@ -371,6 +385,16 @@ if [ "${1:-}" = "--self-test" ]; then
 +  "quality_scale": "platinum",')
   st "$got" 'VERSION custom_components/heatpump_optimizer/manifest.json(version)' "a stamp-shaped diff is refused on both, and the added key does not mask it"
 
+  # The shared-root refusal, over real directories because the predicate resolves
+  # them. The defect's two shapes refuse; a seat's own subdirectory and a bare
+  # `mktemp -d` pass, so a predicate refusing every temp path fails here.
+  SRD=$(mktemp -d); mkdir -p "$SRD/scratchpad/seat"
+  shared_root "$SRD/scratchpad/body.md"; st $? 0 "a body directly in a scratchpad is refused"
+  shared_root /tmp/body.md; st $? 0 "a body directly in /tmp is refused"
+  shared_root "$SRD/scratchpad/seat/body.md"; st $? 1 "a body in the seat's own subdirectory passes (null control)"
+  shared_root "$SRD/body.md"; st $? 1 "a body in a mktemp directory passes (null control)"
+  rm -rf "$SRD"
+
   printf 'Closes #999\n' | bash tools/audit/preflight.sh >/dev/null 2>&1
   st $? 1 "preflight refuses an unintended closing keyword"
   printf 'Closes #999\n' | bash tools/audit/preflight.sh 999 >/dev/null 2>&1
@@ -500,6 +524,9 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   # catch that in either direction: `pr-contract` runs the same script as
   # `preflight.sh ... || true`, so the check binds nowhere. Found by the first
   # body in twenty merges to carry a closing keyword.
+  if shared_root "$BODY"; then
+    step "body path" 1 "$BODY sits directly in a root other seats write to -- move it to your own subdirectory, e.g. scratchpad/<seat>/"
+  fi
   shift
   bash tools/audit/preflight.sh "$@" < "$BODY"
   step "preflight" $?

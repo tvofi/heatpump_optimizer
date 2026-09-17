@@ -134,9 +134,9 @@ issues the merge actually closed. No pull-request-scoped field shows it
 beforehand, and on 2026-09-07 two issues were shut by merge commits and had to
 be reopened — `8bc4c661` (#557) shut #224 at 10:56:35 while its own text denied
 doing so, reopened 23 minutes later; `e072b2d` shut #195 at 04:25:54, reopened after
-six and a half hours; the window is whatever it takes someone to notice. A pre-merge
-scan that asks *which form was used* rather than *whether every keyword binds an
-intended number* reports clean through exactly that.
+six and a half hours. A pre-merge scan that asks *which form was used* rather
+than *whether every keyword binds an intended number* reports clean through
+exactly that.
 
 ## 5. Before dispatching a seat
 
@@ -150,6 +150,9 @@ intended number* reports clean through exactly that.
   must *not* fire returns better evidence than one told only what must.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
   the handoff it prepares against the merge base only (`fix-review.md`).
+- **Name its own scratch subdirectory**, `scratchpad/<seat>/`. Seats share one
+  scratchpad, `/tmp` and process table, and a generic name at a root has destroyed
+  another seat's work. It stops only a PID it started, never by pattern.
 
 ## 6. A conflict resolution is verified by reading the merged artifact
 
@@ -283,7 +286,6 @@ before merging — so open the pull request and surface it.
   the bot commit, never open a second pull request, never hand-empty the claim
   files.
 - **Do not delete working functionality to fit a budget**, and do not loosen a
-  budget quietly. The metric count is derived, never carried — it has been
-  stated as 22, 24 and 29 in three places on one day, and only one was right.
+  budget quietly.
 - **Do not let a fix ship whose complexity exceeds what the fix is worth.** That
   judgement is yours to make and to state, not to skip.
