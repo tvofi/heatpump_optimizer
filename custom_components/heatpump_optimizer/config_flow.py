@@ -76,6 +76,8 @@ from .const import (
     DEFAULT_BUFFER_MAX_TEMP,
     DEFAULT_MIXING_VALVE_TARGET,
     DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND,
+    CONF_FLOW_CURVE_COP_ENABLED,
+    DEFAULT_FLOW_CURVE_COP_ENABLED,
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_DHW_TEMP_ENTITY,
     CONF_ECL110_COMMAND_TOPIC,
@@ -1467,6 +1469,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("building", CONF_MIXING_VALVE_TARGET_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="valve"),
     _F("building", CONF_MIXING_VALVE_WRITE_ENTITY, _STORED, _entity_of(['number', 'input_number', 'climate']), group="valve"),
     _F("building", CONF_MIXING_VALVE_WRITE_TARGET_KIND, DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND, _select(list(mixing_valve.WRITE_TARGET_KINDS), 'mixing_valve_write_target_kind'), group="valve"),
+    _F("building", CONF_FLOW_CURVE_COP_ENABLED, DEFAULT_FLOW_CURVE_COP_ENABLED, selector.BooleanSelector(), group="valve"),
     _F("building", CONF_BUFFER_TANK_VOLUME, DEFAULT_BUFFER_TANK_VOLUME, _number(10, 1500, 5, 'L'), group="buffer"),
     _F("building", CONF_BUFFER_MAX_TEMP, DEFAULT_BUFFER_MAX_TEMP, _number(40, 90, 1, '°C', slider=True), group="buffer"),
     _F("building", CONF_WOOD_FURNACE_ENABLED, _Computed(lambda cur, hass: wood_furnace_on(cur)), bool, group="wood"),
@@ -2747,6 +2750,17 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             ):
                 errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = (
                     "flow_target_needs_two_zone"
+                )
+            elif user_input.get(CONF_FLOW_CURVE_COP_ENABLED) and (
+                mixing_valve.is_throttling(
+                    {**current, **user_input}.get(CONF_MIXING_VALVE_MODE)
+                )
+            ):
+                # #1067: behind a throttling valve the tank temperature is
+                # already the priced flow; the model refuses the curve lift
+                # there too, so saving it would be a switch that does nothing.
+                errors[CONF_FLOW_CURVE_COP_ENABLED] = (
+                    "flow_curve_needs_direct_plant"
                 )
             else:
                 # The wood block's rows carry ``when=wood_furnace_on``, so one

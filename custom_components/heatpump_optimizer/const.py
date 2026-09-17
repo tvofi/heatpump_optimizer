@@ -721,6 +721,12 @@ MIXING_VALVE_WRITE_EPSILON: Final = 0.25  # K
 # choice is explicit rather than guessed from the entity.
 CONF_MIXING_VALVE_WRITE_TARGET_KIND: Final = "mixing_valve_write_target_kind"
 DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND: Final = "indoor"
+# #1067 (W1067-G3): price the lift of the supply water a DIRECT plant runs at
+# -- the weather curve plus the bias ``flow_lift`` learns -- into every plan.
+# Off by default so no existing plan moves; refused with a throttling valve,
+# whose tank temperature is already the priced flow.
+CONF_FLOW_CURVE_COP_ENABLED: Final = "flow_curve_cop_enabled"
+DEFAULT_FLOW_CURVE_COP_ENABLED: Final = False
 CONF_BUFFER_MAX_TEMP: Final = "buffer_max_temperature"  # °C
 DEFAULT_BUFFER_MAX_TEMP: Final = 70.0  # °C
 # 0.0 means "not set": the comfort ceiling is used instead, which is the

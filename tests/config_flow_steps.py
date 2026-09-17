@@ -2002,6 +2002,46 @@ async def options_advanced_pages():
         f"options={entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)!r}",
     )
 
+    # #1067: pricing the curve lift is for a direct plant. Behind a
+    # throttling valve the tank temperature already is the priced flow, so
+    # the page refuses the pair rather than saving a switch that does nothing.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {
+            **BUILDING_PAGE_ANSWERS,
+            const.CONF_MIXING_VALVE_MODE: config_flow.mixing_valve.MODE_MANUAL,
+            const.CONF_FLOW_CURVE_COP_ENABLED: True,
+        },
+    )
+    check(
+        "opt_building",
+        "error",
+        "the flow-curve lift with a throttling valve is refused, not saved (#1067)",
+        shows(result, "building")
+        and result.get("errors", {}).get(const.CONF_FLOW_CURVE_COP_ENABLED)
+        == "flow_curve_needs_direct_plant"
+        and not entry.options,
+        f"errors={result.get('errors')} options={sorted(entry.options)}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {**BUILDING_PAGE_ANSWERS, const.CONF_FLOW_CURVE_COP_ENABLED: True},
+    )
+    check(
+        "opt_building",
+        "happy",
+        "the flow-curve lift with no valve saves cleanly (#1067)",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_FLOW_CURVE_COP_ENABLED) is True,
+        f"options={entry.options.get(const.CONF_FLOW_CURVE_COP_ENABLED)!r}",
+    )
+
     _WOOD_BLOCK = {
         const.CONF_WOOD_TANK_TOP_ENTITY,
         const.CONF_WOOD_PRICE_SEK_M3,

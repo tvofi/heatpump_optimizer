@@ -907,6 +907,7 @@
   "external_heat_detection_enabled": true,
   "external_heat_entity": "sensor.seed_external_heat_entity",
   "floor_return_temp_entity": "sensor.seed_floor_return_temp_entity",
+  "flow_curve_cop_enabled": true,
   "fuse_guard_enabled": true,
   "grid_fee_entity": "sensor.seed_grid_fee_entity",
   "heat_pump_backup_heater_entity": "sensor.seed_heat_pump_backup_heater_entity",
@@ -1081,6 +1082,12 @@
     },
     "default": null,
     "fields": {
+     "flow_curve_cop_enabled": {
+      "config": null,
+      "default": "True",
+      "required": "Optional",
+      "selector": "BooleanSelector"
+     },
      "mixing_valve_mode": {
       "config": {
        "mode": "'dropdown'",
@@ -3418,6 +3425,12 @@
    },
    "default": null,
    "fields": {
+    "flow_curve_cop_enabled": {
+     "config": null,
+     "default": "False",
+     "required": "Optional",
+     "selector": "BooleanSelector"
+    },
     "mixing_valve_mode": {
      "config": {
       "mode": "'dropdown'",

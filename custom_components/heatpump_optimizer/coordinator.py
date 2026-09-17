@@ -56,6 +56,7 @@ from .const import (
     CONF_INDOOR_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
     CONF_HEAT_PUMP_DEFROST_ENTITY,
+    CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
     CONF_HEAT_PUMP_SWITCH_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
@@ -684,6 +685,37 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
         coord._flow_bias.bias_k,
         coord._flow_bias.samples,
     )
+
+
+def _watch_lift(coord: Any, dhw_curve: bool) -> float | None:
+    """#1067: what the health watch divides a sample by, or ``None`` to skip.
+
+    ``_learn_measured_cop`` credits the pump's true COP at the supply it ran
+    at, lift included, so one outdoor bucket holding 45 degC and 55 degC
+    intervals reads the harder lift as a decline (+18 % at 8 degC). Once the
+    plan prices the lift (``flow_curve_cop``), the watch judges a space
+    sample at the reference flow instead: divided by the model's own Carnot
+    factor at the MEASURED supply. Never the priced curve -- the bucket's
+    spread is exactly the supply moving away from it.
+
+    Three answers. 1.0, the raw sample exactly as before, with the option
+    off, for a hot-water sample (its curve prices its own hot water) and
+    when no supply slot is configured, so that baseline never sees a
+    normalised sample. ``None`` -- skip -- when a supply slot IS configured
+    but this cycle has no fresh reading: one raw sample in a normalised
+    baseline reads as a 24-38 % shortfall on a healthy pump, worse than no
+    normalisation at all, so a lapsed reading contributes nothing.
+    """
+    ctx = getattr(coord, "_ctx", coord)
+    if dhw_curve or not ctx._thermal_params.flow_curve_cop:
+        return 1.0
+    if not ctx._config.get(CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY):
+        return 1.0
+    supply = coord._flow_bias.last_supply_c
+    if supply is None:
+        return None
+    return float(coord._thermal_model.flow_lift_factor(
+        float(ctx._current_state.outdoor_temperature), supply))
 
 
 def _freq_fold_blocked(coord: Any) -> bool:
@@ -2289,6 +2321,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # T4a #11 (gated): a recurring immersion rescue asks the plan to
         # arrive a little earlier. 0.0 with the flag off — byte-inert.
         params.dhw_ready_margin_c = self._immersion_dhw_margin(now)
+        # #1067: what a direct plant's priced flow is read against (inert off).
+        params.flow_curve_bias, params.flow_curve_indoor_target = (
+            self._flow_bias.bias_k, self.target_temperature)
 
         # #47: what a typical remaining day is expected to bottom out at.
         params.dhw_legionella_price_ceiling = None
@@ -8313,6 +8348,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         It defaults to False, which is what every install without a mode
         entity produces and is the pre-v5.3.0 behaviour exactly.
         """
+        lift = _watch_lift(self, dhw_curve)
+        if lift is None:
+            return
+        observed_cop = observed_cop / lift
         outdoor = float(getattr(self, "_ctx", self)._current_state.outdoor_temperature)
         bucket = (int(np.floor(outdoor / 3.0)), bool(dhw_curve))
         entry = self._cop_baseline.get(bucket)
@@ -8325,7 +8364,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             changed = self._cop_health_cusum.update(dt_util.now(), shortfall)
             if changed:
                 if self._cop_health_cusum.tripped:
-                    self._raise_cop_issue(baseline)
+                    self._raise_cop_issue(baseline * lift)
                 else:
                     ir.async_delete_issue(self.hass, DOMAIN, "cop_degradation")
         # While the watch is tripped the baseline stops absorbing samples:

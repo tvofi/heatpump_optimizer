@@ -30,7 +30,9 @@ finding), C9 having been turned true by its own fix already:
     RESULT claims_false=1
     RESULT claims_stale=0
     RESULT claims_unverifiable=2    (1 with --links; the checker runs the default)
-    RESULT config_defaults_compared=82   (76 until #937's rows landed)
+    RESULT config_defaults_compared=83   (76 until #937's rows landed; 82
+                                         until #1067's solver half documented
+                                         the flow-curve lift option's default)
     RESULT config_ranges_compared=86     (76 until #937's rows landed)
     RESULT arch_modules_on_disk=57       (architecture.md said 45; 56 until
                                          #1067's learner half added
