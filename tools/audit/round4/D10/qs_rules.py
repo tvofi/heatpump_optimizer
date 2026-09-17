@@ -79,6 +79,18 @@ _src_cache: dict[Path, str] = {}
 _ast_cache: dict[Path, ast.Module] = {}
 
 
+def _step_texts(body, kind="data"):
+    """One flow step's ``kind`` texts, step level merged with every section's.
+    A field grouped with section() keeps its label under
+    ``sections.<name>.<kind>``, which is where the frontend reads it; a
+    step-level-only read silently drops every grouped field (#1111 moved 126
+    options labels there, and this harness's counts fell with them)."""
+    merged = dict(body.get(kind) or {})
+    for sec in (body.get("sections") or {}).values():
+        merged.update(sec.get(kind) or {})
+    return merged
+
+
 def src(p: Path) -> str:
     if p not in _src_cache:
         _src_cache[p] = p.read_text(encoding="utf-8") if p.exists() else ""
@@ -175,8 +187,8 @@ def bronze() -> None:
     for scope in ("config", "options"):
         for st in strings.get(scope, {}).get("step", {}).values():
             steps_n += 1
-            data = st.get("data", {})
-            desc = st.get("data_description", {})
+            data = _step_texts(st)
+            desc = _step_texts(st, "data_description")
             fields += len(data)
             undescribed += sum(1 for k in data if k not in desc)
     rule(
