@@ -239,7 +239,7 @@ st "$(calls merged curl)" 0 "and nothing was minted or posted"
 
 mkcase none open false "$SHA" "[$(comment 1 'An ordinary comment')]"
 run none o/r 7 "$SHA"; st $? 1 "REFUSE: no Fix review verdict at all"
-st "$(grep -c "no 'Fix review:' verdict" "$W/none/err")" 1 "saying so"
+st "$(grep -c "no 'Fix review:' verdict" "$W/none/err")" 1 "saying so, not falling through to the SHA comparison"
 st "$(calls none curl)" 0 "and nothing was minted or posted"
 
 mkcase stale open false "$SHA" "[$(comment 1 "Fix review: merge $OTHER")]"
@@ -257,6 +257,7 @@ st "$(wc -l < "$W/nokey/log" | tr -d ' ')" 0 "before any gh, openssl or curl cal
 
 mkcase shortsha open false "$SHA" "$GOOD"
 run shortsha o/r 7 "${SHA:0:7}"; st $? 1 "REFUSE: an abbreviated SHA is not an exact head"
+st "$(grep -c 'full 40-hex SHA' "$W/shortsha/err")" 1 "refused as a malformed argument, before any call"
 
 mkcase postfail open false "$SHA" "$GOOD"; : > "$W/postfail/refuse-post"
 run postfail o/r 7 "$SHA"; st $? 1 "a refused POST exits non-zero"
