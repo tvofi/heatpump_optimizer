@@ -14991,6 +14991,47 @@ R.check(
     _stamp_ok,
     _stamp_detail,
 )
+# stamp.py's OUTPUT against env_drift's claims guard, composed (2026-09-17).
+# Each side was pinned alone and the composition by nothing, so #747 changed
+# the guard, stamp.py kept writing what it always wrote, and the first two
+# stamps to delete a solver claim afterwards (v6.5.0, v6.6.0) turned main red.
+# Pinned here, a change to EITHER side goes red on its own pull request: the
+# write set stamp.py stages must be the guard's `STAMP_WRITES`, and the claim
+# files `rewrite_claims` produces must pass the guard as a push to main sees
+# them, deleting a claim neither file's author could have written.
+try:
+    _stc_writes = {
+        str(Path(p).relative_to(_stamp.ROOT))
+        for p in (_stamp.VERSION_FILE, _stamp.MANIFEST, _stamp.CARD_JS,
+                  _stamp.NOTES, *_stamp.CLAIM_FILES)
+    }
+    _stc_before = "# claims-for: 6.5.1\n#\n# old reason\n#\n\nconfig_flow  # a lane's claim\n"
+    _stc_after, _stc_old, _stc_deleted = _stamp.rewrite_claims(_stc_before, "6.6.0", "t")
+    _stc_decl, _stc_claims = _env_drift._parse_claims(_stc_after)
+    _stc_verdict = _env_drift.claims_hygiene_verdict(
+        sorted(_stc_writes), _stc_claims, _stc_claims,
+        _env_drift._parse_claims(_stc_before)[1], {}, "HEAD^1",
+        stamp=("6.6.0", _stc_old, _stc_decl, _stc_decl),
+    )
+    _stc_ok = (
+        _stc_writes == set(_env_drift.STAMP_WRITES)
+        and _stc_deleted == 1
+        and _stc_verdict is None
+    )
+    _stc_detail = (
+        f"stamp.py writes {sorted(_stc_writes)}, the guard expects "
+        f"{sorted(_env_drift.STAMP_WRITES)}; deleted={_stc_deleted}; "
+        f"verdict={_stc_verdict!r}"
+    )
+except Exception as _stc_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _stc_ok = False
+    _stc_detail = f"{type(_stc_exc).__name__}: {_stc_exc}"
+R.check(
+    "a claim file stamp.py rewrites passes env_drift's claims guard on the "
+    "push to main, and both agree on the files a stamp writes",
+    _stc_ok,
+    _stc_detail,
+)
 R.check(
     "stamp.py is no longer INERT: closure.py must classify it",
     not _closure.is_inert("tools/release/stamp.py"),
