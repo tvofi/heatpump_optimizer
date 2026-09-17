@@ -690,6 +690,21 @@ SCENARIOS: dict[str, dict] = {
     # ramp on the min bounds and a flat mold floor, the shapes the
     # coordinator actually produces with the flags on.
     "confidence_margins": dict(),
+    # --- #1067 W1067-G3 -----------------------------------------------------
+    # The flow-curve lift ON, on a direct plant whose curve crosses the 35 degC
+    # reference (a 3 kW pump on two 0.2 kW/K zones: the stock house's curve
+    # sits near 24 degC and would price nothing), with a +5 K learned bias
+    # and hot water on, so the one fixture pins the lifted space price, the
+    # bias being spent and hot water staying unlifted beside it.
+    "direct_flow_carnot": dict(
+        config_overrides={
+            "flow_curve_cop_enabled": True,
+            "heat_pump_max_power": 3.0,
+            "upper_floor_heat_loss": 0.2,
+            "lower_floor_heat_loss": 0.2,
+        },
+        param_overrides={"flow_curve_bias": 5.0},
+    ),
 }
 
 # Scenarios where prices past a point are the learned prior rather than

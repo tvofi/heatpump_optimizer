@@ -38,14 +38,17 @@ EXPECTED on this tree (ae36eff printed option_fields_rendered=174 and
     two more optional entities_pump pickers, the pump's own supply (flow)
     and return water temperatures. `option_fields_undocumented` stayed 0 for
     the same reason and under the same condition -- each has a row in
-    docs/configuration.md's Heat pump telemetry table. This block is an
+    docs/configuration.md's Heat pump telemetry table. #1067's solver half
+    moved them once more, 185 -> 186 and 218 -> 219: one boolean on the
+    building page, the flow-curve lift, with its row in docs/configuration.md's
+    heating-system table in the same commit. This block is an
     ASSERTION `tests/harness_headers.py` executes the script against, and it
     is reached by a shell-out the closure recorder cannot see, so it does not
     go red on a pull request: it is re-measured in the commit that changes
     what the script prints, or main's forced-full run finds it):
-    RESULT option_fields_rendered=185 count
+    RESULT option_fields_rendered=186 count
     RESULT option_fields_undocumented=0 count
-    RESULT option_schema_keys_rendered=218 count
+    RESULT option_schema_keys_rendered=219 count
     RESULT wood_economics_fields_rendered=4 count
     RESULT wood_economics_doc_lines=6 count      (tolerance: exact)
 MACHINE: 8-core Apple M1, 8 GB, python3 3.11.5.

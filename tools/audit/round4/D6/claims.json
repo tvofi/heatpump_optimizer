@@ -263,9 +263,9 @@
  {
   "id": "C30",
   "source": "docs/configuration.md",
-  "claim": "every documented Default (82 rows) is the default the rendered options page actually carries",
+  "claim": "every documented Default (83 rows) is the default the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "82 compared, mismatches=[]",
+  "result": "83 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },

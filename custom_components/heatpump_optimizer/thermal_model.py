@@ -107,6 +107,7 @@ from .const import (
     WOOD_TANK_MIN_MARGIN,
     topology_layout_valid,
 )
+from .flow_lift import curve_supply_temp
 from .wood_fuel import wood_furnace_on
 from .dhw_schedule import (
     DHWWindowError,
@@ -151,6 +152,28 @@ def _holiday_dhw_windows(config: dict[str, Any]) -> list[Window] | None:
     except DHWWindowError:
         return None
 
+
+
+def _flow_curve_values(config: dict[str, Any], cop_flow_carnot: bool) -> dict[str, Any]:
+    """#1067: ``from_config``'s flow-curve fields, kept out of its complexity.
+
+    The lift is for a plant with no valve. Behind a throttling valve the tank
+    temperature already is the flow the Carnot term prices, and a second,
+    curve-derived flow would price the same lift twice -- so the option is
+    refused there, here as well as on the options page, because a stored
+    value can predate a valve.
+    """
+    enabled = bool(
+        config.get(
+            const.CONF_FLOW_CURVE_COP_ENABLED, const.DEFAULT_FLOW_CURVE_COP_ENABLED
+        )
+    )
+    return {
+        "flow_curve_cop": enabled and not cop_flow_carnot,
+        "flow_curve_indoor_target": float(
+            config.get(const.CONF_TARGET_TEMP, const.DEFAULT_TARGET_TEMP)
+        ),
+    }
 
 @dataclass
 class ThermalParameters:
@@ -365,6 +388,13 @@ class ThermalParameters:
     # same per kWh as delivering it at 35 °C, so storage looks free.
     cop_flow_carnot: bool = False
     cop_flow_reference_temp: float = 35.0  # °C
+    #: #1067: on a DIRECT plant, price the same Carnot lift at the supply the
+    #: weather curve implies (``flow_lift.curve_supply_temp``) plus the
+    #: learned ``flow_curve_bias``. ``from_config`` never sets this together
+    #: with ``cop_flow_carnot``; a valve's tank temperature is the flow there.
+    flow_curve_cop: bool = False
+    flow_curve_bias: float = 0.0  # K, pushed per cycle by the coordinator
+    flow_curve_indoor_target: float = 21.0  # °C, the curve's indoor target
     inter_zone_transfer: float = DEFAULT_INTER_ZONE_TRANSFER  # kW/°C
     radiator_power_fraction: float = DEFAULT_RADIATOR_POWER_FRACTION  # 0-1
     #: Share of the heated area on the upper floor; splits internal gains.
@@ -916,6 +946,7 @@ class ThermalParameters:
         values["cop_flow_carnot"] = mixing_valve.is_throttling(
             values["mixing_valve_mode"]
         )
+        values.update(_flow_curve_values(config, values["cop_flow_carnot"]))
 
         # Two-tank gating (issue #40): a probe, not a flag. The volume shares
         # the external-heat detector's key — one number for one physical tank.
@@ -1371,7 +1402,47 @@ class ThermalModel:
         whichever bucket was real, so everything observed in humid frosting
         conditions — the conditions the derate exists for — was recorded and
         then never applied.
+
+        #1067: a passed ``flow_temp`` is priced only behind a throttling valve
+        (``cop_flow_carnot``), where the tank temperature is the flow. On a
+        direct plant with ``flow_curve_cop`` on, the flow is instead the
+        supply the weather curve implies plus the learned bias
+        (:meth:`curve_flow_temp`), and that replaces whatever was passed:
+        every space-heat price -- the horizon's steps, the settlement and
+        terminal valuations, the efficiency learner's reference and the
+        capacity caps -- inherits the lift from this one place rather than
+        from a call site each. Hot water is not lifted twice:
+        :meth:`compute_cop_dhw` starts from :meth:`_cop_law` with no flow.
+        The lift is one-sided, applied only above the reference flow, which
+        is the batch twin's semantics and is kept for its bitwise parity: a
+        curve below 35 °C earns no boost.
         """
+        if not self.params.cop_flow_carnot:
+            flow_temp = (
+                self.curve_flow_temp(outdoor_temp)
+                if self.params.flow_curve_cop
+                else None
+            )
+        return self._cop_law(outdoor_temp, humidity, flow_temp)
+
+    def curve_flow_temp(self, outdoor_temp: float) -> float | None:
+        """#1067: the supply a direct plant runs at, as the plan prices it.
+
+        The weather curve through :func:`flow_lift.curve_supply_temp` -- the
+        one expression of it the bias was learned against -- plus that bias.
+        ``None`` for a non-finite input, which prices no lift at all.
+        """
+        p = self.params
+        curve = curve_supply_temp(self, outdoor_temp, p.flow_curve_indoor_target)
+        return None if curve is None else curve + p.flow_curve_bias
+
+    def _cop_law(
+        self,
+        outdoor_temp: float,
+        humidity: float | None,
+        flow_temp: float | None,
+    ) -> float:
+        """:meth:`compute_cop`'s law, with ``flow_temp`` already resolved."""
         delta = outdoor_temp - self.params.cop_reference_temp
         factor = max(0.3, 1.0 + 0.025 * delta)
         cop = self.params.cop_nominal * min(factor, 1.5) * self.params.cop_scale
@@ -1390,36 +1461,8 @@ class ThermalModel:
         # that, and at 2 %/K a 70 °C flow costs 70 % of COP and hits the floor.
         # A real unit manages 1.5-2.0 there, which the Carnot ratio reproduces
         # because it is the actual shape of the physics.
-        if flow_temp is not None and self.params.cop_flow_carnot:
-            ref = self.params.cop_flow_reference_temp
-            if flow_temp > ref:
-                # The ratio of two Carnot COPs falls as outdoor rises.
-                # Past the nameplate reference that drop outruns the
-                # 2.5 %/K curve and inverts COP (#776). Cap the outdoor
-                # the ratio sees; colder than the reference is unchanged.
-                # The factor's own 0.3 floor pins it below
-                # ref - (1.0 - 0.3) / 0.025, and a pinned factor cannot
-                # outrun the ratio's fall either -- so the same cap has a
-                # floor: inside the floored band the ratio is frozen at the
-                # band's edge (#928), which leaves the product flat there
-                # instead of falling as the weather warms. Edit this
-                # together with the factor line above if the floor or the
-                # slope ever changes.
-                t_ratio = min(
-                    max(
-                        outdoor_temp,
-                        self.params.cop_reference_temp - (1.0 - 0.3) / 0.025,
-                    ),
-                    self.params.cop_reference_temp,
-                )
-                t_out = t_ratio + 273.15
-                # A minimum lift keeps this finite as outdoor approaches flow.
-                carnot_flow = (flow_temp + 273.15) / max(
-                    flow_temp + 273.15 - t_out, 1.0
-                )
-                carnot_ref = (ref + 273.15) / max(ref + 273.15 - t_out, 1.0)
-                if carnot_ref > 1e-9:
-                    cop *= max(0.25, carnot_flow / carnot_ref)
+        if flow_temp is not None:
+            cop *= self.flow_lift_factor(outdoor_temp, flow_temp)
         # The corrections above multiply in after the nameplate curve's own
         # factor floor, so their product can cross 1.0 in deep cold (#928):
         # each factor is individually bounded, the product is not. Floor the
@@ -1431,6 +1474,41 @@ class ThermalModel:
         # leaves in the floored band also stops the Carnot ratio's fall
         # from inverting the curve as outdoor rises.
         return max(cop, 1.0)
+
+    def flow_lift_factor(self, outdoor_temp: float, flow_temp: float) -> float:
+        """The Carnot COP multiplier for lifting water to ``flow_temp``.
+
+        1.0 at or below the reference flow (and for a NaN flow, which
+        compares false). Shared by :meth:`_cop_law` and by the health watch's
+        lift normalisation (#1067), so both divide by the same physics.
+        """
+        ref = self.params.cop_flow_reference_temp
+        if not flow_temp > ref:
+            return 1.0
+        # The ratio of two Carnot COPs falls as outdoor rises. Past the
+        # nameplate reference that drop outruns the 2.5 %/K curve and inverts
+        # COP (#776). Cap the outdoor the ratio sees; colder than the
+        # reference is unchanged. The factor's own 0.3 floor pins it below
+        # ref - (1.0 - 0.3) / 0.025, and a pinned factor cannot outrun the
+        # ratio's fall either -- so the same cap has a floor: inside the
+        # floored band the ratio is frozen at the band's edge (#928), which
+        # leaves the product flat there instead of falling as the weather
+        # warms. Edit this together with the factor line in :meth:`_cop_law`
+        # if the floor or the slope ever changes.
+        t_ratio = min(
+            max(
+                outdoor_temp,
+                self.params.cop_reference_temp - (1.0 - 0.3) / 0.025,
+            ),
+            self.params.cop_reference_temp,
+        )
+        t_out = t_ratio + 273.15
+        # A minimum lift keeps this finite as outdoor approaches flow.
+        carnot_flow = (flow_temp + 273.15) / max(flow_temp + 273.15 - t_out, 1.0)
+        carnot_ref = (ref + 273.15) / max(ref + 273.15 - t_out, 1.0)
+        if carnot_ref <= 1e-9:
+            return 1.0
+        return max(0.25, carnot_flow / carnot_ref)
 
     def marginal_cop(
         self,
@@ -1483,7 +1561,9 @@ class ThermalModel:
         heating), so COP is lower.  Rough model:
         COP_dhw ≈ COP_space * 0.7 (penalty for higher supply temp)
         """
-        base_cop = self.compute_cop(outdoor_temp, humidity=humidity)
+        # The law without any flow lift (#1067): the penalty below already
+        # prices the tank's hotter water, so a curve lift would count it twice.
+        base_cop = self._cop_law(outdoor_temp, humidity, None)
         # Higher DHW temp → lower COP (Carnot-like penalty)
         dhw_penalty = max(0.5, 1.0 - 0.008 * (dhw_temp - 35.0))
         # The penalty is another factor multiplying in after the curve's
@@ -2495,6 +2575,13 @@ class ThermalModel:
                     1.0,
                 )
                 cop = cop * carnot_mult
+        elif p.flow_curve_cop and not p.cop_flow_carnot:
+            # #1067: a direct plant's curve flow is one value per step, the
+            # same for every row, so the scalar factor is exact here -- the
+            # same float the scalar path multiplies by, not a re-derivation.
+            curve = self.curve_flow_temp(out_i)
+            if curve is not None:
+                cop = cop * self.flow_lift_factor(out_i, curve)
         # The resistive floor the scalar returns (#928): the corrections
         # multiply in after the curve's own factor floor and their product
         # can cross 1.0 in deep cold. Bitwise parity with the scalar path

@@ -2755,7 +2755,7 @@ from datetime import datetime as _dt_grad
 
 def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
                  weather_p="winter_cold", state_over=None, bounds_over=None,
-                 min_substeps=1):
+                 min_substeps=1, param_over=None, n=48):
     cfg = _grad_house(two_zone=two_zone)
     extra = dict(extra_cfg or {})
     if valve:
@@ -2763,8 +2763,9 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
     if wood:
         extra.setdefault("two_tank_modelled", True)
     p = ThermalParameters.from_config({**cfg, **extra})
+    for _k, _v in (param_over or {}).items():
+        setattr(p, _k, _v)
     m = ThermalModel(p)
-    n = 48
     rng = np.random.default_rng(7)
     powers = rng.uniform(0, 3.0, size=(5, n))
     start = _dt_grad(2026, 1, 15)
@@ -5197,6 +5198,7 @@ runtime_only = {
     "dhw_legionella_price_ceiling",  # from the price prior, set per solve
     "dhw_ready_margin_c",       # #11 feedback, set per solve from events
     "solar_aperture_scale",     # #36 learned, set per solve when gated on
+    "flow_curve_bias",          # #1067 learned by flow_lift, set per solve
     "internal_gains_profile",   # #53 learned per-hour, set per solve
     "cop_scale",                # learned from measured power
     "cop_reference_temp",       # a property of the COP curve, not the house
@@ -20794,6 +20796,343 @@ R.check(
     and _fl_snap_ok._flow_bias.samples == 9,
     f"{_fl_snap_ok._flow_bias.as_dict()} — if the reset above passed because "
     "the restore path simply never writes a bias, this would read 0.0",
+)
+
+
+R.section("#1067 W1067-G3 — a direct plant prices its flow-curve lift")
+from heatpump_optimizer import const as _g3_const  # noqa: E402
+from heatpump_optimizer.coordinator import _watch_lift  # noqa: E402
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _G3Opt  # noqa: E402
+from heatpump_optimizer.optimizer import OptimizationConfig as _G3OptCfg  # noqa: E402
+
+_G3_KEY = _g3_const.CONF_FLOW_CURVE_COP_ENABLED
+_G3_OUT = (-25.0, -15.0, -10.0, -3.0, 0.0, 5.0, 12.0, 20.0)
+# The model's own curve sits BELOW the 35 degC reference flow on a stock
+# house (about 24 degC at -10 degC), so the one-sided lift prices nothing
+# there. A house whose curve crosses the reference -- a 3 kW pump on two
+# 0.2 kW/K zones, inside both selectors' ranges -- is where the lift is real.
+_G3_HOT = {"heat_pump_max_power": 3.0, "upper_floor_heat_loss": 0.2,
+           "lower_floor_heat_loss": 0.2}
+
+
+def _g3_model(on, bias=0.0, **cfg):
+    p = ThermalParameters.from_config({**cfg, _G3_KEY: on})
+    p.flow_curve_bias = bias
+    return ThermalModel(p)
+
+
+_g3_off, _g3_on = _g3_model(False, **_G3_HOT), _g3_model(True, 5.0, **_G3_HOT)
+R.check(
+    "the option sets the curve flag on a direct plant, and leaves the valve's gate off",
+    _g3_on.params.flow_curve_cop and not _g3_on.params.cop_flow_carnot
+    and not _g3_off.params.flow_curve_cop,
+    f"on {_g3_on.params.flow_curve_cop}/{_g3_on.params.cop_flow_carnot}",
+)
+R.check(
+    "the priced flow IS flow_lift.curve_supply_temp plus the learned bias",
+    all(
+        _g3_on.curve_flow_temp(o)
+        == flow_lift.curve_supply_temp(_g3_on, o, _g3_on.params.flow_curve_indoor_target) + 5.0
+        for o in _G3_OUT
+    ),
+    "a bias learned against one curve and spent against another is a silent offset",
+)
+R.check(
+    "option on, the space COP is the curve-flow lift of option off, point for point",
+    all(
+        _g3_on.compute_cop(o) == max(
+            _g3_off.compute_cop(o)
+            * _g3_on.flow_lift_factor(o, _g3_on.curve_flow_temp(o)), 1.0)
+        for o in (-10.0, -3.0, 0.0)
+    )
+    and _g3_on.compute_cop(-10.0) < _g3_off.compute_cop(-10.0),
+    f"-10 degC: on {_g3_on.compute_cop(-10.0)!r}, off {_g3_off.compute_cop(-10.0)!r}",
+)
+R.check(
+    "a passed flow temperature does not re-price a direct plant (the curve owns it)",
+    all(_g3_on.compute_cop(o, flow_temp=65.0) == _g3_on.compute_cop(o)
+        and _g3_off.compute_cop(o, flow_temp=65.0) == _g3_off.compute_cop(o)
+        for o in _G3_OUT),
+    "the buffer store's valuation must price what the simulation's step does",
+)
+R.check(
+    "hot water is not lifted twice: compute_cop_dhw is identical with the option on",
+    all(_g3_on.compute_cop_dhw(o, t) == _g3_off.compute_cop_dhw(o, t)
+        for o in _G3_OUT for t in (45.0, 55.0, 60.0)),
+    "the DHW penalty already prices the tank's hot water",
+)
+R.check(
+    "and that equality is not vacuous: the space COPs it rides on differ",
+    sum(_g3_on.compute_cop(o) != _g3_off.compute_cop(o) for o in _G3_OUT) >= 3,
+    f"{[(o, _g3_on.compute_cop(o), _g3_off.compute_cop(o)) for o in _G3_OUT]}",
+)
+
+# -- the throttled plant refuses it, in the model as on the page ------------
+_g3_valve_on = ThermalParameters.from_config({_G3_KEY: True, "mixing_valve_mode": "manual"})
+_g3_valve_off = ThermalParameters.from_config({"mixing_valve_mode": "manual"})
+_g3_vm_on, _g3_vm_off = ThermalModel(_g3_valve_on), ThermalModel(_g3_valve_off)
+R.check(
+    "behind a throttling valve the option is refused by from_config",
+    not _g3_valve_on.flow_curve_cop and _g3_valve_on.cop_flow_carnot,
+    f"flow_curve_cop={_g3_valve_on.flow_curve_cop}, cop_flow_carnot={_g3_valve_on.cop_flow_carnot}",
+)
+R.check(
+    "and every COP a throttled plant prices is the option-off one",
+    all(_g3_vm_on.compute_cop(o, flow_temp=f) == _g3_vm_off.compute_cop(o, flow_temp=f)
+        for o in _G3_OUT for f in (None, 30.0, 55.0, 70.0)),
+    "the tank temperature is the flow there; a curve would price the lift twice",
+)
+
+# -- the stock house: the curve is below the reference, so nothing is priced -
+_g3_stock_off = _g3_model(False)
+R.check(
+    "on the stock house the curve sits below 35 degC at -10 degC",
+    _g3_model(True).curve_flow_temp(-10.0) < _g3_model(True).params.cop_flow_reference_temp,
+    f"curve {_g3_model(True).curve_flow_temp(-10.0):.2f} degC; if this moves, "
+    "the checks below stop being a null and start pricing a lift",
+)
+R.check(
+    "so bias 0 and +5 K price exactly the option-off COP there (the measured ceiling)",
+    all(_g3_model(True, b).compute_cop(o) == _g3_stock_off.compute_cop(o)
+        for b in (0.0, 5.0) for o in (-20.0, -10.0, 0.0)),
+    "the one-sided lift only prices a flow above the reference",
+)
+
+# -- the batched twin is the scalar path, bit for bit, at production width ---
+for _g3_tz, _g3_bias, _g3_w in ((False, 5.0, "winter_cold"), (True, 5.0, "winter_cold"),
+                                (True, -3.0, "shoulder"), (False, 15.0, "winter_mild")):
+    _grad_parity(
+        _g3_tz, extra_cfg={_G3_KEY: True, **_G3_HOT}, weather_p=_g3_w,
+        param_over={"flow_curve_bias": _g3_bias}, n=96,
+        label=f"flow-curve COP {'two' if _g3_tz else 'single'}-zone "
+              f"bias {_g3_bias:+.0f} K {_g3_w}",
+    )
+
+
+# -- the plan pays for the lift at -10 degC; bias 0 is the null --------------
+def _g3_plan_cost(on, bias, **cfg):
+    m = _g3_model(on, bias, **cfg)
+    m.params.dhw_enabled = False
+    opt = _G3Opt(m, _G3OptCfg(horizon_hours=24, time_step_minutes=15,
+                              target_temp=21.0, min_temp=20.0, max_temp=23.0))
+    n = 96
+    zeros = np.zeros(n)
+    outdoor = np.full(n, -10.0)
+    st = ThermalState(room_temperature=21.0, slab_temperature=22.0,
+                      outdoor_temperature=-10.0, upper_floor_temperature=21.0,
+                      lower_floor_temperature=21.0, buffer_tank_temperature=35.0)
+    r = opt.optimize(st, np.full(n, 1.0), outdoor, zeros, zeros, zeros,
+                     datetime(2026, 1, 15))
+    return float(r.predicted_cost)
+
+
+_g3_c_off0 = _g3_plan_cost(False, 0.0, **_G3_HOT)
+_g3_c_off5 = _g3_plan_cost(False, 5.0, **_G3_HOT)
+_g3_c_on0 = _g3_plan_cost(True, 0.0, **_G3_HOT)
+_g3_c_on5 = _g3_plan_cost(True, 5.0, **_G3_HOT)
+R.check(
+    "at -10 degC the plan costs more with the option on and a +5 K bias than at bias 0",
+    _g3_c_on5 > _g3_c_on0 > _g3_c_off0,
+    f"off {_g3_c_off0:.4f}, on bias 0 {_g3_c_on0:.4f}, on +5 K {_g3_c_on5:.4f}",
+)
+R.check(
+    "the null: with the option off the bias moves no cost at all",
+    _g3_c_off5 == _g3_c_off0,
+    f"off bias 0 {_g3_c_off0!r}, off bias +5 {_g3_c_off5!r}",
+)
+
+# -- the efficiency reference inherits the PRICED lift, never the measured one -
+# Under the learner's model the pump delivers the plan's heat, commanded x the
+# COP the plan priced, at its true COP Ct = C0 x L(S). Option on, the plan
+# priced C0 x L(curve + bias); the credit must still be Ct exactly.
+def _g3_credit(supply_phys):
+    gate = _CopGate(outdoor=-3.0, action={"power": 3.0})
+    gate._thermal_params = ThermalParameters.from_config({_G3_KEY: True, **_G3_HOT})
+    gate._thermal_params.flow_curve_bias = 5.0
+    gate._thermal_model = ThermalModel(gate._thermal_params)
+    bare = ThermalModel(ThermalParameters.from_config(dict(_G3_HOT)))
+    c_plan = gate._thermal_model.compute_cop(-3.0)
+    ct = max(bare.compute_cop(-3.0) * bare.flow_lift_factor(-3.0, supply_phys), 1.0)
+    gate._measured_power = 3.0 * c_plan / ct
+    gate._cop_ratio_ewma = gate._measured_power / 3.0
+    gate._flow_bias.observe_temps(supply_phys, supply_phys - 5.0)
+    reference = gate._cop_reference_curve()[0]  # before the fold moves the scale
+    gate._learn_measured_cop()
+    credited = gate.cop_health_calls[0][0] if gate.cop_health_calls else None
+    return reference, c_plan, ct, credited
+
+
+_g3_ref55, _g3_plan55, _g3_ct55, _g3_cr55 = _g3_credit(55.0)
+_g3_ref45, _, _g3_ct45, _g3_cr45 = _g3_credit(45.0)
+R.check(
+    "option on, the reference is compute_cop(outdoor): the lift the plan priced",
+    _g3_ref55 == _g3_plan55 == _g3_ref45
+    and _g3_plan55 < ThermalModel(ThermalParameters.from_config(dict(_G3_HOT))).compute_cop(-3.0),
+    f"reference at 55 {_g3_ref55!r}, at 45 {_g3_ref45!r}, priced {_g3_plan55!r}",
+)
+R.check(
+    "and the credited COP is the pump's true COP at 55 and at 45 degC, not a double count",
+    _g3_cr55 is not None and abs(_g3_cr55 - _g3_ct55) < 1e-9
+    and _g3_cr45 is not None and abs(_g3_cr45 - _g3_ct45) < 1e-9,
+    f"55: credited {_g3_cr55!r} true {_g3_ct55!r}; 45: credited {_g3_cr45!r} true {_g3_ct45!r}",
+)
+
+# -- the health watch judges at the reference flow, and a lapse adds nothing -
+def _g3_watch(on, supply_slot=True):
+    c = _t2_coord(**({"heat_pump_supply_temp_entity": "sensor.hp_supply"} if supply_slot else {}))
+    c._thermal_params.flow_curve_cop = on
+    c._current_state.outdoor_temperature = 8.0
+    return c
+
+
+_g3_c0 = ThermalModel(ThermalParameters()).compute_cop(8.0)
+
+
+def _g3_true(model, s):
+    return _g3_c0 * model.flow_lift_factor(8.0, s)
+
+
+def _g3_shortfall(c, samples):
+    """Settle at 45 degC, then one sample; the watch's own shortfall expression."""
+    for _ in range(COP_BASELINE_MIN_SAMPLES + 5):
+        c._flow_bias.observe_temps(45.0, 40.0)
+        c._observe_cop_health(_g3_true(c._thermal_model, 45.0), False)
+    before = [list(v) for v in c._cop_baseline.values()]
+    for supply_seen, supply_phys in samples:
+        c._flow_bias.observe_temps(supply_seen, None)
+        judged = _watch_lift(c, False)
+        c._observe_cop_health(_g3_true(c._thermal_model, supply_phys), False)
+    if judged is None:
+        return before, None, None
+    lift, curve = judged
+    # .get, not []: a baseline under the wrong key must fail a named check
+    # below, not stop the suite on a KeyError.
+    base = c._cop_baseline.get((2, curve), [float("nan")])[0]
+    return before, base, _g3_true(c._thermal_model, supply_phys) / lift
+
+
+_g3_raw = _g3_shortfall(_g3_watch(False), [(55.0, 55.0)])
+_g3_norm = _g3_shortfall(_g3_watch(True), [(55.0, 55.0)])
+_g3_stale = _g3_watch(True)
+_g3_stale_before, _, _g3_stale_judged = _g3_shortfall(_g3_stale, [(None, 55.0)])
+R.check(
+    "the control: option off, a healthy 45 -> 55 degC move reads as a shortfall",
+    _g3_raw[2] is not None and (_g3_raw[1] - _g3_raw[2]) / _g3_raw[1] > 0.15,
+    f"baseline {_g3_raw[1]}, judged {_g3_raw[2]} (None: the sample was skipped)",
+)
+R.check(
+    "option on with a fresh supply reading, the same move reads as no shortfall",
+    _g3_norm[2] is not None and abs((_g3_norm[1] - _g3_norm[2]) / _g3_norm[1]) < 1e-9,
+    f"baseline {_g3_norm[1]}, judged {_g3_norm[2]} (None: the sample was skipped)",
+)
+R.check(
+    "a lapsed reading on a configured slot is skipped: the baseline is untouched",
+    _g3_stale_judged is None
+    and [list(v) for v in _g3_stale._cop_baseline.values()] == _g3_stale_before,
+    f"before {_g3_stale_before}, after {list(_g3_stale._cop_baseline.values())}",
+)
+R.check(
+    "no supply slot configured, or a hot-water sample: raw, into the baseline it always used",
+    _watch_lift(_g3_watch(True, supply_slot=False), False) == (1.0, False)
+    and _watch_lift(_g3_watch(True), True) == (1.0, True)
+    and _watch_lift(_g3_watch(False), False) == (1.0, False),
+    "the option off is the pre-#1067 key exactly",
+)
+# The fault issue reports the baseline in the units of the sample that tripped
+# it: a lift-keyed baseline sits at the reference flow, so it is handed back
+# multiplied by the lift at the measured supply (55 degC at 8 degC: L = 0.62,
+# so an unscaled baseline would report a shortfall about 61 % too large).
+_g3_trip = _g3_watch(True)
+_g3_raised = []
+_g3_trip._raise_cop_issue = lambda b: _g3_raised.append(
+    (b, _g3_trip._cop_baseline[(2, "lift")][0])
+)
+for _ in range(COP_BASELINE_MIN_SAMPLES + 5):
+    _g3_trip._flow_bias.observe_temps(55.0, 50.0)
+    _g3_trip._observe_cop_health(_g3_true(_g3_trip._thermal_model, 55.0), False)
+for _ in range(60):
+    _g3_trip._flow_bias.observe_temps(55.0, 50.0)
+    _g3_trip._observe_cop_health(0.7 * _g3_true(_g3_trip._thermal_model, 55.0), False)
+    if _g3_raised:
+        break
+_g3_l55 = _g3_trip._thermal_model.flow_lift_factor(8.0, 55.0)
+R.check(
+    "a lift-keyed trip hands _raise_cop_issue the baseline times the lift at the measured supply",
+    bool(_g3_raised)
+    and abs(_g3_raised[0][0] - _g3_raised[0][1] * _g3_l55) < 1e-9
+    and abs(_g3_raised[0][0] - _g3_raised[0][1]) > 0.5,
+    f"raised {_g3_raised[:1]}, lift at 55 degC {_g3_l55:.4f}",
+)
+
+# The one wire from the G2 learner to G3's price: the per-cycle parameter
+# build pushes the LEARNED bias and the comfort target into the model. Every
+# other G3 check sets the parameter by hand, so only this one sees the wire.
+_g3_wire = _t2_coord()
+_g3_wire._thermal_params.flow_curve_cop = True
+_g3_wire._flow_bias.observe(40.0, 34.0)  # one sample: bias exactly 6.0 K
+_g3_wire._opt_config.target_temp = 22.5  # off the 21.0 field default
+_g3_wire._prepare_dhw_inputs(dt_util.now())
+R.check(
+    "the parameter build pushes the learned bias and the comfort target into the priced flow",
+    _g3_wire._thermal_params.flow_curve_bias == 6.0
+    and _g3_wire._thermal_params.flow_curve_indoor_target == 22.5
+    and _g3_wire._thermal_model.curve_flow_temp(-10.0)
+    == flow_lift.curve_supply_temp(_g3_wire._thermal_model, -10.0, 22.5) + 6.0,
+    f"bias {_g3_wire._thermal_params.flow_curve_bias!r}, target "
+    f"{_g3_wire._thermal_params.flow_curve_indoor_target!r}",
+)
+
+# The toggle trap: a normalised baseline forms, then the option goes off (or
+# the slot is unmapped). Raw 55 degC samples must not be judged against it --
+# on one shared baseline a healthy pump reads a ~38 % shortfall.
+_g3_tog = _g3_watch(True)
+for _ in range(COP_BASELINE_MIN_SAMPLES + 5):
+    _g3_tog._flow_bias.observe_temps(45.0, 40.0)
+    _g3_tog._observe_cop_health(_g3_true(_g3_tog._thermal_model, 45.0), False)
+_g3_tog_lift = [list(v) for v in _g3_tog._cop_baseline.values()]
+_g3_tog._thermal_params.flow_curve_cop = False
+for _ in range(COP_BASELINE_MIN_SAMPLES + 5):
+    _g3_tog._flow_bias.observe_temps(55.0, 50.0)
+    _g3_tog._observe_cop_health(_g3_true(_g3_tog._thermal_model, 55.0), False)
+R.check(
+    "switching the option off starts a raw baseline and leaves the normalised one untouched",
+    set(_g3_tog._cop_baseline) == {(2, False), (2, "lift")}
+    and _g3_tog._cop_baseline[(2, "lift")] == _g3_tog_lift[0]
+    and not _g3_tog._cop_health_cusum.tripped,
+    f"{_g3_tog._cop_baseline}, tripped={_g3_tog._cop_health_cusum.tripped}",
+)
+_g3_saved = _g3_tog._thermal_learning_payload()["cop_baseline"]
+_g3_back = _g3_watch(True)
+
+
+async def _g3_fake_load():
+    return {"cop_baseline": _g3_saved}
+
+
+_g3_back._thermal_learning_store.async_load = _g3_fake_load
+_asyncio.run(_g3_back._async_load_thermal_learning())
+# A store from before this key existed ("N" and "N:dhw" only) loads exactly
+# as it did, with no lift baseline invented; a tag this build does not know
+# is skipped, not read as some other curve.
+_g3_old = _g3_watch(True)
+
+
+async def _g3_old_load():
+    return {"cop_baseline": {"2": [3.1, 25], "2:dhw": [2.6, 25], "2:zzz": [9.0, 9]}}
+
+
+_g3_old._thermal_learning_store.async_load = _g3_old_load
+_asyncio.run(_g3_old._async_load_thermal_learning())
+R.check(
+    "a pre-#1067 store loads to its raw and hot-water keys only; an unknown tag is skipped",
+    _g3_old._cop_baseline == {(2, False): [3.1, 25], (2, True): [2.6, 25]},
+    f"{_g3_old._cop_baseline}",
+)
+R.check(
+    "the normalised baseline persists under its own key and loads back to it",
+    "2:lift" in _g3_saved and "2" in _g3_saved and "2:dhw" not in _g3_saved
+    and _g3_back._cop_baseline.get((2, "lift")) == [round(_g3_tog_lift[0][0], 4), _g3_tog_lift[0][1]],
+    f"saved {_g3_saved}, loaded {_g3_back._cop_baseline}",
 )
 
 
