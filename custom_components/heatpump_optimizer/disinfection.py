@@ -40,6 +40,7 @@ Assistant imports.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import Awaitable, Callable, Mapping
 from datetime import datetime, timedelta
@@ -56,8 +57,15 @@ from .inputs import UNBOUNDED
 
 _LOGGER = logging.getLogger(__name__)
 
-#: ``hass.services.async_call``'s shape: (domain, service, data).
-ServiceCall = Callable[[str, str, dict[str, Any]], Awaitable[Any]]
+#: ``hass.services.async_call``: (domain, service, data, blocking=...).
+ServiceCall = Callable[..., Awaitable[Any]]
+
+#: How long one write may take before it counts as failed. Writes are
+#: BLOCKING, because Home Assistant runs a non-blocking call's handler in the
+#: background and only logs its error: a write to an offline device would
+#: otherwise read as landed. A bound keeps a device that never answers from
+#: stalling the update cycle that awaits it.
+WRITE_TIMEOUT_S: float = 10.0
 
 
 async def _no_persist() -> None:
@@ -187,7 +195,10 @@ class DisinfectionSwitch:
 
     async def _write(self, entity_id: str, service: str) -> bool:
         try:
-            await self._service("homeassistant", service, {"entity_id": entity_id})
+            async with asyncio.timeout(WRITE_TIMEOUT_S):
+                await self._service(
+                    "homeassistant", service, {"entity_id": entity_id}, blocking=True
+                )
         except Exception as err:  # noqa: BLE001 - a switch must never kill the cycle
             self.failed = True
             self.failed_entity = entity_id

@@ -1262,7 +1262,7 @@
     },
     "dhw_disinfection_switch_lost": {
       "title": "The pump's disinfection switch may still be on",
-      "description": "The optimizer turned on {entity_id} for a disinfection cycle, but that switch has not been readable for half an hour — it may have been renamed, removed or replaced in these settings — so the optimizer can no longer turn it off and has stopped trying. Check the heat pump's own disinfection switch and turn it off if it is still on. If you renamed it, choose the new entity on the hot water tank settings page; the optimizer will look after that one from the next cycle."
+      "description": "The optimizer turned on {entity_id} for a disinfection cycle, but that switch has not been readable for half an hour — it may have been renamed, removed or replaced in these settings — so the optimizer can no longer turn it off and has stopped trying. Check the heat pump's own disinfection switch and turn it off if it is still on. If you renamed it, turn it off by hand before choosing the new entity on the hot water tank settings page: the optimizer only ever turns off a switch it turned on itself, so it leaves a switch that is already on alone."
     },
     "dhw_disinfection_write_failed": {
       "title": "The pump's disinfection switch could not be set",

@@ -1262,7 +1262,7 @@
     },
     "dhw_disinfection_switch_lost": {
       "title": "Pumpens desinfektionsbrytare kan fortfarande vara på",
-      "description": "Optimeraren slog på {entity_id} för en desinfektionscykel, men brytaren har inte gått att läsa på en halvtimme – den kan ha bytt namn, tagits bort eller ersatts i de här inställningarna – så optimeraren kan inte längre slå av den och har slutat försöka. Kontrollera värmepumpens egen desinfektionsbrytare och slå av den om den fortfarande är på. Om du bytte namn på den, välj den nya entiteten på inställningssidan för varmvattentanken; optimeraren tar hand om den från nästa cykel."
+      "description": "Optimeraren slog på {entity_id} för en desinfektionscykel, men brytaren har inte gått att läsa på en halvtimme – den kan ha bytt namn, tagits bort eller ersatts i de här inställningarna – så optimeraren kan inte längre slå av den och har slutat försöka. Kontrollera värmepumpens egen desinfektionsbrytare och slå av den om den fortfarande är på. Om du bytte namn på den, slå av den för hand innan du väljer den nya entiteten på inställningssidan för varmvattentanken: optimeraren slår bara av en brytare som den själv slog på, så en brytare som redan är på lämnas i fred."
     },
     "dhw_disinfection_write_failed": {
       "title": "Pumpens desinfektionsbrytare kunde inte ställas",

@@ -37877,6 +37877,24 @@ class _G5Service:
                 raise RuntimeError("entity unavailable")
 
 
+class _G5HaServices(_HarnessFakeServices):
+    """The harness registry with Home Assistant core's failure visibility.
+
+    ``FakeServices.async_call`` awaits the handler and lets its exception out
+    whatever ``blocking`` says. Core does that only for ``blocking=True``; a
+    non-blocking call's handler error is logged and never reaches the caller.
+    """
+
+    async def async_call(self, domain, service, data=None, blocking=False, **kwargs):
+        if blocking:
+            return await super().async_call(domain, service, data, **kwargs)
+        try:
+            await super().async_call(domain, service, data, **kwargs)
+        except Exception:  # noqa: BLE001 - core logs it; the caller never sees it
+            pass
+        return None
+
+
 def _g5_unit(observed=False, **config):
     service = _G5Service()
     switch = _g5_dis.DisinfectionSwitch(dict(config), service)
@@ -38096,24 +38114,6 @@ _g5_ids = iter(range(1000))
 
 async def _g5_refuse(call):
     raise RuntimeError("switch unavailable")
-
-
-class _G5HaServices(_HarnessFakeServices):
-    """The harness registry with Home Assistant core's failure visibility.
-
-    ``FakeServices.async_call`` awaits the handler and lets its exception out
-    whatever ``blocking`` says. Core does that only for ``blocking=True``; a
-    non-blocking call's handler error is logged and never reaches the caller.
-    """
-
-    async def async_call(self, domain, service, data=None, blocking=False, **kwargs):
-        if blocking:
-            return await super().async_call(domain, service, data, **kwargs)
-        try:
-            await super().async_call(domain, service, data, **kwargs)
-        except Exception:  # noqa: BLE001 - core logs it; the caller never sees it
-            pass
-        return None
 
 
 def _g5_hardware(hass, **initial):
