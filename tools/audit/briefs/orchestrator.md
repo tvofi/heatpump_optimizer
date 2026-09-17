@@ -18,7 +18,8 @@ them. **Not one was in a pull-request body.**
 every role contract here are not instructions you relay. They are instructions
 you follow. Where a rule names "the fixer" or "a seat", read yourself into it
 whenever you are the one acting — and you are acting whenever you write text
-another agent or the owner will treat as established.
+another agent or the owner will treat as established. *Coordinator* is
+`coordinator.py`, never the name of a seat.
 
 The sections below say where those rules meet work only you do. They do not
 replace the source rules.
@@ -142,9 +143,8 @@ exactly that.
   re-measure rather than trust, and the destination its own carry must reach.
 - **Name the null control you expect**, where one is knowable. A seat told what
   must *not* fire returns better evidence than one told only what must.
-- **Name its identity.** Seats author as `tvofi-seat-author`, with `GH_TOKEN`
-  read from `~/.zcode/identity-author.token` per GitHub-facing command and never
-  printed; every brief says so.
+- **Every brief names the identity**: `tvofi-seat-author`, `GH_TOKEN` from
+  `~/.zcode/identity-author.token` per GitHub command, never printed.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
   the handoff it prepares against the merge base only (`fix-review.md`).
 - **Name its own scratch subdirectory**, `scratchpad/<seat>/`. Seats share one
@@ -251,9 +251,8 @@ which is exactly the shape that lets a real error be waved through.
   returns `blocked <sha> root-cause-unanswered: <check> went red, unanswered`
   (`defect-root-cause.md`).
 - The merge message passes section 4.
-- The approval: `tools/audit/app_approve.sh <owner/repo> <pr> <head sha>` for an
-  ordinary pull request, refusing without that verdict at the live head; one on
-  a `.github/CODEOWNERS` path waits for the owner's review on GitHub.
+- Approval: `tools/audit/app_approve.sh <owner/repo> <pr> <sha>`, or the owner's
+  review on a CODEOWNERS path; then merge with `--match-head-commit <sha>`.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
   reach → establish that, and it is its own issue. Never `--allow-red`.

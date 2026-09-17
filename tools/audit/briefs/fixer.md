@@ -54,7 +54,7 @@ production lines. You work in your own worktree branched from `origin/main`.
    check (#678). The PR's own checks are green before the handoff in step 6 —
    `fix-review.md` step 11 reads those rather than the body's account of them.
    Author as `tvofi-seat-author`: `GH_TOKEN` from `~/.zcode/identity-author.token`
-   on each GitHub-facing command, never printed.
+   per GitHub command, never printed.
 
    **Take the gate lease only when `MODE: FULL` or `scope.run` names
    `tests/stress.py`**, the one script the lock exists for; the commands, and
@@ -103,7 +103,7 @@ production lines. You work in your own worktree branched from `origin/main`.
    sibling carrying the same property in a different form survived — one of them
    created by the same commit. That analysis, its cost test and the detector it
    built and rejected are recorded on **#592**, which is where this step was
-   added. Its measurements decay, so step 3 keeps them out of here.
+   added. Its figures decay (step 3); a reviewer refuted all three a draft quoted.
 
 9. **A claim should be true; if wrong, correct it — anchored to a lane,
    function, marker or SHA, never a bare line number — and delete only when
