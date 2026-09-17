@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.6.0
+# claims-for: 6.6.1
 #
-# v6.6.0: wave 1067 G1-G3 default-off inputs, the ECL110 finite fix, the platinum quality scale, and #954's deploy-key stamping. The stamp empties the list; the
+# v6.6.1: a hotfix stopping untouched options pages from reloading, and wave 1067 G4's silent-mode window. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
