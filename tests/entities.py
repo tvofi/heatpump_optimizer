@@ -18490,11 +18490,19 @@ R.check(
 
 # --- a red baseline is the nightly's refusal, not the pull request's (#RCA) --
 #
-# Every red `mutation` job in the retained window was this arm -- the baseline
-# guard -- and none was a surviving mutant. The guard re-runs the very scripts
-# `fast` runs, and `fast` is a required context while `mutation` is not, so on a
-# pull request the refusal restates a red another check already carries. The
-# NIGHTLY keeps it: nothing else reports that lane's baseline per commit.
+# Every red `mutation` job in the RCA's retained window (2026-09-11..17) was
+# this arm -- the baseline guard -- and none was a surviving mutant, so a red
+# baseline costs a reviewer round and carries no mutation information: the
+# table evaluated nothing. `mutation` is not a required context and `fast` is.
+#
+# The baseline's driver set is NOT the scoped gate's selection, and the
+# difference is the whole of what a pull request gives up: on a diff that
+# changes no production file, `scope_files` falls back to the closure of the
+# changed TEST scripts, which on this branch's own diff is 58 production files
+# and 8 drivers against the gate's 1 selected script. Re-derive that pair at
+# your merge base rather than carrying it; `baseline_refusal`'s docstring says
+# with what. The NIGHTLY keeps the refusal: nothing else reports that lane's
+# baseline per commit.
 #
 # Driven as a function rather than through `main()`, which clones the tree and
 # runs real scripts; the tuples below are the shape `run_script` returns, taken
@@ -18533,9 +18541,9 @@ R.check(
     "a red baseline on the pull-request scope is INCONCLUSIVE, not a failure",
     _MUT_PR_RC == 0 and "MUTATION TABLE INCONCLUSIVE" in _MUT_PR_OUT
     and "MUTATION TABLE BREACHED" not in _MUT_PR_OUT,
-    f"rc={_MUT_PR_RC!r}, printed {_MUT_PR_OUT.strip()!r} -- `fast` is required "
-    f"and carries the same red; this lane is not required and restating it "
-    f"buys a runner-minute and a reviewer round",
+    f"rc={_MUT_PR_RC!r}, printed {_MUT_PR_OUT.strip()!r} -- the table "
+    f"evaluated no mutant, so this lane reports nothing a required check does "
+    f"not already carry or a required detector does not already cover",
 )
 R.check(
     "and it names the red script, because the report is useless without it",
