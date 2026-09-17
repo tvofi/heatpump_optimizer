@@ -64,6 +64,18 @@ ROW = re.compile(r"^\s*\|(.+)\|\s*$")
 HDRS = ("setting", "option", "field")
 
 
+def _step_texts(body, kind="data"):
+    """One flow step's ``kind`` texts, step level merged with every section's.
+    A field grouped with section() keeps its label under
+    ``sections.<name>.<kind>``, which is where the frontend reads it; a
+    step-level-only read silently drops every grouped field (#1111 moved 126
+    options labels there, and this harness's counts fell with them)."""
+    merged = dict(body.get(kind) or {})
+    for sec in (body.get("sections") or {}).values():
+        merged.update(sec.get(kind) or {})
+    return merged
+
+
 def fold(s):
     s = re.sub(r"`([^`]*)`", r"\1", s)
     s = s.replace("**", "").replace("*", "")
@@ -143,7 +155,7 @@ def main():
     def absent_map(hay, step_items=None):
         absent = {}
         for sid, body in (step_items if step_items is not None else steps).items():
-            for label in (body.get("data") or {}).values():
+            for label in _step_texts(body).values():
                 f = fold(strip_paren(label))
                 if f and f not in hay:
                     absent.setdefault(fold(label), set()).add(sid)
@@ -164,7 +176,7 @@ def main():
     fields_total = 0
     fields_no_row = 0
     for title, rows, sid in matched:
-        flabels = list((steps[sid].get("data") or {}).values())
+        flabels = list(_step_texts(steps[sid]).values())
         fields_total += len(flabels)
         seen = set()
         for _, label in rows:

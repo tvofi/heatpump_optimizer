@@ -57,6 +57,18 @@ READER_DOCS = ["README.md", "docs/architecture.md", "docs/automations.md",
                "docs/ecl110.md", "docs/how-it-works.md"]
 
 
+def _step_texts(body, kind="data"):
+    """One flow step's ``kind`` texts, step level merged with every section's.
+    A field grouped with section() keeps its label under
+    ``sections.<name>.<kind>``, which is where the frontend reads it; a
+    step-level-only read silently drops every grouped field (#1111 moved 126
+    options labels there, and this harness's counts fell with them)."""
+    merged = dict(body.get(kind) or {})
+    for sec in (body.get("sections") or {}).values():
+        merged.update(sec.get(kind) or {})
+    return merged
+
+
 def my_fold(s):
     s = re.sub(r"\([^()]*\)\s*$", "", s.strip())  # one trailing parenthetical
     s = re.sub(r"[^a-z0-9]+", " ", s.lower())
@@ -98,7 +110,7 @@ def arm_a():
 
     phantom, untranslated = [], 0
     for sid, body in steps.items():
-        skeys = set((body.get("data") or {}).keys())
+        skeys = set(_step_texts(body).keys())
         rkeys = reg.get(sid, set())
         for k in skeys - rkeys:
             phantom.append((sid, k))
@@ -107,16 +119,16 @@ def arm_a():
     print(f"RESULT v3_registry_steps={len(reg)} count")
     print(f"RESULT v3_registry_fields={sum(len(v) for v in reg.values())} count")
     print(f"RESULT v3_strings_steps_with_data="
-          f"{sum(1 for b in steps.values() if b.get('data'))} count")
+          f"{sum(1 for b in steps.values() if _step_texts(b))} count")
     print(f"RESULT v3_strings_fields="
-          f"{sum(len(b.get('data') or {}) for b in steps.values())} count")
+          f"{sum(len(_step_texts(b)) for b in steps.values())} count")
     print(f"RESULT v3_phantom_keys={len(phantom)} count")
     print(f"RESULT v3_untranslated_keys={untranslated} count")
     for sid, k in phantom:
         print(f"  PHANTOM {sid}.{k}")
 
     # Absent-label arm. Only over REAL shipped fields (strings minus phantoms).
-    real = {sid: {k: v for k, v in (b.get("data") or {}).items()
+    real = {sid: {k: v for k, v in _step_texts(b).items()
                   if (sid, k) not in phantom}
             for sid, b in steps.items()}
     reader = set(READER_DOCS)
