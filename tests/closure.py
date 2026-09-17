@@ -1002,9 +1002,17 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
         for b in broken:
             print(f"  {b} (exit {records[b]['rc']}) -- see the run output",
                   file=sys.stderr)
-        print("Fix them, or re-run with --allow-failures if you have checked",
+        # The flag belongs to THIS command, not to derive_closures.sh, which
+        # rejects it as an unknown argument (#1071). A script whose own checks
+        # pin the classification being re-recorded can only be recorded this
+        # way round: record, merge with the flag, then a plain --single once
+        # the committed file already lists the files and rc is 0.
+        print("Fix them, or record and merge in two steps if you have checked",
               file=sys.stderr)
-        print("that the run still exercised every import and every file read.",
+        print("that the run still exercised every import and every file read:",
+              file=sys.stderr)
+        print("  ./tests/derive_closures.sh --record-only --out-dir D", file=sys.stderr)
+        print("  python3 tests/closure.py merge --in-dir D --partial --allow-failures",
               file=sys.stderr)
         return 1
     if partial:
@@ -2033,6 +2041,16 @@ def selftest() -> int:
         f"drift={sorted(widened[drift])!r} card={sorted(widened['tests/card.mjs'])!r}",
     )
 
+    brc, blog = _selftest_broken_message()
+    pin(
+        "a broken-recording refusal names the command that takes the flag",
+        brc == 1
+        and "tests/closure.py merge" in blog
+        and "--record-only" in blog
+        and "re-run with --allow-failures" not in blog,
+        f"rc={brc} log={blog[-400:]!r}",
+    )
+
     crc, log = _selftest_stale_message()
     pin(
         "a stale-closure refusal names --single, not a bare full derive",
@@ -2047,6 +2065,27 @@ def selftest() -> int:
         return 1
     print(f"\nALL {n} closure shrink pins PASSED")
     return 0
+
+
+def _selftest_broken_message() -> tuple[int, str]:
+    """merge()'s broken-recording refusal, captured (#1071).
+
+    A bare "re-run with --allow-failures" sends a seat to
+    `derive_closures.sh --single X --allow-failures`, which answers `unknown
+    argument` -- the refusal has to name the command the flag belongs to.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        rec = td_path / "rec"
+        rec.mkdir(parents=True)
+        (rec / "open_meteo.py.json").write_text(json.dumps({
+            "script": "tests/open_meteo.py", "rc": 1, "seconds": 0.1,
+            "files": ["tests/open_meteo.py"],
+        }))
+        buf, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+            rc = merge(rec, td_path / "out.json", allow_failures=False, partial=True)
+        return rc, buf.getvalue() + err.getvalue()
 
 
 def _selftest_stale_message() -> tuple[int, str]:

@@ -1936,12 +1936,58 @@ function rowAnchor(line) {
   return m && m[1] === m[2] ? m[1] : null
 }
 
+// AND THE SAME HOLE IN THE OTHER ROW FORMAT. The list-anchor above subtracts
+// `- [#M](.../pull/M)`, and the Delivery-status rows this repository actually
+// writes are TABLE rows -- `| ... | **in review -- PR [#M](.../pull/M) ...** |`
+// -- which that regex cannot match, because it is anchored at the start of the
+// line and a table row starts with a pipe. So the same defect survived in the
+// format carrying most of the record: measured on `main` at 434cd5f, #1065's
+// only occurrence anywhere in the region at the time was a sentence inside the
+// plan's table row for #1074, and `--record` reported it dispositioned. Same
+// class as #752, one row format over.
+//
+// WHY THIS IS NOT THE REJECTED "EXTEND THE ANCHOR TO TABLE ROWS". That option
+// read a table row's FIRST cell as its anchor and refused every other number in
+// it, which the #752 sweep measured as five new refusals, four legitimate: the
+// plan's rows are anchored to an ISSUE number and disposition the pull request
+// that closed it in a later cell, and the wave rows disposition from a cell with
+// no anchor at all. The rule below reads the row's PULL-REQUEST LINKS instead,
+// all of them, and a row that links none speaks for nobody -- so both of those
+// shapes are untouched, and they are the two null controls in `assertAcceptance`
+// directly beneath the arm that fires.
+//
+// A ROW MAY SPEAK FOR SEVERAL, which is the difference from the list form and is
+// deliberate. A status cell naming two pull requests is one row dispositioning
+// both, and the set is every link on the line whose anchor text and target
+// agree -- the same identity test as above, for the same reason: `[#M](.../pull/N)`
+// with M and N different is ambiguous, so it makes the row speak for neither and
+// the row falls back to dispositioning everything on it.
+//
+// THE COST, on the same terms #752 stated its own. A row that links pull request
+// M and dispositions N in prose now refuses N, and cannot tell that from a row
+// that merely mentions N. The remedy is the one the error message already names
+// and the one #1081 landed the mechanism for: `docs/delivery/N.md`, N's own row.
+// Re-measured over `v6.5.0..origin/main` in the pull request that added this;
+// the sweep and its result are in that body, and the figure moves with the
+// window, so re-run it rather than quoting it.
+const TABLE_PULL_LINK_RE = /\[#(\d+)\]\((?:[^()\s]*\/pull\/)(\d+)\)/g
+
+// The set of pull requests a line speaks for, or null when it speaks for nobody.
+function speaksFor(line) {
+  const anchored = rowAnchor(line)
+  if (anchored) return new Set([anchored])
+  if (!/^\s*\|/.test(line)) return null
+  const set = new Set()
+  for (const m of line.matchAll(TABLE_PULL_LINK_RE)) if (m[1] === m[2]) set.add(m[1])
+  return set.size ? set : null
+}
+
 function checkRecord(prs, dispositionText) {
   const out = []
   const lines = String(dispositionText ?? '').split('\n')
   for (const { pr, subject } of prs) {
     const re = new RegExp(`#${pr}(?![0-9])`)
-    if (lines.some((l) => re.test(l) && (rowAnchor(l) ?? pr) === pr)) continue
+    if (lines.some((l) => re.test(l) && (speaksFor(l)?.has(pr) ?? true))) continue
     out.push({
       severity: 'error',
       check: 'record',
@@ -3259,6 +3305,35 @@ function assertAcceptance(derived) {
   if (checkRecord([{ pr: '9110', subject: 's' }], regIssueRow.region).length !== 0) regFail.push('a disposition inside a row anchored to an ISSUE number was refused')
   const regHandProse = recordRegion('## other\n', '- **A seam move was sequenced to S12, S12 halted (#9111)** (owner)\n')
   if (checkRecord([{ pr: '9111', subject: 's' }], regHandProse.region).length !== 0) regFail.push("the handover's own prose-bullet disposition was refused")
+  // AND THE SAME SUBTRACTION IN THE TABLE ROW, the format the Delivery-status
+  // table is made of and the one the list anchor above cannot reach. Five arms,
+  // because the three null controls are what separate this from the row anchor
+  // #752 measured and rejected: a row anchored to an ISSUE number, and a cell
+  // that links nothing, both still disposition everything on them -- those are
+  // `regIssueRow` and `regCell` above, which run against this predicate too --
+  // while a row that links its own pull request speaks for that one and its
+  // prose stops dispositioning others.
+  pins += 5
+  const regTableRow = recordRegion(
+    `## ${RECORD_SECTION}\n| a policy change | **in review -- PR [#9130](x/pull/9130)**, and #9131 landed the mechanism |\n`, '')
+  if (checkRecord([{ pr: '9131', subject: 's' }], regTableRow.region).length !== 1) regFail.push("a mention inside another pull request's anchored TABLE row counted as a disposition")
+  if (checkRecord([{ pr: '9130', subject: 's' }], regTableRow.region).length !== 0) regFail.push('an anchored table row stopped dispositioning its own pull request')
+  // A row speaks for EVERY pull request it links, not only the first. Reading
+  // one link per row is the plausible narrowing and has no witness above: it
+  // would refuse the second of two pull requests a single status cell records.
+  const regTwoLinks = recordRegion(
+    `## ${RECORD_SECTION}\n| a split | landed as [#9132](x/pull/9132) and [#9133](x/pull/9133) |\n`, '')
+  if (checkRecord([{ pr: '9132', subject: 's' }, { pr: '9133', subject: 's' }], regTwoLinks.region).length !== 0) regFail.push('a table row linking two pull requests dispositioned only one of them')
+  // AND THE IDENTITY TEST, in the table form too: an anchor text and a link
+  // naming different pull requests is ambiguous, so the row speaks for neither
+  // and suppresses nothing -- the arm that favours accepting honest work.
+  const regTableCross = recordRegion(
+    `## ${RECORD_SECTION}\n| a row | [#9134](x/pull/9135) disagree, and #9136 landed here |\n`, '')
+  if (checkRecord([{ pr: '9136', subject: 's' }], regTableCross.region).length !== 0) regFail.push('a table row whose anchor text and link name different pull requests suppressed a mention')
+  // And the LIST form is still reached: a table-only predicate would pass every
+  // arm above while re-opening #752 itself. `regMention` covers that, and this
+  // states it rather than leaving it to be re-derived.
+  if (speaksFor('- [#9137](x/pull/9137) merged') === null) regFail.push('the list anchor stopped speaking for its own pull request')
   // AND THE ANCHOR MUST NAME ITS OWN PULL REQUEST. Dropping that identity test
   // is a one-token cleanup with no witness above it: a row whose anchor text and
   // link disagree would then speak for the text, and suppress every other number
@@ -3293,6 +3368,51 @@ function assertAcceptance(derived) {
   rowFileSource = () => [['9125.md', () => '- [#9125](x/pull/9125) r\n'], ['9126.txt', () => '- [#9126](x/pull/9126) r\n']]
   if (checkRecord([{ pr: '9125', subject: 's' }, { pr: '9126', subject: 's' }], recordRegionOverTree().region).length !== 1) regFail.push('the wired record region does not read the row files')
   rowFileSource = liveRows
+  // AND `--record` REFUSES TO RUN WITH NO TOKEN. Driven as a SUBPROCESS, which
+  // is not ceremony: `requireToken` ends in `process.exit`, so an in-process
+  // assertion would take this acceptance down with it, and the property being
+  // pinned is the WIRING -- that `cmdRecordDispositions` reaches the guard
+  // before it reaches the enumeration. A pure helper asserted directly would
+  // stay green with the call deleted, which is the exact shape that left this
+  // mode passing on a window it never read.
+  //
+  // THE WINDOW IS EMPTY BY CONSTRUCTION, and the earlier `--since HEAD` was
+  // not. That version asserted a property of the CLONE rather than of the
+  // guard: `HEAD..origin/main` is empty only where `origin/main` is reachable
+  // from `HEAD`, which is true on a `pull_request` checkout (the branch merged
+  // into main) and false on a branch head and in a grafted or shallow clone.
+  // `policy_lint_envmatrix.mjs`'s `shallow` shape is exactly that: measured
+  // there, the window was the whole history, the run enumerated 611 merges over
+  // the network and exited 1, and this arm reported FIXTURE VACUOUS at a head
+  // whose merge base was green -- the instrument that exists to catch an
+  // environment-dependent assertion caught this one.
+  //
+  // `mainRef()..mainRef()` is empty in EVERY clone, shallow, grafted or full,
+  // because `git log X..X` is empty for any X that resolves -- and `mainRef()`
+  // is the same function the window itself uses, so the two cannot drift apart.
+  // `firstParentCommits` returns [], `fetchPullsBySha` iterates an empty list
+  // and issues no request, and the null control reaches `TOTAL: 0` without a
+  // socket. The refusing arm never gets that far. So both arms are offline on a
+  // CI runner, on a seat with no network, and under every shape in the matrix.
+  //
+  // The null control is the whole point of the pair: a guard that exited 2
+  // whenever `--record` ran at all would satisfy the first arm alone.
+  pins += 3
+  const emptyWindow = mainRef()
+  const recRun = (env) => {
+    try {
+      return { code: 0, out: execFileSync(process.execPath, [path.join(HERE, 'policy_lint.mjs'), '--record', '--since', emptyWindow], { cwd: ROOT, encoding: 'utf8', env, stdio: ['pipe', 'pipe', 'pipe'] }) }
+    } catch (e) {
+      return { code: e.status === undefined ? 1 : e.status, out: `${e.stdout || ''}${e.stderr || ''}` }
+    }
+  }
+  const envNoTok = { ...process.env }
+  delete envNoTok.GITHUB_TOKEN
+  const noTok = recRun(envNoTok)
+  const withTok = recRun({ ...process.env, GITHUB_TOKEN: 'acceptance-fixture-not-a-credential' })
+  if (noTok.code !== 2) regFail.push(`--record with no GITHUB_TOKEN exited ${noTok.code}, not 2: an unenumerated window reported as a measured one`)
+  if (!/needs GITHUB_TOKEN/.test(noTok.out)) regFail.push('--record with no GITHUB_TOKEN did not say which variable it needs')
+  if (withTok.code !== 0 || /needs GITHUB_TOKEN/.test(withTok.out)) regFail.push(`--record with a token set exited ${withTok.code} and must reach its verdict unchanged (null control)`)
   if (regFail.length) {
     console.log(`\nFIXTURE VACUOUS: recordRegion ${JSON.stringify(regFail)}. The record's region is what makes a mention a disposition; unpinned, it can be widened back to the whole file with every other count unchanged.`)
     return 1
@@ -4801,7 +4921,62 @@ function requireSince(since, mode) {
   process.exit(2)
 }
 
+// AN UNSET TOKEN IS A CALLER ERROR, NOT AN OUTAGE, and the two are the same
+// `{ok:false}` to `ghGet` while being opposite things to whoever reads the run.
+//
+// `--record` reads the window's merges through `/commits/<sha>/pulls`. With no
+// token `ghGet` refuses before it calls `curl`, `mergedPRsFromWindow` falls
+// back to subject mode, and the fallback's end-anchored `(#N)` matches none of
+// this repository's merge subjects -- so the mode prints `RECORD: 0 merged pull
+// request(s)`, `TOTAL: 0 error(s)` and exits 0. That is the whole check
+// reporting a clean window it never looked at. `enumSkipLine` says UNCHECKED
+// out loud beside it, and a loud line is what a human reads; rc=0 is what the
+// job's `continue-on-error` step, the run summary's verdict and any `&&` after
+// it read, and all three read it as "no undispositioned merge".
+//
+// WHY THIS DOES NOT REOPEN #957. That discipline keeps rc=0 for an UNREACHABLE
+// API -- transient, external, nothing the caller can do -- because reddening a
+// required context on GitHub's availability gates every pull request on an
+// outage. An unset token is none of those: deterministic, local, reproducible,
+// and fixed by setting one variable. It is exactly the class `requireSince`
+// already exits 2 on, and it takes the same rc for the same reason -- the
+// caller was misconfigured, so the mode measured nothing and says so, rather
+// than reporting an error count nothing produced (rc=1) or a clean window
+// nothing read (rc=0). An HTTP failure, a rate limit, a 403 on a token that IS
+// set: unchanged, still the skip line and still rc=0.
+//
+// SCOPED TO `--record` AND NOTHING ELSE, because it is the mode whose zero is a
+// verdict. `--stats` is run `|| true` by design and `--record-known-bad` with a
+// window writes a ledger a reviewer reads in the diff; widening this to either
+// is a separate change with its own callers to check.
+//
+// THE CALLERS. The rule, so a reader re-derives the set rather than trusting a
+// number that ages: every tracked file that invokes this script with `--record`
+// as an argument -- `git grep -n -- '--record' -- .github .claude tools tests
+// docs`, minus the hits that are this file's own usage banner or prose about
+// the mode, and minus `--record-known-bad`, a different mode this guard does
+// not touch. Run at the head of the pull request that added the guard, that
+// rule names two invokers, and an earlier draft of this comment claimed one:
+//
+//   `.github/workflows/governance.yml`, the `Every merged pull request has a
+//   disposition` step. It sets `GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}`, so
+//   it takes the authenticated path and is unaffected.
+//
+//   `.claude/workflows/policy_lint_envmatrix.mjs`, twice: the `since-ref` bad-ref
+//   row and that row's own null control. Both now pass a fixture token in the
+//   child's env, so the matrix stays drivable by a seat with no token -- which
+//   it had stopped being, and which is how the false enumeration was found.
+//
+// Neither is a cron. A future caller that cannot hold a token belongs in that
+// list with its arm, not in a widened guard.
+function requireToken(mode) {
+  if (process.env.GITHUB_TOKEN) return
+  console.log(`${mode} needs GITHUB_TOKEN. It enumerates the window's merged pull requests through the GitHub API, and unauthenticated it enumerates nothing -- which this mode would otherwise print as a window with no undispositioned merge in it. Set GITHUB_TOKEN and re-run; an API that is reachable but failing still reports and exits 0, because that is an outage rather than a misconfiguration.`)
+  process.exit(2)
+}
+
 function cmdRecordDispositions(since) {
+  requireToken('--record')
   const enumerated = mergedPRsFromWindow(since)
   const prs = enumerated.prs
   console.log(`RECORD_ENUM: ${enumerated.mode}${enumerated.why ? ` (${enumerated.why})` : ''}`)
