@@ -29,7 +29,10 @@ Where an entity id comes from is an input, not part of the inference. A
 try in order, and :func:`candidates` is one resolver of them, the prefix and
 its two spellings. A resolver that finds a pump's entities another way -- a
 device's entity-registry entries -- hands :func:`snapshot` its own mapping,
-and :func:`infer` suggests the same values from the same states.
+and :func:`infer` suggests the same values from the same states. A role
+also carries its *scale*, because the same setting arrives in different units
+from different sources: the package's register 404 holds tenths of a degree,
+while a Tuya entity for the same setpoint already reads degrees.
 
 What no register says is anything about the house or the heating circuit:
 the building, its emitters and its thermal model stay the user's to describe.
@@ -40,8 +43,8 @@ Kept free of Home Assistant imports so it can be unit-tested directly, like
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Mapping, Sequence
-from typing import Any
+from collections.abc import Callable, Mapping
+from typing import Any, NamedTuple
 
 from .const import (
     CONF_COMPRESSOR_FREQ_SENSOR,
@@ -64,6 +67,17 @@ from .const import (
     DEFAULT_HEAT_PUMP_COP_NOMINAL,
 )
 from .mixing_valve import WRITE_TARGET_FLOW
+
+class Resolved(NamedTuple):
+    """One role, resolved: the entity ids to try in order, and the scale that
+    turns the first one's state into the role's unit."""
+
+    entity_ids: tuple[str, ...]
+    scale: float = 1.0
+
+
+#: The raw registers whose value is tenths of a degree (Data=Temp*10).
+_TENTHS = (404, 405, 406)
 
 #: The raw holding registers read, by decimal address. The package names each
 #: raw sensor after the address and its four-digit hex form, so the hex is
@@ -90,36 +104,41 @@ _DAY_BITS = 0b11111110
 _WATER_TEMPERATURE_CONTROL = 0
 
 
-def candidates(prefix: str) -> dict[str, tuple[str, ...]]:
-    """The prefix resolver: the entity ids tried per role, first match wins."""
+def candidates(prefix: str) -> dict[str, Resolved]:
+    """The prefix resolver: per role, the ids tried (first match wins) and scale."""
     p = prefix.strip().lower()
-    found: dict[str, tuple[str, ...]] = {
-        f"r{addr}": (f"sensor.{p}_gchv_r{addr}", f"sensor.{p}_gchv_r{addr}_{addr:04x}h")
+    found = {
+        f"r{addr}": Resolved(
+            (f"sensor.{p}_gchv_r{addr}", f"sensor.{p}_gchv_r{addr}_{addr:04x}h"),
+            0.1 if addr in _TENTHS else 1.0,
+        )
         for addr in _RAW_ADDRESSES
     }
-    found.update({label: (template.format(p=p),) for label, template in _NAMED.items()})
+    found.update(
+        {label: Resolved((template.format(p=p),)) for label, template in _NAMED.items()}
+    )
     return found
 
 
 def snapshot(
-    get: Callable[[str], Any], resolved: Mapping[str, Sequence[str]]
-) -> dict[str, tuple[str, str]]:
-    """``role -> (entity_id, state)`` for every role one of its ids resolves.
+    get: Callable[[str], Any], resolved: Mapping[str, Resolved]
+) -> dict[str, tuple[str, str, float]]:
+    """``role -> (entity_id, state, scale)`` for every role an id resolves.
 
-    ``get`` is a plain state lookup (``hass.states.get``); ``resolved`` maps
-    each role to the entity ids to try, in order.
+    ``get`` is a plain state lookup (``hass.states.get``); ``resolved`` is a
+    resolver's answer, such as :func:`candidates`.
     """
-    snap: dict[str, tuple[str, str]] = {}
-    for label, entity_ids in resolved.items():
-        for entity_id in entity_ids:
+    snap: dict[str, tuple[str, str, float]] = {}
+    for label, role in resolved.items():
+        for entity_id in role.entity_ids:
             state = get(entity_id)
             if state is not None:
-                snap[label] = (entity_id, str(state.state))
+                snap[label] = (entity_id, str(state.state), role.scale)
                 break
     return snap
 
 
-def _number(snap: Mapping[str, tuple[str, str]], label: str) -> float | None:
+def _number(snap: Mapping[str, tuple[str, str, float]], label: str) -> float | None:
     try:
         value = float(snap[label][1])
     except (KeyError, ValueError):
@@ -127,14 +146,15 @@ def _number(snap: Mapping[str, tuple[str, str]], label: str) -> float | None:
     return value if math.isfinite(value) else None
 
 
-def _register(snap: Mapping[str, tuple[str, str]], addr: int) -> int | None:
+def _register(snap: Mapping[str, tuple[str, str, float]], addr: int) -> int | None:
     value = _number(snap, f"r{addr}")
     return int(value) if value is not None and value.is_integer() else None
 
 
-def _tenths(snap: Mapping[str, tuple[str, str]], addr: int) -> float | None:
-    raw = _register(snap, addr)
-    return None if raw is None else round(raw * 0.1, 1)
+def _scaled(snap: Mapping[str, tuple[str, str, float]], addr: int) -> float | None:
+    """A setpoint in its role's unit: the state times the resolver's scale."""
+    value = _number(snap, f"r{addr}")
+    return None if value is None else round(value * snap[f"r{addr}"][2], 1)
 
 
 def _clock(raw: int | None) -> str | None:
@@ -148,7 +168,7 @@ def _clock(raw: int | None) -> str | None:
 
 
 def _window(
-    snap: Mapping[str, tuple[str, str]], start: int, stop: int
+    snap: Mapping[str, tuple[str, str, float]], start: int, stop: int
 ) -> str | None:
     begin, end = _clock(_register(snap, start)), _clock(_register(snap, stop))
     if begin is None or end is None or begin == end:
@@ -162,19 +182,19 @@ def _interval_days(raw: int | None) -> float | None:
     return float(7 // days) if days else None
 
 
-def _hot_water(snap: Mapping[str, tuple[str, str]]) -> dict[str, Any]:
+def _hot_water(snap: Mapping[str, tuple[str, str, float]]) -> dict[str, Any]:
     schedule = _register(snap, 711)
     return {
-        CONF_DHW_SETPOINT: _tenths(snap, 404),
-        CONF_DHW_LEGIONELLA_TEMP: _tenths(snap, 405),
-        CONF_DHW_MIN_TEMP: _tenths(snap, 406),
+        CONF_DHW_SETPOINT: _scaled(snap, 404),
+        CONF_DHW_LEGIONELLA_TEMP: _scaled(snap, 405),
+        CONF_DHW_MIN_TEMP: _scaled(snap, 406),
         CONF_DHW_WINDOWS: _window(snap, 712, 713) if schedule else None,
         CONF_DHW_LEGIONELLA_INTERVAL_DAYS: _interval_days(_register(snap, 714)),
     }
 
 
 def _plant(
-    snap: Mapping[str, tuple[str, str]], current: Mapping[str, Any]
+    snap: Mapping[str, tuple[str, str, float]], current: Mapping[str, Any]
 ) -> dict[str, Any]:
     capacity = _number(snap, "unit_capacity")
     cop = float(current.get(CONF_HEAT_PUMP_COP_NOMINAL) or DEFAULT_HEAT_PUMP_COP_NOMINAL)
@@ -196,7 +216,7 @@ def _plant(
 
 
 def infer(
-    snap: Mapping[str, tuple[str, str]], current: Mapping[str, Any]
+    snap: Mapping[str, tuple[str, str, float]], current: Mapping[str, Any]
 ) -> dict[str, Any]:
     """Suggested option values; ``current`` is the configuration in force."""
     found = {**_hot_water(snap), **_plant(snap, current)}
@@ -211,7 +231,7 @@ def infer(
     return suggestions
 
 
-def notes(snap: Mapping[str, tuple[str, str]]) -> dict[str, str]:
+def notes(snap: Mapping[str, tuple[str, str, float]]) -> dict[str, str]:
     """What the page says about the read: how much it found, and the heaters.
 
     The backup heater type register (601) reads 7 for a unit with no

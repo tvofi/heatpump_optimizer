@@ -37915,17 +37915,25 @@ _g7_both_snap = _g7_mp.snapshot(_g7_both.states.get, _g7_mp.candidates("hp"))
 R.check(
     "with both spellings present the unique_id spelling wins, and the snapshot names it",
     _g7_mp.infer(_g7_both_snap, {})[_g7_c.CONF_DHW_SETPOINT] == 52.0
-    and _g7_both_snap["r404"] == ("sensor.hp_gchv_r404", "520"),
+    and _g7_both_snap["r404"] == ("sensor.hp_gchv_r404", "520", 0.1),
     f"{_g7_both_snap.get('r404')}",
 )
 R.check(
     "every candidate the module lists for a raw register is one of the two yaml spellings",
     all(
-        set(_g7_mp.candidates("hp")[f"r{addr}"]) == {f"sensor.{uid}", eid}
+        set(_g7_mp.candidates("hp")[f"r{addr}"].entity_ids) == {f"sensor.{uid}", eid}
         for addr, (uid, _name, eid) in _G7_RAW.items()
     )
-    and all(_g7_mp.candidates("hp")[label] == (ids[2],) for label, ids in _G7_NAMED.items()),
+    and all(_g7_mp.candidates("hp")[label].entity_ids == (ids[2],) for label, ids in _G7_NAMED.items()),
     f"{_g7_mp.candidates('hp')}",
+)
+# The package's generator reads 404-406 as "Data=Temp*10" (scale 0.1); every
+# other register and entity is read as published.
+R.check(
+    "the prefix resolver scales registers 404, 405 and 406 by 0.1 and nothing else",
+    {role: r.scale for role, r in _g7_mp.candidates("hp").items() if r.scale != 1.0}
+    == {"r404": 0.1, "r405": 0.1, "r406": 0.1},
+    f"{ {role: r.scale for role, r in _g7_mp.candidates('hp').items()} }",
 )
 R.check(
     "a custom prefix is read from the entity ids it names",
@@ -37944,7 +37952,8 @@ R.check(
 _g7_device = FakeHass()
 _g7_device_ids = {}
 for _g7_role in _g7_mp.candidates("hp"):
-    _g7_device_ids[_g7_role] = (f"sensor.windmi_{_g7_role}_device",)
+    _g7_device_ids[_g7_role] = _g7_mp.Resolved(
+        (f"sensor.windmi_{_g7_role}_device",), _g7_mp.candidates("hp")[_g7_role].scale)
 for _g7_addr, _g7_val in _G7_VALUES.items():
     _g7_device.states.set(f"sensor.windmi_r{_g7_addr}_device", FakeState(_g7_val))
 for _g7_role, _g7_val in _G7_NAMED_VALUES.items():
@@ -37962,8 +37971,21 @@ R.check(
 )
 R.check(
     "and snapshot() tries a role's ids in the order the resolver gives them",
-    _g7_mp.snapshot(_g7_device.states.get, {"r404": ("sensor.absent", "sensor.windmi_r404_device", "sensor.windmi_r405_device")})
-    == {"r404": ("sensor.windmi_r404_device", "520")},
+    _g7_mp.snapshot(_g7_device.states.get, {"r404": _g7_mp.Resolved(
+        ("sensor.absent", "sensor.windmi_r404_device", "sensor.windmi_r405_device"), 0.1)})
+    == {"r404": ("sensor.windmi_r404_device", "520", 0.1)},
+)
+# The scale is the resolver's, not infer()'s (forward carry from plan PR
+# #1110 for W1067-G7b): a Tuya entity for the same setpoint reads degrees
+# already, so a scale fixed inside infer() would suggest 5.0 for 50 degrees.
+_g7_unit = FakeHass(states={"sensor.tuya_dhw_set": FakeState("50"), "sensor.raw_dhw_set": FakeState("500")})
+R.check(
+    "the same role at scale 1.0 reading 50 and at scale 0.1 reading 500 both suggest 50.0",
+    _g7_mp.infer(_g7_mp.snapshot(_g7_unit.states.get, {"r404": _g7_mp.Resolved(("sensor.tuya_dhw_set",), 1.0)}), {})
+    == {_g7_c.CONF_DHW_SETPOINT: 50.0}
+    and _g7_mp.infer(_g7_mp.snapshot(_g7_unit.states.get, {"r404": _g7_mp.Resolved(("sensor.raw_dhw_set",), 0.1)}), {})
+    == {_g7_c.CONF_DHW_SETPOINT: 50.0},
+    f"{_g7_mp.infer(_g7_mp.snapshot(_g7_unit.states.get, {'r404': _g7_mp.Resolved(('sensor.tuya_dhw_set',), 1.0)}), {})}",
 )
 
 # Null control: an install with no Modbus entities.
