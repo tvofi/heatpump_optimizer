@@ -307,6 +307,31 @@ def drop_tree(dest: Path) -> None:
     )
 
 
+def baseline_refusal(baseline: dict[str, tuple[int, int, float]],
+                     scope: str) -> int | None:
+    """The verdict on a red baseline, or ``None`` when it is green.
+
+    A red baseline makes every mutant's verdict meaningless, so the table is
+    INCONCLUSIVE either way -- the two scopes differ only in what that is worth
+    reporting as. On a pull request the guard re-runs the scripts `fast` runs,
+    and `fast` is a required context while `mutation` is not: exiting 1 there
+    restates a red another check already carries, at a runner's cost and a
+    reviewer round. The nightly keeps the refusal, because `--scope full` runs
+    on a schedule where nothing else reports that lane's baseline per commit.
+
+    `run_script` returns only (rc, failed, seconds) and discards the stdout it
+    judged, so this can name the red SCRIPT and never the red check inside it.
+    """
+    red = sorted(s for s, (rc, _, _) in baseline.items() if rc != 0)
+    if not red:
+        return None
+    print("\nMUTATION TABLE INCONCLUSIVE")
+    print("  - the baseline is already red in " + ", ".join(red) +
+          ", so no mutant's verdict means anything. Fix the suite first; "
+          "`fast` carries that red.")
+    return 1 if scope == "full" else 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--scope", choices=("changed", "full"), default="changed")
@@ -378,11 +403,9 @@ def main() -> int:
             rc, failed, secs = run_script(s, base_tree, args.timeout)
             baseline[s] = (rc, failed, secs)
             print(f"  baseline {s}: rc={rc} failed={failed} {secs:.0f}s")
-        if any(rc != 0 for rc, _, _ in baseline.values()):
-            print("\nMUTATION TABLE BREACHED")
-            print("  - the baseline is already red, so no mutant's verdict "
-                  "means anything. Fix the suite first.")
-            return 1
+        verdict = baseline_refusal(baseline, args.scope)
+        if verdict is not None:
+            return verdict
         # Cheapest first, measured here rather than carried: a kill then costs
         # the cheapest driver that can see it.
         for mut in pool:
