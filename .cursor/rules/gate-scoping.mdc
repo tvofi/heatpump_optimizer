@@ -14,9 +14,8 @@ GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) 
 
 `/tmp/hpo-gate.lock` serialises anything that runs `tests/stress.py`, which
 measures the machine while it solves and is wrong if something else is running.
-Take it for a full or stress-selecting run; a scoped run that does not select
-`stress.py` does not need it. Use `tests/gate_lock.py` — not `mkdir` and a
-shell pid:
+`run.sh` takes it, waiting, for a FULL or `stress.py` run. Hold it across
+commands with `tests/gate_lock.py` — not `mkdir` and a shell pid:
 
 ```
 python3 tests/gate_lock.py take --label <your-label>
