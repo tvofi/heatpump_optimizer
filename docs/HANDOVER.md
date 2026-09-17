@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: c71c53cfd7158ccfa32558ca748e307a7aaf06e9
+updated-for: e467026a276ead299377b88fe6492de5c3adf9bd
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is the frozen table in
@@ -107,6 +107,26 @@ request (#1081), linked from here and never restated.
   The denominator is unbounded. State the class.
 - **A figure about the document it lives in is derived beside it, at the head.**
   Carrying one is how it goes stale on every review of the artifact that states it.
+- **A generalised vacuous-acceptance-arm detector is refused on cost, not
+  owed.** Dispatched at the fourth instance (#201 comment 5720829142): the
+  shape is not one class but three — a harness structurally decoupled from the
+  mutated code (#1117, W1067-G7b-1), an under-specified environment
+  precondition (#1115), and a false claim in prose that no mutation proof
+  addresses (#1120) — and the root-cause seat's own asymmetry claim ("only
+  reviewers catch this") was refuted: W1067-G7b-1 was caught by its own
+  mutation proof and `RELEASE_NOTES.md` records a prior self-caught instance,
+  3 of 4 rather than 4 of 4. Neither of `defect-root-cause.md`'s two
+  enforcement triggers fires on any of the four (none reached a release, none
+  turned a required check red); the mandate is `CLAUDE.md`'s separate
+  recurring-error clause. The seat's cited figures — 37 historical instances of
+  this named shape, effectively 100% caught before `main` — are that seat's
+  own measurement, not independently re-derived here. A generalised detector
+  needing different logic per shape was judged a research project against a
+  defect costing roughly one extra review round, and refused. One narrow
+  `fixer.md` sentence is proposed and explicitly NOT pushed: it needs a cap
+  raise or a cut and neither owner grant in hand covers it; it waits on the
+  owner's sign-off. Do not re-propose a generalised detector without new
+  information.
 
 ### The UX programme
 
@@ -243,6 +263,16 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
   release stamp was about to break. The only honest test is a probe branch with
   its own ruleset and **both** arms — with the admin bypass the push lands,
   without it GitHub answers *push declined due to repository rule violations*.
+- **An "empty diff over `tests/` and `custom_components/`" does not mean no
+  gate is owed.** #1122's fixer argued the post-absorb diff over those two
+  trees was empty, so no re-run was needed; the reviewer upheld the judgement
+  but refuted the reason — the merge had also moved
+  `.claude/workflows/policy_lint.mjs` and `friction_issues.mjs`, both inside
+  recorded closures. `python3 tests/closure.py select --diff <merge-base>`
+  still selects `tests/entities.py`, which passed in 34 s (`ALL 1508 ENTITY
+  CHECKS PASSED`). No full re-run was owed, but the stated reason was wrong
+  and must not be reused: derive the gate's scope from `closure.py select`,
+  never from which top-level directories a diff appears to touch.
 
 ## Traps that cost a session
 
@@ -493,6 +523,26 @@ in its own pull request.
     body genuinely stale at the head, which is what `pr-contract` is for, and
     the gap itself exists only between two API calls that `push.sh`'s own header
     says it cannot make atomic.
+40. **`policy_lint.mjs --budgets` exits 0 whatever it prints — it reports, and
+    never refuses.** Its handler is `if (has('--budgets')) return
+    cmdBudgets(files), process.exit(0)`, unconditional; the bare
+    `node .claude/workflows/policy_lint.mjs` is the path that refuses
+    (`process.exit(errors > 0 || rc ? 1 : 0)`). A mutation proof driven against
+    `--budgets` proves nothing (#1123): its own proof was driven against the
+    refusing bare form instead — appending two lines turned it rc=1, naming
+    both the touched file's cap and the corpus cap; restoring returned rc=0.
+41. **The test for whether a repair's invariant is true by construction, or
+    true only because the arm now asserts nothing, is to force the precondition
+    it relies on back to false and check the arm reddens.** #1115's `--record`
+    acceptance arm had asserted an invariant that held only where
+    `origin/main` is reachable from `HEAD`; under a shallow clone it
+    enumerated 611 merges and reddened. The repair made the window
+    `mainRef()..mainRef()`, empty by construction — and the decisive check was
+    not that the window is empty: reverting to `HEAD` inside the shallow clone
+    had to reproduce the original red, and deleting the `requireToken` call
+    had to redden the refusing arms (`FIXTURE VACUOUS`). Both did. Apply this
+    test to any repair that makes a window, a set or a diff empty by
+    construction, not only to this one.
 
 ## Owed — post-hoc reviews
 
@@ -570,6 +620,22 @@ markers, and nothing under `.claude/workflows/` or `tests/` reads a workflow
 ref (grep at merge base `c62210e`) -- so until the weekly `record` beat
 (#959) grows one, an upstream fix reaches this repository only when a seat
 re-pins deliberately.
+
+**Owed from #1115, flagged for whoever next touches the env matrix, not this
+pull request's to fix.** `policy_lint_envmatrix.mjs:238`'s `okRef` row still
+drives `--since HEAD` on the assumption that `HEAD..origin/main` is empty in
+that clone — structurally the same defect #1115's `--record` acceptance-arm
+fix addressed, and now load-bearing because a fixture token was added to this
+row since. Pre-existing before #1115 and green everywhere it has been
+driven.
+
+**Owed from #1122, named as incomplete rather than false.** `tests/typing_ruler.py:33`
+and `.github/workflows/tests.yml:427` still carry "which no gate lane has,"
+the exact sentence #1122 established as false — `HPO_TYPING_PYTHON` re-execs
+the pinned mypy half locally via `run.sh` — and repairs at those two sites
+(`run.sh`, `gate-scoping.md`) but not at `tests/typing_ruler.py:33` or
+`.github/workflows/tests.yml:427`. #1122's own body names this as owed and
+does not claim to have repaired it.
 
 ## The machine this runs on — measure it, do not read it
 
