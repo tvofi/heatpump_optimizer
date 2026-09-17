@@ -1,5 +1,57 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.6.1
+
+a hotfix: an options page you did not change no longer reloads the integration (#1107); plus wave 1067 G4, the pump's silent-mode window (#1099), and governance tooling
+
+### Fixed
+
+**Closing or stepping through the options without changing anything no longer
+reloads the integration** (#1107). On an install whose options had never been
+saved page by page, every options page submitted untouched wrote the defaults
+it displayed into the entry. The integration saw a changed entry and reloaded,
+tearing down and re-creating its entities, and this happened on 19 of the 20
+saving pages. The defect is present in v6.4.4, v6.5.1 and v6.6.0.
+
+Now a page saves a value for a setting you never stored only when the
+integration would run differently without it. A real v6.5.1 install walked
+through every page untouched reloads 0 times, down from 19. Changing a value
+still reloads, exactly once, for that page.
+
+**This is not a confirmed fix for the reported freeze of the whole Home
+Assistant interface after closing the options dialog.** That report is still
+being diagnosed. This release removes the reload that closing the dialog set
+off on most installs, which is the only integration activity found at that
+moment so far.
+
+**Behaviour change: settings you never changed now follow the default.** A
+setting the entry never stored is no longer written when the page posts its
+default. So if a later release changes that default, your install follows the
+new default instead of keeping today's value. That includes a setting you
+deliberately set to today's default through a page that you never saved
+before. Hot-water planning (`dhw_windows`, `dhw_tank_volume`), the wood-stove
+settings, `tibber_token` and `weather_entity` are still always written.
+
+### New, and off unless you turn it on
+
+**Wave 1067 G4: silent-mode window** (#1099, *Fuse and peak guards* page).
+Many inverter pumps run a scheduled silent or night mode that caps the
+compressor. Set `silent_mode_windows` (the hot-water window grammar) and
+`silent_mode_power_fraction` (0.6 to 1.0), and the plan caps the pump's
+electrical power to that fraction inside the window, so it no longer counts on
+full power the pump will refuse. With the window empty or the fraction at 1.0,
+plans are unchanged, bit for bit.
+
+### Development and governance (no effect on the integration)
+
+- #1098: a finished roster group is no longer a valid place to carry a finding.
+- #1100: `push.sh` sets an open pull request's body over REST and reads it back.
+- #1102: the golden-drift check accepts a release stamp emptying claims it did not write.
+- #1103: records #954's close-out; step 6 of decision 0009 landed, so merges need an approval.
+- #1101: CI dispatches CodeQL after an autofix push, whose pull-request runs are held.
+- #1097: policy explains that a bot push's pull-request runs wait for approval.
+- #1105: seats commit as `tvofi-seat-author`; ordinary merges are approved through `tools/audit/app_approve.sh`.
+
 ## v6.6.0
 
 wave 1067 G1–G3 (optional Rotenso Windmi inputs and a default-off flow-curve lift), the ECL110 finite-payload fix, the platinum quality-scale declaration, and the deploy-key governance of #954
