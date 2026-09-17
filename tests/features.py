@@ -21067,6 +21067,23 @@ async def _g3_fake_load():
 
 _g3_back._thermal_learning_store.async_load = _g3_fake_load
 _asyncio.run(_g3_back._async_load_thermal_learning())
+# A store from before this key existed ("N" and "N:dhw" only) loads exactly
+# as it did, with no lift baseline invented; a tag this build does not know
+# is skipped, not read as some other curve.
+_g3_old = _g3_watch(True)
+
+
+async def _g3_old_load():
+    return {"cop_baseline": {"2": [3.1, 25], "2:dhw": [2.6, 25], "2:zzz": [9.0, 9]}}
+
+
+_g3_old._thermal_learning_store.async_load = _g3_old_load
+_asyncio.run(_g3_old._async_load_thermal_learning())
+R.check(
+    "a pre-#1067 store loads to its raw and hot-water keys only; an unknown tag is skipped",
+    _g3_old._cop_baseline == {(2, False): [3.1, 25], (2, True): [2.6, 25]},
+    f"{_g3_old._cop_baseline}",
+)
 R.check(
     "the normalised baseline persists under its own key and loads back to it",
     "2:lift" in _g3_saved and "2" in _g3_saved and "2:dhw" not in _g3_saved
