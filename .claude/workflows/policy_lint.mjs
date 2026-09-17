@@ -2004,6 +2004,7 @@ const FRICTION_UNLABELLED = '(unlabelled friction bullet)'
 // is claimed by three, and merging three documents under one key is exactly the
 // silent merge this rule exists to refuse, so ambiguity is left unresolved and
 // the id stays verbatim.
+const BRIEF_FILE = /^tools\/audit\/briefs\//
 let POLICY_KEY_INDEX = null
 function policyKeyIndex(files = null) {
   const claims = new Map()
@@ -2024,7 +2025,36 @@ function policyKeyIndex(files = null) {
     }
     const base = p.slice(p.lastIndexOf('/') + 1)
     claim(base, p)
-    claim(base.replace(/\.md$/, ''), p)
+    // A ROLE CONTRACT'S BARE NAME IS NOT CLAIMED, and this is the same
+    // ambiguity guard as the `README` one below, not an exception to it.
+    // `tools/audit/briefs/*.md` are what CLAUDE.md calls "Role contracts --
+    // open the one you are", so `orchestrator` names a SEAT as readily as that
+    // seat's contract, and a seat also writes the dispatch briefs it hands out.
+    // Measured over `v6.5.1..origin/main` at c71c53c: the bare key
+    // `orchestrator` held 4 entries across 2 pull requests and every one of
+    // them records friction with a DISPATCH brief -- "the dispatch brief named
+    // the lease tool tools/audit/gate_lock.py", "the plan's G3 test cannot pass
+    // on the stock house", "the plan's G4 brief gives the derate range as
+    // 0.3-1.0", "the brief said the claim files stay untouched" -- while the
+    // separate key `orchestrator.md`, 2 entries across 2 pull requests, names
+    // the contract by section ("in section 13, rule 4 means stamp.py's notes
+    // rule"). Resolving the first onto the second files the contract for
+    // something it does not govern. `fixer-dispatch` measured the same way:
+    // both its entries are about a dispatch. The template offers one field,
+    // `<rule_id>`, and there is no field for a brief, which is why the two
+    // subjects arrive under one shape.
+    //
+    // So a briefs document resolves only from an id that names it as a FILE --
+    // `orchestrator.md`, or its repo-relative path -- and a bare or
+    // suffix-qualified role name stays verbatim. It costs `fixer-step-5`, which
+    // did name the contract; that is the price of a rule with no list in it,
+    // and a verbatim key blames nobody.
+    //
+    // `.claude/rules/` and `.claude/skills/` are NOT carved out, and the same
+    // measurement is why: there is no "gate-scoping seat", and all three
+    // `steward` entries in that window name S9 and S10, sections of the skill
+    // document itself.
+    if (!BRIEF_FILE.test(p)) claim(base.replace(/\.md$/, ''), p)
   }
   const index = new Map()
   for (const [cand, set] of claims) if (set.size === 1) index.set(cand, [...set][0])
@@ -2674,7 +2704,7 @@ const REQUIRED_ROT = {
     mustNot: ['merged pull request #8888'],
   },
   stats: {
-    count: 11,
+    count: 13,
     must: [
       // The rule id at threshold, keyed on the FILE the entry names: the
       // fixture writes it `CLAUDE.md#budgets`, and a fragment names a section
@@ -2696,6 +2726,10 @@ const REQUIRED_ROT = {
       // in their own right stay two keys, at 3 apiece rather than one at 6.
       'would open "[policy] recurring friction: .claude/rules/defect-root-cause.md"',
       'would open "[policy] recurring friction: tools/audit/briefs/root-cause.md"',
+      // ...and the role-name carve-out, both directions. A BARE role name is
+      // the seat, not the seat's contract -- it files under its own text...
+      'would open "[policy] recurring friction: orchestrator"',
+      'would open "[policy] recurring friction: fixer-dispatch"',
     ],
     // The fixture puts the passing class OVER the threshold on purpose, so the
     // first of these is a pin and not a vacuous one: without the exclusion the
@@ -2711,6 +2745,12 @@ const REQUIRED_ROT = {
       'would open "[policy] recurring friction: CLAUDE.md#budgets"',
       'would open "[policy] recurring friction: claim-files"',
       'would open "[policy] recurring friction: .claude/rules/claim-files.md"',
+      // ...and the contract is never filed for a dispatch's friction. The
+      // fixture puts three bare `orchestrator` entries on three pull requests
+      // beside ONE `orchestrator.md`, so without the carve-out this line is
+      // exactly what the same window produces, at 4.
+      'would open "[policy] recurring friction: tools/audit/briefs/orchestrator.md"',
+      'would open "[policy] recurring friction: tools/audit/briefs/fixer.md"',
     ],
   },
   sunset: {

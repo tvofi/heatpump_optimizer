@@ -120,22 +120,42 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
 ## Corrections to the record
 
 - **The seven open `[policy] recurring friction:` issues were filed by a
-  histogram that keyed on the spelling a seat typed, and counted entries rather
-  than pull requests.** Both are fixed (#1119); the issues are not re-titled. So
-  #1095 (`gate-scoping`) and #1093 (`gate-scoping.md`) are one rule, as are
-  #1078 and its sibling spelling, and #1094 (`orchestrator`) was filed on an
-  entry count that recurrence does not support. The key is now the policy FILE
-  an id names, so new issues are titled
-  `[policy] recurring friction: .claude/rules/<rule>.md`. **Do not carry any of
-  these counts**: `<ref>..origin/main` is enumerated against `origin/main`'s tip
-  at the moment of the run, so every one of them is a sliding figure. A seat
-  disposing one of the seven re-derives with
-  `node .claude/workflows/policy_lint.mjs --stats --since <newest tag>` and reads
-  the `PRs / entries` column, not the count in the issue body. The filing lane
-  re-measures every open one on each beat and comments when its key is below
-  threshold in the current window; it never closes, so the disposition is still
-  a seat's. A key below threshold in one window is not a fixed problem — the
-  window moved when the last tag was cut, and the friction may be older than it.
+  histogram that keyed on the spelling a seat typed and counted entries rather
+  than pull requests.** Both are fixed (#1119). **The corrected rule RE-KEYS
+  these issues; it does not retract them** — measured at c71c53c over
+  `v6.5.1..origin/main`, 47 merged pull requests, six of the seven are over the
+  threshold under their new key (#1087, #1095, #1078, #1069, #1079, #1070), so
+  nothing here says the friction was not real. The issues are not re-titled.
+- **#1094 is the one that changes character, and the reason is worth the
+  paragraph.** Its title key, `orchestrator`, is a ROLE NAME, and a role name
+  designates a seat as readily as that seat's contract. Every entry behind it
+  records friction with a **dispatch brief** — the lease tool named as
+  `tools/audit/gate_lock.py` when the tree has `tests/`, a G3 premise that
+  cannot hold on the stock house, a G4 derate range, a claim-files
+  contradiction — and none with `tools/audit/briefs/orchestrator.md`, which does
+  not govern any of it. `.github/PULL_REQUEST_TEMPLATE.md` offers one field,
+  `<rule_id>`, and no field for a brief, which is why the two subjects arrive
+  under one shape. So `tools/audit/briefs/*.md` resolves only from an id that
+  names it as a FILE, and a bare or suffix-qualified role name stays verbatim.
+  Under that rule the dispatch key and the contract key are separate and neither
+  clears the threshold in this window. **Its two controls, because a disposition
+  has to state both its key and its window:** the same key over
+  `v6.6.0..origin/main` reads 1 distinct pull request, and `main`'s
+  un-normalised classifier splits the same entries into `orchestrator` 4 and
+  `orchestrator.md` 2. A count that moves under either is a count whose key and
+  window were never stated.
+- **Do not carry any of those counts.** `<ref>..origin/main` is enumerated
+  against `origin/main`'s tip at the moment of the run, so every one of them is
+  a sliding figure; two merges landed during #1119's own review and moved all of
+  them. A seat disposing one of the seven re-derives with
+  `node .claude/workflows/policy_lint.mjs --stats --since <newest tag>`, reads
+  the `PRs / entries` column, and resolves its own key with
+  `--normalize-friction-keys` rather than assuming the title is the key. The
+  filing lane re-measures every open issue on each beat and comments when its
+  key is below threshold in the current window; it never closes, so the
+  disposition is still a seat's. A key below threshold in one window is not a
+  fixed problem — the window moved when the last tag was cut, and the friction
+  may be older than it.
 - **The "34-key `data` payload" is wrong**, and so is any count of it: no rule
   reproduces 34, and it traces to a lost session tool. The freeze is enforced by
   `tests/features.py`'s symmetry check and the `coord_*` goldens, never by a
