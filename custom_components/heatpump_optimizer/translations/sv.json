@@ -838,6 +838,8 @@
           "compressor_freq_entity": "Entitet för kompressorfrekvens",
           "compressor_freq_sensor": "Sensor för faktisk frekvens (rekommenderas för styrning)",
           "freq_control_mode": "Frekvensläge",
+          "compressor_freq_min_hz": "Lägsta kompressorfrekvens",
+          "compressor_freq_max_hz": "Högsta kompressorfrekvens",
           "after_save": "Efter sparande"
         },
         "data_description": {
@@ -848,8 +850,10 @@
           "heat_pump_energy_entity": "En ackumulerande kWh-mätare, om du har en. Noggrannare än att summera effektavläsningar mellan uppdateringar, vilket missar korta kompressorkörningar.",
           "house_power_entity": "Total förbrukning vid mätaren. Effekttariff debiteras på hela huset, inte bara på värmepumpen, så utan denna är den topp optimeraren undviker bara en del av den verkliga.",
           "compressor_freq_entity": "En number-entitet som exponerar kompressorfrekvensen, oftast från en Modbus- eller ESPHome-integration. Med den konfigurerad lär sig optimeraren en kW-per-Hz-karta och rekommenderar en frekvens — enbart observation tills du uttryckligen byter läget nedan till styrning.",
-          "compressor_freq_sensor": "En sensor som bär kompressorns FAKTISKA frekvens, om din integration exponerar en separat. Många number-entiteter är börvärdesregister som bara ekar det senast skrivna värdet — läst från ett eko kan väktaren aldrig se någon avvikelse och den inlärda kartan följer börvärdet i stället för maskinen. Lämna tomt bara om number-entitetens tillstånd verkligen följer den riktiga frekvensen.",
-          "freq_control_mode": "Observera lär sig och rekommenderar men skriver aldrig. Byt till styrning först när du har validerat entiteten mot din verkliga hårdvara: skrivningar går via number.set_value, högst en per fem minuter, begränsade till entitetens eget intervall, och en rapporterad frekvens som avviker från den kommenderade i tre cykler ställer ner styrningen till observation igen.",
+          "compressor_freq_sensor": "En sensor som bär kompressorns FAKTISKA frekvens, om din integration exponerar en separat. Många number-entiteter är börvärdesregister som bara ekar det senast skrivna värdet — läst från ett eko kan väktaren aldrig se någon avvikelse och den inlärda kartan följer börvärdet i stället för maskinen. Lämna tomt bara om number-entitetens tillstånd verkligen följer den riktiga frekvensen. Utan en number-entitet räcker den här sensorn ensam för att observera; styrning kräver number-entiteten.",
+          "freq_control_mode": "Observera lär sig och rekommenderar men skriver aldrig. Byt till styrning först när du har validerat entiteten mot din verkliga hårdvara: skrivningar går via number.set_value, högst en per fem minuter, begränsade till entitetens eget intervall, och en rapporterad frekvens som avviker från den kommenderade i tre cykler ställer ner styrningen till observation igen. Styrning kräver number-entiteten.",
+          "compressor_freq_min_hz": "Kompressorns frekvensintervall, som används när bara sensorn är konfigurerad eller när number-entiteten inte publicerar sitt eget minimum och maximum. Den inlärda kartan delas upp över det här intervallet.",
+          "compressor_freq_max_hz": "Intervallets övre gräns. En number-entitets eget maximum går alltid före det här.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         },
         "sections": {
@@ -1084,6 +1088,7 @@
       "cannot_connect": "Kunde inte nå Tibber för att kontrollera token. Kontrollera internetanslutningen och försök igen.",
       "invalid_dhw_windows": "Tiderna kunde inte tolkas. Använd 24-timmarsformat separerat med komma, till exempel \"06:00-08:30, 17:00-22:00\".",
       "dhw_window_too_short": "En varmvattenperiod är kortare än {min_window_minutes} minuter. Planen görs i steg om {min_window_minutes} minuter, så en kortare period kan hamna mellan två steg och aldrig få någon verkan.",
+      "freq_control_needs_number": "Styrning skriver frekvensen via en number-entitet. Välj en, eller behåll läget observera: en frekvenssensor ensam kan bara observeras.",
       "silent_mode_window_too_short": "Ett tidsfönster för tyst läge är kortare än {min_window_minutes} minuter. Planen görs i steg om {min_window_minutes} minuter, så ett kortare fönster kan hamna mellan två steg och aldrig få effekt.",
       "dhw_min_too_close": "Ett varmvattenminimum s\\u00e5 n\\u00e4ra b\\u00f6rv\\u00e4rdet l\\u00e4mnar tanken utan arbetsband; h\\u00e5ll det minst 5 \\u00b0C under b\\u00f6rv\\u00e4rdet.",
       "invalid_grid_fee_rules": "Avgiftsreglerna kunde inte läsas. En regel per rad, som \"Nov-Mar Mån-Fre 06:00-22:00 = 0.25\".",

@@ -957,6 +957,13 @@ CONF_COMPRESSOR_FREQ_ENTITY: Final = "compressor_freq_entity"
 CONF_COMPRESSOR_FREQ_SENSOR: Final = "compressor_freq_sensor"
 CONF_FREQ_CONTROL_MODE: Final = "freq_control_mode"
 DEFAULT_FREQ_CONTROL_MODE: Final = "observe"
+#: The compressor's frequency range where no number entity publishes one:
+#: a sensor-only install's whole range (#1067), and the stand-in for a
+#: min or max attribute a number entity leaves out.
+CONF_COMPRESSOR_FREQ_MIN_HZ: Final = "compressor_freq_min_hz"
+DEFAULT_COMPRESSOR_FREQ_MIN_HZ: Final = 20.0
+CONF_COMPRESSOR_FREQ_MAX_HZ: Final = "compressor_freq_max_hz"
+DEFAULT_COMPRESSOR_FREQ_MAX_HZ: Final = 120.0
 #: How far the comfort floor is relaxed while a window is open (gated).
 OPEN_WINDOW_RELAX_C: Final = 1.0
 #: #11 — measured power above nameplate by this factor reads as the

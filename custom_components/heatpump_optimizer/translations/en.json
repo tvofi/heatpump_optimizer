@@ -838,6 +838,8 @@
           "compressor_freq_entity": "Compressor frequency entity",
           "compressor_freq_sensor": "Actual frequency sensor (recommended for control)",
           "freq_control_mode": "Frequency mode",
+          "compressor_freq_min_hz": "Lowest compressor frequency",
+          "compressor_freq_max_hz": "Highest compressor frequency",
           "after_save": "After saving"
         },
         "data_description": {
@@ -848,8 +850,10 @@
           "heat_pump_energy_entity": "A cumulative kWh meter, if you have one. More accurate than adding up power readings between updates, which misses short compressor runs.",
           "house_power_entity": "Total consumption at the meter. A capacity tariff is billed on the whole house, not on the heat pump alone, so without this the peak the optimizer avoids is only part of the real one.",
           "compressor_freq_entity": "A number entity exposing the compressor frequency, typically from a Modbus or ESPHome integration. With it configured the optimizer learns a kW-per-Hz map and recommends a frequency — observation only, until you explicitly switch the mode below to control.",
-          "compressor_freq_sensor": "A sensor carrying the compressor's ACTUAL frequency, if your integration exposes one separately. Many number entities are setpoint registers that simply echo the last written value — read from an echo, the watchdog can never see divergence and the learned map follows the setpoint instead of the machine. Leave empty only if the number entity's state genuinely tracks the real frequency.",
-          "freq_control_mode": "Observe learns and recommends but never writes. Switch to control only after you have validated the entity against your real hardware: writes go via number.set_value, at most one per five minutes, clamped to the entity's own range, and a reported frequency diverging from the commanded one for three ticks stands the controller back down to observe.",
+          "compressor_freq_sensor": "A sensor carrying the compressor's ACTUAL frequency, if your integration exposes one separately. Many number entities are setpoint registers that simply echo the last written value — read from an echo, the watchdog can never see divergence and the learned map follows the setpoint instead of the machine. Leave empty only if the number entity's state genuinely tracks the real frequency. Without a number entity this sensor alone is enough to observe; control needs the number.",
+          "freq_control_mode": "Observe learns and recommends but never writes. Switch to control only after you have validated the entity against your real hardware: writes go via number.set_value, at most one per five minutes, clamped to the entity's own range, and a reported frequency diverging from the commanded one for three ticks stands the controller back down to observe. Control needs the number entity.",
+          "compressor_freq_min_hz": "The compressor's frequency range, used when only the sensor is configured, or when the number entity does not publish its own minimum and maximum. The learned map is divided across this range.",
+          "compressor_freq_max_hz": "The top of that range. A number entity's own maximum always wins over this.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         },
         "sections": {
@@ -1086,6 +1090,7 @@
       "cannot_connect": "Could not reach Tibber to check the token. Check the internet connection and try again.",
       "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\".",
       "dhw_window_too_short": "A hot water time frame is shorter than {min_window_minutes} minutes. The plan is made in {min_window_minutes}-minute steps, so a shorter frame can fall between two steps and never take effect.",
+      "freq_control_needs_number": "Control writes the frequency through a number entity. Choose one, or keep the mode on observe: a frequency sensor alone can only be observed.",
       "silent_mode_window_too_short": "A silent mode time frame is shorter than {min_window_minutes} minutes. The plan is made in {min_window_minutes}-minute steps, so a shorter frame can fall between two steps and never take effect.",
       "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 \\u00b0C below the setpoint.",
       "invalid_grid_fee_rules": "Those fee rules could not be read. One rule per line, like \"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\".",
