@@ -126,7 +126,7 @@ def flock_context(lock_dir: Path, blocking: bool = True):
         if blocking:
             (lock_dir / HOLDING_NAME).write_text("holding\n")
             marked = True
-        yield
+        yield fd
     finally:
         if marked:
             (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
@@ -250,14 +250,17 @@ def status(lock_dir: Path = DEFAULT_LOCK_DIR) -> dict[str, object]:
 def flock_wrap(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR) -> int:
     """Renew the lease, hold flock for ``argv``, release flock on exit."""
     renew(label, lock_dir=lock_dir)
-    with flock_context(lock_dir, blocking=True):
-        return run_group(argv)
+    with flock_context(lock_dir, blocking=True) as fd:
+        return run_group(argv, fd=fd)
 
 
-def run_group(argv: list[str], env: dict[str, str] | None = None) -> int:
+def run_group(argv: list[str], env: dict[str, str] | None = None, fd: int | None = None) -> int:
     """Run ``argv`` as its own process group; on any exit, signal the group,
-    so no child of the gate (stress.py) outlives the lease."""
-    proc = subprocess.Popen(argv, env=env, start_new_session=True)
+    so no child of the gate (stress.py) outlives the lease. The gate inherits the
+    flock ``fd``: a SIGKILL of the holder alone leaves flock held until the whole
+    gate is dead, so a successor never reads a live gate as an abandoned hold."""
+    fds = () if fd is None else (fd,)
+    proc = subprocess.Popen(argv, env=env, start_new_session=True, pass_fds=fds)
     try:
         return proc.wait()
     finally:
@@ -286,8 +289,8 @@ def auto_lease(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR
     take(label, lock_dir=lock_dir)
     env = {**os.environ, "HPO_GATE_LOCK_LABEL": label, "HPO_GATE_FLOCK_CHILD": "1"}
     try:
-        with flock_context(lock_dir, blocking=True):
-            return run_group(argv, env)
+        with flock_context(lock_dir, blocking=True) as fd:
+            return run_group(argv, env, fd)
     finally:
         with contextlib.suppress(RuntimeError):
             release(label, lock_dir=lock_dir)

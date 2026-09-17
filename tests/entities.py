@@ -10291,8 +10291,58 @@ def _gl_lease_hardening() -> tuple[bool, str]:
                                      capture_output=True, text=True).stdout.strip()[:1] not in ("", "Z")
         except (ProcessLookupError, ValueError):
             orphan = False
-    ok = wins == [1] * 10 and stolen and not orphan
-    return ok, f"winners={wins} crash_stolen={stolen} grandchild_alive={orphan}"
+        # #1089 round 1: SIGKILL of the holder ALONE while its gate lives.
+        d, pidf = Path(td) / "orphan", Path(td) / "pids"
+        holder = _subprocess.Popen([sys.executable, "-c",
+            "import sys; from pathlib import Path; import gate_lock as g\n"
+            "g.auto_lease('h', ['bash', '-c', 'sleep 60 & echo $$ $! > ' + sys.argv[2] + '; wait'],"
+            " lock_dir=Path(sys.argv[1]))\n", str(d), str(pidf)], env=env)
+        for _ in range(100):
+            if pidf.exists() and len(pidf.read_text().split()) == 2:
+                break
+            _time.sleep(0.1)
+        holder.kill()
+        holder.wait()
+        try:
+            _gate_lock.take("successor", lock_dir=d, wait=False)
+            refused = False
+        except BlockingIOError:
+            refused = True
+        gate_pid = int(pidf.read_text().split()[0])
+        try:
+            _os.killpg(gate_pid, _sig.SIGKILL)
+        except ProcessLookupError:
+            pass
+        _time.sleep(0.5)
+        try:
+            after = _gate_lock.take("successor", lock_dir=d, wait=False).label == "successor"
+        except BlockingIOError:
+            after = False
+        # run.sh must RE-EXECUTE under the lease: with it held elsewhere, a FULL
+        # run waits in auto-lease and starts no lane (a no-op exec would).
+        d, out = Path(td) / "runsh", Path(td) / "runsh.log"
+        _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
+        renv = {k: v for k, v in _os.environ.items()
+                if k not in ("HPO_GATE_LOCK_LABEL", "HPO_GATE_FLOCK_CHILD", "GATE_SCOPE")}
+        renv.update(HPO_GATE_LOCK_DIR=str(d), GATE_SCOPE="full")
+        with open(out, "w") as log:
+            gate = _subprocess.Popen(["bash", "tests/run.sh"], cwd=str(_closure.ROOT), env=renv,
+                                     stdout=log, stderr=_subprocess.STDOUT, start_new_session=True)
+        for _ in range(100):
+            if "waiting for the lease held by other" in out.read_text() or gate.poll() is not None:
+                break
+            _time.sleep(0.1)
+        _time.sleep(1.0)
+        text = out.read_text()
+        try:
+            _os.killpg(gate.pid, _sig.SIGKILL)
+        except ProcessLookupError:
+            pass
+        gate.wait()
+        execd = "waiting for the lease held by other" in text and "##########" not in text
+    ok = wins == [1] * 10 and stolen and not orphan and refused and after and execd
+    return ok, (f"winners={wins} crash_stolen={stolen} grandchild_alive={orphan} "
+                f"holder_only_kill_refused={refused} taken_after_gate_dead={after} run_sh_execd={execd}")
 
 
 _gl_ok, _gl_detail = _gl_auto_lease()
@@ -10305,7 +10355,7 @@ R.check(
 )
 _gl_ok, _gl_detail = _gl_lease_hardening()
 R.check(
-    "the lease has one winner, a killed holder is stolen, and no gate child outlives it",
+    "the lease has one winner, a dead gate is stolen, a live one is not, and run.sh re-executes",
     _gl_ok,
     _gl_detail,
 )
