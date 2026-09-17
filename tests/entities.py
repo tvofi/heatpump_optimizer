@@ -14022,12 +14022,15 @@ R.check(
     "facts the same three-dot is still the foreign-deletion refusal",
 )
 R.check(
-    "a claim deletion with VERSION unchanged, or moving backwards, is refused",
+    "a claim deletion with VERSION unchanged, moving backwards, or unreadable "
+    "at the baseline is refused",
     (_st_verdict(stamp=("6.5.1", "6.5.1", "6.5.1", "6.5.1")) or "")
     .startswith("RECORD PR CLAIMS")
     and (_st_verdict(stamp=("6.5.1", "6.6.0", "6.5.1", "6.5.1")) or "")
+    .startswith("RECORD PR CLAIMS")
+    and (_st_verdict(stamp=("6.6.0", "", "6.6.0", "6.6.0")) or "")
     .startswith("RECORD PR CLAIMS"),
-    "only a tree strictly ahead of its baseline is doing the stamping",
+    "only a tree strictly ahead of a readable baseline VERSION is stamping",
 )
 R.check(
     "a VERSION bump that ADDS a claim, or deletes only some, is refused",
