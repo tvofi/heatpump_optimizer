@@ -76,9 +76,9 @@ both are stated rather than left to be inferred.**
 | `UNDER-SCOPED` | `closures-autofix` | `ci: re-record closures` | `closure.apply_under_scoped_recordings` |
 | `INHERITED CLAIMS` | `claims-autofix` | `ci: drop inherited claims` | `env_drift.apply_inherited_claims` |
 
-Those subjects are loop guards. A `GITHUB_TOKEN` push does not fire
-`pull_request`; the job dispatches Tests / Hassfest / Validate. `recheck-gate`
-treats a `ci:` subject as a PR-like run (not `slow`).
+Those subjects are loop guards. A `GITHUB_TOKEN` push's `pull_request` runs
+wait `action_required` for a human; the job dispatches Tests/Hassfest/Validate,
+which run. `recheck-gate` treats `ci:` as PR-like (not `slow`).
 
 Do not automate golden drift, structure budgets, `no-copies`, orphan →
 `INERT`, or briefs lint. A new selectable script with **no** recording is
