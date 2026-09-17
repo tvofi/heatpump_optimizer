@@ -13464,11 +13464,9 @@ for _job in ("closures-autofix", "claims-autofix"):
 # merge accepts a dispatch-produced context is NOT measured.
 #
 # Governance is refused a dispatch. `pr-contract` is `if: pull_request`, so a
-# dispatched run skips it. Whether a skipped required context satisfies the
-# ruleset is disputed in this tree: docs/HANDOVER.md records a probe that says
-# it does, and tests.yml's `closures` comment records #1022/#1025/#1027
-# needing `--admin` because it did not. If it does, the dispatch is a green
-# `pr-contract` that never read the body. If not, it buys nothing. `record`
+# dispatched run skips it, and docs/HANDOVER.md records a probe in which a
+# skipped required context satisfies the ruleset: the dispatch would be a
+# green `pr-contract` that never read the body. `record`
 # would also run on the branch with `issues: write`. Governance's route is the
 # body PATCH `## Head` forces after a new head: its `edited` run is unheld and
 # carried all four Governance contexts at dac077e (run 35166880265).

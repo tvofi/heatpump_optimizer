@@ -63,10 +63,10 @@ name: Tests
 #   and otherwise re-derive only the closures the diff intersects. The
 #   old third case -- skip when every changed file is INERT -- is now the
 #   docs-only FAST ARM inside the job rather than a skip (#201 item 8):
-#   `closures` is a required context on `main-protect`, and a required
-#   context that reports `skipped` can never satisfy the ruleset, which
-#   is how the bot's docs-only cycle PRs came to be merged `--admin`
-#   three times in one wave. Before `closure-scope` existed the job ran
+#   `closures` is a required context on `main-protect`, which SUCCESS
+#   satisfies without doubt. (The three `--admin` merges once cited as
+#   proof a skip blocks also lacked `hassfest`/`validate-hacs`; #1101.)
+#   Before `closure-scope` existed the job ran
 #   on a pull request only when one ADDED a file under
 #   custom_components/, so a change to what a test reads was checked one
 #   merge too late -- five times (#354).
@@ -956,9 +956,9 @@ jobs:
     # `skip` -- every changed file INERT and absent from every recorded
     # closure -- which is exactly the diff the bot's ci/delivery-ledger cycle
     # pull requests carry. `closures` is one of the `main-protect` ruleset's
-    # required contexts. #1022, #1025 and #1027 merged `--admin`, but their
-    # heads also lacked the required `hassfest`/`validate-hacs` (measured in
-    # #1101), so they do not show that a skip blocks. The ruleset
+    # required contexts, which SUCCESS satisfies without doubt. #1022, #1025
+    # and #1027 merged `--admin`, but their heads also lacked the required
+    # `hassfest`/`validate-hacs` (#1101): no proof a skip blocks. The ruleset
     # carve-out was refused (not expressible without weakening everyone), so
     # the lane reports SUCCESS instead: on the `skip` case the job runs the
     # cheap arm below -- it re-derives the case itself, from the same
