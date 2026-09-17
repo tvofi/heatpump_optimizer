@@ -5164,15 +5164,19 @@ async def options_modbus_prefill():
     )
 
     # The save: what was kept is written, a cleared or blank field is not,
-    # and the default prefix is not written as a setting (#1107).
+    # and the default prefix is not written as a setting (#1107). The blanks
+    # are on keys #1107's own filter would WRITE -- a hot water window, whose
+    # absence is not its default, and an entity slot -- so this pins the
+    # pre-fill's filter rather than that one: a blank silent-mode window is
+    # dropped by _omit_unstored_defaults whatever the page does.
     flow, entry, hass = _g7_flow(_g7_states())
     await flow.async_step_modbus_prefill(None)
     await submit(flow, step, {prefix_key: "hp"})
     result = await submit(flow, step, {
         const.CONF_DHW_SETPOINT: 52.0,
-        const.CONF_DHW_MIN_TEMP: None,
-        const.CONF_SILENT_MODE_WINDOWS: "",
-        const.CONF_DHW_TEMP_ENTITY: "sensor.hp_dhw_tank_temperature",
+        const.CONF_DHW_WINDOWS: "",
+        const.CONF_DHW_TEMP_ENTITY: None,
+        const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
         const.CONF_AFTER_SAVE: const.AFTER_SAVE_MENU,
     })
     check(
@@ -5180,7 +5184,7 @@ async def options_modbus_prefill():
         "the save writes what was kept, never a blank or None, and not the default prefix",
         shows_menu(result, "advanced") and entry.options == {
             const.CONF_DHW_SETPOINT: 52.0,
-            const.CONF_DHW_TEMP_ENTITY: "sensor.hp_dhw_tank_temperature",
+            const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
         },
         f"{result.get('type')}/{result.get('step_id')} options={entry.options}",
     )
