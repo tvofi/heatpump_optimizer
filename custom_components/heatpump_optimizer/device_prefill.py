@@ -127,13 +127,19 @@ def _matched_keys(
     matched: dict[tuple[str, str], str] = {}
     for record in records:
         unique_id = record.unique_id.lower()
-        keys = [
-            key
+        # Keyed by the TABLE's pair, not the record's domain. Keying by the
+        # record's domain would encode the domain a second time and quietly
+        # neutralise a wrong match: a select whose unique id ends in the
+        # night_mode switch's key would land under ("select", "night_mode"),
+        # which no table row asks for, so the domain test below would look
+        # load-bearing while proving nothing.
+        pairs = [
+            (domain, key)
             for (domain, key) in table
             if domain == record.domain and unique_id.endswith(f"_{key.lower()}")
         ]
-        if keys:
-            matched[(record.domain, max(keys, key=len))] = record.entity_id
+        if pairs:
+            matched[max(pairs, key=lambda pair: len(pair[1]))] = record.entity_id
     return matched
 
 
