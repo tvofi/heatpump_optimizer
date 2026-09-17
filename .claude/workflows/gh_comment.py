@@ -87,8 +87,30 @@ def short_sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
+SHARED_ROOTS = ("/tmp", "/private/tmp", "/var/tmp", "/private/var/tmp")
+
+
+def in_shared_root(path: str) -> bool:
+    """True when the file, links resolved, sits directly in a shared root.
+
+    Seats of one session share a scratchpad and a machine shares /tmp, so a
+    body.md there is overwritten by the next seat choosing the obvious name --
+    the #201 root-cause comment for the pull request that added this counts the
+    instances. `tools/audit/prepr.sh`'s `shared_root` is the same predicate, and
+    its comment states the scope, including why a mkstemp file is refused.
+    """
+    d = os.path.dirname(os.path.realpath(path))
+    roots = SHARED_ROOTS + (os.environ.get("TMPDIR", ""), os.environ.get("HOME", ""))
+    base = os.path.basename(d)
+    return (d in {os.path.realpath(r) for r in roots if r}
+            or base == "scratchpad" or re.fullmatch(r"claude-[0-9]+", base) is not None)
+
+
 def read_body(path: str) -> str:
     """Read the body file, or refuse. Never returns a body it cannot vouch for."""
+    if in_shared_root(path):                     # fail closed on a shared root
+        die(f"body file {path} sits directly in a root other seats write to; "
+            "move it to your own subdirectory, e.g. scratchpad/<seat>/")
     try:
         with open(path, encoding="utf-8") as fh:
             body = fh.read()
@@ -327,6 +349,33 @@ def self_test() -> int:
     except Refused as exc:
         check(f"arm4_accepts_body_at_cap ({exc})", False)
     check("arm4_accepts_body_at_cap", at_cap is not None and len(at_cap) == MAX_BODY)
+
+    # -- Arm 5: a body in a shared root is refused, a seat's own is not -------
+    os.makedirs(os.path.join(tmp, "scratchpad", "seat"))
+    hit, _ = refuses(lambda: read_body(wrote("scratchpad/body.md", healthy)))
+    check("arm5_refuses_body_directly_in_scratchpad", hit)
+    check("arm5_refuses_body_directly_in_tmp", in_shared_root("/tmp/body.md"))
+    hit, _ = refuses(lambda: read_body(wrote("scratchpad/seat/body.md", healthy)))
+    check("arm5_accepts_body_in_seat_subdirectory", not hit)
+    check("arm5_accepts_body_in_mkdtemp", not in_shared_root(os.path.join(tmp, "b.md")))
+    for var in ("TMPDIR", "HOME"):
+        saved = os.environ.get(var)
+        os.environ[var] = tmp
+        check(f"arm5_refuses_body_directly_in_{var}", in_shared_root(os.path.join(tmp, "b.md")))
+        if saved is None:
+            del os.environ[var]
+        else:
+            os.environ[var] = saved
+    check("arm5_refuses_body_directly_in_claude_uid", in_shared_root("/x/claude-501/body.md"))
+    fd, mk = tempfile.mkstemp()
+    os.close(fd)
+    check("arm5_refuses_plain_mkstemp_file", in_shared_root(mk))
+    os.unlink(mk)
+    link = os.path.join(tmp, "scratchpad", "seat", "link.md")
+    os.symlink(wrote("scratchpad/root.md", healthy), link)
+    check("arm5_refuses_link_to_root_file", in_shared_root(link))
+    os.symlink(wrote("scratchpad/seat/own.md", healthy), os.path.join(tmp, "link2.md"))
+    check("arm5_accepts_link_to_seat_file", not in_shared_root(os.path.join(tmp, "link2.md")))
 
     hit, _ = refuses(lambda: positive_int("not-a-number", "--comment"))
     check("arm4_refuses_non_integer_id", hit)
