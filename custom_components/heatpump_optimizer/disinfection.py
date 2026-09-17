@@ -146,8 +146,11 @@ class DisinfectionSwitch:
         return True
 
     async def release(self, now: datetime, *, keep: str | None = None) -> None:
-        """Resolve every owned switch except ``keep`` against its reading."""
-        changed = False
+        """Resolve every owned switch except ``keep`` against its reading.
+
+        A record this drops is persisted by the caller, which saves on any
+        change to the record (``LegionellaGuard._drive_switch``).
+        """
         for owned in list(self.owned):
             if owned == keep:
                 continue
@@ -158,7 +161,6 @@ class DisinfectionSwitch:
                     await self._write(owned, "turn_off")
                     continue
                 self.owned.remove(owned)
-                changed = True
                 continue
             if owned == self.entity_id and problem != "missing_entity":
                 # The configured switch, unavailable: wait for it.
@@ -169,15 +171,12 @@ class DisinfectionSwitch:
             self._unreadable_since.pop(owned, None)
             self.owned.remove(owned)
             self.lost.append(owned)
-            changed = True
             _LOGGER.warning(
                 "Disinfection switch %s has been unreadable for %.0f min; the "
                 "optimizer can no longer turn it off, and it may still be on",
                 owned,
                 DHW_DISINFECTION_LOST_MINUTES,
             )
-        if changed:
-            await self.persist()
 
     async def release_blind(self) -> None:
         """On unload: OFF to every owned switch unread; drop what landed."""
