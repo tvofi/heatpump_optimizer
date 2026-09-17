@@ -278,4 +278,3 @@
 # two new option keys, silent_mode_windows and silent_mode_power_fraction,
 # in the plain render and the seeded render, re-recorded for #547's reason
 # above. Every other fixture is byte-identical: both keys default inert.
-config_flow  # ADD-ONLY: two new grid_connection option keys, silent_mode_windows and silent_mode_power_fraction
