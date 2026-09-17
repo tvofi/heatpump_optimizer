@@ -473,6 +473,33 @@ def _as_float(value: Any, default: float) -> float:
         return default
     return result
 
+
+def _parse_ecl110_state(payload: Any) -> tuple[float | None, float | None]:
+    """(displace, effective_displace) from an ECL110 MQTT state payload.
+
+    Four shapes arrive: the legacy dict, a nested ``command`` dict, a bare JSON
+    number, and bytes of either. Raises TypeError/ValueError/OverflowError, or
+    RecursionError on deep nesting, for a malformed payload, and ValueError on
+    NaN or +-inf: ``json.loads`` accepts ``NaN``/``Infinity`` and overflows
+    ``1e999``, and neither is a measurement.
+    """
+    if isinstance(payload, bytes):
+        payload = payload.decode("utf-8", errors="ignore")
+    data = json.loads(payload) if isinstance(payload, str) else payload
+    displace_raw = effective_raw = None
+    if isinstance(data, dict):
+        displace_raw = data.get("displace")
+        if displace_raw is None and isinstance(data.get("command"), dict):
+            displace_raw = data["command"].get("displace")
+        effective_raw = data.get("effective_displace")
+    elif isinstance(data, (int, float)):
+        displace_raw = data
+    parsed = [None if raw is None else float(raw) for raw in (displace_raw, effective_raw)]
+    if not all(v is None or math.isfinite(v) for v in parsed):
+        raise ValueError(f"non-finite value in {parsed!r}")
+    return parsed[0], parsed[1]
+
+
 #: Resolution the optimizer plans at, and therefore the resolution every
 #: forecast series is resampled to.
 FORECAST_STEP_MINUTES = 15
@@ -2102,36 +2129,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     @callback
     def _async_handle_ecl110_state_message(self, msg: Any) -> None:
-        """Handle ECL110 MQTT state payload updates."""
+        """Store an ECL110 state payload; a malformed or non-finite one is logged and dropped whole."""
         ctx = getattr(self, "_ctx", self)
-        payload = msg.payload
         try:
-            if isinstance(payload, bytes):
-                payload = payload.decode("utf-8", errors="ignore")
-            data = json.loads(payload) if isinstance(payload, str) else payload
-
-            displace: float | None = None
-            if isinstance(data, dict):
-                # Legacy state payload shape
-                displace_raw = data.get("displace")
-                if displace_raw is None and isinstance(data.get("command"), dict):
-                    displace_raw = data["command"].get("displace")
-                if displace_raw is not None:
-                    displace = float(displace_raw)
-
-                effective = data.get("effective_displace")
-                if effective is not None:
-                    ctx._current_state.ecl110_effective_displace = float(effective)
-            elif isinstance(data, (int, float)):
-                # New direct topic payload shape: scalar JSON value
-                displace = float(data)
-
-            if displace is not None:
-                self._ecl110_current_displace = displace
-                ctx._current_state.ecl110_displace_command = displace
-        except Exception:
-            # Ignore malformed payloads
+            displace, effective = _parse_ecl110_state(msg.payload)
+        except (TypeError, ValueError, OverflowError, RecursionError) as err:
+            _LOGGER.debug("Ignoring malformed ECL110 state payload: %s", err)
             return
+        if effective is not None:
+            ctx._current_state.ecl110_effective_displace = effective
+        if displace is not None:
+            self._ecl110_current_displace = displace
+            ctx._current_state.ecl110_displace_command = displace
     @property
     def device_info(self) -> DeviceInfo:
         """Device registry entry shared by every platform of this entry.

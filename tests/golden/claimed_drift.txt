@@ -264,9 +264,3 @@
 # declared whatever the shape of the move -- and it failed the gate until
 # this entry existed. The re-record is how the committed file stops being
 # stale; the claim is how the branch states that it moved it on purpose.
-coord_minimal  # ADD-ONLY: six new heat_pump_signals keys, all null/false
-coord_dhw  # ADD-ONLY: six new heat_pump_signals keys, all null/false
-coord_two_zone  # ADD-ONLY: six new heat_pump_signals keys, all null/false
-coord_grid_fee  # ADD-ONLY: six new heat_pump_signals keys, all null/false
-coord_all_features  # ADD-ONLY: six new heat_pump_signals keys, all null/false
-config_flow  # ADD-ONLY: five new option keys across plain, seeded and seed map
