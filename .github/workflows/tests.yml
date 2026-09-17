@@ -1135,10 +1135,17 @@ jobs:
   # no-copies, a failed recording, an INERT contradiction, or its own
   # follow-up commit (`ci: re-record closures`).
   #
-  # A GITHUB_TOKEN push does not fire pull_request, so after the push this
-  # job dispatches Tests (recheck=true), Hassfest and Validate on the new
-  # SHA. CLOSURES_PUSH_TOKEN, if set, already retriggers via synchronize
-  # and the dispatch is skipped.
+  # A GITHUB_TOKEN push DOES create pull_request runs, but GitHub holds them
+  # `action_required` with zero jobs until a maintainer approves (5511f23
+  # ran only on attempt 2 after approval; dac077e's ended `failure`, 0 jobs).
+  # So after the push this job dispatches Tests (recheck=true), Hassfest,
+  # Validate and CodeQL on the new SHA; a dispatched run's check runs land on
+  # that SHA and satisfy the ruleset's contexts by name. Governance is NOT
+  # dispatched: `pr-contract` is `if: pull_request`, a skipped job satisfies a
+  # required context, and `record` would run on the branch. The body PATCH
+  # naming the new head fires `edited`, unheld, and that run carries every
+  # Governance context (dac077e: run 35166880265). CLOSURES_PUSH_TOKEN, if
+  # set, already retriggers via synchronize and the dispatch is skipped.
   closures-autofix:
     needs: [closures]
     if: >-
@@ -1226,6 +1233,8 @@ jobs:
           gh workflow run tests.yml --ref "$HEAD_REF"
           gh workflow run hassfest.yml --ref "$HEAD_REF"
           gh workflow run validate.yml --ref "$HEAD_REF"
+          gh workflow run codeql.yml --ref "$HEAD_REF" \
+            || echo "::warning::CodeQL not dispatched: this ref's codeql.yml predates workflow_dispatch; Analyze contexts wait for run approval"
 
       # The push above runs only on `changed`; the other statuses fell through
       # to job success, so a skipped repair was invisible and the documented
@@ -1325,6 +1334,8 @@ jobs:
           gh workflow run tests.yml --ref "$HEAD_REF"
           gh workflow run hassfest.yml --ref "$HEAD_REF"
           gh workflow run validate.yml --ref "$HEAD_REF"
+          gh workflow run codeql.yml --ref "$HEAD_REF" \
+            || echo "::warning::CodeQL not dispatched: this ref's codeql.yml predates workflow_dispatch; Analyze contexts wait for run approval"
 
       # As in closures-autofix (#523). This job's apply function has no
       # attempted-and-failed status, so today only an unrecognised or empty
