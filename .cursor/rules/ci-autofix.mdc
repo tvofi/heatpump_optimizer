@@ -73,9 +73,9 @@ signal.
 | `INHERITED CLAIMS` | `claims-autofix` | `ci: drop inherited claims` | `env_drift.apply_inherited_claims` |
 
 Those subjects are loop guards. A `GITHUB_TOKEN` push's `pull_request` runs
-wait `action_required` for a human; the job dispatches Tests/Hassfest/Validate,
-which run, not Governance/CodeQL, whose required contexts wait too.
-`recheck-gate` treats `ci:` as PR-like (not `slow`).
+wait `action_required` for a human; the job dispatches
+Tests/Hassfest/Validate/CodeQL, which run at once. Governance's contexts come
+from the unheld `edited` run a body edit fires. `recheck-gate` treats `ci:` as PR-like (not `slow`).
 
 Do not automate golden drift, structure budgets, `no-copies`, orphan →
 `INERT`, or briefs lint. A new selectable script with **no** recording is
