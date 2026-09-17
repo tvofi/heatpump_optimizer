@@ -33,8 +33,8 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      earlier stamp is fixed by hand, not papered over here).
 
 --push-key PATH pushes the commit and the tag over a deploy key to the SSH URL
-instead of to origin (#954): once main-protect's admin bypass covers pull
-requests only, a direct push to main lands over that key and nothing else. The
+instead of to origin (#954): main-protect's only bypass is that key (decision
+0009 steps 5 and 6), so a direct push to main lands over it and nothing else. The
 key and its pinned host file are checked before rule 1, and a key push that is
 refused is never retried as origin.
 

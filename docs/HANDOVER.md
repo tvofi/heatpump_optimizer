@@ -47,8 +47,10 @@ request (#1081), linked from here and never restated.
   gives this file *corrections to the record*, and a disclosed self-correction
   is one — move them into that section and re-cut the body with nothing cut.
 - **A policy merge needs the owner's approval, per pull request** (owner,
-  2026-09-09, ADR 0007). A **session grant** of the 0001/0006 shape is the
-  option, not the default: it names the session, restates the six
+  2026-09-09, ADR 0007), given since 0009 step 6 as the owner's approving
+  GitHub review on a pull request touching a `.github/CODEOWNERS` path; an
+  approval given in session no longer stands in for it. A **session grant** of
+  the 0001/0006 shape is the option, not the default: it names the session, restates the six
   preconditions, and lapses when that session ends. Do not infer a standing
   grant from the fact that one existed. The ruleset and `pr-contract` are the
   floor either way, never the substitute — they check that a change is
@@ -58,12 +60,17 @@ request (#1081), linked from here and never restated.
   `22628467`**, active on the default branch: deletion, non-fast-forward
   and the required checks its endpoint returns, never a count from here.
   GitHub refuses the merge rather than a
-  policy asking you not to. **It is not absolute, and do not read it as one**:
-  since 0009 step 5 (2026-09-16 21:18Z) the admin role bypasses in
-  `pull_request` mode, which covers merging a pull request, and the deploy key
-  `hpo-stamp` bypasses `always`. That bypass and the rollback below are the
-  owner's levers, not a seat's. Required-approval and code-owner rules are
-  absent until 0009 step 6 lands. One DELETE to that ruleset reverses it all.
+  policy asking you not to. Since 0009 step 6 (2026-09-17 04:58Z) it also
+  carries a `pull_request` rule: one approving review, and the code owner's
+  review on a path `.github/CODEOWNERS` names. **The one bypass is the deploy
+  key `hpo-stamp`, `always`**; the admin role no longer bypasses, so the rule
+  binds the orchestrator's merges as `tvofi` too. **The merge flow**: seats
+  author as `tvofi-seat-author`; an ordinary pull request merges after an
+  adversarial `merge` verdict and the App `hpo-approver`'s approving review
+  (first: #1100); a policy one needs the owner's approving review on GitHub
+  (first: #1098), which a seat cannot obtain for itself — open it, surface it,
+  and wait. That bypass and the rollback below are the owner's levers, not a
+  seat's. One DELETE to that ruleset reverses it all.
   **Before adding a required context**, confirm it reports on a *pull-request
   head*, not merely on a push to `main`: the two shapes differ, `CodeQL`
   reports on one and not the other, and a context that never reports blocks
