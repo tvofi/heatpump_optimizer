@@ -892,7 +892,7 @@ def self_test() -> int:
         _git("git", "add", "-A")
         _git("git", "commit", "-q", "-m", "base")
         _pre = _git("git", "rev-parse", "HEAD").strip()
-        _notes.write_text("# Notes\n\n## v6.6.2\n\nShipped #1.\n")
+        _notes.write_bytes(b"# Notes\r\n\r\n## v6.6.2\r\n\r\nShipped #1.\r\n")
         _ver.write_text("6.6.2\n")
         _git("git", "add", "-A")
         _git("git", "commit", "-q", "-m", "v6.6.2: stamp t")
@@ -902,7 +902,7 @@ def self_test() -> int:
         check("undo: HEAD is the pre-stamp commit", _git("git", "rev-parse", "HEAD").strip() == _pre)
         check("undo: the stamp's other writes are reverted", _ver.read_text() == "6.6.1\n")
         check("undo: the notes are kept, uncommitted",
-              "## v6.6.2" in _notes.read_text()
+              _notes.read_bytes() == b"# Notes\r\n\r\n## v6.6.2\r\n\r\nShipped #1.\r\n"
               and _git("git", "status", "--porcelain").strip() == "M RELEASE_NOTES.md")
 
     # Where main() calls it, and the null control: --dry-run returns before
@@ -912,6 +912,10 @@ def self_test() -> int:
           -1 < _main_src.find('sh("git", "tag", f"v{nxt}")')
           < _main_src.find("return publish_stamp(args, nxt, head)")
           and "push_via(" not in _main_src)
+    _dry_help = _push_src[_push_src.rindex('    ap.add_argument("--dry-run"'):].split("\n", 2)
+    _dry_help = _dry_help[0] + _dry_help[1]
+    check("claims self-check: --dry-run's help says it skips the claims check",
+          "every check" not in _dry_help and "no claims check" in _dry_help)
     check("claims self-check: --dry-run returns before the commit and the self-check",
           -1 < _main_src.find("if args.dry_run:") < _main_src.find('sh("git", "commit"')
           < _main_src.find("return publish_stamp("))
@@ -987,10 +991,10 @@ def undo_local_stamp(nxt: str, pre_head: str, runner=None, notes: Path = NOTES) 
     with RELEASE_NOTES.md as the stamper left it before running, uncommitted,
     so a corrected run starts from what rule 1 accepts."""
     runner = runner or sh
-    kept = notes.read_text()
+    kept = notes.read_bytes()  # bytes, so line endings come back exactly as written
     runner("git", "tag", "-d", f"v{nxt}")
     runner("git", "reset", "-q", "--hard", pre_head)
-    notes.write_text(kept)
+    notes.write_bytes(kept)
 
 
 def publish_stamp(args, nxt: str, head: str, push_via=push_via, refresh_origin=refresh_origin,
@@ -1071,7 +1075,8 @@ def main() -> int:
                     help="with --push: push over this deploy key to the SSH URL, never to origin")
     ap.add_argument("--known-hosts", metavar="PATH", default=DEFAULT_KNOWN_HOSTS,
                     help="the pinned GitHub host key file for --push-key (default: %(default)s)")
-    ap.add_argument("--dry-run", action="store_true", help="run every check, write nothing")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="run rules 1-5 and print the plan; write nothing, so no commit and no claims check")
     ap.add_argument("--allow-red", action="store_true", help="stamp even though HEAD's gate is not green")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
