@@ -116,4 +116,5 @@ def compose(
         return caps_extra
     if caps_extra is None:
         return silent
-    return np.minimum(caps_extra, silent)
+    capped: np.ndarray = np.minimum(caps_extra, silent)
+    return capped
