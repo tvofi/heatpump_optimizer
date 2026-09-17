@@ -1,6 +1,11 @@
 # Handover — the open-issues programme
 
-updated-for: e467026a276ead299377b88fe6492de5c3adf9bd
+updated-for: a2d1d9a47eb738be8dad15e035a5cbb0cda39331
+
+Taken at this record seat's own merge base off `origin/main` (merges since the
+prior stamp: #1106 `f02a790`, #1119 `1b22d4a`, #1125 `a2d1d9a`). `main` may
+have moved again while this pull request was in flight; re-derive rather than
+trust this line if it reads stale against `origin/main` HEAD.
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is the frozen table in
@@ -126,7 +131,23 @@ request (#1081), linked from here and never restated.
   `fixer.md` sentence is proposed and explicitly NOT pushed: it needs a cap
   raise or a cut and neither owner grant in hand covers it; it waits on the
   owner's sign-off. Do not re-propose a generalised detector without new
-  information.
+  information. **The refusal stands (#1125's reviewer ruling, accepted) but
+  owes this qualifier: the ~100% catch rate it cites rests on an attentive
+  seat noticing, not on a mechanism that guarantees noticing.** A fifth
+  instance of the same shape surfaced after the refusal was written and was
+  not caught by any check — `.claude/workflows/check-wave-script.mjs`'s
+  `deadbeef` null control (around line 532) exercises a `VERDICT_RE` grammar
+  hand-rebuilt locally from `VERDICT_CLASSES` (around line 519) rather than
+  production's `VERDICT_RE` in `.claude/workflows/web-fix-wave.js` (around
+  line 193); the two can diverge and the null control would stay green either
+  way. It was green throughout, proving nothing about the artifact it was
+  named for. It was caught only because a seat stopped to reason about why
+  its own control passed — the same route as the other four, not a
+  mechanism. [#1126](https://github.com/tvofi/heatpump_optimizer/pull/1126)
+  is open, fixing exactly this by deriving the check's own copy of the regex
+  from source instead of rebuilding it; re-derive this paragraph's line
+  numbers and merge state before citing them, and once #1126 merges this
+  paragraph is describing a fixed instance, past tense, not a live gap.**
 
 ### The UX programme
 

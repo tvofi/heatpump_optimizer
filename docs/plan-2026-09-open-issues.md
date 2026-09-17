@@ -1273,13 +1273,20 @@ states its window or it states nothing.
   classifier: two branches owing a carry to the same role contract cannot both
   comply, which `docs/HANDOVER.md` records as owed and no seat may decide.
 - **[#1079](https://github.com/tvofi/heatpump_optimizer/issues/1079)
-  (`brief-citations.md`) — DEFERRED.**
-  [#1117](https://github.com/tvofi/heatpump_optimizer/pull/1117)'s reviewer
-  measured that the citation-presence check catches **none** of this issue's
-  four rot shapes — a stale brief citation, a moved `file:line` anchor, a dead
-  pull-request or comment link, and a rule citing a removed rule — while
-  closing arm B of #1058 exactly. **Its first entry is explicitly not retired
-  by #1117**; presence and resolvability are different questions.
+  (`brief-citations.md`) — re-dispositioned, still DEFERRED, at `a2d1d9a`
+  (WINDOW figure, `v6.5.1..origin/main`, re-derived through #1119's
+  normaliser: `5 / 5`, at or over threshold).** #1117 merged and its reviewer
+  measured that the citation-presence check it shipped catches **none** of
+  this issue's four rot shapes — a stale brief citation, a moved `file:line`
+  anchor, a dead pull-request or comment link, and a rule citing a removed
+  rule — while still correctly closing arm B of #1058 (presence). **Not
+  retired by #1117**; presence and resolvability are different questions, and
+  no pull request addressing resolvability is open or scheduled. Recommended:
+  stays DEFERRED — a resolvability checker is unscoped work (four distinct rot
+  shapes, no single detector demonstrated), and scoping it is a decision for
+  whoever picks up the next wave, not a call this section makes. Do not read
+  the unchanged verdict as inaction: the check landed, the class it does not
+  cover did not shrink, and the two facts coexist.
 - **[#1087](https://github.com/tvofi/heatpump_optimizer/issues/1087)
   (`fixer.md`) — DELIVERED** by
   [#1118](https://github.com/tvofi/heatpump_optimizer/pull/1118), merged
@@ -1302,12 +1309,28 @@ states its window or it states nothing.
   at both heads it was taken at. Closing is the owner's call and this section
   does not recommend it.
 - **[#1095](https://github.com/tvofi/heatpump_optimizer/issues/1095)
-  (`gate-scoping`) — SCHEDULED, in review.** The countermeasure is the
-  `HPO_TYPING_PYTHON` re-exec inside `tests/typing_ruler.py`; that pull request
-  **needs the owner's approving review**, because it touches
-  `.claude/rules/gate-scoping.md`, which `.github/CODEOWNERS` owns. Its
-  `## Root cause` is live as comment
+  (`gate-scoping`) — re-dispositioned at `a2d1d9a`
+  (WINDOW figure, `v6.5.1..origin/main`, re-derived through #1119's
+  normaliser: `.claude/rules/gate-scoping.md` at `7 / 9`, still at or over
+  threshold).** The countermeasure merged as
+  [#1122](https://github.com/tvofi/heatpump_optimizer/pull/1122)
+  (`HPO_TYPING_PYTHON`, folded into main at `e467026`), and its
+  `## Root cause` is posted at comment
   [5719981924](https://github.com/tvofi/heatpump_optimizer/issues/1095#issuecomment-5719981924).
+  **The count still being over threshold is not evidence the cause is
+  unaddressed, and the fix having merged is not evidence the issue should
+  close** — RCA #1087 (comment
+  [5719932299](https://github.com/tvofi/heatpump_optimizer/issues/1087#issuecomment-5719932299))
+  established that this class of count is a property of the keying rule and
+  of pull-request bodies already merged inside the window, not of anything a
+  later fix can move: every one of the nine entries behind `7 / 9` predates
+  #1122, so #1122 cannot retroactively lower it, and the window will not
+  clear until enough of those nine age out past `v6.5.1` or the tag moves.
+  Recommended: change the disposition from SCHEDULED to **ADDRESSED,
+  window-carried** — countermeasure delivered and root cause on record;
+  leave open rather than close, because the count's persistence is expected
+  under the fix, not disconfirming of it. Closing is the owner's call and
+  this section does not make it.
 
 ## Carried findings awaiting a stage
 
