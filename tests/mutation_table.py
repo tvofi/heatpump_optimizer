@@ -307,6 +307,51 @@ def drop_tree(dest: Path) -> None:
     )
 
 
+def baseline_refusal(baseline: dict[str, tuple[int, int, float]],
+                     scope: str) -> int | None:
+    """The verdict on a red baseline, or ``None`` when it is green.
+
+    A red baseline makes every mutant's verdict meaningless: the table
+    evaluated nothing, so no mutation information is lost either way. The two
+    scopes differ only in what that is worth reporting as, and `mutation` is
+    not a required context while `fast` is.
+
+    **The baseline's driver set is not the scoped gate's selection, and on a
+    test-only diff it is much wider.** Where the diff changes production files
+    the drivers are a subset of what the gate selects, so a red here really is
+    `fast`'s red restated. Where it changes none, `scope_files` falls back to
+    every production file in the measured closure of the changed TEST scripts
+    (the branch just above), and `drivers_for` returns every allow-listed
+    script whose closure reaches one of them: measured on this function's own
+    branch, 58 production files and 8 drivers against the scoped gate's 1
+    selected script. That wider net is what a pull request gives up here -- an
+    accidental detector, firing only when a scoped-out script happens to be
+    red, never when a closure is merely wrong. The designed detectors for that
+    hole are `closures`, `closure-scope`, `closures-autofix` and the forced
+    `full` run on every push to `main`, and they are required. Re-derive the
+    two numbers at your own merge base rather than trusting these:
+    `scope_files("changed", base)` with `drivers_for`, against
+    `tests/closure.py select --diff <merge-base>`.
+
+    `--scope full` keeps the refusal: it runs on a schedule, where nothing
+    else reports that lane's baseline per commit.
+
+    `run_script` returns only (rc, failed, seconds) and discards the stdout it
+    judged, so this can name the red SCRIPT and never the red check inside it.
+    """
+    red = sorted(s for s, (rc, _, _) in baseline.items() if rc != 0)
+    if not red:
+        return None
+    print("\nMUTATION TABLE INCONCLUSIVE")
+    print("  - the baseline is already red in " + ", ".join(red) +
+          ", so no mutant's verdict means anything. Fix the suite first. "
+          "A script the scoped gate also selected carries this red on "
+          "`fast`; one it scoped out does not, and is covered by the forced "
+          "`full` run on `main` rather than by any check on this pull "
+          "request.")
+    return 1 if scope == "full" else 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--scope", choices=("changed", "full"), default="changed")
@@ -378,11 +423,9 @@ def main() -> int:
             rc, failed, secs = run_script(s, base_tree, args.timeout)
             baseline[s] = (rc, failed, secs)
             print(f"  baseline {s}: rc={rc} failed={failed} {secs:.0f}s")
-        if any(rc != 0 for rc, _, _ in baseline.values()):
-            print("\nMUTATION TABLE BREACHED")
-            print("  - the baseline is already red, so no mutant's verdict "
-                  "means anything. Fix the suite first.")
-            return 1
+        verdict = baseline_refusal(baseline, args.scope)
+        if verdict is not None:
+            return verdict
         # Cheapest first, measured here rather than carried: a kill then costs
         # the cheapest driver that can see it.
         for mut in pool:

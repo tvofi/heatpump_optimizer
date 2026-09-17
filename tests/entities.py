@@ -18525,4 +18525,90 @@ R.check(
     "a file that is neither in a closure nor on a list forces the FULL suite",
 )
 
+# --- a red baseline is the nightly's refusal, not the pull request's (#RCA) --
+#
+# Every red `mutation` job in the RCA's retained window (2026-09-11..17) was
+# this arm -- the baseline guard -- and none was a surviving mutant, so a red
+# baseline costs a reviewer round and carries no mutation information: the
+# table evaluated nothing. `mutation` is not a required context and `fast` is.
+#
+# The baseline's driver set is NOT the scoped gate's selection, and the
+# difference is the whole of what a pull request gives up: on a diff that
+# changes no production file, `scope_files` falls back to the closure of the
+# changed TEST scripts, which on this branch's own diff is 58 production files
+# and 8 drivers against the gate's 1 selected script. Re-derive that pair at
+# your merge base rather than carrying it; `baseline_refusal`'s docstring says
+# with what. The NIGHTLY keeps the refusal: nothing else reports that lane's
+# baseline per commit.
+#
+# Driven as a function rather than through `main()`, which clones the tree and
+# runs real scripts; the tuples below are the shape `run_script` returns, taken
+# from the CI job that first showed this (run 34727180920, branch fix/r4-952).
+import contextlib as _mutb_contextlib  # noqa: E402
+import io as _mutb_io  # noqa: E402
+
+_MUT_RED = {
+    "tests/entities.py": (1, 3, 41.0),
+    "tests/features.py": (1, 1, 12.0),
+    "tests/pv.py": (0, 0, 9.0),
+}
+_MUT_GREEN = {s: (0, 0, secs) for s, (_r, _f, secs) in _MUT_RED.items()}
+
+
+# `getattr` with a sentinel rather than a bare attribute read: with the guard
+# still inline in `main()` this file must FAIL these four checks, not die on an
+# AttributeError before reaching the rest of the suite.
+_mut_refuse = getattr(_mut, "baseline_refusal",
+                      lambda _baseline, _scope: "no baseline_refusal")
+
+
+def _mut_baseline(baseline: dict, scope: str) -> tuple[object, str]:
+    """(return value, printed text) of the baseline guard."""
+    _buf = _mutb_io.StringIO()
+    with _mutb_contextlib.redirect_stdout(_buf):
+        _rc = _mut_refuse(baseline, scope)
+    return _rc, _buf.getvalue()
+
+
+_MUT_PR_RC, _MUT_PR_OUT = _mut_baseline(_MUT_RED, "changed")
+_MUT_NIGHT_RC, _MUT_NIGHT_OUT = _mut_baseline(_MUT_RED, "full")
+_MUT_OK_RC, _MUT_OK_OUT = _mut_baseline(_MUT_GREEN, "changed")
+
+R.check(
+    "a red baseline on the pull-request scope is INCONCLUSIVE, not a failure",
+    _MUT_PR_RC == 0 and "MUTATION TABLE INCONCLUSIVE" in _MUT_PR_OUT
+    and "MUTATION TABLE BREACHED" not in _MUT_PR_OUT,
+    f"rc={_MUT_PR_RC!r}, printed {_MUT_PR_OUT.strip()!r} -- the table "
+    f"evaluated no mutant, so this lane reports nothing a required check does "
+    f"not already carry or a required detector does not already cover",
+)
+R.check(
+    "and it names the red script, because the report is useless without it",
+    "tests/entities.py" in _MUT_PR_OUT and "tests/features.py" in _MUT_PR_OUT
+    and "tests/pv.py" not in _MUT_PR_OUT,
+    "`run_script` returns (rc, failed, seconds) and discards the stdout it "
+    "judged, so the refusal can name the red SCRIPT and never the red CHECK",
+)
+# The null control on the weakening: the nightly is the only per-commit report
+# of a full-scope baseline, so its refusal must survive this change unchanged.
+R.check(
+    "the nightly scope still refuses with exit 1 on the same baseline",
+    _MUT_NIGHT_RC == 1 and "MUTATION TABLE INCONCLUSIVE" in _MUT_NIGHT_OUT,
+    f"rc={_MUT_NIGHT_RC!r} -- `--scope full` runs only on schedule, where no "
+    f"other check reports the baseline",
+)
+# The null control on the green arm: a guard that returns a verdict on a GREEN
+# baseline would make the lane pass by never reaching the table at all, which
+# is the silent-green shape this file keeps finding.
+R.check(
+    "a green baseline takes no verdict at either scope; the table proceeds",
+    _mut_refuse(_MUT_GREEN, "changed") is None
+    and _mut_refuse(_MUT_GREEN, "full") is None
+    and _MUT_OK_OUT == "",
+    f"changed={_mut_refuse(_MUT_GREEN, 'changed')!r}, "
+    f"full={_mut_refuse(_MUT_GREEN, 'full')!r}, "
+    f"printed {_MUT_OK_OUT!r}",
+)
+
+
 sys.exit(R.close("ENTITY CHECKS"))
