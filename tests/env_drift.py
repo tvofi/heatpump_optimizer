@@ -992,6 +992,15 @@ def _show_at(repo: str, ref: str, relpath: str) -> str | None:
     return proc.stdout if proc.returncode == 0 else None
 
 
+def _parent_count(repo: str) -> int:
+    """How many parents HEAD has; 0 when git cannot say, which no rule trusts."""
+    proc = subprocess.run(
+        ["git", "rev-list", "--parents", "-n", "1", "HEAD"],
+        cwd=repo, capture_output=True, text=True,
+    )
+    return len(proc.stdout.split()) - 1 if proc.returncode == 0 and proc.stdout.strip() else 0
+
+
 def _claimed_at(repo: str, ref: str, relpath: str) -> dict[str, str]:
     """Parsed claims for ``relpath`` at ``ref``, or empty if the path is missing."""
     text = _show_at(repo, ref, relpath)
@@ -1647,12 +1656,13 @@ def release_stamp_holds(
     changed: list[str],
     solver: dict[str, str],
     card: dict[str, str],
-    stamp: tuple[str, str, str | None, str | None] | None,
+    stamp: tuple[str, str, str | None, str | None, int] | None,
 ) -> bool:
     """Whether this three-dot is a release stamp that left the claims as a stamp must.
 
     ``stamp`` is (VERSION here, VERSION at the baseline, ``claims-for:`` of
-    the solver file, ``claims-for:`` of the card file); None asks nothing.
+    the solver file, ``claims-for:`` of the card file, HEAD's parent count);
+    None asks nothing.
 
     A stamp empties both lists -- the claims describe the release it closes
     -- and on a push to `main` its baseline is the commit before it, whose
@@ -1665,10 +1675,20 @@ def release_stamp_holds(
     EMPTY -- a partial deletion is not a stamp's output -- and a three-dot
     inside `STAMP_WRITES`, so a change that also moves any other file keeps
     every per-file rule.
+
+    And HEAD has exactly ONE parent. The clauses above describe a stamp's
+    content, and a pull request can forge all of it -- nothing in CI refuses
+    a VERSION edit on a branch. What it cannot forge is the shape: a stamp is
+    pushed straight to `main` as a single-parent commit, while a pull
+    request's CI runs on its `refs/pull/N/merge` ref and reaches `main` as a
+    merge commit, both two-parent. A graft root in a shallow clone reads as
+    zero parents and is refused with them.
     """
     if stamp is None or solver or card:
         return False
-    version, baseline_version, declared_solver, declared_card = stamp
+    version, baseline_version, declared_solver, declared_card, parents = stamp
+    if parents != 1:
+        return False
     if not (_looks_like_version(version) and _looks_like_version(baseline_version)):
         return False
     if tuple(map(int, version.split("."))) <= tuple(map(int, baseline_version.split("."))):
@@ -1724,7 +1744,7 @@ def claims_hygiene_verdict(
     base_solver: dict[str, str],
     base_card: dict[str, str],
     ref: str,
-    stamp: tuple[str, str, str | None, str | None] | None = None,
+    stamp: tuple[str, str, str | None, str | None, int] | None = None,
 ) -> str | None:
     """The claim-file rule for one three-dot, per file kind. None when it holds.
 
@@ -1920,7 +1940,7 @@ def check_claims_hygiene(repo: str, ref: str) -> str | None:
     declared_card, card = _claimed(repo, CARD_CLAIM_FILE)
     stamp = (
         _repo_version(repo), (_show_at(repo, ref, VERSION_FILE) or "").strip(),
-        declared_solver, declared_card,
+        declared_solver, declared_card, _parent_count(repo),
     )
     base_solver = _claimed_at(repo, ref, CLAIM_FILE)
     base_card = _claimed_at(repo, ref, CARD_CLAIM_FILE)

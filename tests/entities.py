@@ -14003,7 +14003,7 @@ R.check(
 # becoming the autofix-erases-claims hole (#608, #635).
 _ST_CHANGED = sorted(_env_drift.STAMP_WRITES)
 _ST_BASE = {"config_flow": "ADD-ONLY: one new building-page option key"}
-_ST_OK = ("6.6.0", "6.5.1", "6.6.0", "6.6.0")
+_ST_OK = ("6.6.0", "6.5.1", "6.6.0", "6.6.0", 1)
 
 
 def _st_verdict(changed=None, solver=None, base=None, stamp=_ST_OK):
@@ -14024,11 +14024,11 @@ R.check(
 R.check(
     "a claim deletion with VERSION unchanged, moving backwards, or unreadable "
     "at the baseline is refused",
-    (_st_verdict(stamp=("6.5.1", "6.5.1", "6.5.1", "6.5.1")) or "")
+    (_st_verdict(stamp=("6.5.1", "6.5.1", "6.5.1", "6.5.1", 1)) or "")
     .startswith("RECORD PR CLAIMS")
-    and (_st_verdict(stamp=("6.5.1", "6.6.0", "6.5.1", "6.5.1")) or "")
+    and (_st_verdict(stamp=("6.5.1", "6.6.0", "6.5.1", "6.5.1", 1)) or "")
     .startswith("RECORD PR CLAIMS")
-    and (_st_verdict(stamp=("6.6.0", "", "6.6.0", "6.6.0")) or "")
+    and (_st_verdict(stamp=("6.6.0", "", "6.6.0", "6.6.0", 1)) or "")
     .startswith("RECORD PR CLAIMS"),
     "only a tree strictly ahead of a readable baseline VERSION is stamping",
 )
@@ -14043,15 +14043,23 @@ R.check(
 )
 R.check(
     "a VERSION bump whose solver claims-for is not the new VERSION is refused",
-    (_st_verdict(stamp=("6.6.0", "6.5.1", "6.5.1", "6.6.0")) or "")
+    (_st_verdict(stamp=("6.6.0", "6.5.1", "6.5.1", "6.6.0", 1)) or "")
     .startswith("RECORD PR CLAIMS"),
     "stamp.py moves both claims-for lines with VERSION",
 )
 R.check(
     "a VERSION bump whose card claims-for is not the new VERSION is refused",
-    (_st_verdict(stamp=("6.6.0", "6.5.1", "6.6.0", "6.5.1")) or "")
+    (_st_verdict(stamp=("6.6.0", "6.5.1", "6.6.0", "6.5.1", 1)) or "")
     .startswith("RECORD PR CLAIMS"),
     "stamp.py moves both claims-for lines with VERSION",
+)
+R.check(
+    "a stamp-shaped commit with two parents (a pull request's merge ref, or "
+    "its merge into main) or none (a graft root) is refused",
+    (_st_verdict(stamp=_ST_OK[:4] + (2,)) or "").startswith("RECORD PR CLAIMS")
+    and (_st_verdict(stamp=_ST_OK[:4] + (0,)) or "").startswith("RECORD PR CLAIMS"),
+    "a pull request can forge every content clause; only a stamp is pushed "
+    "to main as a single-parent commit",
 )
 R.check(
     "a VERSION bump that also touches a file stamp.py never writes is refused",
@@ -14558,8 +14566,8 @@ R.check(
 # The stamp exemption end to end, through `check_claims_hygiene`: VERSION read
 # off the baseline with git, both claims-for lines read off the tree. The null
 # control is the same commit with VERSION left alone, which must stay refused.
-def _stamp_git(new_version: str):
-    return _hygiene_git(
+def _stamp_git(new_version: str, forged_merge: bool = False):
+    root, base = _hygiene_git(
         f"# claims-for: {new_version}\n",
         {
             "VERSION": f"{new_version}\n",
@@ -14570,12 +14578,22 @@ def _stamp_git(new_version: str):
         card_base="# claims-for: 6.3.15\n",
         solver_base="# claims-for: 6.3.15\n\nwood_coil  # another lane's claim\n",
     )
+    if forged_merge:
+        # The same stamp-shaped commit arriving as a pull request does: on a
+        # branch, merged with --no-ff, so HEAD is a two-parent merge whose
+        # tree and three-dot are the stamp's exactly.
+        for cmd in (["git", "branch", "forged"], ["git", "reset", "-q", "--hard", base],
+                    ["git", "merge", "-q", "--no-ff", "-m", "merge", "forged"]):
+            subprocess.run(cmd, cwd=root, check=True, capture_output=True)
+    return root, base
 
 
 _st_root, _st_base = _stamp_git("6.3.16")
 _st_err = _hyg(_st_root, _st_base) if callable(_hyg) else "missing"
 _st_ctl_root, _st_ctl_base = _stamp_git("6.3.15")
 _st_ctl_err = _hyg(_st_ctl_root, _st_ctl_base) if callable(_hyg) else "missing"
+_st_forged_root, _st_forged_base = _stamp_git("6.3.16", forged_merge=True)
+_st_forged_err = _hyg(_st_forged_root, _st_forged_base) if callable(_hyg) else "missing"
 R.check(
     "check_claims_hygiene passes a release stamp and refuses the same deletion "
     "without the VERSION bump",
@@ -14583,6 +14601,11 @@ R.check(
     and isinstance(_st_ctl_err, str)
     and _st_ctl_err.startswith("RECORD PR CLAIMS"),
     f"stamp: {_st_err!r}; unbumped control: {_st_ctl_err!r}",
+)
+R.check(
+    "check_claims_hygiene refuses the same stamp forged as a merged pull request",
+    isinstance(_st_forged_err, str) and _st_forged_err.startswith("RECORD PR CLAIMS"),
+    f"a two-parent HEAD with a stamp's tree and three-dot returned {_st_forged_err!r}",
 )
 
 # AND THE AUTOFIX ITSELF, which is the half that actually writes the deletion.
@@ -15011,7 +15034,7 @@ try:
     _stc_verdict = _env_drift.claims_hygiene_verdict(
         sorted(_stc_writes), _stc_claims, _stc_claims,
         _env_drift._parse_claims(_stc_before)[1], {}, "HEAD^1",
-        stamp=("6.6.0", _stc_old, _stc_decl, _stc_decl),
+        stamp=("6.6.0", _stc_old, _stc_decl, _stc_decl, 1),
     )
     _stc_ok = (
         _stc_writes == set(_env_drift.STAMP_WRITES)
