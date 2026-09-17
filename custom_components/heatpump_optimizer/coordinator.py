@@ -2675,8 +2675,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     # one; "4:dhw" is the hot-water curve's own baseline and
                     # "4:lift" the lift-normalised space baseline (#1067).
                     text, _, tag = str(key).partition(":")
-                    curve = {"": False, "dhw": True, "lift": "lift"}[tag]
-                    self._cop_baseline[(int(text), curve)] = [
+                    tags: dict[str, bool | str] = {"": False, "dhw": True, "lift": "lift"}
+                    self._cop_baseline[(int(text), tags[tag])] = [
                         float(entry[0]),
                         int(entry[1]),
                     ]
