@@ -55,9 +55,9 @@ outcome — not derived at all, and the refused technique gets attempted again.
 ## Where it goes
 
 - **Constrains one stage** → that stage's brief. **A stage's brief lives in two
-  places, and both must receive it**: the roster `brief` string in
-  `.claude/workflows/wave-*-groups.json`, which is in the tree and is what the
-  linter and the next session read; and any out-of-tree brief file a running
+  places, and both must receive it**: a live group's `brief` string in
+  `.claude/workflows/wave-*-groups.json`, which the linter and the next
+  session read; and any out-of-tree brief file a running
   session hands its seats. Carrying to the scratch copy alone leaves the tree
   unchanged, and the tree is what survives the session.
 - **Constrains every seat** → the **role contract** it belongs to under
