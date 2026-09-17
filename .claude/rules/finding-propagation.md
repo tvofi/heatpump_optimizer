@@ -66,11 +66,11 @@ outcome — not derived at all, and the refused technique gets attempted again.
   destination a reviewer can open. Do not copy it into each stage's brief:
   duplication goes stale unevenly, and a reader who finds two versions trusts
   neither.
-- **The stage has no roster group** → its own `.claude/workflows/carry-<N>.json`,
-  N the destination issue, and **creating it is part of the finding**. One file
-  per stage, replacing the plan row every such carry queued on. `brief_lint.mjs`
-  states the fields and refuses a carry filed at an issue a roster already
-  covers, so no stage has two destinations.
+- **The stage has no live roster group** → its own `.claude/workflows/carry-<N>.json`,
+  N the destination issue, and **creating it is part of the finding**. A group
+  at `resume.stage: done` is not a destination: nothing dispatches or lints it.
+  `brief_lint.mjs` states the fields and refuses a carry at an issue a live
+  group covers, so no stage has two destinations.
 
 **While two copies disagree, the newer one is right and the other is the bug.**
 Say which is which in the carry, because a seat that finds its brief and the
