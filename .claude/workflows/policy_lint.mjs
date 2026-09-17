@@ -510,10 +510,15 @@ const CORPUS_EXCLUDED = new Set([
   'docs/decisions/0009-agent-identities-for-author-and-approver.md',
   // The merge-method record (#1041): `main` takes a pull request as a merge
   // commit, the owner's ruling of 2026-09-16. Named one by one per the rule
-  // above, and owed rather than optional -- `.claude/workflows/web-fragments.md`,
-  // `tools/audit/briefs/orchestrator.md` and `tools/audit/briefs/fixer.md` all
-  // cite it, and each is capped, so `checkNamedDocs` reports it without this
-  // line. That is the whole enforcement a decision citation has here: the cited
+  // above, and owed rather than optional -- `tools/audit/briefs/orchestrator.md`
+  // cites it and is capped, so `checkNamedDocs` reports it without this line.
+  // THAT SENTENCE SAID THREE FILES until PR #1117's review measured it: it named
+  // `.claude/workflows/web-fragments.md` and `tools/audit/briefs/fixer.md` too,
+  // and neither cites the record any more. The count rotted from three to one
+  // with nothing watching -- which is this entry's own thesis, arriving as a
+  // wrong sentence in the comment that states it. A prose count of citers is a
+  // measurement and decays; only the ONE the check below carries is maintained,
+  // and it is carried for the message rather than as the key. That is the whole enforcement a decision citation has here: the cited
   // path must resolve (`checkCitations`) and must be classified (this list).
   // The citation being REMOVED again is the third direction, and it was a clean
   // zero until `checkCitationPresence` below: this entry is listed there, so
@@ -886,13 +891,26 @@ function checkCitationPresence(pairs) {
     for (const rel of citedTrackedPaths(raw, listing)) cited.add(rel)
   }
   const out = []
+  // THE REMEDY IS DERIVED, NOT WRITTEN DOWN, because its last clause depends on
+  // how many entries are left. "Delete both lines" is the whole remedy while a
+  // second entry survives; on the LAST entry the same two deletions leave a
+  // wired check over an empty map, which `policy_lint_mutants.mjs` refuses as
+  // DELETABLE IN SILENCE -- `governance.yml`'s mutation step, red, for a seat
+  // that followed the message literally. So the message carries the rest of the
+  // withdrawal exactly when it is owed, and `assertAcceptance` refuses the
+  // half-done state as well, so neither a seat that skips the message nor one
+  // that skips the acceptance lands a vacuous check.
+  const lastOne = EXCLUDED_BECAUSE_CITED.size === 1
+  const retire = lastOne
+    ? ` This is the LAST entry, so those two deletions RETIRE THE CLASS and are not the whole remedy: in the same commit also remove \`citationPresenceOverTree\` from \`CORPUS_CHECK_NAMES\` and from the \`CORPUS_CHECKS\` push, and the \`citation-presence\` rows from \`CHECKS\` and from \`NEVER_SUPPRESSED\`. A wired check over an empty map measures nothing, and \`policy_lint_mutants.mjs\` refuses it.`
+    : ''
   for (const [rel, recorded] of EXCLUDED_BECAUSE_CITED) {
     if (cited.has(rel)) continue
     out.push({
       severity: 'error',
       check: 'citation-presence',
       where: rel,
-      message: `no policy file cites it any more. Its CORPUS_EXCLUDED line in policy_lint.mjs was earned by the citation in ${recorded}, and an excluded document nobody cites is a destination waiting to be used -- prose moved into it leaves the corpus and buys headroom in every cap at once, with no diff to policy_lint.mjs for a reviewer to see. Restore the citation, or delete BOTH this entry and the exclusion line in the same commit. Any policy file satisfies this check, so a citation moved to another one is not a failure; ${recorded} is named here because it is where the line was paid, not because the check reads it.`,
+      message: `no policy file cites it any more. Its CORPUS_EXCLUDED line in policy_lint.mjs was earned by the citation in ${recorded}, and an excluded document nobody cites is a destination waiting to be used -- prose moved into it leaves the corpus and buys headroom in every cap at once, with no diff to policy_lint.mjs for a reviewer to see. Restore the citation, or delete BOTH this entry and the exclusion line in the same commit.${retire} Any policy file satisfies this check, so a citation moved to another one is not a failure; ${recorded} is named here because it is where the line was paid, not because the check reads it.`,
     })
   }
   return out
@@ -3346,13 +3364,35 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: checkNamedDocs reported nothing against an empty budget, where every document the corpus names is uncapped by definition. Prose moved into a named-but-uncapped file leaves the corpus and buys headroom in every cap at once.`)
     return 1
   }
-  // citation-presence, driven four ways. Its property -- "an exclusion earned by
-  // a citation has lost that citation" -- is FALSE on a healthy tree by
-  // construction, the same shape as named-docs above and the same shape as the
-  // three checks #1058's mutation lane was written for, so it has no witness on
-  // the tree and would be deletable in silence. The arms are the four of
-  // #1058's own citation table, re-pointed at this check.
-  pins += 5
+  // citation-presence. Its property -- "an exclusion earned by a citation has
+  // lost that citation" -- is FALSE on a healthy tree by construction, the same
+  // shape as named-docs above and the same shape as the three checks #1058's
+  // mutation lane was written for, so it has no witness on the tree and would be
+  // deletable in silence. The arms are the four of #1058's own citation table,
+  // re-pointed at this check, plus a scope arm and a retirement arm.
+  const cpKeys = [...EXCLUDED_BECAUSE_CITED.keys()]
+  const cpWired = CORPUS_CHECK_NAMES.includes('citationPresenceOverTree')
+  // THE LAST WITHDRAWAL RETIRES THE CLASS, and this arm is what makes the error
+  // message's own remedy land green on BOTH lanes. `EXCLUDED_BECAUSE_CITED`
+  // empty means no exclusion is earned by a citation any more, so a still-wired
+  // check runs over no entries and measures nothing: `policy_lint_mutants.mjs`
+  // empties its return, finds every arm below passing over an empty key list,
+  // and reports `citationPresenceOverTree` DELETABLE IN SILENCE -- rc=1 on
+  // `governance.yml`'s mutation step, for a seat that did exactly what the
+  // message told it to do. So the half-done state is refused HERE, naming the
+  // rest of the withdrawal, and the arms are skipped once the check is unwired.
+  if (!cpKeys.length) {
+    if (cpWired) {
+      console.log(`\nFIXTURE VACUOUS: EXCLUDED_BECAUSE_CITED is empty while citationPresenceOverTree is still wired into CORPUS_CHECK_NAMES, so the check runs over no entries and measures nothing -- policy_lint_mutants.mjs calls that DELETABLE IN SILENCE and turns governance.yml red. Withdrawing the LAST entry retires the class: also remove citationPresenceOverTree from CORPUS_CHECK_NAMES and from the CORPUS_CHECKS push, and the 'citation-presence' rows from CHECKS and from NEVER_SUPPRESSED.`)
+      return 1
+    }
+    // Retired, and said out loud rather than passed over: an unmeasured check is
+    // not a passing one, and this line is the only trace that the class was ever
+    // here. NOT counted in `pins` -- a skipped drive that still added its pins
+    // would report the same total as a driven one.
+    console.log(`\n  skip citationPresence-pin -- EXCLUDED_BECAUSE_CITED is empty and citationPresenceOverTree is unwired, so the class is retired and there is nothing to drive.`)
+  } else {
+  pins += 6
   const driveCP = (pairs) => {
     const prev = citationPresenceSource
     citationPresenceSource = () => pairs
@@ -3362,16 +3402,33 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: citationPresenceSource's production default is not undefined, so the wired check reads a corpus nobody assembled.`)
     return 1
   }
+  // THE PRODUCTION SCOPE, which no other arm reaches. Every arm below injects
+  // its pairs through `citationPresenceSource`, so `corpusCitationTexts()` --
+  // the one line that makes this "no POLICY FILE cites it" rather than "no file
+  // cites it" -- is exercised by nothing but this comparison. Repointed at a
+  // single non-policy file that happens to cite the same document (the plan of
+  // record cites 0010), every arm below still passed and both lanes stayed
+  // green: a tree where the citation had left the corpus entirely and survived
+  // only in an unmeasured document would have been accepted.
+  const cpScope = corpusCitationTexts().map(([f]) => f)
+  const cpCorpus = policyFiles()
+  if (cpScope.length !== cpCorpus.length || cpScope.some((f, i) => f !== cpCorpus[i])) {
+    console.log(`\nFIXTURE VACUOUS: corpusCitationTexts() reads ${cpScope.length} file(s) where policyFiles() names ${cpCorpus.length}; first divergence ${JSON.stringify(cpScope.find((f, i) => f !== cpCorpus[i]) ?? '(length only)')}. The check's claim is that no POLICY file cites the document, so it must read the policy corpus and nothing else -- a wider source accepts a citation that has left the corpus, a narrower one reports a citation that has not.`)
+    return 1
+  }
   const cpLive = corpusCitationTexts()
   // ARM 0, the null control: the live corpus reports nothing. An arm that
-  // reported here would make every other arm meaningless.
-  if (driveCP(cpLive).length) {
-    console.log(`\nFIXTURE OVER-FIRES: checkCitationPresence reported on the live corpus, where every earned exclusion is still cited.`)
+  // reported here would make every other arm meaningless. Its message names BOTH
+  // readings, because on a genuinely rotted tree this arm and a true production
+  // finding are the same event: the check is only wrong here if the document it
+  // names IS still cited by a policy file.
+  const cpNull = driveCP(cpLive)
+  if (cpNull.length) {
+    console.log(`\nFIXTURE OVER-FIRES, or the corpus is genuinely rotted -- the two are distinguishable and this arm cannot tell them apart: checkCitationPresence reported ${JSON.stringify(cpNull.map((f) => f.where))} on the live corpus. Grep the corpus for that path first. If no policy file cites it, the CHECK IS RIGHT and the corpus is wrong: restore the citation or withdraw the pin as the reported error says, and this arm goes quiet. Only if a policy file does still cite it is this a defect in checkCitationPresence.`)
     return 1
   }
   // ARM B of #1058: the citation removed, the document left, the sentence that
   // carried it still in place. This is the arm that measured `TOTAL: 0`.
-  const cpKeys = [...EXCLUDED_BECAUSE_CITED.keys()]
   const elide = (t) => cpKeys.reduce((acc, k) => acc.split(k).join(`${k}.NOT-CITED`), t)
   const cpElided = driveCP(cpLive.map(([f, t]) => [f, elide(t)]))
   if (cpElided.length !== cpKeys.length) {
@@ -3401,6 +3458,7 @@ function assertAcceptance(derived) {
   if (cpStray.length) {
     console.log(`\nFIXTURE VACUOUS: EXCLUDED_BECAUSE_CITED lists ${JSON.stringify(cpStray)}, which CORPUS_EXCLUDED does not carry or the tree does not have. The entry exists to pin the citation that EARNED an exclusion; without one there is nothing earned to lose.`)
     return 1
+  }
   }
 
   // The prefix list is a hole in the check it sits beside unless markdown is
