@@ -39,8 +39,7 @@ summary line can. `claims-autofix` reddens on nothing it can return today —
 failure, so reddening it would over-fire — so its summary line is its only
 signal.
 
-**Two paths still end green with a repair unmade. Neither is closed here, and
-both are stated rather than left to be inferred.**
+**Two paths still end green unrepaired; neither is closed here.**
 
 - **The loop guard.** After the bot pushes, the next run's head subject is
   `ci: re-record closures`, so `autofix_allowed` returns false *before* any
@@ -73,9 +72,10 @@ both are stated rather than left to be inferred.**
 | `UNDER-SCOPED` | `closures-autofix` | `ci: re-record closures` | `closure.apply_under_scoped_recordings` |
 | `INHERITED CLAIMS` | `claims-autofix` | `ci: drop inherited claims` | `env_drift.apply_inherited_claims` |
 
-Those subjects are loop guards. A `GITHUB_TOKEN` push does not fire
-`pull_request`; the job dispatches Tests / Hassfest / Validate. `recheck-gate`
-treats a `ci:` subject as a PR-like run (not `slow`).
+Those subjects are loop guards. A `GITHUB_TOKEN` push's `pull_request` runs wait
+`action_required` for a human; the job dispatches Tests/Hassfest/Validate and
+CodeQL, which run at once. Governance's contexts come from the unheld `edited`
+run a body edit fires. `recheck-gate` treats `ci:` as PR-like (not `slow`).
 
 Do not automate golden drift, structure budgets, `no-copies`, orphan →
 `INERT`, or briefs lint. A new selectable script with **no** recording is

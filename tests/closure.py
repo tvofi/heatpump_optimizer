@@ -1351,7 +1351,7 @@ def autofix_allowed(*, event_name: str, closures_result: str,
 
 
 def retrigger_needed(*, pushed: bool, used_pat: bool) -> bool:
-    """GITHUB_TOKEN pushes do not fire pull_request; dispatch must."""
+    """A GITHUB_TOKEN push's pull_request runs wait for approval; dispatch."""
     return pushed and not used_pat
 
 
