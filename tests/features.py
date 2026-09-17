@@ -14991,7 +14991,7 @@ _g6_view = _g6_so._freq_view()
 R.check(
     "a frequency sensor alone observes, on the options' range, and learns a map",
     _g6_view["mode"] == FREQ_MODE_OBSERVE
-    and _g6_view["source"] == FREQ_SOURCE_SENSOR
+    and _g6_view.get("source") == FREQ_SOURCE_SENSOR
     and _g6_view["range_hz"] == [25.0, 95.0]
     and _g6_view["reported_hz"] == 50.0
     and sum(e["samples"] for e in _g6_view["map"].values()) == 1,
@@ -15009,7 +15009,9 @@ R.check(
 )
 _g6_sw = _g6_sensor_coord(freq_control_mode="control")
 _g6_sw._freq_watchdog.note_command(90.0)
-for _ in range(FREQ_WATCHDOG_TICKS + 2):
+# One grace tick plus exactly the strikes that would trip it: one tick more
+# and the unconfigured-control re-arm would clear a trip before the check.
+for _ in range(FREQ_WATCHDOG_TICKS + 1):
     _g6_sw._observe_frequency(_T6)
 R.check(
     "no number, no watchdog: a sensor diverging from a stale command never stands anything down",
@@ -15020,7 +15022,7 @@ R.check(
 _g6_num_view = _freq_coord()._freq_view()
 R.check(
     "a number install publishes source=number beside its unchanged keys",
-    _g6_num_view["source"] == FREQ_SOURCE_NUMBER
+    _g6_num_view.get("source") == FREQ_SOURCE_NUMBER
     and _g6_num_view["mode"] == FREQ_MODE_OBSERVE
     and _g6_num_view["range_hz"] == [20.0, 120.0],
     f"view={_g6_num_view!r}",
