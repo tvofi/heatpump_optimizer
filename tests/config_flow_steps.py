@@ -5089,7 +5089,8 @@ def _g7_states(spelling="name", prefix="hp", **overrides):
     """A GCHV package's states: setpoint 52.0, economic 42.0, a DHW schedule and night mode."""
     raw = {404: ("0194h", "520"), 406: ("0196h", "420"), 518: ("0206h", str(22 * 256)),
            519: ("0207h", str(6 * 256)), 711: ("02c7h", str(0b11111110)),
-           712: ("02c8h", str(5 * 256 + 30)), 713: ("02c9h", str(7 * 256))}
+           712: ("02c8h", str(5 * 256 + 30)), 713: ("02c9h", str(7 * 256)),
+           714: ("02cah", str((1 << 7) | (1 << 1)))}
     states = {}
     for addr, (hexaddr, value) in raw.items():
         value = overrides.get(f"r{addr}", value)
@@ -5157,6 +5158,7 @@ async def options_modbus_prefill():
             const.CONF_DHW_SETPOINT: 52.0,
             const.CONF_DHW_MIN_TEMP: 42.0,
             const.CONF_DHW_WINDOWS: "05:30-07:00",
+            const.CONF_DHW_LEGIONELLA_INTERVAL_DAYS: 3.0,
             const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
             const.CONF_DHW_TEMP_ENTITY: "sensor.hp_dhw_tank_temperature",
         },
@@ -5166,15 +5168,17 @@ async def options_modbus_prefill():
     # The save: what was kept is written, a cleared or blank field is not,
     # and the default prefix is not written as a setting (#1107). The blanks
     # are on keys #1107's own filter would WRITE -- a hot water window, whose
-    # absence is not its default, and an entity slot -- so this pins the
-    # pre-fill's filter rather than that one: a blank silent-mode window is
-    # dropped by _omit_unstored_defaults whatever the page does.
+    # absence is not its default, and a number whose default is not None --
+    # so this pins the pre-fill's filter rather than that one: a blank
+    # silent-mode window, or a None entity slot, is dropped by
+    # _omit_unstored_defaults whatever the page does.
     flow, entry, hass = _g7_flow(_g7_states())
     await flow.async_step_modbus_prefill(None)
     await submit(flow, step, {prefix_key: "hp"})
     result = await submit(flow, step, {
         const.CONF_DHW_SETPOINT: 52.0,
         const.CONF_DHW_WINDOWS: "",
+        const.CONF_DHW_LEGIONELLA_INTERVAL_DAYS: None,
         const.CONF_DHW_TEMP_ENTITY: None,
         const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
         const.CONF_AFTER_SAVE: const.AFTER_SAVE_MENU,
