@@ -1,5 +1,105 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.6.0
+
+wave 1067 G1–G3 (optional Rotenso Windmi inputs and a default-off flow-curve lift), the ECL110 finite-payload fix, the platinum quality-scale declaration, and the deploy-key governance of #954
+
+### New, and off unless you turn it on
+
+Every input below is optional. An install that maps none of the new sensor
+slots and leaves the new option off plans and prices exactly as before.
+
+**Wave 1067 G1 and G2: optional heat-pump inputs** (#1068). Five new sensor
+slots on the heat-pump options page:
+- *Space backup heater* and *Hot water tank booster*. While either reads on,
+  the optimizer stops treating the meter as an efficiency measurement. The
+  heat still counts, and the house learners keep running. Each time the booster
+  switches on, it is also recorded as a hot-water rescue.
+- *Capacity limited (night mode)*. While it reads on, efficiency and capacity
+  are not learned from those intervals. Measured power still counts for cost
+  and heat accounting.
+- *Supply (flow) water temperature* and *Return water temperature*. The supply
+  reading trains a learner for how far your system runs from its weather
+  curve. On its own it changes no plan, cost or learned efficiency. Only the G3
+  option below uses it.
+
+**Wave 1067 G3: *Price the supply temperature lift (no mixing valve)***
+(#1091, option `flow_curve_cop_enabled` on the building page, off by default).
+On a direct plant it prices the compressor's efficiency at the supply the
+plant runs at: the weather curve plus the learned supply bias. A plant behind
+a mixing valve is refused, and the page shows an error. With the option on and
+a supply sensor mapped, the degradation watch judges space heating against its
+own lift-normalised baseline, which starts fresh. **While that supply sensor
+is dead, the watch has no space-heating input at all.**
+
+**Know the limit before you turn it on.** The lift is one-sided: it starts
+above a 35 °C reference supply, and the learned bias is clamped at 15 K. On a
+house whose modelled weather curve sits below 35 °C, which includes the stock
+model house, the option prices little or nothing, even when the real plant
+runs at 55 °C. It helps where the modelled curve crosses the reference. Widening
+the clamp or changing the curve is carried forward to a later group rather
+than done here (#201 comment 5706296022).
+
+### Fixes
+
+- **ECL110 MQTT state** (#1090). A `NaN`, infinite or overflowing
+  displacement in the state payload used to be stored as a measured value, and
+  every malformed payload was dropped silently. The whole message is now
+  rejected, the previous values stand, and the drop is logged at DEBUG.
+
+### Quality scale
+
+- **The manifest declares `platinum`** (#1063). All 54 rules in
+  `quality_scale.yaml` read done or exempt, and the Blueprints Exchange listing
+  now backs the last row, `docs-examples`. The tier is derived from the
+  register and pinned in `tests/entities.py`, because `hassfest` never checks a
+  custom integration's tier against its register.
+
+### Golden fixtures moved in this window
+
+Stamp's claim rewrite reports only what is still listed on main, and that
+under-reports this window. #1090's inherited-claims autofix dropped #1068's six
+claims from main before the stamp. All six are ADD-ONLY, and no existing
+leaf changed:
+- `coord_minimal`, `coord_dhw`, `coord_two_zone`, `coord_grid_fee`,
+  `coord_all_features`: each gains six new `heat_pump_signals` keys, all
+  null or false.
+- `config_flow`: five new option keys, across the plain render, the seeded
+  render and the seed map.
+
+#1091 claims `config_flow` once more, ADD-ONLY, for the one new building-page
+key `flow_curve_cop_enabled`.
+
+### Governance, CI and tooling
+
+No user-visible behaviour. Listed so the window is complete.
+
+- **#954, decision 0009 (agent identities and deploy-key stamping).**
+  `stamp.py --push-key` pushes a stamp over the deploy key and never to origin
+  (#1072). A `--push` without the key is refused (#1077).
+  The ledger lane publishes as `tvofi-seat-author` (#1071). Steps 3 and 5 are
+  recorded, with row files for four ledger merges (#1084). The owner's approval
+  becomes a code-owner review, and `docs/HANDOVER.md` leaves the policy set
+  (#1074).
+- **Merge commits are the merge method of record**, decision 0010 (#1058).
+  The delivery ledger now collects merge-commit subjects and says when it
+  cannot (#1056), and it publishes to #201 alone, so its own write no longer
+  re-runs it (#1086).
+- **Delivery status.** One row file per pull request under `docs/delivery/`,
+  with the table frozen (#1081). Ledger regenerations: #1059, #1065, #1076,
+  #1080, #1082, #1083.
+- **Instrument repairs.** An unresolvable `--since` refuses instead of
+  reporting a confident zero (#1055). `prepr.sh` receives the changed paths,
+  so its `## Approval` arm can fire (#1054). `pr-contract` reads the body from
+  the API at run time, not from the event payload (#1066). `pr-contract` and
+  `--stats` share one friction grammar (#1064). `tests/run.sh` takes the gate
+  lease itself when its derived mode needs it (#1089). `prepr.sh` and
+  `gh_comment.py` refuse a body file in a shared root (#1092).
+- **Policy.** Graduation pass over the corpus (#1062). D13, process yield and
+  cost, plus a D1 external-input parser step (#1061), re-truthed to #1064's
+  grammar (#1073). Fix-review seats are dispatched when the fixer pushes
+  (#1075).
+
 ## v6.5.1
 
 wave 4 of the round-4 audit programme: the D11 governance wave, its close record, and four instrument repairs

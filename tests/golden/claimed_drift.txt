@@ -45,9 +45,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.5.1
+# claims-for: 6.6.0
 #
-# v6.5.1: wave 4: the D11 governance wave, its close record, and four instrument repairs. The stamp empties the list; the
+# v6.6.0: wave 1067 G1-G3 default-off inputs, the ECL110 finite fix, the platinum quality scale, and #954's deploy-key stamping. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -272,10 +272,10 @@
 # re-recorded for #547's reason above. direct_flow_carnot is a NEW fixture
 # and is not claimed; every other fixture is byte-identical.
 #
-# #1067 W1067-G4 (the silent-mode window and derate): G3's claim above was
-# for #1091's diff and is replaced, not inherited. This branch moves exactly
-# one existing fixture: config_flow gains the grid_connection page's two new
-# option keys, silent_mode_windows and silent_mode_power_fraction, in the
-# plain render and the seeded render, re-recorded for #547's reason above.
-# Every other fixture is byte-identical: both keys default inert.
+# #1067 W1067-G4 (the silent-mode window and derate): the v6.6.0 stamp
+# emptied G3's claim; this branch restates its own footprint. It moves
+# exactly one existing fixture: config_flow gains the grid_connection page's
+# two new option keys, silent_mode_windows and silent_mode_power_fraction,
+# in the plain render and the seeded render, re-recorded for #547's reason
+# above. Every other fixture is byte-identical: both keys default inert.
 config_flow  # ADD-ONLY: two new grid_connection option keys, silent_mode_windows and silent_mode_power_fraction
