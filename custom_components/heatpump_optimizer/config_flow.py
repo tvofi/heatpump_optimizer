@@ -300,6 +300,11 @@ from .const import (
     DEFAULT_PEAK_GUARD_ENABLED,
     CONF_PEAK_GUARD_MARGIN_KW,
     DEFAULT_PEAK_GUARD_MARGIN_KW,
+    CAPACITY_FLOOR_FRACTION,
+    CONF_SILENT_MODE_WINDOWS,
+    DEFAULT_SILENT_MODE_WINDOWS,
+    CONF_SILENT_MODE_FRACTION,
+    DEFAULT_SILENT_MODE_FRACTION,
     CONF_OUTAGE_RECOVERY_ENABLED,
     DEFAULT_OUTAGE_RECOVERY_ENABLED,
     CONF_OPEN_WINDOW_RELAX_ENABLED,
@@ -374,6 +379,7 @@ from . import comfort_band, grid_fee, mixing_valve, presets, topology
 from .wood_fuel import wood_furnace_on
 from .currency import resolve_currency
 from .dhw_schedule import (
+    ERROR_TOO_SHORT as DHW_ERROR_TOO_SHORT,
     MIN_WINDOW_MINUTES,
     is_valid_spec,
     spec_problem as dhw_spec_problem,
@@ -1547,6 +1553,8 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("grid_connection", CONF_FUSE_GUARD_ENABLED, DEFAULT_FUSE_GUARD_ENABLED, bool),
     _F("grid_connection", CONF_PEAK_GUARD_ENABLED, DEFAULT_PEAK_GUARD_ENABLED, bool),
     _F("grid_connection", CONF_PEAK_GUARD_MARGIN_KW, DEFAULT_PEAK_GUARD_MARGIN_KW, _number(0.0, 3.0, 0.1, 'kW', slider=True)),
+    _F("grid_connection", CONF_SILENT_MODE_WINDOWS, DEFAULT_SILENT_MODE_WINDOWS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT))),
+    _F("grid_connection", CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION, _number(CAPACITY_FLOOR_FRACTION, 1.0, 0.05, slider=True)),
     # -- grid_fees
     _F("grid_fees", CONF_DSO_PRODUCT, DEFAULT_DSO_PRODUCT, _select(grid_fee.catalog_choices(), 'dso_product')),
     _F("grid_fees", CONF_GRID_FEE_MODE, DEFAULT_GRID_FEE_MODE, _select(list(grid_fee.MODES), 'grid_fee_mode')),
@@ -2925,12 +2933,27 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     async def async_step_grid_connection(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Main fuse and peak guards."""
+        """Main fuse, peak guards and the pump's silent-mode window."""
+        errors: dict[str, str] = {}
+        current = self._current
         if user_input is not None:
-            return await self._save_or_menu(user_input)
+            # A cleared text field is absent, and options merge over setup
+            # data, so an absent window would silently keep the old one.
+            user_input = {CONF_SILENT_MODE_WINDOWS: "", **user_input}
+            problem = dhw_spec_problem(user_input[CONF_SILENT_MODE_WINDOWS])
+            if problem is None:
+                return await self._save_or_menu(user_input)
+            errors[CONF_SILENT_MODE_WINDOWS] = (
+                "silent_mode_window_too_short"
+                if problem == DHW_ERROR_TOO_SHORT
+                else problem
+            )
+            current = {**current, **user_input}
         return self.async_show_form(
             step_id="grid_connection",
-            data_schema=_page_schema("grid_connection", self._current, self.hass),
+            errors=errors,
+            description_placeholders=_WINDOW_PLACEHOLDERS,
+            data_schema=_page_schema("grid_connection", current, self.hass),
         )
 
     async def async_step_grid_fees(

@@ -263,18 +263,18 @@
  {
   "id": "C30",
   "source": "docs/configuration.md",
-  "claim": "every documented Default (83 rows) is the default the rendered options page actually carries",
+  "claim": "every documented Default (84 rows) is the default the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "83 compared, mismatches=[]",
+  "result": "84 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C31",
   "source": "docs/configuration.md",
-  "claim": "every documented Range (86 rows) is the NumberSelector min/max the rendered options page actually carries",
+  "claim": "every documented Range (87 rows) is the NumberSelector min/max the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "86 compared, mismatches=[]",
+  "result": "87 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -283,7 +283,7 @@
   "source": "docs/architecture.md",
   "claim": "45 modules",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=57 measured=57",
+  "result": "documented=58 measured=58",
   "verdict": "true",
   "truth": ""
  },
@@ -292,7 +292,7 @@
   "source": "docs/architecture.md",
   "claim": "the module map is the package's module list",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "on disk=57, listed=57, missing=[], phantom=[]",
+  "result": "on disk=58, listed=58, missing=[], phantom=[]",
   "verdict": "true",
   "truth": "0 modules are absent from the map: "
  },

@@ -956,13 +956,15 @@
       },
       "grid_connection": {
         "title": "Fuse and peak guards",
-        "description": "Main fuse size and guards against blowing it or exceeding your peak allowance.",
+        "description": "Main fuse size, guards against blowing it or exceeding your peak allowance, and the heat pump's own silent mode.",
         "data": {
           "main_fuse_amperes": "Main fuse size",
           "main_fuse_phases": "Phases",
           "fuse_guard_enabled": "Keep the plan under the main fuse",
           "peak_guard_enabled": "Live peak guard",
           "peak_guard_margin_kw": "Peak guard margin",
+          "silent_mode_windows": "Heat pump silent mode schedule",
+          "silent_mode_power_fraction": "Power kept in silent mode",
           "after_save": "After saving"
         },
         "data_description": {
@@ -971,6 +973,8 @@
           "fuse_guard_enabled": "Caps the heat pump's planned power at what the fuse leaves after the rest of the house. If a cap would make the comfort floor unreachable, the plan says so on its sensors instead of silently going cold.",
           "peak_guard_enabled": "Watches the power meter live and, when the current metering window is projected to set a new billed peak, holds back electric hot water and nudges the heat curve down for the rest of that window. Needs a power meter; a cold tank or a breached comfort floor always wins over the guard.",
           "peak_guard_margin_kw": "How far below the billed threshold the guard starts acting. Larger catches more peaks and intervenes more often.",
+          "silent_mode_windows": "When the heat pump's own silent or night mode caps the compressor, written like the hot water time frames, for example \"22:00-06:00\". The schedule lives in the pump, where the plan cannot read it: without it, the plan counts on full power in those hours. Leave empty to plan without it.",
+          "silent_mode_power_fraction": "The share of the heat pump's maximum electrical power it still runs at inside the silent mode schedule. 1.0 caps nothing. The slider stops at the same floor as the measured capacity limit, so this can trim the plan but never leave the house without heat.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },
@@ -1082,6 +1086,7 @@
       "cannot_connect": "Could not reach Tibber to check the token. Check the internet connection and try again.",
       "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\".",
       "dhw_window_too_short": "A hot water time frame is shorter than {min_window_minutes} minutes. The plan is made in {min_window_minutes}-minute steps, so a shorter frame can fall between two steps and never take effect.",
+      "silent_mode_window_too_short": "A silent mode time frame is shorter than {min_window_minutes} minutes. The plan is made in {min_window_minutes}-minute steps, so a shorter frame can fall between two steps and never take effect.",
       "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 \\u00b0C below the setpoint.",
       "invalid_grid_fee_rules": "Those fee rules could not be read. One rule per line, like \"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\".",
       "grid_fee_rules_negative": "A fee rule has a negative rate. A transfer fee is a charge, so every rate must be zero or above — a minus sign here would make the plan treat those hours as subsidised.",

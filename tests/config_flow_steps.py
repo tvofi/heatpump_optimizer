@@ -3073,6 +3073,60 @@ async def residual_statement_branches():
         f"stored={entry.options.get(const.CONF_HOLIDAY_DHW_WINDOWS)!r}",
     )
 
+    # #1067 W1067-G4: the grid_connection page's silent-mode window takes
+    # the hot-water grammar and its two refusals, the short one on its own
+    # key; a valid spec saves; a cleared field saves as empty rather than
+    # leaving the old schedule in force under the options merge.
+    for spec, want in (("garbage", "invalid_dhw_windows"),
+                       ("22:00-22:05", "silent_mode_window_too_short")):
+        flow, entry, _ = fresh_options()
+        await flow.async_step_grid_connection(None)
+        result = await submit(
+            flow,
+            "grid_connection",
+            {**GRID_CONNECTION_ANSWERS, const.CONF_SILENT_MODE_WINDOWS: spec},
+        )
+        check(
+            "opt_grid_connection",
+            "error",
+            f"a silent-mode window {spec!r} is {want} on its own field (#1067)",
+            shows(result, "grid_connection")
+            and result.get("errors", {}).get(const.CONF_SILENT_MODE_WINDOWS) == want
+            and not entry.options,
+            f"errors={result.get('errors')}",
+        )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_grid_connection(None)
+    result = await submit(
+        flow,
+        "grid_connection",
+        {
+            **GRID_CONNECTION_ANSWERS,
+            const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+            const.CONF_SILENT_MODE_FRACTION: 0.7,
+        },
+    )
+    check(
+        "opt_grid_connection",
+        "happy",
+        "a valid silent-mode window and derate save onto their own keys (#1067)",
+        not result.get("errors")
+        and entry.options.get(const.CONF_SILENT_MODE_WINDOWS) == "22:00-06:00"
+        and entry.options.get(const.CONF_SILENT_MODE_FRACTION) == 0.7,
+        f"type={result.get('type')} errors={result.get('errors')} "
+        f"stored={entry.options.get(const.CONF_SILENT_MODE_WINDOWS)!r}",
+    )
+    await flow.async_step_grid_connection(None)
+    result = await submit(flow, "grid_connection", dict(GRID_CONNECTION_ANSWERS))
+    check(
+        "opt_grid_connection",
+        "happy",
+        "a cleared silent-mode window saves as empty, not as the old schedule (#1067)",
+        not result.get("errors")
+        and entry.options.get(const.CONF_SILENT_MODE_WINDOWS) == "",
+        f"stored={entry.options.get(const.CONF_SILENT_MODE_WINDOWS)!r}",
+    )
+
     # The grid_fees page's catalog application: choosing a DSO product
     # writes that product's rules and mode over whatever the page carried.
     dso_product = "ellevio_villa_effekt_2026"

@@ -230,7 +230,7 @@ control, described once here rather than twenty-one times below:
 | Solar panels | Array size, efficiency, export compensation |
 | Self-learning and diagnostics | The staleness watchdog and the three core learners |
 | Advanced learning features | Outage recovery, weather/plant learners, curve learning |
-| Fuse and peak guards | Main fuse, the fuse cap, the live peak guard |
+| Fuse and peak guards | Main fuse, the fuse cap, the live peak guard, the heat pump's silent mode |
 | Transfer fees and contract | DSO product, per-kWh fees, the fixed-contract comparison |
 | Heat curve control (ECL110) | MQTT topics and displace limits |
 
@@ -573,6 +573,8 @@ opt-in learners are on **Advanced learning features**.
 | Keep the plan under the main fuse | off | on/off | Caps planned power at what the fuse leaves after the rest of the house. If a cap would make the comfort floor unreachable, the plan says so instead of silently going cold. |
 | Live peak guard | off | on/off | Watches the power meter and, when the current metering window is projected to set a new billed peak, holds back electric hot water and nudges the heat curve down for the rest of that window. Needs a power meter. |
 | Peak guard margin | 0.5 kW | 0.0–3.0, 0.1 steps | How far below the billed threshold the guard starts acting. Larger catches more peaks and intervenes more often. |
+| Heat pump silent mode schedule | empty | time frames, like the hot water ones | When the pump's own silent or night mode caps the compressor, for example `22:00-06:00`; day selectors such as `weekend 23:00-08:00` work too. The schedule lives in the pump's controller, where the optimizer cannot read it, so without this the plan counts on full power in those hours and may buy cheap night quarters the pump will not use. A frame shorter than one 15-minute planning step is refused. Leave empty to plan without it. |
+| Power kept in silent mode | 1.0 | 0.6–1.0, 0.05 steps | The share of the pump's maximum electrical power it still runs at inside that schedule. Inside those hours the plan's power ceiling is this share of the maximum; where the fuse cap or the measured capacity limit is lower, the lower one applies. 1.0 caps nothing. The range stops at 0.6, the same floor as *Plan within measured heat pump capacity*, so this can trim the plan but never leave the house without heat. The *Capacity limited (night mode)* sensor slot is the other half: it keeps the learners off the capped intervals, while this schedule tells the plan about the hours ahead. |
 
 ### Transfer fees and contract
 
