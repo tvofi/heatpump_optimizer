@@ -3080,19 +3080,32 @@ function assertAcceptance(derived) {
   // stay green with the call deleted, which is the exact shape that left this
   // mode passing on a window it never read.
   //
-  // `--since HEAD` is what keeps both arms OFFLINE, and it is load-bearing
-  // rather than arbitrary: the window HEAD..origin/main over the local clone
-  // yields no first-parent commits, so `fetchPullsBySha` iterates an empty list
-  // and issues no request. The refusing arm never gets that far; the null
-  // control gets all the way to `TOTAL: 0` without a socket. So this runs the
-  // same on a CI runner and on a seat with no network.
+  // THE WINDOW IS EMPTY BY CONSTRUCTION, and the earlier `--since HEAD` was
+  // not. That version asserted a property of the CLONE rather than of the
+  // guard: `HEAD..origin/main` is empty only where `origin/main` is reachable
+  // from `HEAD`, which is true on a `pull_request` checkout (the branch merged
+  // into main) and false on a branch head and in a grafted or shallow clone.
+  // `policy_lint_envmatrix.mjs`'s `shallow` shape is exactly that: measured
+  // there, the window was the whole history, the run enumerated 611 merges over
+  // the network and exited 1, and this arm reported FIXTURE VACUOUS at a head
+  // whose merge base was green -- the instrument that exists to catch an
+  // environment-dependent assertion caught this one.
+  //
+  // `mainRef()..mainRef()` is empty in EVERY clone, shallow, grafted or full,
+  // because `git log X..X` is empty for any X that resolves -- and `mainRef()`
+  // is the same function the window itself uses, so the two cannot drift apart.
+  // `firstParentCommits` returns [], `fetchPullsBySha` iterates an empty list
+  // and issues no request, and the null control reaches `TOTAL: 0` without a
+  // socket. The refusing arm never gets that far. So both arms are offline on a
+  // CI runner, on a seat with no network, and under every shape in the matrix.
   //
   // The null control is the whole point of the pair: a guard that exited 2
   // whenever `--record` ran at all would satisfy the first arm alone.
   pins += 3
+  const emptyWindow = mainRef()
   const recRun = (env) => {
     try {
-      return { code: 0, out: execFileSync(process.execPath, [path.join(HERE, 'policy_lint.mjs'), '--record', '--since', 'HEAD'], { cwd: ROOT, encoding: 'utf8', env, stdio: ['pipe', 'pipe', 'pipe'] }) }
+      return { code: 0, out: execFileSync(process.execPath, [path.join(HERE, 'policy_lint.mjs'), '--record', '--since', emptyWindow], { cwd: ROOT, encoding: 'utf8', env, stdio: ['pipe', 'pipe', 'pipe'] }) }
     } catch (e) {
       return { code: e.status === undefined ? 1 : e.status, out: `${e.stdout || ''}${e.stderr || ''}` }
     }
@@ -4506,14 +4519,25 @@ function requireSince(since, mode) {
 // window writes a ledger a reviewer reads in the diff; widening this to either
 // is a separate change with its own callers to check.
 //
-// THE CALLERS, enumerated before the exit code moved rather than after:
-// `.github/workflows/governance.yml`'s `Every merged pull request has a
-// disposition` step is the only one in the tree, and it sets
-// `GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}`, so it takes the authenticated
-// path and is unaffected. No cron, no other workflow and no script invokes
-// `--record`; the grep is `--record` across `.github/`, `.claude/`, `tools/`,
-// `tests/` and `docs/`, and the only other hits are this file's own usage
-// banner and prose about it.
+// THE CALLERS. The rule, so a reader re-derives the set rather than trusting a
+// number that ages: every tracked file that invokes this script with `--record`
+// as an argument -- `git grep -n -- '--record' -- .github .claude tools tests
+// docs`, minus the hits that are this file's own usage banner or prose about
+// the mode, and minus `--record-known-bad`, a different mode this guard does
+// not touch. Run at the head of the pull request that added the guard, that
+// rule names two invokers, and an earlier draft of this comment claimed one:
+//
+//   `.github/workflows/governance.yml`, the `Every merged pull request has a
+//   disposition` step. It sets `GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}`, so
+//   it takes the authenticated path and is unaffected.
+//
+//   `.claude/workflows/policy_lint_envmatrix.mjs`, twice: the `since-ref` bad-ref
+//   row and that row's own null control. Both now pass a fixture token in the
+//   child's env, so the matrix stays drivable by a seat with no token -- which
+//   it had stopped being, and which is how the false enumeration was found.
+//
+// Neither is a cron. A future caller that cannot hold a token belongs in that
+// list with its arm, not in a widened guard.
 function requireToken(mode) {
   if (process.env.GITHUB_TOKEN) return
   console.log(`${mode} needs GITHUB_TOKEN. It enumerates the window's merged pull requests through the GitHub API, and unauthenticated it enumerates nothing -- which this mode would otherwise print as a window with no undispositioned merge in it. Set GITHUB_TOKEN and re-run; an API that is reachable but failing still reports and exits 0, because that is an outage rather than a misconfiguration.`)

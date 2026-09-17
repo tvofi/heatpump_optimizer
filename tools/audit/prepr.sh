@@ -497,6 +497,21 @@ if [ "${1:-}" = "--self-test" ]; then
     pr manattr sh -c 'sed -i.bak "s/6.5.1/6.5.2/" custom_components/heatpump_optimizer/manifest.json && rm custom_components/heatpump_optimizer/manifest.json.bak && printf "custom_components/heatpump_optimizer/manifest.json -diff\n" > .gitattributes'
     pr notesattr sh -c 'printf "# Notes\n\n## v6.5.2\n\n- b\n\n## v6.5.1\n\n- a\n" > RELEASE_NOTES.md && printf "RELEASE_NOTES.md -diff\n" > .gitattributes'
     pr attronly sh -c 'printf "custom_components/heatpump_optimizer/manifest.json -diff\nRELEASE_NOTES.md -diff\n" > .gitattributes'
+    # AND THE OTHER HALF OF THE SAME SURFACE, which `--text` alone does not
+    # cover. `diff=<driver>` with a `textconv` makes git diff a RENDERING of the
+    # blob rather than the blob, and `--text` does not override it -- only
+    # `--no-textconv` does. A driver whose textconv prints nothing therefore
+    # produces a diff with no body at all, on a file git never called binary, so
+    # the two body matchers read an empty string and the function returns its
+    # all-clear. Without these arms `--no-textconv` is unpinned: dropping that
+    # one flag passed every other check in this file while reopening the vector.
+    # The driver is repo-local config, which is the shape a contributor controls
+    # (`.git/config` is not tracked, but a `diff=` attribute IS, and a seat or a
+    # runner that has ever set up a driver by that name supplies the other half).
+    git config diff.blind.textconv true
+    pr mantc sh -c 'sed -i.bak "s/6.5.1/6.5.2/" custom_components/heatpump_optimizer/manifest.json && rm custom_components/heatpump_optimizer/manifest.json.bak && printf "custom_components/heatpump_optimizer/manifest.json diff=blind\n" > .gitattributes'
+    pr notestc sh -c 'printf "# Notes\n\n## v6.5.2\n\n- b\n\n## v6.5.1\n\n- a\n" > RELEASE_NOTES.md && printf "RELEASE_NOTES.md diff=blind\n" > .gitattributes'
+    pr tconly sh -c 'printf "custom_components/heatpump_optimizer/manifest.json diff=blind\nRELEASE_NOTES.md diff=blind\n" > .gitattributes'
     git checkout -q main
     printf '6.5.2\n' > VERSION
     sed -i.bak 's/6.5.1/6.5.2/' custom_components/heatpump_optimizer/manifest.json && rm custom_components/heatpump_optimizer/manifest.json.bak
@@ -520,6 +535,9 @@ if [ "${1:-}" = "--self-test" ]; then
   got=$(veco base manattr); st "$?:$got" '1:custom_components/heatpump_optimizer/manifest.json(version)' "a manifest version edit hidden by a .gitattributes -diff line is still refused"
   got=$(veco base notesattr); st "$?:$got" '1:RELEASE_NOTES.md(heading)' "a notes heading hidden by a .gitattributes -diff line is still refused"
   got=$(veco base attronly); st "$?:$got" '0:' "a .gitattributes-only pull request passes (over-fire control for the two arms above)"
+  got=$(veco base mantc); st "$?:$got" '1:custom_components/heatpump_optimizer/manifest.json(version)' "a manifest version edit hidden by a diff=<driver> textconv is still refused"
+  got=$(veco base notestc); st "$?:$got" '1:RELEASE_NOTES.md(heading)' "a notes heading hidden by a diff=<driver> textconv is still refused"
+  got=$(veco base tconly); st "$?:$got" '0:' "a diff=<driver> line with no version edit under it passes (over-fire control for the two arms above)"
   (cd "$VER" && git checkout -q main)
   got=$(ve base docs); st "$?:$got" '0:' "a docs-only pull request passes (null control)"
   got=$(ve main docs); st "$?:$got" '0:' "a pull request whose main has stamped since it forked passes (the arm two dots fail)"
