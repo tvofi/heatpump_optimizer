@@ -2211,6 +2211,25 @@
     "default": "0.5",
     "required": "Optional",
     "selector": "NumberSelector"
+   },
+   "silent_mode_power_fraction": {
+    "config": {
+     "max": "1.0",
+     "min": "0.6",
+     "mode": "'slider'",
+     "step": "0.05"
+    },
+    "default": "1.0",
+    "required": "Optional",
+    "selector": "NumberSelector"
+   },
+   "silent_mode_windows": {
+    "config": {
+     "type": "'text'"
+    },
+    "default": "''",
+    "required": "Optional",
+    "selector": "TextSelector"
    }
   },
   "grid_fees": {
@@ -4430,6 +4449,25 @@
    "default": "0.5",
    "required": "Optional",
    "selector": "NumberSelector"
+  },
+  "silent_mode_power_fraction": {
+   "config": {
+    "max": "1.0",
+    "min": "0.6",
+    "mode": "'slider'",
+    "step": "0.05"
+   },
+   "default": "1.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "silent_mode_windows": {
+   "config": {
+    "type": "'text'"
+   },
+   "default": "''",
+   "required": "Optional",
+   "selector": "TextSelector"
   }
  },
  "grid_fees": {

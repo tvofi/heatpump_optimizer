@@ -474,6 +474,14 @@ CONF_PEAK_GUARD_ENABLED: Final = "peak_guard_enabled"
 DEFAULT_PEAK_GUARD_ENABLED: Final = False
 CONF_PEAK_GUARD_MARGIN_KW: Final = "peak_guard_margin_kw"
 DEFAULT_PEAK_GUARD_MARGIN_KW: Final = 0.5
+# #1067 (W1067-G4): the pump's own silent/night-mode schedule and the
+# fraction of nameplate it keeps inside it, as a ceiling on the plan
+# (silent_mode.py). The window uses the hot-water window grammar. Both
+# defaults are inert: no window, and a fraction of 1.0, cap nothing.
+CONF_SILENT_MODE_WINDOWS: Final = "silent_mode_windows"
+DEFAULT_SILENT_MODE_WINDOWS: Final = ""
+CONF_SILENT_MODE_FRACTION: Final = "silent_mode_power_fraction"
+DEFAULT_SILENT_MODE_FRACTION: Final = 1.0
 CONF_OUTAGE_RECOVERY_ENABLED: Final = "outage_recovery_enabled"
 DEFAULT_OUTAGE_RECOVERY_ENABLED: Final = False
 

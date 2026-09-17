@@ -1,6 +1,7 @@
 # 0007 — After this session: owner approval per pull request, with a session grant as the option
 
-Status: accepted, 2026-09-09, by the repository owner; amended 2026-09-16 (the last section).
+Status: accepted, 2026-09-09, by the repository owner; amended 2026-09-16 (the last section),
+whose transition clause was retired on 2026-09-17 when `0009` step 6 landed.
 
 ## Context
 
@@ -84,13 +85,13 @@ seats author as a write collaborator that is not the owner (`0009` step 3): the
 owner's review is then no longer a self-approval GitHub refuses, and the form
 can bind.
 
-So the decision above stands and its form changes. **Once `main-protect`
-carries the code-owner rule (`0009` step 6, as amended the same day), the
-owner's per-pull-request approval of a policy change is given as an approving
-GitHub review**, required by `.github/CODEOWNERS`. Until then it is given in
-session and recorded on #201, as before: nothing requires the review, and while
-seats author as `tvofi` the owner cannot give it on their pull requests. **A session grant becomes a code-owner exception for a
-named session**: still the owner's act, still naming its session and reverting
+So the decision above stands and its form changes. **The owner's
+per-pull-request approval of a policy change is given as an approving GitHub
+review**, which `main-protect`'s code-owner rule requires for the paths
+`.github/CODEOWNERS` names (`0009` step 6, landed 2026-09-17 04:58Z; `0009`'s
+status note of that date). An approval given in session no longer stands in for
+it (#201 comment 5708908916). **A session grant becomes a code-owner exception
+for a named session**: still the owner's act, still naming its session and reverting
 when it ends; only how it is exercised on GitHub changes. The invariant is
 unchanged: a policy merge needs a reader who is not its author. `pr-contract`'s
 `## Approval` section stays, carrying what the review event does not.

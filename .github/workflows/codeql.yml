@@ -60,6 +60,10 @@ on:
   pull_request:
   schedule:
     - cron: "41 2 * * 1"
+  # Both autofix jobs in tests.yml dispatch this after a GITHUB_TOKEN push,
+  # whose pull_request run GitHub holds for approval; without it the three
+  # required `Analyze` contexts never report on an autofixed head.
+  workflow_dispatch:
 
 # Minimal for the task: reading the tree and uploading the SARIF.
 permissions:

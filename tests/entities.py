@@ -13456,6 +13456,57 @@ for _job in ("closures-autofix", "claims-autofix"):
         bool(_rep) and _steps[-1] is _rep[0],
         "a reporting step that preempts the push destroys the repair",
     )
+# A GITHUB_TOKEN push's `pull_request` runs are held `action_required` with
+# zero jobs until a maintainer approves them (5511f23 on #1068, dac077e on
+# #1090), so each required context needs another route. Tests, Hassfest,
+# Validate and CodeQL are dispatched from the push step; dispatch run
+# 35187949244 put all three `Analyze (…)` check runs on 9eab006. Whether a
+# merge accepts a dispatch-produced context is NOT measured.
+#
+# Governance is refused a dispatch. `pr-contract` is `if: pull_request`, so a
+# dispatched run skips it, and docs/HANDOVER.md records a probe in which a
+# skipped required context satisfies the ruleset: the dispatch would be a
+# green `pr-contract` that never read the body. `record`
+# would also run on the branch with `issues: write`. Governance's route is the
+# body PATCH `## Head` forces after a new head: its `edited` run is unheld and
+# carried all four Governance contexts at dac077e (run 35166880265).
+#
+# Parsed from the push step's non-comment lines only: a commented-out
+# dispatch, or one moved into the `always()` report step (which also runs when
+# nothing was pushed), must not count.
+_AF_DISPATCHED = {"tests.yml", "hassfest.yml", "validate.yml", "codeql.yml"}
+
+
+def _af_dispatches(step: str) -> set[str]:
+    live = "\n".join(ln for ln in step.splitlines()
+                     if not ln.lstrip().startswith("#"))
+    return set(re.findall(r"gh workflow run (\S+)", live))
+
+
+for _job in ("closures-autofix", "claims-autofix"):
+    _steps = _workflow_job(_TESTS_YML, _job).split("\n      - ")
+    _push = [s for s in _steps if re.match(r"name: Push\b", s)]
+    _elsewhere = set().union(*(_af_dispatches(s) for s in _steps
+                               if s not in _push))
+    R.check(
+        f"{_job} dispatches every workflow owning a required context but Governance",
+        len(_push) == 1 and _af_dispatches(_push[0]) == _AF_DISPATCHED,
+        f"push steps={len(_push)} dispatched="
+        f"{sorted(_af_dispatches(_push[0])) if _push else []}",
+    )
+    R.check(
+        f"{_job} dispatches from the push step only",
+        not _elsewhere,
+        f"elsewhere={sorted(_elsewhere)}; only a pushed SHA needs a retrigger",
+    )
+_CODEQL_ON = (pathlib.Path(__file__).resolve().parents[1] / ".github"
+              / "workflows" / "codeql.yml").read_text()
+_CODEQL_ON = _CODEQL_ON[_CODEQL_ON.index("\non:\n"):_CODEQL_ON.index("\njobs:\n")]
+R.check(
+    "codeql.yml accepts the autofix jobs' dispatch",
+    re.search(r"^  workflow_dispatch:", _CODEQL_ON, re.M) is not None,
+    "without the trigger `gh workflow run codeql.yml` is refused with 422",
+)
 # The nightly-ha job runs `tests/nightly_ha.py` on the RUNNER, not only in the
 # container, and its host half imports the production package to derive what it
 # stages: `_seed_unique_id` needs `config_flow.entry_identity` for the seed's
@@ -13991,6 +14042,82 @@ R.check(
     ) is None,
     "#662's rule for a record pull request is unchanged",
 )
+
+# A RELEASE STAMP is the one commit allowed to delete claims it did not write
+# (2026-09-17). stamp.py empties both lists, and on a push to `main` the
+# baseline is the commit before the stamp, whose lists are the deleted ones.
+# The stamp touches the card and no solver path, so the per-kind rule judged
+# the solver deletion foreign: v6.5.0 (4148299) and v6.6.0 (2d1b2ea) went red
+# on `main` exactly so, while v6.5.1 and v6.4.4, deleting nothing, were green.
+# The pins are v6.6.0's own three-dot and lists, then one refusal per clause of
+# `release_stamp_holds`, because each clause is what keeps the exemption from
+# becoming the autofix-erases-claims hole (#608, #635).
+_ST_CHANGED = sorted(_env_drift.STAMP_WRITES)
+_ST_BASE = {"config_flow": "ADD-ONLY: one new building-page option key"}
+_ST_OK = ("6.6.0", "6.5.1", "6.6.0", "6.6.0", 1)
+
+
+def _st_verdict(changed=None, solver=None, base=None, stamp=_ST_OK):
+    return _env_drift.claims_hygiene_verdict(
+        _ST_CHANGED if changed is None else changed,
+        {} if solver is None else solver, {},
+        dict(_ST_BASE) if base is None else base, {}, "HEAD^1", stamp=stamp,
+    )
+
+
+R.check(
+    "a release stamp that empties a baseline claim it did not write passes",
+    _st_verdict() is None
+    and (_st_verdict(stamp=None) or "").startswith("RECORD PR CLAIMS"),
+    "v6.6.0's stamp deleted config_flow and went red on main; with no stamp "
+    "facts the same three-dot is still the foreign-deletion refusal",
+)
+R.check(
+    "a claim deletion with VERSION unchanged, moving backwards, or unreadable "
+    "at the baseline is refused",
+    (_st_verdict(stamp=("6.5.1", "6.5.1", "6.5.1", "6.5.1", 1)) or "")
+    .startswith("RECORD PR CLAIMS")
+    and (_st_verdict(stamp=("6.5.1", "6.6.0", "6.5.1", "6.5.1", 1)) or "")
+    .startswith("RECORD PR CLAIMS")
+    and (_st_verdict(stamp=("6.6.0", "", "6.6.0", "6.6.0", 1)) or "")
+    .startswith("RECORD PR CLAIMS"),
+    "only a tree strictly ahead of a readable baseline VERSION is stamping",
+)
+R.check(
+    "a VERSION bump that ADDS a claim, or deletes only some, is refused",
+    (_st_verdict(solver={"wood_coil": "r"}, base={}) or "")
+    .startswith("RECORD PR CLAIMS")
+    and (_st_verdict(
+        solver={"wood_coil": "r"}, base={"wood_coil": "r", **_ST_BASE}
+    ) or "").startswith("RECORD PR CLAIMS"),
+    "a stamp leaves both lists empty; any other list is not a stamp's output",
+)
+R.check(
+    "a VERSION bump whose solver claims-for is not the new VERSION is refused",
+    (_st_verdict(stamp=("6.6.0", "6.5.1", "6.5.1", "6.6.0", 1)) or "")
+    .startswith("RECORD PR CLAIMS"),
+    "stamp.py moves both claims-for lines with VERSION",
+)
+R.check(
+    "a VERSION bump whose card claims-for is not the new VERSION is refused",
+    (_st_verdict(stamp=("6.6.0", "6.5.1", "6.6.0", "6.5.1", 1)) or "")
+    .startswith("RECORD PR CLAIMS"),
+    "stamp.py moves both claims-for lines with VERSION",
+)
+R.check(
+    "a stamp-shaped commit with two parents (a pull request's merge ref, or "
+    "its merge into main) or none (a graft root) is refused",
+    (_st_verdict(stamp=_ST_OK[:4] + (2,)) or "").startswith("RECORD PR CLAIMS")
+    and (_st_verdict(stamp=_ST_OK[:4] + (0,)) or "").startswith("RECORD PR CLAIMS"),
+    "a pull request can forge every content clause; only a stamp is pushed "
+    "to main as a single-parent commit",
+)
+R.check(
+    "a VERSION bump that also touches a file stamp.py never writes is refused",
+    (_st_verdict(changed=_ST_CHANGED + ["docs/HANDOVER.md"]) or "")
+    .startswith("RECORD PR CLAIMS"),
+    "a branch carrying a VERSION bump beside other work keeps every per-file rule",
+)
 _INH_HDR = "# claims-for: 6.3.15\n#\n"
 _INH_FILE = _INH_HDR + "wood_coil  # copied from baseline\n\n# may-drift: wood_coil -- keep\n"
 _INH_DROPPED = _env_drift.drop_inherited_claim_lines(_INH_FILE, _INH_FILE)
@@ -14391,7 +14518,7 @@ _hyg = getattr(_env_drift, "check_claims_hygiene", None)
 
 
 def _hygiene_git(card_head: str, extra: dict[str, str], py_touch: bool,
-                 card_base: str | None = None):
+                 card_base: str | None = None, solver_base: str | None = None):
     """Two-commit repo: baseline has #493's card claims; HEAD applies extra.
 
     `card_base` overrides the baseline's card claims -- the case where the
@@ -14407,7 +14534,7 @@ def _hygiene_git(card_head: str, extra: dict[str, str], py_touch: bool,
             "whatif_edited  # in-window lo floored at the window min; floored band note\n"
             "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n"
         )
-    solver = "# claims-for: 6.3.15\n"
+    solver = "# claims-for: 6.3.15\n" if solver_base is None else solver_base
     (Path(root) / "tests" / "golden").mkdir(parents=True)
     (Path(root) / "custom_components" / "heatpump_optimizer").mkdir(parents=True)
     (Path(root) / "VERSION").write_text("6.3.15\n")
@@ -14487,6 +14614,51 @@ R.check(
     "emptying someone else's claim list is the deletion a squash applies to "
     f"the baseline; got {_h493_del_err!r}",
 )
+# The stamp exemption end to end, through `check_claims_hygiene`: VERSION read
+# off the baseline with git, both claims-for lines read off the tree. The null
+# control is the same commit with VERSION left alone, which must stay refused.
+def _stamp_git(new_version: str, forged_merge: bool = False):
+    root, base = _hygiene_git(
+        f"# claims-for: {new_version}\n",
+        {
+            "VERSION": f"{new_version}\n",
+            "tests/golden/claimed_drift.txt": f"# claims-for: {new_version}\n",
+            _env_drift.CARD_JS: f'const CARD_VERSION = "{new_version}";\n',
+        },
+        py_touch=False,
+        card_base="# claims-for: 6.3.15\n",
+        solver_base="# claims-for: 6.3.15\n\nwood_coil  # another lane's claim\n",
+    )
+    if forged_merge:
+        # The same stamp-shaped commit arriving as a pull request does: on a
+        # branch, merged with --no-ff, so HEAD is a two-parent merge whose
+        # tree and three-dot are the stamp's exactly.
+        for cmd in (["git", "branch", "forged"], ["git", "reset", "-q", "--hard", base],
+                    ["git", "merge", "-q", "--no-ff", "-m", "merge", "forged"]):
+            subprocess.run(cmd, cwd=root, check=True, capture_output=True)
+    return root, base
+
+
+_st_root, _st_base = _stamp_git("6.3.16")
+_st_err = _hyg(_st_root, _st_base) if callable(_hyg) else "missing"
+_st_ctl_root, _st_ctl_base = _stamp_git("6.3.15")
+_st_ctl_err = _hyg(_st_ctl_root, _st_ctl_base) if callable(_hyg) else "missing"
+_st_forged_root, _st_forged_base = _stamp_git("6.3.16", forged_merge=True)
+_st_forged_err = _hyg(_st_forged_root, _st_forged_base) if callable(_hyg) else "missing"
+R.check(
+    "check_claims_hygiene passes a release stamp and refuses the same deletion "
+    "without the VERSION bump",
+    _st_err is None
+    and isinstance(_st_ctl_err, str)
+    and _st_ctl_err.startswith("RECORD PR CLAIMS"),
+    f"stamp: {_st_err!r}; unbumped control: {_st_ctl_err!r}",
+)
+R.check(
+    "check_claims_hygiene refuses the same stamp forged as a merged pull request",
+    isinstance(_st_forged_err, str) and _st_forged_err.startswith("RECORD PR CLAIMS"),
+    f"a two-parent HEAD with a stamp's tree and three-dot returned {_st_forged_err!r}",
+)
+
 # AND THE AUTOFIX ITSELF, which is the half that actually writes the deletion.
 # Correcting `check_claims_hygiene` alone leaves the bot emptying the file and
 # CI green on the result: the gate below was added, disabled, and the whole
@@ -14892,6 +15064,47 @@ R.check(
     "tools/release/stamp.py's --self-test passes",
     _stamp_ok,
     _stamp_detail,
+)
+# stamp.py's OUTPUT against env_drift's claims guard, composed (2026-09-17).
+# Each side was pinned alone and the composition by nothing, so #747 changed
+# the guard, stamp.py kept writing what it always wrote, and the first two
+# stamps to delete a solver claim afterwards (v6.5.0, v6.6.0) turned main red.
+# Pinned here, a change to EITHER side goes red on its own pull request: the
+# write set stamp.py stages must be the guard's `STAMP_WRITES`, and the claim
+# files `rewrite_claims` produces must pass the guard as a push to main sees
+# them, deleting a claim neither file's author could have written.
+try:
+    _stc_writes = {
+        str(Path(p).relative_to(_stamp.ROOT))
+        for p in (_stamp.VERSION_FILE, _stamp.MANIFEST, _stamp.CARD_JS,
+                  _stamp.NOTES, *_stamp.CLAIM_FILES)
+    }
+    _stc_before = "# claims-for: 6.5.1\n#\n# old reason\n#\n\nconfig_flow  # a lane's claim\n"
+    _stc_after, _stc_old, _stc_deleted = _stamp.rewrite_claims(_stc_before, "6.6.0", "t")
+    _stc_decl, _stc_claims = _env_drift._parse_claims(_stc_after)
+    _stc_verdict = _env_drift.claims_hygiene_verdict(
+        sorted(_stc_writes), _stc_claims, _stc_claims,
+        _env_drift._parse_claims(_stc_before)[1], {}, "HEAD^1",
+        stamp=("6.6.0", _stc_old, _stc_decl, _stc_decl, 1),
+    )
+    _stc_ok = (
+        _stc_writes == set(_env_drift.STAMP_WRITES)
+        and _stc_deleted == 1
+        and _stc_verdict is None
+    )
+    _stc_detail = (
+        f"stamp.py writes {sorted(_stc_writes)}, the guard expects "
+        f"{sorted(_env_drift.STAMP_WRITES)}; deleted={_stc_deleted}; "
+        f"verdict={_stc_verdict!r}"
+    )
+except Exception as _stc_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _stc_ok = False
+    _stc_detail = f"{type(_stc_exc).__name__}: {_stc_exc}"
+R.check(
+    "a claim file stamp.py rewrites passes env_drift's claims guard on the "
+    "push to main, and both agree on the files a stamp writes",
+    _stc_ok,
+    _stc_detail,
 )
 R.check(
     "stamp.py is no longer INERT: closure.py must classify it",

@@ -1,19 +1,15 @@
 # The policy set, owned by the repository owner (decision 0009 as amended
 # 2026-09-16; #201 comments 5702359298 and 5702401684).
 #
-# GitHub reads this file for two things. Always: it auto-requests the owner's
-# review on a pull request touching a path below, unless the owner authored it.
-# Once `main-protect` carries its `pull_request` rule with
-# `require_code_owner_review` (0009 step 6): such a pull request cannot merge
-# without the owner's approving review on GitHub, which is then how the owner's
-# approval of a policy change is given. Until that rule exists this file only
-# requests reviews and enforces nothing, and the approval is given in session
-# and recorded on #201.
+# GitHub reads this file for two things. It auto-requests the owner's review on
+# a pull request touching a path below, unless the owner authored it. And
+# `main-protect`'s `pull_request` rule carries `require_code_owner_review` (0009
+# step 6, 2026-09-17), so such a pull request cannot merge without the owner's
+# approving review on GitHub, which is how the owner approves a policy change.
 #
 # The owner is @tvofi and not the approver App: GitHub's docs list users and
 # teams with explicit write access as code owners and name no App form. Every
-# other path has no code owner; once step 6 lands, the App's approving review
-# serves those.
+# other path has no code owner, and the App's approving review serves those.
 # docs/HANDOVER.md is deliberately absent: it carries state, not rules.
 #
 # Nothing in the test gate opens this file (tests/closure.py lists it INERT).

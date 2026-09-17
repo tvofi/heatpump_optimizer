@@ -21136,6 +21136,230 @@ R.check(
 )
 
 
+R.section("#1067 W1067-G4 — the pump's silent-mode window derates the plan")
+import inspect as _g4_inspect  # noqa: E402
+from zoneinfo import ZoneInfo as _G4Zone  # noqa: E402
+
+from heatpump_optimizer import const as _g4_const  # noqa: E402
+from heatpump_optimizer import silent_mode as _g4_sm  # noqa: E402
+from heatpump_optimizer.dhw_schedule import parse_windows as _g4_parse  # noqa: E402
+from heatpump_optimizer.dhw_schedule import parse_weekly_windows as _g4_weekly  # noqa: E402
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _G4Opt  # noqa: E402
+
+_G4_WIN = _g4_const.CONF_SILENT_MODE_WINDOWS
+_G4_FRAC = _g4_const.CONF_SILENT_MODE_FRACTION
+_G4_STHLM = _G4Zone("Europe/Stockholm")
+
+
+def _g4_capped(arr, p_max=5.0):
+    """Indices a cap array holds below nameplate; None reads as no step."""
+    return [] if arr is None else [i for i, v in enumerate(arr) if v < p_max - 1e-9]
+
+
+# A window across midnight. 20:00 local, 15-minute steps: 22:00-06:00 is
+# steps 8 through 39, eight hours, and nothing either side of it.
+_g4_eve = datetime(2026, 1, 15, 20, 0, tzinfo=_G4_STHLM)
+_g4_wrap = _g4_sm.caps(_g4_eve, 96, 0.25, _g4_parse("22:00-06:00"), 0.7, 5.0)
+R.check(
+    "a window across midnight caps exactly its own steps, 22:00 through 05:45",
+    _g4_capped(_g4_wrap) == list(range(8, 40)),
+    f"capped {_g4_capped(_g4_wrap)[:3]}..{_g4_capped(_g4_wrap)[-3:]}",
+)
+R.check(
+    "inside the window the cap is the fraction of nameplate, outside it nameplate",
+    _g4_wrap is not None and float(_g4_wrap[8]) == 3.5 and float(_g4_wrap[7]) == 5.0
+    and float(_g4_wrap[39]) == 3.5 and float(_g4_wrap[40]) == 5.0,
+    f"{None if _g4_wrap is None else _g4_wrap[6:10].tolist()}",
+)
+# DST. The spring night has no 02:00, the autumn night has it twice, so a
+# 01:00-04:00 window is two real hours, then three, then four. Counting on a
+# wall clock would cap twelve steps on all three nights.
+_g4_dst = {
+    label: len(_g4_capped(_g4_sm.caps(
+        datetime(2026, month, day, 0, 0, tzinfo=_G4_STHLM), 96, 0.25,
+        _g4_parse("01:00-04:00"), 0.7, 5.0,
+    )))
+    for label, month, day in (("spring", 3, 29), ("plain", 3, 30), ("autumn", 10, 25))
+}
+R.check(
+    "on the DST nights the window caps the real hours: 8 steps in spring, 12 plain, 16 in autumn",
+    _g4_dst == {"spring": 8, "plain": 12, "autumn": 16},
+    f"{_g4_dst}",
+)
+# The inert arms: each returns None, which is what keeps every install that
+# sets nothing byte-identical (power_caps_extra None takes the solver's
+# uncapped path, a full-nameplate array would not).
+R.check(
+    "fraction 1.0 is None, with a window set",
+    _g4_sm.caps(_g4_eve, 96, 0.25, _g4_parse("22:00-06:00"), 1.0, 5.0) is None,
+)
+R.check(
+    "no window is None, with a derate set",
+    _g4_sm.caps(_g4_eve, 96, 0.25, [], 0.7, 5.0) is None,
+)
+R.check(
+    "a window the horizon never reaches is None, not a nameplate array",
+    _g4_sm.caps(_g4_eve, 4, 0.25, _g4_parse("02:00-03:00"), 0.7, 5.0) is None,
+)
+# The floor. The derate can trim the plan, never starve the house.
+_g4_floor = _g4_sm.caps(_g4_eve, 96, 0.25, _g4_parse("22:00-06:00"), 0.3, 5.0)
+R.check(
+    "a derate below the floor caps at CAPACITY_FLOOR_FRACTION of nameplate",
+    _g4_floor is not None
+    and float(np.min(_g4_floor)) == _g4_const.CAPACITY_FLOOR_FRACTION * 5.0,
+    f"{None if _g4_floor is None else float(np.min(_g4_floor))}",
+)
+# Day selectors follow the step's own weekday, as the hot-water windows do.
+_g4_sat = datetime(2026, 1, 17, 0, 0, tzinfo=_G4_STHLM)
+_g4_mon = datetime(2026, 1, 19, 0, 0, tzinfo=_G4_STHLM)
+_g4_weekend = _g4_weekly("weekend 01:00-02:00")
+R.check(
+    "a weekend-only window caps Saturday night and not Monday night",
+    len(_g4_capped(_g4_sm.caps(_g4_sat, 96, 0.25, _g4_parse("weekend 01:00-02:00"), 0.7, 5.0, _g4_weekend))) == 4
+    and _g4_sm.caps(_g4_mon, 96, 0.25, _g4_parse("weekend 01:00-02:00"), 0.7, 5.0, _g4_weekend) is None,
+)
+
+# Composition is an elementwise minimum. A product would read 4.0 * 3.5 or
+# (4.0 / 5.0) * 3.5; the minimum is the tighter of the two ceilings.
+_g4_cfg = {_G4_WIN: "22:00-06:00", _G4_FRAC: 0.7}
+_g4_other = np.array([4.0] * 8 + [1.5] * 88)
+_g4_comp = _g4_sm.compose(_g4_other, _g4_cfg, _g4_eve, 96, 0.25, 5.0)
+R.check(
+    "composition with another cap is the elementwise minimum, not a product",
+    _g4_comp is not None
+    and _g4_comp[:12].tolist() == [4.0] * 8 + [1.5] * 4
+    and float(_g4_comp[40]) == 1.5,
+    f"{None if _g4_comp is None else _g4_comp[:12].tolist()}",
+)
+_g4_other2 = np.array([4.0] * 96)
+_g4_comp2 = _g4_sm.compose(_g4_other2, _g4_cfg, _g4_eve, 96, 0.25, 5.0)
+R.check(
+    "and where the silent cap is the tighter one it wins: 3.5 in the window, 4.0 outside",
+    _g4_comp2 is not None and float(_g4_comp2[8]) == 3.5 and float(_g4_comp2[7]) == 4.0,
+    f"{None if _g4_comp2 is None else _g4_comp2[6:10].tolist()}",
+)
+R.check(
+    "unset, compose hands the other cap back untouched, the same object",
+    _g4_sm.compose(_g4_other, {}, _g4_eve, 96, 0.25, 5.0) is _g4_other
+    and _g4_sm.compose(None, {}, _g4_eve, 96, 0.25, 5.0) is None,
+)
+R.check(
+    "a stored window this version cannot read caps nothing rather than raising",
+    _g4_sm.compose(None, {_G4_WIN: "garbage", _G4_FRAC: 0.7}, _g4_eve, 96, 0.25, 5.0) is None,
+)
+
+
+# The production wiring, driven. The coordinator's planning solve and its
+# what-if solve both reach optimizer.optimize(power_caps_extra=...) through
+# _await_optimize; the spy binds what each call handed over to optimize's
+# own signature and then runs the real solve.
+_g4_sig = _g4_inspect.signature(_G4Opt.optimize)
+
+
+def _g4_spy(sink):
+    real = _coord_mod._await_optimize
+
+    async def _spy(hass, optimizer, state, *positional, **keywords):
+        bound = _g4_sig.bind(None, state, *positional, **keywords)
+        sink.append((bound.arguments.get("power_caps_extra"), bound.arguments.get("start_time")))
+        return await real(hass, optimizer, state, *positional, **keywords)
+
+    return real, _spy
+
+
+def _g4_window_steps(start, n):
+    """Indices whose local start falls in 00:00-06:00, walked in UTC."""
+    utc = start.astimezone(timezone.utc)
+    out = []
+    for i in range(n):
+        local = (utc + timedelta(minutes=15 * i)).astimezone(start.tzinfo)
+        if local.hour < 6:
+            out.append(i)
+    return out
+
+
+def _g4_plan(config, simulate=None):
+    """Run the production cycle (and optionally a what-if) and return the captures."""
+    coord = _solve_coord()
+    coord._config.update(config)
+    sink = []
+    real, spy = _g4_spy(sink)
+    _coord_mod._await_optimize = spy
+    try:
+        _asyncio.run(coord.async_run_optimization())
+        if simulate is not None:
+            coord._last_simulation = None
+            _asyncio.run(coord.async_simulate(simulate))
+    finally:
+        _coord_mod._await_optimize = real
+    return coord, sink
+
+
+_G4_SILENT = {_G4_WIN: "00:00-06:00", _G4_FRAC: 0.6}
+# 16 A on one phase is 3.68 kW: under nameplate, above the 3.0 kW derate.
+_G4_FUSE = {
+    _g4_const.CONF_FUSE_GUARD_ENABLED: True,
+    _g4_const.CONF_MAIN_FUSE_A: 16,
+    _g4_const.CONF_MAIN_FUSE_PHASES: 1,
+}
+_g4_c, _g4_runs = _g4_plan({**_G4_SILENT, **_G4_FUSE}, simulate={"power_cap_kw": 4.2})
+_g4_pmax = float(_g4_c._thermal_params.max_electrical_power)
+_g4_in = (
+    _g4_window_steps(_g4_runs[0][1], len(_g4_runs[0][0]))
+    if _g4_runs and _g4_runs[0][0] is not None else []
+)
+R.check(
+    "the planning solve reached optimize twice over (plan, then what-if) with caps",
+    len(_g4_runs) == 2 and all(c is not None for c, _ in _g4_runs),
+    f"{len(_g4_runs)} solve(s), caps {[c is not None for c, _ in _g4_runs]}",
+)
+_g4_plan_caps = _g4_runs[0][0] if _g4_runs else None
+R.check(
+    "the plan's caps: the 3.0 kW derate in 00:00-06:00, the 3.68 kW fuse outside it",
+    _g4_plan_caps is not None and 0 < len(_g4_in) < len(_g4_plan_caps)
+    and all(abs(float(_g4_plan_caps[i]) - 0.6 * _g4_pmax) < 1e-9 for i in _g4_in)
+    and all(abs(float(_g4_plan_caps[i]) - 3.68) < 1e-9
+            for i in range(len(_g4_plan_caps)) if i not in _g4_in),
+    f"in-window {len(_g4_in)}, sample "
+    f"{None if _g4_plan_caps is None else sorted(set(np.round(_g4_plan_caps, 4).tolist()))}",
+)
+_g4_sim_caps = _g4_runs[1][0] if len(_g4_runs) > 1 else None
+_g4_sim_in = _g4_window_steps(_g4_runs[1][1], len(_g4_sim_caps)) if _g4_sim_caps is not None else []
+R.check(
+    "the what-if's caps: the derate in the window, the simulated 4.2 kW cap outside it",
+    _g4_sim_caps is not None and 0 < len(_g4_sim_in) < len(_g4_sim_caps)
+    and all(abs(float(_g4_sim_caps[i]) - 0.6 * _g4_pmax) < 1e-9 for i in _g4_sim_in)
+    and all(abs(float(_g4_sim_caps[i]) - 4.2) < 1e-9
+            for i in range(len(_g4_sim_caps)) if i not in _g4_sim_in),
+    f"{None if _g4_sim_caps is None else sorted(set(np.round(_g4_sim_caps, 4).tolist()))}",
+)
+# With no other cap the derate reaches the solver on its own, in both paths.
+_g4_c2, _g4_runs2 = _g4_plan(dict(_G4_SILENT), simulate={"target_temp": 20.5})
+R.check(
+    "alone, the derate is what both solves receive: 3.0 kW in the window, nameplate outside",
+    len(_g4_runs2) == 2
+    and all(
+        c is not None
+        and {round(float(v), 9) for v in c} == {0.6 * _g4_pmax, _g4_pmax}
+        and _g4_capped(c, _g4_pmax) == _g4_window_steps(t, len(c))
+        for c, t in _g4_runs2
+    ),
+    f"{[None if c is None else len(_g4_capped(c, _g4_pmax)) for c, _ in _g4_runs2]}",
+)
+# The null: the same window at fraction 1.0 hands both solves exactly what
+# an install without the options does -- the fuse cap, and no cap at all.
+_g4_c3, _g4_runs3 = _g4_plan({_G4_WIN: "00:00-06:00", _G4_FRAC: 1.0, **_G4_FUSE},
+                             simulate={"target_temp": 20.5})
+R.check(
+    "at fraction 1.0 the plan gets the bare fuse cap and the what-if gets None",
+    len(_g4_runs3) == 2
+    and _g4_runs3[0][0] is not None
+    and {round(float(v), 9) for v in _g4_runs3[0][0]} == {3.68}
+    and _g4_runs3[1][0] is None,
+    f"{[None if c is None else sorted(set(np.round(c, 4).tolist())) for c, _ in _g4_runs3]}",
+)
+
+
 R.section("v5.3.0 — defrost: duty is measured, the derate is physics")
 
 # Establish the premise first, because it inverts what the flag looks like it

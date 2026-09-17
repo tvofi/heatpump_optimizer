@@ -337,6 +337,7 @@ from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import pump_signals
 from . import setpoint_check
+from . import silent_mode
 from .pump_mode import ModeCapability
 from .pump_signals import PumpSignals
 from .manual_plan import (
@@ -4726,6 +4727,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     if caps_extra is None
                     else np.minimum(caps_extra, env_caps)
                 )
+            # #1067: the pump's own silent-mode schedule, the same channel.
+            caps_extra = silent_mode.compose(
+                caps_extra, ctx._config, solve_now, len(prices),
+                ctx._opt_config.dt_hours, ctx._thermal_params.max_electrical_power,
+            )
 
             # T5 (#16 #54): the comfort floor's two gated adjustments;
             # None for both is the byte-inert default path. Evaluated here,
@@ -10543,6 +10549,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
         # One snap for slot stamps and the shadow solve (#463).
         solve_at = _solve_anchor(now)
+        # #1067: the what-if prices the same silent-mode ceiling the plan did.
+        cap_extra = silent_mode.compose(
+            cap_extra, ctx._config, solve_at, len(horizon.prices),
+            scratch_config.dt_hours, scratch_params.max_electrical_power,
+        )
         wood_err, wood_kw, wood_sek = simulate_wood_slots(
             overrides, ctx._config, len(horizon.prices),
             ctx._opt_config.dt_hours, solve_at,

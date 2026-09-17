@@ -63,10 +63,10 @@ name: Tests
 #   and otherwise re-derive only the closures the diff intersects. The
 #   old third case -- skip when every changed file is INERT -- is now the
 #   docs-only FAST ARM inside the job rather than a skip (#201 item 8):
-#   `closures` is a required context on `main-protect`, and a required
-#   context that reports `skipped` can never satisfy the ruleset, which
-#   is how the bot's docs-only cycle PRs came to be merged `--admin`
-#   three times in one wave. Before `closure-scope` existed the job ran
+#   `closures` is a required context on `main-protect`, which SUCCESS
+#   satisfies without doubt. (The three `--admin` merges once cited as
+#   proof a skip blocks also lacked `hassfest`/`validate-hacs`; #1101.)
+#   Before `closure-scope` existed the job ran
 #   on a pull request only when one ADDED a file under
 #   custom_components/, so a change to what a test reads was checked one
 #   merge too late -- five times (#354).
@@ -956,9 +956,9 @@ jobs:
     # `skip` -- every changed file INERT and absent from every recorded
     # closure -- which is exactly the diff the bot's ci/delivery-ledger cycle
     # pull requests carry. `closures` is one of the `main-protect` ruleset's
-    # required contexts, and a required context that reports `skipped` is one
-    # the ruleset can never satisfy: #1022, #1025 and #1027 were each merged
-    # with `--admin` for that reason alone, three in one wave. The ruleset
+    # required contexts, which SUCCESS satisfies without doubt. #1022, #1025
+    # and #1027 merged `--admin`, but their heads also lacked the required
+    # `hassfest`/`validate-hacs` (#1101): no proof a skip blocks. The ruleset
     # carve-out was refused (not expressible without weakening everyone), so
     # the lane reports SUCCESS instead: on the `skip` case the job runs the
     # cheap arm below -- it re-derives the case itself, from the same
@@ -1136,9 +1136,9 @@ jobs:
   # follow-up commit (`ci: re-record closures`).
   #
   # A GITHUB_TOKEN push's pull_request runs wait action_required, so this
-  # job dispatches Tests (recheck=true), Hassfest and Validate on the new SHA
-  # (not Governance or CodeQL). CLOSURES_PUSH_TOKEN, if set, retriggers via
-  # synchronize and the dispatch is skipped.
+  # job dispatches Tests (recheck=true), Hassfest, Validate and CodeQL on the
+  # new SHA; not Governance (why: tests/entities.py). CLOSURES_PUSH_TOKEN, if
+  # set, retriggers via synchronize and the dispatch is skipped.
   closures-autofix:
     needs: [closures]
     if: >-
@@ -1226,6 +1226,13 @@ jobs:
           gh workflow run tests.yml --ref "$HEAD_REF"
           gh workflow run hassfest.yml --ref "$HEAD_REF"
           gh workflow run validate.yml --ref "$HEAD_REF"
+          # Only a ref older than codeql.yml's trigger is excused; any
+          # other dispatch failure fails the step like the three above.
+          if grep -q '^  workflow_dispatch:' .github/workflows/codeql.yml; then
+            gh workflow run codeql.yml --ref "$HEAD_REF"
+          else
+            echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
+          fi
 
       # The push above runs only on `changed`; the other statuses fell through
       # to job success, so a skipped repair was invisible and the documented
@@ -1325,6 +1332,13 @@ jobs:
           gh workflow run tests.yml --ref "$HEAD_REF"
           gh workflow run hassfest.yml --ref "$HEAD_REF"
           gh workflow run validate.yml --ref "$HEAD_REF"
+          # Only a ref older than codeql.yml's trigger is excused; any
+          # other dispatch failure fails the step like the three above.
+          if grep -q '^  workflow_dispatch:' .github/workflows/codeql.yml; then
+            gh workflow run codeql.yml --ref "$HEAD_REF"
+          else
+            echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
+          fi
 
       # As in closures-autofix (#523). This job's apply function has no
       # attempted-and-failed status, so today only an unrecognised or empty

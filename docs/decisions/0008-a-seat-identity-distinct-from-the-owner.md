@@ -15,6 +15,11 @@ because it is the whole safety argument.
 > are kept. This record's effective-when condition — and 0005's supersession —
 > now track 0009's checklist rather than step 3(c) alone. No step of either
 > record has been executed; the GitHub-side actions remain the owner's.
+>
+> **Status note, 2026-09-17.** Effective, and 0005 superseded: every step of
+> `0009`'s checklist has landed (`0009`'s status note of this date). The
+> effective-when conditions above and "0005 is superseded from (c) on" under
+> Consequences are met; they stay as written, as dated history.
 
 ## Context
 
