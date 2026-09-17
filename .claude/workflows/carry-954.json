@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Carry destination for issue #954's one follow-up still owed after its checklist landed.",
+    "W4D-G9, the roster group that covered #954, is at resume.stage done, so it is not a",
+    "destination (PR #1098); PR #1072's carry moved here from that group's brief in the #954",
+    "close-out record pull request, which also closes #954. Shape and required fields:",
+    ".claude/rules/finding-propagation.md. Linted by .claude/workflows/brief_lint.mjs."
+  ],
+  "issue": 954,
+  "stage": "The tools/release/stamp.py change owed once main-protect's bypass was narrowed to the deploy key (decision 0009 steps 5 and 6): --push-key made mandatory for --push. #954 is closed, so no open issue tracks this stage; this file does.",
+  "carries": [
+    {
+      "from": "PR #1072 (deploy-key stamping), its round-2 review; moved from W4D-G9's done brief by the #954 close-out record pull request",
+      "effect": "narrows",
+      "control": "A direct push to main now lands only over the deploy key. Step 5's probe (#201 comment 5704665628), on a throwaway branch under a throwaway ruleset carrying the planned bypass list: an API ref update as tvofi (admin) was refused, the same as tvofi-seat-author (write), and a push over the deploy key landed; the refused arms are the null control for the landed one. Step 6 then removed the admin bypass altogether (comment 5708908916), and v6.6.0 was stamped over the key (comment 5708985902). The keyless stamp --push sites PR #1072's review listed under .claude/workflows were moved to --push-key by PR #1077: fragments_sync.mjs reports no tracked stamp --push without --push-key, and its self-test reports a bent keyless stamp text while passing the same text with the key, so the clean reading is not a scan over nothing.",
+      "remeasure": "At your own merge base: run node .claude/workflows/fragments_sync.mjs and git grep -n -- '--push' .claude/workflows, and read rulesets/22628467 with a token that can see bypass_actors before assuming the deploy key is still the only bypass. Read tools/release/stamp.py main() for how --push without --push-key is handled today rather than trusting this carry.",
+      "brief": "Resolved, and not to be redone: the step-5 precondition (no stamp path pushing without the key, met by PR #1077), the web prompts naming --push-key, and the re-run of the probe arms after the narrowing. Still owed: making --push-key mandatory for --push in tools/release/stamp.py. Until it lands a keyless --push is refused only by the ruleset, after stamp.py has committed and tagged locally, and its except arm discards both; the mandatory key moves that refusal before anything is written. Legitimate only while the ruleset's sole bypass is the deploy key, which is the remeasure step's reading. The refusal names --push-key and --known-hosts, and stamp.py --self-test carries both arms: the keyless --push refused, the keyed one accepted."
+    }
+  ]
+}

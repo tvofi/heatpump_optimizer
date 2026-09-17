@@ -22,8 +22,8 @@ record is a plan with its checks written down — the shape 0008 landed in — a
 > token, so the seat recording this note could not re-read it. Step 3b landed
 > with #1071 (`059f047`): the `delivery-status-publish` lane pushes as
 > `tvofi-seat-author` (#1065's force-push at 19:37:11Z, #201 comment
-> 5703429662). **Not landed** at that note (steps 3 to 5 since, in the next
-> note): the rest of step 3 — seats still authenticate as
+> 5703429662). **Not landed** at that note (steps 3 to 6 since, in the notes
+> below): the rest of step 3 — seats still authenticate as
 > `tvofi` (`gh api user --jq .login`), so the author half of step 4 is
 > unverified, and the App has not yet approved a pull request the machine
 > account authored (its APPROVED review 5227837364 on #1065, authored by
@@ -59,7 +59,39 @@ record is a plan with its checks written down — the shape 0008 landed in — a
 >   comment 5705424893).
 > - **Step 6** is pre-authorised for one session (comment 5704795223): a
 >   `pull_request` rule with the code-owner review, and `bypass_actors` reduced
->   to the DeployKey alone. It has **not** landed.
+>   to the DeployKey alone. It had **not** landed at this note; superseded by
+>   the next note.
+
+> **Status note, 2026-09-17.** **Steps 1 to 6 have all landed.** This note
+> supersedes both notes above, the status paragraph and "#954 stays open"
+> under Consequences wherever they differ: #954 closes with the pull request
+> that carries this note.
+>
+> - **Step 6's first attempt was rolled back**, 2026-09-16 23:47–23:52Z (#201
+>   comment 5706235238). The App's APPROVED review 5229528092 on throwaway
+>   #1088 did not count while its installation had `contents: read`:
+>   `reviewDecision` stayed `REVIEW_REQUIRED`, so the saved body was `PUT`
+>   back. The owner then granted the App `contents: write` and widened the
+>   author PAT to `repo, workflow`.
+> - **Step 6 landed at 2026-09-17 04:58Z** (comment 5708908916), under the
+>   mandate in comment 5704795223, with no pull request open. One `PUT` on
+>   `rulesets/22628467` kept the deletion, non-fast-forward and
+>   required-checks rules byte-identical, added a `pull_request` rule with
+>   `required_approving_review_count: 1` and `require_code_owner_review: true`,
+>   and cut `bypass_actors` to `[{DeployKey, always}]`. The probe, on
+>   throwaway #1096: an unapproved merge as `tvofi` (admin) was refused; after
+>   `hpo-approver[bot]`'s review 5231247704, `reviewDecision` read `APPROVED`.
+>   #1096 was closed unmerged.
+> - **The first merges under the rule.** #1098, a policy pull request, merged
+>   as `b4a3a3c` at 05:48:34Z with one review, the owner's approval at
+>   `f4c178f`, although it also changed the unowned `brief_lint.mjs`. #1100
+>   merged as `1fd1b3d` at 06:04:57Z on the App's review 5231824699, and #1099
+>   as `db3e095` at 06:17:25Z on its review 5231919413.
+> - **A stamp pushes over the deploy key alone**: v6.6.0 was stamped that way
+>   (comment 5708985902).
+> - **The `SEAT_AUTHOR_TOKEN` Actions secret** is held by no workflow step since
+>   #1086, and the owner decided to delete it (comment 5708947495). This
+>   note's pull request found it still listed by `GET .../actions/secrets`.
 
 ## Context
 
@@ -198,7 +230,8 @@ changes and budget raises after the session. Same shape as decisions
 - **#954 stays open.** The identity creation, the authorization switch and the
   rule flip are owner-side GitHub steps that have not happened; this record is
   the decision, not the flip, and the issue closes when the steps land and the
-  observer reports them — not before.
+  observer reports them — not before. *(Superseded 2026-09-17: every step
+  landed, in the status note of that date, and #954 closes with it.)*
 - The `--author` every seat pins on its commits changes with the account
   switch, in the change that follows verification; no policy file in the tree
   carries the string (0008's consequence, kept).
@@ -236,11 +269,8 @@ set: it carries state, not rules.
 and `require_code_owner_review: true`. A pull request touching no owned path is
 satisfied by the App's approving review, given for the reviewer seats. One
 touching an owned path additionally needs the owner's approving review, which
-is how the owner's approval of a policy change is given **once step 6 lands**.
-Until then nothing requires that review, and while seats still author as
-`tvofi` (step 3) the owner cannot give it, because GitHub refuses an author's
-approval of their own pull request; the approval is given in session and
-recorded on #201. `CLAUDE.md`'s sentence says both. "No separate human approval is required" above holds for
-every other path. How the code-owner requirement treats the unowned files of a
-mixed pull request is not stated in GitHub's documentation and is probed on a
-throwaway branch before step 6.
+is how the owner's approval of a policy change is given; `CLAUDE.md`'s sentence
+says so. "No separate human approval is required" above holds for every other
+path. How the code-owner requirement treats the unowned files of a mixed pull
+request is not stated in GitHub's documentation and was not probed before step
+6; #1098, a mixed pull request, merged on the owner's review alone.

@@ -53,11 +53,10 @@ with *"these force the FULL suite when touched"*.
 
 Everything named here but `docs/HANDOVER.md` is **policy**, and so is this file.
 The owner approves a change to any of it before **merging**, not drafting — so
-open the pull request and surface it. Approval is the owner's approving review,
-which `.github/CODEOWNERS` requires once `main-protect` has the code-owner rule
-(0009 step 6); until then, in session, recorded on #201. Every rewrite looks
-like a correction from the inside; if the honest description is *"this changes
-what a seat must do"*, it is policy however small the diff.
+open the pull request and surface it. Approval is the owner's approving GitHub
+review, which `main-protect`'s code-owner rule requires (0009 step 6). Every
+rewrite looks like a correction from the inside; if the honest description is
+*"this changes what a seat must do"*, it is policy however small the diff.
 
 ### The project policies, loaded when they bind
 
