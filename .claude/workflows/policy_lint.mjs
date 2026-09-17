@@ -87,9 +87,10 @@ const MDC_PATHLINE_RE =
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
 
-function git(args, { allowFail = false, env } = {}) {
+function git(args, { allowFail = false, env, quiet = false } = {}) {
   try {
-    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...(env ? { env } : {}) })
+    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...(env ? { env } : {}),
+      ...(quiet ? { stdio: ['ignore', 'pipe', 'pipe'] } : {}) })
   } catch (e) {
     if (allowFail) return ''
     throw e
@@ -3773,7 +3774,83 @@ function pathsFromFile(pathsFile) {
 // its word even when the diff touches no globbed path. Widening POLICY_GLOBS --
 // which does not contain this file, nor .github/workflows/ -- is a policy
 // question and the owner's, and is named in the body rather than taken here.
-function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [] } = {}) {
+// AN AUTOFIX COMMIT MOVES THE HEAD WITHOUT MOVING THE EVIDENCE. `closures-autofix`
+// and `claims-autofix` (tests.yml) push onto a pull request after its body was
+// written, so `## Head` names the seat's commit while CI runs on the bot's, and
+// the body had to be edited and the run waited out again (#1107, run
+// 35220336323 at b1afbcf). A chain of such commits directly on top of a commit
+// the section names is accepted when EVERY commit in it has:
+//   - author and committer both the bot identity the jobs configure;
+//   - a whole message that is exactly one of the two autofix messages;
+//   - exactly one parent;
+//   - a diff against that parent that only MODIFIES the files that message's
+//     job stages -- and, for the claims job, which only empties lists, adds no
+//     line.
+// The identity is git metadata anyone can write, and GitHub offers nothing
+// better here: the bot's pushes are unsigned (`verification.reason` is
+// `unsigned` on both #1107 commits) and a push with the PAT is attributed to
+// the PAT's owner, a seat (run 35220336323's actor). So the other three carry
+// the weight. A forged closures commit is a GATE_FILES change, so the `closures`
+// job re-derives every closure at that head and refuses an under-scoped one; a
+// forged claims commit can only delete claims, which `fast`'s golden drift check
+// then refuses if a fixture really drifts. Accepting the head asserts nothing
+// about either file -- every other required context still runs at the real head.
+//
+// The constants are held here rather than read from tests.yml because this
+// runs in the pull request's own checkout: a branch that edited the workflow
+// would widen what it is excused for. tests/entities.py pins their agreement.
+const AUTOFIX_BOT_COMMITS = {
+  name: 'github-actions[bot]',
+  email: '41898282+github-actions[bot]@users.noreply.github.com',
+  messages: {
+    'ci: re-record closures': { paths: ['tests/closures.json'], mayAdd: true },
+    'ci: drop inherited claims': {
+      paths: ['tests/golden/claimed_drift.txt', 'tests/golden/card_claimed_drift.txt'], mayAdd: false },
+  },
+}
+
+// One commit's answer: `{ parent, message }` when it is an autofix commit, or
+// `{ why }` naming the first condition it fails. Fail-closed: a commit this
+// clone cannot read is refused, never assumed.
+function autofixCommit(sha) {
+  const bot = `${AUTOFIX_BOT_COMMITS.name} <${AUTOFIX_BOT_COMMITS.email}>`
+  const short = sha.slice(0, 7)
+  if (!/^[0-9a-f]{40}$/.test(sha)) return { why: `${short} is not a full commit SHA` }
+  const meta = git(['show', '-s', '--format=%an <%ae>%x00%cn <%ce>%x00%P%x00%B', sha], { allowFail: true, quiet: true })
+  if (!meta) return { why: `${short} is not a commit in this clone` }
+  const [author, committer, parents, raw] = meta.split('\0')
+  if (author !== bot || committer !== bot) return { why: `${short} is not authored and committed as ${bot}` }
+  const message = raw.trim()
+  if (!Object.hasOwn(AUTOFIX_BOT_COMMITS.messages, message)) return { why: `${short}'s message is not an autofix message` }
+  const rule = AUTOFIX_BOT_COMMITS.messages[message]
+  const ps = parents.trim().split(/\s+/).filter(Boolean)
+  if (ps.length !== 1) return { why: `${short} has ${ps.length} parents` }
+  const status = git(['diff', '--no-renames', '--name-status', ps[0], sha], { allowFail: true, quiet: true })
+    .split('\n').filter(Boolean).map((l) => l.split('\t'))
+  const numstat = git(['diff', '--no-renames', '--numstat', ps[0], sha], { allowFail: true, quiet: true })
+    .split('\n').filter(Boolean).map((l) => l.split('\t'))
+  if (!status.length) return { why: `${short} changes no file` }
+  const outside = status.map(([, p]) => p).filter((p) => !rule.paths.includes(p))
+  if (outside.length) return { why: `${short} changes ${outside.join(', ')}, outside what "${message}" stages` }
+  if (status.some(([s]) => s !== 'M')) return { why: `${short} does not only modify its files` }
+  if (!rule.mayAdd && numstat.some(([added]) => added !== '0')) return { why: `${short} adds lines, and "${message}" only removes them` }
+  return { parent: ps[0], message }
+}
+
+// Walks down from the head while each commit is an autofix commit, stopping at
+// the first parent `names` accepts. `{ base, accepted }` or `{ why }`.
+function autofixChain(head, names) {
+  const accepted = []
+  for (let sha = head; ;) {
+    const c = autofixCommit(sha)
+    if (c.why) return { why: c.why }
+    accepted.unshift({ sha, message: c.message })
+    if (names(c.parent)) return { base: c.parent, accepted }
+    sha = c.parent
+  }
+}
+
+function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], notes = [] } = {}) {
   const out = []
   let body
   try {
@@ -3810,11 +3887,19 @@ function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [] } =
   }
 
   // The head the body claims must be the head CI is running. A body describing
-  // an older head is the shape fix-review.md calls `head-moved`.
+  // an older head is the shape fix-review.md calls `head-moved` -- except where
+  // everything between the two is the autofix jobs' own repair (`autofixChain`).
   const headSec = secs.get('Head') ?? ''
-  if (head && headSec && !headSec.includes(head) && !headSec.includes(head.slice(0, 7))) {
-    out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
-      message: `\`## Head\` does not name ${head.slice(0, 7)}, which is the head this ran on. Evidence measured at another head describes another tree.` })
+  const names = (sha) => headSec.includes(sha) || headSec.includes(sha.slice(0, 7))
+  if (head && headSec && !names(head)) {
+    const chain = autofixChain(head, names)
+    if (chain.base) {
+      notes.push(`HEAD: \`## Head\` names ${chain.base.slice(0, 7)}; accepted autofix commit(s) on top of it: ${
+        chain.accepted.map((c) => `${c.sha.slice(0, 7)} (${c.message})`).join(', ')}`)
+    } else {
+      out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+        message: `\`## Head\` does not name ${head.slice(0, 7)}, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: ${chain.why}.` })
+    }
   }
 
   // A carry destination that does not exist is a carry nobody receives, which is
@@ -3898,7 +3983,9 @@ function cmdPrBody(args) {
     }
     paths = got.paths
   }
-  const findings = checkPrBody(bodyPath, { head: val('--head') ?? '', title: val('--title') ?? '', red, paths })
+  const notes = []
+  const findings = checkPrBody(bodyPath, { head: val('--head') ?? '', title: val('--title') ?? '', red, paths, notes })
+  for (const n of notes) console.log(n)
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)
   return findings.length ? 1 : 0
@@ -4319,7 +4406,7 @@ function main() {
 // `LOOP_CHECK_NAMES` are the two enumerations -- the corpus checks and the
 // record mode's -- `assertAcceptance` is the thing under test, and
 // `derivations` is its only argument.
-export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations, frictionEntries }
+export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations, frictionEntries, AUTOFIX_BOT_COMMITS }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main()
