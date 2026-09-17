@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: cb30d98bfb677d2bd4f73054ee716a9359e3adfa
+updated-for: c71c53cfd7158ccfa32558ca748e307a7aaf06e9
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is the frozen table in
@@ -97,6 +97,12 @@ request (#1081), linked from here and never restated.
   the current body, so only that head's result is a result. A red at a
   superseded head is the instrument, not the commit. The root-cause seat is
   the issue this property opened; do not skip to writing a check.
+- **A setting the entry never stored is no longer written when the options page
+  posts its default** (#1107, released v6.6.1). `config_flow._ABSENT_FALLBACKS`
+  is the set whose absence already IS the shipped default, and
+  `tests/config_flow_steps.py` derives it — *"`_ABSENT_FALLBACKS` is exactly the
+  proven set"* — rather than letting it be listed by hand. **Constraint on a new
+  option key**: it derives into that set, or every page visit writes it.
 - **A coverage ratio over an open set of mutation carriers is not a figure.**
   The denominator is unbounded. State the class.
 - **A figure about the document it lives in is derived beside it, at the head.**
@@ -119,6 +125,25 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
 
 ## Corrections to the record
 
+- **This file is NOT policy for the budget and approval machinery, and seats are
+  still being briefed that it is.** `docs/HANDOVER.md` sits in `CORPUS_EXCLUDED`
+  and matches no `POLICY_GLOBS` pattern (owner, 2026-09-16, #201 comment
+  5702401684); `.github/CODEOWNERS` says in its own header that it is
+  deliberately absent. So a record pull request whose diff is this file owes no
+  `## Approval` section and no code-owner review, and its growth spends no cap —
+  `--budgets` does not list it. The residual the exclusion names is real and is
+  a reviewer's job, not a check's: prose moved into this file leaves the corpus.
+- **`tests/mutation_budgets.json`'s stated reason is stale.** It says the cap
+  waits on a full-package run that "cannot happen until mutation-nightly is on
+  main"; the `mutation-nightly` job is in `.github/workflows/tests.yml` and
+  `last_measured.full` is still `null`. **`mutation` is not a required check** —
+  read the contexts from the `main-protect` ruleset endpoint, never a count from
+  here; `coverage`, `mutation-nightly`, `slow` and `nightly-status` are absent
+  from it too, and `/branches/main/protection` answers 404, so the ruleset
+  endpoint is the only reader. With `max_survivor_fraction` at 1.0 in both
+  scopes and the refusal written `if rate > cap`, the lane cannot fail on a
+  survivor: every red it carried in the retained window was its baseline guard
+  re-reporting a red `fast` already reported by `fast`.
 - **The "34-key `data` payload" is wrong**, and so is any count of it: no rule
   reproduces 34, and it traces to a lost session tool. The freeze is enforced by
   `tests/features.py`'s symmetry check and the `coord_*` goldens, never by a
@@ -396,6 +421,37 @@ in its own pull request.
     third attempt, passed. Byte-identity against the sent file
     (`comment-readback.md`) is the only read-back that fails all three.
 
+38. **A sectioned config-flow field resolves its label ONLY at
+    `step.<id>.sections.<s>.data.<field>` and `data_description`, with no
+    fallback to step level.** Every label check this repository had read the
+    step-level `data` map, which the HA frontend does not consult for a field
+    inside a `section()`; the fields rendered as raw keys — per language, in
+    both flows — from v6.3.19 (#653) and v6.4.1 (#849) until #1111 restored
+    them in v6.6.2. **The class is a check and the production code agreeing
+    about the wrong location**, so the check confirms the defect. Graduated:
+    the schema-derived, no-fallback assertion in `tests/entities.py`, which
+    walks the built schema rather than a hand-written key list. #1114 then
+    fixed the same blind read in seven audit harnesses under
+    `tools/audit/round3/` and `tools/audit/round4/`, none of which the gate had
+    ever contradicted.
+39. **`prepr.sh` gates `## Head` against the LOCAL head and `pr-contract` gates
+    the pull request's REMOTE tip, so a pull request that writes its own record
+    file must push twice and one `pr-contract` run necessarily fails on the
+    commit being replaced** (#1116). It is a red-then-green at a superseded
+    head, not a defect — `push.sh`'s `pr_arm` selects `body-then-push` once a
+    pull request is open, which is what orders the two. Read it with the
+    commit's `check-runs` API (correction above), and answer it in the body by
+    naming the superseded head rather than re-running anything.
+    **Instances: #1116, then #1121. This is a named recurrence at two, recorded
+    here so the next seat knows where it stands** — at a third,
+    `defect-root-cause.md`'s recurrence trigger fires and the answer is a
+    root-cause seat, not a third pull-request paragraph explaining the same red.
+    No countermeasure is proposed at two, and that is the decision rather than
+    an omission: a check that suppressed this red would have to stop reporting a
+    body genuinely stale at the head, which is what `pr-contract` is for, and
+    the gap itself exists only between two API calls that `push.sh`'s own header
+    says it cannot make atomic.
+
 ## Owed — post-hoc reviews
 
 **Seven pull requests merged on 2026-09-07 without an independent verdict at
@@ -440,6 +496,30 @@ flagged it rather than claiming a carry it had not made.
   revised on 2026-09-14 and `docs/decisions/0009-*` is the live one; 0008 alone
   reads as its opposite** — agent identities author and approve, no human in
   the loop; the order above is unchanged. #954 closes at that verification.
+
+**Owed: an instrument over the plan's open-issue dispositions, or a decision
+not to build one.** `recordRegion` reads the plan's `## Delivery status`
+section, `docs/delivery/` and this file; every other `##` in the plan is outside
+it. So `## Open friction issues — dispositions` (#1121) is unread by any check —
+deleting it whole leaves `--record` byte-identical, `RENDER` included — while
+`delivery-status-tracking.md` section 5 obliges a disposition for every open
+issue. The obligation is real and the coverage is a seat's grep. **What the
+detector would have to avoid** is the shape #658 already narrowed the record
+region to escape: a check that accepts an issue number mentioned anywhere
+dispositions it by mention, which is the defect, not the fix.
+
+**Owed from #1116, two items its merged body left open.**
+
+- **Its body says `--list` "lists nine of the ten" corpus checks; re-measured at
+  `c71c53c`, that is wrong in both halves.** `cmdList` iterates a separate
+  fifteen-class registry, not `CORPUS_CHECKS`, so the overlap is a property of
+  two lists: seven of the ten wired in `CORPUS_CHECKS` have a `--list` class and
+  three do not — `orphan-caps`, `row-freeze` and `rule-binding`. Derive it by
+  intersecting the two rather than reading a count here.
+- **The `--list` discoverability fix itself is deferred.** A check a seat cannot
+  enumerate is a check a seat does not run, and `FIXTURE VACUOUS` already
+  refuses `CORPUS_CHECKS` drifting from `CORPUS_CHECK_NAMES` — nothing holds the
+  `--list` registry to it, which is the hole.
 
 **Owed from 2026-09-14: a stale-pin sweep.** #960 SHA-pinned every mutable
 `uses:` in `.github/workflows/` (the frozen tag rides each pin as a trailing

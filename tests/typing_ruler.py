@@ -101,6 +101,8 @@ from __future__ import annotations
 
 import argparse
 import configparser
+import contextlib
+import io
 import json
 import os
 import re
@@ -528,6 +530,125 @@ def report_improvements(rows: list[tuple]) -> None:
 # entry points
 
 
+# ---------------------------------------------------------------------------
+# guard 5: the census also runs locally, where an interpreter can produce it
+
+# The interpreter carrying the pins. Unset is the ordinary case and costs one
+# printed line. Set is CHECKED, never trusted: guard 2 runs inside the re-exec,
+# so a wrong interpreter here fails this script rather than measuring something
+# else and calling it the census.
+PINNED_ENV = "HPO_TYPING_PYTHON"
+
+
+def enabling_line() -> str:
+    """What is not checked here, and the command that makes it checkable.
+
+    Printed on every unset run rather than kept in a rule, because the seat who
+    needs it is reading this output. #1091 and #1099 each carried a census
+    regression past a green local gate; the pinned pair installs off Linux via
+    uv, and nothing but the absence of this line stopped either seat running it.
+    """
+    return (
+        f"the mypy census is checked only by CI's `typing` job; point {PINNED_ENV} "
+        "at a pinned interpreter to check it before pushing -- `uv venv --python "
+        "3.13 .venv-typing && uv pip install --python .venv-typing/bin/python -r "
+        "<(python3 tests/typing_ruler.py --print-requirements)`"
+    )
+
+
+def pinned_census(report: Report, python: str | None) -> None:
+    """Re-exec the pinned half under ``python`` and FOLD ITS EXIT STATUS IN.
+
+    Folding it in is the point. A re-exec whose status is dropped prints the
+    same red and passes the gate, which is the shape ``defect-root-cause.md``
+    calls worse than no check at all.
+    """
+    if not python:
+        report.note(f"census NOT checked here ({PINNED_ENV} unset)", enabling_line())
+        return
+    rc = subprocess.run(
+        [python, str(Path(__file__).resolve()), "--mypy"], cwd=REPO_ROOT
+    ).returncode
+    report.check(
+        f"the pinned census passed under {PINNED_ENV}",
+        rc == 0,
+        f"{python} exited {rc}; its own output is above. A non-zero exit is "
+        "the census growing, or guard 2 refusing an unpinned interpreter",
+    )
+
+
+def _arm(python: str | None) -> tuple[int, int, str]:
+    """Run ``pinned_census`` against one interpreter, captured. (checks, failures, text)."""
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        probe = Report("guard 5 arm")
+        pinned_census(probe, python)
+    return probe.checks, probe.failures, buf.getvalue()
+
+
+def selftest(report: Report, budget: dict) -> None:
+    """Guard 5's own arms, so the dispatcher above cannot rot silently.
+
+    Stub interpreters, not the pinned one: what is pinned here is the PLUMBING
+    -- a non-zero re-exec reddens a check, a zero one does not, and the unset
+    path says so out loud -- which needs no toolchain and costs two trivial
+    spawns. The census itself is the re-exec's business, and CI's.
+
+    The red arm is the check that matters and the green arm is its null
+    control: a dispatcher that reddened unconditionally would pass the first
+    and fail the second.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        stubs = {}
+        for name, code in (("red", 1), ("green", 0)):
+            stub = Path(tmp) / f"{name}-interpreter"
+            stub.write_text(f"#!/bin/sh\nexit {code}\n")
+            stub.chmod(0o755)
+            stubs[name] = str(stub)
+        checks, failures, _ = _arm(stubs["red"])
+        report.check(
+            "guard 5: a failing pinned run reddens a check here", 
+            (checks, failures) == (1, 1),
+            f"{checks} check(s), {failures} failure(s) from an interpreter that "
+            "exits 1; the re-exec's status is not being folded in",
+        )
+        checks, failures, _ = _arm(stubs["green"])
+        report.check(
+            "guard 5: a passing pinned run does not",
+            (checks, failures) == (1, 0),
+            f"{checks} check(s), {failures} failure(s) from an interpreter that "
+            "exits 0",
+        )
+    # Guard 2's EFFECT, which the stub arms above cannot see: an interpreter
+    # that is not the pinned one must be refused, not measured. Asserted on an
+    # unsatisfiable pin so it needs no toolchain; the passing side of the same
+    # guard is exercised whenever the re-exec above actually runs.
+    impossible = json.loads(json.dumps(budget))
+    impossible["ruler"]["mypy"] = "0.0.0+never-installed"
+    impossible["ruler"]["python_min"] = "3.0.0"
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        probe = Report("guard 5 arm")
+        refused = check_pins(probe, impossible)
+    report.check(
+        "guard 5: guard 2 refuses an unpinned interpreter rather than measuring",
+        refused is False and probe.failures > 0,
+        f"check_pins returned {refused!r} with {probe.failures} failure(s) "
+        "against a pin nothing can satisfy; a census from an unpinned tool is "
+        "not the census (#504)",
+    )
+
+    checks, failures, text = _arm(None)
+    report.check(
+        f"guard 5: unset prints how to enable it and fails nothing",
+        (checks, failures) == (0, 0)
+        and PINNED_ENV in text
+        and "--print-requirements" in text,
+        f"{checks} check(s), {failures} failure(s); text={text.strip()[:120]!r}. "
+        "An empty or silent unset path is the state #1091 and #1099 were pushed in",
+    )
+
+
 def source_checks(report: Report, budget: dict) -> None:
     ignores, where = count_suppressions()
     for line in where[:20]:
@@ -568,6 +689,11 @@ def source_checks(report: Report, budget: dict) -> None:
             f"{census['errors']} errors across {len(census['by_code'])} codes "
             f"at {str(census.get('recorded_at', '?'))[:12]}",
         )
+
+    # Guard 5. The census itself, when this box can honestly produce it, and a
+    # printed line naming what is unchecked when it cannot.
+    selftest(report, budget)
+    pinned_census(report, os.environ.get(PINNED_ENV))
 
 
 def mypy_checks(report: Report, budget: dict, emit: str | None) -> None:

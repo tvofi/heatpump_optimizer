@@ -332,7 +332,7 @@ function uncoveredPolicyFiles(files = null) {
 // an earlier version of this comment openly invited, and it silently voids the
 // check, because the loop passes the POLICY FILE list and every policy file is
 // covered by definition. Hence the name, and hence asserting names.
-const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'orphanCapsOverTree', 'requiredContextsOverTree', 'checkProvenance', 'rowFreezeOverPlan', 'ruleBindingOverTree']
+const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'citationPresenceOverTree', 'orphanCapsOverTree', 'requiredContextsOverTree', 'checkProvenance', 'rowFreezeOverPlan', 'ruleBindingOverTree']
 
 // THE RECORD MODE'S CHECKS, enumerated HERE beside the corpus list rather than
 // in the mutation lane, for the reason the corpus list gives about itself: a
@@ -510,12 +510,19 @@ const CORPUS_EXCLUDED = new Set([
   'docs/decisions/0009-agent-identities-for-author-and-approver.md',
   // The merge-method record (#1041): `main` takes a pull request as a merge
   // commit, the owner's ruling of 2026-09-16. Named one by one per the rule
-  // above, and owed rather than optional -- `.claude/workflows/web-fragments.md`,
-  // `tools/audit/briefs/orchestrator.md` and `tools/audit/briefs/fixer.md` all
-  // cite it, and each is capped, so `checkNamedDocs` reports it without this
-  // line. That is the whole enforcement a decision citation has here: the cited
+  // above, and owed rather than optional -- `tools/audit/briefs/orchestrator.md`
+  // cites it and is capped, so `checkNamedDocs` reports it without this line.
+  // THAT SENTENCE SAID THREE FILES until PR #1117's review measured it: it named
+  // `.claude/workflows/web-fragments.md` and `tools/audit/briefs/fixer.md` too,
+  // and neither cites the record any more. The count rotted from three to one
+  // with nothing watching -- which is this entry's own thesis, arriving as a
+  // wrong sentence in the comment that states it. A prose count of citers is a
+  // measurement and decays; only the ONE the check below carries is maintained,
+  // and it is carried for the message rather than as the key. That is the whole enforcement a decision citation has here: the cited
   // path must resolve (`checkCitations`) and must be classified (this list).
-  // Nothing detects the citation being REMOVED again.
+  // The citation being REMOVED again is the third direction, and it was a clean
+  // zero until `checkCitationPresence` below: this entry is listed there, so
+  // dropping the last policy-file citation of it now refuses.
   'docs/decisions/0010-merge-commits-on-main.md',
 ])
 
@@ -822,6 +829,91 @@ function checkNamedDocs(budget) {
     where: rel,
     message: `is named by ${src} but has no cap in ${BUDGET_FILE}, so prose moved into it leaves the corpus and buys headroom in every cap at once. Bring it under a POLICY_GLOBS pattern so a cap on it is actually compared, or add it to CORPUS_EXCLUDED with a reason. A cap alone does not do it: a cap on a file no glob matches is refused by checkOrphanCaps precisely because it measures nothing.`,
   }))
+}
+
+// ---------------------------------------------------------------------------
+// citation-presence. THE OTHER DIRECTION OF A CITATION, and until this check it
+// was a measured clean zero. `checkCitations` above asks whether a citation
+// RESOLVES; `checkNamedDocs` asks whether a cited document is CLASSIFIED. Both
+// read the citation that is in front of them, so both are silent about a
+// citation that is no longer there. #1058 drove all four arms and published the
+// table: with the ADR removed and the citation left, rc is non-zero; with the
+// `CORPUS_EXCLUDED` line removed, rc is non-zero; with THE CITATION REMOVED and
+// the ADR left, `TOTAL: 0 error(s)`. The comment on the 0010 entry above said so
+// at the site -- "Nothing detects the citation being REMOVED again" -- and #1079
+// counted the sentence three times before it was closed here.
+//
+// WHAT IS PINNED, and it is deliberately not "every citation in the corpus".
+// A citation deleted along with the sentence that carried it is ordinary
+// editing, and a check that refused it would refuse every deletion pass this
+// corpus runs -- the caps exist to make seats delete. What is pinned is the
+// much smaller set of citations that BOUGHT something: an entry in
+// CORPUS_EXCLUDED under the rule the 0010 comment states, "the line is owed the
+// moment a capped file names it". That exclusion is EARNED by the citation, and
+// when the last citation goes the earning goes with it, leaving an unearned
+// exclusion -- which the `deadExcluded` pin already calls "a destination waiting
+// to be used", the same defect one axis over. So the declaration is the pin, and
+// an ADR that nobody cites needs no line here, exactly as it needs none there.
+//
+// ANY POLICY FILE SATISFIES IT, not the recorded one. The recorded citer is
+// carried for the MESSAGE only: a citation moved from one policy file to
+// another is a legitimate edit with the same content, and keying on the
+// recorded file would report it as rot. Driven both ways in `assertAcceptance`,
+// because a check keyed on the recorded citer passes every arm that does not
+// move one.
+const EXCLUDED_BECAUSE_CITED = new Map([
+  // #1041's merge-method record. Its CORPUS_EXCLUDED line was paid because
+  // `tools/audit/briefs/orchestrator.md` cites it; that is the citation whose
+  // disappearance nothing saw.
+  ['docs/decisions/0010-merge-commits-on-main.md', 'tools/audit/briefs/orchestrator.md'],
+])
+
+// Injectable for the reason `uncoveredPolicyFiles` states about itself: this
+// check's property is FALSE on a healthy tree, so the tree gives it no witness
+// and it would be deletable in silence. Pairs rather than a file list, so an
+// arm can move a citation from one policy file to another without writing to
+// the working tree.
+let citationPresenceSource = () => undefined
+
+function corpusCitationTexts() {
+  return policyFiles().map((f) => [f, read(f) ?? ''])
+}
+
+function citationPresenceOverTree() {
+  return checkCitationPresence(citationPresenceSource())
+}
+
+function checkCitationPresence(pairs) {
+  const entries = pairs !== undefined ? pairs : corpusCitationTexts()
+  const listing = trackedFiles()
+  const cited = new Set()
+  for (const [, raw] of entries) {
+    for (const rel of citedTrackedPaths(raw, listing)) cited.add(rel)
+  }
+  const out = []
+  // THE REMEDY IS DERIVED, NOT WRITTEN DOWN, because its last clause depends on
+  // how many entries are left. "Delete both lines" is the whole remedy while a
+  // second entry survives; on the LAST entry the same two deletions leave a
+  // wired check over an empty map, which `policy_lint_mutants.mjs` refuses as
+  // DELETABLE IN SILENCE -- `governance.yml`'s mutation step, red, for a seat
+  // that followed the message literally. So the message carries the rest of the
+  // withdrawal exactly when it is owed, and `assertAcceptance` refuses the
+  // half-done state as well, so neither a seat that skips the message nor one
+  // that skips the acceptance lands a vacuous check.
+  const lastOne = EXCLUDED_BECAUSE_CITED.size === 1
+  const retire = lastOne
+    ? ` This is the LAST entry, so those two deletions RETIRE THE CLASS and are not the whole remedy: in the same commit also remove \`citationPresenceOverTree\` from \`CORPUS_CHECK_NAMES\` and from the \`CORPUS_CHECKS\` push, and the \`citation-presence\` rows from \`CHECKS\` and from \`NEVER_SUPPRESSED\`. A wired check over an empty map measures nothing, and \`policy_lint_mutants.mjs\` refuses it.`
+    : ''
+  for (const [rel, recorded] of EXCLUDED_BECAUSE_CITED) {
+    if (cited.has(rel)) continue
+    out.push({
+      severity: 'error',
+      check: 'citation-presence',
+      where: rel,
+      message: `no policy file cites it any more. Its CORPUS_EXCLUDED line in policy_lint.mjs was earned by the citation in ${recorded}, and an excluded document nobody cites is a destination waiting to be used -- prose moved into it leaves the corpus and buys headroom in every cap at once, with no diff to policy_lint.mjs for a reviewer to see. Restore the citation, or delete BOTH this entry and the exclusion line in the same commit.${retire} Any policy file satisfies this check, so a citation moved to another one is not a failure; ${recorded} is named here because it is where the line was paid, not because the check reads it.`,
+    })
+  }
+  return out
 }
 
 // A cap recorded for a file no glob matches is compared against nothing, and
@@ -1837,12 +1929,58 @@ function rowAnchor(line) {
   return m && m[1] === m[2] ? m[1] : null
 }
 
+// AND THE SAME HOLE IN THE OTHER ROW FORMAT. The list-anchor above subtracts
+// `- [#M](.../pull/M)`, and the Delivery-status rows this repository actually
+// writes are TABLE rows -- `| ... | **in review -- PR [#M](.../pull/M) ...** |`
+// -- which that regex cannot match, because it is anchored at the start of the
+// line and a table row starts with a pipe. So the same defect survived in the
+// format carrying most of the record: measured on `main` at 434cd5f, #1065's
+// only occurrence anywhere in the region at the time was a sentence inside the
+// plan's table row for #1074, and `--record` reported it dispositioned. Same
+// class as #752, one row format over.
+//
+// WHY THIS IS NOT THE REJECTED "EXTEND THE ANCHOR TO TABLE ROWS". That option
+// read a table row's FIRST cell as its anchor and refused every other number in
+// it, which the #752 sweep measured as five new refusals, four legitimate: the
+// plan's rows are anchored to an ISSUE number and disposition the pull request
+// that closed it in a later cell, and the wave rows disposition from a cell with
+// no anchor at all. The rule below reads the row's PULL-REQUEST LINKS instead,
+// all of them, and a row that links none speaks for nobody -- so both of those
+// shapes are untouched, and they are the two null controls in `assertAcceptance`
+// directly beneath the arm that fires.
+//
+// A ROW MAY SPEAK FOR SEVERAL, which is the difference from the list form and is
+// deliberate. A status cell naming two pull requests is one row dispositioning
+// both, and the set is every link on the line whose anchor text and target
+// agree -- the same identity test as above, for the same reason: `[#M](.../pull/N)`
+// with M and N different is ambiguous, so it makes the row speak for neither and
+// the row falls back to dispositioning everything on it.
+//
+// THE COST, on the same terms #752 stated its own. A row that links pull request
+// M and dispositions N in prose now refuses N, and cannot tell that from a row
+// that merely mentions N. The remedy is the one the error message already names
+// and the one #1081 landed the mechanism for: `docs/delivery/N.md`, N's own row.
+// Re-measured over `v6.5.0..origin/main` in the pull request that added this;
+// the sweep and its result are in that body, and the figure moves with the
+// window, so re-run it rather than quoting it.
+const TABLE_PULL_LINK_RE = /\[#(\d+)\]\((?:[^()\s]*\/pull\/)(\d+)\)/g
+
+// The set of pull requests a line speaks for, or null when it speaks for nobody.
+function speaksFor(line) {
+  const anchored = rowAnchor(line)
+  if (anchored) return new Set([anchored])
+  if (!/^\s*\|/.test(line)) return null
+  const set = new Set()
+  for (const m of line.matchAll(TABLE_PULL_LINK_RE)) if (m[1] === m[2]) set.add(m[1])
+  return set.size ? set : null
+}
+
 function checkRecord(prs, dispositionText) {
   const out = []
   const lines = String(dispositionText ?? '').split('\n')
   for (const { pr, subject } of prs) {
     const re = new RegExp(`#${pr}(?![0-9])`)
-    if (lines.some((l) => re.test(l) && (rowAnchor(l) ?? pr) === pr)) continue
+    if (lines.some((l) => re.test(l) && (speaksFor(l)?.has(pr) ?? true))) continue
     out.push({
       severity: 'error',
       check: 'record',
@@ -2349,7 +2487,10 @@ function keyOf(f) {
 // right instrument for a citation that has rotted; it is the wrong one for a
 // document sitting outside every cap, because recording it makes the corpus
 // smaller by agreement rather than by measurement.
-const NEVER_SUPPRESSED = new Set(['budgets', 'coverage', 'provenance', 'named-docs'])
+// `citation-presence` joins them on the same ground one axis over: recording
+// "this exclusion lost the citation that earned it" as a known defect leaves the
+// unearned exclusion standing, which is the destination the check exists to close.
+const NEVER_SUPPRESSED = new Set(['budgets', 'coverage', 'provenance', 'named-docs', 'citation-presence'])
 
 // RECORD_KEY marks the ledger entries belonging to the `record` class. They are
 // scoped OUT of the default run and IN to `--record`, in both directions: a
@@ -2434,6 +2575,7 @@ const CHECKS = [
   { name: 'duplicates', what: 'no 12-word run shared between two policy files', fixture: 'fixtures/policy-rot/dup-a.md' },
   { name: 'pr-body', what: 'a body carries its evidence sections, at the head CI ran', fixture: 'fixtures/policy-rot/prepr/' },
   { name: 'named-docs', what: 'a document the corpus names but no cap measures', fixture: '(driven in assertAcceptance)' },
+  { name: 'citation-presence', what: 'a citation that earned a CORPUS_EXCLUDED line is still there', fixture: '(driven in assertAcceptance)' },
   { name: 'coverage', what: 'every file in a policy directory is matched by a glob', fixture: '(a probe file, see assertAcceptance)' },
   { name: 'provenance', what: "the known-bad ledger's recorded_at resolves from origin/main", fixture: '(driven in assertAcceptance)' },
   { name: 'required-contexts', what: 'the corpus\'s required-context literals and recorded shape match the live ruleset', fixture: '(driven in assertAcceptance; live state, never fixtures, in production)' },
@@ -2568,7 +2710,7 @@ const REQUIRED_ROT = {
   },
 }
 
-CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree)
+CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree)
 
 // SILENT ON A HEALTHY INPUT. A count-and-substring pin proves a check can still
 // refuse; it cannot prove the check is not refusing everything. Each loop mode
@@ -2963,6 +3105,35 @@ function assertAcceptance(derived) {
   if (checkRecord([{ pr: '9110', subject: 's' }], regIssueRow.region).length !== 0) regFail.push('a disposition inside a row anchored to an ISSUE number was refused')
   const regHandProse = recordRegion('## other\n', '- **A seam move was sequenced to S12, S12 halted (#9111)** (owner)\n')
   if (checkRecord([{ pr: '9111', subject: 's' }], regHandProse.region).length !== 0) regFail.push("the handover's own prose-bullet disposition was refused")
+  // AND THE SAME SUBTRACTION IN THE TABLE ROW, the format the Delivery-status
+  // table is made of and the one the list anchor above cannot reach. Five arms,
+  // because the three null controls are what separate this from the row anchor
+  // #752 measured and rejected: a row anchored to an ISSUE number, and a cell
+  // that links nothing, both still disposition everything on them -- those are
+  // `regIssueRow` and `regCell` above, which run against this predicate too --
+  // while a row that links its own pull request speaks for that one and its
+  // prose stops dispositioning others.
+  pins += 5
+  const regTableRow = recordRegion(
+    `## ${RECORD_SECTION}\n| a policy change | **in review -- PR [#9130](x/pull/9130)**, and #9131 landed the mechanism |\n`, '')
+  if (checkRecord([{ pr: '9131', subject: 's' }], regTableRow.region).length !== 1) regFail.push("a mention inside another pull request's anchored TABLE row counted as a disposition")
+  if (checkRecord([{ pr: '9130', subject: 's' }], regTableRow.region).length !== 0) regFail.push('an anchored table row stopped dispositioning its own pull request')
+  // A row speaks for EVERY pull request it links, not only the first. Reading
+  // one link per row is the plausible narrowing and has no witness above: it
+  // would refuse the second of two pull requests a single status cell records.
+  const regTwoLinks = recordRegion(
+    `## ${RECORD_SECTION}\n| a split | landed as [#9132](x/pull/9132) and [#9133](x/pull/9133) |\n`, '')
+  if (checkRecord([{ pr: '9132', subject: 's' }, { pr: '9133', subject: 's' }], regTwoLinks.region).length !== 0) regFail.push('a table row linking two pull requests dispositioned only one of them')
+  // AND THE IDENTITY TEST, in the table form too: an anchor text and a link
+  // naming different pull requests is ambiguous, so the row speaks for neither
+  // and suppresses nothing -- the arm that favours accepting honest work.
+  const regTableCross = recordRegion(
+    `## ${RECORD_SECTION}\n| a row | [#9134](x/pull/9135) disagree, and #9136 landed here |\n`, '')
+  if (checkRecord([{ pr: '9136', subject: 's' }], regTableCross.region).length !== 0) regFail.push('a table row whose anchor text and link name different pull requests suppressed a mention')
+  // And the LIST form is still reached: a table-only predicate would pass every
+  // arm above while re-opening #752 itself. `regMention` covers that, and this
+  // states it rather than leaving it to be re-derived.
+  if (speaksFor('- [#9137](x/pull/9137) merged') === null) regFail.push('the list anchor stopped speaking for its own pull request')
   // AND THE ANCHOR MUST NAME ITS OWN PULL REQUEST. Dropping that identity test
   // is a one-token cleanup with no witness above it: a row whose anchor text and
   // link disagree would then speak for the text, and suppress every other number
@@ -2997,6 +3168,51 @@ function assertAcceptance(derived) {
   rowFileSource = () => [['9125.md', () => '- [#9125](x/pull/9125) r\n'], ['9126.txt', () => '- [#9126](x/pull/9126) r\n']]
   if (checkRecord([{ pr: '9125', subject: 's' }, { pr: '9126', subject: 's' }], recordRegionOverTree().region).length !== 1) regFail.push('the wired record region does not read the row files')
   rowFileSource = liveRows
+  // AND `--record` REFUSES TO RUN WITH NO TOKEN. Driven as a SUBPROCESS, which
+  // is not ceremony: `requireToken` ends in `process.exit`, so an in-process
+  // assertion would take this acceptance down with it, and the property being
+  // pinned is the WIRING -- that `cmdRecordDispositions` reaches the guard
+  // before it reaches the enumeration. A pure helper asserted directly would
+  // stay green with the call deleted, which is the exact shape that left this
+  // mode passing on a window it never read.
+  //
+  // THE WINDOW IS EMPTY BY CONSTRUCTION, and the earlier `--since HEAD` was
+  // not. That version asserted a property of the CLONE rather than of the
+  // guard: `HEAD..origin/main` is empty only where `origin/main` is reachable
+  // from `HEAD`, which is true on a `pull_request` checkout (the branch merged
+  // into main) and false on a branch head and in a grafted or shallow clone.
+  // `policy_lint_envmatrix.mjs`'s `shallow` shape is exactly that: measured
+  // there, the window was the whole history, the run enumerated 611 merges over
+  // the network and exited 1, and this arm reported FIXTURE VACUOUS at a head
+  // whose merge base was green -- the instrument that exists to catch an
+  // environment-dependent assertion caught this one.
+  //
+  // `mainRef()..mainRef()` is empty in EVERY clone, shallow, grafted or full,
+  // because `git log X..X` is empty for any X that resolves -- and `mainRef()`
+  // is the same function the window itself uses, so the two cannot drift apart.
+  // `firstParentCommits` returns [], `fetchPullsBySha` iterates an empty list
+  // and issues no request, and the null control reaches `TOTAL: 0` without a
+  // socket. The refusing arm never gets that far. So both arms are offline on a
+  // CI runner, on a seat with no network, and under every shape in the matrix.
+  //
+  // The null control is the whole point of the pair: a guard that exited 2
+  // whenever `--record` ran at all would satisfy the first arm alone.
+  pins += 3
+  const emptyWindow = mainRef()
+  const recRun = (env) => {
+    try {
+      return { code: 0, out: execFileSync(process.execPath, [path.join(HERE, 'policy_lint.mjs'), '--record', '--since', emptyWindow], { cwd: ROOT, encoding: 'utf8', env, stdio: ['pipe', 'pipe', 'pipe'] }) }
+    } catch (e) {
+      return { code: e.status === undefined ? 1 : e.status, out: `${e.stdout || ''}${e.stderr || ''}` }
+    }
+  }
+  const envNoTok = { ...process.env }
+  delete envNoTok.GITHUB_TOKEN
+  const noTok = recRun(envNoTok)
+  const withTok = recRun({ ...process.env, GITHUB_TOKEN: 'acceptance-fixture-not-a-credential' })
+  if (noTok.code !== 2) regFail.push(`--record with no GITHUB_TOKEN exited ${noTok.code}, not 2: an unenumerated window reported as a measured one`)
+  if (!/needs GITHUB_TOKEN/.test(noTok.out)) regFail.push('--record with no GITHUB_TOKEN did not say which variable it needs')
+  if (withTok.code !== 0 || /needs GITHUB_TOKEN/.test(withTok.out)) regFail.push(`--record with a token set exited ${withTok.code} and must reach its verdict unchanged (null control)`)
   if (regFail.length) {
     console.log(`\nFIXTURE VACUOUS: recordRegion ${JSON.stringify(regFail)}. The record's region is what makes a mention a disposition; unpinned, it can be widened back to the whole file with every other count unchanged.`)
     return 1
@@ -3440,6 +3656,103 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: checkNamedDocs reported nothing against an empty budget, where every document the corpus names is uncapped by definition. Prose moved into a named-but-uncapped file leaves the corpus and buys headroom in every cap at once.`)
     return 1
   }
+  // citation-presence. Its property -- "an exclusion earned by a citation has
+  // lost that citation" -- is FALSE on a healthy tree by construction, the same
+  // shape as named-docs above and the same shape as the three checks #1058's
+  // mutation lane was written for, so it has no witness on the tree and would be
+  // deletable in silence. The arms are the four of #1058's own citation table,
+  // re-pointed at this check, plus a scope arm and a retirement arm.
+  const cpKeys = [...EXCLUDED_BECAUSE_CITED.keys()]
+  const cpWired = CORPUS_CHECK_NAMES.includes('citationPresenceOverTree')
+  // THE LAST WITHDRAWAL RETIRES THE CLASS, and this arm is what makes the error
+  // message's own remedy land green on BOTH lanes. `EXCLUDED_BECAUSE_CITED`
+  // empty means no exclusion is earned by a citation any more, so a still-wired
+  // check runs over no entries and measures nothing: `policy_lint_mutants.mjs`
+  // empties its return, finds every arm below passing over an empty key list,
+  // and reports `citationPresenceOverTree` DELETABLE IN SILENCE -- rc=1 on
+  // `governance.yml`'s mutation step, for a seat that did exactly what the
+  // message told it to do. So the half-done state is refused HERE, naming the
+  // rest of the withdrawal, and the arms are skipped once the check is unwired.
+  if (!cpKeys.length) {
+    if (cpWired) {
+      console.log(`\nFIXTURE VACUOUS: EXCLUDED_BECAUSE_CITED is empty while citationPresenceOverTree is still wired into CORPUS_CHECK_NAMES, so the check runs over no entries and measures nothing -- policy_lint_mutants.mjs calls that DELETABLE IN SILENCE and turns governance.yml red. Withdrawing the LAST entry retires the class: also remove citationPresenceOverTree from CORPUS_CHECK_NAMES and from the CORPUS_CHECKS push, and the 'citation-presence' rows from CHECKS and from NEVER_SUPPRESSED.`)
+      return 1
+    }
+    // Retired, and said out loud rather than passed over: an unmeasured check is
+    // not a passing one, and this line is the only trace that the class was ever
+    // here. NOT counted in `pins` -- a skipped drive that still added its pins
+    // would report the same total as a driven one.
+    console.log(`\n  skip citationPresence-pin -- EXCLUDED_BECAUSE_CITED is empty and citationPresenceOverTree is unwired, so the class is retired and there is nothing to drive.`)
+  } else {
+  pins += 6
+  const driveCP = (pairs) => {
+    const prev = citationPresenceSource
+    citationPresenceSource = () => pairs
+    try { return citationPresenceOverTree() } finally { citationPresenceSource = prev }
+  }
+  if (citationPresenceSource() !== undefined) {
+    console.log(`\nFIXTURE VACUOUS: citationPresenceSource's production default is not undefined, so the wired check reads a corpus nobody assembled.`)
+    return 1
+  }
+  // THE PRODUCTION SCOPE, which no other arm reaches. Every arm below injects
+  // its pairs through `citationPresenceSource`, so `corpusCitationTexts()` --
+  // the one line that makes this "no POLICY FILE cites it" rather than "no file
+  // cites it" -- is exercised by nothing but this comparison. Repointed at a
+  // single non-policy file that happens to cite the same document (the plan of
+  // record cites 0010), every arm below still passed and both lanes stayed
+  // green: a tree where the citation had left the corpus entirely and survived
+  // only in an unmeasured document would have been accepted.
+  const cpScope = corpusCitationTexts().map(([f]) => f)
+  const cpCorpus = policyFiles()
+  if (cpScope.length !== cpCorpus.length || cpScope.some((f, i) => f !== cpCorpus[i])) {
+    console.log(`\nFIXTURE VACUOUS: corpusCitationTexts() reads ${cpScope.length} file(s) where policyFiles() names ${cpCorpus.length}; first divergence ${JSON.stringify(cpScope.find((f, i) => f !== cpCorpus[i]) ?? '(length only)')}. The check's claim is that no POLICY file cites the document, so it must read the policy corpus and nothing else -- a wider source accepts a citation that has left the corpus, a narrower one reports a citation that has not.`)
+    return 1
+  }
+  const cpLive = corpusCitationTexts()
+  // ARM 0, the null control: the live corpus reports nothing. An arm that
+  // reported here would make every other arm meaningless. Its message names BOTH
+  // readings, because on a genuinely rotted tree this arm and a true production
+  // finding are the same event: the check is only wrong here if the document it
+  // names IS still cited by a policy file.
+  const cpNull = driveCP(cpLive)
+  if (cpNull.length) {
+    console.log(`\nFIXTURE OVER-FIRES, or the corpus is genuinely rotted -- the two are distinguishable and this arm cannot tell them apart: checkCitationPresence reported ${JSON.stringify(cpNull.map((f) => f.where))} on the live corpus. Grep the corpus for that path first. If no policy file cites it, the CHECK IS RIGHT and the corpus is wrong: restore the citation or withdraw the pin as the reported error says, and this arm goes quiet. Only if a policy file does still cite it is this a defect in checkCitationPresence.`)
+    return 1
+  }
+  // ARM B of #1058: the citation removed, the document left, the sentence that
+  // carried it still in place. This is the arm that measured `TOTAL: 0`.
+  const elide = (t) => cpKeys.reduce((acc, k) => acc.split(k).join(`${k}.NOT-CITED`), t)
+  const cpElided = driveCP(cpLive.map(([f, t]) => [f, elide(t)]))
+  if (cpElided.length !== cpKeys.length) {
+    console.log(`\nFIXTURE VACUOUS: checkCitationPresence reported ${cpElided.length} of ${cpKeys.length} earned exclusions with every citation of them elided from the corpus. That is arm B of #1058's citation table -- the citation removed and the document left -- and it measured TOTAL 0 before this check existed.`)
+    return 1
+  }
+  // The MOVE, which is the over-fire this check would otherwise have. A
+  // citation relocated from the recorded citer to any other policy file is a
+  // legitimate edit; only a check keyed on the recorded file reports it.
+  const movedTo = cpLive.findIndex(([f]) => ![...EXCLUDED_BECAUSE_CITED.values()].includes(f))
+  if (movedTo < 0) {
+    console.log(`\nFIXTURE VACUOUS: the corpus has no policy file that is not a recorded citer, so the move arm cannot be built.`)
+    return 1
+  }
+  const carried = cpKeys.map((k) => `see \`${k}\``).join(' and ')
+  const cpMoved = driveCP(cpLive.map(([f, t], i) => [f, i === movedTo ? `${elide(t)}\n${carried}\n` : elide(t)]))
+  if (cpMoved.length) {
+    console.log(`\nFIXTURE OVER-FIRES: checkCitationPresence reported ${JSON.stringify(cpMoved.map((f) => f.where))} when the citation had moved to ${cpLive[movedTo][0]}, another policy file. The recorded citer is carried for the message; keying the check on it turns a legitimate move into rot.`)
+    return 1
+  }
+  // The declaration is bounded by the list it earns. An entry naming a file
+  // that is not excluded pins a citation that bought nothing, and an entry the
+  // tree does not have pins a citation to a path that cannot be cited -- both
+  // are dead weight the `deadExcluded` pin below would not see, because they
+  // are in a different list.
+  const cpStray = cpKeys.filter((k) => !CORPUS_EXCLUDED.has(k) || !trackedFiles().set.has(k))
+  if (cpStray.length) {
+    console.log(`\nFIXTURE VACUOUS: EXCLUDED_BECAUSE_CITED lists ${JSON.stringify(cpStray)}, which CORPUS_EXCLUDED does not carry or the tree does not have. The entry exists to pin the citation that EARNED an exclusion; without one there is nothing earned to lose.`)
+    return 1
+  }
+  }
+
   // The prefix list is a hole in the check it sits beside unless markdown is
   // exempt from it. Driven rather than argued, because the round-two review of
   // #615 measured the argued version letting 1342 tokens out through
@@ -4370,7 +4683,62 @@ function requireSince(since, mode) {
   process.exit(2)
 }
 
+// AN UNSET TOKEN IS A CALLER ERROR, NOT AN OUTAGE, and the two are the same
+// `{ok:false}` to `ghGet` while being opposite things to whoever reads the run.
+//
+// `--record` reads the window's merges through `/commits/<sha>/pulls`. With no
+// token `ghGet` refuses before it calls `curl`, `mergedPRsFromWindow` falls
+// back to subject mode, and the fallback's end-anchored `(#N)` matches none of
+// this repository's merge subjects -- so the mode prints `RECORD: 0 merged pull
+// request(s)`, `TOTAL: 0 error(s)` and exits 0. That is the whole check
+// reporting a clean window it never looked at. `enumSkipLine` says UNCHECKED
+// out loud beside it, and a loud line is what a human reads; rc=0 is what the
+// job's `continue-on-error` step, the run summary's verdict and any `&&` after
+// it read, and all three read it as "no undispositioned merge".
+//
+// WHY THIS DOES NOT REOPEN #957. That discipline keeps rc=0 for an UNREACHABLE
+// API -- transient, external, nothing the caller can do -- because reddening a
+// required context on GitHub's availability gates every pull request on an
+// outage. An unset token is none of those: deterministic, local, reproducible,
+// and fixed by setting one variable. It is exactly the class `requireSince`
+// already exits 2 on, and it takes the same rc for the same reason -- the
+// caller was misconfigured, so the mode measured nothing and says so, rather
+// than reporting an error count nothing produced (rc=1) or a clean window
+// nothing read (rc=0). An HTTP failure, a rate limit, a 403 on a token that IS
+// set: unchanged, still the skip line and still rc=0.
+//
+// SCOPED TO `--record` AND NOTHING ELSE, because it is the mode whose zero is a
+// verdict. `--stats` is run `|| true` by design and `--record-known-bad` with a
+// window writes a ledger a reviewer reads in the diff; widening this to either
+// is a separate change with its own callers to check.
+//
+// THE CALLERS. The rule, so a reader re-derives the set rather than trusting a
+// number that ages: every tracked file that invokes this script with `--record`
+// as an argument -- `git grep -n -- '--record' -- .github .claude tools tests
+// docs`, minus the hits that are this file's own usage banner or prose about
+// the mode, and minus `--record-known-bad`, a different mode this guard does
+// not touch. Run at the head of the pull request that added the guard, that
+// rule names two invokers, and an earlier draft of this comment claimed one:
+//
+//   `.github/workflows/governance.yml`, the `Every merged pull request has a
+//   disposition` step. It sets `GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}`, so
+//   it takes the authenticated path and is unaffected.
+//
+//   `.claude/workflows/policy_lint_envmatrix.mjs`, twice: the `since-ref` bad-ref
+//   row and that row's own null control. Both now pass a fixture token in the
+//   child's env, so the matrix stays drivable by a seat with no token -- which
+//   it had stopped being, and which is how the false enumeration was found.
+//
+// Neither is a cron. A future caller that cannot hold a token belongs in that
+// list with its arm, not in a widened guard.
+function requireToken(mode) {
+  if (process.env.GITHUB_TOKEN) return
+  console.log(`${mode} needs GITHUB_TOKEN. It enumerates the window's merged pull requests through the GitHub API, and unauthenticated it enumerates nothing -- which this mode would otherwise print as a window with no undispositioned merge in it. Set GITHUB_TOKEN and re-run; an API that is reachable but failing still reports and exits 0, because that is an outage rather than a misconfiguration.`)
+  process.exit(2)
+}
+
 function cmdRecordDispositions(since) {
+  requireToken('--record')
   const enumerated = mergedPRsFromWindow(since)
   const prs = enumerated.prs
   console.log(`RECORD_ENUM: ${enumerated.mode}${enumerated.why ? ` (${enumerated.why})` : ''}`)
