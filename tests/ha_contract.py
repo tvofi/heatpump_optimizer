@@ -457,6 +457,24 @@ INVENTORY: dict[str, Entry] = {
     ),
     # -- helpers.device_registry --------------------------------------------
     "homeassistant.helpers.device_registry.DeviceEntryType": H("string constant, probed"),
+    "homeassistant.helpers.device_registry.DeviceEntry": S(
+        "the identity and naming fields the options flow's device pre-fill "
+        "reads (#1067 W1067-G7b-1). Upstream's is a frozen attrs class with "
+        "two dozen more fields and computed properties; none is read here",
+        absent=("area_id", "connections", "hw_version", "sw_version", "via_device_id"),
+    ),
+    "homeassistant.helpers.device_registry.DeviceRegistry": S(
+        "a dict of entries plus a test-facing add() and upstream's "
+        "async_get(device_id); upstream's creation path, its identifier and "
+        "connection merging and its update/removal events are not mimicked",
+        absent=("async_get_or_create", "async_update_device", "async_remove_device"),
+    ),
+    "homeassistant.helpers.device_registry.async_get": U(
+        "one registry per hass, created on first use and stored on hass.data, "
+        "exactly as the entity-registry stub does. Upstream's needs a booted "
+        "hass with its registries loaded, so this pins the stub's own "
+        "singleton behaviour and proves nothing about the real one"
+    ),
     # -- helpers.entity -----------------------------------------------------
     "homeassistant.helpers.entity.DeviceInfo": H("a dict subclass, as upstream's TypedDict"),
     "homeassistant.helpers.entity.EntityCategory": H("string constants, probed"),
@@ -474,9 +492,16 @@ INVENTORY: dict[str, Entry] = {
     ),
     # -- helpers.entity_registry --------------------------------------------
     "homeassistant.helpers.entity_registry.RegistryEntry": S(
-        "four fields of the real dataclass -- the ones the retired-entity "
-        "cleanup reads",
-        absent=("disabled_by", "device_id", "platform"),
+        "eleven fields of the real dataclass: the four the retired-entity "
+        "cleanup reads, and the seven the device pre-fill reads (#1067 "
+        "W1067-G7b-1) -- device_id, platform, original_name, "
+        "translation_key, device_class, original_device_class and "
+        "unit_of_measurement, each defaulting to None so an entry seeded the "
+        "old way is unchanged. Upstream distinguishes the user's override "
+        "(device_class, unit_of_measurement) from the integration's "
+        "(original_device_class, and the unit on the state); the stub holds "
+        "both as plain fields and resolves neither",
+        absent=("disabled_by", "capabilities", "entity_category"),
     ),
     "homeassistant.helpers.entity_registry.EntityRegistry": S(
         "a dict of entries plus a test-facing add(); upstream's creation path, "
@@ -488,6 +513,13 @@ INVENTORY: dict[str, Entry] = {
         "Upstream's needs a booted hass with its registries loaded, so the "
         "contract below pins the stub's own singleton behaviour and proves "
         "nothing about the real one"
+    ),
+    "homeassistant.helpers.entity_registry.async_entries_for_device": U(
+        "filters the registry by device_id. Upstream reads an index built at "
+        "registry load and, by default, HIDES disabled entries; the stub "
+        "models no disabled_by, so it accepts the flag and returns them all. "
+        "A lane that needs the disabled-entity distinction must not rest on "
+        "this one"
     ),
     "homeassistant.helpers.entity_registry.async_entries_for_config_entry": U(
         "filters the registry by config_entry_id. Upstream reads an index built "
@@ -534,6 +566,12 @@ INVENTORY: dict[str, Entry] = {
     "homeassistant.helpers.selector.TextSelector": S(
         "records its config and returns the value; upstream coerces to str and "
         "honours multiple/type",
+        absent=("CONFIG_SCHEMA",),
+    ),
+    "homeassistant.helpers.selector.DeviceSelectorConfig": H("a dict subclass"),
+    "homeassistant.helpers.selector.DeviceSelector": S(
+        "records its config and returns the value; upstream validates the "
+        "device id and the integration/manufacturer/model filters",
         absent=("CONFIG_SCHEMA",),
     ),
     "homeassistant.helpers.selector.EntitySelectorConfig": H("a dict subclass"),
@@ -660,10 +698,6 @@ UNMODELLED = {
     "homeassistant.helpers.entity_component": (
         "the per-domain entity component. nightly_ha.py reaches it through the "
         "real package to resolve an entity object; no lane here needs one."
-    ),
-    "homeassistant.helpers.device_registry.DeviceRegistry": (
-        "the registry itself. The stub models DeviceEntryType alone, because "
-        "the coordinator's device_info property is the only production import."
     ),
 }
 
@@ -1601,6 +1635,57 @@ def _entity_registry_singleton():
 
     hass = _Hass()
     assert er.async_get(hass) is er.async_get(hass)
+
+
+# -- helpers.device_registry -------------------------------------------------
+
+@contract(
+    "homeassistant.helpers.device_registry.async_get",
+    "the same registry object is returned for the same hass, and a device is "
+    "retrievable by its id",
+    cite="helpers/device_registry.py -- the registry is stored on hass.data",
+    expect="stub",
+)
+def _device_registry_singleton():
+    from homeassistant.helpers import device_registry as dr
+
+    class _Hass:
+        def __init__(self):
+            self.data = {}
+
+    hass = _Hass()
+    assert dr.async_get(hass) is dr.async_get(hass)
+    entry = dr.async_get(hass).add("dev1", name="Pump")
+    assert dr.async_get(hass).async_get("dev1") is entry
+    assert dr.async_get(hass).async_get("absent") is None
+
+
+# -- helpers.entity_registry.async_entries_for_device ------------------------
+
+@contract(
+    "homeassistant.helpers.entity_registry.async_entries_for_device",
+    "only the named device's entries come back, and a device with none gives "
+    "an empty list",
+    cite="helpers/entity_registry.py -- filters registry entries by device_id",
+    expect="stub",
+)
+def _entries_for_device():
+    from homeassistant.helpers import entity_registry as er
+
+    class _Hass:
+        def __init__(self):
+            self.data = {}
+
+    hass = _Hass()
+    registry = er.async_get(hass)
+    registry.add("sensor.a", unique_id="a", device_id="dev1")
+    registry.add("sensor.b", unique_id="b", device_id="dev2")
+    registry.add("sensor.c", unique_id="c")
+    mine = er.async_entries_for_device(registry, "dev1")
+    assert [e.entity_id for e in mine] == ["sensor.a"]
+    assert er.async_entries_for_device(registry, "dev3") == []
+    # An entry seeded without a device is not anybody's.
+    assert not any(e.entity_id == "sensor.c" for e in mine)
 
 
 # -- components.repairs ------------------------------------------------------

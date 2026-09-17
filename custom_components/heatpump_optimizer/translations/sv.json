@@ -1083,6 +1083,7 @@
         "title": "Förifyll från en Modbus-värmepump",
         "description": "För en Rotenso Windmi eller en annan GCHV-byggd värmepump som läses via tuya_heat_pump-projektets Modbus-paket. Ange paketets entitetsprefix och skicka: nästa formulär föreslår värden som lästs ur pumpens egna register - varmvattnets börvärden och schema, dagarna för legionellaskydd, nattlägets schema, om pumpen styr på vattentemperatur, och pumpens egna givare för givarfält som fortfarande är tomma. Ändra eller töm vilket som helst av dem; bara det du behåller sparas, och ett fält du tömmer lämnas som det var. Inget om huset eller dess värmesystem går att läsa ut på det här sättet.\n\nLästa entiteter: {found}. Registret för tillsatsvärmens typ: {backup_heater_type} - allt utom 7 betyder att pumpen har egen elvärme, och det är den som elpatronfälten under Värmepumps telemetri finns till för att bevaka.",
         "data": {
+          "prefill_device": "Värmepumpens enhet (valfritt)",
           "modbus_prefill_prefix": "Modbus-paketets entitetsprefix",
           "dhw_setpoint": "Högsta temperatur att ladda till",
           "dhw_min_temperature": "Varmvattentemperatur du behöver",
@@ -1102,6 +1103,7 @@
           "after_save": "Efter sparande"
         },
         "data_description": {
+          "prefill_device": "Välj värmepumpens egen enhet för att läsa dess entiteter i stället för ett Modbus-paket. Lämna tomt för att använda prefixet nedan. Förslagen kommer från integrationens publicerade definitioner, inte från en avläsning av din enhet, så kontrollera dem.",
           "modbus_prefill_prefix": "Början på paketets entitets-id: \"hp\" för sensor.hp_outdoor_air_temperature. Det sparas bara när paketet hittades under det.",
           "dhw_setpoint": "Läst ur pumpens register för normalt varmvattenbörvärde (0194H), gånger 0,1.",
           "dhw_min_temperature": "Läst ur pumpens register för ekonomiskt varmvattenbörvärde (0196H), gånger 0,1.",
@@ -1144,7 +1146,8 @@
       "flow_target_needs_two_zone": "\"Framledningstemperatur\" beräknas från tvåzonsmodellens egen flödeskurva, som denna anläggning inte har konfigurerad. Konfigurera tvåzonsmodellen först, eller lämna detta på \"Inomhustemperatur\".",
       "flow_curve_needs_direct_plant": "Att prissätta framledningens lyft är till för en anläggning utan shuntventil. Med ventil prissätter ackumulatortankens temperatur redan lyftet, så detta skulle räkna det två gånger. Ställ ventilen på \"Ingen shuntventil\" eller stäng av detta.",
       "tibber_token_required": "En Tibber-token krävs när priskällan är Tibber.",
-      "price_entity_required": "En prissensor krävs när priskällan är en entitet."
+      "price_entity_required": "En prissensor krävs när priskällan är en entitet.",
+      "prefill_device_unreadable": "Enheten kunde inte läsas. Dess integration har ingen mappning här ännu, eller så har ingen av dess entiteter något värde. Lämna enheten tom och ange ett prefix för ett Modbus-paket i stället."
     }
   },
   "selector": {

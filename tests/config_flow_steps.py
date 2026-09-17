@@ -3474,6 +3474,25 @@ async def registry_drives_every_page():
         f"handled but unlisted {sorted(handlers - set(pages))}",
     )
 
+    # The one control a page renders that is NOT a registry row: the pre-fill
+    # page's device pick (#1067 W1067-G7b-1). It is read once, to decide where
+    # that visit's suggestions come from, and never stored -- so it has no
+    # ``_F`` row, no default and no entry in ``_ABSENT_FALLBACKS``. The check
+    # below would otherwise refuse it. This is a design choice stated rather
+    # than a hole: the allowance is keyed on the production constant so it
+    # cannot drift from the field the page renders, and the two checks after
+    # the loop hold it to being transient -- it is not an option key, and the
+    # page's own walk asserts it is never written to the entry's options.
+    transient = {"modbus_prefill": {config_flow._PREFILL_DEVICE}}
+    check(
+        "registry",
+        "happy",
+        "the one non-registry control is transient: it is not an option key anywhere",
+        not {key for keys in transient.values() for key in keys}
+        & {row.key for row in rows},
+        f"{transient} against the registry's keys",
+    )
+
     undeclared = {}
     unrendered = {}
     for page in pages:
@@ -3481,6 +3500,7 @@ async def registry_drives_every_page():
         form = await getattr(flow, f"async_step_{page}")(None)
         rendered = rendered_keys(form)
         declared = {row.key for row in rows if row.step == page}
+        declared |= transient.get(page, set())
         declared.discard("")
         for row in rows:
             if row.step != page or row.default is not dynamic_rule:
@@ -5117,8 +5137,10 @@ async def options_modbus_prefill():
     flow, entry, hass = _g7_flow()
     shown = await flow.async_step_modbus_prefill(None)
     check(
-        f"opt_{step}", "happy", "the first form asks only for the prefix, defaulted to hp",
-        shows(shown, step) and rendered_keys(shown) == {prefix_key}
+        f"opt_{step}", "happy",
+        "the first form asks for a device or a prefix, the prefix defaulted to hp",
+        shows(shown, step)
+        and rendered_keys(shown) == {config_flow._PREFILL_DEVICE, prefix_key}
         and schema_default(shown, prefix_key) == "hp",
         f"{rendered_keys(shown)} default={schema_default(shown, prefix_key)!r}",
     )
@@ -5195,8 +5217,9 @@ async def options_modbus_prefill():
     )
     reopened = await flow.async_step_modbus_prefill(None)
     check(
-        f"opt_{step}", "happy", "reopening the page starts again at the prefix",
-        shows(reopened, step) and rendered_keys(reopened) == {prefix_key},
+        f"opt_{step}", "happy", "reopening the page starts again at the first form",
+        shows(reopened, step)
+        and rendered_keys(reopened) == {config_flow._PREFILL_DEVICE, prefix_key},
         f"{rendered_keys(reopened)}",
     )
 

@@ -285,4 +285,14 @@
 # and that page's prefix field, in the plain render and the seeded render,
 # re-recorded for #547's reason above. Every other fixture is byte-identical:
 # the page reads entity states only when submitted, and no plan reads its key.
-config_flow  # ADD-ONLY: one new advanced page, modbus_prefill, with one option key, modbus_prefill_prefix
+#
+# #1067 W1067-G7b-1 (pre-filling from a heat-pump device), on top of G7 in the
+# same fixture: the pre-fill page's first form gains the transient device pick,
+# so config_flow gains exactly two leaves, prefill_device in the plain render
+# and in the seeded render. Measured: `git diff --numstat` over
+# tests/golden/config_flow.json is 12 insertions and 0 deletions, and no
+# pre-existing leaf appears in the diff. The pick is not an option key, so the
+# seed map #547 added does not gain a third. Every other fixture is
+# byte-identical: the device route reads the entity registry only when the
+# page is submitted, and no plan reads any of it.
+config_flow  # ADD-ONLY: the modbus_prefill page, its modbus_prefill_prefix option key (G7) and its transient prefill_device pick (G7b-1)

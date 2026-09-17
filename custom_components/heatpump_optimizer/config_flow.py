@@ -13,7 +13,7 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import section
-from homeassistant.helpers import selector
+from homeassistant.helpers import device_registry as dr, entity_registry as er, selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.translation import async_get_translations
 
@@ -377,7 +377,15 @@ from .const import (
     DEFAULT_BUILDING_PRESET_ENABLED,
     DEFAULT_HEATED_AREA,
 )
-from . import comfort_band, grid_fee, mixing_valve, modbus_prefill, presets, topology
+from . import (
+    comfort_band,
+    device_prefill,
+    grid_fee,
+    mixing_valve,
+    modbus_prefill,
+    presets,
+    topology,
+)
 from .wood_fuel import wood_furnace_on
 from .currency import resolve_currency
 from .dhw_schedule import (
@@ -1744,6 +1752,45 @@ def _prefill_schema(keys: Iterable[str], values: Mapping[str, Any]) -> vol.Schem
         ): _prefill_row(key).widget
         for key in keys
     })
+
+
+#: The pre-fill page's device pick. Transient: it names where to read the
+#: suggestions from for this one visit and is never stored, so it carries no
+#: ``_F`` row, no default and nothing in ``_ABSENT_FALLBACKS`` -- reopening
+#: the page asks again. The selector is deliberately not filtered by
+#: integration: W1067-G7b-3's fallback serves a device no source table knows.
+_PREFILL_DEVICE: Final = "prefill_device"
+
+
+def _prefill_prefix_schema() -> dict[Any, Any]:
+    """Phase one's own fields: pick a device, or name a Modbus prefix."""
+    return {
+        vol.Optional(_PREFILL_DEVICE): selector.DeviceSelector(
+            selector.DeviceSelectorConfig()
+        )
+    }
+
+
+def _device_records(hass: HomeAssistant, device_id: str) -> list[device_prefill.EntityRecord]:
+    """One device's entity-registry entries, as plain records.
+
+    The registry read lives here rather than in ``device_prefill``, which
+    stays free of Home Assistant imports like ``modbus_prefill``.
+    """
+    registry = er.async_get(hass)
+    return [
+        device_prefill.EntityRecord(
+            platform=entry.platform or "",
+            unique_id=entry.unique_id,
+            entity_id=entry.entity_id,
+            original_name=entry.original_name,
+            translation_key=entry.translation_key,
+            device_class=entry.device_class or entry.original_device_class,
+            unit=entry.unit_of_measurement,
+            state_class=None,
+        )
+        for entry in er.async_entries_for_device(registry, device_id)
+    ]
 
 
 def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str, str]:
@@ -3170,6 +3217,13 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     #: the suggested keys the preview shows, and what the page says about them.
     _prefill: tuple[str | None, tuple[str, ...], dict[str, str]] | None = None
 
+    def _prefill_phase_one(self, current: dict[str, Any]) -> vol.Schema:
+        """The page's first form: the device pick above the Modbus prefix row."""
+        return vol.Schema({
+            **_prefill_prefix_schema(),
+            **_page_schema("modbus_prefill", current, self.hass).schema,
+        })
+
     def _prefill_form(
         self, schema: vol.Schema, notes: dict[str, str], errors: dict[str, str]
     ) -> ConfigFlowResult:
@@ -3185,27 +3239,46 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     ) -> ConfigFlowResult:
         """Suggest option values from a GCHV heat pump's Modbus package (#1067).
 
-        One page, submitted twice. The first submit names the package's
-        entity-id prefix and opens a preview of what its registers suggest
-        (``modbus_prefill.infer``); the second saves what the user kept of
-        it, dropping every field left blank, under the refusals of the pages
-        those keys live on. Opening the page again starts over.
+        One page, submitted twice. The first submit says where to read the
+        pump from -- a heat-pump device, or the Modbus package's entity-id
+        prefix -- and opens a preview of what that source suggests
+        (``modbus_prefill.infer``, fed by ``device_prefill.resolve`` or
+        ``modbus_prefill.candidates``); the second saves what the user kept
+        of it, dropping every field left blank, under the refusals of the
+        pages those keys live on. Opening the page again starts over.
+
+        A picked device wins over a typed prefix. Both routes stay: a
+        Modbus YAML package's sensors have a unique id and no device, so no
+        device route ever reaches them (#1067 W1067-G7b-1).
         """
         current = self._current
         if user_input is None:
             self._prefill = None
-            return self._prefill_form(
-                _page_schema("modbus_prefill", current, self.hass),
-                modbus_prefill.notes({}),
-                {},
-            )
+            return self._prefill_form(self._prefill_phase_one(current), modbus_prefill.notes({}), {})
         if self._prefill is None:
-            prefix = str(
-                user_input.get(CONF_MODBUS_PREFILL_PREFIX) or DEFAULT_MODBUS_PREFILL_PREFIX
-            )
-            snap = modbus_prefill.snapshot(
-                self.hass.states.get, modbus_prefill.candidates(prefix)
-            )
+            device_id = user_input.get(_PREFILL_DEVICE)
+            if device_id:
+                # The device route (#1067 W1067-G7b-1): a source table for the
+                # integration that owns the device's entities replaces the
+                # prefix resolver. Nothing after this line differs.
+                prefix = None
+                resolved = device_prefill.resolve(_device_records(self.hass, str(device_id)))
+            else:
+                prefix = str(
+                    user_input.get(CONF_MODBUS_PREFILL_PREFIX)
+                    or DEFAULT_MODBUS_PREFILL_PREFIX
+                )
+                resolved = modbus_prefill.candidates(prefix)
+            snap = modbus_prefill.snapshot(self.hass.states.get, resolved)
+            if prefix is None and not snap:
+                # A device no source recognises, or one whose mapped entities
+                # hold no state: say so on the page rather than open an empty
+                # form the user cannot act on.
+                return self._prefill_form(
+                    self._prefill_phase_one(current),
+                    modbus_prefill.notes({}),
+                    {"base": "prefill_device_unreadable"},
+                )
             suggested = {
                 key: value
                 for key, value in modbus_prefill.infer(
