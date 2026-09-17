@@ -96,22 +96,23 @@ def texts_for(cat, flow_name, step_id):
     return ((cat.get(flow_name) or {}).get("step") or {}).get(step_id) or {}
 
 
-def label_of(cat, flow_name, step_id, sec, key):
+def _frontend_text(cat, flow_name, step_id, sec, kind, key):
+    """The frontend's lookup (show-dialog-{config,options}-flow.ts): a field in
+    a section resolves ONLY under ``sections.<sec>.<kind>``, never at step
+    level. The step-level fallback this replaced counted 127 grouped fields as
+    labelled while the frontend rendered each one as its raw key."""
     t = texts_for(cat, flow_name, step_id)
     if sec:
-        s = (t.get("sections") or {}).get(sec) or {}
-        if key in (s.get("data") or {}):
-            return (s.get("data") or {})[key]
-    return (t.get("data") or {}).get(key)
+        t = (t.get("sections") or {}).get(sec) or {}
+    return (t.get(kind) or {}).get(key)
+
+
+def label_of(cat, flow_name, step_id, sec, key):
+    return _frontend_text(cat, flow_name, step_id, sec, "data", key)
 
 
 def desc_of(cat, flow_name, step_id, sec, key):
-    t = texts_for(cat, flow_name, step_id)
-    if sec:
-        s = (t.get("sections") or {}).get(sec) or {}
-        if key in (s.get("data_description") or {}):
-            return (s.get("data_description") or {})[key]
-    return (t.get("data_description") or {}).get(key)
+    return _frontend_text(cat, flow_name, step_id, sec, "data_description", key)
 
 
 BASE_DATA = {

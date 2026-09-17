@@ -199,8 +199,8 @@ push_order() { # own remote branch's sha ('' or '-' for none), behind, ahead
   return 0                                  # 0 it is at this head
 }
 
-stamp_paths() { # name-only diff over VERSION, unified diff of manifest.json
-  # Step 5's predicate, a pure function of its two inputs so --self-test can
+stamp_paths() { # name-only diff over VERSION, unified diffs of manifest.json and RELEASE_NOTES.md
+  # Step 5's predicate, a pure function of its inputs so --self-test can
   # drive it. Prints the stamp-shaped paths it finds, space-separated; empty
   # means the branch touched no version.
   #
@@ -216,8 +216,55 @@ stamp_paths() { # name-only diff over VERSION, unified diff of manifest.json
   if printf '%s\n' "$2" | grep -qE '^[-+][[:space:]]*"version"[[:space:]]*:'; then
     out="${out:+$out }custom_components/heatpump_optimizer/manifest.json(version)"
   fi
+  # The notes: a `## ` line added or removed is a release heading, which only
+  # the stamp writes. `### ` subsections do not match, because the pattern
+  # needs the space straight after two hashes.
+  if printf '%s\n' "${3:-}" | grep -qE '^[-+]## '; then
+    out="${out:+$out }RELEASE_NOTES.md(heading)"
+  fi
   printf '%s' "$out"
 }
+
+# Step 5's whole body, and the one command `pr-contract` runs for it, so CLAUDE.md
+# rule 4 is refused by CI rather than only by a seat that remembered to run this
+# script. Before this, the step ran locally and nowhere else: `pr-contract` ran
+# `--self-test`, which drives `stamp_paths` over strings and never reads a diff,
+# so a pull request bumping VERSION was refused by no check at all.
+#
+# THREE-DOT, FROM THE MAIN REF, NOT FROM A MERGE BASE A CALLER COMPUTED. `git diff
+# A...B` takes the merge base itself, so a main that has stamped since the branch
+# forked contributes nothing -- the stamp is main's commit, not the branch's. The
+# argument is the main ref precisely so that `...` is load-bearing: handed a
+# precomputed merge base, two dots and three would print the same diff, and a
+# regression to two dots would pass every fixture. The moved-main fixture in
+# --self-test is the arm that refuses two dots.
+#
+# FAIL CLOSED: a range that does not resolve returns 2, never an empty list,
+# because an empty list is this function's all-clear.
+version_edit() { # main ref, head -> prints the stamp-owned items the range moved
+  local names manifest notes out
+  git rev-parse --verify --quiet "$1^{commit}" >/dev/null || return 2
+  git rev-parse --verify --quiet "$2^{commit}" >/dev/null || return 2
+  names=$(git diff --name-only "$1...$2" -- VERSION 2>/dev/null) || return 2
+  manifest=$(git diff "$1...$2" -- custom_components/heatpump_optimizer/manifest.json 2>/dev/null) || return 2
+  notes=$(git diff "$1...$2" -- RELEASE_NOTES.md 2>/dev/null) || return 2
+  out=$(stamp_paths "$names" "$manifest" "$notes")
+  printf '%s' "$out"
+  [ -z "$out" ]
+}
+
+# `pr-contract`'s entry point: `prepr.sh --version-edit <main ref> <head>`. It
+# exits before anything below, which needs a body, node and the closures.
+if [ "${1:-}" = "--version-edit" ]; then
+  found=$(version_edit "${2:-}" "${3:-}"); ve=$?
+  case $ve in
+    0) printf 'no version edit: %s...%s moves none of VERSION, the manifest version or a notes heading\n' "${2:-}" "${3:-}" ;;
+    1) printf 'REFUSE no version edit: %s...%s moves %s\n' "${2:-}" "${3:-}" "$found"
+       printf 'CLAUDE.md rule 4: versions are assigned after the merge by tools/release/stamp.py; restore these to the merge base.\n' ;;
+    *) printf 'REFUSE no version edit: %s...%s did not resolve, so nothing was compared -- fetch the main ref and full history\n' "${2:-}" "${3:-}" ;;
+  esac
+  exit "$ve"
+fi
 
 # --- self-test ---------------------------------------------------------------
 # A check that cannot be shown failing does not merge. This drives the two steps
@@ -395,6 +442,54 @@ if [ "${1:-}" = "--self-test" ]; then
 +  "version": "6.5.1",
 +  "quality_scale": "platinum",')
   st "$got" 'VERSION custom_components/heatpump_optimizer/manifest.json(version)' "a stamp-shaped diff is refused on both, and the added key does not mask it"
+  got=$(stamp_paths '' '' '+## v6.5.2')
+  st "$got" 'RELEASE_NOTES.md(heading)' "a release-notes heading is refused, and named"
+  got=$(stamp_paths '' '' '+### Fixed
++- a line under an existing release')
+  st "$got" '' "a notes subsection or bullet passes (over-fire control)"
+
+  # `version_edit` over real commits, because what it adds to `stamp_paths` is
+  # the RANGE, and a range is only exercised by a history. One throwaway
+  # repository: `base` forks `main` and every PR shape; `main` then stamps.
+  # Each refusing arm is one file matcher, so dropping any matcher fails its
+  # own line; the moved-main arm is the one two dots fail, because a two-dot
+  # diff reports the stamp main made after the fork as the branch's; and the
+  # merged arm is the ordinary state of a branch updated with `git merge`.
+  VER=$(mktemp -d)
+  (
+    set -e; cd "$VER"; git init -q -b main .
+    git config user.name st; git config user.email st@st
+    mkdir -p custom_components/heatpump_optimizer docs
+    printf '6.5.1\n' > VERSION
+    printf '{\n  "domain": "x",\n  "version": "6.5.1"\n}\n' > custom_components/heatpump_optimizer/manifest.json
+    printf '# Notes\n\n## v6.5.1\n\n- a\n' > RELEASE_NOTES.md
+    printf 'doc\n' > docs/a.md
+    git add -A; git commit -qm base; git tag base
+    pr() { git checkout -q -b "$1" base; shift; "$@"; git add -A; git commit -qm pr; }
+    pr ver sh -c 'printf "6.5.2\n" > VERSION'
+    pr man sh -c 'sed -i.bak "s/6.5.1/6.5.2/" custom_components/heatpump_optimizer/manifest.json && rm custom_components/heatpump_optimizer/manifest.json.bak'
+    pr notes sh -c 'printf "# Notes\n\n## v6.5.2\n\n- b\n\n## v6.5.1\n\n- a\n" > RELEASE_NOTES.md'
+    pr docs sh -c 'printf "more\n" >> docs/a.md'
+    git checkout -q main
+    printf '6.5.2\n' > VERSION
+    sed -i.bak 's/6.5.1/6.5.2/' custom_components/heatpump_optimizer/manifest.json && rm custom_components/heatpump_optimizer/manifest.json.bak
+    printf '# Notes\n\n## v6.5.2\n\n- b\n\n## v6.5.1\n\n- a\n' > RELEASE_NOTES.md
+    git commit -qam 'v6.5.2 stamp'
+    git checkout -q -b merged docs; git merge -q --no-edit main
+  ) >/dev/null 2>&1
+  ve() { (cd "$VER" && version_edit "$@"); }
+  got=$(ve base ver); st "$?:$got" '1:VERSION' "a pull request editing VERSION is refused"
+  got=$(ve base man); st "$?:$got" '1:custom_components/heatpump_optimizer/manifest.json(version)' "a pull request editing the manifest version is refused"
+  got=$(ve base notes); st "$?:$got" '1:RELEASE_NOTES.md(heading)' "a pull request adding a notes heading is refused"
+  got=$(ve base docs); st "$?:$got" '0:' "a docs-only pull request passes (null control)"
+  got=$(ve main docs); st "$?:$got" '0:' "a pull request whose main has stamped since it forked passes (the arm two dots fail)"
+  got=$(ve main merged); st "$?:$got" '0:' "a pull request that merged a stamped main passes (null control)"
+  got=$(ve no-such-ref docs); st "$?:$got" '2:' "a main ref that does not resolve is refused, not read as no edit"
+  # The call site `pr-contract` runs, not only the function.
+  out=$(cd "$VER" && bash "$OLDPWD/tools/audit/prepr.sh" --version-edit base ver 2>&1); st $? 1 "--version-edit exits non-zero on a VERSION edit"
+  case "$out" in *"REFUSE no version edit"*VERSION*) st 1 1 "and names what it refused";; *) st 0 1 "and names what it refused";; esac
+  (cd "$VER" && bash "$OLDPWD/tools/audit/prepr.sh" --version-edit main merged >/dev/null 2>&1); st $? 0 "--version-edit exits zero on a merged, stamped main (null control)"
+  rm -rf "$VER"
 
   # The shared-root refusal, over real directories because the predicate resolves
   # them. The defect's two shapes refuse; a seat's own subdirectory and a bare
@@ -527,15 +622,10 @@ fi
 # --- 5. VERSION, the manifest and the notes heading are untouched.
 # Versions are assigned after the merge by tools/release/stamp.py. A branch that
 # moves one is refused by the stamp, which is a slow way to find out.
-STAMPED=$(stamp_paths \
-  "$(git diff --name-only "$BASE"...HEAD -- VERSION)" \
-  "$(git diff "$BASE"...HEAD -- custom_components/heatpump_optimizer/manifest.json)")
-NOTES=$(git diff "$BASE"...HEAD -- RELEASE_NOTES.md | grep -cE '^[-+]## ' || true)
-if [ -n "$STAMPED" ] || [ "$NOTES" -gt 0 ]; then
-  step "no version edit" 1 "${STAMPED:+$STAMPED }${NOTES:+notes heading x$NOTES}"
-else
-  step "no version edit" 0
-fi
+# `version_edit` is also what `pr-contract` runs, through --version-edit above,
+# so this is the cheaper detector for the same refusal rather than a second one.
+STAMPED=$(version_edit origin/main HEAD)
+step "no version edit" $? "$STAMPED"
 
 # --- 6. claim files byte-identical to origin/main.
 # A branch that claims nothing does not touch them at all, and one that does not
