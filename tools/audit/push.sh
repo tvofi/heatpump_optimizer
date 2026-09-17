@@ -299,6 +299,7 @@ body_then_push() { # pr number, body file
 # token's missing `read:org` does, so the assertion is about this script's
 # choice of call and not about the stub's answer.
 if [ "${1:-}" = "--self-test" ]; then
+  SELF="$(cd "$(dirname -- "$0")" && pwd)/$(basename -- "$0")"
   cd "$(git rev-parse --show-toplevel)" || exit 2
   D=.claude/workflows/fixtures/policy-rot/prepr
   ZERO=0000000000000000000000000000000000000000
@@ -545,6 +546,13 @@ STUB
   S4="$W/s4"; mkdir -p "$S4"; : > "$S4/log"; : > "$S4/refuse-get"
   arm_run "$S4"; st $? 5 "a body that cannot be read back refuses"
   st "$(grep -c '^PUSH' "$S4/log")" "0" "and NOTHING was pushed"
+  # The stub proves the FUNCTION's call; these two prove the script still routes
+  # the arm through it. Restoring the old inline `gh pr edit` beside the stubbed
+  # function would leave every assertion above green.
+  st "$(grep -nE '(^|[;&|(]|[$][(])[[:space:]]*gh[[:space:]]+pr[[:space:]]+edit' "$SELF" | grep -cvE '^[0-9]+:[[:space:]]*#')" "0" \
+     "no line of this script invokes gh pr edit"
+  st "$(grep -cE '^[[:space:]]*body_then_push "[$]PR" "[$]BODY"$' "$SELF")" "1" \
+     "and the body-then-push arm calls body_then_push"
   body_reads_back "a
 " "a";                              st $? 0 "one trailing newline is allowed on the live side"
   body_reads_back "a" "a
