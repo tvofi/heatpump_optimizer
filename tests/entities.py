@@ -14118,6 +14118,24 @@ R.check(
     "a pull request can forge every content clause; only a stamp is pushed "
     "to main as a single-parent commit",
 )
+# ...and the parent count answers "not a pull request" only on the
+# `pull_request` run. A dispatch on the pull request's BRANCH -- the one
+# closures-autofix fires, with tests.yml's recheck arm -- checks out a
+# one-parent tip, so the stamp facts are asked for only on `main`'s ref.
+R.check(
+    "a stamp is recognised only on main's ref inside Actions, and outside "
+    "Actions as before",
+    _env_drift.stamp_ref_allows(
+        {"GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/heads/main"})
+    and not _env_drift.stamp_ref_allows(
+        {"GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/heads/ci/refuse-version-edit"})
+    and not _env_drift.stamp_ref_allows(
+        {"GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/pull/1/merge"})
+    and not _env_drift.stamp_ref_allows({"GITHUB_ACTIONS": "true"})
+    and _env_drift.stamp_ref_allows({}),
+    "a branch dispatch's tip has one parent, so without the ref a forged "
+    "stamp passed the claims rule on the recheck run its pull_request run refused",
+)
 R.check(
     "a VERSION bump that also touches a file stamp.py never writes is refused",
     (_st_verdict(changed=_ST_CHANGED + ["docs/HANDOVER.md"]) or "")
@@ -14645,12 +14663,30 @@ def _stamp_git(new_version: str, forged_merge: bool = False):
     return root, base
 
 
+# THE ENVIRONMENT IS PINNED, because `stamp_ref_allows` reads it: under Actions
+# a stamp is recognised only on `refs/heads/main`, so these arms would answer
+# differently on a pull request's runner than on a seat's machine. Each arm
+# states the run it models -- the stamp's own push to main -- and one more arm
+# drives the same single-parent stamp under a branch dispatch, which must
+# refuse: that is the closures-autofix recheck shape.
+_ST_MAIN_ENV = {"GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/heads/main"}
+
+
+def _hyg_env(root, base, env):
+    with _mock.patch.dict(_os.environ, env):
+        return _hyg(root, base)
+
+
 _st_root, _st_base = _stamp_git("6.3.16")
-_st_err = _hyg(_st_root, _st_base) if callable(_hyg) else "missing"
+_st_err = _hyg_env(_st_root, _st_base, _ST_MAIN_ENV) if callable(_hyg) else "missing"
 _st_ctl_root, _st_ctl_base = _stamp_git("6.3.15")
-_st_ctl_err = _hyg(_st_ctl_root, _st_ctl_base) if callable(_hyg) else "missing"
+_st_ctl_err = _hyg_env(_st_ctl_root, _st_ctl_base, _ST_MAIN_ENV) if callable(_hyg) else "missing"
 _st_forged_root, _st_forged_base = _stamp_git("6.3.16", forged_merge=True)
-_st_forged_err = _hyg(_st_forged_root, _st_forged_base) if callable(_hyg) else "missing"
+_st_forged_err = _hyg_env(_st_forged_root, _st_forged_base, _ST_MAIN_ENV) if callable(_hyg) else "missing"
+_st_dispatch_err = _hyg_env(
+    _st_root, _st_base,
+    {"GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/heads/ci/forged-stamp"},
+) if callable(_hyg) else "missing"
 R.check(
     "check_claims_hygiene passes a release stamp and refuses the same deletion "
     "without the VERSION bump",
@@ -14663,6 +14699,13 @@ R.check(
     "check_claims_hygiene refuses the same stamp forged as a merged pull request",
     isinstance(_st_forged_err, str) and _st_forged_err.startswith("RECORD PR CLAIMS"),
     f"a two-parent HEAD with a stamp's tree and three-dot returned {_st_forged_err!r}",
+)
+R.check(
+    "check_claims_hygiene refuses the same one-parent stamp on a branch dispatch",
+    isinstance(_st_dispatch_err, str)
+    and _st_dispatch_err.startswith("RECORD PR CLAIMS"),
+    "a workflow_dispatch on a pull request's branch checks out a one-parent "
+    f"tip; with the stamp's tree it returned {_st_dispatch_err!r}",
 )
 
 # AND THE AUTOFIX ITSELF, which is the half that actually writes the deletion.
@@ -17728,6 +17771,28 @@ R.check(
     f"exclusion={_PC_EXCLUSION in _PC_JOB}; without all three "
     "the red-check trigger reads as enforced while the same unnamed red body "
     "exits 0 -- the silent-green shape #533 is about, in this workflow",
+)
+# CLAUDE.md rule 4 in CI: `prepr.sh --version-edit` refuses a pull request
+# moving VERSION, the manifest version or a notes heading. Its predicate is
+# driven by prepr.sh --self-test; what that cannot see is whether THIS job
+# still calls it, and against which refs. Pinned over non-comment lines: the
+# call with the fetched main ref and the head, the fetch that makes that ref
+# exist, and `if: always()` so an earlier refusal cannot skip it.
+_PC_VE_CALL = 'prepr.sh --version-edit origin/main "$PR_HEAD"' in _PC_BODY_STEP
+_PC_VE_FETCH = "+refs/heads/main:refs/remotes/origin/main" in _PC_BODY_STEP
+_PC_VE_STEP = any(
+    _blk.startswith("Refuse a version")
+    and "\n        if: always()\n" in _blk
+    and "prepr.sh --version-edit" in _blk
+    for _blk in _PC_BODY_STEP.split("\n      - name: ")
+)
+R.check(
+    "the contract lane refuses a version edit on every pull request",
+    _PC_VE_CALL and _PC_VE_FETCH and bool(_PC_VE_STEP)
+    and "if: github.event_name == 'pull_request'" in _PC_JOB,
+    f"call={_PC_VE_CALL}, fetch={_PC_VE_FETCH}, always={bool(_PC_VE_STEP)}; "
+    "before this step the check ran only on a seat's machine and a VERSION "
+    "bump passed every required context",
 )
 _DS_PUB_PERMS = re.search(
     r"^    permissions:\n((?:^      .*\n)+)", _DS_PUB_JOB, re.M)
