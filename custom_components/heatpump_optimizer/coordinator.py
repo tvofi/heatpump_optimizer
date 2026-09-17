@@ -1792,14 +1792,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # repair notices are their own subsystem. It reads the shared
         # parameters and configuration, observes the planned action through a
         # callable, and never holds the coordinator.
+        self._disinfection_switch = DisinfectionSwitch(ctx._config)
         self._legionella = LegionellaGuard(
             hass,
             entry.entry_id,
             ctx._thermal_params,
             ctx._config,
             action=lambda: self._current_action or {},
-            disinfect=DisinfectionSwitch(ctx._config, hass.services.async_call),
-            dhw_blocked=lambda: self._pump_signals.dhw_blocked,
         )
 
     def _init_thermal_learning(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -5058,7 +5057,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._unsub_timer()
             self._unsub_timer = None
         self._release_registrations()
-        await self._legionella.async_release_switch()
         pending = [t for t in self._background_tasks if not t.done()]
         if pending:
             _LOGGER.debug(
@@ -5284,7 +5282,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._learner_freeze_reason = frozen
             await self._legionella.async_track(dhw_value)
 
-        self._legionella.disinfect.observe(reader)
+        self._disinfection_switch.observe(reader)
         # Deliberately NOT gated on `dhw.ok`: the observer above is the only
         # reset path there was, and it cannot run without a tank reading —
         # while the countdown below advances on the clock regardless. That
@@ -6621,7 +6619,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "dhw_idle_min_temperature": params.dhw_idle_min_temp,
             "dhw_legionella_enabled": params.dhw_legionella_enabled,
             "dhw_legionella_due_in_hours": self._legionella.due_in_hours(),
-            **self._legionella.disinfect.view(),
+            **self._disinfection_switch.view(),
             # T3: the inlet actually in force, the tank in shower terms
             # (#28), the setpoint sweep (#9) and the learned heavy-day
             # statistics (#32/#20).
