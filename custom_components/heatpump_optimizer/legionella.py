@@ -54,6 +54,7 @@ class LegionellaGuard:
         *,
         action: Callable[[], dict[str, Any]],
         disinfect: DisinfectionSwitch,
+        dhw_blocked: Callable[[], bool],
     ) -> None:
         self.hass = hass
         self._params = params
@@ -63,8 +64,10 @@ class LegionellaGuard:
         #: #1067: the pump's own disinfection switch, driven by the boost's
         #: edges in control mode and only read in observe mode.
         self.disinfect = disinfect
-        #: The hot water mode block the last solve saw (``check_mode_block``).
-        self.dhw_blocked: bool = False
+        #: Whether the pump's mode blocks hot water, read live on THIS cycle.
+        #: The last solve's reading (``check_mode_block``) lags a mode change
+        #: until the next solve, and the ON edge must not.
+        self._dhw_blocked = dhw_blocked
         #: Whether the switch's write-failure repair is currently raised.
         self.write_failed_notice: bool = False
         #: Set when the bound closed a boost the plan still commands; the
@@ -122,6 +125,10 @@ class LegionellaGuard:
                 if isinstance(attempt_raw, str)
                 else None
             )
+            owned = (stored or {}).get("disinfection_owned")
+            if isinstance(owned, str) and owned:
+                # The switch a previous run turned on and never saw off.
+                self.disinfect.owned = owned
             if attempt is not None:
                 self.attempt = attempt
                 peak = (stored or {}).get("last_attempt_peak")
@@ -143,6 +150,8 @@ class LegionellaGuard:
         payload: dict[str, Any] = {
             "last_cycle": self.last_cycle.isoformat()
         }
+        if self.disinfect.owned is not None:
+            payload["disinfection_owned"] = self.disinfect.owned
         if self.attempt is not None:
             payload["last_attempt"] = self.attempt.isoformat()
             if self.attempt_peak is not None:
@@ -296,7 +305,8 @@ class LegionellaGuard:
             )
             self.switch_latched = True
         elif not self.boost_active:
-            # Idle: an OFF that failed at the close is retried from here.
+            # Idle: an owned switch that still reads on is turned off here,
+            # which is also what retries an OFF the close failed to land.
             await self._drive_switch(False)
             return
 
@@ -391,8 +401,12 @@ class LegionellaGuard:
     async def _drive_switch(self, on: bool) -> None:
         """Put the pump's disinfection switch in the boost's state.
 
-        OFF is only ever sent to a switch this guard turned ON: an idle
-        install, or one restarted mid-program, must not switch off a program
+        ON goes to the configured switch only in control mode, and only when
+        this integration owns no other switch. Everything else is a release
+        of the switch it owns, whatever the mode says now: a boost that
+        closed, disinfection switched off, an options save to observe or to
+        another switch. Ownership is persisted here, so a restart or a reload
+        mid-program still turns off what it turned on, and never a program
         the pump or the user started. ON is not sent while the bound's close
         is latched: the command that outlasted the bound is still the plan's
         until the next solve, and it re-opens the boost window on the very
@@ -401,9 +415,18 @@ class LegionellaGuard:
         down again.
         """
         switch = self.disinfect
-        if (on and self.switch_latched) or (not on and switch.memo is not True):
-            return
-        await switch.command(on, dhw_blocked=self.dhw_blocked)
+        owned = switch.owned
+        if (
+            on
+            and not self.switch_latched
+            and switch.controlling
+            and owned in (None, switch.entity_id)
+        ):
+            await switch.turn_on(dhw_blocked=self._dhw_blocked())
+        else:
+            await switch.release()
+        if switch.owned != owned:
+            await self.async_save()
         if switch.failed == self.write_failed_notice:
             return
         self.write_failed_notice = switch.failed
@@ -426,6 +449,15 @@ class LegionellaGuard:
             translation_key="dhw_disinfection_write_failed",
             translation_placeholders={"entity_id": str(switch.entity_id)},
         )
+
+    async def async_release_switch(self) -> None:
+        """On unload: turn off the switch this integration owns, unread.
+
+        No further cycle will reconcile it, and a switch left on keeps the
+        tank heating for as long as the integration stays unloaded. Ownership
+        is kept, so the next setup confirms the switch really went off.
+        """
+        await self.disinfect.release(blind=True)
 
     def check_ceiling(self) -> None:
         """Say so when disinfection takes the tank above the charge limit.
@@ -600,9 +632,6 @@ class LegionellaGuard:
         water the hardware refuses to heat.
         """
         params = self._params
-        # Kept for the disinfection switch's ON edge, which must not ask a
-        # pump for a program its mode will not run.
-        self.dhw_blocked = bool(dhw_blocked)
         due = self.due_in_hours()
         overdue_days: int | None = None
         if (

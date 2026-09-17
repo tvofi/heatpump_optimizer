@@ -1799,6 +1799,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             ctx._config,
             action=lambda: self._current_action or {},
             disinfect=DisinfectionSwitch(ctx._config, hass.services.async_call),
+            dhw_blocked=lambda: self._pump_signals.dhw_blocked,
         )
 
     def _init_thermal_learning(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -5057,6 +5058,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._unsub_timer()
             self._unsub_timer = None
         self._release_registrations()
+        await self._legionella.async_release_switch()
         pending = [t for t in self._background_tasks if not t.done()]
         if pending:
             _LOGGER.debug(
