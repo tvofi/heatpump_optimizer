@@ -519,7 +519,7 @@ STUB
   printf '## Head\n\n`%s`\n\nbody text\n' "$ZERO" > "$W/arm.md"
   arm_run() { # stub dir -> the arm's rc; PUSH is appended to the log when reached
     ( export PUSH_STUB_DIR="$1" PATH="$W/bin:$PATH"
-      say() { :; }
+      say() { printf '%s\n' "$*" >> "$PUSH_STUB_DIR/said"; }
       push_branch() { printf 'PUSH\n' >> "$PUSH_STUB_DIR/log"; }
       body_then_push 4242 "$W/arm.md" ) >/dev/null 2>&1
   }
@@ -540,12 +540,17 @@ STUB
   S2="$W/s2"; mkdir -p "$S2"; : > "$S2/log"; : > "$S2/refuse-patch"
   arm_run "$S2"; st $? 5 "a refused PATCH refuses the arm"
   st "$(grep -c '^PUSH' "$S2/log")" "0" "and NOTHING was pushed"
+  st "$(grep -c "could not set #4242's body; NOTHING was pushed (the PATCH was refused)" "$S2/said")" "1" \
+     "and the refusal keeps its message and names the stage that failed"
   S3="$W/s3"; mkdir -p "$S3"; : > "$S3/log"; : > "$S3/mangle"
   arm_run "$S3"; st $? 5 "a body that reads back different refuses, though the PATCH returned 0"
   st "$(grep -c '^PUSH' "$S3/log")" "0" "and NOTHING was pushed"
+  st "$(grep -c "(the body read back differs from" "$S3/said")" "1" "and names the difference as the reason"
   S4="$W/s4"; mkdir -p "$S4"; : > "$S4/log"; : > "$S4/refuse-get"
   arm_run "$S4"; st $? 5 "a body that cannot be read back refuses"
   st "$(grep -c '^PUSH' "$S4/log")" "0" "and NOTHING was pushed"
+  st "$(grep -c "(the body could not be read back)" "$S4/said")" "1" \
+     "and names the failed read, not a difference (the read's status is read)"
   # The stub proves the FUNCTION's call; these two prove the script still routes
   # the arm through it. Restoring the old inline `gh pr edit` beside the stubbed
   # function would leave every assertion above green.
