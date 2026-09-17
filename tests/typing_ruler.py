@@ -563,7 +563,18 @@ def pinned_census(report: Report, python: str | None) -> None:
     same red and passes the gate, which is the shape ``defect-root-cause.md``
     calls worse than no check at all.
     """
-    return  # not implemented: the state #1091 and #1099 were each pushed in
+    if not python:
+        report.note(f"census NOT checked here ({PINNED_ENV} unset)", enabling_line())
+        return
+    rc = subprocess.run(
+        [python, str(Path(__file__).resolve()), "--mypy"], cwd=REPO_ROOT
+    ).returncode
+    report.check(
+        f"the pinned census passed under {PINNED_ENV}",
+        rc == 0,
+        f"{python} exited {rc}; its own output is above. A non-zero exit is "
+        "the census growing, or guard 2 refusing an unpinned interpreter",
+    )
 
 
 def _arm(python: str | None) -> tuple[int, int, str]:
