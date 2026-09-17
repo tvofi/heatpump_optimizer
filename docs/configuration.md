@@ -508,6 +508,8 @@ Tank size, daily draw, inlet water and the disinfection extras. The first-menu
 | Credit disinfection from any heat source | off | on/off | If a wood boiler, solar coil or immersion heater already got the tank hot enough and held it there, count that as a completed cycle. |
 | Let the anti-legionella cycle pick a cheap day | off | on/off | Allows the cycle to run a day or two early when electricity is unusually cheap. The deadline is still always honoured. |
 | Earliest anti-legionella re-run | 5 days | 1–14 | A floor on how close together cycles may run, however cheap the day. |
+| Pump's disinfection switch | none | `switch` / `input_boolean` | A switch or helper that starts the heat pump's own anti-legionella program. Its state is read on every update and published on the hot water sensor's attributes as `dhw_disinfection_switch`; the attribute is absent while no switch is set. |
+| Disinfection switch mode | observe | observe / control | **Observe** reads the switch and never writes it. **Control** turns it on when the plan's anti-legionella boost starts and off when that boost ends — including when the boost is cut off after 12 hours or disinfection is switched off mid-cycle. It never turns the switch on while the pump's mode makes no hot water, and never turns off a program it did not start itself. A write that fails raises a repair notice, is retried on the next update, and the notice clears on the first write that goes through. Control without a switch is refused when you save. |
 | Shower flow rate | 8.0 L/min | 4–20, 0.5 steps | Only used to translate the tank's contents into shower minutes on the DHW Mixed Water sensor (`sensor.heat_pump_optimizer_dhw_mixed_water`). |
 
 ### Hot water circulation

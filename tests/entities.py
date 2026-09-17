@@ -4593,7 +4593,9 @@ R.check(
     _dis_mode_selector is not None
     and list(_dis_mode_selector.config["options"])
     == [config_flow.FREQ_MODE_OBSERVE, config_flow.FREQ_MODE_CONTROL]
-    and _schema_defaults(_dis_schema).get(const.CONF_DHW_DISINFECTION_MODE)
+    and config_flow._flatten_section_input(_schema_defaults(_dis_schema)).get(
+        const.CONF_DHW_DISINFECTION_MODE
+    )
     == config_flow.FREQ_MODE_OBSERVE
     and const.DEFAULT_DHW_DISINFECTION_MODE == config_flow.FREQ_MODE_OBSERVE,
     f"selector={getattr(_dis_mode_selector, 'config', None)!r}",

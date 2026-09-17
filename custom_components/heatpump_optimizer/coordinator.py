@@ -367,6 +367,7 @@ from .grid_fee import (
 from .dhw_draws import labels_for
 from .dhw_learning import DHW_PROFILE_STORE_VERSION, DhwProfileLearner
 from .legionella import LegionellaGuard
+from .disinfection import DisinfectionSwitch
 from .curve_learning import CurveLearner
 from .currency import resolve_currency
 from .drift import Cusum
@@ -1797,6 +1798,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             ctx._thermal_params,
             ctx._config,
             action=lambda: self._current_action or {},
+            disinfect=DisinfectionSwitch(ctx._config, hass.services.async_call),
         )
 
     def _init_thermal_learning(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -5280,6 +5282,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._learner_freeze_reason = frozen
             await self._legionella.async_track(dhw_value)
 
+        self._legionella.disinfect.observe(reader)
         # Deliberately NOT gated on `dhw.ok`: the observer above is the only
         # reset path there was, and it cannot run without a tank reading —
         # while the countdown below advances on the clock regardless. That
@@ -6616,6 +6619,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "dhw_idle_min_temperature": params.dhw_idle_min_temp,
             "dhw_legionella_enabled": params.dhw_legionella_enabled,
             "dhw_legionella_due_in_hours": self._legionella.due_in_hours(),
+            **self._legionella.disinfect.view(),
             # T3: the inlet actually in force, the tank in shower terms
             # (#28), the setpoint sweep (#9) and the learned heavy-day
             # statistics (#32/#20).

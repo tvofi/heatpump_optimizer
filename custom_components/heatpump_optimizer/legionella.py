@@ -34,6 +34,7 @@ from .const import (
     DOMAIN,
 )
 from .dhw_learning import DHW_PROFILE_STORE_VERSION
+from .disinfection import DisinfectionSwitch
 from .optimizer import REASON_LEGIONELLA
 from .setpoint_check import create_issue
 from .thermal_model import ThermalParameters
@@ -52,12 +53,20 @@ class LegionellaGuard:
         config: dict[str, Any],
         *,
         action: Callable[[], dict[str, Any]],
+        disinfect: DisinfectionSwitch,
     ) -> None:
         self.hass = hass
         self._params = params
         self._config = config
         #: The action the plan currently commands, observed and never held.
         self._action = action
+        #: #1067: the pump's own disinfection switch, driven by the boost's
+        #: edges in control mode and only read in observe mode.
+        self.disinfect = disinfect
+        #: The hot water mode block the last solve saw (``check_mode_block``).
+        self.dhw_blocked: bool = False
+        #: Whether the switch's write-failure repair is currently raised.
+        self.write_failed_notice: bool = False
         self.last_cycle: datetime | None = None
         self.store: Store[dict[str, Any]] = Store(
             hass,
@@ -244,6 +253,7 @@ class LegionellaGuard:
             self.boost_active = False
             self.boost_peak = None
             self.boost_started = None
+            await self._drive_switch(False)
             return
 
         now = dt_util.now()
@@ -268,6 +278,7 @@ class LegionellaGuard:
                 >= DHW_LEGIONELLA_BOOST_MAX_HOURS * 3600.0
             )
             if not expired:
+                await self._drive_switch(True)
                 return
             # Still commanded after half a day. A cycle the tank cannot
             # finish is re-commanded on every solve, so waiting for the boost
@@ -280,10 +291,13 @@ class LegionellaGuard:
                 DHW_LEGIONELLA_BOOST_MAX_HOURS,
             )
         elif not self.boost_active:
+            # Idle: an OFF that failed at the close is retried from here.
+            await self._drive_switch(False)
             return
 
         # The boost window closed — either the plan moved on, or it outlasted
         # the bound above. Decide what it achieved.
+        await self._drive_switch(False)
         started = self.boost_started
         self.boost_active = False
         self.boost_started = None
@@ -368,6 +382,41 @@ class LegionellaGuard:
             )
             self.raise_unreachable_issue(float(peak), target)
         await self.async_save()
+
+    async def _drive_switch(self, on: bool) -> None:
+        """Put the pump's disinfection switch in the boost's state.
+
+        OFF is only ever sent to a switch this guard turned ON: an idle
+        install, or one restarted mid-program, must not switch off a program
+        the pump or the user started. A write that raised raises a repair,
+        and the next write that lands takes it down again.
+        """
+        switch = self.disinfect
+        if not on and switch.memo is not True:
+            return
+        await switch.command(on, dhw_blocked=self.dhw_blocked)
+        if switch.failed == self.write_failed_notice:
+            return
+        self.write_failed_notice = switch.failed
+        if not switch.failed:
+            try:
+                ir.async_delete_issue(
+                    self.hass, DOMAIN, "dhw_disinfection_write_failed"
+                )
+            except Exception as err:  # noqa: BLE001 - clearing is best-effort
+                _LOGGER.debug("Could not clear disinfection switch notice: %s", err)
+            return
+        create_issue(
+            self.hass,
+            DOMAIN,
+            "dhw_disinfection_write_failed",
+            is_fixable=False,
+            # Not persistent: the write is retried every cycle, and the
+            # notice goes with the first one that lands.
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="dhw_disinfection_write_failed",
+            translation_placeholders={"entity_id": str(switch.entity_id)},
+        )
 
     def check_ceiling(self) -> None:
         """Say so when disinfection takes the tank above the charge limit.
@@ -542,6 +591,9 @@ class LegionellaGuard:
         water the hardware refuses to heat.
         """
         params = self._params
+        # Kept for the disinfection switch's ON edge, which must not ask a
+        # pump for a program its mode will not run.
+        self.dhw_blocked = bool(dhw_blocked)
         due = self.due_in_hours()
         overdue_days: int | None = None
         if (

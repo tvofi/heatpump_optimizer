@@ -907,6 +907,8 @@
           "dhw_free_disinfection_enabled": "Credit disinfection from any heat source",
           "dhw_elastic_legionella_enabled": "Let the anti-legionella cycle pick a cheap day",
           "dhw_legionella_min_interval_days": "Earliest anti-legionella re-run",
+          "dhw_disinfection_switch_entity": "Pump's disinfection switch (optional)",
+          "dhw_disinfection_mode": "Disinfection switch mode",
           "shower_flow_lpm": "Shower flow rate",
           "after_save": "After saving"
         },
@@ -922,6 +924,8 @@
           "dhw_free_disinfection_enabled": "If a wood boiler, solar coil or immersion heater already gets the tank to the anti-legionella temperature and holds it there, count that as a completed cycle instead of running another one.",
           "dhw_elastic_legionella_enabled": "Allow the anti-legionella cycle to run a day or two early when electricity is unusually cheap, instead of always waiting for its deadline. The deadline is still always honoured.",
           "dhw_legionella_min_interval_days": "Never run anti-legionella cycles closer together than this, even on very cheap days.",
+          "dhw_disinfection_switch_entity": "A switch or helper that starts the heat pump's own anti-legionella program. In observe mode its state is only read and shown on the hot water sensor's attributes; in control mode the integration turns it on when a disinfection cycle starts and off when that cycle ends.",
+          "dhw_disinfection_mode": "Observe reads the switch and never writes it. Control turns it on and off with the anti-legionella cycle, but never turns it on while the pump's mode makes no hot water, and never turns off a program it did not start itself. Control needs the switch above.",
           "shower_flow_lpm": "Your shower head's flow. Only used to translate the tank's content into shower minutes on the DHW Mixed Water sensor.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         },
@@ -1087,6 +1091,7 @@
       "invalid_dhw_windows": "Those time frames could not be read. Use 24-hour times separated by commas, for example \"06:00-08:30, 17:00-22:00\".",
       "dhw_window_too_short": "A hot water time frame is shorter than {min_window_minutes} minutes. The plan is made in {min_window_minutes}-minute steps, so a shorter frame can fall between two steps and never take effect.",
       "silent_mode_window_too_short": "A silent mode time frame is shorter than {min_window_minutes} minutes. The plan is made in {min_window_minutes}-minute steps, so a shorter frame can fall between two steps and never take effect.",
+      "disinfection_control_needs_entity": "Control turns the pump's disinfection switch on and off, so it needs one. Pick the switch above, or set the mode back to observe.",
       "dhw_min_too_close": "A hot water minimum this close to the setpoint leaves the tank no working band; keep it at least 5 \\u00b0C below the setpoint.",
       "invalid_grid_fee_rules": "Those fee rules could not be read. One rule per line, like \"Nov-Mar Mon-Fri 06:00-22:00 = 0.25\".",
       "grid_fee_rules_negative": "A fee rule has a negative rate. A transfer fee is a charge, so every rate must be zero or above — a minus sign here would make the plan treat those hours as subsidised.",
@@ -1188,6 +1193,12 @@
         "goteborg_energi_effekt_2026": "Göteborg Energi — villa elnätsavgift (2026)"
       }
     },
+    "dhw_disinfection_mode": {
+      "options": {
+        "observe": "Observe (read and show only)",
+        "control": "Control (turn the switch on and off)"
+      }
+    },
     "freq_control_mode": {
       "options": {
         "observe": "Observe (learn and recommend only)",
@@ -1248,6 +1259,10 @@
     "pump_mode_unreadable": {
       "title": "Heat pump operating mode entity is not reporting",
       "description": "The entity you chose for the heat pump's operating mode has not been readable for over {hours} hours. The last mode it reported was “{mode}”, and until now the plan was still being held to what that mode can deliver. It has stopped being held to it: an operating mode nobody has been able to read for hours is no longer evidence about what the pump is doing, and continuing to suppress heating or hot water on it would leave you cold on the word of a dead sensor. The plan is back to assuming the pump can do everything, which is what it assumed before you configured this entity. Check that the entity still exists and is available, or clear the slot if you no longer want it used. This notice clears as soon as the entity reports again."
+    },
+    "dhw_disinfection_write_failed": {
+      "title": "The pump's disinfection switch could not be set",
+      "description": "The anti-legionella cycle tried to set {entity_id}, and Home Assistant refused the call, so the pump's own disinfection program may not be running when the plan expects it to. The write is retried on every update, and this notice clears itself as soon as one goes through. Check that the entity exists and is available, or set the disinfection switch mode back to observe."
     },
     "dhw_legionella_mode_blocked": {
       "title": "Hot water disinfection is overdue: the heat pump's mode blocks it",

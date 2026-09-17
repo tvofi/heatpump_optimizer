@@ -36710,6 +36710,7 @@ R.section("W5-G8 f: the extracted DHW learner and legionella guard (#195)")
 
 from heatpump_optimizer.dhw_learning import DhwProfileLearner as _G8Learner2  # noqa: E402
 from heatpump_optimizer.legionella import LegionellaGuard as _G8Guard  # noqa: E402
+from heatpump_optimizer.disinfection import DisinfectionSwitch as _G8Switch  # noqa: E402
 from heatpump_optimizer.thermal_model import ThermalParameters as _G8Params  # noqa: E402
 from heatpump_optimizer import dhw_learning as _g8_dhwl  # noqa: E402
 from heatpump_optimizer import legionella as _g8_leg  # noqa: E402
@@ -36902,8 +36903,9 @@ def _g8_guard(config=None, **params_kw):
     params = _G8Params()
     for k, v in params_kw.items():
         setattr(params, k, v)
-    return _G8Guard(FakeHass({}), "g8", params, dict(config or {}),
-                    action=lambda: {})
+    hass, config = FakeHass({}), dict(config or {})
+    return _G8Guard(hass, "g8", params, config, action=lambda: {},
+                    disinfect=_G8Switch(config, hass.services.async_call))
 
 
 _g8_leg_real_store = _g8_leg.Store

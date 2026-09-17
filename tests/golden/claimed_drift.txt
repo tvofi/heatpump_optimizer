@@ -278,4 +278,13 @@
 # two new option keys, silent_mode_windows and silent_mode_power_fraction,
 # in the plain render and the seeded render, re-recorded for #547's reason
 # above. Every other fixture is byte-identical: both keys default inert.
-config_flow  # ADD-ONLY: two new grid_connection option keys, silent_mode_windows and silent_mode_power_fraction
+#
+# #1067 W1067-G5 (the pump's disinfection switch): the G4 claim above was
+# written for G4's diff and is not restated. This branch moves exactly one
+# existing fixture: config_flow gains the hot_water_tank page's two new
+# option keys, dhw_disinfection_switch_entity and dhw_disinfection_mode, in
+# the plain render, the seeded render and the seed map -- 37 insertions and
+# 0 deletions -- re-recorded for #547's reason above. Every other fixture is
+# byte-identical: with no switch configured the hot water view publishes no
+# new key and nothing is written.
+config_flow  # ADD-ONLY: two new hot_water_tank option keys, dhw_disinfection_switch_entity and dhw_disinfection_mode
