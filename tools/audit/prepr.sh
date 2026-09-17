@@ -241,13 +241,29 @@ stamp_paths() { # name-only diff over VERSION, unified diffs of manifest.json an
 #
 # FAIL CLOSED: a range that does not resolve returns 2, never an empty list,
 # because an empty list is this function's all-clear.
+#
+# THE DIFF IS FORCED TEXTUAL, because two of the three matchers read diff BODY
+# and the branch under test owns the attributes that decide whether a body is
+# printed at all. `.gitattributes` is a tracked file, so a pull request adds
+# `custom_components/heatpump_optimizer/manifest.json -diff` in the same commit
+# that bumps the version, and `git diff` prints `Binary files a/... and b/...
+# differ` with no `+  "version":` line anywhere -- `stamp_paths` then finds
+# nothing and this function returns its all-clear. `--text` overrides the
+# attribute and restores the hunks; `--no-textconv` covers the other half of the
+# same surface, a `diff=<driver>` attribute whose driver has a textconv, so the
+# matchers read the blob rather than a rendering of it. Neither flag changes
+# what an ordinary diff prints, which is the null control in --self-test.
+# `--name-only` is not attribute-sensitive -- VERSION cannot be hidden this way,
+# and `tests/entities.py` pins the manifest version to VERSION besides -- but
+# the flags are passed on all three so no later edit has to re-derive which
+# call reads a body.
 version_edit() { # main ref, head -> prints the stamp-owned items the range moved
   local names manifest notes out
   git rev-parse --verify --quiet "$1^{commit}" >/dev/null || return 2
   git rev-parse --verify --quiet "$2^{commit}" >/dev/null || return 2
-  names=$(git diff --name-only "$1...$2" -- VERSION 2>/dev/null) || return 2
-  manifest=$(git diff "$1...$2" -- custom_components/heatpump_optimizer/manifest.json 2>/dev/null) || return 2
-  notes=$(git diff "$1...$2" -- RELEASE_NOTES.md 2>/dev/null) || return 2
+  names=$(git diff --text --no-textconv --name-only "$1...$2" -- VERSION 2>/dev/null) || return 2
+  manifest=$(git diff --text --no-textconv "$1...$2" -- custom_components/heatpump_optimizer/manifest.json 2>/dev/null) || return 2
+  notes=$(git diff --text --no-textconv "$1...$2" -- RELEASE_NOTES.md 2>/dev/null) || return 2
   out=$(stamp_paths "$names" "$manifest" "$notes")
   printf '%s' "$out"
   [ -z "$out" ]
@@ -470,6 +486,32 @@ if [ "${1:-}" = "--self-test" ]; then
     pr man sh -c 'sed -i.bak "s/6.5.1/6.5.2/" custom_components/heatpump_optimizer/manifest.json && rm custom_components/heatpump_optimizer/manifest.json.bak'
     pr notes sh -c 'printf "# Notes\n\n## v6.5.2\n\n- b\n\n## v6.5.1\n\n- a\n" > RELEASE_NOTES.md'
     pr docs sh -c 'printf "more\n" >> docs/a.md'
+    # THE BLINDED PAIR. `.gitattributes` is tracked, so the branch that bumps a
+    # version owns whether its own diff has a body: `-diff` makes git print
+    # `Binary files ... differ` instead of the hunks the two body matchers read.
+    # Each is a separate branch so a regression on one file cannot be masked by
+    # the other still refusing. `attr-only` is their null control -- the same
+    # `.gitattributes` line with no version edit under it still passes, so an
+    # implementation that simply refused any branch touching `.gitattributes`
+    # fails here rather than reading as a fix.
+    pr manattr sh -c 'sed -i.bak "s/6.5.1/6.5.2/" custom_components/heatpump_optimizer/manifest.json && rm custom_components/heatpump_optimizer/manifest.json.bak && printf "custom_components/heatpump_optimizer/manifest.json -diff\n" > .gitattributes'
+    pr notesattr sh -c 'printf "# Notes\n\n## v6.5.2\n\n- b\n\n## v6.5.1\n\n- a\n" > RELEASE_NOTES.md && printf "RELEASE_NOTES.md -diff\n" > .gitattributes'
+    pr attronly sh -c 'printf "custom_components/heatpump_optimizer/manifest.json -diff\nRELEASE_NOTES.md -diff\n" > .gitattributes'
+    # AND THE OTHER HALF OF THE SAME SURFACE, which `--text` alone does not
+    # cover. `diff=<driver>` with a `textconv` makes git diff a RENDERING of the
+    # blob rather than the blob, and `--text` does not override it -- only
+    # `--no-textconv` does. A driver whose textconv prints nothing therefore
+    # produces a diff with no body at all, on a file git never called binary, so
+    # the two body matchers read an empty string and the function returns its
+    # all-clear. Without these arms `--no-textconv` is unpinned: dropping that
+    # one flag passed every other check in this file while reopening the vector.
+    # The driver is repo-local config, which is the shape a contributor controls
+    # (`.git/config` is not tracked, but a `diff=` attribute IS, and a seat or a
+    # runner that has ever set up a driver by that name supplies the other half).
+    git config diff.blind.textconv true
+    pr mantc sh -c 'sed -i.bak "s/6.5.1/6.5.2/" custom_components/heatpump_optimizer/manifest.json && rm custom_components/heatpump_optimizer/manifest.json.bak && printf "custom_components/heatpump_optimizer/manifest.json diff=blind\n" > .gitattributes'
+    pr notestc sh -c 'printf "# Notes\n\n## v6.5.2\n\n- b\n\n## v6.5.1\n\n- a\n" > RELEASE_NOTES.md && printf "RELEASE_NOTES.md diff=blind\n" > .gitattributes'
+    pr tconly sh -c 'printf "custom_components/heatpump_optimizer/manifest.json diff=blind\nRELEASE_NOTES.md diff=blind\n" > .gitattributes'
     git checkout -q main
     printf '6.5.2\n' > VERSION
     sed -i.bak 's/6.5.1/6.5.2/' custom_components/heatpump_optimizer/manifest.json && rm custom_components/heatpump_optimizer/manifest.json.bak
@@ -478,9 +520,25 @@ if [ "${1:-}" = "--self-test" ]; then
     git checkout -q -b merged docs; git merge -q --no-edit main
   ) >/dev/null 2>&1
   ve() { (cd "$VER" && version_edit "$@"); }
+  # THE ATTRIBUTE ARMS NEED THE BRANCH CHECKED OUT, and that is not a fixture
+  # convenience -- it is the shape CI runs in. `git diff` resolves attributes
+  # from the WORKING TREE, not from the commits in the range, so a branch's own
+  # `.gitattributes` only takes effect once that branch is what is checked out.
+  # `pr-contract` checks the pull request out and then runs `--version-edit`, so
+  # the branch's line is live there. Diffing the same two commits from a
+  # different checkout -- which is what the arms above do -- reads the hunks
+  # whatever the branch declared, and would have passed with no fix at all.
+  veco() { (cd "$VER" && git checkout -q "$2" && version_edit "$@"); }
   got=$(ve base ver); st "$?:$got" '1:VERSION' "a pull request editing VERSION is refused"
   got=$(ve base man); st "$?:$got" '1:custom_components/heatpump_optimizer/manifest.json(version)' "a pull request editing the manifest version is refused"
   got=$(ve base notes); st "$?:$got" '1:RELEASE_NOTES.md(heading)' "a pull request adding a notes heading is refused"
+  got=$(veco base manattr); st "$?:$got" '1:custom_components/heatpump_optimizer/manifest.json(version)' "a manifest version edit hidden by a .gitattributes -diff line is still refused"
+  got=$(veco base notesattr); st "$?:$got" '1:RELEASE_NOTES.md(heading)' "a notes heading hidden by a .gitattributes -diff line is still refused"
+  got=$(veco base attronly); st "$?:$got" '0:' "a .gitattributes-only pull request passes (over-fire control for the two arms above)"
+  got=$(veco base mantc); st "$?:$got" '1:custom_components/heatpump_optimizer/manifest.json(version)' "a manifest version edit hidden by a diff=<driver> textconv is still refused"
+  got=$(veco base notestc); st "$?:$got" '1:RELEASE_NOTES.md(heading)' "a notes heading hidden by a diff=<driver> textconv is still refused"
+  got=$(veco base tconly); st "$?:$got" '0:' "a diff=<driver> line with no version edit under it passes (over-fire control for the two arms above)"
+  (cd "$VER" && git checkout -q main)
   got=$(ve base docs); st "$?:$got" '0:' "a docs-only pull request passes (null control)"
   got=$(ve main docs); st "$?:$got" '0:' "a pull request whose main has stamped since it forked passes (the arm two dots fail)"
   got=$(ve main merged); st "$?:$got" '0:' "a pull request that merged a stamped main passes (null control)"
