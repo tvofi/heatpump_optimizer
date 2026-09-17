@@ -234,6 +234,56 @@ write_head() { # body file, sha
   return 0
 }
 
+# THE BODY IS WRITTEN OVER REST, NOT `gh pr edit`. Since decision 0009 step 3 a
+# seat authors as a machine account whose token carries `repo` and `workflow`
+# only, and `gh pr edit` fetches the pull request over GraphQL with fields that
+# require `read:org` -- so the body arm refused on every pull request that
+# account opened, and the #1084, #1090, #1091 and #1098 seats each set the body
+# by hand with this same PATCH. `gh pr create` and `gh pr list` were measured
+# with that token and need `repo` alone, so they stay.
+#
+# A PATCH that returned 0 is not evidence the body landed, so the live body is
+# read back and compared byte for byte. The one allowance is a single trailing
+# newline on either side, which is how the seats' own read-backs compared.
+body_reads_back() { # live body text, wanted body text -> 0 when they agree
+  [ "${1-}" = "${2-}" ] && return 0
+  [ "${1%$'\n'}" = "${2%$'\n'}" ]
+}
+
+set_pr_body() { # pr number, body file -> 0 set and read back, 1 write failed, 2 read failed, 3 differs
+  local live want rc
+  gh api -X PATCH "repos/{owner}/{repo}/pulls/$1" -F "body=@$2" >/dev/null || return 1
+  # `x` guards the trailing newlines a command substitution would strip, and
+  # the one newline `--jq` appends is removed after it.
+  live=$(gh api "repos/{owner}/{repo}/pulls/$1" --jq .body; rc=$?; printf x; exit "$rc")
+  rc=$?
+  [ "$rc" -eq 0 ] || return 2
+  live=${live%x}; live=${live%$'\n'}
+  want=$(cat -- "$2"; printf x); want=${want%x}
+  body_reads_back "$live" "$want" || return 3
+  return 0
+}
+
+# The body-then-push arm, a function so the self-test can drive its ORDER with a
+# stubbed client and a stubbed push: the body is set and read back first, and a
+# body that did not land pushes nothing.
+body_then_push() { # pr number, body file
+  local why
+  set_pr_body "$1" "$2"
+  case $? in
+    0) ;;
+    1) why="the PATCH was refused" ;;
+    2) why="the body could not be read back" ;;
+    *) why="the body read back differs from $2" ;;
+  esac
+  if [ -n "${why:-}" ]; then
+    say REFUSE "body" "could not set #$1's body; NOTHING was pushed ($why)"; exit 5
+  fi
+  say ok "body" "#$1 now carries this body, read back; its \`edited\` run fires against the outgoing head"
+  push_branch
+  say ok "order" "the \`synchronize\` run at $(git rev-parse --short HEAD) reads the body checked above"
+}
+
 # --- self-test ---------------------------------------------------------------
 # A countermeasure that cannot be shown failing does not merge
 # (`.claude/rules/defect-root-cause.md`, "A detector must be shown to detect").
@@ -242,10 +292,12 @@ write_head() { # body file, sha
 # that must NOT be refused -- a check that fires on everything and a check that
 # fires on the right thing print the same "refused" line.
 #
-# It does NOT drive the push or the pull-request calls: those are network, and a
-# self-test that stubbed them would be asserting against its own stub. Those two
-# arms are demonstrated end to end, against a throwaway branch, on the pull
-# request that lands this file.
+# It does NOT drive the network: the push and the pull-request calls are
+# demonstrated end to end on the pull request that lands a change to them. What
+# it does drive with a stubbed `gh` and a stubbed push is the body arm's ORDER
+# and WHICH CALL it makes -- the stub refuses `gh pr edit` the way the seat
+# token's missing `read:org` does, so the assertion is about this script's
+# choice of call and not about the stub's answer.
 if [ "${1:-}" = "--self-test" ]; then
   cd "$(git rev-parse --show-toplevel)" || exit 2
   D=.claude/workflows/fixtures/policy-rot/prepr
@@ -426,6 +478,81 @@ The third round was measured at \`$OLD\`, which is what this sentence is about."
   st "$WSEEN" "named" "and it WARNS, naming the superseded SHA still standing in the prose"
   st "$(grep -c 'what this sentence is about' "$W/echoed.md")" "1" \
      "rather than editing the record to suit the check"
+
+  # THE BODY ARM, over a stubbed client and a stubbed push. The stub answers the
+  # REST PATCH and GET the arm is meant to make, and refuses `gh pr edit` with
+  # the scope error the seat token gets, so restoring that call turns these red.
+  # Every refusal is paired with the healthy run beside it, and each run's log
+  # says whether PUSH was reached and in which position.
+  mkdir -p "$W/bin"
+  cat > "$W/bin/gh" <<'STUB'
+#!/bin/bash
+S="${PUSH_STUB_DIR:?}"; printf '%s\n' "$*" >> "$S/log"
+if [ "${1:-}" = "pr" ] && [ "${2:-}" = "edit" ]; then
+  echo "GraphQL: Your token has not been granted the required scopes to execute this query. The 'login' field requires one of the following scopes: ['read:org']" >&2
+  exit 1
+fi
+[ "${1:-}" = "api" ] || exit 9
+patch=0; path=""; file=""; jq=""
+shift
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -X) [ "$2" = "PATCH" ] && patch=1; shift 2 ;;
+    -F) case "$2" in body=@*) file="${2#body=@}" ;; esac; shift 2 ;;
+    --jq) jq="$2"; shift 2 ;;
+    repos/*) path="$1"; shift ;;
+    *) exit 9 ;;
+  esac
+done
+case "$path" in 'repos/{owner}/{repo}/pulls/'[0-9]*) ;; *) exit 9 ;; esac
+if [ "$patch" = 1 ]; then
+  [ -f "$S/refuse-patch" ] && exit 1
+  [ -n "$file" ] && cp "$file" "$S/live" && printf '{}\n'; exit $?
+fi
+[ "$jq" = ".body" ] || exit 9
+[ -f "$S/refuse-get" ] && exit 1
+cat "$S/live"; [ -f "$S/mangle" ] && printf 'appended by someone else\n'
+printf '\n'
+STUB
+  chmod +x "$W/bin/gh"
+  printf '## Head\n\n`%s`\n\nbody text\n' "$ZERO" > "$W/arm.md"
+  arm_run() { # stub dir -> the arm's rc; PUSH is appended to the log when reached
+    ( export PUSH_STUB_DIR="$1" PATH="$W/bin:$PATH"
+      say() { :; }
+      push_branch() { printf 'PUSH\n' >> "$PUSH_STUB_DIR/log"; }
+      body_then_push 4242 "$W/arm.md" ) >/dev/null 2>&1
+  }
+  S1="$W/s1"; mkdir -p "$S1"; : > "$S1/log"
+  arm_run "$S1"; st $? 0 "the body arm sets the body with the seat token's scopes and succeeds"
+  st "$(grep -c '^api -X PATCH repos/{owner}/{repo}/pulls/4242 -F body=@' "$S1/log")" "1" \
+     "and it wrote the body with one REST PATCH, not gh pr edit"
+  st "$(grep -c '^pr edit' "$S1/log")" "0" "gh pr edit was not called at all"
+  st "$(cut -d' ' -f1-3 "$S1/log" | tr '\n' '|')" "api -X PATCH|api repos/{owner}/{repo}/pulls/4242 --jq|PUSH|" \
+     "in order: the write, then the read-back, then the push, and nothing else"
+  if cmp -s "$S1/live" "$W/arm.md"; then IDENT=same; else IDENT=differs; fi
+  st "$IDENT" "same" "and the live body is byte-identical to the checked body file"
+  # Null control: a pull request whose body is ALREADY this body still passes,
+  # so a push that changes nothing about the body is not refused.
+  : > "$S1/log"
+  arm_run "$S1"; st $? 0 "an unchanged body passes the arm again (null control)"
+  st "$(tail -1 "$S1/log")" "PUSH" "and still reaches the push"
+  S2="$W/s2"; mkdir -p "$S2"; : > "$S2/log"; : > "$S2/refuse-patch"
+  arm_run "$S2"; st $? 5 "a refused PATCH refuses the arm"
+  st "$(grep -c '^PUSH' "$S2/log")" "0" "and NOTHING was pushed"
+  S3="$W/s3"; mkdir -p "$S3"; : > "$S3/log"; : > "$S3/mangle"
+  arm_run "$S3"; st $? 5 "a body that reads back different refuses, though the PATCH returned 0"
+  st "$(grep -c '^PUSH' "$S3/log")" "0" "and NOTHING was pushed"
+  S4="$W/s4"; mkdir -p "$S4"; : > "$S4/log"; : > "$S4/refuse-get"
+  arm_run "$S4"; st $? 5 "a body that cannot be read back refuses"
+  st "$(grep -c '^PUSH' "$S4/log")" "0" "and NOTHING was pushed"
+  body_reads_back "a
+" "a";                              st $? 0 "one trailing newline is allowed on the live side"
+  body_reads_back "a" "a
+";                                  st $? 0 "and on the wanted side"
+  body_reads_back "a" "a ";         st $? 1 "a trailing space is a difference (null control on the allowance)"
+  body_reads_back "a
+
+" "a";                              st $? 1 "and so are two trailing newlines"
   rm -rf "$W"
 
   printf '\n%s passed, %s failed\n' "$st_pass" "$st_fail"
@@ -540,10 +667,7 @@ if [ "$NO_PR" = "1" ]; then
 fi
 
 if [ "$ARM" = "body-then-push" ]; then
-  gh pr edit "$PR" --body-file "$BODY" >/dev/null || { say REFUSE "body" "could not set #$PR's body; NOTHING was pushed"; exit 5; }
-  say ok "body" "#$PR now carries this body; its \`edited\` run fires against the outgoing head"
-  push_branch
-  say ok "order" "the \`synchronize\` run at $(git rev-parse --short HEAD) reads the body checked above"
+  body_then_push "$PR" "$BODY"
 else
   push_branch
   URL=$(gh pr create --base main --head "$BR" --title "$TITLE" --body-file "$BODY") || {
