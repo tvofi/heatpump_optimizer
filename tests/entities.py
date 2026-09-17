@@ -14663,12 +14663,30 @@ def _stamp_git(new_version: str, forged_merge: bool = False):
     return root, base
 
 
+# THE ENVIRONMENT IS PINNED, because `stamp_ref_allows` reads it: under Actions
+# a stamp is recognised only on `refs/heads/main`, so these arms would answer
+# differently on a pull request's runner than on a seat's machine. Each arm
+# states the run it models -- the stamp's own push to main -- and one more arm
+# drives the same single-parent stamp under a branch dispatch, which must
+# refuse: that is the closures-autofix recheck shape.
+_ST_MAIN_ENV = {"GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/heads/main"}
+
+
+def _hyg_env(root, base, env):
+    with _mock.patch.dict(_os.environ, env):
+        return _hyg(root, base)
+
+
 _st_root, _st_base = _stamp_git("6.3.16")
-_st_err = _hyg(_st_root, _st_base) if callable(_hyg) else "missing"
+_st_err = _hyg_env(_st_root, _st_base, _ST_MAIN_ENV) if callable(_hyg) else "missing"
 _st_ctl_root, _st_ctl_base = _stamp_git("6.3.15")
-_st_ctl_err = _hyg(_st_ctl_root, _st_ctl_base) if callable(_hyg) else "missing"
+_st_ctl_err = _hyg_env(_st_ctl_root, _st_ctl_base, _ST_MAIN_ENV) if callable(_hyg) else "missing"
 _st_forged_root, _st_forged_base = _stamp_git("6.3.16", forged_merge=True)
-_st_forged_err = _hyg(_st_forged_root, _st_forged_base) if callable(_hyg) else "missing"
+_st_forged_err = _hyg_env(_st_forged_root, _st_forged_base, _ST_MAIN_ENV) if callable(_hyg) else "missing"
+_st_dispatch_err = _hyg_env(
+    _st_root, _st_base,
+    {"GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/heads/ci/forged-stamp"},
+) if callable(_hyg) else "missing"
 R.check(
     "check_claims_hygiene passes a release stamp and refuses the same deletion "
     "without the VERSION bump",
@@ -14681,6 +14699,13 @@ R.check(
     "check_claims_hygiene refuses the same stamp forged as a merged pull request",
     isinstance(_st_forged_err, str) and _st_forged_err.startswith("RECORD PR CLAIMS"),
     f"a two-parent HEAD with a stamp's tree and three-dot returned {_st_forged_err!r}",
+)
+R.check(
+    "check_claims_hygiene refuses the same one-parent stamp on a branch dispatch",
+    isinstance(_st_dispatch_err, str)
+    and _st_dispatch_err.startswith("RECORD PR CLAIMS"),
+    "a workflow_dispatch on a pull request's branch checks out a one-parent "
+    f"tip; with the stamp's tree it returned {_st_dispatch_err!r}",
 )
 
 # AND THE AUTOFIX ITSELF, which is the half that actually writes the deletion.
@@ -17755,9 +17780,12 @@ R.check(
 # exist, and `if: always()` so an earlier refusal cannot skip it.
 _PC_VE_CALL = 'prepr.sh --version-edit origin/main "$PR_HEAD"' in _PC_BODY_STEP
 _PC_VE_FETCH = "+refs/heads/main:refs/remotes/origin/main" in _PC_BODY_STEP
-_PC_VE_STEP = re.search(
-    r"- name: Refuse a version[^\n]*\n\s+if: always\(\)\n(?:\s+.*\n)*?"
-    r"\s+.*prepr\.sh --version-edit", _PC_BODY_STEP)
+_PC_VE_STEP = any(
+    _blk.startswith("Refuse a version")
+    and "\n        if: always()\n" in _blk
+    and "prepr.sh --version-edit" in _blk
+    for _blk in _PC_BODY_STEP.split("\n      - name: ")
+)
 R.check(
     "the contract lane refuses a version edit on every pull request",
     _PC_VE_CALL and _PC_VE_FETCH and bool(_PC_VE_STEP)
