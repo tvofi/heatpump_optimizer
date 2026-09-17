@@ -37969,7 +37969,7 @@ R.check(
 )
 _g5_sw, _g5_svc = _g5_unit(**{_G5_ENTITY: _G5_SWITCH})
 _g5_sw.owned = [_G5_SWITCH]
-for _minutes in (0, 29):
+for _minutes in (0, 31):
     _g5_rel(_g5_sw, {_G5_SWITCH: (None, "unavailable")},
             now=_G5_NOW + timedelta(minutes=_minutes))
 R.check(
