@@ -789,13 +789,23 @@ CONF_VVC_PUMP_ENTITY: Final = "vvc_pump_entity"
 CONF_VVC_LEAD_MINUTES: Final = "vvc_lead_minutes"
 DEFAULT_VVC_LEAD_MINUTES: Final = 20
 CONF_SPACE_PUMP_ENTITY: Final = "space_circulation_pump_entity"
-#: #1067 (W1067-G5a) — the pump's own disinfection program as a switch. It is
-#: read and published beside the hot water attributes and never written:
-#: driving it is W1067-G5b's. No row in INPUT_MAX_AGE_MINUTES: it is read
-#: UNBOUNDED on the external-heat flag's rationale, because a switch is
-#: written only when it changes, so its age says when someone last decided,
-#: not whether anyone still checks.
+#: #1067 (W1067-G5) — the pump's own disinfection program as a switch, and
+#: whether the anti-legionella boost may drive it. Observe (the default)
+#: reads and publishes it and writes nothing; control is the frequency
+#: stage's opt-in word (freq_control.py) and needs the switch. No row in
+#: INPUT_MAX_AGE_MINUTES: it is read UNBOUNDED on the external-heat flag's
+#: rationale, because a switch is written only when it changes, so its age
+#: says when someone last decided, not whether anyone still checks.
 CONF_DHW_DISINFECTION_SWITCH_ENTITY: Final = "dhw_disinfection_switch_entity"
+CONF_DHW_DISINFECTION_MODE: Final = "dhw_disinfection_mode"
+DEFAULT_DHW_DISINFECTION_MODE: Final = "observe"
+#: How long a switch the optimizer turned on may stay unreadable before its
+#: record is dropped with a repair, when it is no longer the configured
+#: switch or has no state at all (renamed or deleted). Not immediate: at
+#: Home Assistant startup another integration's switch has no state until
+#: that integration loads, and dropping the record then would leave a
+#: heating element on after every restart.
+DHW_DISINFECTION_LOST_MINUTES: Final = 30.0
 
 #: #24 — minutes the tank must HOLD the disinfection temperature before the
 #: cycle counts. Momentary blips at temperature kill nothing.

@@ -1531,6 +1531,20 @@ def _price_entity_state(hass: Any, cfg: dict[str, Any]) -> Any:
     return hass.states.get(entity_id)
 
 
+
+def _disinfection_switch(hass: HomeAssistant, config: dict[str, Any]) -> DisinfectionSwitch:
+    """The pump's disinfection switch, wired to this Home Assistant (#1067).
+
+    Its writes are ``hass.services.async_call`` and each one is judged by the
+    entity's state read immediately before and after it, so the reader is the
+    live state machine rather than the cycle's input snapshot.
+    """
+    return DisinfectionSwitch(
+        config,
+        hass.services.async_call,
+        lambda entity_id: getattr(hass.states.get(entity_id), "state", None),
+    )
+
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     """Coordinator for Heat Pump Cost Optimizer."""
 
@@ -1792,13 +1806,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # repair notices are their own subsystem. It reads the shared
         # parameters and configuration, observes the planned action through a
         # callable, and never holds the coordinator.
-        self._disinfection_switch = DisinfectionSwitch(ctx._config)
         self._legionella = LegionellaGuard(
             hass,
             entry.entry_id,
             ctx._thermal_params,
             ctx._config,
             action=lambda: self._current_action or {},
+            disinfect=_disinfection_switch(hass, ctx._config),
+            dhw_blocked=lambda: self._pump_signals.dhw_blocked,
         )
 
     def _init_thermal_learning(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -5057,6 +5072,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._unsub_timer()
             self._unsub_timer = None
         self._release_registrations()
+        await self._legionella.async_release_switch()
         pending = [t for t in self._background_tasks if not t.done()]
         if pending:
             _LOGGER.debug(
@@ -5282,7 +5298,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 self._learner_freeze_reason = frozen
             await self._legionella.async_track(dhw_value)
 
-        self._disinfection_switch.observe(reader)
+        self._legionella.disinfect.observe(reader)
         # Deliberately NOT gated on `dhw.ok`: the observer above is the only
         # reset path there was, and it cannot run without a tank reading —
         # while the countdown below advances on the clock regardless. That
@@ -6619,7 +6635,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "dhw_idle_min_temperature": params.dhw_idle_min_temp,
             "dhw_legionella_enabled": params.dhw_legionella_enabled,
             "dhw_legionella_due_in_hours": self._legionella.due_in_hours(),
-            **self._disinfection_switch.view(),
+            **self._legionella.disinfect.view(),
             # T3: the inlet actually in force, the tank in shower terms
             # (#28), the setpoint sweep (#9) and the learned heavy-day
             # statistics (#32/#20).
