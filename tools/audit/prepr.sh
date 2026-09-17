@@ -168,14 +168,25 @@ body_check() { # body file, head sha, title, paths file
 # session are all told the same scratchpad, and a machine has one `/tmp`, so a
 # `body.md` written directly in either is overwritten by the next seat that picks
 # the obvious name -- five destroyed files and one pattern kill on 2026-09-16/17,
-# in the root-cause comment on #201 for the pull request that added this. Refused
-# only at the root: `scratchpad/<seat>/body.md` and any `mktemp -d` path pass.
-shared_root() { # body path -> 0 when its directory is one every seat shares
-  local d
-  d=$(cd "$(dirname -- "$1")" 2>/dev/null && pwd -P) || return 1
+# in the root-cause comment on #201 for the pull request that added this.
+#
+# SCOPE: a directory handed to more than one seat -- a `scratchpad`, its
+# `claude-<uid>` parent, the system temp roots, `$TMPDIR` and `$HOME`. A worktree
+# root is out of it: a worktree is one seat's by contract. The FILE is resolved
+# first, so a link in a seat's own directory pointing at a shared root refuses.
+# Plain `mktemp` names a unique file directly in `$TMPDIR` and is refused too:
+# deliberately, since telling a unique name from a chosen one is guessing, and
+# `mktemp -d` costs two characters. `scratchpad/<seat>/body.md` passes.
+shared_root() { # body path -> 0 when the file sits directly in a shared root
+  local f d r
+  f=$(realpath -- "$1" 2>/dev/null) || f=$1
+  d=$(cd "$(dirname -- "$f")" 2>/dev/null && pwd -P) || return 1
   case "$d" in /tmp|/private/tmp|/var/tmp|/private/var/tmp) return 0 ;; esac
-  [ -n "${TMPDIR:-}" ] && [ "$d" = "$(cd "$TMPDIR" 2>/dev/null && pwd -P)" ] && return 0
-  [ "$(basename -- "$d")" = scratchpad ]
+  for r in "${TMPDIR:-}" "${HOME:-}"; do
+    [ -n "$r" ] && [ "$d" = "$(cd "$r" 2>/dev/null && pwd -P)" ] && return 0
+  done
+  case "$(basename -- "$d")" in scratchpad|claude-[0-9]*) return 0 ;; esac
+  return 1
 }
 
 push_order() { # own remote branch's sha ('' or '-' for none), behind, ahead
@@ -388,11 +399,24 @@ if [ "${1:-}" = "--self-test" ]; then
   # The shared-root refusal, over real directories because the predicate resolves
   # them. The defect's two shapes refuse; a seat's own subdirectory and a bare
   # `mktemp -d` pass, so a predicate refusing every temp path fails here.
-  SRD=$(mktemp -d); mkdir -p "$SRD/scratchpad/seat"
+  SRD=$(mktemp -d); mkdir -p "$SRD/scratchpad/seat" "$SRD/t" "$SRD/h" "$SRD/claude-501"
   shared_root "$SRD/scratchpad/body.md"; st $? 0 "a body directly in a scratchpad is refused"
   shared_root /tmp/body.md; st $? 0 "a body directly in /tmp is refused"
+  TMPDIR="$SRD/t" shared_root "$SRD/t/body.md"; st $? 0 "a body directly in \$TMPDIR is refused"
+  MKF=$(mktemp); shared_root "$MKF"; st $? 0 "a plain mktemp file is refused (the stated choice)"; rm -f "$MKF"
+  HOME="$SRD/h" shared_root "$SRD/h/body.md"; st $? 0 "a body directly in \$HOME is refused"
+  shared_root "$SRD/claude-501/body.md"; st $? 0 "a body directly in a claude-<uid> root is refused"
+  : > "$SRD/scratchpad/real.md"; ln -s "$SRD/scratchpad/real.md" "$SRD/scratchpad/seat/link.md"
+  shared_root "$SRD/scratchpad/seat/link.md"; st $? 0 "a link in a seat directory to a root file is refused"
+  : > "$SRD/scratchpad/seat/real.md"; ln -s "$SRD/scratchpad/seat/real.md" "$SRD/h/link.md"
+  shared_root "$SRD/h/link.md"; st $? 1 "a link to a seat-directory file passes (null control)"
   shared_root "$SRD/scratchpad/seat/body.md"; st $? 1 "a body in the seat's own subdirectory passes (null control)"
-  shared_root "$SRD/body.md"; st $? 1 "a body in a mktemp directory passes (null control)"
+  shared_root "$SRD/body.md"; st $? 1 "a body in a mktemp -d directory passes (null control)"
+  # The call site, not only the function: the run stops after the body-path step.
+  out=$(PREPR_BODY_PATH_ONLY=1 bash tools/audit/prepr.sh "$SRD/scratchpad/body.md" 2>&1); st $? 2 "prepr.sh refuses a root body at its call site"
+  case "$out" in *"REFUSE   body path"*) st 1 1 "and names the step";; *) st 0 1 "and names the step";; esac
+  out=$(PREPR_BODY_PATH_ONLY=1 bash tools/audit/prepr.sh "$SRD/scratchpad/seat/body.md" 2>&1); st $? 0 "and passes a seat body there (null control)"
+  case "$out" in *"ok       body path"*) st 1 1 "printing an ok line, so a skipped step is visible";; *) st 0 1 "printing an ok line, so a skipped step is visible";; esac
   rm -rf "$SRD"
 
   printf 'Closes #999\n' | bash tools/audit/preflight.sh >/dev/null 2>&1
@@ -413,6 +437,17 @@ step() { # name, rc, detail
   digest="${digest}$2"
   if [ "$2" -eq 0 ]; then say ok "$1" "${3:-}"; else say REFUSE "$1" "${3:-}"; rc=1; fi
 }
+
+# --- 0. the body is not in a root other seats write to (`shared_root` above).
+# First, and fatal: every later step would read a file another seat may rewrite.
+if [ -n "${1:-}" ]; then
+  if shared_root "$1"; then
+    say REFUSE "body path" "$1 sits directly in a root other seats write to -- move it to your own subdirectory, e.g. scratchpad/<seat>/"
+    exit 2
+  fi
+  say ok "body path" "not directly in a shared root"
+  [ -z "${PREPR_BODY_PATH_ONLY:-}" ] || exit 0
+fi
 
 # --- 1. the merge base resolves.
 # A shallow clone answers "no common ancestor" and every scoped command below
@@ -524,9 +559,6 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   # catch that in either direction: `pr-contract` runs the same script as
   # `preflight.sh ... || true`, so the check binds nowhere. Found by the first
   # body in twenty merges to carry a closing keyword.
-  if shared_root "$BODY"; then
-    step "body path" 1 "$BODY sits directly in a root other seats write to -- move it to your own subdirectory, e.g. scratchpad/<seat>/"
-  fi
   shift
   bash tools/audit/preflight.sh "$@" < "$BODY"
   step "preflight" $?
