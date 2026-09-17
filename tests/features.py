@@ -37864,8 +37864,14 @@ class _G5Service:
         self.raise_next = 0
         self.hang_next = 0
         self.ignore_next = 0
+        #: Every entity whose state the switch read, in order.
+        self.reads = []
         #: The switches' states, which a landed write changes (read_state).
         self.states = {_G5_SWITCH: "off", _G5_OTHER: "off"}
+
+    def read_state(self, entity_id):
+        self.reads.append(entity_id)
+        return self.states.get(entity_id)
 
     async def __call__(self, domain, service, data, blocking=False):
         entity = data["entity_id"]
@@ -37879,8 +37885,10 @@ class _G5Service:
             self.hang_next -= 1
             if blocking:
                 # Longer than the patched timeout, short enough that a write
-                # with no timeout at all finishes and reads as landed.
+                # with no timeout at all finishes -- and it does land, so only
+                # the timeout can stop it counting.
                 await _asyncio.sleep(2.0)
+            self.states[entity] = "on" if service == "turn_on" else "off"
             return
         if self.raise_next:
             self.raise_next -= 1
@@ -37924,7 +37932,7 @@ class _G5HaServices(_HarnessFakeServices):
 
 def _g5_unit(observed=False, **config):
     service = _G5Service()
-    switch = _g5_dis.DisinfectionSwitch(dict(config), service, service.states.get)
+    switch = _g5_dis.DisinfectionSwitch(dict(config), service, service.read_state)
     switch.observed = observed
     return switch, service
 
@@ -37944,8 +37952,9 @@ R.check(
 )
 _g5_sw, _g5_svc = _g5_unit(**{_G5_MODE: _G5_CONTROL})
 R.check(
-    "control mode with no switch refuses to write",
+    "control mode with no switch refuses to write, and reads no state at all",
     _g5_on(_g5_sw) is False
+    and _g5_svc.reads == []
     and _asyncio.run(_g5_sw.release(datetime(2026, 2, 1, tzinfo=UTC))) is None
     and _g5_svc.calls == [],
     f"calls={_g5_svc.calls}",
