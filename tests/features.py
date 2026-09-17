@@ -29541,6 +29541,94 @@ R.check(
     "fails by name rather than taking the lane down",
 )
 
+# -- ECL110 state payloads that parse but are not a measurement ---------------
+# json.loads accepts NaN/Infinity and overflows 1e999 to inf; float() accepts
+# "nan"/"inf" strings. Each of those used to be stored as the measured
+# displace. A 400-digit integer is the one payload whose float() raises
+# OverflowError, and 100000 open brackets make json.loads raise RecursionError,
+# so those two rows pin those arms of the narrowed except. Every row primes
+# non-default values, so "kept" is the prior value, not a fresh default. The design choice pinned: a non-finite field rejects the WHOLE
+# message, as a malformed field already did, so a half-applied payload never
+# lands (the mixed row below).
+_T1_ECL_NONFINITE = (
+    '{"displace": NaN}', '{"displace": "nan"}', '{"displace": "inf"}',
+    '{"command": {"displace": "-Infinity"}}', "Infinity", b"-Infinity", "1e999",
+    '{"effective_displace": NaN}', '{"displace": 2.0, "effective_displace": "inf"}',
+    "1" + "0" * 400, "[" * 100000,
+)
+_t1_ecl_nf_kept = []
+for _t1_nf_payload in _T1_ECL_NONFINITE:
+    _t1_nf = _t1_coord()
+    _t1_nf._ecl110_current_displace = 7.0
+    _t1_nf._current_state.ecl110_displace_command = 7.0
+    _t1_nf._current_state.ecl110_effective_displace = -1.5
+    try:
+        _t1_nf._async_handle_ecl110_state_message(_T1Msg(_t1_nf_payload))
+    except Exception as _t1_exc:  # noqa: BLE001 - fail by name, not the lane
+        _t1_ecl_nf_kept.append(f"{_t1_nf_payload[:12]!r}: {type(_t1_exc).__name__}")
+        continue
+    _t1_nf_seen = (
+        _t1_nf._ecl110_current_displace,
+        _t1_nf._current_state.ecl110_displace_command,
+        _t1_nf._current_state.ecl110_effective_displace,
+    )
+    if _t1_nf_seen != (7.0, 7.0, -1.5):
+        _t1_ecl_nf_kept.append(f"{_t1_nf_payload[:40]!r} -> {_t1_nf_seen!r}")
+R.check(
+    "a NaN/inf ECL110 payload is not stored; the last good values stand",
+    not _t1_ecl_nf_kept,
+    f"stored: {_t1_ecl_nf_kept!r}",
+)
+
+# A dropped payload is logged at DEBUG (the file's idiom for an MQTT arm that
+# can repeat every publish), never silently. Null control: a valid one logs
+# nothing, so the check cannot pass on a handler that logs every message.
+_t1_ecl_cap = _LogCapture()
+_t1_ecl_logger = _coord_mod._LOGGER
+_t1_ecl_level = _t1_ecl_logger.level
+_t1_ecl_logger.addHandler(_t1_ecl_cap)
+_t1_ecl_logger.setLevel(_logging.DEBUG)
+try:
+    _t1_coord()._async_handle_ecl110_state_message(_T1Msg('{"displace": -2.5}'))
+    _t1_ecl_valid_logged = list(_t1_ecl_cap.records)
+    _t1_ecl_dropped_logged = {}
+    for _t1_log_payload in ("not json at all", '{"displace": NaN}'):
+        _t1_ecl_cap.records.clear()
+        _t1_coord()._async_handle_ecl110_state_message(_T1Msg(_t1_log_payload))
+        _t1_ecl_dropped_logged[_t1_log_payload] = list(_t1_ecl_cap.records)
+finally:
+    _t1_ecl_logger.removeHandler(_t1_ecl_cap)
+    _t1_ecl_logger.setLevel(_t1_ecl_level)
+R.check(
+    "a dropped ECL110 payload is logged once at DEBUG, a valid one not at all",
+    not _t1_ecl_valid_logged
+    and all(
+        len(recs) == 1 and recs[0][0] == _logging.DEBUG and "ECL110" in recs[0][1]
+        for recs in _t1_ecl_dropped_logged.values()
+    ),
+    f"valid={_t1_ecl_valid_logged!r} dropped={_t1_ecl_dropped_logged!r}",
+)
+
+
+class _T1BoomDict(dict):
+    """A payload whose read fails with an error no parser can produce."""
+
+    def get(self, *args, **kwargs):
+        raise RuntimeError("not a parse error")
+
+
+# The except is narrowed to what parsing can raise; a bug elsewhere surfaces.
+try:
+    _t1_coord()._async_handle_ecl110_state_message(_T1Msg(_T1BoomDict()))
+    _t1_ecl_boom = "swallowed"
+except RuntimeError:
+    _t1_ecl_boom = "raised"
+R.check(
+    "the ECL110 handler swallows only parse errors, not every exception",
+    _t1_ecl_boom == "raised",
+    f"a RuntimeError inside the handler was {_t1_ecl_boom}",
+)
+
 # -- the live PV production reading, unit by unit ---------------------------
 _t1_pv_cfg_off = pv.PVConfig(production_entity=None)
 _t1_pv_none = _t1_coord()

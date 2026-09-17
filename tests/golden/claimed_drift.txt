@@ -265,9 +265,9 @@
 # this entry existed. The re-record is how the committed file stops being
 # stale; the claim is how the branch states that it moved it on purpose.
 #
-# #1067 W1067-G3 (the solver half): the list above was #1068's, inherited at
-# an unchanged VERSION, and env_drift refused it as INHERITED CLAIMS before
-# capturing anything. This branch moves exactly one existing fixture:
+# #1067 W1067-G3 (the solver half): #1068's list, inherited at an unchanged
+# VERSION, was refused by env_drift as INHERITED CLAIMS, and #1090 dropped it
+# on main. This branch moves exactly one existing fixture:
 # config_flow gains the building page's new boolean, flow_curve_cop_enabled,
 # re-recorded for #547's reason above. direct_flow_carnot is a NEW fixture
 # and is not claimed; every other fixture is byte-identical.
