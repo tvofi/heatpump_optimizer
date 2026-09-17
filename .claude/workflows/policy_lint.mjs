@@ -332,7 +332,7 @@ function uncoveredPolicyFiles(files = null) {
 // an earlier version of this comment openly invited, and it silently voids the
 // check, because the loop passes the POLICY FILE list and every policy file is
 // covered by definition. Hence the name, and hence asserting names.
-const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'citationPresenceOverTree', 'orphanCapsOverTree', 'requiredContextsOverTree', 'checkProvenance', 'rowFreezeOverPlan']
+const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'citationPresenceOverTree', 'orphanCapsOverTree', 'requiredContextsOverTree', 'checkProvenance', 'rowFreezeOverPlan', 'ruleBindingOverTree']
 
 // THE RECORD MODE'S CHECKS, enumerated HERE beside the corpus list rather than
 // in the mutation lane, for the reason the corpus list gives about itself: a
@@ -1028,6 +1028,135 @@ function checkCoverage(files = null) {
 function policyFiles() {
   const { list } = trackedFiles()
   return list.filter((f) => POLICY_GLOBS.some((re) => re.test(f))).sort()
+}
+
+// ---------------------------------------------------------------------------
+// RULE BINDING. Which paths load which rule, derived from the tree.
+//
+// WHY THIS EXISTS. `.claude/rules/*.md` reaches a seat only when the harness
+// loads it, and the harness loads it when the seat reads a file matching one of
+// its `paths:` globs -- CLAUDE.md, "The project policies, loaded when they
+// bind". Nothing measured that. Four `## Friction` entries across #1058, #1061
+// and #1062 made one complaint in different words, and #1062's names it
+// outright: "no instrument answers `is rule X loaded on path Y`". The binding
+// model itself was already load-bearing before this check -- `roleTokens`
+// charges a role for exactly the rules whose globs match what it opens -- so
+// the model was being trusted for a budget while never being audited.
+//
+// It reuses `rulePaths` and `globToRe` rather than parsing frontmatter again:
+// a second implementation of the binding would measure a binding nothing loads.
+//
+// WHAT IT CANNOT ANSWER, stated rather than implied. It measures BINDING and
+// nothing else. It does not measure whether a rule's sentences are unique
+// (`checkDuplicates` is the only instrument on that, over 12-grams), whether a
+// bound rule is read, obeyed, or even relevant to the file that loads it, or
+// whether the RIGHT rule binds a path -- only that at least one does. The gap
+// that remains after this check is a capped file bound by some rule while the
+// rule that governs its subject is not among them; deciding that needs a
+// rule-to-subject mapping no artifact in this tree carries, and inventing one
+// here would be a hand-kept list, which is the shape this check exists to
+// replace. Named so the next seat does not read a green run as more than it is.
+//
+// OVER-BREADTH IS REPORTED AND NOT REFUSED. `--rule-binding` prints each rule's
+// share of the tracked tree, because a glob that loads on nearly every change
+// spends a seat's context on every change. No cap is applied: the honest
+// threshold between "governs a large surface" and "over-broad" is a judgement,
+// and a number chosen here would be one seat's opinion enforced on every later
+// one. A report a seat reads is what that is worth; a gate check is not.
+let ruleBindingSource = () => null
+
+function ruleBindingOverTree() {
+  return checkRuleBinding(ruleBindingSource())
+}
+
+// The model, so the acceptance can drive the check against a synthetic tree
+// without touching the real one. `null` -- and anything else `??` discards --
+// means the tracked tree, on the same terms as `coverageFileSource`.
+function liveRuleBinding() {
+  const corpus = policyFiles()
+  return {
+    tracked: trackedFiles().list,
+    corpus,
+    rules: corpus.filter((f) => RULE_FILE.test(f)).map((f) => ({ file: f, globs: rulePaths(f) })),
+  }
+}
+
+function checkRuleBinding(model = null) {
+  const { tracked, corpus, rules } = model ?? liveRuleBinding()
+  const findings = []
+  const bound = new Map(corpus.map((f) => [f, []]))
+  for (const rule of rules) {
+    // `rulePaths` returns null for BOTH a missing frontmatter block and a
+    // frontmatter with no `paths:` key, and the two are one defect here: either
+    // way the harness has no path on which to load the rule, so it is loaded in
+    // every session instead and charged to `always_loaded_tokens`. An unscoped
+    // rule is not refused because it is large; it is refused because the
+    // question this check answers has no answer for it.
+    if (!rule.globs || !rule.globs.length) {
+      findings.push({
+        severity: 'error',
+        check: 'rule-binding',
+        where: rule.file,
+        message: `declares no \`paths:\` globs, so no path loads it: the harness charges it to every session instead, which is what \`always_loaded_tokens\` caps. Give it the paths it governs, or move the prose into CLAUDE.md, which is the artifact that is meant to be always loaded.`,
+      })
+      continue
+    }
+    for (const g of rule.globs) {
+      const re = globToRe(g)
+      if (tracked.some((f) => re.test(f))) continue
+      findings.push({
+        severity: 'error',
+        check: 'rule-binding',
+        where: rule.file,
+        message: `has \`paths:\` glob "${g}", which matches no tracked file, so that entry loads the rule for nobody. Either the path was renamed or deleted under it, or the glob never matched; point it at what it governs, or delete it.`,
+      })
+    }
+    for (const f of corpus) {
+      if (rule.globs.some((g) => globToRe(g).test(f))) bound.get(f).push(rule.file)
+    }
+  }
+  // The corpus, not the tree: these are the files that already have a cap and a
+  // seat-facing purpose, so a capped policy file no rule binds is a file whose
+  // editor is told nothing at the moment they edit it. Against the whole tree
+  // this would report nine hundred source files and mean nothing.
+  for (const [f, rs] of bound) {
+    if (rs.length) continue
+    findings.push({
+      severity: 'error',
+      check: 'rule-binding',
+      where: f,
+      message: `is a measured policy file that no \`.claude/rules/*.md\` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the \`paths:\` of the rule that governs it.`,
+    })
+  }
+  return findings
+}
+
+// The report half. The checks above refuse three shapes; this prints the whole
+// matrix, which is the thing #1062 asked for and which no failure can be
+// written for: "which paths load rule X" has an answer on a healthy tree too.
+function cmdRuleBinding() {
+  const { tracked, corpus, rules } = liveRuleBinding()
+  console.log(`rule bindings, derived from \`git ls-files\` (${tracked.length} tracked file(s), ${corpus.length} in the measured policy corpus)\n`)
+  for (const rule of rules.slice().sort((a, b) => a.file.localeCompare(b.file))) {
+    const globs = rule.globs ?? []
+    const all = new Set()
+    console.log(rule.file.replace(/^\.claude\/rules\//, ''))
+    if (!globs.length) console.log('    (no paths: globs -- loaded in every session)')
+    for (const g of globs) {
+      const re = globToRe(g)
+      const hits = tracked.filter((f) => re.test(f))
+      hits.forEach((f) => all.add(f))
+      console.log(`    ${g.padEnd(42)} ${String(hits.length).padStart(4)} tracked${hits.length <= 3 && hits.length ? `  ${hits.join(', ')}` : ''}`)
+    }
+    const inCorpus = corpus.filter((f) => all.has(f))
+    console.log(`    => ${all.size} tracked file(s), ${(100 * all.size / tracked.length).toFixed(1)}% of the tree; ${inCorpus.length} of them policy`)
+  }
+  console.log('\npolicy corpus file -> the rules a seat loads when it edits that file\n')
+  for (const f of corpus) {
+    const rs = rules.filter((r) => (r.globs ?? []).some((g) => globToRe(g).test(f))).map((r) => path.posix.basename(r.file))
+    console.log(`  ${rs.length ? ' ' : '!'} ${f.padEnd(44)} ${rs.join(', ') || '(none)'}`)
+  }
+  console.log('\nThis measures BINDING only: that a rule is loaded on a path, never that its sentences are unique, that it is read, or that the rule which governs a file\'s subject is among the ones bound to it. The share column is reported and not capped; no threshold is applied.')
 }
 
 
@@ -2535,7 +2664,7 @@ const REQUIRED_ROT = {
   },
 }
 
-CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan)
+CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree)
 
 // SILENT ON A HEALTHY INPUT. A count-and-substring pin proves a check can still
 // refuse; it cannot prove the check is not refusing everything. Each loop mode
@@ -3038,6 +3167,49 @@ function assertAcceptance(derived) {
     const prev = coverageFileSource
     coverageFileSource = () => files
     try { return coverageOverTree() } finally { coverageFileSource = prev }
+  }
+
+  // RULE BINDING, driven on the same terms and for the same reason. Each of its
+  // three refusals is FALSE on a healthy tree, so none has a natural witness --
+  // exactly the shape that shipped three checks measuring nothing, named in
+  // policy_lint_mutants.mjs. The production default is pinned BEFORE the swap:
+  // `() => []` there would make `checkRuleBinding` destructure an array, read
+  // `tracked`, `corpus` and `rules` as undefined and throw rather than measure,
+  // and `() => ({ tracked: [], corpus: [], rules: [] })` would scan an empty
+  // tree silently, which is the coverage defect one file over.
+  pins += 1
+  const LIVE_BINDING = Symbol('live-rule-binding')
+  if ((ruleBindingSource() ?? LIVE_BINDING) !== LIVE_BINDING) {
+    console.log(`\nFIXTURE VACUOUS: ruleBindingSource's production default returned ${JSON.stringify(ruleBindingSource())}, which \`??\` does not discard. Only a nullish default makes checkRuleBinding read the tracked tree; any other model is measured instead, and an empty one measures nothing.`)
+    return 1
+  }
+  // Through the WRAPPER, so what is wired is what is pinned.
+  const driveBinding = (model) => {
+    const prev = ruleBindingSource
+    ruleBindingSource = () => model
+    try { return ruleBindingOverTree() } finally { ruleBindingSource = prev }
+  }
+  const bindingClean = {
+    tracked: ['CLAUDE.md', 'tools/audit/briefs/fixer.md', '.claude/rules/a-rule.md', 'src/app.py'],
+    corpus: ['CLAUDE.md', 'tools/audit/briefs/fixer.md', '.claude/rules/a-rule.md'],
+    rules: [{ file: '.claude/rules/a-rule.md', globs: ['CLAUDE.md', 'tools/audit/briefs/**', '.claude/rules/**'] }],
+  }
+  const bindingArms = [
+    ['unscoped', { ...bindingClean, rules: [{ file: '.claude/rules/a-rule.md', globs: null }] }, 'declares no'],
+    ['dead glob', { ...bindingClean, rules: [{ file: '.claude/rules/a-rule.md', globs: [...bindingClean.rules[0].globs, 'docs/gone/**'] }] }, 'matches no tracked file'],
+    ['unbound corpus file', { ...bindingClean, rules: [{ file: '.claude/rules/a-rule.md', globs: ['.claude/rules/**'] }] }, 'no `.claude/rules/*.md` binds'],
+  ]
+  pins += bindingArms.length + 1
+  for (const [name, model, needle] of bindingArms) {
+    const hits = driveBinding(model)
+    if (hits.some((f) => f.check === 'rule-binding' && f.message.includes(needle))) continue
+    console.log(`\nFIXTURE VACUOUS: the rule-binding '${name}' arm produced ${JSON.stringify(hits.map((f) => f.message.slice(0, 60)))} against a model built to trip it. A refusal with no witness is deletable in silence.`)
+    return 1
+  }
+  const bindingClear = driveBinding(bindingClean)
+  if (bindingClear.length) {
+    console.log(`\nFIXTURE OVER-FIRES: rule-binding produced ${bindingClear.length} finding(s) against a model where every glob matches, every corpus file is bound and no rule is unscoped, e.g. ${JSON.stringify(bindingClear[0].message.slice(0, 120))}`)
+    return 1
   }
   // Every budget comparison, driven for real. On a healthy corpus each is FALSE
   // and therefore witnessless, which is how all four came to be independently
@@ -4525,6 +4697,7 @@ function main() {
 
   if (argv[0] === '--list') return cmdList(), process.exit(0)
   if (argv[0] === '--corpus-filter') return cmdCorpusFilter(), process.exit(0)
+  if (argv[0] === '--rule-binding') return cmdRuleBinding(), process.exit(0)
 
   // Exact-string, and --record-known-bad is tested FIRST, so the reseed can
   // never be reached by a typo of --record or the other way round.
