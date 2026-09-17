@@ -90,8 +90,8 @@ record is a plan with its checks written down — the shape 0008 landed in — a
 > - **A stamp pushes over the deploy key alone**: v6.6.0 was stamped that way
 >   (comment 5708985902).
 > - **The `SEAT_AUTHOR_TOKEN` Actions secret** is held by no workflow step since
->   #1086, and the owner decided to delete it (comment 5708947495). This
->   note's pull request found it still listed by `GET .../actions/secrets`.
+>   #1086. On the owner's instruction (comment 5708947495) it was deleted on
+>   2026-09-17, leaving the repository no Actions secret (comment 5710361737).
 
 ## Context
 
