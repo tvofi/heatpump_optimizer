@@ -37996,6 +37996,25 @@ R.check(
     f"writes={_g5_writes(_g5_c)} active={_g5_c._legionella.boost_active}",
 )
 
+# The bound's close holds: the same stale command re-opens the boost window on
+# the next cycle, and the switch must stay off until the plan moves on. Once it
+# has, a new commanded boost turns the switch on again (the latch's null).
+_g5_tick(_g5_c, _LG_REASON)
+_g5_after_reopen = _g5_writes(_g5_c)
+_g5_tick(_g5_c, "idle")
+_g5_tick(_g5_c, _LG_REASON)
+R.check(
+    "a boost the bound closed is not switched back on by the same command",
+    _g5_after_reopen == [("turn_on", _G5_SWITCH), ("turn_off", _G5_SWITCH)],
+    f"writes={_g5_after_reopen}",
+)
+R.check(
+    "…and once the plan has moved on, the next commanded boost turns it on",
+    _g5_writes(_g5_c)
+    == [("turn_on", _G5_SWITCH), ("turn_off", _G5_SWITCH), ("turn_on", _G5_SWITCH)],
+    f"writes={_g5_writes(_g5_c)}",
+)
+
 # Disinfection switched off mid-boost: the early return still takes it down.
 _g5_c = _g5_coord(**_G5_CONTROL_CFG)
 _g5_tick(_g5_c, _LG_REASON)

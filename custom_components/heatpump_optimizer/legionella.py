@@ -67,6 +67,9 @@ class LegionellaGuard:
         self.dhw_blocked: bool = False
         #: Whether the switch's write-failure repair is currently raised.
         self.write_failed_notice: bool = False
+        #: Set when the bound closed a boost the plan still commands; the
+        #: switch is not turned back on until the plan stops commanding it.
+        self.switch_latched: bool = False
         self.last_cycle: datetime | None = None
         self.store: Store[dict[str, Any]] = Store(
             hass,
@@ -260,6 +263,7 @@ class LegionellaGuard:
         commanded = (
             str(self._action().get("dhw_reason") or "") == REASON_LEGIONELLA
         )
+        self.switch_latched = self.switch_latched and commanded
         if commanded:
             if not self.boost_active:
                 self.boost_active = True
@@ -290,6 +294,7 @@ class LegionellaGuard:
                 "without completing; recording what it achieved",
                 DHW_LEGIONELLA_BOOST_MAX_HOURS,
             )
+            self.switch_latched = True
         elif not self.boost_active:
             # Idle: an OFF that failed at the close is retried from here.
             await self._drive_switch(False)
@@ -388,11 +393,15 @@ class LegionellaGuard:
 
         OFF is only ever sent to a switch this guard turned ON: an idle
         install, or one restarted mid-program, must not switch off a program
-        the pump or the user started. A write that raised raises a repair,
-        and the next write that lands takes it down again.
+        the pump or the user started. ON is not sent while the bound's close
+        is latched: the command that outlasted the bound is still the plan's
+        until the next solve, and it re-opens the boost window on the very
+        next cycle, which would put the program straight back on. A write
+        that raised raises a repair, and the next write that lands takes it
+        down again.
         """
         switch = self.disinfect
-        if not on and switch.memo is not True:
+        if (on and self.switch_latched) or (not on and switch.memo is not True):
             return
         await switch.command(on, dhw_blocked=self.dhw_blocked)
         if switch.failed == self.write_failed_notice:
