@@ -10203,6 +10203,168 @@ R.check(
 )
 
 
+def _gl_auto_lease() -> tuple[bool, str]:
+    """run.sh leases a FULL or stress run itself; a second one waits."""
+    import threading
+    with _tempfile.TemporaryDirectory() as td:
+        d, seen = Path(td) / "lock", Path(td) / "seen"
+        scoped, stress = Path(td) / "a.run", Path(td) / "b.run"
+        scoped.write_text("tests/entities.py\n")
+        stress.write_text("tests/entities.py\ntests/stress.py\n")
+        need = [_gate_lock.needs_lease(s) for s in ("", str(stress), str(scoped))]
+        _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
+        child = ("import os, sys; from pathlib import Path; "
+                 "Path(sys.argv[1]).write_text(open(sys.argv[2] + '/owner').read()"
+                 " + os.environ['HPO_GATE_LOCK_LABEL']); sys.exit(3)")
+        poll, _gate_lock.WAIT_POLL_SECS = _gate_lock.WAIT_POLL_SECS, 0.05
+        out: list[int] = []
+        t = threading.Thread(target=lambda: out.append(_gate_lock.auto_lease(
+            "auto", [sys.executable, "-c", child, str(seen), str(d)], lock_dir=d)))
+        try:
+            t.start()
+            _time.sleep(0.5)
+            waited = not seen.exists()
+            _gate_lock.release("other", lock_dir=d)
+            t.join(timeout=10)
+        finally:
+            _gate_lock.WAIT_POLL_SECS = poll
+        text = seen.read_text() if seen.exists() else ""
+        ok = (need == [True, True, False] and waited and out == [3]
+              and "label=auto" in text and text.endswith("auto")
+              and _gate_lock.read_owner(d) is None)
+        return ok, f"need={need} waited={waited} rc={out} released={_gate_lock.read_owner(d) is None}"
+
+
+def _gl_lease_hardening() -> tuple[bool, str]:
+    """#1089 review prep: one winner per race, a SIGKILLed holder is stolen at
+    once, and a signalled lease takes the gate's whole process group down."""
+    import signal as _sig
+    import threading
+    wins = []
+    with _tempfile.TemporaryDirectory() as td:
+        for trial in range(10):
+            d, gate, got = Path(td) / f"race{trial}", threading.Barrier(8), []
+
+            def racer(i: int) -> None:
+                gate.wait()
+                try:
+                    got.append(_gate_lock.take(f"r{i}", lock_dir=d, wait=False).label)
+                except BlockingIOError:
+                    pass
+            ts = [threading.Thread(target=racer, args=(i,)) for i in range(8)]
+            [t.start() for t in ts]
+            [t.join() for t in ts]
+            wins.append(len(got))
+        d, ready, pidf = Path(td) / "crash", Path(td) / "ready", Path(td) / "pid"
+        env = {**_os.environ, "PYTHONPATH": str(_closure.ROOT / "tests")}
+        holder = _subprocess.Popen([sys.executable, "-c",
+            "import sys, time; from pathlib import Path; import gate_lock as g\n"
+            "d = Path(sys.argv[1]); g.take('h', lock_dir=d, wait=False)\n"
+            "with g.flock_context(d):\n"
+            "    g.renew('h', lock_dir=d); Path(sys.argv[2]).write_text('1'); time.sleep(30)\n",
+            str(d), str(ready)], env=env)
+        for _ in range(50):
+            if ready.exists():
+                break
+            _time.sleep(0.1)
+        holder.kill()
+        holder.wait()
+        try:
+            stolen = _gate_lock.take("successor", lock_dir=d, wait=False).label == "successor"
+        except BlockingIOError:
+            stolen = False
+        wrapper = _subprocess.Popen([sys.executable, "-c",
+            "import signal, sys; import gate_lock as g\n"
+            "signal.signal(signal.SIGTERM, lambda n, f: sys.exit(143))\n"
+            "g.run_group(['bash', '-c', 'sleep 60 & echo $! > ' + sys.argv[1] + '; wait'])\n",
+            str(pidf)], env=env)
+        for _ in range(50):
+            if pidf.exists() and pidf.read_text().strip():
+                break
+            _time.sleep(0.1)
+        wrapper.send_signal(_sig.SIGTERM)
+        try:
+            wrapper.wait(timeout=30)
+        except _subprocess.TimeoutExpired:  # the holder never came down: that is the defect
+            wrapper.kill()
+            wrapper.wait()
+        _time.sleep(0.3)
+        try:
+            _os.kill(int(pidf.read_text()), 0)
+            orphan = _subprocess.run(["ps", "-o", "stat=", "-p", pidf.read_text().strip()],
+                                     capture_output=True, text=True).stdout.strip()[:1] not in ("", "Z")
+        except (ProcessLookupError, ValueError):
+            orphan = False
+        # #1089 round 1: SIGKILL of the holder ALONE while its gate lives.
+        d, pidf = Path(td) / "orphan", Path(td) / "pids"
+        holder = _subprocess.Popen([sys.executable, "-c",
+            "import sys; from pathlib import Path; import gate_lock as g\n"
+            "g.auto_lease('h', ['bash', '-c', 'sleep 60 & echo $$ $! > ' + sys.argv[2] + '; wait'],"
+            " lock_dir=Path(sys.argv[1]))\n", str(d), str(pidf)], env=env)
+        for _ in range(100):
+            if pidf.exists() and len(pidf.read_text().split()) == 2:
+                break
+            _time.sleep(0.1)
+        holder.kill()
+        holder.wait()
+        try:
+            _gate_lock.take("successor", lock_dir=d, wait=False)
+            refused = False
+        except BlockingIOError:
+            refused = True
+        gate_pid = int(pidf.read_text().split()[0])
+        try:
+            _os.killpg(gate_pid, _sig.SIGKILL)
+        except ProcessLookupError:
+            pass
+        _time.sleep(0.5)
+        try:
+            after = _gate_lock.take("successor", lock_dir=d, wait=False).label == "successor"
+        except BlockingIOError:
+            after = False
+        # run.sh must RE-EXECUTE under the lease: with it held elsewhere, a FULL
+        # run waits in auto-lease and starts no lane (a no-op exec would).
+        d, out = Path(td) / "runsh", Path(td) / "runsh.log"
+        _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
+        renv = {k: v for k, v in _os.environ.items()
+                if k not in ("HPO_GATE_LOCK_LABEL", "HPO_GATE_FLOCK_CHILD", "GATE_SCOPE")}
+        renv.update(HPO_GATE_LOCK_DIR=str(d), GATE_SCOPE="full")
+        with open(out, "w") as log:
+            gate = _subprocess.Popen(["bash", "tests/run.sh"], cwd=str(_closure.ROOT), env=renv,
+                                     stdout=log, stderr=_subprocess.STDOUT, start_new_session=True)
+        for _ in range(100):
+            if "waiting for the lease held by other" in out.read_text() or gate.poll() is not None:
+                break
+            _time.sleep(0.1)
+        _time.sleep(1.0)
+        text = out.read_text()
+        try:
+            _os.killpg(gate.pid, _sig.SIGKILL)
+        except ProcessLookupError:
+            pass
+        gate.wait()
+        execd = "waiting for the lease held by other" in text and "##########" not in text
+    ok = wins == [1] * 10 and stolen and not orphan and refused and after and execd
+    return ok, (f"winners={wins} crash_stolen={stolen} grandchild_alive={orphan} "
+                f"holder_only_kill_refused={refused} taken_after_gate_dead={after} run_sh_execd={execd}")
+
+
+_gl_ok, _gl_detail = _gl_auto_lease()
+_run_sh = (_closure.ROOT / "tests/run.sh").read_text()
+_gl_line = '[ "$("$PYTHON" tests/gate_lock.py needs-lease "$SCOPE_RUN" 2>&1)" != none ]'
+R.check(
+    "run.sh leases a FULL or stress run itself, and a second one waits",
+    _gl_ok and -1 < _run_sh.find(_gl_line) < _run_sh.find("lane_units() {"),
+    _gl_detail + "; run.sh must lease on anything but an explicit 'none'",
+)
+_gl_ok, _gl_detail = _gl_lease_hardening()
+R.check(
+    "the lease has one winner, a dead gate is stolen, a live one is not, and run.sh re-executes",
+    _gl_ok,
+    _gl_detail,
+)
+
+
 def _gl_same_label_expired_take() -> bool:
     """Same-label take on an expired lease rewrites the owner (#479 residual)."""
     past = datetime.now(UTC) - timedelta(seconds=10)

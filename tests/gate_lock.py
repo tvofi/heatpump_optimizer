@@ -14,6 +14,7 @@ import argparse
 import contextlib
 import fcntl
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -23,7 +24,8 @@ from pathlib import Path
 
 # Above 735 s full gate / 560 s stress on the owner's box (#404).
 LEASE_SECONDS = 1800
-DEFAULT_LOCK_DIR = Path("/tmp/hpo-gate.lock")
+# The env override lets a demonstration run tests/run.sh against its own lock.
+DEFAULT_LOCK_DIR = Path(os.environ.get("HPO_GATE_LOCK_DIR") or "/tmp/hpo-gate.lock")
 OWNER_NAME = "owner"
 FLOCK_NAME = "flock"
 HOLDING_NAME = "holding"
@@ -42,6 +44,17 @@ class Owner:
             f"expires_at={self.expires_at.isoformat()}\n"
             f"taken_at={self.taken_at.isoformat()}\n"
         )
+
+    def create(self, path: Path) -> bool:
+        """Write only if no owner exists: two takes in one instant cannot both win."""
+        try:
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except (FileExistsError, FileNotFoundError):
+            return False
+        with os.fdopen(fd, "w") as f:
+            f.write(f"label={self.label}\nexpires_at={self.expires_at.isoformat()}\n"
+                    f"taken_at={self.taken_at.isoformat()}\n")
+        return True
 
     @property
     def expired(self) -> bool:
@@ -113,7 +126,7 @@ def flock_context(lock_dir: Path, blocking: bool = True):
         if blocking:
             (lock_dir / HOLDING_NAME).write_text("holding\n")
             marked = True
-        yield
+        yield fd
     finally:
         if marked:
             (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
@@ -135,6 +148,26 @@ def _abandoned_hold(lock_dir: Path) -> bool:
     return (lock_dir / HOLDING_NAME).exists() and flock_available(lock_dir)
 
 
+def _steal(lock_dir: Path, seen: Owner) -> None:
+    """Remove a dead owner by rename, so one of two stealers wins and a fresh
+    owner written in between is put back rather than deleted."""
+    owner_path = lock_dir / OWNER_NAME
+    grave = lock_dir / f"stale-{os.getpid()}-{time.monotonic_ns()}"
+    try:
+        os.rename(owner_path, grave)
+    except FileNotFoundError:
+        return
+    try:
+        if parse_owner(grave.read_text()) != seen:
+            with contextlib.suppress(FileExistsError):
+                os.link(grave, owner_path)
+        else:
+            (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
+    except (OSError, ValueError):
+        pass
+    grave.unlink(missing_ok=True)
+
+
 def take(
     label: str,
     *,
@@ -143,14 +176,15 @@ def take(
     wait: bool = True,
 ) -> Owner:
     """Acquire the gate lease for ``label``; wait while a live holder renews."""
+    said = False
     while True:
         owner = read_owner(lock_dir)
         if owner is None:
-            if not lock_dir.exists():
-                _ensure_lock_dir(lock_dir)
+            _ensure_lock_dir(lock_dir)
             fresh = _new_owner(label, lease_seconds)
-            fresh.write(lock_dir / OWNER_NAME)
-            return fresh
+            if fresh.create(lock_dir / OWNER_NAME):
+                return fresh
+            continue
         if owner.label == label:
             (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
             if owner.expired:
@@ -159,10 +193,14 @@ def take(
                 return fresh
             return renew(label, lock_dir=lock_dir, lease_seconds=lease_seconds)
         if owner.expired or _abandoned_hold(lock_dir):
-            _clear_lock(lock_dir)
+            _steal(lock_dir, owner)
             continue
         if not wait:
             raise BlockingIOError(f"gate held by {owner.label} until {owner.expires_at}")
+        if not said:
+            print(f"gate_lock: waiting for the lease held by {owner.label}"
+                  " (yours? export HPO_GATE_LOCK_LABEL with that label)", file=sys.stderr)
+            said = True
         time.sleep(WAIT_POLL_SECS)
 
 
@@ -183,7 +221,10 @@ def renew(
         expires_at=datetime.now(UTC) + timedelta(seconds=lease_seconds),
     )
     refreshed.write(lock_dir / OWNER_NAME)
-    (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
+    # Only between commands: a renew from inside a run keeps the marker, so a
+    # SIGKILLed holder (marker left, flock dropped) is stolen at once, not at expiry.
+    if flock_available(lock_dir):
+        (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
     return refreshed
 
 
@@ -209,8 +250,50 @@ def status(lock_dir: Path = DEFAULT_LOCK_DIR) -> dict[str, object]:
 def flock_wrap(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR) -> int:
     """Renew the lease, hold flock for ``argv``, release flock on exit."""
     renew(label, lock_dir=lock_dir)
-    with flock_context(lock_dir, blocking=True):
-        return subprocess.call(argv)
+    with flock_context(lock_dir, blocking=True) as fd:
+        return run_group(argv, fd=fd)
+
+
+def run_group(argv: list[str], env: dict[str, str] | None = None, fd: int | None = None) -> int:
+    """Run ``argv`` as its own process group; on any exit, signal the group,
+    so no child of the gate (stress.py) outlives the lease. The gate inherits the
+    flock ``fd``: a SIGKILL of the holder alone leaves flock held until the whole
+    gate is dead, so a successor never reads a live gate as an abandoned hold."""
+    fds = () if fd is None else (fd,)
+    proc = subprocess.Popen(argv, env=env, start_new_session=True, pass_fds=fds)
+    try:
+        return proc.wait()
+    finally:
+        for sig in (signal.SIGTERM, signal.SIGKILL):
+            with contextlib.suppress(ProcessLookupError, PermissionError):
+                os.killpg(proc.pid, sig)
+            try:
+                proc.wait(timeout=10)
+                break
+            except subprocess.TimeoutExpired:
+                continue
+
+
+def needs_lease(scope_run: str) -> bool:
+    """run.sh's derived mode decides, not a seat's prediction of it.
+
+    ``scope_run`` is run.sh's SCOPE_RUN: empty means MODE: FULL.
+    """
+    if not scope_run:
+        return True
+    return "tests/stress.py" in Path(scope_run).read_text().split()
+
+
+def auto_lease(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR) -> int:
+    """Take the lease (waiting), hold flock for ``argv``, release on any exit."""
+    take(label, lock_dir=lock_dir)
+    env = {**os.environ, "HPO_GATE_LOCK_LABEL": label, "HPO_GATE_FLOCK_CHILD": "1"}
+    try:
+        with flock_context(lock_dir, blocking=True) as fd:
+            return run_group(argv, env, fd)
+    finally:
+        with contextlib.suppress(RuntimeError):
+            release(label, lock_dir=lock_dir)
 
 
 def _cmd_take(args: argparse.Namespace) -> int:
@@ -260,6 +343,11 @@ def _cmd_flock_wrap(args: argparse.Namespace) -> int:
     return flock_wrap(args.label, args.argv, lock_dir=args.lock_dir)
 
 
+def _cmd_auto_lease(args: argparse.Namespace) -> int:
+    argv = args.argv[1:] if args.argv[:1] == ["--"] else args.argv
+    return auto_lease(args.label, argv, lock_dir=args.lock_dir)
+
+
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
@@ -296,6 +384,15 @@ def _parser() -> argparse.ArgumentParser:
     wrap_p.add_argument("--label", required=True)
     wrap_p.add_argument("argv", nargs=argparse.REMAINDER, help="command after --")
     wrap_p.set_defaults(func=_cmd_flock_wrap)
+
+    nl_p = sub.add_parser("needs-lease", help="exit 0 if run.sh's scope needs the lease")
+    nl_p.add_argument("scope_run", help="run.sh's SCOPE_RUN; empty means MODE: FULL")
+    nl_p.set_defaults(func=lambda a: print("lease" if needs_lease(a.scope_run) else "none"))
+
+    auto_p = sub.add_parser("auto-lease", help="take, hold flock for a command, release")
+    auto_p.add_argument("--label", required=True)
+    auto_p.add_argument("argv", nargs=argparse.REMAINDER, help="command after --")
+    auto_p.set_defaults(func=_cmd_auto_lease)
 
     return p
 
@@ -447,6 +544,8 @@ def _acceptance() -> int:
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--accept":
         sys.exit(_acceptance())
+    for sig in (signal.SIGTERM, signal.SIGHUP):  # so run_group and release run
+        signal.signal(sig, lambda n, _f: sys.exit(128 + n))
     args = _parser().parse_args()
     if args.cmd == "flock-wrap" and args.argv[:1] == ["--"]:
         args.argv = args.argv[1:]
