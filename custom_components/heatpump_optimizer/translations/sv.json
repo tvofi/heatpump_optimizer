@@ -1078,12 +1078,14 @@
           "disinfection": {
             "name": "Desinfektion",
             "data": {
+              "dhw_disinfection_switch_entity": "Pumpens desinfektionsbrytare (valfri)",
               "dhw_elastic_legionella_enabled": "Låt legionellacykeln välja en billig dag",
               "dhw_free_disinfection_enabled": "Tillgodoräkna desinfektion från andra värmekällor",
               "dhw_legionella_min_interval_days": "Tidigaste omkörning av legionellacykel",
               "dhw_quantile_targets_enabled": "Lär in varmvattenbehov för tunga dagar"
             },
             "data_description": {
+              "dhw_disinfection_switch_entity": "En brytare eller hjälpare som startar värmepumpens eget legionellaprogram. Optimeraren läser bara av den och visar dess tillstånd bland varmvattensensorns attribut, så att du kan se om pumpens program är på medan en desinfektionscykel pågår. Den slår aldrig på eller av brytaren, och den ändrar inte planen.",
               "dhw_elastic_legionella_enabled": "Låt legionellacykeln köras en dag eller två tidigare när elen är ovanligt billig, i stället för att alltid vänta till sista dagen. Sista dagen hålls alltid.",
               "dhw_free_disinfection_enabled": "Om en vedpanna, solslinga eller elpatron redan får tanken till legionellatemperatur och håller den där, räkna det som en genomförd cykel i stället för att köra en till.",
               "dhw_legionella_min_interval_days": "Kör aldrig legionellacykler tätare än så här, även på mycket billiga dagar.",

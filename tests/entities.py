@@ -4566,6 +4566,43 @@ R.check(
     "copy, comparing against it would prove nothing",
 )
 
+# #1067 W1067-G5a: the pump's own disinfection switch, on the hot_water_tank
+# page. Options-only on the same precedent as the pump slots above, and read,
+# never written, so the picker offers the switch-like domains a user maps.
+_dis_flow = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t"}))
+_dis_flow.hass = FakeHass()
+_dis_schema = asyncio.run(_dis_flow.async_step_hot_water_tank(None))["data_schema"]
+_dis_fields = {
+    str(getattr(k, "schema", k)): (k, v) for k, v in _presented_fields(_dis_schema)
+}
+_DIS_KEY = const.CONF_DHW_DISINFECTION_SWITCH_ENTITY
+R.check(
+    "the disinfection switch is offered on the hot_water_tank page, optional",
+    _DIS_KEY in _dis_fields and type(_dis_fields[_DIS_KEY][0]).__name__ == "Optional",
+    "a required field here would break every existing install on save",
+)
+R.check(
+    "the disinfection switch is options-only, not a card slot",
+    _DIS_KEY not in topology.ASSIGNABLE_KEYS,
+)
+R.check(
+    "the disinfection switch can be cleared again once set",
+    _DIS_KEY in options._OPTIONAL_ENTITY_KEYS,
+    "options merge over setup data, so an absent key restores the old value",
+)
+R.check(
+    "the disinfection switch picker offers switch and input_boolean only",
+    _DIS_KEY in _dis_fields
+    and list(_dis_fields[_DIS_KEY][1].config["filter"][0]["domain"])
+    == ["switch", "input_boolean"],
+)
+R.check(
+    "the page carries no disinfection mode: control is W1067-G5b's",
+    not hasattr(const, "CONF_DHW_DISINFECTION_MODE")
+    and not any("disinfection_mode" in k for k in _dis_fields),
+    f"fields={sorted(_dis_fields)}",
+)
+
 # Round trip: set all four, save, read them back; then clear them and check
 # the clearing sticks rather than being undone by the options merge.
 _sig_flow = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t"}))
