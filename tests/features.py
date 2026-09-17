@@ -37789,4 +37789,275 @@ R.check(
     "one that declines",
 )
 
+
+R.section("#1067 W1067-G7 — pre-filling options from the GCHV Modbus package")
+from heatpump_optimizer import const as _g7_c  # noqa: E402
+from heatpump_optimizer import modbus_prefill as _g7_mp  # noqa: E402
+
+# The entities the pre-fill reads, as tvofi/tuya_heat_pump fda9bed publishes
+# them in docs/modbus/rotenso_windmi_gchv.yaml: (unique_id, name, the entity_id
+# Home Assistant builds from that NAME). Copied from the yaml, not from
+# modbus_prefill, so a template the module mistypes cannot agree with itself.
+# The raw register sensors carry two spellings: the unique_id's, and the one
+# the name slugs to (G0's finding). An install may hold either.
+_G7_RAW = {
+    404: ("hp_gchv_r404", "HP GCHV R404 (0194H)", "sensor.hp_gchv_r404_0194h"),
+    405: ("hp_gchv_r405", "HP GCHV R405 (0195H)", "sensor.hp_gchv_r405_0195h"),
+    406: ("hp_gchv_r406", "HP GCHV R406 (0196H)", "sensor.hp_gchv_r406_0196h"),
+    518: ("hp_gchv_r518", "HP GCHV R518 (0206H)", "sensor.hp_gchv_r518_0206h"),
+    519: ("hp_gchv_r519", "HP GCHV R519 (0207H)", "sensor.hp_gchv_r519_0207h"),
+    601: ("hp_gchv_r601", "HP GCHV R601 (0259H)", "sensor.hp_gchv_r601_0259h"),
+    711: ("hp_gchv_r711", "HP GCHV R711 (02C7H)", "sensor.hp_gchv_r711_02c7h"),
+    712: ("hp_gchv_r712", "HP GCHV R712 (02C8H)", "sensor.hp_gchv_r712_02c8h"),
+    713: ("hp_gchv_r713", "HP GCHV R713 (02C9H)", "sensor.hp_gchv_r713_02c9h"),
+    714: ("hp_gchv_r714", "HP GCHV R714 (02CAH)", "sensor.hp_gchv_r714_02cah"),
+    4109: ("hp_gchv_r4109", "HP GCHV R4109 (100DH)", "sensor.hp_gchv_r4109_100dh"),
+}
+_G7_NAMED = {
+    "unit_capacity": ("hp_unit_capacity", "HP Unit capacity", "sensor.hp_unit_capacity"),
+    _g7_c.CONF_OUTDOOR_TEMP_ENTITY: (
+        "hp_outdoor_air_temperature", "HP Outdoor air temperature",
+        "sensor.hp_outdoor_air_temperature"),
+    _g7_c.CONF_DHW_TEMP_ENTITY: (
+        "hp_dhw_tank_temperature", "HP DHW tank temperature", "sensor.hp_dhw_tank_temperature"),
+    _g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: (
+        "hp_leaving_water_temperature_t1", "HP Leaving water temperature (T1)",
+        "sensor.hp_leaving_water_temperature_t1"),
+    _g7_c.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: (
+        "hp_entering_water_temperature_tw_in", "HP Entering water temperature (Tw-in)",
+        "sensor.hp_entering_water_temperature_tw_in"),
+    _g7_c.CONF_COMPRESSOR_FREQ_SENSOR: (
+        "hp_actual_compressor_frequency", "HP Actual compressor frequency",
+        "sensor.hp_actual_compressor_frequency"),
+    _g7_c.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: (
+        "hp_night_mode_frequency_reduction_active",
+        "HP Night mode (frequency reduction) active",
+        "binary_sensor.hp_night_mode_frequency_reduction_active"),
+}
+# Raw register values, as the modbus integration publishes them (unscaled).
+_G7_VALUES = {
+    404: "520",                   # DHW normal setpoint 52.0 °C
+    405: "650",                   # anti-legionella 65.0 °C
+    406: "420",                   # DHW economic 42.0 °C
+    518: str(22 * 256 + 0),       # night mode start 22:00
+    519: str(6 * 256 + 0),        # night mode end 06:00
+    601: "6",                     # backup heater type: Inner EH
+    711: str(0b11111110),         # DHW schedule every day (b7 Mon .. b1 Sun)
+    712: str(5 * 256 + 30),       # DHW schedule start 05:30
+    713: str(7 * 256 + 0),        # DHW schedule stop 07:00
+    714: str((1 << 7) | (1 << 1)),  # anti-legionella Monday and Sunday
+    4109: "0",                    # control mode: water temperature control
+}
+_G7_NAMED_VALUES = {
+    "unit_capacity": "8",
+    _g7_c.CONF_OUTDOOR_TEMP_ENTITY: "-3.5",
+    _g7_c.CONF_DHW_TEMP_ENTITY: "48.0",
+    _g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: "35.2",
+    _g7_c.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: "30.1",
+    _g7_c.CONF_COMPRESSOR_FREQ_SENSOR: "42.0",
+    _g7_c.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "off",
+}
+
+
+def _g7_hass(spelling="name", raw=None, named=None, prefix="hp"):
+    """A FakeHass holding the package's entities in one raw spelling."""
+    hass = FakeHass()
+    for addr, value in {**_G7_VALUES, **(raw or {})}.items():
+        if value is None:
+            continue
+        unique_id, _name, entity_id = _G7_RAW[addr]
+        chosen = entity_id if spelling == "name" else f"sensor.{unique_id}"
+        hass.states.set(chosen.replace("hp_", f"{prefix}_", 1), FakeState(value))
+    for label, value in {**_G7_NAMED_VALUES, **(named or {})}.items():
+        if value is None:
+            continue
+        entity_id = _G7_NAMED[label][2]
+        hass.states.set(entity_id.replace(".hp_", f".{prefix}_", 1), FakeState(value))
+    return hass
+
+
+def _g7_infer(current=None, **hass_kwargs):
+    """infer() over a snapshot of a FakeHass built by ``_g7_hass``."""
+    hass = _g7_hass(**hass_kwargs)
+    return _g7_mp.infer(_g7_mp.snapshot(hass.states.get, hass_kwargs.get("prefix", "hp")), dict(current or {}))
+
+
+_G7_EXPECTED = {
+    _g7_c.CONF_DHW_SETPOINT: 52.0,
+    _g7_c.CONF_DHW_LEGIONELLA_TEMP: 65.0,
+    _g7_c.CONF_DHW_MIN_TEMP: 42.0,
+    _g7_c.CONF_DHW_WINDOWS: "05:30-07:00",
+    _g7_c.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+    _g7_c.CONF_DHW_LEGIONELLA_INTERVAL_DAYS: 3.0,
+    _g7_c.CONF_SPACE_SETPOINT_UNIT: "flow",
+    _g7_c.CONF_HEAT_PUMP_MAX_POWER: round(8 / _g7_c.DEFAULT_HEAT_PUMP_COP_NOMINAL, 1),
+    **{label: ids[2] for label, ids in _G7_NAMED.items() if label != "unit_capacity"},
+}
+_g7_by_name = _g7_infer(spelling="name")
+_g7_by_uid = _g7_infer(spelling="unique_id")
+R.check(
+    "a package in the name spelling (sensor.hp_gchv_r404_0194h) infers every row",
+    _g7_by_name == _G7_EXPECTED,
+    f"got {_g7_by_name}",
+)
+R.check(
+    "the same package in the unique_id spelling (sensor.hp_gchv_r404) infers the same",
+    _g7_by_uid == _G7_EXPECTED,
+    f"got {_g7_by_uid}",
+)
+# Both spellings present, disagreeing: the plan's order, the unique_id
+# spelling first, decides.
+_g7_both = _g7_hass(spelling="name", raw={404: "600"})
+for _g7_addr, _g7_val in _G7_VALUES.items():
+    _g7_both.states.set(f"sensor.{_G7_RAW[_g7_addr][0]}", FakeState(_g7_val))
+_g7_both_snap = _g7_mp.snapshot(_g7_both.states.get, "hp")
+R.check(
+    "with both spellings present the unique_id spelling wins, and the snapshot names it",
+    _g7_mp.infer(_g7_both_snap, {})[_g7_c.CONF_DHW_SETPOINT] == 52.0
+    and _g7_both_snap["r404"] == ("sensor.hp_gchv_r404", "520"),
+    f"{_g7_both_snap.get('r404')}",
+)
+R.check(
+    "every candidate the module lists for a raw register is one of the two yaml spellings",
+    all(
+        set(_g7_mp.candidates("hp")[f"r{addr}"]) == {f"sensor.{uid}", eid}
+        for addr, (uid, _name, eid) in _G7_RAW.items()
+    )
+    and all(_g7_mp.candidates("hp")[label] == (ids[2],) for label, ids in _G7_NAMED.items()),
+    f"{_g7_mp.candidates('hp')}",
+)
+R.check(
+    "a custom prefix is read from the entity ids it names",
+    _g7_infer(prefix="wp") == {
+        k: (v.replace(".hp_", ".wp_", 1) if isinstance(v, str) else v)
+        for k, v in _G7_EXPECTED.items()
+    },
+    f"{_g7_infer(prefix='wp')}",
+)
+
+# Null control: an install with no Modbus entities.
+_g7_empty = FakeHass()
+_g7_empty_snap = _g7_mp.snapshot(_g7_empty.states.get, "hp")
+R.check(
+    "null control: no Modbus entities, an empty snapshot and no suggestions",
+    _g7_empty_snap == {} and _g7_mp.infer(_g7_empty_snap, {}) == {}
+    and _g7_mp.notes(_g7_empty_snap) == {"found": "0", "backup_heater_type": "–"},
+    f"{_g7_empty_snap} {_g7_mp.notes(_g7_empty_snap)}",
+)
+R.check(
+    "the notes carry the count read and the backup heater type register",
+    _g7_mp.notes(_g7_mp.snapshot(_g7_hass().states.get, "hp"))
+    == {"found": str(len(_G7_RAW) + len(_G7_NAMED)), "backup_heater_type": "6"},
+    f"{_g7_mp.notes(_g7_mp.snapshot(_g7_hass().states.get, 'hp'))}",
+)
+
+# Each formula class, at a value that tells it from its neighbours.
+_g7_scale = _g7_infer(raw={404: "635", 405: "700", 406: "405"})
+R.check(
+    "setpoints are the raw register times 0.1: 635 -> 63.5, 700 -> 70.0, 405 -> 40.5",
+    (_g7_scale[_g7_c.CONF_DHW_SETPOINT], _g7_scale[_g7_c.CONF_DHW_LEGIONELLA_TEMP],
+     _g7_scale[_g7_c.CONF_DHW_MIN_TEMP]) == (63.5, 70.0, 40.5),
+    f"{_g7_scale}",
+)
+_g7_clock = _g7_infer(raw={712: str(23 * 256 + 45), 713: str(0 * 256 + 15),
+                           518: str(21 * 256 + 5), 519: str(4 * 256 + 59)})
+R.check(
+    "times are hour*256+minute: 23:45-00:15 and 21:05-04:59",
+    _g7_clock[_g7_c.CONF_DHW_WINDOWS] == "23:45-00:15"
+    and _g7_clock[_g7_c.CONF_SILENT_MODE_WINDOWS] == "21:05-04:59",
+    f"{_g7_clock}",
+)
+_g7_bad_clock = _g7_infer(raw={712: str(24 * 256), 518: str(22 * 256 + 60), 519: str(22 * 256 + 60)})
+R.check(
+    "an hour past 23, a minute past 59, or an unreadable time suggests no window",
+    _g7_c.CONF_DHW_WINDOWS not in _g7_bad_clock
+    and _g7_c.CONF_SILENT_MODE_WINDOWS not in _g7_bad_clock
+    and _g7_c.CONF_SILENT_MODE_WINDOWS not in _g7_infer(raw={518: "unavailable"})
+    and _g7_c.CONF_DHW_WINDOWS not in _g7_infer(raw={713: None}),
+    f"{_g7_bad_clock}",
+)
+R.check(
+    "a start equal to its stop is no window",
+    _g7_c.CONF_SILENT_MODE_WINDOWS not in _g7_infer(raw={518: "1536", 519: "1536"}),
+)
+_g7_interval = {
+    days: _g7_infer(raw={714: str(mask)}).get(_g7_c.CONF_DHW_LEGIONELLA_INTERVAL_DAYS)
+    for days, mask in (
+        (1, 1 << 4), (2, (1 << 7) | (1 << 3)), (3, 0b00101010), (4, 0b11110000),
+        (7, 0b11111110), (0, 0), ("bit0", 1),
+    )
+}
+R.check(
+    "the legionella interval is 7 // days set in r714: 1 day 7, 2 days 3, 3 days 2, 4 or 7 days 1, none unset",
+    _g7_interval == {1: 7.0, 2: 3.0, 3: 2.0, 4: 1.0, 7: 1.0, 0: None, "bit0": None},
+    f"{_g7_interval}",
+)
+R.check(
+    "the hot water window is suggested only while the DHW schedule r711 has a day set",
+    _g7_c.CONF_DHW_WINDOWS not in _g7_infer(raw={711: "0"})
+    and _g7_c.CONF_DHW_WINDOWS not in _g7_infer(raw={711: None})
+    and _g7_infer(raw={711: str(1 << 1)}).get(_g7_c.CONF_DHW_WINDOWS) == "05:30-07:00",
+    f"{_g7_infer(raw={711: '0'}).get(_g7_c.CONF_DHW_WINDOWS)}",
+)
+_g7_ambient = _g7_infer(raw={4109: "1"})
+_g7_two_zone = _g7_infer(current={_g7_c.CONF_UPPER_FLOOR_THERMAL_MASS: 4.0})
+R.check(
+    "water temperature control (r4109 = 0) suggests flow set-points; ambient control suggests neither",
+    _g7_c.CONF_SPACE_SETPOINT_UNIT not in _g7_ambient
+    and _g7_c.CONF_MIXING_VALVE_WRITE_TARGET_KIND not in _g7_ambient
+    and _g7_c.CONF_MIXING_VALVE_WRITE_TARGET_KIND not in _g7_by_name,
+    f"{_g7_ambient.get(_g7_c.CONF_SPACE_SETPOINT_UNIT)}",
+)
+R.check(
+    "the valve's write target is suggested as flow only where the two-zone model the building page requires exists",
+    _g7_two_zone.get(_g7_c.CONF_MIXING_VALVE_WRITE_TARGET_KIND) == "flow",
+    f"{_g7_two_zone.get(_g7_c.CONF_MIXING_VALVE_WRITE_TARGET_KIND)}",
+)
+R.check(
+    "maximum electrical power is the unit's thermal capacity over the configured nominal COP",
+    _g7_infer(current={_g7_c.CONF_HEAT_PUMP_COP_NOMINAL: 4.0})[_g7_c.CONF_HEAT_PUMP_MAX_POWER] == 2.0
+    and _g7_c.CONF_HEAT_PUMP_MAX_POWER not in _g7_infer(named={"unit_capacity": "0"})
+    and _g7_c.CONF_HEAT_PUMP_MAX_POWER not in _g7_infer(named={"unit_capacity": "unknown"}),
+    f"{_g7_infer(current={_g7_c.CONF_HEAT_PUMP_COP_NOMINAL: 4.0}).get(_g7_c.CONF_HEAT_PUMP_MAX_POWER)}",
+)
+R.check(
+    "an unreadable register suggests nothing for its key and leaves the rest",
+    _g7_infer(raw={404: "unavailable", 405: "nan"}) == {
+        k: v for k, v in _G7_EXPECTED.items()
+        if k not in (_g7_c.CONF_DHW_SETPOINT, _g7_c.CONF_DHW_LEGIONELLA_TEMP)
+    },
+    f"{_g7_infer(raw={404: 'unavailable', 405: 'nan'})}",
+)
+# Entity slots only when empty; and nothing the entry already runs with.
+_g7_filled = _g7_infer(current={
+    _g7_c.CONF_OUTDOOR_TEMP_ENTITY: "sensor.garden",
+    _g7_c.CONF_DHW_TEMP_ENTITY: "",
+    _g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: None,
+    _g7_c.CONF_DHW_SETPOINT: 52.0,
+    _g7_c.CONF_DHW_WINDOWS: "05:30-07:00",
+})
+R.check(
+    "an entity slot already set is not suggested; an empty or None one is",
+    _g7_c.CONF_OUTDOOR_TEMP_ENTITY not in _g7_filled
+    and _g7_filled.get(_g7_c.CONF_DHW_TEMP_ENTITY) == "sensor.hp_dhw_tank_temperature"
+    and _g7_filled.get(_g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY) == "sensor.hp_leaving_water_temperature_t1",
+    f"{_g7_filled}",
+)
+R.check(
+    "a value equal to the one in force is not suggested, so the save cannot rewrite it",
+    _g7_c.CONF_DHW_SETPOINT not in _g7_filled and _g7_c.CONF_DHW_WINDOWS not in _g7_filled
+    and _g7_c.CONF_DHW_LEGIONELLA_TEMP in _g7_filled,
+    f"{_g7_filled}",
+)
+R.check(
+    "no suggestion is ever blank or None",
+    all(v not in (None, "") for v in (*_g7_by_name.values(), *_g7_filled.values(), *_g7_bad_clock.values())),
+)
+R.check(
+    "an entity slot is suggested when its entity exists, whatever its state",
+    _g7_infer(named={_g7_c.CONF_COMPRESSOR_FREQ_SENSOR: "unavailable"}).get(
+        _g7_c.CONF_COMPRESSOR_FREQ_SENSOR) == "sensor.hp_actual_compressor_frequency"
+    and _g7_c.CONF_COMPRESSOR_FREQ_SENSOR not in _g7_infer(named={_g7_c.CONF_COMPRESSOR_FREQ_SENSOR: None}),
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

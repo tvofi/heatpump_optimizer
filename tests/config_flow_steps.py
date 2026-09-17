@@ -5065,6 +5065,190 @@ async def untouched_option_pages_do_not_reload():
     )
 
 
+# ---------------------------------------------------------------------------
+# #1067 W1067-G7: the Modbus pre-fill page. One step answered three times:
+# the prefix, then the suggestions to edit, then the save. The entity ids are
+# tvofi/tuya_heat_pump fda9bed's (docs/modbus/rotenso_windmi_gchv.yaml); the
+# raw registers in both spellings an install can hold. tests/features.py pins
+# the inference itself; this pins what the flow writes.
+# ---------------------------------------------------------------------------
+_G7_ENTRY = {
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+    const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.garden",
+}
+
+
+def _g7_states(spelling="name", prefix="hp", **overrides):
+    """A GCHV package's states: setpoint 52.0, economic 42.0, a DHW schedule and night mode."""
+    raw = {404: ("0194h", "520"), 406: ("0196h", "420"), 518: ("0206h", str(22 * 256)),
+           519: ("0207h", str(6 * 256)), 711: ("02c7h", str(0b11111110)),
+           712: ("02c8h", str(5 * 256 + 30)), 713: ("02c9h", str(7 * 256))}
+    states = {}
+    for addr, (hexaddr, value) in raw.items():
+        value = overrides.get(f"r{addr}", value)
+        suffix = f"_{hexaddr}" if spelling == "name" else ""
+        states[f"sensor.{prefix}_gchv_r{addr}{suffix}"] = FakeState(value)
+    states[f"sensor.{prefix}_outdoor_air_temperature"] = FakeState("-3.5")
+    states[f"sensor.{prefix}_dhw_tank_temperature"] = FakeState("48.0")
+    return states
+
+
+def _g7_flow(states=None, options=None):
+    entry = FakeEntry(data=dict(_G7_ENTRY), options=dict(options or {}))
+    hass = FakeHass(states=states or {})
+    hass.config_entries.entries.append(entry)
+    return options_over(entry, hass), entry, hass
+
+
+async def options_modbus_prefill():
+    R.section("options: pre-filling from a GCHV Modbus package (#1067 G7)")
+    step = "modbus_prefill"
+    prefix_key = const.CONF_MODBUS_PREFILL_PREFIX
+
+    flow, entry, hass = _g7_flow()
+    shown = await flow.async_step_modbus_prefill(None)
+    check(
+        f"opt_{step}", "happy", "the first form asks only for the prefix, defaulted to hp",
+        shows(shown, step) and rendered_keys(shown) == {prefix_key}
+        and schema_default(shown, prefix_key) == "hp",
+        f"{rendered_keys(shown)} default={schema_default(shown, prefix_key)!r}",
+    )
+
+    # Null control: nothing of the package in hass.
+    preview = await submit(flow, step, {prefix_key: "hp"})
+    saved = await submit(flow, step, {const.CONF_AFTER_SAVE: const.AFTER_SAVE_MENU})
+    check(
+        f"opt_{step}", "happy",
+        "null control: no Modbus entities, no suggestions, and the save writes nothing",
+        shows(preview, step) and rendered_keys(preview) == set()
+        and preview.get("description_placeholders", {}).get("found") == "0"
+        and shows_menu(saved, "advanced") and entry.options == {},
+        f"offered {rendered_keys(preview)} placeholders={preview.get('description_placeholders')} "
+        f"options={entry.options}",
+    )
+    flow, entry, hass = _g7_flow()
+    await submit(flow, step, {prefix_key: "wp"})
+    await submit(flow, step, {})
+    check(
+        f"opt_{step}", "happy",
+        "and a typed prefix that found nothing is not written either",
+        entry.options == {} and prefix_key not in entry.options,
+        f"options={entry.options}",
+    )
+
+    # Both spellings of the raw registers reach the same suggestions.
+    offered = {}
+    for spelling in ("name", "unique_id"):
+        flow, entry, hass = _g7_flow(_g7_states(spelling))
+        await flow.async_step_modbus_prefill(None)
+        preview = await submit(flow, step, {prefix_key: "hp"})
+        offered[spelling] = {key: suggested_value(preview, key) for key in rendered_keys(preview)}
+    check(
+        f"opt_{step}", "happy",
+        "both raw spellings offer the setpoints, both windows and the empty DHW sensor slot, not the set outdoor slot",
+        offered["name"] == offered["unique_id"] == {
+            const.CONF_DHW_SETPOINT: 52.0,
+            const.CONF_DHW_MIN_TEMP: 42.0,
+            const.CONF_DHW_WINDOWS: "05:30-07:00",
+            const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+            const.CONF_DHW_TEMP_ENTITY: "sensor.hp_dhw_tank_temperature",
+        },
+        f"{offered}",
+    )
+
+    # The save: what was kept is written, a cleared or blank field is not,
+    # and the default prefix is not written as a setting (#1107).
+    flow, entry, hass = _g7_flow(_g7_states())
+    await flow.async_step_modbus_prefill(None)
+    await submit(flow, step, {prefix_key: "hp"})
+    result = await submit(flow, step, {
+        const.CONF_DHW_SETPOINT: 52.0,
+        const.CONF_DHW_MIN_TEMP: None,
+        const.CONF_SILENT_MODE_WINDOWS: "",
+        const.CONF_DHW_TEMP_ENTITY: "sensor.hp_dhw_tank_temperature",
+        const.CONF_AFTER_SAVE: const.AFTER_SAVE_MENU,
+    })
+    check(
+        f"opt_{step}", "happy",
+        "the save writes what was kept, never a blank or None, and not the default prefix",
+        shows_menu(result, "advanced") and entry.options == {
+            const.CONF_DHW_SETPOINT: 52.0,
+            const.CONF_DHW_TEMP_ENTITY: "sensor.hp_dhw_tank_temperature",
+        },
+        f"{result.get('type')}/{result.get('step_id')} options={entry.options}",
+    )
+    reopened = await flow.async_step_modbus_prefill(None)
+    check(
+        f"opt_{step}", "happy", "reopening the page starts again at the prefix",
+        shows(reopened, step) and rendered_keys(reopened) == {prefix_key},
+        f"{rendered_keys(reopened)}",
+    )
+
+    # A prefix other than the default is written with what it found, and a
+    # close-save closes.
+    flow, entry, hass = _g7_flow(_g7_states(prefix="wp"))
+    await submit(flow, step, {prefix_key: "wp"})
+    closed = await submit(flow, step, {
+        const.CONF_DHW_SETPOINT: 52.0, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE,
+    })
+    check(
+        f"opt_{step}", "happy", "a custom prefix that found the package is kept, and close closes",
+        closed.get("type") == "create_entry"
+        and closed.get("data") == {prefix_key: "wp", const.CONF_DHW_SETPOINT: 52.0},
+        f"{closed.get('type')} {closed.get('data')}",
+    )
+
+    # A register outside the field's own range is not offered: r406 = 60.0
+    # against a hot water minimum field that stops at 55.
+    flow, entry, hass = _g7_flow(_g7_states(r406="600"))
+    preview = await submit(flow, step, {prefix_key: "hp"})
+    check(
+        f"opt_{step}", "happy", "a value outside its field's range is not offered",
+        const.CONF_DHW_MIN_TEMP not in rendered_keys(preview)
+        and const.CONF_DHW_SETPOINT in rendered_keys(preview),
+        f"{rendered_keys(preview)}",
+    )
+
+    # The pages' own cross-field rules still bind an edited suggestion.
+    flow, entry, hass = _g7_flow(_g7_states())
+    await submit(flow, step, {prefix_key: "hp"})
+    refused = await submit(flow, step, {
+        const.CONF_DHW_SETPOINT: 45.0, const.CONF_DHW_MIN_TEMP: 42.0,
+        const.CONF_SILENT_MODE_WINDOWS: "22:00-22:05",
+    })
+    check(
+        f"opt_{step}", "error",
+        "a minimum too close to the setpoint and a too-short window re-show the preview, unsaved",
+        shows(refused, step)
+        and refused.get("errors") == {
+            "base": "dhw_min_too_close",
+            const.CONF_SILENT_MODE_WINDOWS: "silent_mode_window_too_short",
+        }
+        and suggested_value(refused, const.CONF_DHW_SETPOINT) == 45.0
+        and suggested_value(refused, const.CONF_DHW_TEMP_ENTITY) is None
+        and const.CONF_DHW_TEMP_ENTITY in rendered_keys(refused)
+        and entry.options == {},
+        f"errors={refused.get('errors')} options={entry.options}",
+    )
+    unreadable = await submit(flow, step, {const.CONF_DHW_WINDOWS: "not a window"})
+    check(
+        f"opt_{step}", "error", "an unreadable hot water window is refused on its own field",
+        shows(unreadable, step)
+        and unreadable.get("errors") == {const.CONF_DHW_WINDOWS: "invalid_dhw_windows"}
+        and entry.options == {},
+        f"errors={unreadable.get('errors')}",
+    )
+    flow_low, entry_low, _ = _g7_flow(_g7_states(), options={const.CONF_HEAT_PUMP_MIN_POWER: 2.0})
+    await submit(flow_low, step, {prefix_key: "hp"})
+    power = await submit(flow_low, step, {const.CONF_HEAT_PUMP_MAX_POWER: 1.0})
+    check(
+        f"opt_{step}", "error", "a maximum power below the stored minimum is refused",
+        shows(power, step) and power.get("errors") == {"base": "min_power_above_max"}
+        and entry_low.options == {const.CONF_HEAT_PUMP_MIN_POWER: 2.0},
+        f"errors={power.get('errors')} options={entry_low.options}",
+    )
+
+
 async def main() -> int:
     if "--self-check" in sys.argv:
         return await self_check()
@@ -5102,6 +5286,7 @@ async def main() -> int:
     await reconfigure_flow()
     await absent_fallbacks_are_proven()
     await untouched_option_pages_do_not_reload()
+    await options_modbus_prefill()
 
     print()
     LEDGER.print_result_lines()
