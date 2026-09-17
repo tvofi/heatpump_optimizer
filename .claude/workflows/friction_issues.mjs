@@ -317,6 +317,7 @@ export function bodyFor(entry, since) {
     `- window: \`${since}..origin/main\``,
     `- rule: ${entry.threshold} or more of one key in the window opens one issue per key per window (idempotent: search before create, update in place, never a duplicate)`,
     `- derivation command: \`node ${STATS_TOOL} --stats --since ${since}\``,
+    `- what the count is a property of: the keying rule in \`${STATS_TOOL}\` and the merged bodies already in the window, both fixed when this ran. A change to what FUTURE pull request bodies may contain does not move it. A disposition names which of the two it changes, or refutes the count.`,
     ``,
     `Re-derivable at any time with the command above; the body is refreshed in`,
     `place when the count moves within the window.`,
@@ -640,6 +641,25 @@ export function selfTest() {
   }
   st(body.includes(new Date().toISOString().slice(0, 10)), false,
     'and carries no timestamp: anything that moves between two runs of one window would edit on every beat')
+
+  // The perturbation the finder's contract (COMMON.md, "a perturbation ...
+  // under which the number must move") requires of a finding, stated for a
+  // count no finder produced. #1060 was dispatched as a defect in what seats
+  // WRITE; the count was a property of the keying rule and of bodies already
+  // merged, so the prescribed contract refusal could not move it and the
+  // failing test built from it could not go green. The line says so in the
+  // issue, before a seat is dispatched.
+  for (const needle of [`what the count is a property of: the keying rule in \`${STATS_TOOL}\``,
+    'A change to what FUTURE pull request bodies may contain does not move it',
+    'names which of the two it changes, or refutes the count']) {
+    st(body.includes(needle), true, `the body states what would NOT move the count: ${needle.slice(0, 52)}...`)
+  }
+  const measurement = body.split('## Measurement')[1].split('\n\n')[1]
+  st(measurement.split('\n').length, 5, 'and it is one bullet of the five under `## Measurement`, not prose a disposer can skim past')
+  const otherKey = bodyFor(ENTRY('gate-scoping.md', 'friction rule id', 5), 'v9.9.9')
+  st(otherKey.includes('A change to what FUTURE pull request bodies may contain does not move it'), true,
+    'null control: the line is on every key the lane files, not only the one that prompted it')
+  st(otherKey === body, false, 'and it did not flatten the body into a constant (a different measurement still differs)')
 
   // Two drives in one window, end to end over the pure decisions -- the
   // control the owner's card asked to see demonstrated, before the live
