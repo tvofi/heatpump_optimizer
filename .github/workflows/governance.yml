@@ -235,6 +235,11 @@ jobs:
       - name: Show the push script's decisions refusing their own fixtures
         run: bash tools/audit/push.sh --self-test
 
+      # The App approval's refusals and token cleanup, over stubbed gh, curl
+      # and openssl: no network, no key. INERT for the same reason as push.sh.
+      - name: Show the App approval refusing its own fixtures
+        run: bash tools/audit/app_approve.sh --self-test
+
       # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT
       # PAYLOAD. `${{ github.event.pull_request.body }}` is the body as it
       # stood when the event fired, and `gh run rerun` replays that payload,
