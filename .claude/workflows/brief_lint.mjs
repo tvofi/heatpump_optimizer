@@ -767,8 +767,8 @@ function checkShape(groups, findings) {
 //   brief     -- the carry text, linted for citations exactly like a roster's.
 //
 // TWO DESTINATIONS IS THE FAILURE THIS REPLACES, so it is refused: a carry
-// file for an issue a roster group already covers is an error naming the
-// group, because the group's brief is that stage's destination and a reader
+// file for an issue a live roster group (any stage but STAGE_SKIP) already
+// covers is an error naming the group, because the group's brief is that stage's destination and a reader
 // who finds two trusts neither (the rule says so about role contracts, and it
 // is the same argument).
 //
@@ -815,8 +815,17 @@ export const CARRY_FILE_RE = /^carry-(\d+)\.json$/
 const CARRY_EFFECTS = new Set(['narrows', 'invalidates', 'removes'])
 const CARRY_FIELDS = ['from', 'effect', 'control', 'remeasure', 'brief']
 
-// Every issue number any roster group claims. Read from the same files the
+// Every issue number a LIVE roster group claims. Read from the same files the
 // no-arg run lints, so a group added tomorrow closes its own destination.
+//
+// A group at STAGE_SKIP is not indexed, by the same constant that skips its
+// brief. Before 2026-09-17 this indexed it anyway, so for an issue only done
+// groups covered the one destination the linter accepted was a brief the same
+// linter calls unread and web-fix-wave.js dispatches nobody from: PR #1072's
+// round-2 verdict (5703182791) blocked `carry-missing` on exactly that, a carry
+// in W4D-G9's done brief for #954. The owner's ruling (#201, 5708947495) sends
+// such a carry to carry-<N>.json. A live group anywhere still wins, in either
+// order, so a stage reopened as a group closes the carry file again.
 export function rosterIssues(dir) {
   const base = dir || path.join(ROOT, '.claude', 'workflows')
   const out = new Map()
@@ -834,6 +843,7 @@ export function rosterIssues(dir) {
       continue // that roster's own parse error is reported by lintFile
     }
     for (const g of data?.groups ?? []) {
+      if (g?.resume?.stage === STAGE_SKIP) continue
       for (const num of g?.issues ?? []) {
         // A roster records issues as ints today. Reading ONLY ints made the
         // collision rule decay in silence: one roster written with "681"
@@ -867,7 +877,7 @@ export function checkCarryShape(file, data, findings, roster) {
     bad(`\`issue\` is ${data.issue} but the filename says ${fromName}; a seat looking for its own stage opens the filename`)
   } else if (roster.has(data.issue)) {
     bad(
-      `issue ${data.issue} already has a roster group (${roster.get(data.issue)}), whose \`brief\` is that stage's destination. ` +
+      `issue ${data.issue} already has a live roster group (${roster.get(data.issue)}), whose \`brief\` is that stage's destination. ` +
         'Two destinations is the failure this file replaces: carry it to the group instead.'
     )
   }
@@ -1135,7 +1145,7 @@ const REQUIRED_CARRY = [
   // defect never hides another, the property checkShape's note protects.
   { file: 'carry-990002.json', kind: 'path', needle: 'no_such_carry_probe.py' },
   { file: 'carry-990003.json', kind: 'carry', needle: '`carries` is empty' },
-  { file: 'carry-990004.json', kind: 'carry', needle: 'already has a roster group (wave-probe-groups.json PROBE-G1)' },
+  { file: 'carry-990004.json', kind: 'carry', needle: 'already has a live roster group (wave-probe-groups.json PROBE-G1)' },
 ]
 
 function assertCarryFixtures() {
@@ -1196,18 +1206,28 @@ function assertRosterIssues() {
       problems.push(`a numeric-string \`issues\` entry ("${n}") is not indexed; a typo hands that stage a second destination in silence`)
     }
   }
+  // PROBE-DONE is at STAGE_SKIP and claims three issues: 990013 only it covers,
+  // which must index NOTHING (a carry there is accepted), and 990010 and 990014,
+  // which a live group covers before and after it, which must still name that
+  // live group. The two orders catch a skip that deletes or overwrites.
+  if (idx.has(990013)) {
+    problems.push('990013, covered only by a done group, is indexed; a carry for it is refused and its one destination is a brief nobody reads')
+  }
+  if (idx.get(990014) !== 'wave-probe-groups.json PROBE-LATE') {
+    problems.push('990014, covered by a done group and a later live one, does not name the live group; a done group hid a live destination')
+  }
   // TWO numeric strings, and the size checked against them: a reader that maps
   // every string to one constant satisfies a single get() and a size of two.
   // That mutation escaped the first form of this control.
-  if (idx.size !== 3) {
-    problems.push(`the index holds ${idx.size} issue(s), not 3: either a non-numeric entry ("NA") was indexed, or two distinct numeric strings collapsed onto one key`)
+  if (idx.size !== 4) {
+    problems.push(`the index holds ${idx.size} issue(s), not 4: a non-numeric entry ("NA") or a done-only issue was indexed, or two distinct numeric strings collapsed onto one key`)
   }
   if (problems.length) {
     console.log('\nROSTER VACUOUS: roster reader:')
     for (const m of problems) console.log(`  ${m}`)
     return 1
   }
-  console.log('\nROSTER ok: rosterIssues indexes one int and two numeric-string issues by value, and indexes nothing for a non-numeric one')
+  console.log('\nROSTER ok: rosterIssues indexes one int and two numeric-string issues by value, nothing for a non-numeric one, nothing a done group alone covers, and the live group where a done one also covers')
   return 0
 }
 
