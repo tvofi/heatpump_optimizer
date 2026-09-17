@@ -252,7 +252,7 @@ which is exactly the shape that lets a real error be waved through.
   (`defect-root-cause.md`).
 - The merge message passes section 4.
 - Approval: `tools/audit/app_approve.sh <owner/repo> <pr> <sha>`, or the owner's
-  review on a CODEOWNERS path; then merge with `--match-head-commit <sha>`.
+  review on a code-owned path; then merge with `--match-head-commit <sha>`.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
   reach → establish that, and it is its own issue. Never `--allow-red`.
