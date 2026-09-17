@@ -21017,13 +21017,13 @@ _g3_stale = _g3_watch(True)
 _g3_stale_before, _, _g3_stale_judged = _g3_shortfall(_g3_stale, [(None, 55.0)])
 R.check(
     "the control: option off, a healthy 45 -> 55 degC move reads as a shortfall",
-    (_g3_raw[1] - _g3_raw[2]) / _g3_raw[1] > 0.15,
-    f"shortfall {(_g3_raw[1] - _g3_raw[2]) / _g3_raw[1]:+.4f}",
+    _g3_raw[2] is not None and (_g3_raw[1] - _g3_raw[2]) / _g3_raw[1] > 0.15,
+    f"baseline {_g3_raw[1]}, judged {_g3_raw[2]} (None: the sample was skipped)",
 )
 R.check(
     "option on with a fresh supply reading, the same move reads as no shortfall",
-    abs((_g3_norm[1] - _g3_norm[2]) / _g3_norm[1]) < 1e-9,
-    f"shortfall {(_g3_norm[1] - _g3_norm[2]) / _g3_norm[1]:+.6f}",
+    _g3_norm[2] is not None and abs((_g3_norm[1] - _g3_norm[2]) / _g3_norm[1]) < 1e-9,
+    f"baseline {_g3_norm[1]}, judged {_g3_norm[2]} (None: the sample was skipped)",
 )
 R.check(
     "a lapsed reading on a configured slot is skipped: the baseline is untouched",
@@ -21038,6 +21038,50 @@ R.check(
     and _watch_lift(_g3_watch(False), False) == (1.0, False),
     "the option off is the pre-#1067 key exactly",
 )
+# The fault issue reports the baseline in the units of the sample that tripped
+# it: a lift-keyed baseline sits at the reference flow, so it is handed back
+# multiplied by the lift at the measured supply (55 degC at 8 degC: L = 0.62,
+# so an unscaled baseline would report a shortfall about 61 % too large).
+_g3_trip = _g3_watch(True)
+_g3_raised = []
+_g3_trip._raise_cop_issue = lambda b: _g3_raised.append(
+    (b, _g3_trip._cop_baseline[(2, "lift")][0])
+)
+for _ in range(COP_BASELINE_MIN_SAMPLES + 5):
+    _g3_trip._flow_bias.observe_temps(55.0, 50.0)
+    _g3_trip._observe_cop_health(_g3_true(_g3_trip._thermal_model, 55.0), False)
+for _ in range(60):
+    _g3_trip._flow_bias.observe_temps(55.0, 50.0)
+    _g3_trip._observe_cop_health(0.7 * _g3_true(_g3_trip._thermal_model, 55.0), False)
+    if _g3_raised:
+        break
+_g3_l55 = _g3_trip._thermal_model.flow_lift_factor(8.0, 55.0)
+R.check(
+    "a lift-keyed trip hands _raise_cop_issue the baseline times the lift at the measured supply",
+    bool(_g3_raised)
+    and abs(_g3_raised[0][0] - _g3_raised[0][1] * _g3_l55) < 1e-9
+    and abs(_g3_raised[0][0] - _g3_raised[0][1]) > 0.5,
+    f"raised {_g3_raised[:1]}, lift at 55 degC {_g3_l55:.4f}",
+)
+
+# The one wire from the G2 learner to G3's price: the per-cycle parameter
+# build pushes the LEARNED bias and the comfort target into the model. Every
+# other G3 check sets the parameter by hand, so only this one sees the wire.
+_g3_wire = _t2_coord()
+_g3_wire._thermal_params.flow_curve_cop = True
+_g3_wire._flow_bias.observe(40.0, 34.0)  # one sample: bias exactly 6.0 K
+_g3_wire._opt_config.target_temp = 22.5  # off the 21.0 field default
+_g3_wire._prepare_dhw_inputs(dt_util.now())
+R.check(
+    "the parameter build pushes the learned bias and the comfort target into the priced flow",
+    _g3_wire._thermal_params.flow_curve_bias == 6.0
+    and _g3_wire._thermal_params.flow_curve_indoor_target == 22.5
+    and _g3_wire._thermal_model.curve_flow_temp(-10.0)
+    == flow_lift.curve_supply_temp(_g3_wire._thermal_model, -10.0, 22.5) + 6.0,
+    f"bias {_g3_wire._thermal_params.flow_curve_bias!r}, target "
+    f"{_g3_wire._thermal_params.flow_curve_indoor_target!r}",
+)
+
 # The toggle trap: a normalised baseline forms, then the option goes off (or
 # the slot is unmapped). Raw 55 degC samples must not be judged against it --
 # on one shared baseline a healthy pump reads a ~38 % shortfall.
