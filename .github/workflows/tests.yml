@@ -956,9 +956,9 @@ jobs:
     # `skip` -- every changed file INERT and absent from every recorded
     # closure -- which is exactly the diff the bot's ci/delivery-ledger cycle
     # pull requests carry. `closures` is one of the `main-protect` ruleset's
-    # required contexts, and a required context that reports `skipped` is one
-    # the ruleset can never satisfy: #1022, #1025 and #1027 were each merged
-    # with `--admin` for that reason alone, three in one wave. The ruleset
+    # required contexts. #1022, #1025 and #1027 merged `--admin`, but their
+    # heads also lacked the required `hassfest`/`validate-hacs` (measured in
+    # #1101), so they do not show that a skip blocks. The ruleset
     # carve-out was refused (not expressible without weakening everyone), so
     # the lane reports SUCCESS instead: on the `skip` case the job runs the
     # cheap arm below -- it re-derives the case itself, from the same
