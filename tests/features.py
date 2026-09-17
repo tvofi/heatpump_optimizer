@@ -29307,14 +29307,16 @@ R.check(
 # json.loads accepts NaN/Infinity and overflows 1e999 to inf; float() accepts
 # "nan"/"inf" strings. Each of those used to be stored as the measured
 # displace. A 400-digit integer is the one payload whose float() raises
-# OverflowError, so it pins that arm of the narrowed except. The design choice pinned: a non-finite field rejects the WHOLE
+# OverflowError, and 100000 open brackets make json.loads raise RecursionError,
+# so those two rows pin those arms of the narrowed except. Every row primes
+# non-default values, so "kept" is the prior value, not a fresh default. The design choice pinned: a non-finite field rejects the WHOLE
 # message, as a malformed field already did, so a half-applied payload never
 # lands (the mixed row below).
 _T1_ECL_NONFINITE = (
     '{"displace": NaN}', '{"displace": "nan"}', '{"displace": "inf"}',
     '{"command": {"displace": "-Infinity"}}', "Infinity", b"-Infinity", "1e999",
     '{"effective_displace": NaN}', '{"displace": 2.0, "effective_displace": "inf"}',
-    "1" + "0" * 400,
+    "1" + "0" * 400, "[" * 100000,
 )
 _t1_ecl_nf_kept = []
 for _t1_nf_payload in _T1_ECL_NONFINITE:

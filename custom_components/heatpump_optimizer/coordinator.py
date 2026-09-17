@@ -478,9 +478,10 @@ def _parse_ecl110_state(payload: Any) -> tuple[float | None, float | None]:
     """(displace, effective_displace) from an ECL110 MQTT state payload.
 
     Four shapes arrive: the legacy dict, a nested ``command`` dict, a bare JSON
-    number, and bytes of either. Raises TypeError/ValueError/OverflowError on a
-    malformed payload, and ValueError on NaN or +-inf: ``json.loads`` accepts
-    ``NaN``/``Infinity`` and overflows ``1e999``, and neither is a measurement.
+    number, and bytes of either. Raises TypeError/ValueError/OverflowError, or
+    RecursionError on deep nesting, for a malformed payload, and ValueError on
+    NaN or +-inf: ``json.loads`` accepts ``NaN``/``Infinity`` and overflows
+    ``1e999``, and neither is a measurement.
     """
     if isinstance(payload, bytes):
         payload = payload.decode("utf-8", errors="ignore")
@@ -2132,7 +2133,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ctx = getattr(self, "_ctx", self)
         try:
             displace, effective = _parse_ecl110_state(msg.payload)
-        except (TypeError, ValueError, OverflowError) as err:
+        except (TypeError, ValueError, OverflowError, RecursionError) as err:
             _LOGGER.debug("Ignoring malformed ECL110 state payload: %s", err)
             return
         if effective is not None:
