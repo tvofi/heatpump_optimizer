@@ -13991,6 +13991,71 @@ R.check(
     ) is None,
     "#662's rule for a record pull request is unchanged",
 )
+
+# A RELEASE STAMP is the one commit allowed to delete claims it did not write
+# (2026-09-17). stamp.py empties both lists, and on a push to `main` the
+# baseline is the commit before the stamp, whose lists are the deleted ones.
+# The stamp touches the card and no solver path, so the per-kind rule judged
+# the solver deletion foreign: v6.5.0 (4148299) and v6.6.0 (2d1b2ea) went red
+# on `main` exactly so, while v6.5.1 and v6.4.4, deleting nothing, were green.
+# The pins are v6.6.0's own three-dot and lists, then one refusal per clause of
+# `release_stamp_holds`, because each clause is what keeps the exemption from
+# becoming the autofix-erases-claims hole (#608, #635).
+_ST_CHANGED = sorted(_env_drift.STAMP_WRITES)
+_ST_BASE = {"config_flow": "ADD-ONLY: one new building-page option key"}
+_ST_OK = ("6.6.0", "6.5.1", "6.6.0", "6.6.0")
+
+
+def _st_verdict(changed=None, solver=None, base=None, stamp=_ST_OK):
+    return _env_drift.claims_hygiene_verdict(
+        _ST_CHANGED if changed is None else changed,
+        {} if solver is None else solver, {},
+        dict(_ST_BASE) if base is None else base, {}, "HEAD^1", stamp=stamp,
+    )
+
+
+R.check(
+    "a release stamp that empties a baseline claim it did not write passes",
+    _st_verdict() is None
+    and (_st_verdict(stamp=None) or "").startswith("RECORD PR CLAIMS"),
+    "v6.6.0's stamp deleted config_flow and went red on main; with no stamp "
+    "facts the same three-dot is still the foreign-deletion refusal",
+)
+R.check(
+    "a claim deletion with VERSION unchanged, or moving backwards, is refused",
+    (_st_verdict(stamp=("6.5.1", "6.5.1", "6.5.1", "6.5.1")) or "")
+    .startswith("RECORD PR CLAIMS")
+    and (_st_verdict(stamp=("6.5.1", "6.6.0", "6.5.1", "6.5.1")) or "")
+    .startswith("RECORD PR CLAIMS"),
+    "only a tree strictly ahead of its baseline is doing the stamping",
+)
+R.check(
+    "a VERSION bump that ADDS a claim, or deletes only some, is refused",
+    (_st_verdict(solver={"wood_coil": "r"}, base={}) or "")
+    .startswith("RECORD PR CLAIMS")
+    and (_st_verdict(
+        solver={"wood_coil": "r"}, base={"wood_coil": "r", **_ST_BASE}
+    ) or "").startswith("RECORD PR CLAIMS"),
+    "a stamp leaves both lists empty; any other list is not a stamp's output",
+)
+R.check(
+    "a VERSION bump whose solver claims-for is not the new VERSION is refused",
+    (_st_verdict(stamp=("6.6.0", "6.5.1", "6.5.1", "6.6.0")) or "")
+    .startswith("RECORD PR CLAIMS"),
+    "stamp.py moves both claims-for lines with VERSION",
+)
+R.check(
+    "a VERSION bump whose card claims-for is not the new VERSION is refused",
+    (_st_verdict(stamp=("6.6.0", "6.5.1", "6.6.0", "6.5.1")) or "")
+    .startswith("RECORD PR CLAIMS"),
+    "stamp.py moves both claims-for lines with VERSION",
+)
+R.check(
+    "a VERSION bump that also touches a file stamp.py never writes is refused",
+    (_st_verdict(changed=_ST_CHANGED + ["docs/HANDOVER.md"]) or "")
+    .startswith("RECORD PR CLAIMS"),
+    "a branch carrying a VERSION bump beside other work keeps every per-file rule",
+)
 _INH_HDR = "# claims-for: 6.3.15\n#\n"
 _INH_FILE = _INH_HDR + "wood_coil  # copied from baseline\n\n# may-drift: wood_coil -- keep\n"
 _INH_DROPPED = _env_drift.drop_inherited_claim_lines(_INH_FILE, _INH_FILE)
@@ -14391,7 +14456,7 @@ _hyg = getattr(_env_drift, "check_claims_hygiene", None)
 
 
 def _hygiene_git(card_head: str, extra: dict[str, str], py_touch: bool,
-                 card_base: str | None = None):
+                 card_base: str | None = None, solver_base: str | None = None):
     """Two-commit repo: baseline has #493's card claims; HEAD applies extra.
 
     `card_base` overrides the baseline's card claims -- the case where the
@@ -14407,7 +14472,7 @@ def _hygiene_git(card_head: str, extra: dict[str, str], py_touch: bool,
             "whatif_edited  # in-window lo floored at the window min; floored band note\n"
             "whatif_weekly  # weekly-spec in-window lo floor; floored band note\n"
         )
-    solver = "# claims-for: 6.3.15\n"
+    solver = "# claims-for: 6.3.15\n" if solver_base is None else solver_base
     (Path(root) / "tests" / "golden").mkdir(parents=True)
     (Path(root) / "custom_components" / "heatpump_optimizer").mkdir(parents=True)
     (Path(root) / "VERSION").write_text("6.3.15\n")
@@ -14487,6 +14552,36 @@ R.check(
     "emptying someone else's claim list is the deletion a squash applies to "
     f"the baseline; got {_h493_del_err!r}",
 )
+# The stamp exemption end to end, through `check_claims_hygiene`: VERSION read
+# off the baseline with git, both claims-for lines read off the tree. The null
+# control is the same commit with VERSION left alone, which must stay refused.
+def _stamp_git(new_version: str):
+    return _hygiene_git(
+        f"# claims-for: {new_version}\n",
+        {
+            "VERSION": f"{new_version}\n",
+            "tests/golden/claimed_drift.txt": f"# claims-for: {new_version}\n",
+            _env_drift.CARD_JS: f'const CARD_VERSION = "{new_version}";\n',
+        },
+        py_touch=False,
+        card_base="# claims-for: 6.3.15\n",
+        solver_base="# claims-for: 6.3.15\n\nwood_coil  # another lane's claim\n",
+    )
+
+
+_st_root, _st_base = _stamp_git("6.3.16")
+_st_err = _hyg(_st_root, _st_base) if callable(_hyg) else "missing"
+_st_ctl_root, _st_ctl_base = _stamp_git("6.3.15")
+_st_ctl_err = _hyg(_st_ctl_root, _st_ctl_base) if callable(_hyg) else "missing"
+R.check(
+    "check_claims_hygiene passes a release stamp and refuses the same deletion "
+    "without the VERSION bump",
+    _st_err is None
+    and isinstance(_st_ctl_err, str)
+    and _st_ctl_err.startswith("RECORD PR CLAIMS"),
+    f"stamp: {_st_err!r}; unbumped control: {_st_ctl_err!r}",
+)
+
 # AND THE AUTOFIX ITSELF, which is the half that actually writes the deletion.
 # Correcting `check_claims_hygiene` alone leaves the bot emptying the file and
 # CI green on the result: the gate below was added, disabled, and the whole

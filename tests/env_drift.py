@@ -983,15 +983,19 @@ def _claimed(repo: str, relpath: str = CLAIM_FILE) -> tuple[str | None, dict[str
     return _parse_claims(open(path).read())
 
 
-def _claimed_at(repo: str, ref: str, relpath: str) -> dict[str, str]:
-    """Parsed claims for ``relpath`` at ``ref``, or empty if the path is missing."""
+def _show_at(repo: str, ref: str, relpath: str) -> str | None:
+    """``relpath``'s text at ``ref``, or None if git cannot show it."""
     proc = subprocess.run(
         ["git", "show", f"{ref}:{relpath}"],
         cwd=repo, capture_output=True, text=True,
     )
-    if proc.returncode != 0:
-        return {}
-    return _parse_claims(proc.stdout)[1]
+    return proc.stdout if proc.returncode == 0 else None
+
+
+def _claimed_at(repo: str, ref: str, relpath: str) -> dict[str, str]:
+    """Parsed claims for ``relpath`` at ``ref``, or empty if the path is missing."""
+    text = _show_at(repo, ref, relpath)
+    return {} if text is None else _parse_claims(text)[1]
 
 
 def _may_drift(repo: str) -> dict[str, str]:
@@ -1627,6 +1631,53 @@ def moves_claimable(changed: list[str]) -> bool:
     return moves_solver_claimable(changed) or moves_card_claimable(changed)
 
 
+#: Every path ``tools/release/stamp.py`` writes, and nothing else: its
+#: docstring's "What it writes" list, which ``git add`` in its main names.
+STAMP_WRITES = frozenset({
+    VERSION_FILE,
+    os.path.join("custom_components", "heatpump_optimizer", "manifest.json"),
+    CARD_JS,
+    "RELEASE_NOTES.md",
+    CLAIM_FILE,
+    CARD_CLAIM_FILE,
+})
+
+
+def release_stamp_holds(
+    changed: list[str],
+    solver: dict[str, str],
+    card: dict[str, str],
+    stamp: tuple[str, str, str | None, str | None] | None,
+) -> bool:
+    """Whether this three-dot is a release stamp that left the claims as a stamp must.
+
+    ``stamp`` is (VERSION here, VERSION at the baseline, ``claims-for:`` of
+    the solver file, ``claims-for:`` of the card file); None asks nothing.
+
+    A stamp empties both lists -- the claims describe the release it closes
+    -- and on a push to `main` its baseline is the commit before it, whose
+    lists are the ones it deleted. Judged as a branch, that is the
+    foreign-deletion refusal, because the stamp touches the card and no
+    solver path: v6.5.0 (4148299) and v6.6.0 (2d1b2ea) went red exactly so.
+    So a stamp is recognised by everything it does and nothing more: VERSION
+    strictly ahead of the baseline's (the identification `stamp_claims_error`
+    already uses), both ``claims-for:`` lines at that VERSION, both lists
+    EMPTY -- a partial deletion is not a stamp's output -- and a three-dot
+    inside `STAMP_WRITES`, so a change that also moves any other file keeps
+    every per-file rule.
+    """
+    if stamp is None or solver or card:
+        return False
+    version, baseline_version, declared_solver, declared_card = stamp
+    if not (_looks_like_version(version) and _looks_like_version(baseline_version)):
+        return False
+    if tuple(map(int, version.split("."))) <= tuple(map(int, baseline_version.split("."))):
+        return False
+    if declared_solver != version or declared_card != version:
+        return False
+    return bool(changed) and set(changed) <= STAMP_WRITES
+
+
 def claim_kinds(changed: list[str]) -> dict[str, bool]:
     """Which claim file this three-dot may have written for: file -> bool.
 
@@ -1673,6 +1724,7 @@ def claims_hygiene_verdict(
     base_solver: dict[str, str],
     base_card: dict[str, str],
     ref: str,
+    stamp: tuple[str, str, str | None, str | None] | None = None,
 ) -> str | None:
     """The claim-file rule for one three-dot, per file kind. None when it holds.
 
@@ -1680,8 +1732,11 @@ def claims_hygiene_verdict(
     inherited list -- the baseline's, name for name and reason for reason --
     is refused, because it was written for another diff; if it cannot, the
     file must be exactly as found. A three-dot that can move neither is the
-    record-PR case and keeps its own rule and message.
+    record-PR case and keeps its own rule and message. A release stamp, by
+    `release_stamp_holds`, owes the lists empty and nothing else.
     """
+    if release_stamp_holds(changed, solver, card, stamp):
+        return None
     kinds = claim_kinds(changed)
     if not any(kinds.values()):
         return record_pr_claims_error(changed, solver, card, base_solver, base_card)
@@ -1861,8 +1916,12 @@ def check_claims_hygiene(repo: str, ref: str) -> str | None:
     """Inherited lists and the record-PR empty rule, or None when both hold."""
     if _rev(repo, ref) is None:
         return f"cannot resolve {ref}"
-    _, solver = _claimed(repo, CLAIM_FILE)
-    _, card = _claimed(repo, CARD_CLAIM_FILE)
+    declared_solver, solver = _claimed(repo, CLAIM_FILE)
+    declared_card, card = _claimed(repo, CARD_CLAIM_FILE)
+    stamp = (
+        _repo_version(repo), (_show_at(repo, ref, VERSION_FILE) or "").strip(),
+        declared_solver, declared_card,
+    )
     base_solver = _claimed_at(repo, ref, CLAIM_FILE)
     base_card = _claimed_at(repo, ref, CARD_CLAIM_FILE)
     # An unanswerable comparison is not a clean one. Returning None here would
@@ -1881,7 +1940,9 @@ def check_claims_hygiene(repo: str, ref: str) -> str | None:
             "not be computed, so no statement about claims can be made from it.\n"
             "A shallow clone is the usual cause: git fetch --unshallow origin."
         )
-    return claims_hygiene_verdict(changed, solver, card, base_solver, base_card, ref)
+    return claims_hygiene_verdict(
+        changed, solver, card, base_solver, base_card, ref, stamp=stamp
+    )
 
 
 def self_comparison_error(ref: str, head: str) -> str:
