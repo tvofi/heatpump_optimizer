@@ -1,6 +1,6 @@
 ---
 description: A one-sided cap may only be re-recorded down for prose that was deleted, never for prose that moved
-globs: .claude/workflows/policy_budgets.json,.claude/rules/**,CLAUDE.md
+globs: .claude/workflows/policy_budgets.json,.claude/rules/**,CLAUDE.md,AGENTS.md,tools/audit/README.md,tools/audit/harnesses/README.md
 alwaysApply: true
 ---
 # Three caps, because one of them can be gamed by moving a file

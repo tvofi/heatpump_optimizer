@@ -87,9 +87,10 @@ const MDC_PATHLINE_RE =
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
 
-function git(args, { allowFail = false, env } = {}) {
+function git(args, { allowFail = false, env, quiet = false } = {}) {
   try {
-    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...(env ? { env } : {}) })
+    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...(env ? { env } : {}),
+      ...(quiet ? { stdio: ['ignore', 'pipe', 'pipe'] } : {}) })
   } catch (e) {
     if (allowFail) return ''
     throw e
@@ -331,7 +332,7 @@ function uncoveredPolicyFiles(files = null) {
 // an earlier version of this comment openly invited, and it silently voids the
 // check, because the loop passes the POLICY FILE list and every policy file is
 // covered by definition. Hence the name, and hence asserting names.
-const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'orphanCapsOverTree', 'requiredContextsOverTree', 'checkProvenance', 'rowFreezeOverPlan']
+const CORPUS_CHECK_NAMES = ['checkIndex', 'checkDuplicates', 'checkBudgets', 'coverageOverTree', 'namedDocsOverTree', 'orphanCapsOverTree', 'requiredContextsOverTree', 'checkProvenance', 'rowFreezeOverPlan', 'ruleBindingOverTree']
 
 // THE RECORD MODE'S CHECKS, enumerated HERE beside the corpus list rather than
 // in the mutation lane, for the reason the corpus list gives about itself: a
@@ -935,6 +936,135 @@ function checkCoverage(files = null) {
 function policyFiles() {
   const { list } = trackedFiles()
   return list.filter((f) => POLICY_GLOBS.some((re) => re.test(f))).sort()
+}
+
+// ---------------------------------------------------------------------------
+// RULE BINDING. Which paths load which rule, derived from the tree.
+//
+// WHY THIS EXISTS. `.claude/rules/*.md` reaches a seat only when the harness
+// loads it, and the harness loads it when the seat reads a file matching one of
+// its `paths:` globs -- CLAUDE.md, "The project policies, loaded when they
+// bind". Nothing measured that. Four `## Friction` entries across #1058, #1061
+// and #1062 made one complaint in different words, and #1062's names it
+// outright: "no instrument answers `is rule X loaded on path Y`". The binding
+// model itself was already load-bearing before this check -- `roleTokens`
+// charges a role for exactly the rules whose globs match what it opens -- so
+// the model was being trusted for a budget while never being audited.
+//
+// It reuses `rulePaths` and `globToRe` rather than parsing frontmatter again:
+// a second implementation of the binding would measure a binding nothing loads.
+//
+// WHAT IT CANNOT ANSWER, stated rather than implied. It measures BINDING and
+// nothing else. It does not measure whether a rule's sentences are unique
+// (`checkDuplicates` is the only instrument on that, over 12-grams), whether a
+// bound rule is read, obeyed, or even relevant to the file that loads it, or
+// whether the RIGHT rule binds a path -- only that at least one does. The gap
+// that remains after this check is a capped file bound by some rule while the
+// rule that governs its subject is not among them; deciding that needs a
+// rule-to-subject mapping no artifact in this tree carries, and inventing one
+// here would be a hand-kept list, which is the shape this check exists to
+// replace. Named so the next seat does not read a green run as more than it is.
+//
+// OVER-BREADTH IS REPORTED AND NOT REFUSED. `--rule-binding` prints each rule's
+// share of the tracked tree, because a glob that loads on nearly every change
+// spends a seat's context on every change. No cap is applied: the honest
+// threshold between "governs a large surface" and "over-broad" is a judgement,
+// and a number chosen here would be one seat's opinion enforced on every later
+// one. A report a seat reads is what that is worth; a gate check is not.
+let ruleBindingSource = () => null
+
+function ruleBindingOverTree() {
+  return checkRuleBinding(ruleBindingSource())
+}
+
+// The model, so the acceptance can drive the check against a synthetic tree
+// without touching the real one. `null` -- and anything else `??` discards --
+// means the tracked tree, on the same terms as `coverageFileSource`.
+function liveRuleBinding() {
+  const corpus = policyFiles()
+  return {
+    tracked: trackedFiles().list,
+    corpus,
+    rules: corpus.filter((f) => RULE_FILE.test(f)).map((f) => ({ file: f, globs: rulePaths(f) })),
+  }
+}
+
+function checkRuleBinding(model = null) {
+  const { tracked, corpus, rules } = model ?? liveRuleBinding()
+  const findings = []
+  const bound = new Map(corpus.map((f) => [f, []]))
+  for (const rule of rules) {
+    // `rulePaths` returns null for BOTH a missing frontmatter block and a
+    // frontmatter with no `paths:` key, and the two are one defect here: either
+    // way the harness has no path on which to load the rule, so it is loaded in
+    // every session instead and charged to `always_loaded_tokens`. An unscoped
+    // rule is not refused because it is large; it is refused because the
+    // question this check answers has no answer for it.
+    if (!rule.globs || !rule.globs.length) {
+      findings.push({
+        severity: 'error',
+        check: 'rule-binding',
+        where: rule.file,
+        message: `declares no \`paths:\` globs, so no path loads it: the harness charges it to every session instead, which is what \`always_loaded_tokens\` caps. Give it the paths it governs, or move the prose into CLAUDE.md, which is the artifact that is meant to be always loaded.`,
+      })
+      continue
+    }
+    for (const g of rule.globs) {
+      const re = globToRe(g)
+      if (tracked.some((f) => re.test(f))) continue
+      findings.push({
+        severity: 'error',
+        check: 'rule-binding',
+        where: rule.file,
+        message: `has \`paths:\` glob "${g}", which matches no tracked file, so that entry loads the rule for nobody. Either the path was renamed or deleted under it, or the glob never matched; point it at what it governs, or delete it.`,
+      })
+    }
+    for (const f of corpus) {
+      if (rule.globs.some((g) => globToRe(g).test(f))) bound.get(f).push(rule.file)
+    }
+  }
+  // The corpus, not the tree: these are the files that already have a cap and a
+  // seat-facing purpose, so a capped policy file no rule binds is a file whose
+  // editor is told nothing at the moment they edit it. Against the whole tree
+  // this would report nine hundred source files and mean nothing.
+  for (const [f, rs] of bound) {
+    if (rs.length) continue
+    findings.push({
+      severity: 'error',
+      check: 'rule-binding',
+      where: f,
+      message: `is a measured policy file that no \`.claude/rules/*.md\` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the \`paths:\` of the rule that governs it.`,
+    })
+  }
+  return findings
+}
+
+// The report half. The checks above refuse three shapes; this prints the whole
+// matrix, which is the thing #1062 asked for and which no failure can be
+// written for: "which paths load rule X" has an answer on a healthy tree too.
+function cmdRuleBinding() {
+  const { tracked, corpus, rules } = liveRuleBinding()
+  console.log(`rule bindings, derived from \`git ls-files\` (${tracked.length} tracked file(s), ${corpus.length} in the measured policy corpus)\n`)
+  for (const rule of rules.slice().sort((a, b) => a.file.localeCompare(b.file))) {
+    const globs = rule.globs ?? []
+    const all = new Set()
+    console.log(rule.file.replace(/^\.claude\/rules\//, ''))
+    if (!globs.length) console.log('    (no paths: globs -- loaded in every session)')
+    for (const g of globs) {
+      const re = globToRe(g)
+      const hits = tracked.filter((f) => re.test(f))
+      hits.forEach((f) => all.add(f))
+      console.log(`    ${g.padEnd(42)} ${String(hits.length).padStart(4)} tracked${hits.length <= 3 && hits.length ? `  ${hits.join(', ')}` : ''}`)
+    }
+    const inCorpus = corpus.filter((f) => all.has(f))
+    console.log(`    => ${all.size} tracked file(s), ${(100 * all.size / tracked.length).toFixed(1)}% of the tree; ${inCorpus.length} of them policy`)
+  }
+  console.log('\npolicy corpus file -> the rules a seat loads when it edits that file\n')
+  for (const f of corpus) {
+    const rs = rules.filter((r) => (r.globs ?? []).some((g) => globToRe(g).test(f))).map((r) => path.posix.basename(r.file))
+    console.log(`  ${rs.length ? ' ' : '!'} ${f.padEnd(44)} ${rs.join(', ') || '(none)'}`)
+  }
+  console.log('\nThis measures BINDING only: that a rule is loaded on a path, never that its sentences are unique, that it is read, or that the rule which governs a file\'s subject is among the ones bound to it. The share column is reported and not capped; no threshold is applied.')
 }
 
 
@@ -2438,7 +2568,7 @@ const REQUIRED_ROT = {
   },
 }
 
-CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan)
+CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree)
 
 // SILENT ON A HEALTHY INPUT. A count-and-substring pin proves a check can still
 // refuse; it cannot prove the check is not refusing everything. Each loop mode
@@ -2941,6 +3071,49 @@ function assertAcceptance(derived) {
     const prev = coverageFileSource
     coverageFileSource = () => files
     try { return coverageOverTree() } finally { coverageFileSource = prev }
+  }
+
+  // RULE BINDING, driven on the same terms and for the same reason. Each of its
+  // three refusals is FALSE on a healthy tree, so none has a natural witness --
+  // exactly the shape that shipped three checks measuring nothing, named in
+  // policy_lint_mutants.mjs. The production default is pinned BEFORE the swap:
+  // `() => []` there would make `checkRuleBinding` destructure an array, read
+  // `tracked`, `corpus` and `rules` as undefined and throw rather than measure,
+  // and `() => ({ tracked: [], corpus: [], rules: [] })` would scan an empty
+  // tree silently, which is the coverage defect one file over.
+  pins += 1
+  const LIVE_BINDING = Symbol('live-rule-binding')
+  if ((ruleBindingSource() ?? LIVE_BINDING) !== LIVE_BINDING) {
+    console.log(`\nFIXTURE VACUOUS: ruleBindingSource's production default returned ${JSON.stringify(ruleBindingSource())}, which \`??\` does not discard. Only a nullish default makes checkRuleBinding read the tracked tree; any other model is measured instead, and an empty one measures nothing.`)
+    return 1
+  }
+  // Through the WRAPPER, so what is wired is what is pinned.
+  const driveBinding = (model) => {
+    const prev = ruleBindingSource
+    ruleBindingSource = () => model
+    try { return ruleBindingOverTree() } finally { ruleBindingSource = prev }
+  }
+  const bindingClean = {
+    tracked: ['CLAUDE.md', 'tools/audit/briefs/fixer.md', '.claude/rules/a-rule.md', 'src/app.py'],
+    corpus: ['CLAUDE.md', 'tools/audit/briefs/fixer.md', '.claude/rules/a-rule.md'],
+    rules: [{ file: '.claude/rules/a-rule.md', globs: ['CLAUDE.md', 'tools/audit/briefs/**', '.claude/rules/**'] }],
+  }
+  const bindingArms = [
+    ['unscoped', { ...bindingClean, rules: [{ file: '.claude/rules/a-rule.md', globs: null }] }, 'declares no'],
+    ['dead glob', { ...bindingClean, rules: [{ file: '.claude/rules/a-rule.md', globs: [...bindingClean.rules[0].globs, 'docs/gone/**'] }] }, 'matches no tracked file'],
+    ['unbound corpus file', { ...bindingClean, rules: [{ file: '.claude/rules/a-rule.md', globs: ['.claude/rules/**'] }] }, 'no `.claude/rules/*.md` binds'],
+  ]
+  pins += bindingArms.length + 1
+  for (const [name, model, needle] of bindingArms) {
+    const hits = driveBinding(model)
+    if (hits.some((f) => f.check === 'rule-binding' && f.message.includes(needle))) continue
+    console.log(`\nFIXTURE VACUOUS: the rule-binding '${name}' arm produced ${JSON.stringify(hits.map((f) => f.message.slice(0, 60)))} against a model built to trip it. A refusal with no witness is deletable in silence.`)
+    return 1
+  }
+  const bindingClear = driveBinding(bindingClean)
+  if (bindingClear.length) {
+    console.log(`\nFIXTURE OVER-FIRES: rule-binding produced ${bindingClear.length} finding(s) against a model where every glob matches, every corpus file is bound and no rule is unscoped, e.g. ${JSON.stringify(bindingClear[0].message.slice(0, 120))}`)
+    return 1
   }
   // Every budget comparison, driven for real. On a healthy corpus each is FALSE
   // and therefore witnessless, which is how all four came to be independently
@@ -3773,7 +3946,83 @@ function pathsFromFile(pathsFile) {
 // its word even when the diff touches no globbed path. Widening POLICY_GLOBS --
 // which does not contain this file, nor .github/workflows/ -- is a policy
 // question and the owner's, and is named in the body rather than taken here.
-function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [] } = {}) {
+// AN AUTOFIX COMMIT MOVES THE HEAD WITHOUT MOVING THE EVIDENCE. `closures-autofix`
+// and `claims-autofix` (tests.yml) push onto a pull request after its body was
+// written, so `## Head` names the seat's commit while CI runs on the bot's, and
+// the body had to be edited and the run waited out again (#1107, run
+// 35220336323 at b1afbcf). A chain of such commits directly on top of a commit
+// the section names is accepted when EVERY commit in it has:
+//   - author and committer both the bot identity the jobs configure;
+//   - a whole message that is exactly one of the two autofix messages;
+//   - exactly one parent;
+//   - a diff against that parent that only MODIFIES the files that message's
+//     job stages -- and, for the claims job, which only empties lists, adds no
+//     line.
+// The identity is git metadata anyone can write, and GitHub offers nothing
+// better here: the bot's pushes are unsigned (`verification.reason` is
+// `unsigned` on both #1107 commits) and a push with the PAT is attributed to
+// the PAT's owner, a seat (run 35220336323's actor). So the other three carry
+// the weight. A forged closures commit is a GATE_FILES change, so the `closures`
+// job re-derives every closure at that head and refuses an under-scoped one; a
+// forged claims commit can only delete claims, which `fast`'s golden drift check
+// then refuses if a fixture really drifts. Accepting the head asserts nothing
+// about either file -- every other required context still runs at the real head.
+//
+// The constants are held here rather than read from tests.yml because this
+// runs in the pull request's own checkout: a branch that edited the workflow
+// would widen what it is excused for. tests/entities.py pins their agreement.
+const AUTOFIX_BOT_COMMITS = {
+  name: 'github-actions[bot]',
+  email: '41898282+github-actions[bot]@users.noreply.github.com',
+  messages: {
+    'ci: re-record closures': { paths: ['tests/closures.json'], mayAdd: true },
+    'ci: drop inherited claims': {
+      paths: ['tests/golden/claimed_drift.txt', 'tests/golden/card_claimed_drift.txt'], mayAdd: false },
+  },
+}
+
+// One commit's answer: `{ parent, message }` when it is an autofix commit, or
+// `{ why }` naming the first condition it fails. Fail-closed: a commit this
+// clone cannot read is refused, never assumed.
+function autofixCommit(sha) {
+  const bot = `${AUTOFIX_BOT_COMMITS.name} <${AUTOFIX_BOT_COMMITS.email}>`
+  const short = sha.slice(0, 7)
+  if (!/^[0-9a-f]{40}$/.test(sha)) return { why: `${short} is not a full commit SHA` }
+  const meta = git(['show', '-s', '--format=%an <%ae>%x00%cn <%ce>%x00%P%x00%B', sha], { allowFail: true, quiet: true })
+  if (!meta) return { why: `${short} is not a commit in this clone` }
+  const [author, committer, parents, raw] = meta.split('\0')
+  if (author !== bot || committer !== bot) return { why: `${short} is not authored and committed as ${bot}` }
+  const message = raw.trim()
+  if (!Object.hasOwn(AUTOFIX_BOT_COMMITS.messages, message)) return { why: `${short}'s message is not an autofix message` }
+  const rule = AUTOFIX_BOT_COMMITS.messages[message]
+  const ps = parents.trim().split(/\s+/).filter(Boolean)
+  if (ps.length !== 1) return { why: `${short} has ${ps.length} parents` }
+  const status = git(['diff', '--no-renames', '--name-status', ps[0], sha], { allowFail: true, quiet: true })
+    .split('\n').filter(Boolean).map((l) => l.split('\t'))
+  const numstat = git(['diff', '--no-renames', '--numstat', ps[0], sha], { allowFail: true, quiet: true })
+    .split('\n').filter(Boolean).map((l) => l.split('\t'))
+  if (!status.length) return { why: `${short} changes no file` }
+  const outside = status.map(([, p]) => p).filter((p) => !rule.paths.includes(p))
+  if (outside.length) return { why: `${short} changes ${outside.join(', ')}, outside what "${message}" stages` }
+  if (status.some(([s]) => s !== 'M')) return { why: `${short} does not only modify its files` }
+  if (!rule.mayAdd && numstat.some(([added]) => added !== '0')) return { why: `${short} adds lines, and "${message}" only removes them` }
+  return { parent: ps[0], message }
+}
+
+// Walks down from the head while each commit is an autofix commit, stopping at
+// the first parent `names` accepts. `{ base, accepted }` or `{ why }`.
+function autofixChain(head, names) {
+  const accepted = []
+  for (let sha = head; ;) {
+    const c = autofixCommit(sha)
+    if (c.why) return { why: c.why }
+    accepted.unshift({ sha, message: c.message })
+    if (names(c.parent)) return { base: c.parent, accepted }
+    sha = c.parent
+  }
+}
+
+function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], notes = [] } = {}) {
   const out = []
   let body
   try {
@@ -3810,11 +4059,19 @@ function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [] } =
   }
 
   // The head the body claims must be the head CI is running. A body describing
-  // an older head is the shape fix-review.md calls `head-moved`.
+  // an older head is the shape fix-review.md calls `head-moved` -- except where
+  // everything between the two is the autofix jobs' own repair (`autofixChain`).
   const headSec = secs.get('Head') ?? ''
-  if (head && headSec && !headSec.includes(head) && !headSec.includes(head.slice(0, 7))) {
-    out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
-      message: `\`## Head\` does not name ${head.slice(0, 7)}, which is the head this ran on. Evidence measured at another head describes another tree.` })
+  const names = (sha) => headSec.includes(sha) || headSec.includes(sha.slice(0, 7))
+  if (head && headSec && !names(head)) {
+    const chain = autofixChain(head, names)
+    if (chain.base) {
+      notes.push(`HEAD: \`## Head\` names ${chain.base.slice(0, 7)}; accepted autofix commit(s) on top of it: ${
+        chain.accepted.map((c) => `${c.sha.slice(0, 7)} (${c.message})`).join(', ')}`)
+    } else {
+      out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+        message: `\`## Head\` does not name ${head.slice(0, 7)}, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: ${chain.why}.` })
+    }
   }
 
   // A carry destination that does not exist is a carry nobody receives, which is
@@ -3898,7 +4155,9 @@ function cmdPrBody(args) {
     }
     paths = got.paths
   }
-  const findings = checkPrBody(bodyPath, { head: val('--head') ?? '', title: val('--title') ?? '', red, paths })
+  const notes = []
+  const findings = checkPrBody(bodyPath, { head: val('--head') ?? '', title: val('--title') ?? '', red, paths, notes })
+  for (const n of notes) console.log(n)
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)
   return findings.length ? 1 : 0
@@ -4245,6 +4504,7 @@ function main() {
 
   if (argv[0] === '--list') return cmdList(), process.exit(0)
   if (argv[0] === '--corpus-filter') return cmdCorpusFilter(), process.exit(0)
+  if (argv[0] === '--rule-binding') return cmdRuleBinding(), process.exit(0)
 
   // Exact-string, and --record-known-bad is tested FIRST, so the reseed can
   // never be reached by a typo of --record or the other way round.
@@ -4319,7 +4579,7 @@ function main() {
 // `LOOP_CHECK_NAMES` are the two enumerations -- the corpus checks and the
 // record mode's -- `assertAcceptance` is the thing under test, and
 // `derivations` is its only argument.
-export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations, frictionEntries }
+export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations, frictionEntries, AUTOFIX_BOT_COMMITS }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main()
