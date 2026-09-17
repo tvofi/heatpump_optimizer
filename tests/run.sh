@@ -361,10 +361,15 @@ lane_units() {
   # closure is the whole integration; that is correct and deliberate: any
   # structural change puts this lane in scope.
   run "$PYTHON" tests/structure.py
-  # The typing ratchet's dependency-free half (#303). The error count and its
-  # per-code split need the pinned mypy/homeassistant-stubs pair, which no
-  # gate lane has, so the `typing` CI job owns those; the `# type: ignore`
-  # count is a source scan and belongs where it runs on every pull request.
+  # The typing ratchet (#303). The `# type: ignore` count is a source scan and
+  # runs here on every pull request. The error count and its per-code split
+  # need the pinned mypy/homeassistant-stubs pair, which the `typing` CI job
+  # installs -- and which HPO_TYPING_PYTHON runs HERE when a seat has installed
+  # it too (#1095). Unset, the script prints the uv command and what is going
+  # unchecked; set to an unpinned interpreter it FAILS, because guard 2 runs
+  # inside the re-exec. The pair does install off Linux, which this comment
+  # used to deny: #1091 and #1099 each pushed a census regression past a green
+  # local FULL gate on a box that could have caught it.
   # That is the guard `--warn-unused-ignores` does NOT provide -- a live
   # ignore is a used ignore -- so it must not be the half that goes unchecked
   # whenever a toolchain install fails.
