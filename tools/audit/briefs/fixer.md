@@ -53,6 +53,8 @@ production lines. You work in your own worktree branched from `origin/main`.
    body: it refuses before it pushes anything if that body fails the contract
    check (#678). The PR's own checks are green before the handoff in step 6 —
    `fix-review.md` step 11 reads those rather than the body's account of them.
+   Author as `tvofi-seat-author`: `GH_TOKEN` from `~/.zcode/identity-author.token`
+   per GitHub command, never printed.
 
    **Take the gate lease only when `MODE: FULL` or `scope.run` names
    `tests/stress.py`**, the one script the lock exists for; the commands, and
@@ -101,9 +103,7 @@ production lines. You work in your own worktree branched from `origin/main`.
    sibling carrying the same property in a different form survived — one of them
    created by the same commit. That analysis, its cost test and the detector it
    built and rejected are recorded on **#592**, which is where this step was
-   added. Its measurements are deliberately not quoted here: they are a share of
-   a moving population and decay, which is what step 3 above forbids — three
-   figures were quoted in a first draft and a reviewer refuted all three.
+   added. Its figures decay (step 3); a reviewer refuted all three a draft quoted.
 
 9. **A claim should be true; if wrong, correct it — anchored to a lane,
    function, marker or SHA, never a bare line number — and delete only when

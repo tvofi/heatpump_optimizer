@@ -152,7 +152,7 @@ as `tvofi`. Equivalents for the named MCP tools:
 | `add_issue_comment` | `gh issue comment N --body-file <file>` |
 | `issue_write` (labels, state) | `gh issue edit N --add-label X --remove-label Y`; `gh issue close N --reason completed\|"not planned"` |
 | `create_pull_request` | `gh pr create --base main --head <branch> --title ... --body-file <file>` |
-| `update_pull_request` | `gh pr edit N --body-file <file>` |
+| `update_pull_request` | `gh api -X PATCH repos/<owner>/<repo>/pulls/N -F body=@<file>` (the seat token cannot run `gh pr edit`) |
 | `pull_request_read` (get, get_check_runs, get_comments, get_files, get_diff) | `gh pr view N --json number,state,headRefOid,mergeable,mergeStateStatus,body,comments,files`; `gh pr diff N`; `gh api /repos/<owner>/<repo>/commits/<sha>/check-runs` |
 | `merge_pull_request` (merge) | `gh pr merge N --merge --delete-branch` |
 | `actions_list` (list_workflow_runs) | `gh run list --branch <branch> --workflow tests.yml --json databaseId,headSha,status,conclusion,createdAt` |

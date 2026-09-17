@@ -7,7 +7,7 @@ its bug. You are checking that the numbers are real.
 **That worktree holds this contract as well as the tree and is frozen by design, so your copy of
 it can be arbitrarily old** — and `preflight.sh` warns only before a push a reviewer never makes.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- tools/audit/briefs/`; empty is current.
-Before the fixer's handoff message, prepare against the merge base only; take no measurement of the head.
+Before the fixer's handoff message, prepare against the merge base only; take no measurement of the head. Post as `tvofi-seat-author`.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
    run the closure, confirm the named checks fail, restore. If nothing fails,

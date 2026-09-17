@@ -1010,6 +1010,17 @@ def _default_location(hass: HomeAssistant, current: dict[str, Any]) -> dict[str,
     }
 
 
+#: What the questionnaire shows for an unanswered question.
+_QUESTIONNAIRE_DEFAULTS: Final[dict[str, Any]] = {
+    CONF_BUILDING_STRUCTURE: presets.STRUCTURE_TIMBER_SLAB,
+    CONF_BUILDING_ERA: presets.ERA_1980_2005,
+    CONF_BUILDING_FOUNDATION: presets.FOUNDATION_NONE,
+    CONF_HEATED_AREA: DEFAULT_HEATED_AREA,
+    CONF_UPPER_EMITTER: presets.EMITTER_RADIATORS,
+    CONF_LOWER_EMITTER: presets.EMITTER_FLOOR,
+}
+
+
 def _questionnaire_fields(current: dict[str, Any]) -> dict[Any, Any]:
     """The building questionnaire, shared by initial setup and options.
 
@@ -1019,35 +1030,17 @@ def _questionnaire_fields(current: dict[str, Any]) -> dict[Any, Any]:
     either page adds around these (the enable flag, the structural extras)
     stays that page's own.
     """
+    widgets = {
+        CONF_BUILDING_STRUCTURE: _select(list(presets.STRUCTURES), "building_structure"),
+        CONF_BUILDING_ERA: _select(list(presets.ERAS), "building_era"),
+        CONF_BUILDING_FOUNDATION: _select(list(presets.FOUNDATIONS), "building_foundation"),
+        CONF_HEATED_AREA: _number(20, 1000, 5, "m²"),
+        CONF_UPPER_EMITTER: _select(list(presets.EMITTERS), "emitter"),
+        CONF_LOWER_EMITTER: _select(list(presets.EMITTERS), "emitter"),
+    }
     return {
-        vol.Optional(
-            CONF_BUILDING_STRUCTURE,
-            default=current.get(
-                CONF_BUILDING_STRUCTURE, presets.STRUCTURE_TIMBER_SLAB
-            ),
-        ): _select(list(presets.STRUCTURES), "building_structure"),
-        vol.Optional(
-            CONF_BUILDING_ERA,
-            default=current.get(CONF_BUILDING_ERA, presets.ERA_1980_2005),
-        ): _select(list(presets.ERAS), "building_era"),
-        vol.Optional(
-            CONF_BUILDING_FOUNDATION,
-            default=current.get(
-                CONF_BUILDING_FOUNDATION, presets.FOUNDATION_NONE
-            ),
-        ): _select(list(presets.FOUNDATIONS), "building_foundation"),
-        vol.Optional(
-            CONF_HEATED_AREA,
-            default=current.get(CONF_HEATED_AREA, DEFAULT_HEATED_AREA),
-        ): _number(20, 1000, 5, "m²"),
-        vol.Optional(
-            CONF_UPPER_EMITTER,
-            default=current.get(CONF_UPPER_EMITTER, presets.EMITTER_RADIATORS),
-        ): _select(list(presets.EMITTERS), "emitter"),
-        vol.Optional(
-            CONF_LOWER_EMITTER,
-            default=current.get(CONF_LOWER_EMITTER, presets.EMITTER_FLOOR),
-        ): _select(list(presets.EMITTERS), "emitter"),
+        vol.Optional(key, default=current.get(key, default)): widgets[key]
+        for key, default in _QUESTIONNAIRE_DEFAULTS.items()
     }
 
 
@@ -1746,12 +1739,70 @@ def _omit_unstored_computed(
             computed = row.default.of(current, hass)
         except Exception:  # noqa: BLE001 - leave a value we cannot recompute
             continue
-        if cleaned[row.key] == computed:
+        if _same_setting(computed, cleaned[row.key]):
             del cleaned[row.key]
     for key, value in list(cleaned.items()):
         if key in current and _same_setting(current[key], value):
             cleaned[key] = current[key]
     return cleaned
+
+
+#: Registry keys whose form default is NOT interchangeable with the key being
+#: absent, so an unstored one is written even when it equals that default.
+#: The DHW pair is presence-inferred (either key switches hot-water planning
+#: on); the wood trio publishes ``None`` while absent. The credential pair
+#: could not be shown equivalent, and the initial flow always stores both.
+#: ``tests/config_flow_steps.py`` derives this whole set and fails when it
+#: moves.
+_ABSENT_IS_NOT_DEFAULT: Final = frozenset({
+    CONF_DHW_WINDOWS, CONF_DHW_TANK_VOLUME,
+    CONF_WOOD_TYPE, CONF_WOOD_PACKING, CONF_WOOD_FURNACE_EFFICIENCY,
+    CONF_TIBBER_TOKEN, CONF_WEATHER_ENTITY,
+})
+
+
+def _absent_fallback(row: _F) -> Any:
+    """What the form shows for an absent ``row.key``; ``_STORED`` when none."""
+    if row.default is _STORED:
+        return None
+    if isinstance(row.default, _Suggested):
+        return row.default.fallback
+    if isinstance(row.default, (_Rule, _Computed)):
+        return _STORED
+    return row.default
+
+
+#: Every unstored key an untouched page may post, and the value that post
+#: carries while the integration already runs with exactly that value.
+_ABSENT_FALLBACKS: Final[dict[str, Any]] = {
+    key: fallback
+    for key, fallback in [
+        *((row.key, _absent_fallback(row)) for row in _OPTION_FIELDS),
+        *_QUESTIONNAIRE_DEFAULTS.items(),
+    ]
+    if fallback is not _STORED and key not in _ABSENT_IS_NOT_DEFAULT
+}
+
+
+def _omit_unstored_defaults(
+    user_input: dict[str, Any], current: dict[str, Any]
+) -> dict[str, Any]:
+    """Drop the defaults and cleared slots an untouched page posts for keys
+    the entry never stored.
+
+    The form shows its default for an absent key, and a cleared entity slot
+    comes back as ``None`` (``_clear_absent``), so an untouched submit used
+    to write every such key and turn an unchanged configuration into an
+    options change -- and, through ``async_update_options``, a reload.
+    Dropped only for ``_ABSENT_FALLBACKS``; a stored key is always kept.
+    """
+    return {
+        key: value
+        for key, value in user_input.items()
+        if key in current
+        or key not in _ABSENT_FALLBACKS
+        or not _same_setting(_ABSENT_FALLBACKS[key], value)
+    }
 
 
 def _same_setting(stored: Any, posted: Any) -> bool:
@@ -2490,10 +2541,13 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         to come back to, so the advanced pages return to the advanced
         menu rather than the top one.
         """
-        user_input = _omit_unstored_computed(
-            _flatten_section_input(dict(user_input)),
+        user_input = _omit_unstored_defaults(
+            _omit_unstored_computed(
+                _flatten_section_input(dict(user_input)),
+                self._current,
+                self.hass,
+            ),
             self._current,
-            self.hass,
         )
         choice = user_input.pop(CONF_AFTER_SAVE, AFTER_SAVE_MENU)
         if choice == AFTER_SAVE_CLOSE:

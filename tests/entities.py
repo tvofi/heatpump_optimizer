@@ -8926,11 +8926,17 @@ _okopt = options(FakeEntry())
 _okopt.hass = FakeHass()
 _okform = asyncio.run(_okopt.async_step_comfort(None))
 _oksaved = asyncio.run(_okopt.async_step_comfort(_schema_defaults(_okform["data_schema"])))
+# Saved, not refused: the write goes through and the dialog returns to the
+# menu. What it writes is no longer the page's defaults -- an entry that never
+# stored them runs with exactly those values absent (_omit_unstored_defaults),
+# so the effective day comfort is read, not the options key.
 R.check(
     "an untouched comfort page still saves -- through the menu return",
     _oksaved.get("type") == "menu"
     and bool(_okopt.hass.config_entries.updated)
-    and const.CONF_COMFORT_TEMP_DAY in _okopt._entry.options,
+    and _okopt._entry.options.get(
+        const.CONF_COMFORT_TEMP_DAY, const.DEFAULT_COMFORT_TEMP_DAY
+    ) == const.DEFAULT_COMFORT_TEMP_DAY,
     f"type {_oksaved.get('type')}, updated {_okopt.hass.config_entries.updated}",
 )
 
