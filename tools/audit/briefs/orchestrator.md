@@ -144,7 +144,7 @@ exactly that.
 - **Name the null control you expect**, where one is knowable. A seat told what
   must *not* fire returns better evidence than one told only what must.
 - **Every brief names the identity**: `tvofi-seat-author`, `GH_TOKEN` from
-  `~/.zcode/identity-author.token` per GitHub command, never printed.
+  `~/.zcode/identity-author.token`, never printed.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
   the handoff it prepares against the merge base only (`fix-review.md`).
 - **Name its own scratch subdirectory**, `scratchpad/<seat>/`. Seats share one
