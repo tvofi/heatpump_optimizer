@@ -37871,9 +37871,9 @@ for _label, _state in (("on", FakeState("on")), ("off", FakeState("off")),
 R.check(
     "through the coordinator the hot water attributes carry the switch's state: "
     "on, off, and None while unreadable or missing",
-    {k: v[0]["state"] for k, v in _g5_seen.items()}
+    {k: (v[0] or {}).get("state", "absent") for k, v in _g5_seen.items()}
     == {"on": True, "off": False, "unavailable": None, "missing": None}
-    and all(v[0]["entity_id"] == _G5_SWITCH for v in _g5_seen.values()),
+    and all((v[0] or {}).get("entity_id") == _G5_SWITCH for v in _g5_seen.values()),
     f"seen={ {k: v[0] for k, v in _g5_seen.items()} }",
 )
 R.check(
@@ -37895,19 +37895,28 @@ R.check(
 # switch set (and reading on) against unset. The clock is frozen so the two
 # runs share one horizon; the perturbation arm (indoor 21 -> 20 C) shows the
 # comparison can see a difference at all.
-def _g5_plan_bytes(config=None, indoor="21.0"):
+def _g5_plan_bytes(config=None, indoor="21.0", dhw_setpoint_delta=0.0):
     dt_util.freeze(_G5_FROZEN)
     try:
         coord = _solve_coord()
         del coord._update_current_state  # the real one, so the switch is read
         coord.hass.states.set("sensor.indoor", FakeState(indoor, unit="°C"))
         coord.hass.states.set(_G5_SWITCH, FakeState("on"))
+        coord.hass.states.set("sensor.tank", FakeState("48.0", unit="°C"))
+        # Hot water planned, so a leak into the DHW half would move the plan.
+        coord._config.update({"dhw_temp_entity": "sensor.tank", "dhw_tank_volume": 200.0})
+        coord._thermal_params.dhw_enabled = True
+        coord._thermal_params.dhw_setpoint += dhw_setpoint_delta
         coord._config.update(config or {})
         solves = []
         real = _coord_mod._await_optimize
 
         async def spy(hass, optimizer, state, *positional, **keywords):
-            solves.append(_g5_pickle.dumps((state, positional, keywords)))
+            # The optimizer's own parameter and configuration copies are
+            # inputs too: that is where a thermal-parameter leak would land.
+            solves.append(_g5_pickle.dumps(
+                (optimizer.model.params, optimizer.config, state, positional, keywords)
+            ))
             return await real(hass, optimizer, state, *positional, **keywords)
 
         _coord_mod._await_optimize = spy
@@ -37929,6 +37938,7 @@ _G5_FROZEN = dt_util.now().replace(minute=0, second=0, microsecond=0)
 _g5_unset = _g5_plan_bytes()
 _g5_set = _g5_plan_bytes({_G5_ENTITY: _G5_SWITCH})
 _g5_moved = _g5_plan_bytes(indoor="20.0")
+_g5_dhw_moved = _g5_plan_bytes(dhw_setpoint_delta=1.0)
 R.check(
     "null control: the switch set and reading on, every solve's arguments and the "
     "plan are byte-identical to unset",
@@ -37944,6 +37954,11 @@ R.check(
     "…and the comparison sees a real input change (indoor 21 -> 20 °C moves the bytes)",
     _g5_moved[0] != _g5_unset[0] and _g5_moved[1] != _g5_unset[1],
     f"args_differ={_g5_moved[0] != _g5_unset[0]} plan_differs={_g5_moved[1] != _g5_unset[1]}",
+)
+R.check(
+    "…and a hot-water parameter change (setpoint +1 °C) moves the solve's inputs and the plan",
+    _g5_dhw_moved[0] != _g5_unset[0] and _g5_dhw_moved[1] != _g5_unset[1],
+    f"args_differ={_g5_dhw_moved[0] != _g5_unset[0]} plan_differs={_g5_dhw_moved[1] != _g5_unset[1]}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
