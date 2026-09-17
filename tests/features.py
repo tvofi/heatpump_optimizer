@@ -37869,7 +37869,9 @@ class _G5Service:
         if self.hang_next:
             self.hang_next -= 1
             if blocking:
-                await _asyncio.sleep(3600)
+                # Longer than the patched timeout, short enough that a write
+                # with no timeout at all finishes and reads as landed.
+                await _asyncio.sleep(2.0)
             return
         if self.raise_next:
             self.raise_next -= 1
