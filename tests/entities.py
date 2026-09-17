@@ -10283,7 +10283,11 @@ def _gl_lease_hardening() -> tuple[bool, str]:
                 break
             _time.sleep(0.1)
         wrapper.send_signal(_sig.SIGTERM)
-        wrapper.wait(timeout=20)
+        try:
+            wrapper.wait(timeout=30)
+        except _subprocess.TimeoutExpired:  # the holder never came down: that is the defect
+            wrapper.kill()
+            wrapper.wait()
         _time.sleep(0.3)
         try:
             _os.kill(int(pidf.read_text()), 0)
