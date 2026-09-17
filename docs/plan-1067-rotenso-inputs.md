@@ -184,10 +184,10 @@ Added by owner decision 7. It runs after G7 merges (`git merge origin/main`) and
   1. **#1107 masks a blank write.** `_omit_unstored_defaults` drops a blank or None post on any key whose absent fallback equals the posted value, so a test that blanks such a key passes with or without G7b's own blank filter. G7b's blank and None tests must use keys #1107 would write: a DHW window, for example, or a None legionella interval. G7's first save test pinned #1107 rather than the page, and its blank-filter mutant survived.
   2. **A flow write target needs the two-zone model.** A write-target kind of flow for the mixing valve is refused unless the two-zone model is configured, so a resolver-fed suggestion of it is offered only when that model is configured.
   3. **G7's interface, which every G7b resolver returns unchanged in shape.** These names are planned on G7's branch and are not in the tree yet.
-     - Roles are named by register number (r plus digits) plus option keys.
+     - Roles are named by register number (r plus digits), by option keys for the entity slots, and by one named reading, unit_capacity, which is neither a register nor an option key: it is the package's unit-capacity sensor, from which a power figure is derived.
      - The prefix resolver, candidates of a prefix, returns a Resolved record per role: its entity ids and its scale.
      - The snapshot takes the getter and the resolved map.
-     - Infer takes the snapshot and the current options. It applies the resolver's scale, never suggests a value equal to the one in force, and does not offer an out-of-range numeric value.
+     - Infer takes the snapshot and the current options, applies the resolver's scale, and drops only None and a value equal to the one in force. **It has no range check.** Out-of-range numeric values are filtered by the page after infer(), in config_flow.py's pre-fill fit check, so a G7b fixer neither writes an infer() range test nor copies that filter into a resolver.
      - G7b's per-source tables and the fuzzy fallback return that same Resolved shape. The earlier text of this section, "each role carries its entity id, its scale and the source that matched", becomes Resolved plus the source name, carried for the disclaimer.
 - **Keys**: none new, if the device pick stays transient. The pick is a device selector on G7's pre-fill page, beside the prefix row. It adds no `_P` row, so the page count G7 sets does not move. Whether the pick is stored is the fixer's call, stated in the body. If stored, it is a new option key and carries every item of "Every new option key touches". If transient, the body shows that `registry_drives_every_page` (`tests/config_flow_steps.py:3438`) and the page fingerprint accept a field that is not a `_F` row. The selector is not filtered by integration, because the fallback serves any device. The prefix route stays for Modbus YAML entities: the generated package (tvofi/tuya_heat_pump `docs/modbus/rotenso_windmi_gchv.yaml`) gives them a `unique_id` and no device, so no device route reaches them.
 - **Interface, new HA-free module** `device_prefill.py` (the name is the fixer's to choose). A resolver is a pure function from one device's registry records to G7's role map, where each role carries its entity id, its scale and the source that matched. A record is platform, unique_id, entity_id, original_name, translation_key, device_class, unit and state_class, as plain values. `config_flow.py` reads the registries and builds the records, so the module never imports `homeassistant`. Dispatch is by `platform`: a source table when one is registered for it, then (from G7b-3) the fallback for roles the table left empty. A source table resolves only what its own definitions prove.
@@ -285,7 +285,7 @@ Added by owner decision 7. The owner confirmed its placement and the items marke
   - **Offer state**: a pure transition over the stored record says whether to offer, re-raise, withdraw or ignore.
 - **Persistence**: a `Store`, keyed by device id, holding each device's state: seen, offered, or dismissed. The stub at `tests/hastub/homeassistant/helpers/storage.py:32-50` round-trips through its module-level disk; the pattern is at `away.py:330`.
   - Each device is offered once, and the store survives restarts.
-  - A removed-then-re-added device has a new device id, so it counts as new.
+  - A removed-then-re-added device has a new device id, so it counts as new. This is the plan author's inference from per-device-id persistence, not an owner statement.
   - On first load the store records every existing device as seen, and none is offered: those were not "added".
   - At a later load, a qualifying device that the store has not seen was added while the integration was not running. It is offered then.
 - **Listener**: the device-registry update event, registered in `async_setup_entry` (`__init__.py:265`) only when offers are on, and released through `entry.async_on_unload` (the pattern at `:322`). The issue id is keyed by device id, so `ir.async_create_issue` stays idempotent across two config entries.
@@ -314,7 +314,7 @@ The owner's own items, confirmed 2026-09-17, are listed first; everything marked
   - A device removed while its offer is open withdraws the offer.
   - Null control, below: offers off gives no listener side effects.
 - **Tests (added by the plan author)**:
-  - A removed-then-re-added device (new id) is offered; the rule is the owner's, the test is not.
+  - A removed-then-re-added device (new id) is offered. Both the rule, inferred from per-device-id persistence, and the test are the plan author's.
   - The submit writes nothing unchanged (#1107), and dismissing writes no option.
   - Unloading leaves `FakeBus.listeners` empty.
 - **Coverage**: `config_flow` stays at its 100 % floor (`tests/coverage_budgets.json:7`) with no pragma (the `pragmas` ratchet at `:4`), including the new option's page path.
