@@ -13456,6 +13456,57 @@ for _job in ("closures-autofix", "claims-autofix"):
         bool(_rep) and _steps[-1] is _rep[0],
         "a reporting step that preempts the push destroys the repair",
     )
+# A GITHUB_TOKEN push's `pull_request` runs are held `action_required` with
+# zero jobs until a maintainer approves them (5511f23 on #1068, dac077e on
+# #1090), so each required context needs another route. Tests, Hassfest,
+# Validate and CodeQL are dispatched from the push step; dispatch run
+# 35187949244 put all three `Analyze (…)` check runs on 9eab006. Whether a
+# merge accepts a dispatch-produced context is NOT measured.
+#
+# Governance is refused a dispatch. `pr-contract` is `if: pull_request`, so a
+# dispatched run skips it, and docs/HANDOVER.md records a probe in which a
+# skipped required context satisfies the ruleset: the dispatch would be a
+# green `pr-contract` that never read the body. `record`
+# would also run on the branch with `issues: write`. Governance's route is the
+# body PATCH `## Head` forces after a new head: its `edited` run is unheld and
+# carried all four Governance contexts at dac077e (run 35166880265).
+#
+# Parsed from the push step's non-comment lines only: a commented-out
+# dispatch, or one moved into the `always()` report step (which also runs when
+# nothing was pushed), must not count.
+_AF_DISPATCHED = {"tests.yml", "hassfest.yml", "validate.yml", "codeql.yml"}
+
+
+def _af_dispatches(step: str) -> set[str]:
+    live = "\n".join(ln for ln in step.splitlines()
+                     if not ln.lstrip().startswith("#"))
+    return set(re.findall(r"gh workflow run (\S+)", live))
+
+
+for _job in ("closures-autofix", "claims-autofix"):
+    _steps = _workflow_job(_TESTS_YML, _job).split("\n      - ")
+    _push = [s for s in _steps if re.match(r"name: Push\b", s)]
+    _elsewhere = set().union(*(_af_dispatches(s) for s in _steps
+                               if s not in _push))
+    R.check(
+        f"{_job} dispatches every workflow owning a required context but Governance",
+        len(_push) == 1 and _af_dispatches(_push[0]) == _AF_DISPATCHED,
+        f"push steps={len(_push)} dispatched="
+        f"{sorted(_af_dispatches(_push[0])) if _push else []}",
+    )
+    R.check(
+        f"{_job} dispatches from the push step only",
+        not _elsewhere,
+        f"elsewhere={sorted(_elsewhere)}; only a pushed SHA needs a retrigger",
+    )
+_CODEQL_ON = (pathlib.Path(__file__).resolve().parents[1] / ".github"
+              / "workflows" / "codeql.yml").read_text()
+_CODEQL_ON = _CODEQL_ON[_CODEQL_ON.index("\non:\n"):_CODEQL_ON.index("\njobs:\n")]
+R.check(
+    "codeql.yml accepts the autofix jobs' dispatch",
+    re.search(r"^  workflow_dispatch:", _CODEQL_ON, re.M) is not None,
+    "without the trigger `gh workflow run codeql.yml` is refused with 422",
+)
 # The nightly-ha job runs `tests/nightly_ha.py` on the RUNNER, not only in the
 # container, and its host half imports the production package to derive what it
 # stages: `_seed_unique_id` needs `config_flow.entry_identity` for the seed's
