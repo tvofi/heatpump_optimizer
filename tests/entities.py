@@ -17918,6 +17918,182 @@ R.check(
     "before this step the check ran only on a seat's machine and a VERSION "
     "bump passed every required context",
 )
+# AN AUTOFIX COMMIT ON THE NAMED HEAD IS NOT A MOVED HEAD. `closures-autofix`
+# and `claims-autofix` push a commit onto a pull request after its body was
+# written, so the body names a head that is no longer the tip and `pr-contract`
+# refused it: #1107, whose bot commits 778c2b4 ("ci: drop inherited claims") and
+# b1afbcf ("ci: re-record closures") were followed by run 35220336323 failing
+# on b1afbcf with "`## Head` does not name b1afbcf". `checkPrBody` now accepts a
+# chain of such commits directly on top of the commit `## Head` names, and only
+# if EVERY commit in it carries the bot identity, exactly one autofix message,
+# one parent, and only modifications to that message's own files (a claims
+# commit may also add no line). Driven over a purpose-built repository, because
+# the check walks real commits and this checkout's history is whatever the
+# runner fetched. Each refusal arm below is the input that goes green when its
+# one condition is deleted from `autofixCommit`.
+def _autofix_head_fixture():
+    import os
+    import shutil
+    import tempfile
+
+    bot = ("github-actions[bot]",
+           "41898282+github-actions[bot]@users.noreply.github.com")
+    seat = ("seat", "seat@e")
+
+    d = Path(tempfile.mkdtemp(prefix="hpo-bot-head-"))
+
+    def g(*a, who=seat, committer=None):
+        c = committer or who
+        return subprocess.run(
+            ["git", "-C", str(d), *a], capture_output=True, text=True,
+            env={**os.environ, "GIT_AUTHOR_NAME": who[0],
+                 "GIT_AUTHOR_EMAIL": who[1], "GIT_COMMITTER_NAME": c[0],
+                 "GIT_COMMITTER_EMAIL": c[1]},
+        ).stdout.strip()
+
+    def commit(msg, edits, who=bot, committer=None, parent=None):
+        if parent:
+            g("checkout", "-q", "--detach", parent)
+        for rel, text in edits.items():
+            p = d / rel
+            if text is None:
+                p.unlink()
+            else:
+                p.write_text(text)
+        g("add", "-A")
+        g("commit", "-q", "-m", msg, who=who, committer=committer)
+        return g("rev-parse", "HEAD")
+
+    def body(names):
+        return "".join(
+            f"## {h}\n\n{names if h == 'Head' else 'none'}\n\n"
+            for h in ("Head", "Mutation proof", "Null control", "Figures",
+                      "Red checks", "Forward-carry", "Friction"))
+
+    def run(head, names):
+        (d / "body.md").write_text(body(f"`{names}`"))
+        p = subprocess.run(
+            ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+             str(d / "body.md"), "--head", head],
+            cwd=str(d), capture_output=True, text=True)
+        return p.returncode, p.stdout
+
+    try:
+        (d / ".claude/workflows").mkdir(parents=True)
+        (d / "tests/golden").mkdir(parents=True)
+        _copy_policy_lint_tree(d / ".claude/workflows")
+        (d / "tests/closures.json").write_text('{"closures": {}}\n')
+        (d / "tests/golden/claimed_drift.txt").write_text("# claims-for: 1.0\nfix_a\n")
+        (d / "tests/golden/card_claimed_drift.txt").write_text("# claims-for: 1.0\n")
+        (d / "other.txt").write_text("v1\n")
+        g("init", "-q", "-b", "trunk")
+        (d / ".gitignore").write_text("body.md\n")
+        base = commit("base", {}, who=seat)
+        closures = {"tests/closures.json": '{"closures": {"a": []}}\n'}
+        drop_claim = {"tests/golden/claimed_drift.txt": "# claims-for: 1.0\n"}
+        R_ = "ci: re-record closures"
+        C_ = "ci: drop inherited claims"
+        out = {}
+        # #1107's shape: base, then the claims repair, then the closures one.
+        c1 = commit(C_, drop_claim, parent=base)
+        c2 = commit(R_, closures, parent=c1)
+        out["replay"] = run(c2, base) + (c1, c2)
+        out["one"] = run(commit(R_, closures, parent=base), base)
+        out["null"] = run(base, base)
+        out["human"] = run(commit(R_, closures, who=seat, parent=base), base)
+        out["committer"] = run(commit(R_, closures, committer=seat, parent=base), base)
+        out["subject"] = run(commit("ci: re-record closures and more", closures, parent=base), base)
+        out["body_line"] = run(commit(R_ + "\n\nand a body", closures, parent=base), base)
+        out["forged_path"] = run(commit(R_, {"other.txt": "v2\n"}, parent=base), base)
+        out["extra_file"] = run(commit(R_, {**closures, "other.txt": "v2\n"}, parent=base), base)
+        out["mismatch"] = run(commit(R_, drop_claim, parent=base), base)
+        out["mismatch2"] = run(commit(C_, closures, parent=base), base)
+        out["adds_claim"] = run(commit(C_, {"tests/golden/claimed_drift.txt": "# claims-for: 1.0\nfix_a\nfix_b\n"}, parent=base), base)
+        out["deleted"] = run(commit(R_, {"tests/closures.json": None}, parent=base), base)
+        # A merge whose FIRST-parent diff is closures.json alone, carrying a
+        # human commit in from the side: only the parent count refuses it.
+        side = commit("human closures edit", closures, who=seat, parent=base)
+        g("checkout", "-q", "--detach", base)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", R_, side, who=bot)
+        out["merge"] = run(g("rev-parse", "HEAD"), base)
+        human = commit("human work", {"other.txt": "v3\n"}, who=seat, parent=base)
+        out["between"] = run(commit(R_, closures, parent=human), base)
+        sibling = commit("sibling", {"other.txt": "v4\n"}, who=seat, parent=base)
+        out["not_ancestor"] = run(commit(R_, closures, parent=base), sibling)
+        return out
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+_AH = _autofix_head_fixture()
+R.check(
+    "pr-contract accepts #1107's autofix commits on top of the head the body names",
+    _AH["replay"][0] == 0
+    and f"{_AH['replay'][2][:7]} (ci: drop inherited claims)" in _AH["replay"][1]
+    and f"{_AH['replay'][3][:7]} (ci: re-record closures)" in _AH["replay"][1]
+    and _AH["one"][0] == 0,
+    f"replay rc={_AH['replay'][0]}, single rc={_AH['one'][0]}; output: "
+    f"{_AH['replay'][1].strip()[-300:]!r}. Run 35220336323 refused #1107 at "
+    "b1afbcf for a body naming the seat's head under two bot commits",
+)
+R.check(
+    "and a body naming the real head passes with no autofix line (null control)",
+    _AH["null"][0] == 0 and "accepted autofix" not in _AH["null"][1],
+    f"rc={_AH['null'][0]}; output {_AH['null'][1].strip()[-200:]!r}",
+)
+_AH_REFUSED = {
+    "human": "not authored",
+    "committer": "not authored",
+    "subject": "not an autofix message",
+    "body_line": "not an autofix message",
+    "forged_path": "outside",
+    "extra_file": "outside",
+    "mismatch": "outside",
+    "mismatch2": "outside",
+    "adds_claim": "adds",
+    "deleted": "does not only modify",
+    "merge": "parents",
+    "between": "not authored",
+    "not_ancestor": "not authored",
+}
+_AH_WRONG = {
+    k: (_AH[k][0], _AH[k][1].strip()[-240:])
+    for k, why in _AH_REFUSED.items()
+    if _AH[k][0] != 1 or "does not name" not in _AH[k][1] or why not in _AH[k][1]
+}
+R.check(
+    "and refuses every chain that is not purely the bot's own repair",
+    not _AH_WRONG,
+    f"arms not refused for their own reason: {_AH_WRONG}. The identity is "
+    "forgeable, so a forged author must still be held by the subject, the "
+    "parent count and the path set, each by itself",
+)
+# The identity and messages are the autofix jobs' own. `checkPrBody` holds
+# them as constants rather than reading tests.yml, because the checkout it
+# runs in is the pull request's: a branch that edited the workflow would widen
+# what it is excused for. So agreement is pinned here instead.
+_AH_CONST = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     "console.log(JSON.stringify(m.AUTOFIX_BOT_COMMITS ?? null)))"],
+    capture_output=True, text=True).stdout or "null")
+_AH_TESTS_YML = Path(".github/workflows/tests.yml").read_text()
+_AH_DRIFT = []
+for _job, _subject in (("closures-autofix", "ci: re-record closures"),
+                       ("claims-autofix", "ci: drop inherited claims")):
+    _jt = _workflow_job(_AH_TESTS_YML, _job)
+    _added = re.search(r"^\s*git add (.+)$", _jt, re.M)
+    _rule = (_AH_CONST or {}).get("messages", {}).get(_subject)
+    if not (_rule and f'git commit -m "{_subject}"' in _jt and _added
+            and sorted(_added.group(1).split()) == sorted(_rule["paths"])
+            and f'git config user.name "{_AH_CONST["name"]}"' in _jt
+            and f'git config user.email "{_AH_CONST["email"]}"' in _jt):
+        _AH_DRIFT.append(_job)
+R.check(
+    "and its bot identity, messages and paths are the ones the autofix jobs commit",
+    _AH_CONST is not None and not _AH_DRIFT,
+    f"disagreeing jobs: {_AH_DRIFT}; constants: {_AH_CONST}",
+)
 _DS_PUB_PERMS = re.search(
     r"^    permissions:\n((?:^      .*\n)+)", _DS_PUB_JOB, re.M)
 R.check(
