@@ -1135,10 +1135,10 @@ jobs:
   # no-copies, a failed recording, an INERT contradiction, or its own
   # follow-up commit (`ci: re-record closures`).
   #
-  # A GITHUB_TOKEN push does not fire pull_request, so after the push this
-  # job dispatches Tests (recheck=true), Hassfest and Validate on the new
-  # SHA. CLOSURES_PUSH_TOKEN, if set, already retriggers via synchronize
-  # and the dispatch is skipped.
+  # A GITHUB_TOKEN push's pull_request runs wait action_required, so this
+  # job dispatches Tests (recheck=true), Hassfest and Validate on the new SHA
+  # (not Governance or CodeQL). CLOSURES_PUSH_TOKEN, if set, retriggers via
+  # synchronize and the dispatch is skipped.
   closures-autofix:
     needs: [closures]
     if: >-
