@@ -31,6 +31,12 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      everything.
   5. manifest.json's version equals VERSION before the stamp (a botched
      earlier stamp is fixed by hand, not papered over here).
+  6. (rule "claims") The stamp commit passes `tests/env_drift.py --claims-only
+     HEAD^1` -- the claims check main's own push run applies to it -- before
+     anything is pushed, with or without --push. v6.6.0's commit failed that
+     check and only main's push run found out. A refusal deletes the local
+     tag, resets to the pre-stamp HEAD keeping RELEASE_NOTES.md, prints the
+     check's output and exits 2. --dry-run makes no commit, so it never runs.
 
 --push-key PATH pushes the commit and the tag over a deploy key to the SSH URL
 instead of to origin (#954): main-protect's only bypass is that key (decision
@@ -42,8 +48,8 @@ What it writes: VERSION, the manifest version, CARD_VERSION in the bundled
 card (console banner only -- card_drift.mjs is unchanged), both claim files
 (the `claims-for:` stamp moves to the new version, the reason block is
 rewritten, and every bare claim line is deleted -- a stamp empties the list,
-the next branch restates its own footprint), then one commit and one tag.
-Nothing is pushed without --push.
+the next branch restates its own footprint), then one commit and one tag,
+which rule 6 checks before any push. Nothing is pushed without --push.
 """
 from __future__ import annotations
 
