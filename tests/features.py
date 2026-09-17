@@ -21005,7 +21005,10 @@ def _g3_shortfall(c, samples):
     if judged is None:
         return before, None, None
     lift, curve = judged
-    return before, c._cop_baseline[(2, curve)][0], _g3_true(c._thermal_model, supply_phys) / lift
+    # .get, not []: a baseline under the wrong key must fail a named check
+    # below, not stop the suite on a KeyError.
+    base = c._cop_baseline.get((2, curve), [float("nan")])[0]
+    return before, base, _g3_true(c._thermal_model, supply_phys) / lift
 
 
 _g3_raw = _g3_shortfall(_g3_watch(False), [(55.0, 55.0)])
