@@ -224,7 +224,8 @@ case "$*" in
   "api --paginate repos/o/r/issues/7/comments?per_page=100")
     cat "$STUB/c1.json"; [ -f "$STUB/c2.json" ] && cat "$STUB/c2.json"; true ;;
   "api repos/o/r/contents/.github/CODEOWNERS?ref=main")
-    [ -f "$STUB/no-codeowners" ] && { echo "HTTP 404" >&2; exit 1; }; cat "$STUB/../codeowners.json" ;;
+    [ -f "$STUB/no-codeowners" ] && { echo "HTTP 404" >&2; exit 1; }
+    if [ -f "$STUB/codeowners.json" ]; then cat "$STUB/codeowners.json"; else cat "$STUB/../codeowners.json"; fi ;;
   "api --paginate repos/o/r/pulls/7/files?per_page=100")
     cat "$STUB/files.json" ;;
   *) exit 9 ;;
@@ -361,6 +362,9 @@ run unowned o/r 7 "$SHA"; st $? 0 "a later owner-less line un-owns: COMMON.md is
 mkcase nocodeowners open false "$SHA" "$GOOD"; : > "$W/nocodeowners/no-codeowners"
 run nocodeowners o/r 7 "$SHA"; st $? 1 "REFUSE: CODEOWNERS unreadable at ref=main, failing closed"
 st "$(grep -c 'ref=main' "$W/nocodeowners/log")" 1 "and it was asked for at ref=main"
+mkcase emptycodeowners open false "$SHA" "$GOOD"
+printf '{"encoding": "base64", "content": "%s"}' "$(printf '# comments only\n' | base64 | tr -d '\n')" > "$W/emptycodeowners/codeowners.json"
+run emptycodeowners o/r 7 "$SHA"; st $? 1 "REFUSE: a CODEOWNERS holding no rules, failing closed"
 
 mkcase nokey open false "$SHA" "$GOOD"
 IDDIR="$W/nokey" run nokey o/r 7 "$SHA"; st $? 1 "REFUSE: the App private key is missing"
