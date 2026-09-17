@@ -129,6 +129,7 @@ trap 'rm -rf "$WORKDIR"' EXIT
 GATE_SCOPE="${GATE_SCOPE:-full}"
 GATE_SCOPE_BASE="${GATE_SCOPE_BASE:-origin/main}"
 SCOPE_RUN=""            # empty => no scoping, run everything
+{
 if [ "$GATE_SCOPE" = "auto" ]; then
   if "$PYTHON" tests/closure.py select --diff "$GATE_SCOPE_BASE" \
        --workdir "$WORKDIR" > "$WORKDIR/scope.stdout" 2>&1; then
@@ -147,6 +148,21 @@ elif [ "$GATE_SCOPE" != "full" ]; then
   echo "  MODE: FULL -- GATE_SCOPE=$GATE_SCOPE is not a mode I know"
   echo "  (expected 'full' or 'auto'), so every script runs."
 fi
+} > "$WORKDIR/scope.print"
+
+# The lease follows the mode derived above, not a seat's prediction of it: an
+# untracked file or a closures.json diff turns an expected SCOPED run FULL, and
+# three unleased FULL gates on 2026-09-16 overlapped leased stress runs. With
+# no label held, a FULL or stress-selecting run re-executes itself under a
+# lease it takes (waiting while another label holds it) and releases on exit.
+# Fail closed: anything but an explicit "none" (a crash included) leases.
+if [ -z "${HPO_GATE_LOCK_LABEL:-}" ] &&
+   [ "$("$PYTHON" tests/gate_lock.py needs-lease "$SCOPE_RUN" 2>&1)" != none ]; then
+  echo "  LEASE: this run needs the gate lease; tests/run.sh takes it as run.sh-$$"
+  rm -rf "$WORKDIR"
+  exec "$PYTHON" tests/gate_lock.py auto-lease --label "run.sh-$$" -- tests/run.sh "$@"
+fi
+cat "$WORKDIR/scope.print"   # after the re-exec, so the child alone prints it
 
 # The script a `run` line is actually running, for the scope lookup: the
 # first argument that names a file under tests/. Not the last argument --

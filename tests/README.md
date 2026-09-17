@@ -70,8 +70,8 @@ lease, or an abandoned hold (`holding` marker, no live flock), may be taken
 without forensics — the script decides that, you do not. `run.sh` holds `flock`
 on `/tmp/hpo-gate.lock/flock` for the gate run so a crash drops flock and a
 waiter can take immediately; the lease covers the window between commands when
-nothing holds flock (#404). Take the lock only when `tests/closure.py select`
-reports `MODE: FULL` or names `tests/stress.py`.
+nothing holds flock (#404). Without a label, `run.sh` takes the lease itself
+when its derived mode is `FULL` or names `tests/stress.py`, and waits for it.
 
 ### How a closure is derived
 
