@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 598ad6df36214a6d847683f19d08b424db55afd7
+updated-for: c71c53cfd7158ccfa32558ca748e307a7aaf06e9
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is the frozen table in
@@ -121,20 +121,21 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
 
 - **The seven open `[policy] recurring friction:` issues were filed by a
   histogram that keyed on the spelling a seat typed, and counted entries rather
-  than pull requests.** Both are fixed; the issues are not re-titled. So
-  #1095 (`gate-scoping`) and #1093 (`gate-scoping.md`) are one rule, and
-  #1094 (`orchestrator`) reached its count from 2 pull requests with 3 of its 4
-  entries in one body -- under recurrence it would not have been filed. The key
-  is now the policy FILE an id names, so new issues are titled
-  `[policy] recurring friction: .claude/rules/<rule>.md`; a seat disposing one
-  of the seven re-derives with
+  than pull requests.** Both are fixed (#1119); the issues are not re-titled. So
+  #1095 (`gate-scoping`) and #1093 (`gate-scoping.md`) are one rule, as are
+  #1078 and its sibling spelling, and #1094 (`orchestrator`) was filed on an
+  entry count that recurrence does not support. The key is now the policy FILE
+  an id names, so new issues are titled
+  `[policy] recurring friction: .claude/rules/<rule>.md`. **Do not carry any of
+  these counts**: `<ref>..origin/main` is enumerated against `origin/main`'s tip
+  at the moment of the run, so every one of them is a sliding figure. A seat
+  disposing one of the seven re-derives with
   `node .claude/workflows/policy_lint.mjs --stats --since <newest tag>` and reads
-  the `PRs / entries` column, not the old count in the issue body. The filing
-  lane re-measures every open one on each beat and comments when its key is
-  below threshold in the current window; it never closes, so the disposition is
-  still a seat's. Two keys that had never surfaced at all, because their
-  spellings split, are `.claude/rules/defect-root-cause.md` and (below
-  threshold on distinct PRs, not entries) `.claude/skills/steward/SKILL.md`.
+  the `PRs / entries` column, not the count in the issue body. The filing lane
+  re-measures every open one on each beat and comments when its key is below
+  threshold in the current window; it never closes, so the disposition is still
+  a seat's. A key below threshold in one window is not a fixed problem — the
+  window moved when the last tag was cut, and the friction may be older than it.
 - **The "34-key `data` payload" is wrong**, and so is any count of it: no rule
   reproduces 34, and it traces to a lost session tool. The freeze is enforced by
   `tests/features.py`'s symmetry check and the `coord_*` goldens, never by a
