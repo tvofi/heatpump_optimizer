@@ -7,9 +7,10 @@ report to the owner. Every other role here has a contract — `fixer.md`,
 
 **Your pull requests are reviewed. Your process is not.** Most of what you
 produce never meets a reviewer: merge-commit messages, issue bodies and
-comments, dispatch briefs, roster edits, and what you tell the owner. On 2026-09-07 the orchestrator made a run of unmeasured claims in a
-day, each caught by a review seat and none by itself, while writing the policy
-against them. **Not one was in a pull-request body.**
+comments, dispatch briefs, roster edits, and what you tell the owner. On
+2026-09-07 the orchestrator made a run of unmeasured claims in a day, each
+caught by a review seat and none by itself, while writing the policy against
+them. **Not one was in a pull-request body.**
 
 ## 0. Everything in the repository's policy binds you
 
