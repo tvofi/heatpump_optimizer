@@ -894,6 +894,7 @@
   "compressor_freq_sensor": "sensor.seed_compressor_freq_sensor",
   "confidence_margins_enabled": true,
   "curve_learning_enabled": true,
+  "dhw_disinfection_switch_entity": "sensor.seed_dhw_disinfection_switch_entity",
   "dhw_elastic_legionella_enabled": true,
   "dhw_free_disinfection_enabled": true,
   "dhw_inlet_entity": "sensor.seed_dhw_inlet_entity",
@@ -2599,6 +2600,14 @@
     },
     "default": null,
     "fields": {
+     "dhw_disinfection_switch_entity": {
+      "config": {
+       "filter": "[{'domain': ['switch', 'input_boolean']}]"
+      },
+      "default": "'sensor.seed_dhw_disinfection_switch_entity'",
+      "required": "Optional",
+      "selector": "EntitySelector"
+     },
      "dhw_elastic_legionella_enabled": {
       "config": null,
       "default": "True",
@@ -4861,6 +4870,14 @@
    },
    "default": null,
    "fields": {
+    "dhw_disinfection_switch_entity": {
+     "config": {
+      "filter": "[{'domain': ['switch', 'input_boolean']}]"
+     },
+     "default": null,
+     "required": "Optional",
+     "selector": "EntitySelector"
+    },
     "dhw_elastic_legionella_enabled": {
      "config": null,
      "default": "False",

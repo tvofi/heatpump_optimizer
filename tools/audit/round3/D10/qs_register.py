@@ -93,6 +93,18 @@ TIERS = {
 }
 
 
+def _step_texts(body, kind="data"):
+    """One flow step's ``kind`` texts, step level merged with every section's.
+    A field grouped with section() keeps its label under
+    ``sections.<name>.<kind>``, which is where the frontend reads it; a
+    step-level-only read silently drops every grouped field (#1111 moved 126
+    options labels there, and this harness's counts fell with them)."""
+    merged = dict(body.get(kind) or {})
+    for sec in (body.get("sections") or {}).values():
+        merged.update(sec.get(kind) or {})
+    return merged
+
+
 def _entity_sweep() -> dict[str, float]:
     """RESULT lines from the sibling entity harness, run as its own process."""
     env = dict(os.environ, PYTHONPATH=str(ROOT / "tests" / "hastub"))
@@ -137,8 +149,8 @@ def _flow_field_gaps() -> list[str]:
     gaps = []
     for section in ("config", "options"):
         for step, body in STRINGS.get(section, {}).get("step", {}).items():
-            desc = body.get("data_description", {})
-            for field in body.get("data", {}):
+            desc = _step_texts(body, "data_description")
+            for field in _step_texts(body):
                 if field not in desc:
                     gaps.append(f"{section}.{step}.{field}")
     return gaps

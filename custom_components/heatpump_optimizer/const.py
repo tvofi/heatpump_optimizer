@@ -789,6 +789,13 @@ CONF_VVC_PUMP_ENTITY: Final = "vvc_pump_entity"
 CONF_VVC_LEAD_MINUTES: Final = "vvc_lead_minutes"
 DEFAULT_VVC_LEAD_MINUTES: Final = 20
 CONF_SPACE_PUMP_ENTITY: Final = "space_circulation_pump_entity"
+#: #1067 (W1067-G5a) — the pump's own disinfection program as a switch. It is
+#: read and published beside the hot water attributes and never written:
+#: driving it is W1067-G5b's. No row in INPUT_MAX_AGE_MINUTES: it is read
+#: UNBOUNDED on the external-heat flag's rationale, because a switch is
+#: written only when it changes, so its age says when someone last decided,
+#: not whether anyone still checks.
+CONF_DHW_DISINFECTION_SWITCH_ENTITY: Final = "dhw_disinfection_switch_entity"
 
 #: #24 — minutes the tank must HOLD the disinfection temperature before the
 #: cycle counts. Momentary blips at temperature kill nothing.

@@ -45,17 +45,21 @@ EXPECTED on this tree (ae36eff printed option_fields_rendered=174 and
     them again, 186 -> 188 and 219 -> 221: the pump's silent-mode window and
     the power it keeps, on the fuse-and-peak-guards page, each with its row
     in docs/configuration.md's Fuse and peak guards table in the same
-    commit. #1067's frequency half moved them again, 188 -> 190 and
-    221 -> 223: the compressor's lowest and highest frequency, on the power
-    and solar sensors page, each with its row in docs/configuration.md's
-    Power and solar sensors table in the same commit. This block is an
+    commit. #1067's disinfection half (W1067-G5a) moved them again, 188 -> 189
+    and 221 -> 222: the pump's disinfection switch on the hot water tank page,
+    with its row in docs/configuration.md's Hot water tank and inlet table in
+    the same commit. #1067's frequency half (W1067-G6) moved them again,
+    189 -> 191 and 222 -> 224: the compressor's lowest and highest frequency,
+    on the power and solar sensors page, each with its row in
+    docs/configuration.md's Power and solar sensors table in the same commit.
+    This block is an
     ASSERTION `tests/harness_headers.py` executes the script against, and it
     is reached by a shell-out the closure recorder cannot see, so it does not
     go red on a pull request: it is re-measured in the commit that changes
     what the script prints, or main's forced-full run finds it):
-    RESULT option_fields_rendered=190 count
+    RESULT option_fields_rendered=191 count
     RESULT option_fields_undocumented=0 count
-    RESULT option_schema_keys_rendered=223 count
+    RESULT option_schema_keys_rendered=224 count
     RESULT wood_economics_fields_rendered=4 count
     RESULT wood_economics_doc_lines=6 count      (tolerance: exact)
 MACHINE: 8-core Apple M1, 8 GB, python3 3.11.5.

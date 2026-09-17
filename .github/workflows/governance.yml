@@ -395,6 +395,32 @@ jobs:
         if: always()
         run: bash tools/audit/preflight.sh < /tmp/pr-body.md || true
 
+      # CLAUDE.md rule 4, refused where it binds. `prepr.sh` step 5 held this
+      # check and ran only on a seat's own machine; the self-test above drives
+      # its predicate over strings and never reads this pull request's diff, so
+      # a VERSION bump passed every check (measured on this PR's own harness).
+      # One function, `version_edit`, serves both callers.
+      #
+      # A STEP IN THIS JOB, NOT A NEW JOB: `pr-contract` is already a required
+      # context, and a new job's context would need a ruleset change, which is
+      # the owner's. The job's `if:` limits it to `pull_request`, so the stamp
+      # itself -- pushed straight to main -- never reaches this step. Last and
+      # `if: always()`, so a refused body does not hide it and it does not
+      # hide the body's refusals.
+      #
+      # THE MAIN REF IS FETCHED, NOT THE PAYLOAD'S `base.sha`: a re-run replays
+      # the payload, and a base older than a stamp the branch has since merged
+      # would put that stamp inside the three-dot. `version_edit` takes the
+      # merge base itself, so a main that moved past a stamp adds nothing.
+      - name: Refuse a version, manifest-version or notes-heading edit
+        if: always()
+        env:
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          bash tools/audit/prepr.sh --version-edit origin/main "$PR_HEAD"
+
   # The loop around the corpus, rather than the corpus itself: is every merge
   # dispositioned, what is costing seats time, and which rules have outlived
   # their reason.

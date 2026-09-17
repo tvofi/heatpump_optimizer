@@ -45,9 +45,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.6.1
+# claims-for: 6.6.2
 #
-# v6.6.1: a hotfix stopping untouched options pages from reloading, and wave 1067 G4's silent-mode window. The stamp empties the list; the
+# v6.6.2: a hotfix restoring the labels and help text of every grouped config-flow field. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -279,9 +279,19 @@
 # in the plain render and the seeded render, re-recorded for #547's reason
 # above. Every other fixture is byte-identical: both keys default inert.
 #
+# #1067 W1067-G5a (the pump's disinfection switch, observed): this branch
+# moves exactly one existing fixture. config_flow gains the hot_water_tank
+# page's one new option key, dhw_disinfection_switch_entity, in the plain
+# render, the seeded render and the seed map, re-recorded for #547's reason
+# above. Every other fixture is byte-identical: with no switch configured the
+# hot water view publishes no new key, and the switch is never written.
+# Its bare claim is dropped here: G5a already merged to main (f02a790) and
+# its golden diff is baked into the committed baseline this branch merges,
+# so no diff remains for this branch to excuse under that name.
+#
 # #1067 W1067-G6 (sensor-only frequency observe, Hz bounds, control
-# validation): the v6.6.1 stamp emptied G4's claim; this branch restates its
-# own footprint. It moves exactly one existing fixture: config_flow gains the
+# validation): this branch restates its own footprint on top of the merged
+# main. It moves exactly one existing fixture: config_flow gains the
 # entities_metering page's two new option keys, compressor_freq_min_hz and
 # compressor_freq_max_hz, in the plain render and the seeded render,
 # re-recorded for #547's reason above. Every other fixture is byte-identical:

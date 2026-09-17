@@ -74,6 +74,18 @@ ROW = re.compile(r"^\s*\|(.+)\|\s*$")
 SETTING_HDR = ("setting", "option", "field")
 
 
+def _step_texts(body, kind="data"):
+    """One flow step's ``kind`` texts, step level merged with every section's.
+    A field grouped with section() keeps its label under
+    ``sections.<name>.<kind>``, which is where the frontend reads it; a
+    step-level-only read silently drops every grouped field (#1111 moved 126
+    options labels there, and this harness's counts fell with them)."""
+    merged = dict(body.get(kind) or {})
+    for sec in (body.get("sections") or {}).values():
+        merged.update(sec.get(kind) or {})
+    return merged
+
+
 def fold(s):
     s = re.sub(r"`([^`]*)`", r"\1", s)
     s = s.replace("**", "").replace("*", "")
@@ -191,7 +203,7 @@ def main():
 
     secs = doc_sections()
     if rotate:
-        ids = [s for s in steps if steps[s].get("data")]
+        ids = [s for s in steps if _step_texts(steps[s])]
         rot = {ids[i]: ids[(i + 1) % len(ids)] for i in range(len(ids))}
         by_title = {k: (rot.get(v[0], v[0]), steps[rot.get(v[0], v[0])])
                     for k, v in by_title.items()}
@@ -206,15 +218,15 @@ def main():
 
     used_ids = {sid for _, _, sid, _ in matched}
     undocumented_steps = [
-        sid for sid, b in steps.items() if b.get("data") and sid not in used_ids
+        sid for sid, b in steps.items() if _step_texts(b) and sid not in used_ids
     ]
 
     everywhere = all_row_labels()
     rows_total = rows_bad = fields_total = fields_bad = 0
     bad_rows, bad_fields = [], []
     for title, rows, sid, body in matched:
-        flabels = list((body.get("data") or {}).values())
-        fkeys = list((body.get("data") or {}).keys())
+        flabels = list(_step_texts(body).values())
+        fkeys = list(_step_texts(body).keys())
         fields_total += len(flabels)
         seen = set()
         for ln, label in rows:
@@ -239,7 +251,7 @@ def main():
     hay = doc_haystack()
     absent = {}
     for sid, body in steps.items():
-        for key, label in (body.get("data") or {}).items():
+        for key, label in _step_texts(body).items():
             # A trailing parenthetical is a UI convention ("(optional)",
             # "(kW/°C)"), not part of the name a document would use, so it is
             # stripped before the exact test.
@@ -258,7 +270,7 @@ def main():
         print("== options steps with fields and no section ==")
         for sid in undocumented_steps:
             print(f"  UNDOCUMENTED-STEP {sid} {steps[sid].get('title')!r} "
-                  f"({len(steps[sid]['data'])} fields)")
+                  f"({len(_step_texts(steps[sid]))} fields)")
         print("== rows not on the page the section is about ==")
         for title, sid, ln, label in bad_rows:
             print(f"  MISPLACED-ROW docs/configuration.md:{ln} [{title} -> {sid}] {label!r}")
@@ -278,7 +290,7 @@ def main():
     print(f"RESULT fields_nowhere={sum(1 for r in bad_fields if not r[4])} count")
     print(f"RESULT labels_absent_distinct={len(absent)} count")
     print(f"RESULT labels_absent_occurrences={sum(len(v) for v in absent.values())} count")
-    print(f"RESULT labels_checked={sum(len(b.get('data') or {}) for b in steps.values())} count")
+    print(f"RESULT labels_checked={sum(len(_step_texts(b)) for b in steps.values())} count")
     print("RESULT thread_factor=1.0")
     print(f"RESULT load1={os.getloadavg()[0]:.2f}")
     print("RESULT swapins=0")

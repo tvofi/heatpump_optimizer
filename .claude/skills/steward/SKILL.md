@@ -128,7 +128,7 @@ A failure on an earlier commit is expected and harmless; one on the head is not.
 
 The same applies to a push you did not make. An autofix commit (S1) is a
 `synchronize` event, and your body then names the head before the bot's commit.
-Correct `## Head` after the bot pushes, and confirm as above.
+`pr-contract` accepts it; fix `## Head` only if red.
 
 EXAMPLE BAD: push, then update the body, then explain the red run on your head.
 GOOD: commit, read the SHA, write the body, push, then read that head's checks.

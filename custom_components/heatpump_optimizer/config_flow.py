@@ -160,6 +160,7 @@ from .const import (
     DEFAULT_DHW_LEGIONELLA_MIN_INTERVAL_DAYS,
     CONF_SHOWER_FLOW_LPM,
     DEFAULT_SHOWER_FLOW_LPM,
+    CONF_DHW_DISINFECTION_SWITCH_ENTITY,
     CONF_VVC_PUMP_ENTITY,
     CONF_VVC_LEAD_MINUTES,
     DEFAULT_VVC_LEAD_MINUTES,
@@ -1464,6 +1465,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("hot_water_tank", CONF_DHW_FREE_DISINFECTION_ENABLED, DEFAULT_DHW_FREE_DISINFECTION_ENABLED, selector.BooleanSelector(), group="disinfection"),
     _F("hot_water_tank", CONF_DHW_ELASTIC_LEGIONELLA_ENABLED, DEFAULT_DHW_ELASTIC_LEGIONELLA_ENABLED, selector.BooleanSelector(), group="disinfection"),
     _F("hot_water_tank", CONF_DHW_LEGIONELLA_MIN_INTERVAL_DAYS, DEFAULT_DHW_LEGIONELLA_MIN_INTERVAL_DAYS, _number(1, 14, 1, 'days', slider=True), group="disinfection"),
+    _F("hot_water_tank", CONF_DHW_DISINFECTION_SWITCH_ENTITY, _STORED, _entity_of(['switch', 'input_boolean']), group="disinfection"),
     _F("hot_water_tank", CONF_SHOWER_FLOW_LPM, DEFAULT_SHOWER_FLOW_LPM, _number(4, 20, 0.5, 'L/min'), group="tank"),
     # -- hot_water_pumps
     _F("hot_water_pumps", CONF_VVC_PUMP_ENTITY, _STORED, _entity_of(['switch', 'input_boolean'])),

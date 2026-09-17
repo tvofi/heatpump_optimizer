@@ -31,6 +31,12 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      everything.
   5. manifest.json's version equals VERSION before the stamp (a botched
      earlier stamp is fixed by hand, not papered over here).
+  6. (rule "claims") The stamp commit passes `tests/env_drift.py --claims-only
+     HEAD^1` -- the claims check main's own push run applies to it -- before
+     anything is pushed, with or without --push. v6.6.0's commit failed that
+     check and only main's push run found out. A refusal deletes the local
+     tag, resets to the pre-stamp HEAD keeping RELEASE_NOTES.md, prints the
+     check's output and exits 2. --dry-run makes no commit, so it never runs.
 
 --push-key PATH pushes the commit and the tag over a deploy key to the SSH URL
 instead of to origin (#954): main-protect's only bypass is that key (decision
@@ -42,12 +48,14 @@ What it writes: VERSION, the manifest version, CARD_VERSION in the bundled
 card (console banner only -- card_drift.mjs is unchanged), both claim files
 (the `claims-for:` stamp moves to the new version, the reason block is
 rewritten, and every bare claim line is deleted -- a stamp empties the list,
-the next branch restates its own footprint), then one commit and one tag.
-Nothing is pushed without --push.
+the next branch restates its own footprint), then one commit and one tag,
+which rule 6 checks before any push. Nothing is pushed without --push.
 """
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import pathlib
@@ -783,6 +791,134 @@ def self_test() -> int:
     # must show the stamp commit either way.
     check("push: the refresh runs before the tag push",
           -1 < _pr.find("warning = refresh_origin()") < _pr.find('push_via(f"v{nxt}"'))
+
+    # The claims self-check (after v6.6.0). main's push run refused that
+    # stamp's commit with `env_drift.py --claims-only HEAD^1`; the stamp now
+    # runs the same check on its own commit before anything is pushed.
+    check("claims self-check: the command is main's push-run check against HEAD^1",
+          claims_selfcheck_argv("py") == ["py", "tests/env_drift.py", "--claims-only", "HEAD^1"])
+
+    class _Proc:
+        def __init__(self, rc: int, out: str) -> None:
+            self.returncode, self.stdout, self.stderr = rc, out, ""
+
+    check("claims self-check: exit 0 passes",
+          claims_selfcheck(lambda argv: _Proc(0, "claims hygiene: HEAD^1 ok\n"))
+          == (True, "claims hygiene: HEAD^1 ok"))
+    check("claims self-check: exit 1 refuses, carrying the refusal",
+          claims_selfcheck(lambda argv: _Proc(1, "RECORD PR CLAIMS: no\n")) == (False, "RECORD PR CLAIMS: no"))
+    check("claims self-check: a crash is not a pass",
+          not claims_selfcheck(lambda argv: _Proc(2, ""))[0])
+
+    def _unstartable(argv):
+        raise FileNotFoundError(2, "No such file")
+
+    check("claims self-check: a check that cannot start refuses",
+          not claims_selfcheck(_unstartable)[0])
+
+    # publish_stamp with doubles for every collaborator, so both arms run the
+    # real control flow and nothing is pushed. `events` is the order things
+    # happened in: the self-check must come before any push.
+    class _Args:
+        push, push_key, known_hosts = True, "/k/stamp.key", "/k/hosts"
+
+    def _publish(selfcheck_result, args=_Args):
+        events: list = []
+
+        def _push(refspec, key=None, hosts=None):
+            events.append(("push", refspec, key, hosts))
+            return ""
+
+        def _check():
+            events.append(("selfcheck",))
+            return selfcheck_result
+
+        def _undo(nxt, pre_head):
+            events.append(("undo", nxt, pre_head))
+
+        def _refresh():
+            events.append(("refresh",))
+            return None
+
+        try:
+            # Its RESULT line is a real stamp's, so it is kept out of this output.
+            with contextlib.redirect_stdout(io.StringIO()):
+                rc = publish_stamp(args, "6.6.2", "pre1234", push_via=_push, refresh_origin=_refresh,
+                                   claims_selfcheck=_check, undo_local_stamp=_undo,
+                                   sh=lambda *a, **kw: events.append(("sh",) + a) or "")
+        except Refuse as exc:
+            return events, str(exc)
+        return events, rc
+
+    _ev, _res = _publish((False, "RECORD PR CLAIMS: refused"))
+    check("claims self-check: a refused stamp commit pushes nothing",
+          not any(e[0] == "push" for e in _ev))
+    check("claims self-check: a refused stamp commit is undone to the pre-stamp head",
+          ("undo", "6.6.2", "pre1234") in _ev)
+    check("claims self-check: a refused stamp exits non-zero, printing the refusal",
+          isinstance(_res, str) and "rule claims" in _res and "RECORD PR CLAIMS: refused" in _res)
+    _ev, _res = _publish((True, "claims hygiene: HEAD^1 ok"))
+    check("claims self-check: a good stamp still pushes the branch, then the tag, over the key",
+          _res == 0 and [e for e in _ev if e[0] == "push"] ==
+          [("push", "HEAD:main", "/k/stamp.key", "/k/hosts"), ("push", "v6.6.2", "/k/stamp.key", "/k/hosts")])
+    check("claims self-check: a good stamp is not undone", not any(e[0] == "undo" for e in _ev))
+    check("claims self-check: it runs before the first push",
+          ("selfcheck",) in _ev and _ev.index(("selfcheck",)) < next(
+              i for i, e in enumerate(_ev) if e[0] == "push"))
+
+    class _NoPush:
+        push, push_key, known_hosts = False, None, "/k/hosts"
+
+    _ev, _res = _publish((False, "refused"), _NoPush)
+    check("claims self-check: a local stamp without --push is checked and undone too",
+          ("undo", "6.6.2", "pre1234") in _ev and isinstance(_res, str))
+
+    # The undo, on a real throwaway repository: no tag, no stamp commit, and
+    # the hand-written notes kept, uncommitted, over the pre-stamp tree.
+    with tempfile.TemporaryDirectory() as _gd:
+        _genv = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+                 "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t",
+                 "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+        for _k in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
+            _genv.pop(_k, None)
+
+        def _git(*a, **kw):
+            return subprocess.run(a, cwd=_gd, text=True, capture_output=True, check=True, env=_genv).stdout
+
+        _notes, _ver = Path(_gd) / "RELEASE_NOTES.md", Path(_gd) / "VERSION"
+        _git("git", "init", "-q")
+        _notes.write_text("# Notes\n")
+        _ver.write_text("6.6.1\n")
+        _git("git", "add", "-A")
+        _git("git", "commit", "-q", "-m", "base")
+        _pre = _git("git", "rev-parse", "HEAD").strip()
+        _notes.write_bytes(b"# Notes\r\n\r\n## v6.6.2\r\n\r\nShipped #1.\r\n")
+        _ver.write_text("6.6.2\n")
+        _git("git", "add", "-A")
+        _git("git", "commit", "-q", "-m", "v6.6.2: stamp t")
+        _git("git", "tag", "v6.6.2")
+        undo_local_stamp("6.6.2", _pre, runner=_git, notes=_notes)
+        check("undo: the local tag is gone", _git("git", "tag", "--list").strip() == "")
+        check("undo: HEAD is the pre-stamp commit", _git("git", "rev-parse", "HEAD").strip() == _pre)
+        check("undo: the stamp's other writes are reverted", _ver.read_text() == "6.6.1\n")
+        check("undo: the notes are kept, uncommitted",
+              _notes.read_bytes() == b"# Notes\r\n\r\n## v6.6.2\r\n\r\nShipped #1.\r\n"
+              and _git("git", "status", "--porcelain").strip() == "M RELEASE_NOTES.md")
+
+    # Where main() calls it, and the null control: --dry-run returns before
+    # the commit, so it writes nothing and never reaches the self-check.
+    _main_src = _push_src[_push_src.rindex("    args = ap.parse_args()"):]
+    check("claims self-check: main publishes only through publish_stamp, after the tag",
+          -1 < _main_src.find('sh("git", "tag", f"v{nxt}")')
+          < _main_src.find("return publish_stamp(args, nxt, head)")
+          and "push_via(" not in _main_src)
+    _dry_help = _push_src[_push_src.rindex('    ap.add_argument("--dry-run"'):].split("\n", 2)
+    _dry_help = _dry_help[0] + _dry_help[1]
+    check("claims self-check: --dry-run's help says it skips the claims check",
+          "every check" not in _dry_help and "no claims check" in _dry_help)
+    check("claims self-check: --dry-run returns before the commit and the self-check",
+          -1 < _main_src.find("if args.dry_run:") < _main_src.find('sh("git", "commit"')
+          < _main_src.find("return publish_stamp("))
     print(f"RESULT stamp_self_test={'pass' if ok else 'fail'}")
     return 0 if ok else 1
 
@@ -817,6 +953,117 @@ def tests_gate(head: str, which=shutil.which, fetchers: dict | None = None) -> t
     return gate_verdict(runs)
 
 
+# --- after the commit: the claims self-check, then the push ------------------
+
+# The check main's own push run applies to a stamp: tests/run.sh always runs
+# `env_drift.py --claims-only "$GOLDEN_REF"`, and tests.yml sets GOLDEN_REF to
+# HEAD^1 on a push to main. Run against the freshly made stamp commit, HEAD^1
+# is the origin/main this stamp was taken on, so the verdict is the one that
+# push run would print -- before the push instead of after it. v6.6.0 was
+# refused by exactly this check, and only main's push run found out.
+CLAIMS_SELFCHECK_REF = "HEAD^1"
+
+
+def claims_selfcheck_argv(python: str = sys.executable) -> list[str]:
+    return [python, "tests/env_drift.py", "--claims-only", CLAIMS_SELFCHECK_REF]
+
+
+def claims_selfcheck(runner=None) -> tuple[bool, str]:
+    """(passed, what it printed) for the stamp commit at HEAD.
+
+    Any exit other than 0 is a refusal: env_drift returns 1 for a claims
+    refusal, and a crash is not a pass. A check that cannot be started at
+    all is a refusal too -- a stamp nothing verified is the failure this
+    exists to stop."""
+    run = runner or (lambda argv: subprocess.run(argv, cwd=ROOT, text=True, capture_output=True))
+    try:
+        proc = run(claims_selfcheck_argv())
+    except OSError as exc:
+        return False, f"could not run the claims check: {exc}"
+    output = ((proc.stdout or "") + (proc.stderr or "")).strip()
+    return proc.returncode == 0, output or f"exit {proc.returncode}, no output"
+
+
+def undo_local_stamp(nxt: str, pre_head: str, runner=None, notes: Path = NOTES) -> None:
+    """Discard the local stamp commit and tag, keeping the hand-written notes.
+
+    The tree returns to `pre_head` -- the origin/main the stamp was taken on --
+    with RELEASE_NOTES.md as the stamper left it before running, uncommitted,
+    so a corrected run starts from what rule 1 accepts."""
+    runner = runner or sh
+    kept = notes.read_bytes()  # bytes, so line endings come back exactly as written
+    runner("git", "tag", "-d", f"v{nxt}")
+    runner("git", "reset", "-q", "--hard", pre_head)
+    notes.write_bytes(kept)
+
+
+def publish_stamp(args, nxt: str, head: str, push_via=push_via, refresh_origin=refresh_origin,
+                  claims_selfcheck=claims_selfcheck, undo_local_stamp=undo_local_stamp,
+                  sh=sh) -> int:
+    """Everything after the stamp commit and tag exist locally.
+
+    The collaborators are parameters so --self-test can drive this path with
+    doubles and never push; their defaults are the real functions, under the
+    same names, so main's call is the production path unchanged."""
+    # The claims self-check runs first, on every stamp that made a commit and
+    # before anything leaves this checkout. A refused commit is discarded here,
+    # while it is still local, rather than found by main's push run.
+    passed, output = claims_selfcheck()
+    if not passed:
+        undo_local_stamp(nxt, head)
+        raise Refuse("claims", "the stamp commit fails `env_drift.py --claims-only "
+                               f"{CLAIMS_SELFCHECK_REF}`, the check main's push run applies; "
+                               f"nothing was pushed, the commit and tag v{nxt} were discarded "
+                               "and RELEASE_NOTES.md is kept. The check said:\n" + output)
+    print(f"claims self-check: {output.splitlines()[-1]}")
+    if args.push:
+        # main moves between fetch and push when another session is merging.
+        # A rejected push must leave nothing behind: no local tag that would
+        # make the retry refuse under rule 3, no stamp commit off main.
+        try:
+            push_via("HEAD:main", args.push_key, args.known_hosts)
+        except subprocess.CalledProcessError as exc:
+            sh("git", "tag", "-d", f"v{nxt}")
+            sh("git", "reset", "--hard", "origin/main")
+            raise Refuse(1, "push to main was rejected (main moved, or the pushing identity was "
+                            "refused); the stamp commit and tag were "
+                            "discarded -- fetch, rewrite the notes for the new HEAD, run again: "
+                            + exc.stderr.strip().splitlines()[-1]) from exc
+        if args.push_key is not None:
+            warning = refresh_origin()
+            if warning:
+                print(f"WARNING: {warning}", file=sys.stderr)
+        # The tag push is the one step that can fail AFTER the commit is
+        # already public, and in some environments it always does: push
+        # credentials scoped to branches get 403 on refs/tags while
+        # refs/heads succeeds. Raising here left the stamp half-done and
+        # quiet -- the version commit on main, the tag local only, and so
+        # no GitHub Release at all, because release.yml triggers on the tag
+        # push. v6.3.10 and v6.3.11 both went missing exactly that way
+        # before anyone thought to look at the releases page.
+        #
+        # So this failure is reported rather than raised, and the caller is
+        # pointed at the recovery release.yml already documents for the
+        # branch-scoped case: dispatch it with the tag name and it creates
+        # the tag at the commit it runs on. Nothing is rolled back -- the
+        # commit belongs on main either way, and rule 3 refuses a second
+        # stamp of a version that is already there.
+        try:
+            push_via(f"v{nxt}", args.push_key, args.known_hosts)
+        except subprocess.CalledProcessError as exc:
+            why = (exc.stderr or "").strip().splitlines()
+            print(f"RESULT stamped=v{nxt} tag_pushed=false")
+            print(f"WARNING: v{nxt} is committed on main but its tag was NOT pushed: "
+                  + (why[-1] if why else "git push failed"), file=sys.stderr)
+            print(f"         There is no GitHub Release yet. Dispatch the Release "
+                  f"workflow with tag=v{nxt} at this commit -- it creates the tag "
+                  f"itself -- or push refs/tags/v{nxt} from a checkout whose "
+                  f"credentials allow it.", file=sys.stderr)
+            return 3
+    print(f"RESULT stamped=v{nxt} tag_pushed={'true' if args.push else 'false'}")
+    return 0
+
+
 # --- the stamp ---------------------------------------------------------------
 
 def main() -> int:
@@ -828,7 +1075,8 @@ def main() -> int:
                     help="with --push: push over this deploy key to the SSH URL, never to origin")
     ap.add_argument("--known-hosts", metavar="PATH", default=DEFAULT_KNOWN_HOSTS,
                     help="the pinned GitHub host key file for --push-key (default: %(default)s)")
-    ap.add_argument("--dry-run", action="store_true", help="run every check, write nothing")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="run rules 1-5 and print the plan; write nothing, so no commit and no claims check")
     ap.add_argument("--allow-red", action="store_true", help="stamp even though HEAD's gate is not green")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
@@ -929,52 +1177,7 @@ def main() -> int:
     sh("git", "commit", "-q", "-m",
        f"v{nxt}: stamp {args.title}\n\nCo-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>")
     sh("git", "tag", f"v{nxt}")
-    if args.push:
-        # main moves between fetch and push when another session is merging.
-        # A rejected push must leave nothing behind: no local tag that would
-        # make the retry refuse under rule 3, no stamp commit off main.
-        try:
-            push_via("HEAD:main", args.push_key, args.known_hosts)
-        except subprocess.CalledProcessError as exc:
-            sh("git", "tag", "-d", f"v{nxt}")
-            sh("git", "reset", "--hard", "origin/main")
-            raise Refuse(1, "push to main was rejected (main moved, or the pushing identity was "
-                            "refused); the stamp commit and tag were "
-                            "discarded -- fetch, rewrite the notes for the new HEAD, run again: "
-                            + exc.stderr.strip().splitlines()[-1]) from exc
-        if args.push_key is not None:
-            warning = refresh_origin()
-            if warning:
-                print(f"WARNING: {warning}", file=sys.stderr)
-        # The tag push is the one step that can fail AFTER the commit is
-        # already public, and in some environments it always does: push
-        # credentials scoped to branches get 403 on refs/tags while
-        # refs/heads succeeds. Raising here left the stamp half-done and
-        # quiet -- the version commit on main, the tag local only, and so
-        # no GitHub Release at all, because release.yml triggers on the tag
-        # push. v6.3.10 and v6.3.11 both went missing exactly that way
-        # before anyone thought to look at the releases page.
-        #
-        # So this failure is reported rather than raised, and the caller is
-        # pointed at the recovery release.yml already documents for the
-        # branch-scoped case: dispatch it with the tag name and it creates
-        # the tag at the commit it runs on. Nothing is rolled back -- the
-        # commit belongs on main either way, and rule 3 refuses a second
-        # stamp of a version that is already there.
-        try:
-            push_via(f"v{nxt}", args.push_key, args.known_hosts)
-        except subprocess.CalledProcessError as exc:
-            why = (exc.stderr or "").strip().splitlines()
-            print(f"RESULT stamped=v{nxt} tag_pushed=false")
-            print(f"WARNING: v{nxt} is committed on main but its tag was NOT pushed: "
-                  + (why[-1] if why else "git push failed"), file=sys.stderr)
-            print(f"         There is no GitHub Release yet. Dispatch the Release "
-                  f"workflow with tag=v{nxt} at this commit -- it creates the tag "
-                  f"itself -- or push refs/tags/v{nxt} from a checkout whose "
-                  f"credentials allow it.", file=sys.stderr)
-            return 3
-    print(f"RESULT stamped=v{nxt} tag_pushed={'true' if args.push else 'false'}")
-    return 0
+    return publish_stamp(args, nxt, head)
 
 
 if __name__ == "__main__":
