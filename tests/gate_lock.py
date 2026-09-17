@@ -48,7 +48,7 @@ class Owner:
     def create(self, path: Path) -> bool:
         """Write only if no owner exists: two takes in one instant cannot both win."""
         try:
-            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         except (FileExistsError, FileNotFoundError):
             return False
         with os.fdopen(fd, "w") as f:
