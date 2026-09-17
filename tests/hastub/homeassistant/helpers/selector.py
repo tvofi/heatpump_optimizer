@@ -121,6 +121,14 @@ class EntitySelector(_Selector):
     pass
 
 
+class DeviceSelectorConfig(_Config):
+    pass
+
+
+class DeviceSelector(_Selector):
+    pass
+
+
 class LocationSelectorConfig(_Config):
     pass
 

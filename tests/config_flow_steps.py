@@ -91,6 +91,7 @@ for _var in (
 import ast  # noqa: E402
 import asyncio  # noqa: E402
 import logging  # noqa: E402
+import pathlib  # noqa: E402
 import sys  # noqa: E402
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -5264,6 +5265,184 @@ async def options_modbus_prefill():
     )
 
 
+# ---------------------------------------------------------------------------
+# #1067 W1067-G7b-1: the same page, fed by a heat-pump DEVICE instead of a
+# Modbus prefix. The device's entities come from the generated fixture
+# (tools/gen_device_fixtures.py, tvofi/tuya_heat_pump's own model file at the
+# commit the fixture records); device_prefill maps them to roles and
+# modbus_prefill.infer() is unchanged. tests/features.py pins the mapping;
+# this pins what the page does with it.
+# ---------------------------------------------------------------------------
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "tools"))
+import gen_device_fixtures as _g7b_gen  # noqa: E402
+
+_G7B_FIXTURE = _g7b_gen.load("tuya_heat_pump_000004k4z6.json")
+_G7B_DEVICE_ID = "dev_rotenso"
+_G7B_STATES = {
+    "outdoor_ambient_temperature_t4": ("sensor", "-3.5"),
+    "dhw_tank_temperature": ("sensor", "48.0"),
+    "outlet_water_temperature_t1": ("sensor", "35.2"),
+    "heat_exchanger_inlet_water_temperature_tin": ("sensor", "30.1"),
+    "night_mode_silent": ("switch", "off"),
+    "dhw_setpoint": ("number", "50"),
+}
+
+
+def _g7b_seed(hass, *, platform="tuya_heat_pump", device_id=_G7B_DEVICE_ID, states=True):
+    """Put the fixture's entities on a device in the stub registries."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    dr.async_get(hass).add(device_id, name=_G7B_FIXTURE["device_name"])
+    registry = er.async_get(hass)
+    for row in _G7B_FIXTURE["records"]:
+        registry.add(
+            row["entity_id"],
+            unique_id=row["unique_id"],
+            device_id=device_id,
+            platform=platform,
+            original_name=row["original_name"],
+            original_device_class=row["device_class"],
+            unit_of_measurement=row["unit"],
+        )
+    if not states:
+        return
+    slug = _G7B_FIXTURE["device_name"].lower().replace(" ", "_")
+    for name, (domain, value) in _G7B_STATES.items():
+        hass.states.set(f"{domain}.{slug}_{name}", FakeState(value))
+
+
+async def options_device_prefill():
+    R.section("options: pre-filling from a heat-pump device (#1067 G7b-1)")
+    step = "modbus_prefill"
+    device_field = "prefill_device"
+    slug = _G7B_FIXTURE["device_name"].lower().replace(" ", "_")
+
+    flow, entry, hass = _g7_flow()
+    shown = await flow.async_step_modbus_prefill(None)
+    check(
+        f"opt_{step}", "happy", "the first form offers a device pick beside the prefix row",
+        shows(shown, step)
+        and rendered_keys(shown) == {device_field, const.CONF_MODBUS_PREFILL_PREFIX},
+        f"{rendered_keys(shown)}",
+    )
+
+    # Null control: the page with no device picked is the prefix route,
+    # unchanged. Compared against the same states G7's own walk uses.
+    flow, entry, hass = _g7_flow(_g7_states())
+    await flow.async_step_modbus_prefill(None)
+    without = await submit(flow, step, {const.CONF_MODBUS_PREFILL_PREFIX: "hp"})
+    flow2, entry2, hass2 = _g7_flow(_g7_states())
+    await flow2.async_step_modbus_prefill(None)
+    blank = await submit(flow2, step, {
+        device_field: None, const.CONF_MODBUS_PREFILL_PREFIX: "hp",
+    })
+    offered_without = {k: suggested_value(without, k) for k in rendered_keys(without)}
+    offered_blank = {k: suggested_value(blank, k) for k in rendered_keys(blank)}
+    check(
+        f"opt_{step}", "happy",
+        "null control: no device picked leaves the prefix route's suggestions exactly as they were",
+        offered_without == offered_blank
+        and without.get("description_placeholders") == blank.get("description_placeholders"),
+        f"without={offered_without} blank={offered_blank}",
+    )
+
+    # The device route.
+    flow, entry, hass = _g7_flow()
+    _g7b_seed(hass)
+    await flow.async_step_modbus_prefill(None)
+    preview = await submit(flow, step, {device_field: _G7B_DEVICE_ID})
+    offered = {k: suggested_value(preview, k) for k in rendered_keys(preview)}
+    check(
+        f"opt_{step}", "happy",
+        "a picked device offers its set-point in degrees and its four empty sensor slots",
+        shows(preview, step) and offered == {
+            const.CONF_DHW_SETPOINT: 50.0,
+            const.CONF_DHW_TEMP_ENTITY: f"sensor.{slug}_dhw_tank_temperature",
+            const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: f"sensor.{slug}_outlet_water_temperature_t1",
+            const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: (
+                f"sensor.{slug}_heat_exchanger_inlet_water_temperature_tin"),
+            const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: f"switch.{slug}_night_mode_silent",
+        },
+        f"{offered}",
+    )
+    saved = await submit(flow, step, {
+        const.CONF_DHW_SETPOINT: 50.0,
+        const.CONF_DHW_TEMP_ENTITY: f"sensor.{slug}_dhw_tank_temperature",
+        const.CONF_AFTER_SAVE: const.AFTER_SAVE_MENU,
+    })
+    check(
+        f"opt_{step}", "happy",
+        "the save writes what was kept, and never the transient device pick or a prefix",
+        shows_menu(saved, "advanced") and entry.options == {
+            const.CONF_DHW_SETPOINT: 50.0,
+            const.CONF_DHW_TEMP_ENTITY: f"sensor.{slug}_dhw_tank_temperature",
+        },
+        f"options={entry.options}",
+    )
+
+    # The outdoor slot is already set in _G7_ENTRY, so it is never offered.
+    check(
+        f"opt_{step}", "happy", "a slot already filled by setup is not offered by the device route",
+        const.CONF_OUTDOOR_TEMP_ENTITY not in offered,
+        f"{sorted(offered)}",
+    )
+
+    # A device from an integration with no source table: an error, no write.
+    flow, entry, hass = _g7_flow()
+    _g7b_seed(hass, platform="some_other_integration")
+    await flow.async_step_modbus_prefill(None)
+    unknown = await submit(flow, step, {device_field: _G7B_DEVICE_ID})
+    check(
+        f"opt_{step}", "error",
+        "a device from an integration with no mapping re-shows the first form with an error",
+        shows(unknown, step)
+        and unknown.get("errors") == {"base": "prefill_device_unreadable"}
+        and rendered_keys(unknown) == {device_field, const.CONF_MODBUS_PREFILL_PREFIX}
+        and entry.options == {},
+        f"errors={unknown.get('errors')} keys={rendered_keys(unknown)} options={entry.options}",
+    )
+
+    # A device with no entity any table names: the same refusal.
+    flow, entry, hass = _g7_flow()
+    from homeassistant.helpers import device_registry as _dr
+    from homeassistant.helpers import entity_registry as _er
+    _dr.async_get(hass).add("dev_plug", name="Kitchen plug")
+    _er.async_get(hass).add(
+        "switch.kitchen_plug", unique_id="kitchen_plug_state",
+        device_id="dev_plug", platform="tuya_heat_pump",
+    )
+    await flow.async_step_modbus_prefill(None)
+    nothing = await submit(flow, step, {device_field: "dev_plug"})
+    check(
+        f"opt_{step}", "error", "a device with no entity the table names is refused the same way",
+        shows(nothing, step)
+        and nothing.get("errors") == {"base": "prefill_device_unreadable"}
+        and entry.options == {},
+        f"errors={nothing.get('errors')} options={entry.options}",
+    )
+
+    # A picked device wins over a prefix typed beside it, and the prefix is
+    # not written when the device route answered.
+    flow, entry, hass = _g7_flow(_g7_states())
+    _g7b_seed(hass)
+    await flow.async_step_modbus_prefill(None)
+    both = await submit(flow, step, {
+        device_field: _G7B_DEVICE_ID, const.CONF_MODBUS_PREFILL_PREFIX: "hp",
+    })
+    closed = await submit(flow, step, {
+        const.CONF_DHW_SETPOINT: 50.0, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE,
+    })
+    check(
+        f"opt_{step}", "happy",
+        "a picked device wins over a prefix typed beside it, and no prefix is stored",
+        suggested_value(both, const.CONF_DHW_SETPOINT) == 50.0
+        and const.CONF_DHW_WINDOWS not in rendered_keys(both)
+        and closed.get("data") == {const.CONF_DHW_SETPOINT: 50.0},
+        f"offered={sorted(rendered_keys(both))} data={closed.get('data')}",
+    )
+
+
 async def main() -> int:
     if "--self-check" in sys.argv:
         return await self_check()
@@ -5302,6 +5481,7 @@ async def main() -> int:
     await absent_fallbacks_are_proven()
     await untouched_option_pages_do_not_reload()
     await options_modbus_prefill()
+    await options_device_prefill()
 
     print()
     LEDGER.print_result_lines()
