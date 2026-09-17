@@ -4,7 +4,7 @@
 written. It is the plan of record for this work, not a report: where it and
 the branch disagree, the branch and the handover comment on the pull request
 are what happened. The status block below, and the owner decision of
-2026-09-17 with the two groups it added (W1067-G7b and W1067-G9), are the only
+2026-09-17 with the two groups it added (W1067-G7b and the post-wave follow-on W1067-POST1), are the only
 text added after the fact. -->
 
 ## Status, written when the remote session handed over
@@ -67,7 +67,7 @@ Executed by an Opus 5 orchestrator with Opus/Sonnet/Haiku seats under the reposi
 
 Given in chat with the orchestrator, verbatim: "I want A, and then B later in the plan".
 
-7. **A is W1067-G7b**, split G7b-1 to G7b-3: the pre-fill page also takes a heat-pump device, reads that device's entities from Home Assistant's entity registry, and feeds them to G7's suggestion logic unchanged. It runs after G7 merges and before G8's close-out. The owner's same-day input widened it to any device source (tuya_heat_pump, Tuya Local, Local Tuya, brand-specific integrations), with a fuzzy fallback that matches by type, unit and name and says so on the page. **B is W1067-G9**: offering the pre-fill when a heat-pump device is added. It is placed after G8, as a follow-on outside wave 1067's close-out, for the reasons in its section.
+7. **A is W1067-G7b**, split G7b-1 to G7b-3: the pre-fill page also takes a heat-pump device, reads that device's entities from Home Assistant's entity registry, and feeds them to G7's suggestion logic unchanged. It runs after G7 merges and before G8's close-out. The owner's same-day input widened it to any device source (tuya_heat_pump, Tuya Local, Local Tuya, brand-specific integrations), with a fuzzy fallback that matches by type, unit and name and says so on the page. **B is W1067-POST1**: offering the pre-fill when a heat-pump device is added. It is a follow-on after G8, outside wave 1067's close-out. G8 still closes #1067, and B does not hold it open. The owner confirmed that placement the same day, answering yes to the orchestrator's proposal. B gets its own issue or tracking entry when it is started, and none is filed before then.
 
 ## Design decisions the orchestrator carries into every brief
 
@@ -94,8 +94,8 @@ Given in chat with the orchestrator, verbatim: "I want A, and then B later in th
 | W1067-G7b-1 | A: device pre-fill (owner decision 7): resolver interface, tuya_heat_pump table, registry stubs, fixture script, flow | G7 | opus / opus | high | false (config_flow.json only) | ~180 |
 | W1067-G7b-2 | A: tuya_local table and the localtuya decision, generated fixtures | G7b-1 | opus / opus | medium | false | ~80 |
 | W1067-G7b-3 | A: fuzzy fallback resolver (type, unit, name; disclaimer), labelled corpus, measured thresholds | G7b-2 | opus / opus | high | false (config_flow.json only) | ~150 |
-| W1067-G8 | close-out: Delivery-status, roster `resume`, HANDOVER, #201, close #1067, open G9's tracking issue | G7b-3 | sonnet / sonnet | low | false | 0 |
-| W1067-G9 | B: offer the pre-fill when a heat-pump device is added; follow-on after close-out (owner decision 7) | G8 | opus / opus | high | false | ~200 |
+| W1067-G8 | close-out: Delivery-status, roster `resume`, HANDOVER, #201, close #1067 | G7b-3 | sonnet / sonnet | low | false | 0 |
+| W1067-POST1 | post-wave follow-on, B: offer the pre-fill when a heat-pump device is added, with a global off switch (owner decision 7) | G8 | opus / opus | high | false (config_flow.json only) | ~220 |
 
 ### W1067-G0 — generator fix (tvofi/tuya_heat_pump, Sonnet)
 
@@ -213,7 +213,7 @@ Added by owner decision 7. It runs after G7 merges (`git merge origin/main`) and
   - **Decision rule**: a role is suggested only when the best score clears a threshold AND beats the runner-up by a margin. A tie or near-tie gives nothing, one entity is suggested for at most one role, a filled slot is never overwritten (`infer()`'s only-when-empty rule), and nothing is written until the user submits the page. **The threshold and margin come from the corpus measurement and are cited in the pull-request body with the command that printed them, never chosen by feel.**
   - **Disclaimer**: the page description says which suggestions came from name matching, lists each as role → entity, and asks the user to check them before saving. Source-table suggestions are named by source. If the page is sectioned, those labels go under `sections.<s>.data` and `data_description`.
   - **Corpus**: a labelled set of realistic entity sets. The tuya_heat_pump and tuya_local sets are generated from the pinned definitions; localtuya-style sets with user-named DPs are hand-shaped and marked as such in the corpus. Real traps from the pinned sources belong in it. tuya_heat_pump carries both "Outlet Water Temperature (T1)" (dp 10) and "Heat Exchanger Outlet Water Temperature (Tout)" (dp 106), a near-tie for supply on the word "outlet". Its "T5" is the compressor discharge (`models/000004k4z6.py:168-178`), not the Midea tank probe the label suggests.
-  - **Measured**: precision and recall per role over the corpus. **Acceptance is zero wrong suggestions**; recall is reported, not gated.
+  - **Measured**: precision and recall per role over the corpus. **Acceptance is zero wrong suggestions**; recall is reported, not gated. The run also reports how many roles the fallback fills on each corpus device, because W1067-POST1 takes its qualifying minimum from that table.
 - **Flow** (G7b-1): in phase 1 of `async_step_modbus_prefill`, a chosen device replaces the prefix resolver with the dispatched device resolver. G7b-3 adds only the disclaimer text to this path. Everything after that is G7's code path unchanged: `infer()`, the flat suggested-value form, and phase 3 through `_save_or_menu` (`config_flow.py:2520`). A device that resolves no role re-renders phase 1 with an error, not an empty form.
   - **#1107 binds**: the save path runs `_omit_unstored_defaults` over `_ABSENT_FALLBACKS` (`config_flow.py:1772`), which `tests/config_flow_steps.py:4860-4954` derives from coordinator snapshots. The pre-fill never writes a blank or an unchanged default, and no test hand-lists those keys.
   - **Section labels**: a device field inside a `section()` has its label and help under `options.step.<page>.sections.<s>.data` and `data_description` in `strings.json`, with the `en.json` byte-copy and a translated sv. A concurrent fix, branch fix/options-section-labels, adds a no-fallback lookup test that fails a label found only at the page level.
@@ -251,23 +251,64 @@ Added by owner decision 7. It runs after G7 merges (`git merge origin/main`) and
 
 ### W1067-G8 — close-out (Sonnet)
 
-Runs after G7b-3. Delivery-status rows verified against measured `origin/main`, roster `resume` flips, `docs/HANDOVER.md` decisions (C4 deferral: the two-zone model has one flow temperature at `thermal_model.py:1952` and no per-zone emitter law, so a zone-2 supply slot would feed nothing; card-slot deferral; one-sided lift semantics), one #201 comment via `gh_comment.py` with read-back, `Closes #1067`. Before `#1067` closes, the orchestrator opens G9's tracking issue with the owner's decision 7 quoted, and adds its Delivery-status row, so the follow-on is not orphaned by the close. No stamp.
+Runs after G7b-3. Delivery-status rows verified against measured `origin/main`, roster `resume` flips, `docs/HANDOVER.md` decisions (C4 deferral: the two-zone model has one flow temperature at `thermal_model.py:1952` and no per-zone emitter law, so a zone-2 supply slot would feed nothing; card-slot deferral; one-sided lift semantics), one #201 comment via `gh_comment.py` with read-back, `Closes #1067`. No stamp.
 
-### W1067-G9 — B: offer the pre-fill when a heat-pump device is added (follow-on after close-out)
+### W1067-POST1 — B: offer the pre-fill when a heat-pump device is added (post-wave follow-on)
 
-Added by owner decision 7. **Why after G8 and not before it:** the table's `after` column can express it either way, so the format does not decide. Three reasons do. #1067's evidence is the Rotenso inputs, which G0 to G7b deliver, and this group adds no input. An unsolicited prompt is a new surface in the Repairs panel, whose review risk should not keep delivered work from closing. And G9 depends only on G7b's resolvers, which are on `main` by then. It is `Part of` the tracking issue G8 opens, never `#1067`, and it closes that issue.
+Added by owner decision 7; its placement and the brief below were confirmed by the owner on 2026-09-17.
 
-- **Keys**: no option key is required. An opt-out option, if the fixer adds one, carries every item of "Every new option key touches".
-- **New module** `prefill_offer.py` (HA-free; the name is the fixer's to choose). `qualifies(device_record, entity_records) -> bool` is true only when a G7b **source table** (never the fuzzy fallback alone, whose suggestions the page itself tells the user to check) maps at least one role for the device and the device is not this integration's own service device (the `DeviceEntryType` the coordinator imports, `coordinator.py:40`), nor disabled. `should_offer(device_id, stored) -> bool` returns false for a device already offered or dismissed. Both are pure; the listener holds the effects.
-- **Listener**: the device-registry update event, filtered to create, and to update when an entity is added to a known device, registered in `async_setup_entry` (`__init__.py:265`) and released through `entry.async_on_unload` (the pattern at `:322`). With two config entries, the issue id is keyed by device id, so `ir.async_create_issue` stays idempotent and neither entry duplicates a prompt. A device that already exists at setup is not offered: the owner's decision is "when a heat-pump device is added".
-- **Prompt**: a repair issue raised through `setpoint_check.create_issue` (`setpoint_check.py:32-35`), with the device name as a placeholder. It must be dismissible and must open the pre-fill. The fixer picks one of two designs and says why. (a) A fixable issue whose fix flow in `repairs.py` (dispatch at `async_create_fix_flow`, `:78`) renders G7b-1's suggestion step for that device, calling the same module and writing through the same `_omit_unstored_defaults` path (so no second copy of the suggestion logic, which the duplication ratchet would refuse). (b) A non-fixable issue whose text points at the options page. (a) matches "opens the pre-fill". A fix flow that is closed without saving, or any explicit "not this device" choice, records a dismissal.
-- **No duplicates across restarts, dismissal stored**: offered and dismissed device ids persist in a `Store` (the stub at `tests/hastub/homeassistant/helpers/storage.py:32-50` round-trips through its module-level disk; the pattern at `away.py:330`). The fixer cites the Home Assistant source, at the `hacs.json` floor, for whether the issue registry keeps an Ignore across restarts for a non-persistent issue. The integration's own store is the record either way, because an Ignore the integration cannot read is not a stored dismissal it can test. A removed device clears its issue.
-- **Stubs, measured at `c8eb0f6`**: `FakeBus` supports only `async_listen_once` (`tests/harness.py:104-123`), so this group adds `async_listen` with the same honest remove callback (#525). The device-registry event constant and its payload go into the device-registry stub G7b-1 extended. The issue-registry stub has create and delete only (`tests/hastub/homeassistant/helpers/issue_registry.py:21-35`); a dismissal read, if design (a) needs one, is added there.
-- **Translations and docs**: the `issues` block in `strings.json`, `en.json` byte-identical, sv translated. The fix flow's step strings are under that issue's `fix_flow`. The issue-key roster in `tests/entities.py` (`:8999`) covers the new key. `docs/configuration.md` describes the prompt, what qualifies, and how a dismissal is undone.
-- **Tests**: firing the create event for a qualifying device raises exactly one issue. A fresh setup over the same `Store` disk after that raises none. A dismissed device is not re-offered after a restart. A device from another integration, this integration's service device, and a device resolving no role each raise none. Removing the device deletes the issue. Unloading the entry leaves `FakeBus.listeners` empty. If design (a) ships, the fix flow's save omits unchanged defaults (#1107).
-- **Mutation proof**: skip the store check → restart test red; drop the qualification call → foreign-device test red; drop `async_on_unload` → unload test red; drop the removal branch → removed-device test red.
-- **Null control**: with no qualifying device added, `hass.issues` is unchanged and the store records zero saves (`SAVE_COUNTS`). `env_drift.py --all` shows no drift, and no golden moves.
-- **Metrics**: `__init__.py`, `repairs.py` and the new module grow, with no coordinator change. The new module enters `tests/closures.json` and `docs/architecture.md`. `python3 tests/structure.py` decides the re-record; owner decision 4 names this wave, and whether it covers a post-close group is asked of the owner before the branch is pushed, not assumed.
+**Placement and tracking**
+- **After G8, outside the wave.** G8 closes #1067, and this group does not hold it open.
+- **Tracking.** It gets its own issue or Delivery-status tracking entry when it is started, cites that entry rather than #1067, and has nothing filed for it before then.
+- **Why after G8.** The table's `after` column could express either order, so the format did not decide. #1067's evidence is the Rotenso inputs, which G7b completes, and an unsolicited Repairs prompt is a new surface whose review should not hold delivered work open.
+- **Dependency.** It starts only when G7b's mappings are in use: G7b-1 to G7b-3 merged and released. The offer's qualification rule (below) reads their resolvers and G7b-3's corpus figures, so it cannot be written earlier.
+
+**Design**
+- **Keys**: one global option that turns offers off, default on, on the pre-fill's own page (the fixer names the page and says why). It carries every item of "Every new option key touches".
+  - **#1107 binds**: an untouched page must not write this option at its default. `_ABSENT_FALLBACKS` is derived, never hand-listed, and the derivation in `tests/config_flow_steps.py:4860-4954` proves a key either through a coordinator snapshot or through a static read. This key is read by the listener's setup rather than by the coordinator, so the fixer shows which proof covers it, or why it belongs in `_ABSENT_IS_NOT_DEFAULT`.
+  - **Section labels**: if the page is sectioned, the label and help go under `sections.<s>.data` and `data_description`.
+- **New HA-free module** `prefill_offer.py` (the name is the fixer's to choose), holding pure functions over plain records.
+  - **Qualification**: a device qualifies only when a source G7b can map resolves it. That means tuya_heat_pump, tuya_local with a supported model, or any integration where G7b-3's fuzzy fallback fills at least a minimum number of roles.
+  - **The minimum is taken from G7b-3's corpus measurement and cited, never guessed.** Otherwise there is no prompt, because a prompt that opens an empty page is noise.
+  - This integration's own service device (the `DeviceEntryType` the coordinator imports, `coordinator.py:40`) and a disabled device never qualify.
+  - **Offer state**: a pure transition over the stored record says whether to offer, re-raise, withdraw or ignore.
+- **Persistence**: a `Store`, keyed by device id, holding each device's state: seen, offered, or dismissed. The stub at `tests/hastub/homeassistant/helpers/storage.py:32-50` round-trips through its module-level disk; the pattern is at `away.py:330`.
+  - Each device is offered once, and the store survives restarts.
+  - A removed-then-re-added device has a new device id, so it counts as new.
+  - On first load the store records every existing device as seen, and none is offered: those were not "added".
+  - At a later load, a qualifying device that the store has not seen was added while the integration was not running. It is offered then.
+- **Listener**: the device-registry update event, registered in `async_setup_entry` (`__init__.py:265`) only when offers are on, and released through `entry.async_on_unload` (the pattern at `:322`). The issue id is keyed by device id, so `ir.async_create_issue` stays idempotent across two config entries.
+- **Prompt**: a repair issue through `setpoint_check.create_issue` (`setpoint_check.py:32-35`), naming the device.
+  - **Nothing is written automatically.** The prompt only opens the pre-fill page for that device, and the user submits it. A fix flow in `repairs.py` (dispatch at `async_create_fix_flow`, `:78`) may render that page's step, or the issue text may point to it. The fixer chooses and says why. Either way, the write is the page's own submit through `_save_or_menu` and `_omit_unstored_defaults`, with no second copy of the suggestion logic.
+  - **Dismissal**: closing the prompt without submitting, or an explicit "not this device", stores dismissed.
+  - The fixer cites the Home Assistant source, at the `hacs.json` floor, for whether the issue registry keeps an Ignore across restarts. The integration's store is the record either way.
+- **Withdrawal**: removing a device deletes its open issue and its store record.
+- **Stubs, measured at `c8eb0f6`**:
+  - `FakeBus` has only `async_listen_once` (`tests/harness.py:104-123`), so this group adds `async_listen` with the same honest remove callback (#525).
+  - The device-registry event goes into the stub G7b-1 extended.
+  - The issue-registry stub has create and delete only (`tests/hastub/homeassistant/helpers/issue_registry.py:21-35`).
+- **Translations and docs**:
+  - The `issues` block and the option label in `strings.json`, with `en.json` byte-identical and sv translated.
+  - The issue-key roster in `tests/entities.py` (`:8999`).
+  - `docs/configuration.md`: the option, what qualifies, and how a dismissal is undone.
+
+**Acceptance**
+- **Tests**:
+  - A device added before the integration first loads is not offered. One added after load, or while the integration was not running, is offered once.
+  - A restart between the offer and the response re-raises exactly one issue and no duplicate.
+  - A dismissal is remembered across a restart.
+  - A non-qualifying device gets no offer: another integration below the cited minimum, this integration's service device, or a device resolving nothing.
+  - A device removed while its offer is open withdraws the offer.
+  - A removed-then-re-added device (new id) is offered.
+  - The submit writes nothing unchanged (#1107), and dismissing writes no option.
+  - Unloading leaves `FakeBus.listeners` empty.
+- **Mutation proof**:
+  - drop the dismissal persistence → restart test red;
+  - drop the qualification threshold → non-qualifying test red;
+  - drop the withdrawal → removed-device test red;
+  - drop `async_on_unload` → unload test red.
+- **Null control**: an install with offers off registers no listener. Its store records zero saves (`SAVE_COUNTS`), and `hass.issues` is unchanged after a qualifying device is added. `env_drift.py --all` shows no drift beyond the re-recorded `config_flow` schema fixture.
+- **Metrics**: `__init__.py`, `repairs.py` and the new module grow, with no coordinator change. The module enters `tests/closures.json` and `docs/architecture.md`. `python3 tests/structure.py` decides the re-record. Owner decision 4 names wave 1067, so whether it covers this post-wave group is asked of the owner before the branch is pushed, not assumed.
 
 ## Verification
 
