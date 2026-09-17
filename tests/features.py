@@ -21000,11 +21000,12 @@ def _g3_shortfall(c, samples):
     before = [list(v) for v in c._cop_baseline.values()]
     for supply_seen, supply_phys in samples:
         c._flow_bias.observe_temps(supply_seen, None)
-        lift = _watch_lift(c, False)
+        judged = _watch_lift(c, False)
         c._observe_cop_health(_g3_true(c._thermal_model, supply_phys), False)
-    base = c._cop_baseline[(2, False)][0]
-    judged = None if lift is None else _g3_true(c._thermal_model, supply_phys) / lift
-    return before, base, judged
+    if judged is None:
+        return before, None, None
+    lift, curve = judged
+    return before, c._cop_baseline[(2, curve)][0], _g3_true(c._thermal_model, supply_phys) / lift
 
 
 _g3_raw = _g3_shortfall(_g3_watch(False), [(55.0, 55.0)])
@@ -21028,10 +21029,46 @@ R.check(
     f"before {_g3_stale_before}, after {list(_g3_stale._cop_baseline.values())}",
 )
 R.check(
-    "no supply slot configured: the watch keeps raw samples, as before",
-    _watch_lift(_g3_watch(True, supply_slot=False), False) == 1.0
-    and _watch_lift(_g3_watch(True), True) == 1.0,
-    "a baseline that never sees a normalised sample cannot mix units",
+    "no supply slot configured, or a hot-water sample: raw, into the baseline it always used",
+    _watch_lift(_g3_watch(True, supply_slot=False), False) == (1.0, False)
+    and _watch_lift(_g3_watch(True), True) == (1.0, True)
+    and _watch_lift(_g3_watch(False), False) == (1.0, False),
+    "the option off is the pre-#1067 key exactly",
+)
+# The toggle trap: a normalised baseline forms, then the option goes off (or
+# the slot is unmapped). Raw 55 degC samples must not be judged against it --
+# on one shared baseline a healthy pump reads a ~38 % shortfall.
+_g3_tog = _g3_watch(True)
+for _ in range(COP_BASELINE_MIN_SAMPLES + 5):
+    _g3_tog._flow_bias.observe_temps(45.0, 40.0)
+    _g3_tog._observe_cop_health(_g3_true(_g3_tog._thermal_model, 45.0), False)
+_g3_tog_lift = [list(v) for v in _g3_tog._cop_baseline.values()]
+_g3_tog._thermal_params.flow_curve_cop = False
+for _ in range(COP_BASELINE_MIN_SAMPLES + 5):
+    _g3_tog._flow_bias.observe_temps(55.0, 50.0)
+    _g3_tog._observe_cop_health(_g3_true(_g3_tog._thermal_model, 55.0), False)
+R.check(
+    "switching the option off starts a raw baseline and leaves the normalised one untouched",
+    set(_g3_tog._cop_baseline) == {(2, False), (2, "lift")}
+    and _g3_tog._cop_baseline[(2, "lift")] == _g3_tog_lift[0]
+    and not _g3_tog._cop_health_cusum.tripped,
+    f"{_g3_tog._cop_baseline}, tripped={_g3_tog._cop_health_cusum.tripped}",
+)
+_g3_saved = _g3_tog._thermal_learning_payload()["cop_baseline"]
+_g3_back = _g3_watch(True)
+
+
+async def _g3_fake_load():
+    return {"cop_baseline": _g3_saved}
+
+
+_g3_back._thermal_learning_store.async_load = _g3_fake_load
+_asyncio.run(_g3_back._async_load_thermal_learning())
+R.check(
+    "the normalised baseline persists under its own key and loads back to it",
+    "2:lift" in _g3_saved and "2" in _g3_saved and "2:dhw" not in _g3_saved
+    and _g3_back._cop_baseline.get((2, "lift")) == [round(_g3_tog_lift[0][0], 4), _g3_tog_lift[0][1]],
+    f"saved {_g3_saved}, loaded {_g3_back._cop_baseline}",
 )
 
 

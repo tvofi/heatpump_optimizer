@@ -153,6 +153,28 @@ def _holiday_dhw_windows(config: dict[str, Any]) -> list[Window] | None:
         return None
 
 
+
+def _flow_curve_values(config: dict[str, Any], cop_flow_carnot: bool) -> dict[str, Any]:
+    """#1067: ``from_config``'s flow-curve fields, kept out of its complexity.
+
+    The lift is for a plant with no valve. Behind a throttling valve the tank
+    temperature already is the flow the Carnot term prices, and a second,
+    curve-derived flow would price the same lift twice -- so the option is
+    refused there, here as well as on the options page, because a stored
+    value can predate a valve.
+    """
+    enabled = bool(
+        config.get(
+            const.CONF_FLOW_CURVE_COP_ENABLED, const.DEFAULT_FLOW_CURVE_COP_ENABLED
+        )
+    )
+    return {
+        "flow_curve_cop": enabled and not cop_flow_carnot,
+        "flow_curve_indoor_target": float(
+            config.get(const.CONF_TARGET_TEMP, const.DEFAULT_TARGET_TEMP)
+        ),
+    }
+
 @dataclass
 class ThermalParameters:
     """Parameters for the two-zone thermal model with DHW."""
@@ -924,20 +946,7 @@ class ThermalParameters:
         values["cop_flow_carnot"] = mixing_valve.is_throttling(
             values["mixing_valve_mode"]
         )
-        # #1067: the flow-curve lift is for a plant with no valve. Behind a
-        # throttling valve the tank temperature already is the flow the
-        # Carnot term prices, and a second, curve-derived flow would price
-        # the same lift twice -- so the option is refused there, here as well
-        # as on the options page, because a stored value can predate a valve.
-        values["flow_curve_cop"] = bool(
-            config.get(
-                const.CONF_FLOW_CURVE_COP_ENABLED,
-                const.DEFAULT_FLOW_CURVE_COP_ENABLED,
-            )
-        ) and not values["cop_flow_carnot"]
-        values["flow_curve_indoor_target"] = float(
-            config.get(const.CONF_TARGET_TEMP, const.DEFAULT_TARGET_TEMP)
-        )
+        values.update(_flow_curve_values(config, values["cop_flow_carnot"]))
 
         # Two-tank gating (issue #40): a probe, not a flag. The volume shares
         # the external-heat detector's key — one number for one physical tank.

@@ -714,8 +714,8 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
     )
 
 
-def _watch_lift(coord: Any, dhw_curve: bool) -> float | None:
-    """#1067: what the health watch divides a sample by, or ``None`` to skip.
+def _watch_lift(coord: Any, dhw_curve: bool) -> tuple[float, bool | str] | None:
+    """#1067: ``(divisor, baseline curve key)`` for a health sample, or ``None``.
 
     ``_learn_measured_cop`` credits the pump's true COP at the supply it ran
     at, lift included, so one outdoor bucket holding 45 degC and 55 degC
@@ -725,24 +725,28 @@ def _watch_lift(coord: Any, dhw_curve: bool) -> float | None:
     factor at the MEASURED supply. Never the priced curve -- the bucket's
     spread is exactly the supply moving away from it.
 
-    Three answers. 1.0, the raw sample exactly as before, with the option
-    off, for a hot-water sample (its curve prices its own hot water) and
-    when no supply slot is configured, so that baseline never sees a
-    normalised sample. ``None`` -- skip -- when a supply slot IS configured
-    but this cycle has no fresh reading: one raw sample in a normalised
-    baseline reads as a 24-38 % shortfall on a healthy pump, worse than no
-    normalisation at all, so a lapsed reading contributes nothing.
+    Three answers. ``(1.0, dhw_curve)``, the raw sample into the baseline it
+    always went to, with the option off, for a hot-water sample (its curve
+    prices its own hot water) and when no supply slot is configured.
+    ``(factor, "lift")`` for a normalised space sample, which goes to its OWN
+    baseline: a raw and a normalised COP differ by the lift itself, so a
+    baseline holding both reads a healthy pump as 31-38 % better or worse
+    whenever the option or the slot is toggled, or a store from before the
+    option loads. ``None`` -- skip -- when a supply slot IS configured but
+    this cycle has no fresh reading, so a dead supply sensor leaves the space
+    watch with no input at all: a raw sample there would judge nothing the
+    normalised baseline could compare against.
     """
     ctx = getattr(coord, "_ctx", coord)
     if dhw_curve or not ctx._thermal_params.flow_curve_cop:
-        return 1.0
+        return 1.0, bool(dhw_curve)
     if not ctx._config.get(CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY):
-        return 1.0
+        return 1.0, False
     supply = coord._flow_bias.last_supply_c
     if supply is None:
         return None
     return float(coord._thermal_model.flow_lift_factor(
-        float(ctx._current_state.outdoor_temperature), supply))
+        float(ctx._current_state.outdoor_temperature), supply)), "lift"
 
 
 def _freq_fold_blocked(coord: Any) -> bool:
@@ -1843,7 +1847,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # compressor has degraded. In the committed ``shoulder`` fixture 38
         # of 96 steps are space-only and 30 are DHW-only, so this is the
         # ordinary plan shape rather than an edge case.
-        self._cop_baseline: dict[tuple[int, bool], list[float]] = {}
+        self._cop_baseline: dict[tuple[int, bool | str], list[float]] = {}
         self._cop_health_cusum = Cusum(
             threshold=COP_HEALTH_THRESHOLD, drift=COP_HEALTH_DRIFT, side=1
         )
@@ -2668,11 +2672,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             for key, entry in raw_baseline.items():
                 try:
                     # "4" is a pre-v5.3.0 space-curve bucket and is kept as
-                    # one; "4:dhw" is the hot-water curve's own baseline.
-                    text = str(key)
-                    is_dhw = text.endswith(":dhw")
-                    bucket = int(text[:-4] if is_dhw else text)
-                    self._cop_baseline[(bucket, is_dhw)] = [
+                    # one; "4:dhw" is the hot-water curve's own baseline and
+                    # "4:lift" the lift-normalised space baseline (#1067).
+                    text, _, tag = str(key).partition(":")
+                    curve = {"": False, "dhw": True, "lift": "lift"}[tag]
+                    self._cop_baseline[(int(text), curve)] = [
                         float(entry[0]),
                         int(entry[1]),
                     ]
@@ -2807,7 +2811,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # DHW-curve bucket rides alongside under "4:dhw". Additive, and
             # nothing is discarded on upgrade.
             "cop_baseline": {
-                (f"{k[0]}:dhw" if k[1] else str(k[0])): [
+                (f"{k[0]}:{'dhw' if k[1] is True else k[1]}" if k[1] else str(k[0])): [
                     round(v[0], 4),
                     int(v[1]),
                 ]
@@ -8357,12 +8361,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         It defaults to False, which is what every install without a mode
         entity produces and is the pre-v5.3.0 behaviour exactly.
         """
-        lift = _watch_lift(self, dhw_curve)
-        if lift is None:
+        judged = _watch_lift(self, dhw_curve)
+        if judged is None:
             return
+        lift, curve = judged
         observed_cop = observed_cop / lift
         outdoor = float(getattr(self, "_ctx", self)._current_state.outdoor_temperature)
-        bucket = (int(np.floor(outdoor / 3.0)), bool(dhw_curve))
+        bucket = (int(np.floor(outdoor / 3.0)), curve)
         entry = self._cop_baseline.get(bucket)
         if entry is None:
             self._cop_baseline[bucket] = [float(observed_cop), 1]
