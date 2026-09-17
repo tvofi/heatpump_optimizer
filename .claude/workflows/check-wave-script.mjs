@@ -434,12 +434,12 @@ const REVIEW = (comment, verdict) => async (p, o) =>
     : { green: true }
 await block('group 9', async () => {
   const { out } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
-    agentImpl: REVIEW('Fix review: merge h1') })
+    agentImpl: REVIEW('Fix review: merge aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa') })
   t('a well-formed merge verdict merges', out.results[0].merged === true, J(out.results[0]))
 })
 await block('group 10', async () => {
   const { out, calls } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
-    agentImpl: REVIEW('Fix review: blocked h1 mutation-vacuous: the proof names no failing check') })
+    agentImpl: REVIEW('Fix review: blocked aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa mutation-vacuous: the proof names no failing check') })
   const r = out.results[0]
   t('a blocked verdict carries its class through to the result',
     r.merged === false && r.class === 'mutation-vacuous', J(r))
@@ -450,7 +450,7 @@ await block('group 10', async () => {
 })
 await block('group 11', async () => {
   const { out, calls } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
-    agentImpl: REVIEW('Fix review: blocked h1 root-cause-unanswered: the branch turned typing red and the body does not say why') })
+    agentImpl: REVIEW('Fix review: blocked aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa root-cause-unanswered: the branch turned typing red and the body does not say why') })
   t('a root-cause-unanswered verdict dispatches the root-cause seat, not another repair',
     calls.some((c) => c.startsWith('root-cause')) && !calls.some((c) => c.startsWith('repair')), J(calls))
   t('the root-cause seat returns beside the fix, and the group stays unmerged',
@@ -514,7 +514,19 @@ await block('the contract\'s verdict examples parse under the script\'s own gram
   const cls = [...src.matchAll(/const VERDICT_CLASSES = \[([^\]]*)\]/g)]
   t('VERDICT_CLASSES is defined exactly once in the wave script', cls.length === 1, `found ${cls.length}`)
   const classes = [...(cls[0]?.[1] ?? '').matchAll(/'([a-z-]+)'/g)].map((m) => m[1])
-  const re = new RegExp(`^Fix review:\\s+(?:(merge)\\s+(\\S+)|(blocked)\\s+(\\S+)\\s+(${classes.join('|')}):\\s*(.+))$`)
+  // DERIVE the regex from web-fix-wave.js's own source rather than rebuilding a
+  // second copy by hand. A hand-rebuilt copy is exactly the shape #592 and the
+  // root-cause catalogue both name: a check that supplies the value it is
+  // meant to be verifying. Concretely, this file used to hardcode `(\S+)` for
+  // the SHA capture groups here while production tightened to `[0-9a-f]{40}`
+  // -- the two silently diverged, and the 'deadbeef' null control below stayed
+  // green throughout, proving nothing about VERDICT_RE. `run()` above already
+  // executes the wave script's body via `new Function`, so the literal is
+  // extracted from `src` (the same string that already feeds VERDICT_CLASSES)
+  // and evaluated with those classes, instead of retyped.
+  const reLiteral = src.match(/const VERDICT_RE = new RegExp\(\n([\s\S]*?)\n\)/)
+  t('VERDICT_RE\'s literal is extracted from the wave script\'s own source', !!reLiteral, 'could not locate the VERDICT_RE definition')
+  const re = new Function('VERDICT_CLASSES', `return new RegExp(${reLiteral[1]})`)(classes)
   const briefsDir = path.join(here, '..', '..', 'tools', 'audit', 'briefs')
   const briefs = fs.readdirSync(briefsDir).filter((f) => f.endsWith('.md')).sort().map((f) => [f, fs.readFileSync(path.join(briefsDir, f), 'utf8')])
   t('the briefs directory is readable and non-empty', briefs.length > 0, `found ${briefs.length}`)
@@ -524,12 +536,18 @@ await block('the contract\'s verdict examples parse under the script\'s own gram
   // exists to accept, which is worse than one that misses.
   const examples = briefs.flatMap(([f, text]) => [...text.matchAll(/`((?:blocked|merge) [^`]+)`/g)].map((m) => [f, m[1].replace(/\s+/g, ' ').trim()]))
   t('the briefs carry at least three verdict examples (floor, not a count)', examples.length >= 3, `found ${examples.length}`)
-  for (const [f, ex] of examples) t(`${f} example parses: ${ex.slice(0, 60)}`, re.test('Fix review: ' + ex), 'rejected by VERDICT_RE')
+  // The briefs write `<sha>` as a human placeholder -- a reviewer substitutes
+  // the real head SHA, never types the literal angle brackets. The grammar
+  // check is about the CLASS and shape a brief spells out, not about `<sha>`
+  // being 40 hex itself, so a stand-in SHA is substituted before parsing.
+  const SHA_STAND_IN = 'a'.repeat(40)
+  for (const [f, ex] of examples) t(`${f} example parses: ${ex.slice(0, 60)}`, re.test('Fix review: ' + ex.replace(/<sha>/g, SHA_STAND_IN)), 'rejected by VERDICT_RE')
   const colonForm = briefs.filter(([, text]) => /`blocked:/.test(text)).map(([f]) => f)
   t('no brief spells a verdict in the form the parser rejects (`blocked:`)', colonForm.length === 0, `found in ${colonForm.join(', ')}`)
   t('the spelling the contract used for a session is refused (negative control)',
     !re.test('Fix review: blocked: finding not carried to <stage>'), 'the old form parses, so this pin cannot fail')
-  t('a bare merge verdict with a SHA parses (null control)', re.test('Fix review: merge deadbeef'), 'rejected')
+  t('a bare merge verdict with the full 40-hex SHA parses (null control)', re.test(`Fix review: merge ${SHA_STAND_IN}`), 'rejected')
+  t('an abbreviated SHA is refused, not merely a \\S+ null control (#1106)', !re.test('Fix review: merge 995b48e'), 'an abbreviated SHA parsed clean, which is the #1106 defect')
 })
 
 // The guard above is only worth having if it is actually called.
