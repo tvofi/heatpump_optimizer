@@ -271,4 +271,11 @@
 # config_flow gains the building page's new boolean, flow_curve_cop_enabled,
 # re-recorded for #547's reason above. direct_flow_carnot is a NEW fixture
 # and is not claimed; every other fixture is byte-identical.
-config_flow  # ADD-ONLY: one new building-page option key, flow_curve_cop_enabled
+#
+# #1067 W1067-G4 (the silent-mode window and derate): G3's claim above was
+# for #1091's diff and is replaced, not inherited. This branch moves exactly
+# one existing fixture: config_flow gains the grid_connection page's two new
+# option keys, silent_mode_windows and silent_mode_power_fraction, in the
+# plain render and the seeded render, re-recorded for #547's reason above.
+# Every other fixture is byte-identical: both keys default inert.
+config_flow  # ADD-ONLY: two new grid_connection option keys, silent_mode_windows and silent_mode_power_fraction
