@@ -206,8 +206,12 @@ def score(step_id, page, strings_section):
     fields = page.get("fields", [])
     top = [f for f in fields if f["section"] is None]
     st = strings_section.get(step_id, {})
-    data = st.get("data", {}) or {}
-    desc = st.get("data_description", {}) or {}
+
+    def _where(f, kind):
+        # The frontend's lookup: a field inside a section resolves only under
+        # sections.<section>.<kind>, never at step level.
+        node = ((st.get("sections") or {}).get(f["section"]) or {}) if f["section"] else st
+        return node.get(kind) or {}
     res = {}
 
     prefixes = {}
@@ -227,7 +231,7 @@ def score(step_id, page, strings_section):
                   if not f["has_default"] and "Entity" not in f["selector"]]
     res["R3"] = (0 if no_default else 1, ",".join(no_default))
 
-    missing_help = [f["field"] for f in fields if f["field"] not in desc]
+    missing_help = [f["field"] for f in fields if f["field"] not in _where(f, "data_description")]
     res["R5"] = (0 if missing_help else 1, ",".join(missing_help))
 
     res["R6"] = (1 if len(top) <= 8 else 0, str(len(top)))
@@ -237,7 +241,7 @@ def score(step_id, page, strings_section):
                 and not ("min" in f["config"] and "max" in f["config"])]
     res["R8"] = (0 if no_range else 1, ",".join(no_range))
 
-    res["_labels_missing"] = [f["field"] for f in fields if f["field"] not in data]
+    res["_labels_missing"] = [f["field"] for f in fields if f["field"] not in _where(f, "data")]
     res["_page_has_description"] = bool(st.get("description"))
     res["_n_fields"] = len(fields)
     res["_n_top"] = len(top)
@@ -258,10 +262,15 @@ def _sv_gaps(section):
         for part in ("title", "description"):
             if body.get(part) and not sv_body.get(part):
                 gaps.append(f"{section}.{step}.{part}")
-        for part in ("data", "data_description"):
-            for key in (body.get(part) or {}):
-                if key not in (sv_body.get(part) or {}):
-                    gaps.append(f"{section}.{step}.{part}.{key}")
+        nodes = [("", body, sv_body)] + [
+            (f"sections.{name}.", sec, (sv_body.get("sections") or {}).get(name) or {})
+            for name, sec in (body.get("sections") or {}).items()
+        ]
+        for where, en_node, sv_node in nodes:
+            for part in ("data", "data_description"):
+                for key in (en_node.get(part) or {}):
+                    if key not in (sv_node.get(part) or {}):
+                        gaps.append(f"{section}.{step}.{where}{part}.{key}")
     return gaps
 
 
