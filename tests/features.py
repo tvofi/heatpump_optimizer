@@ -38071,6 +38071,26 @@ R.check(
     f"writes={_g5_writes(_g5_c)} issues={_g5_issue(_g5_c)}",
 )
 
+# A failed OFF at the close is retried from the idle branch that follows.
+_g5_c = _g5_coord(**_G5_CONTROL_CFG)
+_g5_tick(_g5_c, _LG_REASON)
+_g5_c.hass.services.async_register("homeassistant", "turn_off", _g5_refuse)
+_g5_tick(_g5_c, "idle")
+_g5_off_raised = _g5_issue(_g5_c)
+_g5_c.hass.services.async_remove("homeassistant", "turn_off")
+_g5_tick(_g5_c, "idle")
+_g5_tick(_g5_c, "idle")
+R.check(
+    "a failed OFF at the close is retried on the next idle cycle, once",
+    len(_g5_off_raised) == 1
+    and _g5_writes(_g5_c)
+    == [("turn_on", _G5_SWITCH), ("turn_off", _G5_SWITCH), ("turn_off", _G5_SWITCH)]
+    and _g5_c._legionella.disinfect.memo is False
+    and _g5_issue(_g5_c) == [],
+    f"raised={len(_g5_off_raised)} writes={_g5_writes(_g5_c)} "
+    f"memo={_g5_c._legionella.disinfect.memo!r}",
+)
+
 # Observe: the switch is read and published, and nothing is written.
 _g5_c = _g5_coord(
     {_G5_SWITCH: FakeState("on")}, **{_G5_ENTITY: _G5_SWITCH, _G5_MODE: _G5_OBSERVE}
