@@ -110,7 +110,7 @@ def read_body(path: str) -> str:
     """Read the body file, or refuse. Never returns a body it cannot vouch for."""
     if in_shared_root(path):                     # fail closed on a shared root
         die(f"body file {path} sits directly in a root other seats write to; "
-            "move it to your own subdirectory, e.g. scratchpad/<seat>/")
+            "move it to your own subdirectory, e.g. <abs-scratch>/<seat>/")
     try:
         with open(path, encoding="utf-8") as fh:
             body = fh.read()

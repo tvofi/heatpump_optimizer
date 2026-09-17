@@ -176,7 +176,7 @@ body_check() { # body file, head sha, title, paths file
 # first, so a link in a seat's own directory pointing at a shared root refuses.
 # Plain `mktemp` names a unique file directly in `$TMPDIR` and is refused too:
 # deliberately, since telling a unique name from a chosen one is guessing, and
-# `mktemp -d` costs two characters. `scratchpad/<seat>/body.md` passes.
+# `mktemp -d` costs two characters. `<abs-scratch>/<seat>/body.md` passes.
 shared_root() { # body path -> 0 when the file sits directly in a shared root
   local f d r
   f=$(realpath -- "$1" 2>/dev/null) || f=$1
@@ -595,7 +595,7 @@ step() { # name, rc, detail
 # First, and fatal: every later step would read a file another seat may rewrite.
 if [ -n "${1:-}" ]; then
   if shared_root "$1"; then
-    say REFUSE "body path" "$1 sits directly in a root other seats write to -- move it to your own subdirectory, e.g. scratchpad/<seat>/"
+    say REFUSE "body path" "$1 sits directly in a root other seats write to -- move it to your own subdirectory, e.g. <abs-scratch>/<seat>/"
     exit 2
   fi
   say ok "body path" "not directly in a shared root"
