@@ -6264,6 +6264,7 @@ for _lang, _texts in (("strings", strings), *files.items()):
         f"{_lang}: the disinfection write-failure repair, its options and its "
         "refusal are translated",
         "entity_id" in _texts["issues"]["dhw_disinfection_write_failed"]["description"]
+        and "entity_id" in _texts["issues"]["dhw_disinfection_switch_lost"]["description"]
         and set(_texts["selector"]["dhw_disinfection_mode"]["options"])
         == {"observe", "control"}
         and "disinfection_control_needs_entity" in _texts["options"]["error"],

@@ -64,6 +64,7 @@ class LegionellaGuard:
         #: #1067: the pump's own disinfection switch, driven by the boost's
         #: edges in control mode and only read in observe mode.
         self.disinfect = disinfect
+        disinfect.persist = self.async_save
         #: Whether the pump's mode blocks hot water, read live on THIS cycle.
         #: The last solve's reading (``check_mode_block``) lags a mode change
         #: until the next solve, and the ON edge must not.
@@ -73,6 +74,8 @@ class LegionellaGuard:
         #: Set when the bound closed a boost the plan still commands; the
         #: switch is not turned back on until the plan stops commanding it.
         self.switch_latched: bool = False
+        #: The (owned switches, latch) pair as last written to the store.
+        self._switch_saved: tuple[tuple[str, ...], bool] = ((), False)
         self.last_cycle: datetime | None = None
         self.store: Store[dict[str, Any]] = Store(
             hass,
@@ -125,10 +128,7 @@ class LegionellaGuard:
                 if isinstance(attempt_raw, str)
                 else None
             )
-            owned = (stored or {}).get("disinfection_owned")
-            if isinstance(owned, str) and owned:
-                # The switch a previous run turned on and never saw off.
-                self.disinfect.owned = owned
+            self._load_switch_record(stored or {})
             if attempt is not None:
                 self.attempt = attempt
                 peak = (stored or {}).get("last_attempt_peak")
@@ -143,6 +143,15 @@ class LegionellaGuard:
         self.last_cycle = dt_util.now()
         await self.async_save()
 
+    def _load_switch_record(self, stored: dict[str, Any]) -> None:
+        """The switches a previous run turned on and never saw off, and
+        whether the boost bound's latch was holding them off."""
+        owned = stored.get("disinfection_owned")
+        if isinstance(owned, list):
+            self.disinfect.owned = [o for o in owned if isinstance(o, str) and o]
+        self.switch_latched = stored.get("disinfection_latched") is True
+        self._switch_saved = (tuple(self.disinfect.owned), self.switch_latched)
+
     async def async_save(self) -> None:
         """Persist the timestamp of the last completed anti-legionella cycle."""
         if self.last_cycle is None:
@@ -150,8 +159,11 @@ class LegionellaGuard:
         payload: dict[str, Any] = {
             "last_cycle": self.last_cycle.isoformat()
         }
-        if self.disinfect.owned is not None:
-            payload["disinfection_owned"] = self.disinfect.owned
+        if self.disinfect.owned:
+            payload["disinfection_owned"] = list(self.disinfect.owned)
+        if self.switch_latched:
+            payload["disinfection_latched"] = True
+        self._switch_saved = (tuple(self.disinfect.owned), self.switch_latched)
         if self.attempt is not None:
             payload["last_attempt"] = self.attempt.isoformat()
             if self.attempt_peak is not None:
@@ -401,32 +413,43 @@ class LegionellaGuard:
     async def _drive_switch(self, on: bool) -> None:
         """Put the pump's disinfection switch in the boost's state.
 
-        ON goes to the configured switch only in control mode, and only when
-        this integration owns no other switch. Everything else is a release
-        of the switch it owns, whatever the mode says now: a boost that
-        closed, disinfection switched off, an options save to observe or to
-        another switch. Ownership is persisted here, so a restart or a reload
-        mid-program still turns off what it turned on, and never a program
-        the pump or the user started. ON is not sent while the bound's close
-        is latched: the command that outlasted the bound is still the plan's
-        until the next solve, and it re-opens the boost window on the very
-        next cycle, which would put the program straight back on. A write
-        that raised raises a repair, and the next write that lands takes it
-        down again.
+        ON goes to the configured switch only in control mode, while the
+        boost wants it and the bound's close is not latched: the command that
+        outlasted the bound is still the plan's until the next solve, and it
+        re-opens the boost window on the very next cycle. Every switch this
+        integration owns and is not keeping on is released against its real
+        state (``DisinfectionSwitch.release``), whatever the mode says now,
+        so a closed boost, disabled disinfection, and an options change to
+        observe, to another switch or to none all end with it off -- and an
+        older record never blocks the configured switch. The record and the
+        latch are persisted whenever they change. A write that raised raises
+        a repair, and the next write that lands takes it down; a record
+        dropped as unreadable raises its own.
         """
         switch = self.disinfect
-        owned = switch.owned
-        if (
-            on
-            and not self.switch_latched
-            and switch.controlling
-            and owned in (None, switch.entity_id)
-        ):
+        now = dt_util.now()
+        if on and not self.switch_latched and switch.controlling:
             await switch.turn_on(dhw_blocked=self._dhw_blocked())
+            await switch.release(now, keep=switch.entity_id)
         else:
-            await switch.release()
-        if switch.owned != owned:
+            switch.memo = None
+            await switch.release(now)
+        if (tuple(switch.owned), self.switch_latched) != self._switch_saved:
             await self.async_save()
+        lost, switch.lost = switch.lost, []
+        for entity_id in lost:
+            create_issue(
+                self.hass,
+                DOMAIN,
+                f"dhw_disinfection_switch_lost_{entity_id}",
+                is_fixable=False,
+                # Persistent: the record is gone, so nothing would raise it
+                # again after a restart, and the switch may still be on.
+                is_persistent=True,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key="dhw_disinfection_switch_lost",
+                translation_placeholders={"entity_id": entity_id},
+            )
         if switch.failed == self.write_failed_notice:
             return
         self.write_failed_notice = switch.failed
@@ -447,17 +470,19 @@ class LegionellaGuard:
             # notice goes with the first one that lands.
             severity=ir.IssueSeverity.WARNING,
             translation_key="dhw_disinfection_write_failed",
-            translation_placeholders={"entity_id": str(switch.entity_id)},
+            translation_placeholders={"entity_id": str(switch.failed_entity)},
         )
 
     async def async_release_switch(self) -> None:
-        """On unload: turn off the switch this integration owns, unread.
+        """On unload: turn off every switch this integration owns, unread.
 
-        No further cycle will reconcile it, and a switch left on keeps the
-        tank heating for as long as the integration stays unloaded. Ownership
-        is kept, so the next setup confirms the switch really went off.
+        No further cycle will reconcile them, and a switch left on keeps the
+        tank heating for as long as the integration stays unloaded. A record
+        is dropped once its OFF has landed, so a program the user starts by
+        hand while the integration is unloaded is not switched off at the
+        next setup; a record whose OFF failed is kept for that setup.
         """
-        await self.disinfect.release(blind=True)
+        await self.disinfect.release_blind()
 
     def check_ceiling(self) -> None:
         """Say so when disinfection takes the tank above the charge limit.

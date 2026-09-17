@@ -925,7 +925,7 @@
           "dhw_elastic_legionella_enabled": "Låt legionellacykeln köras en dag eller två tidigare när elen är ovanligt billig, i stället för att alltid vänta till sista dagen. Sista dagen hålls alltid.",
           "dhw_legionella_min_interval_days": "Kör aldrig legionellacykler tätare än så här, även på mycket billiga dagar.",
           "dhw_disinfection_switch_entity": "En brytare eller hjälpare som startar värmepumpens eget legionellaprogram. I läget observera läses bara dess tillstånd och visas bland varmvattensensorns attribut; i läget styra slår integrationen på den när en desinfektionscykel börjar och av den när cykeln är slut.",
-          "dhw_disinfection_mode": "Observera läser brytaren och skriver aldrig till den. Styra slår på och av den i takt med legionellacykeln, men slår aldrig på den medan pumpens driftläge inte gör varmvatten, och slår aldrig av ett program som den inte själv startade. Styra kräver brytaren ovan.",
+          "dhw_disinfection_mode": "Observera läser brytaren och skriver aldrig till den. Styra slår på den när en legionellacykel börjar och av den när cykeln är slut, men slår aldrig på den medan pumpens driftläge inte gör varmvatten. Den slår bara av en brytare som den själv slog på: en brytare som redan var på när cykeln började lämnas i fred. En begränsning: om du slår på brytaren för hand medan en cykel som optimeraren startade pågår, slås den av när cykeln är slut, eftersom de två inte går att skilja åt. Styra kräver brytaren ovan.",
           "shower_flow_lpm": "Ditt duschmunstyckes flöde. Används bara för att räkna om tankens innehåll till duschminuter på sensorn DHW Mixed Water.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         },
@@ -1259,6 +1259,10 @@
     "pump_mode_unreadable": {
       "title": "Värmepumpens driftlägesenhet rapporterar inte",
       "description": "Enheten du valt för värmepumpens driftläge har inte gått att läsa på över {hours} timmar. Det senaste läget den rapporterade var ”{mode}”, och fram tills nu har planen fortfarande hållits till vad det läget klarar. Så är det inte längre: ett driftläge som ingen kunnat läsa på timmar säger inget om vad pumpen gör, och att fortsätta stänga av värme eller varmvatten utifrån det vore att låta dig frysa på en död givares ord. Planen utgår återigen från att pumpen klarar allt, precis som innan du konfigurerade enheten. Kontrollera att enheten fortfarande finns och är tillgänglig, eller töm fältet om du inte vill använda den. Meddelandet försvinner så snart enheten rapporterar igen."
+    },
+    "dhw_disinfection_switch_lost": {
+      "title": "Pumpens desinfektionsbrytare kan fortfarande vara på",
+      "description": "Optimeraren slog på {entity_id} för en desinfektionscykel, men brytaren har inte gått att läsa på en halvtimme – den kan ha bytt namn, tagits bort eller ersatts i de här inställningarna – så optimeraren kan inte längre slå av den och har slutat försöka. Kontrollera värmepumpens egen desinfektionsbrytare och slå av den om den fortfarande är på. Om du bytte namn på den, välj den nya entiteten på inställningssidan för varmvattentanken; optimeraren tar hand om den från nästa cykel."
     },
     "dhw_disinfection_write_failed": {
       "title": "Pumpens desinfektionsbrytare kunde inte ställas",

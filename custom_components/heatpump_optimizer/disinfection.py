@@ -13,34 +13,43 @@ frequency stage's order (``freq_control.py``):
   starts and off when that boost closes.
 
 A switch left ON heats the tank electrically for as long as it stays on, so
-the OFF half is built on two facts rather than on memory:
+the OFF half is built on a persisted record and the entities' real states,
+never on memory:
 
-* **Ownership, persisted.** ``owned`` names the switch this integration
-  turned ON and has not yet SEEN off. The guard stores it with the cycle's
-  own timestamps, so a restart, a reload, an options save that switches to
-  observe or names another switch, all still know which switch to turn off.
-  A switch that was already on when a boost started is never claimed, so a
-  program the user or the pump started is never switched off by this code.
-* **The entity's real state.** OFF is re-sent on every cycle while the owned
-  switch still READS on, and ownership ends only when a read shows it off. A
-  write that raised, one the entity silently dropped, and one sent while the
-  entity was unavailable are all retried the same way. An unreadable switch
-  is waited for, not written blind.
+* **Ownership.** ``owned`` lists the switches this integration turned ON and
+  has not yet SEEN off. The intent is saved BEFORE the ON is written and
+  withdrawn if the write fails, so a crash between the two cannot leave a
+  switch on with no record. A switch that already reads on is never claimed.
+* **Release, per owned switch.** OFF is re-sent every cycle it still reads
+  on; the record ends when a read shows it off. An owned switch that cannot
+  be read is waited for while it is the configured switch and merely
+  unavailable. When it has no state at all (renamed or deleted), or is no
+  longer the configured switch, it is waited for only
+  ``DHW_DISINFECTION_LOST_MINUTES`` -- startup ordering is the reason for any
+  wait -- and then dropped into ``lost``, which the guard turns into a repair
+  saying the switch may still be on. A stale record never blocks the
+  configured switch: ON to it proceeds while older records resolve.
+* **Unload.** ``release_blind`` writes OFF without a read and drops each
+  record whose OFF landed, so a program the user starts while the
+  integration is unloaded is not switched off at the next setup.
 
-ON is refused rather than guessed: outside control mode, without a switch, or
-while the pump's mode blocks hot water (OFF is always allowed). The service
-call is injected, so the module is free of Home Assistant imports.
+The one case ownership cannot separate: a user who turns the switch on by
+hand during a boost this integration started has it turned off when that
+boost ends. The service call is injected, so the module is free of Home
+Assistant imports.
 """
 from __future__ import annotations
 
 import logging
 from collections.abc import Awaitable, Callable, Mapping
+from datetime import datetime, timedelta
 from typing import Any
 
 from .const import (
     CONF_DHW_DISINFECTION_MODE,
     CONF_DHW_DISINFECTION_SWITCH_ENTITY,
     DEFAULT_DHW_DISINFECTION_MODE,
+    DHW_DISINFECTION_LOST_MINUTES,
 )
 from .freq_control import FREQ_MODE_CONTROL
 from .inputs import UNBOUNDED
@@ -51,6 +60,10 @@ _LOGGER = logging.getLogger(__name__)
 ServiceCall = Callable[[str, str, dict[str, Any]], Awaitable[Any]]
 
 
+async def _no_persist() -> None:
+    """The default persistence hook: nothing to save to."""
+
+
 class DisinfectionSwitch:
     """Reads, and in control mode writes, the pump's disinfection switch."""
 
@@ -58,16 +71,22 @@ class DisinfectionSwitch:
         #: The live effective configuration, read on every call.
         self._config = config
         self._service = service
+        #: Saves the owner's record; the guard installs its store's save.
+        self.persist: Callable[[], Awaitable[None]] = _no_persist
         #: True once this boost's ON is satisfied (written, or found already
-        #: on), so it is not re-sent every cycle; cleared by ``release``.
+        #: on), so it is not re-sent every cycle.
         self.memo: bool | None = None
-        #: True while the most recent write attempt raised.
+        #: True while the most recent write attempt raised, and to which switch.
         self.failed: bool = False
-        #: The switch as read this cycle (the owned one if any), or None when
-        #: unread or unreadable.
+        self.failed_entity: str | None = None
+        #: The configured switch as read this cycle, or None when unread.
         self.observed: bool | None = None
-        #: The switch this integration turned ON and has not yet read OFF.
-        self.owned: str | None = None
+        #: The switches this integration turned ON and has not yet read OFF.
+        self.owned: list[str] = []
+        #: Records dropped as unreadable, for the owner to report and drain.
+        self.lost: list[str] = []
+        self._readings: dict[str, tuple[bool | None, str | None]] = {}
+        self._unreadable_since: dict[str, datetime] = {}
         self._blocked_logged: bool = False
 
     @property
@@ -112,38 +131,67 @@ class DisinfectionSwitch:
             # did not start is not claimed, so it is never switched off here.
             self.memo = True
             return True
+        claimed = entity_id not in self.owned
+        if claimed:
+            # The intent is on disk before the write, so a crash between the
+            # write and a later save cannot leave the switch on unrecorded.
+            self.owned.append(entity_id)
+            await self.persist()
         if not await self._write(entity_id, "turn_on"):
+            if claimed:
+                self.owned.remove(entity_id)
+                await self.persist()
             return False
-        # Recorded only AFTER the call succeeded, so a failed write is retried.
         self.memo = True
-        self.owned = entity_id
         return True
 
-    async def release(self, *, blind: bool = False) -> bool:
-        """Turn off the switch this integration turned on, in any mode.
+    async def release(self, now: datetime, *, keep: str | None = None) -> None:
+        """Resolve every owned switch except ``keep`` against its reading."""
+        changed = False
+        for owned in list(self.owned):
+            if owned == keep:
+                continue
+            flag, problem = self._readings.get(owned, (None, "unread"))
+            if flag is not None:
+                self._unreadable_since.pop(owned, None)
+                if flag:
+                    await self._write(owned, "turn_off")
+                    continue
+                self.owned.remove(owned)
+                changed = True
+                continue
+            if owned == self.entity_id and problem != "missing_entity":
+                # The configured switch, unavailable: wait for it.
+                continue
+            since = self._unreadable_since.setdefault(owned, now)
+            if now - since < timedelta(minutes=DHW_DISINFECTION_LOST_MINUTES):
+                continue
+            self._unreadable_since.pop(owned, None)
+            self.owned.remove(owned)
+            self.lost.append(owned)
+            changed = True
+            _LOGGER.warning(
+                "Disinfection switch %s has been unreadable for %.0f min; the "
+                "optimizer can no longer turn it off, and it may still be on",
+                owned,
+                DHW_DISINFECTION_LOST_MINUTES,
+            )
+        if changed:
+            await self.persist()
 
-        Ownership ends only when a read shows the switch off; until then OFF
-        is re-sent each cycle it still reads on. An unreadable switch is
-        waited for. ``blind`` writes OFF without a read, for an unload that
-        will not see another cycle, and keeps ownership for the next setup.
-        """
-        self.memo = None
-        owned = self.owned
-        if owned is None:
-            return False
-        if not blind:
-            if self.observed is False:
-                self.owned = None
-                return True
-            if self.observed is None:
-                return False
-        return await self._write(owned, "turn_off")
+    async def release_blind(self) -> None:
+        """On unload: OFF to every owned switch unread; drop what landed."""
+        landed = [owned for owned in list(self.owned) if await self._write(owned, "turn_off")]
+        if landed:
+            self.owned = [owned for owned in self.owned if owned not in landed]
+            await self.persist()
 
     async def _write(self, entity_id: str, service: str) -> bool:
         try:
             await self._service("homeassistant", service, {"entity_id": entity_id})
         except Exception as err:  # noqa: BLE001 - a switch must never kill the cycle
             self.failed = True
+            self.failed_entity = entity_id
             _LOGGER.warning(
                 "Could not %s the disinfection switch %s: %s", service, entity_id, err
             )
@@ -153,29 +201,33 @@ class DisinfectionSwitch:
         return True
 
     def observe(self, reader: Any) -> None:
-        """Read the owned switch, else the configured one, through the reader."""
-        target = self.owned or self.entity_id
-        if target is None:
-            self.observed = None
-            return
-        reading = reader.read_bool(
-            CONF_DHW_DISINFECTION_SWITCH_ENTITY,
-            max_age_minutes=UNBOUNDED,
-            entity_id=target,
-        )
-        self.observed = reading.flag if reading.ok else None
+        """Read the configured switch and every owned one through the reader."""
+        self._readings = {}
+        for target in dict.fromkeys([*self.owned, self.entity_id]):
+            if target is None:
+                continue
+            reading = reader.read_bool(
+                CONF_DHW_DISINFECTION_SWITCH_ENTITY,
+                max_age_minutes=UNBOUNDED,
+                entity_id=target,
+            )
+            self._readings[target] = (
+                reading.flag if reading.ok else None,
+                reading.problem,
+            )
+        self.observed = self._readings.get(self.entity_id or "", (None, None))[0]
 
     def view(self) -> dict[str, Any]:
         """The published attributes: nothing at all when no switch is involved."""
-        target = self.owned or self.entity_id
+        target = self.entity_id or next(iter(self.owned), None)
         if target is None:
             return {}
         return {
             "dhw_disinfection_switch": {
                 "entity_id": target,
                 "mode": self.mode,
-                "state": self.observed,
-                "turned_on_by_optimizer": self.owned is not None,
+                "state": self._readings.get(target, (None, None))[0],
+                "turned_on_by_optimizer": target in self.owned,
                 "write_failed": self.failed,
             }
         }
