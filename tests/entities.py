@@ -14118,6 +14118,24 @@ R.check(
     "a pull request can forge every content clause; only a stamp is pushed "
     "to main as a single-parent commit",
 )
+# ...and the parent count answers "not a pull request" only on the
+# `pull_request` run. A dispatch on the pull request's BRANCH -- the one
+# closures-autofix fires, with tests.yml's recheck arm -- checks out a
+# one-parent tip, so the stamp facts are asked for only on `main`'s ref.
+R.check(
+    "a stamp is recognised only on main's ref inside Actions, and outside "
+    "Actions as before",
+    _env_drift.stamp_ref_allows(
+        {"GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/heads/main"})
+    and not _env_drift.stamp_ref_allows(
+        {"GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/heads/ci/refuse-version-edit"})
+    and not _env_drift.stamp_ref_allows(
+        {"GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/pull/1/merge"})
+    and not _env_drift.stamp_ref_allows({"GITHUB_ACTIONS": "true"})
+    and _env_drift.stamp_ref_allows({}),
+    "a branch dispatch's tip has one parent, so without the ref a forged "
+    "stamp passed the claims rule on the recheck run its pull_request run refused",
+)
 R.check(
     "a VERSION bump that also touches a file stamp.py never writes is refused",
     (_st_verdict(changed=_ST_CHANGED + ["docs/HANDOVER.md"]) or "")
@@ -17728,6 +17746,25 @@ R.check(
     f"exclusion={_PC_EXCLUSION in _PC_JOB}; without all three "
     "the red-check trigger reads as enforced while the same unnamed red body "
     "exits 0 -- the silent-green shape #533 is about, in this workflow",
+)
+# CLAUDE.md rule 4 in CI: `prepr.sh --version-edit` refuses a pull request
+# moving VERSION, the manifest version or a notes heading. Its predicate is
+# driven by prepr.sh --self-test; what that cannot see is whether THIS job
+# still calls it, and against which refs. Pinned over non-comment lines: the
+# call with the fetched main ref and the head, the fetch that makes that ref
+# exist, and `if: always()` so an earlier refusal cannot skip it.
+_PC_VE_CALL = 'prepr.sh --version-edit origin/main "$PR_HEAD"' in _PC_BODY_STEP
+_PC_VE_FETCH = "+refs/heads/main:refs/remotes/origin/main" in _PC_BODY_STEP
+_PC_VE_STEP = re.search(
+    r"- name: Refuse a version[^\n]*\n\s+if: always\(\)\n(?:\s+.*\n)*?"
+    r"\s+.*prepr\.sh --version-edit", _PC_BODY_STEP)
+R.check(
+    "the contract lane refuses a version edit on every pull request",
+    _PC_VE_CALL and _PC_VE_FETCH and bool(_PC_VE_STEP)
+    and "if: github.event_name == 'pull_request'" in _PC_JOB,
+    f"call={_PC_VE_CALL}, fetch={_PC_VE_FETCH}, always={bool(_PC_VE_STEP)}; "
+    "before this step the check ran only on a seat's machine and a VERSION "
+    "bump passed every required context",
 )
 _DS_PUB_PERMS = re.search(
     r"^    permissions:\n((?:^      .*\n)+)", _DS_PUB_JOB, re.M)
