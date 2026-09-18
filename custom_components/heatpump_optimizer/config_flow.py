@@ -3232,7 +3232,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             notes = modbus_prefill.notes(snap)
             self._prefill = (prefix if snap else None, tuple(suggested), notes)
             return self._prefill_form(_prefill_schema(suggested, suggested), notes, {})
-        prefix, keys, notes = self._prefill
+        matched_prefix, keys, notes = self._prefill
         saved = {
             key: value
             for key, value in _flatten_section_input(user_input).items()
@@ -3242,6 +3242,6 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         if errors:
             return self._prefill_form(_prefill_schema(keys, saved), notes, errors)
         self._prefill = None
-        if prefix is not None:
-            saved[CONF_MODBUS_PREFILL_PREFIX] = prefix
+        if matched_prefix is not None:
+            saved[CONF_MODBUS_PREFILL_PREFIX] = matched_prefix
         return await self._save_or_menu(saved)
