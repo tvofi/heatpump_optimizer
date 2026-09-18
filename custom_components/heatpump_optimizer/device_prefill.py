@@ -307,10 +307,11 @@ def disclaimer(resolution: Resolution | None = None) -> dict[str, str]:
     """The page's own account of where the suggestions came from.
 
     Two description placeholders: the roles a *name* filled, each as
-    ``role -> entity``, and the sources whose tables filled the rest. An
-    em dash where there is nothing to say, the page's existing spelling of
-    "nothing read" (``modbus_prefill.notes``). The sentence around them, which
-    is what asks the user to check before saving, lives in ``strings.json``.
+    ``role -> entity``, and the sources whose tables filled the rest. An en
+    dash where there is nothing to say, which is the page's existing spelling
+    of "nothing read" (``modbus_prefill.notes``). The sentence around them,
+    which is what asks the user to check before saving, lives in
+    ``strings.json``.
     """
     roles = {} if resolution is None else resolution.roles
     source = {} if resolution is None else resolution.source
