@@ -34,7 +34,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 96.1,
+   "seconds": 92.8,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -787,7 +787,9 @@
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "tests/dst_checks.py",
    "tests/features.py",
+   "tests/fixtures/localtuya_local_dp.json",
    "tests/fixtures/tuya_heat_pump_000004k4z6.json",
+   "tests/fixtures/tuya_local_fisher_water_heatpump.json",
    "tests/golden.py",
    "tests/golden/winter_single_dhw.json",
    "tests/harness.py",
