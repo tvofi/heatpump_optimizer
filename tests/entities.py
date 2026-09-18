@@ -629,10 +629,17 @@ _prefill_drift = []
 for _lang_file in ("strings.json", "translations/sv.json"):
     _lang_steps = json.loads((ROOT / _lang_file).read_text())["options"]["step"]
     for _pkey, _plabel in _lang_steps["modbus_prefill"]["data"].items():
+        # A home page may group the field into a section() (#824-style), which
+        # keeps its label under sections.<name>.data rather than the step's
+        # own top-level data -- _step_texts already walks both, so read the
+        # home page through it rather than _st["data"] alone (that copy
+        # missed every grouped field, one page's worth here: hot_water).
         _homes = {
-            _sid: _st["data"][_pkey]
+            _sid: _label
             for _sid, _st in _lang_steps.items()
-            if _sid != "modbus_prefill" and _pkey in (_st.get("data") or {})
+            if _sid != "modbus_prefill"
+            for _k, _label in _step_texts(_st, "data")
+            if _k == _pkey
         }
         if _pkey != const.CONF_MODBUS_PREFILL_PREFIX and set(_homes.values()) != {_plabel}:
             _prefill_drift.append(f"{_lang_file}:{_pkey}={_plabel!r} vs {_homes}")
