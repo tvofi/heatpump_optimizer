@@ -4597,43 +4597,53 @@ R.check(
     "copy, comparing against it would prove nothing",
 )
 
-# #1067 W1067-G5a: the pump's own disinfection switch, on the hot_water_tank
-# page. Options-only on the same precedent as the pump slots above, and read,
-# never written, so the picker offers the switch-like domains a user maps.
+# #1067 W1067-G5: the pump's own disinfection switch and its observe/control
+# mode, on the hot_water_tank page. Options-only on the same precedent as the
+# pump slots above; the picker offers the two writable flag domains, not the
+# read-only ones, because control mode turns it on and off.
 _dis_flow = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t"}))
 _dis_flow.hass = FakeHass()
 _dis_schema = asyncio.run(_dis_flow.async_step_hot_water_tank(None))["data_schema"]
 _dis_fields = {
     str(getattr(k, "schema", k)): (k, v) for k, v in _presented_fields(_dis_schema)
 }
-_DIS_KEY = const.CONF_DHW_DISINFECTION_SWITCH_ENTITY
-R.check(
-    "the disinfection switch is offered on the hot_water_tank page, optional",
-    _DIS_KEY in _dis_fields and type(_dis_fields[_DIS_KEY][0]).__name__ == "Optional",
-    "a required field here would break every existing install on save",
-)
-R.check(
-    "the disinfection switch is options-only, not a card slot",
-    _DIS_KEY not in topology.ASSIGNABLE_KEYS,
-)
+for _key in (const.CONF_DHW_DISINFECTION_SWITCH_ENTITY, const.CONF_DHW_DISINFECTION_MODE):
+    R.check(
+        f"{_key} is offered on the hot_water_tank page, optional",
+        _key in _dis_fields and type(_dis_fields[_key][0]).__name__ == "Optional",
+        "a required field here would break every existing install on save",
+    )
+    R.check(
+        f"{_key} is options-only, not a card slot",
+        _key not in topology.ASSIGNABLE_KEYS,
+    )
 R.check(
     "the disinfection switch can be cleared again once set",
-    _DIS_KEY in options._OPTIONAL_ENTITY_KEYS,
+    const.CONF_DHW_DISINFECTION_SWITCH_ENTITY in options._OPTIONAL_ENTITY_KEYS,
     "options merge over setup data, so an absent key restores the old value",
 )
 R.check(
     "the disinfection switch picker offers switch and input_boolean only",
-    _DIS_KEY in _dis_fields
-    and list(_dis_fields[_DIS_KEY][1].config["filter"][0]["domain"])
-    == ["switch", "input_boolean"],
+    const.CONF_DHW_DISINFECTION_SWITCH_ENTITY in _dis_fields
+    and list(
+        _dis_fields[const.CONF_DHW_DISINFECTION_SWITCH_ENTITY][1].config["filter"][0]["domain"]
+    ) == ["switch", "input_boolean"],
+    "a binary_sensor cannot be turned on, so offering one would save a "
+    "control mode that can never act",
 )
+_dis_mode_selector = _dis_fields.get(const.CONF_DHW_DISINFECTION_MODE, (None, None))[1]
 R.check(
-    "the page carries no disinfection mode: control is W1067-G5b's",
-    not hasattr(const, "CONF_DHW_DISINFECTION_MODE")
-    and not any("disinfection_mode" in k for k in _dis_fields),
-    f"fields={sorted(_dis_fields)}",
+    "the disinfection mode reuses the frequency stage's two words, observe by default",
+    _dis_mode_selector is not None
+    and list(_dis_mode_selector.config["options"])
+    == [config_flow.FREQ_MODE_OBSERVE, config_flow.FREQ_MODE_CONTROL]
+    and config_flow._flatten_section_input(_schema_defaults(_dis_schema)).get(
+        const.CONF_DHW_DISINFECTION_MODE
+    )
+    == config_flow.FREQ_MODE_OBSERVE
+    and const.DEFAULT_DHW_DISINFECTION_MODE == config_flow.FREQ_MODE_OBSERVE,
+    f"selector={getattr(_dis_mode_selector, 'config', None)!r}",
 )
-
 # Round trip: set all four, save, read them back; then clear them and check
 # the clearing sticks rather than being undone by the options merge.
 _sig_flow = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t"}))
@@ -6306,6 +6316,18 @@ files = {
     name: json.loads((ROOT / "translations" / f"{name}.json").read_text())
     for name in ("en", "sv")
 }
+# #1067 W1067-G5: the disinfection switch's repair, mode options and refusal.
+for _lang, _texts in (("strings", strings), *files.items()):
+    R.check(
+        f"{_lang}: the disinfection write-failure repair, its options and its "
+        "refusal are translated",
+        "entity_id" in _texts["issues"]["dhw_disinfection_write_failed"]["description"]
+        and "entity_id" in _texts["issues"]["dhw_disinfection_switch_lost"]["description"]
+        and set(_texts["selector"]["dhw_disinfection_mode"]["options"])
+        == {"observe", "control"}
+        and "disinfection_control_needs_entity" in _texts["options"]["error"],
+    )
+
 base_keys = all_keys(strings)
 for name, data in files.items():
     diff = base_keys ^ all_keys(data)

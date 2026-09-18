@@ -36826,6 +36826,7 @@ R.section("W5-G8 f: the extracted DHW learner and legionella guard (#195)")
 
 from heatpump_optimizer.dhw_learning import DhwProfileLearner as _G8Learner2  # noqa: E402
 from heatpump_optimizer.legionella import LegionellaGuard as _G8Guard  # noqa: E402
+from heatpump_optimizer.disinfection import DisinfectionSwitch as _G8Switch  # noqa: E402
 from heatpump_optimizer.thermal_model import ThermalParameters as _G8Params  # noqa: E402
 from heatpump_optimizer import dhw_learning as _g8_dhwl  # noqa: E402
 from heatpump_optimizer import legionella as _g8_leg  # noqa: E402
@@ -37018,8 +37019,11 @@ def _g8_guard(config=None, **params_kw):
     params = _G8Params()
     for k, v in params_kw.items():
         setattr(params, k, v)
-    return _G8Guard(FakeHass({}), "g8", params, dict(config or {}),
-                    action=lambda: {})
+    hass, config = FakeHass({}), dict(config or {})
+    return _G8Guard(hass, "g8", params, config, action=lambda: {},
+                    disinfect=_G8Switch(config, hass.services.async_call,
+                                        lambda e: getattr(hass.states.get(e), "state", None)),
+                    dhw_blocked=lambda: False)
 
 
 _g8_leg_real_store = _g8_leg.Store
@@ -38408,174 +38412,1066 @@ R.check(
 
 
 # ---------------------------------------------------------------------------
-# #1067 W1067-G5a: the pump's own disinfection switch, read and published,
-# never written. Driving it is W1067-G5b's.
-R.section("#1067 W1067-G5a — the disinfection switch, observed")
+# #1067 W1067-G5: the pump's own disinfection switch. Observe is the default
+# and writes nothing; control turns the switch on when the plan's boost window
+# opens and off when it closes. What this integration turned on is persisted,
+# and turned off again from the entity's real state, across restarts,
+# reloads, mode and entity changes -- and a switch it did not turn on is
+# never turned off.
+R.section("#1067 W1067-G5 — the disinfection switch, observe first")
 
-import pickle as _g5_pickle  # noqa: E402
+import json as _json  # noqa: E402
+
+from harness import FakeServices as _HarnessFakeServices  # noqa: E402
+import logging as _g5_logging  # noqa: E402
+
+from homeassistant.helpers import storage as _g5_storage  # noqa: E402
 
 from heatpump_optimizer import disinfection as _g5_dis  # noqa: E402
 from heatpump_optimizer.const import (  # noqa: E402
+    CONF_DHW_DISINFECTION_MODE as _G5_MODE,
     CONF_DHW_DISINFECTION_SWITCH_ENTITY as _G5_ENTITY,
+    DHW_DISINFECTION_LOST_MINUTES as _G5_LOST_MIN,
+    DHW_LEGIONELLA_BOOST_MAX_HOURS as _G5_MAX_H,
 )
-from heatpump_optimizer.inputs import UNBOUNDED as _G5_UNBOUNDED  # noqa: E402
-from heatpump_optimizer.optimizer import REASON_LEGIONELLA as _G5_LEG  # noqa: E402
+from heatpump_optimizer.freq_control import (  # noqa: E402
+    FREQ_MODE_CONTROL as _G5_CONTROL,
+    FREQ_MODE_OBSERVE as _G5_OBSERVE,
+)
 
 _G5_SWITCH = "switch.pump_disinfection"
+_G5_OTHER = "switch.pump_disinfection_2"
+_G5_ISSUE = "dhw_disinfection_write_failed"
 
 
-class _G5Reader:
-    """A reader that records how it was asked, answering with one reading."""
+class _G5Capture(_g5_logging.Handler):
+    def __init__(self):
+        super().__init__(level=_g5_logging.DEBUG)
+        self.records = []
 
-    def __init__(self, flag, ok=True):
-        self.asked = []
-        self._reading = type("R", (), {"flag": flag, "ok": ok})()
-
-    def read_bool(self, key, **kwargs):
-        self.asked.append((key, kwargs))
-        return self._reading
+    def emit(self, record):
+        self.records.append(record)
 
 
-_g5_sw = _g5_dis.DisinfectionSwitch({})
-_g5_rd = _G5Reader(True)
-_g5_sw.observe(_g5_rd)
+def _g5_captured(run):
+    """Run ``run()`` and return the disinfection module's WARNING records."""
+    logger = _g5_logging.getLogger(_g5_dis.__name__)
+    capture = _G5Capture()
+    logger.addHandler(capture)
+    try:
+        run()
+    finally:
+        logger.removeHandler(capture)
+    return [r for r in capture.records if r.levelno >= _g5_logging.WARNING]
+
+
+class _G5Service:
+    """An injected service callable shaped like ``hass.services.async_call``.
+
+    Records every call and fails on demand -- and, like Home Assistant core, a
+    failure reaches the caller only for ``blocking=True``: a non-blocking call
+    runs its handler in the background, where core logs the error and the
+    caller returns normally (#1106 review round 2, measured against core
+    2026.2.3).
+    """
+
+    def __init__(self):
+        self.calls = []
+        self.blocking = []
+        self.raise_next = 0
+        self.hang_next = 0
+        self.ignore_next = 0
+        #: Every entity whose state the switch read, in order.
+        self.reads = []
+        #: The switches' states, which a landed write changes (read_state).
+        self.states = {_G5_SWITCH: "off", _G5_OTHER: "off"}
+
+    def read_state(self, entity_id):
+        self.reads.append(entity_id)
+        return self.states.get(entity_id)
+
+    async def __call__(self, domain, service, data, blocking=False):
+        entity = data["entity_id"]
+        if entity not in self.states:
+            # Core: a call to an id with no state logs and returns, raising
+            # nothing even with blocking=True (#1106 review round 3).
+            return
+        self.calls.append((domain, service, dict(data)))
+        self.blocking.append(blocking)
+        if self.hang_next:
+            self.hang_next -= 1
+            if blocking:
+                # Longer than the patched timeout, short enough that a write
+                # with no timeout at all finishes -- and it does land, so only
+                # the timeout can stop it counting.
+                await _asyncio.sleep(2.0)
+            self.states[entity] = "on" if service == "turn_on" else "off"
+            return
+        if self.raise_next:
+            self.raise_next -= 1
+            if blocking:
+                raise RuntimeError("entity unavailable")
+            return
+        if self.ignore_next:
+            # Accepted, and the switch did not move.
+            self.ignore_next -= 1
+            return
+        self.states[entity] = "on" if service == "turn_on" else "off"
+
+
+class _G5HaServices(_HarnessFakeServices):
+    """The harness registry with Home Assistant core's failure visibility.
+
+    ``FakeServices.async_call`` awaits the handler and lets its exception out
+    whatever ``blocking`` says. Core does that only for ``blocking=True``; a
+    non-blocking call's handler error is logged and never reaches the caller.
+    And a call naming an entity id with no state returns without reaching the
+    entity or raising at all, blocking or not (review round 3, booted core).
+    """
+
+    def __init__(self, hass=None):
+        super().__init__()
+        self.hass = hass
+
+    async def async_call(self, domain, service, data=None, blocking=False, **kwargs):
+        entity = (data or {}).get("entity_id")
+        if self.hass is not None and entity and self.hass.states.get(entity) is None:
+            self.calls.append((domain, service, data))
+            return None
+        if blocking:
+            return await super().async_call(domain, service, data, **kwargs)
+        try:
+            await super().async_call(domain, service, data, **kwargs)
+        except Exception:  # noqa: BLE001 - core logs it; the caller never sees it
+            pass
+        return None
+
+
+def _g5_unit(observed=False, **config):
+    service = _G5Service()
+    switch = _g5_dis.DisinfectionSwitch(dict(config), service, service.read_state)
+    switch.observed = observed
+    return switch, service
+
+
+def _g5_on(switch, blocked=False):
+    return _asyncio.run(switch.turn_on(dhw_blocked=blocked))
+
+
+_G5_CONTROL_CFG = {_G5_ENTITY: _G5_SWITCH, _G5_MODE: _G5_CONTROL}
+
+# -- the command object on its own: each refusal, the memo, ownership -------
+_g5_sw, _g5_svc = _g5_unit(**{_G5_ENTITY: _G5_SWITCH})
 R.check(
-    "no switch configured: nothing is read and nothing is published",
-    _g5_rd.asked == [] and _g5_sw.observed is None and _g5_sw.view() == {},
-    f"asked={_g5_rd.asked} view={_g5_sw.view()}",
+    "observe mode (the default) refuses to turn the switch on",
+    _g5_on(_g5_sw) is False and _g5_svc.calls == [] and _g5_sw.owned == [],
+    f"calls={_g5_svc.calls} owned={_g5_sw.owned!r}",
 )
-_g5_sw = _g5_dis.DisinfectionSwitch({_G5_ENTITY: _G5_SWITCH})
-_g5_rd = _G5Reader(True)
-_g5_sw.observe(_g5_rd)
+_g5_sw, _g5_svc = _g5_unit(**{_G5_MODE: _G5_CONTROL})
 R.check(
-    "a configured switch is read through the input reader, unbounded, and published",
-    _g5_rd.asked == [(_G5_ENTITY, {"max_age_minutes": _G5_UNBOUNDED})]
-    and _g5_sw.view() == {"dhw_disinfection_switch": {"entity_id": _G5_SWITCH, "state": True}},
-    f"asked={_g5_rd.asked} view={_g5_sw.view()}",
+    "control mode with no switch refuses to write, and reads no state at all",
+    _g5_on(_g5_sw) is False
+    and _g5_svc.reads == []
+    and _asyncio.run(_g5_sw.release(datetime(2026, 2, 1, tzinfo=UTC))) is None
+    and _g5_svc.calls == [],
+    f"calls={_g5_svc.calls}",
 )
-_g5_sw.observe(_G5Reader(True, ok=False))
+_g5_sw, _g5_svc = _g5_unit(**_G5_CONTROL_CFG)
+_g5_blocked_results = []
+_g5_blocked_logs = _g5_captured(
+    lambda: _g5_blocked_results.extend([_g5_on(_g5_sw, True), _g5_on(_g5_sw, True)])
+)
 R.check(
-    "an unusable reading publishes state None, not the last value",
-    _g5_sw.view() == {"dhw_disinfection_switch": {"entity_id": _G5_SWITCH, "state": None}},
-    f"view={_g5_sw.view()}",
+    "ON while the pump's mode blocks hot water is refused, and logged once",
+    _g5_blocked_results == [False, False]
+    and _g5_svc.calls == []
+    and len(_g5_blocked_logs) == 1,
+    f"results={_g5_blocked_results} calls={_g5_svc.calls} "
+    f"warnings={[r.getMessage() for r in _g5_blocked_logs]}",
+)
+_g5_sw, _g5_svc = _g5_unit(**_G5_CONTROL_CFG)
+R.check(
+    "a successful ON writes once, the memo stops the repeat, and the switch is owned",
+    _g5_on(_g5_sw) is True and _g5_on(_g5_sw) is True
+    and _g5_svc.calls == [("homeassistant", "turn_on", {"entity_id": _G5_SWITCH})]
+    and _g5_sw.owned == [_G5_SWITCH],
+    f"calls={_g5_svc.calls} owned={_g5_sw.owned!r}",
+)
+_g5_sw, _g5_svc = _g5_unit(observed=True, **_G5_CONTROL_CFG)
+R.check(
+    "a switch already on is not written and not claimed",
+    _g5_on(_g5_sw) is True and _g5_svc.calls == [] and _g5_sw.owned == [],
+    f"calls={_g5_svc.calls} owned={_g5_sw.owned!r}",
+)
+_g5_sw, _g5_svc = _g5_unit(**_G5_CONTROL_CFG)
+_g5_svc.raise_next = 1
+_g5_raise_results = []
+_g5_raise_logs = _g5_captured(lambda: _g5_raise_results.append(_g5_on(_g5_sw)))
+_g5_after_raise = (_g5_sw.memo, list(_g5_sw.owned), _g5_sw.failed)
+_g5_raise_results.append(_g5_on(_g5_sw))
+R.check(
+    "a write that raises warns, returns False and records neither memo nor ownership",
+    _g5_raise_results[0] is False
+    and _g5_after_raise == (None, [], True)
+    and len(_g5_raise_logs) == 1,
+    f"result={_g5_raise_results[0]!r} (memo, owned, failed)={_g5_after_raise!r} "
+    f"warnings={len(_g5_raise_logs)}",
+)
+R.check(
+    "…so the next call retries the write, and success clears the failure",
+    _g5_raise_results[1] is True
+    and [c[1] for c in _g5_svc.calls] == ["turn_on", "turn_on"]
+    and _g5_sw.owned == [_G5_SWITCH]
+    and _g5_sw.failed is False,
+    f"calls={_g5_svc.calls} owned={_g5_sw.owned!r} failed={_g5_sw.failed!r}",
+)
+# Every write is blocking, so a failure is seen; and bounded, so a device that
+# never answers cannot stall the update cycle.
+_g5_sw, _g5_svc = _g5_unit(**_G5_CONTROL_CFG)
+_g5_on(_g5_sw)
+R.check(
+    "every write asks Home Assistant to block until the service call has finished",
+    _g5_svc.blocking == [True],
+    f"blocking={_g5_svc.blocking}",
+)
+_g5_sw, _g5_svc = _g5_unit(**_G5_CONTROL_CFG)
+_g5_svc.hang_next = 1
+_g5_timeout_saved = _g5_dis.WRITE_TIMEOUT_S
+_g5_dis.WRITE_TIMEOUT_S = 0.05
+try:
+    _g5_hung = (_g5_on(_g5_sw), _g5_sw.failed, list(_g5_sw.owned), _g5_sw.memo)
+finally:
+    _g5_dis.WRITE_TIMEOUT_S = _g5_timeout_saved
+R.check(
+    "a write that does not finish within the timeout is a failed write: no memo, "
+    "no ownership, retried next cycle",
+    _g5_hung == (False, True, [], None),
+    f"(returned, failed, owned, memo)={_g5_hung}",
+)
+R.check(
+    "the write timeout is bounded well inside one update cycle",
+    0 < _g5_timeout_saved <= 30.0,
+    f"WRITE_TIMEOUT_S={_g5_timeout_saved}",
 )
 
 
-# -- the production path: the coordinator's own update and hot water view ---
-def _g5_coord(states=None, **over):
-    cfg = {
-        "tibber_token": "x",
-        "weather_entity": "weather.home",
-        "dhw_temp_entity": "sensor.tank",
-        "dhw_tank_volume": 300.0,
-        **over,
-    }
-    return _Coord(_FakeHass(dict(states or {})), _FakeEntry(data=cfg))
+async def _g5_refuse_call(call):
+    raise RuntimeError("switch unavailable")
 
 
-def _g5_cycle(coord, reason=_G5_LEG):
+_g5_ctl = _G5HaServices()
+_g5_ctl.async_register("homeassistant", "turn_off", _g5_refuse_call)
+_g5_ctl_arms = {}
+for _blocking in (False, True):
+    try:
+        _asyncio.run(_g5_ctl.async_call(
+            "homeassistant", "turn_off", {"entity_id": _G5_SWITCH}, blocking=_blocking))
+        _g5_ctl_arms[_blocking] = None
+    except RuntimeError as err:
+        _g5_ctl_arms[_blocking] = str(err)
+R.check(
+    "control for the test registry: a rejected write raises only for blocking=True, "
+    "as in Home Assistant core",
+    _g5_ctl_arms == {False: None, True: "switch unavailable"},
+    f"arms={_g5_ctl_arms}",
+)
+
+# Landed means read back (review round 3): a target with no state is not
+# written and not a failed write; an accepted write that does not move the
+# switch is a failed write.
+_g5_sw, _g5_svc = _g5_unit(**_G5_CONTROL_CFG)
+del _g5_svc.states[_G5_SWITCH]
+_g5_nostate_on = (_g5_on(_g5_sw), list(_g5_svc.calls), _g5_sw.failed, list(_g5_sw.owned))
+_g5_sw.owned = [_G5_SWITCH]
+_asyncio.run(_g5_sw.release_blind())
+R.check(
+    "a switch with no state is not written, is not a failed write, and is not claimed",
+    _g5_nostate_on == (False, [], False, []),
+    f"(returned, calls, failed, owned)={_g5_nostate_on}",
+)
+R.check(
+    "…and an unload keeps the record of an owned switch that has no state",
+    _g5_sw.owned == [_G5_SWITCH] and _g5_svc.calls == [],
+    f"owned={_g5_sw.owned} calls={_g5_svc.calls}",
+)
+_g5_sw, _g5_svc = _g5_unit(**_G5_CONTROL_CFG)
+_g5_svc.ignore_next = 1
+_g5_ignored_on = (_g5_on(_g5_sw), _g5_sw.failed, list(_g5_sw.owned), _g5_sw.memo)
+R.check(
+    "an accepted ON that does not read back on is a failed write with no ownership",
+    _g5_ignored_on == (False, True, [], None),
+    f"(returned, failed, owned, memo)={_g5_ignored_on}",
+)
+_g5_sw, _g5_svc = _g5_unit(**_G5_CONTROL_CFG)
+_g5_svc.states[_G5_SWITCH] = "on"
+_g5_sw.owned = [_G5_SWITCH]
+_g5_svc.ignore_next = 1
+_asyncio.run(_g5_sw.release_blind())
+R.check(
+    "…and an unload OFF that does not read back off keeps the record",
+    _g5_sw.owned == [_G5_SWITCH] and _g5_sw.failed is True,
+    f"owned={_g5_sw.owned} failed={_g5_sw.failed}",
+)
+_g5_ctl_hass = _FakeHass({})
+_g5_ctl2 = _G5HaServices(_g5_ctl_hass)
+_g5_ctl2_hits = []
+
+
+async def _g5_ctl2_handler(call):
+    _g5_ctl2_hits.append(call.data)
+
+
+_g5_ctl2.async_register("homeassistant", "turn_off", _g5_ctl2_handler)
+_g5_ctl2_ret = _asyncio.run(_g5_ctl2.async_call(
+    "homeassistant", "turn_off", {"entity_id": "switch.gone"}, blocking=True))
+R.check(
+    "control for the test registry: a blocking call to an id with no state returns "
+    "without raising and without reaching a handler, as in booted core",
+    _g5_ctl2_ret is None and _g5_ctl2_hits == [],
+    f"returned={_g5_ctl2_ret!r} handler_hits={_g5_ctl2_hits}",
+)
+
+# Release: in any mode, only an owned switch, and only from a real reading.
+_G5_NOW = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
+
+
+def _g5_rel(switch, readings, now=_G5_NOW, keep=None):
+    switch._readings = dict(readings)
+    return _asyncio.run(switch.release(now, keep=keep))
+
+
+_g5_sw, _g5_svc = _g5_unit(**{_G5_ENTITY: _G5_SWITCH})
+_g5_rel(_g5_sw, {_G5_SWITCH: (True, None)})
+R.check(
+    "release writes nothing for a switch that is not owned, even one that reads on",
+    _g5_svc.calls == [],
+    f"calls={_g5_svc.calls}",
+)
+_g5_sw.owned = [_G5_SWITCH]
+_g5_rel(_g5_sw, {_G5_SWITCH: (None, "unavailable")})
+_g5_rel_unread = (list(_g5_svc.calls), list(_g5_sw.owned))
+_g5_rel(_g5_sw, {_G5_SWITCH: (True, None)})
+_g5_rel_on = (list(_g5_svc.calls), list(_g5_sw.owned))
+_g5_rel(_g5_sw, {_G5_SWITCH: (False, None)})
+_g5_rel_off = (list(_g5_svc.calls), list(_g5_sw.owned))
+R.check(
+    "release of the configured owned switch: unavailable waits, on writes OFF, "
+    "off ends ownership without a write",
+    _g5_rel_unread == ([], [_G5_SWITCH])
+    and _g5_rel_on == ([("homeassistant", "turn_off", {"entity_id": _G5_SWITCH})], [_G5_SWITCH])
+    and _g5_rel_off == (_g5_rel_on[0], []),
+    f"unread={_g5_rel_unread} on={_g5_rel_on} off={_g5_rel_off}",
+)
+_g5_sw, _g5_svc = _g5_unit(**{_G5_ENTITY: _G5_SWITCH})
+_g5_sw.owned = [_G5_SWITCH]
+for _minutes in (0, 31):
+    _g5_rel(_g5_sw, {_G5_SWITCH: (None, "unavailable")},
+            now=_G5_NOW + timedelta(minutes=_minutes))
+R.check(
+    "the configured owned switch, unavailable past the grace, is still waited for",
+    _g5_sw.owned == [_G5_SWITCH] and _g5_sw.lost == [],
+    f"owned={_g5_sw.owned} lost={_g5_sw.lost}",
+)
+_g5_sw, _g5_svc = _g5_unit(**{_G5_ENTITY: _G5_OTHER})
+_g5_sw.owned = [_G5_SWITCH]
+_g5_rel(_g5_sw, {_G5_SWITCH: (None, "missing_entity")})
+_g5_in_grace = (list(_g5_sw.owned), list(_g5_sw.lost))
+_g5_rel(_g5_sw, {_G5_SWITCH: (None, "missing_entity")},
+        now=_G5_NOW + timedelta(minutes=_G5_LOST_MIN))
+R.check(
+    "an owned switch that is no longer configured and cannot be read is kept "
+    "through the grace, then dropped into lost with no write",
+    _g5_in_grace == ([_G5_SWITCH], [])
+    and _g5_sw.owned == []
+    and _g5_sw.lost == [_G5_SWITCH]
+    and _g5_svc.calls == [],
+    f"in_grace={_g5_in_grace} owned={_g5_sw.owned} lost={_g5_sw.lost}",
+)
+R.check(
+    "the grace the repair's text calls half an hour is thirty minutes",
+    _G5_LOST_MIN == 30.0,
+    f"DHW_DISINFECTION_LOST_MINUTES={_G5_LOST_MIN}",
+)
+_g5_sw, _g5_svc = _g5_unit(**_G5_CONTROL_CFG)
+_g5_sw.owned = [_G5_SWITCH, _G5_OTHER]
+_g5_svc.raise_next = 1
+_asyncio.run(_g5_sw.release_blind())
+R.check(
+    "a blind release (unload) writes OFF to every owned switch unread, and keeps "
+    "only the record whose OFF failed",
+    [c[2]["entity_id"] for c in _g5_svc.calls] == [_G5_SWITCH, _G5_OTHER]
+    and _g5_sw.owned == [_G5_SWITCH],
+    f"calls={_g5_svc.calls} owned={_g5_sw.owned!r}",
+)
+
+
+# -- the production path: coordinator -> guard -> switch --------------------
+_G5_LG_CFG = {
+    "tibber_token": "x",
+    "weather_entity": "weather.home",
+    "dhw_temp_entity": "sensor.tank",
+    "dhw_tank_volume": 300.0,
+    "dhw_setpoint": 52.0,
+    "dhw_legionella_temperature": 60.0,
+}
+_G5_MODE_OPTIONS = {
+    "options": ["Cooling", "Heating", "DHW (Hot Water)", "Cooling + DHW", "Heating + DHW"]
+}
+_g5_ids = iter(range(1000))
+
+
+async def _g5_refuse(call):
+    raise RuntimeError("switch unavailable")
+
+
+def _g5_hardware(hass, **initial):
+    """Register a working switch on ``hass``; ``initial`` maps entity -> state."""
+    if not isinstance(hass.services, _G5HaServices):
+        hass.services = _G5HaServices(hass)
+    for entity, state in initial.items():
+        hass.states.set(entity, FakeState(state))
+
+    async def flip(call):
+        hass.states.set(
+            call.data["entity_id"],
+            FakeState("on" if call.service == "turn_on" else "off"),
+        )
+
+    for service in ("turn_on", "turn_off"):
+        hass.services.async_register("homeassistant", service, flip)
+    return flip
+
+
+def _g5_coord(hass=None, entry_id=None, **over):
+    cfg = {**_G5_LG_CFG, **over}
+    hass = hass if hass is not None else _FakeHass({})
+    coord = _Coord(hass, _FakeEntry(data=cfg, entry_id=entry_id or f"g5-{next(_g5_ids)}"))
+    coord._legionella.last_cycle = _G_START - timedelta(days=8)
+    return coord
+
+
+def _g5_restart(old, **over):
+    """A new coordinator on the same entry and the same entity states."""
+    hass = _FakeHass({})
+    for entity in old.hass.states.keys():
+        hass.states.set(entity, old.hass.states.get(entity))
+    _g5_hardware(hass)
+    coord = _g5_coord(hass, entry_id=old._entry_id_for_g5, **over)
+    coord._entry_id_for_g5 = old._entry_id_for_g5
+    _asyncio.run(coord._legionella.async_load())
+    coord._legionella.last_cycle = _G_START - timedelta(days=8)
+    return coord
+
+
+def _g5_tick(coord, reason):
+    """One observation cycle through the coordinator's own update path."""
     coord._current_action = {"dhw_reason": reason}
     _asyncio.run(coord._update_current_state())
-    return coord._dhw_view().get("dhw_disinfection_switch")
 
 
-_g5_seen = {}
-for _label, _state in (("on", FakeState("on")), ("off", FakeState("off")),
-                       ("unavailable", FakeState("unavailable")), ("missing", None)):
-    _states = {} if _state is None else {_G5_SWITCH: _state}
-    _g5_c = _g5_coord(_states, **{_G5_ENTITY: _G5_SWITCH})
-    _g5_seen[_label] = (_g5_cycle(_g5_c), list(_g5_c.hass.services.calls))
+def _g5_writes(coord):
+    return [
+        (service, (data or {}).get("entity_id"))
+        for domain, service, data in coord.hass.services.calls
+        if domain == "homeassistant"
+    ]
+
+
+def _g5_state(coord, entity=_G5_SWITCH):
+    state = coord.hass.states.get(entity)
+    return getattr(state, "state", None)
+
+
+def _g5_issue(coord):
+    return [i for i in getattr(coord.hass, "issues", []) if i[1] == _G5_ISSUE]
+
+
+def _g5_control(**initial):
+    hass = _FakeHass({})
+    _g5_hardware(hass, **({_G5_SWITCH: "off"} | initial))
+    entry_id = f"g5-{next(_g5_ids)}"
+    coord = _g5_coord(hass, entry_id=entry_id, **_G5_CONTROL_CFG)
+    coord._entry_id_for_g5 = entry_id
+    return coord
+
+
+_ON, _OFF = ("turn_on", _G5_SWITCH), ("turn_off", _G5_SWITCH)
+
+_g5_c = _g5_control()
+for _ in range(3):
+    _g5_tick(_g5_c, _LG_REASON)
+_g5_after_start = (_g5_writes(_g5_c), _g5_state(_g5_c), _g5_c._legionella.disinfect.owned)
 R.check(
-    "through the coordinator the hot water attributes carry the switch's state: "
-    "on, off, and None while unreadable or missing",
-    {k: (v[0] or {}).get("state", "absent") for k, v in _g5_seen.items()}
-    == {"on": True, "off": False, "unavailable": None, "missing": None}
-    and all((v[0] or {}).get("entity_id") == _G5_SWITCH for v in _g5_seen.values()),
-    f"seen={ {k: v[0] for k, v in _g5_seen.items()} }",
+    "control: the boost-start edge turns the switch ON exactly once "
+    "across three commanded cycles, and owns it",
+    _g5_after_start == ([_ON], "on", [_G5_SWITCH]),
+    f"(writes, state, owned)={_g5_after_start}",
 )
 R.check(
-    "…and nothing is ever written, through a commanded disinfection cycle",
-    all(calls == [] for _, calls in _g5_seen.values()),
-    f"calls={ {k: v[1] for k, v in _g5_seen.items()} }",
+    "…and the ownership is in the cycle's store, where a restart reads it",
+    _g5_restart(_g5_c)._legionella.disinfect.owned == [_G5_SWITCH],
 )
-_g5_c = _g5_coord({_G5_SWITCH: FakeState("on")})
+for _ in range(3):
+    _g5_tick(_g5_c, "idle")
 R.check(
-    "unconfigured, the hot water attributes carry no switch key",
-    _g5_cycle(_g5_c) is None and "dhw_disinfection_switch" not in _g5_c._dhw_view(),
-    f"keys={sorted(_g5_c._dhw_view())}",
+    "…and the boost close turns it OFF exactly once, and ownership ends when it reads off",
+    _g5_writes(_g5_c) == [_ON, _OFF]
+    and _g5_state(_g5_c) == "off"
+    and _g5_c._legionella.disinfect.owned == [],
+    f"writes={_g5_writes(_g5_c)} owned={_g5_c._legionella.disinfect.owned!r}",
 )
 
-
-# -- the null control: setting the switch changes no plan --------------------
-# The real planning cycle, observing the switch in the same update: every
-# argument each solve receives and the plan it returns, pickled, with the
-# switch set (and reading on) against unset. The clock is frozen so the two
-# runs share one horizon; the perturbation arm (indoor 21 -> 20 C) shows the
-# comparison can see a difference at all.
-def _g5_plan_bytes(config=None, indoor="21.0", dhw_setpoint_delta=0.0):
-    dt_util.freeze(_G5_FROZEN)
-    try:
-        coord = _solve_coord()
-        del coord._update_current_state  # the real one, so the switch is read
-        coord.hass.states.set("sensor.indoor", FakeState(indoor, unit="°C"))
-        coord.hass.states.set(_G5_SWITCH, FakeState("on"))
-        coord.hass.states.set("sensor.tank", FakeState("48.0", unit="°C"))
-        # Hot water planned, so a leak into the DHW half would move the plan.
-        coord._config.update({"dhw_temp_entity": "sensor.tank", "dhw_tank_volume": 200.0})
-        coord._thermal_params.dhw_enabled = True
-        coord._thermal_params.dhw_setpoint += dhw_setpoint_delta
-        coord._config.update(config or {})
-        solves = []
-        real = _coord_mod._await_optimize
-
-        async def spy(hass, optimizer, state, *positional, **keywords):
-            # The optimizer's own parameter and configuration copies are
-            # inputs too: that is where a thermal-parameter leak would land.
-            solves.append(_g5_pickle.dumps(
-                (optimizer.model.params, optimizer.config, state, positional, keywords)
-            ))
-            return await real(hass, optimizer, state, *positional, **keywords)
-
-        _coord_mod._await_optimize = spy
-        try:
-            _asyncio.run(coord._update_current_state())
-            _asyncio.run(coord.async_run_optimization())
-        finally:
-            _coord_mod._await_optimize = real
-        result = coord._optimization_result
-        plan = _g5_pickle.dumps(
-            {k: v for k, v in vars(result).items() if k not in ("solve_time_ms", "solve_time")}
-        ) if result is not None else None
-        return solves, plan, coord
-    finally:
-        dt_util.freeze(None)
-
-
-_G5_FROZEN = dt_util.now().replace(minute=0, second=0, microsecond=0)
-_g5_unset = _g5_plan_bytes()
-_g5_set = _g5_plan_bytes({_G5_ENTITY: _G5_SWITCH})
-_g5_moved = _g5_plan_bytes(indoor="20.0")
-_g5_dhw_moved = _g5_plan_bytes(dhw_setpoint_delta=1.0)
+# The DHW_LEGIONELLA_BOOST_MAX_HOURS bound closes a boost still commanded.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_c._legionella.boost_started = dt_util.now() - timedelta(hours=_G5_MAX_H + 0.1)
+_g5_tick(_g5_c, _LG_REASON)
 R.check(
-    "null control: the switch set and reading on, every solve's arguments and the "
-    "plan are byte-identical to unset",
-    len(_g5_unset[0]) >= 1
-    and _g5_unset[1] is not None
-    and _g5_set[0] == _g5_unset[0]
-    and _g5_set[1] == _g5_unset[1]
-    and _g5_set[2]._dhw_view().get("dhw_disinfection_switch", {}).get("state") is True,
-    f"solves unset={len(_g5_unset[0])} set={len(_g5_set[0])} "
-    f"args_equal={_g5_set[0] == _g5_unset[0]} plan_equal={_g5_set[1] == _g5_unset[1]}",
+    "the boost bound closes the window and turns the switch OFF once",
+    _g5_writes(_g5_c) == [_ON, _OFF] and _g5_c._legionella.boost_active is False,
+    f"writes={_g5_writes(_g5_c)} active={_g5_c._legionella.boost_active}",
+)
+# The bound's close holds: the same stale command re-opens the boost window on
+# the next cycle, and the switch must stay off until the plan moves on. Once it
+# has, a new commanded boost turns the switch on again (the latch's null).
+_g5_tick(_g5_c, _LG_REASON)
+_g5_after_reopen = _g5_writes(_g5_c)
+_g5_tick(_g5_c, "idle")
+_g5_tick(_g5_c, _LG_REASON)
+R.check(
+    "a boost the bound closed is not switched back on by the same command",
+    _g5_after_reopen == [_ON, _OFF],
+    f"writes={_g5_after_reopen}",
 )
 R.check(
-    "…and the comparison sees a real input change (indoor 21 -> 20 °C moves the bytes)",
-    _g5_moved[0] != _g5_unset[0] and _g5_moved[1] != _g5_unset[1],
-    f"args_differ={_g5_moved[0] != _g5_unset[0]} plan_differs={_g5_moved[1] != _g5_unset[1]}",
+    "…and once the plan has moved on, the next commanded boost turns it on",
+    _g5_writes(_g5_c) == [_ON, _OFF, _ON],
+    f"writes={_g5_writes(_g5_c)}",
+)
+
+# Disinfection switched off mid-boost: the early return still takes it down.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_c._thermal_params.dhw_legionella_enabled = False
+_g5_tick(_g5_c, _LG_REASON)
+R.check(
+    "disabling disinfection during a boost turns the switch OFF",
+    _g5_writes(_g5_c) == [_ON, _OFF],
+    f"writes={_g5_writes(_g5_c)}",
+)
+
+# The mode block is read live, on the same cycle: a pump whose mode entity says
+# heating-only gets no ON although no solve has run since the mode changed.
+_g5_c = _g5_control()
+_g5_c._config["heat_pump_mode_entity"] = "select.pump_mode"
+_g5_c.hass.states.set("select.pump_mode", FakeState("Heating", attributes=_G5_MODE_OPTIONS))
+_g5_blocked_tick_logs = _g5_captured(
+    lambda: [_g5_tick(_g5_c, _LG_REASON) for _ in range(3)]
 )
 R.check(
-    "…and a hot-water parameter change (setpoint +1 °C) moves the solve's inputs and the plan",
-    _g5_dhw_moved[0] != _g5_unset[0] and _g5_dhw_moved[1] != _g5_unset[1],
-    f"args_differ={_g5_dhw_moved[0] != _g5_unset[0]} plan_differs={_g5_dhw_moved[1] != _g5_unset[1]}",
+    "no ON while this cycle's mode reading blocks hot water, logged once",
+    _g5_writes(_g5_c) == []
+    and _g5_c._pump_signals.dhw_blocked is True
+    and len(_g5_blocked_tick_logs) == 1,
+    f"writes={_g5_writes(_g5_c)} blocked={_g5_c._pump_signals.dhw_blocked} "
+    f"warnings={len(_g5_blocked_tick_logs)}",
+)
+_g5_c.hass.states.set(
+    "select.pump_mode", FakeState("Heating + DHW", attributes=_G5_MODE_OPTIONS)
+)
+_g5_tick(_g5_c, _LG_REASON)
+R.check(
+    "…and the ON goes out on the first cycle the mode allows hot water, with no solve between",
+    _g5_writes(_g5_c) == [_ON],
+    f"writes={_g5_writes(_g5_c)}",
+)
+
+# A switch the user (or the pump) turned on is never this integration's to
+# turn off: not at the boost's close, and not while idle.
+_g5_c = _g5_control(**{_G5_SWITCH: "on"})
+for _reason in ("idle", _LG_REASON, _LG_REASON, "idle", "idle"):
+    _g5_tick(_g5_c, _reason)
+R.check(
+    "a switch that was already on is left alone through a whole boost and after it",
+    _g5_writes(_g5_c) == []
+    and _g5_state(_g5_c) == "on"
+    and _g5_c._legionella.disinfect.owned == [],
+    f"writes={_g5_writes(_g5_c)} state={_g5_state(_g5_c)}",
+)
+_g5_c = _g5_control()
+for _ in range(3):
+    _g5_tick(_g5_c, "idle")
+R.check(
+    "an idle control install writes nothing, not even OFF",
+    _g5_writes(_g5_c) == [],
+    f"writes={_g5_writes(_g5_c)}",
+)
+
+# A failed ON: the repair is raised, the write retried next cycle, and the
+# first success takes the repair down.
+_g5_c = _g5_control()
+_g5_c.hass.services.async_register("homeassistant", "turn_on", _g5_refuse)
+_g5_tick(_g5_c, _LG_REASON)
+_g5_raised = _g5_issue(_g5_c)
+_g5_owned_failed = list(_g5_c._legionella.disinfect.owned)
+_g5_hardware(_g5_c.hass)
+_g5_tick(_g5_c, _LG_REASON)
+R.check(
+    "a failed write raises a non-persistent repair naming the switch",
+    len(_g5_raised) == 1
+    and _g5_raised[0][2].get("translation_key") == _G5_ISSUE
+    and not _g5_raised[0][2].get("is_persistent", False)
+    and _g5_raised[0][2].get("translation_placeholders") == {"entity_id": _G5_SWITCH}
+    and _g5_owned_failed == [],
+    f"issues={_g5_raised} owned={_g5_owned_failed!r}",
+)
+R.check(
+    "…the next cycle retries the ON, and its success clears the repair",
+    _g5_writes(_g5_c) == [_ON, _ON]
+    and _g5_c._legionella.disinfect.owned == [_G5_SWITCH]
+    and _g5_issue(_g5_c) == [],
+    f"writes={_g5_writes(_g5_c)} issues={_g5_issue(_g5_c)}",
+)
+
+# A failed OFF at the close is retried from the idle branch that follows.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_c.hass.services.async_register("homeassistant", "turn_off", _g5_refuse)
+_g5_tick(_g5_c, "idle")
+_g5_off_raised = _g5_issue(_g5_c)
+_g5_hardware(_g5_c.hass)
+for _ in range(3):
+    _g5_tick(_g5_c, "idle")
+R.check(
+    "a failed OFF at the close is retried on the next idle cycle, once",
+    len(_g5_off_raised) == 1
+    and _g5_writes(_g5_c) == [_ON, _OFF, _OFF]
+    and _g5_state(_g5_c) == "off"
+    and _g5_c._legionella.disinfect.owned == []
+    and _g5_issue(_g5_c) == [],
+    f"raised={len(_g5_off_raised)} writes={_g5_writes(_g5_c)} "
+    f"owned={_g5_c._legionella.disinfect.owned!r}",
+)
+
+# An OFF the entity silently drops: the call succeeds, the switch still reads
+# on, and OFF is sent again every cycle until it reads off.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+
+
+async def _g5_ignore(call):
+    return None
+
+
+_g5_c.hass.services.async_register("homeassistant", "turn_off", _g5_ignore)
+_g5_tick(_g5_c, "idle")
+_g5_tick(_g5_c, "idle")
+_g5_dropped = _g5_writes(_g5_c)
+_g5_hardware(_g5_c.hass)
+_g5_tick(_g5_c, "idle")
+_g5_tick(_g5_c, "idle")
+R.check(
+    "an OFF the switch ignored is re-sent while it still reads on, and stops once it reads off",
+    _g5_dropped == [_ON, _OFF, _OFF]
+    and _g5_writes(_g5_c) == [_ON, _OFF, _OFF, _OFF]
+    and _g5_c._legionella.disinfect.owned == [],
+    f"dropped={_g5_dropped} writes={_g5_writes(_g5_c)}",
+)
+
+# Unavailable, then back: no blind write while unreadable, OFF once it reads on.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_c.hass.states.set(_G5_SWITCH, FakeState("unavailable"))
+_g5_tick(_g5_c, "idle")
+_g5_tick(_g5_c, "idle")
+_g5_unavail = (_g5_writes(_g5_c), list(_g5_c._legionella.disinfect.owned))
+_g5_c.hass.states.set(_G5_SWITCH, FakeState("on"))
+_g5_tick(_g5_c, "idle")
+_g5_tick(_g5_c, "idle")
+R.check(
+    "an owned switch that goes unavailable is waited for, then turned OFF when it is back on",
+    _g5_unavail == ([_ON], [_G5_SWITCH])
+    and _g5_writes(_g5_c) == [_ON, _OFF]
+    and _g5_state(_g5_c) == "off"
+    and _g5_c._legionella.disinfect.owned == [],
+    f"unavailable={_g5_unavail} writes={_g5_writes(_g5_c)}",
+)
+
+# Restart mid-boost: the new run has no memory of the boost, the plan has not
+# re-solved yet, and the switch it turned on still reads on.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_r = _g5_restart(_g5_c, **_G5_CONTROL_CFG)
+_g5_tick(_g5_r, "idle")
+_g5_tick(_g5_r, "idle")
+R.check(
+    "restart mid-boost: the next run turns off the switch the last one turned on",
+    _g5_writes(_g5_r) == [_OFF]
+    and _g5_state(_g5_r) == "off"
+    and _g5_r._legionella.disinfect.owned == [],
+    f"writes={_g5_writes(_g5_r)} owned={_g5_r._legionella.disinfect.owned!r}",
+)
+_g5_r = _g5_restart(_g5_c, **_G5_CONTROL_CFG)
+R.check(
+    "…and once it read off, the store no longer names it",
+    _g5_r._legionella.disinfect.owned == [],
+    f"owned={_g5_r._legionella.disinfect.owned!r}",
+)
+
+# Reload into observe mid-boost (an options save): the switch is released,
+# and observe writes no ON even while the plan still commands the cycle.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_r = _g5_restart(_g5_c, **{_G5_ENTITY: _G5_SWITCH, _G5_MODE: _G5_OBSERVE})
+_g5_tick(_g5_r, _LG_REASON)
+_g5_tick(_g5_r, _LG_REASON)
+R.check(
+    "reload into observe mid-boost: the owned switch is turned OFF and never back ON",
+    _g5_writes(_g5_r) == [_OFF]
+    and _g5_state(_g5_r) == "off"
+    and _g5_r._legionella.disinfect.owned == [],
+    f"writes={_g5_writes(_g5_r)}",
+)
+
+# Reload onto another switch mid-boost: the new switch is turned on at once --
+# an older record never blocks it -- and the old one is turned off.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_r = _g5_restart(_g5_c, **{_G5_ENTITY: _G5_OTHER, _G5_MODE: _G5_CONTROL})
+_g5_r.hass.states.set(_G5_OTHER, FakeState("off"))
+for _ in range(3):
+    _g5_tick(_g5_r, _LG_REASON)
+R.check(
+    "reload onto another switch mid-boost: the new switch ON, the old one OFF, in the same cycle",
+    _g5_writes(_g5_r) == [("turn_on", _G5_OTHER), _OFF]
+    and _g5_state(_g5_r) == "off"
+    and _g5_state(_g5_r, _G5_OTHER) == "on"
+    and _g5_r._legionella.disinfect.owned == [_G5_OTHER],
+    f"writes={_g5_writes(_g5_r)} owned={_g5_r._legionella.disinfect.owned!r}",
+)
+
+
+def _g5_lost(coord):
+    return [
+        i for i in getattr(coord.hass, "issues", [])
+        if i[2].get("translation_key") == "dhw_disinfection_switch_lost"
+    ]
+
+
+def _g5_expire_grace(coord):
+    """Backdate every unreadable-since stamp past the grace."""
+    since = coord._legionella.disinfect._unreadable_since
+    for key in list(since):
+        since[key] = since[key] - timedelta(minutes=_G5_LOST_MIN)
+
+
+# Renamed: the switch it turned on no longer exists under that id; the device
+# now reads on under a new id, and the option points at it. Inside the grace
+# the record is kept (Home Assistant's startup race looks the same); past it,
+# the record is dropped with a persistent repair naming the old id, and the
+# new id -- which the optimizer never turned on -- is not claimed.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_r = _g5_restart(_g5_c, **{_G5_ENTITY: _G5_OTHER, _G5_MODE: _G5_CONTROL})
+_g5_r.hass.states._states.pop(_G5_SWITCH)
+_g5_r.hass.states.set(_G5_OTHER, FakeState("on"))
+_g5_tick(_g5_r, "idle")
+_g5_tick(_g5_r, "idle")
+_g5_rename_grace = (list(_g5_r._legionella.disinfect.owned), _g5_lost(_g5_r))
+_g5_expire_grace(_g5_r)
+_g5_tick(_g5_r, "idle")
+_g5_lost_issues = _g5_lost(_g5_r)
+R.check(
+    "renamed switch: the old record is kept through the grace, then dropped with a "
+    "persistent repair naming it, and nothing is written blind",
+    _g5_rename_grace == ([_G5_SWITCH], [])
+    and _g5_r._legionella.disinfect.owned == []
+    and len(_g5_lost_issues) == 1
+    and _g5_lost_issues[0][2].get("is_persistent") is True
+    and _g5_lost_issues[0][2].get("translation_placeholders") == {"entity_id": _G5_SWITCH}
+    and _g5_writes(_g5_r) == [],
+    f"grace={_g5_rename_grace} owned={_g5_r._legionella.disinfect.owned} "
+    f"lost={_g5_lost_issues} writes={_g5_writes(_g5_r)}",
+)
+R.check(
+    "…and the drop is in the store, so a restart does not resurrect the record",
+    _g5_restart(_g5_r, **{_G5_ENTITY: _G5_OTHER, _G5_MODE: _G5_CONTROL})
+    ._legionella.disinfect.owned == [],
+)
+
+# Deleted, and a new switch configured: the next boost turns the new switch on
+# and off while the old record is still inside its grace -- it does not block.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_r = _g5_restart(_g5_c, **{_G5_ENTITY: _G5_OTHER, _G5_MODE: _G5_CONTROL})
+_g5_r.hass.states._states.pop(_G5_SWITCH)
+_g5_r.hass.states.set(_G5_OTHER, FakeState("off"))
+_g5_tick(_g5_r, "idle")
+_g5_tick(_g5_r, _LG_REASON)
+_g5_tick(_g5_r, "idle")
+_g5_tick(_g5_r, "idle")
+R.check(
+    "deleted switch, new one configured: a boost drives the new switch on and off "
+    "while the old record waits out its grace",
+    _g5_writes(_g5_r) == [("turn_on", _G5_OTHER), ("turn_off", _G5_OTHER)]
+    and _g5_state(_g5_r, _G5_OTHER) == "off"
+    and _g5_r._legionella.disinfect.owned == [_G5_SWITCH],
+    f"writes={_g5_writes(_g5_r)} owned={_g5_r._legionella.disinfect.owned}",
+)
+
+# Deleted, then the switch unset and the mode set to observe: the record still
+# resolves -- dropped with its repair past the grace.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_r = _g5_restart(_g5_c, **{_G5_MODE: _G5_OBSERVE})
+_g5_r.hass.states._states.pop(_G5_SWITCH)
+_g5_tick(_g5_r, "idle")
+_g5_expire_grace(_g5_r)
+_g5_tick(_g5_r, "idle")
+R.check(
+    "deleted switch with the option unset and observe chosen: the record is dropped "
+    "with its repair",
+    _g5_r._legionella.disinfect.owned == [] and len(_g5_lost(_g5_r)) == 1,
+    f"owned={_g5_r._legionella.disinfect.owned} lost={_g5_lost(_g5_r)}",
+)
+
+# Unset while it still reads on (no rename): OFF, then the record ends.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_r = _g5_restart(_g5_c, **{_G5_MODE: _G5_OBSERVE})
+_g5_tick(_g5_r, _LG_REASON)
+_g5_tick(_g5_r, _LG_REASON)
+R.check(
+    "switch unset while it reads on: OFF is sent to the recorded id and the record ends",
+    _g5_writes(_g5_r) == [_OFF]
+    and _g5_state(_g5_r) == "off"
+    and _g5_r._legionella.disinfect.owned == []
+    and _g5_lost(_g5_r) == [],
+    f"writes={_g5_writes(_g5_r)} owned={_g5_r._legionella.disinfect.owned}",
+)
+
+# Startup race, the grace's null: the configured owned switch has no state for
+# the first cycles after a restart, then appears still on and is turned off.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_r = _g5_restart(_g5_c, **_G5_CONTROL_CFG)
+_g5_on_state = _g5_r.hass.states._states.pop(_G5_SWITCH)
+_g5_tick(_g5_r, "idle")
+_g5_tick(_g5_r, "idle")
+_g5_r.hass.states.set(_G5_SWITCH, _g5_on_state)
+_g5_tick(_g5_r, "idle")
+_g5_tick(_g5_r, "idle")
+R.check(
+    "a switch that loads after the optimizer at startup is still turned off, "
+    "with no repair",
+    _g5_writes(_g5_r) == [_OFF]
+    and _g5_state(_g5_r) == "off"
+    and _g5_r._legionella.disinfect.owned == []
+    and _g5_lost(_g5_r) == [],
+    f"writes={_g5_writes(_g5_r)} lost={_g5_lost(_g5_r)}",
+)
+
+# Unload: no further cycle will reconcile, so the owned switch is turned off
+# on the way out; the record goes with an OFF that landed.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_asyncio.run(_g5_c.async_shutdown())
+R.check(
+    "unload turns off the switch the integration owns and, the OFF having landed, "
+    "forgets it",
+    _g5_writes(_g5_c) == [_ON, _OFF]
+    and _g5_state(_g5_c) == "off"
+    and _g5_c._legionella.disinfect.owned == [],
+    f"writes={_g5_writes(_g5_c)} owned={_g5_c._legionella.disinfect.owned!r}",
+)
+_g5_c.hass.states.set(_G5_SWITCH, FakeState("on"))
+_g5_r = _g5_restart(_g5_c, **_G5_CONTROL_CFG)
+for _ in range(3):
+    _g5_tick(_g5_r, "idle")
+R.check(
+    "…so a program the user starts while it is unloaded is left on at the next setup",
+    _g5_writes(_g5_r) == [] and _g5_state(_g5_r) == "on",
+    f"writes={_g5_writes(_g5_r)}",
+)
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_c.hass.services.async_register("homeassistant", "turn_off", _g5_refuse)
+_asyncio.run(_g5_c.async_shutdown())
+_g5_r = _g5_restart(_g5_c, **_G5_CONTROL_CFG)
+_g5_tick(_g5_r, "idle")
+_g5_tick(_g5_r, "idle")
+R.check(
+    "an unload OFF that failed keeps the record, and the next setup turns the switch off",
+    _g5_writes(_g5_r) == [_OFF]
+    and _g5_state(_g5_r) == "off"
+    and _g5_r._legionella.disinfect.owned == [],
+    f"writes={_g5_writes(_g5_r)} owned={_g5_r._legionella.disinfect.owned}",
+)
+_g5_c = _g5_control(**{_G5_SWITCH: "on"})
+_asyncio.run(_g5_c.async_shutdown())
+R.check(
+    "…and unload leaves a switch it does not own alone",
+    _g5_writes(_g5_c) == [] and _g5_state(_g5_c) == "on",
+    f"writes={_g5_writes(_g5_c)}",
+)
+
+# A crash between the ON write and any later save: the record is on disk
+# before the write goes out.
+_g5_c = _g5_control()
+_g5_disk_at_write = []
+
+
+async def _g5_snapshot_on(call):
+    _g5_disk_at_write.append(
+        _json.loads(_g5_storage._DISK.get(_g5_c._legionella.store._key, "{}"))
+        .get("disinfection_owned")
+    )
+    _g5_c.hass.states.set(call.data["entity_id"], FakeState("on"))
+
+
+_g5_c.hass.services.async_register("homeassistant", "turn_on", _g5_snapshot_on)
+_g5_tick(_g5_c, _LG_REASON)
+R.check(
+    "the ownership record is on disk at the moment the ON is written",
+    _g5_disk_at_write == [[_G5_SWITCH]],
+    f"on disk at the write: {_g5_disk_at_write}",
+)
+_g5_c = _g5_control()
+_g5_c.hass.services.async_register("homeassistant", "turn_on", _g5_refuse)
+_g5_tick(_g5_c, _LG_REASON)
+R.check(
+    "…and an ON that failed withdraws it from disk again",
+    _json.loads(_g5_storage._DISK.get(_g5_c._legionella.store._key, "{}"))
+    .get("disinfection_owned") is None,
+    f"disk={_g5_storage._DISK.get(_g5_c._legionella.store._key)}",
+)
+
+# The bound's latch survives a restart: the stale plan still commands the
+# cycle after it, and the switch stays off until the plan moves on.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_c._legionella.boost_started = dt_util.now() - timedelta(hours=_G5_MAX_H + 0.1)
+_g5_tick(_g5_c, _LG_REASON)
+_g5_r = _g5_restart(_g5_c, **_G5_CONTROL_CFG)
+_g5_tick(_g5_r, _LG_REASON)
+_g5_tick(_g5_r, _LG_REASON)
+_g5_latch_restart = _g5_writes(_g5_r)
+_g5_tick(_g5_r, "idle")
+_g5_tick(_g5_r, _LG_REASON)
+R.check(
+    "a restart while the stale plan still commands keeps the bound's latch: no re-ON, "
+    "until the plan moves on",
+    _g5_latch_restart == []
+    and _g5_writes(_g5_r) == [_ON],
+    f"after restart={_g5_latch_restart} after moving on={_g5_writes(_g5_r)}",
+)
+
+# Review round 3, N1: a crash mid-boost; at restart the switch's integration
+# has not loaded (no state); the entry is unloaded inside the grace; the
+# switch then appears on. The unload writes nothing to an id with no state and
+# keeps the record, so the next setup turns it off.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_r = _g5_restart(_g5_c, **_G5_CONTROL_CFG)
+_g5_saved_on = _g5_r.hass.states._states.pop(_G5_SWITCH)
+_g5_tick(_g5_r, "idle")
+_asyncio.run(_g5_r.async_shutdown())
+_g5_n1_unload = (_g5_writes(_g5_r), list(_g5_r._legionella.disinfect.owned))
+_g5_r2 = _g5_restart(_g5_r, **_G5_CONTROL_CFG)
+_g5_r2.hass.states.set(_G5_SWITCH, _g5_saved_on)
+for _ in range(3):
+    _g5_tick(_g5_r2, "idle")
+R.check(
+    "crash, restart before the switch loads, unload inside the grace: the record "
+    "survives the unload and the next setup turns the switch off",
+    _g5_n1_unload == ([], [_G5_SWITCH])
+    and _g5_writes(_g5_r2) == [_OFF]
+    and _g5_state(_g5_r2) == "off"
+    and _g5_r2._legionella.disinfect.owned == []
+    and _g5_lost(_g5_r2) == [],
+    f"unload={_g5_n1_unload} writes={_g5_writes(_g5_r2)} owned={_g5_r2._legionella.disinfect.owned}",
+)
+
+# A rename unloaded inside the grace still ends in the lost repair.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_r = _g5_restart(_g5_c, **{_G5_ENTITY: _G5_OTHER, _G5_MODE: _G5_CONTROL})
+_g5_r.hass.states._states.pop(_G5_SWITCH)
+_g5_r.hass.states.set(_G5_OTHER, FakeState("on"))
+_g5_tick(_g5_r, "idle")
+_asyncio.run(_g5_r.async_shutdown())
+_g5_r2 = _g5_restart(_g5_r, **{_G5_ENTITY: _G5_OTHER, _G5_MODE: _G5_CONTROL})
+_g5_tick(_g5_r2, "idle")
+_g5_expire_grace(_g5_r2)
+_g5_tick(_g5_r2, "idle")
+R.check(
+    "a renamed switch unloaded inside the grace keeps its record, and past the grace "
+    "the lost repair names it",
+    _g5_r2._legionella.disinfect.owned == []
+    and len(_g5_lost(_g5_r2)) == 1
+    and _g5_writes(_g5_r) == [],
+    f"owned={_g5_r2._legionella.disinfect.owned} lost={_g5_lost(_g5_r2)} unload_writes={_g5_writes(_g5_r)}",
+)
+
+# An unload OFF the switch accepts but does not act on keeps the record.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+
+
+async def _g5_accept_only(call):
+    return None
+
+
+_g5_c.hass.services.async_register("homeassistant", "turn_off", _g5_accept_only)
+_asyncio.run(_g5_c.async_shutdown())
+_g5_r = _g5_restart(_g5_c, **_G5_CONTROL_CFG)
+_g5_tick(_g5_r, "idle")
+_g5_tick(_g5_r, "idle")
+R.check(
+    "an unload OFF that returns but leaves the switch on keeps the record, and the "
+    "next setup turns it off",
+    _g5_writes(_g5_r) == [_OFF]
+    and _g5_state(_g5_r) == "off"
+    and _g5_r._legionella.disinfect.owned == [],
+    f"writes={_g5_writes(_g5_r)} owned={_g5_r._legionella.disinfect.owned}",
+)
+
+# Observe: the switch is read and published, and nothing is written.
+_g5_hass = _FakeHass({})
+_g5_hardware(_g5_hass, **{_G5_SWITCH: "on"})
+_g5_c = _g5_coord(_g5_hass, **{_G5_ENTITY: _G5_SWITCH, _G5_MODE: _G5_OBSERVE})
+_g5_tick(_g5_c, _LG_REASON)
+_g5_tick(_g5_c, "idle")
+_g5_view = _g5_c._dhw_view().get("dhw_disinfection_switch")
+R.check(
+    "observe: the switch's state is published in the hot water attributes",
+    _g5_view == {
+        "entity_id": _G5_SWITCH,
+        "mode": _G5_OBSERVE,
+        "state": True,
+        "turned_on_by_optimizer": False,
+        "write_failed": False,
+    },
+    f"view={_g5_view!r}",
+)
+R.check(
+    "observe: a full boost cycle writes nothing",
+    _g5_writes(_g5_c) == [],
+    f"writes={_g5_writes(_g5_c)}",
+)
+
+# The null control: no entity, observe by default. Nothing is written, no
+# repair appears, and the hot water attributes carry no new key, so an
+# install that maps nothing publishes what it did before this group.
+_g5_c = _g5_coord()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_tick(_g5_c, "idle")
+R.check(
+    "null control: unconfigured, a boost cycle writes nothing and publishes no key",
+    _g5_writes(_g5_c) == []
+    and _g5_issue(_g5_c) == []
+    and "dhw_disinfection_switch" not in _g5_c._dhw_view(),
+    f"writes={_g5_writes(_g5_c)} keys={sorted(_g5_c._dhw_view())}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

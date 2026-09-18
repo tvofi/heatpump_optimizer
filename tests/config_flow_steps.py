@@ -118,6 +118,10 @@ from golden import (  # noqa: E402
 )
 
 from heatpump_optimizer import config_flow, const, topology  # noqa: E402
+from heatpump_optimizer.freq_control import (  # noqa: E402
+    FREQ_MODE_CONTROL,
+    FREQ_MODE_OBSERVE,
+)
 from heatpump_optimizer.presets import (  # noqa: E402
     EMITTER_FLOOR,
     EMITTER_RADIATORS,
@@ -3146,35 +3150,82 @@ async def residual_statement_branches():
         f"stored={entry.options.get(const.CONF_SILENT_MODE_WINDOWS)!r}",
     )
 
-    # #1067 W1067-G5a: the pump's disinfection switch saves onto its own key
-    # from the hot_water_tank page, and clearing it writes None rather than
-    # leaving the old switch in force under the options merge.
+    # #1067 W1067-G5: control of the pump's disinfection switch needs the
+    # switch. Control with none is refused on the mode's own field and saves
+    # nothing; control with one saves both keys; observe with none (the
+    # default) saves as before; and clearing the switch writes None rather
+    # than leaving the old one in force under the options merge.
     flow, entry, _ = fresh_options()
     await flow.async_step_hot_water_tank(None)
     result = await submit(
         flow,
         "hot_water_tank",
-        {**HOT_WATER_TANK_ANSWERS,
-         const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: "switch.pump_disinfection"},
+        {
+            **HOT_WATER_TANK_ANSWERS,
+            const.CONF_DHW_DISINFECTION_MODE: FREQ_MODE_CONTROL,
+        },
+    )
+    check(
+        "opt_hot_water_tank",
+        "error",
+        "disinfection control with no switch is refused, not saved (#1067)",
+        shows(result, "hot_water_tank")
+        and result.get("errors", {}).get(const.CONF_DHW_DISINFECTION_MODE)
+        == "disinfection_control_needs_entity"
+        and not entry.options,
+        f"errors={result.get('errors')} options={sorted(entry.options)}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_hot_water_tank(None)
+    result = await submit(
+        flow,
+        "hot_water_tank",
+        {
+            **HOT_WATER_TANK_ANSWERS,
+            const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: "switch.pump_disinfection",
+            const.CONF_DHW_DISINFECTION_MODE: FREQ_MODE_CONTROL,
+        },
     )
     check(
         "opt_hot_water_tank",
         "happy",
-        "the pump's disinfection switch saves onto its own key (#1067)",
+        "disinfection control with a switch saves both keys (#1067)",
         not result.get("errors")
         and entry.options.get(const.CONF_DHW_DISINFECTION_SWITCH_ENTITY)
-        == "switch.pump_disinfection",
+        == "switch.pump_disinfection"
+        and entry.options.get(const.CONF_DHW_DISINFECTION_MODE) == FREQ_MODE_CONTROL,
         f"errors={result.get('errors')} options={dict(entry.options)}",
     )
+    # The stored mode is control now: clearing the switch without moving the
+    # mode back is the same refusal, judged over what would be stored.
     await flow.async_step_hot_water_tank(None)
     result = await submit(flow, "hot_water_tank", dict(HOT_WATER_TANK_ANSWERS))
     check(
         "opt_hot_water_tank",
+        "error",
+        "clearing the switch under a stored control mode is refused (#1067)",
+        shows(result, "hot_water_tank")
+        and result.get("errors", {}).get(const.CONF_DHW_DISINFECTION_MODE)
+        == "disinfection_control_needs_entity"
+        and entry.options.get(const.CONF_DHW_DISINFECTION_SWITCH_ENTITY)
+        == "switch.pump_disinfection",
+        f"errors={result.get('errors')} options={dict(entry.options)}",
+    )
+    result = await submit(
+        flow,
+        "hot_water_tank",
+        {
+            **HOT_WATER_TANK_ANSWERS,
+            const.CONF_DHW_DISINFECTION_MODE: FREQ_MODE_OBSERVE,
+        },
+    )
+    check(
+        "opt_hot_water_tank",
         "happy",
-        "a cleared disinfection switch saves as None, not as the old switch (#1067)",
+        "observe with the switch cleared saves, and the switch saves as None (#1067)",
         not result.get("errors")
-        and const.CONF_DHW_DISINFECTION_SWITCH_ENTITY in entry.options
-        and entry.options.get(const.CONF_DHW_DISINFECTION_SWITCH_ENTITY) is None,
+        and entry.options.get(const.CONF_DHW_DISINFECTION_SWITCH_ENTITY) is None
+        and entry.options.get(const.CONF_DHW_DISINFECTION_MODE) == FREQ_MODE_OBSERVE,
         f"errors={result.get('errors')} options={dict(entry.options)}",
     )
 
