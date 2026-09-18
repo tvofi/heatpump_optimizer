@@ -38499,8 +38499,8 @@ R.check(
 # The table proves the config before it reads it, and the proof is the pair
 # measured unique in that corpus: "Outdoor temperature" with "Outlet
 # temperature" (the counts are in the pull-request body). "Inlet temperature"
-# is in neither group -- it is shared with 17 other configs -- so its absence
-# is not a missing proof; the table then reads only what is there.
+# is in neither group -- shared with other configs, it proves nothing -- so
+# its absence is not a missing proof; the table then reads only what is there.
 _g7b2_tl_unproved = _g7b_dp.resolve(_g7b2_records(
     _G7B2_TL, drop={_g7b2_key(_G7B2_TL, "sensor_outlet_temperature", "unique_id")}))
 R.check(

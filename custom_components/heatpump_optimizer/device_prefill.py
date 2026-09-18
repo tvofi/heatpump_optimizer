@@ -145,8 +145,8 @@ _TUYA_LOCAL: dict[tuple[str, str], tuple[str, float]] = {
 #: and together in that one only. So the proof is the pair, and it is the pair
 #: whether or not this table maps it: the sensor the table reads (dp 105) and
 #: the one it deliberately does not (dp 106, Tout). The config's third named
-#: sensor, "Inlet temperature", is in neither group -- it is shared with 17
-#: other configs and proves nothing. Brand is not identity here either: the
+#: sensor, "Inlet temperature", is in neither group -- shared with other
+#: configs, it proves nothing. Brand is not identity here either: the
 #: corpus's other Rotenso config is an air conditioner whose dp 105 and dp 101
 #: are a select and a pm25 sensor.
 _TUYA_LOCAL_SIGNATURE = (

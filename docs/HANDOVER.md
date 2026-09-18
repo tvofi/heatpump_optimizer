@@ -166,10 +166,11 @@ request (#1081), linked from here and never restated.
   owner's install**. The same session refused a DP-keyed table for localtuya
   on the same ground: its records are a device id, a DP number and the user's
   own names, and a DP number is not identity — across that corpus's 1746 device
-  configs at `4551357`, dp 101 is read 1090 times in 488 distinct (domain,
-  entity name, DP name) ways and dp 107 500 times in 314. A DP-keyed localtuya
-  table ships only behind a firmware signature that proves the device — none
-  was found — and the fuzzy fallback carries the platform instead.
+  configs at `4551357`, dp 101 is configured in 826 of them and dp 107 in 407,
+  in 488 and 314 distinct (domain, entity name, DP name) readings respectively.
+  A DP-keyed localtuya table ships only behind a firmware signature that
+  proves the device — none was found — and the fuzzy fallback carries the
+  platform instead.
 
 ### The UX programme
 
