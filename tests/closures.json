@@ -34,7 +34,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 178.3,
+   "seconds": 96.1,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -760,6 +760,7 @@
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/repairs.py",
+   "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
@@ -786,6 +787,7 @@
    "tests/hastub/homeassistant/components/diagnostics.py",
    "tests/hastub/homeassistant/components/mqtt.py",
    "tests/hastub/homeassistant/components/repairs.py",
+   "tests/hastub/homeassistant/components/sensor.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",

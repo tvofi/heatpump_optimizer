@@ -336,6 +336,10 @@ from .const import (
     DEFAULT_PRICE_TILES_ENABLED,
     CONF_COMPRESSOR_FREQ_ENTITY,
     CONF_COMPRESSOR_FREQ_SENSOR,
+    CONF_COMPRESSOR_FREQ_MIN_HZ,
+    CONF_COMPRESSOR_FREQ_MAX_HZ,
+    DEFAULT_COMPRESSOR_FREQ_MIN_HZ,
+    DEFAULT_COMPRESSOR_FREQ_MAX_HZ,
     CONF_FREQ_CONTROL_MODE,
     DEFAULT_FREQ_CONTROL_MODE,
     CONF_MOLD_GUARD_ENABLED,
@@ -1395,6 +1399,8 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities_metering", CONF_COMPRESSOR_FREQ_ENTITY, _STORED, _entity_of('number'), group="compressor"),
     _F("entities_metering", CONF_COMPRESSOR_FREQ_SENSOR, _STORED, _entity_of('sensor', 'frequency'), group="compressor"),
     _F("entities_metering", CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE, _freq_mode_selector(), group="compressor"),
+    _F("entities_metering", CONF_COMPRESSOR_FREQ_MIN_HZ, DEFAULT_COMPRESSOR_FREQ_MIN_HZ, _number(1, 250, 1, 'Hz'), group="compressor"),
+    _F("entities_metering", CONF_COMPRESSOR_FREQ_MAX_HZ, DEFAULT_COMPRESSOR_FREQ_MAX_HZ, _number(1, 250, 1, 'Hz'), group="compressor"),
     # -- entities_pump
     _F("entities_pump", CONF_HEAT_PUMP_MODE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_DEFROST_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY]))),
@@ -2665,13 +2671,21 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Solar, power and compressor frequency sensors."""
+        errors: dict[str, str] = {}
         current = self._current
         if user_input is not None:
-            return await self._save_or_menu(
-                _clear_absent(user_input, "entities_metering", current)
-            )
+            user_input = _flatten_section_input(user_input)
+            # Only a number entity can be written; a sensor alone observes.
+            if user_input.get(CONF_FREQ_CONTROL_MODE) == FREQ_MODE_CONTROL and not user_input.get(CONF_COMPRESSOR_FREQ_ENTITY):
+                errors[CONF_FREQ_CONTROL_MODE] = "freq_control_needs_number"
+            else:
+                return await self._save_or_menu(
+                    _clear_absent(user_input, "entities_metering", current)
+                )
+            current = {**current, **user_input}
         return self.async_show_form(
             step_id="entities_metering",
+            errors=errors,
             data_schema=_page_schema("entities_metering", current, self.hass),
         )
 

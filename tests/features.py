@@ -14927,6 +14927,120 @@ R.check(
     _x_view["evidence_exhausted"] and _x_view["recommended_hz"] == 120.0,
 )
 
+# --- #1067 W1067-G6: a frequency SENSOR alone is enough to observe --------------
+# The GCHV Modbus package exposes the compressor frequency as a sensor and has
+# no writable register, so observe must work without a number entity. The
+# resolution rules live in freq_control.resolve_reading; the table below
+# drives that function directly, then the coordinator's view through it.
+from harness import FakeCoordinator as _G6FakeCoordinator  # noqa: E402
+from heatpump_optimizer import sensor as _g6_sensor  # noqa: E402
+from heatpump_optimizer.freq_control import (  # noqa: E402
+    FREQ_SOURCE_NUMBER,
+    FREQ_SOURCE_SENSOR,
+    resolve_reading,
+)
+
+_G6_STATES = {
+    "number.freq": FakeState("55", attributes={"min": 25.0, "max": 90.0}),
+    "number.bare": FakeState("55"),
+    "sensor.hz": FakeState("61.5"),
+    "sensor.junk": FakeState("lots"),
+}
+_g6_rows = [
+    # (number id, sensor id, options min, options max) -> expected
+    ((None, None, 30.0, 80.0), (None, 0.0, 0.0, None)),
+    (("number.freq", None, 30.0, 80.0), (55.0, 25.0, 90.0, FREQ_SOURCE_NUMBER)),
+    (("number.bare", None, 30.0, 80.0), (55.0, 30.0, 80.0, FREQ_SOURCE_NUMBER)),
+    (("number.gone", "sensor.hz", 30.0, 80.0), (None, 0.0, 0.0, FREQ_SOURCE_NUMBER)),
+    (("number.freq", "sensor.hz", 30.0, 80.0), (61.5, 25.0, 90.0, FREQ_SOURCE_NUMBER)),
+    (("number.freq", "sensor.gone", 30.0, 80.0), (None, 25.0, 90.0, FREQ_SOURCE_NUMBER)),
+    ((None, "sensor.hz", 30.0, 80.0), (61.5, 30.0, 80.0, FREQ_SOURCE_SENSOR)),
+    ((None, "sensor.gone", 30.0, 80.0), (None, 30.0, 80.0, FREQ_SOURCE_SENSOR)),
+    ((None, "sensor.junk", 30.0, 80.0), (None, 30.0, 80.0, FREQ_SOURCE_SENSOR)),
+]
+_g6_got = [
+    resolve_reading(n, s, _G6_STATES.get, lo, hi) for (n, s, lo, hi), _ in _g6_rows
+]
+R.check(
+    "resolve_reading: the number owns the range, a sensor alone takes the options' range",
+    _g6_got == [want for _, want in _g6_rows],
+    "; ".join(
+        f"{args!r} -> {got!r} (want {want!r})"
+        for (args, want), got in zip(_g6_rows, _g6_got)
+        if got != want
+    ),
+)
+
+
+def _g6_sensor_coord(**extra):
+    cfg = {
+        "compressor_freq_sensor": "sensor.hz",
+        "compressor_freq_min_hz": 25.0,
+        "compressor_freq_max_hz": 95.0,
+    }
+    cfg.update(extra)
+    c = _t2_coord(states={"sensor.hz": FakeState("50")}, **cfg)
+    c._measured_power = 2.0
+    c._current_action = {"power": 1.5, "dhw_power": 0.5}
+    return c
+
+
+_g6_so = _g6_sensor_coord()
+_g6_so._observe_frequency(_T6)
+_g6_view = _g6_so._freq_view()
+R.check(
+    "a frequency sensor alone observes, on the options' range, and learns a map",
+    _g6_view["mode"] == FREQ_MODE_OBSERVE
+    and _g6_view.get("source") == FREQ_SOURCE_SENSOR
+    and _g6_view["range_hz"] == [25.0, 95.0]
+    and _g6_view["reported_hz"] == 50.0
+    and sum(e["samples"] for e in _g6_view["map"].values()) == 1,
+    f"view={_g6_view!r}",
+)
+_g6_sc = _g6_sensor_coord(freq_control_mode="control")
+for _ in range(FREQ_MIN_SAMPLES + 1):
+    _g6_sc._freq_map.observe(50.0, 2.0, 25.0, 95.0)
+_g6_sc._freq_last_write = None
+_asyncio.run(_g6_sc._command_frequency())
+R.check(
+    "control needs a number: a sensor-only install stored as control observes and writes nothing",
+    _g6_sc._freq_mode() == FREQ_MODE_OBSERVE and not _g6_sc.hass.services.calls,
+    f"mode={_g6_sc._freq_mode()!r} calls={_g6_sc.hass.services.calls!r}",
+)
+_g6_sw = _g6_sensor_coord(freq_control_mode="control")
+_g6_sw._freq_watchdog.note_command(90.0)
+# One grace tick plus exactly the strikes that would trip it: one tick more
+# and the unconfigured-control re-arm would clear a trip before the check.
+for _ in range(FREQ_WATCHDOG_TICKS + 1):
+    _g6_sw._observe_frequency(_T6)
+R.check(
+    "no number, no watchdog: a sensor diverging from a stale command never stands anything down",
+    not _g6_sw._freq_fallback and not _g6_sw._freq_watchdog.strikes,
+    f"fallback={_g6_sw._freq_fallback!r} strikes={_g6_sw._freq_watchdog.strikes!r} -- "
+    "nothing was written through a sensor, so its divergence is no evidence",
+)
+_g6_num_view = _freq_coord()._freq_view()
+R.check(
+    "a number install publishes source=number beside its unchanged keys",
+    _g6_num_view.get("source") == FREQ_SOURCE_NUMBER
+    and _g6_num_view["mode"] == FREQ_MODE_OBSERVE
+    and _g6_num_view["range_hz"] == [20.0, 120.0],
+    f"view={_g6_num_view!r}",
+)
+R.check(
+    "an unconfigured view gains no key, so the published unconfigured dict is unchanged",
+    "source" not in _t2_coord()._freq_view(),
+    f"view={_t2_coord()._freq_view()!r}",
+)
+_g6_adv = _g6_sensor.FrequencyAdvisorSensor(
+    _G6FakeCoordinator({"freq_control": _g6_sensor_coord()._freq_view()}), _Entry922()
+)
+R.check(
+    "the advisor on a sensor-only install waits for a map sample, not for an entity",
+    _g6_adv.extra_state_attributes.get("waiting_for") == "first_frequency_map_sample",
+    f"waiting_for={_g6_adv.extra_state_attributes.get('waiting_for')!r}",
+)
+
 R.section("v4.0.2 — entry lifecycle, the solve boundary, store writes")
 
 from pathlib import Path as _Path
@@ -33129,11 +33243,11 @@ _T4_FREQ_BOTH = {"compressor_freq_entity": "number.freq",
                  "compressor_freq_sensor": "sensor.freq"}
 R.check(
     "with no frequency entity the reading and its range are all zero",
-    _t4_call(_t4_coord()._freq_entity_reading) == (None, 0.0, 0.0)
+    _t4_call(_t4_coord()._freq_entity_reading) == (None, 0.0, 0.0, None)
     and _t4_call(
         _t4_coord({}, compressor_freq_entity="number.gone")._freq_entity_reading
     )
-    == (None, 0.0, 0.0),
+    == (None, 0.0, 0.0, "number"),
     f"unset -> {_t4_call(_t4_coord()._freq_entity_reading)!r}, configured but "
     "absent -> "
     f"{_t4_call(_t4_coord({}, compressor_freq_entity='number.gone')._freq_entity_reading)!r} "
@@ -33144,14 +33258,14 @@ R.check(
     _t4_call(
         _t4_coord(_T4_FREQ_NUMBER, compressor_freq_entity="number.freq")._freq_entity_reading
     )
-    == (55.0, 25.0, 90.0)
+    == (55.0, 25.0, 90.0, "number")
     and _t4_call(
         _t4_coord(
             {"number.freq": FakeState("55")},
             compressor_freq_entity="number.freq",
         )._freq_entity_reading
     )
-    == (55.0, 20.0, 120.0),
+    == (55.0, 20.0, 120.0, "number"),
     "with min/max 25/90 -> "
     f"{_t4_call(_t4_coord(_T4_FREQ_NUMBER, compressor_freq_entity='number.freq')._freq_entity_reading)!r}, "
     "with no attributes -> "
@@ -33169,7 +33283,8 @@ _t4_fr_sensor = _t4_call(
 )
 R.check(
     "a configured feedback sensor is preferred, and its absence is not a fallback",
-    _t4_fr_sensor == (61.5, 25.0, 90.0) and _t4_fr_absent == (None, 25.0, 90.0),
+    _t4_fr_sensor == (61.5, 25.0, 90.0, "number")
+    and _t4_fr_absent == (None, 25.0, 90.0, "number"),
     f"sensor present -> {_t4_fr_sensor!r}, sensor configured but absent -> "
     f"{_t4_fr_absent!r} -- falling back to the number entity here would "
     "re-decorate the watchdog at exactly the moment the real feedback "
@@ -33187,7 +33302,8 @@ _t4_fr_nan = _t4_call(
 )
 R.check(
     "a non-numeric and a NaN feedback reading are both dropped, range intact",
-    _t4_fr_junk == (None, 25.0, 90.0) and _t4_fr_nan == (None, 25.0, 90.0),
+    _t4_fr_junk == (None, 25.0, 90.0, "number")
+    and _t4_fr_nan == (None, 25.0, 90.0, "number"),
     f"'lots' -> {_t4_fr_junk!r}, 'nan' -> {_t4_fr_nan!r} -- NaN parses, so "
     "the finite test is a separate arm from the parse and both must drop the "
     "reading while keeping the register limits",

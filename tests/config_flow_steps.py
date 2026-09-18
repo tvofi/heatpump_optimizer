@@ -3175,6 +3175,71 @@ async def residual_statement_branches():
         f"errors={result.get('errors')} options={dict(entry.options)}",
     )
 
+    # #1067 W1067-G6: a compressor-frequency SENSOR alone observes, but only
+    # a number entity can be written, so choosing control without one is
+    # refused on the mode field and saves nothing. A number with control,
+    # and a sensor with observe and its own Hz range, both save.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_entities_metering(None)
+    result = await submit(
+        flow,
+        "entities_metering",
+        {
+            const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz",
+            const.CONF_FREQ_CONTROL_MODE: "control",
+        },
+    )
+    check(
+        "opt_entities_metering",
+        "error",
+        "control without a frequency number entity is refused on the mode field (#1067)",
+        shows(result, "entities_metering")
+        and result.get("errors", {}).get(const.CONF_FREQ_CONTROL_MODE)
+        == "freq_control_needs_number"
+        and not entry.options,
+        f"type={result.get('type')} errors={result.get('errors')} options={entry.options!r}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_entities_metering(None)
+    result = await submit(
+        flow,
+        "entities_metering",
+        {
+            const.CONF_COMPRESSOR_FREQ_ENTITY: "number.freq",
+            const.CONF_FREQ_CONTROL_MODE: "control",
+        },
+    )
+    check(
+        "opt_entities_metering",
+        "happy",
+        "control with a frequency number entity saves (#1067)",
+        not result.get("errors")
+        and entry.options.get(const.CONF_FREQ_CONTROL_MODE) == "control",
+        f"errors={result.get('errors')} options={entry.options!r}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_entities_metering(None)
+    result = await submit(
+        flow,
+        "entities_metering",
+        {
+            const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz",
+            const.CONF_FREQ_CONTROL_MODE: "observe",
+            const.CONF_COMPRESSOR_FREQ_MIN_HZ: 25.0,
+            const.CONF_COMPRESSOR_FREQ_MAX_HZ: 95.0,
+        },
+    )
+    check(
+        "opt_entities_metering",
+        "happy",
+        "a sensor-only observe install saves its own Hz range (#1067)",
+        not result.get("errors")
+        and entry.options.get(const.CONF_COMPRESSOR_FREQ_SENSOR) == "sensor.hz"
+        and entry.options.get(const.CONF_COMPRESSOR_FREQ_MIN_HZ) == 25.0
+        and entry.options.get(const.CONF_COMPRESSOR_FREQ_MAX_HZ) == 95.0,
+        f"errors={result.get('errors')} options={entry.options!r}",
+    )
+
     # The grid_fees page's catalog application: choosing a DSO product
     # writes that product's rules and mode over whatever the page carried.
     dso_product = "ellevio_villa_effekt_2026"

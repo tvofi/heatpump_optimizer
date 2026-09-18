@@ -368,8 +368,10 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Heat pump energy meter | none | an `energy` sensor | A cumulative kWh meter is more accurate than adding up power readings, which misses short runs. |
 | Whole-house power meter | none | a `power` sensor | A capacity tariff is billed on the whole house, so without this the peak being avoided is only part of the real one. |
 | Compressor frequency entity | none | a `number` entity | Typically from Modbus or ESPHome. With it the optimizer learns a kW-per-Hz map and recommends a frequency. |
-| Actual frequency sensor | none | a `frequency` sensor | Many number entities are setpoint registers that echo the last written value. Read from an echo, the watchdog can never see divergence. Leave empty only if the number entity genuinely tracks the machine. |
-| Frequency mode | Observe | Observe / Control | Observe learns and recommends but never writes. Switch to Control only after validating the entity against your hardware: writes go through `number.set_value`, at most one per five minutes, clamped to the entity's own range, and three ticks of divergence stand the controller back down to Observe. |
+| Actual frequency sensor | none | a `frequency` sensor | Many number entities are setpoint registers that echo the last written value. Read from an echo, the watchdog can never see divergence. Leave empty only if the number entity genuinely tracks the machine. Without a number entity, this sensor alone is enough to observe. |
+| Frequency mode | Observe | Observe / Control | Observe learns and recommends but never writes. Switch to Control only after validating the entity against your hardware: writes go through `number.set_value`, at most one per five minutes, clamped to the entity's own range, and three ticks of divergence stand the controller back down to Observe. Control needs the number entity; with only the sensor the page refuses it. |
+| Lowest compressor frequency | 20 Hz | 1–250, 1 steps | The bottom of the compressor's frequency range, used when only the sensor is configured or when the number entity does not publish its own minimum. The learned map is divided across this range. |
+| Highest compressor frequency | 120 Hz | 1–250, 1 steps | The top of that range. A number entity's own maximum always wins over this. |
 
 ### Heat pump telemetry
 

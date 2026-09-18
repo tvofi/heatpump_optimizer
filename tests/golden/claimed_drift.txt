@@ -285,4 +285,16 @@
 # render, the seeded render and the seed map, re-recorded for #547's reason
 # above. Every other fixture is byte-identical: with no switch configured the
 # hot water view publishes no new key, and the switch is never written.
-config_flow  # ADD-ONLY: one new hot_water_tank option key, dhw_disinfection_switch_entity
+# Its bare claim is dropped here: G5a already merged to main (f02a790) and
+# its golden diff is baked into the committed baseline this branch merges,
+# so no diff remains for this branch to excuse under that name.
+#
+# #1067 W1067-G6 (sensor-only frequency observe, Hz bounds, control
+# validation): this branch restates its own footprint on top of the merged
+# main. It moves exactly one existing fixture: config_flow gains the
+# entities_metering page's two new option keys, compressor_freq_min_hz and
+# compressor_freq_max_hz, in the plain render and the seeded render,
+# re-recorded for #547's reason above. Every other fixture is byte-identical:
+# no capture configures a frequency number or sensor, so every published
+# freq_control view is the unconfigured one, which gains no key.
+config_flow  # ADD-ONLY: two new entities_metering option keys, compressor_freq_min_hz and compressor_freq_max_hz
