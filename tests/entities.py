@@ -11855,6 +11855,38 @@ R.check(
     _a5_entities_err or "accepted",
 )
 
+# ``modbus_prefill`` (#1067) is a two-submit page: the first resubmit opens
+# the suggestion preview (still a ``form``), the second saves. The nightly
+# walk must drive the whole sequence -- a single submit never leaves ``form``,
+# which is the escape a5:pages_ok caught on the nightly lane (#1151). Drive
+# the real handler, not a re-implementation, so the pin reads the page's own
+# phase branch.
+_a5_prefill_cur = {
+    const.CONF_MODBUS_PREFILL_PREFIX: const.DEFAULT_MODBUS_PREFILL_PREFIX
+}
+
+
+async def _a5_walk_modbus_prefill():
+    entry = FakeEntry(options=dict(_a5_prefill_cur))
+    flow = config_flow.HeatPumpOptimizerOptionsFlow(entry)
+    flow.hass = FakeHass()
+    payloads = _nightly.option_resubmits("modbus_prefill", flow._current)
+    kinds = [
+        _nightly._flow_kind(await flow.async_step_modbus_prefill(payload))
+        for payload in payloads
+    ]
+    return payloads, kinds
+
+
+_a5_prefill_payloads, _a5_prefill_kinds = asyncio.run(_a5_walk_modbus_prefill())
+R.check(
+    "modbus_prefill resubmits twice: one submit opens the preview, two save",
+    _a5_prefill_payloads
+    == (_nightly.option_resubmit("modbus_prefill", _a5_prefill_cur), {})
+    and _a5_prefill_kinds == ["form", "menu"],
+    f"payloads={_a5_prefill_payloads!r} kinds={_a5_prefill_kinds!r}",
+)
+
 # The check takes the two effective CONFIGURATIONS now, not their bytes, so a
 # failure can name the keys that moved. Its verdict is still the canonical
 # bytes, which is what these two pins hold: the #542 wipe fails, and a newly
