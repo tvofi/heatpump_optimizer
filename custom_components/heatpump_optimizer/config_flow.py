@@ -161,6 +161,8 @@ from .const import (
     CONF_SHOWER_FLOW_LPM,
     DEFAULT_SHOWER_FLOW_LPM,
     CONF_DHW_DISINFECTION_SWITCH_ENTITY,
+    CONF_DHW_DISINFECTION_MODE,
+    DEFAULT_DHW_DISINFECTION_MODE,
     CONF_VVC_PUMP_ENTITY,
     CONF_VVC_LEAD_MINUTES,
     DEFAULT_VVC_LEAD_MINUTES,
@@ -1477,6 +1479,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("hot_water_tank", CONF_DHW_ELASTIC_LEGIONELLA_ENABLED, DEFAULT_DHW_ELASTIC_LEGIONELLA_ENABLED, selector.BooleanSelector(), group="disinfection"),
     _F("hot_water_tank", CONF_DHW_LEGIONELLA_MIN_INTERVAL_DAYS, DEFAULT_DHW_LEGIONELLA_MIN_INTERVAL_DAYS, _number(1, 14, 1, 'days', slider=True), group="disinfection"),
     _F("hot_water_tank", CONF_DHW_DISINFECTION_SWITCH_ENTITY, _STORED, _entity_of(['switch', 'input_boolean']), group="disinfection"),
+    _F("hot_water_tank", CONF_DHW_DISINFECTION_MODE, DEFAULT_DHW_DISINFECTION_MODE, _select([FREQ_MODE_OBSERVE, FREQ_MODE_CONTROL], 'dhw_disinfection_mode'), group="disinfection"),
     _F("hot_water_tank", CONF_SHOWER_FLOW_LPM, DEFAULT_SHOWER_FLOW_LPM, _number(4, 20, 0.5, 'L/min'), group="tank"),
     # -- hot_water_pumps
     _F("hot_water_pumps", CONF_VVC_PUMP_ENTITY, _STORED, _entity_of(['switch', 'input_boolean'])),
@@ -2881,17 +2884,24 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     async def async_step_hot_water_tank(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Tank size, inlet water and advanced DHW learning."""
-        # No re-merge of user_input here: unlike comfort, hot_water, building,
-        # grid and grid_fees, this page's submit block returns unconditionally,
-        # so the render path only ever runs with user_input None (#542).
+        """Tank size, inlet water, advanced DHW learning and the pump's switch."""
+        errors: dict[str, str] = {}
         current = self._current
         if user_input is not None:
-            return await self._save_or_menu(
-                _clear_absent(user_input, "hot_water_tank", current)
-            )
+            cleaned = _clear_absent(user_input, "hot_water_tank", current)
+            merged = {**current, **cleaned}
+            # #1067: control writes the pump's disinfection switch, so it is
+            # refused without one -- judged over what would be stored, so
+            # clearing the switch under a stored control mode is refused too.
+            if merged.get(CONF_DHW_DISINFECTION_MODE) != FREQ_MODE_CONTROL or merged.get(
+                CONF_DHW_DISINFECTION_SWITCH_ENTITY
+            ):
+                return await self._save_or_menu(cleaned)
+            errors[CONF_DHW_DISINFECTION_MODE] = "disinfection_control_needs_entity"
+            current = merged
         return self.async_show_form(
             step_id="hot_water_tank",
+            errors=errors,
             data_schema=_page_schema("hot_water_tank", current, self.hass),
         )
 

@@ -286,19 +286,32 @@
 # re-recorded for #547's reason above. Every other fixture is byte-identical:
 # the page reads entity states only when submitted, and no plan reads its key.
 #
-# #1067 W1067-G7b-1 (pre-filling from a heat-pump device), on top of G7 in the
-# same fixture: the pre-fill page's first form gains the transient device pick,
-# so config_flow gains exactly two leaves, prefill_device in the plain render
-# and in the seeded render. Measured: `git diff --numstat` over
-# tests/golden/config_flow.json is 12 insertions and 0 deletions, and no
+# #1067 W1067-G7b-1 (pre-filling from a heat-pump device): the pre-fill page's
+# first form gains the transient device pick, so config_flow gains exactly two
+# leaves, prefill_device in the plain render and in the seeded render, and
+# nothing else. Measured against THIS branch's own merge base, origin/main
+# da63bbb -- where G7's modbus_prefill page and its prefix key already sit, so
+# they are that baseline rather than part of this diff -- `git diff --numstat`
+# over tests/golden/config_flow.json is 12 insertions and 0 deletions, and no
 # pre-existing leaf appears in the diff. The pick is not an option key, so the
 # seed map #547 added does not gain a third. Every other fixture is
 # byte-identical: the device route reads the entity registry only when the
 # page is submitted, and no plan reads any of it.
-config_flow  # ADD-ONLY: the modbus_prefill page, its modbus_prefill_prefix option key (G7) and its transient prefill_device pick (G7b-1)
+config_flow  # ADD-ONLY: this branch's own diff is G7b-1's prefill_device pick -- 2 leaves added, 0 removed, one in the plain render and one in the seeded render
 #
 # Both G5a's and G6's bare claims are dropped here, following the G5a
 # precedent above: both already merged to main (G5a f02a790, G6 in this
 # absorb's origin/main tip d25e5333d) and their golden diffs are baked into
 # the committed baseline this branch merges, so no diff remains for this
-# branch to excuse under either name.
+# branch to excuse under either name. The v6.6.3 stamp has since emptied
+# G7's own claim in turn.
+#
+# G5b's bare claim -- and the note that introduced it -- is dropped here for
+# the same reason, and this is the line the absorb's `claimnotes` refusal was
+# about: both sides named config_flow, so the union would have carried two
+# claims for one fixture and let the later reason speak for the earlier diff.
+# G5b merged to main as #1142 (da63bbb), which IS this absorb's baseline, so
+# its hot_water_tank disinfection mode key is already in the committed fixture
+# this branch merges; keeping the claim would state a diff this branch does
+# not own. What remains above is this branch's own footprint, re-derived at
+# da63bbb.
