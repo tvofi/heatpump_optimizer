@@ -2,19 +2,19 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched. recorded.seconds for the two differential guards (tests/golden.py, tests/env_drift.py) time the deliberately cheap stub invocation derive_closures.sh records with (golden.py --only __no_such_scenario__, env_drift.py --cache-key <ref> --all), not a real differential run: a real one costs minutes, the record says under a second (#934).",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 23.1,
+   "seconds": 45.5,
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 5.0,
+   "seconds": 9.0,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 1.7,
+   "seconds": 4.0,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 10.1,
+   "seconds": 19.7,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -22,11 +22,11 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 23.8,
+   "seconds": 45.1,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 32.7,
+   "seconds": 34.9,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -34,51 +34,51 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 89.1,
+   "seconds": 189.1,
    "rc": 0
   },
   "tests/frontend.py": {
-   "seconds": 0.0,
-   "rc": 0
-  },
-  "tests/golden.py": {
-   "seconds": 1.3,
-   "rc": 0
-  },
-  "tests/manual_plan.py": {
-   "seconds": 4.3,
-   "rc": 0
-  },
-  "tests/open_meteo.py": {
    "seconds": 0.1,
    "rc": 0
   },
+  "tests/golden.py": {
+   "seconds": 0.5,
+   "rc": 0
+  },
+  "tests/manual_plan.py": {
+   "seconds": 7.8,
+   "rc": 0
+  },
+  "tests/open_meteo.py": {
+   "seconds": 0.2,
+   "rc": 0
+  },
   "tests/optimality.py": {
-   "seconds": 43.3,
+   "seconds": 95.8,
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 0.6,
+   "seconds": 1.0,
    "rc": 0
   },
   "tests/solar_alignment.py": {
-   "seconds": 0.4,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 434.0,
+   "seconds": 711.3,
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 1.1,
+   "seconds": 2.1,
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 20.7,
+   "seconds": 42.3,
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 1.5,
+   "seconds": 1.8,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -86,19 +86,19 @@
    "rc": 0
   },
   "tests/typing_ruler.py": {
-   "seconds": 0.1,
+   "seconds": 0.2,
    "rc": 0
   },
   "tests/guard_pins.py": {
-   "seconds": 0.5,
+   "seconds": 0.6,
    "rc": 0
   },
   "tests/wood_advisor.py": {
-   "seconds": 0.4,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 87.0,
+   "seconds": 143.7,
    "rc": 0
   }
  },
@@ -1411,6 +1411,7 @@
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/modbus_prefill.py",
+   "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
@@ -1516,6 +1517,7 @@
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/modbus_prefill.py",
+   "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
