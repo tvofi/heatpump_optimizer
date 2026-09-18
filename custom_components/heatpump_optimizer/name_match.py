@@ -76,14 +76,31 @@ class Named(Protocol):
 
     A structural type rather than an import of ``device_prefill.EntityRecord``:
     that module is this one's caller, and the fields below are all the matcher
-    needs to see.
+    needs to see. Declared as read-only properties rather than as plain
+    attributes, because the record that satisfies this is a ``NamedTuple``
+    whose fields are read-only, and a settable attribute in the protocol would
+    demand a settable one in the implementation.
     """
 
-    entity_id: str
-    original_name: str | None
-    translation_key: str | None
-    device_class: str | None
-    unit: str | None
+    @property
+    def entity_id(self) -> str:
+        """The entity id, domain included -- ``sensor.hp_t4``."""
+
+    @property
+    def original_name(self) -> str | None:
+        """The name the registry holds, or None where the entity has none."""
+
+    @property
+    def translation_key(self) -> str | None:
+        """The translation key the integration gave it, if any."""
+
+    @property
+    def device_class(self) -> str | None:
+        """The device class Home Assistant published for it, if any."""
+
+    @property
+    def unit(self) -> str | None:
+        """The unit of measurement its state carries, if any."""
 
     @property
     def domain(self) -> str:
@@ -309,8 +326,11 @@ def _device_words(records: list[Named]) -> tuple[str, ...]:
 
 def _names(record: Named, device: tuple[str, ...]) -> tuple[str, ...]:
     """The texts one record is named by, device name stripped."""
-    texts: list[str] = [record.entity_id.split(".", 1)[-1]]
-    texts.extend([record.original_name, record.translation_key])
+    texts: list[str | None] = [
+        record.entity_id.split(".", 1)[-1],
+        record.original_name,
+        record.translation_key,
+    ]
     names = []
     for text in texts:
         if not text:
