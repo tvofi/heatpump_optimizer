@@ -482,7 +482,7 @@ every sensor is created on every install regardless of which group it is in.
 | Cost Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Unavailable unless the capacity tariff is enabled |
 | Cost Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Unavailable until it can be computed |
 | Compressor Starts | — | Realised starts counted from the meter, immersion events excluded | Diagnostic; needs measured power |
-| Compressor Frequency Advisor | Hz | The frequency the plan's power asks for, from the learned kW-per-Hz map | Diagnostic; disabled by default; needs a compressor frequency entity |
+| Compressor Frequency Advisor | Hz | The frequency the plan's power asks for, from the learned kW-per-Hz map | Diagnostic; disabled by default; needs a compressor frequency number or sensor |
 
 #### The sun, and what the house is storing
 
@@ -581,6 +581,11 @@ watchdog can never see divergence and the map learns the setpoint instead of the
 machine. If your integration exposes the *actual* compressor frequency as a
 separate sensor, configure that as well — the watchdog and the map then read
 reality, and the number entity is used only for writing.
+
+If there is no writable register at all and the frequency is only a sensor, as
+in some Modbus packages, configure the sensor alone: observe works from it, over
+the lowest and highest compressor frequency set on the same options page.
+Control needs the number entity, and the page refuses it without one.
 
 The learned map never feeds the optimizer's plans in either mode. Plans stay
 power-denominated; control only translates the planned kilowatts into the hertz

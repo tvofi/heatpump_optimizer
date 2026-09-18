@@ -1,6 +1,13 @@
 # Handover — the open-issues programme
 
-updated-for: cb30d98bfb677d2bd4f73054ee716a9359e3adfa
+updated-for: 2296de350465d3987475cf89d030dfc16fd33841
+
+Taken at this record seat's own (re-merged) merge base off `origin/main`
+(merges since the prior stamp: #1106 `f02a790`, #1119 `1b22d4a`, #1125
+`a2d1d9a`, #1120 `6bbc0bf`, #1126 `2296de3`). This line was `a2d1d9a` for
+part of this pull request's life and was re-pointed after `origin/main` moved
+under it in review (round 2, #1129) — re-derive rather than trust this line
+if it reads stale against `origin/main` HEAD again.
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is the frozen table in
@@ -97,10 +104,56 @@ request (#1081), linked from here and never restated.
   the current body, so only that head's result is a result. A red at a
   superseded head is the instrument, not the commit. The root-cause seat is
   the issue this property opened; do not skip to writing a check.
+- **A setting the entry never stored is no longer written when the options page
+  posts its default** (#1107, released v6.6.1). `config_flow._ABSENT_FALLBACKS`
+  is the set whose absence already IS the shipped default, and
+  `tests/config_flow_steps.py` derives it — *"`_ABSENT_FALLBACKS` is exactly the
+  proven set"* — rather than letting it be listed by hand. **Constraint on a new
+  option key**: it derives into that set, or every page visit writes it.
 - **A coverage ratio over an open set of mutation carriers is not a figure.**
   The denominator is unbounded. State the class.
 - **A figure about the document it lives in is derived beside it, at the head.**
   Carrying one is how it goes stale on every review of the artifact that states it.
+- **A generalised vacuous-acceptance-arm detector is refused on cost, not
+  owed.** Dispatched at the fourth instance (#201 comment 5720829142): the
+  shape is not one class but three — a harness structurally decoupled from the
+  mutated code (#1117, W1067-G7b-1), an under-specified environment
+  precondition (#1115), and a false claim in prose that no mutation proof
+  addresses (#1120) — and the root-cause seat's own asymmetry claim ("only
+  reviewers catch this") was refuted: W1067-G7b-1 was caught by its own
+  mutation proof and `RELEASE_NOTES.md` records a prior self-caught instance,
+  3 of 4 rather than 4 of 4. Neither of `defect-root-cause.md`'s two
+  enforcement triggers fires on any of the four (none reached a release, none
+  turned a required check red); the mandate is `CLAUDE.md`'s separate
+  recurring-error clause. The seat's cited figures — 37 historical instances of
+  this named shape, effectively 100% caught before `main` — are that seat's
+  own measurement, not independently re-derived here. A generalised detector
+  needing different logic per shape was judged a research project against a
+  defect costing roughly one extra review round, and refused. One narrow
+  `fixer.md` sentence is proposed and explicitly NOT pushed: it needs a cap
+  raise or a cut and neither owner grant in hand covers it; it waits on the
+  owner's sign-off. Do not re-propose a generalised detector without new
+  information. **The refusal stands (#1125's reviewer ruling, accepted) but
+  owes this qualifier: the ~100% catch rate it cites rests on an attentive
+  seat noticing, not on a mechanism that guarantees noticing.** A fifth
+  instance of the same shape surfaced after the refusal was written and was
+  not caught by any check, until [#1126](https://github.com/tvofi/heatpump_optimizer/pull/1126)
+  (merged `2296de3`) fixed it: `.claude/workflows/check-wave-script.mjs`'s
+  verdict-grammar block carried its own hand-rebuilt copy of `VERDICT_RE`
+  instead of deriving it from `.claude/workflows/web-fix-wave.js`'s source,
+  the two silently diverged (production tightened its SHA capture to
+  `[0-9a-f]{40}` while the local copy kept `\S+`), and the block's own
+  null control — a bare `merge deadbeef`-shaped verdict, meant to catch an
+  extraction that accepts anything — stayed green throughout on either
+  regex, proving nothing about which one the artifact actually used. It was
+  caught only because a seat stopped to reason about why its own control
+  passed, the same route as the other four, not a mechanism. #1126's fix is
+  to execute the literal `VERDICT_RE` text out of `web-fix-wave.js`'s own
+  source (via `new Function`) rather than retype it, so the two cannot
+  diverge again by omission. Cite this instance by what it was, not by a
+  line number: line numbers in a fixed file are exactly the rot
+  `brief-citations.md` exists to catch, and this paragraph predicting that
+  condition is not a reason to leave it unmoved once the condition occurs.
 
 ### The UX programme
 
@@ -119,6 +172,67 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
 
 ## Corrections to the record
 
+- **The seven open `[policy] recurring friction:` issues were filed by a
+  histogram that keyed on the spelling a seat typed and counted entries rather
+  than pull requests.** Both are fixed (#1119). **The corrected rule RE-KEYS
+  these issues; it does not retract them** — at `e467026`, over
+  `v6.5.1..origin/main`, 52 merged pull requests, six of the seven are over the
+  threshold under their new key: #1070 9/9, #1095 7/9, #1078 5/7, #1079 5/5,
+  #1069 4/5, #1087 4/4, as PRs / entries. Nothing here says the friction was not
+  real, and the issues are not re-titled. **Every count in this entry carries the
+  head it was taken at, because they move with nobody editing them** — #1070 read
+  7/7 at `c71c53c` and 9/9 one day of merges later.
+- **#1094 is the one that changes character, and the reason is worth the
+  paragraph.** Its title key, `orchestrator`, is a ROLE NAME, and a role name
+  designates a seat as readily as that seat's contract. Every entry behind it
+  records friction with a **dispatch brief** — the lease tool named as
+  `tools/audit/gate_lock.py` when the tree has `tests/`, a G3 premise that
+  cannot hold on the stock house, a G4 derate range, a claim-files
+  contradiction — and none with `tools/audit/briefs/orchestrator.md`, which does
+  not govern any of it. `.github/PULL_REQUEST_TEMPLATE.md` offers one field,
+  `<rule_id>`, and no field for a brief, which is why the two subjects arrive
+  under one shape. So `tools/audit/briefs/*.md` resolves only from an id that
+  names it as a FILE, and a bare or suffix-qualified role name stays verbatim.
+  At `e467026` the dispatch key reads 2/4 and the contract key 2/2, and neither
+  clears the threshold in that window. **Its two controls, because a disposition
+  has to state both its key and its window:** the same key over
+  `v6.6.0..origin/main` reads 1 distinct pull request, and `main`'s
+  un-normalised classifier splits the same entries into `orchestrator` 4 and
+  `orchestrator.md` 2. A count that moves under either is a count whose key and
+  window were never stated. An earlier draft of this entry said recurrence did
+  not support #1094; that was written about the raw key and is **withdrawn** —
+  the rule re-keys the issue, it does not retract it.
+- **Do not carry any of those counts.** `<ref>..origin/main` is enumerated
+  against `origin/main`'s tip at the moment of the run, so every one of them is
+  a sliding figure; seven merges landed during #1119's own review and moved all
+  of them. A seat disposing one of the seven re-derives with
+  `node .claude/workflows/policy_lint.mjs --stats --since <newest tag>`, reads
+  the `PRs / entries` column, and resolves its own key with
+  `--normalize-friction-keys` rather than assuming the title is the key. The
+  filing lane re-measures every open issue on each beat and comments when its
+  key is below threshold in the current window; it never closes, so the
+  disposition is still a seat's. A key below threshold in one window is not a
+  fixed problem — the window moved when the last tag was cut, and the friction
+  may be older than it.
+- **This file is NOT policy for the budget and approval machinery, and seats are
+  still being briefed that it is.** `docs/HANDOVER.md` sits in `CORPUS_EXCLUDED`
+  and matches no `POLICY_GLOBS` pattern (owner, 2026-09-16, #201 comment
+  5702401684); `.github/CODEOWNERS` says in its own header that it is
+  deliberately absent. So a record pull request whose diff is this file owes no
+  `## Approval` section and no code-owner review, and its growth spends no cap —
+  `--budgets` does not list it. The residual the exclusion names is real and is
+  a reviewer's job, not a check's: prose moved into this file leaves the corpus.
+- **`tests/mutation_budgets.json`'s stated reason is stale.** It says the cap
+  waits on a full-package run that "cannot happen until mutation-nightly is on
+  main"; the `mutation-nightly` job is in `.github/workflows/tests.yml` and
+  `last_measured.full` is still `null`. **`mutation` is not a required check** —
+  read the contexts from the `main-protect` ruleset endpoint, never a count from
+  here; `coverage`, `mutation-nightly`, `slow` and `nightly-status` are absent
+  from it too, and `/branches/main/protection` answers 404, so the ruleset
+  endpoint is the only reader. With `max_survivor_fraction` at 1.0 in both
+  scopes and the refusal written `if rate > cap`, the lane cannot fail on a
+  survivor: every red it carried in the retained window was its baseline guard
+  re-reporting a red `fast` already reported by `fast`.
 - **The "34-key `data` payload" is wrong**, and so is any count of it: no rule
   reproduces 34, and it traces to a lost session tool. The freeze is enforced by
   `tests/features.py`'s symmetry check and the `coord_*` goldens, never by a
@@ -176,6 +290,16 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
   release stamp was about to break. The only honest test is a probe branch with
   its own ruleset and **both** arms — with the admin bypass the push lands,
   without it GitHub answers *push declined due to repository rule violations*.
+- **An "empty diff over `tests/` and `custom_components/`" does not mean no
+  gate is owed.** #1122's fixer argued the post-absorb diff over those two
+  trees was empty, so no re-run was needed; the reviewer upheld the judgement
+  but refuted the reason — the merge had also moved
+  `.claude/workflows/policy_lint.mjs` and `friction_issues.mjs`, both inside
+  recorded closures. `python3 tests/closure.py select --diff <merge-base>`
+  still selects `tests/entities.py`, which passed in 34 s (`ALL 1508 ENTITY
+  CHECKS PASSED`). No full re-run was owed, but the stated reason was wrong
+  and must not be reused: derive the gate's scope from `closure.py select`,
+  never from which top-level directories a diff appears to touch.
 
 ## Traps that cost a session
 
@@ -396,6 +520,57 @@ in its own pull request.
     third attempt, passed. Byte-identity against the sent file
     (`comment-readback.md`) is the only read-back that fails all three.
 
+38. **A sectioned config-flow field resolves its label ONLY at
+    `step.<id>.sections.<s>.data.<field>` and `data_description`, with no
+    fallback to step level.** Every label check this repository had read the
+    step-level `data` map, which the HA frontend does not consult for a field
+    inside a `section()`; the fields rendered as raw keys — per language, in
+    both flows — from v6.3.19 (#653) and v6.4.1 (#849) until #1111 restored
+    them in v6.6.2. **The class is a check and the production code agreeing
+    about the wrong location**, so the check confirms the defect. Graduated:
+    the schema-derived, no-fallback assertion in `tests/entities.py`, which
+    walks the built schema rather than a hand-written key list. #1114 then
+    fixed the same blind read in seven audit harnesses under
+    `tools/audit/round3/` and `tools/audit/round4/`, none of which the gate had
+    ever contradicted.
+39. **`prepr.sh` gates `## Head` against the LOCAL head and `pr-contract` gates
+    the pull request's REMOTE tip, so a pull request that writes its own record
+    file must push twice and one `pr-contract` run necessarily fails on the
+    commit being replaced** (#1116). It is a red-then-green at a superseded
+    head, not a defect — `push.sh`'s `pr_arm` selects `body-then-push` once a
+    pull request is open, which is what orders the two. Read it with the
+    commit's `check-runs` API (correction above), and answer it in the body by
+    naming the superseded head rather than re-running anything.
+    **Instances: #1116, then #1121. This is a named recurrence at two, recorded
+    here so the next seat knows where it stands** — at a third,
+    `defect-root-cause.md`'s recurrence trigger fires and the answer is a
+    root-cause seat, not a third pull-request paragraph explaining the same red.
+    No countermeasure is proposed at two, and that is the decision rather than
+    an omission: a check that suppressed this red would have to stop reporting a
+    body genuinely stale at the head, which is what `pr-contract` is for, and
+    the gap itself exists only between two API calls that `push.sh`'s own header
+    says it cannot make atomic.
+40. **`policy_lint.mjs --budgets` exits 0 whatever it prints — it reports, and
+    never refuses.** Its handler is `if (has('--budgets')) return
+    cmdBudgets(files), process.exit(0)`, unconditional; the bare
+    `node .claude/workflows/policy_lint.mjs` is the path that refuses
+    (`process.exit(errors > 0 || rc ? 1 : 0)`). A mutation proof driven against
+    `--budgets` proves nothing (#1123): its own proof was driven against the
+    refusing bare form instead — appending two lines turned it rc=1, naming
+    both the touched file's cap and the corpus cap; restoring returned rc=0.
+41. **The test for whether a repair's invariant is true by construction, or
+    true only because the arm now asserts nothing, is to force the precondition
+    it relies on back to false and check the arm reddens.** #1115's `--record`
+    acceptance arm had asserted an invariant that held only where
+    `origin/main` is reachable from `HEAD`; under a shallow clone it
+    enumerated 611 merges and reddened. The repair made the window
+    `mainRef()..mainRef()`, empty by construction — and the decisive check was
+    not that the window is empty: reverting to `HEAD` inside the shallow clone
+    had to reproduce the original red, and deleting the `requireToken` call
+    had to redden the refusing arms (`FIXTURE VACUOUS`). Both did. Apply this
+    test to any repair that makes a window, a set or a diff empty by
+    construction, not only to this one.
+
 ## Owed — post-hoc reviews
 
 **Seven pull requests merged on 2026-09-07 without an independent verdict at
@@ -441,6 +616,30 @@ flagged it rather than claiming a carry it had not made.
   reads as its opposite** — agent identities author and approve, no human in
   the loop; the order above is unchanged. #954 closes at that verification.
 
+**Owed: an instrument over the plan's open-issue dispositions, or a decision
+not to build one.** `recordRegion` reads the plan's `## Delivery status`
+section, `docs/delivery/` and this file; every other `##` in the plan is outside
+it. So `## Open friction issues — dispositions` (#1121) is unread by any check —
+deleting it whole leaves `--record` byte-identical, `RENDER` included — while
+`delivery-status-tracking.md` section 5 obliges a disposition for every open
+issue. The obligation is real and the coverage is a seat's grep. **What the
+detector would have to avoid** is the shape #658 already narrowed the record
+region to escape: a check that accepts an issue number mentioned anywhere
+dispositions it by mention, which is the defect, not the fix.
+
+**Owed from #1116, two items its merged body left open.**
+
+- **Its body says `--list` "lists nine of the ten" corpus checks; re-measured at
+  `c71c53c`, that is wrong in both halves.** `cmdList` iterates a separate
+  fifteen-class registry, not `CORPUS_CHECKS`, so the overlap is a property of
+  two lists: seven of the ten wired in `CORPUS_CHECKS` have a `--list` class and
+  three do not — `orphan-caps`, `row-freeze` and `rule-binding`. Derive it by
+  intersecting the two rather than reading a count here.
+- **The `--list` discoverability fix itself is deferred.** A check a seat cannot
+  enumerate is a check a seat does not run, and `FIXTURE VACUOUS` already
+  refuses `CORPUS_CHECKS` drifting from `CORPUS_CHECK_NAMES` — nothing holds the
+  `--list` registry to it, which is the hole.
+
 **Owed from 2026-09-14: a stale-pin sweep.** #960 SHA-pinned every mutable
 `uses:` in `.github/workflows/` (the frozen tag rides each pin as a trailing
 comment). No lane sweeps refs for staleness -- `--sunset` reads policy
@@ -448,6 +647,22 @@ markers, and nothing under `.claude/workflows/` or `tests/` reads a workflow
 ref (grep at merge base `c62210e`) -- so until the weekly `record` beat
 (#959) grows one, an upstream fix reaches this repository only when a seat
 re-pins deliberately.
+
+**Owed from #1115, flagged for whoever next touches the env matrix, not this
+pull request's to fix.** `policy_lint_envmatrix.mjs:238`'s `okRef` row still
+drives `--since HEAD` on the assumption that `HEAD..origin/main` is empty in
+that clone — structurally the same defect #1115's `--record` acceptance-arm
+fix addressed, and now load-bearing because a fixture token was added to this
+row since. Pre-existing before #1115 and green everywhere it has been
+driven.
+
+**Owed from #1122, named as incomplete rather than false.** `tests/typing_ruler.py:33`
+and `.github/workflows/tests.yml:427` still carry "which no gate lane has,"
+the exact sentence #1122 established as false — `HPO_TYPING_PYTHON` re-execs
+the pinned mypy half locally via `run.sh` — and repairs at those two sites
+(`run.sh`, `gate-scoping.md`) but not at `tests/typing_ruler.py:33` or
+`.github/workflows/tests.yml:427`. #1122's own body names this as owed and
+does not claim to have repaired it.
 
 ## The machine this runs on — measure it, do not read it
 

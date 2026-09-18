@@ -14927,6 +14927,120 @@ R.check(
     _x_view["evidence_exhausted"] and _x_view["recommended_hz"] == 120.0,
 )
 
+# --- #1067 W1067-G6: a frequency SENSOR alone is enough to observe --------------
+# The GCHV Modbus package exposes the compressor frequency as a sensor and has
+# no writable register, so observe must work without a number entity. The
+# resolution rules live in freq_control.resolve_reading; the table below
+# drives that function directly, then the coordinator's view through it.
+from harness import FakeCoordinator as _G6FakeCoordinator  # noqa: E402
+from heatpump_optimizer import sensor as _g6_sensor  # noqa: E402
+from heatpump_optimizer.freq_control import (  # noqa: E402
+    FREQ_SOURCE_NUMBER,
+    FREQ_SOURCE_SENSOR,
+    resolve_reading,
+)
+
+_G6_STATES = {
+    "number.freq": FakeState("55", attributes={"min": 25.0, "max": 90.0}),
+    "number.bare": FakeState("55"),
+    "sensor.hz": FakeState("61.5"),
+    "sensor.junk": FakeState("lots"),
+}
+_g6_rows = [
+    # (number id, sensor id, options min, options max) -> expected
+    ((None, None, 30.0, 80.0), (None, 0.0, 0.0, None)),
+    (("number.freq", None, 30.0, 80.0), (55.0, 25.0, 90.0, FREQ_SOURCE_NUMBER)),
+    (("number.bare", None, 30.0, 80.0), (55.0, 30.0, 80.0, FREQ_SOURCE_NUMBER)),
+    (("number.gone", "sensor.hz", 30.0, 80.0), (None, 0.0, 0.0, FREQ_SOURCE_NUMBER)),
+    (("number.freq", "sensor.hz", 30.0, 80.0), (61.5, 25.0, 90.0, FREQ_SOURCE_NUMBER)),
+    (("number.freq", "sensor.gone", 30.0, 80.0), (None, 25.0, 90.0, FREQ_SOURCE_NUMBER)),
+    ((None, "sensor.hz", 30.0, 80.0), (61.5, 30.0, 80.0, FREQ_SOURCE_SENSOR)),
+    ((None, "sensor.gone", 30.0, 80.0), (None, 30.0, 80.0, FREQ_SOURCE_SENSOR)),
+    ((None, "sensor.junk", 30.0, 80.0), (None, 30.0, 80.0, FREQ_SOURCE_SENSOR)),
+]
+_g6_got = [
+    resolve_reading(n, s, _G6_STATES.get, lo, hi) for (n, s, lo, hi), _ in _g6_rows
+]
+R.check(
+    "resolve_reading: the number owns the range, a sensor alone takes the options' range",
+    _g6_got == [want for _, want in _g6_rows],
+    "; ".join(
+        f"{args!r} -> {got!r} (want {want!r})"
+        for (args, want), got in zip(_g6_rows, _g6_got)
+        if got != want
+    ),
+)
+
+
+def _g6_sensor_coord(**extra):
+    cfg = {
+        "compressor_freq_sensor": "sensor.hz",
+        "compressor_freq_min_hz": 25.0,
+        "compressor_freq_max_hz": 95.0,
+    }
+    cfg.update(extra)
+    c = _t2_coord(states={"sensor.hz": FakeState("50")}, **cfg)
+    c._measured_power = 2.0
+    c._current_action = {"power": 1.5, "dhw_power": 0.5}
+    return c
+
+
+_g6_so = _g6_sensor_coord()
+_g6_so._observe_frequency(_T6)
+_g6_view = _g6_so._freq_view()
+R.check(
+    "a frequency sensor alone observes, on the options' range, and learns a map",
+    _g6_view["mode"] == FREQ_MODE_OBSERVE
+    and _g6_view.get("source") == FREQ_SOURCE_SENSOR
+    and _g6_view["range_hz"] == [25.0, 95.0]
+    and _g6_view["reported_hz"] == 50.0
+    and sum(e["samples"] for e in _g6_view["map"].values()) == 1,
+    f"view={_g6_view!r}",
+)
+_g6_sc = _g6_sensor_coord(freq_control_mode="control")
+for _ in range(FREQ_MIN_SAMPLES + 1):
+    _g6_sc._freq_map.observe(50.0, 2.0, 25.0, 95.0)
+_g6_sc._freq_last_write = None
+_asyncio.run(_g6_sc._command_frequency())
+R.check(
+    "control needs a number: a sensor-only install stored as control observes and writes nothing",
+    _g6_sc._freq_mode() == FREQ_MODE_OBSERVE and not _g6_sc.hass.services.calls,
+    f"mode={_g6_sc._freq_mode()!r} calls={_g6_sc.hass.services.calls!r}",
+)
+_g6_sw = _g6_sensor_coord(freq_control_mode="control")
+_g6_sw._freq_watchdog.note_command(90.0)
+# One grace tick plus exactly the strikes that would trip it: one tick more
+# and the unconfigured-control re-arm would clear a trip before the check.
+for _ in range(FREQ_WATCHDOG_TICKS + 1):
+    _g6_sw._observe_frequency(_T6)
+R.check(
+    "no number, no watchdog: a sensor diverging from a stale command never stands anything down",
+    not _g6_sw._freq_fallback and not _g6_sw._freq_watchdog.strikes,
+    f"fallback={_g6_sw._freq_fallback!r} strikes={_g6_sw._freq_watchdog.strikes!r} -- "
+    "nothing was written through a sensor, so its divergence is no evidence",
+)
+_g6_num_view = _freq_coord()._freq_view()
+R.check(
+    "a number install publishes source=number beside its unchanged keys",
+    _g6_num_view.get("source") == FREQ_SOURCE_NUMBER
+    and _g6_num_view["mode"] == FREQ_MODE_OBSERVE
+    and _g6_num_view["range_hz"] == [20.0, 120.0],
+    f"view={_g6_num_view!r}",
+)
+R.check(
+    "an unconfigured view gains no key, so the published unconfigured dict is unchanged",
+    "source" not in _t2_coord()._freq_view(),
+    f"view={_t2_coord()._freq_view()!r}",
+)
+_g6_adv = _g6_sensor.FrequencyAdvisorSensor(
+    _G6FakeCoordinator({"freq_control": _g6_sensor_coord()._freq_view()}), _Entry922()
+)
+R.check(
+    "the advisor on a sensor-only install waits for a map sample, not for an entity",
+    _g6_adv.extra_state_attributes.get("waiting_for") == "first_frequency_map_sample",
+    f"waiting_for={_g6_adv.extra_state_attributes.get('waiting_for')!r}",
+)
+
 R.section("v4.0.2 — entry lifecycle, the solve boundary, store writes")
 
 from pathlib import Path as _Path
@@ -33129,11 +33243,11 @@ _T4_FREQ_BOTH = {"compressor_freq_entity": "number.freq",
                  "compressor_freq_sensor": "sensor.freq"}
 R.check(
     "with no frequency entity the reading and its range are all zero",
-    _t4_call(_t4_coord()._freq_entity_reading) == (None, 0.0, 0.0)
+    _t4_call(_t4_coord()._freq_entity_reading) == (None, 0.0, 0.0, None)
     and _t4_call(
         _t4_coord({}, compressor_freq_entity="number.gone")._freq_entity_reading
     )
-    == (None, 0.0, 0.0),
+    == (None, 0.0, 0.0, "number"),
     f"unset -> {_t4_call(_t4_coord()._freq_entity_reading)!r}, configured but "
     "absent -> "
     f"{_t4_call(_t4_coord({}, compressor_freq_entity='number.gone')._freq_entity_reading)!r} "
@@ -33144,14 +33258,14 @@ R.check(
     _t4_call(
         _t4_coord(_T4_FREQ_NUMBER, compressor_freq_entity="number.freq")._freq_entity_reading
     )
-    == (55.0, 25.0, 90.0)
+    == (55.0, 25.0, 90.0, "number")
     and _t4_call(
         _t4_coord(
             {"number.freq": FakeState("55")},
             compressor_freq_entity="number.freq",
         )._freq_entity_reading
     )
-    == (55.0, 20.0, 120.0),
+    == (55.0, 20.0, 120.0, "number"),
     "with min/max 25/90 -> "
     f"{_t4_call(_t4_coord(_T4_FREQ_NUMBER, compressor_freq_entity='number.freq')._freq_entity_reading)!r}, "
     "with no attributes -> "
@@ -33169,7 +33283,8 @@ _t4_fr_sensor = _t4_call(
 )
 R.check(
     "a configured feedback sensor is preferred, and its absence is not a fallback",
-    _t4_fr_sensor == (61.5, 25.0, 90.0) and _t4_fr_absent == (None, 25.0, 90.0),
+    _t4_fr_sensor == (61.5, 25.0, 90.0, "number")
+    and _t4_fr_absent == (None, 25.0, 90.0, "number"),
     f"sensor present -> {_t4_fr_sensor!r}, sensor configured but absent -> "
     f"{_t4_fr_absent!r} -- falling back to the number entity here would "
     "re-decorate the watchdog at exactly the moment the real feedback "
@@ -33187,7 +33302,8 @@ _t4_fr_nan = _t4_call(
 )
 R.check(
     "a non-numeric and a NaN feedback reading are both dropped, range intact",
-    _t4_fr_junk == (None, 25.0, 90.0) and _t4_fr_nan == (None, 25.0, 90.0),
+    _t4_fr_junk == (None, 25.0, 90.0, "number")
+    and _t4_fr_nan == (None, 25.0, 90.0, "number"),
     f"'lots' -> {_t4_fr_junk!r}, 'nan' -> {_t4_fr_nan!r} -- NaN parses, so "
     "the finite test is a separate arm from the parse and both must drop the "
     "reading while keeping the register limits",
@@ -37952,7 +38068,7 @@ R.check(
 _g7_device = FakeHass()
 _g7_device_ids = {}
 for _g7_role in _g7_mp.candidates("hp"):
-    _g7_device_ids[_g7_role] = _g7_mp.Resolved(
+    _g7_device_ids[_g7_role] = _g7_mp.ResolvedRole(
         (f"sensor.windmi_{_g7_role}_device",), _g7_mp.candidates("hp")[_g7_role].scale)
 for _g7_addr, _g7_val in _G7_VALUES.items():
     _g7_device.states.set(f"sensor.windmi_r{_g7_addr}_device", FakeState(_g7_val))
@@ -37971,7 +38087,7 @@ R.check(
 )
 R.check(
     "and snapshot() tries a role's ids in the order the resolver gives them",
-    _g7_mp.snapshot(_g7_device.states.get, {"r404": _g7_mp.Resolved(
+    _g7_mp.snapshot(_g7_device.states.get, {"r404": _g7_mp.ResolvedRole(
         ("sensor.absent", "sensor.windmi_r404_device", "sensor.windmi_r405_device"), 0.1)})
     == {"r404": ("sensor.windmi_r404_device", "520", 0.1)},
 )
@@ -37981,11 +38097,11 @@ R.check(
 _g7_unit = FakeHass(states={"sensor.tuya_dhw_set": FakeState("50"), "sensor.raw_dhw_set": FakeState("500")})
 R.check(
     "the same role at scale 1.0 reading 50 and at scale 0.1 reading 500 both suggest 50.0",
-    _g7_mp.infer(_g7_mp.snapshot(_g7_unit.states.get, {"r404": _g7_mp.Resolved(("sensor.tuya_dhw_set",), 1.0)}), {})
+    _g7_mp.infer(_g7_mp.snapshot(_g7_unit.states.get, {"r404": _g7_mp.ResolvedRole(("sensor.tuya_dhw_set",), 1.0)}), {})
     == {_g7_c.CONF_DHW_SETPOINT: 50.0}
-    and _g7_mp.infer(_g7_mp.snapshot(_g7_unit.states.get, {"r404": _g7_mp.Resolved(("sensor.raw_dhw_set",), 0.1)}), {})
+    and _g7_mp.infer(_g7_mp.snapshot(_g7_unit.states.get, {"r404": _g7_mp.ResolvedRole(("sensor.raw_dhw_set",), 0.1)}), {})
     == {_g7_c.CONF_DHW_SETPOINT: 50.0},
-    f"{_g7_mp.infer(_g7_mp.snapshot(_g7_unit.states.get, {'r404': _g7_mp.Resolved(('sensor.tuya_dhw_set',), 1.0)}), {})}",
+    f"{_g7_mp.infer(_g7_mp.snapshot(_g7_unit.states.get, {'r404': _g7_mp.ResolvedRole(('sensor.tuya_dhw_set',), 1.0)}), {})}",
 )
 
 # Null control: an install with no Modbus entities.
@@ -38111,6 +38227,177 @@ R.check(
     _g7_infer(named={_g7_c.CONF_COMPRESSOR_FREQ_SENSOR: "unavailable"}).get(
         _g7_c.CONF_COMPRESSOR_FREQ_SENSOR) == "sensor.hp_actual_compressor_frequency"
     and _g7_c.CONF_COMPRESSOR_FREQ_SENSOR not in _g7_infer(named={_g7_c.CONF_COMPRESSOR_FREQ_SENSOR: None}),
+)
+
+# ---------------------------------------------------------------------------
+# #1067 W1067-G5a: the pump's own disinfection switch, read and published,
+# never written. Driving it is W1067-G5b's.
+R.section("#1067 W1067-G5a — the disinfection switch, observed")
+
+import pickle as _g5_pickle  # noqa: E402
+
+from heatpump_optimizer import disinfection as _g5_dis  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_DHW_DISINFECTION_SWITCH_ENTITY as _G5_ENTITY,
+)
+from heatpump_optimizer.inputs import UNBOUNDED as _G5_UNBOUNDED  # noqa: E402
+from heatpump_optimizer.optimizer import REASON_LEGIONELLA as _G5_LEG  # noqa: E402
+
+_G5_SWITCH = "switch.pump_disinfection"
+
+
+class _G5Reader:
+    """A reader that records how it was asked, answering with one reading."""
+
+    def __init__(self, flag, ok=True):
+        self.asked = []
+        self._reading = type("R", (), {"flag": flag, "ok": ok})()
+
+    def read_bool(self, key, **kwargs):
+        self.asked.append((key, kwargs))
+        return self._reading
+
+
+_g5_sw = _g5_dis.DisinfectionSwitch({})
+_g5_rd = _G5Reader(True)
+_g5_sw.observe(_g5_rd)
+R.check(
+    "no switch configured: nothing is read and nothing is published",
+    _g5_rd.asked == [] and _g5_sw.observed is None and _g5_sw.view() == {},
+    f"asked={_g5_rd.asked} view={_g5_sw.view()}",
+)
+_g5_sw = _g5_dis.DisinfectionSwitch({_G5_ENTITY: _G5_SWITCH})
+_g5_rd = _G5Reader(True)
+_g5_sw.observe(_g5_rd)
+R.check(
+    "a configured switch is read through the input reader, unbounded, and published",
+    _g5_rd.asked == [(_G5_ENTITY, {"max_age_minutes": _G5_UNBOUNDED})]
+    and _g5_sw.view() == {"dhw_disinfection_switch": {"entity_id": _G5_SWITCH, "state": True}},
+    f"asked={_g5_rd.asked} view={_g5_sw.view()}",
+)
+_g5_sw.observe(_G5Reader(True, ok=False))
+R.check(
+    "an unusable reading publishes state None, not the last value",
+    _g5_sw.view() == {"dhw_disinfection_switch": {"entity_id": _G5_SWITCH, "state": None}},
+    f"view={_g5_sw.view()}",
+)
+
+
+# -- the production path: the coordinator's own update and hot water view ---
+def _g5_coord(states=None, **over):
+    cfg = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "dhw_temp_entity": "sensor.tank",
+        "dhw_tank_volume": 300.0,
+        **over,
+    }
+    return _Coord(_FakeHass(dict(states or {})), _FakeEntry(data=cfg))
+
+
+def _g5_cycle(coord, reason=_G5_LEG):
+    coord._current_action = {"dhw_reason": reason}
+    _asyncio.run(coord._update_current_state())
+    return coord._dhw_view().get("dhw_disinfection_switch")
+
+
+_g5_seen = {}
+for _label, _state in (("on", FakeState("on")), ("off", FakeState("off")),
+                       ("unavailable", FakeState("unavailable")), ("missing", None)):
+    _states = {} if _state is None else {_G5_SWITCH: _state}
+    _g5_c = _g5_coord(_states, **{_G5_ENTITY: _G5_SWITCH})
+    _g5_seen[_label] = (_g5_cycle(_g5_c), list(_g5_c.hass.services.calls))
+R.check(
+    "through the coordinator the hot water attributes carry the switch's state: "
+    "on, off, and None while unreadable or missing",
+    {k: (v[0] or {}).get("state", "absent") for k, v in _g5_seen.items()}
+    == {"on": True, "off": False, "unavailable": None, "missing": None}
+    and all((v[0] or {}).get("entity_id") == _G5_SWITCH for v in _g5_seen.values()),
+    f"seen={ {k: v[0] for k, v in _g5_seen.items()} }",
+)
+R.check(
+    "…and nothing is ever written, through a commanded disinfection cycle",
+    all(calls == [] for _, calls in _g5_seen.values()),
+    f"calls={ {k: v[1] for k, v in _g5_seen.items()} }",
+)
+_g5_c = _g5_coord({_G5_SWITCH: FakeState("on")})
+R.check(
+    "unconfigured, the hot water attributes carry no switch key",
+    _g5_cycle(_g5_c) is None and "dhw_disinfection_switch" not in _g5_c._dhw_view(),
+    f"keys={sorted(_g5_c._dhw_view())}",
+)
+
+
+# -- the null control: setting the switch changes no plan --------------------
+# The real planning cycle, observing the switch in the same update: every
+# argument each solve receives and the plan it returns, pickled, with the
+# switch set (and reading on) against unset. The clock is frozen so the two
+# runs share one horizon; the perturbation arm (indoor 21 -> 20 C) shows the
+# comparison can see a difference at all.
+def _g5_plan_bytes(config=None, indoor="21.0", dhw_setpoint_delta=0.0):
+    dt_util.freeze(_G5_FROZEN)
+    try:
+        coord = _solve_coord()
+        del coord._update_current_state  # the real one, so the switch is read
+        coord.hass.states.set("sensor.indoor", FakeState(indoor, unit="°C"))
+        coord.hass.states.set(_G5_SWITCH, FakeState("on"))
+        coord.hass.states.set("sensor.tank", FakeState("48.0", unit="°C"))
+        # Hot water planned, so a leak into the DHW half would move the plan.
+        coord._config.update({"dhw_temp_entity": "sensor.tank", "dhw_tank_volume": 200.0})
+        coord._thermal_params.dhw_enabled = True
+        coord._thermal_params.dhw_setpoint += dhw_setpoint_delta
+        coord._config.update(config or {})
+        solves = []
+        real = _coord_mod._await_optimize
+
+        async def spy(hass, optimizer, state, *positional, **keywords):
+            # The optimizer's own parameter and configuration copies are
+            # inputs too: that is where a thermal-parameter leak would land.
+            solves.append(_g5_pickle.dumps(
+                (optimizer.model.params, optimizer.config, state, positional, keywords)
+            ))
+            return await real(hass, optimizer, state, *positional, **keywords)
+
+        _coord_mod._await_optimize = spy
+        try:
+            _asyncio.run(coord._update_current_state())
+            _asyncio.run(coord.async_run_optimization())
+        finally:
+            _coord_mod._await_optimize = real
+        result = coord._optimization_result
+        plan = _g5_pickle.dumps(
+            {k: v for k, v in vars(result).items() if k not in ("solve_time_ms", "solve_time")}
+        ) if result is not None else None
+        return solves, plan, coord
+    finally:
+        dt_util.freeze(None)
+
+
+_G5_FROZEN = dt_util.now().replace(minute=0, second=0, microsecond=0)
+_g5_unset = _g5_plan_bytes()
+_g5_set = _g5_plan_bytes({_G5_ENTITY: _G5_SWITCH})
+_g5_moved = _g5_plan_bytes(indoor="20.0")
+_g5_dhw_moved = _g5_plan_bytes(dhw_setpoint_delta=1.0)
+R.check(
+    "null control: the switch set and reading on, every solve's arguments and the "
+    "plan are byte-identical to unset",
+    len(_g5_unset[0]) >= 1
+    and _g5_unset[1] is not None
+    and _g5_set[0] == _g5_unset[0]
+    and _g5_set[1] == _g5_unset[1]
+    and _g5_set[2]._dhw_view().get("dhw_disinfection_switch", {}).get("state") is True,
+    f"solves unset={len(_g5_unset[0])} set={len(_g5_set[0])} "
+    f"args_equal={_g5_set[0] == _g5_unset[0]} plan_equal={_g5_set[1] == _g5_unset[1]}",
+)
+R.check(
+    "…and the comparison sees a real input change (indoor 21 -> 20 °C moves the bytes)",
+    _g5_moved[0] != _g5_unset[0] and _g5_moved[1] != _g5_unset[1],
+    f"args_differ={_g5_moved[0] != _g5_unset[0]} plan_differs={_g5_moved[1] != _g5_unset[1]}",
+)
+R.check(
+    "…and a hot-water parameter change (setpoint +1 °C) moves the solve's inputs and the plan",
+    _g5_dhw_moved[0] != _g5_unset[0] and _g5_dhw_moved[1] != _g5_unset[1],
+    f"args_differ={_g5_dhw_moved[0] != _g5_unset[0]} plan_differs={_g5_dhw_moved[1] != _g5_unset[1]}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

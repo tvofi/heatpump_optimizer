@@ -105,7 +105,7 @@ pull_request_read get shows mergeable_state clean and head sha ${head};
 get_check_runs shows every check success or skipped; the newest "Fix review:"
 comment says merge and post-dates that head; the diff touches neither VERSION
 nor manifest.json nor the RELEASE_NOTES.md heading. Then, so the owner label means IN-FLIGHT rather than ever-touched, remove owner:${session} from every issue this PR closes (issue_write update, keeping the other labels) -- a label that is only ever added cannot answer the question a resuming session actually asks. Then merge_pull_request
-with merge_method merge and return {merged: true, sha: <merge commit sha>}.
+with merge_method merge and expectedHeadSha ${head}, and return {merged: true, sha: <merge commit sha>}.
 If mergeable_state is dirty, return {merged: false, reason: "needs repair"} --
 do not merge main into the branch yourself, the fixer must, because a rebase
 invalidates the evidence. Otherwise {merged: false, reason}.`
@@ -190,8 +190,16 @@ const VERDICT_CLASSES = [
 // is dispatched here rather than folded into the repair.
 const ROOT_CAUSE_CLASSES = ['root-cause-unanswered']
 
+// The SHA must be the full 40-hex head SHA, not an unconstrained \S+: an
+// abbreviated form parses here but tools/audit/app_approve.sh requires exact
+// equality against the full head SHA and refuses it there, so an abbreviated
+// verdict passed this parser clean while being inert at the gate (#1106
+// comment 5721119468, reposted at the full SHA as 5721133970 before the merge
+// could proceed). The gate is the thing that must be exact; this parser
+// refuses what the gate would refuse, rather than the gate loosening to match
+// an unconstrained reporter.
 const VERDICT_RE = new RegExp(
-  `^Fix review:\\s+(?:(merge)\\s+(\\S+)|(blocked)\\s+(\\S+)\\s+(${VERDICT_CLASSES.join('|')}):\\s*(.+))$`
+  `^Fix review:\\s+(?:(merge)\\s+([0-9a-f]{40})|(blocked)\\s+([0-9a-f]{40})\\s+(${VERDICT_CLASSES.join('|')}):\\s*(.+))$`
 )
 
 // Throws on anything that does not parse. Called from inside the per-group

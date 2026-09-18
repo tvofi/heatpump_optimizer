@@ -50,6 +50,18 @@ GENEROUS = sorted(
 )
 
 
+def _step_texts(body, kind="data"):
+    """One flow step's ``kind`` texts, step level merged with every section's.
+    A field grouped with section() keeps its label under
+    ``sections.<name>.<kind>``, which is where the frontend reads it; a
+    step-level-only read silently drops every grouped field (#1111 moved 126
+    options labels there, and this harness's counts fell with them)."""
+    merged = dict(body.get(kind) or {})
+    for sec in (body.get("sections") or {}).values():
+        merged.update(sec.get(kind) or {})
+    return merged
+
+
 def norm_text(t):
     t = re.sub(r"`([^`]*)`", r"\1", t)
     t = t.replace("**", "").replace("*", "")
@@ -71,7 +83,7 @@ def main():
     steps = strings["options"]["step"]
     labels = []  # (step_id, key, raw label)
     for sid, body in steps.items():
-        for k, v in (body.get("data") or {}).items():
+        for k, v in _step_texts(body).items():
             labels.append((sid, k, v))
 
     hay_r = norm_text("\n".join(

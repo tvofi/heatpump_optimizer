@@ -1,5 +1,28 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.6.2
+
+a hotfix restoring the labels and help text of every grouped setup and options field (#1111), plus release and CI tooling
+
+### Fixed
+
+**Grouped settings show their names and help text again** (#1111). On the
+options pages that group their fields into collapsible sections, and on the
+setup sensor page, 127 fields per language showed their raw key (for example
+`dhw_idle_min_temperature`) instead of a name, and had no help line. This hit
+English and Swedish alike, and has been present since v6.3.19 (and on the
+setup page since v6.4.1). Home Assistant looks up a grouped field's text inside
+its section, and ours was stored at page level. The texts are unchanged, only
+moved, and measured in a real Home Assistant 2026.9.1 interface every field now
+renders its name and help. A new test applies Home Assistant's lookup rule to
+every field so this cannot silently return.
+
+### Development and governance (no effect on the integration)
+
+- #1108: the release stamp checks its own commit before pushing and undoes a refused stamp locally.
+- #1109: CI refuses a pull request that edits the version, the manifest version or the release-notes heading.
+- #1110: the plan adds device-based pre-fill (W1067-G7b-1 to G7b-3) and a later offer when a heat-pump device is added (W1067-POST1).
+
 ## v6.6.1
 
 a hotfix: an options page you did not change no longer reloads the integration (#1107); plus wave 1067 G4, the pump's silent-mode window (#1099), and governance tooling

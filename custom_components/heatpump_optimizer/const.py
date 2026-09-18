@@ -794,6 +794,13 @@ CONF_VVC_PUMP_ENTITY: Final = "vvc_pump_entity"
 CONF_VVC_LEAD_MINUTES: Final = "vvc_lead_minutes"
 DEFAULT_VVC_LEAD_MINUTES: Final = 20
 CONF_SPACE_PUMP_ENTITY: Final = "space_circulation_pump_entity"
+#: #1067 (W1067-G5a) — the pump's own disinfection program as a switch. It is
+#: read and published beside the hot water attributes and never written:
+#: driving it is W1067-G5b's. No row in INPUT_MAX_AGE_MINUTES: it is read
+#: UNBOUNDED on the external-heat flag's rationale, because a switch is
+#: written only when it changes, so its age says when someone last decided,
+#: not whether anyone still checks.
+CONF_DHW_DISINFECTION_SWITCH_ENTITY: Final = "dhw_disinfection_switch_entity"
 
 #: #24 — minutes the tank must HOLD the disinfection temperature before the
 #: cycle counts. Momentary blips at temperature kill nothing.
@@ -962,6 +969,13 @@ CONF_COMPRESSOR_FREQ_ENTITY: Final = "compressor_freq_entity"
 CONF_COMPRESSOR_FREQ_SENSOR: Final = "compressor_freq_sensor"
 CONF_FREQ_CONTROL_MODE: Final = "freq_control_mode"
 DEFAULT_FREQ_CONTROL_MODE: Final = "observe"
+#: The compressor's frequency range where no number entity publishes one:
+#: a sensor-only install's whole range (#1067), and the stand-in for a
+#: min or max attribute a number entity leaves out.
+CONF_COMPRESSOR_FREQ_MIN_HZ: Final = "compressor_freq_min_hz"
+DEFAULT_COMPRESSOR_FREQ_MIN_HZ: Final = 20.0
+CONF_COMPRESSOR_FREQ_MAX_HZ: Final = "compressor_freq_max_hz"
+DEFAULT_COMPRESSOR_FREQ_MAX_HZ: Final = 120.0
 #: How far the comfort floor is relaxed while a window is open (gated).
 OPEN_WINDOW_RELAX_C: Final = 1.0
 #: #11 — measured power above nameplate by this factor reads as the

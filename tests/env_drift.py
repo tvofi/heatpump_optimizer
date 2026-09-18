@@ -1677,8 +1677,9 @@ def release_stamp_holds(
     every per-file rule.
 
     And HEAD has exactly ONE parent. The clauses above describe a stamp's
-    content, and a pull request can forge all of it -- nothing in CI refuses
-    a VERSION edit on a branch. What it cannot forge is the shape: a stamp is
+    content, and a pull request can forge all of it -- `pr-contract` refuses
+    a VERSION edit on the pull request, but this rule runs on other refs too.
+    What it cannot forge is the shape: a stamp is
     pushed straight to `main` as a single-parent commit, while a pull
     request's CI runs on its `refs/pull/N/merge` ref and reaches `main` as a
     merge commit, both two-parent. A graft root in a shallow clone reads as
@@ -1696,6 +1697,28 @@ def release_stamp_holds(
     if declared_solver != version or declared_card != version:
         return False
     return bool(changed) and set(changed) <= STAMP_WRITES
+
+
+def stamp_ref_allows(environ: dict[str, str]) -> bool:
+    """Whether this run is on a ref a release stamp can be the HEAD of.
+
+    `release_stamp_holds` recognises a stamp by content and by a single
+    parent, and the parent count answers "not a pull request" only for the
+    `pull_request` run, whose HEAD is the two-parent `refs/pull/N/merge`. A
+    `workflow_dispatch` on the pull request's BRANCH checks out its tip -- an
+    ordinary one-parent commit -- and `closures-autofix` dispatches exactly
+    that, as can anyone by hand, with tests.yml's recheck arm comparing it
+    against the merge base. A branch commit forging a stamp's content then
+    passed the claims rule on that run while its `pull_request` run refused
+    it. A stamp is pushed to `main`, so inside Actions the ref must be
+    `refs/heads/main`: a push, the nightly and a dispatch on main all carry
+    it; a branch dispatch and a pull request do not. Outside Actions (no
+    GITHUB_ACTIONS) nothing says which ref this is, and the content and
+    parent clauses stand alone as before.
+    """
+    if environ.get("GITHUB_ACTIONS") != "true":
+        return True
+    return environ.get("GITHUB_REF") == "refs/heads/main"
 
 
 def claim_kinds(changed: list[str]) -> dict[str, bool]:
@@ -1941,7 +1964,7 @@ def check_claims_hygiene(repo: str, ref: str) -> str | None:
     stamp = (
         _repo_version(repo), (_show_at(repo, ref, VERSION_FILE) or "").strip(),
         declared_solver, declared_card, _parent_count(repo),
-    )
+    ) if stamp_ref_allows(dict(os.environ)) else None
     base_solver = _claimed_at(repo, ref, CLAIM_FILE)
     base_card = _claimed_at(repo, ref, CARD_CLAIM_FILE)
     # An unanswerable comparison is not a clean one. Returning None here would

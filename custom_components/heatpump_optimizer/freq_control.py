@@ -26,13 +26,18 @@ Kept free of Home Assistant imports so it can be unit-tested directly.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 
 #: The two stages. Anything unrecognised in config reads as observe.
 FREQ_MODE_OBSERVE = "observe"
 FREQ_MODE_CONTROL = "control"
+#: Where the reading comes from. Only a number can be written, so control
+#: needs ``number``; a sensor alone (#1067: a Modbus package with no
+#: writable frequency register) is enough to observe.
+FREQ_SOURCE_NUMBER = "number"
+FREQ_SOURCE_SENSOR = "sensor"
 
 #: Buckets across the entity's own [min, max] range.
 FREQ_DECILES = 10
@@ -47,6 +52,57 @@ FREQ_WATCHDOG_TICKS = 3
 FREQ_WRITE_MIN_INTERVAL_S = 300.0
 #: Re-writing the same value is noise on the wire.
 FREQ_WRITE_EPSILON_HZ = 1.0
+
+
+def _finite(value: Any) -> float | None:
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return None
+    return result if np.isfinite(result) else None
+
+
+def resolve_reading(
+    number_id: str | None,
+    sensor_id: str | None,
+    get_state: Callable[[str], Any],
+    hz_min_opt: float,
+    hz_max_opt: float,
+) -> tuple[float | None, float, float, str | None]:
+    """(reported Hz, range min, range max, source) for the configured entities.
+
+    With a number entity the range is its OWN min/max attributes -- the
+    hardware integration knows its register limits, and guessing them would
+    let a clamp "protect" the pump into an invalid write -- and the options'
+    range stands in only for an attribute the entity does not publish. The
+    reported value prefers the actual-frequency sensor when one is set: a
+    number is often a setpoint register echoing the last write, and feedback
+    read from an echo can never diverge. A configured sensor with no state
+    reads as no reading, never as the echo. Without a number, a sensor alone
+    reports and the options carry the range. Neither: source None.
+    """
+    source = (
+        FREQ_SOURCE_NUMBER if number_id
+        else FREQ_SOURCE_SENSOR if sensor_id
+        else None
+    )
+    if source is None:
+        return (None, 0.0, 0.0, None)
+    hz_min, hz_max = float(hz_min_opt), float(hz_max_opt)
+    reading = None
+    if number_id:
+        reading = get_state(number_id)
+        if reading is None:
+            return (None, 0.0, 0.0, source)
+        attrs = getattr(reading, "attributes", {}) or {}
+        lo, hi = _finite(attrs.get("min")), _finite(attrs.get("max"))
+        hz_min = hz_min if lo is None else lo
+        hz_max = hz_max if hi is None else hi
+    if sensor_id:
+        reading = get_state(sensor_id)
+    if reading is None:
+        return (None, hz_min, hz_max, source)
+    return (_finite(reading.state), hz_min, hz_max, source)
 
 
 @dataclass

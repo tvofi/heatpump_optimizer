@@ -3145,6 +3145,103 @@ async def residual_statement_branches():
         f"stored={entry.options.get(const.CONF_SILENT_MODE_WINDOWS)!r}",
     )
 
+    # #1067 W1067-G5a: the pump's disinfection switch saves onto its own key
+    # from the hot_water_tank page, and clearing it writes None rather than
+    # leaving the old switch in force under the options merge.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_hot_water_tank(None)
+    result = await submit(
+        flow,
+        "hot_water_tank",
+        {**HOT_WATER_TANK_ANSWERS,
+         const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: "switch.pump_disinfection"},
+    )
+    check(
+        "opt_hot_water_tank",
+        "happy",
+        "the pump's disinfection switch saves onto its own key (#1067)",
+        not result.get("errors")
+        and entry.options.get(const.CONF_DHW_DISINFECTION_SWITCH_ENTITY)
+        == "switch.pump_disinfection",
+        f"errors={result.get('errors')} options={dict(entry.options)}",
+    )
+    await flow.async_step_hot_water_tank(None)
+    result = await submit(flow, "hot_water_tank", dict(HOT_WATER_TANK_ANSWERS))
+    check(
+        "opt_hot_water_tank",
+        "happy",
+        "a cleared disinfection switch saves as None, not as the old switch (#1067)",
+        not result.get("errors")
+        and const.CONF_DHW_DISINFECTION_SWITCH_ENTITY in entry.options
+        and entry.options.get(const.CONF_DHW_DISINFECTION_SWITCH_ENTITY) is None,
+        f"errors={result.get('errors')} options={dict(entry.options)}",
+    )
+
+    # #1067 W1067-G6: a compressor-frequency SENSOR alone observes, but only
+    # a number entity can be written, so choosing control without one is
+    # refused on the mode field and saves nothing. A number with control,
+    # and a sensor with observe and its own Hz range, both save.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_entities_metering(None)
+    result = await submit(
+        flow,
+        "entities_metering",
+        {
+            const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz",
+            const.CONF_FREQ_CONTROL_MODE: "control",
+        },
+    )
+    check(
+        "opt_entities_metering",
+        "error",
+        "control without a frequency number entity is refused on the mode field (#1067)",
+        shows(result, "entities_metering")
+        and result.get("errors", {}).get(const.CONF_FREQ_CONTROL_MODE)
+        == "freq_control_needs_number"
+        and not entry.options,
+        f"type={result.get('type')} errors={result.get('errors')} options={entry.options!r}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_entities_metering(None)
+    result = await submit(
+        flow,
+        "entities_metering",
+        {
+            const.CONF_COMPRESSOR_FREQ_ENTITY: "number.freq",
+            const.CONF_FREQ_CONTROL_MODE: "control",
+        },
+    )
+    check(
+        "opt_entities_metering",
+        "happy",
+        "control with a frequency number entity saves (#1067)",
+        not result.get("errors")
+        and entry.options.get(const.CONF_FREQ_CONTROL_MODE) == "control",
+        f"errors={result.get('errors')} options={entry.options!r}",
+    )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_entities_metering(None)
+    result = await submit(
+        flow,
+        "entities_metering",
+        {
+            const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz",
+            const.CONF_FREQ_CONTROL_MODE: "observe",
+            const.CONF_COMPRESSOR_FREQ_MIN_HZ: 25.0,
+            const.CONF_COMPRESSOR_FREQ_MAX_HZ: 95.0,
+        },
+    )
+    check(
+        "opt_entities_metering",
+        "happy",
+        "a sensor-only observe install saves its own Hz range (#1067)",
+        not result.get("errors")
+        and entry.options.get(const.CONF_COMPRESSOR_FREQ_SENSOR) == "sensor.hz"
+        and entry.options.get(const.CONF_COMPRESSOR_FREQ_MIN_HZ) == 25.0
+        and entry.options.get(const.CONF_COMPRESSOR_FREQ_MAX_HZ) == 95.0,
+        f"errors={result.get('errors')} options={entry.options!r}",
+    )
+
     # The grid_fees page's catalog application: choosing a DSO product
     # writes that product's rules and mode over whatever the page carried.
     dso_product = "ellevio_villa_effekt_2026"
@@ -3201,7 +3298,10 @@ SEEDED_ENTITIES = {
         const.CONF_COMPRESSOR_FREQ_ENTITY: "number.compressor_freq",
         const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.compressor_freq",
     },
-    "hot_water_tank": {const.CONF_DHW_INLET_ENTITY: "sensor.dhw_inlet"},
+    "hot_water_tank": {
+        const.CONF_DHW_INLET_ENTITY: "sensor.dhw_inlet",
+        const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: "switch.pump_disinfection",
+    },
     "hot_water_pumps": {const.CONF_VVC_PUMP_ENTITY: "switch.vvc_pump"},
     "grid_fees": {const.CONF_GRID_FEE_ENTITY: "sensor.grid_fee"},
     "solar_pv": {

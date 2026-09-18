@@ -45,9 +45,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.6.1
+# claims-for: 6.6.2
 #
-# v6.6.1: a hotfix stopping untouched options pages from reloading, and wave 1067 G4's silent-mode window. The stamp empties the list; the
+# v6.6.2: a hotfix restoring the labels and help text of every grouped config-flow field. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -285,4 +285,9 @@
 # and that page's prefix field, in the plain render and the seeded render,
 # re-recorded for #547's reason above. Every other fixture is byte-identical:
 # the page reads entity states only when submitted, and no plan reads its key.
+# Both G5a's and G6's bare claims are dropped here, following the G5a
+# precedent above: both already merged to main (G5a f02a790, G6 in this
+# absorb's origin/main tip d25e5333d) and their golden diffs are baked into
+# the committed baseline this branch merges, so no diff remains for this
+# branch to excuse under either name.
 config_flow  # ADD-ONLY: one new advanced page, modbus_prefill, with one option key, modbus_prefill_prefix

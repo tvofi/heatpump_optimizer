@@ -587,6 +587,19 @@ R.check(
 # and the labels off strings.json, so a page the menu gained cannot stay
 # undocumented in the one place a user checks before installing.
 _opt_strings = json.loads((ROOT / "strings.json").read_text())["options"]["step"]
+
+
+def _step_texts(body, kind):
+    """Every ``kind`` ("data" or "data_description") text one flow step
+    carries, at step level and inside each of its sections. A field grouped
+    with ``section()`` keeps its label under ``sections.<name>.<kind>``, which
+    is where the frontend reads it, so a reader of the step level alone
+    misses every grouped field."""
+    yield from (body.get(kind) or {}).items()
+    for _sec in (body.get("sections") or {}).values():
+        yield from (_sec.get(kind) or {}).items()
+
+
 _page_labels = [
     label
     for step in ("init", "advanced")
@@ -669,13 +682,13 @@ def _field_name(label: str) -> str:
 _unnamed_fields = sorted(
     f"{_sid}.{_key}"
     for _sid, _step in _opt_strings.items()
-    for _key, _label in (_step.get("data") or {}).items()
+    for _key, _label in _step_texts(_step, "data")
     if _field_name(_label) and _field_name(_label) not in _cfgref_hay
 )
 R.check(
     "the configuration reference names every shipped options field",
     not _unnamed_fields,
-    f"{len(_unnamed_fields)} of {sum(len((s.get('data') or {})) for s in _opt_strings.values())} "
+    f"{len(_unnamed_fields)} of {sum(1 for s in _opt_strings.values() for _ in _step_texts(s, 'data'))} "
     f"labels absent from docs/configuration.md: " + ", ".join(_unnamed_fields[:8]),
 )
 
@@ -4572,6 +4585,43 @@ R.check(
     "copy, comparing against it would prove nothing",
 )
 
+# #1067 W1067-G5a: the pump's own disinfection switch, on the hot_water_tank
+# page. Options-only on the same precedent as the pump slots above, and read,
+# never written, so the picker offers the switch-like domains a user maps.
+_dis_flow = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t"}))
+_dis_flow.hass = FakeHass()
+_dis_schema = asyncio.run(_dis_flow.async_step_hot_water_tank(None))["data_schema"]
+_dis_fields = {
+    str(getattr(k, "schema", k)): (k, v) for k, v in _presented_fields(_dis_schema)
+}
+_DIS_KEY = const.CONF_DHW_DISINFECTION_SWITCH_ENTITY
+R.check(
+    "the disinfection switch is offered on the hot_water_tank page, optional",
+    _DIS_KEY in _dis_fields and type(_dis_fields[_DIS_KEY][0]).__name__ == "Optional",
+    "a required field here would break every existing install on save",
+)
+R.check(
+    "the disinfection switch is options-only, not a card slot",
+    _DIS_KEY not in topology.ASSIGNABLE_KEYS,
+)
+R.check(
+    "the disinfection switch can be cleared again once set",
+    _DIS_KEY in options._OPTIONAL_ENTITY_KEYS,
+    "options merge over setup data, so an absent key restores the old value",
+)
+R.check(
+    "the disinfection switch picker offers switch and input_boolean only",
+    _DIS_KEY in _dis_fields
+    and list(_dis_fields[_DIS_KEY][1].config["filter"][0]["domain"])
+    == ["switch", "input_boolean"],
+)
+R.check(
+    "the page carries no disinfection mode: control is W1067-G5b's",
+    not hasattr(const, "CONF_DHW_DISINFECTION_MODE")
+    and not any("disinfection_mode" in k for k in _dis_fields),
+    f"fields={sorted(_dis_fields)}",
+)
+
 # Round trip: set all four, save, read them back; then clear them and check
 # the clearing sticks rather than being undone by the options merge.
 _sig_flow = options(FakeEntry(options={const.CONF_TIBBER_TOKEN: "t"}))
@@ -6213,9 +6263,9 @@ for _name, _data in _CATALOGUES.items():
 # The same page names a page that does not exist: all ten derived keys live
 # on the expert page, none on "Heating system and heat storage".
 for _name, _data in _CATALOGUES.items():
-    _caption = _data["options"]["step"]["building_preset"]["data_description"][
-        "building_preset_enabled"
-    ]
+    _caption = dict(
+        _step_texts(_data["options"]["step"]["building_preset"], "data_description")
+    )["building_preset_enabled"]
     _expert_title = _data["options"]["step"]["thermal_model"]["title"]
     R.check(
         f"{_name} points the derivation at the page it actually overwrites",
@@ -6259,11 +6309,14 @@ for name, data in files.items():
 # was that field. A completeness walk over every labelled config/options
 # field is what makes the gap fail here rather than only in a review.
 _undescribed = sorted(
-    f"{flow}.step.{step}.{key}"
+    f"{flow}.step.{step}.{where}{key}"
     for flow in ("config", "options")
     for step, body in strings.get(flow, {}).get("step", {}).items()
-    for key in body.get("data", {})
-    if key not in body.get("data_description", {})
+    for where, node in [("", body)] + [
+        (f"sections.{name}.", sec) for name, sec in (body.get("sections") or {}).items()
+    ]
+    for key in node.get("data", {})
+    if key not in node.get("data_description", {})
 )
 R.check(
     "every labelled flow field has a data_description",
@@ -6323,62 +6376,170 @@ for _step_id, _base in (("init", menu), ("advanced", advanced_menu)):
         "placeholder English left in a translation is worse than no translation",
     )
 
-# Every field on every options page needs a label in strings.json. The
-# key-identity check above only compares the three files to each other, so a
-# field missing from all three — which renders as the raw config key — passed
-# silently until now.
-_unlabelled = sorted(
-    f"{step}.{key}"
-    for step, schema in _pages.items()
-    for key in _schema_keys(schema)
-    if key not in strings["options"]["step"].get(step, {}).get("data", {})
+# Every field a flow page presents needs a label and a description the
+# frontend actually finds, in every catalogue it may load. The frontend's rule
+# (home-assistant-frontend show-dialog-config-flow.ts and
+# show-dialog-options-flow.ts, renderShowFormStepFieldLabel / ...Helper):
+#
+#   component.<domain>.<flow>.step.<step>.[sections.<path[0]>.]data.<field>
+#
+# and the same for data_description, where path[0] is the section the field
+# renders inside. There is NO fallback to the step-level data for a grouped
+# field: a miss renders field.name, the raw key. #653 and #849 grouped pages
+# with section() and left every label at step level, and the check that stood
+# here looked labels up at step level too -- so it encoded the producer's
+# assumption instead of the consumer's lookup and stayed green while 127
+# fields rendered as raw keys. Fields are enumerated from the schemas the real
+# handlers return (both flows, the reconfigure variant and the wood-on
+# building page) and from the options registry's (step, key, group) rows, so
+# a row hidden by its `when` in these renders is still covered.
+def _frontend_flow_text(catalog, flow, step, path, kind, key):
+    """What the frontend resolves for one field, or None where it shows the key."""
+    node = ((catalog.get(flow) or {}).get("step") or {}).get(step) or {}
+    if path:
+        node = (node.get("sections") or {}).get(path[0]) or {}
+    return (node.get(kind) or {}).get(key)
+
+
+def _frontend_section_name(catalog, flow, step, name):
+    node = ((catalog.get(flow) or {}).get("step") or {}).get(step) or {}
+    return ((node.get("sections") or {}).get(name) or {}).get("name")
+
+
+def _fields_with_path(schema, path=()):
+    """``(section path, key)`` for every field a schema presents."""
+    for key, value in (schema.schema.items() if schema is not None else []):
+        name = str(getattr(key, "schema", key))
+        inner = _nested_schema(value)
+        if inner is None:
+            yield path, name
+        else:
+            yield from _fields_with_path(inner, path + (name,))
+
+
+_flow_fields = set()
+_flow_sections = set()
+
+
+def _collect_flow_form(flow_name, result):
+    schema = (result or {}).get("data_schema")
+    if schema is None:
+        return
+    step = result.get("step_id")
+    for path, key in _fields_with_path(schema):
+        _flow_fields.add((flow_name, step, path, key))
+        if path:
+            _flow_sections.add((flow_name, step, path[0]))
+
+
+for step, schema in _pages.items():
+    _collect_flow_form("options", {"step_id": step, "data_schema": schema})
+_collect_flow_form("options", _wood_on_form)
+for _row in config_flow._OPTION_FIELDS:
+    _row_keys = (
+        list(_row.widget({})) if _row.default is config_flow._DYNAMIC else [_row.key]
+    )
+    for _k in _row_keys:
+        _flow_fields.add(
+            ("options", _row.step, (_row.group,) if _row.group else (),
+             str(getattr(_k, "schema", _k)))
+        )
+_setup_render_errors = []
+for _name, _handler in sorted(vars(config_flow.HeatPumpOptimizerConfigFlow).items()):
+    if not _name.startswith("async_step_") or _name == "async_step_reconfigure":
+        continue
+    _lflow = config_flow.HeatPumpOptimizerConfigFlow()
+    _lflow.hass = FakeHass()
+    try:
+        _collect_flow_form("config", asyncio.run(_handler(_lflow, None)))
+    except Exception as err:  # noqa: BLE001 - reported below, never swallowed
+        _setup_render_errors.append(f"{_name}: {type(err).__name__}: {err}")
+_lrc_hass = FakeHass()
+_lrc_entry = FakeEntry(entry_id="labels")
+_lrc_hass.config_entries.entries = [_lrc_entry]
+_lrc_flow = config_flow.HeatPumpOptimizerConfigFlow()
+_lrc_flow.hass = _lrc_hass
+_lrc_flow.context = {
+    "source": config_flow.config_entries.SOURCE_RECONFIGURE,
+    "entry_id": "labels",
+}
+try:
+    _collect_flow_form("config", asyncio.run(_lrc_flow.async_step_reconfigure(None)))
+    _collect_flow_form("config", asyncio.run(_lrc_flow.async_step_user_sensors(None)))
+except Exception as err:  # noqa: BLE001 - reported below, never swallowed
+    _setup_render_errors.append(f"reconfigure: {type(err).__name__}: {err}")
+R.check(
+    "every setup handler renders for the label walk",
+    not _setup_render_errors,
+    "; ".join(_setup_render_errors[:4]),
+)
+_catalogues = {"strings.json": strings, "en.json": files["en"], "sv.json": files["sv"]}
+_sectioned_fields = sorted(f for f in _flow_fields if f[2])
+R.check(
+    "the label walk reaches grouped fields in both flows",
+    {f[0] for f in _sectioned_fields} == {"config", "options"},
+    f"{len(_sectioned_fields)} grouped fields, flows {sorted({f[0] for f in _sectioned_fields})}",
+)
+_walked_steps = {(f[0], f[1]) for f in _flow_fields}
+_unwalked_steps = sorted(
+    f"{flow}.{step}"
+    for flow in ("config", "options")
+    for step, body in strings[flow]["step"].items()
+    if (body.get("data") or body.get("sections")) and (flow, step) not in _walked_steps
 )
 R.check(
-    "every options field has a label translation",
-    not _unlabelled,
-    ", ".join(_unlabelled[:6]),
+    "the label walk renders every step the catalogue labels",
+    not _unwalked_steps,
+    ", ".join(_unwalked_steps),
 )
-_wood_on_unlabelled = sorted(
-    f"building.{key}"
-    for key in _schema_keys(_wood_on_form["data_schema"])
-    if key not in strings["options"]["step"]["building"].get("data", {})
-)
-R.check(
-    "every wood-block field has a building label translation",
-    not _wood_on_unlabelled,
-    ", ".join(_wood_on_unlabelled[:6]),
-)
-_unlabelled_sections = sorted(
-    f"{step}.{name}"
-    for step, schema in _pages.items()
-    for key, value in schema.schema.items()
-    for name in [str(getattr(key, "schema", key))]
-    if _nested_schema(value) is not None
-    and name
-    not in strings["options"]["step"].get(step, {}).get("sections", {})
-)
-R.check(
-    "every section has a name translation",
-    not _unlabelled_sections,
-    ", ".join(_unlabelled_sections[:6]),
-)
+for _cat_name, _cat in _catalogues.items():
+    for _kind, _what in (("data", "label"), ("data_description", "description")):
+        _raw = sorted(
+            f"{flow}.{step}.{'sections.' + path[0] + '.' if path else ''}{_kind}.{key}"
+            for flow, step, path, key in _flow_fields
+            if (_frontend_flow_text(_cat, flow, step, path, _kind, key) or key) == key
+        )
+        R.check(
+            f"every flow field has a {_what} where the frontend looks, in {_cat_name}",
+            not _raw,
+            f"{len(_raw)} of {len(_flow_fields)} render the raw key: " + ", ".join(_raw[:6]),
+        )
+    _raw_sections = sorted(
+        f"{flow}.{step}.sections.{name}"
+        for flow, step, name in _flow_sections
+        if (_frontend_section_name(_cat, flow, step, name) or name) == name
+    )
+    R.check(
+        f"every section has a name translation, in {_cat_name}",
+        not _raw_sections,
+        ", ".join(_raw_sections[:6]),
+    )
 
 # A boolean whose label is missing renders as the bare config key, which reads
 # like a bug report rather than a question -- and the description is the only
 # place the "needs the two-tank model" precondition is stated.
-_building_strings = strings["options"]["step"]["building"]
+_wood_coil_path = next(
+    (path for path, key in _fields_with_path(_wood_on_form["data_schema"])
+     if key == const.CONF_DHW_WOOD_COIL_ENABLED),
+    (),
+)
 for _section in ("data", "data_description"):
+    _wood_coil_en = _frontend_flow_text(
+        strings, "options", "building", _wood_coil_path, _section,
+        const.CONF_DHW_WOOD_COIL_ENABLED,
+    )
     R.check(
         f"the DHW wood-coil option has a {_section} entry",
-        const.CONF_DHW_WOOD_COIL_ENABLED in _building_strings[_section],
-        f"missing from options.step.building.{_section}",
+        bool(_wood_coil_en),
+        f"missing from options.step.building at {_wood_coil_path}.{_section}",
     )
-_sv_building = files["sv"]["options"]["step"]["building"]
-for _section in ("data", "data_description"):
     R.check(
         f"and its Swedish {_section} is a real translation",
-        _sv_building[_section][const.CONF_DHW_WOOD_COIL_ENABLED]
-        != _building_strings[_section][const.CONF_DHW_WOOD_COIL_ENABLED],
+        _frontend_flow_text(
+            files["sv"], "options", "building", _wood_coil_path, _section,
+            const.CONF_DHW_WOOD_COIL_ENABLED,
+        )
+        not in (None, _wood_coil_en),
         "English copied into sv.json passes the key check and fails the user",
     )
 
@@ -9002,7 +9163,7 @@ _grid_fees_wanted = set().union(
     *(
         _b3_placeholders(t)
         for section in ("data", "data_description")
-        for t in _grid_fees_texts.get(section, {}).values()
+        for _k, t in _step_texts(_grid_fees_texts, section)
     )
 )
 R.check(
@@ -9025,7 +9186,7 @@ _hardcoded = sorted(
     for flow_name in ("config", "options")
     for step, texts in strings[flow_name]["step"].items()
     for section in ("data", "data_description")
-    for key, text in texts.get(section, {}).items()
+    for key, text in _step_texts(texts, section)
     if "SEK" in text
 ) + sorted(
     f"issues.{key}"
@@ -14151,6 +14312,24 @@ R.check(
     "a pull request can forge every content clause; only a stamp is pushed "
     "to main as a single-parent commit",
 )
+# ...and the parent count answers "not a pull request" only on the
+# `pull_request` run. A dispatch on the pull request's BRANCH -- the one
+# closures-autofix fires, with tests.yml's recheck arm -- checks out a
+# one-parent tip, so the stamp facts are asked for only on `main`'s ref.
+R.check(
+    "a stamp is recognised only on main's ref inside Actions, and outside "
+    "Actions as before",
+    _env_drift.stamp_ref_allows(
+        {"GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/heads/main"})
+    and not _env_drift.stamp_ref_allows(
+        {"GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/heads/ci/refuse-version-edit"})
+    and not _env_drift.stamp_ref_allows(
+        {"GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/pull/1/merge"})
+    and not _env_drift.stamp_ref_allows({"GITHUB_ACTIONS": "true"})
+    and _env_drift.stamp_ref_allows({}),
+    "a branch dispatch's tip has one parent, so without the ref a forged "
+    "stamp passed the claims rule on the recheck run its pull_request run refused",
+)
 R.check(
     "a VERSION bump that also touches a file stamp.py never writes is refused",
     (_st_verdict(changed=_ST_CHANGED + ["docs/HANDOVER.md"]) or "")
@@ -14678,12 +14857,30 @@ def _stamp_git(new_version: str, forged_merge: bool = False):
     return root, base
 
 
+# THE ENVIRONMENT IS PINNED, because `stamp_ref_allows` reads it: under Actions
+# a stamp is recognised only on `refs/heads/main`, so these arms would answer
+# differently on a pull request's runner than on a seat's machine. Each arm
+# states the run it models -- the stamp's own push to main -- and one more arm
+# drives the same single-parent stamp under a branch dispatch, which must
+# refuse: that is the closures-autofix recheck shape.
+_ST_MAIN_ENV = {"GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/heads/main"}
+
+
+def _hyg_env(root, base, env):
+    with _mock.patch.dict(_os.environ, env):
+        return _hyg(root, base)
+
+
 _st_root, _st_base = _stamp_git("6.3.16")
-_st_err = _hyg(_st_root, _st_base) if callable(_hyg) else "missing"
+_st_err = _hyg_env(_st_root, _st_base, _ST_MAIN_ENV) if callable(_hyg) else "missing"
 _st_ctl_root, _st_ctl_base = _stamp_git("6.3.15")
-_st_ctl_err = _hyg(_st_ctl_root, _st_ctl_base) if callable(_hyg) else "missing"
+_st_ctl_err = _hyg_env(_st_ctl_root, _st_ctl_base, _ST_MAIN_ENV) if callable(_hyg) else "missing"
 _st_forged_root, _st_forged_base = _stamp_git("6.3.16", forged_merge=True)
-_st_forged_err = _hyg(_st_forged_root, _st_forged_base) if callable(_hyg) else "missing"
+_st_forged_err = _hyg_env(_st_forged_root, _st_forged_base, _ST_MAIN_ENV) if callable(_hyg) else "missing"
+_st_dispatch_err = _hyg_env(
+    _st_root, _st_base,
+    {"GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/heads/ci/forged-stamp"},
+) if callable(_hyg) else "missing"
 R.check(
     "check_claims_hygiene passes a release stamp and refuses the same deletion "
     "without the VERSION bump",
@@ -14696,6 +14893,13 @@ R.check(
     "check_claims_hygiene refuses the same stamp forged as a merged pull request",
     isinstance(_st_forged_err, str) and _st_forged_err.startswith("RECORD PR CLAIMS"),
     f"a two-parent HEAD with a stamp's tree and three-dot returned {_st_forged_err!r}",
+)
+R.check(
+    "check_claims_hygiene refuses the same one-parent stamp on a branch dispatch",
+    isinstance(_st_dispatch_err, str)
+    and _st_dispatch_err.startswith("RECORD PR CLAIMS"),
+    "a workflow_dispatch on a pull request's branch checks out a one-parent "
+    f"tip; with the stamp's tree it returned {_st_dispatch_err!r}",
 )
 
 # AND THE AUTOFIX ITSELF, which is the half that actually writes the deletion.
@@ -17762,6 +17966,204 @@ R.check(
     "the red-check trigger reads as enforced while the same unnamed red body "
     "exits 0 -- the silent-green shape #533 is about, in this workflow",
 )
+# CLAUDE.md rule 4 in CI: `prepr.sh --version-edit` refuses a pull request
+# moving VERSION, the manifest version or a notes heading. Its predicate is
+# driven by prepr.sh --self-test; what that cannot see is whether THIS job
+# still calls it, and against which refs. Pinned over non-comment lines: the
+# call with the fetched main ref and the head, the fetch that makes that ref
+# exist, and `if: always()` so an earlier refusal cannot skip it.
+_PC_VE_CALL = 'prepr.sh --version-edit origin/main "$PR_HEAD"' in _PC_BODY_STEP
+_PC_VE_FETCH = "+refs/heads/main:refs/remotes/origin/main" in _PC_BODY_STEP
+_PC_VE_STEP = any(
+    _blk.startswith("Refuse a version")
+    and "\n        if: always()\n" in _blk
+    and "prepr.sh --version-edit" in _blk
+    for _blk in _PC_BODY_STEP.split("\n      - name: ")
+)
+R.check(
+    "the contract lane refuses a version edit on every pull request",
+    _PC_VE_CALL and _PC_VE_FETCH and bool(_PC_VE_STEP)
+    and "if: github.event_name == 'pull_request'" in _PC_JOB,
+    f"call={_PC_VE_CALL}, fetch={_PC_VE_FETCH}, always={bool(_PC_VE_STEP)}; "
+    "before this step the check ran only on a seat's machine and a VERSION "
+    "bump passed every required context",
+)
+# AN AUTOFIX COMMIT ON THE NAMED HEAD IS NOT A MOVED HEAD. `closures-autofix`
+# and `claims-autofix` push a commit onto a pull request after its body was
+# written, so the body names a head that is no longer the tip and `pr-contract`
+# refused it: #1107, whose bot commits 778c2b4 ("ci: drop inherited claims") and
+# b1afbcf ("ci: re-record closures") were followed by run 35220336323 failing
+# on b1afbcf with "`## Head` does not name b1afbcf". `checkPrBody` now accepts a
+# chain of such commits directly on top of the commit `## Head` names, and only
+# if EVERY commit in it carries the bot identity, exactly one autofix message,
+# one parent, and only modifications to that message's own files (a claims
+# commit may also add no line). Driven over a purpose-built repository, because
+# the check walks real commits and this checkout's history is whatever the
+# runner fetched. Each refusal arm below is the input that goes green when its
+# one condition is deleted from `autofixCommit`.
+def _autofix_head_fixture():
+    import os
+    import shutil
+    import tempfile
+
+    bot = ("github-actions[bot]",
+           "41898282+github-actions[bot]@users.noreply.github.com")
+    seat = ("seat", "seat@e")
+
+    d = Path(tempfile.mkdtemp(prefix="hpo-bot-head-"))
+
+    def g(*a, who=seat, committer=None):
+        c = committer or who
+        return subprocess.run(
+            ["git", "-C", str(d), *a], capture_output=True, text=True,
+            env={**os.environ, "GIT_AUTHOR_NAME": who[0],
+                 "GIT_AUTHOR_EMAIL": who[1], "GIT_COMMITTER_NAME": c[0],
+                 "GIT_COMMITTER_EMAIL": c[1]},
+        ).stdout.strip()
+
+    def commit(msg, edits, who=bot, committer=None, parent=None):
+        if parent:
+            g("checkout", "-q", "--detach", parent)
+        for rel, text in edits.items():
+            p = d / rel
+            if text is None:
+                p.unlink()
+            else:
+                p.write_text(text)
+        g("add", "-A")
+        g("commit", "-q", "-m", msg, who=who, committer=committer)
+        return g("rev-parse", "HEAD")
+
+    def body(names):
+        return "".join(
+            f"## {h}\n\n{names if h == 'Head' else 'none'}\n\n"
+            for h in ("Head", "Mutation proof", "Null control", "Figures",
+                      "Red checks", "Forward-carry", "Friction"))
+
+    def run(head, names):
+        (d / "body.md").write_text(body(f"`{names}`"))
+        p = subprocess.run(
+            ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+             str(d / "body.md"), "--head", head],
+            cwd=str(d), capture_output=True, text=True)
+        return p.returncode, p.stdout
+
+    try:
+        (d / ".claude/workflows").mkdir(parents=True)
+        (d / "tests/golden").mkdir(parents=True)
+        _copy_policy_lint_tree(d / ".claude/workflows")
+        (d / "tests/closures.json").write_text('{"closures": {}}\n')
+        (d / "tests/golden/claimed_drift.txt").write_text("# claims-for: 1.0\nfix_a\n")
+        (d / "tests/golden/card_claimed_drift.txt").write_text("# claims-for: 1.0\n")
+        (d / "other.txt").write_text("v1\n")
+        g("init", "-q", "-b", "trunk")
+        (d / ".gitignore").write_text("body.md\n")
+        base = commit("base", {}, who=seat)
+        closures = {"tests/closures.json": '{"closures": {"a": []}}\n'}
+        drop_claim = {"tests/golden/claimed_drift.txt": "# claims-for: 1.0\n"}
+        R_ = "ci: re-record closures"
+        C_ = "ci: drop inherited claims"
+        out = {}
+        # #1107's shape: base, then the claims repair, then the closures one.
+        c1 = commit(C_, drop_claim, parent=base)
+        c2 = commit(R_, closures, parent=c1)
+        out["replay"] = run(c2, base) + (c1, c2)
+        out["one"] = run(commit(R_, closures, parent=base), base)
+        out["null"] = run(base, base)
+        out["human"] = run(commit(R_, closures, who=seat, parent=base), base)
+        out["committer"] = run(commit(R_, closures, committer=seat, parent=base), base)
+        out["subject"] = run(commit("ci: re-record closures and more", closures, parent=base), base)
+        out["body_line"] = run(commit(R_ + "\n\nand a body", closures, parent=base), base)
+        out["forged_path"] = run(commit(R_, {"other.txt": "v2\n"}, parent=base), base)
+        out["extra_file"] = run(commit(R_, {**closures, "other.txt": "v2\n"}, parent=base), base)
+        out["mismatch"] = run(commit(R_, drop_claim, parent=base), base)
+        out["mismatch2"] = run(commit(C_, closures, parent=base), base)
+        out["adds_claim"] = run(commit(C_, {"tests/golden/claimed_drift.txt": "# claims-for: 1.0\nfix_a\nfix_b\n"}, parent=base), base)
+        out["deleted"] = run(commit(R_, {"tests/closures.json": None}, parent=base), base)
+        # A merge whose FIRST-parent diff is closures.json alone, carrying a
+        # human commit in from the side: only the parent count refuses it.
+        side = commit("human closures edit", closures, who=seat, parent=base)
+        g("checkout", "-q", "--detach", base)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", R_, side, who=bot)
+        out["merge"] = run(g("rev-parse", "HEAD"), base)
+        human = commit("human work", {"other.txt": "v3\n"}, who=seat, parent=base)
+        out["between"] = run(commit(R_, closures, parent=human), base)
+        sibling = commit("sibling", {"other.txt": "v4\n"}, who=seat, parent=base)
+        out["not_ancestor"] = run(commit(R_, closures, parent=base), sibling)
+        return out
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+_AH = _autofix_head_fixture()
+R.check(
+    "pr-contract accepts #1107's autofix commits on top of the head the body names",
+    _AH["replay"][0] == 0
+    and f"{_AH['replay'][2][:7]} (ci: drop inherited claims)" in _AH["replay"][1]
+    and f"{_AH['replay'][3][:7]} (ci: re-record closures)" in _AH["replay"][1]
+    and _AH["one"][0] == 0,
+    f"replay rc={_AH['replay'][0]}, single rc={_AH['one'][0]}; output: "
+    f"{_AH['replay'][1].strip()[-300:]!r}. Run 35220336323 refused #1107 at "
+    "b1afbcf for a body naming the seat's head under two bot commits",
+)
+R.check(
+    "and a body naming the real head passes with no autofix line (null control)",
+    _AH["null"][0] == 0 and "accepted autofix" not in _AH["null"][1],
+    f"rc={_AH['null'][0]}; output {_AH['null'][1].strip()[-200:]!r}",
+)
+_AH_REFUSED = {
+    "human": "not authored",
+    "committer": "not authored",
+    "subject": "not an autofix message",
+    "body_line": "not an autofix message",
+    "forged_path": "outside",
+    "extra_file": "outside",
+    "mismatch": "outside",
+    "mismatch2": "outside",
+    "adds_claim": "adds",
+    "deleted": "does not only modify",
+    "merge": "parents",
+    "between": "not authored",
+    "not_ancestor": "not authored",
+}
+_AH_WRONG = {
+    k: (_AH[k][0], _AH[k][1].strip()[-240:])
+    for k, why in _AH_REFUSED.items()
+    if _AH[k][0] != 1 or "does not name" not in _AH[k][1] or why not in _AH[k][1]
+}
+R.check(
+    "and refuses every chain that is not purely the bot's own repair",
+    not _AH_WRONG,
+    f"arms not refused for their own reason: {_AH_WRONG}. The identity is "
+    "forgeable, so a forged author must still be held by the subject, the "
+    "parent count and the path set, each by itself",
+)
+# The identity and messages are the autofix jobs' own. `checkPrBody` holds
+# them as constants rather than reading tests.yml, because the checkout it
+# runs in is the pull request's: a branch that edited the workflow would widen
+# what it is excused for. So agreement is pinned here instead.
+_AH_CONST = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     "console.log(JSON.stringify(m.AUTOFIX_BOT_COMMITS ?? null)))"],
+    capture_output=True, text=True).stdout or "null")
+_AH_TESTS_YML = Path(".github/workflows/tests.yml").read_text()
+_AH_DRIFT = []
+for _job, _subject in (("closures-autofix", "ci: re-record closures"),
+                       ("claims-autofix", "ci: drop inherited claims")):
+    _jt = _workflow_job(_AH_TESTS_YML, _job)
+    _added = re.search(r"^\s*git add (.+)$", _jt, re.M)
+    _rule = (_AH_CONST or {}).get("messages", {}).get(_subject)
+    if not (_rule and f'git commit -m "{_subject}"' in _jt and _added
+            and sorted(_added.group(1).split()) == sorted(_rule["paths"])
+            and f'git config user.name "{_AH_CONST["name"]}"' in _jt
+            and f'git config user.email "{_AH_CONST["email"]}"' in _jt):
+        _AH_DRIFT.append(_job)
+R.check(
+    "and its bot identity, messages and paths are the ones the autofix jobs commit",
+    _AH_CONST is not None and not _AH_DRIFT,
+    f"disagreeing jobs: {_AH_DRIFT}; constants: {_AH_CONST}",
+)
 _DS_PUB_PERMS = re.search(
     r"^    permissions:\n((?:^      .*\n)+)", _DS_PUB_JOB, re.M)
 R.check(
@@ -18155,5 +18557,91 @@ R.check(
     and not _closure.is_inert("tests/mutation_table.py"),
     "a file that is neither in a closure nor on a list forces the FULL suite",
 )
+
+# --- a red baseline is the nightly's refusal, not the pull request's (#RCA) --
+#
+# Every red `mutation` job in the RCA's retained window (2026-09-11..17) was
+# this arm -- the baseline guard -- and none was a surviving mutant, so a red
+# baseline costs a reviewer round and carries no mutation information: the
+# table evaluated nothing. `mutation` is not a required context and `fast` is.
+#
+# The baseline's driver set is NOT the scoped gate's selection, and the
+# difference is the whole of what a pull request gives up: on a diff that
+# changes no production file, `scope_files` falls back to the closure of the
+# changed TEST scripts, which on this branch's own diff is 58 production files
+# and 8 drivers against the gate's 1 selected script. Re-derive that pair at
+# your merge base rather than carrying it; `baseline_refusal`'s docstring says
+# with what. The NIGHTLY keeps the refusal: nothing else reports that lane's
+# baseline per commit.
+#
+# Driven as a function rather than through `main()`, which clones the tree and
+# runs real scripts; the tuples below are the shape `run_script` returns, taken
+# from the CI job that first showed this (run 34727180920, branch fix/r4-952).
+import contextlib as _mutb_contextlib  # noqa: E402
+import io as _mutb_io  # noqa: E402
+
+_MUT_RED = {
+    "tests/entities.py": (1, 3, 41.0),
+    "tests/features.py": (1, 1, 12.0),
+    "tests/pv.py": (0, 0, 9.0),
+}
+_MUT_GREEN = {s: (0, 0, secs) for s, (_r, _f, secs) in _MUT_RED.items()}
+
+
+# `getattr` with a sentinel rather than a bare attribute read: with the guard
+# still inline in `main()` this file must FAIL these four checks, not die on an
+# AttributeError before reaching the rest of the suite.
+_mut_refuse = getattr(_mut, "baseline_refusal",
+                      lambda _baseline, _scope: "no baseline_refusal")
+
+
+def _mut_baseline(baseline: dict, scope: str) -> tuple[object, str]:
+    """(return value, printed text) of the baseline guard."""
+    _buf = _mutb_io.StringIO()
+    with _mutb_contextlib.redirect_stdout(_buf):
+        _rc = _mut_refuse(baseline, scope)
+    return _rc, _buf.getvalue()
+
+
+_MUT_PR_RC, _MUT_PR_OUT = _mut_baseline(_MUT_RED, "changed")
+_MUT_NIGHT_RC, _MUT_NIGHT_OUT = _mut_baseline(_MUT_RED, "full")
+_MUT_OK_RC, _MUT_OK_OUT = _mut_baseline(_MUT_GREEN, "changed")
+
+R.check(
+    "a red baseline on the pull-request scope is INCONCLUSIVE, not a failure",
+    _MUT_PR_RC == 0 and "MUTATION TABLE INCONCLUSIVE" in _MUT_PR_OUT
+    and "MUTATION TABLE BREACHED" not in _MUT_PR_OUT,
+    f"rc={_MUT_PR_RC!r}, printed {_MUT_PR_OUT.strip()!r} -- the table "
+    f"evaluated no mutant, so this lane reports nothing a required check does "
+    f"not already carry or a required detector does not already cover",
+)
+R.check(
+    "and it names the red script, because the report is useless without it",
+    "tests/entities.py" in _MUT_PR_OUT and "tests/features.py" in _MUT_PR_OUT
+    and "tests/pv.py" not in _MUT_PR_OUT,
+    "`run_script` returns (rc, failed, seconds) and discards the stdout it "
+    "judged, so the refusal can name the red SCRIPT and never the red CHECK",
+)
+# The null control on the weakening: the nightly is the only per-commit report
+# of a full-scope baseline, so its refusal must survive this change unchanged.
+R.check(
+    "the nightly scope still refuses with exit 1 on the same baseline",
+    _MUT_NIGHT_RC == 1 and "MUTATION TABLE INCONCLUSIVE" in _MUT_NIGHT_OUT,
+    f"rc={_MUT_NIGHT_RC!r} -- `--scope full` runs only on schedule, where no "
+    f"other check reports the baseline",
+)
+# The null control on the green arm: a guard that returns a verdict on a GREEN
+# baseline would make the lane pass by never reaching the table at all, which
+# is the silent-green shape this file keeps finding.
+R.check(
+    "a green baseline takes no verdict at either scope; the table proceeds",
+    _mut_refuse(_MUT_GREEN, "changed") is None
+    and _mut_refuse(_MUT_GREEN, "full") is None
+    and _MUT_OK_OUT == "",
+    f"changed={_mut_refuse(_MUT_GREEN, 'changed')!r}, "
+    f"full={_mut_refuse(_MUT_GREEN, 'full')!r}, "
+    f"printed {_MUT_OK_OUT!r}",
+)
+
 
 sys.exit(R.close("ENTITY CHECKS"))

@@ -30,19 +30,25 @@ finding), C9 having been turned true by its own fix already:
     RESULT claims_false=1
     RESULT claims_stale=0
     RESULT claims_unverifiable=2    (1 with --links; the checker runs the default)
-    RESULT config_defaults_compared=84   (76 until #937's rows landed; 82
+    RESULT config_defaults_compared=86   (76 until #937's rows landed; 82
                                          until #1067's solver half documented
                                          the flow-curve lift option's default;
                                          83 until #1067's silent-mode half
-                                         documented the derate's default)
-    RESULT config_ranges_compared=87     (76 until #937's rows landed; 86
+                                         documented the derate's default; 84
+                                         until its frequency half documented
+                                         the two compressor Hz bounds)
+    RESULT config_ranges_compared=89     (76 until #937's rows landed; 86
                                          until #1067's silent-mode half
-                                         documented the derate's range)
-    RESULT arch_modules_on_disk=58       (architecture.md said 45; 56 until
+                                         documented the derate's range; 87
+                                         until its frequency half documented
+                                         the two compressor Hz bounds)
+    RESULT arch_modules_on_disk=59       (architecture.md said 45; 56 until
                                          #1067's learner half added
                                          flow_lift.py, 57 until its
                                          silent-mode half added silent_mode.py,
-                                         each of which the module map
+                                         58 until its disinfection half added
+                                         disinfection.py, each of which the
+                                         module map
                                          and the opening counts gained in the
                                          same commit -- this header is an
                                          ASSERTION tests/harness_headers.py
@@ -50,7 +56,7 @@ finding), C9 having been turned true by its own fix already:
                                          closure records, so it never reddens
                                          a pull request and is re-measured by
                                          whoever changes what it prints)
-    RESULT arch_map_listed=58            (was 45; 11 were missing)
+    RESULT arch_map_listed=59            (was 45; 11 were missing)
     RESULT arch_map_missing=0            (was 11)
     RESULT ha_module_level_importers=21  (architecture.md said 10; now says 21)
 
@@ -110,7 +116,7 @@ sys.path.insert(0, "custom_components")
 
 import harness  # noqa: E402
 from harness import FakeCoordinator, FakeEntry, FakeHass, FakeState  # noqa: E402
-from golden import _presented_fields  # noqa: E402
+from golden import _nested_schema, _presented_fields  # noqa: E402
 
 import heatpump_optimizer as integration  # noqa: E402
 from heatpump_optimizer import config_flow, const, services as svc, topology  # noqa: E402
@@ -490,11 +496,29 @@ for _step in OPTIONS._MENU_LABELS:
         continue
     PAGES[_step] = _sch
 
+def _fields_with_labels(step, schema, path=()):
+    """``(marker, validator, label)`` per presented field, the label resolved
+    the way the frontend resolves it: a field inside a section is read ONLY
+    under ``sections.<section>.data`` (show-dialog-options-flow.ts), never at
+    step level. The step-level-only read this replaced lost every grouped
+    field once #1111 moved their labels, and C30/C31 fell from 84/87 to 20/22."""
+    node = _opt_step.get(step, {})
+    if path:
+        node = (node.get("sections") or {}).get(path[0]) or {}
+    labels = node.get("data") or {}
+    for marker, value in (schema.schema.items() if schema is not None else []):
+        inner = _nested_schema(value)
+        if inner is None:
+            yield marker, value, labels.get(str(getattr(marker, "schema", marker)))
+        else:
+            yield from _fields_with_labels(
+                step, inner, path + (str(getattr(marker, "schema", marker)),))
+
+
 BY_LABEL = {}
 BY_KEY = {}
 for _step, _sch in PAGES.items():
-    _labels = _opt_step.get(_step, {}).get("data", {})
-    for _marker, _validator in _presented_fields(_sch):
+    for _marker, _validator, _lab in _fields_with_labels(_step, _sch):
         _key = str(getattr(_marker, "schema", _marker))
         _d = getattr(_marker, "default", None)
         try:
@@ -508,7 +532,6 @@ for _step, _sch in PAGES.items():
             "min": _cfg.get("min"), "max": _cfg.get("max"), "step_": _cfg.get("step"),
         }
         BY_KEY.setdefault(_key, _rec)
-        _lab = _labels.get(_key)
         if _lab and _lab not in BY_LABEL:
             BY_LABEL[_lab] = {
                 "key": _key, "step": _step, "default": _dv,
@@ -1142,7 +1165,6 @@ claim("C124", "DISCLAIMER.md",
 # --- C125.. select option lists --------------------------------------------
 _sel_rows, _sel_bad = 0, []
 for _step, _sch in PAGES.items():
-    _labels = _opt_step.get(_step, {}).get("data", {})
     for _marker, _v in _presented_fields(_sch):
         if type(_v).__name__ != "SelectSelector":
             continue
