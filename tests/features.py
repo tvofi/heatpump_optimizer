@@ -37789,4 +37789,176 @@ R.check(
     "one that declines",
 )
 
+
+# ---------------------------------------------------------------------------
+# #1067 W1067-G5a: the pump's own disinfection switch, read and published,
+# never written. Driving it is W1067-G5b's.
+R.section("#1067 W1067-G5a — the disinfection switch, observed")
+
+import pickle as _g5_pickle  # noqa: E402
+
+from heatpump_optimizer import disinfection as _g5_dis  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_DHW_DISINFECTION_SWITCH_ENTITY as _G5_ENTITY,
+)
+from heatpump_optimizer.inputs import UNBOUNDED as _G5_UNBOUNDED  # noqa: E402
+from heatpump_optimizer.optimizer import REASON_LEGIONELLA as _G5_LEG  # noqa: E402
+
+_G5_SWITCH = "switch.pump_disinfection"
+
+
+class _G5Reader:
+    """A reader that records how it was asked, answering with one reading."""
+
+    def __init__(self, flag, ok=True):
+        self.asked = []
+        self._reading = type("R", (), {"flag": flag, "ok": ok})()
+
+    def read_bool(self, key, **kwargs):
+        self.asked.append((key, kwargs))
+        return self._reading
+
+
+_g5_sw = _g5_dis.DisinfectionSwitch({})
+_g5_rd = _G5Reader(True)
+_g5_sw.observe(_g5_rd)
+R.check(
+    "no switch configured: nothing is read and nothing is published",
+    _g5_rd.asked == [] and _g5_sw.observed is None and _g5_sw.view() == {},
+    f"asked={_g5_rd.asked} view={_g5_sw.view()}",
+)
+_g5_sw = _g5_dis.DisinfectionSwitch({_G5_ENTITY: _G5_SWITCH})
+_g5_rd = _G5Reader(True)
+_g5_sw.observe(_g5_rd)
+R.check(
+    "a configured switch is read through the input reader, unbounded, and published",
+    _g5_rd.asked == [(_G5_ENTITY, {"max_age_minutes": _G5_UNBOUNDED})]
+    and _g5_sw.view() == {"dhw_disinfection_switch": {"entity_id": _G5_SWITCH, "state": True}},
+    f"asked={_g5_rd.asked} view={_g5_sw.view()}",
+)
+_g5_sw.observe(_G5Reader(True, ok=False))
+R.check(
+    "an unusable reading publishes state None, not the last value",
+    _g5_sw.view() == {"dhw_disinfection_switch": {"entity_id": _G5_SWITCH, "state": None}},
+    f"view={_g5_sw.view()}",
+)
+
+
+# -- the production path: the coordinator's own update and hot water view ---
+def _g5_coord(states=None, **over):
+    cfg = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "dhw_temp_entity": "sensor.tank",
+        "dhw_tank_volume": 300.0,
+        **over,
+    }
+    return _Coord(_FakeHass(dict(states or {})), _FakeEntry(data=cfg))
+
+
+def _g5_cycle(coord, reason=_G5_LEG):
+    coord._current_action = {"dhw_reason": reason}
+    _asyncio.run(coord._update_current_state())
+    return coord._dhw_view().get("dhw_disinfection_switch")
+
+
+_g5_seen = {}
+for _label, _state in (("on", FakeState("on")), ("off", FakeState("off")),
+                       ("unavailable", FakeState("unavailable")), ("missing", None)):
+    _states = {} if _state is None else {_G5_SWITCH: _state}
+    _g5_c = _g5_coord(_states, **{_G5_ENTITY: _G5_SWITCH})
+    _g5_seen[_label] = (_g5_cycle(_g5_c), list(_g5_c.hass.services.calls))
+R.check(
+    "through the coordinator the hot water attributes carry the switch's state: "
+    "on, off, and None while unreadable or missing",
+    {k: (v[0] or {}).get("state", "absent") for k, v in _g5_seen.items()}
+    == {"on": True, "off": False, "unavailable": None, "missing": None}
+    and all((v[0] or {}).get("entity_id") == _G5_SWITCH for v in _g5_seen.values()),
+    f"seen={ {k: v[0] for k, v in _g5_seen.items()} }",
+)
+R.check(
+    "…and nothing is ever written, through a commanded disinfection cycle",
+    all(calls == [] for _, calls in _g5_seen.values()),
+    f"calls={ {k: v[1] for k, v in _g5_seen.items()} }",
+)
+_g5_c = _g5_coord({_G5_SWITCH: FakeState("on")})
+R.check(
+    "unconfigured, the hot water attributes carry no switch key",
+    _g5_cycle(_g5_c) is None and "dhw_disinfection_switch" not in _g5_c._dhw_view(),
+    f"keys={sorted(_g5_c._dhw_view())}",
+)
+
+
+# -- the null control: setting the switch changes no plan --------------------
+# The real planning cycle, observing the switch in the same update: every
+# argument each solve receives and the plan it returns, pickled, with the
+# switch set (and reading on) against unset. The clock is frozen so the two
+# runs share one horizon; the perturbation arm (indoor 21 -> 20 C) shows the
+# comparison can see a difference at all.
+def _g5_plan_bytes(config=None, indoor="21.0", dhw_setpoint_delta=0.0):
+    dt_util.freeze(_G5_FROZEN)
+    try:
+        coord = _solve_coord()
+        del coord._update_current_state  # the real one, so the switch is read
+        coord.hass.states.set("sensor.indoor", FakeState(indoor, unit="°C"))
+        coord.hass.states.set(_G5_SWITCH, FakeState("on"))
+        coord.hass.states.set("sensor.tank", FakeState("48.0", unit="°C"))
+        # Hot water planned, so a leak into the DHW half would move the plan.
+        coord._config.update({"dhw_temp_entity": "sensor.tank", "dhw_tank_volume": 200.0})
+        coord._thermal_params.dhw_enabled = True
+        coord._thermal_params.dhw_setpoint += dhw_setpoint_delta
+        coord._config.update(config or {})
+        solves = []
+        real = _coord_mod._await_optimize
+
+        async def spy(hass, optimizer, state, *positional, **keywords):
+            # The optimizer's own parameter and configuration copies are
+            # inputs too: that is where a thermal-parameter leak would land.
+            solves.append(_g5_pickle.dumps(
+                (optimizer.model.params, optimizer.config, state, positional, keywords)
+            ))
+            return await real(hass, optimizer, state, *positional, **keywords)
+
+        _coord_mod._await_optimize = spy
+        try:
+            _asyncio.run(coord._update_current_state())
+            _asyncio.run(coord.async_run_optimization())
+        finally:
+            _coord_mod._await_optimize = real
+        result = coord._optimization_result
+        plan = _g5_pickle.dumps(
+            {k: v for k, v in vars(result).items() if k not in ("solve_time_ms", "solve_time")}
+        ) if result is not None else None
+        return solves, plan, coord
+    finally:
+        dt_util.freeze(None)
+
+
+_G5_FROZEN = dt_util.now().replace(minute=0, second=0, microsecond=0)
+_g5_unset = _g5_plan_bytes()
+_g5_set = _g5_plan_bytes({_G5_ENTITY: _G5_SWITCH})
+_g5_moved = _g5_plan_bytes(indoor="20.0")
+_g5_dhw_moved = _g5_plan_bytes(dhw_setpoint_delta=1.0)
+R.check(
+    "null control: the switch set and reading on, every solve's arguments and the "
+    "plan are byte-identical to unset",
+    len(_g5_unset[0]) >= 1
+    and _g5_unset[1] is not None
+    and _g5_set[0] == _g5_unset[0]
+    and _g5_set[1] == _g5_unset[1]
+    and _g5_set[2]._dhw_view().get("dhw_disinfection_switch", {}).get("state") is True,
+    f"solves unset={len(_g5_unset[0])} set={len(_g5_set[0])} "
+    f"args_equal={_g5_set[0] == _g5_unset[0]} plan_equal={_g5_set[1] == _g5_unset[1]}",
+)
+R.check(
+    "…and the comparison sees a real input change (indoor 21 -> 20 °C moves the bytes)",
+    _g5_moved[0] != _g5_unset[0] and _g5_moved[1] != _g5_unset[1],
+    f"args_differ={_g5_moved[0] != _g5_unset[0]} plan_differs={_g5_moved[1] != _g5_unset[1]}",
+)
+R.check(
+    "…and a hot-water parameter change (setpoint +1 °C) moves the solve's inputs and the plan",
+    _g5_dhw_moved[0] != _g5_unset[0] and _g5_dhw_moved[1] != _g5_unset[1],
+    f"args_differ={_g5_dhw_moved[0] != _g5_unset[0]} plan_differs={_g5_dhw_moved[1] != _g5_unset[1]}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

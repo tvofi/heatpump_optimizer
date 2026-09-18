@@ -1078,12 +1078,14 @@
           "disinfection": {
             "name": "Disinfection",
             "data": {
+              "dhw_disinfection_switch_entity": "Pump's disinfection switch (optional)",
               "dhw_elastic_legionella_enabled": "Let the anti-legionella cycle pick a cheap day",
               "dhw_free_disinfection_enabled": "Credit disinfection from any heat source",
               "dhw_legionella_min_interval_days": "Earliest anti-legionella re-run",
               "dhw_quantile_targets_enabled": "Learn heavy-day hot water targets"
             },
             "data_description": {
+              "dhw_disinfection_switch_entity": "A switch or helper that starts the heat pump's own anti-legionella program. The optimizer only reads it and shows its state on the hot water sensor's attributes, so you can see whether the pump's program is on while a disinfection cycle runs. It never turns the switch on or off, and it does not change the plan.",
               "dhw_elastic_legionella_enabled": "Allow the anti-legionella cycle to run a day or two early when electricity is unusually cheap, instead of always waiting for its deadline. The deadline is still always honoured.",
               "dhw_free_disinfection_enabled": "If a wood boiler, solar coil or immersion heater already gets the tank to the anti-legionella temperature and holds it there, count that as a completed cycle instead of running another one.",
               "dhw_legionella_min_interval_days": "Never run anti-legionella cycles closer together than this, even on very cheap days.",

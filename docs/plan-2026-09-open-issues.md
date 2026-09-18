@@ -1273,13 +1273,35 @@ states its window or it states nothing.
   classifier: two branches owing a carry to the same role contract cannot both
   comply, which `docs/HANDOVER.md` records as owed and no seat may decide.
 - **[#1079](https://github.com/tvofi/heatpump_optimizer/issues/1079)
-  (`brief-citations.md`) — DEFERRED.**
-  [#1117](https://github.com/tvofi/heatpump_optimizer/pull/1117)'s reviewer
-  measured that the citation-presence check catches **none** of this issue's
-  four rot shapes — a stale brief citation, a moved `file:line` anchor, a dead
-  pull-request or comment link, and a rule citing a removed rule — while
-  closing arm B of #1058 exactly. **Its first entry is explicitly not retired
-  by #1117**; presence and resolvability are different questions.
+  (`brief-citations.md`) — re-dispositioned at `2296de3`, still DEFERRED.
+  Two counts, kept apart, each with its own window and head:**
+  - `1 / 1` distinct pull request under `v6.6.2..origin/main` at `2296de3`
+    (`node .claude/workflows/policy_lint.mjs --stats --since v6.6.2
+    --normalize-friction-keys`) — **below** the 3-PR threshold, matching the
+    governance cron's own `friction-below-threshold key:brief-citations.md
+    window:v6.6.2..origin/main` comment
+    ([5721312069](https://github.com/tvofi/heatpump_optimizer/issues/1079#issuecomment-5721312069)),
+    posted `2026-09-17T21:14:16Z` — the first live run of #1119's close path
+    (files, re-measures per window, never closes) doing what it was built for.
+  - `5 / 5` distinct pull requests under the older `v6.5.1..origin/main`
+    window, re-derived the same way at the same head — over threshold; this
+    is the number a prior draft of this entry carried, at a stale window.
+  **The low current-window count is not evidence the rot is addressed.**
+  #1117 merged and its reviewer measured that the citation-presence check it
+  shipped catches **none** of this issue's four rot shapes — a stale brief
+  citation, a moved `file:line` anchor, a dead pull-request or comment link,
+  and a rule citing a removed rule — while still correctly closing arm B of
+  #1058 (presence). Presence and resolvability are different questions, and a
+  friction count is presence (how often the class recurred in merged bodies
+  inside a window), not resolvability (whether a check catches it). No pull
+  request addressing resolvability is open or scheduled. **Recommended:
+  stays DEFERRED** — a resolvability checker is unscoped work (four distinct
+  rot shapes, no single detector demonstrated), and scoping it is a decision
+  for whoever picks up the next wave, not a call this section makes. **What
+  would have to change for this to be closable**: a check (or a documented
+  manual process) that demonstrably catches at least the four named rot
+  shapes, exercised against a fixture for each — not a lower friction count,
+  which the window can produce on its own with no fix at all.
 - **[#1087](https://github.com/tvofi/heatpump_optimizer/issues/1087)
   (`fixer.md`) — DELIVERED** by
   [#1118](https://github.com/tvofi/heatpump_optimizer/pull/1118), merged
@@ -1302,12 +1324,46 @@ states its window or it states nothing.
   at both heads it was taken at. Closing is the owner's call and this section
   does not recommend it.
 - **[#1095](https://github.com/tvofi/heatpump_optimizer/issues/1095)
-  (`gate-scoping`) — SCHEDULED, in review.** The countermeasure is the
-  `HPO_TYPING_PYTHON` re-exec inside `tests/typing_ruler.py`; that pull request
-  **needs the owner's approving review**, because it touches
-  `.claude/rules/gate-scoping.md`, which `.github/CODEOWNERS` owns. Its
-  `## Root cause` is live as comment
-  [5719981924](https://github.com/tvofi/heatpump_optimizer/issues/1095#issuecomment-5719981924).
+  (`gate-scoping`) — re-dispositioned at `2296de3`. Two facts, kept apart,
+  neither substituting for the other:**
+  - **The countermeasure merged and the cause is on record.** #1122
+    (`HPO_TYPING_PYTHON`, folded into main at `e467026`) delivered the fix;
+    `## Root cause` is posted at comment
+    [5719981924](https://github.com/tvofi/heatpump_optimizer/issues/1095#issuecomment-5719981924).
+  - **The count has cleared, and re-derived independently it is not evidence
+    the fix worked.** `1 / 1` distinct pull request under
+    `v6.6.2..origin/main` at `2296de3` (`node
+    .claude/workflows/policy_lint.mjs --stats --since v6.6.2
+    --normalize-friction-keys`) — below the 3-PR threshold, matching the
+    governance cron's `friction-below-threshold key:gate-scoping
+    window:v6.6.2..origin/main` comment
+    ([5721311867](https://github.com/tvofi/heatpump_optimizer/issues/1095#issuecomment-5721311867)),
+    posted `2026-09-17T21:14:15Z` — #1119's close path's first live run,
+    filing and re-measuring per window without closing, exactly as designed.
+    Under the older `v6.5.1..origin/main` window at the same head the key was
+    still `7 / 9`, over threshold; a prior draft of this entry carried that
+    number. **The clearing is the window moving past the nine merged bodies
+    that carried the count, not the fix working**: RCA #1087 (comment
+    [5719932299](https://github.com/tvofi/heatpump_optimizer/issues/1087#issuecomment-5719932299))
+    established the count is a property of the keying rule and of
+    already-merged bodies: eight of the nine predate #1122, and the ninth
+    **is #1122 itself** — its own PR body carries a self-reported `##
+    Friction` bullet (`gate-scoping: unclear: HPO_GATE_LOCK_LABEL set
+    without the take above fails at once...`), merged at `e467026`, which
+    is inside `v6.6.2..origin/main` and is the sole entry the `1 / 1`
+    figure counts. So #1122 cannot have caused this clearing — the tag cut
+    (`v6.6.2`) did, exactly as the RCA predicted it eventually would — and
+    the fix's own body still carrying an unresolved friction note against
+    the rule it fixes is further evidence for that reading, not against it.
+  **Recommended: ADDRESSED, window-cleared-not-fix-confirmed** — leave open
+  rather than close on either fact alone. **What would have to change for
+  this to be closable**: either the owner accepts that a countermeasure plus
+  an unconfounded below-threshold window (one cut *after* the countermeasure,
+  so new bodies rather than aging-out old ones populate it) is sufficient, or
+  a future re-measurement stays below threshold across another tag cut with
+  the fix in place, which the window-moving explanation above predicts should
+  happen regardless of whether the fix helped. Closing is the owner's call
+  and this section does not make it.
 
 ## Carried findings awaiting a stage
 

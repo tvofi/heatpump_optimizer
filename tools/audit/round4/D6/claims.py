@@ -38,11 +38,13 @@ finding), C9 having been turned true by its own fix already:
     RESULT config_ranges_compared=87     (76 until #937's rows landed; 86
                                          until #1067's silent-mode half
                                          documented the derate's range)
-    RESULT arch_modules_on_disk=58       (architecture.md said 45; 56 until
+    RESULT arch_modules_on_disk=59       (architecture.md said 45; 56 until
                                          #1067's learner half added
                                          flow_lift.py, 57 until its
                                          silent-mode half added silent_mode.py,
-                                         each of which the module map
+                                         58 until its disinfection half added
+                                         disinfection.py, each of which the
+                                         module map
                                          and the opening counts gained in the
                                          same commit -- this header is an
                                          ASSERTION tests/harness_headers.py
@@ -50,7 +52,7 @@ finding), C9 having been turned true by its own fix already:
                                          closure records, so it never reddens
                                          a pull request and is re-measured by
                                          whoever changes what it prints)
-    RESULT arch_map_listed=58            (was 45; 11 were missing)
+    RESULT arch_map_listed=59            (was 45; 11 were missing)
     RESULT arch_map_missing=0            (was 11)
     RESULT ha_module_level_importers=21  (architecture.md said 10; now says 21)
 

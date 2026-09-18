@@ -3143,6 +3143,38 @@ async def residual_statement_branches():
         f"stored={entry.options.get(const.CONF_SILENT_MODE_WINDOWS)!r}",
     )
 
+    # #1067 W1067-G5a: the pump's disinfection switch saves onto its own key
+    # from the hot_water_tank page, and clearing it writes None rather than
+    # leaving the old switch in force under the options merge.
+    flow, entry, _ = fresh_options()
+    await flow.async_step_hot_water_tank(None)
+    result = await submit(
+        flow,
+        "hot_water_tank",
+        {**HOT_WATER_TANK_ANSWERS,
+         const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: "switch.pump_disinfection"},
+    )
+    check(
+        "opt_hot_water_tank",
+        "happy",
+        "the pump's disinfection switch saves onto its own key (#1067)",
+        not result.get("errors")
+        and entry.options.get(const.CONF_DHW_DISINFECTION_SWITCH_ENTITY)
+        == "switch.pump_disinfection",
+        f"errors={result.get('errors')} options={dict(entry.options)}",
+    )
+    await flow.async_step_hot_water_tank(None)
+    result = await submit(flow, "hot_water_tank", dict(HOT_WATER_TANK_ANSWERS))
+    check(
+        "opt_hot_water_tank",
+        "happy",
+        "a cleared disinfection switch saves as None, not as the old switch (#1067)",
+        not result.get("errors")
+        and const.CONF_DHW_DISINFECTION_SWITCH_ENTITY in entry.options
+        and entry.options.get(const.CONF_DHW_DISINFECTION_SWITCH_ENTITY) is None,
+        f"errors={result.get('errors')} options={dict(entry.options)}",
+    )
+
     # The grid_fees page's catalog application: choosing a DSO product
     # writes that product's rules and mode over whatever the page carried.
     dso_product = "ellevio_villa_effekt_2026"
@@ -3199,7 +3231,10 @@ SEEDED_ENTITIES = {
         const.CONF_COMPRESSOR_FREQ_ENTITY: "number.compressor_freq",
         const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.compressor_freq",
     },
-    "hot_water_tank": {const.CONF_DHW_INLET_ENTITY: "sensor.dhw_inlet"},
+    "hot_water_tank": {
+        const.CONF_DHW_INLET_ENTITY: "sensor.dhw_inlet",
+        const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: "switch.pump_disinfection",
+    },
     "hot_water_pumps": {const.CONF_VVC_PUMP_ENTITY: "switch.vvc_pump"},
     "grid_fees": {const.CONF_GRID_FEE_ENTITY: "sensor.grid_fee"},
     "solar_pv": {
