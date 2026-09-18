@@ -161,6 +161,290 @@ LOCALTUYA = {
 }
 
 
+# --------------------------------------------------------------------- corpus
+
+#: The labelled corpus W1067-G7b-3's fuzzy fallback is measured on. A *label*
+#: is the entity a role should resolve to on that device, or ``None`` when the
+#: device carries no entity for it; a fallback that suggests something where
+#: the label is ``None``, or an entity other than the label, is a WRONG
+#: suggestion -- the one thing the corpus measurement refuses.
+#:
+#: Two shapes. A device read ``from_fixture`` takes another fixture's records
+#: and re-platforms them, so its entity set is the pinned definitions' own and
+#: its labels are entity ids. A ``hand_shaped`` device is the set a user
+#: configured by hand, marked as such, and its labels are DP numbers.
+#:
+#: The three localtuya-shaped devices stand on the unique-id rule the
+#: generated localtuya fixture records (``local_{device}_{dp}``), read out of
+#: it rather than restated, so ``--write-corpus`` needs no upstream checkout.
+CORPUS = {
+    "fixture": "prefill_corpus.json",
+    "devices": [
+        {
+            "name": "rotenso_windmi",
+            "from_fixture": "tuya_heat_pump_000004k4z6.json",
+            "platform": "tuya_heat_pump",
+            "hand_shaped": False,
+            "note": (
+                "tvofi/tuya_heat_pump's own model at fda9bed. Its source table "
+                "resolves six roles, so the fallback has nothing left to fill "
+                "here: this device is the corpus's null control. Its dp 106 "
+                "'Heat Exchanger Outlet Water Temperature (Tout)' is a second "
+                "outlet-named temperature the fallback must not read as the "
+                "supply (its own table already decided the supply is T1)."
+            ),
+            "labels": {
+                "outdoor_temp_entity": "sensor.rotenso_windmi_outdoor_ambient_temperature_t4",
+                "dhw_temp_entity": "sensor.rotenso_windmi_dhw_tank_temperature",
+                "heat_pump_supply_temp_entity": (
+                    "sensor.rotenso_windmi_outlet_water_temperature_t1"),
+                "heat_pump_return_temp_entity": (
+                    "sensor.rotenso_windmi_heat_exchanger_inlet_water_temperature_tin"),
+                "compressor_freq_sensor": None,
+                "r404": "number.rotenso_windmi_dhw_setpoint",
+                "r405": None,
+                "r406": None,
+                "unit_capacity": None,
+            },
+        },
+        {
+            "name": "fisher_water_heatpump",
+            "from_fixture": "tuya_local_fisher_water_heatpump.json",
+            "platform": "tuya_local",
+            "hand_shaped": False,
+            "note": (
+                "make-all/tuya-local at 2026.9.1. Its table resolves the "
+                "outdoor and return sensors. Its third named sensor, 'Outlet "
+                "temperature' (dp 106), is the plate outlet rather than the T1 "
+                "supply, so the supply label is null and a suggestion there is "
+                "wrong: the near-tie trap, on a device whose dp 10 supply "
+                "reading is a climate attribute no entity slot can take."
+            ),
+            "labels": {
+                "outdoor_temp_entity": "sensor.radiator_heat_pump_outdoor_temperature",
+                "dhw_temp_entity": None,
+                "heat_pump_supply_temp_entity": None,
+                "heat_pump_return_temp_entity": "sensor.radiator_heat_pump_inlet_temperature",
+                "compressor_freq_sensor": None,
+                "r404": None,
+                "r405": None,
+                "r406": None,
+                "unit_capacity": None,
+            },
+        },
+        {
+            "name": "localtuya_owner_pump",
+            "hand_shaped": True,
+            "platform": "localtuya",
+            "unique_id": "local_{device}_{dp}",
+            "device_name": "Radiator heat pump",
+            "device_id": "bf1234567890abcdef12",
+            "note": (
+                "The same DP numbers as the generated localtuya fixture, under "
+                "the names that fixture's user configured. No table reaches a "
+                "localtuya device, so the fallback resolves all four."
+            ),
+            "entities": [
+                {"domain": "switch", "dp": 1, "name": "Power"},
+                {"domain": "sensor", "dp": 10, "name": "Outlet water temperature",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 26, "name": "Tank temperature",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 101, "name": "Inlet water temperature",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 105, "name": "Outdoor temperature",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 109, "name": "Water pump gear",
+                 "state_class": "measurement"},
+            ],
+            "labels": {
+                "outdoor_temp_entity": 105,
+                "dhw_temp_entity": 26,
+                "heat_pump_supply_temp_entity": 10,
+                "heat_pump_return_temp_entity": 101,
+                "compressor_freq_sensor": None,
+                "r404": None,
+                "r405": None,
+                "r406": None,
+                "unit_capacity": None,
+            },
+        },
+        {
+            "name": "localtuya_t1_tout",
+            "hand_shaped": True,
+            "platform": "localtuya",
+            "unique_id": "local_{device}_{dp}",
+            "device_name": "Garage pump",
+            "device_id": "bf1234567890abcdef12",
+            "note": (
+                "The plan's own trap, in the form a fallback meets it: the "
+                "machine's T1 (dp 10) and its plate outlet Tout (dp 106) on "
+                "one device, named as the pinned source names them. T1 is the "
+                "supply; Tout is nothing."
+            ),
+            "entities": [
+                {"domain": "sensor", "dp": 10, "name": "Outlet Water Temperature (T1)",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 106,
+                 "name": "Heat Exchanger Outlet Water Temperature (Tout)",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 101, "name": "Inlet water temperature",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 105, "name": "Outdoor temperature",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 26, "name": "Tank temperature",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+            ],
+            "labels": {
+                "outdoor_temp_entity": 105,
+                "dhw_temp_entity": 26,
+                "heat_pump_supply_temp_entity": 10,
+                "heat_pump_return_temp_entity": 101,
+                "compressor_freq_sensor": None,
+                "r404": None,
+                "r405": None,
+                "r406": None,
+                "unit_capacity": None,
+            },
+        },
+        {
+            "name": "localtuya_wrong_unit",
+            "hand_shaped": True,
+            "platform": "localtuya",
+            "unique_id": "local_{device}_{dp}",
+            "device_name": "Holiday home pump",
+            "device_id": "bf1234567890abcdef12",
+            "note": (
+                "A perfect supply name in the wrong unit: the slot expects "
+                "degrees Celsius and this probe reads Fahrenheit, so the "
+                "number would be a different temperature. The two correct "
+                "neighbours must still resolve."
+            ),
+            "entities": [
+                {"domain": "sensor", "dp": 10, "name": "Supply water temperature",
+                 "device_class": "temperature", "unit": "°F", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 105, "name": "Outdoor temperature",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 26, "name": "Hot water tank temperature",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+            ],
+            "labels": {
+                "outdoor_temp_entity": 105,
+                "dhw_temp_entity": 26,
+                "heat_pump_supply_temp_entity": None,
+                "heat_pump_return_temp_entity": None,
+                "compressor_freq_sensor": None,
+                "r404": None,
+                "r405": None,
+                "r406": None,
+                "unit_capacity": None,
+            },
+        },
+        {
+            "name": "localtuya_energy",
+            "hand_shaped": True,
+            "platform": "localtuya",
+            "unique_id": "local_{device}_{dp}",
+            "device_name": "Workshop pump",
+            "device_id": "bf1234567890abcdef12",
+            "note": (
+                "An energy total, an instantaneous power and a frequency "
+                "sensor. The frequency is the compressor slot; neither the "
+                "kWh total nor the kW reading is the unit's capacity, which "
+                "is a rating rather than a measurement."
+            ),
+            "entities": [
+                {"domain": "sensor", "dp": 1, "name": "Compressor frequency",
+                 "device_class": "frequency", "unit": "Hz", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 2, "name": "Heat pump power",
+                 "device_class": "power", "unit": "W", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 3, "name": "Energy today",
+                 "device_class": "energy", "unit": "kWh", "state_class": "total_increasing"},
+            ],
+            "labels": {
+                "outdoor_temp_entity": None,
+                "dhw_temp_entity": None,
+                "heat_pump_supply_temp_entity": None,
+                "heat_pump_return_temp_entity": None,
+                "compressor_freq_sensor": 1,
+                "r404": None,
+                "r405": None,
+                "r406": None,
+                "unit_capacity": None,
+            },
+        },
+        {
+            "name": "brand_flow_names",
+            "hand_shaped": True,
+            "platform": "some_brand_heatpump",
+            "unique_id": "{slug}_{dp}",
+            "device_name": "Brand Pump",
+            "device_id": "brand-0001",
+            "note": (
+                "A brand-specific integration with no table: the fallback only. "
+                "Its own words for the four water readings and the compressor."
+            ),
+            "entities": [
+                {"domain": "sensor", "dp": 1, "name": "Flow temperature",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 2, "name": "Return temperature",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 3, "name": "Outside temperature",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 4, "name": "Hot water tank temperature",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 5, "name": "Compressor frequency",
+                 "device_class": "frequency", "unit": "Hz", "state_class": "measurement"},
+            ],
+            "labels": {
+                "outdoor_temp_entity": 3,
+                "dhw_temp_entity": 4,
+                "heat_pump_supply_temp_entity": 1,
+                "heat_pump_return_temp_entity": 2,
+                "compressor_freq_sensor": 5,
+                "r404": None,
+                "r405": None,
+                "r406": None,
+                "unit_capacity": None,
+            },
+        },
+        {
+            "name": "brand_swedish",
+            "hand_shaped": True,
+            "platform": "some_brand_heatpump",
+            "unique_id": "{slug}_{dp}",
+            "device_name": "Varmepump",
+            "device_id": "brand-0002",
+            "note": (
+                "The same device named in Swedish, which the synonym lists "
+                "carry: a Swedish install's own words."
+            ),
+            "entities": [
+                {"domain": "sensor", "dp": 1, "name": "Framledningstemperatur",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 2, "name": "Returtemperatur",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 3, "name": "Utomhustemperatur",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+                {"domain": "sensor", "dp": 4, "name": "Varmvattentemperatur",
+                 "device_class": "temperature", "unit": "°C", "state_class": "measurement"},
+            ],
+            "labels": {
+                "outdoor_temp_entity": 3,
+                "dhw_temp_entity": 4,
+                "heat_pump_supply_temp_entity": 1,
+                "heat_pump_return_temp_entity": 2,
+                "compressor_freq_sensor": None,
+                "r404": None,
+                "r405": None,
+                "r406": None,
+                "unit_capacity": None,
+            },
+        },
+    ],
+}
+
+
 def _slug(text: str) -> str:
     """Home Assistant's entity-id slug, and the coordinator's device slug.
 
@@ -423,6 +707,108 @@ def _localtuya_records(spec: dict, rules: list[dict]) -> tuple[list[dict], list[
     return records, readings
 
 
+# ---------------------------------------------------------------------- corpus
+
+def _hand_records(spec: dict) -> list[dict]:
+    """One hand-shaped device's records, on its own unique-id rule.
+
+    The rule is the spec's own format string, joined the way that
+    integration's source joins it (``local_{device}_{dp}`` for the
+    localtuya-shaped sets, read out of the generated localtuya fixture's
+    ``sources``); the entity id is the device name and the entity's own name,
+    because every set below is one a ``has_entity_name`` platform publishes.
+    """
+    slug = _slug(spec["device_name"])
+    records = []
+    for entity in spec["entities"]:
+        values = {"device": spec.get("device_id", ""), "dp": str(entity["dp"]),
+                  "slug": slug}
+        unique_id = spec["unique_id"]
+        for role in re.findall(r"\{(\w+)\}", unique_id):
+            unique_id = unique_id.replace("{" + role + "}", values[role], 1)
+        named = spec["device_name"] + " " + entity["name"]
+        records.append(_record(
+            platform=spec["platform"],
+            unique_id=unique_id,
+            entity_id=f"{entity['domain']}.{_slug(named)}",
+            name=entity["name"],
+            entity=entity,
+        ))
+    records.sort(key=lambda r: r["entity_id"])
+    return records
+
+
+def _label_entity(records: list[dict], value) -> str | None:
+    """One label as the entity id it names.
+
+    A generated device's label is an entity id and a hand-shaped device's is a
+    DP number; either way a label that names no record, or more than one, is a
+    typo in this file and stops the build rather than quietly measuring
+    nothing.
+    """
+    if value is None:
+        return None
+    found = [
+        row["entity_id"] for row in records
+        if row["entity_id"] == value or row["unique_id"].endswith(f"_{value}")
+    ]
+    if len(found) != 1:
+        raise SystemExit(f"corpus label {value!r} names {found or 'no'} record(s)")
+    return found[0]
+
+
+def build_corpus(spec: dict) -> dict:
+    """The labelled corpus, from the fixtures this script already wrote."""
+    devices = []
+    for device in spec["devices"]:
+        if device.get("from_fixture"):
+            source = load(device["from_fixture"])
+            records = [
+                {**row, "platform": device["platform"]}
+                for row in source["records"]
+            ]
+            upstream = {
+                "upstream_repo": source["upstream_repo"],
+                "upstream_tag": source["upstream_tag"],
+                "upstream_commit": source["upstream_commit"],
+                "upstream_path": source["upstream_path"],
+            }
+        else:
+            records = _hand_records(device)
+            upstream = {
+                "upstream_repo": None,
+                "upstream_tag": None,
+                "upstream_commit": None,
+                "upstream_path": None,
+            }
+        devices.append({
+            "name": device["name"],
+            "platform": device["platform"],
+            "hand_shaped": device["hand_shaped"],
+            "note": device["note"],
+            **upstream,
+            "records": records,
+            "labels": {
+                role: _label_entity(records, value)
+                for role, value in device["labels"].items()
+            },
+        })
+    return {
+        "_generated_by": "tools/gen_device_fixtures.py",
+        "sources": [
+            {
+                "fixture": item["fixture"],
+                "repo": item["repo"],
+                "tag": item.get("tag"),
+                "commit": item["commit"],
+                "platform": item["platform"],
+            }
+            for item in (TUYA_HEAT_PUMP, TUYA_LOCAL, LOCALTUYA)
+        ],
+        "devices": devices,
+    }
+
+
 # ----------------------------------------------------------------------- build
 
 def build(spec: dict, repos: list[pathlib.Path]) -> dict:
@@ -482,12 +868,35 @@ def _dump(fixture: dict) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repo", required=True, action="append", type=pathlib.Path,
+    parser.add_argument("--repo", action="append", type=pathlib.Path, default=[],
                         help="a pinned source's checkout; repeat once per source")
     parser.add_argument("--write", action="store_true")
     parser.add_argument("--check", action="store_true")
+    parser.add_argument(
+        "--write-corpus", action="store_true",
+        help="write the labelled corpus, from the fixtures already on disk",
+    )
+    parser.add_argument("--check-corpus", action="store_true")
     args = parser.parse_args(argv)
     failures = 0
+    if args.write_corpus or args.check_corpus:
+        # No --repo: the corpus re-platforms the fixtures this script already
+        # wrote and shapes its hand-set devices on a rule one of them records.
+        # A label that names no record stops the build inside build_corpus.
+        target = FIXTURES / CORPUS["fixture"]
+        built = _dump(build_corpus(CORPUS))
+        if args.write_corpus:
+            target.write_text(built, encoding="utf-8")
+            print(f"wrote {target}")
+            return 0
+        recorded = target.read_text(encoding="utf-8") if target.exists() else ""
+        if recorded == built:
+            print(f"{CORPUS['fixture']}: matches the recorded corpus")
+            return 0
+        return 1
+    if args.write or args.check:
+        if not args.repo:
+            raise SystemExit("--write and --check need one --repo per pinned source")
     for spec in (TUYA_HEAT_PUMP, TUYA_LOCAL, LOCALTUYA):
         target = FIXTURES / spec["fixture"]
         built = _dump(build(spec, args.repo))

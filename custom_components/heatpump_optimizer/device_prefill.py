@@ -14,22 +14,28 @@ Two rules are the contract, and ``tests/features.py`` pins each:
 * **A source table proves its device.** Dispatch is by the integration that
   owns the entities (``platform``). A table applies only when the records
   carry a key set that source's own definitions make unique to the model the
-  table was derived from; an integration with no table registered resolves
-  nothing. Guessing is W1067-G7b-3's fallback, which is not in this module.
-  ``localtuya`` has no table, and that is a decision rather than an omission:
-  its records are a device id, a DP number and the user's own names, and
-  nothing in them names firmware. DP numbers are not identity -- dp 105 is
-  the outdoor probe in the config below and a select's option in another of
-  the same corpus, and dp 107 is a tank in one source and a wired controller
-  in the other -- so a DP-keyed table would be this repository's Tuya
-  meanings worn by a device of unknown firmware. localtuya resolves nothing
-  here and the fallback, which matches on type, unit and name and says so on
-  the page, carries it.
+  table was derived from; an integration with no table resolves nothing
+  here. ``localtuya`` has no table, and that is a decision rather than an
+  omission: its records are a device id, a DP number and the user's own
+  names, and nothing in them names firmware. DP numbers are not identity --
+  dp 105 is the outdoor probe in the config below and a select's option in
+  another of the same corpus, and dp 107 is a tank in one source and a wired
+  controller in the other -- so a DP-keyed table would be this repository's
+  Tuya meanings worn by a device of unknown firmware. What carries those
+  devices is ``name_match``, W1067-G7b-3's fallback, which
+  :func:`resolve_with_fallback` applies to the roles
+  :func:`resolve` left empty.
 * **Scale travels with the role.** The same setting arrives in different
   units from different sources. The GCHV package's register 404 holds tenths
   of a degree; the Tuya integration's DHW set-point number already reads
   degrees. A scale fixed inside ``infer()`` would turn a 50 degree set-point
   into 5.0, so each :class:`~.modbus_prefill.ResolvedRole` carries its own.
+  The fallback's roles carry 1.0, because a Home Assistant state that has a
+  unit already reads in that unit.
+
+``resolve()`` is the source-table half **alone**, and stays that way: it is
+the object the merge base's own answer is compared against, so the fallback
+is added beside it rather than inside it.
 
 Matching keys on the **unique id**, never on the entity id: a unique id is
 the integration's own identifier and survives a rename, while an entity id is
@@ -46,6 +52,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import NamedTuple
 
+from . import name_match
 from .const import (
     CONF_DHW_TEMP_ENTITY,
     CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
@@ -54,6 +61,23 @@ from .const import (
     CONF_OUTDOOR_TEMP_ENTITY,
 )
 from .modbus_prefill import ResolvedRole
+
+
+class Resolution(NamedTuple):
+    """A device's roles, and which source resolved each one.
+
+    ``roles`` is what ``modbus_prefill.snapshot`` reads. ``source`` is the
+    page's account of itself, one label per role: a source table's own
+    platform, or ``name_match.SOURCE`` where nothing but a name matched. It is
+    the plan's "Resolved plus the source name, carried for the disclaimer",
+    and it rides here rather than on ``ResolvedRole`` for one reason -- the
+    role map is the object the null control compares byte for byte against the
+    merge base, and a field added to it would be a difference in every
+    fixture. A label nothing displays costs a lookup; a field costs that.
+    """
+
+    roles: dict[str, ResolvedRole]
+    source: dict[str, str]
 
 
 class EntityRecord(NamedTuple):
@@ -212,7 +236,10 @@ def resolve(records: Iterable[EntityRecord]) -> dict[str, ResolvedRole]:
     """One device's records as ``modbus_prefill``'s resolver input.
 
     Empty when no registered source recognises the device, which the options
-    flow reports rather than opening an empty pre-fill form.
+    flow reports rather than opening an empty pre-fill form. This is the
+    source-table half alone and its answer never changes: the fallback is
+    *added* to it by :func:`resolve_with_fallback`, so a device an earlier
+    group resolved resolves identically here.
     """
     by_platform: dict[str, list[EntityRecord]] = {}
     for record in records:
@@ -237,3 +264,65 @@ def resolve(records: Iterable[EntityRecord]) -> dict[str, ResolvedRole]:
             if pair in matched and role not in resolved:
                 resolved[role] = ResolvedRole((matched[pair],), scale)
     return resolved
+
+
+def _table_sources(
+    records: Iterable[EntityRecord], roles: Mapping[str, ResolvedRole]
+) -> dict[str, str]:
+    """``role -> the platform whose table resolved it``.
+
+    Read off the registered tables rather than carried through ``resolve()``,
+    so that function's own answer stays exactly what it was. Platforms are
+    sorted, because a device whose records span two tabled integrations is
+    resolved deterministically rather than by set order.
+    """
+    present = sorted({record.platform for record in records if record.platform in _SOURCES})
+    return {
+        role: platform
+        for platform in present
+        for _pair, (role, _scale) in _SOURCES[platform][0].items()
+        if role in roles
+    }
+
+
+def resolve_with_fallback(records: Iterable[EntityRecord]) -> Resolution:
+    """The dispatcher the pre-fill page reads a device through.
+
+    A source table when one is registered for the platform, and then -- for
+    the roles that left empty -- W1067-G7b-3's fallback, which matches on the
+    entity's type, unit and name and says so on the page. A role the table
+    decided is never reopened, and a device no table proves is read by name
+    alone, which is what carries a locally-configured or unbranded pump.
+    """
+    pool = list(records)
+    roles = resolve(pool)
+    source = _table_sources(pool, roles)
+    for match in name_match.matches(pool, taken=roles):
+        roles[match.role] = ResolvedRole((match.entity_id,))
+        source[match.role] = name_match.SOURCE
+    return Resolution(roles, source)
+
+
+def disclaimer(resolution: Resolution | None = None) -> dict[str, str]:
+    """The page's own account of where the suggestions came from.
+
+    Two description placeholders: the roles a *name* filled, each as
+    ``role -> entity``, and the sources whose tables filled the rest. An
+    em dash where there is nothing to say, the page's existing spelling of
+    "nothing read" (``modbus_prefill.notes``). The sentence around them, which
+    is what asks the user to check before saving, lives in ``strings.json``.
+    """
+    roles = {} if resolution is None else resolution.roles
+    source = {} if resolution is None else resolution.source
+    matched = sorted(
+        (role, resolved.entity_ids[0])
+        for role, resolved in roles.items()
+        if source.get(role) == name_match.SOURCE
+    )
+    tables = sorted({label for label in source.values() if label != name_match.SOURCE})
+    return {
+        "name_matched": (
+            "; ".join(f"{role} -> {entity_id}" for role, entity_id in matched) or "–"
+        ),
+        "matched_sources": ", ".join(tables) or "–",
+    }

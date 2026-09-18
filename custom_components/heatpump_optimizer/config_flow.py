@@ -3253,10 +3253,19 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     def _prefill_form(
         self, schema: vol.Schema, notes: dict[str, str], errors: dict[str, str]
     ) -> ConfigFlowResult:
+        """The page, with the placeholders its description always reads.
+
+        ``device_prefill.disclaimer()`` with no resolution is the empty form,
+        so the prefix route and the refusal below carry the same two keys the
+        device route overrides rather than leaving the description's braces
+        unrendered.
+        """
         return self.async_show_form(
             step_id="modbus_prefill",
             errors=errors,
-            description_placeholders={**_WINDOW_PLACEHOLDERS, **notes},
+            description_placeholders={
+                **_WINDOW_PLACEHOLDERS, **device_prefill.disclaimer(), **notes,
+            },
             data_schema=schema,
         )
 
@@ -3275,7 +3284,11 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
         A picked device wins over a typed prefix. Both routes stay: a
         Modbus YAML package's sensors have a unique id and no device, so no
-        device route ever reaches them (#1067 W1067-G7b-1).
+        device route ever reaches them (#1067 W1067-G7b-1). A device no
+        source table proves is read by entity name, and the page says so
+        (#1067 W1067-G7b-3): the description lists every role that came from
+        a name rather than from published definitions, and asks the user to
+        check them before saving.
         """
         current = self._current
         if user_input is None:
@@ -3283,12 +3296,19 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             return self._prefill_form(self._prefill_phase_one(current), modbus_prefill.notes({}), {})
         if self._prefill is None:
             device_id = user_input.get(_PREFILL_DEVICE)
+            sourced: dict[str, str] = {}
             if device_id:
                 # The device route (#1067 W1067-G7b-1): a source table for the
                 # integration that owns the device's entities replaces the
-                # prefix resolver. Nothing after this line differs.
+                # prefix resolver, and W1067-G7b-3's fallback fills the roles
+                # that table left empty. Nothing after this differs, and the
+                # page is told which of the two answered for each role.
                 prefix = None
-                resolved = device_prefill.resolve(_device_records(self.hass, str(device_id)))
+                resolution = device_prefill.resolve_with_fallback(
+                    _device_records(self.hass, str(device_id))
+                )
+                resolved = resolution.roles
+                sourced = device_prefill.disclaimer(resolution)
             else:
                 prefix = str(
                     user_input.get(CONF_MODBUS_PREFILL_PREFIX)
@@ -3312,7 +3332,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                 ).items()
                 if _prefill_fits(key, value)
             }
-            notes = modbus_prefill.notes(snap)
+            notes = {**modbus_prefill.notes(snap), **sourced}
             self._prefill = (prefix if snap else None, tuple(suggested), notes)
             return self._prefill_form(_prefill_schema(suggested, suggested), notes, {})
         matched_prefix, keys, notes = self._prefill
