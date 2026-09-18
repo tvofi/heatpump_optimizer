@@ -2541,6 +2541,7 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
     def _waiting_for(self) -> str | None:
         view = (self.coordinator.data or {}).get("freq_control") or {}
         if view.get("mode") in (None, "unconfigured"):
+            # A compressor frequency number or sensor: either one configures it.
             return "compressor_frequency_entity"
         if not isinstance(view.get("recommended_hz"), (int, float)):
             # Observe mode with an entity but no learned kW-per-Hz map yet.

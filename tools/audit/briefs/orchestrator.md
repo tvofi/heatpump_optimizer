@@ -147,9 +147,11 @@ exactly that.
   `~/.zcode/identity-author.token`, never printed.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
   the handoff it prepares against the merge base only (`fix-review.md`).
-- **Name its own scratch subdirectory**, `scratchpad/<seat>/`. Seats share one
-  scratchpad, `/tmp` and process table, and a generic name at a root has destroyed
-  another seat's work. It stops only a PID it started, never by pattern.
+- **Name its scratch directory ABSOLUTE, and its own worktree under it.** A
+  relative one resolves against the seat's cwd, which was yours for three seats.
+  Seats share one scratchpad, `/tmp` and process table, and a generic name at a
+  root has destroyed another seat's work. It stops only a PID it started, never
+  by pattern.
 
 ## 6. A conflict resolution is verified by reading the merged artifact
 
@@ -284,7 +286,5 @@ before merging — so open the pull request and surface it.
 - **Do not re-implement what CI already repairs** (`ci-autofix.md`): wait for
   the bot commit, never open a second pull request, never hand-empty the claim
   files.
-- **Do not delete working functionality to fit a budget**, and do not loosen a
-  budget quietly.
 - **Do not let a fix ship whose complexity exceeds what the fix is worth.** That
   judgement is yours to make and to state, not to skip.

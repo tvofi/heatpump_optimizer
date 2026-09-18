@@ -130,6 +130,8 @@ custom_components/heatpump_optimizer/
 ├── battery.py            # The thermal stores, published as a virtual battery
 ├── narrative.py          # The plan told in sentences, grouped by reason
 ├── legionella.py         # The anti-legionella cycle: when it runs, what it refuses
+├── disinfection.py       # The pump's own disinfection switch, read and
+│                         #   published, never written
 │
 │   # Home Assistant entities and frontend
 ├── entity.py             # The shared entity base every platform builds on

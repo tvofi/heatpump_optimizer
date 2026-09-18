@@ -3,8 +3,9 @@
 <!-- The wave plan for issue #1067, written before execution and kept as
 written. It is the plan of record for this work, not a report: where it and
 the branch disagree, the branch and the handover comment on the pull request
-are what happened. The status block below is the only text added after the
-fact. -->
+are what happened. The status block below, and the owner decision of
+2026-09-17 with the two groups it added (W1067-G7b and the post-wave follow-on W1067-POST1), are the only
+text added after the fact. -->
 
 ## Status, written when the remote session handed over
 
@@ -62,6 +63,12 @@ Executed by an Opus 5 orchestrator with Opus/Sonnet/Haiku seats under the reposi
 5. **Stage 0 in tvofi/tuya_heat_pump**: verify and fix the Modbus generator's entity-id slug mismatch before the pre-fill group.
 6. **Haiku 4.5: read-only seats only** (pre-dispatch in-flight check, comment read-back verify, label hygiene, post-merge gate watch); never a fixer, reviewer or translation seat. Recorded as a routing change in `docs/plan-2026-09-open-issues.md` "Model routing".
 
+## Owner decision taken during execution (2026-09-17)
+
+Given in chat with the orchestrator, verbatim: "I want A, and then B later in the plan".
+
+7. **A is W1067-G7b**, split G7b-1 to G7b-3: the pre-fill page also takes a heat-pump device, reads that device's entities from Home Assistant's entity registry, and feeds them to G7's suggestion logic unchanged. It runs after G7 merges and before G8's close-out. The owner's same-day input widened it to any device source (tuya_heat_pump, Tuya Local, Local Tuya, brand-specific integrations), with a fuzzy fallback that matches by type, unit and name and says so on the page. **B is W1067-POST1**: offering the pre-fill when a heat-pump device is added. It is a follow-on after G8, outside wave 1067's close-out. G8 still closes #1067, and B does not hold it open. The owner confirmed that placement the same day, answering yes to the orchestrator's proposal. B gets its own issue or tracking entry when it is started, and none is filed before then.
+
 ## Design decisions the orchestrator carries into every brief
 
 - **Coordinator wiring only, in two cheap shapes.** Module-level `def _x(coord)` helpers outside the class on the `_freq_fold_blocked` precedent (`coordinator.py:595-600`) cost no `coordinator_loc`, `coordinator_methods` or seam edges; new fields ride on objects the coordinator already holds (`PumpSignals`, learners) so no new `self._attr` is born where avoidable. Never add a statement to `_learn_measured_cop` (`coordinator.py:3347-3490`, 140 lines against the 150 monster limit): new guards are an `or` on the existing `if self._immersion_active:` at `:3395`.
@@ -84,7 +91,11 @@ Executed by an Opus 5 orchestrator with Opus/Sonnet/Haiku seats under the reposi
 | W1067-G5 | D: disinfection switch, guard injection, mode selector | — | opus / opus | high | false | ~200 |
 | W1067-G6 | E: sensor-only frequency observe, Hz bounds, control validation | — | opus / opus | medium | false | ~120 |
 | W1067-G7 | F: Modbus pre-fill module and options page | G1, G2, G4, G6 | opus / opus | high | false (config_flow.json only) | ~350 |
-| W1067-G8 | close-out: Delivery-status, roster `resume`, HANDOVER, #201, close #1067 | G7 | sonnet / sonnet | low | false | 0 |
+| W1067-G7b-1 | A: device pre-fill (owner decision 7): resolver interface, tuya_heat_pump table, registry stubs, fixture script, flow | G7 | opus / opus | high | false (config_flow.json only) | ~180 |
+| W1067-G7b-2 | A: tuya_local table and the localtuya decision, generated fixtures | G7b-1 | opus / opus | medium | false | ~80 |
+| W1067-G7b-3 | A: fuzzy fallback resolver (type, unit, name; disclaimer), labelled corpus, measured thresholds | G7b-2 | opus / opus | high | false (config_flow.json only) | ~150 |
+| W1067-G8 | close-out: Delivery-status, roster `resume`, HANDOVER, #201, close #1067 | G7b-3 | sonnet / sonnet | low | false | 0 |
+| W1067-POST1 | post-wave follow-on, B: offer the pre-fill when a heat-pump device is added, with a global off switch (owner decision 7) | G8 | opus / opus | high | false (config_flow.json only) | ~220 |
 
 ### W1067-G0 — generator fix (tvofi/tuya_heat_pump, Sonnet)
 
@@ -156,12 +167,165 @@ Executed by an Opus 5 orchestrator with Opus/Sonnet/Haiku seats under the reposi
 - **Inference table** (register → key → formula; the fixer reads value tables from `tools/gen_gchv_package.py`, never guesses): `sensor.hp_unit_capacity` kW thermal ÷ `heat_pump_cop_nominal` → `heat_pump_max_power`; r404×0.1 → `dhw_setpoint`; r405×0.1 → `dhw_legionella_temperature`; r406×0.1 → `dhw_min_temperature`; r712/r713 (`hh*256+mm`) → `dhw_windows` only when r711 ≠ 0; r518/r519 → G4's window; `7 // popcount(r714)` when r714 ≠ 0 → `dhw_legionella_interval_days`; r4109 = water-temperature control → `mixing_valve_write_target_kind` and `space_setpoint_unit` = flow; entity slots when empty: `outdoor_temp_entity` ← `sensor.hp_outdoor_air_temperature`, `dhw_temp_entity` ← `sensor.hp_dhw_tank_temperature`, G2's supply/return ← `sensor.hp_leaving_water_temperature_t1` / `sensor.hp_entering_water_temperature_tw_in`, `compressor_freq_sensor` ← `sensor.hp_actual_compressor_frequency`, G1's capacity-limited flag ← the night-mode-active binary sensor when it resolves.
 - **Flow**: one `_P("modbus_prefill", …, _ADVANCED)` row (`config_flow.py:1338-1359`) and one `async_step_modbus_prefill` handler (`registry_drives_every_page`, `tests/config_flow_steps.py:3328-3355`, requires handlers = pages). Phase 1: `_page_schema` with a single stored prefix row (default `hp`). Phase 2: compute `infer()`, keep it on the flow instance, render a FLAT `_options_schema` of `vol.Optional(key, description={"suggested_value": v})` fields with the notes in `description_placeholders` (flat because suggested values skip sectioned fields, `:1288`, `:1585`). Phase 3: drop `None`/`""`, then `_save_or_menu` (`:2455-2469`) returns to the advanced menu.
 - **Page count 21 → 22**: README.md "menu of 21 pages" (pinned by `tests/entities.py:585-600`), `docs/configuration.md` "twenty-one" (`:9`, `:204`), `strings.json` advanced `menu_options` and the new step block, sv.
-- **Coverage 100 %** (`tests/coverage_budgets.json:7`, ratchet `tests/coverage_ratchet.py`): a three-phase walk in `tests/config_flow_steps.py` beside `registry_walk_recurses` (`:3437`) with `FakeHass` states populated in both spellings, blanks, a close-save, an empty snapshot; `infer()` unit tests in `tests/features.py` from a snapshot built out of the yaml's unique ids; `tests/entities.py` page pin, docs field names, menu strings. No pragma: the `pragmas` count is a ratchet too.
+- **Coverage 100 %** (`tests/coverage_budgets.json:7`, ratchet `tests/coverage_ratchet.py`): a three-phase walk in `tests/config_flow_steps.py` beside `registry_walk_recurses` (`:3545`, re-anchored at `c8eb0f6`) with `FakeHass` states populated in both spellings, blanks, a close-save, an empty snapshot; `infer()` unit tests in `tests/features.py` from a snapshot built out of the yaml's unique ids; `tests/entities.py` page pin, docs field names, menu strings. No pragma: the `pragmas` count is a ratchet too.
 - **Mutation proof**: reduce the spelling list to one → both-spellings test red; write blanks → blank-not-written test red.
+- **Forward carry from W1067-G7b (owner decision 7, 2026-09-17)**: `infer()` must take role → entity-id resolution as an input (a role map, or a resolver function), not hardcode the prefix lookup inside itself, so G7b feeds device-resolved ids without changing `infer()`. The prefix route becomes one resolver (the both-spellings candidates) and G7b's device route another. The resolution must also carry each role's scale, or the snapshot must hand `infer()` engineering units: the r404 row is raw × 0.1, while the Tuya device's DHW set-point number already reads °C (tvofi/tuya_heat_pump `fda9bed`, `custom_components/tuya_heat_pump/models/000004k4z6.py:369-378`), so a scale fixed inside `infer()` turns a 50 °C set-point into 5.0.
+
+### W1067-G7b — A: pre-fill from a heat-pump device, any source (split G7b-1, G7b-2, G7b-3)
+
+Added by owner decision 7. It runs after G7 merges (`git merge origin/main`) and before G8. Line numbers in this section are as of `origin/main` at `c8eb0f6`, and upstream sources are cited at the tag and commit named with each one; re-anchor both at the merge base. The owner's follow-up input on the same day: the device may come from tuya_heat_pump, Tuya Local (`tuya_local`), Local Tuya (`localtuya`) or a brand-specific integration, so G7b is source-agnostic. It is testable in this integration at stub level; see Tests. A second owner input the same day, verbatim: "Can there be some kind of fuzzy lookup as fallback that matches by type, unit and entity name (with a disclaimer)?" The answer is yes, and it is the fallback resolver below.
+
+**Split, recommended.** Four sources, generated fixtures, a measured fuzzy matcher, both stub registries and a config-flow walk at 100 % make one pull request too large to review in one pass.
+- **G7b-1** ships the resolver interface, the tuya_heat_pump table, the stubs, the fixture script and the flow. An unrecognised device resolves nothing.
+- **G7b-2** adds the tuya_local table and the localtuya decision, with their fixtures. It changes no flow code, so its review concerns only mapping.
+- **G7b-3** adds the fuzzy fallback and its labelled corpus. It gets its own group, not G7b-1, because its acceptance is a corpus measurement: the thresholds are derived from that corpus, and the zero-wrong-suggestion bar is a separate review question from whether the flow and stubs are right. It follows G7b-2 so its corpus includes the tuya_local definitions.
+
+- **Forward carries from G7** (the G7 fixer's local branch feat/1067-g7-modbus-prefill at 4698a95, before its pull request exists). These are findings from G7's execution, not owner decisions.
+  1. **#1107 masks a blank write.** `_omit_unstored_defaults` drops a blank or None post on any key whose absent fallback equals the posted value, so a test that blanks such a key passes with or without G7b's own blank filter. G7b's blank and None tests must use keys #1107 would write: a DHW window, for example, or a None legionella interval. G7's first save test pinned #1107 rather than the page, and its blank-filter mutant survived.
+  2. **A flow write target needs the two-zone model.** A write-target kind of flow for the mixing valve is refused unless the two-zone model is configured, so a resolver-fed suggestion of it is offered only when that model is configured.
+  3. **G7's interface, which every G7b resolver returns unchanged in shape.** These names are planned on G7's branch and are not in the tree yet.
+     - Roles are named by register number (r plus digits), by option keys for the entity slots, and by one named reading, unit_capacity, which is neither a register nor an option key: it is the package's unit-capacity sensor, from which a power figure is derived.
+     - The prefix resolver, candidates of a prefix, returns a Resolved record per role: its entity ids and its scale.
+     - The snapshot takes the getter and the resolved map.
+     - Infer takes the snapshot and the current options, applies the resolver's scale, and drops only None and a value equal to the one in force. **It has no range check.** Out-of-range numeric values are filtered by the page after infer(), in config_flow.py's pre-fill fit check, so a G7b fixer neither writes an infer() range test nor copies that filter into a resolver.
+     - G7b's per-source tables and the fuzzy fallback return that same Resolved shape. The earlier text of this section, "each role carries its entity id, its scale and the source that matched", becomes Resolved plus the source name, carried for the disclaimer.
+- **Keys**: none new, if the device pick stays transient. The pick is a device selector on G7's pre-fill page, beside the prefix row. It adds no `_P` row, so the page count G7 sets does not move. Whether the pick is stored is the fixer's call, stated in the body. If stored, it is a new option key and carries every item of "Every new option key touches". If transient, the body shows that `registry_drives_every_page` (`tests/config_flow_steps.py:3438`) and the page fingerprint accept a field that is not a `_F` row. The selector is not filtered by integration, because the fallback serves any device. The prefix route stays for Modbus YAML entities: the generated package (tvofi/tuya_heat_pump `docs/modbus/rotenso_windmi_gchv.yaml`) gives them a `unique_id` and no device, so no device route reaches them.
+- **Interface, new HA-free module** `device_prefill.py` (the name is the fixer's to choose). A resolver is a pure function from one device's registry records to G7's role map, where each role carries its entity id, its scale and the source that matched. A record is platform, unique_id, entity_id, original_name, translation_key, device_class, unit and state_class, as plain values. `config_flow.py` reads the registries and builds the records, so the module never imports `homeassistant`. Dispatch is by `platform`: a source table when one is registered for it, then (from G7b-3) the fallback for roles the table left empty. A source table resolves only what its own definitions prove.
+- **Scale travels with the role** (the G7 forward carry above). Tuya DPs arrive in °C and the Modbus register rows are raw × 0.1, so a scale fixed inside `infer()` is wrong for every device source.
+- **Source tables, each derived from that integration's own definitions at a pinned version, never typed from memory**:
+  - **tuya_heat_pump** (G7b-1), tvofi/tuya_heat_pump `fda9bed`, platform `tuya_heat_pump` (`const.py:8`).
+    - *unique_id*: the device-name slug, an underscore, then the model dict **key** (`binary_sensor.py:112`; the same shape at `sensor.py:103`, `switch.py:91`, `number.py:89`, `select.py:92`). It is the key, not the `code` field: `fault_description` carries `code: fault` (`models/000004k4z6.py:254-256`). The slug is built from the coordinator's `device_name`, which changes after the cloud lookup (`coordinator.py:105`, `:848`, `:868`). So the match is on (entity domain, unique_id ending in an underscore plus key), the longest key wins, and a rebuilt prefix or the entity_id is never used. `night_mode` (switch) also ends in the select key `mode`, and HA scopes unique_ids per domain (`models/enhs6o.py:58-61`).
+    - *Where the meanings come from*: the device's entities come from `models/000004k4z6.py`. The generator's register rows (`tools/gen_gchv_package.py:118-134`, `:194-196`) and the yaml give the meaning each G7 role already has, and each mapping below pairs the two.
+    - *Tests upstream*: that repo pins 3 of the package's 76 raw unique_ids (`tools/test_gen_gchv_package.py:164-188`, against `grep -c "unique_id: hp_gchv_r"` on the yaml) and nothing about register wiring, so no role below rests on an upstream test.
+    - *Roles verified against the model file's code table (`models/000004k4z6.py:17-43`)*:
+      - `outdoor_temp_entity` ← sensor `T4` (dp 105), register 1.
+      - `dhw_temp_entity` ← sensor `temp_current_f` (dp 26, the tank in °C), register 206.
+      - G2's supply slot ← sensor `temp_current` (dp 10, "total outlet, Midea T1"), register 4. `Tout` (dp 106, the plate outlet) is not T1 and is not mapped.
+      - G2's return slot ← sensor `Tin` (dp 101, "Midea TW_in"), register 3.
+      - G1's capacity-limited flag ← switch `night_mode` (dp 110). That is G1's own choice of dp, and `switch` is in `topology.FLAG_DOMAINS` (`topology.py:88`).
+      - `dhw_setpoint` ← number `DHWSET` (dp 104) at scale 1.0, against register 404's 0.1 (generator `:194`).
+    - *Unreachable from this device, so omitted by `infer()`'s absent rule*: registers 4102, 405, 406, 711-714, 518-519, 4109, 601 and 23. The Tuya schema has no installer parameters (`models/000004k4z6.py:51-55`). Keys `instant_heating`, `switch_microwave` and `disinfection` match G1's heater slots and G5's switch, but they are outside the role set `infer()` consumes, and widening it is a G7 change.
+    - *Model scope*: other model files in that repo reuse keys such as `temp_current`, and the registry `model` is a cloud product name or a local placeholder (`coordinator.py:853-875`). So the table applies only when the device carries a key set the fixer shows is unique to `000004k4z6` among `custom_components/tuya_heat_pump/models/` at `fda9bed`, with the grep under Figures. Otherwise the fallback applies.
+  - **tuya_local** (G7b-2), make-all/tuya-local tag `2026.9.1` (commit `4551357`), platform `tuya_local`.
+    - *unique_id*: the device uid, a hyphen, then the slugified config id (`helpers/device_config.py:293-295`). The config id is the entity type plus the slugified entity `name`; failing that, the type plus the `translation_key`, where each `translation_placeholders` key found in that slug is replaced by the slugified value and any other placeholder value is appended with an underscore (`:328-335`); failing that, the type plus the device class; failing that, the bare type (`:323-338`). The entity property is at `entity.py:72-74`, and `has_entity_name` is true (`:49-50`).
+    - *Candidate config*: `devices/fisher_water_heatpump.yaml`, a Fisher air-to-water config. tuya_heat_pump's model file says a Fisher unit shares this firmware (`models/000004k4z6.py:12-14`, tuya-local issue #1870). But this file's product id, `3gabjnrhtblg3ub6`, is not the modelId named there, so the fixer establishes which config the owner's unit matches rather than assuming it.
+    - *What that file defines*: `sensor` entities "Outdoor temperature" (dp 105), "Inlet temperature" (dp 101) and "Outlet temperature" (dp 106). dp 10 and dp 26 are attributes of the `climate` entity. dp 104 and dp 107 are the `water_heater` target and current temperature.
+    - *Only sensor entities can fill an entity slot*, so the verifiable roles are outdoor ← dp 105 and return ← dp 101.
+    - **The two sources disagree**: tuya-local reads dp 107 as the tank's current temperature, and tuya_heat_pump reads it as the wired-controller temperature (T6), with dp 26 as the tank. Each table follows its own source. The disagreement is recorded in the pull-request body and in `docs/HANDOVER.md`, and not resolved in either direction without a reading from the owner's install.
+  - **localtuya** (G7b-2), platform `localtuya`, at both maintained lines: xZetsubou/hass-localtuya tag `2026.7.0` (commit `3d0c0ec`), `entity.py:242-247`, and rospogrigio/localtuya tag `v5.2.5` (commit `59c95cd`), `common.py:469-471`.
+    - *unique_id*: `local_`, the device id, an underscore, then the DP id, unless the xZetsubou entity sets its own. The DP id is recoverable from it.
+    - *Why it does not map by default*: localtuya carries no model identity, and the user configures which DPs become entities and their names. A DP-keyed table would be the tuya_heat_pump meanings applied to a device of unknown firmware, so localtuya gets the fallback. A DP-keyed table ships only if the fixer finds a firmware signature in the records that proves the device, and says so.
+  - **Brand-specific integrations**: fallback only.
+- **Fuzzy fallback resolver** (G7b-3), by the owner's decision above. It matches by type, unit and entity name, and says so on the page.
+  - **Hard filter first**: a candidate must pass the role's domain, device_class and unit before any name is read. Units are normalised by family (°C with K, W with kW), and nothing ever matches on name alone. So roles with no physical unit are out of the fallback's reach: the DHW and silent-mode windows, the legionella interval, control mode and the flag slots. A role whose unit is physical, such as a °C set-point, is in reach, because a Home Assistant state carrying a unit is already in engineering units.
+  - **Name scoring**: entity_id, original_name and friendly name are normalised: lowercased, split on underscores, camelCase and digit boundaries, and stripped of the device-name prefix. They are then scored against a per-role synonym list: token overlap plus a `difflib` string-similarity ratio (standard library, no new requirement). The lists are English and Swedish, plus the vocabulary the pinned source definitions actually use, taken from the generated fixtures rather than typed. Examples of the shape: supply water — supply, flow, leaving, outlet, T1, framledning; return — return, entering, inlet, retur; outdoor — outdoor, ambient, outside, ute; tank — tank, DHW, hot water, varmvatten.
+  - **Decision rule**: a role is suggested only when the best score clears a threshold AND beats the runner-up by a margin. A tie or near-tie gives nothing, one entity is suggested for at most one role, a filled slot is never overwritten (`infer()`'s only-when-empty rule), and nothing is written until the user submits the page. **The threshold and margin come from the corpus measurement and are cited in the pull-request body with the command that printed them, never chosen by feel.**
+  - **Disclaimer**: the page description says which suggestions came from name matching, lists each as role → entity, and asks the user to check them before saving. Source-table suggestions are named by source. If the page is sectioned, those labels go under `sections.<s>.data` and `data_description`.
+  - **Corpus**: a labelled set of realistic entity sets. The tuya_heat_pump and tuya_local sets are generated from the pinned definitions; localtuya-style sets with user-named DPs are hand-shaped and marked as such in the corpus. Real traps from the pinned sources belong in it. tuya_heat_pump carries both "Outlet Water Temperature (T1)" (dp 10) and "Heat Exchanger Outlet Water Temperature (Tout)" (dp 106), a near-tie for supply on the word "outlet". Its "T5" is the compressor discharge (`models/000004k4z6.py:168-178`), not the Midea tank probe the label suggests.
+  - **Measured**: precision and recall per role over the corpus. **Acceptance is zero wrong suggestions**; recall is reported, not gated. The run also reports how many roles the fallback fills on each corpus device, because W1067-POST1 takes its qualifying minimum from that table.
+- **Flow** (G7b-1): in phase 1 of `async_step_modbus_prefill`, a chosen device replaces the prefix resolver with the dispatched device resolver. G7b-3 adds only the disclaimer text to this path. Everything after that is G7's code path unchanged: `infer()`, the flat suggested-value form, and phase 3 through `_save_or_menu` (`config_flow.py:2520`). A device that resolves no role re-renders phase 1 with an error, not an empty form.
+  - **#1107 binds**: the save path runs `_omit_unstored_defaults` over `_ABSENT_FALLBACKS` (`config_flow.py:1772`), which `tests/config_flow_steps.py:4860-4954` derives from coordinator snapshots. The pre-fill never writes a blank or an unchanged default, and no test hand-lists those keys.
+  - **Section labels**: a device field inside a `section()` has its label and help under `options.step.<page>.sections.<s>.data` and `data_description` in `strings.json`, with the `en.json` byte-copy and a translated sv. A concurrent fix, branch fix/options-section-labels, adds a no-fallback lookup test that fails a label found only at the page level.
+- **Stubs, measured at `c8eb0f6`, extended by G7b-1 to real HA's signatures at the `hacs.json` floor**:
+  - `tests/hastub/homeassistant/helpers/device_registry.py` is 14 lines and defines only the `DeviceEntryType` str subclass. It has no registry, no `async_get`, and no device entry with `identifiers` or `config_entries`.
+  - `tests/hastub/homeassistant/helpers/entity_registry.py` has a `RegistryEntry` of `entity_id`, `unique_id`, `domain` and `config_entry_id` (`:16-21`), plus `add`, `async_remove`, `async_get` and `async_entries_for_config_entry` (`:29-65`). It has no `device_id`, `platform`, `original_name`, `translation_key`, `device_class`, `unit_of_measurement` or `async_entries_for_device`.
+  - `tests/hastub/homeassistant/helpers/selector.py` has `EntitySelector` (`:120`) and no device selector.
+  - G7b-1 adds the device registry, the missing entry fields with defaults (so the retired-entity cleanup at `__init__.py:236` is untouched), the per-device lookup, and a device selector.
+- **Fixtures, generated rather than typed**: a small script (a new tracked file, so it enters a closure or `tests/closure.py`'s `INERT` list) reads each source's definitions at the pinned commit and writes a registry fixture shaped like that source's entities. The fixture records the upstream repository, tag and commit, and the suite reads fixtures only, with no network. **Honest scope**: the fixtures prove the mapping against each source's definitions at the pinned version, not against a live device. Drift is noticed when the maintainer bumps a pin and re-runs the script: a changed fixture fails the per-source test until the table is re-derived. The script's `--check` mode, run against the recorded commit, must print no difference.
+- **Tests** (`tests/features.py` for resolvers; `tests/config_flow_steps.py` beside `registry_walk_recurses`, `:3545`, for the walk):
+  - **G7b-1**:
+    - The tuya_heat_pump positive test runs from the generated fixture.
+    - A device from an unknown integration resolves nothing: error, no write.
+    - A device with no matching entities: error, no write.
+    - **Both entity-id slug spellings**: the same records under the suffixed and the unsuffixed entity-id spelling, plus a user-renamed id, resolve identically, because resolution keys on unique_id.
+    - **Domain in the match**: a device named "Heat Night" has the slug `heat_night`, so its select `mode` has the unique_id `heat_night_mode`, which also ends in `_night_mode`. With the `night_mode` switch absent, the capacity-limited flag must resolve to nothing. With the switch present, it must resolve to the switch.
+    - A `DHWSET` of 50 suggests 50.0.
+    - A filled slot is not overwritten.
+    - Coverage stays 100 % with no pragma (`tests/coverage_budgets.json:7`; the `pragmas` ratchet at `:4`).
+  - **G7b-2**: tuya_local and localtuya positive tests from their fixtures, and the recorded dp 107 disagreement pinned as each source's own reading.
+  - **G7b-3**:
+    - The corpus precision/recall table, with zero wrong suggestions asserted.
+    - **Genuine tie**: two supply-water candidates that pass the hard filter with identical normalised names and metadata, so their scores are equal. The test asserts **no suggestion**; "the right one" is not an accepted outcome here.
+    - Adversarial cases, each giving no suggestion or the right one: two temperature sensors with similar but unequal names (the T1/Tout pair above); an energy entity against a power entity; a sensor with a perfect name and the wrong unit.
+    - Coverage: `config_flow` stays at its 100 % floor (`tests/coverage_budgets.json:7`) with no pragma (the `pragmas` ratchet at `:4`), including the disclaimer path.
+    - A device from an unknown integration gets fallback suggestions only, each named in the disclaimer.
+    - An entity that scores for two roles is suggested for at most one.
+- **Mutation proof**:
+  - G7b-1: drop the tuya_heat_pump table → its positive test red; resolve by entity_id → spelling test red; drop the domain from the match → the "Heat Night" switch-absent test red, because longest-key matching then maps `select.…` with unique_id `heat_night_mode` to the flag (a plain `mode` and `night_mode` fixture would survive this mutant, since longest-key matching alone gets it right); apply r404's 0.1 to `DHWSET` → set-point test red.
+  - G7b-2: drop the tuya_local table → its positive test red.
+  - G7b-3: remove the margin rule → genuine-tie test red, because an equal score then yields the first candidate; remove the unit filter → wrong-unit test red; drop the one-role-per-entity rule → two-role test red.
+- **Null control**:
+  - G7b-1: with no device picked, G7's prefix route over the same `FakeHass` states gives a phase-2 suggestion dict identical to the merge base's (`diff` of the dumped dicts). `env_drift.py --all` shows no drift beyond the re-recorded `config_flow` schema fixture.
+  - G7b-2 and G7b-3: every earlier fixture's resolved role map is byte-identical before and after.
+  - G7b-3 also reports its matcher run over the corpus with the name scores zeroed, which must suggest nothing: without the name evidence the hard filter alone does not pick.
+- **Metrics**: `config_flow.py` grows, with no coordinator change. The new module enters `tests/closures.json` and `docs/architecture.md`'s map and counts. `python3 tests/structure.py` decides the re-record under owner decision 4.
 
 ### W1067-G8 — close-out (Sonnet)
 
-Delivery-status rows verified against measured `origin/main`, roster `resume` flips, `docs/HANDOVER.md` decisions (C4 deferral: the two-zone model has one flow temperature at `thermal_model.py:1952` and no per-zone emitter law, so a zone-2 supply slot would feed nothing; card-slot deferral; one-sided lift semantics), one #201 comment via `gh_comment.py` with read-back, `Closes #1067`. No stamp.
+Runs after G7b-3. Delivery-status rows verified against measured `origin/main`, roster `resume` flips, `docs/HANDOVER.md` decisions (C4 deferral: the two-zone model has one flow temperature at `thermal_model.py:1952` and no per-zone emitter law, so a zone-2 supply slot would feed nothing; card-slot deferral; one-sided lift semantics), one #201 comment via `gh_comment.py` with read-back, `Closes #1067`. No stamp.
+
+### W1067-POST1 — B: offer the pre-fill when a heat-pump device is added (post-wave follow-on)
+
+Added by owner decision 7. The owner confirmed its placement and the items marked (owner) below on 2026-09-17; items marked *added by the plan author* are not the owner's.
+
+**Placement and tracking**
+- **After G8, outside the wave.** G8 closes #1067, and this group does not hold it open.
+- **Tracking.** It gets its own issue or Delivery-status tracking entry when it is started, cites that entry rather than #1067, and has nothing filed for it before then.
+- **Why after G8.** The table's `after` column could express either order, so the format did not decide. #1067's evidence is the Rotenso inputs, which G7b completes, and an unsolicited Repairs prompt is a new surface whose review should not hold delivered work open.
+- **Dependency.** It starts only when G7b's mappings are in use: G7b-1 to G7b-3 merged and released. The offer's qualification rule (below) reads their resolvers and G7b-3's corpus figures, so it cannot be written earlier.
+
+**Design**
+- **Keys**: one global option that turns offers off, default on, on the pre-fill's own page (the fixer names the page and says why). It carries every item of "Every new option key touches".
+  - **#1107 binds**: an untouched page must not write this option at its default. `_ABSENT_FALLBACKS` is derived, never hand-listed, and the derivation in `tests/config_flow_steps.py:4860-4954` proves a key either through a coordinator snapshot or through a static read. This key is read by the listener's setup rather than by the coordinator, so the fixer shows which proof covers it, or why it belongs in `_ABSENT_IS_NOT_DEFAULT`.
+  - **Section labels**: if the page is sectioned, the label and help go under `sections.<s>.data` and `data_description`.
+- **New HA-free module** `prefill_offer.py` (the name is the fixer's to choose), holding pure functions over plain records.
+  - **Qualification**: a device qualifies only when a source G7b can map resolves it. That means tuya_heat_pump, tuya_local with a supported model, or any integration where G7b-3's fuzzy fallback fills at least a minimum number of roles.
+  - **The minimum is taken from G7b-3's corpus measurement and cited, never guessed.** Otherwise there is no prompt, because a prompt that opens an empty page is noise.
+  - This integration's own service device (the `DeviceEntryType` the coordinator imports, `coordinator.py:40`) and a disabled device never qualify.
+  - **Offer state**: a pure transition over the stored record says whether to offer, re-raise, withdraw or ignore.
+- **Persistence**: a `Store`, keyed by device id, holding each device's state: seen, offered, or dismissed. The stub at `tests/hastub/homeassistant/helpers/storage.py:32-50` round-trips through its module-level disk; the pattern is at `away.py:330`.
+  - Each device is offered once, and the store survives restarts.
+  - A removed-then-re-added device has a new device id, so it counts as new. This is the plan author's inference from per-device-id persistence, not an owner statement.
+  - On first load the store records every existing device as seen, and none is offered: those were not "added".
+  - At a later load, a qualifying device that the store has not seen was added while the integration was not running. It is offered then.
+- **Listener**: the device-registry update event, registered in `async_setup_entry` (`__init__.py:265`) only when offers are on, and released through `entry.async_on_unload` (the pattern at `:322`). The issue id is keyed by device id, so `ir.async_create_issue` stays idempotent across two config entries.
+- **Prompt**: a repair issue through `setpoint_check.create_issue` (`setpoint_check.py:32-35`), naming the device.
+  - **Nothing is written automatically.** The prompt only opens the pre-fill page for that device, and the user submits it. A fix flow in `repairs.py` (dispatch at `async_create_fix_flow`, `:78`) may render that page's step, or the issue text may point to it. The fixer chooses and says why. Either way, the write is the page's own submit through `_save_or_menu` and `_omit_unstored_defaults`, with no second copy of the suggestion logic.
+  - **Dismissal**: closing the prompt without submitting, or an explicit "not this device", stores dismissed.
+  - The fixer cites the Home Assistant source, at the `hacs.json` floor, for whether the issue registry keeps an Ignore across restarts. The integration's store is the record either way.
+- **Withdrawal**: removing a device deletes its open issue and its store record.
+- **Stubs, measured at `c8eb0f6`**:
+  - `FakeBus` registers listeners only through `async_listen_once` (`tests/harness.py:104-123`; its `listeners_for` is a query helper, not a registration), so this group adds `async_listen` with the same honest remove callback (#525).
+  - The device-registry event goes into the stub G7b-1 extended.
+  - The issue-registry stub has create and delete only (`tests/hastub/homeassistant/helpers/issue_registry.py:21-35`).
+- **Translations and docs**:
+  - The `issues` block and the option label in `strings.json`, with `en.json` byte-identical and sv translated.
+  - No issue-key roster exists under `tests/`: `tests/entities.py:8999` is the no-hardcoded-SEK check, which only iterates the `issues` block. Translated repair strings are pinned per issue in `tests/features.py`, for example `:28418-28440` for the set-point notices across `strings.json`, `en.json` and `sv.json`. This group adds the same per-issue assertion for its issue, including its `fix_flow` step if design (a) ships.
+  - `docs/configuration.md`: the option, what qualifies, and how a dismissal is undone.
+
+**Acceptance**
+
+The owner's own items, confirmed 2026-09-17, are listed first; everything marked *added by the plan author* is not the owner's and may be argued with.
+- **Tests (owner)**:
+  - A device added before the integration loads against one added after it. A device present at first load is not offered; one added after load, or while the integration was not running, is offered once.
+  - A restart between the offer and the response re-raises exactly one issue and no duplicate.
+  - A dismissal is remembered across a restart.
+  - A non-qualifying device gets no offer: another integration below the cited minimum, this integration's service device, or a device resolving nothing.
+  - A device removed while its offer is open withdraws the offer.
+  - Null control, below: offers off gives no listener side effects.
+- **Tests (added by the plan author)**:
+  - A removed-then-re-added device (new id) is offered. Both the rule, inferred from per-device-id persistence, and the test are the plan author's.
+  - The submit writes nothing unchanged (#1107), and dismissing writes no option.
+  - Unloading leaves `FakeBus.listeners` empty.
+- **Coverage**: `config_flow` stays at its 100 % floor (`tests/coverage_budgets.json:7`) with no pragma (the `pragmas` ratchet at `:4`), including the new option's page path.
+- **Mutation proof (owner)**:
+  - drop the dismissal persistence → restart test red;
+  - drop the qualification threshold → non-qualifying test red.
+- **Mutation proof (added by the plan author)**:
+  - drop the withdrawal → removed-device test red;
+  - drop `async_on_unload` → unload test red.
+- **Null control**: an install with offers off registers no listener. Its store records zero saves (`SAVE_COUNTS`), and `hass.issues` is unchanged after a qualifying device is added. `env_drift.py --all` shows no drift beyond the re-recorded `config_flow` schema fixture.
+- **Metrics**: `__init__.py`, `repairs.py` and the new module grow, with no coordinator change. The module enters `tests/closures.json` and `docs/architecture.md`. `python3 tests/structure.py` decides the re-record. Owner decision 4's pre-authorised raises cover this group too: the owner answered on #201 (comment 5717092455), "it also cover POST1, which comes after the wave".
 
 ## Verification
 

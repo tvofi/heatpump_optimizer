@@ -68,7 +68,7 @@ from .const import (
 )
 from .mixing_valve import WRITE_TARGET_FLOW
 
-class Resolved(NamedTuple):
+class ResolvedRole(NamedTuple):
     """One role, resolved: the entity ids to try in order, and the scale that
     turns the first one's state into the role's unit."""
 
@@ -104,24 +104,24 @@ _DAY_BITS = 0b11111110
 _WATER_TEMPERATURE_CONTROL = 0
 
 
-def candidates(prefix: str) -> dict[str, Resolved]:
+def candidates(prefix: str) -> dict[str, ResolvedRole]:
     """The prefix resolver: per role, the ids tried (first match wins) and scale."""
     p = prefix.strip().lower()
     found = {
-        f"r{addr}": Resolved(
+        f"r{addr}": ResolvedRole(
             (f"sensor.{p}_gchv_r{addr}", f"sensor.{p}_gchv_r{addr}_{addr:04x}h"),
             0.1 if addr in _TENTHS else 1.0,
         )
         for addr in _RAW_ADDRESSES
     }
     found.update(
-        {label: Resolved((template.format(p=p),)) for label, template in _NAMED.items()}
+        {label: ResolvedRole((template.format(p=p),)) for label, template in _NAMED.items()}
     )
     return found
 
 
 def snapshot(
-    get: Callable[[str], Any], resolved: Mapping[str, Resolved]
+    get: Callable[[str], Any], resolved: Mapping[str, ResolvedRole]
 ) -> dict[str, tuple[str, str, float]]:
     """``role -> (entity_id, state, scale)`` for every role an id resolves.
 
