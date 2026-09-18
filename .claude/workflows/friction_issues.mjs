@@ -355,6 +355,39 @@ export function resolveExisting(rows, title, key, getNormalizedLookup) {
   return pickNormalized(lookup.rows, key, lookup.normalize)
 }
 
+// THE PER-ENTRY PIPELINE `fileEntries` runs, end to end, parameterized by the
+// three gh-shaped calls it needs -- never reimplemented by a caller. Round 2
+// (#1132) exported `resolveExisting` and drove IT directly, which caught a
+// mutation of `resolveExisting`'s own body but not a mutation of the call
+// SITE inside `fileEntries` (`resolveExisting(...)` -> `pickExact(...)`,
+// #1132's round-1 defect in a narrower form): the self-test never called
+// `fileEntries`, so nothing exercised that line. This function IS the body
+// `fileEntries` used to carry inline -- search, resolve, read, decide -- so a
+// self-test that drives `planEntry` is driving the composition production
+// runs, not a reconstruction of it.
+export function planEntry(entry, since, { search, getNormalizedLookup, readBody }) {
+  const title = titleFor(entry.key)
+  const body = bodyFor(entry, since)
+  const searched = search(title)
+  if (searched.unknown) {
+    return { refuse: true, why: `the exact-title search for ${JSON.stringify(title)} did not answer: treating an unanswered search as "no existing issue" is the flaky-API double-file, so nothing is filed` }
+  }
+  const existing = resolveExisting(searched.rows, title, entry.key, getNormalizedLookup)
+  let currentBody = null
+  if (existing) {
+    const read = readBody(existing.number)
+    if (read.unknown) {
+      return { refuse: true, why: `issue #${existing.number} carries the exact or normalized title but its body could not be read; filing a second issue beside an unreadable one is the duplicate this exists to prevent` }
+    }
+    currentBody = read.body
+  }
+  const action = decide({ existing, currentBody, body })
+  if (action === 'refuse') {
+    return { refuse: true, why: `issue #${existing.number} exists but its body is unreadable, so the idempotence check cannot compare` }
+  }
+  return { refuse: false, action, existing, body, title }
+}
+
 // The issue body: a PURE function of the measurement. No timestamp, no run id,
 // no ref -- anything that moves between two runs of one window would make the
 // idempotence check edit on every beat. The count and the window move only when
@@ -533,31 +566,33 @@ function fileEntries(parsed, since, dryRun) {
   // the fallback's own listing and normalization call are fetched only when
   // an entry actually needs them.
   let normalizedLookup = null
+  const getNormalizedLookup = () => (normalizedLookup ??= loadNormalizedLookup())
   for (const entry of parsed.entries) {
-    const title = titleFor(entry.key)
-    const body = bodyFor(entry, since)
-    const { res, rows } = searchIssue(title)
-    if (rows === 'unknown') {
-      die(`the exact-title search for ${JSON.stringify(title)} did not answer (gh exit ${res.rc}, <<${res.stdout.slice(0, 120)}>> <<${res.stderr.slice(0, 120)}>>): treating an unanswered search as "no existing issue" is the flaky-API double-file, so nothing is filed`)
-    }
-    // ADDITIONAL to the byte-exact guard above, never a replacement for it: an
-    // existing issue whose own title predates the keying fix and normalizes
-    // to this key. `resolveExisting` reaches the fallback only when the exact
-    // guard found nothing -- the same composition the self-test drives.
-    const exact = resolveExisting(rows, title, entry.key, () => (normalizedLookup ??= loadNormalizedLookup()))
-    let currentBody = null
-    if (exact) {
-      const view = gh(['issue', 'view', String(exact.number), '--json', 'body'])
-      const parsedView = jsonCall(view.rc, view.stdout)
-      if (parsedView === 'unknown' || typeof parsedView?.body !== 'string') {
-        die(`issue #${exact.number} carries the exact title but its body could not be read (gh exit ${view.rc}); filing a second issue beside an unreadable one is the duplicate this exists to prevent`)
-      }
-      currentBody = parsedView.body
-    }
-    const action = decide({ existing: exact, currentBody, body })
-    if (action === 'refuse') die(`issue #${exact.number} exists but its body is unreadable, so the idempotence check cannot compare`)
+    // `planEntry` IS the composition -- search, resolve (exact then the
+    // normalized fallback), read, decide -- wired here to the real gh calls.
+    // No decision is made in this loop; it only executes what `planEntry`
+    // returned, which is what makes the self-test's direct call to
+    // `planEntry` a test of what this loop actually runs.
+    const plan = planEntry(entry, since, {
+      search: (title) => {
+        const { res, rows } = searchIssue(title)
+        return rows === 'unknown'
+          ? { unknown: true, res }
+          : { unknown: false, rows }
+      },
+      getNormalizedLookup,
+      readBody: (number) => {
+        const view = gh(['issue', 'view', String(number), '--json', 'body'])
+        const parsedView = jsonCall(view.rc, view.stdout)
+        return (parsedView === 'unknown' || typeof parsedView?.body !== 'string')
+          ? { unknown: true }
+          : { unknown: false, body: parsedView.body }
+      },
+    })
+    if (plan.refuse) die(plan.why)
+    const { action, existing, body, title } = plan
     if (dryRun) {
-      console.log(`DRY-RUN ${action === 'create' ? `would file` : action === 'edit' ? `would update` : 'no-op, already current'}: ${JSON.stringify(title)}${exact ? ` (#${exact.number}, ${exact.state})` : ''} -- ${entry.kind} at ${entry.count}`)
+      console.log(`DRY-RUN ${action === 'create' ? `would file` : action === 'edit' ? `would update` : 'no-op, already current'}: ${JSON.stringify(title)}${existing ? ` (#${existing.number}, ${existing.state})` : ''} -- ${entry.kind} at ${entry.count}`)
       if (action !== 'no-op') console.log(body)
       continue
     }
@@ -568,11 +603,11 @@ function fileEntries(parsed, since, dryRun) {
       console.log(`FILED: ${JSON.stringify(title)} -- ${res.stdout.trim()}`)
     } else if (action === 'edit') {
       const file = writeTemp(body)
-      const res = gh(['issue', 'edit', String(exact.number), '--body-file', file])
-      if (res.rc !== 0) die(`gh issue edit refused #${exact.number} (gh exit ${res.rc}, <<${res.stderr.slice(0, 200)}>>)`)
-      console.log(`UPDATED: #${exact.number} ${JSON.stringify(title)} -- ${entry.kind} at ${entry.count} in this window (one issue per key per window; the body, not a duplicate)`)
+      const res = gh(['issue', 'edit', String(existing.number), '--body-file', file])
+      if (res.rc !== 0) die(`gh issue edit refused #${existing.number} (gh exit ${res.rc}, <<${res.stderr.slice(0, 200)}>>)`)
+      console.log(`UPDATED: #${existing.number} ${JSON.stringify(title)} -- ${entry.kind} at ${entry.count} in this window (one issue per key per window; the body, not a duplicate)`)
     } else {
-      console.log(`CURRENT: #${exact.number} ${JSON.stringify(title)} already carries this measurement (${entry.kind} at ${entry.count}); no write made`)
+      console.log(`CURRENT: #${existing.number} ${JSON.stringify(title)} already carries this measurement (${entry.kind} at ${entry.count}); no write made`)
     }
   }
 }
@@ -796,6 +831,57 @@ export function selfTest() {
     'null control: resolveExisting also finds nothing for a key no existing issue names under any spelling')
   st(decide({ existing: resolvedNew, currentBody: null, body: 'new' }),
     'create', 'so a genuinely new key still creates, exactly as before the fallback existed')
+
+  // --- planEntry: the composition `fileEntries` actually calls, driven end
+  // to end (round 2 review, comment 5725767161). `resolveExisting` above is
+  // tested directly and its own body is pinned, but round 2's committed
+  // suite never called `fileEntries` or anything that calls it, so mutating
+  // the CALL SITE inside `fileEntries` (`resolveExisting(...)` ->
+  // `pickExact(...)`) left the suite green while a live dry-run still filed
+  // a duplicate. These tests call `planEntry` itself -- the function that
+  // call site lives in -- with fake `search`/`readBody`/`getNormalizedLookup`
+  // functions, never reconstructing resolve-then-decide in their own body.
+  const RBENTRY = { key: '.claude/rules/ratchet-budgets.md', kind: 'friction rule id', count: 5, threshold: 3, line: 'x' }
+  const fakeSearchMiss = (title) => ({ unknown: false, rows: [] })
+  const fakeLookupOld = () => ({ rows: OLDSPELL, normalize: RBNORM })
+  const planOld = planEntry(RBENTRY, 'v9.9.9', {
+    search: fakeSearchMiss,
+    getNormalizedLookup: fakeLookupOld,
+    readBody: (number) => ({ unknown: false, body: 'stale' }),
+  })
+  st(planOld.refuse, false, 'planEntry does not refuse when the fallback resolves an existing issue')
+  st(planOld.existing?.number, 1070,
+    'planEntry -- the function fileEntries calls per entry -- resolves the older-spelling issue through the fallback, exactly as a live run would')
+  st(planOld.action, 'edit',
+    'so the actual per-entry pipeline updates the existing issue in place rather than creating a duplicate (this fails if the resolveExisting(...) call inside planEntry is replaced by pickExact(...) alone)')
+
+  // NULL CONTROL on planEntry: a genuinely new key, same fake wiring, must
+  // still create -- the fallback inside planEntry must not manufacture a hit.
+  const NEWENTRY = { key: '.claude/rules/totally-new-rule.md', kind: 'friction rule id', count: 5, threshold: 3, line: 'x' }
+  const planNew = planEntry(NEWENTRY, 'v9.9.9', {
+    search: fakeSearchMiss,
+    getNormalizedLookup: fakeLookupOld,
+    readBody: (number) => ({ unknown: false, body: 'stale' }),
+  })
+  st(planNew.existing, null, 'null control: planEntry finds no existing issue for an unrelated key')
+  st(planNew.action, 'create', 'null control: planEntry still creates for a genuinely new key')
+
+  // planEntry refuses (never files) when the search itself did not answer,
+  // and when an existing issue's body could not be read -- the same
+  // fail-closed rule `resolveExisting`'s caller owes, now checked at the
+  // function fileEntries actually runs.
+  const planSearchDown = planEntry(RBENTRY, 'v9.9.9', {
+    search: (title) => ({ unknown: true }),
+    getNormalizedLookup: fakeLookupOld,
+    readBody: (number) => ({ unknown: false, body: 'stale' }),
+  })
+  st(planSearchDown.refuse, true, 'planEntry refuses when the exact-title search did not answer, rather than treating it as "no existing issue"')
+  const planBodyDown = planEntry(RBENTRY, 'v9.9.9', {
+    search: fakeSearchMiss,
+    getNormalizedLookup: fakeLookupOld,
+    readBody: (number) => ({ unknown: true }),
+  })
+  st(planBodyDown.refuse, true, 'planEntry refuses when an existing issue was resolved but its body could not be read')
 
   // The decision matrix.
   const body = bodyFor({ key: 'blocked', kind: 'verdict class', count: 4, threshold: 3, line: LINE('blocked', 'verdict class', 4).trim() }, 'v9.9.9')
