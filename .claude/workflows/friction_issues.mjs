@@ -334,6 +334,27 @@ export function pickNormalized(rows, key, normalize) {
   return null
 }
 
+// THE COMPOSITION `fileEntries` calls, and the only place it is written: exact
+// first, the normalized fallback only when the exact guard found nothing,
+// never the reverse. `getNormalizedLookup` is a thunk so the lazy, at-most-
+// once-per-run load stays lazy -- called only on the `!exact` branch, exactly
+// as `fileEntries` needs it.
+//
+// Exported so the self-test asserts on THIS function rather than re-composing
+// `pickExact` and `pickNormalized` in its own body: round 1 of #1132 did the
+// latter (`pickExact(...) ?? pickNormalized(...)` written a second time inside
+// `selfTest`), so deleting the real fallback call in `fileEntries` -- the
+// production line the PR exists to add -- left the self-test at 84 passed, 0
+// failed while the live dry-run reverted to filing a duplicate. Calling this
+// function from both places closes that gap: the composition under test and
+// the composition `fileEntries` runs are the same object.
+export function resolveExisting(rows, title, key, getNormalizedLookup) {
+  const exact = pickExact(rows, title)
+  if (exact) return exact
+  const lookup = getNormalizedLookup()
+  return pickNormalized(lookup.rows, key, lookup.normalize)
+}
+
 // The issue body: a PURE function of the measurement. No timestamp, no run id,
 // no ref -- anything that moves between two runs of one window would make the
 // idempotence check edit on every beat. The count and the window move only when
@@ -521,12 +542,9 @@ function fileEntries(parsed, since, dryRun) {
     }
     // ADDITIONAL to the byte-exact guard above, never a replacement for it: an
     // existing issue whose own title predates the keying fix and normalizes
-    // to this key. Only reached when the exact guard found nothing.
-    let exact = pickExact(rows, title)
-    if (!exact) {
-      normalizedLookup ??= loadNormalizedLookup()
-      exact = pickNormalized(normalizedLookup.rows, entry.key, normalizedLookup.normalize)
-    }
+    // to this key. `resolveExisting` reaches the fallback only when the exact
+    // guard found nothing -- the same composition the self-test drives.
+    const exact = resolveExisting(rows, title, entry.key, () => (normalizedLookup ??= loadNormalizedLookup()))
     let currentBody = null
     if (exact) {
       const view = gh(['issue', 'view', String(exact.number), '--json', 'body'])
@@ -720,19 +738,20 @@ export function selfTest() {
   // under an OLDER key spelling -- that is the live defect, verified at
   // c9938ad: #1070 "ratchet-budgets.md" and #1127
   // ".claude/rules/ratchet-budgets.md" both normalize to the same canonical
-  // key and both are open. `fileEntries` composes `pickExact(...) ??
-  // pickNormalized(...)`, so this drives that composition directly, the same
-  // shape a live filing run acts on: an open issue under an older spelling,
-  // and the histogram emitting today's canonical spelling.
+  // key and both are open. This drives `resolveExisting` -- the exact function
+  // `fileEntries` calls, not a second composition written here (#1132 round 1)
+  // -- over the same shape a live filing run acts on: an open issue under an
+  // older spelling, and the histogram emitting today's canonical spelling.
   const OLDSPELL = [{ number: 1070, title: '[policy] recurring friction: ratchet-budgets.md', state: 'OPEN' }]
   const RBNORM = new Map([['ratchet-budgets.md', '.claude/rules/ratchet-budgets.md']])
   const canonicalTitle = titleFor('.claude/rules/ratchet-budgets.md')
   st(pickExact(OLDSPELL, canonicalTitle), null,
     'the exact-title guard alone does not see an older-spelling issue -- this is the defect: a byte-exact search misses it')
-  const foundNormalized = pickNormalized(OLDSPELL, '.claude/rules/ratchet-budgets.md', RBNORM)
-  st(foundNormalized?.number, 1070,
-    'the normalized fallback finds the older-spelling issue by the key its own title normalizes to')
-  st(decide({ existing: pickExact(OLDSPELL, canonicalTitle) ?? foundNormalized, currentBody: 'stale', body: 'new' }), 'edit',
+  const resolved = resolveExisting(OLDSPELL, canonicalTitle, '.claude/rules/ratchet-budgets.md',
+    () => ({ rows: OLDSPELL, normalize: RBNORM }))
+  st(resolved?.number, 1070,
+    'resolveExisting -- the composition fileEntries calls -- finds the older-spelling issue through the normalized fallback')
+  st(decide({ existing: resolved, currentBody: 'stale', body: 'new' }), 'edit',
     'so the filing DECISION updates the existing issue in place rather than creating a duplicate')
 
   // Deterministic among more than one matching spelling -- the pre-existing
@@ -771,9 +790,11 @@ export function selfTest() {
   // spelling must still CREATE -- the fallback must not manufacture a match.
   const newTitle = titleFor('.claude/rules/totally-new-rule.md')
   st(pickExact(OLDSPELL, newTitle), null, 'null control: the exact guard finds nothing for an unrelated key')
-  st(pickNormalized(OLDSPELL, '.claude/rules/totally-new-rule.md', RBNORM), null,
-    'null control: the normalized fallback also finds nothing for a key no existing issue names under any spelling')
-  st(decide({ existing: pickExact(OLDSPELL, newTitle) ?? pickNormalized(OLDSPELL, '.claude/rules/totally-new-rule.md', RBNORM), currentBody: null, body: 'new' }),
+  const resolvedNew = resolveExisting(OLDSPELL, newTitle, '.claude/rules/totally-new-rule.md',
+    () => ({ rows: OLDSPELL, normalize: RBNORM }))
+  st(resolvedNew, null,
+    'null control: resolveExisting also finds nothing for a key no existing issue names under any spelling')
+  st(decide({ existing: resolvedNew, currentBody: null, body: 'new' }),
     'create', 'so a genuinely new key still creates, exactly as before the fallback existed')
 
   // The decision matrix.
