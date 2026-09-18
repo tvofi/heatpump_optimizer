@@ -1,10 +1,11 @@
 # Handover — the open-issues programme
 
-updated-for: 2296de350465d3987475cf89d030dfc16fd33841
+updated-for: 25696f8a0a2cfa8fb5627d403d7451f578b98448
 
 Taken at this record seat's own (re-merged) merge base off `origin/main`
 (merges since the prior stamp: #1106 `f02a790`, #1119 `1b22d4a`, #1125
-`a2d1d9a`, #1120 `6bbc0bf`, #1126 `2296de3`). This line was `a2d1d9a` for
+`a2d1d9a`, #1120 `6bbc0bf`, #1126 `2296de3`; re-pointed to #1147 `25696f8`
+by W1067-G7b-2, which added the two entries below it). This line was `a2d1d9a` for
 part of this pull request's life and was re-pointed after `origin/main` moved
 under it in review (round 2, #1129) — re-derive rather than trust this line
 if it reads stale against `origin/main` HEAD again.
@@ -154,6 +155,21 @@ request (#1081), linked from here and never restated.
   line number: line numbers in a fixed file are exactly the rot
   `brief-citations.md` exists to catch, and this paragraph predicting that
   condition is not a reason to leave it unmoved once the condition occurs.
+- **dp 107 is read two ways and neither reading is resolved** (owner decision 7,
+  W1067-G7b-2). make-all/tuya-local (`2026.9.1`, commit `4551357`,
+  `devices/fisher_water_heatpump.yaml`) reads dp 107 as its `water_heater`'s
+  current temperature; tvofi/tuya_heat_pump (`fda9bed`,
+  `models/000004k4z6.py`) reads the same DP as the wired controller (T6) and
+  keeps the tank on dp 26. Each pre-fill source table follows its own source,
+  the disagreement is pinned at both generated fixtures in `tests/features.py`,
+  and **do not resolve it in either direction without a reading from the
+  owner's install**. The same session refused a DP-keyed table for localtuya
+  on the same ground: its records are a device id, a DP number and the user's
+  own names, and a DP number is not identity — across that corpus's 1746 device
+  configs at `4551357`, dp 101 is read 1090 times in 488 distinct (domain,
+  entity name, DP name) ways and dp 107 500 times in 314. A DP-keyed localtuya
+  table ships only behind a firmware signature that proves the device — none
+  was found — and the fuzzy fallback carries the platform instead.
 
 ### The UX programme
 
