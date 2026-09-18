@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.6.2
+# claims-for: 6.6.3
 #
-# v6.6.2: a hotfix restoring the labels and help text of every grouped config-flow field. The stamp empties the list; the
+# v6.6.3: three optional-input features for the Rotenso Windmi, and a run of audit-instrument repairs. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 

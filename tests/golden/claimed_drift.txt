@@ -45,9 +45,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.6.2
+# claims-for: 6.6.3
 #
-# v6.6.2: a hotfix restoring the labels and help text of every grouped config-flow field. The stamp empties the list; the
+# v6.6.3: three optional-input features for the Rotenso Windmi, and a run of audit-instrument repairs. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -290,4 +290,3 @@
 # absorb's origin/main tip d25e5333d) and their golden diffs are baked into
 # the committed baseline this branch merges, so no diff remains for this
 # branch to excuse under either name.
-config_flow  # ADD-ONLY: one new advanced page, modbus_prefill, with one option key, modbus_prefill_prefix
