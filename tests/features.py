@@ -14927,6 +14927,120 @@ R.check(
     _x_view["evidence_exhausted"] and _x_view["recommended_hz"] == 120.0,
 )
 
+# --- #1067 W1067-G6: a frequency SENSOR alone is enough to observe --------------
+# The GCHV Modbus package exposes the compressor frequency as a sensor and has
+# no writable register, so observe must work without a number entity. The
+# resolution rules live in freq_control.resolve_reading; the table below
+# drives that function directly, then the coordinator's view through it.
+from harness import FakeCoordinator as _G6FakeCoordinator  # noqa: E402
+from heatpump_optimizer import sensor as _g6_sensor  # noqa: E402
+from heatpump_optimizer.freq_control import (  # noqa: E402
+    FREQ_SOURCE_NUMBER,
+    FREQ_SOURCE_SENSOR,
+    resolve_reading,
+)
+
+_G6_STATES = {
+    "number.freq": FakeState("55", attributes={"min": 25.0, "max": 90.0}),
+    "number.bare": FakeState("55"),
+    "sensor.hz": FakeState("61.5"),
+    "sensor.junk": FakeState("lots"),
+}
+_g6_rows = [
+    # (number id, sensor id, options min, options max) -> expected
+    ((None, None, 30.0, 80.0), (None, 0.0, 0.0, None)),
+    (("number.freq", None, 30.0, 80.0), (55.0, 25.0, 90.0, FREQ_SOURCE_NUMBER)),
+    (("number.bare", None, 30.0, 80.0), (55.0, 30.0, 80.0, FREQ_SOURCE_NUMBER)),
+    (("number.gone", "sensor.hz", 30.0, 80.0), (None, 0.0, 0.0, FREQ_SOURCE_NUMBER)),
+    (("number.freq", "sensor.hz", 30.0, 80.0), (61.5, 25.0, 90.0, FREQ_SOURCE_NUMBER)),
+    (("number.freq", "sensor.gone", 30.0, 80.0), (None, 25.0, 90.0, FREQ_SOURCE_NUMBER)),
+    ((None, "sensor.hz", 30.0, 80.0), (61.5, 30.0, 80.0, FREQ_SOURCE_SENSOR)),
+    ((None, "sensor.gone", 30.0, 80.0), (None, 30.0, 80.0, FREQ_SOURCE_SENSOR)),
+    ((None, "sensor.junk", 30.0, 80.0), (None, 30.0, 80.0, FREQ_SOURCE_SENSOR)),
+]
+_g6_got = [
+    resolve_reading(n, s, _G6_STATES.get, lo, hi) for (n, s, lo, hi), _ in _g6_rows
+]
+R.check(
+    "resolve_reading: the number owns the range, a sensor alone takes the options' range",
+    _g6_got == [want for _, want in _g6_rows],
+    "; ".join(
+        f"{args!r} -> {got!r} (want {want!r})"
+        for (args, want), got in zip(_g6_rows, _g6_got)
+        if got != want
+    ),
+)
+
+
+def _g6_sensor_coord(**extra):
+    cfg = {
+        "compressor_freq_sensor": "sensor.hz",
+        "compressor_freq_min_hz": 25.0,
+        "compressor_freq_max_hz": 95.0,
+    }
+    cfg.update(extra)
+    c = _t2_coord(states={"sensor.hz": FakeState("50")}, **cfg)
+    c._measured_power = 2.0
+    c._current_action = {"power": 1.5, "dhw_power": 0.5}
+    return c
+
+
+_g6_so = _g6_sensor_coord()
+_g6_so._observe_frequency(_T6)
+_g6_view = _g6_so._freq_view()
+R.check(
+    "a frequency sensor alone observes, on the options' range, and learns a map",
+    _g6_view["mode"] == FREQ_MODE_OBSERVE
+    and _g6_view.get("source") == FREQ_SOURCE_SENSOR
+    and _g6_view["range_hz"] == [25.0, 95.0]
+    and _g6_view["reported_hz"] == 50.0
+    and sum(e["samples"] for e in _g6_view["map"].values()) == 1,
+    f"view={_g6_view!r}",
+)
+_g6_sc = _g6_sensor_coord(freq_control_mode="control")
+for _ in range(FREQ_MIN_SAMPLES + 1):
+    _g6_sc._freq_map.observe(50.0, 2.0, 25.0, 95.0)
+_g6_sc._freq_last_write = None
+_asyncio.run(_g6_sc._command_frequency())
+R.check(
+    "control needs a number: a sensor-only install stored as control observes and writes nothing",
+    _g6_sc._freq_mode() == FREQ_MODE_OBSERVE and not _g6_sc.hass.services.calls,
+    f"mode={_g6_sc._freq_mode()!r} calls={_g6_sc.hass.services.calls!r}",
+)
+_g6_sw = _g6_sensor_coord(freq_control_mode="control")
+_g6_sw._freq_watchdog.note_command(90.0)
+# One grace tick plus exactly the strikes that would trip it: one tick more
+# and the unconfigured-control re-arm would clear a trip before the check.
+for _ in range(FREQ_WATCHDOG_TICKS + 1):
+    _g6_sw._observe_frequency(_T6)
+R.check(
+    "no number, no watchdog: a sensor diverging from a stale command never stands anything down",
+    not _g6_sw._freq_fallback and not _g6_sw._freq_watchdog.strikes,
+    f"fallback={_g6_sw._freq_fallback!r} strikes={_g6_sw._freq_watchdog.strikes!r} -- "
+    "nothing was written through a sensor, so its divergence is no evidence",
+)
+_g6_num_view = _freq_coord()._freq_view()
+R.check(
+    "a number install publishes source=number beside its unchanged keys",
+    _g6_num_view.get("source") == FREQ_SOURCE_NUMBER
+    and _g6_num_view["mode"] == FREQ_MODE_OBSERVE
+    and _g6_num_view["range_hz"] == [20.0, 120.0],
+    f"view={_g6_num_view!r}",
+)
+R.check(
+    "an unconfigured view gains no key, so the published unconfigured dict is unchanged",
+    "source" not in _t2_coord()._freq_view(),
+    f"view={_t2_coord()._freq_view()!r}",
+)
+_g6_adv = _g6_sensor.FrequencyAdvisorSensor(
+    _G6FakeCoordinator({"freq_control": _g6_sensor_coord()._freq_view()}), _Entry922()
+)
+R.check(
+    "the advisor on a sensor-only install waits for a map sample, not for an entity",
+    _g6_adv.extra_state_attributes.get("waiting_for") == "first_frequency_map_sample",
+    f"waiting_for={_g6_adv.extra_state_attributes.get('waiting_for')!r}",
+)
+
 R.section("v4.0.2 — entry lifecycle, the solve boundary, store writes")
 
 from pathlib import Path as _Path
@@ -33129,11 +33243,11 @@ _T4_FREQ_BOTH = {"compressor_freq_entity": "number.freq",
                  "compressor_freq_sensor": "sensor.freq"}
 R.check(
     "with no frequency entity the reading and its range are all zero",
-    _t4_call(_t4_coord()._freq_entity_reading) == (None, 0.0, 0.0)
+    _t4_call(_t4_coord()._freq_entity_reading) == (None, 0.0, 0.0, None)
     and _t4_call(
         _t4_coord({}, compressor_freq_entity="number.gone")._freq_entity_reading
     )
-    == (None, 0.0, 0.0),
+    == (None, 0.0, 0.0, "number"),
     f"unset -> {_t4_call(_t4_coord()._freq_entity_reading)!r}, configured but "
     "absent -> "
     f"{_t4_call(_t4_coord({}, compressor_freq_entity='number.gone')._freq_entity_reading)!r} "
@@ -33144,14 +33258,14 @@ R.check(
     _t4_call(
         _t4_coord(_T4_FREQ_NUMBER, compressor_freq_entity="number.freq")._freq_entity_reading
     )
-    == (55.0, 25.0, 90.0)
+    == (55.0, 25.0, 90.0, "number")
     and _t4_call(
         _t4_coord(
             {"number.freq": FakeState("55")},
             compressor_freq_entity="number.freq",
         )._freq_entity_reading
     )
-    == (55.0, 20.0, 120.0),
+    == (55.0, 20.0, 120.0, "number"),
     "with min/max 25/90 -> "
     f"{_t4_call(_t4_coord(_T4_FREQ_NUMBER, compressor_freq_entity='number.freq')._freq_entity_reading)!r}, "
     "with no attributes -> "
@@ -33169,7 +33283,8 @@ _t4_fr_sensor = _t4_call(
 )
 R.check(
     "a configured feedback sensor is preferred, and its absence is not a fallback",
-    _t4_fr_sensor == (61.5, 25.0, 90.0) and _t4_fr_absent == (None, 25.0, 90.0),
+    _t4_fr_sensor == (61.5, 25.0, 90.0, "number")
+    and _t4_fr_absent == (None, 25.0, 90.0, "number"),
     f"sensor present -> {_t4_fr_sensor!r}, sensor configured but absent -> "
     f"{_t4_fr_absent!r} -- falling back to the number entity here would "
     "re-decorate the watchdog at exactly the moment the real feedback "
@@ -33187,7 +33302,8 @@ _t4_fr_nan = _t4_call(
 )
 R.check(
     "a non-numeric and a NaN feedback reading are both dropped, range intact",
-    _t4_fr_junk == (None, 25.0, 90.0) and _t4_fr_nan == (None, 25.0, 90.0),
+    _t4_fr_junk == (None, 25.0, 90.0, "number")
+    and _t4_fr_nan == (None, 25.0, 90.0, "number"),
     f"'lots' -> {_t4_fr_junk!r}, 'nan' -> {_t4_fr_nan!r} -- NaN parses, so "
     "the finite test is a separate arm from the parse and both must drop the "
     "reading while keeping the register limits",
@@ -37793,6 +37909,329 @@ R.check(
     "one that declines",
 )
 
+
+R.section("#1067 W1067-G7 — pre-filling options from the GCHV Modbus package")
+from heatpump_optimizer import const as _g7_c  # noqa: E402
+from heatpump_optimizer import modbus_prefill as _g7_mp  # noqa: E402
+
+# The entities the pre-fill reads, as tvofi/tuya_heat_pump fda9bed publishes
+# them in docs/modbus/rotenso_windmi_gchv.yaml: (unique_id, name, the entity_id
+# Home Assistant builds from that NAME). Copied from the yaml, not from
+# modbus_prefill, so a template the module mistypes cannot agree with itself.
+# The raw register sensors carry two spellings: the unique_id's, and the one
+# the name slugs to (G0's finding). An install may hold either.
+_G7_RAW = {
+    404: ("hp_gchv_r404", "HP GCHV R404 (0194H)", "sensor.hp_gchv_r404_0194h"),
+    405: ("hp_gchv_r405", "HP GCHV R405 (0195H)", "sensor.hp_gchv_r405_0195h"),
+    406: ("hp_gchv_r406", "HP GCHV R406 (0196H)", "sensor.hp_gchv_r406_0196h"),
+    518: ("hp_gchv_r518", "HP GCHV R518 (0206H)", "sensor.hp_gchv_r518_0206h"),
+    519: ("hp_gchv_r519", "HP GCHV R519 (0207H)", "sensor.hp_gchv_r519_0207h"),
+    601: ("hp_gchv_r601", "HP GCHV R601 (0259H)", "sensor.hp_gchv_r601_0259h"),
+    711: ("hp_gchv_r711", "HP GCHV R711 (02C7H)", "sensor.hp_gchv_r711_02c7h"),
+    712: ("hp_gchv_r712", "HP GCHV R712 (02C8H)", "sensor.hp_gchv_r712_02c8h"),
+    713: ("hp_gchv_r713", "HP GCHV R713 (02C9H)", "sensor.hp_gchv_r713_02c9h"),
+    714: ("hp_gchv_r714", "HP GCHV R714 (02CAH)", "sensor.hp_gchv_r714_02cah"),
+    4109: ("hp_gchv_r4109", "HP GCHV R4109 (100DH)", "sensor.hp_gchv_r4109_100dh"),
+}
+_G7_NAMED = {
+    "unit_capacity": ("hp_unit_capacity", "HP Unit capacity", "sensor.hp_unit_capacity"),
+    _g7_c.CONF_OUTDOOR_TEMP_ENTITY: (
+        "hp_outdoor_air_temperature", "HP Outdoor air temperature",
+        "sensor.hp_outdoor_air_temperature"),
+    _g7_c.CONF_DHW_TEMP_ENTITY: (
+        "hp_dhw_tank_temperature", "HP DHW tank temperature", "sensor.hp_dhw_tank_temperature"),
+    _g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: (
+        "hp_leaving_water_temperature_t1", "HP Leaving water temperature (T1)",
+        "sensor.hp_leaving_water_temperature_t1"),
+    _g7_c.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: (
+        "hp_entering_water_temperature_tw_in", "HP Entering water temperature (Tw-in)",
+        "sensor.hp_entering_water_temperature_tw_in"),
+    _g7_c.CONF_COMPRESSOR_FREQ_SENSOR: (
+        "hp_actual_compressor_frequency", "HP Actual compressor frequency",
+        "sensor.hp_actual_compressor_frequency"),
+    _g7_c.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: (
+        "hp_night_mode_frequency_reduction_active",
+        "HP Night mode (frequency reduction) active",
+        "binary_sensor.hp_night_mode_frequency_reduction_active"),
+}
+# Raw register values, as the modbus integration publishes them (unscaled).
+_G7_VALUES = {
+    404: "520",                   # DHW normal setpoint 52.0 °C
+    405: "650",                   # anti-legionella 65.0 °C
+    406: "420",                   # DHW economic 42.0 °C
+    518: str(22 * 256 + 0),       # night mode start 22:00
+    519: str(6 * 256 + 0),        # night mode end 06:00
+    601: "6",                     # backup heater type: Inner EH
+    711: str(0b11111110),         # DHW schedule every day (b7 Mon .. b1 Sun)
+    712: str(5 * 256 + 30),       # DHW schedule start 05:30
+    713: str(7 * 256 + 0),        # DHW schedule stop 07:00
+    714: str((1 << 7) | (1 << 1)),  # anti-legionella Monday and Sunday
+    4109: "0",                    # control mode: water temperature control
+}
+_G7_NAMED_VALUES = {
+    "unit_capacity": "8",
+    _g7_c.CONF_OUTDOOR_TEMP_ENTITY: "-3.5",
+    _g7_c.CONF_DHW_TEMP_ENTITY: "48.0",
+    _g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: "35.2",
+    _g7_c.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: "30.1",
+    _g7_c.CONF_COMPRESSOR_FREQ_SENSOR: "42.0",
+    _g7_c.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "off",
+}
+
+
+def _g7_hass(spelling="name", raw=None, named=None, prefix="hp"):
+    """A FakeHass holding the package's entities in one raw spelling."""
+    hass = FakeHass()
+    for addr, value in {**_G7_VALUES, **(raw or {})}.items():
+        if value is None:
+            continue
+        unique_id, _name, entity_id = _G7_RAW[addr]
+        chosen = entity_id if spelling == "name" else f"sensor.{unique_id}"
+        hass.states.set(chosen.replace("hp_", f"{prefix}_", 1), FakeState(value))
+    for label, value in {**_G7_NAMED_VALUES, **(named or {})}.items():
+        if value is None:
+            continue
+        entity_id = _G7_NAMED[label][2]
+        hass.states.set(entity_id.replace(".hp_", f".{prefix}_", 1), FakeState(value))
+    return hass
+
+
+def _g7_infer(current=None, **hass_kwargs):
+    """infer() over a snapshot of a FakeHass built by ``_g7_hass``."""
+    hass = _g7_hass(**hass_kwargs)
+    prefix = hass_kwargs.get("prefix", "hp")
+    return _g7_mp.infer(_g7_mp.snapshot(hass.states.get, _g7_mp.candidates(prefix)), dict(current or {}))
+
+
+_G7_EXPECTED = {
+    _g7_c.CONF_DHW_SETPOINT: 52.0,
+    _g7_c.CONF_DHW_LEGIONELLA_TEMP: 65.0,
+    _g7_c.CONF_DHW_MIN_TEMP: 42.0,
+    _g7_c.CONF_DHW_WINDOWS: "05:30-07:00",
+    _g7_c.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+    _g7_c.CONF_DHW_LEGIONELLA_INTERVAL_DAYS: 3.0,
+    _g7_c.CONF_SPACE_SETPOINT_UNIT: "flow",
+    _g7_c.CONF_HEAT_PUMP_MAX_POWER: round(8 / _g7_c.DEFAULT_HEAT_PUMP_COP_NOMINAL, 1),
+    **{label: ids[2] for label, ids in _G7_NAMED.items() if label != "unit_capacity"},
+}
+_g7_by_name = _g7_infer(spelling="name")
+_g7_by_uid = _g7_infer(spelling="unique_id")
+R.check(
+    "a package in the name spelling (sensor.hp_gchv_r404_0194h) infers every row",
+    _g7_by_name == _G7_EXPECTED,
+    f"got {_g7_by_name}",
+)
+R.check(
+    "the same package in the unique_id spelling (sensor.hp_gchv_r404) infers the same",
+    _g7_by_uid == _G7_EXPECTED,
+    f"got {_g7_by_uid}",
+)
+# Both spellings present, disagreeing: the plan's order, the unique_id
+# spelling first, decides.
+_g7_both = _g7_hass(spelling="name", raw={404: "600"})
+for _g7_addr, _g7_val in _G7_VALUES.items():
+    _g7_both.states.set(f"sensor.{_G7_RAW[_g7_addr][0]}", FakeState(_g7_val))
+_g7_both_snap = _g7_mp.snapshot(_g7_both.states.get, _g7_mp.candidates("hp"))
+R.check(
+    "with both spellings present the unique_id spelling wins, and the snapshot names it",
+    _g7_mp.infer(_g7_both_snap, {})[_g7_c.CONF_DHW_SETPOINT] == 52.0
+    and _g7_both_snap["r404"] == ("sensor.hp_gchv_r404", "520", 0.1),
+    f"{_g7_both_snap.get('r404')}",
+)
+R.check(
+    "every candidate the module lists for a raw register is one of the two yaml spellings",
+    all(
+        set(_g7_mp.candidates("hp")[f"r{addr}"].entity_ids) == {f"sensor.{uid}", eid}
+        for addr, (uid, _name, eid) in _G7_RAW.items()
+    )
+    and all(_g7_mp.candidates("hp")[label].entity_ids == (ids[2],) for label, ids in _G7_NAMED.items()),
+    f"{_g7_mp.candidates('hp')}",
+)
+# The package's generator reads 404-406 as "Data=Temp*10" (scale 0.1); every
+# other register and entity is read as published.
+R.check(
+    "the prefix resolver scales registers 404, 405 and 406 by 0.1 and nothing else",
+    {role: r.scale for role, r in _g7_mp.candidates("hp").items() if r.scale != 1.0}
+    == {"r404": 0.1, "r405": 0.1, "r406": 0.1},
+    f"{ {role: r.scale for role, r in _g7_mp.candidates('hp').items()} }",
+)
+R.check(
+    "a custom prefix is read from the entity ids it names",
+    _g7_infer(prefix="wp") == {
+        k: (v.replace(".hp_", ".wp_", 1) if isinstance(v, str) else v)
+        for k, v in _G7_EXPECTED.items()
+    },
+    f"{_g7_infer(prefix='wp')}",
+)
+
+# The resolver seam (forward carry for W1067-G7b, pre-fill from a heat-pump
+# device): which entity id plays a role is an input to snapshot(), and the
+# prefix lookup is one resolver of it. A resolver handing back ids that share
+# no prefix -- as a device's entity-registry entries may -- must reach the
+# same suggestions from the same states.
+_g7_device = FakeHass()
+_g7_device_ids = {}
+for _g7_role in _g7_mp.candidates("hp"):
+    _g7_device_ids[_g7_role] = _g7_mp.ResolvedRole(
+        (f"sensor.windmi_{_g7_role}_device",), _g7_mp.candidates("hp")[_g7_role].scale)
+for _g7_addr, _g7_val in _G7_VALUES.items():
+    _g7_device.states.set(f"sensor.windmi_r{_g7_addr}_device", FakeState(_g7_val))
+for _g7_role, _g7_val in _G7_NAMED_VALUES.items():
+    _g7_device.states.set(f"sensor.windmi_{_g7_role}_device", FakeState(_g7_val))
+_g7_device_snap = _g7_mp.snapshot(_g7_device.states.get, _g7_device_ids)
+_g7_device_infer = _g7_mp.infer(_g7_device_snap, {})
+R.check(
+    "a resolver returning non-prefix ids gives the same suggestions for the same values",
+    {k: v for k, v in _g7_device_infer.items() if k not in _G7_NAMED}
+    == {k: v for k, v in _G7_EXPECTED.items() if k not in _G7_NAMED}
+    and {k: v for k, v in _g7_device_infer.items() if k in _G7_NAMED}
+    == {k: f"sensor.windmi_{k}_device" for k in _G7_NAMED if k != "unit_capacity"}
+    and _g7_mp.notes(_g7_device_snap) == _g7_mp.notes(_g7_mp.snapshot(_g7_hass().states.get, _g7_mp.candidates("hp"))),
+    f"{_g7_device_infer}",
+)
+R.check(
+    "and snapshot() tries a role's ids in the order the resolver gives them",
+    _g7_mp.snapshot(_g7_device.states.get, {"r404": _g7_mp.ResolvedRole(
+        ("sensor.absent", "sensor.windmi_r404_device", "sensor.windmi_r405_device"), 0.1)})
+    == {"r404": ("sensor.windmi_r404_device", "520", 0.1)},
+)
+# The scale is the resolver's, not infer()'s (forward carry from plan PR
+# #1110 for W1067-G7b): a Tuya entity for the same setpoint reads degrees
+# already, so a scale fixed inside infer() would suggest 5.0 for 50 degrees.
+_g7_unit = FakeHass(states={"sensor.tuya_dhw_set": FakeState("50"), "sensor.raw_dhw_set": FakeState("500")})
+R.check(
+    "the same role at scale 1.0 reading 50 and at scale 0.1 reading 500 both suggest 50.0",
+    _g7_mp.infer(_g7_mp.snapshot(_g7_unit.states.get, {"r404": _g7_mp.ResolvedRole(("sensor.tuya_dhw_set",), 1.0)}), {})
+    == {_g7_c.CONF_DHW_SETPOINT: 50.0}
+    and _g7_mp.infer(_g7_mp.snapshot(_g7_unit.states.get, {"r404": _g7_mp.ResolvedRole(("sensor.raw_dhw_set",), 0.1)}), {})
+    == {_g7_c.CONF_DHW_SETPOINT: 50.0},
+    f"{_g7_mp.infer(_g7_mp.snapshot(_g7_unit.states.get, {'r404': _g7_mp.ResolvedRole(('sensor.tuya_dhw_set',), 1.0)}), {})}",
+)
+
+# Null control: an install with no Modbus entities.
+_g7_empty = FakeHass()
+_g7_empty_snap = _g7_mp.snapshot(_g7_empty.states.get, _g7_mp.candidates("hp"))
+R.check(
+    "null control: no Modbus entities, an empty snapshot and no suggestions",
+    _g7_empty_snap == {} and _g7_mp.infer(_g7_empty_snap, {}) == {}
+    and _g7_mp.notes(_g7_empty_snap) == {"found": "0", "backup_heater_type": "–"},
+    f"{_g7_empty_snap} {_g7_mp.notes(_g7_empty_snap)}",
+)
+R.check(
+    "the notes carry the count read and the backup heater type register",
+    _g7_mp.notes(_g7_mp.snapshot(_g7_hass().states.get, _g7_mp.candidates("hp")))
+    == {"found": str(len(_G7_RAW) + len(_G7_NAMED)), "backup_heater_type": "6"},
+    f"{_g7_mp.notes(_g7_mp.snapshot(_g7_hass().states.get, _g7_mp.candidates('hp')))}",
+)
+
+# Each formula class, at a value that tells it from its neighbours.
+_g7_scale = _g7_infer(raw={404: "635", 405: "700", 406: "405"})
+R.check(
+    "setpoints are the raw register times 0.1: 635 -> 63.5, 700 -> 70.0, 405 -> 40.5",
+    (_g7_scale[_g7_c.CONF_DHW_SETPOINT], _g7_scale[_g7_c.CONF_DHW_LEGIONELLA_TEMP],
+     _g7_scale[_g7_c.CONF_DHW_MIN_TEMP]) == (63.5, 70.0, 40.5),
+    f"{_g7_scale}",
+)
+_g7_clock = _g7_infer(raw={712: str(23 * 256 + 45), 713: str(0 * 256 + 15),
+                           518: str(21 * 256 + 5), 519: str(4 * 256 + 59)})
+R.check(
+    "times are hour*256+minute: 23:45-00:15 and 21:05-04:59",
+    _g7_clock[_g7_c.CONF_DHW_WINDOWS] == "23:45-00:15"
+    and _g7_clock[_g7_c.CONF_SILENT_MODE_WINDOWS] == "21:05-04:59",
+    f"{_g7_clock}",
+)
+_g7_bad_clock = _g7_infer(raw={712: str(24 * 256), 518: str(22 * 256 + 60), 519: str(22 * 256 + 60)})
+R.check(
+    "an hour past 23, a minute past 59, or an unreadable time suggests no window",
+    _g7_c.CONF_DHW_WINDOWS not in _g7_bad_clock
+    and _g7_c.CONF_SILENT_MODE_WINDOWS not in _g7_bad_clock
+    and _g7_c.CONF_SILENT_MODE_WINDOWS not in _g7_infer(raw={518: "unavailable"})
+    and _g7_c.CONF_DHW_WINDOWS not in _g7_infer(raw={713: None}),
+    f"{_g7_bad_clock}",
+)
+R.check(
+    "a start equal to its stop is no window",
+    _g7_c.CONF_SILENT_MODE_WINDOWS not in _g7_infer(raw={518: "1536", 519: "1536"}),
+)
+_g7_interval = {
+    days: _g7_infer(raw={714: str(mask)}).get(_g7_c.CONF_DHW_LEGIONELLA_INTERVAL_DAYS)
+    for days, mask in (
+        (1, 1 << 4), (2, (1 << 7) | (1 << 3)), (3, 0b00101010), (4, 0b11110000),
+        (7, 0b11111110), (0, 0), ("bit0", 1),
+    )
+}
+R.check(
+    "the legionella interval is 7 // days set in r714: 1 day 7, 2 days 3, 3 days 2, 4 or 7 days 1, none unset",
+    _g7_interval == {1: 7.0, 2: 3.0, 3: 2.0, 4: 1.0, 7: 1.0, 0: None, "bit0": None},
+    f"{_g7_interval}",
+)
+R.check(
+    "the hot water window is suggested only while the DHW schedule r711 has a day set",
+    _g7_c.CONF_DHW_WINDOWS not in _g7_infer(raw={711: "0"})
+    and _g7_c.CONF_DHW_WINDOWS not in _g7_infer(raw={711: None})
+    and _g7_infer(raw={711: str(1 << 1)}).get(_g7_c.CONF_DHW_WINDOWS) == "05:30-07:00",
+    f"{_g7_infer(raw={711: '0'}).get(_g7_c.CONF_DHW_WINDOWS)}",
+)
+_g7_ambient = _g7_infer(raw={4109: "1"})
+_g7_two_zone = _g7_infer(current={_g7_c.CONF_UPPER_FLOOR_THERMAL_MASS: 4.0})
+R.check(
+    "water temperature control (r4109 = 0) suggests flow set-points; ambient control suggests neither",
+    _g7_c.CONF_SPACE_SETPOINT_UNIT not in _g7_ambient
+    and _g7_c.CONF_MIXING_VALVE_WRITE_TARGET_KIND not in _g7_ambient
+    and _g7_c.CONF_MIXING_VALVE_WRITE_TARGET_KIND not in _g7_by_name,
+    f"{_g7_ambient.get(_g7_c.CONF_SPACE_SETPOINT_UNIT)}",
+)
+R.check(
+    "the valve's write target is suggested as flow only where the two-zone model the building page requires exists",
+    _g7_two_zone.get(_g7_c.CONF_MIXING_VALVE_WRITE_TARGET_KIND) == "flow",
+    f"{_g7_two_zone.get(_g7_c.CONF_MIXING_VALVE_WRITE_TARGET_KIND)}",
+)
+R.check(
+    "maximum electrical power is the unit's thermal capacity over the configured nominal COP",
+    _g7_infer(current={_g7_c.CONF_HEAT_PUMP_COP_NOMINAL: 4.0})[_g7_c.CONF_HEAT_PUMP_MAX_POWER] == 2.0
+    and _g7_c.CONF_HEAT_PUMP_MAX_POWER not in _g7_infer(named={"unit_capacity": "0"})
+    and _g7_c.CONF_HEAT_PUMP_MAX_POWER not in _g7_infer(named={"unit_capacity": "unknown"}),
+    f"{_g7_infer(current={_g7_c.CONF_HEAT_PUMP_COP_NOMINAL: 4.0}).get(_g7_c.CONF_HEAT_PUMP_MAX_POWER)}",
+)
+R.check(
+    "an unreadable register suggests nothing for its key and leaves the rest",
+    _g7_infer(raw={404: "unavailable", 405: "nan"}) == {
+        k: v for k, v in _G7_EXPECTED.items()
+        if k not in (_g7_c.CONF_DHW_SETPOINT, _g7_c.CONF_DHW_LEGIONELLA_TEMP)
+    },
+    f"{_g7_infer(raw={404: 'unavailable', 405: 'nan'})}",
+)
+# Entity slots only when empty; and nothing the entry already runs with.
+_g7_filled = _g7_infer(current={
+    _g7_c.CONF_OUTDOOR_TEMP_ENTITY: "sensor.garden",
+    _g7_c.CONF_DHW_TEMP_ENTITY: "",
+    _g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: None,
+    _g7_c.CONF_DHW_SETPOINT: 52.0,
+    _g7_c.CONF_DHW_WINDOWS: "05:30-07:00",
+})
+R.check(
+    "an entity slot already set is not suggested; an empty or None one is",
+    _g7_c.CONF_OUTDOOR_TEMP_ENTITY not in _g7_filled
+    and _g7_filled.get(_g7_c.CONF_DHW_TEMP_ENTITY) == "sensor.hp_dhw_tank_temperature"
+    and _g7_filled.get(_g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY) == "sensor.hp_leaving_water_temperature_t1",
+    f"{_g7_filled}",
+)
+R.check(
+    "a value equal to the one in force is not suggested, so the save cannot rewrite it",
+    _g7_c.CONF_DHW_SETPOINT not in _g7_filled and _g7_c.CONF_DHW_WINDOWS not in _g7_filled
+    and _g7_c.CONF_DHW_LEGIONELLA_TEMP in _g7_filled,
+    f"{_g7_filled}",
+)
+R.check(
+    "no suggestion is ever blank or None",
+    all(v not in (None, "") for v in (*_g7_by_name.values(), *_g7_filled.values(), *_g7_bad_clock.values())),
+)
+R.check(
+    "an entity slot is suggested when its entity exists, whatever its state",
+    _g7_infer(named={_g7_c.CONF_COMPRESSOR_FREQ_SENSOR: "unavailable"}).get(
+        _g7_c.CONF_COMPRESSOR_FREQ_SENSOR) == "sensor.hp_actual_compressor_frequency"
+    and _g7_c.CONF_COMPRESSOR_FREQ_SENSOR not in _g7_infer(named={_g7_c.CONF_COMPRESSOR_FREQ_SENSOR: None}),
+)
 
 # ---------------------------------------------------------------------------
 # #1067 W1067-G5: the pump's own disinfection switch. Observe is the default

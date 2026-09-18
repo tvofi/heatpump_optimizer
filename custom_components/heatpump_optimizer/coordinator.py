@@ -302,6 +302,10 @@ from .const import (
     SCORE_FREE_SPAN_RESET,
     CONF_COMPRESSOR_FREQ_ENTITY,
     CONF_COMPRESSOR_FREQ_SENSOR,
+    CONF_COMPRESSOR_FREQ_MIN_HZ,
+    CONF_COMPRESSOR_FREQ_MAX_HZ,
+    DEFAULT_COMPRESSOR_FREQ_MIN_HZ,
+    DEFAULT_COMPRESSOR_FREQ_MAX_HZ,
     CONF_FREQ_CONTROL_MODE,
     DEFAULT_FREQ_CONTROL_MODE,
 )
@@ -378,10 +382,12 @@ from . import diagnosis
 from .freq_control import (
     FREQ_MODE_CONTROL,
     FREQ_MODE_OBSERVE,
+    FREQ_SOURCE_NUMBER,
     FREQ_WRITE_EPSILON_HZ,
     FREQ_WRITE_MIN_INTERVAL_S,
     FrequencyMap,
     FrequencyWatchdog,
+    resolve_reading,
 )
 from .flow_lift import FlowCurveBias, curve_supply_temp, read_water_temps
 from .power_guard import GuardState, project_window_mean
@@ -9992,60 +9998,33 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     # Inverter frequency (v4.0.0 T7 #61)
     # ==================================================================
 
-    def _freq_entity_reading(self) -> tuple[float | None, float, float]:
-        """(reported Hz, range min, range max) for #61.
-
-        The range comes from the number entity's OWN min/max attributes —
-        the hardware integration knows its register limits; guessing them
-        here would let a clamp "protect" the pump into an invalid write.
-        The REPORTED frequency prefers the separate actual-frequency
-        sensor when one is configured: a number entity is often a setpoint
-        register that echoes the last written value, and feedback read
-        from an echo can never diverge — the watchdog would be decorative
-        and the map would learn against a frozen setpoint.
-        """
-        ctx = getattr(self, "_ctx", self)
-        entity_id = ctx._config.get(CONF_COMPRESSOR_FREQ_ENTITY)
-        if not entity_id:
-            return (None, 0.0, 0.0)
-        state = self.hass.states.get(entity_id)
-        if state is None:
-            return (None, 0.0, 0.0)
-        attrs = getattr(state, "attributes", {}) or {}
-        hz_min = _as_float(attrs.get("min"), 20.0)
-        hz_max = _as_float(attrs.get("max"), 120.0)
-        source = state
-        sensor_id = ctx._config.get(CONF_COMPRESSOR_FREQ_SENSOR)
-        if sensor_id:
-            sensor_state = self.hass.states.get(sensor_id)
-            if sensor_state is None:
-                # A configured but unavailable feedback sensor must not
-                # silently fall back to the echoing setpoint: that would
-                # quietly re-decorate the watchdog exactly when the real
-                # feedback disappeared.
-                return (None, hz_min, hz_max)
-            source = sensor_state
-        try:
-            reported = float(source.state)
-        except (TypeError, ValueError):
-            reported = None
-        if reported is not None and not np.isfinite(reported):
-            reported = None
-        return (reported, hz_min, hz_max)
+    def _freq_entity_reading(self) -> tuple[float | None, float, float, str | None]:
+        """(reported Hz, range min, range max, source) for #61; the rules are
+        ``freq_control.resolve_reading``'s."""
+        cfg = getattr(self, "_ctx", self)._config
+        return resolve_reading(
+            cfg.get(CONF_COMPRESSOR_FREQ_ENTITY),
+            cfg.get(CONF_COMPRESSOR_FREQ_SENSOR),
+            self.hass.states.get,
+            _as_float(cfg.get(CONF_COMPRESSOR_FREQ_MIN_HZ, DEFAULT_COMPRESSOR_FREQ_MIN_HZ), DEFAULT_COMPRESSOR_FREQ_MIN_HZ),
+            _as_float(cfg.get(CONF_COMPRESSOR_FREQ_MAX_HZ, DEFAULT_COMPRESSOR_FREQ_MAX_HZ), DEFAULT_COMPRESSOR_FREQ_MAX_HZ),
+        )
     def _freq_mode(self) -> str:
         """The stage actually in force, not the one merely configured.
 
-        Control requires ALL of: the entity, the explicit opt-in, and a
-        watchdog that has not stood the controller down. Everything else
-        is observe — and without an entity there is nothing to observe.
+        Control requires ALL of: the number entity, the explicit opt-in,
+        and a watchdog that has not stood the controller down. Everything
+        else is observe -- a frequency sensor alone is enough to observe
+        (#1067) -- and with neither there is nothing to observe.
         """
         ctx = getattr(self, "_ctx", self)
-        if not ctx._config.get(CONF_COMPRESSOR_FREQ_ENTITY):
+        number = ctx._config.get(CONF_COMPRESSOR_FREQ_ENTITY)
+        if not number and not ctx._config.get(CONF_COMPRESSOR_FREQ_SENSOR):
             return "unconfigured"
         configured = str(
             ctx._config.get(CONF_FREQ_CONTROL_MODE, DEFAULT_FREQ_CONTROL_MODE)
         )
-        if configured == FREQ_MODE_CONTROL and not self._freq_fallback:
+        if number and configured == FREQ_MODE_CONTROL and not self._freq_fallback:
             return FREQ_MODE_CONTROL
         return FREQ_MODE_OBSERVE
     def _observe_frequency(self, now: datetime) -> None:
@@ -10074,10 +10053,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._freq_watchdog.reset()
             ir.async_delete_issue(self.hass, DOMAIN, "freq_watchdog")
             self._spawn(self._async_save_thermal_learning())
-        reported, hz_min, hz_max = self._freq_entity_reading()
+        reported, hz_min, hz_max, source = self._freq_entity_reading()
         if reported is None:
             return
-        if configured == FREQ_MODE_CONTROL and not self._freq_fallback:
+        if source == FREQ_SOURCE_NUMBER and configured == FREQ_MODE_CONTROL and not self._freq_fallback:
             # Divergence is only meaningful while the plan is actually
             # asking for the compressor AND the reading is in its running
             # range: an idle pump reading 0 Hz overnight, or one pausing
@@ -10130,7 +10109,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         entity_id = getattr(self, "_ctx", self)._config.get(CONF_COMPRESSOR_FREQ_ENTITY)
         if not entity_id or self._freq_mode() != FREQ_MODE_CONTROL:
             return
-        _reported, hz_min, hz_max = self._freq_entity_reading()
+        _reported, hz_min, hz_max, _source = self._freq_entity_reading()
         target = self._freq_map.recommend(
             self._commanded_power() or 0.0, hz_min, hz_max
         )
@@ -10173,7 +10152,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         observe stage's entire product: evidence for the user's go/no-go
         before any wire is touched.
         """
-        reported, hz_min, hz_max = self._freq_entity_reading()
+        reported, hz_min, hz_max, source = self._freq_entity_reading()
         mode = self._freq_mode()
         recommended = None
         exhausted = False
@@ -10186,7 +10165,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             exhausted = self._freq_map.evidence_exhausted(
                 target, hz_min, hz_max
             )
-        return {
+        view = {
             "mode": mode,
             "fallback_active": bool(self._freq_fallback),
             "reported_hz": reported,
@@ -10204,6 +10183,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 else {}
             ),
         }
+        if source is not None:
+            # Only a configured view gains the key, so the unconfigured
+            # dict every install without either entity publishes is unchanged.
+            view["source"] = source
+        return view
 
     # ==================================================================
     # Revealed-preference comfort tuning (item 19)

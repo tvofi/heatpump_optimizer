@@ -482,6 +482,11 @@ CONF_SILENT_MODE_WINDOWS: Final = "silent_mode_windows"
 DEFAULT_SILENT_MODE_WINDOWS: Final = ""
 CONF_SILENT_MODE_FRACTION: Final = "silent_mode_power_fraction"
 DEFAULT_SILENT_MODE_FRACTION: Final = 1.0
+# #1067 (W1067-G7): the entity-id prefix of a GCHV Modbus package the options
+# flow reads suggestions from (modbus_prefill.py). "hp" is the package
+# generator's own; the key is read only by that page, never by the plan.
+CONF_MODBUS_PREFILL_PREFIX: Final = "modbus_prefill_prefix"
+DEFAULT_MODBUS_PREFILL_PREFIX: Final = "hp"
 CONF_OUTAGE_RECOVERY_ENABLED: Final = "outage_recovery_enabled"
 DEFAULT_OUTAGE_RECOVERY_ENABLED: Final = False
 
@@ -974,6 +979,13 @@ CONF_COMPRESSOR_FREQ_ENTITY: Final = "compressor_freq_entity"
 CONF_COMPRESSOR_FREQ_SENSOR: Final = "compressor_freq_sensor"
 CONF_FREQ_CONTROL_MODE: Final = "freq_control_mode"
 DEFAULT_FREQ_CONTROL_MODE: Final = "observe"
+#: The compressor's frequency range where no number entity publishes one:
+#: a sensor-only install's whole range (#1067), and the stand-in for a
+#: min or max attribute a number entity leaves out.
+CONF_COMPRESSOR_FREQ_MIN_HZ: Final = "compressor_freq_min_hz"
+DEFAULT_COMPRESSOR_FREQ_MIN_HZ: Final = 20.0
+CONF_COMPRESSOR_FREQ_MAX_HZ: Final = "compressor_freq_max_hz"
+DEFAULT_COMPRESSOR_FREQ_MAX_HZ: Final = 120.0
 #: How far the comfort floor is relaxed while a window is open (gated).
 OPEN_WINDOW_RELAX_C: Final = 1.0
 #: #11 — measured power above nameplate by this factor reads as the

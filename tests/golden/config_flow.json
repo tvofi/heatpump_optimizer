@@ -851,6 +851,10 @@
    [
     "heat_curve",
     "Heat curve control (ECL110)"
+   ],
+   [
+    "modbus_prefill",
+    "Pre-fill from a Modbus heat pump"
    ]
   ],
   "init": [
@@ -1895,6 +1899,30 @@
       "required": "Optional",
       "selector": "EntitySelector"
      },
+     "compressor_freq_max_hz": {
+      "config": {
+       "max": "250",
+       "min": "1",
+       "mode": "'box'",
+       "step": "1",
+       "unit_of_measurement": "'Hz'"
+      },
+      "default": "120.0",
+      "required": "Optional",
+      "selector": "NumberSelector"
+     },
+     "compressor_freq_min_hz": {
+      "config": {
+       "max": "250",
+       "min": "1",
+       "mode": "'box'",
+       "step": "1",
+       "unit_of_measurement": "'Hz'"
+      },
+      "default": "20.0",
+      "required": "Optional",
+      "selector": "NumberSelector"
+     },
      "compressor_freq_sensor": {
       "config": {
        "filter": "[{'domain': ['sensor'], 'device_class': ['frequency']}]"
@@ -2891,6 +2919,26 @@
     },
     "required": "str",
     "selector": "section"
+   }
+  },
+  "modbus_prefill": {
+   "after_save": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['menu', 'close']",
+     "translation_key": "'after_save'"
+    },
+    "default": "'menu'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
+   "modbus_prefill_prefix": {
+    "config": {
+     "type": "'text'"
+    },
+    "default": "'hp'",
+    "required": "Optional",
+    "selector": "TextSelector"
    }
   },
   "setup_overview": {},
@@ -4151,6 +4199,30 @@
      "required": "Optional",
      "selector": "EntitySelector"
     },
+    "compressor_freq_max_hz": {
+     "config": {
+      "max": "250",
+      "min": "1",
+      "mode": "'box'",
+      "step": "1",
+      "unit_of_measurement": "'Hz'"
+     },
+     "default": "120.0",
+     "required": "Optional",
+     "selector": "NumberSelector"
+    },
+    "compressor_freq_min_hz": {
+     "config": {
+      "max": "250",
+      "min": "1",
+      "mode": "'box'",
+      "step": "1",
+      "unit_of_measurement": "'Hz'"
+     },
+     "default": "20.0",
+     "required": "Optional",
+     "selector": "NumberSelector"
+    },
     "compressor_freq_sensor": {
      "config": {
       "filter": "[{'domain': ['sensor'], 'device_class': ['frequency']}]"
@@ -5147,6 +5219,26 @@
    },
    "required": "str",
    "selector": "section"
+  }
+ },
+ "modbus_prefill": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "modbus_prefill_prefix": {
+   "config": {
+    "type": "'text'"
+   },
+   "default": "'hp'",
+   "required": "Optional",
+   "selector": "TextSelector"
   }
  },
  "setup_overview": {},

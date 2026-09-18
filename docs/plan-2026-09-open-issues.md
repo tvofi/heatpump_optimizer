@@ -1211,6 +1211,198 @@ judge comments on each issue and summarised on #201.
   *different ruler* (non-strict) rather than a stale count, and #233's restart gap fails its
   own flat-price null at both 24 and 48 hours.
 
+## Open friction issues — dispositions
+
+The seven `[policy] recurring friction:` issues the governance cron filed
+(#1069, #1070, #1078, #1079, #1087, #1094, #1095). They are **not** in the
+Delivery-status table: `row-freeze` refuses a new row there, and
+`docs/delivery/<N>.md` is one file per pull request, not per issue. This
+section is the destination `delivery-status-tracking.md` section 5 names — the
+plan — and section 5's re-check is a **seat's grep**, not a check.
+
+**No instrument reads this section, and an earlier draft of this paragraph said
+one did.** `recordRegion` builds its region from the plan's `## Delivery status`
+section alone, plus `docs/delivery/` and the whole handover, so a different `##`
+is outside it — `policy_lint --record` is byte-identical with these eighty-five
+lines present and deleted, down to `RENDER`, which does not even count the seven
+items. That is the honest control for this section rather than a claim of
+coverage: it is written for a reading seat, and nothing refuses it if it rots.
+`checkRowFreeze` gates on the same section, which is why a new `##` correctly
+does not trip `row-freeze`. Whether an instrument **should** read it is owed
+work, recorded in `docs/HANDOVER.md`; it is not built here.
+
+**Re-derived, not carried.** Every issue body states its window as
+`v6.5.1..origin/main` and its count under the pre-#1119 classifier. Re-run with #1119's
+normalising rule (`node .claude/workflows/policy_lint.mjs --stats --since
+v6.5.1`, from that branch, which is where `--normalize-friction-keys` lives):
+**all seven keys still clear the threshold of 3 distinct pull requests.**
+**Every count here is a WINDOW figure and moves without anyone editing it** —
+the window ends at `origin/main`, so each merge can change it. Re-measured
+twice while this section was being written, and one key did move:
+`ratchet-budgets.md` went from `6 / 6` to `7 / 7` when #1118 merged between the
+two runs. Re-derive before acting on any of them; do not cite these numbers
+without the head they were taken at.
+
+**That contradicts the reading that the seven are pre-fix artefacts.** #1119's
+four faults are real and its fix is right, but their effect on these seven is a
+re-keying, not a retraction: the keys normalise to policy FILE paths and the
+counts survive. The one issue the artefact reading singled out, #1094, reads
+`4 / 6` in that window — over threshold on distinct pull requests, not below —
+so its close is not recommended here. The two windows disagree, which is the
+point: over `v6.6.0..origin/main` the same key reads `1 / 1`. A disposition
+states its window or it states nothing.
+
+- **[#1069](https://github.com/tvofi/heatpump_optimizer/issues/1069)
+  (`writing-for-agents.md`) — DELIVERED** by
+  [#1116](https://github.com/tvofi/heatpump_optimizer/pull/1116), merged
+  `3056151`: `ruleBindingOverTree` answers what its entries name — which paths
+  load which rule. **Residual, and the reason it is not closed here**: #1116's
+  body miscounts `--list`'s coverage of the corpus checks, and the `--list`
+  discoverability fix is deferred; both are in `docs/HANDOVER.md` under *Owed
+  from #1116*. Its key also still measures over threshold in the filing window.
+- **[#1070](https://github.com/tvofi/heatpump_optimizer/issues/1070)
+  (`ratchet-budgets.md`) — DEFERRED**, root-cause seat in flight on corpus-cap
+  headroom. The reason is that the cause is the object being established: a cap
+  sitting at its measured value makes every subsequent record pull request pay
+  or ask, and whether that is the ratchet working or the friction is the
+  question the seat answers.
+- **[#1078](https://github.com/tvofi/heatpump_optimizer/issues/1078)
+  (`finding-propagation.md`) — DEFERRED** pending
+  [#1119](https://github.com/tvofi/heatpump_optimizer/pull/1119)'s merge and
+  the re-key, then re-measure. The unresolved half is older than the
+  classifier: two branches owing a carry to the same role contract cannot both
+  comply, which `docs/HANDOVER.md` records as owed and no seat may decide.
+- **[#1079](https://github.com/tvofi/heatpump_optimizer/issues/1079)
+  (`brief-citations.md`) — re-dispositioned at `2296de3`, still DEFERRED.
+  Two counts, kept apart, each with its own window and head:**
+  - `1 / 1` distinct pull request under `v6.6.2..origin/main` at `2296de3`
+    (`node .claude/workflows/policy_lint.mjs --stats --since v6.6.2
+    --normalize-friction-keys`) — **below** the 3-PR threshold, matching the
+    governance cron's own `friction-below-threshold key:brief-citations.md
+    window:v6.6.2..origin/main` comment
+    ([5721312069](https://github.com/tvofi/heatpump_optimizer/issues/1079#issuecomment-5721312069)),
+    posted `2026-09-17T21:14:16Z` — the first live run of #1119's close path
+    (files, re-measures per window, never closes) doing what it was built for.
+  - `5 / 5` distinct pull requests under the older `v6.5.1..origin/main`
+    window, re-derived the same way at the same head — over threshold; this
+    is the number a prior draft of this entry carried, at a stale window.
+  **The low current-window count is not evidence the rot is addressed.**
+  #1117 merged and its reviewer measured that the citation-presence check it
+  shipped catches **none** of this issue's four rot shapes — a stale brief
+  citation, a moved `file:line` anchor, a dead pull-request or comment link,
+  and a rule citing a removed rule — while still correctly closing arm B of
+  #1058 (presence). Presence and resolvability are different questions, and a
+  friction count is presence (how often the class recurred in merged bodies
+  inside a window), not resolvability (whether a check catches it). No pull
+  request addressing resolvability is open or scheduled. **Recommended:
+  stays DEFERRED** — a resolvability checker is unscoped work (four distinct
+  rot shapes, no single detector demonstrated), and scoping it is a decision
+  for whoever picks up the next wave, not a call this section makes. **What
+  would have to change for this to be closable**: a check (or a documented
+  manual process) that demonstrably catches at least the four named rot
+  shapes, exercised against a fixture for each — not a lower friction count,
+  which the window can produce on its own with no fix at all.
+- **[#1087](https://github.com/tvofi/heatpump_optimizer/issues/1087)
+  (`fixer.md`) — DELIVERED** by
+  [#1118](https://github.com/tvofi/heatpump_optimizer/pull/1118), merged
+  `c71c53c` while this section was being written; it was scheduled and in
+  review when the disposition was taken. Its
+  `## Root cause` is comment
+  [5719932299](https://github.com/tvofi/heatpump_optimizer/issues/1087#issuecomment-5719932299):
+  process state (d), countermeasure one line in `friction_issues.mjs`'s
+  `bodyFor` so a filed issue states what its count is a property of. **Two
+  further countermeasures were refused on cost and stay refused**: a step-2
+  sentence in `tools/audit/briefs/fixer.md`, and an extension to
+  `tools/audit/briefs/orchestrator.md` section 5. This key is the largest in
+  the window (`9 / 9`), so the residual after #1118 is not small.
+- **[#1094](https://github.com/tvofi/heatpump_optimizer/issues/1094)
+  (`orchestrator`) — DEFERRED pending #1119's merge, then re-measure**, and
+  **the re-measurement above does not support closing it**. The stated reason
+  for the deferral is that #1119 counts distinct pull requests rather than
+  entries and `orchestrator` filed this issue itself; the measurement puts the key at
+  `4 / 6` in its own filing window, over the threshold on the corrected rule,
+  at both heads it was taken at. Closing is the owner's call and this section
+  does not recommend it.
+- **[#1095](https://github.com/tvofi/heatpump_optimizer/issues/1095)
+  (`gate-scoping`) — re-dispositioned at `2296de3`. Two facts, kept apart,
+  neither substituting for the other:**
+  - **The countermeasure merged and the cause is on record.** #1122
+    (`HPO_TYPING_PYTHON`, folded into main at `e467026`) delivered the fix;
+    `## Root cause` is posted at comment
+    [5719981924](https://github.com/tvofi/heatpump_optimizer/issues/1095#issuecomment-5719981924).
+  - **The count has cleared, and re-derived independently it is not evidence
+    the fix worked.** `1 / 1` distinct pull request under
+    `v6.6.2..origin/main` at `2296de3` (`node
+    .claude/workflows/policy_lint.mjs --stats --since v6.6.2
+    --normalize-friction-keys`) — below the 3-PR threshold, matching the
+    governance cron's `friction-below-threshold key:gate-scoping
+    window:v6.6.2..origin/main` comment
+    ([5721311867](https://github.com/tvofi/heatpump_optimizer/issues/1095#issuecomment-5721311867)),
+    posted `2026-09-17T21:14:15Z` — #1119's close path's first live run,
+    filing and re-measuring per window without closing, exactly as designed.
+    Under the older `v6.5.1..origin/main` window at the same head the key was
+    still `7 / 9`, over threshold; a prior draft of this entry carried that
+    number. **The clearing is the window moving past the nine merged bodies
+    that carried the count, not the fix working**: RCA #1087 (comment
+    [5719932299](https://github.com/tvofi/heatpump_optimizer/issues/1087#issuecomment-5719932299))
+    established the count is a property of the keying rule and of
+    already-merged bodies: eight of the nine predate #1122, and the ninth
+    **is #1122 itself** — its own PR body carries a self-reported `##
+    Friction` bullet (`gate-scoping: unclear: HPO_GATE_LOCK_LABEL set
+    without the take above fails at once...`), merged at `e467026`, which
+    is inside `v6.6.2..origin/main` and is the sole entry the `1 / 1`
+    figure counts. So #1122 cannot have caused this clearing — the tag cut
+    (`v6.6.2`) did, exactly as the RCA predicted it eventually would — and
+    the fix's own body still carrying an unresolved friction note against
+    the rule it fixes is further evidence for that reading, not against it.
+  **Recommended: ADDRESSED, window-cleared-not-fix-confirmed** — leave open
+  rather than close on either fact alone. **What would have to change for
+  this to be closable**: either the owner accepts that a countermeasure plus
+  an unconfounded below-threshold window (one cut *after* the countermeasure,
+  so new bodies rather than aging-out old ones populate it) is sufficient, or
+  a future re-measurement stays below threshold across another tag cut with
+  the fix in place, which the window-moving explanation above predicts should
+  happen regardless of whether the fix helped. Closing is the owner's call
+  and this section does not make it.
+
+**Two more, filed 2026-09-17T21:14Z, are not new friction — they are the
+filing path's own bug.** `friction_issues.mjs` dedups before filing on
+byte-exact issue title (`pickExact`, and the `"<title>" in:title` search
+built from `titleFor(key)`); the below-threshold **comment** path was fixed
+to key on the normalized policy-file id (`policy_lint.mjs
+--normalize-friction-keys`, landed with the close path in #1119) but the
+**filing** path was not, so a run against a key already open under its
+pre-normalization title spelling searches for the wrong string and files a
+second issue. Verified at `origin/main`, piping both spellings through
+`node .claude/workflows/policy_lint.mjs --normalize-friction-keys`:
+
+```
+.claude/rules/ratchet-budgets.md	.claude/rules/ratchet-budgets.md
+ratchet-budgets.md	.claude/rules/ratchet-budgets.md
+tools/audit/briefs/fixer.md	tools/audit/briefs/fixer.md
+fixer.md	tools/audit/briefs/fixer.md
+```
+
+- **[#1127](https://github.com/tvofi/heatpump_optimizer/issues/1127)
+  (`.claude/rules/ratchet-budgets.md`) — DUPLICATE of
+  [#1070](https://github.com/tvofi/heatpump_optimizer/issues/1070), same
+  canonical key, both open. DEFERRED pending
+  [#1132](https://github.com/tvofi/heatpump_optimizer/pull/1132) (in review),
+  which fixes the filing path; to be closed as a duplicate by the orchestrator
+  once that fix lands and the duplication is confirmed against it. Not closed
+  here — the record seat fixes nothing and does not act on either issue,
+  per `CLAUDE.md`'s fix-verify-file order and this task's own scope. #1070's
+  own disposition (DEFERRED, above) is unchanged by this entry.
+- **[#1128](https://github.com/tvofi/heatpump_optimizer/issues/1128)
+  (`tools/audit/briefs/fixer.md`) — DUPLICATE of
+  [#1087](https://github.com/tvofi/heatpump_optimizer/issues/1087), same
+  canonical key, both open. DEFERRED pending
+  [#1132](https://github.com/tvofi/heatpump_optimizer/pull/1132) (in review),
+  which fixes the filing path; to be closed as a duplicate by the orchestrator
+  once that fix lands and the duplication is confirmed against it. Not closed
+  here, for the same reason as #1127. #1087's own disposition (DELIVERED by
+  #1118, above) is unchanged by this entry.
+
 ## Carried findings awaiting a stage
 
 - **An input-side carrier for `_optimize_space_only`, from #224's stage-5 brief

@@ -210,7 +210,17 @@ const badref = build('since-ref', (d) => {
 if (badref.error) add('since-ref / built', false, badref.error)
 else {
   const marked = (o) => /^\s*refuse\s+since-ref\b/m.test(o)
-  const rec = sh('node', ['.claude/workflows/policy_lint.mjs', '--record', '--since', BAD_REF], { cwd: badref.dir })
+  // A TOKEN IN THE CHILD'S ENV, so these rows measure the same thing whether or
+  // not the seat running the matrix has one. `--record` exits 2 with
+  // GITHUB_TOKEN unset (the unenumerated-window guard), which is a different
+  // refusal from the bad-ref one these rows are about: without this, the
+  // bad-ref row would pass for the wrong reason and its null control -- a
+  // resolving ref over an empty window, rc=0, unmarked -- would be
+  // unsatisfiable offline. The value is a fixture, not a credential; the
+  // windows below reach no network, the bad one because it does not resolve and
+  // the null control because HEAD..origin/main is empty in this clone.
+  const recEnv = { ...process.env, GITHUB_TOKEN: 'envmatrix-fixture-not-a-credential' }
+  const rec = sh('node', ['.claude/workflows/policy_lint.mjs', '--record', '--since', BAD_REF], { cwd: badref.dir, env: recEnv })
   add('since-ref / --record refuses an underivable window instead of counting zero errors over it',
       rec.rc === 2 && marked(rec.out),
       `rc=${rec.rc} (want 2) marker=${marked(rec.out)}; ${why(rec.out)}`)
@@ -225,7 +235,7 @@ else {
   // `HEAD` resolves and, in this clone, names a window with nothing in it: the
   // same zero, the opposite verdict. A guard that refused here would have
   // converted a silent zero into a noisy lie.
-  const okRef = sh('node', ['.claude/workflows/policy_lint.mjs', '--record', '--since', 'HEAD'], { cwd: badref.dir })
+  const okRef = sh('node', ['.claude/workflows/policy_lint.mjs', '--record', '--since', 'HEAD'], { cwd: badref.dir, env: recEnv })
   add('since-ref / a ref that DOES resolve over an empty window still measures, unmarked',
       okRef.rc === 0 && !marked(okRef.out) && /RECORD: \d+ merged pull request/.test(okRef.out),
       `rc=${okRef.rc} (want 0) marker=${marked(okRef.out)}; ${why(okRef.out)}`)

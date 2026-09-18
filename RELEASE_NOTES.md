@@ -1,5 +1,60 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.6.3
+
+three optional-input features for the Rotenso Windmi (#1106, #1140, #1141) and a
+long run of audit-instrument repairs
+
+### Added
+
+**A disinfection switch is observed when the pump exposes one** (#1106). W1067-G5a,
+the observe half; the control half is a separate change.
+
+**A compressor-frequency sensor alone is enough to observe** (#1140). W1067-G6.
+Control still requires the number entity — a sensor-only install is read, never
+driven, and the watchdog does not judge it. Removing the source guard makes that
+harness reach `fallback=True strikes=3`, so the guard is what holds it.
+
+**Options can be pre-filled from a GCHV Modbus package** (#1141). W1067-G7. Each
+resolved role carries its own scale, so the same role reads correctly at scale
+1.0 from a Tuya-style entity and at 0.1 from a raw Modbus register and suggests
+the same value either way.
+
+### Fixed
+
+**The friction bot filed duplicate issues** (#1132). It deduped before filing on
+byte-exact issue title while the keying had moved to the policy file a rule
+names, so every re-spelled key earned a second issue. Three were live. The filing
+path now uses the same normalized lookup the comment path already used, failing
+closed on an unanswered search or an incomplete map.
+
+**The mutation table could not name the red check** (#1120), and its baseline
+refusal was scoped wrongly.
+
+**The verdict parser accepted an abbreviated SHA** (#1126) where the approval
+tool required the full 40 hex, so a verdict one instrument accepted the other
+refused.
+
+**Claim labels and section headings in the D6 instrument** (#1114), and the
+grouped-page label check (#1141).
+
+### Changed
+
+**Corpus budgets gained a working band** (#1124). Twenty-three consecutive
+commits sat at zero corpus headroom while the corpus itself shrank 8.7%, so the
+recording convention, not growth, was refusing work. Five aggregate caps take
+`_band: 500`, read by `checkBudgets` and pinned; per-file caps keep zero
+headroom. A D13-sized brief is still refused, so the band did not buy silence.
+
+**Policy and instrument repairs** (#1112, #1113, #1115, #1116, #1117, #1118,
+#1119, #1122, #1123, #1130): pull-request contract checks against the bot head
+and the matched head, a rule-binding instrument, friction-body perturbation and
+classifier keying, citation presence, governance detector holes, typing's local
+path, absolute scratch paths in briefs, and an anchor in the fix-review contract.
+
+**Record and handover** (#1121, #1125, #1129, #1133): delivery rows, the
+handover brought current, and dispositions for open friction issues.
+
 ## v6.6.2
 
 a hotfix restoring the labels and help text of every grouped setup and options field (#1111), plus release and CI tooling

@@ -4,10 +4,9 @@ You review one fix PR adversarially, in a fresh context, from a worktree at
 the PR's head SHA. You are not checking that the code looks right; four
 implementations on this project looked right and were wrong, one worse than
 its bug. You are checking that the numbers are real.
-**That worktree holds this contract as well as the tree and is frozen by design, so your copy of
-it can be arbitrarily old** — and `preflight.sh` warns only before a push a reviewer never makes.
+**That worktree holds this contract as well as the tree and is frozen by design, so your copy can be arbitrarily old** — and `preflight.sh` warns only before a push a reviewer never makes.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- tools/audit/briefs/`; empty is current.
-Before the fixer's handoff message, prepare against the merge base only; take no measurement of the head. Post as `tvofi-seat-author`.
+Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"), prepare against the merge base only, no head measurement; steps 2, 12 govern after. Post verdicts as `tvofi-seat-author` -- owner `tvofi`'s machine account, write access, #201 comment 5703671733 -- never the owner's login.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
    run the closure, confirm the named checks fail, restore. If nothing fails,
@@ -28,7 +27,7 @@ Before the fixer's handoff message, prepare against the merge base only; take no
    different absolute counts because each used a different rule; a later
    judge built sixteen definitions and found the residual non-zero at the
    merge base and zero at head under all of them, so the conclusion held
-   even though every headline number in the bodies disagreed. Re-derive
+   despite every headline number in the bodies disagreeing. Re-derive
    under the PR's stated rule before trusting its count; if you cannot, or
    if you had to build your own definition to check it, write that in the
    verdict rather than reporting a number as confirmed.
@@ -38,8 +37,7 @@ Before the fixer's handoff message, prepare against the merge base only; take no
    `audit-round2-evidence`; #258's proximity probe exists only inside a judge
    comment and must be recreated from there. #290's is committed: W3-G3 landed
    it as `harnesses/j5_gil.py`. A fixer who builds their own instrument must
-   disclose it as their own, not the finder's, and you say the same if you had
-   to build one to check the fix.
+   disclose it as their own, not the finder's -- so do you, if you built one.
    Read the finding's own judge ruling first — #290's brief still prescribes a
    harness its judge already refused.
 
@@ -48,8 +46,8 @@ Before the fixer's handoff message, prepare against the merge base only; take no
     destination and confirm it is there, carrying the control and stated as a
     precondition (`finding-propagation.md`). A finding that exists only in this
     PR's comments is `blocked <sha> carry-missing: not carried to <stage>`.
-11. **A red check owes an answer.** This is where `defect-root-cause.md`'s
-    second trigger is checked. Read the PR's own checks — `get_check_runs`, or
+11. **A red check owes an answer** (`defect-root-cause.md`'s second
+    trigger). Read the PR's own checks — `get_check_runs`, or
     the commit's own `check-runs` API — not the body's account, and never a
     listing that shows one run per check. For each gate check that went red,
     the body names it and answers: the cheaper detector with its standing cost,
@@ -63,6 +61,19 @@ Before the fixer's handoff message, prepare against the merge base only; take no
     reports `main`'s cron, not this head. The control, re-run at your own base —
     heads pushed after #713 carry the same red, heads pushed before carry none.
 
+    **A GREEN `mutation` does not mean the baseline was green.** Since #1120 the
+    lane prints `MUTATION TABLE INCONCLUSIVE` and exits 0 on `--scope changed`
+    when its baseline is red, so a green conclusion means either no mutant
+    survived or none was evaluated, and only the run's own log separates them.
+    The second branch is covered by no required check: the baseline's drivers
+    are **not** the scoped gate's selection, and on a diff that changes no
+    production file `scope_files` falls back to the closure of the changed test
+    scripts -- on #1120's own diff, 8 drivers against `scope.run`'s 1 script.
+    Re-derive that pair at your own base before relying on either number:
+    `mutation_table.scope_files("changed", base)` with `drivers_for`, against
+    `python3 tests/closure.py select --diff <merge-base>`. Where the answer
+    turns on it, read the lane's log rather than its conclusion.
+
 12. **Re-read the head before you post.** Name the SHA you measured in the
     verdict, and check it is still the head when you post it. A branch that
     moved under you means some of your numbers describe a tree that no longer
@@ -73,9 +84,8 @@ Before the fixer's handoff message, prepare against the merge base only; take no
     measured, and a branch that moved after the body was written passes it. This
     one compares the **live head at posting time** against what you measured.
 
-    `fixer.md`'s **The handoff freezes the branch** makes the head yours from the
-    handoff on, so one that moved under you is a broken rule rather than an
-    accident: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
+    The handoff makes the head yours from then on, so one that moved under you
+    is a broken rule rather than an accident: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
     instead is yours to offer and is never owed — a violation the reviewer
     absorbs silently costs the seat that committed it nothing, which is how it
     recurs.
@@ -108,8 +118,7 @@ Before the fixer's handoff message, prepare against the merge base only; take no
     of messages goes stale. A `resolved` line settles that claim file, and a
     non-zero exit alongside it is about some **other** path. A `refused` line
     is the orchestrator's to resolve by hand, not a defect in the authored
-    work — but it is also not something to wave past silently: say which file
-    refused and why.
+    work — say which file refused and why.
 
     Classifying by line shape instead is what fails. `_comment_lines` and
     `_is_may_drift` both test "everything before `#` is blank", so a
