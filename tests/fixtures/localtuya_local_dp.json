@@ -1,0 +1,126 @@
+{
+  "_generated_by": "tools/gen_device_fixtures.py",
+  "upstream_repo": "xZetsubou/hass-localtuya",
+  "upstream_tag": "2026.7.0",
+  "upstream_commit": "3d0c0ec737b59ebfb1eea65df42f5d902eafaecc",
+  "upstream_path": "custom_components/localtuya/entity.py",
+  "platform": "localtuya",
+  "device_name": "Radiator heat pump",
+  "device_id": "bf1234567890abcdef12",
+  "sources": [
+    {
+      "repo": "xZetsubou/hass-localtuya",
+      "tag": "2026.7.0",
+      "commit": "3d0c0ec737b59ebfb1eea65df42f5d902eafaecc",
+      "path": "custom_components/localtuya/entity.py",
+      "line": 242,
+      "expression": "f\"local_{self._device_config.id}_{self._dp_id}\"",
+      "rule": "local_{device}_{dp}",
+      "has_entity_name": true
+    },
+    {
+      "repo": "rospogrigio/localtuya",
+      "tag": "v5.2.5",
+      "commit": "59c95cd06c2696afc98f6bc52d5fa060f3c517da",
+      "path": "custom_components/localtuya/common.py",
+      "line": 469,
+      "expression": "f\"local_{self._dev_config_entry[CONF_DEVICE_ID]}_{self._dp_id}\"",
+      "rule": "local_{device}_{dp}",
+      "has_entity_name": false
+    }
+  ],
+  "records": [
+    {
+      "platform": "localtuya",
+      "unique_id": "local_bf1234567890abcdef12_101",
+      "entity_id": "sensor.radiator_heat_pump_inlet_water_temperature",
+      "original_name": "Inlet water temperature",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "localtuya",
+      "unique_id": "local_bf1234567890abcdef12_105",
+      "entity_id": "sensor.radiator_heat_pump_outdoor_temperature",
+      "original_name": "Outdoor temperature",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "localtuya",
+      "unique_id": "local_bf1234567890abcdef12_10",
+      "entity_id": "sensor.radiator_heat_pump_outlet_water_temperature",
+      "original_name": "Outlet water temperature",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "localtuya",
+      "unique_id": "local_bf1234567890abcdef12_26",
+      "entity_id": "sensor.radiator_heat_pump_tank_temperature",
+      "original_name": "Tank temperature",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "localtuya",
+      "unique_id": "local_bf1234567890abcdef12_109",
+      "entity_id": "sensor.radiator_heat_pump_water_pump_gear",
+      "original_name": "Water pump gear",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": "measurement"
+    },
+    {
+      "platform": "localtuya",
+      "unique_id": "local_bf1234567890abcdef12_1",
+      "entity_id": "switch.radiator_heat_pump_power",
+      "original_name": "Power",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    }
+  ],
+  "dp_readings": [
+    {
+      "dp": 1,
+      "key": "local_bf1234567890abcdef12_1",
+      "name": "Power"
+    },
+    {
+      "dp": 10,
+      "key": "local_bf1234567890abcdef12_10",
+      "name": "Outlet water temperature"
+    },
+    {
+      "dp": 26,
+      "key": "local_bf1234567890abcdef12_26",
+      "name": "Tank temperature"
+    },
+    {
+      "dp": 101,
+      "key": "local_bf1234567890abcdef12_101",
+      "name": "Inlet water temperature"
+    },
+    {
+      "dp": 105,
+      "key": "local_bf1234567890abcdef12_105",
+      "name": "Outdoor temperature"
+    },
+    {
+      "dp": 109,
+      "key": "local_bf1234567890abcdef12_109",
+      "name": "Water pump gear"
+    }
+  ]
+}

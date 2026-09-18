@@ -16,6 +16,15 @@ Two rules are the contract, and ``tests/features.py`` pins each:
   carry a key set that source's own definitions make unique to the model the
   table was derived from; an integration with no table registered resolves
   nothing. Guessing is W1067-G7b-3's fallback, which is not in this module.
+  ``localtuya`` has no table, and that is a decision rather than an omission:
+  its records are a device id, a DP number and the user's own names, and
+  nothing in them names firmware. DP numbers are not identity -- dp 105 is
+  the outdoor probe in the config below and a select's option in another of
+  the same corpus, and dp 107 is a tank in one source and a wired controller
+  in the other -- so a DP-keyed table would be this repository's Tuya
+  meanings worn by a device of unknown firmware. localtuya resolves nothing
+  here and the fallback, which matches on type, unit and name and says so on
+  the page, carries it.
 * **Scale travels with the role.** The same setting arrives in different
   units from different sources. The GCHV package's register 404 holds tenths
   of a degree; the Tuya integration's DHW set-point number already reads
@@ -102,43 +111,97 @@ _TUYA_HEAT_PUMP: dict[tuple[str, str], tuple[str, float]] = {
 #: proves the device is the model the table was derived from; none present
 #: means some other Tuya heat pump, which this table may not read.
 #: ``temp_current`` is not here: several model files reuse it.
-_TUYA_HEAT_PUMP_SIGNATURE = frozenset(
-    {("sensor", "T4"), ("sensor", "Tin"), ("switch", "night_mode"), ("number", "DHWSET")}
+_TUYA_HEAT_PUMP_SIGNATURE = (
+    frozenset({
+        ("sensor", "T4"),
+        ("sensor", "Tin"),
+        ("switch", "night_mode"),
+        ("number", "DHWSET"),
+    }),
 )
 
-#: ``platform -> (table, signature)``. W1067-G7b-2 registers ``tuya_local``
-#: here; a platform absent from it resolves nothing, which is where G7b-3's
-#: fuzzy fallback attaches.
+#: make-all/tuya-local at ``2026.9.1`` (commit ``4551357``): ``(domain,
+#: config id) -> (role, scale)``.
+#:
+#: There the unique id is the device uid, a hyphen, then the *config id*
+#: (``helpers/device_config.py:293-295``), and a config id is the entity type
+#: plus the slugified entity name -- ``sensor_outdoor_temperature``
+#: (``:323-338``). The two rows are the only roles a *sensor* entity there can
+#: prove, in ``devices/fisher_water_heatpump.yaml``: dp 105 is the sensor
+#: "Outdoor temperature" and dp 101 the sensor "Inlet temperature" (the plate
+#: heat exchanger inlet, register 3's TW_in). Its dp 106 sensor "Outlet
+#: temperature" is the plate outlet -- Tout, not the T1 supply -- and is
+#: deliberately not mapped. dp 10 and dp 26 are attributes of the config's
+#: ``climate`` entity and dp 104 and dp 107 of its ``water_heater``, so no
+#: entity slot can take them.
+_TUYA_LOCAL: dict[tuple[str, str], tuple[str, float]] = {
+    ("sensor", "sensor_outdoor_temperature"): (CONF_OUTDOOR_TEMP_ENTITY, 1.0),
+    ("sensor", "sensor_inlet_temperature"): (CONF_HEAT_PUMP_RETURN_TEMP_ENTITY, 1.0),
+}
+
+#: Those two keys together are unique to that config among tuya-local's 1746
+#: device configs at ``4551357`` (the counts are in the pull-request body):
+#: "Outdoor temperature" appears in 13 configs and "Outlet temperature" in 22,
+#: and together in that one only. So the proof is the pair, and it is the pair
+#: whether or not this table maps it: the sensor the table reads (dp 105) and
+#: the one it deliberately does not (dp 106, Tout). The config's third named
+#: sensor, "Inlet temperature", is in neither group -- it is shared with 17
+#: other configs and proves nothing. Brand is not identity here either: the
+#: corpus's other Rotenso config is an air conditioner whose dp 105 and dp 101
+#: are a select and a pm25 sensor.
+_TUYA_LOCAL_SIGNATURE = (
+    frozenset({("sensor", "sensor_outdoor_temperature")}),
+    frozenset({("sensor", "sensor_outlet_temperature")}),
+)
+
+#: ``platform -> (table, signature, separator)``. A *signature* is a tuple of
+#: key groups, and the table applies only when every group has at least one
+#: matched key -- which lets a source say what its own definitions prove. The
+#: Tuya model above is one group of four keys it alone defines, so any one of
+#: them suffices; tuya-local's is the two-key pair above, because neither key
+#: alone is unique in that corpus. The separator is how each source joins its
+#: own key to the device: tuya-local hyphenates a device uid and a config id,
+#: the Tuya integration underscores a device slug and a model key. A platform
+#: absent from here resolves nothing, which is where G7b-3's fuzzy fallback
+#: attaches.
 _SOURCES: dict[
-    str, tuple[Mapping[tuple[str, str], tuple[str, float]], frozenset[tuple[str, str]]]
+    str,
+    tuple[
+        Mapping[tuple[str, str], tuple[str, float]],
+        tuple[frozenset[tuple[str, str]], ...],
+        str,
+    ],
 ] = {
-    "tuya_heat_pump": (_TUYA_HEAT_PUMP, _TUYA_HEAT_PUMP_SIGNATURE),
+    "tuya_heat_pump": (_TUYA_HEAT_PUMP, _TUYA_HEAT_PUMP_SIGNATURE, "_"),
+    "tuya_local": (_TUYA_LOCAL, _TUYA_LOCAL_SIGNATURE, "-"),
 }
 
 
 def _matched_keys(
     records: Iterable[EntityRecord],
-    table: Mapping[tuple[str, str], tuple[str, float]],
+    keys: Iterable[tuple[str, str]],
+    separator: str,
 ) -> dict[tuple[str, str], str]:
-    """``(domain, key) -> entity_id`` for every record a table key names.
+    """``(domain, key) -> entity_id`` for every record one of ``keys`` names.
 
-    A record matches when its unique id ends in an underscore and the key,
-    within the key's own domain. The longest key wins, so ``temp_current_f``
-    is not read as ``temp_current``.
+    A record matches when its unique id ends in the source's own separator and
+    the key, within the key's own domain. The longest key wins, so
+    ``temp_current_f`` is not read as ``temp_current``.
     """
     matched: dict[tuple[str, str], str] = {}
     for record in records:
         unique_id = record.unique_id.lower()
-        # Keyed by the TABLE's pair, not the record's domain. Keying by the
+        # Keyed by the asked-for pair, not the record's domain. Keying by the
         # record's domain would encode the domain a second time and quietly
         # neutralise a wrong match: a select whose unique id ends in the
         # night_mode switch's key would land under ("select", "night_mode"),
-        # which no table row asks for, so the domain test below would look
+        # which no source asks for, so the domain test below would look
         # load-bearing while proving nothing.
         pairs = [
             (domain, key)
-            for (domain, key) in table
-            if domain == record.domain and unique_id.endswith(f"_{key.lower()}")
+            for (domain, key) in keys
+            if domain == record.domain
+            and unique_id.endswith(f"{separator}{key.lower()}")
         ]
         if pairs:
             matched[max(pairs, key=lambda pair: len(pair[1]))] = record.entity_id
@@ -159,9 +222,16 @@ def resolve(records: Iterable[EntityRecord]) -> dict[str, ResolvedRole]:
         source = _SOURCES.get(platform)
         if source is None:
             continue
-        table, signature = source
-        matched = _matched_keys(own, table)
-        if not signature & matched.keys():
+        table, signature, separator = source
+        # The signature's keys are looked for as well: a proof key need not be
+        # a role this table maps -- tuya-local's proof is the sensor it
+        # deliberately does not map.
+        matched = _matched_keys(
+            own,
+            set(table) | {pair for group in signature for pair in group},
+            separator,
+        )
+        if not all(group & matched.keys() for group in signature):
             continue
         for pair, (role, scale) in table.items():
             if pair in matched and role not in resolved:

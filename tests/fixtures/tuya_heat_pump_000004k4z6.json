@@ -1,6 +1,7 @@
 {
   "_generated_by": "tools/gen_device_fixtures.py",
   "upstream_repo": "tvofi/tuya_heat_pump",
+  "upstream_tag": "v2.6.0-beta04",
   "upstream_commit": "fda9bed19395267898570d72fe5e9324f523d574",
   "upstream_path": "custom_components/tuya_heat_pump/models/000004k4z6.py",
   "platform": "tuya_heat_pump",
@@ -285,6 +286,143 @@
       "device_class": null,
       "unit": null,
       "state_class": null
+    }
+  ],
+  "dp_readings": [
+    {
+      "dp": 1,
+      "key": "switch",
+      "name": "Power"
+    },
+    {
+      "dp": 2,
+      "key": "mode",
+      "name": "Operation Mode"
+    },
+    {
+      "dp": 4,
+      "key": "disinfection",
+      "name": "DHW Disinfection (Anti-Legionella)"
+    },
+    {
+      "dp": 7,
+      "key": "switch_microwave",
+      "name": "DHW Tank Electric Heater"
+    },
+    {
+      "dp": 9,
+      "key": "temp_set",
+      "name": "Water Temperature Setpoint"
+    },
+    {
+      "dp": 10,
+      "key": "temp_current",
+      "name": "Outlet Water Temperature (T1)"
+    },
+    {
+      "dp": 15,
+      "key": "instant_heating",
+      "name": "Electric Backup Heater"
+    },
+    {
+      "dp": 16,
+      "key": "timer",
+      "name": "Timer Schedule (raw)"
+    },
+    {
+      "dp": 20,
+      "key": "fault",
+      "name": "Fault Alarm"
+    },
+    {
+      "dp": 20,
+      "key": "fault_description",
+      "name": "Fault Description"
+    },
+    {
+      "dp": 26,
+      "key": "temp_current_f",
+      "name": "DHW Tank Temperature"
+    },
+    {
+      "dp": 101,
+      "key": "Tin",
+      "name": "Heat Exchanger Inlet Water Temperature (Tin)"
+    },
+    {
+      "dp": 102,
+      "key": "DEF",
+      "name": "Defrosting"
+    },
+    {
+      "dp": 102,
+      "key": "force_defrost",
+      "name": "Force Defrost"
+    },
+    {
+      "dp": 104,
+      "key": "DHWSET",
+      "name": "DHW Setpoint"
+    },
+    {
+      "dp": 105,
+      "key": "T4",
+      "name": "Outdoor Ambient Temperature (T4)"
+    },
+    {
+      "dp": 106,
+      "key": "Tout",
+      "name": "Heat Exchanger Outlet Water Temperature (Tout)"
+    },
+    {
+      "dp": 107,
+      "key": "T6",
+      "name": "Wired Controller Temperature (T6)"
+    },
+    {
+      "dp": 108,
+      "key": "POWER",
+      "name": "Energy Demand (POWER)"
+    },
+    {
+      "dp": 109,
+      "key": "WP_speed",
+      "name": "Water Pump Gear"
+    },
+    {
+      "dp": 110,
+      "key": "night_mode",
+      "name": "Night Mode (Silent)"
+    },
+    {
+      "dp": 111,
+      "key": "T5",
+      "name": "Compressor Discharge Temperature (T5)"
+    },
+    {
+      "dp": 112,
+      "key": "TL",
+      "name": "Refrigerant Pipe Temperature (TL)"
+    },
+    {
+      "dp": 113,
+      "key": "T9",
+      "name": "Inverter Module Temperature (T9)"
+    },
+    {
+      "dp": 114,
+      "key": "Tw2",
+      "name": "Zone 2 Outlet Water Temperature (Tw2)"
+    },
+    {
+      "dp": 115,
+      "key": "T3",
+      "name": "Coil Temperature (T3)"
+    },
+    {
+      "dp": 116,
+      "key": "T1B",
+      "name": "External Heat Source Outlet Temperature (T1B)"
     }
   ]
 }

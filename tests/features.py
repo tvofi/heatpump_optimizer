@@ -38408,6 +38408,215 @@ R.check(
 
 
 # ---------------------------------------------------------------------------
+# #1067 W1067-G7b-2: the tuya_local table, and the localtuya decision.
+#
+# Both fixtures are generated, never typed: tools/gen_device_fixtures.py reads
+# make-all/tuya-local at tag 2026.9.1 (commit 4551357) and both maintained
+# localtuya lines at their own pins, and the suite reads only what it wrote.
+# Honest scope: they prove the mapping against those definitions at those
+# commits, not against a live device.
+R.section("#1067 W1067-G7b-2 — the tuya_local table and the localtuya decision")
+
+import re as _g7b2_re  # noqa: E402
+
+_G7B2_TL = _g7b_gen.load("tuya_local_fisher_water_heatpump.json")
+_G7B2_LT = _g7b_gen.load("localtuya_local_dp.json")
+_G7B2_PLACEHOLDER = _g7b2_re.compile(r"\{(\w+)\}")
+
+
+def _g7b2_records(fixture, **overrides):
+    """One fixture's records as EntityRecords, with optional edits."""
+    drop = overrides.get("drop", ())
+    platform = overrides.get("platform")
+    records = []
+    for row in fixture["records"]:
+        if row["unique_id"] in drop:
+            continue
+        records.append(_g7b_dp.EntityRecord(
+            platform=platform or row["platform"],
+            unique_id=row["unique_id"],
+            entity_id=row["entity_id"],
+            original_name=row["original_name"],
+            translation_key=row["translation_key"],
+            device_class=row["device_class"],
+            unit=row["unit"],
+            state_class=row["state_class"],
+        ))
+    return records
+
+
+def _g7b2_key(fixture, key, field):
+    """One record's field, found by the key its unique id ends in.
+
+    Each source joins its own key to the device its own way -- a hyphen in
+    tuya-local, an underscore in the Tuya integration -- so both are tried.
+    """
+    for row in fixture["records"]:
+        if any(row["unique_id"].endswith(f"{sep}{key}") for sep in ("-", "_")):
+            return row[field]
+    raise AssertionError(f"no record for {key} in {fixture['upstream_path']}")
+
+
+def _g7b2_readings(fixture, dp):
+    """Every dp_readings row for one DP in that fixture's source."""
+    return [row for row in fixture["dp_readings"] if row["dp"] == dp]
+
+
+def _g7b2_recover(rule, unique_id):
+    """The values a unique id carries, split by the rule's own literals."""
+    parts = _G7B2_PLACEHOLDER.split(rule)
+    pattern = "".join(
+        f"(?P<{part}>.+)" if index % 2 else _g7b2_re.escape(part)
+        for index, part in enumerate(parts)
+    )
+    found = _g7b2_re.fullmatch(pattern, unique_id)
+    return found.groupdict() if found else None
+
+
+# -- the tuya_local table --------------------------------------------------
+_g7b2_tl = _g7b_dp.resolve(_g7b2_records(_G7B2_TL))
+R.check(
+    "the tuya_local table resolves outdoor and return from the config's own two "
+    "sensor entities, at scale 1.0",
+    _g7b2_tl == {
+        _g7_c.CONF_OUTDOOR_TEMP_ENTITY: _g7b_dp.ResolvedRole(
+            (_g7b2_key(_G7B2_TL, "sensor_outdoor_temperature", "entity_id"),), 1.0),
+        _g7_c.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: _g7b_dp.ResolvedRole(
+            (_g7b2_key(_G7B2_TL, "sensor_inlet_temperature", "entity_id"),), 1.0),
+    },
+    f"{_g7b2_tl}",
+)
+R.check(
+    "…and no other role: the config's water_heater and climate attributes cannot "
+    "fill an entity slot, and its plate outlet (dp 106, Tout) is not the supply",
+    set(_g7b2_tl) == {
+        _g7_c.CONF_OUTDOOR_TEMP_ENTITY, _g7_c.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+    } and _g7b2_key(_G7B2_TL, "sensor_outlet_temperature", "entity_id") not in {
+        entity_id for resolved in _g7b2_tl.values() for entity_id in resolved.entity_ids
+    },
+    f"{_g7b2_tl}",
+)
+# The table proves the config before it reads it, and the proof is the pair
+# measured unique in that corpus: "Outdoor temperature" with "Outlet
+# temperature" (the counts are in the pull-request body). "Inlet temperature"
+# is in neither group -- it is shared with 17 other configs -- so its absence
+# is not a missing proof; the table then reads only what is there.
+_g7b2_tl_unproved = _g7b_dp.resolve(_g7b2_records(
+    _G7B2_TL, drop={_g7b2_key(_G7B2_TL, "sensor_outlet_temperature", "unique_id")}))
+R.check(
+    "a tuya_local device carrying only one of the config-proving pair resolves "
+    "nothing: the table proves the config, then reads it",
+    _g7b2_tl_unproved == {},
+    f"{_g7b2_tl_unproved}",
+)
+_g7b2_tl_no_inlet = _g7b_dp.resolve(_g7b2_records(
+    _G7B2_TL, drop={_g7b2_key(_G7B2_TL, "sensor_inlet_temperature", "unique_id")}))
+R.check(
+    "…while a proved device whose inlet sensor is gone resolves the outdoor role "
+    "alone: the proof is the config's identity, not the roles",
+    set(_g7b2_tl_no_inlet) == {_g7_c.CONF_OUTDOOR_TEMP_ENTITY},
+    f"{_g7b2_tl_no_inlet}",
+)
+R.check(
+    "a tuya_local device from another config in the same corpus resolves nothing",
+    _g7b_dp.resolve([
+        _g7b_dp.EntityRecord("tuya_local", "bf0-sensor_water_temperature",
+                             "sensor.pump_water_temperature"),
+    ]) == {},
+    "resolved something",
+)
+
+
+# -- the dp 107 disagreement, each source's own reading --------------------
+# tuya-local reads dp 107 as the water_heater's current temperature; the TVOFI
+# integration reads the same DP as the wired controller (T6) and keeps the
+# tank on dp 26. Neither is resolved here without a reading from the install:
+# what this pair pins is that each fixture records its OWN source's meaning,
+# and that each table follows the source it was derived from.
+_g7b2_tl_107 = _g7b2_readings(_G7B2_TL, 107)
+_g7b2_thp_107 = _g7b2_readings(_G7B_FIXTURE, 107)
+R.check(
+    "dp 107 is pinned as each source's own reading: tuya-local's water_heater "
+    "current temperature against tuya_heat_pump's wired controller (T6)",
+    [row["key"] for row in _g7b2_tl_107] == ["water_heater"]
+    and [row["name"] for row in _g7b2_tl_107] == ["current_temperature"]
+    and [row["key"] for row in _g7b2_thp_107] == ["T6"]
+    and "Wired Controller" in _g7b2_thp_107[0]["name"],
+    f"tuya_local dp 107={_g7b2_tl_107} tuya_heat_pump dp 107={_g7b2_thp_107}",
+)
+R.check(
+    "…each table follows its own source: the tank is dp 26 in tuya_heat_pump, "
+    "whose table fills the DHW slot from it, and dp 107 in tuya-local, whose "
+    "water_heater can fill no entity slot at all",
+    _g7b2_readings(_G7B_FIXTURE, 26)[0]["key"] == "temp_current_f"
+    and _g7b2_readings(_G7B2_TL, 26)[0]["key"] == "climate"
+    and _g7b_resolved[_g7_c.CONF_DHW_TEMP_ENTITY].entity_ids[0]
+    == _g7b2_key(_G7B_FIXTURE, "temp_current_f", "entity_id")
+    and _g7_c.CONF_DHW_TEMP_ENTITY not in _g7b2_tl,
+    f"tuya_heat_pump dp 26={_g7b2_readings(_G7B_FIXTURE, 26)} "
+    f"tuya_local dp 26={_g7b2_readings(_G7B2_TL, 26)} resolved={sorted(_g7b2_tl)}",
+)
+
+
+# -- the localtuya decision: no table, and the evidence for it -------------
+# localtuya's records are a device id, a DP number and the user's own names.
+# Nothing in them names firmware -- dp numbers are not identity, which the
+# dp 107 pair above is one instance of -- so a DP-keyed table would be this
+# repository's Tuya meanings worn by a device of unknown firmware. The
+# platform is dispatched and has no table registered, so it resolves nothing
+# and W1067-G7b-3's fallback, which matches on type, unit and name and says
+# so on the page, carries it.
+_g7b2_lt = _g7b_dp.resolve(_g7b2_records(_G7B2_LT))
+R.check(
+    "a localtuya device resolves nothing: the DP-keyed table is refused, and the "
+    "device goes to the fallback",
+    _g7b2_lt == {},
+    f"{_g7b2_lt}",
+)
+_g7b2_lt_dp_of = {row["key"]: row["dp"] for row in _G7B2_LT["dp_readings"]}
+R.check(
+    "both maintained localtuya lines build local_<device>_<dp>, so the DP is "
+    "recoverable from the unique id on either line",
+    [source["rule"] for source in _G7B2_LT["sources"]]
+    == ["local_{device}_{dp}", "local_{device}_{dp}"]
+    and all(
+        _g7b2_recover(source["rule"], record["unique_id"])
+        == {"device": _G7B2_LT["device_id"],
+            "dp": str(_g7b2_lt_dp_of[record["unique_id"]])}
+        and _g7b2_recover(source["rule"], record["unique_id"])["dp"].isdigit()
+        for source in _G7B2_LT["sources"]
+        for record in _G7B2_LT["records"]
+    ),
+    f"{[source['expression'] for source in _G7B2_LT['sources']]}",
+)
+
+
+# -- the fixtures say what they were built from ----------------------------
+R.check(
+    "each fixture records the repository, tag and commit it was built from",
+    _G7B2_TL["upstream_repo"] == "make-all/tuya-local"
+    and _G7B2_TL["upstream_tag"] == "2026.9.1"
+    and len(_G7B2_TL["upstream_commit"]) == 40
+    and _G7B2_LT["upstream_repo"] == "xZetsubou/hass-localtuya"
+    and _G7B2_LT["upstream_tag"] == "2026.7.0"
+    and [source["tag"] for source in _G7B2_LT["sources"]] == ["2026.7.0", "v5.2.5"]
+    and all(len(source["commit"]) == 40 for source in _G7B2_LT["sources"])
+    and _G7B_FIXTURE["upstream_tag"] == "v2.6.0-beta04",
+    f"{_G7B2_TL['upstream_repo']}@{_G7B2_TL['upstream_tag']} "
+    f"{_G7B2_LT['upstream_repo']}@{_G7B2_LT['upstream_tag']} "
+    f"tuya_heat_pump@{_G7B_FIXTURE['upstream_tag']}",
+)
+R.check(
+    "the tuya_local fixture records the config's own product identity, which is "
+    "how the config the table was derived from is established",
+    [product["id"] for product in _G7B2_TL["products"]] == ["3gabjnrhtblg3ub6"]
+    and _G7B2_TL["products"][0]["manufacturer"] == "Fisher"
+    and _G7B2_TL["upstream_path"].endswith("fisher_water_heatpump.yaml"),
+    f"{_G7B2_TL['products']}",
+)
+
+
+# ---------------------------------------------------------------------------
 # #1067 W1067-G5a: the pump's own disinfection switch, read and published,
 # never written. Driving it is W1067-G5b's.
 R.section("#1067 W1067-G5a — the disinfection switch, observed")
