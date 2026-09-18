@@ -1,6 +1,13 @@
 # Handover — the open-issues programme
 
-updated-for: e467026a276ead299377b88fe6492de5c3adf9bd
+updated-for: 2296de350465d3987475cf89d030dfc16fd33841
+
+Taken at this record seat's own (re-merged) merge base off `origin/main`
+(merges since the prior stamp: #1106 `f02a790`, #1119 `1b22d4a`, #1125
+`a2d1d9a`, #1120 `6bbc0bf`, #1126 `2296de3`). This line was `a2d1d9a` for
+part of this pull request's life and was re-pointed after `origin/main` moved
+under it in review (round 2, #1129) — re-derive rather than trust this line
+if it reads stale against `origin/main` HEAD again.
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is the frozen table in
@@ -126,7 +133,27 @@ request (#1081), linked from here and never restated.
   `fixer.md` sentence is proposed and explicitly NOT pushed: it needs a cap
   raise or a cut and neither owner grant in hand covers it; it waits on the
   owner's sign-off. Do not re-propose a generalised detector without new
-  information.
+  information. **The refusal stands (#1125's reviewer ruling, accepted) but
+  owes this qualifier: the ~100% catch rate it cites rests on an attentive
+  seat noticing, not on a mechanism that guarantees noticing.** A fifth
+  instance of the same shape surfaced after the refusal was written and was
+  not caught by any check, until [#1126](https://github.com/tvofi/heatpump_optimizer/pull/1126)
+  (merged `2296de3`) fixed it: `.claude/workflows/check-wave-script.mjs`'s
+  verdict-grammar block carried its own hand-rebuilt copy of `VERDICT_RE`
+  instead of deriving it from `.claude/workflows/web-fix-wave.js`'s source,
+  the two silently diverged (production tightened its SHA capture to
+  `[0-9a-f]{40}` while the local copy kept `\S+`), and the block's own
+  null control — a bare `merge deadbeef`-shaped verdict, meant to catch an
+  extraction that accepts anything — stayed green throughout on either
+  regex, proving nothing about which one the artifact actually used. It was
+  caught only because a seat stopped to reason about why its own control
+  passed, the same route as the other four, not a mechanism. #1126's fix is
+  to execute the literal `VERDICT_RE` text out of `web-fix-wave.js`'s own
+  source (via `new Function`) rather than retype it, so the two cannot
+  diverge again by omission. Cite this instance by what it was, not by a
+  line number: line numbers in a fixed file are exactly the rot
+  `brief-citations.md` exists to catch, and this paragraph predicting that
+  condition is not a reason to leave it unmoved once the condition occurs.
 
 ### The UX programme
 
