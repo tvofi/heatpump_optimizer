@@ -296,6 +296,98 @@ export function pickExact(rows, title) {
   return null
 }
 
+// THE FALLBACK, additional to `pickExact` and never a replacement for it: an
+// issue whose OWN title key -- exactly as a seat typed it, before #1119's
+// keying fix -- normalizes to the key being filed today. `pickExact`'s byte
+// equality only ever finds an issue already spelled the way the histogram
+// spells things now; #1070 ("ratchet-budgets.md") and #1127
+// (".claude/rules/ratchet-budgets.md") both being open, for one rule, is that
+// guard doing exactly its job and nothing more -- it is not the guard's job to
+// see across a keying change, and this is the lookup that does.
+//
+// `normalize` is `policy_lint.mjs --normalize-friction-keys`'s answer, the
+// SAME `frictionKey` the histogram itself keys with (never a second
+// definition), and the caller is responsible for it being complete: an id
+// missing from the map here is read as normalizing to itself, which is correct
+// only when the map was built from every title this listing carries -- the
+// caller's job, not this pure function's.
+//
+// DETERMINISTIC when more than one existing issue already normalizes to the
+// same key -- the #1070/#1127 shape itself, and, measured live while building
+// this fix, a THIRD: "gate-scoping" (#1095, open), "gate-scoping.md" (#1093,
+// closed) and the canonical ".claude/rules/gate-scoping.md" (no issue yet) all
+// name one rule. OPEN issues sort before CLOSED ones -- updating a closed
+// issue's body while a live one sits open under a different spelling is not a
+// disposer's problem this lookup should manufacture -- and within one state,
+// rows are tried lowest-number first regardless of listing order. So a repair
+// converges on the earliest-filed OPEN issue, never on whichever one an API
+// happened to list first, and never opens a third.
+export function pickNormalized(rows, key, normalize) {
+  const openRank = (r) => (String(r?.state).toUpperCase() === 'OPEN' ? 0 : 1)
+  const sorted = [...rows].sort((a, b) => openRank(a) - openRank(b) || (a?.number ?? 0) - (b?.number ?? 0))
+  for (const r of sorted) {
+    if (!r || typeof r.title !== 'string' || !r.title.startsWith(FRICTION_PREFIX)) continue
+    const rawKey = r.title.slice(FRICTION_PREFIX.length)
+    const canonical = normalize.has(rawKey) ? normalize.get(rawKey) : rawKey
+    if (canonical === key) return { number: r.number, state: r.state, body: r.body }
+  }
+  return null
+}
+
+// THE COMPOSITION `fileEntries` calls, and the only place it is written: exact
+// first, the normalized fallback only when the exact guard found nothing,
+// never the reverse. `getNormalizedLookup` is a thunk so the lazy, at-most-
+// once-per-run load stays lazy -- called only on the `!exact` branch, exactly
+// as `fileEntries` needs it.
+//
+// Exported so the self-test asserts on THIS function rather than re-composing
+// `pickExact` and `pickNormalized` in its own body: round 1 of #1132 did the
+// latter (`pickExact(...) ?? pickNormalized(...)` written a second time inside
+// `selfTest`), so deleting the real fallback call in `fileEntries` -- the
+// production line the PR exists to add -- left the self-test at 84 passed, 0
+// failed while the live dry-run reverted to filing a duplicate. Calling this
+// function from both places closes that gap: the composition under test and
+// the composition `fileEntries` runs are the same object.
+export function resolveExisting(rows, title, key, getNormalizedLookup) {
+  const exact = pickExact(rows, title)
+  if (exact) return exact
+  const lookup = getNormalizedLookup()
+  return pickNormalized(lookup.rows, key, lookup.normalize)
+}
+
+// THE PER-ENTRY PIPELINE `fileEntries` runs, end to end, parameterized by the
+// three gh-shaped calls it needs -- never reimplemented by a caller. Round 2
+// (#1132) exported `resolveExisting` and drove IT directly, which caught a
+// mutation of `resolveExisting`'s own body but not a mutation of the call
+// SITE inside `fileEntries` (`resolveExisting(...)` -> `pickExact(...)`,
+// #1132's round-1 defect in a narrower form): the self-test never called
+// `fileEntries`, so nothing exercised that line. This function IS the body
+// `fileEntries` used to carry inline -- search, resolve, read, decide -- so a
+// self-test that drives `planEntry` is driving the composition production
+// runs, not a reconstruction of it.
+export function planEntry(entry, since, { search, getNormalizedLookup, readBody }) {
+  const title = titleFor(entry.key)
+  const body = bodyFor(entry, since)
+  const searched = search(title)
+  if (searched.unknown) {
+    return { refuse: true, why: `the exact-title search for ${JSON.stringify(title)} did not answer: treating an unanswered search as "no existing issue" is the flaky-API double-file, so nothing is filed` }
+  }
+  const existing = resolveExisting(searched.rows, title, entry.key, getNormalizedLookup)
+  let currentBody = null
+  if (existing) {
+    const read = readBody(existing.number)
+    if (read.unknown) {
+      return { refuse: true, why: `issue #${existing.number} carries the exact or normalized title but its body could not be read; filing a second issue beside an unreadable one is the duplicate this exists to prevent` }
+    }
+    currentBody = read.body
+  }
+  const action = decide({ existing, currentBody, body })
+  if (action === 'refuse') {
+    return { refuse: true, why: `issue #${existing.number} exists but its body is unreadable, so the idempotence check cannot compare` }
+  }
+  return { refuse: false, action, existing, body, title }
+}
+
 // The issue body: a PURE function of the measurement. No timestamp, no run id,
 // no ref -- anything that moves between two runs of one window would make the
 // idempotence check edit on every beat. The count and the window move only when
@@ -382,6 +474,54 @@ function listOpenFrictionIssues() {
   return { res, rows: searchOutcome(res.rc, res.stdout) }
 }
 
+// Every `[policy] recurring friction:` issue regardless of state, for the
+// normalized fallback lookup below -- `state: all`, the same scope
+// `pickExact`'s per-entry search already used, so the fallback can never see
+// an issue the exact guard could not also have matched had it carried the
+// canonical spelling.
+function listAllFrictionIssues() {
+  const res = gh([
+    'issue', 'list',
+    '--state', 'all',
+    '--search', `"${FRICTION_PREFIX}" in:title`,
+    '--json', 'number,title,state',
+    '--limit', '100',
+  ])
+  return { res, rows: searchOutcome(res.rc, res.stdout) }
+}
+
+// Loaded lazily, at most once per run, and only when `pickExact` found nothing
+// -- most keys resolve on the exact guard alone and never touch this. Fetches
+// every friction issue and the SAME normalization `policy_lint.mjs` keys the
+// histogram with, so `pickNormalized` can compare like with like.
+//
+// FAIL CLOSED, exactly as `sweepBelowThreshold`'s identical call already does:
+// a listing that did not answer, or a normalization that did not answer for
+// every id sent, dies rather than returning an empty map. Falling through
+// there would read "the mapping is unavailable" as "no existing issue exists
+// under any other spelling" -- the double-file this fallback exists to
+// prevent, reintroduced one level down.
+function loadNormalizedLookup() {
+  const { res, rows } = listAllFrictionIssues()
+  if (rows === 'unknown') {
+    die(`the ${JSON.stringify(FRICTION_PREFIX)} issue listing did not answer (gh exit ${res.rc}, <<${res.stdout.slice(0, 120)}>> <<${res.stderr.slice(0, 120)}>>): without it the normalized-key fallback cannot rule out an existing issue filed under an older spelling, and filing on an unanswered listing is exactly the double-file this exists to prevent`)
+  }
+  const rawKeys = [...new Set(issueKeys(rows))]
+  let normalize = new Map()
+  if (rawKeys.length) {
+    const n = spawnSync('node', [STATS_TOOL, '--normalize-friction-keys'], {
+      encoding: 'utf8',
+      input: `${rawKeys.join('\n')}\n`,
+      maxBuffer: 8 * 1024 * 1024,
+    })
+    normalize = parseNormalization(n.status, String(n.stdout ?? ''), rawKeys)
+    if (normalize === 'unknown') {
+      die(`${STATS_TOOL} --normalize-friction-keys did not answer for all ${rawKeys.length} existing friction-issue key(s) (exit ${n.status}): without the complete mapping an issue filed under an older spelling is invisible to the normalized fallback, and creating beside it is the duplicate this exists to prevent`)
+    }
+  }
+  return { rows, normalize }
+}
+
 function commentBodies(number) {
   const res = gh(['issue', 'view', String(number), '--json', 'comments'])
   const parsed = jsonCall(res.rc, res.stdout)
@@ -422,27 +562,37 @@ function run(args) {
 
 function fileEntries(parsed, since, dryRun) {
   console.log(`FRICTION: histogram names ${parsed.entries.length} key(s) at or over threshold in ${since}..origin/main`)
+  // Lazy and at most once per run: most keys resolve on `pickExact` alone, and
+  // the fallback's own listing and normalization call are fetched only when
+  // an entry actually needs them.
+  let normalizedLookup = null
+  const getNormalizedLookup = () => (normalizedLookup ??= loadNormalizedLookup())
   for (const entry of parsed.entries) {
-    const title = titleFor(entry.key)
-    const body = bodyFor(entry, since)
-    const { res, rows } = searchIssue(title)
-    if (rows === 'unknown') {
-      die(`the exact-title search for ${JSON.stringify(title)} did not answer (gh exit ${res.rc}, <<${res.stdout.slice(0, 120)}>> <<${res.stderr.slice(0, 120)}>>): treating an unanswered search as "no existing issue" is the flaky-API double-file, so nothing is filed`)
-    }
-    const exact = pickExact(rows, title)
-    let currentBody = null
-    if (exact) {
-      const view = gh(['issue', 'view', String(exact.number), '--json', 'body'])
-      const parsedView = jsonCall(view.rc, view.stdout)
-      if (parsedView === 'unknown' || typeof parsedView?.body !== 'string') {
-        die(`issue #${exact.number} carries the exact title but its body could not be read (gh exit ${view.rc}); filing a second issue beside an unreadable one is the duplicate this exists to prevent`)
-      }
-      currentBody = parsedView.body
-    }
-    const action = decide({ existing: exact, currentBody, body })
-    if (action === 'refuse') die(`issue #${exact.number} exists but its body is unreadable, so the idempotence check cannot compare`)
+    // `planEntry` IS the composition -- search, resolve (exact then the
+    // normalized fallback), read, decide -- wired here to the real gh calls.
+    // No decision is made in this loop; it only executes what `planEntry`
+    // returned, which is what makes the self-test's direct call to
+    // `planEntry` a test of what this loop actually runs.
+    const plan = planEntry(entry, since, {
+      search: (title) => {
+        const { res, rows } = searchIssue(title)
+        return rows === 'unknown'
+          ? { unknown: true, res }
+          : { unknown: false, rows }
+      },
+      getNormalizedLookup,
+      readBody: (number) => {
+        const view = gh(['issue', 'view', String(number), '--json', 'body'])
+        const parsedView = jsonCall(view.rc, view.stdout)
+        return (parsedView === 'unknown' || typeof parsedView?.body !== 'string')
+          ? { unknown: true }
+          : { unknown: false, body: parsedView.body }
+      },
+    })
+    if (plan.refuse) die(plan.why)
+    const { action, existing, body, title } = plan
     if (dryRun) {
-      console.log(`DRY-RUN ${action === 'create' ? `would file` : action === 'edit' ? `would update` : 'no-op, already current'}: ${JSON.stringify(title)}${exact ? ` (#${exact.number}, ${exact.state})` : ''} -- ${entry.kind} at ${entry.count}`)
+      console.log(`DRY-RUN ${action === 'create' ? `would file` : action === 'edit' ? `would update` : 'no-op, already current'}: ${JSON.stringify(title)}${existing ? ` (#${existing.number}, ${existing.state})` : ''} -- ${entry.kind} at ${entry.count}`)
       if (action !== 'no-op') console.log(body)
       continue
     }
@@ -453,11 +603,11 @@ function fileEntries(parsed, since, dryRun) {
       console.log(`FILED: ${JSON.stringify(title)} -- ${res.stdout.trim()}`)
     } else if (action === 'edit') {
       const file = writeTemp(body)
-      const res = gh(['issue', 'edit', String(exact.number), '--body-file', file])
-      if (res.rc !== 0) die(`gh issue edit refused #${exact.number} (gh exit ${res.rc}, <<${res.stderr.slice(0, 200)}>>)`)
-      console.log(`UPDATED: #${exact.number} ${JSON.stringify(title)} -- ${entry.kind} at ${entry.count} in this window (one issue per key per window; the body, not a duplicate)`)
+      const res = gh(['issue', 'edit', String(existing.number), '--body-file', file])
+      if (res.rc !== 0) die(`gh issue edit refused #${existing.number} (gh exit ${res.rc}, <<${res.stderr.slice(0, 200)}>>)`)
+      console.log(`UPDATED: #${existing.number} ${JSON.stringify(title)} -- ${entry.kind} at ${entry.count} in this window (one issue per key per window; the body, not a duplicate)`)
     } else {
-      console.log(`CURRENT: #${exact.number} ${JSON.stringify(title)} already carries this measurement (${entry.kind} at ${entry.count}); no write made`)
+      console.log(`CURRENT: #${existing.number} ${JSON.stringify(title)} already carries this measurement (${entry.kind} at ${entry.count}); no write made`)
     }
   }
 }
@@ -617,6 +767,121 @@ export function selfTest() {
     'a title no row carries exactly answers null (null control on the pick)')
   st(pickExact(rows, '[policy] recurring friction: blocked-on-review')?.number, 40,
     'the longer key picks its own row -- one issue per KEY, keys not prefixes')
+
+  // --- the normalized filing lookup (regression: #1070/#1127, #1087/#1128) ---
+  // The exact-title guard alone is byte equality and cannot see an issue filed
+  // under an OLDER key spelling -- that is the live defect, verified at
+  // c9938ad: #1070 "ratchet-budgets.md" and #1127
+  // ".claude/rules/ratchet-budgets.md" both normalize to the same canonical
+  // key and both are open. This drives `resolveExisting` -- the exact function
+  // `fileEntries` calls, not a second composition written here (#1132 round 1)
+  // -- over the same shape a live filing run acts on: an open issue under an
+  // older spelling, and the histogram emitting today's canonical spelling.
+  const OLDSPELL = [{ number: 1070, title: '[policy] recurring friction: ratchet-budgets.md', state: 'OPEN' }]
+  const RBNORM = new Map([['ratchet-budgets.md', '.claude/rules/ratchet-budgets.md']])
+  const canonicalTitle = titleFor('.claude/rules/ratchet-budgets.md')
+  st(pickExact(OLDSPELL, canonicalTitle), null,
+    'the exact-title guard alone does not see an older-spelling issue -- this is the defect: a byte-exact search misses it')
+  const resolved = resolveExisting(OLDSPELL, canonicalTitle, '.claude/rules/ratchet-budgets.md',
+    () => ({ rows: OLDSPELL, normalize: RBNORM }))
+  st(resolved?.number, 1070,
+    'resolveExisting -- the composition fileEntries calls -- finds the older-spelling issue through the normalized fallback')
+  st(decide({ existing: resolved, currentBody: 'stale', body: 'new' }), 'edit',
+    'so the filing DECISION updates the existing issue in place rather than creating a duplicate')
+
+  // Deterministic among more than one matching spelling -- the pre-existing
+  // #1070/#1127 duplicate is exactly this shape. Picking the lowest issue
+  // number first means a repair run converges on ONE issue, not a third.
+  const BOTHSPELL = [
+    { number: 1127, title: '[policy] recurring friction: .claude/rules/ratchet-budgets.md', state: 'OPEN' },
+    { number: 1070, title: '[policy] recurring friction: ratchet-budgets.md', state: 'OPEN' },
+  ]
+  st(pickNormalized(BOTHSPELL, '.claude/rules/ratchet-budgets.md', RBNORM)?.number, 1070,
+    'when more than one open issue already normalizes to the same key, the fallback picks the earliest-filed one deterministically, by number, never by listing order')
+
+  // OPEN outranks CLOSED, ahead of the number tie-break -- measured live while
+  // building this fix: "gate-scoping" (#1095, OPEN), "gate-scoping.md"
+  // (#1093, CLOSED) both normalize to `.claude/rules/gate-scoping.md`, and
+  // #1093 is the LOWER number. Without this, the fallback would pick the
+  // closed issue by number alone and the bot would write into a dead issue
+  // while a live one on the same key sat untouched.
+  const GSNORM = new Map([['gate-scoping', '.claude/rules/gate-scoping.md'], ['gate-scoping.md', '.claude/rules/gate-scoping.md']])
+  const OPENVCLOSED = [
+    { number: 1093, title: '[policy] recurring friction: gate-scoping.md', state: 'CLOSED' },
+    { number: 1095, title: '[policy] recurring friction: gate-scoping', state: 'OPEN' },
+  ]
+  st(pickNormalized(OPENVCLOSED, '.claude/rules/gate-scoping.md', GSNORM)?.number, 1095,
+    'the open issue is picked over the closed one even though the closed one has the lower number')
+
+  // An issue whose title is ALREADY the canonical spelling is found the same
+  // way, through the identity fallback (`normalize.get(rawKey) ?? rawKey`),
+  // with no normalize entry needed for it at all.
+  st(pickNormalized(
+    [{ number: 1127, title: '[policy] recurring friction: .claude/rules/ratchet-budgets.md', state: 'OPEN' }],
+    '.claude/rules/ratchet-budgets.md', new Map())?.number, 1127,
+    'an issue already titled with the canonical key is found by the fallback with an empty normalize map (identity)')
+
+  // NULL CONTROL: a genuinely new key with no existing issue under any
+  // spelling must still CREATE -- the fallback must not manufacture a match.
+  const newTitle = titleFor('.claude/rules/totally-new-rule.md')
+  st(pickExact(OLDSPELL, newTitle), null, 'null control: the exact guard finds nothing for an unrelated key')
+  const resolvedNew = resolveExisting(OLDSPELL, newTitle, '.claude/rules/totally-new-rule.md',
+    () => ({ rows: OLDSPELL, normalize: RBNORM }))
+  st(resolvedNew, null,
+    'null control: resolveExisting also finds nothing for a key no existing issue names under any spelling')
+  st(decide({ existing: resolvedNew, currentBody: null, body: 'new' }),
+    'create', 'so a genuinely new key still creates, exactly as before the fallback existed')
+
+  // --- planEntry: the composition `fileEntries` actually calls, driven end
+  // to end (round 2 review, comment 5725767161). `resolveExisting` above is
+  // tested directly and its own body is pinned, but round 2's committed
+  // suite never called `fileEntries` or anything that calls it, so mutating
+  // the CALL SITE inside `fileEntries` (`resolveExisting(...)` ->
+  // `pickExact(...)`) left the suite green while a live dry-run still filed
+  // a duplicate. These tests call `planEntry` itself -- the function that
+  // call site lives in -- with fake `search`/`readBody`/`getNormalizedLookup`
+  // functions, never reconstructing resolve-then-decide in their own body.
+  const RBENTRY = { key: '.claude/rules/ratchet-budgets.md', kind: 'friction rule id', count: 5, threshold: 3, line: 'x' }
+  const fakeSearchMiss = (title) => ({ unknown: false, rows: [] })
+  const fakeLookupOld = () => ({ rows: OLDSPELL, normalize: RBNORM })
+  const planOld = planEntry(RBENTRY, 'v9.9.9', {
+    search: fakeSearchMiss,
+    getNormalizedLookup: fakeLookupOld,
+    readBody: (number) => ({ unknown: false, body: 'stale' }),
+  })
+  st(planOld.refuse, false, 'planEntry does not refuse when the fallback resolves an existing issue')
+  st(planOld.existing?.number, 1070,
+    'planEntry -- the function fileEntries calls per entry -- resolves the older-spelling issue through the fallback, exactly as a live run would')
+  st(planOld.action, 'edit',
+    'so the actual per-entry pipeline updates the existing issue in place rather than creating a duplicate (this fails if the resolveExisting(...) call inside planEntry is replaced by pickExact(...) alone)')
+
+  // NULL CONTROL on planEntry: a genuinely new key, same fake wiring, must
+  // still create -- the fallback inside planEntry must not manufacture a hit.
+  const NEWENTRY = { key: '.claude/rules/totally-new-rule.md', kind: 'friction rule id', count: 5, threshold: 3, line: 'x' }
+  const planNew = planEntry(NEWENTRY, 'v9.9.9', {
+    search: fakeSearchMiss,
+    getNormalizedLookup: fakeLookupOld,
+    readBody: (number) => ({ unknown: false, body: 'stale' }),
+  })
+  st(planNew.existing, null, 'null control: planEntry finds no existing issue for an unrelated key')
+  st(planNew.action, 'create', 'null control: planEntry still creates for a genuinely new key')
+
+  // planEntry refuses (never files) when the search itself did not answer,
+  // and when an existing issue's body could not be read -- the same
+  // fail-closed rule `resolveExisting`'s caller owes, now checked at the
+  // function fileEntries actually runs.
+  const planSearchDown = planEntry(RBENTRY, 'v9.9.9', {
+    search: (title) => ({ unknown: true }),
+    getNormalizedLookup: fakeLookupOld,
+    readBody: (number) => ({ unknown: false, body: 'stale' }),
+  })
+  st(planSearchDown.refuse, true, 'planEntry refuses when the exact-title search did not answer, rather than treating it as "no existing issue"')
+  const planBodyDown = planEntry(RBENTRY, 'v9.9.9', {
+    search: fakeSearchMiss,
+    getNormalizedLookup: fakeLookupOld,
+    readBody: (number) => ({ unknown: true }),
+  })
+  st(planBodyDown.refuse, true, 'planEntry refuses when an existing issue was resolved but its body could not be read')
 
   // The decision matrix.
   const body = bodyFor({ key: 'blocked', kind: 'verdict class', count: 4, threshold: 3, line: LINE('blocked', 'verdict class', 4).trim() }, 'v9.9.9')
