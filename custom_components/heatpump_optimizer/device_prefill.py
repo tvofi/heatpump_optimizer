@@ -6,7 +6,7 @@ prefix: its entities belong to a *device* in Home Assistant's registries, and
 the user knows the device by name, not by the slug its entity ids happen to
 carry. This module is the other end of :func:`modbus_prefill.snapshot`'s
 resolver input -- it turns one device's entity-registry records into the same
-``role -> Resolved`` map ``modbus_prefill.candidates`` returns, so
+``role -> ResolvedRole`` map ``modbus_prefill.candidates`` returns, so
 :func:`modbus_prefill.infer` reads a device and a Modbus package identically.
 
 Two rules are the contract, and ``tests/features.py`` pins each:
@@ -20,7 +20,7 @@ Two rules are the contract, and ``tests/features.py`` pins each:
   units from different sources. The GCHV package's register 404 holds tenths
   of a degree; the Tuya integration's DHW set-point number already reads
   degrees. A scale fixed inside ``infer()`` would turn a 50 degree set-point
-  into 5.0, so each :class:`~.modbus_prefill.Resolved` carries its own.
+  into 5.0, so each :class:`~.modbus_prefill.ResolvedRole` carries its own.
 
 Matching keys on the **unique id**, never on the entity id: a unique id is
 the integration's own identifier and survives a rename, while an entity id is
@@ -44,7 +44,7 @@ from .const import (
     CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
 )
-from .modbus_prefill import Resolved
+from .modbus_prefill import ResolvedRole
 
 
 class EntityRecord(NamedTuple):
@@ -109,7 +109,9 @@ _TUYA_HEAT_PUMP_SIGNATURE = frozenset(
 #: ``platform -> (table, signature)``. W1067-G7b-2 registers ``tuya_local``
 #: here; a platform absent from it resolves nothing, which is where G7b-3's
 #: fuzzy fallback attaches.
-_SOURCES: dict[str, tuple[Mapping[tuple[str, str], tuple[str, float]], frozenset]] = {
+_SOURCES: dict[
+    str, tuple[Mapping[tuple[str, str], tuple[str, float]], frozenset[tuple[str, str]]]
+] = {
     "tuya_heat_pump": (_TUYA_HEAT_PUMP, _TUYA_HEAT_PUMP_SIGNATURE),
 }
 
@@ -143,7 +145,7 @@ def _matched_keys(
     return matched
 
 
-def resolve(records: Iterable[EntityRecord]) -> dict[str, Resolved]:
+def resolve(records: Iterable[EntityRecord]) -> dict[str, ResolvedRole]:
     """One device's records as ``modbus_prefill``'s resolver input.
 
     Empty when no registered source recognises the device, which the options
@@ -152,7 +154,7 @@ def resolve(records: Iterable[EntityRecord]) -> dict[str, Resolved]:
     by_platform: dict[str, list[EntityRecord]] = {}
     for record in records:
         by_platform.setdefault(record.platform, []).append(record)
-    resolved: dict[str, Resolved] = {}
+    resolved: dict[str, ResolvedRole] = {}
     for platform, own in by_platform.items():
         source = _SOURCES.get(platform)
         if source is None:
@@ -163,5 +165,5 @@ def resolve(records: Iterable[EntityRecord]) -> dict[str, Resolved]:
             continue
         for pair, (role, scale) in table.items():
             if pair in matched and role not in resolved:
-                resolved[role] = Resolved((matched[pair],), scale)
+                resolved[role] = ResolvedRole((matched[pair],), scale)
     return resolved
