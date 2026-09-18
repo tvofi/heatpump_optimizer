@@ -1024,6 +1024,24 @@ def option_resubmit(step: str, current: dict) -> dict:
     return out
 
 
+def option_resubmits(step: str, current: dict) -> tuple[dict, ...]:
+    """The submit sequence that drives one option page to save or menu.
+
+    Every page but one is a single resubmit of its own rows
+    (:func:`option_resubmit`). The pre-fill page (#1067) is submitted twice:
+    the first resubmit picks the source -- a heat-pump device or the Modbus
+    entity-id prefix -- and opens the suggestion preview, which is still a
+    ``form``; the second keeps nothing (every suggested field cleared) and
+    saves, so the walk reaches save/menu without writing a suggestion. A
+    single submit of the pre-fill page never leaves ``form``, which is the
+    ``a5:pages_ok`` escape this splits out (#1151).
+    """
+    first = option_resubmit(step, current)
+    if step == "modbus_prefill":
+        return (first, {})
+    return (first,)
+
+
 def check_a8_register_once(
     checks: Checks, registered: list[str] | set[str] | tuple[str, ...], catalog: set[str] | frozenset[str]
 ) -> None:
@@ -1571,10 +1589,13 @@ async def _async_check_a5_options(checks: Checks, hass, entry) -> None:
             kind = _flow_kind(result)
             if step not in ("init", "advanced") and kind == "form":
                 current = {**dict(entry.data), **dict(entry.options)}
-                result = await hass.config_entries.options.async_configure(
-                    _flow_id(result), option_resubmit(step, current)
-                )
-                kind = _flow_kind(result)
+                for payload in option_resubmits(step, current):
+                    result = await hass.config_entries.options.async_configure(
+                        _flow_id(result), payload
+                    )
+                    kind = _flow_kind(result)
+                    if kind != "form":
+                        break
                 await hass.async_block_till_done()
                 entry = hass.config_entries.async_get_entry(entry.entry_id) or entry
             results.append({"step": step, "kind": kind})
