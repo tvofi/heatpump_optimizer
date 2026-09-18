@@ -351,7 +351,7 @@ def _passes(record: Named, role: Role) -> bool:
     return family(record.unit) == role.unit_family
 
 
-def _ranked(
+def _candidates(
     records: list[Named],
     device: tuple[str, ...],
     role: str,
@@ -401,7 +401,7 @@ def matches(
     for role in ROLE_FILTERS:
         if role in taken:
             continue
-        ranked = _ranked(pool, device, role, scalar)
+        ranked = _candidates(pool, device, role, scalar)
         if not ranked:
             continue
         best, entity_id = ranked[0]
