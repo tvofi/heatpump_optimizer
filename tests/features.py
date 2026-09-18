@@ -38233,6 +38233,184 @@ R.check(
     and _g7_c.CONF_COMPRESSOR_FREQ_SENSOR not in _g7_infer(named={_g7_c.CONF_COMPRESSOR_FREQ_SENSOR: None}),
 )
 
+
+
+R.section("#1067 W1067-G7b-1 — pre-filling options from a heat-pump device")
+import json as _g7b_json  # noqa: E402
+import pathlib as _g7b_pathlib  # noqa: E402
+import sys as _g7b_sys  # noqa: E402
+
+_g7b_sys.path.insert(0, str(_g7b_pathlib.Path(__file__).resolve().parent.parent / "tools"))
+import gen_device_fixtures as _g7b_gen  # noqa: E402
+
+from heatpump_optimizer import device_prefill as _g7b_dp  # noqa: E402
+
+# The records are read from the generated fixture, never typed here: it is
+# built by tools/gen_device_fixtures.py from tvofi/tuya_heat_pump's own model
+# file at the commit the fixture records, so a key this repository mistypes
+# cannot agree with itself. Honest scope: the fixture proves the mapping
+# against those definitions at that commit, not against a live pump.
+_G7B_FIXTURE = _g7b_gen.load("tuya_heat_pump_000004k4z6.json")
+_G7B_SLUG = _G7B_FIXTURE["device_name"].lower().replace(" ", "_").replace("-", "_")
+
+
+def _g7b_records(fixture=None, **overrides):
+    """The fixture's records as EntityRecords, with optional edits."""
+    drop = overrides.get("drop", ())
+    platform = overrides.get("platform")
+    rename = overrides.get("rename", {})
+    records = []
+    for row in (fixture or _G7B_FIXTURE)["records"]:
+        if row["unique_id"] in drop:
+            continue
+        records.append(_g7b_dp.EntityRecord(
+            platform=platform or row["platform"],
+            unique_id=row["unique_id"],
+            entity_id=rename.get(row["unique_id"], row["entity_id"]),
+            original_name=row["original_name"],
+            translation_key=row["translation_key"],
+            device_class=row["device_class"],
+            unit=row["unit"],
+            state_class=row["state_class"],
+        ))
+    return records
+
+
+_G7B_EXPECTED = {
+    _g7_c.CONF_OUTDOOR_TEMP_ENTITY: (
+        f"sensor.{_G7B_SLUG}_outdoor_ambient_temperature_t4", 1.0),
+    _g7_c.CONF_DHW_TEMP_ENTITY: (f"sensor.{_G7B_SLUG}_dhw_tank_temperature", 1.0),
+    _g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: (
+        f"sensor.{_G7B_SLUG}_outlet_water_temperature_t1", 1.0),
+    _g7_c.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: (
+        f"sensor.{_G7B_SLUG}_heat_exchanger_inlet_water_temperature_tin", 1.0),
+    _g7_c.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: (
+        f"switch.{_G7B_SLUG}_night_mode_silent", 1.0),
+    "r404": (f"number.{_G7B_SLUG}_dhw_setpoint", 1.0),
+}
+_g7b_resolved = _g7b_dp.resolve(_g7b_records())
+R.check(
+    "the tuya_heat_pump table resolves each role to the fixture's own entity, at scale 1.0",
+    {role: (r.entity_ids, r.scale) for role, r in _g7b_resolved.items()}
+    == {role: ((eid,), scale) for role, (eid, scale) in _G7B_EXPECTED.items()},
+    f"got {_g7b_resolved}",
+)
+# The plate outlet (Tout, dp 106) reads a different water than T1; mapping it
+# to the supply slot would feed the curve the wrong temperature.
+R.check(
+    "the plate outlet Tout is not offered for any role",
+    not any(
+        "tout" in r.entity_ids[0] for r in _g7b_resolved.values()
+    ) and any("_tout" in rec.unique_id.lower() for rec in _g7b_records()),
+    f"{[r.entity_ids for r in _g7b_resolved.values()]}",
+)
+# A DHW set-point of 50 must suggest 50, not 5.0: the Tuya number already
+# reads degrees where register 404 holds tenths.
+_g7b_hass = FakeHass()
+_g7b_hass.states.set(_G7B_EXPECTED["r404"][0], FakeState("50"))
+_g7b_dev_snap = _g7_mp.snapshot(_g7b_hass.states.get, _g7b_resolved)
+_g7b_scale_hass = FakeHass()
+_g7b_scale_hass.states.set("sensor.hp_gchv_r404", FakeState("500"))
+_g7b_modbus_snap = _g7_mp.snapshot(_g7b_scale_hass.states.get, _g7_mp.candidates("hp"))
+R.check(
+    "50 from the device at scale 1.0 and 500 from register 404 at scale 0.1 both suggest 50",
+    _g7_mp.infer(_g7b_dev_snap, {})[_g7_c.CONF_DHW_SETPOINT] == 50.0
+    and _g7_mp.infer(_g7b_modbus_snap, {})[_g7_c.CONF_DHW_SETPOINT] == 50.0,
+    f"device={_g7_mp.infer(_g7b_dev_snap, {}).get(_g7_c.CONF_DHW_SETPOINT)} "
+    f"modbus={_g7_mp.infer(_g7b_modbus_snap, {}).get(_g7_c.CONF_DHW_SETPOINT)}",
+)
+# infer()'s only-when-empty rule, driven through the device route.
+_g7b_slots_hass = FakeHass()
+for _g7b_role, (_g7b_eid, _g7b_scale) in _G7B_EXPECTED.items():
+    _g7b_slots_hass.states.set(_g7b_eid, FakeState("21.5" if _g7b_role != "r404" else "50"))
+_g7b_slots_snap = _g7_mp.snapshot(_g7b_slots_hass.states.get, _g7b_resolved)
+_g7b_filled = _g7_mp.infer(
+    _g7b_slots_snap,
+    {_g7_c.CONF_OUTDOOR_TEMP_ENTITY: "sensor.my_own_outdoor", _g7_c.CONF_DHW_SETPOINT: 50.0},
+)
+R.check(
+    "a filled entity slot and a set-point already in force are not suggested again",
+    _g7_c.CONF_OUTDOOR_TEMP_ENTITY not in _g7b_filled
+    and _g7_c.CONF_DHW_SETPOINT not in _g7b_filled
+    and _g7b_filled[_g7_c.CONF_DHW_TEMP_ENTITY] == _G7B_EXPECTED[_g7_c.CONF_DHW_TEMP_ENTITY][0],
+    f"{_g7b_filled}",
+)
+# Resolution keys on the unique id, so a renamed entity resolves the same.
+R.check(
+    "a user-renamed entity id resolves to the renamed id, because the match is on unique_id",
+    _g7b_dp.resolve(_g7b_records(rename={
+        f"{_G7B_SLUG}_T4": "sensor.pump_outside_renamed_by_hand",
+    }))[_g7_c.CONF_OUTDOOR_TEMP_ENTITY].entity_ids == ("sensor.pump_outside_renamed_by_hand",),
+    f"{_g7b_dp.resolve(_g7b_records(rename={f'{_G7B_SLUG}_T4': 'sensor.pump_outside_renamed_by_hand'}))}",
+)
+R.check(
+    "a device from an integration with no source table resolves nothing",
+    _g7b_dp.resolve(_g7b_records(platform="some_other_integration")) == {},
+    f"{_g7b_dp.resolve(_g7b_records(platform='some_other_integration'))}",
+)
+R.check(
+    "a device with no entity a table names resolves nothing",
+    _g7b_dp.resolve([
+        _g7b_dp.EntityRecord("tuya_heat_pump", "kitchen_plug_state", "switch.kitchen_plug_state"),
+    ]) == {},
+    "resolved something",
+)
+# The domain is part of the match. A device named "Heat Night" slugs to
+# heat_night, so its `mode` select carries the unique id heat_night_mode --
+# which ends in the night_mode switch's key. Longest-key matching alone does
+# not separate them; the domain does.
+_g7b_night = [
+    _g7b_dp.EntityRecord("tuya_heat_pump", "heat_night_T4", "sensor.heat_night_outdoor"),
+    _g7b_dp.EntityRecord("tuya_heat_pump", "heat_night_Tin", "sensor.heat_night_inlet"),
+    _g7b_dp.EntityRecord("tuya_heat_pump", "heat_night_mode", "select.heat_night_operation_mode"),
+]
+_g7b_night_only = _g7b_dp.resolve(_g7b_night)
+_g7b_night_switch = _g7b_dp.resolve(_g7b_night + [
+    _g7b_dp.EntityRecord("tuya_heat_pump", "heat_night_night_mode", "switch.heat_night_night_mode"),
+])
+R.check(
+    "a 'Heat Night' device's mode select does not fill the capacity-limited flag",
+    _g7_c.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY not in _g7b_night_only
+    and _g7b_night_only[_g7_c.CONF_OUTDOOR_TEMP_ENTITY].entity_ids
+    == ("sensor.heat_night_outdoor",),
+    f"{_g7b_night_only}",
+)
+R.check(
+    "and with the night_mode switch present the flag resolves to that switch",
+    _g7b_night_switch[_g7_c.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY].entity_ids
+    == ("switch.heat_night_night_mode",),
+    f"{_g7b_night_switch}",
+)
+# temp_current_f (the tank) must not be read as temp_current (the T1 supply).
+R.check(
+    "the longest key wins, so temp_current_f is the tank and temp_current the supply",
+    _g7b_resolved[_g7_c.CONF_DHW_TEMP_ENTITY].entity_ids[0].endswith("dhw_tank_temperature")
+    and _g7b_resolved[_g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY].entity_ids[0].endswith(
+        "outlet_water_temperature_t1"),
+    f"{_g7b_resolved}",
+)
+# The signature: a Tuya heat pump of some other model, carrying none of the
+# pairs unique to 000004k4z6, gets nothing rather than a guess.
+R.check(
+    "a tuya_heat_pump device carrying none of the model-unique keys resolves nothing",
+    _g7b_dp.resolve(_g7b_records(drop={
+        f"{_G7B_SLUG}_T4", f"{_G7B_SLUG}_Tin",
+        f"{_G7B_SLUG}_night_mode", f"{_G7B_SLUG}_DHWSET",
+    })) == {},
+    f"{_g7b_dp.resolve(_g7b_records(drop={f'{_G7B_SLUG}_T4', f'{_G7B_SLUG}_Tin', f'{_G7B_SLUG}_night_mode', f'{_G7B_SLUG}_DHWSET'}))}",
+)
+# The fixture is generated, and says what it was generated from.
+R.check(
+    "the fixture records the upstream repository, path and commit it was built from",
+    _G7B_FIXTURE["upstream_repo"] == "tvofi/tuya_heat_pump"
+    and len(_G7B_FIXTURE["upstream_commit"]) == 40
+    and _G7B_FIXTURE["upstream_path"].endswith("models/000004k4z6.py")
+    and len(_G7B_FIXTURE["records"]) > 20,
+    f"{_G7B_FIXTURE['upstream_repo']}@{_G7B_FIXTURE['upstream_commit'][:7]} "
+    f"{len(_G7B_FIXTURE['records'])} records",
+)
+
+
 # ---------------------------------------------------------------------------
 # #1067 W1067-G5: the pump's own disinfection switch. Observe is the default
 # and writes nothing; control turns the switch on when the plan's boost window

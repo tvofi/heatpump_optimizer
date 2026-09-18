@@ -2939,6 +2939,12 @@
     "default": "'hp'",
     "required": "Optional",
     "selector": "TextSelector"
+   },
+   "prefill_device": {
+    "config": null,
+    "default": null,
+    "required": "Optional",
+    "selector": "DeviceSelector"
    }
   },
   "setup_overview": {},
@@ -5239,6 +5245,12 @@
    "default": "'hp'",
    "required": "Optional",
    "selector": "TextSelector"
+  },
+  "prefill_device": {
+   "config": null,
+   "default": null,
+   "required": "Optional",
+   "selector": "DeviceSelector"
   }
  },
  "setup_overview": {},

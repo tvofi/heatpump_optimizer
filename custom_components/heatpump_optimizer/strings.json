@@ -1267,6 +1267,7 @@
         "title": "Pre-fill from a Modbus heat pump",
         "description": "For a Rotenso Windmi or another GCHV-built heat pump read through the tuya_heat_pump project's Modbus package. Name the package's entity prefix and submit: the next form suggests values read from the pump's own registers - the hot water set-points and schedule, the anti-legionella days, the night mode schedule, whether the pump steers on water temperature, and the pump's own sensors for sensor slots that are still empty. Edit or clear any of them; only what you keep is saved, and a field you clear is left as it was. Nothing about the house or its heating system can be read this way.\n\nEntities read: {found}. Backup heater type register: {backup_heater_type} - any value but 7 means the pump has electric heat of its own, which the heater slots on Heat pump telemetry are there to watch.",
         "data": {
+          "prefill_device": "Heat pump device (optional)",
           "modbus_prefill_prefix": "Modbus package entity prefix",
           "dhw_setpoint": "Highest tank temperature to charge to",
           "dhw_min_temperature": "Hot water temperature you need",
@@ -1286,6 +1287,7 @@
           "after_save": "After saving"
         },
         "data_description": {
+          "prefill_device": "Pick the heat pump's own device to read its entities instead of a Modbus package. Leave it empty to use the prefix below. The suggestions come from that integration's published definitions, not from a reading of your unit, so check them.",
           "modbus_prefill_prefix": "The start of the package's entity ids: \"hp\" for sensor.hp_outdoor_air_temperature. It is saved only when the package was found under it.",
           "dhw_setpoint": "Read from the pump's DHW normal setpoint register (0194H), times 0.1.",
           "dhw_min_temperature": "Read from the pump's DHW economic setpoint register (0196H), times 0.1.",
@@ -1330,7 +1332,8 @@
       "min_power_above_max": "The heat pump's minimum power is above its maximum power.",
       "stored_value_out_of_range": "This value is outside the range this field normally accepts. The range was widened so the page can still be saved — check the value, and correct it if it looks wrong.",
       "flow_target_needs_two_zone": "\"Flow temperature\" derives from the two-zone building model's own flow curve, which this entry does not have configured. Configure the two-zone model first, or leave this at \"Indoor temperature\".",
-      "flow_curve_needs_direct_plant": "Pricing the supply temperature lift is for a system with no mixing valve. With a valve the buffer tank's temperature already prices the lift, so this would count it twice. Set the valve to \"No mixing valve\" or turn this off."
+      "flow_curve_needs_direct_plant": "Pricing the supply temperature lift is for a system with no mixing valve. With a valve the buffer tank's temperature already prices the lift, so this would count it twice. Set the valve to \"No mixing valve\" or turn this off.",
+      "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead."
     }
   },
   "selector": {

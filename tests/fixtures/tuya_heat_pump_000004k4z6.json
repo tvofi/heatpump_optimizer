@@ -1,0 +1,290 @@
+{
+  "_generated_by": "tools/gen_device_fixtures.py",
+  "upstream_repo": "tvofi/tuya_heat_pump",
+  "upstream_commit": "fda9bed19395267898570d72fe5e9324f523d574",
+  "upstream_path": "custom_components/tuya_heat_pump/models/000004k4z6.py",
+  "platform": "tuya_heat_pump",
+  "device_name": "Rotenso Windmi",
+  "records": [
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_DEF",
+      "entity_id": "binary_sensor.rotenso_windmi_defrosting",
+      "original_name": "Defrosting",
+      "translation_key": null,
+      "device_class": "cold",
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_fault",
+      "entity_id": "binary_sensor.rotenso_windmi_fault_alarm",
+      "original_name": "Fault Alarm",
+      "translation_key": null,
+      "device_class": "problem",
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_DHWSET",
+      "entity_id": "number.rotenso_windmi_dhw_setpoint",
+      "original_name": "DHW Setpoint",
+      "translation_key": null,
+      "device_class": null,
+      "unit": "°C",
+      "state_class": null
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_temp_set",
+      "entity_id": "number.rotenso_windmi_water_temperature_setpoint",
+      "original_name": "Water Temperature Setpoint",
+      "translation_key": null,
+      "device_class": null,
+      "unit": "°C",
+      "state_class": null
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_mode",
+      "entity_id": "select.rotenso_windmi_operation_mode",
+      "original_name": "Operation Mode",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_T3",
+      "entity_id": "sensor.rotenso_windmi_coil_temperature_t3",
+      "original_name": "Coil Temperature (T3)",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_T5",
+      "entity_id": "sensor.rotenso_windmi_compressor_discharge_temperature_t5",
+      "original_name": "Compressor Discharge Temperature (T5)",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_temp_current_f",
+      "entity_id": "sensor.rotenso_windmi_dhw_tank_temperature",
+      "original_name": "DHW Tank Temperature",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_POWER",
+      "entity_id": "sensor.rotenso_windmi_energy_demand_power",
+      "original_name": "Energy Demand (POWER)",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_T1B",
+      "entity_id": "sensor.rotenso_windmi_external_heat_source_outlet_temperature_t1b",
+      "original_name": "External Heat Source Outlet Temperature (T1B)",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_fault_description",
+      "entity_id": "sensor.rotenso_windmi_fault_description",
+      "original_name": "Fault Description",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_Tin",
+      "entity_id": "sensor.rotenso_windmi_heat_exchanger_inlet_water_temperature_tin",
+      "original_name": "Heat Exchanger Inlet Water Temperature (Tin)",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_Tout",
+      "entity_id": "sensor.rotenso_windmi_heat_exchanger_outlet_water_temperature_tout",
+      "original_name": "Heat Exchanger Outlet Water Temperature (Tout)",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_water_delta_t",
+      "entity_id": "sensor.rotenso_windmi_heat_exchanger_water_t",
+      "original_name": "Heat Exchanger Water ΔT",
+      "translation_key": null,
+      "device_class": null,
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_T9",
+      "entity_id": "sensor.rotenso_windmi_inverter_module_temperature_t9",
+      "original_name": "Inverter Module Temperature (T9)",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_T4",
+      "entity_id": "sensor.rotenso_windmi_outdoor_ambient_temperature_t4",
+      "original_name": "Outdoor Ambient Temperature (T4)",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_temp_current",
+      "entity_id": "sensor.rotenso_windmi_outlet_water_temperature_t1",
+      "original_name": "Outlet Water Temperature (T1)",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_TL",
+      "entity_id": "sensor.rotenso_windmi_refrigerant_pipe_temperature_tl",
+      "original_name": "Refrigerant Pipe Temperature (TL)",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_timer",
+      "entity_id": "sensor.rotenso_windmi_timer_schedule_raw",
+      "original_name": "Timer Schedule (raw)",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_WP_speed",
+      "entity_id": "sensor.rotenso_windmi_water_pump_gear",
+      "original_name": "Water Pump Gear",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_T6",
+      "entity_id": "sensor.rotenso_windmi_wired_controller_temperature_t6",
+      "original_name": "Wired Controller Temperature (T6)",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_Tw2",
+      "entity_id": "sensor.rotenso_windmi_zone_2_outlet_water_temperature_tw2",
+      "original_name": "Zone 2 Outlet Water Temperature (Tw2)",
+      "translation_key": null,
+      "device_class": "temperature",
+      "unit": "°C",
+      "state_class": "measurement"
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_disinfection",
+      "entity_id": "switch.rotenso_windmi_dhw_disinfection_anti_legionella",
+      "original_name": "DHW Disinfection (Anti-Legionella)",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_switch_microwave",
+      "entity_id": "switch.rotenso_windmi_dhw_tank_electric_heater",
+      "original_name": "DHW Tank Electric Heater",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_instant_heating",
+      "entity_id": "switch.rotenso_windmi_electric_backup_heater",
+      "original_name": "Electric Backup Heater",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_force_defrost",
+      "entity_id": "switch.rotenso_windmi_force_defrost",
+      "original_name": "Force Defrost",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_night_mode",
+      "entity_id": "switch.rotenso_windmi_night_mode_silent",
+      "original_name": "Night Mode (Silent)",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    },
+    {
+      "platform": "tuya_heat_pump",
+      "unique_id": "rotenso_windmi_switch",
+      "entity_id": "switch.rotenso_windmi_power",
+      "original_name": "Power",
+      "translation_key": null,
+      "device_class": null,
+      "unit": null,
+      "state_class": null
+    }
+  ]
+}

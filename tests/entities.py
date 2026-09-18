@@ -641,7 +641,12 @@ for _lang_file in ("strings.json", "translations/sv.json"):
             for _k, _label in _step_texts(_st, "data")
             if _k == _pkey
         }
-        if _pkey != const.CONF_MODBUS_PREFILL_PREFIX and set(_homes.values()) != {_plabel}:
+        # The page's OWN fields -- the prefix row and the transient device
+        # pick (#1067 G7b-1) -- have no home page to agree with. Derived from
+        # production, so a renamed field cannot silently fall out of the check.
+        if _pkey not in (
+            const.CONF_MODBUS_PREFILL_PREFIX, config_flow._PREFILL_DEVICE,
+        ) and set(_homes.values()) != {_plabel}:
             _prefill_drift.append(f"{_lang_file}:{_pkey}={_plabel!r} vs {_homes}")
 R.check(
     "the Modbus pre-fill page labels every suggested key as its own page does",
@@ -15384,13 +15389,24 @@ R.check(
     "narrowing INERT to tools/audit/ (#372) must not still cover "
     "tools/release/stamp.py, or the recorder has nothing to pull it into",
 )
-R.check(
-    "narrowing INERT moves exactly stamp.py into the must-classify set",
-    [f for f in __import__("subprocess").run(
+# Every tools/ file outside tools/audit/ must be classified. This replaced an
+# equality against the single-element list ["tools/release/stamp.py"] (#1067
+# G7b-1, which added tools/gen_device_fixtures.py): that literal said "there
+# is one such file", which is not the property #372's narrowing bought. The
+# property is that narrowing INERT leaves every non-audit tools/ file for the
+# recorder to classify, and it holds for any number of them.
+_tools_outside_audit = [
+    f for f in __import__("subprocess").run(
         ["git", "ls-files", "tools/"], cwd=_closure.ROOT,
         capture_output=True, text=True).stdout.split()
-     if not f.startswith("tools/audit/")] == ["tools/release/stamp.py"],
-    "tools/ should hold exactly one file outside tools/audit/",
+    if not f.startswith("tools/audit/")
+]
+R.check(
+    "narrowing INERT leaves every non-audit tools/ file in the must-classify set",
+    "tools/release/stamp.py" in _tools_outside_audit
+    and not [f for f in _tools_outside_audit if _closure.is_inert(f)],
+    f"{_tools_outside_audit}; inert among them "
+    f"{[f for f in _tools_outside_audit if _closure.is_inert(f)]}",
 )
 # The claim above ("now shows up in this script's own recorded closure") was
 # stated but never asserted -- issue #372's own acceptance criterion 4 asks
