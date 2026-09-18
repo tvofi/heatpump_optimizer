@@ -1083,6 +1083,7 @@
           "disinfection": {
             "name": "Desinfektion",
             "data": {
+              "dhw_disinfection_mode": "Läge för desinfektionsbrytaren",
               "dhw_disinfection_switch_entity": "Pumpens desinfektionsbrytare (valfri)",
               "dhw_elastic_legionella_enabled": "Låt legionellacykeln välja en billig dag",
               "dhw_free_disinfection_enabled": "Tillgodoräkna desinfektion från andra värmekällor",
@@ -1090,7 +1091,8 @@
               "dhw_quantile_targets_enabled": "Lär in varmvattenbehov för tunga dagar"
             },
             "data_description": {
-              "dhw_disinfection_switch_entity": "En brytare eller hjälpare som startar värmepumpens eget legionellaprogram. Optimeraren läser bara av den och visar dess tillstånd bland varmvattensensorns attribut, så att du kan se om pumpens program är på medan en desinfektionscykel pågår. Den slår aldrig på eller av brytaren, och den ändrar inte planen.",
+              "dhw_disinfection_mode": "Observera läser brytaren och skriver aldrig till den. Styra slår på den när en legionellacykel börjar och av den när cykeln är slut, men slår aldrig på den medan pumpens driftläge inte gör varmvatten. Den slår bara av en brytare som den själv slog på: en brytare som redan var på när cykeln började lämnas i fred. En begränsning: om du slår på brytaren för hand medan en cykel som optimeraren startade pågår, slås den av när cykeln är slut, eftersom de två inte går att skilja åt. Styra kräver brytaren ovan.",
+              "dhw_disinfection_switch_entity": "En brytare eller hjälpare som startar värmepumpens eget legionellaprogram. I läget observera läses bara dess tillstånd och visas bland varmvattensensorns attribut; i läget styra slår integrationen på den när en desinfektionscykel börjar och av den när cykeln är slut.",
               "dhw_elastic_legionella_enabled": "Låt legionellacykeln köras en dag eller två tidigare när elen är ovanligt billig, i stället för att alltid vänta till sista dagen. Sista dagen hålls alltid.",
               "dhw_free_disinfection_enabled": "Om en vedpanna, solslinga eller elpatron redan får tanken till legionellatemperatur och håller den där, räkna det som en genomförd cykel i stället för att köra en till.",
               "dhw_legionella_min_interval_days": "Kör aldrig legionellacykler tätare än så här, även på mycket billiga dagar.",
@@ -1311,6 +1313,7 @@
       "dhw_window_too_short": "En varmvattenperiod är kortare än {min_window_minutes} minuter. Planen görs i steg om {min_window_minutes} minuter, så en kortare period kan hamna mellan två steg och aldrig få någon verkan.",
       "freq_control_needs_number": "Styrning skriver frekvensen via en number-entitet. Välj en, eller behåll läget observera: en frekvenssensor ensam kan bara observeras.",
       "silent_mode_window_too_short": "Ett tidsfönster för tyst läge är kortare än {min_window_minutes} minuter. Planen görs i steg om {min_window_minutes} minuter, så ett kortare fönster kan hamna mellan två steg och aldrig få effekt.",
+      "disinfection_control_needs_entity": "Styra slår på och av pumpens desinfektionsbrytare, så det kräver en sådan. Välj brytaren ovan, eller ställ tillbaka läget på observera.",
       "dhw_min_too_close": "Ett varmvattenminimum s\\u00e5 n\\u00e4ra b\\u00f6rv\\u00e4rdet l\\u00e4mnar tanken utan arbetsband; h\\u00e5ll det minst 5 \\u00b0C under b\\u00f6rv\\u00e4rdet.",
       "invalid_grid_fee_rules": "Avgiftsreglerna kunde inte läsas. En regel per rad, som \"Nov-Mar Mån-Fre 06:00-22:00 = 0.25\".",
       "grid_fee_rules_negative": "En avgiftsregel har en negativ avgift. En överföringsavgift är en kostnad, så varje avgift måste vara noll eller högre – ett minustecken här får planen att behandla de timmarna som subventionerade.",
@@ -1401,6 +1404,12 @@
         "entity": "Sensor"
       }
     },
+    "dhw_disinfection_mode": {
+      "options": {
+        "observe": "Observera (läs och visa bara)",
+        "control": "Styra (slå på och av brytaren)"
+      }
+    },
     "freq_control_mode": {
       "options": {
         "observe": "Observera (lär och rekommendera enbart)",
@@ -1474,6 +1483,14 @@
     "pump_mode_unreadable": {
       "title": "Värmepumpens driftlägesenhet rapporterar inte",
       "description": "Enheten du valt för värmepumpens driftläge har inte gått att läsa på över {hours} timmar. Det senaste läget den rapporterade var ”{mode}”, och fram tills nu har planen fortfarande hållits till vad det läget klarar. Så är det inte längre: ett driftläge som ingen kunnat läsa på timmar säger inget om vad pumpen gör, och att fortsätta stänga av värme eller varmvatten utifrån det vore att låta dig frysa på en död givares ord. Planen utgår återigen från att pumpen klarar allt, precis som innan du konfigurerade enheten. Kontrollera att enheten fortfarande finns och är tillgänglig, eller töm fältet om du inte vill använda den. Meddelandet försvinner så snart enheten rapporterar igen."
+    },
+    "dhw_disinfection_switch_lost": {
+      "title": "Pumpens desinfektionsbrytare kan fortfarande vara på",
+      "description": "Optimeraren slog på {entity_id} för en desinfektionscykel, men brytaren har inte gått att läsa på en halvtimme – den kan ha bytt namn, tagits bort eller ersatts i de här inställningarna – så optimeraren kan inte längre slå av den och har slutat försöka. Kontrollera värmepumpens egen desinfektionsbrytare och slå av den om den fortfarande är på. Om du bytte namn på den, slå av den för hand innan du väljer den nya entiteten på inställningssidan för varmvattentanken: optimeraren slår bara av en brytare som den själv slog på, så en brytare som redan är på lämnas i fred."
+    },
+    "dhw_disinfection_write_failed": {
+      "title": "Pumpens desinfektionsbrytare kunde inte ställas",
+      "description": "Legionellacykeln försökte ställa {entity_id}, men Home Assistant avvisade anropet, så pumpens eget desinfektionsprogram kanske inte körs när planen räknar med det. Skrivningen görs om vid varje uppdatering, och meddelandet försvinner av sig självt så snart en går igenom. Kontrollera att entiteten finns och är tillgänglig, eller ställ tillbaka desinfektionsbrytarens läge på observera."
     },
     "dhw_legionella_mode_blocked": {
       "title": "Desinfektionen av varmvattnet är försenad: värmepumpens driftläge blockerar den",

@@ -2604,6 +2604,16 @@
     },
     "default": null,
     "fields": {
+     "dhw_disinfection_mode": {
+      "config": {
+       "mode": "'dropdown'",
+       "options": "['observe', 'control']",
+       "translation_key": "'dhw_disinfection_mode'"
+      },
+      "default": "'observe'",
+      "required": "Optional",
+      "selector": "SelectSelector"
+     },
      "dhw_disinfection_switch_entity": {
       "config": {
        "filter": "[{'domain': ['switch', 'input_boolean']}]"
@@ -4894,6 +4904,16 @@
    },
    "default": null,
    "fields": {
+    "dhw_disinfection_mode": {
+     "config": {
+      "mode": "'dropdown'",
+      "options": "['observe', 'control']",
+      "translation_key": "'dhw_disinfection_mode'"
+     },
+     "default": "'observe'",
+     "required": "Optional",
+     "selector": "SelectSelector"
+    },
     "dhw_disinfection_switch_entity": {
      "config": {
       "filter": "[{'domain': ['switch', 'input_boolean']}]"
