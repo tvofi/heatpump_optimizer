@@ -622,6 +622,32 @@ R.check(
     not _missing_labels,
     ", ".join(_missing_labels[:8]),
 )
+# #1067 G7: the Modbus pre-fill page re-labels keys that live on other pages,
+# and its labels are copies. A copy that drifts from the home page's label
+# names one setting two ways, so each is compared, in both shipped languages.
+_prefill_drift = []
+for _lang_file in ("strings.json", "translations/sv.json"):
+    _lang_steps = json.loads((ROOT / _lang_file).read_text())["options"]["step"]
+    for _pkey, _plabel in _lang_steps["modbus_prefill"]["data"].items():
+        # A home page may group the field into a section() (#824-style), which
+        # keeps its label under sections.<name>.data rather than the step's
+        # own top-level data -- _step_texts already walks both, so read the
+        # home page through it rather than _st["data"] alone (that copy
+        # missed every grouped field, one page's worth here: hot_water).
+        _homes = {
+            _sid: _label
+            for _sid, _st in _lang_steps.items()
+            if _sid != "modbus_prefill"
+            for _k, _label in _step_texts(_st, "data")
+            if _k == _pkey
+        }
+        if _pkey != const.CONF_MODBUS_PREFILL_PREFIX and set(_homes.values()) != {_plabel}:
+            _prefill_drift.append(f"{_lang_file}:{_pkey}={_plabel!r} vs {_homes}")
+R.check(
+    "the Modbus pre-fill page labels every suggested key as its own page does",
+    not _prefill_drift and len(_lang_steps["modbus_prefill"]["data"]) > 2,
+    "; ".join(_prefill_drift),
+)
 R.check(
     "the README does not list Enable away mode as an options-page field",
     "| Enable away mode |" not in readme
@@ -5338,6 +5364,14 @@ for _step in options._MENU_LABELS:
             _sschema(empty_section_payload(_sschema))
         )
     )
+    if _sresult.get("type") == "form" and _sresult.get("step_id") == _step and not _sresult.get("errors"):
+        # #1067 G7: a two-submit page. The Modbus pre-fill's first submit
+        # opens a preview of its own step and the preview's submit saves, so
+        # the untouched press is followed once, never looped.
+        _sschema = _sresult["data_schema"]
+        _sresult = asyncio.run(
+            getattr(_sf, f"async_step_{_step}")(_sschema(empty_section_payload(_sschema)))
+        )
     _kind = _sresult.get("type")
     if _kind == "create_entry":
         # The explicit close choice (#100). Untouched submissions default
@@ -5881,6 +5915,12 @@ for _step in options._MENU_LABELS:
         _rejected.append(f"{_step}: {type(err).__name__}: {err}")
         continue
     _rt_result = asyncio.run(getattr(_rt_flow, f"async_step_{_step}")(_rt_valid))
+    if _rt_result.get("type") == "form" and _rt_result.get("step_id") == _step and not _rt_result.get("errors"):
+        # The two-submit pre-fill page (#1067 G7): its preview's submit saves.
+        _rt_schema = _rt_result["data_schema"]
+        _rt_result = asyncio.run(
+            getattr(_rt_flow, f"async_step_{_step}")(_rt_schema(_submission(_rt_schema)))
+        )
     if _rt_result.get("type") not in ("create_entry", "menu"):
         _rejected.append(f"{_step}: submit returned {_rt_result.get('type')}")
     elif _rt_result.get("type") == "menu" and not _rt_result.get("menu_options"):

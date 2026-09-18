@@ -413,7 +413,8 @@
           "learning_features": "Avancerade inlärningsfunktioner",
           "grid_connection": "Säkring och effekttak",
           "grid_fees": "Överföringsavgifter och avtal",
-          "heat_curve": "Värmekurvestyrning (ECL110)"
+          "heat_curve": "Värmekurvestyrning (ECL110)",
+          "modbus_prefill": "Förifyll från en Modbus-värmepump"
         }
       },
       "setup_overview": {
@@ -1258,6 +1259,48 @@
               "upper_floor_area_ratio": "Andel av total golvyta som ligger på övre planet. 0,5 betyder att planen är lika stora."
             }
           }
+        }
+      },
+      "modbus_prefill": {
+        "title": "Förifyll från en Modbus-värmepump",
+        "description": "För en Rotenso Windmi eller en annan GCHV-byggd värmepump som läses via tuya_heat_pump-projektets Modbus-paket. Ange paketets entitetsprefix och skicka: nästa formulär föreslår värden som lästs ur pumpens egna register - varmvattnets börvärden och schema, dagarna för legionellaskydd, nattlägets schema, om pumpen styr på vattentemperatur, och pumpens egna givare för givarfält som fortfarande är tomma. Ändra eller töm vilket som helst av dem; bara det du behåller sparas, och ett fält du tömmer lämnas som det var. Inget om huset eller dess värmesystem går att läsa ut på det här sättet.\n\nLästa entiteter: {found}. Registret för tillsatsvärmens typ: {backup_heater_type} - allt utom 7 betyder att pumpen har egen elvärme, och det är den som elpatronfälten under Värmepumps telemetri finns till för att bevaka.",
+        "data": {
+          "modbus_prefill_prefix": "Modbus-paketets entitetsprefix",
+          "dhw_setpoint": "Högsta temperatur att ladda till",
+          "dhw_min_temperature": "Varmvattentemperatur du behöver",
+          "dhw_windows": "När du behöver varmvatten",
+          "dhw_legionella_temperature": "Legionellatemperatur",
+          "dhw_legionella_interval_days": "Intervall för legionellaskydd",
+          "silent_mode_windows": "Värmepumpens schema för tyst läge",
+          "heat_pump_max_power": "Värmepump max effekt (kW)",
+          "space_setpoint_unit": "Vad den börvärdesenheten förväntar sig",
+          "mixing_valve_write_target_kind": "Vad styrenheten förväntar sig",
+          "outdoor_temp_entity": "Utomhusgivare",
+          "dhw_temp_entity": "Givare för varmvattenberedarens temperatur",
+          "heat_pump_supply_temp_entity": "Framledningstemperatur",
+          "heat_pump_return_temp_entity": "Returtemperatur",
+          "compressor_freq_sensor": "Sensor för faktisk frekvens (rekommenderas för styrning)",
+          "heat_pump_capacity_limited_entity": "Begränsad effekt (nattläge)",
+          "after_save": "Efter sparande"
+        },
+        "data_description": {
+          "modbus_prefill_prefix": "Början på paketets entitets-id: \"hp\" för sensor.hp_outdoor_air_temperature. Det sparas bara när paketet hittades under det.",
+          "dhw_setpoint": "Läst ur pumpens register för normalt varmvattenbörvärde (0194H), gånger 0,1.",
+          "dhw_min_temperature": "Läst ur pumpens register för ekonomiskt varmvattenbörvärde (0196H), gånger 0,1.",
+          "dhw_windows": "Läst ur pumpens register för varmvattenschemats start och stopp (02C8H, 02C9H), vardera timme gånger 256 plus minut, bara medan schemat har en dag vald. Att spara en tidsram för varmvatten här slår på planeringen av varmvatten, precis som på sidan Varmvatten.",
+          "dhw_legionella_temperature": "Läst ur pumpens register för legionellabörvärde (0195H), gånger 0,1.",
+          "dhw_legionella_interval_days": "Sju dagar delat med antalet dagar som är valda i pumpens legionellaschema (02CAH), avrundat nedåt.",
+          "silent_mode_windows": "Läst ur pumpens register för nattlägets start och slut (0206H, 0207H), vardera timme gånger 256 plus minut.",
+          "heat_pump_max_power": "Pumpens register för enhetens kapacitet, i kW värme, delat med den nominella COP som gäller.",
+          "space_setpoint_unit": "Föreslås som framledning när pumpens register för styrläge (100DH) står på vattentemperaturstyrning.",
+          "mixing_valve_write_target_kind": "Föreslås som framledning vid vattentemperaturstyrning, bara där tvåzonsmodellen som sidan för värmesystemet kräver för det är konfigurerad.",
+          "outdoor_temp_entity": "Paketets givare för utomhustemperatur, föreslås bara medan fältet är tomt.",
+          "dhw_temp_entity": "Paketets givare för varmvattenberedarens temperatur, föreslås bara medan fältet är tomt.",
+          "heat_pump_supply_temp_entity": "Paketets givare för utgående vattentemperatur (T1), föreslås bara medan fältet är tomt.",
+          "heat_pump_return_temp_entity": "Paketets givare för ingående vattentemperatur (Tw-in), föreslås bara medan fältet är tomt.",
+          "compressor_freq_sensor": "Paketets givare för kompressorns faktiska frekvens, föreslås bara medan fältet är tomt.",
+          "heat_pump_capacity_limited_entity": "Paketets givare för aktivt nattläge (frekvensbegränsning), föreslås bara medan fältet är tomt.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       }
     },

@@ -851,6 +851,10 @@
    [
     "heat_curve",
     "Heat curve control (ECL110)"
+   ],
+   [
+    "modbus_prefill",
+    "Pre-fill from a Modbus heat pump"
    ]
   ],
   "init": [
@@ -2905,6 +2909,26 @@
     },
     "required": "str",
     "selector": "section"
+   }
+  },
+  "modbus_prefill": {
+   "after_save": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['menu', 'close']",
+     "translation_key": "'after_save'"
+    },
+    "default": "'menu'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
+   "modbus_prefill_prefix": {
+    "config": {
+     "type": "'text'"
+    },
+    "default": "'hp'",
+    "required": "Optional",
+    "selector": "TextSelector"
    }
   },
   "setup_overview": {},
@@ -5175,6 +5199,26 @@
    },
    "required": "str",
    "selector": "section"
+  }
+ },
+ "modbus_prefill": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "modbus_prefill_prefix": {
+   "config": {
+    "type": "'text'"
+   },
+   "default": "'hp'",
+   "required": "Optional",
+   "selector": "TextSelector"
   }
  },
  "setup_overview": {},

@@ -482,6 +482,11 @@ CONF_SILENT_MODE_WINDOWS: Final = "silent_mode_windows"
 DEFAULT_SILENT_MODE_WINDOWS: Final = ""
 CONF_SILENT_MODE_FRACTION: Final = "silent_mode_power_fraction"
 DEFAULT_SILENT_MODE_FRACTION: Final = 1.0
+# #1067 (W1067-G7): the entity-id prefix of a GCHV Modbus package the options
+# flow reads suggestions from (modbus_prefill.py). "hp" is the package
+# generator's own; the key is read only by that page, never by the plan.
+CONF_MODBUS_PREFILL_PREFIX: Final = "modbus_prefill_prefix"
+DEFAULT_MODBUS_PREFILL_PREFIX: Final = "hp"
 CONF_OUTAGE_RECOVERY_ENABLED: Final = "outage_recovery_enabled"
 DEFAULT_OUTAGE_RECOVERY_ENABLED: Final = False
 
