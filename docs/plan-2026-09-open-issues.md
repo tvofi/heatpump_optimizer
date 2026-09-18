@@ -1365,6 +1365,44 @@ states its window or it states nothing.
   happen regardless of whether the fix helped. Closing is the owner's call
   and this section does not make it.
 
+**Two more, filed 2026-09-17T21:14Z, are not new friction — they are the
+filing path's own bug.** `friction_issues.mjs` dedups before filing on
+byte-exact issue title (`pickExact`, and the `"<title>" in:title` search
+built from `titleFor(key)`); the below-threshold **comment** path was fixed
+to key on the normalized policy-file id (`policy_lint.mjs
+--normalize-friction-keys`, landed with the close path in #1119) but the
+**filing** path was not, so a run against a key already open under its
+pre-normalization title spelling searches for the wrong string and files a
+second issue. Verified at `origin/main`, piping both spellings through
+`node .claude/workflows/policy_lint.mjs --normalize-friction-keys`:
+
+```
+.claude/rules/ratchet-budgets.md	.claude/rules/ratchet-budgets.md
+ratchet-budgets.md	.claude/rules/ratchet-budgets.md
+tools/audit/briefs/fixer.md	tools/audit/briefs/fixer.md
+fixer.md	tools/audit/briefs/fixer.md
+```
+
+- **[#1127](https://github.com/tvofi/heatpump_optimizer/issues/1127)
+  (`.claude/rules/ratchet-budgets.md`) — DUPLICATE of
+  [#1070](https://github.com/tvofi/heatpump_optimizer/issues/1070), same
+  canonical key, both open. DEFERRED pending
+  [#1132](https://github.com/tvofi/heatpump_optimizer/pull/1132) (in review),
+  which fixes the filing path; to be closed as a duplicate by the orchestrator
+  once that fix lands and the duplication is confirmed against it. Not closed
+  here — the record seat fixes nothing and does not act on either issue,
+  per `CLAUDE.md`'s fix-verify-file order and this task's own scope. #1070's
+  own disposition (DEFERRED, above) is unchanged by this entry.
+- **[#1128](https://github.com/tvofi/heatpump_optimizer/issues/1128)
+  (`tools/audit/briefs/fixer.md`) — DUPLICATE of
+  [#1087](https://github.com/tvofi/heatpump_optimizer/issues/1087), same
+  canonical key, both open. DEFERRED pending
+  [#1132](https://github.com/tvofi/heatpump_optimizer/pull/1132) (in review),
+  which fixes the filing path; to be closed as a duplicate by the orchestrator
+  once that fix lands and the duplication is confirmed against it. Not closed
+  here, for the same reason as #1127. #1087's own disposition (DELIVERED by
+  #1118, above) is unchanged by this entry.
+
 ## Carried findings awaiting a stage
 
 - **An input-side carrier for `_optimize_space_only`, from #224's stage-5 brief
