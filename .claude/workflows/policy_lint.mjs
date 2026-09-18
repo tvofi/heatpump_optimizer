@@ -1414,10 +1414,42 @@ function sizes(files) {
 // the floor and the per-role loop. A rot fixture cannot reach them either,
 // because the caps are recorded per real file. Driving the real function with a
 // deliberately impossible budget is what gives each comparison a witness.
+// The working band, and why only the five aggregates get one. A cap re-recorded
+// to the measured value every time leaves zero headroom, so the NEXT pull
+// request is refused by whatever it adds -- and the refusal is not about that
+// pull request's prose, it is about the previous seat's arithmetic. Measured on
+// this corpus: twenty consecutive commits at exactly zero corpus headroom, and
+// zero headroom refused no accretion over that window. What it did produce is a
+// confiscation edit -- a one-line change to `corpus_tokens` with no corpus file
+// in the commit at all -- and a two-branch collision where main and a branch
+// re-record the same line over different bases, neither number is right after
+// the merge and the deltas do not add (#1122).
+//
+// So the five aggregate caps are compared against `cap + band`. The recorded
+// cap stays the honest LAST MEASUREMENT, which is what makes a re-record
+// meaningful; the band is the room a seat works in without touching it. The
+// ratchet still bites, one band later, and that is the property the null
+// control pins: a brief-sized addition is still refused.
+//
+// The per-file caps deliberately get NO band. They are a per-document ratchet a
+// seat pays one document at a time, the payment is small and local, and a band
+// there would buy silent growth in every one of 39 files at once.
+//
+// Absent or unparseable, the band is 0 and every comparison is what it was.
+function bandOf(b) {
+  const n = Number(b && b._band)
+  return Number.isFinite(n) && n > 0 ? n : 0
+}
+
 function checkBudgets(files, budget) {
   const b = budget !== undefined ? budget : policyBudgets()
   if (!b) return []
   const out = []
+  const band = bandOf(b)
+  const ceiling = (cap) => cap + band
+  // What the seat is told it exceeded: the ceiling it actually hit, and the two
+  // numbers it is made of, so nobody reads a stale-looking cap as the refusal.
+  const capPhrase = (cap) => (band ? `${ceiling(cap)} (the recorded ${cap} plus the working band of ${band})` : `${cap}`)
   const rows = sizes(files)
   for (const r of rows) {
     const cap = b.files[r.file]
@@ -1440,12 +1472,12 @@ function checkBudgets(files, budget) {
     }
   }
   const alwaysTokens = rows.filter((r) => r.always).reduce((n, r) => n + Math.round(r.bytes / 4), 0)
-  if (b.always_loaded_tokens != null && alwaysTokens > b.always_loaded_tokens) {
+  if (b.always_loaded_tokens != null && alwaysTokens > ceiling(b.always_loaded_tokens)) {
     out.push({
       severity: 'error',
       check: 'budgets',
       where: '(always-loaded set)',
-      message: `about ${alwaysTokens} tokens exceeds the cap of ${b.always_loaded_tokens}. Every seat pays this before its first productive read.`,
+      message: `about ${alwaysTokens} tokens exceeds the cap of ${capPhrase(b.always_loaded_tokens)}. Every seat pays this before its first productive read.`,
     })
   }
 
@@ -1459,23 +1491,23 @@ function checkBudgets(files, budget) {
   // the corpus, which a move does not change, and the per-role load, which is
   // what a seat that opens a file actually pays.
   const corpusTokens = rows.reduce((n, r) => n + Math.round(r.bytes / 4), 0)
-  if (b.corpus_tokens != null && corpusTokens > b.corpus_tokens) {
+  if (b.corpus_tokens != null && corpusTokens > ceiling(b.corpus_tokens)) {
     out.push({
       severity: 'error',
       check: 'budgets',
       where: '(whole corpus)',
-      message: `about ${corpusTokens} tokens exceeds the cap of ${b.corpus_tokens}. Moving prose between policy files does not change this number, which is why it is here: cut it, or raise the cap in the diff a reviewer reads.`,
+      message: `about ${corpusTokens} tokens exceeds the cap of ${capPhrase(b.corpus_tokens)}. Moving prose between policy files does not change this number, which is why it is here: cut it, or raise the cap in the diff a reviewer reads.`,
     })
   }
 
   for (const [role, spec] of Object.entries(b.roles || {})) {
     const t = roleTokens(rows, spec.opens)
-    if (spec.cap != null && t > spec.cap) {
+    if (spec.cap != null && t > ceiling(spec.cap)) {
       out.push({
         severity: 'error',
         check: 'budgets',
         where: `(role ${role})`,
-        message: `about ${t} tokens exceeds the cap of ${spec.cap}. This is what the seat loads once it opens ${spec.opens.join(', ')} -- the floor in always_loaded_tokens is what it pays before that.`,
+        message: `about ${t} tokens exceeds the cap of ${capPhrase(spec.cap)}. This is what the seat loads once it opens ${spec.opens.join(', ')} -- the floor in always_loaded_tokens is what it pays before that.`,
       })
     }
   }
@@ -3609,6 +3641,45 @@ function assertAcceptance(derived) {
     return 1
   }
 
+  // The working band. Three properties, none of which has a witness on a
+  // healthy corpus: it applies to the five aggregates, it does NOT apply to the
+  // per-file caps, and the ratchet still bites one band later. Deleting
+  // `_band`'s effect, or leaking it to the file comparison, are both plausible
+  // one-token edits and each passes every pin above.
+  //
+  // The boundary is what pins the arithmetic. At cap = measured - band the
+  // aggregates are exactly at their ceiling and the strict `>` must stay
+  // silent, while the SAME caps refuse every file, which is the leak test. One
+  // token lower and all three aggregates must fire -- `cap * 2`, `cap + 1e9`
+  // and a band applied unconditionally all stay silent there.
+  const BAND_PROBE = 500
+  const banded = (delta) => ({ ...scaled(delta), _band: BAND_PROBE })
+  pins += 3
+  const atCeiling = checkBudgets(policyFiles(), banded(-BAND_PROBE))
+  const ceilingClasses = new Set(atCeiling.map(classOf))
+  for (const cls of ['floor', 'corpus', 'role']) {
+    if (!ceilingClasses.has(cls)) continue
+    console.log(`\nFIXTURE OVER-FIRES: the '${cls}' comparison fired with the cap one band below the measured value, so _band is not being added to it. A band nothing honours is a band that silently is not there.`)
+    return 1
+  }
+  if (!ceilingClasses.has('file')) {
+    console.log(`\nFIXTURE VACUOUS: the per-file comparison stayed silent with every file cap ${BAND_PROBE} below its measured size, so _band is leaking into the per-file caps. Those are a per-document ratchet and are compared exactly; a band there buys silent growth in every capped file at once.`)
+    return 1
+  }
+  const pastBand = new Set(checkBudgets(policyFiles(), banded(-BAND_PROBE - 1)).map(classOf))
+  for (const cls of ['floor', 'corpus', 'role']) {
+    if (pastBand.has(cls)) continue
+    console.log(`\nFIXTURE VACUOUS: the '${cls}' comparison stayed silent one token past its cap plus _band, so the band does not end. The band is working room, not an exemption -- the ratchet has to bite one band later.`)
+    return 1
+  }
+  // And the default. Every budget injected above omits `_band`, so the whole
+  // acceptance would still pass if an absent band read as some non-zero number.
+  pins += 1
+  if (bandOf({}) !== 0 || bandOf({ _band: 'wide' }) !== 0 || bandOf({ _band: -1 }) !== 0) {
+    console.log(`\nFIXTURE VACUOUS: an absent, unparseable or negative _band does not read as 0, so a budget file that never opted in would be compared against a ceiling nobody recorded.`)
+    return 1
+  }
+
   // Orphan caps. A cap on a file no POLICY_GLOBS pattern matches is compared
   // against nothing, which made "give it a cap" a way out of the corpus. False
   // on a healthy tree like every other budget property, so it is driven.
@@ -4758,14 +4829,20 @@ function cmdBudgets(files) {
     if (r.always) alwaysTokens += Math.round(r.bytes / 4)
     console.log(r.file.padEnd(46), String(r.lines).padStart(5), cap.padStart(4), String(Math.round(r.bytes / 4)).padStart(8), r.always ? '  yes' : '')
   }
-  console.log(`\nalways-loaded: ~${alwaysTokens} tokens, cap ${b ? b.always_loaded_tokens : '-'}`)
+  // The band is printed on every aggregate row, not once in a footer. A seat
+  // reads one line to decide whether it is refused, and a cap that now sits
+  // below the measurement is only honest beside the ceiling it is half of.
+  const band = bandOf(b)
+  const agg = (cap) => (cap == null ? 'cap -' : band ? `cap ${cap} +band ${band} = ${cap + band}` : `cap ${cap}`)
+  console.log(`\nalways-loaded: ~${alwaysTokens} tokens, ${agg(b ? b.always_loaded_tokens : null)}`)
   // The floor alone reads as the corpus cost; printing the three together is
   // what stops a re-record of one being mistaken for an improvement in all.
   const corpusTokens = rows.reduce((n, r) => n + Math.round(r.bytes / 4), 0)
-  console.log(`corpus:        ~${corpusTokens} tokens, cap ${b ? b.corpus_tokens : '-'}`)
+  console.log(`corpus:        ~${corpusTokens} tokens, ${agg(b ? b.corpus_tokens : null)}`)
   for (const [role, spec] of Object.entries((b && b.roles) || {})) {
-    console.log(`role ${role.padEnd(9)} ~${roleTokens(rows, spec.opens)} tokens, cap ${spec.cap}`)
+    console.log(`role ${role.padEnd(9)} ~${roleTokens(rows, spec.opens)} tokens, ${agg(spec.cap)}`)
   }
+  if (band) console.log(`\nThe working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than ${band} below its cap, and on any reclassification.`)
 }
 
 // A HOOK THAT IS NOT WIRED, OR WIRED TO A FILE THAT IS NOT THERE, IS INDISTIN-
