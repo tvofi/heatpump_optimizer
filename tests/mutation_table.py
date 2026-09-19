@@ -86,21 +86,33 @@ _FAILED = re.compile(r"^\s*(\d+) of (\d+) .*FAILED\s*$", re.M)
 # `Results.check`), and the three drivers that keep their own counter with it.
 _CHECK_FAIL = re.compile(r"^\s*FAIL\s+(.+?)\s*$", re.M)
 
-# Candidate drivers for `--scripts`: the gate scripts whose MEASURED closure
-# can reach a mutated production file. The list is the instrument's allow-net;
-# `drivers_for` still intersects it with the closure per mutant, so a name
-# here never drives a file its recording does not reach.
+# Candidate drivers for `--scripts` are the GATE's recorded set, not a
+# hand-kept shortlist (#1211, D3-01). `default_scripts()` derives the list
+# from tests/closures.json -- the universe tests/closure.py's `select`
+# chooses from when it scopes a diff -- minus the scripts the instrument
+# cannot honestly drive, each named below with its property. The previous
+# eight-script default drove mutants with 8 of the 24 recorded scripts and
+# never ran the differential golden step, so a recorded survivor fraction
+# was not the fraction this repository's gate would produce.
 #
-# tests/manual_plan.py is ninth here because its omission was a false
-# survivor, not a missing lane (#1225, D7-01): closure-reached manual_plan.py,
-# tests/manual_plan.py, and the recorded full table (run 35395283955) carried
-# manual_plan.py:121 GUARD_OFF as a survivor tests/manual_plan.py kills. The
-# driver the module's own test makes cannot be optional.
-DEFAULT_SCRIPTS = (
-    "tests/open_meteo.py,tests/solar_alignment.py,tests/plan_view.py,"
-    "tests/edge.py,tests/entities.py,tests/validate.py,"
-    "tests/optimality.py,tests/features.py,tests/manual_plan.py"
-)
+# This is a derivation, not a preference list: tests/entities.py checks that
+# every recorded script is either in DEFAULT_SCRIPTS or below with a reason.
+DRIVER_EXCLUSIONS = {
+    # `run_script` drives `[sys.executable, script]`; these two are Node
+    # programs -- tests/run.sh's e2e lane runs them with `node` -- and their
+    # input, the plan payload, is another driver's output (closure.py's
+    # PRODUCERS edge), which a one-script invocation never builds.
+    "tests/card.mjs": "node program; needs plan_view.py's payload run first",
+    "tests/card_drift.mjs": "node program; needs plan_view.py's payload run "
+                            "first",
+    # golden.py's DEFAULT mode IS the differential: its resolve_mode says
+    # "Unset means drift", and drift execs env_drift.py --all <ref> -- the
+    # step below. Driving it here would run the same comparison twice. The
+    # strict comparison it can run instead reads fixtures recorded on
+    # another machine, which tests/run.sh says would "cry wolf": that
+    # non-portability is what the drift mode exists to replace.
+    "tests/golden.py": "its default mode IS the env_drift.py step",
+}
 
 
 # ---------------------------------------------------------------- operators
@@ -265,6 +277,90 @@ def drivers_for(rel: str, closures: dict, allow: list[str]) -> list[str]:
     return [s for s in allow if rel in closures.get(s, ())]
 
 
+def default_scripts() -> str:
+    """Every recorded gate script the instrument can drive (#1211).
+
+    The net is derived from tests/closures.json, the recorded table
+    tests/closure.py's `select` chooses from, so the instrument scores what
+    the gate could run rather than a hand-kept subset that drifts. The only
+    names missing are DRIVER_EXCLUSIONS, each carrying the property that
+    makes a `run_script` call dishonest.
+    """
+    recorded = load_closures()
+    keep = [s for s in sorted(recorded) if s not in DRIVER_EXCLUSIONS]
+    return ",".join(keep)
+
+
+DEFAULT_SCRIPTS = default_scripts()
+
+# Drivers that compare this tree against a REF rather than a recorded
+# fixture. tests/run.sh exports GOLDEN_REF (default origin/main) and its CI
+# resolves that per event: the pull request's merge-base -- "exactly the
+# code this PR forked from" -- and HEAD^1 on a push or on the nightly. A
+# bare `run_script` call would hand env_drift its own origin/main default
+# whatever the event, and on a tree that IS origin/main that is the
+# self-comparison run.sh skips rather than making ("...is this commit").
+# The instrument mirrors the gate's resolution and, where the gate would
+# skip, drops the driver for this run with the gate's own sentence.
+REF_DRIVEN = ("tests/env_drift.py", "tests/stress.py")
+
+
+def gate_ref(scope: str, base: str) -> str | None:
+    """The ref tests/run.sh would compare this tree against."""
+    env = os.environ.get("GOLDEN_REF", "").strip()
+    if env:
+        return env
+    if scope == "full":
+        # The nightly's comparison ref (tests.yml resolves HEAD^1 for it).
+        return "HEAD^1"
+    sha = subprocess.run(
+        ["git", "merge-base", base, "HEAD"], cwd=ROOT,
+        capture_output=True, text=True,
+    ).stdout.strip()
+    return sha or None
+
+
+def _rev(tree: Path, ref: str) -> str | None:
+    out = subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"],
+        cwd=tree, capture_output=True, text=True,
+    )
+    return out.stdout.strip() or None
+
+
+def ref_skip_reason(ref: str | None, tree: Path) -> str | None:
+    """tests/run.sh's reason not to run a ref-driven driver here, or None.
+
+    The two sentences are lane_golden's own skips: an unresolvable ref
+    ("is not available here") and one that resolves to HEAD ("is this
+    commit; use GOLDEN_REF=HEAD^1 to check it"). env_drift refuses either
+    run itself -- a comparison that cannot fail is not a gate -- so the
+    gate skips it out loud; so does the instrument, at the baseline.
+    """
+    if not ref:
+        return "the comparison ref could not be resolved"
+    if _rev(tree, ref) is None:
+        return f"{ref} is not available here"
+    if _rev(tree, ref) == _rev(tree, "HEAD"):
+        return f"{ref} is this commit; use GOLDEN_REF=HEAD^1 to check it"
+    return None
+
+
+def drive_spec(script: str, ref: str | None) -> tuple[list[str], dict[str, str]]:
+    """How the GATE invokes this script: run.sh's arguments and environment.
+
+    env_drift.py is the drift step and takes its ref after --all
+    (tests/run.sh lane_golden); stress.py reads GOLDEN_REF from the
+    environment, as the gate exports it. Every other recorded script runs
+    bare, and so does env_drift.py when no ref survived the skip check.
+    """
+    if script == "tests/env_drift.py":
+        return ["--all", ref or "origin/main"], {}
+    if script == "tests/stress.py":
+        return [], ({"GOLDEN_REF": ref} if ref else {})
+    return [], {}
+
+
 # ------------------------------------------------------------------- runner
 
 class ScriptRun(NamedTuple):
@@ -306,20 +402,27 @@ def failed_checks(run: ScriptRun) -> list[str]:
     return tail[-1:]
 
 
-def run_script(script: str, cwd: Path, timeout: int) -> ScriptRun:
+def run_script(script: str, cwd: Path, timeout: int,
+               extra_args: list[str] | None = None,
+               extra_env: dict[str, str] | None = None) -> ScriptRun:
     """(exit status, failed-check count, seconds, stdout, stderr) for one script.
 
     Reads the WHOLE of stdout: the last `N of M ... FAILED` line anywhere in it,
     not the tail of a buffer (#805). The captured output is returned with the
     counts, so a caller can name the failing CHECK inside a red script and not
     only the script (#1134).
+
+    ``extra_args``/``extra_env`` are how the GATE invokes the ref-driven
+    drivers (#1211): `env_drift.py --all <ref>` and stress.py's exported
+    GOLDEN_REF. Default None is the bare invocation every other lane uses.
     """
     started = time.monotonic()
     try:
         proc = subprocess.run(
-            [sys.executable, script], cwd=cwd, capture_output=True, text=True,
+            [sys.executable, script, *(extra_args or ())], cwd=cwd,
+            capture_output=True, text=True,
             timeout=timeout,
-            env={**os.environ, "PYTHONPATH": "tests/hastub"},
+            env={**os.environ, "PYTHONPATH": "tests/hastub", **(extra_env or {})},
         )
     except subprocess.TimeoutExpired:
         # A mutant that hangs its driver is noticed, not silently survived.
@@ -384,10 +487,12 @@ def baseline_refusal(baseline: dict[str, ScriptRun], scope: str) -> int | None:
     the drivers are a subset of what the gate selects, so a red here really is
     `fast`'s red restated. Where it changes none, `scope_files` falls back to
     every production file in the measured closure of the changed TEST scripts
-    (the branch just above), and `drivers_for` returns every allow-listed
-    script whose closure reaches one of them: measured on this function's own
-    branch, 58 production files and 8 drivers against the scoped gate's 1
-    selected script. That wider net is what a pull request gives up here -- an
+    (the branch just above), and `drivers_for` returns every net script whose
+    closure reaches one of them: measured on this function's own branch, 63
+    production files and 19 drivers against the scoped gate's 1 selected
+    script. (Both counts follow the driver net: the wider net of #1211 reaches
+    more of the same files, and the baseline phase pays for each driver once.)
+    That wider net is what a pull request gives up here -- an
     accidental detector, firing only when a scoped-out script happens to be
     red, never when a closure is merely wrong. The designed detectors for that
     hole are `closures`, `closure-scope`, `closures-autofix` and the forced
@@ -428,8 +533,11 @@ def main() -> int:
     ap.add_argument(
         "--scripts",
         default=DEFAULT_SCRIPTS,
-        help="candidate drivers; each mutant runs only those whose recorded "
-             "closure contains its file, cheapest measured first",
+        help="candidate drivers; defaults to default_scripts(): every script "
+             "tests/closures.json records, minus the DRIVER_EXCLUSIONS, "
+             "which carry the property that excludes them. Each mutant runs "
+             "only those whose recorded closure contains its file, cheapest "
+             "measured first",
     )
     ap.add_argument("--per-file", type=int, default=3,
                     help="cap per production file, so one big module cannot "
@@ -452,6 +560,18 @@ def main() -> int:
     allow = [s for s in args.scripts.split(",") if s]
     closures = load_closures()
     print(f"MUTATION TABLE -- scope {args.scope}: {why}")
+    # The ref the gate would compare against, resolved once in this checkout
+    # -- every clone below is a worktree of it at this same HEAD (#1211). A
+    # ref-driven driver whose ref the gate itself would skip cannot drive
+    # anything here: drop it from the net now, so it never costs a baseline
+    # that would then be red for the environment rather than for the code.
+    ref = gate_ref(args.scope, args.base)
+    for s in list(allow):
+        if s in REF_DRIVEN:
+            why_skip = ref_skip_reason(ref, ROOT)
+            if why_skip:
+                allow.remove(s)
+                print(f"  SKIP {s} ({why_skip})")
     if not files:
         print("  no production file in scope; nothing to mutate")
         print("\nMUTATION TABLE PASSED (empty scope)")
@@ -479,6 +599,9 @@ def main() -> int:
     needed = sorted({s for mut in pool for s in mut["drivers"]})
     print(f"  {len(pool)} mutant(s) over {len(files)} file(s); "
           f"drivers in play: {', '.join(needed)}")
+    if any(s in REF_DRIVEN for s in needed):
+        print(f"  ref-driven drivers compare against {ref!r} "
+              f"(run.sh's GOLDEN_REF resolution)")
 
     work = Path(tempfile.mkdtemp(prefix="mutation-table-"))
     made: list[Path] = []
@@ -487,7 +610,8 @@ def main() -> int:
         made.append(base_tree)
         baseline: dict[str, ScriptRun] = {}
         for s in needed:
-            run = run_script(s, base_tree, args.timeout)
+            extra_args, extra_env = drive_spec(s, ref)
+            run = run_script(s, base_tree, args.timeout, extra_args, extra_env)
             baseline[s] = run
             print(f"  baseline {s}: rc={run.rc} failed={run.failed} "
                   f"{run.seconds:.0f}s")
@@ -527,7 +651,9 @@ def main() -> int:
             try:
                 verdict = "LIVES"
                 for s in mut["drivers"]:
-                    run = run_script(s, tree, args.timeout)
+                    extra_args, extra_env = drive_spec(s, ref)
+                    run = run_script(s, tree, args.timeout, extra_args,
+                                     extra_env)
                     if run.rc != baseline[s].rc or run.failed > baseline[s].failed:
                         verdict = f"killed by {s}"
                         break

@@ -18893,6 +18893,57 @@ R.check(
     "measured closure exactly as it did for the hand-kept list",
 )
 
+# #1211 (D3-01): the driver net is the GATE's recorded set, derived from
+# tests/closures.json -- not a hand-kept list. The eight-script default the
+# audit measured drove mutants with 8 of the 24 recorded scripts and never
+# ran the differential golden step (tests/env_drift.py --all), so a recorded
+# survivor fraction was not the fraction this repository's gate produces.
+_MUT_EXCL = getattr(_mut, "DRIVER_EXCLUSIONS", {})
+_MUT_DEFAULT_LIST = _MUT_DEFAULT.split(",") if _MUT_DEFAULT else []
+R.check(
+    "the driver net is the recorded gate set minus named exclusions (#1211)",
+    bool(_MUT_DEFAULT_LIST)
+    and set(_MUT_DEFAULT_LIST) | set(_MUT_EXCL) == set(_MUT_REAL_CLOSURES)
+    and not (set(_MUT_DEFAULT_LIST) & set(_MUT_EXCL))
+    and all(_MUT_EXCL.values()),
+    f"{len(_MUT_DEFAULT_LIST)} driving of {len(_MUT_REAL_CLOSURES)} recorded, "
+    f"{len(_MUT_EXCL)} excluded with a reason -- a net that is neither "
+    "derived nor total is exactly the drift this check stops",
+)
+_MUT_DRIVE_SPEC = getattr(_mut, "drive_spec", lambda _s, _r: None)
+_MUT_SKIP = getattr(_mut, "ref_skip_reason", lambda _r, _t: None)
+_MUT_GATE_REF = getattr(_mut, "gate_ref", lambda _s, _b: None)
+R.check(
+    "the differential golden step is drivable as the gate drives it (#1211)",
+    _MUT_DRIVE_SPEC("tests/env_drift.py", "some-ref")
+    == (["--all", "some-ref"], {})
+    and _MUT_DRIVE_SPEC("tests/stress.py", "some-ref")
+    == ([], {"GOLDEN_REF": "some-ref"})
+    and _MUT_DRIVE_SPEC("tests/entities.py", "some-ref") == ([], {}),
+    f"env_drift={_MUT_DRIVE_SPEC('tests/env_drift.py', 'some-ref')!r} -- a "
+    "bare run compares against env_drift's own default; the gate's step takes "
+    "the resolved ref after --all and hands stress the exported GOLDEN_REF",
+)
+R.check(
+    "the ref-driven pair skips by the gate's own rule, not a vacuous run (#1211)",
+    "is this commit" in (_MUT_SKIP("HEAD", _mut.ROOT) or "")
+    and "not available here"
+    in (_MUT_SKIP("no-such-ref-audit-1211", _mut.ROOT) or ""),
+    f"HEAD -> {_MUT_SKIP('HEAD', _mut.ROOT)!r} -- env_drift refuses a ref that "
+    "resolves to HEAD (a gate that cannot fail), so tests/run.sh skips it out "
+    "loud; a driver dropped here is the same decision, not a silent pass",
+)
+# The ref the drivers are handed is resolved exactly as run.sh reads it:
+# GOLDEN_REF when the environment sets it, HEAD^1 for the nightly otherwise.
+_MUT_FULL_REF = _os.environ.get("GOLDEN_REF", "").strip() or "HEAD^1"
+R.check(
+    "and ref-driven drivers get run.sh's own resolution (#1211)",
+    _MUT_GATE_REF("full", "origin/main") == _MUT_FULL_REF,
+    f"full scope -> {_MUT_GATE_REF('full', 'origin/main')!r}, wanted "
+    f"{_MUT_FULL_REF!r} -- the nightly's gate compares against HEAD^1 and a "
+    "driver handed a different ref measures a different comparison",
+)
+
 # The classification the ratchet demands of any new tracked file: not
 # selectable (each needs an instrument the gate does not run), not INERT
 # (this script imports both).
@@ -18914,8 +18965,8 @@ R.check(
 # The baseline's driver set is NOT the scoped gate's selection, and the
 # difference is the whole of what a pull request gives up: on a diff that
 # changes no production file, `scope_files` falls back to the closure of the
-# changed TEST scripts, which on this branch's own diff is 58 production files
-# and 8 drivers against the gate's 1 selected script. Re-derive that pair at
+# changed TEST scripts, which on this branch's own diff is 63 production files
+# and 19 drivers against the gate's 1 selected script. Re-derive that pair at
 # your merge base rather than carrying it; `baseline_refusal`'s docstring says
 # with what. The NIGHTLY keeps the refusal: nothing else reports that lane's
 # baseline per commit.
