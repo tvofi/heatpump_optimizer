@@ -1247,7 +1247,6 @@
   "dhw_heating_plan": {
    "extra_state_attributes": {
     "currency": "SEK",
-    "dhw_windows_spec": "06:00-08:30, 17:00-22:00",
     "horizon_hours": 24.0,
     "manual_override": null,
     "manual_plan_window_hours": 20,
@@ -1987,7 +1986,6 @@
   "space_heating_plan": {
    "extra_state_attributes": {
     "currency": "SEK",
-    "dhw_windows_spec": "06:00-08:30, 17:00-22:00",
     "horizon_hours": 24.0,
     "manual_override": null,
     "manual_plan_window_hours": 20,

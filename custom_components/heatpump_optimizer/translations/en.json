@@ -1593,14 +1593,8 @@
   },
   "entity": {
     "sensor": {
-      "baseline_cost": {
-        "name": "Cost Baseline"
-      },
       "buffer_tank_temperature_model": {
         "name": "Buffer Tank Temperature (Model)"
-      },
-      "comfort_weight": {
-        "name": "Learning Comfort Weight"
       },
       "compressor_frequency_advisor": {
         "name": "Compressor Frequency Advisor"
@@ -1608,11 +1602,26 @@
       "compressor_starts": {
         "name": "Compressor Starts"
       },
-      "contract_comparison": {
+      "cost_baseline": {
+        "name": "Cost Baseline"
+      },
+      "cost_contract_comparison": {
         "name": "Cost Contract Comparison"
       },
-      "current_electricity_price": {
+      "cost_current_electricity_price": {
         "name": "Cost Electricity Price (now)"
+      },
+      "cost_monthly_peak_power": {
+        "name": "Cost Monthly Peak Power"
+      },
+      "cost_power_headroom": {
+        "name": "Cost Power Headroom"
+      },
+      "cost_predicted": {
+        "name": "Cost Predicted"
+      },
+      "cost_total_heating": {
+        "name": "Cost Total Heating (lifetime)"
       },
       "dhw_cost": {
         "name": "DHW Cost (lifetime)"
@@ -1647,9 +1656,6 @@
       "ecl110_effective_displace": {
         "name": "ECL110 Effective Displace"
       },
-      "estimated_cop": {
-        "name": "Learning Estimated COP"
-      },
       "floor_heating_return_temperature": {
         "name": "Floor Heating Return Temperature"
       },
@@ -1673,23 +1679,23 @@
       "last_optimization": {
         "name": "Last Optimization"
       },
+      "learning_comfort_weight": {
+        "name": "Learning Comfort Weight"
+      },
+      "learning_estimated_cop": {
+        "name": "Learning Estimated COP"
+      },
+      "learning_observed_cop": {
+        "name": "Learning Observed COP"
+      },
       "lower_floor_temperature": {
         "name": "Lower Floor Temperature"
       },
       "measured_power": {
         "name": "Measured Power"
       },
-      "monthly_peak_power": {
-        "name": "Cost Monthly Peak Power"
-      },
-      "monthly_savings": {
-        "name": "Plan Monthly Savings"
-      },
       "next_optimization": {
         "name": "Next Optimization"
-      },
-      "observed_cop": {
-        "name": "Learning Observed COP"
       },
       "optimal_setpoint": {
         "name": "Optimal Setpoint"
@@ -1711,14 +1717,14 @@
       "optimization_schedule_steps": {
         "name": "Optimization Schedule Steps"
       },
-      "optimization_score": {
-        "name": "Plan Optimization Score"
-      },
       "optimization_status": {
         "name": "Optimization Status"
       },
       "outdoor_temperature_optimizer": {
         "name": "Outdoor Temperature (Optimizer)"
+      },
+      "plan_monthly_savings": {
+        "name": "Plan Monthly Savings"
       },
       "plan_narrative": {
         "name": "Plan Narrative",
@@ -1739,14 +1745,14 @@
           "untagged": "Outside the plan"
         }
       },
-      "power_headroom": {
-        "name": "Cost Power Headroom"
+      "plan_optimization_score": {
+        "name": "Plan Optimization Score"
       },
-      "predicted_cost": {
-        "name": "Cost Predicted"
-      },
-      "predicted_savings": {
+      "plan_predicted_savings": {
         "name": "Plan Predicted Savings"
+      },
+      "plan_savings_percentage": {
+        "name": "Plan Savings Percentage"
       },
       "prediction_accuracy": {
         "name": "Prediction Accuracy"
@@ -1758,10 +1764,7 @@
         "name": "Recommended Power"
       },
       "sensor_gap_advisor": {
-        "name": "Sensor-Gap Euro Advisor"
-      },
-      "savings_percentage": {
-        "name": "Plan Savings Percentage"
+        "name": "Sensor-Gap Advisor"
       },
       "slab_temperature_estimated": {
         "name": "Slab Temperature (Estimated)"
@@ -1792,9 +1795,6 @@
       },
       "total_energy": {
         "name": "Total Energy (lifetime)"
-      },
-      "total_heating_cost": {
-        "name": "Cost Total Heating (lifetime)"
       },
       "upper_floor_temperature": {
         "name": "Upper Floor Temperature"
@@ -1827,14 +1827,14 @@
       "diagnose_last_interval": {
         "name": "Diagnose Last Interval"
       },
-      "optimize_now": {
-        "name": "Optimize Now"
-      },
-      "reset_learned_comfort_weight": {
+      "learning_reset_comfort_weight": {
         "name": "Learning Reset Comfort Weight"
       },
-      "run_system_identification": {
+      "learning_run_system_identification": {
         "name": "Learning Run System Identification"
+      },
+      "optimize_now": {
+        "name": "Optimize Now"
       }
     },
     "switch": {

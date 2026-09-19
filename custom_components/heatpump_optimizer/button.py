@@ -106,7 +106,7 @@ class SystemIdentificationButton(_OptimizerButtonBase):
         self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
     ) -> None:
         super().__init__(
-            coordinator, entry, "system_identification", "run_system_identification"
+            coordinator, entry, "system_identification", "learning_run_system_identification"
         )
 
     @property
@@ -130,7 +130,7 @@ class ResetComfortWeightButton(_OptimizerButtonBase):
         self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
     ) -> None:
         super().__init__(
-            coordinator, entry, "reset_comfort_weight", "reset_learned_comfort_weight"
+            coordinator, entry, "reset_comfort_weight", "learning_reset_comfort_weight"
         )
 
     async def async_press(self) -> None:

@@ -50,7 +50,24 @@
 # v6.6.4: the #1067 feature chain, the device pre-fill, and a run of instrument and governance repairs. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-config_flow # quick-setup (#1251): the finish_setup menu gains a "Quick setup" item (length 2 vs 3) and the initial flow gains a quick_setup page (present on one side only) -- two leaves, both added by this branch.
+coord_grid_fee # #1237 (round-5 D12-01): a no-DHW plant publishes no hot-water attributes, so both plan sensors' empty-plan extra_state_attributes drop dhw_windows_spec (the leaked default window) -- two leaves, present on one side only (the fixture has them).
+coord_minimal # #1237 (round-5 D12-01): same as coord_grid_fee -- the two plan sensors' empty-plan extra_state_attributes drop dhw_windows_spec; two leaves, present on one side only (the fixture has them). No other leaf moves in this fixture.
+coord_two_zone # #1237 (round-5 D12-01): same as coord_grid_fee -- the two plan sensors' empty-plan extra_state_attributes drop dhw_windows_spec; two leaves, present on one side only (the fixture has them). No other leaf moves in this fixture.
+#
+# The absorb of origin/main 27458c8a (#1248 #1243 #1247 #1249 #1252 #1246
+# #1244 #1251) hit the claimnotes refusal here: this branch claims the three
+# coord_* scenarios above and the merge brought in main's two config_flow
+# claims, so a union would have excused diffs this branch does not own. Both
+# of main's config_flow lines are dropped, for the G5b reason above: #1249
+# (the cleared-entity-picker fix) and #1251 (quick-setup) are already merged,
+# their golden diffs are baked into the committed baseline this branch
+# merges, and no diff remains for this branch to excuse under either name.
+# Keeping either would also re-create main's red push: the two bare lines
+# share the scenario name config_flow, so parse_claim_map's dict collapses
+# them to one entry whose reason equals the baseline's -- the exact
+# INHERITED CLAIMS failure the four failed push runs carry. The notes that
+# introduced them stay below, as history; the bare list is this branch's
+# own footprint alone, re-derived at 27458c8a.
 #
 
 # The sysid-estimator wave (#942 options 2+3, fitted arm): this branch
@@ -362,4 +379,7 @@ config_flow # quick-setup (#1251): the finish_setup menu gains a "Quick setup" i
 # only this one: `carries_floats()` is False for config_flow, so env_drift
 # compares it EXACTLY at level 1 and a claim alone would leave that level
 # failing against a file the code no longer produces.
-config_flow  # the cleared-entity-picker fix: stored entity offered as suggested_value; two_zone_mode's pre-fill now recorded
+#
+# (The bare claim this note introduced -- config_flow, the cleared-entity-
+# picker fix, merged as #1249 -- is dropped by the 27458c8a absorb above;
+# the note stays as history.)
