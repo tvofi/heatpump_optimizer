@@ -77,6 +77,19 @@ def _discover() -> tuple[str, ...]:
     # marker makes that convention executable: a seat that re-records a
     # header as part of a fix marks the harness live, and from then on the
     # gate notices the next drift itself.
+    #
+    # THE WHOLE FILE, NOT A WINDOW (#1148). This read used to be
+    # `p.read_text()[:4000]`, and the marker is the LAST line of a header
+    # that grows: claims.py -- the harness this comment names first --
+    # declared `live-header` at byte 3501 on 2026-09-15's merge and at 5224
+    # on 2026-09-17's, so the check silently stopped executing the one
+    # instrument it was written for, on a commit that never touched the
+    # marker. It went unnoticed for the same reason it is a defect: the
+    # gate stayed GREEN, and a register drifted from its generator behind
+    # it (nine rows at #1148's measurement). The window was also measured
+    # to buy nothing -- 7.1 ms median reading whole files against 8.2 ms
+    # capped, over the 214-file corpus, because the read dominates and the
+    # slice only adds work.
     live = {
         "tools/audit/round3/D2/dst_window_factors.py",
         "tools/audit/round3/D2/window_size_sweep.py",
@@ -87,7 +100,7 @@ def _discover() -> tuple[str, ...]:
             str(p.relative_to(ROOT))
             for p in (ROOT / "tools" / "audit").glob("round*/D*/*.py")
             if p.name != "__init__.py"
-            and "live-header" in p.read_text()[:4000]
+            and "live-header" in p.read_text()
             and p.relative_to(ROOT).as_posix() not in live
         )
     )
@@ -95,6 +108,54 @@ def _discover() -> tuple[str, ...]:
 
 
 EXECUTE = _discover()
+
+# The directories the executed harnesses WRITE into. A generator whose output
+# disagrees with what is committed is a stale register BY CONSTRUCTION, and this
+# is the arm that catches it (#1148): regenerating the D6 register moves nine
+# rows, and C125's `36 selects` moves NO header aggregate, so the header
+# comparison in main() cannot see it -- the RCA that proposed this arm measured
+# exactly that instance. One `git status` over the generators' own output is
+# the whole check; no per-generator wiring, no threshold.
+#
+# NOT the whole tree. This script is `run_always`, so it runs in a seat's
+# worktree, where uncommitted work is the ordinary state; a check that reds on
+# every dirty tree is one a seat learns to route around -- and a seat that
+# routes around this one loses the header comparison with it.
+REGISTER_DIRS = ("tools/audit/round4/D6",)
+
+
+def dirty_registers() -> tuple[bool, str]:
+    """``(clean, detail)`` for the committed output of the executed harnesses."""
+    p = subprocess.run(
+        ["git", "status", "--porcelain", "--", *REGISTER_DIRS],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    if p.returncode != 0:
+        # FAIL CLOSED. An unreadable status is not a pass: "I could not ask"
+        # and "nothing here is dirty" leave the same empty stdout behind.
+        return False, f"git status failed rc={p.returncode}: {p.stderr.strip()[-200:]}"
+    lines = [ln for ln in p.stdout.splitlines() if ln.strip()]
+    return (not lines), "clean" if not lines else "uncommitted: " + "; ".join(lines)
+
+
+def declared_live() -> list[str]:
+    """Every harness in the corpus that declares ``live-header`` ANYWHERE.
+
+    Written as an independent re-derivation of the corpus, deliberately not by
+    calling the predicate ``_discover()`` uses: the discovery carried a 4000-byte
+    window, and a file whose header grew past it left the executed set with the
+    marker still in place and nothing reporting it (#1148 -- measured: the
+    marker sat at byte 3501 on 2026-09-15's merge and at 5224 on 2026-09-17's,
+    so the check silently stopped executing claims.py between the two, on a
+    commit that never touched the marker).
+    """
+    return sorted(
+        str(p.relative_to(ROOT))
+        for p in (ROOT / "tools" / "audit").glob("round*/D*/*.py")
+        if p.name != "__init__.py" and "live-header" in p.read_text()
+    )
 
 
 def printed_from(stdout: str) -> dict[str, str]:
@@ -138,6 +199,13 @@ def run_harness(rel: str) -> str:
 
 
 def main() -> int:
+    declared = declared_live()
+    R.check(
+        "every harness declaring live-header anywhere in its file is executed",
+        set(declared) <= set(EXECUTE),
+        "declares the marker and is not executed: "
+        + ", ".join(sorted(set(declared) - set(EXECUTE))),
+    )
     for rel in EXECUTE:
         path = ROOT / rel
         R.check(f"{rel} exists", path.is_file(), rel)
@@ -155,6 +223,12 @@ def main() -> int:
                 got.get(name) == want,
                 f"header={want!r} printed={got.get(name)!r}",
             )
+    clean, detail = dirty_registers()
+    R.check(
+        "the executed harnesses leave their committed output byte-identical",
+        clean,
+        detail,
+    )
     return R.close("HARNESS HEADER CHECKS")
 
 

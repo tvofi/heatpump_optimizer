@@ -227,45 +227,45 @@
  {
   "id": "C26",
   "source": "README.md",
-  "claim": "a menu of 21 pages",
+  "claim": "a menu of 22 pages",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=21 measured=21",
+  "result": "documented=22 measured=22",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C27",
   "source": "docs/configuration.md",
-  "claim": "There are 21 pages",
+  "claim": "There are 22 pages",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=21 measured=21",
+  "result": "documented=22 measured=22",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C28",
   "source": "docs/configuration.md",
-  "claim": "six on the first menu and fifteen more behind Advanced settings",
+  "claim": "six on the first menu and sixteen more behind Advanced settings",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=(6, 15) measured=(6, 15)",
+  "result": "documented=(6, 16) measured=(6, 16)",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C29",
   "source": "docs/architecture.md:module map",
-  "claim": "config_flow.py -- Setup flow plus 13 option pages behind two menus",
+  "claim": "config_flow.py -- Setup flow plus 22 option pages behind two menus",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=21 measured=21",
+  "result": "documented=22 measured=22",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C30",
   "source": "docs/configuration.md",
-  "claim": "every documented Default (86 rows) is the default the rendered options page actually carries",
+  "claim": "every documented Default (87 rows) is the default the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "86 compared, mismatches=[]",
+  "result": "87 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -283,7 +283,7 @@
   "source": "docs/architecture.md",
   "claim": "45 modules",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=59 measured=59",
+  "result": "documented=63 measured=63",
   "verdict": "true",
   "truth": ""
  },
@@ -292,7 +292,7 @@
   "source": "docs/architecture.md",
   "claim": "the module map is the package's module list",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "on disk=59, listed=59, missing=[], phantom=[]",
+  "result": "on disk=63, listed=63, missing=[], phantom=[]",
   "verdict": "true",
   "truth": "0 modules are absent from the map: "
  },
@@ -373,7 +373,7 @@
   "source": "manifest.json",
   "claim": "manifest version equals VERSION",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented='6.6.2' measured='6.6.2'",
+  "result": "documented='6.6.3' measured='6.6.3'",
   "verdict": "true",
   "truth": ""
  },
@@ -992,7 +992,7 @@
  {
   "id": "C111",
   "source": "README.md + docs/*.md",
-  "claim": "every external link answers 200 to a HEAD request (13 links)",
+  "claim": "every external link answers 200 to a HEAD request (14 links)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py --links",
   "result": "not run: pass --links",
   "verdict": "unverifiable",
