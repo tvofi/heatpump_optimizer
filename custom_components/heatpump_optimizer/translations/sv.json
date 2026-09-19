@@ -284,8 +284,39 @@
         "title": "Avsluta installationen nu?",
         "description": "En post skapas först när det här flödet är klart. Du kan stanna här och starta med de medföljande standardvärdena — temperaturer, byggnaden, varmvatten och väderkänslighet kan ställas in senare under Inställningar — eller gå igenom de skärmarna nu.",
         "menu_options": {
+          "quick_setup": "Snabb installation (rekommenderas)",
           "temperature": "Fortsätt installationen",
           "finish_now": "Avsluta installationen nu"
+        }
+      },
+      "quick_setup": {
+        "title": "Snabb installation",
+        "description": "Berätta vad ditt system är så gör optimeraren resten. Värmepumpens entiteter läses in automatiskt på nästa skärm, och allt du lämnar här startar från ett vettigt standardvärde som du kan finjustera senare under Inställningar.",
+        "data": {
+          "two_zone": "Hus med två zoner",
+          "buffer_tank": "Bufferttank",
+          "dhw_tank": "Varmvattenberedare",
+          "wood_furnace": "Vedpanna",
+          "wood_buffer_tank": "Vedpannans tank",
+          "building_structure": "Vad huset är byggt av",
+          "building_era": "Ungefär när det byggdes",
+          "building_foundation": "Grundläggning",
+          "heated_area_m2": "Uppvärmd golvyta",
+          "upper_floor_emitter": "Värme på övervåningen",
+          "lower_floor_emitter": "Värme på nedervåningen"
+        },
+        "data_description": {
+          "two_zone": "På för ett hus med två separat värmda plan, av för ett enda. Ett tvåzonshus låter optimeraren balansera det golvvärmda nedre planet mot det övre.",
+          "buffer_tank": "En tank mellan värmepumpen och värmekretsarna, stor nog att lagra värme. På lagrar billig värme och släpper ut den under dyra timmar.",
+          "dhw_tank": "En beredare som värmepumpen håller full med varmvatten. Lämna på om din värmepump gör varmvatten.",
+          "wood_furnace": "En vedpanna som värmer samma vattenkrets. På låter optimeraren räkna in dess värme och låta pumpen stå tillbaka medan brasan brinner.",
+          "wood_buffer_tank": "En andra tank som vedpannan värmer, skild från värmepumpens buffert. Dess temperaturgivare anges på entitetssidan.",
+          "building_structure": "Tunga material innanför isoleringen lagrar värme, och det är just det som gör att optimeraren kan köpa värmen billigt och använda den senare.",
+          "building_era": "Byggår är ett bra mått på isoleringsstandard och en betydligt bättre utgångspunkt än ett enda standardvärde.",
+          "building_foundation": "En krypgrund ökar värmeförlusterna; en uppvärmd källare ger både mer förlustyta och mer termisk massa.",
+          "heated_area_m2": "Allt skalas efter denna, så det är siffran det är värt att få närmast rätt.",
+          "upper_floor_emitter": "Radiatorer svarar på minuter, golvvärme på timmar. Det avgör hur långt i förväg värmen kan flyttas.",
+          "lower_floor_emitter": "En värmd platta är ett stort lager som laddas aktivt, vilket gör förvärmning både mer värdefull och mer nödvändig."
         }
       },
       "setup_overview": {

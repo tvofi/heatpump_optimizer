@@ -2946,8 +2946,12 @@ async def _walk_flow_untouched():
             if result.get("type") == "create_entry":
                 return dict(result["data"])
             if result.get("type") == "menu":
-                # An untouched menu is its first option.
-                step = list(result["menu_options"])[0]
+                # An untouched menu is its first option — except the finish
+                # menu, whose first option is now the quick-setup shortcut:
+                # that path declines the device pre-fill straight back to this
+                # menu, so the untouched walk takes the full wizard instead.
+                options = list(result["menu_options"])
+                step = "temperature" if "temperature" in options else options[0]
                 result = await getattr(flow, f"async_step_{step}")(None)
                 continue
             step = result["step_id"]
@@ -8690,7 +8694,7 @@ try:
         _dup_first_result.get("type") == "menu"
         and _dup_first_result.get("step_id") == "finish_setup"
         and tuple(_dup_first_result.get("menu_options", {}))
-        == ("temperature", "finish_now"),
+        == ("quick_setup", "temperature", "finish_now"),
         str(_dup_first_result)[:160],
     )
     R.check(

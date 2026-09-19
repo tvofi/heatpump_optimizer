@@ -20,6 +20,7 @@ firing, the accumulated ``_data`` losing a page's answers on the way to
 This driver walks both paths through the flow, questionnaire and expert,
 
     user -> user_sensors -> finish_setup (menu)
+      -> quick_setup -> device_prefill -> finish_setup (menu)
       -> finish_now -> setup_overview -> create_entry
       -> temperature -> building (menu)
         -> building_describe -> building_extras -> dhw -> weather_sensitivity
@@ -122,7 +123,7 @@ from golden import (  # noqa: E402
     schema_fingerprint,
 )
 
-from heatpump_optimizer import config_flow, const, topology  # noqa: E402
+from heatpump_optimizer import config_flow, const, quick_setup, topology  # noqa: E402
 from heatpump_optimizer.freq_control import (  # noqa: E402
     FREQ_MODE_CONTROL,
     FREQ_MODE_OBSERVE,
@@ -486,6 +487,7 @@ class Ledger:
             "user",
             "user_sensors",
             "finish_setup",
+            "quick_setup",
             "finish_now",
             "temperature",
             "building",
@@ -568,7 +570,7 @@ def shows(result, step_id):
     return result.get("type") == "form" and result.get("step_id") == step_id
 
 
-FINISH_SETUP_OPTIONS = ("temperature", "finish_now")
+FINISH_SETUP_OPTIONS = ("quick_setup", "temperature", "finish_now")
 
 
 def offers_finish_setup(result):
@@ -5725,6 +5727,97 @@ def _post1_seed_nothing(hass):
     )
 
 
+async def config_flow_quick_setup():
+    R.section("config: the quick-setup path — house questions, then autodetect")
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+
+    flow = fresh_flow()
+    await submit_first_screen(flow, FIRST_SCREEN)
+    form = await flow.async_step_quick_setup(None)
+    check(
+        "quick_setup", "happy",
+        "the quick path asks the five house questions plus the building questionnaire",
+        shows(form, "quick_setup")
+        and rendered_keys(form)
+        == {
+            quick_setup.FIELD_TWO_ZONE,
+            quick_setup.FIELD_BUFFER_TANK,
+            quick_setup.FIELD_DHW_TANK,
+            quick_setup.FIELD_WOOD_FURNACE,
+            quick_setup.FIELD_WOOD_BUFFER_TANK,
+            const.CONF_BUILDING_STRUCTURE,
+            const.CONF_BUILDING_ERA,
+            const.CONF_BUILDING_FOUNDATION,
+            const.CONF_HEATED_AREA,
+            const.CONF_UPPER_EMITTER,
+            const.CONF_LOWER_EMITTER,
+        },
+        f"keys={sorted(rendered_keys(form))}",
+    )
+
+    answers = {
+        quick_setup.FIELD_TWO_ZONE: True,
+        quick_setup.FIELD_BUFFER_TANK: True,
+        quick_setup.FIELD_DHW_TANK: True,
+        quick_setup.FIELD_WOOD_FURNACE: True,
+        quick_setup.FIELD_WOOD_BUFFER_TANK: True,
+        const.CONF_BUILDING_STRUCTURE: STRUCTURE_TIMBER_SLAB,
+        const.CONF_BUILDING_ERA: ERA_1980_2005,
+        const.CONF_BUILDING_FOUNDATION: FOUNDATION_NONE,
+        const.CONF_HEATED_AREA: 140,
+        const.CONF_UPPER_EMITTER: EMITTER_RADIATORS,
+        const.CONF_LOWER_EMITTER: EMITTER_FLOOR,
+    }
+    result = await submit(flow, "quick_setup", answers)
+    check(
+        "quick_setup", "happy",
+        "submitting the house questions hands off to the entity pre-fill",
+        shows(result, "device_prefill"),
+        f"{result.get('type')}/{result.get('step_id')}",
+    )
+    check(
+        "quick_setup", "happy",
+        "the answers are written as the model's own keys",
+        flow._data.get(const.CONF_TWO_ZONE_MODE) == const.TWO_ZONE_MODE_ON
+        and flow._data.get(const.CONF_DHW_ENABLED) is True
+        and flow._data.get(const.CONF_WOOD_FURNACE_ENABLED) is True
+        and flow._data.get(const.CONF_BUFFER_TANK_VOLUME) == 500.0
+        and flow._data.get(const.CONF_WOOD_TANK_VOLUME) == 500.0
+        and flow._data.get(const.CONF_BUILDING_PRESET_ENABLED) is True
+        and const.CONF_UPPER_FLOOR_THERMAL_MASS in flow._data,
+        f"data={sorted(flow._data)}",
+    )
+
+    # A single-zone, no-tank answer writes the off override and never the
+    # two-zone presence keys — the trap the options flow exists to avoid.
+    flow2 = fresh_flow()
+    await submit_first_screen(flow2, FIRST_SCREEN)
+    one_zone = {
+        quick_setup.FIELD_TWO_ZONE: False,
+        quick_setup.FIELD_BUFFER_TANK: False,
+        quick_setup.FIELD_DHW_TANK: False,
+        quick_setup.FIELD_WOOD_FURNACE: False,
+        quick_setup.FIELD_WOOD_BUFFER_TANK: False,
+        const.CONF_BUILDING_STRUCTURE: STRUCTURE_TIMBER_SLAB,
+        const.CONF_BUILDING_ERA: ERA_1980_2005,
+        const.CONF_BUILDING_FOUNDATION: FOUNDATION_NONE,
+        const.CONF_HEATED_AREA: 140,
+        const.CONF_UPPER_EMITTER: EMITTER_RADIATORS,
+        const.CONF_LOWER_EMITTER: EMITTER_FLOOR,
+    }
+    await submit(flow2, "quick_setup", one_zone)
+    check(
+        "quick_setup", "happy",
+        "a 1-zone answer writes the off override and never the two-zone presence keys",
+        flow2._data.get(const.CONF_TWO_ZONE_MODE) == const.TWO_ZONE_MODE_OFF
+        and flow2._data.get(const.CONF_DHW_ENABLED) is False
+        and const.CONF_UPPER_FLOOR_THERMAL_MASS not in flow2._data,
+        f"data={sorted(flow2._data)}",
+    )
+
+    config_flow.async_get_clientsession = real
+
+
 async def config_flow_device_prefill_offer():
     R.section("config: the pre-fill offered when a heat-pump device is added (#1067 POST1)")
     real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
@@ -5991,6 +6084,7 @@ async def main() -> int:
     await untouched_option_pages_do_not_reload()
     await options_modbus_prefill()
     await options_device_prefill()
+    await config_flow_quick_setup()
     await config_flow_device_prefill_offer()
 
     print()

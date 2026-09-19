@@ -242,6 +242,10 @@
   "finish_setup": {
    "menu": [
     [
+     "quick_setup",
+     "Quick setup (recommended)"
+    ],
+    [
      "temperature",
      "Continue setup"
     ],
@@ -250,6 +254,100 @@
      "Finish setup now"
     ]
    ]
+  },
+  "quick_setup": {
+   "buffer_tank": {
+    "config": null,
+    "default": "False",
+    "required": "Optional",
+    "selector": "BooleanSelector"
+   },
+   "building_era": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['pre_1960', '1960_1980', '1980_2005', 'post_2005', 'low_energy']",
+     "translation_key": "'building_era'"
+    },
+    "default": "'1980_2005'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
+   "building_foundation": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['none', 'crawlspace', 'heated_basement']",
+     "translation_key": "'building_foundation'"
+    },
+    "default": "'none'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
+   "building_structure": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['timber_crawlspace', 'timber_slab', 'concrete_slab', 'masonry']",
+     "translation_key": "'building_structure'"
+    },
+    "default": "'timber_slab'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
+   "dhw_tank": {
+    "config": null,
+    "default": "True",
+    "required": "Optional",
+    "selector": "BooleanSelector"
+   },
+   "heated_area_m2": {
+    "config": {
+     "max": "1000",
+     "min": "20",
+     "mode": "'box'",
+     "step": "5",
+     "unit_of_measurement": "'m\u00b2'"
+    },
+    "default": "140.0",
+    "required": "Optional",
+    "selector": "NumberSelector"
+   },
+   "lower_floor_emitter": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['floor', 'radiators']",
+     "translation_key": "'emitter'"
+    },
+    "default": "'floor'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
+   "two_zone": {
+    "config": null,
+    "default": "False",
+    "required": "Optional",
+    "selector": "BooleanSelector"
+   },
+   "upper_floor_emitter": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['floor', 'radiators']",
+     "translation_key": "'emitter'"
+    },
+    "default": "'radiators'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
+   "wood_buffer_tank": {
+    "config": null,
+    "default": "False",
+    "required": "Optional",
+    "selector": "BooleanSelector"
+   },
+   "wood_furnace": {
+    "config": null,
+    "default": "False",
+    "required": "Optional",
+    "selector": "BooleanSelector"
+   }
   },
   "setup_overview": {},
   "temperature": {

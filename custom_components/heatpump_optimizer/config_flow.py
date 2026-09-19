@@ -394,6 +394,7 @@ from . import (
     modbus_prefill,
     prefill_offer,
     presets,
+    quick_setup,
     topology,
 )
 from .wood_fuel import wood_furnace_on
@@ -1086,6 +1087,38 @@ def _derive_preset(answers: dict[str, Any], current: dict[str, Any]) -> dict[str
     # parameter and would be rejected by the model.
     derived.pop("heating_response_hours", None)
     return derived
+
+
+def _quick_setup_schema(current: dict[str, Any]) -> vol.Schema:
+    """The quick-setup page: the house in five yes/no answers plus the questionnaire.
+
+    The five toggles are transient questions, not option keys — they are named
+    in ``quick_setup`` and mapped there, so the page never writes a key the
+    options flow would then have to un-write. The building questionnaire is the
+    same field list the ``building_describe`` and ``building_preset`` pages use,
+    so a house answered here derives the identical physics as one answered
+    there.
+    """
+    return vol.Schema(
+        {
+            vol.Optional(
+                quick_setup.FIELD_TWO_ZONE, default=False
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                quick_setup.FIELD_BUFFER_TANK, default=False
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                quick_setup.FIELD_DHW_TANK, default=True
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                quick_setup.FIELD_WOOD_FURNACE, default=False
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                quick_setup.FIELD_WOOD_BUFFER_TANK, default=False
+            ): selector.BooleanSelector(),
+            **_questionnaire_fields(current),
+        }
+    )
 
 
 async def _translated_menu(
@@ -2305,6 +2338,7 @@ class HeatPumpOptimizerConfigFlow(
                 "config",
                 "finish_setup",
                 {
+                    "quick_setup": "Quick setup (recommended)",
                     "temperature": "Continue setup",
                     "finish_now": "Finish setup now",
                 },
@@ -2330,6 +2364,33 @@ class HeatPumpOptimizerConfigFlow(
         return self.async_create_entry(
             title=self._data.get(CONF_NAME, "Heat Pump Optimizer"),
             data=self._data,
+        )
+
+    async def async_step_quick_setup(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """The recommended path: five house questions, then the entity pre-fill.
+
+        A fresh install's answers are few: whether the house has two zones, a
+        buffer store, a DHW tank, a wood furnace and a second wood tank, plus
+        the building questionnaire the full wizard already asks.
+        ``quick_setup.derive`` turns those answers into config keys, then the
+        existing device pre-fill step autodetects the heat pump's entities.
+        Everything the quick path leaves unanswered keeps a shipped default,
+        and the full wizard stays reachable from the same menu.
+
+        The device pre-fill is entered directly rather than gated by the
+        global ``CONF_PREFILL_OFFER`` switch: a user who chose the quick path
+        asked for autodetection, so it runs here regardless of that advanced
+        switch, which keeps governing only the auto-offer on the ordinary path.
+        """
+        if user_input is not None:
+            self._data.update(quick_setup.derive(dict(user_input)))
+            return await self.async_step_device_prefill()
+
+        return self.async_show_form(
+            step_id="quick_setup",
+            data_schema=_quick_setup_schema(self._data),
         )
 
     async def async_step_temperature(
