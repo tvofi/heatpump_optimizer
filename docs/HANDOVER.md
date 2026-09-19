@@ -717,10 +717,12 @@ dispositions it by mention, which is the defect, not the fix.
   two lists: seven of the ten wired in `CORPUS_CHECKS` have a `--list` class and
   three do not — `orphan-caps`, `row-freeze` and `rule-binding`. Derive it by
   intersecting the two rather than reading a count here.
-- **The `--list` discoverability fix itself is deferred.** A check a seat cannot
-  enumerate is a check a seat does not run, and `FIXTURE VACUOUS` already
-  refuses `CORPUS_CHECKS` drifting from `CORPUS_CHECK_NAMES` — nothing holds the
-  `--list` registry to it, which is the hole.
+- **The `--list` discoverability fix landed (#1137), closing the hole above.**
+  Every entry in `policy_lint.mjs`'s `CHECKS` registry that lists a corpus check
+  now names the wired function it stands for, and `assertAcceptance` holds both
+  directions against `CORPUS_CHECK_NAMES`: a wired check with no `--list` entry,
+  an entry naming an unwired function, and a duplicated entry each turn the
+  acceptance red. `orphan-caps`, `row-freeze` and `rule-binding` are now listed.
 
 **Owed from 2026-09-14: a stale-pin sweep.** #960 SHA-pinned every mutable
 `uses:` in `.github/workflows/` (the frozen tag rides each pin as a trailing

@@ -2759,19 +2759,37 @@ function applyKnownBad(findings, keyFilter = (k) => !RECORD_KEY(k)) {
   return { live: out, suppressed, occurrences, total: recorded.size }
 }
 
+// `--list`'s registry. `cmdList` iterates THIS array, a different registry from
+// `CORPUS_CHECK_NAMES` above: the names there decide what RUNS over the corpus,
+// the entries here decide what a seat asking `--list` can DISCOVER. The two
+// drifted once -- `orphan-caps`, `row-freeze` and `rule-binding` ran on every
+// pull request while `--list` never named them (#1137) -- so each entry that
+// lists a wired check carries `fn`, the production function it stands for, and
+// `assertAcceptance` holds both directions of that correspondence.
+//
+// WHY `fn` IS CARRIED RATHER THAN DERIVED. The two names do not follow from each
+// other's spelling in general -- `coverageOverTree` reports as `coverage`,
+// `orphanCapsOverTree` as `orphan-caps` -- and a regex over this source that
+// re-derives one from the other is the defect the corpus list's own comment
+// names. `fn` is the correspondence stated where it is read. An entry with no
+// `fn` is a check outside the corpus sweep: the `lintFile` pass (`citations`,
+// `counts`, `no-gh`), the body contract (`pr-body`), or a loop-mode output.
 const CHECKS = [
   { name: 'citations', what: 'paths, path:line and symbols in policy prose resolve', fixture: 'fixtures/policy-rot/citations.md' },
   { name: 'counts', what: 'a literal count matches its derivation', fixture: 'fixtures/policy-rot/counts.md' },
   { name: 'no-gh', what: 'no `gh <verb>` outside the MCP mapping table', fixture: 'fixtures/policy-rot/no-gh.md' },
-  { name: 'budgets', what: 'a policy file may shrink, never grow past its cap', fixture: 'fixtures/policy-rot/budgets.md' },
-  { name: 'index', what: 'CLAUDE.md names every policy file, and every file it names exists', fixture: 'fixtures/policy-rot/index.md' },
-  { name: 'duplicates', what: 'no 12-word run shared between two policy files', fixture: 'fixtures/policy-rot/dup-a.md' },
+  { name: 'budgets', fn: 'checkBudgets', what: 'a policy file may shrink, never grow past its cap', fixture: 'fixtures/policy-rot/budgets.md' },
+  { name: 'orphan-caps', fn: 'orphanCapsOverTree', what: 'a recorded cap whose file no policy glob matches', fixture: '(driven in assertAcceptance)' },
+  { name: 'index', fn: 'checkIndex', what: 'CLAUDE.md names every policy file, and every file it names exists', fixture: 'fixtures/policy-rot/index.md' },
+  { name: 'duplicates', fn: 'checkDuplicates', what: 'no 12-word run shared between two policy files', fixture: 'fixtures/policy-rot/dup-a.md' },
   { name: 'pr-body', what: 'a body carries its evidence sections, at the head CI ran', fixture: 'fixtures/policy-rot/prepr/' },
-  { name: 'named-docs', what: 'a document the corpus names but no cap measures', fixture: '(driven in assertAcceptance)' },
-  { name: 'citation-presence', what: 'a citation that earned a CORPUS_EXCLUDED line is still there', fixture: '(driven in assertAcceptance)' },
-  { name: 'coverage', what: 'every file in a policy directory is matched by a glob', fixture: '(a probe file, see assertAcceptance)' },
-  { name: 'provenance', what: "the known-bad ledger's recorded_at resolves from origin/main", fixture: '(driven in assertAcceptance)' },
-  { name: 'required-contexts', what: 'the corpus\'s required-context literals and recorded shape match the live ruleset', fixture: '(driven in assertAcceptance; live state, never fixtures, in production)' },
+  { name: 'named-docs', fn: 'namedDocsOverTree', what: 'a document the corpus names but no cap measures', fixture: '(driven in assertAcceptance)' },
+  { name: 'citation-presence', fn: 'citationPresenceOverTree', what: 'a citation that earned a CORPUS_EXCLUDED line is still there', fixture: '(driven in assertAcceptance)' },
+  { name: 'coverage', fn: 'coverageOverTree', what: 'every file in a policy directory is matched by a glob', fixture: '(a probe file, see assertAcceptance)' },
+  { name: 'provenance', fn: 'checkProvenance', what: "the known-bad ledger's recorded_at resolves from origin/main", fixture: '(driven in assertAcceptance)' },
+  { name: 'required-contexts', fn: 'requiredContextsOverTree', what: 'the corpus\'s required-context literals and recorded shape match the live ruleset', fixture: '(driven in assertAcceptance; live state, never fixtures, in production)' },
+  { name: 'row-freeze', fn: 'rowFreezeOverPlan', what: 'the plan\'s delivery table stays within its frozen row and anchor counts', fixture: '(driven in assertAcceptance)' },
+  { name: 'rule-binding', fn: 'ruleBindingOverTree', what: 'every `paths:` glob matches a tracked file, and every capped policy file is bound by a rule', fixture: '(driven in assertAcceptance)' },
   { name: 'record', what: 'every merged pull request has a disposition (refuses)', fixture: 'fixtures/policy-loop/merged-subjects.txt' },
   { name: 'render', what: 'disposition documents render with the same structure as their source', fixture: 'fixtures/policy-loop/render-cells-rotten.md' },
   { name: 'stats', what: 'verdict and friction histograms, and what they would open', fixture: 'fixtures/policy-loop/pr-payloads.json + friction-keys.json' },
@@ -3491,6 +3509,28 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: CORPUS_CHECKS is wired as [${wiredNames}], expected [${CORPUS_CHECK_NAMES.join(',')}]. A check missing from the list never runs; one replaced by a no-op, a duplicate or an unwrapped \`checkCoverage\` runs and measures nothing. The count is derived from this list rather than carried, so adding a fifth check names it here once.`)
     return 1
   }
+
+  // `--list` DISCOVERABILITY. The pin above holds what RUNS to
+  // `CORPUS_CHECK_NAMES`; it says nothing about `CHECKS`, the separate registry
+  // `cmdList` prints, so a check wired into the sweep but absent from `CHECKS`
+  // runs on every pull request and is invisible to a seat asking `--list` which
+  // checks exist -- exactly what happened to `orphan-caps`, `row-freeze` and
+  // `rule-binding` (#1137). The entry's own `fn` carries the correspondence (see
+  // `CHECKS`), and BOTH directions are held: a wired name no entry lists is a
+  // check that runs undiscoverably, and an entry naming a function that is not
+  // wired advertises a check that no longer runs. Duplicates are reported too,
+  // because two entries for one function is a listing that over-reports just as
+  // the missing three under-reported.
+  pins += 1
+  const listedFns = CHECKS.filter((c) => c.fn).map((c) => c.fn)
+  const unlisted = CORPUS_CHECK_NAMES.filter((n) => !listedFns.includes(n))
+  const unknown = listedFns.filter((n) => !CORPUS_CHECK_NAMES.includes(n))
+  const dupes = listedFns.filter((n, i) => listedFns.indexOf(n) !== i)
+  if (unlisted.length || unknown.length || dupes.length) {
+    console.log(`\nFIXTURE VACUOUS: --list and the corpus sweep disagree. Wired but with no CHECKS entry: [${unlisted.join(', ')}] -- such a check runs on every pull request and no \`--list\` reader learns it exists. Listed but not wired: [${unknown.join(', ')}] -- such an entry advertises a check that no longer runs. Listed twice: [${dupes.join(', ')}]. Each entry that lists a wired check carries \`fn\`, and every name in CORPUS_CHECK_NAMES must appear on exactly one.`)
+    return 1
+  }
+
   // The harness below swaps `coverageFileSource`, so it cannot see that binding's
   // PRODUCTION default -- and that default is production code. `() => []` there
   // disables coverage completely and silently: `checkCoverage` coalesces on
