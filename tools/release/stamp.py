@@ -38,6 +38,16 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      tag, resets to the pre-stamp HEAD keeping RELEASE_NOTES.md, prints the
      check's output and exits 2. --dry-run makes no commit, so it never runs.
 
+  7. (rule "register") The D6 register (tools/audit/round4/D6/) is
+     re-recorded through its own generator, claims.py, from the tree being
+     stamped. One row of it -- C42, "manifest version equals VERSION" -- is a
+     snapshot of VERSION, and tests/harness_headers.py re-runs that generator
+     on every push and fails when the committed register is not what it
+     produces, so a stamp that moves VERSION and leaves the register behind is
+     RED at the stamped head. A generator that fails refuses before the commit,
+     with every file this stamp wrote put back. --dry-run writes nothing, so it
+     never runs.
+
 --push-key PATH pushes the commit and the tag over a deploy key to the SSH URL
 instead of to origin (#954): main-protect's only bypass is that key (decision
 0009 steps 5 and 6), so a direct push to main lands over it and nothing else. The
@@ -48,8 +58,9 @@ What it writes: VERSION, the manifest version, CARD_VERSION in the bundled
 card (console banner only -- card_drift.mjs is unchanged), both claim files
 (the `claims-for:` stamp moves to the new version, the reason block is
 rewritten, and every bare claim line is deleted -- a stamp empties the list,
-the next branch restates its own footprint), then one commit and one tag,
-which rule 6 checks before any push. Nothing is pushed without --push.
+the next branch restates its own footprint), and the D6 register re-recorded
+from that tree by its own generator (rule "register"), then one commit and one
+tag, which rule 6 checks before any push. Nothing is pushed without --push.
 """
 from __future__ import annotations
 
@@ -80,6 +91,21 @@ CLAIM_FILES = (
     ROOT / "tests" / "golden" / "claimed_drift.txt",
     ROOT / "tests" / "golden" / "card_claimed_drift.txt",
 )
+# The D6 register: the committed output of claims.py, which tests/
+# harness_headers.py re-runs (it declares `live-header`) and requires
+# byte-identical to the committed files. One of its rows -- C42, "manifest
+# version equals VERSION" -- is a snapshot of VERSION, so a stamp that moves
+# VERSION and leaves the register behind is RED at the stamped head. The stamp
+# re-records it through the generator itself, rather than editing the version
+# row by hand, so a register that acquires another version-bearing row cannot
+# silently drift behind the stamp that wrote it.
+REGISTER_DIR = ROOT / "tools" / "audit" / "round4" / "D6"
+REGISTER_GENERATOR = REGISTER_DIR / "claims.py"
+REGISTER_FILES = (REGISTER_DIR / "claims.json", REGISTER_DIR / "claims.md")
+# claims.py runs from ROOT (its ROOT = Path(".")), inserts tests/ and
+# custom_components/ onto sys.path itself, and needs only the Home Assistant
+# stub a stamp's checkout cannot be assumed to import.
+REGISTER_PYTHONPATH = "tests/hastub"
 TAG_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
 # Rule 4's population: the pull requests merged into main since the last tag.
 # It is read off main's OWN first-parent line (window_log_args below), and a
@@ -816,6 +842,35 @@ def self_test() -> int:
     check("claims self-check: a check that cannot start refuses",
           not claims_selfcheck(_unstartable)[0])
 
+    # Rule "register". The stamp re-records the D6 register through its own
+    # generator -- the header's command, from ROOT, with the stub on
+    # PYTHONPATH -- and a generator that fails refuses rather than ship the
+    # stale register the rule exists to prevent.
+    check("register: the generator is claims.py, run from ROOT",
+          register_argv("py") == ["py", "tools/audit/round4/D6/claims.py"])
+    check("register: the stub is put on PYTHONPATH, the caller's kept after it",
+          register_env({"PATH": "/bin"})["PYTHONPATH"] == "tests/hastub"
+          and register_env({"PYTHONPATH": "/x"})["PYTHONPATH"]
+          == "tests/hastub" + os.pathsep + "/x")
+    check("register: a generator that exits 0 passes",
+          regenerate_register(
+              lambda a: _Proc(0, "RESULT claims_extracted=125 claims\n")) is None)
+    try:
+        regenerate_register(lambda a: _Proc(1, "FALSE        C105  docs\n  the last line"))
+        check("register: a generator that fails refuses, naming its last line", False)
+    except Refuse as _reg:
+        check("register: a generator that fails refuses, naming its last line",
+              "register" in str(_reg) and "the last line" in str(_reg) and "exit 1" in str(_reg))
+
+    def _unstartable_register(argv):
+        raise FileNotFoundError(2, "No such file")
+
+    try:
+        regenerate_register(_unstartable_register)
+        check("register: a generator that cannot start refuses", False)
+    except Refuse as _reg2:
+        check("register: a generator that cannot start refuses", "could not run" in str(_reg2))
+
     # publish_stamp with doubles for every collaborator, so both arms run the
     # real control flow and nothing is pushed. `events` is the order things
     # happened in: the self-check must come before any push.
@@ -919,6 +974,20 @@ def self_test() -> int:
     check("claims self-check: --dry-run returns before the commit and the self-check",
           -1 < _main_src.find("if args.dry_run:") < _main_src.find('sh("git", "commit"')
           < _main_src.find("return publish_stamp("))
+
+    # Rule "register", at its call site. Every pure piece above is correct while
+    # main() stops calling the generator -- which is the stale register exactly
+    # as it was -- so the region between the version writes and the commit is
+    # read: it must re-record the register, stage it, and put the stamp's own
+    # writes back (never the notes) when the generator fails.
+    _wrote = _main_src[_main_src.index("    VERSION_FILE.write_text(nxt"):]
+    _wrote = _wrote[:_wrote.index('sh("git", "commit"')]
+    check("register: main re-records the register before it commits, and stages it",
+          "regenerate_register()" in _wrote and "REGISTER_FILES" in _wrote)
+    _recover = (_wrote[_wrote.index('sh("git", "checkout"'):_wrote.index('sh("git", "add"')]
+                if 'sh("git", "checkout"' in _wrote else "")
+    check("register: its failure path restores the stamp's writes and keeps the notes",
+          "REGISTER_FILES" in _recover and "NOTES" not in _recover)
     print(f"RESULT stamp_self_test={'pass' if ok else 'fail'}")
     return 0 if ok else 1
 
@@ -951,6 +1020,57 @@ def tests_gate(head: str, which=shutil.which, fetchers: dict | None = None) -> t
         detail = stderr.strip().splitlines()[-1] if stderr else f"{type(exc).__name__}: {exc}"
         return False, f"could not read the Tests gate for HEAD via {source}: {detail}"
     return gate_verdict(runs)
+
+
+# --- the D6 register, re-recorded before the commit (rule "register") --------
+
+def register_argv(python: str = sys.executable) -> list[str]:
+    """claims.py's own command, spelled from ROOT.
+
+    The path is relative on purpose: claims.py sets ``ROOT = pathlib.Path(".")``
+    and refuses the ``__file__`` route (tools/audit/README.md, "A harness at the
+    evidence tag may measure the tag, not your tree"), so it is correct only
+    when its working directory is the checkout being stamped.
+    """
+    return [python, str(REGISTER_GENERATOR.relative_to(ROOT))]
+
+
+def register_env(environ: dict | None = None) -> dict:
+    """The environment claims.py runs under: tests/hastub on PYTHONPATH.
+
+    Its own header runs it that way, and its ``sys.path`` inserts supply the
+    other two entries. Any PYTHONPATH the caller already has is kept after it,
+    so the stamp neither depends on nor discards the caller's environment.
+    """
+    env = dict(os.environ if environ is None else environ)
+    existing = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = REGISTER_PYTHONPATH + (os.pathsep + existing if existing else "")
+    return env
+
+
+def regenerate_register(runner=None, python: str | None = None) -> None:
+    """Re-record the D6 register from the tree this stamp is about to commit.
+
+    It runs after VERSION, the manifest and the card are written and before the
+    commit, so the register it produces records the version being stamped. Any
+    exit other than 0 refuses: a register the stamp could not regenerate is the
+    stale register this step exists to prevent, and committing it would put
+    main back where the rule exists to take it from. A generator that cannot be
+    started refuses the same way -- a stamp nothing re-recorded is the failure,
+    not a warning.
+    """
+    argv = register_argv(python or sys.executable)
+    run = runner or (lambda a: subprocess.run(a, cwd=ROOT, text=True,
+                                             capture_output=True, env=register_env()))
+    try:
+        proc = run(argv)
+    except OSError as exc:
+        raise Refuse("register", f"could not run the D6 register generator: {exc}") from exc
+    if proc.returncode != 0:
+        tail = ((proc.stdout or "") + (proc.stderr or "")).strip().splitlines()
+        raise Refuse("register",
+                     f"{REGISTER_GENERATOR.relative_to(ROOT)} failed with exit "
+                     f"{proc.returncode}: " + (tail[-1] if tail else "no output"))
 
 
 # --- after the commit: the claims self-check, then the push ------------------
@@ -1154,6 +1274,8 @@ def main() -> int:
             print(f"WARNING: {path.name} was stamped {old}, not {current}; restamping anyway")
         claim_edits.append((path, new))
         plan.append(f"{path.relative_to(ROOT)}: claims-for {old} -> {nxt}, {deleted} claim(s) deleted")
+    plan.append(f"{REGISTER_DIR.relative_to(ROOT)}: re-recorded from the stamped tree "
+                f"by {REGISTER_GENERATOR.name}")
     plan.append(f"commit 'v{nxt}: stamp {args.title}' and tag v{nxt}" + (" (pushed)" if args.push else " (not pushed)"))
     print("stamp plan:")
     for p in plan:
@@ -1172,8 +1294,19 @@ def main() -> int:
     CARD_JS.write_text(card_text)
     for path, new in claim_edits:
         path.write_text(new)
+    try:
+        regenerate_register()
+    except Refuse:
+        # Nothing is committed yet, so a failed regeneration is one checkout
+        # away from the pre-stamp tree: put back every file this stamp wrote
+        # (the generator may have left a partial write of its own) and keep the
+        # hand-written notes, so a corrected run starts from what rule 1
+        # accepts.
+        sh("git", "checkout", "--", str(VERSION_FILE), str(MANIFEST), str(CARD_JS),
+           *map(str, CLAIM_FILES), *map(str, REGISTER_FILES))
+        raise
     sh("git", "add", str(VERSION_FILE), str(MANIFEST), str(CARD_JS), str(NOTES),
-       *map(str, CLAIM_FILES))
+       *map(str, CLAIM_FILES), *map(str, REGISTER_FILES))
     sh("git", "commit", "-q", "-m",
        f"v{nxt}: stamp {args.title}\n\nCo-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>")
     sh("git", "tag", f"v{nxt}")

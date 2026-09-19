@@ -51,7 +51,7 @@ from .const import (
 # lookup the comment above documents would raise ``NameError`` at setup
 # (measured in round 4). The coordinator import stays inside
 # ``TYPE_CHECKING``, so importing the package still executes none of the
-# 40-module graph the closure note below forbids.
+# 45-module graph the closure note below forbids.
 if TYPE_CHECKING:
     from .coordinator import HeatPumpOptimizerCoordinator
 
@@ -60,7 +60,7 @@ else:
     HeatPumpOptimizerConfigEntry = ConfigEntry
 
 # Importing this package must not execute the coordinator's module graph.
-# ``coordinator`` and ``services`` reach 40 of the integration's modules
+# ``coordinator`` and ``services`` reach 45 of the integration's modules
 # between them, and a plain ``from .coordinator import ...`` here put every
 # one of them inside the MEASURED closure of anything that imports the
 # package -- including ``tests/stress.py``, whose only production entry

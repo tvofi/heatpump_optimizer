@@ -20,6 +20,7 @@ firing, the accumulated ``_data`` losing a page's answers on the way to
 This driver walks both paths through the flow, questionnaire and expert,
 
     user -> user_sensors -> finish_setup (menu)
+      -> quick_setup -> device_prefill -> finish_setup (menu)
       -> finish_now -> setup_overview -> create_entry
       -> temperature -> building (menu)
         -> building_describe -> building_extras -> dhw -> weather_sensitivity
@@ -122,7 +123,7 @@ from golden import (  # noqa: E402
     schema_fingerprint,
 )
 
-from heatpump_optimizer import config_flow, const, topology  # noqa: E402
+from heatpump_optimizer import config_flow, const, quick_setup, topology  # noqa: E402
 from heatpump_optimizer.freq_control import (  # noqa: E402
     FREQ_MODE_CONTROL,
     FREQ_MODE_OBSERVE,
@@ -486,6 +487,7 @@ class Ledger:
             "user",
             "user_sensors",
             "finish_setup",
+            "quick_setup",
             "finish_now",
             "temperature",
             "building",
@@ -568,7 +570,7 @@ def shows(result, step_id):
     return result.get("type") == "form" and result.get("step_id") == step_id
 
 
-FINISH_SETUP_OPTIONS = ("temperature", "finish_now")
+FINISH_SETUP_OPTIONS = ("quick_setup", "temperature", "finish_now")
 
 
 def offers_finish_setup(result):
@@ -2285,15 +2287,27 @@ NO_DEFAULT = object()
 #: ``return vol.Optional(key, default=existing)`` to ``return
 #: vol.Optional(key)`` on any of these four left this driver, ``entities.py``
 #: and the config-flow golden all green.
+#:
+#: The arm no longer reads ``default=existing`` (it now offers the stored
+#: value as a ``suggested_value``, which is what lets a clear stick -- see
+#: ``entity_clear_survives_the_flow_manager``); the measurement above is a
+#: record of that tree, and the same mutation on the current arm is
+#: ``description={"suggested_value": existing}`` -> dropped.
 STORED_ARM_PAGES = ("entities", "comfort", "hot_water", "building")
 
 
 def entity_field_defaults(result):
-    """Every entity picker on a form, mapped to its default or ``NO_DEFAULT``.
+    """Every entity picker on a form, mapped to the value it presents.
 
-    ``vol.Optional(key)`` carries ``vol.UNDEFINED``, which is not callable, so
-    calling the marker is what separates "offered with no default" from
-    "offered defaulted to something".
+    A picker is pre-filled either from ``default`` or from
+    ``description["suggested_value"]``, and the frontend shows and posts both
+    alike, so what this reads is the value the form presents, not the
+    mechanism -- the two differ only after the manager's schema call, which is
+    where a ``default`` is refilled for a cleared (absent) key and a
+    suggestion is not. ``NO_DEFAULT`` is a marker with neither, which
+    ``vol.Optional(key)`` carries: its ``default`` is ``vol.UNDEFINED``, so
+    reading only ``default()`` is what used to be the whole question here; the
+    failed read is the fall-through to the suggestion.
     """
     schema = result.get("data_schema")
     out = {}
@@ -2304,23 +2318,25 @@ def entity_field_defaults(result):
         try:
             out[name] = key.default()
         except Exception:
-            out[name] = NO_DEFAULT
+            out[name] = (getattr(key, "description", None) or {}).get(
+                "suggested_value", NO_DEFAULT
+            )
     return out
 
 
 async def options_stored_entity_arm():
     """The arm that renders a CONFIGURED install, on the pages nothing pinned.
 
-    Each page's entity helper has two arms -- ``vol.Optional(key,
-    default=existing)`` when something is stored, bare ``vol.Optional(key)``
+    Each page's entity helper has two arms -- a stored value offered as
+    ``description={"suggested_value": existing}``, bare ``vol.Optional(key)``
     when nothing is -- and every other check in this file drives the empty
     one. #542 is what leaving the other unasserted costs: a page that forgets
     what is configured writes a null over it on the next save.
 
     The fields are DERIVED per page rather than named here, so a page that
     gains an entity picker is covered without anyone remembering to add it.
-    The pair of checks is what makes that honest: a helper that returned a
-    default unconditionally would satisfy the second one alone.
+    The pair of checks is what makes that honest: a helper that pre-filled a
+    value unconditionally would satisfy the second one alone.
     """
     R.section("options: the stored-value arm, on the four pages that had none")
     for step in STORED_ARM_PAGES:
@@ -2349,10 +2365,140 @@ async def options_stored_entity_arm():
         check(
             f"opt_{step}",
             "happy",
-            f"the {step} page re-renders every stored entity as that field's default",
+            f"the {step} page re-renders every stored entity as that field's pre-fill",
             bool(stored) and not wrong,
             f"{len(stored)} field(s) seeded; mismatches={wrong}",
         )
+
+
+def _nested_drop(posted, key):
+    """``posted`` with ``key`` removed wherever a ``section()`` nests it."""
+    return {
+        name: (_nested_drop(value, key) if isinstance(value, dict) else value)
+        for name, value in posted.items()
+        if name != key
+    }
+
+
+def _nested_get(posted, key):
+    """``posted[key]`` wherever a ``section()`` nests it, else ``None``."""
+    if key in posted:
+        return posted[key]
+    for value in posted.values():
+        if isinstance(value, dict):
+            found = _nested_get(value, key)
+            if found is not None:
+                return found
+    return None
+
+
+async def entity_clear_survives_the_flow_manager():
+    """A cleared entity picker persists through the manager's own submit.
+
+    The reported bug -- a temperature sensor can be set on a split page and
+    never cleared again -- is a property of the SUBMIT PATH every other check
+    in this file skips. Home Assistant's flow manager runs each submitted
+    form through the step's own ``data_schema`` before the handler sees it
+    (upstream ``homeassistant/data_entry_flow.py``:
+    ``user_input = data_schema(user_input)`` in ``_async_configure``), and
+    ``ha_contract.py`` records that no flow manager exists in this stub. So
+    every clearing check here hands ``_clear_absent`` a dict the manager
+    would have rewritten first, and the one post a browser never sends is the
+    only one ever tested.
+
+    ``_field_marker`` offered a stored entity as ``vol.Optional(key,
+    default=stored)``. A cleared picker is ABSENT from the post, and
+    voluptuous refills a ``default`` for an absent key -- so the manager
+    handed the old entity straight back, ``_clear_absent`` read it as "still
+    set", and the options merge restored it. The clear below is submitted the
+    way the manager submits it; the two controls are what keep it honest:
+
+    * an UNTOUCHED post must still keep the value (a fix that cleared
+      everything would pass the first check alone), and
+    * the same cleared post WITHOUT the schema call must still clear -- which
+      is exactly why every existing clearing check was green.
+    """
+    R.section("options: a cleared entity picker survives the flow manager")
+    rows = [
+        row for row in config_flow._OPTION_FIELDS
+        if row.default is config_flow._STORED
+    ]
+    pages = list(dict.fromkeys(row.step for row in rows))
+    check(
+        "opt_advanced",
+        "happy",
+        "the two-armed entity slots, over more than one page, are what this drives",
+        len(rows) > 1 and len(pages) > 1,
+        f"{len(rows)} slot(s) over {len(pages)} page(s)",
+    )
+
+    not_presented: dict[str, list[str]] = {}
+    for step in pages:
+        keys = [row.key for row in rows if row.step == step]
+        seed = {key: f"sensor.stored_{key}" for key in keys}
+        # The wood block renders only with its gate on, and the gate is a
+        # field of the same page: seeding it drives the gated slots too.
+        seed[config_flow.CONF_WOOD_FURNACE_ENABLED] = True
+        for key in keys:
+            flow, entry, _ = fresh_options(pre_options=seed)
+            shown = await getattr(flow, f"async_step_{step}")(None)
+            schema = shown["data_schema"]
+            payload = _untouched_post(schema)
+            if _nested_get(payload, key) != seed[key]:
+                # A slot this page does not present under this seed: named,
+                # never silently skipped, so a shrinking surface shows here.
+                not_presented.setdefault(step, []).append(key)
+                continue
+
+            # The control against an over-clear: untouched, the value stays.
+            await getattr(flow, f"async_step_{step}")(schema(payload))
+            check(
+                f"opt_{step}",
+                "happy",
+                f"an untouched {step} page keeps {key}",
+                entry.options.get(key) == seed[key],
+                f"stored {seed[key]!r}, untouched save produced "
+                f"{entry.options.get(key)!r}",
+            )
+
+            # The browser's post for the same form with THIS picker cleared,
+            # then the manager's own validation of it.
+            flow, entry, _ = fresh_options(pre_options=seed)
+            shown = await getattr(flow, f"async_step_{step}")(None)
+            schema = shown["data_schema"]
+            answers = schema(_nested_drop(_untouched_post(schema), key))
+            await getattr(flow, f"async_step_{step}")(answers)
+            check(
+                f"opt_{step}",
+                "happy",
+                f"clearing {key} sticks once the manager validates the post",
+                entry.options.get(key) is None,
+                f"manager posted {key}={_nested_get(answers, key)!r}; stored "
+                f"{entry.options.get(key)!r}",
+            )
+
+            # And the path every other check takes: no schema call at all.
+            flow, entry, _ = fresh_options(pre_options=seed)
+            shown = await getattr(flow, f"async_step_{step}")(None)
+            schema = shown["data_schema"]
+            await getattr(flow, f"async_step_{step}")(
+                _nested_drop(_untouched_post(schema), key)
+            )
+            check(
+                f"opt_{step}",
+                "happy",
+                f"the same clear without the schema call clears {key} (the old path)",
+                entry.options.get(key) is None,
+                f"stored {entry.options.get(key)!r}",
+            )
+
+    check(
+        "opt_advanced",
+        "happy",
+        "every two-armed slot is presented by its page under the seed this drives",
+        not not_presented,
+        f"not presented: {not_presented}",
+    )
 
 
 async def section_nesting_is_captured():
@@ -3370,19 +3516,27 @@ SEEDED_ENTITIES = {
 
 
 def schema_default(result, key):
-    """The default a rendered form's marker carries for one key.
+    """The value a rendered form's marker presents for one key.
 
-    ``_NO_DEFAULT`` when the marker has none: voluptuous parks its UNDEFINED
-    sentinel in ``default``, which is not callable, and that is exactly the
-    difference between the two arms of ``_entity`` -- so the sentinel has to
-    be distinguishable from a stored ``None``.
+    Read from ``default`` or, failing that, from
+    ``description["suggested_value"]``: those are the two ways a form pre-fills
+    a field and the frontend shows and posts them alike, so the value the form
+    presents is both of them. ``_NO_DEFAULT`` when the marker has neither:
+    ``vol.Optional(key)`` parks voluptuous's UNDEFINED sentinel in ``default``,
+    which is not callable, and that is exactly the difference between the two
+    arms of the ``_STORED`` rule -- so the sentinel has to be distinguishable
+    from a stored ``None``.
     """
     schema = result.get("data_schema")
     for marker, _value in _presented_fields(schema):
         if str(getattr(marker, "schema", marker)) != key:
             continue
         default = getattr(marker, "default", None)
-        return default() if callable(default) else _NO_DEFAULT
+        if callable(default):
+            return default()
+        return (getattr(marker, "description", None) or {}).get(
+            "suggested_value", _NO_DEFAULT
+        )
     return _NO_DEFAULT
 
 
@@ -3408,7 +3562,7 @@ async def options_seeded_prefill():
         check(
             f"opt_{page}",
             "happy",
-            f"the {page} page re-renders its stored entities as defaults",
+            f"the {page} page re-renders its stored entities as pre-fills",
             carried == fields,
             f"carried={carried} want={fields}",
         )
@@ -3573,21 +3727,16 @@ def bare_options(pre_options=None):
 
 
 def offered_entity_fields(result):
-    """``{key: default}`` for every entity picker a rendered page offers.
+    """``{key: pre-fill}`` for every entity picker a rendered page offers.
 
-    ``NO_DEFAULT`` where the marker has none: voluptuous parks an UNDEFINED
-    sentinel there, which is not callable, and that is exactly the difference
-    between the two arms of the registry's ``_STORED`` rule.
+    ``NO_DEFAULT`` where the marker presents nothing: a stored value is
+    offered as a ``suggested_value`` and an unconfigured slot with no
+    suggestion as nothing at all, and that is exactly the difference between
+    the two arms of the registry's ``_STORED`` rule. Reads the same presented
+    value ``entity_field_defaults`` does, rather than a second copy of the
+    rule -- a reader re-implemented is a reader that can disagree.
     """
-    out = {}
-    for marker, value in _presented_fields(result.get("data_schema")):
-        if type(value).__name__ != "EntitySelector":
-            continue
-        default = getattr(marker, "default", None)
-        out[str(getattr(marker, "schema", marker))] = (
-            default() if callable(default) else NO_DEFAULT
-        )
-    return out
+    return entity_field_defaults(result)
 
 
 def rendered_keys(result):
@@ -3720,7 +3869,7 @@ async def registry_drives_every_page():
     check(
         "registry",
         "happy",
-        "and every one of them re-renders its stored value as that field's default",
+        "and every one of them re-renders its stored value as that field's pre-fill",
         not not_carried and len(per_page) > 1,
         f"{len(per_page)} page(s) carry a two-armed slot; wrong: {not_carried}",
     )
@@ -5725,6 +5874,103 @@ def _post1_seed_nothing(hass):
     )
 
 
+async def config_flow_quick_setup():
+    R.section("config: the quick-setup path — house questions, then autodetect")
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+
+    flow = fresh_flow()
+    await submit_first_screen(flow, FIRST_SCREEN)
+    form = await flow.async_step_quick_setup(None)
+    check(
+        "quick_setup", "happy",
+        "the quick path asks the five house questions plus the building questionnaire",
+        shows(form, "quick_setup")
+        and rendered_keys(form)
+        == {
+            quick_setup.FIELD_TWO_ZONE,
+            quick_setup.FIELD_BUFFER_TANK,
+            quick_setup.FIELD_DHW_TANK,
+            quick_setup.FIELD_WOOD_FURNACE,
+            quick_setup.FIELD_WOOD_BUFFER_TANK,
+            const.CONF_WOOD_TANK_TOP_ENTITY,
+            const.CONF_WOOD_TANK_BOTTOM_ENTITY,
+            const.CONF_BUILDING_STRUCTURE,
+            const.CONF_BUILDING_ERA,
+            const.CONF_BUILDING_FOUNDATION,
+            const.CONF_HEATED_AREA,
+            const.CONF_UPPER_EMITTER,
+            const.CONF_LOWER_EMITTER,
+        },
+        f"keys={sorted(rendered_keys(form))}",
+    )
+
+    answers = {
+        quick_setup.FIELD_TWO_ZONE: True,
+        quick_setup.FIELD_BUFFER_TANK: True,
+        quick_setup.FIELD_DHW_TANK: True,
+        quick_setup.FIELD_WOOD_FURNACE: True,
+        quick_setup.FIELD_WOOD_BUFFER_TANK: True,
+        const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.wood_tank_top",
+        const.CONF_WOOD_TANK_BOTTOM_ENTITY: "sensor.wood_tank_bottom",
+        const.CONF_BUILDING_STRUCTURE: STRUCTURE_TIMBER_SLAB,
+        const.CONF_BUILDING_ERA: ERA_1980_2005,
+        const.CONF_BUILDING_FOUNDATION: FOUNDATION_NONE,
+        const.CONF_HEATED_AREA: 140,
+        const.CONF_UPPER_EMITTER: EMITTER_RADIATORS,
+        const.CONF_LOWER_EMITTER: EMITTER_FLOOR,
+    }
+    result = await submit(flow, "quick_setup", answers)
+    check(
+        "quick_setup", "happy",
+        "submitting the house questions hands off to the entity pre-fill",
+        shows(result, "device_prefill"),
+        f"{result.get('type')}/{result.get('step_id')}",
+    )
+    check(
+        "quick_setup", "happy",
+        "the answers are written as the model's own keys",
+        flow._data.get(const.CONF_TWO_ZONE_MODE) == const.TWO_ZONE_MODE_ON
+        and flow._data.get(const.CONF_DHW_ENABLED) is True
+        and flow._data.get(const.CONF_WOOD_FURNACE_ENABLED) is True
+        and flow._data.get(const.CONF_BUFFER_TANK_VOLUME) == 500.0
+        and flow._data.get(const.CONF_WOOD_TANK_VOLUME) == 500.0
+        and flow._data.get(const.CONF_WOOD_TANK_TOP_ENTITY) == "sensor.wood_tank_top"
+        and flow._data.get(const.CONF_WOOD_TANK_BOTTOM_ENTITY) == "sensor.wood_tank_bottom"
+        and flow._data.get(const.CONF_BUILDING_PRESET_ENABLED) is True
+        and const.CONF_UPPER_FLOOR_THERMAL_MASS in flow._data,
+        f"data={sorted(flow._data)}",
+    )
+
+    # A single-zone, no-tank answer writes the off override and never the
+    # two-zone presence keys — the trap the options flow exists to avoid.
+    flow2 = fresh_flow()
+    await submit_first_screen(flow2, FIRST_SCREEN)
+    one_zone = {
+        quick_setup.FIELD_TWO_ZONE: False,
+        quick_setup.FIELD_BUFFER_TANK: False,
+        quick_setup.FIELD_DHW_TANK: False,
+        quick_setup.FIELD_WOOD_FURNACE: False,
+        quick_setup.FIELD_WOOD_BUFFER_TANK: False,
+        const.CONF_BUILDING_STRUCTURE: STRUCTURE_TIMBER_SLAB,
+        const.CONF_BUILDING_ERA: ERA_1980_2005,
+        const.CONF_BUILDING_FOUNDATION: FOUNDATION_NONE,
+        const.CONF_HEATED_AREA: 140,
+        const.CONF_UPPER_EMITTER: EMITTER_RADIATORS,
+        const.CONF_LOWER_EMITTER: EMITTER_FLOOR,
+    }
+    await submit(flow2, "quick_setup", one_zone)
+    check(
+        "quick_setup", "happy",
+        "a 1-zone answer writes the off override and never the two-zone presence keys",
+        flow2._data.get(const.CONF_TWO_ZONE_MODE) == const.TWO_ZONE_MODE_OFF
+        and flow2._data.get(const.CONF_DHW_ENABLED) is False
+        and const.CONF_UPPER_FLOOR_THERMAL_MASS not in flow2._data,
+        f"data={sorted(flow2._data)}",
+    )
+
+    config_flow.async_get_clientsession = real
+
+
 async def config_flow_device_prefill_offer():
     R.section("config: the pre-fill offered when a heat-pump device is added (#1067 POST1)")
     real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
@@ -5976,6 +6222,7 @@ async def main() -> int:
     await options_walk()
     await options_advanced_pages()
     await options_stored_entity_arm()
+    await entity_clear_survives_the_flow_manager()
     await section_nesting_is_captured()
     await options_error_branches()
     await residual_statement_branches()
@@ -5991,6 +6238,7 @@ async def main() -> int:
     await untouched_option_pages_do_not_reload()
     await options_modbus_prefill()
     await options_device_prefill()
+    await config_flow_quick_setup()
     await config_flow_device_prefill_offer()
 
     print()

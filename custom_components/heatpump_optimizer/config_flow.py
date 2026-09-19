@@ -394,6 +394,7 @@ from . import (
     modbus_prefill,
     prefill_offer,
     presets,
+    quick_setup,
     topology,
 )
 from .wood_fuel import wood_furnace_on
@@ -1088,6 +1089,42 @@ def _derive_preset(answers: dict[str, Any], current: dict[str, Any]) -> dict[str
     return derived
 
 
+def _quick_setup_schema(current: dict[str, Any]) -> vol.Schema:
+    """The quick-setup page: the house in five yes/no answers plus the questionnaire.
+
+    The five toggles are transient questions, not option keys — they are named
+    in ``quick_setup`` and mapped there, so the page never writes a key the
+    options flow would then have to un-write. The building questionnaire is the
+    same field list the ``building_describe`` and ``building_preset`` pages use,
+    so a house answered here derives the identical physics as one answered
+    there. The two wood-tank probe pickers ride the same page because they are
+    the two-tank model's own gate: the wood-buffer-tank toggle alone changes
+    nothing the model reads.
+    """
+    return vol.Schema(
+        {
+            vol.Optional(
+                quick_setup.FIELD_TWO_ZONE, default=False
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                quick_setup.FIELD_BUFFER_TANK, default=False
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                quick_setup.FIELD_DHW_TANK, default=True
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                quick_setup.FIELD_WOOD_FURNACE, default=False
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                quick_setup.FIELD_WOOD_BUFFER_TANK, default=False
+            ): selector.BooleanSelector(),
+            vol.Optional(CONF_WOOD_TANK_TOP_ENTITY): _entity_of(["sensor"]),
+            vol.Optional(CONF_WOOD_TANK_BOTTOM_ENTITY): _entity_of(["sensor"]),
+            **_questionnaire_fields(current),
+        }
+    )
+
+
 async def _translated_menu(
     hass: HomeAssistant, flow_type: str, step_id: str, labels: dict[str, str]
 ) -> dict[str, str]:
@@ -1285,10 +1322,23 @@ class _Rule:
         return self.name
 
 
-#: Two-armed: default to the stored value when there is one, and render a bare
-#: ``vol.Optional`` when there is not. Both arms are load-bearing -- an
-#: unconfigured page must offer its entity fields UNDEFAULTED, or a cleared
-#: slot is indistinguishable from one never set, and clearing stops sticking.
+#: Two-armed: suggest the stored value when there is one, and render a bare
+#: ``vol.Optional`` when there is not. Both arms are load-bearing, and NEITHER
+#: may carry a ``default``.
+#:
+#: A ``default`` pre-fills the field the same way a ``suggested_value`` does,
+#: but Home Assistant's flow manager validates every submitted form through
+#: this schema before the handler sees it (``data_entry_flow.py``,
+#: ``user_input = data_schema(user_input)`` in ``_async_configure``), and
+#: voluptuous refills a ``default`` for a key the form left ABSENT -- which is
+#: what a cleared picker posts. A stored value offered as a ``default``
+#: therefore came back as "set" on every clear, ``_clear_absent`` never saw an
+#: empty slot, and clearing a signal could not stick. A ``suggested_value``
+#: pre-fills the same field and leaves a cleared post empty.
+#:
+#: The second arm must stay bare for the same reason from the other side: a
+#: default on an UNCONFIGURED slot would be refilled for an untouched page and
+#: stored as a choice nobody made.
 _STORED: Final = _Rule("_STORED")
 
 #: Suggest the stored value without defaulting it, and render nothing when the
@@ -1626,7 +1676,9 @@ def _field_marker(row: _F, current: dict[str, Any], hass: HomeAssistant) -> Any:
     if default is _STORED:
         existing = current.get(row.key)
         if existing:
-            return vol.Optional(row.key, default=existing)
+            return vol.Optional(
+                row.key, description={"suggested_value": existing}
+            )
         if row.key == CONF_HOUSE_POWER_ENTITY:
             suggestion = topology.suggest_house_power_entity(
                 None, _house_power_candidates(hass)
@@ -2305,6 +2357,7 @@ class HeatPumpOptimizerConfigFlow(
                 "config",
                 "finish_setup",
                 {
+                    "quick_setup": "Quick setup (recommended)",
                     "temperature": "Continue setup",
                     "finish_now": "Finish setup now",
                 },
@@ -2330,6 +2383,33 @@ class HeatPumpOptimizerConfigFlow(
         return self.async_create_entry(
             title=self._data.get(CONF_NAME, "Heat Pump Optimizer"),
             data=self._data,
+        )
+
+    async def async_step_quick_setup(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """The recommended path: five house questions, then the entity pre-fill.
+
+        A fresh install's answers are few: whether the house has two zones, a
+        buffer store, a DHW tank, a wood furnace and a second wood tank, plus
+        the building questionnaire the full wizard already asks.
+        ``quick_setup.derive`` turns those answers into config keys, then the
+        existing device pre-fill step autodetects the heat pump's entities.
+        Everything the quick path leaves unanswered keeps a shipped default,
+        and the full wizard stays reachable from the same menu.
+
+        The device pre-fill is entered directly rather than gated by the
+        global ``CONF_PREFILL_OFFER`` switch: a user who chose the quick path
+        asked for autodetection, so it runs here regardless of that advanced
+        switch, which keeps governing only the auto-offer on the ordinary path.
+        """
+        if user_input is not None:
+            self._data.update(quick_setup.derive(dict(user_input)))
+            return await self.async_step_device_prefill()
+
+        return self.async_show_form(
+            step_id="quick_setup",
+            data_schema=_quick_setup_schema(self._data),
         )
 
     async def async_step_temperature(
