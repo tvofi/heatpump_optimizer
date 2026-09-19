@@ -2488,8 +2488,12 @@ function repoSlug() {
   return m ? `${m[1]}/${m[2]}` : null
 }
 
-function ghGet(pathname) {
-  const token = process.env.GITHUB_TOKEN
+// The credential is a PARAMETER rather than a second read of `GITHUB_TOKEN`,
+// because the red-history walk below reads through `ghCredential()` and a gate
+// that predicts one credential while the fetch uses another refuses a read it
+// had already announced as available. Defaulted, so every caller that predates
+// the parameter keeps exactly today's source and today's message.
+function ghGet(pathname, token = process.env.GITHUB_TOKEN) {
   if (!token) return { ok: false, why: 'GITHUB_TOKEN is not set' }
   let raw
   try {
@@ -3252,6 +3256,66 @@ function assertAcceptance(derived) {
   }
   if (resolvesToCommit('no-such-ref-6f2a1c9e-policy-lint-acceptance')) {
     console.log('\nFIXTURE VACUOUS: the since-ref predicate accepts a name that resolves to nothing, so an unresolvable --since reaches the enumerator and the marker above is unreachable')
+    rc = 1
+  }
+
+  // THE RED HISTORY (#1144), driven with fixture runs so it runs with no
+  // network, no git history and no token -- a pin that needed any of those
+  // would be skipped on the machine where it matters. The property under pin is
+  // the one the issue is about: a red at an EARLIER commit that the tip has
+  // since cleared still owes an answer, so the loop over the commits must read
+  // every entry and not only the last. Its null control is the same fixture
+  // with every conclusion green, which must produce no name at all: a
+  // derivation that fired on everything would satisfy the first assertion.
+  pins += 3
+  const CLEARED = {
+    c1: [
+      { name: 'fast (3.14)', status: 'completed', conclusion: 'failure' },
+      { name: 'typing', status: 'completed', conclusion: 'failure' },
+      { name: 'pr-contract', status: 'completed', conclusion: 'failure' },
+      { name: 'mutation', status: 'completed', conclusion: 'skipped' },
+      { name: 'nightly-status', status: 'in_progress' },
+      { name: 'fast (3.14)', status: 'completed', conclusion: 'failure' },
+    ],
+    c2: [
+      { name: 'fast (3.14)', status: 'completed', conclusion: 'success' },
+      { name: 'typing', status: 'completed', conclusion: 'success' },
+    ],
+  }
+  const redUnion = redsOverCommits(['c1', 'c2'], (sha) => ({ ok: true, runs: CLEARED[sha] }))
+  if (!redUnion.ok || redUnion.reds.join(',') !== 'fast (3.14),typing') {
+    console.log(`\nFIXTURE VACUOUS: the red history over a pull request's commits is ${redUnion.ok ? JSON.stringify(redUnion.reds) : `not ok (${redUnion.why})`}, not ["fast (3.14)","typing"]; a red a later commit cleared must still be on it, this job's own runs and every non-\`failure\` conclusion must not, and a name earned twice is owed once`)
+    rc = 1
+  }
+  const redClean = redsOverCommits(['c1', 'c2'], (sha) =>
+    ({ ok: true, runs: CLEARED[sha].map((r) => ({ ...r, conclusion: 'success' })) }))
+  if (!redClean.ok || redClean.reds.length) {
+    console.log('\nFIXTURE VACUOUS: the red history names a check over a range that failed nothing, so the derivation is not reading the run objects it is handed')
+    rc = 1
+  }
+  // The enforcement, driven on the DERIVED names rather than on a hand-written
+  // list: `unnamed-red.md`'s `## Red checks` says `none`, so the red a later
+  // commit cleared has to reach the same refusal the head's own red does.
+  const clearedRefusals = checkPrBody(path.relative(ROOT, path.join(prepr, 'unnamed-red.md')), { head: ZERO, red: redUnion.reds })
+  if (clearedRefusals.length !== 2) {
+    console.log(`\nFIXTURE VACUOUS: a body whose \`## Red checks\` does not name the two earlier-head reds produced ${clearedRefusals.length} error(s), not 2; the derived names have to reach the refusal the --red path already drives`)
+    rc = 1
+  }
+  // Both markers on SHAPE, for the reason `enumSkipLine`'s pin above gives: they
+  // carry no finding, so no count can see them. The skip line is the only thing
+  // between an unread history and a green that measured nothing, and the record
+  // line is the only trace an already-cleared red leaves.
+  pins += 2
+  const redSkip = redHistorySkipLine('fixture: neither GITHUB_TOKEN nor GH_TOKEN is set')
+  if (!/^\s*skip\s+red-history\b/.test(redSkip) ||
+      !redSkip.includes('UNCHECKED this run, not confirmed clean') ||
+      !redSkip.includes('fixture: neither GITHUB_TOKEN nor GH_TOKEN is set')) {
+    console.log('\nFIXTURE VACUOUS: the red-history skip marker lost its skip/UNCHECKED shape; an unread history would then read as a clean one, which is the fail-open #1144 is about')
+    rc = 1
+  }
+  const redRec = redHistoryRecordLine(3, ['typing'])
+  if (!/^\s*record\s+red-history\b/.test(redRec) || !redRec.includes('3 commit') || !redRec.includes('typing')) {
+    console.log('\nFIXTURE VACUOUS: the red-history record marker does not name what was read, so a head that went red and then green leaves no trace -- which is the whole point of recording it')
     rc = 1
   }
 
@@ -4678,6 +4742,147 @@ function autofixChain(head, names) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// THE `## Red checks` OBLIGATION IS OVER EVERY HEAD, NOT ONLY THIS ONE (#1144).
+//
+// `fix-review.md` step 11 reads a red on ANY head as an answer the body owes.
+// The CI wiring that supplies `red` -- `.github/workflows/governance.yml`,
+// "List the red checks at this head" -- queries `commits/${PR_HEAD}/check-runs`,
+// so a check that failed at an earlier head and was cleared by a later push
+// leaves NO check-run record against the current head at all: the red is gone
+// before this check ever sees it, and a body that never named it passes. The
+// instrument was head-only while the rule was not.
+//
+// This derivation reads the commits BETWEEN the merge base with `origin/main`
+// and the head this run is at, instead. Those are the branch's own commits, and
+// each push moves the head to one of them, so the red a later push cleared is
+// still in the range after it has gone green. Commits `main` absorbed by a merge
+// are NOT in it: merging moves the merge base to `main`'s tip. The list comes
+// from the clone (`rev-list`), not from the API, which is what keeps it cheap
+// and what keeps a red that `main` itself carried out of this pull request's
+// obligation -- the `nightly-status` precedent in `fix-review.md` step 11.
+//
+// It needs the API -- a check run is not in the git clone -- and therefore a
+// credential. Where the history cannot be read the check says which heads went
+// UNCHECKED rather than reading the absence as a clean one, which is the
+// fail-open this file refuses everywhere else; where it could be read and the
+// read failed, the run is REFUSED, on `--paths-file`'s own argument.
+//
+// `checkPrBody` itself does not change: `red` is still a list of names, and the
+// refusal it drives is the one #956 wired.
+const PR_CONTRACT_CHECK = 'pr-contract'
+const RED_HISTORY_PAGE = 100
+const RED_HISTORY_MAX_PAGES = 10
+
+// Pure over run objects, so the acceptance drives it with no network and no
+// token. RED is the corpus's own predicate -- conclusion `failure` on a
+// COMPLETED run -- so skipped, cancelled, timed-out, neutral and still-running
+// are not red, while a run that failed and then succeeded at the SAME commit
+// still is. This job's own runs are excluded by the check-run NAME and nothing
+// else, which is #956's argument: an id-keyed exclusion lets this job's prior
+// red back in and deadlocks the body.
+function failingCheckNames(runs) {
+  const names = new Set()
+  for (const run of Array.isArray(runs) ? runs : []) {
+    if (run?.status !== 'completed' || run?.conclusion !== 'failure') continue
+    if (run?.name === PR_CONTRACT_CHECK) continue
+    if (typeof run?.name === 'string' && run.name.trim()) names.add(run.name)
+  }
+  return [...names].sort()
+}
+
+// The union over the commits, with the per-commit read injected so this is a
+// pure function of its inputs -- the acceptance drives it with fixture runs.
+// THE LOOP IS THE FIX, and the mutation proof is against it: it reads EVERY
+// commit. A loop over the tip alone (`.slice(-1)`), which is what a head-only
+// derivation amounts to, drops exactly the red this exists to keep. A read that
+// fails is returned as a failure rather than skipped: a commit whose runs could
+// not be read is an unmeasured commit, and a union over the measured ones alone
+// would report a clean history it did not establish.
+function redsOverCommits(commits, fetchRuns) {
+  const reds = new Set()
+  for (const sha of commits) {
+    const got = fetchRuns(sha)
+    if (!got.ok) return { ok: false, why: `check-runs at ${String(sha).slice(0, 7)}: ${got.why}` }
+    for (const name of failingCheckNames(got.runs)) reds.add(name)
+  }
+  return { ok: true, reds: [...reds].sort(), commits: commits.length }
+}
+
+// The credential. `ghGet` reads `GITHUB_TOKEN` by default, and a seat's own runs
+// hold `GH_TOKEN` (fixer.md takes it from `~/.zcode/identity-author.token`) --
+// `gh` reads the same two. This helper is what the red-history walk passes to
+// `ghGet` explicitly, so the gate and the fetch agree on one credential and a
+// seat's own push gate can read the history it is about to be judged on. Neither
+// variable is a licence to print one: the value goes into curl's `-K -` config
+// on stdin, exactly as `ghGet` sends it.
+function ghCredential() {
+  return process.env.GITHUB_TOKEN || process.env.GH_TOKEN || ''
+}
+
+// One bounded page-walk over a listing endpoint. These are read on a seat's
+// push gate, so an unbounded walk against an endpoint that always returns a
+// full page would hang it. `pick` unwraps the two shapes in play: a bare array,
+// and `/commits/<sha>/check-runs`'s `{check_runs: []}`.
+function ghGetList(pathname, pick = (d) => (Array.isArray(d) ? d : []), token) {
+  const out = []
+  for (let page = 1; page <= RED_HISTORY_MAX_PAGES; page++) {
+    const got = ghGet(`${pathname}${pathname.includes('?') ? '&' : '?'}per_page=${RED_HISTORY_PAGE}&page=${page}`, token)
+    if (!got.ok) return { ok: false, why: got.why }
+    const arr = pick(got.data)
+    out.push(...arr)
+    if (arr.length < RED_HISTORY_PAGE) return { ok: true, data: out }
+  }
+  return { ok: false, why: `more than ${RED_HISTORY_PAGE * RED_HISTORY_MAX_PAGES} entries at ${pathname}` }
+}
+
+const RED_HISTORY_PICK_RUNS = (d) =>
+  Array.isArray(d?.check_runs) ? d.check_runs : Array.isArray(d) ? d : []
+
+// `{ok: true, data}` with the reds, or `{ok: true, none: <why>}` when there is
+// no history to read (not a failure -- a first push has no earlier head), or
+// `{ok: false, why}` when the read failed and the run must be refused.
+function redHistoryForHead(head, slug) {
+  const base = git(['merge-base', 'origin/main', head], { allowFail: true }).trim()
+  if (!/^[0-9a-f]{40}$/.test(base)) {
+    return { ok: true, none: `origin/main and ${head.slice(0, 7)} share no merge base in this clone` }
+  }
+  const listed = git(['rev-list', `${base}..${head}`], { allowFail: true }).trim()
+  const shas = listed ? listed.split('\n').map((s) => s.trim()).filter(Boolean) : []
+  if (!shas.length) return { ok: true, none: `no commit sits between origin/main and ${head.slice(0, 7)}` }
+  // ONE PROBE before the walk, and it is the line that separates an outage from
+  // an unpushed commit: a repository resource that will not answer means no
+  // later 404 can be read as "this commit has no runs".
+  const token = ghCredential()
+  const probe = ghGet(`/repos/${slug}`, token)
+  if (!probe.ok) return { ok: false, why: probe.why }
+  const union = redsOverCommits(shas, (sha) => {
+    const got = ghGetList(`/repos/${slug}/commits/${sha}/check-runs`, RED_HISTORY_PICK_RUNS, token)
+    if (got.ok) return { ok: true, runs: got.data }
+    // 404/422 on a commit the clone has but GitHub does not: it is not pushed
+    // yet, so it has no runs. That is a skip, not a failure -- a seat's push
+    // gate runs BEFORE its push, and its own new head is exactly this case.
+    if (/\b(404|422)\b/.test(got.why || '')) return { ok: true, runs: [] }
+    return { ok: false, why: got.why }
+  })
+  if (!union.ok) return { ok: false, why: union.why }
+  return { ok: true, commits: union.commits, reds: union.reds }
+}
+
+// The two lines this derivation prints, pinned on SHAPE in the acceptance for
+// `enumSkipLine`'s reason: they carry no finding, so no count above can see
+// them. The skip line's job is to make an unread history UNCHECKED rather than
+// clean -- the exact fail-open #1144 is about -- and the record line names what
+// was read, so a head that went red and then green is still on the record after
+// the red is gone.
+function redHistoryRecordLine(commits, reds) {
+  return `  record   red-history           ${commits} commit(s) between origin/main and this head, every failure conclusion across them: ${reds.length ? reds.join(', ') : 'none'}`
+}
+
+function redHistorySkipLine(why) {
+  return `  skip     red-history           ${why}; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here`
+}
+
 function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], notes = [] } = {}) {
   const out = []
   let body
@@ -4811,8 +5016,34 @@ function cmdPrBody(args) {
     }
     paths = got.paths
   }
+  // THE `## Red checks` OBLIGATION IS OVER EVERY HEAD (#1144). CI derives `red`
+  // from `commits/$PR_HEAD/check-runs`, so a red a later push cleared has no
+  // check-run record at the head this runs on and silently drops out of the
+  // list. The derivation below is that predicate widened to the branch's own
+  // commits, so a cleared red is RECORDED (the `record` line) and then enforced
+  // by the loop in `checkPrBody`, instead of vanishing.
   const notes = []
-  const findings = checkPrBody(bodyPath, { head: val('--head') ?? '', title: val('--title') ?? '', red, paths, notes })
+  const head = (val('--head') ?? '').trim()
+  let redAll = red
+  if (!/^[0-9a-f]{40}$/i.test(head) || /^0{40}$/.test(head)) {
+    notes.push(redHistorySkipLine('`--head` is not a commit sha, so this run is not at a head the red history can be read for'))
+  } else if (!ghCredential()) {
+    notes.push(redHistorySkipLine('neither GITHUB_TOKEN nor GH_TOKEN is set, so no check run could be read'))
+  } else if (!repoSlug()) {
+    notes.push(redHistorySkipLine('origin is not a GitHub remote'))
+  } else {
+    const hist = redHistoryForHead(head, repoSlug())
+    if (!hist.ok) {
+      console.log(`  ERROR   [pr-body] the red history could not be derived: ${hist.why}`)
+      return 1
+    }
+    if (hist.none) notes.push(redHistorySkipLine(hist.none))
+    else {
+      notes.push(redHistoryRecordLine(hist.commits, hist.reds))
+      redAll = [...new Set([...red, ...hist.reds])]
+    }
+  }
+  const findings = checkPrBody(bodyPath, { head, title: val('--title') ?? '', red: redAll, paths, notes })
   for (const n of notes) console.log(n)
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)

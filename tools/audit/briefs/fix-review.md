@@ -61,6 +61,10 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
     reports `main`'s cron, not this head. The control, re-run at your own base —
     heads pushed after #713 carry the same red, heads pushed before carry none.
 
+    **The head's runs are not the range's** (#1144: a head naming nothing while
+    `record-status` sat one commit back). The body check prints `record`/`skip
+    red-history` for the range; `skip` means every earlier head UNCHECKED.
+
     **A GREEN `mutation` does not mean the baseline was green.** Since #1120 the
     lane prints `MUTATION TABLE INCONCLUSIVE` and exits 0 on `--scope changed`
     when its baseline is red, so a green conclusion means either no mutant
