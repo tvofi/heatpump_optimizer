@@ -11209,6 +11209,123 @@ R.check(
     "not a widened one, so the exclusion above still holds.)",
 )
 
+# #1218 (D3-08): the deployment-shape lane's measured closure is the whole
+# tracked package -- it materialises the package file by file, and the
+# gate's tracer records every read -- so every diff touching any production
+# file selects the lane. The same recording pairs 53 of the 276 scripts at
+# 0.80 or more of shared production-module closure. The numbers are
+# re-derived here exactly as tools/audit/round5/D3/resource_r5.py derived
+# them (Jaccard over the closure files under
+# custom_components/heatpump_optimizer/, empty sets skipped), and the lane's
+# docstring records them as this repository's selection-cost note. A
+# SELECTION cost only: which mutants each script kills was never measured
+# (the pre-screen stops at the first killer), so nothing claims two
+# overlapping scripts are redundant.
+_D308_DS = "tests/deployment_shape.py"
+_D308 = json.loads(_closure.CLOSURES.read_text())["closures"]
+_D308_PROD = {
+    f for _fs in _D308.values() for f in _fs
+    if f.startswith("custom_components/heatpump_optimizer/")
+}
+
+
+def _d308_pairs(closures: dict, prod: set, floor: float = 0.80) -> list:
+    """resource_r5.py's pair predicate, re-derived here."""
+    names = sorted(closures)
+    out = []
+    for _i in range(len(names)):
+        for _j in range(_i + 1, len(names)):
+            _a = set(closures[names[_i]]) & prod
+            _b = set(closures[names[_j]]) & prod
+            if not _a or not _b:
+                continue
+            _jac = len(_a & _b) / len(_a | _b)
+            if _jac >= floor:
+                out.append((_jac, names[_i], names[_j], len(_a & _b)))
+    return out
+
+
+_D308_PAIRS = _d308_pairs(_D308, _D308_PROD)
+_D308_TOTAL = len(_D308) * (len(_D308) - 1) // 2
+_D308_EMPTY = sorted(
+    s for s, fs in _D308.items() if not set(fs) & _D308_PROD)
+_D308_COMPARABLE = _D308_TOTAL - sum(
+    1 for _i, _a in enumerate(sorted(_D308))
+    for _b in sorted(_D308)[_i + 1:]
+    if not ((set(_D308[_a]) & _D308_PROD) and (set(_D308[_b]) & _D308_PROD)))
+_D308_FULLCOV = sorted(s for s, fs in _D308.items() if _D308_PROD <= set(fs))
+_D308_SELECTED = _D308_DS in _closure.select(
+    ["custom_components/heatpump_optimizer/optimizer.py"])["run"]
+R.check(
+    "the deployment-shape lane's closure is the whole tracked package, so "
+    "any production diff selects it (#1218)",
+    _D308_PROD <= set(_D308.get(_D308_DS, []))
+    and _integration_py <= set(_D308.get(_D308_DS, []))
+    and _D308_FULLCOV == [_D308_DS]
+    and _D308_SELECTED,
+    f"closure reaches {len(set(_D308.get(_D308_DS, [])) & _D308_PROD)}/"
+    f"{len(_D308_PROD)} production files and covers the tree's "
+    f"{len(_integration_py)} package modules "
+    f"({_integration_py <= set(_D308.get(_D308_DS, []))}), "
+    f"full-coverage closures={_D308_FULLCOV}, a production diff selects "
+    f"it={_D308_SELECTED} -- this is the cost the note beside the lane "
+    "records",
+)
+# The note carries the derived numbers, so a re-record that moves them fails
+# HERE instead of leaving stale prose behind. The text is whitespace-
+# normalised first so a future re-wrap of the paragraph cannot flip these.
+_D308_DS_TEXT = " ".join((_closure.ROOT / _D308_DS).read_text().split())
+R.check(
+    "and the lane's docstring records those measured numbers as the "
+    "selection-cost note (#1218)",
+    all(_s in _D308_DS_TEXT for _s in (
+        "D3-08", "#1218", "selection cost",
+        f"all {len(_D308_PROD)} files",
+        f"{len(_D308_PAIRS)} of the {_D308_TOTAL}",
+        f"{_D308_COMPARABLE} pairs",
+    ))
+    and all(_e in _D308_DS_TEXT for _e in _D308_EMPTY),
+    "the note cites numbers this tree derives: "
+    f"{len(_D308_PROD)} production files; {len(_D308_PAIRS)} of "
+    f"{_D308_TOTAL} pairs at >= 0.80; {_D308_COMPARABLE} pairs comparable; "
+    f"no production closure in {_D308_EMPTY}; missing markers -> "
+    f"{[s for s in ('D3-08', '#1218', 'selection cost', 'all %d files' % len(_D308_PROD), '%d of the %d' % (len(_D308_PAIRS), _D308_TOTAL), '%d pairs' % _D308_COMPARABLE) if s not in _D308_DS_TEXT]}",
+)
+# The predicate itself, on synthetic closures built from real production
+# names: equal sets count, disjoint and below-boundary do not, an exactly
+# 0.80 pair counts, and a script with no production closure is skipped in
+# either position -- so the count above cannot be an artefact of the
+# predicate rather than of the recording.
+_D308_SYN = sorted(_D308_PROD)
+R.check(
+    "the overlap predicate counts equal sets, skips empty ones and holds "
+    "the 0.80 boundary (#1218)",
+    [p[3] for p in _d308_pairs(
+        {"tests/a.py": _D308_SYN[:1], "tests/b.py": _D308_SYN[:1]},
+        _D308_PROD)] == [1]
+    and _d308_pairs(
+        {"tests/a.py": _D308_SYN[:1], "tests/b.py": _D308_SYN[1:2]},
+        _D308_PROD) == []
+    and [p[3] for p in _d308_pairs(
+        {"tests/a.py": _D308_SYN[:4], "tests/b.py": _D308_SYN[:5]},
+        _D308_PROD)] == [4]
+    and _d308_pairs(
+        {"tests/a.py": _D308_SYN[:4], "tests/b.py": _D308_SYN[:6]},
+        _D308_PROD) == []
+    and _d308_pairs(
+        {"tests/a.py": _D308_SYN[:1],
+         "tests/z.py": ["tests/hastub/__init__.py"]},
+        _D308_PROD) == []
+    and _d308_pairs(
+        {"tests/a.py": ["tests/hastub/__init__.py"],
+         "tests/b.py": _D308_SYN[:1]},
+        _D308_PROD) == [],
+    "arms: equal -> 1 pair, disjoint -> none, 4/5 (exactly 0.80) -> one "
+    "shared=4, 4/6 -> none, non-production-only script -> none in either "
+    "position; the real recording gives "
+    f"{len(_D308_PAIRS)} of {_D308_TOTAL} with {_D308_COMPARABLE} comparable",
+)
+
 # The scoped gate refuses to skip anything when a changed file is in no
 # closure -- an unmeasured file is not a safe skip. That is right, and it was
 # quietly making gates full: renaming one identifier in setup_qa_render.mjs, a
@@ -19254,7 +19371,11 @@ _MB_BAD += [
     f"{_MB['max_survivor_fraction'][_scope]}"
     for _scope, _m in _MB["last_measured"].items()
     if _m and _m["evaluated"]
-    and _m["survivors"] / _m["evaluated"] > _MB["max_survivor_fraction"][_scope]
+    # Compared at the 4 dp `--record` writes the cap at: a fraction recorded
+    # from 1/3 is stored as 0.3333 and must not read as over its own cap for
+    # the 0.000033 the rounding left behind.
+    and round(_m["survivors"] / _m["evaluated"], 4)
+    > _MB["max_survivor_fraction"][_scope]
 ]
 R.check(
     "both mutation caps are fractions, and each holds its own last measurement",
@@ -19421,6 +19542,188 @@ R.check(
     "file no recorded closure reaches is skipped rather than scored",
 )
 
+# #1225 (D7-01): the default driver list omitted tests/manual_plan.py -- the
+# module's own test, whose measured closure reaches manual_plan.py -- so the
+# recorded full table (tests/mutation_budgets.json, run 35395283955) counted
+# manual_plan.py:121 GUARD_OFF as a survivor that tests/manual_plan.py kills
+# in one run. The property is read off the option the gate actually drives,
+# through `getattr` so an unfixed tree FAILS these checks by name instead of
+# dying here on an AttributeError.
+_MUT_DEFAULT = getattr(_mut, "DEFAULT_SCRIPTS", "")
+_MUT_REAL_CLOSURES = _mut.load_closures()
+R.check(
+    "the default driver list can reach tests/manual_plan.py's module (#1225)",
+    "tests/manual_plan.py" in _mut.drivers_for(
+        "custom_components/heatpump_optimizer/manual_plan.py",
+        _MUT_REAL_CLOSURES, _MUT_DEFAULT.split(",")),
+    f"default drivers: {_MUT_DEFAULT!r} -- a gate whose driver list omits the "
+    "module's own test records its kills as survivors by construction",
+)
+# The null control: the widened list does not throw the operator's own rule
+# away -- a driver still needs the mutant's file in its MEASURED closure.
+R.check(
+    "and the default list still drives nothing into a file no closure reaches",
+    _mut.drivers_for("custom_components/heatpump_optimizer/nowhere.py",
+                     _MUT_REAL_CLOSURES, _MUT_DEFAULT.split(",")) == [],
+    "the default names CANDIDATES; `drivers_for` intersects them with the "
+    "measured closure exactly as it did for the hand-kept list",
+)
+
+# #1211 (D3-01): the driver net is the GATE's recorded set, derived from
+# tests/closures.json -- not a hand-kept list. The eight-script default the
+# audit measured drove mutants with 8 of the 24 recorded scripts and never
+# ran the differential golden step (tests/env_drift.py --all), so a recorded
+# survivor fraction was not the fraction this repository's gate produces.
+_MUT_EXCL = getattr(_mut, "DRIVER_EXCLUSIONS", {})
+_MUT_DEFAULT_LIST = _MUT_DEFAULT.split(",") if _MUT_DEFAULT else []
+R.check(
+    "the driver net is the recorded gate set minus named exclusions (#1211)",
+    bool(_MUT_DEFAULT_LIST)
+    and set(_MUT_DEFAULT_LIST) | set(_MUT_EXCL) == set(_MUT_REAL_CLOSURES)
+    and not (set(_MUT_DEFAULT_LIST) & set(_MUT_EXCL))
+    and all(_MUT_EXCL.values()),
+    f"{len(_MUT_DEFAULT_LIST)} driving of {len(_MUT_REAL_CLOSURES)} recorded, "
+    f"{len(_MUT_EXCL)} excluded with a reason -- a net that is neither "
+    "derived nor total is exactly the drift this check stops",
+)
+_MUT_DRIVE_SPEC = getattr(_mut, "drive_spec", lambda _s, _r: None)
+_MUT_SKIP = getattr(_mut, "ref_skip_reason", lambda _r, _t: None)
+_MUT_GATE_REF = getattr(_mut, "gate_ref", lambda _s, _b: None)
+R.check(
+    "the differential golden step is drivable as the gate drives it (#1211)",
+    _MUT_DRIVE_SPEC("tests/env_drift.py", "some-ref")
+    == (["--all", "some-ref"], {})
+    and _MUT_DRIVE_SPEC("tests/stress.py", "some-ref")
+    == ([], {"GOLDEN_REF": "some-ref"})
+    and _MUT_DRIVE_SPEC("tests/entities.py", "some-ref") == ([], {}),
+    f"env_drift={_MUT_DRIVE_SPEC('tests/env_drift.py', 'some-ref')!r} -- a "
+    "bare run compares against env_drift's own default; the gate's step takes "
+    "the resolved ref after --all and hands stress the exported GOLDEN_REF",
+)
+R.check(
+    "the ref-driven pair skips by the gate's own rule, not a vacuous run (#1211)",
+    "is this commit" in (_MUT_SKIP("HEAD", _mut.ROOT) or "")
+    and "not available here"
+    in (_MUT_SKIP("no-such-ref-audit-1211", _mut.ROOT) or ""),
+    f"HEAD -> {_MUT_SKIP('HEAD', _mut.ROOT)!r} -- env_drift refuses a ref that "
+    "resolves to HEAD (a gate that cannot fail), so tests/run.sh skips it out "
+    "loud; a driver dropped here is the same decision, not a silent pass",
+)
+# The ref the drivers are handed is resolved exactly as run.sh reads it:
+# GOLDEN_REF when the environment sets it, HEAD^1 for the nightly otherwise.
+_MUT_FULL_REF = _os.environ.get("GOLDEN_REF", "").strip() or "HEAD^1"
+R.check(
+    "and ref-driven drivers get run.sh's own resolution (#1211)",
+    _MUT_GATE_REF("full", "origin/main") == _MUT_FULL_REF,
+    f"full scope -> {_MUT_GATE_REF('full', 'origin/main')!r}, wanted "
+    f"{_MUT_FULL_REF!r} -- the nightly's gate compares against HEAD^1 and a "
+    "driver handed a different ref measures a different comparison",
+)
+
+# #1217 (D3-07): two of the D3 pre-screen's seven survivors are EQUIVALENT
+# mutants -- pump_mode.py:242 GUARD_OFF and __init__.py:337 BOOLOP, each
+# measured against its own guarded input -- which no check could ever kill,
+# so a survivor count that mixes them with real gaps reads worse than the
+# suite is. The triage marks live in tests/mutation_budgets.json under
+# "survivor_triage", keyed exactly like the recorded survivor table and
+# PINNED to the line text they were triaged on; the fraction the cap reads
+# counts only survivors no triage has called equivalent. Absence of a triage
+# is not a finding of equivalence -- an unmarked survivor stays a gap.
+_MUT_TRIAGE = _MB.get("survivor_triage", {})
+_MUT_TRIAGE_KEY = getattr(_mut, "triage_key", lambda _m: None)
+_MUT_EQ = getattr(_mut, "triaged_equivalent", lambda _t, _m: None)
+_MUT_GAPS = getattr(_mut, "survivor_gaps", lambda _s, _t: None)
+_MUT_TRIAGE_PROBLEMS = getattr(_mut, "triage_problems",
+                               lambda _t: ["no triage_problems"])
+# Two synthetic survivors shaped like the table's rows; the triage fixture
+# marks one of them, key and pin alike.
+_EQ_MUT = {"file": "custom_components/heatpump_optimizer/pump_mode.py",
+           "line": 242, "kind": "GUARD_OFF", "old": "    if raw is None:"}
+_GAP_MUT = {"file": "custom_components/heatpump_optimizer/frontend.py",
+            "line": 110, "kind": "BOOLOP",
+            "old": '        if a and b:'}
+_EQ_KEY = "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF"
+_TRIAGE_FIXTURE = {_EQ_KEY: {"verdict": "equivalent",
+                             "old": "    if raw is None:",
+                             "reason": "probe: no input can tell it apart"}}
+R.check(
+    "a survivor triaged equivalent is off the fraction; an unmarked one stays (#1217)",
+    _MUT_TRIAGE_KEY(_EQ_MUT) == _EQ_KEY
+    and _MUT_GAPS([_EQ_MUT, _GAP_MUT], _TRIAGE_FIXTURE)
+    == ([_GAP_MUT], [_EQ_MUT]),
+    f"key={_MUT_TRIAGE_KEY(_EQ_MUT)!r}, gaps -> "
+    f"{_MUT_GAPS([_EQ_MUT, _GAP_MUT], _TRIAGE_FIXTURE)!r} -- the marked line "
+    "leaves the numerator; the unmarked survivor stays in it, because the "
+    "default has to stay guilty until a reason moves it",
+)
+# The line pin is half the mark: file and line are where the mutant WAS, and
+# a production edit moves text under the same coordinates all the time. The
+# other half is the verdict: a "gap" triage records a real gap and must not
+# come off the fraction. The null controls drive all three arms through the
+# same predicate.
+R.check(
+    "and only an `equivalent` verdict applies, pinned line text and all (#1217)",
+    _MUT_EQ(_TRIAGE_FIXTURE, _EQ_MUT) is True
+    and _MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, old="    if raw:")) is False
+    and _MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, line=243)) is False
+    and _MUT_EQ({_EQ_KEY: {"verdict": "gap", "old": _EQ_MUT["old"],
+                           "reason": "a real gap, triaged"}}, _EQ_MUT) is False,
+    f"same pin -> {_MUT_EQ(_TRIAGE_FIXTURE, _EQ_MUT)!r}, moved text -> "
+    f"{_MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, old='    if raw:'))!r}, moved "
+    f"line -> {_MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, line=243))!r}, gap "
+    f"verdict -> {_MUT_EQ({_EQ_KEY: {'verdict': 'gap', 'old': _EQ_MUT['old'], 'reason': 'r'}}, _EQ_MUT)!r} "
+    "-- a mark that outlives the line it explains is a claim about code that "
+    "is gone, and a triaged gap is exactly what the fraction is for",
+)
+# The validator is a predicate, so the refusal shape is driven rather than
+# trusted: a good entry passes; an unknown verdict, a missing reason, a
+# missing pin and a key that is not `FILE:LINE KIND` are four problems.
+_MUT_TRIAGE_BAD = {
+    _EQ_KEY: {"verdict": "sure", "old": "", "reason": ""},
+    "junk": {"verdict": "equivalent", "old": "x", "reason": "r"},
+}
+R.check(
+    "a triage entry without a verdict, reason or line pin is refused (#1217)",
+    _MUT_TRIAGE_PROBLEMS(_TRIAGE_FIXTURE) == []
+    and len(_MUT_TRIAGE_PROBLEMS(_MUT_TRIAGE_BAD)) == 4,
+    f"good -> {_MUT_TRIAGE_PROBLEMS(_TRIAGE_FIXTURE)!r}, bad -> "
+    f"{_MUT_TRIAGE_PROBLEMS(_MUT_TRIAGE_BAD)!r} -- an unargued equivalence "
+    "claim is the one shape that could quietly relax the fraction",
+)
+# The recorded table itself: both D3-07 equivalents marked, each with a
+# reason; the validator holds over the whole real table; and every mark
+# names a mutant THIS tree still generates -- same line, same operator,
+# same text -- so the pins are checked against the tree, not each other.
+_MUT_D3_07 = (
+    "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF",
+    "custom_components/heatpump_optimizer/__init__.py:337 BOOLOP",
+)
+R.check(
+    "the recorded triage marks both D3-07 equivalents, verdict and reason (#1217)",
+    all(_MUT_TRIAGE.get(k, {}).get("verdict") == "equivalent"
+        and str(_MUT_TRIAGE.get(k, {}).get("reason", "")).strip()
+        for k in _MUT_D3_07),
+    f"marked: {sorted(_MUT_TRIAGE)} -- the audit measured resolve(None) and "
+    "the async_create_task return as indistinguishable both ways, and a "
+    "survivor table that does not say so charges the suite for them",
+)
+_MUT_TRIAGE_STALE = []
+for _k, _ent in sorted(_MUT_TRIAGE.items()):
+    _rel, _rest = _k.split(":")
+    _ln, _kind = _rest.split(" ", 1)
+    _hit = [m for m in _mut.candidates(Path(_rel))
+            if m["line"] == int(_ln) and m["kind"] == _kind]
+    if len(_hit) != 1 or _hit[0]["old"] != _ent.get("old"):
+        _MUT_TRIAGE_STALE.append(_k)
+R.check(
+    "and every mark still names a mutant this tree generates, pin and all (#1217)",
+    bool(_MUT_TRIAGE) and _MUT_TRIAGE_PROBLEMS(_MUT_TRIAGE) == []
+    and not _MUT_TRIAGE_STALE,
+    f"stale={_MUT_TRIAGE_STALE or 'none'}, problems="
+    f"{_MUT_TRIAGE_PROBLEMS(_MUT_TRIAGE)} -- a mark is only allowed to "
+    "speak for the exact mutant it was measured on",
+)
+
 # The classification the ratchet demands of any new tracked file: not
 # selectable (each needs an instrument the gate does not run), not INERT
 # (this script imports both).
@@ -19442,8 +19745,8 @@ R.check(
 # The baseline's driver set is NOT the scoped gate's selection, and the
 # difference is the whole of what a pull request gives up: on a diff that
 # changes no production file, `scope_files` falls back to the closure of the
-# changed TEST scripts, which on this branch's own diff is 58 production files
-# and 8 drivers against the gate's 1 selected script. Re-derive that pair at
+# changed TEST scripts, which on this branch's own diff is 63 production files
+# and 19 drivers against the gate's 1 selected script. Re-derive that pair at
 # your merge base rather than carrying it; `baseline_refusal`'s docstring says
 # with what. The NIGHTLY keeps the refusal: nothing else reports that lane's
 # baseline per commit.

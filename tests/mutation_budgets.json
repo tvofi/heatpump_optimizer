@@ -7,6 +7,7 @@
   "last_measured": {
     "changed": {
       "survivors": 2,
+      "equivalent": 0,
       "evaluated": 10,
       "at": "2026-09-11T23:51:31Z",
       "run": "34658441338",
@@ -17,6 +18,7 @@
     },
     "full": {
       "survivors": 12,
+      "equivalent": 0,
       "evaluated": 40,
       "at": "2026-09-18T22:01:06Z",
       "run": "35395283955",
@@ -36,5 +38,17 @@
       ]
     }
   },
-  "reason": "Both caps stay OPEN at 1.0 and this is deliberate. The first real run of the changed scope (CI run 34658441338, on a runner rather than a laptop) killed 8 of 10 and is recorded in last_measured -- but 10 mutants is a sample, and a cap set at a sample's own rate reddens the next branch that happens to draw three survivors instead of two, which is the random failure this fraction exists to avoid. The nightly's 40-mutant full-package pool is the first estimate worth gating on, and mutation-nightly is on main: CI run 35395283955 drove it, its score recorded in last_measured.full. The cap still stays open because a cap moves down only on a run whose survivors are all explained (tests/mutation_table.py --record), and that run's survivors have not been triaged yet; record the cap here once they are."
+  "survivor_triage": {
+    "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF": {
+      "verdict": "equivalent",
+      "old": "    if raw is None:",
+      "reason": "resolve()'s `raw is None` guard is redundant: _fold(None) is 'none', no alias key folds to 'none', and 'none' is in neither _ALIASES nor _STATUS_AMBIGUOUS, so _ALIASES.get('none') returns None on both paths -- measured on this tree (round-5 D3-07; the probe is tools/audit/round5/D3/equiv_probe.py)."
+    },
+    "custom_components/heatpump_optimizer/__init__.py:337 BOOLOP": {
+      "verdict": "equivalent",
+      "old": "        if task is not None and hasattr(task, \"cancel\"):",
+      "reason": "hass.async_create_task (homeassistant.core.HomeAssistant.async_create_task) returns an asyncio.Task, which always carries cancel; the OR form differs only for a non-None object without a cancel attribute, which that return cannot be -- round-5 D3-07."
+    }
+  },
+  "reason": "Both caps stay OPEN at 1.0 and this is deliberate. The first real run of the changed scope (CI run 34658441338, on a runner rather than a laptop) killed 8 of 10 and is recorded in last_measured -- but 10 mutants is a sample, and a cap set at a sample's own rate reddens the next branch that happens to draw three survivors instead of two, which is the random failure this fraction exists to avoid. The 40-mutant full-package pool is the shape worth gating on, and mutation-nightly is on main: CI run 35395283955 drove it, its score recorded in last_measured.full -- but that score is NOT that estimate yet. The instrument that produced it drove mutants with 8 of the 24 recorded gate scripts and never ran the differential golden step (tests/env_drift.py --all, the step CI runs under GOLDEN_MODE=drift), which is the D3-01 finding: read those 12 survivors as what that instrument measured, not as the fraction this repository's PR gate would produce. The default driver net is now derived from tests/closures.json (#1211) and includes the module's own test drivers (#1225), so the first full run in that shape is the first estimate worth gating on. The fraction counts only survivors no triage has called equivalent: the two equivalent mutants the round-5 D3 pre-screen measured -- pump_mode.py:242 GUARD_OFF and __init__.py:337 BOOLOP, each indistinguishable from its original at every input (D3-07) -- are recorded under survivor_triage, pinned to the line text they were measured on, so those two no longer read as gaps. The cap still stays open because a cap moves down only on a run whose survivors are all explained (tests/mutation_table.py --record), and the recorded survivors have not all been triaged yet; record the cap here once that triage is done."
 }
