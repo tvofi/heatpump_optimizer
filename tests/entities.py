@@ -18087,6 +18087,52 @@ R.check(
     "the red-check trigger reads as enforced while the same unnamed red body "
     "exits 0 -- the silent-green shape #533 is about, in this workflow",
 )
+# THE LISTING'S FAIL-CLOSED SHAPE. The step runs `set -euo pipefail` before the
+# `gh api ... | jq ... > /tmp/pr-reds.txt` pipeline on purpose: a derivation
+# that fails must fail the step, because an empty red list read from a failed
+# fetch is "no reds" -- the fail-open the wiring closes. That intent lived in a
+# YAML comment and nothing under `tests/` pinned it, so a later edit could drop
+# the guard or loosen the filter and no check would notice (#1139). The step is
+# read out of the comment-stripped job (`_PC_BODY_STEP`), so a comment that
+# merely NAMES the guard cannot satisfy the pin.
+def _fail_closed_red_listing(step: str) -> bool:
+    """True when `step` derives `/tmp/pr-reds.txt` fail-closed.
+
+    `set -euo pipefail` must precede the pipeline it protects, and the `jq`
+    filter must keep the RED predicate (completed AND failed) and the output
+    the next step reads.
+    """
+    pipefail = step.find("set -euo pipefail")
+    pipeline = step.find("gh api --paginate")
+    return (
+        step.startswith("List the red checks at this head")
+        and 0 <= pipefail < pipeline
+        and '.status == "completed"' in step
+        and '.conclusion == "failure"' in step
+        and "> /tmp/pr-reds.txt" in step
+    )
+
+
+_PC_RED_STEP = next(
+    (_b for _b in _PC_BODY_STEP.split("\n      - name: ")
+     if _b.startswith("List the red checks at this head")), "")
+R.check(
+    "the red-check listing stays fail-closed (pipefail guard, jq filter, output pinned)",
+    _fail_closed_red_listing(_PC_RED_STEP),
+    f"step found={bool(_PC_RED_STEP)}, "
+    f"pipefail={_PC_RED_STEP.find('set -euo pipefail')}, "
+    f"pipeline={_PC_RED_STEP.find('gh api --paginate')}; the derivation's own "
+    "failure must fail the step, or an empty list from a failed fetch reads as "
+    "'no reds'",
+)
+R.check(
+    "and a listing with the guard and the RED filter stripped is not (null control)",
+    bool(_PC_RED_STEP)
+    and not _fail_closed_red_listing(
+        _PC_RED_STEP.replace("set -euo pipefail", "", 1)
+        .replace('.conclusion == "failure"', '.conclusion == "success"')),
+    "the predicate must read the guard and the filter, not the step's name",
+)
 # CLAUDE.md rule 4 in CI: `prepr.sh --version-edit` refuses a pull request
 # moving VERSION, the manifest version or a notes heading. Its predicate is
 # driven by prepr.sh --self-test; what that cannot see is whether THIS job
@@ -18108,6 +18154,79 @@ R.check(
     f"call={_PC_VE_CALL}, fetch={_PC_VE_FETCH}, always={bool(_PC_VE_STEP)}; "
     "before this step the check ran only on a seat's machine and a VERSION "
     "bump passed every required context",
+)
+# `## Friction` AND A DECLARATION THAT IS NOT THE WHOLE SECTION. `isNone` read a
+# section as `none` whenever the token stood at its START -- no end anchor, no
+# `m` flag -- so `frictionEntries` tested that against the WHOLE multi-line
+# section and a body opening with `None` and then carrying entries returned
+# `[]`: every entry below the declaration vanished from the `--stats`
+# histogram, and a malformed one was accepted by the contract instead of
+# refused (#1139). Driven end to end through the contract AND against the
+# exported parser, because the issue names both callers.
+def _friction_none_fixture():
+    import tempfile
+
+    sha = "0" * 40
+
+    def body(friction: str) -> str:
+        secs = [("Head", f"`{sha}`"), ("Mutation proof", "none"),
+                ("Null control", "none"), ("Figures", "none"),
+                ("Red checks", "none"), ("Forward-carry", "none"),
+                ("Friction", friction)]
+        return "".join(f"## {h}\n\n{v}\n\n" for h, v in secs)
+
+    out = {}
+    with tempfile.TemporaryDirectory() as td:
+        p = Path(td) / "body.md"
+        for key, friction in {
+            "none_then_junk": "None\nthis line does not parse as an entry",
+            "none_only": "None",
+            "junk_only": "this line does not parse as an entry",
+        }.items():
+            p.write_text(body(friction))
+            r = subprocess.run(
+                ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+                 str(p), "--head", sha],
+                capture_output=True, text=True)
+            out[key] = (r.returncode, r.stdout)
+    return out
+
+
+_FN = _friction_none_fixture()
+R.check(
+    "a `## Friction` opening with `none` that then carries a malformed entry is refused",
+    _FN["none_then_junk"][0] == 1 and "does not parse" in _FN["none_then_junk"][1],
+    f"rc={_FN['none_then_junk'][0]}; a section read as whole-`none` accepted the "
+    f"line below the declaration. out={_FN['none_then_junk'][1].strip()[-200:]!r}",
+)
+_FRICTION_PARSED = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     "console.log(JSON.stringify({"
+     "none_then: m.frictionEntries('None\\n`CLAUDE.md`: cost: real')"
+     ".filter((e) => e.id === 'CLAUDE.md').length,"
+     "na_then: m.frictionEntries('n/a\\n`CLAUDE.md`: cost: real')"
+     ".filter((e) => e.id === 'CLAUDE.md').length,"
+     "none_only: m.frictionEntries('None').length,"
+     "entry_only: m.frictionEntries('`CLAUDE.md`: cost: real')"
+     ".filter((e) => e.id === 'CLAUDE.md').length"
+     "})))"],
+    capture_output=True, text=True).stdout or "{}")
+R.check(
+    "frictionEntries reads the entries after a leading `none`, not an empty section",
+    _FRICTION_PARSED.get("none_then") == 1
+    and _FRICTION_PARSED.get("na_then") == 1,
+    f"parsed={_FRICTION_PARSED}; the entry under the declaration was dropped from "
+    "the histogram",
+)
+R.check(
+    "and `none` alone stays zero entries while a stray entry is refused (null controls)",
+    _FN["none_only"][0] == 0
+    and _FN["junk_only"][0] == 1
+    and _FRICTION_PARSED.get("none_only") == 0
+    and _FRICTION_PARSED.get("entry_only") == 1,
+    f"none_only rc={_FN['none_only'][0]}, junk_only rc={_FN['junk_only'][0]}, "
+    f"parsed={_FRICTION_PARSED}",
 )
 # AN AUTOFIX COMMIT ON THE NAMED HEAD IS NOT A MOVED HEAD. `closures-autofix`
 # and `claims-autofix` push a commit onto a pull request after its body was

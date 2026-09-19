@@ -1497,15 +1497,26 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
     if any(r.get("rc", 0) != 0 for r in records):
         return "skip-failed-recording"
 
+    mout, merr = io.StringIO(), io.StringIO()
     try:
-        with contextlib.redirect_stdout(io.StringIO()), \
-                contextlib.redirect_stderr(io.StringIO()):
+        with contextlib.redirect_stdout(mout), contextlib.redirect_stderr(merr):
             mrc = merge(in_dir, CLOSURES, allow_failures=False, partial=partial)
     except (KeyError, TypeError, json.JSONDecodeError, OSError):
         _restore()
         return "skip-merge-failed"
     if mrc != 0:
         _restore()
+        # `merge` printed its reason -- a refused INERT pair, a recording it
+        # will not fold without --allow-failures, a shrink it kept -- to the
+        # streams captured above. They used to be throwaway buffers, so
+        # `closures-autofix` reported a bare `skip-merge-failed` and the job
+        # log carried no cause: the reader had to re-derive one (#1139).
+        # Surface the text beside the status. The status STRING is unchanged,
+        # deliberately: `autofix_repair_failed` and the job's `GITHUB_OUTPUT`
+        # are keyed on it.
+        reason = (mout.getvalue() + merr.getvalue()).strip()
+        if reason:
+            print(reason, file=sys.stderr)
         return "skip-merge-failed"
 
     out2, err2 = io.StringIO(), io.StringIO()
@@ -2060,6 +2071,20 @@ def selftest() -> int:
         f"rc={crc} log={log[-400:]!r}",
     )
 
+    fstatus, flog, nstatus, nlog = _selftest_merge_failure_diagnostic()
+    pin(
+        "a refused merge surfaces merge()'s reason, not just skip-merge-failed",
+        fstatus == "skip-merge-failed"
+        and "INERT list are actually read by tests" in flog,
+        f"status={fstatus!r} log={flog[-400:]!r}",
+    )
+    pin(
+        "and a merge that succeeds carries no merge reason (null control)",
+        nstatus == "changed"
+        and "INERT list are actually read by tests" not in nlog,
+        f"status={nstatus!r} log={nlog[-200:]!r}",
+    )
+
     if failed:
         print(f"\n{failed} of {n} closure shrink pins FAILED")
         return 1
@@ -2106,6 +2131,42 @@ def _selftest_stale_message() -> tuple[int, str]:
         finally:
             CLOSURES = orig
         return rc, buf.getvalue() + err.getvalue()
+
+
+def _selftest_merge_failure_diagnostic() -> tuple[str, str, str, str]:
+    """`apply_under_scoped_recordings` surfaces a refused merge's reason (#1139).
+
+    Returns (status, log) for a drive whose merge must REFUSE, then (status,
+    log) for the same drive one file over, where the merge succeeds -- the
+    null control. A recorded closure that names an INERT file is exactly what
+    `merge` refuses (#357), and `merge` prints why. The capture buffers at the
+    `merge` call used to be throwaway objects, so `closures-autofix` reported a
+    bare `skip-merge-failed` with no cause anywhere in the job log.
+    """
+    script = "tests/open_meteo.py"
+
+    def drive(files: list[str]) -> tuple[str, str]:
+        global CLOSURES
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            fake = td_path / "closures.json"
+            fake.write_text(CLOSURES.read_text())
+            rec = td_path / "rec"
+            _selftest_write_records(rec, {script: [script, *files]})
+            orig = CLOSURES
+            CLOSURES = fake
+            buf, err = io.StringIO(), io.StringIO()
+            try:
+                with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                    status = apply_under_scoped_recordings(rec, partial=True)
+            finally:
+                CLOSURES = orig
+            return status, buf.getvalue() + err.getvalue()
+
+    # `LICENSE` is INERT and a regular file, so merge() refuses the pair and
+    # prints the refusal; `tests/harness.py` is ordinary, so the same overlay
+    # merges cleanly.
+    return drive(["LICENSE"]) + drive(["tests/harness.py"])
 
 
 def main() -> int:

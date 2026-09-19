@@ -4478,7 +4478,17 @@ const FRICTION_EVENTS = ['unclear', 'contradiction', 'unenforced', 'stale', 'cos
 // and refusing the first would teach seats to write the second while meaning
 // neither. Leading list markers and emphasis are stripped for the same reason.
 const STRIP = "[-*\\s`_\"']*"
-const isNone = (text) => new RegExp(`^${STRIP}(none|n/a)\\b`, 'i').test(text)
+// A section IS `none` only when the `none`/`n/a` is the WHOLE section. The
+// `[^\n]*$` tail is load-bearing: without it `^` matched at the start of the
+// string and the pattern had no end anchor, so a section that opened with
+// `None` on its first line and then carried real entries matched anyway --
+// `frictionEntries` returned `[]` and every entry below the declaration was
+// dropped, and a malformed entry there was accepted rather than refused
+// (#1139). A `none`/`n/a` line that is not the whole section is a DECLARATION,
+// not an entry; `frictionEntries` drops it so the entries below it are read.
+// Callers pass trimmed text (`frictionEntries`, the `Forward-carry` read), so
+// the tail cannot be a bare newline.
+const isNone = (text) => new RegExp(`^${STRIP}(none|n/a)\\b[^\\n]*$`, 'i').test(text)
 // `n/a` and `none` are not the same answer. `none` IS the content -- there were
 // no red checks, nothing was carried. `n/a` says the section does not apply to
 // this change, which is a judgement, and the whole point of the section is that
@@ -4529,6 +4539,12 @@ function frictionEntries(text) {
   if (!section || isNone(section)) return []
   const lines = []
   for (const raw of section.split('\n').map((l) => l.trim()).filter(Boolean)) {
+    // A `none`/`n/a` line that is not the whole section is a DECLARATION, not
+    // an entry -- the section below it carries the content. The whole-section
+    // case returned above, so reaching here means entries follow; reading the
+    // declaration as one unparseable entry would refuse a body whose entries
+    // are well-formed, and dropping the section instead lost them (#1139).
+    if (isNone(raw)) continue
     const opens = FRICTION_BULLET_RE.test(raw) || FRICTION_OPENS_RE.test(raw) || FRICTION_NEAR_MISS_RE.test(raw)
     if (opens || !lines.length) lines.push(raw)
     else lines[lines.length - 1] += ' ' + raw
