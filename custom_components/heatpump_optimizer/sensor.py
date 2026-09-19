@@ -1452,6 +1452,15 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         plan = self._plan
+        # DHW attributes describe hot-water plant, so they are published
+        # only on a plant that has some. The payload's own `dhw_enabled` is
+        # the flag the DHW entities' availability already rides on (the
+        # mixin above), and on a no-DHW plant the payload still carries the
+        # DHW DEFAULTS -- a windows string and the 45.0 minimum -- so
+        # publishing them unconditionally made a space-heating plan
+        # advertise a hot-water schedule nobody configured (round-5 D12-01,
+        # #1237).
+        dhw_configured = bool((self.coordinator.data or {}).get("dhw_enabled"))
         # plan_kind is emitted even with no plan yet so the card can still find
         # the entity and report *why* it is empty rather than "not found".
         if not plan:
@@ -1466,8 +1475,13 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                 # does; the card's setup page should not need a solve to draw.
                 "setup_topology": self.coordinator.describe_setup(),
                 # Likewise the configured hot-water windows, in the spec
-                # grammar, so the schedule editor can be used before a solve.
-                "dhw_windows_spec": self.coordinator.configured_dhw_windows(),
+                # grammar, so the schedule editor can be used before a solve
+                # -- once there is hot water to schedule (above).
+                **(
+                    {"dhw_windows_spec": self.coordinator.configured_dhw_windows()}
+                    if dhw_configured
+                    else {}
+                ),
                 # The currency every cost figure on this device is priced in,
                 # published so the dashboard card labels its axis from the
                 # integration's own answer rather than guessing from the
@@ -1518,24 +1532,34 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             "day_end_hour": data.get("day_end_hour"),
             "comfort_temp_day": data.get("comfort_temp_day"),
             "comfort_temp_night": data.get("comfort_temp_night"),
-            "dhw_windows": data.get("dhw_windows"),
-            # `dhw_windows` above is what the plan was made against -- learned
+            # The hot-water block, on a plant that has hot water (above).
+            # `dhw_windows` is what the plan was made against -- learned
             # windows when none are configured, one day's set of a weekly
-            # spec. This is the configuration itself, in the grammar the
-            # config flow and `apply_schedule` accept ("weekdays 06:00-08:30,
-            # weekend 08:00-09:30"), which is what the card's schedule editor
-            # edits: without it a weekly schedule could neither be shown nor
-            # saved without flattening it.
-            "dhw_windows_spec": self.coordinator.configured_dhw_windows(),
-            "dhw_min_temperature": data.get("dhw_min_temperature"),
-            "dhw_setpoint": data.get("dhw_setpoint"),
-            # The ceiling the hot water minimum has to stay under, computed
-            # here rather than in the card so the margin lives in exactly one
-            # place and the card's slider re-clamps on its own whenever the
-            # setpoint is reconfigured -- a slider whose maximum was fixed at
-            # render time against a stale setpoint is the same class of bug
-            # `_draftRuns` had in v3.2.0.
-            "dhw_min_temperature_max": _dhw_min_ceiling(data.get("dhw_setpoint")),
+            # spec. `dhw_windows_spec` is the configuration itself, in the
+            # grammar the config flow and `apply_schedule` accept
+            # ("weekdays 06:00-08:30, weekend 08:00-09:30"), which is what
+            # the card's schedule editor edits: without it a weekly schedule
+            # could neither be shown nor saved without flattening it.
+            **(
+                {
+                    "dhw_windows": data.get("dhw_windows"),
+                    "dhw_windows_spec": self.coordinator.configured_dhw_windows(),
+                    "dhw_min_temperature": data.get("dhw_min_temperature"),
+                    "dhw_setpoint": data.get("dhw_setpoint"),
+                    # The ceiling the hot water minimum has to stay under,
+                    # computed here rather than in the card so the margin
+                    # lives in exactly one place and the card's slider
+                    # re-clamps on its own whenever the setpoint is
+                    # reconfigured -- a slider whose maximum was fixed at
+                    # render time against a stale setpoint is the same class
+                    # of bug `_draftRuns` had in v3.2.0.
+                    "dhw_min_temperature_max": _dhw_min_ceiling(
+                        data.get("dhw_setpoint")
+                    ),
+                }
+                if dhw_configured
+                else {}
+            ),
             # The active manual override (or None). The card reads this to show
             # which slots are pinned and which pins safety had to release.
             "manual_override": data.get("manual_plan"),

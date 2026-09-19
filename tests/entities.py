@@ -2110,6 +2110,63 @@ R.check(
     "and keeps it out of the recorder, like the windows it explains",
     "dhw_windows_spec" in sensor._PlanSensorBase._unrecorded_attributes,
 )
+# Round-5 D12-01 (#1237): the payload still carries the DHW DEFAULTS on a
+# plant with no hot water -- `dhw_windows`'s windows string and
+# `dhw_min_temperature`'s 45.0 -- and the plan sensors used to publish the
+# hot-water block unconditionally, so a space-heating plan on a no-DHW
+# install advertised a hot-water schedule nobody configured. The gate is
+# the payload's own `dhw_enabled`, the flag the DHW entities' availability
+# already rides on (`_DHWEntityMixin`). The fixture below is deliberately
+# hostile: the DHW values ARE in the payload, so only the gate can keep
+# them off the entity.
+_DHW_BLOCK_KEYS = (
+    "dhw_setpoint",
+    "dhw_min_temperature",
+    "dhw_min_temperature_max",
+    "dhw_windows",
+    "dhw_windows_spec",
+)
+_NO_DHW_DATA = {
+    **DATA,
+    "dhw_enabled": False,
+    # What the real coordinator's `_dhw_view` publishes regardless.
+    "dhw_min_temperature": 45.0,
+    "dhw_setpoint": 55.0,
+    "dhw_windows": "weekdays 06:00-08:30, weekend 08:00-09:30",
+}
+_LIVE_SPACE_PLAN = {
+    "slots": [{"start": "2026-02-01T05:00:00", "end": "2026-02-01T06:00:00"}],
+    "active_now": False,
+}
+_no_dhw_empty_attrs = sensor.SpaceHeatingPlanSensor(
+    FakeCoordinator(_NO_DHW_DATA), ENTRY
+).extra_state_attributes
+_no_dhw_plan_attrs = sensor.SpaceHeatingPlanSensor(
+    FakeCoordinator({**_NO_DHW_DATA, "space_plan": _LIVE_SPACE_PLAN}), ENTRY
+).extra_state_attributes
+R.check(
+    "a plant with no hot water publishes no hot-water attributes, either plan branch (#1237)",
+    _no_dhw_plan_attrs.get("slot_count") == 1
+    and not any(k in _no_dhw_empty_attrs for k in _DHW_BLOCK_KEYS)
+    and not any(k in _no_dhw_plan_attrs for k in _DHW_BLOCK_KEYS),
+    f"empty={sorted(k for k in _DHW_BLOCK_KEYS if k in _no_dhw_empty_attrs)}; "
+    f"populated={sorted(k for k in _DHW_BLOCK_KEYS if k in _no_dhw_plan_attrs)} "
+    "-- the payload carried all five; the gate must keep them off the entity",
+)
+_no_dhw_on_attrs = sensor.SpaceHeatingPlanSensor(
+    FakeCoordinator(
+        {**_NO_DHW_DATA, "dhw_enabled": True, "space_plan": _LIVE_SPACE_PLAN}
+    ),
+    ENTRY,
+).extra_state_attributes
+R.check(
+    "the same payload with hot water configured still publishes the block (#1237 control)",
+    all(k in _no_dhw_on_attrs for k in _DHW_BLOCK_KEYS)
+    and _no_dhw_on_attrs.get("dhw_windows")
+    == "weekdays 06:00-08:30, weekend 08:00-09:30",
+    f"keys={sorted(k for k in _DHW_BLOCK_KEYS if k in _no_dhw_on_attrs)} -- "
+    "flipping only dhw_enabled must bring the whole block back",
+)
 R.check(
     "the plan sensor publishes wood_fuel for the card (#463)",
     space_plan.extra_state_attributes.get("wood_fuel") == DATA["wood_fuel"],
