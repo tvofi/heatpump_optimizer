@@ -536,6 +536,103 @@ def _smooth_topk_sum(values: np.ndarray, k: int, tau: float) -> float:
     return float(np.sum(w * x))
 
 
+def _peak_excess(
+    total_power_kw: np.ndarray,
+    baseline_load_kw: np.ndarray,
+    threshold_kw: float,
+    price_per_kw: float,
+    window_minutes: int,
+    dt_hours: float,
+    offset_steps: int,
+    window_factors: np.ndarray | None,
+) -> np.ndarray | None:
+    """The per-window excess above the threshold both peak charges share.
+
+    One helper so the exact and the smooth charge (and only those two -- the
+    batch twin keeps its verbatim per-row body, #948) cannot drift on the
+    scaffolding: same guards, same window means, same billed-equivalent
+    factors (#13), same order of operations, so both scalars are bit-for-bit
+    what they were when each carried its own copy. ``None`` is the shared
+    "nothing is chargeable" answer (disabled tariff, empty plan, no window
+    above the threshold).
+    """
+    if price_per_kw <= 0 or not np.isfinite(threshold_kw):
+        return None
+    house = np.asarray(total_power_kw, dtype=float) + np.asarray(
+        baseline_load_kw, dtype=float
+    )
+    if house.size == 0:
+        return None
+    windows = metering_windows(house, window_minutes, dt_hours, offset_steps)
+    if window_factors is not None and window_factors.size:
+        # Billed-equivalent kW (#13): each window's average counts at its
+        # hour's factor, against a threshold the tracker keeps in the same
+        # billed-equivalent terms. A masked-out window (factor 0) can never
+        # exceed any threshold, which is "contributes nothing" exactly.
+        factors = window_factors[: windows.size]
+        if factors.size < windows.size:
+            factors = np.concatenate(
+                [factors, np.ones(windows.size - factors.size)]
+            )
+        windows = windows * factors
+    excess = np.maximum(0.0, windows - threshold_kw)
+    if not np.any(excess > 0):
+        return None
+    return excess
+
+
+def _exact_topk_sum(excess: np.ndarray, k: int) -> float:
+    """The billed top-k: sum of the k largest window excesses."""
+    return float(np.sum(np.sort(excess)[-k:]))
+
+
+def _plateau_aware_topk_sum(excess: np.ndarray, k: int) -> float:
+    """Exact while at most k windows sit at the peak, smooth above that.
+
+    The solver's rule (#232): a hard top-k has no finite-difference gradient
+    at a bound-pinned plateau -- the probe points downward and the top-k just
+    swaps in another tied window -- so once more than ``k`` windows tie at
+    the peak the smooth sum spreads the descent signal across them.
+    """
+    peak = float(np.max(excess))
+    n_at_peak = int(np.sum(excess >= peak - _PEAK_TIE_BAND))
+    if n_at_peak > k:
+        return _smooth_topk_sum(excess, k, _PEAK_SMOOTH_TAU)
+    return _exact_topk_sum(excess, k)
+
+
+def _peak_charge(
+    total_power_kw: np.ndarray,
+    baseline_load_kw: np.ndarray,
+    threshold_kw: float,
+    price_per_kw: float,
+    window_minutes: int,
+    dt_hours: float,
+    peaks_averaged: int,
+    offset_steps: int,
+    window_factors: np.ndarray | None,
+    top_sum_of,
+) -> float:
+    """One scaffolding for both peak charges, parameterised by the top-k rule.
+
+    The exact charge (``peak_cost``) and the solver's smooth surrogate
+    (``peak_cost_smooth``) differ ONLY in how they sum the top-k excesses;
+    everything else -- the guards, the window means, the billed-equivalent
+    factors, the k clamp, the final multiply -- is shared here once, in one
+    order of operations, so the two scalars stay bit-for-bit comparable on
+    every input. The batch twin keeps its own verbatim per-row body (#948)
+    and does not go through this.
+    """
+    excess = _peak_excess(
+        total_power_kw, baseline_load_kw, threshold_kw, price_per_kw,
+        window_minutes, dt_hours, offset_steps, window_factors,
+    )
+    if excess is None:
+        return 0.0
+    k = max(1, min(int(peaks_averaged), excess.size))
+    return float(price_per_kw * top_sum_of(excess, k))
+
+
 def peak_cost(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,
@@ -580,37 +677,17 @@ def peak_cost(
     Only the excess above the threshold is charged: if the month already has a
     9 kW peak recorded, an 8 kW hour changes nothing and costs nothing.
     """
-    if price_per_kw <= 0 or not np.isfinite(threshold_kw):
-        return 0.0
-    house = np.asarray(total_power_kw, dtype=float) + np.asarray(
-        baseline_load_kw, dtype=float
-    )
-    if house.size == 0:
-        return 0.0
-    windows = metering_windows(house, window_minutes, dt_hours, offset_steps)
-    if window_factors is not None and window_factors.size:
-        # Billed-equivalent kW (#13): each window's average counts at its
-        # hour's factor, against a threshold the tracker keeps in the same
-        # billed-equivalent terms. A masked-out window (factor 0) can never
-        # exceed any threshold, which is "contributes nothing" exactly.
-        factors = window_factors[: windows.size]
-        if factors.size < windows.size:
-            factors = np.concatenate(
-                [factors, np.ones(windows.size - factors.size)]
-            )
-        windows = windows * factors
-    excess = np.maximum(0.0, windows - threshold_kw)
-    if not np.any(excess > 0):
-        return 0.0
-    k = max(1, min(int(peaks_averaged), excess.size))
     # The exact hard sum on every input: this function is the billed figure,
     # and the smooth surrogate that replaced it on wide plateaus under-charged
     # by up to 3.45% there (round 5 D2-01, #1210) -- its logistic weights sum
     # to k, so every unit of weight that leaks onto a window below the tie
     # level bills that unit at the lower level. The surrogate, and the reason
     # the solver still needs it, live in peak_cost_smooth.
-    top_sum = float(np.sum(np.sort(excess)[-k:]))
-    return float(price_per_kw * top_sum)
+    return _peak_charge(
+        total_power_kw, baseline_load_kw, threshold_kw, price_per_kw,
+        window_minutes, dt_hours, peaks_averaged, offset_steps,
+        window_factors, _exact_topk_sum,
+    )
 
 
 def peak_cost_smooth(
@@ -646,36 +723,11 @@ def peak_cost_smooth(
     and every billed or published figure goes through ``peak_cost``, which
     is exact everywhere.
     """
-    if price_per_kw <= 0 or not np.isfinite(threshold_kw):
-        return 0.0
-    house = np.asarray(total_power_kw, dtype=float) + np.asarray(
-        baseline_load_kw, dtype=float
+    return _peak_charge(
+        total_power_kw, baseline_load_kw, threshold_kw, price_per_kw,
+        window_minutes, dt_hours, peaks_averaged, offset_steps,
+        window_factors, _plateau_aware_topk_sum,
     )
-    if house.size == 0:
-        return 0.0
-    windows = metering_windows(house, window_minutes, dt_hours, offset_steps)
-    if window_factors is not None and window_factors.size:
-        # Billed-equivalent kW (#13); see ``peak_cost``.
-        factors = window_factors[: windows.size]
-        if factors.size < windows.size:
-            factors = np.concatenate(
-                [factors, np.ones(windows.size - factors.size)]
-            )
-        windows = windows * factors
-    excess = np.maximum(0.0, windows - threshold_kw)
-    if not np.any(excess > 0):
-        return 0.0
-    k = max(1, min(int(peaks_averaged), excess.size))
-    # Separated peaks are the bill: hard top-k is exact and cheap. A plateau
-    # of more than k windows at the peak is where hard top-k goes blind
-    # (#232); only then pay for the smooth sum.
-    peak = float(np.max(excess))
-    n_at_peak = int(np.sum(excess >= peak - _PEAK_TIE_BAND))
-    if n_at_peak > k:
-        top_sum = _smooth_topk_sum(excess, k, _PEAK_SMOOTH_TAU)
-    else:
-        top_sum = float(np.sum(np.sort(excess)[-k:]))
-    return float(price_per_kw * top_sum)
 
 
 def peak_cost_batch(
