@@ -5562,22 +5562,73 @@ async def options_device_prefill():
         f"{sorted(offered)}",
     )
 
-    # A device from an integration with no source table: an error, no write.
+    # A device from an integration with no source table: no table reaches it,
+    # so the page reads its entity NAMES and says so -- every role that came
+    # from a name, listed as role -> entity, and no source named because none
+    # was read (#1067 W1067-G7b-3).
     flow, entry, hass = _g7_flow()
     _g7b_seed(hass, platform="some_other_integration")
     await flow.async_step_modbus_prefill(None)
-    unknown = await submit(flow, step, {device_field: _G7B_DEVICE_ID})
+    named = await submit(flow, step, {device_field: _G7B_DEVICE_ID})
+    notes = named.get("description_placeholders") or {}
     check(
-        f"opt_{step}", "error",
-        "a device from an integration with no mapping re-shows the first form with an error",
-        shows(unknown, step)
-        and unknown.get("errors") == {"base": "prefill_device_unreadable"}
-        and rendered_keys(unknown) == {device_field, const.CONF_MODBUS_PREFILL_PREFIX}
-        and entry.options == {},
-        f"errors={unknown.get('errors')} keys={rendered_keys(unknown)} options={entry.options}",
+        f"opt_{step}", "happy",
+        "a device from an integration with no table is read by name, and the page "
+        "lists every role that came from a name and names no source",
+        shows(named, step)
+        and notes.get("matched_sources") == "–"
+        and notes.get("name_matched")
+        == (
+            f"{const.CONF_DHW_TEMP_ENTITY} -> sensor.{slug}_dhw_tank_temperature; "
+            f"{const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY} -> "
+            f"sensor.{slug}_heat_exchanger_inlet_water_temperature_tin; "
+            f"{const.CONF_OUTDOOR_TEMP_ENTITY} -> "
+            f"sensor.{slug}_outdoor_ambient_temperature_t4; "
+            "r404 -> number." + slug + "_dhw_setpoint"
+        ),
+        f"name_matched={notes.get('name_matched')!r} "
+        f"sources={notes.get('matched_sources')!r}",
+    )
+    # The supply slot is the corpus's own near-tie trap: this device's T1
+    # outlet and its zone-2 outlet are named the words a supply is named with,
+    # so the role is refused rather than half-guessed -- and the page says so
+    # by leaving it out of the list above.
+    check(
+        f"opt_{step}", "happy",
+        "the near-tie the fallback refuses is absent from both the form and the list",
+        const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY not in rendered_keys(named)
+        and "heat_pump_supply_temp_entity" not in (notes.get("name_matched") or ""),
+        f"keys={rendered_keys(named)} name_matched={notes.get('name_matched')!r}",
+    )
+    saved = await submit(flow, step, {
+        const.CONF_DHW_TEMP_ENTITY: f"sensor.{slug}_dhw_tank_temperature",
+        const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE,
+    })
+    check(
+        f"opt_{step}", "happy",
+        "…and what the name route suggested saves like any other suggestion",
+        saved.get("data") == {const.CONF_DHW_TEMP_ENTITY: f"sensor.{slug}_dhw_tank_temperature"},
+        f"data={saved.get('data')}",
     )
 
-    # A device with no entity any table names: the same refusal.
+    # A table's own suggestions are named by their source, and nothing on the
+    # page is presented as a name match.
+    flow, entry, hass = _g7_flow()
+    _g7b_seed(hass)
+    await flow.async_step_modbus_prefill(None)
+    tabled = await submit(flow, step, {device_field: _G7B_DEVICE_ID})
+    tabled_notes = tabled.get("description_placeholders") or {}
+    check(
+        f"opt_{step}", "happy",
+        "a device a source table proves is named by that source, with no name match",
+        tabled_notes.get("matched_sources") == "tuya_heat_pump"
+        and tabled_notes.get("name_matched") == "–",
+        f"name_matched={tabled_notes.get('name_matched')!r} "
+        f"sources={tabled_notes.get('matched_sources')!r}",
+    )
+
+    # A device with no entity any table names or any name fills: the same
+    # refusal as before, and the page still carries both placeholder keys.
     flow, entry, hass = _g7_flow()
     from homeassistant.helpers import device_registry as _dr
     from homeassistant.helpers import entity_registry as _er
@@ -5592,6 +5643,7 @@ async def options_device_prefill():
         f"opt_{step}", "error", "a device with no entity the table names is refused the same way",
         shows(nothing, step)
         and nothing.get("errors") == {"base": "prefill_device_unreadable"}
+        and (nothing.get("description_placeholders") or {}).get("name_matched") == "–"
         and entry.options == {},
         f"errors={nothing.get('errors')} options={entry.options}",
     )

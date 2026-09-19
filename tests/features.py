@@ -38343,16 +38343,40 @@ R.check(
     }))[_g7_c.CONF_OUTDOOR_TEMP_ENTITY].entity_ids == ("sensor.pump_outside_renamed_by_hand",),
     f"{_g7b_dp.resolve(_g7b_records(rename={f'{_G7B_SLUG}_T4': 'sensor.pump_outside_renamed_by_hand'}))}",
 )
+# Read by name alone, the same records give up the supply slot: the Rotenso
+# file names both its T1 outlet and its Tw2 zone-2 outlet with the words a
+# supply is named with, and the margin rule refuses a pair it cannot separate.
+# That is the near-tie rule biting on a pinned source, not a synthetic case.
+_G7B_UNPLATFORMED = _g7b_records(platform="some_other_integration")
 R.check(
-    "a device from an integration with no source table resolves nothing",
-    _g7b_dp.resolve(_g7b_records(platform="some_other_integration")) == {},
-    f"{_g7b_dp.resolve(_g7b_records(platform='some_other_integration'))}",
+    "a device from an integration with no source table resolves nothing through "
+    "the table, and is read by name alone (W1067-G7b-3)",
+    _g7b_dp.resolve(_G7B_UNPLATFORMED) == {}
+    and set(_g7b_dp.resolve_with_fallback(_G7B_UNPLATFORMED).roles) == {
+        _g7_c.CONF_OUTDOOR_TEMP_ENTITY,
+        _g7_c.CONF_DHW_TEMP_ENTITY,
+        _g7_c.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+        "r404",
+    }
+    and _g7b_dp.resolve_with_fallback(_G7B_UNPLATFORMED).source[
+        _g7_c.CONF_OUTDOOR_TEMP_ENTITY] == "name match",
+    f"table={_g7b_dp.resolve(_G7B_UNPLATFORMED)} "
+    f"composite={sorted(_g7b_dp.resolve_with_fallback(_G7B_UNPLATFORMED).roles)}",
 )
 R.check(
-    "a device with no entity a table names resolves nothing",
+    "…and the supply role it leaves out is the near-tie rule, not a miss: the "
+    "same device read by name alone is checked in the W1067-G7b-3 section",
+    _g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY not in _g7b_dp.resolve_with_fallback(
+        _G7B_UNPLATFORMED).roles,
+    f"{sorted(_g7b_dp.resolve_with_fallback(_G7B_UNPLATFORMED).roles)}",
+)
+R.check(
+    "a device with no entity a table names resolves nothing through either stage",
     _g7b_dp.resolve([
         _g7b_dp.EntityRecord("tuya_heat_pump", "kitchen_plug_state", "switch.kitchen_plug_state"),
-    ]) == {},
+    ]) == {} and _g7b_dp.resolve_with_fallback([
+        _g7b_dp.EntityRecord("tuya_heat_pump", "kitchen_plug_state", "switch.kitchen_plug_state"),
+    ]).roles == {},
     "resolved something",
 )
 # The domain is part of the match. A device named "Heat Night" slugs to
@@ -38390,14 +38414,22 @@ R.check(
     f"{_g7b_resolved}",
 )
 # The signature: a Tuya heat pump of some other model, carrying none of the
-# pairs unique to 000004k4z6, gets nothing rather than a guess.
+# pairs unique to 000004k4z6, gets nothing from the table rather than a guess
+# -- and is then read the way any unproven device is, by name (G7b-3).
+_G7B_UNPROVEN = _g7b_records(drop={
+    f"{_G7B_SLUG}_T4", f"{_G7B_SLUG}_Tin",
+    f"{_G7B_SLUG}_night_mode", f"{_G7B_SLUG}_DHWSET",
+})
 R.check(
-    "a tuya_heat_pump device carrying none of the model-unique keys resolves nothing",
-    _g7b_dp.resolve(_g7b_records(drop={
-        f"{_G7B_SLUG}_T4", f"{_G7B_SLUG}_Tin",
-        f"{_G7B_SLUG}_night_mode", f"{_G7B_SLUG}_DHWSET",
-    })) == {},
-    f"{_g7b_dp.resolve(_g7b_records(drop={f'{_G7B_SLUG}_T4', f'{_G7B_SLUG}_Tin', f'{_G7B_SLUG}_night_mode', f'{_G7B_SLUG}_DHWSET'}))}",
+    "a tuya_heat_pump device carrying none of the model-unique keys resolves "
+    "nothing through the table",
+    _g7b_dp.resolve(_G7B_UNPROVEN) == {}
+    and _g7_c.CONF_DHW_TEMP_ENTITY in _g7b_dp.resolve_with_fallback(
+        _G7B_UNPROVEN).roles
+    and _g7b_dp.resolve_with_fallback(_G7B_UNPROVEN).source[
+        _g7_c.CONF_DHW_TEMP_ENTITY] == "name match",
+    f"table={_g7b_dp.resolve(_G7B_UNPROVEN)} "
+    f"composite={sorted(_g7b_dp.resolve_with_fallback(_G7B_UNPROVEN).roles)}",
 )
 # The fixture is generated, and says what it was generated from.
 R.check(
@@ -38617,6 +38649,407 @@ R.check(
     and _G7B2_TL["products"][0]["manufacturer"] == "Fisher"
     and _G7B2_TL["upstream_path"].endswith("fisher_water_heatpump.yaml"),
     f"{_G7B2_TL['products']}",
+)
+
+
+# ---------------------------------------------------------------------------
+# #1067 W1067-G7b-3: the fuzzy fallback -- the roles a device's entity NAMES
+# can fill where no source table proves the model, measured over a labelled
+# corpus. It guesses, so the acceptance is not how many roles it fills but
+# that it fills none wrongly: a role it misses is one the user fills by hand,
+# and a role it fills from the wrong probe is one the plan reads wrongly.
+R.section("#1067 W1067-G7b-3 — the fuzzy fallback and its labelled corpus")
+
+from heatpump_optimizer import name_match as _g7b3_nm  # noqa: E402
+import measure_prefill_corpus as _g7b3_corpus  # noqa: E402
+
+_G7B3_CORPUS = _g7b3_corpus.corpus()
+
+
+def _g7b3_device(name):
+    """One corpus device, by name."""
+    for device in _G7B3_CORPUS["devices"]:
+        if device["name"] == name:
+            return device
+    raise AssertionError(f"no corpus device {name!r}")
+
+
+def _g7b3_records(device):
+    """One corpus device's records, as the module reads them."""
+    return _g7b3_corpus.records(device)
+
+
+def _g7b3_fallback(device):
+    """``(tabled, added)``: what the table decided, and what the names added.
+
+    The two steps ``resolve_with_fallback`` composes, read apart so the tests
+    can say which stage answered. ``added`` is the second stage alone: the
+    composite's roles less the table's, which is what the corpus measures.
+    """
+    own = _g7b3_records(device)
+    tabled = _g7b_dp.resolve(own)
+    return (
+        tabled,
+        {
+            role: resolved.entity_ids[0]
+            for role, resolved in _g7b_dp.resolve_with_fallback(own).roles.items()
+            if role not in tabled
+        },
+    )
+
+
+def _g7b3_record(entity_id, name, *, platform="some_brand_heatpump", device_class="temperature",
+                 unit="°C", unique_id="", domain=None):
+    """A record shaped like the registry entries this matcher reads."""
+    return _g7b_dp.EntityRecord(
+        platform, unique_id or entity_id.split(".", 1)[-1], entity_id, name, None,
+        device_class, unit, "measurement",
+    )
+
+
+_g7b3_report = _g7b3_corpus.measure()
+R.check(
+    "the corpus measurement suggests nothing wrongly, over every device it holds",
+    not _g7b3_report.wrong,
+    "WRONG: " + "; ".join(
+        f"{row.device} {row.role} label={row.label} took={row.suggested}"
+        for row in _g7b3_report.wrong
+    ) or "none",
+)
+R.check(
+    "the measured table: per role, suggested, correct, wrong, missed",
+    _g7b3_report.suggested == sum(
+        role.suggested for role in _g7b3_report.roles
+    ) and _g7b3_report.correct == sum(role.correct for role in _g7b3_report.roles),
+    " | ".join(
+        f"{row.role}: {row.suggested} suggested, {row.correct} correct, "
+        f"{row.wrong} wrong, {row.missed} missed (P {row.precision:.2f}, R {row.recall:.2f})"
+        for row in _g7b3_report.roles
+    ),
+)
+R.check(
+    "no role is suggested where the corpus has no entity for it, and no labelable "
+    "role is missed",
+    all(row.wrong == 0 and row.missed == 0 for row in _g7b3_report.roles),
+    f"suggested={_g7b3_report.suggested} correct={_g7b3_report.correct} "
+    f"missed={_g7b3_report.missed}",
+)
+# The constants are the measurement's, not the author's: the grid's own rule
+# picks them, and this says the module ships what the grid picked.
+R.check(
+    "the shipped threshold and margin are the pair the corpus grid picks",
+    (_g7b3_nm.THRESHOLD, _g7b3_nm.MARGIN) == _g7b3_corpus.chosen(),
+    f"module {(_g7b3_nm.THRESHOLD, _g7b3_nm.MARGIN)} grid {_g7b3_corpus.chosen()}",
+)
+# The tool drives the matcher directly so the grid can vary the rule; this is
+# what says the page's own composite resolver adds exactly those roles.
+R.check(
+    "the page's composite resolver adds exactly the roles the measured matcher returns",
+    all(
+        _g7b3_fallback(device)[1]
+        == {
+            hit.role: hit.entity_id
+            for hit in _g7b3_nm.matches(_g7b3_records(device), taken=_g7b3_fallback(device)[0])
+        }
+        for device in _G7B3_CORPUS["devices"]
+    ),
+    "resolve_with_fallback disagreed with name_match.matches on some device",
+)
+R.check(
+    "the corpus is generated, records where it was read from, and marks its "
+    "hand-shaped sets",
+    _G7B3_CORPUS["_generated_by"] == "tools/gen_device_fixtures.py"
+    and any(device["hand_shaped"] for device in _G7B3_CORPUS["devices"])
+    and any(not device["hand_shaped"] for device in _G7B3_CORPUS["devices"])
+    and all(
+        device["upstream_commit"] is None or len(device["upstream_commit"]) == 40
+        for device in _G7B3_CORPUS["devices"]
+    )
+    and {(source["repo"]) for source in _G7B3_CORPUS["sources"]}
+    == {"tvofi/tuya_heat_pump", "make-all/tuya-local", "xZetsubou/hass-localtuya"},
+    f"{sorted({source['repo'] for source in _G7B3_CORPUS['sources']})}",
+)
+# A label is a claim about the device, so it must be reachable by the rule it
+# is a claim about: a label on an entity the hard filter would refuse would
+# make the measurement say nothing about the matcher.
+R.check(
+    "every corpus label names a record the role's own hard filter accepts",
+    all(
+        device["labels"][role] is None
+        or any(
+            row.entity_id == device["labels"][role]
+            and _g7b3_nm.family(row.unit) == _g7b3_nm.ROLE_FILTERS[role].unit_family
+            and row.domain in _g7b3_nm.ROLE_FILTERS[role].domains
+            for row in _g7b3_records(device)
+        )
+        for device in _G7B3_CORPUS["devices"]
+        for role in _g7b3_nm.ROLE_FILTERS
+    ),
+    "a label names something the hard filter refuses",
+)
+# The roles a source table proves are decided before the fallback runs, so a
+# name can never reopen one: the two generated fixtures resolve exactly what
+# their tables resolved at the merge base, and the fallback adds nothing.
+R.check(
+    "the fallback adds nothing to either generated fixture",
+    _g7b3_fallback(_g7b3_device("rotenso_windmi"))[1] == {}
+    and _g7b3_fallback(_g7b3_device("fisher_water_heatpump"))[1] == {},
+    f"rotenso={_g7b3_fallback(_g7b3_device('rotenso_windmi'))[1]} "
+    f"fisher={_g7b3_fallback(_g7b3_device('fisher_water_heatpump'))[1]}",
+)
+R.check(
+    "a platform with no table resolves nothing through the table and the "
+    "fallback's roles through the composite",
+    _g7b_dp.resolve(_g7b3_records(_g7b3_device("localtuya_owner_pump"))) == {}
+    and set(_g7b3_fallback(_g7b3_device("localtuya_owner_pump"))[1]) == {
+        _g7_c.CONF_OUTDOOR_TEMP_ENTITY,
+        _g7_c.CONF_DHW_TEMP_ENTITY,
+        _g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
+        _g7_c.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+    },
+    f"{_g7b3_fallback(_g7b3_device('localtuya_owner_pump'))[1]}",
+)
+# A genuine tie: two candidates the hard filter passes and the same words fit,
+# with the same metadata. There is no evidence to prefer either, so the answer
+# is neither -- and "the right one" is not an accepted outcome here.
+_g7b3_tie = [
+    _g7b3_record("sensor.pump_a_supply_water_temperature", "Supply water temperature",
+                 platform="localtuya", unique_id="local_dev_10"),
+    _g7b3_record("sensor.pump_b_supply_water_temperature", "Supply water temperature",
+                 platform="localtuya", unique_id="local_dev_11"),
+]
+R.check(
+    "a genuine tie is no suggestion at all, not the first candidate",
+    _g7b3_nm.matches(_g7b3_tie) == []
+    and _g7b3_nm.matches(_g7b3_tie, margin=0.0)[0].role
+    == _g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
+    f"shipped={_g7b3_nm.matches(_g7b3_tie)} no-margin={_g7b3_nm.matches(_g7b3_tie, margin=0.0)}",
+)
+# The T1/Tout pair, in the form a fallback meets it: the same words fit both,
+# and only one of them is the supply the COP learner is fed.
+_g7b3_tout = _g7b3_device("localtuya_t1_tout")
+_g7b3_tout_filled = _g7b3_fallback(_g7b3_tout)[1]
+R.check(
+    "the T1/Tout pair resolves to T1 and never to the plate outlet",
+    _g7b3_tout_filled[_g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY]
+    == "sensor.garage_pump_outlet_water_temperature_t1"
+    and "tout" not in " ".join(_g7b3_tout_filled.values()),
+    f"{_g7b3_tout_filled}",
+)
+R.check(
+    "and at no margin does the plate outlet win the supply role",
+    all(
+        "tout" not in {
+            hit.entity_id for hit in _g7b3_nm.matches(_g7b3_records(_g7b3_tout), margin=margin)
+        }
+        for margin in (0.0, 0.02, 0.04, 0.06, 0.08)
+    ),
+    f"{[hit.entity_id for hit in _g7b3_nm.matches(_g7b3_records(_g7b3_tout), margin=0.0)]}",
+)
+# The same rule biting on a pinned source rather than a synthetic pair: the
+# Rotenso file names its T1 outlet and its Tw2 zone-2 outlet with the words a
+# supply is named with, and read by name alone those two are five hundredths
+# apart, so the supply slot is refused rather than half-guessed.
+_g7b3_unplatformed = _g7b_records(platform="some_other_integration")
+_g7b3_supply_rows = [
+    (round(hit.score, 4), round(hit.runner_up, 4))
+    for hit in _g7b3_nm.matches(_g7b3_unplatformed, margin=0.0)
+    if hit.role == _g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY
+]
+R.check(
+    "a near-tie between the pinned source's own two outlet sensors is refused: "
+    "T1 against the zone-2 outlet, five hundredths apart",
+    _g7b3_supply_rows == [(0.8, 0.75)]
+    and _g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY not in {
+        hit.role for hit in _g7b3_nm.matches(_g7b3_unplatformed)
+    },
+    f"supply candidates at no margin: {_g7b3_supply_rows}",
+)
+# An energy total and an instantaneous power against the capacity role: both
+# carry a unit, neither is a rating, and the unit families keep them out.
+_g7b3_energy = _g7b3_device("localtuya_energy")
+R.check(
+    "an energy total and a power reading are neither of them the unit's capacity",
+    _g7b3_fallback(_g7b3_energy)[1] == {
+        _g7_c.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.workshop_pump_compressor_frequency",
+    },
+    f"{_g7b3_fallback(_g7b3_energy)[1]}",
+)
+R.check(
+    "unit families separate: kWh is no family here, W and kW are one",
+    _g7b3_nm.family("kWh") is None
+    and _g7b3_nm.family("°F") is None
+    and _g7b3_nm.family("°C") == _g7b3_nm.family("K") == "temperature"
+    and {_g7b3_nm.family("W"), _g7b3_nm.family("kW")} == {"power"},
+    f"kWh={_g7b3_nm.family('kWh')} F={_g7b3_nm.family('°F')} "
+    f"C={_g7b3_nm.family('°C')} W={_g7b3_nm.family('W')} kW={_g7b3_nm.family('kW')}",
+)
+# A perfect name in the wrong unit: the slot is configured in degrees Celsius,
+# so a Fahrenheit probe would feed it a different number.
+_g7b3_wrong_unit = _g7b3_device("localtuya_wrong_unit")
+R.check(
+    "a sensor with the role's own words and the wrong unit suggests nothing",
+    _g7b3_fallback(_g7b3_wrong_unit)[1]
+    == {
+        _g7_c.CONF_OUTDOOR_TEMP_ENTITY: "sensor.holiday_home_pump_outdoor_temperature",
+        _g7_c.CONF_DHW_TEMP_ENTITY: "sensor.holiday_home_pump_hot_water_tank_temperature",
+    },
+    f"{_g7b3_fallback(_g7b3_wrong_unit)[1]}",
+)
+# One entity is one slot. The name below carries two roles' own words, so it
+# is a live candidate for both -- taken= says so -- and the stronger claim
+# takes it.
+_g7b3_two = [
+    _g7b3_record("sensor.house_tank_outlet_water_temperature",
+                 "Tank outlet water temperature", platform="localtuya",
+                 unique_id="local_dev_20"),
+]
+_g7b3_two_hits = _g7b3_nm.matches(_g7b3_two, margin=0.0)
+_g7b3_two_after = _g7b3_nm.matches(
+    _g7b3_two, taken=(_g7_c.CONF_DHW_TEMP_ENTITY,), margin=0.0)
+R.check(
+    "an entity that scores for two roles is suggested for at most one",
+    len(_g7b3_two_hits) == 1
+    and _g7b3_two_hits[0].role == _g7_c.CONF_DHW_TEMP_ENTITY
+    and [hit.role for hit in _g7b3_two_after] == [_g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY]
+    and _g7b3_two_hits[0].entity_id == _g7b3_two_after[0].entity_id,
+    f"both-live={_g7b3_two_hits} with-the-tank-taken={_g7b3_two_after}",
+)
+# A device from an integration nothing is known about: the fallback's roles
+# only, and the page names every one of them.
+_g7b3_brand = _g7b3_device("brand_flow_names")
+_g7b3_brand_resolution = _g7b_dp.resolve_with_fallback(_g7b3_records(_g7b3_brand))
+_g7b3_brand_notes = _g7b_dp.disclaimer(_g7b3_brand_resolution)
+R.check(
+    "a device from an unknown integration gets fallback suggestions only, each "
+    "named in the disclaimer",
+    _g7b_dp.resolve(_g7b3_records(_g7b3_brand)) == {}
+    and set(_g7b3_brand_resolution.source.values()) == {_g7b3_nm.SOURCE}
+    and _g7b3_brand_notes["matched_sources"] == "–"
+    and all(
+        f"{role} -> {resolved.entity_ids[0]}" in _g7b3_brand_notes["name_matched"]
+        for role, resolved in _g7b3_brand_resolution.roles.items()
+    )
+    and len(_g7b3_brand_resolution.roles) == 5,
+    f"{_g7b3_brand_notes}",
+)
+# A table's own roles are named by their source, which is what the page shows
+# beside the name-matched ones.
+_g7b3_rotenso_notes = _g7b_dp.disclaimer(
+    _g7b_dp.resolve_with_fallback(_g7b3_records(_g7b3_device("rotenso_windmi"))))
+R.check(
+    "a table's suggestions are named by their source, and none of them is a name match",
+    _g7b3_rotenso_notes
+    == {"name_matched": "–", "matched_sources": "tuya_heat_pump"},
+    f"{_g7b3_rotenso_notes}",
+)
+R.check(
+    "the empty disclaimer is the page's existing spelling of nothing read",
+    _g7b_dp.disclaimer()
+    == _g7b_dp.disclaimer(_g7b_dp.Resolution({}, {}))
+    == {"name_matched": "–", "matched_sources": "–"},
+    f"{_g7b_dp.disclaimer()}",
+)
+# The null control: with no name evidence at all -- every score forced to zero
+# -- the decision must suggest nothing. The hard filter narrows, but it does
+# not pick, so a suggestion is always the names' doing.
+_g7b3_zilch = _g7b3_corpus.measure(zero_names=True)
+R.check(
+    "null control: with the name scores zeroed the matcher suggests nothing",
+    _g7b3_zilch.suggested == 0
+    and _g7b3_zilch.correct == 0
+    and not _g7b3_zilch.wrong
+    and _g7b3_nm.matches(_g7b3_records(_g7b3_brand), name_score=lambda name, phrase: 0.0) == [],
+    f"suggested={_g7b3_zilch.suggested} wrong={len(_g7b3_zilch.wrong)}",
+)
+R.check(
+    "null control: the hard filter admits candidates but picks none of them",
+    all(
+        _g7b3_nm.matches(_g7b3_records(device), threshold=0.0, margin=0.0)
+        for device in _G7B3_CORPUS["devices"]
+    )
+    and _g7b3_zilch.suggested == 0,
+    "a corpus device's hard-filter pool is empty, so the zero above would be "
+    "the filter rather than the names",
+)
+# The words the pinned definitions use are the lists' own words, so a
+# definition renamed out of a list fails here rather than silently missing a
+# role. Read off the generated fixtures, never typed into this check.
+#
+# "Distinctive" is the test's own notion: a word that identifies *which*
+# reading a name is rather than what kind it is. Every temperature entity is
+# called "temperature"; a list does not have to carry that to reach one, and
+# requiring it would force phrases so long they would fit the wrong probe too.
+_G7B3_GENERIC = frozenset({
+    "temperature", "temp", "water", "heat", "exchanger", "sensor", "value",
+    "the", "of", "in",
+})
+
+
+def _g7b3_distinctive(name):
+    """A definition name's own words, less the ones that identify no reading."""
+    return tuple(
+        word for word in _g7b3_nm.tokens(name) if word not in _G7B3_GENERIC
+    )
+
+
+def _g7b3_vocabulary(role):
+    """Every word a role's synonym phrases are built from."""
+    return frozenset(
+        word for phrase in _g7b3_nm.SYNONYMS[role] for word in _g7b3_nm.tokens(phrase)
+    )
+
+
+_G7B3_FIXTURES = [
+    ("tuya_heat_pump", "rotenso_windmi"),
+    ("tuya_local", "fisher_water_heatpump"),
+]
+_g7b3_missing = []
+for _g7b3_platform, _g7b3_device_name in _G7B3_FIXTURES:
+    _g7b3_device_rows = _g7b3_device(_g7b3_device_name)
+    for _g7b3_role, _g7b3_eid in _g7b3_device_rows["labels"].items():
+        if _g7b3_eid is None:
+            continue
+        _g7b3_name = next(
+            row["original_name"] for row in _g7b3_device_rows["records"]
+            if row["entity_id"] == _g7b3_eid
+        )
+        _g7b3_missing.extend(
+            (f"{_g7b3_platform}:{_g7b3_role}", word)
+            for word in _g7b3_distinctive(_g7b3_name)
+            if word not in _g7b3_vocabulary(_g7b3_role)
+        )
+R.check(
+    "every distinctive word the pinned definitions name a mapped entity with is "
+    "in that role's own synonym vocabulary",
+    not _g7b3_missing,
+    f"missing {_g7b3_missing}",
+)
+# And the vocabulary is not vacuous: a role's lists carry its own words.
+R.check(
+    "the synonym lists carry the roles' own words, in both languages the plan names",
+    "framledningstemperatur" in _g7b3_vocabulary(_g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY)
+    and "returtemperatur" in _g7b3_vocabulary(_g7_c.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY)
+    and "utomhustemperatur" in _g7b3_vocabulary(_g7_c.CONF_OUTDOOR_TEMP_ENTITY)
+    and "varmvattentemperatur" in _g7b3_vocabulary(_g7_c.CONF_DHW_TEMP_ENTITY)
+    and set(_g7b3_nm.SYNONYMS) == set(_g7b3_nm.ROLE_FILTERS),
+    f"{sorted(_g7b3_nm.SYNONYMS)}",
+)
+R.check(
+    "the roles with no physical unit are out of the fallback's reach",
+    set(_g7b3_nm.ROLE_FILTERS) == {
+        _g7_c.CONF_OUTDOOR_TEMP_ENTITY,
+        _g7_c.CONF_DHW_TEMP_ENTITY,
+        _g7_c.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,
+        _g7_c.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+        _g7_c.CONF_COMPRESSOR_FREQ_SENSOR,
+        "r404",
+        "r405",
+        "r406",
+        "unit_capacity",
+    }
+    and _g7_c.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY not in _g7b3_nm.ROLE_FILTERS,
+    f"{sorted(_g7b3_nm.ROLE_FILTERS)}",
 )
 
 
