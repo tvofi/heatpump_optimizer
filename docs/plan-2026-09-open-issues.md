@@ -1222,7 +1222,9 @@ behind #1260's feature seat (same files). #1260 (per-weekday DHW windows,
 owner-requested) — scheduled, feature seat in flight incl. the card plan-tab
 "hot water windows" integration (owner requirement). #1266 (card_rig
 parseClaims, #1255's JS twin) — in review, PR #1268. #1267 (app_push
-http.postBuffer) — scheduled follow-up on the merged tool. #996 — deferred
+http.postBuffer) — scheduled follow-up on the merged tool. #1269 (card sensor-advisor page ranking
+unconfigured optional temperature sensors) — scheduled, owner-requested, next
+card/config-flow batch after #1260 (no parallel card branches). #996 — deferred
 behind the batches; #962 closes with it. #201 — tracking, open while the
 programme runs.
 
