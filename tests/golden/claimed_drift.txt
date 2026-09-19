@@ -327,3 +327,37 @@
 # pre-existing leaf appears in the diff. Every other fixture is
 # byte-identical: the offer reads the registry only when the flow reaches it,
 # and no plan reads the switch.
+#
+# The cleared-entity-picker fix (user report: after setting a temperature
+# sensor on the pump page there is no way to go back to none -- clearing the
+# picker leaves the old entity in place): this branch claims exactly one
+# fixture, and the claim covers TWO changes that land together -- the fix, and
+# the instrument repair that keeps this fixture able to see it.
+#
+# The fix: `_field_marker`'s `_STORED` arm offered the stored value as
+# `vol.Optional(key, default=stored)`. A cleared picker posts its key ABSENT,
+# and the flow manager runs `user_input = data_schema(user_input)` before the
+# handler sees the post, so voluptuous refilled the `default` and the entity
+# came straight back -- clearing was impossible. The arm now offers
+# `description={"suggested_value": stored}`, which pre-fills identically and
+# leaves a cleared post empty.
+#
+# The instrument: `schema_fingerprint` recorded `repr(key.default())` and
+# `None` on any exception, so it recorded None for every field pre-filled from
+# `suggested_value` -- exactly the arm #547's seeded render was added to make
+# visible. Left alone, the fix would have moved 41 `_seeded` entity leaves to
+# null and blinded this fixture to the pre-fill question it exists to answer.
+# It now falls back to `description["suggested_value"]`, so those 41 leaves
+# record byte-identically (measured: branch vs origin/main drift is 41 leaves
+# without the repair, 2 with it) and the only recorded move is the one below.
+#
+# The recorded move, read before accepting it: `git diff --numstat` over
+# tests/golden/config_flow.json is 2 insertions and 2 deletions, and both are
+# `two_zone_mode`'s pre-fill going null -> "'auto'", in the plain render and
+# the seeded render -- the `_Suggested` select's suggested value, which the
+# old reading could not see. No pre-existing leaf moved and no other fixture
+# is touched. Re-recording here is what #547 established for this fixture and
+# only this one: `carries_floats()` is False for config_flow, so env_drift
+# compares it EXACTLY at level 1 and a claim alone would leave that level
+# failing against a file the code no longer produces.
+config_flow  # the cleared-entity-picker fix: stored entity offered as suggested_value; two_zone_mode's pre-fill now recorded

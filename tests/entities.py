@@ -4367,6 +4367,33 @@ def _schema_defaults(schema):
     return schema(empty_section_payload(schema))
 
 
+def _presented_value(marker):
+    """The value a field's marker shows the user, however it is pre-filled.
+
+    ``suggested_value`` first, then ``default``: a form pre-fills with either,
+    and the frontend shows and posts them alike, so a reader that wants "what
+    this page offers" has to accept both. This is also where the two arms of
+    the ``_STORED`` rule separate: a stored entity is offered as a
+    ``suggested_value`` so that clearing it sticks (the key comes back ABSENT
+    and voluptuous refills only a ``default``), while a computed field carries
+    a real ``default``.
+    """
+    description = getattr(marker, "description", None)
+    if isinstance(description, dict) and "suggested_value" in description:
+        return description["suggested_value"]
+    default = getattr(marker, "default", None)
+    return default() if callable(default) else default
+
+
+def _nested_drop(posted, keys):
+    """``posted`` with every name in ``keys`` removed wherever it is nested."""
+    return {
+        name: (_nested_drop(value, keys) if isinstance(value, dict) else value)
+        for name, value in posted.items()
+        if name not in keys
+    }
+
+
 missing = [
     step
     for step in options._MENU_LABELS
@@ -4685,21 +4712,30 @@ _sig_flow2 = options(
 )
 _sig_flow2.hass = FakeHass()
 _sig_form2 = asyncio.run(_sig_flow2.async_step_entities_pump(None))
+_sig_offered = {
+    str(getattr(marker, "schema", marker)): _presented_value(marker)
+    for marker, _value in _presented_fields(_sig_form2["data_schema"])
+}
 R.check(
-    "a configured signal comes back as the field's default",
-    all(
-        _sig_form2["data_schema"]({}).get(_key) == _value
-        for _key, _value in _sig_values.items()
-    ),
+    "a configured signal comes back as the field's pre-fill",
+    all(_sig_offered.get(_key) == _value for _key, _value in _sig_values.items()),
     "a page that forgets what is configured invites the user to re-enter it",
 )
+# Clearing has to survive the flow manager, which validates the submitted post
+# through the same schema before the step sees it (``_async_configure``:
+# ``user_input = data_schema(user_input)``). A clear posts the picker's key
+# ABSENT, and voluptuous refills a ``default`` for an absent key -- so a stored
+# entity offered as ``vol.Optional(key, default=stored)`` came straight back and
+# the clear was silently dropped, while a direct call to the step stayed green
+# because it never re-validated. Submitting the untouched post with the pickers
+# dropped, THROUGH the schema, is that manager call.
 _sig_cleared_result = asyncio.run(
     _sig_flow2.async_step_entities_pump(
-        {
-            k: v
-            for k, v in _sig_form2["data_schema"]({}).items()
-            if k not in _sig_values
-        }
+        _sig_form2["data_schema"](
+            _nested_drop(
+                _schema_defaults(_sig_form2["data_schema"]), set(_sig_values)
+            )
+        )
         | {const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
     )
 )
@@ -4875,10 +4911,7 @@ R.check(
 _pulse_kept = config_flow._field_marker(
     _pulse_row, {const.CONF_HOUSE_POWER_ENTITY: "sensor.other_power"}, _pulse_hass
 )
-_pulse_kept_default = getattr(_pulse_kept, "default", None)
-_pulse_kept_value = (
-    _pulse_kept_default() if callable(_pulse_kept_default) else _pulse_kept_default
-)
+_pulse_kept_value = _presented_value(_pulse_kept)
 R.check(
     "the metering page keeps a stored house_power_entity",
     _pulse_kept_value == "sensor.other_power",

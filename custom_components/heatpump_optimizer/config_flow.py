@@ -1285,10 +1285,23 @@ class _Rule:
         return self.name
 
 
-#: Two-armed: default to the stored value when there is one, and render a bare
-#: ``vol.Optional`` when there is not. Both arms are load-bearing -- an
-#: unconfigured page must offer its entity fields UNDEFAULTED, or a cleared
-#: slot is indistinguishable from one never set, and clearing stops sticking.
+#: Two-armed: suggest the stored value when there is one, and render a bare
+#: ``vol.Optional`` when there is not. Both arms are load-bearing, and NEITHER
+#: may carry a ``default``.
+#:
+#: A ``default`` pre-fills the field the same way a ``suggested_value`` does,
+#: but Home Assistant's flow manager validates every submitted form through
+#: this schema before the handler sees it (``data_entry_flow.py``,
+#: ``user_input = data_schema(user_input)`` in ``_async_configure``), and
+#: voluptuous refills a ``default`` for a key the form left ABSENT -- which is
+#: what a cleared picker posts. A stored value offered as a ``default``
+#: therefore came back as "set" on every clear, ``_clear_absent`` never saw an
+#: empty slot, and clearing a signal could not stick. A ``suggested_value``
+#: pre-fills the same field and leaves a cleared post empty.
+#:
+#: The second arm must stay bare for the same reason from the other side: a
+#: default on an UNCONFIGURED slot would be refilled for an untouched page and
+#: stored as a choice nobody made.
 _STORED: Final = _Rule("_STORED")
 
 #: Suggest the stored value without defaulting it, and render nothing when the
@@ -1626,7 +1639,9 @@ def _field_marker(row: _F, current: dict[str, Any], hass: HomeAssistant) -> Any:
     if default is _STORED:
         existing = current.get(row.key)
         if existing:
-            return vol.Optional(row.key, default=existing)
+            return vol.Optional(
+                row.key, description={"suggested_value": existing}
+            )
         if row.key == CONF_HOUSE_POWER_ENTITY:
             suggestion = topology.suggest_house_power_entity(
                 None, _house_power_candidates(hass)
