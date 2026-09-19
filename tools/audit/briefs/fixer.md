@@ -46,7 +46,7 @@ production lines. You work in your own worktree branched from `origin/main`.
    that is safe and what it costs: CI runs the same `run.sh` in the same drift
    mode against the same merge base, and a full run is about forty minutes. So
    `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
-   doc — not an instruction to spend forty minutes reproducing CI.
+   doc — not an instruction to reproduce CI.
 
    **Running locally does not discharge CI.** What `scope.run` names is green
    locally, then you push the branch with `tools/audit/push.sh`, handing it the
@@ -81,7 +81,7 @@ production lines. You work in your own worktree branched from `origin/main`.
    may return against you — **Re-read the head before you post**, in
    `fix-review.md`.
 
-   Landing a PR is never yours in any case — that is the **orchestrator's**, the
+   Landing a PR is never yours — that is the **orchestrator's**, the
    seat the Model-routing table gives control flow, merges and sequencing, or a
    merge-and-release seat it starts. `git merge origin/main` into your own
    branch and merging the pull request differ; only the first was ever yours,
@@ -93,7 +93,7 @@ production lines. You work in your own worktree branched from `origin/main`.
    Three agents counting "the same" published-attribute census (#373) got
    59, 50, and 124/147/50, because each asked a subtly different question;
    only a count whose rule is written down is re-derivable by whoever reads
-   the body next. Say what you counted, not only how many.
+   the body next.
    **Name the instrument you re-ran, and its scope.** If the block you are
    clearing was demonstrated with an *instance*, your verification may not be a
    search for that instance — it must check the *property* the block stated. If
@@ -155,8 +155,7 @@ production lines. You work in your own worktree branched from `origin/main`.
     that a test proves a production property, check whether the stub is what
     satisfied it.** Four separate seats hit this in one day: the stub had no
     loop protection, no `section`, no `state` property on `SensorEntity`, and a
-    `NumberSelector` that validated nothing. Each made a real defect invisible
-    to every lane.
+    `NumberSelector` that validated nothing.
 
     If your work depends on a symbol's upstream behaviour, add or read its
     contract rather than assuming; if you must extend the stub, argue the
@@ -275,5 +274,6 @@ only main's forced-full run caught it).
 The owner's rule. At the **fourth** round, replace the body instead of repairing
 it: the headings `.github/PULL_REQUEST_TEMPLATE.md` requires, the arms that
 fire, and only figures re-taken in that pass. Round history is deleted, not
-restated. **A re-cut body blocked on `claims` again is a signal about the fix**,
+restated — except a **disclosed self-correction** (`docs/HANDOVER.md`'s #1058
+tie-break). **A re-cut body blocked on `claims` again is a signal about the fix**,
 so the orchestrator splits the branch or closes it.
