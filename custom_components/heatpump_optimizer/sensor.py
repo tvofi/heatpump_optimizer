@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import math
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Mapping
 
 import numpy as np
 
@@ -28,6 +28,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import narrative
 from . import topology
 from .const import (
+    CONF_CONTRACT_FIXED_PRICE,
+    CONF_DHW_TANK_VOLUME,
+    DEFAULT_DHW_MIN_TEMP,
+    DEFAULT_DHW_SETPOINT,
+    DEFAULT_DHW_TANK_VOLUME,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
     HEAT_PUMP_ACTION_STATES,
     MANUAL_PLAN_WINDOW_HOURS,
@@ -2585,6 +2590,92 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
         return attrs
 
 
+#: The price of a consumed kWh the Sensor-Gap Advisor assumes when the
+#: payload publishes none (a first cycle after a restart, or an install whose
+#: prices have not been read yet). A spot-only figure in the instance
+#: currency, so the advisor still ranks instead of dropping both probe rows
+#: to zero. Deliberately not the capacity tariff's per-kW price: a kWh priced
+#: with that is off by a whole month (#1226).
+FALLBACK_ENERGY_PRICE_PER_KWH = 1.0
+
+
+def _numeric_samples(series: Any) -> list[float]:
+    """The number-typed samples of a published power series, holes dropped.
+
+    A rolling window can carry a hole -- a ``None``, or a raw string that
+    never parsed -- and every reader of the series (the probe terms and the
+    house meter's window peak alike) must see numbers only: raw, the hole
+    raises out of ``extra_state_attributes``, or NaN-marks the window and
+    ranks its row a silent 0.00. Dropped, the series ranks as its clean
+    twin (#1226).
+    """
+    return [float(value) for value in series if isinstance(value, (int, float))]
+
+
+def _gap_energy_rate(data: Mapping[str, Any], config: Mapping[str, Any]) -> float:
+    """The price of a consumed kWh, with the advisor's documented fallbacks.
+
+    A payload with no published spot price -- a first cycle after a restart,
+    or an install whose prices have not been read yet -- falls back to the
+    fixed contract price and then to a nominal spot figure, so the ranking
+    survives it. Never the capacity tariff's per-kW price: a kWh priced with
+    that is off by a whole month (D8-01, #1226).
+    """
+    rate = data.get("current_price")
+    if not isinstance(rate, (int, float)) or float(rate) <= 0.0:
+        rate = float(config.get(CONF_CONTRACT_FIXED_PRICE) or 0.0)
+    if rate <= 0.0:
+        rate = FALLBACK_ENERGY_PRICE_PER_KWH
+    return float(rate)
+
+
+def _gap_probe_terms(
+    config: Mapping[str, Any],
+    hp_vals: list[float],
+    house_vals: list[float],
+    rate: float,
+) -> dict[str, float]:
+    """The COP-miss and DHW-coast inputs, from the series the payload carries.
+
+    With no measured power series there is nothing to price, so every term
+    stays 0.0 rather than being invented from an imaginary duty cycle -- which
+    is also why the advisor against a series-less payload ranks nothing. Once
+    a series is present the COP terms read the pump load and duty cycle the
+    window shows; the DHW term is a month of the tank's usable band, one
+    reheat a day at the resolved rate, priced from the configured tank volume
+    (``CONF_DHW_TANK_VOLUME``, else the documented ``DEFAULT_DHW_TANK_VOLUME``)
+    over the documented ``DEFAULT_DHW_SETPOINT`` - ``DEFAULT_DHW_MIN_TEMP``
+    band. That kWh figure is the documented tank sizing, not reheat energy
+    observed in a series: the payload carries no DHW series to read one from.
+    """
+    terms: dict[str, float] = {
+        "outdoor_load_kw": 0.0,
+        "outdoor_hours": 0.0,
+        "outdoor_price": 0.0,
+        "dhw_extra_kwh": 0.0,
+        "dhw_price": 0.0,
+    }
+    if not (hp_vals or house_vals):
+        return terms
+    # The COP miss: the pump's mean observed load, standing for a month of
+    # the duty cycle the window shows.
+    duty = (
+        sum(1 for value in hp_vals if value > 0.0) / len(hp_vals)
+        if hp_vals
+        else 0.0
+    )
+    # The DHW-coast miss: one reheat of the tank's usable band a day, over a
+    # month, at the same resolved rate.
+    volume = float(config.get(CONF_DHW_TANK_VOLUME) or DEFAULT_DHW_TANK_VOLUME)
+    band = float(DEFAULT_DHW_SETPOINT) - float(DEFAULT_DHW_MIN_TEMP)
+    terms["outdoor_load_kw"] = sum(hp_vals) / len(hp_vals) if hp_vals else 0.0
+    terms["outdoor_hours"] = 24.0 * 30.0 * duty
+    terms["outdoor_price"] = rate
+    terms["dhw_extra_kwh"] = volume * band * (4.187 / 3600.0) * 30.0
+    terms["dhw_price"] = rate
+    return terms
+
+
 class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
     """Rank empty topology slots by estimated extra cost per month (#699)."""
 
@@ -2601,8 +2692,12 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
     def _gaps(self) -> list[dict[str, Any]]:
         config = getattr(self.coordinator, "_config", None) or {}
         data = self.coordinator.data or {}
-        house = data.get("house_power_series") or ()
-        hp = data.get("heat_pump_power_series") or ()
+        # Sanitise once, HERE, so every reader below sees numbers only --
+        # the house meter's peak term inside rank_sensor_gaps reads the
+        # series too, and a hole left raw there becomes a NaN window (a
+        # silently ranked-0.00 row) or raises in numpy (#1226).
+        house = _numeric_samples(data.get("house_power_series") or ())
+        hp = _numeric_samples(data.get("heat_pump_power_series") or ())
         peak = data.get("peak_tariff") or {}
         return topology.rank_sensor_gaps(
             config,
@@ -2611,6 +2706,12 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
             peak_price=float(peak.get("price_per_kw") or 45.0),
             peak_window=int(peak.get("window_minutes") or 60),
             peak_count=int(peak.get("peaks_averaged") or 3),
+            **_gap_probe_terms(
+                config,
+                hp,
+                house,
+                _gap_energy_rate(data, config),
+            ),
         )
 
     @property

@@ -1306,6 +1306,110 @@ R.check(
 )
 _pm_logger922.removeHandler(_sink922)
 
+# --- A non-finite learned scalar must not install on the live model (D1-01) -
+#
+# _async_load_thermal_learning parses each stored scalar with float() under a
+# (TypeError, ValueError, OverflowError) guard. float('nan') raises nothing, so
+# the guard admits it and np.clip propagates it onto the live thermal model: a
+# NaN cop_scale publishes a wrong cost and a NaN house_heat_loss_scale fails
+# every solve and is re-persisted non-finite. inf is clamped by np.clip rather
+# than installed, so the guard has to refuse every non-finite value, not NaN
+# alone. The count is read off _thermal_params -- the value the seam delivers
+# into the model, which is what a solve actually consumes.
+import math as _math_d101  # noqa: E402
+
+_THERMAL_SCALARS = (
+    "house_heat_loss_scale", "buffer_cooling_rate",
+    "lower_floor_loss_ratio", "cop_scale",
+)
+_THERMAL_CLEAN = {
+    "house_heat_loss_scale": 1.0, "buffer_cooling_rate": 0.3,
+    "lower_floor_loss_ratio": 0.5, "cop_scale": 1.0,
+    "house_heat_loss_anchor": 0.0,
+}
+
+
+def _thermal_load(entry_id, **overrides):
+    """Load _THERMAL_CLEAN plus ``overrides`` through the real loader."""
+    coord = Coord(FakeHass(), _Entry922(data=dict(_CFG922), entry_id=entry_id))
+    _aio922.run(
+        coord._thermal_learning_store.async_save({**_THERMAL_CLEAN, **overrides})
+    )
+    _aio922.run(coord._async_load_thermal_learning())
+    return coord
+
+
+def _installed_nonfinite(coord):
+    """Learned scalars that reached _thermal_params non-finite."""
+    tp = coord._thermal_params
+    return [n for n in _THERMAL_SCALARS if not _math_d101.isfinite(getattr(tp, n))]
+
+
+# The coordinator's own pre-load model: the value a refused store must leave in
+# place. For a learned scalar the mirror the seam keeps is seeded from exactly
+# these, so a refusal has to land back on them.
+_THERMAL_PRELOAD = {
+    n: getattr(
+        Coord(
+            FakeHass(), _Entry922(data=dict(_CFG922), entry_id="thermal_d101_pre")
+        )._thermal_params,
+        n,
+    )
+    for n in _THERMAL_SCALARS
+}
+
+
+for _d101_name, _d101_bad in (
+    ("cop_scale", float("nan")),
+    ("house_heat_loss_scale", float("nan")),
+    ("buffer_cooling_rate", float("nan")),
+    ("lower_floor_loss_ratio", float("nan")),
+    ("cop_scale", float("inf")),
+    ("house_heat_loss_scale", float("-inf")),
+):
+    _d101 = _thermal_load(
+        f"thermal_d101_{_d101_name}_{_d101_bad}", **{_d101_name: _d101_bad}
+    )
+    # The scalar the bad value would have replaced has to SURVIVE, which is a
+    # stricter claim than "nothing non-finite landed": np.clip turns +-inf into
+    # the band's own edge, so an inf arm judged only on finiteness passes
+    # against a NaN-only guard.
+    _d101_kept = getattr(_d101._thermal_params, _d101_name)
+    R.check(
+        f"a non-finite {_d101_name}={_d101_bad!r} never installs on the live model",
+        _installed_nonfinite(_d101) == []
+        and _d101_kept == _THERMAL_PRELOAD[_d101_name],
+        f"installed={_installed_nonfinite(_d101)} kept={_d101_kept!r} "
+        f"preload={_THERMAL_PRELOAD[_d101_name]!r}",
+    )
+
+# Null control: the same store with every scalar finite installs each one, so
+# the guard costs a healthy payload nothing.
+_thermal_ok = _thermal_load(
+    "thermal_d101_finite",
+    house_heat_loss_scale=1.25, buffer_cooling_rate=0.4,
+    lower_floor_loss_ratio=0.6, cop_scale=0.9,
+)
+R.check(
+    "a finite thermal store still installs every learned scalar",
+    _installed_nonfinite(_thermal_ok) == []
+    and _thermal_ok._thermal_params.house_heat_loss_scale == 1.25
+    and _thermal_ok._thermal_params.buffer_cooling_rate == 0.4
+    and _thermal_ok._thermal_params.lower_floor_loss_ratio == 0.6
+    and _thermal_ok._thermal_params.cop_scale == 0.9,
+    f"installed={_installed_nonfinite(_thermal_ok)} "
+    f"cop={_thermal_ok._thermal_params.cop_scale}",
+)
+
+# The clamp still binds on a finite value: the guard refuses only non-finite
+# input, it does not replace the band.
+_thermal_clamped = _thermal_load("thermal_d101_clamped", cop_scale=COP_SCALE_MAX * 4.0)
+R.check(
+    "a finite cop_scale past the cap is clamped, not refused",
+    _thermal_clamped._thermal_params.cop_scale == COP_SCALE_MAX,
+    f"cop_scale={_thermal_clamped._thermal_params.cop_scale}",
+)
+
 # --- Prices align by their own timestamps, not by list position ------------
 #
 # Position assumed the first entry is *today's* midnight. A stale list — the
@@ -3886,6 +3990,41 @@ R.check(
     not no_data.identify().completed,
 )
 
+# The plausible-bounds refusal is the last thing between a completed fit and
+# a downstream consumer that weights it as evidence. The guards above reject
+# bad SIGNALS (gains, drift, noise); this one rejects a fit whose recovered
+# (tau, UA) is physically impossible even though the regression solved. Build
+# a house so over-insulated that the fit lands near UA 0.005 kW/C -- below the
+# 0.01 floor -- and require identify() to refuse it rather than report done.
+from heatpump_optimizer.sysid import (
+    PHASE_RELAX as _SID_RELAX,
+    PHASE_STEP as _SID_STEP,
+    SysIdSample as _SID_SAMPLE,
+)
+
+_impossible = SystemIdentification(SysIdConfig(enabled=True))
+_impossible.samples = []
+_imp_room, _imp_when = 20.7, datetime(2026, 2, 1, 0, 0, tzinfo=UTC)
+for _imp_phase, _imp_power, _imp_steps in (
+    (_SID_STEP, 3.0, 12), (_SID_RELAX, 0.0, 19),
+):
+    for _ in range(_imp_steps):
+        _impossible.samples.append(
+            _SID_SAMPLE(_imp_when, _imp_room, 0.0, _imp_power, _imp_phase)
+        )
+        _imp_room += (1.0 / 6.0) * (
+            _imp_power + 0.5 - 0.005 * _imp_room
+        ) / 6.0
+        _imp_when += timedelta(minutes=10)
+_impossible_res = _impossible.identify()
+R.check(
+    "a fit outside the plausible (tau, UA) box is refused, not reported done",
+    not _impossible_res.completed
+    and "plausible bounds" in (_impossible_res.reason or ""),
+    f"completed={_impossible_res.completed} reason={_impossible_res.reason!r} "
+    f"ua={_impossible_res.heat_loss_kw_per_c}",
+)
+
 repeat = SystemIdentification(SysIdConfig(enabled=True, min_days_between_runs=30))
 repeat.last_run = NOW - timedelta(days=2)
 R.check("a recent run blocks another", not repeat.arm(NOW))
@@ -4901,6 +5040,58 @@ _ok, _detail = _from_dict_survives(
     lambda: _FuzzStarts.from_dict({"lifetime": float("inf")})
 )
 R.check("StartCounter.from_dict swallows inf lifetime", _ok, _detail)
+
+# The streak is what makes "START_HYSTERESIS_SAMPLES consecutive samples"
+# true. A sample that AGREES with the state already held is not part of an
+# edge, so it must reset the streak: otherwise a steady running signal keeps
+# the streak alive across agreeing samples and the next real edge is
+# confirmed on fewer samples than the promise. Drive a steady above-threshold
+# signal while the counter already believes it is running.
+from heatpump_optimizer.const import START_HYSTERESIS_SAMPLES as _FUZZ_HYST
+
+_steady = _FuzzStarts()
+_steady.running = True
+_steady_confirmed = 0
+for _i in range(_FUZZ_HYST + 2):
+    if _steady.observe(NOW + timedelta(minutes=_i), 2.0, 1.0, False):
+        _steady_confirmed += 1
+R.check(
+    "a steady running signal restarts the streak and confirms no start",
+    _steady_confirmed == 0 and _steady._streak == 0 and _steady.lifetime == 0,
+    f"confirmed {_steady_confirmed}, streak {_steady._streak}, "
+    f"lifetime {_steady.lifetime}",
+)
+
+# The check above cannot fail on the reset: there `above == self.running`
+# holds from the very first sample, so `_streak` never leaves 0 and the
+# reset line is dead weight in it. The reset shows itself only when the
+# streak is ALIVE as the agreeing sample arrives. Walk above -> below ->
+# above: sample 1 starts a streak of 1, sample 2 agrees with the held False
+# state, and sample 3 is the second "above" -- but NON-consecutive, so it
+# must start a fresh streak of 1, not confirm. Measured: intact -> streak
+# 1 -> 0 -> 1, no confirmation (lifetime 0); with `self._streak = 0`
+# deleted -> streak 1 -> 1, sample 3 confirms a start (running True,
+# lifetime 1).
+_noncon = _FuzzStarts()
+_noncon_first = _noncon.observe(NOW, 2.0, 1.0, False)
+_noncon_streak_first = _noncon._streak
+_noncon_agree = _noncon.observe(NOW + timedelta(minutes=1), 0.0, 1.0, False)
+_noncon_streak_agree = _noncon._streak
+_noncon_third = _noncon.observe(NOW + timedelta(minutes=2), 2.0, 1.0, False)
+R.check(
+    "above->below->above: the agreeing sample resets the streak, no start",
+    not _noncon_first
+    and _noncon_streak_first == 1
+    and not _noncon_agree
+    and _noncon_streak_agree == 0
+    and not _noncon_third
+    and _noncon._streak == 1
+    and not _noncon.running
+    and _noncon.lifetime == 0,
+    f"confirmed ({_noncon_first!r},{_noncon_agree!r},{_noncon_third!r}), "
+    f"streak {_noncon_streak_first}->{_noncon_streak_agree}->{_noncon._streak}, "
+    f"running {_noncon.running}, lifetime {_noncon.lifetime}",
+)
 _ok, _detail = _from_dict_survives(
     lambda: _FuzzAcc.from_dict({"lead_counts": {"1.0": float("inf")}})
 )
@@ -6355,6 +6546,24 @@ R.check(
     "delivery cannot be negative",
     _mv.emitter_delivery(mix_temp=20.0, zone_temp=25.0, ua=1.4) == 0.0,
     "a valve can shut, but it cannot cool a house",
+)
+
+# A degenerate install can report design_power == 0, which gives emitter_ua
+# == 0.0. The 1e-6 floor in flow_setpoint is the only thing between that call
+# and a ZeroDivisionError; the setpoint it returns saturates high, which is
+# the correct answer for a house that cannot lose heat. Without the guard the
+# whole plan fails, so the floor is load-bearing, not decoration.
+try:
+    _fs_zero_ua = _mv.flow_setpoint(
+        target_temp=21.0, outdoor_temp=-5.0,
+        heat_loss_coefficient=0.2, emitter_ua=0.0,
+    )
+except ZeroDivisionError as _fs_zero_err:
+    _fs_zero_ua = _fs_zero_err
+R.check(
+    "a zero-UA install yields a finite flow setpoint, not ZeroDivisionError",
+    isinstance(_fs_zero_ua, float) and _fs_zero_ua < 1e12,
+    f"emitter_ua=0.0 -> {_fs_zero_ua!r}",
 )
 
 # Survival: stored heat leaves at house-demand rate, not in one dump. Under
@@ -21603,6 +21812,31 @@ R.check(
     "than the same duty counted from MQTT transitions, and nothing else on "
     "the row would show that",
     )
+
+# The duty is a fraction of an interval, and `duty_counts` is exactly what
+# crosses DERATE_CONFIDENCE_SAMPLES to hand the bucket to the measured
+# estimator. A caller that hands `observe_duty` a value outside [0, 1] -- a
+# percent-versus-fraction units bug, or a negative from a clock that ran
+# backwards -- must not fold into the bucket. The zero case beside it is the
+# guard's other edge: 0 IS in range and IS real evidence, so it must still
+# fold, and a full-interval 1.0 sits on the clamp.
+_oor = DefrostDerate()
+_oor.observe_duty(2.0, 80.0, 2.0)
+_oor.observe_duty(2.0, 80.0, -0.5)
+R.check(
+    "a duty outside [0, 1] is refused, not folded into the bucket",
+    sum(sum(row) for row in _oor.duty_counts) == 0,
+    f"duty_counts {sum(sum(row) for row in _oor.duty_counts)} after duty=2.0 "
+    "and duty=-0.5",
+)
+_edge = DefrostDerate()
+_edge.observe_duty(2.0, 80.0, 0.0)
+_edge.observe_duty(2.0, 80.0, 1.0)
+R.check(
+    "the range guard rejects only OUTSIDE [0, 1] — 0 and 1 still fold",
+    sum(sum(row) for row in _edge.duty_counts) == 2,
+    "a zero duty is evidence and a full-interval duty is the clamp",
+)
 
 # -- persistence: an OLD store must load ------------------------------------
 _v1_store = {
@@ -40208,6 +40442,126 @@ R.check(
     and _post1.offered({"dev_none": _post1_nothing}) == {}
     and not _post1.qualifies(_g7b_dp.resolve_with_fallback([])),
     f"{_post1.offered({'dev_none': _post1_nothing})}",
+)
+
+# ===========================================================================
+# Quick setup: the answer-to-config mapping (W1067-POST1 follow-on)
+# ===========================================================================
+R.section("Quick setup: the answer-to-config mapping")
+
+from heatpump_optimizer import quick_setup as _qs  # noqa: E402
+
+_qs_base = {
+    _qs.FIELD_TWO_ZONE: False,
+    _qs.FIELD_BUFFER_TANK: False,
+    _qs.FIELD_DHW_TANK: True,
+    _qs.FIELD_WOOD_FURNACE: False,
+    _qs.FIELD_WOOD_BUFFER_TANK: False,
+    "building_structure": presets.STRUCTURE_TIMBER_SLAB,
+    "building_era": presets.ERA_1980_2005,
+    "building_foundation": presets.FOUNDATION_NONE,
+    "heated_area_m2": 140,
+    "upper_floor_emitter": presets.EMITTER_RADIATORS,
+    "lower_floor_emitter": presets.EMITTER_FLOOR,
+}
+_qs_1zone = _qs.derive(dict(_qs_base))
+_qs_2zone = _qs.derive({**_qs_base, _qs.FIELD_TWO_ZONE: True})
+
+# The zone answer is the explicit override, never the two-zone presence keys:
+# writing the presence keys is exactly how a fresh entry's defaults silently
+# flip a 1-zone house to 2-zone, so a 1-zone answer must not write them.
+R.check(
+    "a 1-zone answer writes the off override and never the two-zone presence keys",
+    _qs_1zone["two_zone_mode"] == "off"
+    and "upper_floor_thermal_mass" not in _qs_1zone,
+    f"{sorted(_qs_1zone)}",
+)
+R.check(
+    "a 2-zone answer writes the on override and the derived zone keys",
+    _qs_2zone["two_zone_mode"] == "on"
+    and "upper_floor_thermal_mass" in _qs_2zone
+    and "lower_floor_thermal_mass" in _qs_2zone,
+    f"{sorted(_qs_2zone)}",
+)
+R.check(
+    "buffer-tank yes writes a store-sized volume; no writes nothing",
+    _qs.derive({**_qs_base, _qs.FIELD_BUFFER_TANK: True})["buffer_tank_volume"] >= 100.0
+    and "buffer_tank_volume" not in _qs_1zone,
+    "a store is volume-derived, and 'no' leaves the shipped small default",
+)
+R.check(
+    "dhw-tank no writes the explicit off override",
+    _qs.derive({**_qs_base, _qs.FIELD_DHW_TANK: False})["dhw_enabled"] is False,
+)
+R.check(
+    "dhw-tank yes is the default and writes on",
+    _qs_1zone["dhw_enabled"] is True,
+)
+R.check(
+    "wood-furnace yes writes the flag; no writes off",
+    _qs.derive({**_qs_base, _qs.FIELD_WOOD_FURNACE: True})["wood_furnace_enabled"]
+    is True
+    and _qs_1zone["wood_furnace_enabled"] is False,
+)
+R.check(
+    "wood-buffer-tank yes writes the tank volume; no writes nothing",
+    "wood_tank_volume"
+    in _qs.derive({**_qs_base, _qs.FIELD_WOOD_BUFFER_TANK: True})
+    and "wood_tank_volume" not in _qs_1zone,
+)
+
+# The two-tank model's own gate is the probe entities, so the wood answer is
+# observable only once the probes are picked; pinned as the model's answer,
+# not re-read from the config (the reviewer's measured gate).
+_qs_wood = _qs.derive(
+    {
+        **_qs_base,
+        _qs.FIELD_WOOD_FURNACE: True,
+        _qs.FIELD_WOOD_BUFFER_TANK: True,
+        "wood_tank_top_entity": "sensor.wood_tank_top",
+        "wood_tank_bottom_entity": "sensor.wood_tank_bottom",
+    }
+)
+R.check(
+    "the wood-tank probes are written through, and they activate the two-tank model",
+    _qs_wood.get("wood_tank_top_entity") == "sensor.wood_tank_top"
+    and _qs_wood.get("wood_tank_bottom_entity") == "sensor.wood_tank_bottom"
+    and ThermalParameters.from_config({**_qs_wood, "heat_pump_max_power": 5.0})
+    .wood_tank_configured
+    and not ThermalParameters.from_config(
+        {**_qs_1zone, "heat_pump_max_power": 5.0}
+    ).wood_tank_configured,
+    f"{sorted(_qs_wood)}",
+)
+R.check(
+    "the building questionnaire is recorded and the preset enabled",
+    _qs_1zone["building_preset_enabled"] is True
+    and "house_thermal_mass" in _qs_1zone,
+    f"{sorted(_qs_1zone)}",
+)
+# A non-default answer, so "honoured" is distinguishable from "discarded and
+# replaced by the answer's own default" — a check feeding the default proves
+# neither.
+_qs_masonry = _qs.derive(
+    {
+        **_qs_base,
+        "building_structure": presets.STRUCTURE_MASONRY,
+        "building_era": presets.ERA_PRE_1960,
+    }
+)
+R.check(
+    "a non-default structure answer is honoured, not defaulted away",
+    _qs_masonry["building_structure"] == presets.STRUCTURE_MASONRY
+    and _qs_masonry["house_thermal_mass"] > _qs_1zone["house_thermal_mass"],
+    "masonry derives a heavier house than the timber default",
+)
+
+# The quick-setup answer is the same derived physics the presets tests already
+# pin, so one end-to-end sanity — the model accepts it — is enough here.
+_qs_model = ThermalParameters.from_config({**_qs_1zone, "heat_pump_max_power": 5.0})
+R.check(
+    "quick-setup answers are accepted by the thermal model",
+    _qs_model.room_thermal_mass > 0 and _qs_model.heat_loss_coefficient > 0,
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

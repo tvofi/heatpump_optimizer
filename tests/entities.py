@@ -3003,8 +3003,12 @@ async def _walk_flow_untouched():
             if result.get("type") == "create_entry":
                 return dict(result["data"])
             if result.get("type") == "menu":
-                # An untouched menu is its first option.
-                step = list(result["menu_options"])[0]
+                # An untouched menu is its first option — except the finish
+                # menu, whose first option is now the quick-setup shortcut:
+                # that path declines the device pre-fill straight back to this
+                # menu, so the untouched walk takes the full wizard instead.
+                options = list(result["menu_options"])
+                step = "temperature" if "temperature" in options else options[0]
                 result = await getattr(flow, f"async_step_{step}")(None)
                 continue
             step = result["step_id"]
@@ -4424,6 +4428,33 @@ def _schema_defaults(schema):
     return schema(empty_section_payload(schema))
 
 
+def _presented_value(marker):
+    """The value a field's marker shows the user, however it is pre-filled.
+
+    ``suggested_value`` first, then ``default``: a form pre-fills with either,
+    and the frontend shows and posts them alike, so a reader that wants "what
+    this page offers" has to accept both. This is also where the two arms of
+    the ``_STORED`` rule separate: a stored entity is offered as a
+    ``suggested_value`` so that clearing it sticks (the key comes back ABSENT
+    and voluptuous refills only a ``default``), while a computed field carries
+    a real ``default``.
+    """
+    description = getattr(marker, "description", None)
+    if isinstance(description, dict) and "suggested_value" in description:
+        return description["suggested_value"]
+    default = getattr(marker, "default", None)
+    return default() if callable(default) else default
+
+
+def _nested_drop(posted, keys):
+    """``posted`` with every name in ``keys`` removed wherever it is nested."""
+    return {
+        name: (_nested_drop(value, keys) if isinstance(value, dict) else value)
+        for name, value in posted.items()
+        if name not in keys
+    }
+
+
 missing = [
     step
     for step in options._MENU_LABELS
@@ -4742,21 +4773,30 @@ _sig_flow2 = options(
 )
 _sig_flow2.hass = FakeHass()
 _sig_form2 = asyncio.run(_sig_flow2.async_step_entities_pump(None))
+_sig_offered = {
+    str(getattr(marker, "schema", marker)): _presented_value(marker)
+    for marker, _value in _presented_fields(_sig_form2["data_schema"])
+}
 R.check(
-    "a configured signal comes back as the field's default",
-    all(
-        _sig_form2["data_schema"]({}).get(_key) == _value
-        for _key, _value in _sig_values.items()
-    ),
+    "a configured signal comes back as the field's pre-fill",
+    all(_sig_offered.get(_key) == _value for _key, _value in _sig_values.items()),
     "a page that forgets what is configured invites the user to re-enter it",
 )
+# Clearing has to survive the flow manager, which validates the submitted post
+# through the same schema before the step sees it (``_async_configure``:
+# ``user_input = data_schema(user_input)``). A clear posts the picker's key
+# ABSENT, and voluptuous refills a ``default`` for an absent key -- so a stored
+# entity offered as ``vol.Optional(key, default=stored)`` came straight back and
+# the clear was silently dropped, while a direct call to the step stayed green
+# because it never re-validated. Submitting the untouched post with the pickers
+# dropped, THROUGH the schema, is that manager call.
 _sig_cleared_result = asyncio.run(
     _sig_flow2.async_step_entities_pump(
-        {
-            k: v
-            for k, v in _sig_form2["data_schema"]({}).items()
-            if k not in _sig_values
-        }
+        _sig_form2["data_schema"](
+            _nested_drop(
+                _schema_defaults(_sig_form2["data_schema"]), set(_sig_values)
+            )
+        )
         | {const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
     )
 )
@@ -4932,10 +4972,7 @@ R.check(
 _pulse_kept = config_flow._field_marker(
     _pulse_row, {const.CONF_HOUSE_POWER_ENTITY: "sensor.other_power"}, _pulse_hass
 )
-_pulse_kept_default = getattr(_pulse_kept, "default", None)
-_pulse_kept_value = (
-    _pulse_kept_default() if callable(_pulse_kept_default) else _pulse_kept_default
-)
+_pulse_kept_value = _presented_value(_pulse_kept)
 R.check(
     "the metering page keeps a stored house_power_entity",
     _pulse_kept_value == "sensor.other_power",
@@ -5262,6 +5299,209 @@ R.check(
     _gap_sensor._key == "sensor_gap_advisor"
     and _gap_sensor.native_value == 0.0,
     f"value={_gap_sensor.native_value}",
+)
+
+# --- #1226 / round-5 D8-01: the advisor feeds the probes it prices ---------
+# The #699 block above hands every input to ``topology.rank_sensor_gaps``
+# itself, so it pins the arithmetic and nothing about the caller. The caller
+# whose answer a user ever sees is ``SensorGapAdvisorSensor._gaps``, and to
+# rank the outdoor and DHW rows above zero it must supply the five inputs its
+# own rank test does. When it did not, both rows kept their 0.0 defaults and
+# the enabled-by-default advisor could only ever rank the house meter.
+_gap_load_data = {
+    "house_power_series": [2.0, 2.0, 2.0, 10.0],
+    "heat_pump_power_series": [2.0, 2.0, 2.0, 2.0],
+    "peak_tariff": {
+        "price_per_kw": 90.0,
+        "window_minutes": 60,
+        "peaks_averaged": 3,
+    },
+    "current_price": 1.5,
+}
+# A user who has the house meter but neither probe: the two probe rows are
+# the whole ranking, and both must be priced.
+_gap_probe_cfg = {const.CONF_HOUSE_POWER_ENTITY: "sensor.house_power"}
+
+
+def _gap_production_rows(data, config):
+    """The production advisor's own ``gaps`` for a payload and a config."""
+    coord = FakeCoordinator(dict(data), _config=dict(config))
+    gap_sensor = sensor.SensorGapAdvisorSensor(coord, ENTRY)
+    gaps = gap_sensor.extra_state_attributes["gaps"]
+    return gap_sensor, {row["key"]: row for row in gaps}
+
+
+_gap_probe_sensor, _gap_probe = _gap_production_rows(_gap_load_data, _gap_probe_cfg)
+R.check(
+    "an empty outdoor slot ranks its COP miss on the production advisor (#1226)",
+    _gap_probe[const.CONF_OUTDOOR_TEMP_ENTITY]["empty"]
+    and _gap_probe[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"] > 0.0,
+    repr(_gap_probe),
+)
+R.check(
+    "an empty DHW probe ranks its coasting miss on the production advisor (#1226)",
+    _gap_probe[const.CONF_DHW_TEMP_ENTITY]["empty"]
+    and _gap_probe[const.CONF_DHW_TEMP_ENTITY]["sek_per_month"] > 0.0,
+    repr(_gap_probe),
+)
+_gap_top = max(
+    (row for row in _gap_probe.values() if row["empty"]),
+    key=lambda row: row["sek_per_month"],
+)
+R.check(
+    "the advisor's state is the top empty slot's rank (#1226)",
+    _gap_probe_sensor.native_value > 0.0
+    and _gap_probe_sensor.native_value == _gap_top["sek_per_month"]
+    and _gap_probe_sensor.extra_state_attributes["top_slot"] == _gap_top["key"],
+    f"value={_gap_probe_sensor.native_value} top={_gap_top['key']}",
+)
+# Causal, not a restatement of the formula: a dearer kWh must raise both
+# rows, and a heavier observed load must raise the COP row, or the caller is
+# not reading them at all.
+_, _gap_dearer = _gap_production_rows(
+    dict(_gap_load_data, current_price=3.0), _gap_probe_cfg
+)
+_, _gap_heavier = _gap_production_rows(
+    dict(_gap_load_data, heat_pump_power_series=[4.0, 4.0, 4.0, 4.0]),
+    _gap_probe_cfg,
+)
+R.check(
+    "both probe rows read the resolved price, and the COP row the load (#1226)",
+    _gap_dearer[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"]
+    > _gap_probe[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"]
+    and _gap_dearer[const.CONF_DHW_TEMP_ENTITY]["sek_per_month"]
+    > _gap_probe[const.CONF_DHW_TEMP_ENTITY]["sek_per_month"]
+    and _gap_heavier[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"]
+    > _gap_probe[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"],
+    f"base={_gap_probe} dearer={_gap_dearer} heavier={_gap_heavier}",
+)
+# Null control: a fully wired install ranks nothing, however loud the load.
+_gap_all_cfg = {
+    const.CONF_HOUSE_POWER_ENTITY: "sensor.house_power",
+    const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+    const.CONF_DHW_TEMP_ENTITY: "sensor.dhw",
+}
+_gap_null_sensor, _gap_null = _gap_production_rows(_gap_load_data, _gap_all_cfg)
+R.check(
+    "a fully wired install ranks every row 0, load and price included (#1226)",
+    _gap_null_sensor.native_value == 0.0
+    and _gap_null_sensor.extra_state_attributes["gaps"]
+    and all(row["sek_per_month"] == 0.0 for row in _gap_null.values()),
+    repr(_gap_null),
+)
+# A design choice, stated: the probes are priced from the load the pump was
+# SEEN to carry, so a payload with no power series ranks nothing -- which is
+# why the advisor against the tests' own DATA (no series) is still 0.0 above.
+_, _gap_unseen = _gap_production_rows({"current_price": 1.5}, _gap_probe_cfg)
+R.check(
+    "with no measured power series the advisor ranks no probe (#1226)",
+    all(row["sek_per_month"] == 0.0 for row in _gap_unseen.values()),
+    repr(_gap_unseen),
+)
+
+# --- #1226 round 2: a series with holes ranks as its clean twin ------------
+# The published power series is a rolling window of readings, and a reading
+# the cycle could not take leaves a hole in it: a None, or a raw string that
+# never parsed. ``_numeric_samples`` drops those samples before EVERY reader
+# -- the probe terms and the house meter's window peak alike -- because raw
+# they raise out of ``extra_state_attributes`` (or, for a None, NaN-mark the
+# window and rank its row a silent 0.00). Delete the ``isinstance`` filter
+# and every check below turns red; hand the series to ``rank_sensor_gaps``
+# unfiltered and the house checks do.
+
+
+def _gap_holed_rows(data, config):
+    """The advisor's rows, a series hole surfacing as a checked failure.
+
+    A hole must rank as its clean twin; with the sanitising gone the raw
+    sample raises (TypeError for a None, ValueError for the string), which
+    becomes a red CHECK here rather than a crashed script -- a named FAIL
+    line is what the mutation proof reads.
+    """
+    try:
+        return _gap_production_rows(data, config)[1]
+    except (TypeError, ValueError) as exc:
+        return f"{type(exc).__name__} out of extra_state_attributes: {exc}"
+
+
+# The heat-pump series' reader: the probe terms, under a config whose empty
+# rows are the two probes. Constant readings, so dropping a holed sample
+# cannot change the mean or the duty cycle -- the holed payload must rank
+# exactly what the clean four-reading window ranks: not 0.00, no exception.
+_gap_clean_hp = [2.0, 2.0, 2.0, 2.0]
+_gap_clean_twin = _gap_holed_rows(
+    dict(_gap_load_data, heat_pump_power_series=_gap_clean_hp), _gap_probe_cfg
+)
+for _gap_hole, _gap_holed_hp in (
+    ("a None", [2.0, 2.0, None, 2.0]),
+    ("an unparsed string", [2.0, 2.0, "x", 2.0]),
+):
+    _gap_holed = _gap_holed_rows(
+        dict(_gap_load_data, heat_pump_power_series=_gap_holed_hp), _gap_probe_cfg
+    )
+    R.check(
+        f"a heat-pump series carrying {_gap_hole} ranks as its clean twin (#1226)",
+        _gap_holed == _gap_clean_twin
+        and _gap_holed[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"] > 0.0,
+        f"clean={_gap_clean_twin} holed={_gap_holed_hp} -> {_gap_holed}",
+    )
+# The house series' reader: with the meter slot EMPTY the house row ranks
+# FROM the series' window peak -- the purchase the meter exists for. The
+# heat pump's blind peak is pinned low so that row is a live figure, not a
+# 0-vs-0, and a holed house series must keep it.
+_gap_house_cfg = {}
+_gap_house_hp = [1.0, 1.0, 1.0, 1.0]
+for _gap_hole, _gap_holed_house in (
+    ("a None", [2.0, 2.0, None, 2.0]),
+    ("an unparsed string", [2.0, 2.0, "x", 2.0]),
+):
+    _gap_house_holed = _gap_holed_rows(
+        dict(
+            _gap_load_data,
+            heat_pump_power_series=_gap_house_hp,
+            house_power_series=_gap_holed_house,
+        ),
+        _gap_house_cfg,
+    )
+    _gap_house_clean = _gap_holed_rows(
+        dict(
+            _gap_load_data,
+            heat_pump_power_series=_gap_house_hp,
+            house_power_series=[2.0, 2.0, 2.0, 2.0],
+        ),
+        _gap_house_cfg,
+    )
+    R.check(
+        f"a house series carrying {_gap_hole} ranks as its clean twin (#1226)",
+        _gap_house_holed == _gap_house_clean
+        and _gap_house_holed[const.CONF_HOUSE_POWER_ENTITY]["sek_per_month"] > 0.0,
+        f"clean={_gap_house_clean} holed={_gap_holed_house} -> {_gap_house_holed}",
+    )
+# Dropped, not NaN-marked: a hole inserted into a series with a real peak
+# must rank as the same series with that slot simply absent -- the house
+# row keeps its whole spike, where a raw None NaNs the 60-minute window and
+# quietly prices the row 0.00.
+_gap_spike_holed = _gap_holed_rows(
+    dict(
+        _gap_load_data,
+        heat_pump_power_series=_gap_house_hp,
+        house_power_series=[2.0, 2.0, None, 2.0, 10.0],
+    ),
+    _gap_house_cfg,
+)
+_gap_spike_clean = _gap_holed_rows(
+    dict(
+        _gap_load_data,
+        heat_pump_power_series=_gap_house_hp,
+        house_power_series=[2.0, 2.0, 2.0, 10.0],
+    ),
+    _gap_house_cfg,
+)
+R.check(
+    "a hole in a spiked series is dropped, not priced as a 0.00 house row (#1226)",
+    _gap_spike_holed == _gap_spike_clean
+    and _gap_spike_holed[const.CONF_HOUSE_POWER_ENTITY]["sek_per_month"] > 0.0,
+    f"clean={_gap_spike_clean} holed={_gap_spike_holed}",
 )
 
 # The building page owns the valve and wood entities (v4.0.0 merged the
@@ -8843,7 +9083,7 @@ try:
         _dup_first_result.get("type") == "menu"
         and _dup_first_result.get("step_id") == "finish_setup"
         and tuple(_dup_first_result.get("menu_options", {}))
-        == ("temperature", "finish_now"),
+        == ("quick_setup", "temperature", "finish_now"),
         str(_dup_first_result)[:160],
     )
     R.check(
@@ -14192,6 +14432,32 @@ R.check(
     f"{_version} -- lower CARD_VERSION in {_card_path} or bump VERSION",
 )
 
+# The D6 register (tools/audit/round4/D6/) is the committed output of
+# claims.py, and one of its rows -- C42, "manifest version equals VERSION" --
+# is a snapshot of the VERSION the register was generated at. The stamp is the
+# only commit that moves VERSION, so it is the only commit that can stale that
+# snapshot, and a stamp that does turns tests/harness_headers.py red at the
+# stamped head: that check re-runs every live-header harness (claims.py among
+# them) and fails when the register it regenerates is not what is committed.
+# v6.6.4 is exactly that state -- VERSION 6.6.4, the register's C42 still
+# 6.6.3 -- so this pins the register against the live VERSION, the invariant
+# the stamp has to keep. That the stamp keeps it is pinned separately in
+# stamp.py's own --self-test, which reads main()'s write region.
+_d6_json = Path("tools/audit/round4/D6/claims.json")
+_d6_c42 = next(
+    (row for row in json.loads(_d6_json.read_text()) if row.get("id") == "C42"), None
+)
+_d6_recorded = _re.findall(r"\d+\.\d+\.\d+", (_d6_c42 or {}).get("result", ""))
+R.check(
+    "the D6 register records the live VERSION (the stamp re-records it)",
+    _d6_recorded == [_version, _version],
+    f"{_d6_json}'s C42 records {(_d6_c42 or {}).get('result')!r}, VERSION is "
+    f"{_version!r} -- a stamp moved VERSION without re-recording the register, "
+    "so tests/harness_headers.py is red at this head. Run "
+    "`PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` and "
+    "commit its output.",
+)
+
 
 # The stamp check is only worth having if it bites, so mutate a throwaway
 # tree and require env_drift to reject exactly the wrong ones -- and to
@@ -15610,7 +15876,7 @@ try:
     _stc_writes = {
         str(Path(p).relative_to(_stamp.ROOT))
         for p in (_stamp.VERSION_FILE, _stamp.MANIFEST, _stamp.CARD_JS,
-                  _stamp.NOTES, *_stamp.CLAIM_FILES)
+                  _stamp.NOTES, *_stamp.CLAIM_FILES, *_stamp.REGISTER_FILES)
     }
     _stc_before = "# claims-for: 6.5.1\n#\n# old reason\n#\n\nconfig_flow  # a lane's claim\n"
     _stc_after, _stc_old, _stc_deleted = _stamp.rewrite_claims(_stc_before, "6.6.0", "t")

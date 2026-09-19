@@ -284,8 +284,43 @@
         "title": "Finish setup now?",
         "description": "An entry is created only when this flow finishes. You can stop here and start with shipped defaults — temperatures, the building, hot water and weather sensitivity can be set later in Options — or continue through those screens now.",
         "menu_options": {
+          "quick_setup": "Quick setup (recommended)",
           "temperature": "Continue setup",
           "finish_now": "Finish setup now"
+        }
+      },
+      "quick_setup": {
+        "title": "Quick setup",
+        "description": "Tell the optimizer what your system is and it does the rest. The heat pump's entities are read automatically on the next screen, and anything left out here starts from a sensible default you can refine later in Options.",
+        "data": {
+          "two_zone": "Two-zone house",
+          "buffer_tank": "Buffer tank",
+          "dhw_tank": "Hot water tank",
+          "wood_furnace": "Wood furnace",
+          "wood_buffer_tank": "Wood buffer tank",
+          "wood_tank_top_entity": "Wood tank top sensor (optional)",
+          "wood_tank_bottom_entity": "Wood tank bottom sensor (optional)",
+          "building_structure": "What the house is built from",
+          "building_era": "Roughly when it was built",
+          "building_foundation": "Foundation",
+          "heated_area_m2": "Heated floor area",
+          "upper_floor_emitter": "Upper floor heating",
+          "lower_floor_emitter": "Lower floor heating"
+        },
+        "data_description": {
+          "two_zone": "On for a house with two separately heated floors, off for one. A two-zone house lets the optimizer balance the slab-heated lower floor against the upper floor.",
+          "buffer_tank": "A tank between the heat pump and the heating circuits, large enough to store heat. On stores cheap heat and releases it during expensive hours.",
+          "dhw_tank": "A tank the heat pump keeps full of domestic hot water. Leave on if your heat pump makes hot water.",
+          "wood_furnace": "A wood furnace that heats the same water loop. On lets the optimizer factor its heat in and stand the pump down while the fire is lit.",
+          "wood_buffer_tank": "A second tank the wood furnace heats, separate from the heat pump's buffer. Its temperature probes are picked below; the two-tank physics activates only once a probe is assigned.",
+          "wood_tank_top_entity": "Together with the bottom sensor this says how much a fire has left. A hot top over a cold bottom means the charge is nearly spent.",
+          "wood_tank_bottom_entity": "See the top sensor. Both are needed for the remaining-energy estimate; one alone is read conservatively.",
+          "building_structure": "Heavy materials inside the insulation store heat, which is what lets the optimizer buy it cheaply and use it later.",
+          "building_era": "Construction era is a good proxy for insulation standard, and a far better starting point than a single default.",
+          "building_foundation": "A crawl space adds heat loss; a heated basement adds both loss area and thermal mass.",
+          "heated_area_m2": "Everything is scaled by this, so it is the number worth getting closest to right.",
+          "upper_floor_emitter": "Radiators respond in minutes, floor heating in hours. That sets how far ahead heating can usefully be shifted.",
+          "lower_floor_emitter": "A heated slab is a large store that gets actively charged, so it makes pre-heating both more valuable and more necessary."
         }
       },
       "setup_overview": {

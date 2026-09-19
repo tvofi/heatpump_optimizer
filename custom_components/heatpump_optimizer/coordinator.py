@@ -12,6 +12,7 @@ from __future__ import annotations
 import atexit
 import asyncio
 import copy
+import functools
 import hashlib
 import json
 import logging
@@ -481,6 +482,29 @@ def _as_float(value: Any, default: float) -> float:
     if not np.isfinite(result):
         return default
     return result
+
+
+def _refuses_non_finite(method: Callable[..., None]) -> Callable[..., None]:
+    """Wrap a learned-scalar seam so a non-finite value never reaches the model.
+
+    The thermal-learning loader and the snapshot rollback both parse each stored
+    scalar with ``float()`` under a ``(TypeError, ValueError, OverflowError)``
+    guard, and ``float('nan')`` raises nothing -- so a corrupted store reaches
+    ``np.clip``, which propagates NaN onto the live model: a NaN ``cop_scale``
+    then publishes a cost ~36 % too high and a NaN ``house_heat_loss_scale``
+    fails every solve and is written back non-finite. ``np.clip`` *clamps* +-inf
+    rather than refusing it, so "not NaN" is the wrong test: every non-finite
+    value is dropped at the seam, leaving the scalar it would replace in place.
+    """
+    @functools.wraps(method)
+    def guarded(self: Any, value: Any) -> None:
+        try:
+            finite = math.isfinite(float(value))
+        except (TypeError, ValueError, OverflowError):
+            finite = False
+        if finite:
+            method(self, value)
+    return guarded
 
 
 def _parse_ecl110_state(payload: Any) -> tuple[float | None, float | None]:
@@ -3310,6 +3334,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 DEFAULT_WOOD_TANK_VOLUME,
             ),
         )
+    @_refuses_non_finite
     def _apply_cop_scale(self, scale: float) -> None:
         """Clamp the learned COP correction and push it to the model."""
         self._cop_scale = float(np.clip(scale, COP_SCALE_MIN, COP_SCALE_MAX))
@@ -3742,24 +3767,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             getattr(self, "_ctx", self)._thermal_params.buffer_tank_volume
         )
 
+    @_refuses_non_finite
     def _apply_buffer_cooling_rate(self, rate: float) -> None:
         """Clamp a buffer cooling rate to a plausible range and push it out."""
         low, high = self._buffer_cooling_bounds()
         self._buffer_cooling_rate = float(np.clip(rate, low, high))
         getattr(self, "_ctx", self)._thermal_params.buffer_cooling_rate = self._buffer_cooling_rate
 
+    @_refuses_non_finite
     def _apply_house_heat_loss_scale(self, scale: float) -> None:
         """Clamp the house heat loss correction and push it to the model."""
-        self._house_heat_loss_scale = float(
-            np.clip(scale, HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX)
-        )
+        self._house_heat_loss_scale = float(np.clip(scale, HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX))
         getattr(self, "_ctx", self)._thermal_params.house_heat_loss_scale = self._house_heat_loss_scale
 
+    @_refuses_non_finite
     def _apply_lower_floor_loss_ratio(self, ratio: float) -> None:
         """Clamp the learned zone split and push it to the model."""
-        self._lower_floor_loss_ratio = float(
-            np.clip(ratio, LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX)
-        )
+        self._lower_floor_loss_ratio = float(np.clip(ratio, LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX))
         getattr(self, "_ctx", self)._thermal_params.lower_floor_loss_ratio = self._lower_floor_loss_ratio
 
     def _house_heat_loss_anchor(self) -> float:

@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 63 modules, of which 21 import the
+knows nothing about Home Assistant: 64 modules, of which 21 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back.
 
@@ -15,6 +15,7 @@ function, and the rest take numbers in and give numbers back.
 flowchart LR
     subgraph inputs["Inputs"]
         tibber["Tibber API<br/>hourly prices"]
+        weather["HA weather entity<br/>temperature, wind,<br/>rain, irradiance"]
         meteo["Open-Meteo<br/>irradiance forecast<br/>+ satellite observation"]
         ha["Your HA entities<br/>weather forecast, temperatures,<br/>power, presence, humidity"]
     end
@@ -39,7 +40,8 @@ flowchart LR
     end
 
     tibber --> pm
-    meteo --> tm
+    weather --> tm
+    meteo -. "irradiance override" .-> tm
     ha --> tm
     ha --> acc
     pm --> opt
@@ -126,6 +128,8 @@ custom_components/heatpump_optimizer/
 ├── prefill_offer.py      # Whether a device is worth OFFERING that pre-fill
 │                         #   when the integration is set up: the qualifying
 │                         #   minimum, read off the corpus measurement
+├── quick_setup.py        # The quick-setup page's answer-to-config mapping:
+│                         #   house questions to option keys, through presets
 │
 │   # People, safety and actuation
 ├── away.py               # Away state, return time and deadline-driven recovery
@@ -167,7 +171,7 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-21 of the 63 modules import `homeassistant` at module level: `__init__`,
+21 of the 64 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `away`, `boost`, `currency`, `dhw_learning`,
@@ -176,7 +180,7 @@ One module outside that set touches it at all: `inputs` reaches for
 `homeassistant.util.dt` inside a function, as the fallback when no clock
 function was injected.
 
-The other 41 modules are deliberately free of it, so each can be driven
+The other 42 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters
 because the failure mode of this integration is a *plausible* plan: a detector
 that never fires, or a watchdog that lets a flatline through, produces output

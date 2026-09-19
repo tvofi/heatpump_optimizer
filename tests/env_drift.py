@@ -1642,6 +1642,12 @@ def moves_claimable(changed: list[str]) -> bool:
 
 #: Every path ``tools/release/stamp.py`` writes, and nothing else: its
 #: docstring's "What it writes" list, which ``git add`` in its main names.
+#: The D6 register is on it because the stamp re-records it through its own
+#: generator (claims.py, rule "register"): one register row (C42) is a
+#: snapshot of VERSION, and ``tests/harness_headers.py`` re-runs that
+#: generator and reds when the committed register is not what it produces, so
+#: a stamp that moved VERSION and left the register behind is exactly the
+#: stale register this write set must let a stamp repair.
 STAMP_WRITES = frozenset({
     VERSION_FILE,
     os.path.join("custom_components", "heatpump_optimizer", "manifest.json"),
@@ -1649,6 +1655,8 @@ STAMP_WRITES = frozenset({
     "RELEASE_NOTES.md",
     CLAIM_FILE,
     CARD_CLAIM_FILE,
+    os.path.join("tools", "audit", "round4", "D6", "claims.json"),
+    os.path.join("tools", "audit", "round4", "D6", "claims.md"),
 })
 
 
