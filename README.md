@@ -915,6 +915,7 @@ before installing; it applies with full force.
 |---|---|
 | [docs/how-it-works.md](docs/how-it-works.md) | The full theory: planning, the thermal model, weather, wood and external heat, grid and tariffs, and every learner with its bounds |
 | [docs/configuration.md](docs/configuration.md) | Every setup field and options page, every service field, and the hydronic layout catalog |
+| [docs/setup.md](docs/setup.md) | The setup flow screen by screen, with pictures: quick setup, the device pre-fill, and the full wizard |
 | [docs/dashboard-card.md](docs/dashboard-card.md) | The card: options, interactions, editing limits |
 | [docs/architecture.md](docs/architecture.md) | Module map and how a plan is made, for anyone reading or changing the code |
 | [docs/ecl110.md](docs/ecl110.md) | ECL110 MQTT control |
