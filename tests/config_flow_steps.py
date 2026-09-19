@@ -3247,6 +3247,128 @@ async def residual_statement_branches():
         f"stored={entry.options.get(const.CONF_HOLIDAY_DHW_WINDOWS)!r}",
     )
 
+    # #1260: the per-weekday override block. The page gains one toggle;
+    # the seven day fields render only while the toggle is on (the wood
+    # block's `when` mechanism), each takes the ordinary window grammar
+    # without day selectors, and an untouched save stores none of it.
+    flow, entry, _ = fresh_options()
+    plain = await flow.async_step_hot_water(None)
+    check(
+        "opt_hot_water",
+        "happy",
+        "with the toggle off the page shows no per-day fields",
+        const.CONF_DHW_WINDOWS_BY_DAY in rendered_keys(plain)
+        and not any(
+            key in rendered_keys(plain) for key in const.CONF_DHW_WINDOWS_DAY
+        ),
+        f"keys={sorted(rendered_keys(plain))}",
+    )
+    flow, entry, _ = fresh_options(pre_options={
+        const.CONF_DHW_WINDOWS_BY_DAY: True,
+    })
+    opened = await flow.async_step_hot_water(None)
+    check(
+        "opt_hot_water",
+        "happy",
+        "the toggle on reveals all seven day fields",
+        all(key in rendered_keys(opened) for key in const.CONF_DHW_WINDOWS_DAY),
+        f"keys={sorted(rendered_keys(opened))}",
+    )
+    check(
+        "opt_hot_water",
+        "happy",
+        "the day fields offer the stored spec, empty meaning inherit",
+        _untouched_post(opened.get("data_schema")).get("by_day")
+        == {key: "" for key in const.CONF_DHW_WINDOWS_DAY},
+        f"by_day={_untouched_post(opened.get('data_schema')).get('by_day')}",
+    )
+    # An untouched save must not store the toggle: its default is computed
+    # from the seven fields, so writing it on every walk would move stored
+    # bytes for nothing (the weekend-fields rule, _omit_unstored_computed).
+    flow, entry, _ = fresh_options()
+    await flow.async_step_hot_water(None)
+    result = await submit(flow, "hot_water", HOT_WATER_PAGE_ANSWERS)
+    check(
+        "opt_hot_water",
+        "happy",
+        "an untouched save stores neither the toggle nor any day field",
+        shows_menu(result, "init")
+        and const.CONF_DHW_WINDOWS_BY_DAY not in entry.options
+        and not any(key in entry.options for key in const.CONF_DHW_WINDOWS_DAY),
+        f"stored={sorted(entry.options)}",
+    )
+    for key, spec, want in (
+        (const.CONF_DHW_WINDOWS_DAY[2], "garbage", "invalid_dhw_windows"),
+        (const.CONF_DHW_WINDOWS_DAY[2], "06:05-06:10", "dhw_window_too_short"),
+        (const.CONF_DHW_WINDOWS_DAY[2], "weekdays 06:00-08:30",
+         "dhw_windows_day_selector"),
+    ):
+        flow, entry, _ = fresh_options(pre_options={
+            const.CONF_DHW_WINDOWS_BY_DAY: True,
+        })
+        await flow.async_step_hot_water(None)
+        result = await submit(flow, "hot_water", {
+            **HOT_WATER_PAGE_ANSWERS,
+            const.CONF_DHW_WINDOWS_BY_DAY: True,
+            key: spec,
+        })
+        check(
+            "opt_hot_water",
+            "error",
+            f"a day field refusing {spec!r} puts {want} on that field alone",
+            shows(result, "hot_water")
+            and result.get("errors", {}).get(key) == want
+            and not any(
+                k in entry.options for k in const.CONF_DHW_WINDOWS_DAY
+            ),
+            f"errors={result.get('errors')}",
+        )
+    flow, entry, _ = fresh_options()
+    await flow.async_step_hot_water(None)
+    result = await submit(flow, "hot_water", {
+        **HOT_WATER_PAGE_ANSWERS,
+        const.CONF_DHW_WINDOWS_BY_DAY: True,
+        const.CONF_DHW_WINDOWS_DAY[5]: "10:00-12:00",
+        const.CONF_DHW_WINDOWS_DAY[6]: "12:00-14:00",
+    })
+    check(
+        "opt_hot_water",
+        "happy",
+        "a valid per-day save stores the flag and the two specs, not seven keys",
+        shows_menu(result, "init")
+        and entry.options.get(const.CONF_DHW_WINDOWS_BY_DAY) is True
+        and entry.options.get(const.CONF_DHW_WINDOWS_DAY[5]) == "10:00-12:00"
+        and entry.options.get(const.CONF_DHW_WINDOWS_DAY[6]) == "12:00-14:00"
+        and sorted(entry.options) == sorted(
+            [const.CONF_DHW_WINDOWS_BY_DAY,
+             const.CONF_DHW_WINDOWS_DAY[5],
+             const.CONF_DHW_WINDOWS_DAY[6],
+             *HOT_WATER_PAGE_ANSWERS]
+        ),
+        f"stored={sorted(entry.options)}",
+    )
+    # Turning the toggle off is non-destructive: the specs stay stored (the
+    # fields are simply not rendered), and the flag's False is what switches
+    # the overrides off in from_config.
+    flow, entry, _ = fresh_options(pre_options={
+        const.CONF_DHW_WINDOWS_BY_DAY: True,
+        const.CONF_DHW_WINDOWS_DAY[5]: "10:00-12:00",
+    })
+    await flow.async_step_hot_water(None)
+    result = await submit(flow, "hot_water", {
+        **HOT_WATER_PAGE_ANSWERS,
+        const.CONF_DHW_WINDOWS_BY_DAY: False,
+    })
+    check(
+        "opt_hot_water",
+        "happy",
+        "switching the toggle off keeps the stored specs for a later re-enable",
+        shows_menu(result, "init")
+        and entry.options.get(const.CONF_DHW_WINDOWS_BY_DAY) is False
+        and entry.options.get(const.CONF_DHW_WINDOWS_DAY[5]) == "10:00-12:00",
+        f"stored={sorted(entry.options)}",
+    )
+
     # #1067 W1067-G4: the grid_connection page's silent-mode window takes
     # the hot-water grammar and its two refusals, the short one on its own
     # key; a valid spec saves; a cleared field saves as empty rather than
@@ -3706,8 +3828,12 @@ async def options_cross_page_save_scope():
 #: The wood block is the only ``when``-gated block in the registry, and it is
 #: revealed by this toggle. Seeded so the pages below cover those rows too;
 #: without it eight of the building page's fields never render and the
-#: assertions pass over a smaller tree than the flow really has.
-REGISTRY_SEED = {const.CONF_WOOD_FURNACE_ENABLED: True}
+#: assertions pass over a smaller tree than the flow really has. The per-day
+#: block (#1260) reveals on its own toggle the same way.
+REGISTRY_SEED = {
+    const.CONF_WOOD_FURNACE_ENABLED: True,
+    const.CONF_DHW_WINDOWS_BY_DAY: True,
+}
 
 
 def bare_options(pre_options=None):

@@ -114,6 +114,7 @@ from .dhw_schedule import (
     FULL_DAY,
     Window,
     overlap_fraction,
+    parse_day_overrides,
     parse_weekly_windows,
     parse_windows,
 )
@@ -441,6 +442,12 @@ class ThermalParameters:
     #: existing consumer keeps working unchanged; day-aware consumers ask
     #: this instead.
     dhw_weekly_windows: list[list[Window]] | None = None
+    #: Per-weekday override windows (#1260), from the ``dhw_windows_<day>``
+    #: keys. None when the feature is off or every field is empty; a None
+    #: entry is a day inheriting the rest of the chain. Resolution order,
+    #: applied by ``dhw_schedule.windows_for_day``: this entry, then the
+    #: holiday overlay below, then the default spec's own structure.
+    dhw_day_windows: list[list[Window] | None] | None = None
     #: Holiday-profile windows (#700). None unless the user stored a spec.
     dhw_holiday_windows: list[Window] | None = None
     dhw_idle_min_temp: float = DEFAULT_DHW_IDLE_MIN_TEMP  # °C outside windows
@@ -1032,6 +1039,11 @@ class ThermalParameters:
             values["dhw_windows"] = []
             values["dhw_weekly_windows"] = None
         values["dhw_holiday_windows"] = _holiday_dhw_windows(config)
+        # Per-weekday overrides (#1260): None unless the feature is on and
+        # some field holds a spec, so every pre-existing config loads the
+        # None it always did. Parsed beside the two structures above for
+        # the same reason they are: one place, every loader.
+        values["dhw_day_windows"] = parse_day_overrides(config)
 
         return cls(**values)
 

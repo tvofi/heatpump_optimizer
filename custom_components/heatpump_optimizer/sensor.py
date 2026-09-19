@@ -74,6 +74,16 @@ def _mapping(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _resolved_dhw_attribute(resolved_spec: Any) -> dict[str, str]:
+    """The #1260 resolved-spec attribute, published only when one exists.
+
+    Absent -- not null -- whenever no per-day override is in force, so an
+    unchanged install publishes exactly the attributes it did before the
+    feature and the card keeps its fallback chain.
+    """
+    return {"dhw_windows_resolved": resolved_spec} if resolved_spec else {}
+
+
 def _finite(value: Any) -> Any:
     """Plain, finite Python for everything a sensor publishes, recursively.
 
@@ -1511,6 +1521,13 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
         elif plan.get("active_now") and len(slots) > 1:
             next_slot = slots[1].get("start")
         data = self.coordinator.data or {}
+        # The resolved per-day schedule the plan was made against (#1260),
+        # straight from the optimizer's predictive info -- None whenever no
+        # override is in force, which is what keeps the attribute absent
+        # and the payload byte-identical on an unchanged install.
+        resolved_spec = (data.get("predictive_info") or {}).get(
+            "dhw_windows_resolved"
+        )
         return {
             "plan_kind": self._plan_kind,
             "forecast": plan.get("forecast", []),
@@ -1549,6 +1566,12 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                 {
                     "dhw_windows": data.get("dhw_windows"),
                     "dhw_windows_spec": self.coordinator.configured_dhw_windows(),
+                    # #1260: the day-aware schedule this plan resolved
+                    # against, per-day overrides folded onto the configured
+                    # spec -- what the card's plan-tab band draws. The
+                    # editor above keeps `dhw_windows_spec`, the
+                    # configuration it writes back; this one is read-only.
+                    **_resolved_dhw_attribute(resolved_spec),
                     "dhw_min_temperature": data.get("dhw_min_temperature"),
                     "dhw_setpoint": data.get("dhw_setpoint"),
                     # The ceiling the hot water minimum has to stay under,

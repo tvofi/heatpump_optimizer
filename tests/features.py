@@ -2844,6 +2844,313 @@ R.check(
 )
 
 
+# --- #1260: per-weekday window overrides -----------------------------------
+# The weekly GRAMMAR types day selectors into the one spec field; the
+# overrides are the no-typing version: seven flat fields, each an ordinary
+# window list for the weekday the field names, empty = inherit. One
+# resolution order for all of it, documented on `windows_for_day`:
+# per-day override > holiday > the default spec's own day structure.
+R.section("Per-weekday DHW window overrides (#1260)")
+from datetime import date as _pd_date
+
+from heatpump_optimizer import const as _pd_const
+from heatpump_optimizer.dhw_schedule import (
+    ERROR_DAY_SELECTOR as _pd_selector_err,
+    day_overrides_enabled as _pd_enabled,
+    day_spec_problem as _pd_problem,
+    format_resolved_day_spec as _pd_resolved,
+    parse_day_overrides as _pd_parse,
+)
+
+_pd_weekly = _pw("weekdays 06:00-08:00, weekend 08:00-10:00")
+_pd_fallback = _parse_w("06:00-08:00")
+_pd_holiday = _parse_w("10:00-12:00")
+# Monday-first, the order CONF_DHW_WINDOWS_DAY declares and
+# datetime.weekday() numbers: 0=Mo .. 6=Su.
+_pd_ov = [None] * 7
+_pd_ov[5] = _parse_w("12:00-14:00")   # Saturday
+_pd_ov[0] = _parse_w("05:00-06:00")   # Monday
+R.check(
+    "a per-day override beats holiday, weekly and default together",
+    _wfd(_pd_weekly, 5, _pd_fallback, holiday_windows=_pd_holiday,
+         holiday=True, day_overrides=_pd_ov) == _pd_ov[5]
+    and _wfd(None, 5, _pd_fallback, day_overrides=_pd_ov) == _pd_ov[5],
+    "the issue's precedence: per-day > holiday > default",
+)
+R.check(
+    "a day with no override keeps the holiday-first behaviour it has today",
+    _wfd(_pd_weekly, 4, _pd_fallback, holiday_windows=_pd_holiday,
+         holiday=True, day_overrides=_pd_ov) == _pd_holiday
+    and _wfd(_pd_weekly, 4, _pd_fallback, holiday_windows=_pd_holiday,
+             holiday=False, day_overrides=_pd_ov) == _pd_weekly[4],
+    "an empty field inherits; it does not suppress the holiday windows",
+)
+R.check(
+    "an all-empty override set resolves exactly like none at all (null control)",
+    all(
+        _wfd(_pd_weekly, d, _pd_fallback, holiday_windows=_pd_holiday,
+             holiday=(d == 4), day_overrides=[None] * 7)
+        == _wfd(_pd_weekly, d, _pd_fallback, holiday_windows=_pd_holiday,
+                holiday=(d == 4))
+        for d in range(7)
+    ),
+    "every existing install has no overrides, so none may resolve differently",
+)
+R.check(
+    "an hour-only caller (weekday None) still gets the flat fallback",
+    _wfd(_pd_weekly, None, _pd_fallback, day_overrides=_pd_ov) == _pd_fallback,
+    "windows_for_day's own contract for callers with no date",
+)
+
+
+def _pd_windows_on(day):
+    """The windows in force on one date, resolved the way production does."""
+    return _wfd(_pd_weekly, day.weekday(), _pd_fallback,
+                holiday_windows=_pd_holiday, holiday=False,
+                day_overrides=_pd_ov)
+
+
+_pd_fri, _pd_sat = _pd_date(2026, 1, 16), _pd_date(2026, 1, 17)
+_pd_sun, _pd_mon = _pd_date(2026, 1, 18), _pd_date(2026, 1, 19)
+R.check(
+    "the Fri->Sat boundary switches to the Saturday override",
+    _pd_windows_on(_pd_fri) == _pd_weekly[4]
+    and _pd_windows_on(_pd_sat) == _pd_ov[5],
+    f"friday {_pd_windows_on(_pd_fri)}, saturday {_pd_windows_on(_pd_sat)}",
+)
+R.check(
+    "the Sun->Mon boundary switches to the Monday override",
+    _pd_windows_on(_pd_sun) == _pd_weekly[6]
+    and _pd_windows_on(_pd_mon) == _pd_ov[0],
+    f"sunday {_pd_windows_on(_pd_sun)}, monday {_pd_windows_on(_pd_mon)}",
+)
+
+# The config assembly: the flag gates, absent specs inherit, a stored
+# False switches the overrides off without erasing them, and an unparseable
+# day degrades to inheriting rather than to no schedule at all.
+_pd_cfg = {
+    _pd_const.CONF_DHW_WINDOWS: "06:00-08:00",
+    _pd_const.CONF_DHW_WINDOWS_BY_DAY: True,
+    _pd_const.CONF_DHW_WINDOWS_DAY[0]: "05:00-06:00",
+    _pd_const.CONF_DHW_WINDOWS_DAY[5]: "12:00-14:00",
+}
+R.check(
+    "the flag plus specs parses to the seven-day shape",
+    _pd_parse(_pd_cfg) == _pd_ov,
+    f"{_pd_parse(_pd_cfg)}",
+)
+R.check(
+    "a config with no override keys carries none",
+    _pd_parse({_pd_const.CONF_DHW_WINDOWS: "06:00-08:00"}) is None
+    and not _pd_enabled({}),
+    "the feature is opt-in; from_config's None is the null control",
+)
+R.check(
+    "specs without the flag still enable -- the toggle's computed default",
+    _pd_enabled({_pd_const.CONF_DHW_WINDOWS_DAY[3]: "07:00-08:00"}),
+    "an entry whose specs predate the toggle (or were hand-set) stays on",
+)
+R.check(
+    "a stored False flag switches the overrides off, specs still in place",
+    _pd_parse({**_pd_cfg, _pd_const.CONF_DHW_WINDOWS_BY_DAY: False}) is None
+    and not _pd_enabled({**_pd_cfg, _pd_const.CONF_DHW_WINDOWS_BY_DAY: False}),
+    "turning the toggle off is non-destructive: the fields come back on",
+)
+R.check(
+    "an unparseable day spec degrades to that day inheriting",
+    _pd_parse({**_pd_cfg, _pd_const.CONF_DHW_WINDOWS_DAY[5]: "garbage"})
+    == [_pd_ov[0], None, None, None, None, None, None],
+    "one bad key must not take the other six days' overrides away",
+)
+R.check(
+    "the flag on with every field empty is no overrides at all",
+    _pd_parse({_pd_const.CONF_DHW_WINDOWS_BY_DAY: True,
+               _pd_const.CONF_DHW_WINDOWS: "06:00-08:00"}) is None,
+    "revealing the fields and saving them empty changes nothing",
+)
+
+# The form's verdict on one day field: the ordinary spec verdicts, plus a
+# refusal for day selectors -- the field already names the day, and a
+# selector there would be silently ignored by the every-day parser.
+R.check(
+    "a plain spec and an empty field pass the per-day verdict",
+    _pd_problem("06:00-08:30, 17:00-22:00") is None and _pd_problem("") is None,
+    "",
+)
+R.check(
+    "a day selector is refused in a field that already names the day",
+    _pd_problem("weekdays 06:00-08:30") == _pd_selector_err
+    and _pd_problem("Sa,Su 08:00-09:30") == _pd_selector_err,
+    "parse_windows ignores selectors; accepting one here would silently "
+    "apply Saturday's times to every day the field names",
+)
+R.check(
+    "the ordinary verdicts still apply per field",
+    _pd_problem("garbage") == _win_invalid
+    and _pd_problem("06:05-06:10") == _win_short,
+    "",
+)
+
+# from_config loads the overrides beside the flat spec, and an unchanged
+# config still loads None -- the parse-level null control for the whole
+# feature.
+_pd_house = _grad_house(two_zone=False, dhw=True)
+_pd_house.update(_pd_cfg)
+R.check(
+    "from_config loads the overrides beside the flat spec",
+    ThermalParameters.from_config(_pd_house).dhw_day_windows == _pd_ov,
+    "",
+)
+_pd_house_null = _grad_house(two_zone=False, dhw=True)
+_pd_house_null[_pd_const.CONF_DHW_WINDOWS] = "06:00-08:00"
+R.check(
+    "from_config without override keys keeps dhw_day_windows None",
+    ThermalParameters.from_config(_pd_house_null).dhw_day_windows is None,
+    "",
+)
+
+# The display spec the card's plan-tab band reads: overrides folded onto
+# the default's own day structure, None (published as absent) when no
+# override is in force.
+_pd_sat_only = [None] * 7
+_pd_sat_only[5] = _parse_w("10:00-12:00")
+R.check(
+    "no overrides resolve to no display spec at all",
+    _pd_resolved(_pd_weekly, _pd_fallback, None) is None
+    and _pd_resolved(_pd_weekly, _pd_fallback, [None] * 7) is None,
+    "absent, never an echo of the configuration",
+)
+R.check(
+    "a flat default with one override renders the folded week",
+    _pd_resolved(None, _pd_fallback, _pd_sat_only)
+    == _fw([[(6.0, 8.0)]] * 5 + [[(10.0, 12.0)]] + [[(6.0, 8.0)]]),
+    f"{_pd_resolved(None, _pd_fallback, _pd_sat_only)!r}",
+)
+R.check(
+    "an override onto a weekly default replaces only its own day",
+    _pd_resolved(_pd_weekly, _pd_fallback, _pd_sat_only)
+    == _fw([[(6.0, 8.0)]] * 5 + [[(10.0, 12.0)]] + [[(8.0, 10.0)]]),
+    f"{_pd_resolved(_pd_weekly, _pd_fallback, _pd_sat_only)!r}",
+)
+R.check(
+    "an all-empty fallback plus overrides names only the overridden days",
+    _pd_resolved(None, [], _pd_sat_only) == "Sa 10:00-12:00",
+    f"{_pd_resolved(None, [], _pd_sat_only)!r}",
+)
+
+# End to end: the plan honours the override on the day it names, beside a
+# FLAT default spec -- which is also the routing proof: with weekly None,
+# only the day overrides can make the optimizer compute step weekdays at
+# all, so Saturday planning the override's hours means the routing held.
+def _pd_requirement_hours(spec, extra, start):
+    _cfg = _grad_house(two_zone=False, dhw=True)
+    _cfg["dhw_windows"] = spec
+    _cfg.update(extra)
+    _p = ThermalParameters.from_config(_cfg)
+    _o = _PvOpt(_PvModel(_p), _PvOptCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    _n = 96
+    _hours = np.array([
+        (_WDT.combine(start.date(), _WDT.min.time())
+         + __import__("datetime").timedelta(hours=i * 0.25)).hour
+        + ((_WDT.combine(start.date(), _WDT.min.time())
+            + __import__("datetime").timedelta(hours=i * 0.25)).minute) / 60.0
+        for i in range(_n)
+    ])
+    _plan = _o._build_dhw_requirements(
+        initial_state=ThermalState(
+            room_temperature=21.0, slab_temperature=22.0,
+            outdoor_temperature=-5.0, dhw_temperature=48.0,
+            dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0),
+        prices=np.full(_n, 1.0),
+        outdoor_temps=np.full(_n, -5.0),
+        step_hours=_hours,
+        n_steps=_n, dt=0.25, p_max=4.0,
+        step_weekdays=np.array(
+            [(start + __import__("datetime").timedelta(hours=(i - 1) * 0.25)).weekday()
+             for i in range(_n + 1)]),
+    )
+    _idle = min(_p.dhw_idle_min_temp, _p.dhw_min_temp)
+    _floors = np.asarray(_plan.floor_temps)
+    _in = np.where(_floors > _idle + 1e-9)[0]
+    return sorted(set(round(float(_hours[i]), 2) for i in _in))
+
+_pd_extra = {
+    _pd_const.CONF_DHW_WINDOWS_BY_DAY: True,
+    _pd_const.CONF_DHW_WINDOWS_DAY[5]: "10:00-12:00",
+}
+_pd_mon_req = _pd_requirement_hours("06:00-08:00", _pd_extra, _WDT(2026, 1, 5))
+_pd_sat_req = _pd_requirement_hours("06:00-08:00", _pd_extra, _WDT(2026, 1, 10))
+R.check(
+    "a Monday plan over a flat spec keeps the default window",
+    _pd_mon_req and min(_pd_mon_req) >= 6.0 and max(_pd_mon_req) < 8.0,
+    f"requirement hours {_pd_mon_req}",
+)
+R.check(
+    "a Saturday plan honours the Saturday override, not the flat default",
+    _pd_sat_req and min(_pd_sat_req) >= 10.0 and max(_pd_sat_req) < 12.0,
+    f"requirement hours {_pd_sat_req}",
+)
+# The optimizer's own optimize() path must compute step weekdays when only
+# day overrides exist: with a FLAT spec the weekly structure is None, so
+# the weekday array's gate is the day overrides alone. Two solves of the
+# same Saturday, one with the override and one without, must differ -- if
+# the gate had stayed weekly-only, both would plan the flat 06:00-08:00.
+def _pd_full_solve(house, start):
+    _o = _PvOpt(_PvModel(ThermalParameters.from_config(house)), _PvOptCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    return _o.optimize(
+        ThermalState(
+            room_temperature=21.0, slab_temperature=22.0,
+            outdoor_temperature=-5.0, dhw_temperature=48.0,
+            dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0),
+        _grad_prices("winter_typical", start),
+        np.full(96, -5.0), np.full(96, 3.0), np.full(96, 0.0), np.full(96, 0.0),
+        start,
+    )
+
+
+_pd_sat_start = _WDT(2026, 1, 17, 0, 0)
+_pd_house_sat = _grad_house(two_zone=False, dhw=True)
+_pd_house_sat.update({
+    _pd_const.CONF_DHW_WINDOWS: "06:00-08:00",
+    _pd_const.CONF_DHW_WINDOWS_BY_DAY: True,
+    _pd_const.CONF_DHW_WINDOWS_DAY[5]: "10:00-12:00",
+})
+_pd_with = _pd_full_solve(_pd_house_sat, _pd_sat_start)
+_pd_without = _pd_full_solve(_pd_house_null, _pd_sat_start)
+R.check(
+    "a full Saturday solve with the override differs from the flat one",
+    not np.array_equal(
+        np.asarray(_pd_with.dhw_power_schedule),
+        np.asarray(_pd_without.dhw_power_schedule),
+    ),
+    "identical schedules would mean the override never reached the planner",
+)
+R.check(
+    "that solve publishes the resolved display spec for the card's band",
+    (_pd_with.predictive_info or {}).get("dhw_windows_resolved")
+    == _fw([[(6.0, 8.0)]] * 5 + [[(10.0, 12.0)]] + [[(6.0, 8.0)]]),
+    f"{(_pd_with.predictive_info or {}).get('dhw_windows_resolved')!r}",
+)
+R.check(
+    "the no-override solve publishes no resolved key at all",
+    "dhw_windows_resolved" not in (_pd_without.predictive_info or {}),
+    "absent, not null: the payload stays byte-for-byte what it was",
+)
+_pd_mon_start = _WDT(2026, 1, 5, 0, 0)
+R.check(
+    "the same pair on a Monday (no override that day) solves identically",
+    np.array_equal(
+        np.asarray(_pd_full_solve(_pd_house_sat, _pd_mon_start).dhw_power_schedule),
+        np.asarray(_pd_full_solve(_pd_house_null, _pd_mon_start).dhw_power_schedule),
+    ),
+    "Monday inherits the flat spec, so the two configs must agree there",
+)
+
+
 # ===========================================================================
 # The batched simulation: bitwise parity with the scalar path (issue #97)
 # ===========================================================================
@@ -5397,6 +5704,7 @@ runtime_only = {
     "dhw_windows",              # parsed separately from a string spec
     "dhw_weekly_windows",       # parsed with it (#3): the same spec's day view
     "dhw_holiday_windows",      # parsed from CONF_HOLIDAY_DHW_WINDOWS (#700)
+    "dhw_day_windows",          # parsed from the seven #1260 override keys
     "two_zone_enabled",         # inferred from presence, overridable by mode
     # dhw_enabled is overridable via CONF_DHW_ENABLED; inferred when absent.
     "cop_flow_carnot",          # follows the mixing valve mode

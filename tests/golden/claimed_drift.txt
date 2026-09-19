@@ -51,6 +51,23 @@
 # next branch restates its own footprint, claims included.
 #
 #
+# #1260 (per-weekday DHW window overrides): this branch claims exactly one
+# fixture, config_flow, and the direction is ADD-ONLY. The hot-water page's
+# schedule group gains the by-day toggle, and because the golden seed sets
+# every boolean True, the seeded render also reveals the seven per-day text
+# fields inside a new by_day section: four leaf paths present on one side
+# only (hot_water.schedule.fields.dhw_windows_by_day, _seed's flag,
+# _seeded's flag, _seeded.hot_water.by_day), measured as 79 insertions and
+# 0 deletions against the merge base d70ed250807d. Re-recorded for #547's
+# reason: config_flow is the one fixture carries_floats() reports False
+# for, compared exactly at level 1, so a claim alone leaves that level
+# failing against a file the code no longer produces. Every plan and
+# coordinator fixture is byte-identical in drift mode on this machine --
+# the feature's null control -- because no captured scenario carries the
+# new keys and the resolved-spec publish is absent without them.
+#
+config_flow # #1260 by-day toggle on hot_water.schedule + the seeded by_day section; ADD-ONLY, 79 insertions 0 deletions vs d70ed250807d
+#
 # The absorb of origin/main 27458c8a (#1248 #1243 #1247 #1249 #1252 #1246
 # #1244 #1251) hit the claimnotes refusal here: this branch claims the three
 # coord_* scenarios above and the merge brought in main's two config_flow
