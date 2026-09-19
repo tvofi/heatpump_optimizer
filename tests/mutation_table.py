@@ -86,6 +86,22 @@ _FAILED = re.compile(r"^\s*(\d+) of (\d+) .*FAILED\s*$", re.M)
 # `Results.check`), and the three drivers that keep their own counter with it.
 _CHECK_FAIL = re.compile(r"^\s*FAIL\s+(.+?)\s*$", re.M)
 
+# Candidate drivers for `--scripts`: the gate scripts whose MEASURED closure
+# can reach a mutated production file. The list is the instrument's allow-net;
+# `drivers_for` still intersects it with the closure per mutant, so a name
+# here never drives a file its recording does not reach.
+#
+# tests/manual_plan.py is ninth here because its omission was a false
+# survivor, not a missing lane (#1225, D7-01): closure-reached manual_plan.py,
+# tests/manual_plan.py, and the recorded full table (run 35395283955) carried
+# manual_plan.py:121 GUARD_OFF as a survivor tests/manual_plan.py kills. The
+# driver the module's own test makes cannot be optional.
+DEFAULT_SCRIPTS = (
+    "tests/open_meteo.py,tests/solar_alignment.py,tests/plan_view.py,"
+    "tests/edge.py,tests/entities.py,tests/validate.py,"
+    "tests/optimality.py,tests/features.py,tests/manual_plan.py"
+)
+
 
 # ---------------------------------------------------------------- operators
 
@@ -411,9 +427,7 @@ def main() -> int:
     ap.add_argument("--base", default="origin/main")
     ap.add_argument(
         "--scripts",
-        default="tests/open_meteo.py,tests/solar_alignment.py,tests/plan_view.py,"
-                "tests/edge.py,tests/entities.py,tests/validate.py,"
-                "tests/optimality.py,tests/features.py",
+        default=DEFAULT_SCRIPTS,
         help="candidate drivers; each mutant runs only those whose recorded "
              "closure contains its file, cheapest measured first",
     )

@@ -18866,6 +18866,33 @@ R.check(
     "file no recorded closure reaches is skipped rather than scored",
 )
 
+# #1225 (D7-01): the default driver list omitted tests/manual_plan.py -- the
+# module's own test, whose measured closure reaches manual_plan.py -- so the
+# recorded full table (tests/mutation_budgets.json, run 35395283955) counted
+# manual_plan.py:121 GUARD_OFF as a survivor that tests/manual_plan.py kills
+# in one run. The property is read off the option the gate actually drives,
+# through `getattr` so an unfixed tree FAILS these checks by name instead of
+# dying here on an AttributeError.
+_MUT_DEFAULT = getattr(_mut, "DEFAULT_SCRIPTS", "")
+_MUT_REAL_CLOSURES = _mut.load_closures()
+R.check(
+    "the default driver list can reach tests/manual_plan.py's module (#1225)",
+    "tests/manual_plan.py" in _mut.drivers_for(
+        "custom_components/heatpump_optimizer/manual_plan.py",
+        _MUT_REAL_CLOSURES, _MUT_DEFAULT.split(",")),
+    f"default drivers: {_MUT_DEFAULT!r} -- a gate whose driver list omits the "
+    "module's own test records its kills as survivors by construction",
+)
+# The null control: the widened list does not throw the operator's own rule
+# away -- a driver still needs the mutant's file in its MEASURED closure.
+R.check(
+    "and the default list still drives nothing into a file no closure reaches",
+    _mut.drivers_for("custom_components/heatpump_optimizer/nowhere.py",
+                     _MUT_REAL_CLOSURES, _MUT_DEFAULT.split(",")) == [],
+    "the default names CANDIDATES; `drivers_for` intersects them with the "
+    "measured closure exactly as it did for the hand-kept list",
+)
+
 # The classification the ratchet demands of any new tracked file: not
 # selectable (each needs an instrument the gate does not run), not INERT
 # (this script imports both).
