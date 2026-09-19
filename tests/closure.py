@@ -577,6 +577,37 @@ def selectable_scripts() -> list[str]:
     ]
 
 
+def suite_order(names) -> list[str]:
+    """The suite's order for ``names``, with the PRODUCERS edge honoured.
+
+    ``test_scripts`` returns ``sorted()``, which is run.sh's order for almost
+    every script -- but not for the card pair. ``sorted()`` puts
+    ``tests/card.mjs`` ("c") ahead of ``tests/plan_view.py`` ("p"), while
+    run.sh runs the plan payload's producer first, because the card reads the
+    file plan_view.py writes. Honouring PRODUCERS for membership and then
+    reordering into bare suite order undid it for position: the scoped
+    re-record ran the card against no payload and failed (#1146). Here every
+    producer is moved ahead of the consumers that need it; every other script
+    keeps suite order.
+    """
+    scripts = selectable_scripts()
+    pending = set(names)
+    out: list[str] = []
+    while pending:
+        for s in scripts:
+            if s in pending and not any(p in pending for p in PRODUCERS.get(s, ())):
+                out.append(s)
+                pending.discard(s)
+                break
+        else:
+            # A cycle among producers would spin forever. PRODUCERS is a plain
+            # "runs first" map with none today; emit the remainder in suite
+            # order so a caller still gets a list rather than hanging the gate.
+            out += [s for s in scripts if s in pending]
+            break
+    return out
+
+
 # ---------------------------------------------------------------------------
 # recording
 
@@ -1639,7 +1670,7 @@ def select(files: list[str]) -> dict:
                 if prod in skip:
                     del skip[prod]
                     run.append(prod)
-    run = [s for s in scripts if s in run]      # back into suite order
+    run = suite_order(run)      # suite order, PRODUCERS edge honoured (#1146)
 
     return {"mode": "scoped", "reason": "", "run": run, "skip": skip,
             "changed": files, "closure_sizes": {s: len(closures[s]) for s in scripts}}
@@ -1814,8 +1845,11 @@ def affected(files: list[str]) -> dict:
             for prod in producers:
                 if prod not in why:
                     why[prod] = {"changed": [], "via": f"producer of {consumer}"}
-    # Suite order, so the recordings run in the order run.sh would.
-    rederive = [s for s in scripts if s in why]
+    # Suite order, so the recordings run in the order run.sh would -- which
+    # includes the PRODUCERS edge: the plan payload's producer ahead of the
+    # card scripts that read it, or a `--single` re-record of the pair runs
+    # the card against no payload and fails (#1146).
+    rederive = suite_order(why)
     if not rederive:
         # Everything that changed is absent from every closure, and `unmapped`
         # above already proved each such file is INERT. Nothing a recording
