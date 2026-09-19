@@ -2,11 +2,21 @@
 """Renewed-lease gate lock with flock for local stress runs (#404).
 
 Serialises anything that runs ``tests/stress.py`` on a shared box. The owner
-file carries an ``expires_at`` lease and an agent label — not a shell pid.
-``flock`` is held only for the duration of a gate run; the lease covers the
-window between commands when no process holds anything. An expired lease or
-an abandoned hold (``holding`` marker, flock dropped) is taken without
-forensics so a waiter can proceed after crash or expiry.
+file carries an ``expires_at`` lease and an agent label. ``flock`` is held only
+for the duration of a gate run; the lease covers the window between commands
+when no process holds anything. An expired lease or an abandoned hold
+(``holding`` marker, flock dropped) is taken without forensics so a waiter can
+proceed after crash or expiry.
+
+The owner file may also carry ``pid=`` — the process the holder names as its
+own (``--owner-pid``;#1143). A lease that is neither expired nor holding-marked
+but whose named process is gone, with nothing holding flock, is orphaned: take()
+steals it at once instead of serialising the box behind a seat that has exited.
+The probe is opt-in because no safe default exists — the pid that invoked this
+process is a per-command shell (measured: it changes on every command), not the
+seat, so trusting it would read a live seat as dead. A seat holding the lease
+across commands passes the pid of a process that outlives them, e.g.
+``--owner-pid $PPID``.
 """
 from __future__ import annotations
 
@@ -37,13 +47,22 @@ class Owner:
     label: str
     expires_at: datetime
     taken_at: datetime
+    # The process the holder named as its own, if any (#1143). None means the
+    # holder gave no liveness handle, and take() never probes for one.
+    pid: int | None = None
+
+    def _text(self) -> str:
+        lines = [
+            f"label={self.label}\n",
+            f"expires_at={self.expires_at.isoformat()}\n",
+            f"taken_at={self.taken_at.isoformat()}\n",
+        ]
+        if self.pid is not None:
+            lines.append(f"pid={self.pid}\n")
+        return "".join(lines)
 
     def write(self, path: Path) -> None:
-        path.write_text(
-            f"label={self.label}\n"
-            f"expires_at={self.expires_at.isoformat()}\n"
-            f"taken_at={self.taken_at.isoformat()}\n"
-        )
+        path.write_text(self._text())
 
     def create(self, path: Path) -> bool:
         """Write only if no owner exists: two takes in one instant cannot both win."""
@@ -52,8 +71,7 @@ class Owner:
         except (FileExistsError, FileNotFoundError):
             return False
         with os.fdopen(fd, "w") as f:
-            f.write(f"label={self.label}\nexpires_at={self.expires_at.isoformat()}\n"
-                    f"taken_at={self.taken_at.isoformat()}\n")
+            f.write(self._text())
         return True
 
     @property
@@ -70,10 +88,17 @@ def parse_owner(text: str) -> Owner:
     missing = {"label", "expires_at", "taken_at"} - fields.keys()
     if missing:
         raise ValueError(f"owner file missing {sorted(missing)}")
+    pid: int | None = None
+    if "pid" in fields:
+        try:
+            pid = int(fields["pid"])
+        except ValueError:
+            pid = None
     return Owner(
         label=fields["label"],
         expires_at=datetime.fromisoformat(fields["expires_at"]),
         taken_at=datetime.fromisoformat(fields["taken_at"]),
+        pid=pid,
     )
 
 
@@ -87,12 +112,13 @@ def read_owner(lock_dir: Path) -> Owner | None:
         return None
 
 
-def _new_owner(label: str, lease_seconds: int) -> Owner:
+def _new_owner(label: str, lease_seconds: int, pid: int | None = None) -> Owner:
     now = datetime.now(UTC)
     return Owner(
         label=label,
         taken_at=now,
         expires_at=now + timedelta(seconds=lease_seconds),
+        pid=pid,
     )
 
 
@@ -148,6 +174,39 @@ def _abandoned_hold(lock_dir: Path) -> bool:
     return (lock_dir / HOLDING_NAME).exists() and flock_available(lock_dir)
 
 
+def _pid_alive(pid: int) -> bool:
+    """Whether ``pid`` names a live process, unprivileged.
+
+    A pid we may not signal (PermissionError) exists and is not ours, so it is
+    alive. ``os.kill(pid, 0)`` is the probe; it never self-matches the way
+    ``pgrep -f <pattern>`` does when the pattern sits in the caller's own
+    command line (#1143 class a).
+    """
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def _orphaned(lock_dir: Path, owner: Owner) -> bool:
+    """A lease that named its owner's process and that process is gone (#1143).
+
+    Requires all three: the owner recorded a pid, the pid is provably dead, and
+    nothing holds flock. flock_available keeps the gate's own children honest —
+    a gate that inherited the fd still holds flock after its parent is killed,
+    and must not be read as orphaned. A pid the kernel has REUSED reads as
+    alive and the lease is kept, which is conservative rather than wrong.
+    """
+    if owner.pid is None or owner.pid <= 0:
+        return False
+    if _pid_alive(owner.pid):
+        return False
+    return flock_available(lock_dir)
+
+
 def _steal(lock_dir: Path, seen: Owner) -> None:
     """Remove a dead owner by rename, so one of two stealers wins and a fresh
     owner written in between is put back rather than deleted."""
@@ -174,25 +233,32 @@ def take(
     lock_dir: Path = DEFAULT_LOCK_DIR,
     lease_seconds: int = LEASE_SECONDS,
     wait: bool = True,
+    owner_pid: int | None = None,
 ) -> Owner:
-    """Acquire the gate lease for ``label``; wait while a live holder renews."""
+    """Acquire the gate lease for ``label``; wait while a live holder renews.
+
+    ``owner_pid`` names a process that outlives the commands holding the lease
+    (a seat's ``$PPID``). It is recorded in the owner file so a later take can
+    steal an orphaned lease whose holder exited without releasing (#1143).
+    """
     said = False
     while True:
         owner = read_owner(lock_dir)
         if owner is None:
             _ensure_lock_dir(lock_dir)
-            fresh = _new_owner(label, lease_seconds)
+            fresh = _new_owner(label, lease_seconds, owner_pid)
             if fresh.create(lock_dir / OWNER_NAME):
                 return fresh
             continue
         if owner.label == label:
             (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
             if owner.expired:
-                fresh = _new_owner(label, lease_seconds)
+                fresh = _new_owner(label, lease_seconds, owner_pid)
                 fresh.write(lock_dir / OWNER_NAME)
                 return fresh
-            return renew(label, lock_dir=lock_dir, lease_seconds=lease_seconds)
-        if owner.expired or _abandoned_hold(lock_dir):
+            return renew(label, lock_dir=lock_dir, lease_seconds=lease_seconds,
+                         owner_pid=owner_pid)
+        if owner.expired or _abandoned_hold(lock_dir) or _orphaned(lock_dir, owner):
             _steal(lock_dir, owner)
             continue
         if not wait:
@@ -209,6 +275,7 @@ def renew(
     *,
     lock_dir: Path = DEFAULT_LOCK_DIR,
     lease_seconds: int = LEASE_SECONDS,
+    owner_pid: int | None = None,
 ) -> Owner:
     owner = read_owner(lock_dir)
     if owner is None or owner.expired:
@@ -219,6 +286,9 @@ def renew(
         label=label,
         taken_at=owner.taken_at,
         expires_at=datetime.now(UTC) + timedelta(seconds=lease_seconds),
+        # A caller that names a pid sets it; one that does not leaves the
+        # holder's own recorded pid standing rather than clearing it.
+        pid=owner_pid if owner_pid is not None else owner.pid,
     )
     refreshed.write(lock_dir / OWNER_NAME)
     # Only between commands: a renew from inside a run keeps the marker, so a
@@ -302,6 +372,7 @@ def _cmd_take(args: argparse.Namespace) -> int:
         lock_dir=args.lock_dir,
         lease_seconds=args.lease_seconds,
         wait=not args.no_wait,
+        owner_pid=args.owner_pid,
     )
     print(
         f"taken label={owner.label} expires_at={owner.expires_at.isoformat()}",
@@ -311,7 +382,12 @@ def _cmd_take(args: argparse.Namespace) -> int:
 
 
 def _cmd_renew(args: argparse.Namespace) -> int:
-    owner = renew(args.label, lock_dir=args.lock_dir, lease_seconds=args.lease_seconds)
+    owner = renew(
+        args.label,
+        lock_dir=args.lock_dir,
+        lease_seconds=args.lease_seconds,
+        owner_pid=args.owner_pid,
+    )
     print(f"renewed expires_at={owner.expires_at.isoformat()}", file=sys.stderr)
     return 0
 
@@ -331,8 +407,9 @@ def _cmd_status(args: argparse.Namespace) -> int:
         print(f"{info['lock_dir']}: no lease")
     else:
         state = "expired" if owner.expired else "live"
+        pid = "" if owner.pid is None else f" pid={owner.pid}"
         print(
-            f"{info['lock_dir']}: {state} label={owner.label} "
+            f"{info['lock_dir']}: {state} label={owner.label}{pid} "
             f"expires_at={owner.expires_at.isoformat()} "
             f"flock_available={info['flock_available']}"
         )
@@ -362,11 +439,19 @@ def _parser() -> argparse.ArgumentParser:
     take_p.add_argument("--label", required=True)
     take_p.add_argument("--lease-seconds", type=int, default=LEASE_SECONDS)
     take_p.add_argument("--no-wait", action="store_true")
+    take_p.add_argument(
+        "--owner-pid",
+        type=int,
+        default=None,
+        help="pid of a process outliving your commands (e.g. $PPID); a later "
+             "take steals this lease once that process is gone (#1143)",
+    )
     take_p.set_defaults(func=_cmd_take)
 
     renew_p = sub.add_parser("renew", help="extend the lease for this label")
     renew_p.add_argument("--label", required=True)
     renew_p.add_argument("--lease-seconds", type=int, default=LEASE_SECONDS)
+    renew_p.add_argument("--owner-pid", type=int, default=None)
     renew_p.set_defaults(func=_cmd_renew)
 
     rel_p = sub.add_parser("release", help="drop the lease for this label")
