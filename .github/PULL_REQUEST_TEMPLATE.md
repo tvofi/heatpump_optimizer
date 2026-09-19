@@ -30,8 +30,7 @@ exists.
 
 ## Forward-carry
 
-`none`, or the path of the brief, contract or roster this finding lands in.
-A pull-request comment is not propagation.
+`none`, or the path of the brief, contract or roster this finding lands in. A pull-request comment is not propagation.
 
 ## Friction
 

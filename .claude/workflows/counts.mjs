@@ -179,7 +179,11 @@ export const HISTORY_LINE = /^\s*(?:>|\|?\s*BORN:|EXAMPLE|#{1,6}\s|.*\b(?:once|u
 // The ruleset OBJECT is the authoritative definition. The two are required to
 // AGREE on the context list; a disagreement is a topology this instrument
 // refuses to interpret, and it skips (loudly) rather than guessing which view
-// is the truth. Two `gh api` calls, memoized per process: about a second.
+// is the truth. Two `gh api` calls, memoized per process: about a second. What
+// it RETURNS carries the ruleset's shape beside the contexts -- each rule's
+// type, each bypass actor's mode -- because a rule or a bypass entry that
+// changes without moving a context is still a change to what the merge boundary
+// does (#1192).
 //
 // WHY A FETCH FAILURE IS A SKIP AND NOT A RED. `policy-docs` -- the job this
 // runs in -- is itself a required context, so an unreachable or rate-limited
@@ -221,10 +225,20 @@ export function liveRequiredContexts() {
       if (r.ruleset_id != null) ids.add(r.ruleset_id)
       for (const c of (r.parameters && r.parameters.required_status_checks) || []) viaBranch.add(c.context)
     }
-    // Surface 2: each contributing ruleset object, read itself.
+    // Surface 2: each contributing ruleset object, read itself. The CONTEXTS
+    // are what the drift comparison reads, but the reader carries the ruleset's
+    // SHAPE too -- every rule's type, every bypass actor's mode -- because a
+    // reader that returned the context list alone gave BYTE-IDENTICAL output for
+    // two rulesets differing in a `pull_request` rule and a bypass actor
+    // (#1192, D11-02): a change to the ruleset the merge boundary runs was
+    // invisible to the tree's only reader of it. The shape is what makes the
+    // next such change visible, whether or not anything compares it yet.
     const viaRulesets = new Set()
+    const shapes = []
     for (const id of ids) {
       const rs = JSON.parse(execFileSync('gh', ['api', `${base}/rulesets/${id}`], { encoding: 'utf8' }))
+      shapes.push({ id, rules: (rs.rules || []).map((r) => r.type),
+                    bypass: (rs.bypass_actors || []).map((a) => a.bypass_mode) })
       for (const rule of rs.rules || []) {
         if (rule.type !== 'required_status_checks') continue
         for (const c of (rule.parameters && rule.parameters.required_status_checks) || []) viaRulesets.add(c.context)
@@ -237,7 +251,7 @@ export function liveRequiredContexts() {
       return null
     }
     _liveRequiredContextsWhy = ''
-    return { contexts: a, count: a.length, rulesets: [...ids].sort((x, y) => x - y) }
+    return { contexts: a, count: a.length, rulesets: [...ids].sort((x, y) => x - y), shapes }
   } catch (e) {
     _liveRequiredContextsWhy = `the fixture or the API failed: ${String((e && e.status) || (e && e.message) || e).split('\n')[0].slice(0, 100)}`
     return null
