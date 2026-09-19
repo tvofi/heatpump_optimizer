@@ -49,12 +49,12 @@ production lines. You work in your own worktree branched from `origin/main`.
    doc — not an instruction to reproduce CI.
 
    **Running locally does not discharge CI.** What `scope.run` names is green
-   locally, then you push the branch with `tools/audit/push.sh`, handing it the
-   body: it refuses before it pushes anything if that body fails the contract
-   check (#678). The PR's own checks are green before the handoff in step 6 —
-   `fix-review.md` step 11 reads those rather than the body's account of them.
-   Author as `tvofi-seat-author`: `GH_TOKEN` from `~/.zcode/identity-author.token`
-   per GitHub command, never printed.
+   locally and the body passes `tools/audit/prepr.sh` before anything leaves
+   this machine. Seats are LOCAL-ONLY (decision 0011,
+   `docs/decisions/0011-app-authored-identity.md`): hand the branch and body
+   off locally; the orchestrator pushes and opens the pull request as the
+   `hpo-author` App, whose key files (`~/.zcode/hpo-author.*`) it alone holds
+   and never prints. `fix-review.md`'s posting line is the reviewer's.
 
    **Take the gate lease only when `MODE: FULL` or `scope.run` names
    `tests/stress.py`**, the one script the lock exists for; the commands, and
