@@ -50,29 +50,24 @@
 # v6.6.5: the instrument-backlog repairs, quick setup, and the round-5 UI/sensor batch. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-# The economics-polish branch (#1207/#1208/#1210) claims the seven fixtures
-# below and nothing else: the restart keep gate dropped 2e-2 -> 2e-5 (#1207)
-# and every solved candidate is now polished inside the loop (#1208) -- the
-# raw-best at the full #826 budget, the speculative starts bounded at
-# maxiter/16 and maxfun=40, which the stress gate's per-scenario CPU and
-# work budgets measured and refused unbounded -- so the solver keeps
-# improvements it used to compute and throw away and a runner-up candidate's
-# bounded polish can ship. The #1210 half (exact peak_cost billed, smooth
-# surrogate in the objective) moves no plan on its own: the solver's
-# arithmetic is byte-identical under it. Measured at head 054aee4 vs this
-# file's baseline d70ed25 (drift mode, one environment): the seven are the
-# whole moved set (an eighth, shoulder, moved under the unbounded first cut
-# and does not move under the bounded one -- claimed there, not here).
-# Direction per fixture: deferred_energy_cost falls on every one (a cheaper
-# plan is the point of the fix); valve_storage_smart_write also moved and is
-# excused by its may-drift line, not claimed.
-capacity_tariff_15min # #1207/#1208 economics polish: keeps sub-2% restart gains and polishes every candidate
-cycling_cost # #1207/#1208 economics polish: keeps sub-2% restart gains and polishes every candidate
-everything_on # #1207/#1208 economics polish: keeps sub-2% restart gains and polishes every candidate
-flat_prices # #1207/#1208 economics polish: keeps sub-2% restart gains and polishes every candidate
-narrow_band # #1207/#1208 economics polish: keeps sub-2% restart gains and polishes every candidate
-winter_two_zone_dhw # #1207/#1208 economics polish: keeps sub-2% restart gains and polishes every candidate
-winter_two_zone_no_dhw # #1207/#1208 economics polish: keeps sub-2% restart gains and polishes every candidate
+# The economics-polish branch (#1207/#1210) claims the five fixtures below
+# and nothing else: the restart keep gate dropped 2e-2 -> 2e-5 (#1207), so
+# the solver keeps the sub-2% improvements its own restart used to compute
+# and throw away. The #1210 half (exact peak_cost billed, smooth surrogate
+# in the objective) moves no plan: the solver's arithmetic is
+# byte-identical under it. Measured at head 1da598b vs this file's
+# baseline d70ed25 (drift mode, one environment): the five are the whole
+# moved set. Two further fixtures (flat_prices, winter_two_zone_no_dhw)
+# moved under the #1208 polish-in-loop cut that this branch re-cut away,
+# and do not move here. Direction per fixture: deferred_energy_cost falls
+# on every one (a cheaper plan is the point of the fix);
+# valve_storage_smart_write also moved and is excused by its may-drift
+# line, not claimed.
+capacity_tariff_15min # #1207 economics polish: the keep gate no longer discards sub-2% restart gains
+cycling_cost # #1207 economics polish: the keep gate no longer discards sub-2% restart gains
+everything_on # #1207 economics polish: the keep gate no longer discards sub-2% restart gains
+narrow_band # #1207 economics polish: the keep gate no longer discards sub-2% restart gains
+winter_two_zone_dhw # #1207 economics polish: the keep gate no longer discards sub-2% restart gains
 #
 # The absorb of origin/main 27458c8a (#1248 #1243 #1247 #1249 #1252 #1246
 # #1244 #1251) hit the claimnotes refusal here: this branch claims the three
