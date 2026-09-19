@@ -15,6 +15,7 @@ function, and the rest take numbers in and give numbers back.
 flowchart LR
     subgraph inputs["Inputs"]
         tibber["Tibber API<br/>hourly prices"]
+        weather["HA weather entity<br/>temperature, wind,<br/>rain, irradiance"]
         meteo["Open-Meteo<br/>irradiance forecast<br/>+ satellite observation"]
         ha["Your HA entities<br/>weather forecast, temperatures,<br/>power, presence, humidity"]
     end
@@ -39,7 +40,8 @@ flowchart LR
     end
 
     tibber --> pm
-    meteo --> tm
+    weather --> tm
+    meteo -. "irradiance override" .-> tm
     ha --> tm
     ha --> acc
     pm --> opt
