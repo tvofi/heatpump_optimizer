@@ -553,7 +553,10 @@ def peak_cost(
     ``(full_price / k) × sum(top-k)`` — and ``full_price / k`` is exactly
     ``marginal_price_per_kw``. So the cost of a plan is the marginal price
     times the sum of its top-k excesses above what the month already commits
-    to, which is what this computes.
+    to, which is what this computes: the EXACT hard top-k sum, on every
+    input (#1210). This is the figure published as ``projected_peak_cost``;
+    the solver's objective uses the smooth surrogate ``peak_cost_smooth``
+    instead, for the gradient reason its docstring states.
 
     Two things fall out of that algebra:
 
@@ -564,7 +567,7 @@ def peak_cost(
       one window, so a gradient-based optimizer got a signal at 1 step in 96
       and the term was effectively inert; the measured result was that enabling
       the tariff *raised* the peak. Summing the top k gives every one of those
-      k windows a gradient; when more than k windows tie, a smooth top-k
+      k windows a gradient; when more than k windows tie, the smooth surrogate
       spreads that signal across all of them (#232).
 
     It is still an upper bound on the true marginal bill, not an exact figure:
@@ -600,6 +603,69 @@ def peak_cost(
     if not np.any(excess > 0):
         return 0.0
     k = max(1, min(int(peaks_averaged), excess.size))
+    # The exact hard sum on every input: this function is the billed figure,
+    # and the smooth surrogate that replaced it on wide plateaus under-charged
+    # by up to 3.45% there (round 5 D2-01, #1210) -- its logistic weights sum
+    # to k, so every unit of weight that leaks onto a window below the tie
+    # level bills that unit at the lower level. The surrogate, and the reason
+    # the solver still needs it, live in peak_cost_smooth.
+    top_sum = float(np.sum(np.sort(excess)[-k:]))
+    return float(price_per_kw * top_sum)
+
+
+def peak_cost_smooth(
+    total_power_kw: np.ndarray,
+    baseline_load_kw: np.ndarray,
+    threshold_kw: float,
+    price_per_kw: float,
+    window_minutes: int,
+    dt_hours: float,
+    peaks_averaged: int = 3,
+    offset_steps: int = 0,
+    window_factors: np.ndarray | None = None,
+) -> float:
+    """The solver's capacity term: exact off plateaus, smooth on them.
+
+    Same arithmetic as ``peak_cost`` (whose docstring carries the bill
+    algebra) on every input with at most ``k`` windows at the peak. Only when
+    MORE than ``k`` windows tie at the peak does this take the smooth top-k
+    sum, because a gradient-based solver is otherwise blind on exactly that
+    plateau (#232): the tied windows sit at the clip ceiling, so the
+    finite-difference probe at each pinned step points DOWNWARD, a hard
+    top-k just swaps in another tied window, and the term reads flat in
+    every direction the solver can move — measured, enabling the tariff
+    with the hard sum RAISED the peak it exists to lower.
+
+    The price of that gradient is a bounded under-charge on the plateau arm:
+    the logistic weights still sum to ``k``, so weight landing on windows
+    below the tie level bills there, and the value is below the exact
+    ``full_price/k × sum(top-k)`` by up to 3.45% of it on wide mixed
+    plateaus (round 5, D2-01/#1210; pure plateaus, every window at the tie,
+    are exact). That is why this is the SOLVER's term only: the descent
+    signal is the product, the value is a bounded-surrogate means to it,
+    and every billed or published figure goes through ``peak_cost``, which
+    is exact everywhere.
+    """
+    if price_per_kw <= 0 or not np.isfinite(threshold_kw):
+        return 0.0
+    house = np.asarray(total_power_kw, dtype=float) + np.asarray(
+        baseline_load_kw, dtype=float
+    )
+    if house.size == 0:
+        return 0.0
+    windows = metering_windows(house, window_minutes, dt_hours, offset_steps)
+    if window_factors is not None and window_factors.size:
+        # Billed-equivalent kW (#13); see ``peak_cost``.
+        factors = window_factors[: windows.size]
+        if factors.size < windows.size:
+            factors = np.concatenate(
+                [factors, np.ones(windows.size - factors.size)]
+            )
+        windows = windows * factors
+    excess = np.maximum(0.0, windows - threshold_kw)
+    if not np.any(excess > 0):
+        return 0.0
+    k = max(1, min(int(peaks_averaged), excess.size))
     # Separated peaks are the bill: hard top-k is exact and cheap. A plateau
     # of more than k windows at the peak is where hard top-k goes blind
     # (#232); only then pay for the smooth sum.
@@ -623,17 +689,21 @@ def peak_cost_batch(
     offset_steps: int = 0,
     window_factors: np.ndarray | None = None,
 ) -> np.ndarray:
-    """``peak_cost`` for a [B, n] batch of plans, one entry per row (#948).
+    """``peak_cost_smooth`` for a [B, n] batch of plans, one entry per row (#948).
 
-    The solver's batched objective used to CALL ``peak_cost`` once per
-    batch row; the per-row re-entry -- not the arithmetic -- is the
+    The solver's batched objective used to CALL the scalar capacity term once
+    per batch row; the per-row re-entry -- not the arithmetic -- is the
     recomputation round 4 (D9-05) counted, and this twin is what the
     recomputation-count pin reads. Each row runs the scalar body verbatim
     on its own freshly allocated per-row arrays (``house``, the window
     means through ``metering_windows``, the factors multiply, ``excess``,
     the sort and the top-k slice sum, and the scalar ``_smooth_topk_sum``
-    on a plateau), so a row is bit-for-bit ``peak_cost`` on that row's
-    plan on EVERY numpy backend -- not by measurement on one. The body is
+    on a plateau), so a row is bit-for-bit ``peak_cost_smooth`` on that
+    row's plan on EVERY numpy backend -- not by measurement on one. The
+    twin's scalar is the SOLVER's smooth surrogate (the gradient pathway,
+    #232/#1210), which is what the batched objective exists to serve; the
+    billed figure ``peak_cost`` is exact and has no batch twin, because
+    nothing batches it. The body is
     held against drift by the unit row-parity grid in tests/features.py
     (#948 section: offsets, window lengths, billing factors, plateaus),
     because it cannot call the function it mirrors without re-entering it.

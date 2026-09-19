@@ -98,6 +98,7 @@ from .tariff import (
     metering_windows,
     peak_cost,
     peak_cost_batch,
+    peak_cost_smooth,
     realised_peak,
     window_factors,
 )
@@ -374,9 +375,21 @@ def _bounds_supported_by_batch(bounds: list[tuple[float, float]]) -> bool:
 #: L-BFGS-B's own ``ftol`` is 1e-6. Keeping every ``score < prior`` tick
 #: re-planned 15 of 51 stress scenarios and left the work check under its
 #: 40-of-51 floor. 1e-4 still moved different golden fixtures on Linux
-#: 3.13 vs 3.14, so a claim list cannot be true on both. 2e-2 sits above
-#: the largest Darwin golden keep. No new seed.
-_LBFGSB_RESTART_KEEP_REL = 2e-2
+#: 3.13 vs 3.14, so a claim list cannot be true on both. 2e-2 sat above
+#: the largest Darwin golden keep -- and, it turned out, above every real
+#: improvement the restart finds on the gate's own populations: the polish
+#: was computed and thrown away whole, up to 1.17% of the objective and
+#: 6% of a day's bill (round 5 D0-01, #1207). 2e-5 sits in the widest
+#: measured quiet band of the polished-improvement distribution (every
+#: restart's polished score, hooked at ``_scoped_minimize``, over the 51
+#: stress scenarios and 50 golden solves at this merge base): on stress
+#: nothing lands within 1.9x below it (largest below: 1.05e-5) or 2.2x
+#: above it (smallest above: 2.44e-5), and the golden distribution is
+#: empty from 5.9e-7 to 5.05e-5, so no fixture's adoption decision can
+#: flip on last-decimal drift the way 1e-4's did. It keeps every gap the
+#: round-5 finding counted (smallest: 1.34e-4, worst: 1.17e-2) and stays
+#: 20x over the 1e-6 ftol tick the features pin refuses. No new seed.
+_LBFGSB_RESTART_KEEP_REL = 2e-5
 
 
 def _lbfgsb_restart(
@@ -532,14 +545,23 @@ def _multi_start_minimize(
         except Exception as err:  # pragma: no cover - solver blow-up
             last_error = err
             continue
+        # Polish EVERY solved candidate, here inside the loop (#1208, round 5
+        # D0-02). The restart used to run once, on the raw-best result after
+        # the loop, so a candidate whose own polish would have dropped below
+        # that result never got one: measured on the round-5 grid, production
+        # shipped up to 1.40% above the best its own code reaches from the
+        # same candidates. Each polish restarts from that candidate's own
+        # converged point, so it costs one short L-BFGS-B run, not a second
+        # solve; the cross-candidate minimum below is what ships.
+        res = _lbfgsb_restart(
+            res, memoized, bounds, args, maxiter, batch_objective, fd_eps,
+        )
         score = float(memoized(res.x, *args))
         if np.isfinite(score) and score < best_score:
             best, best_score = res, score
     if best is None:
         raise last_error or ValueError("all starting points failed")
-    return _lbfgsb_restart(
-        best, memoized, bounds, args, maxiter, batch_objective, fd_eps,
-    )
+    return best
 
 
 #: Below this horizon-mean price (SEK/kWh) the smooth guess's normalisation
@@ -2373,7 +2395,15 @@ class HeatPumpOptimizer:
 
         # The argument list the capacity term prices a plan on, shared by
         # the scalar closure and its batch twin so the two can never
-        # disagree about the tariff they are pricing.
+        # disagree about the tariff they are pricing. The term the SOLVER
+        # minimizes is the smooth surrogate (#232/#1210): on a plateau of
+        # more than peak_count tied windows a hard top-k has no
+        # finite-difference gradient in any direction the bounds allow, so
+        # the solver would be blind on exactly the bang-bang plan the
+        # tariff exists to discourage. peak_cost_smooth's value is a
+        # bounded under-approximation there; every billed or published
+        # figure goes through the exact peak_cost instead (see
+        # _grid_report and OptimizationResult.peak_cost).
         peak_args = (
             baseline,
             cfg.peak_threshold_kw,
@@ -2385,7 +2415,9 @@ class HeatPumpOptimizer:
         )
 
         def capacity(total_power: np.ndarray) -> float:
-            return peak_cost(total_power, *peak_args, window_factors=factors)
+            return peak_cost_smooth(
+                total_power, *peak_args, window_factors=factors
+            )
 
         def capacity_batch(total_power_matrix: np.ndarray) -> np.ndarray:
             return peak_cost_batch(
