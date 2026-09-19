@@ -561,6 +561,7 @@
    "tests/structure.py",
    "tests/validate.py",
    "tools/audit/preflight.sh",
+   "tools/audit/round4/D6/claims.json",
    "tools/release/stamp.py"
   ],
   "tests/env_drift.py": [
