@@ -14683,6 +14683,52 @@ R.check(
     "neither is an inherited list",
 )
 
+# --- the #1255 collapse: every line per scenario, not the last -------------
+#
+# Both parsers keyed their map on the scenario name, so two bare claim lines
+# for ONE scenario collapsed to the last. A branch that added a fresh claim
+# beside the baseline's own line then parsed exactly equal to the baseline's
+# single entry -- the added claim was invisible -- and the guard read the
+# branch's own list as inherited (main at 27458c8 held two config_flow lines
+# that parsed equal to the baseline's one; #1255). The map carries every
+# line's reason now, in file order, so equality is same names AND same
+# lines, count included, through `parse_claim_map` and the `_claimed` file
+# rule alike -- and the autofix that empties an inherited list will not
+# touch one that added a line.
+_1255_ONE = "# claims-for: 6.6.6\n#\n\nconfig_flow  # the baseline's reason\n"
+_1255_TWO = (
+    "# claims-for: 6.6.6\n#\n\n"
+    "config_flow  # this branch's fresh claim\n"
+    "config_flow  # the baseline's reason\n"
+)
+R.check(
+    "a claim map carries every line a scenario has, not just the last",
+    _env_drift.parse_claim_map(_1255_TWO)
+    == {"config_flow": ["this branch's fresh claim", "the baseline's reason"]}
+    and _env_drift._parse_claims(_1255_TWO)[1]
+    == {"config_flow": ["this branch's fresh claim", "the baseline's reason"]}
+    and _env_drift.parse_claim_map(_1255_ONE)
+    == {"config_flow": ["the baseline's reason"]},
+    f"parse={_env_drift.parse_claim_map(_1255_TWO)!r} "
+    f"file={_env_drift._parse_claims(_1255_TWO)[1]!r}",
+)
+R.check(
+    "a fresh claim added beside an inherited line is not an inherited list",
+    _env_drift.inherited_claims_error(
+        _env_drift.parse_claim_map(_1255_TWO),
+        _env_drift.parse_claim_map(_1255_ONE),
+        "origin/main",
+    ) is None,
+    "two lines for one scenario parsed equal to the baseline's single entry "
+    "(#1255): the added line is this branch's own claim",
+)
+R.check(
+    "and the inherited-claims autofix leaves it alone",
+    _env_drift.drop_inherited_claim_lines(_1255_TWO, _1255_ONE) is None,
+    "emptying a list that added a line would delete a claim this branch "
+    "wrote",
+)
+
 # #996: the runner-conditional fail-fast. PR #992 round 3 established the
 # protocol -- the runner is the judge of record -- but the gate said so
 # nowhere: a claim the branch itself wrote that goes stale only on the
@@ -15149,10 +15195,10 @@ R.check(
     "a claim list only one side touched is carried, not refused",
     _env_drift.parse_claim_map(
         _env_drift.merge_claim_file(_CM_BASE, _CM_OURS_CLAIM, _CM_THEIRS) or ""
-    ) == {"everything_on": "this branch's own measured drift"}
+    ) == {"everything_on": ["this branch's own measured drift"]}
     and _env_drift.parse_claim_map(
         _env_drift.merge_claim_file(_CM_BASE, _CM_OURS, _CM_THEIRS_CLAIM) or ""
-    ) == {"valve_storage_small_tank": "the other branch's drift"},
+    ) == {"valve_storage_small_tank": ["the other branch's drift"]},
     "a one-sided claim rewrite is an ordinary merge; only a two-sided one is "
     "a value conflict",
 )
