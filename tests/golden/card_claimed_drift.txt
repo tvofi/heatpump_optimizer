@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.6.4
+# claims-for: 6.6.5
 #
-# v6.6.4: the #1067 feature chain, the device pre-fill, and a run of instrument and governance repairs. The stamp empties the list; the
+# v6.6.5: the instrument-backlog repairs, quick setup, and the round-5 UI/sensor batch. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -275,12 +275,6 @@
 # diagram, which also covers every chart-bearing state -- docs/img's figures
 # are chart pictures and stay valid.
 
-setup_single_buffer
-setup_two_tank
-setup_coil
-layout_editing_dragged
-layout_editing_tidy
-picker_open_filtered
 
 # #1220 (round-5 audit, D4-02): the picker's own field and list were absent
 # from the htmlTargetFloor selector list, so `.sp-filter` laid out 23.19 px
@@ -313,30 +307,3 @@ picker_open_filtered
 # therefore reads FAIL at any fixed head; that is the fix landing, and it is
 # recorded in the PR body.
 
-away_return
-away_status
-away_toggle
-coarse_pointer
-custom_title_currency
-draft_dirty_menu_open
-draft_mid_drag
-expanded_plan
-expanded_zoomed
-hidden_series
-no_plan
-no_plan_expanded
-override_active
-plan_inline
-plan_inline_sv
-plan_short_window
-reduced_motion
-score_open
-shared_steps
-shared_steps_hover
-tooltip_hover
-what_if_off
-whatif_edited
-whatif_weekly
-wood_alert
-wood_lane
-wood_whatif

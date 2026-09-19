@@ -45,14 +45,11 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.6.4
+# claims-for: 6.6.5
 #
-# v6.6.4: the #1067 feature chain, the device pre-fill, and a run of instrument and governance repairs. The stamp empties the list; the
+# v6.6.5: the instrument-backlog repairs, quick setup, and the round-5 UI/sensor batch. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-coord_grid_fee # #1237 (round-5 D12-01): a no-DHW plant publishes no hot-water attributes, so both plan sensors' empty-plan extra_state_attributes drop dhw_windows_spec (the leaked default window) -- two leaves, present on one side only (the fixture has them).
-coord_minimal # #1237 (round-5 D12-01): same as coord_grid_fee -- the two plan sensors' empty-plan extra_state_attributes drop dhw_windows_spec; two leaves, present on one side only (the fixture has them). No other leaf moves in this fixture.
-coord_two_zone # #1237 (round-5 D12-01): same as coord_grid_fee -- the two plan sensors' empty-plan extra_state_attributes drop dhw_windows_spec; two leaves, present on one side only (the fixture has them). No other leaf moves in this fixture.
 #
 # The absorb of origin/main 27458c8a (#1248 #1243 #1247 #1249 #1252 #1246
 # #1244 #1251) hit the claimnotes refusal here: this branch claims the three
