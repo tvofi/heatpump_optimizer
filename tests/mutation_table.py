@@ -44,7 +44,11 @@ stops it rotting.
 
 A survivor is not automatically a defect. An equivalent mutant cannot be killed
 by any test, and several of the twenty-five guards W5-G7 measured are worth
-keeping for the cause they buy rather than the outcome a check could see.
+keeping for the cause they buy rather than the outcome a check could see. When
+the audit measures a survivor indistinguishable from its original at every
+input, record it under `survivor_triage` in the budgets file, pinned to the
+line text it was measured on: the fraction then counts only the survivors no
+triage has called equivalent, and an unmarked survivor stays a gap (#1217).
 
     python3 tests/mutation_table.py --scope changed --base origin/main
     python3 tests/mutation_table.py --scope full --jobs 4
@@ -361,6 +365,85 @@ def drive_spec(script: str, ref: str | None) -> tuple[list[str], dict[str, str]]
     return [], {}
 
 
+# ------------------------------------------------------------ survivor triage
+#
+# A survivor is not automatically a defect (#1217, D3-07): a mutant measured
+# EQUIVALENT to its original -- no input can tell the two apart -- cannot be
+# killed by any check, so counting it as a gap makes the recorded fraction
+# read worse than the suite is. The marks live in tests/mutation_budgets.json
+# under "survivor_triage", keyed like the recorded survivor table prints
+# ("FILE:LINE KIND") and pinned to the exact `old` line text the triage was
+# made on: an entry whose file:line, operator OR line text no longer matches
+# is not applied, because a mark must not outlive the line it explains.
+#
+# The fraction the cap reads counts only survivors no triage has called
+# equivalent. The default for an unmarked survivor is "a real gap": absence
+# of a triage is not a finding of equivalence, so a mark can only ever relax
+# the one-sided cap deliberately, with a reason, in a reviewed edit.
+TRIAGE_VERDICTS = ("equivalent", "gap")
+_TRIAGE_KEY = re.compile(rf"^{re.escape(PKG)}[^:\s]+:\d+ [A-Z_]+$")
+
+
+def triage_key(mut: dict) -> str:
+    """The recorded table's key for one survivor, as budgets prints it."""
+    return f"{mut['file']}:{mut['line']} {mut['kind']}"
+
+
+def triaged_equivalent(triage: dict, mut: dict) -> bool:
+    """True when a triage marks THIS exact mutant equivalent.
+
+    The key must match and the `old` pin must equal the line text the mutant
+    was generated from -- file:line coordinates survive edits that the text
+    does not, and an equivalence claim is a claim about the text.
+    """
+    entry = triage.get(triage_key(mut))
+    return bool(
+        entry
+        and entry.get("verdict") == "equivalent"
+        and entry.get("old") == mut["old"]
+    )
+
+
+def survivor_gaps(survivors: list[dict], triage: dict):
+    """The survivors, split into (counted as gaps, triaged equivalent).
+
+    The first list is the fraction's numerator: survivors no triage has
+    called equivalent, in the order they were reported.
+    """
+    gaps: list[dict] = []
+    equivalent: list[dict] = []
+    for mut in survivors:
+        (equivalent if triaged_equivalent(triage, mut) else gaps).append(mut)
+    return gaps, equivalent
+
+
+def triage_problems(triage: dict) -> list[str]:
+    """Every way the recorded triage is malformed, one sentence each.
+
+    An equivalence mark relaxes a one-sided cap, so it must carry the verdict
+    that says so, the line pin it was measured against, and a reason -- an
+    unargued claim is exactly the shape this validator exists to refuse.
+    """
+    out: list[str] = []
+    for key, entry in sorted(triage.items()):
+        if not _TRIAGE_KEY.match(key):
+            out.append(f"{key!r} is not 'FILE:LINE KIND' under {PKG}")
+            continue
+        if not isinstance(entry, dict):
+            out.append(f"{key}: entry is not an object")
+            continue
+        if entry.get("verdict") not in TRIAGE_VERDICTS:
+            out.append(f"{key}: verdict {entry.get('verdict')!r} is not one "
+                       f"of {TRIAGE_VERDICTS}")
+        if not str(entry.get("reason", "")).strip():
+            out.append(f"{key}: no reason -- an unargued equivalence claim "
+                       "would quietly relax the fraction")
+        if not str(entry.get("old", "")):
+            out.append(f"{key}: no `old` line pin -- the mark would outlive "
+                       "the line it explains")
+    return out
+
+
 # ------------------------------------------------------------------- runner
 
 class ScriptRun(NamedTuple):
@@ -556,6 +639,17 @@ def main() -> int:
 
     budgets = json.loads(BUDGETS.read_text())
     cap = float(budgets["max_survivor_fraction"][args.scope])
+    # The survivor triage (#1217): recorded equivalence marks are audit
+    # measurements pinned to the line text they were made on. A malformed one
+    # moves the fraction, so the run refuses before any baseline cost.
+    triage = budgets.get("survivor_triage", {})
+    problems = triage_problems(triage)
+    if problems:
+        print("MUTATION TABLE REFUSED -- survivor_triage in "
+              f"{BUDGETS.name} is malformed:")
+        for p in problems:
+            print(f"    - {p}")
+        return 1
     files, why = scope_files(args.scope, args.base)
     allow = [s for s in args.scripts.split(",") if s]
     closures = load_closures()
@@ -685,23 +779,37 @@ def main() -> int:
 
     evaluated = sum(1 for _, v in results if not v.startswith("SKIP"))
     n = len(survivors)
-    rate = n / evaluated if evaluated else 0.0
-    print(f"\n  {n} survivor(s) of {evaluated} evaluated = {rate:.1%}, "
-          f"cap {cap:.1%}")
+    gaps, equivalent = survivor_gaps(survivors, triage)
+    rate = len(gaps) / evaluated if evaluated else 0.0
+    raw = n / evaluated if evaluated else 0.0
+    equiv_note = (f" ({len(equivalent)} triaged equivalent, raw {raw:.1%})"
+                  if equivalent else "")
+    print(f"\n  {n} survivor(s) of {evaluated} evaluated = {rate:.1%}"
+          f"{equiv_note}, cap {cap:.1%}")
     for mut in survivors:
+        tri = ("  [triaged equivalent]"
+               if triaged_equivalent(triage, mut) else "")
         print(f"    {mut['file']}:{mut['line']} {mut['kind']}: "
-              f"{mut['old'].strip()[:72]}")
+              f"{mut['old'].strip()[:72]}{tri}")
 
     if args.record:
         if rate > cap:
             print("\nREFUSED to record: a cap only moves down. "
                   f"{rate:.1%} > the recorded {cap:.1%}; either kill the "
-                  "survivors or raise it as a deliberate, argued edit.")
+                  "survivors, triage the equivalent ones, or raise it as a "
+                  "deliberate, argued edit.")
             return 1
         budgets["max_survivor_fraction"][args.scope] = round(rate, 4)
         budgets["last_measured"][args.scope] = {
-            "survivors": n, "evaluated": evaluated,
+            # `survivors` is the fraction's numerator -- survivors no triage
+            # has called equivalent -- and `equivalent` the part of this run
+            # the triage took off it. `survivor_lines` carries the whole
+            # table, marks included, so the count can be read back line by
+            # line.
+            "survivors": len(gaps), "equivalent": len(equivalent),
+            "evaluated": evaluated,
             "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "survivor_lines": [triage_key(m) for m in survivors],
         }
         if args.reason:
             budgets["reason"] = args.reason
@@ -715,8 +823,9 @@ def main() -> int:
         print("\nMUTATION TABLE BREACHED")
         print(f"  - {rate:.1%} of mutants survived against a cap of {cap:.1%}. "
               "A survivor is a production line no check would notice being "
-              "wrong. Pin the ones above, or argue in the body that they are "
-              "equivalent mutants and raise the cap deliberately.")
+              "wrong. Pin the ones above, or record the ones measured "
+              "equivalent under survivor_triage in tests/mutation_budgets.json "
+              "with the reason that says so.")
         return 1
     print("\nMUTATION TABLE PASSED")
     return 0

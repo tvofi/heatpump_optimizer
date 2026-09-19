@@ -18699,7 +18699,11 @@ _MB_BAD += [
     f"{_MB['max_survivor_fraction'][_scope]}"
     for _scope, _m in _MB["last_measured"].items()
     if _m and _m["evaluated"]
-    and _m["survivors"] / _m["evaluated"] > _MB["max_survivor_fraction"][_scope]
+    # Compared at the 4 dp `--record` writes the cap at: a fraction recorded
+    # from 1/3 is stored as 0.3333 and must not read as over its own cap for
+    # the 0.000033 the rounding left behind.
+    and round(_m["survivors"] / _m["evaluated"], 4)
+    > _MB["max_survivor_fraction"][_scope]
 ]
 R.check(
     "both mutation caps are fractions, and each holds its own last measurement",
@@ -18942,6 +18946,110 @@ R.check(
     f"full scope -> {_MUT_GATE_REF('full', 'origin/main')!r}, wanted "
     f"{_MUT_FULL_REF!r} -- the nightly's gate compares against HEAD^1 and a "
     "driver handed a different ref measures a different comparison",
+)
+
+# #1217 (D3-07): two of the D3 pre-screen's seven survivors are EQUIVALENT
+# mutants -- pump_mode.py:242 GUARD_OFF and __init__.py:337 BOOLOP, each
+# measured against its own guarded input -- which no check could ever kill,
+# so a survivor count that mixes them with real gaps reads worse than the
+# suite is. The triage marks live in tests/mutation_budgets.json under
+# "survivor_triage", keyed exactly like the recorded survivor table and
+# PINNED to the line text they were triaged on; the fraction the cap reads
+# counts only survivors no triage has called equivalent. Absence of a triage
+# is not a finding of equivalence -- an unmarked survivor stays a gap.
+_MUT_TRIAGE = _MB.get("survivor_triage", {})
+_MUT_TRIAGE_KEY = getattr(_mut, "triage_key", lambda _m: None)
+_MUT_EQ = getattr(_mut, "triaged_equivalent", lambda _t, _m: None)
+_MUT_GAPS = getattr(_mut, "survivor_gaps", lambda _s, _t: None)
+_MUT_TRIAGE_PROBLEMS = getattr(_mut, "triage_problems",
+                               lambda _t: ["no triage_problems"])
+# Two synthetic survivors shaped like the table's rows; the triage fixture
+# marks one of them, key and pin alike.
+_EQ_MUT = {"file": "custom_components/heatpump_optimizer/pump_mode.py",
+           "line": 242, "kind": "GUARD_OFF", "old": "    if raw is None:"}
+_GAP_MUT = {"file": "custom_components/heatpump_optimizer/frontend.py",
+            "line": 110, "kind": "BOOLOP",
+            "old": '        if a and b:'}
+_EQ_KEY = "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF"
+_TRIAGE_FIXTURE = {_EQ_KEY: {"verdict": "equivalent",
+                             "old": "    if raw is None:",
+                             "reason": "probe: no input can tell it apart"}}
+R.check(
+    "a survivor triaged equivalent is off the fraction; an unmarked one stays (#1217)",
+    _MUT_TRIAGE_KEY(_EQ_MUT) == _EQ_KEY
+    and _MUT_GAPS([_EQ_MUT, _GAP_MUT], _TRIAGE_FIXTURE)
+    == ([_GAP_MUT], [_EQ_MUT]),
+    f"key={_MUT_TRIAGE_KEY(_EQ_MUT)!r}, gaps -> "
+    f"{_MUT_GAPS([_EQ_MUT, _GAP_MUT], _TRIAGE_FIXTURE)!r} -- the marked line "
+    "leaves the numerator; the unmarked survivor stays in it, because the "
+    "default has to stay guilty until a reason moves it",
+)
+# The line pin is half the mark: file and line are where the mutant WAS, and
+# a production edit moves text under the same coordinates all the time. The
+# other half is the verdict: a "gap" triage records a real gap and must not
+# come off the fraction. The null controls drive all three arms through the
+# same predicate.
+R.check(
+    "and only an `equivalent` verdict applies, pinned line text and all (#1217)",
+    _MUT_EQ(_TRIAGE_FIXTURE, _EQ_MUT) is True
+    and _MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, old="    if raw:")) is False
+    and _MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, line=243)) is False
+    and _MUT_EQ({_EQ_KEY: {"verdict": "gap", "old": _EQ_MUT["old"],
+                           "reason": "a real gap, triaged"}}, _EQ_MUT) is False,
+    f"same pin -> {_MUT_EQ(_TRIAGE_FIXTURE, _EQ_MUT)!r}, moved text -> "
+    f"{_MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, old='    if raw:'))!r}, moved "
+    f"line -> {_MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, line=243))!r}, gap "
+    f"verdict -> {_MUT_EQ({_EQ_KEY: {'verdict': 'gap', 'old': _EQ_MUT['old'], 'reason': 'r'}}, _EQ_MUT)!r} "
+    "-- a mark that outlives the line it explains is a claim about code that "
+    "is gone, and a triaged gap is exactly what the fraction is for",
+)
+# The validator is a predicate, so the refusal shape is driven rather than
+# trusted: a good entry passes; an unknown verdict, a missing reason, a
+# missing pin and a key that is not `FILE:LINE KIND` are four problems.
+_MUT_TRIAGE_BAD = {
+    _EQ_KEY: {"verdict": "sure", "old": "", "reason": ""},
+    "junk": {"verdict": "equivalent", "old": "x", "reason": "r"},
+}
+R.check(
+    "a triage entry without a verdict, reason or line pin is refused (#1217)",
+    _MUT_TRIAGE_PROBLEMS(_TRIAGE_FIXTURE) == []
+    and len(_MUT_TRIAGE_PROBLEMS(_MUT_TRIAGE_BAD)) == 4,
+    f"good -> {_MUT_TRIAGE_PROBLEMS(_TRIAGE_FIXTURE)!r}, bad -> "
+    f"{_MUT_TRIAGE_PROBLEMS(_MUT_TRIAGE_BAD)!r} -- an unargued equivalence "
+    "claim is the one shape that could quietly relax the fraction",
+)
+# The recorded table itself: both D3-07 equivalents marked, each with a
+# reason; the validator holds over the whole real table; and every mark
+# names a mutant THIS tree still generates -- same line, same operator,
+# same text -- so the pins are checked against the tree, not each other.
+_MUT_D3_07 = (
+    "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF",
+    "custom_components/heatpump_optimizer/__init__.py:337 BOOLOP",
+)
+R.check(
+    "the recorded triage marks both D3-07 equivalents, verdict and reason (#1217)",
+    all(_MUT_TRIAGE.get(k, {}).get("verdict") == "equivalent"
+        and str(_MUT_TRIAGE.get(k, {}).get("reason", "")).strip()
+        for k in _MUT_D3_07),
+    f"marked: {sorted(_MUT_TRIAGE)} -- the audit measured resolve(None) and "
+    "the async_create_task return as indistinguishable both ways, and a "
+    "survivor table that does not say so charges the suite for them",
+)
+_MUT_TRIAGE_STALE = []
+for _k, _ent in sorted(_MUT_TRIAGE.items()):
+    _rel, _rest = _k.split(":")
+    _ln, _kind = _rest.split(" ", 1)
+    _hit = [m for m in _mut.candidates(Path(_rel))
+            if m["line"] == int(_ln) and m["kind"] == _kind]
+    if len(_hit) != 1 or _hit[0]["old"] != _ent.get("old"):
+        _MUT_TRIAGE_STALE.append(_k)
+R.check(
+    "and every mark still names a mutant this tree generates, pin and all (#1217)",
+    bool(_MUT_TRIAGE) and _MUT_TRIAGE_PROBLEMS(_MUT_TRIAGE) == []
+    and not _MUT_TRIAGE_STALE,
+    f"stale={_MUT_TRIAGE_STALE or 'none'}, problems="
+    f"{_MUT_TRIAGE_PROBLEMS(_MUT_TRIAGE)} -- a mark is only allowed to "
+    "speak for the exact mutant it was measured on",
 )
 
 # The classification the ratchet demands of any new tracked file: not
