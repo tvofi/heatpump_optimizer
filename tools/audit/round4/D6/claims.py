@@ -23,40 +23,69 @@ both platform comments completed) and flipped the ten architecture rows to
 true.  At 7dd68dd the same run printed claims_true=112 and claims_false=12
 (111/12 without --links); claims_false at this tree is the one remaining
 non-architecture false claim (C105, Power Headroom availability -- a separate
-finding), C9 having been turned true by its own fix already:
+finding), C9 having been turned true by its own fix already.  Re-recorded again
+for #1148, and for a reason that is itself the finding: this header is the
+assertion tests/harness_headers.py was built to execute, and nothing had compared
+it to a run since 2026-09-17.  The discovery finds a live harness by the
+`live-header` marker at the END of its header, and until #1148 it looked for that
+marker only in the first 4000 bytes of the file -- the marker sat at byte 3501 on
+2026-09-15's merge and at 5224 on 2026-09-17's, so the window went on excluding
+the one harness its own comment names first, and the numbers below drifted behind
+it with every check still green.  #1148 removed the window; the arch counts
+(59 -> 63) and the documented-Default row count (86 -> 87) below are re-measured
+at that change, and the register's nine stale rows were regenerated in the same
+pull request.  C28's documented side is RE-READ from docs/configuration.md now
+instead of compared against the literal (6, 15) that had frozen at authoring
+time: regenerating before that fix would have published a false accusation
+against a document that is CORRECT.
     RESULT claims_extracted=125
     RESULT claims_checked=125
     RESULT claims_true=122          (123 with --links; the checker runs the default)
     RESULT claims_false=1
     RESULT claims_stale=0
     RESULT claims_unverifiable=2    (1 with --links; the checker runs the default)
-    RESULT config_defaults_compared=86   (76 until #937's rows landed; 82
+    RESULT config_defaults_compared=87   (76 until #937's rows landed; 82
                                          until #1067's solver half documented
                                          the flow-curve lift option's default;
                                          83 until #1067's silent-mode half
                                          documented the derate's default; 84
                                          until its frequency half documented
-                                         the two compressor Hz bounds)
+                                         the two compressor Hz bounds, 86 as
+                                         further rows of that chain landed
+                                         unrecorded, 87 with the pre-fill
+                                         page's "Offer this pre-fill at
+                                         setup" -- a Boolean Default row and
+                                         the only one the diff between the
+                                         frequency merge and this re-record
+                                         adds)
     RESULT config_ranges_compared=89     (76 until #937's rows landed; 86
                                          until #1067's silent-mode half
                                          documented the derate's range; 87
                                          until its frequency half documented
                                          the two compressor Hz bounds)
-    RESULT arch_modules_on_disk=59       (architecture.md said 45; 56 until
+    RESULT arch_modules_on_disk=63       (architecture.md said 45; 56 until
                                          #1067's learner half added
                                          flow_lift.py, 57 until its
                                          silent-mode half added silent_mode.py,
                                          58 until its disinfection half added
-                                         disinfection.py, each of which the
+                                         disinfection.py, 59 until its
+                                         pre-fill half added
+                                         modbus_prefill.py and
+                                         device_prefill.py, 61 until
+                                         name_match.py, 62 until
+                                         prefill_offer.py, each of which the
                                          module map
                                          and the opening counts gained in the
                                          same commit -- this header is an
                                          ASSERTION tests/harness_headers.py
-                                         executes, reached by a shell-out no
-                                         closure records, so it never reddens
-                                         a pull request and is re-measured by
-                                         whoever changes what it prints)
-    RESULT arch_map_listed=59            (was 45; 11 were missing)
+                                         executes on every pull request, which
+                                         is true again only since #1148: the
+                                         marker sits at byte 5224 of a file
+                                         the discovery read its first 4000
+                                         bytes of, so nothing compared these
+                                         numbers to a run between 2026-09-17
+                                         and then)
+    RESULT arch_map_listed=63            (was 45; 11 were missing)
     RESULT arch_map_missing=0            (was 11)
     RESULT ha_module_level_importers=21  (architecture.md said 10; now says 21)
 
@@ -469,20 +498,39 @@ OPTIONS = config_flow.HeatPumpOptimizerOptionsFlow
 _opt_step = STRINGS["options"]["step"]
 _init_menu = [k for k in _opt_step["init"]["menu_options"] if k != "advanced"]
 _adv_menu = [k for k in _opt_step["advanced"]["menu_options"] if k != "advanced"]
-eq("C26", "README.md", "a menu of 21 pages", CMD,
+eq("C26", "README.md", "a menu of 22 pages", CMD,
    int(re.search(r"menu of (\d+) pages", README).group(1)),
    len(config_flow._OPTION_PAGES))
-eq("C27", "docs/configuration.md", "There are 21 pages", CMD,
+eq("C27", "docs/configuration.md", "There are 22 pages", CMD,
    int(re.search(r"There are \*\*(\d+) pages\*\*", DOCS["configuration.md"]).group(1)),
    len(config_flow._OPTION_PAGES))
-eq("C28", "docs/configuration.md", "six on the first menu and fifteen more behind "
-   "Advanced settings", CMD, (6, 15), (len(_init_menu), len(_adv_menu)))
+# C28's `documented` side is RE-READ from the sentence, like C26/C27/C29 above
+# (#1148). It was the literal (6, 15), and a comparand frozen at authoring time
+# cannot go stale relative to itself: docs/configuration.md was CORRECTLY
+# updated to "six on the first menu, and sixteen more behind", and the row
+# regenerated to `false` against a document that is RIGHT. Publishing that
+# would put a false accusation into D6's evidence of record, which a later seat
+# reads as established fact -- and nothing would have caught it, because the
+# literal agreed with the register it was written from.
+_NUM_WORD = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+    "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12,
+    "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16,
+    "seventeen": 17, "eighteen": 18, "nineteen": 19, "twenty": 20,
+}
+_menu = re.search(r"(\w+) on the first menu, and (\w+) more behind",
+                  DOCS["configuration.md"])
+eq("C28", "docs/configuration.md",
+   f"{_menu.group(1)} on the first menu and {_menu.group(2)} more behind "
+   "Advanced settings", CMD,
+   (_NUM_WORD[_menu.group(1)], _NUM_WORD[_menu.group(2)]),
+   (len(_init_menu), len(_adv_menu)))
 eq("C29", "docs/architecture.md:module map",
-   "config_flow.py -- Setup flow plus 13 option pages behind two menus", CMD,
+   "config_flow.py -- Setup flow plus 22 option pages behind two menus", CMD,
    int(re.search(r"plus (\d+) option pages", DOCS["architecture.md"]).group(1)),
    len(config_flow._OPTION_PAGES),
    "config_flow._OPTION_PAGES holds {m} pages, and README.md/configuration.md "
-   "both say 21")
+   "both say 22")
 
 PAGES = {}
 for _step in OPTIONS._MENU_LABELS:
