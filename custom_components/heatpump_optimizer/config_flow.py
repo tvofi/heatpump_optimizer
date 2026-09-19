@@ -139,6 +139,8 @@ from .const import (
     CONF_DHW_COOLING_RATE,
     CONF_DHW_SCHEDULE_ENABLED,
     CONF_DHW_WINDOWS,
+    CONF_DHW_WINDOWS_BY_DAY,
+    CONF_DHW_WINDOWS_DAY,
     CONF_DHW_IDLE_MIN_TEMP,
     CONF_DHW_LEGIONELLA_ENABLED,
     CONF_DHW_LEGIONELLA_TEMP,
@@ -402,6 +404,8 @@ from .currency import resolve_currency
 from .dhw_schedule import (
     ERROR_TOO_SHORT as DHW_ERROR_TOO_SHORT,
     MIN_WINDOW_MINUTES,
+    day_overrides_enabled,
+    day_spec_problem,
     is_valid_spec,
     spec_problem as dhw_spec_problem,
 )
@@ -842,6 +846,23 @@ def _disarm_preset_on_derived_edit(
         key in saved and saved[key] != stored.get(key) for key in DERIVED_THERMAL_KEYS
     ):
         saved[CONF_BUILDING_PRESET_ENABLED] = False
+
+
+def _dhw_day_field_errors(user_input: dict[str, Any]) -> dict[str, str]:
+    """The per-day window fields' refusals, each on its own key (#1260).
+
+    Only the posted fields are judged; the ones the toggle hides are absent
+    from the submission, exactly the wood block's division between what
+    renders and what the save may judge.
+    """
+    errors: dict[str, str] = {}
+    for key in CONF_DHW_WINDOWS_DAY:
+        day_spec = user_input.get(key, "")
+        if day_spec:
+            problem = day_spec_problem(day_spec)
+            if problem is not None:
+                errors[key] = problem
+    return errors
 
 
 def _dhw_min_too_close(candidate: dict[str, Any], current: dict[str, Any]) -> bool:
@@ -1512,6 +1533,16 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("hot_water", CONF_DHW_SCHEDULE_ENABLED, DEFAULT_DHW_SCHEDULE_ENABLED, selector.BooleanSelector(), group="schedule"),
     _F("hot_water", CONF_DHW_WINDOWS, DEFAULT_DHW_WINDOWS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)), group="schedule"),
     _F("hot_water", CONF_HOLIDAY_DHW_WINDOWS, '', selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)), group="schedule"),
+    # #1260: the toggle reveals the seven per-day rows below (the wood
+    # block's ``when`` mechanism), and its default is computed from those
+    # rows -- on iff any holds a spec -- which is the same rule
+    # ``dhw_schedule.day_overrides_enabled`` applies at load, so the form
+    # and the optimizer cannot disagree about what "on" is.
+    _F("hot_water", CONF_DHW_WINDOWS_BY_DAY, _Computed(lambda cur, _hass: day_overrides_enabled(cur)), selector.BooleanSelector(), group="schedule"),
+    *(
+        _F("hot_water", key, '', selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)), when=day_overrides_enabled, group="by_day")
+        for key in CONF_DHW_WINDOWS_DAY
+    ),
     _F("hot_water", CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP, _number(35, 55, 1, '°C', slider=True), group="temperatures"),
     _F("hot_water", CONF_DHW_IDLE_MIN_TEMP, DEFAULT_DHW_IDLE_MIN_TEMP, _number(10, 55, 1, '°C', slider=True), group="temperatures"),
     _F("hot_water", CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT, _number(40, 65, 1, '°C', slider=True), group="temperatures"),
@@ -3109,6 +3140,9 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                 holiday_problem = dhw_spec_problem(holiday_spec)
                 if holiday_problem is not None:
                     errors[CONF_HOLIDAY_DHW_WINDOWS] = holiday_problem
+            # #1260: each revealed per-day field gets the ordinary verdicts
+            # plus the selector refusal, on its own key.
+            errors.update(_dhw_day_field_errors(user_input))
             if not errors and _dhw_min_too_close(user_input, current):
                 errors[CONF_DHW_MIN_TEMP] = "dhw_min_too_close"
             if not errors:

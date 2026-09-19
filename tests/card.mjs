@@ -6115,6 +6115,59 @@ const setupBox = (card, place) =>
     /<p class="legend-note" id="hpo-note-[^"]*dhw_temp">([^<]*)<\/p>/) || ["", ""])[1];
   check("the floored-band legend names the window-minimum floor",
     /floored at the window minimum|window minimum/.test(winNote), winNote);
+
+  // #1260: the band prefers the resolved per-day schedule the plan was
+  // actually made against. Same payload, one added attribute: the resolved
+  // spec names a weekday window the configured spec does not, and the
+  // floored band follows the RESOLVED one, not the configured one.
+  const RESOLVED = "weekdays 15:30-17:00";
+  const resStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  resStates[DEFAULT_DHW].attributes.dhw_windows = WINDOWS;
+  resStates[DEFAULT_DHW].attributes.dhw_windows_spec = WINDOWS;
+  resStates[DEFAULT_DHW].attributes.dhw_windows_resolved = RESOLVED;
+  const resCard = (() => {
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states: resStates };
+    c.legend.hidden = {};
+    c.hass = { states: resStates };
+    return c;
+  })();
+  const resLoAt = new Map(ptsOf(resCard, "dhw_temp_lo").map((q) => [q.t, q.v]));
+  const resMidAt = new Map(ptsOf(resCard, "dhw_temp").map((q) => [q.t, q.v]));
+  const inResolved = plan.dhw_plan.forecast.filter((p) => {
+    const h = hourOf(p.t);
+    return h >= 15.5 && h < 17 && p.dhw_temp >= W && p.dhw_temp_lo != null &&
+      resLoAt.has(Date.parse(p.t));
+  });
+  const inOldOnly = plan.dhw_plan.forecast.filter((p) => {
+    const h = hourOf(p.t);
+    return clockIn(p.t) && !(h >= 15.5 && h < 17) && p.dhw_temp >= W &&
+      p.dhw_temp_lo != null && resLoAt.has(Date.parse(p.t));
+  });
+  check("the plan-tab band floors the hours the RESOLVED schedule names",
+    inResolved.length > 0 && inResolved.every((p) => {
+      const lo = resLoAt.get(Date.parse(p.t));
+      return lo >= W && lo <= resMidAt.get(Date.parse(p.t));
+    }),
+    `${inResolved.length} resolved-window steps`);
+  check("and hours only the CONFIGURED schedule names keep their published lo",
+    inOldOnly.length > 0 && inOldOnly.every((p) =>
+      resLoAt.get(Date.parse(p.t)) === p.dhw_temp_lo),
+    `${inOldOnly.length} configured-only steps`);
+  // The what-if editor is NOT moved by the resolved spec: it edits the
+  // configuration it saves, so it keeps reading `dhw_windows_spec`.
+  const editStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  editStates[DEFAULT_DHW].attributes.dhw_windows_spec = WINDOWS;
+  editStates[DEFAULT_DHW].attributes.dhw_windows_resolved = RESOLVED;
+  const editCard = build(editStates, { what_if: true });
+  editCard._hass = mkHass(editCard._hass.states);
+  editCard._onCardClick({});
+  const editRows = editCard.whatIf.draft().dhwWindows;
+  check("the what-if editor still pre-fills from the configured spec",
+    editRows.length === 2 && editRows[0].days === "daily" &&
+    editRows[0].start === "06:00" && editRows[1].end === "22:00",
+    JSON.stringify(editRows));
 }
 
 

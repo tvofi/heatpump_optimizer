@@ -627,12 +627,35 @@
             "data": {
               "dhw_schedule_enabled": "Only guarantee hot water at set times",
               "dhw_windows": "When you need hot water",
-              "holiday_dhw_windows": "Holiday hot-water windows"
+              "holiday_dhw_windows": "Holiday hot-water windows",
+              "dhw_windows_by_day": "Customize by weekday"
             },
             "data_description": {
               "dhw_schedule_enabled": "On: hot water is guaranteed only during the times below, and the tank may cool down in between. Off: the tank is kept hot around the clock, which costs noticeably more.",
               "dhw_windows": "Times hot water must be available, e.g. 06:00-08:30, 17:00-22:00. Different days can get different times with a day selector: 'weekdays 06:00-08:30, weekend 08:00-09:30', or specific days: 'Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30'. Without a selector the times apply every day.",
-              "holiday_dhw_windows": "Same grammar as the ordinary windows. Used on days the holiday calendar is on, instead of weekday/weekend. Leave empty to keep the ordinary schedule."
+              "holiday_dhw_windows": "Same grammar as the ordinary windows. Used on days the holiday calendar is on, instead of weekday/weekend. Leave empty to keep the ordinary schedule.",
+              "dhw_windows_by_day": "On: each weekday field below overrides both the holiday and the ordinary windows for its day. Off: the holiday windows apply on days the holiday calendar is on, the ordinary windows everywhere else. Precedence, in one line: weekday field, then holiday windows, then the ordinary windows."
+            }
+          },
+          "by_day": {
+            "name": "Weekday windows",
+            "data": {
+              "dhw_windows_mon": "Monday",
+              "dhw_windows_tue": "Tuesday",
+              "dhw_windows_wed": "Wednesday",
+              "dhw_windows_thu": "Thursday",
+              "dhw_windows_fri": "Friday",
+              "dhw_windows_sat": "Saturday",
+              "dhw_windows_sun": "Sunday"
+            },
+            "data_description": {
+              "dhw_windows_mon": "Times hot water must be available on mondays, e.g. 06:00-08:30. Leave empty to inherit: the holiday windows on a day the holiday calendar is on, otherwise the ordinary windows above.",
+              "dhw_windows_tue": "Times hot water must be available on tuesdays, e.g. 06:00-08:30. Leave empty to inherit: the holiday windows on a day the holiday calendar is on, otherwise the ordinary windows above.",
+              "dhw_windows_wed": "Times hot water must be available on wednesdays, e.g. 06:00-08:30. Leave empty to inherit: the holiday windows on a day the holiday calendar is on, otherwise the ordinary windows above.",
+              "dhw_windows_thu": "Times hot water must be available on thursdays, e.g. 06:00-08:30. Leave empty to inherit: the holiday windows on a day the holiday calendar is on, otherwise the ordinary windows above.",
+              "dhw_windows_fri": "Times hot water must be available on fridays, e.g. 06:00-08:30. Leave empty to inherit: the holiday windows on a day the holiday calendar is on, otherwise the ordinary windows above.",
+              "dhw_windows_sat": "Times hot water must be available on saturdays, e.g. 06:00-08:30. Leave empty to inherit: the holiday windows on a day the holiday calendar is on, otherwise the ordinary windows above.",
+              "dhw_windows_sun": "Times hot water must be available on sundays, e.g. 06:00-08:30. Leave empty to inherit: the holiday windows on a day the holiday calendar is on, otherwise the ordinary windows above."
             }
           },
           "temperatures": {
@@ -1380,7 +1403,8 @@
       "stored_value_out_of_range": "This value is outside the range this field normally accepts. The range was widened so the page can still be saved — check the value, and correct it if it looks wrong.",
       "flow_target_needs_two_zone": "\"Flow temperature\" derives from the two-zone building model's own flow curve, which this entry does not have configured. Configure the two-zone model first, or leave this at \"Indoor temperature\".",
       "flow_curve_needs_direct_plant": "Pricing the supply temperature lift is for a system with no mixing valve. With a valve the buffer tank's temperature already prices the lift, so this would count it twice. Set the valve to \"No mixing valve\" or turn this off.",
-      "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead."
+      "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
+      "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above."
     }
   },
   "selector": {

@@ -762,6 +762,28 @@ CONF_LOWER_FLOOR_LOSS_RATIO: Final = "lower_floor_loss_ratio"  # dimensionless
 # DHW demand windows — the time frames where hot water must be available
 CONF_DHW_SCHEDULE_ENABLED: Final = "dhw_schedule_enabled"
 CONF_DHW_WINDOWS: Final = "dhw_windows"  # "06:00-08:30, 17:00-22:00"
+#: #1260 — the per-weekday override switch. True while the seven fields
+#: below are in force; False switches them off without erasing them. An
+#: unset key means "on iff any field holds a spec", so an entry whose
+#: specs predate the toggle (or were written by hand) stays on. The
+#: resolution order the optimizer applies is: per-day override, then the
+#: holiday windows, then this switch's absent sibling ``dhw_windows``
+#: (flat, or its own day selectors).
+CONF_DHW_WINDOWS_BY_DAY: Final = "dhw_windows_by_day"
+#: The seven override fields, Monday-first to match ``datetime.weekday()``
+#: and the grammar's day tokens. Flat keys, the shape every neighbouring
+#: schedule variant already uses (``comfort_temp_day_weekend``,
+#: ``holiday_dhw_windows``): each holds one ordinary window list for the
+#: weekday its name spells, empty = inherit the lower tiers.
+CONF_DHW_WINDOWS_DAY: Final = (
+    "dhw_windows_mon",
+    "dhw_windows_tue",
+    "dhw_windows_wed",
+    "dhw_windows_thu",
+    "dhw_windows_fri",
+    "dhw_windows_sat",
+    "dhw_windows_sun",
+)
 CONF_DHW_IDLE_MIN_TEMP: Final = "dhw_idle_min_temperature"  # °C outside windows
 
 # DHW anti-legionella cycle

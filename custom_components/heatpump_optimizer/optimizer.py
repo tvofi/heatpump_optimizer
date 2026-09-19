@@ -104,6 +104,7 @@ from .tariff import (
 from .dhw_schedule import (
     FULL_DAY,
     Window,
+    format_resolved_day_spec,
     format_windows,
     hour_in_windows,
     hours_until_next_window,
@@ -124,6 +125,51 @@ def _holiday_flags_for(
     )
 
 
+def _dhw_step_weekdays(
+    params: ThermalParameters,
+    step_datetimes: list[datetime],
+    dt: float,
+) -> np.ndarray | None:
+    """The weekday array weekly DHW windows and per-day overrides need.
+
+    ``None`` when neither is configured -- the flat, no-override install
+    every entry was before either feature -- so nothing downstream pays for
+    it. The array carries n+1 entries: entry i is the weekday of the step
+    BEFORE step i (the pre-horizon step for i=0), entry i+1 the weekday of
+    step i itself -- the two lookups the window-start edge test needs,
+    without re-deriving datetimes inside the builder.
+    """
+    if (
+        params.dhw_weekly_windows is None
+        and params.dhw_day_windows is None
+    ):
+        return None
+    return np.array(
+        [(step_datetimes[0] - timedelta(hours=dt)).weekday()]
+        + [d.weekday() for d in step_datetimes]
+    )
+
+
+def _dhw_resolved_publish(params: ThermalParameters) -> dict[str, Any]:
+    """The resolved day-aware spec for ``predictive_info``, or nothing.
+
+    #1260: present ONLY when a per-day override is in force, so the payload
+    is byte-for-byte what it was before the feature otherwise and the card
+    keeps reading the configured spec. Holiday windows stay out -- they
+    resolve by date, this grammar by weekday, and the card's band reads the
+    weekday schedule today too.
+    """
+    if not params.dhw_day_windows:
+        return {}
+    return {
+        "dhw_windows_resolved": format_resolved_day_spec(
+            params.dhw_weekly_windows,
+            params.dhw_windows,
+            params.dhw_day_windows,
+        )
+    }
+
+
 def _dhw_windows_at(
     weekly: list[list[Window]] | None,
     step_weekdays: np.ndarray | None,
@@ -131,6 +177,7 @@ def _dhw_windows_at(
     windows: list[Window],
     holiday_windows: list[Window] | None,
     holiday_flags: np.ndarray | None,
+    day_overrides: list[list[Window] | None] | None = None,
 ) -> list[Window]:
     weekday = None if step_weekdays is None else int(step_weekdays[index])
     holiday = False
@@ -142,6 +189,7 @@ def _dhw_windows_at(
         windows,
         holiday_windows=holiday_windows,
         holiday=holiday,
+        day_overrides=day_overrides,
     )
 
 
@@ -2665,22 +2713,11 @@ class HeatPumpOptimizer:
         step_hours = np.array([
             d.hour + d.minute / 60.0 for d in step_datetimes
         ])
-        # Weekday per step, for weekly DHW windows (#3). Computed here,
-        # once, next to the hours it derives from; None on the flat window
-        # spec every install already has, so nothing downstream pays for it.
-        # The array carries n+1 entries: entry i is the weekday of the
-        # step BEFORE step i (the pre-horizon step for i=0), entry i+1 the
-        # weekday of step i itself -- the two lookups the window-start edge
-        # test needs, without re-deriving datetimes inside the builder.
-        step_weekdays = (
-            np.array(
-                [
-                    (step_datetimes[0] - timedelta(hours=dt)).weekday()
-                ]
-                + [d.weekday() for d in step_datetimes]
-            )
-            if self.model.params.dhw_weekly_windows is not None
-            else None
+        # Weekday per step, for weekly DHW windows (#3) and the per-weekday
+        # overrides (#1260); the helper returns None unless either is
+        # configured, so the flat no-override install pays nothing.
+        step_weekdays = _dhw_step_weekdays(
+            self.model.params, step_datetimes, dt
         )
         holiday_flags = _holiday_flags_for(
             step_datetimes, self.config.holiday_dates
@@ -4373,9 +4410,13 @@ class HeatPumpOptimizer:
         # window set is chosen per step from that step's own weekday.
         # `step_weekdays` is None on the flat (dayless) spec every install
         # already has, and `windows_for_day` then returns the fallback
-        # unchanged -- the every-day behaviour, bit for bit.
+        # unchanged -- the every-day behaviour, bit for bit. The per-weekday
+        # overrides (#1260) ride the same array: a flat spec with overrides
+        # set computes weekdays too, and `windows_for_day` applies the
+        # whole precedence chain (override > holiday > default) per step.
         weekly = params.dhw_weekly_windows
         holiday_windows = getattr(params, "dhw_holiday_windows", None)
+        day_overrides = getattr(params, "dhw_day_windows", None)
         in_window = np.array(
             [
                 hour_in_windows(
@@ -4387,6 +4428,7 @@ class HeatPumpOptimizer:
                         windows,
                         holiday_windows,
                         holiday_flags,
+                        day_overrides,
                     ),
                 )
                 for i, h in enumerate(hours_mod)
@@ -4404,6 +4446,7 @@ class HeatPumpOptimizer:
                         windows,
                         holiday_windows,
                         holiday_flags,
+                        day_overrides,
                     ),
                 )
                 for i, h in enumerate(hours_mod)
@@ -5940,7 +5983,6 @@ class HeatPumpOptimizer:
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
-
         t_elapsed = (time.monotonic() - t_start) * 1000
 
         dhw_active_steps = int(np.sum(optimal_dhw > 0.1))
@@ -5978,6 +6020,7 @@ class HeatPumpOptimizer:
                 "dhw_target_temperature": float(dhw_setpoint),
                 "dhw_usage_intensity_now": float(usage_intensity[0]) if len(usage_intensity) else 1.0,
                 "dhw_windows": dhw_plan.windows_text,
+                **_dhw_resolved_publish(self.model.params),
                 "dhw_in_demand_window": bool(in_demand_window[0]) if n_steps else False,
                 "dhw_next_window_in_hours": dhw_plan.next_window_in_hours,
                 "dhw_required_temperature_now": (
