@@ -430,6 +430,22 @@ def _lbfgsb_restart(
     return best
 
 
+#: The speculative candidates (every solved start after the raw-best one)
+#: get their polish restart at this fraction of the solve's maxiter. Three
+#: more FULL restarts were measured against the stress gate at the #1208
+#: head and refused twice over: the per-scenario CPU ceiling (shoulder/
+#: tariff+cycle 1107x its reference against the 860x budget; tariff+pv
+#: 877x; tariff+pv+cycle 1273x -- a restart that descends anew costs a
+#: solve's worth of evaluations, ~800 on those scenarios) and the work
+#: factor on unchanged plans (flat/1z/space 1.54x and typical_slab/
+#: shoulder 1.73x against 1.50x, from +3 restarts alone). A speculative
+#: polish exists to let a runner-up WIN (#1208), and the audit's flips are
+#: decided in the first iterations of the descent, so it is bounded rather
+#: than omitted: every solved start is still polished -- the race the
+#: finding measured is run -- at a maxiter the gate can afford.
+_SPECULATIVE_POLISH_DIVISOR = 16
+
+
 def _multi_start_minimize(
     objective: Callable[..., float],
     candidates: list[np.ndarray],
@@ -550,11 +566,18 @@ def _multi_start_minimize(
         # the loop, so a candidate whose own polish would have dropped below
         # that result never got one: measured on the round-5 grid, production
         # shipped up to 1.40% above the best its own code reaches from the
-        # same candidates. Each polish restarts from that candidate's own
-        # converged point, so it costs one short L-BFGS-B run, not a second
-        # solve; the cross-candidate minimum below is what ships.
+        # same candidates. The raw-best start (solve_index 0 -- scored order)
+        # keeps the FULL restart, byte-for-byte the #826 behaviour wherever
+        # only the leader's polish matters; the speculative starts get the
+        # same restart at a bounded maxiter (_SPECULATIVE_POLISH_DIVISOR's
+        # comment carries the measured refusals that bound it), so the
+        # cross-candidate race runs at a cost the per-scenario budgets allow.
         res = _lbfgsb_restart(
-            res, memoized, bounds, args, maxiter, batch_objective, fd_eps,
+            res, memoized, bounds, args,
+            maxiter if not solve_index else max(
+                4, maxiter // _SPECULATIVE_POLISH_DIVISOR
+            ),
+            batch_objective, fd_eps,
         )
         score = float(memoized(res.x, *args))
         if np.isfinite(score) and score < best_score:
