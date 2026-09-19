@@ -286,7 +286,7 @@ advanced pages.
 | When you need hot water | `06:00-08:30, 17:00-22:00` | 24-hour times, comma separated | The tank is heated in the cheapest hours before each period. Each period must be at least 15 minutes. Leave empty to let the integration learn your habits from actual usage. |
 | Holiday hot-water windows | empty | same grammar | Used on days the holiday calendar is on, instead of weekday/weekend. Leave empty to keep the ordinary schedule. |
 | Customize by weekday | off | on/off | Reveals seven fields, one per weekday, below the ordinary ones. |
-| Monday … Sunday | empty | 24-hour times, comma separated | Hot-water times for that weekday only. Leave empty to inherit. |
+| Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday | empty | 24-hour times, comma separated | Hot-water times for that weekday only. Leave empty to inherit. |
 
 **Per-weekday windows, and how the layers stack.** One schedule rarely fits
 a week with early workdays, a late Saturday and a Sunday that starts at
