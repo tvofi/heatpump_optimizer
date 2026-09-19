@@ -400,17 +400,8 @@ def _lbfgsb_restart(
     maxiter: int,
     batch_objective: Callable[..., Any] | None,
     fd_eps: float,
-    maxfun: int | None = None,
 ) -> Any:
-    """Restart L-BFGS-B from its own returned point. No new seed (#826).
-
-    ``maxfun`` bounds the restart's function evaluations when given: the
-    speculative candidates' polishes pass one (#1208), because their cost
-    is what the per-scenario budgets refuse -- see
-    ``_SPECULATIVE_POLISH_MAXFUN``. The adopted-point gate
-    (``_LBFGSB_RESTART_KEEP_REL``) applies on every path: a bounded polish
-    is adopted by exactly the same rule as a full one.
-    """
+    """Restart L-BFGS-B from its own returned point. No new seed (#826)."""
     _time_mod.sleep(0.002)
     jac = None
     if batch_objective is not None and _bounds_supported_by_batch(bounds):
@@ -419,9 +410,6 @@ def _lbfgsb_restart(
                 batch_objective, a, x,
                 float(objective(x, *a)), fd_eps, bounds,
             )
-    options: dict[str, Any] = {"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4}
-    if maxfun is not None:
-        options["maxfun"] = maxfun
     try:
         polished = _scoped_minimize(
             objective,
@@ -430,7 +418,7 @@ def _lbfgsb_restart(
             jac=jac,
             method="L-BFGS-B",
             bounds=bounds,
-            options=options,
+            options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
         )
     except Exception:  # pragma: no cover - solver blow-up
         return best
@@ -440,41 +428,6 @@ def _lbfgsb_restart(
     if np.isfinite(score) and (prior - score) > _LBFGSB_RESTART_KEEP_REL * scale:
         return polished
     return best
-
-
-#: The speculative candidates (every solved start after the raw-best one)
-#: get their polish restart at this fraction of the solve's maxiter, and at
-#: the hard function-evaluation cap below. Three FULL restarts were
-#: measured against the stress gate at the first #1208 head and refused
-#: twice over: the per-scenario CPU ceiling (shoulder/tariff+cycle 1107x
-#: its reference against the 860x budget; tariff+pv 877x; tariff+pv+cycle
-#: 1273x -- a restart that descends anew costs a solve's worth of
-#: evaluations, ~800 on those scenarios) and the work factor on unchanged
-#: plans (flat/1z/space 1.54x and typical_slab/shoulder 1.73x against
-#: 1.50x, from +3 restarts alone). An iteration cap alone was measured not
-#: to bound it either -- the line search can spend ~10 function
-#: evaluations per iteration -- so maxfun is the binding edge. A
-#: speculative polish exists to let a runner-up WIN (#1208), and the
-#: audit's flips are decided in the first iterations of the descent, so it
-#: is bounded rather than omitted: every solved start is still polished --
-#: the race the finding measured is run -- at a cost the budgets allow.
-_SPECULATIVE_POLISH_DIVISOR = 16
-_SPECULATIVE_POLISH_MAXFUN = 40
-
-
-def _polish_budget(solve_index: int, maxiter: int) -> tuple[int, int | None]:
-    """The restart budget for solved start ``solve_index`` (scored order).
-
-    The raw-best start (index 0) keeps the full #826 restart; every later
-    start is speculative and bounded -- the constants above carry the
-    measured refusals that sized the bound.
-    """
-    if solve_index:
-        return (
-            max(4, maxiter // _SPECULATIVE_POLISH_DIVISOR),
-            _SPECULATIVE_POLISH_MAXFUN,
-        )
-    return maxiter, None
 
 
 def _multi_start_minimize(
@@ -592,31 +545,14 @@ def _multi_start_minimize(
         except Exception as err:  # pragma: no cover - solver blow-up
             last_error = err
             continue
-        # Polish EVERY solved candidate, here inside the loop (#1208, round 5
-        # D0-02). The restart used to run once, on the raw-best result after
-        # the loop, so a candidate whose own polish would have dropped below
-        # that result never got one: measured on the round-5 grid, production
-        # shipped up to 1.40% above the best its own code reaches from the
-        # same candidates. The raw-best start (solve_index 0 -- scored order)
-        # keeps the FULL restart, byte-for-byte the #826 behaviour wherever
-        # only the leader's polish matters; the speculative starts get the
-        # same restart at the bounded budget the constants above carry, so
-        # the cross-candidate race runs at a cost the per-scenario budgets
-        # allow. The bound leaves a measured residual on the finder's own
-        # harness: the one cell whose winner needed a raw-rank-3 candidate's
-        # FULL descent still ships 0.072% above it (winter_extreme, two-zone,
-        # dhw off), against the 1.40% the finding sized.
-        polish_maxiter, polish_maxfun = _polish_budget(solve_index, maxiter)
-        res = _lbfgsb_restart(
-            res, memoized, bounds, args, polish_maxiter,
-            batch_objective, fd_eps, maxfun=polish_maxfun,
-        )
         score = float(memoized(res.x, *args))
         if np.isfinite(score) and score < best_score:
             best, best_score = res, score
     if best is None:
         raise last_error or ValueError("all starting points failed")
-    return best
+    return _lbfgsb_restart(
+        best, memoized, bounds, args, maxiter, batch_objective, fd_eps,
+    )
 
 
 #: Below this horizon-mean price (SEK/kWh) the smooth guess's normalisation

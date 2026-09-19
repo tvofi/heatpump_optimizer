@@ -259,20 +259,10 @@ _c7l, _v7l, _, _ = score_plan(_m7, np.asarray(_r7l.power_schedule),
                               _st7, _ot7, _wi7, _ra7, _so7, _pr7)
 print(f" stop-prod : cost {_c70:7.2f}  viol {_v70:.3f}")
 print(f" stop-rule: cost {_c7l:7.2f}  viol {_v7l:.3f}")
-# The bound was 1% (0.99) against a 2.6% measured gap until #1208 polished
-# every solved candidate inside the loop: the tight restarts now repair
-# most of what the loosened multi-start gives up -- this check's own
-# single-site comment predicted exactly that repair -- and the measured
-# gap on this cell is 0.30% (59.71 vs 59.88 at the #1207/#1208 head,
-# keep-rel 2e-5). Re-recorded at half that, keeping the check's design
-# (bound = measured gap / 2): the gap itself is still three orders over
-# the 4.4e-5 smallest basin flip, so BLAS-to-BLAS wobble cannot trip it,
-# and the failure construction is unchanged -- loosen production's ftol
-# toward the arm and the two solves converge past it.
 R.check("the production stop rule (ftol) buys a materially better plan",
-        _v7l <= 1e-6 and _c70 <= _c7l * 0.9985,
+        _v7l <= 1e-6 and _c70 <= _c7l * 0.99,
         f"ftol 1e-6 {_c70:.2f} vs loosened 1e-3 {_c7l:.2f} "
-        f"({100.0*(_c7l-_c70)/_c7l:.2f}% gap, bound 0.15%)")
+        f"({100.0*(_c7l-_c70)/_c7l:.1f}% gap)")
 
 # Challenger 6: the ZERO-RANGE-BOUND path (#286/#287). Every solve above
 # leaves each variable a strictly positive range. One forced-off manual pin
