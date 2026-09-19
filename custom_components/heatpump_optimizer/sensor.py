@@ -483,7 +483,7 @@ class PredictedSavingsSensor(HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "predicted_savings", "predicted_savings")
+        super().__init__(coordinator, entry, "predicted_savings", "plan_predicted_savings")
         self._attr_native_unit_of_measurement = coordinator.currency
 
     @property
@@ -506,7 +506,7 @@ class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "monthly_savings", "monthly_savings")
+        super().__init__(coordinator, entry, "monthly_savings", "plan_monthly_savings")
         self._attr_native_unit_of_measurement = coordinator.currency
 
     def _rows(self) -> list[Any]:
@@ -540,7 +540,7 @@ class SavingsPercentageSensor(HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 1
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "savings_percentage", "savings_percentage")
+        super().__init__(coordinator, entry, "savings_percentage", "plan_savings_percentage")
 
     @property
     def native_value(self) -> float | None:
@@ -569,7 +569,7 @@ class PredictedCostSensor(HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "predicted_cost", "predicted_cost")
+        super().__init__(coordinator, entry, "predicted_cost", "cost_predicted")
         self._attr_native_unit_of_measurement = coordinator.currency
 
     @property
@@ -585,7 +585,7 @@ class BaselineCostSensor(HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "baseline_cost", "baseline_cost")
+        super().__init__(coordinator, entry, "baseline_cost", "cost_baseline")
         self._attr_native_unit_of_measurement = coordinator.currency
 
     @property
@@ -604,7 +604,7 @@ class CurrentPriceSensor(HeatPumpOptimizerSensorBase):
     # so declaring it here made HA reject the sensor's statistics.
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "current_price", "current_electricity_price")
+        super().__init__(coordinator, entry, "current_price", "cost_current_electricity_price")
         self._attr_native_unit_of_measurement = f"{coordinator.currency}/kWh"
 
     @property
@@ -667,7 +667,7 @@ class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "current_cop", "estimated_cop")
+        super().__init__(coordinator, entry, "current_cop", "learning_estimated_cop")
 
     @property
     def native_value(self) -> float | None:
@@ -1632,7 +1632,7 @@ class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "observed_cop", "observed_cop")
+        super().__init__(coordinator, entry, "observed_cop", "learning_observed_cop")
 
     def _modelled_cop(self, data: dict[str, Any]) -> float | None:
         model = getattr(self.coordinator, "_thermal_model", None)
@@ -1811,7 +1811,7 @@ class TotalCostSensor(_AccumulatingCostSensor):
     _data_key = "total_cost"
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "total_cost", "total_heating_cost")
+        super().__init__(coordinator, entry, "total_cost", "cost_total_heating")
 
 
 # ---------------------------------------------------------------------------
@@ -1887,7 +1887,7 @@ class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "monthly_peak", "monthly_peak_power")
+        super().__init__(coordinator, entry, "monthly_peak", "cost_monthly_peak_power")
 
     @property
     def available(self) -> bool:
@@ -2107,7 +2107,7 @@ class ComfortWeightSensor(HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "comfort_weight", "comfort_weight")
+        super().__init__(coordinator, entry, "comfort_weight", "learning_comfort_weight")
 
     @property
     def native_value(self) -> float | None:
@@ -2141,7 +2141,7 @@ class ContractComparisonSensor(
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
-            coordinator, entry, "contract_comparison", "contract_comparison"
+            coordinator, entry, "contract_comparison", "cost_contract_comparison"
         )
         self._attr_native_unit_of_measurement = f"{coordinator.currency}/kWh"
 
@@ -2196,7 +2196,7 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
-            coordinator, entry, "power_headroom", "power_headroom"
+            coordinator, entry, "power_headroom", "cost_power_headroom"
         )
 
     @property
@@ -2441,7 +2441,7 @@ class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
-            coordinator, entry, "optimization_score", "optimization_score"
+            coordinator, entry, "optimization_score", "plan_optimization_score"
         )
 
     @property

@@ -1558,14 +1558,8 @@
   },
   "entity": {
     "sensor": {
-      "baseline_cost": {
-        "name": "Kostnad referens"
-      },
       "buffer_tank_temperature_model": {
         "name": "Ackumulatortankens temperatur (modell)"
-      },
-      "comfort_weight": {
-        "name": "Inlärning komfortvikt"
       },
       "compressor_frequency_advisor": {
         "name": "Rådgivare för kompressorfrekvens"
@@ -1573,11 +1567,26 @@
       "compressor_starts": {
         "name": "Kompressorstarter"
       },
-      "contract_comparison": {
+      "cost_baseline": {
+        "name": "Kostnad referens"
+      },
+      "cost_contract_comparison": {
         "name": "Kostnad avtalsjämförelse"
       },
-      "current_electricity_price": {
+      "cost_current_electricity_price": {
         "name": "Kostnad elpris (nu)"
+      },
+      "cost_monthly_peak_power": {
+        "name": "Kostnad månadens effekttopp"
+      },
+      "cost_power_headroom": {
+        "name": "Kostnad effektmarginal"
+      },
+      "cost_predicted": {
+        "name": "Kostnad prognos"
+      },
+      "cost_total_heating": {
+        "name": "Kostnad total uppvärmning (totalt)"
       },
       "dhw_cost": {
         "name": "Varmvattenkostnad (totalt)"
@@ -1612,9 +1621,6 @@
       "ecl110_effective_displace": {
         "name": "ECL110 effektiv förskjutning"
       },
-      "estimated_cop": {
-        "name": "Inlärning beräknad COP"
-      },
       "floor_heating_return_temperature": {
         "name": "Golvvärmens returtemperatur"
       },
@@ -1638,23 +1644,23 @@
       "last_optimization": {
         "name": "Senaste optimering"
       },
+      "learning_comfort_weight": {
+        "name": "Inlärning komfortvikt"
+      },
+      "learning_estimated_cop": {
+        "name": "Inlärning beräknad COP"
+      },
+      "learning_observed_cop": {
+        "name": "Inlärning observerad COP"
+      },
       "lower_floor_temperature": {
         "name": "Temperatur nedervåning"
       },
       "measured_power": {
         "name": "Uppmätt effekt"
       },
-      "monthly_peak_power": {
-        "name": "Kostnad månadens effekttopp"
-      },
-      "monthly_savings": {
-        "name": "Plan månatligt sparande"
-      },
       "next_optimization": {
         "name": "Nästa optimering"
-      },
-      "observed_cop": {
-        "name": "Inlärning observerad COP"
       },
       "optimal_setpoint": {
         "name": "Optimalt börvärde"
@@ -1676,14 +1682,14 @@
       "optimization_schedule_steps": {
         "name": "Optimeringsschema, antal steg"
       },
-      "optimization_score": {
-        "name": "Plan optimeringsbetyg"
-      },
       "optimization_status": {
         "name": "Optimeringsstatus"
       },
       "outdoor_temperature_optimizer": {
         "name": "Utomhustemperatur (optimeraren)"
+      },
+      "plan_monthly_savings": {
+        "name": "Plan månatligt sparande"
       },
       "plan_narrative": {
         "name": "Planbeskrivning",
@@ -1704,14 +1710,14 @@
           "untagged": "Utanför planen"
         }
       },
-      "power_headroom": {
-        "name": "Kostnad effektmarginal"
+      "plan_optimization_score": {
+        "name": "Plan optimeringsbetyg"
       },
-      "predicted_cost": {
-        "name": "Kostnad prognos"
-      },
-      "predicted_savings": {
+      "plan_predicted_savings": {
         "name": "Plan beräknad besparing"
+      },
+      "plan_savings_percentage": {
+        "name": "Plan besparing i procent"
       },
       "prediction_accuracy": {
         "name": "Prognosnoggrannhet"
@@ -1722,8 +1728,8 @@
       "recommended_power": {
         "name": "Rekommenderad effekt"
       },
-      "savings_percentage": {
-        "name": "Plan besparing i procent"
+      "sensor_gap_advisor": {
+        "name": "Sensorlucka i euro"
       },
       "slab_temperature_estimated": {
         "name": "Golvplattans temperatur (uppskattad)"
@@ -1755,17 +1761,11 @@
       "total_energy": {
         "name": "Total energi (totalt)"
       },
-      "total_heating_cost": {
-        "name": "Kostnad total uppvärmning (totalt)"
-      },
       "upper_floor_temperature": {
         "name": "Temperatur övervåning"
       },
       "valve_target_recommendation": {
         "name": "Rekommenderat läge för shuntventil"
-      },
-      "sensor_gap_advisor": {
-        "name": "Sensorlucka i euro"
       },
       "wood_burn_advisor": {
         "name": "Vedeldning, natt råd"
@@ -1792,14 +1792,14 @@
       "diagnose_last_interval": {
         "name": "Diagnostisera senaste intervallet"
       },
-      "optimize_now": {
-        "name": "Optimera nu"
-      },
-      "reset_learned_comfort_weight": {
+      "learning_reset_comfort_weight": {
         "name": "Inlärning återställ komfortvikt"
       },
-      "run_system_identification": {
+      "learning_run_system_identification": {
         "name": "Inlärning kör systemidentifiering"
+      },
+      "optimize_now": {
+        "name": "Optimera nu"
       }
     },
     "switch": {

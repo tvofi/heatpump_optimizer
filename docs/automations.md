@@ -7,12 +7,12 @@ exactly that where the trade-off is made). The examples below are complete and
 use only entities and services this integration actually creates. The entity
 prefix follows the name you gave the entry: these examples assume the default
 `Heat Pump Optimizer`, so they read
-`sensor.heat_pump_optimizer_power_headroom` — change the prefix if you named
+`sensor.heat_pump_optimizer_cost_power_headroom` — change the prefix if you named
 yours differently.
 
 ## Automation example: charge an EV from the Cost Power Headroom sensor
 
-The Cost Power Headroom sensor (`sensor.heat_pump_optimizer_power_headroom`) is
+The Cost Power Headroom sensor (`sensor.heat_pump_optimizer_cost_power_headroom`) is
 `min(main fuse, capacity threshold) − current house draw`, clamped at zero, in
 kW — a number an EV charger can follow. It stays unavailable only while
 nothing bounds the house: set a main fuse size in the options, or enable a
@@ -33,16 +33,16 @@ automation:
   - alias: Charge the EV while the grid has headroom
     trigger:
       - platform: numeric_state
-        entity_id: sensor.heat_pump_optimizer_power_headroom
+        entity_id: sensor.heat_pump_optimizer_cost_power_headroom
         above: 5
       - platform: numeric_state
-        entity_id: sensor.heat_pump_optimizer_power_headroom
+        entity_id: sensor.heat_pump_optimizer_cost_power_headroom
         below: 2
     action:
       - choose:
           - conditions:
               - condition: numeric_state
-                entity_id: sensor.heat_pump_optimizer_power_headroom
+                entity_id: sensor.heat_pump_optimizer_cost_power_headroom
                 above: 2
             sequence:
               - service: switch.turn_on
@@ -60,7 +60,7 @@ writing it to the charger's current entity with `number.set_value`.
 ## Automation example: economy mode when electricity is expensive
 
 The Cost Electricity Price (now) sensor
-(`sensor.heat_pump_optimizer_current_electricity_price`) publishes the hourly
+(`sensor.heat_pump_optimizer_cost_current_electricity_price`) publishes the hourly
 spot price in your currency per kWh. `set_mode` accepts `auto`, `comfort`,
 `economy`, `boost` and `off`: economy lets the plan ride out expensive hours up
 to 1.5 °C below the comfort floor (never below 15 °C), and `auto` hands full
@@ -71,11 +71,11 @@ automation:
   - alias: Economy mode through the evening price peak
     trigger:
       - platform: numeric_state
-        entity_id: sensor.heat_pump_optimizer_current_electricity_price
+        entity_id: sensor.heat_pump_optimizer_cost_current_electricity_price
         above: 0.40
         id: price_high
       - platform: numeric_state
-        entity_id: sensor.heat_pump_optimizer_current_electricity_price
+        entity_id: sensor.heat_pump_optimizer_cost_current_electricity_price
         below: 0.25
         id: price_back_down
     action:

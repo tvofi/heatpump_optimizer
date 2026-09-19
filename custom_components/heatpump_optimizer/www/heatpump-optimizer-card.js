@@ -1255,13 +1255,31 @@ const PLAN_STEP_MS = 15 * 60000;
 // The headline row's sensors, found by entity-id suffix. Unlike the plan
 // sensors these publish no `plan_kind`-style marker to discover them by, so
 // the id suffix — stable under has_entity_name for any device name — is the
-// contract. Order matters only to the re-render signature.
+// contract. Order matters only to the re-render signature. #1227 prefixed
+// four of these keys with their family (`predicted_savings` ->
+// `plan_predicted_savings`) for NEW installs only; the unique ids are
+// untouched, so an existing install keeps its pre-#1227 registry ids.
+// `statEntity` therefore also knows each renamed sensor's old suffix
+// (LEGACY_STAT_SUFFIXES below) and tries it after the current one, so both
+// id generations resolve.
 const HEADLINE_SUFFIXES = [
-  "_predicted_savings",
-  "_savings_percentage",
-  "_optimization_score",
+  "_plan_predicted_savings",
+  "_plan_savings_percentage",
+  "_plan_optimization_score",
   "_plan_narrative",
 ];
+// The pre-#1227 suffix of every headline stat #1227 renamed, keyed by the
+// suffix the card asks for. A lookup tries the current suffix first and the
+// legacy one after, on the derivation path and in the global scan alike
+// (the legacy suffix also ends-matches the new id, so an install that
+// somehow carries both resolves to the family-prefixed one, which sorts
+// first). Suffixes not listed here — `_plan_narrative` — never moved.
+const LEGACY_STAT_SUFFIXES = {
+  "_plan_predicted_savings": "_predicted_savings",
+  "_plan_savings_percentage": "_savings_percentage",
+  "_plan_optimization_score": "_optimization_score",
+  "_plan_monthly_savings": "_monthly_savings",
+};
 // Slot-drag edge auto-pan: how close to the plot edge (screen px) engages it,
 // and how often the parked pointer advances the view.
 const AUTOPAN_MARGIN_PX = 28;
@@ -4262,19 +4280,29 @@ class PlanSource {
     const cached = this.statCache[suffix];
     if (cached && states[cached]) return states[cached];
 
-    for (const [kind, planSuffix] of [
-      ["space", "_space_heating_plan"],
-      ["dhw", "_dhw_heating_plan"],
-    ]) {
-      const planId = this.resolveEntity(kind);
-      if (!planId || !states[planId] || !planId.endsWith(planSuffix)) {
-        continue;
-      }
-      const candidate = planId.slice(0, -planSuffix.length) + suffix;
-      if (states[candidate]) {
-        this.statCache[suffix] = candidate;
-        delete this.statMissAt[suffix];
-        return states[candidate];
+    // #1227 renamed four of these ids for new installs; an existing install
+    // keeps its pre-#1227 registry id. Try the current suffix, then the
+    // legacy one, on the derivation path and in the scan alike.
+    const candidates = [suffix];
+    if (LEGACY_STAT_SUFFIXES[suffix]) {
+      candidates.push(LEGACY_STAT_SUFFIXES[suffix]);
+    }
+
+    for (const cand of candidates) {
+      for (const [kind, planSuffix] of [
+        ["space", "_space_heating_plan"],
+        ["dhw", "_dhw_heating_plan"],
+      ]) {
+        const planId = this.resolveEntity(kind);
+        if (!planId || !states[planId] || !planId.endsWith(planSuffix)) {
+          continue;
+        }
+        const candidate = planId.slice(0, -planSuffix.length) + cand;
+        if (states[candidate]) {
+          this.statCache[suffix] = candidate;
+          delete this.statMissAt[suffix];
+          return states[candidate];
+        }
       }
     }
 
@@ -4282,11 +4310,13 @@ class PlanSource {
     if (this.statMissAt[suffix] === count) return null;
     // Sorted iteration makes a tie deterministic, the same choice
     // `_resolveEntity` makes.
-    for (const id of Object.keys(states).sort()) {
-      if (!id.startsWith("sensor.") || !id.endsWith(suffix)) continue;
-      this.statCache[suffix] = id;
-      delete this.statMissAt[suffix];
-      return states[id];
+    for (const cand of candidates) {
+      for (const id of Object.keys(states).sort()) {
+        if (!id.startsWith("sensor.") || !id.endsWith(cand)) continue;
+        this.statCache[suffix] = id;
+        delete this.statMissAt[suffix];
+        return states[id];
+      }
     }
     this.statMissAt[suffix] = count;
     return null;
@@ -5845,7 +5875,7 @@ function headlineSignature(plan, cfg) {
  * so rather than printing 0/100 for something unmeasured.
  */
 function scoreParts(plan) {
-  const st = plan.statEntity("_optimization_score");
+  const st = plan.statEntity("_plan_optimization_score");
   const attrs = (st && st.attributes) || {};
   return [
     { key: "envelope", label: L("score.label_envelope"), value: finiteScore(attrs.envelope) },
@@ -5896,13 +5926,13 @@ function headlineHtml(plan, cfg, scoreOpen) {
   if (!cfg.show_stats) return "";
   const items = [];
 
-  const savings = plan.statNumber("_predicted_savings");
+  const savings = plan.statNumber("_plan_predicted_savings");
   if (savings !== null) {
-    const pct = plan.statNumber("_savings_percentage");
+    const pct = plan.statNumber("_plan_savings_percentage");
     // The savings sensor declares the unit its value is denominated in;
     // nothing here converts, so a card-config `currency:` must not relabel
     // it. `_currency()` only fills in when the sensor declares no unit.
-    const savingsSt = plan.statEntity("_predicted_savings");
+    const savingsSt = plan.statEntity("_plan_predicted_savings");
     const unit =
       (savingsSt &&
         savingsSt.attributes &&
@@ -5926,7 +5956,7 @@ function headlineHtml(plan, cfg, scoreOpen) {
     });
   }
 
-  const score = plan.statNumber("_optimization_score");
+  const score = plan.statNumber("_plan_optimization_score");
   if (score !== null) {
     // The hover says what the score is; the sub-scores ride the same
     // sensor's attributes, so the hover can also say what it is MADE OF
@@ -10260,7 +10290,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * picker) and `layout` (the editor's bar and its working drawing).
    */
   _savingsPageHtml() {
-    const st = this.plan.statEntity("_monthly_savings");
+    const st = this.plan.statEntity("_plan_monthly_savings");
     const rows = st && st.attributes && Array.isArray(st.attributes.savings_months)
       ? st.attributes.savings_months
       : [];

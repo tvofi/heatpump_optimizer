@@ -751,7 +751,7 @@ def _hra_headroom_entity(extra_config):
     return next(
         e
         for e in collect(sensor, data=coord._build_data_dict())
-        if getattr(e, "_attr_translation_key", None) == "power_headroom"
+        if getattr(e, "_attr_translation_key", None) == "cost_power_headroom"
     )
 
 
@@ -8214,27 +8214,33 @@ R.check(
 # non-membership for the same reason in reverse.  Read the registered
 # strings.json (via _ENTITY_STRINGS), the table the frontend resolves
 # names from -- not a roster this test supplies.
+# #1227 (round-5 D8-02) went the other half: the 16 translation keys behind
+# Cost/Plan/Learning carry their family prefix too, so the OBJECT-ID sort
+# keeps each family in one run (the D8 harness's family_splits_by_entity_id
+# 13 -> 3, the residue all platform-prefix boundaries a key cannot cross).
+# New installs only -- unique ids are untouched. The table below therefore
+# reads the renamed keys, and pins the same name prefixes as #945 chose.
 _CLUSTER_PREFIXES: dict[str, dict[str, str]] = {
     "sensor": {
-        "baseline_cost": "Cost ",
-        "predicted_cost": "Cost ",
-        "total_heating_cost": "Cost ",
-        "current_electricity_price": "Cost ",
-        "contract_comparison": "Cost ",
-        "monthly_peak_power": "Cost ",
-        "power_headroom": "Cost ",
-        "comfort_weight": "Learning ",
-        "estimated_cop": "Learning ",
-        "observed_cop": "Learning ",
-        "predicted_savings": "Plan ",
-        "savings_percentage": "Plan ",
-        "monthly_savings": "Plan ",
-        "optimization_score": "Plan ",
+        "cost_baseline": "Cost ",
+        "cost_contract_comparison": "Cost ",
+        "cost_current_electricity_price": "Cost ",
+        "cost_monthly_peak_power": "Cost ",
+        "cost_power_headroom": "Cost ",
+        "cost_predicted": "Cost ",
+        "cost_total_heating": "Cost ",
+        "learning_comfort_weight": "Learning ",
+        "learning_estimated_cop": "Learning ",
+        "learning_observed_cop": "Learning ",
+        "plan_monthly_savings": "Plan ",
+        "plan_optimization_score": "Plan ",
+        "plan_predicted_savings": "Plan ",
+        "plan_savings_percentage": "Plan ",
         "plan_narrative": "Plan ",
     },
     "button": {
-        "run_system_identification": "Learning ",
-        "reset_learned_comfort_weight": "Learning ",
+        "learning_run_system_identification": "Learning ",
+        "learning_reset_comfort_weight": "Learning ",
     },
     "switch": {"boost_dhw": "DHW "},
 }
@@ -8281,10 +8287,10 @@ for _display, _expected_id in (
     ("Solar Irradiance", "sensor.heat_pump_optimizer_solar_irradiance"),
     ("Space Heating Plan (next 24 h)", "sensor.heat_pump_optimizer_space_heating_plan"),
     ("DHW Heating Plan (next 24 h)", "sensor.heat_pump_optimizer_dhw_heating_plan"),
-    ("Plan Predicted Savings", "sensor.heat_pump_optimizer_predicted_savings"),
-    ("Plan Monthly Savings", "sensor.heat_pump_optimizer_monthly_savings"),
-    ("Plan Savings Percentage", "sensor.heat_pump_optimizer_savings_percentage"),
-    ("Plan Optimization Score", "sensor.heat_pump_optimizer_optimization_score"),
+    ("Plan Predicted Savings", "sensor.heat_pump_optimizer_plan_predicted_savings"),
+    ("Plan Monthly Savings", "sensor.heat_pump_optimizer_plan_monthly_savings"),
+    ("Plan Savings Percentage", "sensor.heat_pump_optimizer_plan_savings_percentage"),
+    ("Plan Optimization Score", "sensor.heat_pump_optimizer_plan_optimization_score"),
     ("Plan Narrative", "sensor.heat_pump_optimizer_plan_narrative"),
     ("Optimal Setpoint", "sensor.heat_pump_optimizer_optimal_setpoint"),
     ("Recommended Power", "sensor.heat_pump_optimizer_recommended_power"),
@@ -8299,13 +8305,17 @@ for _display, _expected_id in (
         str(by_name[_display].entity_id),
     )
 # The card derives headline-stat ids from the plan sensor id by suffix swap;
-# that derivation must keep landing on real ids.
+# that derivation must keep landing on real ids. #1227 moved five headline
+# suffixes with their keys; the card reads the family-prefixed suffix and
+# keeps each pre-#1227 suffix as its legacy fallback (the card's
+# LEGACY_STAT_SUFFIXES, pinned just below), so on this roster the derivation
+# is required to land with the CURRENT suffix.
 _plan_id = by_name["Space Heating Plan (next 24 h)"].entity_id
 for _stat_suffix in (
-    "_predicted_savings",
-    "_monthly_savings",
-    "_savings_percentage",
-    "_optimization_score",
+    "_plan_predicted_savings",
+    "_plan_savings_percentage",
+    "_plan_optimization_score",
+    "_plan_monthly_savings",
     "_plan_narrative",
 ):
     _derived = _plan_id.replace("_space_heating_plan", _stat_suffix)
@@ -8313,6 +8323,92 @@ for _stat_suffix in (
         f"the card's suffix derivation for {_stat_suffix} stays valid",
         _derived in {s.entity_id for s in sensors},
         _derived,
+    )
+
+# --- D8-02 (#1227): the card's legacy suffixes for pre-#1227 installs ------
+#
+# Renaming a key changes the SUGGESTED object id for new installs only; an
+# existing install keeps its registry id, so the card must also resolve the
+# pre-#1227 suffixes. Read the card's own map, so deleting a legacy entry
+# fails here rather than silently stripping headline stats from upgrades.
+_card_legacy = {}
+try:
+    _card_src = (
+        pathlib.Path(__file__).resolve().parent.parent
+        / "custom_components" / "heatpump_optimizer" / "www"
+        / "heatpump-optimizer-card.js"
+    ).read_text()
+except OSError:
+    _card_src = ""
+_legacy_block = re.search(
+    r"const LEGACY_STAT_SUFFIXES = \{(.*?)\};", _card_src, re.S
+)
+if _legacy_block:
+    for _m in re.finditer(r'"([^"]+)":\s*"([^"]+)"', _legacy_block.group(1)):
+        _card_legacy[_m.group(1)] = _m.group(2)
+R.check(
+    "the card keeps a legacy suffix for every #1227-renamed headline stat",
+    all(
+        _card_legacy.get(_new) == _old
+        for _new, _old in (
+            ("_plan_predicted_savings", "_predicted_savings"),
+            ("_plan_savings_percentage", "_savings_percentage"),
+            ("_plan_optimization_score", "_optimization_score"),
+            ("_plan_monthly_savings", "_monthly_savings"),
+        )
+    ),
+    str(_card_legacy),
+)
+
+# --- D8-02 (#1227): one entity-id run per family ---------------------------
+#
+# Sixteen translation keys moved to carry their family prefix (Cost/Plan/
+# Learning), so the OBJECT-ID sort keeps each family in one run -- the D8
+# harness's family_splits_by_entity_id 13 -> 3, the residue all
+# platform-prefix boundaries no key can cross. NEW installs only: the
+# unique ids are untouched, so an existing install keeps its entity id and
+# its history through the registry (the #174 pattern above).
+for _display, _new_id, _uid in (
+    ("Cost Baseline", "sensor.heat_pump_optimizer_cost_baseline", "baseline_cost"),
+    ("Cost Contract Comparison", "sensor.heat_pump_optimizer_cost_contract_comparison", "contract_comparison"),
+    ("Cost Electricity Price (now)", "sensor.heat_pump_optimizer_cost_current_electricity_price", "current_price"),
+    ("Cost Monthly Peak Power", "sensor.heat_pump_optimizer_cost_monthly_peak_power", "monthly_peak"),
+    ("Cost Power Headroom", "sensor.heat_pump_optimizer_cost_power_headroom", "power_headroom"),
+    ("Cost Predicted", "sensor.heat_pump_optimizer_cost_predicted", "predicted_cost"),
+    ("Cost Total Heating (lifetime)", "sensor.heat_pump_optimizer_cost_total_heating", "total_cost"),
+    ("Learning Comfort Weight", "sensor.heat_pump_optimizer_learning_comfort_weight", "comfort_weight"),
+    ("Learning Estimated COP", "sensor.heat_pump_optimizer_learning_estimated_cop", "current_cop"),
+    ("Learning Observed COP", "sensor.heat_pump_optimizer_learning_observed_cop", "observed_cop"),
+    ("Plan Monthly Savings", "sensor.heat_pump_optimizer_plan_monthly_savings", "monthly_savings"),
+    ("Plan Optimization Score", "sensor.heat_pump_optimizer_plan_optimization_score", "optimization_score"),
+    ("Plan Predicted Savings", "sensor.heat_pump_optimizer_plan_predicted_savings", "predicted_savings"),
+    ("Plan Savings Percentage", "sensor.heat_pump_optimizer_plan_savings_percentage", "savings_percentage"),
+):
+    _moved = by_name.get(_display)
+    R.check(
+        f"{_display} suggests {_new_id} on new installs (#1227)",
+        _moved is not None and _moved.entity_id == _new_id,
+        str(getattr(_moved, "entity_id", None)),
+    )
+    R.check(
+        f"{_display} keeps unique id ..._{_uid}, so existing installs keep their entity id",
+        _moved is not None and _moved._attr_unique_id == f"{ENTRY.entry_id}_{_uid}",
+        str(getattr(_moved, "_attr_unique_id", None)),
+    )
+for _display, _new_id, _uid in (
+    ("Learning Reset Comfort Weight", "button.heat_pump_optimizer_learning_reset_comfort_weight", "reset_comfort_weight"),
+    ("Learning Run System Identification", "button.heat_pump_optimizer_learning_run_system_identification", "system_identification"),
+):
+    _moved = btn_by_name.get(_display)
+    R.check(
+        f"{_display} suggests {_new_id} on new installs (#1227)",
+        _moved is not None and _moved.entity_id == _new_id,
+        str(getattr(_moved, "entity_id", None)),
+    )
+    R.check(
+        f"{_display} keeps unique id ..._{_uid}, so existing installs keep their entity id",
+        _moved is not None and _moved._attr_unique_id == f"{ENTRY.entry_id}_{_uid}",
+        str(getattr(_moved, "_attr_unique_id", None)),
     )
 
 # Belt-and-braces for the future: the four headline sensors advertise a

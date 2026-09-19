@@ -21,25 +21,19 @@
       "diagnose_last_interval": {
         "default": "mdi:stethoscope"
       },
-      "optimize_now": {
-        "default": "mdi:play-circle-outline"
-      },
-      "reset_learned_comfort_weight": {
+      "learning_reset_comfort_weight": {
         "default": "mdi:restore"
       },
-      "run_system_identification": {
+      "learning_run_system_identification": {
         "default": "mdi:flask-outline"
+      },
+      "optimize_now": {
+        "default": "mdi:play-circle-outline"
       }
     },
     "sensor": {
-      "baseline_cost": {
-        "default": "mdi:currency-usd-off"
-      },
       "buffer_tank_temperature_model": {
         "default": "mdi:water-boiler"
-      },
-      "comfort_weight": {
-        "default": "mdi:scale-balance"
       },
       "compressor_frequency_advisor": {
         "default": "mdi:pump"
@@ -47,11 +41,26 @@
       "compressor_starts": {
         "default": "mdi:counter"
       },
-      "contract_comparison": {
+      "cost_baseline": {
+        "default": "mdi:currency-usd-off"
+      },
+      "cost_contract_comparison": {
         "default": "mdi:file-compare"
       },
-      "current_electricity_price": {
+      "cost_current_electricity_price": {
         "default": "mdi:flash"
+      },
+      "cost_monthly_peak_power": {
+        "default": "mdi:chart-bell-curve"
+      },
+      "cost_power_headroom": {
+        "default": "mdi:transmission-tower"
+      },
+      "cost_predicted": {
+        "default": "mdi:currency-usd"
+      },
+      "cost_total_heating": {
+        "default": "mdi:cash-multiple"
       },
       "dhw_cost": {
         "default": "mdi:cash"
@@ -86,9 +95,6 @@
       "ecl110_effective_displace": {
         "default": "mdi:chart-bell-curve"
       },
-      "estimated_cop": {
-        "default": "mdi:gauge"
-      },
       "floor_heating_return_temperature": {
         "default": "mdi:pipe-valve"
       },
@@ -112,23 +118,23 @@
       "last_optimization": {
         "default": "mdi:clock-check-outline"
       },
+      "learning_comfort_weight": {
+        "default": "mdi:scale-balance"
+      },
+      "learning_estimated_cop": {
+        "default": "mdi:gauge"
+      },
+      "learning_observed_cop": {
+        "default": "mdi:gauge-full"
+      },
       "lower_floor_temperature": {
         "default": "mdi:home-floor-0"
       },
       "measured_power": {
         "default": "mdi:meter-electric"
       },
-      "monthly_peak_power": {
-        "default": "mdi:chart-bell-curve"
-      },
-      "monthly_savings": {
-        "default": "mdi:calendar-month"
-      },
       "next_optimization": {
         "default": "mdi:clock-outline"
-      },
-      "observed_cop": {
-        "default": "mdi:gauge-full"
       },
       "optimal_setpoint": {
         "default": "mdi:thermometer-lines"
@@ -150,14 +156,14 @@
       "optimization_schedule_steps": {
         "default": "mdi:format-list-numbered"
       },
-      "optimization_score": {
-        "default": "mdi:speedometer"
-      },
       "optimization_status": {
         "default": "mdi:check-circle-outline"
       },
       "outdoor_temperature_optimizer": {
         "default": "mdi:sun-thermometer"
+      },
+      "plan_monthly_savings": {
+        "default": "mdi:calendar-month"
       },
       "plan_narrative": {
         "default": "mdi:text-long",
@@ -178,14 +184,14 @@
           "untagged": "mdi:help-circle-outline"
         }
       },
-      "power_headroom": {
-        "default": "mdi:transmission-tower"
+      "plan_optimization_score": {
+        "default": "mdi:speedometer"
       },
-      "predicted_cost": {
-        "default": "mdi:currency-usd"
-      },
-      "predicted_savings": {
+      "plan_predicted_savings": {
         "default": "mdi:piggy-bank-outline"
+      },
+      "plan_savings_percentage": {
+        "default": "mdi:percent"
       },
       "prediction_accuracy": {
         "default": "mdi:target"
@@ -198,9 +204,6 @@
       },
       "sensor_gap_advisor": {
         "default": "mdi:gauge-empty"
-      },
-      "savings_percentage": {
-        "default": "mdi:percent"
       },
       "slab_temperature_estimated": {
         "default": "mdi:floor-plan"
@@ -231,9 +234,6 @@
       },
       "total_energy": {
         "default": "mdi:counter"
-      },
-      "total_heating_cost": {
-        "default": "mdi:cash-multiple"
       },
       "upper_floor_temperature": {
         "default": "mdi:home-floor-1"
