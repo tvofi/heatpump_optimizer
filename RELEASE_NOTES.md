@@ -1,5 +1,57 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.6.4
+
+the #1067 feature chain lands — device pre-fill from a heat-pump device, the
+disinfection switch's control half, and the fuzzy fallback resolver — plus the
+pre-fill offer at device-add and a run of instrument repairs
+
+### Added
+
+**The disinfection switch's control half** (#1142). W1067-G5b: an observe/control
+mode selector, the switch driven to match the anti-legionella boost, and a write
+landed only on a read-back.
+
+**Options pre-fill from a heat-pump device** (#1149, #1150, #1153). W1067-G7b:
+the resolver interface and tuya_heat_pump table (G7b-1); the tuya_local table and
+the localtuya decision — localtuya carries no firmware signature, so it falls
+back (G7b-2); and the fuzzy fallback matching by type, unit and name with a
+disclaimer, threshold 0.60 / margin 0.08 measured over a labelled corpus with
+zero wrong suggestions (G7b-3).
+
+**The pre-fill offered at device-add** (#1156). W1067-POST1, behind a global off
+switch (default off); the qualifying minimum of 1 is read off the corpus.
+
+**The #1067 close-out** (#1154). Delivery-status rows, the plan table, the roster,
+and the handover; closes #1067.
+
+### Fixed
+
+**The nightly A5 walk flagged the two-submit pre-fill page** (#1152). The walk
+resubmitted every page once, so the pre-fill page, which needs two submits, read
+as `not-save-or-menu`; the walk now drives it correctly.
+
+**A gate lease outlived the seat that took it** (#1158). A lease whose named
+owner process is gone is now stolen.
+
+**Instrument repairs** (#1157, #1159, #1160, #1161, #1162): `policy_lint --list`
+reports all 11 wired corpus checks; the mutation table's `run_script` returns its
+stdout so a refusal names the red check; the mutation budget's stale reason and
+its recorded full run; `checkPrBody` records reds across a pull request's own
+commits; and three tooling defects — a swallowed `merge()` output, a
+`frictionEntries` none-bug, and an unpinned `pr-contract` fail-closed listing.
+
+**Governance and record repairs** (#1163, #1164, #1165): the SessionStart hook now
+reports the checkout's distance behind main (it printed `merge-base`, which on an
+ancestor checkout reads as its own SHA); the harness header reader reads the whole
+file (it matched `[:4000]`, dropping the D6 register's own header); the closures
+re-derive runs `plan_view.py` before the card scripts; and `fixer.md` /
+`writing-for-agents.md` point at the HANDOVER #1058 tie-break.
+
+### Changed
+
+**Record** (#1147): delivery rows for #1140 and #1141.
+
 ## v6.6.3
 
 three optional-input features for the Rotenso Windmi (#1106, #1140, #1141) and a

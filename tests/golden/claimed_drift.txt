@@ -45,9 +45,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.6.3
+# claims-for: 6.6.4
 #
-# v6.6.3: three optional-input features for the Rotenso Windmi, and a run of audit-instrument repairs. The stamp empties the list; the
+# v6.6.4: the #1067 feature chain, the device pre-fill, and a run of instrument and governance repairs. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -327,4 +327,3 @@
 # pre-existing leaf appears in the diff. Every other fixture is
 # byte-identical: the offer reads the registry only when the flow reaches it,
 # and no plan reads the switch.
-config_flow  # ADD-ONLY: this branch's own diff is the offer switch -- prefill_offer in the plain render, the seeded render and the seed map -- and the initial flow's device_prefill page, 21 insertions and 0 deletions, no pre-existing leaf moved
