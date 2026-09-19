@@ -2562,7 +2562,7 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
 
 
 class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
-    """Rank empty topology slots by estimated extra €/month (#699)."""
+    """Rank empty topology slots by estimated extra cost per month (#699)."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_state_class = SensorStateClass.MEASUREMENT

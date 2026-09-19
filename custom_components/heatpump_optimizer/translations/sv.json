@@ -1729,7 +1729,7 @@
         "name": "Rekommenderad effekt"
       },
       "sensor_gap_advisor": {
-        "name": "Sensorlucka i euro"
+        "name": "Sensorlucka i valutan"
       },
       "slab_temperature_estimated": {
         "name": "Golvplattans temperatur (uppskattad)"

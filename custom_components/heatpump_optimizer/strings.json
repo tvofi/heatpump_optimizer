@@ -1729,7 +1729,7 @@
         "name": "Recommended Power"
       },
       "sensor_gap_advisor": {
-        "name": "Sensor-Gap Euro Advisor"
+        "name": "Sensor-Gap Advisor"
       },
       "slab_temperature_estimated": {
         "name": "Slab Temperature (Estimated)"

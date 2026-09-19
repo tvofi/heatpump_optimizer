@@ -521,7 +521,10 @@ def _sensor_gap_lines(setup: dict[str, Any]) -> list[str] | None:
     ranked = [g for g in gaps if float(g.get("sek_per_month") or 0) > 0]
     if not ranked:
         return None
-    lines = ["Sensor-gap € (empty slots, estimated extra / month)"]
+    # Currency-neutral on purpose (round-5 D8-03, #1228): the figures below
+    # are priced in the instance's own currency (``coordinator.currency``,
+    # SEK where nothing is configured), so the panel names none of its own.
+    lines = ["Sensor-gap cost (empty slots, estimated extra / month)"]
     for gap in ranked[:5]:
         lines.append(f"  - {gap['label']}: {gap['sek_per_month']:.0f}")
     return lines
@@ -633,7 +636,7 @@ def peak_miss_sek(
     dt_hours: float = 0.25,
     count: int = 3,
 ) -> float:
-    """€/month the peak term misses when the house meter is absent."""
+    """Monthly cost the peak term misses when the house meter is absent."""
     true_peak = _window_peak(house_kw, window_minutes, dt_hours)
     blind_peak = _window_peak(hp_kw, window_minutes, dt_hours)
     return max(0.0, (true_peak - blind_peak) * float(price_per_kw) / max(int(count), 1))
@@ -646,7 +649,7 @@ def outdoor_cop_miss_sek(
     cop_true: float,
     cop_guess: float,
 ) -> float:
-    """€ from a COP miss when the outdoor probe is absent."""
+    """Cost from a COP miss when the outdoor probe is absent."""
     if cop_true <= 0.0 or cop_guess <= 0.0:
         return 0.0
     extra_kwh = float(load_kw) * float(hours) * (1.0 / cop_guess - 1.0 / cop_true)
@@ -654,7 +657,7 @@ def outdoor_cop_miss_sek(
 
 
 def dhw_coast_miss_sek(extra_kwh: float, price: float) -> float:
-    """€ from extra DHW reheat when the tank probe is absent."""
+    """Cost from extra DHW reheat when the tank probe is absent."""
     return max(0.0, float(extra_kwh) * float(price))
 
 
@@ -674,9 +677,9 @@ def rank_sensor_gaps(
     dhw_extra_kwh: float = 0.0,
     dhw_price: float = 0.0,
 ) -> list[dict[str, Any]]:
-    """Rank empty topology slots by estimated extra €/month (#699).
+    """Rank empty topology slots by estimated extra cost per month (#699).
 
-    A configured slot ranks 0. Peak euros come from ``metering_windows``.
+    A configured slot ranks 0. Peak costs come from ``metering_windows``.
     """
     labels = {key: label for key, _place, label, _domains, _class in _SLOTS}
     rows = (
