@@ -61,6 +61,19 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
     reports `main`'s cron, not this head. The control, re-run at your own base —
     heads pushed after #713 carry the same red, heads pushed before carry none.
 
+    **The head's runs are not the range's, so read the range where it was
+    recorded.** A red an earlier commit of this pull request turned and a later
+    push cleared leaves nothing at the head, and this step reads the head:
+    #1144's live instance was a head whose own runs named none of it while the
+    `record-status` failure sat one commit back. The body check derives the
+    reds across `git rev-list <merge-base(origin/main, HEAD)>..<HEAD>` before it
+    judges the body and prints one line, `record red-history ...: <names>` — or
+    `skip red-history ...`, which means every head before this one is **UNCHECKED,
+    not clean**. Read that line in the run's own log, not the head's check-run
+    listing; where it says `skip`, a green head is not evidence about the range
+    and the verdict says so. CI's body-check step carries no credential today, so
+    the skip line is what CI prints until that step is wired (the owner's).
+
     **A GREEN `mutation` does not mean the baseline was green.** Since #1120 the
     lane prints `MUTATION TABLE INCONCLUSIVE` and exits 0 on `--scope changed`
     when its baseline is red, so a green conclusion means either no mutant
