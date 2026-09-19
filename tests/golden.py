@@ -1148,6 +1148,22 @@ def schema_fingerprint(schema) -> dict:
             default = repr(key.default())
         except Exception:
             default = None
+        if default is None:
+            # A field can also be pre-filled from ``description`` rather than
+            # from a voluptuous default, and the frontend shows and posts the
+            # two alike -- so "what this page presents" is both. Reading only
+            # ``default()`` recorded None for every ``suggested_value`` field
+            # and left the fixture blind to the pre-fill question it exists to
+            # answer: a stored entity is offered as a ``suggested_value``
+            # precisely so a cleared picker (which posts the key ABSENT, and
+            # which voluptuous therefore refills only from a ``default``) can
+            # stay cleared, so a fingerprint that could not see one could not
+            # see the arm #547's seeded render was added to make visible.
+            suggested = (getattr(key, "description", None) or {}).get(
+                "suggested_value"
+            )
+            if suggested is not None:
+                default = repr(suggested)
         marker = {
             "selector": type(value).__name__,
             "config": (

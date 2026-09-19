@@ -4372,10 +4372,11 @@ def _presented_value(marker):
 
     ``suggested_value`` first, then ``default``: a form pre-fills with either,
     and the frontend shows and posts them alike, so a reader that wants "what
-    this page offers" has to accept both. A stored entity is offered as a
-    ``suggested_value`` (#1149) precisely so that clearing it sticks -- the key
-    comes back ABSENT and voluptuous refills only a ``default`` -- which is what
-    puts a stored entity and a computed field on different arms of the rule.
+    this page offers" has to accept both. This is also where the two arms of
+    the ``_STORED`` rule separate: a stored entity is offered as a
+    ``suggested_value`` so that clearing it sticks (the key comes back ABSENT
+    and voluptuous refills only a ``default``), while a computed field carries
+    a real ``default``.
     """
     description = getattr(marker, "description", None)
     if isinstance(description, dict) and "suggested_value" in description:
