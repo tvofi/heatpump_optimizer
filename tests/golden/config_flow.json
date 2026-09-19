@@ -3149,7 +3149,7 @@
        "options": "['auto', 'on', 'off']",
        "translation_key": "'two_zone_mode'"
       },
-      "default": null,
+      "default": "'auto'",
       "required": "Optional",
       "selector": "SelectSelector"
      }
@@ -5461,7 +5461,7 @@
       "options": "['auto', 'on', 'off']",
       "translation_key": "'two_zone_mode'"
      },
-     "default": null,
+     "default": "'auto'",
      "required": "Optional",
      "selector": "SelectSelector"
     }
