@@ -5240,6 +5240,209 @@ R.check(
     f"value={_gap_sensor.native_value}",
 )
 
+# --- #1226 / round-5 D8-01: the advisor feeds the probes it prices ---------
+# The #699 block above hands every input to ``topology.rank_sensor_gaps``
+# itself, so it pins the arithmetic and nothing about the caller. The caller
+# whose answer a user ever sees is ``SensorGapAdvisorSensor._gaps``, and to
+# rank the outdoor and DHW rows above zero it must supply the five inputs its
+# own rank test does. When it did not, both rows kept their 0.0 defaults and
+# the enabled-by-default advisor could only ever rank the house meter.
+_gap_load_data = {
+    "house_power_series": [2.0, 2.0, 2.0, 10.0],
+    "heat_pump_power_series": [2.0, 2.0, 2.0, 2.0],
+    "peak_tariff": {
+        "price_per_kw": 90.0,
+        "window_minutes": 60,
+        "peaks_averaged": 3,
+    },
+    "current_price": 1.5,
+}
+# A user who has the house meter but neither probe: the two probe rows are
+# the whole ranking, and both must be priced.
+_gap_probe_cfg = {const.CONF_HOUSE_POWER_ENTITY: "sensor.house_power"}
+
+
+def _gap_production_rows(data, config):
+    """The production advisor's own ``gaps`` for a payload and a config."""
+    coord = FakeCoordinator(dict(data), _config=dict(config))
+    gap_sensor = sensor.SensorGapAdvisorSensor(coord, ENTRY)
+    gaps = gap_sensor.extra_state_attributes["gaps"]
+    return gap_sensor, {row["key"]: row for row in gaps}
+
+
+_gap_probe_sensor, _gap_probe = _gap_production_rows(_gap_load_data, _gap_probe_cfg)
+R.check(
+    "an empty outdoor slot ranks its COP miss on the production advisor (#1226)",
+    _gap_probe[const.CONF_OUTDOOR_TEMP_ENTITY]["empty"]
+    and _gap_probe[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"] > 0.0,
+    repr(_gap_probe),
+)
+R.check(
+    "an empty DHW probe ranks its coasting miss on the production advisor (#1226)",
+    _gap_probe[const.CONF_DHW_TEMP_ENTITY]["empty"]
+    and _gap_probe[const.CONF_DHW_TEMP_ENTITY]["sek_per_month"] > 0.0,
+    repr(_gap_probe),
+)
+_gap_top = max(
+    (row for row in _gap_probe.values() if row["empty"]),
+    key=lambda row: row["sek_per_month"],
+)
+R.check(
+    "the advisor's state is the top empty slot's rank (#1226)",
+    _gap_probe_sensor.native_value > 0.0
+    and _gap_probe_sensor.native_value == _gap_top["sek_per_month"]
+    and _gap_probe_sensor.extra_state_attributes["top_slot"] == _gap_top["key"],
+    f"value={_gap_probe_sensor.native_value} top={_gap_top['key']}",
+)
+# Causal, not a restatement of the formula: a dearer kWh must raise both
+# rows, and a heavier observed load must raise the COP row, or the caller is
+# not reading them at all.
+_, _gap_dearer = _gap_production_rows(
+    dict(_gap_load_data, current_price=3.0), _gap_probe_cfg
+)
+_, _gap_heavier = _gap_production_rows(
+    dict(_gap_load_data, heat_pump_power_series=[4.0, 4.0, 4.0, 4.0]),
+    _gap_probe_cfg,
+)
+R.check(
+    "both probe rows read the resolved price, and the COP row the load (#1226)",
+    _gap_dearer[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"]
+    > _gap_probe[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"]
+    and _gap_dearer[const.CONF_DHW_TEMP_ENTITY]["sek_per_month"]
+    > _gap_probe[const.CONF_DHW_TEMP_ENTITY]["sek_per_month"]
+    and _gap_heavier[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"]
+    > _gap_probe[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"],
+    f"base={_gap_probe} dearer={_gap_dearer} heavier={_gap_heavier}",
+)
+# Null control: a fully wired install ranks nothing, however loud the load.
+_gap_all_cfg = {
+    const.CONF_HOUSE_POWER_ENTITY: "sensor.house_power",
+    const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+    const.CONF_DHW_TEMP_ENTITY: "sensor.dhw",
+}
+_gap_null_sensor, _gap_null = _gap_production_rows(_gap_load_data, _gap_all_cfg)
+R.check(
+    "a fully wired install ranks every row 0, load and price included (#1226)",
+    _gap_null_sensor.native_value == 0.0
+    and _gap_null_sensor.extra_state_attributes["gaps"]
+    and all(row["sek_per_month"] == 0.0 for row in _gap_null.values()),
+    repr(_gap_null),
+)
+# A design choice, stated: the probes are priced from the load the pump was
+# SEEN to carry, so a payload with no power series ranks nothing -- which is
+# why the advisor against the tests' own DATA (no series) is still 0.0 above.
+_, _gap_unseen = _gap_production_rows({"current_price": 1.5}, _gap_probe_cfg)
+R.check(
+    "with no measured power series the advisor ranks no probe (#1226)",
+    all(row["sek_per_month"] == 0.0 for row in _gap_unseen.values()),
+    repr(_gap_unseen),
+)
+
+# --- #1226 round 2: a series with holes ranks as its clean twin ------------
+# The published power series is a rolling window of readings, and a reading
+# the cycle could not take leaves a hole in it: a None, or a raw string that
+# never parsed. ``_numeric_samples`` drops those samples before EVERY reader
+# -- the probe terms and the house meter's window peak alike -- because raw
+# they raise out of ``extra_state_attributes`` (or, for a None, NaN-mark the
+# window and rank its row a silent 0.00). Delete the ``isinstance`` filter
+# and every check below turns red; hand the series to ``rank_sensor_gaps``
+# unfiltered and the house checks do.
+
+
+def _gap_holed_rows(data, config):
+    """The advisor's rows, a series hole surfacing as a checked failure.
+
+    A hole must rank as its clean twin; with the sanitising gone the raw
+    sample raises (TypeError for a None, ValueError for the string), which
+    becomes a red CHECK here rather than a crashed script -- a named FAIL
+    line is what the mutation proof reads.
+    """
+    try:
+        return _gap_production_rows(data, config)[1]
+    except (TypeError, ValueError) as exc:
+        return f"{type(exc).__name__} out of extra_state_attributes: {exc}"
+
+
+# The heat-pump series' reader: the probe terms, under a config whose empty
+# rows are the two probes. Constant readings, so dropping a holed sample
+# cannot change the mean or the duty cycle -- the holed payload must rank
+# exactly what the clean four-reading window ranks: not 0.00, no exception.
+_gap_clean_hp = [2.0, 2.0, 2.0, 2.0]
+_gap_clean_twin = _gap_holed_rows(
+    dict(_gap_load_data, heat_pump_power_series=_gap_clean_hp), _gap_probe_cfg
+)
+for _gap_hole, _gap_holed_hp in (
+    ("a None", [2.0, 2.0, None, 2.0]),
+    ("an unparsed string", [2.0, 2.0, "x", 2.0]),
+):
+    _gap_holed = _gap_holed_rows(
+        dict(_gap_load_data, heat_pump_power_series=_gap_holed_hp), _gap_probe_cfg
+    )
+    R.check(
+        f"a heat-pump series carrying {_gap_hole} ranks as its clean twin (#1226)",
+        _gap_holed == _gap_clean_twin
+        and _gap_holed[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"] > 0.0,
+        f"clean={_gap_clean_twin} holed={_gap_holed_hp} -> {_gap_holed}",
+    )
+# The house series' reader: with the meter slot EMPTY the house row ranks
+# FROM the series' window peak -- the purchase the meter exists for. The
+# heat pump's blind peak is pinned low so that row is a live figure, not a
+# 0-vs-0, and a holed house series must keep it.
+_gap_house_cfg = {}
+_gap_house_hp = [1.0, 1.0, 1.0, 1.0]
+for _gap_hole, _gap_holed_house in (
+    ("a None", [2.0, 2.0, None, 2.0]),
+    ("an unparsed string", [2.0, 2.0, "x", 2.0]),
+):
+    _gap_house_holed = _gap_holed_rows(
+        dict(
+            _gap_load_data,
+            heat_pump_power_series=_gap_house_hp,
+            house_power_series=_gap_holed_house,
+        ),
+        _gap_house_cfg,
+    )
+    _gap_house_clean = _gap_holed_rows(
+        dict(
+            _gap_load_data,
+            heat_pump_power_series=_gap_house_hp,
+            house_power_series=[2.0, 2.0, 2.0, 2.0],
+        ),
+        _gap_house_cfg,
+    )
+    R.check(
+        f"a house series carrying {_gap_hole} ranks as its clean twin (#1226)",
+        _gap_house_holed == _gap_house_clean
+        and _gap_house_holed[const.CONF_HOUSE_POWER_ENTITY]["sek_per_month"] > 0.0,
+        f"clean={_gap_house_clean} holed={_gap_holed_house} -> {_gap_house_holed}",
+    )
+# Dropped, not NaN-marked: a hole inserted into a series with a real peak
+# must rank as the same series with that slot simply absent -- the house
+# row keeps its whole spike, where a raw None NaNs the 60-minute window and
+# quietly prices the row 0.00.
+_gap_spike_holed = _gap_holed_rows(
+    dict(
+        _gap_load_data,
+        heat_pump_power_series=_gap_house_hp,
+        house_power_series=[2.0, 2.0, None, 2.0, 10.0],
+    ),
+    _gap_house_cfg,
+)
+_gap_spike_clean = _gap_holed_rows(
+    dict(
+        _gap_load_data,
+        heat_pump_power_series=_gap_house_hp,
+        house_power_series=[2.0, 2.0, 2.0, 10.0],
+    ),
+    _gap_house_cfg,
+)
+R.check(
+    "a hole in a spiked series is dropped, not priced as a 0.00 house row (#1226)",
+    _gap_spike_holed == _gap_spike_clean
+    and _gap_spike_holed[const.CONF_HOUSE_POWER_ENTITY]["sek_per_month"] > 0.0,
+    f"clean={_gap_spike_clean} holed={_gap_spike_holed}",
+)
+
 # The building page owns the valve and wood entities (v4.0.0 merged the
 # mixing-valve page and the learning page's wood block into it), so it has to
 # clear them itself — it used to lean on the entities page's global nulling,
