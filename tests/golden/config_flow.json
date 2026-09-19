@@ -113,6 +113,14 @@
     "selector": "NumberSelector"
    }
   },
+  "device_prefill": {
+   "prefill_device": {
+    "config": null,
+    "default": null,
+    "required": "Optional",
+    "selector": "DeviceSelector"
+   }
+  },
   "dhw": {
    "dhw_cooling_rate": {
     "config": {
@@ -944,6 +952,7 @@
   "peak_tariff_enabled": true,
   "peak_tariff_weekdays_only": true,
   "precip_type_enabled": true,
+  "prefill_offer": true,
   "price_entity": "sensor.seed_price_entity",
   "price_prior_enabled": true,
   "price_tiles_enabled": true,
@@ -2945,6 +2954,12 @@
     "default": null,
     "required": "Optional",
     "selector": "DeviceSelector"
+   },
+   "prefill_offer": {
+    "config": null,
+    "default": "True",
+    "required": "Optional",
+    "selector": "BooleanSelector"
    }
   },
   "setup_overview": {},
@@ -5251,6 +5266,12 @@
    "default": null,
    "required": "Optional",
    "selector": "DeviceSelector"
+  },
+  "prefill_offer": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "BooleanSelector"
   }
  },
  "setup_overview": {},

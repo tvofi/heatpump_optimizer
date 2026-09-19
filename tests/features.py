@@ -40116,4 +40116,98 @@ R.check(
     f"writes={_g5_writes(_g5_c)} keys={sorted(_g5_c._dhw_view())}",
 )
 
+# ---------------------------------------------------------------------------
+# #1067 W1067-POST1: which devices are worth OFFERING the pre-fill page for
+# when the integration is being set up. A device qualifies only when a source
+# G7b can map resolves it -- a source table that proves the model, or, for a
+# device no table knows, the fuzzy fallback filling at least a minimum number
+# of roles. The minimum is read off the corpus measurement (G7b-3), never
+# chosen by feel, and the rule for reading it is the corpus's own: it is the
+# smallest count among the table's HAND-SHAPED rows. The two generated rows
+# print zero fallback roles while being fully resolvable, so a zero there is
+# the source table's doing and not the device being unreadable.
+R.section("#1067 W1067-POST1 — the qualifying minimum, read off the corpus")
+
+from heatpump_optimizer import prefill_offer as _post1  # noqa: E402
+
+_post1_rows = _g7b3_corpus.measure().devices
+_post1_hand = [row for row in _post1_rows if row.hand_shaped]
+_post1_generated = [row for row in _post1_rows if not row.hand_shaped]
+R.check(
+    "the qualifying minimum is the corpus's smallest hand-shaped fallback count",
+    len(_post1_hand) >= 3
+    and _post1.QUALIFYING_MINIMUM == min(row.filled for row in _post1_hand)
+    and _post1.QUALIFYING_MINIMUM < max(row.filled for row in _post1_hand),
+    f"minimum={_post1.QUALIFYING_MINIMUM} "
+    f"hand={sorted((row.device, row.filled) for row in _post1_hand)}",
+)
+R.check(
+    "the generated rows fill no fallback role, so no minimum can be read off them",
+    _post1_generated
+    and all(row.filled == 0 and row.tabled > 0 for row in _post1_generated),
+    f"{sorted((row.device, row.tabled, row.filled) for row in _post1_generated)}",
+)
+# The resolver is device_prefill's own, so the offer and the options page can
+# never disagree about what a device resolves to.
+R.check(
+    "the offer reads a device through the options page's resolver, not a second copy",
+    _post1.device_prefill is _g7b_dp and _post1.name_match is _g7b3_nm,
+    f"device_prefill={_post1.device_prefill.__name__} name_match={_post1.name_match.__name__}",
+)
+_post1_smallest = min(_post1_hand, key=lambda row: row.filled)
+_post1_smallest_resolution = _g7b_dp.resolve_with_fallback(
+    _g7b3_records(_g7b3_device(_post1_smallest.device)))
+R.check(
+    "the corpus's smallest hand-shaped device qualifies, at exactly the minimum",
+    _post1.fallback_roles(_post1_smallest_resolution) == _post1.QUALIFYING_MINIMUM
+    and _post1.qualifies(_post1_smallest_resolution),
+    f"{_post1_smallest.device}: fallback={_post1.fallback_roles(_post1_smallest_resolution)} "
+    f"minimum={_post1.QUALIFYING_MINIMUM}",
+)
+_post1_tabled = [
+    _g7b_dp.resolve_with_fallback(_g7b3_records(device))
+    for device in (_g7b3_device("rotenso_windmi"), _g7b3_device("fisher_water_heatpump"))
+]
+R.check(
+    "a device a source table proves qualifies, though the fallback filled nothing on it",
+    all(_post1.qualifies(resolution) for resolution in _post1_tabled)
+    and all(_post1.fallback_roles(resolution) == 0 for resolution in _post1_tabled),
+    f"{[(_post1.fallback_roles(r), len(r.roles)) for r in _post1_tabled]}",
+)
+# A device nothing resolves: no table proves it and the names fill no role.
+_post1_nothing = [
+    _g7b3_record("sensor.utility_humidity", "Utility humidity",
+                 platform="localtuya", device_class="humidity", unit="%"),
+]
+R.check(
+    "a device that resolves nothing is not offered, and the offer page never opens for it",
+    _g7b_dp.resolve_with_fallback(_post1_nothing).roles == {}
+    and not _post1.qualifies(_g7b_dp.resolve_with_fallback(_post1_nothing))
+    and _post1.offered({"dev_none": _post1_nothing}) == {},
+    f"{_g7b_dp.resolve_with_fallback(_post1_nothing).roles}",
+)
+# The offer itself: only the qualifying devices, keyed by device id and read
+# in that order, so the same registry always offers the same set.
+_post1_pool = {
+    "dev_zulu": _g7b3_records(_g7b3_device("brand_swedish")),
+    "dev_none": _post1_nothing,
+    "dev_alpha": _g7b3_records(_g7b3_device("rotenso_windmi")),
+    "dev_golf": _post1_nothing,
+}
+_post1_offered = _post1.offered(_post1_pool)
+R.check(
+    "the offer names exactly the qualifying devices, in device-id order",
+    list(_post1_offered) == ["dev_alpha", "dev_zulu"]
+    and _post1_offered["dev_alpha"] == _g7b_dp.resolve_with_fallback(_post1_pool["dev_alpha"])
+    and _post1_offered["dev_zulu"] == _g7b_dp.resolve_with_fallback(_post1_pool["dev_zulu"]),
+    f"{sorted(_post1_offered)}",
+)
+R.check(
+    "an install whose devices all resolve nothing has nothing to offer",
+    _post1.offered({}) == {}
+    and _post1.offered({"dev_none": _post1_nothing}) == {}
+    and not _post1.qualifies(_g7b_dp.resolve_with_fallback([])),
+    f"{_post1.offered({'dev_none': _post1_nothing})}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

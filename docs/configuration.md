@@ -635,6 +635,7 @@ A pump integrated through `tuya_heat_pump` has a device and no package.
 |---|---|---|---|
 | Heat pump device (optional) | — | device | The pump's own device. Its entities are mapped to settings by a table derived from that integration's published definitions — not from a reading of your unit — so check the suggestions before saving. A device the integration has no table for is refused, and you can name a prefix instead. This pick is never stored. |
 | Modbus package entity prefix | `hp` | text | The start of the package's entity ids — `hp` for `sensor.hp_outdoor_air_temperature`. Used when no device is picked, and saved only when the package was found under it. |
+| Offer this pre-fill at setup | off | on/off | When on, creating a new entry offers this page while you are setting up, if a heat-pump device that has been added to the install can fill any of these settings. Nothing is written until you submit the offered page, leaving the device empty skips it, and the wizard is unchanged while this is off. Stored, so it applies to every entry and survives a restart. |
 
 What the second form can suggest, and where each value comes from:
 
@@ -664,6 +665,12 @@ frame shorter than a planning step, a maximum power below the minimum.
 
 Nothing about the house, its emitters or its thermal model can be read this
 way; those stay yours to describe.
+
+The same page is offered during setup, when the pre-fill offer is switched on
+and a heat-pump device added to the install resolves through one of those
+sources: the wizard asks which device to read and shows the same suggestions,
+and what you keep lands in the new entry's own configuration. Leave the device
+empty to skip it.
 
 ---
 

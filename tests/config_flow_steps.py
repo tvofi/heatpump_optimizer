@@ -26,6 +26,11 @@ This driver walks both paths through the flow, questionnaire and expert,
         -> thermal -> zones -> dhw -> weather_sensitivity
       -> setup_overview -> create_entry
 
+and one optional page off the second screen (#1067 W1067-POST1): with the
+pre-fill offer switched on and a heat-pump device in the registry,
+
+    user_sensors -> device_prefill -> finish_setup (menu)
+
 asserting at every hop the next step_id and the data accumulated so far,
 then probes each step's INVALID inputs through the validation code that
 really runs (``comfort_band.errors``, ``_power_errors``, the DHW window
@@ -5291,7 +5296,9 @@ async def options_modbus_prefill():
         f"opt_{step}", "happy",
         "the first form asks for a device or a prefix, the prefix defaulted to hp",
         shows(shown, step)
-        and rendered_keys(shown) == {config_flow._PREFILL_DEVICE, prefix_key}
+        and rendered_keys(shown) == {
+            config_flow._PREFILL_DEVICE, prefix_key, const.CONF_PREFILL_OFFER,
+        }
         and schema_default(shown, prefix_key) == "hp",
         f"{rendered_keys(shown)} default={schema_default(shown, prefix_key)!r}",
     )
@@ -5370,7 +5377,9 @@ async def options_modbus_prefill():
     check(
         f"opt_{step}", "happy", "reopening the page starts again at the first form",
         shows(reopened, step)
-        and rendered_keys(reopened) == {config_flow._PREFILL_DEVICE, prefix_key},
+        and rendered_keys(reopened) == {
+            config_flow._PREFILL_DEVICE, prefix_key, const.CONF_PREFILL_OFFER,
+        },
         f"{rendered_keys(reopened)}",
     )
 
@@ -5497,7 +5506,9 @@ async def options_device_prefill():
     check(
         f"opt_{step}", "happy", "the first form offers a device pick beside the prefix row",
         shows(shown, step)
-        and rendered_keys(shown) == {device_field, const.CONF_MODBUS_PREFILL_PREFIX},
+        and rendered_keys(shown) == {
+            device_field, const.CONF_MODBUS_PREFILL_PREFIX, const.CONF_PREFILL_OFFER,
+        },
         f"{rendered_keys(shown)}",
     )
 
@@ -5669,6 +5680,278 @@ async def options_device_prefill():
     )
 
 
+# ---------------------------------------------------------------------------
+# #1067 W1067-POST1: the same pre-fill, offered while the integration is being
+# set up rather than found in Options later. A device a source G7b can map
+# qualifies -- a source table that proves the model, or the fuzzy fallback
+# filling at least the corpus's own minimum (prefill_offer.QUALIFYING_MINIMUM)
+# -- and the offer sits behind one stored global switch, off by default. With
+# the switch off the wizard is the merge base's, page for page: nothing new
+# renders and nothing new is written.
+# ---------------------------------------------------------------------------
+_POST1_SWITCH = const.CONF_PREFILL_OFFER
+
+
+def _post1_hass(options=None):
+    """A hass holding the G7b fixture device, its states, and one entry.
+
+    Plus one entity belonging to NO device -- a Modbus package's sensors have
+    a unique id and no device, which is the install the prefix route exists
+    for -- so a device-less entity cannot make the offer fire, and the walk
+    has one of those in every arm.
+    """
+    hass = FakeHass(states={})
+    _g7b_seed(hass)
+    from homeassistant.helpers import entity_registry as _er
+    _er.async_get(hass).add(
+        "sensor.hp_gchv_r404_0194h", unique_id="hp_gchv_r404",
+        platform="template", original_name="HP GCHV R404 (0194H)",
+        unit_of_measurement="°C",
+    )
+    if options is not None:
+        hass.config_entries.entries.append(FakeEntry(data={}, options=dict(options)))
+    return hass
+
+
+def _post1_seed_nothing(hass):
+    """A second device nothing resolves: a humidity sensor and no heat pump."""
+    from homeassistant.helpers import device_registry as _dr
+    from homeassistant.helpers import entity_registry as _er
+    _dr.async_get(hass).add("dev_nothing", name="Utility meter cupboard")
+    _er.async_get(hass).add(
+        "sensor.utility_humidity", unique_id="utility_humidity",
+        device_id="dev_nothing", platform="localtuya", original_name="Utility humidity",
+        original_device_class="humidity", unit_of_measurement="%",
+    )
+
+
+async def config_flow_device_prefill_offer():
+    R.section("config: the pre-fill offered when a heat-pump device is added (#1067 POST1)")
+    real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+    slug = _G7B_FIXTURE["device_name"].lower().replace(" ", "_")
+    # What the fixture's own six resolved roles are worth on a fresh setup,
+    # where none of these slots is filled yet: tests/features.py pins the
+    # mapping, and the options walk above pins what the same device suggests
+    # to a stored configuration.
+    suggestions = {
+        const.CONF_OUTDOOR_TEMP_ENTITY: f"sensor.{slug}_outdoor_ambient_temperature_t4",
+        const.CONF_DHW_SETPOINT: 50.0,
+        const.CONF_DHW_TEMP_ENTITY: f"sensor.{slug}_dhw_tank_temperature",
+        const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: f"sensor.{slug}_outlet_water_temperature_t1",
+        const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: (
+            f"sensor.{slug}_heat_exchanger_inlet_water_temperature_tin"),
+        const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: f"switch.{slug}_night_mode_silent",
+    }
+
+    # Null control: the switch is off (nothing stores it) with a qualifying
+    # device right there in the registry, and the wizard walks exactly as it
+    # did before this group -- the finish-setup menu, no pre-fill page.
+    flow = fresh_flow(_post1_hass())
+    result = await submit_first_screen(flow, FIRST_SCREEN)
+    check(
+        "device_prefill", "happy",
+        "null control: with the switch off the device pre-fill is never offered",
+        offers_finish_setup(result) and not shows(result, "device_prefill"),
+        f"{result.get('type')}/{result.get('step_id')}",
+    )
+    # …and the switch's own default is what makes that the shipped behaviour.
+    check(
+        "device_prefill", "happy",
+        "the switch is stored, its default is off, and an install with no entry reads it as off",
+        _post1_hass().config_entries.async_entries(const.DOMAIN) == []
+        and const.DEFAULT_PREFILL_OFFER is False
+        and config_flow._prefill_offer_stored(_post1_hass()) is False,
+        f"default={const.DEFAULT_PREFILL_OFFER!r}",
+    )
+
+    # The switch on: the same walk is offered the page before it continues.
+    flow = fresh_flow(_post1_hass({_POST1_SWITCH: True}))
+    offered = await submit_first_screen(flow, FIRST_SCREEN)
+    check(
+        "device_prefill", "happy",
+        "with the switch on the wizard offers the pre-fill, asking which device to read",
+        shows(offered, "device_prefill")
+        and rendered_keys(offered) == {config_flow._PREFILL_DEVICE}
+        and (offered.get("description_placeholders") or {}).get("name_matched") == "–"
+        and (offered.get("description_placeholders") or {}).get("matched_sources") == "–",
+        f"{offered.get('type')}/{offered.get('step_id')} keys={sorted(rendered_keys(offered))} "
+        f"placeholders={offered.get('description_placeholders')}",
+    )
+
+    # Declining: an empty pick writes nothing and the wizard continues.
+    declined = await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: None})
+    check(
+        "device_prefill", "happy",
+        "an empty pick declines the offer: nothing is written and the wizard continues",
+        offers_finish_setup(declined)
+        and not set(flow._data) & set(suggestions)
+        and flow._data == {**FIRST_SCREEN, **USER_SENSORS},
+        f"{declined.get('step_id')} data={sorted(flow._data)}",
+    )
+
+    # The device route: the fixture's entities are suggested, and the G7b-3
+    # disclaimer travels with them -- which roles came from a name, and which
+    # source's table answered for the rest.
+    flow = fresh_flow(_post1_hass({_POST1_SWITCH: True}))
+    await submit_first_screen(flow, FIRST_SCREEN)
+    preview = await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: _G7B_DEVICE_ID})
+    shown = {k: suggested_value(preview, k) for k in rendered_keys(preview)}
+    notes = preview.get("description_placeholders") or {}
+    check(
+        "device_prefill", "happy",
+        "the offered device's entities are suggested, with the disclaimer naming the source",
+        shows(preview, "device_prefill")
+        and shown == suggestions
+        and notes.get("matched_sources") == "tuya_heat_pump"
+        and notes.get("name_matched") == "–"
+        and notes.get("found") == str(len(suggestions)),
+        f"offered={shown} sources={notes.get('matched_sources')!r} "
+        f"named={notes.get('name_matched')!r} found={notes.get('found')!r}",
+    )
+    # The page is the pre-fill page's own: the names it suggests through are
+    # copied from the suggested keys' home pages, so it carries the same keys
+    # the options page does for the same device.
+    check(
+        "device_prefill", "happy",
+        "the offered page presents the same keys the options flow does for that device",
+        set(shown) == set(suggestions),
+        f"{sorted(shown)}",
+    )
+
+    # What the user keeps lands in the entry's own setup data, and the wizard
+    # continues to the menu it would have reached without the offer.
+    kept = await submit(flow, "device_prefill", {
+        const.CONF_DHW_SETPOINT: 50.0,
+        const.CONF_DHW_TEMP_ENTITY: f"sensor.{slug}_dhw_tank_temperature",
+    })
+    check(
+        "device_prefill", "happy",
+        "submitting the page writes what was kept into the entry's data and continues the wizard",
+        offers_finish_setup(kept)
+        and flow._data[const.CONF_DHW_SETPOINT] == 50.0
+        and flow._data[const.CONF_DHW_TEMP_ENTITY] == f"sensor.{slug}_dhw_tank_temperature"
+        and const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY not in flow._data,
+        f"{kept.get('step_id')} data={sorted(flow._data)}",
+    )
+    # …and the entry the wizard then creates carries them, which is the only
+    # thing "written" means on a flow with no entry yet.
+    created = await submit(flow, "finish_now", {})
+    created = await submit(flow, "setup_overview", {})
+    check(
+        "device_prefill", "happy",
+        "the entry the wizard creates carries what the offer filled",
+        created.get("type") == "create_entry"
+        and created.get("data", {}).get(const.CONF_DHW_SETPOINT) == 50.0
+        and created.get("data", {}).get(const.CONF_DHW_TEMP_ENTITY)
+        == f"sensor.{slug}_dhw_tank_temperature",
+        f"{created.get('type')} data={sorted(created.get('data') or {})}",
+    )
+
+    # #1107: the wizard's own data is what the omission rules read, so a
+    # suggestion equal to a setting's default is posted and dropped, and an
+    # unchanged submit stores nothing of the pre-fill.
+    flow = fresh_flow(_post1_hass({_POST1_SWITCH: True}))
+    await submit_first_screen(flow, FIRST_SCREEN)
+    await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: _G7B_DEVICE_ID})
+    empty = await submit(flow, "device_prefill", {})
+    check(
+        "device_prefill", "happy",
+        "…and a submit that kept nothing writes nothing at all",
+        offers_finish_setup(empty)
+        and flow._data == {**FIRST_SCREEN, **USER_SENSORS},
+        f"data={sorted(flow._data)}",
+    )
+
+    # A suggested value the pages the keys live on would refuse is refused
+    # here too, before anything is written: a pump whose own hot water
+    # set-point leaves no deadband above the minimum in force is a real
+    # reading (the fixture's register says 46 when the probe says so) and an
+    # impossible configuration to store.
+    hass = _post1_hass({_POST1_SWITCH: True})
+    hass.states.set(f"number.{slug}_dhw_setpoint", FakeState("46"))
+    flow = fresh_flow(hass)
+    await submit_first_screen(flow, FIRST_SCREEN)
+    tight = await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: _G7B_DEVICE_ID})
+    refused_pair = await submit(flow, "device_prefill", {const.CONF_DHW_SETPOINT: 46.0})
+    check(
+        "device_prefill", "error",
+        "a set-point too close to the minimum in force is refused, and nothing is written",
+        suggested_value(tight, const.CONF_DHW_SETPOINT) == 46.0
+        and shows(refused_pair, "device_prefill")
+        and refused_pair.get("errors") == {"base": "dhw_min_too_close"}
+        and flow._data == {**FIRST_SCREEN, **USER_SENSORS},
+        f"errors={refused_pair.get('errors')} data={sorted(flow._data)}",
+    )
+
+    # A device that fills too few roles is refused on the page rather than
+    # opened empty -- the offer is a prompt, not an empty form.
+    hass = _post1_hass({_POST1_SWITCH: True})
+    _post1_seed_nothing(hass)
+    flow = fresh_flow(hass)
+    await submit_first_screen(flow, FIRST_SCREEN)
+    refused = await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: "dev_nothing"})
+    check(
+        "device_prefill", "error",
+        "a device that fills too few roles is refused rather than opened empty",
+        shows(refused, "device_prefill")
+        and refused.get("errors") == {"base": "prefill_device_unreadable"}
+        and (refused.get("description_placeholders") or {}).get("name_matched") == "–"
+        and flow._data == {**FIRST_SCREEN, **USER_SENSORS},
+        f"errors={refused.get('errors')} data={sorted(flow._data)}",
+    )
+    # …and an install whose devices all resolve nothing is never offered the
+    # page in the first place, whatever it has in the registry.
+    hass = FakeHass(states={})
+    _post1_seed_nothing(hass)
+    hass.config_entries.entries.append(FakeEntry(data={}, options={_POST1_SWITCH: True}))
+    flow = fresh_flow(hass)
+    silent = await submit_first_screen(flow, FIRST_SCREEN)
+    check(
+        "device_prefill", "happy",
+        "an install with no qualifying device is offered nothing, switch or no switch",
+        offers_finish_setup(silent) and not shows(silent, "device_prefill"),
+        f"{silent.get('type')}/{silent.get('step_id')}",
+    )
+
+    # The switch's home is the pre-fill page, and turning it on there is what
+    # makes the offer fire: the options flow stores it, the wizard reads it.
+    flow, entry, hass = _g7_flow()
+    _g7b_seed(hass)
+    await flow.async_step_modbus_prefill(None)
+    turned_on = await submit(flow, "modbus_prefill", {
+        const.CONF_MODBUS_PREFILL_PREFIX: "hp",
+        config_flow._PREFILL_DEVICE: None,
+        _POST1_SWITCH: True,
+    })
+    turned_on = await submit(flow, "modbus_prefill", {const.CONF_AFTER_SAVE: const.AFTER_SAVE_MENU})
+    check(
+        "opt_modbus_prefill", "happy",
+        "the pre-fill page offers the switch, and turning it on stores it",
+        shows_menu(turned_on, "advanced")
+        and entry.options == {_POST1_SWITCH: True}
+        and config_flow._prefill_offer_stored(hass) is True,
+        f"options={entry.options}",
+    )
+    flow, entry, hass = _g7_flow()
+    _g7b_seed(hass)
+    await flow.async_step_modbus_prefill(None)
+    untouched = await submit(flow, "modbus_prefill", {
+        const.CONF_MODBUS_PREFILL_PREFIX: "hp",
+        config_flow._PREFILL_DEVICE: None,
+        _POST1_SWITCH: False,
+    })
+    untouched = await submit(flow, "modbus_prefill", {const.CONF_AFTER_SAVE: const.AFTER_SAVE_MENU})
+    check(
+        "opt_modbus_prefill", "happy",
+        "#1107: an untouched switch at its default is not stored by the pre-fill page",
+        shows_menu(untouched, "advanced")
+        and entry.options == {}
+        and config_flow._prefill_offer_stored(hass) is False,
+        f"options={entry.options}",
+    )
+    config_flow.async_get_clientsession = real
+
+
 async def main() -> int:
     if "--self-check" in sys.argv:
         return await self_check()
@@ -5708,6 +5991,7 @@ async def main() -> int:
     await untouched_option_pages_do_not_reload()
     await options_modbus_prefill()
     await options_device_prefill()
+    await config_flow_device_prefill_offer()
 
     print()
     LEDGER.print_result_lines()

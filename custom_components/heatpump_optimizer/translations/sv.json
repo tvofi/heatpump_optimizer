@@ -291,6 +291,16 @@
       "setup_overview": {
         "title": "Ditt system, som det är inställt",
         "description": "Vad optimeraren tror att ditt system är, utifrån nuvarande inställningar. En tom plats visas tom med avsikt — det är en givare den här anläggningen skulle kunna använda men inte har.\n\n{setup_summary}"
+      },
+      "device_prefill": {
+        "title": "Förifyll från en värmepumpsenhet",
+        "description": "En värmepumpsenhet i den här installationen kan svara på flera av de här inställningarna utifrån sina egna entiteter. Välj den och skicka: nästa formulär föreslår vad dess entiteter säger, som vanliga fält du kan ändra eller tömma, och inget skrivs förrän du skickar det formuläret. Lämna enheten tom för att hoppa över det här och fortsätta installationen.\n\nLästa entiteter: {found}. Registret för tillsatsvärmens typ: {backup_heater_type} - allt utom 7 betyder att pumpen har egen elvärme, och det är den som elpatronfälten under Värmepumps telemetri finns till för att bevaka.\n\nRoller lästa ur en entitets NAMN i stället för ur en publicerad definition - sidan kan inte verifiera dem, så kontrollera var och en innan du sparar: {name_matched}. Roller lästa ur publicerade definitioner, per källa: {matched_sources}.",
+        "data": {
+          "prefill_device": "Värmepumpens enhet"
+        },
+        "data_description": {
+          "prefill_device": "Pumpens egen enhet. Dess entiteter mappas till inställningar av integrationens publicerade definitioner, eller av deras namn där inget publiceras - inte från en avläsning av din enhet - så kontrollera förslagen innan du behåller dem. Lämna tomt för att fortsätta installationen utan förifyllningen."
+        }
       }
     },
     "error": {
@@ -1284,7 +1294,8 @@
           "heat_pump_return_temp_entity": "Returtemperatur",
           "compressor_freq_sensor": "Sensor för faktisk frekvens (rekommenderas för styrning)",
           "heat_pump_capacity_limited_entity": "Begränsad effekt (nattläge)",
-          "after_save": "Efter sparande"
+          "after_save": "Efter sparande",
+          "prefill_offer": "Erbjud förifyllningen vid installation"
         },
         "data_description": {
           "prefill_device": "Välj värmepumpens egen enhet för att läsa dess entiteter i stället för ett Modbus-paket. Lämna tomt för att använda prefixet nedan. Förslagen kommer från integrationens publicerade definitioner, inte från en avläsning av din enhet, så kontrollera dem.",
@@ -1304,7 +1315,8 @@
           "heat_pump_return_temp_entity": "Paketets givare för ingående vattentemperatur (Tw-in), föreslås bara medan fältet är tomt.",
           "compressor_freq_sensor": "Paketets givare för kompressorns faktiska frekvens, föreslås bara medan fältet är tomt.",
           "heat_pump_capacity_limited_entity": "Paketets givare för aktivt nattläge (frekvensbegränsning), föreslås bara medan fältet är tomt.",
-          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
+          "prefill_offer": "När det är på erbjuder en ny installation den här sidan om en värmepumpsenhet som lagts till i installationen kan fylla någon av de här inställningarna. Avstängt som standard: installationsguiden är oförändrad så länge det är av, och reglaget sparas, så det överlever en omstart."
         }
       }
     },
