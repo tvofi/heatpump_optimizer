@@ -21,9 +21,23 @@
 #     first line starts `Fix review:` is exactly `Fix review: merge <sha>` --
 #     the grammar `fix-review.md` sends reviewers to. Every other comment is
 #     ignored, so an outsider's later line neither approves nor displaces one.
-#     WHAT THIS CANNOT TELL: the reviewer and the fixer both post as
-#     `tvofi-seat-author`, so an allowlisted verdict is not proven to be the
-#     reviewer's. It keeps out accounts outside the allowlist, nothing more;
+#     Verdicts post only as `tvofi` (decision 0011: the reviewer seat hands
+#     the verdict text to the orchestrator, who posts it as `tvofi`; pull
+#     requests author as the `hpo-author` App, never as a verdict author).
+#     WHAT THIS CANNOT TELL: the allowlist still cannot prove WHICH seat's
+#     word a `tvofi` verdict carries. It keeps out every other account,
+#     nothing more;
+#   - that verdict CITES ITS EVIDENCE: at least one absolute path in the
+#     verdict comment's body is a directory that exists ON THIS MACHINE (the
+#     box is shared, `COMMON.md`), is non-empty, and has at least one file
+#     naming the exact 40-hex head <sha>. A fabricated `merge` line must now
+#     fabricate artifacts too. WHAT THIS IS NOT: proof of reviewer
+#     independence -- this script runs on the orchestrator's machine over
+#     text a seat wrote, and `judge.md`'s void rule names that shape: a
+#     check run by the same party on that party's text proves nothing. The
+#     independent reviewer under `fix-review.md` stays the load-bearing
+#     control; this gate raises the cost of a forged verdict, it does not
+#     replace the seat;
 #   - no changed file (or a rename's old path) matches an owned pattern of
 #     `.github/CODEOWNERS` read at ref=main, never at the head; an unreadable
 #     or empty CODEOWNERS refuses. Matching errs toward owning, which refuses;
@@ -43,7 +57,7 @@ set -uo pipefail
 
 API=https://api.github.com
 ACCEPT='Accept: application/vnd.github+json'
-VERDICT_AUTHORS="tvofi tvofi-seat-author"
+VERDICT_AUTHORS="tvofi"
 die() { printf 'app_approve: REFUSE: %s\n' "$*" >&2; exit 1; }
 
 # A JSON document per page from `gh api --paginate`, flattened to one list.
@@ -89,7 +103,10 @@ approve() {
   [[ $appid =~ ^[0-9]+$ ]] || die "App id file must hold digits only: $appid_f (fail closed)"
 
   check_pr "$repo" "$pr" "$sha"
-  local verdict vid vurl vline
+  local verdict vid vurl vline vbody
+  # The body rides as a fourth line with newlines folded to \x01, so a body
+  # with spaces survives the shell round trip whole -- the evidence gate
+  # below reads it, not only the first line.
   verdict=$(gh api --paginate "repos/$repo/issues/$pr/comments?per_page=100" | python3 -c "$PAGES_PY"'
 authors = set(sys.argv[1].split()); assoc = {"OWNER", "MEMBER", "COLLABORATOR"}
 vs = [c for c in out
@@ -98,13 +115,37 @@ vs = [c for c in out
 vs.sort(key=lambda c: (c["created_at"], c["id"]))
 if not vs: print("NONE")
 else:
-    c = vs[-1]; print(c["id"], c["html_url"], c["body"].split("\n", 1)[0].strip())' "$VERDICT_AUTHORS") \
+    c = vs[-1]
+    print(c["id"]); print(c["html_url"])
+    print(c["body"].split("\n", 1)[0].strip())
+    print((c.get("body") or "").replace("\n", "\x01"))' "$VERDICT_AUTHORS") \
     || die "could not read the comments on #$pr"
   [ "$verdict" != "NONE" ] \
     || die "no 'Fix review:' verdict on #$pr from an allowlisted collaborator ($VERDICT_AUTHORS); an approval needs 'Fix review: merge $sha'"
-  read -r vid vurl vline <<<"$verdict"
+  vid=$(printf '%s\n'   "$verdict" | sed -n 1p)
+  vurl=$(printf '%s\n'  "$verdict" | sed -n 2p)
+  vline=$(printf '%s\n' "$verdict" | sed -n 3p)
+  vbody=$(printf '%s\n' "$verdict" | sed -n 4p)
+  vbody=${vbody//$'\x01'/$'\n'}
   [ "$vline" = "Fix review: merge $sha" ] \
     || die "the newest allowlisted verdict on #$pr ($vurl) is '$vline', not 'Fix review: merge $sha'"
+
+  # The verdict's evidence gate, before minting. At least one absolute path
+  # the body names must be a directory that exists here, is non-empty, and
+  # holds a file naming the exact head sha. Fail closed on every miss; the
+  # header says what this is not.
+  local evdir="" evwhy="the verdict names no absolute path at all" tok
+  while read -r tok; do
+    tok=$(printf '%s' "$tok" | sed -e "s/^[(\`\"']*//" -e "s/[.,;:)\`\"']*$//")
+    [ -n "$tok" ] || continue
+    case "$tok" in /*) ;; *) continue ;; esac
+    if [ ! -d "$tok" ]; then evwhy="$tok is not a directory that exists"; continue; fi
+    if [ -z "$(ls -A "$tok" 2>/dev/null)" ]; then evwhy="$tok is empty"; continue; fi
+    if grep -rqF -- "$sha" "$tok" 2>/dev/null; then evdir=$tok; break; fi
+    evwhy="no file under $tok names the head $sha"
+  done < <(printf '%s\n' "$vbody" | grep -oE "/[^[:space:]\`\"]+")
+  [ -n "$evdir" ] \
+    || die "the verdict ($vurl) cites no qualifying evidence: $evwhy. An approval needs a directory the verdict names that exists on this machine, is non-empty, and holds a file naming the exact head $sha"
 
   local owners files owned
   owners=$(gh api "repos/$repo/contents/.github/CODEOWNERS?ref=main") \
@@ -206,6 +247,10 @@ mkdir -p "$W/bin" "$W/id" "$W/nokey" "$W/badid"
 printf '424242\n' > "$W/id/identity-approver.appid"; cp "$W/id/identity-approver.appid" "$W/nokey/"
 printf -- '-----BEGIN STUB KEY-----\nSTUBKEYMATERIAL\n-----END STUB KEY-----\n' > "$W/id/identity-approver.pem"
 cp "$W/id/identity-approver.pem" "$W/badid/"; printf '4242a\n' > "$W/badid/identity-approver.appid"
+# The evidence directory a healthy verdict cites: real files, real grep, so
+# the gate's own commands run in the self-test rather than only its inputs.
+EV="$W/evidence"; mkdir -p "$EV"
+printf 'fix review at head %s\nRESULT: merge clean\n' "$SHA" > "$EV/verdict.md"
 CODEOWNERS_TEXT='# owned
 /CLAUDE.md @tvofi
 /tools/audit/briefs/ @tvofi
@@ -262,9 +307,9 @@ STUB
 chmod +x "$W/bin/gh" "$W/bin/openssl" "$W/bin/curl"
 
 pr_json() { printf '{"state": "%s", "merged": %s, "head": {"sha": "%s"}}' "$1" "$2" "$3"; }
-comment() { # id first-line [login [association]]
-  printf '{"id": %s, "created_at": "2026-09-17T0%s:00:00Z", "html_url": "https://example.test/c%s", "user": {"login": "%s"}, "author_association": "%s", "body": "%s\\nRESULT x"}' \
-    "$1" "$1" "$1" "${3:-tvofi-seat-author}" "${4:-COLLABORATOR}" "$2"
+comment() { # id first-line [login [association [extra-body-line]]]
+  printf '{"id": %s, "created_at": "2026-09-17T0%s:00:00Z", "html_url": "https://example.test/c%s", "user": {"login": "%s"}, "author_association": "%s", "body": "%s\\nRESULT x%s"}' \
+    "$1" "$1" "$1" "${3:-seat-retired-login}" "${4:-COLLABORATOR}" "$2" "${5:+\\n$5}"
 }
 files_json() { # path... -> a pulls/N/files page
   python3 -c 'import sys,json; print(json.dumps([{"filename": p, "status": "modified"} for p in sys.argv[1:]]))' "$@"
@@ -282,7 +327,7 @@ run() { # name args... -> rc; out/err captured. BASHX=1 runs the tool under bash
 calls() { grep -c "^$2" "$W/$1/log"; }
 leftover() { find "$W/$1/tmp" -mindepth 1 | wc -l | tr -d ' '; }
 leaks() { cat "$W/$1/out" "$W/$1/err" | grep -c -e "$TOKEN" -e STUBKEYMATERIAL -e STUBSIGNATURE -e "$JWTHEAD" -e "$SIGB64"; }
-GOOD="[$(comment 1 'An ordinary comment'),$(comment 2 "Fix review: merge $SHA")]"
+GOOD="[$(comment 1 'An ordinary comment'),$(comment 2 "Fix review: merge $SHA" tvofi COLLABORATOR "evidence: $EV")]"
 
 mkcase ok open false "$SHA" "$GOOD"
 run ok o/r 7 "$SHA"; st $? 0 "a merge verdict at the live head of an open, unowned pull request is approved"
@@ -299,6 +344,7 @@ st "$(leaks ok)" 0 "no token, JWT, key or signature text in stdout or stderr aft
 st "$(grep -c "$TOKEN" "$W/ok/tokencopy")" 1 "(null control: the leak grep does find the token where it really is)"
 st "$(grep -c -e "$JWTHEAD" "$W/ok/jwtcopy")" 1 "(null control: and the JWT header, where it really is)"
 st "$(grep -c '^app_approve: APPROVED review id=5 state=APPROVED' "$W/ok/out")" 1 "and the read-back line is printed"
+st "$(grep -c "$SHA" "$EV/verdict.md")" 1 "(fixture: the evidence dir names the head, so the approval above passed the gate honestly)"
 
 mkcase xtrace open false "$SHA" "$GOOD"
 BASHX=1 run xtrace o/r 7 "$SHA"; st $? 0 "under bash -x the approval still runs"
@@ -325,12 +371,12 @@ run none o/r 7 "$SHA"; st $? 1 "REFUSE: no Fix review verdict at all"
 st "$(grep -c "no 'Fix review:' verdict" "$W/none/err")" 1 "saying so, not falling through to the SHA comparison"
 st "$(calls none curl)" 0 "and nothing was minted or posted"
 
-mkcase stale open false "$SHA" "[$(comment 1 "Fix review: merge $OTHER")]"
+mkcase stale open false "$SHA" "[$(comment 1 "Fix review: merge $OTHER" tvofi)]"
 run stale o/r 7 "$SHA"; st $? 1 "REFUSE: the merge verdict is for another SHA"
 st "$(grep -c "is 'Fix review: merge $OTHER'" "$W/stale/err")" 1 "naming the SHA the verdict is for"
 
 mkcase blocked open false "$SHA" "$GOOD"
-printf '[%s]' "$(comment 3 "Fix review: blocked $SHA claims: moved")" > "$W/blocked/c2.json"
+printf '[%s]' "$(comment 3 "Fix review: blocked $SHA claims: moved" tvofi)" > "$W/blocked/c2.json"
 run blocked o/r 7 "$SHA"; st $? 1 "REFUSE: a newer blocked verdict, on a later page, overrides an older merge"
 
 mkcase outsider open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" mallory NONE)]"
@@ -338,14 +384,27 @@ run outsider o/r 7 "$SHA"; st $? 1 "REFUSE: a merge verdict from an outsider (as
 st "$(calls outsider curl)" 0 "and nothing was minted or posted"
 mkcase contrib open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" mallory CONTRIBUTOR)]"
 run contrib o/r 7 "$SHA"; st $? 1 "REFUSE: a merge verdict from a CONTRIBUTOR outside the allowlist"
-mkcase badassoc open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" tvofi-seat-author NONE)]"
+mkcase badassoc open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" tvofi NONE)]"
 run badassoc o/r 7 "$SHA"; st $? 1 "REFUSE: an allowlisted login without a collaborator association"
+mkcase retired open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" seat-retired-login COLLABORATOR "evidence: $EV")]"
+run retired o/r 7 "$SHA"; st $? 1 "REFUSE: a verdict from the retired seat account is outside the allowlist"
+st "$(grep -c "no 'Fix review:' verdict" "$W/retired/err")" 1 "read as no allowlisted verdict, its evidence dir notwithstanding"
+st "$(calls retired curl)" 0 "and nothing was minted or posted"
+mkcase evmissing open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" tvofi COLLABORATOR "evidence: /tmp/hpo-orch/fixer-identity/no-such-review-dir")]"
+run evmissing o/r 7 "$SHA"; st $? 1 "REFUSE: the verdict cites an evidence directory that does not exist"
+st "$(grep -c 'is not a directory that exists' "$W/evmissing/err")" 1 "naming the missing directory"
+st "$(calls evmissing curl)" 0 "and nothing was minted or posted"
+mkdir -p "$W/evnosha-dir"; printf 'a review that names no head at all\n' > "$W/evnosha-dir/notes.md"
+mkcase evnosha open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" tvofi COLLABORATOR "evidence: $W/evnosha-dir")]"
+run evnosha o/r 7 "$SHA"; st $? 1 "REFUSE: the evidence directory holds no file naming the head"
+st "$(grep -c 'names the head' "$W/evnosha/err")" 1 "naming the exact-sha rule it failed"
+st "$(calls evnosha curl)" 0 "and nothing was minted or posted"
 mkcase displace open false "$SHA" \
-  "[$(comment 1 "Fix review: blocked $SHA other: bad"),$(comment 2 "Fix review: merge $SHA" mallory NONE)]"
+  "[$(comment 1 "Fix review: blocked $SHA other: bad" tvofi),$(comment 2 "Fix review: merge $SHA" mallory NONE)]"
 run displace o/r 7 "$SHA"; st $? 1 "REFUSE: an outsider's later merge does not displace an allowlisted blocked"
 st "$(grep -c "is 'Fix review: blocked $SHA" "$W/displace/err")" 1 "the allowlisted blocked verdict is the one read"
 mkcase notdisplace open false "$SHA" \
-  "[$(comment 1 "Fix review: merge $SHA" tvofi OWNER),$(comment 2 "Fix review: blocked $SHA other: x" mallory NONE)]"
+  "[$(comment 1 "Fix review: merge $SHA" tvofi OWNER "evidence: $EV"),$(comment 2 "Fix review: blocked $SHA other: x" mallory NONE)]"
 run notdisplace o/r 7 "$SHA"; st $? 0 "an outsider's later blocked does not displace an allowlisted merge either"
 
 mkcase policy open false "$SHA" "$GOOD"; files_json docs/x.md tools/audit/briefs/fixer.md > "$W/policy/files.json"
