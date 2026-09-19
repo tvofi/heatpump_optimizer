@@ -1,14 +1,12 @@
 # Handover — the open-issues programme
 
-updated-for: 25696f8a0a2cfa8fb5627d403d7451f578b98448
+updated-for: a53fc7581bfc21dcf0a63670acf7d6cd01c0f20e
 
-Taken at this record seat's own (re-merged) merge base off `origin/main`
-(merges since the prior stamp: #1106 `f02a790`, #1119 `1b22d4a`, #1125
-`a2d1d9a`, #1120 `6bbc0bf`, #1126 `2296de3`; re-pointed to #1147 `25696f8`
-by W1067-G7b-2, which added the two entries below it). This line was `a2d1d9a` for
-part of this pull request's life and was re-pointed after `origin/main` moved
-under it in review (round 2, #1129) — re-derive rather than trust this line
-if it reads stale against `origin/main` HEAD again.
+Taken at this record seat's own merge base off `origin/main`. W1067-G8
+re-pointed this line to `a53fc75` (origin/main's tip) as it closed wave 1067
+out; the merges since the prior stamp `25696f8` (#1147) are #1142 `da63bbb`,
+#1149 `7b4071c`, #1152 `69a0896`, #1150 `582d2ee` and #1153 `a53fc75`. Re-derive
+rather than trust this line if it reads stale against `origin/main` HEAD.
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is the frozen table in
@@ -172,6 +170,38 @@ request (#1081), linked from here and never restated.
   proves the device — none was found — and the fuzzy fallback carries the
   platform instead.
 
+### Wave 1067 — closed out (#1067)
+
+**The wave landed in full. #1067 closes with the pull request that writes this
+note (W1067-G8); the Delivery-status row in `docs/plan-2026-09-open-issues.md`
+is the record of which merge carried each group — linked there, never restated
+here.** The plan of record is `docs/plan-1067-rotenso-inputs.md`. Its status
+block overrides the G2 brief: the lift-aware efficiency reference was built,
+measured to double-count the lift, and reverted, so the credited COP is
+unchanged from `main`; only G3's pricing of the lift stops the walk. The same
+block records two deviations from the plan as written — the wave ran as
+sequential commits on one branch with one pull request per repository, so the
+per-group branches never existed, and the **per-group roster file was
+deliberately not committed**, because `brief_lint.mjs` refuses a carry filed at
+an issue a roster already covers; `carry-1067.json` is the mechanism kept. The
+only carry that outlives the wave is **W1067-POST1**, the post-wave follow-on
+(offer the pre-fill when a heat-pump device is added): outside #1067, and it
+gets its own issue or tracking entry when it is started, none before then.
+
+Three deferrals taken during the wave — do not relitigate them:
+
+- **Card assignment of the new option keys is deferred.** They are options-page
+  slots, not card slots: they stay out of `topology._SLOTS` on the
+  `CONF_COMPRESSOR_FREQ_ENTITY` precedent, so `ASSIGNABLE_KEYS` stays at 21 and
+  the documented count and its live harness are untouched (plan § Design
+  decisions).
+- **No zone-2 supply slot (the C4 deferral).** The two-zone model carries one
+  flow temperature (`thermal_model.py:1952`) and no per-zone emitter law, so a
+  zone-2 supply slot would feed nothing (plan § W1067-G8).
+- **The flow-lift bias stays one-sided** (above the plan's curve only), kept so
+  the scalar and batch COP paths agree; the docstring records the trade-off
+  (plan § W1067-G3, `compute_cop`).
+
 ### The UX programme
 
 **Every item lives on #558**, with the *Optimizer UX Docket* artifact as source
@@ -317,6 +347,41 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
   CHECKS PASSED`). No full re-run was owed, but the stated reason was wrong
   and must not be reused: derive the gate's scope from `closure.py select`,
   never from which top-level directories a diff appears to touch.
+
+- **Wave 1067's merged bodies carry three figures their reviewers could not
+  re-derive. The bodies are merged and are not edited; this is the correction.**
+  Each was a non-blocking disclosure inside a `merge` verdict, and each pull
+  request's conclusion holds at the corrected figure.
+  - **#1150's "the 22 other configs that hold 'Outlet temperature' alone" is off
+    by one** (comment 5735932097). `comm -12` returns the Fisher config inside
+    the 22, so the count *other than* it is **21** (`comm -23`); the word
+    "other" was the error. No test and no acceptance claim rested on it. **The
+    same review found #1150's new empty-signature predicate inverts the old
+    skip: `all(group & matched.keys() for group in signature)` returns
+    `all(())` = `True`,** so an empty signature would apply a table
+    unconditionally — unreachable today, because both registered sources carry
+    non-empty signatures and nothing in the tree builds an empty one, so no test
+    covers it: a latent trap for a future table, worth a comment rather than a
+    defect in that change.
+  - **#1152's standing-cost figure, "253.3 µs per drive over 2000 runs", is not
+    re-derivable** (comment 5736026666): the reviewer's own 2000-run driver,
+    same loop, warm, measures **72.4 µs/drive** — 3.5× lower — and is stated as
+    unverified rather than confirmed. It does not threaten the conclusion: at
+    either figure the standing cost is a fraction of a millisecond against a
+    fixer seat cycle of hours, so the cost test's verdict (build it) holds a
+    fortiori.
+  - **#1153's "production code delta, 256 lines (218 `name_match`, 32
+    `device_prefill`, 6 `config_flow`)" is not re-derivable** (comment
+    5737708367): under the rule the body itself states — non-blank lines less
+    `#` comments less module/class/function docstrings, counted with `ast` at
+    each end — the reviewer's instrument gives **281** (`237 + 37 + 7`) at every
+    commit carrying the final files, and no rule yields 218/32/6. The body
+    *understates* its own delta; the material claim (most of the 529 added lines
+    are prose) stands at 281. The same review reproduced **#1153's "0 `mypy
+    --strict` errors" as *unavailable*, not as true or false** —
+    `homeassistant-stubs==2026.2.3` is not on the index that seat's pip reaches
+    and `tests/typing_ruler.py --mypy` refuses to measure an unpinned tool
+    (#504); the authoritative answer is CI's green `typing` check at the head.
 
 ## Traps that cost a session
 
