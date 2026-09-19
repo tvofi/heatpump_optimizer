@@ -1,8 +1,13 @@
-"""Switch entity for Heat Pump Cost Optimizer.
+"""Switch entities for Heat Pump Cost Optimizer.
 
-Provides an on/off switch to enable/disable the optimizer.
-When off, the heat pump is left in its default state.
-When on, the optimizer actively controls the heat pump.
+Four switches, all plain toggles over coordinator state:
+
+* "Optimizer Active" — the master on/off switch for the optimizer. When off,
+  the heat pump is left in its default state; when on, the optimizer actively
+  controls the heat pump.
+* "Away" — the plan page's away override.
+* "DHW Boost" and "Boost Space Heating" — two-hour maximum boosts of the hot
+  water and the space heating, released when their window ends.
 """
 from __future__ import annotations
 

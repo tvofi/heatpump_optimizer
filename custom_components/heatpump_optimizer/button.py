@@ -1,12 +1,18 @@
 """Button entities for Heat Pump Cost Optimizer.
 
-Forcing an optimization run and starting a system-identification experiment are
-both momentary actions with no lasting state, which is exactly what a
+Four momentary actions with no lasting state, which is exactly what a
 ``ButtonEntity`` is for. A switch would have to bounce itself back off, and
-until it did, the UI would imply a state that does not exist.
+until it did, the UI would imply a state that does not exist:
 
-Both runs take real time — an optimization fetches prices and weather and then
-solves — so both report ``available`` as False while busy, giving the user
+* "Optimize Now" — run an optimization without waiting for the next interval,
+* "Learning Run System Identification" — arm the commissioning step test,
+* "Learning Reset Comfort Weight" — undo the revealed-preference comfort
+  tuning,
+* "Diagnose Last Interval" — attribute the last interval's temperature
+  residual.
+
+The runs take real time — an optimization fetches prices and weather and then
+solves — so they report ``available`` as False while busy, giving the user
 feedback that the press landed rather than inviting a second one.
 """
 from __future__ import annotations

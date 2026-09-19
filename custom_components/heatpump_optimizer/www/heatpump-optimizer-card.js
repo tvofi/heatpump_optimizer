@@ -682,6 +682,9 @@ const STRINGS = {
     "stats.delta_detail":
       "{verdict} jämfört med den sparade planen ({planned} → " +
       "{edited}&nbsp;{currency}, uppskattat)",
+    "stats.delta_detail_same":
+      "{verdict} jämfört med den sparade planen ({planned} → " +
+      "{edited}&nbsp;{currency}, uppskattat)",
 
     "time.tomorrow": "{time} i morgon",
     "time.on_weekday": "{time} på {weekday}",
