@@ -10439,6 +10439,48 @@ R.check(
 )
 
 
+def _gl_orphaned_stolen() -> tuple[bool, str]:
+    """#1143 class (b): a lease that named a DEAD owner process is stolen
+    instead of serialising the box until it expires; a lease naming a LIVE
+    process is still respected (the null control, beside the steal).
+
+    The property is the recorded pid's liveness, not the instance: the dead
+    pid is a reaped child of this test, and the live one is this process, so
+    neither arm can be satisfied by a lease that never recorded a pid.
+    """
+    with _tempfile.TemporaryDirectory() as td:
+        d = Path(td) / "dead"
+        dead = _subprocess.Popen([sys.executable, "-c", "pass"])
+        dead.wait(timeout=5)
+        _gate_lock.take(
+            "seat", lock_dir=d, lease_seconds=1800, wait=False, owner_pid=dead.pid,
+        )
+        try:
+            taken = _gate_lock.take("successor", lock_dir=d, lease_seconds=60, wait=False)
+            stole = taken.label == "successor"
+        except BlockingIOError:
+            stole = False
+        # Null control: the same shape with a LIVE owner pid must NOT be stolen.
+        d2 = Path(td) / "live"
+        _gate_lock.take(
+            "seat", lock_dir=d2, lease_seconds=1800, wait=False, owner_pid=_os.getpid(),
+        )
+        try:
+            _gate_lock.take("other", lock_dir=d2, wait=False)
+            live_blocked = False
+        except BlockingIOError:
+            live_blocked = True
+        return stole and live_blocked, f"stole={stole} live_blocked={live_blocked}"
+
+
+_gl_orph_ok, _gl_orph_detail = _gl_orphaned_stolen()
+R.check(
+    "a lease whose named owner process is gone is stolen (#1143)",
+    _gl_orph_ok,
+    _gl_orph_detail,
+)
+
+
 def _gl_auto_lease() -> tuple[bool, str]:
     """run.sh leases a FULL or stress run itself; a second one waits."""
     import threading
