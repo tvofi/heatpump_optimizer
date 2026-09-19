@@ -2199,13 +2199,16 @@ class HeatPumpOptimizerConfigFlow(
         are dropped by ``infer`` and ``_omit_unstored_defaults``, so accepting
         the offer cannot rewrite a setting as itself.
         """
+        if user_input is None:
+            # The page opened: which device's entities to read. Reopening
+            # after a refusal comes back here too, which is why the pick and
+            # the refusal render the same form.
+            return self._device_prefill_form(
+                vol.Schema(_prefill_device_schema()),
+                modbus_prefill.notes({}),
+                {},
+            )
         if self._device_prefill is None:
-            if user_input is None:
-                return self._device_prefill_form(
-                    vol.Schema(_prefill_device_schema()),
-                    modbus_prefill.notes({}),
-                    {},
-                )
             device_id = user_input.get(_PREFILL_DEVICE)
             if not device_id:
                 return await self.async_step_finish_setup()
