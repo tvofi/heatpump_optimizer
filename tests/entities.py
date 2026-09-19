@@ -18562,6 +18562,58 @@ R.check(
     f"{sorted(_MB['max_survivor_fraction'])}",
 )
 
+
+# The mutation budget's `reason` is a claim about the tree like any other, and
+# the one it carried was falsifiable: both caps were said to wait on a
+# full-package run that "cannot happen until `mutation-nightly` is on main",
+# while `.github/workflows/tests.yml` defines that job and `tests/nightly_status.py`
+# requires it (#1136). A reason must not DEFER on a lane's EXISTENCE, because
+# `REQUIRED_LANES` is exactly the set the workflow defines -- the check above
+# pins that equality -- so a reason waiting for one of them to arrive is false
+# however it is worded, and `last_measured` is the record that is owed instead.
+#
+# Key: (a lane in `REQUIRED_LANES` named in a deferral clause -- "until
+# <lane>", "unless <lane>", "pending <lane>", "awaiting <lane>", "waiting on
+# <lane>", "once <lane>"). Out of the key, and therefore out of this pin: the
+# lane named anywhere ELSE in the reason, and a deferral on WORK rather than on
+# a lane ("until the survivors are explained"). A reason claiming a required
+# lane has not yet RUN is also outside it -- whether a lane ran is not a
+# property of this tree, so no offline check can refuse that shape.
+def _mb_deferrals(reason: str) -> list:
+    """`REQUIRED_LANES` this reason waits to exist -- #1136's defect shape."""
+    return sorted(
+        _lane for _lane in _nstatus.REQUIRED_LANES
+        if re.search(
+            r"\b(?:until|unless|pending|awaiting|waiting on|once)\s+"
+            rf"`?{re.escape(_lane)}`?", reason)
+    )
+
+
+R.check(
+    "the mutation budget defers on no lane the workflow already defines",
+    _mb_deferrals(_MB["reason"]) == [],
+    f"defers-on={_mb_deferrals(_MB['reason'])}; every REQUIRED_LANE is in "
+    f"tests.yml by construction ({', '.join(_nstatus.REQUIRED_LANES)}), so a "
+    f"reason that waits for one to arrive describes a tree that is not this "
+    f"one -- record the run instead",
+)
+# The null control, both arms, driven through the same predicate rather than
+# asserted beside it: it fires on the deferral it is named for, and takes no
+# verdict on the lane named as PRESENT or on a deferral on work rather than on
+# a lane. Without the second and third arms the pin would refuse the lane's
+# name rather than the waiting, which is a different and wrong property.
+_MB_ARMS = (
+    "cannot happen until mutation-nightly is on main",
+    "mutation-nightly is on main and has run",
+    "both caps stay open until the survivors are explained",
+)
+R.check(
+    "and it refuses the deferral, not the lane's name",
+    [_mb_deferrals(_r) for _r in _MB_ARMS] == [["mutation-nightly"], [], []],
+    f"arms: {[_mb_deferrals(_r) for _r in _MB_ARMS]} -- present and "
+    f"work-deferral reasons must not be read as waiting on a lane",
+)
+
 # The #805 defect, driven rather than described. Its pre-screen read the last
 # 1200 bytes of a script's output and scored seven real kills as survivors,
 # because two scripts print their summary line and then keep logging. The

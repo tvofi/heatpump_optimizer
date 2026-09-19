@@ -15,7 +15,26 @@
         "custom_components/heatpump_optimizer/defrost.py:154 CLAMP_DROP"
       ]
     },
-    "full": null
+    "full": {
+      "survivors": 12,
+      "evaluated": 40,
+      "at": "2026-09-18T22:01:06Z",
+      "run": "35395283955",
+      "survivor_lines": [
+        "custom_components/heatpump_optimizer/climate.py:144 BOOLOP",
+        "custom_components/heatpump_optimizer/comfort_learning.py:48 CONST",
+        "custom_components/heatpump_optimizer/const.py:1157 GUARD_OFF",
+        "custom_components/heatpump_optimizer/const.py:1177 GUARD_OFF",
+        "custom_components/heatpump_optimizer/coordinator.py:10330 GUARD_OFF",
+        "custom_components/heatpump_optimizer/external_heat.py:222 RETURN_DEL",
+        "custom_components/heatpump_optimizer/frontend.py:110 BOOLOP",
+        "custom_components/heatpump_optimizer/inputs.py:650 RETURN_DEL",
+        "custom_components/heatpump_optimizer/ledger.py:79 BOOLOP",
+        "custom_components/heatpump_optimizer/legionella.py:169 GUARD_OFF",
+        "custom_components/heatpump_optimizer/manual_plan.py:121 GUARD_OFF",
+        "custom_components/heatpump_optimizer/thermal_model.py:2090 CLAMP_DROP"
+      ]
+    }
   },
-  "reason": "Both caps stay OPEN at 1.0 and this is deliberate. The first real run of the changed scope (CI run 34658441338, on a runner rather than a laptop) killed 8 of 10 and is recorded in last_measured -- but 10 mutants is a sample, and a cap set at a sample's own rate reddens the next branch that happens to draw three survivors instead of two, which is the random failure this fraction exists to avoid. Set the cap from the NIGHTLY's full-package run, whose 40-mutant pool over every module is the first estimate worth gating on. That run cannot happen until mutation-nightly is on main."
+  "reason": "Both caps stay OPEN at 1.0 and this is deliberate. The first real run of the changed scope (CI run 34658441338, on a runner rather than a laptop) killed 8 of 10 and is recorded in last_measured -- but 10 mutants is a sample, and a cap set at a sample's own rate reddens the next branch that happens to draw three survivors instead of two, which is the random failure this fraction exists to avoid. The nightly's 40-mutant full-package pool is the first estimate worth gating on, and mutation-nightly is on main: CI run 35395283955 drove it, its score recorded in last_measured.full. The cap still stays open because a cap moves down only on a run whose survivors are all explained (tests/mutation_table.py --record), and that run's survivors have not been triaged yet; record the cap here once they are."
 }
