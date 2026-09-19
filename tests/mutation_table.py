@@ -72,6 +72,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import NamedTuple
 
 ROOT = Path(__file__).resolve().parent.parent
 PKG = "custom_components/heatpump_optimizer/"
@@ -81,6 +82,9 @@ CLOSURES = ROOT / "tests" / "closures.json"
 
 _NUM = re.compile(r"-?\d+\.?\d*")
 _FAILED = re.compile(r"^\s*(\d+) of (\d+) .*FAILED\s*$", re.M)
+# The per-check line the shared harness prints (`tests/harness.py`,
+# `Results.check`), and the three drivers that keep their own counter with it.
+_CHECK_FAIL = re.compile(r"^\s*FAIL\s+(.+?)\s*$", re.M)
 
 
 # ---------------------------------------------------------------- operators
@@ -247,11 +251,52 @@ def drivers_for(rel: str, closures: dict, allow: list[str]) -> list[str]:
 
 # ------------------------------------------------------------------- runner
 
-def run_script(script: str, cwd: Path, timeout: int) -> tuple[int, int, float]:
-    """(exit status, failed-check count, seconds) for one gate script.
+class ScriptRun(NamedTuple):
+    """One gate script's measured result, carrying the output it was judged on.
+
+    The failure count is read out of stdout (#805) and that text -- with
+    stderr -- is returned alongside it rather than discarded once the count is
+    pulled. It is the only place the failing CHECK is named, and #1134 is a
+    refusal that could once name the red script and nothing more.
+    """
+    rc: int
+    failed: int
+    seconds: float
+    stdout: str = ""
+    stderr: str = ""
+
+
+def failed_checks(run: ScriptRun) -> list[str]:
+    """The failing checks one run reported, in the order it printed them.
+
+    The shared harness prints `  FAIL <name>  [detail]` per failed check
+    (`tests/harness.py`, `Results.check`) and the drivers that keep their own
+    counter print the same line, so the red CHECK is recoverable from the
+    stdout `run_script` captures.
+
+    A script that crashes, or one that prints `ISSUES:` bullets rather than
+    harness FAIL lines (`tests/plan_view.py`, `tests/validate.py`), names no
+    check in that form; the last non-empty line of its output is returned
+    instead, which for those is the reason it went red. That fallback is taken
+    only on a RED run: a green script has no failing check, so it returns none.
+    """
+    names = [m.group(1) for m in _CHECK_FAIL.finditer(run.stdout)]
+    if names:
+        return names
+    if run.rc == 0:
+        return []
+    tail = [ln.strip() for ln in (run.stdout + "\n" + run.stderr).splitlines()
+            if ln.strip()]
+    return tail[-1:]
+
+
+def run_script(script: str, cwd: Path, timeout: int) -> ScriptRun:
+    """(exit status, failed-check count, seconds, stdout, stderr) for one script.
 
     Reads the WHOLE of stdout: the last `N of M ... FAILED` line anywhere in it,
-    not the tail of a buffer (#805).
+    not the tail of a buffer (#805). The captured output is returned with the
+    counts, so a caller can name the failing CHECK inside a red script and not
+    only the script (#1134).
     """
     started = time.monotonic()
     try:
@@ -262,9 +307,12 @@ def run_script(script: str, cwd: Path, timeout: int) -> tuple[int, int, float]:
         )
     except subprocess.TimeoutExpired:
         # A mutant that hangs its driver is noticed, not silently survived.
-        return 124, 0, time.monotonic() - started
+        return ScriptRun(124, 0, time.monotonic() - started)
     hits = _FAILED.findall(proc.stdout)
-    return proc.returncode, (int(hits[-1][0]) if hits else 0), time.monotonic() - started
+    return ScriptRun(
+        proc.returncode, (int(hits[-1][0]) if hits else 0),
+        time.monotonic() - started, proc.stdout, proc.stderr,
+    )
 
 
 def clone_tree(dest: Path) -> Path:
@@ -307,8 +355,7 @@ def drop_tree(dest: Path) -> None:
     )
 
 
-def baseline_refusal(baseline: dict[str, tuple[int, int, float]],
-                     scope: str) -> int | None:
+def baseline_refusal(baseline: dict[str, ScriptRun], scope: str) -> int | None:
     """The verdict on a red baseline, or ``None`` when it is green.
 
     A red baseline makes every mutant's verdict meaningless: the table
@@ -336,10 +383,12 @@ def baseline_refusal(baseline: dict[str, tuple[int, int, float]],
     `--scope full` keeps the refusal: it runs on a schedule, where nothing
     else reports that lane's baseline per commit.
 
-    `run_script` returns only (rc, failed, seconds) and discards the stdout it
-    judged, so this can name the red SCRIPT and never the red check inside it.
+    `run_script` returns the stdout and stderr it judged alongside the counts,
+    so this names the red SCRIPT and, from that captured output, the failing
+    CHECK inside it -- rather than sending the reader back to re-run the script
+    to learn which check went red (#1134).
     """
-    red = sorted(s for s, (rc, _, _) in baseline.items() if rc != 0)
+    red = sorted(s for s, run in baseline.items() if run.rc != 0)
     if not red:
         return None
     print("\nMUTATION TABLE INCONCLUSIVE")
@@ -349,6 +398,10 @@ def baseline_refusal(baseline: dict[str, tuple[int, int, float]],
           "`fast`; one it scoped out does not, and is covered by the forced "
           "`full` run on `main` rather than by any check on this pull "
           "request.")
+    for s in red:
+        checks = failed_checks(baseline[s])
+        print(f"      {s}: " + ("; ".join(checks) if checks
+                                 else "no FAIL line in its output"))
     return 1 if scope == "full" else 0
 
 
@@ -418,18 +471,19 @@ def main() -> int:
     try:
         base_tree = clone_tree(work / "baseline")
         made.append(base_tree)
-        baseline: dict[str, tuple[int, int, float]] = {}
+        baseline: dict[str, ScriptRun] = {}
         for s in needed:
-            rc, failed, secs = run_script(s, base_tree, args.timeout)
-            baseline[s] = (rc, failed, secs)
-            print(f"  baseline {s}: rc={rc} failed={failed} {secs:.0f}s")
+            run = run_script(s, base_tree, args.timeout)
+            baseline[s] = run
+            print(f"  baseline {s}: rc={run.rc} failed={run.failed} "
+                  f"{run.seconds:.0f}s")
         verdict = baseline_refusal(baseline, args.scope)
         if verdict is not None:
             return verdict
         # Cheapest first, measured here rather than carried: a kill then costs
         # the cheapest driver that can see it.
         for mut in pool:
-            mut["drivers"].sort(key=lambda s: baseline[s][2])
+            mut["drivers"].sort(key=lambda s: baseline[s].seconds)
 
         jobs = max(1, min(args.jobs, len(pool)))
         trees = [clone_tree(work / f"w{i}") for i in range(jobs)]
@@ -459,8 +513,8 @@ def main() -> int:
             try:
                 verdict = "LIVES"
                 for s in mut["drivers"]:
-                    rc, failed, _ = run_script(s, tree, args.timeout)
-                    if rc != baseline[s][0] or failed > baseline[s][1]:
+                    run = run_script(s, tree, args.timeout)
+                    if run.rc != baseline[s].rc or run.failed > baseline[s].failed:
                         verdict = f"killed by {s}"
                         break
             finally:

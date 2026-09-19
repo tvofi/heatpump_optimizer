@@ -18654,17 +18654,48 @@ R.check(
 # baseline per commit.
 #
 # Driven as a function rather than through `main()`, which clones the tree and
-# runs real scripts; the tuples below are the shape `run_script` returns, taken
-# from the CI job that first showed this (run 34727180920, branch fix/r4-952).
+# runs real scripts; the fixtures below carry the shape `run_script` returns.
 import contextlib as _mutb_contextlib  # noqa: E402
 import io as _mutb_io  # noqa: E402
 
-_MUT_RED = {
-    "tests/entities.py": (1, 3, 41.0),
-    "tests/features.py": (1, 1, 12.0),
-    "tests/pv.py": (0, 0, 9.0),
+# `run_script` returns a `ScriptRun` carrying the stdout and stderr it judged
+# (#1134); before the fix it returned a bare (rc, failed, seconds) with that
+# text discarded. `_mut_run` builds whichever shape this tree has, so on the
+# unfixed tree these fixtures still build and the checks below FAIL by name
+# rather than dying on an AttributeError before reaching the rest of the suite.
+_MutScriptRun = getattr(_mut, "ScriptRun", None)
+
+
+def _mut_run(rc: int, failed: int, secs: float, stdout: str = "", stderr: str = ""):
+    if _MutScriptRun is not None:
+        return _MutScriptRun(rc, failed, secs, stdout, stderr)
+    return (rc, failed, secs)
+
+
+# The red runs' output names the checks that went red -- the text #1134 is
+# about. `tests/pv.py` is green and prints only a passing line: the null
+# control on "a passing script's output is never read as a failing check".
+_MUT_CHECKS = ("payroll rounding", "holiday override", "tariff night window")
+_MUT_STDOUT = {
+    "tests/entities.py":
+        "  ok   a passing check\n"
+        "  FAIL payroll rounding  [got 41]\n"
+        "  FAIL holiday override\n"
+        "  2 of 3 ENTITY CHECKS FAILED\n",
+    "tests/features.py":
+        "  FAIL tariff night window\n"
+        "  1 of 1 FEATURE CHECKS FAILED\n",
+    "tests/pv.py": "  ok   a passing check\n  1 of 1 PV CHECKS PASSED\n",
 }
-_MUT_GREEN = {s: (0, 0, secs) for s, (_r, _f, secs) in _MUT_RED.items()}
+_MUT_RED = {
+    "tests/entities.py": _mut_run(1, 2, 41.0, _MUT_STDOUT["tests/entities.py"]),
+    "tests/features.py": _mut_run(1, 1, 12.0, _MUT_STDOUT["tests/features.py"]),
+    "tests/pv.py": _mut_run(0, 0, 9.0, _MUT_STDOUT["tests/pv.py"]),
+}
+_MUT_GREEN = {s: _mut_run(0, 0, secs, "  ok   a passing check\n"
+                          "1 of 1 CHECKS PASSED\n") for s, secs in
+              (("tests/entities.py", 41.0), ("tests/features.py", 12.0),
+               ("tests/pv.py", 9.0))}
 
 
 # `getattr` with a sentinel rather than a bare attribute read: with the guard
@@ -18698,8 +18729,32 @@ R.check(
     "and it names the red script, because the report is useless without it",
     "tests/entities.py" in _MUT_PR_OUT and "tests/features.py" in _MUT_PR_OUT
     and "tests/pv.py" not in _MUT_PR_OUT,
-    "`run_script` returns (rc, failed, seconds) and discards the stdout it "
-    "judged, so the refusal can name the red SCRIPT and never the red CHECK",
+    "the refusal names the red SCRIPT; the stdout that would let it name the "
+    "red CHECK inside that script is what #1134 returns from `run_script`",
+)
+# #1134: the refusal had to name the red CHECK, not only the red script. The
+# name lives in the stdout `run_script` captured; before the fix that text was
+# discarded once the failure count was regexed out of it.
+R.check(
+    "and it names each red CHECK, not only the script that carries it (#1134)",
+    all(_name in _MUT_PR_OUT for _name in _MUT_CHECKS),
+    f"printed {_MUT_PR_OUT.strip()!r}; wanted {_MUT_CHECKS} -- a refusal that "
+    "names only the script sends its reader back to re-run it",
+)
+# The boundary of that widening: a red script whose output carries no harness
+# FAIL line (`tests/plan_view.py` and `tests/validate.py` print `ISSUES:`
+# bullets) is still named, and its reason is surfaced rather than a check name
+# invented for it.
+_MUT_NOFAIL = {"tests/plan_view.py": _mut_run(
+    1, 0, 3.0, "PLAN VIEW ISSUES:\n  - slot energy short\n")}
+_MUT_NF_RC, _MUT_NF_OUT = _mut_baseline(_MUT_NOFAIL, "changed")
+R.check(
+    "a red script whose output has no FAIL line still names its reason",
+    _MUT_NF_RC == 0 and "tests/plan_view.py" in _MUT_NF_OUT
+    and "slot energy short" in _MUT_NF_OUT,
+    f"printed {_MUT_NF_OUT.strip()!r} -- plan_view.py and validate.py print "
+    "`ISSUES:` bullets rather than harness FAIL lines, so the refusal falls "
+    "back to the last line of that output, never to the script alone",
 )
 # The null control on the weakening: the nightly is the only per-commit report
 # of a full-scope baseline, so its refusal must survive this change unchanged.
@@ -18721,6 +18776,46 @@ R.check(
     f"full={_mut_refuse(_MUT_GREEN, 'full')!r}, "
     f"printed {_MUT_OK_OUT!r}",
 )
+
+# #1134 pinned at the CAPTURE, not only at the guard: the fixtures above are
+# hand-built, so a `run_script` that still discarded the text would leave every
+# check about naming the red check green. Drive the real `run_script` against a
+# script written to print one FAIL line, and read the name back off its result.
+_mut_checks = getattr(_mut, "failed_checks", None)
+
+
+def _mut_names(run) -> list:
+    """The FAIL names one `run_script` result carries; [] before the fix."""
+    return _mut_checks(run) if _mut_checks is not None else []
+
+
+_MUT_PROBE_DIR = Path(_tempfile.mkdtemp(prefix="mutation-runscript-"))
+(_MUT_PROBE_DIR / "bad.py").write_text(
+    "print('  ok   a passing check')\n"
+    "print('  FAIL the probe check  [detail]')\n"
+    "print('1 of 2 PROBE CHECKS FAILED')\n"
+    "raise SystemExit(1)\n"
+)
+(_MUT_PROBE_DIR / "ok.py").write_text(
+    "print('  ok   a passing check')\n"
+    "print('1 of 1 PROBE CHECKS PASSED')\n"
+)
+_MUT_PROBE_RUN = _mut.run_script(str(_MUT_PROBE_DIR / "bad.py"), _mut.ROOT, 60)
+R.check(
+    "run_script returns the stdout whose FAIL line names the red check (#1134)",
+    any("the probe check" in _name for _name in _mut_names(_MUT_PROBE_RUN)),
+    f"checks={_mut_names(_MUT_PROBE_RUN)!r} from a REAL run of a script that "
+    "prints one FAIL line -- the count is pulled out of that text, and the "
+    "text is what a refusal needs to name the check",
+)
+_MUT_PROBE_OK_RUN = _mut.run_script(str(_MUT_PROBE_DIR / "ok.py"), _mut.ROOT, 60)
+R.check(
+    "and a passing run yields no failing check name",
+    _mut_names(_MUT_PROBE_OK_RUN) == [],
+    f"checks={_mut_names(_MUT_PROBE_OK_RUN)!r} -- the null control: a green "
+    "script must not be read as naming a failing check",
+)
+_mut_shutil.rmtree(_MUT_PROBE_DIR, ignore_errors=True)
 
 
 sys.exit(R.close("ENTITY CHECKS"))
