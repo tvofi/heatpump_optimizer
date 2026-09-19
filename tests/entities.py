@@ -10763,6 +10763,18 @@ R.check(
     "the most expensive script in the suite ran to prove a plan that "
     "could not have moved",
 )
+# ... and it lists the payload's producer BEFORE the card that reads it.
+# run.sh runs plan_view.py first, and `scope.run` is the plan the gate
+# reports; `sorted()` alone puts card.mjs ("c") ahead of plan_view.py ("p"),
+# so membership in the list is not enough -- the position is the dependency.
+_CARD_RUN = _closure.select([_CARD_ASSET])["run"]
+R.check(
+    "and lists the card's payload producer before the card (#1146)",
+    "tests/plan_view.py" in _CARD_RUN
+    and "tests/card.mjs" in _CARD_RUN
+    and _CARD_RUN.index("tests/plan_view.py") < _CARD_RUN.index("tests/card.mjs"),
+    f"run={_CARD_RUN}",
+)
 R.check(
     "an integration python change still does",
     _ED in _closure.select(
@@ -13869,6 +13881,21 @@ R.check(
     "tests/card.mjs" in _A_CARD["rederive"]
     and "tests/plan_view.py" in _A_CARD["rederive"]
     and _A_CARD["why"]["tests/plan_view.py"]["via"] == "producer of tests/card.mjs",
+    f"rederive={_A_CARD['rederive']}",
+)
+# ... and it pulls the producer in AHEAD of the consumer. `affected.scripts`
+# is the order the CI "Re-record the closures" step iterates with `--single`,
+# so a producer listed after its consumer is recorded too late: the card's
+# `--single` run finds no plan payload, fails, and `closures-autofix` then
+# answers `skip-failed-recording` for the WHOLE batch -- blocking a repair of
+# an unrelated genuine gap in it (#1146). Membership alone (the check above)
+# does not hold this; `sorted()` put card.mjs ("c") before plan_view.py ("p").
+R.check(
+    "and lists the producer before the consumer that reads its output (#1146)",
+    "tests/plan_view.py" in _A_CARD["rederive"]
+    and "tests/card.mjs" in _A_CARD["rederive"]
+    and _A_CARD["rederive"].index("tests/plan_view.py")
+    < _A_CARD["rederive"].index("tests/card.mjs"),
     f"rederive={_A_CARD['rederive']}",
 )
 # The workflow reads these two files and nothing else. If they stop agreeing
