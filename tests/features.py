@@ -40275,12 +40275,51 @@ R.check(
     in _qs.derive({**_qs_base, _qs.FIELD_WOOD_BUFFER_TANK: True})
     and "wood_tank_volume" not in _qs_1zone,
 )
+
+# The two-tank model's own gate is the probe entities, so the wood answer is
+# observable only once the probes are picked; pinned as the model's answer,
+# not re-read from the config (the reviewer's measured gate).
+_qs_wood = _qs.derive(
+    {
+        **_qs_base,
+        _qs.FIELD_WOOD_FURNACE: True,
+        _qs.FIELD_WOOD_BUFFER_TANK: True,
+        "wood_tank_top_entity": "sensor.wood_tank_top",
+        "wood_tank_bottom_entity": "sensor.wood_tank_bottom",
+    }
+)
+R.check(
+    "the wood-tank probes are written through, and they activate the two-tank model",
+    _qs_wood.get("wood_tank_top_entity") == "sensor.wood_tank_top"
+    and _qs_wood.get("wood_tank_bottom_entity") == "sensor.wood_tank_bottom"
+    and ThermalParameters.from_config({**_qs_wood, "heat_pump_max_power": 5.0})
+    .wood_tank_configured
+    and not ThermalParameters.from_config(
+        {**_qs_1zone, "heat_pump_max_power": 5.0}
+    ).wood_tank_configured,
+    f"{sorted(_qs_wood)}",
+)
 R.check(
     "the building questionnaire is recorded and the preset enabled",
     _qs_1zone["building_preset_enabled"] is True
-    and _qs_1zone["building_structure"] == presets.STRUCTURE_TIMBER_SLAB
     and "house_thermal_mass" in _qs_1zone,
     f"{sorted(_qs_1zone)}",
+)
+# A non-default answer, so "honoured" is distinguishable from "discarded and
+# replaced by the answer's own default" — a check feeding the default proves
+# neither.
+_qs_masonry = _qs.derive(
+    {
+        **_qs_base,
+        "building_structure": presets.STRUCTURE_MASONRY,
+        "building_era": presets.ERA_PRE_1960,
+    }
+)
+R.check(
+    "a non-default structure answer is honoured, not defaulted away",
+    _qs_masonry["building_structure"] == presets.STRUCTURE_MASONRY
+    and _qs_masonry["house_thermal_mass"] > _qs_1zone["house_thermal_mass"],
+    "masonry derives a heavier house than the timber default",
 )
 
 # The quick-setup answer is the same derived physics the presets tests already

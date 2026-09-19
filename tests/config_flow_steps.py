@@ -5745,6 +5745,8 @@ async def config_flow_quick_setup():
             quick_setup.FIELD_DHW_TANK,
             quick_setup.FIELD_WOOD_FURNACE,
             quick_setup.FIELD_WOOD_BUFFER_TANK,
+            const.CONF_WOOD_TANK_TOP_ENTITY,
+            const.CONF_WOOD_TANK_BOTTOM_ENTITY,
             const.CONF_BUILDING_STRUCTURE,
             const.CONF_BUILDING_ERA,
             const.CONF_BUILDING_FOUNDATION,
@@ -5761,6 +5763,8 @@ async def config_flow_quick_setup():
         quick_setup.FIELD_DHW_TANK: True,
         quick_setup.FIELD_WOOD_FURNACE: True,
         quick_setup.FIELD_WOOD_BUFFER_TANK: True,
+        const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.wood_tank_top",
+        const.CONF_WOOD_TANK_BOTTOM_ENTITY: "sensor.wood_tank_bottom",
         const.CONF_BUILDING_STRUCTURE: STRUCTURE_TIMBER_SLAB,
         const.CONF_BUILDING_ERA: ERA_1980_2005,
         const.CONF_BUILDING_FOUNDATION: FOUNDATION_NONE,
@@ -5783,6 +5787,8 @@ async def config_flow_quick_setup():
         and flow._data.get(const.CONF_WOOD_FURNACE_ENABLED) is True
         and flow._data.get(const.CONF_BUFFER_TANK_VOLUME) == 500.0
         and flow._data.get(const.CONF_WOOD_TANK_VOLUME) == 500.0
+        and flow._data.get(const.CONF_WOOD_TANK_TOP_ENTITY) == "sensor.wood_tank_top"
+        and flow._data.get(const.CONF_WOOD_TANK_BOTTOM_ENTITY) == "sensor.wood_tank_bottom"
         and flow._data.get(const.CONF_BUILDING_PRESET_ENABLED) is True
         and const.CONF_UPPER_FLOOR_THERMAL_MASS in flow._data,
         f"data={sorted(flow._data)}",

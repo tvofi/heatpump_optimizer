@@ -347,6 +347,22 @@
     "default": "False",
     "required": "Optional",
     "selector": "BooleanSelector"
+   },
+   "wood_tank_bottom_entity": {
+    "config": {
+     "filter": "[{'domain': ['sensor']}]"
+    },
+    "default": null,
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
+   "wood_tank_top_entity": {
+    "config": {
+     "filter": "[{'domain': ['sensor']}]"
+    },
+    "default": null,
+    "required": "Optional",
+    "selector": "EntitySelector"
    }
   },
   "setup_overview": {},

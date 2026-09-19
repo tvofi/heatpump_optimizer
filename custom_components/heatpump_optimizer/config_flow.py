@@ -1097,7 +1097,9 @@ def _quick_setup_schema(current: dict[str, Any]) -> vol.Schema:
     options flow would then have to un-write. The building questionnaire is the
     same field list the ``building_describe`` and ``building_preset`` pages use,
     so a house answered here derives the identical physics as one answered
-    there.
+    there. The two wood-tank probe pickers ride the same page because they are
+    the two-tank model's own gate: the wood-buffer-tank toggle alone changes
+    nothing the model reads.
     """
     return vol.Schema(
         {
@@ -1116,6 +1118,8 @@ def _quick_setup_schema(current: dict[str, Any]) -> vol.Schema:
             vol.Optional(
                 quick_setup.FIELD_WOOD_BUFFER_TANK, default=False
             ): selector.BooleanSelector(),
+            vol.Optional(CONF_WOOD_TANK_TOP_ENTITY): _entity_of(["sensor"]),
+            vol.Optional(CONF_WOOD_TANK_BOTTOM_ENTITY): _entity_of(["sensor"]),
             **_questionnaire_fields(current),
         }
     )

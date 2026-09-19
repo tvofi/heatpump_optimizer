@@ -24,10 +24,11 @@ the convention rather than hiding it:
   means is *is it a store*. That is derived, not configured: a buffer is a
   store only when its volume reaches ``BUFFER_STORE_MIN_VOLUME``. "yes" writes a
   store-sized volume, "no" leaves the shipped small default (not a store).
-* "Wood buffer tank" — a second tank only enters the two-tank physics when its
-  top/bottom probe entities are present, which are entity slots assigned on the
-  entities page, not something a yes/no can know. "yes" writes the tank volume
-  as the marker; the probes activate it later.
+* "Wood buffer tank" — a second tank only enters the two-tank physics when
+  its top/bottom probe entities are present (that is the model's own gate,
+  ``wood_furnace_on`` and a probe), which is why the page asks for the probes
+  beside the question. "yes" records the tank volume; the probe entities the
+  user picks on the page are what activate the two-tank physics.
 
 The zone answer is written as the explicit override (``two_zone_mode``), never
 by adding or removing the two-zone presence keys, because the latter is exactly
@@ -51,6 +52,8 @@ from .const import (
     CONF_TWO_ZONE_MODE,
     CONF_UPPER_EMITTER,
     CONF_WOOD_FURNACE_ENABLED,
+    CONF_WOOD_TANK_BOTTOM_ENTITY,
+    CONF_WOOD_TANK_TOP_ENTITY,
     CONF_WOOD_TANK_VOLUME,
     DEFAULT_HEATED_AREA,
     DEFAULT_UPPER_FLOOR_AREA_RATIO,
@@ -95,6 +98,8 @@ def derive(answers: dict[str, Any]) -> dict[str, Any]:
     heated_area = float(answers.get(CONF_HEATED_AREA, DEFAULT_HEATED_AREA))
     upper_emitter = answers.get(CONF_UPPER_EMITTER, presets.EMITTER_RADIATORS)
     lower_emitter = answers.get(CONF_LOWER_EMITTER, presets.EMITTER_FLOOR)
+    wood_top = answers.get(CONF_WOOD_TANK_TOP_ENTITY)
+    wood_bottom = answers.get(CONF_WOOD_TANK_BOTTOM_ENTITY)
 
     preset = presets.BuildingPreset(
         structure=structure,
@@ -129,5 +134,9 @@ def derive(answers: dict[str, Any]) -> dict[str, Any]:
         **({
             CONF_WOOD_TANK_VOLUME: DEFAULT_WOOD_TANK_VOLUME
         } if answers.get(FIELD_WOOD_BUFFER_TANK, False) else {}),
+        # The probes are the two-tank model's own gate, so they are written
+        # whenever the user picked them; the volume alone changes nothing.
+        **({CONF_WOOD_TANK_TOP_ENTITY: wood_top} if wood_top else {}),
+        **({CONF_WOOD_TANK_BOTTOM_ENTITY: wood_bottom} if wood_bottom else {}),
         **derived,
     }
