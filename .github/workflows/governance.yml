@@ -433,20 +433,21 @@ jobs:
   # is not part of: the job would refuse merges it did not cause and miss the one
   # under review, which does not exist as a merge yet.
   #
-  # THE SPLIT (#958, D11-05): the disposition check still runs, still refuses,
-  # and still prints its refusal -- but its exit code no longer reddens this
-  # run. A merge is rowless for the whole batch interval the record protocol
-  # promises, so a red that only the next `record:` beat can clear is a
-  # treadmill rather than a detector: at `132bebc` this run went red refusing
-  # #1027's merge, and the very next push (`2a480b6`, the beat writing its
-  # row) was green again. The pre-merge alternative stays refused on #541's
-  # measured five false refusals per true one. The refusal is carried instead,
-  # on the `delivery-status` reporter shape: the step below keeps failing
-  # visibly inside this job while the job concludes success, and the reporting
-  # step after it puts the refusal on the run's summary page, where a seat
-  # reads it. Neither surface is a required context and neither may become
-  # one -- requiring a refusal only the next beat can clear would block every
-  # unrelated merge, the `nightly-status` precedent.
+  # THE REFUSAL REDDENS (D11-04). The disposition check runs, refuses, prints
+  # its refusal -- and its exit code sets this job's conclusion. #958's split
+  # had suppressed that exit code to end the permanent main red: a merge is
+  # rowless for the whole batch interval the record protocol promises, so at
+  # `132bebc` this run went red refusing #1027's merge and the very next push
+  # (`2a480b6`, the beat writing its row) was green again. The round-5 audit
+  # found the suppression had gone too far -- the check could not set its own
+  # conclusion, so a window with an undispositioned merge concluded success and
+  # the violation was reported into green. The refusal is carried as well as
+  # gated now: the reporting step after it puts the verdict and the refusal on
+  # the run's summary page, where a seat reads them. This job is not a required
+  # context and must not become one -- requiring a refusal only the next beat
+  # can clear would block every unrelated merge, the `nightly-status` precedent
+  # -- and the `if:` below keeps it off `pull_request`, so a red here gates no
+  # merge.
   record:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
@@ -496,11 +497,16 @@ jobs:
       # missing from it is work no later session can find. The command is the
       # one this step has always run; `pipefail` keeps the pipeline's exit code
       # the check's own, and `tee` captures its output for the report below.
-      # `continue-on-error` is the whole of the split: the step still fails --
-      # red step, ERROR lines in this log -- and the job no longer does.
+      # THE STEP'S EXIT CODE REACHES THE JOB'S CONCLUSION (#1194, D11-04). No
+      # `continue-on-error`: a window carrying an undispositioned merge fails
+      # `record`, which is what the refusal is for. #958 had suppressed it to
+      # end the permanent main red; the round-5 audit found the suppression had
+      # turned a detector into a green tick -- the check reported a violation it
+      # could not act on. The report step below still runs (`always()`) and
+      # carries the verdict, and this job is not a required context, so a red
+      # here cannot block an unrelated merge.
       - name: Every merged pull request has a disposition
         id: refusal
-        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -510,8 +516,8 @@ jobs:
             2>&1 | tee "$RUNNER_TEMP/record.txt"
 
       # The reported surface, on the `delivery-status` reporter shape: the
-      # verdict, the refusal itself, and a footer stating what the verdict
-      # gates -- nothing. Written to the run's summary page, which is the
+      # verdict, the refusal itself, and a footer saying what the verdict does
+      # and does not gate. Written to the run's summary page, which is the
       # first thing a seat opening this run reads, and echoed to this log so
       # it is greppable without the UI. Both arms report, the way
       # `delivery_status.py` prints OK and not only OVERDUE.
@@ -533,9 +539,9 @@ jobs:
               || echo "(the disposition check produced no output)"
             echo '```'
             echo
-            echo "Reported, not gated (#958): a rowless merge is the batch interval the"
-            echo "record protocol promises, cleared by the next \`record:\` beat writing"
-            echo "the row. This surface is not a required context and must not become one."
+            echo "REFUSED fails this job (D11-04): a rowless merge is the batch interval"
+            echo "the record protocol promises, cleared by the next \`record:\` beat writing"
+            echo "the row. The job is not a required context and must not become one."
           } | tee /dev/stderr >> "$GITHUB_STEP_SUMMARY"
 
       # Reporting only, and deliberately unable to fail the job: a histogram and
@@ -552,16 +558,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node .claude/workflows/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" 2>&1 | tee "$RUNNER_TEMP/stats.txt" || true
 
-      # THE SPLIT OF THE LANE (#959). The step below is the one path in this
-      # job allowed to ACT, and it runs WITHOUT `|| true`: a filing mechanism
-      # that fails silently is a mechanism that stopped filing, and nobody
-      # would notice. Exactly which lanes can redden this job after #959:
-      # THIS step and the checkout/setup steps above it can; the histogram and
-      # sunset steps never can (both `|| true`), and the disposition refusal
-      # reports without reddening (#958's split, `continue-on-error` above).
-      # The self-test beside it keeps the filer's own refusals from rotting
-      # the way an unexecuted enumerator's does -- driven offline, no network,
-      # the same pattern as `gh_comment.py self-test` in `policy-docs`.
+      # THE LANES THAT CAN REDDEN THIS JOB (#959, D11-04). The step below is one
+      # path in this job allowed to ACT, and it runs WITHOUT `|| true`: a filing
+      # mechanism that fails silently is a mechanism that stopped filing, and
+      # nobody would notice. Exactly which lanes can redden this job: THIS step,
+      # the disposition refusal above (its `continue-on-error` dropped, D11-04)
+      # and the checkout/setup steps can; the histogram and sunset steps never
+      # can (both `|| true`). The self-test beside it keeps the filer's own
+      # refusals from rotting the way an unexecuted enumerator's does -- driven
+      # offline, no network, the same pattern as `gh_comment.py self-test` in
+      # `policy-docs`.
       - name: Show the friction filer refusing its own fixtures
         run: node .claude/workflows/friction_issues.mjs --self-test
 

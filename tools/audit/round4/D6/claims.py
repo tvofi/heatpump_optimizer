@@ -63,7 +63,7 @@ against a document that is CORRECT.
                                          documented the derate's range; 87
                                          until its frequency half documented
                                          the two compressor Hz bounds)
-    RESULT arch_modules_on_disk=63       (architecture.md said 45; 56 until
+    RESULT arch_modules_on_disk=64       (architecture.md said 45; 56 until
                                          #1067's learner half added
                                          flow_lift.py, 57 until its
                                          silent-mode half added silent_mode.py,
@@ -85,7 +85,7 @@ against a document that is CORRECT.
                                          bytes of, so nothing compared these
                                          numbers to a run between 2026-09-17
                                          and then)
-    RESULT arch_map_listed=63            (was 45; 11 were missing)
+    RESULT arch_map_listed=64            (was 45; 11 were missing)
     RESULT arch_map_missing=0            (was 11)
     RESULT ha_module_level_importers=21  (architecture.md said 10; now says 21)
 

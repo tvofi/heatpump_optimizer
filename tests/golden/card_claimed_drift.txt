@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.6.4
+# claims-for: 6.6.5
 #
-# v6.6.4: the #1067 feature chain, the device pre-fill, and a run of instrument and governance repairs. The stamp empties the list; the
+# v6.6.5: the instrument-backlog repairs, quick setup, and the round-5 UI/sensor batch. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -251,3 +251,59 @@
 # zoom pair itself, tools/audit/round4/D4/d4_own_D4-03.mjs, both ends on
 # this box: 20.22x20.22 at 22.22 px centres -> 24.00x24.00 at 26.00 px at
 # all three tiles, fine and coarse arms alike.
+
+# #1219 (round-5 audit, D4-01): the setup diagram's click-to-assign rows.
+# Their hit height was the bare `rowH - 2` = 15 viewBox units under a fine
+# pointer -- the 24 px floor sat behind `_coarsePointer()`, and the coarse
+# branch converted px to viewBox units with `SETUP_W / 280`, a render width
+# nothing ships (the canvas renders 560-1190 px), so at 375 px that was
+# 11.67 px and un-gating it as written would have landed 49+ px rows. The
+# floor now applies to every pointer and converts with the width the canvas
+# is actually drawn at (`SETUP_W / drawnWidth`, the scale `point(ev)`
+# hit-tests with); a first paint with no width yet is re-rendered once by
+# `_refitCharts`, the chart's #256 contract.
+#
+# Direction, one mechanism in every claimed state: each `rect.setup-hit`
+# height attribute goes 15 -> 19.6 units, which is the floor's 24.5 px (24 +
+# the card's documented 0.5 px slack) at this gate's 1.25 px/unit stub, and
+# its y re-centres by half the growth (hitY = y - rowH + 5 - (hitH -
+# hitBase) / 2; 41 -> 38.7 measured). Scope of this change: the 6 states
+# below are every state that draws the setup page. Normalising ONLY the
+# setup-hit boxes (x/y/width/height triple) away leaves the 6 byte-identical
+# to the ref apart from the #1220 stylesheet insertion, which claims the 27
+# states after it; nothing else moves for #1219. The other 28 draw no
+# diagram, which also covers every chart-bearing state -- docs/img's figures
+# are chart pictures and stay valid.
+
+
+# #1220 (round-5 audit, D4-02): the picker's own field and list were absent
+# from the htmlTargetFloor selector list, so `.sp-filter` laid out 23.19 px
+# tall at 375 and 768 px wide -- 0.81 px under SC 2.5.8's 24 px floor,
+# sub-pixel but a miss. The fix is the one the issue body scopes: the
+# selector list gains `.sp-filter, .sp-select,`, and the field floors at
+# 24.00 px. `.sp-select` (132.31 px tall) and the save button (24.00 px,
+# its floor already engaged through .sp-actions) were over already, stay
+# put, and are re-measured as controls.
+#
+# Direction, one mechanism in every claimed state: the card injects ONE
+# <style> block and the selector list is part of it, so its text gains the
+# four comment lines and the selector line, and every state that renders
+# the stylesheet moves. A pure-insertion check over each state's serialized
+# dump shows exactly ONE insertion of the same 298 characters at the same
+# point and no deletion or replacement anywhere -- markup outside the style
+# text is byte-identical in all 27. The 6 setup states above also move for
+# #1219's reason and were claimed there; editor_schema, the 34th, renders
+# the config editor's schema and no card stylesheet, so it does not move.
+#
+# Measured at both ends with the finder's own harness,
+# tools/audit/round5/D4/picker_target.mjs (3 viewports, frozen clock):
+#   picker_under_floor_baseline        2 -> 0
+#   sp_filter_height_375_baseline  23.19 -> 24.00 px
+#   sp_filter_height_768_baseline  23.19 -> 24.00 px
+#   sp_filter_height_1280_baseline 24.72 -> 24.72 px (already over; unchanged)
+#   sp_select_height_baseline         132.31 px, control, undisturbed
+#   sp_save_height_control             24.00 px, control, undisturbed
+# The harness's own SELF-CHECK pins the parent's counts (underBase >= 1) and
+# therefore reads FAIL at any fixed head; that is the fix landing, and it is
+# recorded in the PR body.
+

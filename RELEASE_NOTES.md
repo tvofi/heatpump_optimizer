@@ -1,5 +1,25 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.6.5
+
+a red-main repair wave, the quick-setup path, and the round-5 UI/sensor batch:
+
+- #1248 — warm git's index before a closure record (stops the whole-tree ghost
+  recording behind the "UNDER-SCOPED 898") and re-record the D6 register to 6.6.4
+- #1243 — the stamp itself now re-records the D6 register, so a version stamp no
+  longer leaves main red
+- #1247 — pin five judge-verified production guards the suite could not fail on
+- #1249 — clearing a stored entity picker no longer reverts to the old sensor
+- #1252 — docs batch: platform docstring rosters, the 45-module reach note, the
+  drifted architecture diagrams, and the card's Swedish delta_detail_same string
+- #1246 — rank the Sensor-Gap Advisor's COP-miss and DHW-coast probe rows
+- #1244 — a non-finite learned scalar never installs on the live thermal model
+- #1251 — a quick-setup path in the initial config flow
+- #1253 — the round-5 UI/sensor batch: WCAG 24px floors for the setup rows and
+  the picker filter, entity-id sort keeps families in one run, the advisor
+  publishes the instance currency, and a no-DHW plant stops leaking dhw
+  attributes
+
 ## v6.6.4
 
 the #1067 feature chain lands — device pre-fill from a heat-pump device, the

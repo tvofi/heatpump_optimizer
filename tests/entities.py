@@ -751,7 +751,7 @@ def _hra_headroom_entity(extra_config):
     return next(
         e
         for e in collect(sensor, data=coord._build_data_dict())
-        if getattr(e, "_attr_translation_key", None) == "power_headroom"
+        if getattr(e, "_attr_translation_key", None) == "cost_power_headroom"
     )
 
 
@@ -2110,6 +2110,63 @@ R.check(
     "and keeps it out of the recorder, like the windows it explains",
     "dhw_windows_spec" in sensor._PlanSensorBase._unrecorded_attributes,
 )
+# Round-5 D12-01 (#1237): the payload still carries the DHW DEFAULTS on a
+# plant with no hot water -- `dhw_windows`'s windows string and
+# `dhw_min_temperature`'s 45.0 -- and the plan sensors used to publish the
+# hot-water block unconditionally, so a space-heating plan on a no-DHW
+# install advertised a hot-water schedule nobody configured. The gate is
+# the payload's own `dhw_enabled`, the flag the DHW entities' availability
+# already rides on (`_DHWEntityMixin`). The fixture below is deliberately
+# hostile: the DHW values ARE in the payload, so only the gate can keep
+# them off the entity.
+_DHW_BLOCK_KEYS = (
+    "dhw_setpoint",
+    "dhw_min_temperature",
+    "dhw_min_temperature_max",
+    "dhw_windows",
+    "dhw_windows_spec",
+)
+_NO_DHW_DATA = {
+    **DATA,
+    "dhw_enabled": False,
+    # What the real coordinator's `_dhw_view` publishes regardless.
+    "dhw_min_temperature": 45.0,
+    "dhw_setpoint": 55.0,
+    "dhw_windows": "weekdays 06:00-08:30, weekend 08:00-09:30",
+}
+_LIVE_SPACE_PLAN = {
+    "slots": [{"start": "2026-02-01T05:00:00", "end": "2026-02-01T06:00:00"}],
+    "active_now": False,
+}
+_no_dhw_empty_attrs = sensor.SpaceHeatingPlanSensor(
+    FakeCoordinator(_NO_DHW_DATA), ENTRY
+).extra_state_attributes
+_no_dhw_plan_attrs = sensor.SpaceHeatingPlanSensor(
+    FakeCoordinator({**_NO_DHW_DATA, "space_plan": _LIVE_SPACE_PLAN}), ENTRY
+).extra_state_attributes
+R.check(
+    "a plant with no hot water publishes no hot-water attributes, either plan branch (#1237)",
+    _no_dhw_plan_attrs.get("slot_count") == 1
+    and not any(k in _no_dhw_empty_attrs for k in _DHW_BLOCK_KEYS)
+    and not any(k in _no_dhw_plan_attrs for k in _DHW_BLOCK_KEYS),
+    f"empty={sorted(k for k in _DHW_BLOCK_KEYS if k in _no_dhw_empty_attrs)}; "
+    f"populated={sorted(k for k in _DHW_BLOCK_KEYS if k in _no_dhw_plan_attrs)} "
+    "-- the payload carried all five; the gate must keep them off the entity",
+)
+_no_dhw_on_attrs = sensor.SpaceHeatingPlanSensor(
+    FakeCoordinator(
+        {**_NO_DHW_DATA, "dhw_enabled": True, "space_plan": _LIVE_SPACE_PLAN}
+    ),
+    ENTRY,
+).extra_state_attributes
+R.check(
+    "the same payload with hot water configured still publishes the block (#1237 control)",
+    all(k in _no_dhw_on_attrs for k in _DHW_BLOCK_KEYS)
+    and _no_dhw_on_attrs.get("dhw_windows")
+    == "weekdays 06:00-08:30, weekend 08:00-09:30",
+    f"keys={sorted(k for k in _DHW_BLOCK_KEYS if k in _no_dhw_on_attrs)} -- "
+    "flipping only dhw_enabled must bring the whole block back",
+)
 R.check(
     "the plan sensor publishes wood_fuel for the card (#463)",
     space_plan.extra_state_attributes.get("wood_fuel") == DATA["wood_fuel"],
@@ -2946,8 +3003,12 @@ async def _walk_flow_untouched():
             if result.get("type") == "create_entry":
                 return dict(result["data"])
             if result.get("type") == "menu":
-                # An untouched menu is its first option.
-                step = list(result["menu_options"])[0]
+                # An untouched menu is its first option — except the finish
+                # menu, whose first option is now the quick-setup shortcut:
+                # that path declines the device pre-fill straight back to this
+                # menu, so the untouched walk takes the full wizard instead.
+                options = list(result["menu_options"])
+                step = "temperature" if "temperature" in options else options[0]
                 result = await getattr(flow, f"async_step_{step}")(None)
                 continue
             step = result["step_id"]
@@ -4367,6 +4428,33 @@ def _schema_defaults(schema):
     return schema(empty_section_payload(schema))
 
 
+def _presented_value(marker):
+    """The value a field's marker shows the user, however it is pre-filled.
+
+    ``suggested_value`` first, then ``default``: a form pre-fills with either,
+    and the frontend shows and posts them alike, so a reader that wants "what
+    this page offers" has to accept both. This is also where the two arms of
+    the ``_STORED`` rule separate: a stored entity is offered as a
+    ``suggested_value`` so that clearing it sticks (the key comes back ABSENT
+    and voluptuous refills only a ``default``), while a computed field carries
+    a real ``default``.
+    """
+    description = getattr(marker, "description", None)
+    if isinstance(description, dict) and "suggested_value" in description:
+        return description["suggested_value"]
+    default = getattr(marker, "default", None)
+    return default() if callable(default) else default
+
+
+def _nested_drop(posted, keys):
+    """``posted`` with every name in ``keys`` removed wherever it is nested."""
+    return {
+        name: (_nested_drop(value, keys) if isinstance(value, dict) else value)
+        for name, value in posted.items()
+        if name not in keys
+    }
+
+
 missing = [
     step
     for step in options._MENU_LABELS
@@ -4685,21 +4773,30 @@ _sig_flow2 = options(
 )
 _sig_flow2.hass = FakeHass()
 _sig_form2 = asyncio.run(_sig_flow2.async_step_entities_pump(None))
+_sig_offered = {
+    str(getattr(marker, "schema", marker)): _presented_value(marker)
+    for marker, _value in _presented_fields(_sig_form2["data_schema"])
+}
 R.check(
-    "a configured signal comes back as the field's default",
-    all(
-        _sig_form2["data_schema"]({}).get(_key) == _value
-        for _key, _value in _sig_values.items()
-    ),
+    "a configured signal comes back as the field's pre-fill",
+    all(_sig_offered.get(_key) == _value for _key, _value in _sig_values.items()),
     "a page that forgets what is configured invites the user to re-enter it",
 )
+# Clearing has to survive the flow manager, which validates the submitted post
+# through the same schema before the step sees it (``_async_configure``:
+# ``user_input = data_schema(user_input)``). A clear posts the picker's key
+# ABSENT, and voluptuous refills a ``default`` for an absent key -- so a stored
+# entity offered as ``vol.Optional(key, default=stored)`` came straight back and
+# the clear was silently dropped, while a direct call to the step stayed green
+# because it never re-validated. Submitting the untouched post with the pickers
+# dropped, THROUGH the schema, is that manager call.
 _sig_cleared_result = asyncio.run(
     _sig_flow2.async_step_entities_pump(
-        {
-            k: v
-            for k, v in _sig_form2["data_schema"]({}).items()
-            if k not in _sig_values
-        }
+        _sig_form2["data_schema"](
+            _nested_drop(
+                _schema_defaults(_sig_form2["data_schema"]), set(_sig_values)
+            )
+        )
         | {const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
     )
 )
@@ -4875,10 +4972,7 @@ R.check(
 _pulse_kept = config_flow._field_marker(
     _pulse_row, {const.CONF_HOUSE_POWER_ENTITY: "sensor.other_power"}, _pulse_hass
 )
-_pulse_kept_default = getattr(_pulse_kept, "default", None)
-_pulse_kept_value = (
-    _pulse_kept_default() if callable(_pulse_kept_default) else _pulse_kept_default
-)
+_pulse_kept_value = _presented_value(_pulse_kept)
 R.check(
     "the metering page keeps a stored house_power_entity",
     _pulse_kept_value == "sensor.other_power",
@@ -5205,6 +5299,209 @@ R.check(
     _gap_sensor._key == "sensor_gap_advisor"
     and _gap_sensor.native_value == 0.0,
     f"value={_gap_sensor.native_value}",
+)
+
+# --- #1226 / round-5 D8-01: the advisor feeds the probes it prices ---------
+# The #699 block above hands every input to ``topology.rank_sensor_gaps``
+# itself, so it pins the arithmetic and nothing about the caller. The caller
+# whose answer a user ever sees is ``SensorGapAdvisorSensor._gaps``, and to
+# rank the outdoor and DHW rows above zero it must supply the five inputs its
+# own rank test does. When it did not, both rows kept their 0.0 defaults and
+# the enabled-by-default advisor could only ever rank the house meter.
+_gap_load_data = {
+    "house_power_series": [2.0, 2.0, 2.0, 10.0],
+    "heat_pump_power_series": [2.0, 2.0, 2.0, 2.0],
+    "peak_tariff": {
+        "price_per_kw": 90.0,
+        "window_minutes": 60,
+        "peaks_averaged": 3,
+    },
+    "current_price": 1.5,
+}
+# A user who has the house meter but neither probe: the two probe rows are
+# the whole ranking, and both must be priced.
+_gap_probe_cfg = {const.CONF_HOUSE_POWER_ENTITY: "sensor.house_power"}
+
+
+def _gap_production_rows(data, config):
+    """The production advisor's own ``gaps`` for a payload and a config."""
+    coord = FakeCoordinator(dict(data), _config=dict(config))
+    gap_sensor = sensor.SensorGapAdvisorSensor(coord, ENTRY)
+    gaps = gap_sensor.extra_state_attributes["gaps"]
+    return gap_sensor, {row["key"]: row for row in gaps}
+
+
+_gap_probe_sensor, _gap_probe = _gap_production_rows(_gap_load_data, _gap_probe_cfg)
+R.check(
+    "an empty outdoor slot ranks its COP miss on the production advisor (#1226)",
+    _gap_probe[const.CONF_OUTDOOR_TEMP_ENTITY]["empty"]
+    and _gap_probe[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"] > 0.0,
+    repr(_gap_probe),
+)
+R.check(
+    "an empty DHW probe ranks its coasting miss on the production advisor (#1226)",
+    _gap_probe[const.CONF_DHW_TEMP_ENTITY]["empty"]
+    and _gap_probe[const.CONF_DHW_TEMP_ENTITY]["sek_per_month"] > 0.0,
+    repr(_gap_probe),
+)
+_gap_top = max(
+    (row for row in _gap_probe.values() if row["empty"]),
+    key=lambda row: row["sek_per_month"],
+)
+R.check(
+    "the advisor's state is the top empty slot's rank (#1226)",
+    _gap_probe_sensor.native_value > 0.0
+    and _gap_probe_sensor.native_value == _gap_top["sek_per_month"]
+    and _gap_probe_sensor.extra_state_attributes["top_slot"] == _gap_top["key"],
+    f"value={_gap_probe_sensor.native_value} top={_gap_top['key']}",
+)
+# Causal, not a restatement of the formula: a dearer kWh must raise both
+# rows, and a heavier observed load must raise the COP row, or the caller is
+# not reading them at all.
+_, _gap_dearer = _gap_production_rows(
+    dict(_gap_load_data, current_price=3.0), _gap_probe_cfg
+)
+_, _gap_heavier = _gap_production_rows(
+    dict(_gap_load_data, heat_pump_power_series=[4.0, 4.0, 4.0, 4.0]),
+    _gap_probe_cfg,
+)
+R.check(
+    "both probe rows read the resolved price, and the COP row the load (#1226)",
+    _gap_dearer[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"]
+    > _gap_probe[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"]
+    and _gap_dearer[const.CONF_DHW_TEMP_ENTITY]["sek_per_month"]
+    > _gap_probe[const.CONF_DHW_TEMP_ENTITY]["sek_per_month"]
+    and _gap_heavier[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"]
+    > _gap_probe[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"],
+    f"base={_gap_probe} dearer={_gap_dearer} heavier={_gap_heavier}",
+)
+# Null control: a fully wired install ranks nothing, however loud the load.
+_gap_all_cfg = {
+    const.CONF_HOUSE_POWER_ENTITY: "sensor.house_power",
+    const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+    const.CONF_DHW_TEMP_ENTITY: "sensor.dhw",
+}
+_gap_null_sensor, _gap_null = _gap_production_rows(_gap_load_data, _gap_all_cfg)
+R.check(
+    "a fully wired install ranks every row 0, load and price included (#1226)",
+    _gap_null_sensor.native_value == 0.0
+    and _gap_null_sensor.extra_state_attributes["gaps"]
+    and all(row["sek_per_month"] == 0.0 for row in _gap_null.values()),
+    repr(_gap_null),
+)
+# A design choice, stated: the probes are priced from the load the pump was
+# SEEN to carry, so a payload with no power series ranks nothing -- which is
+# why the advisor against the tests' own DATA (no series) is still 0.0 above.
+_, _gap_unseen = _gap_production_rows({"current_price": 1.5}, _gap_probe_cfg)
+R.check(
+    "with no measured power series the advisor ranks no probe (#1226)",
+    all(row["sek_per_month"] == 0.0 for row in _gap_unseen.values()),
+    repr(_gap_unseen),
+)
+
+# --- #1226 round 2: a series with holes ranks as its clean twin ------------
+# The published power series is a rolling window of readings, and a reading
+# the cycle could not take leaves a hole in it: a None, or a raw string that
+# never parsed. ``_numeric_samples`` drops those samples before EVERY reader
+# -- the probe terms and the house meter's window peak alike -- because raw
+# they raise out of ``extra_state_attributes`` (or, for a None, NaN-mark the
+# window and rank its row a silent 0.00). Delete the ``isinstance`` filter
+# and every check below turns red; hand the series to ``rank_sensor_gaps``
+# unfiltered and the house checks do.
+
+
+def _gap_holed_rows(data, config):
+    """The advisor's rows, a series hole surfacing as a checked failure.
+
+    A hole must rank as its clean twin; with the sanitising gone the raw
+    sample raises (TypeError for a None, ValueError for the string), which
+    becomes a red CHECK here rather than a crashed script -- a named FAIL
+    line is what the mutation proof reads.
+    """
+    try:
+        return _gap_production_rows(data, config)[1]
+    except (TypeError, ValueError) as exc:
+        return f"{type(exc).__name__} out of extra_state_attributes: {exc}"
+
+
+# The heat-pump series' reader: the probe terms, under a config whose empty
+# rows are the two probes. Constant readings, so dropping a holed sample
+# cannot change the mean or the duty cycle -- the holed payload must rank
+# exactly what the clean four-reading window ranks: not 0.00, no exception.
+_gap_clean_hp = [2.0, 2.0, 2.0, 2.0]
+_gap_clean_twin = _gap_holed_rows(
+    dict(_gap_load_data, heat_pump_power_series=_gap_clean_hp), _gap_probe_cfg
+)
+for _gap_hole, _gap_holed_hp in (
+    ("a None", [2.0, 2.0, None, 2.0]),
+    ("an unparsed string", [2.0, 2.0, "x", 2.0]),
+):
+    _gap_holed = _gap_holed_rows(
+        dict(_gap_load_data, heat_pump_power_series=_gap_holed_hp), _gap_probe_cfg
+    )
+    R.check(
+        f"a heat-pump series carrying {_gap_hole} ranks as its clean twin (#1226)",
+        _gap_holed == _gap_clean_twin
+        and _gap_holed[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"] > 0.0,
+        f"clean={_gap_clean_twin} holed={_gap_holed_hp} -> {_gap_holed}",
+    )
+# The house series' reader: with the meter slot EMPTY the house row ranks
+# FROM the series' window peak -- the purchase the meter exists for. The
+# heat pump's blind peak is pinned low so that row is a live figure, not a
+# 0-vs-0, and a holed house series must keep it.
+_gap_house_cfg = {}
+_gap_house_hp = [1.0, 1.0, 1.0, 1.0]
+for _gap_hole, _gap_holed_house in (
+    ("a None", [2.0, 2.0, None, 2.0]),
+    ("an unparsed string", [2.0, 2.0, "x", 2.0]),
+):
+    _gap_house_holed = _gap_holed_rows(
+        dict(
+            _gap_load_data,
+            heat_pump_power_series=_gap_house_hp,
+            house_power_series=_gap_holed_house,
+        ),
+        _gap_house_cfg,
+    )
+    _gap_house_clean = _gap_holed_rows(
+        dict(
+            _gap_load_data,
+            heat_pump_power_series=_gap_house_hp,
+            house_power_series=[2.0, 2.0, 2.0, 2.0],
+        ),
+        _gap_house_cfg,
+    )
+    R.check(
+        f"a house series carrying {_gap_hole} ranks as its clean twin (#1226)",
+        _gap_house_holed == _gap_house_clean
+        and _gap_house_holed[const.CONF_HOUSE_POWER_ENTITY]["sek_per_month"] > 0.0,
+        f"clean={_gap_house_clean} holed={_gap_holed_house} -> {_gap_house_holed}",
+    )
+# Dropped, not NaN-marked: a hole inserted into a series with a real peak
+# must rank as the same series with that slot simply absent -- the house
+# row keeps its whole spike, where a raw None NaNs the 60-minute window and
+# quietly prices the row 0.00.
+_gap_spike_holed = _gap_holed_rows(
+    dict(
+        _gap_load_data,
+        heat_pump_power_series=_gap_house_hp,
+        house_power_series=[2.0, 2.0, None, 2.0, 10.0],
+    ),
+    _gap_house_cfg,
+)
+_gap_spike_clean = _gap_holed_rows(
+    dict(
+        _gap_load_data,
+        heat_pump_power_series=_gap_house_hp,
+        house_power_series=[2.0, 2.0, 2.0, 10.0],
+    ),
+    _gap_house_cfg,
+)
+R.check(
+    "a hole in a spiked series is dropped, not priced as a 0.00 house row (#1226)",
+    _gap_spike_holed == _gap_spike_clean
+    and _gap_spike_holed[const.CONF_HOUSE_POWER_ENTITY]["sek_per_month"] > 0.0,
+    f"clean={_gap_spike_clean} holed={_gap_spike_holed}",
 )
 
 # The building page owns the valve and wood entities (v4.0.0 merged the
@@ -8214,27 +8511,33 @@ R.check(
 # non-membership for the same reason in reverse.  Read the registered
 # strings.json (via _ENTITY_STRINGS), the table the frontend resolves
 # names from -- not a roster this test supplies.
+# #1227 (round-5 D8-02) went the other half: the 16 translation keys behind
+# Cost/Plan/Learning carry their family prefix too, so the OBJECT-ID sort
+# keeps each family in one run (the D8 harness's family_splits_by_entity_id
+# 13 -> 3, the residue all platform-prefix boundaries a key cannot cross).
+# New installs only -- unique ids are untouched. The table below therefore
+# reads the renamed keys, and pins the same name prefixes as #945 chose.
 _CLUSTER_PREFIXES: dict[str, dict[str, str]] = {
     "sensor": {
-        "baseline_cost": "Cost ",
-        "predicted_cost": "Cost ",
-        "total_heating_cost": "Cost ",
-        "current_electricity_price": "Cost ",
-        "contract_comparison": "Cost ",
-        "monthly_peak_power": "Cost ",
-        "power_headroom": "Cost ",
-        "comfort_weight": "Learning ",
-        "estimated_cop": "Learning ",
-        "observed_cop": "Learning ",
-        "predicted_savings": "Plan ",
-        "savings_percentage": "Plan ",
-        "monthly_savings": "Plan ",
-        "optimization_score": "Plan ",
+        "cost_baseline": "Cost ",
+        "cost_contract_comparison": "Cost ",
+        "cost_current_electricity_price": "Cost ",
+        "cost_monthly_peak_power": "Cost ",
+        "cost_power_headroom": "Cost ",
+        "cost_predicted": "Cost ",
+        "cost_total_heating": "Cost ",
+        "learning_comfort_weight": "Learning ",
+        "learning_estimated_cop": "Learning ",
+        "learning_observed_cop": "Learning ",
+        "plan_monthly_savings": "Plan ",
+        "plan_optimization_score": "Plan ",
+        "plan_predicted_savings": "Plan ",
+        "plan_savings_percentage": "Plan ",
         "plan_narrative": "Plan ",
     },
     "button": {
-        "run_system_identification": "Learning ",
-        "reset_learned_comfort_weight": "Learning ",
+        "learning_run_system_identification": "Learning ",
+        "learning_reset_comfort_weight": "Learning ",
     },
     "switch": {"boost_dhw": "DHW "},
 }
@@ -8281,10 +8584,10 @@ for _display, _expected_id in (
     ("Solar Irradiance", "sensor.heat_pump_optimizer_solar_irradiance"),
     ("Space Heating Plan (next 24 h)", "sensor.heat_pump_optimizer_space_heating_plan"),
     ("DHW Heating Plan (next 24 h)", "sensor.heat_pump_optimizer_dhw_heating_plan"),
-    ("Plan Predicted Savings", "sensor.heat_pump_optimizer_predicted_savings"),
-    ("Plan Monthly Savings", "sensor.heat_pump_optimizer_monthly_savings"),
-    ("Plan Savings Percentage", "sensor.heat_pump_optimizer_savings_percentage"),
-    ("Plan Optimization Score", "sensor.heat_pump_optimizer_optimization_score"),
+    ("Plan Predicted Savings", "sensor.heat_pump_optimizer_plan_predicted_savings"),
+    ("Plan Monthly Savings", "sensor.heat_pump_optimizer_plan_monthly_savings"),
+    ("Plan Savings Percentage", "sensor.heat_pump_optimizer_plan_savings_percentage"),
+    ("Plan Optimization Score", "sensor.heat_pump_optimizer_plan_optimization_score"),
     ("Plan Narrative", "sensor.heat_pump_optimizer_plan_narrative"),
     ("Optimal Setpoint", "sensor.heat_pump_optimizer_optimal_setpoint"),
     ("Recommended Power", "sensor.heat_pump_optimizer_recommended_power"),
@@ -8299,13 +8602,17 @@ for _display, _expected_id in (
         str(by_name[_display].entity_id),
     )
 # The card derives headline-stat ids from the plan sensor id by suffix swap;
-# that derivation must keep landing on real ids.
+# that derivation must keep landing on real ids. #1227 moved five headline
+# suffixes with their keys; the card reads the family-prefixed suffix and
+# keeps each pre-#1227 suffix as its legacy fallback (the card's
+# LEGACY_STAT_SUFFIXES, pinned just below), so on this roster the derivation
+# is required to land with the CURRENT suffix.
 _plan_id = by_name["Space Heating Plan (next 24 h)"].entity_id
 for _stat_suffix in (
-    "_predicted_savings",
-    "_monthly_savings",
-    "_savings_percentage",
-    "_optimization_score",
+    "_plan_predicted_savings",
+    "_plan_savings_percentage",
+    "_plan_optimization_score",
+    "_plan_monthly_savings",
     "_plan_narrative",
 ):
     _derived = _plan_id.replace("_space_heating_plan", _stat_suffix)
@@ -8313,6 +8620,92 @@ for _stat_suffix in (
         f"the card's suffix derivation for {_stat_suffix} stays valid",
         _derived in {s.entity_id for s in sensors},
         _derived,
+    )
+
+# --- D8-02 (#1227): the card's legacy suffixes for pre-#1227 installs ------
+#
+# Renaming a key changes the SUGGESTED object id for new installs only; an
+# existing install keeps its registry id, so the card must also resolve the
+# pre-#1227 suffixes. Read the card's own map, so deleting a legacy entry
+# fails here rather than silently stripping headline stats from upgrades.
+_card_legacy = {}
+try:
+    _card_src = (
+        pathlib.Path(__file__).resolve().parent.parent
+        / "custom_components" / "heatpump_optimizer" / "www"
+        / "heatpump-optimizer-card.js"
+    ).read_text()
+except OSError:
+    _card_src = ""
+_legacy_block = re.search(
+    r"const LEGACY_STAT_SUFFIXES = \{(.*?)\};", _card_src, re.S
+)
+if _legacy_block:
+    for _m in re.finditer(r'"([^"]+)":\s*"([^"]+)"', _legacy_block.group(1)):
+        _card_legacy[_m.group(1)] = _m.group(2)
+R.check(
+    "the card keeps a legacy suffix for every #1227-renamed headline stat",
+    all(
+        _card_legacy.get(_new) == _old
+        for _new, _old in (
+            ("_plan_predicted_savings", "_predicted_savings"),
+            ("_plan_savings_percentage", "_savings_percentage"),
+            ("_plan_optimization_score", "_optimization_score"),
+            ("_plan_monthly_savings", "_monthly_savings"),
+        )
+    ),
+    str(_card_legacy),
+)
+
+# --- D8-02 (#1227): one entity-id run per family ---------------------------
+#
+# Sixteen translation keys moved to carry their family prefix (Cost/Plan/
+# Learning), so the OBJECT-ID sort keeps each family in one run -- the D8
+# harness's family_splits_by_entity_id 13 -> 3, the residue all
+# platform-prefix boundaries no key can cross. NEW installs only: the
+# unique ids are untouched, so an existing install keeps its entity id and
+# its history through the registry (the #174 pattern above).
+for _display, _new_id, _uid in (
+    ("Cost Baseline", "sensor.heat_pump_optimizer_cost_baseline", "baseline_cost"),
+    ("Cost Contract Comparison", "sensor.heat_pump_optimizer_cost_contract_comparison", "contract_comparison"),
+    ("Cost Electricity Price (now)", "sensor.heat_pump_optimizer_cost_current_electricity_price", "current_price"),
+    ("Cost Monthly Peak Power", "sensor.heat_pump_optimizer_cost_monthly_peak_power", "monthly_peak"),
+    ("Cost Power Headroom", "sensor.heat_pump_optimizer_cost_power_headroom", "power_headroom"),
+    ("Cost Predicted", "sensor.heat_pump_optimizer_cost_predicted", "predicted_cost"),
+    ("Cost Total Heating (lifetime)", "sensor.heat_pump_optimizer_cost_total_heating", "total_cost"),
+    ("Learning Comfort Weight", "sensor.heat_pump_optimizer_learning_comfort_weight", "comfort_weight"),
+    ("Learning Estimated COP", "sensor.heat_pump_optimizer_learning_estimated_cop", "current_cop"),
+    ("Learning Observed COP", "sensor.heat_pump_optimizer_learning_observed_cop", "observed_cop"),
+    ("Plan Monthly Savings", "sensor.heat_pump_optimizer_plan_monthly_savings", "monthly_savings"),
+    ("Plan Optimization Score", "sensor.heat_pump_optimizer_plan_optimization_score", "optimization_score"),
+    ("Plan Predicted Savings", "sensor.heat_pump_optimizer_plan_predicted_savings", "predicted_savings"),
+    ("Plan Savings Percentage", "sensor.heat_pump_optimizer_plan_savings_percentage", "savings_percentage"),
+):
+    _moved = by_name.get(_display)
+    R.check(
+        f"{_display} suggests {_new_id} on new installs (#1227)",
+        _moved is not None and _moved.entity_id == _new_id,
+        str(getattr(_moved, "entity_id", None)),
+    )
+    R.check(
+        f"{_display} keeps unique id ..._{_uid}, so existing installs keep their entity id",
+        _moved is not None and _moved._attr_unique_id == f"{ENTRY.entry_id}_{_uid}",
+        str(getattr(_moved, "_attr_unique_id", None)),
+    )
+for _display, _new_id, _uid in (
+    ("Learning Reset Comfort Weight", "button.heat_pump_optimizer_learning_reset_comfort_weight", "reset_comfort_weight"),
+    ("Learning Run System Identification", "button.heat_pump_optimizer_learning_run_system_identification", "system_identification"),
+):
+    _moved = btn_by_name.get(_display)
+    R.check(
+        f"{_display} suggests {_new_id} on new installs (#1227)",
+        _moved is not None and _moved.entity_id == _new_id,
+        str(getattr(_moved, "entity_id", None)),
+    )
+    R.check(
+        f"{_display} keeps unique id ..._{_uid}, so existing installs keep their entity id",
+        _moved is not None and _moved._attr_unique_id == f"{ENTRY.entry_id}_{_uid}",
+        str(getattr(_moved, "_attr_unique_id", None)),
     )
 
 # Belt-and-braces for the future: the four headline sensors advertise a
@@ -8690,7 +9083,7 @@ try:
         _dup_first_result.get("type") == "menu"
         and _dup_first_result.get("step_id") == "finish_setup"
         and tuple(_dup_first_result.get("menu_options", {}))
-        == ("temperature", "finish_now"),
+        == ("quick_setup", "temperature", "finish_now"),
         str(_dup_first_result)[:160],
     )
     R.check(
@@ -14156,6 +14549,32 @@ R.check(
     f"{_version} -- lower CARD_VERSION in {_card_path} or bump VERSION",
 )
 
+# The D6 register (tools/audit/round4/D6/) is the committed output of
+# claims.py, and one of its rows -- C42, "manifest version equals VERSION" --
+# is a snapshot of the VERSION the register was generated at. The stamp is the
+# only commit that moves VERSION, so it is the only commit that can stale that
+# snapshot, and a stamp that does turns tests/harness_headers.py red at the
+# stamped head: that check re-runs every live-header harness (claims.py among
+# them) and fails when the register it regenerates is not what is committed.
+# v6.6.4 is exactly that state -- VERSION 6.6.4, the register's C42 still
+# 6.6.3 -- so this pins the register against the live VERSION, the invariant
+# the stamp has to keep. That the stamp keeps it is pinned separately in
+# stamp.py's own --self-test, which reads main()'s write region.
+_d6_json = Path("tools/audit/round4/D6/claims.json")
+_d6_c42 = next(
+    (row for row in json.loads(_d6_json.read_text()) if row.get("id") == "C42"), None
+)
+_d6_recorded = _re.findall(r"\d+\.\d+\.\d+", (_d6_c42 or {}).get("result", ""))
+R.check(
+    "the D6 register records the live VERSION (the stamp re-records it)",
+    _d6_recorded == [_version, _version],
+    f"{_d6_json}'s C42 records {(_d6_c42 or {}).get('result')!r}, VERSION is "
+    f"{_version!r} -- a stamp moved VERSION without re-recording the register, "
+    "so tests/harness_headers.py is red at this head. Run "
+    "`PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` and "
+    "commit its output.",
+)
+
 
 # The stamp check is only worth having if it bites, so mutate a throwaway
 # tree and require env_drift to reject exactly the wrong ones -- and to
@@ -15574,7 +15993,7 @@ try:
     _stc_writes = {
         str(Path(p).relative_to(_stamp.ROOT))
         for p in (_stamp.VERSION_FILE, _stamp.MANIFEST, _stamp.CARD_JS,
-                  _stamp.NOTES, *_stamp.CLAIM_FILES)
+                  _stamp.NOTES, *_stamp.CLAIM_FILES, *_stamp.REGISTER_FILES)
     }
     _stc_before = "# claims-for: 6.5.1\n#\n# old reason\n#\n\nconfig_flow  # a lane's claim\n"
     _stc_after, _stc_old, _stc_deleted = _stamp.rewrite_claims(_stc_before, "6.6.0", "t")
@@ -18622,13 +19041,13 @@ R.check(
     "and updates the `[policy] recurring friction:` issues (#959 option B, "
     "#201 comment 5670207248 item 4) and nothing else",
 )
-# THE SPLIT OF THE LANE, pinned as a property: after #959 exactly one path in
-# `record` can redden the job by acting deliberately -- the filing step, which
-# runs unsuppressed -- while the informational lanes keep their `|| true` and
-# the disposition refusal keeps its #958 `continue-on-error`. A `|| true`
-# pasted onto the filing step would turn a mechanism that stopped filing into
-# a green tick, which is the #959 defect one lane later, so the suppression is
-# keyed per step here rather than left to the YAML's reader.
+# THE LANES THAT CAN REDDEN THE JOB, pinned as a property: the filing step runs
+# unsuppressed -- the path that ACTS deliberately -- while the informational
+# lanes keep their `|| true`. A `|| true` pasted onto the filing step would turn
+# a mechanism that stopped filing into a green tick, which is the #959 defect
+# one lane later, so the suppression is keyed per step here rather than left to
+# the YAML's reader. The disposition refusal is the third path that reddens: its
+# `continue-on-error` is dropped (#1194, D11-04) and pinned by name below.
 _REC_RUNS = dict.fromkeys(
     _re.findall(r"run: (.+)", _REC_JOB), None)
 _REC_FILE_LINE = next(
@@ -18638,7 +19057,7 @@ _REC_STATS_LINE = next(
 _REC_SUNSET_LINE = next(
     (l for l in _REC_RUNS if "--sunset" in l), None)
 R.check(
-    "the friction filer is the record lane's one deliberate arm and the "
+    "the friction filer is the record lane's deliberate filing arm and the "
     "informational lanes stay suppressed",
     _REC_FILE_LINE is not None
     and "|| true" not in _REC_FILE_LINE
@@ -18647,8 +19066,7 @@ R.check(
     f"filing: {_REC_FILE_LINE!r}; stats: {_REC_STATS_LINE!r}; "
     f"sunset: {_REC_SUNSET_LINE!r} -- the filing step reddens this job when "
     "its mechanism fails, because a filing lane that fails green stopped "
-    "filing; the histogram and sunset printings never redden it, and the "
-    "disposition refusal reports without reddening (#958)",
+    "filing; the histogram and sunset printings never redden it",
 )
 R.check(
     "the publishing lane runs on main alone, never on a pull request",
@@ -18664,6 +19082,143 @@ R.check(
     "delivery_status.py" in _closure.NOT_A_TEST
     and not _closure.is_inert("tests/delivery_status.py"),
     "a file that is neither in a closure nor on a list forces the FULL suite",
+)
+
+# --- D11-04 (#1194): the disposition refusal can set the record job's status --
+#
+# The refusing step carried `continue-on-error: true`, which is exactly what
+# #958's split added and exactly what made an undispositioned merge stay green:
+# the step fails inside the job, the job concludes success, and the check-run a
+# seat reads is a green tick over a window nobody dispositioned. The step is cut
+# from the workflow the way the finding's harness cuts it (disposition.py) and
+# read for the one key that decides whether its exit code reaches the job's
+# conclusion. The cut selects the step BY NAME and runs to the next `- name:`,
+# so it reads the step and not the `record:` job's other suppressing steps.
+_REC_REFUSAL = _REC_JOB.split(
+    "- name: Every merged pull request has a disposition")[1].split(
+        "\n      - name:")[0]
+R.check(
+    "the disposition refusal can set the record job's conclusion",
+    "continue-on-error" not in _REC_REFUSAL,
+    f"the refusing step is {_REC_REFUSAL.strip()[:220]!r}. `continue-on-error: "
+    "true` on this step is #958's split: the step fails and the job concludes "
+    "success, so a merged pull request with no disposition is reported and stays "
+    "green -- the check cannot set its own conclusion (#1194, D11-04). The step "
+    "still runs on a push to main, never on a pull request, and is not a "
+    "required context, so dropping it cannot block an unrelated merge",
+)
+
+# --- D11-02 (#1192): the ruleset reader sees the rules it does not require ----
+#
+# `counts.mjs:liveRequiredContexts` skipped every rule that was not
+# `required_status_checks` and never read `bypass_actors`, so two rulesets
+# differing in one rule and one bypass actor returned BYTE-IDENTICAL JSON -- a
+# change to the ruleset the merge boundary runs was invisible to the tree's only
+# reader of it. Driven the way the finding's harness drives it
+# (tools/audit/round5/D11/ruleset.py): a stubbed `gh` answering the two calls the
+# reader makes, with the two ruleset documents differing only in the
+# `pull_request` rule and the bypass actor. The import is the production symbol
+# and the answer comes from production, never from a copy of its logic here.
+def _ruleset_reader_fixture():
+    import os
+    import tempfile
+
+    branch = [{
+        "type": "required_status_checks", "ruleset_id": 1,
+        "parameters": {"required_status_checks": [{"context": "policy-docs"}]},
+    }]
+
+    def read(ruleset):
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            (td / "bin").mkdir()
+            stub = td / "bin" / "gh"
+            stub.write_text(
+                '#!/bin/bash\ncase "$*" in\n'
+                '  */rules/branches/main) cat "$STUB_DIR/branch.json" ;;\n'
+                '  */rulesets/*) cat "$STUB_DIR/ruleset.json" ;;\n'
+                '  *) echo "stub gh: unhandled $*" >&2; exit 9 ;;\nesac\n')
+            stub.chmod(0o755)
+            (td / "ruleset.json").write_text(json.dumps(ruleset))
+            (td / "branch.json").write_text(json.dumps(branch))
+            env = {**os.environ, "STUB_DIR": str(td),
+                   "PATH": f"{td / 'bin'}:{os.environ['PATH']}"}
+            r = subprocess.run(
+                ["node", "--input-type=module", "-e",
+                 "import('./.claude/workflows/counts.mjs').then((m) => "
+                 "console.log(JSON.stringify(m.liveRequiredContexts())))"],
+                capture_output=True, text=True, env=env)
+            return r.returncode, r.stdout.strip()
+
+    req = {"type": "required_status_checks",
+           "parameters": {"required_status_checks": [{"context": "policy-docs"}]}}
+    full = {"rules": [req, {"type": "pull_request",
+                            "parameters": {"required_approving_review_count": 1}}],
+            "bypass_actors": [{"bypass_mode": "always"}]}
+    trimmed = {"rules": [req], "bypass_actors": []}
+    return read(full), read(trimmed), read(full)
+
+
+_RR = _ruleset_reader_fixture()
+R.check(
+    "the ruleset reader's answer moves when a rule it does not require moves",
+    _RR[0][0] == 0 and _RR[1][0] == 0 and _RR[0][1] != _RR[1][1],
+    f"with the `pull_request` rule and the bypass actor: {_RR[0][1]}; with both "
+    f"removed: {_RR[1][1]} -- byte-identical output means a ruleset change is "
+    "invisible to the tree's only reader of it (#1192, D11-02)",
+)
+R.check(
+    "and it stays stable when nothing about the ruleset moved (null control)",
+    _RR[0][0] == 0 and _RR[2][0] == 0 and _RR[0][1] == _RR[2][1],
+    f"the same ruleset read twice: {_RR[0][1]} then {_RR[2][1]}. Two identical "
+    "rulesets must return identical output, or the check above would pass for a "
+    "reader whose output moved on every call rather than on a ruleset change",
+)
+
+# --- D11-05 (#1195): the template arm reddens the acceptance -------------------
+#
+# `checkPrBody`'s template arm pushed a failing template into `found[]` and
+# never set the acceptance's exit status, so `.github/PULL_REQUEST_TEMPLATE.md`
+# failed `--pr-body` while `policy-docs` -- the acceptance -- stayed green: the
+# arm reported a violation it could not act on. The arm now returns the
+# acceptance's refusal, and the drive below is the witness it needs, because on
+# the healthy tree the template holds and the arm is silent. `POLICY_LINT_
+# TEMPLATE` points the arm at a body that drops a required heading; the same run
+# with the real template is its null control. Both are the whole acceptance, so
+# the test reads the exit status the `policy-docs` context runs, not a model of
+# the arm.
+def _template_arm_fixture():
+    import os
+    import tempfile
+
+    root = Path(__file__).resolve().parent.parent
+    headings = ["Head", "Mutation proof", "Null control", "Figures",
+                "Red checks", "Forward-carry", "Friction"]
+    broken = "".join(f"## {h}\n\nnone\n\n" for h in headings if h != "Forward-carry")
+    with tempfile.TemporaryDirectory() as td:
+        p = Path(td) / "template.md"
+        p.write_text(broken)
+        # A path RELATIVE to the clone: the arm resolves it from the module's
+        # own root, the same way it resolves the real template.
+        env = {**os.environ, "POLICY_LINT_TEMPLATE": os.path.relpath(p, root)}
+        rc_broken = subprocess.run(
+            ["node", ".claude/workflows/policy_lint.mjs"],
+            capture_output=True, text=True, env=env).returncode
+    rc_live = subprocess.run(
+        ["node", ".claude/workflows/policy_lint.mjs"],
+        capture_output=True, text=True).returncode
+    return rc_broken, rc_live
+
+
+_TA = _template_arm_fixture()
+R.check(
+    "the template arm turns the acceptance red on a template that fails its "
+    "own contract (and the real template keeps it green)",
+    _TA[0] == 1 and _TA[1] == 0,
+    f"a template missing `## Forward-carry` -> acceptance rc={_TA[0]} (must be "
+    f"1); the real template -> rc={_TA[1]} (must be 0). Without the arm's "
+    "refusal the acceptance concluded success over a template that fails the "
+    "contract it states, which is #1195 (D11-05)",
 )
 
 # --- the release lane's attestation grant and subject (#960, D11-07) ---------

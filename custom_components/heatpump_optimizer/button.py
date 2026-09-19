@@ -1,12 +1,18 @@
 """Button entities for Heat Pump Cost Optimizer.
 
-Forcing an optimization run and starting a system-identification experiment are
-both momentary actions with no lasting state, which is exactly what a
+Four momentary actions with no lasting state, which is exactly what a
 ``ButtonEntity`` is for. A switch would have to bounce itself back off, and
-until it did, the UI would imply a state that does not exist.
+until it did, the UI would imply a state that does not exist:
 
-Both runs take real time — an optimization fetches prices and weather and then
-solves — so both report ``available`` as False while busy, giving the user
+* "Optimize Now" — run an optimization without waiting for the next interval,
+* "Learning Run System Identification" — arm the commissioning step test,
+* "Learning Reset Comfort Weight" — undo the revealed-preference comfort
+  tuning,
+* "Diagnose Last Interval" — attribute the last interval's temperature
+  residual.
+
+The runs take real time — an optimization fetches prices and weather and then
+solves — so they report ``available`` as False while busy, giving the user
 feedback that the press landed rather than inviting a second one.
 """
 from __future__ import annotations
@@ -100,7 +106,7 @@ class SystemIdentificationButton(_OptimizerButtonBase):
         self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
     ) -> None:
         super().__init__(
-            coordinator, entry, "system_identification", "run_system_identification"
+            coordinator, entry, "system_identification", "learning_run_system_identification"
         )
 
     @property
@@ -124,7 +130,7 @@ class ResetComfortWeightButton(_OptimizerButtonBase):
         self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
     ) -> None:
         super().__init__(
-            coordinator, entry, "reset_comfort_weight", "reset_learned_comfort_weight"
+            coordinator, entry, "reset_comfort_weight", "learning_reset_comfort_weight"
         )
 
     async def async_press(self) -> None:

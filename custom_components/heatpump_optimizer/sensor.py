@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import math
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Mapping
 
 import numpy as np
 
@@ -28,6 +28,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import narrative
 from . import topology
 from .const import (
+    CONF_CONTRACT_FIXED_PRICE,
+    CONF_DHW_TANK_VOLUME,
+    DEFAULT_DHW_MIN_TEMP,
+    DEFAULT_DHW_SETPOINT,
+    DEFAULT_DHW_TANK_VOLUME,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
     HEAT_PUMP_ACTION_STATES,
     MANUAL_PLAN_WINDOW_HOURS,
@@ -483,7 +488,7 @@ class PredictedSavingsSensor(HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "predicted_savings", "predicted_savings")
+        super().__init__(coordinator, entry, "predicted_savings", "plan_predicted_savings")
         self._attr_native_unit_of_measurement = coordinator.currency
 
     @property
@@ -506,7 +511,7 @@ class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "monthly_savings", "monthly_savings")
+        super().__init__(coordinator, entry, "monthly_savings", "plan_monthly_savings")
         self._attr_native_unit_of_measurement = coordinator.currency
 
     def _rows(self) -> list[Any]:
@@ -540,7 +545,7 @@ class SavingsPercentageSensor(HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 1
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "savings_percentage", "savings_percentage")
+        super().__init__(coordinator, entry, "savings_percentage", "plan_savings_percentage")
 
     @property
     def native_value(self) -> float | None:
@@ -569,7 +574,7 @@ class PredictedCostSensor(HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "predicted_cost", "predicted_cost")
+        super().__init__(coordinator, entry, "predicted_cost", "cost_predicted")
         self._attr_native_unit_of_measurement = coordinator.currency
 
     @property
@@ -585,7 +590,7 @@ class BaselineCostSensor(HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "baseline_cost", "baseline_cost")
+        super().__init__(coordinator, entry, "baseline_cost", "cost_baseline")
         self._attr_native_unit_of_measurement = coordinator.currency
 
     @property
@@ -604,7 +609,7 @@ class CurrentPriceSensor(HeatPumpOptimizerSensorBase):
     # so declaring it here made HA reject the sensor's statistics.
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "current_price", "current_electricity_price")
+        super().__init__(coordinator, entry, "current_price", "cost_current_electricity_price")
         self._attr_native_unit_of_measurement = f"{coordinator.currency}/kWh"
 
     @property
@@ -667,7 +672,7 @@ class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "current_cop", "estimated_cop")
+        super().__init__(coordinator, entry, "current_cop", "learning_estimated_cop")
 
     @property
     def native_value(self) -> float | None:
@@ -1452,6 +1457,15 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         plan = self._plan
+        # DHW attributes describe hot-water plant, so they are published
+        # only on a plant that has some. The payload's own `dhw_enabled` is
+        # the flag the DHW entities' availability already rides on (the
+        # mixin above), and on a no-DHW plant the payload still carries the
+        # DHW DEFAULTS -- a windows string and the 45.0 minimum -- so
+        # publishing them unconditionally made a space-heating plan
+        # advertise a hot-water schedule nobody configured (round-5 D12-01,
+        # #1237).
+        dhw_configured = bool((self.coordinator.data or {}).get("dhw_enabled"))
         # plan_kind is emitted even with no plan yet so the card can still find
         # the entity and report *why* it is empty rather than "not found".
         if not plan:
@@ -1466,8 +1480,13 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                 # does; the card's setup page should not need a solve to draw.
                 "setup_topology": self.coordinator.describe_setup(),
                 # Likewise the configured hot-water windows, in the spec
-                # grammar, so the schedule editor can be used before a solve.
-                "dhw_windows_spec": self.coordinator.configured_dhw_windows(),
+                # grammar, so the schedule editor can be used before a solve
+                # -- once there is hot water to schedule (above).
+                **(
+                    {"dhw_windows_spec": self.coordinator.configured_dhw_windows()}
+                    if dhw_configured
+                    else {}
+                ),
                 # The currency every cost figure on this device is priced in,
                 # published so the dashboard card labels its axis from the
                 # integration's own answer rather than guessing from the
@@ -1518,24 +1537,34 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             "day_end_hour": data.get("day_end_hour"),
             "comfort_temp_day": data.get("comfort_temp_day"),
             "comfort_temp_night": data.get("comfort_temp_night"),
-            "dhw_windows": data.get("dhw_windows"),
-            # `dhw_windows` above is what the plan was made against -- learned
+            # The hot-water block, on a plant that has hot water (above).
+            # `dhw_windows` is what the plan was made against -- learned
             # windows when none are configured, one day's set of a weekly
-            # spec. This is the configuration itself, in the grammar the
-            # config flow and `apply_schedule` accept ("weekdays 06:00-08:30,
-            # weekend 08:00-09:30"), which is what the card's schedule editor
-            # edits: without it a weekly schedule could neither be shown nor
-            # saved without flattening it.
-            "dhw_windows_spec": self.coordinator.configured_dhw_windows(),
-            "dhw_min_temperature": data.get("dhw_min_temperature"),
-            "dhw_setpoint": data.get("dhw_setpoint"),
-            # The ceiling the hot water minimum has to stay under, computed
-            # here rather than in the card so the margin lives in exactly one
-            # place and the card's slider re-clamps on its own whenever the
-            # setpoint is reconfigured -- a slider whose maximum was fixed at
-            # render time against a stale setpoint is the same class of bug
-            # `_draftRuns` had in v3.2.0.
-            "dhw_min_temperature_max": _dhw_min_ceiling(data.get("dhw_setpoint")),
+            # spec. `dhw_windows_spec` is the configuration itself, in the
+            # grammar the config flow and `apply_schedule` accept
+            # ("weekdays 06:00-08:30, weekend 08:00-09:30"), which is what
+            # the card's schedule editor edits: without it a weekly schedule
+            # could neither be shown nor saved without flattening it.
+            **(
+                {
+                    "dhw_windows": data.get("dhw_windows"),
+                    "dhw_windows_spec": self.coordinator.configured_dhw_windows(),
+                    "dhw_min_temperature": data.get("dhw_min_temperature"),
+                    "dhw_setpoint": data.get("dhw_setpoint"),
+                    # The ceiling the hot water minimum has to stay under,
+                    # computed here rather than in the card so the margin
+                    # lives in exactly one place and the card's slider
+                    # re-clamps on its own whenever the setpoint is
+                    # reconfigured -- a slider whose maximum was fixed at
+                    # render time against a stale setpoint is the same class
+                    # of bug `_draftRuns` had in v3.2.0.
+                    "dhw_min_temperature_max": _dhw_min_ceiling(
+                        data.get("dhw_setpoint")
+                    ),
+                }
+                if dhw_configured
+                else {}
+            ),
             # The active manual override (or None). The card reads this to show
             # which slots are pinned and which pins safety had to release.
             "manual_override": data.get("manual_plan"),
@@ -1632,7 +1661,7 @@ class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "observed_cop", "observed_cop")
+        super().__init__(coordinator, entry, "observed_cop", "learning_observed_cop")
 
     def _modelled_cop(self, data: dict[str, Any]) -> float | None:
         model = getattr(self.coordinator, "_thermal_model", None)
@@ -1811,7 +1840,7 @@ class TotalCostSensor(_AccumulatingCostSensor):
     _data_key = "total_cost"
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "total_cost", "total_heating_cost")
+        super().__init__(coordinator, entry, "total_cost", "cost_total_heating")
 
 
 # ---------------------------------------------------------------------------
@@ -1887,7 +1916,7 @@ class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "monthly_peak", "monthly_peak_power")
+        super().__init__(coordinator, entry, "monthly_peak", "cost_monthly_peak_power")
 
     @property
     def available(self) -> bool:
@@ -2107,7 +2136,7 @@ class ComfortWeightSensor(HeatPumpOptimizerSensorBase):
     _attr_suggested_display_precision = 2
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "comfort_weight", "comfort_weight")
+        super().__init__(coordinator, entry, "comfort_weight", "learning_comfort_weight")
 
     @property
     def native_value(self) -> float | None:
@@ -2141,7 +2170,7 @@ class ContractComparisonSensor(
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
-            coordinator, entry, "contract_comparison", "contract_comparison"
+            coordinator, entry, "contract_comparison", "cost_contract_comparison"
         )
         self._attr_native_unit_of_measurement = f"{coordinator.currency}/kWh"
 
@@ -2196,7 +2225,7 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
-            coordinator, entry, "power_headroom", "power_headroom"
+            coordinator, entry, "power_headroom", "cost_power_headroom"
         )
 
     @property
@@ -2441,7 +2470,7 @@ class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
-            coordinator, entry, "optimization_score", "optimization_score"
+            coordinator, entry, "optimization_score", "plan_optimization_score"
         )
 
     @property
@@ -2561,8 +2590,94 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
         return attrs
 
 
+#: The price of a consumed kWh the Sensor-Gap Advisor assumes when the
+#: payload publishes none (a first cycle after a restart, or an install whose
+#: prices have not been read yet). A spot-only figure in the instance
+#: currency, so the advisor still ranks instead of dropping both probe rows
+#: to zero. Deliberately not the capacity tariff's per-kW price: a kWh priced
+#: with that is off by a whole month (#1226).
+FALLBACK_ENERGY_PRICE_PER_KWH = 1.0
+
+
+def _numeric_samples(series: Any) -> list[float]:
+    """The number-typed samples of a published power series, holes dropped.
+
+    A rolling window can carry a hole -- a ``None``, or a raw string that
+    never parsed -- and every reader of the series (the probe terms and the
+    house meter's window peak alike) must see numbers only: raw, the hole
+    raises out of ``extra_state_attributes``, or NaN-marks the window and
+    ranks its row a silent 0.00. Dropped, the series ranks as its clean
+    twin (#1226).
+    """
+    return [float(value) for value in series if isinstance(value, (int, float))]
+
+
+def _gap_energy_rate(data: Mapping[str, Any], config: Mapping[str, Any]) -> float:
+    """The price of a consumed kWh, with the advisor's documented fallbacks.
+
+    A payload with no published spot price -- a first cycle after a restart,
+    or an install whose prices have not been read yet -- falls back to the
+    fixed contract price and then to a nominal spot figure, so the ranking
+    survives it. Never the capacity tariff's per-kW price: a kWh priced with
+    that is off by a whole month (D8-01, #1226).
+    """
+    rate = data.get("current_price")
+    if not isinstance(rate, (int, float)) or float(rate) <= 0.0:
+        rate = float(config.get(CONF_CONTRACT_FIXED_PRICE) or 0.0)
+    if rate <= 0.0:
+        rate = FALLBACK_ENERGY_PRICE_PER_KWH
+    return float(rate)
+
+
+def _gap_probe_terms(
+    config: Mapping[str, Any],
+    hp_vals: list[float],
+    house_vals: list[float],
+    rate: float,
+) -> dict[str, float]:
+    """The COP-miss and DHW-coast inputs, from the series the payload carries.
+
+    With no measured power series there is nothing to price, so every term
+    stays 0.0 rather than being invented from an imaginary duty cycle -- which
+    is also why the advisor against a series-less payload ranks nothing. Once
+    a series is present the COP terms read the pump load and duty cycle the
+    window shows; the DHW term is a month of the tank's usable band, one
+    reheat a day at the resolved rate, priced from the configured tank volume
+    (``CONF_DHW_TANK_VOLUME``, else the documented ``DEFAULT_DHW_TANK_VOLUME``)
+    over the documented ``DEFAULT_DHW_SETPOINT`` - ``DEFAULT_DHW_MIN_TEMP``
+    band. That kWh figure is the documented tank sizing, not reheat energy
+    observed in a series: the payload carries no DHW series to read one from.
+    """
+    terms: dict[str, float] = {
+        "outdoor_load_kw": 0.0,
+        "outdoor_hours": 0.0,
+        "outdoor_price": 0.0,
+        "dhw_extra_kwh": 0.0,
+        "dhw_price": 0.0,
+    }
+    if not (hp_vals or house_vals):
+        return terms
+    # The COP miss: the pump's mean observed load, standing for a month of
+    # the duty cycle the window shows.
+    duty = (
+        sum(1 for value in hp_vals if value > 0.0) / len(hp_vals)
+        if hp_vals
+        else 0.0
+    )
+    # The DHW-coast miss: one reheat of the tank's usable band a day, over a
+    # month, at the same resolved rate.
+    volume = float(config.get(CONF_DHW_TANK_VOLUME) or DEFAULT_DHW_TANK_VOLUME)
+    band = float(DEFAULT_DHW_SETPOINT) - float(DEFAULT_DHW_MIN_TEMP)
+    terms["outdoor_load_kw"] = sum(hp_vals) / len(hp_vals) if hp_vals else 0.0
+    terms["outdoor_hours"] = 24.0 * 30.0 * duty
+    terms["outdoor_price"] = rate
+    terms["dhw_extra_kwh"] = volume * band * (4.187 / 3600.0) * 30.0
+    terms["dhw_price"] = rate
+    return terms
+
+
 class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
-    """Rank empty topology slots by estimated extra €/month (#699)."""
+    """Rank empty topology slots by estimated extra cost per month (#699)."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -2577,8 +2692,12 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
     def _gaps(self) -> list[dict[str, Any]]:
         config = getattr(self.coordinator, "_config", None) or {}
         data = self.coordinator.data or {}
-        house = data.get("house_power_series") or ()
-        hp = data.get("heat_pump_power_series") or ()
+        # Sanitise once, HERE, so every reader below sees numbers only --
+        # the house meter's peak term inside rank_sensor_gaps reads the
+        # series too, and a hole left raw there becomes a NaN window (a
+        # silently ranked-0.00 row) or raises in numpy (#1226).
+        house = _numeric_samples(data.get("house_power_series") or ())
+        hp = _numeric_samples(data.get("heat_pump_power_series") or ())
         peak = data.get("peak_tariff") or {}
         return topology.rank_sensor_gaps(
             config,
@@ -2587,6 +2706,12 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
             peak_price=float(peak.get("price_per_kw") or 45.0),
             peak_window=int(peak.get("window_minutes") or 60),
             peak_count=int(peak.get("peaks_averaged") or 3),
+            **_gap_probe_terms(
+                config,
+                hp,
+                house,
+                _gap_energy_rate(data, config),
+            ),
         )
 
     @property

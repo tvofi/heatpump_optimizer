@@ -90,10 +90,12 @@ optimizer runs, and older integrations publish none of them. A row with nothing
 to say draws no chrome at all rather than an empty strip.
 
 The card finds those sensors from the plan sensor it has already resolved: it
-takes that entity id's prefix and appends `_predicted_savings`,
-`_savings_percentage`, `_optimization_score` and `_plan_narrative`. If you have
+takes that entity id's prefix and appends `_plan_predicted_savings`,
+`_plan_savings_percentage`, `_plan_optimization_score` and `_plan_narrative`. If you have
 renamed one individually, it falls back to scanning for any `sensor` whose id
-ends in the suffix it wants. The savings figure is labelled with the unit the
+ends in the suffix it wants. An install upgraded across the #1227 key rename
+keeps its old registry ids, so the card tries each renamed sensor's pre-#1227
+suffix after the current one. The savings figure is labelled with the unit the
 savings sensor itself declares — nothing here converts, so a `currency:` in the
 card config does not relabel it.
 

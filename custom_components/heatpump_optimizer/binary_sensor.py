@@ -1,13 +1,17 @@
 """Binary sensors for Heat Pump Cost Optimizer.
 
-Three states are worth surfacing as their own entities rather than as
+Five states are worth surfacing as their own entities rather than as
 attributes buried on another sensor, because each one is something a user may
 reasonably want to automate on or be alerted about:
 
-* whether any input the optimizer depends on has gone stale,
-* whether an external heat source (typically a wood furnace) is currently
-  heating the tanks,
-* whether the house is in away mode.
+* "Input Problem" — whether any input the optimizer depends on has gone stale,
+* "External Heat Source" — whether something other than the heat pump
+  (typically a wood furnace) is currently heating the tanks,
+* "Away Mode" — whether the house is unoccupied and the deep setback applies,
+* "Open Window Detected" — whether the house is losing heat like a window is
+  open,
+* "Wood Cheaper Than Heat Pump" — whether burning wood costs less per kWh
+  than running the heat pump.
 """
 from __future__ import annotations
 
