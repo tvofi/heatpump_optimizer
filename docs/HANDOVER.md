@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: f20189d9b91bc49b5393ff51a393a2e73ed7d4f7
+updated-for: 16449f137c4e68d746e9124ae0042945240e20ab
 
 Taken at this record seat's own merge base off `origin/main`. W1067-G8
 re-pointed this line to `a53fc75` (origin/main's tip) as it closed wave 1067
@@ -782,8 +782,9 @@ by claim-untouched merges, made invisible by parse_claim_map's same-scenario
 collapse) — repaired by #1253's claim rewrite, the v6.6.5 stamp (claims
 emptied), and #1265's multi-value parse; the JS twin is #1266/#1268.
 
-Process lessons recorded: an owner approval that landed at 20:18Z was acted
-on hours late — poll review state on every PR awaiting the owner; pushes
+Process lessons recorded: an owner approval that landed at 20:18Z was merged
+37 minutes later (20:18:54Z → 20:56:10Z; first misreported as hours) — poll review
+state on every PR awaiting the owner; pushes
 over ~1 MiB die chunked without http.postBuffer (#1267); a PR body figure
 stale at a moved head is corrected by a head-unmoving body edit, then
 pr-contract re-runs (#1264 round 2).
