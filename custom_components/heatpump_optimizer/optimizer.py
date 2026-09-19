@@ -400,8 +400,17 @@ def _lbfgsb_restart(
     maxiter: int,
     batch_objective: Callable[..., Any] | None,
     fd_eps: float,
+    maxfun: int | None = None,
 ) -> Any:
-    """Restart L-BFGS-B from its own returned point. No new seed (#826)."""
+    """Restart L-BFGS-B from its own returned point. No new seed (#826).
+
+    ``maxfun`` bounds the restart's function evaluations when given: the
+    speculative candidates' polishes pass one (#1208), because their cost
+    is what the per-scenario budgets refuse -- see
+    ``_SPECULATIVE_POLISH_MAXFUN``. The adopted-point gate
+    (``_LBFGSB_RESTART_KEEP_REL``) applies on every path: a bounded polish
+    is adopted by exactly the same rule as a full one.
+    """
     _time_mod.sleep(0.002)
     jac = None
     if batch_objective is not None and _bounds_supported_by_batch(bounds):
@@ -410,6 +419,9 @@ def _lbfgsb_restart(
                 batch_objective, a, x,
                 float(objective(x, *a)), fd_eps, bounds,
             )
+    options: dict[str, Any] = {"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4}
+    if maxfun is not None:
+        options["maxfun"] = maxfun
     try:
         polished = _scoped_minimize(
             objective,
@@ -418,7 +430,7 @@ def _lbfgsb_restart(
             jac=jac,
             method="L-BFGS-B",
             bounds=bounds,
-            options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+            options=options,
         )
     except Exception:  # pragma: no cover - solver blow-up
         return best
@@ -431,19 +443,23 @@ def _lbfgsb_restart(
 
 
 #: The speculative candidates (every solved start after the raw-best one)
-#: get their polish restart at this fraction of the solve's maxiter. Three
-#: more FULL restarts were measured against the stress gate at the #1208
-#: head and refused twice over: the per-scenario CPU ceiling (shoulder/
-#: tariff+cycle 1107x its reference against the 860x budget; tariff+pv
-#: 877x; tariff+pv+cycle 1273x -- a restart that descends anew costs a
-#: solve's worth of evaluations, ~800 on those scenarios) and the work
-#: factor on unchanged plans (flat/1z/space 1.54x and typical_slab/
-#: shoulder 1.73x against 1.50x, from +3 restarts alone). A speculative
-#: polish exists to let a runner-up WIN (#1208), and the audit's flips are
-#: decided in the first iterations of the descent, so it is bounded rather
-#: than omitted: every solved start is still polished -- the race the
-#: finding measured is run -- at a maxiter the gate can afford.
+#: get their polish restart at this fraction of the solve's maxiter, and at
+#: the hard function-evaluation cap below. Three FULL restarts were
+#: measured against the stress gate at the first #1208 head and refused
+#: twice over: the per-scenario CPU ceiling (shoulder/tariff+cycle 1107x
+#: its reference against the 860x budget; tariff+pv 877x; tariff+pv+cycle
+#: 1273x -- a restart that descends anew costs a solve's worth of
+#: evaluations, ~800 on those scenarios) and the work factor on unchanged
+#: plans (flat/1z/space 1.54x and typical_slab/shoulder 1.73x against
+#: 1.50x, from +3 restarts alone). An iteration cap alone was measured not
+#: to bound it either -- the line search can spend ~10 function
+#: evaluations per iteration -- so maxfun is the binding edge. A
+#: speculative polish exists to let a runner-up WIN (#1208), and the
+#: audit's flips are decided in the first iterations of the descent, so it
+#: is bounded rather than omitted: every solved start is still polished --
+#: the race the finding measured is run -- at a cost the budgets allow.
 _SPECULATIVE_POLISH_DIVISOR = 16
+_SPECULATIVE_POLISH_MAXFUN = 40
 
 
 def _multi_start_minimize(
@@ -569,15 +585,19 @@ def _multi_start_minimize(
         # same candidates. The raw-best start (solve_index 0 -- scored order)
         # keeps the FULL restart, byte-for-byte the #826 behaviour wherever
         # only the leader's polish matters; the speculative starts get the
-        # same restart at a bounded maxiter (_SPECULATIVE_POLISH_DIVISOR's
-        # comment carries the measured refusals that bound it), so the
-        # cross-candidate race runs at a cost the per-scenario budgets allow.
+        # same restart at the bounded budget the constants above carry, so
+        # the cross-candidate race runs at a cost the per-scenario budgets
+        # allow. The bound leaves a measured residual on the finder's own
+        # harness: the one cell whose winner needed a raw-rank-3 candidate's
+        # FULL descent still ships 0.072% above it (winter_extreme, two-zone,
+        # dhw off), against the 1.40% the finding sized.
         res = _lbfgsb_restart(
             res, memoized, bounds, args,
             maxiter if not solve_index else max(
                 4, maxiter // _SPECULATIVE_POLISH_DIVISOR
             ),
             batch_objective, fd_eps,
+            maxfun=None if not solve_index else _SPECULATIVE_POLISH_MAXFUN,
         )
         score = float(memoized(res.x, *args))
         if np.isfinite(score) and score < best_score:
