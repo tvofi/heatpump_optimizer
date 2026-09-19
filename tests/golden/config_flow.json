@@ -1029,6 +1029,7 @@
   "dhw_schedule_enabled": true,
   "dhw_setpoint_entity": "sensor.seed_dhw_setpoint_entity",
   "dhw_temp_entity": "sensor.seed_dhw_temp_entity",
+  "dhw_windows_by_day": true,
   "dhw_wood_coil_enabled": true,
   "ecl110_mqtt_retain": true,
   "external_heat_detection_enabled": true,
@@ -2551,6 +2552,72 @@
     "required": "Optional",
     "selector": "SelectSelector"
    },
+   "by_day": {
+    "config": {
+     "collapsed": "True"
+    },
+    "default": null,
+    "fields": {
+     "dhw_windows_fri": {
+      "config": {
+       "type": "'text'"
+      },
+      "default": "''",
+      "required": "Optional",
+      "selector": "TextSelector"
+     },
+     "dhw_windows_mon": {
+      "config": {
+       "type": "'text'"
+      },
+      "default": "''",
+      "required": "Optional",
+      "selector": "TextSelector"
+     },
+     "dhw_windows_sat": {
+      "config": {
+       "type": "'text'"
+      },
+      "default": "''",
+      "required": "Optional",
+      "selector": "TextSelector"
+     },
+     "dhw_windows_sun": {
+      "config": {
+       "type": "'text'"
+      },
+      "default": "''",
+      "required": "Optional",
+      "selector": "TextSelector"
+     },
+     "dhw_windows_thu": {
+      "config": {
+       "type": "'text'"
+      },
+      "default": "''",
+      "required": "Optional",
+      "selector": "TextSelector"
+     },
+     "dhw_windows_tue": {
+      "config": {
+       "type": "'text'"
+      },
+      "default": "''",
+      "required": "Optional",
+      "selector": "TextSelector"
+     },
+     "dhw_windows_wed": {
+      "config": {
+       "type": "'text'"
+      },
+      "default": "''",
+      "required": "Optional",
+      "selector": "TextSelector"
+     }
+    },
+    "required": "str",
+    "selector": "section"
+   },
    "legionella": {
     "config": {
      "collapsed": "True"
@@ -2610,6 +2677,12 @@
       "default": "'06:00-08:30, 17:00-22:00'",
       "required": "Optional",
       "selector": "TextSelector"
+     },
+     "dhw_windows_by_day": {
+      "config": null,
+      "default": "True",
+      "required": "Optional",
+      "selector": "BooleanSelector"
      },
      "holiday_dhw_windows": {
       "config": {
@@ -4922,6 +4995,12 @@
      "default": "'06:00-08:30, 17:00-22:00'",
      "required": "Optional",
      "selector": "TextSelector"
+    },
+    "dhw_windows_by_day": {
+     "config": null,
+     "default": "False",
+     "required": "Optional",
+     "selector": "BooleanSelector"
     },
     "holiday_dhw_windows": {
      "config": {
