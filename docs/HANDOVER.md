@@ -762,7 +762,7 @@ separates them: "Resource not accessible by integration" is a token scope,
 "not permitted through this proxy" is the environment. Recording the second as
 the first sends a reader to change what was never the obstacle.
 
-## 2026-09-19 — the authoring identity moved to the hpo-author App; eight merges; v6.6.5
+## 2026-09-19 — the authoring identity moved to the hpo-author App; nine merges; v6.6.5
 
 The seat USER account is spam-flagged with the worst measured shape: writes
 return 201 and vanish (phantom PR #1256 within ~60s), branch names wedge

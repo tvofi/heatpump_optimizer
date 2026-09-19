@@ -1221,7 +1221,7 @@ scheduled, batch C after B. #1258 (Quick setup from an existing entry) and
 behind #1260's feature seat (same files). #1260 (per-weekday DHW windows,
 owner-requested) — scheduled, feature seat in flight incl. the card plan-tab
 "hot water windows" integration (owner requirement). #1266 (card_rig
-parseClaims, #1255's JS twin) — in review, PR #1268. #1267 (app_push
+parseClaims, #1255's JS twin) — CLOSED by #1268 (`16449f1`, verdict 5745407291). #1267 (app_push
 http.postBuffer) — scheduled follow-up on the merged tool. #1269 (card sensor-advisor page ranking
 unconfigured optional temperature sensors) — scheduled, owner-requested, next
 card/config-flow batch after #1260 (no parallel card branches). #996 — deferred
