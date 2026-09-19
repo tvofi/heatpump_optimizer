@@ -50,6 +50,8 @@
 # v6.6.4: the #1067 feature chain, the device pre-fill, and a run of instrument and governance repairs. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+config_flow # quick-setup (#1251): the finish_setup menu gains a "Quick setup" item (length 2 vs 3) and the initial flow gains a quick_setup page (present on one side only) -- two leaves, both added by this branch.
+#
 
 # The sysid-estimator wave (#942 options 2+3, fitted arm): this branch
 # claims the five coordinator captures and NOTHING ELSE; the direction is

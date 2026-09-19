@@ -40444,4 +40444,124 @@ R.check(
     f"{_post1.offered({'dev_none': _post1_nothing})}",
 )
 
+# ===========================================================================
+# Quick setup: the answer-to-config mapping (W1067-POST1 follow-on)
+# ===========================================================================
+R.section("Quick setup: the answer-to-config mapping")
+
+from heatpump_optimizer import quick_setup as _qs  # noqa: E402
+
+_qs_base = {
+    _qs.FIELD_TWO_ZONE: False,
+    _qs.FIELD_BUFFER_TANK: False,
+    _qs.FIELD_DHW_TANK: True,
+    _qs.FIELD_WOOD_FURNACE: False,
+    _qs.FIELD_WOOD_BUFFER_TANK: False,
+    "building_structure": presets.STRUCTURE_TIMBER_SLAB,
+    "building_era": presets.ERA_1980_2005,
+    "building_foundation": presets.FOUNDATION_NONE,
+    "heated_area_m2": 140,
+    "upper_floor_emitter": presets.EMITTER_RADIATORS,
+    "lower_floor_emitter": presets.EMITTER_FLOOR,
+}
+_qs_1zone = _qs.derive(dict(_qs_base))
+_qs_2zone = _qs.derive({**_qs_base, _qs.FIELD_TWO_ZONE: True})
+
+# The zone answer is the explicit override, never the two-zone presence keys:
+# writing the presence keys is exactly how a fresh entry's defaults silently
+# flip a 1-zone house to 2-zone, so a 1-zone answer must not write them.
+R.check(
+    "a 1-zone answer writes the off override and never the two-zone presence keys",
+    _qs_1zone["two_zone_mode"] == "off"
+    and "upper_floor_thermal_mass" not in _qs_1zone,
+    f"{sorted(_qs_1zone)}",
+)
+R.check(
+    "a 2-zone answer writes the on override and the derived zone keys",
+    _qs_2zone["two_zone_mode"] == "on"
+    and "upper_floor_thermal_mass" in _qs_2zone
+    and "lower_floor_thermal_mass" in _qs_2zone,
+    f"{sorted(_qs_2zone)}",
+)
+R.check(
+    "buffer-tank yes writes a store-sized volume; no writes nothing",
+    _qs.derive({**_qs_base, _qs.FIELD_BUFFER_TANK: True})["buffer_tank_volume"] >= 100.0
+    and "buffer_tank_volume" not in _qs_1zone,
+    "a store is volume-derived, and 'no' leaves the shipped small default",
+)
+R.check(
+    "dhw-tank no writes the explicit off override",
+    _qs.derive({**_qs_base, _qs.FIELD_DHW_TANK: False})["dhw_enabled"] is False,
+)
+R.check(
+    "dhw-tank yes is the default and writes on",
+    _qs_1zone["dhw_enabled"] is True,
+)
+R.check(
+    "wood-furnace yes writes the flag; no writes off",
+    _qs.derive({**_qs_base, _qs.FIELD_WOOD_FURNACE: True})["wood_furnace_enabled"]
+    is True
+    and _qs_1zone["wood_furnace_enabled"] is False,
+)
+R.check(
+    "wood-buffer-tank yes writes the tank volume; no writes nothing",
+    "wood_tank_volume"
+    in _qs.derive({**_qs_base, _qs.FIELD_WOOD_BUFFER_TANK: True})
+    and "wood_tank_volume" not in _qs_1zone,
+)
+
+# The two-tank model's own gate is the probe entities, so the wood answer is
+# observable only once the probes are picked; pinned as the model's answer,
+# not re-read from the config (the reviewer's measured gate).
+_qs_wood = _qs.derive(
+    {
+        **_qs_base,
+        _qs.FIELD_WOOD_FURNACE: True,
+        _qs.FIELD_WOOD_BUFFER_TANK: True,
+        "wood_tank_top_entity": "sensor.wood_tank_top",
+        "wood_tank_bottom_entity": "sensor.wood_tank_bottom",
+    }
+)
+R.check(
+    "the wood-tank probes are written through, and they activate the two-tank model",
+    _qs_wood.get("wood_tank_top_entity") == "sensor.wood_tank_top"
+    and _qs_wood.get("wood_tank_bottom_entity") == "sensor.wood_tank_bottom"
+    and ThermalParameters.from_config({**_qs_wood, "heat_pump_max_power": 5.0})
+    .wood_tank_configured
+    and not ThermalParameters.from_config(
+        {**_qs_1zone, "heat_pump_max_power": 5.0}
+    ).wood_tank_configured,
+    f"{sorted(_qs_wood)}",
+)
+R.check(
+    "the building questionnaire is recorded and the preset enabled",
+    _qs_1zone["building_preset_enabled"] is True
+    and "house_thermal_mass" in _qs_1zone,
+    f"{sorted(_qs_1zone)}",
+)
+# A non-default answer, so "honoured" is distinguishable from "discarded and
+# replaced by the answer's own default" — a check feeding the default proves
+# neither.
+_qs_masonry = _qs.derive(
+    {
+        **_qs_base,
+        "building_structure": presets.STRUCTURE_MASONRY,
+        "building_era": presets.ERA_PRE_1960,
+    }
+)
+R.check(
+    "a non-default structure answer is honoured, not defaulted away",
+    _qs_masonry["building_structure"] == presets.STRUCTURE_MASONRY
+    and _qs_masonry["house_thermal_mass"] > _qs_1zone["house_thermal_mass"],
+    "masonry derives a heavier house than the timber default",
+)
+
+# The quick-setup answer is the same derived physics the presets tests already
+# pin, so one end-to-end sanity — the model accepts it — is enough here.
+_qs_model = ThermalParameters.from_config({**_qs_1zone, "heat_pump_max_power": 5.0})
+R.check(
+    "quick-setup answers are accepted by the thermal model",
+    _qs_model.room_thermal_mass > 0 and _qs_model.heat_loss_coefficient > 0,
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
