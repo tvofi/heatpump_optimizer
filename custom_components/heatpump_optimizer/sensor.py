@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import math
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Mapping
 
 import numpy as np
 
@@ -28,6 +28,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import narrative
 from . import topology
 from .const import (
+    CONF_CONTRACT_FIXED_PRICE,
+    CONF_DHW_TANK_VOLUME,
+    DEFAULT_DHW_MIN_TEMP,
+    DEFAULT_DHW_SETPOINT,
+    DEFAULT_DHW_TANK_VOLUME,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
     HEAT_PUMP_ACTION_STATES,
     MANUAL_PLAN_WINDOW_HOURS,
@@ -2561,6 +2566,77 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
         return attrs
 
 
+#: The price of a consumed kWh the Sensor-Gap Advisor assumes when the
+#: payload publishes none (a first cycle after a restart, or an install whose
+#: prices have not been read yet). A spot-only figure in the instance
+#: currency, so the advisor still ranks instead of dropping both probe rows
+#: to zero. Deliberately not the capacity tariff's per-kW price: a kWh priced
+#: with that is off by a whole month (#1186).
+FALLBACK_ENERGY_PRICE_PER_KWH = 1.0
+
+
+def _numeric_samples(series: Any) -> list[float]:
+    """The finite-number samples of a published power series."""
+    return [float(value) for value in series if isinstance(value, (int, float))]
+
+
+def _gap_energy_rate(data: Mapping[str, Any], config: Mapping[str, Any]) -> float:
+    """The price of a consumed kWh, with the advisor's documented fallbacks.
+
+    A payload with no published spot price -- a first cycle after a restart,
+    or an install whose prices have not been read yet -- falls back to the
+    fixed contract price and then to a nominal spot figure, so the ranking
+    survives it. Never the capacity tariff's per-kW price: a kWh priced with
+    that is off by a whole month (D8-01, #1186).
+    """
+    rate = data.get("current_price")
+    if not isinstance(rate, (int, float)) or float(rate) <= 0.0:
+        rate = float(config.get(CONF_CONTRACT_FIXED_PRICE) or 0.0)
+    if rate <= 0.0:
+        rate = FALLBACK_ENERGY_PRICE_PER_KWH
+    return float(rate)
+
+
+def _gap_probe_terms(
+    config: Mapping[str, Any],
+    hp_vals: list[float],
+    house_vals: list[float],
+    rate: float,
+) -> dict[str, float]:
+    """The COP-miss and DHW-coast inputs, from the energy seen to be carried.
+
+    With no measured series there is nothing to price, so every term stays
+    0.0 rather than being invented from a default tank or a default window --
+    which is also why the advisor against a series-less payload ranks nothing.
+    """
+    terms: dict[str, float] = {
+        "outdoor_load_kw": 0.0,
+        "outdoor_hours": 0.0,
+        "outdoor_price": 0.0,
+        "dhw_extra_kwh": 0.0,
+        "dhw_price": 0.0,
+    }
+    if not (hp_vals or house_vals):
+        return terms
+    # The COP miss: the pump's mean observed load, standing for a month of
+    # the duty cycle the window shows.
+    duty = (
+        sum(1 for value in hp_vals if value > 0.0) / len(hp_vals)
+        if hp_vals
+        else 0.0
+    )
+    # The DHW-coast miss: one reheat of the tank's usable band a day, over a
+    # month, at the same resolved rate.
+    volume = float(config.get(CONF_DHW_TANK_VOLUME) or DEFAULT_DHW_TANK_VOLUME)
+    band = float(DEFAULT_DHW_SETPOINT) - float(DEFAULT_DHW_MIN_TEMP)
+    terms["outdoor_load_kw"] = sum(hp_vals) / len(hp_vals) if hp_vals else 0.0
+    terms["outdoor_hours"] = 24.0 * 30.0 * duty
+    terms["outdoor_price"] = rate
+    terms["dhw_extra_kwh"] = volume * band * (4.187 / 3600.0) * 30.0
+    terms["dhw_price"] = rate
+    return terms
+
+
 class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
     """Rank empty topology slots by estimated extra €/month (#699)."""
 
@@ -2587,6 +2663,12 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
             peak_price=float(peak.get("price_per_kw") or 45.0),
             peak_window=int(peak.get("window_minutes") or 60),
             peak_count=int(peak.get("peaks_averaged") or 3),
+            **_gap_probe_terms(
+                config,
+                _numeric_samples(hp),
+                _numeric_samples(house),
+                _gap_energy_rate(data, config),
+            ),
         )
 
     @property
