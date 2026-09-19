@@ -1306,6 +1306,110 @@ R.check(
 )
 _pm_logger922.removeHandler(_sink922)
 
+# --- A non-finite learned scalar must not install on the live model (D1-01) -
+#
+# _async_load_thermal_learning parses each stored scalar with float() under a
+# (TypeError, ValueError, OverflowError) guard. float('nan') raises nothing, so
+# the guard admits it and np.clip propagates it onto the live thermal model: a
+# NaN cop_scale publishes a wrong cost and a NaN house_heat_loss_scale fails
+# every solve and is re-persisted non-finite. inf is clamped by np.clip rather
+# than installed, so the guard has to refuse every non-finite value, not NaN
+# alone. The count is read off _thermal_params -- the value the seam delivers
+# into the model, which is what a solve actually consumes.
+import math as _math_d101  # noqa: E402
+
+_THERMAL_SCALARS = (
+    "house_heat_loss_scale", "buffer_cooling_rate",
+    "lower_floor_loss_ratio", "cop_scale",
+)
+_THERMAL_CLEAN = {
+    "house_heat_loss_scale": 1.0, "buffer_cooling_rate": 0.3,
+    "lower_floor_loss_ratio": 0.5, "cop_scale": 1.0,
+    "house_heat_loss_anchor": 0.0,
+}
+
+
+def _thermal_load(entry_id, **overrides):
+    """Load _THERMAL_CLEAN plus ``overrides`` through the real loader."""
+    coord = Coord(FakeHass(), _Entry922(data=dict(_CFG922), entry_id=entry_id))
+    _aio922.run(
+        coord._thermal_learning_store.async_save({**_THERMAL_CLEAN, **overrides})
+    )
+    _aio922.run(coord._async_load_thermal_learning())
+    return coord
+
+
+def _installed_nonfinite(coord):
+    """Learned scalars that reached _thermal_params non-finite."""
+    tp = coord._thermal_params
+    return [n for n in _THERMAL_SCALARS if not _math_d101.isfinite(getattr(tp, n))]
+
+
+# The coordinator's own pre-load model: the value a refused store must leave in
+# place. For a learned scalar the mirror the seam keeps is seeded from exactly
+# these, so a refusal has to land back on them.
+_THERMAL_PRELOAD = {
+    n: getattr(
+        Coord(
+            FakeHass(), _Entry922(data=dict(_CFG922), entry_id="thermal_d101_pre")
+        )._thermal_params,
+        n,
+    )
+    for n in _THERMAL_SCALARS
+}
+
+
+for _d101_name, _d101_bad in (
+    ("cop_scale", float("nan")),
+    ("house_heat_loss_scale", float("nan")),
+    ("buffer_cooling_rate", float("nan")),
+    ("lower_floor_loss_ratio", float("nan")),
+    ("cop_scale", float("inf")),
+    ("house_heat_loss_scale", float("-inf")),
+):
+    _d101 = _thermal_load(
+        f"thermal_d101_{_d101_name}_{_d101_bad}", **{_d101_name: _d101_bad}
+    )
+    # The scalar the bad value would have replaced has to SURVIVE, which is a
+    # stricter claim than "nothing non-finite landed": np.clip turns +-inf into
+    # the band's own edge, so an inf arm judged only on finiteness passes
+    # against a NaN-only guard.
+    _d101_kept = getattr(_d101._thermal_params, _d101_name)
+    R.check(
+        f"a non-finite {_d101_name}={_d101_bad!r} never installs on the live model",
+        _installed_nonfinite(_d101) == []
+        and _d101_kept == _THERMAL_PRELOAD[_d101_name],
+        f"installed={_installed_nonfinite(_d101)} kept={_d101_kept!r} "
+        f"preload={_THERMAL_PRELOAD[_d101_name]!r}",
+    )
+
+# Null control: the same store with every scalar finite installs each one, so
+# the guard costs a healthy payload nothing.
+_thermal_ok = _thermal_load(
+    "thermal_d101_finite",
+    house_heat_loss_scale=1.25, buffer_cooling_rate=0.4,
+    lower_floor_loss_ratio=0.6, cop_scale=0.9,
+)
+R.check(
+    "a finite thermal store still installs every learned scalar",
+    _installed_nonfinite(_thermal_ok) == []
+    and _thermal_ok._thermal_params.house_heat_loss_scale == 1.25
+    and _thermal_ok._thermal_params.buffer_cooling_rate == 0.4
+    and _thermal_ok._thermal_params.lower_floor_loss_ratio == 0.6
+    and _thermal_ok._thermal_params.cop_scale == 0.9,
+    f"installed={_installed_nonfinite(_thermal_ok)} "
+    f"cop={_thermal_ok._thermal_params.cop_scale}",
+)
+
+# The clamp still binds on a finite value: the guard refuses only non-finite
+# input, it does not replace the band.
+_thermal_clamped = _thermal_load("thermal_d101_clamped", cop_scale=COP_SCALE_MAX * 4.0)
+R.check(
+    "a finite cop_scale past the cap is clamped, not refused",
+    _thermal_clamped._thermal_params.cop_scale == COP_SCALE_MAX,
+    f"cop_scale={_thermal_clamped._thermal_params.cop_scale}",
+)
+
 # --- Prices align by their own timestamps, not by list position ------------
 #
 # Position assumed the first entry is *today's* midnight. A stale list — the
