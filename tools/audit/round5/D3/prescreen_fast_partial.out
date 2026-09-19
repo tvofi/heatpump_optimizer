@@ -1,0 +1,26 @@
+  baseline tests/config_flow_steps.py: rc=0 failed=0 22.3s
+  baseline tests/deployment_shape.py: rc=0 failed=0 4.4s
+  baseline tests/entities.py: rc=0 failed=0 71.8s
+  baseline tests/features.py: rc=0 failed=0 241.5s
+  baseline tests/frontend.py: rc=0 failed=0 0.1s
+  baseline tests/guard_pins.py: rc=0 failed=0 0.9s
+  baseline tests/manual_plan.py: rc=0 failed=0 9.0s
+  baseline tests/optimality.py: rc=0 failed=0 78.9s
+  baseline tests/plan_view.py: rc=0 failed=0 1.4s
+  baseline tests/solar_alignment.py: rc=0 failed=0 0.9s
+  baseline tests/structure.py: rc=0 failed=0 2.0s
+  baseline tests/typing_ruler.py: rc=0 failed=0 0.7s
+  baseline tests/validate.py: rc=0 failed=0 33.9s
+  baseline tests/wood_advisor.py: rc=0 failed=0 1.0s
+  VERDICT killed custom_components/heatpump_optimizer/process_worker.py:28 GUARD_OFF  -- tests/deployment_shape.py
+  VERDICT killed custom_components/heatpump_optimizer/entity.py:33 RETURN_DEL  -- tests/entities.py
+  VERDICT LIVES  custom_components/heatpump_optimizer/defrost.py:314 GUARD_OFF
+  VERDICT killed custom_components/heatpump_optimizer/datetime.py:45 RETURN_DEL  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/services.py:690 GUARD_OFF  -- tests/entities.py
+  VERDICT LIVES  custom_components/heatpump_optimizer/mixing_valve.py:109 CLAMP_DROP
+  VERDICT killed custom_components/heatpump_optimizer/accuracy.py:392 CLAMP_DROP  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/repairs.py:49 GUARD_OFF  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/pump_signals.py:391 BOOLOP  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/comfort_learning.py:97 GUARD_OFF  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/diagnostics.py:78 RETURN_DEL  -- tests/entities.py
+  VERDICT LIVES  custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF

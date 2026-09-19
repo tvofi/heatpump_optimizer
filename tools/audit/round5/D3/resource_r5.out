@@ -1,0 +1,63 @@
+script                          closure  seconds  assert  check
+tests/harness_headers.py           218     79.0       0      4
+tests/golden.py                    165      0.3       1      0
+tests/env_drift.py                 163      0.4       1      0
+tests/entities.py                  149     32.0       4   1165
+tests/features.py                  108     90.8       7   2658
+tests/config_flow_steps.py         101     10.2       1    240
+tests/card_drift.mjs                78      2.1       0      0
+tests/deployment_shape.py           75      1.9       0     16
+tests/card.mjs                      73      4.8       5    794
+tests/wood_advisor.py               71      0.6       0      5
+tests/manual_plan.py                70      4.5       1     76
+tests/plan_view.py                  67      0.6       0      0
+tests/solar_alignment.py            67      0.5       0     15
+tests/structure.py                  65      1.1       2      0
+tests/typing_ruler.py               65      0.5       0     22
+tests/ha_contract.py                33      0.1     111     24
+tests/guard_pins.py                 27      0.4       0      6
+tests/stress.py                     26    387.1       1     61
+tests/backtest.py                   24     20.6       0     12
+tests/optimality.py                 24     42.0       0     10
+tests/edge.py                       23     22.1       0      9
+tests/validate.py                   23     18.8       0      0
+tests/frontend.py                    6      0.0       0     19
+tests/open_meteo.py                  3      0.1       4     64
+
+RESULT production_modules_total=74 count
+  OVER-APPROX tests/golden.py              reaches 72/74 production modules (97%)
+  OVER-APPROX tests/env_drift.py           reaches 72/74 production modules (97%)
+  OVER-APPROX tests/entities.py            reaches 71/74 production modules (96%)
+  OVER-APPROX tests/deployment_shape.py    reaches 74/74 production modules (100%)
+
+  duplicate-coverage pairs (Jaccard on production modules >= 0.80):
+    1.00  tests/structure.py         tests/typing_ruler.py      shared=63
+    1.00  tests/plan_view.py         tests/solar_alignment.py   shared=45
+    1.00  tests/optimality.py        tests/validate.py          shared=11
+    1.00  tests/optimality.py        tests/edge.py              shared=11
+    1.00  tests/golden.py            tests/env_drift.py         shared=72
+    1.00  tests/edge.py              tests/validate.py          shared=11
+    1.00  tests/card_drift.mjs       tests/card.mjs             shared=46
+    1.00  tests/backtest.py          tests/validate.py          shared=11
+    1.00  tests/backtest.py          tests/optimality.py        shared=11
+    1.00  tests/backtest.py          tests/edge.py              shared=11
+    0.98  tests/config_flow_steps.py tests/typing_ruler.py      shared=62
+    0.98  tests/config_flow_steps.py tests/structure.py         shared=62
+    0.98  tests/card_drift.mjs       tests/solar_alignment.py   shared=45
+    0.98  tests/card_drift.mjs       tests/plan_view.py         shared=45
+    0.98  tests/card.mjs             tests/solar_alignment.py   shared=45
+    0.98  tests/card.mjs             tests/plan_view.py         shared=45
+    0.97  tests/golden.py            tests/deployment_shape.py  shared=72
+    0.97  tests/env_drift.py         tests/deployment_shape.py  shared=72
+    0.96  tests/entities.py          tests/deployment_shape.py  shared=71
+    0.96  tests/wood_advisor.py      tests/solar_alignment.py   shared=45
+    0.96  tests/wood_advisor.py      tests/plan_view.py         shared=45
+    0.96  tests/manual_plan.py       tests/solar_alignment.py   shared=45
+    0.96  tests/manual_plan.py       tests/plan_view.py         shared=45
+    0.94  tests/card_drift.mjs       tests/wood_advisor.py      shared=45
+    0.94  tests/card_drift.mjs       tests/manual_plan.py       shared=45
+
+RESULT scripts_total=24 count
+RESULT duplicate_pairs_ge_0.80=53 count
+RESULT thread_factor=1.00 ratio
+RESULT load1=7.72 ratio

@@ -1,0 +1,179 @@
+{
+ "omitted_scripts": [
+  "tests/backtest.py",
+  "tests/edge.py",
+  "tests/harness_headers.py"
+ ],
+ "rows": [
+  {
+   "kind": "BOOLOP",
+   "file": "custom_components/heatpump_optimizer/__init__.py",
+   "line": 337,
+   "old": "        if task is not None and hasattr(task, \"cancel\"):",
+   "new": "        if task is not None or hasattr(task, \"cancel\"):",
+   "drivers": [
+    "tests/solar_alignment.py",
+    "tests/plan_view.py",
+    "tests/guard_pins.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/config_flow_steps.py",
+    "tests/manual_plan.py",
+    "tests/entities.py",
+    "tests/validate.py",
+    "tests/optimality.py",
+    "tests/features.py"
+   ],
+   "verdict": "LIVES",
+   "killed_by": "",
+   "gap_verdict": "LIVES",
+   "gap_killed_by": ""
+  },
+  {
+   "kind": "CLAMP_DROP",
+   "file": "custom_components/heatpump_optimizer/mixing_valve.py",
+   "line": 109,
+   "old": "    return target_temp + q_hold / max(emitter_ua, 1e-6)",
+   "new": "    return target_temp + q_hold / (emitter_ua)",
+   "drivers": [
+    "tests/solar_alignment.py",
+    "tests/plan_view.py",
+    "tests/guard_pins.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/config_flow_steps.py",
+    "tests/manual_plan.py",
+    "tests/entities.py",
+    "tests/validate.py",
+    "tests/optimality.py",
+    "tests/features.py"
+   ],
+   "verdict": "LIVES",
+   "killed_by": "",
+   "gap_verdict": "LIVES",
+   "gap_killed_by": ""
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/defrost.py",
+   "line": 314,
+   "old": "        if not 0.0 <= duty <= 1.0:",
+   "new": "        if False:",
+   "drivers": [
+    "tests/solar_alignment.py",
+    "tests/plan_view.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/config_flow_steps.py",
+    "tests/manual_plan.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ],
+   "verdict": "LIVES",
+   "killed_by": "",
+   "gap_verdict": "LIVES",
+   "gap_killed_by": ""
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/pump_mode.py",
+   "line": 242,
+   "old": "    if raw is None:",
+   "new": "    if False:",
+   "drivers": [
+    "tests/solar_alignment.py",
+    "tests/plan_view.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/config_flow_steps.py",
+    "tests/manual_plan.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ],
+   "verdict": "LIVES",
+   "killed_by": "",
+   "gap_verdict": "LIVES",
+   "gap_killed_by": ""
+  },
+  {
+   "kind": "RETURN_DEL",
+   "file": "custom_components/heatpump_optimizer/wear.py",
+   "line": 72,
+   "old": "            return False",
+   "new": "            pass",
+   "drivers": [
+    "tests/solar_alignment.py",
+    "tests/plan_view.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/config_flow_steps.py",
+    "tests/manual_plan.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ],
+   "verdict": "LIVES",
+   "killed_by": "",
+   "gap_verdict": "LIVES",
+   "gap_killed_by": ""
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "line": 1276,
+   "old": "        if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0):",
+   "new": "        if False:",
+   "drivers": [
+    "tests/solar_alignment.py",
+    "tests/plan_view.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/config_flow_steps.py",
+    "tests/manual_plan.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ],
+   "verdict": "LIVES",
+   "killed_by": "",
+   "gap_verdict": "LIVES",
+   "gap_killed_by": ""
+  },
+  {
+   "kind": "GUARD_OFF",
+   "file": "custom_components/heatpump_optimizer/wood_fuel.py",
+   "line": 147,
+   "old": "        if cop_f <= 0.0:",
+   "new": "        if False:",
+   "drivers": [
+    "tests/solar_alignment.py",
+    "tests/plan_view.py",
+    "tests/guard_pins.py",
+    "tests/typing_ruler.py",
+    "tests/wood_advisor.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/config_flow_steps.py",
+    "tests/manual_plan.py",
+    "tests/entities.py",
+    "tests/validate.py",
+    "tests/optimality.py",
+    "tests/features.py"
+   ],
+   "verdict": "LIVES",
+   "killed_by": "",
+   "gap_verdict": "LIVES",
+   "gap_killed_by": ""
+  }
+ ]
+}

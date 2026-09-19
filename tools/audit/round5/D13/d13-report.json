@@ -1,0 +1,282 @@
+{
+  "dimension": "D13",
+  "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+  "window": {
+    "start": "2026-09-17T00:00:00Z",
+    "end": "2026-09-19T05:53:05Z",
+    "first_parent_commits": 58,
+    "merges": 54,
+    "api_failures": 0,
+    "rule": "the baseline's first-parent commits whose committer date falls in [start, end]; merges enumerated by /commits/<sha>/pulls (policy_lint.mjs:enumerateMerges in API mode)"
+  },
+  "exposure": "GitHub's own records, read-only, far beyond the delivery-status record: issue comments, review comments, pull-request bodies, check runs, tags and commit history via `gh api` (/commits/<sha>/pulls, /pulls/<n>, /issues/<n>/comments, /pulls/<n>/reviews, /commits/<sha>/check-runs; cached under ~/.cache/hpo-d13-round5, printed by every harness), plus the production `policy_lint.mjs --stats` run with GITHUB_TOKEN from `gh auth token`. D13.md's brief makes D13 read the same sources D11 does; the task instruction said 'no gh', so the exception is recorded rather than hidden. No repository resource was written. Also: a detached worktree of the pinned baseline under /tmp (one per h7 run, removed after) to run the production CLI against the pinned tree and a one-line-perturbed copy of web-fix-wave.js.",
+  "harnesses": [
+    "tools/audit/round5/D13/d13lib.py",
+    "tools/audit/round5/D13/h1_verdicts.py",
+    "tools/audit/round5/D13/h1_grammar.mjs",
+    "tools/audit/round5/D13/h4_dora.py",
+    "tools/audit/round5/D13/policy_reds_by_design.json",
+    "tools/audit/round5/D13/h5_cost.py",
+    "tools/audit/round5/D13/h6_friction.py",
+    "tools/audit/round5/D13/h6_entries.mjs",
+    "tools/audit/round5/D13/h7_stats.py"
+  ],
+  "harness_location_note": "Round 5's fan-out writes harnesses under /tmp/heatpump-orch/audit-r5-D13/, which is where these files are; tools/audit/round5/D13/ is their in-repo home and the path this report's schema requires. Every harness prints RESULT baseline_sha and runs from the repository root with PYTHONPATH=tests/hastub against the pinned baseline read through `git show`.",
+  "findings": [
+    {
+      "id": "D13-01",
+      "title": "The friction histogram's top row is the pull-request trailers, not friction",
+      "severity": "medium",
+      "claim": "Over the window the production friction histogram's largest row, `(unlabelled friction bullet)` at 13 distinct pull requests of 54 (24 %) and 13 of 66 entries (19.7 %), is 13 pull-request trailer lines (`🤖 Generated with [Claude Code]` x11, `Co-Authored-By: …` x1, `Closes #1134` x1) that fall inside the `## Friction` section because a body's trailers follow its last heading, and it clears the threshold of 3, so the filer proposes `would open \"[policy] recurring friction: (unlabelled friction bullet)\"`.",
+      "mechanism": "`policy_lint.mjs:sections` ends a section at the next `^## ` heading, and a body's trailers sit after the last section, so they are inside `## Friction`; `frictionEntries` keeps a section's first line as an entry whenever no bullet opens one (`if (opens || !lines.length) lines.push(raw)`); that entry has no id, and `frictionIds` maps a null id to FRICTION_UNLABELLED. The bucket is therefore positional: `--perturb trailer-out` takes one trailer out of one section and `friction_entries` does not move (66 -> 66) because the next tail line is promoted into the same bucket.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h6_friction.py",
+        "harness_path": "tools/audit/round5/D13/h6_friction.py",
+        "value": 13,
+        "unit": "trailer entries in the (unlabelled friction bullet) key",
+        "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+        "machine": "any (network-bound counts and a Node subprocess)",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out box shared with other auditors; counts only, no timing",
+        "tolerance": "exact",
+        "load1": 20.25,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "policy_lint.mjs:frictionEntries",
+      "perturbation": {
+        "change": "`--perturb trailer-out`: insert a `## Trailers` heading before one body's trailer line, taking it out of the section the parser reads (fixture edit in memory; no live pull request touched)",
+        "expected_direction": "down",
+        "observed_value": "trailer_entries 13 -> 12; friction_entries 66 -> 66 (the bucket is positional, so unlabelled_entries stays 13)"
+      },
+      "metric_definition": "Entries the production friction parser returns that are pull-request trailer lines, and the share of the window's friction entries they are.",
+      "null_control": {
+        "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h6_friction.py --perturb respell-bare",
+        "value": "every per-file count unchanged (62 of 66 entries unaffected; one-file 43, several 0)",
+        "note": "re-spelling an id changes the string, not the file, so a count that moved here would show the harness reading spelling rather than the rule"
+      },
+      "reproduction_steps": [
+        "cd <repository root>; PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h6_friction.py  # prints each trailer with its PR number",
+        "cross-check: GITHUB_TOKEN=$(gh auth token) node .claude/workflows/policy_lint.mjs --stats --since 34efcbae0d32f8dc4a28cf959412c349b5587829  # prints `13 / 13 (unlabelled friction bullet) <- at or over threshold` and `would open`",
+        "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h6_friction.py --perturb trailer-out"
+      ],
+      "files": [".claude/workflows/policy_lint.mjs"],
+      "proposed_fix_scope": "In `frictionEntries`, require a bullet/`<id>: <class>:` shape (or stop the section at the body's first trailer line) rather than admitting a section's first arbitrary line; one function, no policy text.",
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D13-02",
+      "title": "16 of the window's 30 blocked verdicts are outside the wave's own grammar",
+      "severity": "medium",
+      "claim": "Of the 86 `Fix review:` lines the window contains, 18 (20.9 %) do not match web-fix-wave.js:VERDICT_RE; among the 30 blocked-shaped ones, 7 are the bare `Fix review: blocked` (no SHA, no class, no reason on the line parseVerdict reads) and 9 carry a class word VERDICT_CLASSES does not have (body-only x2, claim-contradiction, regression, stale-ownership, unseen-write-failure, missing-id-unload, carry-unfaithful, remedy), so 16 of 30 blocked rounds have no route to a repair -- and first-pass yield is 0.593 under the brief's prefix rule against 0.722 under VERDICT_RE, a 13-point swing caused by exactly those items.",
+      "mechanism": "`parseVerdict` reads only the comment's first line (`raw = comment.split('\\n')[0]`) and throws on anything VERDICT_RE refuses; the wave prompt states that a blocked verdict without a class 'is unreadable and is treated as blocked with no route to a repair'. The reviewers wrote their reason from line 2 on (all 7 bare ones do), or used a class word the grammar's eleven do not include.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h1_verdicts.py",
+        "harness_path": "tools/audit/round5/D13/h1_verdicts.py",
+        "value": 16,
+        "unit": "blocked-shaped verdicts outside VERDICT_RE (of 30)",
+        "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+        "machine": "any (network-bound counts)",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out box shared with other auditors; counts only",
+        "tolerance": "exact",
+        "load1": 34.69,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "web-fix-wave.js:parseVerdict",
+      "perturbation": {
+        "change": "`--perturb classes`: the nine class words the window's reviewers wrote, appended to VERDICT_CLASSES in a copy of web-fix-wave.js under the temp root",
+        "expected_direction": "down",
+        "observed_value": "outside_grammar 18 -> 9, blocked_unroutable 16 -> 7, blocked_words_outside_grammar 9 -> 0"
+      },
+      "metric_definition": "Share of `Fix review:` first lines that the production VERDICT_RE refuses, and of blocked-shaped lines whose class word is absent from VERDICT_CLASSES.",
+      "null_control": {
+        "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h1_verdicts.py --perturb grammar",
+        "value": "parsed_verdicts 0, outside_grammar 86",
+        "note": "the opposite edit (`\\s+` -> `\\s\\s+`) must take the parsed count to zero; it does"
+      },
+      "leave_one_out": {
+        "cells": 11,
+        "min": 0,
+        "max": 2,
+        "drop_most_favourable": 12,
+        "note": "cells are the eleven VERDICT_CLASSES plus the outside-grammar row; the outside row alone (16) exceeds every grammar class, and dropping nothing changes the claim because the count is a partition"
+      },
+      "reproduction_steps": [
+        "cd <repository root>; PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h1_verdicts.py  # prints every blocked-shaped line with its written class word",
+        "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h1_verdicts.py --perturb classes"
+      ],
+      "files": [".claude/workflows/web-fix-wave.js", "tools/audit/briefs/fix-review.md"],
+      "proposed_fix_scope": "Either widen VERDICT_CLASSES to the words reviewers use and require the reason on the first line, or make parseVerdict fall back to a defined class (with the raw line recorded) instead of throwing; both are the grammar's side, not a new check.",
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D13-03",
+      "title": "The window-level verdict histogram can emit one key, and its own note says otherwise",
+      "severity": "medium",
+      "claim": "Run over the window, `policy_lint.mjs --stats` prints `verdict grammar [\"blocked\",\"merge\"] read from .claude/workflows/web-fix-wave.js` and emits zero block-class rows over a window containing 30 blocked verdicts, because VERDICT_LITERAL_RE scans for string literals while the wave script names all eleven VERDICT_CLASSES by interpolating ${VERDICT_CLASSES.join(', ')} and places the class after the head SHA; spelling the eleven words out in that prompt is a null control (the printed grammar stays at 2), so the exclusion the instrument's comment calls conditional ('a third verdict class ... makes this arm informative again') is permanent.",
+      "mechanism": "`verdictClasses()` extracts `\"Fix review:\\s+([a-z]+)` from the wave script's source; the wave script teaches merge and blocked as literals and the class vocabulary as an interpolation that no literal scan can see. The histogram regex `^Fix review:\\s*(class)\\b` then keys on the word after `Fix review:`, which is always merge or blocked.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h7_stats.py",
+        "harness_path": "tools/audit/round5/D13/h7_stats.py",
+        "value": 0,
+        "unit": "block-class rows emitted by the histogram over 30 blocked verdicts",
+        "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+        "machine": "any (runs the production CLI in a baseline worktree)",
+        "cpu_or_wall": "count",
+        "contention_note": "fan-out box shared with other auditors; counts only",
+        "tolerance": "exact",
+        "load1": 20.25,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "policy_lint.mjs:verdictClasses",
+      "perturbation": {
+        "change": "`--perturb verdict-word`: one more literal `\"Fix review: fold ${sha}\"` added to the reviewer prompt of a web-fix-wave.js copy inside a baseline worktree",
+        "expected_direction": "up",
+        "observed_value": "verdict_grammar_classes 2 -> 3"
+      },
+      "metric_definition": "Distinct verdict words the production --stats mode reports it read from the wave script, and distinct block-class rows its histogram prints.",
+      "null_control": {
+        "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h7_stats.py --perturb class-list",
+        "value": "verdict_grammar_classes 2 (unchanged), verdict_class_rows 2 (unchanged)",
+        "note": "spelling all eleven classes out in the prompt -- the change the instrument's own comment says would make its arm informative -- does not move the number, so the arm is excluded permanently while reading as excluded conditionally"
+      },
+      "reproduction_steps": [
+        "cd <repository root>; PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h7_stats.py",
+        "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h7_stats.py --perturb verdict-word",
+        "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h7_stats.py --perturb class-list"
+      ],
+      "files": [".claude/workflows/policy_lint.mjs", ".claude/workflows/web-fix-wave.js"],
+      "proposed_fix_scope": "Read the class vocabulary from VERDICT_CLASSES (the declaration, as h1_grammar.mjs already does) and key the histogram on the class that follows the SHA, or drop the arm and say the histogram cannot count block classes.",
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D13-04",
+      "title": "The carried governance set understates governance cost by 7 %",
+      "severity": "low",
+      "claim": "round4/D11/governance_cost.py:GOV names `record-status`, a job in no workflow file at this baseline, and omits `delivery-status` and `delivery-status-publish`, which governance.yml defines; re-derived from the workflow files at the baseline, governance_share at the pull-request head is 0.0556 where the carried set gives 0.0515 on the same 54 merges (169 s vs 157 s of governance seconds per merge, 7.4 % relative understatement).",
+      "mechanism": "The set is a literal in the harness rather than a derivation from the workflow files, so renaming a job (record-status -> delivery-status / delivery-status-publish) leaves the harness naming a job that does not exist and missing the seconds of the ones that do. Nothing makes the number fail; it silently reports a smaller share.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h5_cost.py --pop prhead",
+        "harness_path": "tools/audit/round5/D13/h5_cost.py",
+        "value": 0.0556,
+        "unit": "governance share of CI seconds per merge at the pull-request head (carried set: 0.0515)",
+        "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+        "machine": "any (GitHub-reported durations)",
+        "cpu_or_wall": "n/a",
+        "contention_note": "durations are GitHub's own, contention-immune; no wall clock on this box is read",
+        "tolerance": "exact",
+        "load1": 30.36,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "tools/audit/round4/D11/governance_cost.py:GOV",
+      "perturbation": {
+        "change": "`--gov briefs-drop`: one job removed from the derived governance set, the value the number is keyed on",
+        "expected_direction": "down",
+        "observed_value": "prhead_governance_share 0.0556 -> 0.0522"
+      },
+      "metric_definition": "Governance job seconds divided by all check-run seconds at the same head, per merge, with the governance set derived from the workflow files.",
+      "null_control": {
+        "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h5_cost.py --gov stale",
+        "value": "prhead_governance_share 0.0515 (mean 157 s/merge)",
+        "note": "round 4's carried set on the same population: lower, and the difference is the two governance jobs it does not name"
+      },
+      "leave_one_out": {
+        "cells": 54,
+        "min": 73,
+        "max": 517,
+        "drop_most_favourable": 0.0532,
+        "note": "cells are the 54 merges; the share with the most governance-heavy merge dropped is 0.0532 against 0.0556, so the figure is not carried by one merge"
+      },
+      "reproduction_steps": [
+        "cd <repository root>; PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h5_cost.py --pop prhead",
+        "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h5_cost.py --gov stale --pop prhead"
+      ],
+      "files": ["tools/audit/round4/D11/governance_cost.py", ".github/workflows/governance.yml"],
+      "proposed_fix_scope": "Derive GOV from the workflow files (jobs in governance.yml plus jobs whose run: blocks invoke .claude/workflows/) instead of carrying a literal set.",
+      "stop_rule_class": "hygiene"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "No verdict in the window came from a pull-request review, so the /pulls/<n>/reviews trap did not bite and policy_lint --stats saw the same 86 verdict items the harness did",
+      "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h1_verdicts.py | grep verdict_endpoint",
+      "value": "verdict_endpoint_issue-comment=86; the production CLI's own rows sum to the same 86 (merge 53/56 + blocked 21/30)"
+    },
+    {
+      "claim": "The merge enumeration is complete: 54 merges from 58 first-parent commits, no commit the API could not attribute",
+      "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h1_verdicts.py",
+      "value": "n_merges=54, unattributed_merge_commits=0, api_failures=0"
+    },
+    {
+      "claim": "No engineering class was outspent by body figures: of the 30 blocked-shaped verdicts, 7 wrote an engineering class word and 6 a record-and-body one",
+      "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h1_verdicts.py | grep blocked_bucket",
+      "value": "blocked_bucket_engineering=7, blocked_bucket_record-and-body=6, blocked_bucket_orchestration=17 (bucketing stated in h1_verdicts.py:BUCKET)"
+    },
+    {
+      "claim": "Two merges have no parsable verdict, both by one author; no record, chore or bot-cycle merge is unverdicted, so no exemption row is needed",
+      "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h1_verdicts.py | grep noverdict_",
+      "value": "noverdict_fix=1 (#1130), noverdict_feature=1 (#1163), noverdict_record=0, noverdict_chore=0, noverdict_bot-cycle=0"
+    },
+    {
+      "claim": "The by-job change-failure rate over merges is green-selected: 29 of 30 jobs are 0.000 under both arms, and the only non-zero cell is a by-design cancellation",
+      "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h4_dora.py && ... --arm anyrun",
+      "value": "cfr_any_job=0.0556 (3/54, all delivery-status-publish cancelled), cfr_any_job_excluded=0.0000, jobs_observed=30"
+    },
+    {
+      "claim": "No merge in the window was reverted later on main, nor by a merged Revert pull request",
+      "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h4_dora.py | grep RESULT",
+      "value": "merges_reverted_later=0, cfr_with_reverts=0.0"
+    },
+    {
+      "claim": "The by-design exclusion list is justified and load-bearing: removing its first entry moves the rate back up",
+      "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h4_dora.py --excluded flip",
+      "value": "cfr_any_job_excluded 0.0000 -> 0.0556, jobs_excluded 2 -> 1"
+    },
+    {
+      "claim": "DORA's release and lead-time keys, re-taken at this window",
+      "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h4_dora.py | grep -E 'releases|lead_time|unreleased'",
+      "value": "releases_in_window=4, releases_per_day=1.78, lead_time_median_h=7.52, lead_time_p90_h=17.99 (n=39), unreleased_merges_at_baseline=15"
+    },
+    {
+      "claim": "The body contract is pull_request-only: pr-contract is skipped at all 54 merge commits and re-runs 1.44 times per pull-request head",
+      "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h5_cost.py --pop both | grep -E 'body_rounds|pr-contract'",
+      "value": "prhead_body_rounds_mean=1.44, prhead_body_rounds_max=4, prhead_body_rounds_total=78, merge_body_rounds_total=55 with 55 of 55 skipped"
+    },
+    {
+      "claim": "The friction-key normalization folds spellings onto one file: bare stem and stem.md both reach the same path, and no window entry lands in an ambiguous row",
+      "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h6_friction.py | grep 'spelling counts' -A 12",
+      "value": ".claude/rules/gate-scoping.md 8 = 4 stem.md + 4 bare stem; entries_naming_several_files=0"
+    },
+    {
+      "claim": "The spelling rule reads the file, not the string: re-spelling an accepted id without moving it to an ambiguous name changes no per-file count",
+      "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h6_friction.py --perturb respell-bare / --perturb unbacktick",
+      "value": "entries_naming_one_file=43 unchanged in both arms"
+    },
+    {
+      "claim": "The ambiguous row exists and moves when an id names several files",
+      "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h6_friction.py --perturb respell-md",
+      "value": "entries_naming_one_file 43 -> 42, entries_naming_several_files 0 -> 1 (`README.md` names tests/README.md, tools/audit/README.md, tools/audit/harnesses/README.md)"
+    },
+    {
+      "claim": "65.2 % of the window's friction entries name exactly one --budgets path",
+      "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h6_friction.py | grep RESULT",
+      "value": "friction_entries=66, entries_naming_one_file=43 (0.6515), entries_naming_no_file=23, histogram_keys=21 of which 11 name one file"
+    },
+    {
+      "claim": "The record job's disposition step reported rather than gated, and the job was green at every merge",
+      "command": "PYTHONPATH=tests/hastub python3 /tmp/heatpump-orch/audit-r5-D13/h4_dora.py | grep 'record'",
+      "value": "record concluded success at all 54 merge heads; the exclusion file records why it was considered and left out"
+    },
+    {
+      "claim": "The pinned baseline read through git is the same tree the CLI ran against, and every number here is at eaa2a06",
+      "command": "any harness | grep baseline_sha",
+      "value": "RESULT baseline_sha=eaa2a06af16a1b5b006f58a0f36cc92131f80225 on all five harnesses"
+    }
+  ],
+  "could_not_finish": [
+    "`--stats` takes a ref, not a timestamp, so h7 reaches the window through the parent of the window's oldest first-parent commit; the two enumerators agree (54 merges) but are different code paths.",
+    "There is no single per-merge population for CI seconds: the pre-merge gate and the post-merge push run are different rounds at different costs, so h5 prints both and a judge must pick one.",
+    "time-to-restore has one episode in the whole window (delivery-status-publish cancelled x3), so h4's TTR table is one row and is not evidence about the loop's recovery time."
+  ],
+  "schema_note": "tools/audit/finding.schema.json's `dimension` and finding-`id` patterns are `^D(1[0-2]|[0-9])$` and `^D(1[0-2]|[0-9])-[0-9]{2}$`: the schema has no arm for D13, so this report cannot validate against it while naming its dimension truthfully. That is a stale-constant defect in the schema, one round behind the 14-dimension programme's D0-D13 range."
+}

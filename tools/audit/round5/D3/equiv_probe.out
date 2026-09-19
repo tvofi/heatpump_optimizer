@@ -1,0 +1,22 @@
+  custom_components/heatpump_optimizer/mixing_valve.py:109
+      DIFFERS
+      original: ('ok', 5200021.0)
+      mutated : ('ZeroDivisionError', 'float division by zero')
+  custom_components/heatpump_optimizer/wood_fuel.py:147
+      DIFFERS
+      original: ('ok', 0)
+      mutated : ('ZeroDivisionError', 'float division by zero')
+  custom_components/heatpump_optimizer/defrost.py:314
+      DIFFERS
+      original: ('ok', {'counts_before': 0, 'counts_after': 0, 'derate': 0.0})
+      mutated : ('ok', {'counts_before': 0, 'counts_after': 1, 'derate': 0.0})
+  custom_components/heatpump_optimizer/wear.py:72
+      DIFFERS
+      original: ('ok', {'confirmed_starts': 0, 'lifetime': 0, 'streak': 0})
+      mutated : ('ok', {'confirmed_starts': 0, 'lifetime': 0, 'streak': 1})
+
+RESULT survivors_probed=4 count
+RESULT non_equivalent=4 count
+RESULT equivalent=0 count
+RESULT thread_factor=1.00 ratio
+RESULT load1=5.02 ratio

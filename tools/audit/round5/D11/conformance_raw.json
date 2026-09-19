@@ -1,0 +1,244 @@
+[
+ {
+  "pr": 1142,
+  "author": "tvofi-seat-author",
+  "merged_head": "7713dbddfb5e3cd2ca96bc342b1d92f26183e5e0",
+  "verdicts": [],
+  "o1": false,
+  "o2": true,
+  "pr_contract_first_conclusion": "failure",
+  "o3": false,
+  "o4": true,
+  "required_reds": [
+   "pr-contract"
+  ],
+  "o5": true,
+  "reviews_total": 1,
+  "review_states": [
+   "APPROVED"
+  ]
+ },
+ {
+  "pr": 1147,
+  "author": "tvofi-seat-author",
+  "merged_head": "16f8b1336f6a94f69ae3104752de585a1bba2f29",
+  "verdicts": [],
+  "o1": false,
+  "o2": true,
+  "pr_contract_first_conclusion": "failure",
+  "o3": false,
+  "o4": true,
+  "required_reds": [
+   "pr-contract"
+  ],
+  "o5": true,
+  "reviews_total": 1,
+  "review_states": [
+   "APPROVED"
+  ]
+ },
+ {
+  "pr": 1149,
+  "author": "tvofi-seat-author",
+  "merged_head": "f91a05ed5ea3d63d8c17f8fa3df64d2c9578d46b",
+  "verdicts": [],
+  "o1": false,
+  "o2": true,
+  "pr_contract_first_conclusion": "success",
+  "o3": true,
+  "o4": true,
+  "required_reds": [],
+  "o5": true,
+  "reviews_total": 1,
+  "review_states": [
+   "APPROVED"
+  ]
+ },
+ {
+  "pr": 1150,
+  "author": "tvofi-seat-author",
+  "merged_head": "729201535ccc2d4a0bdc350d7c39e4343eb8a664",
+  "verdicts": [],
+  "o1": false,
+  "o2": true,
+  "pr_contract_first_conclusion": "success",
+  "o3": true,
+  "o4": true,
+  "required_reds": [],
+  "o5": true,
+  "reviews_total": 1,
+  "review_states": [
+   "APPROVED"
+  ]
+ },
+ {
+  "pr": 1152,
+  "author": "tvofi-seat-author",
+  "merged_head": "24979cc1235302fb5f093fd0d54d4ebdcc5ec9db",
+  "verdicts": [],
+  "o1": false,
+  "o2": true,
+  "pr_contract_first_conclusion": "success",
+  "o3": true,
+  "o4": false,
+  "required_reds": [],
+  "o5": true,
+  "reviews_total": 1,
+  "review_states": [
+   "APPROVED"
+  ]
+ },
+ {
+  "pr": 1153,
+  "author": "tvofi-seat-author",
+  "merged_head": "64c85123551a74cedb53898766be7677840de51c",
+  "verdicts": [],
+  "o1": false,
+  "o2": true,
+  "pr_contract_first_conclusion": "success",
+  "o3": true,
+  "o4": true,
+  "required_reds": [],
+  "o5": true,
+  "reviews_total": 1,
+  "review_states": [
+   "APPROVED"
+  ]
+ },
+ {
+  "pr": 1154,
+  "author": "tvofi-seat-author",
+  "merged_head": "e5709f8bf3b4d4ad607184434b7d7211259cf1bd",
+  "verdicts": [],
+  "o1": false,
+  "o2": true,
+  "pr_contract_first_conclusion": "success",
+  "o3": true,
+  "o4": true,
+  "required_reds": [],
+  "o5": true,
+  "reviews_total": 1,
+  "review_states": [
+   "APPROVED"
+  ]
+ },
+ {
+  "pr": 1156,
+  "author": "tvofi-seat-author",
+  "merged_head": "d1884dfd476a8763f203bbfd30fa542d2cb75cb3",
+  "verdicts": [],
+  "o1": false,
+  "o2": true,
+  "pr_contract_first_conclusion": "success",
+  "o3": true,
+  "o4": true,
+  "required_reds": [],
+  "o5": true,
+  "reviews_total": 1,
+  "review_states": [
+   "APPROVED"
+  ]
+ },
+ {
+  "pr": 1157,
+  "author": "tvofi-seat-author",
+  "merged_head": "c8165b3a23af4e7a4ce9cef945e679133c5bf6e6",
+  "verdicts": [],
+  "o1": false,
+  "o2": true,
+  "pr_contract_first_conclusion": "success",
+  "o3": true,
+  "o4": false,
+  "required_reds": [],
+  "o5": true,
+  "reviews_total": 1,
+  "review_states": [
+   "APPROVED"
+  ]
+ },
+ {
+  "pr": 1158,
+  "author": "tvofi-seat-author",
+  "merged_head": "b88e6d9e3b4a67980a1205a7ed82a965cd373dba",
+  "verdicts": [],
+  "o1": false,
+  "o2": true,
+  "pr_contract_first_conclusion": "success",
+  "o3": true,
+  "o4": false,
+  "required_reds": [],
+  "o5": true,
+  "reviews_total": 1,
+  "review_states": [
+   "APPROVED"
+  ]
+ },
+ {
+  "pr": 1159,
+  "author": "tvofi-seat-author",
+  "merged_head": "a5115642cf4b81f6a213014ed6f719ef00235bb3",
+  "verdicts": [],
+  "o1": false,
+  "o2": true,
+  "pr_contract_first_conclusion": "success",
+  "o3": true,
+  "o4": false,
+  "required_reds": [],
+  "o5": true,
+  "reviews_total": 1,
+  "review_states": [
+   "APPROVED"
+  ]
+ },
+ {
+  "pr": 1160,
+  "author": "tvofi-seat-author",
+  "merged_head": "0bac3df7292524cf299843b6acb92be9206cb54c",
+  "verdicts": [],
+  "o1": false,
+  "o2": true,
+  "pr_contract_first_conclusion": "success",
+  "o3": true,
+  "o4": false,
+  "required_reds": [],
+  "o5": true,
+  "reviews_total": 1,
+  "review_states": [
+   "APPROVED"
+  ]
+ },
+ {
+  "pr": 1161,
+  "author": "tvofi-seat-author",
+  "merged_head": "a9954cac4d5e57abacd0c0273b2531e6da08b0ca",
+  "verdicts": [],
+  "o1": false,
+  "o2": true,
+  "pr_contract_first_conclusion": "success",
+  "o3": true,
+  "o4": false,
+  "required_reds": [],
+  "o5": true,
+  "reviews_total": 2,
+  "review_states": [
+   "APPROVED"
+  ]
+ },
+ {
+  "pr": 1162,
+  "author": "tvofi-seat-author",
+  "merged_head": "6194234bc0206faedf29fecb662b8f6cdcb4055b",
+  "verdicts": [],
+  "o1": false,
+  "o2": true,
+  "pr_contract_first_conclusion": "success",
+  "o3": true,
+  "o4": false,
+  "required_reds": [],
+  "o5": true,
+  "reviews_total": 1,
+  "review_states": [
+   "APPROVED"
+  ]
+ }
+]

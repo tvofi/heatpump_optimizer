@@ -1,0 +1,206 @@
+{
+  "dimension": "D4",
+  "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D4-01",
+      "title": "Setup click-to-assign rows are 11.67 px tall under a mouse, half the card's own 24 px floor",
+      "severity": "medium",
+      "claim": "Under a fine pointer (mouse or trackpad), the setup page's five `rect.setup-hit` rows render 11.67 px tall at a 375 px tile and 14.57 px at 768 px -- below WCAG 2.2 SC 2.5.8's 24 CSS px minimum -- because the card's pixel floor for SVG-drawn targets is applied only on its coarse-pointer branch.",
+      "mechanism": "heatpump-optimizer-card.js:setupSvgHtml builds each row's hit rect with `const hitH = _coarsePointer() ? Math.max(hitBase, _targetMinPx() * (SETUP_W / 280)) : hitBase;` (hitBase = rowH - 2 = 15 viewBox units). Under a fine pointer the ternary yields the bare 15 units, and a viewBox unit is not a pixel: the setup SVG is 720 units wide and its CSS renders it at 560 px on a 375 px tile (`.setup-canvas svg{min-width:560px}`) and 699 px at 768, scales 0.7778 and 0.9712, so 15 units come out 11.67 px and 14.57 px. It clears 24 px only once the tile is wide enough to render the diagram at >=1152 px (measured: 24.80 px at 1280). The card states the opposite invariant 700 lines away, in the htmlTargetFloor comment: \"SC 2.5.8's 24 px target minimum is owed to every pointer, not only to touch\" -- the HTML controls get that floor unconditionally, the SVG-drawn ones only under touch. The rows are keyboard-reachable (tabindex=0, role=button) and the shipped coarse-pointer assertion in tests/card_browser.mjs only requires >=8x8 px here, so nothing in the suite catches the fine-pointer path. The same `SETUP_W / 280` constant is wrong in the other direction too, and that is the second symptom of one mistake: it assumes the diagram renders 280 px wide while the CSS renders it 560-1190 px, so on the coarse branch, where it is actually used, it inflates the rows to 88.99 / 111.13 / 189.17 px against same-column row pitches of 49-180 px -- adjacent rows overlapping by 39.99 / 49.95 / 85.02 px, up to 82% of the pitch. Nothing catches that either, and under a coarse pointer it is the shipped behaviour today.",
+      "evidence": {
+        "command": "NODE_PATH=$PWD/.scratch-pw/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers HPO_PLANDATA=$PWD/.plandata.json node tools/audit/round5/D4/setup_row_target.mjs",
+        "harness_path": "tools/audit/round5/D4/setup_row_target.mjs",
+        "value": 10,
+        "unit": "count of .setup-hit rects under 24 px",
+        "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+        "machine": "8-core Apple M1, 8 GB, macOS 26.6, Chromium via Playwright 1.49.0, Node 20.10.0",
+        "cpu_or_wall": "count",
+        "contention_note": "Geometry only (getBoundingClientRect in Chromium); immune to CPU load. Quoted load1 reflects the shared audit box during the round-5 fan-out.",
+        "tolerance": "exact to 0.01 px",
+        "load1": 134.94,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:setupSvgHtml",
+      "perturbation": {
+        "change": "Un-gate the pixel floor so it applies to every pointer: replace `const hitH = _coarsePointer() ? Math.max(hitBase, _targetMinPx() * (SETUP_W / 280)) : hitBase;` with `const hitH = Math.max(hitBase, _targetMinPx() * (SETUP_W / 280));`.",
+        "expected_direction": "to_zero",
+        "observed_value": 0
+      },
+      "metric_definition": "Count of rect.setup-hit elements whose rendered height is below 24 CSS px, summed over 375/768/1280 px tiles under a fine pointer.",
+      "null_control": {
+        "command": "NODE_PATH=... node tools/audit/round5/D4/setup_row_target.mjs  # coarse branch",
+        "value": 0,
+        "note": "The same rects under an emulated coarse pointer measure 88.99/111.13/189.17 px -- above the 44 px coarse bar at every width, count 0 -- so the metric does not fire on the coarse branch, and the fine-pointer 10 is not an artefact of the metric. Those coarse heights are themselves a symptom of the same `SETUP_W / 280` constant (they override their neighbours by 40/49.9/85 px), which is why the fix is not simply to un-gate the fine branch: 'the floor is absent on the fine branch' and 'the floor's factor is wrong on both branches' are two readings of one ternary, and the null control isolates the first."
+      },
+      "reproduction_steps": [
+        "HPO_PLANDATA=$PWD/.plandata.json PYTHONPATH=tests/hastub python3 tests/plan_view.py  # writes the plan payload",
+        "NODE_PATH=$PWD/.scratch-pw/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers HPO_PLANDATA=$PWD/.plandata.json node tools/audit/round5/D4/setup_row_target.mjs",
+        "Read RESULT setup_row_under_24_fine_baseline (10) and RESULT setup_row_under_24_fine_perturbed (0)."
+      ],
+      "proposed_fix_scope": "In setupSvgHtml, size the row target in CSS pixels from the scale the diagram is actually drawn at -- the way renderChart already does for the chart per D4-02 -- instead of from the coarse-only ternary plus the fixed SETUP_W/280 factor. Un-gating alone does clear the count measured here (10 -> 0; 15 viewBox units -> 49 px at 375) and at 375 adds no row overlap (measured 0, the same-column pitch there being 49 px), but it leaves SETUP_W/280 wrong, and that factor is what already inflates the coarse branch to 89-189 px against a 49-180 px pitch -- 40-85 px of overlap, shipped today. The floor needs the real render scale (and probably a smaller coarse factor), not just a widened gate; the perturbation is the naive edit, reported as such.",
+      "files": ["custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"],
+      "expected_golden_drift": [],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D4-02",
+      "title": "Entity picker's search field renders 23.19 px tall, under the card's own every-pointer 24 px floor",
+      "severity": "low",
+      "claim": "The entity picker's `.sp-filter` text input renders 23.19 px tall at a 375 px and a 768 px tile -- 0.81 px under WCAG 2.2 SC 2.5.8's 24 px minimum and under the floor the card's own htmlTargetFloor block says is \"owed to every pointer\" -- because `.sp-filter` and `.sp-select` are absent from that block's selector list while `.sp-actions button`, the picker's neighbouring Save/Cancel pair, is in it.",
+      "mechanism": "`.sp-filter, .sp-select { width:100%; font:inherit; padding:0.3em; border:1px solid ... }` (heatpump-optimizer-card.js, the picker's style block) has no min-height; the height is 1em of font + 2*0.3em padding + 2 px border. The card scales that font with the tile, so the field measures 23.19 px at 375 and at 768, and 24.72 px at 1280 -- it fails only on the narrower tiles. The floors that exist do not reach it: the every-pointer `htmlTargetFloor` block lists `.sp-actions button` (same component, measured at exactly 24 px) but not `.sp-filter`/`.sp-select`, and the SVG `_targetMinPx()` floor does not apply to HTML controls. The spacing exception does not rescue it either: the field is 0.4em above the list it filters, so a 24 px circle centred on it intersects that list. The same rule also sizes `.sp-filter.sp-setpoint`, the manual-setpoint number field, so the miss covers two fields.",
+      "evidence": {
+        "command": "NODE_PATH=$PWD/.scratch-pw/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers HPO_PLANDATA=$PWD/.plandata.json node tools/audit/round5/D4/picker_target.mjs",
+        "harness_path": "tools/audit/round5/D4/picker_target.mjs",
+        "value": 2,
+        "unit": "count of picker HTML controls under 24 px",
+        "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+        "machine": "8-core Apple M1, 8 GB, macOS 26.6, Chromium via Playwright 1.49.0, Node 20.10.0",
+        "cpu_or_wall": "count",
+        "contention_note": "Geometry only (getBoundingClientRect in Chromium); immune to CPU load. Quoted load1 reflects the shared audit box during the round-5 fan-out.",
+        "tolerance": "exact to 0.01 px",
+        "load1": 134.94,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:htmlTargetFloor",
+      "perturbation": {
+        "change": "Add `.sp-filter, .sp-select` to the htmlTargetFloor selector list in the card's style block (the one-line production edit that puts them under `min-height: 24px; min-width: 24px; box-sizing: border-box`).",
+        "expected_direction": "to_zero",
+        "observed_value": 0
+      },
+      "metric_definition": "Count of HTML form controls inside the setup dialog's entity picker whose smaller rendered side is below 24 CSS px, summed over 375/768/1280 px tiles.",
+      "null_control": {
+        "command": "NODE_PATH=... node tools/audit/round5/D4/picker_target.mjs  # RESULT sp_save_height_control",
+        "value": 24,
+        "note": "`.sp-actions button` (the picker's Save), which IS in the htmlTargetFloor list, measures exactly 24.00 px on the same page in the same render. The harness therefore separates a control the block reaches from one it does not, and the perturbation's 24.00 px for `.sp-filter` is that same block engaging."
+      },
+      "reproduction_steps": [
+        "HPO_PLANDATA=$PWD/.plandata.json PYTHONPATH=tests/hastub python3 tests/plan_view.py",
+        "NODE_PATH=$PWD/.scratch-pw/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers HPO_PLANDATA=$PWD/.plandata.json node tools/audit/round5/D4/picker_target.mjs",
+        "Read RESULT picker_under_floor_baseline (2), sp_filter_height_375_baseline (23.19 px), sp_filter_height_375_perturbed (24 px)."
+      ],
+      "proposed_fix_scope": "Add `.sp-filter, .sp-select` to the htmlTargetFloor selector list (or give `.sp-filter, .sp-select` in the picker's own block a `min-height: ${TARGET_MIN_PX}px`). Verify with tests/card_browser.mjs's existing coarse-pointer control walk, which currently asserts only the four required names.",
+      "files": ["custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js", "tests/card_browser.mjs"],
+      "expected_golden_drift": [],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D4-03",
+      "title": "Swedish card dictionary is missing stats.delta_detail_same, so the what-if \"same cost\" verdict renders in English",
+      "severity": "low",
+      "claim": "The card's `sv` STRINGS dictionary has 260 keys against `en`'s 261: the missing one is `stats.delta_detail_same`, and because L() falls back `dict[key]` -> `STRINGS.en[key]` -> the key, a Swedish session shows the English sentence \"the same as the saved plan (12.34 -> 12.34 SEK, estimated)\" whenever an edit leaves the cost unchanged.",
+      "mechanism": "heatpump-optimizer-card.js's STRINGS object carries en (261 keys) and sv (260). `ManualPlan.deltaHtml()` picks its detail key with `cls === \"cheaper\" || cls === \"dearer\" ? \"stats.delta_detail\" : \"stats.delta_detail_same\"`, and the \"same cost\" case is ordinary -- any edit inside the card's 0.005 cost tolerance reaches it. `stats.delta_detail` exists in sv, so the omission is not a deliberate fallback: the sibling sentence is translated and this one is not. The integration's own translations/ directory is complete (en.json and sv.json both 1187 leaves, 0 missing, 0 extra), so the gap is specific to the card, and nothing diffs the card's two dictionaries -- tests/card_drift.mjs drives the states but does not compare the dicts.",
+      "evidence": {
+        "command": "node tools/audit/round5/D4/strings_parity.mjs",
+        "harness_path": "tools/audit/round5/D4/strings_parity.mjs",
+        "value": 1,
+        "unit": "count of en leaf keys absent from sv",
+        "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+        "machine": "8-core Apple M1, 8 GB, macOS 26.6, Node 20.10.0",
+        "cpu_or_wall": "count",
+        "contention_note": "Set difference over a literal read from the production source; no browser, no timing, no payload. Immune to load.",
+        "tolerance": "exact",
+        "load1": 188.18,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:STRINGS",
+      "perturbation": {
+        "change": "Add the missing key to the sv block in the block's own style: `\"stats.delta_detail_same\": \"{verdict} jamfort med den sparade planen ({planned} -> {edited}&nbsp;{currency}, uppskattat)\",`.",
+        "expected_direction": "to_zero",
+        "observed_value": 0
+      },
+      "metric_definition": "Number of leaf keys present in the card's en STRINGS dictionary and absent from its sv dictionary, computed as a set difference over the production literal.",
+      "null_control": {
+        "command": "PYTHONPATH=tests/hastub python3 -c \"import json;...\"  # translations/ diff, see non_findings",
+        "value": 0,
+        "note": "The integration's own translations/ pair (en.json, sv.json) diffs to 0 missing and 0 extra over 1187 leaves each. The same check applied to the correct artefact finds nothing, so the card's 1 is a real gap in the card and not an artefact of the comparison."
+      },
+      "reproduction_steps": [
+        "node tools/audit/round5/D4/strings_parity.mjs   # RESULT card_lang_missing_sv_baseline=1, _perturbed=0",
+        "NODE_PATH=$PWD/.scratch-pw/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers HPO_PLANDATA=$PWD/.plandata.json node tools/audit/round5/D4/explore_sv_delta.mjs",
+        "Both language=en and language=sv-SE print the identical hint 'the same as the saved plan (12.34 -> 12.34 SEK, estimated)'."
+      ],
+      "proposed_fix_scope": "Add `stats.delta_detail_same` to the sv dictionary, and add a dictionary-parity check to the card's Node lane (tests/card_rig.mjs has the STRINGS read already) so the next missing key fails a test rather than reaching a Swedish screen.",
+      "files": ["custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js", "tests/card_rig.mjs"],
+      "expected_golden_drift": [],
+      "stop_rule_class": "hygiene"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "Every rendered text/background pair in the card meets WCAG AA in Home Assistant's light and dark themes, across the inline, expanded and setup states.",
+      "command": "NODE_PATH=... PLAYWRIGHT_BROWSERS_PATH=... HPO_PLANDATA=... node tools/audit/round5/D4/contrast_sweep.mjs",
+      "value": "0 of 128 rendered text nodes under AA (HA light); 0 of 128 (HA dark). Positive control with no theme tokens injected: 68 of 128 under AA, so the sweep does detect under-AA text."
+    },
+    {
+      "claim": "The axis tick labels' `#888` fallback colour is 3.54:1 on white, but that token is `var(--secondary-text-color, #888)` and HA always defines --secondary-text-color (its light default #727272 is 4.81:1).",
+      "command": "grep -n 'secondary-text-color' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js | head; node tools/audit/round5/D4/contrast_sweep.mjs",
+      "value": "3.54:1 only when no HA theme variables are present; 4.81:1 with HA's light token, 5.4:1 with its dark token."
+    },
+    {
+      "claim": "The 1:1 'failures' the first contrast pass reported on the setup page were SVG <title> accessibility elements, which are never rendered.",
+      "command": "node tools/audit/round5/D4/contrast_sweep.mjs",
+      "value": "0 after skipping nodes with getClientRects().length === 0; the two entries were tagName 'title' (an accessible name, not painted text)."
+    },
+    {
+      "claim": "The setup diagram does not make the document scroll horizontally on a 375 px phone.",
+      "command": "NODE_PATH=... HPO_PLANDATA=... node tools/audit/round5/D4/probe3.mjs",
+      "value": "docScrollW - clientW = 0 at 375, 768 and 1280; the 560 px SVG sits inside .setup-canvas{overflow-x:auto}, so it scrolls within its own box by design."
+    },
+    {
+      "claim": "Driving every card state the round-5 lane does at 375/768/1280 in en and sv produces no console errors and no text overflowing its own box (beyond the two hit-target findings above).",
+      "command": "NODE_PATH=... HPO_PLANDATA=... node tools/audit/round5/D4/explore_sweep.mjs",
+      "value": "0 console errors; the only flagged elements were SVG .setup-title/.setup-slot text, which getBBox shows fit inside their boxes."
+    },
+    {
+      "claim": "Under a coarse pointer the setup row rects are far larger than the coarse floor and overlap their neighbours, but a tap in the shared band still activates the row the band visually belongs to -- the overlap is a size/whitespace defect (recorded as D4-01's second symptom), not a misrouting one.",
+      "command": "NODE_PATH=... HPO_PLANDATA=... node tools/audit/round5/D4/setup_hits.mjs; NODE_PATH=... HPO_PLANDATA=... node tools/audit/round5/D4/explore_row_overlap.mjs",
+      "value": "88.99 / 111.13 / 189.17 px tall at 375 / 768 / 1280 against a 44 px bar (0 under); adjacent same-column rows overlap by 40 / 49.9 / 85 px; 0 of 5 label-aimed elementFromPoint probes misroute. Probing the shared band itself: at 1280 coarse the 85 px band activates indoor_temp_entity, the row the band belongs to (correct); at 375 coarse the 40 px band returns null and a 4.2 px one a non-hit element, i.e. inert or clipped by .setup-canvas's horizontal scroll, not a wrong row. No band activates the wrong row at any width."
+    },
+    {
+      "claim": "The entity picker's other controls meet the floor: the option list is 132.31 px tall and Save/Cancel are 24.00 px.",
+      "command": "NODE_PATH=... HPO_PLANDATA=... node tools/audit/round5/D4/picker_target.mjs",
+      "value": "sp_select_height=132.31 px; sp_save_height_control=24 px; only .sp-filter is under."
+    },
+    {
+      "claim": "The card's config flow has full en/sv translation parity, with no gap of the kind the card itself has.",
+      "command": "python3 - (json leaf diff of custom_components/heatpump_optimizer/translations/{en,sv}.json)",
+      "value": "en=1187 leaves, sv=1187 leaves, missing=0, extra=0."
+    },
+    {
+      "claim": "Every page of both config flows carries explanatory help text, in both languages, and no page is a bare list of fields.",
+      "command": "python3 - (count steps whose description is empty in translations/en.json)",
+      "value": "config: 14 of 14 steps have a description; options: 24 of 24. Example: options.comfort explains the target/minimum gap rather than restating its title."
+    },
+    {
+      "claim": "The options flow is grouped: 22 pages split into a top menu and an advanced menu, each page's fields inside named sections.",
+      "command": "PYTHONPATH=tests/hastub python3 -c \"import custom_components.heatpump_optimizer.config_flow as cf; ...\"",
+      "value": "22 pages, 189 fields; largest page 23 fields (building), largest section 14 (building/wood); no page exceeds 5 sections except building (4)."
+    },
+    {
+      "claim": "The path from install to a first plan is short: the default questionnaire path reaches create_entry in 5 submitted steps, and the expert path in 12.",
+      "command": "PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py",
+      "value": "user -> user_sensors -> finish_setup -> finish_now -> setup_overview -> create_entry; the walker reports ALL 285 checks PASSED and covers 24/24 options pages."
+    },
+    {
+      "claim": "The card's three en/sv identical strings are legitimately identical, not untranslated.",
+      "command": "node tools/audit/round5/D4/strings_parity.mjs",
+      "value": "header.tab_plan='Plan', savings.col_pct='%', setup.verdict_req='{label} - {requirement}.' -- a shared word, a unit, and a punctuation template."
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round5/D4/picker_target.mjs",
+    "tools/audit/round5/D4/setup_row_target.mjs",
+    "tools/audit/round5/D4/strings_parity.mjs",
+    "tools/audit/round5/D4/contrast_sweep.mjs",
+    "tools/audit/round5/D4/setup_hits.mjs",
+    "tools/audit/round5/D4/hit_sweep.mjs",
+    "tools/audit/round5/D4/explore_sweep.mjs",
+    "tools/audit/round5/D4/probe3.mjs",
+    "tools/audit/round5/D4/shots.mjs",
+    "tools/audit/round5/D4/zoom.mjs",
+    "tools/audit/round5/D4/explore_sv_delta.mjs",
+    "tools/audit/round5/D4/explore_row_overlap.mjs"
+  ]
+}

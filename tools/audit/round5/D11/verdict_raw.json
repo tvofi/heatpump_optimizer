@@ -1,0 +1,336 @@
+[
+ {
+  "pr": 1142,
+  "author": "tvofi-seat-author",
+  "merged_head": "7713dbddfb5e3cd2ca96bc342b1d92f26183e5e0",
+  "verdict_login": "tvofi-seat-author",
+  "verdict_line": "Fix review: merge 7713dbddfb5e3cd2ca96bc342b1d92f26183e5e0",
+  "verdict_names_the_merged_head": true,
+  "verdict_matches_the_exact_grammar": true,
+  "verdict_from_the_author_login": true,
+  "approvals_from_non_authors": 1,
+  "approval_commits": [
+   "7713dbddfb5e3cd2ca96bc342b1d92f26183e5e0"
+  ],
+  "first_pr_contract": "failure",
+  "o3": false,
+  "o4": true,
+  "required_reds": [
+   "pr-contract"
+  ],
+  "o5": true,
+  "review_logins": [
+   "hpo-approver[bot]"
+  ]
+ },
+ {
+  "pr": 1147,
+  "author": "tvofi-seat-author",
+  "merged_head": "16f8b1336f6a94f69ae3104752de585a1bba2f29",
+  "verdict_login": "tvofi-seat-author",
+  "verdict_line": "Fix review: merge 16f8b1336f6a94f69ae3104752de585a1bba2f29",
+  "verdict_names_the_merged_head": true,
+  "verdict_matches_the_exact_grammar": true,
+  "verdict_from_the_author_login": true,
+  "approvals_from_non_authors": 1,
+  "approval_commits": [
+   "16f8b1336f6a94f69ae3104752de585a1bba2f29"
+  ],
+  "first_pr_contract": "failure",
+  "o3": false,
+  "o4": true,
+  "required_reds": [
+   "pr-contract"
+  ],
+  "o5": true,
+  "review_logins": [
+   "hpo-approver[bot]"
+  ]
+ },
+ {
+  "pr": 1149,
+  "author": "tvofi-seat-author",
+  "merged_head": "f91a05ed5ea3d63d8c17f8fa3df64d2c9578d46b",
+  "verdict_login": "tvofi-seat-author",
+  "verdict_line": "Fix review: merge f91a05ed5ea3d63d8c17f8fa3df64d2c9578d46b",
+  "verdict_names_the_merged_head": true,
+  "verdict_matches_the_exact_grammar": true,
+  "verdict_from_the_author_login": true,
+  "approvals_from_non_authors": 1,
+  "approval_commits": [
+   "f91a05ed5ea3d63d8c17f8fa3df64d2c9578d46b"
+  ],
+  "first_pr_contract": "success",
+  "o3": true,
+  "o4": true,
+  "required_reds": [],
+  "o5": true,
+  "review_logins": [
+   "hpo-approver[bot]"
+  ]
+ },
+ {
+  "pr": 1150,
+  "author": "tvofi-seat-author",
+  "merged_head": "729201535ccc2d4a0bdc350d7c39e4343eb8a664",
+  "verdict_login": "tvofi-seat-author",
+  "verdict_line": "Fix review: merge 729201535ccc2d4a0bdc350d7c39e4343eb8a664",
+  "verdict_names_the_merged_head": true,
+  "verdict_matches_the_exact_grammar": true,
+  "verdict_from_the_author_login": true,
+  "approvals_from_non_authors": 1,
+  "approval_commits": [
+   "729201535ccc2d4a0bdc350d7c39e4343eb8a664"
+  ],
+  "first_pr_contract": "success",
+  "o3": true,
+  "o4": true,
+  "required_reds": [],
+  "o5": true,
+  "review_logins": [
+   "hpo-approver[bot]"
+  ]
+ },
+ {
+  "pr": 1152,
+  "author": "tvofi-seat-author",
+  "merged_head": "24979cc1235302fb5f093fd0d54d4ebdcc5ec9db",
+  "verdict_login": "tvofi-seat-author",
+  "verdict_line": "Fix review: merge 24979cc1235302fb5f093fd0d54d4ebdcc5ec9db",
+  "verdict_names_the_merged_head": true,
+  "verdict_matches_the_exact_grammar": true,
+  "verdict_from_the_author_login": true,
+  "approvals_from_non_authors": 1,
+  "approval_commits": [
+   "24979cc1235302fb5f093fd0d54d4ebdcc5ec9db"
+  ],
+  "first_pr_contract": "success",
+  "o3": true,
+  "o4": false,
+  "required_reds": [],
+  "o5": true,
+  "review_logins": [
+   "hpo-approver[bot]"
+  ]
+ },
+ {
+  "pr": 1153,
+  "author": "tvofi-seat-author",
+  "merged_head": "64c85123551a74cedb53898766be7677840de51c",
+  "verdict_login": "tvofi-seat-author",
+  "verdict_line": "Fix review: merge 64c85123551a74cedb53898766be7677840de51c",
+  "verdict_names_the_merged_head": true,
+  "verdict_matches_the_exact_grammar": true,
+  "verdict_from_the_author_login": true,
+  "approvals_from_non_authors": 1,
+  "approval_commits": [
+   "64c85123551a74cedb53898766be7677840de51c"
+  ],
+  "first_pr_contract": "success",
+  "o3": true,
+  "o4": true,
+  "required_reds": [],
+  "o5": true,
+  "review_logins": [
+   "hpo-approver[bot]"
+  ]
+ },
+ {
+  "pr": 1154,
+  "author": "tvofi-seat-author",
+  "merged_head": "e5709f8bf3b4d4ad607184434b7d7211259cf1bd",
+  "verdict_login": "tvofi-seat-author",
+  "verdict_line": "Fix review: merge e5709f8bf3b4d4ad607184434b7d7211259cf1bd",
+  "verdict_names_the_merged_head": true,
+  "verdict_matches_the_exact_grammar": true,
+  "verdict_from_the_author_login": true,
+  "approvals_from_non_authors": 1,
+  "approval_commits": [
+   "e5709f8bf3b4d4ad607184434b7d7211259cf1bd"
+  ],
+  "first_pr_contract": "success",
+  "o3": true,
+  "o4": true,
+  "required_reds": [],
+  "o5": true,
+  "review_logins": [
+   "hpo-approver[bot]"
+  ]
+ },
+ {
+  "pr": 1156,
+  "author": "tvofi-seat-author",
+  "merged_head": "d1884dfd476a8763f203bbfd30fa542d2cb75cb3",
+  "verdict_login": "tvofi-seat-author",
+  "verdict_line": "Fix review: merge d1884dfd476a8763f203bbfd30fa542d2cb75cb3",
+  "verdict_names_the_merged_head": true,
+  "verdict_matches_the_exact_grammar": true,
+  "verdict_from_the_author_login": true,
+  "approvals_from_non_authors": 1,
+  "approval_commits": [
+   "d1884dfd476a8763f203bbfd30fa542d2cb75cb3"
+  ],
+  "first_pr_contract": "success",
+  "o3": true,
+  "o4": true,
+  "required_reds": [],
+  "o5": true,
+  "review_logins": [
+   "hpo-approver[bot]"
+  ]
+ },
+ {
+  "pr": 1157,
+  "author": "tvofi-seat-author",
+  "merged_head": "c8165b3a23af4e7a4ce9cef945e679133c5bf6e6",
+  "verdict_login": "tvofi-seat-author",
+  "verdict_line": "Fix review: merge c8165b3a23af4e7a4ce9cef945e679133c5bf6e6",
+  "verdict_names_the_merged_head": true,
+  "verdict_matches_the_exact_grammar": true,
+  "verdict_from_the_author_login": true,
+  "approvals_from_non_authors": 1,
+  "approval_commits": [
+   "c8165b3a23af4e7a4ce9cef945e679133c5bf6e6"
+  ],
+  "first_pr_contract": "success",
+  "o3": true,
+  "o4": false,
+  "required_reds": [],
+  "o5": true,
+  "review_logins": [
+   "hpo-approver[bot]"
+  ]
+ },
+ {
+  "pr": 1158,
+  "author": "tvofi-seat-author",
+  "merged_head": "b88e6d9e3b4a67980a1205a7ed82a965cd373dba",
+  "verdict_login": "tvofi-seat-author",
+  "verdict_line": "Fix review: merge b88e6d9e3b4a67980a1205a7ed82a965cd373dba",
+  "verdict_names_the_merged_head": true,
+  "verdict_matches_the_exact_grammar": true,
+  "verdict_from_the_author_login": true,
+  "approvals_from_non_authors": 1,
+  "approval_commits": [
+   "b88e6d9e3b4a67980a1205a7ed82a965cd373dba"
+  ],
+  "first_pr_contract": "success",
+  "o3": true,
+  "o4": false,
+  "required_reds": [],
+  "o5": true,
+  "review_logins": [
+   "hpo-approver[bot]"
+  ]
+ },
+ {
+  "pr": 1159,
+  "author": "tvofi-seat-author",
+  "merged_head": "a5115642cf4b81f6a213014ed6f719ef00235bb3",
+  "verdict_login": "tvofi-seat-author",
+  "verdict_line": "Fix review: merge a5115642cf4b81f6a213014ed6f719ef00235bb3",
+  "verdict_names_the_merged_head": true,
+  "verdict_matches_the_exact_grammar": true,
+  "verdict_from_the_author_login": true,
+  "approvals_from_non_authors": 1,
+  "approval_commits": [
+   "a5115642cf4b81f6a213014ed6f719ef00235bb3"
+  ],
+  "first_pr_contract": "success",
+  "o3": true,
+  "o4": false,
+  "required_reds": [],
+  "o5": true,
+  "review_logins": [
+   "hpo-approver[bot]"
+  ]
+ },
+ {
+  "pr": 1160,
+  "author": "tvofi-seat-author",
+  "merged_head": "0bac3df7292524cf299843b6acb92be9206cb54c",
+  "verdict_login": "tvofi-seat-author",
+  "verdict_line": "Fix review: merge 0bac3df7292524cf299843b6acb92be9206cb54c",
+  "verdict_names_the_merged_head": true,
+  "verdict_matches_the_exact_grammar": true,
+  "verdict_from_the_author_login": true,
+  "approvals_from_non_authors": 1,
+  "approval_commits": [
+   "0bac3df7292524cf299843b6acb92be9206cb54c"
+  ],
+  "first_pr_contract": "success",
+  "o3": true,
+  "o4": false,
+  "required_reds": [],
+  "o5": true,
+  "review_logins": [
+   "hpo-approver[bot]"
+  ]
+ },
+ {
+  "pr": 1161,
+  "author": "tvofi-seat-author",
+  "merged_head": "a9954cac4d5e57abacd0c0273b2531e6da08b0ca",
+  "verdict_login": "tvofi-seat-author",
+  "verdict_line": "Fix review: merge a9954cac4d5e57abacd0c0273b2531e6da08b0ca",
+  "verdict_names_the_merged_head": true,
+  "verdict_matches_the_exact_grammar": true,
+  "verdict_from_the_author_login": true,
+  "approvals_from_non_authors": 2,
+  "approval_commits": [
+   "a9954cac4d5e57abacd0c0273b2531e6da08b0ca"
+  ],
+  "first_pr_contract": "success",
+  "o3": true,
+  "o4": false,
+  "required_reds": [],
+  "o5": true,
+  "review_logins": [
+   "tvofi"
+  ]
+ },
+ {
+  "pr": 1162,
+  "author": "tvofi-seat-author",
+  "merged_head": "6194234bc0206faedf29fecb662b8f6cdcb4055b",
+  "verdict_login": "tvofi-seat-author",
+  "verdict_line": "Fix review: merge 6194234bc0206faedf29fecb662b8f6cdcb4055b",
+  "verdict_names_the_merged_head": true,
+  "verdict_matches_the_exact_grammar": true,
+  "verdict_from_the_author_login": true,
+  "approvals_from_non_authors": 1,
+  "approval_commits": [
+   "6194234bc0206faedf29fecb662b8f6cdcb4055b"
+  ],
+  "first_pr_contract": "success",
+  "o3": true,
+  "o4": false,
+  "required_reds": [],
+  "o5": true,
+  "review_logins": [
+   "hpo-approver[bot]"
+  ]
+ },
+ {
+  "pr": 1163,
+  "author": "tvofi-seat-author",
+  "merged_head": "eaf647f6b404988276ec6e5ec13a9b6f5fdf57c5",
+  "verdict_login": "tvofi-seat-author",
+  "verdict_line": "Fix review: merge eaf647f6b404988276ec6e5ec13a9b6f5fdf57c5 \u2014 Round 1",
+  "verdict_names_the_merged_head": true,
+  "verdict_matches_the_exact_grammar": false,
+  "verdict_from_the_author_login": true,
+  "approvals_from_non_authors": 1,
+  "approval_commits": [
+   "eaf647f6b404988276ec6e5ec13a9b6f5fdf57c5"
+  ],
+  "first_pr_contract": "success",
+  "o3": true,
+  "o4": false,
+  "required_reds": [],
+  "o5": true,
+  "review_logins": [
+   "tvofi"
+  ]
+ }
+]

@@ -1,0 +1,10 @@
+driving 3 survivors through the differential gate
+  baseline drift rc=0 (from drift_cached.out; not re-run)
+  killed custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF rc=1 1s
+  killed custom_components/heatpump_optimizer/mixing_valve.py:109 CLAMP_DROP rc=1 1s
+  killed custom_components/heatpump_optimizer/defrost.py:314 GUARD_OFF rc=1 1s
+RESULT survivors_through_drift=3 count
+RESULT killed_by_drift=3 count
+RESULT survived_drift=0 count
+RESULT thread_factor=1.00 ratio
+RESULT load1=9.89 ratio

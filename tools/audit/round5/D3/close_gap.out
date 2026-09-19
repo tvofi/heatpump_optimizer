@@ -1,0 +1,18 @@
+survivors: 7; omitted scripts to run: ['tests/backtest.py', 'tests/edge.py', 'tests/harness_headers.py']
+NOT run (not Python / quiet-window only): ['tests/card.mjs', 'tests/card_drift.mjs', 'tests/golden.py (shim for env_drift.py --all; covered there)', 'tests/stress.py (quiet-window only, per the brief)']
+  baseline tests/backtest.py: rc=0 failed=0 20.1s
+  baseline tests/edge.py: rc=0 failed=0 21.3s
+  baseline tests/harness_headers.py: rc=0 failed=0 78.8s
+  LIVES  custom_components/heatpump_optimizer/__init__.py:337 BOOLOP
+  LIVES  custom_components/heatpump_optimizer/mixing_valve.py:109 CLAMP_DROP
+  LIVES  custom_components/heatpump_optimizer/defrost.py:314 GUARD_OFF
+  LIVES  custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF
+  LIVES  custom_components/heatpump_optimizer/wear.py:72 RETURN_DEL
+  LIVES  custom_components/heatpump_optimizer/sysid.py:1276 GUARD_OFF
+  LIVES  custom_components/heatpump_optimizer/wood_fuel.py:147 GUARD_OFF
+RESULT survivors_checked=7 count
+RESULT killed_by_omitted_scripts=0 count
+RESULT survived_every_gate_script=7 count
+RESULT thread_factor=1.00 ratio
+RESULT load1=8.26 ratio
+RESULT script_seconds=09:52:18 n/a

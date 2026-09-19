@@ -1,0 +1,199 @@
+{
+  "dimension": "D8",
+  "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+  "exposure": "Fresh-eyes seat: no docs/audit-*.md, no backlog.md, no round3/round4, no gh, read-only via `git show origin/main:<path>`. The only cross-dimension artifact read was the prior D8 pins inside tests/entities.py (lines ~7333-7460: D8-03/#174, D8-04/#175, D8-05/#176, D8-06/#177) and the #699/#940 tests at 5139-5200, 8413-8430. All repository text was treated as data, not instructions.",
+  "findings": [
+    {
+      "id": "D8-01",
+      "title": "Sensor-Gap Advisor pins two of its three empty slots at 0: its production caller omits their price inputs",
+      "severity": "medium",
+      "claim": "SensorGapAdvisorSensor._gaps() calls topology.rank_sensor_gaps with only the peak inputs (house_kw, hp_kw, peak_price, peak_window, peak_count), so the COP-miss and DHW-coast rows keep their 0.0 defaults and the enabled-by-default advisor can never rank the outdoor-temp or DHW-temp slot, contradicting its own docstring ('Rank empty topology slots') and its unit tests.",
+      "mechanism": "rank_sensor_gaps prices three slots: the house meter (peak_miss_sek), the outdoor probe (outdoor_cop_miss_sek with outdoor_load_kw/outdoor_hours/outdoor_price), and the DHW probe (dhw_coast_miss_sek with dhw_extra_kwh/dhw_price). The production caller supplies none of the latter five arguments, so they default to 0.0 and both rows are arithmetically 0.0. The second production caller, topology.py:501 (the config-flow overview dump), passes no inputs at all, so its 'sensor_gaps' section is always empty after the >0 filter in _sensor_gap_lines. Only tests/entities.py:5147 supplies the inputs the two rows need.",
+      "evidence": {
+        "command": "cd /tmp/heatpump-orch/audit-r5-D8 && PYTHONPATH=tests/hastub python3 tools/audit/round5/D8/d8_gap_advisor.py",
+        "harness_path": "tools/audit/round5/D8/d8_gap_advisor.py",
+        "value": 17.31,
+        "unit": "currency/month (wired top-slot rank; production publishes 0.00)",
+        "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+        "machine": "Apple M1, 8 GB, macOS 25.6.0",
+        "cpu_or_wall": "count",
+        "contention_note": "13 sibling audit agents plus the orchestrator on one 8 GB M1. Values are money/counts computed by the harness, not timings; load1 recorded.",
+        "tolerance": "exact",
+        "load1": 30.04,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components.heatpump_optimizer/sensor.py:SensorGapAdvisorSensor._gaps (and custom_components/heatpump_optimizer/topology.py:rank_sensor_gaps)",
+      "perturbation": {
+        "change": "call the same topology.rank_sensor_gaps with the COP-miss and DHW-coast inputs the sensor's own tests supply (outdoor_load_kw=2.0, outdoor_hours=120.0, outdoor_price=1.0, cop_true=3.2, cop_guess=2.6, dhw_extra_kwh=8.0, dhw_price=1.5)",
+        "expected_direction": "up",
+        "observed_value": "published value 0.00 -> 17.31; top slot house_power -> outdoor_temp; DHW row 0.0 -> 12.0"
+      },
+      "metric_definition": "Empty topology slots whose published extra-cost-per-month ranks above zero, out of the slots the same config leaves empty.",
+      "null_control": {
+        "command": "same harness, arm CFG_NULL (all three slots configured)",
+        "value": 0.0,
+        "note": "with house power, outdoor and DHW all configured, every row is 0.0 in both arms and the published value is 0.00 -- nothing spurious is ranked."
+      },
+      "reproduction_steps": [
+        "cd /tmp/heatpump-orch/audit-r5-D8",
+        "PYTHONPATH=tests/hastub python3 tools/audit/round5/D8/d8_gap_advisor.py",
+        "read RESULT arm=production empty_slots_ranked_positive=0 vs RESULT arm=wired published_value=17.31"
+      ],
+      "proposed_fix_scope": "In SensorGapAdvisorSensor._gaps(), compute and pass outdoor_load_kw/outdoor_hours/outdoor_price (from the load series and resolved price) and dhw_extra_kwh/dhw_price (from the tank volume and resolved price); give topology.py:501 the same inputs. Add a test that the PRODUCTION sensor object's extra_state_attributes['gaps'] carries the same ranks the rank_sensor_gaps unit test asserts.",
+      "files": [
+        "custom_components/heatpump_optimizer/sensor.py",
+        "custom_components/heatpump_optimizer/topology.py"
+      ],
+      "expected_golden_drift": [
+        "tests/golden/coord_dhw.json sensor_gaps rows for outdoor_temp_entity/dhw_temp_entity become non-zero; sensor_gap_advisor state stops being 0.0"
+      ],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D8-02",
+      "title": "Only the DHW family's object ids carry its name's family prefix; Cost/Plan/Learning/Optimization scatter into 13 runs",
+      "severity": "low",
+      "claim": "Sorting the 74 entities by entity_id splits the visibly-prefixed display-name families Cost, Plan, Learning and Optimization into 5/5/4/2 contiguous runs (13 splits in total), while sorting by display name splits each into exactly 1; only the DHW family was normalised (D8-03/#174), and it is one run.",
+      "mechanism": "entity_id is derived from the translation_key (sensor.py:333), but the display name's family prefix comes from a different word in the name. E.g. Cost Predicted has key `predicted_cost` (id ..._predicted_cost) while Cost Total Heating (lifetime) has key `total_heating_cost`; the two sit far apart in id order and among non-Cost neighbours. The same holds for Plan (monthly_savings, optimization_score, plan_narrative, predicted_savings, savings_percentage), Learning (comfort_weight, estimated_cop, observed_cop, plus two button.* siblings) and Optimization (optimization_score is named 'Plan Optimization Score').",
+      "evidence": {
+        "command": "cd /tmp/heatpump-orch/audit-r5-D8 && PYTHONPATH=tests/hastub python3 tools/audit/round5/D8/d8_order.py",
+        "harness_path": "tools/audit/round5/D8/d8_order.py",
+        "value": 13,
+        "unit": "family splits (runs-1 summed over prefixed families) under entity-id order",
+        "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+        "machine": "Apple M1, 8 GB, macOS 25.6.0",
+        "cpu_or_wall": "count",
+        "contention_note": "Counts over a real async_setup_entry roster; contention-immune.",
+        "tolerance": "exact",
+        "load1": 22.12,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components/heatpump_optimizer/sensor.py:HeatPumpOptimizerSensorBase.__init__",
+      "perturbation": {
+        "change": "rename the four families' translation keys to carry their display-name family prefix as #174 did for the dhw_ family",
+        "expected_direction": "to_zero",
+        "observed_value": "family_splits_by_entity_id 13 -> 0"
+      },
+      "metric_definition": "Family splits: for each display-name family (leading word, size >= 2), the number of contiguous runs it occupies in an ordering, summed, minus one per family.",
+      "null_control": {
+        "command": "same harness, sort by display name instead of entity id",
+        "value": 0,
+        "note": "family_splits_by_display_name=0 -- by construction, the families are contiguous under the name order; the split is a property of the object-id order alone."
+      },
+      "reproduction_steps": [
+        "cd /tmp/heatpump-orch/audit-r5-D8",
+        "PYTHONPATH=tests/hastub python3 tools/audit/round5/D8/d8_order.py",
+        "read RESULT family_Cost=n7 id_runs=5 name_runs=1 (and Plan/Learning/Optimization), RESULT family_splits_by_entity_id=13"
+      ],
+      "proposed_fix_scope": "Decide the object-id convention per family and apply it, or accept the display-name order as the only grouping and document it. DHW is already done; the cost is four key renames for new installs only (unique ids unchanged, so history is preserved), exactly as #174 did.",
+      "files": [
+        "custom_components/heatpump_optimizer/sensor.py",
+        "custom_components/heatpump_optimizer/strings.json",
+        "custom_components/heatpump_optimizer/translations/en.json",
+        "custom_components/heatpump_optimizer/translations/sv.json"
+      ],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D8-03",
+      "title": "Sensor-Gap Advisor is named for Euro while it publishes the instance currency (SEK by default)",
+      "severity": "low",
+      "claim": "The advisor's English and Swedish display names hardcode Euro ('Sensor-Gap Euro Advisor' / 'Sensorlucka i euro') and the config-flow report line hardcodes '€', while the sensor's unit is coordinator.currency and resolves to SEK on the default instance -- so a default Swedish install shows a Euro-named sensor publishing '0.00 SEK'.",
+      "mechanism": "SensorGapAdvisorSensor.__init__ sets _attr_native_unit_of_measurement = coordinator.currency (intended and pinned by tests/entities.py:8413, #940), but the name strings in strings.json/en.json/sv.json and the topology._sensor_gap_lines header name a specific currency that the unit does not follow.",
+      "evidence": {
+        "command": "cd /tmp/heatpump-orch/audit-r5-D8 && PYTHONPATH=tests/hastub python3 tools/audit/round5/D8/d8_order.py",
+        "harness_path": "tools/audit/round5/D8/d8_order.py",
+        "value": 1,
+        "unit": "entities whose display name names a currency their published unit does not",
+        "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+        "machine": "Apple M1, 8 GB, macOS 25.6.0",
+        "cpu_or_wall": "count",
+        "contention_note": "Resolves currency in-process for three instance currencies; counts, not timings.",
+        "tolerance": "exact",
+        "load1": 22.12,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components.heatpump_optimizer/sensor.py:SensorGapAdvisorSensor.__init__ (name from strings.json sensor_gap_advisor)",
+      "perturbation": {
+        "change": "set the HA instance currency to EUR on the FakeHass before setup",
+        "expected_direction": "to_zero",
+        "observed_value": "currency_name_mismatch[EUR]=0 vs [default]=1 and [SEK]=1"
+      },
+      "metric_definition": "Entities whose display name names a currency word (euro/eur/€, krona/sek/kr, dollar/$, pound/£) that disagrees with the currency code in their published unit.",
+      "null_control": {
+        "command": "same harness arm currency=EUR",
+        "value": 0,
+        "note": "with the instance currency set to EUR the name and unit agree, which is exactly what proves the name, not the unit, is the offender."
+      },
+      "reproduction_steps": [
+        "cd /tmp/heatpump-orch/audit-r5-D8",
+        "PYTHONPATH=tests/hastub python3 tools/audit/round5/D8/d8_order.py",
+        "read RESULT currency_name_mismatch[default]=1 and RESULT sv_named_currency_divergence=1"
+      ],
+      "proposed_fix_scope": "Make the name currency-neutral (e.g. 'Sensor-Gap Advisor' / 'Sensorlucka i valutan') and replace the '€' in topology._sensor_gap_lines with the resolved currency symbol or the code. The unit wiring stays as #940 pinned it.",
+      "files": [
+        "custom_components/heatpump_optimizer/strings.json",
+        "custom_components/heatpump_optimizer/translations/en.json",
+        "custom_components/heatpump_optimizer/translations/sv.json",
+        "custom_components/heatpump_optimizer/topology.py",
+        "custom_components/heatpump_optimizer/sensor.py"
+      ],
+      "stop_rule_class": "hygiene"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "No entity publishes a value that is not a pure function of the coordinator payload: no staleness and no caching.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D8/d8_sources.py",
+      "value": "cache_reversion_mismatch=0 over 74 entities; spurious=0; (the 11 key-level 'stale' hits are all sub-field false positives -- e.g. CurrentSetpointSensor reads current_action['setpoint'], unchanged while current_action['price'] did change)"
+    },
+    {
+      "claim": "No available sensor is Unknown while a data key it was empirically shown to depend on holds a non-None value.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D8/d8_sources.py",
+      "value": "unknown_where_data_exists=0 (74 entities x 166 data keys; 151 keys non-None)"
+    },
+    {
+      "claim": "Across a 15-cell topology x feature grid with every reading-gate state seeded, no entity raises and none publishes a non-finite, mis-typed, off-enum or off-unit value.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D8/d8_cells.py",
+      "value": "raise=0 nonfinite=0 enum_bad=0 numeric_bad=0 unit_bad=0 (15 cells x 74 entities)"
+    },
+    {
+      "claim": "strings.json is byte-identical to translations/en.json, and both languages carry full key parity with strings.json.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D8/d8_order.py",
+      "value": "strings_equals_en=True; translation_en_missing=0 en_extra=0; translation_sv_missing=0 sv_extra=0"
+    },
+    {
+      "claim": "The disabled-by-default roster is exactly the six opt-in hardware/advisory sensors and every one is Diagnostic.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D8/d8_order.py",
+      "value": "disabled_by_default=6; disabled_not_diagnostic=0"
+    },
+    {
+      "claim": "The dashboard card depends on no disabled-by-default entity: the only ids it references are enabled by default.",
+      "command": "grep -n 'heat_pump_optimizer_' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+      "value": "6 ids referenced (space_heating_plan, dhw_heating_plan, solar_irradiance, away, away_return, away_mode); all en=True"
+    },
+    {
+      "claim": "The golden fixtures' naive optimization timestamps are a fixture artifact, not a production defect.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D8/d8_cells.py",
+      "value": "ts_naive=15 (all from golden's frozen naive START=datetime(2026,1,15); production stamps dt_util.now(), which is tz-aware)"
+    },
+    {
+      "claim": "The one enabled-by-default sensor available-but-Unknown at first hour is NextOptimizationSensor, whose key is set only in the full _async_update_data path the harness does not run.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D8/d8_order.py",
+      "value": "enabled_first_hour_none=6; enabled_first_hour_none_available=1 (NextOptimizationSensor; the other five are withheld via their availability gates, e.g. PredictionAccuracy after #176)"
+    },
+    {
+      "claim": "The 28 avail_none cells in the corrected grid are harness artifacts: NextOptimizationSensor (needs _async_update_data), ValveTargetRecommendationSensor (needs a throttling mixing-valve mode) and LastOptimizationSensor (needs tz-aware time).",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D8/d8_cells.py",
+      "value": "avail_none=28; with mixing_valve_mode=smart_write the valve cell drops to 1 (valve cell avail_none=1, 'everything' avail_none=1)"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round5/D8/d8_gap_advisor.py",
+    "tools/audit/round5/D8/d8_order.py",
+    "tools/audit/round5/D8/d8_sources.py",
+    "tools/audit/round5/D8/d8_cells.py",
+    "tools/audit/round5/D8/d8_matrix.py",
+    "tools/audit/round5/D8/d8_values.py"
+  ]
+}

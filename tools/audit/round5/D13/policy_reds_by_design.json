@@ -1,0 +1,15 @@
+{
+  "_comment": "Jobs whose red is BY DESIGN: a run of this job that concluded red is not a change failure, and the change-failure rate by job is re-taken without them. One entry per job, with the reason. A job NOT in this file is a job whose red means the merge broke main.",
+  "_rule": "Written by D13 round 5 (tools/audit/round4/D11/dora_keys.py takes the rate per WORKFLOW; this file supports the per-check-run-name version D13.md item 4 asks for). A job belongs here only when a document in the tree, cited in `why`, says its red is reported rather than gated, or when the red is the job cancelling itself rather than failing.",
+  "jobs": {
+    "delivery-status-publish": {
+      "reds": "cancelled",
+      "why": ".github/workflows/governance.yml's job declares `concurrency: {group: delivery-status-publish, cancel-in-progress: true}` and says why: 'pushes to main arrive in bursts, and two runs' read-modify-write of #201's body must not interleave. Each run regenerates wholesale from its own push, so the newer supersedes the older outright and cancel-in-progress loses nothing.' A superseded run is cancelled, never failed -- measured over this window, the only non-green conclusions in the whole population are three `cancelled` runs of this one job.",
+      "not_excused_from": "the `failure` conclusion: a failure of this job would still count, because the step it runs edits #201 and a failing step is not a supersession."
+    },
+    "record": {
+      "reds": "never (measured)",
+      "why": "NOT excluded, and this entry records why it was considered and left out: `record`'s disposition step is `continue-on-error: true` (#958's split -- it reports and does not gate), so its deliberate failure cannot redden the job; the job's remaining steps can, and those are ordinary failures. Measured over this window it concluded `success` at all 54 merge heads, so the exclusion would have changed nothing -- which is why an exclusion with a reason is not the same as an exclusion that is justified."
+    }
+  }
+}

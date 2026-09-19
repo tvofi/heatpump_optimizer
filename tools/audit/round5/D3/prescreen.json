@@ -1,0 +1,381 @@
+{
+ "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+ "drivers": [
+  "tests/config_flow_steps.py",
+  "tests/deployment_shape.py",
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/frontend.py",
+  "tests/guard_pins.py",
+  "tests/manual_plan.py",
+  "tests/optimality.py",
+  "tests/plan_view.py",
+  "tests/solar_alignment.py",
+  "tests/structure.py",
+  "tests/typing_ruler.py",
+  "tests/validate.py",
+  "tests/wood_advisor.py"
+ ],
+ "rows": [
+  {
+   "file": "custom_components/heatpump_optimizer/__init__.py",
+   "line": 337,
+   "kind": "BOOLOP",
+   "old": "        if task is not None and hasattr(task, \"cancel\"):",
+   "new": "        if task is not None or hasattr(task, \"cancel\"):",
+   "verdict": "LIVES",
+   "killed_by": ""
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/accuracy.py",
+   "line": 392,
+   "kind": "CLAMP_DROP",
+   "old": "                    tracker.lead_sigma[float(key)] = max(0.0, parsed)",
+   "new": "                    tracker.lead_sigma[float(key)] = (0.0)",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/away.py",
+   "line": 301,
+   "kind": "GUARD_OFF",
+   "old": "    if not state.active or state.recovery_active:",
+   "new": "    if False:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/boost.py",
+   "line": 65,
+   "kind": "GUARD_OFF",
+   "old": "            if end <= now:",
+   "new": "            if False:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/climate.py",
+   "line": 229,
+   "kind": "GUARD_OFF",
+   "old": "        if self.coordinator.data:",
+   "new": "        if False:",
+   "verdict": "killed",
+   "killed_by": "tests/entities.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/comfort_learning.py",
+   "line": 97,
+   "kind": "GUARD_OFF",
+   "old": "        if self.last_update is None:",
+   "new": "        if False:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "line": 2985,
+   "kind": "GUARD_OFF",
+   "old": "        if user_input is not None:",
+   "new": "        if False:",
+   "verdict": "killed",
+   "killed_by": "tests/config_flow_steps.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "line": 3187,
+   "kind": "GUARD_OFF",
+   "old": "        if signals.mode_observed:",
+   "new": "        if False:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/datetime.py",
+   "line": 45,
+   "kind": "RETURN_DEL",
+   "old": "        return _parse_return_time(raw)",
+   "new": "        pass",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/defrost.py",
+   "line": 314,
+   "kind": "GUARD_OFF",
+   "old": "        if not 0.0 <= duty <= 1.0:",
+   "new": "        if False:",
+   "verdict": "LIVES",
+   "killed_by": ""
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_draws.py",
+   "line": 124,
+   "kind": "GUARD_OFF",
+   "old": "        if isinstance(raw, dict):",
+   "new": "        if False:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_draws.py",
+   "line": 138,
+   "kind": "RETURN_DEL",
+   "old": "        return stats",
+   "new": "        pass",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+   "line": 140,
+   "kind": "RETURN_DEL",
+   "old": "        return [float(np.clip(v / avg, DHW_PROFILE_MIN_INTENSITY, DHW_PROFILE_MAX_INTENSITY)) for v in cleaned]",
+   "new": "        pass",
+   "verdict": "killed",
+   "killed_by": "tests/guard_pins.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+   "line": 335,
+   "kind": "GUARD_OFF",
+   "old": "        if previous_temp is None or previous_time is None:",
+   "new": "        if False:",
+   "verdict": "killed",
+   "killed_by": "tests/entities.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/diagnosis.py",
+   "line": 69,
+   "kind": "GUARD_OFF",
+   "old": "    if model.params.two_zone_enabled:",
+   "new": "    if False:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/diagnostics.py",
+   "line": 78,
+   "kind": "RETURN_DEL",
+   "old": "    return value",
+   "new": "    pass",
+   "verdict": "killed",
+   "killed_by": "tests/entities.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/entity.py",
+   "line": 33,
+   "kind": "RETURN_DEL",
+   "old": "        return info",
+   "new": "        pass",
+   "verdict": "killed",
+   "killed_by": "tests/entities.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/freq_control.py",
+   "line": 178,
+   "kind": "GUARD_OFF",
+   "old": "        if not np.isfinite(target_kw) or target_kw <= 0.05:",
+   "new": "        if False:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/frontend.py",
+   "line": 132,
+   "kind": "GUARD_OFF",
+   "old": "            if not item_url:",
+   "new": "            if False:",
+   "verdict": "killed",
+   "killed_by": "tests/frontend.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/legionella.py",
+   "line": 639,
+   "kind": "GUARD_OFF",
+   "old": "        if since is None:",
+   "new": "        if False:",
+   "verdict": "killed",
+   "killed_by": "tests/manual_plan.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/mixing_valve.py",
+   "line": 109,
+   "kind": "CLAMP_DROP",
+   "old": "    return target_temp + q_hold / max(emitter_ua, 1e-6)",
+   "new": "    return target_temp + q_hold / (emitter_ua)",
+   "verdict": "LIVES",
+   "killed_by": ""
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/modbus_prefill.py",
+   "line": 174,
+   "kind": "GUARD_OFF",
+   "old": "    if begin is None or end is None or begin == end:",
+   "new": "    if False:",
+   "verdict": "killed",
+   "killed_by": "tests/config_flow_steps.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/modbus_prefill.py",
+   "line": 229,
+   "kind": "GUARD_OFF",
+   "old": "        if slot in snap and slot != \"unit_capacity\" and not current.get(slot):",
+   "new": "        if False:",
+   "verdict": "killed",
+   "killed_by": "tests/config_flow_steps.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/narrative.py",
+   "line": 165,
+   "kind": "RETURN_DEL",
+   "old": "    return items",
+   "new": "    pass",
+   "verdict": "killed",
+   "killed_by": "tests/config_flow_steps.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/power_guard.py",
+   "line": 63,
+   "kind": "GUARD_OFF",
+   "old": "    if mean_so_far_kw is None:",
+   "new": "    if False:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/prefill_offer.py",
+   "line": 101,
+   "kind": "GUARD_OFF",
+   "old": "        if qualifies(resolution, minimum):",
+   "new": "        if False:",
+   "verdict": "killed",
+   "killed_by": "tests/config_flow_steps.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/price_model.py",
+   "line": 655,
+   "kind": "GUARD_OFF",
+   "old": "    if not np.isfinite(value):",
+   "new": "    if False:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/process_worker.py",
+   "line": 28,
+   "kind": "GUARD_OFF",
+   "old": "        if resolved != here:",
+   "new": "        if False:",
+   "verdict": "killed",
+   "killed_by": "tests/deployment_shape.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_mode.py",
+   "line": 242,
+   "kind": "GUARD_OFF",
+   "old": "    if raw is None:",
+   "new": "    if False:",
+   "verdict": "LIVES",
+   "killed_by": ""
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_signals.py",
+   "line": 391,
+   "kind": "BOOLOP",
+   "old": "    if mode_reading.ok and mode_reading.text:",
+   "new": "    if mode_reading.ok or mode_reading.text:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/repairs.py",
+   "line": 49,
+   "kind": "GUARD_OFF",
+   "old": "        if entity_id and target is not None:",
+   "new": "        if False:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/services.py",
+   "line": 690,
+   "kind": "GUARD_OFF",
+   "old": "        if \"wood\" in call.data:",
+   "new": "        if False:",
+   "verdict": "killed",
+   "killed_by": "tests/entities.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/silent_mode.py",
+   "line": 117,
+   "kind": "GUARD_OFF",
+   "old": "    if caps_extra is None:",
+   "new": "    if False:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "line": 1276,
+   "kind": "GUARD_OFF",
+   "old": "        if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0):",
+   "new": "        if False:",
+   "verdict": "LIVES",
+   "killed_by": ""
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/tariff.py",
+   "line": 652,
+   "kind": "GUARD_OFF",
+   "old": "        if window_factors is not None and window_factors.size:",
+   "new": "        if False:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "line": 2208,
+   "kind": "BOOLOP",
+   "old": "        if two_tank and wood_temp is not None:",
+   "new": "        if two_tank or wood_temp is not None:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/topology.py",
+   "line": 743,
+   "kind": "GUARD_OFF",
+   "old": "    if \"price\" in blob:",
+   "new": "    if False:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/wear.py",
+   "line": 72,
+   "kind": "RETURN_DEL",
+   "old": "            return False",
+   "new": "            pass",
+   "verdict": "LIVES",
+   "killed_by": ""
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/wear.py",
+   "line": 110,
+   "kind": "GUARD_OFF",
+   "old": "        if isinstance(months, dict):",
+   "new": "        if False:",
+   "verdict": "killed",
+   "killed_by": "tests/features.py"
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/wood_fuel.py",
+   "line": 147,
+   "kind": "GUARD_OFF",
+   "old": "        if cop_f <= 0.0:",
+   "new": "        if False:",
+   "verdict": "LIVES",
+   "killed_by": ""
+  }
+ ]
+}

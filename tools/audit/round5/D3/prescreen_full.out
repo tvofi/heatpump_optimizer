@@ -1,0 +1,102 @@
+  baseline tests/config_flow_steps.py: rc=0 failed=0 8.6s
+  baseline tests/deployment_shape.py: rc=0 failed=0 1.5s
+  baseline tests/entities.py: rc=0 failed=0 32.3s
+  baseline tests/features.py: rc=0 failed=0 93.8s
+  baseline tests/frontend.py: rc=0 failed=0 0.1s
+  baseline tests/guard_pins.py: rc=0 failed=0 0.6s
+  baseline tests/manual_plan.py: rc=0 failed=0 4.3s
+  baseline tests/optimality.py: rc=0 failed=0 39.1s
+  baseline tests/plan_view.py: rc=0 failed=0 1.0s
+  baseline tests/solar_alignment.py: rc=0 failed=0 0.5s
+  baseline tests/structure.py: rc=0 failed=0 1.1s
+  baseline tests/typing_ruler.py: rc=0 failed=0 0.6s
+  baseline tests/validate.py: rc=0 failed=0 17.5s
+  baseline tests/wood_advisor.py: rc=0 failed=0 0.6s
+  baseline drift --all: rc=0 failed=0 164.1s
+  VERDICT killed custom_components/heatpump_optimizer/process_worker.py:28 GUARD_OFF  -- tests/deployment_shape.py
+  VERDICT killed custom_components/heatpump_optimizer/entity.py:33 RETURN_DEL  -- tests/entities.py
+  VERDICT killed custom_components/heatpump_optimizer/datetime.py:45 RETURN_DEL  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/services.py:690 GUARD_OFF  -- tests/entities.py
+  VERDICT LIVES  custom_components/heatpump_optimizer/defrost.py:314 GUARD_OFF
+  VERDICT LIVES  custom_components/heatpump_optimizer/mixing_valve.py:109 CLAMP_DROP
+  VERDICT killed custom_components/heatpump_optimizer/pump_signals.py:391 BOOLOP  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/accuracy.py:392 CLAMP_DROP  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/repairs.py:49 GUARD_OFF  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/comfort_learning.py:97 GUARD_OFF  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/diagnostics.py:78 RETURN_DEL  -- tests/entities.py
+  VERDICT killed custom_components/heatpump_optimizer/dhw_draws.py:124 GUARD_OFF  -- tests/features.py
+  VERDICT LIVES  custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF
+  VERDICT killed custom_components/heatpump_optimizer/power_guard.py:63 GUARD_OFF  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/modbus_prefill.py:229 GUARD_OFF  -- tests/config_flow_steps.py
+  VERDICT killed custom_components/heatpump_optimizer/freq_control.py:178 GUARD_OFF  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/thermal_model.py:2208 BOOLOP  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/wear.py:110 GUARD_OFF  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/tariff.py:652 GUARD_OFF  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/dhw_learning.py:140 RETURN_DEL  -- tests/guard_pins.py
+  VERDICT LIVES  custom_components/heatpump_optimizer/sysid.py:1276 GUARD_OFF
+  VERDICT killed custom_components/heatpump_optimizer/coordinator.py:3187 GUARD_OFF  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/config_flow.py:2985 GUARD_OFF  -- tests/config_flow_steps.py
+  VERDICT killed custom_components/heatpump_optimizer/topology.py:743 GUARD_OFF  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/climate.py:229 GUARD_OFF  -- tests/entities.py
+  VERDICT LIVES  custom_components/heatpump_optimizer/wear.py:72 RETURN_DEL
+  VERDICT killed custom_components/heatpump_optimizer/diagnosis.py:69 GUARD_OFF  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/dhw_learning.py:335 GUARD_OFF  -- tests/entities.py
+  VERDICT killed custom_components/heatpump_optimizer/frontend.py:132 GUARD_OFF  -- tests/frontend.py
+  VERDICT killed custom_components/heatpump_optimizer/price_model.py:655 GUARD_OFF  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/silent_mode.py:117 GUARD_OFF  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/narrative.py:165 RETURN_DEL  -- tests/config_flow_steps.py
+  VERDICT killed custom_components/heatpump_optimizer/away.py:301 GUARD_OFF  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/dhw_draws.py:138 RETURN_DEL  -- tests/features.py
+  VERDICT killed custom_components/heatpump_optimizer/legionella.py:639 GUARD_OFF  -- tests/manual_plan.py
+  VERDICT killed custom_components/heatpump_optimizer/modbus_prefill.py:174 GUARD_OFF  -- tests/config_flow_steps.py
+  VERDICT killed custom_components/heatpump_optimizer/boost.py:65 GUARD_OFF  -- tests/features.py
+  VERDICT LIVES  custom_components/heatpump_optimizer/__init__.py:337 BOOLOP
+  VERDICT LIVES  custom_components/heatpump_optimizer/wood_fuel.py:147 GUARD_OFF
+  VERDICT killed custom_components/heatpump_optimizer/prefill_offer.py:101 GUARD_OFF  -- tests/config_flow_steps.py
+  LIVES custom_components/heatpump_optimizer/__init__.py:337 BOOLOP
+  ok    custom_components/heatpump_optimizer/accuracy.py:392 CLAMP_DROP  -- tests/features.py
+  ok    custom_components/heatpump_optimizer/away.py:301 GUARD_OFF  -- tests/features.py
+  ok    custom_components/heatpump_optimizer/boost.py:65 GUARD_OFF  -- tests/features.py
+  ok    custom_components/heatpump_optimizer/climate.py:229 GUARD_OFF  -- tests/entities.py
+  ok    custom_components/heatpump_optimizer/comfort_learning.py:97 GUARD_OFF  -- tests/features.py
+  ok    custom_components/heatpump_optimizer/config_flow.py:2985 GUARD_OFF  -- tests/config_flow_steps.py
+  ok    custom_components/heatpump_optimizer/coordinator.py:3187 GUARD_OFF  -- tests/features.py
+  ok    custom_components/heatpump_optimizer/datetime.py:45 RETURN_DEL  -- tests/features.py
+  LIVES custom_components/heatpump_optimizer/defrost.py:314 GUARD_OFF
+  ok    custom_components/heatpump_optimizer/dhw_draws.py:124 GUARD_OFF  -- tests/features.py
+  ok    custom_components/heatpump_optimizer/dhw_draws.py:138 RETURN_DEL  -- tests/features.py
+  ok    custom_components/heatpump_optimizer/dhw_learning.py:140 RETURN_DEL  -- tests/guard_pins.py
+  ok    custom_components/heatpump_optimizer/dhw_learning.py:335 GUARD_OFF  -- tests/entities.py
+  ok    custom_components/heatpump_optimizer/diagnosis.py:69 GUARD_OFF  -- tests/features.py
+  ok    custom_components/heatpump_optimizer/diagnostics.py:78 RETURN_DEL  -- tests/entities.py
+  ok    custom_components/heatpump_optimizer/entity.py:33 RETURN_DEL  -- tests/entities.py
+  ok    custom_components/heatpump_optimizer/freq_control.py:178 GUARD_OFF  -- tests/features.py
+  ok    custom_components/heatpump_optimizer/frontend.py:132 GUARD_OFF  -- tests/frontend.py
+  ok    custom_components/heatpump_optimizer/legionella.py:639 GUARD_OFF  -- tests/manual_plan.py
+  LIVES custom_components/heatpump_optimizer/mixing_valve.py:109 CLAMP_DROP
+  ok    custom_components/heatpump_optimizer/modbus_prefill.py:174 GUARD_OFF  -- tests/config_flow_steps.py
+  ok    custom_components/heatpump_optimizer/modbus_prefill.py:229 GUARD_OFF  -- tests/config_flow_steps.py
+  ok    custom_components/heatpump_optimizer/narrative.py:165 RETURN_DEL  -- tests/config_flow_steps.py
+  ok    custom_components/heatpump_optimizer/power_guard.py:63 GUARD_OFF  -- tests/features.py
+  ok    custom_components/heatpump_optimizer/prefill_offer.py:101 GUARD_OFF  -- tests/config_flow_steps.py
+  ok    custom_components/heatpump_optimizer/price_model.py:655 GUARD_OFF  -- tests/features.py
+  ok    custom_components/heatpump_optimizer/process_worker.py:28 GUARD_OFF  -- tests/deployment_shape.py
+  LIVES custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF
+  ok    custom_components/heatpump_optimizer/pump_signals.py:391 BOOLOP  -- tests/features.py
+  ok    custom_components/heatpump_optimizer/repairs.py:49 GUARD_OFF  -- tests/features.py
+  ok    custom_components/heatpump_optimizer/services.py:690 GUARD_OFF  -- tests/entities.py
+  ok    custom_components/heatpump_optimizer/silent_mode.py:117 GUARD_OFF  -- tests/features.py
+  LIVES custom_components/heatpump_optimizer/sysid.py:1276 GUARD_OFF
+  ok    custom_components/heatpump_optimizer/tariff.py:652 GUARD_OFF  -- tests/features.py
+  ok    custom_components/heatpump_optimizer/thermal_model.py:2208 BOOLOP  -- tests/features.py
+  ok    custom_components/heatpump_optimizer/topology.py:743 GUARD_OFF  -- tests/features.py
+  LIVES custom_components/heatpump_optimizer/wear.py:72 RETURN_DEL
+  ok    custom_components/heatpump_optimizer/wear.py:110 GUARD_OFF  -- tests/features.py
+  LIVES custom_components/heatpump_optimizer/wood_fuel.py:147 GUARD_OFF
+RESULT mutants_evaluated=40 count
+RESULT mutants_killed=33 count
+RESULT mutants_survived=7 count
+RESULT survivor_fraction=0.175 ratio
+RESULT thread_factor=1.00 ratio
+RESULT load1=4.40 ratio
+RESULT prescreen_json=/private/tmp/hpo-d3-wt/tools/audit/round5/D3/prescreen.json n/a

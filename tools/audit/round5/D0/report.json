@@ -1,0 +1,160 @@
+{
+  "dimension": "D0",
+  "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+  "exposure": "",
+  "harnesses": [
+    "tools/audit/round5/D0/restart_race.py",
+    "tools/audit/round5/D0/polish_race.py",
+    "tools/audit/round5/D0/seams.py"
+  ],
+  "findings": [
+    {
+      "id": "D0-01",
+      "title": "The plan polish is gated at 2 % and the cheaper point it found is discarded",
+      "severity": "medium",
+      "claim": "HeatPumpOptimizer.optimize ships a plan whose own objective is up to 1.1703 % higher than a point _lbfgsb_restart already computed from it, because _LBFGSB_RESTART_KEEP_REL = 2e-2 discards any polish that improves the prior by less than 2 %.",
+      "mechanism": "_lbfgsb_restart (optimizer.py:382) re-solves L-BFGS-B from the best candidate's returned point and then decides: `if np.isfinite(score) and (prior - score) > _LBFGSB_RESTART_KEEP_REL * scale: return polished` else `return best`. With the constant at optimizer.py:379 = 2e-2, a polish that drops the objective by less than 2 % is thrown away and the un-polished point is shipped. On the worst grid cell the space sub-problem's four L-BFGS-B solves return 13.508886 / 13.143515 / 13.182604 / 13.376755; the best of them (13.143515) is polished to 12.989696, a 1.1703 % drop, and the solver returns 13.143515. The cheaper feasible point is held, priced on the same objective, and discarded.",
+      "evidence": {
+        "command": "cd /tmp/heatpump-orch/audit-r5-D0 && PYTHONPATH=tests/hastub python3 tools/audit/round5/D0/restart_race.py --weathers winter_cold,winter_mild",
+        "harness_path": "tools/audit/round5/D0/restart_race.py",
+        "value": 1.1703,
+        "unit": "percent relative objective gap (shipped vs _LBFGSB_RESTART_KEEP_REL = 0.0), max over 56 priced cells",
+        "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+        "machine": "Apple M1, 8 GB, macOS 25.6.0, numpy 2.4.6, scipy 1.17.1",
+        "cpu_or_wall": "ratio",
+        "contention_note": "Shared audit box, load1 10.45-25.25 during this run; two other finders' solves concurrent for part of it. All numbers here are objectives and counts, which do not depend on the load. thread_factor 1.0000.",
+        "tolerance": "+-0.02 percent (objective repeats bit-identically; the spread is across the perturbation, not across runs)",
+        "load1": 25.25,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.optimizer:_lbfgsb_restart",
+      "perturbation": {
+        "change": "custom_components/heatpump_optimizer/optimizer.py:379  `_LBFGSB_RESTART_KEEP_REL = 2e-2` -> `_LBFGSB_RESTART_KEEP_REL = 0.0`, a one-line production edit (or the module-constant patch the harness applies and restores in a finally).",
+        "expected_direction": "down",
+        "observed_value": "worst cell 13.143515 -> 12.989696 (objective_value 13.143515454 -> 12.989696358); max gap over the grid 1.1703 %; 9 of 56 priced cells move"
+      },
+      "metric_definition": "Per priced cell, the relative gap in percent between the objective_value optimize() returns and the value it returns under the perturbed _LBFGSB_RESTART_KEEP_REL on identical inputs.",
+      "null_control": {
+        "command": "cd /tmp/heatpump-orch/audit-r5-D0 && PYTHONPATH=tests/hastub python3 tools/audit/round5/D0/restart_race.py --weathers winter_cold,winter_mild --pass=1  # the 8 flat-price cells of the same grid",
+        "value": 0.0194,
+        "note": "profiles.prices(\"flat\"), same grid, 8 cells: gap max 0.0194 %, min 0.0000 %. Priced max / flat max = 60.3, so the gap is price-driven. On that one flat cell the objective falls while predicted_cost rises 0.1208 SEK, i.e. a lower objective is not automatically a smaller bill; the money claim is quoted beside the bill share, not as the claim."
+      },
+      "leave_one_out": {
+        "cells": 9,
+        "min": 0.0134,
+        "max": 1.1703,
+        "drop_most_favourable": 0.1044
+      },
+      "reproduction_steps": [
+        "cd /tmp/heatpump-orch/audit-r5-D0 (the round-5 export of eaa2a06; it has no .git)",
+        "PYTHONPATH=tests/hastub python3 tools/audit/round5/D0/restart_race.py --weathers winter_cold,winter_mild",
+        "read RESULT gap_keep0_pct_max, gapped_* and gap_keep0_pct_flat_max; each CELL line carries the per-cell objective_value pair and the SEK pair",
+        "for the mechanism on the worst cell: the CHAL line for summer_negative winter_cold tz=0 dhw=0 in pass 2, and the per-solve trace reproduced by the _mech2.py probe kept in the same directory"
+      ],
+      "proposed_fix_scope": "custom_components/heatpump_optimizer/optimizer.py: the polish decision in _lbfgsb_restart and the constant at :379. The D0-01 edit (constant to 0.0) is the cheap one and moves goldens; the safer fix is D0-02's (polish each candidate inside the loop) which keeps the constant's 'only real drops' meaning that the gate's work check depends on (optimizer.py:374-378). Re-record tests/golden/ for the cells above either way.",
+      "files": [
+        "custom_components/heatpump_optimizer/optimizer.py"
+      ],
+      "expected_golden_drift": [
+        "tests/golden/ scenarios whose space sub-problem has a discarded polish below 2 %, at minimum the summer_negative profile at single zone / DHW off",
+        "tests/optimality.py's floor checks if they assert a shipped objective rather than a cost"
+      ],
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D0-02",
+      "title": "The polish runs on one candidate, so every other candidate's polish never runs",
+      "severity": "low",
+      "claim": "_multi_start_minimize applies _lbfgsb_restart once, to the candidate whose raw L-BFGS-B result is lowest, so the polish of the other three candidates never runs and production ships an objective up to 1.4023 % above the best its own code reaches from those same candidates.",
+      "mechanism": "_multi_start_minimize (optimizer.py:420) keeps `best` = the lowest-scoring raw result and calls `return _lbfgsb_restart(best, ...)` at :540. The other candidates' basins are never polished even when polishing them lands strictly lower. On summer_negative / winter_cold / single zone / DHW off, polishing each candidate separately gives 12.959204 / 13.143515 / 13.182603 / 13.021284 while production ships 13.143515. The challenger is production _multi_start_minimize invoked on one captured candidate at a time with the captured args, maxiter, batch_objective and fd_eps (no reimplementation), and hooking _scoped_minimize in both modes shows the raw solves are bit-identical, so the whole difference is which candidate gets polished.",
+      "evidence": {
+        "command": "cd /tmp/heatpump-orch/audit-r5-D0 && PYTHONPATH=tests/hastub python3 tools/audit/round5/D0/polish_race.py",
+        "harness_path": "tools/audit/round5/D0/polish_race.py",
+        "value": 1.4023,
+        "unit": "percent relative objective gap (shipped sub-problem objective vs best per-candidate polish), max over 28 priced cells",
+        "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+        "machine": "Apple M1, 8 GB, macOS 25.6.0, numpy 2.4.6, scipy 1.17.1",
+        "cpu_or_wall": "ratio",
+        "contention_note": "Shared audit box; run completed in 109 s with load1 11.17 at the end. Objectives only, load-independent. thread_factor from the run's own RESULT block.",
+        "tolerance": "+-0.02 percent",
+        "load1": 11.17,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize",
+      "perturbation": {
+        "change": "Hand each captured candidate to production `_multi_start_minimize` on its own (harness flag; no production edit needed), which is equivalent to moving the trailing `return _lbfgsb_restart(best, ...)` at optimizer.py:540 into the candidate loop so each candidate's own result is polished before the comparison.",
+        "expected_direction": "down",
+        "observed_value": "worst cell 13.143515 -> 12.959204 (1.4023 %); mean over 28 priced cells 0.0895 %"
+      },
+      "metric_definition": "Per priced cell, the relative gap in percent between the objective the shipped _multi_start_minimize returns and the best objective production code reaches polishing each captured candidate alone.",
+      "null_control": {
+        "command": "cd /tmp/heatpump-orch/audit-r5-D0 && PYTHONPATH=tests/hastub python3 tools/audit/round5/D0/polish_race.py  # the flat cells of the same 8 x 4 grid",
+        "value": 0.3781,
+        "note": "FAILS the flat-price control, and is reported as failing. Eight flat cells: gap max 0.3781 %, mean 0.1682 % -- 27 % of the priced maximum and larger than the priced mean (0.0895 %). At flat prices the lower objective buys comfort pull and terminal value, not cheaper energy. D0-02 is therefore a solver-quality defect on the production objective, not a price-arbitrage gain; the price-specific claim is D0-01's, whose control passes at 0.0194 % against 1.1703 %."
+      },
+      "leave_one_out": {
+        "cells": 28,
+        "min": 0.0,
+        "max": 1.4023,
+        "drop_most_favourable": 0.0408
+      },
+      "reproduction_steps": [
+        "cd /tmp/heatpump-orch/audit-r5-D0",
+        "PYTHONPATH=tests/hastub python3 tools/audit/round5/D0/polish_race.py",
+        "read the CELL lines: shipped, bestcand and the per_cand list; the summer_negative tz=0 dhw=0 line is the worst",
+        "cross-check the raw solves against the multi-candidate call with the _order.py probe kept in the same directory (it prints the x0 hash and the raw result of every _scoped_minimize call in both modes)"
+      ],
+      "proposed_fix_scope": "custom_components/heatpump_optimizer/optimizer.py: the candidate loop and the trailing restart in _multi_start_minimize (:476-542). Preferred over D0-01's constant edit because the 2 % gate exists for the gate's work check (optimizer.py:374-378) and should keep its meaning.",
+      "files": [
+        "custom_components/heatpump_optimizer/optimizer.py"
+      ],
+      "expected_golden_drift": [
+        "tests/golden/ scenarios where a non-best candidate polishes lower: the summer_negative and winter_narrow price profiles at minimum",
+        "tests/features.py's _MULTI_START_SOLVES slot assertions (it has checks that extra seeds may only win)"
+      ],
+      "stop_rule_class": "bug"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "The iteration budget is not binding: no L-BFGS-B solve reaches the maxiter production passes it (200 for the space path, 300 for the DHW-space path).",
+      "command": "cd /tmp/heatpump-orch/audit-r5-D0 && PYTHONPATH=tests/hastub python3 tools/audit/round5/D0/seams.py",
+      "value": "RESULT solves_at_iteration_cap=0 of RESULT lbfgsb_solves=340 over RESULT multi_start_calls=74 and RESULT cells_total=64; observed nit 0-51"
+    },
+    {
+      "claim": "The _MULTI_START_SOLVES = 4 top-4-by-guess-score cut discards nothing on this grid: the space path passes exactly 4 candidates and the DHW path likewise, so no candidate is silently unrefined.",
+      "command": "cd /tmp/heatpump-orch/audit-r5-D0 && PYTHONPATH=tests/hastub python3 tools/audit/round5/D0/seams.py",
+      "value": "RESULT calls_with_top4_truncation=0 count; RESULT candidates_dropped_by_top4=0 count"
+    },
+    {
+      "claim": "The solver is deterministic and idempotent: re-running the identical captured _multi_start_minimize call with the same kwargs returns the same objective.",
+      "command": "cd /tmp/heatpump-orch/audit-r5-D0 && PYTHONPATH=tests/hastub python3 tools/audit/round5/D0/seams.py",
+      "value": "RESULT resolve_delta_pct_max=0.000000 percent"
+    },
+    {
+      "claim": "The production objective is a pure function of the plan vector: five evaluations at one fixed point agree exactly, so no solver state leaks between evaluations.",
+      "command": "cd /tmp/heatpump-orch/audit-r5-D0 && PYTHONPATH=tests/hastub python3 tools/audit/round5/D0/seams.py",
+      "value": "RESULT objective_purity_max_spread=0.000e+00 objective_units"
+    },
+    {
+      "claim": "The plan D0-01 ships is feasible and no worse on the hard lines: comfort floor and DHW availability hold for both arms.",
+      "command": "cd /tmp/heatpump-orch/audit-r5-D0 && PYTHONPATH=tests/hastub python3 tools/audit/round5/D0/restart_race.py --weathers winter_cold,winter_mild  # FEAS lines",
+      "value": "viol_shipped=0.000000 and viol_keep0=0.000000 degree-steps on every pass-2 cell; dhw_min=0.0000 kW; worst cell room 19.5651->19.2956 degC against a 17.0 degC floor"
+    },
+    {
+      "claim": "A random multi-start challenger is not evidence: adding seeds to the candidate list can displace a production candidate from the top-4 cut, so the challenger can score worse than production. The instrument was discarded for that reason.",
+      "command": "cd /tmp/heatpump-orch/audit-r5-D0 && CELLS=... PYTHONPATH=tests/hastub python3 tools/audit/round5/D0/_race.py  (discarded probe; log _race1.log)",
+      "value": "39 of 64 raced calls showed rel <= 0 (production at maxiter=200 beating the challenger at maxiter=400), including 3 of 4 flat-control cells - the signature of displacement, not of a better search"
+    },
+    {
+      "claim": "The 60-cell restart probe that reported 0.0000 % everywhere was measuring the wrong object: it compared the object _lbfgsb_restart returns with itself, and that object IS the un-polished point whenever the polish is discarded. Recorded so the next auditor does not read it as a null result.",
+      "command": "cd /tmp/heatpump-orch/audit-r5-D0 && PYTHONPATH=tests/hastub python3 tools/audit/round5/D0/_scratch3.py",
+      "value": "rel=0.0000% on all 20 probed cells; the real number is read off the restart's internal _scoped_minimize result, 12.989696 against a prior of 13.143515"
+    },
+    {
+      "claim": "The DHW-space objective argument arrives as a KEYWORD (args=(dhw_plan,)), not positionally. A harness that records only *a re-solves a different problem and reports a full grid of 0.0000 % gaps. Named as a harness gap, not a production defect.",
+      "command": "cd /tmp/heatpump-orch/audit-r5-D0 && PYTHONPATH=tests/hastub python3 tools/audit/round5/D0/_diag.py  (wrong) vs _diag2.py (right)",
+      "value": "_diag.py printed fprod=60.728284 for winter_typical tz=0 dhw=1 where the production objective_value is 69.202994; _diag2.py with kw[\"args\"] reproduces 69.202994"
+    }
+  ]
+}

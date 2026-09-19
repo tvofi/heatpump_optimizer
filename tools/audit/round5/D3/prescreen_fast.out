@@ -1,0 +1,31 @@
+  baseline tests/config_flow_steps.py: rc=0 failed=0 11.4s
+  baseline tests/deployment_shape.py: rc=0 failed=0 1.9s
+  baseline tests/entities.py: rc=0 failed=0 37.0s
+  baseline tests/frontend.py: rc=0 failed=0 0.1s
+  baseline tests/guard_pins.py: rc=0 failed=0 0.7s
+  baseline tests/manual_plan.py: rc=0 failed=0 4.3s
+  baseline tests/optimality.py: rc=0 failed=0 40.6s
+  baseline tests/plan_view.py: rc=0 failed=0 1.0s
+  baseline tests/solar_alignment.py: rc=0 failed=0 0.5s
+  baseline tests/structure.py: rc=0 failed=0 1.2s
+  baseline tests/typing_ruler.py: rc=0 failed=0 0.5s
+  baseline tests/validate.py: rc=0 failed=0 17.7s
+  baseline tests/wood_advisor.py: rc=0 failed=0 0.8s
+  VERDICT killed custom_components/heatpump_optimizer/process_worker.py:28 GUARD_OFF  -- tests/deployment_shape.py
+  VERDICT killed custom_components/heatpump_optimizer/entity.py:33 RETURN_DEL  -- tests/entities.py
+  VERDICT LIVES  custom_components/heatpump_optimizer/defrost.py:314 GUARD_OFF
+  VERDICT LIVES  custom_components/heatpump_optimizer/datetime.py:45 RETURN_DEL
+  VERDICT LIVES  custom_components/heatpump_optimizer/accuracy.py:392 CLAMP_DROP
+  VERDICT killed custom_components/heatpump_optimizer/services.py:690 GUARD_OFF  -- tests/entities.py
+  VERDICT LIVES  custom_components/heatpump_optimizer/mixing_valve.py:109 CLAMP_DROP
+  VERDICT LIVES  custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF
+  VERDICT LIVES  custom_components/heatpump_optimizer/repairs.py:49 GUARD_OFF
+  VERDICT LIVES  custom_components/heatpump_optimizer/pump_signals.py:391 BOOLOP
+  VERDICT LIVES  custom_components/heatpump_optimizer/comfort_learning.py:97 GUARD_OFF
+  VERDICT killed custom_components/heatpump_optimizer/diagnostics.py:78 RETURN_DEL  -- tests/entities.py
+  VERDICT LIVES  custom_components/heatpump_optimizer/thermal_model.py:2208 BOOLOP
+  VERDICT LIVES  custom_components/heatpump_optimizer/dhw_draws.py:124 GUARD_OFF
+  VERDICT LIVES  custom_components/heatpump_optimizer/power_guard.py:63 GUARD_OFF
+  VERDICT killed custom_components/heatpump_optimizer/modbus_prefill.py:229 GUARD_OFF  -- tests/config_flow_steps.py
+  VERDICT LIVES  custom_components/heatpump_optimizer/wear.py:110 GUARD_OFF
+  VERDICT LIVES  custom_components/heatpump_optimizer/freq_control.py:178 GUARD_OFF

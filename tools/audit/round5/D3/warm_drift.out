@@ -1,0 +1,103 @@
+==========================================================================
+DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing eaa2a06 from scratch
+  key       648c8af077d24ac5c08b3e83bb5c7f1b1b7a17503c43d91d80fe8d9c0b142a88
+  entry     /Users/timmalmstrom/.cache/heatpump_optimizer/drift-baseline/648c8af077d24ac5c08b3e83bb5c7f1b1b7a17503c43d91d80fe8d9c0b142a88.json
+    baseline_commit  7471c4fc9adb
+    baseline_tree    6a85947b109c
+    cache_format     391552c099c1
+    driver_sha256    1c85cc437ebe
+    environment      7a38af4b8e92
+    interpreter      b8e6dd8c1c56
+    mode             5cf7504d9781
+    numeric_probe    b63521157680
+    numpy_build      ac47fc3f02e5
+    packages         39f937f5d7a7
+    platform         86b74deee43b
+    sensitive        541346c5f2b4
+==========================================================================
+  captured 56 scenarios from branch
+  captured 56 scenarios from baseline
+  cached   the eaa2a06 baseline under key 648c8af077d24ac5 in /Users/timmalmstrom/.cache/heatpump_optimizer/drift-baseline/648c8af077d24ac5c08b3e83bb5c7f1b1b7a17503c43d91d80fe8d9c0b142a88.json
+
+########## committed fixtures: staleness (#347) ##########
+  56 fixture(s) compared against this tree's capture; 1 of them float-free and compared exactly.
+
+  values (reported, never failed): 28 fixture(s), 14692 leaf/leaves differ from the committed files in value alone.
+  A float-bearing fixture can only be re-recorded honestly in the environment
+  that records them all; a dev box would poison it. Nothing here is failed on.
+  no committed fixture is stale
+  ok    away_setback is byte-identical to eaa2a06 here
+  ok    building_preset is byte-identical to eaa2a06 here
+  ok    capacity_curve is byte-identical to eaa2a06 here
+  ok    capacity_tariff is byte-identical to eaa2a06 here
+  ok    capacity_tariff_15min is byte-identical to eaa2a06 here
+  ok    confidence_margins is byte-identical to eaa2a06 here
+  ok    config_flow is byte-identical to eaa2a06 here
+  ok    cool_rainy_summer is byte-identical to eaa2a06 here
+  ok    coord_all_features is byte-identical to eaa2a06 here
+  ok    coord_dhw is byte-identical to eaa2a06 here
+  ok    coord_grid_fee is byte-identical to eaa2a06 here
+  ok    coord_minimal is byte-identical to eaa2a06 here
+  ok    coord_two_zone is byte-identical to eaa2a06 here
+  ok    cop_scale_learned is byte-identical to eaa2a06 here
+  ok    cycling_cost is byte-identical to eaa2a06 here
+  ok    dhw_cold_tank is byte-identical to eaa2a06 here
+  ok    dhw_large_tank is byte-identical to eaa2a06 here
+  ok    dhw_learned_windows is byte-identical to eaa2a06 here
+  ok    dhw_schedule_off is byte-identical to eaa2a06 here
+  ok    direct_flow_carnot is byte-identical to eaa2a06 here
+  ok    everything_on is byte-identical to eaa2a06 here
+  ok    external_heat_active is byte-identical to eaa2a06 here
+  ok    extreme_prices is byte-identical to eaa2a06 here
+  ok    flat_prices is byte-identical to eaa2a06 here
+  ok    fuse_guard is byte-identical to eaa2a06 here
+  ok    horizon_48h is byte-identical to eaa2a06 here
+  ok    horizon_6h is byte-identical to eaa2a06 here
+  ok    legionella_due is byte-identical to eaa2a06 here
+  ok    legionella_due_low_setpoint is byte-identical to eaa2a06 here
+  ok    legionella_off is byte-identical to eaa2a06 here
+  ok    mild_windy_rain is byte-identical to eaa2a06 here
+  ok    narrow_band is byte-identical to eaa2a06 here
+  ok    negative_prices is byte-identical to eaa2a06 here
+  ok    peak_masked is byte-identical to eaa2a06 here
+  ok    precip_snow is byte-identical to eaa2a06 here
+  ok    price_risk is byte-identical to eaa2a06 here
+  ok    shoulder is byte-identical to eaa2a06 here
+  ok    shoulder_two_zone is byte-identical to eaa2a06 here
+  ok    start_above_band is byte-identical to eaa2a06 here
+  ok    start_below_band is byte-identical to eaa2a06 here
+  ok    summer_dhw_only is byte-identical to eaa2a06 here
+  ok    tariff_plus_two_zone is byte-identical to eaa2a06 here
+  ok    valve_storage is byte-identical to eaa2a06 here
+  ok    valve_storage_flat_prices is byte-identical to eaa2a06 here
+  ok    valve_storage_low_target is byte-identical to eaa2a06 here
+  ok    valve_storage_small_tank is byte-identical to eaa2a06 here
+  may-drift valve_storage_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift valve_upper_direct_slab: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  ok    wide_band is byte-identical to eaa2a06 here
+  ok    winter_single_dhw is byte-identical to eaa2a06 here
+  ok    winter_single_no_dhw is byte-identical to eaa2a06 here
+  ok    winter_two_zone_dhw is byte-identical to eaa2a06 here
+  ok    winter_two_zone_no_dhw is byte-identical to eaa2a06 here
+  may-drift wood_coil: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  STALE claim for config_flow: nothing drifted, remove it
+
+1 STALE CLAIM(S) vs eaa2a06
+Nothing drifted for these -- they are entries in
+tests/golden/claimed_drift.txt that matched no scenario:
+  config_flow: ADD-ONLY: this branch's own diff is the offer switch -- prefill_offer in the plain render, the seeded render and the seed map -- and the initial flow's device_prefill page, 21 insertions and 0 deletions, no pre-existing leaf moved
+A claim nothing uses would silently excuse the next
+accidental drift, so it fails. Delete these lines; the
+behaviour they describe is already gone or never came.
+
+NOT THIS BRANCH'S TO REMOVE: the three-dot against
+eaa2a06 touches neither card nor solver fixtures, so this
+branch neither caused these claims to go stale nor can
+cure them, and deleting them here would carry someone
+else's line onto the baseline at squash-merge. Reported,
+not judged; remove them in a change that owns the file.
+
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against eaa2a06
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes

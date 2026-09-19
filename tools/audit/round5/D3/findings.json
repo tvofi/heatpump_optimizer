@@ -1,0 +1,411 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+ "exposure": "none: read only tools/audit/briefs/D3.md, COMMON.md, README.md, finding.schema.json at origin/main, plus production and test sources at the baseline. No docs/audit-*.md, no backlog.md, no round3/round4, no gh, no CHANGELOG or pull-request bodies. Findings D3-01..D3-08 are my own measurement; the recorded CI numbers I quote (run 35395283955, run 34658441338) come from tests/mutation_budgets.json in the baseline tree, not from GitHub.",
+ "findings": [
+  {
+   "id": "D3-01",
+   "title": "The mutation instrument's driver set is not the gate's: it never runs the differential golden step",
+   "severity": "medium",
+   "claim": "tests/mutation_table.py drives its mutants with 8 of the 24 scripts tests/closures.json measures, and tests/env_drift.py --all -- the differential golden step CI runs under GOLDEN_MODE=drift -- is not one of them, so the survivor fraction recorded in tests/mutation_budgets.json (12 of 40, CI run 35395283955) is not the fraction this repository's PR gate would produce.",
+   "mechanism": "mutation_table.py's --scripts default is open_meteo, solar_alignment, plan_view, edge, entities, validate, optimality, features. A mutant is driven only by the intersection of that list with its file's measured closure, and the instrument records the survivors. tests/run.sh's drift mode instead selects the diff's closure from tests/closures.json and runs tests/env_drift.py --all at the baseline SHA, which is a check the instrument has no way to run. Every line the instrument records as surviving was therefore measured with the differential switched off.",
+   "evidence": {
+    "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/prescreen.py --jobs 3",
+    "harness_path": "tools/audit/round5/D3/prescreen.py",
+    "value": "8 of 24",
+    "unit": "gate scripts in the instrument's driver set",
+    "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+    "machine": "Apple M1, 8 GB, macOS 25.6.0, CPython 3.11, numpy 2.4.6/OpenBLAS",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, load1 4.4-8.3 during the run, a D0 audit harness (tools/audit/round5/D0/restart_race.py) running concurrently; every number in this finding is a count or a source-reading, so none is load-sensitive",
+    "tolerance": "exact",
+    "load1": 4.4,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tools/audit/round5/D3/prescreen.py:main (drives tests/env_drift.py --all eaa2a06 per mutant, the step tests/mutation_table.py's --scripts default omits)",
+   "perturbation": {
+    "change": "add tests/env_drift.py --all eaa2a06af16a1b5b006f58a0f36cc92131f80225 to the driver set every mutant is measured against",
+    "expected_direction": "up",
+    "observed_value": "0 of 7 mutants that reached it"
+   },
+   "metric_definition": "count of gate scripts in tests/closures.json that the instrument's default --scripts does not include, and mutants the differential step kills.",
+   "null_control": {
+    "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/prescreen.py --jobs 3  (baseline phase)",
+    "value": "tests/env_drift.py --all eaa2a06 rc=0, 164.1 s, 'NO UNCLAIMED DRIFT: 56 scenario(s)', 'NO STALE FIXTURE: 56'",
+    "note": "the unmutated tree is green under the same step, so the step is a live check and not permanently red"
+   },
+   "reproduction_steps": [
+    "git grep -n -- '--scripts' tools/../tests/mutation_table.py  (shows the 8-script default)",
+    "python3 -c \"import json;print(len(json.load(open('tests/closures.json'))['closures']))\"  (24)",
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/prescreen.py --jobs 3",
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/close_gap.py --jobs 3"
+   ],
+   "proposed_fix_scope": "tests/mutation_table.py's --scripts default (add tests/env_drift.py and the other drifted-out scripts, or default it to the closure selection tests/closure.py already computes), and the note in tests/mutation_budgets.json that calls last_measured.full the first estimate worth gating on.",
+   "files": [
+    "tests/mutation_table.py",
+    "tests/mutation_budgets.json",
+    "tests/closures.json"
+   ],
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D3-02",
+   "title": "Out-of-range defrost duty is accepted and folded into the derate bucket, untested",
+   "severity": "medium",
+   "claim": "Deleting the range guard at custom_components/heatpump_optimizer/defrost.py:314 lets a duty of 2.0 advance DefrostDerate.observe_duty's bucket and sample count, and no script in the gate -- including the differential -- fails on it.",
+   "mechanism": "observe_duty folds a MEASURED defrost duty into an exponential average. The guard `if not 0.0 <= duty <= 1.0: return` is the only thing that keeps a caller's out-of-range fraction out of self.duty and self.duty_counts; with it removed the bucket takes the bad sample, and duty_counts is what crosses DERATE_CONFIDENCE_SAMPLES to apply the derate.",
+   "evidence": {
+    "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/equiv_probe.py",
+    "harness_path": "tools/audit/round5/D3/equiv_probe.py",
+    "value": "counts_after 0 -> 1",
+    "unit": "bucket sample-count delta for duty=2.0",
+    "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+    "machine": "Apple M1, 8 GB, macOS 25.6.0, CPython 3.11, numpy 2.4.6/OpenBLAS",
+    "cpu_or_wall": "count",
+    "contention_note": "in-process only, no solver and no wall time; the run shared the box with the D0 harness at load1 5.0",
+    "tolerance": "exact",
+    "load1": 5.02,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.observe_duty (line 314)",
+   "perturbation": {
+    "change": "custom_components/heatpump_optimizer/defrost.py:314 `if not 0.0 <= duty <= 1.0:` -> `if False:`",
+    "expected_direction": "up",
+    "observed_value": "duty_counts 0 -> 1"
+   },
+   "metric_definition": "sum of DefrostDerate.duty_counts before and after one observe_duty(duty=2.0) call.",
+   "null_control": {
+    "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/equiv_probe.py",
+    "value": "unmutated module: observe_duty(duty=2.0) leaves duty_counts at 0",
+    "note": "the pristine module run inside the same probe is the control; the two differ, so the line is not an equivalent mutant"
+   },
+   "reproduction_steps": [
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/prescreen.py --jobs 3",
+    "grep VERDICT tools/audit/round5/D3/prescreen_full.out  (defrost.py:314 LIVES)",
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/equiv_probe.py"
+   ],
+   "proposed_fix_scope": "tests/features.py's defrost section (the 'duty is measured, the derate is physics' block, around its duty-of-1/6 and quiet-interval checks): add a check that an out-of-range duty is refused, beside the existing in-range ones.",
+   "files": [
+    "custom_components/heatpump_optimizer/defrost.py",
+    "tests/features.py"
+   ],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D3-03",
+   "title": "flow_setpoint's emitter-UA floor is untested: deleting it makes a zero-UA call raise",
+   "severity": "medium",
+   "claim": "Replacing the `max(emitter_ua, 1e-6)` floor at custom_components/heatpump_optimizer/mixing_valve.py:109 with a bare `emitter_ua` turns flow_setpoint into a ZeroDivisionError for emitter_ua=0.0, and no script in the gate fails on it.",
+   "mechanism": "flow_setpoint returns target_temp + q_hold / max(emitter_ua, 1e-6). For emitter_ua = 0.0 the floor is the only thing standing between the call and a float division by zero; the probe measures the pristine call returning 5200021.0 (target 21.0 plus 5.2/1e-6) and the mutant raising.",
+   "evidence": {
+    "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/equiv_probe.py",
+    "harness_path": "tools/audit/round5/D3/equiv_probe.py",
+    "value": "5200021.0 -> ZeroDivisionError",
+    "unit": "return value at emitter_ua=0.0",
+    "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+    "machine": "Apple M1, 8 GB, macOS 25.6.0, CPython 3.11, numpy 2.4.6/OpenBLAS",
+    "cpu_or_wall": "count",
+    "contention_note": "in-process only, no solver and no wall time; shared box, D0 harness running, load1 5.0",
+    "tolerance": "exact",
+    "load1": 5.02,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/mixing_valve.py:flow_setpoint (line 109)",
+   "perturbation": {
+    "change": "custom_components/heatpump_optimizer/mixing_valve.py:109 `return target_temp + q_hold / max(emitter_ua, 1e-6)` -> `return target_temp + q_hold / (emitter_ua)`",
+    "expected_direction": "sign_flip",
+    "observed_value": "ZeroDivisionError at emitter_ua=0.0"
+   },
+   "metric_definition": "return value (or raised exception) of flow_setpoint(target_temp=21.0, outdoor_temp=-5.0, heat_loss_coefficient=0.2, emitter_ua=0.0).",
+   "null_control": {
+    "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/equiv_probe.py",
+    "value": "unmutated module returns 5200021.0",
+    "note": "pristine run inside the same probe; differs from the mutant, so not an equivalent mutant"
+   },
+   "reproduction_steps": [
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/prescreen.py --jobs 3",
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/close_gap.py --jobs 3  (still LIVES)",
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/equiv_probe.py"
+   ],
+   "proposed_fix_scope": "tests/validate.py or tests/optimality.py (both reach mixing_valve.py): add a degenerate-install check that flow_setpoint with emitter_ua=0.0 stays finite.",
+   "files": [
+    "custom_components/heatpump_optimizer/mixing_valve.py",
+    "tests/validate.py",
+    "tests/optimality.py"
+   ],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D3-04",
+   "title": "cheaper_hour_count's non-positive-COP guard is untested: deleting it divides by zero",
+   "severity": "medium",
+   "claim": "Deleting the `if cop_f <= 0.0: continue` guard at custom_components/heatpump_optimizer/wood_fuel.py:147 makes cheaper_hour_count raise ZeroDivisionError on a zero COP instead of skipping the hour, and tests/wood_advisor.py -- the script whose whole purpose is this module -- does not fail on it.",
+   "mechanism": "cheaper_hour_count compares wood_sek against price / cop_f per hour. A record with a missing or zero COP folds to 0.0 through _force_float; the guard is what keeps that division out. With it gone the function raises on price/0.0, and on a negative COP it silently flips the comparison instead.",
+   "evidence": {
+    "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/equiv_probe.py",
+    "harness_path": "tools/audit/round5/D3/equiv_probe.py",
+    "value": "0 -> ZeroDivisionError",
+    "unit": "return value with cops=[0.0]",
+    "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+    "machine": "Apple M1, 8 GB, macOS 25.6.0, CPython 3.11, numpy 2.4.6/OpenBLAS",
+    "cpu_or_wall": "count",
+    "contention_note": "in-process only, no solver and no wall time; shared box, D0 harness running, load1 5.0",
+    "tolerance": "exact",
+    "load1": 5.02,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/wood_fuel.py:cheaper_hour_count (line 147)",
+   "perturbation": {
+    "change": "custom_components/heatpump_optimizer/wood_fuel.py:147 `if cop_f <= 0.0:` -> `if False:`",
+    "expected_direction": "sign_flip",
+    "observed_value": "ZeroDivisionError on cops=[0.0]"
+   },
+   "metric_definition": "return value (or raised exception) of cheaper_hour_count(wood_sek=1.0, prices=[1.0], cops=[0.0], space_kw=[5.0], dhw_kw=[0.0], threshold=1.0).",
+   "null_control": {
+    "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/equiv_probe.py",
+    "value": "unmutated module returns 0",
+    "note": "pristine run inside the same probe; differs from the mutant, so not an equivalent mutant"
+   },
+   "reproduction_steps": [
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/prescreen.py --jobs 3  (wood_fuel.py:147 LIVES)",
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/close_gap.py --jobs 3  (still LIVES)",
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/equiv_probe.py"
+   ],
+   "proposed_fix_scope": "tests/wood_advisor.py's five R.check() calls: add one that feeds a zero or missing COP and asserts the hour is skipped rather than divided by.",
+   "files": [
+    "custom_components/heatpump_optimizer/wood_fuel.py",
+    "tests/wood_advisor.py"
+   ],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D3-05",
+   "title": "StartCounter's already-running early return is untested: deleting it corrupts the start streak",
+   "severity": "low",
+   "claim": "Replacing `return False` with `pass` at custom_components/heatpump_optimizer/wear.py:72 stops the start counter resetting its streak when a sample agrees with the state it already holds, leaving the streak at 1 where the real code leaves it at 0, and no script fails on it.",
+   "mechanism": "StartCounter.observe confirms a start only after START_HYSTERESIS_SAMPLES consecutive disagreeing samples. The `if above == self.running: self._streak = 0; return False` arm is what makes the run of samples CONSECUTIVE: with the return deleted the streak carries across samples that agreed, so the next disagreement can be confirmed on fewer than the promised samples.",
+   "evidence": {
+    "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/equiv_probe.py",
+    "harness_path": "tools/audit/round5/D3/equiv_probe.py",
+    "value": "streak 0 -> 1",
+    "unit": "StartCounter._streak after repeated above-threshold samples while already running",
+    "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+    "machine": "Apple M1, 8 GB, macOS 25.6.0, CPython 3.11, numpy 2.4.6/OpenBLAS",
+    "cpu_or_wall": "count",
+    "contention_note": "in-process only, no solver and no wall time; shared box, D0 harness running, load1 5.0",
+    "tolerance": "exact",
+    "load1": 5.02,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/wear.py:StartCounter.observe (line 72)",
+   "perturbation": {
+    "change": "custom_components/heatpump_optimizer/wear.py:72 `            return False` -> `            pass`",
+    "expected_direction": "up",
+    "observed_value": "_streak 0 -> 1"
+   },
+   "metric_definition": "StartCounter._streak and .lifetime after START_HYSTERESIS_SAMPLES+2 above-threshold samples taken while running is already True.",
+   "null_control": {
+    "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/equiv_probe.py",
+    "value": "unmutated module leaves _streak at 0",
+    "note": "pristine run inside the same probe; differs from the mutant, so not an equivalent mutant"
+   },
+   "reproduction_steps": [
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/prescreen.py --jobs 3  (wear.py:72 LIVES)",
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/equiv_probe.py"
+   ],
+   "proposed_fix_scope": "tests/features.py's StartCounter fuzz section (it already imports StartCounter as _FuzzStarts): add a case that holds the signal steady while running and asserts the streak stays zero.",
+   "files": [
+    "custom_components/heatpump_optimizer/wear.py",
+    "tests/features.py"
+   ],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D3-06",
+   "title": "SystemIdentification's plausible-bounds refusal is untested: an out-of-bounds fit is reported as completed",
+   "severity": "medium",
+   "claim": "Deleting the plausible-bounds guard at custom_components/heatpump_optimizer/sysid.py:1276 stops identify() refusing a fit whose tau or ua lands outside (0.1, 200.0) x (0.01, 5.0), so a physically implausible fit is returned with completed=True and no reason, and no script fails on it.",
+   "mechanism": "identify() ends with `if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0): return SysIdResult(completed=False, reason='fitted parameters outside plausible bounds')`. That return is the only place the refusal exists; with it gone the result carries the implausible parameters as a successful identification, and downstream confidence-weighted consumers read it as evidence.",
+   "evidence": {
+    "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/prescreen.py --jobs 3",
+    "harness_path": "tools/audit/round5/D3/prescreen.py",
+    "value": "survived 14 fast scripts + env_drift --all, then tests/backtest.py, tests/edge.py and tests/harness_headers.py",
+    "unit": "n/a",
+    "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+    "machine": "Apple M1, 8 GB, macOS 25.6.0, CPython 3.11, numpy 2.4.6/OpenBLAS",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, load1 4.4-8.3, D0 harness running; this finding is a count of scripts that did not fail, not a timing",
+    "tolerance": "exact",
+    "load1": 8.26,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify (line 1276)",
+   "perturbation": {
+    "change": "custom_components/heatpump_optimizer/sysid.py:1276 `if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0):` -> `if False:`",
+    "expected_direction": "up",
+    "observed_value": "survived every gate script that reaches it"
+   },
+   "metric_definition": "count of gate scripts (14 fast + env_drift --all + backtest + edge + harness_headers) whose exit status or FAILED count changes when the guard is deleted: 0.",
+   "reproduction_steps": [
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/prescreen.py --jobs 3",
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/close_gap.py --jobs 3"
+   ],
+   "proposed_fix_scope": "tests/features.py's sysid section (it already asserts `not no_data.identify().completed`): add a record whose fit lands outside the bounds and assert completed is False with the plausible-bounds reason.",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py",
+    "tests/features.py"
+   ],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D3-07",
+   "title": "Seven survivors include two mutants no check could ever fail on, which the reported survivor count does not separate",
+   "severity": "low",
+   "claim": "Of the 7 mutants that survived every gate script, 2 are equivalent mutants -- custom_components/heatpump_optimizer/pump_mode.py:242 (GUARD_OFF) and custom_components/heatpump_optimizer/__init__.py:337 (BOOLOP) -- so the survivor count the mutation instrument records mixes real gaps with lines that cannot be observed.",
+   "mechanism": "pump_mode.resolve's `if raw is None: return None` is redundant: _fold(None) is 'none', 'none' is in neither _ALIASES nor _STATUS_AMBIGUOUS, and no alias key folds to 'none', so _ALIASES.get('none') returns None either way (measured). __init__.py:337's `task is not None and hasattr(task, 'cancel')` differs from the OR form only for a non-None object without a cancel attribute, and hass.async_create_task returns an asyncio Task, which always has one. The instrument's GUARD_OFF and BOOLOP operators produce these, and nothing in mutation_table.py's recording distinguishes them from a genuine survivor.",
+   "evidence": {
+    "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 - <<'EOF'\nimport importlib, sys\nmod = importlib.import_module('custom_components.heatpump_optimizer.pump_mode')\nprint(mod._fold(None), 'none' in mod._ALIASES, 'none' in mod._STATUS_AMBIGUOUS, [k for k in mod._ALIASES if mod._fold(k)=='none'])\nprint(mod.resolve(None), mod.resolve('None'), mod.resolve('none'))\nEOF",
+    "harness_path": "tools/audit/round5/D3/prescreen.py",
+    "value": "2 of 7",
+    "unit": "equivalent mutants among the survivors",
+    "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+    "machine": "Apple M1, 8 GB, macOS 25.6.0, CPython 3.11, numpy 2.4.6/OpenBLAS",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box, load1 4.4-8.3, D0 harness running; counts only",
+    "tolerance": "exact",
+    "load1": 4.4,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/pump_mode.py:resolve (line 242) and custom_components/heatpump_optimizer/__init__.py:async_setup_entry (line 337)",
+   "perturbation": {
+    "change": "pump_mode.py:242 `if raw is None:` -> `if False:`; __init__.py:337 `if task is not None and hasattr(task, \"cancel\"):` -> `if task is not None or hasattr(task, \"cancel\"):`",
+    "expected_direction": "to_zero",
+    "observed_value": "resolve(None) returns None with and without the guard"
+   },
+   "metric_definition": "count of survivors whose mutated line changes observable behaviour at its guarded input (pristine vs mutant run in one process): 2 of 7 do not.",
+   "null_control": {
+    "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/equiv_probe.py",
+    "value": "4 of 4 probed survivors DIFFER between pristine and mutant",
+    "note": "the probe's own method is calibrated on the four real survivors, which it separates from the equivalent ones"
+   },
+   "reproduction_steps": [
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/prescreen.py --jobs 3",
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/equiv_probe.py",
+    "see the heredoc in the evidence command for pump_mode.py:242"
+   ],
+   "proposed_fix_scope": "tests/mutation_table.py -- the recorded survivor table and tests/mutation_budgets.json's reason text: mark survivors that were triaged as equivalent so the fraction is a count of real gaps.",
+   "files": [
+    "custom_components/heatpump_optimizer/pump_mode.py",
+    "custom_components/heatpump_optimizer/__init__.py",
+    "tests/mutation_table.py"
+   ],
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D3-08",
+   "title": "One gate script's measured closure is the whole package, and 53 script pairs cover >=0.80 the same production modules",
+   "severity": "low",
+   "claim": "tests/deployment_shape.py's measured closure contains all 74 production modules, and 53 of the 276 script pairs share at least 0.80 of their production-module closure, so the gate's diff-closure selection runs scripts that can only have been selected for coverage another selected script already has.",
+   "mechanism": "tests/closures.json records, per script, the production modules its run actually imported. tests/run.sh selects scripts by that closure, so a script whose closure is the whole package is selected by every diff that touches any production module. Where two scripts share nearly all of one another's closure, a diff that selects one selects the other for the same reason, and the two then spend their recorded seconds asserting over the same modules. This is a selection-cost claim, not a claim that the assertions themselves are duplicates: which mutants each script kills was NOT measured here (the pre-screen stops at the first killer), so the overlap of kill sets is left open.",
+   "evidence": {
+    "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/resource_r5.py",
+    "harness_path": "tools/audit/round5/D3/resource_r5.py",
+    "value": "74 of 74 production modules, 53 of 276 pairs",
+    "unit": "production modules in one script's closure / pairs at Jaccard >= 0.80",
+    "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+    "machine": "Apple M1, 8 GB, macOS 25.6.0, CPython 3.11, numpy 2.4.6/OpenBLAS",
+    "cpu_or_wall": "count",
+    "contention_note": "reads tests/closures.json and the scripts' own text only; nothing is timed and nothing solves, so the numbers are load-independent",
+    "tolerance": "exact",
+    "load1": 7.72,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tests/closures.json (recorded per-script production-module closures, consumed by tests/closure.py select --diff)",
+   "perturbation": {
+    "change": "compare each script's recorded production-module closure against every other script's, by Jaccard",
+    "expected_direction": "up",
+    "observed_value": "53 pairs at or above 0.80"
+   },
+   "metric_definition": "per script: production modules in its recorded closure, and the Jaccard overlap of that set with every other script's; plus the recorded seconds from the same file.",
+   "reproduction_steps": [
+    "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/resource_r5.py"
+   ],
+   "proposed_fix_scope": "tests/closures.json's recorded closures and tests/run.sh's selection: the five exact-1.00 pairs (structure.py/typing_ruler.py 63 shared, plan_view.py/solar_alignment.py 45, optimality.py/validate.py/edge.py/backtest.py 11, golden.py/env_drift.py 72, card.mjs/card_drift.mjs 46) and deployment_shape.py's 100% closure are where a narrower closure or a merged script pays.",
+   "files": [
+    "tests/closures.json",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py",
+    "tests/plan_view.py",
+    "tests/solar_alignment.py",
+    "tests/optimality.py",
+    "tests/validate.py",
+    "tests/edge.py",
+    "tests/backtest.py",
+    "tests/golden.py",
+    "tests/env_drift.py"
+   ],
+   "stop_rule_class": "hygiene"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "The suite is not broadly blind: 33 of the 40 seeded single-line production mutants are killed by the gate.",
+   "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/prescreen.py --jobs 3",
+   "value": "mutants_evaluated=40, mutants_killed=33, mutants_survived=7, survivor_fraction=0.175; kills by first driver: tests/features.py 19, tests/entities.py 5, tests/config_flow_steps.py 5, tests/guard_pins.py 1, tests/frontend.py 1, tests/manual_plan.py 1, tests/deployment_shape.py 1"
+  },
+  {
+   "claim": "The differential golden gate adds nothing on this sample: every kill came from an assertion script, and no mutant that reached tests/env_drift.py --all was killed by it.",
+   "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/prescreen.py --jobs 3",
+   "value": "killed_by tests/env_drift.py --all = 0 of the 7 mutants that survived the 14 fast scripts; 33 of 33 kills are attributed to other scripts"
+  },
+  {
+   "claim": "The differential golden gate is nonetheless a live check that can kill a mutant, so the zero above is the sample and not a dead instrument.",
+   "command": "cd /tmp/d3drift && PYTHONPATH=tests/hastub python3 -u tests/env_drift.py --all eaa2a06af16a1b5b006f58a0f36cc92131f80225  (with custom_components/heatpump_optimizer/tariff.py:652 GUARD_OFF applied and tests/golden/claimed_drift.txt emptied)",
+   "value": "rc=1, 'DRIFT peak_masked: 405 leaves moved vs eaa2a06...', '1 UNCLAIMED DRIFT(S)'"
+  },
+  {
+   "claim": "The control tree is green under every driver, so the kills are the mutants' and not the harness's.",
+   "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/prescreen.py --jobs 3  (baseline phase)",
+   "value": "all 14 fast closure scripts rc=0 failed=0; tests/env_drift.py --all eaa2a06 rc=0 in 164.1 s, 'NO UNCLAIMED DRIFT: 56 scenario(s)', 'NO STALE FIXTURE: 56'; close_gap's baseline: tests/backtest.py rc=0, tests/edge.py rc=0, tests/harness_headers.py rc=0"
+  },
+  {
+   "claim": "The seven survivors are not a driver-set artefact: they also survive the three Python gate scripts the pre-screen skipped.",
+   "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/close_gap.py --jobs 3",
+   "value": "survivors_checked=7, killed_by_omitted_scripts=0, survived_every_gate_script=7"
+  },
+  {
+   "claim": "Four of the survivors are provably not equivalent mutants, so their escape is a real unchecked behaviour and not a mutation that changes nothing.",
+   "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/equiv_probe.py",
+   "value": "non_equivalent=4 of 4 probed: mixing_valve.py:109 5200021.0 -> ZeroDivisionError; wood_fuel.py:147 0 -> ZeroDivisionError; defrost.py:314 duty_counts 0 -> 1; wear.py:72 _streak 0 -> 1"
+  },
+  {
+   "claim": "pump_mode.py:242 is an equivalent mutant, so its survival is not a suite gap.",
+   "command": "cd /tmp/hpo-d3-wt && python3 -c \"import importlib;m=importlib.import_module('custom_components.heatpump_optimizer.pump_mode');print(repr(m._fold(None)),'none' in m._ALIASES,'none' in m._STATUS_AMBIGUOUS,[k for k in m._ALIASES if m._fold(k)=='none'],m.resolve(None))\"",
+   "value": "_fold(None)='none'; 'none' in _ALIASES False; 'none' in _STATUS_AMBIGUOUS False; alias keys folding to 'none' []; resolve(None) None -- the guard's removal cannot change any return"
+  },
+  {
+   "claim": "tests/golden.py in its default mode is a shim for the differential run and is red on the unmutated baseline for claim bookkeeping, so its coverage is subsumed by the tests/env_drift.py --all runs and it was not used as an extra driver.",
+   "command": "cd /tmp/d3drift && PYTHONPATH=tests/hastub python3 -u tests/golden.py   (pristine tree, git status clean)",
+   "value": "rc=1; output is 'GOLDEN_MODE=drift ... /python3 tests/env_drift.py --all origin/main' followed by 'RECORD PR CLAIMS: three-dot touches neither card nor solver fixtures, so both claim lists must be empty. Empty the lists.'"
+  },
+  {
+   "claim": "The gate's claim-file rule makes a raw differential run on a bystander tree impossible to steal: emptying tests/golden/claimed_drift.txt on a tree whose three-dot touches no integration Python fails the run on bookkeeping (rc=1 in 0.8 s), and the same emptying is required and correct on a mutant tree, which is why the harness only empties it per mutant.",
+   "command": "cd /tmp/d3drift && PYTHONPATH=tests/hastub python3 -u tests/env_drift.py --all eaa2a06af16a1b5b006f58a0f36cc92131f80225  (unmutated tree, claim list emptied)",
+   "value": "rc=1 in 0.8 s: 'RECORD PR CLAIMS: three-dot touches neither card nor solver fixtures, so both claim files must be left exactly as this branch found them.'; with the list left as found the same tree is rc=0"
+  },
+  {
+   "claim": "A pre-screen that drove only the default five-fixture golden mode would have produced a different (false-gap) answer than --all only if a mutant moved a fixture outside those five; on this sample no mutant that reached the differential moved any fixture at all.",
+   "command": "cd /tmp/hpo-d3-wt && PYTHONPATH=tests/hastub python3 -u tools/audit/round5/D3/prescreen.py --jobs 3",
+   "value": "0 of 7 differential runs reported any 'moved' line; all exited 0 with 'NO UNCLAIMED DRIFT: 56 scenario(s) checked'"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round5/D3/mutant_pool_r5.py",
+  "tools/audit/round5/D3/prescreen.py",
+  "tools/audit/round5/D3/close_gap.py",
+  "tools/audit/round5/D3/equiv_probe.py",
+  "tools/audit/round5/D3/resource_r5.py",
+  "tools/audit/round5/D3/drift_survivors.py"
+ ]
+}

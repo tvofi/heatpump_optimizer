@@ -1,0 +1,146 @@
+{
+  "dimension": "D9",
+  "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D9-01",
+      "title": "Stress gate's per-scenario 2x detection is conditional on the evaluation count",
+      "severity": "medium",
+      "claim": "The stress gate's per-scenario detection target is DETECTION_TARGET=2.0, but its 2x arm (the solver-work count, SCENARIO_WORK_FACTOR=1.5) only moves when the regression adds scipy evaluations, and its CPU arm sits at the documented concession SCENARIO_BUDGET_FACTOR=3.0; a measured cost-only regression (wrap optimizer._batch_fd_gradient to run twice, bit-identical objective) raises solve CPU 1.68-1.81x over two takes while solver_evals reads exactly 1.0000 and no check fires.",
+      "mechanism": "SolverWork sums scipy nfev+njev over optimizer._scoped_minimize. All simulation cost of one L-BFGS iteration is produced inside a single fun/jac call (batched jac _batch_fd_gradient: 96 rows; objective _space_traj: 96 scalar steps), so a slower or repeated kernel adds zero evaluations and leaves the whole iterate path bit-identical. The count is the gate's only machine-portable 2x detector (tests/stress.py's own record: the per-scenario CPU factor 'STAYS AT 3.0' because the solver's basin is bimodal across platforms, and three CPU-denominated candidates were rejected); a cost-only regression is therefore invisible to it, and 1.68-1.81x is under the 3.0x CPU concession.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D9/work_meter_blind.py",
+        "harness_path": "tools/audit/round5/D9/work_meter_blind.py",
+        "value": 1.8071,
+        "unit": "ratio (cost-only arm solve_cpu_ms / baseline solve_cpu_ms); second take 1.6832 at load1 51.61",
+        "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+        "machine": "Apple M1 8 GB, macOS 25.6.0, numpy on OpenBLAS, threads pinned to 1",
+        "cpu_or_wall": "cpu",
+        "contention_note": "round-5 fan-out, shared audit box. Two takes: cpu_ratio 1.8071 at load1 111.24 and 1.6832 at load1 51.61 (thread_factor 1.000-1.001 both). The conclusion is load-invariant because 3.0 is the ceiling; the exact ratio is provisional and re-taken quiet.",
+        "tolerance": "counts exact; cpu ratio +/-15 %",
+        "load1": 111.24,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "stress.py:SolverWork (reads optimizer:_scoped_minimize nfev+njev); optimizer:_batch_fd_gradient (injection seam)",
+      "perturbation": {
+        "change": "wrap optimizer._batch_fd_gradient so it computes the gradient twice and returns the second result (cost-only regression; returned gradient, plans and objective bit-identical)",
+        "expected_direction": "up",
+        "observed_value": "solver_evals ratio 1.0000 (unmoved, exact); cpu ratio 1.8071 (take 1, load1 111.24) and 1.6832 (take 2, load1 51.61), both under the 3.0 CPU concession"
+      },
+      "metric_definition": "sum of scipy nfev+njev over optimizer._scoped_minimize per optimizer.optimize() call",
+      "null_control": {
+        "command": "arm=extra_eval of tools/audit/round5/D9/work_meter_blind.py (wrap optimizer._multi_start_minimize to run twice, adding scipy evaluations)",
+        "value": 2.0,
+        "note": "the meter moves exactly 2.0000 when evaluations are added (cpu 1.91-1.94x over two takes), so it is not broken, only blind to cost-only regressions. Same load, same session."
+      },
+      "files": [
+        "tests/stress.py",
+        "custom_components/heatpump_optimizer/optimizer.py"
+      ],
+      "proposed_fix_scope": "Add a simulate-work counter (simulate_step calls + simulate_trajectory_batch rows) to SolverWork and check it with the existing SCENARIO_WORK_FACTOR=1.5, or lower the per-scenario CPU factor from 3.0 toward the noise floor (~1.3). One file, tests/stress.py; no production change.",
+      "stop_rule_class": "bug"
+    },
+    {
+      "id": "D9-02",
+      "title": "DHW floor repair re-simulates the whole horizon once per weak slot (O(n^2) in horizon steps)",
+      "severity": "medium",
+      "claim": "optimizer._repair_dhw_floor's inner trajectory helper simulates the full tank horizon once per weak slot; doubling the planning horizon 24h->48h multiplies its simulate_dhw_only step count by 4.02x (9408->37824) where a linear pass gives 2x, with the planner's own invocation count held constant.",
+      "mechanism": "After the joint raise is rejected, the per-slot loop calls trajectory(raised) (a full 96- or 192-step tank simulation) for every weak slot, plus a second trajectory(plan) whenever a slot is zeroed to refresh base. Both the weak-slot count and the steps per call scale with the horizon, so calls x steps ~ n^2. Control: _build_dhw_requirements itself is invoked the same number of times at both horizons (dhw_plan_calls=2), so a doubled planner invocation cannot explain the 4x.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D9/solve_cost.py",
+        "harness_path": "tools/audit/round5/D9/solve_cost.py",
+        "value": 4.02,
+        "unit": "ratio (48h / 24h simulate_dhw_only steps attributed to _repair_dhw_floor.trajectory)",
+        "baseline_sha": "eaa2a06af16a1b5b006f58a0f36cc92131f80225",
+        "machine": "Apple M1 8 GB, macOS 25.6.0, numpy on OpenBLAS, threads pinned to 1",
+        "cpu_or_wall": "count",
+        "contention_note": "step counts are contention-immune",
+        "tolerance": "exact",
+        "load1": 111.24,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "thermal_model:ThermalModel.simulate_dhw_only, attributed to optimizer:_repair_dhw_floor's inner trajectory helper (optimizer.py:5429); optimizer:_build_dhw_requirements for the invocation-count control",
+      "perturbation": {
+        "change": "planning horizon 24h -> 48h (stress.build_case(hours=24) vs hours=48)",
+        "expected_direction": "up",
+        "observed_value": "4.02x (trajectory steps 9408->37824; planner invocations constant: dhw_plan_calls=2 both arms; total simulate_dhw_only calls 118->222); a linear re-simulation would give 2.0x"
+      },
+      "metric_definition": "simulate_dhw_only steps attributed to optimizer:_repair_dhw_floor's inner trajectory helper, per optimize() call",
+      "null_control": {
+        "command": "run('two_zone_nodhw', dhw=False) in tools/audit/round5/D9/solve_cost.py",
+        "value": "dhw_steps=0",
+        "note": "with the tank off the repair does not run and the count is exactly zero. The invocation-count arm is the second control: _build_dhw_requirements runs twice at BOTH horizons (dhw_plan_calls=2), so a doubled planner invocation cannot account for the 4x. Same load, same session."
+      },
+      "files": [
+        "custom_components/heatpump_optimizer/optimizer.py"
+      ],
+      "proposed_fix_scope": "In _repair_dhw_floor's per-slot loop (optimizer.py:5451-5466), refresh only the trajectory tail from the first touched slot onward and/or re-simulate incrementally instead of trajectory(plan) after each zeroing. One function.",
+      "stop_rule_class": "bug"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "The gate's work arm IS live and correct for the class it was built for: a regression that changes the iterate path (adds evaluations, same basin) crosses SCENARIO_WORK_FACTOR=1.5 and fires",
+      "command": "arm=extra_eval of PYTHONPATH=tests/hastub python3 tools/audit/round5/D9/work_meter_blind.py",
+      "value": "work_ratio_extra_eval=2.0000 > 1.5 (cpu 1.91-1.94x over two takes, objective bit-identical)"
+    },
+    {
+      "claim": "The batched jacobian is reached and costs 96 rows per L-BFGS iteration, not ~9,300 scalar simulate_step calls (brief's round-5 priority holds)",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D9/solve_cost.py",
+      "value": "two_zone_dhw batch_rows=29280 over 305 objective_batch calls = 96 rows/call"
+    },
+    {
+      "claim": "The batched jacobian is still reached on the zero-range-bounds fallback paths (pin, cap), no scalar per-row fallback",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D9/solve_cost.py",
+      "value": "zero_range_pin batch_rows=26112; zero_range_cap batch_rows=22176"
+    },
+    {
+      "claim": "A space-only coordinator cycle runs exactly one full solve",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D9/cycle_solves.py",
+      "value": "coord_minimal optimize=1 multi_start=1 scoped_minimize=5; coord_two_zone and coord_all_features multi_start=1"
+    },
+    {
+      "claim": "A DHW-contention cycle runs two full space solves; the co-optimize second solve fires only on DHW contention",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D9/cycle_solves.py",
+      "value": "coord_dhw optimize=1 multi_start=2 scoped_minimize=7; paths _optimize_with_dhw|solve_space and _optimize_with_dhw|_co_optimize|solve_space"
+    },
+    {
+      "claim": "The two sleep(0.002) GIL yields sit between L-BFGS starts, not inside an iteration (README's note confirmed by call structure)",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D9/cycle_solves.py",
+      "value": "_multi_start_minimize entered once per space solve (multi_start=1), driving scoped_minimize=5 L-BFGS runs"
+    },
+    {
+      "claim": "The recorder exclusion set holds: no bulky plan/slot/forecast series reaches the recorder (per cycle, every entity's attributes split by its class's _unrecorded_attributes)",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D9/payload_bytes.py",
+      "value": "coord_dhw data_dict_bytes=81509 recorded_attr_bytes=11059 excluded_attr_bytes=80589; coord_all_features recorded=11763 excluded=85033"
+    },
+    {
+      "claim": "The payload meter responds to both directions: with no plan published the recorded bytes fall, and forcing the excluded keys recorded inflates them 5.47x",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D9/payload_bytes.py",
+      "value": "perturbation_no_plan_recorded_ratio=0.8619 (down); control_forced_record_ratio=5.4699 (up; biggest forced entity DHWHeatingPlanSensor at 25258 B)"
+    },
+    {
+      "claim": "No coordinator collection grows across cycles (no untrimmed retention); confirmed on a second run",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D9/retained_bytes.py",
+      "value": "tracked=35 grew_monotone=0 grew_any=0 after 3/9/27/60 cycles, two runs; ru_maxrss flat within a run (89096192 B and 91095040 B across runs, process-wide high-water, provisional)"
+    },
+    {
+      "claim": "Per-iteration simulation cost is ~192 step-equivalents, not 96 (scipy evaluates fun and jac separately) - design note, not a defect",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D9/solve_cost.py",
+      "value": "two_zone_dhw scalar_step=30144 (_space_traj 29856) beside batch_rows=29280"
+    },
+    {
+      "claim": "The DHW planner is not a runaway share on the default two-zone solve (it dominates only the small single-zone solve)",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round5/D9/solve_cost.py",
+      "value": "two_zone_dhw dhw_steps=11328/70752 = 16.0%; hours_48 42624/246336 = 17.3%; single_zone_dhw 11328/16512 = 68.6%"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round5/D9/work_meter_blind.py",
+    "tools/audit/round5/D9/solve_cost.py",
+    "tools/audit/round5/D9/cycle_solves.py",
+    "tools/audit/round5/D9/payload_bytes.py",
+    "tools/audit/round5/D9/retained_bytes.py"
+  ]
+}
