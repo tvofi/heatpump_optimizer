@@ -251,3 +251,32 @@
 # zoom pair itself, tools/audit/round4/D4/d4_own_D4-03.mjs, both ends on
 # this box: 20.22x20.22 at 22.22 px centres -> 24.00x24.00 at 26.00 px at
 # all three tiles, fine and coarse arms alike.
+
+# #1219 (round-5 audit, D4-01): the setup diagram's click-to-assign rows.
+# Their hit height was the bare `rowH - 2` = 15 viewBox units under a fine
+# pointer -- the 24 px floor sat behind `_coarsePointer()`, and the coarse
+# branch converted px to viewBox units with `SETUP_W / 280`, a render width
+# nothing ships (the canvas renders 560-1190 px), so at 375 px that was
+# 11.67 px and un-gating it as written would have landed 49+ px rows. The
+# floor now applies to every pointer and converts with the width the canvas
+# is actually drawn at (`SETUP_W / drawnWidth`, the scale `point(ev)`
+# hit-tests with); a first paint with no width yet is re-rendered once by
+# `_refitCharts`, the chart's #256 contract.
+#
+# Direction, one mechanism in every claimed state: each `rect.setup-hit`
+# height attribute goes 15 -> 19.6 units, which is the floor's 24.5 px (24 +
+# the card's documented 0.5 px slack) at this gate's 1.25 px/unit stub, and
+# its y re-centres by half the growth (hitY = y - rowH + 5 - (hitH -
+# hitBase) / 2; 41 -> 38.7 measured). Nothing else moves: normalising only
+# the setup-hit boxes (x/y/width/height triple) leaves every claimed state
+# byte-identical to the ref. The six states are every state that draws the
+# setup page; the other 28 draw no diagram and are unmoved, which also
+# covers every chart-bearing state -- docs/img's figures are chart
+# pictures and stay valid.
+
+setup_single_buffer
+setup_two_tank
+setup_coil
+layout_editing_dragged
+layout_editing_tidy
+picker_open_filtered

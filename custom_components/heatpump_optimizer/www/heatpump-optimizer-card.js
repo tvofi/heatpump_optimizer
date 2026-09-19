@@ -2242,6 +2242,11 @@ const SlotModel = {
 function setupSvgHtml(topo, ctx) {
   let boxesOut = null;
   const W = SETUP_W;
+  // The width this diagram is drawn at, in CSS px, through the ctx thunk;
+  // 0 before the canvas has ever been laid out (D4-01). The row-target
+  // floor converts px to viewBox units with it, so the rendered height is
+  // the floor itself rather than a fraction of it.
+  const drawnWidth = ctx.setupWidth ? ctx.setupWidth() : 0;
   // Whether the model runs the wood tank as its own store (issue #40).
   // Published by `describe_setup`; absent on older descriptions, where
   // false is the right answer because that is the model they ran.
@@ -2651,8 +2656,20 @@ function setupSvgHtml(topo, ctx) {
       // respond at all -- which reads as a diagram that is only sometimes
       // clickable.
       const hitBase = rowH - 2;
-      const hitH = _coarsePointer()
-        ? Math.max(hitBase, _targetMinPx() * (SETUP_W / 280))
+      // SC 2.5.8's minimum is owed to every pointer, not only to touch
+      // (D4-01): the floor used to sit behind `_coarsePointer()`, and the
+      // coarse branch converted px to viewBox units with `SETUP_W / 280`
+      // -- a render width nothing here uses, so un-gating it as it stood
+      // would have drawn rows a multiple of their own pitch tall.
+      // `height` counts viewBox units, and the conversion is `SETUP_W /
+      // drawnWidth`: the same scale `point(ev)` hit-tests with, which
+      // makes the rendered height the floor itself. `drawnWidth` is 0
+      // until the canvas has been laid out once; that render keeps the
+      // authored height and `_refitCharts` re-renders it once the browser
+      // has a width (the chart's #256 contract).
+      const unitsPerPx = drawnWidth > 0 ? SETUP_W / drawnWidth : 0;
+      const hitH = unitsPerPx > 0
+        ? Math.max(hitBase, _targetMinPx() * unitsPerPx)
         : hitBase;
       const hitY = y - rowH + 5 - (hitH - hitBase) / 2;
       rows.push(`<rect class="setup-hit" data-key="${esc(s.key)}"
@@ -4362,6 +4379,26 @@ function chartWidthPx(host, expanded) {
   const rect = host.getBoundingClientRect();
   const hostW = rect && rect.width ? rect.width : 0;
   return hostW > CARD_CHROME_PX ? hostW - CARD_CHROME_PX : 0;
+}
+
+/** The width the setup diagram is drawn at, in CSS px (D4-01).
+ *
+ * The row-target floor converts CSS px to viewBox units through the same
+ * scale `SetupPage.point` hit-tests with (`SETUP_W / width`), so it measures
+ * the same box that method does: the `.setup-svg` still in the DOM from the
+ * previous render, whose CSS box is the one the fresh markup lands in.
+ * Zero when there is none -- the first paint happens before the diagram is
+ * in the document, and `_refitCharts` re-renders it once the browser has a
+ * width (the chart's #256 contract).
+ */
+function setupWidthPx(host) {
+  const root = host && host.shadowRoot;
+  const svg = root && root.querySelector(".setup-svg");
+  if (svg && typeof svg.getBoundingClientRect === "function") {
+    const r = svg.getBoundingClientRect();
+    if (r && r.width) return r.width;
+  }
+  return 0;
 }
 
 /** The lane geometry of the chart copy `svg` is, for a pointer event on
@@ -8451,6 +8488,13 @@ class SetupPage {
     return setupSvgHtml(topo, {
       editing,
       edit,
+      // Recorded as it is read, so `_refitCharts` can compare what this
+      // render assumed against what the browser then did (D4-01).
+      setupWidth: () => {
+        const w = setupWidthPx(this.host);
+        this.host._setupWidthUsed = w;
+        return w;
+      },
       slotLive: (s) => this.slotLive(s),
       solarFallback: () => this.solarFallback(),
     });
@@ -9693,6 +9737,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // The width each chart copy's markup was built for, in the same order,
     // so a render that guessed can be told from one that measured (D4-01).
     this._chartWidthUsed = [];
+    // And the width the setup diagram was built for; undefined until a
+    // render actually draws it, so the refit stays off its page (D4-01).
+    this._setupWidthUsed = undefined;
     this._refitting = false;
     // The chart's last measured rectangle, a hover fallback.
     this._svgRect = null;
@@ -9783,22 +9830,33 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._refitCharts();
   }
 
-  /** Re-render when a chart is not drawn at the width its last render
-   * assumed (D4-01, #256).
+  /** Re-render when a chart, or the setup diagram, is not drawn at the
+   * width its last render assumed (D4-01, #256).
    *
    * The font floor, the margin scale and the lane band are all functions of
    * the rendered width, and the rendered width is only knowable after the
    * chart has been laid out -- so one corrective pass follows every render
-   * and every resize. `_refitting` bounds it to exactly one: the corrective
-   * render cannot ask for another, so this can never loop however the host
-   * responds to the new markup.
+   * and every resize. The setup diagram's row-target floor is the same
+   * shape: its markup is built before its canvas is in the document, and
+   * the pass that had no width to convert with (0) is corrected here. The
+   * setup check runs only when a render actually drew the diagram
+   * (`_setupWidthUsed` a number), so a closed dialog costs nothing.
+   * `_refitting` bounds this to exactly one: the corrective render cannot
+   * ask for another, so this can never loop however the host responds to
+   * the new markup.
    */
   _refitCharts() {
     if (this._refitting) return;
     if (!this._config || !this._hass || !this.shadowRoot) return;
     // A drag owns the DOM until it lets go; rebuilding under it would drop
-    // the gesture. The drag's own commit re-renders when it ends.
+    // the gesture. The lanes' own commit re-renders when it ends, and the
+    // layout editor's commit redraws its diagram in place -- the redraw
+    // re-measures, so a floor left stale by a mid-drag width change is
+    // corrected there rather than under the pointer.
     if (this.lanes && (this.lanes.drag || this.lanes.gesture)) return;
+    if (this.layoutEditor && this.layoutEditor.edit && this.layoutEditor.edit.drag) {
+      return;
+    }
     let drifted = false;
     for (let i = 0; i < this._chartWidthUsed.length && !drifted; i++) {
       const assumed = this._chartWidthUsed[i];
@@ -9806,6 +9864,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
       const actual = chartWidthPx(this, i === 1);
       if (!actual) continue;
       drifted = Math.abs(actual - assumed) > CHART_WIDTH_EPS_PX;
+    }
+    if (!drifted && this._setupWidthUsed !== undefined) {
+      const actual = setupWidthPx(this);
+      drifted = !!actual && Math.abs(actual - this._setupWidthUsed) > CHART_WIDTH_EPS_PX;
     }
     if (!drifted) return;
     this._refitting = true;
@@ -9989,8 +10051,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const expandable = anyData || anySetup;
 
     // Each render re-records which width each copy was built for; a closed
-    // dialog must not leave last time's number behind (D4-01).
+    // dialog must not leave last time's number behind (D4-01). The setup
+    // diagram's canvas lives on its dialog page, so a closed dialog leaves
+    // its width undefined there too, and the refit stays off that page.
     this._chartWidthUsed = [];
+    this._setupWidthUsed = undefined;
 
     let body;
     if (savingsTile) {
