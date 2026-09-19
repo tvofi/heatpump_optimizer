@@ -18505,13 +18505,13 @@ R.check(
     "and updates the `[policy] recurring friction:` issues (#959 option B, "
     "#201 comment 5670207248 item 4) and nothing else",
 )
-# THE SPLIT OF THE LANE, pinned as a property: after #959 exactly one path in
-# `record` can redden the job by acting deliberately -- the filing step, which
-# runs unsuppressed -- while the informational lanes keep their `|| true` and
-# the disposition refusal keeps its #958 `continue-on-error`. A `|| true`
-# pasted onto the filing step would turn a mechanism that stopped filing into
-# a green tick, which is the #959 defect one lane later, so the suppression is
-# keyed per step here rather than left to the YAML's reader.
+# THE LANES THAT CAN REDDEN THE JOB, pinned as a property: the filing step runs
+# unsuppressed -- the path that ACTS deliberately -- while the informational
+# lanes keep their `|| true`. A `|| true` pasted onto the filing step would turn
+# a mechanism that stopped filing into a green tick, which is the #959 defect
+# one lane later, so the suppression is keyed per step here rather than left to
+# the YAML's reader. The disposition refusal is the third path that reddens: its
+# `continue-on-error` is dropped (#1194, D11-04) and pinned by name below.
 _REC_RUNS = dict.fromkeys(
     _re.findall(r"run: (.+)", _REC_JOB), None)
 _REC_FILE_LINE = next(
@@ -18521,7 +18521,7 @@ _REC_STATS_LINE = next(
 _REC_SUNSET_LINE = next(
     (l for l in _REC_RUNS if "--sunset" in l), None)
 R.check(
-    "the friction filer is the record lane's one deliberate arm and the "
+    "the friction filer is the record lane's deliberate filing arm and the "
     "informational lanes stay suppressed",
     _REC_FILE_LINE is not None
     and "|| true" not in _REC_FILE_LINE
@@ -18530,8 +18530,7 @@ R.check(
     f"filing: {_REC_FILE_LINE!r}; stats: {_REC_STATS_LINE!r}; "
     f"sunset: {_REC_SUNSET_LINE!r} -- the filing step reddens this job when "
     "its mechanism fails, because a filing lane that fails green stopped "
-    "filing; the histogram and sunset printings never redden it, and the "
-    "disposition refusal reports without reddening (#958)",
+    "filing; the histogram and sunset printings never redden it",
 )
 R.check(
     "the publishing lane runs on main alone, never on a pull request",
@@ -18547,6 +18546,143 @@ R.check(
     "delivery_status.py" in _closure.NOT_A_TEST
     and not _closure.is_inert("tests/delivery_status.py"),
     "a file that is neither in a closure nor on a list forces the FULL suite",
+)
+
+# --- D11-04 (#1194): the disposition refusal can set the record job's status --
+#
+# The refusing step carried `continue-on-error: true`, which is exactly what
+# #958's split added and exactly what made an undispositioned merge stay green:
+# the step fails inside the job, the job concludes success, and the check-run a
+# seat reads is a green tick over a window nobody dispositioned. The step is cut
+# from the workflow the way the finding's harness cuts it (disposition.py) and
+# read for the one key that decides whether its exit code reaches the job's
+# conclusion. The cut selects the step BY NAME and runs to the next `- name:`,
+# so it reads the step and not the `record:` job's other suppressing steps.
+_REC_REFUSAL = _REC_JOB.split(
+    "- name: Every merged pull request has a disposition")[1].split(
+        "\n      - name:")[0]
+R.check(
+    "the disposition refusal can set the record job's conclusion",
+    "continue-on-error" not in _REC_REFUSAL,
+    f"the refusing step is {_REC_REFUSAL.strip()[:220]!r}. `continue-on-error: "
+    "true` on this step is #958's split: the step fails and the job concludes "
+    "success, so a merged pull request with no disposition is reported and stays "
+    "green -- the check cannot set its own conclusion (#1194, D11-04). The step "
+    "still runs on a push to main, never on a pull request, and is not a "
+    "required context, so dropping it cannot block an unrelated merge",
+)
+
+# --- D11-02 (#1192): the ruleset reader sees the rules it does not require ----
+#
+# `counts.mjs:liveRequiredContexts` skipped every rule that was not
+# `required_status_checks` and never read `bypass_actors`, so two rulesets
+# differing in one rule and one bypass actor returned BYTE-IDENTICAL JSON -- a
+# change to the ruleset the merge boundary runs was invisible to the tree's only
+# reader of it. Driven the way the finding's harness drives it
+# (tools/audit/round5/D11/ruleset.py): a stubbed `gh` answering the two calls the
+# reader makes, with the two ruleset documents differing only in the
+# `pull_request` rule and the bypass actor. The import is the production symbol
+# and the answer comes from production, never from a copy of its logic here.
+def _ruleset_reader_fixture():
+    import os
+    import tempfile
+
+    branch = [{
+        "type": "required_status_checks", "ruleset_id": 1,
+        "parameters": {"required_status_checks": [{"context": "policy-docs"}]},
+    }]
+
+    def read(ruleset):
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            (td / "bin").mkdir()
+            stub = td / "bin" / "gh"
+            stub.write_text(
+                '#!/bin/bash\ncase "$*" in\n'
+                '  */rules/branches/main) cat "$STUB_DIR/branch.json" ;;\n'
+                '  */rulesets/*) cat "$STUB_DIR/ruleset.json" ;;\n'
+                '  *) echo "stub gh: unhandled $*" >&2; exit 9 ;;\nesac\n')
+            stub.chmod(0o755)
+            (td / "ruleset.json").write_text(json.dumps(ruleset))
+            (td / "branch.json").write_text(json.dumps(branch))
+            env = {**os.environ, "STUB_DIR": str(td),
+                   "PATH": f"{td / 'bin'}:{os.environ['PATH']}"}
+            r = subprocess.run(
+                ["node", "--input-type=module", "-e",
+                 "import('./.claude/workflows/counts.mjs').then((m) => "
+                 "console.log(JSON.stringify(m.liveRequiredContexts())))"],
+                capture_output=True, text=True, env=env)
+            return r.returncode, r.stdout.strip()
+
+    req = {"type": "required_status_checks",
+           "parameters": {"required_status_checks": [{"context": "policy-docs"}]}}
+    full = {"rules": [req, {"type": "pull_request",
+                            "parameters": {"required_approving_review_count": 1}}],
+            "bypass_actors": [{"bypass_mode": "always"}]}
+    trimmed = {"rules": [req], "bypass_actors": []}
+    return read(full), read(trimmed), read(full)
+
+
+_RR = _ruleset_reader_fixture()
+R.check(
+    "the ruleset reader's answer moves when a rule it does not require moves",
+    _RR[0][0] == 0 and _RR[1][0] == 0 and _RR[0][1] != _RR[1][1],
+    f"with the `pull_request` rule and the bypass actor: {_RR[0][1]}; with both "
+    f"removed: {_RR[1][1]} -- byte-identical output means a ruleset change is "
+    "invisible to the tree's only reader of it (#1192, D11-02)",
+)
+R.check(
+    "and it stays stable when nothing about the ruleset moved (null control)",
+    _RR[0][0] == 0 and _RR[2][0] == 0 and _RR[0][1] == _RR[2][1],
+    f"the same ruleset read twice: {_RR[0][1]} then {_RR[2][1]}. Two identical "
+    "rulesets must return identical output, or the check above would pass for a "
+    "reader whose output moved on every call rather than on a ruleset change",
+)
+
+# --- D11-05 (#1195): the template arm reddens the acceptance -------------------
+#
+# `checkPrBody`'s template arm pushed a failing template into `found[]` and
+# never set the acceptance's exit status, so `.github/PULL_REQUEST_TEMPLATE.md`
+# failed `--pr-body` while `policy-docs` -- the acceptance -- stayed green: the
+# arm reported a violation it could not act on. The arm now returns the
+# acceptance's refusal, and the drive below is the witness it needs, because on
+# the healthy tree the template holds and the arm is silent. `POLICY_LINT_
+# TEMPLATE` points the arm at a body that drops a required heading; the same run
+# with the real template is its null control. Both are the whole acceptance, so
+# the test reads the exit status the `policy-docs` context runs, not a model of
+# the arm.
+def _template_arm_fixture():
+    import os
+    import tempfile
+
+    root = Path(__file__).resolve().parent.parent
+    headings = ["Head", "Mutation proof", "Null control", "Figures",
+                "Red checks", "Forward-carry", "Friction"]
+    broken = "".join(f"## {h}\n\nnone\n\n" for h in headings if h != "Forward-carry")
+    with tempfile.TemporaryDirectory() as td:
+        p = Path(td) / "template.md"
+        p.write_text(broken)
+        # A path RELATIVE to the clone: the arm resolves it from the module's
+        # own root, the same way it resolves the real template.
+        env = {**os.environ, "POLICY_LINT_TEMPLATE": os.path.relpath(p, root)}
+        rc_broken = subprocess.run(
+            ["node", ".claude/workflows/policy_lint.mjs"],
+            capture_output=True, text=True, env=env).returncode
+    rc_live = subprocess.run(
+        ["node", ".claude/workflows/policy_lint.mjs"],
+        capture_output=True, text=True).returncode
+    return rc_broken, rc_live
+
+
+_TA = _template_arm_fixture()
+R.check(
+    "the template arm turns the acceptance red on a template that fails its "
+    "own contract (and the real template keeps it green)",
+    _TA[0] == 1 and _TA[1] == 0,
+    f"a template missing `## Forward-carry` -> acceptance rc={_TA[0]} (must be "
+    f"1); the real template -> rc={_TA[1]} (must be 0). Without the arm's "
+    "refusal the acceptance concluded success over a template that fails the "
+    "contract it states, which is #1195 (D11-05)",
 )
 
 # --- the release lane's attestation grant and subject (#960, D11-07) ---------

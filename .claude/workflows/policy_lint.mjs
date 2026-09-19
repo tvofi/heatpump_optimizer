@@ -1853,9 +1853,10 @@ function mergedPRsFromWindow(since) {
 // failed but had no marker for an enumeration that never produced a window --
 // filed nothing, green (#1043 review, comment 5673472536, residual 2).
 //
-// rc=0 STAYS acceptable on this path -- the record job reports rather than
-// gates (#958) and the stats step is deliberately `|| true` -- so the line is
-// the whole guard: unmissable, `UNCHECKED this run, not confirmed`, the same
+// rc=0 STAYS acceptable on this path -- the stats step is deliberately
+// `|| true`, and this skip is a fetch failure rather than a measured clean
+// window, so reddening it would block on a transient API outage -- so the line
+// is the whole guard: unmissable, `UNCHECKED this run, not confirmed`, the same
 // words the required-contexts skip uses. Pure over its `why` so the acceptance
 // drives it offline, and listed in LOOP_CHECK_NAMES so emptying it is a
 // mutation the mutants lane refuses rather than a silent string change.
@@ -3131,12 +3132,26 @@ function assertAcceptance(derived) {
   // longer satisfies the job. Linting the template as if it were a body ties
   // them together: a heading the parser requires and the template omits fails
   // here, on the pull request that removed it.
-  const TEMPLATE = '.github/PULL_REQUEST_TEMPLATE.md'
+  //
+  // AND IT REFUSES, rather than reporting into `found` (#1195, D11-05). The arm
+  // used to push its findings and continue: the template failed `--pr-body`
+  // while the acceptance -- the `policy-docs` context that runs it -- exited 0,
+  // so a violation of the contract the template states was reported into green.
+  // `return 1` is the wiring every sibling FIXTURE VACUOUS arm above already
+  // uses, and it is what turns the arm's finding into the acceptance's refusal.
+  //
+  // THE PATH IS OVERRIDABLE BY `POLICY_LINT_TEMPLATE`, for the one drive this
+  // arm cannot get on a healthy tree: the template holds, the refusal below
+  // never fires, and the wiring has no witness. `tests/entities.py` points it at
+  // a body that drops a required heading and reads the acceptance's exit status;
+  // the same run with the real template is its null control. The path is
+  // resolved from this module's root, so the override is a clone-relative path.
+  const TEMPLATE = process.env.POLICY_LINT_TEMPLATE || '.github/PULL_REQUEST_TEMPLATE.md'
   if (read(TEMPLATE) != null) {
     const errs = checkPrBody(TEMPLATE)
     if (errs.length) {
       console.log(`\nFIXTURE VACUOUS: ${TEMPLATE} does not satisfy the contract it exists to state`)
-      found.push(...errs.map((e) => ({ ...e, check: '(template)' })))
+      return 1
     }
   }
 
