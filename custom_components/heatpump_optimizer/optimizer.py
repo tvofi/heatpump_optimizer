@@ -462,6 +462,21 @@ _SPECULATIVE_POLISH_DIVISOR = 16
 _SPECULATIVE_POLISH_MAXFUN = 40
 
 
+def _polish_budget(solve_index: int, maxiter: int) -> tuple[int, int | None]:
+    """The restart budget for solved start ``solve_index`` (scored order).
+
+    The raw-best start (index 0) keeps the full #826 restart; every later
+    start is speculative and bounded -- the constants above carry the
+    measured refusals that sized the bound.
+    """
+    if solve_index:
+        return (
+            max(4, maxiter // _SPECULATIVE_POLISH_DIVISOR),
+            _SPECULATIVE_POLISH_MAXFUN,
+        )
+    return maxiter, None
+
+
 def _multi_start_minimize(
     objective: Callable[..., float],
     candidates: list[np.ndarray],
@@ -591,13 +606,10 @@ def _multi_start_minimize(
         # harness: the one cell whose winner needed a raw-rank-3 candidate's
         # FULL descent still ships 0.072% above it (winter_extreme, two-zone,
         # dhw off), against the 1.40% the finding sized.
+        polish_maxiter, polish_maxfun = _polish_budget(solve_index, maxiter)
         res = _lbfgsb_restart(
-            res, memoized, bounds, args,
-            maxiter if not solve_index else max(
-                4, maxiter // _SPECULATIVE_POLISH_DIVISOR
-            ),
-            batch_objective, fd_eps,
-            maxfun=None if not solve_index else _SPECULATIVE_POLISH_MAXFUN,
+            res, memoized, bounds, args, polish_maxiter,
+            batch_objective, fd_eps, maxfun=polish_maxfun,
         )
         score = float(memoized(res.x, *args))
         if np.isfinite(score) and score < best_score:
