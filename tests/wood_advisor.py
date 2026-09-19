@@ -124,4 +124,35 @@ R.check(
     "a ready-gate alone would pass the no-furnace check and fail the idle state",
 )
 
+R.section("The COP guard, not a hole")
+
+# A record with no outdoor temperature folds to COP 0.0 through wood_fuel's
+# own _force_float, so this is reachable on a real payload, not a unit-test
+# contrivance. `price / cop` raises on a zero COP and would silently flip the
+# comparison on a negative one; cheaper_hour_count must SKIP such an hour.
+# The positive control beside it shows the guard is not rejecting every hour.
+from heatpump_optimizer.wood_fuel import cheaper_hour_count
+
+try:
+    _zero_cop = cheaper_hour_count(
+        wood_sek=1.0, prices=[1.0], cops=[0.0],
+        space_kw=[5.0], dhw_kw=[0.0], threshold=1.0,
+    )
+except ZeroDivisionError as _zero_cop_err:
+    _zero_cop = _zero_cop_err
+R.check(
+    "an hour whose COP is zero is skipped, not divided by",
+    _zero_cop == 0,
+    f"cops=[0.0] -> {_zero_cop!r}",
+)
+R.check(
+    "and a usable COP still counts the hour when wood is cheaper",
+    cheaper_hour_count(
+        wood_sek=1.0, prices=[10.0], cops=[3.0],
+        space_kw=[5.0], dhw_kw=[0.0], threshold=1.0,
+    )
+    == 1,
+    "a guard that skipped every hour would hide the real comparison",
+)
+
 sys.exit(R.close("wood-advisor checks"))

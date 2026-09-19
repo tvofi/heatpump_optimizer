@@ -3886,6 +3886,41 @@ R.check(
     not no_data.identify().completed,
 )
 
+# The plausible-bounds refusal is the last thing between a completed fit and
+# a downstream consumer that weights it as evidence. The guards above reject
+# bad SIGNALS (gains, drift, noise); this one rejects a fit whose recovered
+# (tau, UA) is physically impossible even though the regression solved. Build
+# a house so over-insulated that the fit lands near UA 0.005 kW/C -- below the
+# 0.01 floor -- and require identify() to refuse it rather than report done.
+from heatpump_optimizer.sysid import (
+    PHASE_RELAX as _SID_RELAX,
+    PHASE_STEP as _SID_STEP,
+    SysIdSample as _SID_SAMPLE,
+)
+
+_impossible = SystemIdentification(SysIdConfig(enabled=True))
+_impossible.samples = []
+_imp_room, _imp_when = 20.7, datetime(2026, 2, 1, 0, 0, tzinfo=UTC)
+for _imp_phase, _imp_power, _imp_steps in (
+    (_SID_STEP, 3.0, 12), (_SID_RELAX, 0.0, 19),
+):
+    for _ in range(_imp_steps):
+        _impossible.samples.append(
+            _SID_SAMPLE(_imp_when, _imp_room, 0.0, _imp_power, _imp_phase)
+        )
+        _imp_room += (1.0 / 6.0) * (
+            _imp_power + 0.5 - 0.005 * _imp_room
+        ) / 6.0
+        _imp_when += timedelta(minutes=10)
+_impossible_res = _impossible.identify()
+R.check(
+    "a fit outside the plausible (tau, UA) box is refused, not reported done",
+    not _impossible_res.completed
+    and "plausible bounds" in (_impossible_res.reason or ""),
+    f"completed={_impossible_res.completed} reason={_impossible_res.reason!r} "
+    f"ua={_impossible_res.heat_loss_kw_per_c}",
+)
+
 repeat = SystemIdentification(SysIdConfig(enabled=True, min_days_between_runs=30))
 repeat.last_run = NOW - timedelta(days=2)
 R.check("a recent run blocks another", not repeat.arm(NOW))
@@ -4901,6 +4936,27 @@ _ok, _detail = _from_dict_survives(
     lambda: _FuzzStarts.from_dict({"lifetime": float("inf")})
 )
 R.check("StartCounter.from_dict swallows inf lifetime", _ok, _detail)
+
+# The streak is what makes "START_HYSTERESIS_SAMPLES consecutive samples"
+# true. A sample that AGREES with the state already held is not part of an
+# edge, so it must reset the streak: otherwise a steady running signal keeps
+# the streak alive across agreeing samples and the next real edge is
+# confirmed on fewer samples than the promise. Drive a steady above-threshold
+# signal while the counter already believes it is running.
+from heatpump_optimizer.const import START_HYSTERESIS_SAMPLES as _FUZZ_HYST
+
+_steady = _FuzzStarts()
+_steady.running = True
+_steady_confirmed = 0
+for _i in range(_FUZZ_HYST + 2):
+    if _steady.observe(NOW + timedelta(minutes=_i), 2.0, 1.0, False):
+        _steady_confirmed += 1
+R.check(
+    "a steady running signal restarts the streak and confirms no start",
+    _steady_confirmed == 0 and _steady._streak == 0 and _steady.lifetime == 0,
+    f"confirmed {_steady_confirmed}, streak {_steady._streak}, "
+    f"lifetime {_steady.lifetime}",
+)
 _ok, _detail = _from_dict_survives(
     lambda: _FuzzAcc.from_dict({"lead_counts": {"1.0": float("inf")}})
 )
@@ -6355,6 +6411,24 @@ R.check(
     "delivery cannot be negative",
     _mv.emitter_delivery(mix_temp=20.0, zone_temp=25.0, ua=1.4) == 0.0,
     "a valve can shut, but it cannot cool a house",
+)
+
+# A degenerate install can report design_power == 0, which gives emitter_ua
+# == 0.0. The 1e-6 floor in flow_setpoint is the only thing between that call
+# and a ZeroDivisionError; the setpoint it returns saturates high, which is
+# the correct answer for a house that cannot lose heat. Without the guard the
+# whole plan fails, so the floor is load-bearing, not decoration.
+try:
+    _fs_zero_ua = _mv.flow_setpoint(
+        target_temp=21.0, outdoor_temp=-5.0,
+        heat_loss_coefficient=0.2, emitter_ua=0.0,
+    )
+except ZeroDivisionError as _fs_zero_err:
+    _fs_zero_ua = _fs_zero_err
+R.check(
+    "a zero-UA install yields a finite flow setpoint, not ZeroDivisionError",
+    isinstance(_fs_zero_ua, float) and _fs_zero_ua < 1e12,
+    f"emitter_ua=0.0 -> {_fs_zero_ua!r}",
 )
 
 # Survival: stored heat leaves at house-demand rate, not in one dump. Under
@@ -21603,6 +21677,31 @@ R.check(
     "than the same duty counted from MQTT transitions, and nothing else on "
     "the row would show that",
     )
+
+# The duty is a fraction of an interval, and `duty_counts` is exactly what
+# crosses DERATE_CONFIDENCE_SAMPLES to hand the bucket to the measured
+# estimator. A caller that hands `observe_duty` a value outside [0, 1] -- a
+# percent-versus-fraction units bug, or a negative from a clock that ran
+# backwards -- must not fold into the bucket. The zero case beside it is the
+# guard's other edge: 0 IS in range and IS real evidence, so it must still
+# fold, and a full-interval 1.0 sits on the clamp.
+_oor = DefrostDerate()
+_oor.observe_duty(2.0, 80.0, 2.0)
+_oor.observe_duty(2.0, 80.0, -0.5)
+R.check(
+    "a duty outside [0, 1] is refused, not folded into the bucket",
+    sum(sum(row) for row in _oor.duty_counts) == 0,
+    f"duty_counts {sum(sum(row) for row in _oor.duty_counts)} after duty=2.0 "
+    "and duty=-0.5",
+)
+_edge = DefrostDerate()
+_edge.observe_duty(2.0, 80.0, 0.0)
+_edge.observe_duty(2.0, 80.0, 1.0)
+R.check(
+    "the range guard rejects only OUTSIDE [0, 1] — 0 and 1 still fold",
+    sum(sum(row) for row in _edge.duty_counts) == 2,
+    "a zero duty is evidence and a full-interval duty is the clamp",
+)
 
 # -- persistence: an OLD store must load ------------------------------------
 _v1_store = {
