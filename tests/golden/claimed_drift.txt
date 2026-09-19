@@ -50,17 +50,19 @@
 # v6.6.5: the instrument-backlog repairs, quick setup, and the round-5 UI/sensor batch. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-# The economics-polish branch (#1207/#1208/#1210) claims the eight fixtures
+# The economics-polish branch (#1207/#1208/#1210) claims the seven fixtures
 # below and nothing else: the restart keep gate dropped 2e-2 -> 2e-5 (#1207)
-# and every solved candidate is now polished inside the loop (#1208), so the
-# solver keeps improvements it used to compute and throw away and a runner-up
-# candidate's polish can ship. The #1210 half (exact peak_cost billed,
-# smooth surrogate in the objective) moves no plan on its own: the solver's
-# arithmetic is byte-identical under it. Measured at head a42e961 vs this
-# file's baseline d70ed25 (drift mode, one environment): the eight are the
-# whole moved set, every decision margin (winner vs runner-up after polish)
-# is 1.85e-4 relative or wider -- 9x the 2e-5 keep gate and five orders over
-# same-basin float drift -- so no adoption here flips on a BLAS rebuild.
+# and every solved candidate is now polished inside the loop (#1208) -- the
+# raw-best at the full #826 budget, the speculative starts bounded at
+# maxiter/16 and maxfun=40, which the stress gate's per-scenario CPU and
+# work budgets measured and refused unbounded -- so the solver keeps
+# improvements it used to compute and throw away and a runner-up candidate's
+# bounded polish can ship. The #1210 half (exact peak_cost billed, smooth
+# surrogate in the objective) moves no plan on its own: the solver's
+# arithmetic is byte-identical under it. Measured at head 054aee4 vs this
+# file's baseline d70ed25 (drift mode, one environment): the seven are the
+# whole moved set (an eighth, shoulder, moved under the unbounded first cut
+# and does not move under the bounded one -- claimed there, not here).
 # Direction per fixture: deferred_energy_cost falls on every one (a cheaper
 # plan is the point of the fix); valve_storage_smart_write also moved and is
 # excused by its may-drift line, not claimed.
@@ -69,7 +71,6 @@ cycling_cost # #1207/#1208 economics polish: keeps sub-2% restart gains and poli
 everything_on # #1207/#1208 economics polish: keeps sub-2% restart gains and polishes every candidate
 flat_prices # #1207/#1208 economics polish: keeps sub-2% restart gains and polishes every candidate
 narrow_band # #1207/#1208 economics polish: keeps sub-2% restart gains and polishes every candidate
-shoulder # #1207/#1208 economics polish: keeps sub-2% restart gains and polishes every candidate
 winter_two_zone_dhw # #1207/#1208 economics polish: keeps sub-2% restart gains and polishes every candidate
 winter_two_zone_no_dhw # #1207/#1208 economics polish: keeps sub-2% restart gains and polishes every candidate
 #
