@@ -804,7 +804,62 @@ def _write_node_record(
     return proc.returncode
 
 
+def _warm_index() -> None:
+    """Refresh git's stat cache, so a record is the script's and not the runner's.
+
+    A closure is supposed to be a property of the script and the tree. It was
+    also, silently, a property of the checkout's git index. `git diff
+    --name-only HEAD` -- which tests/card_rig.mjs's threeDotFiles and
+    tests/env_drift.py's three_dot_files both run -- reads the CONTENT of every
+    index entry whose stat cache is stale, because a stat-only difference has
+    to be verified before git may call the file unchanged, and strace records
+    those reads. So on a worktree whose index is stat-stale for every entry the
+    recording is the whole tracked tree: #1243's card_drift.mjs record held 976
+    files (978 tracked minus the two `_rel` filters) against 78 committed, and
+    976 - 78 = 898 is its "UNDER-SCOPED: tests/card_drift.mjs really reads 898
+    file(s) the committed closure does not list" line. The same effect is the
+    2-file case INERT_EXCEPT documents for #995, which is the case that must
+    stay recorded: there the pair git hashed was stat-DIRTY, because
+    harness_headers.py had just rewritten it.
+
+    What separates the two is why the entry is stale, and only one of them is
+    the script's business. `git update-index --refresh` is the same
+    verification, done once, here, outside the instrument: git re-hashes what
+    it must and persists the result to .git/index, so a stat-stale-but-unchanged
+    entry is no longer something the recorded run has to read. Files that
+    genuinely differ from HEAD stay stale, are still hashed by the run itself
+    and still enter the closure -- so this cannot drop a file that appears in a
+    diff list, and the #995 pair keeps entering card_drift.mjs's closure.
+
+    It is also what made the full re-derive green and the scoped one red on the
+    same tree. The full arm records tests/card.mjs -- the same three git
+    commands, by the same rig -- in the step before card_drift.mjs, so the index
+    is already warm by then; the scoped arm records only the diff's own scripts,
+    and #1243's scoped set (entities.py, env_drift.py, golden.py, plan_view.py,
+    card_drift.mjs) contains nothing that refreshes one.
+
+    Best effort on purpose. The lanes of a full derive record in parallel, and a
+    .git/index another lane is rewriting has a lock; that leaves the measurement
+    exactly as it is without this function. Nothing here may fail a record.
+    """
+    for attempt in range(3):
+        try:
+            proc = subprocess.run(
+                ["git", "update-index", "-q", "--refresh"],
+                cwd=ROOT, capture_output=True, text=True)
+        except OSError:
+            return
+        # --refresh exits 1 for an entry that genuinely needs updating, which is
+        # the normal case here (a script that rewrites a tracked file, the
+        # register caches of #995). Only .git/index.lock is worth a retry.
+        if "index.lock" not in (proc.stderr or ""):
+            return
+        if attempt < 2:
+            time.sleep(0.5)
+
+
 def record(script: str, out_dir: Path, args: list[str] | None = None) -> int:
+    _warm_index()
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / (Path(script).name + ".json")
     env = dict(os.environ)
