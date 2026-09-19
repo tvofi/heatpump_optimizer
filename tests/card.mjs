@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 import { makeCardContext, CLAIM_FILE, parseClaims, claimVersionError, frozenDateClass,
          CARD_PATH as CLAIMED_CARD_PATH, CAPTURE_SOURCES,
          justifiesSolverClaim, justifiesCardClaim, movesClaimable,
-         threeDotFiles, claimsAreThisBranchs } from "./card_rig.mjs";
+         threeDotFiles, claimsAreThisBranchs, sameClaimMap } from "./card_rig.mjs";
 
 // Plan payload written by tests/plan_view.py earlier in the run. The path is
 // argv[2], or HPO_PLANDATA, or a default derived from this checkout's tests/
@@ -7796,6 +7796,26 @@ const STOCK_THEMES = {
     shape(one.claims));
   check("an exact copy of the baseline's list still parses its equal",
     shape(parseClaims(ONE).claims) === shape(one.claims));
+  // The comparison card_drift.mjs gates INHERITED CLAIMS on, pinned here
+  // the way `claimsAreThisBranchs` is above: an added line beside an
+  // inherited one is a rewrite, not an inheritance; an exact copy is still
+  // the inherited list it always was, so the autofix that empties one
+  // (env_drift.py's drop_inherited_claim_lines, multi-valued since #1255)
+  // still sees it and still leaves a rewritten list alone.
+  check("a claim added beside an inherited line is not an inherited list",
+    sameClaimMap(two.claims, one.claims) === false,
+    `two lines for one state parsed equal to the baseline's single entry: ${shape(two.claims)}`);
+  check("an exact copy of a multi-line list still is the inherited list",
+    sameClaimMap(parseClaims(TWO).claims, two.claims) === true
+    && sameClaimMap(parseClaims(TWO).claims, parseClaims(
+      "# claims-for: 6.6.6\nplan_inline  # this branch's fresh claim\n"
+      + "plan_inline  # the baseline's reason\n").claims) === true);
+  check("a different reason on the same line is not an inherited list either",
+    sameClaimMap(parseClaims(
+      "# claims-for: 6.6.6\nplan_inline  # a third reason\n").claims, one.claims) === false);
+  check("empty lists claim nothing and are never an inheritance",
+    sameClaimMap(parseClaims("# claims-for: 6.6.6\n").claims,
+      one.claims) === false);
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");

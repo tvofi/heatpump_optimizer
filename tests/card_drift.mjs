@@ -48,7 +48,7 @@ import { fileURLToPath } from "url";
 import {
   CARD_PATH, EDITOR_TAG, DEFAULT_SPACE, DEFAULT_DHW, HOUR,
   CLAIM_FILE, parseClaims, claimVersionError, claimsAreThisBranchs,
-  justifiesCardClaim,
+  justifiesCardClaim, sameClaimMap,
   makeCardContext, loadCard, collect, frozenDateClass, buildCard,
   planStates, setupSensorStates, qaTopologies, layoutCatalogTopo,
 } from "./card_rig.mjs";
@@ -589,15 +589,18 @@ if (stampError) {
   fails += 1;
 }
 
-// A claim list that is exactly the baseline's -- same names, same reasons --
-// was written for the baseline's diff, not this one (env_drift.py's
-// inherited-claims rule). An empty list claims nothing and is always fine.
-// run.sh also runs env_drift.py --claims-only (never scoped out) so a
+// A claim list that is exactly the baseline's -- same names, same reason
+// LISTS, line count included -- was written for the baseline's diff, not
+// this one (env_drift.py's inherited-claims rule, multi-valued since #1255
+// and ported to this lane by #1266: a branch that ADDED a line beside the
+// baseline's own must not parse equal to the baseline's single entry, or
+// this gate fires INHERITED CLAIMS where env_drift.py answers "not
+// inherited" on the same file). An empty list claims nothing and is always
+// fine. run.sh also runs env_drift.py --claims-only (never scoped out) so a
 // roster-only PR cannot skip this the way #493 skipped this file.
 const sameClaims =
   treeClaims.claims.size > 0 &&
-  treeClaims.claims.size === baseClaims.claims.size &&
-  [...treeClaims.claims].every(([k, v]) => baseClaims.claims.get(k) === v);
+  sameClaimMap(treeClaims.claims, baseClaims.claims);
 if (sameClaims && claimsAreOurs) {
   console.log(
     `INHERITED CLAIMS: ${CLAIM_FILE} claims exactly what ${refName} already claims -- ` +
@@ -697,7 +700,9 @@ for (const st of STATES) {
   moved.push(st.name);
   const reason = claimed.get(st.name);
   if (reason) {
-    console.log(`  CLAIMED    ${st.name} -- ${reason}`);
+    // One reason per line the state has (#1266); joined so a single claim
+    // prints exactly the reason, as it always did.
+    console.log(`  CLAIMED    ${st.name} -- ${reason.join("; ")}`);
   } else {
     console.log(`  DRIFT      ${st.name} (unclaimed)`);
     fails += 1;
