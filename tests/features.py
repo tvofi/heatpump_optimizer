@@ -4957,6 +4957,37 @@ R.check(
     f"confirmed {_steady_confirmed}, streak {_steady._streak}, "
     f"lifetime {_steady.lifetime}",
 )
+
+# The check above cannot fail on the reset: there `above == self.running`
+# holds from the very first sample, so `_streak` never leaves 0 and the
+# reset line is dead weight in it. The reset shows itself only when the
+# streak is ALIVE as the agreeing sample arrives. Walk above -> below ->
+# above: sample 1 starts a streak of 1, sample 2 agrees with the held False
+# state, and sample 3 is the second "above" -- but NON-consecutive, so it
+# must start a fresh streak of 1, not confirm. Measured: intact -> streak
+# 1 -> 0 -> 1, no confirmation (lifetime 0); with `self._streak = 0`
+# deleted -> streak 1 -> 1, sample 3 confirms a start (running True,
+# lifetime 1).
+_noncon = _FuzzStarts()
+_noncon_first = _noncon.observe(NOW, 2.0, 1.0, False)
+_noncon_streak_first = _noncon._streak
+_noncon_agree = _noncon.observe(NOW + timedelta(minutes=1), 0.0, 1.0, False)
+_noncon_streak_agree = _noncon._streak
+_noncon_third = _noncon.observe(NOW + timedelta(minutes=2), 2.0, 1.0, False)
+R.check(
+    "above->below->above: the agreeing sample resets the streak, no start",
+    not _noncon_first
+    and _noncon_streak_first == 1
+    and not _noncon_agree
+    and _noncon_streak_agree == 0
+    and not _noncon_third
+    and _noncon._streak == 1
+    and not _noncon.running
+    and _noncon.lifetime == 0,
+    f"confirmed ({_noncon_first!r},{_noncon_agree!r},{_noncon_third!r}), "
+    f"streak {_noncon_streak_first}->{_noncon_streak_agree}->{_noncon._streak}, "
+    f"running {_noncon.running}, lifetime {_noncon.lifetime}",
+)
 _ok, _detail = _from_dict_survives(
     lambda: _FuzzAcc.from_dict({"lead_counts": {"1.0": float("inf")}})
 )
