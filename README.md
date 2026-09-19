@@ -511,7 +511,7 @@ every sensor is created on every install regardless of which group it is in.
 | ECL110 Displace | °C | The parallel shift commanded to an ECL110 heat curve | Diagnostic; disabled by default; ECL110 hardware |
 | ECL110 Effective Displace | °C | The shift the controller has actually reached, after its own lag | Diagnostic; disabled by default; ECL110 hardware |
 | Valve Target Recommendation | °C | What to set a manual mixing valve to, and why | Diagnostic; disabled by default; needs a mixing-valve mode |
-| Sensor-Gap Euro Advisor | CUR | Estimated extra €/month from the highest-value empty sensor slot | Diagnostic; outdoor, house meter, DHW probe |
+| Sensor-Gap Advisor | CUR | Estimated extra cost per month, in your currency, from the highest-value empty sensor slot | Diagnostic; outdoor, house meter, DHW probe |
 | Wood-Burn Night Advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; advisory only — never lights the stove |
 
 Disabled by default: ECL110 Displace, ECL110 Effective Displace, Cost

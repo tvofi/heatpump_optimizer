@@ -1255,13 +1255,31 @@ const PLAN_STEP_MS = 15 * 60000;
 // The headline row's sensors, found by entity-id suffix. Unlike the plan
 // sensors these publish no `plan_kind`-style marker to discover them by, so
 // the id suffix — stable under has_entity_name for any device name — is the
-// contract. Order matters only to the re-render signature.
+// contract. Order matters only to the re-render signature. #1227 prefixed
+// four of these keys with their family (`predicted_savings` ->
+// `plan_predicted_savings`) for NEW installs only; the unique ids are
+// untouched, so an existing install keeps its pre-#1227 registry ids.
+// `statEntity` therefore also knows each renamed sensor's old suffix
+// (LEGACY_STAT_SUFFIXES below) and tries it after the current one, so both
+// id generations resolve.
 const HEADLINE_SUFFIXES = [
-  "_predicted_savings",
-  "_savings_percentage",
-  "_optimization_score",
+  "_plan_predicted_savings",
+  "_plan_savings_percentage",
+  "_plan_optimization_score",
   "_plan_narrative",
 ];
+// The pre-#1227 suffix of every headline stat #1227 renamed, keyed by the
+// suffix the card asks for. A lookup tries the current suffix first and the
+// legacy one after, on the derivation path and in the global scan alike
+// (the legacy suffix also ends-matches the new id, so an install that
+// somehow carries both resolves to the family-prefixed one, which sorts
+// first). Suffixes not listed here — `_plan_narrative` — never moved.
+const LEGACY_STAT_SUFFIXES = {
+  "_plan_predicted_savings": "_predicted_savings",
+  "_plan_savings_percentage": "_savings_percentage",
+  "_plan_optimization_score": "_optimization_score",
+  "_plan_monthly_savings": "_monthly_savings",
+};
 // Slot-drag edge auto-pan: how close to the plot edge (screen px) engages it,
 // and how often the parked pointer advances the view.
 const AUTOPAN_MARGIN_PX = 28;
@@ -2242,6 +2260,11 @@ const SlotModel = {
 function setupSvgHtml(topo, ctx) {
   let boxesOut = null;
   const W = SETUP_W;
+  // The width this diagram is drawn at, in CSS px, through the ctx thunk;
+  // 0 before the canvas has ever been laid out (D4-01). The row-target
+  // floor converts px to viewBox units with it, so the rendered height is
+  // the floor itself rather than a fraction of it.
+  const drawnWidth = ctx.setupWidth ? ctx.setupWidth() : 0;
   // Whether the model runs the wood tank as its own store (issue #40).
   // Published by `describe_setup`; absent on older descriptions, where
   // false is the right answer because that is the model they ran.
@@ -2651,8 +2674,20 @@ function setupSvgHtml(topo, ctx) {
       // respond at all -- which reads as a diagram that is only sometimes
       // clickable.
       const hitBase = rowH - 2;
-      const hitH = _coarsePointer()
-        ? Math.max(hitBase, _targetMinPx() * (SETUP_W / 280))
+      // SC 2.5.8's minimum is owed to every pointer, not only to touch
+      // (D4-01): the floor used to sit behind `_coarsePointer()`, and the
+      // coarse branch converted px to viewBox units with `SETUP_W / 280`
+      // -- a render width nothing here uses, so un-gating it as it stood
+      // would have drawn rows a multiple of their own pitch tall.
+      // `height` counts viewBox units, and the conversion is `SETUP_W /
+      // drawnWidth`: the same scale `point(ev)` hit-tests with, which
+      // makes the rendered height the floor itself. `drawnWidth` is 0
+      // until the canvas has been laid out once; that render keeps the
+      // authored height and `_refitCharts` re-renders it once the browser
+      // has a width (the chart's #256 contract).
+      const unitsPerPx = drawnWidth > 0 ? SETUP_W / drawnWidth : 0;
+      const hitH = unitsPerPx > 0
+        ? Math.max(hitBase, _targetMinPx() * unitsPerPx)
         : hitBase;
       const hitY = y - rowH + 5 - (hitH - hitBase) / 2;
       rows.push(`<rect class="setup-hit" data-key="${esc(s.key)}"
@@ -2782,6 +2817,11 @@ function cardStyleBlock() {
         .expand, .close, .viewctl button, .chip, .dlg-tab,
         .layout-bar button, .whatif button, .whatif input[type="time"],
         .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
+        /* The picker's own field and list, the same surface as the
+           .sp-actions buttons they sit above: without this the text field
+           laid out 23.19 px tall on a 375-768 px card, 0.81 px under the
+           floor (round-5 D4-02, #1220). */
+        .sp-filter, .sp-select,
         .slot-menu button,
         .away-strip label, .away-strip input[type="checkbox"],
         .away-strip input[type="datetime-local"] {
@@ -4240,19 +4280,29 @@ class PlanSource {
     const cached = this.statCache[suffix];
     if (cached && states[cached]) return states[cached];
 
-    for (const [kind, planSuffix] of [
-      ["space", "_space_heating_plan"],
-      ["dhw", "_dhw_heating_plan"],
-    ]) {
-      const planId = this.resolveEntity(kind);
-      if (!planId || !states[planId] || !planId.endsWith(planSuffix)) {
-        continue;
-      }
-      const candidate = planId.slice(0, -planSuffix.length) + suffix;
-      if (states[candidate]) {
-        this.statCache[suffix] = candidate;
-        delete this.statMissAt[suffix];
-        return states[candidate];
+    // #1227 renamed four of these ids for new installs; an existing install
+    // keeps its pre-#1227 registry id. Try the current suffix, then the
+    // legacy one, on the derivation path and in the scan alike.
+    const candidates = [suffix];
+    if (LEGACY_STAT_SUFFIXES[suffix]) {
+      candidates.push(LEGACY_STAT_SUFFIXES[suffix]);
+    }
+
+    for (const cand of candidates) {
+      for (const [kind, planSuffix] of [
+        ["space", "_space_heating_plan"],
+        ["dhw", "_dhw_heating_plan"],
+      ]) {
+        const planId = this.resolveEntity(kind);
+        if (!planId || !states[planId] || !planId.endsWith(planSuffix)) {
+          continue;
+        }
+        const candidate = planId.slice(0, -planSuffix.length) + cand;
+        if (states[candidate]) {
+          this.statCache[suffix] = candidate;
+          delete this.statMissAt[suffix];
+          return states[candidate];
+        }
       }
     }
 
@@ -4260,11 +4310,13 @@ class PlanSource {
     if (this.statMissAt[suffix] === count) return null;
     // Sorted iteration makes a tie deterministic, the same choice
     // `_resolveEntity` makes.
-    for (const id of Object.keys(states).sort()) {
-      if (!id.startsWith("sensor.") || !id.endsWith(suffix)) continue;
-      this.statCache[suffix] = id;
-      delete this.statMissAt[suffix];
-      return states[id];
+    for (const cand of candidates) {
+      for (const id of Object.keys(states).sort()) {
+        if (!id.startsWith("sensor.") || !id.endsWith(cand)) continue;
+        this.statCache[suffix] = id;
+        delete this.statMissAt[suffix];
+        return states[id];
+      }
     }
     this.statMissAt[suffix] = count;
     return null;
@@ -4362,6 +4414,26 @@ function chartWidthPx(host, expanded) {
   const rect = host.getBoundingClientRect();
   const hostW = rect && rect.width ? rect.width : 0;
   return hostW > CARD_CHROME_PX ? hostW - CARD_CHROME_PX : 0;
+}
+
+/** The width the setup diagram is drawn at, in CSS px (D4-01).
+ *
+ * The row-target floor converts CSS px to viewBox units through the same
+ * scale `SetupPage.point` hit-tests with (`SETUP_W / width`), so it measures
+ * the same box that method does: the `.setup-svg` still in the DOM from the
+ * previous render, whose CSS box is the one the fresh markup lands in.
+ * Zero when there is none -- the first paint happens before the diagram is
+ * in the document, and `_refitCharts` re-renders it once the browser has a
+ * width (the chart's #256 contract).
+ */
+function setupWidthPx(host) {
+  const root = host && host.shadowRoot;
+  const svg = root && root.querySelector(".setup-svg");
+  if (svg && typeof svg.getBoundingClientRect === "function") {
+    const r = svg.getBoundingClientRect();
+    if (r && r.width) return r.width;
+  }
+  return 0;
 }
 
 /** The lane geometry of the chart copy `svg` is, for a pointer event on
@@ -5803,7 +5875,7 @@ function headlineSignature(plan, cfg) {
  * so rather than printing 0/100 for something unmeasured.
  */
 function scoreParts(plan) {
-  const st = plan.statEntity("_optimization_score");
+  const st = plan.statEntity("_plan_optimization_score");
   const attrs = (st && st.attributes) || {};
   return [
     { key: "envelope", label: L("score.label_envelope"), value: finiteScore(attrs.envelope) },
@@ -5854,13 +5926,13 @@ function headlineHtml(plan, cfg, scoreOpen) {
   if (!cfg.show_stats) return "";
   const items = [];
 
-  const savings = plan.statNumber("_predicted_savings");
+  const savings = plan.statNumber("_plan_predicted_savings");
   if (savings !== null) {
-    const pct = plan.statNumber("_savings_percentage");
+    const pct = plan.statNumber("_plan_savings_percentage");
     // The savings sensor declares the unit its value is denominated in;
     // nothing here converts, so a card-config `currency:` must not relabel
     // it. `_currency()` only fills in when the sensor declares no unit.
-    const savingsSt = plan.statEntity("_predicted_savings");
+    const savingsSt = plan.statEntity("_plan_predicted_savings");
     const unit =
       (savingsSt &&
         savingsSt.attributes &&
@@ -5884,7 +5956,7 @@ function headlineHtml(plan, cfg, scoreOpen) {
     });
   }
 
-  const score = plan.statNumber("_optimization_score");
+  const score = plan.statNumber("_plan_optimization_score");
   if (score !== null) {
     // The hover says what the score is; the sub-scores ride the same
     // sensor's attributes, so the hover can also say what it is MADE OF
@@ -8451,6 +8523,13 @@ class SetupPage {
     return setupSvgHtml(topo, {
       editing,
       edit,
+      // Recorded as it is read, so `_refitCharts` can compare what this
+      // render assumed against what the browser then did (D4-01).
+      setupWidth: () => {
+        const w = setupWidthPx(this.host);
+        this.host._setupWidthUsed = w;
+        return w;
+      },
       slotLive: (s) => this.slotLive(s),
       solarFallback: () => this.solarFallback(),
     });
@@ -9693,6 +9772,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // The width each chart copy's markup was built for, in the same order,
     // so a render that guessed can be told from one that measured (D4-01).
     this._chartWidthUsed = [];
+    // And the width the setup diagram was built for; undefined until a
+    // render actually draws it, so the refit stays off its page (D4-01).
+    this._setupWidthUsed = undefined;
     this._refitting = false;
     // The chart's last measured rectangle, a hover fallback.
     this._svgRect = null;
@@ -9783,22 +9865,33 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this._refitCharts();
   }
 
-  /** Re-render when a chart is not drawn at the width its last render
-   * assumed (D4-01, #256).
+  /** Re-render when a chart, or the setup diagram, is not drawn at the
+   * width its last render assumed (D4-01, #256).
    *
    * The font floor, the margin scale and the lane band are all functions of
    * the rendered width, and the rendered width is only knowable after the
    * chart has been laid out -- so one corrective pass follows every render
-   * and every resize. `_refitting` bounds it to exactly one: the corrective
-   * render cannot ask for another, so this can never loop however the host
-   * responds to the new markup.
+   * and every resize. The setup diagram's row-target floor is the same
+   * shape: its markup is built before its canvas is in the document, and
+   * the pass that had no width to convert with (0) is corrected here. The
+   * setup check runs only when a render actually drew the diagram
+   * (`_setupWidthUsed` a number), so a closed dialog costs nothing.
+   * `_refitting` bounds this to exactly one: the corrective render cannot
+   * ask for another, so this can never loop however the host responds to
+   * the new markup.
    */
   _refitCharts() {
     if (this._refitting) return;
     if (!this._config || !this._hass || !this.shadowRoot) return;
     // A drag owns the DOM until it lets go; rebuilding under it would drop
-    // the gesture. The drag's own commit re-renders when it ends.
+    // the gesture. The lanes' own commit re-renders when it ends, and the
+    // layout editor's commit redraws its diagram in place -- the redraw
+    // re-measures, so a floor left stale by a mid-drag width change is
+    // corrected there rather than under the pointer.
     if (this.lanes && (this.lanes.drag || this.lanes.gesture)) return;
+    if (this.layoutEditor && this.layoutEditor.edit && this.layoutEditor.edit.drag) {
+      return;
+    }
     let drifted = false;
     for (let i = 0; i < this._chartWidthUsed.length && !drifted; i++) {
       const assumed = this._chartWidthUsed[i];
@@ -9806,6 +9899,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
       const actual = chartWidthPx(this, i === 1);
       if (!actual) continue;
       drifted = Math.abs(actual - assumed) > CHART_WIDTH_EPS_PX;
+    }
+    if (!drifted && this._setupWidthUsed !== undefined) {
+      const actual = setupWidthPx(this);
+      drifted = !!actual && Math.abs(actual - this._setupWidthUsed) > CHART_WIDTH_EPS_PX;
     }
     if (!drifted) return;
     this._refitting = true;
@@ -9989,8 +10086,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const expandable = anyData || anySetup;
 
     // Each render re-records which width each copy was built for; a closed
-    // dialog must not leave last time's number behind (D4-01).
+    // dialog must not leave last time's number behind (D4-01). The setup
+    // diagram's canvas lives on its dialog page, so a closed dialog leaves
+    // its width undefined there too, and the refit stays off that page.
     this._chartWidthUsed = [];
+    this._setupWidthUsed = undefined;
 
     let body;
     if (savingsTile) {
@@ -10190,7 +10290,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * picker) and `layout` (the editor's bar and its working drawing).
    */
   _savingsPageHtml() {
-    const st = this.plan.statEntity("_monthly_savings");
+    const st = this.plan.statEntity("_plan_monthly_savings");
     const rows = st && st.attributes && Array.isArray(st.attributes.savings_months)
       ? st.attributes.savings_months
       : [];
