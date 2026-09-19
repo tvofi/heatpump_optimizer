@@ -11,6 +11,8 @@
 # teams with explicit write access as code owners and name no App form. Every
 # other path has no code owner, and the App's approving review serves those.
 # docs/HANDOVER.md is deliberately absent: it carries state, not rules.
+# Apps are never code owners — neither the approver nor the author App can
+# satisfy an owner review; only @tvofi can (decision 0011).
 #
 # Nothing in the test gate opens this file (tests/closure.py lists it INERT).
 

@@ -531,6 +531,12 @@ const CORPUS_EXCLUDED = new Set([
   // zero until `checkCitationPresence` below: this entry is listed there, so
   // dropping the last policy-file citation of it now refuses.
   'docs/decisions/0010-merge-commits-on-main.md',
+  // The author-identity record (#201 comment 5744682317): pull requests are
+  // authored by the `hpo-author` App, seats are LOCAL-ONLY, the retired
+  // account never writes again. Named one by one per the rule above, and owed
+  // rather than optional: `tools/audit/briefs/fixer.md` and
+  // `tools/audit/briefs/fix-review.md` cite it and are capped.
+  'docs/decisions/0011-app-authored-identity.md',
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and

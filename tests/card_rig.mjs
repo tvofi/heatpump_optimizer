@@ -333,6 +333,12 @@ export function layoutCatalogTopo(over) {
 // nothing else (`# claims-for: 6.2.7`), first one wins; a claim is any
 // non-comment line, its trailing comment the reason. Merely mentioning the
 // marker in prose declares nothing, and a claim line never declares either.
+//
+// A state may carry more than one bare claim line (#1266, the card-file
+// twin of #1255): the value is EVERY line's reason in file order, exactly
+// as env_drift.py's `parse_claim_map` reads the solver file, so a map keyed
+// on the name alone -- last line wins -- cannot hide a claim a branch added
+// beside the baseline's own.
 export const CLAIM_FILE = "tests/golden/card_claimed_drift.txt";
 export const CLAIM_MARKER = "claims-for:";
 
@@ -345,7 +351,10 @@ export function parseClaims(text) {
     const comment = hash < 0 ? "" : line.slice(hash + 1);
     const name = body.trim();
     if (name) {
-      claims.set(name, comment.trim() || "no reason given");
+      const reason = comment.trim() || "no reason given";
+      const reasons = claims.get(name);
+      if (reasons) reasons.push(reason);
+      else claims.set(name, [reason]);
       continue;
     }
     const note = comment.trim();
@@ -355,6 +364,26 @@ export function parseClaims(text) {
     }
   }
   return { declared, claims };
+}
+
+/** Whether two parsed claim maps are the same names AND the same reason
+ * LISTS, line count included -- env_drift.py's dict equality over
+ * `parse_claim_map` output (#1255), ported to the card lane by #1266.
+ * parseClaims once collapsed a state's lines to the last, so a fresh claim
+ * added beside an inherited line parsed exactly equal to the baseline's
+ * single entry and card_drift.mjs fired INHERITED CLAIMS where the Python
+ * gate answered "not inherited" on the same file. The multi-value shape
+ * closes that: an added line beside an inherited one is a rewrite, not an
+ * inheritance; an exact copy still is one, and still gets emptied by
+ * whichever autofix path applies. */
+export function sameClaimMap(tree, base) {
+  if (!tree || !base || tree.size !== base.size) return false;
+  for (const [name, reasons] of tree) {
+    const baseReasons = base.get(name);
+    if (!baseReasons || baseReasons.length !== reasons.length
+      || reasons.some((r, i) => baseReasons[i] !== r)) return false;
+  }
+  return true;
 }
 
 export const looksLikeVersion = (text) =>
