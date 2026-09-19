@@ -626,11 +626,13 @@ def format_resolved_day_spec(
     if not day_overrides or not any(day is not None for day in day_overrides):
         return None
     base = weekly if weekly is not None else [list(fallback) for _ in range(7)]
-    resolved = [
-        list(day_overrides[d]) if d < len(day_overrides) and day_overrides[d] is not None
-        else list(base[d])
-        for d in range(7)
-    ]
+    # The subscript is bound to a local before the None test: mypy narrows
+    # a local's type, not a repeat of a non-literal subscript, and both
+    # arms must read the SAME local or the narrowing proves nothing.
+    resolved: list[list[Window]] = []
+    for d in range(7):
+        override = day_overrides[d] if d < len(day_overrides) else None
+        resolved.append(list(override) if override is not None else list(base[d]))
     return format_weekly_windows(resolved)
 
 
