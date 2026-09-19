@@ -10816,6 +10816,123 @@ R.check(
     "not a widened one, so the exclusion above still holds.)",
 )
 
+# #1218 (D3-08): the deployment-shape lane's measured closure is the whole
+# tracked package -- it materialises the package file by file, and the
+# gate's tracer records every read -- so every diff touching any production
+# file selects the lane. The same recording pairs 53 of the 276 scripts at
+# 0.80 or more of shared production-module closure. The numbers are
+# re-derived here exactly as tools/audit/round5/D3/resource_r5.py derived
+# them (Jaccard over the closure files under
+# custom_components/heatpump_optimizer/, empty sets skipped), and the lane's
+# docstring records them as this repository's selection-cost note. A
+# SELECTION cost only: which mutants each script kills was never measured
+# (the pre-screen stops at the first killer), so nothing claims two
+# overlapping scripts are redundant.
+_D308_DS = "tests/deployment_shape.py"
+_D308 = json.loads(_closure.CLOSURES.read_text())["closures"]
+_D308_PROD = {
+    f for _fs in _D308.values() for f in _fs
+    if f.startswith("custom_components/heatpump_optimizer/")
+}
+
+
+def _d308_pairs(closures: dict, prod: set, floor: float = 0.80) -> list:
+    """resource_r5.py's pair predicate, re-derived here."""
+    names = sorted(closures)
+    out = []
+    for _i in range(len(names)):
+        for _j in range(_i + 1, len(names)):
+            _a = set(closures[names[_i]]) & prod
+            _b = set(closures[names[_j]]) & prod
+            if not _a or not _b:
+                continue
+            _jac = len(_a & _b) / len(_a | _b)
+            if _jac >= floor:
+                out.append((_jac, names[_i], names[_j], len(_a & _b)))
+    return out
+
+
+_D308_PAIRS = _d308_pairs(_D308, _D308_PROD)
+_D308_TOTAL = len(_D308) * (len(_D308) - 1) // 2
+_D308_EMPTY = sorted(
+    s for s, fs in _D308.items() if not set(fs) & _D308_PROD)
+_D308_COMPARABLE = _D308_TOTAL - sum(
+    1 for _i, _a in enumerate(sorted(_D308))
+    for _b in sorted(_D308)[_i + 1:]
+    if not ((set(_D308[_a]) & _D308_PROD) and (set(_D308[_b]) & _D308_PROD)))
+_D308_FULLCOV = sorted(s for s, fs in _D308.items() if _D308_PROD <= set(fs))
+_D308_SELECTED = _D308_DS in _closure.select(
+    ["custom_components/heatpump_optimizer/optimizer.py"])["run"]
+R.check(
+    "the deployment-shape lane's closure is the whole tracked package, so "
+    "any production diff selects it (#1218)",
+    _D308_PROD <= set(_D308.get(_D308_DS, []))
+    and _integration_py <= set(_D308.get(_D308_DS, []))
+    and _D308_FULLCOV == [_D308_DS]
+    and _D308_SELECTED,
+    f"closure reaches {len(set(_D308.get(_D308_DS, [])) & _D308_PROD)}/"
+    f"{len(_D308_PROD)} production files and covers the tree's "
+    f"{len(_integration_py)} package modules "
+    f"({_integration_py <= set(_D308.get(_D308_DS, []))}), "
+    f"full-coverage closures={_D308_FULLCOV}, a production diff selects "
+    f"it={_D308_SELECTED} -- this is the cost the note beside the lane "
+    "records",
+)
+# The note carries the derived numbers, so a re-record that moves them fails
+# HERE instead of leaving stale prose behind. The text is whitespace-
+# normalised first so a future re-wrap of the paragraph cannot flip these.
+_D308_DS_TEXT = " ".join((_closure.ROOT / _D308_DS).read_text().split())
+R.check(
+    "and the lane's docstring records those measured numbers as the "
+    "selection-cost note (#1218)",
+    all(_s in _D308_DS_TEXT for _s in (
+        "D3-08", "#1218", "selection cost",
+        f"all {len(_D308_PROD)} files",
+        f"{len(_D308_PAIRS)} of the {_D308_TOTAL}",
+        f"{_D308_COMPARABLE} pairs",
+    ))
+    and all(_e in _D308_DS_TEXT for _e in _D308_EMPTY),
+    "the note cites numbers this tree derives: "
+    f"{len(_D308_PROD)} production files; {len(_D308_PAIRS)} of "
+    f"{_D308_TOTAL} pairs at >= 0.80; {_D308_COMPARABLE} pairs comparable; "
+    f"no production closure in {_D308_EMPTY}; missing markers -> "
+    f"{[s for s in ('D3-08', '#1218', 'selection cost', 'all %d files' % len(_D308_PROD), '%d of the %d' % (len(_D308_PAIRS), _D308_TOTAL), '%d pairs' % _D308_COMPARABLE) if s not in _D308_DS_TEXT]}",
+)
+# The predicate itself, on synthetic closures built from real production
+# names: equal sets count, disjoint and below-boundary do not, an exactly
+# 0.80 pair counts, and a script with no production closure is skipped in
+# either position -- so the count above cannot be an artefact of the
+# predicate rather than of the recording.
+_D308_SYN = sorted(_D308_PROD)
+R.check(
+    "the overlap predicate counts equal sets, skips empty ones and holds "
+    "the 0.80 boundary (#1218)",
+    [p[3] for p in _d308_pairs(
+        {"tests/a.py": _D308_SYN[:1], "tests/b.py": _D308_SYN[:1]},
+        _D308_PROD)] == [1]
+    and _d308_pairs(
+        {"tests/a.py": _D308_SYN[:1], "tests/b.py": _D308_SYN[1:2]},
+        _D308_PROD) == []
+    and [p[3] for p in _d308_pairs(
+        {"tests/a.py": _D308_SYN[:4], "tests/b.py": _D308_SYN[:5]},
+        _D308_PROD)] == [4]
+    and _d308_pairs(
+        {"tests/a.py": _D308_SYN[:4], "tests/b.py": _D308_SYN[:6]},
+        _D308_PROD) == []
+    and _d308_pairs(
+        {"tests/a.py": _D308_SYN[:1],
+         "tests/z.py": ["tests/hastub/__init__.py"]},
+        _D308_PROD) == []
+    and _d308_pairs(
+        {"tests/a.py": ["tests/hastub/__init__.py"],
+         "tests/b.py": _D308_SYN[:1]},
+        _D308_PROD) == [],
+    "arms: equal -> 1 pair, disjoint -> none, 4/5 (exactly 0.80) -> one "
+    "shared=4, 4/6 -> none, non-production-only script -> none in either "
+    "position; the real recording gives "
+    f"{len(_D308_PAIRS)} of {_D308_TOTAL} with {_D308_COMPARABLE} comparable",
+)
+
 # The scoped gate refuses to skip anything when a changed file is in no
 # closure -- an unmeasured file is not a safe skip. That is right, and it was
 # quietly making gates full: renaming one identifier in setup_qa_render.mjs, a

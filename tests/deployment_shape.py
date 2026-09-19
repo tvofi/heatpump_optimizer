@@ -35,6 +35,26 @@ looks exactly like a pass. Isolation is therefore not trusted — the package's
 provenance is asserted, in the parent from ``coordinator.__file__`` and in the
 child from ``inspect.getfile``.
 
+COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
+tracked package file by file (``_materialise``, below), and the gate's tracer
+records every read, so this lane's recorded closure is the package: all 74
+files under ``custom_components/heatpump_optimizer/``, Python and non-Python
+alike -- the only closure in ``tests/closures.json`` that reaches every
+production file. A diff touching any production file therefore selects this
+lane. That is a selection cost, not a duplicate-assertion one: the same
+recording finds 53 of the 276 script pairs (24 choose 2) sharing 0.80 or more
+of their production-module closure, all 53 among the 231 pairs whose two
+scripts each have a non-empty production closure (``tests/ha_contract.py``
+and ``tests/harness_headers.py`` have none). Ten of the pairs sit at exactly
+1.00 -- structure.py/typing_ruler.py (63 shared production files),
+plan_view.py/solar_alignment.py (45), the optimality.py/validate.py/edge.py/
+backtest.py four (11, six pairs), golden.py/env_drift.py (72),
+card.mjs/card_drift.mjs (46) -- and which mutants each script actually kills
+was never measured, so nothing here says those runs are redundant either:
+the pre-screen stops at the first killer, and where a narrower closure here
+or a merged script for an exactly-equal pair would pay is recorded rather
+than attempted (#1218).
+
     python tests/deployment_shape.py
 """
 from __future__ import annotations
