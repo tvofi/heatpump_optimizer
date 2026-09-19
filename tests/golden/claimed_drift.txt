@@ -314,3 +314,17 @@
 # this branch merges; keeping the claim would state a diff this branch does
 # not own. What remains above is this branch's own footprint, re-derived at
 # da63bbb.
+#
+# #1067 W1067-POST1 (the device pre-fill offered during setup): the v6.6.3
+# stamp emptied the list above, so this branch restates its own footprint. It
+# moves exactly one existing fixture: config_flow gains the pre-fill page's
+# offer switch, prefill_offer, in the plain render, in the seeded render and
+# in the seed map #547 added, and the initial flow's new device_prefill page,
+# whose first form is now captured -- four leaves, all present on one side
+# only, re-recorded for #547's reason above. Measured against this branch's
+# own merge base, origin/main 2128a82, `git diff --numstat` over
+# tests/golden/config_flow.json is 21 insertions and 0 deletions, and no
+# pre-existing leaf appears in the diff. Every other fixture is
+# byte-identical: the offer reads the registry only when the flow reaches it,
+# and no plan reads the switch.
+config_flow  # ADD-ONLY: this branch's own diff is the offer switch -- prefill_offer in the plain render, the seeded render and the seed map -- and the initial flow's device_prefill page, 21 insertions and 0 deletions, no pre-existing leaf moved

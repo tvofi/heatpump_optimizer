@@ -307,6 +307,8 @@ from .const import (
     CONF_SILENT_MODE_WINDOWS,
     CONF_MODBUS_PREFILL_PREFIX,
     DEFAULT_MODBUS_PREFILL_PREFIX,
+    CONF_PREFILL_OFFER,
+    DEFAULT_PREFILL_OFFER,
     DEFAULT_SILENT_MODE_WINDOWS,
     CONF_SILENT_MODE_FRACTION,
     DEFAULT_SILENT_MODE_FRACTION,
@@ -390,6 +392,7 @@ from . import (
     grid_fee,
     mixing_valve,
     modbus_prefill,
+    prefill_offer,
     presets,
     topology,
 )
@@ -1608,6 +1611,12 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # -- modbus_prefill: only the prefix is a row; the preview it opens is
     # built from the rows of the keys it suggests (``_prefill_schema``).
     _F("modbus_prefill", CONF_MODBUS_PREFILL_PREFIX, DEFAULT_MODBUS_PREFILL_PREFIX, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT))),
+    # #1067 W1067-POST1: the offer switch, on the pre-fill's own page because
+    # that is where the pre-fill is met -- "offer this at setup" belongs beside
+    # the page it offers. Off by default, and stored rather than transient:
+    # the initial flow reads it from the entries' options, so it survives a
+    # restart and applies install-wide.
+    _F("modbus_prefill", CONF_PREFILL_OFFER, DEFAULT_PREFILL_OFFER, selector.BooleanSelector()),
 )
 
 
@@ -1773,13 +1782,34 @@ def _prefill_schema(keys: Iterable[str], values: Mapping[str, Any]) -> vol.Schem
 _PREFILL_DEVICE: Final = "prefill_device"
 
 
-def _prefill_prefix_schema() -> dict[Any, Any]:
-    """Phase one's own fields: pick a device, or name a Modbus prefix."""
+def _prefill_device_schema() -> dict[Any, Any]:
+    """The pre-fill's own field: which device's entities to read.
+
+    The pick is the options page's first form beside the Modbus prefix row
+    (that page's other fields are registry rows), and it is the whole of the
+    offer page W1067-POST1 shows during setup -- the prefix route stays on the
+    options page, because a package's entities are already in the states
+    rather than behind a device the user has just added.
+    """
     return {
         vol.Optional(_PREFILL_DEVICE): selector.DeviceSelector(
             selector.DeviceSelectorConfig()
         )
     }
+
+
+def _device_record(entry: Any) -> device_prefill.EntityRecord:
+    """One entity-registry entry as the plain record the resolvers read."""
+    return device_prefill.EntityRecord(
+        platform=entry.platform or "",
+        unique_id=entry.unique_id,
+        entity_id=entry.entity_id,
+        original_name=entry.original_name,
+        translation_key=entry.translation_key,
+        device_class=entry.device_class or entry.original_device_class,
+        unit=entry.unit_of_measurement,
+        state_class=None,
+    )
 
 
 def _device_records(hass: HomeAssistant, device_id: str) -> list[device_prefill.EntityRecord]:
@@ -1790,18 +1820,38 @@ def _device_records(hass: HomeAssistant, device_id: str) -> list[device_prefill.
     """
     registry = er.async_get(hass)
     return [
-        device_prefill.EntityRecord(
-            platform=entry.platform or "",
-            unique_id=entry.unique_id,
-            entity_id=entry.entity_id,
-            original_name=entry.original_name,
-            translation_key=entry.translation_key,
-            device_class=entry.device_class or entry.original_device_class,
-            unit=entry.unit_of_measurement,
-            state_class=None,
-        )
+        _device_record(entry)
         for entry in er.async_entries_for_device(registry, device_id)
     ]
+
+
+def _records_by_device(hass: HomeAssistant) -> dict[str, list[device_prefill.EntityRecord]]:
+    """Every device's records at once, in one pass over the entity registry.
+
+    The offer's input (``prefill_offer.offered``): which device a record
+    belongs to is the registry's own answer, and asking per device would be
+    one scan of the registry per device in the install. Entities belonging to
+    no device are left out -- there is no device to offer.
+    """
+    grouped: dict[str, list[device_prefill.EntityRecord]] = {}
+    for entry in er.async_get(hass).entities.values():
+        if entry.device_id is not None:
+            grouped.setdefault(entry.device_id, []).append(_device_record(entry))
+    return grouped
+
+
+def _prefill_offer_stored(hass: HomeAssistant) -> bool:
+    """Whether any entry of this domain has the pre-fill offer switched on.
+
+    The switch is global, so it is read across the install's entries rather
+    than from one of them: a user who turned it on has turned it on. An
+    install with no entry yet reads the default, which is off -- the offer is
+    opt-in, and that is what its absence means.
+    """
+    return any(
+        entry.options.get(CONF_PREFILL_OFFER, DEFAULT_PREFILL_OFFER)
+        for entry in hass.config_entries.async_entries(DOMAIN)
+    )
 
 
 def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str, str]:
@@ -1983,6 +2033,13 @@ class HeatPumpOptimizerConfigFlow(
 
     VERSION = CONFIG_ENTRY_VERSION
 
+    #: The suggested keys the offer page is showing, between its two submits
+    #: (#1067 W1067-POST1). None means the page is being opened; a tuple means
+    #: the preview was computed and the next submit is the one that keeps or
+    #: drops what it offered -- the same two-submit shape as the options
+    #: flow's pre-fill page, with the wizard's own data as the target.
+    _device_prefill: tuple[str, ...] | None = None
+
     def __init__(self) -> None:
         """Initialize the config flow."""
         self._data: dict[str, Any] = {}
@@ -2068,6 +2125,13 @@ class HeatPumpOptimizerConfigFlow(
                 self._abort_if_unique_id_configured()
             if self._reconfigure_entry is not None:
                 return await self._async_save_reconfigure(self._data)
+            if _prefill_offer_stored(self.hass) and prefill_offer.offered(
+                _records_by_device(self.hass)
+            ):
+                # #1067 W1067-POST1: the device the user has just added is in
+                # the registry, and this is the moment the pre-fill is worth
+                # offering -- before the wizard moves past the entity screens.
+                return await self.async_step_device_prefill()
             return await self.async_step_finish_setup()
 
         # Grouped on a FRESH setup only. On reconfigure the page is prefilled
@@ -2087,6 +2151,116 @@ class HeatPumpOptimizerConfigFlow(
             step_id="user_sensors",
             data_schema=schema,
         )
+
+    def _device_prefill_form(
+        self,
+        schema: vol.Schema,
+        notes: dict[str, str],
+        errors: dict[str, str],
+    ) -> ConfigFlowResult:
+        """The offer page, with the placeholders its description always reads.
+
+        ``device_prefill.disclaimer()`` with no resolution is the empty form,
+        so the pick and the refusal both carry the two keys the device route
+        overrides rather than leaving the description's braces unrendered --
+        the options flow's pre-fill page, and its reason, in one place.
+        """
+        return self.async_show_form(
+            step_id="device_prefill",
+            errors=errors,
+            description_placeholders={**device_prefill.disclaimer(), **notes},
+            data_schema=schema,
+        )
+
+    async def async_step_device_prefill(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Offer the device pre-fill for a pump added to this install (#1067 POST1).
+
+        Reached from the second screen's submit when the pre-fill offer is
+        switched on and a device in the registry resolves through G7b -- the
+        device the user has just added, at the moment the suggestion is worth
+        making. One page, submitted twice, exactly like the options flow's
+        pre-fill page: the first submit says which device to read and opens a
+        preview of what its entities suggest, the second keeps what the user
+        left in the form and lets the wizard continue.
+
+        Nothing is written until that second submit, and an empty device pick
+        is a decline rather than an error: the offer is the user's to leave,
+        and leaving it writes nothing. A device that resolves too few roles to
+        be worth the page is refused on the page rather than opened empty
+        (``prefill_offer.qualifies``), so a prompt never becomes an empty form.
+
+        What the user keeps lands in the entry's own setup data rather than in
+        options, because there is no entry yet: the wizard's own pages store
+        their answers the same way, and the coordinator reads setup data and
+        options alike. The omission rules are the options page's own
+        (#1107): a blank field, an unchanged value and an unstored default
+        are dropped by ``infer`` and ``_omit_unstored_defaults``, so accepting
+        the offer cannot rewrite a setting as itself.
+        """
+        if user_input is None:
+            # The page opened: which device's entities to read. Reopening
+            # after a refusal comes back here too, which is why the pick and
+            # the refusal render the same form.
+            return self._device_prefill_form(
+                vol.Schema(_prefill_device_schema()),
+                modbus_prefill.notes({}),
+                {},
+            )
+        if self._device_prefill is None:
+            device_id = user_input.get(_PREFILL_DEVICE)
+            if not device_id:
+                return await self.async_step_finish_setup()
+            resolution = device_prefill.resolve_with_fallback(
+                _device_records(self.hass, str(device_id))
+            )
+            snapshot = (
+                modbus_prefill.snapshot(self.hass.states.get, resolution.roles)
+                if prefill_offer.qualifies(resolution)
+                else {}
+            )
+            suggested = {
+                key: value
+                for key, value in modbus_prefill.infer(
+                    snapshot, {**_ABSENT_FALLBACKS, **self._data}
+                ).items()
+                if _prefill_fits(key, value)
+            }
+            if not suggested:
+                # A device no source recognises, one that filled too few
+                # roles, or one whose entities hold nothing to suggest: say so
+                # on the page rather than open an empty form.
+                return self._device_prefill_form(
+                    vol.Schema(_prefill_device_schema()),
+                    modbus_prefill.notes({}),
+                    {"base": "prefill_device_unreadable"},
+                )
+            notes = {
+                **modbus_prefill.notes(snapshot),
+                **device_prefill.disclaimer(resolution),
+            }
+            self._device_prefill = tuple(suggested)
+            return self._device_prefill_form(
+                _prefill_schema(suggested, suggested), notes, {}
+            )
+        keys = self._device_prefill
+        saved = {
+            key: value
+            for key, value in _flatten_section_input(user_input).items()
+            if value not in (None, "")
+        }
+        errors = _prefill_errors(saved, {**_ABSENT_FALLBACKS, **self._data})
+        if errors:
+            return self._device_prefill_form(_prefill_schema(keys, saved), {}, errors)
+        self._device_prefill = None
+        self._data.update(
+            _omit_unstored_defaults(
+                _omit_unstored_computed(saved, self._data, self.hass),
+                self._data,
+            )
+        )
+        return await self.async_step_finish_setup()
 
     async def _async_save_reconfigure(
         self, user_input: dict[str, Any]
@@ -3243,10 +3417,18 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     #: the suggested keys the preview shows, and what the page says about them.
     _prefill: tuple[str | None, tuple[str, ...], dict[str, str]] | None = None
 
+    #: The offer switch as the first submit posted it (#1067 W1067-POST1).
+    #: It renders on that first form, beside the prefix row, and the preview
+    #: that follows shows only suggested keys -- so the choice is carried here
+    #: rather than through a schema that does not present it. None means the
+    #: page is being opened afresh; the save then writes what the switch was
+    #: set to, and omits it as an unchanged default when it was left off.
+    _prefill_offer: bool | None = None
+
     def _prefill_phase_one(self, current: dict[str, Any]) -> vol.Schema:
         """The page's first form: the device pick above the Modbus prefix row."""
         return vol.Schema({
-            **_prefill_prefix_schema(),
+            **_prefill_device_schema(),
             **_page_schema("modbus_prefill", current, self.hass).schema,
         })
 
@@ -3293,8 +3475,13 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         current = self._current
         if user_input is None:
             self._prefill = None
+            self._prefill_offer = None
             return self._prefill_form(self._prefill_phase_one(current), modbus_prefill.notes({}), {})
         if self._prefill is None:
+            # The offer switch is posted here, on the same form as the device
+            # pick, and saved by the second submit below -- this one only
+            # opens the preview, and nothing on this page is written yet.
+            self._prefill_offer = user_input.get(CONF_PREFILL_OFFER)
             device_id = user_input.get(_PREFILL_DEVICE)
             sourced: dict[str, str] = {}
             if device_id:
@@ -3344,7 +3531,13 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         errors = _prefill_errors(saved, current)
         if errors:
             return self._prefill_form(_prefill_schema(keys, saved), notes, errors)
+        if self._prefill_offer is not None:
+            # Carried from the first submit, and written with the rest of what
+            # the page keeps: an off switch left off is an unchanged default
+            # and is dropped by ``_omit_unstored_defaults`` (#1107).
+            saved[CONF_PREFILL_OFFER] = self._prefill_offer
         self._prefill = None
+        self._prefill_offer = None
         if matched_prefix is not None:
             saved[CONF_MODBUS_PREFILL_PREFIX] = matched_prefix
         return await self._save_or_menu(saved)

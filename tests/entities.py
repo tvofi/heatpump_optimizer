@@ -641,11 +641,13 @@ for _lang_file in ("strings.json", "translations/sv.json"):
             for _k, _label in _step_texts(_st, "data")
             if _k == _pkey
         }
-        # The page's OWN fields -- the prefix row and the transient device
-        # pick (#1067 G7b-1) -- have no home page to agree with. Derived from
-        # production, so a renamed field cannot silently fall out of the check.
+        # The page's OWN fields -- the prefix row, the transient device pick
+        # (#1067 G7b-1) and the offer switch (#1067 W1067-POST1) -- have no
+        # home page to agree with. Derived from production, so a renamed field
+        # cannot silently fall out of the check.
         if _pkey not in (
             const.CONF_MODBUS_PREFILL_PREFIX, config_flow._PREFILL_DEVICE,
+            const.CONF_PREFILL_OFFER,
         ) and set(_homes.values()) != {_plabel}:
             _prefill_drift.append(f"{_lang_file}:{_pkey}={_plabel!r} vs {_homes}")
 R.check(

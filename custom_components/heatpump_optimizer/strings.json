@@ -291,6 +291,16 @@
       "setup_overview": {
         "title": "Your system, as configured",
         "description": "What the optimizer believes your system is, from the current configuration. An empty slot is shown as empty on purpose — it is a sensor this setup could use and does not have.\n\n{setup_summary}"
+      },
+      "device_prefill": {
+        "title": "Pre-fill from a heat pump device",
+        "description": "A heat pump device in this install can answer several of these settings from its own entities. Pick it and submit: the next form suggests what its entities say, as ordinary fields you can edit or clear, and nothing is written until you submit that form. Leave the device empty to skip this and continue setup.\n\nEntities read: {found}. Backup heater type register: {backup_heater_type} - any value but 7 means the pump has electric heat of its own, which the heater slots on Heat pump telemetry are there to watch.\n\nRoles read from an entity's NAME rather than from a published definition - the page cannot verify those, so check each before saving: {name_matched}. Roles read from published definitions, by source: {matched_sources}.",
+        "data": {
+          "prefill_device": "Heat pump device"
+        },
+        "data_description": {
+          "prefill_device": "The pump's own device. Its entities are mapped to settings by that integration's published definitions, or by their names where nothing is published - not from a reading of your unit - so check the suggestions before keeping them. Leave it empty to continue setup without the pre-fill."
+        }
       }
     },
     "error": {
@@ -1284,7 +1294,8 @@
           "heat_pump_return_temp_entity": "Return water temperature",
           "compressor_freq_sensor": "Actual frequency sensor (recommended for control)",
           "heat_pump_capacity_limited_entity": "Capacity limited (night mode)",
-          "after_save": "After saving"
+          "after_save": "After saving",
+          "prefill_offer": "Offer this pre-fill at setup"
         },
         "data_description": {
           "prefill_device": "Pick the heat pump's own device to read its entities instead of a Modbus package. Leave it empty to use the prefix below. The suggestions come from that integration's published definitions, not from a reading of your unit, so check them.",
@@ -1304,7 +1315,8 @@
           "heat_pump_return_temp_entity": "The package's entering water temperature (Tw-in) sensor, suggested only while this slot is empty.",
           "compressor_freq_sensor": "The package's actual compressor frequency sensor, suggested only while this slot is empty.",
           "heat_pump_capacity_limited_entity": "The package's night mode (frequency reduction) active sensor, suggested only while this slot is empty.",
-          "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+          "after_save": "Saving writes through immediately; this chooses where the dialog goes next.",
+          "prefill_offer": "When on, setting up a new entry offers this page if a heat-pump device added to this install can fill any of these settings. Off by default: the setup wizard is unchanged while it is off, and this switch is stored, so it survives a restart."
         }
       }
     },

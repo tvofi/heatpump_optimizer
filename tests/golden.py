@@ -1204,6 +1204,10 @@ def capture_config_flow() -> dict:
         "user",
         "user_sensors",
         "finish_setup",
+        # The offer page W1067-POST1 reaches from the second screen's submit
+        # when the pre-fill offer is switched on (#1067): its first form is
+        # recorded like any other, so the field it asks with is pinned.
+        "device_prefill",
         "temperature",
         "building",
         "building_describe",

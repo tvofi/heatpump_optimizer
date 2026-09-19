@@ -487,6 +487,16 @@ DEFAULT_SILENT_MODE_FRACTION: Final = 1.0
 # generator's own; the key is read only by that page, never by the plan.
 CONF_MODBUS_PREFILL_PREFIX: Final = "modbus_prefill_prefix"
 DEFAULT_MODBUS_PREFILL_PREFIX: Final = "hp"
+#: #1067 (W1067-POST1): whether the initial config flow offers that pre-fill
+#: when a heat-pump device has been added to the install. Off by default: an
+#: offer the user did not ask for is a new surface on the setup path, and the
+#: switch that answers it lives on the pre-fill's own page. Stored rather than
+#: transient -- the offer is a standing preference, and the wizard reads it
+#: from the entries' options, so it survives restarts and applies install-wide
+#: (any entry that has it on switches the offer on). Read only by
+#: ``config_flow.py``; the plan reads nothing of it.
+CONF_PREFILL_OFFER: Final = "prefill_offer"
+DEFAULT_PREFILL_OFFER: Final = False
 CONF_OUTAGE_RECOVERY_ENABLED: Final = "outage_recovery_enabled"
 DEFAULT_OUTAGE_RECOVERY_ENABLED: Final = False
 
