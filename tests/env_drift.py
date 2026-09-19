@@ -950,24 +950,27 @@ def _rev(repo: str, rev: str) -> str | None:
     return proc.stdout.strip() or None
 
 
-def _parse_claims(text: str) -> tuple[str | None, dict[str, str]]:
+def _parse_claims(text: str) -> tuple[str | None, dict[str, list[str]]]:
     """Stamp and parsed claims from claim-file text. See ``_claimed``."""
     declared: str | None = None
-    claims: dict[str, str] = {}
     for line in text.splitlines():
         body, _, comment = line.partition("#")
-        name = body.strip()
-        if name:
-            claims[name] = comment.strip() or "no reason given"
+        if body.strip():
+            # A claim line: its trailing text is a reason, never the stamp.
             continue
         note = comment.strip()
         if declared is None and note.startswith(CLAIM_VERSION_MARKER):
             rest = note[len(CLAIM_VERSION_MARKER):].split()
             declared = rest[0] if rest else ""
-    return declared, claims
+    # One rule for the claim map, not two: this used to re-state the
+    # line loop `parse_claim_map` runs, and the copies disagreed only
+    # when they were wrong (#1255).
+    return declared, parse_claim_map(text)
 
 
-def _claimed(repo: str, relpath: str = CLAIM_FILE) -> tuple[str | None, dict[str, str]]:
+def _claimed(
+    repo: str, relpath: str = CLAIM_FILE
+) -> tuple[str | None, dict[str, list[str]]]:
     """The release a claim file is stamped for, and the scenarios it claims.
 
     The stamp is a comment line that BEGINS with the marker and nothing
@@ -1001,7 +1004,7 @@ def _parent_count(repo: str) -> int:
     return len(proc.stdout.split()) - 1 if proc.returncode == 0 and proc.stdout.strip() else 0
 
 
-def _claimed_at(repo: str, ref: str, relpath: str) -> dict[str, str]:
+def _claimed_at(repo: str, ref: str, relpath: str) -> dict[str, list[str]]:
     """Parsed claims for ``relpath`` at ``ref``, or empty if the path is missing."""
     text = _show_at(repo, ref, relpath)
     return {} if text is None else _parse_claims(text)[1]
@@ -1065,7 +1068,7 @@ def _may_drift(repo: str) -> dict[str, str]:
 
 
 def may_drift_error(
-    may_drift: dict[str, str], claims: dict[str, str]
+    may_drift: dict[str, str], claims: dict[str, list[str]]
 ) -> str | None:
     """Why the may-drift list is not usable - None when it is.
 
@@ -1160,7 +1163,7 @@ def claim_version_error(repo: str) -> str | None:
 
 
 def stamp_claims_error(
-    claims: dict[str, str], version: str, baseline_version: str
+    claims: dict[str, list[str]], version: str, baseline_version: str
 ) -> str | None:
     """Why a release commit still carries claims — None when it does not.
 
@@ -1209,14 +1212,26 @@ def stamp_claims_error(
     )
 
 
-def parse_claim_map(text: str) -> dict[str, str]:
-    """Scenario name -> reason, same rule `_claimed` uses on a file."""
-    claims: dict[str, str] = {}
+def parse_claim_map(text: str) -> dict[str, list[str]]:
+    """Scenario name -> the reason of EVERY claim line it has, file order.
+
+    Same rule `_claimed` uses on a file, and this is now its only
+    implementation. A scenario may carry more than one bare claim line
+    (#1255): a fresh claim for an already-claimed scenario is a second
+    line, and a map keyed on the name alone kept only the LAST one -- a
+    branch that added a claim beside the baseline's own line parsed
+    exactly equal to the baseline's single entry, and the added claim was
+    invisible to `inherited_claims_error`. The value is every line's
+    reason, so map equality is same names AND same lines, count included.
+    """
+    claims: dict[str, list[str]] = {}
     for line in text.splitlines():
         body, _, comment = line.partition("#")
         name = body.strip()
         if name:
-            claims[name] = comment.strip() or "no reason given"
+            claims.setdefault(name, []).append(
+                comment.strip() or "no reason given"
+            )
     return claims
 
 
@@ -1224,8 +1239,10 @@ def drop_inherited_claim_lines(text: str, baseline_text: str) -> str | None:
     """Delete bare claim lines when the parsed list matches the baseline.
 
     Keeps the header, `claims-for:`, and `# may-drift:` lines. Returns
-    None when the list is empty or not inherited — those are not a
-    mechanical rewrite.
+    None when the list is empty or not inherited -- and the parsed map
+    carries every line per scenario, so a list that ADDED a line beside
+    the baseline's is a rewrite, not an inheritance (#1255). Those are
+    not a mechanical rewrite.
     """
     if inherited_claims_error(
         parse_claim_map(text), parse_claim_map(baseline_text), "baseline"
@@ -1292,7 +1309,9 @@ def apply_inherited_claims(
 
 
 def inherited_claims_error(
-    claims: dict[str, str], baseline_claims: dict[str, str], ref: str,
+    claims: dict[str, list[str]],
+    baseline_claims: dict[str, list[str]],
+    ref: str,
     claim_file: str = CLAIM_FILE,
 ) -> str | None:
     """Why this tree's claim list is the baseline's — None when it is not.
@@ -1302,11 +1321,12 @@ def inherited_claims_error(
     share a version (7b512bc/401db6e/2248f64 at 4.0.0, the ten v4.0.0
     T* merges at 3.16.0), and across those an inherited file carries
     a matching stamp. This is the invariant itself: a claim list that is
-    exactly the baseline's — same names, same reasons — was written for
-    the baseline's diff, not for this one. Comparing the PARSED claims
-    rather than the file's bytes means a comment or whitespace edit
-    cannot launder an inherited list. An empty list claims nothing and is
-    always fine.
+    exactly the baseline's — same names, same reason LISTS, line count
+    included — was written for the baseline's diff, not for this one.
+    Comparing the PARSED claims rather than the file's bytes means a
+    comment or whitespace edit cannot launder an inherited list, and the
+    multi-value map means neither can a claim ADDED beside the baseline's
+    own line (#1255). An empty list claims nothing and is always fine.
     """
     if not claims or claims != baseline_claims:
         return None
@@ -1662,8 +1682,8 @@ STAMP_WRITES = frozenset({
 
 def release_stamp_holds(
     changed: list[str],
-    solver: dict[str, str],
-    card: dict[str, str],
+    solver: dict[str, list[str]],
+    card: dict[str, list[str]],
     stamp: tuple[str, str, str | None, str | None, int] | None,
 ) -> bool:
     """Whether this three-dot is a release stamp that left the claims as a stamp must.
@@ -1749,7 +1769,8 @@ def claim_kinds(changed: list[str]) -> dict[str, bool]:
 
 
 def foreign_claim_file_error(
-    claim_file: str, claims: dict[str, str], baseline: dict[str, str], cannot: str
+    claim_file: str, claims: dict[str, list[str]],
+    baseline: dict[str, list[str]], cannot: str
 ) -> str | None:
     """Why a three-dot that cannot move what ``claim_file`` excuses changed it.
 
@@ -1770,10 +1791,10 @@ def foreign_claim_file_error(
 
 def claims_hygiene_verdict(
     changed: list[str],
-    solver: dict[str, str],
-    card: dict[str, str],
-    base_solver: dict[str, str],
-    base_card: dict[str, str],
+    solver: dict[str, list[str]],
+    card: dict[str, list[str]],
+    base_solver: dict[str, list[str]],
+    base_card: dict[str, list[str]],
     ref: str,
     stamp: tuple[str, str, str | None, str | None, int] | None = None,
 ) -> str | None:
@@ -1806,10 +1827,10 @@ def claims_hygiene_verdict(
 
 def record_pr_claims_error(
     changed: list[str],
-    solver_claims: dict[str, str],
-    card_claims: dict[str, str],
-    baseline_solver: dict[str, str] | None = None,
-    baseline_card: dict[str, str] | None = None,
+    solver_claims: dict[str, list[str]],
+    card_claims: dict[str, list[str]],
+    baseline_solver: dict[str, list[str]] | None = None,
+    baseline_card: dict[str, list[str]] | None = None,
 ) -> str | None:
     """Why a docs/roster three-dot changed a claim file — None when it did not.
 
@@ -1915,19 +1936,20 @@ RUNNER_CONDITIONAL_REOPEN_AT = 3
 
 
 def branch_authored_stale_claims(
-    stale: list[str], claims: dict[str, str], baseline_claims: dict[str, str]
+    stale: list[str], claims: dict[str, list[str]],
+    baseline_claims: dict[str, list[str]]
 ) -> list[str]:
     """Which stale claims this branch itself wrote -- the #996 arm's input.
 
     A stale claim is runner-conditional news only when the branch wrote the
     line: the line exists because the branch's own evidence expected drift,
-    and this capture found none. A line the baseline already carries --
-    same name, same reason -- was written for another diff; that is
+    and this capture found none. A claim the baseline already carries --
+    same name, same reason lines -- was written for another diff; that is
     yesterday's staleness, it keeps the generic message, and an exactly
     inherited list never gets this far (`inherited_claims_error` refuses it
-    first, in the modes that check). A rewritten reason is a rewritten
-    line, so it counts as authored; a baseline with no claim file at all
-    cannot have written any of them.
+    first, in the modes that check). A rewritten or ADDED reason line is a
+    rewritten claim (#1255's parse), so it counts as authored; a baseline
+    with no claim file at all cannot have written any of them.
     """
     return [n for n in stale if baseline_claims.get(n) != claims.get(n)]
 
@@ -2272,14 +2294,14 @@ def main() -> int:
                 if name in claims:
                     claimed_hits.append(name)
                     print(f"  CLAIMED {name}: added by this branch, no baseline "
-                          f"on {ref} ({claims[name]})")
+                          f"on {ref} ({'; '.join(claims[name])})")
                 else:
                     print(f"  new   {name}: no baseline on {ref} (added by this branch)")
                 continue
             if name not in branch:
                 if name in claims:
                     claimed_hits.append(name)
-                    print(f"  CLAIMED {name}: removed ({claims[name]})")
+                    print(f"  CLAIMED {name}: removed ({'; '.join(claims[name])})")
                 else:
                     drifted += 1
                     print(f"  DRIFT {name}: scenario removed by this branch")
@@ -2313,7 +2335,8 @@ def main() -> int:
                         print(f"         {line}")
             elif name in claims:
                 claimed_hits.append(name)
-                print(f"  CLAIMED {name}: {len(diffs)} leaves moved ({claims[name]})")
+                print(f"  CLAIMED {name}: {len(diffs)} leaves moved "
+                      f"({'; '.join(claims[name])})")
                 for line in diffs[:3]:
                     print(f"         {line}")
             else:
@@ -2391,7 +2414,7 @@ def main() -> int:
             print("Nothing drifted for these -- they are entries in")
             print("tests/golden/claimed_drift.txt that matched no scenario:")
             for name in stale:
-                print(f"  {name}: {claims[name]}")
+                print(f"  {name}: {'; '.join(claims[name])}")
             print("A claim nothing uses would silently excuse the next")
             print("accidental drift, so it fails. Delete these lines; the")
             print("behaviour they describe is already gone or never came.")
