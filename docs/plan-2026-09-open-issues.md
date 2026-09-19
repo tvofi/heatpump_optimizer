@@ -1211,6 +1211,21 @@ judge comments on each issue and summarised on #201.
   *different ruler* (non-strict) rather than a stale count, and #233's restart gap fails its
   own flat-price null at both 24 and 48 hours.
 
+
+**Session dispositions, 2026-09-19 (record PR; owner-directed triage in flight):**
+#1207/#1208/#1210 (D0/D2 economics) — scheduled, batch A seat in flight.
+#1230 (D9-02) — scheduled, batch B, sequenced behind batch A for a quiet
+machine (its timings must not share it with gate runs). #1238–#1241 (D13) —
+scheduled, batch C after B. #1258 (Quick setup from an existing entry) and
+#1262 (device_prefill raw keys AND raw entity names) — scheduled, sequenced
+behind #1260's feature seat (same files). #1260 (per-weekday DHW windows,
+owner-requested) — scheduled, feature seat in flight incl. the card plan-tab
+"hot water windows" integration (owner requirement). #1266 (card_rig
+parseClaims, #1255's JS twin) — in review, PR #1268. #1267 (app_push
+http.postBuffer) — scheduled follow-up on the merged tool. #996 — deferred
+behind the batches; #962 closes with it. #201 — tracking, open while the
+programme runs.
+
 ## Open friction issues — dispositions
 
 The seven `[policy] recurring friction:` issues the governance cron filed

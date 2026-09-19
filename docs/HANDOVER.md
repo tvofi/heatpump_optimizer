@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: a53fc7581bfc21dcf0a63670acf7d6cd01c0f20e
+updated-for: f20189d9b91bc49b5393ff51a393a2e73ed7d4f7
 
 Taken at this record seat's own merge base off `origin/main`. W1067-G8
 re-pointed this line to `a53fc75` (origin/main's tip) as it closed wave 1067
@@ -761,3 +761,29 @@ work from some environments and are proxy-refused in others, and the message
 separates them: "Resource not accessible by integration" is a token scope,
 "not permitted through this proxy" is the environment. Recording the second as
 the first sends a reader to change what was never the obstacle.
+
+## 2026-09-19 — the authoring identity moved to the hpo-author App; eight merges; v6.6.5
+
+The seat USER account is spam-flagged with the worst measured shape: writes
+return 201 and vanish (phantom PR #1256 within ~60s), branch names wedge
+(fix/d11-gov still refuses any PR), and its artifacts purge RETROACTIVELY
+(~11 merged PRs 404; in-tree delivery rows are the surviving audit trail).
+Decision 0011 (PR #1261, owner-reviewed): **hpo-author App authors**
+(orchestrator-centralized minting, app_push.sh, PRs #1259/#1261/#1264/#1265/
+#1268 are its first flights), **hpo-approver approves**, **verdicts/merges/
+closes post as tvofi only**; app_approve requires every merge verdict to cite
+an existing non-empty evidence dir naming the head SHA (#1233 closed on that
+gate; the unprovable residual is accepted on the record). Retired account
+makes no GitHub write even if support restores it; the ticket asks for the
+purged PRs' conversations back.
+
+Main went red for four push runs (INHERITED CLAIMS: a claim carried forward
+by claim-untouched merges, made invisible by parse_claim_map's same-scenario
+collapse) — repaired by #1253's claim rewrite, the v6.6.5 stamp (claims
+emptied), and #1265's multi-value parse; the JS twin is #1266/#1268.
+
+Process lessons recorded: an owner approval that landed at 20:18Z was acted
+on hours late — poll review state on every PR awaiting the owner; pushes
+over ~1 MiB die chunked without http.postBuffer (#1267); a PR body figure
+stale at a moved head is corrected by a head-unmoving body edit, then
+pr-contract re-runs (#1264 round 2).
