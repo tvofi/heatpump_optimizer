@@ -2571,12 +2571,20 @@ class FrequencyAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase
 #: prices have not been read yet). A spot-only figure in the instance
 #: currency, so the advisor still ranks instead of dropping both probe rows
 #: to zero. Deliberately not the capacity tariff's per-kW price: a kWh priced
-#: with that is off by a whole month (#1186).
+#: with that is off by a whole month (#1226).
 FALLBACK_ENERGY_PRICE_PER_KWH = 1.0
 
 
 def _numeric_samples(series: Any) -> list[float]:
-    """The finite-number samples of a published power series."""
+    """The number-typed samples of a published power series, holes dropped.
+
+    A rolling window can carry a hole -- a ``None``, or a raw string that
+    never parsed -- and every reader of the series (the probe terms and the
+    house meter's window peak alike) must see numbers only: raw, the hole
+    raises out of ``extra_state_attributes``, or NaN-marks the window and
+    ranks its row a silent 0.00. Dropped, the series ranks as its clean
+    twin (#1226).
+    """
     return [float(value) for value in series if isinstance(value, (int, float))]
 
 
@@ -2587,7 +2595,7 @@ def _gap_energy_rate(data: Mapping[str, Any], config: Mapping[str, Any]) -> floa
     or an install whose prices have not been read yet -- falls back to the
     fixed contract price and then to a nominal spot figure, so the ranking
     survives it. Never the capacity tariff's per-kW price: a kWh priced with
-    that is off by a whole month (D8-01, #1186).
+    that is off by a whole month (D8-01, #1226).
     """
     rate = data.get("current_price")
     if not isinstance(rate, (int, float)) or float(rate) <= 0.0:
@@ -2603,11 +2611,18 @@ def _gap_probe_terms(
     house_vals: list[float],
     rate: float,
 ) -> dict[str, float]:
-    """The COP-miss and DHW-coast inputs, from the energy seen to be carried.
+    """The COP-miss and DHW-coast inputs, from the series the payload carries.
 
-    With no measured series there is nothing to price, so every term stays
-    0.0 rather than being invented from a default tank or a default window --
-    which is also why the advisor against a series-less payload ranks nothing.
+    With no measured power series there is nothing to price, so every term
+    stays 0.0 rather than being invented from an imaginary duty cycle -- which
+    is also why the advisor against a series-less payload ranks nothing. Once
+    a series is present the COP terms read the pump load and duty cycle the
+    window shows; the DHW term is a month of the tank's usable band, one
+    reheat a day at the resolved rate, priced from the configured tank volume
+    (``CONF_DHW_TANK_VOLUME``, else the documented ``DEFAULT_DHW_TANK_VOLUME``)
+    over the documented ``DEFAULT_DHW_SETPOINT`` - ``DEFAULT_DHW_MIN_TEMP``
+    band. That kWh figure is the documented tank sizing, not reheat energy
+    observed in a series: the payload carries no DHW series to read one from.
     """
     terms: dict[str, float] = {
         "outdoor_load_kw": 0.0,
@@ -2653,8 +2668,12 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
     def _gaps(self) -> list[dict[str, Any]]:
         config = getattr(self.coordinator, "_config", None) or {}
         data = self.coordinator.data or {}
-        house = data.get("house_power_series") or ()
-        hp = data.get("heat_pump_power_series") or ()
+        # Sanitise once, HERE, so every reader below sees numbers only --
+        # the house meter's peak term inside rank_sensor_gaps reads the
+        # series too, and a hole left raw there becomes a NaN window (a
+        # silently ranked-0.00 row) or raises in numpy (#1226).
+        house = _numeric_samples(data.get("house_power_series") or ())
+        hp = _numeric_samples(data.get("heat_pump_power_series") or ())
         peak = data.get("peak_tariff") or {}
         return topology.rank_sensor_gaps(
             config,
@@ -2665,8 +2684,8 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
             peak_count=int(peak.get("peaks_averaged") or 3),
             **_gap_probe_terms(
                 config,
-                _numeric_samples(hp),
-                _numeric_samples(house),
+                hp,
+                house,
                 _gap_energy_rate(data, config),
             ),
         )
