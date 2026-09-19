@@ -2799,6 +2799,11 @@ function cardStyleBlock() {
         .expand, .close, .viewctl button, .chip, .dlg-tab,
         .layout-bar button, .whatif button, .whatif input[type="time"],
         .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
+        /* The picker's own field and list, the same surface as the
+           .sp-actions buttons they sit above: without this the text field
+           laid out 23.19 px tall on a 375-768 px card, 0.81 px under the
+           floor (round-5 D4-02, #1220). */
+        .sp-filter, .sp-select,
         .slot-menu button,
         .away-strip label, .away-strip input[type="checkbox"],
         .away-strip input[type="datetime-local"] {
