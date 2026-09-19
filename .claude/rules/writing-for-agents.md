@@ -18,7 +18,9 @@ supply, so they need the explanation this rule cuts.
 
 **Precision outranks concision, always.** Where the two pull against each other,
 precision wins and the artifact gets longer. **A short artifact missing a
-control is a defect; cutting evidence is never compliance with this rule.**
+control is a defect; cutting evidence is never compliance with this rule.** A
+**disclosed self-correction** is relocated, not cut (`docs/HANDOVER.md`'s #1058
+tie-break).
 
 Given that: a sentence stays only if it carries a **measurement**, **the rule or
 control behind one** (`fixer.md` step 8), a **decision and why**, a **constraint
