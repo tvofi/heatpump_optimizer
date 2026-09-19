@@ -14039,6 +14039,32 @@ R.check(
     f"{_version} -- lower CARD_VERSION in {_card_path} or bump VERSION",
 )
 
+# The D6 register (tools/audit/round4/D6/) is the committed output of
+# claims.py, and one of its rows -- C42, "manifest version equals VERSION" --
+# is a snapshot of the VERSION the register was generated at. The stamp is the
+# only commit that moves VERSION, so it is the only commit that can stale that
+# snapshot, and a stamp that does turns tests/harness_headers.py red at the
+# stamped head: that check re-runs every live-header harness (claims.py among
+# them) and fails when the register it regenerates is not what is committed.
+# v6.6.4 is exactly that state -- VERSION 6.6.4, the register's C42 still
+# 6.6.3 -- so this pins the register against the live VERSION, the invariant
+# the stamp has to keep. That the stamp keeps it is pinned separately in
+# stamp.py's own --self-test, which reads main()'s write region.
+_d6_json = Path("tools/audit/round4/D6/claims.json")
+_d6_c42 = next(
+    (row for row in json.loads(_d6_json.read_text()) if row.get("id") == "C42"), None
+)
+_d6_recorded = _re.findall(r"\d+\.\d+\.\d+", (_d6_c42 or {}).get("result", ""))
+R.check(
+    "the D6 register records the live VERSION (the stamp re-records it)",
+    _d6_recorded == [_version, _version],
+    f"{_d6_json}'s C42 records {(_d6_c42 or {}).get('result')!r}, VERSION is "
+    f"{_version!r} -- a stamp moved VERSION without re-recording the register, "
+    "so tests/harness_headers.py is red at this head. Run "
+    "`PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` and "
+    "commit its output.",
+)
+
 
 # The stamp check is only worth having if it bites, so mutate a throwaway
 # tree and require env_drift to reject exactly the wrong ones -- and to
@@ -15457,7 +15483,7 @@ try:
     _stc_writes = {
         str(Path(p).relative_to(_stamp.ROOT))
         for p in (_stamp.VERSION_FILE, _stamp.MANIFEST, _stamp.CARD_JS,
-                  _stamp.NOTES, *_stamp.CLAIM_FILES)
+                  _stamp.NOTES, *_stamp.CLAIM_FILES, *_stamp.REGISTER_FILES)
     }
     _stc_before = "# claims-for: 6.5.1\n#\n# old reason\n#\n\nconfig_flow  # a lane's claim\n"
     _stc_after, _stc_old, _stc_deleted = _stamp.rewrite_claims(_stc_before, "6.6.0", "t")
