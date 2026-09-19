@@ -7766,5 +7766,37 @@ const STOCK_THEMES = {
     claimsAreThisBranchs(() => { throw new Error("exit 128: no merge base"); }, "REF") === true);
 }
 
+// --- The #1266 collapse: every line a state has, not just the last -----------
+//
+// parseClaims keyed its map on the state name, so two bare claim lines for
+// ONE state collapsed to the last. A branch that added a fresh claim beside
+// the baseline's own line then parsed exactly equal to the baseline's single
+// entry -- the added claim was invisible -- and card_drift.mjs's INHERITED
+// CLAIMS fired on the branch's own list, while the Python gate, multi-valued
+// since #1255 (parse_claim_map -> name -> every line's reason), answered
+// "not inherited" on the same file. Two gates reading one file must not
+// answer differently about it. The map carries every line's reason now, in
+// file order, so equality is same names AND same lines, count included --
+// and a claim file with one line per state parses to one reason per state,
+// the shape every existing list already has.
+{
+  const ONE = "# claims-for: 6.6.6\n#\n\nplan_inline  # the baseline's reason\n";
+  const TWO =
+    "# claims-for: 6.6.6\n#\n\n" +
+    "plan_inline  # this branch's fresh claim\n" +
+    "plan_inline  # the baseline's reason\n";
+  const one = parseClaims(ONE), two = parseClaims(TWO);
+  const shape = (m) => JSON.stringify([...m]);
+  check("parseClaims carries every line a state has, not just the last",
+    shape(two.claims)
+      === '[["plan_inline",["this branch\'s fresh claim","the baseline\'s reason"]]]',
+    shape(two.claims));
+  check("a claim file with one line per state parses to one reason per state",
+    shape(one.claims) === '[["plan_inline",["the baseline\'s reason"]]]',
+    shape(one.claims));
+  check("an exact copy of the baseline's list still parses its equal",
+    shape(parseClaims(ONE).claims) === shape(one.claims));
+}
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
