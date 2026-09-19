@@ -6120,7 +6120,7 @@ const setupBox = (card, place) =>
   // actually made against. Same payload, one added attribute: the resolved
   // spec names a weekday window the configured spec does not, and the
   // floored band follows the RESOLVED one, not the configured one.
-  const RESOLVED = "weekdays 15:30-17:00";
+  const RESOLVED = "weekdays 18:30-22:00";
   const resStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
   resStates[DEFAULT_DHW].attributes.dhw_windows = WINDOWS;
   resStates[DEFAULT_DHW].attributes.dhw_windows_spec = WINDOWS;
@@ -6137,20 +6137,21 @@ const setupBox = (card, place) =>
   const resMidAt = new Map(ptsOf(resCard, "dhw_temp").map((q) => [q.t, q.v]));
   const inResolved = plan.dhw_plan.forecast.filter((p) => {
     const h = hourOf(p.t);
-    return h >= 15.5 && h < 17 && p.dhw_temp >= W && p.dhw_temp_lo != null &&
+    return h >= 18.5 && h < 22 && p.dhw_temp >= W && p.dhw_temp_lo != null &&
       resLoAt.has(Date.parse(p.t));
   });
   const inOldOnly = plan.dhw_plan.forecast.filter((p) => {
     const h = hourOf(p.t);
-    return clockIn(p.t) && !(h >= 15.5 && h < 17) && p.dhw_temp >= W &&
+    return clockIn(p.t) && !(h >= 18.5 && h < 22) && p.dhw_temp >= W &&
       p.dhw_temp_lo != null && resLoAt.has(Date.parse(p.t));
   });
+  const inResolvedLowLo = inResolved.filter((p) => p.dhw_temp_lo < W);
   check("the plan-tab band floors the hours the RESOLVED schedule names",
     inResolved.length > 0 && inResolved.every((p) => {
       const lo = resLoAt.get(Date.parse(p.t));
       return lo >= W && lo <= resMidAt.get(Date.parse(p.t));
-    }),
-    `${inResolved.length} resolved-window steps`);
+    }) && inResolvedLowLo.length > 0,
+    `${inResolved.length} resolved-window steps, ${inResolvedLowLo.length} published below the floor`);
   check("and hours only the CONFIGURED schedule names keep their published lo",
     inOldOnly.length > 0 && inOldOnly.every((p) =>
       resLoAt.get(Date.parse(p.t)) === p.dhw_temp_lo),
