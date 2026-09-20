@@ -73,6 +73,7 @@ from heatpump_optimizer.tariff import (
     PeakTracker,
     _smooth_topk_sum,
     peak_cost,
+    peak_cost_smooth,
     realised_peak,
 )
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
@@ -1564,14 +1565,19 @@ R.check(
 # The solver reaches this through numerical gradients, so a term that is flat
 # almost everywhere is invisible to it. Measured: with a plain ``max`` the
 # tariff had gradient at 1 step in 96 and enabling it *raised* the peak.
+# peak_cost_smooth, the solver's term (#1210), is the surface that owes the
+# gradient; the exact public peak_cost keeps one too on interior ties (the
+# probe breaks the tie in its own favour) but not at bound-pinned plateaus,
+# which is #232's blindness and the surrogate's reason to exist.
 flat = np.full(96, 3.0)
-base_cost = peak_cost(flat, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3)
+base_cost = peak_cost_smooth(flat, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3)
 gradients = []
 for index in (5, 50, 90, 95):
     probe = flat.copy()
     probe[index] += 1e-4
     gradients.append(
-        (peak_cost(probe, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3) - base_cost) / 1e-4
+        (peak_cost_smooth(probe, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3)
+         - base_cost) / 1e-4
     )
 R.check(
     "the peak charge has a gradient the solver can follow",
@@ -1737,12 +1743,17 @@ R.check(
 # A one-window +eps probe always moves a hard top-k (that window becomes
 # the unique largest, FD ≈ price_per_kw). Smooth top-k shares weight k/n
 # across the tie, so the same probe is ≈ price * k/n (here 20 * 3/24 ≈ 2.5).
-_tied_base = peak_cost(
+# These gradient pins read the SOLVER's term, peak_cost_smooth (#1210): the
+# public peak_cost is the exact hard top-k everywhere, whose tied-window
+# FD is the hard unique top (~20 here) -- the shared-weight signal is the
+# surrogate's whole reason to exist (#232), so the pin reads the surface
+# that owes the property.
+_tied_base = peak_cost_smooth(
     np.full(24, 7.0), np.zeros(24), 6.0, 20.0, 60, 1.0, 3,
 )
 _tied_fd = [
     (
-        peak_cost(
+        peak_cost_smooth(
             np.where(np.arange(24) == i, 7.0001, 7.0),
             np.zeros(24),
             6.0,
@@ -1765,6 +1776,59 @@ R.check(
     "tied-window FD is the shared k/n weight, not a hard unique top",
     all(1.0 < g < 8.0 for g in _tied_fd),
     f"fd={_tied_fd} (hard unique-window is ~20, smooth k/n is ~2.5)",
+)
+
+# Round 5 D2-01 (#1210): the MIXED plateau -- more than k windows tied at
+# the peak while OTHER windows sit above the threshold but below the tie.
+# There the logistic weights still sum to k, but the weight that lands on
+# the lower windows is charged at their level, not the tie's, so the smooth
+# sum is below the billed top-k on every such input (soft - hard < 0
+# identically; the round-5 harness measured it to -3.45%). The pure
+# plateaus above are exact because every weighted window sits AT the tie;
+# the defect needs the second population. peak_cost's docstring states the
+# bill arithmetic, and the published projected_peak_cost is this function,
+# so it must return that arithmetic exactly on every input.
+_d1201_mixed = np.concatenate([
+    np.full(24, 8.0),                        # the tied plateau at the peak
+    np.linspace(4.0, 7.9, 72),               # above threshold, below the tie
+])
+_d1201_exact = 20.0 * 3 * 5.0                # price x k x tie-level excess
+R.check(
+    "a mixed plateau is charged the exact billed top-k, not the leaked "
+    "soft sum (#1210: no under-charge)",
+    peak_cost(_d1201_mixed, np.zeros(96), 3.0, 20.0, 15, 0.25, 3)
+    == _d1201_exact,
+    f"charged {peak_cost(_d1201_mixed, np.zeros(96), 3.0, 20.0, 15, 0.25, 3):.6f}"
+    f" against the bill {_d1201_exact:.6f} (3 x 5 kW excess at 20/kW)",
+)
+# Null controls: the shapes that were already exact stay exact -- the pure
+# plateau (every window at the tie) and the at-most-k-at-peak plan (hard
+# branch both before and after).
+R.check(
+    "the pure plateau stays at the exact billed top-k",
+    peak_cost(np.full(96, 12.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3)
+    == 720.0,
+    f"charged {peak_cost(np.full(96, 12.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3):.6f}",
+)
+R.check(
+    "at most k windows at the peak stay on the exact hard sum",
+    peak_cost(_d201_spiky, np.zeros(96), 0.0, 20.0, 15, 0.25, 3) == 720.0,
+    "hard top-k path: 3 x 12 kW at 20/kW = 720 exactly",
+)
+# The solver's surrogate on the same mixed cell: still smooth (that is its
+# product, #232), and never above the exact charge -- the identity the
+# finding states (weights sum to k, so soft <= hard) -- with the deficit
+# bounded by the measured worst case (-3.45% on the round-5 grid).
+_smooth_mixed = peak_cost_smooth(
+    _d1201_mixed, np.zeros(96), 3.0, 20.0, 15, 0.25, 3
+)
+R.check(
+    "the solver's surrogate stays on the smooth arm and under the exact "
+    "charge on the mixed plateau",
+    _smooth_mixed < _d1201_exact
+    and _smooth_mixed >= 0.95 * _d1201_exact,
+    f"smooth={_smooth_mixed:.6f} against the exact {_d1201_exact:.6f} "
+    f"(round-5 measured worst deficit 3.45%)",
 )
 
 # --- The metering windows sit on the DSO's clock, not the plan's -----------
@@ -3486,6 +3550,7 @@ def _d0_restart_keeps_only_a_real_drop():
 
 _d0_restart_keeps_only_a_real_drop()
 
+
 # Space-only, uniform bounds (the historical five, unchanged).
 _grad_parity(False, label="single-zone")
 _grad_parity(True, label="two-zone")
@@ -3816,7 +3881,7 @@ def _check_batch_cost_948(label, cap):
     with _count_entries_948(
         (_PvOpt, "_comfort_terms"),
         (_grad_optmod, "cycling_penalty"),
-        (_grad_optmod, "peak_cost"),
+        (_grad_optmod, "peak_cost_smooth"),
         (_PvModel, "simulate_trajectory"),
         (_PvModel, "simulate_trajectory_batch"),
     ) as counts:
@@ -3832,7 +3897,9 @@ def _check_batch_cost_948(label, cap):
     R.check(
         f"and without the per-row grid-term helpers: {label}",
         cyc == 0 and peak == 0,
-        f"cycling_penalty entered {cyc} times, peak_cost {peak} times",
+        f"cycling_penalty entered {cyc} times, peak_cost_smooth {peak} times "
+        f"(the solver's capacity term is the smooth surrogate since #1210; "
+        f"the exact peak_cost is billed/published only and never batched)",
     )
     R.check(
         f"the physics stays ONE batched simulation, scalar-free: {label}",
@@ -3903,7 +3970,12 @@ _check_batch_cost_948(
 # batch result must equal the scalar function on row b's plan, exactly,
 # for every (offset, window length, factors) arm -- separated peaks, the
 # full-plateau row (every window tied at the peak, the smooth top-k), a
-# plan never above threshold, and a disabled tariff.
+# plan never above threshold, and a disabled tariff. Since #1210 the
+# twin's scalar is peak_cost_smooth -- the SOLVER's term, whose plateau
+# arm the batched objective exists to gradient -- while the public
+# peak_cost is the exact hard top-k with no batch twin (nothing batches
+# it); the extra checks below pin that the two scalars agree everywhere
+# the plateau gate does not fire.
 from heatpump_optimizer.tariff import peak_cost_batch as _pcb948
 from heatpump_optimizer.optimizer import (
     cycling_penalty as _cyc948,
@@ -3920,12 +3992,14 @@ _rows948 = np.vstack([
 _base948 = np.full(96, 1.5)
 _facs948 = np.tile(np.array([1.0, 0.0, 0.5, 1.0]), 24)
 _bad948 = []
+_mismatch948 = []
 for _off948 in (0, 1, 3):
     for _win948, _dt948 in ((60, 0.25), (15, 0.25), (45, 0.25)):
         for _fac948 in (None, _facs948[: 96 // max(1, _win948 // 15)]):
             _want948 = [
-                peak_cost(_rows948[_b948], _base948, 3.0, 20.0, _win948,
-                          _dt948, 3, _off948, window_factors=_fac948)
+                peak_cost_smooth(_rows948[_b948], _base948, 3.0, 20.0,
+                                 _win948, _dt948, 3, _off948,
+                                 window_factors=_fac948)
                 for _b948 in range(_rows948.shape[0])
             ]
             _got948 = _pcb948(
@@ -3938,10 +4012,29 @@ for _off948 in (0, 1, 3):
                         f"off={_off948} win={_win948} fac={_fac948 is not None} "
                         f"row={_b948}: {_got948[_b948]!r} != {_want948[_b948]!r}"
                     )
+                if peak_cost_smooth(
+                    _rows948[_b948], _base948, 3.0, 20.0, _win948, _dt948,
+                    3, _off948, window_factors=_fac948,
+                ) > peak_cost(
+                    _rows948[_b948], _base948, 3.0, 20.0, _win948, _dt948,
+                    3, _off948, window_factors=_fac948,
+                ) * (1.0 + 1e-6):
+                    _mismatch948.append(
+                        f"off={_off948} win={_win948} row={_b948}"
+                    )
 R.check(
-    "peak_cost_batch is peak_cost on every row, every branch, bit for bit",
+    "peak_cost_batch is peak_cost_smooth on every row, every branch, bit "
+    "for bit",
     not _bad948,
     f"first divergences: {_bad948[:3]}",
+)
+R.check(
+    "the surrogate never charges meaningfully more than the exact top-k "
+    "(#1210's identity: weights sum to k to the bisection's 1e-6 count "
+    "tolerance, so soft <= hard x (1 + 1e-6) on every input; measured "
+    "worst excess 2.6e-7 relative)",
+    not _mismatch948,
+    f"rows where peak_cost_smooth > peak_cost x 1.000001: {_mismatch948[:3]}",
 )
 R.check(
     "a disabled tariff prices a whole batch as zeros, like the scalar guard",
