@@ -1318,6 +1318,56 @@
     "manual_plan_window_hours": 20,
     "plan_kind": "dhw",
     "projection": "planned for the optimization horizon ahead; recomputed on every replan. Not a measurement and not accumulated.",
+    "sensor_advisor": {
+     "basis": "config",
+     "candidates": [
+      {
+       "key": "indoor_temp_entity",
+       "label": "Indoor temperature",
+       "parameters": [
+        "house_heat_loss_scale"
+       ],
+       "priced": true,
+       "spread_c": 5.46
+      },
+      {
+       "key": "buffer_tank_temp_entity",
+       "label": "Buffer tank temperature",
+       "parameters": [
+        "buffer_cooling_rate"
+       ],
+       "priced": true,
+       "spread_c": 0.0
+      },
+      {
+       "key": "lower_floor_temp_entity",
+       "label": "Lower floor temperature",
+       "parameters": [
+        "lower_floor_loss_ratio"
+       ],
+       "priced": true,
+       "spread_c": 0.0
+      },
+      {
+       "key": "dhw_temp_entity",
+       "label": "Hot water temperature",
+       "priced": false,
+       "reason": "no_clamped_parameter"
+      },
+      {
+       "key": "floor_return_temp_entity",
+       "label": "Floor loop return",
+       "priced": false,
+       "reason": "state_estimate"
+      },
+      {
+       "key": "outdoor_temp_entity",
+       "label": "Outdoor temperature",
+       "priced": false,
+       "reason": "weather_backed"
+      }
+     ]
+    },
     "setup_topology": {
      "buffer": {
       "is_store": false,
@@ -2188,6 +2238,56 @@
     "manual_plan_window_hours": 20,
     "plan_kind": "space",
     "projection": "planned for the optimization horizon ahead; recomputed on every replan. Not a measurement and not accumulated.",
+    "sensor_advisor": {
+     "basis": "config",
+     "candidates": [
+      {
+       "key": "indoor_temp_entity",
+       "label": "Indoor temperature",
+       "parameters": [
+        "house_heat_loss_scale"
+       ],
+       "priced": true,
+       "spread_c": 5.46
+      },
+      {
+       "key": "buffer_tank_temp_entity",
+       "label": "Buffer tank temperature",
+       "parameters": [
+        "buffer_cooling_rate"
+       ],
+       "priced": true,
+       "spread_c": 0.0
+      },
+      {
+       "key": "lower_floor_temp_entity",
+       "label": "Lower floor temperature",
+       "parameters": [
+        "lower_floor_loss_ratio"
+       ],
+       "priced": true,
+       "spread_c": 0.0
+      },
+      {
+       "key": "dhw_temp_entity",
+       "label": "Hot water temperature",
+       "priced": false,
+       "reason": "no_clamped_parameter"
+      },
+      {
+       "key": "floor_return_temp_entity",
+       "label": "Floor loop return",
+       "priced": false,
+       "reason": "state_estimate"
+      },
+      {
+       "key": "outdoor_temp_entity",
+       "label": "Outdoor temperature",
+       "priced": false,
+       "reason": "weather_backed"
+      }
+     ]
+    },
     "setup_topology": {
      "buffer": {
       "is_store": false,

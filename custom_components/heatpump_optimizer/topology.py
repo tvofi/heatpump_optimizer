@@ -22,8 +22,8 @@ Kept free of Home Assistant imports so it can be unit-tested directly, like
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, replace as dataclass_replace
+from typing import Any, Final
 
 import numpy as np
 
@@ -64,8 +64,13 @@ from .const import (
     CONF_WOOD_TANK_TOP_ENTITY,
     CONF_WOOD_TANK_VOLUME,
     DEFAULT_WOOD_TANK_VOLUME,
+    HOUSE_HEAT_LOSS_SCALE_MAX,
+    HOUSE_HEAT_LOSS_SCALE_MIN,
+    LOWER_FLOOR_LOSS_RATIO_MAX,
+    LOWER_FLOOR_LOSS_RATIO_MIN,
+    buffer_cooling_rate_bounds,
 )
-from .thermal_model import ThermalParameters
+from .thermal_model import ThermalModel, ThermalParameters, ThermalState
 
 # Every sensor slot the diagram can show: (config key, place, label).
 # Places are stable ids both renderers key their drawing off; adding a place
@@ -769,3 +774,213 @@ def suggest_house_power_entity(
         ):
             return entity_id
     return None
+
+
+# ---------------------------------------------------------------------------
+# The sensor advisor (#1269): the value of ADDING an unconfigured sensor
+# ---------------------------------------------------------------------------
+
+#: The optional temperature slots the setup wizard's optional page offers
+#: (`_user_sensors_fields`): the candidate set the issue defines, minus
+#: whatever the entry already configures.
+_ADVISOR_CANDIDATES: tuple[str, ...] = (
+    CONF_INDOOR_TEMP_ENTITY,
+    CONF_OUTDOOR_TEMP_ENTITY,
+    CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_LOWER_FLOOR_TEMP_ENTITY,
+    CONF_DHW_TEMP_ENTITY,
+    CONF_BUFFER_TANK_TEMP_ENTITY,
+)
+
+#: Why a candidate this proxy cannot price is still listed: the row the card
+#: renders is honest about the proxy's scope instead of silently omitting a
+#: sensor the user knows is real.
+_ADVISOR_UNPRICED: dict[str, str] = {
+    # The model still gets an outdoor temperature from the weather entity,
+    # and an unconfigured slot does not freeze learning (``_learning_frozen``
+    # ignores slots with no entity), so no clamped scalar is unreachable
+    # without it -- its value is weather-versus-probe accuracy, which this
+    # proxy has no structural measurement for.
+    CONF_OUTDOOR_TEMP_ENTITY: "weather_backed",
+    # Feeds ``update_slab_from_return_temp`` -- a state estimate, not a
+    # learned parameter with a clamp band.
+    CONF_FLOOR_RETURN_TEMP_ENTITY: "state_estimate",
+    # The DHW learners fit the draw profile and coast hours, neither of
+    # which is a ``ThermalParameters`` scalar with a published band.
+    CONF_DHW_TEMP_ENTITY: "no_clamped_parameter",
+}
+
+#: One replay's shape. 48 steps at the learner's own 0.25 h interval is a
+#: 12 h window -- two of the learner's maximum sample intervals, long enough
+#: that every band below has visibly separated the trajectories. The power
+#: is the install's own measured mean where history exists, and half the
+#: configured maximum otherwise: the duty a plan actually holds over an
+#: evening, not the nameplate.
+_ADVISOR_REPLAY_STEPS: Final = 48
+_ADVISOR_DUTY_FRACTION: Final = 0.5
+
+#: The state variables the spread is measured over: every temperature the
+#: model predicts about this install. The max over them is the candidate's
+#: weight -- "how far apart the model's own predictions sit across the band
+#: this sensor would pin down" -- one number in one unit, comparable across
+#: lanes because every lane's parameter multiplies one of these terms.
+_ADVISOR_SPREAD_FIELDS: tuple[str, ...] = (
+    "room_temperature",
+    "slab_temperature",
+    "upper_floor_temperature",
+    "lower_floor_temperature",
+    "buffer_tank_temperature",
+    "dhw_temperature",
+)
+
+
+def _advisor_replay(
+    params: ThermalParameters, electrical_power: float
+) -> ThermalState:
+    """One canonical cold-window replay through the production model.
+
+    Starts from ``ThermalState``'s own defaults -- the model's canonical
+    house, not a invented one -- and applies a constant power for
+    ``_ADVISOR_REPLAY_STEPS`` steps. Deterministic: the same config and the
+    same power produce the same end state bit for bit.
+    """
+    model = ThermalModel(params)
+    state = ThermalState()
+    for _ in range(_ADVISOR_REPLAY_STEPS):
+        state = model.simulate_step(
+            state, electrical_power, state.outdoor_temperature
+        )
+    return state
+
+
+def _advisor_edge_params(
+    params: ThermalParameters, field: str, value: float
+) -> ThermalParameters:
+    """One band edge as its own ``ThermalParameters`` instance.
+
+    Named per field rather than splatted from a dict: the lanes table names
+    exactly these three scalars, and an explicit keyword per field is what
+    keeps the pinned mypy census able to see the types at all. ``replace``
+    re-runs ``__post_init__``'s clamp, so a band edge a future field floor
+    disagrees with is corrected rather than smuggled past the boundary
+    every learner already goes through.
+    """
+    if field == "house_heat_loss_scale":
+        return dataclass_replace(params, house_heat_loss_scale=value)
+    if field == "lower_floor_loss_ratio":
+        return dataclass_replace(params, lower_floor_loss_ratio=value)
+    return dataclass_replace(params, buffer_cooling_rate=value)
+
+
+def _advisor_spread_c(
+    params: ThermalParameters, field: str, low: float, high: float, power: float
+) -> float:
+    """The predicted-temperature spread between one band's two edges."""
+    ends = [
+        _advisor_replay(_advisor_edge_params(params, field, value), power)
+        for value in (low, high)
+    ]
+    return max(
+        abs(
+            float(getattr(ends[0], name)) - float(getattr(ends[1], name))
+        )
+        for name in _ADVISOR_SPREAD_FIELDS
+    )
+
+
+def rank_sensor_advisor(
+    config: Mapping[str, Any], *, hp_kw: Sequence[float] = ()
+) -> dict[str, Any] | None:
+    """Rank unconfigured optional temperature sensors by model spread (#1269).
+
+    The inverse of `rank_sensor_gaps`: that prices what the absence of a
+    CONFIGURED sensor costs per month; this says how much the thermal
+    model's own predictions would tighten if each UNCONFIGURED optional
+    temperature sensor were added. The proxy is structural, and honest
+    about being a prior rather than a measurement: for every candidate
+    whose learner cannot run without the sensor, the learned scalar's
+    clamp band is swept through ``ThermalModel.simulate_step`` and the
+    spread between the band's edges -- in the temperatures the model
+    predicts -- is the candidate's weight. An upper bound by construction:
+    the configured prior may already be right, which is why the card
+    labels every row an estimate.
+
+    Returns ``None`` when nothing can be ranked (every optional temperature
+    slot configured), so a fully wired install publishes no attribute at
+    all -- the #1260 absence pattern.
+    """
+    candidates = [key for key in _ADVISOR_CANDIDATES if not config.get(key)]
+    if not candidates:
+        return None
+    params = ThermalParameters.from_config(dict(config))
+    samples = [float(v) for v in hp_kw if isinstance(v, (int, float))]
+    power = (
+        sum(samples) / len(samples)
+        if samples
+        else params.max_electrical_power * _ADVISOR_DUTY_FRACTION
+    )
+    # Each priced lane names the clamped scalar its learner fits and the
+    # band it may move within; the gates are the learners' own preconditions
+    # in the coordinator, cited per row.
+    lanes: dict[str, tuple[str, float, float]] = {
+        # ``_async_learn_house_heat_loss`` needs the OBSERVED indoor
+        # temperature; without the entity no independent measurement
+        # exists and the scale sits at its prior.
+        CONF_INDOOR_TEMP_ENTITY: (
+            "house_heat_loss_scale",
+            HOUSE_HEAT_LOSS_SCALE_MIN,
+            HOUSE_HEAT_LOSS_SCALE_MAX,
+        ),
+        # Hard gate: ``if not ctx._config.get(CONF_LOWER_FLOOR_TEMP_ENTITY):
+        # return`` -- the ratio only ever moves with a real sensor.
+        CONF_LOWER_FLOOR_TEMP_ENTITY: (
+            "lower_floor_loss_ratio",
+            LOWER_FLOOR_LOSS_RATIO_MIN,
+            LOWER_FLOOR_LOSS_RATIO_MAX,
+        ),
+        # ``_async_learn_buffer_cooling`` runs only on a live buffer
+        # reading; the band is the tank's own insulation bounds.
+        CONF_BUFFER_TANK_TEMP_ENTITY: (
+            "buffer_cooling_rate",
+            *buffer_cooling_rate_bounds(params.buffer_tank_volume),
+        ),
+    }
+    labels = {key: label for key, _place, label, _domains, _class in _SLOTS}
+    rows: list[dict[str, Any]] = []
+    for key in candidates:
+        lane = lanes.get(key)
+        if lane is None:
+            rows.append(
+                {
+                    "key": key,
+                    "label": labels.get(key, key),
+                    "priced": False,
+                    "reason": _ADVISOR_UNPRICED[key],
+                }
+            )
+            continue
+        field, low, high = lane
+        rows.append(
+            {
+                "key": key,
+                "label": labels.get(key, key),
+                "priced": True,
+                "parameters": [field],
+                "spread_c": round(
+                    _advisor_spread_c(params, field, low, high, power), 2
+                ),
+            }
+        )
+    rows.sort(
+        key=lambda row: (
+            not row["priced"],
+            -float(row.get("spread_c") or 0.0),
+            row["key"],
+        )
+    )
+    return {
+        # The history arm: the replay was driven by the install's own
+        # measured delivery, not by configured defaults.
+        "basis": "history" if samples else "config",
+        "candidates": rows,
+    }

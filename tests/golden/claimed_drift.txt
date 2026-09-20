@@ -77,9 +77,6 @@
 # into the committed baseline, and no diff remains for this branch to
 # excuse under its name; its note stays below, as history.
 #
-# (dropped on this branch: config_flow was main's own #1258/#1273 claim,
-# inherited by the fork, not this diff's -- the INHERITED CLAIMS rule;
-# #1273 is merged and its golden diff is baked into the baseline)
 #
 # #1260 (per-weekday DHW window overrides): this branch claims exactly one
 # fixture, config_flow, and the direction is ADD-ONLY. The hot-water page's
@@ -425,8 +422,21 @@
 # (The bare claim this note introduced -- config_flow, the cleared-entity-
 # picker fix, merged as #1249 -- is dropped by the 27458c8a absorb above;
 # the note stays as history.)
-# The #1210 re-cut claims NOTHING yet: this list is emptied so the drift
-# capture against 571e872 can say what this diff moves (main's own
-# config_flow line from #1273 is inherited, not this branch's diff, and is
-# dropped per the INHERITED CLAIMS rule; #1273 is merged, its golden diff
-# is baked into the baseline). Re-derived below once measured.
+# #1269, the sensor advisor: the five coord_* scenarios capture the plan
+# sensors' published attributes, and this change adds sensor_advisor to
+# both plan sensors' extra_state_attributes (present wherever the entry
+# has an unconfigured optional temperature sensor -- every coord scenario
+# qualifies). Direction, one mechanism in all five: TWO additive leaves
+# per scenario (space_heating_plan and dhw_heating_plan
+# extra_state_attributes.sensor_advisor, present on one side only); no
+# leaf is removed or rewritten, and no solver float, plan slot or cost
+# figure moves. The config_flow claim this file carried at the merge base
+# was main's own (un-stamped until the next release); deleting it here is
+# this branch writing its own list, as the inherited-claims guard
+# requires.
+#
+coord_all_features # #1269: +sensor_advisor leaf on both plan sensors (additive; no solver value moves)
+coord_dhw # #1269: +sensor_advisor leaf on both plan sensors (additive; no solver value moves)
+coord_grid_fee # #1269: +sensor_advisor leaf on both plan sensors (additive; no solver value moves)
+coord_minimal # #1269: +sensor_advisor leaf on both plan sensors (additive; no solver value moves)
+coord_two_zone # #1269: +sensor_advisor leaf on both plan sensors (additive; no solver value moves)

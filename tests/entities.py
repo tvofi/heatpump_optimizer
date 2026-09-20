@@ -5504,6 +5504,160 @@ R.check(
     f"clean={_gap_spike_clean} holed={_gap_spike_holed}",
 )
 
+# --- #1269 sensor advisor: value of ADDING an unconfigured sensor -----------
+# The inverse of the #699 lane above: rank_sensor_gaps prices what the
+# CONFIGURED sensors' absence costs; rank_sensor_advisor prices how much the
+# thermal model's own predictions would tighten if each UNCONFIGURED optional
+# temperature sensor were added. The proxy is structural -- the clamp band
+# of each learned scalar whose learner cannot run without the sensor, swept
+# through the production ThermalModel's own simulate_step -- so every number
+# below is derived from config, and the checks pin the RULE (ordering,
+# null controls, basis) rather than any total.
+R.section("Sensor advisor: unconfigured sensors ranked by model spread (#1269)")
+
+# A two-zone house with a throttling valve and a buffer the model treats as
+# a store: every optional temperature slot empty except the indoor probe.
+# This is the shape the ranking is FOR -- the one configured sensor is the
+# residual lane the others' lanes sit beside.
+_adv_two_zone = {
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+    const.CONF_TWO_ZONE_MODE: "on",
+    "lower_floor_heat_loss": 0.08,
+    "upper_floor_heat_loss": 0.12,
+    "mixing_valve_mode": "manual",
+    "buffer_tank_volume": 750,
+    "max_electrical_power": 6.0,
+    "buffer_tank_max_temp": 70,
+    "dhw_enabled": True,
+    "dhw_tank_volume": 200,
+}
+_adv_ranked = topology.rank_sensor_advisor(_adv_two_zone)
+_adv_rows = _adv_ranked["candidates"] if _adv_ranked else []
+_adv_keys = [row["key"] for row in _adv_rows]
+R.check(
+    "the advisor ranks the unconfigured optional temperature slots (#1269)",
+    _adv_ranked is not None
+    and set(_adv_keys) == {
+        const.CONF_OUTDOOR_TEMP_ENTITY,
+        const.CONF_FLOOR_RETURN_TEMP_ENTITY,
+        const.CONF_LOWER_FLOOR_TEMP_ENTITY,
+        const.CONF_DHW_TEMP_ENTITY,
+        const.CONF_BUFFER_TANK_TEMP_ENTITY,
+    },
+    f"keys={_adv_keys}",
+)
+R.check(
+    "an already-configured sensor appears nowhere in the ranking (null control)",
+    const.CONF_INDOOR_TEMP_ENTITY not in _adv_keys,
+    f"keys={_adv_keys}",
+)
+_adv_priced = [row for row in _adv_rows if row.get("priced")]
+_adv_spreads = [float(row["spread_c"]) for row in _adv_priced]
+R.check(
+    "priced rows are sorted by spread, descending (#1269)",
+    _adv_spreads == sorted(_adv_spreads, reverse=True)
+    and len(_adv_priced) >= 2
+    and all(s > 0.0 for s in _adv_spreads),
+    f"spreads={_adv_spreads}",
+)
+R.check(
+    "every unpriced row sits after every priced one (#1269)",
+    all(
+        (row.get("priced") is False) for row in _adv_rows[len(_adv_priced):]
+    )
+    and all(row.get("reason") for row in _adv_rows if not row.get("priced")),
+    f"rows={_adv_rows!r}",
+)
+R.check(
+    "the ranking is deterministic in the config (#1269)",
+    topology.rank_sensor_advisor(_adv_two_zone) == _adv_ranked,
+    "two calls over one config must agree exactly",
+)
+R.check(
+    "with a measured power series the replay is driven by history (#1269)",
+    topology.rank_sensor_advisor(
+        _adv_two_zone, hp_kw=[3.0, 3.0, 3.0, 3.0]
+    )["basis"]
+    == "history",
+    "basis must name the arm that drove the replay",
+)
+R.check(
+    "with no measured series the replay says so (config basis, #1269)",
+    _adv_ranked["basis"] == "config",
+    f"basis={_adv_ranked.get('basis')!r}",
+)
+# The null control the issue demands: on a single-zone house no model term
+# reads the lower-floor sensor's learner lane -- _simulate_step_single never
+# touches lower_floor_loss_ratio -- so its measured spread is EXACTLY zero
+# and it ranks last among the priced rows. The table claims only "this
+# sensor's learner fits this scalar"; the INSTALL, through the model's own
+# simulation, decides the scalar is worth nothing here.
+_adv_one_zone = {
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+    "lower_floor_heat_loss": 0.08,
+    "upper_floor_heat_loss": 0.12,
+    "max_electrical_power": 6.0,
+    "dhw_enabled": True,
+    "dhw_tank_volume": 200,
+}
+_adv_one = topology.rank_sensor_advisor(_adv_one_zone) or {}
+_adv_one_priced = [r for r in _adv_one.get("candidates", []) if r.get("priced")]
+R.check(
+    "a sensor no model term reads ranks exactly 0.0 and last (null control)",
+    _adv_one_priced
+    and _adv_one_priced[-1]["key"] == const.CONF_LOWER_FLOOR_TEMP_ENTITY
+    and float(_adv_one_priced[-1]["spread_c"]) == 0.0,
+    f"one-zone priced={_adv_one_priced!r}",
+)
+# Null control: nothing left to suggest -- the attribute is absent, not an
+# empty list, so a fully wired install publishes exactly what it did before
+# the feature (the #1260 absence pattern).
+_adv_full = dict(_adv_two_zone)
+_adv_full.update(
+    {
+        const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+        const.CONF_FLOOR_RETURN_TEMP_ENTITY: "sensor.return",
+        const.CONF_LOWER_FLOOR_TEMP_ENTITY: "sensor.lower",
+        const.CONF_DHW_TEMP_ENTITY: "sensor.dhw",
+        const.CONF_BUFFER_TANK_TEMP_ENTITY: "sensor.buffer",
+    }
+)
+R.check(
+    "a fully wired install publishes no advisor payload at all (null control)",
+    topology.rank_sensor_advisor(_adv_full) is None,
+    "every optional temperature slot configured ranks nothing",
+)
+# The plan sensors publish it beside setup_topology, on both the empty-plan
+# path and the populated one, from the same live power series the #699
+# advisor reads -- the history arm of the replay.
+def _adv_plan_attrs(data, config):
+    return sensor.SpaceHeatingPlanSensor(
+        FakeCoordinator(data, _config=dict(config)), ENTRY
+    ).extra_state_attributes
+
+_adv_attrs = _adv_plan_attrs({"heat_pump_power_series": [3.0, 3.0]}, _adv_two_zone)
+_adv_attr_rows = (_adv_attrs.get("sensor_advisor") or {}).get("candidates", [])
+R.check(
+    "the plan sensor publishes the ranking as an attribute (#1269)",
+    _adv_attrs.get("sensor_advisor", {}).get("basis") == "history"
+    and _adv_attr_rows
+    and _adv_attr_rows[0]["key"] in {
+        const.CONF_LOWER_FLOOR_TEMP_ENTITY,
+        const.CONF_BUFFER_TANK_TEMP_ENTITY,
+    },
+    f"advisor={_adv_attrs.get('sensor_advisor')!r}",
+)
+R.check(
+    "a fully wired install's plan sensor publishes no advisor key (#1269)",
+    "sensor_advisor" not in _adv_plan_attrs({}, _adv_full),
+    "the attribute must be absent, not empty, when nothing can be ranked",
+)
+R.check(
+    "the advisor attribute is unrecorded like its siblings (#1269)",
+    "sensor_advisor" in sensor._PlanSensorBase._unrecorded_attributes,
+    "a ranking the card reads costs an SD card for nothing history can use",
+)
+
 # The building page owns the valve and wood entities (v4.0.0 merged the
 # mixing-valve page and the learning page's wood block into it), so it has to
 # clear them itself — it used to lean on the entities page's global nulling,
@@ -8048,7 +8202,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "dhw_min_temperature_max", "dhw_setpoint", "dhw_windows",
         "dhw_windows_spec", "forecast", "horizon_hours", "manual_override",
         "manual_plan_window_hours", "next_slot_start", "plan_kind",
-        "projection", "setup_topology", "slot_count", "slots", "total_cost",
+        "projection", "sensor_advisor", "setup_topology", "slot_count", "slots", "total_cost",
         "total_energy_kwh", "wood_fuel"
     }),
     # keys are the configured windows, see _ATTR_KEYS_ARE_DATA above
@@ -8179,7 +8333,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "dhw_min_temperature_max", "dhw_setpoint", "dhw_windows",
         "dhw_windows_spec", "forecast", "horizon_hours", "manual_override",
         "manual_plan_window_hours", "next_slot_start", "plan_kind",
-        "projection", "setup_topology", "slot_count", "slots", "total_cost",
+        "projection", "sensor_advisor", "setup_topology", "slot_count", "slots", "total_cost",
         "total_energy_kwh", "wood_fuel"
     }),
     "ThermalBatteryEnergySensor": frozenset({
@@ -8360,7 +8514,8 @@ R.check(
 # populated) rather than constructing new ones.
 _EMPTY_PLAN_ATTRS = frozenset({
     "currency", "dhw_windows_spec", "horizon_hours", "manual_override",
-    "manual_plan_window_hours", "plan_kind", "projection", "setup_topology",
+    "manual_plan_window_hours", "plan_kind", "projection",
+    "sensor_advisor", "setup_topology",
     "wood_fuel",
 })
 _POPULATED_PLAN_ATTRS = frozenset({
@@ -8369,7 +8524,7 @@ _POPULATED_PLAN_ATTRS = frozenset({
     "dhw_min_temperature_max", "dhw_setpoint", "dhw_windows",
     "dhw_windows_spec", "forecast", "horizon_hours", "manual_override",
     "manual_plan_window_hours", "next_slot_start", "plan_kind", "projection",
-    "setup_topology", "slot_count", "slots", "total_cost", "total_energy_kwh",
+    "sensor_advisor", "setup_topology", "slot_count", "slots", "total_cost", "total_energy_kwh",
     "wood_fuel",
 })
 for _plan_cls in (sensor.SpaceHeatingPlanSensor, sensor.DHWHeatingPlanSensor):
