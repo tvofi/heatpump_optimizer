@@ -435,8 +435,3 @@
 # this branch writing its own list, as the inherited-claims guard
 # requires.
 #
-coord_all_features # #1269: +sensor_advisor leaf on both plan sensors (additive; no solver value moves)
-coord_dhw # #1269: +sensor_advisor leaf on both plan sensors (additive; no solver value moves)
-coord_grid_fee # #1269: +sensor_advisor leaf on both plan sensors (additive; no solver value moves)
-coord_minimal # #1269: +sensor_advisor leaf on both plan sensors (additive; no solver value moves)
-coord_two_zone # #1269: +sensor_advisor leaf on both plan sensors (additive; no solver value moves)
