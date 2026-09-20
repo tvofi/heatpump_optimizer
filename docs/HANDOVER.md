@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 16449f137c4e68d746e9124ae0042945240e20ab
+updated-for: 4bcfcf2030eee29edf27ec1ce167d29707751c98
 
 Taken at this record seat's own merge base off `origin/main`. W1067-G8
 re-pointed this line to `a53fc75` (origin/main's tip) as it closed wave 1067
@@ -799,3 +799,28 @@ directories — this session's fixer worktree twice and fixer-history,
 recoverable only because the branch was committed — so the sweep now carries
 a null control refusing any mention of /tmp/hpo-orch, and an uncommitted
 worktree is one `git commit` from unrecoverable.
+
+## 2026-09-20/21 — the final wave: every D0 economics finding shipped, the CI pipeline fully self-driving
+
+**Twenty-eight merges across the two sessions**, two releases (v6.6.6, v6.6.7), and the board now holds only
+#201 (programme tracking). The economics programme is complete: #1210 (exact billed top-k), #1208
+(polish-every-candidate under owner-directed budget raises: CPU floor 1482, work factor 1.80), #1207 (the
+keep-gate at 2e-5, optimality re-recorded 0.999) — worst-cell gaps of 0.9-1.4% closed to 0.0000-0.0003%.
+
+**The #996 fleet-variance saga, resolved by owner rulings:** the may-drift machinery now carries three
+allow-sets (SENSITIVE 5, RUNNER_CONDITIONAL_1208 three, RUNNER_CONDITIONAL_1207 twelve), each entry with
+removal conditions, each set pinned by entities set-equality (a further name is an unruled widening), judged
+keys still failing. The stress coverage floor gained a ruling-cited override entry (may-only-lower, fail-safe
+to the stricter literal, dropped by the next re-record) — the #387 literal untouched.
+
+**The CI pipeline is fully self-driving:** the hpo-runs App (Actions-only, blast-radius-narrowed) approves
+held runs in-CI; the approve race (#1283) is fixed by SHA-keyed polling; approve_held_runs.sh backs the
+orchestrator; worktree_gc.sh (with its own honest post-merge blocked verdict and the #1289 repair) cleans
+merged worktrees under the §11 protocol step. Two incidents recorded: the GC seat's early self-test swept
+real seat dirs (guard now pinned), and #1287 merged before its review concluded (the verdict-gate lesson).
+
+**Standing state for successors:** the identity model (hpo-author authors, hpo-approver approves, hpo-runs
+approves runs, tvofi posts verdicts and merges); the §11 GC step is policy, the cron was stopped by the
+owner 2026-09-20 — run `worktree_gc.sh --apply` after each merge; the cross-session coordination ledger
+lives at /tmp/audit-5/COORDINATION.md (the audit-5 round's part-3 full gate has quiet windows by
+agreement); the resume file carries the session-by-session state.
