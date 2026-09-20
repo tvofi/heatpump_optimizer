@@ -2125,6 +2125,26 @@ function verdictClasses(text = read(WAVE_SCRIPT)) {
   return set.size ? [...set].sort() : null
 }
 
+// THE OTHER HALF OF THE SAME GRAMMAR (#1240, D13-03). `verdictClasses` reads
+// the verdict WORDS the reviewer prompt teaches (`merge`, `blocked`); the wave
+// script also teaches eleven BLOCK CLASSES -- VERDICT_CLASSES -- that say WHY
+// a review blocked, and the histogram used to print only the two words as
+// "the verdict grammar" while keying every blocked verdict on the one word
+// `blocked`: 0 block-class rows over 30 blocked verdicts at the round-5
+// baseline, an instrument that could not compute the block-class metric the
+// D13 brief asks for. Read from the same single source as the words, with the
+// same fail-loud posture: unreadable yields null and the caller withholds
+// rather than classifying against a list typed here.
+const BLOCK_CLASS_LITERAL_RE = /const VERDICT_CLASSES = \[([^\]]*)\]/g
+export function blockClasses(text = read(WAVE_SCRIPT)) {
+  if (text == null) return null
+  BLOCK_CLASS_LITERAL_RE.lastIndex = 0
+  const m = BLOCK_CLASS_LITERAL_RE.exec(text)
+  if (!m) return null
+  const words = [...m[1].matchAll(/'([a-z][a-z0-9-]*)'/g)].map((x) => x[1])
+  return words.length ? words : null
+}
+
 // A `## Friction` section names, per entry, the rule id that cost the seat
 // time. The key is the `<rule_id>` of the template's grammar, read by the SAME
 // parser `checkPrBody` refuses with (`frictionEntries`), so a body the contract
@@ -2283,6 +2303,21 @@ const bump = (hist, key, pr) => {
   cell.prs.add(pr)
 }
 
+// THE BLOCK-CLASS KEYING (#1240, D13-03). The blocked arm used to key every
+// blocked verdict on the word `blocked` -- one constant key, because the
+// grammar read was only the two verdict words. It now reads the same shape
+// the wave parser acts on: a blocked line that carries a full head SHA keys
+// on the CLASS WORD it carries -- a taught word as itself, an untaught word
+// as its own row, never folded into `other`, because a class the grammar does
+// not have is the drift signal, not noise -- and a blocked line with a SHA
+// and no class word routes to `other`, exactly where web-fix-wave.js routes
+// it (#1239). A blocked line with no SHA is outside the grammar and keeps its
+// own row: the head is the thing the wave refuses to act on, and a histogram
+// that counted it anyway would bless what the wave discards. The merge arm
+// stays keyed on the word alone -- the passing verdict is rework nowhere
+// however it is spelled, so that arm only withholds.
+const BLOCKED_SHAPE_RE = /^Fix review:\s*blocked\s+([0-9a-f]{40})(?:\s+([a-z][a-z0-9-]*)\s*:)?/i
+
 function statsHistogram(prs, fetched, classes) {
   const verdicts = new Map()
   const friction = new Map()
@@ -2303,7 +2338,17 @@ function statsHistogram(prs, fetched, classes) {
         unclassified.push(`#${pr}: ${first.slice(0, 70)}`)
         continue
       }
-      bump(verdicts, m[1].toLowerCase(), pr)
+      const word = m[1].toLowerCase()
+      if (word !== 'blocked') {
+        bump(verdicts, word, pr)
+        continue
+      }
+      const bm = BLOCKED_SHAPE_RE.exec(first)
+      if (!bm) {
+        unclassified.push(`#${pr}: ${first.slice(0, 70)}`)
+        continue
+      }
+      bump(verdicts, bm[2] ? bm[2].toLowerCase() : 'other', pr)
     }
     for (const id of frictionIds(f.body)) bump(friction, id, pr)
   }
@@ -2314,7 +2359,7 @@ function statsHistogram(prs, fetched, classes) {
 // these are pinned like any other check, while main() only ever exits non-zero
 // on `error`. That is how a reporting mode is made undeletable without being
 // made able to fail a job.
-function statsFindings({ prs, fetched, fetchError, classes, passing = passingVerdict() }) {
+export function statsFindings({ prs, fetched, fetchError, classes, blocks = blockClasses(), passing = passingVerdict() }) {
   if (fetchError) {
     return [{
       severity: 'info',
@@ -2325,21 +2370,19 @@ function statsFindings({ prs, fetched, fetchError, classes, passing = passingVer
   }
   const { verdicts, friction, unclassified } = statsHistogram(prs, fetched, classes)
   const out = []
-  // THE VERDICT ARM IS A TAUTOLOGY WHILE THE GRAMMAR IS BINARY. The classes are
-  // read from the wave script, and it teaches exactly two: `blocked` and
-  // `merge`. `merge` is withheld as the passing verdict (below), so `blocked`
-  // is the only key this arm can ever emit -- and every window with three
-  // reviewed pull requests in it clears a threshold of three, so the arm's
-  // answer is a constant and carries no information. It filed #1041.
-  //
-  // What is excluded is therefore the CONDITION, not the arm: an arm whose
-  // non-passing half has one class proposes nothing. That is the exclusion of
-  // the arm today, said in a way that names why -- and if the wave script ever
-  // teaches a third verdict, `blocked` becomes informative again and the arm
-  // resumes proposing without anyone remembering to delete a permanent
-  // exclusion. The histogram still PRINTS the class and its count either way;
-  // only the issue proposal is withheld.
-  const nonPassing = classes.filter((c) => !(passing && c === passing))
+  // THE VERDICT ARM IS A TAUTOLOGY ONLY WHEN THE GRAMMAR COLLAPSES TO ONE
+  // NON-PASSING KEY (#1041, and #1240's correction). The words the reviewer
+  // prompt teaches are two (`merge`, `merge` withheld as passing), but the
+  // blocked arm keys on the BLOCK CLASSES the wave script teaches, so the arm
+  // informs whenever those classes read. The exclusion survives for the one
+  // degraded case that recreates the old shape: VERDICT_CLASSES unreadable,
+  // every blocked verdict falling back to `other`, one key, a constant over
+  // any active window. The histogram still PRINTS the class and its count
+  // either way; only the issue proposal is withheld.
+  const nonPassing = [...new Set([
+    ...classes.filter((c) => !(passing && c === passing)),
+    ...(blocks ?? []),
+  ])]
   const verdictArmInforms = nonPassing.length > 1
   for (const [kind, hist] of [['verdict class', verdicts], ['friction rule id', friction]]) {
     for (const [k, cell] of [...hist.entries()].sort((a, b) => b[1].prs.size - a[1].prs.size)) {
@@ -2359,7 +2402,7 @@ function statsFindings({ prs, fetched, fetchError, classes, passing = passingVer
           severity: 'info',
           check: 'stats',
           where: '(window)',
-          message: `not opened: verdict class "${k}" at ${n} pull request(s) is the only non-passing class in the grammar ${JSON.stringify(classes)} read from ${WAVE_SCRIPT}, so it is the only key this arm can emit and any active window clears the threshold. A constant is not a measurement; it is printed and proposes nothing. A third verdict class in that grammar makes this arm informative again.`,
+          message: `not opened: verdict class "${k}" at ${n} pull request(s) is the only non-passing key the grammar can yield -- verdict words ${JSON.stringify(classes)} read from ${WAVE_SCRIPT}, and its block-class half (VERDICT_CLASSES) ${blocks == null ? 'is unreadable, so every blocked verdict collapses onto one key' : `yields only ${JSON.stringify(blocks)}`} -- so any active window clears the threshold. A constant is not a measurement; it is printed and proposes nothing. A readable VERDICT_CLASSES with more than one word makes this arm informative again.`,
         })
         continue
       }
@@ -2907,7 +2950,7 @@ const REQUIRED_ROT = {
     mustNot: ['merged pull request #8888'],
   },
   stats: {
-    count: 13,
+    count: 19,
     must: [
       // The rule id at threshold, keyed on the FILE the entry names: the
       // fixture writes it `CLAUDE.md#budgets`, and a fragment names a section
@@ -2916,10 +2959,19 @@ const REQUIRED_ROT = {
       'is the passing verdict',                                       // the class that is not rework
       'outside the grammar in .claude/workflows/web-fix-wave.js',     // the grammar drifting
       'could not fetch pull-request bodies and comments',             // the opposite-claims guard
-      // The tautology: with `blocked` the whole non-passing half of a two-class
-      // grammar, the verdict arm can emit no other key, so it prints and
-      // proposes nothing.
-      'the only non-passing class',
+      // #1240 (D13-03): the verdict arm keys blocked verdicts by the FULL
+      // grammar -- the block classes VERDICT_CLASSES teaches -- instead of one
+      // constant `blocked` key (the tautology exclusion now fires only when
+      // VERDICT_CLASSES is unreadable, and that degraded arm is driven in
+      // tests/entities.py). The three witnesses live in
+      // fixtures/policy-loop/friction-keys.json, one per pull request: a
+      // TAUGHT class word keys itself, an UNtaught word is its own row
+      // (never folded into `other`), and a bare `blocked <sha>` routes to
+      // `other`. The sha-less `blocked —` lines in both fixtures are the
+      // outside-grammar rows above.
+      'would open "[policy] recurring friction: null-control"',
+      'would open "[policy] recurring friction: harness-typo"',
+      'would open "[policy] recurring friction: other"',
       // fixtures/policy-loop/friction-keys.json. Three spellings of one rule
       // over three pull requests collapse to one key at 3 distinct PRs...
       'would open "[policy] recurring friction: .claude/rules/gate-scoping.md"',
@@ -4619,6 +4671,27 @@ const FRICTION_OPENS_RE = new RegExp(`^[-*]?\\s*\`?${FRICTION_ID}\`?\\s*:\\s*\`?
 const FRICTION_NEAR_MISS_RE = new RegExp(`^[-*]?\\s*\`?${FRICTION_ID}\`?\\s*:`)
 const FRICTION_BULLET_RE = /^[-*]\s/
 
+// A TRAILER LINE IS NOT FRICTION (#1238, D13-01). The lines a tool or an
+// assistant appends to a body -- the Claude Code attribution, a
+// `Co-Authored-By:` git trailer, GitHub's `Closes #N`-family keyword lines --
+// OPEN entries under the rules above (a list-marked bullet; a `word:`
+// near-miss) while naming no rule and no event, so at the round-5 baseline 13
+// of 54 merged bodies fed the unlabelled bucket 13 entries of boilerplate no
+// seat wrote, 11 of them the attribution alone, and that bucket was the
+// histogram's TOP ROW -- the row `friction_issues.mjs` would have filed
+// "[policy] recurring friction: (unlabelled friction bullet)" on. Dropped
+// here, like a `none` declaration, rather than refused: the seat did not
+// write the line (a tool pasted it), and refusing would charge every body a
+// repair round for a paste. The drop is keyed on the LINE'S OWN SHAPE, a
+// closed list: an attribution line, the one git co-author trailer token, and
+// the closing/linking keywords GitHub itself defines, each before an issue
+// number. None of the shapes is `<rule_id>: <event>: <evidence>`, so the drop
+// cannot swallow a well-formed entry; the null control in tests/entities.py
+// drives the same words mid-evidence, where no line-anchored shape matches,
+// and the entry survives.
+const FRICTION_TRAILER_RE =
+  /^[-*]?\s*(?:(?:🤖\s*)?generated with\b|co-authored-by:\s|(?:closes?|closed|fixes?|fixed|resolves?|resolved|reverts?|refs|part of|supersedes)\s+#\d+\b)/i
+
 function frictionEntries(text) {
   const section = String(text ?? '').trim()
   if (!section || isNone(section)) return []
@@ -4630,6 +4703,7 @@ function frictionEntries(text) {
     // declaration as one unparseable entry would refuse a body whose entries
     // are well-formed, and dropping the section instead lost them (#1139).
     if (isNone(raw)) continue
+    if (FRICTION_TRAILER_RE.test(raw)) continue
     const opens = FRICTION_BULLET_RE.test(raw) || FRICTION_OPENS_RE.test(raw) || FRICTION_NEAR_MISS_RE.test(raw)
     if (opens || !lines.length) lines.push(raw)
     else lines[lines.length - 1] += ' ' + raw
@@ -5426,6 +5500,7 @@ function cmdStats(since) {
     console.log(`STATS: could not read the verdict grammar from ${WAVE_SCRIPT}; classifying nothing rather than against a list typed here.`)
     process.exit(0)
   }
+  const blocks = blockClasses()
   // The enumeration guard: the loud half first (enumSkipLine), then the failure
   // rides the SAME fetchError channel a window-fetch failure rides, so
   // statsFindings prints its opposite-claims finding ("Printing no histogram
@@ -5439,7 +5514,7 @@ function cmdStats(since) {
   const { fetched, fetchError } = enumerated.why
     ? { fetched: new Map(), fetchError: enumerated.why }
     : fetchWindow(prs)
-  console.log(`STATS: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; verdict grammar ${JSON.stringify(classes)} read from ${WAVE_SCRIPT}`)
+  console.log(`STATS: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; verdict grammar ${JSON.stringify(classes)}${blocks ? ` over block classes ${JSON.stringify(blocks)}` : ' (VERDICT_CLASSES unreadable)'} read from ${WAVE_SCRIPT}`)
   if (!fetchError) {
     const { verdicts, friction } = statsHistogram(prs, fetched, classes)
     // Both counts in the table, threshold on the left one, because a reader who
@@ -5461,7 +5536,7 @@ function cmdStats(since) {
     }
     console.log(`\nCENSUS: ${verdicts.size + friction.size} key(s)`)
   }
-  const found = statsFindings({ prs, fetched, fetchError, classes })
+  const found = statsFindings({ prs, fetched, fetchError, classes, blocks })
   console.log(`\nthreshold: ${FRICTION_THRESHOLD} or more of one key in the window opens "[policy] recurring friction: <key>". Nothing is opened here.`)
   printFindings(found)
   console.log(`\nWOULD OPEN: ${found.filter((f) => f.message.startsWith('would open')).length} issue(s)`)

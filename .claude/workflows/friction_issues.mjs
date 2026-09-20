@@ -706,7 +706,11 @@ export function selfTest() {
   const CENSUS = (rows) =>
     `${rows.map(([kind, prs, ent, key]) => `CENSUS\t${kind}\t${prs}\t${ent}\t${key}`).join('\n')}\nCENSUS: ${rows.length} key(s)`
   const THRESHOLD_LINE = '\nthreshold: 3 or more of one key in the window opens "[policy] recurring friction: <key>". Nothing is opened here.'
-  const WINDOW_LINE = (w) => `STATS: ${w} merged pull request(s) in v9.9.9..origin/main; verdict grammar ["blocked","merge"]`
+  // Mirrors cmdStats' own line, including the block-class half of the grammar
+  // it prints (#1240): the lane reads only the PR count out of it, but a
+  // fixture that drifted from what policy_lint prints would pin nothing about
+  // the real output.
+  const WINDOW_LINE = (w) => `STATS: ${w} merged pull request(s) in v9.9.9..origin/main; verdict grammar ["blocked","merge"] over block classes ["conflict","harness","head-moved","mutation-vacuous","null-control","other","preflight-mismatch","root-cause-unanswered","version"] read from .claude/workflows/web-fix-wave.js`
   const STATS_OK = (n, rows = [['verdict class', 3, 4, 'blocked']], w = 12) =>
     `\n${WINDOW_LINE(w)}\n${CENSUS(rows)}${THRESHOLD_LINE}\nWOULD OPEN: ${n} issue(s)`
 
