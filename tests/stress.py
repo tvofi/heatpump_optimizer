@@ -389,21 +389,29 @@ SCENARIO_STALE_FACTOR = float(os.environ.get("STRESS_STALE_FACTOR", "3.5"))
 #: applies to this one unchanged: it is an integer the production path
 #: produces and the machine does not touch.
 #:
-#: 1.73, not 1.5, since #1208 (owner override, issue comment 5748462577,
+#: 1.80, not 1.5, since #1208 (owner override, issue comment 5748462577,
 #: 2026-09-20: "But I want you to implement it with budget raise.").
 #: Polish-every-candidate runs one extra full-budget restart per solved
 #: candidate inside the loop, so an UNCHANGED plan legitimately costs the
-#: evaluations and simulate steps of those restarts: measured at the
-#: #1208 head (three clean sweeps against the merge-base baseline
-#: captured beside each run), the worst unchanged-plan ratios were
-#: flat/1z/space 658/426 = 1.54x and typical_slab/shoulder 846/490 =
+#: evaluations and simulate steps of those restarts. Measured at the
+#: #1208 head on the dev box (three clean sweeps against the merge-base
+#: baseline captured beside each run), the worst unchanged-plan ratios
+#: were flat/1z/space 658/426 = 1.54x and typical_slab/shoulder 846/490 =
 #: 1.73x on the evaluation channel, the same two scenarios at the same
 #: 1.54x/1.73x on the simulate channel (integer counts, deterministic per
-#: tree pair). 1.73 covers the measured worst with nothing spare and
-#: stays under DETECTION_TARGET, so a 2x regression confined to one
-#: scenario is still seen on both channels; the 1.5x history above is
-#: the pre-#1208 record of the same argument.
-SCENARIO_WORK_FACTOR = float(os.environ.get("STRESS_WORK_FACTOR", "1.73"))
+#: tree pair). The first CI run of PR #1282 (head 317d46e, job 106089813679)
+#: then measured the same check on its own runner pair at
+#: winter/tariff+cycle and winter/tariff+pv+cycle 906/504 = 1.80x solver
+#: evaluations and 4219392/2347584 = 1.80x simulate step-equivalents, on
+#: an unchanged plan (objective 218.3908665 both sides) -- the runner's
+#: float environment makes the polish loop iterate more on those two
+#: bimodal scenarios than the dev box does, which is exactly the
+#: platform-variance headroom the original 1.5-vs-1.05 ruling reserved
+#: this factor's slack for. 1.80 covers the runner-measured worst with
+#: nothing spare and stays under DETECTION_TARGET, so a 2x regression
+#: confined to one scenario is still seen on both channels; the 1.5x
+#: history above is the pre-#1208 record of the same argument.
+SCENARIO_WORK_FACTOR = float(os.environ.get("STRESS_WORK_FACTOR", "1.80"))
 #: How far this run's objective value may sit from the recorded one and
 #: still count as the same basin, relative.
 #:
