@@ -2570,6 +2570,162 @@ check("the hand-scheduled reason has a label",
     su.setup.pickerKey === "lower_floor_temp_entity");
 }
 
+// --- Scenario: the sensor advisor page (#1269) ------------------------------
+//
+// The inverse of the sensor-gap advisor: the backend ranks which UNCONFIGURED
+// optional temperature sensors would tighten the thermal model most, and the
+// card renders that ranking on its own page in the dialog's tab system. The
+// proxy is an estimate and must say so on the page, and acting on a
+// suggestion must land in the assign picker for that exact slot -- the same
+// lane the setup page's own rows use, not a second editing path.
+{
+  const TEMP = ["sensor", "number", "input_number"];
+  // The setup topology the assign picker needs: the two slots the advisor
+  // rows below act on, at their places.
+  const advTopo = {
+    two_zone: true, dhw: true, valve_mode: "manual",
+    buffer: { volume_l: 750, is_store: true, max_temp: 70 },
+    wood: { present: false, volume_l: 500 },
+    edges: [
+      ["heat_pump", "buffer_tank"],
+      ["buffer_tank", "mixing_valve"],
+      ["mixing_valve", "upper_zone"],
+      ["mixing_valve", "lower_zone"],
+      ["heat_pump", "dhw_tank"],
+    ],
+    slots: [
+      { key: "indoor_temp_entity", label: "Indoor temperature",
+        place: "upper_zone", entity: "sensor.livingroom", domains: TEMP },
+      { key: "lower_floor_temp_entity", label: "Lower floor temperature",
+        place: "lower_zone", entity: null, domains: TEMP },
+      { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+        place: "buffer_tank", entity: null, domains: TEMP },
+      { key: "outdoor_temp_entity", label: "Outdoor temperature",
+        place: "outdoor", entity: null, domains: TEMP },
+    ],
+  };
+  // The backend's payload shape, as topology.rank_sensor_advisor publishes
+  // it: priced rows first (sorted by spread), unpriced rows after, each
+  // carrying its reason; the basis names what drove the replay.
+  const advisor = {
+    basis: "history",
+    candidates: [
+      { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+        spread_c: 4.13, parameters: ["buffer_cooling_rate"], priced: true },
+      { key: "lower_floor_temp_entity", label: "Lower floor temperature",
+        spread_c: 2.87, parameters: ["lower_floor_loss_ratio"], priced: true },
+      { key: "dhw_temp_entity", label: "Hot water temperature",
+        priced: false, reason: "no_clamped_parameter" },
+      { key: "outdoor_temp_entity", label: "Outdoor temperature",
+        priced: false, reason: "weather_backed" },
+      { key: "floor_return_temp_entity", label: "Floor loop return",
+        priced: false, reason: "state_estimate" },
+    ],
+  };
+  const advStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  advStates[DEFAULT_SPACE].attributes.setup_topology = advTopo;
+  advStates[DEFAULT_SPACE].attributes.sensor_advisor = advisor;
+  const adv = build(advStates);
+  adv._onCardClick({});
+  const advTabs = collect(adv.shadowRoot).join("\n");
+  check("the dialog offers an advisor tab beside the other three",
+    /dlg-tab[^>]*data-page="advisor"/.test(advTabs),
+    "the advisor is a page in the card's page system, not a section of another");
+
+  adv.dialog.page = "advisor";
+  adv._render();
+  // The whole shadow root: the rig's collect() reads the markup a render
+  // produced from the root's own innerHTML, and parsed children carry none.
+  const advPage = collect(adv.shadowRoot).join("\n");
+  check("the advisor page ranks the priced rows with their spread",
+    /Buffer tank temperature/.test(advPage)
+    && /4\.13/.test(advPage)
+    && /2\.87/.test(advPage)
+    && advPage.indexOf("Buffer tank temperature") < advPage.indexOf("Lower floor temperature"),
+    "priced rows render in the backend's order, top first");
+  check("every quantified row carries the estimate label",
+    (advPage.match(/estimated/g) || []).length >= 2,
+    "a prior is a prior; the page must never read as a measurement");
+  check("the page names what drove the replay",
+    /measured delivery/.test(advPage),
+    "the basis line distinguishes the history arm from the config arm");
+  check("unpriced rows render after every priced one, with their reason",
+    (() => {
+      // Scoped to the advisor page's own markup, found by its class
+      // attribute: "Outdoor temperature" is also a legend series label,
+      // and ".advisor-page" also names a stylesheet rule, and both of
+      // those render before the dialog does.
+      const at = advPage.indexOf('setup-page advisor-page"');
+      const page = at >= 0 ? advPage.slice(at) : "";
+      return page.indexOf("Hot water temperature") > page.indexOf("Lower floor temperature")
+        && page.indexOf("Outdoor temperature") > page.indexOf("Lower floor temperature");
+    })(),
+    "a row the proxy cannot price must not pose as a ranked one");
+
+  // Acting on a suggestion: the row is a button that lands in the setup
+  // page's assign picker for that exact slot -- the one editing lane the
+  // card already owns. The rig's selector engine answers tag, class and
+  // [attr] forms, so the row is found by its data-key and checked to BE
+  // the button.
+  const row = adv.shadowRoot.querySelector(
+    '[data-key="buffer_tank_temp_entity"]');
+  check("each suggestion is its own 24px-floor button",
+    !!row && row.tagName === "BUTTON" && row.classList.contains("adv-row"),
+    "a ranked list whose rows cannot be acted on is a report, not advice");
+  if (row) await Promise.all(
+    (row._listeners.click || []).map((f) => f({ stopPropagation() {} })));
+  check("acting on a suggestion opens the assign picker for that slot",
+    adv.dialog.activePage() === "setup"
+    && adv.setup.pickerKey === "buffer_tank_temp_entity",
+    `page=${adv.dialog.activePage()} picker=${adv.setup.pickerKey}`);
+  const pickerOpen = collect(adv.shadowRoot).join("\n");
+  check("and the picker is the setup page's own, filters and all",
+    /sp-filter|sp-select/.test(pickerOpen),
+    "the advisor must reuse the one assign lane, not grow a second");
+
+  // Null control: a coordinator that publishes no advisor attribute (every
+  // optional temperature sensor configured) shows the page saying so, not
+  // an empty table or a missing tab.
+  const doneStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  doneStates[DEFAULT_SPACE].attributes.setup_topology = advTopo;
+  const done = build(doneStates);
+  done._onCardClick({});
+  done.dialog.page = "advisor";
+  done._render();
+  const donePage = collect(done.shadowRoot).join("\n");
+  // Only one dialog exists at a time, and the done card never saw the
+  // advisor attribute, so the absence below is the page's own answer.
+  // The markup form is what counts: the stylesheet text names .adv-row
+  // in every render, rows or not.
+  check("with no candidates the advisor page says so in as many words",
+    /already configured/.test(donePage)
+    && !/class="adv-row/.test(donePage),
+    "an absent attribute must read as 'nothing to suggest', not as silence");
+
+  // Swedish: the page is a first-class citizen of the card's i18n.
+  const svCard = new Card();
+  svCard.setConfig({ type: "custom:heatpump-optimizer-card" });
+  svCard.hass = { states: advStates, language: "sv-SE" };
+  svCard._onCardClick({});
+  svCard.dialog.page = "advisor";
+  svCard._render();
+  const svPage = collect(svCard.shadowRoot).join("\n");
+  check("the advisor page speaks Swedish",
+    /uppskattat/.test(svPage) && /Rådgivare/.test(svPage),
+    "sv strings must exist for every key the page renders");
+
+  // WCAG 2.5.8: the rows are HTML targets, so they belong to the
+  // unconditional 24px floor the #1220 repair moved out of the coarse
+  // media query -- a selector list that forgets the new control ships it
+  // under the floor on day one. Anchored to the definition itself: the
+  // name also appears in prose comments later in the file.
+  check("the advisor rows sit in the html target floor's selector list",
+    /\.adv-row/.test(
+      cardSrc.slice(cardSrc.indexOf("const htmlTargetFloor"),
+        cardSrc.indexOf("const htmlTargetFloor") + 450)),
+    "a new HTML control joins the floor or ships below it");
+}
+
 // --- Scenario: the layout editor (v3.16.0, issue #40) ----------------------
 //
 // The editor's whole promise is that a drawing cannot claim physics the model

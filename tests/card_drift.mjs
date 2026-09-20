@@ -370,6 +370,33 @@ const STATES = [
     drive: (s) => setupPage(s, qaTopologies().twoTank) },
   { name: "setup_coil",
     drive: (s) => setupPage(s, qaTopologies().coil) },
+  // #1269: the sensor advisor page, driven by the attribute the plan
+  // sensors publish. The payload mirrors what topology.rank_sensor_advisor
+  // emits for a two-zone install with the indoor probe configured and
+  // everything else empty: priced rows sorted by spread, unpriced rows
+  // after them, basis from the measured series.
+  { name: "advisor_page",
+    drive: (s) => {
+      const st = setupStates(s.plan, qaTopologies().base);
+      st[DEFAULT_SPACE].attributes.sensor_advisor = {
+        basis: "history",
+        candidates: [
+          { key: "buffer_tank_temp_entity", label: "Buffer tank temperature",
+            spread_c: 4.13, parameters: ["buffer_cooling_rate"], priced: true },
+          { key: "lower_floor_temp_entity", label: "Lower floor temperature",
+            spread_c: 2.87, parameters: ["lower_floor_loss_ratio"], priced: true },
+          { key: "dhw_temp_entity", label: "Hot water temperature",
+            priced: false, reason: "no_clamped_parameter" },
+          { key: "outdoor_temp_entity", label: "Outdoor temperature",
+            priced: false, reason: "weather_backed" },
+        ],
+      };
+      const c = buildCard(s.Card, st);
+      c._onCardClick({});
+      api.setPage(c, "advisor");
+      c._render();
+      return c;
+    } },
   { name: "layout_editing_dragged",
     drive: (s) => {
       const c = setupPage(s, layoutCatalogTopo());
