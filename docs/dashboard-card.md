@@ -7,9 +7,12 @@ optimizer's planning series on a single shared time axis:
   filled area)
 - **DHW heating** power (kW, left power axis, stepped filled band)
 - **Space heating** power (kW, left power axis, stepped filled band)
-- **Actioned power** (kW, left power axis, stepped filled band) — the power
-  the heat pump actually ran, from its own recorded action history, drawn
-  left of "now" when you pan back through it
+- **Actioned power** (kW, left power axis, stepped filled band) — what the
+  heat pump actually did, left of "now" when you pan back through it: a
+  mode band along the base of the plot for the hours the pump was executing
+  heating (from the action sensor's own recorded state history, which every
+  install has), and the commanded power in kW above it on installs whose
+  action sensor publishes a `power_kw` attribute
 - **Outdoor temperature** (°C, left temperature axis, smooth line)
 - **DHW tank temperature** (°C, left temperature axis, smooth line, with the
   prediction's expected error drawn as a dashed pair around it)
@@ -238,7 +241,12 @@ plan's, and the card does scroll back into it — up to 48 hours. Left of the
 "now" marker you see what actually happened: the measured indoor and outdoor
 temperatures, the spot price and the solar irradiance ride the same series
 their forecasts occupy right of it, and the pump's own commanded power draws
-as the **Actioned power** bars on the same axis as the planned slots. The
+as the **Actioned power** series: a band along the base of the plot for
+the hours the pump was executing heating, drawn from the action sensor's
+own state history (the mode is the state, so every install has it), with
+the commanded power in kW above it where the action sensor publishes
+`power_kw` — an overlay, never a prerequisite. Hovering the past names the
+mode the pump was in. The
 history is fetched from Home Assistant's recorder lazily, one 12-hour window
 per stretch you pan into, so a quick glance back costs one small request
 rather than the whole span. If the recorder answers nothing — it is off, or
