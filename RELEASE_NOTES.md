@@ -1,5 +1,34 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.6.6
+
+the identity switch lands (the hpo-author App authors, decision 0011) with its
+tooling, and a wave of user-facing features, audit fixes and records:
+
+- #1257 — the governance-code trio (ruleset reader, record refusal, PR template)
+- #1254 — the round-5 instrument batch: derived driver sets, triaged mutants,
+  the re-derived deployment_shape note, the stress work meter
+- #1259 — app_push.sh: the App's authoring tool (prepr-first ordering,
+  file-fed credentials) and the hardened app_approve verdict gate
+- #1265 — parse_claim_map carries every line per scenario (the #1255 fix)
+- #1261 — decision 0011: the three-identity model in the briefs, CODEOWNERS,
+  and the owner-approved corpus raise
+- #1264 — docs/setup.md: the full config flow with generated screenshots
+- #1268 — the card lane's parseClaims multi-value fix (#1265's JS twin)
+- #1270 — the evening-wave record: nine delivery rows, dispositions, HANDOVER
+- #1271 — per-weekday DHW windows with the card's resolved hot-water band
+- #1273 — Quick setup from Configure (untouched submit is a provable no-op)
+  and the prefill page's labels and friendly names
+- #1274 — the sensor advisor card page: ranked unconfigured sensors, honestly
+  badged estimates
+- #1275 — app_push postBuffer hardening (large pushes no longer die chunked)
+- #1277 — the D13 measurement batch: friction trailers, verdict grammar,
+  histogram keys, the governance-cost GOV set
+- #1279 — approve_held_runs.sh: the orchestrator-side held-run approver
+- #1278 — the docs sweep: README and corpus re-truthed, three screenshots
+- #1276 — the #1210 re-cut: the billed tariff charges the exact hard top-k
+  while the solver keeps its smooth surrogate (plans byte-identical)
+
 ## v6.6.5
 
 a red-main repair wave, the quick-setup path, and the round-5 UI/sensor batch:

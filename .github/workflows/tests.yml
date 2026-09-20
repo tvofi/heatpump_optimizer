@@ -1200,6 +1200,7 @@ jobs:
           PY
 
       - name: Push the merged closures
+        id: push
         if: steps.autofix.outputs.status == 'changed'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -1220,6 +1221,9 @@ jobs:
             echo "PAT push retriggers pull_request; not dispatching"
             exit 0
           fi
+          # The pull_request runs this GITHUB_TOKEN push leaves holding
+          # action_required are the next step's to approve (#1276).
+          echo "token_push=true" >> "$GITHUB_OUTPUT"
           # No -f recheck=: that input is only on default-branch YAML.
           # The dispatched run uses this ref's workflow; recheck-gate
           # treats a `ci:` subject as recheck.
@@ -1233,6 +1237,105 @@ jobs:
           else
             echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
           fi
+
+      # The dispatches above run at once, but the pull_request runs a
+      # GITHUB_TOKEN push triggers wait action_required for a human, and a
+      # pending required check shadows the dispatched green on the PR (#1276).
+      # Approve them as a dedicated Actions-only App -- HPO_RUNS_PEM /
+      # HPO_RUNS_APPID, Actions: write alone, a smaller blast radius than
+      # hpo-approver's -- minting the token with the same RS256 flow
+      # tools/audit/app_approve.sh uses, ported inline because a workflow
+      # cannot read the orchestrator box's key files. Fail-soft throughout:
+      # absent secrets print one notice and approve nothing (until the owner
+      # sets them, behavior is unchanged), and a later mint or approve error
+      # warns rather than reddening a job whose push already happened -- red
+      # means "no bot commit" (#523), and the commit exists.
+      - name: Approve the runs the push left holding
+        if: steps.push.outputs.token_push == 'true'
+        env:
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.head_ref }}
+          RUNS_PEM: ${{ secrets.HPO_RUNS_PEM }}
+          RUNS_APPID: ${{ secrets.HPO_RUNS_APPID }}
+        run: |
+          { set +x; } 2>/dev/null  # the PEM, JWT and token are never traced
+          if [ -z "$RUNS_PEM" ]; then
+            echo "::notice::HPO_RUNS_PEM is not set; leaving action_required runs for a human (fail-soft)"
+            exit 0
+          fi
+          if [ -z "$RUNS_APPID" ]; then
+            echo "::warning::HPO_RUNS_APPID is not set; leaving action_required runs for a human (fail-soft)"
+            exit 0
+          fi
+          umask 077
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          key="$RUNNER_TEMP/hpo-runs.pem"
+          jwt_h="$RUNNER_TEMP/hpo-runs-jwt.h"
+          tok_h="$RUNNER_TEMP/hpo-runs-token.h"
+          cleanup() {
+            if [ -s "$tok_h" ]; then
+              curl -fsS -X DELETE -H @"$tok_h" -H "$ACCEPT" "$API/installation/token" >/dev/null 2>&1 \
+                || echo "::warning::revoking the run-approver App token failed; it expires within the hour"
+            fi
+            rm -f "$key" "$jwt_h" "$tok_h"
+          }
+          trap cleanup EXIT
+          # So the EXIT trap (token revoke + file removal) also fires when the
+          # job is cancelled -- app_approve.sh's bounded-gap line.
+          trap 'exit 130' INT TERM HUP
+          printf '%s\n' "$RUNS_PEM" > "$key"
+          b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          now=$(date +%s)
+          h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
+          p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$RUNS_APPID" | b64)
+          s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] || {
+            echo "::warning::signing the run-approver App JWT failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
+          inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
+            | python3 -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+            echo "::warning::the run-approver App has no installation on $REPO, or its JWT was refused; nothing approved (fail-soft)"
+            exit 0
+          }
+          curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
+            | python3 -c 'import sys,json
+          t = json.load(sys.stdin)["token"]
+          open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$tok_h" && [ -s "$tok_h" ] || {
+            echo "::warning::minting the run-approver App installation token failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          held_ids() {
+            curl -fsS -H @"$tok_h" -H "$ACCEPT" \
+              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+              | python3 -c 'import sys,json
+          for r in json.load(sys.stdin).get("workflow_runs", []):
+              print(r["id"], r["name"])'
+          }
+          held=$(held_ids) || {
+            echo "::warning::listing action_required runs on $HEAD_REF failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          approved=0
+          while read -r id name; do
+            [ -n "$id" ] || continue
+            if curl -fsS -X POST -H @"$tok_h" -H "$ACCEPT" "$API/repos/$REPO/actions/runs/$id/approve"; then
+              echo "approved run $id ($name)"
+              approved=$((approved + 1))
+            else
+              echo "::warning::approving run $id ($name) was refused; it stays action_required (fail-soft)"
+            fi
+          done <<< "$held"
+          {
+            echo "### closures-autofix: approve held runs"
+            echo
+            echo '```'
+            echo "$approved run(s) on $HEAD_REF approved by the Actions-only App"
+            echo "after-state: $(held_ids | wc -l | tr -d ' ') run(s) still action_required"
+            held_ids | sed 's/^/  still held: /'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # The push above runs only on `changed`; the other statuses fell through
       # to job success, so a skipped repair was invisible and the documented
@@ -1309,6 +1412,7 @@ jobs:
           PY
 
       - name: Push emptied claim files
+        id: push
         if: steps.autofix.outputs.status == 'changed'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -1329,6 +1433,9 @@ jobs:
             echo "PAT push retriggers pull_request; not dispatching"
             exit 0
           fi
+          # The pull_request runs this GITHUB_TOKEN push leaves holding
+          # action_required are the next step's to approve (#1276).
+          echo "token_push=true" >> "$GITHUB_OUTPUT"
           gh workflow run tests.yml --ref "$HEAD_REF"
           gh workflow run hassfest.yml --ref "$HEAD_REF"
           gh workflow run validate.yml --ref "$HEAD_REF"
@@ -1339,6 +1446,100 @@ jobs:
           else
             echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
           fi
+
+      # As in closures-autofix (#1276): the dispatches run at once, the
+      # pull_request runs a GITHUB_TOKEN push triggers wait action_required
+      # for a human, and the approve step clears them as the Actions-only
+      # App -- the RS256 mint tools/audit/app_approve.sh uses, ported
+      # inline. Fail-soft throughout: absent secrets print one notice and
+      # approve nothing, and a later error warns rather than reddening a
+      # job whose push already happened (red means "no bot commit", #523).
+      - name: Approve the runs the push left holding
+        if: steps.push.outputs.token_push == 'true'
+        env:
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.head_ref }}
+          RUNS_PEM: ${{ secrets.HPO_RUNS_PEM }}
+          RUNS_APPID: ${{ secrets.HPO_RUNS_APPID }}
+        run: |
+          { set +x; } 2>/dev/null  # the PEM, JWT and token are never traced
+          if [ -z "$RUNS_PEM" ]; then
+            echo "::notice::HPO_RUNS_PEM is not set; leaving action_required runs for a human (fail-soft)"
+            exit 0
+          fi
+          if [ -z "$RUNS_APPID" ]; then
+            echo "::warning::HPO_RUNS_APPID is not set; leaving action_required runs for a human (fail-soft)"
+            exit 0
+          fi
+          umask 077
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          key="$RUNNER_TEMP/hpo-runs.pem"
+          jwt_h="$RUNNER_TEMP/hpo-runs-jwt.h"
+          tok_h="$RUNNER_TEMP/hpo-runs-token.h"
+          cleanup() {
+            if [ -s "$tok_h" ]; then
+              curl -fsS -X DELETE -H @"$tok_h" -H "$ACCEPT" "$API/installation/token" >/dev/null 2>&1 \
+                || echo "::warning::revoking the run-approver App token failed; it expires within the hour"
+            fi
+            rm -f "$key" "$jwt_h" "$tok_h"
+          }
+          trap cleanup EXIT
+          # So the EXIT trap (token revoke + file removal) also fires when the
+          # job is cancelled -- app_approve.sh's bounded-gap line.
+          trap 'exit 130' INT TERM HUP
+          printf '%s\n' "$RUNS_PEM" > "$key"
+          b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          now=$(date +%s)
+          h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
+          p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$RUNS_APPID" | b64)
+          s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] || {
+            echo "::warning::signing the run-approver App JWT failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
+          inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
+            | python3 -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+            echo "::warning::the run-approver App has no installation on $REPO, or its JWT was refused; nothing approved (fail-soft)"
+            exit 0
+          }
+          curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
+            | python3 -c 'import sys,json
+          t = json.load(sys.stdin)["token"]
+          open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$tok_h" && [ -s "$tok_h" ] || {
+            echo "::warning::minting the run-approver App installation token failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          held_ids() {
+            curl -fsS -H @"$tok_h" -H "$ACCEPT" \
+              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+              | python3 -c 'import sys,json
+          for r in json.load(sys.stdin).get("workflow_runs", []):
+              print(r["id"], r["name"])'
+          }
+          held=$(held_ids) || {
+            echo "::warning::listing action_required runs on $HEAD_REF failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          approved=0
+          while read -r id name; do
+            [ -n "$id" ] || continue
+            if curl -fsS -X POST -H @"$tok_h" -H "$ACCEPT" "$API/repos/$REPO/actions/runs/$id/approve"; then
+              echo "approved run $id ($name)"
+              approved=$((approved + 1))
+            else
+              echo "::warning::approving run $id ($name) was refused; it stays action_required (fail-soft)"
+            fi
+          done <<< "$held"
+          {
+            echo "### claims-autofix: approve held runs"
+            echo
+            echo '```'
+            echo "$approved run(s) on $HEAD_REF approved by the Actions-only App"
+            echo "after-state: $(held_ids | wc -l | tr -d ' ') run(s) still action_required"
+            held_ids | sed 's/^/  still held: /'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # As in closures-autofix (#523). This job's apply function has no
       # attempted-and-failed status, so today only an unrecognised or empty

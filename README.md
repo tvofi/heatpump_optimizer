@@ -62,7 +62,11 @@ pump — are scheduled instead of left running.
 
 **Hot water that fits your household.** Hot water is guaranteed inside demand
 time frames rather than kept permanently hot, which is where most of the saving
-comes from. Draw statistics are learned per window, with a heavy-day (90th
+comes from. The frames can differ by weekday — early on workdays, later on
+weekends — typed as `weekdays 06:00-08:30, weekend 08:00-09:30` or set one
+day at a time on the options page, and the card's chart follows the resolved
+per-day schedule across midnight. Draw statistics are learned per window, with
+a heavy-day (90th
 percentile) target so the second shower is not the one that runs cold. A setpoint
 advisor proposes the cheapest setpoint that still covers those days; a mixed-water
 sensor translates the tank into litres and shower minutes; anti-legionella can be
@@ -73,8 +77,11 @@ anyway.
 graded 0–100 across envelope, machine and operation. Energy and cost accumulate
 into the Energy dashboard split by hot water versus space heating. Prediction
 accuracy carries a signed bias, and a one-shot diagnosis attributes the last
-interval's temperature error input by input. Compressor starts are counted from
-the meter, and the wear they imply is priced rather than assumed.
+interval's temperature error input by input. An advisor ranks the temperature
+sensors you have not added by how much they would tighten the model — an
+estimate, labelled as one — and a click assigns the sensor. Compressor starts
+are counted from the meter, and the wear they imply is priced rather than
+assumed.
 
 **You stay in charge.** The card's editor pins exact run slots for up to 20 hours
 and the optimizer plans around them; a what-if simulator prices a comfort change
@@ -365,7 +372,9 @@ orientation factor and SHGC are on **Building type and emitters**.
 **4 · Hot water.** Tank volume, setpoint and minimum, daily consumption, and the
 demand time frames — the periods when hot water must be available (`06:00-08:30,
 17:00-22:00` by default). Outside them the tank is *meant* to cool down; that is
-where most of the savings come from. Leave the field empty to let the optimizer
+where most of the savings come from. The frames can name different days
+(`weekdays 06:00-08:30, weekend 08:00-09:30`), and the options page later offers
+one field per weekday on top. Leave the field empty to let the optimizer
 learn the frames from observed usage, or turn the toggle off to require hot water
 around the clock. Anti-legionella is on by default at 60 °C every 7 days; that
 temperature applies only during a cycle, so the rest of the week the tank is
@@ -782,7 +791,10 @@ add to and remove from, with a running total and an **Apply this plan** button
 that pins your arrangement. Below that, a panel lets you move the heating day and
 the hot-water windows, price the change with **Simulate these slots**, and commit
 it with **Save as my schedule**. A Setup tab draws your configured system with
-live sensor readings in place, where clicking a sensor assigns or clears it.
+live sensor readings in place, where clicking a sensor assigns or clears it. A
+Savings tab settles the months so far in one table, and an Advisor tab ranks the
+temperature sensors you have not configured by how much they would tighten the
+model — clicking a row opens the picker that assigns that sensor.
 
 The integration serves and registers the card automatically. Add it with:
 

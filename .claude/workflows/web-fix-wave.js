@@ -198,8 +198,29 @@ const ROOT_CAUSE_CLASSES = ['root-cause-unanswered']
 // could proceed). The gate is the thing that must be exact; this parser
 // refuses what the gate would refuse, rather than the gate loosening to match
 // an unconstrained reporter.
+//
+// THE CLASS ARM IS OPTIONAL, AND THE HEAD IS WHY (#1239, D13-02). Measured at
+// the round-5 baseline, 16 of 30 blocked verdicts fell outside this grammar --
+// 7 bare (`blocked <sha>`, no class), 9 with a class word the vocabulary never
+// taught -- and every one took the unparseable path, which drops the head SHA
+// the reviewer measured and leaves the roster patch pointing nowhere. A
+// verdict that names a full head SHA is evidence about a tree; discarding it
+// unreadable costs more than routing it loosely. So the class word, when one
+// is written, may be ANY word: a taught word routes as itself, an untaught
+// word routes to `other` with the word kept at the front of the why (visible
+// to the repair agent and the orchestrator, not silently accepted as
+// vocabulary), and a bare verdict routes to `other` with no why -- the same
+// destination readVerdict already gave the unparseable ones, minus the lost
+// head. A `blocked <sha>: <why>` reason line without a class word parses the
+// same way. What still refuses is everything about the HEAD and the VERDICT
+// WORD: no SHA, an abbreviated SHA (#1106), a first word that is neither
+// merge nor blocked (`Fix review: PASS — merge <sha>`), or shapeless text
+// after the SHA. The vocabulary above is unchanged and still what the reviewer
+// prompt teaches -- this is the parser tolerating what reviewers demonstrably
+// write, not the prompt endorsing it.
 const VERDICT_RE = new RegExp(
-  `^Fix review:\\s+(?:(merge)\\s+([0-9a-f]{40})|(blocked)\\s+([0-9a-f]{40})\\s+(${VERDICT_CLASSES.join('|')}):\\s*(.+))$`
+  `^Fix review:\\s+(?:(merge)\\s+([0-9a-f]{40})|(blocked)\\s+([0-9a-f]{40})` +
+    `(?:\\s+([a-z][a-z0-9-]*)\\s*:\\s*(.+)|\\s*:\\s*(.+)|\\s*))$`
 )
 
 // Throws on anything that does not parse. Called from inside the per-group
@@ -212,13 +233,27 @@ function parseVerdict(review) {
   if (!m) {
     throw new Error(
       `verdict does not parse: ${JSON.stringify(raw.slice(0, 200))}. ` +
-        'Expected "Fix review: merge <sha>" or "Fix review: blocked <sha> <class>: <why>", ' +
-        `class one of ${VERDICT_CLASSES.join(', ')}.`
+        'Expected "Fix review: merge <sha>", "Fix review: blocked <sha>", ' +
+        'or "Fix review: blocked <sha> <class>: <why>" -- the sha is the full 40 hex of the head; ' +
+        `a class word outside ${VERDICT_CLASSES.join(', ')} routes to \`other\`.`
     )
   }
-  const parsed = m[1]
-    ? { verdict: 'merge', head_sha: m[2], class: null, why: null }
-    : { verdict: 'blocked', head_sha: m[4], class: m[5], why: m[6].trim() }
+  let parsed
+  if (m[1]) {
+    parsed = { verdict: 'merge', head_sha: m[2], class: null, why: null }
+  } else {
+    // An untaught class word keeps its place in the why (prefixed) so the
+    // repair round and the orchestrator see exactly what the reviewer wrote;
+    // only the ROUTE degrades, to `other`.
+    const taught = m[5] && VERDICT_CLASSES.includes(m[5])
+    parsed = {
+      verdict: 'blocked',
+      head_sha: m[4],
+      class: taught ? m[5] : 'other',
+      why: m[5] && !taught ? `${m[5]}: ${m[6] ?? ''}`.trim() : (m[6] ?? m[7] ?? null),
+    }
+    if (parsed.why === '') parsed.why = null
+  }
   const field = review?.verdict
   if (field && field !== parsed.verdict) {
     throw new Error(

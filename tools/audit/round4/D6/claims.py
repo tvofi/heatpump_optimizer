@@ -21,9 +21,12 @@ re-truthed architecture.md's ten stale claims (45->56 modules, map 45->56
 listed, ten->21 boundary importers, 13->21 option pages, 11->12 services,
 both platform comments completed) and flipped the ten architecture rows to
 true.  At 7dd68dd the same run printed claims_true=112 and claims_false=12
-(111/12 without --links); claims_false at this tree is the one remaining
+(111/12 without --links); claims_false at that tree was the one remaining
 non-architecture false claim (C105, Power Headroom availability -- a separate
-finding), C9 having been turned true by its own fix already.  Re-recorded again
+finding), C9 having been turned true by its own fix already; C105's documented
+side was corrected later and its label re-derived from the sentence
+automations.md now carries (the C28 rule), so claims_false is 0 at this tree.
+Re-recorded again
 for #1148, and for a reason that is itself the finding: this header is the
 assertion tests/harness_headers.py was built to execute, and nothing had compared
 it to a run since 2026-09-17.  The discovery finds a live harness by the
@@ -40,8 +43,8 @@ time: regenerating before that fix would have published a false accusation
 against a document that is CORRECT.
     RESULT claims_extracted=125
     RESULT claims_checked=125
-    RESULT claims_true=122          (123 with --links; the checker runs the default)
-    RESULT claims_false=1
+    RESULT claims_true=123          (124 with --links; the checker runs the default)
+    RESULT claims_false=0
     RESULT claims_stale=0
     RESULT claims_unverifiable=2    (1 with --links; the checker runs the default)
     RESULT config_defaults_compared=88   (76 until #937's rows landed; 82
@@ -1046,16 +1049,15 @@ _hr_tariff = build_coord({const.CONF_PEAK_TARIFF_ENABLED: True,
 _hr_fuse = build_coord({const.CONF_MAIN_FUSE_A: 20})._power_headroom()
 _hr_bare = build_coord({})._power_headroom()
 claim("C105", "docs/automations.md",
-      "the Power Headroom sensor stays unavailable until you set a main fuse size in "
-      "the options",
+      "the Power Headroom sensor appears once anything bounds the house -- a main "
+      "fuse OR a capacity tariff -- and a tariff-only install reads 0.0 kW with "
+      "limit_source='capacity tariff with no peak reference yet' until the month's "
+      "first metering window closes; with neither it stays unavailable",
       CMD,
       f"no fuse + capacity tariff enabled -> {_hr_tariff}; "
       f"fuse only -> available={_hr_fuse['available']}; "
       f"neither -> available={_hr_bare['available']}",
-      "false",
-      "a capacity tariff alone makes it available (limit_source='capacity tariff with "
-      "no peak reference yet', headroom_kw=0.0) with no fuse set; the fuse is one of "
-      "two sufficient conditions, not a necessary one")
+      "true")
 claim("C106", "docs/automations.md",
       "Power Headroom is min(main fuse, capacity threshold) - current house draw, "
       "clamped at zero, in kW",

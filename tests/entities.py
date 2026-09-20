@@ -19017,6 +19017,102 @@ R.check(
     f"none_only rc={_FN['none_only'][0]}, junk_only rc={_FN['junk_only'][0]}, "
     f"parsed={_FRICTION_PARSED}",
 )
+# `## Friction` AND THE TRAILER BLOCK A TOOL PASTES UNDER IT (#1238, D13-01).
+# The lines a tool or an assistant appends to a body -- the Claude Code
+# attribution, a `Co-Authored-By:` git trailer, a `Closes #N` keyword line --
+# OPEN entries under the friction grammar's own rules (a list-marked bullet;
+# a `word:` near-miss) while naming no rule and no event, so every one of
+# them landed in the histogram's unlabelled bucket. At the round-5 baseline
+# that bucket was the TOP ROW of the friction histogram -- 13 entries over 54
+# merges, 11 of them the Claude Code attribution alone -- and the filer
+# (`friction_issues.mjs`) would have opened "[policy] recurring friction:
+# (unlabelled friction bullet)" for boilerplate no seat wrote. The property
+# pinned here: a trailer-shaped LINE is not friction evidence, decided by the
+# same parser the contract refuses with, and keyed on the line's own shape.
+# The null control drives the SAME WORDS mid-evidence, where no line-anchored
+# trailer shape matches, and the entry survives; the junk line beside it is
+# the pin that the drop did not buy a general amnesty.
+def _friction_trailer_fixture():
+    import tempfile
+
+    sha = "0" * 40
+
+    def body(friction: str) -> str:
+        secs = [("Head", f"`{sha}`"), ("Mutation proof", "none"),
+                ("Null control", "none"), ("Figures", "none"),
+                ("Red checks", "none"), ("Forward-carry", "none"),
+                ("Friction", friction)]
+        return "".join(f"## {h}\n\n{v}\n\n" for h, v in secs)
+
+    out = {}
+    with tempfile.TemporaryDirectory() as td:
+        p = Path(td) / "body.md"
+        for key, friction in {
+            "none_plus_attribution":
+                "none\n\n- 🤖 Generated with [Claude Code](https://claude.com/claude-code)",
+            "none_plus_coauthor":
+                "none\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
+            "none_plus_closes": "none\n\nCloses #1134",
+            "entry_plus_attribution":
+                "`CLAUDE.md`: cost: real\n\n🤖 Generated with Claude Code",
+        }.items():
+            p.write_text(body(friction))
+            r = subprocess.run(
+                ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+                 str(p), "--head", sha],
+                capture_output=True, text=True)
+            out[key] = (r.returncode, r.stdout)
+    return out
+
+
+_FT = _friction_trailer_fixture()
+_FRICTION_TRAILER = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     "console.log(JSON.stringify({"
+     "attribution: m.frictionEntries('none\\n\\n- 🤖 Generated with [Claude Code](https://claude.com/claude-code)').length,"
+     "coauthor: m.frictionEntries('none\\n\\nCo-Authored-By: Claude <noreply@anthropic.com>').length,"
+     "closes: m.frictionEntries('none\\n\\nCloses #1134').length,"
+     "entry_kept: m.frictionEntries('`CLAUDE.md`: cost: real\\n\\nCloses #1134')"
+     ".filter((e) => e.id === 'CLAUDE.md').length,"
+     "entry_total: m.frictionEntries('`CLAUDE.md`: cost: real\\n\\n🤖 Generated with Claude Code').length,"
+     "midline_control: m.frictionEntries('`claim-files`: cost: the body said Closes #1134 under the wrong heading')"
+     ".filter((e) => e.id === 'claim-files').length"
+     "})))"],
+    capture_output=True, text=True).stdout or "{}")
+R.check(
+    "a trailer block pasted under `none` is not friction and refuses nothing",
+    _FRICTION_TRAILER.get("attribution") == 0
+    and _FRICTION_TRAILER.get("coauthor") == 0
+    and _FRICTION_TRAILER.get("closes") == 0
+    and _FT["none_plus_attribution"][0] == 0
+    and _FT["none_plus_coauthor"][0] == 0
+    and _FT["none_plus_closes"][0] == 0,
+    f"parsed={_FRICTION_TRAILER}, "
+    f"rcs={{{', '.join(f'{k}: {v[0]}' for k, v in _FT.items())}}} -- the "
+    "attribution bullet, the `Co-Authored-By:` near-miss and the `Closes #N` "
+    "line each became an unlabelled histogram entry the filer would have "
+    "counted (#1238)",
+)
+R.check(
+    "a real entry followed by a trailer block keeps exactly its own entry",
+    _FRICTION_TRAILER.get("entry_kept") == 1
+    and _FRICTION_TRAILER.get("entry_total") == 1
+    and _FT["entry_plus_attribution"][0] == 0,
+    f"parsed={_FRICTION_TRAILER}, "
+    f"entry_plus_attribution rc={_FT['entry_plus_attribution'][0]} -- the "
+    "trailer opened a second, unlabelled entry beside the real one",
+)
+R.check(
+    "and the drop buys no amnesty: junk still refuses, trailer words "
+    "mid-evidence still parse (null controls)",
+    _FN["junk_only"][0] == 1
+    and _FRICTION_TRAILER.get("midline_control") == 1,
+    f"junk_only rc={_FN['junk_only'][0]}, parsed={_FRICTION_TRAILER} -- the "
+    "trailer shapes are line-anchored, so the same words inside an entry's "
+    "evidence must not drop it, and a line that is neither an entry nor a "
+    "trailer must still be refused",
+)
 # AN AUTOFIX COMMIT ON THE NAMED HEAD IS NOT A MOVED HEAD. `closures-autofix`
 # and `claims-autofix` push a commit onto a pull request after its body was
 # written, so the body names a head that is no longer the tip and `pr-contract`
@@ -19293,6 +19389,134 @@ R.check(
     f"sunset: {_REC_SUNSET_LINE!r} -- the filing step reddens this job when "
     "its mechanism fails, because a filing lane that fails green stopped "
     "filing; the histogram and sunset printings never redden it",
+)
+# D13-04 (#1241): the governance-cost instrument's GOV set is measured against
+# the workflow files, never remembered. It named `record-status` for a window
+# after that job had been renamed -- a job that exists nowhere costs nothing
+# and hides nothing -- while the two jobs the rename actually added
+# (`delivery-status`, `delivery-status-publish`) were counted as GATE seconds,
+# understating the governance share of every merge in that window (0.0515
+# carried against 0.0556 derived at the finder's baseline). Both directions
+# are pinned against the tree: every GOV member is a job id some workflow
+# file defines, and every governance.yml job id is in GOV, so the next job
+# added to the governance workflow reddens this check until the instrument
+# names it. The null control is the split itself: `fast`, the code gate's own
+# job, must stay out of GOV.
+def _workflow_job_ids(text: str) -> "set[str]":
+    i = text.rfind("\njobs:\n")
+    return set(re.findall(r"^  ([A-Za-z][\w-]*):", text[i:], re.M)) if i >= 0 else set()
+
+
+def _load_governance_cost():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "hpo_governance_cost",
+        Path("tools/audit/round4/D11/governance_cost.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_GOV_MOD = _load_governance_cost()
+_ALL_JOB_IDS: "set[str]" = set()
+for _wf in sorted(Path(".github/workflows").glob("*.y*ml")):
+    _ALL_JOB_IDS |= _workflow_job_ids(_wf.read_text())
+_GOV_JOBS = _workflow_job_ids(_DS_GOV)
+R.check(
+    "the governance-cost GOV set names only jobs the workflow files define, "
+    "and every governance.yml job",
+    _ALL_JOB_IDS
+    and _GOV_JOBS
+    and _GOV_MOD.GOV <= _ALL_JOB_IDS
+    and _GOV_JOBS <= _GOV_MOD.GOV,
+    f"GOV={sorted(_GOV_MOD.GOV)}; defined jobs={sorted(_ALL_JOB_IDS)}; "
+    f"governance.yml jobs={sorted(_GOV_JOBS)} -- a GOV member with no job "
+    "measures nothing (the renamed `record-status`), and a governance job "
+    "outside GOV is counted as gate seconds (#1241)",
+)
+R.check(
+    "and the split survives: the code gate's own jobs are not governance "
+    "(null control)",
+    not ({"fast", "browser", "closures"} & _GOV_MOD.GOV)
+    and "briefs" in _GOV_MOD.GOV,
+    f"GOV={sorted(_GOV_MOD.GOV)} -- `fast` is the gate; `briefs` (tests.yml) "
+    "is the one governance job that lives outside governance.yml, named by "
+    "the instrument's own recorded rule",
+)
+# D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
+# wave script teaches -- the verdict words from the reviewer prompt's string
+# literals, and the block classes from VERDICT_CLASSES -- instead of printing
+# a two-word grammar and keying every blocked verdict under one constant. The
+# finder measured 0 block-class rows over 30 blocked verdicts against 11
+# taught classes: an instrument that cannot compute its own metric (the D13
+# brief's block-class histogram). Pinned at the extraction, both ways.
+_WAVE_SRC = Path(".claude/workflows/web-fix-wave.js").read_text()
+_VC_ARR = re.search(r"const VERDICT_CLASSES = \[([^\]]*)\]", _WAVE_SRC)
+_VC_WORDS = (re.findall(r"'([a-z][a-z0-9-]*)'", _VC_ARR.group(1))
+             if _VC_ARR else [])
+_BLOCK_CLASSES = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     "console.log(JSON.stringify({"
+     "fromScript: m.blockClasses ? m.blockClasses() : null,"
+     "guard: m.blockClasses ? m.blockClasses('// no array here') : null"
+     "})))"],
+    capture_output=True, text=True).stdout or "{}")
+R.check(
+    "the stats histogram reads the wave script's VERDICT_CLASSES as its "
+    "block-class set",
+    _BLOCK_CLASSES.get("fromScript") == _VC_WORDS
+    and len(_VC_WORDS) >= 10
+    and "mutation-vacuous" in _VC_WORDS
+    and "other" in _VC_WORDS,
+    f"extracted={_BLOCK_CLASSES.get('fromScript')}; "
+    f"wave script VERDICT_CLASSES={_VC_WORDS} -- the histogram keying "
+    "blocked verdicts by one constant key is the #1240 defect",
+)
+R.check(
+    "and an unreadable grammar yields null rather than a guessed class set "
+    "(null control)",
+    _BLOCK_CLASSES.get("guard") is None,
+    f"blockClasses('// no array here')={_BLOCK_CLASSES.get('guard')!r} -- "
+    "the mode over-reports rather than classifying against a list typed in "
+    "the histogram",
+)
+# The DEGRADED arm of the same verdict histogram: when VERDICT_CLASSES cannot
+# be read, blocked verdicts collapse back to one constant key and the arm must
+# SAY SO rather than propose an issue on a constant -- the tautology exclusion,
+# restated for the full-grammar world (#1240). Driven here because the
+# acceptance drives only the healthy extraction.
+_SHA40 = "0" * 40
+_STATS_JS = (
+    "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+    "console.log(m.statsFindings ? JSON.stringify(m.statsFindings({"
+    "prs: [{pr: 1}, {pr: 2}, {pr: 3}],"
+    "fetched: new Map([[1, {body: 'x', comments: ["
+    "{body: 'Fix review: blocked " + _SHA40 + "'}]}],"
+    "[2, {body: 'x', comments: "
+    "[{body: 'Fix review: blocked " + _SHA40 + "'}]}],"
+    "[3, {body: 'x', comments: "
+    "[{body: 'Fix review: blocked " + _SHA40 + "'}]}]]),"
+    "fetchError: null, classes: ['blocked', 'merge'], blocks: null"
+    "}).map((f) => f.message)) : 'null'))")
+_STATS_OUT = subprocess.run(
+    ["node", "--input-type=module", "-e", _STATS_JS],
+    capture_output=True, text=True).stdout or "null"
+try:
+    _STATS_DEGRADED = json.loads(_STATS_OUT)
+except ValueError:
+    _STATS_DEGRADED = None
+R.check(
+    "a verdict histogram whose block-class grammar is unreadable withholds "
+    "the proposal and says why",
+    isinstance(_STATS_DEGRADED, list)
+    and any("not opened" in m and "VERDICT_CLASSES" in m
+            for m in _STATS_DEGRADED)
+    and not any("would open" in m for m in _STATS_DEGRADED),
+    f"findings={str(_STATS_DEGRADED)[:300]} -- three bare blocked verdicts over "
+    "three pull requests reached the threshold with no class set to key "
+    "them, and a constant proposed as friction is #1041 again (#1240)",
 )
 R.check(
     "the publishing lane runs on main alone, never on a pull request",

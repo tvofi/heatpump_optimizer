@@ -5,9 +5,11 @@ METRIC, over the same window as merge_census.py (2026-09-09T09:37:08Z ..
 2026-09-12T10:44:09Z, every merge, n=164):
   governance_seconds_per_merge  sum of (completed_at - started_at) over the check
                                 runs whose names are governance jobs
-                                (policy-docs, env-matrix, wave-script,
-                                pr-contract, record, record-status, briefs) at
-                                the merged head. Median and mean.
+                                (every job in .github/workflows/governance.yml
+                                -- policy-docs, env-matrix, wave-script,
+                                pr-contract, record, delivery-status,
+                                delivery-status-publish -- plus `briefs` in
+                                tests.yml) at the merged head. Median and mean.
   gate_seconds_per_merge        the same sum over every other non-skipped check
                                 run at that head -- the code gate.
   governance_share              governance seconds / all seconds.
@@ -41,8 +43,17 @@ from collections import Counter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import d11lib as L  # noqa: E402
 
+# The rule this set is derived from (#1241, D13-04): every job defined in
+# .github/workflows/governance.yml, plus `briefs` (tests.yml), the one
+# governance job that lives outside that file. The set is carried here rather
+# than parsed live because a harness is pinned, not self-modifying -- but
+# tests/entities.py pins it BOTH WAYS against the workflow files: a GOV member
+# that no workflow defines (the renamed `record-status`, which cost this
+# instrument a window of delivery-status seconds counted as gate) and a
+# governance.yml job missing from GOV both redden there, so the next job the
+# governance workflow grows is refused until this set names it.
 GOV = {"policy-docs", "env-matrix", "wave-script", "pr-contract", "record",
-       "record-status", "briefs"}
+       "delivery-status", "delivery-status-publish", "briefs"}
 W0 = os.environ.get("D11_WINDOW_START", "2026-09-09T09:37:08Z")
 W1 = os.environ.get("D11_WINDOW_END", L.BASELINE_UTC)
 

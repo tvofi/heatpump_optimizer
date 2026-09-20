@@ -466,6 +466,13 @@ INERT_EXCEPT = (
     ".claude/workflows/render_md.mjs",
     ".claude/workflows/vendor/markdown-it.min.js",
     ".claude/workflows/vendor/markdown-it.LICENSE",
+    # #1240 (D13-03): tests/entities.py reads the wave script itself to
+    # re-derive VERDICT_CLASSES and pin that the stats histogram's block-class
+    # set is the one the wave teaches -- the stale-copy class of check this
+    # list exists for, same route as policy_lint.mjs above: the file a gate
+    # script opens is a dependency, not inert, whatever prefix it lives under.
+    # An edit to the verdict grammar now selects tests/entities.py.
+    ".claude/workflows/web-fix-wave.js",
 )
 
 
