@@ -288,6 +288,7 @@ st "$(grep -c 'approve POSTed for run 111 (https://example.test/runs/111)' "$W/o
 st "$(grep -c 'approve POSTed for run 222 (https://example.test/runs/222)' "$W/ok/out")" 1 "both of them"
 st "$(calls ok 'curl')" 0 "no raw curl call: every request rides gh, so no credential can reach this script's argv"
 st "$(grep -c -e 'ghs_' -e 'Bearer ' -e 'Authorization' "$W/ok/log")" 0 "and no credential text on any stubbed command line"
+st "$(grep -c 'runs/111/approve' "$W/ok/log")" 1 "(null control: that log does hold real argv -- the 0 above is read off a non-empty artifact)"
 
 # A run whose approve POSTed but which still reads action_required on the
 # re-list: reported still-held, exit non-zero -- the merge box is not clear.
