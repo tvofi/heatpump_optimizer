@@ -451,6 +451,7 @@
           "tuning": "Besparing kontra komfort",
           "grid": "Effekttariff",
           "away": "Bortaläge och semester",
+          "modbus_prefill": "Förifyll från en värmepumpsenhet",
           "quick_setup": "Snabb installation",
           "advanced": "Avancerade inställningar"
         }
@@ -473,8 +474,7 @@
           "learning_features": "Avancerade inlärningsfunktioner",
           "grid_connection": "Säkring och effekttak",
           "grid_fees": "Överföringsavgifter och avtal",
-          "heat_curve": "Värmekurvestyrning (ECL110)",
-          "modbus_prefill": "Förifyll från en Modbus-värmepump"
+          "heat_curve": "Värmekurvestyrning (ECL110)"
         }
       },
       "setup_overview": {
@@ -1015,7 +1015,7 @@
       },
       "quick_setup": {
         "title": "Snabb installation",
-        "description": "Samma husfrågor som den första installationen ställer, ovanpå postens befintliga inställningar. Ändra ett svar och skicka in, så härleds den termiska modellen om från formuläret; skicka in utan att ändra något så skrivs ingenting. Förifyllningen erbjuds inte här - entitetsfälten är redan svarade, och förifyllningen finns kvar på den avancerade sidan Förifyll från en Modbus-värmepump.",
+        "description": "Samma husfrågor som den första installationen ställer, ovanpå postens befintliga inställningar. Ändra ett svar och skicka in, så härleds den termiska modellen om från formuläret; skicka in utan att ändra något så skrivs ingenting. Förifyllningen erbjuds inte här - entitetsfälten är redan svarade, och förifyllningen finns kvar på sidan Förifyll från en värmepumpsenhet.",
         "data": {
           "two_zone": "Hus med två zoner",
           "buffer_tank": "Bufferttank",
@@ -1383,7 +1383,7 @@
         }
       },
       "modbus_prefill": {
-        "title": "Förifyll från en Modbus-värmepump",
+        "title": "Förifyll från en värmepumpsenhet",
         "description": "För en Rotenso Windmi eller en annan GCHV-byggd värmepump som läses via tuya_heat_pump-projektets Modbus-paket. Ange paketets entitetsprefix och skicka: nästa formulär föreslår värden som lästs ur pumpens egna register - varmvattnets börvärden och schema, dagarna för legionellaskydd, nattlägets schema, om pumpen styr på vattentemperatur, och pumpens egna givare för givarfält som fortfarande är tomma. Ändra eller töm vilket som helst av dem; bara det du behåller sparas, och ett fält du tömmer lämnas som det var. Inget om huset eller dess värmesystem går att läsa ut på det här sättet.\n\nLästa entiteter: {found}. Registret för tillsatsvärmens typ: {backup_heater_type} - allt utom 7 betyder att pumpen har egen elvärme, och det är den som elpatronfälten under Värmepumps telemetri finns till för att bevaka.\n\nRoller lästa ur en entitets NAMN i stället för ur en publicerad definition - sidan kan inte verifiera dem, så kontrollera var och en innan du sparar: {name_matched}. Roller lästa ur publicerade definitioner, per källa: {matched_sources}.",
         "data": {
           "prefill_device": "Värmepumpens enhet (valfritt)",

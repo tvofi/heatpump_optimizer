@@ -178,6 +178,7 @@
 # module constant, not the schema): this branch claims NOTHING. tests/features.py
 # only -- no production file, no fixture input and no solver parameter is
 # touched, so every scenario is byte-identical by construction.
+config_flow # the pre-fill menu entry is relabelled and lifted from the advanced menu to the first menu; the _menu pair moves, no schema moves
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
@@ -392,3 +393,19 @@
 # the merge base were main's own (#1269's sensor advisor); deleting them
 # here is this branch writing its own list, as the inherited-claims guard
 # requires.
+#
+# The pre-fill rename and menu lift (owner request, Part of #201): this
+# branch claims exactly one fixture, config_flow, and the direction is a
+# MOVE, not a value change. `_P("modbus_prefill", ...)` changes its label
+# to "Pre-fill from a heat pump device" and its menu column from advanced
+# to top, so the fixture's `_menu.advanced` loses the modbus_prefill pair
+# and `_menu.init` gains it between away and quick_setup -- measured as
+# `git diff --numstat` 4 insertions and 4 deletions over
+# tests/golden/config_flow.json, both hunks inside `_menu`, no page schema
+# or default touched. The internal key and CONF_MODBUS_PREFILL_PREFIX are
+# unchanged, so no stored entry and no rendered field moves. Re-recorded
+# as well as claimed for #547's reason: config_flow is the one fixture
+# carries_floats() reports False for, so env_drift compares it exactly at
+# level 1 and a claim alone leaves that level failing. Every other
+# fixture is byte-identical by construction: no solver, coordinator or
+# card input is touched.
