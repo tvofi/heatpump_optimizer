@@ -1222,8 +1222,10 @@ jobs:
             exit 0
           fi
           # The pull_request runs this GITHUB_TOKEN push leaves holding
-          # action_required are the next step's to approve (#1276).
+          # action_required are the next step's to approve (#1276); the
+          # pushed SHA is that step's poll key (#1283).
           echo "token_push=true" >> "$GITHUB_OUTPUT"
+          echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           # No -f recheck=: that input is only on default-branch YAML.
           # The dispatched run uses this ref's workflow; recheck-gate
           # treats a `ci:` subject as recheck.
@@ -1241,6 +1243,9 @@ jobs:
       # The dispatches above run at once, but the pull_request runs a
       # GITHUB_TOKEN push triggers wait action_required for a human, and a
       # pending required check shadows the dispatched green on the PR (#1276).
+      # The listing is preceded by a bounded poll: GitHub creates the pushed
+      # SHA's runs asynchronously, and a one-shot listing was measured
+      # approving nothing while all five runs appeared moments later (#1283).
       # Approve them as a dedicated Actions-only App -- HPO_RUNS_PEM /
       # HPO_RUNS_APPID, Actions: write alone, a smaller blast radius than
       # hpo-approver's -- minting the token with the same RS256 flow
@@ -1255,6 +1260,7 @@ jobs:
         env:
           REPO: ${{ github.repository }}
           HEAD_REF: ${{ github.head_ref }}
+          PUSH_SHA: ${{ steps.push.outputs.pushed_sha }}
           RUNS_PEM: ${{ secrets.HPO_RUNS_PEM }}
           RUNS_APPID: ${{ secrets.HPO_RUNS_APPID }}
         run: |
@@ -1306,6 +1312,31 @@ jobs:
             echo "::warning::minting the run-approver App installation token failed; nothing approved (fail-soft)"
             exit 0
           }
+          # The pushed SHA's pull_request runs are created asynchronously,
+          # so a listing fired the instant the push step ends can precede
+          # every run and approve nothing while they appear moments later
+          # (#1283). Bounded poll first: re-list every 5s for up to 60s
+          # until one action_required run sits at the pushed SHA the push
+          # step exported. An expired window stays fail-soft -- the flow
+          # below prints the after-state it always printed, plus one
+          # notice naming the timeout, because a genuinely run-less push
+          # is legitimate (nothing-staged paths exit before token_push).
+          sha_held() {
+            curl -fsS -H @"$tok_h" -H "$ACCEPT" \
+              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+              | python3 -c 'import sys,json
+          for r in json.load(sys.stdin).get("workflow_runs", []):
+              if r["head_sha"] == sys.argv[1]:
+                  print(r["id"])' "$PUSH_SHA"
+          }
+          waited=0
+          hits=$(sha_held)
+          while [ -z "$hits" ] && [ "$waited" -lt 60 ]; do
+            sleep 5
+            waited=$((waited + 5))
+            hits=$(sha_held)
+          done
+          [ -n "$hits" ] || echo "::notice::no action_required run at $PUSH_SHA appeared within ${waited}s of the push; printing the after-state (fail-soft)"
           held_ids() {
             curl -fsS -H @"$tok_h" -H "$ACCEPT" \
               "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
@@ -1434,8 +1465,10 @@ jobs:
             exit 0
           fi
           # The pull_request runs this GITHUB_TOKEN push leaves holding
-          # action_required are the next step's to approve (#1276).
+          # action_required are the next step's to approve (#1276); the
+          # pushed SHA is that step's poll key (#1283).
           echo "token_push=true" >> "$GITHUB_OUTPUT"
+          echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           gh workflow run tests.yml --ref "$HEAD_REF"
           gh workflow run hassfest.yml --ref "$HEAD_REF"
           gh workflow run validate.yml --ref "$HEAD_REF"
@@ -1451,7 +1484,8 @@ jobs:
       # pull_request runs a GITHUB_TOKEN push triggers wait action_required
       # for a human, and the approve step clears them as the Actions-only
       # App -- the RS256 mint tools/audit/app_approve.sh uses, ported
-      # inline. Fail-soft throughout: absent secrets print one notice and
+      # inline -- after the same bounded poll for the pushed SHA's runs
+      # (#1283). Fail-soft throughout: absent secrets print one notice and
       # approve nothing, and a later error warns rather than reddening a
       # job whose push already happened (red means "no bot commit", #523).
       - name: Approve the runs the push left holding
@@ -1459,6 +1493,7 @@ jobs:
         env:
           REPO: ${{ github.repository }}
           HEAD_REF: ${{ github.head_ref }}
+          PUSH_SHA: ${{ steps.push.outputs.pushed_sha }}
           RUNS_PEM: ${{ secrets.HPO_RUNS_PEM }}
           RUNS_APPID: ${{ secrets.HPO_RUNS_APPID }}
         run: |
@@ -1510,6 +1545,31 @@ jobs:
             echo "::warning::minting the run-approver App installation token failed; nothing approved (fail-soft)"
             exit 0
           }
+          # The pushed SHA's pull_request runs are created asynchronously,
+          # so a listing fired the instant the push step ends can precede
+          # every run and approve nothing while they appear moments later
+          # (#1283). Bounded poll first: re-list every 5s for up to 60s
+          # until one action_required run sits at the pushed SHA the push
+          # step exported. An expired window stays fail-soft -- the flow
+          # below prints the after-state it always printed, plus one
+          # notice naming the timeout, because a genuinely run-less push
+          # is legitimate (nothing-staged paths exit before token_push).
+          sha_held() {
+            curl -fsS -H @"$tok_h" -H "$ACCEPT" \
+              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+              | python3 -c 'import sys,json
+          for r in json.load(sys.stdin).get("workflow_runs", []):
+              if r["head_sha"] == sys.argv[1]:
+                  print(r["id"])' "$PUSH_SHA"
+          }
+          waited=0
+          hits=$(sha_held)
+          while [ -z "$hits" ] && [ "$waited" -lt 60 ]; do
+            sleep 5
+            waited=$((waited + 5))
+            hits=$(sha_held)
+          done
+          [ -n "$hits" ] || echo "::notice::no action_required run at $PUSH_SHA appeared within ${waited}s of the push; printing the after-state (fail-soft)"
           held_ids() {
             curl -fsS -H @"$tok_h" -H "$ACCEPT" \
               "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
