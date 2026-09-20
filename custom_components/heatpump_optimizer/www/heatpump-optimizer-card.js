@@ -90,6 +90,7 @@ const STRINGS = {
     "series.dhw_slots": "DHW heating",
     "series.space_slots": "Space heating",
     "series.actioned": "Actioned power",
+    "tooltip.actioned": "Actioned",
     "series.outdoor": "Outdoor temperature",
     "series.dhw_temp": "DHW tank temperature",
     "series.house_temp": "House temperature",
@@ -552,6 +553,7 @@ const STRINGS = {
     "series.dhw_slots": "Varmvattenberedning",
     "series.space_slots": "Uppvärmning",
     "series.actioned": "Utförd effekt",
+    "tooltip.actioned": "Utfört",
     "series.outdoor": "Utetemperatur",
     "series.dhw_temp": "Varmvattentankens temperatur",
     "series.house_temp": "Innetemperatur",
@@ -1399,6 +1401,15 @@ const VIEW_ZOOM_STEP = 1.4;
 // peek back costs one 12 h window, never the whole span.
 const HISTORY_SPAN_MS = 48 * 3600 * 1000;
 const HISTORY_CHUNK_MS = 12 * 3600 * 1000;
+
+// The heat_pump_action modes in which the pump is executing heating (the
+// optimizer's own ladder: eco/normal/pre_heat/boost by commanded power,
+// comfort/boost from the manual modes, system_identification running its
+// experiment). off and idle are the pump NOT heating; unknown says
+// nothing. The actioned band draws the first set only.
+const ACTION_HEATING_MODES = new Set([
+  "boost", "comfort", "eco", "normal", "pre_heat", "system_identification",
+]);
 
 // The expanded dialog's chrome is sized from one font size, set from the
 // dialog's measured width so it grows with the chart it sits beside.
@@ -4553,6 +4564,16 @@ class HistorySource {
     this.space = [];
     this.solar = [];
     this.action = [];
+    // The actioned record, STATE-first (the owner's correction on #1286):
+    // one log entry per recorded row of heat_pump_action, mode from the
+    // state and power_kw from the attributes when that attribute exists
+    // at all. The mode band and the tooltip key on this; the power bars
+    // are an overlay that installs without a power entity must be able to
+    // live without.
+    this.actionLog = [];
+    // The live edge the newest chunk was fetched through, so a
+    // long-lived dashboard can notice the seam going stale.
+    this.fetchedThrough = null;
     this.seen = new Set();
     this.loadedAny = false;
   }
@@ -4582,6 +4603,25 @@ class HistorySource {
     const plan = this.host.plan;
     const states = (this.host.hass && this.host.hass.states) || {};
     const ids = { solar: plan.resolveEntity("solar") || null };
+    // The suffix scan is the risky path: it will happily name a FOREIGN
+    // sensor that merely shares a suffix -- someone else's boiler helper,
+    // a hand-rolled template -- and the card would then draw another
+    // integration's history as this pump's own record. So a scan hit must
+    // also look like OUR sensor in the live state's own shape (the
+    // device_class / options / unit sensor.py publishes); the prefix
+    // derivation needs no such check, because it is keyed on OUR resolved
+    // plan sensor and renames travel with the device.
+    const shapes = {
+      _indoor_temperature_optimizer: (a) =>
+        !!a && a.device_class === "temperature",
+      _outdoor_temperature_optimizer: (a) =>
+        !!a && a.device_class === "temperature",
+      _cost_current_electricity_price: (a) =>
+        !!a && typeof a.unit_of_measurement === "string" &&
+        a.unit_of_measurement.endsWith("/kWh"),
+      _heat_pump_action: (a) =>
+        !!a && Array.isArray(a.options) && a.options.includes("pre_heat"),
+    };
     const derive = (suffix) => {
       for (const [kind, planSuffix] of [
         ["space", "_space_heating_plan"],
@@ -4593,7 +4633,8 @@ class HistorySource {
         if (states[candidate]) return candidate;
       }
       for (const id of Object.keys(states).sort()) {
-        if (id.startsWith("sensor.") && id.endsWith(suffix)) return id;
+        if (!id.startsWith("sensor.") || !id.endsWith(suffix)) continue;
+        if (shapes[suffix](((states[id] || {}).attributes) || {})) return id;
       }
       return null;
     };
@@ -4610,6 +4651,19 @@ class HistorySource {
   ensure(viewStart, liveEdge) {
     if (!this.api() || this.unavailable) return;
     if (!(viewStart < liveEdge)) return;
+    // The live edge moves, and the chunk that contains it was fetched
+    // THROUGH the live edge of that moment. A card left open on a wall
+    // dashboard would otherwise show a seam between history and forecast
+    // that widens forever, so once that chunk is a whole chunk behind the
+    // clock, it may be fetched again (the sample dedup makes the refetch
+    // additive, never duplicating).
+    if (
+      this.fetchedThrough !== null &&
+      liveEdge - this.fetchedThrough > HISTORY_CHUNK_MS
+    ) {
+      this.chunks.delete(Math.floor((this.fetchedThrough - 1) / HISTORY_CHUNK_MS));
+      this.fetchedThrough = null;
+    }
     const lo = Math.max(viewStart, liveEdge - HISTORY_SPAN_MS);
     const first = Math.floor(lo / HISTORY_CHUNK_MS);
     const last = Math.floor((liveEdge - 1) / HISTORY_CHUNK_MS);
@@ -4679,6 +4733,7 @@ class HistorySource {
       this.absorb(per);
       this.chunks.set(chunk, "loaded");
       this.loadedAny = true;
+      this.fetchedThrough = Math.max(this.fetchedThrough || 0, end);
     } catch (e) {
       this.unavailable = true;
       this.chunks.clear();
@@ -4726,6 +4781,61 @@ class HistorySource {
     emit("solar", "ghi", per.solar, (r) => num(r.state));
     emit("action", "action_power", per.action, (r) =>
       num((r.attributes || {}).power_kw));
+    // STATE-first: the mode log is the actioned record proper, and it does
+    // not care whether the power attribute exists. The recorder writes one
+    // row per state OR attribute change, so the same mode arrives many
+    // times while only power_kw moves -- every row is logged, and
+    // `actionRuns` is where the repetition collapses.
+    for (const row of per.action || []) {
+      const t = Date.parse(row.last_updated || row.last_changed);
+      if (Number.isNaN(t)) continue;
+      const key = `mode:${t}`;
+      if (this.seen.has(key)) continue;
+      this.seen.add(key);
+      const missing =
+        row.state === "unavailable" || row.state === "unknown";
+      this.actionLog.push({
+        t,
+        mode: missing ? null : row.state,
+        power: num((row.attributes || {}).power_kw),
+      });
+    }
+  }
+
+  /** The actioned runs: the pump's mode, forward-filled between state
+   * changes (a mode holds until the next recorded change -- that IS the
+   * recorder's semantics) and joined across chunk boundaries, where the
+   * same unchanged mode arrives once per chunk. The last run extends to
+   * the live edge the newest chunk was fetched through. */
+  actionRuns() {
+    if (!this.actionLog.length) return [];
+    const log = [...this.actionLog].sort((a, b) => a.t - b.t);
+    const through = Math.max(
+      this.fetchedThrough || 0,
+      log[log.length - 1].t
+    );
+    const runs = [];
+    for (let i = 0; i < log.length; i++) {
+      const row = log[i];
+      if (row.mode === null) continue;
+      const stop = i + 1 < log.length ? log[i + 1].t : Math.max(through, row.t);
+      const last = runs[runs.length - 1];
+      if (last && last.mode === row.mode && row.t - last.end <= 1) {
+        last.end = stop;
+      } else {
+        runs.push({ start: row.t, end: stop, mode: row.mode });
+      }
+    }
+    return runs;
+  }
+
+  /** The mode the pump was in at `t`, or null -- the tooltip's
+   * state-first reading of the actioned record. */
+  modeAt(t) {
+    for (const run of this.actionRuns()) {
+      if (t >= run.start && t < run.end) return run.mode;
+    }
+    return null;
   }
 
   /** The overlays `_buildSeries` merges into its inputs, or null while no
@@ -5466,6 +5576,38 @@ function renderChart(frame, opts) {
     );
   }
 
+  // The actioned band: the pump's own mode over the recorded past, drawn
+  // as a strip along the plot base for the modes that are the pump
+  // executing heating. STATE-first (the owner's correction on #1286):
+  // every install records the mode, because the state IS the commanded
+  // action; only some record power, so the power bars above this band are
+  // an overlay the band never depends on. Categorical by design -- the
+  // strip carries WHEN, never a magnitude, so an install without a power
+  // attribute is shown exactly what happened rather than nothing.
+  if (opts.actionRuns) {
+    const act = series.find((s) => s.key === "actioned");
+    if (act && act.visible) {
+      const bandH = 8 * marginScale;
+      for (const run of opts.actionRuns()) {
+        if (!ACTION_HEATING_MODES.has(run.mode)) continue;
+        const bx1 = Math.max(plotL, scaleX(Math.max(run.start, windowStart)));
+        const bx2 = Math.min(plotR, scaleX(Math.min(run.end, windowEnd)));
+        if (bx2 <= bx1) continue;
+        // The stroke is the perceptibility carrier (#558 C1's pattern for
+        // the estimated-price region): a wash alone composites far below
+        // 1.4.11's 3:1, but a full-strength edge delimits it, and the wash
+        // only has to be seen.
+        parts.push(
+          `<rect class="actioned-band" pointer-events="none" x="${bx1.toFixed(2)}" y="${(
+            plotB - bandH
+          ).toFixed(2)}" width="${(bx2 - bx1).toFixed(2)}" height="${bandH.toFixed(2)}" fill="${
+            act.color
+          }" fill-opacity="0.3" stroke="${act.color}" stroke-width="1"/>`
+        );
+      }
+    }
+  }
+
   // Editable slot lanes, drawn by the caller's overlay into the geometry a
   // pointer event needs to turn a screen coordinate back into a time. The lane metrics travel with the
   // geometry (D4-01): a boosted compact font scales the lanes with it, and
@@ -5896,10 +6038,29 @@ function smoothLine(pts) {
     const p1 = pts[i];
     const p2 = pts[i + 1];
     const p3 = pts[i + 2] || p2;
-    const c1x = p1.x + (p2.x - p0.x) / 6;
+    let c1x = p1.x + (p2.x - p0.x) / 6;
     const c1y = p1.y + (p2.y - p0.y) / 6;
-    const c2x = p2.x - (p3.x - p1.x) / 6;
+    let c2x = p2.x - (p3.x - p1.x) / 6;
     const c2y = p2.y - (p3.y - p1.y) / 6;
+    // A control point may not leave its own segment's x range. The
+    // neighbour-based 1/6 assumes even spacing, which a plan's 15-minute
+    // grid is and recorded state history is not: the recorder writes a
+    // state only on CHANGE, so a stable overnight stretch beside dense
+    // heating puts a narrow gap next to a wide one, the control x lands
+    // beyond the far knot, and the bezier then runs BACKWARD in x between
+    // knots -- a temperature trace that loops through time (the owner's
+    // report on #1286). Clamped to the segment's own x range -- in
+    // whichever direction the path runs, because the confidence band's
+    // return stroke draws right-to-left by design -- the convex hull
+    // property keeps every sampled x inside the segment, so a forward
+    // trace never runs backward however pathological the spacing. On even
+    // spacing (and on the forecast's own mildly uneven junctions, where
+    // the authored control points already sit inside) the clamp is a
+    // no-op and every path the card drew before renders byte-identically.
+    const xLo = Math.min(p1.x, p2.x);
+    const xHi = Math.max(p1.x, p2.x);
+    c1x = Math.min(Math.max(c1x, xLo), xHi);
+    c2x = Math.min(Math.max(c2x, xLo), xHi);
     d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(
         2
       )} ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
@@ -5984,7 +6145,7 @@ function sharedSpanBands(
  * is the first trace's nearest sample, which the crosshair snaps to; null
  * when no series has a point. `deps` are what the rows need from the plan:
  * the unit a series renders with, and whether the lower floor is modelled. */
-function tooltipRows(series, t, { seriesUnit, isLowerModelled }) {
+function tooltipRows(series, t, { seriesUnit, isLowerModelled, actionMode }) {
   const visible = series.filter((s) => s.visible && s.hasData);
   const rows = [];
   let snapT = null;
@@ -6022,6 +6183,22 @@ function tooltipRows(series, t, { seriesUnit, isLowerModelled }) {
     // ... and then the band, as one row, right under the line it brackets.
     for (const row of bandRow(s, t, seriesUnit(s))) rows.push(row);
   }
+  // The actioned mode, state-first: what the pump was DOING at the hovered
+  // moment, from heat_pump_action's own state history -- present on every
+  // install, unlike the power attribute. A categorical row, not a number.
+  if (actionMode) {
+    const mode = actionMode(t);
+    const act = series.find((x) => x.key === "actioned");
+    if (mode && act && act.visible) {
+      rows.push({
+        color: act.color,
+        label: L("tooltip.actioned"),
+        dashed: false,
+        mode,
+        t,
+      });
+    }
+  }
   return { rows, snapT };
 }
 
@@ -6042,8 +6219,10 @@ function tooltipHtml(rows) {
                 r.color,
                 r.dashed
               )}"></span>${esc(r.label)}: ${esc(
-                (r.prefix || "") + fmtTick(r.value)
-              )} ${esc(r.unit)}</div>`
+                r.mode !== undefined
+                  ? r.mode
+                  : (r.prefix || "") + fmtTick(r.value)
+              )}${r.mode !== undefined ? "" : ` ${esc(r.unit)}`}</div>`
       )
       .join("") +
     sharedHtml +
@@ -10788,6 +10967,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         this.manual.laneSpecs().length + (this.plan.showWoodLane() ? 1 : 0),
       priceUnit: this.plan.priceUnit(),
       estimatedFrom: this.plan.estimatedPricesFrom(),
+      actionRuns: () => this.histSource.actionRuns(),
       editing: this.manual.enabled(),
       title: this._title(),
       now: Date.now(),
@@ -11021,6 +11201,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const { rows, snapT } = tooltipRows(this._series, t, {
       seriesUnit: (s) => this.plan.seriesUnit(s),
       isLowerModelled,
+      actionMode: (tt) => this.histSource.modeAt(tt),
     });
     const snapX = snapT === null ? vbX : scaleX(snapT);
     if (!rows.length) {
@@ -11143,6 +11324,13 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (displayWindows(windowsSpec).length) {
       const s = built.series.find((x) => x.key === "dhw_temp");
       if (s) s.dhwBandFloored = true;
+    }
+    // The actioned chip must not read "no data" while the mode band draws
+    // under it: on an install without the power attribute the band IS the
+    // series, so it is the band that decides the chip.
+    if (hist && this.histSource.actionRuns().length) {
+      const s = built.series.find((x) => x.key === "actioned");
+      if (s) s.hasData = true;
     }
     return built;
   }

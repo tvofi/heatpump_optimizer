@@ -8,7 +8,7 @@ import { makeCardContext, CLAIM_FILE, parseClaims, claimVersionError, frozenDate
          justifiesSolverClaim, justifiesCardClaim, movesClaimable,
          threeDotFiles, claimsAreThisBranchs, sameClaimMap,
          historyApi, historyFixture, HISTORY_IDS, flushHistory,
-         withActuals } from "./card_rig.mjs";
+         withActuals, realisticHistory, haStamp } from "./card_rig.mjs";
 
 // Plan payload written by tests/plan_view.py earlier in the run. The path is
 // argv[2], or HPO_PLANDATA, or a default derived from this checkout's tests/
@@ -8057,6 +8057,217 @@ const STOCK_THEMES = {
       villaApi.calls.every((p) => !p.includes("heat_pump_optimizer_indoor")) &&
       villaApi.calls.some((p) => p.includes("sensor.villa_indoor_temperature_optimizer")),
     villaApi.calls.join(" | "));
+}
+
+// --- The history pan vs the REAL recorder (owner bug round on #1286) ---------
+// Two owner-reported defects survived the synthetic fixture, both because
+// the fixture was too kind: a fixed 30-minute grid for every entity, and
+// an action entity that always carried power_kw. The recorder writes a
+// state only when state OR attributes CHANGE, stamps carry microseconds
+// and the local offset, and installs exist with no power attribute at
+// all. Every check below drives realisticHistory/haStamp shapes.
+{
+  const fieldPointsOf = fn("fieldPoints");
+  const mkCard = (entries, opts, states) => {
+    const api = historyApi(entries, opts);
+    const st = states || withActuals(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+    const c = build(st, {});
+    c.hass = { states: st, callApi: api.callApi };
+    return { c, api };
+  };
+
+  // ---- defect 1: the drawn trace ran BACKWARD through time ---------------
+  // A uniform Catmull-Rom control point sits outside its segment whenever
+  // a narrow gap neighbours a wide one -- exactly what a stable overnight
+  // stretch followed by dense heating writes -- and the bezier then loops
+  // back in x. Sampled straight out of the rendered path markup, not out
+  // of the points, because the artifact lives BETWEEN the points.
+  const samplePathX = (d) => {
+    const xs = [];
+    let cur = null;
+    const num = "[-\\d.eE]+";
+    const lineRe = new RegExp(`[ML] (${num})`, "g");
+    const cubRe = new RegExp(`C (${num}) (${num}) (${num}) (${num}) (${num}) (${num})`, "g");
+    let m;
+    while ((m = lineRe.exec(d))) { cur = Number(m[1]); xs.push(cur); }
+    while ((m = cubRe.exec(d))) {
+      const [c1x, , c2x, , x2] = m.slice(1).map(Number);
+      for (let s = 0; s <= 1; s += 0.02) {
+        const u = 1 - s;
+        xs.push(u * u * u * cur + 3 * u * u * s * c1x + 3 * u * s * s * c2x + s * s * s * x2);
+      }
+      cur = x2;
+    }
+    return xs;
+  };
+  // Monotonicity is PER DRAWN PATH: a holed trace is several paths, each
+  // starting at its own M, and joining them would count every new segment
+  // as a step "back" to its own first x.
+  const backwardSteps = (ds) => ds.reduce((n, d) => {
+    const xs = samplePathX(d);
+    for (let i = 1; i < xs.length; i++) if (xs[i] < xs[i - 1] - 1e-9) n++;
+    return n;
+  }, 0);
+  const pathsOf = (card, key) => {
+    const dump = collect(card.shadowRoot).join("\n");
+    // The dump is the raw innerHTML strings, so the attributes carry real
+    // quotes; a holed trace is several paths with the same data-key, and
+    // every one of them is the drawn path.
+    const re = new RegExp(`data-key="${key}"[^>]*\\sd="([^"]+)`, "g");
+    return [...dump.matchAll(re)].map((m) => m[1]);
+  };
+  {
+    const { c } = mkCard(realisticHistory(FROZEN));
+    c.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const ds = pathsOf(c, "house_temp");
+    check("the realistic fixture produces a path worth asking about",
+      ds.some((d) => /C /.test(d)), `${ds.length} path(s)`);
+    const back = backwardSteps(ds);
+    check("the drawn temperature path never runs backward in time",
+      back === 0, `${back} sampled x steps went back`);
+  }
+
+  // ---- defect 2: actioned slots from STATE history alone -----------------
+  // The owner's correction: executed slots cannot be inferred from power;
+  // the entity's state IS the commanded mode. An install with no power
+  // attribute at all must still render slots, with power_kw only an
+  // optional overlay when it exists.
+  {
+    const { c } = mkCard(realisticHistory(FROZEN, { power: false }));
+    c.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const runs = c.histSource.actionRuns ? c.histSource.actionRuns() : [];
+    check("mode runs forward-fill between the state changes",
+      runs.length > 3 &&
+        runs.every((r, i) => i === 0 || runs[i - 1].end <= r.start + 1) &&
+        runs.every((r) => r.end > r.start),
+      runs.map((r) => `${r.mode}@${Math.round((r.start - FROZEN) / HOUR)}h`).join(" "));
+    const dump = collect(c.shadowRoot).join("\n");
+    check("actioned slots render from state history alone, no power attribute",
+      /class="actioned-band"/.test(dump), "no band rects in the dump");
+    const act = c._series.find((s) => s.key === "actioned");
+    check("the actioned chip reads as having data without power",
+      act && act.hasData === true);
+  }
+  {
+    // The overlay arm: with power_kw present the bars ride the band.
+    const { c } = mkCard(realisticHistory(FROZEN, { power: true }));
+    c.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const pts = fieldPointsOf(c._series.find((s) => s.key === "actioned"), "action_power");
+    check("power_kw, where the attribute exists, still draws the overlay",
+      pts.some((p) => p.t <= Date.parse(plan.space_plan.forecast[0].t)),
+      `${pts.length} pts`);
+    const dump = collect(c.shadowRoot).join("\n");
+    check("and the mode band draws beside it",
+      /class="actioned-band"/.test(dump));
+  }
+
+  // The tooltip names the mode the pump was in at the hovered moment --
+  // the state-first reading -- and only inside the recorded past.
+  {
+    const { c } = mkCard(realisticHistory(FROZEN, { power: false }));
+    c.view.panBy(-40 * HOUR);
+    await flushHistory();
+    c._onCardClick({});
+    const runs = c.histSource.actionRuns ? c.histSource.actionRuns() : [];
+    // The hover target must be asserted INSIDE the plot before it is
+    // hovered: `_onPointerMove` bails left of plotL, and the payload's
+    // forecast stamps carry no offset, so the frozen clock -- and with it
+    // the first runs' place in the window -- shifts with the host's TZ
+    // (round 1: green in CET, red on CI's UTC, the same tree). Selecting
+    // a run whose midpoint is in-window, and saying so, keeps the check
+    // about the tooltip rather than about the clock.
+    const plot = c._plot;
+    const midOf = (r) => (r.start + r.end) / 2;
+    const hoverable = runs.filter((r) =>
+      r.mode !== "off" && r.mode !== "idle" &&
+      midOf(r) >= plot.windowStart && midOf(r) <= plot.windowEnd);
+    check("an active run's midpoint sits inside the plot to hover",
+      hoverable.length > 0,
+      `${runs.length} run(s), window ${new Date(plot.windowStart).toISOString()}..${new Date(plot.windowEnd).toISOString()}`);
+    const active = hoverable[0];
+    if (!active) {
+      check("the tooltip names the actioned mode under the crosshair",
+        false, "no in-window active run to hover");
+    } else {
+      c._onPointerMove({ currentTarget: svgOf(c), clientX: plot.scaleX(midOf(active)) });
+      const tt = collect(c.shadowRoot).join("\n");
+      check("the tooltip names the actioned mode under the crosshair",
+        /Actioned/.test(tt) && tt.includes(active.mode), active.mode);
+      c._onPointerLeave({ currentTarget: null });
+    }
+  }
+
+  // ---- chunk joins and boundary duplicates --------------------------------
+  {
+    // end_time served inclusive: the boundary state arrives in BOTH
+    // neighbouring chunks. Points must stay unique in time.
+    const { c, api } = mkCard(realisticHistory(FROZEN), { inclusiveEnd: true });
+    c.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const roomPts = fieldPointsOf(c._series.find((s) => s.key === "house_temp"), "room");
+    const ts = roomPts.map((p) => p.t);
+    check("an inclusive chunk boundary does not double-book a timestamp",
+      new Set(ts).size === ts.length, `${ts.length - new Set(ts).size} dup(s)`);
+    check("the boundary state was in fact served twice",
+      api.calls.length >= 4, api.calls.join(" | ").slice(0, 120));
+    const runs = c.histSource.actionRuns ? c.histSource.actionRuns() : [];
+    const joined = runs.filter((r, i) => i > 0 && runs[i - 1].mode === r.mode).length;
+    check("a run split across a chunk boundary merges into one",
+      joined === 0, `${joined} adjacent equal-mode run(s)`);
+    check("the joined trace still never runs backward",
+      backwardSteps(pathsOf(c, "outdoor")) === 0);
+  }
+
+  // ---- entity resolution against foreign same-suffix sensors --------------
+  {
+    // A foreign sensor that merely shares the suffix must not be picked up
+    // by the fallback scan: it would render someone else's history as the
+    // pump's own record. The scan validates against the live state's
+    // shape (device_class/options/unit), which our sensors publish.
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    st["sensor.boiler_heat_pump_action"] = { state: "on", attributes: {} };
+    const entries = realisticHistory(FROZEN, { power: false });
+    const foreign = entries[HISTORY_IDS.action];
+    delete entries[HISTORY_IDS.action];
+    const api = historyApi({ ...entries, "sensor.boiler_heat_pump_action": foreign });
+    const c = build(st, {});
+    c.hass = { states: st, callApi: api.callApi };
+    c.view.panBy(-10 * HOUR);
+    await flushHistory();
+    check("a foreign sensor sharing the suffix is not asked for history",
+      api.calls.every((p) => !p.includes("sensor.boiler_")),
+      api.calls.join(" | ").slice(0, 160));
+    const dump = collect(c.shadowRoot).join("\n");
+    check("and no foreign band is drawn as the pump's own record",
+      !/class="actioned-band"/.test(dump));
+  }
+
+  // ---- the stale seam: the live edge's chunk must refresh -----------------
+  {
+    // The fixture is built through six hours past the frozen clock, so
+    // rows EXIST right of the first fetch's live edge -- they are what a
+    // stale chunk refuses to go back for. The first pan loads the chunk
+    // containing FROZEN through FROZEN; the clock then moves on, and the
+    // stretch between the old live edge and the chunk's end is a hole
+    // that no NEW chunk index ever covers (indices only extend forward).
+    // Only refetching the stale chunk fills it.
+    const { c } = mkCard(realisticHistory(FROZEN + 6 * HOUR));
+    c.view.panBy(-10 * HOUR);
+    await flushHistory();
+    const CH = 12 * HOUR;
+    const b = (Math.floor(FROZEN / CH) + 1) * CH; // the chunk's own end
+    const before = c.histSource.space
+      .filter((p) => Date.parse(p.t) > FROZEN && Date.parse(p.t) < b).length;
+    c.histSource.ensure(FROZEN - HOUR, FROZEN + 13 * HOUR);
+    await flushHistory();
+    const after = c.histSource.space
+      .filter((p) => Date.parse(p.t) > FROZEN && Date.parse(p.t) < b).length;
+    check("a stale live-edge chunk is fetched again, filling the seam hole",
+      before === 0 && after > 0, `${before} -> ${after} points in the seam stretch`);
+  }
 }
 
 // --- The host stays small ---------------------------------------------------

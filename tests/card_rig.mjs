@@ -190,6 +190,13 @@ export function planStates(plan, { spaceId = DEFAULT_SPACE, dhwId = DEFAULT_DHW,
 // -- so a test that fetches the wrong ids, the wrong window or a needlessly
 // fat response fails rather than passes vacuously.
 //
+// A fixture row may carry its own `stamp` (a full HA-shaped last_updated,
+// microseconds and local offset included -- see haStamp); without one the
+// millisecond Z form is served. `opts.inclusiveEnd` serves the state at
+// exactly `end_time` too, which is what a recorder that treats end_time as
+// inclusive does: the same state then arrives in two neighbouring chunks,
+// the boundary join the card has to survive.
+//
 // opts.fail throws on every call (the network/refusal arm);
 // opts.empty answers an empty array per entity (the recorder-off arm).
 export function historyApi(entries, opts = {}) {
@@ -209,15 +216,36 @@ export function historyApi(entries, opts = {}) {
       const lean = q.has("no_attributes");
       return ids.map((id) =>
         (entries[id] || [])
-          .filter((s) => s.t >= start && s.t < end)
+          .filter((s) => {
+            const t = s.t;
+            return t >= start && (t < end || (opts.inclusiveEnd && t === end));
+          })
           .map((s) => ({
             state: String(s.state),
-            last_updated: new Date(s.t).toISOString(),
+            last_updated: s.stamp || new Date(s.t).toISOString(),
             ...(lean ? {} : { attributes: s.attributes || {} }),
           })));
     },
   };
   return api;
+}
+
+/** A HA-shaped last_updated: microseconds, and the local UTC offset the
+ * instance actually writes (`+01:00` before a spring-forward transition,
+ * `+02:00` after it). Round-trips through Date.parse to the same instant,
+ * so a fixture built with it exercises the parser against the real string
+ * shape rather than the millisecond-Z form the stub would otherwise
+ * invent. */
+export function haStamp(ms, offsetHours = 1) {
+  const p = (n, w = 2) => String(n).padStart(w, "0");
+  const dd = new Date(ms + offsetHours * 3600000);
+  const sign = offsetHours < 0 ? "-" : "+";
+  return (
+    `${dd.getUTCFullYear()}-${p(dd.getUTCMonth() + 1)}-${p(dd.getUTCDate())}` +
+    `T${p(dd.getUTCHours())}:${p(dd.getUTCMinutes())}:${p(dd.getUTCSeconds())}` +
+    `.${p(dd.getUTCMilliseconds(), 3)}456` +
+    `${sign}${p(Math.abs(offsetHours))}:00`
+  );
 }
 
 // The optimizer's own actual-carrying sensors, at the ids a default install
@@ -277,6 +305,82 @@ export const flushHistory = async () => {
   for (let i = 0; i < 8; i++) await Promise.resolve();
 };
 
+/** Recorder-realistic history: what /api/history/period actually returns.
+ *
+ * The synthetic `historyFixture` above writes a row on a fixed grid for
+ * every entity, and that regularity is exactly what it should NOT be
+ * trusted for: two owner-reported defects survived it. The recorder writes
+ * a state only when state OR attributes CHANGE, so this builder emits --
+ *
+ *   - temperatures at IRREGULAR gaps (4..11 minutes while the house is
+ *     being heated, then a multi-hour stable stretch overnight that writes
+ *     nothing -- the sparse-then-dense spacing that makes a uniform
+ *     Catmull-Rom curve run backward in x, the reported time loop);
+ *   - the price only when it steps, roughly hourly with jitter;
+ *   - the action entity as the recorder really sees it: with
+ *     `power: true`, one row per ATTRIBUTE change with the state often
+ *     UNCHANGED (power_kw republished every cycle); with `power: false`
+ *     -- an install with no power attribute at all -- rows only at mode
+ *     changes, sparse, which is the null control for slots-from-state;
+ *   - every stamp in HA's own shape (see `haStamp`), crossing a
+ *     spring-forward transition mid-window (+01:00 -> +02:00).
+ */
+export function realisticHistory(endMs, { power = true, spanMs = 48 * HOUR } = {}) {
+  const entries = {
+    [HISTORY_IDS.indoor]: [],
+    [HISTORY_IDS.outdoor]: [],
+    [HISTORY_IDS.price]: [],
+    [HISTORY_IDS.solar]: [],
+    [HISTORY_IDS.action]: [],
+  };
+  let t = endMs - spanMs;
+  let phase = 0;
+  let room = 20.6, out = 1.8, price = 0.31, mode = "off";
+  while (t < endMs) {
+    const offset = t < endMs - 24 * HOUR ? 1 : 2; // spring-forward mid-window
+    const stamp = haStamp(t, offset);
+    const hourOfDay = (t / HOUR) % 24;
+    room += Math.sin(phase / 9) * 0.14;
+    out += Math.cos(phase / 7) * 0.35;
+    // A stable house stops writing: the temperatures record only during
+    // the first hour of every six, and hold silent for the five after --
+    // a 5-hour gap beside 4-minute ones is the spacing that made the old
+    // uniform-tangent curve run backward in x, and a fixed-grid fixture
+    // can never produce it.
+    const recording = (t % (6 * HOUR)) < 1 * HOUR;
+    if (recording) {
+      entries[HISTORY_IDS.indoor].push({ t, stamp, state: room.toFixed(1) });
+      entries[HISTORY_IDS.outdoor].push({ t, stamp, state: out.toFixed(1) });
+    }
+    if (phase % 2 === 0) {
+      price = Math.max(0.05, price + Math.sin(phase / 5) * 0.07);
+      entries[HISTORY_IDS.price].push({ t, stamp, state: price.toFixed(4) });
+    }
+    entries[HISTORY_IDS.solar].push({
+      t, stamp,
+      state: String(Math.max(0, Math.round(300 * Math.sin((hourOfDay - 6) / 12 * Math.PI)))),
+    });
+    if (phase % 17 === 0) {
+      mode = mode === "off" ? "pre_heat" : mode === "pre_heat" ? "comfort" : "off";
+    }
+    if (power) {
+      // Attribute-only updates: state unchanged, power_kw republished.
+      const kw = mode === "off" ? 0 : mode === "pre_heat" ? 4.0 : 2.2;
+      entries[HISTORY_IDS.action].push({
+        t, stamp, state: mode,
+        attributes: { power_kw: kw, heat_pump_on: mode !== "off" } });
+    } else if (phase % 17 === 0) {
+      // No power attribute on this install: rows exist only where the
+      // MODE changed, which is all the state-first series may depend on.
+      entries[HISTORY_IDS.action].push({ t, stamp, state: mode });
+    }
+    t += (4 + ((phase * 7) % 8)) * 60000;
+    phase += 1;
+  }
+  for (const rows of Object.values(entries)) rows.sort((a, b) => a.t - b.t);
+  return entries;
+}
+
 /** The optimizer's own actual-carrying sensors as hass.states knows them.
  *
  * A real install has them beside the plan sensors -- they are this
@@ -288,14 +392,26 @@ export const flushHistory = async () => {
 export function withActuals(states, { prefix = "heat_pump_optimizer" } = {}) {
   return {
     ...states,
-    [`sensor.${prefix}_indoor_temperature_optimizer`]:
-      { state: "21.1", attributes: {} },
-    [`sensor.${prefix}_outdoor_temperature_optimizer`]:
-      { state: "3.4", attributes: {} },
-    [`sensor.${prefix}_cost_current_electricity_price`]:
-      { state: "0.55", attributes: {} },
-    [`sensor.${prefix}_heat_pump_action`]:
-      { state: "comfort", attributes: { power_kw: 2.3 } },
+    // The attributes below are the ones a real install publishes
+    // (sensor.py's device_class/state_class/options declarations) and the
+    // ones the card's suffix-scan fallback validates against: a foreign
+    // sensor that merely shares a suffix is rejected by shape, not trusted.
+    [`sensor.${prefix}_indoor_temperature_optimizer`]: {
+      state: "21.1",
+      attributes: { device_class: "temperature", unit_of_measurement: "°C" } },
+    [`sensor.${prefix}_outdoor_temperature_optimizer`]: {
+      state: "3.4",
+      attributes: { device_class: "temperature", unit_of_measurement: "°C" } },
+    [`sensor.${prefix}_cost_current_electricity_price`]: {
+      state: "0.55",
+      attributes: { unit_of_measurement: "SEK/kWh" } },
+    [`sensor.${prefix}_heat_pump_action`]: {
+      state: "comfort",
+      attributes: {
+        device_class: "enum",
+        options: ["boost", "comfort", "eco", "idle", "normal", "off",
+          "pre_heat", "system_identification", "unknown"],
+        power_kw: 2.3 } },
   };
 }
 
