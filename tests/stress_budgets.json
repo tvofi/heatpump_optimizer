@@ -1,308 +1,308 @@
 {
  "flat/1z/dhw": {
-  "ratio": 43.9,
-  "rss_attrib_mb": 8.6,
-  "rss_peak_mb": 96.6,
-  "traced_peak_mb": 2.03
+  "ratio": 47.85,
+  "rss_attrib_mb": 7.0,
+  "rss_peak_mb": 83.2,
+  "traced_peak_mb": 2.04
  },
  "flat/1z/space": {
-  "ratio": 36.37,
-  "rss_attrib_mb": 2.9,
-  "rss_peak_mb": 91.5,
-  "traced_peak_mb": 0.88
- },
- "flat/2z/dhw": {
-  "ratio": 87.73,
-  "rss_attrib_mb": 8.5,
-  "rss_peak_mb": 95.8,
-  "traced_peak_mb": 1.83
- },
- "flat/2z/space": {
-  "ratio": 82.67,
-  "rss_attrib_mb": 2.7,
-  "rss_peak_mb": 91.7,
-  "traced_peak_mb": 0.89
- },
- "heavy_old/shoulder": {
-  "ratio": 64.5,
-  "rss_attrib_mb": 15.0,
-  "rss_peak_mb": 95.6,
-  "traced_peak_mb": 3.46
- },
- "heavy_old/winter": {
-  "ratio": 44.52,
-  "rss_attrib_mb": 14.9,
-  "rss_peak_mb": 95.6,
-  "traced_peak_mb": 3.45
- },
- "light_new/shoulder": {
-  "ratio": 17.53,
-  "rss_attrib_mb": 6.9,
-  "rss_peak_mb": 95.8,
-  "traced_peak_mb": 1.83
- },
- "light_new/winter": {
-  "ratio": 44.81,
-  "rss_attrib_mb": 10.5,
-  "rss_peak_mb": 97.0,
-  "traced_peak_mb": 2.03
- },
- "shoulder/1z/dhw": {
-  "ratio": 39.05,
-  "rss_attrib_mb": 6.7,
-  "rss_peak_mb": 96.4,
-  "traced_peak_mb": 1.83
- },
- "shoulder/1z/space": {
-  "ratio": 42.08,
+  "ratio": 43.31,
   "rss_attrib_mb": 2.5,
-  "rss_peak_mb": 91.6,
-  "traced_peak_mb": 0.88
- },
- "shoulder/2z/dhw": {
-  "ratio": 89.7,
-  "rss_attrib_mb": 11.4,
-  "rss_peak_mb": 96.0,
-  "traced_peak_mb": 1.83
- },
- "shoulder/2z/space": {
-  "ratio": 81.23,
-  "rss_attrib_mb": 2.5,
-  "rss_peak_mb": 91.6,
+  "rss_peak_mb": 78.7,
   "traced_peak_mb": 0.9
  },
+ "flat/2z/dhw": {
+  "ratio": 95.22,
+  "rss_attrib_mb": 7.2,
+  "rss_peak_mb": 83.4,
+  "traced_peak_mb": 1.82
+ },
+ "flat/2z/space": {
+  "ratio": 110.68,
+  "rss_attrib_mb": 0.0,
+  "rss_peak_mb": 71.8,
+  "traced_peak_mb": 0.93
+ },
+ "heavy_old/shoulder": {
+  "ratio": 65.03,
+  "rss_attrib_mb": 7.6,
+  "rss_peak_mb": 83.8,
+  "traced_peak_mb": 3.48
+ },
+ "heavy_old/winter": {
+  "ratio": 46.24,
+  "rss_attrib_mb": 6.7,
+  "rss_peak_mb": 82.9,
+  "traced_peak_mb": 3.47
+ },
+ "light_new/shoulder": {
+  "ratio": 19.91,
+  "rss_attrib_mb": 7.5,
+  "rss_peak_mb": 83.7,
+  "traced_peak_mb": 1.82
+ },
+ "light_new/winter": {
+  "ratio": 45.46,
+  "rss_attrib_mb": 8.4,
+  "rss_peak_mb": 84.6,
+  "traced_peak_mb": 2.04
+ },
+ "shoulder/1z/dhw": {
+  "ratio": 39.34,
+  "rss_attrib_mb": 7.6,
+  "rss_peak_mb": 83.8,
+  "traced_peak_mb": 1.82
+ },
+ "shoulder/1z/space": {
+  "ratio": 40.56,
+  "rss_attrib_mb": 3.3,
+  "rss_peak_mb": 79.5,
+  "traced_peak_mb": 0.9
+ },
+ "shoulder/2z/dhw": {
+  "ratio": 100.04,
+  "rss_attrib_mb": 6.2,
+  "rss_peak_mb": 82.4,
+  "traced_peak_mb": 2.05
+ },
+ "shoulder/2z/space": {
+  "ratio": 70.8,
+  "rss_attrib_mb": 2.6,
+  "rss_peak_mb": 78.8,
+  "traced_peak_mb": 0.91
+ },
  "shoulder/cycle": {
-  "ratio": 192.52,
-  "rss_attrib_mb": 7.0,
-  "rss_peak_mb": 95.8,
-  "traced_peak_mb": 1.83
+  "ratio": 178.11,
+  "rss_attrib_mb": 7.5,
+  "rss_peak_mb": 83.7,
+  "traced_peak_mb": 1.82
  },
  "shoulder/pv": {
-  "ratio": 175.98,
-  "rss_attrib_mb": 7.0,
-  "rss_peak_mb": 95.8,
-  "traced_peak_mb": 1.83
+  "ratio": 164.77,
+  "rss_attrib_mb": 6.8,
+  "rss_peak_mb": 83.0,
+  "traced_peak_mb": 1.82
  },
  "shoulder/pv+cycle": {
-  "ratio": 291.25,
-  "rss_attrib_mb": 7.4,
-  "rss_peak_mb": 96.2,
-  "traced_peak_mb": 1.83
+  "ratio": 250.84,
+  "rss_attrib_mb": 7.1,
+  "rss_peak_mb": 83.3,
+  "traced_peak_mb": 1.82
  },
  "shoulder/tariff": {
-  "ratio": 176.87,
-  "rss_attrib_mb": 7.2,
-  "rss_peak_mb": 95.8,
-  "traced_peak_mb": 1.83
+  "ratio": 246.57,
+  "rss_attrib_mb": 8.5,
+  "rss_peak_mb": 84.7,
+  "traced_peak_mb": 1.82
  },
  "shoulder/tariff+cycle": {
-  "ratio": 520.2,
-  "rss_attrib_mb": 6.8,
-  "rss_peak_mb": 95.9,
-  "traced_peak_mb": 1.83
+  "ratio": 894.43,
+  "rss_attrib_mb": 7.4,
+  "rss_peak_mb": 83.6,
+  "traced_peak_mb": 1.82
  },
  "shoulder/tariff+pv": {
-  "ratio": 491.85,
-  "rss_attrib_mb": 8.3,
-  "rss_peak_mb": 95.9,
+  "ratio": 672.36,
+  "rss_attrib_mb": 6.9,
+  "rss_peak_mb": 83.1,
   "traced_peak_mb": 1.83
  },
  "shoulder/tariff+pv+cycle": {
-  "ratio": 546.76,
-  "rss_attrib_mb": 7.0,
-  "rss_peak_mb": 95.9,
-  "traced_peak_mb": 1.83
+  "ratio": 1076.88,
+  "rss_attrib_mb": 4.6,
+  "rss_peak_mb": 80.8,
+  "traced_peak_mb": 1.82
  },
  "summer/1z/dhw": {
-  "ratio": 7.15,
-  "rss_attrib_mb": 6.8,
-  "rss_peak_mb": 95.9,
-  "traced_peak_mb": 1.83
+  "ratio": 7.01,
+  "rss_attrib_mb": 7.3,
+  "rss_peak_mb": 83.5,
+  "traced_peak_mb": 1.82
  },
  "summer/1z/dhw/fuse-cap": {
-  "ratio": 7.39,
-  "rss_attrib_mb": 7.0,
-  "rss_peak_mb": 96.0,
-  "traced_peak_mb": 1.83
+  "ratio": 7.06,
+  "rss_attrib_mb": 7.3,
+  "rss_peak_mb": 83.5,
+  "traced_peak_mb": 1.82
  },
  "summer/1z/space": {
-  "ratio": 3.05,
-  "rss_attrib_mb": 3.0,
-  "rss_peak_mb": 91.5,
+  "ratio": 3.14,
+  "rss_attrib_mb": 1.3,
+  "rss_peak_mb": 77.5,
   "traced_peak_mb": 0.86
  },
  "summer/2z/dhw": {
-  "ratio": 5.52,
-  "rss_attrib_mb": 8.0,
-  "rss_peak_mb": 96.0,
-  "traced_peak_mb": 1.83
+  "ratio": 6.09,
+  "rss_attrib_mb": 7.0,
+  "rss_peak_mb": 83.2,
+  "traced_peak_mb": 1.82
  },
  "summer/2z/dhw/pin-off": {
-  "ratio": 5.54,
-  "rss_attrib_mb": 6.5,
-  "rss_peak_mb": 95.9,
+  "ratio": 6.11,
+  "rss_attrib_mb": 6.3,
+  "rss_peak_mb": 82.5,
   "traced_peak_mb": 1.83
  },
  "summer/2z/space": {
-  "ratio": 3.35,
-  "rss_attrib_mb": 2.6,
-  "rss_peak_mb": 92.2,
+  "ratio": 3.83,
+  "rss_attrib_mb": 1.7,
+  "rss_peak_mb": 77.9,
   "traced_peak_mb": 0.87
  },
  "summer_negative/1z/dhw": {
-  "ratio": 7.51,
-  "rss_attrib_mb": 6.5,
-  "rss_peak_mb": 96.1,
-  "traced_peak_mb": 1.83
+  "ratio": 7.22,
+  "rss_attrib_mb": 7.2,
+  "rss_peak_mb": 83.4,
+  "traced_peak_mb": 1.82
  },
  "summer_negative/1z/space": {
   "ratio": 3.1,
-  "rss_attrib_mb": 3.2,
-  "rss_peak_mb": 91.5,
-  "traced_peak_mb": 0.86
+  "rss_attrib_mb": 1.5,
+  "rss_peak_mb": 77.7,
+  "traced_peak_mb": 0.87
  },
  "summer_negative/2z/dhw": {
-  "ratio": 5.97,
-  "rss_attrib_mb": 6.1,
-  "rss_peak_mb": 96.0,
-  "traced_peak_mb": 1.83
+  "ratio": 6.37,
+  "rss_attrib_mb": 6.0,
+  "rss_peak_mb": 82.2,
+  "traced_peak_mb": 1.82
  },
  "summer_negative/2z/space": {
-  "ratio": 3.36,
-  "rss_attrib_mb": 1.7,
-  "rss_peak_mb": 91.6,
+  "ratio": 3.73,
+  "rss_attrib_mb": 1.8,
+  "rss_peak_mb": 78.0,
   "traced_peak_mb": 0.87
  },
  "typical_slab/shoulder": {
-  "ratio": 45.26,
+  "ratio": 59.52,
   "rss_attrib_mb": 7.0,
-  "rss_peak_mb": 96.3,
-  "traced_peak_mb": 1.83
+  "rss_peak_mb": 83.2,
+  "traced_peak_mb": 1.82
  },
  "typical_slab/winter": {
-  "ratio": 8.51,
-  "rss_attrib_mb": 12.8,
-  "rss_peak_mb": 97.5,
-  "traced_peak_mb": 3.44
+  "ratio": 8.53,
+  "rss_attrib_mb": 15.1,
+  "rss_peak_mb": 91.3,
+  "traced_peak_mb": 3.43
  },
  "winter/1z/dhw": {
-  "ratio": 9.71,
-  "rss_attrib_mb": 11.5,
-  "rss_peak_mb": 97.5,
-  "traced_peak_mb": 3.44
+  "ratio": 9.59,
+  "rss_attrib_mb": 11.9,
+  "rss_peak_mb": 88.1,
+  "traced_peak_mb": 3.43
  },
  "winter/1z/space": {
-  "ratio": 4.8,
-  "rss_attrib_mb": 2.2,
-  "rss_peak_mb": 91.5,
-  "traced_peak_mb": 0.87
+  "ratio": 4.24,
+  "rss_attrib_mb": 1.8,
+  "rss_peak_mb": 78.0,
+  "traced_peak_mb": 0.86
  },
  "winter/1z/space/pin-off": {
-  "ratio": 4.3,
-  "rss_attrib_mb": 2.3,
-  "rss_peak_mb": 91.5,
+  "ratio": 4.13,
+  "rss_attrib_mb": 1.7,
+  "rss_peak_mb": 77.9,
   "traced_peak_mb": 0.87
  },
  "winter/2z/dhw": {
-  "ratio": 87.01,
-  "rss_attrib_mb": 13.2,
-  "rss_peak_mb": 98.0,
-  "traced_peak_mb": 3.46
+  "ratio": 109.76,
+  "rss_attrib_mb": 6.8,
+  "rss_peak_mb": 83.0,
+  "traced_peak_mb": 3.48
  },
  "winter/2z/space": {
-  "ratio": 64.87,
-  "rss_attrib_mb": 2.7,
-  "rss_peak_mb": 91.5,
-  "traced_peak_mb": 0.89
+  "ratio": 80.15,
+  "rss_attrib_mb": 2.2,
+  "rss_peak_mb": 78.4,
+  "traced_peak_mb": 0.92
  },
  "winter/cycle": {
-  "ratio": 170.78,
-  "rss_attrib_mb": 14.4,
-  "rss_peak_mb": 95.8,
-  "traced_peak_mb": 3.47
+  "ratio": 170.48,
+  "rss_attrib_mb": 8.7,
+  "rss_peak_mb": 84.9,
+  "traced_peak_mb": 3.5
  },
  "winter/pv": {
-  "ratio": 86.02,
-  "rss_attrib_mb": 14.1,
-  "rss_peak_mb": 98.1,
-  "traced_peak_mb": 3.46
- },
- "winter/pv+cycle": {
-  "ratio": 170.95,
-  "rss_attrib_mb": 13.7,
-  "rss_peak_mb": 95.8,
+  "ratio": 109.46,
+  "rss_attrib_mb": 6.9,
+  "rss_peak_mb": 83.1,
   "traced_peak_mb": 3.47
  },
+ "winter/pv+cycle": {
+  "ratio": 170.21,
+  "rss_attrib_mb": 8.2,
+  "rss_peak_mb": 84.4,
+  "traced_peak_mb": 3.5
+ },
  "winter/tariff": {
-  "ratio": 191.93,
-  "rss_attrib_mb": 6.5,
-  "rss_peak_mb": 95.6,
-  "traced_peak_mb": 1.83
+  "ratio": 320.55,
+  "rss_attrib_mb": 8.6,
+  "rss_peak_mb": 84.8,
+  "traced_peak_mb": 1.82
  },
  "winter/tariff+cycle": {
-  "ratio": 263.99,
-  "rss_attrib_mb": 6.1,
-  "rss_peak_mb": 96.0,
-  "traced_peak_mb": 1.83
+  "ratio": 243.02,
+  "rss_attrib_mb": 6.8,
+  "rss_peak_mb": 83.0,
+  "traced_peak_mb": 1.82
  },
  "winter/tariff+pv": {
-  "ratio": 192.35,
-  "rss_attrib_mb": 7.1,
-  "rss_peak_mb": 96.0,
-  "traced_peak_mb": 1.83
+  "ratio": 320.37,
+  "rss_attrib_mb": 7.8,
+  "rss_peak_mb": 84.0,
+  "traced_peak_mb": 1.82
  },
  "winter/tariff+pv+cycle": {
-  "ratio": 263.93,
-  "rss_attrib_mb": 8.2,
-  "rss_peak_mb": 95.9,
+  "ratio": 243.72,
+  "rss_attrib_mb": 7.0,
+  "rss_peak_mb": 83.2,
   "traced_peak_mb": 1.83
  },
  "winter_extreme/1z/dhw": {
-  "ratio": 8.35,
-  "rss_attrib_mb": 11.3,
-  "rss_peak_mb": 97.5,
-  "traced_peak_mb": 3.44
+  "ratio": 8.54,
+  "rss_attrib_mb": 8.3,
+  "rss_peak_mb": 84.5,
+  "traced_peak_mb": 3.43
  },
  "winter_extreme/1z/space": {
-  "ratio": 5.51,
-  "rss_attrib_mb": 1.6,
-  "rss_peak_mb": 91.7,
-  "traced_peak_mb": 0.87
+  "ratio": 5.22,
+  "rss_attrib_mb": 2.0,
+  "rss_peak_mb": 78.2,
+  "traced_peak_mb": 0.86
  },
  "winter_extreme/2z/dhw": {
-  "ratio": 99.27,
-  "rss_attrib_mb": 17.7,
-  "rss_peak_mb": 95.8,
-  "traced_peak_mb": 3.45
+  "ratio": 83.45,
+  "rss_attrib_mb": 7.2,
+  "rss_peak_mb": 83.4,
+  "traced_peak_mb": 3.47
  },
  "winter_extreme/2z/space": {
-  "ratio": 126.91,
-  "rss_attrib_mb": 2.6,
-  "rss_peak_mb": 91.3,
-  "traced_peak_mb": 0.9
+  "ratio": 141.58,
+  "rss_attrib_mb": 1.3,
+  "rss_peak_mb": 77.5,
+  "traced_peak_mb": 0.93
  },
  "winter_mild/1z/dhw": {
-  "ratio": 48.05,
-  "rss_attrib_mb": 9.0,
-  "rss_peak_mb": 95.8,
-  "traced_peak_mb": 3.46
+  "ratio": 51.3,
+  "rss_attrib_mb": 7.6,
+  "rss_peak_mb": 83.8,
+  "traced_peak_mb": 3.47
  },
  "winter_mild/1z/space": {
-  "ratio": 47.95,
-  "rss_attrib_mb": 2.5,
-  "rss_peak_mb": 91.5,
-  "traced_peak_mb": 0.87
+  "ratio": 46.31,
+  "rss_attrib_mb": 2.8,
+  "rss_peak_mb": 79.0,
+  "traced_peak_mb": 0.9
  },
  "winter_mild/2z/dhw": {
-  "ratio": 82.24,
-  "rss_attrib_mb": 7.1,
-  "rss_peak_mb": 95.9,
-  "traced_peak_mb": 1.83
+  "ratio": 88.1,
+  "rss_attrib_mb": 8.3,
+  "rss_peak_mb": 84.5,
+  "traced_peak_mb": 1.82
  },
  "winter_mild/2z/space": {
-  "ratio": 84.46,
-  "rss_attrib_mb": 2.6,
-  "rss_peak_mb": 91.9,
-  "traced_peak_mb": 0.88
+  "ratio": 90.53,
+  "rss_attrib_mb": 2.4,
+  "rss_peak_mb": 78.6,
+  "traced_peak_mb": 0.92
  }
 }

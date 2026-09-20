@@ -195,7 +195,23 @@ from heatpump_optimizer import pv as pv_model
 #: the worst observed cost and an injected exact 2x regression passed it
 #: untouched (#287). The detection check at the end of the sweep exists so
 #: that cannot happen quietly again.
-SOLVE_BUDGET_RATIO = float(os.environ.get("STRESS_SOLVE_RATIO", "782.11"))
+#:
+#: RE-DERIVED for #1208 (owner override, issue comment 5748462577,
+#: 2026-09-20: "But I want you to implement it with budget raise.").
+#: Polish-every-candidate adds up to three full-budget restarts inside the
+#: candidate loop, and a restart that descends anew costs a solve's worth
+#: of evaluations on the dearest scenarios, so the 782.11 floor refused
+#: the branch at 886x-1106x. Three consecutive clean sweeps at the #1208
+#: head (this box, load1 5-10, thread factor 1.000) measured the dearest
+#: scenario, shoulder/tariff+pv+cycle, at 1106.2x / 965.9x / 1071.7x its
+#: beside-it reference -- mean 1047.93x. Applying this file's own rule,
+#: sqrt(DETECTION_TARGET) x the measured mean, the floor is
+#: 1.41421 x 1047.93 = 1482.00: 48 % over the mean sample and 32 % under
+#: a doubled one, the same ratio-margin the 782.11 derivation held. The
+#: budget table is re-recorded in the same change (its recorded worst was
+#: 546.76, and the wobble cap below requires the live ceiling to stay
+#: under 2x the DEAREST RECORDED ratio, which the #1208 costs now set).
+SOLVE_BUDGET_RATIO = float(os.environ.get("STRESS_SOLVE_RATIO", "1482.00"))
 
 #: The reference solve (96-element L-BFGS) does not scale with a real
 #: ``optimize()`` call. On CI ubuntu-latest that inflates the observed
@@ -207,6 +223,10 @@ SOLVE_BUDGET_RATIO = float(os.environ.get("STRESS_SOLVE_RATIO", "782.11"))
 #: keeps the live ceiling (860x) under ``DETECTION_TARGET`` times the
 #: dearest recorded ratio (2 x 546.76 = 1094), so the 2x detection
 #: check still binds. The 782.11 constant stays the M1 derivation.
+#: (For #1208 the floor is 1482.00 and the live ceiling 1630x; the
+#: budget table is re-recorded in the same change, so the dearest
+#: recorded ratio is again the branch's own measured cost and the same
+#: 2x-detection inequality holds -- see SOLVE_BUDGET_RATIO above.)
 SOLVE_RATIO_WOBBLE = float(os.environ.get("STRESS_SOLVE_WOBBLE", "1.10"))
 
 
@@ -368,7 +388,22 @@ SCENARIO_STALE_FACTOR = float(os.environ.get("STRESS_STALE_FACTOR", "3.5"))
 #: channels. Every argument above for trusting a count over a clock
 #: applies to this one unchanged: it is an integer the production path
 #: produces and the machine does not touch.
-SCENARIO_WORK_FACTOR = float(os.environ.get("STRESS_WORK_FACTOR", "1.5"))
+#:
+#: 1.73, not 1.5, since #1208 (owner override, issue comment 5748462577,
+#: 2026-09-20: "But I want you to implement it with budget raise.").
+#: Polish-every-candidate runs one extra full-budget restart per solved
+#: candidate inside the loop, so an UNCHANGED plan legitimately costs the
+#: evaluations and simulate steps of those restarts: measured at the
+#: #1208 head (three clean sweeps against the merge-base baseline
+#: captured beside each run), the worst unchanged-plan ratios were
+#: flat/1z/space 658/426 = 1.54x and typical_slab/shoulder 846/490 =
+#: 1.73x on the evaluation channel, the same two scenarios at the same
+#: 1.54x/1.73x on the simulate channel (integer counts, deterministic per
+#: tree pair). 1.73 covers the measured worst with nothing spare and
+#: stays under DETECTION_TARGET, so a 2x regression confined to one
+#: scenario is still seen on both channels; the 1.5x history above is
+#: the pre-#1208 record of the same argument.
+SCENARIO_WORK_FACTOR = float(os.environ.get("STRESS_WORK_FACTOR", "1.73"))
 #: How far this run's objective value may sit from the recorded one and
 #: still count as the same basin, relative.
 #:
