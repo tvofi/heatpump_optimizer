@@ -1281,7 +1281,10 @@ jobs:
             rm -f "$key" "$jwt_h" "$tok_h"
           }
           trap cleanup EXIT
-          printf '%s\n' "$APPROVER_PEM" > "$key"
+          # So the EXIT trap (token revoke + file removal) also fires when the
+          # job is cancelled -- app_approve.sh's bounded-gap line.
+          trap 'exit 130' INT TERM HUP
+          printf '%s\n' "$RUNS_PEM" > "$key"
           b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
           now=$(date +%s)
           h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
@@ -1482,7 +1485,10 @@ jobs:
             rm -f "$key" "$jwt_h" "$tok_h"
           }
           trap cleanup EXIT
-          printf '%s\n' "$APPROVER_PEM" > "$key"
+          # So the EXIT trap (token revoke + file removal) also fires when the
+          # job is cancelled -- app_approve.sh's bounded-gap line.
+          trap 'exit 130' INT TERM HUP
+          printf '%s\n' "$RUNS_PEM" > "$key"
           b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
           now=$(date +%s)
           h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
