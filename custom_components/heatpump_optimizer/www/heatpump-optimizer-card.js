@@ -5593,12 +5593,16 @@ function renderChart(frame, opts) {
         const bx1 = Math.max(plotL, scaleX(Math.max(run.start, windowStart)));
         const bx2 = Math.min(plotR, scaleX(Math.min(run.end, windowEnd)));
         if (bx2 <= bx1) continue;
+        // The stroke is the perceptibility carrier (#558 C1's pattern for
+        // the estimated-price region): a wash alone composites far below
+        // 1.4.11's 3:1, but a full-strength edge delimits it, and the wash
+        // only has to be seen.
         parts.push(
           `<rect class="actioned-band" pointer-events="none" x="${bx1.toFixed(2)}" y="${(
             plotB - bandH
           ).toFixed(2)}" width="${(bx2 - bx1).toFixed(2)}" height="${bandH.toFixed(2)}" fill="${
             act.color
-          }" fill-opacity="0.45"/>`
+          }" fill-opacity="0.3" stroke="${act.color}" stroke-width="1"/>`
         );
       }
     }
