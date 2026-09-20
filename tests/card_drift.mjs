@@ -51,7 +51,7 @@ import {
   justifiesCardClaim, sameClaimMap,
   makeCardContext, loadCard, collect, frozenDateClass, buildCard,
   planStates, setupSensorStates, qaTopologies, layoutCatalogTopo,
-  historyApi, historyFixture, flushHistory,
+  historyApi, historyFixture, flushHistory, realisticHistory, withActuals,
 } from "./card_rig.mjs";
 
 const testsDir = path.dirname(fileURLToPath(import.meta.url));
@@ -496,10 +496,19 @@ const STATES = [
   // power bars, and the same chips the plan always had. The comparison ref
   // has no history at all, so its window stays clamped at now and the diff
   // is the feature itself.
+  // The history states carry withActuals: the actual sensors must be in
+  // hass.states or the card's derivation resolves nothing, and the first
+  // version of these states shipped without them -- so the markup gate
+  // compared two cards that were both silently fetching solar alone, and
+  // the owner's "no actioned slots" defect walked through that gap
+  // (#1286 bug round). The realistic fixtures replaced the fixed-grid one:
+  // sparse-then-dense gaps, microsecond+offset stamps across a DST
+  // transition, attribute-only action rows.
   { name: "history_panned",
     drive: async (s) => {
-      const api = historyApi(historyFixture(s.FROZEN));
-      const c = buildCard(s.Card, planStates(s.plan), {}, { callApi: api.callApi });
+      const api = historyApi(realisticHistory(s.FROZEN));
+      const c = buildCard(s.Card, withActuals(planStates(s.plan)), {},
+        { callApi: api.callApi });
       c._onCardClick({});
       c.view.panBy(-10 * HOUR);
       await flushHistory();
@@ -507,10 +516,24 @@ const STATES = [
     } },
   { name: "history_deep_panned",
     drive: async (s) => {
-      const api = historyApi(historyFixture(s.FROZEN));
-      const c = buildCard(s.Card, planStates(s.plan), {}, { callApi: api.callApi });
+      const api = historyApi(realisticHistory(s.FROZEN));
+      const c = buildCard(s.Card, withActuals(planStates(s.plan)), {},
+        { callApi: api.callApi });
       c._onCardClick({});
       c.view.panBy(-40 * HOUR);
+      await flushHistory();
+      return c;
+    } },
+  // An install with no power attribute at all: the actioned slots draw
+  // from heat_pump_action's STATE history alone (the mode band), which is
+  // the owner's correction -- power is an overlay, never a prerequisite.
+  { name: "history_no_power",
+    drive: async (s) => {
+      const api = historyApi(realisticHistory(s.FROZEN, { power: false }));
+      const c = buildCard(s.Card, withActuals(planStates(s.plan)), {},
+        { callApi: api.callApi });
+      c._onCardClick({});
+      c.view.panBy(-20 * HOUR);
       await flushHistory();
       return c;
     } },
@@ -520,7 +543,8 @@ const STATES = [
   { name: "history_unavailable",
     drive: async (s) => {
       const api = historyApi({}, {});
-      const c = buildCard(s.Card, planStates(s.plan), {}, { callApi: api.callApi });
+      const c = buildCard(s.Card, withActuals(planStates(s.plan)), {},
+        { callApi: api.callApi });
       c._onCardClick({});
       c.view.panBy(-10 * HOUR);
       await flushHistory();
@@ -531,7 +555,7 @@ const STATES = [
   { name: "history_pending",
     drive: async (s) => {
       const never = new Promise(() => {});
-      const c = buildCard(s.Card, planStates(s.plan), {},
+      const c = buildCard(s.Card, withActuals(planStates(s.plan)), {},
         { callApi: () => never });
       c._onCardClick({});
       c.view.panBy(-10 * HOUR);

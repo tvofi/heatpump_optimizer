@@ -373,3 +373,38 @@
 # The legend's localStorage toggle and the config `series:` map accept
 # the new key; no payload key, published value, solver path or backend
 # file is touched.
+
+# The #1286 bug-round repair (owner report + owner's state-first
+# correction): the time loop and the missing actioned slots. Three states
+# move, and all three are the history states whose fixtures were replaced
+# -- the fixed-grid synthetic fixture could neither produce the loop nor
+# represent an install without power, which is exactly how both defects
+# reached a release.
+#
+# Mechanism one, history_panned and history_deep_panned (the realistic
+# fixture now carries irregular 4-11-minute gaps beside 5-hour silences,
+# microsecond+offset stamps across a spring-forward transition, and
+# attribute-only action rows): every smooth series' control points change
+# where a narrow gap neighbours a wide one, because smoothLine's control
+# xs are now clamped to their own segment -- the authored 1/6 tangent put
+# them beyond the far knot and the bezier ran backward in x, the reported
+# temperature loop (measured before the fix: 126 sampled x steps backward
+# on this very fixture; after: 0). Direction-agnostic clamping keeps every
+# other path the card draws byte-identical, so no other state moves.
+#
+# Mechanism two, all three states: the actioned record is state-first.
+# The mode band (class="actioned-band" rects along the plot base, teal,
+# one per heating-mode run forward-filled between heat_pump_action's
+# recorded state changes) now draws on every install, and the power bars
+# ride above it only where the power_kw attribute exists -- history_no_power
+# is NEW in this roster and is the install with no power attribute at all,
+# whose slots render from state alone. The tooltip gains an "Actioned:
+# <mode>" row over the recorded past, and the actioned chip no longer
+# reads nodata when only the band has data.
+#
+# history_unavailable and history_pending are byte-identical to the
+# comparison ref: the degradation paths they pin are unchanged by this
+# repair, and the ref renders them the same way.
+history_panned # monotone clamped control points + the state-first mode band and tooltip
+history_deep_panned # the same across four chunks, runs joined at every boundary
+history_no_power # new state: slots from state history alone, no power attribute
