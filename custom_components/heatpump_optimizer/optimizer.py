@@ -423,9 +423,22 @@ def _bounds_supported_by_batch(bounds: list[tuple[float, float]]) -> bool:
 #: L-BFGS-B's own ``ftol`` is 1e-6. Keeping every ``score < prior`` tick
 #: re-planned 15 of 51 stress scenarios and left the work check under its
 #: 40-of-51 floor. 1e-4 still moved different golden fixtures on Linux
-#: 3.13 vs 3.14, so a claim list cannot be true on both. 2e-2 sits above
-#: the largest Darwin golden keep. No new seed.
-_LBFGSB_RESTART_KEEP_REL = 2e-2
+#: 3.13 vs 3.14, so a claim list cannot be true on both. 2e-2 sat above
+#: the largest Darwin golden keep -- and, it turned out, above every real
+#: improvement the restart finds on the gate's own populations: the polish
+#: was computed and thrown away whole, up to 1.17% of the objective and
+#: 6% of a day's bill (round 5 D0-01, #1207). 2e-5 sits in the widest
+#: measured quiet band of the polished-improvement distribution (every
+#: restart's polished score, hooked at ``_scoped_minimize``, over the 50
+#: golden solves at this merge base): the distribution is empty from
+#: 4.83e-6 to 3.67e-5 -- 2e-5's nearest neighbours are 4.1x below it and
+#: 1.8x above -- so no fixture's adoption decision can flip on
+#: last-decimal drift the way 1e-4's did. It keeps every gap the round-5
+#: finding counted (smallest: 1.34e-4, worst: 1.17e-2) and stays 20x
+#: over the 1e-6 ftol tick the features pin refuses. No new seed.
+#: (Landed by the owner directive of 2026-09-20, #1207 comment c1329fe /
+#: database id 5750296026, via #1208's scoped may-drift path.)
+_LBFGSB_RESTART_KEEP_REL = 2e-5
 
 
 def _lbfgsb_restart(

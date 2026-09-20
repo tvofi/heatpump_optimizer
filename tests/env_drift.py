@@ -158,9 +158,43 @@ RUNNER_CONDITIONAL_1208 = (
     "shoulder_two_zone",
 )
 
+#: The owner-sanctioned #1207 movers (OWNER DIRECTIVE, in-session 2026-09-20,
+#: #1207 comment c1329fe / database id 5750296026: "address #1207 ... the
+#: reopen path is the one #1208 just built"). Same class as the #1208 set,
+#: one diff earlier in the same polish path: these are the fixtures the
+#: restart keep-gate fix (_LBFGSB_RESTART_KEEP_REL 2e-2 -> 2e-5, round 5
+#: D0-01) moves by margins measured INSIDE the 5e-5-2e-2 noise band at the
+#: fix's own merge base (objective rel: capacity_tariff_15min -1.7601e-04,
+#: cycling_cost -1.7666e-04, everything_on -5.2974e-03, narrow_band
+#: -7.8934e-04, shoulder -7.2897e-04, valve_storage_smart_write
+#: -2.2972e-03, winter_two_zone_dhw -5.0494e-05 -- the last sits 1.01x
+#: over the band's floor, the same adoption margin the parked #1272 rounds
+#: measured on it; all seven deterministic on one box), so WHICH runner
+#: sees them move is a property of the runner's BLAS and not of the diff.
+#: valve_storage_smart_write is also one of the SENSITIVE five above, so
+#: its exemption is carried by that category's own entry -- no second
+#: claim-file line exists for it. The directive scopes this set to exactly
+#: the seven measured names -- not the blanket 11-fixture exemption #996
+#: (i) refused -- and each claim-file entry carries the removal condition:
+#: remove when drift lanes are pinned or the polish improvement scale
+#: leaves 5e-5-2e-2. MAY_DRIFT_JUDGED_KEYS still fail on these exactly as
+#: on the SENSITIVE five and the #1208 set.
+RUNNER_CONDITIONAL_1207 = (
+    "capacity_tariff_15min",
+    "cycling_cost",
+    "everything_on",
+    "narrow_band",
+    "shoulder",
+    "valve_storage_smart_write",
+    "winter_two_zone_dhw",
+)
+
 #: Every name a may-drift entry may carry: the gate's own five, plus the
-#: owner-sanctioned #1208 movers. Nothing else, ever, without a ruling.
-MAY_DRIFT_ALLOWED = SENSITIVE + RUNNER_CONDITIONAL_1208
+#: owner-sanctioned #1208 movers and the #1207 directive's set. Nothing
+#: else, ever, without a ruling.
+MAY_DRIFT_ALLOWED = (
+    SENSITIVE + RUNNER_CONDITIONAL_1208 + RUNNER_CONDITIONAL_1207
+)
 
 CLAIM_FILE = os.path.join("tests", "golden", "claimed_drift.txt")
 CARD_CLAIM_FILE = os.path.join("tests", "golden", "card_claimed_drift.txt")
@@ -1076,7 +1110,8 @@ def _may_drift(repo: str) -> dict[str, str]:
     weaker than a claim for plan keys only, and confined so it cannot be
     used as one: `may_drift_error` rejects any name outside
     ``MAY_DRIFT_ALLOWED`` (the SENSITIVE five plus the owner-sanctioned
-    ``RUNNER_CONDITIONAL_1208`` pair), so the exemption cannot reach any
+    ``RUNNER_CONDITIONAL_1208`` movers and the #1207 directive's
+    ``RUNNER_CONDITIONAL_1207`` set), so the exemption cannot reach any
     other fixture whose floats do travel.
 
     Written as comment lines (``# may-drift: <name> -- <reason>``) so that
@@ -1114,10 +1149,11 @@ def may_drift_error(
 
     * it may only name fixtures in ``MAY_DRIFT_ALLOWED``: the five in
       ``SENSITIVE`` this script declares non-reproducible, plus the
-      owner-sanctioned ``RUNNER_CONDITIONAL_1208`` pair (ruling #1208
-      comment 208bed25, with its removal condition in each entry).
-      Anywhere else, a moved fixture is the branch's doing and has to be
-      claimed;
+      owner-sanctioned ``RUNNER_CONDITIONAL_1208`` movers (ruling #1208
+      comment 208bed25, with its removal condition in each entry) and
+      the ``RUNNER_CONDITIONAL_1207`` set (owner directive #1207 comment
+      c1329fe, same removal condition). Anywhere else, a moved fixture
+      is the branch's doing and has to be claimed;
     * a name cannot be both claimed and may-drift, because the two say
       different things about the same scenario and only one can be checked.
     """
@@ -1127,8 +1163,8 @@ def may_drift_error(
             "MAY-DRIFT OUT OF SCOPE: {file} marks\n"
             "{stray} as may-drift, but that category exists only for the\n"
             "fixtures this gate declares non-reproducible across BLAS\n"
-            "builds ({sensitive}) plus the owner-sanctioned #1208 pair\n"
-            "({ruled}).\n"
+            "builds ({sensitive}) plus the owner-sanctioned #1208 movers\n"
+            "({ruled}) and the #1207 directive's set ({ruled1207}).\n"
             "Everywhere else a moved fixture is this branch's doing and is\n"
             "judged per release -- claim it with a reason, or find out why\n"
             "it moved. Widening this category would let a real regression\n"
@@ -1138,6 +1174,7 @@ def may_drift_error(
             stray=", ".join(stray),
             sensitive=", ".join(SENSITIVE),
             ruled=", ".join(RUNNER_CONDITIONAL_1208),
+            ruled1207=", ".join(RUNNER_CONDITIONAL_1207),
         )
     both = sorted(set(may_drift) & set(claims))
     if both:

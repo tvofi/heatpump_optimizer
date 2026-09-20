@@ -16065,6 +16065,23 @@ R.check(
     "constant breaks this set equality and is an unruled widening",
 )
 R.check(
+    "may-drift also accepts the #1207 directive's movers and nothing else",
+    _env_drift.may_drift_error(
+        {n: "r" for n in _env_drift.RUNNER_CONDITIONAL_1207}, {}
+    ) is None
+    and set(_env_drift.RUNNER_CONDITIONAL_1207) == {
+        "capacity_tariff_15min", "cycling_cost", "everything_on",
+        "narrow_band", "shoulder", "valve_storage_smart_write",
+        "winter_two_zone_dhw",
+    },
+    "owner directive #1207 comment c1329fe (2026-09-20, in-session) "
+    "scopes the third set to exactly the seven in-band movers that "
+    "branch measured at its own merge base (valve_storage_smart_write "
+    "doubles as a SENSITIVE fixture, so one claim-file entry carries "
+    "it); an eighth name in the constant breaks this set equality and "
+    "is an unruled widening",
+)
+R.check(
     "and refuses every fixture whose floats DO travel",
     (_env_drift.may_drift_error({"away_setback": "r"}, {}) or "")
     .startswith("MAY-DRIFT OUT OF SCOPE")
