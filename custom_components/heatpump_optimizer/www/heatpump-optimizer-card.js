@@ -89,6 +89,7 @@ const STRINGS = {
     "series.price": "Electricity price",
     "series.dhw_slots": "DHW heating",
     "series.space_slots": "Space heating",
+    "series.actioned": "Actioned power",
     "series.outdoor": "Outdoor temperature",
     "series.dhw_temp": "DHW tank temperature",
     "series.house_temp": "House temperature",
@@ -140,6 +141,10 @@ const STRINGS = {
     "plan.zoom_out": "Zoom out",
     "plan.zoom_in": "Zoom in",
     "plan.show_whole_plan": "Show the whole plan",
+    "plan.history_loading": "Loading history…",
+    "plan.history_unavailable":
+      "No recorded history for these sensors — the recorder may be off, " +
+      "or the past was never recorded.",
     "plan.price_estimated": "Price is estimated, not published yet",
     "plan.shared_step_tooltip":
       "Shared step: the pump alternates circuits — hot water first. " +
@@ -546,6 +551,7 @@ const STRINGS = {
     "series.price": "Elpris",
     "series.dhw_slots": "Varmvattenberedning",
     "series.space_slots": "Uppvärmning",
+    "series.actioned": "Utförd effekt",
     "series.outdoor": "Utetemperatur",
     "series.dhw_temp": "Varmvattentankens temperatur",
     "series.house_temp": "Innetemperatur",
@@ -579,6 +585,10 @@ const STRINGS = {
     "plan.zoom_out": "Zooma ut",
     "plan.zoom_in": "Zooma in",
     "plan.show_whole_plan": "Visa hela planen",
+    "plan.history_loading": "Läser in historik…",
+    "plan.history_unavailable":
+      "Ingen sparad historik för dessa sensorer — inspelaren kan vara " +
+      "avstängd, eller sparades det förflutna aldrig.",
     "plan.price_estimated": "Priset är uppskattat, ännu inte publicerat",
     "plan.shared_step_tooltip":
       "Delat steg: pumpen växlar mellan kretsarna — varmvatten först. " +
@@ -1033,6 +1043,23 @@ const SERIES_DEFS = [
     style: "stepBars",
   },
   {
+    // The pump's own record of what it actually ran, left of "now" (the
+    // history pan): heat_pump_action's power_kw, stepped, on the same
+    // power axis as the plan's slot bars so planned and actioned power can
+    // be read against each other across the seam. Teal rather than another
+    // blue or red: measured, not the same dE 20 the palette demands of any
+    // two series sharing this draw style (#558 C1; 37.8 from space_slots,
+    // 60.6 from dhw_slots simulated deuteranope).
+    key: "actioned",
+    labelKey: "series.actioned",
+    axis: "power",
+    unit: "kW",
+    color: "#00838f",
+    sensor: "action",
+    field: "action_power",
+    style: "stepBars",
+  },
+  {
     key: "outdoor",
     labelKey: "series.outdoor",
     axis: "temp",
@@ -1353,13 +1380,25 @@ const DHW_MIN_FALLBACK = 45;
 
 // Pan and zoom over the plan window (item 23).
 //
-// Forward-only, deliberately: there is no history to scroll back into, because
-// both plan sensors declare `forecast` unrecorded, so nothing stores what the
-// plan used to say. The window is therefore confined to [now, end of plan], and
-// zooming out stops at the plan's real extent rather than at the configured
-// plot width -- past the horizon there is empty space, not more plan.
+// Forward-only over the PLAN, deliberately: there is no history of what the
+// plan used to say to scroll back into, because both plan sensors declare
+// `forecast` unrecorded. The past the card CAN scroll back into is the
+// actuals' own recorded history (HistorySource below), and that pan is
+// bounded by the constants after these. Over the plan the window stays
+// confined to [now, end of plan], and zooming out stops at the plan's real
+// extent rather than at the configured plot width -- past the horizon there
+// is empty space, not more plan.
 const VIEW_MIN_SPAN_MS = 2 * 3600 * 1000;
 const VIEW_ZOOM_STEP = 1.4;
+
+// How far back the plan chart may be panned into the recorder's own past
+// (the owner's pan-back request), and the fetch-window granularity it is
+// loaded in. The span is a product decision, not a config key: 48 h answers
+// "what did the pump actually do yesterday and the day before" without
+// asking the recorder for a month. The chunk is the lazy unit -- a quick
+// peek back costs one 12 h window, never the whole span.
+const HISTORY_SPAN_MS = 48 * 3600 * 1000;
+const HISTORY_CHUNK_MS = 12 * 3600 * 1000;
 
 // The expanded dialog's chrome is sized from one font size, set from the
 // dialog's measured width so it grows with the chart it sits beside.
@@ -3737,12 +3776,20 @@ function defaultWindow(spFc, dhwFc, hours, now) {
 
 /** Every series definition, cut to the window. `hidden` is the legend's
  * toggle state (a hidden series is still built, so its chip knows whether
- * there is data behind it); `zoomed` rides along for the view controls. */
-function buildSeries({ spFc, dhwFc, solarFc, windowStart, windowEnd, hidden, zoomed }) {
+ * there is data behind it); `zoomed` rides along for the view controls.
+ * `actionFc` is the pump's own action history (HistorySource), empty when
+ * none has been loaded. */
+function buildSeries({ spFc, dhwFc, solarFc, actionFc, windowStart, windowEnd, hidden, zoomed }) {
   const parse = parseStamp;
 
   const pick = (sensor) =>
-    sensor === "dhw" ? dhwFc : sensor === "solar" ? solarFc : spFc;
+    sensor === "dhw"
+      ? dhwFc
+      : sensor === "solar"
+      ? solarFc
+      : sensor === "action"
+      ? actionFc || []
+      : spFc;
   const either = (field) => {
     // prefer space forecast, fall back to dhw
     if (spFc.some((p) => p[field] !== undefined && p[field] !== null))
@@ -3763,11 +3810,24 @@ function buildSeries({ spFc, dhwFc, solarFc, windowStart, windowEnd, hidden, zoo
       // curve bridge straight across the gap — drawing an envelope over
       // a stretch there is no evidence for. The room's zone traces were
       // only ever accidentally safe from this: they have no holes.
+      //
+      // A PARTIAL point -- one carrying `partial: true`, which only the
+      // history merge produces -- does not speak for fields it lacks:
+      // the measured indoor sample at 12:03 is not evidence that outdoor
+      // was missing at 12:03, only that outdoor's own sensor had not
+      // spoken yet. A field the point does carry as null is still a
+      // hole, exactly as for the forecast.
       const raw = [];
       for (const p of fc) {
         const t = parse(p);
         if (t === null) continue;
         if (t < windowStart || t > windowEnd) continue;
+        if (
+          p.partial &&
+          !Object.prototype.hasOwnProperty.call(p, field)
+        ) {
+          continue;
+        }
         const v = p[field];
         const usable =
           v !== null && v !== undefined && !Number.isNaN(Number(v));
@@ -3800,7 +3860,19 @@ function buildSeries({ spFc, dhwFc, solarFc, windowStart, windowEnd, hidden, zoo
       // band edges land exactly on the curve; dropping them is right for
       // the same reason it is right for the zones, and it is the same
       // rule doing it.
-      if (!primary && samePoints(pts, primaryPts)) continue;
+      //
+      // The comparison is at the EXTRA'S OWN timestamps, not over the
+      // whole primary: the history merge prepends measured samples to the
+      // primary alone, and list equality against the longer primary would
+      // resurrect the single-zone copies exactly when the user pans back.
+      // Without history the two read identically -- the plan publishes
+      // every field at every step.
+      if (!primary && primaryPts) {
+        const byT = new Map(primaryPts.map((q) => [q.t, q.v]));
+        if (samePoints(pts, pts.map((q) => ({ t: q.t, v: byT.get(q.t) })))) {
+          continue;
+        }
+      }
       if (primary) primaryPts = pts;
       const labelKey = primary
         ? def.labelKey
@@ -4443,6 +4515,276 @@ class PlanSource {
   }
 }
 
+// ---- HistorySource ----------------------------------------------------------
+// The recorded past behind the plan chart (the owner's pan-back request).
+// The plan sensors deliberately keep their forecasts out of the recorder, so
+// there is no history of what the plan used to SAY -- but the actuals the
+// plan was made against are ordinary recorded sensors, and Home Assistant's
+// history API serves them. This collaborator owns that read: which entities
+// carry the actuals, the lazy 12 h fetch windows the pan enters, the
+// forecast-shaped overlays the chart's own series machinery then draws, and
+// the degradation when the recorder answers nothing.
+//
+// Uses `host.plan` (entity resolution), `host.hass` (callApi) and the host
+// contract `renderForced()`. The VIEW is not consulted: the host hands
+// `leftBound()` to `view.apply` and calls `ensure()` with the window it got
+// back, which keeps the pan machinery in one place.
+class HistorySource {
+  constructor(host) {
+    this.host = host;
+    // Epoch-aligned 12 h chunk index -> "loading" | "loaded". A chunk is
+    // fetched at most once per session; "loading" is what dedups the render
+    // storm a mid-drag pan would otherwise cause.
+    this.chunks = new Map();
+    // Set when a fetched window came back with no states for ANY entity, or
+    // the API refused: there is no recorded past to show, and no point
+    // asking again. The view's left bound returns to the live edge, which
+    // is the snap-back.
+    this.unavailable = false;
+    // Fetches in flight, for the loading note.
+    this.loading = 0;
+    // Bumped by `disconnect`; a fetch that lands after it belongs to a
+    // card that is gone and must not render.
+    this.generation = 0;
+    // The absorbed samples, keyed per field bucket so entities with
+    // different timestamps never overwrite each other. Points are
+    // forecast-shaped but `partial`: each speaks only for the fields it
+    // carries (see buildSeries).
+    this.space = [];
+    this.solar = [];
+    this.action = [];
+    this.seen = new Set();
+    this.loadedAny = false;
+  }
+
+  /** hass.callApi when the host has one, else null. */
+  api() {
+    const hass = this.host.hass;
+    return hass && typeof hass.callApi === "function" ? hass.callApi : null;
+  }
+
+  /** The leftmost instant the view may be panned to, or null to keep the
+   * default (forward-only) floor. Optimistic by design: the bound extends
+   * as soon as a callApi exists, the chunks fetch when the pan actually
+   * enters them, and an empty recorder snaps the bound back to now. */
+  leftBound() {
+    if (!this.api() || this.unavailable) return null;
+    return Date.now() - HISTORY_SPAN_MS;
+  }
+
+  /** The optimizer's own actual-carrying sensors, resolved the way the
+   * headline stats are: derive from the RESOLVED plan sensor's prefix
+   * (has_entity_name keeps `_space_heating_plan` stable under any device
+   * name), then fall back to a sorted scan for hand-renamed entities. The
+   * solar entity is the one the plan source already resolves -- config,
+   * plan_kind marker, then suffix. */
+  entityIds() {
+    const plan = this.host.plan;
+    const states = (this.host.hass && this.host.hass.states) || {};
+    const ids = { solar: plan.resolveEntity("solar") || null };
+    const derive = (suffix) => {
+      for (const [kind, planSuffix] of [
+        ["space", "_space_heating_plan"],
+        ["dhw", "_dhw_heating_plan"],
+      ]) {
+        const planId = plan.resolveEntity(kind);
+        if (!planId || !planId.endsWith(planSuffix)) continue;
+        const candidate = planId.slice(0, -planSuffix.length) + suffix;
+        if (states[candidate]) return candidate;
+      }
+      for (const id of Object.keys(states).sort()) {
+        if (id.startsWith("sensor.") && id.endsWith(suffix)) return id;
+      }
+      return null;
+    };
+    ids.indoor = derive("_indoor_temperature_optimizer");
+    ids.outdoor = derive("_outdoor_temperature_optimizer");
+    ids.price = derive("_cost_current_electricity_price");
+    ids.action = derive("_heat_pump_action");
+    return ids;
+  }
+
+  /** Fetch every unfetched chunk overlapping [viewStart, liveEdge), capped
+   * at the 48 h span. Called from `_buildSeries`, so a pan that enters new
+   * territory fetches it on the render the pan itself caused. */
+  ensure(viewStart, liveEdge) {
+    if (!this.api() || this.unavailable) return;
+    if (!(viewStart < liveEdge)) return;
+    const lo = Math.max(viewStart, liveEdge - HISTORY_SPAN_MS);
+    const first = Math.floor(lo / HISTORY_CHUNK_MS);
+    const last = Math.floor((liveEdge - 1) / HISTORY_CHUNK_MS);
+    for (let chunk = first; chunk <= last; chunk++) {
+      if (this.chunks.has(chunk)) continue;
+      this.chunks.set(chunk, "loading");
+      this.fetchChunk(chunk, liveEdge);
+    }
+  }
+
+  async fetchChunk(chunk, liveEdge) {
+    const gen = this.generation;
+    const callApi = this.api();
+    const start = Math.max(chunk * HISTORY_CHUNK_MS, liveEdge - HISTORY_SPAN_MS);
+    const end = Math.min((chunk + 1) * HISTORY_CHUNK_MS, liveEdge);
+    this.loading += 1;
+    const finish = () => {
+      this.loading -= 1;
+      if (gen !== this.generation) return;
+      // A forced render, not a plain one: the fetched samples are new data
+      // the render signature does not know about.
+      this.host.renderForced();
+    };
+    try {
+      const ids = this.entityIds();
+      const per = { indoor: [], outdoor: [], price: [], solar: [], action: [] };
+      const numeric = [
+        ["indoor", ids.indoor],
+        ["outdoor", ids.outdoor],
+        ["price", ids.price],
+        ["solar", ids.solar],
+      ].filter(([, id]) => !!id);
+      if (numeric.length) {
+        // States, not statistics: the plan chart plots point series, and a
+        // mean/min/max bucket is a different claim. The numeric entities
+        // need nothing but state and timestamp, so the call is lean --
+        // `minimal_response&no_attributes` drops the attributes the
+        // recorder writes on every state.
+        const res = await callApi(
+          "GET",
+          historyPath(start, end, numeric.map(([, id]) => id), true)
+        );
+        numeric.forEach(([key], i) => {
+          per[key] = (res && res[i]) || [];
+        });
+      }
+      if (ids.action) {
+        // The action entity is the exception: its power lives in an
+        // ATTRIBUTE (power_kw), so this one call carries attributes and is
+        // kept apart from the lean numeric call rather than fattening it.
+        const res = await callApi(
+          "GET",
+          historyPath(start, end, [ids.action], false)
+        );
+        per.action = (res && res[0]) || [];
+      }
+      const any = Object.values(per).some((rows) => rows.length);
+      if (!any) {
+        // Nothing recorded for any entity in the window: the recorder is
+        // off, the entities are excluded, or the past was purged. One
+        // answer, not one per chunk.
+        this.unavailable = true;
+        this.chunks.clear();
+        finish();
+        return;
+      }
+      this.absorb(per);
+      this.chunks.set(chunk, "loaded");
+      this.loadedAny = true;
+    } catch (e) {
+      this.unavailable = true;
+      this.chunks.clear();
+    }
+    finish();
+  }
+
+  /** Turn HA history rows into forecast-shaped partial points. One emitter
+   * per (array, field): the entities sample at their own timestamps, so
+   * their points must not be merged onto a shared timebase -- holding a
+   * temperature forward until the next sample of a DIFFERENT sensor would
+   * fabricate evidence. `partial` is what tells buildSeries a point speaks
+   * only for the fields it carries. */
+  absorb(per) {
+    const num = (v) => {
+      if (v === null || v === undefined || v === "") return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+    const emit = (arrayName, field, rows, valueOf, extra) => {
+      for (const row of rows || []) {
+        const t = Date.parse(row.last_updated || row.last_changed);
+        if (Number.isNaN(t)) continue;
+        const key = `${field}:${t}`;
+        if (this.seen.has(key)) continue;
+        this.seen.add(key);
+        // An unavailable/unknown state is kept as a HOLE (the field carried
+        // as null), never dropped and never read as zero -- the v5.2.0 rule.
+        const missing =
+          row.state === "unavailable" || row.state === "unknown";
+        const v = missing ? null : valueOf(row);
+        this[arrayName].push({
+          t: isoOf(t),
+          partial: true,
+          [field]: v,
+          ...(extra || {}),
+        });
+      }
+    };
+    emit("space", "room", per.indoor, (r) => num(r.state));
+    emit("space", "outdoor", per.outdoor, (r) => num(r.state));
+    emit("space", "price", per.price, (r) => num(r.state), {
+      price_known: true,
+    });
+    emit("solar", "ghi", per.solar, (r) => num(r.state));
+    emit("action", "action_power", per.action, (r) =>
+      num((r.attributes || {}).power_kw));
+  }
+
+  /** The overlays `_buildSeries` merges into its inputs, or null while no
+   * chunk has landed. */
+  overlays() {
+    if (!this.loadedAny) return null;
+    const byT = (a, b) => Date.parse(a.t) - Date.parse(b.t);
+    return {
+      space: [...this.space].sort(byT),
+      solar: [...this.solar].sort(byT),
+      action: [...this.action].sort(byT),
+    };
+  }
+
+  /** The status line over the chart: unavailable, or loading. Inline-styled
+   * like the wood alert, so the style block does not grow for a notice. */
+  noteHtml() {
+    const style =
+      "margin:0 0 .6em;padding:.45em .7em;border-left:3px solid " +
+      "var(--secondary-text-color,#888);background:var(--secondary-" +
+      "background-color,rgba(0,0,0,.06));font-size:.9em";
+    if (this.unavailable) {
+      return `<div class="hist-note" role="status" style="${style}">${esc(
+        L("plan.history_unavailable")
+      )}</div>`;
+    }
+    if (this.loading > 0) {
+      return `<div class="hist-note" role="status" style="${style}">${esc(
+        L("plan.history_loading")
+      )}</div>`;
+    }
+    return "";
+  }
+
+  /** A disconnect invalidates every fetch in flight: the card is gone, and
+   * a late answer would render into a detached shadow root. */
+  disconnect() {
+    this.generation += 1;
+    this.loading = 0;
+  }
+}
+
+/** The ISO string the history API's path and end_time want. */
+function isoOf(ms) {
+  return new Date(ms).toISOString();
+}
+
+/** One history/period query. `lean` adds minimal_response&no_attributes,
+ * which is right for every entity whose value is the state and wrong for
+ * the action entity, whose power is an attribute. */
+function historyPath(startMs, endMs, ids, lean) {
+  const q = [
+    `filter_entity_id=${ids.join(",")}`,
+    `end_time=${encodeURIComponent(isoOf(endMs))}`,
+  ];
+  if (lean) q.push("minimal_response", "no_attributes");
+  return `history/period/${encodeURIComponent(isoOf(startMs))}?${q.join("&")}`;
+}
+
 // ---- Chart geometry: screen <-> chart ---------------------------------------
 // The chart is drawn in a fixed viewBox and stretched to fit, so screen pixels
 // and viewBox units are not interchangeable; these relate the two, and find
@@ -4596,10 +4938,16 @@ class ViewWindow {
    * moves forward as new forecasts arrive, and a view clamped against the
    * extent of ten minutes ago would slowly drift out of range.
    *
+   * `historyLeft`, when HistorySource offers one, extends the floor the view
+   * may be panned LEFT to -- the recorded past, up to 48 h. It is the same
+   * optimistic bound the source hands out on every build, so it retracts the
+   * moment the recorder answers nothing and the next build's clamp snaps the
+   * window back to the live edge.
+   *
    * Returns the default window untouched while `range` is null, so a card
    * nobody has interacted with renders exactly as it did before this existed.
    */
-  apply(defaultStart, defaultEnd, dataEnd) {
+  apply(defaultStart, defaultEnd, dataEnd, historyLeft) {
     const defaultSpan = Math.max(defaultEnd - defaultStart, 1);
     // Zooming out stops at the plan, not at the configured plot width:
     // `cfg.hours` goes up to a week, while the optimizer's horizon defaults to
@@ -4615,6 +4963,15 @@ class ViewWindow {
       Math.min(dataEnd, defaultEnd),
       defaultStart + minSpan
     );
+    // The left edge, which the recorded past may extend but nothing else
+    // may: `floor` stays the DEFAULT start (now), because `current()` reads
+    // it as the untouched window's start -- a floor lowered here would move
+    // the default view itself. `min` keeps a stale bound from the other
+    // direction (a clock tick between the two measurements).
+    const leftBound =
+      historyLeft === undefined || historyLeft === null
+        ? defaultStart
+        : Math.min(defaultStart, historyLeft);
     // `defaultEnd` is kept as well as `rightBound`: the two differ whenever the
     // configured plot window is wider than the plan, and a zoom that mistook
     // the plan's extent for what is currently on screen would compute its
@@ -4623,6 +4980,7 @@ class ViewWindow {
       floor: defaultStart,
       defaultEnd,
       rightBound,
+      leftBound,
       minSpan,
       maxSpan,
     };
@@ -4631,7 +4989,7 @@ class ViewWindow {
 
     const span = clampNum(this.range.span, minSpan, maxSpan);
     const maxStart = Math.max(defaultStart, rightBound - span);
-    const start = clampNum(this.range.start, defaultStart, maxStart);
+    const start = clampNum(this.range.start, leftBound, maxStart);
     this.range = { start, span };
     return { start, end: start + span };
   }
@@ -4640,11 +4998,16 @@ class ViewWindow {
    *
    * With a plan no longer than the minimum span there is nothing to pan across
    * and nothing to zoom out to, and controls that cannot move are worse than
-   * no controls.
+   * no controls -- unless the recorded past extends the pannable range, which
+   * it does only while a history source offers a bound.
    */
   adjustable() {
     const lim = this.limits;
-    return !!lim && lim.rightBound - lim.floor > lim.minSpan * 1.05;
+    return (
+      !!lim &&
+      (lim.rightBound - lim.floor > lim.minSpan * 1.05 ||
+        lim.leftBound < lim.floor)
+    );
   }
 
   /** The span currently on screen, view or default. */
@@ -9882,6 +10245,7 @@ function parseConfig(config) {
 //   host.whatIf                WhatIfPanel: the schedule editor and simulator
 //   host.setup                 SetupPage: the diagram, the picker, the note
 //   host.layoutEditor          LayoutEditor: the drawing, its match, its gestures
+//   host.histSource            HistorySource: the recorded past behind the pan-back
 //
 // Every name above is an OWN PROPERTY of a custom element that Lovelace also
 // writes to. `hui-card` assigns `hass`, `config`, `preview`, `editMode` and
@@ -9918,6 +10282,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this.whatIf = new WhatIfPanel(this);
     this.setup = new SetupPage(this);
     this.layoutEditor = new LayoutEditor(this);
+    // The recorded past behind the plan chart (the pan-back request). It
+    // depends only on the plan source's entity resolution and the host's
+    // hass/renderForced, and the host mediates between it and the view: no
+    // arrow between it and view, so the graph stays a chain.
+    this.histSource = new HistorySource(this);
     this._config = null;
     this._hass = null;
     this._sig = null;
@@ -10113,6 +10482,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // detached shadow root (#137).
     this.lanes.disconnect();
     this.view.disconnect();
+    // A history fetch in flight belongs to this card; landing it after the
+    // disconnect would render into the same detached root.
+    this.histSource.disconnect();
     // A modal dialog left open would outlive the card in the top layer.
     if (this.dialog.expanded) this.dialog.closeQuietly();
     // A pending what-if solve, or an armed save confirmation, must not
@@ -10450,7 +10822,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
       expanded && viewH && viewH !== VIEW_H
         ? ` style="aspect-ratio:${VIEW_W} / ${Number(viewH.toFixed(2))}"`
         : "";
-    return `${this.plan.woodAlertHtml()}<div class="chartwrap${expanded ? " big" : ""}${pannable}"${ratio}>${chart}
+    return `${this.plan.woodAlertHtml()}${this.histSource.noteHtml()}<div class="chartwrap${expanded ? " big" : ""}${pannable}"${ratio}>${chart}
       ${this.view.controlsHtml()}
       <div class="tooltip" hidden></div></div>`;
   }
@@ -10733,9 +11105,36 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // against the visible window, which is what keeps the value axis scaled
     // to what is actually on screen. Still a host seam because the tests
     // call `_buildSeries()` for exactly this side effect.
-    const view = this.view.apply(dw.start, dw.end, dw.dataEnd);
+    //
+    // The history bound rides along: the recorded past extends the floor
+    // the view may be panned left to, and the chunks the entered window
+    // needs are fetched on THIS build -- the pan itself caused the render,
+    // so nothing fetches until a pan actually enters the past.
+    const view = this.view.apply(
+      dw.start,
+      dw.end,
+      dw.dataEnd,
+      this.histSource.leftBound()
+    );
+    this.histSource.ensure(view.start, dw.start);
+    // The overlays: measured samples riding the plan's own series. While
+    // any are loaded, the forecasts are cut at the live edge -- the plan's
+    // own first steps can predate now (the payload a solve publishes
+    // starts at the solve), and a forecast sample left of the seam would
+    // collide with the measured one at the same instant.
+    const hist = this.histSource.overlays();
+    const cut = (fc) => {
+      if (!hist) return fc;
+      return fc.filter((p) => {
+        const t = parseStamp(p);
+        return t === null || t >= dw.start - 1;
+      });
+    };
     const built = buildSeries({
-      spFc, dhwFc, solarFc,
+      spFc: hist ? [...hist.space, ...cut(spFc)] : spFc,
+      dhwFc: cut(dhwFc),
+      solarFc: hist ? [...hist.solar, ...cut(solarFc)] : solarFc,
+      actionFc: hist ? hist.action : [],
       windowStart: view.start,
       windowEnd: view.end,
       hidden: this.legend.hidden,
