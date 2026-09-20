@@ -743,6 +743,7 @@ typically set once lives one click further, under **Advanced settings**.
 | Savings vs comfort | Price weight, comfort weight, recalculation interval, compressor start cost, caution with guessed prices |
 | Grid peak tariff | The monthly capacity charge and the clock it is measured on |
 | Away and holiday mode | Occupancy source, holiday calendar, the two setback temperatures |
+| Pre-fill from a heat pump device | Suggested values read from the pump's own device entities or a GCHV pump's Modbus package, edited before they are saved |
 | Quick setup | The one-page house questions from initial setup, pre-filled with this entry's own answers: change one and submit to re-derive the thermal model; untouched, nothing is written |
 
 | Advanced page | What it covers |
@@ -762,7 +763,6 @@ typically set once lives one click further, under **Advanced settings**.
 | Fuse and peak guards | Main fuse, the fuse cap, the live peak guard |
 | Transfer fees and contract | DSO product, per-kWh fees, the fixed-contract comparison |
 | Heat curve control (ECL110) | MQTT topics, displace limits and the controller time constant |
-| Pre-fill from a Modbus heat pump | Suggested values read from a Rotenso Windmi or other GCHV pump's Modbus package, edited before they are saved |
 
 Every sensor you picked during setup can be re-pointed here, and clearing a field
 genuinely clears it. On the **Thermal model (expert)** page a field left empty

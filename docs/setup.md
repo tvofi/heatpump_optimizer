@@ -108,8 +108,8 @@ Two things worth knowing about this menu:
   submit, and the thermal model is re-derived from the questionnaire;
   submit without changing anything and nothing is written. The device
   pre-fill is not offered there, because an existing entry's entity slots
-  are already answered — that read stays on the advanced **Pre-fill from a
-  Modbus heat pump** page. **Reconfigure** still reopens only the first
+  are already answered — that read stays on the **Pre-fill from a heat
+  pump device** page. **Reconfigure** still reopens only the first
   screen and saves back onto the same entry.
 - **Quick setup arrived in v6.6.5.** An install set up on an earlier version
   never saw the menu; its entries are complete all the same.
@@ -197,8 +197,8 @@ Two details worth knowing:
 
 - **On the quick path this screen always appears.** Choosing Quick setup is
   itself a request for autodetection, so the device read runs here
-  regardless. The *Offer this pre-fill at setup* switch on the advanced
-  **Pre-fill from a Modbus heat pump** options page governs only the
+  regardless. The *Offer this pre-fill at setup* switch on the
+  **Pre-fill from a heat pump device** options page governs only the
   non-quick path, where the same screen appears — off by default — after the
   second screen instead.
 - **Leaving the device empty is a decline, not an error.** Nothing is

@@ -1474,6 +1474,12 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
     _P("tuning", "Savings vs comfort", _TOP),
     _P("grid", "Grid peak tariff", _TOP),
     _P("away", "Away and holiday mode", _TOP),
+    # The pre-fill reads a heat pump DEVICE -- a Tuya integration's device is
+    # the primary source, the Modbus package the secondary one -- so it sits
+    # on the everyday menu, between the settings and the one-shot pages. The
+    # step key stays ``modbus_prefill``: renaming it would orphan the stored
+    # options of every entry that answered this page.
+    _P("modbus_prefill", "Pre-fill from a heat pump device", _TOP),
     # #1258: the one-page house questions, reachable from Configure. Last of
     # the top pages on purpose -- it is a deliberate re-answer of the whole
     # questionnaire rather than a setting to revisit, so it sits at the end of
@@ -1494,7 +1500,6 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
     _P("grid_connection", "Fuse and peak guards", _ADVANCED),
     _P("grid_fees", "Transfer fees and contract", _ADVANCED),
     _P("heat_curve", "Heat curve control (ECL110)", _ADVANCED),
-    _P("modbus_prefill", "Pre-fill from a Modbus heat pump", _ADVANCED),
 )
 
 #: Every field the options flow presents, in the order each page renders them.
@@ -3119,8 +3124,8 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         read would mostly have nothing to add and could only suggest over
         deliberate configuration -- the clobber the reconfigure step's own
         design refuses. The pre-fill stays where an existing entry already
-        reaches it on purpose: the advanced Pre-fill from a Modbus heat pump
-        page.
+        reaches it on purpose: the Pre-fill from a heat pump device page on
+        the first menu.
         """
         if user_input is not None:
             # ``after_save`` rides the page like every options page, but it

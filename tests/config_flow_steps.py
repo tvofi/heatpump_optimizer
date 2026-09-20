@@ -1530,6 +1530,7 @@ async def options_menus():
             "tuning",
             "grid",
             "away",
+            "modbus_prefill",
             "quick_setup",
             "advanced",
         ],
@@ -1558,9 +1559,31 @@ async def options_menus():
             "grid_connection",
             "grid_fees",
             "heat_curve",
-            "modbus_prefill",
         ],
         str(list(advanced.get("menu_options", {}))),
+    )
+    # The owner's rename + lift (Part of #201): a Tuya device is the primary
+    # pre-fill source and the Modbus package the secondary one, so the entry
+    # is labelled for the device, not the transport, and sits on the first
+    # menu an everyday user opens rather than behind Advanced settings. The
+    # internal key stays ``modbus_prefill`` -- renaming it would orphan every
+    # stored entry that answered the page.
+    check(
+        "opt_init",
+        "happy",
+        "the pre-fill entry is labelled for any heat pump device, not only Modbus",
+        top.get("menu_options", {}).get("modbus_prefill")
+        == "Pre-fill from a heat pump device",
+        f"label={top.get('menu_options', {}).get('modbus_prefill')!r}",
+    )
+    check(
+        "opt_init",
+        "happy",
+        "the pre-fill page sits on the first menu, off the advanced one",
+        "modbus_prefill" in top.get("menu_options", {})
+        and "modbus_prefill" not in advanced.get("menu_options", {}),
+        f"init has it: {'modbus_prefill' in top.get('menu_options', {})}, "
+        f"advanced has it: {'modbus_prefill' in advanced.get('menu_options', {})}",
     )
 
 
@@ -5646,7 +5669,7 @@ async def options_modbus_prefill():
         "null control: no Modbus entities, no suggestions, and the save writes nothing",
         shows(preview, step) and rendered_keys(preview) == set()
         and preview.get("description_placeholders", {}).get("found") == "0"
-        and shows_menu(saved, "advanced") and entry.options == {},
+        and shows_menu(saved, "init") and entry.options == {},
         f"offered {rendered_keys(preview)} placeholders={preview.get('description_placeholders')} "
         f"options={entry.options}",
     )
@@ -5702,7 +5725,7 @@ async def options_modbus_prefill():
     check(
         f"opt_{step}", "happy",
         "the save writes what was kept, never a blank or None, and not the default prefix",
-        shows_menu(result, "advanced") and entry.options == {
+        shows_menu(result, "init") and entry.options == {
             const.CONF_DHW_SETPOINT: 52.0,
             const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
         },
@@ -5894,7 +5917,7 @@ async def options_device_prefill():
     check(
         f"opt_{step}", "happy",
         "the save writes what was kept, and never the transient device pick or a prefix",
-        shows_menu(saved, "advanced") and entry.options == {
+        shows_menu(saved, "init") and entry.options == {
             const.CONF_DHW_SETPOINT: 50.0,
             const.CONF_DHW_TEMP_ENTITY: f"sensor.{slug}_dhw_tank_temperature",
         },
@@ -6438,7 +6461,7 @@ async def options_quick_setup():
 
     # The device pre-fill does NOT run from Configure: an existing entry's
     # entity slots are already answered, and the pre-fill stays one
-    # deliberate click away on the advanced menu's own page. The submit
+    # deliberate click away on its own page on the first menu. The submit
     # returns to the menu, never to a device pick.
     check(
         "opt_quick_setup", "happy",
@@ -6650,7 +6673,7 @@ async def config_flow_device_prefill_offer():
     check(
         "opt_modbus_prefill", "happy",
         "the pre-fill page offers the switch, and turning it on stores it",
-        shows_menu(turned_on, "advanced")
+        shows_menu(turned_on, "init")
         and entry.options == {_POST1_SWITCH: True}
         and config_flow._prefill_offer_stored(hass) is True,
         f"options={entry.options}",
@@ -6667,7 +6690,7 @@ async def config_flow_device_prefill_offer():
     check(
         "opt_modbus_prefill", "happy",
         "#1107: an untouched switch at its default is not stored by the pre-fill page",
-        shows_menu(untouched, "advanced")
+        shows_menu(untouched, "init")
         and entry.options == {}
         and config_flow._prefill_offer_stored(hass) is False,
         f"options={entry.options}",
