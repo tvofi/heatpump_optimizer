@@ -77,7 +77,6 @@
 # into the committed baseline, and no diff remains for this branch to
 # excuse under its name; its note stays below, as history.
 #
-config_flow # #1258 options quick_setup page + seed/menu rows (suggested answers per #1273); ADD-ONLY, 249 insertions 0 deletions vs f9a4c6389d03ef2ec77ac5afcc322a8e3e43086a
 #
 # #1260 (per-weekday DHW window overrides): this branch claims exactly one
 # fixture, config_flow, and the direction is ADD-ONLY. The hot-water page's
@@ -423,3 +422,21 @@ config_flow # #1258 options quick_setup page + seed/menu rows (suggested answers
 # (The bare claim this note introduced -- config_flow, the cleared-entity-
 # picker fix, merged as #1249 -- is dropped by the 27458c8a absorb above;
 # the note stays as history.)
+# #1269, the sensor advisor: the five coord_* scenarios capture the plan
+# sensors' published attributes, and this change adds sensor_advisor to
+# both plan sensors' extra_state_attributes (present wherever the entry
+# has an unconfigured optional temperature sensor -- every coord scenario
+# qualifies). Direction, one mechanism in all five: TWO additive leaves
+# per scenario (space_heating_plan and dhw_heating_plan
+# extra_state_attributes.sensor_advisor, present on one side only); no
+# leaf is removed or rewritten, and no solver float, plan slot or cost
+# figure moves. The config_flow claim this file carried at the merge base
+# was main's own (un-stamped until the next release); deleting it here is
+# this branch writing its own list, as the inherited-claims guard
+# requires.
+#
+coord_all_features # #1269: +sensor_advisor leaf on both plan sensors (additive; no solver value moves)
+coord_dhw # #1269: +sensor_advisor leaf on both plan sensors (additive; no solver value moves)
+coord_grid_fee # #1269: +sensor_advisor leaf on both plan sensors (additive; no solver value moves)
+coord_minimal # #1269: +sensor_advisor leaf on both plan sensors (additive; no solver value moves)
+coord_two_zone # #1269: +sensor_advisor leaf on both plan sensors (additive; no solver value moves)

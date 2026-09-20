@@ -853,22 +853,37 @@ def _advisor_replay(
     return state
 
 
+def _advisor_edge_params(
+    params: ThermalParameters, field: str, value: float
+) -> ThermalParameters:
+    """One band edge as its own ``ThermalParameters`` instance.
+
+    Named per field rather than splatted from a dict: the lanes table names
+    exactly these three scalars, and an explicit keyword per field is what
+    keeps the pinned mypy census able to see the types at all. ``replace``
+    re-runs ``__post_init__``'s clamp, so a band edge a future field floor
+    disagrees with is corrected rather than smuggled past the boundary
+    every learner already goes through.
+    """
+    if field == "house_heat_loss_scale":
+        return dataclass_replace(params, house_heat_loss_scale=value)
+    if field == "lower_floor_loss_ratio":
+        return dataclass_replace(params, lower_floor_loss_ratio=value)
+    return dataclass_replace(params, buffer_cooling_rate=value)
+
+
 def _advisor_spread_c(
     params: ThermalParameters, field: str, low: float, high: float, power: float
 ) -> float:
-    """The predicted-temperature spread between one band's two edges.
-
-    ``dataclasses.replace`` re-runs ``__post_init__``'s clamp, so a band edge
-    a future field floor disagrees with is corrected rather than smuggled
-    past the boundary every learner already goes through.
-    """
-    edges = []
-    for value in (low, high):
-        edge_params = dataclass_replace(params, **{field: value})
-        end = _advisor_replay(edge_params, power)
-        edges.append(end)
+    """The predicted-temperature spread between one band's two edges."""
+    ends = [
+        _advisor_replay(_advisor_edge_params(params, field, value), power)
+        for value in (low, high)
+    ]
     return max(
-        abs(getattr(edges[0], name) - getattr(edges[1], name))
+        abs(
+            float(getattr(ends[0], name)) - float(getattr(ends[1], name))
+        )
         for name in _ADVISOR_SPREAD_FIELDS
     )
 
