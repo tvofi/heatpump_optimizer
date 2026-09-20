@@ -227,36 +227,36 @@
  {
   "id": "C26",
   "source": "README.md",
-  "claim": "a menu of 22 pages",
+  "claim": "a menu of 23 pages",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=22 measured=22",
+  "result": "documented=23 measured=23",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C27",
   "source": "docs/configuration.md",
-  "claim": "There are 22 pages",
+  "claim": "There are 23 pages",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=22 measured=22",
+  "result": "documented=23 measured=23",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C28",
   "source": "docs/configuration.md",
-  "claim": "six on the first menu and sixteen more behind Advanced settings",
+  "claim": "seven on the first menu and sixteen more behind Advanced settings",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=(6, 16) measured=(6, 16)",
+  "result": "documented=(7, 16) measured=(7, 16)",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C29",
   "source": "docs/architecture.md:module map",
-  "claim": "config_flow.py -- Setup flow plus 22 option pages behind two menus",
+  "claim": "config_flow.py -- Setup flow plus 23 option pages behind two menus",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=22 measured=22",
+  "result": "documented=23 measured=23",
   "verdict": "true",
   "truth": ""
  },
@@ -1118,9 +1118,9 @@
  {
   "id": "C125",
   "source": "strings.json:selector",
-  "claim": "every SelectSelector option on every options page has a translated label (37 selects)",
+  "claim": "every SelectSelector option on every options page has a translated label (43 selects)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "37 selects, untranslated=[]",
+  "result": "43 selects, untranslated=[]",
   "verdict": "true",
   "truth": ""
  }

@@ -51,6 +51,34 @@
 # next branch restates its own footprint, claims included.
 #
 #
+# #1258 (Quick setup from Configure, both rounds) + #1262 (prefill preview
+# labels and friendly entity names): this branch claims exactly one fixture,
+# config_flow, and the direction is ADD-ONLY. The options flow gains the
+# quick_setup page, so the capture gains its page fingerprint, its seeded
+# render (_seeded.quick_setup), the five boolean question names the derived
+# seed now collects (_seed's two_zone, buffer_tank, dhw_tank, wood_furnace,
+# wood_buffer_tank -- booleans seed True by the capture's own rule), and the
+# init menu's ordered pair: 249 insertions and 0 deletions against the
+# merge base f9a4c6389d03ef2ec77ac5afcc322a8e3e43086a, re-measured at the
+# #1273 repair head. The repair changed the page's questions from defaulted
+# to SUGGESTED (#1249's shape, so voluptuous cannot refill a bare post with
+# shipped answers): the unseeded fingerprint is unchanged -- the presented
+# values are the same -- and inside the added _seeded.quick_setup block the
+# two wood suggestions now follow the seeded entry's recorded answers rather
+# than the shipped constants, which is the fix's own semantics and not a
+# separate movement. Re-recorded for #547's reason, as #1260's claim below
+# records: config_flow is compared exactly at level 1, so a claim alone
+# leaves that level failing against a file the code no longer produces.
+# #1262's strings and disclaimer changes move no golden at all -- the
+# capture fingerprints schemas, not catalogues, and the preview page it
+# renders is the first form, whose only field (prefill_device) was already
+# labelled. #1260's claim line is dropped for the G5b reason its own note
+# states: #1260 is merged into this branch's merge base, its diff is baked
+# into the committed baseline, and no diff remains for this branch to
+# excuse under its name; its note stays below, as history.
+#
+config_flow # #1258 options quick_setup page + seed/menu rows (suggested answers per #1273); ADD-ONLY, 249 insertions 0 deletions vs f9a4c6389d03ef2ec77ac5afcc322a8e3e43086a
+#
 # #1260 (per-weekday DHW window overrides): this branch claims exactly one
 # fixture, config_flow, and the direction is ADD-ONLY. The hot-water page's
 # schedule group gains the by-day toggle, and because the golden seed sets
@@ -65,8 +93,6 @@
 # coordinator fixture is byte-identical in drift mode on this machine --
 # the feature's null control -- because no captured scenario carries the
 # new keys and the resolved-spec publish is absent without them.
-#
-config_flow # #1260 by-day toggle on hot_water.schedule + the seeded by_day section; ADD-ONLY, 79 insertions 0 deletions vs d70ed250807d
 #
 # The absorb of origin/main 27458c8a (#1248 #1243 #1247 #1249 #1252 #1246
 # #1244 #1251) hit the claimnotes refusal here: this branch claims the three

@@ -63,7 +63,7 @@ flowchart LR
 custom_components/heatpump_optimizer/
 ├── __init__.py           # Setup and unload, the 12 services, entry migrations
 ├── const.py              # Every config key, default and tuning constant
-├── config_flow.py        # Setup flow plus 22 option pages behind two menus
+├── config_flow.py        # Setup flow plus 23 option pages behind two menus
 ├── coordinator.py        # The update loop: read, fetch, solve, actuate, learn, publish
 ├── thermal_model.py      # Two-zone house + slab + buffer + DHW tank physics
 ├── optimizer.py          # The MPC solve: DHW by LP, space by L-BFGS-B, reason codes

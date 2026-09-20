@@ -70,7 +70,7 @@ pass on an unmodified tree; the self-check must fail on the broken one.
 
 Expected (tolerance 0): every RESULT line reads full coverage --
 ``flow_checks_covered=<checks>`` with no failures, every step
-``happy=P/P error_branches=P/P``, ``options_steps_covered=24/24``,
+``happy=P/P error_branches=P/P``, ``options_steps_covered=25/25``,
 ``reauth_round_trips=1``, ``reconfigure_round_trips=1``,
 ``duplicate_aborts=1``.  Baseline measured: 87645f8, re-verified
 identical at 6d83f0b (tranche 1; ``config_flow.py`` byte-identical
@@ -96,6 +96,7 @@ for _var in (
 
 import ast  # noqa: E402
 import asyncio  # noqa: E402
+import json  # noqa: E402
 import logging  # noqa: E402
 import pathlib  # noqa: E402
 import sys  # noqa: E402
@@ -533,6 +534,7 @@ class Ledger:
             "opt_learning",
             "opt_learning_features",
             "opt_modbus_prefill",
+            "opt_quick_setup",
         )
         covered = 0
         for step in options_steps:
@@ -1518,10 +1520,19 @@ async def options_menus():
     check(
         "opt_init",
         "happy",
-        "the top menu offers the revisited pages plus Advanced, in order",
+        "the top menu offers the revisited pages plus Quick setup and Advanced, in order",
         shows_menu(top, "init")
         and list(top.get("menu_options", {}))
-        == ["setup_overview", "comfort", "hot_water", "tuning", "grid", "away", "advanced"],
+        == [
+            "setup_overview",
+            "comfort",
+            "hot_water",
+            "tuning",
+            "grid",
+            "away",
+            "quick_setup",
+            "advanced",
+        ],
         str(list(top.get("menu_options", {}))),
     )
     advanced = await flow.async_step_advanced(None)
@@ -3915,13 +3926,41 @@ async def registry_drives_every_page():
     # the loop hold it to being transient -- it is not an option key, and the
     # page's own walk asserts it is never written to the entry's options.
     transient = {"modbus_prefill": {config_flow._PREFILL_DEVICE}}
+    # #1258: the quick-setup questions page. Its five toggles are transient
+    # questions exactly like the device pick -- named in ``quick_setup`` and
+    # mapped onto option keys only by ``quick_setup.derive`` -- so they join
+    # the transient allowance, keyed on the module's own SHIPPED_ANSWERS (the
+    # one source the fresh form's defaults and derive's fallbacks also read,
+    # so the allowance cannot drift from the fields the page renders).
+    transient["quick_setup"] = set(quick_setup.SHIPPED_ANSWERS)
+    # The rest of that page's fields are not its own declarations but the
+    # building pages': the questionnaire's one field list serves two flows by
+    # design (``_questionnaire_fields``), and the two wood probes are the
+    # building page's own rows. Keyed on the production objects that build
+    # them, never hand-listed, and held to being real registry rows below --
+    # a shared field the building pages stopped declaring would fail there.
+    shared = {
+        "quick_setup": set(config_flow._QUESTIONNAIRE_DEFAULTS)
+        | {const.CONF_WOOD_TANK_TOP_ENTITY, const.CONF_WOOD_TANK_BOTTOM_ENTITY},
+    }
     check(
         "registry",
         "happy",
-        "the one non-registry control is transient: it is not an option key anywhere",
+        "the non-registry controls are transient: none is an option key anywhere",
         not {key for keys in transient.values() for key in keys}
         & {row.key for row in rows},
         f"{transient} against the registry's keys",
+    )
+    _bp_rendered = rendered_keys(
+        await bare_options(REGISTRY_SEED).async_step_building_preset(None)
+    )
+    check(
+        "registry",
+        "happy",
+        "every field the questions page shares is declared where it lives",
+        shared["quick_setup"] <= _bp_rendered | {row.key for row in rows},
+        f"declared nowhere: "
+        f"{sorted(shared['quick_setup'] - _bp_rendered - {row.key for row in rows})}",
     )
 
     undeclared = {}
@@ -3931,7 +3970,7 @@ async def registry_drives_every_page():
         form = await getattr(flow, f"async_step_{page}")(None)
         rendered = rendered_keys(form)
         declared = {row.key for row in rows if row.step == page}
-        declared |= transient.get(page, set())
+        declared |= transient.get(page, set()) | shared.get(page, set())
         declared.discard("")
         for row in rows:
             if row.step != page or row.default is not dynamic_rule:
@@ -5447,6 +5486,27 @@ async def _walk_untouched(data, options, edit=None):
     for page in config_flow._OPTION_PAGES:
         if page.step == "setup_overview":
             continue
+        # #1258 round 2 (#1273): Quick setup's untouched submit is a NO-OP,
+        # not an answer -- the page suggests the entry's stored answers and
+        # writes nothing when the submission says nothing new. The round-1
+        # design (untouched submit re-derives at the questions' shipped
+        # defaults) flipped two_zone_mode off on existing entries and was
+        # the nightly-ha a5 red. The walk judges it like any other page now:
+        # an untouched submit may not move the stored options, so it appears
+        # in `reloaded` only if that contract breaks.
+        if page.step == "quick_setup":
+            untouched_flow = config_flow.HeatPumpOptimizerConfigFlow.async_get_options_flow(
+                entry
+            )
+            untouched_flow.hass = hass
+            shown = await untouched_flow.async_step_quick_setup(None)
+            before = dict(entry.options)
+            await untouched_flow.async_step_quick_setup(
+                _untouched_post(shown["data_schema"])
+            )
+            if dict(entry.options) != before:
+                reloaded.append("quick_setup")
+            continue
         flow = config_flow.HeatPumpOptimizerConfigFlow.async_get_options_flow(entry)
         flow.hass = hass
         shown = await getattr(flow, f"async_step_{page.step}")(None)
@@ -5850,13 +5910,22 @@ async def options_device_prefill():
 
     # A device from an integration with no source table: no table reaches it,
     # so the page reads its entity NAMES and says so -- every role that came
-    # from a name, listed as role -> entity, and no source named because none
-    # was read (#1067 W1067-G7b-3).
+    # from a name, listed as ``role -> name (entity)`` with the friendliest
+    # name the page could see (#1262; here the fixture records' own original
+    # names, the states carrying no friendly_name), and no source named
+    # because none was read (#1067 W1067-G7b-3).
     flow, entry, hass = _g7_flow()
     _g7b_seed(hass, platform="some_other_integration")
     await flow.async_step_modbus_prefill(None)
     named = await submit(flow, step, {device_field: _G7B_DEVICE_ID})
     notes = named.get("description_placeholders") or {}
+    fixture_names = {
+        row["entity_id"]: row["original_name"] for row in _G7B_FIXTURE["records"]
+    }
+
+    def _named_pair(role, entity_id):
+        return f"{role} -> {fixture_names[entity_id]} ({entity_id})"
+
     check(
         f"opt_{step}", "happy",
         "a device from an integration with no table is read by name, and the page "
@@ -5864,14 +5933,17 @@ async def options_device_prefill():
         shows(named, step)
         and notes.get("matched_sources") == "–"
         and notes.get("name_matched")
-        == (
-            f"{const.CONF_DHW_TEMP_ENTITY} -> sensor.{slug}_dhw_tank_temperature; "
-            f"{const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY} -> "
-            f"sensor.{slug}_heat_exchanger_inlet_water_temperature_tin; "
-            f"{const.CONF_OUTDOOR_TEMP_ENTITY} -> "
-            f"sensor.{slug}_outdoor_ambient_temperature_t4; "
-            "r404 -> number." + slug + "_dhw_setpoint"
-        ),
+        == "; ".join((
+            _named_pair(
+                const.CONF_DHW_TEMP_ENTITY, f"sensor.{slug}_dhw_tank_temperature"),
+            _named_pair(
+                const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
+                f"sensor.{slug}_heat_exchanger_inlet_water_temperature_tin"),
+            _named_pair(
+                const.CONF_OUTDOOR_TEMP_ENTITY,
+                f"sensor.{slug}_outdoor_ambient_temperature_t4"),
+            _named_pair("r404", f"number.{slug}_dhw_setpoint"),
+        )),
         f"name_matched={notes.get('name_matched')!r} "
         f"sources={notes.get('matched_sources')!r}",
     )
@@ -6095,6 +6167,285 @@ async def config_flow_quick_setup():
     )
 
     config_flow.async_get_clientsession = real
+
+
+#: The house questions, at the shape both quick-setup paths ask them (#1258).
+QUICK_SETUP_ANSWERS = {
+    quick_setup.FIELD_TWO_ZONE: True,
+    quick_setup.FIELD_BUFFER_TANK: True,
+    quick_setup.FIELD_DHW_TANK: True,
+    quick_setup.FIELD_WOOD_FURNACE: True,
+    quick_setup.FIELD_WOOD_BUFFER_TANK: True,
+    const.CONF_WOOD_TANK_TOP_ENTITY: "sensor.wood_tank_top",
+    const.CONF_WOOD_TANK_BOTTOM_ENTITY: "sensor.wood_tank_bottom",
+    const.CONF_BUILDING_STRUCTURE: STRUCTURE_TIMBER_SLAB,
+    const.CONF_BUILDING_ERA: ERA_1980_2005,
+    const.CONF_BUILDING_FOUNDATION: FOUNDATION_NONE,
+    const.CONF_HEATED_AREA: 140,
+    const.CONF_UPPER_EMITTER: EMITTER_RADIATORS,
+    const.CONF_LOWER_EMITTER: EMITTER_FLOOR,
+}
+
+
+async def options_quick_setup():
+    """#1258: the Configure dialog reaches the quick-setup questions too.
+
+    Quick setup used to be initial-flow-only -- the finish menu is not
+    reachable from an existing entry, and reconfigure routes through the
+    first screen and saves -- so an install that missed it at the start had
+    no one-page way to answer the house questions. The fix is a page on the
+    options top menu: the same questions, written through
+    ``quick_setup.derive`` onto the entry's existing options.
+    """
+    R.section("options: Quick setup from Configure (#1258)")
+    flow, entry, hass = fresh_options()
+    top = await flow.async_step_init(None)
+    check(
+        "opt_quick_setup", "happy",
+        "Configure offers Quick setup on the top menu, beside Advanced",
+        shows_menu(top, "init")
+        and list(top.get("menu_options", {}))[-2:] == ["quick_setup", "advanced"],
+        str(list(top.get("menu_options", {}))),
+    )
+
+    # The same questions the initial flow asks, over the entry's own answers,
+    # with the options flow's after-save choice appended like every page.
+    # (Looked up by name so the whole section reports on a tree without the
+    # step, rather than stopping at the first AttributeError.)
+    initial = fresh_flow()
+    initial_form = await initial.async_step_quick_setup(None)
+    quick = getattr(flow, "async_step_quick_setup", None)
+    form = await quick(None) if quick else {}
+    after_save_offered = any(
+        str(getattr(marker, "schema", marker)) == const.CONF_AFTER_SAVE
+        for marker, _value in ((form.get("data_schema") or vol.Schema({})).schema or {}).items()
+    )
+    check(
+        "opt_quick_setup", "happy",
+        "the page asks exactly the questions the initial flow's quick setup asks",
+        shows(form, "quick_setup")
+        and rendered_keys(form) == rendered_keys(initial_form)
+        and after_save_offered,
+        f"keys={sorted(rendered_keys(form))} after_save={after_save_offered}",
+    )
+    # …and the questionnaire defaults come from the entry as configured, not
+    # from a fresh install's: an existing entry's stored answers are the
+    # starting point the user edits.
+    configured, _, _ = fresh_options(
+        pre_options={const.CONF_HEATED_AREA: 175, const.CONF_BUILDING_ERA: "pre_1960"}
+    )
+    configured = getattr(configured, "async_step_quick_setup", None)
+    configured_form = await configured(None) if configured else {}
+    check(
+        "opt_quick_setup", "happy",
+        "the questionnaire pre-fills from the entry's stored answers",
+        schema_default(configured_form, const.CONF_HEATED_AREA) == 175
+        and schema_default(configured_form, const.CONF_BUILDING_ERA) == "pre_1960",
+        f"area={schema_default(configured_form, const.CONF_HEATED_AREA)!r} "
+        f"era={schema_default(configured_form, const.CONF_BUILDING_ERA)!r}",
+    )
+
+    # Null control: opening Configure and looking at the page writes nothing.
+    # The questions are rendered, not answered, so the entry's whole stored
+    # configuration must come back byte-identical.
+    data_before = dict(entry.data)
+    options_before = dict(entry.options)
+    if quick:
+        await quick(None)
+    check(
+        "opt_quick_setup", "happy",
+        "null control: an entry that does not run Quick setup changes nothing",
+        entry.options == options_before and entry.data == data_before,
+        f"options={entry.options} data={sorted(entry.data)}",
+    )
+
+    # #1273, the nightly-ha red this branch shipped with: an UNTOUCHED
+    # submit used to be treated as an answer, derive filled the questions'
+    # shipped defaults, and a real entry was re-derived underneath the user
+    # (two_zone_mode flipping off). The page must pre-fill the STORED answers
+    # -- suggested, never defaulted, so voluptuous cannot refill a bare post
+    # with the shipped defaults -- and a submit that answers nothing the page
+    # did not already say writes NOTHING.
+    qflow, qentry, _ = fresh_options()
+    quick2 = getattr(qflow, "async_step_quick_setup", None)
+    form2 = await quick2(None) if quick2 else {}
+    schema2 = form2.get("data_schema") or vol.Schema({})
+    question_markers = {
+        str(getattr(marker, "schema", marker)): marker
+        for marker, _value in schema2.schema.items()
+        if str(getattr(marker, "schema", marker))
+        in set(getattr(quick_setup, "FIELD_QUESTIONS", ()))
+    }
+    check(
+        "opt_quick_setup", "happy",
+        "the five questions suggest the stored answers and never default them "
+        "(a default is refilled by voluptuous for a key a bare post left out)",
+        question_markers
+        and all(
+            getattr(marker, "default", vol.UNDEFINED) is vol.UNDEFINED
+            and (getattr(marker, "description", None) or {}).get("suggested_value")
+            is not None
+            for marker in question_markers.values()
+        ),
+        f"markers={ {k: (getattr(m, 'default', vol.UNDEFINED) is not vol.UNDEFINED, (getattr(m, 'description', None) or {}).get('suggested_value')) for k, m in question_markers.items()} }",
+    )
+
+    # An entry the quick path configured: the suggestions are its own answers
+    # back, so an untouched submit re-derives the entry byte-identically --
+    # and byte-identically here means NOTHING is written at all.
+    configured, config_entry, config_hass = fresh_options(
+        pre_options=dict(quick_setup.derive(dict(QUICK_SETUP_ANSWERS)))
+    )
+    configured_form = await getattr(configured, "async_step_quick_setup", lambda _u: {})(
+        None
+    )
+    configured_form = configured_form if configured_form.get("data_schema") else {}
+    # The five questions suggest the entry's own answers; the questionnaire
+    # (already pinned above) defaults from the entry as everywhere else.
+    _configured_markers = {
+        str(getattr(m, "schema", m)): m
+        for m, _v in (configured_form.get("data_schema").schema or {}).items()
+    }
+    check(
+        "opt_quick_setup", "happy",
+        "an entry the quick path configured is suggested its own answers back",
+        all(
+            (getattr(_configured_markers.get(question), "description", None) or {}).get(
+                "suggested_value"
+            )
+            == QUICK_SETUP_ANSWERS[question]
+            for question in getattr(quick_setup, "FIELD_QUESTIONS", ())
+        ),
+        f"suggestions={ {q: (getattr(_configured_markers.get(q), 'description', None) or {}).get('suggested_value') for q in getattr(quick_setup, 'FIELD_QUESTIONS', ())} }",
+    )
+    before = dict(config_entry.options)
+    untouched_menu = await submit(
+        configured, "quick_setup", _untouched_post(configured_form["data_schema"])
+    )
+    # "Writes nothing" is judged on the WRITE, not on the values: a
+    # re-derive of a derive-shaped entry reproduces its values byte for
+    # byte (features.py pins that round-trip), so value equality alone
+    # cannot tell a no-op from a same-valued rewrite. No async_update_entry
+    # at all is the contract.
+    check(
+        "opt_quick_setup", "happy",
+        "an untouched submit writes nothing and returns to the menu",
+        shows_menu(untouched_menu, "init")
+        and config_entry.options == before
+        and not config_hass.config_entries.updated,
+        f"options={sorted(config_entry.options)} "
+        f"updated={len(config_hass.config_entries.updated)}",
+    )
+    # The close arm, judged on an entry that NEVER answered the questions:
+    # the create-entry result's data is what the manager stores, so it must
+    # come back with no options at all -- not with a derive nobody asked
+    # for. (On a derive-shaped entry this arm is value-indistinguishable
+    # from a rewrite, which is exactly why the plain entry judges it.)
+    plain, plain_entry, _ = fresh_options()
+    plain_form = await getattr(plain, "async_step_quick_setup", lambda _u: {})(None)
+    plain_form = plain_form if plain_form.get("data_schema") else {}
+    untouched_close = await submit(plain, "quick_setup", {
+        **_untouched_post(plain_form["data_schema"]),
+        const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE,
+    })
+    check(
+        "opt_quick_setup", "happy",
+        "the untouched close choice stores no options at all",
+        untouched_close.get("type") == "create_entry"
+        and untouched_close.get("data") == {}
+        and plain_entry.options == {},
+        f"{untouched_close.get('type')} data={sorted(untouched_close.get('data') or {})}",
+    )
+    # The nightly walk's own shape: a bare {after_save: close} post, the five
+    # questions absent entirely (voluptuous refills defaults, not
+    # suggestions), on the same never-answered entry -- a5's exact arm.
+    bare = await submit(plain, "quick_setup", {const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE})
+    check(
+        "opt_quick_setup", "happy",
+        "a bare close post -- no question keys at all -- writes nothing "
+        "(nightly-ha a5's untouched walk)",
+        bare.get("type") == "create_entry"
+        and plain_entry.options == {}
+        and shows(plain_form, "quick_setup"),
+        f"{bare.get('type')} options={plain_entry.options}",
+    )
+
+    # Saving: the answers map through quick_setup.derive onto the entry's
+    # EXISTING option keys -- never the transient question names, never the
+    # setup data -- and the dialog returns to the menu it came from.
+    derived = quick_setup.derive(dict(QUICK_SETUP_ANSWERS))
+    saved = (
+        await submit(flow, "quick_setup", dict(QUICK_SETUP_ANSWERS)) if quick else {}
+    )
+    check(
+        "opt_quick_setup", "happy",
+        "submitting writes quick_setup.derive's keys onto the entry's options "
+        "and returns to the menu",
+        shows_menu(saved, "init")
+        and hass.config_entries.updated
+        and set(entry.options) <= set(derived) | set(options_before)
+        and not any(
+            field in entry.options
+            for field in (
+                quick_setup.FIELD_TWO_ZONE, quick_setup.FIELD_BUFFER_TANK,
+                quick_setup.FIELD_DHW_TANK, quick_setup.FIELD_WOOD_FURNACE,
+                quick_setup.FIELD_WOOD_BUFFER_TANK,
+            )
+        )
+        and entry.data == data_before,
+        f"options={sorted(entry.options)} data_unchanged={entry.data == data_before}",
+    )
+    # …and every key it wrote is a key derive returned, with derive's value:
+    # the page maps answers, it never invents a setting of its own. The
+    # initial path, given the same answers, must end up with the same physics
+    # -- this page is the second caller of one mapping, not a second mapping.
+    real2 = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+    initial2 = fresh_flow()
+    await submit_first_screen(initial2, FIRST_SCREEN)
+    await submit(initial2, "quick_setup", dict(QUICK_SETUP_ANSWERS))
+    config_flow.async_get_clientsession = real2
+    written = {k: v for k, v in entry.options.items() if k in derived}
+    check(
+        "opt_quick_setup", "happy",
+        "the Configure path derives what the initial path derives from the same answers",
+        set(written) <= set(initial2._data)
+        and all(initial2._data[k] == v for k, v in written.items())
+        and written,
+        f"options-only={sorted(set(written) - set(initial2._data))} "
+        f"diverging={sorted(k for k, v in written.items() if initial2._data.get(k) != v)}",
+    )
+
+    # The close arm: the same page saves and closes in one submit (#100).
+    flow, entry, hass_close = fresh_options()
+    quick_close = getattr(flow, "async_step_quick_setup", None)
+    closed = (
+        await submit(
+            flow, "quick_setup",
+            {**QUICK_SETUP_ANSWERS, const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE},
+        )
+        if quick_close
+        else {}
+    )
+    check(
+        "opt_quick_setup", "happy",
+        "the after-save close choice creates the entry result with the same keys",
+        closed.get("type") == "create_entry"
+        and not hass_close.config_entries.updated
+        and set(closed.get("data", {})) <= set(derived)
+        and const.CONF_AFTER_SAVE not in closed.get("data", {}),
+        f"{closed.get('type')} data={sorted(closed.get('data') or {})}",
+    )
+
+    # The device pre-fill does NOT run from Configure: an existing entry's
+    # entity slots are already answered, and the pre-fill stays one
+    # deliberate click away on the advanced menu's own page. The submit
+    # returns to the menu, never to a device pick.
+    check(
+        "opt_quick_setup", "happy",
+        "the Configure quick path ends at the menu, with no device pre-fill page",
+        not shows(saved, "device_prefill") and not shows(saved, "modbus_prefill"),
+        f"{saved.get('type')}/{saved.get('step_id')}",
+    )
 
 
 async def config_flow_device_prefill_offer():
@@ -6324,6 +6675,132 @@ async def config_flow_device_prefill_offer():
     config_flow.async_get_clientsession = real
 
 
+async def device_prefill_preview_texts():
+    """#1262: the preview page's own labels, and friendly entity names.
+
+    The preview renders six suggested fields plus the after-save choice, and
+    its strings live under ``config.step.device_prefill`` -- which translated
+    only the device pick, so the frontend fell back to the raw keys. And the
+    page's account of what it read named entities by their raw ids. Both are
+    checked the way the frontend resolves them, in every shipped catalogue.
+    """
+    R.section("config: the pre-fill preview's labels and entity names (#1262)")
+    root = pathlib.Path(__file__).resolve().parent.parent / "custom_components" / "heatpump_optimizer"
+    catalogues = {
+        name: json.loads((root / rel).read_text())
+        for name, rel in (
+            ("strings.json", "strings.json"),
+            ("en.json", "translations/en.json"),
+            ("sv.json", "translations/sv.json"),
+        )
+    }
+
+    # (a) The label walk: every key the preview renders has a label where the
+    # frontend looks -- config.step.device_prefill.data, the config flow's own
+    # path, not the options page the six keys' labels live under.
+    hass = _post1_hass({_POST1_SWITCH: True})
+    flow = fresh_flow(hass)
+    await submit_first_screen(flow, FIRST_SCREEN)
+    preview = await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: _G7B_DEVICE_ID})
+    preview_keys = [
+        str(getattr(marker, "schema", marker))
+        for marker, _value in (preview.get("data_schema").schema or {}).items()
+    ]
+    for name, catalog in catalogues.items():
+        data = catalog["config"]["step"]["device_prefill"].get("data", {})
+        raw = [key for key in preview_keys if (data.get(key) or key) == key]
+        check(
+            "device_prefill", "happy",
+            f"every previewed field has a label where the frontend looks, in {name}",
+            not raw and len(preview_keys) > 6,
+            f"{len(raw)} of {len(preview_keys)} render the raw key: {raw}",
+        )
+        # The labels are copies: the options pre-fill page translates the same
+        # keys for the same device, and one setting may not be named two ways.
+        copies = {
+            key: (data.get(key), catalog["options"]["step"]["modbus_prefill"]["data"].get(key))
+            for key in preview_keys
+        }
+        check(
+            "device_prefill", "happy",
+            f"and each preview label is a copy of the options pre-fill page's, in {name}",
+            all(have == mine for have, mine in copies.values()),
+            f"diverging={sorted(k for k, (h, m) in copies.items() if h != m)}",
+        )
+
+    # (b) Friendly names: a device no source table knows is read by entity
+    # name, and the page's account of those roles names the entity the way
+    # the rest of Home Assistant does -- the state's friendly_name when the
+    # state carries one, else the registry record's original name.
+    hass = _post1_hass({_POST1_SWITCH: True})
+    _g7b_seed(hass, platform="untabled_brand")
+    slug = _G7B_FIXTURE["device_name"].lower().replace(" ", "_")
+    hass.states.set(
+        f"sensor.{slug}_dhw_tank_temperature",
+        FakeState("48.0", attributes={"friendly_name": "Varmvatten lagret"}),
+    )
+    flow = fresh_flow(hass)
+    await submit_first_screen(flow, FIRST_SCREEN)
+    preview = await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: _G7B_DEVICE_ID})
+    notes = preview.get("description_placeholders") or {}
+    check(
+        "device_prefill", "happy",
+        "a name-matched role is named by its friendly name, the state's "
+        "friendly_name winning over the registry's original name",
+        shows(preview, "device_prefill")
+        and notes.get("matched_sources") == "–"
+        and f"dhw_temp_entity -> Varmvatten lagret (sensor.{slug}_dhw_tank_temperature)"
+        in (notes.get("name_matched") or ""),
+        f"named={notes.get('name_matched')!r}",
+    )
+    check(
+        "device_prefill", "happy",
+        "and an entity with no friendly_name in its state is named by its "
+        "registry original_name",
+        f"outdoor_temp_entity -> Outdoor Ambient Temperature (T4) "
+        f"(sensor.{slug}_outdoor_ambient_temperature_t4)"
+        in (notes.get("name_matched") or ""),
+        f"named={notes.get('name_matched')!r}",
+    )
+
+    # Null control: a device whose entities carry no name anywhere -- no
+    # state friendly_name, no registry original_name -- still resolves by the
+    # words of its entity ids, and the page then degrades to the bare id
+    # rather than dropping the role it read.
+    hass = _post1_hass({_POST1_SWITCH: True})
+    from homeassistant.helpers import device_registry as _dr2
+    from homeassistant.helpers import entity_registry as _er2
+    _dr2.async_get(hass).add("dev_plain", name="Plain Pump")
+    for eid in (
+        "sensor.plain_outdoor_temperature",
+        "sensor.plain_hot_water_tank_temperature",
+        "sensor.plain_outlet_water_temperature",
+    ):
+        # original_device_class and unit only: the matcher's hard filter
+        # needs the type, while the page's display names -- state
+        # friendly_name and registry original_name -- are exactly what this
+        # arm leaves out, so the roles resolve on their entity-id words.
+        _er2.async_get(hass).add(
+            eid, unique_id=eid, device_id="dev_plain", platform="brand_x",
+            original_device_class="temperature", unit_of_measurement="°C",
+        )
+        hass.states.set(eid, FakeState("21.0"))
+    flow = fresh_flow(hass)
+    await submit_first_screen(flow, FIRST_SCREEN)
+    preview = await submit(flow, "device_prefill", {config_flow._PREFILL_DEVICE: "dev_plain"})
+    plain = preview.get("description_placeholders") or {}
+    named_pairs = [p.strip() for p in (plain.get("name_matched") or "").split(";")]
+    check(
+        "device_prefill", "happy",
+        "null control: with no friendly names anywhere the page degrades to the bare entity id",
+        shows(preview, "device_prefill")
+        and len(named_pairs) >= 2
+        and all(" -> " in p and "(" not in p for p in named_pairs)
+        and any(p.endswith("sensor.plain_outdoor_temperature") for p in named_pairs),
+        f"named={plain.get('name_matched')!r}",
+    )
+
+
 async def main() -> int:
     if "--self-check" in sys.argv:
         return await self_check()
@@ -6365,7 +6842,9 @@ async def main() -> int:
     await options_modbus_prefill()
     await options_device_prefill()
     await config_flow_quick_setup()
+    await options_quick_setup()
     await config_flow_device_prefill_offer()
+    await device_prefill_preview_texts()
 
     print()
     LEDGER.print_result_lines()

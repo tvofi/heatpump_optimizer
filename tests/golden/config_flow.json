@@ -1005,6 +1005,10 @@
     "Away and holiday mode"
    ],
    [
+    "quick_setup",
+    "Quick setup"
+   ],
+   [
     "advanced",
     "Advanced settings"
    ]
@@ -1012,6 +1016,7 @@
  },
  "_seed": {
   "away_presence_entity": "sensor.seed_away_presence_entity",
+  "buffer_tank": true,
   "buffer_tank_temp_entity": "sensor.seed_buffer_tank_temp_entity",
   "building_preset_enabled": true,
   "capacity_curve_enabled": true,
@@ -1028,6 +1033,7 @@
   "dhw_quantile_targets_enabled": true,
   "dhw_schedule_enabled": true,
   "dhw_setpoint_entity": "sensor.seed_dhw_setpoint_entity",
+  "dhw_tank": true,
   "dhw_temp_entity": "sensor.seed_dhw_temp_entity",
   "dhw_windows_by_day": true,
   "dhw_wood_coil_enabled": true,
@@ -1081,10 +1087,13 @@
   "space_setpoint_entity": "sensor.seed_space_setpoint_entity",
   "staleness_watchdog_enabled": true,
   "system_identification_enabled": true,
+  "two_zone": true,
   "valve_outlet_temp_entity": "sensor.seed_valve_outlet_temp_entity",
   "vvc_pump_entity": "sensor.seed_vvc_pump_entity",
   "wear_autotune_enabled": true,
   "weather_entity": "sensor.seed_weather_entity",
+  "wood_buffer_tank": true,
+  "wood_furnace": true,
   "wood_furnace_enabled": true,
   "wood_tank_bottom_entity": "sensor.seed_wood_tank_bottom_entity",
   "wood_tank_top_entity": "sensor.seed_wood_tank_top_entity"
@@ -3147,6 +3156,126 @@
     "default": "True",
     "required": "Optional",
     "selector": "BooleanSelector"
+   }
+  },
+  "quick_setup": {
+   "after_save": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['menu', 'close']",
+     "translation_key": "'after_save'"
+    },
+    "default": "'menu'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
+   "buffer_tank": {
+    "config": null,
+    "default": "False",
+    "required": "Optional",
+    "selector": "BooleanSelector"
+   },
+   "building_era": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['pre_1960', '1960_1980', '1980_2005', 'post_2005', 'low_energy']",
+     "translation_key": "'building_era'"
+    },
+    "default": "'1980_2005'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
+   "building_foundation": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['none', 'crawlspace', 'heated_basement']",
+     "translation_key": "'building_foundation'"
+    },
+    "default": "'none'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
+   "building_structure": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['timber_crawlspace', 'timber_slab', 'concrete_slab', 'masonry']",
+     "translation_key": "'building_structure'"
+    },
+    "default": "'timber_slab'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
+   "dhw_tank": {
+    "config": null,
+    "default": "True",
+    "required": "Optional",
+    "selector": "BooleanSelector"
+   },
+   "heated_area_m2": {
+    "config": {
+     "max": "1000",
+     "min": "20",
+     "mode": "'box'",
+     "step": "5",
+     "unit_of_measurement": "'m\u00b2'"
+    },
+    "default": "140.0",
+    "required": "Optional",
+    "selector": "NumberSelector"
+   },
+   "lower_floor_emitter": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['floor', 'radiators']",
+     "translation_key": "'emitter'"
+    },
+    "default": "'floor'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
+   "two_zone": {
+    "config": null,
+    "default": "False",
+    "required": "Optional",
+    "selector": "BooleanSelector"
+   },
+   "upper_floor_emitter": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['floor', 'radiators']",
+     "translation_key": "'emitter'"
+    },
+    "default": "'radiators'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
+   "wood_buffer_tank": {
+    "config": null,
+    "default": "True",
+    "required": "Optional",
+    "selector": "BooleanSelector"
+   },
+   "wood_furnace": {
+    "config": null,
+    "default": "True",
+    "required": "Optional",
+    "selector": "BooleanSelector"
+   },
+   "wood_tank_bottom_entity": {
+    "config": {
+     "filter": "[{'domain': ['sensor']}]"
+    },
+    "default": "'sensor.seed_wood_tank_bottom_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
+   "wood_tank_top_entity": {
+    "config": {
+     "filter": "[{'domain': ['sensor']}]"
+    },
+    "default": "'sensor.seed_wood_tank_top_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
    }
   },
   "setup_overview": {},
@@ -5465,6 +5594,126 @@
    "default": "False",
    "required": "Optional",
    "selector": "BooleanSelector"
+  }
+ },
+ "quick_setup": {
+  "after_save": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['menu', 'close']",
+    "translation_key": "'after_save'"
+   },
+   "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "buffer_tank": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "BooleanSelector"
+  },
+  "building_era": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['pre_1960', '1960_1980', '1980_2005', 'post_2005', 'low_energy']",
+    "translation_key": "'building_era'"
+   },
+   "default": "'1980_2005'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "building_foundation": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['none', 'crawlspace', 'heated_basement']",
+    "translation_key": "'building_foundation'"
+   },
+   "default": "'none'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "building_structure": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['timber_crawlspace', 'timber_slab', 'concrete_slab', 'masonry']",
+    "translation_key": "'building_structure'"
+   },
+   "default": "'timber_slab'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "dhw_tank": {
+   "config": null,
+   "default": "True",
+   "required": "Optional",
+   "selector": "BooleanSelector"
+  },
+  "heated_area_m2": {
+   "config": {
+    "max": "1000",
+    "min": "20",
+    "mode": "'box'",
+    "step": "5",
+    "unit_of_measurement": "'m\u00b2'"
+   },
+   "default": "140.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "lower_floor_emitter": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['floor', 'radiators']",
+    "translation_key": "'emitter'"
+   },
+   "default": "'floor'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "two_zone": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "BooleanSelector"
+  },
+  "upper_floor_emitter": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['floor', 'radiators']",
+    "translation_key": "'emitter'"
+   },
+   "default": "'radiators'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "wood_buffer_tank": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "BooleanSelector"
+  },
+  "wood_furnace": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "BooleanSelector"
+  },
+  "wood_tank_bottom_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "wood_tank_top_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
   }
  },
  "setup_overview": {},

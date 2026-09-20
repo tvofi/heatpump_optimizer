@@ -830,6 +830,20 @@ def _options_suggested_numeric(current: dict[str, Any], key: str) -> Any:
     return vol.Optional(key)
 
 
+def _suggested_entity(key: str, current: dict[str, Any]) -> Any:
+    """An entity picker that suggests the stored slot, never defaults it.
+
+    The same two-armed rule as ``_options_suggested_numeric`` beside it, and
+    for the same reason: a ``default`` is refilled by voluptuous for a key the
+    submission left absent, so the stored value rides only as a
+    ``suggested_value``. #1258: the Configure quick-setup page shows an
+    existing entry's wood probes rather than pickers that read as unconfigured.
+    """
+    if key in current:
+        return vol.Optional(key, description={"suggested_value": current[key]})
+    return vol.Optional(key)
+
+
 def _building_preset_warning(hass: Any, current: dict[str, Any]) -> str:
     """Preset-derived warning when the thermal model pages would overwrite it."""
     if not current.get(CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED):
@@ -1110,7 +1124,9 @@ def _derive_preset(answers: dict[str, Any], current: dict[str, Any]) -> dict[str
     return derived
 
 
-def _quick_setup_schema(current: dict[str, Any]) -> vol.Schema:
+def _quick_setup_schema(
+    current: dict[str, Any], *, suggest_stored: bool = False
+) -> vol.Schema:
     """The quick-setup page: the house in five yes/no answers plus the questionnaire.
 
     The five toggles are transient questions, not option keys — they are named
@@ -1120,27 +1136,45 @@ def _quick_setup_schema(current: dict[str, Any]) -> vol.Schema:
     so a house answered here derives the identical physics as one answered
     there. The two wood-tank probe pickers ride the same page because they are
     the two-tank model's own gate: the wood-buffer-tank toggle alone changes
-    nothing the model reads.
+    nothing the model reads. Both callers share the field list: the initial
+    flow over its accumulating wizard data (which never holds the probes), and
+    the Configure page over the entry's effective config, where a stored probe
+    is suggested back rather than shown empty (#1258).
+
+    ``suggest_stored`` is the Configure page's arm (#1273): the five questions
+    suggest the entry's OWN answers and carry no ``default``. A default is
+    refilled by voluptuous for a key a bare post left out — the nightly walk
+    posts nothing but the after-save choice — and a refilled shipped default
+    is an answer nobody gave, which re-derived real entries at the shipped
+    answers and flipped their two-zone mode off. A suggested value pre-fills
+    the form the same way and lets an absent key stay absent, which is what
+    lets the handler tell "untouched" from "answered".
     """
+    questions = dict.fromkeys(quick_setup.FIELD_QUESTIONS)
+    if suggest_stored:
+        suggested = quick_setup.suggested_answers(current)
+        question_fields = {
+            (
+                vol.Optional(
+                    field, description={"suggested_value": suggested[field]}
+                )
+            ): selector.BooleanSelector()
+            for field in questions
+        }
+    else:
+        question_fields = {
+            vol.Optional(
+                field, default=quick_setup.SHIPPED_ANSWERS[field]
+            ): selector.BooleanSelector()
+            for field in questions
+        }
     return vol.Schema(
         {
-            vol.Optional(
-                quick_setup.FIELD_TWO_ZONE, default=False
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                quick_setup.FIELD_BUFFER_TANK, default=False
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                quick_setup.FIELD_DHW_TANK, default=True
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                quick_setup.FIELD_WOOD_FURNACE, default=False
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                quick_setup.FIELD_WOOD_BUFFER_TANK, default=False
-            ): selector.BooleanSelector(),
-            vol.Optional(CONF_WOOD_TANK_TOP_ENTITY): _entity_of(["sensor"]),
-            vol.Optional(CONF_WOOD_TANK_BOTTOM_ENTITY): _entity_of(["sensor"]),
+            **question_fields,
+            _suggested_entity(CONF_WOOD_TANK_TOP_ENTITY, current): _entity_of(["sensor"]),
+            _suggested_entity(
+                CONF_WOOD_TANK_BOTTOM_ENTITY, current
+            ): _entity_of(["sensor"]),
             **_questionnaire_fields(current),
         }
     )
@@ -1440,6 +1474,11 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
     _P("tuning", "Savings vs comfort", _TOP),
     _P("grid", "Grid peak tariff", _TOP),
     _P("away", "Away and holiday mode", _TOP),
+    # #1258: the one-page house questions, reachable from Configure. Last of
+    # the top pages on purpose -- it is a deliberate re-answer of the whole
+    # questionnaire rather than a setting to revisit, so it sits at the end of
+    # the everyday menu rather than at its head.
+    _P("quick_setup", "Quick setup", _TOP),
     _P("entities", "Sensors and entities", _ADVANCED),
     _P("entities_metering", "Power and solar sensors", _ADVANCED),
     _P("entities_pump", "Heat pump telemetry", _ADVANCED),
@@ -1923,6 +1962,31 @@ def _records_by_device(hass: HomeAssistant) -> dict[str, list[device_prefill.Ent
     return grouped
 
 
+def _display_names(
+    hass: HomeAssistant, records: Iterable[device_prefill.EntityRecord]
+) -> dict[str, str]:
+    """``entity_id -> the friendliest name the pre-fill pages can see`` (#1262).
+
+    The page's account of a name-matched role used to print the raw
+    ``entity_id``, which is a registry key rather than a name. The friendliest
+    name available to the page itself is the state's ``friendly_name``
+    attribute -- the same attribute Home Assistant shows everywhere else --
+    falling back to the entity-registry record's ``original_name``, the name
+    the owning integration gave it. A record with neither (an entity matched
+    purely on the words of its id) is simply absent from the map, and the page
+    then degrades to the bare id rather than dropping the role it read.
+    """
+    names: dict[str, str] = {}
+    for record in records:
+        attrs = getattr(hass.states.get(record.entity_id), "attributes", None) or {}
+        friendly = str(attrs.get("friendly_name") or "").strip()
+        if not friendly:
+            friendly = str(record.original_name or "").strip()
+        if friendly and friendly != record.entity_id:
+            names[record.entity_id] = friendly
+    return names
+
+
 def _prefill_offer_stored(hass: HomeAssistant) -> bool:
     """Whether any entry of this domain has the pre-fill offer switched on.
 
@@ -2295,9 +2359,8 @@ class HeatPumpOptimizerConfigFlow(
             device_id = user_input.get(_PREFILL_DEVICE)
             if not device_id:
                 return await self.async_step_finish_setup()
-            resolution = device_prefill.resolve_with_fallback(
-                _device_records(self.hass, str(device_id))
-            )
+            records = _device_records(self.hass, str(device_id))
+            resolution = device_prefill.resolve_with_fallback(records)
             snapshot = (
                 modbus_prefill.snapshot(self.hass.states.get, resolution.roles)
                 if prefill_offer.qualifies(resolution)
@@ -2321,7 +2384,11 @@ class HeatPumpOptimizerConfigFlow(
                 )
             notes = {
                 **modbus_prefill.notes(snapshot),
-                **device_prefill.disclaimer(resolution),
+                # #1262: the roles read by NAME are named the way the rest of
+                # Home Assistant names an entity, not by their registry key.
+                **device_prefill.disclaimer(
+                    resolution, _display_names(self.hass, records)
+                ),
             }
             self._device_prefill = tuple(suggested)
             return self._device_prefill_form(
@@ -3022,6 +3089,95 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         # no registry rows for the same reason.
         return _setup_overview_form(self, self._current)
 
+    async def async_step_quick_setup(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """The quick-setup questions over an existing entry (#1258).
+
+        The same page the initial flow shows after its second screen, asked
+        here from Configure: an install that missed Quick setup at the start
+        had no one-page way to answer the house questions, because the finish
+        menu is initial-flow-only and reconfigure routes through the first
+        screen and saves. The answers go through ``quick_setup.derive`` onto
+        the entry's EXISTING option keys -- the transient question names are
+        mapped away by the same module the initial path uses, so this page is
+        a second caller of one mapping, never a second mapping -- and the
+        omission rules of ``_save_or_menu`` apply as on every page.
+
+        The questions are SUGGESTED, never defaulted (#1273): each one
+        suggests the entry's own recorded answer, a question the entry has
+        never answered suggests the shipped default, and a submission that
+        answers nothing the page did not already say writes nothing at all.
+        An untouched submit is therefore a no-op rather than a re-answer at
+        the shipped defaults -- which used to flip two_zone_mode off on real
+        entries that had never answered the question.
+
+        The device pre-fill deliberately does NOT run here. On the fresh-add
+        quick path it follows the questions because a user who chose that
+        path asked for autodetection and the entry is empty; from Configure
+        the entry's entity slots are already answered, so an automatic device
+        read would mostly have nothing to add and could only suggest over
+        deliberate configuration -- the clobber the reconfigure step's own
+        design refuses. The pre-fill stays where an existing entry already
+        reaches it on purpose: the advanced Pre-fill from a Modbus heat pump
+        page.
+        """
+        if user_input is not None:
+            # ``after_save`` rides the page like every options page, but it
+            # is a routing choice rather than a question, so it is stripped
+            # before the answers reach the one mapping and handed back for
+            # ``_save_or_menu`` to read.
+            current = self._current
+            submitted = {
+                key: value
+                for key, value in user_input.items()
+                if key != CONF_AFTER_SAVE
+            }
+            # #1273: the baseline is exactly what the form suggested -- the
+            # entry's own answers where it has them, the shipped defaults
+            # where it does not, the stored questionnaire and probes. The
+            # five questions carry no ``default``, so voluptuous cannot
+            # refill a bare post with shipped answers, and a submission that
+            # says nothing the page did not already say writes NOTHING: an
+            # untouched submit used to be treated as an answer and re-derived
+            # real entries at the questions' shipped defaults, flipping
+            # their two-zone mode off (the nightly-ha a5 red).
+            baseline: dict[str, Any] = {
+                **quick_setup.suggested_answers(current),
+                **{
+                    key: current.get(key, default)
+                    for key, default in _QUESTIONNAIRE_DEFAULTS.items()
+                },
+                **{
+                    key: current[key]
+                    for key in (CONF_WOOD_TANK_TOP_ENTITY, CONF_WOOD_TANK_BOTTOM_ENTITY)
+                    if current.get(key)
+                },
+            }
+            answers = {**baseline, **submitted}
+            untouched = set(answers) == set(baseline) and all(
+                _same_setting(answers[key], baseline[key]) for key in baseline
+            )
+            if untouched:
+                # Nothing was answered that the entry does not already say,
+                # so there is nothing to derive and nothing to write; the
+                # dialog simply goes where the after-save choice sends it.
+                if user_input.get(CONF_AFTER_SAVE) == AFTER_SAVE_CLOSE:
+                    return self._save({})
+                return await self.async_step_init()
+            derived = quick_setup.derive(answers)
+            if user_input.get(CONF_AFTER_SAVE) is not None:
+                derived[CONF_AFTER_SAVE] = user_input[CONF_AFTER_SAVE]
+            return await self._save_or_menu(derived)
+        return self.async_show_form(
+            step_id="quick_setup",
+            data_schema=_options_schema(
+                dict(
+                    _quick_setup_schema(self._current, suggest_stored=True).schema
+                )
+            ),
+        )
+
     async def async_step_entities(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -3605,11 +3761,12 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
                 # that table left empty. Nothing after this differs, and the
                 # page is told which of the two answered for each role.
                 prefix = None
-                resolution = device_prefill.resolve_with_fallback(
-                    _device_records(self.hass, str(device_id))
-                )
+                records = _device_records(self.hass, str(device_id))
+                resolution = device_prefill.resolve_with_fallback(records)
                 resolved = resolution.roles
-                sourced = device_prefill.disclaimer(resolution)
+                sourced = device_prefill.disclaimer(
+                    resolution, _display_names(self.hass, records)
+                )
             else:
                 prefix = str(
                     user_input.get(CONF_MODBUS_PREFILL_PREFIX)

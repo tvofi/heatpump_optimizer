@@ -722,7 +722,7 @@ Full theory, with every mechanism and its defaults:
 ## Changing settings after setup
 
 Open the integration and choose **Configure**. Instead of one long form you get a
-menu of 22 pages — 21 you can edit plus a read-only overview — and each can be
+menu of 23 pages — 22 you can edit plus a read-only overview — and each can be
 edited independently. The pages you revisit sit at the top; everything you
 typically set once lives one click further, under **Advanced settings**.
 
@@ -734,6 +734,7 @@ typically set once lives one click further, under **Advanced settings**.
 | Savings vs comfort | Price weight, comfort weight, recalculation interval, compressor start cost, caution with guessed prices |
 | Grid peak tariff | The monthly capacity charge and the clock it is measured on |
 | Away and holiday mode | Occupancy source, holiday calendar, the two setback temperatures |
+| Quick setup | The one-page house questions from initial setup, pre-filled with this entry's own answers: change one and submit to re-derive the thermal model; untouched, nothing is written |
 
 | Advanced page | What it covers |
 |---|---|

@@ -303,7 +303,10 @@ def resolve_with_fallback(records: Iterable[EntityRecord]) -> Resolution:
     return Resolution(roles, source)
 
 
-def disclaimer(resolution: Resolution | None = None) -> dict[str, str]:
+def disclaimer(
+    resolution: Resolution | None = None,
+    names: Mapping[str, str] | None = None,
+) -> dict[str, str]:
     """The page's own account of where the suggestions came from.
 
     Two description placeholders: the roles a *name* filled, each as
@@ -312,6 +315,16 @@ def disclaimer(resolution: Resolution | None = None) -> dict[str, str]:
     of "nothing read" (``modbus_prefill.notes``). The sentence around them,
     which is what asks the user to check before saving, lives in
     ``strings.json``.
+
+    ``names`` (#1262) maps ``entity_id`` to the friendliest display name the
+    page could see -- the caller builds it from the state's
+    ``friendly_name`` and the registry record's ``original_name`` -- and a
+    named entity prints as ``name (entity_id)``: the name is what the user
+    recognises, the id is what makes the row checkable. Absent (or empty), the
+    pair degrades to the bare ``entity_id`` exactly as before, which is the
+    null control: a device with no names anywhere is still fully accounted
+    for. The module takes the mapping rather than reading it itself so it
+    stays free of Home Assistant imports.
     """
     roles = {} if resolution is None else resolution.roles
     source = {} if resolution is None else resolution.source
@@ -320,10 +333,18 @@ def disclaimer(resolution: Resolution | None = None) -> dict[str, str]:
         for role, resolved in roles.items()
         if source.get(role) == name_match.SOURCE
     )
+
+    def _named(entity_id: str) -> str:
+        friendly = (names or {}).get(entity_id)
+        if friendly and friendly != entity_id:
+            return f"{friendly} ({entity_id})"
+        return entity_id
+
     tables = sorted({label for label in source.values() if label != name_match.SOURCE})
     return {
         "name_matched": (
-            "; ".join(f"{role} -> {entity_id}" for role, entity_id in matched) or "–"
+            "; ".join(f"{role} -> {_named(entity_id)}" for role, entity_id in matched)
+            or "–"
         ),
         "matched_sources": ", ".join(tables) or "–",
     }

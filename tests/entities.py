@@ -5706,6 +5706,19 @@ for _step in options._MENU_LABELS:
         if _sf._entry.options or _sf.hass.config_entries.updated:
             _unwritten_menus.append(_step)
         continue
+    if _step == "quick_setup":
+        # #1258 round 2 (#1273): the questions page's untouched submit writes
+        # NOTHING. It suggests the entry's stored answers (never defaults,
+        # which voluptuous would refill into a bare post), and a submission
+        # that says nothing new saves nothing -- the nightly-ha a5 red this
+        # branch first shipped with was exactly this arm re-deriving a real
+        # entry at the questions' shipped defaults. Judged like the read-only
+        # page here: menu hand-back, no write, byte-identical options. The
+        # changed-answer arm -- which does write through -- is
+        # config_flow_steps.py's null control.
+        if _sf._entry.options or _sf.hass.config_entries.updated:
+            _unwritten_menus.append(_step)
+        continue
     # Every saving page now writes through and returns to the menu (#100).
     # The write is the assertion: a menu hand-back that saved nothing is
     # the feature silently missing.

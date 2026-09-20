@@ -10,11 +10,11 @@
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 2.1,
+   "seconds": 2.9,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 10.2,
+   "seconds": 16.8,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 33.0,
+   "seconds": 33.4,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -34,7 +34,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 90.8,
+   "seconds": 136.1,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -42,7 +42,7 @@
    "rc": 0
   },
   "tests/golden.py": {
-   "seconds": 0.3,
+   "seconds": 0.4,
    "rc": 0
   },
   "tests/manual_plan.py": {
@@ -58,7 +58,7 @@
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 0.6,
+   "seconds": 0.8,
    "rc": 0
   },
   "tests/solar_alignment.py": {
@@ -70,7 +70,7 @@
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 1.1,
+   "seconds": 1.6,
    "rc": 0
   },
   "tests/validate.py": {
@@ -78,7 +78,7 @@
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 1.9,
+   "seconds": 1.5,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -86,7 +86,7 @@
    "rc": 0
   },
   "tests/typing_ruler.py": {
-   "seconds": 0.5,
+   "seconds": 0.1,
    "rc": 0
   },
   "tests/guard_pins.py": {
@@ -98,7 +98,7 @@
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 79.0,
+   "seconds": 110.0,
    "rc": 0
   }
  },
@@ -341,11 +341,14 @@
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/en.json",
+   "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "tests/config_flow_steps.py",
