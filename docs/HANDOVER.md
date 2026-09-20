@@ -787,4 +787,15 @@ Process lessons recorded: an owner approval that landed at 20:18Z was merged
 state on every PR awaiting the owner; pushes
 over ~1 MiB die chunked without http.postBuffer (#1267); a PR body figure
 stale at a moved head is corrected by a head-unmoving body edit, then
-pr-contract re-runs (#1264 round 2).
+pr-contract re-runs (#1264 round 2). Merged pull requests' worktrees now go
+at the merge itself: the orchestrator's standing per-merge call is
+`tools/audit/worktree_gc.sh <owner/repo>` (briefs/orchestrator.md section 11)
+— API-verified merged branch or detached-at-merged-head only, `git worktree
+lock` honoured, evidence*/ev-* moved to /tmp/hpo-ev before seat scratch goes —
+and the trap that shaped its self-test: an early fixture bug (redirect
+variables assigned but not exported, age-guard polarity inverted) made the
+test's own sweep walk the REAL /tmp/hpo-orch and remove live seat
+directories — this session's fixer worktree twice and fixer-history,
+recoverable only because the branch was committed — so the sweep now carries
+a null control refusing any mention of /tmp/hpo-orch, and an uncommitted
+worktree is one `git commit` from unrecoverable.

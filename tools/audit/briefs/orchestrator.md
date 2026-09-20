@@ -257,6 +257,7 @@ which is exactly the shape that lets a real error be waved through.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
   reach → establish that, and it is its own issue. Never `--allow-red`.
+- After each merge: run `tools/audit/worktree_gc.sh <owner/repo>` — the merged pull request's worktree, branch and seat scratch go now, cited evidence preserved; disk is not a session-end problem.
 
 ## 12. The gate lease
 
