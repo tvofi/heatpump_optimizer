@@ -98,6 +98,7 @@ from .tariff import (
     metering_windows,
     peak_cost,
     peak_cost_batch,
+    peak_cost_smooth,
     realised_peak,
     window_factors,
 )
@@ -2421,7 +2422,15 @@ class HeatPumpOptimizer:
 
         # The argument list the capacity term prices a plan on, shared by
         # the scalar closure and its batch twin so the two can never
-        # disagree about the tariff they are pricing.
+        # disagree about the tariff they are pricing. The term the SOLVER
+        # minimizes is the smooth surrogate (#232/#1210): on a plateau of
+        # more than peak_count tied windows a hard top-k has no
+        # finite-difference gradient in any direction the bounds allow, so
+        # the solver would be blind on exactly the bang-bang plan the
+        # tariff exists to discourage. peak_cost_smooth's value is a
+        # bounded under-approximation there; every billed or published
+        # figure goes through the exact peak_cost instead (see
+        # _grid_report and OptimizationResult.peak_cost).
         peak_args = (
             baseline,
             cfg.peak_threshold_kw,
@@ -2433,7 +2442,9 @@ class HeatPumpOptimizer:
         )
 
         def capacity(total_power: np.ndarray) -> float:
-            return peak_cost(total_power, *peak_args, window_factors=factors)
+            return peak_cost_smooth(
+                total_power, *peak_args, window_factors=factors
+            )
 
         def capacity_batch(total_power_matrix: np.ndarray) -> np.ndarray:
             return peak_cost_batch(
