@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 33.4,
+   "seconds": 44.9,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -423,6 +423,7 @@
    ".claude/workflows/render_md.mjs",
    ".claude/workflows/vendor/markdown-it.LICENSE",
    ".claude/workflows/vendor/markdown-it.min.js",
+   ".claude/workflows/web-fix-wave.js",
    ".gitattributes",
    ".github/workflows/codeql.yml",
    ".github/workflows/governance.yml",
@@ -567,6 +568,8 @@
    "tests/structure.py",
    "tests/validate.py",
    "tools/audit/preflight.sh",
+   "tools/audit/round4/D11/d11lib.py",
+   "tools/audit/round4/D11/governance_cost.py",
    "tools/audit/round4/D6/claims.json",
    "tools/release/stamp.py"
   ],
