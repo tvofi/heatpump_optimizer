@@ -973,10 +973,6 @@
    [
     "heat_curve",
     "Heat curve control (ECL110)"
-   ],
-   [
-    "modbus_prefill",
-    "Pre-fill from a Modbus heat pump"
    ]
   ],
   "init": [
@@ -1003,6 +999,10 @@
    [
     "away",
     "Away and holiday mode"
+   ],
+   [
+    "modbus_prefill",
+    "Pre-fill from a heat pump device"
    ],
    [
     "quick_setup",

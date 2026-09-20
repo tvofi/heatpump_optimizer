@@ -245,9 +245,9 @@
  {
   "id": "C28",
   "source": "docs/configuration.md",
-  "claim": "seven on the first menu and sixteen more behind Advanced settings",
+  "claim": "eight on the first menu and fifteen more behind Advanced settings",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=(7, 16) measured=(7, 16)",
+  "result": "documented=(8, 15) measured=(8, 15)",
   "verdict": "true",
   "truth": ""
  },

@@ -451,6 +451,7 @@
           "tuning": "Savings vs comfort",
           "grid": "Grid peak tariff",
           "away": "Away and holiday mode",
+          "modbus_prefill": "Pre-fill from a heat pump device",
           "quick_setup": "Quick setup",
           "advanced": "Advanced settings"
         }
@@ -473,8 +474,7 @@
           "learning_features": "Advanced learning features",
           "grid_connection": "Fuse and peak guards",
           "grid_fees": "Transfer fees and contract",
-          "heat_curve": "Heat curve control (ECL110)",
-          "modbus_prefill": "Pre-fill from a Modbus heat pump"
+          "heat_curve": "Heat curve control (ECL110)"
         }
       },
       "setup_overview": {
@@ -1015,7 +1015,7 @@
       },
       "quick_setup": {
         "title": "Quick setup",
-        "description": "The same house questions the initial setup offers, over this entry's existing settings. Change an answer and submit, and the thermal model is re-derived from the questionnaire; submit without changing anything and nothing is written. The device pre-fill is not offered here - this entry's entity slots are already answered, and the pre-fill stays on the advanced Pre-fill from a Modbus heat pump page.",
+        "description": "The same house questions the initial setup offers, over this entry's existing settings. Change an answer and submit, and the thermal model is re-derived from the questionnaire; submit without changing anything and nothing is written. The device pre-fill is not offered here - this entry's entity slots are already answered, and the pre-fill stays on the Pre-fill from a heat pump device page.",
         "data": {
           "two_zone": "Two-zone house",
           "buffer_tank": "Buffer tank",
@@ -1383,7 +1383,7 @@
         }
       },
       "modbus_prefill": {
-        "title": "Pre-fill from a Modbus heat pump",
+        "title": "Pre-fill from a heat pump device",
         "description": "For a Rotenso Windmi or another GCHV-built heat pump read through the tuya_heat_pump project's Modbus package. Name the package's entity prefix and submit: the next form suggests values read from the pump's own registers - the hot water set-points and schedule, the anti-legionella days, the night mode schedule, whether the pump steers on water temperature, and the pump's own sensors for sensor slots that are still empty. Edit or clear any of them; only what you keep is saved, and a field you clear is left as it was. Nothing about the house or its heating system can be read this way.\n\nEntities read: {found}. Backup heater type register: {backup_heater_type} - any value but 7 means the pump has electric heat of its own, which the heater slots on Heat pump telemetry are there to watch.\n\nRoles read from an entity's NAME rather than from a published definition - the page cannot verify those, so check each before saving: {name_matched}. Roles read from published definitions, by source: {matched_sources}.",
         "data": {
           "prefill_device": "Heat pump device (optional)",
