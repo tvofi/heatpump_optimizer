@@ -16051,8 +16051,20 @@ R.check(
     ) is None,
 )
 R.check(
+    "may-drift also accepts the owner-sanctioned #1208 pair and nothing else",
+    _env_drift.may_drift_error(
+        {n: "r" for n in _env_drift.RUNNER_CONDITIONAL_1208}, {}
+    ) is None
+    and set(_env_drift.RUNNER_CONDITIONAL_1208) == {
+        "flat_prices", "winter_two_zone_no_dhw",
+    },
+    "owner ruling #1208 comment 208bed25 (option (a)) scopes the second "
+    "set to exactly these two in-band movers; a third name in the constant "
+    "is an unruled widening",
+)
+R.check(
     "and refuses every fixture whose floats DO travel",
-    (_env_drift.may_drift_error({"winter_two_zone_no_dhw": "r"}, {}) or "")
+    (_env_drift.may_drift_error({"away_setback": "r"}, {}) or "")
     .startswith("MAY-DRIFT OUT OF SCOPE")
     and (_env_drift.may_drift_error({"coord_minimal": "r"}, {}) or "")
     .startswith("MAY-DRIFT OUT OF SCOPE"),
@@ -16061,10 +16073,10 @@ R.check(
 )
 R.check(
     "the refusal names both the stray entry and the category's real scope",
-    "winter_two_zone_no_dhw"
-    in (_env_drift.may_drift_error({"winter_two_zone_no_dhw": "r"}, {}) or "")
+    "away_setback"
+    in (_env_drift.may_drift_error({"away_setback": "r"}, {}) or "")
     and "wood_coil"
-    in (_env_drift.may_drift_error({"winter_two_zone_no_dhw": "r"}, {}) or ""),
+    in (_env_drift.may_drift_error({"away_setback": "r"}, {}) or ""),
 )
 R.check(
     "a scenario cannot be claimed and may-drift at once",
@@ -16085,7 +16097,7 @@ _md_declared, _md_claims = _env_drift._claimed(".")
 _md_entries = _env_drift._may_drift(".")
 R.check(
     "this tree's may-drift entries parse, with reasons",
-    set(_md_entries) == set(_env_drift.SENSITIVE)
+    set(_md_entries) == set(_env_drift.MAY_DRIFT_ALLOWED)
     and all(v and v != "no reason given" for v in _md_entries.values()),
     f"{sorted(_md_entries)}",
 )
