@@ -5468,6 +5468,12 @@ class HeatPumpOptimizer:
         therefore the ceiling *or* the trajectory the plan already produces,
         whichever is higher — raising a slot has to make nothing worse, which
         is the question this repair is actually asking.
+
+        Each weak slot's check extends the current trajectory from the
+        slot's own start state rather than replaying the horizon from t=0
+        (#1230): the candidate's prefix is the current plan's prefix, so the
+        same step function in the same order yields bit-identical decisions
+        and plans.
         """
         plan = np.array(plan, dtype=float)
         weak = np.where((plan > 1e-6) & (plan < min_run_power))[0]
@@ -5504,19 +5510,35 @@ class HeatPumpOptimizer:
             return jointly_raised
 
         for i in weak:
-            raised = plan.copy()
-            raised[i] = run_power
-            temps = trajectory(raised)
-            limit = np.maximum(ceiling[: temps.size], base[: temps.size])
-            if bool(np.all(temps <= limit + 1e-9)):
-                plan = raised
-                base = temps
+            slot = int(i)
+            # The candidate is the current plan with this one slot raised, and
+            # a raise at `slot` cannot change any state before it, so its
+            # trajectory shares the current one's prefix exactly. Extending
+            # from the state at the slot's own start — instead of replaying
+            # the horizon from t=0 per weak slot (#1230) — runs the same step
+            # function in the same order on the same values, so every
+            # decision and the plan it produces are bit-identical to the full
+            # replay's; only the skipped prefix work differs.
+            plan[slot] = run_power
+            candidate = base.copy()
+            self.model.extend_dhw_temps(
+                candidate, slot, plan, outdoor_temps, draw_rates, dt_hours=dt,
+            )
+            limit = np.maximum(
+                ceiling[slot + 1: candidate.size],
+                base[slot + 1: candidate.size],
+            )
+            if bool(np.all(candidate[slot + 1:] <= limit + 1e-9)):
+                base = candidate
             else:
-                plan[i] = 0.0
+                plan[slot] = 0.0
                 # Zeroing a slot only lowers the trajectory, so the reference
                 # is refreshed rather than left describing a plan that no
-                # longer exists.
-                base = trajectory(plan)
+                # longer exists — from the slot, for the same prefix-reuse
+                # reason as the check itself.
+                self.model.extend_dhw_temps(
+                    base, slot, plan, outdoor_temps, draw_rates, dt_hours=dt,
+                )
         repaired: np.ndarray = np.clip(plan, 0.0, p_dhw_max)
         return repaired
 
