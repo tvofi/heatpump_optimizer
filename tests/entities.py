@@ -16051,16 +16051,18 @@ R.check(
     ) is None,
 )
 R.check(
-    "may-drift also accepts the owner-sanctioned #1208 pair and nothing else",
+    "may-drift also accepts the owner-sanctioned #1208 movers and nothing else",
     _env_drift.may_drift_error(
         {n: "r" for n in _env_drift.RUNNER_CONDITIONAL_1208}, {}
     ) is None
     and set(_env_drift.RUNNER_CONDITIONAL_1208) == {
-        "flat_prices", "winter_two_zone_no_dhw",
+        "flat_prices", "winter_two_zone_no_dhw", "shoulder_two_zone",
     },
-    "owner ruling #1208 comment 208bed25 (option (a)) scopes the second "
-    "set to exactly these two in-band movers; a third name in the constant "
-    "is an unruled widening",
+    "owner rulings on #1208 (comment 208bed25 option (a) for the pair; "
+    "the in-session (i) ruling on the options recorded in comment "
+    "fd13246, which carries the runner's numbers) scope the second set "
+    "to exactly these three in-band movers; a fourth name in the "
+    "constant breaks this set equality and is an unruled widening",
 )
 R.check(
     "and refuses every fixture whose floats DO travel",

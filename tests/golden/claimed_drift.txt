@@ -195,6 +195,14 @@
 # noise band (objective rel -1.3365e-03, predicted_cost rel +8.39e-03),
 # runner-conditional for the same reason; judged keys still fail. Remove when
 # drift lanes are pinned or the polish improvement scale leaves 5e-5-2e-2.
+# may-drift: shoulder_two_zone -- #1208 polish-every-candidate, third name
+# sanctioned by the owner's in-session (i) ruling on the options recorded in
+# #1208 comment fd13246: 452 leaves moved on the first #1282 runner only
+# (byte-identical on the dev box), the one printed money leaf at 2.19e-2
+# relative -- at/just over the band's 2e-2 top edge -- and the branch side
+# matches the committed recording, i.e. the move is toward the canonical
+# value, not away; judged keys still fail. Remove when drift lanes are
+# pinned or the polish improvement scale leaves 5e-5-2e-2.
 # W4-G9 S8 (#193, the COP-health watch): this branch claims NOTHING. Two
 # initialisations move verbatim from `_init_insurance` into
 # `_init_thermal_learning` -- an earlier call in the same `__init__`, with
