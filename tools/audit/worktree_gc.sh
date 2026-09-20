@@ -137,9 +137,14 @@ PY
   mkcase() { local d="$W/$1"; mkdir -p "$d/tmp" "$d/ev" "$d/root"; : > "$d/log"; printf '%s\n' "$d/root" > "$d/rootfile"; }
   run() { # name args... -> rc; out/err captured in the case dir
     local d="$W/$1"; shift
+    # The redirect variables MUST be exported: set as plain shell variables
+    # they reach no subprocess, and the sweep below then walks the REAL
+    # /tmp/hpo-orch -- which a buggy early copy of this fixture did, removing
+    # a live seat directory on the shared box. The sweep's "/tmp/hpo-orch"
+    # null control pins the redirect itself.
     ( cd "$d/root"
       export STUB="$d" PATH="$W/bin:$PATH" TMPDIR="$d/tmp"
-      WORKTREE_GC_SEATS_ROOT="$d/orch" WORKTREE_GC_TMP_ROOT="$d/tmp"
+      export WORKTREE_GC_SEATS_ROOT="$d/orch" WORKTREE_GC_TMP_ROOT="$d/tmp"
       bash "$SELF" "$@" > "$d/out" 2> "$d/err" )
   }
   gots() { grep -c -- "$2" "$W/$1/out"; }
@@ -152,11 +157,11 @@ PY
     printf '1111111111111111111111111111111111111111\n' > "$d/origin-main"
     printf '2222222222222222222222222222222222222222\n2222222222222222222222222222222222222223\n' > "$d/ancestors"
     mkdir -p "$d/pr" "$d/status" "$d/diff" "$d/branch-of"
-    printf '[{"state":"MERGED"}]\n' > "$d/pr/fix__merged.json"
-    printf '[{"state":"OPEN"}]\n' > "$d/pr/fix__open.json"
-    printf '[{"state":"MERGED"}]\n' > "$d/pr/fix__dirty.json"
-    printf '[{"state":"MERGED"}]\n' > "$d/pr/fix__orphan-merged.json"
-    printf '[{"state":"OPEN"}]\n' > "$d/pr/fix__orphan-open.json"
+    printf '[{"state":"MERGED"}]\n' > "$d/pr/fix_merged.json"
+    printf '[{"state":"OPEN"}]\n' > "$d/pr/fix_open.json"
+    printf '[{"state":"MERGED"}]\n' > "$d/pr/fix_dirty.json"
+    printf '[{"state":"MERGED"}]\n' > "$d/pr/fix_orphan-merged.json"
+    printf '[{"state":"OPEN"}]\n' > "$d/pr/fix_orphan-open.json"
     { printf 'worktree %s/root\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n' "$d"
       printf 'worktree %s/orch/seat-merged/wt\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/fix/merged\n\n' "$d"
       printf 'worktree %s/orch/seat-open/wt\nHEAD 3333333333333333333333333333333333333333\nbranch refs/heads/fix/open\n\n' "$d"
@@ -237,6 +242,7 @@ PY
   [ -d "$D/tmp/inuse-venv" ]; st $? 0 "venv a live worktree symlinks: kept"
   st "$(gots sweep "keep  $D/tmp/inuse-venv  venv-in-use")" 1 "kept naming venv-in-use"
   [ -d "$D/root" ]; st $? 0 "the main checkout is never touched"
+  st "$(gots sweep "/tmp/hpo-orch")" 0 "the fixture redirect holds: the real seats root is never walked (null control)"
   st "$(grep -c "^gh pr list" "$D/log")" 6 "one PR read per branch worktree plus the two orphan branches"
   st "$(grep -c "remove --force $D/orch/seat-nopr" "$D/log")" 0 "a no-PR branch is never removed"
 
@@ -342,7 +348,8 @@ head_is_merged_ancestor() {
   git merge-base --is-ancestor "$1" origin/main 2>/dev/null
 }
 
-# 0 iff something under dir was modified within the given seconds.
+# 0 iff something under dir was modified within the given seconds; the keep
+# side of every age guard reads rc 0 as recent.
 recently_modified() {
   python3 -c '
 import os, sys, time
@@ -356,7 +363,7 @@ def recent(dp):
     try: entries = os.listdir(dp)
     except OSError: return False
     return any(recent(os.path.join(dp, e)) for e in entries)
-sys.exit(1 if recent(root) else 0)' "$1" "$2"
+sys.exit(0 if recent(root) else 1)' "$1" "$2"
 }
 
 # 0 iff a registered worktree this run did not remove sits under seat-dir.
@@ -545,7 +552,7 @@ if [ -d "$SEATS_REAL" ]; then
       printf 'keep  %s  fresh\n' "$seat"; KEPT_N=$((KEPT_N+1)); continue
     fi
     wt_branch=""
-    if wt_branch=$(git -C "$seat/wt" rev-parse --abbrev-ref HEAD 2>/dev/null) \
+    if wt_branch=$(git -C "$seat_real/wt" rev-parse --abbrev-ref HEAD 2>/dev/null) \
        && [ "$wt_branch" != "HEAD" ]; then
       state=$(pr_state_of "$wt_branch")
       case "$state" in
@@ -554,7 +561,7 @@ if [ -d "$SEATS_REAL" ]; then
       esac
     elif [ "$wt_branch" = "HEAD" ]; then
       # A detached orphan goes only on a merged head whose sha still resolves.
-      ohead=$(git -C "$seat/wt" rev-parse HEAD 2>/dev/null) || ohead=""
+      ohead=$(git -C "$seat_real/wt" rev-parse HEAD 2>/dev/null) || ohead=""
       if [ -z "$ohead" ] || ! head_is_merged_ancestor "$ohead"; then
         printf 'keep  %s  unmerged-head\n' "$seat"; KEPT_N=$((KEPT_N+1)); continue
       fi
