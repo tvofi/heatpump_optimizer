@@ -938,11 +938,11 @@
  {
   "id": "C105",
   "source": "docs/automations.md",
-  "claim": "the Power Headroom sensor stays unavailable until you set a main fuse size in the options",
+  "claim": "the Power Headroom sensor appears once anything bounds the house -- a main fuse OR a capacity tariff -- and a tariff-only install reads 0.0 kW with limit_source='capacity tariff with no peak reference yet' until the month's first metering window closes; with neither it stays unavailable",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
   "result": "no fuse + capacity tariff enabled -> {'available': True, 'limit_kw': 0.0, 'headroom_kw': 0.0, 'baseline_source': 'planned power only (no meter)', 'limit_source': 'capacity tariff with no peak reference yet'}; fuse only -> available=True; neither -> available=False",
-  "verdict": "false",
-  "truth": "a capacity tariff alone makes it available (limit_source='capacity tariff with no peak reference yet', headroom_kw=0.0) with no fuse set; the fuse is one of two sufficient conditions, not a necessary one"
+  "verdict": "true",
+  "truth": ""
  },
  {
   "id": "C106",
@@ -965,9 +965,9 @@
  {
   "id": "C108",
   "source": "README.md + docs/*.md",
-  "claim": "every relative link resolves (81 links)",
+  "claim": "every relative link resolves (86 links)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "81 links, broken=[], of which removed-by-the-export=[]",
+  "result": "86 links, broken=[], of which removed-by-the-export=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -983,9 +983,9 @@
  {
   "id": "C110",
   "source": "README.md + docs/*.md",
-  "claim": "every image the documentation embeds exists (17 images)",
+  "claim": "every image the documentation embeds exists (20 images)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "17 images, missing=[]",
+  "result": "20 images, missing=[]",
   "verdict": "true",
   "truth": ""
  },

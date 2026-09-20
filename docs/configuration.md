@@ -298,6 +298,13 @@ appear, each holding one weekday's times in the same comma-separated
 format (`12:00-24:00` for "nothing until noon"). An empty field does not
 mean "no hot water that day"; it means *inherit*, exactly as before.
 
+![The Hot water options page with the Customize by weekday switch on: the ordinary windows field above, then seven weekday fields, Monday and Saturday filled, the rest empty to inherit](img/options-hot-water-by-day.png)
+
+*The page as the flow renders it, two weekdays answered and the rest
+inheriting. A generated render of the integration's own form definitions
+and English texts — the same kind of picture [setup.md](setup.md) uses, of
+this options page.*
+
 The layers resolve in a fixed order, per day:
 
 1. **A weekday field that has times** wins for its weekday — including over
@@ -320,6 +327,11 @@ weekday fields in force, from their folded result — while the what-if
 editor still edits the *ordinary* windows: editing those is editing the
 default layer, and a weekday field set for that day keeps winning over an
 edit made in the card.
+
+The temperatures the schedule holds the tank to:
+
+| Setting | Default | Range | What it means |
+|---|---|---|---|
 | Hot water temperature you need | 45 °C | 35–55 | Guaranteed inside the time frames. Must be at least 5 °C below the charge limit, or the plan sits in permanent slight violation. |
 | Let the tank cool to | 20 °C | 10–55 | How cold the tank may get between periods. The default is roughly room temperature — nothing is spent at all. |
 | Highest tank temperature to charge to | 55 °C | 40–65 | An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays. |
