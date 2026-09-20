@@ -84,6 +84,23 @@ def _resolved_dhw_attribute(resolved_spec: Any) -> dict[str, str]:
     return {"dhw_windows_resolved": resolved_spec} if resolved_spec else {}
 
 
+def _sensor_advisor_attribute(coordinator: Any) -> dict[str, Any]:
+    """The #1269 ranking attribute, published only when something ranks.
+
+    Computed from configuration plus the same live power series the #699
+    gap advisor reads, so it exists before the first plan does and never
+    needs a solve. Absent when every optional temperature sensor is
+    already configured: a fully wired install publishes exactly the
+    attributes it did before the feature.
+    """
+    config = getattr(coordinator, "_config", None) or {}
+    data = coordinator.data or {}
+    ranking = topology.rank_sensor_advisor(
+        config, hp_kw=_numeric_samples(data.get("heat_pump_power_series") or ())
+    )
+    return {"sensor_advisor": ranking} if ranking else {}
+
+
 def _finite(value: Any) -> Any:
     """Plain, finite Python for everything a sensor publishes, recursively.
 
@@ -1435,6 +1452,9 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             "manual_override",
             "dhw_windows",
             "dhw_windows_spec",
+            # The #1269 ranking: read by the card from the live coordinator,
+            # like the two above it, and worth no SD-card writes per update.
+            "sensor_advisor",
             # Lovelace reads plan-sensor attributes, not coordinator.data.
             "wood_fuel",
         }
@@ -1489,6 +1509,10 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                 # Configuration-derived, so it exists before the first plan
                 # does; the card's setup page should not need a solve to draw.
                 "setup_topology": self.coordinator.describe_setup(),
+                # Likewise the #1269 ranking of unconfigured optional
+                # temperature sensors: config plus the live power series,
+                # never a solve. Absent when nothing can be ranked.
+                **_sensor_advisor_attribute(self.coordinator),
                 # Likewise the configured hot-water windows, in the spec
                 # grammar, so the schedule editor can be used before a solve
                 # -- once there is hot water to schedule (above).
@@ -1601,6 +1625,9 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             # emitted by the coordinator so the config flow's overview and
             # the card can never disagree about what the system looks like.
             "setup_topology": self.coordinator.describe_setup(),
+            # The #1269 sensor ranking, on the populated path too: the same
+            # config-derived payload as above, absent when nothing ranks.
+            **_sensor_advisor_attribute(self.coordinator),
             # The currency the plan's costs are in (see the no-plan branch).
             "currency": self.coordinator.currency,
             "wood_fuel": data.get("wood_fuel"),

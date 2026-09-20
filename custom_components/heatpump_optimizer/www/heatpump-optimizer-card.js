@@ -52,6 +52,30 @@ const STRINGS = {
     "header.tab_plan": "Plan",
     "header.tab_setup": "Setup",
     "header.tab_savings": "Savings",
+    "header.tab_advisor": "Advisor",
+    // The sensor advisor page (#1269): the backend's ranking of which
+    // UNCONFIGURED optional temperature sensors would tighten the thermal
+    // model most. Every quantified row is an estimate and says so.
+    "advisor.heading": "Sensors that would tighten the model",
+    "advisor.empty":
+      "Every optional temperature sensor on this system is already configured.",
+    "advisor.estimated": "estimated",
+    "advisor.basis_history":
+      "Estimate from a replay driven by this install's measured delivery.",
+    "advisor.basis_config":
+      "Estimate from a replay driven by configured defaults — no measured delivery yet.",
+    "advisor.spread_note":
+      "How far apart the model's own temperature predictions can sit until "
+      + "this sensor pins them down.",
+    "advisor.unpriced_heading": "Not priced by this estimate",
+    "advisor.reason_weather_backed":
+      "Outdoor temperature already arrives from the weather entity; this "
+      + "estimate cannot price a local probe's added accuracy.",
+    "advisor.reason_state_estimate":
+      "Feeds a state estimate, not a learned model parameter.",
+    "advisor.reason_no_clamped_parameter":
+      "Its learners fit quantities this estimate has no measurement band for.",
+    "advisor.act_hint": "Choose a sensor to assign it on the Setup page.",
     "savings.col_month": "Month",
     "savings.col_baseline": "Baseline",
     "savings.col_actual": "Actual",
@@ -486,6 +510,30 @@ const STRINGS = {
     "header.tab_plan": "Plan",
     "header.tab_setup": "Anläggning",
     "header.tab_savings": "Sparande",
+    "header.tab_advisor": "Rådgivare",
+    "advisor.heading": "Givare som skulle skärpa modellen",
+    "advisor.empty":
+      "Alla valfria temperaturgivare på denna anläggning är redan konfigurerade.",
+    "advisor.estimated": "uppskattat",
+    "advisor.basis_history":
+      "Uppskattning från en återuppspelning driven av anläggningens "
+      + "uppmätta leverans.",
+    "advisor.basis_config":
+      "Uppskattning från en återuppspelning driven av konfigurerade "
+      + "standardvärden — ingen uppmätt leverans ännu.",
+    "advisor.spread_note":
+      "Hur långt isär modellens egna temperaturprognoser kan sitta tills "
+      + "denna givare låser dem.",
+    "advisor.unpriced_heading": "Prissätts inte av denna uppskattning",
+    "advisor.reason_weather_backed":
+      "Utetemperaturen kommer redan från väderentiteten; denna uppskattning "
+      + "kan inte prissätta en lokal givares extra träffsäkerhet.",
+    "advisor.reason_state_estimate":
+      "Matar en tillståndsuppskattning, inte en inlärd modellparameter.",
+    "advisor.reason_no_clamped_parameter":
+      "Dess lärande anpassar storheter denna uppskattning saknar mätband för.",
+    "advisor.act_hint":
+      "Välj en givare för att tilldela den på anläggningssidan.",
     "savings.col_month": "Månad",
     "savings.col_baseline": "Referens",
     "savings.col_actual": "Faktisk",
@@ -2820,6 +2868,9 @@ function cardStyleBlock() {
         .expand, .close, .viewctl button, .chip, .dlg-tab,
         .layout-bar button, .whatif button, .whatif input[type="time"],
         .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
+        /* The advisor page's ranked rows (#1269), the same HTML-button
+           surface as the picker's controls: the same floor. */
+        .adv-row,
         /* The picker's own field and list, the same surface as the
            .sp-actions buttons they sit above: without this the text field
            laid out 23.19 px tall on a 375-768 px card, 0.81 px under the
@@ -3446,6 +3497,44 @@ function cardStyleBlock() {
           45deg, currentColor 0 2px, transparent 2px 4px);
       }
       .sv-val { position: relative; }
+
+      /* The sensor advisor page (#1269): ranked rows, each one button so
+         the whole row is the target, sized by the every-pointer floor
+         above. The estimate badge rides the spread at reduced emphasis
+         (it is the savings table's own treatment of the same idea), and
+         an unpriced row's reason text is smaller rather than faded: it
+         must stay readable as prose, not pass as a de-emphasised
+         number. */
+      .advisor-page .adv-head {
+        display: flex; flex-wrap: wrap; gap: 4px 12px;
+        align-items: baseline; justify-content: space-between;
+        padding: 4px 0 2px 0;
+      }
+      .adv-title { font-weight: 600; }
+      .adv-basis { font-size: 0.85em; opacity: 0.75; }
+      .adv-note { font-size: 0.85em; padding: 0 0 8px 0; }
+      .adv-row {
+        display: flex; width: 100%; gap: 12px;
+        align-items: center; justify-content: space-between;
+        padding: 0.45em 0.7em; margin: 2px 0;
+        font: inherit; text-align: left; color: inherit;
+        background: none; border: 1px solid
+        var(--divider-color, rgba(0,0,0,0.12));
+        border-radius: 6px; cursor: pointer;
+        font-variant-numeric: tabular-nums;
+      }
+      .adv-row:hover { background: var(--secondary-background-color, #f5f5f5); }
+      .adv-row:focus-visible { outline: 2px solid var(--primary-color); }
+      .adv-label { flex: 1 1 auto; }
+      .adv-value { flex: 0 0 auto; text-align: right; }
+      .adv-est { font-weight: 400; opacity: 0.75; margin-left: 0.35em; }
+      .adv-unpriced-head {
+        font-weight: 600; padding: 14px 0 2px 0;
+      }
+      .adv-unpriced-head + .adv-row .adv-value,
+      .adv-row.unpriced .adv-value {
+        font-size: 0.85em; max-width: 60%;
+      }
 
       /* What-if simulator */
       .whatif {
@@ -6020,6 +6109,87 @@ function headlineHtml(plan, cfg, scoreOpen) {
     </div>`;
 }
 
+// ---- The sensor advisor page (#1269) ---------------------------------------
+//
+// Draws the `sensor_advisor` attribute the plan sensors publish: the
+// backend's ranking of which UNCONFIGURED optional temperature sensors
+// would tighten the thermal model most. The card renders the ranking and
+// routes action through the setup page's assign picker -- the physics
+// never crosses into JavaScript, so the page can never disagree with what
+// the model believes a sensor is worth. Module-level functions rather than
+// element members: the host's own-member ratchet exists to push exactly
+// this kind of page renderer out to a collaborator shape.
+function advisorPageHtml(host) {
+  const adv = host.plan.attrRaw("sensor_advisor", null);
+  const rows = adv && Array.isArray(adv.candidates) ? adv.candidates : [];
+  if (!rows.length) {
+    // Absent means the backend ranked nothing: every optional temperature
+    // sensor is configured. Same shape as the savings page's empty copy
+    // -- a page that explains itself rather than drawing an empty table.
+    return `<div class="setup-page"><div class="empty">
+      ${esc(L("advisor.empty"))}</div></div>`;
+  }
+  const spread = (row) => {
+    const value = Number(row.spread_c);
+    return Number.isFinite(value)
+      ? `±${value.toFixed(2)} °C <span class="adv-est">${esc(L("advisor.estimated"))}</span>`
+      : "—";
+  };
+  const isPriced = (row) => !!(row && row.priced);
+  const priced = rows.filter(isPriced);
+  const unpriced = rows.filter((row) => row && !row.priced);
+  // Every quantified row carries the estimate badge and its spread; a row
+  // the proxy cannot price renders its reason instead of a number, below
+  // every ranked row, so it can never pose as one.
+  const rowHtml = (row) => `<button type="button" class="adv-row"
+      data-key="${esc(String(row.key || ""))}">
+      <span class="adv-label">${esc(String(row.label || row.key || ""))}</span>
+      <span class="adv-value">${isPriced(row)
+        ? spread(row)
+        : esc(L(`advisor.reason_${row.reason || "no_clamped_parameter"}`))}
+      </span>
+    </button>`;
+  return `<div class="setup-page advisor-page">
+    <div class="adv-head">
+      <span class="adv-title">${esc(L("advisor.heading"))}</span>
+      <span class="adv-basis">${esc(L(
+        adv.basis === "history" ? "advisor.basis_history" : "advisor.basis_config"
+      ))}</span>
+    </div>
+    <div class="adv-note">${esc(L("advisor.spread_note"))}</div>
+    ${priced.map(rowHtml).join("")}
+    ${unpriced.length ? `<div class="adv-unpriced-head">${esc(L("advisor.unpriced_heading"))}</div>` : ""}
+    ${unpriced.map(rowHtml).join("")}
+    <div class="setup-hint">${esc(L("advisor.act_hint"))}</div>
+    <div class="setup-result" role="status"></div>
+  </div>`;
+}
+
+/** Wire the advisor page's rows: acting on a suggestion lands in the setup
+ * page's assign picker for that exact slot, pre-opened -- the one editing
+ * lane the card already owns, rather than a second one grown here. */
+function attachAdvisorPage(host, root) {
+  for (const row of root.querySelectorAll(".adv-row")) {
+    row.addEventListener("click", (ev) => {
+      stop(ev);
+      const key = row.dataset.key;
+      if (!key) return;
+      // Keyboard activation (Enter/Space on a button) fires click with
+      // detail 0; those users need focus handed into the picker the way
+      // the setup page's own keyboard path does, or the rebuild drops
+      // them at the top of the dialog.
+      const viaKeyboard = !(ev && ev.detail > 0);
+      host.setup.closePicker();
+      host.setup.pickerKey = key;
+      host.setup.pickerFocus = viaKeyboard;
+      host.setup.pickerViaKeyboard = viaKeyboard;
+      host.dialog.page = "setup";
+      host.dialog.scroll = 0;
+      host._render();
+    });
+  }
+}
+
 // ---- ExpandedDialog -------------------------------------------------------
 // The enlarged view: a native <dialog> shown with showModal(), its Plan and
 // Setup tabs, the scroll offset carried across the rebuild every plan
@@ -6050,6 +6220,7 @@ class ExpandedDialog {
   activePage() {
     if (this.page === "setup") return "setup";
     if (this.page === "savings") return "savings";
+    if (this.page === "advisor") return "advisor";
     return "plan";
   }
 
@@ -6092,6 +6263,7 @@ class ExpandedDialog {
             ${tab("plan", esc(L("header.tab_plan")))}
             ${tab("setup", esc(L("header.tab_setup")))}
             ${tab("savings", esc(L("header.tab_savings")))}
+            ${tab("advisor", esc(L("header.tab_advisor")))}
           </div>
           <button type="button" class="close" title="${esc(L("header.close"))}"
             aria-label="${esc(L("header.close"))}">${CLOSE_ICON}</button>
@@ -10129,9 +10301,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
           ? this._setupPageHtml()
           : page === "savings"
             ? this._savingsPageHtml()
-            : anyData
-              ? `${this.plan.awayStripHtml()}${this._chartBlock(built, true)}${this.whatIf.html()}`
-              : `<div class="empty">${L("errors.no_plan_data")}<br>
+            : page === "advisor"
+              ? advisorPageHtml(this)
+              : anyData
+                ? `${this.plan.awayStripHtml()}${this._chartBlock(built, true)}${this.whatIf.html()}`
+                : `<div class="empty">${L("errors.no_plan_data")}<br>
       ${this.plan.diagnose("space")}<br>
       ${this.plan.diagnose("dhw")}</div>`;
       dialog = this.dialog.html({
@@ -10207,6 +10381,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         this.layoutEditor.attach(dlg);
         this.setup.attach(dlg, { layoutEditing: () => this.layoutEditor.editing() });
         this.setup.applyNote(dlg);
+        attachAdvisorPage(this, dlg);
       },
       // Leaving the setup page abandons a half-made assignment rather than
       // keeping a picker open behind the chart.
@@ -10344,6 +10519,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
       <tbody>${rows.map(tr).join("")}</tbody>
     </table>`;
   }
+
+  // The sensor advisor page's renderer and wiring live at module level
+  // (advisorPageHtml / attachAdvisorPage): the host's own-member ratchet
+  // exists to push exactly this kind of page renderer out to a
+  // collaborator shape.
 
   _setupPageHtml() {
     const topo = this.plan.attrRaw("setup_topology", null);
