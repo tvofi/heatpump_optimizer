@@ -77,7 +77,9 @@
 # into the committed baseline, and no diff remains for this branch to
 # excuse under its name; its note stays below, as history.
 #
-config_flow # #1258 options quick_setup page + seed/menu rows (suggested answers per #1273); ADD-ONLY, 249 insertions 0 deletions vs f9a4c6389d03ef2ec77ac5afcc322a8e3e43086a
+# (dropped on this branch: config_flow was main's own #1258/#1273 claim,
+# inherited by the fork, not this diff's -- the INHERITED CLAIMS rule;
+# #1273 is merged and its golden diff is baked into the baseline)
 #
 # #1260 (per-weekday DHW window overrides): this branch claims exactly one
 # fixture, config_flow, and the direction is ADD-ONLY. The hot-water page's
@@ -423,3 +425,8 @@ config_flow # #1258 options quick_setup page + seed/menu rows (suggested answers
 # (The bare claim this note introduced -- config_flow, the cleared-entity-
 # picker fix, merged as #1249 -- is dropped by the 27458c8a absorb above;
 # the note stays as history.)
+# The #1210 re-cut claims NOTHING yet: this list is emptied so the drift
+# capture against 571e872 can say what this diff moves (main's own
+# config_flow line from #1273 is inherited, not this branch's diff, and is
+# dropped per the INHERITED CLAIMS rule; #1273 is merged, its golden diff
+# is baked into the baseline). Re-derived below once measured.
