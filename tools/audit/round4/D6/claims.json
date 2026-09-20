@@ -760,7 +760,7 @@
   "source": "docs/dashboard-card.md",
   "claim": "series keys: price, dhw_slots, space_slots, outdoor, dhw_temp, house_temp, solar",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=['dhw_slots', 'dhw_temp', 'house_temp', 'outdoor', 'price', 'solar', 'space_slots'] measured=['dhw_slots', 'dhw_temp', 'house_temp', 'outdoor', 'price', 'solar', 'space_slots']",
+  "result": "documented=['actioned', 'dhw_slots', 'dhw_temp', 'house_temp', 'outdoor', 'price', 'solar', 'space_slots'] measured=['actioned', 'dhw_slots', 'dhw_temp', 'house_temp', 'outdoor', 'price', 'solar', 'space_slots']",
   "verdict": "true",
   "truth": ""
  },

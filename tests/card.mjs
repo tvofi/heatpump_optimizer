@@ -6,7 +6,9 @@ import { fileURLToPath } from "url";
 import { makeCardContext, CLAIM_FILE, parseClaims, claimVersionError, frozenDateClass,
          CARD_PATH as CLAIMED_CARD_PATH, CAPTURE_SOURCES,
          justifiesSolverClaim, justifiesCardClaim, movesClaimable,
-         threeDotFiles, claimsAreThisBranchs, sameClaimMap } from "./card_rig.mjs";
+         threeDotFiles, claimsAreThisBranchs, sameClaimMap,
+         historyApi, historyFixture, HISTORY_IDS, flushHistory,
+         withActuals } from "./card_rig.mjs";
 
 // Plan payload written by tests/plan_view.py earlier in the run. The path is
 // argv[2], or HPO_PLANDATA, or a default derived from this checkout's tests/
@@ -130,7 +132,7 @@ const dump = collect(card.shadowRoot).join("\n");
 check("renders an <svg>", /<svg/.test(dump));
 check("draws polyline/path data", /(<polyline|<path)/.test(dump));
 check("draws heating bars", /<rect/.test(dump));
-check("legend has all seven series", ["Electricity price","DHW heating","Space heating","Outdoor temperature","DHW tank temperature","House temperature","Solar irradiance"].every(l=>dump.includes(l)));
+check("legend has all eight series", ["Electricity price","DHW heating","Space heating","Actioned power","Outdoor temperature","DHW tank temperature","House temperature","Solar irradiance"].every(l=>dump.includes(l)));
 check("shows a cost or energy summary", /kWh|SEK/.test(dump));
 check("default entity ids match a real install", !/No plan data available yet/.test(dump));
 
@@ -5480,9 +5482,10 @@ const setupBox = (card, place) =>
     !/>\s*Upper floor/.test(zlegend) && !/>\s*Lower floor/.test(zlegend),
     zlegend);
   // Every other series keeps exactly one chip too, so the count above is not
-  // passing because the legend lost entries wholesale.
+  // passing because the legend lost entries wholesale. Eight since the
+  // history pan added the actioned-power series its own chip.
   check("the legend still carries one chip per series",
-    (zlegend.match(/<button[^>]*data-key=/g) || []).length === 7, zlegend);
+    (zlegend.match(/<button[^>]*data-key=/g) || []).length === 8, zlegend);
   check("the one chip still says what else rides on its line",
     /also drawn: Upper floor, Lower floor/.test(zlegend), zlegend);
 
@@ -7870,6 +7873,190 @@ const STOCK_THEMES = {
     check(`and the bar itself is perceptible on a ${theme} card`,
       contrast(bar, th.card) >= 1.3, `${contrast(bar, th.card).toFixed(3)}:1 at opacity ${barAlpha}`);
   }
+}
+
+// --- The history pan (owner request, part of #201) ---------------------------
+// The plan chart pans BACK through Home Assistant's recorded history, up to
+// 48 h: left of "now" the measured temperatures, the spot price, the
+// irradiance and the pump's own action record replace the plan's
+// forward-looking series, fetched lazily from hass.callApi in 12 h windows.
+// Every check here drives the production collaborator (card.histSource)
+// against the recorder stub from the shared rig (historyApi/historyFixture),
+// so a card that fetches the wrong ids, the wrong window, or a needlessly
+// fat response fails rather than passes vacuously.
+{
+  const fieldPointsOf = fn("fieldPoints");
+  const mkHistoryCard = (entries, opts) => {
+    const api = historyApi(entries, opts);
+    const states = withActuals(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
+    const c = build(states, {});
+    c.hass = { states, callApi: api.callApi };
+    return { c, api };
+  };
+  const windowOf = (card) => {
+    const b = card._buildSeries();
+    return { start: b.windowStart, end: b.windowEnd };
+  };
+  const seriesOf = (card, key) => card._series.find((s) => s.key === key);
+
+  // Untouched, the card asks nothing of the recorder: history is loaded by
+  // the pan, never by the render.
+  const idle = mkHistoryCard(historyFixture(FROZEN));
+  check("an untouched card never asks Home Assistant for history",
+    idle.api.calls.length === 0, `${idle.api.calls.length} call(s)`);
+
+  // Panning back before now loads the entered chunks; the measured samples
+  // ride the plan's OWN series (one price, one outdoor, one house
+  // temperature, one solar trace: left of the seam they are the actuals,
+  // right of it the forecast, and the "now" rule is the seam).
+  //
+  // "Left of now" is asked as left of the FORECAST'S OWN FIRST STEP, not
+  // merely left of the frozen clock: the payload a solve publishes starts
+  // at the solve, so its first steps predate now, and a check keyed on
+  // t < now alone is satisfied by those stale steps with no history loaded
+  // at all -- the mutation that deletes the fetch wiring proved it.
+  const beforeForecast = Date.parse(plan.space_plan.forecast[0].t) - 1;
+  const live = windowOf(idle.c);
+  idle.c.view.panBy(-10 * HOUR);
+  await flushHistory();
+  const panned = windowOf(idle.c);
+  check("panning back before now moves the window into the past",
+    panned.start < FROZEN - 9 * HOUR, `${(panned.start - FROZEN) / HOUR} h`);
+  const house = seriesOf(idle.c, "house_temp");
+  const roomPts = fieldPointsOf(house, "room");
+  check("the measured indoor temperature renders left of now",
+    roomPts.some((p) => p.t <= beforeForecast && p.v >= 20 && p.v <= 22),
+    `${roomPts.filter((p) => p.t <= beforeForecast).length} past point(s)`);
+  check("the recorded past and the forecast never double-book a timestamp",
+    roomPts.every((p, i) => i === 0 || roomPts[i - 1].t !== p.t));
+  const outPts = fieldPointsOf(seriesOf(idle.c, "outdoor"), "outdoor");
+  check("the measured outdoor temperature renders left of now",
+    outPts.some((p) => p.t <= beforeForecast));
+  const pricePts = fieldPointsOf(seriesOf(idle.c, "price"), "price");
+  check("the measured spot price renders left of now",
+    pricePts.some((p) => p.t <= beforeForecast));
+  const solarPts = fieldPointsOf(seriesOf(idle.c, "solar"), "ghi");
+  check("the measured irradiance renders left of now",
+    solarPts.some((p) => p.t <= beforeForecast));
+
+  // An unavailable sample is a hole (the trace breaks), never a zero. The
+  // fixture plants it 24 h back, so it is asked about from the deep window.
+  const segsOf = (s, field) => s.lines.filter((l) => l.field === field).length;
+
+  // The action record is its own series: the pump's commanded power, from
+  // the heat_pump_action sensor's own history, on the same power axis as
+  // the plan's slot bars.
+  const actioned = seriesOf(idle.c, "actioned");
+  check("the pump's own action record renders as a power series",
+    !!actioned && actioned.hasData &&
+      fieldPointsOf(actioned, "action_power").some((p) => p.t <= beforeForecast));
+  const actionDump = collect(idle.c.shadowRoot).join("\n");
+  check("the actioned series has a legend chip",
+    /data-key="actioned"/.test(actionDump));
+  check("the legend offers exactly one chip per series",
+    (actionDump.match(/class="chip/g) || []).length === 8);
+
+  // Laziness: only the chunks the visible window entered are fetched, one
+  // call pair each (the lean numeric set; the attribute-carrying action).
+  check("history loads lazily, one call pair per 12 h chunk entered",
+    idle.api.calls.length > 0 && idle.api.calls.length <= 4,
+    idle.api.calls.join(" | "));
+  const numericCall = idle.api.calls.find((p) => p.includes("no_attributes"));
+  const actionCall = idle.api.calls.find((p) => p.includes("_heat_pump_action"));
+  check("the numeric history call is lean (minimal_response, no attributes)",
+    !!numericCall && numericCall.includes("minimal_response"));
+  check("the action call carries the attributes its power lives in",
+    !!actionCall && !actionCall.includes("no_attributes"));
+  check("the entity ids are the optimizer's own actual sensors",
+    !!numericCall &&
+      numericCall.includes(HISTORY_IDS.indoor) &&
+      numericCall.includes(HISTORY_IDS.outdoor) &&
+      numericCall.includes(HISTORY_IDS.price) &&
+      numericCall.includes(HISTORY_IDS.solar));
+
+  // The clamp: 48 hours back, no further, however hard the pan.
+  idle.c.view.panBy(-500 * HOUR);
+  await flushHistory();
+  const deep = windowOf(idle.c);
+  check("panning back stops at 48 hours before now",
+    deep.start >= FROZEN - 48 * HOUR - 1 && deep.start <= FROZEN - 47 * HOUR,
+    `${(deep.start - FROZEN) / HOUR} h`);
+  // The fixture plants its unavailable sample 24 h back, on the deep
+  // window's right edge, so slide forward to center it before asking.
+  idle.c.view.panBy(20 * HOUR);
+  await flushHistory();
+  const deepHouse = seriesOf(idle.c, "house_temp");
+  check("an unavailable stretch breaks the measured trace rather than zeroing it",
+    segsOf(deepHouse, "room") >= 2, `${segsOf(deepHouse, "room")} segment(s)`);
+
+  // Panning forward past the plan is unchanged by history: the right-hand
+  // clamp stays the plan's end.
+  idle.c.view.panBy(500 * HOUR);
+  await flushHistory();
+  const fwd = windowOf(idle.c);
+  check("panning forward still stops at the end of the plan",
+    fwd.end <= live.end + 1, `${fwd.end} > ${live.end}`);
+
+  // Reset is the snap back to the live edge.
+  idle.c.view.reset();
+  check("reset snaps the view back to the live window",
+    windowOf(idle.c).start === live.start);
+
+  // Null control: a hass without callApi (an old frontend, a stripped-down
+  // host) keeps the forward-only pan, exactly as before the feature.
+  const plain = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), {});
+  plain.view.panBy(-10 * HOUR);
+  check("a hass without callApi keeps the forward-only pan",
+    windowOf(plain).start >= FROZEN - 1);
+
+  // Null controls for the fetch itself: the recorder off (every entity
+  // answers empty) and the API refusing both degrade to a notice over the
+  // live view, snap the window back to now, and never throw.
+  for (const [label, opts, entries] of [
+    ["recorder off", {}, {}],
+    ["api refused", { fail: true }, historyFixture(FROZEN)],
+  ]) {
+    const bad = mkHistoryCard(entries, opts);
+    bad.c.view.panBy(-10 * HOUR);
+    let threw = null;
+    try { await flushHistory(); } catch (e) { threw = e; }
+    const badDump = collect(bad.c.shadowRoot).join("\n");
+    check(`history ${label} degrades to a notice, never an error`,
+      !threw && /hist-note/.test(badDump) &&
+        badDump.toLowerCase().includes("history"),
+      threw ? String(threw) : "no notice rendered");
+    check(`history ${label} snaps the view back to the live edge`,
+      windowOf(bad.c).start >= FROZEN - 1);
+  }
+
+  // Renamed devices: the actual sensors are derived from the RESOLVED plan
+  // sensor's own prefix, so a renamed install asks for its own sensors.
+  const villaStates = withActuals(
+    {
+      ...mkStates("sensor.villa_space_heating_plan", "sensor.villa_dhw_heating_plan", true),
+      [SOLAR_ID.replace("heat_pump_optimizer", "villa")]: {
+        state: "110", attributes: { forecast: solarForecast, plan_kind: "solar" } },
+    },
+    { prefix: "villa" });
+  delete villaStates[SOLAR_ID];
+  const villaEntries = historyFixture(FROZEN);
+  const remap = (ids) => {
+    const out = {};
+    for (const [k, id] of Object.entries(ids)) {
+      out[id.replace("heat_pump_optimizer", "villa")] = villaEntries[id];
+    }
+    return out;
+  };
+  const villaApi = historyApi(remap(HISTORY_IDS));
+  const villa = build(villaStates, {});
+  villa.hass = { states: villaStates, callApi: villaApi.callApi };
+  villa.view.panBy(-10 * HOUR);
+  await flushHistory();
+  check("a renamed install derives its own actual sensors from the plan prefix",
+    villaApi.calls.length > 0 &&
+      villaApi.calls.every((p) => !p.includes("heat_pump_optimizer_indoor")) &&
+      villaApi.calls.some((p) => p.includes("sensor.villa_indoor_temperature_optimizer")),
+    villaApi.calls.join(" | "));
 }
 
 // --- The host stays small ---------------------------------------------------

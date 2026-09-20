@@ -51,6 +51,7 @@ import {
   justifiesCardClaim, sameClaimMap,
   makeCardContext, loadCard, collect, frozenDateClass, buildCard,
   planStates, setupSensorStates, qaTopologies, layoutCatalogTopo,
+  historyApi, historyFixture, flushHistory,
 } from "./card_rig.mjs";
 
 const testsDir = path.dirname(fileURLToPath(import.meta.url));
@@ -489,6 +490,54 @@ const STATES = [
       e.hass = { states: {}, language: "en" };
       return { text: JSON.stringify({ schema: e._schema(), data: e._data() }, null, 1) };
     } },
+  // The history pan (owner request, part of #201). A hass whose callApi
+  // serves the recorder stub from the rig, the card panned back through the
+  // recorded past: the measured traces left of the now rule, the actioned
+  // power bars, and the same chips the plan always had. The comparison ref
+  // has no history at all, so its window stays clamped at now and the diff
+  // is the feature itself.
+  { name: "history_panned",
+    drive: async (s) => {
+      const api = historyApi(historyFixture(s.FROZEN));
+      const c = buildCard(s.Card, planStates(s.plan), {}, { callApi: api.callApi });
+      c._onCardClick({});
+      c.view.panBy(-10 * HOUR);
+      await flushHistory();
+      return c;
+    } },
+  { name: "history_deep_panned",
+    drive: async (s) => {
+      const api = historyApi(historyFixture(s.FROZEN));
+      const c = buildCard(s.Card, planStates(s.plan), {}, { callApi: api.callApi });
+      c._onCardClick({});
+      c.view.panBy(-40 * HOUR);
+      await flushHistory();
+      return c;
+    } },
+  // The recorder's answer for the whole window was empty, so the card says
+  // so over the live view and snaps back to now rather than showing a past
+  // it has no evidence for.
+  { name: "history_unavailable",
+    drive: async (s) => {
+      const api = historyApi({}, {});
+      const c = buildCard(s.Card, planStates(s.plan), {}, { callApi: api.callApi });
+      c._onCardClick({});
+      c.view.panBy(-10 * HOUR);
+      await flushHistory();
+      return c;
+    } },
+  // A fetch that has not answered yet: the loading notice, and nothing else
+  // moves -- the plan is still drawn, no error state.
+  { name: "history_pending",
+    drive: async (s) => {
+      const never = new Promise(() => {});
+      const c = buildCard(s.Card, planStates(s.plan), {},
+        { callApi: () => never });
+      c._onCardClick({});
+      c.view.panBy(-10 * HOUR);
+      await flushHistory();
+      return c;
+    } },
 ];
 
 if (args.includes("--list")) {
@@ -671,13 +720,16 @@ function resetSide(s) {
   s.Card._sharedPatternSeq = 0;
 }
 
-function renderAll(side) {
+// The history states await their fetch/render chain before the tree is
+// read, so the loop awaits every drive: a synchronous return (every state
+// that does not fetch) passes straight through `await` unchanged.
+async function renderAll(side) {
   const out = new Map();
   for (const st of STATES) {
     resetSide(side);
     let text;
     try {
-      text = dumpOf(st.drive(side));
+      text = dumpOf(await st.drive(side));
     } catch (e) {
       text = `THREW: ${e && e.stack ? e.stack : e}\n`;
     }
@@ -686,8 +738,8 @@ function renderAll(side) {
   return out;
 }
 
-const treeOut = renderAll(makeSide(treeSrc, "working tree"));
-const baseOut = renderAll(makeSide(baseSrc, refName));
+const treeOut = await renderAll(makeSide(treeSrc, "working tree"));
+const baseOut = await renderAll(makeSide(baseSrc, refName));
 
 // --- compare -------------------------------------------------------------
 function diffText(a, b, name) {

@@ -7,6 +7,9 @@ optimizer's planning series on a single shared time axis:
   filled area)
 - **DHW heating** power (kW, left power axis, stepped filled band)
 - **Space heating** power (kW, left power axis, stepped filled band)
+- **Actioned power** (kW, left power axis, stepped filled band) — the power
+  the heat pump actually ran, from its own recorded action history, drawn
+  left of "now" when you pan back through it
 - **Outdoor temperature** (°C, left temperature axis, smooth line)
 - **DHW tank temperature** (°C, left temperature axis, smooth line, with the
   prediction's expected error drawn as a dashed pair around it)
@@ -222,12 +225,27 @@ A plain vertical scroll is deliberately left alone. The card sits in a dashboard
 people scroll, and a chart that swallowed the wheel would trap the page the
 moment the pointer crossed it.
 
-It is **forward-only**. There is no history to scroll back into: both plan
-sensors keep their `forecast` attribute out of the recorder, so nothing stores
-what the plan used to say. The window therefore stays between now and the end of
-the plan, and zooming out stops at the plan's real extent rather than at the
-configured plot width — past the optimizer's horizon there is empty chart, not
-more plan. The reset button returns to the window the card was configured for.
+It is **forward-only over the plan**. There is no history of what the plan used
+to say to scroll back into: both plan sensors keep their `forecast` attribute
+out of the recorder, so nothing stores what the plan used to say. The window
+therefore stays between now and the end of the plan, and zooming out stops at
+the plan's real extent rather than at the configured plot width — past the
+optimizer's horizon there is empty chart, not more plan. The reset button
+returns to the window the card was configured for.
+
+Panning **back** through now is different: that is the recorded past, not the
+plan's, and the card does scroll back into it — up to 48 hours. Left of the
+"now" marker you see what actually happened: the measured indoor and outdoor
+temperatures, the spot price and the solar irradiance ride the same series
+their forecasts occupy right of it, and the pump's own commanded power draws
+as the **Actioned power** bars on the same axis as the planned slots. The
+history is fetched from Home Assistant's recorder lazily, one 12-hour window
+per stretch you pan into, so a quick glance back costs one small request
+rather than the whole span. If the recorder answers nothing — it is off, or
+the past was never recorded — the card says so in a notice above the chart
+and snaps the window back to now rather than show a past it has no evidence
+for. Panning back needs the recorder's history API, so a frontend without it
+keeps the forward-only pan exactly as before.
 
 Zooming changes the axis the lanes are drawn against, not just their appearance,
 so dragging a slot keeps hitting the time under the pointer at any zoom level.
@@ -575,7 +593,7 @@ The form offers every documented option:
 - **Show the schedule editor** and **Show the headline stats**, as toggles.
 - **Currency**, as a dropdown of the likely codes that still accepts any other
   ISO code typed in.
-- **Series shown by default**, as an expandable group of the seven per-series
+- **Series shown by default**, as an expandable group of the eight per-series
   toggles, labelled with the same names the legend uses.
 
 Field labels follow the frontend language, like the rest of the card.
@@ -607,6 +625,7 @@ series:                                  # optional, initial per-series visibili
   price: true
   dhw_slots: true
   space_slots: true
+  actioned: true
   outdoor: true
   dhw_temp: true
   house_temp: true
@@ -624,7 +643,7 @@ series:                                  # optional, initial per-series visibili
 | `what_if`      | boolean | `true`                         | Show the slot lanes and schedule editor in the enlarged view. Editing is local to the card; only the Simulate, Save and Apply buttons reach Home Assistant. |
 | `currency`     | string  | plan sensor's, else HA's, else `SEK` | Unit shown on the price axis and cost figures. The card first uses the currency the integration publishes on the plan sensors (v4.1.0+), then Home Assistant's configured currency, then `SEK`. Only override this if your price feed disagrees with all of them. It relabels rather than converts, and it does not relabel the headline savings figure, which keeps the unit its own sensor declares. |
 | `show_stats`   | boolean | `true`                         | Show the headline row (projected savings, optimization score, plan narrative) under the card header. It hides itself, entirely, when the backend publishes none of those sensors. |
-| `series`       | map     | all `true`                     | Initial visibility per series key. Keys: `price`, `dhw_slots`, `space_slots`, `outdoor`, `dhw_temp`, `house_temp`, `solar`. |
+| `series`       | map     | all `true`                     | Initial visibility per series key. Keys: `price`, `dhw_slots`, `space_slots`, `actioned`, `outdoor`, `dhw_temp`, `house_temp`, `solar`. |
 
 ### Entity discovery
 

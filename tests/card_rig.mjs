@@ -179,6 +179,126 @@ export function planStates(plan, { spaceId = DEFAULT_SPACE, dhwId = DEFAULT_DHW,
   };
 }
 
+// --- The history API stub ---------------------------------------------------
+// The plan-history pan (the owner's pan-back request) reads Home Assistant's
+// recorder through `hass.callApi("GET", "history/period/...")`. The rig has
+// no hass.connection, so this builds the callApi a Lovelace hass carries,
+// answering from a compact fixture: HA's shape is one array per entity, in
+// filter_entity_id order, of {state, last_updated, attributes?}. The stub
+// PARSES the path the card built -- start out of the path, end_time and
+// filter_entity_id out of the query, minimal_response/no_attributes honored
+// -- so a test that fetches the wrong ids, the wrong window or a needlessly
+// fat response fails rather than passes vacuously.
+//
+// opts.fail throws on every call (the network/refusal arm);
+// opts.empty answers an empty array per entity (the recorder-off arm).
+export function historyApi(entries, opts = {}) {
+  const api = {
+    calls: [],
+    async callApi(method, path) {
+      api.calls.push(`${method} ${path}`);
+      if (opts.fail) throw new Error("history unreachable");
+      const m = /^history\/period\/([^?]+)\?(.*)$/.exec(String(path || ""));
+      if (!m || method !== "GET") {
+        throw new Error(`unexpected callApi: ${method} ${path}`);
+      }
+      const start = Date.parse(decodeURIComponent(m[1]));
+      const q = new URLSearchParams(m[2]);
+      const end = Date.parse(q.get("end_time"));
+      const ids = (q.get("filter_entity_id") || "").split(",").filter(Boolean);
+      const lean = q.has("no_attributes");
+      return ids.map((id) =>
+        (entries[id] || [])
+          .filter((s) => s.t >= start && s.t < end)
+          .map((s) => ({
+            state: String(s.state),
+            last_updated: new Date(s.t).toISOString(),
+            ...(lean ? {} : { attributes: s.attributes || {} }),
+          })));
+    },
+  };
+  return api;
+}
+
+// The optimizer's own actual-carrying sensors, at the ids a default install
+// (device prefix `heat_pump_optimizer`) really creates. The card must derive
+// these from the resolved plan sensor, the way it derives its stat entities.
+export const HISTORY_IDS = {
+  indoor: "sensor.heat_pump_optimizer_indoor_temperature_optimizer",
+  outdoor: "sensor.heat_pump_optimizer_outdoor_temperature_optimizer",
+  price: "sensor.heat_pump_optimizer_cost_current_electricity_price",
+  solar: SOLAR_ID,
+  action: "sensor.heat_pump_optimizer_heat_pump_action",
+};
+
+/** Deterministic recorded actuals for the 48 h ending at `endMs`.
+ *
+ * The integration's default optimization interval is 30 minutes
+ * (const.py DEFAULT_OPTIMIZATION_INTERVAL), so that is the cadence the
+ * recorder sees; values are sines so every series is non-degenerate and
+ * unlike its neighbours. One indoor sample mid-window is "unavailable", the
+ * honest hole, and the action alternates off/pre_heat/comfort with the
+ * power the coordinator publishes alongside each mode.
+ */
+export function historyFixture(endMs, { stepMs = 30 * 60000, spanMs = 48 * HOUR } = {}) {
+  const entries = {
+    [HISTORY_IDS.indoor]: [],
+    [HISTORY_IDS.outdoor]: [],
+    [HISTORY_IDS.price]: [],
+    [HISTORY_IDS.solar]: [],
+    [HISTORY_IDS.action]: [],
+  };
+  const n = Math.floor(spanMs / stepMs);
+  for (let i = n; i >= 1; i--) {
+    const t = endMs - i * stepMs;
+    const k = i / n;
+    const hourOfDay = (t / HOUR) % 24;
+    entries[HISTORY_IDS.indoor].push({
+      t, state: (21 + 0.9 * Math.sin(k * Math.PI * 3)).toFixed(1) });
+    entries[HISTORY_IDS.outdoor].push({
+      t, state: (2.5 + 4 * Math.sin(k * Math.PI * 2)).toFixed(1) });
+    entries[HISTORY_IDS.price].push({
+      t, state: (0.42 + 0.31 * Math.sin(k * Math.PI * 5)).toFixed(4) });
+    entries[HISTORY_IDS.solar].push({
+      t, state: Math.max(0, Math.round(320 * Math.sin((hourOfDay - 6) / 12 * Math.PI))).toString() });
+    const mode = i % 3 === 0 ? "off" : i % 3 === 1 ? "pre_heat" : "comfort";
+    const kw = mode === "off" ? 0 : mode === "pre_heat" ? 4.1 : 2.3;
+    entries[HISTORY_IDS.action].push({
+      t, state: mode, attributes: { power_kw: kw, heat_pump_on: mode !== "off" } });
+  }
+  // One unavailable stretch, not a zero reading: the trace must break.
+  const mid = entries[HISTORY_IDS.indoor][Math.floor(entries[HISTORY_IDS.indoor].length / 2)];
+  mid.state = "unavailable";
+  return entries;
+}
+
+/** Let the card's fetch/render microtask chain run to rest. */
+export const flushHistory = async () => {
+  for (let i = 0; i < 8; i++) await Promise.resolve();
+};
+
+/** The optimizer's own actual-carrying sensors as hass.states knows them.
+ *
+ * A real install has them beside the plan sensors -- they are this
+ * integration's entities, enabled by default -- and the card's history
+ * derivation checks presence before asking the recorder for an id, the
+ * same guard the stat-entity derivation uses. Fixtures that only want the
+ * plan sensors skip this; fixtures that drive the history pan need it.
+ */
+export function withActuals(states, { prefix = "heat_pump_optimizer" } = {}) {
+  return {
+    ...states,
+    [`sensor.${prefix}_indoor_temperature_optimizer`]:
+      { state: "21.1", attributes: {} },
+    [`sensor.${prefix}_outdoor_temperature_optimizer`]:
+      { state: "3.4", attributes: {} },
+    [`sensor.${prefix}_cost_current_electricity_price`]:
+      { state: "0.55", attributes: {} },
+    [`sensor.${prefix}_heat_pump_action`]:
+      { state: "comfort", attributes: { power_kw: 2.3 } },
+  };
+}
+
 /** The live readings the setup page draws into its boxes. */
 export function setupSensorStates() {
   return {
