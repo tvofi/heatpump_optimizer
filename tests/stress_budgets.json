@@ -1,4 +1,8 @@
 {
+ "coverage_floor_override": {
+  "cites": "#1207 comment 3e26fc3 / node IC_kwDOT-9fds8AAAABVuDeMg (owner ruling (a), 2026-09-20): the stress solver-work coverage floor is overridden to 38 for this branch -- CI's 38/51 vs the #387 floor of 40 is the same runner-conditional environment variance as the drift set (13 re-planned on CI vs 11 on the dev box); the #387 non-tunable ruling is overridden by the owner's direct instruction for this branch. The literal 40 in tests/stress.py is untouched; this entry may only LOWER the floor, never raise it, and a later --record-budgets re-record drops it (a fresh table is a fresh decision).",
+  "floor": 38
+ },
  "flat/1z/dhw": {
   "ratio": 47.85,
   "rss_attrib_mb": 8.5,
