@@ -8172,13 +8172,27 @@ const STOCK_THEMES = {
     await flushHistory();
     c._onCardClick({});
     const runs = c.histSource.actionRuns ? c.histSource.actionRuns() : [];
-    const active = runs.find((r) => r.mode !== "off" && r.mode !== "idle");
+    // The hover target must be asserted INSIDE the plot before it is
+    // hovered: `_onPointerMove` bails left of plotL, and the payload's
+    // forecast stamps carry no offset, so the frozen clock -- and with it
+    // the first runs' place in the window -- shifts with the host's TZ
+    // (round 1: green in CET, red on CI's UTC, the same tree). Selecting
+    // a run whose midpoint is in-window, and saying so, keeps the check
+    // about the tooltip rather than about the clock.
+    const plot = c._plot;
+    const midOf = (r) => (r.start + r.end) / 2;
+    const hoverable = runs.filter((r) =>
+      r.mode !== "off" && r.mode !== "idle" &&
+      midOf(r) >= plot.windowStart && midOf(r) <= plot.windowEnd);
+    check("an active run's midpoint sits inside the plot to hover",
+      hoverable.length > 0,
+      `${runs.length} run(s), window ${new Date(plot.windowStart).toISOString()}..${new Date(plot.windowEnd).toISOString()}`);
+    const active = hoverable[0];
     if (!active) {
       check("the tooltip names the actioned mode under the crosshair",
-        false, "no active mode run to hover");
+        false, "no in-window active run to hover");
     } else {
-      const plot = c._plot;
-      c._onPointerMove({ currentTarget: svgOf(c), clientX: plot.scaleX((active.start + active.end) / 2) });
+      c._onPointerMove({ currentTarget: svgOf(c), clientX: plot.scaleX(midOf(active)) });
       const tt = collect(c.shadowRoot).join("\n");
       check("the tooltip names the actioned mode under the crosshair",
         /Actioned/.test(tt) && tt.includes(active.mode), active.mode);
