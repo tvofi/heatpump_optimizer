@@ -28116,6 +28116,179 @@ R.check(
 )
 
 # ---------------------------------------------------------------------------
+R.section("#1230 — _apply_dhw_min_run replays the whole horizon per weak slot")
+
+# The min-run repair walks the weak slots in order, and on the baseline each
+# one re-simulated the FULL horizon (twice when the raise was refused). The
+# repair's own arithmetic is unchanged by the fix this pins: the trajectory a
+# raise at slot i produces shares its prefix with the current plan's
+# trajectory up to i, so the check only ever needs the suffix from i. Both
+# instruments are the production symbols (the finder's #1230 harness counted
+# simulate_dhw_only; simulate_dhw_step is the unit that suffix work is charged
+# to, so a fix that merely rerouted the same replay through a different entry
+# point would not pass the step bound).
+_mr_built = _mk_golden(dhw=True, two_zone=False)
+_mr_opt = _mr_built["optimizer"]
+_MR_MIN, _MR_PMAX = 0.6, 3.0
+
+
+def _mr_fixture(n, n_weak, seed=0):
+    """A plan with n_weak weak slots spread over the whole horizon, a tank
+    starting on its ceiling, and a draw block in the middle: early raises get
+    refused (the tank is at the ceiling), later ones accepted (the draw has
+    made room), so both branches of the per-slot loop run."""
+    rng = np.random.default_rng(seed)
+    outdoor = np.zeros(n)
+    draws = np.zeros(n)
+    draws[n // 2:n // 2 + n // 6] = 1.8
+    plan = np.zeros(n)
+    pos = np.linspace(1, n - 2, n_weak).astype(int)
+    plan[pos] = 0.05 + 0.05 * rng.random(n_weak)
+    return plan, pos, outdoor, draws
+
+
+def _mr_run(plan, outdoor, draws):
+    """Drive the production repair with both simulate seams counted."""
+    counts = {"only": 0, "step": 0}
+    only_orig = _G2Tm.simulate_dhw_only
+    step_orig = _G2Tm.simulate_dhw_step
+
+    def only_h(self, *a, **k):
+        counts["only"] += 1
+        return only_orig(self, *a, **k)
+
+    def step_h(self, *a, **k):
+        counts["step"] += 1
+        return step_orig(self, *a, **k)
+
+    _G2Tm.simulate_dhw_only = only_h
+    _G2Tm.simulate_dhw_step = step_h
+    try:
+        out = _mr_opt._apply_dhw_min_run(
+            plan=plan.copy(), initial_temp=50.0, outdoor_temps=outdoor,
+            draw_rates=draws, dt=0.25, p_dhw_max=_MR_PMAX,
+            min_run_power=_MR_MIN, max_temp=np.full(plan.size, 50.0),
+        )
+    finally:
+        _G2Tm.simulate_dhw_only = only_orig
+        _G2Tm.simulate_dhw_step = step_orig
+    return out, counts["only"], counts["step"]
+
+
+def _mr_suffix_bound(n, pos):
+    """Step ceiling of the incremental shape: the two whole-horizon sims the
+    repair opens with, plus at most one suffix sim per weak slot (its check)
+    and one more per refusal (the refresh), each at most n - pos[j] steps."""
+    return 2 * (n + 1) + 2 * int(sum(n - int(p) for p in pos))
+
+
+_mr_plan, _mr_weak_pos, _mr_outdoor, _mr_draws = _mr_fixture(96, 24)
+_mr_out, _mr_calls, _mr_steps = _mr_run(_mr_plan, _mr_outdoor, _mr_draws)
+R.check(
+    "the fixture exercises both branches of the per-slot loop",
+    int(np.sum(np.isclose(_mr_out[_mr_weak_pos], _MR_MIN))) >= 8
+    and int(np.sum(_mr_out[_mr_weak_pos] == 0.0)) >= 4,
+    f"raised {int(np.sum(np.isclose(_mr_out[_mr_weak_pos], _MR_MIN)))} "
+    f"zeroed {int(np.sum(_mr_out[_mr_weak_pos] == 0.0))} of 24",
+)
+
+# Scaling pin 1, the finder's own instrument (#1230): doubling the weak slots
+# must not double the simulate_dhw_only count — the repair opens with exactly
+# two whole-horizon trajectories (the baseline and the joint raise) and every
+# per-slot check reuses the state at its own start.
+_mr_small_p, _, _mr_small_o, _mr_small_d = _mr_fixture(96, 12)
+_mr_small = _mr_run(_mr_small_p, _mr_small_o, _mr_small_d)
+_mr_wide_p, _, _mr_wide_o, _mr_wide_d = _mr_fixture(192, 48)
+_mr_wide = _mr_run(_mr_wide_p, _mr_wide_o, _mr_wide_d)
+R.check(
+    "simulate_dhw_only calls stay at 2 as weak slots double "
+    "(12 -> 24 -> 48 weak slots)",
+    _mr_calls == 2 and _mr_small[1] == 2 and _mr_wide[1] == 2,
+    f"got 24-slot {_mr_calls}, 12-slot {_mr_small[1]}, 48-slot {_mr_wide[1]}",
+)
+
+# Scaling pin 2, the honest work unit: the same doubling must stay inside the
+# incremental shape's derived ceiling. Whole-horizon replay per weak slot is
+# ~n * n_weak steps and leaves this bound at every size.
+R.check(
+    "simulate_dhw_step calls stay inside the incremental ceiling "
+    "(2 sims + suffix work from each weak slot)",
+    _mr_steps <= _mr_suffix_bound(96, _mr_weak_pos)
+    and _mr_small[2] <= _mr_suffix_bound(96, np.linspace(1, 94, 12).astype(int))
+    and _mr_wide[2] <= _mr_suffix_bound(192, np.linspace(1, 190, 48).astype(int)),
+    f"24-slot {_mr_steps}/{_mr_suffix_bound(96, _mr_weak_pos)}, "
+    f"12-slot {_mr_small[2]}, 48-slot {_mr_wide[2]}",
+)
+
+# Null control: a plan with no weak slot returns after the clip, having
+# simulated nothing at all.
+_mr_flat = np.where(np.arange(96) % 7 == 0, 2.0, 0.0)
+_mr_flat_out, _mr_flat_calls, _mr_flat_steps = _mr_run(_mr_flat, np.zeros(96), np.zeros(96))
+R.check(
+    "a plan with no weak slots does no simulation and only clips",
+    _mr_flat_calls == 0 and _mr_flat_steps == 0
+    and np.array_equal(_mr_flat_out, np.clip(_mr_flat, 0.0, _MR_PMAX)),
+    f"calls {_mr_flat_calls}, steps {_mr_flat_steps}",
+)
+
+# Null control: a single weak slot behaves as before — the joint check
+# decides it in at most three trajectories, and the plan is identical to the
+# full-replay arithmetic (the mutation wrapper below runs that replay through
+# the production seam itself).
+_mr_one_plan, _, _mr_one_outdoor, _mr_one_draws = _mr_fixture(96, 1)
+_mr_one_out, _mr_one_calls, _mr_one_steps = _mr_run(_mr_one_plan, _mr_one_outdoor, _mr_one_draws)
+R.check(
+    "a single weak slot is decided in at most three trajectories",
+    _mr_one_calls <= 3,
+    f"calls {_mr_one_calls}",
+)
+
+# Mutation: extend_dhw_temps rerouted through a whole-horizon replay — the
+# baseline's per-slot cost restored through the production seam, with the
+# unpatch/patch dance W3-G2 needs because simulate_dhw_only itself delegates
+# into extend_dhw_temps. The call pin must go red and the plan must not move
+# a byte (the replay is the same arithmetic in a different order of work).
+_mr_saved_extend = _G2Tm.extend_dhw_temps
+
+
+def _mr_extend_via_full_sim(self, temps, from_step, schedule, outdoor, draws, dt_hours=0.25):
+    _G2Tm.extend_dhw_temps = _mr_saved_extend
+    try:
+        new = self.simulate_dhw_only(
+            initial_temp=float(temps[0]),
+            dhw_power_schedule=schedule,
+            outdoor_temps=outdoor,
+            draw_rates=draws,
+            dt_hours=dt_hours,
+        )
+    finally:
+        _G2Tm.extend_dhw_temps = _mr_extend_via_full_sim
+    temps[:] = new
+    return temps
+
+
+try:
+    _G2Tm.extend_dhw_temps = _mr_extend_via_full_sim
+    _mr_mut_out, _mr_mut_calls, _mr_mut_steps = _mr_run(_mr_plan, _mr_outdoor, _mr_draws)
+    _mr_one_mut_out, _, _ = _mr_run(_mr_one_plan, _mr_one_outdoor, _mr_one_draws)
+finally:
+    _G2Tm.extend_dhw_temps = _mr_saved_extend
+R.check(
+    "whole-horizon replay per weak slot reds both pins (mutation)",
+    _mr_mut_calls > _mr_calls and _mr_mut_steps > _mr_suffix_bound(96, _mr_weak_pos),
+    f"mutant calls {_mr_mut_calls} vs {_mr_calls}, "
+    f"mutant steps {_mr_mut_steps} vs bound {_mr_suffix_bound(96, _mr_weak_pos)}",
+)
+R.check(
+    "the incremental plan is byte-identical to the full replay's, at 24 weak "
+    "slots and at one (mutation control)",
+    _mr_mut_out.tobytes() == _mr_out.tobytes()
+    and _mr_one_mut_out.tobytes() == _mr_one_out.tobytes(),
+    f"24-slot bytes equal {_mr_mut_out.tobytes() == _mr_out.tobytes()}, "
+    f"1-slot bytes equal {_mr_one_mut_out.tobytes() == _mr_one_out.tobytes()}",
+)
+
+# ---------------------------------------------------------------------------
 R.section("W3-G3 — process-route the solve off the GIL (#290 #199)")
 
 from heatpump_optimizer.coordinator import (  # noqa: E402
