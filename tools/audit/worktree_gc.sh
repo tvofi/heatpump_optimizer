@@ -77,6 +77,11 @@ KEEP_DIR_DEFAULT=/tmp/hpo-ev
 if [ "${1:-}" = "--self-test" ]; then
   SELF="$(cd "$(dirname -- "$0")" && pwd)/$(basename -- "$0")"
   W=$(mktemp -d) || exit 2
+  # Normalize once: the tool realpaths every path it handles, and on macOS
+  # mktemp's /var/... is /private/var/... after resolution -- the stubs key
+  # their answers on the path they are handed, so the fixture must live on
+  # the resolved form or every lookup silently misses.
+  W=$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$W")
   trap 'rm -rf "$W"' EXIT
   mkdir -p "$W/bin"
   FAILS=0; N=0
@@ -215,7 +220,7 @@ PY
   [ -d "$D/orch/seat-nopr/wt" ]; st $? 0 "no pull request at all: kept (ambiguous, not proved merged)"
   st "$(gots sweep "keep  $D/orch/seat-nopr/wt  no-merged-pr")" 1 "kept naming no-merged-pr"
   gone "$D/orch/seat-detached/wt"; st $? 0 "detached at a merged sha: worktree removed"
-  [ -d "$D/ev/seat-detached/evidence-run12/ev.txt" ]; st $? 0 "its cited evidence moved into the keep-dir"
+  [ -f "$D/ev/seat-detached/evidence-run12/ev.txt" ]; st $? 0 "its cited evidence moved into the keep-dir"
   gone "$D/orch/seat-detached/evidence-run12"; st $? 0 "out of the seat directory"
   gone "$D/orch/seat-detached"; st $? 0 "and the seat directory removed"
   st "$(gots sweep "kept-evidence  $D/orch/seat-detached/evidence-run12 -> $D/ev/seat-detached/evidence-run12")" 1 "and the move printed"
@@ -232,7 +237,7 @@ PY
   [ -d "$D/orch/seat-locked/wt" ]; st $? 0 "locked: kept (a seat's claim, trap 34)"
   st "$(gots sweep "keep  $D/orch/seat-locked/wt  locked")" 1 "kept naming locked"
   gone "$D/orch/seat-orph-old"; st $? 0 "orphan dir old and dead: seat dir removed"
-  [ -d "$D/ev/seat-orph-old/ev-3/ev.txt" ]; st $? 0 "with its evidence preserved to the keep-dir"
+  [ -f "$D/ev/seat-orph-old/ev-3/ev.txt" ]; st $? 0 "with its evidence preserved to the keep-dir"
   [ -d "$D/orch/seat-orph-fresh" ]; st $? 0 "orphan dir fresh: kept (2h guard)"
   st "$(gots sweep "keep  $D/orch/seat-orph-fresh  fresh")" 1 "kept naming fresh"
   [ -d "$D/orch/seat-orph-unmerged" ]; st $? 0 "orphan with an open-PR branch: kept"
@@ -543,6 +548,7 @@ handled_seat() { printf '%b' "$HANDLED_SEATS" | grep -qx "$1"; }
 if [ -d "$SEATS_REAL" ]; then
   for seat in "$SEATS_REAL"/*/; do
     [ -d "$seat" ] || continue
+    seat="${seat%/}"
     seat_real=$(realpath_of "$seat")
     case "$seat_real" in "$KEEP_REAL"|"$KEEP_REAL"/*) continue ;; esac
     handled_seat "$seat_real" && continue
@@ -585,17 +591,25 @@ def rd(p):
     try: return [l.rstrip("\n") for l in open(p) if l.strip()]
     except OSError: return []
 removed = set(rd(sys.argv[2]))
+def links_to(dp, names):
+    for n in names:
+        p = os.path.join(dp, n)
+        try:
+            # os.walk lists a symlink to a directory under dirnames, so both
+            # lists are scanned; a venv link lives at the worktree root and
+            # points AT the venv directory, not inside it.
+            rp = os.path.realpath(p)
+            if os.path.islink(p) and (rp == vdir or rp.startswith(vdir + os.sep)):
+                return True
+        except OSError: pass
+    return False
 for wt in rd(sys.argv[3]):
     if wt in removed: continue
     for dp, dns, fns in os.walk(wt):
         if os.path.relpath(dp, wt).count(os.sep) >= 2:
             dns[:] = []
-        for f in fns:
-            p = os.path.join(dp, f)
-            try:
-                if os.path.islink(p) and os.path.realpath(p).startswith(vdir + os.sep):
-                    sys.exit(0)
-            except OSError: pass
+        if links_to(dp, fns) or links_to(dp, dns):
+            sys.exit(0)
 sys.exit(1)
 PY
 }
