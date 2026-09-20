@@ -179,7 +179,10 @@ continues to the menu.*
 
 The suggestions come from the device integration's published definitions or,
 where nothing is published, from the entity names — so check each before
-keeping it. The fields are the pump's own settings:
+keeping it. The page itself says which is which: any role it filled from a
+name is listed under the form, as `role → friendly name (entity id)`, so a
+name-matched suggestion can be checked against the entity you recognise.
+The fields are the pump's own settings:
 
 | Field | What it fills |
 |---|---|

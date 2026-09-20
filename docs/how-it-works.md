@@ -460,7 +460,11 @@ above, and refuses to write the figure at all if the plan it read dips below
 the minimum inside a frame.
 
 Frames accept 24-hour times separated by commas and may wrap past midnight
-(`22:00-02:00`). Leave the field empty and the frames are derived from the
+(`22:00-02:00`). A frame may also carry a day selector
+(`weekdays 06:00-08:30, weekend 08:00-09:30`), and single weekdays can
+override the schedule, so the requirement resolves per calendar day — the
+grammar and its layers are [configuration.md](configuration.md)'s to
+document. Leave the field empty and the frames are derived from the
 learned hourly usage profile instead. Switch the schedule off entirely to
 require hot water around the clock.
 

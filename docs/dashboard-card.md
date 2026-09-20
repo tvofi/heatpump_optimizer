@@ -35,8 +35,10 @@ at the nearest sample, plus **why** the plan is heating at that moment.
 Every figure on this page is the card's own drawing, not an artist's: the chart
 figures come from `docs/img/make_card_figures.mjs` and the schematics further
 down from `tests/setup_qa_render.mjs`, both run against a plan
-`tests/plan_view.py` solved. Nothing here is a picture of how the card used to
-look.
+`tests/plan_view.py` solved. The two photographs further down — the weekly
+band and the Advisor page — are the shipped card itself, rendered in a
+headless browser against the same solved plan. Nothing here is a picture of
+how the card used to look.
 
 ### The two kinds of dashed line
 
@@ -67,6 +69,19 @@ nearest bucket is 1 h); and inside a configured demand window the lower dashed
 edge is floored at the window minimum so the band cannot read as missing a
 window the plan just guaranteed. Outside the windows the published lower edge
 is left alone. A planned heat is not treated as a new measurement.
+
+The windows that band follows are the *resolved* schedule the plan was
+actually made against. A weekly hot-water schedule — different windows per
+weekday — resolves to one day's windows at a time, so the floored stretch
+follows each timestamp's own weekday across midnight instead of repeating
+one day's pattern:
+
+![The enlarged chart across a Friday and a Saturday: the hot-water tank's dashed lower edge is floored inside Friday's 06:00-08:30 window, then inside Saturday's 08:00-09:30 window after midnight, with Saturday's prices shaded as estimates](img/card-dhw-band-weekly.png)
+
+*One resolved schedule, two days of it: Friday floors 06:00–08:30, Saturday
+— whose prices are not published yet, hence the shading — floors
+08:00–09:30. The [schedule editor](#schedule-editor-and-what-if-simulator)
+still edits the configuration itself, not this resolved view.*
 
 Unlike the two floors, the band's two edges are **one** thing. They are named
 once — *Hot water, expected error* — in the tank chip's hover text, and they
@@ -310,7 +325,12 @@ as the row's own choice and is saved back unchanged. The editor pre-fills from
 the configured schedule the plan sensors publish as `dhw_windows_spec`, not
 from the plan's reading of it (`dhw_windows`), which on a weekly schedule is
 one day's windows; an integration that publishes no spec, or an install with
-nothing configured, still pre-fills from the plan.
+nothing configured, still pre-fills from the plan. Per-weekday *overrides* —
+the seven one-day fields on the Hot water options page — sit outside this
+editor: it saves the schedule it shows, and what it shows is the ordinary
+spec. When overrides are in force the plan honours them instead, and the
+[resolved band](#the-two-kinds-of-dashed-line) on the chart is what follows
+that.
 
 Editing only builds a draft inside the card. Two buttons act on it: **Simulate
 these slots** prices the draft against the plan currently in force, and **Save
@@ -344,6 +364,51 @@ content rendered outside the dialog's own background — worse on short, wide
 desktop windows, because that is where the height-derived branch of the old
 formula won. Nothing depends on guessing the chrome now, so a panel added later
 costs a scrollbar rather than spilled content.
+
+## The savings page
+
+The dialog's **Savings** tab settles the months so far in one table: for each
+month the conventional baseline, what you actually paid, the difference and its
+percentage — the same `savings_months` rows the **Plan Monthly Savings** sensor
+publishes, so the page can never disagree with the entity. The savings column
+carries a bar scaled to the biggest month in the table, which answers "compared
+with the others" without quoting a target the page does not show. The open
+month is an estimate until it closes, and is badged as one; a month with no
+settled rows yet says so in words rather than drawing an empty table.
+
+## The advisor page
+
+The **Advisor** tab answers "which sensor should I add next?" for the
+temperature sensors you have *not* configured. The integration ranks the empty
+optional slots by how far apart the model's own temperature predictions can sit
+until that sensor pins them down, and the card draws that ranking:
+
+![The card's Advisor page: two ranked sensor rows with a plus-minus degrees estimate badge each, then a lower group of three rows the estimate cannot price, each with its reason](img/card-advisor-page.png)
+
+*Every ranked row is an estimate — the model replaying what the sensor would
+pin down, not a measurement of your house — and the page says so on every
+row.*
+
+Three things shape the page:
+
+- **Each ranked row carries its spread and an *estimated* badge.** The spread
+  is in degrees the model's predictions can move — one unit, comparable
+  between sensors. The line under the heading names what drove the replay:
+  your install's measured delivery where there is history, configured
+  defaults otherwise.
+- **A sensor the estimate cannot price is listed below the ranked rows, with
+  its reason** — the outdoor probe whose job the weather entity already does,
+  the floor-return probe that feeds a state estimate rather than a learned
+  parameter, the hot-water probe whose learners fit quantities this estimate
+  has no band for. Listed rather than hidden, so a sensor you know is real
+  cannot look forgotten.
+- **Clicking a row acts.** The row opens the Setup page's assign picker for
+  that exact slot, pre-opened — the one editing lane the card already owns.
+  Adding the sensor is still your choice; the picker can be closed empty.
+
+When every optional temperature sensor is already configured, the page says
+exactly that; the integration publishes no ranking at all, and no empty table
+is drawn.
 
 ## The setup page
 
@@ -399,8 +464,9 @@ light and dark mode.
 ## Keyboard and screen readers
 
 Everything the card lets you click is a real button: the legend chips, the
-expand button in the header, the overlay's close button and its **Plan** /
-**Setup** tabs, the zoom controls, and the buttons in the schedule editor. They
+expand button in the header, the overlay's close button and its **Plan**,
+**Setup**, **Savings** and **Advisor** tabs, the zoom controls, and the
+buttons in the schedule editor. They
 take focus in reading order and carry spoken labels rather than relying on
 their glyphs — the zoom controls announce themselves as "Zoom out", "Zoom in"
 and "Show the whole plan". The time and temperature inputs in the schedule
@@ -408,8 +474,8 @@ editor are labelled the same way.
 
 The overlay is a native `<dialog>` opened with `showModal()`, so the browser
 itself keeps focus inside it and closes it on Escape; it is labelled with the
-card's title, and its two pages are a `role="tablist"` whose current tab
-carries `aria-selected`.
+card's title, and its four pages — Plan, Setup, Savings, Advisor — are a
+`role="tablist"` whose current tab carries `aria-selected`.
 
 The plan's editable slots and the setup page's assignment rows are covered
 above, under [Editing without a pointer](#editing-without-a-pointer) and
