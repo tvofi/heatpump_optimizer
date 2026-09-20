@@ -119,9 +119,13 @@ push_and_open() {
     [[ $issue =~ ^[0-9]+$ ]] || die "issue number '$issue' is not a number"
   done
   # The body is a path the caller typed; resolve it before any cd changes
-  # what it means (push.sh's #622 rule: one expansion, no re-quoting).
-  body=$(cd "$(dirname -- "$body")" 2>/dev/null && printf '%s/%s\n' "$(pwd)" "$(basename -- "$body")") \
-    || die "no body at $4"
+  # what it means (push.sh's #622 rule: one expansion, no re-quoting). The
+  # refusal names $body -- after `shift 4` the positional $4 is an issue
+  # number or unset, and `set -u` trips on the unset one before die prints.
+  local body_abs
+  body_abs=$(cd "$(dirname -- "$body")" 2>/dev/null && printf '%s/%s\n' "$(pwd)" "$(basename -- "$body")") \
+    || die "no body at $body"
+  body=$body_abs
   [ -f "$body" ] || die "no body file at $body"
   wt=$(cd "$wt" 2>/dev/null && pwd) || die "cannot enter worktree '$wt'"
 
@@ -180,6 +184,7 @@ push_and_open() {
   PRIV=$(mktemp -d "${TMPDIR:-/tmp}/app_push.XXXXXX") || die "could not create a private directory"
   trap cleanup EXIT
   trap 'exit 130' INT TERM HUP
+  # SIGKILL is the one signal no trap catches: a kill -9 mid-push can leave the token file in $PRIV, and the backstop is the one already documented -- the token expires within the hour.
   chmod 700 "$PRIV"
   b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
   local now h p s inst
@@ -211,8 +216,11 @@ HELPER
   chmod 700 "$PRIV/credhelper.sh"
 
   # The URL carries no credential; the token rides the helper's stdout pipe.
+  # http.postBuffer=64m (bounded): git's 1 MiB default sends a larger push
+  # chunked, and the remote hung up on every screenshot branch that hit it
+  # (#1267) -- 64 MiB keeps such a push in one Content-Length request.
   GIT_TERMINAL_PROMPT=0 git -C "$wt" -c credential.helper= -c "credential.helper=$PRIV/credhelper.sh" \
-    push "https://github.com/$repo.git" "$br" \
+    -c http.postBuffer=64m push "https://github.com/$repo.git" "$br" \
     || die "the App's push of $br to $repo was refused; no pull request was opened or re-bodied"
 
   local num url
@@ -413,6 +421,7 @@ if [ -n "$lp" ] && [ -n "$lm" ] && [ -n "$lu" ] && [ -n "$lpr" ] \
    && [ "$lp" -lt "$lm" ] && [ "$lm" -lt "$lu" ] && [ "$lu" -lt "$lpr" ]; then ORD=ordered; else ORD="prepr=$lp mint=$lm push=$lu pr=$lpr"; fi
 st "$ORD" ordered "prepr ran before the mint, the mint before the push, the push before the pull request (#678's ordering)"
 st "$(grep -c 'credential.helper= -c credential.helper=' "$W/ok/log")" 1 "the push resets the host's credential helpers before adding the App's"
+st "$(grep -c -- '-c http.postBuffer=64m push ' "$W/ok/log")" 1 "the push argv carries -c http.postBuffer=64m, so an over-1-MiB branch does not go chunked (#1267)"
 st "$(grep -c " push https://github.com/o/r.git $BR" "$W/ok/log")" 1 "and pushes over a token-free https URL to the branch"
 st "$(grep -c "$TOKEN\|Authorization:" "$W/ok/log")" 0 "the token and header text appear on NO stubbed command line, push included"
 st "$(python3 -c 'import sys; sys.stdout.write(open(sys.argv[1]).read())' "$W/ok/live-body")" "$(cat "$W/body.md")" "the created pull request carries the body file's exact bytes"
@@ -467,6 +476,9 @@ mkcase mainbr
 run mainbr o/r "$W/tool-wt" main "$W/body.md"; st $? 1 "REFUSE: pushing main is not this tool's job"
 mkcase usage
 run usage o/r "$W/tool-wt" "$BR"; st $? 1 "REFUSE: four arguments are required"
+mkcase nobody
+run nobody o/r "$W/tool-wt" "$BR" "$W/nobody/missing/body.md"; st $? 1 "REFUSE: a body path that does not resolve"
+st "$(grep -c '^app_push: REFUSE: no body at ' "$W/nobody/err")" 1 "naming the body path itself, not the pre-shift \$4 that set -u trips on after shift 4"
 
 # After the mint: the push and the pull request can still fail, and the trap
 # still revokes and removes.
