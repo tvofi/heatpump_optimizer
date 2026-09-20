@@ -31,8 +31,8 @@
 #      for it, and #716's round-4 evidence survived exactly that predicate.
 #   C. an ORPHANED seat directory under the seats root whose wt/ is no longer
 #      a registered worktree, with nothing under it modified within 2 hours
-#      (the guard that protects a running seat) and no unmerged branch
-#      readable inside it -- the 9.5 GB class.
+#      (the guard that protects a running seat), no unmerged branch readable
+#      inside it and no other live worktree beneath it -- the 9.5 GB class.
 #   D. a stale venv (a *-venv* directory under /tmp) untouched for 24 hours
 #      that no registered worktree symlinks into at depth <= 2.
 #
@@ -251,6 +251,44 @@ PY
   st "$(grep -c "^gh pr list" "$D/log")" 6 "one PR read per branch worktree plus the two orphan branches"
   st "$(grep -c "remove --force $D/orch/seat-nopr" "$D/log")" 0 "a no-PR branch is never removed"
 
+  # Class C must keep the seat dir holding another LIVE worktree -- the header's
+  # own keep rule, which classes A/B enforce via dispose_seat_dir. The orphan
+  # wt is dead (unregistered, no readable branch: the pruned class); the nested
+  # open-wt is REGISTERED with an OPEN pull request, so the same run prints
+  # `keep .../open-wt open-pr` for it -- and must not rm -rf the seat out from
+  # under it (#1288, the reviewer's attack 1 on #1287).
+  mkcase nested-live; build nested-live
+  printf 'worktree %s/orch/seat-orph-live/open-wt\nHEAD 3333333333333333333333333333333333333333\nbranch refs/heads/fix/open\n\n' "$W/nested-live" >> "$W/nested-live/porcelain"
+  mkdir -p "$W/nested-live/orch/seat-orph-live/wt" "$W/nested-live/orch/seat-orph-live/open-wt"
+  printf 'f\n' > "$W/nested-live/orch/seat-orph-live/wt/f"
+  printf 'g\n' > "$W/nested-live/orch/seat-orph-live/open-wt/g"
+  age_old "$H3" "$W/nested-live/orch/seat-orph-live"
+  run nested-live --keep-dir "$W/nested-live/ev" o/r; st $? 0 "nested live worktree under an orphan: rc 0"
+  D="$W/nested-live"
+  st "$(gots nested-live "keep  $D/orch/seat-orph-live/open-wt  open-pr")" 1 "the nested worktree itself is kept naming open-pr"
+  [ -d "$D/orch/seat-orph-live/open-wt" ]; st $? 0 "the nested LIVE worktree is not deleted"
+  [ -d "$D/orch/seat-orph-live" ]; st $? 0 "and the seat dir holding it is kept"
+  st "$(gots nested-live "keep  $D/orch/seat-orph-live  live-worktree ($D/orch/seat-orph-live/open-wt)")" 1 "kept naming the nested worktree"
+  st "$(gots nested-live "(orphaned seat)")" 0 "never announced as an orphan removal (null control)"
+  [ -f "$D/orch/seat-orph-live/open-wt/g" ]; st $? 0 "the live worktree's file is intact"
+
+  # A failed evidence move must backstop class C as it backs A/B (a leftover
+  # evidence dir is nondisposable-contents there): the keep-dir path is blocked
+  # by a file, the mv fails, and the seat -- evidence still in place -- is kept
+  # rather than rm -rf'd (#1288 secondary).
+  mkcase failed-move; build failed-move
+  mkdir -p "$W/failed-move/orch/seat-orph-fail/wt" "$W/failed-move/orch/seat-orph-fail/ev-9"
+  printf 'f\n' > "$W/failed-move/orch/seat-orph-fail/wt/f"
+  printf 'e\n' > "$W/failed-move/orch/seat-orph-fail/ev-9/ev.txt"
+  printf 'blocker\n' > "$W/failed-move/ev/seat-orph-fail" # a file where mkdir must build the evidence root
+  age_old "$H3" "$W/failed-move/orch/seat-orph-fail"
+  run failed-move --keep-dir "$W/failed-move/ev" o/r; st $? 0 "failed evidence move in class C: rc 0"
+  D="$W/failed-move"
+  st "$(grep -c "FAILED to preserve evidence" "$D/err")" 1 "the move failure is reported"
+  [ -d "$D/orch/seat-orph-fail/ev-9" ]; st $? 0 "the evidence stays in the seat dir"
+  [ -d "$D/orch/seat-orph-fail" ]; st $? 0 "and the seat dir is kept"
+  st "$(gots failed-move "keep  $D/orch/seat-orph-fail  nondisposable-contents (ev-9)")" 1 "kept naming nondisposable-contents"
+
   # --dry-run over a rebuilt fixture: identical decisions, nothing moved.
   mkcase dry; build dry
   run dry --dry-run --keep-dir "$W/dry/ev" o/r; st $? 0 "--dry-run exits 0"
@@ -371,8 +409,10 @@ def recent(dp):
 sys.exit(0 if recent(root) else 1)' "$1" "$2"
 }
 
-# 0 iff a registered worktree this run did not remove sits under seat-dir.
-another_live_under() {
+# The registered worktree this run did not remove that sits under seat-dir
+# (at it or beneath it), printed when one exists and empty otherwise -- the
+# keep line names it, so the reason reaches the seat that owns it.
+live_under() {
   python3 - "$1" "$REMOVED_FILE" "$LIVE_FILE" <<'PY'
 import os, sys
 seat = os.path.realpath(sys.argv[1])
@@ -383,10 +423,12 @@ removed = set(rd(sys.argv[2]))
 for wt in rd(sys.argv[3]):
     if wt in removed: continue
     if wt == seat or wt.startswith(seat + os.sep):
-        sys.exit(0)
-sys.exit(1)
+        print(wt); break
 PY
 }
+
+# 0 iff a registered worktree this run did not remove sits under seat-dir.
+another_live_under() { [ -n "$(live_under "$1")" ]; }
 
 # Move a seat directory's cited evidence into the keep-dir before removal.
 preserve_evidence() { # seat-dir; one kept-evidence line per move
@@ -572,10 +614,26 @@ if [ -d "$SEATS_REAL" ]; then
         printf 'keep  %s  unmerged-head\n' "$seat"; KEPT_N=$((KEPT_N+1)); continue
       fi
     fi
+    # The header's keep rule classes A/B enforce via dispose_seat_dir: a seat
+    # directory holding another live worktree is kept, or the rm -rf below
+    # takes the nested worktree with it in the same run that printed
+    # `keep ... open-pr` for it (#1288).
+    nested=$(live_under "$seat_real")
+    if [ -n "$nested" ]; then
+      printf 'keep  %s  live-worktree (%s)\n' "$seat" "$nested"; KEPT_N=$((KEPT_N+1)); continue
+    fi
     ELIGIBLE=$((ELIGIBLE+1))
     printf 'remove  %s (orphaned seat)\n' "$seat"
     preserve_evidence "$seat_real"
     if [ "$DRY" -eq 0 ]; then
+      # A failed evidence move leaves the directory behind; the seat is kept
+      # under dispose_seat_dir's own nondisposable-contents rule rather than
+      # rm -rf'd past evidence a verdict can still reach (#1288).
+      for e in "$seat_real"/evidence* "$seat_real"/ev-*; do
+        [ -d "$e" ] || continue
+        printf 'keep  %s  nondisposable-contents (%s)\n' "$seat" "$(basename "$e")"
+        KEPT_N=$((KEPT_N+1)); continue 2
+      done
       rm -rf "$seat_real" && printf 'removed  %s\n' "$seat" && REMOVED_N=$((REMOVED_N+1)) \
         || printf 'worktree_gc: FAILED to remove %s\n' "$seat" >&2
     fi
