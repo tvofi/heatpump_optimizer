@@ -938,11 +938,11 @@
  {
   "id": "C105",
   "source": "docs/automations.md",
-  "claim": "the Power Headroom sensor stays unavailable until you set a main fuse size in the options",
+  "claim": "the Power Headroom sensor appears once anything bounds the house -- a main fuse OR a capacity tariff -- and a tariff-only install reads 0.0 kW with limit_source='capacity tariff with no peak reference yet' until the month's first metering window closes; with neither it stays unavailable",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
   "result": "no fuse + capacity tariff enabled -> {'available': True, 'limit_kw': 0.0, 'headroom_kw': 0.0, 'baseline_source': 'planned power only (no meter)', 'limit_source': 'capacity tariff with no peak reference yet'}; fuse only -> available=True; neither -> available=False",
-  "verdict": "false",
-  "truth": "a capacity tariff alone makes it available (limit_source='capacity tariff with no peak reference yet', headroom_kw=0.0) with no fuse set; the fuse is one of two sufficient conditions, not a necessary one"
+  "verdict": "true",
+  "truth": ""
  },
  {
   "id": "C106",
