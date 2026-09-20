@@ -127,6 +127,41 @@ SENSITIVE = (
     "valve_upper_direct_slab",
 )
 
+#: The owner-sanctioned #1208 movers (owner ruling #1208 comment 5748462577
+#: via 5749712766 option (a) for the first two, 2026-09-20; third name
+#: sanctioned by the owner's in-session (i) ruling on the options recorded
+#: in #1208 comment fd13246 / database id 5750673720). These are NOT
+#: gate-declared BLAS-sensitive fixtures -- they are the fixtures
+#: polish-every-candidate (#1208) moves by margins measured INSIDE or AT
+#: the 5e-5-2e-2 noise band (flat_prices objective rel -1.2171e-03,
+#: winter_two_zone_no_dhw -1.3365e-03, both deterministic on one box;
+#: shoulder_two_zone 452 leaves on the first #1282 runner only,
+#: byte-identical on the dev box, its one printed money leaf at 2.19e-2
+#: relative -- at/just over the band's top edge, with the branch side
+#: matching the committed recording, i.e. the move is toward the canonical
+#: value, not away), so WHICH runner sees them move is a property of the
+#: runner's BLAS and not of the diff -- the same runner-conditional
+#: property the #996 fleet refusal measured when two CI runs of one tree
+#: pair moved different fixture sets. A bare claim cannot be true on every
+#: runner for exactly that reason; may-drift asserts nothing either way,
+#: which is the honest statement. The rulings scope this to exactly these
+#: three names -- not the blanket 11-fixture exemption #996 (i) refused --
+#: and each claim-file entry carries the removal condition: remove when
+#: drift lanes are pinned or the polish improvement scale leaves
+#: 5e-5-2e-2. MAY_DRIFT_JUDGED_KEYS still fail on these three exactly as
+#: on the SENSITIVE five: prices, outdoor_temps, price_known and
+#: baseline_cost are fixed by the forecast and the baseline reference, not
+#: by which local optimum the polish lands in.
+RUNNER_CONDITIONAL_1208 = (
+    "flat_prices",
+    "winter_two_zone_no_dhw",
+    "shoulder_two_zone",
+)
+
+#: Every name a may-drift entry may carry: the gate's own five, plus the
+#: owner-sanctioned #1208 movers. Nothing else, ever, without a ruling.
+MAY_DRIFT_ALLOWED = SENSITIVE + RUNNER_CONDITIONAL_1208
+
 CLAIM_FILE = os.path.join("tests", "golden", "claimed_drift.txt")
 CARD_CLAIM_FILE = os.path.join("tests", "golden", "card_claimed_drift.txt")
 CARD_JS = os.path.join(
@@ -1039,8 +1074,10 @@ def _may_drift(repo: str) -> dict[str, str]:
     baseline_cost) still fail: they are fixed by the forecast and baseline
     reference, not by which local optimum was reached. It is deliberately
     weaker than a claim for plan keys only, and confined so it cannot be
-    used as one: `may_drift_error` rejects any name outside ``SENSITIVE``,
-    so the exemption can never reach a fixture whose floats do travel.
+    used as one: `may_drift_error` rejects any name outside
+    ``MAY_DRIFT_ALLOWED`` (the SENSITIVE five plus the owner-sanctioned
+    ``RUNNER_CONDITIONAL_1208`` pair), so the exemption cannot reach any
+    other fixture whose floats do travel.
 
     Written as comment lines (``# may-drift: <name> -- <reason>``) so that
     `_claimed`, which reads any non-comment line as a claim, is untouched --
@@ -1075,19 +1112,23 @@ def may_drift_error(
     Two rules, and both exist to stop the category becoming a way to launder
     a real regression:
 
-    * it may only name fixtures in ``SENSITIVE``, the ones this script
-      already declares non-reproducible. Anywhere else, a moved fixture is
-      the branch's doing and has to be claimed;
+    * it may only name fixtures in ``MAY_DRIFT_ALLOWED``: the five in
+      ``SENSITIVE`` this script declares non-reproducible, plus the
+      owner-sanctioned ``RUNNER_CONDITIONAL_1208`` pair (ruling #1208
+      comment 208bed25, with its removal condition in each entry).
+      Anywhere else, a moved fixture is the branch's doing and has to be
+      claimed;
     * a name cannot be both claimed and may-drift, because the two say
       different things about the same scenario and only one can be checked.
     """
-    stray = sorted(set(may_drift) - set(SENSITIVE))
+    stray = sorted(set(may_drift) - set(MAY_DRIFT_ALLOWED))
     if stray:
         return (
             "MAY-DRIFT OUT OF SCOPE: {file} marks\n"
             "{stray} as may-drift, but that category exists only for the\n"
             "fixtures this gate declares non-reproducible across BLAS\n"
-            "builds: {sensitive}.\n"
+            "builds ({sensitive}) plus the owner-sanctioned #1208 pair\n"
+            "({ruled}).\n"
             "Everywhere else a moved fixture is this branch's doing and is\n"
             "judged per release -- claim it with a reason, or find out why\n"
             "it moved. Widening this category would let a real regression\n"
@@ -1096,6 +1137,7 @@ def may_drift_error(
             file=CLAIM_FILE,
             stray=", ".join(stray),
             sensitive=", ".join(SENSITIVE),
+            ruled=", ".join(RUNNER_CONDITIONAL_1208),
         )
     both = sorted(set(may_drift) & set(claims))
     if both:

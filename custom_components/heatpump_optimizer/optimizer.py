@@ -581,14 +581,25 @@ def _multi_start_minimize(
         except Exception as err:  # pragma: no cover - solver blow-up
             last_error = err
             continue
+        # Polish EVERY solved candidate, here inside the loop (#1208, round
+        # 5 D0-02; owner override 2026-09-20, comment eb3540c1: the
+        # unbounded form). The restart used to run once, on the raw-best
+        # result after the loop, so a candidate whose own polish would have
+        # dropped below that result never got one: measured on the round-5
+        # grid, production shipped up to 1.40% above the best its own code
+        # reaches from the same candidates. Each polish restarts from that
+        # candidate's own converged point at the full restart budget, so it
+        # costs one short L-BFGS-B run per candidate, not a second solve;
+        # the cross-candidate minimum below is what ships.
+        res = _lbfgsb_restart(
+            res, memoized, bounds, args, maxiter, batch_objective, fd_eps,
+        )
         score = float(memoized(res.x, *args))
         if np.isfinite(score) and score < best_score:
             best, best_score = res, score
     if best is None:
         raise last_error or ValueError("all starting points failed")
-    return _lbfgsb_restart(
-        best, memoized, bounds, args, maxiter, batch_objective, fd_eps,
-    )
+    return best
 
 
 #: Below this horizon-mean price (SEK/kWh) the smooth guess's normalisation

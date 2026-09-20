@@ -39,9 +39,13 @@
 # either is fine for schedules, trajectories and other basin-sensitive fields.
 # Diffs in prices, outdoor_temps, price_known or baseline_cost still fail —
 # see MAY_DRIFT_JUDGED_KEYS in env_drift.py (#254). It exists only for the
-# five fixtures this gate itself declares non-reproducible across BLAS builds,
-# and env_drift.py refuses any other name -- see `_may_drift` there for the
-# full reasoning. Because it is a statement about those fixtures rather than
+# five fixtures this gate itself declares non-reproducible across BLAS builds
+# -- plus, since the #1208 owner ruling (comment 208bed25, option (a),
+# 2026-09-20), exactly two runner-conditional movers that ruling names
+# (flat_prices, winter_two_zone_no_dhw, see RUNNER_CONDITIONAL_1208 in
+# env_drift.py) -- and env_drift.py refuses every other name -- see
+# `_may_drift` there for the full reasoning. Because it is a statement about
+# those fixtures rather than
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
@@ -180,6 +184,25 @@
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+# (option (a)): the move's margin is inside the noise band (objective rel
+# -1.2171e-03, deterministic on one box), so which runner sees it move is the
+# BLAS's property, not the diff's; judged keys (prices/outdoor_temps/
+# price_known/baseline_cost) still fail. Remove when drift lanes are pinned
+# or the polish improvement scale leaves 5e-5-2e-2.
+# may-drift: winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
+# ruling #1208 comment 208bed25 (option (a)): the move's margin is inside the
+# noise band (objective rel -1.3365e-03, predicted_cost rel +8.39e-03),
+# runner-conditional for the same reason; judged keys still fail. Remove when
+# drift lanes are pinned or the polish improvement scale leaves 5e-5-2e-2.
+# may-drift: shoulder_two_zone -- #1208 polish-every-candidate, third name
+# sanctioned by the owner's in-session (i) ruling on the options recorded in
+# #1208 comment fd13246: 452 leaves moved on the first #1282 runner only
+# (byte-identical on the dev box), the one printed money leaf at 2.19e-2
+# relative -- at/just over the band's 2e-2 top edge -- and the branch side
+# matches the committed recording, i.e. the move is toward the canonical
+# value, not away; judged keys still fail. Remove when drift lanes are
+# pinned or the polish improvement scale leaves 5e-5-2e-2.
 # W4-G9 S8 (#193, the COP-health watch): this branch claims NOTHING. Two
 # initialisations move verbatim from `_init_insurance` into
 # `_init_thermal_learning` -- an earlier call in the same `__init__`, with
@@ -364,17 +387,18 @@
 # (The bare claim this note introduced -- config_flow, the cleared-entity-
 # picker fix, merged as #1249 -- is dropped by the 27458c8a absorb above;
 # the note stays as history.)
-# #1269, the sensor advisor: the five coord_* scenarios capture the plan
-# sensors' published attributes, and this change adds sensor_advisor to
-# both plan sensors' extra_state_attributes (present wherever the entry
-# has an unconfigured optional temperature sensor -- every coord scenario
-# qualifies). Direction, one mechanism in all five: TWO additive leaves
-# per scenario (space_heating_plan and dhw_heating_plan
-# extra_state_attributes.sensor_advisor, present on one side only); no
-# leaf is removed or rewritten, and no solver float, plan slot or cost
-# figure moves. The config_flow claim this file carried at the merge base
-# was main's own (un-stamped until the next release); deleting it here is
-# this branch writing its own list, as the inherited-claims guard
+# #1208 (polish every solved candidate; owner override comment 5748462577,
+# owner ruling comment 208bed25, option (a)): this branch's BARE list is
+# EMPTY. The two fixtures it moves are carried as may-drift entries above,
+# per the ruling, because their move margins sit inside the 5e-5-2e-2 noise
+# band (measured: flat_prices objective rel -1.2171e-03,
+# winter_two_zone_no_dhw -1.3365e-03) and a bare claim cannot be true on
+# every runner for exactly that reason (#996's fleet evidence: two CI runs
+# of one tree pair moved different fixture sets). Every other fixture is
+# byte-identical (48 of 50 plan fixtures; the coordinator, config_flow and
+# card captures untouched). The five coord_* claims this file carried at
+# the merge base were main's own (#1269's sensor advisor); deleting them
+# here is this branch writing its own list, as the inherited-claims guard
 # requires.
 #
 # The pre-fill rename and menu lift (owner request, Part of #201): this
