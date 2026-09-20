@@ -466,10 +466,59 @@ await block('group 12', async () => {
     !calls.some((c) => c.startsWith('repair')), J(calls))
 })
 await block('group 13', async () => {
+  // #1239 (D13-02), measured at the round-5 baseline: 16 of 30 blocked
+  // verdicts fell outside this grammar -- 7 bare (no class word), 9 with a
+  // class word the vocabulary never taught -- and every one of them took the
+  // unparseable path, which drops the head SHA the reviewer measured and
+  // leaves the wave no route but "blocked, no reason". The grammar below now
+  // reads both shapes: the class words stay the taught list for ROUTING, but
+  // a verdict that names a full head SHA is never discarded unreadable --
+  // the head is the one thing a later round cannot re-derive. (This group's
+  // old fixture used `h1` as its SHA, so the abbreviated-SHA refusal fired
+  // before the class arm and the pin exercised no vocabulary at all.)
+  const sha = 'a'.repeat(40)
+  const { out, calls } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
+    agentImpl: REVIEW(`Fix review: blocked ${sha} not-a-real-class: invented`, 'blocked') })
+  const r = out.results[0]
+  t('a blocked verdict with an untaught class word parses and routes to other',
+    r.merged === false && r.class === 'other',
+    J(r))
+  t('and the untaught word survives in the why rather than vanishing into "unparseable"',
+    /^not-a-real-class:/.test(r.why ?? '') && !/unparseable/.test(r.why ?? ''), J(r.why).slice(0, 90))
+  t('an untaught class word is repaired once, exactly like a taught one -- the repair round is the proof the verdict ROUTED (unparseable verdicts skip it)',
+    calls.filter((c) => c.startsWith('repair')).length === 1 && calls.some((c) => c.startsWith('re-review')), J(calls))
+})
+await block('group 13b -- bare blocked verdicts (#1239: the 7 bare of 16)', async () => {
+  const sha = 'b'.repeat(40)
+  const { out, calls } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
+    agentImpl: REVIEW(`Fix review: blocked ${sha}`, 'blocked') })
+  const r = out.results[0]
+  t('a bare blocked verdict (no class) parses and routes to other',
+    r.merged === false && r.class === 'other' && !/unparseable/.test(r.why ?? ''), J(r))
+  t('a bare blocked verdict is repaired once, not discarded as unreadable',
+    calls.filter((c) => c.startsWith('repair')).length === 1, J(calls))
+})
+await block('group 13c -- the reason line without a class word (#1239: parse the reason line)', async () => {
+  const sha = 'c'.repeat(40)
   const { out } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
-    agentImpl: REVIEW('Fix review: blocked h1 not-a-real-class: invented', 'blocked') })
-  t('a class outside the vocabulary is unreadable rather than silently accepted',
+    agentImpl: REVIEW(`Fix review: blocked ${sha}: the mutation proof names no failing check`, 'blocked') })
+  const r = out.results[0]
+  t('`blocked <sha>: <why>` parses with the reason kept as the why',
+    r.merged === false && r.class === 'other' && /mutation proof/.test(r.why ?? '') && !/unparseable/.test(r.why ?? ''), J(r))
+})
+await block('group 13d -- what still refuses', async () => {
+  // The loosening is total about CLASS WORDS and never about the head: the
+  // SHA stays the full 40 hex the merge gate compares against (#1106), and a
+  // first line that is neither merge nor blocked -- the `PASS — merge` shape
+  // the D13 brief names -- stays unreadable rather than guessed at.
+  const { out } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
+    agentImpl: REVIEW(`Fix review: blocked ${'a'.repeat(39)}: reason without a full sha`, 'blocked') })
+  t('a blocked verdict with a 39-hex SHA is still refused (#1106)',
     /unparseable/.test(out.results[0].why ?? ''), J(out.results[0].why).slice(0, 80))
+  const { out: out2 } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK,
+    agentImpl: REVIEW('Fix review: PASS — merge deadbeef', 'merge') })
+  t('a `PASS — merge` line stays outside the grammar entirely',
+    /unparseable/.test(out2.results[0].why ?? ''), J(out2.results[0].why).slice(0, 80))
 })
 
 console.log('-- Regressions a review found, pinned so they cannot come back')
