@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.6.6
+# claims-for: 6.6.7
 #
-# v6.6.6: the identity switch, two feature waves, and a run of audit and record repairs. The stamp empties the list; the
+# v6.6.7: the self-approving CI pipeline, the pre-fill rename, and the card history pan. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -373,42 +373,3 @@
 # The legend's localStorage toggle and the config `series:` map accept
 # the new key; no payload key, published value, solver path or backend
 # file is touched.
-no_plan # the eighth legend chip (actioned power); additive, no other change
-no_plan_expanded # the eighth legend chip (actioned power); additive, no other change
-plan_inline # the eighth legend chip (actioned power); additive, no other change
-plan_inline_sv # the eighth legend chip (actioned power, "Utförd effekt"); additive
-plan_short_window # the eighth legend chip (actioned power); additive, no other change
-custom_title_currency # the eighth legend chip (actioned power); additive, no other change
-hidden_series # the eighth legend chip (actioned power); additive, no other change
-score_open # the eighth legend chip (actioned power); additive, no other change
-expanded_plan # the eighth legend chip (actioned power); additive, no other change
-what_if_off # the eighth legend chip (actioned power); additive, no other change
-expanded_zoomed # the eighth legend chip (actioned power); additive, no other change
-draft_dirty_menu_open # the eighth legend chip (actioned power); additive, no other change
-draft_mid_drag # the eighth legend chip (actioned power); additive, no other change
-whatif_edited # the eighth legend chip (actioned power); additive, no other change
-whatif_weekly # the eighth legend chip (actioned power); additive, no other change
-override_active # the eighth legend chip (actioned power); additive, no other change
-shared_steps # the eighth legend chip (actioned power); additive, no other change
-shared_steps_hover # the eighth legend chip (actioned power); additive, no other change
-tooltip_hover # the eighth legend chip (actioned power); additive, no other change
-coarse_pointer # the eighth legend chip (actioned power); additive, no other change
-reduced_motion # the eighth legend chip (actioned power); additive, no other change
-setup_single_buffer # the eighth legend chip (actioned power); additive, no other change
-setup_two_tank # the eighth legend chip (actioned power); additive, no other change
-setup_coil # the eighth legend chip (actioned power); additive, no other change
-advisor_page # the eighth legend chip (actioned power); additive, no other change
-layout_editing_dragged # the eighth legend chip (actioned power); additive, no other change
-layout_editing_tidy # the eighth legend chip (actioned power); additive, no other change
-picker_open_filtered # the eighth legend chip (actioned power); additive, no other change
-wood_alert # the eighth legend chip (actioned power); additive, no other change
-wood_lane # the eighth legend chip (actioned power); additive, no other change
-wood_whatif # the eighth legend chip (actioned power); additive, no other change
-away_toggle # the eighth legend chip (actioned power); additive, no other change
-away_return # the eighth legend chip (actioned power); additive, no other change
-away_status # the eighth legend chip (actioned power); additive, no other change
-editor_schema # the editor's series list gains the one actioned toggle, schema and data
-history_panned # new state: measured traces and actioned bars left of the now rule
-history_deep_panned # new state: the same at -40h, more 12h chunks fetched lazily
-history_unavailable # new state: empty recorder degrades to a notice over the live view
-history_pending # new state: an unanswered fetch draws the plan plus a loading notice

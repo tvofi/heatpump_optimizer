@@ -1,5 +1,22 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.6.7
+
+the held-run approval pipeline completes itself, and two user-facing card and
+setup improvements:
+
+- #1280 — the autofix jobs approve their own held runs via the dedicated
+  Actions-only hpo-runs App (fail-soft without its secrets); the ci-autofix
+  rule gains the sentence describing it
+- #1281 — the pre-fill page is renamed "Pre-fill from a heat pump device"
+  and lifted from Advanced to the first menu (Tuya-primary, basic setup)
+- #1284 — the approve step polls for the pushed SHA's held runs before
+  listing, closing the race where it approved nothing and exited green
+- #1286 — the card plan-history pan: up to 48 hours back through actual
+  temperatures, prices, solar irradiance and an Actioned power series drawn
+  from the heat pump action sensor's own history; lazy 12h chunks, graceful
+  without a recorder
+
 ## v6.6.6
 
 the identity switch lands (the hpo-author App authors, decision 0011) with its
