@@ -331,10 +331,24 @@
         "title": "Pre-fill from a heat pump device",
         "description": "A heat pump device in this install can answer several of these settings from its own entities. Pick it and submit: the next form suggests what its entities say, as ordinary fields you can edit or clear, and nothing is written until you submit that form. Leave the device empty to skip this and continue setup.\n\nEntities read: {found}. Backup heater type register: {backup_heater_type} - any value but 7 means the pump has electric heat of its own, which the heater slots on Heat pump telemetry are there to watch.\n\nRoles read from an entity's NAME rather than from a published definition - the page cannot verify those, so check each before saving: {name_matched}. Roles read from published definitions, by source: {matched_sources}.",
         "data": {
-          "prefill_device": "Heat pump device"
+          "prefill_device": "Heat pump device",
+          "dhw_setpoint": "Highest tank temperature to charge to",
+          "outdoor_temp_entity": "Outdoor temperature sensor",
+          "dhw_temp_entity": "Hot water tank temperature sensor",
+          "heat_pump_supply_temp_entity": "Supply (flow) water temperature",
+          "heat_pump_return_temp_entity": "Return water temperature",
+          "heat_pump_capacity_limited_entity": "Capacity limited (night mode)",
+          "after_save": "After saving"
         },
         "data_description": {
-          "prefill_device": "The pump's own device. Its entities are mapped to settings by that integration's published definitions, or by their names where nothing is published - not from a reading of your unit - so check the suggestions before keeping them. Leave it empty to continue setup without the pre-fill."
+          "prefill_device": "The pump's own device. Its entities are mapped to settings by that integration's published definitions, or by their names where nothing is published - not from a reading of your unit - so check the suggestions before keeping them. Leave it empty to continue setup without the pre-fill.",
+          "dhw_setpoint": "Read from the pump's DHW normal setpoint register (0194H), times 0.1.",
+          "outdoor_temp_entity": "The heat pump's outdoor air temperature sensor, suggested only while this slot is empty.",
+          "dhw_temp_entity": "The heat pump's hot water tank temperature sensor, suggested only while this slot is empty.",
+          "heat_pump_supply_temp_entity": "The heat pump's leaving water temperature (T1) sensor, suggested only while this slot is empty.",
+          "heat_pump_return_temp_entity": "The heat pump's entering water temperature (Tw-in) sensor, suggested only while this slot is empty.",
+          "heat_pump_capacity_limited_entity": "The heat pump's night mode (frequency reduction) active sensor, suggested only while this slot is empty.",
+          "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       }
     },
@@ -437,6 +451,7 @@
           "tuning": "Savings vs comfort",
           "grid": "Grid peak tariff",
           "away": "Away and holiday mode",
+          "quick_setup": "Quick setup",
           "advanced": "Advanced settings"
         }
       },
@@ -995,6 +1010,42 @@
           "holiday_calendar_entity": "When this calendar is on, holiday comfort and holiday hot-water windows replace the weekday/weekend pair for that day. Away setback still wins if away is active.",
           "away_dhw_min_temperature": "The anti-legionella cycle still runs, and is timed to finish before you get back.",
           "away_temperature": "The hold temperature while away. Low enough to save, high enough to protect the house and its plumbing.",
+          "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+        }
+      },
+      "quick_setup": {
+        "title": "Quick setup",
+        "description": "The same house questions the initial setup offers, answered over this entry's existing settings: submit them and the thermal model is re-derived from the questionnaire. Nothing else is touched, and the device pre-fill is not offered here - this entry's entity slots are already answered, and the pre-fill stays on the advanced Pre-fill from a Modbus heat pump page.",
+        "data": {
+          "two_zone": "Two-zone house",
+          "buffer_tank": "Buffer tank",
+          "dhw_tank": "Hot water tank",
+          "wood_furnace": "Wood furnace",
+          "wood_buffer_tank": "Wood buffer tank",
+          "wood_tank_top_entity": "Wood tank top sensor (optional)",
+          "wood_tank_bottom_entity": "Wood tank bottom sensor (optional)",
+          "building_structure": "What the house is built from",
+          "building_era": "Roughly when it was built",
+          "building_foundation": "Foundation",
+          "heated_area_m2": "Heated floor area",
+          "upper_floor_emitter": "Upper floor heating",
+          "lower_floor_emitter": "Lower floor heating",
+          "after_save": "After saving"
+        },
+        "data_description": {
+          "two_zone": "On for a house with two separately heated floors, off for one. A two-zone house lets the optimizer balance the slab-heated lower floor against the upper floor.",
+          "buffer_tank": "A tank between the heat pump and the heating circuits, large enough to store heat. On stores cheap heat and releases it during expensive hours.",
+          "dhw_tank": "A tank the heat pump keeps full of domestic hot water. Leave on if your heat pump makes hot water.",
+          "wood_furnace": "A wood furnace that heats the same water loop. On lets the optimizer factor its heat in and stand the pump down while the fire is lit.",
+          "wood_buffer_tank": "A second tank the wood furnace heats, separate from the heat pump's buffer. Its temperature probes are picked below; the two-tank physics activates only once a probe is assigned.",
+          "wood_tank_top_entity": "Together with the bottom sensor this says how much a fire has left. A hot top over a cold bottom means the charge is nearly spent.",
+          "wood_tank_bottom_entity": "See the top sensor. Both are needed for the remaining-energy estimate; one alone is read conservatively.",
+          "building_structure": "Heavy materials inside the insulation store heat, which is what lets the optimizer buy it cheaply and use it later.",
+          "building_era": "Construction era is a good proxy for insulation standard, and a far better starting point than a single default.",
+          "building_foundation": "A crawl space adds heat loss; a heated basement adds both loss area and thermal mass.",
+          "heated_area_m2": "Everything is scaled by this, so it is the number worth getting closest to right.",
+          "upper_floor_emitter": "Radiators respond in minutes, floor heating in hours. That sets how far ahead heating can usefully be shifted.",
+          "lower_floor_emitter": "A heated slab is a large store that gets actively charged, so it makes pre-heating both more valuable and more necessary.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },

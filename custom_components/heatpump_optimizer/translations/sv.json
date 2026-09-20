@@ -331,10 +331,24 @@
         "title": "Förifyll från en värmepumpsenhet",
         "description": "En värmepumpsenhet i den här installationen kan svara på flera av de här inställningarna utifrån sina egna entiteter. Välj den och skicka: nästa formulär föreslår vad dess entiteter säger, som vanliga fält du kan ändra eller tömma, och inget skrivs förrän du skickar det formuläret. Lämna enheten tom för att hoppa över det här och fortsätta installationen.\n\nLästa entiteter: {found}. Registret för tillsatsvärmens typ: {backup_heater_type} - allt utom 7 betyder att pumpen har egen elvärme, och det är den som elpatronfälten under Värmepumps telemetri finns till för att bevaka.\n\nRoller lästa ur en entitets NAMN i stället för ur en publicerad definition - sidan kan inte verifiera dem, så kontrollera var och en innan du sparar: {name_matched}. Roller lästa ur publicerade definitioner, per källa: {matched_sources}.",
         "data": {
-          "prefill_device": "Värmepumpens enhet"
+          "prefill_device": "Värmepumpens enhet",
+          "dhw_setpoint": "Högsta temperatur att ladda till",
+          "outdoor_temp_entity": "Utomhusgivare",
+          "dhw_temp_entity": "Givare för varmvattenberedarens temperatur",
+          "heat_pump_supply_temp_entity": "Framledningstemperatur",
+          "heat_pump_return_temp_entity": "Returtemperatur",
+          "heat_pump_capacity_limited_entity": "Begränsad effekt (nattläge)",
+          "after_save": "Efter sparande"
         },
         "data_description": {
-          "prefill_device": "Pumpens egen enhet. Dess entiteter mappas till inställningar av integrationens publicerade definitioner, eller av deras namn där inget publiceras - inte från en avläsning av din enhet - så kontrollera förslagen innan du behåller dem. Lämna tomt för att fortsätta installationen utan förifyllningen."
+          "prefill_device": "Pumpens egen enhet. Dess entiteter mappas till inställningar av integrationens publicerade definitioner, eller av deras namn där inget publiceras - inte från en avläsning av din enhet - så kontrollera förslagen innan du behåller dem. Lämna tomt för att fortsätta installationen utan förifyllningen.",
+          "dhw_setpoint": "Läst ur pumpens register för normalt varmvattenbörvärde (0194H), gånger 0,1.",
+          "outdoor_temp_entity": "Värmepumpens givare för utomhustemperatur, föreslås bara medan fältet är tomt.",
+          "dhw_temp_entity": "Värmepumpens givare för varmvattenberedarens temperatur, föreslås bara medan fältet är tomt.",
+          "heat_pump_supply_temp_entity": "Värmepumpens givare för utgående vattentemperatur (T1), föreslås bara medan fältet är tomt.",
+          "heat_pump_return_temp_entity": "Värmepumpens givare för ingående vattentemperatur (Tw-in), föreslås bara medan fältet är tomt.",
+          "heat_pump_capacity_limited_entity": "Värmepumpens givare för aktivt nattläge (frekvensbegränsning), föreslås bara medan fältet är tomt.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       }
     },
@@ -437,6 +451,7 @@
           "tuning": "Besparing kontra komfort",
           "grid": "Effekttariff",
           "away": "Bortaläge och semester",
+          "quick_setup": "Snabb installation",
           "advanced": "Avancerade inställningar"
         }
       },
@@ -996,6 +1011,42 @@
           "away_temperature": "Temperaturen som hålls under bortavaron. Låg nog att spara, hög nog att skydda hus och rör.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
           "holiday_calendar_entity": "När den här kalendern är på ersätter lovets komfort och varmvattenfönster vardag/helg för den dagen. Bortasänkning vinner om bortaläget är aktivt."
+        }
+      },
+      "quick_setup": {
+        "title": "Snabb installation",
+        "description": "Samma husfrågor som den första installationen ställer, besvarade ovanpå postens befintliga inställningar: skicka in dem så härleds den termiska modellen om från formuläret. Inget annat rörs, och förifyllningen erbjuds inte här - entitetsfälten är redan svarade, och förifyllningen finns kvar på den avancerade sidan Förifyll från en Modbus-värmepump.",
+        "data": {
+          "two_zone": "Hus med två zoner",
+          "buffer_tank": "Bufferttank",
+          "dhw_tank": "Varmvattenberedare",
+          "wood_furnace": "Vedpanna",
+          "wood_buffer_tank": "Vedpannans tank",
+          "wood_tank_top_entity": "Givare, toppen av vedtanken (valfri)",
+          "wood_tank_bottom_entity": "Givare, botten av vedtanken (valfri)",
+          "building_structure": "Vad huset är byggt av",
+          "building_era": "Ungefär när det byggdes",
+          "building_foundation": "Grundläggning",
+          "heated_area_m2": "Uppvärmd golvyta",
+          "upper_floor_emitter": "Värme på övervåningen",
+          "lower_floor_emitter": "Värme på nedervåningen",
+          "after_save": "Efter sparande"
+        },
+        "data_description": {
+          "two_zone": "På för ett hus med två separat värmda plan, av för ett enda. Ett tvåzonshus låter optimeraren balansera det golvvärmda nedre planet mot det övre.",
+          "buffer_tank": "En tank mellan värmepumpen och värmekretsarna, stor nog att lagra värme. På lagrar billig värme och släpper ut den under dyra timmar.",
+          "dhw_tank": "En beredare som värmepumpen håller full med varmvatten. Lämna på om din värmepump gör varmvatten.",
+          "wood_furnace": "En vedpanna som värmer samma vattenkrets. På låter optimeraren räkna in dess värme och låta pumpen stå tillbaka medan brasan brinner.",
+          "wood_buffer_tank": "En andra tank som vedpannan värmer, skild från värmepumpens buffert. Dess temperaturgivare väljs här nedan; tvåtanksfysiken aktiveras först när en givare är angiven.",
+          "wood_tank_top_entity": "Tillsammans med bottengivaren säger den hur mycket en brasa har kvar. Varm topp över kall botten betyder att laddningen nästan är slut.",
+          "wood_tank_bottom_entity": "Se toppgivaren. Båda behövs för uppskattningen av kvarvarande energi; en ensam läses konservativt.",
+          "building_structure": "Tunga material innanför isoleringen lagrar värme, och det är just det som gör att optimeraren kan köpa värmen billigt och använda den senare.",
+          "building_era": "Byggår är ett bra mått på isoleringsstandard och en betydligt bättre utgångspunkt än ett enda standardvärde.",
+          "building_foundation": "En krypgrund ökar värmeförlusterna; en uppvärmd källare ger både mer förlustyta och mer termisk massa.",
+          "heated_area_m2": "Allt skalas efter denna, så det är siffran det är värt att få närmast rätt.",
+          "upper_floor_emitter": "Radiatorer svarar på minuter, golvvärme på timmar. Det avgör hur långt i förväg värmen kan flyttas.",
+          "lower_floor_emitter": "En värmd platta är ett stort lager som laddas aktivt, vilket gör förvärmning både mer värdefull och mer nödvändig.",
+          "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
       "learning": {

@@ -6,7 +6,7 @@ YAML — the integration is configured entirely through Home Assistant's UI, and
 this page follows the same order the UI does.
 
 - [Initial setup](#initial-setup) — the questions asked once, when you add the integration
-- [Changing settings later](#changing-settings-later) — the 22 options pages behind two menus
+- [Changing settings later](#changing-settings-later) — the 23 options pages behind two menus
 - [The hydronic layout catalog](#the-hydronic-layout-catalog) — which plumbing arrangements are modelled
 - [Services](#services) — every service and its fields
 
@@ -202,11 +202,11 @@ first plan is solved within one optimization interval.
 
 **Settings → Devices & services → Heat Pump Optimizer → Configure.**
 
-There are **22 pages**: six on the first menu, and sixteen more behind
-**Advanced settings**. One of the six — *Your system, as configured* — is
+There are **23 pages**: seven on the first menu, and sixteen more behind
+**Advanced settings**. One of the seven — *Your system, as configured* — is
 read-only. Each page saves on its own, so changing one setting never touches
 another page's values. Every page also ends with one shared navigation
-control, described once here rather than twenty-two times below:
+control, described once here rather than twenty-three times below:
 
 | Setting | Default | Choices | What it means |
 |---|---|---|---|
@@ -220,6 +220,7 @@ control, described once here rather than twenty-two times below:
 | Savings vs comfort | The weights, the interval, and what a compressor start costs |
 | Grid peak tariff | The monthly capacity charge and the clock it is measured on |
 | Away and holiday mode | An occupancy source, a holiday calendar, and the two setback temperatures |
+| Quick setup | The one-page house questions from [initial setup](#initial-setup), re-answered over this entry: submit them and the thermal model is re-derived from the questionnaire |
 
 | Advanced settings | What lives there |
 |---|---|
@@ -460,7 +461,7 @@ catalog below keys off.
 | Temperature after the wood/heat-pump mixing valve | none | a sensor | With the tank sensors, this says how much of the heating a fire is covering right now, so electric heat can stand down by that much instead of all-or-nothing. |
 | Wood tank top sensor | none | a sensor | **The switch for the two-tank model.** Together with the bottom sensor it says how much a fire has left: a hot top over a cold bottom means the charge is nearly spent. |
 | Wood tank bottom sensor | none | a sensor | Both are needed for the remaining-energy estimate; one alone is read conservatively. |
-| Wood tank volume | 500 L | 50–3000, 50 steps | Bounds how much free heat a fire can still deliver. |
+| Wood tank volume | 500 L | 50–3000, 50 steps | Bounds how much free heat a fire can still deliver. The Quick setup question **Wood buffer tank** answers this with one toggle. |
 | Hot water refilled through the wood tank | off | on/off | The hot water tank's cold inlet passes through a coil in the wood tank, so refill water arrives preheated. Only takes effect when the wood tank is modelled as its own store. |
 | Wood furnace | off, unless a wood tank, coil or flue sensor is already set | on/off | Off hides the wood probes, detection and the four fuel-price fields; stored values are kept. A lone 500 L tank volume does not turn this on. |
 | Detect a wood furnace or other heat source | off | on/off | Watches the hot-water and buffer tanks for warming the heat pump cannot explain: rising while the compressor is off, or faster than the pump could deliver. While a source is believed active, planned electric hot water is held back — paying to heat water already being heated for free is the most expensive mistake available. Two consecutive confirming samples are needed before it acts. |

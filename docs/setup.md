@@ -99,11 +99,16 @@ with three answers:
 
 Two things worth knowing about this menu:
 
-- **It belongs to adding a new entry.** You see it only while setting the
-  integration up. An entry that already exists is changed through its
-  **Configure** dialog or **Reconfigure** — neither of those paths leads back
-  to this menu, so an install that missed Quick setup at the start reaches
-  the same settings through Options instead.
+- **It belongs to adding a new entry — and, since #1258, to changing one.**
+  The menu itself appears only while setting the integration up, but the
+  Quick setup questions are also reachable afterwards: open the integration
+  and choose **Configure**, where **Quick setup** is the last entry on the
+  first menu. It asks the same questions over the entry's existing settings
+  and re-derives the thermal model from the questionnaire; the device
+  pre-fill is not offered there, because an existing entry's entity slots
+  are already answered — that read stays on the advanced **Pre-fill from a
+  Modbus heat pump** page. **Reconfigure** still reopens only the first
+  screen and saves back onto the same entry.
 - **Quick setup arrived in v6.6.5.** An install set up on an earlier version
   never saw the menu; its entries are complete all the same.
 
@@ -224,18 +229,23 @@ defaults, showing one last overview of what will be created:
 on purpose — it is a sensor this setup could use and does not have.*
 
 Everything the overview shows can be changed afterwards: open the integration
-and choose **Configure**, which presents the 22 options pages described in
-[configuration.md](configuration.md#changing-settings-later) and the
+and choose **Configure**, which presents the 23 options pages described in
+[configuration.md](configuration.md#changing-settings-later) — with **Quick
+setup** among the everyday pages, for an install that wants to answer the
+house questions now — and the
 [README](../README.md#changing-settings-after-setup).
 
 ## Already have an entry?
 
-The setup flow — including the Quick setup menu — runs when an entry is
+The setup flow — including the finish-setup menu — runs when an entry is
 *added*. To change an entry that exists:
 
 - **Configure** (Options) re-opens the settings pages: sensors, the building
   and questionnaire, hot water, tariffs, learning — everything the wizard
-  asked and more, one page at a time.
+  asked and more, one page at a time. **Quick setup** is here too, on the
+  first menu: the same house questions as at setup, answered over the
+  entry's existing settings, re-deriving the thermal model from the
+  questionnaire when you submit them.
 - **Reconfigure** re-opens just the first screen — a rotated token, a renamed
   sensor, a replacement pump — and saves back onto the same entry, without
   walking the wizard again.
