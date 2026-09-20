@@ -44,7 +44,7 @@ against a document that is CORRECT.
     RESULT claims_false=1
     RESULT claims_stale=0
     RESULT claims_unverifiable=2    (1 with --links; the checker runs the default)
-    RESULT config_defaults_compared=87   (76 until #937's rows landed; 82
+    RESULT config_defaults_compared=88   (76 until #937's rows landed; 82
                                          until #1067's solver half documented
                                          the flow-curve lift option's default;
                                          83 until #1067's silent-mode half
@@ -57,7 +57,10 @@ against a document that is CORRECT.
                                          setup" -- a Boolean Default row and
                                          the only one the diff between the
                                          frequency merge and this re-record
-                                         adds)
+                                         adds; 88 with #1260's "Customize by
+                                         weekday" toggle -- an on/off Default
+                                         row whose seven hidden per-day
+                                         fields document no defaults)
     RESULT config_ranges_compared=89     (76 until #937's rows landed; 86
                                          until #1067's silent-mode half
                                          documented the derate's range; 87

@@ -83,6 +83,32 @@ fuse_guard # #1207 economics polish: the keep gate no longer discards sub-2% res
 precip_snow # #1207 economics polish: the keep gate no longer discards sub-2% restart gains (runner-moved, #996)
 winter_two_zone_no_dhw # #1207 economics polish: the keep gate no longer discards sub-2% restart gains (runner-moved, #996)
 #
+# #1260 (per-weekday DHW window overrides): this branch claims exactly one
+# fixture, config_flow, and the direction is ADD-ONLY. The hot-water page's
+# schedule group gains the by-day toggle, and because the golden seed sets
+# every boolean True, the seeded render also reveals the seven per-day text
+# fields inside a new by_day section: four leaf paths present on one side
+# only (hot_water.schedule.fields.dhw_windows_by_day, _seed's flag,
+# _seeded's flag, _seeded.hot_water.by_day), measured as 79 insertions and
+# 0 deletions against the merge base d70ed250807d. Re-recorded for #547's
+# reason: config_flow is the one fixture carries_floats() reports False
+# for, compared exactly at level 1, so a claim alone leaves that level
+# failing against a file the code no longer produces. Every plan and
+# coordinator fixture is byte-identical in drift mode on this machine --
+# the feature's null control -- because no captured scenario carries the
+# new keys and the resolved-spec publish is absent without them.
+#
+# The absorb of origin/main d546c4b..f9a4c63, #1271/#1260) hit the
+# claimnotes refusal here: this branch's seven runner claims (#1207) and
+# the merge brought in main's config_flow claim from #1260, so a union
+# would carry a claim for a diff this branch does not own. The line is
+# dropped for the G5b reason the file already records twice: #1260 is
+# merged to main, its golden diff is baked into the committed baseline
+# this branch merges (CI proved this branch's seven move on top of it),
+# and no diff remains for this branch to excuse under that name. The note
+# that introduced it stays above, as history.
+#
+#
 # The absorb of origin/main 27458c8a (#1248 #1243 #1247 #1249 #1252 #1246
 # #1244 #1251) hit the claimnotes refusal here: this branch claims the three
 # coord_* scenarios above and the merge brought in main's two config_flow

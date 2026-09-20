@@ -177,6 +177,11 @@ the saving comes from.
 | Only guarantee hot water at set times | on | on/off | Off keeps the tank hot around the clock, which costs noticeably more. |
 | When you need hot water | `06:00-08:30, 17:00-22:00` | 24-hour times, comma separated | The tank is heated in the cheapest hours before each period. Each period must be at least 15 minutes — one planning step; a shorter one can fall between two steps and never take effect. Leave empty to let the integration learn your habits from actual usage. |
 | Let the tank cool to | 20 °C | 10–55 | How cold the tank may get between periods. The default is roughly room temperature — nothing is spent at all. |
+
+Per-weekday windows are an options-page feature (see
+[Hot water](#hot-water) under *Changing settings later*); the setup wizard's
+single field takes the same grammar, including day selectors such as
+`weekdays 06:00-08:30, weekend 08:00-09:30`.
 | Run an anti-legionella cycle | on | on/off | Because the tank now spends long stretches cool, it is periodically heated hot enough to kill legionella. Strongly recommended. |
 | Anti-legionella temperature | 60 °C | 55–70 | The usual recommendation is 60 °C. Check what applies where you live. This applies only while a cycle is running: if it is above the charge limit above, the tank goes above that limit for the cycle and at no other time. |
 | Anti-legionella interval | 7 days | 1–30 | Placed in the cheapest hour before each deadline. |
@@ -280,6 +285,40 @@ advanced pages.
 | Only guarantee hot water at set times | on | on/off | Off keeps the tank hot around the clock, which costs noticeably more. |
 | When you need hot water | `06:00-08:30, 17:00-22:00` | 24-hour times, comma separated | The tank is heated in the cheapest hours before each period. Each period must be at least 15 minutes. Leave empty to let the integration learn your habits from actual usage. |
 | Holiday hot-water windows | empty | same grammar | Used on days the holiday calendar is on, instead of weekday/weekend. Leave empty to keep the ordinary schedule. |
+| Customize by weekday | off | on/off | Reveals seven fields, one per weekday, below the ordinary ones. |
+| Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday | empty | 24-hour times, comma separated | Hot-water times for that weekday only. Leave empty to inherit. |
+
+**Per-weekday windows, and how the layers stack.** One schedule rarely fits
+a week with early workdays, a late Saturday and a Sunday that starts at
+noon. You can already type day selectors into the ordinary field
+(`weekdays 06:00-08:30, weekend 08:00-09:30`); *Customize by weekday* is
+the form version — switch it on, save, reopen the page, and seven fields
+appear, each holding one weekday's times in the same comma-separated
+format (`12:00-24:00` for "nothing until noon"). An empty field does not
+mean "no hot water that day"; it means *inherit*, exactly as before.
+
+The layers resolve in a fixed order, per day:
+
+1. **A weekday field that has times** wins for its weekday — including over
+   the holiday windows. If you say Sundays are always the same, a Sunday
+   that happens to be a public holiday keeps your Sunday schedule.
+2. Otherwise, on a day the [holiday calendar](#away-and-holiday-mode) is
+   on, the **holiday windows** apply.
+3. Otherwise the **ordinary windows** — flat, or with their own day
+   selectors — apply.
+
+Switching *Customize by weekday* off suspends the weekday fields without
+erasing them: the holiday/ordinary schedule runs, and switching it back on
+restores what you had typed. Each field takes plain times only — day
+selectors belong in the ordinary field, and the form refuses one here
+because the field already names its day.
+
+The dashboard card follows the same resolution. Its plan tab's hot-water
+band is drawn from the schedule the plan actually resolved against — with
+weekday fields in force, from their folded result — while the what-if
+editor still edits the *ordinary* windows: editing those is editing the
+default layer, and a weekday field set for that day keeps winning over an
+edit made in the card.
 | Hot water temperature you need | 45 °C | 35–55 | Guaranteed inside the time frames. Must be at least 5 °C below the charge limit, or the plan sits in permanent slight violation. |
 | Let the tank cool to | 20 °C | 10–55 | How cold the tank may get between periods. The default is roughly room temperature — nothing is spent at all. |
 | Highest tank temperature to charge to | 55 °C | 40–65 | An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays. |

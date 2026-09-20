@@ -627,12 +627,35 @@
             "data": {
               "dhw_schedule_enabled": "Garantera varmvatten endast vid valda tider",
               "dhw_windows": "När du behöver varmvatten",
-              "holiday_dhw_windows": "Lov, varmvattenfönster"
+              "holiday_dhw_windows": "Lov, varmvattenfönster",
+              "dhw_windows_by_day": "Anpassa per veckodag"
             },
             "data_description": {
               "dhw_schedule_enabled": "På: varmvatten garanteras bara under tiderna nedan, och beredaren får svalna däremellan. Av: beredaren hålls varm dygnet runt, vilket kostar märkbart mer.",
               "dhw_windows": "Tider då varmvatten måste finnas, t.ex. 06:00-08:30, 17:00-22:00. Olika dagar kan få olika tider med en dagväljare: 'weekdays 06:00-08:30, weekend 08:00-09:30' eller 'Mo 05:30-07:00, Tu-Fr 06:00-08:00, Sa,Su 08:00-09:30'. Utan väljare gäller tiderna varje dag.",
-              "holiday_dhw_windows": "Samma grammatik som de vanliga fönstren. Används de dagar lovkalendern är på, i stället för vardag/helg. Lämna tomt för att behålla det vanliga schemat."
+              "holiday_dhw_windows": "Samma grammatik som de vanliga fönstren. Används de dagar lovkalendern är på, i stället för vardag/helg. Lämna tomt för att behålla det vanliga schemat.",
+              "dhw_windows_by_day": "På: varje veckodagsfält nedan ersätter både lov-fönstren och de vanliga fönstren för sin dag. Av: lov-fönstren gäller dagar lovtkalendern är på, de vanliga fönstren alla andra dagar. Ordningen, på en rad: veckodagsfält, sedan lov-fönster, sedan de vanliga fönstren."
+            }
+          },
+          "by_day": {
+            "name": "Veckodagsfönster",
+            "data": {
+              "dhw_windows_mon": "Måndag",
+              "dhw_windows_tue": "Tisdag",
+              "dhw_windows_wed": "Onsdag",
+              "dhw_windows_thu": "Torsdag",
+              "dhw_windows_fri": "Fredag",
+              "dhw_windows_sat": "Lördag",
+              "dhw_windows_sun": "Söndag"
+            },
+            "data_description": {
+              "dhw_windows_mon": "Tider då varmvatten måste finnas på måndagar, t.ex. 06:00-08:30. Lämna tomt för att ärva: lov-fönstren en dag lovtkalendern är på, annars de vanliga fönstren ovan.",
+              "dhw_windows_tue": "Tider då varmvatten måste finnas på tisdagar, t.ex. 06:00-08:30. Lämna tomt för att ärva: lov-fönstren en dag lovtkalendern är på, annars de vanliga fönstren ovan.",
+              "dhw_windows_wed": "Tider då varmvatten måste finnas på onsdagar, t.ex. 06:00-08:30. Lämna tomt för att ärva: lov-fönstren en dag lovtkalendern är på, annars de vanliga fönstren ovan.",
+              "dhw_windows_thu": "Tider då varmvatten måste finnas på torsdagar, t.ex. 06:00-08:30. Lämna tomt för att ärva: lov-fönstren en dag lovtkalendern är på, annars de vanliga fönstren ovan.",
+              "dhw_windows_fri": "Tider då varmvatten måste finnas på fredagar, t.ex. 06:00-08:30. Lämna tomt för att ärva: lov-fönstren en dag lovtkalendern är på, annars de vanliga fönstren ovan.",
+              "dhw_windows_sat": "Tider då varmvatten måste finnas på lördagar, t.ex. 06:00-08:30. Lämna tomt för att ärva: lov-fönstren en dag lovtkalendern är på, annars de vanliga fönstren ovan.",
+              "dhw_windows_sun": "Tider då varmvatten måste finnas på söndagar, t.ex. 06:00-08:30. Lämna tomt för att ärva: lov-fönstren en dag lovtkalendern är på, annars de vanliga fönstren ovan."
             }
           },
           "temperatures": {
@@ -1380,7 +1403,8 @@
       "flow_curve_needs_direct_plant": "Att prissätta framledningens lyft är till för en anläggning utan shuntventil. Med ventil prissätter ackumulatortankens temperatur redan lyftet, så detta skulle räkna det två gånger. Ställ ventilen på \"Ingen shuntventil\" eller stäng av detta.",
       "tibber_token_required": "En Tibber-token krävs när priskällan är Tibber.",
       "price_entity_required": "En prissensor krävs när priskällan är en entitet.",
-      "prefill_device_unreadable": "Enheten kunde inte läsas. Dess integration har ingen mappning här ännu, eller så har ingen av dess entiteter något värde. Lämna enheten tom och ange ett prefix för ett Modbus-paket i stället."
+      "prefill_device_unreadable": "Enheten kunde inte läsas. Dess integration har ingen mappning här ännu, eller så har ingen av dess entiteter något värde. Lämna enheten tom och ange ett prefix för ett Modbus-paket i stället.",
+      "dhw_windows_day_selector": "Fältet namnger redan sin dag — skriv bara tider, t.ex. 06:00-08:30. Dagväljare som 'weekdays' hör hemma i fältet för de vanliga fönstren ovan."
     }
   },
   "selector": {

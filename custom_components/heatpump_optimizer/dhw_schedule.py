@@ -42,15 +42,29 @@ the same schedule by every loader production runs on a stored spec
 (``parse_windows``, ``parse_weekly_windows``, ``is_valid_spec``,
 ``spec_problem``). ``tests/features.py`` enumerates it over all 127 non-empty
 day-sets rather than by example (#329, #321).
+
+**Per-weekday override keys (#1260).** The day selectors above type a
+day-aware schedule into the one spec field; the overrides are the form-based
+version -- seven flat config keys (``dhw_windows_mon`` .. ``dhw_windows_sun``)
+holding one ordinary window list each for the weekday the key spells, empty =
+inherit. ``parse_day_overrides`` assembles them from a config mapping, and
+``windows_for_day`` resolves the whole stack for one date: a per-day
+override, else the holiday overlay, else the default spec's own structure.
 """
 from __future__ import annotations
 
+import logging
 import re
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, Final
+
+from . import const
 
 # (start_hour, end_hour) as floats in [0, 24); end may be <= start when the
 # window wraps past midnight.
 Window = tuple[float, float]
+
+_LOGGER = logging.getLogger(__name__)
 
 _TIME_RE = re.compile(r"^(\d{1,2})(?::(\d{1,2}))?$")
 
@@ -364,14 +378,30 @@ def windows_for_day(
     fallback: list[Window],
     holiday_windows: list[Window] | None = None,
     holiday: bool = False,
+    day_overrides: list[list[Window] | None] | None = None,
 ) -> list[Window]:
-    """The window list in force on one weekday.
+    """The window list in force on one weekday — the one resolution seam.
+
+    Precedence, in order: a per-weekday override (``day_overrides``, from
+    the ``dhw_windows_<day>`` keys, #1260), then the holiday overlay, then
+    the default spec's own structure (``weekly``, or ``fallback`` when the
+    spec names no days). A day whose override slot is ``None`` inherits the
+    rest of the chain unchanged, and the whole ``day_overrides`` argument
+    defaulting to ``None`` reproduces yesterday's behaviour exactly — the
+    holiday tier keeps the semantics it had before the overrides existed,
+    because no configuration that predates them can carry any.
 
     ``fallback`` is the flat/every-day set from ``parse_windows``, used when
     no weekly structure exists; it is also what a ``None`` weekday (a caller
     with an hour but no date) gets, so hour-only consumers are untouched by
-    the whole feature. A holiday overlay replaces both when ``holiday``.
+    the whole feature — overrides included, since a caller with no date
+    cannot name a day to override.
     """
+    if day_overrides is not None and weekday is not None:
+        index = max(0, min(6, int(weekday)))
+        override = day_overrides[index] if index < len(day_overrides) else None
+        if override is not None:
+            return override
     if holiday and holiday_windows is not None:
         return holiday_windows
     if weekly is None or weekday is None:
@@ -537,3 +567,105 @@ def spec_problem(spec: str) -> str | None:
     if any(window_minutes(w) < MIN_WINDOW_MINUTES for w in windows):
         return ERROR_TOO_SHORT
     return None
+
+
+#: The per-day verdict's own error key: a day selector typed into a field
+#: that already names one day. ``parse_windows`` accepts-and-ignores
+#: selectors (it is the every-day view), so without this refusal
+#: "weekdays 06:00-08:30" in Saturday's field would silently apply those
+#: times to Saturday and only Saturday -- a schedule the user never wrote.
+ERROR_DAY_SELECTOR: Final = "dhw_windows_day_selector"
+
+
+def day_spec_problem(spec: str) -> str | None:
+    """``spec_problem`` for one per-weekday override field (#1260).
+
+    The ordinary verdicts apply unchanged; on top of them a day selector is
+    refused, because the field's own name is the selector. Detection is
+    ``parse_weekly_windows`` itself -- it returns non-None exactly when a
+    spec names days -- so this can never disagree with the grammar about
+    what counts as a selector.
+    """
+    problem = spec_problem(spec)
+    if problem is not None:
+        return problem
+    if parse_weekly_windows(spec) is not None:
+        return ERROR_DAY_SELECTOR
+    return None
+
+
+def day_overrides_enabled(config: Mapping[str, Any]) -> bool:
+    """Whether the per-weekday override fields are in force.
+
+    The stored flag wins; an unset flag means "on iff any field holds a
+    spec", which is also the toggle's computed default in the options flow,
+    so the form and ``from_config`` cannot disagree about what "on" is.
+    """
+    flag = config.get(const.CONF_DHW_WINDOWS_BY_DAY)
+    if flag is not None:
+        return bool(flag)
+    return any(config.get(key) for key in const.CONF_DHW_WINDOWS_DAY)
+
+
+def format_resolved_day_spec(
+    weekly: list[list[Window]] | None,
+    fallback: list[Window],
+    day_overrides: list[list[Window] | None] | None,
+) -> str | None:
+    """The day-aware spec actually in force, overrides folded in (#1260).
+
+    For the card's chart band, which resolves day selectors per timestamp
+    on its own: the default spec's seven-day structure with each overridden
+    weekday's windows replaced by its override, rendered in the shared
+    grammar. ``None`` when no override is in force, so callers publish
+    nothing and every consumer keeps reading the configured spec exactly
+    as before the feature. Holiday windows stay out on purpose -- they
+    resolve by DATE, the grammar resolves by weekday, and the band reads
+    the configuration's schedule today too.
+    """
+    if not day_overrides or not any(day is not None for day in day_overrides):
+        return None
+    base = weekly if weekly is not None else [list(fallback) for _ in range(7)]
+    # The subscript is bound to a local before the None test: mypy narrows
+    # a local's type, not a repeat of a non-literal subscript, and both
+    # arms must read the SAME local or the narrowing proves nothing.
+    resolved: list[list[Window]] = []
+    for d in range(7):
+        override = day_overrides[d] if d < len(day_overrides) else None
+        resolved.append(list(override) if override is not None else list(base[d]))
+    return format_weekly_windows(resolved)
+
+
+def parse_day_overrides(
+    config: Mapping[str, Any],
+) -> list[list[Window] | None] | None:
+    """The seven per-weekday override window lists, or ``None`` when off.
+
+    Monday-first, matching ``CONF_DHW_WINDOWS_DAY`` and
+    ``datetime.weekday()``; ``None`` entries inherit the rest of the
+    resolution chain. An unparseable stored spec degrades to that one day
+    inheriting (with a WARNING), the same permissive stance
+    ``_holiday_dhw_windows`` takes: a stored value must keep the rest of
+    the schedule loading. All-empty is ``None`` -- revealing the fields and
+    saving them empty changes nothing.
+    """
+    if not day_overrides_enabled(config):
+        return None
+    days: list[list[Window] | None] = []
+    for key in const.CONF_DHW_WINDOWS_DAY:
+        spec = config.get(key)
+        if not spec:
+            days.append(None)
+            continue
+        try:
+            days.append(parse_windows(spec))
+        except DHWWindowError as err:
+            _LOGGER.warning(
+                "Invalid per-day DHW window %r for %s (%s); that day keeps "
+                "the default schedule",
+                spec,
+                key,
+                err,
+            )
+            days.append(None)
+    return days if any(day is not None for day in days) else None

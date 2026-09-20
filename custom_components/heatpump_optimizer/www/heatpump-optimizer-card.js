@@ -10527,11 +10527,20 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const dw = defaultWindow(spFc, rawDhw, cfg.hours, Date.now());
     const dhwSt = plan.stateOf(plan.resolveEntity("dhw"));
     const dhwAttrs = (dhwSt && dhwSt.attributes) || {};
+    // Display order (#1260): the resolved per-day schedule the plan was
+    // actually made against when per-day overrides are in force, else the
+    // configured spec, else the plan's flat reading. The resolved spec is
+    // day-aware like the configured one, so the band keeps following each
+    // timestamp's own weekday across midnight; the what-if editor still
+    // reads `dhw_windows_spec` alone, because it saves what it shows.
     const windowsSpec =
-      typeof dhwAttrs.dhw_windows_spec === "string" &&
-      dhwAttrs.dhw_windows_spec.trim()
-        ? dhwAttrs.dhw_windows_spec
-        : dhwAttrs.dhw_windows;
+      typeof dhwAttrs.dhw_windows_resolved === "string" &&
+      dhwAttrs.dhw_windows_resolved.trim()
+        ? dhwAttrs.dhw_windows_resolved
+        : typeof dhwAttrs.dhw_windows_spec === "string" &&
+            dhwAttrs.dhw_windows_spec.trim()
+          ? dhwAttrs.dhw_windows_spec
+          : dhwAttrs.dhw_windows;
     const dhwFc = overlayDhwDisplay(rawDhw, {
       probe: plan.statNumber("_dhw_temperature"),
       now: Date.now(),
