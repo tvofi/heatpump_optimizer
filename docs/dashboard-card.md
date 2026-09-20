@@ -76,12 +76,16 @@ weekday — resolves to one day's windows at a time, so the floored stretch
 follows each timestamp's own weekday across midnight instead of repeating
 one day's pattern:
 
-![The enlarged chart across a Friday and a Saturday: the hot-water tank's dashed lower edge is floored inside Friday's 06:00-08:30 window, then inside Saturday's 08:00-09:30 window after midnight, with Saturday's prices shaded as estimates](img/card-dhw-band-weekly.png)
+![The enlarged chart across a Friday and a Saturday: the hot-water tank's dashed lower edge is held at the 45-degree minimum inside Friday's 07:30-08:30 morning window and clamped flat to it across Saturday's 19:00-21:00 evening window, while Friday's evening edge runs free below it; Saturday's prices are shaded as estimates](img/card-dhw-band-weekly.png)
 
-*One resolved schedule, two days of it: Friday floors 06:00–08:30, Saturday
-— whose prices are not published yet, hence the shading — floors
-08:00–09:30. The [schedule editor](#schedule-editor-and-what-if-simulator)
-still edits the configuration itself, not this resolved view.*
+*One resolved schedule — `weekdays 07:30-08:30, weekend 19:00-21:00` — two
+days of it. Friday's dashed edge is held at or above the 45 °C minimum
+through its morning window, pinned to 45 °C where the published band dipped
+below; Saturday's evening window clamps its edge to 45 °C for the whole two
+hours, while Friday's evening — outside any window — runs free. No flat,
+every-day schedule draws this picture. The [schedule
+editor](#schedule-editor-and-what-if-simulator) still edits the
+configuration itself, not this resolved view.*
 
 Unlike the two floors, the band's two edges are **one** thing. They are named
 once — *Hot water, expected error* — in the tank chip's hover text, and they
