@@ -501,11 +501,18 @@ OPTIONS = config_flow.HeatPumpOptimizerOptionsFlow
 _opt_step = STRINGS["options"]["step"]
 _init_menu = [k for k in _opt_step["init"]["menu_options"] if k != "advanced"]
 _adv_menu = [k for k in _opt_step["advanced"]["menu_options"] if k != "advanced"]
-eq("C26", "README.md", "a menu of 22 pages", CMD,
-   int(re.search(r"menu of (\d+) pages", README).group(1)),
+# C26/C27/C29's labels are derived from the sentence each reads, on C28's
+# #1148 precedent: a literal count frozen at authoring time ("a menu of 22
+# pages") regenerated the register quoting a number the document no longer
+# carries the moment the menu gained a page, while the verdict stayed true --
+# the label is the claim's wording, and the wording is the document's.
+_readme_pages = re.search(r"menu of (\d+) pages", README)
+eq("C26", "README.md", f"a menu of {_readme_pages.group(1)} pages", CMD,
+   int(_readme_pages.group(1)),
    len(config_flow._OPTION_PAGES))
-eq("C27", "docs/configuration.md", "There are 22 pages", CMD,
-   int(re.search(r"There are \*\*(\d+) pages\*\*", DOCS["configuration.md"]).group(1)),
+_cfg_pages = re.search(r"There are \*\*(\d+) pages\*\*", DOCS["configuration.md"])
+eq("C27", "docs/configuration.md", f"There are {_cfg_pages.group(1)} pages", CMD,
+   int(_cfg_pages.group(1)),
    len(config_flow._OPTION_PAGES))
 # C28's `documented` side is RE-READ from the sentence, like C26/C27/C29 above
 # (#1148). It was the literal (6, 15), and a comparand frozen at authoring time
@@ -528,12 +535,14 @@ eq("C28", "docs/configuration.md",
    "Advanced settings", CMD,
    (_NUM_WORD[_menu.group(1)], _NUM_WORD[_menu.group(2)]),
    (len(_init_menu), len(_adv_menu)))
+_arch_pages = re.search(r"plus (\d+) option pages", DOCS["architecture.md"])
 eq("C29", "docs/architecture.md:module map",
-   "config_flow.py -- Setup flow plus 22 option pages behind two menus", CMD,
-   int(re.search(r"plus (\d+) option pages", DOCS["architecture.md"]).group(1)),
+   f"config_flow.py -- Setup flow plus {_arch_pages.group(1)} option pages "
+   "behind two menus", CMD,
+   int(_arch_pages.group(1)),
    len(config_flow._OPTION_PAGES),
    "config_flow._OPTION_PAGES holds {m} pages, and README.md/configuration.md "
-   "both say 22")
+   "carry the same count")
 
 PAGES = {}
 for _step in OPTIONS._MENU_LABELS:
