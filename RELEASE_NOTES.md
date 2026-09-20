@@ -1,5 +1,27 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.6.8
+
+the D0 economics programme completes, and the machine that runs it fixes
+itself:
+
+- #1282 — polish every candidate under owner-directed budget raises (CPU
+  floor 1482, work factor 1.80 runner-measured): worst-cell 1.40% to
+  0.0000%, all re-plans cheaper, three scoped may-drift entries
+- #1285 — the O(n^2) _apply_dhw_min_run fix: prefix-shared re-simulation,
+  trajectory scaling 4.02x to 2.00x, plans byte-identical
+- #1287 — worktree_gc.sh and the orchestrator's section-11 step: merged
+  worktrees, branches and seat scratch removed, cited evidence preserved
+- #1289 — the class-C fix: a nested live worktree under an orphaned seat
+  dir is kept, the failed-move backstop added
+- #1290 — the card history repair: the time-loop fixed at the spline root,
+  actioned slots drawn state-first with power as an optional overlay
+- #1291 — the solver polish keep-gate (#1207): 2e-2 to 2e-5 on a
+  re-measured quiet band, worst-cell 0.91% to 0.0003%, twelve may-drift
+  entries under owner rulings, the coverage floor overridden by cited entry
+- #1292 — the final-wave record: fourteen delivery rows, the handover's
+  standing state for successors
+
 ## v6.6.7
 
 the held-run approval pipeline completes itself, and two user-facing card and

@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.6.7
+# claims-for: 6.6.8
 #
-# v6.6.7: the self-approving CI pipeline, the pre-fill rename, and the card history pan. The stamp empties the list; the
+# v6.6.8: the D0 economics programme completes, and the machine that runs it fixes itself. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -405,6 +405,3 @@
 # history_unavailable and history_pending are byte-identical to the
 # comparison ref: the degradation paths they pin are unchanged by this
 # repair, and the ref renders them the same way.
-history_panned # monotone clamped control points + the state-first mode band and tooltip
-history_deep_panned # the same across four chunks, runs joined at every boundary
-history_no_power # new state: slots from state history alone, no power attribute
