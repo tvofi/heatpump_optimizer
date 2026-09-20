@@ -2904,11 +2904,39 @@ if __name__ == "__main__":
                 f"is claimed, rather than reaching for a variable that no "
                 f"longer exists"
             )
+        # The floor itself stays the #387 literal 40; the owner's override
+        # for THIS branch is a committed entry in the budget table (#1207
+        # comment 3e26fc3 / node IC_kwDOT-9fds8AAAABVuDeMg, ruling (a),
+        # 2026-09-20: CI's 38/51 vs the floor of 40 is the same
+        # runner-conditional variance as the drift set -- 13 re-planned on
+        # CI against 11 on the dev box) -- an entry in the pull request's
+        # own diff, which is exactly the visibility the retired environment
+        # variable lacked (#387, comment 5541519696). The entry may only
+        # LOWER the floor below the literal, never above it, must cite the
+        # ruling that sanctioned it, and anything malformed is ignored in
+        # favour of the stricter literal.
+        _floor = SCENARIO_WORK_MIN_COVERED
+        _floor_override = budget_table.get("coverage_floor_override")
+        if isinstance(_floor_override, dict):
+            _ov_floor = _floor_override.get("floor")
+            _ov_cites = _floor_override.get("cites")
+            if (isinstance(_ov_floor, int)
+                    and not isinstance(_ov_floor, bool)
+                    and 0 < _ov_floor < SCENARIO_WORK_MIN_COVERED
+                    and isinstance(_ov_cites, str) and _ov_cites.strip()):
+                _floor = _ov_floor
+                if baseline_work:
+                    _cover_why = (
+                        f"owner override active: floor {_floor} per "
+                        f"{_ov_cites}; {len(drift.replanned)} re-planned by "
+                        f"this branch here, {len(drift.only_here)} with no "
+                        f"baseline solve"
+                    )
         R.check(
             "the solver-work check still covers most of the sweep",
-            _work_covered >= SCENARIO_WORK_MIN_COVERED,
+            _work_covered >= _floor,
             f"only {_work_covered} of {len(observed_evals)} scenarios are "
-            f"judged, against a floor of {SCENARIO_WORK_MIN_COVERED}: "
+            f"judged, against a floor of {_floor}: "
             + _cover_why,
         )
         # The #387 ruling on the sixth acceptance criterion (comment
