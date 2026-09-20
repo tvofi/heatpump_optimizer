@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.6.5
+# claims-for: 6.6.6
 #
-# v6.6.5: the instrument-backlog repairs, quick setup, and the round-5 UI/sensor batch. The stamp empties the list; the
+# v6.6.6: the identity switch, two feature waves, and a run of audit and record repairs. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -338,37 +338,3 @@
 # change; the backend half is covered by tests/entities.py and the
 # solver's own claim file is untouched.
 #
-no_plan # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-no_plan_expanded # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-plan_inline # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-plan_inline_sv # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-plan_short_window # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-custom_title_currency # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-hidden_series # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-score_open # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-expanded_plan # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-what_if_off # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-expanded_zoomed # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-draft_dirty_menu_open # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-draft_mid_drag # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-whatif_edited # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-whatif_weekly # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-override_active # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-shared_steps # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-shared_steps_hover # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-tooltip_hover # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-coarse_pointer # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-reduced_motion # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-setup_single_buffer # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-setup_two_tank # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-setup_coil # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-advisor_page # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-layout_editing_dragged # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-layout_editing_tidy # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-picker_open_filtered # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-wood_alert # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-wood_lane # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-wood_whatif # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-away_toggle # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-away_return # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
-away_status # #1269 sensor advisor: stylesheet text (+ advisor tab where a dialog renders; advisor_page is the new page itself)
