@@ -50,24 +50,38 @@
 # v6.6.5: the instrument-backlog repairs, quick setup, and the round-5 UI/sensor batch. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-# The economics-polish branch (#1207/#1210) claims the five fixtures below
-# and nothing else: the restart keep gate dropped 2e-2 -> 2e-5 (#1207), so
-# the solver keeps the sub-2% improvements its own restart used to compute
-# and throw away. The #1210 half (exact peak_cost billed, smooth surrogate
-# in the objective) moves no plan: the solver's arithmetic is
-# byte-identical under it. Measured at head 1da598b vs this file's
-# baseline d70ed25 (drift mode, one environment): the five are the whole
-# moved set. Two further fixtures (flat_prices, winter_two_zone_no_dhw)
-# moved under the #1208 polish-in-loop cut that this branch re-cut away,
-# and do not move here. Direction per fixture: deferred_energy_cost falls
-# on every one (a cheaper plan is the point of the fix);
-# valve_storage_smart_write also moved and is excused by its may-drift
-# line, not claimed.
-capacity_tariff_15min # #1207 economics polish: the keep gate no longer discards sub-2% restart gains
-cycling_cost # #1207 economics polish: the keep gate no longer discards sub-2% restart gains
-everything_on # #1207 economics polish: the keep gate no longer discards sub-2% restart gains
-narrow_band # #1207 economics polish: the keep gate no longer discards sub-2% restart gains
-winter_two_zone_dhw # #1207 economics polish: the keep gate no longer discards sub-2% restart gains
+# The economics-polish branch (#1207/#1210) claims the seven fixtures
+# below and nothing else: the restart keep gate dropped 2e-2 -> 2e-5
+# (#1207), so the solver keeps the sub-2% improvements its own restart
+# used to compute and throw away; the #1210 half (exact peak_cost billed,
+# smooth surrogate in the objective) moves no plan. The list is the
+# RUNNER's moved set (x86_64, py3.14, CI run 35475959061, drift vs
+# d546c4b) -- the runner is the judge of record (#996). The dev box that
+# measured this branch (arm64, same pair) moves only three of the seven
+# (capacity_tariff_15min, cycling_cost, everything_on) and additionally
+# moves narrow_band and winter_two_zone_dhw, which the runner does not;
+# the runner-only four (direct_flow_carnot, fuse_guard, precip_snow,
+# winter_two_zone_no_dhw) sit at 0 leaves on the dev box. Both captures'
+# leaf counts, same pair, both environments:
+#   runner: capacity_tariff_15min 436, cycling_cost 329, everything_on
+#   509, direct_flow_carnot 425, fuse_guard 355, precip_snow 396,
+#   winter_two_zone_no_dhw 401; narrow_band 0, winter_two_zone_dhw 0.
+#   dev box: capacity_tariff_15min 444, cycling_cost 325, everything_on
+#   692, narrow_band 313, winter_two_zone_dhw 344; the runner-only four
+#   at 0.
+# 996-instance markers for the orchestrator to post on issue #996:
+#   996-instance: narrow_band -- dev box arm64 313 leaves moved vs d546c4b; runner x86_64/3.14 0 leaves (run 35475959061)
+#   996-instance: winter_two_zone_dhw -- dev box arm64 344 leaves moved vs d546c4b; runner x86_64/3.14 0 leaves (run 35475959061)
+# Direction per fixture: deferred_energy_cost falls where the plan moved
+# (a cheaper plan is the point of the fix); valve_storage_smart_write also
+# moved on the dev box and is excused by its may-drift line, not claimed.
+capacity_tariff_15min # #1207 economics polish: the keep gate no longer discards sub-2% restart gains (runner-moved, #996)
+cycling_cost # #1207 economics polish: the keep gate no longer discards sub-2% restart gains (runner-moved, #996)
+everything_on # #1207 economics polish: the keep gate no longer discards sub-2% restart gains (runner-moved, #996)
+direct_flow_carnot # #1207 economics polish: the keep gate no longer discards sub-2% restart gains (runner-moved, #996)
+fuse_guard # #1207 economics polish: the keep gate no longer discards sub-2% restart gains (runner-moved, #996)
+precip_snow # #1207 economics polish: the keep gate no longer discards sub-2% restart gains (runner-moved, #996)
+winter_two_zone_no_dhw # #1207 economics polish: the keep gate no longer discards sub-2% restart gains (runner-moved, #996)
 #
 # The absorb of origin/main 27458c8a (#1248 #1243 #1247 #1249 #1252 #1246
 # #1244 #1251) hit the claimnotes refusal here: this branch claims the three

@@ -30,7 +30,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 
@@ -611,7 +611,7 @@ def _peak_charge(
     peaks_averaged: int,
     offset_steps: int,
     window_factors: np.ndarray | None,
-    top_sum_of,
+    top_sum_of: Callable[[np.ndarray, int], float],
 ) -> float:
     """One scaffolding for both peak charges, parameterised by the top-k rule.
 
