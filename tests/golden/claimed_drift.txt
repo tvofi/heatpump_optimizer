@@ -45,8 +45,9 @@
 # runner-conditional movers those rulings name (flat_prices,
 # winter_two_zone_no_dhw, shoulder_two_zone, see RUNNER_CONDITIONAL_1208 in
 # env_drift.py), and, since the #1207 owner directive (comment c1329fe,
-# 2026-09-20), the seven in-band movers that directive's fix measures
-# (see RUNNER_CONDITIONAL_1207 in env_drift.py) -- and env_drift.py refuses
+# 2026-09-20) as widened to the runner's union by ruling (i) (comment
+# 1ec15c8), the twelve movers that directive and ruling measure (see
+# RUNNER_CONDITIONAL_1207 in env_drift.py) -- and env_drift.py refuses
 # every other name -- see
 # `_may_drift` there for the full reasoning. Because it is a statement about
 # those fixtures rather than
@@ -249,6 +250,42 @@
 # rel -2.2972e-03, is one of the five SENSITIVE fixtures above; its
 # machine-sensitive entry is the one that carries it, so no second line
 # exists here.)
+# may-drift: direct_flow_carnot -- #1207 keep-gate (2e-2 -> 2e-5), widened
+# to the runner's union by the owner's ruling (i) on the options recorded
+# in #1207 comment 1ec15c8 (2026-09-20): 425 leaves moved on the CI
+# x86_64/py3.14 runner only (leaf counts from the runner's own drift log
+# as recorded on that comment; byte-identical on the dev box), so which
+# runner sees it move is the BLAS's property, not the diff's; judged keys
+# (prices/outdoor_temps/price_known/baseline_cost) still fail. Remove when
+# drift lanes are pinned or the polish improvement scale leaves 5e-5-2e-2.
+# may-drift: fuse_guard -- #1207 keep-gate (2e-2 -> 2e-5), widened to the
+# runner's union by the owner's ruling (i) on the options recorded in
+# #1207 comment 1ec15c8 (2026-09-20): 418 leaves moved on the CI
+# x86_64/py3.14 runner only (as recorded on that comment; byte-identical
+# on the dev box), runner-conditional for the same reason; judged keys
+# still fail. Remove when drift lanes are pinned or the polish improvement
+# scale leaves 5e-5-2e-2.
+# may-drift: precip_snow -- #1207 keep-gate (2e-2 -> 2e-5), widened to the
+# runner's union by the owner's ruling (i) on the options recorded in
+# #1207 comment 1ec15c8 (2026-09-20): 396 leaves moved on the CI
+# x86_64/py3.14 runner only (as recorded on that comment; byte-identical
+# on the dev box), runner-conditional for the same reason; judged keys
+# still fail. Remove when drift lanes are pinned or the polish improvement
+# scale leaves 5e-5-2e-2.
+# may-drift: tariff_plus_two_zone -- #1207 keep-gate (2e-2 -> 2e-5),
+# widened to the runner's union by the owner's ruling (i) on the options
+# recorded in #1207 comment 1ec15c8 (2026-09-20): 751 leaves moved on the
+# CI x86_64/py3.14 runner only (as recorded on that comment;
+# byte-identical on the dev box), runner-conditional for the same reason;
+# judged keys still fail. Remove when drift lanes are pinned or the polish
+# improvement scale leaves 5e-5-2e-2.
+# may-drift: valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
+# the runner's union by the owner's ruling (i) on the options recorded in
+# #1207 comment 1ec15c8 (2026-09-20): 625 leaves moved on the CI
+# x86_64/py3.14 runner only (as recorded on that comment; byte-identical
+# on the dev box), runner-conditional for the same reason; judged keys
+# still fail. Remove when drift lanes are pinned or the polish improvement
+# scale leaves 5e-5-2e-2.
 # W4-G9 S8 (#193, the COP-health watch): this branch claims NOTHING. Two
 # initialisations move verbatim from `_init_insurance` into
 # `_init_thermal_learning` -- an earlier call in the same `__init__`, with
@@ -463,6 +500,22 @@
 # The other 43 plan fixtures are byte-identical on this box; the
 # coordinator captures, config_flow and the card claim file are untouched
 # by construction -- no key outside the solver's own plan fields moves.
+#
+# The #1207 widening (owner ruling (i) on the options recorded in #1207
+# comment 1ec15c8, 2026-09-20): the CI x86_64/py3.14 runner moved FIVE
+# more of this diff's fixtures than the seven above -- direct_flow_carnot
+# (425 leaves), fuse_guard (418), precip_snow (396), tariff_plus_two_zone
+# (751), valve_storage (625), leaf counts from the runner's own drift log
+# as recorded on that comment -- all byte-identical on this box (the
+# scalar dumps behind the table above), i.e. the same runner-conditional
+# class one release after #996: the set measured on one environment was
+# not the union. The ruling widens RUNNER_CONDITIONAL_1207 to exactly the
+# twelve (the seven + these five), same removal conditions, and the five
+# entries above carry them. The stress coverage floor breach the same
+# runner reported (38/51 judged vs the 40 floor; 13 re-planned there vs
+# 11 here) is downstream of the same environment variance; this box
+# measures 40/51 and the floor holds -- the #387 non-tunable literal is
+# untouched by this branch.
 #
 # The pre-fill rename and menu lift (owner request, Part of #201): this
 # branch claims exactly one fixture, config_flow, and the direction is a

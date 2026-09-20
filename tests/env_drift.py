@@ -160,25 +160,34 @@ RUNNER_CONDITIONAL_1208 = (
 
 #: The owner-sanctioned #1207 movers (OWNER DIRECTIVE, in-session 2026-09-20,
 #: #1207 comment c1329fe / database id 5750296026: "address #1207 ... the
-#: reopen path is the one #1208 just built"). Same class as the #1208 set,
-#: one diff earlier in the same polish path: these are the fixtures the
-#: restart keep-gate fix (_LBFGSB_RESTART_KEEP_REL 2e-2 -> 2e-5, round 5
-#: D0-01) moves by margins measured INSIDE the 5e-5-2e-2 noise band at the
-#: fix's own merge base (objective rel: capacity_tariff_15min -1.7601e-04,
-#: cycling_cost -1.7666e-04, everything_on -5.2974e-03, narrow_band
-#: -7.8934e-04, shoulder -7.2897e-04, valve_storage_smart_write
-#: -2.2972e-03, winter_two_zone_dhw -5.0494e-05 -- the last sits 1.01x
-#: over the band's floor, the same adoption margin the parked #1272 rounds
-#: measured on it; all seven deterministic on one box), so WHICH runner
-#: sees them move is a property of the runner's BLAS and not of the diff.
+#: reopen path is the one #1208 just built"; widened to the runner's union
+#: by the owner's ruling (i) on the options recorded in #1207 comment
+#: 1ec15c8 / node IC_kwDOT-9fds8AAAABVtbqdA, 2026-09-20). Same class as
+#: the #1208 set, one diff earlier in the same polish path: these are the
+#: fixtures the restart keep-gate fix (_LBFGSB_RESTART_KEEP_REL 2e-2 ->
+#: 2e-5, round 5 D0-01) moves by margins measured INSIDE the 5e-5-2e-2
+#: noise band -- seven on the dev box at the fix's own merge base
+#: (objective rel: capacity_tariff_15min -1.7601e-04, cycling_cost
+#: -1.7666e-04, everything_on -5.2974e-03, narrow_band -7.8934e-04,
+#: shoulder -7.2897e-04, valve_storage_smart_write -2.2972e-03,
+#: winter_two_zone_dhw -5.0494e-05 -- the last sits 1.01x over the band's
+#: floor, the same adoption margin the parked #1272 rounds measured on
+#: it; all deterministic on one box) -- plus the five the CI x86_64/py3.14
+#: runner moved beyond them, byte-identical on the dev box, leaf counts
+#: from the runner's own drift log as recorded on the ruling comment
+#: (direct_flow_carnot 425, fuse_guard 418, precip_snow 396,
+#: tariff_plus_two_zone 751, valve_storage 625). WHICH runner sees any of
+#: them move is a property of the runner's BLAS and not of the diff --
+#: the same runner-conditional property the #996 fleet refusal measured
+#: when two CI runs of one tree pair moved different fixture sets.
 #: valve_storage_smart_write is also one of the SENSITIVE five above, so
 #: its exemption is carried by that category's own entry -- no second
-#: claim-file line exists for it. The directive scopes this set to exactly
-#: the seven measured names -- not the blanket 11-fixture exemption #996
-#: (i) refused -- and each claim-file entry carries the removal condition:
-#: remove when drift lanes are pinned or the polish improvement scale
-#: leaves 5e-5-2e-2. MAY_DRIFT_JUDGED_KEYS still fail on these exactly as
-#: on the SENSITIVE five and the #1208 set.
+#: claim-file line exists for it. The directive and ruling scope this set
+#: to exactly these twelve names -- not the blanket 11-fixture exemption
+#: #996 (i) refused -- and each claim-file entry carries the removal
+#: condition: remove when drift lanes are pinned or the polish
+#: improvement scale leaves 5e-5-2e-2. MAY_DRIFT_JUDGED_KEYS still fail
+#: on these exactly as on the SENSITIVE five and the #1208 set.
 RUNNER_CONDITIONAL_1207 = (
     "capacity_tariff_15min",
     "cycling_cost",
@@ -187,6 +196,11 @@ RUNNER_CONDITIONAL_1207 = (
     "shoulder",
     "valve_storage_smart_write",
     "winter_two_zone_dhw",
+    "direct_flow_carnot",
+    "fuse_guard",
+    "precip_snow",
+    "tariff_plus_two_zone",
+    "valve_storage",
 )
 
 #: Every name a may-drift entry may carry: the gate's own five, plus the

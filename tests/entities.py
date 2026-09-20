@@ -16072,14 +16072,17 @@ R.check(
     and set(_env_drift.RUNNER_CONDITIONAL_1207) == {
         "capacity_tariff_15min", "cycling_cost", "everything_on",
         "narrow_band", "shoulder", "valve_storage_smart_write",
-        "winter_two_zone_dhw",
+        "winter_two_zone_dhw", "direct_flow_carnot", "fuse_guard",
+        "precip_snow", "tariff_plus_two_zone", "valve_storage",
     },
     "owner directive #1207 comment c1329fe (2026-09-20, in-session) "
-    "scopes the third set to exactly the seven in-band movers that "
-    "branch measured at its own merge base (valve_storage_smart_write "
-    "doubles as a SENSITIVE fixture, so one claim-file entry carries "
-    "it); an eighth name in the constant breaks this set equality and "
-    "is an unruled widening",
+    "scoped the third set to the seven in-band movers that branch "
+    "measured at its own merge base; the owner's ruling (i) on the "
+    "options recorded in comment 1ec15c8 (which carries the CI runner's "
+    "leaf counts) widened it to the runner's union -- exactly these "
+    "twelve names (valve_storage_smart_write doubles as a SENSITIVE "
+    "fixture, so one claim-file entry carries it); a thirteenth name in "
+    "the constant breaks this set equality and is an unruled widening",
 )
 R.check(
     "and refuses every fixture whose floats DO travel",
