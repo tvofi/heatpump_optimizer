@@ -1015,7 +1015,7 @@
       },
       "quick_setup": {
         "title": "Snabb installation",
-        "description": "Samma husfrågor som den första installationen ställer, besvarade ovanpå postens befintliga inställningar: skicka in dem så härleds den termiska modellen om från formuläret. Inget annat rörs, och förifyllningen erbjuds inte här - entitetsfälten är redan svarade, och förifyllningen finns kvar på den avancerade sidan Förifyll från en Modbus-värmepump.",
+        "description": "Samma husfrågor som den första installationen ställer, ovanpå postens befintliga inställningar. Ändra ett svar och skicka in, så härleds den termiska modellen om från formuläret; skicka in utan att ändra något så skrivs ingenting. Förifyllningen erbjuds inte här - entitetsfälten är redan svarade, och förifyllningen finns kvar på den avancerade sidan Förifyll från en Modbus-värmepump.",
         "data": {
           "two_zone": "Hus med två zoner",
           "buffer_tank": "Bufferttank",

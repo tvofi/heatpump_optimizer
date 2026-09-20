@@ -103,8 +103,10 @@ Two things worth knowing about this menu:
   The menu itself appears only while setting the integration up, but the
   Quick setup questions are also reachable afterwards: open the integration
   and choose **Configure**, where **Quick setup** is the last entry on the
-  first menu. It asks the same questions over the entry's existing settings
-  and re-derives the thermal model from the questionnaire; the device
+  first menu. It asks the same questions over the entry's existing settings,
+  each pre-filled with the entry's own recorded answer: change an answer and
+  submit, and the thermal model is re-derived from the questionnaire;
+  submit without changing anything and nothing is written. The device
   pre-fill is not offered there, because an existing entry's entity slots
   are already answered — that read stays on the advanced **Pre-fill from a
   Modbus heat pump** page. **Reconfigure** still reopens only the first
@@ -243,9 +245,9 @@ The setup flow — including the finish-setup menu — runs when an entry is
 - **Configure** (Options) re-opens the settings pages: sensors, the building
   and questionnaire, hot water, tariffs, learning — everything the wizard
   asked and more, one page at a time. **Quick setup** is here too, on the
-  first menu: the same house questions as at setup, answered over the
-  entry's existing settings, re-deriving the thermal model from the
-  questionnaire when you submit them.
+  first menu: the same house questions as at setup, each pre-filled with
+  the entry's own recorded answer — change one and submit to re-derive the
+  thermal model, or submit untouched and nothing is written.
 - **Reconfigure** re-opens just the first screen — a rotated token, a renamed
   sensor, a replacement pump — and saves back onto the same entry, without
   walking the wizard again.

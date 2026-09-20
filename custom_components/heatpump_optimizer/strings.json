@@ -1015,7 +1015,7 @@
       },
       "quick_setup": {
         "title": "Quick setup",
-        "description": "The same house questions the initial setup offers, answered over this entry's existing settings: submit them and the thermal model is re-derived from the questionnaire. Nothing else is touched, and the device pre-fill is not offered here - this entry's entity slots are already answered, and the pre-fill stays on the advanced Pre-fill from a Modbus heat pump page.",
+        "description": "The same house questions the initial setup offers, over this entry's existing settings. Change an answer and submit, and the thermal model is re-derived from the questionnaire; submit without changing anything and nothing is written. The device pre-fill is not offered here - this entry's entity slots are already answered, and the pre-fill stays on the advanced Pre-fill from a Modbus heat pump page.",
         "data": {
           "two_zone": "Two-zone house",
           "buffer_tank": "Buffer tank",

@@ -3929,11 +3929,10 @@ async def registry_drives_every_page():
     # #1258: the quick-setup questions page. Its five toggles are transient
     # questions exactly like the device pick -- named in ``quick_setup`` and
     # mapped onto option keys only by ``quick_setup.derive`` -- so they join
-    # the transient allowance, keyed on the module's own FIELD_* constants.
-    transient["quick_setup"] = {
-        value for name, value in vars(quick_setup).items()
-        if name.startswith("FIELD_")
-    }
+    # the transient allowance, keyed on the module's own SHIPPED_ANSWERS (the
+    # one source the fresh form's defaults and derive's fallbacks also read,
+    # so the allowance cannot drift from the fields the page renders).
+    transient["quick_setup"] = set(quick_setup.SHIPPED_ANSWERS)
     # The rest of that page's fields are not its own declarations but the
     # building pages': the questionnaire's one field list serves two flows by
     # design (``_questionnaire_fields``), and the two wood probes are the
@@ -5487,14 +5486,26 @@ async def _walk_untouched(data, options, edit=None):
     for page in config_flow._OPTION_PAGES:
         if page.step == "setup_overview":
             continue
-        # #1258: Quick setup's untouched submit is not a silent default but
-        # an answer. Its questions default to the questions' own shipped
-        # defaults, never to the entry's stored values, so pressing Submit
-        # re-derives the thermal model by design -- the null control in
-        # options_quick_setup pins the other arm: an entry that does NOT run
-        # the page changes nothing. This sweep is about pages whose untouched
-        # defaults should not matter; this page has no untouched arm to audit.
+        # #1258 round 2 (#1273): Quick setup's untouched submit is a NO-OP,
+        # not an answer -- the page suggests the entry's stored answers and
+        # writes nothing when the submission says nothing new. The round-1
+        # design (untouched submit re-derives at the questions' shipped
+        # defaults) flipped two_zone_mode off on existing entries and was
+        # the nightly-ha a5 red. The walk judges it like any other page now:
+        # an untouched submit may not move the stored options, so it appears
+        # in `reloaded` only if that contract breaks.
         if page.step == "quick_setup":
+            untouched_flow = config_flow.HeatPumpOptimizerConfigFlow.async_get_options_flow(
+                entry
+            )
+            untouched_flow.hass = hass
+            shown = await untouched_flow.async_step_quick_setup(None)
+            before = dict(entry.options)
+            await untouched_flow.async_step_quick_setup(
+                _untouched_post(shown["data_schema"])
+            )
+            if dict(entry.options) != before:
+                reloaded.append("quick_setup")
             continue
         flow = config_flow.HeatPumpOptimizerConfigFlow.async_get_options_flow(entry)
         flow.hass = hass
@@ -6246,6 +6257,117 @@ async def options_quick_setup():
         "null control: an entry that does not run Quick setup changes nothing",
         entry.options == options_before and entry.data == data_before,
         f"options={entry.options} data={sorted(entry.data)}",
+    )
+
+    # #1273, the nightly-ha red this branch shipped with: an UNTOUCHED
+    # submit used to be treated as an answer, derive filled the questions'
+    # shipped defaults, and a real entry was re-derived underneath the user
+    # (two_zone_mode flipping off). The page must pre-fill the STORED answers
+    # -- suggested, never defaulted, so voluptuous cannot refill a bare post
+    # with the shipped defaults -- and a submit that answers nothing the page
+    # did not already say writes NOTHING.
+    qflow, qentry, _ = fresh_options()
+    quick2 = getattr(qflow, "async_step_quick_setup", None)
+    form2 = await quick2(None) if quick2 else {}
+    schema2 = form2.get("data_schema") or vol.Schema({})
+    question_markers = {
+        str(getattr(marker, "schema", marker)): marker
+        for marker, _value in schema2.schema.items()
+        if str(getattr(marker, "schema", marker))
+        in set(getattr(quick_setup, "FIELD_QUESTIONS", ()))
+    }
+    check(
+        "opt_quick_setup", "happy",
+        "the five questions suggest the stored answers and never default them "
+        "(a default is refilled by voluptuous for a key a bare post left out)",
+        question_markers
+        and all(
+            getattr(marker, "default", vol.UNDEFINED) is vol.UNDEFINED
+            and (getattr(marker, "description", None) or {}).get("suggested_value")
+            is not None
+            for marker in question_markers.values()
+        ),
+        f"markers={ {k: (getattr(m, 'default', vol.UNDEFINED) is not vol.UNDEFINED, (getattr(m, 'description', None) or {}).get('suggested_value')) for k, m in question_markers.items()} }",
+    )
+
+    # An entry the quick path configured: the suggestions are its own answers
+    # back, so an untouched submit re-derives the entry byte-identically --
+    # and byte-identically here means NOTHING is written at all.
+    configured, config_entry, config_hass = fresh_options(
+        pre_options=dict(quick_setup.derive(dict(QUICK_SETUP_ANSWERS)))
+    )
+    configured_form = await getattr(configured, "async_step_quick_setup", lambda _u: {})(
+        None
+    )
+    configured_form = configured_form if configured_form.get("data_schema") else {}
+    # The five questions suggest the entry's own answers; the questionnaire
+    # (already pinned above) defaults from the entry as everywhere else.
+    _configured_markers = {
+        str(getattr(m, "schema", m)): m
+        for m, _v in (configured_form.get("data_schema").schema or {}).items()
+    }
+    check(
+        "opt_quick_setup", "happy",
+        "an entry the quick path configured is suggested its own answers back",
+        all(
+            (getattr(_configured_markers.get(question), "description", None) or {}).get(
+                "suggested_value"
+            )
+            == QUICK_SETUP_ANSWERS[question]
+            for question in getattr(quick_setup, "FIELD_QUESTIONS", ())
+        ),
+        f"suggestions={ {q: (getattr(_configured_markers.get(q), 'description', None) or {}).get('suggested_value') for q in getattr(quick_setup, 'FIELD_QUESTIONS', ())} }",
+    )
+    before = dict(config_entry.options)
+    untouched_menu = await submit(
+        configured, "quick_setup", _untouched_post(configured_form["data_schema"])
+    )
+    # "Writes nothing" is judged on the WRITE, not on the values: a
+    # re-derive of a derive-shaped entry reproduces its values byte for
+    # byte (features.py pins that round-trip), so value equality alone
+    # cannot tell a no-op from a same-valued rewrite. No async_update_entry
+    # at all is the contract.
+    check(
+        "opt_quick_setup", "happy",
+        "an untouched submit writes nothing and returns to the menu",
+        shows_menu(untouched_menu, "init")
+        and config_entry.options == before
+        and not config_hass.config_entries.updated,
+        f"options={sorted(config_entry.options)} "
+        f"updated={len(config_hass.config_entries.updated)}",
+    )
+    # The close arm, judged on an entry that NEVER answered the questions:
+    # the create-entry result's data is what the manager stores, so it must
+    # come back with no options at all -- not with a derive nobody asked
+    # for. (On a derive-shaped entry this arm is value-indistinguishable
+    # from a rewrite, which is exactly why the plain entry judges it.)
+    plain, plain_entry, _ = fresh_options()
+    plain_form = await getattr(plain, "async_step_quick_setup", lambda _u: {})(None)
+    plain_form = plain_form if plain_form.get("data_schema") else {}
+    untouched_close = await submit(plain, "quick_setup", {
+        **_untouched_post(plain_form["data_schema"]),
+        const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE,
+    })
+    check(
+        "opt_quick_setup", "happy",
+        "the untouched close choice stores no options at all",
+        untouched_close.get("type") == "create_entry"
+        and untouched_close.get("data") == {}
+        and plain_entry.options == {},
+        f"{untouched_close.get('type')} data={sorted(untouched_close.get('data') or {})}",
+    )
+    # The nightly walk's own shape: a bare {after_save: close} post, the five
+    # questions absent entirely (voluptuous refills defaults, not
+    # suggestions), on the same never-answered entry -- a5's exact arm.
+    bare = await submit(plain, "quick_setup", {const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE})
+    check(
+        "opt_quick_setup", "happy",
+        "a bare close post -- no question keys at all -- writes nothing "
+        "(nightly-ha a5's untouched walk)",
+        bare.get("type") == "create_entry"
+        and plain_entry.options == {}
+        and shows(plain_form, "quick_setup"),
+        f"{bare.get('type')} options={plain_entry.options}",
     )
 
     # Saving: the answers map through quick_setup.derive onto the entry's

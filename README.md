@@ -734,7 +734,7 @@ typically set once lives one click further, under **Advanced settings**.
 | Savings vs comfort | Price weight, comfort weight, recalculation interval, compressor start cost, caution with guessed prices |
 | Grid peak tariff | The monthly capacity charge and the clock it is measured on |
 | Away and holiday mode | Occupancy source, holiday calendar, the two setback temperatures |
-| Quick setup | The one-page house questions from initial setup, re-answered over this entry: submit them and the thermal model is re-derived from the questionnaire |
+| Quick setup | The one-page house questions from initial setup, pre-filled with this entry's own answers: change one and submit to re-derive the thermal model; untouched, nothing is written |
 
 | Advanced page | What it covers |
 |---|---|

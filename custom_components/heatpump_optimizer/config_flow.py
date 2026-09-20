@@ -1124,7 +1124,9 @@ def _derive_preset(answers: dict[str, Any], current: dict[str, Any]) -> dict[str
     return derived
 
 
-def _quick_setup_schema(current: dict[str, Any]) -> vol.Schema:
+def _quick_setup_schema(
+    current: dict[str, Any], *, suggest_stored: bool = False
+) -> vol.Schema:
     """The quick-setup page: the house in five yes/no answers plus the questionnaire.
 
     The five toggles are transient questions, not option keys — they are named
@@ -1138,24 +1140,37 @@ def _quick_setup_schema(current: dict[str, Any]) -> vol.Schema:
     flow over its accumulating wizard data (which never holds the probes), and
     the Configure page over the entry's effective config, where a stored probe
     is suggested back rather than shown empty (#1258).
+
+    ``suggest_stored`` is the Configure page's arm (#1273): the five questions
+    suggest the entry's OWN answers and carry no ``default``. A default is
+    refilled by voluptuous for a key a bare post left out — the nightly walk
+    posts nothing but the after-save choice — and a refilled shipped default
+    is an answer nobody gave, which re-derived real entries at the shipped
+    answers and flipped their two-zone mode off. A suggested value pre-fills
+    the form the same way and lets an absent key stay absent, which is what
+    lets the handler tell "untouched" from "answered".
     """
+    questions = dict.fromkeys(quick_setup.FIELD_QUESTIONS)
+    if suggest_stored:
+        suggested = quick_setup.suggested_answers(current)
+        question_fields = {
+            (
+                vol.Optional(
+                    field, description={"suggested_value": suggested[field]}
+                )
+            ): selector.BooleanSelector()
+            for field in questions
+        }
+    else:
+        question_fields = {
+            vol.Optional(
+                field, default=quick_setup.SHIPPED_ANSWERS[field]
+            ): selector.BooleanSelector()
+            for field in questions
+        }
     return vol.Schema(
         {
-            vol.Optional(
-                quick_setup.FIELD_TWO_ZONE, default=False
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                quick_setup.FIELD_BUFFER_TANK, default=False
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                quick_setup.FIELD_DHW_TANK, default=True
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                quick_setup.FIELD_WOOD_FURNACE, default=False
-            ): selector.BooleanSelector(),
-            vol.Optional(
-                quick_setup.FIELD_WOOD_BUFFER_TANK, default=False
-            ): selector.BooleanSelector(),
+            **question_fields,
             _suggested_entity(CONF_WOOD_TANK_TOP_ENTITY, current): _entity_of(["sensor"]),
             _suggested_entity(
                 CONF_WOOD_TANK_BOTTOM_ENTITY, current
@@ -3087,8 +3102,15 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         the entry's EXISTING option keys -- the transient question names are
         mapped away by the same module the initial path uses, so this page is
         a second caller of one mapping, never a second mapping -- and the
-        omission rules of ``_save_or_menu`` apply as on every page, so an
-        answer equal to an unstored default writes nothing.
+        omission rules of ``_save_or_menu`` apply as on every page.
+
+        The questions are SUGGESTED, never defaulted (#1273): each one
+        suggests the entry's own recorded answer, a question the entry has
+        never answered suggests the shipped default, and a submission that
+        answers nothing the page did not already say writes nothing at all.
+        An untouched submit is therefore a no-op rather than a re-answer at
+        the shipped defaults -- which used to flip two_zone_mode off on real
+        entries that had never answered the question.
 
         The device pre-fill deliberately does NOT run here. On the fresh-add
         quick path it follows the questions because a user who chose that
@@ -3105,19 +3127,55 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             # is a routing choice rather than a question, so it is stripped
             # before the answers reach the one mapping and handed back for
             # ``_save_or_menu`` to read.
-            derived = quick_setup.derive(
-                {
-                    key: value
-                    for key, value in user_input.items()
-                    if key != CONF_AFTER_SAVE
-                }
+            current = self._current
+            submitted = {
+                key: value
+                for key, value in user_input.items()
+                if key != CONF_AFTER_SAVE
+            }
+            # #1273: the baseline is exactly what the form suggested -- the
+            # entry's own answers where it has them, the shipped defaults
+            # where it does not, the stored questionnaire and probes. The
+            # five questions carry no ``default``, so voluptuous cannot
+            # refill a bare post with shipped answers, and a submission that
+            # says nothing the page did not already say writes NOTHING: an
+            # untouched submit used to be treated as an answer and re-derived
+            # real entries at the questions' shipped defaults, flipping
+            # their two-zone mode off (the nightly-ha a5 red).
+            baseline: dict[str, Any] = {
+                **quick_setup.suggested_answers(current),
+                **{
+                    key: current.get(key, default)
+                    for key, default in _QUESTIONNAIRE_DEFAULTS.items()
+                },
+                **{
+                    key: current[key]
+                    for key in (CONF_WOOD_TANK_TOP_ENTITY, CONF_WOOD_TANK_BOTTOM_ENTITY)
+                    if current.get(key)
+                },
+            }
+            answers = {**baseline, **submitted}
+            untouched = set(answers) == set(baseline) and all(
+                _same_setting(answers[key], baseline[key]) for key in baseline
             )
+            if untouched:
+                # Nothing was answered that the entry does not already say,
+                # so there is nothing to derive and nothing to write; the
+                # dialog simply goes where the after-save choice sends it.
+                if user_input.get(CONF_AFTER_SAVE) == AFTER_SAVE_CLOSE:
+                    return self._save({})
+                return await self.async_step_init()
+            derived = quick_setup.derive(answers)
             if user_input.get(CONF_AFTER_SAVE) is not None:
                 derived[CONF_AFTER_SAVE] = user_input[CONF_AFTER_SAVE]
             return await self._save_or_menu(derived)
         return self.async_show_form(
             step_id="quick_setup",
-            data_schema=_options_schema(dict(_quick_setup_schema(self._current).schema)),
+            data_schema=_options_schema(
+                dict(
+                    _quick_setup_schema(self._current, suggest_stored=True).schema
+                )
+            ),
         )
 
     async def async_step_entities(

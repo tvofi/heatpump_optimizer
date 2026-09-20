@@ -3251,13 +3251,13 @@
    },
    "wood_buffer_tank": {
     "config": null,
-    "default": "False",
+    "default": "True",
     "required": "Optional",
     "selector": "BooleanSelector"
    },
    "wood_furnace": {
     "config": null,
-    "default": "False",
+    "default": "True",
     "required": "Optional",
     "selector": "BooleanSelector"
    },

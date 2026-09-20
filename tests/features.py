@@ -40872,4 +40872,80 @@ R.check(
     _qs_model.room_thermal_mass > 0 and _qs_model.heat_loss_coefficient > 0,
 )
 
+# #1273: the Configure page's reverse arm. An untouched submit used to be
+# treated as an answer, derive filled the questions' shipped defaults, and a
+# real entry was re-derived underneath the user. The repair is the reverse
+# mapping -- what each question's answer looks like once derive has written
+# it -- and the two arms together must be IDEMPOTENT: deriving the stored
+# answers again reproduces the same configuration, which is what makes an
+# untouched submit a no-op rather than a re-answer.
+_qs_questions = (
+    _qs.FIELD_TWO_ZONE,
+    _qs.FIELD_BUFFER_TANK,
+    _qs.FIELD_DHW_TANK,
+    _qs.FIELD_WOOD_FURNACE,
+    _qs.FIELD_WOOD_BUFFER_TANK,
+)
+R.check(
+    "the shipped answers are one source with derive's own fallbacks",
+    _qs.derive({k: v for k, v in _qs_base.items() if k not in _qs_questions})
+    == _qs.derive(dict(_qs_base)),
+    "an absent question must map exactly as the shipped answer, or the "
+    "suggestions and the mapping would disagree",
+)
+_qs_stored = getattr(_qs, "stored_answers", None)
+R.check(
+    "an entry that answered nothing records no answer",
+    _qs_stored is not None and _qs_stored({}) == {},
+    f"{getattr(_qs, 'stored_answers', '<missing>')}",
+)
+_qs_grid = [
+    dict(zip(_qs_questions, answers))
+    for answers in (
+        (False, False, False, False, False),
+        (True, True, True, True, True),
+        (True, False, True, False, False),
+        (False, True, False, True, False),
+        (False, False, True, True, True),
+        (True, True, False, False, True),
+    )
+]
+_qs_roundtrips = [
+    (
+        answers,
+        _qs_stored(_qs.derive({**_qs_base, **answers})) if _qs_stored else None,
+    )
+    for answers in _qs_grid
+]
+R.check(
+    "derive of stored answers reproduces derive of the answers, every cell "
+    f"of a {len(_qs_grid)}-answer grid",
+    _qs_stored is not None
+    and all(
+        _qs.derive({**_qs_base, **stored}) == _qs.derive({**_qs_base, **answers})
+        for answers, stored in _qs_roundtrips
+    ),
+    f"diverging={[i for i, (a, s) in enumerate(_qs_roundtrips) if s is not None and _qs.derive({**_qs_base, **s}) != _qs.derive({**_qs_base, **a})]}",
+)
+# Leave-one-out: drop the strongest cell (all-yes) and the identity still
+# holds over the rest -- the mean is not one cell's doing.
+R.check(
+    "and with the all-yes cell dropped the identity still holds",
+    _qs_stored is not None
+    and all(
+        _qs.derive({**_qs_base, **stored}) == _qs.derive({**_qs_base, **answers})
+        for answers, stored in _qs_roundtrips[1:]
+    ),
+    "leave-one-out over the same grid",
+)
+_qs_suggested = getattr(_qs, "suggested_answers", None)
+R.check(
+    "the suggestions are the shipped answers with the stored ones over them",
+    _qs_suggested is not None
+    and _qs_suggested({}) == _qs.SHIPPED_ANSWERS
+    and _qs_suggested(_qs.derive({**_qs_base, **_qs_grid[1]})) == _qs_grid[1],
+    "the Configure page suggests exactly what a fresh page shows on an "
+    "unanswered entry, and the entry's own answers on a configured one",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

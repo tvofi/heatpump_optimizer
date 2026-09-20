@@ -220,7 +220,7 @@ control, described once here rather than twenty-three times below:
 | Savings vs comfort | The weights, the interval, and what a compressor start costs |
 | Grid peak tariff | The monthly capacity charge and the clock it is measured on |
 | Away and holiday mode | An occupancy source, a holiday calendar, and the two setback temperatures |
-| Quick setup | The one-page house questions from [initial setup](#initial-setup), re-answered over this entry: submit them and the thermal model is re-derived from the questionnaire |
+| Quick setup | The one-page house questions from [initial setup](#initial-setup), pre-filled with this entry's own answers: change one and submit to re-derive the thermal model; untouched, nothing is written |
 
 | Advanced settings | What lives there |
 |---|---|
