@@ -377,7 +377,48 @@ def slab_mode_tau_fast(c_r: float, c_s: float, k_s: float) -> float:
 def slab_mode_identifiability(
     params: ThermalParameters, config: SysIdConfig
 ) -> tuple[bool, str]:
-    """Whether the one-state fit can see this plant at all (#942).
+    """Whether the experiment's own fit can identify this plant (#942, #1329).
+
+    The declared-plant experiment is fitted in the TWO-STATE slab form
+    (:meth:`SystemIdentification.identify_slab`): the fit TRUSTS the config
+    ``(C_s, k_s)`` pair and rolls the production two-state model over the
+    recorded thermal power, so a slab-room fast mode slower than the
+    protocol's shortest phase is MODELLED rather than required to settle.
+    The one-state regression's predicate (``FAST_MODE_SETTLE_TAUS``) is not
+    this gate's requirement. Pricing the arm/adopt gate with it refused
+    every plant the integration ships — tau_fast 0.94-3.72 h against the
+    0.33 h bound is 0 of 360 preset-answer combinations, 0 of 80 derivable
+    presets, the item-18 button inert on every install the tree can produce
+    (finding #1329). That predicate lives where it is needed instead: the
+    cadence-gap fallback that would otherwise hand a slow-slab plant to the
+    one-state regression (:func:`slab_mode_one_state_identifiability`).
+
+    What remains at arm time is the two-state rollout's own precondition:
+    the configured ``(C_s, k_s)`` pair must be non-degenerate, or the fit
+    has no seed and falls back to the one-state program. Whether UA is
+    identifiable from the window is decided by the fit's own named guards
+    at fit time, not predicted from config.
+    """
+    c_r = float(params.room_thermal_mass)
+    c_s = float(params.slab_thermal_mass)
+    k_s = float(params.slab_heat_transfer)
+    if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9):
+        return False, (
+            "slab constants not configured; the two-state slab fit cannot "
+            "be seeded on this plant"
+        )
+    return True, "ok"
+
+
+def slab_mode_one_state_identifiability(
+    c_r: float, c_s: float, k_s: float, config: SysIdConfig
+) -> tuple[bool, str]:
+    """Whether the ONE-STATE regression can read this plant (#991/#942).
+
+    The predicate #991 introduced, moved off the arm/adopt gate by #1329 --
+    which prices the two-state fit that actually runs there -- and kept at
+    its one remaining consumer: :meth:`SystemIdentification.identify_slab`'s
+    cadence-gap fallback, which reroutes to the one-state regression.
 
     The plant the optimizer simulates is two-state: heat lands in the slab
     and the room sees only ``k_s·(T_s − T_r)``. ``identify()`` fits ONE
@@ -387,17 +428,12 @@ def slab_mode_identifiability(
     mode that cannot settle within the SHORTEST phase is still visibly
     two-state everywhere the fit looks — the relax rows carry slab
     discharge that a one-state model can only explain with a negative UA,
-    which is what the sign guards have been refusing, silently, on every
-    preset this integration ships (tau_fast = C_r·C_s/((C_r+C_s)·k_s) is
-    0.9–3.7 h against a shortest phase of 1 h). The gate names that at arm
-    time and at adoption instead of letting the night burn and the guards
-    stay mute; a plant whose slab coupling is fast enough (or a protocol
-    with phases long enough — the deferred two-state estimator's wave)
-    passes the same gate and adopts.
+    which is what the sign guards refuse. On every preset this integration
+    ships tau_fast = C_r·C_s/((C_r+C_s)·k_s) is 0.9–3.7 h against a
+    shortest phase of 1 h, so this predicate refuses them all — the right
+    answer for the ONE-STATE fit, and the reason it no longer gates the
+    two-state one.
     """
-    c_r = float(params.room_thermal_mass)
-    c_s = float(params.slab_thermal_mass)
-    k_s = float(params.slab_heat_transfer)
     window = config.settle_hours + config.step_hours + config.relax_hours
     settle_band = min(config.settle_hours, config.step_hours, config.relax_hours)
     if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9) or not settle_band > 1e-9:
@@ -1374,14 +1410,25 @@ class SystemIdentification:
                 completed=False, reason="not enough usable intervals"
             )
         rooms, outdoors, powers, dts = series
+        slab_mass, slab_transfer = self._slab_pair
+        ua0, cr0 = self._slab_prior
         if bool(np.any((dts <= 1e-3) | (dts > 2.0))):
             # A cadence gap breaks the rollout's state chain; the one-state
             # regression tolerates gaps by skipping the interval, so the
-            # experiment falls back to it rather than being discarded.
+            # experiment falls back to it -- but ONLY where the one-state
+            # fit can read the plant. Admitting the arm on a slow-slab plant
+            # (#1329) makes this fallback reachable on exactly the plants
+            # the #991 predicate refuses, so the predicate is applied HERE:
+            # handing them to identify() would adopt the silent model-class
+            # error #942 named, or discard the window with a reason about
+            # excitation rather than about the slab mode that caused it.
             self._slab_fit_used = False
+            one_state_ok, one_state_why = slab_mode_one_state_identifiability(
+                float(cr0), float(slab_mass), float(slab_transfer), self.config
+            )
+            if not one_state_ok:
+                return SysIdResult(completed=False, reason=one_state_why)
             return self.identify()
-        slab_mass, slab_transfer = self._slab_pair
-        ua0, cr0 = self._slab_prior
         prior_g = self.config.gains_prior_kw
 
         def residual(x: np.ndarray) -> np.ndarray:
