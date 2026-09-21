@@ -1940,7 +1940,7 @@ R.check(
     _hwc["counting_since"] == "2026-08-15",
     str(_hwc.get("counting_since")),
 )
-_plan_attrs = by_name["DHW Heating Plan (next 24 h)"].extra_state_attributes
+_plan_attrs = by_name["Plan DHW Heating (next 24 h)"].extra_state_attributes
 R.check(
     "the plan sensors say their numbers are projections, not history",
     "recomputed" in _plan_attrs["projection"]
@@ -2036,7 +2036,7 @@ R.check(
 # The chart's edit ceiling and the service's expiry default have to be the same
 # number, or the card shows slots as pinned past the point `channel_pins` frees
 # them. The integration owns it and publishes it; the card reads it.
-space_plan = by_name["Space Heating Plan (next 24 h)"]
+space_plan = by_name["Plan Space Heating (next 24 h)"]
 R.check(
     "the plan sensor publishes the manual-plan window for the card",
     space_plan.extra_state_attributes.get("manual_plan_window_hours")
@@ -2063,7 +2063,7 @@ R.check(
 # what `dhw_windows` carries (the plan's reading: learned windows when none
 # are configured, one day's set of a weekly spec). The configuration travels
 # on its own attribute, in the spec grammar, on both paths and unrecorded.
-dhw_plan = by_name["DHW Heating Plan (next 24 h)"]
+dhw_plan = by_name["Plan DHW Heating (next 24 h)"]
 R.check(
     "the plan sensor publishes the configured hot-water windows for the card",
     dhw_plan.extra_state_attributes.get("dhw_windows_spec")
@@ -7630,7 +7630,7 @@ R.check("the away switch pins today's object id", away_sw.entity_id == "switch.h
 R.check("the away switch is off when the override is off", not away_sw.is_on)
 dhw_boost_sw = next(
     s for s in switches
-    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_boost_dhw"
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_dhw_boost"
 )
 space_boost_sw = next(
     s for s in switches
@@ -7638,7 +7638,7 @@ space_boost_sw = next(
 )
 R.check(
     "the DHW boost switch pins today's object id",
-    dhw_boost_sw.entity_id == "switch.heat_pump_optimizer_boost_dhw",
+    dhw_boost_sw.entity_id == "switch.heat_pump_optimizer_dhw_boost",
 )
 R.check(
     "the space boost switch pins today's object id",
@@ -7861,6 +7861,13 @@ R.check(
 # ids did not. Three moved (hot_water_energy, hot_water_cost, mixed_hot_water)
 # for NEW installs only -- the unique ids are untouched, so an existing
 # install keeps its entity ids and its history through the registry.
+#
+# The plan family is exempt, on the key property rather than by name: the
+# DHW plan sensor's frozen unique-id key is still ``dhw_heating_plan`` (so it
+# registers here), but #1333 moved its *translation* key and suggested id into
+# the card's ``plan_`` run alongside the five other card-addressed sensors --
+# a card-resolved family whose object ids have to sort together, which a
+# ``dhw_`` object id cannot do.
 _dhw_keyed = [s for s in sensors if s._key.startswith("dhw")]
 R.check(
     "the hot-water domain is the nine dhw-keyed sensors",
@@ -7871,6 +7878,7 @@ _dhw_stray = sorted(
     f"{s._key}->{s.entity_id}"
     for s in _dhw_keyed
     if not s.entity_id.startswith("sensor.heat_pump_optimizer_dhw_")
+    and not getattr(s, "_attr_translation_key", "").startswith("plan_")
 )
 R.check(
     "every hot-water sensor suggests a dhw_ object id (#174)",
@@ -8762,12 +8770,14 @@ _CLUSTER_PREFIXES: dict[str, dict[str, str]] = {
         "plan_predicted_savings": "Plan ",
         "plan_savings_percentage": "Plan ",
         "plan_narrative": "Plan ",
+        "plan_space_heating": "Plan ",
+        "plan_dhw_heating": "Plan ",
     },
     "button": {
         "learning_run_system_identification": "Learning ",
         "learning_reset_comfort_weight": "Learning ",
     },
-    "switch": {"boost_dhw": "DHW "},
+    "switch": {"dhw_boost": "DHW "},
 }
 for _plat, _pins in _CLUSTER_PREFIXES.items():
     for _key, _prefix in sorted(_pins.items()):
@@ -8810,8 +8820,11 @@ R.check(
 # translation key cannot silently move the goalposts of the check above.
 for _display, _expected_id in (
     ("Solar Irradiance", "sensor.heat_pump_optimizer_solar_irradiance"),
-    ("Space Heating Plan (next 24 h)", "sensor.heat_pump_optimizer_space_heating_plan"),
-    ("DHW Heating Plan (next 24 h)", "sensor.heat_pump_optimizer_dhw_heating_plan"),
+    # #1333 moved these two deliberately (space_heating_plan -> plan_space_heating,
+    # dhw_heating_plan -> plan_dhw_heating, new installs only); the D8-01 section
+    # below pins the old->new pair and the unchanged unique ids.
+    ("Plan Space Heating (next 24 h)", "sensor.heat_pump_optimizer_plan_space_heating"),
+    ("Plan DHW Heating (next 24 h)", "sensor.heat_pump_optimizer_plan_dhw_heating"),
     ("Plan Predicted Savings", "sensor.heat_pump_optimizer_plan_predicted_savings"),
     ("Plan Monthly Savings", "sensor.heat_pump_optimizer_plan_monthly_savings"),
     ("Plan Savings Percentage", "sensor.heat_pump_optimizer_plan_savings_percentage"),
@@ -8831,11 +8844,12 @@ for _display, _expected_id in (
     )
 # The card derives headline-stat ids from the plan sensor id by suffix swap;
 # that derivation must keep landing on real ids. #1227 moved five headline
-# suffixes with their keys; the card reads the family-prefixed suffix and
-# keeps each pre-#1227 suffix as its legacy fallback (the card's
-# LEGACY_STAT_SUFFIXES, pinned just below), so on this roster the derivation
-# is required to land with the CURRENT suffix.
-_plan_id = by_name["Space Heating Plan (next 24 h)"].entity_id
+# suffixes with their keys and #1333 moved the two plan ids; the card reads
+# each family-prefixed suffix and keeps the pre-#1227 / pre-#1333 suffix as
+# its legacy fallback (the card's LEGACY_STAT_SUFFIXES and PLAN_ID_SUFFIXES,
+# pinned just below), so on this roster the derivation is required to land
+# with the CURRENT suffix.
+_plan_id = by_name["Plan Space Heating (next 24 h)"].entity_id
 for _stat_suffix in (
     "_plan_predicted_savings",
     "_plan_savings_percentage",
@@ -8843,7 +8857,7 @@ for _stat_suffix in (
     "_plan_monthly_savings",
     "_plan_narrative",
 ):
-    _derived = _plan_id.replace("_space_heating_plan", _stat_suffix)
+    _derived = _plan_id.replace("_plan_space_heating", _stat_suffix)
     R.check(
         f"the card's suffix derivation for {_stat_suffix} stays valid",
         _derived in {s.entity_id for s in sensors},
@@ -8934,6 +8948,79 @@ for _display, _new_id, _uid in (
         f"{_display} keeps unique id ..._{_uid}, so existing installs keep their entity id",
         _moved is not None and _moved._attr_unique_id == f"{ENTRY.entry_id}_{_uid}",
         str(getattr(_moved, "_attr_unique_id", None)),
+    )
+
+# --- D8-01 (round 5, #1333): the two plan sensors join the plan_ run -------
+#
+# #1227 above moved the four card headline stats and the Cost/Learning keys to
+# carry their family prefix, but left the two plan sensors on
+# ``space_heating_plan`` / ``dhw_heating_plan`` -- so the dashboard card's six
+# id-addressed sensors still sorted into three entity-id runs (the D8 harness's
+# split_blocks_entity_id=2, split_interlopers_entity_id=34,
+# families_split_entity_id=1). The plan sensors take the same prefix move:
+# ``space_heating_plan -> plan_space_heating`` and
+# ``dhw_heating_plan -> plan_dhw_heating``, which lands all six in one run
+# (split_blocks_entity_id -> 0). NEW installs only, exactly as #1227: the
+# unique ids are untouched, so an existing install keeps its entity id and its
+# history through the registry (the #174 pattern above), and the card resolves
+# the pre-#1333 ids as its legacy fallback (pinned below).
+for _display, _new_id, _uid in (
+    ("Plan Space Heating (next 24 h)", "sensor.heat_pump_optimizer_plan_space_heating", "space_heating_plan"),
+    ("Plan DHW Heating (next 24 h)", "sensor.heat_pump_optimizer_plan_dhw_heating", "dhw_heating_plan"),
+):
+    _moved = by_name.get(_display)
+    R.check(
+        f"{_display} suggests {_new_id} on new installs (#1333)",
+        _moved is not None and _moved.entity_id == _new_id,
+        str(getattr(_moved, "entity_id", None)),
+    )
+    R.check(
+        f"{_display} keeps unique id ..._{_uid}, so existing installs keep their entity id",
+        _moved is not None and _moved._attr_unique_id == f"{ENTRY.entry_id}_{_uid}",
+        str(getattr(_moved, "_attr_unique_id", None)),
+    )
+
+# And the other half of the same contract: an existing install keeps its
+# pre-#1333 registry id, so the card has to resolve BOTH plan id generations
+# -- current suffix first, legacy after. Read the card's own maps, so deleting
+# a legacy entry fails here rather than silently breaking upgrades. Two maps,
+# because discovery matches an id's end (bare suffix) while derivation strips
+# the resolved id's own separator-carrying suffix.
+def _card_suffix_map(_name):
+    _blk = re.search(rf"const {_name} = \{{(.*?)\}};", _card_src, re.S)
+    _out = {}
+    if _blk:
+        for _m in re.finditer(r"(\w+):\s*\[([^\]]*)\]", _blk.group(1)):
+            _out[_m.group(1)] = re.findall(r'"([^"]+)"', _m.group(2))
+    return _out
+
+_card_scan = _card_suffix_map("PLAN_ID_SUFFIXES")
+_card_derive = _card_suffix_map("PLAN_ID_DERIVE")
+R.check(
+    "the card's plan discovery tries the current id before the pre-#1333 one",
+    _card_scan.get("space") == ["plan_space_heating", "space_heating_plan"]
+    and _card_scan.get("dhw") == ["plan_dhw_heating", "dhw_heating_plan"],
+    str(_card_scan),
+)
+R.check(
+    "the card's plan derivation tries the current id before the pre-#1333 one",
+    _card_derive.get("space") == ["_plan_space_heating", "_space_heating_plan"]
+    and _card_derive.get("dhw") == ["_plan_dhw_heating", "_dhw_heating_plan"],
+    str(_card_derive),
+)
+# The current entry must also be the one that lands on this roster's live id.
+for _kind, _current in (
+    ("space", "_plan_space_heating"),
+    ("dhw", "_plan_dhw_heating"),
+):
+    _derived_live = [
+        s.entity_id for s in sensors
+        if s.entity_id.endswith(_current)
+    ]
+    R.check(
+        f"the card's current {_kind} plan id matches a built sensor (#1333)",
+        _derived_live == [f"sensor.heat_pump_optimizer{_current}"],
+        str(_derived_live),
     )
 
 # Belt-and-braces for the future: the four headline sensors advertise a

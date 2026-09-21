@@ -71,7 +71,7 @@
       "dhw_heating_cost": {
         "default": "mdi:cash-minus"
       },
-      "dhw_heating_plan": {
+      "plan_dhw_heating": {
         "default": "mdi:water-boiler"
       },
       "dhw_heating_schedule": {
@@ -223,7 +223,7 @@
       "space_heating_energy": {
         "default": "mdi:radiator"
       },
-      "space_heating_plan": {
+      "plan_space_heating": {
         "default": "mdi:radiator"
       },
       "thermal_battery_charge": {
@@ -249,7 +249,7 @@
       "away": {
         "default": "mdi:walk"
       },
-      "boost_dhw": {
+      "dhw_boost": {
         "default": "mdi:water-boiler"
       },
       "boost_space": {
