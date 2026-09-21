@@ -554,9 +554,3 @@
 # -- the equivalence tests/config_flow_steps.py proves for every
 # _ABSENT_FALLBACKS key. Re-recorded as well as claimed for #547's
 # reason: config_flow is compared exactly at level 1.
-coord_minimal # R5-D12-01: unconfigured ECL110 topics no longer stand in; default topic strings -> ""
-coord_dhw # R5-D12-01: unconfigured ECL110 topics no longer stand in; default topic strings -> ""
-coord_two_zone # R5-D12-01: unconfigured ECL110 topics no longer stand in; default topic strings -> ""
-coord_grid_fee # R5-D12-01: unconfigured ECL110 topics no longer stand in; default topic strings -> ""
-coord_all_features # R5-D12-01: unconfigured ECL110 topics no longer stand in; default topic strings -> ""
-config_flow # R5-D12-01: heat_curve topic fields suggest empty, not the shipped default topics
