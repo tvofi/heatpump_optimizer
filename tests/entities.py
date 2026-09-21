@@ -16018,6 +16018,74 @@ R.check(
     "emptying someone else's claim list is the deletion a squash applies to "
     f"the baseline; got {_h493_del_err!r}",
 )
+# The CLAIM_HEAD head-read (#1359/#1356's deadlock). On a pull_request the
+# checkout is the synthetic merge tree, where a no-drift branch's solver list
+# resolves to the baseline's and falsely reads as inherited. CLAIM_HEAD names
+# the branch's own head, whose empty list "always passes".
+def _merge_hygiene_git():
+    """Three commits: base (five solver claims), branch (empties them, touches
+    a solver file), HEAD (the merge tree — the baseline's list with the
+    branch's solver-file touch)."""
+    import subprocess as _sp
+
+    root = _tempfile.mkdtemp(prefix="hch_")
+    five = (
+        "# claims-for: 6.3.15\n\n"
+        "coord_minimal  # R5-D8-03\n"
+        "coord_dhw  # R5-D8-03\n"
+        "coord_two_zone  # R5-D8-03\n"
+        "coord_grid_fee  # R5-D8-03\n"
+        "coord_all_features  # R5-D8-03\n"
+    )
+    (Path(root) / "tests" / "golden").mkdir(parents=True)
+    (Path(root) / "custom_components" / "heatpump_optimizer").mkdir(parents=True)
+    (Path(root) / "VERSION").write_text("6.3.15\n")
+    (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(five)
+    (Path(root) / "tests" / "golden" / "card_claimed_drift.txt").write_text("# claims-for: 6.3.15\n")
+    (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text("x = 1\n")
+    _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
+    _sp.run(["git", "config", "user.name", "t"], cwd=root, check=True)
+    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "base"], cwd=root, check=True, capture_output=True)
+    base = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text("# claims-for: 6.3.15\n")
+    (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text("x = 2\n")
+    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "branch"], cwd=root, check=True, capture_output=True)
+    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(five)
+    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "merge tree"], cwd=root, check=True, capture_output=True)
+    return root, base, branch
+
+
+_mt_root, _mt_base, _mt_branch = _merge_hygiene_git()
+_mt_without = _hyg(_mt_root, _mt_base) if callable(_hyg) else "missing"
+with _mock.patch.dict(_os.environ, {"CLAIM_HEAD": _mt_branch}):
+    _mt_with_head = _hyg(_mt_root, _mt_base) if callable(_hyg) else "missing"
+with _mock.patch.dict(_os.environ, {"CLAIM_HEAD": _mt_base}):
+    _mt_defect = _hyg(_mt_root, _mt_base) if callable(_hyg) else "missing"
+R.check(
+    "the merge-tree checkout's list is the baseline's, so without CLAIM_HEAD the inherited check fires",
+    callable(_hyg)
+    and isinstance(_mt_without, str)
+    and _mt_without.startswith("INHERITED CLAIMS"),
+    f"got {_mt_without!r}",
+)
+R.check(
+    "CLAIM_HEAD reads the branch's own empty list, so a no-drift branch over a claiming main passes",
+    callable(_hyg) and _mt_with_head is None,
+    f"got {_mt_with_head!r}",
+)
+R.check(
+    "CLAIM_HEAD pointing at a byte-identical list still fires the inherited check (the real-defect arm)",
+    callable(_hyg)
+    and isinstance(_mt_defect, str)
+    and _mt_defect.startswith("INHERITED CLAIMS"),
+    f"got {_mt_defect!r}",
+)
+
 # The stamp exemption end to end, through `check_claims_hygiene`: VERSION read
 # off the baseline with git, both claims-for lines read off the tree. The null
 # control is the same commit with VERSION left alone, which must stay refused.

@@ -1078,10 +1078,10 @@ def _show_at(repo: str, ref: str, relpath: str) -> str | None:
     return proc.stdout if proc.returncode == 0 else None
 
 
-def _parent_count(repo: str) -> int:
-    """How many parents HEAD has; 0 when git cannot say, which no rule trusts."""
+def _parent_count(repo: str, ref: str = "HEAD") -> int:
+    """How many parents ``ref`` has; 0 when git cannot say, which no rule trusts."""
     proc = subprocess.run(
-        ["git", "rev-list", "--parents", "-n", "1", "HEAD"],
+        ["git", "rev-list", "--parents", "-n", "1", ref],
         cwd=repo, capture_output=True, text=True,
     )
     return len(proc.stdout.split()) - 1 if proc.returncode == 0 and proc.stdout.strip() else 0
@@ -1091,6 +1091,12 @@ def _claimed_at(repo: str, ref: str, relpath: str) -> dict[str, list[str]]:
     """Parsed claims for ``relpath`` at ``ref``, or empty if the path is missing."""
     text = _show_at(repo, ref, relpath)
     return {} if text is None else _parse_claims(text)[1]
+
+
+def _claimed_full_at(repo: str, ref: str, relpath: str) -> tuple[str | None, dict[str, list[str]]]:
+    """``(stamp, claims)`` for ``relpath`` at ``ref``; empty when git cannot show it."""
+    text = _show_at(repo, ref, relpath)
+    return (None, {}) if text is None else _parse_claims(text)
 
 
 def _may_drift(repo: str) -> dict[str, str]:
@@ -2082,11 +2088,22 @@ def check_claims_hygiene(repo: str, ref: str) -> str | None:
     """Inherited lists and the record-PR empty rule, or None when both hold."""
     if _rev(repo, ref) is None:
         return f"cannot resolve {ref}"
-    declared_solver, solver = _claimed(repo, CLAIM_FILE)
-    declared_card, card = _claimed(repo, CARD_CLAIM_FILE)
+    # The branch's OWN claim list is read from the PR head when CI names one
+    # (CLAIM_HEAD), not from the checkout -- which is the synthetic merge tree
+    # on a pull_request event, where a no-drift branch's list resolves to the
+    # baseline's and falsely reads as inherited (#1359/#1356's deadlock).
+    claim_head = os.environ.get("CLAIM_HEAD", "").strip()
+    if claim_head and _rev(repo, claim_head) is not None:
+        declared_solver, solver = _claimed_full_at(repo, claim_head, CLAIM_FILE)
+        declared_card, card = _claimed_full_at(repo, claim_head, CARD_CLAIM_FILE)
+        parent = _parent_count(repo, claim_head)
+    else:
+        declared_solver, solver = _claimed(repo, CLAIM_FILE)
+        declared_card, card = _claimed(repo, CARD_CLAIM_FILE)
+        parent = _parent_count(repo)
     stamp = (
         _repo_version(repo), (_show_at(repo, ref, VERSION_FILE) or "").strip(),
-        declared_solver, declared_card, _parent_count(repo),
+        declared_solver, declared_card, parent,
     ) if stamp_ref_allows(dict(os.environ)) else None
     base_solver = _claimed_at(repo, ref, CLAIM_FILE)
     base_card = _claimed_at(repo, ref, CARD_CLAIM_FILE)
