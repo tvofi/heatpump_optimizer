@@ -9090,6 +9090,72 @@ for _key_prefix in ("dhw_", "learning_", "ecl110_", "solar_"):
         f"lcp={_lead_token(_prefix_names)!r} over {_prefix_names}",
     )
 
+# A lead token is necessary, not sufficient: the finding's claim is a BLOCK
+# count (`families_split_name_sv` 4 against en 1), and the capacity-tariff
+# pair splits without ever losing a token -- its spot price, "Kostnad elpris
+# (nu)", shares the "Kostnad " lead but sorts BETWEEN the pair ("Kostnad
+# effektmarginal" < "Kostnad elpris (nu)" < "Kostnad månatligt toppeffekt").
+# "Kostnad aktuellt elpris" sorts ahead of both, so the pair stays whole.
+# Reproduce the harness's own block rule -- a family is whole when its
+# members occupy one contiguous run of the name-sorted view -- over the same
+# roster, with the harness's own families (PREFIX_FAMILIES plus the two the
+# claim names by hand: the card's plan family and this tariff_pair).
+_sv_rows = sorted(
+    (_body["name"], _plat, _key)
+    for _plat, _ents in _sv_entities.items()
+    for _key, _body in _ents.items()
+)
+_sv_seq = [(_plat, _key) for _name, _plat, _key in _sv_rows]
+
+
+def _runs(_members):
+    """Runs _members fall into in the sv name order -- the harness's blocks."""
+    _pos = [i for i, _row in enumerate(_sv_seq) if _row in _members]
+    if len(_pos) < 2:
+        return 0
+    _runs_n = 1
+    for _a, _b in zip(_pos, _pos[1:]):
+        if _b != _a + 1:
+            _runs_n += 1
+    return _runs_n
+
+
+for _label, _members in (
+    (
+        "card's plan family",
+        tuple(
+            ("sensor", _k)
+            for _k, _prefix in _CLUSTER_PREFIXES["sensor"].items()
+            if _prefix == "Plan "
+        ),
+    ),
+    (
+        "capacity-tariff pair",
+        (("sensor", "cost_monthly_peak_power"), ("sensor", "cost_power_headroom")),
+    ),
+    *(
+        (
+            f"{_key_prefix}* family",
+            tuple(
+                sorted(
+                    (_plat, _key)
+                    for _plat, _ents in _sv_entities.items()
+                    for _key in _ents
+                    if _key.startswith(_key_prefix)
+                )
+            ),
+        )
+        for _key_prefix in ("dhw_", "learning_", "ecl110_", "solar_")
+    ),
+):
+    if len(set(_members)) < 2:
+        continue
+    R.check(
+        f"the Swedish {_label} keeps its members in one name-sorted run (#1334)",
+        _runs(set(_members)) == 1,
+        f"{_runs(set(_members))} run(s)",
+    )
+
 # Belt-and-braces for the future: the four headline sensors advertise a
 # stable stat_kind attribute, same contract as plan_kind on the plan sensors.
 for _display, _kind in (
