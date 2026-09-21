@@ -1609,8 +1609,22 @@ def memory_stale_axes(
     axis with its own observed and recorded values, and so the selftest
     arms can drive it on synthetic probe recordings without launching
     the pass's subprocess probes.
+
+    The attributable RSS is NOT judged at the instrument's floor. It is
+    a difference between two SEPARATELY launched probe subprocesses
+    (`max(0.0, rss_peak - baseline_rss)`, see the memory pass), so its
+    floor is reachable by noise: a scenario probe whose ru_maxrss
+    high-water mark lands at or below the empty probe's reads exactly
+    0.00 MiB, and `_memory_baseline_main` already records that the RSS
+    arm "says nothing about that scenario below the import peak". A
+    0.00 MiB reading is that blindness, not a >3.5x cheaper tree, and
+    judging it would red every recorded value (round-1's review measured
+    it at all six CI probes and one local probe). The stale rule
+    therefore declines where its own input is the clamp; a tree that
+    genuinely got cheaper reads a small POSITIVE attributable and still
+    fires (the selftest's other end).
     """
-    if stale_cheap_verdict(rss_attrib, recorded_attrib):
+    if rss_attrib > 0.0 and stale_cheap_verdict(rss_attrib, recorded_attrib):
         yield "attributable RSS", rss_attrib, recorded_attrib
     if stale_cheap_verdict(traced_peak, recorded_traced):
         yield "traced peak", traced_peak, recorded_traced
@@ -2563,6 +2577,24 @@ if __name__ == "__main__":
         ),
         f"{SCENARIO_STALE_FACTOR - 0.5:.1f}x cheaper failed the memory "
         f"stale rule",
+    )
+    # ...and the floor of the RSS axis's own input, which is the other end
+    # (round-1's review): the attributable is a difference of two
+    # separately launched probe watermarks, clamped at zero, so a probe at
+    # or below the empty probe reads exactly 0.00 MiB -- the arm's
+    # blindness below the import peak, not a 3.5x cheaper tree. Judging
+    # that floor against a positive record red-zones every recorded value
+    # (measured at all six CI probes and one local probe), so the stale
+    # rule declines where its input is the clamp. Paired with the first
+    # arm above, which still fires on a small POSITIVE attributable.
+    R.check(
+        "...and an attributable RSS at the instrument's floor reads "
+        "nothing: a probe clamped to 0.00 MiB against the empty probe is "
+        "the RSS arm's blindness, not a >3.5x cheaper tree, so it fires "
+        "nothing against a positive record (round-5 D9-08)",
+        not list(memory_stale_axes(0.0, 100.0, 100.0, 100.0)),
+        "a 0.00 MiB attributable reading fired the memory stale rule "
+        "against a positive record -- the false red this arm pins",
     )
     R.check(
         "...and a regression back to a stale record passes the over side, "
