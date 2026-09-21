@@ -36,6 +36,10 @@ from heatpump_optimizer.coordinator import (
 from heatpump_optimizer.manual_plan import ManualOverride, PIN_ON
 from heatpump_optimizer.disinfection import DisinfectionSwitch
 from heatpump_optimizer.legionella import LegionellaGuard
+from heatpump_optimizer.pump_signals import (
+    MODE_SOURCE_EXPIRED,
+    MODE_SOURCE_LAST_GOOD,
+)
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer,
     OptimizationConfig,
@@ -843,6 +847,107 @@ R.check(
     "and that agreement is the OFF the true index commands",
     _pp == [("turn_off", "switch.space")],
     f"plain-night command {_pp}",
+)
+
+# The mode entity's last-good fallback is bounded by the age of the last
+# live reading (MODE_LAST_GOOD_MAX_AGE_MINUTES = 180): the seam at
+# coordinator.py's ``_pump_mode_last_good_at`` stamps ``dt_util.now()`` on
+# a live read and ages it with the same shared-ZoneInfo subtraction. The
+# fold reads a true-200-minute-old mode as 140 minutes -- inside the 180
+# bound -- so a mode that stopped acting three and a half hours ago keeps
+# suppressing channels it can no longer serve. Same shape as the plan-age
+# seam, one whole method up.
+MODE_STAMP_NIGHT = (
+    datetime(2026, 10, 25, 0, 30, tzinfo=STHLM),  # CEST, pre-fold
+    datetime(2026, 10, 25, 2, 50, tzinfo=STHLM, fold=1),  # CET, post-fold
+)
+MODE_PLAIN_NIGHT = (
+    datetime(2026, 10, 24, 0, 30, tzinfo=STHLM),
+    datetime(2026, 10, 24, 3, 50, tzinfo=STHLM),  # same TRUE 200 min
+)
+
+
+async def _mode_source_after_outage(night):
+    """mode_source once the entity is stale, one outage-spanning window."""
+    coord = _age_coord({const.CONF_HEAT_PUMP_MODE_ENTITY: "sensor.mode"})
+    start, end = night
+    try:
+        dt_util.freeze(start)
+        # "heating" alone is status-ambiguous for a plain sensor
+        # (pump_mode._STATUS_AMBIGUOUS); a multi-duty spelling is accepted
+        # from any domain, so this is a LIVE read.
+        coord.hass.states.set(
+            "sensor.mode",
+            FakeState("heating + hot water", last_updated=dt_util.now()),
+        )
+        await coord._update_current_state()
+        stamped = coord._pump_mode_last_good_at
+        # The entity now goes quiet: its state never updates again, so at
+        # ``end`` it is stale -- unreadable, which is exactly the state the
+        # last-good fallback exists for.
+        dt_util.freeze(end)
+        await coord._update_current_state()
+        source = coord._pump_signals.mode_source
+    finally:
+        dt_util.freeze(None)
+    return stamped, source
+
+
+_ms, _mf = asyncio.run(_mode_source_after_outage(MODE_STAMP_NIGHT))
+_mp, _mpf = asyncio.run(_mode_source_after_outage(MODE_PLAIN_NIGHT))
+R.check(
+    "the fold-night outage stamped its last-good at the pre-fold instant",
+    _ms is not None and _ms.utcoffset() == MODE_STAMP_NIGHT[0].utcoffset(),
+    f"stamped {_ms}",
+)
+R.check(
+    "a mode unreadable for a TRUE 3 h 20 min is expired, not held good",
+    _mf == MODE_SOURCE_EXPIRED,
+    f"fold-night mode_source={_mf!r}",
+)
+R.check(
+    "NULL CONTROL: the plain night expires the same-age mode identically",
+    _mpf == MODE_SOURCE_EXPIRED and _mp is not None,
+    f"plain-night mode_source={_mpf!r}",
+)
+
+# The defrost duty window accumulates seconds through ``_elapsed``, the
+# same shared-ZoneInfo subtraction with both stamps from ``dt_util.now()``:
+# across the fold a true-2 h defrost settles as one hour of duty.
+from heatpump_optimizer.defrost import DefrostWindow
+
+_dw_fold = DefrostWindow()
+_dw_plain = DefrostWindow()
+try:
+    dt_util.freeze(FOLD_NIGHT[0])
+    _dw_fold.observe(dt_util.now(), True)
+    dt_util.freeze(FOLD_NIGHT[1])
+    _fold_seconds = _dw_fold.peek(dt_util.now()).seconds
+
+    dt_util.freeze(PLAIN_NIGHT[0])
+    _dw_plain.observe(dt_util.now(), True)
+    dt_util.freeze(PLAIN_NIGHT[1])
+    _plain_seconds = _dw_plain.peek(dt_util.now()).seconds
+finally:
+    dt_util.freeze(None)
+R.check(
+    "a defrost running the fold's true 2 h books 7200 s of duty",
+    _fold_seconds == 7200.0,
+    f"fold {_fold_seconds} s",
+)
+R.check(
+    "NULL CONTROL: the plain night books the same 7200 s",
+    _plain_seconds == 7200.0,
+    f"plain {_plain_seconds} s",
+)
+R.check(
+    "and a mixed naive/aware pair is still declined, not guessed",
+    _dw_fold._elapsed(
+        datetime(2026, 10, 25, 2, 30),  # naive
+        datetime(2026, 10, 25, 2, 30, tzinfo=STHLM),
+    )
+    is None,
+    "the unknown-length contract survives the normalisation",
 )
 
 sys.exit(R.close("DST / QUARTER-GRID CHECKS"))

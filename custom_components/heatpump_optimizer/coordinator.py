@@ -651,6 +651,20 @@ def _republish_handover_ages(coord: Any, handover: dict[str, Any]) -> dict[str, 
     return handover
 
 
+def _utc_age_seconds(newer: datetime, older: datetime) -> float:
+    """Seconds between two stamps as instants (#1299).
+
+    Both stamps usually carry Home Assistant's single process-wide ZoneInfo,
+    and CPython resolves subtraction of two aware datetimes that SHARE one
+    tzinfo object as naive wall-clock subtraction -- so an age spanning a DST
+    transition is off by the offset delta (a true 2 h fold-night outage read
+    60 min). Normalising both to UTC first keeps every age seam true across
+    a fold or gap; naive stamps (the identity-timezone test stub) keep their
+    wall difference, which is what their direct subtraction gave.
+    """
+    return (dt_util.as_utc(newer) - dt_util.as_utc(older)).total_seconds()
+
+
 def _cop_fold_blocked(coord: Any) -> bool:
     """#1067: whether this interval's meter reading describes the compressor.
 
@@ -2592,12 +2606,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 dt_hours = max(ctx._opt_config.dt_hours, 1e-6)
                 if result.timestamps:
                     # #1299: the plan walks real instants, not wall clocks.
-                    span = dt_util.as_utc(now) - dt_util.as_utc(
-                        result.timestamps[0]
-                    )
-                    idx = int(
-                        max(0.0, span.total_seconds() / 3600.0 / dt_hours)
-                    )
+                    since0 = _utc_age_seconds(now, result.timestamps[0])
+                    idx = int(max(0.0, since0 / 3600.0 / dt_hours))
             heat_now, heat_next = pump_schedule.plan_commands_heat(
                 schedule, idx
             )
@@ -5302,7 +5312,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # ``_learning_frozen``, which now consults these.
         _mode_now = dt_util.now()
         _last_good_age = (
-            (_mode_now - self._pump_mode_last_good_at).total_seconds() / 60.0
+            # #1299: UTC instants — a shared ZoneInfo subtracts as wall clocks.
+            _utc_age_seconds(_mode_now, self._pump_mode_last_good_at) / 60.0
             if self._pump_mode_last_good_at is not None
             else None
         )
@@ -5690,10 +5701,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         if self._weather_stale_since is None:
             return None
-        span = dt_util.as_utc(dt_util.now()) - dt_util.as_utc(
-            self._weather_stale_since
-        )
-        return max(0.0, round(span.total_seconds() / 3600.0, 1))
+        stale_s = _utc_age_seconds(dt_util.now(), self._weather_stale_since)
+        return max(0.0, round(stale_s / 3600.0, 1))
 
     def _solar_forecast_source(self) -> str:
         """Configured irradiance source."""
@@ -6508,10 +6517,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if self._last_optimization is None:
             return None
         # #1299: UTC instants — a shared ZoneInfo subtracts as wall clocks.
-        span = dt_util.as_utc(dt_util.now()) - dt_util.as_utc(
-            self._last_optimization
+        return max(
+            0.0, _utc_age_seconds(dt_util.now(), self._last_optimization) / 60.0
         )
-        return max(0.0, span.total_seconds() / 60.0)
 
     def _plan_is_stale(self) -> bool:
         """True when the plan is older than three solve cycles (min 90 min)."""
