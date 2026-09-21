@@ -1,8 +1,8 @@
 """Heat Pump Cost Optimizer integration for Home Assistant.
 
 This integration optimizes heat pump operation to minimize electricity costs
-using Model Predictive Control (MPC). It integrates with Tibber for electricity
-prices and Home Assistant weather entities for temperature forecasts.
+using Model Predictive Control (MPC). It reads electricity prices from Tibber
+or a price entity, and forecasts from Home Assistant weather entities.
 
 The optimization accounts for:
 - Thermal mass of slab floor heating (slow response)

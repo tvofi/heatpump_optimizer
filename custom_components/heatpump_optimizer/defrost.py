@@ -159,11 +159,13 @@ def derate_from_duty(duty: float) -> float:
 class DefrostDerate:
     """Per-bucket multiplicative COP/capacity derate, learned online.
 
-    Holds both estimators. The measured one wins in any bucket that has a duty
-    sample, because it rests on a count rather than an inference; the inferred
-    one keeps every pre-v5.3.0 install working exactly as it did. They are
-    never averaged: mixing a measurement with an inference of the same quantity
-    produces a number that is neither.
+    Holds both estimators. The measured one wins once its duty count reaches
+    ``DERATE_CONFIDENCE_SAMPLES`` (or the inferred one has nothing); below that
+    the lower — the more careful — of the two trust-blended values applies,
+    which keeps every pre-v5.3.0 install working exactly as it did until the
+    measurement has earned trust. They are never averaged: mixing a
+    measurement with an inference of the same quantity produces a number that
+    is neither.
     """
 
     #: ``factors[temp_bucket][humidity_bucket]`` — the INFERRED estimator.

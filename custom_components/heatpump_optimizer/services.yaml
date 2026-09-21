@@ -3,7 +3,11 @@
 # is what async_get_all_descriptions prefers over the value here (#558 D5).
 # hassfest allows a custom integration to keep them in either place, so
 # nothing upstream would catch the two copies drifting apart.
-run_optimization: null
+run_optimization:
+  # No fields to describe: SERVICE_SCHEMA_RUN_OPTIMIZATION is vol.Schema({}).
+  # The name and description live in the translation catalogues like every
+  # other service.
+  fields: {}
 set_away:
   fields:
     active:
