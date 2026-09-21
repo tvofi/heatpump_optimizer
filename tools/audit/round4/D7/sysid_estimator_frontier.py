@@ -24,8 +24,10 @@ fitted UA the adoption predicate accepts (confidence >= 0.3) within the
 +-10 % bar the frontier defines "useful" against, the count refused BY
 NAME at the residual-scatter gate, and the count aborted on the comfort
 bound (act 1's documented sizing knife-edge); plus the shipped-preset null
-control (arming refused by name on all three presets the integration
-ships) and the unridged control (the frontier's no-ridge cell).
+control (arming now SUCCEEDS on all three presets the integration ships --
+before #1329 the one-state predicate priced the arm/adopt gate and refused
+all three by name, so these two rows were 0 armed / 3 named) and the
+unridged control (the frontier's no-ridge cell).
 
 METHOD: the act-1 ensemble drive (tests/features.py's _ridge_drive)
 verbatim -- power capped at 3.5 kW so the step is a legal sub-maximal
@@ -68,8 +70,8 @@ context, never asserted):
     RESULT within10_heavy_s001=16
     RESULT noise_refused_typical_s005=15
     RESULT noise_refused_heavy_s005=16
-    RESULT shipped_presets_armed=0
-    RESULT shipped_presets_gate_named=3
+    RESULT shipped_presets_armed=3
+    RESULT shipped_presets_gate_named=0
     RESULT unridged_fitted_typical_s001=5
 
 ROOT RULE: ROOT = Path(".") -- this harness measures the working directory
@@ -265,7 +267,8 @@ def main() -> int:
         "-8.6/+9.5 cell; its refusals land on the gate itself and its p95 "
         "touches the bar, so counts there are printed, never asserted"
     )
-    # Null control 1: no shipped preset may arm.
+    # Null control 1: every shipped preset arms (#1329). The count is a
+    # real control either way -- before the fix it was 0 armed / 3 named.
     armed = 0
     named = 0
     for name in BUILDINGS:
