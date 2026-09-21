@@ -1,7 +1,8 @@
 """The quick-setup path's answer-to-config mapping.
 
 The full initial wizard is eleven pages. Only two answers are genuinely
-required — a Tibber token and a weather entity — so a new user who stops
+required — a price source (a Tibber token, or a price entity) and a weather
+entity — so a new user who stops
 after the first two screens already has a working entry with shipped defaults
 (``finish_setup``'s "finish now"). What that minimal path cannot know is what
 the house *is*: how many zones, whether there is a buffer store, a DHW tank,

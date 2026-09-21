@@ -153,7 +153,8 @@ audited.
 ### Language and currency
 
 Every string the card draws lives in one table inside the card file, in English
-and Swedish — about 200 keys, with no Swedish entry missing. The active
+and Swedish — the same keys in both languages, with no Swedish entry missing.
+The active
 language follows `hass.language`, so `sv-SE` selects Swedish and any language
 without a dictionary renders in English; a key missing from a translation falls
 back to its English text rather than to a blank. Switching the Home Assistant
@@ -568,7 +569,7 @@ To check, open the browser console and reload the dashboard. The card prints
 its version on load:
 
 ```
- heatpump-optimizer-card  v4.3.0
+ heatpump-optimizer-card  v6.6.8
 ```
 
 That is the card's own version. It moves only when the card file changes, so it

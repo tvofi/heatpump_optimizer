@@ -157,7 +157,10 @@ flowchart LR
 - Home Assistant 2025.2.0 or newer (the first release whose own
   `requires-python` is `>=3.13.0`)
 - Python 3.13 or newer. The suite is tested on 3.14.
-- A Tibber account with API access ([developer.tibber.com](https://developer.tibber.com))
+- Electricity prices: a Tibber account with an API token
+  ([developer.tibber.com](https://developer.tibber.com)), or a price entity — a
+  Home Assistant price sensor such as Nord Pool exposing `raw_today` /
+  `raw_tomorrow`
 - A weather integration with hourly forecasts (Met.no or similar)
 - `numpy` and `scipy`, installed automatically from the integration manifest
 
@@ -315,42 +318,62 @@ integration.
 
 ## Quick start — the first 30 minutes
 
-Have your Tibber token and the entity id of your weather integration to hand.
-Everything else can be added later from the options pages.
+Have your price source to hand — a Tibber token, or a price entity such as
+Nord Pool — and the entity id of your weather integration. Everything else can
+be added later from the options pages.
 
 <details open>
-<summary><b>The setup flow</b> — the nine screens, and which are optional</summary>
+<summary><b>The setup flow</b> — two required screens, then a menu</summary>
 
 ```mermaid
 flowchart TD
-    A["1 · Basics<br/>name, Tibber token, weather entity<br/>+ optional sensors"] --> B["2 · Temperatures<br/>targets, day/night comfort, hours"]
-    B --> C{"3 · How do you want to<br/>describe your building?"}
-    C -- "Describe my building<br/>(recommended)" --> D["Questionnaire<br/>structure, era, foundation,<br/>heated area, emitters"]
-    D --> E["Heat pump basics<br/>COP, max/min power"]
-    C -- "Enter thermal values<br/>directly (expert)" --> F["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
-    F --> G["Two-zone & solar<br/>per-floor masses, buffer tank,<br/>windows, orientation"]
-    E --> H["4 · Hot water<br/>tank, setpoint, schedule,<br/>legionella"]
-    G --> H
-    H --> I["5 · Weather sensitivity<br/>wind, rain"]
-    I --> J(["Done — first plan<br/>within one interval"])
+    A["1 · Basics<br/>name, Tibber token or price entity,<br/>weather entity"] --> B["2 · Optional sensors<br/>temperatures, switch, tank probes"]
+    B --> M["Finish setup now? — a menu:<br/>Quick setup (recommended), Continue setup,<br/>or Finish setup now"]
+    M -- "Quick setup (recommended)" --> Q["One page of house questions,<br/>then the heat pump's entities<br/>read automatically"]
+    M -- "Finish setup now" --> J(["Done — first plan<br/>within one interval"])
+    M -- "Continue setup" --> C["3 · Temperatures<br/>targets, day/night comfort, hours"]
+    C --> D{"4 · How do you want to<br/>describe your building?"}
+    D -- "Describe my building<br/>(recommended)" --> E["Questionnaire<br/>structure, era, foundation,<br/>heated area, emitters"]
+    E --> F["Heat pump basics<br/>COP, max/min power"]
+    D -- "Enter thermal values<br/>directly (expert)" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
+    G --> H["Two-zone & solar<br/>per-floor masses, buffer tank,<br/>windows, orientation"]
+    F --> I["5 · Hot water<br/>tank, setpoint, schedule,<br/>legionella"]
+    H --> I
+    I --> K["6 · Weather sensitivity<br/>wind, rain"]
+    K --> J
+    Q --> J
 ```
 
 </details>
 
-**1 · Basics.** A name, your Tibber token (it is validated before the flow
-continues) and your weather entity are required. Everything else on this page is
-optional and can be pointed at later: indoor and outdoor temperature sensors, a
-switch that turns the heat pump on and off, a solar irradiance sensor or an
-Open-Meteo location, the floor-heating return temperature, a lower-floor
-thermometer, and the hot-water and buffer tank probes.
+**1 · Basics.** A name, your price source — a Tibber token (it is validated
+before the flow continues; a price entity needs no token) or a price entity
+such as Nord Pool — and your weather entity. Those are the only required
+answers in the whole flow.
 
-**2 · Temperatures.** Your target (21 °C), the band you allow around it, and the
+**2 · Optional sensors.** Indoor and outdoor temperature sensors, a switch
+that turns the heat pump on and off, a solar irradiance sensor or an
+Open-Meteo location, the floor-heating return temperature, a lower-floor
+thermometer, and the hot-water and buffer tank probes. Every picker here is
+optional — skip any you do not have — and if your heat pump publishes a
+device, the flow offers to pre-fill its entities next.
+
+**3 · The finish menu: Quick setup, Continue setup or Finish setup now.** After
+those two screens the flow asks **Finish setup now?** — three answers, all of
+which end with a working entry. **Quick setup (recommended)** asks one page of
+questions about the house, then reads the heat pump's entities automatically;
+**Continue setup** walks the wizard screens below; **Finish setup now** creates
+the entry immediately with shipped defaults you refine later in Options. Quick
+setup arrived in v6.6.5 — an install set up on an earlier version never saw
+the menu, and its entries are complete all the same.
+
+**4 · Temperatures.** Your target (21 °C), the band you allow around it, and the
 comfort temperatures for day (21 °C) and night (19.5 °C) with the hours the day
 runs (07:00–22:00). The width of the band is the single biggest lever you have:
 a wide one gives the optimizer room to shift heating into cheap hours, a narrow
 one keeps the house near the setpoint.
 
-**3 · How to describe your building.** This is a choice, not a step.
+**5 · How to describe your building.** This is a choice, not a step.
 
 - **Describe my building (recommended)** asks what your house is made of —
   structure, era, foundation, heated area, and what each floor is heated by —
@@ -369,7 +392,7 @@ and the power limits are on **Advanced settings → Thermal model (expert)**;
 buffer tank volume is on **Heating system and heat storage**; window area,
 orientation factor and SHGC are on **Building type and emitters**.
 
-**4 · Hot water.** Tank volume, setpoint and minimum, daily consumption, and the
+**6 · Hot water.** Tank volume, setpoint and minimum, daily consumption, and the
 demand time frames — the periods when hot water must be available (`06:00-08:30,
 17:00-22:00` by default). Outside them the tank is *meant* to cool down; that is
 where most of the savings come from. The frames can name different days
@@ -380,7 +403,7 @@ around the clock. Anti-legionella is on by default at 60 °C every 7 days; that
 temperature applies only during a cycle, so the rest of the week the tank is
 never charged above the limit you set.
 
-**5 · Weather sensitivity.** How much wind and rain raise your heat loss.
+**7 · Weather sensitivity.** How much wind and rain raise your heat loss.
 The defaults (3 % per m/s of wind, 15 % while raining) are a reasonable
 starting point for a detached house.
 
@@ -551,9 +574,10 @@ Compressor Frequency Advisor.
 **Optimizer Active** turns the optimizer on and off. Turning it on only acts from
 *off* — it never clobbers a comfort or economy mode you selected deliberately.
 
-**Away** turns the away setback on and off, and **Away Return** is the datetime
-entity holding when you expect to be back — the optimizer buys the recovery heat
-in the cheapest hours before it. Both are also driven by the `set_away` service.
+**Away** turns the away setback on and off, and **Expected Return** is the
+datetime entity holding when you expect to be back — the optimizer buys the
+recovery heat in the cheapest hours before it. Both are also driven by the
+`set_away` service.
 
 **DHW Boost** and **Boost Space Heating** each apply maximum heat on that
 channel for two hours: the planner's DHW ceiling, or nameplate space heat with
@@ -875,7 +899,12 @@ and the card
 decomposition program
 ([docs/plan-card-decomposition.md](docs/plan-card-decomposition.md)), each
 finding fixed and released one PR at a time under the standing gate protocol
-(see [tests/README.md](tests/README.md) for that gate). Every v6.0.0 or later
+(see [tests/README.md](tests/README.md) for that gate). The running state of
+that programme — decisions taken, traps hit, owed work — is the durable
+handover at [docs/HANDOVER.md](docs/HANDOVER.md), and each wave keeps a plan
+of record written before execution and kept as written, such as
+[docs/plan-1067-rotenso-inputs.md](docs/plan-1067-rotenso-inputs.md) for
+issue #1067. Every v6.0.0 or later
 release has its detail in [RELEASE_NOTES.md](RELEASE_NOTES.md); what remains
 open — findings judged real and deliberately not built — is the short list at
 the top of `docs/backlog.md`.

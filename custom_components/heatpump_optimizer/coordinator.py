@@ -1,7 +1,8 @@
 """Data coordinator for Heat Pump Cost Optimizer.
 
 The coordinator manages:
-1. Fetching electricity prices from Tibber API
+1. Fetching electricity prices — from the Tibber API or from the configured
+   price entity (``_fetch_tibber_prices`` handles both)
 2. Fetching weather forecasts from Home Assistant weather entities
 3. Fetching solar radiation, floor return temperature, and DHW temperature
 4. Running the MPC optimization (with predictive weather anticipation + DHW)
