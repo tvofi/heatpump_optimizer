@@ -8791,6 +8791,7 @@ from heatpump_optimizer.const import (  # noqa: E402
     TOPOLOGY_SINGLE_TANK_VALVE as _W2T_ONE_TANK,
     TOPOLOGY_TWO_TANK_4WAY as _W2T_TWO_TANK,
     WATER_SPECIFIC_HEAT as _W2T_CP,
+    WOOD_TANK_MAX_TEMP as _W2T_MAX,
     WOOD_TANK_MIN_MARGIN as _W2T_MARGIN,
 )
 
@@ -9273,6 +9274,128 @@ R.check(
     and _w2t_s1.wood_tank_temperature < _w2t_s0.wood_tank_temperature,
     f"stored + lost + delivered - (COP*P + burn) = {_w2t_residual:.3e} kW, "
     "with the wood tank supplying its share of the blend",
+)
+
+
+# --- The 95 C ceiling books the heat it refuses (round 5, D2-01) ----------
+#
+# The conservation step above sits in the blend region and never reaches
+# the ceiling. A small tank against a sustained burn pins at
+# WOOD_TANK_MAX_TEMP, and the charge the cap clamped away used to be
+# deleted outright -- unlike the buffer cap (_step_buffer_refused) and the
+# DHW rating (_step_dhw_refused), nothing booked it, so the whole-system
+# identity failed by exactly the deleted amount (18.35 kWh over a 6 h
+# 12 kW burn into 200 L; the round-5 D2-a conservation harness). The
+# balance below is that harness's reconstruction: production helpers,
+# every store, refused ledgers on the loss side; internal transfers
+# (inter-zone, slab, valve draw, wood_share) cancel between stores.
+
+
+def _w2t_cap_balance(volume, burn=12.0, start=70.0, n=24):
+    """(worst |residual| kWh, booked refusal kWh, final wood C) over n steps.
+
+    A 6 h burn at `burn` kW into a `volume` L wood tank from `start` C,
+    house coasting unheated (power 0) so the tank charges. The per-step
+    identity sums every store's enthalpy change against the production
+    helpers' injections and losses, ledgers included -- the residual the
+    deleted-heat bug shows up in.
+    """
+    params = ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=750.0,
+        mixing_valve_mode=_w2t_mv.MODE_MANUAL, mixing_valve_target=21.0,
+        cop_flow_carnot=True, wood_tank_configured=True,
+        wood_tank_volume=volume,
+    )
+    model = ThermalModel(params)
+    state = _w2t_state(start, buf=32.0)
+    worst = 0.0
+    booked = 0.0
+    for _ in range(n):
+        u_up = model.effective_heat_loss_coefficient(
+            params.upper_floor_heat_loss, 0.0, 0.0
+        )
+        u_lo = model.effective_heat_loss_coefficient(
+            params.lower_floor_heat_loss_learned, 0.0, 0.0
+        )
+        injected = (
+            model.compute_cop(
+                -5.0, flow_temp=state.buffer_tank_temperature
+            ) * 0.0
+            + burn + params.internal_gains
+        )
+        losses = (
+            u_up * (state.upper_floor_temperature + 5.0)
+            + u_lo * (state.lower_floor_temperature + 5.0)
+            + params.buffer_tank_heat_loss_coefficient
+            * (state.buffer_tank_temperature - 20.0)
+            + params.wood_tank_heat_loss_coefficient
+            * (state.wood_tank_temperature - 20.0)
+        )
+        new = model.simulate_step(
+            state, 0.0, -5.0, dt_hours=0.25, external_heat_kw=burn
+        )
+        # The step's own ledgers: heat the ceilings refused is a loss the
+        # stores never saw, so it joins the loss side after the step wrote
+        # it -- exactly where the deleted-heat bug leaves a hole.
+        losses += model._step_buffer_refused + model._step_wood_refused
+        de = (
+            params.upper_floor_thermal_mass
+            * (new.upper_floor_temperature - state.upper_floor_temperature)
+            + params.lower_floor_thermal_mass
+            * (new.lower_floor_temperature - state.lower_floor_temperature)
+            + params.slab_thermal_mass
+            * (new.slab_temperature - state.slab_temperature)
+            + max(params.buffer_tank_thermal_mass, 0.01)
+            * (new.buffer_tank_temperature - state.buffer_tank_temperature)
+            + max(params.wood_tank_thermal_mass, 0.01)
+            * (new.wood_tank_temperature - state.wood_tank_temperature)
+        )
+        worst = max(worst, abs(de - (injected - losses) * 0.25))
+        booked += model._step_wood_refused * 0.25
+        state = new
+    return worst, booked, state.wood_tank_temperature
+
+
+_w2t_cap_res, _w2t_cap_book, _w2t_cap_end = _w2t_cap_balance(200.0)
+R.check(
+    "a ceiling-saturating burn leaves the whole-system identity closed",
+    _w2t_cap_res < 1e-9,
+    f"worst per-step residual {_w2t_cap_res:.2e} kWh; without the wood "
+    "ceiling's refused ledger the same balance is off by the deleted "
+    "amount on every clamped step",
+)
+R.check(
+    "the 95 C ceiling's refusal is booked, not deleted",
+    _w2t_cap_book > 1.0 and _w2t_cap_end == _W2T_MAX,
+    f"booked {_w2t_cap_book:.2f} kWh of the burn the ceiling refused, tank "
+    f"pinned at {_w2t_cap_end:.1f} C",
+)
+_w2t_null_res, _w2t_null_book, _w2t_null_end = _w2t_cap_balance(3000.0)
+R.check(
+    "a tank the burn cannot saturate books nothing and still balances",
+    _w2t_null_book == 0.0 and _w2t_null_res < 1e-9
+    and _w2t_null_end < _W2T_MAX,
+    f"3000 L ended {_w2t_null_end:.1f} C with {_w2t_null_book:.4f} kWh "
+    "booked -- the ledger keys on the cap, not on the burn",
+)
+# Charging direction only, the buffer and DHW clamps' rule: a tank read
+# above the ceiling cools at its physical rate and books nothing.
+_w2t_over_p = ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=750.0,
+    mixing_valve_mode=_w2t_mv.MODE_MANUAL, mixing_valve_target=21.0,
+    cop_flow_carnot=True, wood_tank_configured=True, wood_tank_volume=200.0,
+)
+_w2t_over_m = ThermalModel(_w2t_over_p)
+_w2t_over_s1 = _w2t_over_m.simulate_step(
+    _w2t_state(96.5, buf=40.0), 0.0, -5.0, dt_hours=0.25,
+    external_heat_kw=0.0,
+)
+R.check(
+    "a wood tank read above the ceiling cools at its physical rate",
+    _w2t_over_s1.wood_tank_temperature < 96.5
+    and _w2t_over_m._step_wood_refused == 0.0,
+    f"96.5 C cooled to {_w2t_over_s1.wood_tank_temperature:.2f} C with "
+    "nothing booked -- only the charging direction is clamped",
 )
 
 
