@@ -1684,7 +1684,7 @@
         "name": "Kostnad avtalsjämförelse"
       },
       "cost_current_electricity_price": {
-        "name": "Kostnad elpris (nu)"
+        "name": "Kostnad aktuellt elpris"
       },
       "cost_monthly_peak_power": {
         "name": "Kostnad månadens effekttopp"
@@ -1707,8 +1707,8 @@
       "dhw_heating_cost": {
         "name": "Varmvattenkostnad (nästa 24 h)"
       },
-      "dhw_heating_plan": {
-        "name": "Varmvattenplan (nästa 24 h)"
+      "plan_dhw_heating": {
+        "name": "Plan varmvatten (nästa 24 h)"
       },
       "dhw_heating_schedule": {
         "name": "Varmvattenschema"
@@ -1851,7 +1851,7 @@
         "name": "Solinstrålning"
       },
       "solar_surplus_forecast": {
-        "name": "Prognos för solöverskott"
+        "name": "Solöverskott (prognos)"
       },
       "space_heating_cost": {
         "name": "Uppvärmningskostnad (totalt)"
@@ -1859,8 +1859,8 @@
       "space_heating_energy": {
         "name": "Uppvärmningsenergi (totalt)"
       },
-      "space_heating_plan": {
-        "name": "Värmeplan (nästa 24 h)"
+      "plan_space_heating": {
+        "name": "Plan värme (nästa 24 h)"
       },
       "thermal_battery_charge": {
         "name": "Termiskt batteri – laddningsgrad"
@@ -1916,7 +1916,7 @@
       "away": {
         "name": "Borta"
       },
-      "boost_dhw": {
+      "dhw_boost": {
         "name": "Varmvattenboost"
       },
       "boost_space": {

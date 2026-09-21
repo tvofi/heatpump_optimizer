@@ -565,3 +565,7 @@
 # fixtures are untouched and unclaimed. The R5-D12-01 entries that sat here
 # were the baseline's own claims (fixtures already re-recorded at bc5d62b)
 # and move nothing under this diff; config_flow does not move either.
+# The five R5-D8-03 lines that sat here were the baseline's own claims (the
+# waiting_for leaf is already in d4e33c2b, the merge base) and move nothing
+# under this diff -- fix/r5-renames touches no coordinator capture -- so they
+# are dropped rather than inherited. See the header's rule 2.
