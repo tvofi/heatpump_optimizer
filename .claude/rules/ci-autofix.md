@@ -36,22 +36,18 @@ same truncation.
 `changed` (repaired and pushed), `skip-clean` or `skip-not-under-scoped` (no
 repair was owed *to the bot*), or `skip-not-allowed` (the job declined to
 classify at all). The conclusion cannot tell "repaired" from "nothing was
-owed"; the summary line can. `claims-autofix` reddens on nothing it can return today —
-`apply_inherited_claims` has no attempted-and-failed status, and its
+owed"; the summary line can. `claims-autofix` reddens on nothing it can return
+today — `apply_inherited_claims` has no failure status, and its
 `skip-not-inherited` is the ordinary answer for every unrelated `fast`
-failure, so reddening it would over-fire — so its summary line is its only
-signal.
+failure — so its summary line is its only signal.
 
 **Three paths still end green unrepaired; none is closed here.**
 
 - **A committed phantom.** `check` fails the `closures` job when the committed
-  table lists a path that is not a file (#1310), while the autofix finds no
-  UNDER-SCOPED and stays green on `skip-not-under-scoped` — the same status a
-  clean run reports, so the summary line cannot separate them. A repair is owed
-  and no commit is coming: a recording cannot drop a dead path. Repair the
-  table in place and commit `tests/closures.json`: `python3 tests/closure.py
-  prune` (measured: `apply_under_scoped_recordings` →
-  `skip-not-under-scoped`, `autofix_repair_failed` → false).
+  table lists a path that is not a file (#1310), but the autofix reports no
+  UNDER-SCOPED and stays green — the status a clean run also reports — so no bot
+  commit is coming: a recording cannot drop a dead path. Repair the table in
+  place: `python3 tests/closure.py prune`.
 - **The loop guard.** After the bot pushes, the next run's head subject is
   `ci: re-record closures`, so `autofix_allowed` returns false *before* any
   classification runs: if that run is still UNDER-SCOPED the status is
@@ -72,11 +68,9 @@ signal.
   A failed recording's file list is **not** simply a subset of what a clean run
   would touch: an error path can read files the clean path never does (a
   traceback pulls source through `linecache`). So an UNDER-SCOPED reached with
-  a failed recording present may be genuine or may be an artefact of the
-  failure. The remedy does not branch on which — fix the failing script, and
-  the closures job re-records on the next push — which is why
-  `skip-failed-recording` says exactly that and does **not** tell you to
-  re-derive.
+  a failed recording present may be genuine or an artefact of the failure — and
+  the remedy does not branch: fix the failing script, and the next push
+  re-records. That is why `skip-failed-recording` does **not** say re-derive.
 
 | Failure | Job | Commit subject | Code |
 |---|---|---|---|
@@ -95,10 +89,8 @@ invent a trace.
 
 ## The claim-file conflict is prevented, not autofixed
 
-A merge conflict in the two claim files is **not** a third autofix case. CI
-never runs on a `DIRTY` pull request, so no job is red and there is no
-uniquely-detected failure to key on; the trigger would have to be a push to
-`main` fanning out over every open PR, and the repair would push to branches
-frozen for review. The `claimnotes` driver and why it refuses are
-`claim-files.md`'s: do not replace the refusal with `merge=union`, and do not
-add a job that pushes resolutions to open PR branches.
+A conflict in the two claim files is **not** a third autofix case: CI never
+runs on a `DIRTY` pull request, so no job is red and there is no failure to
+key on, and the repair would push to branches frozen for review.
+`claim-files.md` carries the refusal — do not replace it with `merge=union`,
+or add a job that pushes resolutions.
