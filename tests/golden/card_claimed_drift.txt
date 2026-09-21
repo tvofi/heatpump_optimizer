@@ -25,6 +25,82 @@
 # next branch restates its own footprint, claims included.
 #
 
+# #1318 and #1319, both in the card's one stylesheet plus one inline style.
+#
+# #1319 (R5-D4-02): .hl-stat.hl-score is a control (role="button" arrives
+# after render) that never joined the 24 px target floor and measured
+# 158x15 px at phone width. It gains the .expand/.close pattern -- 5 px
+# vertical padding with an equal negative margin -- so the hit box grows to
+# 25 px while the flex line, the sibling stats and the pill's own text keep
+# their geometry (measured: every anchor unchanged, the pill 15 -> 25 px).
+#
+# #1318 (R5-D4-01): the wood-cheaper banner owned its border, background
+# and size but never its colour, so its text inherited the ambient page
+# colour -- 1.21:1 black on the dark card background wherever the host
+# paints none. Its inline style gains color:var(--primary-text-color), the
+# token every other text lane already sets.
+#
+# 39 of the 40 states are claimed, for the same measured reason as #822,
+# #936, #1220 and #1269 before it: the card injects ONE <style> block and
+# card_drift captures the whole shadow root, so the #1319 rule edit moves
+# every state that renders the stylesheet. editor_schema, the 40th, renders
+# the config editor's schema and no card stylesheet, so it does not move
+# (card_drift reports it identical and REFUSED a list that included it).
+# Every one of the 39 diffs is STYLESHEET TEXT ONLY -- no markup element
+# outside the style block is added, removed or reordered in any of them,
+# except wood_alert, whose diff additionally carries the banner's own
+# inline-style insertion (#1318), itself text-only inside one attribute.
+#
+# Measured at both ends with the finder's own harness,
+# tools/audit/round5/D4/seat-a/sweep.mjs (342 renders, frozen clock):
+#   contrast_aa_fail 3 -> 0 (light 0/0, dark 3 -> 0, sv 0/0)
+#   hit_under24_fine 6 -> 4 of 7848 (the pill 158x15 x2 gone; the two that
+#     remain are rect.slot-hit[6] 16.7x24.5, the 15-minute slot the growth
+#     algorithm documents as both-sides-boxed-in: 14.33 px of empty lane
+#     around 22.11 px of need, neighbours' ink on both sides)
+#   every other sweep class unchanged: overlap 831/831, overflow 12/12,
+#     coarse 728/728, focus_unreachable 135/135, hover 0/0, errors 0/0
+#
+no_plan # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+no_plan_expanded # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+plan_inline # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+plan_inline_sv # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+plan_short_window # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+custom_title_currency # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+hidden_series # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+score_open # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319); the state whose pill measured 158x15 and now floors at 25 px
+expanded_plan # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+what_if_off # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+expanded_zoomed # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+draft_dirty_menu_open # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+draft_mid_drag # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+whatif_edited # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+whatif_weekly # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+override_active # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+shared_steps # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+shared_steps_hover # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+tooltip_hover # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+coarse_pointer # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+reduced_motion # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+setup_single_buffer # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+setup_two_tank # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+setup_coil # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+advisor_page # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+layout_editing_dragged # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+layout_editing_tidy # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+picker_open_filtered # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+wood_alert # stylesheet text only (#1319) plus the banner's own inline style gaining color:var(--primary-text-color) (#1318); the 1.21:1 dark lane that now passes at 13.31:1
+wood_lane # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+wood_whatif # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+away_toggle # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+away_return # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+away_status # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+history_panned # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+history_deep_panned # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+history_no_power # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+history_unavailable # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+history_pending # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
+
 #
 
 #
