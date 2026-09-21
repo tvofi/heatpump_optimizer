@@ -2218,10 +2218,12 @@ def _check_entities(checks: Checks, hass, entry) -> None:
 
     registry = er.async_get(hass)
     registered = er.async_entries_for_config_entry(registry, entry.entry_id)
-    # Six sensors set _attr_entity_registry_enabled_default = False. A disabled
-    # registry entry has no state object at all, which is the same shape as an
-    # entity that failed to add -- so they are excluded here rather than
-    # tolerated below, and an ENABLED entity with no state still fails.
+    # Nineteen entities set _attr_entity_registry_enabled_default = False
+    # (the six machinery sensors plus the #1335 ordinary-install-dead set).
+    # A disabled registry entry has no state object at all, which is the
+    # same shape as an entity that failed to add -- so they are excluded
+    # here rather than tolerated below, and an ENABLED entity with no state
+    # still fails.
     enabled = [e for e in registered if e.disabled_by is None]
     domains = {e.entity_id.split(".")[0] for e in enabled}
     checks.check(

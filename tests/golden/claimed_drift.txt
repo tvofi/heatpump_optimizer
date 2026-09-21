@@ -554,3 +554,19 @@
 # -- the equivalence tests/config_flow_steps.py proves for every
 # _ABSENT_FALLBACKS key. Re-recorded as well as claimed for #547's
 # reason: config_flow is compared exactly at level 1.
+# R5-D8-03 (#1335), fix branch fix/r5-defaults: this diff claims the five
+# coordinator captures and NOTHING ELSE; the direction is ADD-ONLY. The
+# OptimizationScoreSensor -- a card headline stat kept enabled -- now names
+# its missing evidence while no machine or operation sub-score has arrived,
+# so each capture's sensors.optimization_score.extra_state_attributes gains
+# exactly one leaf, waiting_for: "first_scored_day" -- one leaf added, none
+# removed; git diff --numstat reads 2/1 per file only because the previous
+# last key gains its trailing comma. No solver input, output or intermediate changes; the plan
+# fixtures are untouched and unclaimed. The R5-D12-01 entries that sat here
+# were the baseline's own claims (fixtures already re-recorded at bc5d62b)
+# and move nothing under this diff; config_flow does not move either.
+coord_minimal # R5-D8-03 (#1335): optimization_score attributes gain waiting_for=first_scored_day
+coord_dhw # R5-D8-03 (#1335): optimization_score attributes gain waiting_for=first_scored_day
+coord_two_zone # R5-D8-03 (#1335): optimization_score attributes gain waiting_for=first_scored_day
+coord_grid_fee # R5-D8-03 (#1335): optimization_score attributes gain waiting_for=first_scored_day
+coord_all_features # R5-D8-03 (#1335): optimization_score attributes gain waiting_for=first_scored_day
