@@ -179,8 +179,11 @@ def _take_fresh_handover(
     if payload is None or stamped_at is None:
         return None
     try:
-        age_min = (dt_util.now() - stamped_at).total_seconds() / 60.0
-    except TypeError:
+        # #1299: both stamps carry the process-wide ZoneInfo, which CPython
+        # subtracts as wall clocks across a DST transition — UTC instants.
+        span = dt_util.as_utc(dt_util.now()) - dt_util.as_utc(stamped_at)
+        age_min = span.total_seconds() / 60.0
+    except (AttributeError, TypeError):
         return None
     if age_min > interval_minutes:
         return None

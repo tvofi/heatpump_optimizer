@@ -20093,7 +20093,7 @@ R.check(
 )
 
 # #1217 (D3-07): two of the D3 pre-screen's seven survivors are EQUIVALENT
-# mutants -- pump_mode.py:242 GUARD_OFF and __init__.py:337 BOOLOP, each
+# mutants -- pump_mode.py:242 GUARD_OFF and __init__.py:340 BOOLOP, each
 # measured against its own guarded input -- which no check could ever kill,
 # so a survivor count that mixes them with real gaps reads worse than the
 # suite is. The triage marks live in tests/mutation_budgets.json under
@@ -20168,7 +20168,7 @@ R.check(
 # same text -- so the pins are checked against the tree, not each other.
 _MUT_D3_07 = (
     "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF",
-    "custom_components/heatpump_optimizer/__init__.py:337 BOOLOP",
+    "custom_components/heatpump_optimizer/__init__.py:340 BOOLOP",
 )
 R.check(
     "the recorded triage marks both D3-07 equivalents, verdict and reason (#1217)",
