@@ -43,7 +43,7 @@
 //   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
-//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names] [--paths-file f]
+//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names] [--paths-file f] [--author login]
 //   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
 //   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
 //   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
@@ -3072,6 +3072,25 @@ function assertAcceptance(derived) {
     found.push(...errs)
   }
 
+  // The author check (decision 0011): a body authored as tvofi — or any
+  // identity other than the hpo-author App — is refused; the App and an absent
+  // author are the null controls that must stay silent. One arm alone would
+  // pin a check that always fires or never does.
+  {
+    const rel = path.relative(ROOT, path.join(prepr, 'good.md'))
+    const wrong = checkPrBody(rel, { head: ZERO, author: 'tvofi' })
+    const right = checkPrBody(rel, { head: ZERO, author: 'app/hpo-author' })
+    const absent = checkPrBody(rel, { head: ZERO })
+    if (!wrong.some((e) => /hpo-author App/.test(e.message))) {
+      console.log('\nFIXTURE VACUOUS: the author check did not fire on a tvofi-authored body')
+      return 1
+    }
+    if (right.length || absent.length) {
+      console.log('\nFIXTURE VACUOUS: the author check fired on the App or on an absent author (the null controls)')
+      return 1
+    }
+  }
+
   // `## Approval` is keyed on the DIFF, so one fixture is driven twice and the
   // pair is the check: the same body with a policy path in the diff must be
   // refused, and with a non-policy path must be silent. One arm alone would pin
@@ -4978,8 +4997,12 @@ function redHistorySkipLine(why) {
   return `  skip     red-history           ${why}; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here`
 }
 
-function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], notes = [] } = {}) {
+function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], notes = [], author = null } = {}) {
   const out = []
+  if (author != null && author !== 'app/hpo-author') {
+    out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+      message: `the pull request author is \`${author}\`; a pull request is authored by the hpo-author App (decision 0011) — re-open it via tools/audit/app_push.sh, never push.sh` })
+  }
   let body
   try {
     body = fs.readFileSync(bodyPath, 'utf8')
@@ -5085,6 +5108,10 @@ function cmdPrBody(args) {
     return i >= 0 ? args[i + 1] : null
   }
   const bodyPath = val('--pr-body')
+  // The pull request must be authored by the hpo-author App (decision 0011);
+  // a PR authored as tvofi or any other identity is refused, fail-closed,
+  // because an author cannot approve their own code-owned PR.
+  const author = val('--author')
   // `--red` may be REPEATED, once per name. A LONE `--red` value is still
   // split on commas -- the form `prepr.sh --self-test` drives -- but each
   // value of a repeated `--red` is ONE name, verbatim: CI's pr-contract job
@@ -5138,7 +5165,7 @@ function cmdPrBody(args) {
       redAll = [...new Set([...red, ...hist.reds])]
     }
   }
-  const findings = checkPrBody(bodyPath, { head, title: val('--title') ?? '', red: redAll, paths, notes })
+  const findings = checkPrBody(bodyPath, { head, title: val('--title') ?? '', red: redAll, paths, notes, author })
   for (const n of notes) console.log(n)
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)

@@ -604,6 +604,21 @@ cd "$(git rev-parse --show-toplevel)" || exit 2
 
 say() { printf '  %-8s %-22s %s\n' "$1" "$2" "${3:-}"; }
 
+# --- 0. identity: push.sh is a seat's tool, never the owner's or the App's ---
+# decision 0011: the owner authors through the hpo-author App via app_push.sh,
+# and a PR authored as tvofi (the owner) or app/hpo-author (via this script)
+# is refused by pr-contract's author check. Refuse early rather than mint a PR
+# that CI will red. A seat that legitimately pushes with its own GH_TOKEN keeps
+# this path; the two identities below must never use it.
+if command -v gh >/dev/null 2>&1; then
+  LOGIN=$(gh api user --jq .login 2>/dev/null || true)
+  case "$LOGIN" in
+    tvofi|app/hpo-author)
+      say REFUSE "identity" "the ambient gh identity is $LOGIN; author pull requests as the hpo-author App via tools/audit/app_push.sh, never push.sh"
+      exit 2 ;;
+  esac
+fi
+
 BR=$(git branch --show-current 2>/dev/null)
 [ -n "$BR" ] || { say REFUSE "branch" "HEAD is detached, so no branch of this repository is a pull request's head"; exit 2; }
 HEAD_SHA=$(git rev-parse HEAD)
