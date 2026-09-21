@@ -37,6 +37,7 @@ already understands.
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from collections.abc import Callable
@@ -272,6 +273,16 @@ def _value_in_model_units(
             unit = attributes.get("unit_of_measurement")
         except AttributeError:  # pragma: no cover - defensive
             unit = None
+    # R5-D1-06 (#1297): `float()` parses "nan"/"inf"/"1e999" without
+    # raising, so a hostile or broken sensor state reached the thermal
+    # state as a non-finite float -- a "nan" indoor temperature published
+    # a failed plan with NaN savings while the cycle reported success.
+    # Raising here lands in `read`'s existing not_numeric handler: refused
+    # exactly like a word. The guard sits BEFORE the conversion returns
+    # below because no unit conversion can make a non-finite input
+    # finite: NaN °F converts to NaN °C either way.
+    if not math.isfinite(value):
+        raise ValueError(f"non-finite state {value!r}")
     converted = normalize_temperature_c(value, unit)
     if converted is None:
         converted = normalize_energy_kwh(value, unit)
@@ -562,12 +573,12 @@ class InputReader:
 
         try:
             raw_state: Any = getattr(state, "state", None)
-            value = float(raw_state)
+            value = _value_in_model_units(
+                state, float(raw_state), reading
+            )
         except (TypeError, ValueError):
             reading.problem = "not_numeric"
             return self.health.record(reading)
-
-        value = _value_in_model_units(state, value, reading)
 
         reading.value = value
         self._age_gate(reading, state)

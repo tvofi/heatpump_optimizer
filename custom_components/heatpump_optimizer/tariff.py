@@ -28,6 +28,7 @@ savings for nothing.
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
@@ -328,9 +329,20 @@ class PeakTracker:
         tracker.month = str(data.get("month", ""))
         peaks = data.get("peaks")
         if isinstance(peaks, list):
-            tracker.peaks = [
-                float(p) for p in peaks if isinstance(p, (int, float))
-            ]
+            # R5-D1-05 (#1296): a non-finite peak survives `float()` and
+            # poisons the billed-peak average and `threshold_kw` (an inf
+            # peak disarms the capacity term). Dropped per entry; the
+            # finite ones are real evidence and stay.
+            for p in peaks:
+                if not isinstance(p, (int, float)):
+                    continue
+                try:
+                    value = float(p)
+                except OverflowError:  # a huge JSON int
+                    continue
+                if not math.isfinite(value):
+                    continue
+                tracker.peaks.append(value)
             tracker.peaks.sort(reverse=True)
         tracker._window_key = str(data.get("window_key", ""))
         try:
@@ -339,10 +351,16 @@ class PeakTracker:
         except (TypeError, ValueError, OverflowError):
             tracker._window_sum = 0.0
             tracker._window_samples = 0
+        if not math.isfinite(tracker._window_sum):
+            # An inf window sum closes into an inf recorded peak; reset to
+            # the absent-data default.
+            tracker._window_sum = 0.0
         try:
             # Absent from pre-v4 payloads; 1.0 is the unmasked behaviour.
             tracker._window_factor = float(data.get("window_factor", 1.0))
         except (TypeError, ValueError, OverflowError):
+            tracker._window_factor = 1.0
+        if not math.isfinite(tracker._window_factor):
             tracker._window_factor = 1.0
         try:
             # A restart mid-window must not close that window on the
@@ -351,6 +369,15 @@ class PeakTracker:
             tracker._window_wsum = float(data.get("window_wsum", 0.0))
             tracker._window_weight = float(data.get("window_weight", 0.0))
         except (TypeError, ValueError, OverflowError):
+            tracker._window_wsum = 0.0
+            tracker._window_weight = 0.0
+        if not (
+            math.isfinite(tracker._window_wsum)
+            and math.isfinite(tracker._window_weight)
+        ):
+            # Either accumulator non-finite makes the weighted mean it
+            # feeds non-finite; both reset together, as the except above
+            # already does for unparseable values.
             tracker._window_wsum = 0.0
             tracker._window_weight = 0.0
         return tracker

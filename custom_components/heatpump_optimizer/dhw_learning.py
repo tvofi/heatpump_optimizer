@@ -17,6 +17,7 @@ freeze reason that is returned to the caller instead of written onto it.
 from __future__ import annotations
 
 import logging
+import math
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any
@@ -131,9 +132,17 @@ class DhwProfileLearner:
         if len(profile) != 24:
             return default
         try:
+            # R5-D1-05 (#1296): ``np.clip`` *clamps* +-inf and propagates
+            # NaN, so one non-finite entry in a corrupt store survived
+            # into the learned profile and the published payload. The
+            # whole profile quarantines to the default, exactly like the
+            # length mismatch above: one corrupt hour says nothing about
+            # the other 23.
+            if not all(math.isfinite(v) for v in profile):
+                return default
             cleaned = [float(np.clip(v, DHW_PROFILE_MIN_INTENSITY, DHW_PROFILE_MAX_INTENSITY)) for v in profile]
             avg = float(np.mean(cleaned))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             return default
         if avg <= 0:
             return default

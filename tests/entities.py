@@ -5260,6 +5260,43 @@ R.check(
     and _gap_peak > 0,
     f"peak={_gap_peak} ranked={_gap_by}",
 )
+
+# --- round-5 D3-09 (#1317): the peak miss's floor and its count guard --------
+# Both arms below were unpinned: the mutant that deleted max(0.0, ...) and
+# max(int(count), 1) from peak_miss_sek survived this script's whole closure
+# and the full gate. A blind peak ABOVE the true peak -- the hp-only series
+# the missing house meter is priced against can catch a spike the house
+# would not -- must price a miss of zero, never a negative rebate; and
+# count=0, an unset months-to-spread, must spread over one month rather
+# than raise.
+_gap_neg = topology.peak_miss_sek(
+    _gap_house, [5.0, 5.0, 5.0, 5.0], price_per_kw=90.0, window_minutes=60,
+    dt_hours=0.25, count=3,
+)
+R.check(
+    "a blind peak above the true peak prices zero, never a negative rebate",
+    _gap_neg == 0.0,
+    f"peak_miss_sek={_gap_neg!r}: (true - blind) is negative on these "
+    "inputs, and only the max(0.0, ...) floor keeps a miss a cost",
+)
+_gap_c0 = None
+_gap_c0_error = None
+try:
+    _gap_c0 = topology.peak_miss_sek(
+        _gap_house, _gap_hp, price_per_kw=90.0, window_minutes=60,
+        dt_hours=0.25, count=0,
+    )
+except ZeroDivisionError as _exc:
+    # Rebind: the ``as`` name is unbound when the except block ends, and the
+    # check below -- not a traceback -- is where the failure must be named.
+    _gap_c0_error = _exc
+R.check(
+    "count=0 spreads the miss over one month instead of dividing by zero",
+    _gap_c0_error is None and _gap_c0 == 3.0 * _gap_peak,
+    f"error={_gap_c0_error!r} value={_gap_c0!r}: the count=3 figure on the "
+    f"same inputs is {_gap_peak!r}, so the guard's one-month floor reads "
+    "exactly three times it",
+)
 R.check(
     "an empty outdoor slot ranks the COP miss",
     abs(_gap_by[const.CONF_OUTDOOR_TEMP_ENTITY] - round(_gap_cop, 2)) < 1e-9
@@ -7675,10 +7712,14 @@ R.check(
 # ===========================================================================
 R.section("Sensor metadata")
 
-# The disabled-by-default roster, pinned. These sensors are tied to opt-in
-# hardware or to learned evidence most installs never collect; every other
-# sensor must stay enabled, because flipping one silently hides it from
-# every fresh install.
+# The disabled-by-default roster, pinned. A sensor belongs here exactly
+# when the ordinary install (indoor + outdoor thermometers, a DHW tank, the
+# first solve's prices and forecast) cannot light it: opt-in hardware,
+# opt-in probes and opt-in meters publish nothing until configured, and an
+# enabled entity that is unavailable from the first hour is list noise a
+# fresh install cannot tell from a defect. Every other sensor must stay
+# enabled, because flipping one silently hides it from every fresh install
+# (#1335 widened this from the six machinery sensors to the whole gate).
 _expected_disabled = {
     "ecl110_displace",
     "ecl110_effective_displace",
@@ -7686,6 +7727,24 @@ _expected_disabled = {
     "frequency_advisor",
     "contract_comparison",
     "dhw_heavy_day",
+    # #1335: the capacity-tariff pair (options-page opt-in, off by default).
+    "monthly_peak",
+    "power_headroom",
+    # #1335: PV self-consumption (options-page opt-in).
+    "pv_surplus",
+    # #1335: the wood pair (furnace opt-in).
+    "wood_burn_advisor",
+    # #1335: the measured-power pair (opt-in power entity).
+    "measured_power",
+    "compressor_starts",
+    # #1335: probe-gated temperatures -- optional thermometers the shipping
+    # config flow leaves empty, each already availability-gated.
+    "dhw_temperature",
+    "dhw_mixed_water",
+    "floor_return_temp",
+    "lower_floor_temp",
+    "buffer_tank_temp",
+    "slab_temp",
 }
 _actually_disabled = {
     s._key
@@ -7693,7 +7752,7 @@ _actually_disabled = {
     if getattr(s, "_attr_entity_registry_enabled_default", True) is False
 }
 R.check(
-    "exactly the niche-hardware sensors are disabled by default",
+    "exactly the ordinary-install-dead sensors are disabled by default",
     _actually_disabled == _expected_disabled,
     f"unexpected {sorted(_actually_disabled ^ _expected_disabled)}",
 )
@@ -7756,6 +7815,16 @@ _np_data["schedule"] = [
         "heat_pump_on": _np.bool_(True),
     }
 ]
+# Round-5 D3-07 (#1315): one real ndarray in the payload, because every other
+# numpy leaf above is a SCALAR -- an array that fell through _finite's ndarray
+# arm returned raw and nothing observed it (the mutant disabling that arm
+# survived this script's whole closure and the full gate). The headroom series
+# is published verbatim by PowerHeadroomSensor, so the _np_leaks sweep below
+# now sees an array that only the ndarray arm can plain.
+_np_data["power_headroom"] = {
+    **_np_data["power_headroom"],
+    "horizon_headroom_kw": _np.array([7.3, _np.inf, float("nan")]),
+}
 # The real model and parameters ride along: Learning Estimated COP and Solar Heat
 # Gain read them off the coordinator, and every sensor is swept here.
 _np_coordinator = FakeCoordinator(
@@ -7792,6 +7861,19 @@ R.check(
     "np.bool_ becomes a plain bool",
     type(_np_step["heat_pump_on"]) is bool,
     repr(type(_np_step["heat_pump_on"])),
+)
+# Round-5 D3-07 (#1315), the direct half: the assertions above all read the
+# scrub through a sensor, so they pin only what some sensor happens to
+# publish. This one calls _finite itself, pre-scrub, with the shape no
+# sensor above carries -- a 2-D array whose non-finite members must come
+# back None, recursively, as plain Python.
+_arr_scrubbed = sensor._finite(_np.array([[1.5, _np.inf], [_np.nan, 2.0]]))
+R.check(
+    "the finite scrub converts an ndarray recursively, non-finite to None",
+    type(_arr_scrubbed) is list
+    and _arr_scrubbed == [[1.5, None], [None, 2.0]]
+    and not _numpy_leaves(_arr_scrubbed),
+    repr(_arr_scrubbed),
 )
 
 # --- D8-03 (#174): one object-id prefix for the hot-water domain -----------
@@ -7930,10 +8012,227 @@ R.check(
     _actually_diagnostic == _expected_diagnostic,
     f"unexpected {sorted(_actually_diagnostic ^ _expected_diagnostic)}",
 )
+
+# --- #1335: the ordinary install's first hour — lit, waiting, or off --------
+#
+# The disabled roster above stood on a category rule (#177: disabled means
+# Diagnostic machinery) until #1335 moved it onto a measured one: an entity
+# is disabled by default exactly when the ordinary install cannot light it.
+# The population below is that install — the ``_honest_coordinator`` config
+# plus the first solve's injected prices, forecast and sun, the recipe
+# ``golden.py:_capture_coordinator`` uses — and every platform is collected
+# through the real ``async_setup_entry``, so a later entity joins the
+# population without being named here. Three lit combinations are allowed
+# (available; unavailable while naming ``waiting_for``; disabled by
+# default); the fourth — enabled, unavailable, no marker — is list noise a
+# fresh install cannot tell from a defect. The card's dependency list is
+# parsed from the card source and the README's first-hour rows from
+# README.md, so the boundary's protected set is the artifact, not a copy.
+_ord_hass, _ord_coord, _ = _honest_coordinator()
+_ord_start = datetime(2026, 1, 15, 0, 0)
+_ord_coord._prices = [
+    {
+        "total": round(0.6 + 0.5 * (h % 12) / 12.0, 4),
+        "starts_at": (_ord_start + timedelta(hours=h)).isoformat(),
+        "level": "NORMAL",
+    }
+    for h in range(48)
+]
+_ord_coord._weather_forecast = [
+    {
+        "datetime": (_ord_start + timedelta(hours=h)).isoformat(),
+        "temperature": -5.0 + 3.0 * (h % 24) / 24.0,
+        "wind_speed": 3.0,
+        "precipitation": 0.0,
+        "humidity": 85.0,
+    }
+    for h in range(48)
+]
+_ord_coord._solar_radiation_forecast = [
+    max(0.0, 200.0 * (1 - abs(12 - (h % 24)) / 12.0)) for h in range(24)
+]
+_ord_coord.data = _ord_coord._build_data_dict()
+
+_ord_entities = []
+for _ord_module in (
+    sensor,
+    binary_sensor,
+    button,
+    _switch_platform,
+    datetime_mod,
+    _climate_platform,
+):
+    _ord_entities.extend(collect(_ord_module, coordinator=_ord_coord))
+_ord_by_id = {e.entity_id: e for e in _ord_entities}
+
+
+def _ord_default_on(e) -> bool:
+    return getattr(type(e), "_attr_entity_registry_enabled_default", True) is not False
+
+
+def _ord_waiting_for(e):
+    attrs = getattr(e, "extra_state_attributes", None)
+    return (attrs or {}).get("waiting_for") if attrs else None
+
+
+_ord_disabled_platform_keys = {
+    e._key for e in _ord_entities if not _ord_default_on(e)
+}
 R.check(
-    "every disabled-by-default sensor is Diagnostic (#177)",
-    _actually_disabled <= _actually_diagnostic,
-    f"not diagnostic: {sorted(_actually_disabled - _actually_diagnostic)}",
+    "the disabled roster is platform-wide: sensors plus the wood pair (#1335)",
+    _ord_disabled_platform_keys == _expected_disabled | {"wood_cheaper"},
+    f"unexpected {sorted(_ord_disabled_platform_keys ^ (_expected_disabled | {'wood_cheaper'}))}",
+)
+def _ord_state(e):
+    # Sensors publish native_value, binary sensors is_on; the climate,
+    # switch, datetime and button platforms carry no state the registry
+    # would show as Unknown, so availability is their only gate.
+    if isinstance(getattr(type(e), "native_value", None), property):
+        return e.native_value
+    if isinstance(getattr(type(e), "is_on", None), property):
+        return e.is_on
+    return None
+
+
+# The ECL110 pair is the one disabled member that is NOT dead on the
+# ordinary install: it has no availability gate at all and publishes the
+# 0.0 placeholder, which is exactly why its default is off (its own
+# comment: "disabled, not a forever-unknown entity"). Every other disabled
+# entity must be unavailable or stateless there — that is the measured
+# cause its default is off, and a sensor flipped without one fails here.
+_ECL110_UNGATED = {"ecl110_displace", "ecl110_effective_displace"}
+_ord_dead = sorted(
+    e._key
+    for e in _ord_entities
+    if not _ord_default_on(e)
+    and e._key not in _ECL110_UNGATED
+    and e.available
+    and _ord_state(e) is not None
+)
+R.check(
+    "every disabled-by-default entity is dead on the ordinary install,"
+    " save the ungated ECL110 pair (#177, #1335)",
+    not _ord_dead,
+    f"alive while disabled: {_ord_dead}",
+)
+R.check(
+    "the ECL110 pair really is the ungated exception (#1335)",
+    all(
+        e.available
+        for e in _ord_entities
+        if getattr(e, "_key", None) in _ECL110_UNGATED
+    ),
+    "an ECL110 sensor grew an availability gate; re-cut the exception",
+)
+_ord_shipped_dead = sorted(
+    e.entity_id
+    for e in _ord_entities
+    if _ord_default_on(e)
+    and not e.available
+    and _ord_waiting_for(e) is None
+)
+R.check(
+    "no enabled entity ships dead on the ordinary install (#1335)",
+    not _ord_shipped_dead,
+    f"enabled, unavailable, no waiting_for marker: {_ord_shipped_dead}",
+)
+
+_card_text = Path(
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+).read_text()
+_card_ids = {
+    eid.strip('"')
+    for eid in re.findall(
+        r'"(?:sensor|binary_sensor|switch|datetime)\.heat_pump_optimizer_[a-z_]+"',
+        _card_text,
+    )
+}
+_card_headline = re.search(
+    r"const HEADLINE_SUFFIXES = \[(.*?)\];", _card_text, re.DOTALL
+)
+_card_ids |= {
+    f"sensor.heat_pump_optimizer{suffix}"
+    for suffix in re.findall(r'"(_[a-z_]+)"', _card_headline.group(1))
+}
+_card_disabled = sorted(
+    eid
+    for eid in _card_ids
+    if eid in _ord_by_id and not _ord_default_on(_ord_by_id[eid])
+)
+R.check(
+    "nothing the card addresses is disabled by default (#1335)",
+    not _card_disabled,
+    f"card dependency disabled: {_card_disabled}",
+)
+_strings_sensor = json.loads(
+    Path("custom_components/heatpump_optimizer/strings.json").read_text()
+)["entity"]["sensor"]
+_readme_name_to_key = {
+    entry["name"]: key for key, entry in _strings_sensor.items()
+}
+_readme_first_hour = set()
+for _line in readme.splitlines():
+    if not _line.startswith("|"):
+        continue
+    _cells = [c.strip() for c in _line.strip("|").split("|")]
+    if len(_cells) < 4:
+        continue
+    _notes = " ".join(_cells[3:])
+    if "Card headline" in _notes or "Backs the card" in _notes:
+        _key = _readme_name_to_key.get(_cells[0])
+        if _key:
+            _readme_first_hour.add(_key)
+_readme_disabled = sorted(
+    key
+    for key in _readme_first_hour
+    if f"sensor.heat_pump_optimizer_{key}" in _ord_by_id
+    and not _ord_default_on(_ord_by_id[f"sensor.heat_pump_optimizer_{key}"])
+)
+R.check(
+    "nothing the README's first-hour rows name is disabled by default (#1335)",
+    not _readme_disabled,
+    f"README card entity disabled: {_readme_disabled}",
+)
+
+# The one entity the boundary protects on the waiting side rather than the
+# disabled one: the score is a card headline stat (HEADLINE_SUFFIXES) and a
+# README first-hour row, so it stays enabled — and instead of reading as
+# feature-dead before the machine or operation sub-score has evidence, it
+# names the settled day book it waits for like its waiting siblings.
+_unscored_score = sensor.OptimizationScoreSensor(
+    FakeCoordinator(
+        {
+            **DATA,
+            "insight": {
+                **DATA["insight"],
+                "scores": {
+                    "envelope": None,
+                    "machine": None,
+                    "operation": None,
+                    "overall": None,
+                },
+            },
+        }
+    ),
+    ENTRY,
+)
+R.check(
+    "the optimization score is unavailable before any sub-score has evidence (#1335)",
+    not _unscored_score.available,
+)
+R.check(
+    "and names what it is waiting for (#1335)",
+    _unscored_score.extra_state_attributes.get("waiting_for") == "first_scored_day",
+    repr(_unscored_score.extra_state_attributes.get("waiting_for")),
+)
+_scored_score = by_name["Plan Optimization Score"]
+R.check(
+    "with evidence it is available, enabled and waits for nothing",
+    _scored_score.available
+    and _ord_default_on(_scored_score)
+    and _scored_score.extra_state_attributes.get("waiting_for") is None
+    and _scored_score.native_value == 100.0,
+    repr(_scored_score.native_value),
 )
 
 # --- D8-14 (#373): the published attribute-key SET, pinned per class -------

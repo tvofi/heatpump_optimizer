@@ -47,18 +47,18 @@
  {
   "id": "C6",
   "source": "README.md:Entities",
-  "claim": "Six sensors are disabled by default, and these are they",
+  "claim": "Nineteen entities are disabled by default, and these are they (#1335)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=['Compressor Frequency Advisor', 'Cost Contract Comparison', 'DHW Heavy Day Demand', 'ECL110 Displace', 'ECL110 Effective Displace', 'Valve Target Recommendation'] measured=['Compressor Frequency Advisor', 'Cost Contract Comparison', 'DHW Heavy Day Demand', 'ECL110 Displace', 'ECL110 Effective Displace', 'Valve Target Recommendation']",
+  "result": "documented=['Buffer Tank Temperature (Model)', 'Compressor Frequency Advisor', 'Compressor Starts', 'Cost Contract Comparison', 'Cost Monthly Peak Power', 'Cost Power Headroom', 'DHW Heavy Day Demand', 'DHW Mixed Water', 'DHW Temperature', 'ECL110 Displace', 'ECL110 Effective Displace', 'Floor Heating Return Temperature', 'Lower Floor Temperature', 'Measured Power', 'Slab Temperature (Estimated)', 'Solar Surplus Forecast', 'Valve Target Recommendation', 'Wood Cheaper Than Heat Pump', 'Wood-Burn Night Advisor'] measured=['Buffer Tank Temperature (Model)', 'Compressor Frequency Advisor', 'Compressor Starts', 'Cost Contract Comparison', 'Cost Monthly Peak Power', 'Cost Power Headroom', 'DHW Heavy Day Demand', 'DHW Mixed Water', 'DHW Temperature', 'ECL110 Displace', 'ECL110 Effective Displace', 'Floor Heating Return Temperature', 'Lower Floor Temperature', 'Measured Power', 'Slab Temperature (Estimated)', 'Solar Surplus Forecast', 'Valve Target Recommendation', 'Wood Cheaper Than Heat Pump', 'Wood-Burn Night Advisor']",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C7",
   "source": "README.md:Entities",
-  "claim": "exactly six sensors are disabled by default",
+  "claim": "exactly nineteen entities are disabled by default (#1335)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=6 measured=6",
+  "result": "documented=19 measured=19",
   "verdict": "true",
   "truth": ""
  },
@@ -920,9 +920,9 @@
  {
   "id": "C103",
   "source": "README.md:Entities Notes",
-  "claim": "every `Unavailable ...` note holds on an install with only an indoor and an outdoor thermometer and a tank volume (12 notes)",
+  "claim": "every `Unavailable ...` note holds on an install with only an indoor and an outdoor thermometer and a tank volume (17 notes)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "12 notes checked, still available=[]",
+  "result": "17 notes checked, still available=[]",
   "verdict": "true",
   "truth": ""
  },

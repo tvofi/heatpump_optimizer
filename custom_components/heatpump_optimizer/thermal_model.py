@@ -1383,6 +1383,13 @@ class ThermalModel:
     #: scaling. Recorded so energy accounting outside the model can balance
     #: the step exactly instead of assuming the nominal demand was met.
     _step_dhw_draw_kw: float = 0.0
+    #: Wood-tank analogue of the buffer/DHW refused-heat ledgers (R5-D2-01).
+    #: The 95 °C ceiling clamps the external-heat forecast's charge rate, and
+    #: the heat the ceiling refuses is booked here (kW) rather than silently
+    #: deleted -- the same reasoning as the buffer and DHW caps: a per-step
+    #: energy balance that cannot see the refused term reads the deleted heat
+    #: as a conservation failure of the model itself.
+    _step_wood_refused: float = 0.0
 
     def __init__(self, params: ThermalParameters) -> None:
         """Initialize the thermal model."""
@@ -2217,15 +2224,23 @@ class ThermalModel:
             q_floor_from_buf = (1.0 - rad_fraction) * thermal_power
 
         new_wood = state.wood_tank_temperature
+        # Reset before the wood block rather than beside the buffer's below:
+        # the booking at the block's end must not be wiped by it, and a step
+        # without a wood reading must still clear a stale figure.
+        self._step_wood_refused = 0.0
         if two_tank and wood_temp is not None:
             # The HP tank supplies what the emitters received minus the wood
             # side's contribution — written as the single-tank expression
             # plus `wood_draw` so that at w == 0 the bits are identical, and
             # so that per-step conservation is exact by construction. Wood
-            # heat charges the wood tank, whose ceiling is a sanity clamp
-            # with no refused accounting: nothing the optimizer commands
-            # charges that tank, so there is nothing for the cap loop to
-            # act on.
+            # heat charges the wood tank, whose ceiling is a sanity clamp:
+            # nothing the optimizer commands charges that tank, so there is
+            # nothing for the cap loop to act on — but the external-heat
+            # forecast (a real burn) does charge it, and heat the ceiling
+            # refuses is booked on _step_wood_refused rather than deleted,
+            # the buffer and DHW caps' rule (R5-D2-01: a 6 h 12 kW burn into
+            # 200 L deleted 18.35 kWh from every balance that could not see
+            # it).
             dT_buf = (
                 thermal_power - q_rad_from_buf - q_floor_from_buf
                 - q_buf_loss + wood_draw
@@ -2234,7 +2249,12 @@ class ThermalModel:
             dT_wood_cap = max(0.0, WOOD_TANK_MAX_TEMP - wood_temp) / max(
                 dt_hours, 1e-6
             )
-            new_wood = wood_temp + min(dT_wood, dT_wood_cap) * dt_hours
+            if dT_wood > dT_wood_cap:
+                self._step_wood_refused = (dT_wood - dT_wood_cap) * max(
+                    C_w, 0.01
+                )
+                dT_wood = dT_wood_cap
+            new_wood = wood_temp + dT_wood * dt_hours
         else:
             dT_buf = (thermal_power - q_rad_from_buf - q_floor_from_buf - q_buf_loss) / max(C_buf, 0.01)
         self._step_buffer_refused = 0.0
@@ -2323,8 +2343,10 @@ class ThermalModel:
         value, which is byte-for-byte the previous behaviour.
         """
         # The single-zone path has no buffer cap, so the scratch would
-        # otherwise carry a stale value from an earlier two-zone step.
+        # otherwise carry a stale value from an earlier two-zone step. The
+        # wood ledger likewise: only the two-zone step can book it.
         self._step_buffer_refused = 0.0
+        self._step_wood_refused = 0.0
         # Explicit-Euler stability: with u·dt/C past ~2 the update
         # overshoots equilibrium and oscillates divergently. The parameter
         # boundary floors the masses, but a floored mass against a large
@@ -2341,6 +2363,7 @@ class ThermalModel:
                     external_heat_kw, valve_target, humidity, hour_of_day,
                 )
             refused = 0.0
+            wood_refused = 0.0
             for _ in range(n_sub):
                 state = self._simulate_step_two_zone(
                     state, electrical_power, outdoor_temp,
@@ -2349,9 +2372,11 @@ class ThermalModel:
                     external_heat_kw, valve_target, humidity, hour_of_day,
                 )
                 refused += self._step_buffer_refused
+                wood_refused += self._step_wood_refused
             # Refused charge is a power (kW); equal sub-steps make the
             # step's figure the plain mean.
             self._step_buffer_refused = refused / n_sub
+            self._step_wood_refused = wood_refused / n_sub
             return state
         if n_sub == 1:
             return self._simulate_step_single(
