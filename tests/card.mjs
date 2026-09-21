@@ -1643,6 +1643,8 @@ check("the hand-scheduled reason has a label",
 {
   // 24, read from the card's own realm rather than restated here (#136).
   const FLOOR = fn("TARGET_MIN_PX");
+  // 44, the card's coarse-pointer touch EXTRA (#1320), read the same way.
+  const COARSE_FLOOR = fn("TARGET_MIN_PX_COARSE");
   // Remove every `@media (...) { ... }` block whose query matches. Balanced
   // braces by hand: the wrapped rules nest one brace deep, so a flat regex
   // cannot tell "inside the wrapper" from "after it closed".
@@ -1677,22 +1679,25 @@ check("the hand-scheduled reason has a label",
   const coarseCss = stripMedia(styleIn(true), /pointer:\s*coarse/);
   // A selector is floored when some rule names it as a whole selector token
   // (a group counts) and that rule's body sets both min-width and
-  // min-height to the card's own floor.
-  const floored = (css, sel) =>
+  // min-height to the floor asked for.
+  const floored = (css, sel, floor) =>
     [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].some((m) =>
       m[1].split(",").some((s) => s.trim() === sel) &&
-      new RegExp(`min-width:\\s*${FLOOR}px`).test(m[2]) &&
-      new RegExp(`min-height:\\s*${FLOOR}px`).test(m[2]));
+      new RegExp(`min-width:\\s*${floor}px`).test(m[2]) &&
+      new RegExp(`min-height:\\s*${floor}px`).test(m[2]));
 
   check("under a mouse, the zoom pair's 24 px floor is emitted outside the coarse media query",
-    floored(fineCss, ".viewctl button"),
+    floored(fineCss, ".viewctl button", FLOOR),
     "the .viewctl button floor appears only inside @media (pointer: coarse) in the fine-pointer arm");
   check("under a mouse, the chips share that floor",
-    floored(fineCss, ".chip"),
+    floored(fineCss, ".chip", FLOOR),
     "no .chip rule outside @media (pointer: coarse) carries min-width/min-height 24 in the fine-pointer arm");
-  check("under touch, the floor is still emitted (not traded for the fix)",
-    floored(coarseCss, ".viewctl button") && floored(coarseCss, ".chip"),
-    "the coarse-pointer arm lost the floor the media query used to carry");
+  check("under touch, the same controls carry the card's coarse EXTRA (#1320)",
+    floored(coarseCss, ".viewctl button", COARSE_FLOOR) && floored(coarseCss, ".chip", COARSE_FLOOR),
+    "the coarse arm kept the every-pointer 24 px floor instead of the 44 px touch EXTRA");
+  check("and the mouse arm is not handed that EXTRA",
+    !floored(fineCss, ".viewctl button", COARSE_FLOOR) && !floored(fineCss, ".chip", COARSE_FLOOR),
+    "the 44 px coarse floor leaked into the every-pointer arm");
 }
 
 // ---------------------------------------------------------------------------

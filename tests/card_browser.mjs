@@ -582,10 +582,15 @@ try {
   const coarsePage = await browser.newPage({ viewport: { width: 1024, height: 800 } });
   coarsePage.on("pageerror", (err) => console.log(`  page error: ${err.message}`));
   await coarsePage.goto("about:blank");
-  // Headless Chromium is pointer:fine; the card's @media (pointer: coarse) CSS
-  // only applies when the engine's media features say coarse. Playwright 1.49
-  // has no emulateMedia({ pointer }) — CDP is the equivalent. matchMedia stub
-  // below still covers JS _coarsePointer() reads on this page.
+  // Headless Chromium is pointer:fine, and nothing here makes it coarse for
+  // CSS: Playwright 1.49's emulateMedia has no `pointer`, and CDP
+  // Emulation.setEmulatedMedia leaves BOTH matchMedia("(pointer: coarse)")
+  // false and an `@media (pointer: coarse)` block unmatched -- measured on a
+  // minimal page in this job's own Chromium (R5-D4-03, #1320). What is coarse
+  // on this page is the in-page matchMedia stub below, which is the card's
+  // own predicate (_coarsePointer()). So the card's HTML floor keys on that
+  // predicate rather than on a CSS media query, and this check measures the
+  // floor the card actually applies under it.
   const coarseCdp = await coarsePage.context().newCDPSession(coarsePage);
   await coarseCdp.send("Emulation.setEmulatedMedia", {
     features: [{ name: "pointer", value: "coarse" }],
@@ -644,6 +649,19 @@ try {
       : "none") +
     (htmlSmall.length
       ? `; under: ${htmlSmall.slice(0, 4).map((t) => `${t.tag} ${t.w.toFixed(1)}x${t.h.toFixed(1)}`).join(", ")}`
+      : ""));
+  // R5-D4-03 (#1320): the 44 px touch floor is owed to the HTML surface too,
+  // not only to the SVG-drawn lane/slot rects _targetMinPx() sizes. Under a
+  // coarse pointer the card's HTML target floor is the same 44 px the drawn
+  // geometry already gets, so no control a finger can land on lays out under
+  // it. The survivors, if any, are the SVG lane rects this selector cannot
+  // name -- those are _targetMinPx()'s own arm, checked above.
+  const htmlSmall44 = htmlTargets.filter((t) => Math.min(t.w, t.h) < 44 - 0.05);
+  check("every HTML control in the dialog clears 44 px under a coarse pointer",
+    htmlTargets.length > 0 && htmlSmall44.length === 0,
+    `${htmlTargets.length} control(s); ${htmlSmall44.length} under 44 px` +
+    (htmlSmall44.length
+      ? `: ${htmlSmall44.slice(0, 6).map((t) => `${t.tag} ${t.w.toFixed(1)}x${t.h.toFixed(1)}`).join(", ")}`
       : ""));
   await coarsePage.close();
 
