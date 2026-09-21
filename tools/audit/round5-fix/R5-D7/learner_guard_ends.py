@@ -5,8 +5,9 @@ METRIC (one line): for each (learner, state-end, interval) cell, 1 if the
 learner's own state moved on the interval -- a ``CurveLearner`` bias reset
 (``bias`` -> 0.0 and ``resets`` incrementing) or a ``ComfortLearner``
 ``evidence`` move -- and 0 if it refused; each learner is driven with its
-state at ZERO EVIDENCE and pinned ON ITS CLAMP, once on the defrost interval
-the shared gate refuses and once on the same interval clean.
+state at the low end of its range and pinned ON ITS CLAMP, once on the
+defrost interval the shared gate refuses and once on the same interval
+clean.
 
 The clean cells are the null control: fixer.md step 3 asks a learner or
 guard change to be measured at both ends of its input range, so this is the
@@ -16,13 +17,33 @@ nothing to learn (a fresh install) and with the state pinned on its clamp".
 COMMAND (from the repository root):
   PYTHONPATH=tests/hastub python3 tools/audit/round5-fix/R5-D7/learner_guard_ends.py
 
-EXPECTED at head 4f0c9d3 (Apple M1, macOS, python3.11): the defrost cells are
-0 and the clean cells are 1 at BOTH ends, with one documented exception --
-``curve_clean_zero`` is 0 in EITHER tree, because ``CurveLearner.record_miss``
-returns early unless a bias is already below zero (``bias >= BIAS_MAX``), so
-a fresh install cannot reset. A reverted tree reds the four defrost cells
-(they fold/reset and print 1); the clean cells are the control and do not
-move either way. Tolerance 0 on each.
+EXPECTED against the fixed tree at merge base a3a31fdb (Apple M1, macOS,
+python3.11, measured 2026-09-21T16:58Z):
+  RESULT curve_defrost_fresh=0   curve_clean_fresh=0     (see the vacuity note)
+  RESULT curve_defrost_epsilon=0 curve_clean_epsilon=1
+  RESULT curve_defrost_clamp=0   curve_clean_clamp=1
+  RESULT quiet_defrost_zero=0    quiet_clean_zero=1
+  RESULT quiet_defrost_clamp=0   quiet_clean_clamp=1
+with tolerance 0 on each.
+
+WHAT MOVES WHEN THE FIX IS REVERTED, measured cell by cell (this is what
+makes the zero cells above evidence rather than a vacuous read):
+  * R5-D7-03 reverted (``_track_curve_comfort`` back before the pump-signal
+    read): ``curve_defrost_epsilon`` and ``curve_defrost_clamp`` both print
+    1. ``curve_defrost_fresh`` stays 0 and cannot move -- see below.
+  * R5-D7-04 reverted (the quiet learner's ``_learning_frozen`` consult
+    removed): ``quiet_defrost_zero`` and ``quiet_defrost_clamp`` both print
+    1.
+The clean cells are the control and do not move under either revert.
+
+THE FRESH CELL IS VACUOUS FOR THE CURVE LEARNER, and is reported rather than
+quietly dropped: ``CurveLearner.record_miss`` returns early unless
+``bias < BIAS_MAX`` (0.0), so a fresh install with no learned bias cannot
+reset whatever the gate answers -- both trees print 0. That is a property of
+the learner, not of the fix, and it is why the epsilon cell exists: at
+-1e-6 the learner's own precondition IS satisfied, so the gate is the only
+thing left deciding. Read the curve learner's low end on ``epsilon``, never
+on ``fresh``.
 
 KEY OF THE COUNTED NUMBER: the move is counted on the learner's own state
 (``CurveLearner.bias``/``resets``, ``ComfortLearner.evidence``), never on an
@@ -61,6 +82,11 @@ from heatpump_optimizer.curve_learning import BIAS_MIN  # noqa: E402
 from harness import FakeEntry, FakeHass, FakeState  # noqa: E402
 
 T0 = datetime(2026, 1, 15, 6, 0, 0)
+
+# The smallest bias ``CurveLearner.record_miss`` can move: strictly below
+# ``BIAS_MAX`` (0.0) so the learner's own precondition is satisfied, far from
+# ``BIAS_MIN`` so the clamp is not what decides the interval.
+BIAS_EPSILON = -1e-6
 
 # The flat, swinging-price plan the quiet learner folds, with a real spread,
 # enough planned heating to be a "held flat" cost, and a flat trajectory.
@@ -138,11 +164,16 @@ def quiet_cell(seed_evidence, defrost_on):
 
 
 def main():
-    # The curve tracker: zero evidence, and the clamp.
-    print(f"RESULT curve_defrost_zero={curve_cell(0.0, True)} count")
-    print(f"RESULT curve_defrost_clamp={curve_cell(BIAS_MIN, True)} count")
-    print(f"RESULT curve_clean_zero={curve_cell(0.0, False)} count")
-    print(f"RESULT curve_clean_clamp={curve_cell(BIAS_MIN, False)} count")
+    # The curve tracker, low end to clamp: a fresh install (no learned bias,
+    # where a reset is structurally impossible), the smallest bias its own
+    # precondition admits, and the clamp.
+    for label, seed in (
+        ("fresh", 0.0),
+        ("epsilon", BIAS_EPSILON),
+        ("clamp", BIAS_MIN),
+    ):
+        print(f"RESULT curve_defrost_{label}={curve_cell(seed, True)} count")
+        print(f"RESULT curve_clean_{label}={curve_cell(seed, False)} count")
     # The quiet learner: zero evidence, and the clamp (weight at its floor,
     # evidence one fold short of the threshold).
     print(f"RESULT quiet_defrost_zero={quiet_cell(0.0, True)} count")
