@@ -196,6 +196,54 @@ R.check(
     nonnumeric.read("indoor_temp_entity").problem == "not_numeric",
 )
 
+# R5-D1-06 (#1297): `float()` parses more than numbers. "nan", "inf",
+# "-inf", "1e999" and "Infinity" all float() without raising, so a sensor
+# publishing one reached the thermal state as a non-finite float -- a "nan"
+# indoor temperature published a FAILED plan at inflated cost with NaN
+# savings while the cycle reported success. `read` refuses them with the
+# same not_numeric problem a word gets, after unit conversion (a NaN in °F
+# converts to a NaN in °C; the guard has to sit on the converted value).
+_NONFINITE_STATES = ("nan", "inf", "-inf", "1e999", "NaN", "Infinity")
+_nonfinite = {
+    s: reader({"sensor.indoor": FakeState(s)}).read("indoor_temp_entity")
+    for s in _NONFINITE_STATES
+}
+R.check(
+    "a non-finite state string is refused exactly like a word",
+    all(
+        r.problem == "not_numeric" and r.value is None
+        for r in _nonfinite.values()
+    ),
+    "; ".join(
+        f"{s!r} -> {r.problem}, value {r.value!r}"
+        for s, r in _nonfinite.items()
+    ),
+)
+_nonfinite_f = reader(
+    {
+        "sensor.indoor": FakeState(
+            "nan", unit="°F", attributes={"unit_of_measurement": "°F"}
+        )
+    }
+).read("indoor_temp_entity")
+R.check(
+    "a non-finite value is refused after unit conversion too",
+    _nonfinite_f.problem == "not_numeric" and _nonfinite_f.value is None,
+    f"{_nonfinite_f.problem}, value {_nonfinite_f.value!r}",
+)
+_nonfinite_ok_f = reader(
+    {
+        "sensor.indoor": FakeState(
+            "70.0", unit="°F", attributes={"unit_of_measurement": "°F"}
+        )
+    }
+).read("indoor_temp_entity")
+R.check(
+    "the °F path itself keeps working (null control for the guard above)",
+    _nonfinite_ok_f.ok and abs(_nonfinite_ok_f.value - 21.1111) < 0.001,
+    f"problem {_nonfinite_ok_f.problem}, value {_nonfinite_ok_f.value!r}",
+)
+
 # A state with no timestamp at all: age is unknown, which is not the same as
 # fresh, but rejecting it would break every stubbed integration.
 class Timeless:
@@ -5502,6 +5550,102 @@ _ok, _detail = _from_dict_survives(
     )
 )
 R.check("DrawStats.from_dict swallows a huge-int reservoir event", _ok, _detail)
+
+# -- R5-D1-05 (#1296): one non-finite value in a persisted store is
+# quarantined at its loader -------------------------------------------------
+#
+# The round-5 store fuzz measured 220 NaN leaf paths published from ONE
+# seeded NaN in the DHW profile store, non-finite learned state from three
+# more loaders (draw-stats open occurrence, peak-tracker window
+# accumulators and peaks, curve-learner bias), and the corrupt value still
+# on disk after the cycles -- no log, reset or repair. The loaders now
+# treat a non-finite scalar like any other unusable one: replace it with
+# the default the loader already uses for absent data. Every check below
+# has its null control: the same payload with finite values loads
+# unchanged. (np.clip CLAMPS +-inf, so each guard tests the whole non-
+# finite family even where only NaN survives the clamp.)
+import math as _nf_math
+
+_nf_learner = _DhwUsage()
+_nf_default = list(ThermalParameters().dhw_hourly_draw_pattern)
+_nf_profile = _nf_learner.normalize_profile(
+    [1.0] * 6 + [float("nan")] + [1.0] * 17
+)
+_nf_profile_inf = _nf_learner.normalize_profile(
+    [1.0] * 6 + [float("inf")] + [1.0] * 17
+)
+R.check(
+    "one non-finite entry quarantines the stored hourly profile to the default pattern",
+    _nf_profile == _nf_default and _nf_profile_inf == _nf_default,
+    f"nan -> {_nf_profile[:3]!r}..., inf -> {_nf_profile_inf[:3]!r}...; "
+    f"default {_nf_default[:3]!r}...",
+)
+_nf_clean = _DhwUsage().normalize_profile([0.5] * 24)
+R.check(
+    "a healthy stored profile still normalizes (null control)",
+    len(_nf_clean) == 24
+    and all(_nf_math.isfinite(v) for v in _nf_clean),
+    f"{_nf_clean[:3]!r}...",
+)
+
+_nf_draws = _FuzzDraws.from_dict(
+    {
+        "reservoirs": {"06:00-08:30": [8.0, float("inf")]},
+        "open_label": "06:00-08:30",
+        "open_date": "2026-01-15",
+        "open_kwh": float("inf"),
+    }
+)
+_nf_draws_nan = _FuzzDraws.from_dict({"open_kwh": float("nan")})
+R.check(
+    "a non-finite draw occurrence resets to 0 kWh; finite events and labels survive",
+    _nf_draws.reservoirs["06:00-08:30"] == [8.0]
+    and _nf_draws._open_label == "06:00-08:30"
+    and _nf_draws._open_date == "2026-01-15"
+    and _nf_math.isfinite(_nf_draws._open_kwh)
+    and _nf_draws._open_kwh >= 0.0
+    and _nf_draws_nan._open_kwh == 0.0,
+    f"open_kwh {_nf_draws._open_kwh!r} / {_nf_draws_nan._open_kwh!r}, "
+    f"reservoirs {_nf_draws.reservoirs!r}",
+)
+
+_nf_peak = PeakTracker.from_dict(
+    {
+        "month": "2026-01",
+        "peaks": [5.2, float("inf"), 4.1, float("nan")],
+        "window_sum": float("inf"),
+        "window_samples": 3,
+        "window_wsum": float("inf"),
+        "window_weight": float("inf"),
+    }
+)
+R.check(
+    "non-finite peaks and window accumulators are dropped at load; finite ones survive",
+    _nf_peak.peaks == [5.2, 4.1]
+    and _nf_peak.month == "2026-01"
+    and _nf_peak._window_samples == 3
+    and _nf_math.isfinite(_nf_peak._window_sum)
+    and _nf_math.isfinite(_nf_peak._window_wsum)
+    and _nf_math.isfinite(_nf_peak._window_weight),
+    f"peaks {_nf_peak.peaks!r}, sums "
+    f"{_nf_peak._window_sum!r}/{_nf_peak._window_wsum!r}/"
+    f"{_nf_peak._window_weight!r}",
+)
+
+from heatpump_optimizer.curve_learning import CurveLearner as _NFCurve
+
+_nf_curve = _NFCurve.from_dict(
+    {"bias": float("nan"), "comfortable_days": 2}
+)
+_nf_curve_inf = _NFCurve.from_dict({"bias": float("inf")})
+R.check(
+    "a non-finite curve-learner bias resets to the neutral 0 K; evidence survives",
+    _nf_curve.bias == 0.0
+    and _nf_curve.comfortable_days == 2
+    and _nf_curve_inf.bias == 0.0,
+    f"bias {_nf_curve.bias!r} / {_nf_curve_inf.bias!r}, "
+    f"days {_nf_curve.comfortable_days}",
+)
 
 _huge_energy = _store_coord()
 _aio.run(
@@ -37489,6 +37633,77 @@ R.check(
     "reason' would have got wrong. The reason string reaches the user's "
     "repair notice, so 'errors' carrying the API's own text is what makes a "
     "revoked token diagnosable",
+)
+
+# R5-D1-06 (#1297): the Tibber path copied `total` raw where the entity
+# path's `_raw_value` refuses non-finite and non-float values, so a hostile
+# or broken GraphQL answer landed "0.55"/None/dict/NaN totals in `_prices`,
+# crashed every solve (`_prepare_dhw_inputs`' np.mean TypeError) and let
+# the uncovered `_current_spot_price` fallback return the raw string. The
+# parser now runs every row through `_raw_value` -- the #1090 drop-whole
+# shape, one validator for both ingress paths. The design choice this
+# pins: a NUMERIC STRING coerces, exactly as the entity path already
+# treats the same shape in `raw_today`; only what will not float to a
+# finite number drops.
+_g8_nf_rows = _g8_pm.prices_from_tibber_payload({
+    "data": {"viewer": {"homes": [{"currentSubscription": {"priceInfo": {
+        "today": [
+            {"total": 0.42, "startsAt": "2026-01-15T18:00:00+00:00"},
+            {"total": "0.55", "startsAt": "2026-01-15T19:00:00+00:00"},
+            {"total": None, "startsAt": "2026-01-15T20:00:00+00:00"},
+            {"total": {"sek": 1}, "startsAt": "2026-01-15T21:00:00+00:00"},
+            {"total": float("nan"), "startsAt": "2026-01-15T22:00:00+00:00"},
+            {"total": float("inf"), "startsAt": "2026-01-15T23:00:00+00:00"},
+            {"total": 0.5, "startsAt": "2026-01-16T00:00:00+00:00"},
+        ],
+        "tomorrow": [],
+    }}}]}}})
+R.check(
+    "every Tibber total the parse returns is a finite float; the rest drop",
+    [r["total"] for r in _g8_nf_rows] == [0.42, 0.55, 0.5]
+    and all(
+        isinstance(r["total"], float) and r["total"] == r["total"]
+        and abs(r["total"]) != float("inf")
+        for r in _g8_nf_rows
+    )
+    and [r["starts_at"] for r in _g8_nf_rows]
+    == ["2026-01-15T18:00:00+00:00", "2026-01-15T19:00:00+00:00",
+        "2026-01-16T00:00:00+00:00"],
+    f"{_g8_nf_rows!r}",
+)
+
+# The consumer seam of the same finding: `_current_spot_price` assumed
+# every row's total was already a validated float -- `float(total)` raised
+# on a null and the uncovered fallback returned the RAW value (the h7
+# harness's string '0.55'). Both reads go through the parsers' own
+# `_raw_value`, so a row no parser would admit reads as a float or as 0
+# (no price known), never as a crash or a string. Driven directly on a
+# coordinator because production ingress (both parsers, above) can no
+# longer deliver such a row; starts_at far in the future keeps the read
+# on the fallback branch deterministically.
+from harness import FakeEntry as _G8NFEntry
+
+_g8_nf_spot_coord = Coord(
+    FakeHass(), _G8NFEntry(data={"dhw_tank_volume": 180.0})
+)
+_g8_nf_spot_coord._prices = [
+    {"total": "0.55", "starts_at": "2099-01-01T00:00:00+00:00"},
+]
+_g8_nf_spot_none = Coord(
+    FakeHass(), _G8NFEntry(data={"dhw_tank_volume": 180.0})
+)
+_g8_nf_spot_none._prices = [
+    {"total": None, "starts_at": "2099-01-01T00:00:00+00:00"},
+]
+_g8_nf_spot_value = _g8_nf_spot_coord._current_spot_price()
+_g8_nf_spot_null = _g8_nf_spot_none._current_spot_price()
+R.check(
+    "the spot-price fallback never returns a raw total: a floatable one "
+    "coerces, an unfloatable one reads 0",
+    isinstance(_g8_nf_spot_value, float) and _g8_nf_spot_value == 0.55
+    and isinstance(_g8_nf_spot_null, float) and _g8_nf_spot_null == 0.0,
+    f"string total -> {_g8_nf_spot_value!r}, null total -> "
+    f"{_g8_nf_spot_null!r}",
 )
 
 

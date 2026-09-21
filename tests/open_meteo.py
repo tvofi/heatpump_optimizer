@@ -170,6 +170,20 @@ junk = om._parse_block(
 )
 check("rejects negative, absurd and non-numeric values", len(junk.times) == 2)
 
+# R5-D1-06 (#1297): NaN fails BOTH range comparisons (`nan < 0` and
+# `nan > max` are False), so a NaN sample in an Open-Meteo block passed
+# the plausibility filter and reached the solar seam as a non-finite
+# float. Dropped like a null: "no data", not "no sun", not NaN. +-inf was
+# already outside the ceiling (the null control for this check).
+nanish = om._parse_block(
+    block(0, [float("nan"), 240.0, 500.0, float("inf")]),
+    "shortwave_radiation",
+)
+check(
+    "drops NaN samples; inf was already refused by the ceiling",
+    len(nanish.times) == 2 and list(nanish.values) == [240.0, 500.0],
+)
+
 # A malformed `time` entry is the one bad field that is not a value: the skip
 # has to cost its own sample and nothing else. Letting the ValueError out of
 # _parse_block propagates through fetch() and discards the whole forecast --

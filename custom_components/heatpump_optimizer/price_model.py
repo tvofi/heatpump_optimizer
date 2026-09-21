@@ -620,9 +620,18 @@ def prices_from_tibber_payload(data: dict[str, Any] | None) -> list[dict[str, An
         for row in price_info.get(period) or []:
             if not isinstance(row, dict):
                 continue
+            # R5-D1-06 (#1297): the entity path's own validator (#1090's
+            # drop-whole shape). A total that is not a finite float — a
+            # numeric string, null, a nested object, NaN — otherwise
+            # landed raw in `_prices`, crashing `_prepare_dhw_inputs`'
+            # np.mean and leaking through the uncovered `_current_spot_
+            # price` fallback. One rule for both ingress paths.
+            total = _raw_value(row)
+            if total is None:
+                continue
             prices.append(
                 {
-                    "total": row.get("total", 0),
+                    "total": total,
                     "starts_at": row.get("startsAt") or row.get("starts_at") or "",
                     "level": row.get("level", "NORMAL"),
                 }

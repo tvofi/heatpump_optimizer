@@ -132,8 +132,14 @@ class DrawStats:
         stats._open_label = str(data.get("open_label", ""))
         stats._open_date = str(data.get("open_date", ""))
         try:
+            # R5-D1-05 (#1296): ``max`` keeps +-inf (and would fold it into
+            # the reservoir when the occurrence closes), so a non-finite
+            # open occurrence resets to the absent-data default, like the
+            # per-event filter above.
             stats._open_kwh = max(0.0, float(data.get("open_kwh", 0.0)))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
+            stats._open_kwh = 0.0
+        if not np.isfinite(stats._open_kwh):
             stats._open_kwh = 0.0
         return stats
 
