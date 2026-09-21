@@ -8341,6 +8341,64 @@ for _vol, _floor in ((10.0, 15.0), (35.0, 15.0), (750.0, 20.0)):
         "10 L tank went to -8.04 C",
     )
 
+# R5-D2-02 (#1307): more power must never leave the buffer cooler. Where the
+# valve throttles, every step draws ua*(t_mix - zone) out of the tank with the
+# conductance both circuits are backed out of the nameplate output at, so once
+# u*dt/C_buf passes 1 explicit Euler no longer decays toward the zone: it
+# overshoots past it. Past the coldest zone the tank feeds, delivery is already
+# zero, so the discharge bound snaps the tank there -- and the ring that
+# follows makes the trough a chaotic function of the commanded power rather
+# than a monotone one. `_stability_substeps` subdivides the four
+# boundary-floored masses but used to exempt the buffer on the grounds that its
+# energy bound made it safe; that bound is the discontinuity, not the cure.
+#
+# The schedule is a single sine sweep of the 6 kW shipped ceiling: at the merge
+# base a +1e-3 kW bump cooled the 35 L buffer by 2.32e-1 K, +0.1 kW by 13.05 K
+# and +1 kW by 12.98 K. Any single-step perturbation is fair game for the bug,
+# so the check hunts every step rather than the demonstrated one.
+_p35_model = ThermalModel(ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=35.0,
+    mixing_valve_mode=_mv.MODE_MANUAL, mixing_valve_target=21.0,
+    cop_flow_carnot=True, max_electrical_power=6.0, buffer_max_temp=70.0,
+))
+
+
+def _p35_buffer_after(base, bump, at):
+    """The 35 L valved buffer's trajectory with `bump` kW added at step `at`."""
+    state = ThermalState(
+        room_temperature=21.0, upper_floor_temperature=21.0,
+        lower_floor_temperature=20.5, slab_temperature=25.0,
+        buffer_tank_temperature=32.0, outdoor_temperature=-5.0,
+    )
+    seen = []
+    for k, power in enumerate(base):
+        state = _p35_model.simulate_step(
+            state, float(power + (bump if k == at else 0.0)), -5.0,
+            dt_hours=0.25,
+        )
+        seen.append(state.buffer_tank_temperature)
+    return np.asarray(seen)
+
+
+_p35_sched = 6.0 * (1.0 + np.sin(np.linspace(0.0, 6.0, 48))) / 2.0
+_p35_plain = _p35_buffer_after(_p35_sched, 0.0, -1)
+_p35_worst = 0.0
+_p35_where = None
+for _bump in (1e-3, 0.1, 1.0):
+    for _at in range(len(_p35_sched)):
+        _delta = float(
+            (_p35_buffer_after(_p35_sched, _bump, _at)[_at:] - _p35_plain[_at:]).min()
+        )
+        if _delta < _p35_worst:
+            _p35_worst, _p35_where = _delta, (_bump, _at)
+R.check(
+    "more power never leaves the 35 L valved buffer cooler",
+    _p35_worst >= -1e-9,
+    f"a bump cooled the buffer by {_p35_worst:.4e} K at {_p35_where}; the "
+    "discharge bound snaps the Euler overshoot, so the trough is not a "
+    "monotone function of the commanded power",
+)
+
 # The settlement is symmetric. It used to charge a deficit and pay nothing for a
 # surplus, which made the reported savings understate themselves exactly when
 # the plan chose to end the window warm -- by 62 % on flat prices with no valve

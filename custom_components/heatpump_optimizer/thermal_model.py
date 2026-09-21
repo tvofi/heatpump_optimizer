@@ -143,6 +143,12 @@ THERMAL_MASS_FLOOR: float = 0.1
 # (defaults sit near 0.05). Above it, ``simulate_step`` subdivides the step.
 EULER_STABILITY_MAX_RATIO: float = 1.5
 
+# ...but a coupling whose variable cannot cross its own floor only needs to be
+# stable; one that must not OVERSHOOT its asymptote -- because the overshoot
+# crosses a bound that snaps it -- is monotone only while u·dt/C <= 1. The
+# buffer's emitter draw is the second kind (see ``_stability_substeps``).
+EULER_MONOTONE_MAX_RATIO: float = 1.0
+
 
 def _holiday_dhw_windows(config: dict[str, Any]) -> list[Window] | None:
     spec = config.get(const.CONF_HOLIDAY_DHW_WINDOWS)
@@ -2395,12 +2401,31 @@ class ThermalModel:
     def _stability_substeps(
         self, wind_speed: float, precipitation: float, dt_hours: float
     ) -> int:
-        """Sub-steps needed to keep every store's u·dt/C under the margin.
+        """Sub-steps needed to keep every store's u·dt/C under its margin.
 
-        Only the four boundary-floored masses are judged: the buffer and
-        wood tanks already carry their own energy bounds and dT caps, and a
-        genuinely small separator tank is a sane configuration this guard
-        must not touch.
+        The four boundary-floored masses are judged against
+        ``EULER_STABILITY_MAX_RATIO``: nothing crosses its own floor, so a
+        coupling that overshoots merely oscillates and the bound is enough.
+        The buffer is the exception, and the reason it is judged here rather
+        than exempted is the same reason it used to be exempted incorrectly.
+
+        Where the valve throttles, every step draws ``ua*(t_mix - zone)`` out
+        of the tank -- continuously while the valve is wide open -- with the
+        conductance the step uses for both circuits. That is a decaying
+        coupling, so once ``dt*ua/C_buf`` passes 1 explicit Euler no longer
+        decays toward the zone: it overshoots past it, and an overshoot past
+        the floor is exactly what the discharge bound snaps (T_buf pinned to
+        the coldest zone it feeds, where ``emitter_delivery`` is already zero
+        and the pump's whole output lands in the tank). The tank then rings,
+        and its trough stops being a monotone function of the commanded power
+        -- the shipped 35 L valved config lost 43.47 K on a +1 kW bump and
+        9.05e-2 K on a +1e-3 kW bump. Like the max() in ``emitter_delivery``
+        and the min() on ``t_mix``, the snap is a large-step artifact, so the
+        buffer is judged against ``EULER_MONOTONE_MAX_RATIO``.
+
+        An unvalved buffer is a pass-through (``q = rad_fraction*thermal_power``
+        does not depend on T_buf), so it has no u·dt/C to bound; a small
+        valved separator tank is substepped like any other, not exempted.
         """
         p = self.params
         if p.two_zone_enabled:
@@ -2426,10 +2451,26 @@ class ThermalModel:
                 (u_eff + p.slab_heat_transfer) / p.room_thermal_mass,
                 p.slab_heat_transfer / p.slab_thermal_mass,
             )
-        ratio = worst * dt_hours
-        if ratio <= EULER_STABILITY_MAX_RATIO:
-            return 1
-        return int(np.ceil(ratio / EULER_STABILITY_MAX_RATIO))
+        buf_ratio = 0.0
+        if p.two_zone_enabled and mixing_valve.is_throttling(p.mixing_valve_mode):
+            # The same numerator and denominator the throttled branch of
+            # `_simulate_step_two_zone` builds: both circuits' conductance is
+            # backed out of the nameplate output at `emitter_design_delta_t`,
+            # and the step's own C_buf fallback is mirrored so the count
+            # matches the stiffness the step actually integrates.
+            ua_buf = p.max_electrical_power * max(p.cop_nominal, 1.0) / max(
+                p.emitter_design_delta_t, 1.0
+            )
+            c_buf = p.buffer_tank_thermal_mass
+            if c_buf < 1e-6:
+                c_buf = 0.04  # the step's own fallback, so the count matches it
+            buf_ratio = ua_buf / c_buf * dt_hours
+        ratio = max(
+            worst * dt_hours / EULER_STABILITY_MAX_RATIO,
+            buf_ratio / EULER_MONOTONE_MAX_RATIO,
+        )
+        return max(1, int(np.ceil(ratio)))
+
 
     def simulate_trajectory(
         self,
