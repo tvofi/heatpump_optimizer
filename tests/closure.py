@@ -619,8 +619,28 @@ def suite_order(names) -> list[str]:
 # recording
 
 
+def _pyc_source(path: Path) -> Path | None:
+    """The .py a ``__pycache__`` bytecode cache was compiled from, or None.
+
+    PEP 3147 layout only: ``<dir>/__pycache__/<stem>.<tag>.pyc`` stands for
+    ``<dir>/<stem>.py``. Anything else found under ``__pycache__`` -- a
+    tagless name, a nested directory, a non-.pyc file -- is not a cache the
+    import machinery reads, and maps to nothing.
+    """
+    if path.parent.name != "__pycache__":
+        return None
+    parts = path.name.split(".")
+    if len(parts) < 3 or parts[-1] != "pyc":
+        return None
+    return path.parent.parent / (".".join(parts[:-2]) + ".py")
+
+
 def _rel(path: str) -> str | None:
-    """Repo-relative path, or None when the path is outside the repo."""
+    """Repo-relative path, or None when the path is outside the repo.
+
+    A bytecode-cache .pyc maps to the source it was compiled from (#1309),
+    so a warm-__pycache__ load attributes the same file a cold one does.
+    """
     if not path:
         return None
     try:
@@ -635,7 +655,25 @@ def _rel(path: str) -> str | None:
     if s.startswith(".git/") or s == ".git":
         return None
     if "__pycache__" in s:
-        return None
+        # A .pyc open is a source read in disguise (#1309). On a warm cache
+        # the import machinery opens only the bytecode, never the .py -- and
+        # a module loaded the way tests/entities.py loads
+        # tools/audit/round4/D11/governance_cost.py and tools/release/stamp.py
+        # (spec_from_file_location + exec_module, never inserted into
+        # sys.modules) is invisible to the end-of-run sweep as well, so a
+        # warm-box re-derivation recorded the dependency as absent and
+        # check() read the miss as "safe: over-scoped". The cache file is
+        # the one observable handle on that load, so attribute the source
+        # it was compiled from. A cache whose source is gone, or a non-.pyc
+        # file parked under __pycache__, still attributes nothing.
+        src = _pyc_source(p)
+        if src is None:
+            return None
+        p = src
+        try:
+            s = str(p.relative_to(ROOT))
+        except ValueError:
+            return None
     # The instrument is not a dependency of what it measures.
     if s in ("tests/closure.py", "tests/closures.json"):
         return None
