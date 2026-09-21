@@ -680,6 +680,13 @@ INVENTORY: dict[str, Entry] = {
         "faithful shifts every one of them by the runner's UTC offset",
         issue="#577",
     ),
+    "homeassistant.util.dt.as_utc": F(
+        "upstream as_utc verbatim: naive is treated as UTC (replace), an "
+        "aware datetime is converted. The age seams route through it so a "
+        "shared ZoneInfo stops subtracting as wall clocks across a DST "
+        "transition (#1299); on the default naive clock replace preserves "
+        "the wall difference their direct subtraction gave"
+    ),
 }
 
 # Whole upstream modules the stub does not model at all, and what covers them
@@ -1848,6 +1855,35 @@ def _dt_parse():
     assert parse_datetime("not a datetime") is None
     parsed = parse_datetime("2026-01-02T03:04:05+00:00")
     assert parsed is not None and parsed.year == 2026
+
+
+@contract(
+    "homeassistant.util.dt.as_utc",
+    "aware datetimes convert to UTC instants and naive ones attach UTC",
+    cite="util/dt.py -- `if d.tzinfo is None: return d.replace(tzinfo=UTC)` "
+    "and `return d.astimezone(UTC)`",
+)
+def _dt_as_utc():
+    from datetime import datetime, timedelta, timezone
+    from zoneinfo import ZoneInfo
+
+    from homeassistant.util.dt import as_utc
+
+    sthlm = ZoneInfo("Europe/Stockholm")
+    naive = datetime(2026, 10, 25, 2, 30)  # wall clock inside the fold
+    folded = naive.replace(tzinfo=sthlm, fold=1)  # CET: 01:30Z
+    repeated = naive.replace(tzinfo=sthlm)  # CEST: 00:30Z
+    assert as_utc(naive).tzinfo is not None
+    assert as_utc(naive).utcoffset() == timedelta(0)
+    # The one property the age seams depend on (#1299): the fold's two
+    # 02:30 occurrences map to DIFFERENT UTC instants, so two stamps
+    # sharing one ZoneInfo stop subtracting as wall clocks.
+    assert as_utc(folded) == datetime(2026, 10, 25, 1, 30, tzinfo=timezone.utc)
+    assert as_utc(repeated) == datetime(2026, 10, 25, 0, 30, tzinfo=timezone.utc)
+    assert as_utc(folded) - as_utc(repeated) == timedelta(hours=1)
+    assert as_utc(datetime(2026, 1, 2, 3, tzinfo=timezone.utc)) == datetime(
+        2026, 1, 2, 3, tzinfo=timezone.utc
+    )
 
 
 @contract(

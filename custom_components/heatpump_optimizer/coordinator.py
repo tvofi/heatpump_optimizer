@@ -2591,13 +2591,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 schedule = result.power_schedule
                 dt_hours = max(ctx._opt_config.dt_hours, 1e-6)
                 if result.timestamps:
+                    # #1299: the plan walks real instants, not wall clocks.
+                    span = dt_util.as_utc(now) - dt_util.as_utc(
+                        result.timestamps[0]
+                    )
                     idx = int(
-                        max(
-                            0.0,
-                            (now - result.timestamps[0]).total_seconds()
-                            / 3600.0
-                            / dt_hours,
-                        )
+                        max(0.0, span.total_seconds() / 3600.0 / dt_hours)
                     )
             heat_now, heat_next = pump_schedule.plan_commands_heat(
                 schedule, idx
@@ -5691,10 +5690,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         if self._weather_stale_since is None:
             return None
-        return round(
-            (dt_util.now() - self._weather_stale_since).total_seconds() / 3600.0,
-            1,
+        span = dt_util.as_utc(dt_util.now()) - dt_util.as_utc(
+            self._weather_stale_since
         )
+        return max(0.0, round(span.total_seconds() / 3600.0, 1))
 
     def _solar_forecast_source(self) -> str:
         """Configured irradiance source."""
@@ -6508,10 +6507,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Minutes since the last successful solve; None before the first."""
         if self._last_optimization is None:
             return None
-        return max(
-            0.0,
-            (dt_util.now() - self._last_optimization).total_seconds() / 60.0,
+        # #1299: UTC instants — a shared ZoneInfo subtracts as wall clocks.
+        span = dt_util.as_utc(dt_util.now()) - dt_util.as_utc(
+            self._last_optimization
         )
+        return max(0.0, span.total_seconds() / 60.0)
 
     def _plan_is_stale(self) -> bool:
         """True when the plan is older than three solve cycles (min 90 min)."""
