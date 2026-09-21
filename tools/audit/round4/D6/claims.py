@@ -93,7 +93,12 @@ against a document that is CORRECT.
                                          and then)
     RESULT arch_map_listed=64            (was 45; 11 were missing)
     RESULT arch_map_missing=0            (was 11)
-    RESULT ha_module_level_importers=21  (architecture.md said 10; now says 21)
+    RESULT ha_module_level_importers=22  (was 21; #1299's defrost
+                                         normalisation imports
+                                         homeassistant.util.dt at module
+                                         level, and architecture.md moved
+                                         with the census in the same
+                                         commit)
 
 INSTRUMENTED SYMBOLS (driven, not read):
     heatpump_optimizer.{sensor,binary_sensor,button,climate,switch,datetime}

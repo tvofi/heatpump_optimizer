@@ -301,7 +301,7 @@
   "source": "docs/architecture.md:The Home Assistant boundary",
   "claim": "the boundary sentence's count of modules importing `homeassistant` at module level",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=21 measured=21",
+  "result": "documented=22 measured=22",
   "verdict": "true",
   "truth": ""
  },
@@ -310,7 +310,7 @@
   "source": "docs/architecture.md:The Home Assistant boundary",
   "claim": "the named modules are the complete set of module-level importers",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "named=['__init__.py', 'away.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'open_meteo.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'switch.py'], measured=['__init__.py', 'away.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'open_meteo.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'switch.py'], unnamed=[]",
+  "result": "named=['__init__.py', 'away.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'defrost.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'open_meteo.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'switch.py'], measured=['__init__.py', 'away.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'defrost.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'open_meteo.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'switch.py'], unnamed=[]",
   "verdict": "true",
   "truth": "unnamed module-level importers: "
  },

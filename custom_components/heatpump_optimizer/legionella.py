@@ -627,8 +627,9 @@ class LegionellaGuard:
             last = attempt
         if last is None:
             return None
-        delta = (dt_util.now() - last).total_seconds() / 3600.0
-        return max(0.0, delta)
+        # #1299: UTC instants — a shared ZoneInfo subtracts as wall clocks.
+        since = dt_util.as_utc(dt_util.now()) - dt_util.as_utc(last)
+        return max(0.0, since.total_seconds() / 3600.0)
 
     def due_in_hours(self) -> float | None:
         """Hours left before the next anti-legionella cycle is required."""
