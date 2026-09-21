@@ -660,9 +660,9 @@ The plan sensors use `has_entity_name`, so Home Assistant prefixes them with the
 device name. A stock install produces
 `sensor.heat_pump_optimizer_plan_space_heating` and
 `sensor.heat_pump_optimizer_plan_dhw_heating`. An install upgraded from before
-the ids moved to that `plan_` family keeps its registry ids
-(`sensor.heat_pump_optimizer_space_heating_plan` and
-`sensor.heat_pump_optimizer_dhw_heating_plan`); the card resolves both.
+the ids moved to that `plan_` family keeps its registry ids (the same two names
+with the older suffix order, ending `_space_heating_plan` and
+`_dhw_heating_plan`); the card resolves both.
 
 You normally do not need to configure either option. The card resolves entities
 in this order:
