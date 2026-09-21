@@ -550,14 +550,17 @@ every sensor is created on every install regardless of which group it is in.
 | Sensor-Gap Advisor | CUR | Estimated extra cost per month, in your currency, from the highest-value empty sensor slot | Diagnostic; outdoor, house meter, DHW probe |
 | Wood-Burn Night Advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; disabled by default; advisory only — never lights the stove |
 
-Disabled by default: the six machinery sensors — ECL110 Displace, ECL110
-Effective Displace, Cost Contract Comparison, DHW Heavy Day Demand, Valve
-Target Recommendation and Compressor Frequency Advisor — and, since #1335, the
-entities the ordinary install cannot light: Cost Monthly Peak Power, Cost
-Power Headroom, Solar Surplus Forecast, Wood-Burn Night Advisor, Wood Cheaper
-Than Heat Pump, Measured Power, Compressor Starts, DHW Temperature, DHW Mixed
-Water, Floor Heating Return Temperature, Lower Floor Temperature, Slab
-Temperature (Estimated) and Buffer Tank Temperature (Model).
+Disabled by default: Buffer Tank Temperature (Model), Compressor Frequency
+Advisor, Compressor Starts, Cost Contract Comparison, Cost Monthly Peak Power,
+Cost Power Headroom, DHW Heavy Day Demand, DHW Mixed Water, DHW Temperature,
+ECL110 Displace, ECL110 Effective Displace, Floor Heating Return Temperature,
+Lower Floor Temperature, Measured Power, Slab Temperature (Estimated), Solar
+Surplus Forecast, Valve Target Recommendation, Wood-Burn Night Advisor and
+Wood Cheaper Than Heat Pump.
+
+Since #1335 that list is every entity the ordinary install cannot light — the
+machinery advisories, the optional probes and meters, the capacity tariff, PV
+and the wood furnace — not only the six niche-hardware sensors it used to be.
 
 ### Binary Sensors (5 total)
 
