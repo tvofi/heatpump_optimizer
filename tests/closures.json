@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 44.9,
+   "seconds": 51.1,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -572,6 +572,15 @@
    "tools/audit/round4/D11/governance_cost.py",
    "tools/audit/round4/D6/claims.json",
    "tools/audit/round5/D13/seat-a/dora_cfr.py",
+   "tools/audit/round5/D13/seat-a/fixtures/checkruns_1cc89e020f.json",
+   "tools/audit/round5/D13/seat-a/fixtures/checkruns_2de1c18233.json",
+   "tools/audit/round5/D13/seat-a/fixtures/checkruns_6fae33b1da.json",
+   "tools/audit/round5/D13/seat-a/fixtures/checkruns_72cfa89288.json",
+   "tools/audit/round5/D13/seat-a/fixtures/checkruns_ac8b1ecfc5.json",
+   "tools/audit/round5/D13/seat-a/fixtures/checkruns_dec0b4ea2d.json",
+   "tools/audit/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
+   "tools/audit/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
+   "tools/audit/round5/D13/seat-a/fixtures/window_merges.json",
    "tools/release/stamp.py"
   ],
   "tests/env_drift.py": [

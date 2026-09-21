@@ -488,6 +488,27 @@ INERT_EXCEPT = (
     # tests/entities.py instead of skipping it.
     ".claude/workflows/cfr_exclusions.json",
     "tools/audit/round5/D13/seat-a/dora_cfr.py",
+    # The 9 fixtures that harness READS, on the same #1303 route. The check
+    # drives `dora_cfr.main()` with `git` patched to raise at its first call,
+    # and `main()` reads `window_merges.json` and one `checkruns_<sha>.json`
+    # per merge head BEFORE that call -- so those 9 opens happen on every
+    # entities.py run, and a malformed or missing `window_merges.json` reddens
+    # the #1303 check before `load_exclusions` is ever reached. A read is a
+    # dependency, so they leave the `tools/audit/` prefix the way dora_cfr.py
+    # and cfr_exclusions.json did; they are six parts, so `_is_header_corpus`
+    # (five) does not reach them either -- one exact line each, by name. The
+    # other three fixtures in that directory (`prs_graphql.json`, read only
+    # after `main()`'s first git call, and the two `pulls_*.json`, which
+    # nothing in this route opens) stay INERT.
+    "tools/audit/round5/D13/seat-a/fixtures/checkruns_1cc89e020f.json",
+    "tools/audit/round5/D13/seat-a/fixtures/checkruns_2de1c18233.json",
+    "tools/audit/round5/D13/seat-a/fixtures/checkruns_6fae33b1da.json",
+    "tools/audit/round5/D13/seat-a/fixtures/checkruns_72cfa89288.json",
+    "tools/audit/round5/D13/seat-a/fixtures/checkruns_ac8b1ecfc5.json",
+    "tools/audit/round5/D13/seat-a/fixtures/checkruns_dec0b4ea2d.json",
+    "tools/audit/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
+    "tools/audit/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
+    "tools/audit/round5/D13/seat-a/fixtures/window_merges.json",
 )
 
 
