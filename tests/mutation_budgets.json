@@ -44,7 +44,7 @@
       "old": "    if raw is None:",
       "reason": "resolve()'s `raw is None` guard is redundant: _fold(None) is 'none', no alias key folds to 'none', and 'none' is in neither _ALIASES nor _STATUS_AMBIGUOUS, so _ALIASES.get('none') returns None on both paths -- measured on this tree (round-5 D3-07; the probe is tools/audit/round5/D3/equiv_probe.py)."
     },
-    "custom_components/heatpump_optimizer/__init__.py:337 BOOLOP": {
+    "custom_components/heatpump_optimizer/__init__.py:340 BOOLOP": {
       "verdict": "equivalent",
       "old": "        if task is not None and hasattr(task, \"cancel\"):",
       "reason": "hass.async_create_task (homeassistant.core.HomeAssistant.async_create_task) returns an asyncio.Task, which always carries cancel; the OR form differs only for a non-None object without a cancel attribute, which that return cannot be -- round-5 D3-07."

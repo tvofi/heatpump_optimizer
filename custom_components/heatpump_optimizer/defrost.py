@@ -67,6 +67,8 @@ from dataclasses import dataclass, field
 from collections.abc import Callable
 from typing import Any, TypeVar
 
+from homeassistant.util import dt as dt_util
+
 _LOGGER = logging.getLogger(__name__)
 _T = TypeVar("_T")
 
@@ -572,14 +574,20 @@ class DefrostWindow:
         """Seconds between two stamps, or ``None`` if they cannot be compared.
 
         Same discipline as ``InputReader._age_minutes``: mixing a naive and an
-        aware datetime raises, and without a comparable pair the elapsed time
-        is *unknown*, which is not the same as zero. A window that cannot
-        measure its own length must decline to answer rather than report a
-        duty computed from a fiction.
+        aware datetime leaves the elapsed time *unknown*, which is not the
+        same as zero. A window that cannot measure its own length must
+        decline to answer rather than report a duty computed from a fiction.
         """
         try:
-            raw = (now - then).total_seconds()
-        except TypeError:
+            if (now.tzinfo is None) != (then.tzinfo is None):
+                return None
+            # #1299: aware stamps carry the process-wide ZoneInfo, which
+            # CPython subtracts as wall clocks across a DST transition —
+            # UTC instants; naive stamps keep their wall difference.
+            raw = (
+                dt_util.as_utc(now) - dt_util.as_utc(then)
+            ).total_seconds()
+        except (AttributeError, TypeError):
             return None
         if isinstance(raw, (int, float)) and not isinstance(raw, bool):
             return float(raw)

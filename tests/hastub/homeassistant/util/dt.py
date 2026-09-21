@@ -50,6 +50,22 @@ def utcnow():
     return datetime.now(timezone.utc)
 
 
+def as_utc(value: datetime) -> datetime:
+    """Upstream ``as_utc`` verbatim: naive is treated as UTC, aware is converted.
+
+    Under the default identity-timezone stub both clocks are naive, and
+    ``replace`` preserves the wall difference between two naive stamps --
+    the same result their direct subtraction gives -- so routing the age
+    seams through here changes nothing in that mode while fixing the
+    shared-ZoneInfo subtraction under ``HASTUB_TZ`` (#1299).
+    """
+    if value.tzinfo == timezone.utc:
+        return value
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
 def parse_datetime(v):
     try:
         return datetime.fromisoformat(v)

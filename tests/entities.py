@@ -19654,6 +19654,39 @@ R.check(
     "evidence must not drop it, and a line that is neither an entry nor a "
     "trailer must still be refused",
 )
+# A FRICTION ID MAY START WITH A DOT (#1305, D13-03). `FRICTION_ID` began
+# `[A-Za-z]`, so a repo-relative path -- the most explicit spelling there is of
+# the file it names -- parsed as NO id and landed in the histogram's unlabelled
+# bucket: `.claude/skills/steward/SKILL.md` is a key of `policy_budgets.json`'s
+# `files`, yet an entry naming it could not be filed against it. The leading
+# dot is admitted now. Pinned through the exported parser, with the null
+# controls that the widening bought no amnesty: `none` is still zero entries,
+# and a line naming no rule still yields no id.
+_FRICTION_DOT = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const ids = (t) => m.frictionEntries(t).map((e) => e.id);"
+     "console.log(JSON.stringify({"
+     "path: ids('`.claude/skills/steward/SKILL.md`: cost: the skill named by its path'),"
+     "dot_only: ids('.claude/rules/gate-scoping.md: stale: a path, unbackticked'),"
+     "none_only: ids('none').length,"
+     "junk: ids('this line names no rule').filter(Boolean)"
+     "})); })"],
+    capture_output=True, text=True).stdout or "{}")
+R.check(
+    "the friction id grammar admits a leading dot, so a repo-relative path parses (#1305)",
+    _FRICTION_DOT.get("path") == [".claude/skills/steward/SKILL.md"]
+    and _FRICTION_DOT.get("dot_only") == [".claude/rules/gate-scoping.md"],
+    f"parsed={_FRICTION_DOT} -- a path spelling resolved to no id, so the "
+    "histogram could not name the budget file it points at",
+)
+R.check(
+    "and the leading dot buys no amnesty: `none` is zero entries and a line "
+    "naming no rule still yields no id (null controls)",
+    _FRICTION_DOT.get("none_only") == 0 and _FRICTION_DOT.get("junk") == [],
+    f"parsed={_FRICTION_DOT} -- the widened first char must not make a "
+    "rule-less line parse",
+)
 # AN AUTOFIX COMMIT ON THE NAMED HEAD IS NOT A MOVED HEAD. `closures-autofix`
 # and `claims-autofix` push a commit onto a pull request after its body was
 # written, so the body names a head that is no longer the tip and `pr-contract`
@@ -20058,6 +20091,56 @@ R.check(
     f"findings={str(_STATS_DEGRADED)[:300]} -- three bare blocked verdicts over "
     "three pull requests reached the threshold with no class set to key "
     "them, and a constant proposed as friction is #1041 again (#1240)",
+)
+# A VERDICT THE WAVE REFUSES MUST NOT BE BLESSED AS `other` (#1304, D13-02).
+# The blocked arm matched the class word optionally AND WITHOUT its colon, so
+# `blocked <sha> <word> (<why>)` -- a class word with no colon, which
+# `web-fix-wave.js`'s VERDICT_RE REFUSES -- matched here with no class captured
+# and folded into `other`: the histogram blessed what its sibling discards,
+# against its own stated invariant (#1240's). The shape after the SHA now
+# mirrors the wave's own continuation. Property, not the instance: a
+# wave-refused shape is reported OUTSIDE the grammar and never keyed `other`.
+# The bare `blocked <sha>`, which the wave does route to `other`, is the null
+# control -- the fix must not over-refuse it.
+_STATS_BLOCKFOLD = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const sha = (c) => c.repeat(40);"
+     "const call = (bodies) => {"
+     "const prs = bodies.map((_, i) => ({ pr: i + 1 }));"
+     "const fetched = new Map(bodies.map((b, i) => "
+     "[i + 1, { body: 'x', comments: [{ body: b }] }]));"
+     "return m.statsFindings({ prs, fetched, fetchError: null, "
+     "classes: ['blocked', 'merge'] }).map((f) => f.message); };"
+     "const words = ['a', 'b', 'c'].map(sha);"
+     "console.log(JSON.stringify({"
+     "refused: call(words.map((s) => "
+     "'Fix review: blocked ' + s + ' class-c-live-worktree-deleted (POST-MERGE)')),"
+     "bare: call(words.map((s) => 'Fix review: blocked ' + s))"
+     "})); })"],
+    capture_output=True, text=True).stdout or "{}")
+
+
+def _stats_says(arm, sub):
+    return any(sub in m for m in _STATS_BLOCKFOLD.get(arm) or [])
+
+
+R.check(
+    "a blocked verdict whose shape the wave refuses is outside the grammar, "
+    "not folded into `other` (#1304)",
+    not _stats_says("refused", "recurring friction: other")
+    and sum("outside the grammar" in m
+            for m in _STATS_BLOCKFOLD.get("refused") or []) == 3,
+    f"findings={str(_STATS_BLOCKFOLD.get('refused'))[:300]} -- a no-colon class "
+    "word is refused by VERDICT_RE, so keying it `other` blessed what the wave "
+    "discards",
+)
+R.check(
+    "and the bare blocked verdict still routes to `other` (null control)",
+    _stats_says("bare", "recurring friction: other")
+    and not _stats_says("bare", "outside the grammar"),
+    f"findings={str(_STATS_BLOCKFOLD.get('bare'))[:300]} -- the fix must not "
+    "refuse a verdict the wave routes",
 )
 R.check(
     "the publishing lane runs on main alone, never on a pull request",
@@ -20612,7 +20695,7 @@ R.check(
 )
 
 # #1217 (D3-07): two of the D3 pre-screen's seven survivors are EQUIVALENT
-# mutants -- pump_mode.py:242 GUARD_OFF and __init__.py:337 BOOLOP, each
+# mutants -- pump_mode.py:242 GUARD_OFF and __init__.py:340 BOOLOP, each
 # measured against its own guarded input -- which no check could ever kill,
 # so a survivor count that mixes them with real gaps reads worse than the
 # suite is. The triage marks live in tests/mutation_budgets.json under
@@ -20687,7 +20770,7 @@ R.check(
 # same text -- so the pins are checked against the tree, not each other.
 _MUT_D3_07 = (
     "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF",
-    "custom_components/heatpump_optimizer/__init__.py:337 BOOLOP",
+    "custom_components/heatpump_optimizer/__init__.py:340 BOOLOP",
 )
 R.check(
     "the recorded triage marks both D3-07 equivalents, verdict and reason (#1217)",
