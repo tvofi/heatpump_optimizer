@@ -29,16 +29,32 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      the rule could not attribute refuses instead of enumerating empty: an
      enumerator that silently finds nothing cannot reject notes that omit
      everything.
-  5. manifest.json's version equals VERSION before the stamp (a botched
+  5. (rule "rows") Every merged pull request in the window this tag is about to
+     close has a disposition -- `record`'s own predicate, re-applied before the
+     tag moves the anchor past it. The window is the one rule 4 reads
+     (`<last v* tag>..HEAD`, first-parent) and the instrument is
+     `tests/delivery_status.py --require-rows`, which answers it from git alone
+     so a stamp needs no token. This is the countermeasure to #1301 (D11-02):
+     the deploy-key tag push is main-protect's only bypass, so a stamp was the
+     one event that could close a window over rowless merges and make them
+     unreachable -- the next window starts after the merge, and no later run
+     ever sees it again. Three consecutive stamps did exactly that (v6.6.7 over
+     4/4, v6.6.6 over 9/16, v6.6.5 over 7/9) while the instrument, asked only
+     for what was OVERDUE, read zero. --allow-rowless overrides, loudly, for a
+     window whose rows are owed and knowingly deferred, and it prints the
+     instrument's own pending list, so the merges a stamp orphans are named in
+     its log rather than only in a later window that cannot see them.
+
+  6. manifest.json's version equals VERSION before the stamp (a botched
      earlier stamp is fixed by hand, not papered over here).
-  6. (rule "claims") The stamp commit passes `tests/env_drift.py --claims-only
+  7. (rule "claims") The stamp commit passes `tests/env_drift.py --claims-only
      HEAD^1` -- the claims check main's own push run applies to it -- before
      anything is pushed, with or without --push. v6.6.0's commit failed that
      check and only main's push run found out. A refusal deletes the local
      tag, resets to the pre-stamp HEAD keeping RELEASE_NOTES.md, prints the
      check's output and exits 2. --dry-run makes no commit, so it never runs.
 
-  7. (rule "register") The D6 register (tools/audit/round4/D6/) is
+  8. (rule "register") The D6 register (tools/audit/round4/D6/) is
      re-recorded through its own generator, claims.py, from the tree being
      stamped. One row of it -- C42, "manifest version equals VERSION" -- is a
      snapshot of VERSION, and tests/harness_headers.py re-runs that generator
@@ -60,7 +76,7 @@ card (console banner only -- card_drift.mjs is unchanged), both claim files
 rewritten, and every bare claim line is deleted -- a stamp empties the list,
 the next branch restates its own footprint), and the D6 register re-recorded
 from that tree by its own generator (rule "register"), then one commit and one
-tag, which rule 6 checks before any push. Nothing is pushed without --push.
+tag, which rule 7 checks before any push. Nothing is pushed without --push.
 """
 from __future__ import annotations
 
@@ -842,6 +858,43 @@ def self_test() -> int:
     check("claims self-check: a check that cannot start refuses",
           not claims_selfcheck(_unstartable)[0])
 
+    # The disposition gate, rule "rows" (#1301/D11-02). The stamp is the one
+    # writer whose push MOVES the window `record` reads -- `<last v* tag>`
+    # ..origin/main, over the deploy-key bypass -- so it re-applies record's
+    # own predicate before it writes anything. The instrument is the ledger
+    # this repository already builds, read under `--require-rows` (PENDING
+    # refuses), which answers from git and needs no token.
+    check("rows gate: the command is the token-free disposition instrument, over this window",
+          disposition_gate_argv("v6.6.1", "py")
+          == ["py", "tests/delivery_status.py", "--require-rows", "--since", "v6.6.1"])
+    check("rows gate: with no tag yet it asks over the whole of origin/main",
+          disposition_gate_argv(None, "py")
+          == ["py", "tests/delivery_status.py", "--require-rows"])
+    _rows_rowless = ("DELIVERY STATUS OK -- 0 rowed, 1 pending, 0 overdue "
+                     "(overdue at 12 commits)\n  pending  #1301 0abc123 the merge")
+    check("rows gate: a rowless window refuses, carrying the instrument's own list",
+          disposition_gate("v6.6.1", lambda argv: _Proc(1, _rows_rowless))
+          == (False, _rows_rowless))
+    check("rows gate: a fully rowed window clears",
+          disposition_gate("v6.6.1",
+                           lambda argv: _Proc(0, "DELIVERY STATUS OK -- 3 rowed, 0 pending, 0 overdue"))
+          == (True, "DELIVERY STATUS OK -- 3 rowed, 0 pending, 0 overdue"))
+    check("rows gate: a crash is not a pass",
+          not disposition_gate("v6.6.1", lambda argv: _Proc(2, ""))[0])
+    check("rows gate: a check that cannot start refuses",
+          not disposition_gate("v6.6.1", _unstartable)[0])
+
+    # Where main() runs it. Every pure piece above is correct while the call
+    # site never runs the gate -- which is exactly the tree before this change
+    # -- so rule 5's region is read: the gate must run before the manifest
+    # rule, and the one way past it must be the explicit, named override.
+    _r5 = _r4_src[_r4_src.rindex("# Rule 5: the window"):]
+    _r5 = _r5[:_r5.index("# Rule 6:")]
+    check("rows gate: main() runs the disposition gate, before the manifest rule",
+          "disposition_gate(last_tag)" in _r5)
+    check("rows gate: the override is explicit, and only --allow-rowless takes it",
+          "--allow-rowless" in _r5 and 'raise Refuse("rows"' in _r5)
+
     # Rule "register". The stamp re-records the D6 register through its own
     # generator -- the header's command, from ROOT, with the stub on
     # PYTHONPATH -- and a generator that fails refuses rather than ship the
@@ -1104,6 +1157,54 @@ def claims_selfcheck(runner=None) -> tuple[bool, str]:
     return proc.returncode == 0, output or f"exit {proc.returncode}, no output"
 
 
+# Rule "rows": the disposition gate (#1301/D11-02). The same predicate the
+# `record` job applies to `main`, re-run here -- before the stamp commit is
+# made -- because this tool is the one writer whose push can MOVE the window
+# `record` reads. `<last v* tag>..origin/main` is `record`'s window, the
+# deploy-key tag push is main-protect's only bypass, so a stamp taken over a
+# rowless merge is the one event that can make that merge unreachable: the
+# next window starts after the merge, and no later run ever sees it. That is
+# not hypothetical -- v6.6.7 closed over 4/4 rowless merges, v6.6.6 over 9/16,
+# v6.6.5 over 7/9, and the instrument, asked only what was OVERDUE, read zero
+# each time, because at stamp time every merge in the window is minutes old
+# and therefore PENDING.
+#
+# The instrument is `tests/delivery_status.py --require-rows`: the ledger this
+# repository already builds, read under `record`'s bar instead of the
+# delivery-status lane's. It answers from git (the merge log and the row
+# files) and needs no token, so a stamp -- which runs with a deploy key and
+# no API credential -- can run it. `--allow-rowless` is the deliberate
+# override, in the same shape as `--allow-red`: for a window whose rows are
+# owed and knowingly deferred, it prints what it is deferring and stamps.
+DISPOSITION_GATE_SCRIPT = "tests/delivery_status.py"
+
+
+def disposition_gate_argv(last_tag: str | None, python: str = sys.executable) -> list[str]:
+    argv = [python, DISPOSITION_GATE_SCRIPT, "--require-rows"]
+    if last_tag:
+        argv += ["--since", last_tag]
+    return argv
+
+
+def disposition_gate(last_tag: str | None, runner=None) -> tuple[bool, str]:
+    """(cleared, what it printed) for the window the tag is about to close.
+
+    `record`'s predicate, asked from git alone: every merged pull request in
+    `<last tag>..origin/main` carries a disposition. With no tag yet the whole
+    of origin/main is asked, which is the same window `record` would have read.
+    Any exit other than 0 is a refusal -- the predicate returns 1 for a window
+    with an unrowed merge, and a crash is not a pass. A gate that cannot be
+    started at all is a refusal too: a stamp nothing checked is the failure
+    this exists to stop."""
+    run = runner or (lambda argv: subprocess.run(argv, cwd=ROOT, text=True, capture_output=True))
+    try:
+        proc = run(disposition_gate_argv(last_tag))
+    except OSError as exc:
+        return False, f"could not run the disposition check: {exc}"
+    output = ((proc.stdout or "") + (proc.stderr or "")).strip()
+    return proc.returncode == 0, output or f"exit {proc.returncode}, no output"
+
+
 def undo_local_stamp(nxt: str, pre_head: str, runner=None, notes: Path = NOTES) -> None:
     """Discard the local stamp commit and tag, keeping the hand-written notes.
 
@@ -1196,8 +1297,11 @@ def main() -> int:
     ap.add_argument("--known-hosts", metavar="PATH", default=DEFAULT_KNOWN_HOSTS,
                     help="the pinned GitHub host key file for --push-key (default: %(default)s)")
     ap.add_argument("--dry-run", action="store_true",
-                    help="run rules 1-5 and print the plan; write nothing, so no commit and no claims check")
+                    help="run rules 1-6 and print the plan; write nothing, so no commit and no claims check")
     ap.add_argument("--allow-red", action="store_true", help="stamp even though HEAD's gate is not green")
+    ap.add_argument("--allow-rowless", action="store_true",
+                    help="stamp even though the window the tag closes holds a merge with no "
+                         "disposition row; the instrument's own list is printed as the warning")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
     if args.self_test:
@@ -1251,15 +1355,43 @@ def main() -> int:
     if why:
         raise Refuse(4, why)
 
-    # Rule 5: the manifest agrees with VERSION before we move both.
+    # Rule 5: the window this tag closes holds no merged pull request without
+    # a disposition. Rules 1-4 ask whether the NOTES are ready; this asks
+    # about the WINDOW. `<last v* tag>..origin/main` is the window `record`
+    # reads, and the tag push below is main-protect's only bypass, so this run
+    # is the one writer that can carry a rowless merge out of every future
+    # window at once (#1301/D11-02: three consecutive stamps did, while the
+    # instrument, asked only what was OVERDUE, read zero). `record`'s own
+    # predicate is re-applied here, before anything is written, so the refusal
+    # costs a stamp rather than a permanent hole in the ledger. It reads git
+    # and the row files and needs no token, so it runs under --dry-run too --
+    # a dry run says whether the stamp would be refused, which is most of what
+    # a dry run is for.
+    cleared, why = disposition_gate(last_tag)
+    if not cleared:
+        if not args.allow_rowless:
+            raise Refuse("rows",
+                         "the window this tag would close holds a merged pull request "
+                         "with no disposition. Tagging moves "
+                         f"{last_tag or 'the first commit'}..origin/main past it, no later "
+                         "window can see it again, and `record` would never report it. Row it "
+                         "(the merge commit's body names the pull request), or pass "
+                         "--allow-rowless to defer the rows knowingly. Nothing was written; "
+                         "the instrument said:\n" + why)
+        print(f"WARNING: stamping over a window with undispositioned merges "
+              f"(--allow-rowless): {why}")
+    else:
+        print(f"disposition gate: {why.splitlines()[0] if why.splitlines() else why}")
+
+    # Rule 6: the manifest agrees with VERSION before we move both.
     manifest = json.loads(MANIFEST.read_text())
     if manifest.get("version") != current:
-        raise Refuse(5, f"manifest version {manifest.get('version')} != VERSION {current}; fix by hand first")
+        raise Refuse(6, f"manifest version {manifest.get('version')} != VERSION {current}; fix by hand first")
 
     card_before = CARD_JS.read_text()
     card_match = re.search(r'const CARD_VERSION = "(\d+\.\d+\.\d+)";', card_before)
     if not card_match:
-        raise Refuse(5, "could not read CARD_VERSION from the bundled card")
+        raise Refuse(6, "could not read CARD_VERSION from the bundled card")
     card_current = card_match.group(1)
 
     plan = [
@@ -1288,7 +1420,7 @@ def main() -> int:
     text = MANIFEST.read_text()
     text, n = re.subn(r'"version":\s*"[^"]+"', f'"version": "{nxt}"', text, count=1)
     if n != 1:
-        raise Refuse(5, "could not rewrite the manifest version")
+        raise Refuse(6, "could not rewrite the manifest version")
     MANIFEST.write_text(text)
     card_text, _ = rewrite_card_version(card_before, nxt)
     CARD_JS.write_text(card_text)

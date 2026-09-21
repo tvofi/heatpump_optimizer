@@ -19264,6 +19264,54 @@ R.check(
     "reddened on the protocol's steady state -- and `delivery-status` is not "
     "a required context, so neither red gates a merge",
 )
+# `--require-rows`, THE BAR THE STAMP RE-APPLIES BEFORE ITS TAG CLOSES THE
+# WINDOW (#1301/D11-02). `--check` above is the ledger's own alarm and it is
+# correct: at the moment a stamp runs, every merge in the window is young, so
+# every one of them is PENDING and `--check` is green. That is exactly how
+# v6.6.7 closed over 4/4 rowless merges while the instrument read "0 overdue"
+# -- the merges it orphaned were read as the protocol's ordinary batching, and
+# no later window can ever see them again. The predicate that closes the escape
+# is `record`'s own (every merged pull request has a disposition), so
+# `--require-rows` refuses PENDING as well, and PENDING is the ONE verdict the
+# two flags disagree on -- which is what the pair below drives.
+def _ds_rc(ledger, *flags):
+    import contextlib as _ctx
+    import io as _io
+    with _tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "ledger.json"
+        path.write_text(json.dumps(ledger))
+        argv = sys.argv
+        sys.argv = ["delivery_status.py", "--from", str(path), *flags]
+        try:
+            with _ctx.redirect_stdout(_io.StringIO()):
+                return _ds.main()
+        except SystemExit as exc:  # an unrecognised flag is a red, not an abort
+            # argparse exits 2 on a flag it does not know. Left uncaught it
+            # would end the whole suite here, which reads as a broken test
+            # file rather than as the missing predicate it actually is; a 2
+            # against the expected 0/1 is the failure this check exists to
+            # report.
+            return exc.code
+        finally:
+            sys.argv = argv
+
+
+_DS_ROWS_RCS = {v: _ds_rc(l, "--require-rows") for v, l in (
+    ("OVERDUE", _ds_overdue), ("UNCHECKED", _ds_unchecked),
+    ("OK", _ds_all_rowed), ("EMPTY", _ds_empty), ("PENDING", _ds_pending))}
+R.check(
+    "--require-rows refuses a PENDING window, and every red --check raises",
+    _DS_ROWS_RCS == {"OVERDUE": 1, "UNCHECKED": 1, "OK": 0, "EMPTY": 0,
+                     "PENDING": 1},
+    f"exit codes by verdict: {_DS_ROWS_RCS}; the same ledgers under `--check` "
+    f"are {_DS_RCS}. The two agree everywhere but PENDING, and that single "
+    "disagreement IS the escape #1301 measured: a stamp runs while its "
+    "window's merges are pending, so a predicate that reports PENDING green "
+    "reports the merges the tag is about to orphan as ordinary batching. "
+    "OK and EMPTY stay green -- a fully-rowed window and a window holding no "
+    "merge are both legitimately stampable, and an EMPTY window is the "
+    "ordinary state right after the previous stamp",
+)
 R.check(
     "a disposition is matched on the whole number, in both spellings",
     _ds.mentions(88, ["a row for #885 and #8850"]) is False
@@ -20156,6 +20204,96 @@ R.check(
     "delivery_status.py" in _closure.NOT_A_TEST
     and not _closure.is_inert("tests/delivery_status.py"),
     "a file that is neither in a closure nor on a list forces the FULL suite",
+)
+
+# --- D13-01 (#1303): the by-design-red exclusion list lands in-tree ----------
+#
+# The D13 brief's required output 4 re-takes DORA's change-failure rate "then
+# without the jobs on an exclusion list of by-design reds, a JSON file beside
+# `policy_budgets.json` that your first round creates with a reason per job".
+# Round 5's first pass drafted that list and left it in the seat's scratch
+# directory, so `cfr_excluded` was reachable only through a file nothing in the
+# tree owned: the judge read `cfr_excluded=0.0` as unreachable in-tree, and
+# `record` red at 8 of 8 merge heads made any in-tree rate a constant 1.0.
+#
+# Two things are driven below, and the second is the step-11 rule ("a check
+# pins the artifact it READS, not the one it is named for"). The first pass
+# read `json.load(open(os.path.join(HERE, "cfr_exclusions.json")))` -- a copy
+# beside the harness, named `cfr_exclusions.json`, measuring a list the tree
+# did not hold. The artifact now lives at the path the brief names and the
+# instrument resolves THAT path, so the number the harness prints is the
+# number the tree's artifact states.
+try:
+    _CFR_ARTIFACT = _closure.ROOT / ".claude/workflows/cfr_exclusions.json"
+    _CFR = json.loads(_CFR_ARTIFACT.read_text())
+    _CFR_EXCL = _CFR.get("excluded_jobs") or {}
+    # The quote the record entry's citation has to carry, read out of the
+    # workflow rather than typed twice: whatever the `record` job's own report
+    # step says about why its red is by design, the citation has to be quoting.
+    _CFR_QUOTE = ("REFUSED fails this job (D11-04): a rowless merge is the "
+                  "batch interval")
+    _CFR_RECORD_JOB = _workflow_job(
+        (_closure.ROOT / ".github/workflows/governance.yml").read_text(), "record")
+    _CFR_ARTIFACT_OK = bool(
+        _CFR_EXCL
+        and all(isinstance(v, dict) and v.get("reason") and v.get("citation")
+                for v in _CFR_EXCL.values())
+        and "record" in _CFR_EXCL
+        and _CFR_QUOTE in _CFR_EXCL["record"]["citation"]
+        and _CFR_QUOTE in _CFR_RECORD_JOB
+    )
+    import importlib.util as _cfr_util
+    _CFR_INSTR = _closure.ROOT / "tools/audit/round5/D13/seat-a/dora_cfr.py"
+    _cfr_spec = _cfr_util.spec_from_file_location("hpo_d13_cfr", str(_CFR_INSTR))
+    _cfr = _cfr_util.module_from_spec(_cfr_spec)
+    _cfr_spec.loader.exec_module(_cfr)
+    _cfr_src = _CFR_INSTR.read_text()
+    _CFR_INSTR_OK = bool(
+        _cfr.EXCLUSION_ARTIFACT == ".claude/workflows/cfr_exclusions.json"
+        and Path(_cfr.exclusions_path(root="/repo"))
+        == Path("/repo/.claude/workflows/cfr_exclusions.json")
+        and _cfr.load_exclusions(".claude/workflows/cfr_exclusions.json")
+        == _CFR_EXCL
+        and 'join(HERE, "cfr_exclusions.json")' not in _cfr_src
+    )
+    _CFR_DETAIL = (
+        f"excluded_jobs={sorted(_CFR_EXCL)}; the record entry cites the "
+        f"workflow's own words: "
+        f"{_CFR_QUOTE in (_CFR_EXCL.get('record') or {}).get('citation', '')}, "
+        f"and the workflow says them: {_CFR_QUOTE in _CFR_RECORD_JOB}; the "
+        f"instrument resolves {_cfr.exclusions_path(root='/repo')!r}"
+    )
+except Exception as _cfr_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _CFR_ARTIFACT_OK = _CFR_INSTR_OK = False
+    _CFR_DETAIL = f"{type(_cfr_exc).__name__}: {_cfr_exc}"
+R.check(
+    "the by-design-red exclusion list is in-tree, with a reason per job and a "
+    "citation that resolves (#1303)",
+    _CFR_ARTIFACT_OK,
+    _CFR_DETAIL + " -- the D13 brief requires this file beside "
+    "`policy_budgets.json` with a reason per job, and the citation is pinned "
+    "against the workflow's own words so it cannot drift into a quote nothing "
+    "in the tree supports",
+)
+R.check(
+    "and the CFR instrument reads that registered artifact, not a copy beside "
+    "itself (#1303)",
+    _CFR_INSTR_OK,
+    _CFR_DETAIL + " -- #1303's step-11 defect was the harness reading its own "
+    "sibling `cfr_exclusions.json`, so `cfr_excluded` came from a file the tree "
+    "did not own; a check pins the artifact it READS",
+)
+R.check(
+    "and the list excludes only what it names (null control)",
+    _CFR_ARTIFACT_OK and set(_CFR_EXCL) == {"record"}
+    and not ({"closures", "closures-autofix", "delivery-status", "fast",
+              "closure-scope", "typing", "coverage"} & set(_CFR_EXCL)),
+    _CFR_DETAIL + " -- an exclusion list is a NARROWING of the metric and the "
+    "narrowing is the whole risk: a green gate leaking into this list would "
+    "report a zero change-failure rate over reds it suppressed, so the gate's "
+    "own jobs and the required contexts are named absent, and the key set is "
+    "pinned to the one name measured failing at the round's heads. Growing the "
+    "list is meant to be a deliberate edit this check makes you record",
 )
 
 # --- D11-04 (#1194): the disposition refusal can set the record job's status --

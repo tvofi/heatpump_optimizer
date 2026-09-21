@@ -418,6 +418,7 @@
   ],
   "tests/entities.py": [
    ".claude/workflows/brief_lint.mjs",
+   ".claude/workflows/cfr_exclusions.json",
    ".claude/workflows/counts.mjs",
    ".claude/workflows/policy_lint.mjs",
    ".claude/workflows/render_md.mjs",
@@ -570,6 +571,7 @@
    "tools/audit/round4/D11/d11lib.py",
    "tools/audit/round4/D11/governance_cost.py",
    "tools/audit/round4/D6/claims.json",
+   "tools/audit/round5/D13/seat-a/dora_cfr.py",
    "tools/release/stamp.py"
   ],
   "tests/env_drift.py": [

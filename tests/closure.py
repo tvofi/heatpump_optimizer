@@ -475,6 +475,19 @@ INERT_EXCEPT = (
     # script opens is a dependency, not inert, whatever prefix it lives under.
     # An edit to the verdict grammar now selects tests/entities.py.
     ".claude/workflows/web-fix-wave.js",
+    # #1303 (D13-01): tests/entities.py reads the by-design-red exclusion list
+    # and the D13 harness that consumes it, to pin that the harness reads the
+    # REGISTERED artifact rather than a copy beside itself (step 11: a check
+    # pins the artifact it READS). Both routes are the web-fix-wave.js one --
+    # the file a gate script opens is a dependency, not inert prose. The
+    # harness path is six parts (round5/D13/seat-a/dora_cfr.py), so the
+    # `tools/audit/` prefix still keeps it INERT and `_is_header_corpus`
+    # (five parts) does not reach it: one exact line, by name, as before. The
+    # `.json` artifact is under the `.claude/` prefix and never matches
+    # `_is_header_corpus` at all. An edit to either now selects
+    # tests/entities.py instead of skipping it.
+    ".claude/workflows/cfr_exclusions.json",
+    "tools/audit/round5/D13/seat-a/dora_cfr.py",
 )
 
 

@@ -1,0 +1,10 @@
+{
+  "_comment": "By-design red check-run names excluded from the DORA change-failure rate, in the shape of .claude/workflows/policy_budgets.json (a top-level object of keyed entries beside a _comment). The D13 brief asks for the rate 'with the jobs on an exclusion list of by-design reds': a merge FAILS in the D13 instrument if the latest run of a check-run name at its merge commit concluded `failure` and that name is not recorded here. Every entry carries the reason and its citation. GROWING THIS LIST IS A DELIBERATE EDIT, visible in the diff a reviewer reads -- an exclusion list is a NARROWING of the metric, and an unjustified entry would hide a real change failure rather than a by-design one, the same posture policy_budgets.json takes.",
+  "_measured": "Recorded at the values measured when D13 round 5 landed: the only check-run name failing at the round's 8 merge heads was `record`, 8 of 8. It is excluded because its red is a protocol beat (D11-04 made the step's refusal reach the job's conclusion), not a change failure.",
+  "excluded_jobs": {
+    "record": {
+      "reason": "Detector lane, not a code gate: `record` fails whenever any merged pull request in <last v-tag>..origin/main lacks a disposition row, which is that job's refusal working as designed (#1194/D11-04 kept the step's exit code reaching the job). At every merge head the just-merged pull request is necessarily rowless until the next `record:` beat writes its row, so the job concludes failure at EVERY merge -- a by-design constant, not a change failure. The job is not a required context and must not become one.",
+      "citation": ".github/workflows/governance.yml, job `record`, its refusal-report step: \"REFUSED fails this job (D11-04): a rowless merge is the batch interval ... The job is not a required context and must not become one.\" The same predicate is re-applied by tools/release/stamp.py rule \"rows\" (#1301), which is why the red is by-design here rather than a defect to fix."
+    }
+  }
+}

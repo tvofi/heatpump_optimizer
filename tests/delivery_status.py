@@ -506,6 +506,11 @@ def main() -> int:
     ap.add_argument("--check", action="store_true",
                     help="exit 1 when a merge is OVERDUE a row, or when the "
                          "window could not be read (UNCHECKED)")
+    ap.add_argument("--require-rows", action="store_true",
+                    help="exit 1 unless EVERY merge in the window carries a "
+                         "row -- PENDING included. This is the bar `record` "
+                         "itself applies, run by the release stamp before its "
+                         "tag moves the window's start past the merges")
     ap.add_argument("--repo", default="tvofi/heatpump_optimizer")
     ap.add_argument("--since", default="")
     args = ap.parse_args()
@@ -558,6 +563,11 @@ def main() -> int:
     print("This check is NOT a required context and a red here blocks no "
           "merge. Pending is the ordinary state: the protocol writes rows in "
           "batches, and only OVERDUE means a batch has stopped being drained.")
+    if args.require_rows:
+        print("--require-rows reads the same ledger under `record`'s bar "
+              "rather than this lane's: a red blocks the STAMP. Every merge "
+              "listed above without a row is one the tag is about to move the "
+              "window's start past, and no later window can see it again.")
     # `--check` raises UNCHECKED as well as OVERDUE, and that is a DELIBERATE
     # widening of this flag's exit semantics rather than a side effect. The
     # argument: this job's whole subject is noticing that something went dark,
@@ -567,6 +577,23 @@ def main() -> int:
     # context and a red here blocks no merge, which the report says on every
     # run. The `delivery-status-publish` lane passes `--emit` and not
     # `--check`, so it is unaffected either way.
+    # `--require-rows` is `record`'s OWN predicate -- every merged pull request
+    # in the window carries a disposition -- applied at the one place the
+    # window MOVES rather than where it is merely observed: the release stamp,
+    # whose deploy-key tag push moves `<last v* tag>..origin/main`'s start past
+    # the very merges it just closed over (#1301/D11-02). It refuses PENDING,
+    # and that is the single verdict it and `--check` disagree on. PENDING is
+    # exactly the state of every merge in a window at stamp time -- the merges
+    # are minutes old -- so `--check` is green on precisely the run that can
+    # orphan them, and the merges it orphans are unreachable from every later
+    # window. PENDING stays green under `--check` because batching is the
+    # protocol for a window that is still open; it is red here because this
+    # window is being closed. A fully-rowed window and an EMPTY one both pass:
+    # stamping a window with nothing unreached in it is the ordinary case.
+    if args.require_rows:
+        if counts["pending"] or counts["overdue"] or ledger["verdict"] == UNCHECKED:
+            return 1
+        return 0
     if args.check and ledger["verdict"] in (OVERDUE, UNCHECKED):
         return 1
     return 0
