@@ -62,10 +62,9 @@
 #
 # The mouse arm is byte-identical to the comparison ref, by construction and
 # by measurement: the floor emits the same template text with 24 in place of
-# 44, so all 39 states that render under a fine pointer do not move at all,
-# and the two stylesheet dumps (this branch's fine arm and the ref's) are the
-# same 36567 bytes. Measured, not assumed: card_drift reports exactly this
-# one state as DRIFT and reports the other 39 identical.
+# 44, so all 39 states that render under a fine pointer do not move at all.
+# Measured, not assumed: card_drift reports exactly this one state as DRIFT
+# and reports the other 39 identical.
 #
 # The #1333/#1334 pair the comment above records is HISTORICAL for this file:
 # the comparison ref already carries it, so its three states (no_plan,
