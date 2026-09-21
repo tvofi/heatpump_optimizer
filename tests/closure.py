@@ -2181,6 +2181,47 @@ def selftest() -> int:
         f"status={nstatus!r} log={nlog[-200:]!r}",
     )
 
+    # #1309 (D3-01): the recorder must attribute a warm-__pycache__ load of a
+    # file path. The audit hook fires `open` on the .pyc when the cache is
+    # warm and never on the .py, and a module loaded the way entities.py
+    # loads governance_cost.py -- spec_from_file_location + exec_module,
+    # never inserted into sys.modules -- is invisible to the sweep too, so a
+    # warm-box re-derivation recorded the dependency as absent and check()
+    # read the miss as "safe: over-scoped". The property, not the instance:
+    # any repo pyc path maps to the source it was compiled from, a pyc whose
+    # source is gone maps to nothing, and the cold path is unchanged. Pure
+    # path arithmetic -- the pinned arm needs no cache to exist, so it holds
+    # on a cold CI checkout exactly as on a warm box.
+    tag = sys.implementation.cache_tag
+    pin(
+        "a warm __pycache__ .pyc open attributes the source it was compiled from",
+        _rel(str(ROOT / "tests" / "__pycache__" / f"harness.{tag}.pyc"))
+        == "tests/harness.py",
+        f"_rel(tests/__pycache__/harness.{tag}.pyc)="
+        f"{_rel(str(ROOT / 'tests' / '__pycache__' / f'harness.{tag}.pyc'))!r}",
+    )
+    pin(
+        "the #1309 instance maps: governance_cost's cache attributes its source",
+        _rel(str(ROOT / "tools/audit/round4/D11/__pycache__"
+                 / f"governance_cost.{tag}.pyc"))
+        == "tools/audit/round4/D11/governance_cost.py",
+        f"_rel(governance_cost.{tag}.pyc)="
+        f"{_rel(str(ROOT / 'tools/audit/round4/D11/__pycache__' / f'governance_cost.{tag}.pyc'))!r}",
+    )
+    pin(
+        "a cache whose source is gone attributes nothing (null control)",
+        _rel(str(ROOT / "tests" / "__pycache__" / f"no_such_module.{tag}.pyc"))
+        is None,
+        f"_rel(no_such_module.{tag}.pyc)="
+        f"{_rel(str(ROOT / 'tests' / '__pycache__' / f'no_such_module.{tag}.pyc'))!r}",
+    )
+    pin(
+        "the cold path is unchanged (control)",
+        _rel(str(ROOT / "tests" / "harness.py")) == "tests/harness.py",
+        f"_rel(tests/harness.py)="
+        f"{_rel(str(ROOT / 'tests' / 'harness.py'))!r}",
+    )
+
     if failed:
         print(f"\n{failed} of {n} closure shrink pins FAILED")
         return 1
