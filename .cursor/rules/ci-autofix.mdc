@@ -30,10 +30,10 @@ being recorded — fix that script first; re-deriving it would only record the
 same truncation.
 
 **What green means, exactly — read the summary line, not the tick.** Green is
-`changed` (repaired and pushed), `skip-clean` or `skip-not-under-scoped` (the
-bot owed no repair — see the first path below), or `skip-not-allowed` (the
-job declined to classify at all). The conclusion cannot tell "repaired" from
-"nothing was owed"; the summary line can. `claims-autofix` reddens on nothing it can return today —
+`changed` (repaired and pushed), `skip-clean` or `skip-not-under-scoped` (no
+repair was owed *to the bot*), or `skip-not-allowed` (the job declined to
+classify at all). The conclusion cannot tell "repaired" from "nothing was
+owed"; the summary line can. `claims-autofix` reddens on nothing it can return today —
 `apply_inherited_claims` has no attempted-and-failed status, and its
 `skip-not-inherited` is the ordinary answer for every unrelated `fast`
 failure, so reddening it would over-fire — so its summary line is its only
