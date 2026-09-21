@@ -33,11 +33,10 @@ being recorded — fix that script first; re-deriving it would only record the
 same truncation.
 
 **What green means, exactly — read the summary line, not the tick.** Green is
-`changed` (repaired and pushed), `skip-clean` or `skip-not-under-scoped` (no
-repair was owed *to the bot* — see the first path below, where one is owed to
-you), or `skip-not-allowed` (the job declined to classify at all). The
-conclusion cannot tell "repaired" from "nothing was owed"; the summary line
-can. `claims-autofix` reddens on nothing it can return today —
+`changed` (repaired and pushed), `skip-clean` or `skip-not-under-scoped` (the
+bot owed no repair — see the first path below), or `skip-not-allowed` (the
+job declined to classify at all). The conclusion cannot tell "repaired" from
+"nothing was owed"; the summary line can. `claims-autofix` reddens on nothing it can return today —
 `apply_inherited_claims` has no attempted-and-failed status, and its
 `skip-not-inherited` is the ordinary answer for every unrelated `fast`
 failure, so reddening it would over-fire — so its summary line is its only
@@ -46,21 +45,13 @@ signal.
 **Three paths still end green unrepaired; none is closed here.**
 
 - **A committed phantom.** `check` fails the `closures` job when the committed
-  table lists a path that is not a file (#1310), but
-  `apply_under_scoped_recordings` finds no UNDER-SCOPED in that log and returns
-  `skip-not-under-scoped` — quiet, green, and identical in the summary line to
-  a clean run. No commit is coming and none should: a recording cannot drop a
-  dead path, so this is the one repair the bot is not allowed to make. The
-  `closures` log prints the offending `(script, path)` pairs and the remedy.
-  Repair in place and commit `tests/closures.json`:
-
-  ```
-  python3 tests/closure.py prune
-  ```
-
-  A `--single` re-derivation of the script the entry is filed under also drops
-  it — `merge` no longer keeps a phantom — but `prune` needs no recording and
-  no lane, and names the entries it removed.
+  table lists a path that is not a file (#1310), while the autofix finds no
+  UNDER-SCOPED and stays green on `skip-not-under-scoped` — the same status a
+  clean run reports, so the summary line cannot separate them. A repair is owed
+  and no commit is coming: a recording cannot drop a dead path. Repair the
+  table in place and commit `tests/closures.json`: `python3 tests/closure.py
+  prune` (measured: `apply_under_scoped_recordings` →
+  `skip-not-under-scoped`, `autofix_repair_failed` → false).
 - **The loop guard.** After the bot pushes, the next run's head subject is
   `ci: re-record closures`, so `autofix_allowed` returns false *before* any
   classification runs: if that run is still UNDER-SCOPED the status is

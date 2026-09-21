@@ -34,7 +34,7 @@
   "_roles": "opens is a representative file per surface, not an exhaustive list. The cap ratchets a fixed sample; widening the sample is a visible edit here rather than a silent re-measurement.",
   "files": {
     ".claude/rules/brief-citations.md": 42,
-    ".claude/rules/ci-autofix.md": 96,
+    ".claude/rules/ci-autofix.md": 104,
     ".claude/rules/claim-files.md": 53,
     ".claude/rules/comment-readback.md": 68,
     ".claude/rules/defect-root-cause.md": 146,
