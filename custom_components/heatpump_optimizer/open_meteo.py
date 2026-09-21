@@ -34,6 +34,7 @@ around sunrise and sunset is the difference between full sun and darkness.
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -189,7 +190,10 @@ def _parse_block(
             value = float(raw_v)
         except (TypeError, ValueError):
             continue
-        if value < 0.0 or value > max_value:
+        # R5-D1-06 (#1297): NaN fails both range comparisons (`nan < 0` and
+        # `nan > max` are False), so it slipped past the plausibility
+        # ceiling into the solar seam. Dropped like a null.
+        if not math.isfinite(value) or value < 0.0 or value > max_value:
             continue
         try:
             # timezone=UTC is requested, so the naive ISO stamps are UTC.

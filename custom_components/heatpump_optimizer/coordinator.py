@@ -351,6 +351,7 @@ from .manual_plan import (
 from .price_model import (
     PriceShapeModel,
     TIBBER_API_URL,
+    _raw_value,
     extend_price_series,
     hourly_from_entries,
     pull_prices,
@@ -6184,11 +6185,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     if ts.tzinfo is None:
                         ts = ts.replace(tzinfo=timezone.utc)
                     if ts <= now < ts + timedelta(hours=1):
-                        return float(price_entry.get("total", 0))
+                        return _raw_value(price_entry) or 0.0
                 except (ValueError, TypeError):
                     continue
 
-        return self._prices[0].get("total", 0) if self._prices else 0.0
+        return _raw_value(self._prices[0]) or 0.0
 
     # ------------------------------------------------------------------
     # The grid-fee layer (v4.0.0 T1, #1)
