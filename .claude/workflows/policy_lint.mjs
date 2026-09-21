@@ -3080,13 +3080,14 @@ function assertAcceptance(derived) {
     const rel = path.relative(ROOT, path.join(prepr, 'good.md'))
     const wrong = checkPrBody(rel, { head: ZERO, author: 'tvofi' })
     const right = checkPrBody(rel, { head: ZERO, author: 'app/hpo-author' })
+    const rightBot = checkPrBody(rel, { head: ZERO, author: 'hpo-author[bot]' })
     const absent = checkPrBody(rel, { head: ZERO })
     if (!wrong.some((e) => /hpo-author App/.test(e.message))) {
       console.log('\nFIXTURE VACUOUS: the author check did not fire on a tvofi-authored body')
       return 1
     }
-    if (right.length || absent.length) {
-      console.log('\nFIXTURE VACUOUS: the author check fired on the App or on an absent author (the null controls)')
+    if (right.length || rightBot.length || absent.length) {
+      console.log('\nFIXTURE VACUOUS: the author check fired on the App (either form) or on an absent author (the null controls)')
       return 1
     }
   }
@@ -4999,7 +5000,9 @@ function redHistorySkipLine(why) {
 
 function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], notes = [], author = null } = {}) {
   const out = []
-  if (author != null && author !== 'app/hpo-author') {
+  // The REST `/pulls/{n}` `.user.login` reports the App as `hpo-author[bot]`
+  // while the GraphQL `author.login` reports `app/hpo-author`; accept both.
+  if (author != null && author !== 'app/hpo-author' && author !== 'hpo-author[bot]') {
     out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
       message: `the pull request author is \`${author}\`; a pull request is authored by the hpo-author App (decision 0011) — re-open it via tools/audit/app_push.sh, never push.sh` })
   }
