@@ -5593,11 +5593,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     # Extract solar radiation forecast if present in weather data
                     self._solar_radiation_forecast = []
                     for fc in forecast_data:
-                        # Some weather integrations provide solar irradiance
+                        # A non-numeric irradiance is refused by _as_float, not thrown (R5-D1-07).
                         sr = fc.get("solar_irradiance") or fc.get(
                             "native_solar_irradiance", 0.0
                         )
-                        self._solar_radiation_forecast.append(float(sr or 0.0))
+                        self._solar_radiation_forecast.append(_as_float(sr, 0.0))
 
                     self._weather_fetch_recovered()
                     _LOGGER.debug(
