@@ -16,12 +16,12 @@
  "duplication_blocks": 14,
  "functions_cc_over_15": 34,
  "functions_cc_over_25": 8,
- "internal_call_edges": 318,
+ "internal_call_edges": 319,
  "local_imports": 7,
  "max_cc": 48,
  "max_class_loc": 9124,
  "max_method_loc": 387,
  "methods_over_150": 18,
  "methods_over_200": 11,
- "recorded_at": "d8c3fcb851b293e649b614ca0b2e86322f1ed468"
+ "recorded_at": "f5ab84be6ab78ee9e83201448b13e404dd60a65c"
 }
