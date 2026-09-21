@@ -1266,10 +1266,9 @@ DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS: Final = 7.0
 DEFAULT_WIND_SENSITIVITY: Final = 0.03  # 3% heat loss increase per m/s wind
 DEFAULT_RAIN_HEAT_LOSS_MULTIPLIER: Final = 1.15  # 15% increase when raining
 
-# ECL110 defaults (manual "Displace" = parallel heat-curve shift in °C)
-DEFAULT_ECL110_COMMAND_TOPIC: Final = "ecl110/command"  # legacy JSON write path
-DEFAULT_ECL110_DISPLACE_SET_TOPIC: Final = "ecl110/flow_temp_control/displace/set"
-DEFAULT_ECL110_STATE_TOPIC: Final = "ecl110/flow_temp_control/displace"
+# ECL110 defaults (manual "Displace" = parallel heat-curve shift in °C).
+# R5-D12-01 deleted the DEFAULT_*_TOPIC trio: a topic is exactly its stored
+# value, and no shipped default stands in for an absent key anywhere.
 DEFAULT_ECL110_QOS: Final = 1
 DEFAULT_ECL110_RETAIN: Final = False
 DEFAULT_ECL110_DISPLACE_MIN: Final = -20.0

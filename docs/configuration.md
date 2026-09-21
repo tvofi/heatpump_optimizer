@@ -710,16 +710,17 @@ still read SEK, which is the historical default rather than a constraint.
 
 ### Heat curve control (ECL110)
 
-For Danfoss ECL110 controllers driven over MQTT. Both topics below ship
-non-empty; if you do not have one, clear the offset command topic and the
-legacy command topic — otherwise every cycle attempts an MQTT publish and
-logs the failure. See [ecl110.md](ecl110.md) for the full picture.
+For Danfoss ECL110 controllers driven over MQTT. The topics have no
+shipped default: each is exactly what you store, an empty or absent topic
+leaves that arm off, and nothing is published or subscribed until a topic
+is set — an install without an ECL110 never touches these topics. See
+[ecl110.md](ecl110.md) for the full picture.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
-| Offset command topic | `ecl110/flow_temp_control/displace/set` | MQTT topic | Where the parallel heat-curve offset is published. |
-| Legacy JSON command topic | `ecl110/command` | MQTT topic | Only for older setups expecting a JSON payload. |
-| Status topic | `ecl110/flow_temp_control/displace` | MQTT topic | Where the controller reports its state. |
+| Offset command topic | *(empty)* | MQTT topic | Where the parallel heat-curve offset is published. |
+| Legacy JSON command topic | *(empty)* | MQTT topic | Only for older setups expecting a JSON payload. |
+| Status topic | *(empty)* | MQTT topic | Where the controller reports its state. |
 | MQTT quality of service | 1 | 0–2 | 0 is fine for almost everyone. |
 | Retain MQTT messages | off | on/off | Keeps the last offset on the broker so the controller picks it up after a restart. |
 | Largest downward offset | −20 °C | −30–0, 0.5 steps | How far the curve may be shifted down during expensive hours. |
