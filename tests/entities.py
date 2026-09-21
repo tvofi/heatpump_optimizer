@@ -5260,6 +5260,43 @@ R.check(
     and _gap_peak > 0,
     f"peak={_gap_peak} ranked={_gap_by}",
 )
+
+# --- round-5 D3-09 (#1317): the peak miss's floor and its count guard --------
+# Both arms below were unpinned: the mutant that deleted max(0.0, ...) and
+# max(int(count), 1) from peak_miss_sek survived this script's whole closure
+# and the full gate. A blind peak ABOVE the true peak -- the hp-only series
+# the missing house meter is priced against can catch a spike the house
+# would not -- must price a miss of zero, never a negative rebate; and
+# count=0, an unset months-to-spread, must spread over one month rather
+# than raise.
+_gap_neg = topology.peak_miss_sek(
+    _gap_house, [5.0, 5.0, 5.0, 5.0], price_per_kw=90.0, window_minutes=60,
+    dt_hours=0.25, count=3,
+)
+R.check(
+    "a blind peak above the true peak prices zero, never a negative rebate",
+    _gap_neg == 0.0,
+    f"peak_miss_sek={_gap_neg!r}: (true - blind) is negative on these "
+    "inputs, and only the max(0.0, ...) floor keeps a miss a cost",
+)
+_gap_c0 = None
+_gap_c0_error = None
+try:
+    _gap_c0 = topology.peak_miss_sek(
+        _gap_house, _gap_hp, price_per_kw=90.0, window_minutes=60,
+        dt_hours=0.25, count=0,
+    )
+except ZeroDivisionError as _exc:
+    # Rebind: the ``as`` name is unbound when the except block ends, and the
+    # check below -- not a traceback -- is where the failure must be named.
+    _gap_c0_error = _exc
+R.check(
+    "count=0 spreads the miss over one month instead of dividing by zero",
+    _gap_c0_error is None and _gap_c0 == 3.0 * _gap_peak,
+    f"error={_gap_c0_error!r} value={_gap_c0!r}: the count=3 figure on the "
+    f"same inputs is {_gap_peak!r}, so the guard's one-month floor reads "
+    "exactly three times it",
+)
 R.check(
     "an empty outdoor slot ranks the COP miss",
     abs(_gap_by[const.CONF_OUTDOOR_TEMP_ENTITY] - round(_gap_cop, 2)) < 1e-9
@@ -7756,6 +7793,16 @@ _np_data["schedule"] = [
         "heat_pump_on": _np.bool_(True),
     }
 ]
+# Round-5 D3-07 (#1315): one real ndarray in the payload, because every other
+# numpy leaf above is a SCALAR -- an array that fell through _finite's ndarray
+# arm returned raw and nothing observed it (the mutant disabling that arm
+# survived this script's whole closure and the full gate). The headroom series
+# is published verbatim by PowerHeadroomSensor, so the _np_leaks sweep below
+# now sees an array that only the ndarray arm can plain.
+_np_data["power_headroom"] = {
+    **_np_data["power_headroom"],
+    "horizon_headroom_kw": _np.array([7.3, _np.inf, float("nan")]),
+}
 # The real model and parameters ride along: Learning Estimated COP and Solar Heat
 # Gain read them off the coordinator, and every sensor is swept here.
 _np_coordinator = FakeCoordinator(
@@ -7792,6 +7839,19 @@ R.check(
     "np.bool_ becomes a plain bool",
     type(_np_step["heat_pump_on"]) is bool,
     repr(type(_np_step["heat_pump_on"])),
+)
+# Round-5 D3-07 (#1315), the direct half: the assertions above all read the
+# scrub through a sensor, so they pin only what some sensor happens to
+# publish. This one calls _finite itself, pre-scrub, with the shape no
+# sensor above carries -- a 2-D array whose non-finite members must come
+# back None, recursively, as plain Python.
+_arr_scrubbed = sensor._finite(_np.array([[1.5, _np.inf], [_np.nan, 2.0]]))
+R.check(
+    "the finite scrub converts an ndarray recursively, non-finite to None",
+    type(_arr_scrubbed) is list
+    and _arr_scrubbed == [[1.5, None], [None, 2.0]]
+    and not _numpy_leaves(_arr_scrubbed),
+    repr(_arr_scrubbed),
 )
 
 # --- D8-03 (#174): one object-id prefix for the hot-water domain -----------
