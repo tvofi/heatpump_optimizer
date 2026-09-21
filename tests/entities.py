@@ -16086,6 +16086,72 @@ R.check(
     f"got {_mt_defect!r}",
 )
 
+# The false positive the fork-point baseline repairs (#1361/#1357/#1360). A
+# claim-UNTOUCHING branch: its head and its fork point carry IDENTICAL claim
+# lists while `ref` (main's tip) MOVED the solver list after the fork. The
+# record rule compares the branch's own list against the baseline, and on a
+# `pull_request` `ref` is main's tip, not the merge base -- so reading the
+# baseline off `ref` makes the moved list read as this branch's own authorship
+# and refuses it. Both sides must come from one commit, and the fork is that
+# commit; `check_claims_hygiene` computes `git merge-base <ref> <claim_head>`
+# for it. This is the shape all three live PRs have and `_merge_hygiene_git`
+# cannot see: there the branch empties the list its base carries five of, so
+# the head and the fork never agree and the fixture stays blind to it.
+def _untouched_hygiene_git():
+    """fork (five claims) -> branch (docs only, claims untouched)
+    -> main (solver list moved) -> HEAD (the synthetic merge tree)."""
+    import subprocess as _sp
+
+    root = _tempfile.mkdtemp(prefix="hcu_")
+    five = (
+        "# claims-for: 6.3.15\n\n"
+        "coord_minimal  # R5-D8-03\n"
+        "coord_dhw  # R5-D8-03\n"
+        "coord_two_zone  # R5-D8-03\n"
+        "coord_grid_fee  # R5-D8-03\n"
+        "coord_all_features  # R5-D8-03\n"
+    )
+    moved = (
+        "# claims-for: 6.3.15\n\n"
+        "coord_dhw  # R5-D8-03\n"
+        "coord_two_zone  # R5-D8-03\n"
+    )
+    (Path(root) / "tests" / "golden").mkdir(parents=True)
+    (Path(root) / "docs").mkdir(parents=True)
+    (Path(root) / "VERSION").write_text("6.3.15\n")
+    (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(five)
+    (Path(root) / "tests" / "golden" / "card_claimed_drift.txt").write_text("# claims-for: 6.3.15\n")
+    (Path(root) / "docs" / "rust.txt").write_text("start\n")
+    _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
+    _sp.run(["git", "config", "user.name", "t"], cwd=root, check=True)
+    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "fork"], cwd=root, check=True, capture_output=True)
+    # the branch: a docs-only change, both claim files left exactly as found
+    (Path(root) / "docs" / "rust.txt").write_text("branch\n")
+    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "branch"], cwd=root, check=True, capture_output=True)
+    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    # main moves the solver list after the fork (the branch is not its author)
+    _sp.run(["git", "checkout", "-q", "HEAD~1"], cwd=root, check=True, capture_output=True)
+    (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(moved)
+    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "main"], cwd=root, check=True, capture_output=True)
+    ref = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    # the synthetic merge tree a `pull_request` checks out: main merged with branch
+    _sp.run(["git", "merge", "--no-edit", "-q", branch], cwd=root, check=True, capture_output=True)
+    return root, ref, branch
+
+
+_ut_root, _ut_ref, _ut_branch = _untouched_hygiene_git()
+with _mock.patch.dict(_os.environ, {"CLAIM_HEAD": _ut_branch}):
+    _ut_err = _hyg(_ut_root, _ut_ref) if callable(_hyg) else "missing"
+R.check(
+    "a claim-untouching branch whose head and fork agree passes though ref moved",
+    callable(_hyg) and _ut_err is None,
+    f"got {_ut_err!r}",
+)
+
 # The stamp exemption end to end, through `check_claims_hygiene`: VERSION read
 # off the baseline with git, both claims-for lines read off the tree. The null
 # control is the same commit with VERSION left alone, which must stay refused.

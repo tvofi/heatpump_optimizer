@@ -1087,6 +1087,15 @@ def _parent_count(repo: str, ref: str = "HEAD") -> int:
     return len(proc.stdout.split()) - 1 if proc.returncode == 0 and proc.stdout.strip() else 0
 
 
+def _merge_base(repo: str, ref: str, other: str) -> str | None:
+    """The fork point of ``other`` from ``ref``; None when git cannot say."""
+    proc = subprocess.run(
+        ["git", "merge-base", ref, other],
+        cwd=repo, capture_output=True, text=True,
+    )
+    return proc.stdout.strip() or None if proc.returncode == 0 else None
+
+
 def _claimed_at(repo: str, ref: str, relpath: str) -> dict[str, list[str]]:
     """Parsed claims for ``relpath`` at ``ref``, or empty if the path is missing."""
     text = _show_at(repo, ref, relpath)
@@ -2092,11 +2101,24 @@ def check_claims_hygiene(repo: str, ref: str) -> str | None:
     # (CLAIM_HEAD), not from the checkout -- which is the synthetic merge tree
     # on a pull_request event, where a no-drift branch's list resolves to the
     # baseline's and falsely reads as inherited (#1359/#1356's deadlock).
+    #
+    # The BASELINE that list is compared against is its own fork point,
+    # `git merge-base <ref> <claim_head>` -- never `ref` itself. On a
+    # pull_request `ref` is main's TIP, not the branch's merge base, so a
+    # branch that touched no claim file while main moved the list after the
+    # fork reads as that branch's own authorship against it and is refused
+    # with RECORD PR CLAIMS (#1361/#1357/#1360). Both sides of one comparison
+    # have to come from one commit; `ref` keeps its other meaning as the
+    # drift-capture baseline above, so only the claim baseline is re-pointed
+    # here. An unresolvable merge base falls back to `ref`, which is the read
+    # this check made before the head read existed.
     claim_head = os.environ.get("CLAIM_HEAD", "").strip()
+    claim_base = ref
     if claim_head and _rev(repo, claim_head) is not None:
         declared_solver, solver = _claimed_full_at(repo, claim_head, CLAIM_FILE)
         declared_card, card = _claimed_full_at(repo, claim_head, CARD_CLAIM_FILE)
         parent = _parent_count(repo, claim_head)
+        claim_base = _merge_base(repo, ref, claim_head) or claim_base
     else:
         declared_solver, solver = _claimed(repo, CLAIM_FILE)
         declared_card, card = _claimed(repo, CARD_CLAIM_FILE)
@@ -2105,8 +2127,8 @@ def check_claims_hygiene(repo: str, ref: str) -> str | None:
         _repo_version(repo), (_show_at(repo, ref, VERSION_FILE) or "").strip(),
         declared_solver, declared_card, parent,
     ) if stamp_ref_allows(dict(os.environ)) else None
-    base_solver = _claimed_at(repo, ref, CLAIM_FILE)
-    base_card = _claimed_at(repo, ref, CARD_CLAIM_FILE)
+    base_solver = _claimed_at(repo, claim_base, CLAIM_FILE)
+    base_card = _claimed_at(repo, claim_base, CARD_CLAIM_FILE)
     # An unanswerable comparison is not a clean one. Returning None here would
     # be the gate reporting "no claim owed" about a tree it could not read.
     # It is computed FIRST because it decides which rule applies: a three-dot
