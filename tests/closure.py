@@ -38,6 +38,8 @@ Commands
                                   merge UNDER-SCOPED recordings; print AUTOFIX: <status>
   autofix-report --job J --status S
                                   redden an autofix job that repaired nothing
+  prune                           drop committed closure entries whose path
+                 [--out PATH]     is no longer a file (#1310)
   select --files ... | --diff REF decide which scripts a change needs
                  [--workdir DIR]  ...and write the plan where run.sh reads it
   affected --files ... | --diff REF | --files-from FILE
@@ -1087,13 +1089,29 @@ def _fold(records: dict[str, dict]) -> dict[str, list[str]]:
 
 
 def _keep_committed_files(name: str, old: set[str], fresh: set[str]) -> list[str]:
-    """Never shrink a committed closure. Union, report, continue.
+    """Never shrink a committed closure -- except past a file that is gone.
 
     Under-approximation is the direction that makes the gate skip a script.
     A shrinking sibling used to abort the whole merge, so one unreproducible
     node lane vetoed an unrelated repair, and the refusal told you to run a
     full derive -- the path that replaced 66 with 6 (#527).
+
+    The guard is right for a file that still exists and wrong for one that
+    does not. A committed entry whose path is not a file is a PHANTOM: a path
+    no run can open, so no trace can ever re-record it, and it is not a
+    dependency of the script it is filed under. Keeping it is not the safe
+    direction -- `select` reads the dead entry as a measurement, so a diff
+    that re-creates that path is scoped to a script that never read it
+    instead of running FULL for the unmeasured file (#1310). Drop phantoms,
+    loudly; keep every real shrink, quietly, as before.
     """
+    phantom = sorted(f for f in old if not _is_real_file(f))
+    if phantom:
+        print(f"closure: {name} lists {len(phantom)} file(s) that do not "
+              f"exist; dropping them.", file=sys.stderr)
+        for p in phantom:
+            print(f"    {p}", file=sys.stderr)
+        old = old - set(phantom)
     dropped = sorted(old - fresh)
     if not dropped:
         return sorted(fresh)
@@ -1102,6 +1120,39 @@ def _keep_committed_files(name: str, old: set[str], fresh: set[str]) -> list[str
     for d in dropped:
         print(f"    {d}", file=sys.stderr)
     return sorted(old | fresh)
+
+
+def prune(out: Path = CLOSURES) -> int:
+    """Drop committed closure entries whose path is not an existing file.
+
+    `merge` drops phantoms as it writes (#1310), but a table that predates
+    the guard -- or one edited by hand -- carries them until a full
+    re-derivation folds every script. This repairs the committed file in
+    place, touching only the entries no run can re-record, so it needs no
+    recordings and no lane. Same predicate the recorder filters with
+    (`_is_real_file`), applied to the table `select` actually trusts.
+    """
+    if not out.exists():
+        print(f"closure: {out} is missing", file=sys.stderr)
+        return 1
+    payload = json.loads(out.read_text())
+    closures = payload.get("closures", {})
+    total = 0
+    for name in sorted(closures):
+        files = closures[name]
+        real = [f for f in files if _is_real_file(f)]
+        phantom = sorted(set(files) - set(real))
+        if phantom:
+            print(f"closure: {name} drops {len(phantom)} phantom entry(ies):",
+                  file=sys.stderr)
+            for p in phantom:
+                print(f"    {p}", file=sys.stderr)
+            total += len(phantom)
+        closures[name] = sorted(real)
+    out.write_text(json.dumps(payload, indent=1) + "\n")
+    print(f"closure: pruned {total} phantom entry(ies) from {out}")
+    return 0
+
 
 
 def merge(in_dir: Path, out: Path, allow_failures: bool = False,
@@ -1387,6 +1438,31 @@ def check(in_dir: Path, partial: bool = False) -> int:
               "affects that script's output and must leave INERT, or the "
               "recorder over-approximated and should stop recording it "
               "(#357).", file=sys.stderr)
+        return 1
+    # The same existence rule the recorder applies to a fresh trace (#1310),
+    # applied to the table `select` actually trusts. The check below reads the
+    # fresh recordings, so a phantom the never-shrink guard carried into the
+    # committed file -- a path renamed away after it was recorded -- was never
+    # asked the question. It is not merely over-scope: over-scope costs time,
+    # while a phantom is a FALSE claim that `select` reads as a measurement,
+    # so a diff that re-creates that path is scoped to a script that never
+    # read it instead of running FULL for the unmeasured file. Fail rather
+    # than note, and name the repair. The committed file is pruned in the
+    # pull request that added this rule (#1310).
+    phantoms = sorted(
+        (script, name)
+        for script, files in committed.items()
+        for name in files
+        if not (ROOT / name).is_file()
+    )
+    if phantoms:
+        print("PHANTOM: a committed closure lists a file that does not exist;")
+        print("  no run can open it, so nothing re-records it, and `select`")
+        print("  reads the dead entry as a measurement that never happened")
+        print("  (#1310). Repair the table without a re-derivation:")
+        for script, name in phantoms:
+            print(f"    {script}: {name}")
+        print("  python3 tests/closure.py prune")
         return 1
     records = {}
     for f in sorted(in_dir.glob("*.json")):
@@ -2260,6 +2336,101 @@ def selftest() -> int:
         f"{_rel(str(ROOT / 'tests' / 'harness.py'))!r}",
     )
 
+    # #1310 (D3-02): a committed closure entry whose path is not an existing
+    # file is a PHANTOM. `_keep_committed_files` never shrank a committed
+    # closure (#527), which is right for a file that still exists and wrong
+    # for one that does not: a path no test can read is not a dependency, yet
+    # `select` reads the dead entry as a measurement, so a diff that
+    # re-creates that path is scoped to a script that never read it instead
+    # of running FULL for an unmeasured file. The repair has three arms --
+    # `merge` drops phantoms, `prune` repairs a table that predates the
+    # guard, and `check` fails on one in the committed table -- pinned here
+    # against a synthetic table, since the live one is already pruned.
+    phantom = "tests/record_status.py"   # renamed to delivery_status.py (#896)
+    kept_real = "tests/harness.py"       # exists, absent from the fresh run
+    caller = "tests/open_meteo.py"
+    rover = [s for s in test_scripts() if Path(s).name not in SLOW_GATED]
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        out = td_path / "closures.json"
+        out.write_text(json.dumps({
+            "closures": {caller: [caller, phantom, kept_real]},
+            "recorded": {},
+        }))
+        rec = td_path / "rec"
+        # Every other script records just itself, so the full fold's roster
+        # check passes; the caller's fresh trace is only the caller.
+        _selftest_write_records(rec, {s: [s] for s in rover} | {caller: [caller]})
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            rc = merge(rec, out, allow_failures=False, partial=False)
+        after = set(json.loads(out.read_text())["closures"][caller])
+        pin(
+            "merge drops a committed entry whose path does not exist (#1310)",
+            rc == 0 and phantom not in after,
+            f"rc={rc} after={sorted(after)!r}",
+        )
+        pin(
+            "merge still keeps a committed REAL file the run did not touch "
+            "(#527 null control)",
+            kept_real in after,
+            f"after={sorted(after)!r}",
+        )
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        fake = td_path / "closures.json"
+        rec = td_path / "rec"
+        _selftest_write_records(rec, {caller: [caller, kept_real]})
+        crc, log = _selftest_phantom_check(
+            fake, {caller: [caller, phantom, kept_real]}, rec)
+        pin(
+            "check fails on a phantom in the COMMITTED table (#1310)",
+            crc == 1 and phantom in log and "PHANTOM" in log,
+            f"rc={crc} log={log[-300:]!r}",
+        )
+        # Null control: the same table, phantom removed, is clean.
+        crc2, log2 = _selftest_phantom_check(
+            fake, {caller: [caller, kept_real]}, rec)
+        pin(
+            "check passes on the same table once the phantom is gone (#1310 "
+            "null control)",
+            crc2 == 0,
+            f"rc={crc2} log={log2[-300:]!r}",
+        )
+
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        out = td_path / "closures.json"
+        out.write_text(json.dumps({
+            "closures": {caller: [caller, phantom, kept_real]},
+            "recorded": {},
+        }))
+        pruner = globals().get("prune")
+        if pruner is None:
+            pin("prune drops committed phantom entries (#1310)", False,
+                "closure.prune is absent")
+        else:
+            with contextlib.redirect_stdout(io.StringIO()), \
+                    contextlib.redirect_stderr(io.StringIO()):
+                prc = pruner(out)
+            after = set(json.loads(out.read_text())["closures"][caller])
+            pin(
+                "prune drops committed phantom entries (#1310)",
+                prc == 0 and phantom not in after and kept_real in after,
+                f"rc={prc} after={sorted(after)!r}",
+            )
+            with contextlib.redirect_stdout(io.StringIO()), \
+                    contextlib.redirect_stderr(io.StringIO()):
+                prc2 = pruner(out)
+            pin(
+                "prune is idempotent (#1310 null control)",
+                prc2 == 0
+                and set(json.loads(out.read_text())["closures"][caller]) == after,
+                f"rc={prc2} after={sorted(after)!r}",
+            )
+
     if failed:
         print(f"\n{failed} of {n} closure shrink pins FAILED")
         return 1
@@ -2306,6 +2477,27 @@ def _selftest_stale_message() -> tuple[int, str]:
         finally:
             CLOSURES = orig
         return rc, buf.getvalue() + err.getvalue()
+
+
+def _selftest_phantom_check(fake: Path, closures: dict, rec: Path) -> tuple[int, str]:
+    """Drive check() against a committed table `closures`, captured (#1310).
+
+    check() reads the module-level CLOSURES, so the table under test is
+    swapped in for the call and restored after -- the `_selftest_stale_message`
+    pattern, kept in its own function so selftest() never rebinds the global.
+    Returns (rc, captured stdout+stderr).
+    """
+    global CLOSURES
+    fake.write_text(json.dumps({"closures": closures, "recorded": {}}))
+    orig = CLOSURES
+    CLOSURES = fake
+    buf, err = io.StringIO(), io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+            rc = check(rec, partial=True)
+    finally:
+        CLOSURES = orig
+    return rc, buf.getvalue() + err.getvalue()
 
 
 def _selftest_merge_failure_diagnostic() -> tuple[str, str, str, str]:
@@ -2369,6 +2561,8 @@ def main() -> int:
     # Not required: a merge step that crashed leaves the output empty, and
     # that has to reach the table as a status rather than as a usage error.
     ar.add_argument("--status", default="")
+    pr = sub.add_parser("prune")
+    pr.add_argument("--out", default=str(CLOSURES))
     s = sub.add_parser("select")
     s.add_argument("--files", nargs="*"); s.add_argument("--diff")
     s.add_argument("--json", action="store_true")
@@ -2396,6 +2590,8 @@ def main() -> int:
         return _autofix_cmd(Path(a.in_dir), Path(a.out), a.partial)
     if a.cmd == "autofix-report":
         return _autofix_report_cmd(a.job, a.status)
+    if a.cmd == "prune":
+        return prune(Path(a.out))
     if a.cmd == "no-copies":
         return no_copies()
     if a.cmd == "selftest":

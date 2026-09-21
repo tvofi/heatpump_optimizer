@@ -562,7 +562,6 @@
    "tests/nightly_ha.py",
    "tests/nightly_status.py",
    "tests/profiles.py",
-   "tests/record_status.py",
    "tests/run.sh",
    "tests/stress.py",
    "tests/structure.py",

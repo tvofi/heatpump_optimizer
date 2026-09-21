@@ -275,6 +275,8 @@ jobs:
           set -euo pipefail
           BODY=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.body // ""')
           printf '%s' "$BODY" > /tmp/pr-body.md
+          AUTHOR=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.user.login // ""')
+          printf '%s' "$AUTHOR" > /tmp/pr-author.txt
 
       # The paths decide whether `## Approval` is owed, so this runs WITHOUT
       # `|| true` and with `set -o pipefail`: a derivation that fails must fail
@@ -357,6 +359,7 @@ jobs:
           done < /tmp/pr-reds.txt
           node .claude/workflows/policy_lint.mjs \
             --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \
+            --author "$(cat /tmp/pr-author.txt)" \
             --paths-file /tmp/pr-files.txt "${RED_ARGS[@]}"
 
       # #679: `## Figures` asks for the command that printed each figure, and
