@@ -875,12 +875,40 @@ eq("C68", "README.md", "Wood Cheaper Than Heat Pump needs furnace efficiency 10-
 
 # --- C69..C78 ecl110.md ----------------------------------------------------
 ECL = DOCS["ecl110.md"]
-eq("C69", "docs/ecl110.md", "ecl110_displace_set_topic default", CMD,
-   "ecl110/flow_temp_control/displace/set", const.DEFAULT_ECL110_DISPLACE_SET_TOPIC)
-eq("C70", "docs/ecl110.md", "ecl110_command_topic default", CMD,
-   "ecl110/command", const.DEFAULT_ECL110_COMMAND_TOPIC)
-eq("C71", "docs/ecl110.md", "ecl110_state_topic default", CMD,
-   "ecl110/flow_temp_control/displace", const.DEFAULT_ECL110_STATE_TOPIC)
+# R5-D12-01: the topics have no shipped default any more. Each claim pins the
+# three-way agreement the fix established -- the heat_curve form suggests
+# empty, and the coordinator maps an absent AND an explicitly blank topic to
+# the same arm-off value -- against the doc sentence that says so.
+from heatpump_optimizer.coordinator import _ecl110_topic as _ecl_topic
+
+
+def _hc_default(key):
+    """The heat_curve page's suggested default for one option key."""
+    return next(r.default for r in config_flow._OPTION_FIELDS
+                if r.step == "heat_curve" and r.key == key)
+
+
+eq("C69", "docs/ecl110.md",
+   "ecl110_displace_set_topic no default; empty or absent is arm-off", CMD,
+   ("", "", ""),
+   (_hc_default(const.CONF_ECL110_DISPLACE_SET_TOPIC),
+    _ecl_topic({}, const.CONF_ECL110_DISPLACE_SET_TOPIC),
+    _ecl_topic({const.CONF_ECL110_DISPLACE_SET_TOPIC: ""},
+               const.CONF_ECL110_DISPLACE_SET_TOPIC)))
+eq("C70", "docs/ecl110.md",
+   "ecl110_command_topic no default; empty or absent is arm-off", CMD,
+   ("", "", ""),
+   (_hc_default(const.CONF_ECL110_COMMAND_TOPIC),
+    _ecl_topic({}, const.CONF_ECL110_COMMAND_TOPIC),
+    _ecl_topic({const.CONF_ECL110_COMMAND_TOPIC: ""},
+               const.CONF_ECL110_COMMAND_TOPIC)))
+eq("C71", "docs/ecl110.md",
+   "ecl110_state_topic no default; empty or absent is arm-off", CMD,
+   ("", "", ""),
+   (_hc_default(const.CONF_ECL110_STATE_TOPIC),
+    _ecl_topic({}, const.CONF_ECL110_STATE_TOPIC),
+    _ecl_topic({const.CONF_ECL110_STATE_TOPIC: ""},
+               const.CONF_ECL110_STATE_TOPIC)))
 eq("C72", "docs/ecl110.md", "ecl110_mqtt_qos default 1, retain off", CMD,
    (1, False), (const.DEFAULT_ECL110_QOS, const.DEFAULT_ECL110_RETAIN))
 eq("C73", "docs/ecl110.md", "displace_min default -20, displace_max default +20", CMD,

@@ -18998,6 +18998,13 @@ _GUARDED_DATA = {
     "house_power_entity": "sensor.house_power",
     "heat_pump_defrost_entity": "binary_sensor.defrost",
     "peak_guard_enabled": True,
+    # R5-D12-01: the ECL110 state subscription now exists only when a
+    # topic key is stored, so the leak arms below need a CONFIGURED
+    # surface or there is no subscription left to leak -- the null
+    # control would pass vacuously and the MQTT arm would pin nothing.
+    "ecl110_displace_set_topic": "ecl_guard/set",
+    "ecl110_command_topic": "ecl_guard/command",
+    "ecl110_state_topic": "ecl_guard/state",
 }
 
 
@@ -19265,6 +19272,14 @@ def _solve_coord() -> Coord:
                 "heat_pump_switch_entity": "switch.heat_pump",
                 "indoor_temp_entity": "sensor.indoor",
                 "outdoor_temp_entity": "sensor.outdoor",
+                # R5-D12-01: the cycle's two MQTT actuations are part of
+                # what the #237 guards must let through and then stop, so
+                # this solve coordinator carries a CONFIGURED ECL110
+                # surface -- unconfigured, the fix on this branch removes
+                # the publishes and the null control's 3-call arm would
+                # pin nothing about the guards.
+                "ecl110_displace_set_topic": "ecl_solve/set",
+                "ecl110_command_topic": "ecl_solve/command",
             }
         ),
     )
@@ -28021,6 +28036,175 @@ R.check(
         lvl >= _logging.ERROR and "direct displace" in msg for lvl, msg in _log_flaky
     ),
     repr(_log_flaky),
+)
+
+
+# ---------------------------------------------------------------------------
+R.section("R5-D12-01 — the ECL110 MQTT surface exists only when configured")
+
+# An install whose config carries no ``ecl110_*`` topic key -- an on/off-only
+# pump whose user never opened the heat-curve page -- used to stand the
+# DEFAULT_*_TOPIC strings in inside ``_init_ecl110`` and publish two MQTT
+# displace commands every cycle, plus subscribe the default state topic:
+# a heat-curve displacement actuated for a plant with no ECL110 (and two
+# installs on one broker reading each other's state). The topic keys the
+# options flow's heat_curve page writes are the surface's existence proof --
+# ``_omit_unstored_defaults`` drops an untouched page's post, so a stored
+# key always means a user deliberately configured the surface. Measured at
+# both ends of the input range: the zero-evidence install (no key at all),
+# the explicitly-dropped one (keys stored blank, the documented way to say
+# "no ECL110" today), and the configured ones.
+from harness import FakeEntry as _d12_entry, FakeHass as _d12_hass  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_ECL110_COMMAND_TOPIC as _d12_cmd_key,
+    CONF_ECL110_DISPLACE_SET_TOPIC as _d12_set_key,
+    CONF_ECL110_STATE_TOPIC as _d12_state_key,
+)
+from homeassistant.components import mqtt as _d12_mqtt  # noqa: E402
+
+
+def _d12_coord(**extra):
+    """A coordinator straight from a config dict, as an entry builds one."""
+    cfg = {"tibber_token": "x", "weather_entity": "weather.home", **extra}
+    return Coord(_d12_hass(), _d12_entry(data=cfg))
+
+
+def _d12_publish_topics(coord):
+    """Topics the coordinator's command publish wrote, via FakeHass calls."""
+    _asyncio.run(coord.async_publish_ecl110_command(5.0, True))
+    return [d.get("topic") for _, s, d in coord.hass.services.calls
+            if _ == "mqtt" and s == "publish"]
+
+
+async def _d12_subscribe(hass, topic, callback, qos=0, **kwargs):
+    hass.d12_subs.append(topic)
+
+    def _unsub():
+        pass
+
+    return _unsub
+
+
+# The write side. No key at all: nothing is written, because there is no
+# surface -- the shipped defaults are not a surface an install inherits.
+_unconf = _d12_coord()
+_unconf_topics = _d12_publish_topics(_unconf)
+R.check(
+    "a config with no ecl110_* topic key publishes no MQTT displace "
+    "command (R5-D12-01)",
+    _unconf_topics == [],
+    repr(_unconf_topics),
+)
+R.check(
+    "and reports no command or state topic it would ever write or read "
+    "(R5-D12-01)",
+    _unconf._ecl110_command_topic == ""
+    and _unconf._ecl110_displace_set_topic == ""
+    and _unconf._ecl110_state_topic == "",
+    "set=%r command=%r state=%r" % (
+        _unconf._ecl110_displace_set_topic,
+        _unconf._ecl110_command_topic,
+        _unconf._ecl110_state_topic,
+    ),
+)
+
+# Keys stored blank: the documented "no ECL110 here" -- still nothing.
+_blank = _d12_coord(
+    **{_d12_set_key: "", _d12_cmd_key: "", _d12_state_key: ""}
+)
+R.check(
+    "topics stored blank stay a no-publish, as before (R5-D12-01)",
+    _d12_publish_topics(_blank) == [],
+    repr(_d12_publish_topics(_blank)),
+)
+
+# The configured end of the range: a user's own topics publish both arms,
+# exactly as before the fix -- this is the check that must NOT move.
+_cust = _d12_coord(
+    **{
+        _d12_set_key: "home/ecl/displace/set",
+        _d12_cmd_key: "home/ecl/command",
+    }
+)
+R.check(
+    "a configured install still publishes /set and legacy JSON to its own "
+    "topics (R5-D12-01 null control)",
+    _d12_publish_topics(_cust) == ["home/ecl/displace/set", "home/ecl/command"],
+    repr(_d12_publish_topics(_cust)),
+)
+
+# A DELIBERATE design choice, pinned here: each topic is exactly its own
+# stored value -- no per-topic defaulting inside a "configured surface".
+# The alternative (any stored topic key stands the shipped defaults in for
+# the others) fails equivalence: config_flow_steps proves absent against
+# stored-at-form-default for every _ABSENT_FALLBACKS key, and a stored
+# EMPTY topic would drag the other arms onto the shipped defaults, making
+# "blank that one field" mean "publish to two topics I never named".
+# Partially-configured installs -- a state topic only -- subscribe and
+# publish nothing, which is also what the empty-suggesting form shows.
+_part = _d12_coord(**{_d12_state_key: "home/ecl/state"})
+_part_topics = _d12_publish_topics(_part)
+R.check(
+    "a state topic stored alone subscribes but publishes nothing -- no "
+    "topic any other key stands in (R5-D12-01, design choice)",
+    _part_topics == [] and _part._ecl110_state_topic == "home/ecl/state",
+    "published=%r state=%r" % (_part_topics, _part._ecl110_state_topic),
+)
+# The legacy default strings a pre-R5 install may carry stored are a
+# surface like any other: the fix must not strand installs that typed (or
+# migrated with) exactly the shipped topics.
+_shipped = _d12_coord(
+    **{
+        _d12_set_key: "ecl110/flow_temp_control/displace/set",
+        _d12_cmd_key: "ecl110/command",
+    }
+)
+R.check(
+    "an install carrying the shipped default topics STORED keeps its "
+    "two publishes (R5-D12-01)",
+    _d12_publish_topics(_shipped)
+    == ["ecl110/flow_temp_control/displace/set", "ecl110/command"],
+    repr(_d12_publish_topics(_shipped)),
+)
+
+# The read side. The subscription must not happen unconfigured either: two
+# installs on one broker would otherwise read each other's ECL110 state off
+# the shared default topic. The recorder swap is the #236 pattern; the stub's
+# own async_subscribe records nothing and returns None.
+_d12_real_subscribe = _d12_mqtt.async_subscribe
+_d12_mqtt.async_subscribe = _d12_subscribe
+try:
+    _subs_unconf = _d12_coord()
+    _subs_unconf.hass.d12_subs = []
+    _asyncio.run(_subs_unconf._async_setup_ecl110_state_subscription())
+    _subs_blank = _d12_coord(
+        **{_d12_set_key: "", _d12_cmd_key: "", _d12_state_key: ""}
+    )
+    _subs_blank.hass.d12_subs = []
+    _asyncio.run(_subs_blank._async_setup_ecl110_state_subscription())
+    _subs_cust = _d12_coord(
+        **{_d12_state_key: "home/ecl/state"}
+    )
+    _subs_cust.hass.d12_subs = []
+    _asyncio.run(_subs_cust._async_setup_ecl110_state_subscription())
+finally:
+    _d12_mqtt.async_subscribe = _d12_real_subscribe
+R.check(
+    "an unconfigured install subscribes to no ECL110 state topic -- not "
+    "even the shipped default (R5-D12-01)",
+    _subs_unconf.hass.d12_subs == [] and _subs_unconf._unsub_ecl110_state is None,
+    repr(_subs_unconf.hass.d12_subs),
+)
+R.check(
+    "a blank-stored state topic subscribes nowhere either (R5-D12-01)",
+    _subs_blank.hass.d12_subs == [],
+    repr(_subs_blank.hass.d12_subs),
+)
+R.check(
+    "a configured state topic still subscribes (R5-D12-01 null control)",
+    _subs_cust.hass.d12_subs == ["home/ecl/state"]
+    and _subs_cust._unsub_ecl110_state is not None,
+    repr(_subs_cust.hass.d12_subs),
 )
 
 

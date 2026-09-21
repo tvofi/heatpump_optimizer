@@ -614,27 +614,27 @@
  {
   "id": "C69",
   "source": "docs/ecl110.md",
-  "claim": "ecl110_displace_set_topic default",
+  "claim": "ecl110_displace_set_topic no default; empty or absent is arm-off",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented='ecl110/flow_temp_control/displace/set' measured='ecl110/flow_temp_control/displace/set'",
+  "result": "documented=('', '', '') measured=('', '', '')",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C70",
   "source": "docs/ecl110.md",
-  "claim": "ecl110_command_topic default",
+  "claim": "ecl110_command_topic no default; empty or absent is arm-off",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented='ecl110/command' measured='ecl110/command'",
+  "result": "documented=('', '', '') measured=('', '', '')",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C71",
   "source": "docs/ecl110.md",
-  "claim": "ecl110_state_topic default",
+  "claim": "ecl110_state_topic no default; empty or absent is arm-off",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented='ecl110/flow_temp_control/displace' measured='ecl110/flow_temp_control/displace'",
+  "result": "documented=('', '', '') measured=('', '', '')",
   "verdict": "true",
   "truth": ""
  },

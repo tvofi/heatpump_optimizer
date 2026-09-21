@@ -2480,7 +2480,7 @@
    },
    "ecl110_command_topic": {
     "config": null,
-    "default": "'ecl110/command'",
+    "default": "''",
     "required": "Optional",
     "selector": "type"
    },
@@ -2510,7 +2510,7 @@
    },
    "ecl110_displace_set_topic": {
     "config": null,
-    "default": "'ecl110/flow_temp_control/displace/set'",
+    "default": "''",
     "required": "Optional",
     "selector": "type"
    },
@@ -2545,7 +2545,7 @@
    },
    "ecl110_state_topic": {
     "config": null,
-    "default": "'ecl110/flow_temp_control/displace'",
+    "default": "''",
     "required": "Optional",
     "selector": "type"
    }
@@ -4984,7 +4984,7 @@
   },
   "ecl110_command_topic": {
    "config": null,
-   "default": "'ecl110/command'",
+   "default": "''",
    "required": "Optional",
    "selector": "type"
   },
@@ -5014,7 +5014,7 @@
   },
   "ecl110_displace_set_topic": {
    "config": null,
-   "default": "'ecl110/flow_temp_control/displace/set'",
+   "default": "''",
    "required": "Optional",
    "selector": "type"
   },
@@ -5049,7 +5049,7 @@
   },
   "ecl110_state_topic": {
    "config": null,
-   "default": "'ecl110/flow_temp_control/displace'",
+   "default": "''",
    "required": "Optional",
    "selector": "type"
   }

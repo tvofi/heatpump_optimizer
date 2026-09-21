@@ -227,11 +227,11 @@
    0.415584
   ],
   "dhw_windows": "06:00-08:30, 17:00-22:00",
-  "ecl110_command_topic": "ecl110/command",
+  "ecl110_command_topic": "",
   "ecl110_displace": 0.0,
   "ecl110_effective_displace": 0.0,
   "ecl110_last_payload": {},
-  "ecl110_state_topic": "ecl110/flow_temp_control/displace",
+  "ecl110_state_topic": "",
   "energy_totals_counting_since": "2026-01-15",
   "external_heat": {
    "active": false,
@@ -1853,8 +1853,8 @@
   },
   "ecl110_effective_displace": {
    "extra_state_attributes": {
-    "command_topic": "ecl110/command",
-    "state_topic": "ecl110/flow_temp_control/displace"
+    "command_topic": "",
+    "state_topic": ""
    },
    "native_value": 0.0
   },

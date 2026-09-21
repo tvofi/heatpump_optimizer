@@ -532,3 +532,31 @@
 # level 1 and a claim alone leaves that level failing. Every other
 # fixture is byte-identical by construction: no solver, coordinator or
 # card input is touched.
+
+# R5-D12-01 (#1302, the unconfigured ECL110 MQTT surface): this branch
+# claims the five coordinator captures plus config_flow and nothing else;
+# the direction is MOVE-TO-EMPTY, never a value the solver touches. A config
+# with no ecl110_* topic key no longer stands the DEFAULT_ECL110_*_TOPIC
+# strings in inside _init_ecl110, so each unconfigured capture's
+# data.ecl110_command_topic / data.ecl110_state_topic and its
+# sensors.ecl110_effective_displace.extra_state_attributes pair move
+# "ecl110/command" / "ecl110/flow_temp_control/displace" -> "" -- 4
+# insertions and 4 deletions per fixture, 20/20 across the five (git diff
+# --numstat), every float leaf byte-identical in the recording
+# environment (GOLDEN_MODE=strict --only coord_ showed only these four
+# leaves per fixture before --record ran). No plan, schedule or solver
+# fixture is touched: the published coordinator dict's topic strings are
+# the only surface the fix reaches. config_flow moves the heat_curve
+# page's three topic fields' suggested default, shipped strings -> "",
+# in both the plain and the _seeded schema (6 insertions / 6 deletions,
+# git diff --numstat): the form now suggests empty so an untouched page
+# save stays the no-op #100 promised while absent runs as the same empty
+# -- the equivalence tests/config_flow_steps.py proves for every
+# _ABSENT_FALLBACKS key. Re-recorded as well as claimed for #547's
+# reason: config_flow is compared exactly at level 1.
+coord_minimal # R5-D12-01: unconfigured ECL110 topics no longer stand in; default topic strings -> ""
+coord_dhw # R5-D12-01: unconfigured ECL110 topics no longer stand in; default topic strings -> ""
+coord_two_zone # R5-D12-01: unconfigured ECL110 topics no longer stand in; default topic strings -> ""
+coord_grid_fee # R5-D12-01: unconfigured ECL110 topics no longer stand in; default topic strings -> ""
+coord_all_features # R5-D12-01: unconfigured ECL110 topics no longer stand in; default topic strings -> ""
+config_flow # R5-D12-01: heat_curve topic fields suggest empty, not the shipped default topics

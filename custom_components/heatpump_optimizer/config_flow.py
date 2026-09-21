@@ -215,9 +215,6 @@ from .const import (
     DEFAULT_DHW_LEGIONELLA_ENABLED,
     DEFAULT_DHW_LEGIONELLA_TEMP,
     DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS,
-    DEFAULT_ECL110_COMMAND_TOPIC,
-    DEFAULT_ECL110_DISPLACE_SET_TOPIC,
-    DEFAULT_ECL110_STATE_TOPIC,
     DEFAULT_ECL110_QOS,
     DEFAULT_ECL110_RETAIN,
     DEFAULT_ECL110_DISPLACE_MIN,
@@ -1666,9 +1663,15 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("tuning", CONF_WEAR_AUTOTUNE_ENABLED, DEFAULT_WEAR_AUTOTUNE_ENABLED, bool, group="wear"),
     _F("tuning", CONF_PRICE_TILES_ENABLED, DEFAULT_PRICE_TILES_ENABLED, bool, group="risk"),
     # -- heat_curve
-    _F("heat_curve", CONF_ECL110_DISPLACE_SET_TOPIC, DEFAULT_ECL110_DISPLACE_SET_TOPIC, str),
-    _F("heat_curve", CONF_ECL110_COMMAND_TOPIC, DEFAULT_ECL110_COMMAND_TOPIC, str),
-    _F("heat_curve", CONF_ECL110_STATE_TOPIC, DEFAULT_ECL110_STATE_TOPIC, str),
+    # R5-D12-01: the topic fields suggest EMPTY, never the shipped default
+    # topics -- with no topic stored the coordinator runs no MQTT surface at
+    # all, so the form's suggestion and the key's absence must agree, and an
+    # untouched heat_curve save stays the no-op #100 promised. A user with
+    # an ECL110 types their topics; DEFAULT_*_TOPIC still fills a key left
+    # alone only when the surface exists (coordinator._ecl110_topic).
+    _F("heat_curve", CONF_ECL110_DISPLACE_SET_TOPIC, "", str),
+    _F("heat_curve", CONF_ECL110_COMMAND_TOPIC, "", str),
+    _F("heat_curve", CONF_ECL110_STATE_TOPIC, "", str),
     _F("heat_curve", CONF_ECL110_QOS, DEFAULT_ECL110_QOS, _number(0, 2, 1, slider=True)),
     _F("heat_curve", CONF_ECL110_RETAIN, DEFAULT_ECL110_RETAIN, bool),
     _F("heat_curve", CONF_ECL110_DISPLACE_MIN, DEFAULT_ECL110_DISPLACE_MIN, _number(-30, 0, 0.5, '°C')),

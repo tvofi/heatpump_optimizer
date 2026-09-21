@@ -114,9 +114,6 @@ from .const import (
     LOWER_FLOOR_LOSS_RATIO_MAX,
     LOWER_FLOOR_LOSS_RATIO_MIN,
     DHW_COOLING_REFERENCE_DELTA,
-    DEFAULT_ECL110_COMMAND_TOPIC,
-    DEFAULT_ECL110_DISPLACE_SET_TOPIC,
-    DEFAULT_ECL110_STATE_TOPIC,
     DEFAULT_ECL110_QOS,
     DEFAULT_ECL110_RETAIN,
     DEFAULT_ECL110_DISPLACE_MIN,
@@ -1485,6 +1482,23 @@ def _ecl110_legacy_payload(
     }
 
 
+def _ecl110_topic(config: dict[str, Any], key: str) -> str:
+    """One ECL110 MQTT topic: exactly its stored value, "" when absent.
+
+    R5-D12-01: the shipped DEFAULT_ECL110_*_TOPIC strings used to stand in
+    for absent keys, so an install whose user never opened the heat-curve
+    page -- an on/off-only pump with no ECL110 -- published two displace
+    commands every cycle to the default topics and subscribed the default
+    state topic (two installs on one broker reading each other). A topic
+    is now whatever the options flow stored and nothing else; absent and
+    explicitly blank are the same arm-off state, the form suggests empty,
+    and the publish and subscribe seams' existing empty-topic guards keep
+    both inert. A stored value of the shipped strings still works: the
+    old installs that carry them keep their surface.
+    """
+    return str(config.get(key, ""))
+
+
 async def _publish_ecl110_topics(
     hass: HomeAssistant,
     set_topic: str | None,
@@ -2153,14 +2167,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _init_ecl110(self) -> None:
         """MQTT heat-curve control state."""
         ctx = getattr(self, "_ctx", self)
-        self._ecl110_command_topic: str = ctx._config.get(
-            CONF_ECL110_COMMAND_TOPIC, DEFAULT_ECL110_COMMAND_TOPIC
+        self._ecl110_command_topic: str = _ecl110_topic(
+            ctx._config, CONF_ECL110_COMMAND_TOPIC
         )
-        self._ecl110_displace_set_topic: str = ctx._config.get(
-            CONF_ECL110_DISPLACE_SET_TOPIC, DEFAULT_ECL110_DISPLACE_SET_TOPIC
+        self._ecl110_displace_set_topic: str = _ecl110_topic(
+            ctx._config, CONF_ECL110_DISPLACE_SET_TOPIC
         )
-        self._ecl110_state_topic: str = ctx._config.get(
-            CONF_ECL110_STATE_TOPIC, DEFAULT_ECL110_STATE_TOPIC
+        self._ecl110_state_topic: str = _ecl110_topic(
+            ctx._config, CONF_ECL110_STATE_TOPIC
         )
         self._ecl110_qos: int = int(ctx._config.get(CONF_ECL110_QOS, DEFAULT_ECL110_QOS))
         self._ecl110_retain: bool = bool(ctx._config.get(CONF_ECL110_RETAIN, DEFAULT_ECL110_RETAIN))
