@@ -26625,6 +26625,72 @@ R.check(
     f"{_wx_empty._weather_stale_since}",
 )
 
+# R5-D1-07 (#1298): the success path must be exception-safe. One hostile
+# entry in an otherwise healthy forecast reached the bare float() at the
+# parse seam, so the fetch threw AFTER _weather_forecast was replaced but
+# BEFORE _weather_fetch_recovered(): the fresh forecast was latched
+# permanently stale, and _solar_radiation_forecast was left truncated at
+# the hostile entry -- a torn pair every consumer indexes against. Home
+# Assistant's Forecast type allows a non-numeric irradiance, and the
+# fetch's own failure paths already coerce with _as_float; the parse seam
+# must too. Both sibling keys (solar_irradiance, native_solar_irradiance)
+# flow through the same coercion and are covered by the same guard.
+
+
+def _wx_hostile_call(irradiance_key):
+    async def _call(domain, service, data=None, **kwargs):
+        rows = []
+        for h in range(24):
+            row = {
+                "datetime": "2026-03-28T%02d:00:00Z" % h,
+                "temperature": 4.0 - 0.2 * h,
+                "wind_speed": 3.0,
+                "precipitation": 0.0,
+            }
+            if h == 7:
+                row[irradiance_key] = "n/a"
+            else:
+                row["solar_irradiance"] = float(50 * max(0, h - 6))
+            rows.append(row)
+        return {_WX_ENTITY: {"forecast": rows}}
+
+    return _call
+
+
+for _wx_key in ("solar_irradiance", "native_solar_irradiance"):
+    _wx_hostile = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
+    _wx_hostile.hass.services.async_call = _wx_hostile_call(_wx_key)
+    _wx_latch_free = True
+    for _ in range(3):
+        _asyncio.run(_wx_hostile._fetch_weather_forecast())
+        _wx_latch_free = _wx_latch_free and _wx_hostile._weather_stale_since is None
+    R.check(
+        "a non-numeric %s entry does not latch the fresh forecast stale" % _wx_key,
+        _wx_latch_free
+        and _wx_hostile._weather_outage_cycles == 0
+        and _wx_hostile.weather_stale_hours() is None,
+        "cycles %d, stale since %s, age %s"
+        % (
+            _wx_hostile._weather_outage_cycles,
+            _wx_hostile._weather_stale_since,
+            _wx_hostile.weather_stale_hours(),
+        ),
+    )
+    _wx_solar = _wx_hostile._solar_radiation_forecast
+    R.check(
+        "a non-numeric %s entry does not tear the solar series" % _wx_key,
+        len(_wx_solar) == len(_wx_hostile._weather_forecast) == 24
+        and _wx_solar[7] == 0.0
+        and _wx_solar[8] == 100.0,
+        "solar len %d of %d, entry 7 = %r, entry 8 = %r"
+        % (
+            len(_wx_solar),
+            len(_wx_hostile._weather_forecast),
+            _wx_solar[7] if len(_wx_solar) > 7 else None,
+            _wx_solar[8] if len(_wx_solar) > 8 else None,
+        ),
+    )
+
 # D10-17 (#217, Gold `exception-translations`): every user-facing
 # ServiceValidationError must carry translation_domain + translation_key and
 # placeholders for exactly the values the old English f-string interpolated,
