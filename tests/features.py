@@ -13370,6 +13370,34 @@ R.check(
     "the allowed movement at zero and must return before touching state",
 )
 
+# --- round-5 D3-08 (#1316): the step-down's own clamp -------------------------
+# from_dict clamps what is loaded (pinned above), but nothing pinned that
+# _step_down's np.clip holds while the creep runs: the mutant deleting it
+# survived this script's whole closure and the full gate, and the bias
+# walks past BIAS_MIN one comfortable week at a time -- breaking the module
+# contract that the learner may cool a curve by at most 4 K, never heat.
+_cl10_t4 = CurveLearner()
+_cl10_t4.bias = BIAS_MIN  # the state before the call: already at the floor
+_cl10_t4._step_down(_d2 + timedelta(days=90))
+R.check(
+    "a step from the floor stays on the floor",
+    _cl10_t4.bias == BIAS_MIN,
+    f"bias {_cl10_t4.bias:.3f}: only np.clip(bias - step, BIAS_MIN, BIAS_MAX) "
+    "holds the -4 K floor while the evidence keeps arriving",
+)
+_cl11_t4 = CurveLearner()
+for _cl_week in range(30):
+    # 30 comfortable weeks at MAX_DOWN_PER_WEEK allow -6.0 K of creep; the
+    # clamp must saturate the bias at BIAS_MIN and hold it there.
+    for d in range(DAYS_PER_STEP):
+        _cl11_t4.record_day(_d2 + timedelta(days=7 * _cl_week + d), 1.0)
+R.check(
+    "comfortable weeks saturate the bias at BIAS_MIN, never past it",
+    _cl11_t4.bias == BIAS_MIN,
+    f"bias {_cl11_t4.bias:.3f} vs BIAS_MIN {BIAS_MIN}: the clamp, not the "
+    "evidence, is what stops the creep",
+)
+
 R.check(
     "from_dict degrades non-dict input to a fresh learner, not a crash",
     CurveLearner.from_dict(None).bias == 0.0
