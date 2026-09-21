@@ -42,39 +42,38 @@
 # registry entry moves and no coordinator fixture changes; only a NEW
 # install's suggested entity_id differs.
 #
-# Three of the 40 states move, and each moves in two places and nowhere
-# else. no_plan and no_plan_expanded are the states whose hass stub serves
-# no plan entity at all, so the card draws its "no entity found"
-# diagnostic, and that diagnostic names the id it looked for --
-#   `sensor.heat_pump_optimizer_space_heating_plan` -> `..._plan_space_heating`
-#   `sensor.heat_pump_optimizer_dhw_heating_plan`   -> `..._plan_dhw_heating`
-# Both dumps are the SAME LENGTH as the ref's (39997 and 41442 characters,
-# compared character by character): the two substitutions are in place and
-# the state's markup outside them is byte-identical -- nothing added,
-# removed or reordered. editor_schema is the third: it renders the config
-# editor's schema together with the card's own DEFAULT config, so its
-# `data` block carries the two new default ids (2 of the 6 lines that
-# changed are `space_entity` / `dhw_entity`; measured on the diff, the two
-# ids and nothing else). It is the ONLY state that renders those defaults,
-# which is why it does not move for the stylesheet reasons the historical
-# sections below record.
+# #1320 (R5-D4-03), the round-5 D4 audit's coarse-pointer finding: the card
+# injects ONE <style> block into its shadow root, and this branch changes the
+# pixel value that block emits for the HTML target floor under a coarse
+# pointer -- 24 px (the every-pointer minimum, WCAG 2.2 SC 2.5.8) becomes the
+# 44 px touch EXTRA (SC 2.5.5 AAA / platform HIG) that _targetMinPx() already
+# gave the SVG-drawn lane and slot rects. The floor now reads the SAME
+# predicate the drawn geometry does, _coarsePointer(), so the coarse arm gets
+# 44 px where every other arm is bit-for-bit unchanged.
 #
-# Every other state resolves a plan entity from its fixture, never renders
-# that sentence or those defaults, and is byte-identical to the comparison
-# ref. Measured, not assumed: card_drift reports exactly these three as
-# DRIFT and refused the inherited 39-entry list as stale in the other 37,
-# which is what restating this list fixes.
+# EXACTLY ONE of the 40 states moves: coarse_pointer, the state that renders
+# the card with the coarse-pointer arm switched on. Its diff is STYLESHEET
+# TEXT ONLY -- six declarations inside the one <style> block change 24 -> 44
+# (the shared selector-list rule's min-height and min-width, the
+# .whatif input[type="range"] min-height, the .whatif .wi-remove min-width,
+# and the .viewctl button min-width and min-height); no markup element,
+# attribute or text node outside the style block is added, removed or
+# reordered.
 #
-# #1334 (R5-D8-02) touches no card state at all: it is translation_key and
-# catalogue text (the plan sensors and the DHW boost switch adopt their
-# family's lead token in Swedish as English already does). The card renders
-# those names only where Home Assistant hands them to it, and no state's
-# fixture feeds a renamed catalogue string into a card surface -- so the
-# claim list is the #1333 pair alone.
+# The mouse arm is byte-identical to the comparison ref, by construction and
+# by measurement: the floor emits the same template text with 24 in place of
+# 44, so all 39 states that render under a fine pointer do not move at all,
+# and the two stylesheet dumps (this branch's fine arm and the ref's) are the
+# same 36567 bytes. Measured, not assumed: card_drift reports exactly this
+# one state as DRIFT and reports the other 39 identical.
 #
-no_plan # the "no entity found" diagnostic names the id it looked for: ..._space_heating_plan / ..._dhw_heating_plan -> ..._plan_space_heating / ..._plan_dhw_heating (#1333)
-no_plan_expanded # the same two in-place <code> id substitutions in the expanded state's diagnostic (#1333)
-editor_schema # the config editor renders the card's DEFAULT config: its data block's space_entity / dhw_entity gain the new default ids (#1333)
+# The #1333/#1334 pair the comment above records is HISTORICAL for this file:
+# the comparison ref already carries it, so its three states (no_plan,
+# no_plan_expanded, editor_schema) are byte-identical to the ref here and a
+# claim on any of them is stale -- which is what the ref's own list, inherited
+# verbatim, reported before this restatement.
+#
+coarse_pointer # the card's HTML target floor is keyed on _coarsePointer(): under a coarse pointer every HTML control in this state's markup carries the 44 px touch EXTRA instead of the 24 px every-pointer minimum, so its shadow-root <style> text moves 24 -> 44 in the six declarations the floor emits (#1320)
 #
 
 # Historical, kept as record: the list above was restated by #1333/#1334.
