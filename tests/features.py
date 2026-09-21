@@ -32615,6 +32615,146 @@ R.check(
 )
 
 
+# -- the learning seam's shared freeze, at the cycle boundary --------------
+# R5-D7-03 and R5-D7-04 (#1331, #1332). `_track_curve_comfort` and the
+# comfort quiet-period learner are the two halves of #2's gated evidence;
+# each reads something a contamination fakes, and each must consult the same
+# `_learning_frozen` freeze every other learner does. The tracker's defect
+# was an ORDERING, not a missing predicate -- called before the cycle read
+# the pump signals, its gate answered from the PREVIOUS cycle, so the one
+# interval a defrost contaminates (the transient #944 refuses, usually
+# shorter than one optimization interval) was the one it judged ungated. The
+# checks drive the real `_update_current_state`, because a test that called
+# the tracker directly would set the freeze inputs itself and never see the
+# staleness.
+_T2_LEARNER_T0 = datetime(2026, 1, 15, 6, 0, 0)
+_T2_CURVE_GATE_CFG = {
+    "indoor_temp_entity": "sensor.indoor",
+    "outdoor_temp_entity": "sensor.outdoor",
+    "dhw_tank_volume": 180.0,
+    "curve_learning_enabled": True,
+    "heat_pump_defrost_entity": "sensor.defrost",
+}
+
+
+def _curve_gate_arm(defrost_on, *, dip):
+    """Two real cycles; returns (bias resets, the day's worst margin).
+
+    Cycle one is warm and clean, so the learner closes the day book holding
+    a working negative bias -- which a booked miss surrenders. Cycle two, an
+    hour on, applies the defrost flag the shared gate refuses and (when
+    `dip`) the zone temperature under the floor the plan was holding. The
+    day-worst is reset to None first, so "the tracker ingested this cycle"
+    is a binary read of it.
+    """
+    hass = FakeHass()
+    hass.states.set("sensor.indoor", FakeState("21.4"))
+    hass.states.set("sensor.outdoor", FakeState("2.0"))
+    hass.states.set("sensor.defrost", FakeState("off"))
+    coord = _Coord(hass, _FakeEntry(data=_T2_CURVE_GATE_CFG))
+    dt_util.freeze(_T2_LEARNER_T0)
+    _asyncio.run(coord._update_current_state())
+    coord._curve_learner.bias = -0.6
+    coord._curve_learner.comfortable_days = 2
+    floor = float(coord._opt_config.get_temp_bounds(7.0)[0])
+    dt_util.freeze(_T2_LEARNER_T0 + timedelta(hours=1))
+    if defrost_on:
+        hass.states.set("sensor.defrost", FakeState("on"))
+    if dip:
+        hass.states.set("sensor.indoor", FakeState(f"{floor - 0.4:.2f}"))
+    coord._curve_day_worst = None
+    _asyncio.run(coord._update_current_state())
+    dt_util.freeze(None)
+    return coord._curve_learner.resets, coord._curve_day_worst
+
+
+_t2_cg_defrost = _curve_gate_arm(defrost_on=True, dip=True)
+R.check(
+    "a defrost dip is not a comfort miss: the tracker's gate sees THIS "
+    "cycle's flag, not the previous cycle's",
+    _t2_cg_defrost == (0, None),
+    f"resets={_t2_cg_defrost[0]!r} day_worst={_t2_cg_defrost[1]!r} -- the "
+    "dip is the defrost's doing and the shared gate refuses the interval "
+    "(learner_gates.py: every other learner at 0 under defrost)",
+)
+_t2_cg_miss = _curve_gate_arm(defrost_on=False, dip=True)
+R.check(
+    "and the same dip with no defrost is a genuine miss that still resets",
+    _t2_cg_miss[0] == 1 and _t2_cg_miss[1] is not None,
+    f"resets={_t2_cg_miss[0]!r} day_worst={_t2_cg_miss[1]!r} -- the null "
+    "control: the fix refuses defrosts, not every dip",
+)
+_t2_cg_warm = _curve_gate_arm(defrost_on=True, dip=False)
+R.check(
+    "a defrost interval with the house still warm collects no evidence either",
+    _t2_cg_warm == (0, None),
+    f"resets={_t2_cg_warm[0]!r} day_worst={_t2_cg_warm[1]!r} -- a freeze "
+    "skips the interval, it does not merely ignore the miss",
+)
+
+# The quiet-period learner reads the SOLVED plan, so the contaminations that
+# leave that plan flat while the realized house is not are the ones that fake
+# a "held flat, nobody complained" observation. Two do: a defrost, and a
+# dead/pinned indoor sensor whose value seeds the plan. The control arm feeds
+# the same flat plan with nothing wrong, so the readout is the gate and not
+# the plan. (An away setback is the third contamination the sibling tracker
+# refuses by name; this learner refuses it by PLAN SHAPE instead -- an away
+# plan spans a coast or a recovery, so `span` clears the flatness band. The
+# two arms differ: `_quiet_gate_arm` hands the learner a flat plan, which an
+# away setback does not produce.)
+_T2_QUIET_GATE_CFG = {
+    "indoor_temp_entity": "sensor.indoor",
+    "outdoor_temp_entity": "sensor.outdoor",
+    "comfort_learning_enabled": True,
+    "heat_pump_defrost_entity": "sensor.defrost",
+}
+
+
+def _quiet_gate_arm(*, defrost_on=False, indoor_dead=False):
+    """One contaminated cycle, then the quiet fold; True if evidence moved."""
+    hass = FakeHass()
+    hass.states.set("sensor.indoor", FakeState("21.4"))
+    hass.states.set("sensor.outdoor", FakeState("2.0"))
+    hass.states.set("sensor.defrost", FakeState("off"))
+    coord = _Coord(hass, _FakeEntry(data=_T2_QUIET_GATE_CFG))
+    dt_util.freeze(_T2_LEARNER_T0)
+    _asyncio.run(coord._update_current_state())
+    if defrost_on:
+        hass.states.set("sensor.defrost", FakeState("on"))
+    if indoor_dead:
+        hass.states.set("sensor.indoor", FakeState("unavailable"))
+    dt_util.freeze(_T2_LEARNER_T0 + timedelta(hours=1))
+    _asyncio.run(coord._update_current_state())
+    coord._optimization_result = _T2Result(_T2_PEAKY, _T2_POWER, _T2_QUIET_TRAJ)
+    before = coord._comfort_learner.evidence
+    coord._record_quiet_comfort_period()
+    dt_util.freeze(None)
+    return coord._comfort_learner.evidence < before
+
+
+_t2_qg_clean = _quiet_gate_arm()
+_t2_qg_defrost = _quiet_gate_arm(defrost_on=True)
+_t2_qg_dead = _quiet_gate_arm(indoor_dead=True)
+R.check(
+    "a clean quiet period is still evidence: the gate is not a blanket refusal",
+    _t2_qg_clean is True,
+    "the control arm did not fold -- a guard that refuses everything would "
+    "pass the two checks below for the wrong reason",
+)
+R.check(
+    "a defrost interval is not a quiet period: the plan is flat, the house is not",
+    _t2_qg_defrost is False,
+    f"folded={_t2_qg_defrost!r} -- the freeze is the same one the defrost "
+    "derate exempts (#944) and the tracker now honours",
+)
+R.check(
+    "a dead indoor sensor is not a quiet period: the plan is seeded from the pin",
+    _t2_qg_dead is False,
+    f"folded={_t2_qg_dead!r} -- the v5.1.3 class: a pinned reading seeds a "
+    "flat plan, indistinguishable from a genuinely flat house",
+)
+
+
 # -- the two replay learners: the arms that reject an interval -------------
 # `_async_learn_house_heat_loss` and `_async_learn_lower_floor_loss` replay
 # the elapsed interval through the optimizer's own model and attribute the
@@ -34241,16 +34381,20 @@ R.check(
 )
 
 
-# -- #942: adoption is decided by identifiability, not by silent guards -----
+# -- #942/#1329: arming and adoption are decided by the fit that RUNS --------
 # The plant is two-state (heat lands in the slab, the room sees only
-# k_s(T_s - T_r)); identify() fits ONE state to it. On every preset the
-# integration ships, the slab's fast mode cannot settle within the
-# protocol's shortest phase, so the one-state fit reads a two-state plant
-# and its guards refuse -- silently, every night, forever. The named gate
-# decides at arm time and at adoption; the audit's null control (the
-# judge's HPO_D7_SLABK=100 perturbation, slab_heat_transfer x100) must
-# still adopt THROUGH the same gate: it passes identifiable slabs, it does
-# not merely refuse everything.
+# k_s(T_s - T_r)), and identify() fits ONE state to it -- its guards refuse
+# a slow slab mode, which is the model-class error the #991 predicate
+# (3*tau_fast <= shortest phase) names. But the DECLARED-plant experiment is
+# fitted in the TWO-STATE form (identify_slab, the wave block below): the fit
+# trusts the config (C_s, k_s) pair and rolls the production two-state model
+# over the recorded thermal power, so a slow slab mode is MODELLED, not
+# refused. Pricing the arm/adopt gate with the one-state predicate therefore
+# refused every plant the tree ships -- 0/360 preset answers, 0/80 derivable
+# presets, the item-18 button inert (#1329). The gate now prices the running
+# fit, and the one-state predicate lives at the cadence-gap fallback (the
+# #1329 block below). The null control is the UNSEEDED slab pair: a plant the
+# two-state rollout cannot be seeded on is still refused, by name.
 from stress import BUILDINGS as _b942  # noqa: E402
 
 
@@ -34266,23 +34410,25 @@ def _p942(name, slab_mult=1.0):
     return p
 
 
+_g942_unseeded = _p942("typical_slab")
+_g942_unseeded.slab_heat_transfer = 0.0
+_g942_unseeded_verdict = _SysIdModule.slab_mode_identifiability(
+    _g942_unseeded, _SysIdModule.SysIdConfig()
+)
+R.check(
+    "#1329/#942: an UNSEEDED slab pair is still refused, by name (the gate's "
+    "own null control)",
+    not _g942_unseeded_verdict[0]
+    and "slab constants not configured" in _g942_unseeded_verdict[1],
+    f"{_g942_unseeded_verdict!r} -- k_s=0 leaves the two-state rollout with "
+    "no seed; a gate that merely passed everything would not catch this",
+)
 _g942 = {
     name: _SysIdModule.slab_mode_identifiability(
         _p942(name), _SysIdModule.SysIdConfig()
     )
     for name in _b942
 }
-R.check(
-    "#942: the named gate refuses every preset the integration ships, and names the slab mode",
-    all(
-        not ok and "slab mode too slow" in why and "tau_fast" in why
-        for ok, why in _g942.values()
-    ),
-    f"{ {n: w for n, (_, w) in _g942.items()} } -- tau_fast = C_r*C_s/"
-    "((C_r+C_s)*k_s) is 0.94/3.72/2.66 h for light_new/heavy_old/"
-    "typical_slab against a shortest phase of 1 h, so the one-state fit "
-    "would be reading a two-state plant",
-)
 _g942_fast = {
     name: _SysIdModule.slab_mode_identifiability(
         _p942(name, 100.0), _SysIdModule.SysIdConfig()
@@ -34290,12 +34436,15 @@ _g942_fast = {
     for name in _b942
 }
 R.check(
-    "#942: the judge's k_s x100 perturbation passes through the same gate (null control)",
-    all(ok and why == "ok" for ok, why in _g942_fast.values()),
-    f"{ {n: (o, w) for n, (o, w) in _g942_fast.items()} } -- the gate passes "
-    "identifiable slabs (tau_fast under 0.04 h at k_s x100); a gate that "
-    "merely refused everything would pass the refusal check above and this "
-    "one would catch it",
+    "#1329/#942: the gate does not price the slab coupling -- the shipped "
+    "plants and the judge's k_s x100 perturbation all pass it",
+    all(ok and why == "ok" for ok, why in _g942.values())
+    and all(ok and why == "ok" for ok, why in _g942_fast.values()),
+    f"default { {n: o for n, (o, _) in _g942.items()} }, "
+    f"x100 { {n: o for n, (o, _) in _g942_fast.items()} } -- tau_fast = "
+    "C_r*C_s/((C_r+C_s)*k_s) is 0.94/3.72/2.66 h on the shipped presets and "
+    "under 0.04 h at k_s x100; the two-state fit rolls either plant, so "
+    "neither the coupling nor the protocol's shortest phase is its bound",
 )
 
 
@@ -34312,47 +34461,182 @@ def _adopt942(*, slab_mult=1.0, ua=None):
     return c
 
 
-_ad942_slow = _adopt942()
-R.check(
-    "#942: a finished, high-confidence fit on the DEFAULT plant is refused BY NAME, not silently",
-    _ad942_slow._house_heat_loss_scale == 1.0
-    and _ad942_slow._house_heat_loss_samples == 0
-    and _ad942_slow._sysid.result.completed is False
-    and "slab mode too slow" in _ad942_slow._sysid.result.reason
-    and not isinstance(_ad942_slow._t4_escaped, Exception),
-    f"scale {_ad942_slow._house_heat_loss_scale!r} reason "
-    f"{_ad942_slow._sysid.result.reason!r} -- the default plant's tau_fast is "
-    "4.17 h; before the gate this returned without a word and the reason "
-    "slot kept whatever the fit last said",
-)
 _ad942_fast = _adopt942(slab_mult=100.0, ua=0.15)
 R.check(
-    "#942: the same fit on the fast-slab plant adopts THROUGH the gate",
+    "#1329/#942: the same fit on the fast-slab plant adopts THROUGH the gate",
     _ad942_fast._house_heat_loss_scale == 1.8
     and _ad942_fast._house_heat_loss_samples == 16
     and _ad942_fast._sysid.result.reason == "adopted",
     f"scale {_ad942_fast._house_heat_loss_scale!r} samples "
     f"{_ad942_fast._house_heat_loss_samples!r} reason "
-    f"{_ad942_fast._sysid.result.reason!r} -- the perturbation arm of the "
-    "finding, now at the adoption path: identifiable slabs adopt",
+    f"{_ad942_fast._sysid.result.reason!r} -- the gate admits a fast-slab "
+    "plant exactly as before; the DEFAULT plant's own adoption is pinned in "
+    "the #1329 block below",
 )
 
-_arm942_slow = _t4_coord()
-_t4_count_refresh(_arm942_slow)
-_arm942_slow._config["system_identification_enabled"] = True
-_t4_drive(_arm942_slow, "async_arm_system_identification")
+
+# --- #1329: the arm/adopt gate must price the fit that RUNS -----------------
+# The finding: 0/360 preset-answer combinations passed the #991 gate and 0/80
+# derivable presets passed slab_mode_identifiability, so the item-18 button was
+# inert on every install the tree can produce. Cause: the gate encoded the
+# ONE-STATE regression's requirement (FAST_MODE_SETTLE_TAUS * tau_fast <= the
+# shortest phase) while the declared-plant experiment is fitted in the
+# TWO-STATE form (identify_slab), which MODELS the slab-room fast mode instead
+# of requiring it to settle. Pricing the arm/adopt gate with the one-state
+# predicate therefore refuses every plant the integration ships (tau_fast
+# 0.94-3.72 h against the 0.333 h bound).
+R.section("#1329: the sysid arm/adopt gate opens on the plants the tree ships")
+_C1329_NOW = datetime(2026, 1, 15, 23, 0, tzinfo=UTC)
+_g1329 = {
+    name: _SysIdModule.slab_mode_identifiability(
+        _p942(name), _SysIdModule.SysIdConfig()
+    )
+    for name in _b942
+}
 R.check(
-    "#942: arming is refused before the night is burned, and the refusal is named",
-    _arm942_slow._sysid.phase == "idle"
-    and not _arm942_slow._sysid.active
-    and "slab mode too slow" in _arm942_slow._sysid.result.reason
-    and _arm942_slow._t4_refreshes == 1
-    and _arm942_slow._t4_escaped is None,
-    f"phase {_arm942_slow._sysid.phase!r} reason "
-    f"{_arm942_slow._sysid.result.reason!r} refreshes "
-    f"{_arm942_slow._t4_refreshes} -- arming a plant the fit cannot "
-    "interpret burns a night to produce a guard refusal; the refresh is "
-    "what publishes the refusal",
+    "#1329: the named gate admits every preset the integration ships",
+    all(ok and why == "ok" for ok, why in _g1329.values()),
+    f"{ {n: (o, w) for n, (o, w) in _g1329.items()} } -- tau_fast is "
+    "0.94/3.72/2.66 h for light_new/heavy_old/typical_slab, past the "
+    "one-state 3*tau_fast <= 1 h bound; the two-state fit rolls the "
+    "production model over the SAME plant and identifies UA (measured "
+    "-0.00/+0.00/-0.00 % bias on these three), so the bound belongs to the "
+    "one-state fallback, not this gate",
+)
+
+# The finding's own first arm, re-derived on this tree: every structure x era x
+# foundation x emitter x area combination the config flow can produce.
+import itertools as _it1329  # noqa: E402
+_g1329_sweep = []
+for _st, _er, _fo, _em, _ar in _it1329.product(
+    presets.STRUCTURES,
+    list(presets._ERA_LOSS_W_PER_M2K),
+    presets.FOUNDATIONS,
+    presets.EMITTERS,
+    (50.0, 140.0, 300.0),
+):
+    _g1329_sweep.append(
+        _SysIdModule.slab_mode_identifiability(
+            ThermalParameters.from_config(
+                presets.derive(
+                    presets.BuildingPreset(
+                        structure=_st,
+                        era=_er,
+                        foundation=_fo,
+                        heated_area_m2=_ar,
+                        lower_emitter=_em,
+                    )
+                )
+            ),
+            _SysIdModule.SysIdConfig(),
+        )[0]
+    )
+R.check(
+    "#1329: every preset-answer combination arms (the finding measured 0/360)",
+    len(_g1329_sweep) == 360 and all(_g1329_sweep),
+    f"{sum(_g1329_sweep)}/{len(_g1329_sweep)} pass -- the rule is the "
+    "product structure x era x foundation x emitter x area over the same "
+    "strings the config flow offers",
+)
+
+# The finding's own second arm (D2-b): the two-zone derivable presets.
+_g1329_z2 = []
+for _st, _er, _tz, _lo in _it1329.product(
+    presets.STRUCTURES, list(presets._ERA_LOSS_W_PER_M2K), (False, True),
+    (presets.EMITTER_FLOOR, presets.EMITTER_RADIATORS),
+):
+    _g1329_z2.append(
+        _SysIdModule.slab_mode_identifiability(
+            ThermalParameters.from_config(
+                presets.derive(
+                    presets.BuildingPreset(
+                        structure=_st, era=_er, two_zone=_tz, lower_emitter=_lo
+                    ).validate()
+                )
+            ),
+            _SysIdModule.SysIdConfig(),
+        )[0]
+    )
+R.check(
+    "#1329: every derivable two-zone preset arms (the finding measured 0/80)",
+    len(_g1329_z2) == 80 and all(_g1329_z2),
+    f"{sum(_g1329_z2)}/{len(_g1329_z2)} pass -- the finding's D2-b sweep, "
+    "structure x era x two_zone x lower emitter",
+)
+
+# The user-facing route: the item-18 button on a DEFAULT install (no k_s bump).
+_arm1329 = _t4_coord()
+_t4_count_refresh(_arm1329)
+_arm1329._config["system_identification_enabled"] = True
+_t4_drive(_arm1329, "async_arm_system_identification")
+R.check(
+    "#1329: the item-18 button arms on a default install (was inert)",
+    _arm1329._sysid.phase == "armed"
+    and _arm1329._sysid.active
+    and _arm1329._t4_refreshes == 1
+    and _arm1329._t4_escaped is None,
+    f"phase {_arm1329._sysid.phase!r} active {_arm1329._sysid.active} "
+    f"refreshes {_arm1329._t4_refreshes} "
+    f"reason {_arm1329._sysid.result.reason!r} -- before the fix every "
+    "answers-based install refused here with 'slab mode too slow for the "
+    "excitation window', so the button reported nothing at any plant the "
+    "config flow can produce",
+)
+_ad1329 = _adopt942()
+R.check(
+    "#1329: a completed shipped-plant fit adopts through the gate (was refused)",
+    _ad1329._house_heat_loss_scale != 1.0
+    and _ad1329._house_heat_loss_samples > 0
+    and _ad1329._sysid.result.reason == "adopted"
+    and not isinstance(_ad1329._t4_escaped, Exception),
+    f"scale {_ad1329._house_heat_loss_scale!r} samples "
+    f"{_ad1329._house_heat_loss_samples!r} reason "
+    f"{_ad1329._sysid.result.reason!r} -- the DEFAULT plant's own tau_fast is "
+    "4.17 h; the same completed confidence-0.8 fit used to be refused by "
+    "name at the adoption path",
+)
+
+# The #942 protection survives where it is actually needed. A cadence gap
+# breaks the two-state rollout, so identify_slab falls back to the ONE-STATE
+# regression -- which is exactly the fit the #991 predicate exists to keep off
+# a slow-slab plant. Admitting the arm above makes that fallback REACHABLE, so
+# it must refuse BY NAME rather than hand the plant to the regression.
+_fb1329 = SystemIdentification(_SysIdModule.SysIdConfig(enabled=True))
+assert _fb1329.arm(_C1329_NOW)  # ungated: the pair is set by hand below
+_fb1329_p = _p942("typical_slab")
+_fb1329._slab_pair = (
+    float(_fb1329_p.slab_thermal_mass), float(_fb1329_p.slab_heat_transfer)
+)
+_fb1329._slab_prior = (
+    float(_fb1329_p.heat_loss_coefficient), float(_fb1329_p.room_thermal_mass)
+)
+
+
+def _fb1329_samples():
+    """Twelve rows with one 3 h cadence gap -- the rollout cannot chain."""
+    when = _C1329_NOW
+    out = []
+    for i in range(12):
+        phase = (
+            _PH_SETTLE if i < 2 else (_PH_STEP if i < 7 else _PH_RELAX)
+        )
+        out.append(_SidSample(when, 21.0, 0.0, 0.0, phase))
+        when += timedelta(hours=0.5 + (2.5 if i == 3 else 0.0))
+    return out
+
+
+_fb1329.samples = _fb1329_samples()
+_fb1329_res = _fb1329.identify_slab()
+R.check(
+    "#1329: the cadence-gap fallback refuses a slow-slab plant BY NAME, not "
+    "by handing it to the one-state regression",
+    not _fb1329_res.completed
+    and "slab mode too slow" in _fb1329_res.reason
+    and _fb1329._slab_fit_used is False,
+    f"completed {_fb1329_res.completed} used {_fb1329._slab_fit_used} "
+    f"reason {_fb1329_res.reason!r} -- before the fix this fell straight "
+    "through to identify(), whose guards refuse the same plant silently "
+    "(the #942 defect) whenever they refuse it at all",
 )
 
 
