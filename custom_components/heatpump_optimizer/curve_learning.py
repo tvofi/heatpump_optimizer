@@ -148,6 +148,11 @@ class CurveLearner:
             learner.bias = float(np.clip(data.get("bias", 0.0), BIAS_MIN, BIAS_MAX))
         except (TypeError, ValueError, OverflowError):
             learner.bias = 0.0
+        if not np.isfinite(learner.bias):
+            # R5-D1-05 (#1296): `np.clip` clamps +-inf but propagates NaN,
+            # so a NaN bias survived into the published displace command.
+            # The loader's own absent-data default is the neutral 0 K.
+            learner.bias = 0.0
         try:
             learner.comfortable_days = max(0, int(data.get("comfortable_days", 0)))
         except (TypeError, ValueError, OverflowError):
