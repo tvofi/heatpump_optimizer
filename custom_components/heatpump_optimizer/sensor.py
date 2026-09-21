@@ -1663,7 +1663,7 @@ class SpaceHeatingPlanSensor(_PlanSensorBase):
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
-            coordinator, entry, "space_heating_plan", "space_heating_plan"
+            coordinator, entry, "space_heating_plan", "plan_space_heating"
         )
 
 
@@ -1674,7 +1674,7 @@ class DHWHeatingPlanSensor(_DHWEntityMixin, _PlanSensorBase):
     _plan_kind = "dhw"
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "dhw_heating_plan", "dhw_heating_plan")
+        super().__init__(coordinator, entry, "dhw_heating_plan", "plan_dhw_heating")
 
 
 # ---------------------------------------------------------------------------

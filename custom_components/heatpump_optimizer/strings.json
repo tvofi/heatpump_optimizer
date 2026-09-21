@@ -1707,8 +1707,8 @@
       "dhw_heating_cost": {
         "name": "DHW Heating Cost (next 24 h)"
       },
-      "dhw_heating_plan": {
-        "name": "DHW Heating Plan (next 24 h)"
+      "plan_dhw_heating": {
+        "name": "Plan DHW Heating (next 24 h)"
       },
       "dhw_heating_schedule": {
         "name": "DHW Heating Schedule"
@@ -1859,8 +1859,8 @@
       "space_heating_energy": {
         "name": "Space Heating Energy (lifetime)"
       },
-      "space_heating_plan": {
-        "name": "Space Heating Plan (next 24 h)"
+      "plan_space_heating": {
+        "name": "Plan Space Heating (next 24 h)"
       },
       "thermal_battery_charge": {
         "name": "Thermal Battery Charge"
@@ -1916,7 +1916,7 @@
       "away": {
         "name": "Away"
       },
-      "boost_dhw": {
+      "dhw_boost": {
         "name": "DHW Boost"
       },
       "boost_space": {

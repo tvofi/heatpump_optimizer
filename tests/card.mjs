@@ -101,9 +101,12 @@ const mkStates = (spaceId, dhwId, withMarker) => ({
 });
 
 // The plan sensors use has_entity_name, so a default install prefixes the
-// device name. These are the ids a real Home Assistant actually creates.
-const DEFAULT_SPACE = "sensor.heat_pump_optimizer_space_heating_plan";
-const DEFAULT_DHW = "sensor.heat_pump_optimizer_dhw_heating_plan";
+// device name. These are the ids a real Home Assistant actually creates --
+// #1333 moved the suggested ids (space_heating_plan -> plan_space_heating,
+// dhw_heating_plan -> plan_dhw_heating, new installs only), and Scenario 3
+// below keeps the pre-#1333 pair as the card's legacy fallback.
+const DEFAULT_SPACE = "sensor.heat_pump_optimizer_plan_space_heating";
+const DEFAULT_DHW = "sensor.heat_pump_optimizer_plan_dhw_heating";
 
 function collect(n, out=[]) { if(n._html) out.push(n._html); n.children.forEach(c=>collect(c,out)); return out; }
 
@@ -152,6 +155,29 @@ check("discovers renamed entities by plan_kind", !/No plan data available yet/.t
 const legacy = build(mkStates("sensor.space_heating_plan", "sensor.dhw_heating_plan", false));
 const legacyDump = collect(legacy.shadowRoot).join("\n");
 check("falls back to name-suffix discovery", !/No plan data available yet/.test(legacyDump) && /<svg/.test(legacyDump));
+
+// --- Scenario 3b: id generations across the #1333 move ---------------------
+// #1333 moved the two plan sensors' suggested ids (new installs only). An
+// install upgraded from before keeps the OLD registry ids and may carry no
+// plan_kind marker (that marker is #1227-era), so the card has to resolve
+// the pre-#1333 pair by suffix alone; a fresh install resolves the new pair
+// the same way. Pin both, and pin that the pair is what it was handed --
+// a derivation or a scan that grabbed the other generation would still draw
+// a chart, so the check reads the resolved id, not just "no error".
+const pre1333 = build(mkStates(
+  "sensor.heat_pump_optimizer_space_heating_plan",
+  "sensor.heat_pump_optimizer_dhw_heating_plan", false));
+check("resolves a pre-#1333 device-prefixed id with no marker",
+  !/No plan data available yet/.test(collect(pre1333.shadowRoot).join("\n")) && /<svg/.test(collect(pre1333.shadowRoot).join("\n")));
+check("the pre-#1333 pair resolves to the ids it was given",
+  pre1333.plan.resolveEntity("space") === "sensor.heat_pump_optimizer_space_heating_plan" &&
+  pre1333.plan.resolveEntity("dhw") === "sensor.heat_pump_optimizer_dhw_heating_plan",
+  pre1333.plan.resolveEntity("space") + " / " + pre1333.plan.resolveEntity("dhw"));
+const fresh = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, false));
+check("the post-#1333 pair resolves to the ids it was given",
+  fresh.plan.resolveEntity("space") === DEFAULT_SPACE &&
+  fresh.plan.resolveEntity("dhw") === DEFAULT_DHW,
+  fresh.plan.resolveEntity("space") + " / " + fresh.plan.resolveEntity("dhw"));
 
 // --- Scenario 4: nothing published; message must be actionable -------------
 const empty = build({});
