@@ -884,16 +884,37 @@ def self_test() -> int:
     check("rows gate: a check that cannot start refuses",
           not disposition_gate("v6.6.1", _unstartable)[0])
 
-    # Where main() runs it. Every pure piece above is correct while the call
-    # site never runs the gate -- which is exactly the tree before this change
-    # -- so rule 5's region is read: the gate must run before the manifest
-    # rule, and the one way past it must be the explicit, named override.
+    # The refusal itself, DRIVEN. The pieces above are each correct while the
+    # verdict is never refused -- `if not args.allow_rowless:` neutered to
+    # `if not True:` left `--allow-rowless` and `raise Refuse("rows"` present
+    # in `main`'s text and this self-test green, with no stamp ever refused
+    # (#1303's review). A driven predicate sees the behaviour a text scan
+    # cannot, so the decision is a function and it is called here.
+    _rows_refuse = rows_gate_decision(cleared=False, allow_rowless=False,
+                                      last_tag="v6.6.1", output=_rows_rowless)
+    check("rows gate: an uncleared window with no override refuses",
+          _rows_refuse[0] is True and "v6.6.1..origin/main" in _rows_refuse[1]
+          and _rows_rowless in _rows_refuse[1])
+    check("rows gate: --allow-rowless warns, carries the instrument's list, and proceeds",
+          rows_gate_decision(cleared=False, allow_rowless=True, last_tag="v6.6.1",
+                             output=_rows_rowless)
+          == (False, "WARNING: stamping over a window with undispositioned merges "
+                     f"(--allow-rowless): {_rows_rowless}"))
+    check("rows gate: a cleared window proceeds with the instrument's summary line",
+          rows_gate_decision(cleared=True, allow_rowless=False, last_tag="v6.6.1",
+                             output="DELIVERY STATUS OK -- 3 rowed\n  a detail line")
+          == (False, "disposition gate: DELIVERY STATUS OK -- 3 rowed"))
+
+    # Where main() runs it. The driven decision above is correct while the call
+    # site never hands it the verdict -- which is exactly the tree before this
+    # change -- so rule 5's region is read: the gate must run, its verdict must
+    # reach the decision, and a refusal must be raised rather than swallowed.
     _r5 = _r4_src[_r4_src.rindex("# Rule 5: the window"):]
     _r5 = _r5[:_r5.index("# Rule 6:")]
     check("rows gate: main() runs the disposition gate, before the manifest rule",
           "disposition_gate(last_tag)" in _r5)
-    check("rows gate: the override is explicit, and only --allow-rowless takes it",
-          "--allow-rowless" in _r5 and 'raise Refuse("rows"' in _r5)
+    check("rows gate: main() hands the verdict to the driven decision, and refuses it",
+          "rows_gate_decision(" in _r5 and 'raise Refuse("rows"' in _r5)
 
     # Rule "register". The stamp re-records the D6 register through its own
     # generator -- the header's command, from ROOT, with the stub on
@@ -1205,6 +1226,34 @@ def disposition_gate(last_tag: str | None, runner=None) -> tuple[bool, str]:
     return proc.returncode == 0, output or f"exit {proc.returncode}, no output"
 
 
+def rows_gate_decision(*, cleared: bool, allow_rowless: bool, last_tag: str | None,
+                       output: str) -> tuple[bool, str]:
+    """(refuse, message): what rule "rows" does with `disposition_gate`'s verdict.
+
+    An uncleared window with no `--allow-rowless` is a refusal; uncleared with
+    the override warns, carrying the instrument's own list, and proceeds; a
+    cleared window proceeds quietly. It is a function, and `main` dispatches on
+    it, so `self_test` can drive the refusal instead of grepping `main` for it:
+    a text scan sees the words of a neutered condition, a call sees the
+    behaviour. The first pass's two `_r5` checks stayed green while
+    `if not args.allow_rowless:` was `if not True:` -- the refusal unreachable,
+    `--allow-rowless` and `raise Refuse("rows"` still present in the text, and
+    no stamp ever refused (#1303's review)."""
+    if cleared:
+        return False, (f"disposition gate: "
+                       f"{output.splitlines()[0] if output.splitlines() else output}")
+    if not allow_rowless:
+        return True, ("the window this tag would close holds a merged pull request "
+                      "with no disposition. Tagging moves "
+                      f"{last_tag or 'the first commit'}..origin/main past it, no later "
+                      "window can see it again, and `record` would never report it. Row it "
+                      "(the merge commit's body names the pull request), or pass "
+                      "--allow-rowless to defer the rows knowingly. Nothing was written; "
+                      "the instrument said:\n" + output)
+    return False, ("WARNING: stamping over a window with undispositioned merges "
+                   f"(--allow-rowless): {output}")
+
+
 def undo_local_stamp(nxt: str, pre_head: str, runner=None, notes: Path = NOTES) -> None:
     """Discard the local stamp commit and tag, keeping the hand-written notes.
 
@@ -1368,20 +1417,12 @@ def main() -> int:
     # a dry run says whether the stamp would be refused, which is most of what
     # a dry run is for.
     cleared, why = disposition_gate(last_tag)
-    if not cleared:
-        if not args.allow_rowless:
-            raise Refuse("rows",
-                         "the window this tag would close holds a merged pull request "
-                         "with no disposition. Tagging moves "
-                         f"{last_tag or 'the first commit'}..origin/main past it, no later "
-                         "window can see it again, and `record` would never report it. Row it "
-                         "(the merge commit's body names the pull request), or pass "
-                         "--allow-rowless to defer the rows knowingly. Nothing was written; "
-                         "the instrument said:\n" + why)
-        print(f"WARNING: stamping over a window with undispositioned merges "
-              f"(--allow-rowless): {why}")
-    else:
-        print(f"disposition gate: {why.splitlines()[0] if why.splitlines() else why}")
+    refuse, message = rows_gate_decision(cleared=cleared,
+                                         allow_rowless=args.allow_rowless,
+                                         last_tag=last_tag, output=why)
+    if refuse:
+        raise Refuse("rows", message)
+    print(message)
 
     # Rule 6: the manifest agrees with VERSION before we move both.
     manifest = json.loads(MANIFEST.read_text())

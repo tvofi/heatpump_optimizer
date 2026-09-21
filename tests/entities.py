@@ -20222,7 +20222,12 @@ R.check(
 # beside the harness, named `cfr_exclusions.json`, measuring a list the tree
 # did not hold. The artifact now lives at the path the brief names and the
 # instrument resolves THAT path, so the number the harness prints is the
-# number the tree's artifact states.
+# number the tree's artifact states. The first pass's countermeasure supplied
+# the arguments the instrument's own defaults would have resolved -- so it
+# pinned one spelling, and the review showed two mutations that re-read a
+# sibling with the whole suite green (#1303 round-1 block). Both clauses there
+# are now driven with NO argument and through `main()`'s own call, so what is
+# pinned is the read the instrument actually performs.
 try:
     _CFR_ARTIFACT = _closure.ROOT / ".claude/workflows/cfr_exclusions.json"
     _CFR = json.loads(_CFR_ARTIFACT.read_text())
@@ -20242,30 +20247,110 @@ try:
         and _CFR_QUOTE in _CFR_EXCL["record"]["citation"]
         and _CFR_QUOTE in _CFR_RECORD_JOB
     )
+    _cfr_artifact_detail = (
+        f"excluded_jobs={sorted(_CFR_EXCL)}; the record entry cites the "
+        f"workflow's own words: "
+        f"{_CFR_QUOTE in (_CFR_EXCL.get('record') or {}).get('citation', '')}, "
+        f"and the workflow says them: {_CFR_QUOTE in _CFR_RECORD_JOB}"
+    )
+except Exception as _cfr_exc:  # noqa: BLE001 -- one red check, never a partial run
+    # The artifact and the read are independent properties: a broken read reds
+    # its own check below, not this one.
+    _CFR_ARTIFACT_OK = False
+    _CFR_EXCL = {}
+    _cfr_artifact_detail = f"{type(_cfr_exc).__name__}: {_cfr_exc}"
+
+# The instrument's READ -- step 11, "a check pins the artifact it READS". In
+# its own try so a resolution that moves reds the check named for it and not
+# the artifact check above, which pins a different property.
+try:
+    import contextlib as _cfr_ctx
     import importlib.util as _cfr_util
+    import io as _cfr_io
+    import os as _cfr_os
     _CFR_INSTR = _closure.ROOT / "tools/audit/round5/D13/seat-a/dora_cfr.py"
     _cfr_spec = _cfr_util.spec_from_file_location("hpo_d13_cfr", str(_CFR_INSTR))
     _cfr = _cfr_util.module_from_spec(_cfr_spec)
     _cfr_spec.loader.exec_module(_cfr)
     _cfr_src = _CFR_INSTR.read_text()
+    # (1) THE DEFAULT, driven with NO argument. `main()` reads its exclusions
+    # as `excl = load_exclusions()`, and the banner as `exclusions_path()`,
+    # both argument-free -- so it is that resolution, not one a caller supplies,
+    # that decides what the instrument reads. The first pass supplied both
+    # (`exclusions_path(root="/repo")`, `load_exclusions(".claude/...")`), so
+    # neither default was exercised: a one-token change to `exclusions_path()`'s
+    # default root moved the read beside the harness with every check green
+    # (review, #1303). These two pin the default path and the map it returns.
+    _cfr_default_path = Path(_cfr_os.path.realpath(_cfr.exclusions_path()))
+    _cfr_default_map = _cfr.load_exclusions()
+    # (2) THE CALL SITE, driven rather than grepped. "A check pins the artifact
+    # it READS", so the read `main()` performs is observed, not inferred from
+    # one spelling in the source: the first pass's grep for
+    # `join(HERE, "cfr_exclusions.json")` was evaded by
+    # `load_exclusions(HERE + "/cfr_exclusions.json")` and by the default-root
+    # edit above, each leaving the whole suite green while `cfr_excluded` came
+    # from a copy beside the harness. So `main()` is run with its exclusion
+    # read wrapped: `git` is patched to stop it at the first git call -- after
+    # the read, before any output -- and every `load_exclusions` call it makes
+    # is recorded with its arguments and its returned map. What `main()` reads
+    # must be argument-free (still the default) and equal to the tree's map.
+    _cfr_stop = type("_CfrStop", (Exception,), {})
+    _cfr_reads = []
+    _cfr_real_load = _cfr.load_exclusions
+    _cfr_real_git = _cfr.git
+
+    def _cfr_spy(*args, **kwargs):
+        value = _cfr_real_load(*args, **kwargs)
+        _cfr_reads.append((args, kwargs, dict(value)))
+        return value
+
+    def _cfr_git_stop(*args, **kwargs):
+        raise _cfr_stop()
+
+    _cfr.load_exclusions = _cfr_spy
+    _cfr.git = _cfr_git_stop
+    try:
+        with _cfr_ctx.redirect_stdout(_cfr_io.StringIO()):
+            _cfr.main()
+    except _cfr_stop:
+        pass  # the read happened; the git-derived tail is not under test here
+    except BaseException as _cfr_main_exc:  # noqa: BLE001 -- recorded, not raised
+        _cfr_reads.append(("raised", type(_cfr_main_exc).__name__,
+                           str(_cfr_main_exc)))
+    finally:
+        _cfr.load_exclusions = _cfr_real_load
+        _cfr.git = _cfr_real_git
+    _cfr_main_ok = bool(_cfr_reads) and all(
+        isinstance(_r, tuple) and len(_r) == 3 and _r[0] == () and _r[1] == {}
+        and isinstance(_r[2], dict) and _r[2] == _CFR_EXCL
+        for _r in _cfr_reads
+    )
     _CFR_INSTR_OK = bool(
         _cfr.EXCLUSION_ARTIFACT == ".claude/workflows/cfr_exclusions.json"
-        and Path(_cfr.exclusions_path(root="/repo"))
-        == Path("/repo/.claude/workflows/cfr_exclusions.json")
-        and _cfr.load_exclusions(".claude/workflows/cfr_exclusions.json")
-        == _CFR_EXCL
+        and _cfr_default_path
+        == Path(_cfr_os.path.realpath(str(_CFR_ARTIFACT)))
+        and _cfr_default_map == _CFR_EXCL
+        and _cfr_main_ok
+        # The literal the first pass grepped, kept as a belt: the driven
+        # clauses above are the buckle.
         and 'join(HERE, "cfr_exclusions.json")' not in _cfr_src
     )
-    _CFR_DETAIL = (
-        f"excluded_jobs={sorted(_CFR_EXCL)}; the record entry cites the "
-        f"workflow's own words: "
-        f"{_CFR_QUOTE in (_CFR_EXCL.get('record') or {}).get('citation', '')}, "
-        f"and the workflow says them: {_CFR_QUOTE in _CFR_RECORD_JOB}; the "
-        f"instrument resolves {_cfr.exclusions_path(root='/repo')!r}"
+    _cfr_call_desc = [
+        (list(_r[0]), sorted(_r[1]),
+         sorted(_r[2]) if isinstance(_r[2], dict) else _r[2])
+        for _r in _cfr_reads
+    ]
+    _cfr_instr_detail = (
+        f"the instrument's no-argument default resolves "
+        f"{_cfr_os.path.relpath(str(_cfr_default_path), str(_closure.ROOT))!r}, "
+        f"and main()'s exclusion read(s), by argument and keys, are "
+        f"{_cfr_call_desc}"
     )
 except Exception as _cfr_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _CFR_ARTIFACT_OK = _CFR_INSTR_OK = False
-    _CFR_DETAIL = f"{type(_cfr_exc).__name__}: {_cfr_exc}"
+    _CFR_INSTR_OK = False
+    _cfr_instr_detail = f"{type(_cfr_exc).__name__}: {_cfr_exc}"
+
+_CFR_DETAIL = _cfr_artifact_detail + "; " + _cfr_instr_detail
 R.check(
     "the by-design-red exclusion list is in-tree, with a reason per job and a "
     "citation that resolves (#1303)",
@@ -20281,7 +20366,11 @@ R.check(
     _CFR_INSTR_OK,
     _CFR_DETAIL + " -- #1303's step-11 defect was the harness reading its own "
     "sibling `cfr_exclusions.json`, so `cfr_excluded` came from a file the tree "
-    "did not own; a check pins the artifact it READS",
+    "did not own; a check pins the artifact it READS. This one drives the "
+    "no-argument default the instrument's `main()` uses AND the read `main()` "
+    "actually performs -- both argued or spelled differently than the first "
+    "pass pinned, and each a mutation that re-read a sibling while that pass "
+    "stayed green",
 )
 R.check(
     "and the list excludes only what it names (null control)",
