@@ -2934,14 +2934,29 @@ function cardStyleBlock() {
      not only to touch -- under a mouse this floor used to be emitted solely
      inside @media (pointer: coarse), so the zoom pair laid out at 20.22 px
      with 22.22 px between centres, undersized and unrescued by the spacing
-     exception. Emitted once, unconditionally: the card's touch EXTRA (the
-     44 px _targetMinPx() gives SVG-drawn targets) stays coarse-only; this
-     floor is the every-pointer minimum. D4-02 (#262) still applies beneath
-     it: legend chips in dialog.expanded beat this block's .chip padding via
-     (0,2,0) specificity; at the dialog's 12 px font floor 0.32em vertical
-     padding + normal line-height lands at 23 px while min-height never
-     engages on inline-flex buttons without an explicit line-height. */
-  const htmlTargetFloor = `
+     exception. Emitted once, unconditionally: this floor is the
+     every-pointer minimum. R5-D4-03 (#1320): the card's 44 px touch EXTRA
+     (what _targetMinPx() gives SVG-drawn targets) reached only the
+     SVG-drawn geometry, so the HTML surface kept the 24 px minimum under
+     every pointer and 728 of the finding's coarse-arm targets sat under the
+     44 px a finger wants. The HTML floor below is now keyed on the SAME
+     predicate _targetMinPx() is -- _coarsePointer() -- rather than on a CSS
+     @media (pointer: coarse): the card already has one notion of "coarse",
+     and a second one (the media query) can disagree with it, which is
+     exactly the divergence the finding measured (under the harness's coarse
+     emulation the JS predicate reads true while the media query does not
+     match at all). The every-pointer 24 px minimum is untouched, and the
+     mouse arm's geometry does not move.
+     D4-02 (#262) still applies beneath it: legend chips in dialog.expanded
+     beat this block's .chip padding via (0,2,0) specificity; at the
+     dialog's 12 px font floor 0.32em vertical padding + normal line-height
+     lands at 23 px while min-height never engages on inline-flex buttons
+     without an explicit line-height. */
+  // The HTML target surface's selector list, once: a control added here is
+  // in every floor below. The comments on the last two groups say why each
+  // joined (#1269 the advisor rows, round-5 D4-02 #1220 the picker's own
+  // field and list).
+  const htmlTargetSelectors = `
         .expand, .close, .viewctl button, .chip, .dlg-tab,
         .layout-bar button, .whatif button, .whatif input[type="time"],
         .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
@@ -2955,28 +2970,35 @@ function cardStyleBlock() {
         .sp-filter, .sp-select,
         .slot-menu button,
         .away-strip label, .away-strip input[type="checkbox"],
-        .away-strip input[type="datetime-local"] {
-          min-height: ${TARGET_MIN_PX}px;
-          min-width: ${TARGET_MIN_PX}px;
+        .away-strip input[type="datetime-local"]`;
+  // The floor rule set, parameterised by the pixel value so the HTML
+  // surface and the SVG-drawn geometry cannot drift apart: 24 px is the
+  // every-pointer minimum (SC 2.5.8), 44 px the coarse-pointer touch EXTRA
+  // (SC 2.5.5 AAA / platform HIG), and htmlTargetFloorPx picks between them
+  // from _coarsePointer() -- the predicate _targetMinPx() itself uses.
+  const targetFloorRules = (px) => `
+        ${htmlTargetSelectors} {
+          min-height: ${px}px;
+          min-width: ${px}px;
           box-sizing: border-box;
         }
-        .whatif input[type="range"] {
-          min-height: ${TARGET_MIN_PX}px;
-        }
+        .whatif input[type="range"] { min-height: ${px}px; }
+        .whatif .wi-remove { min-width: ${px}px; }
+        .viewctl button { width: auto; height: auto; min-width: ${px}px; min-height: ${px}px; }`;
+  // R5-D4-03 (#1320): the same choice _targetMinPx() makes for the drawn
+  // lane and slot rects, made once for the whole HTML surface. Re-read on
+  // every render, so a pointer change lands with the next hass update the
+  // way the drawn geometry's own floor does.
+  const htmlTargetFloorPx = _coarsePointer() ? TARGET_MIN_PX_COARSE : TARGET_MIN_PX;
+  const htmlTargetFloor = `
+        ${targetFloorRules(htmlTargetFloorPx)}
         .chip, dialog.expanded .chip {
           padding: 0.45em 0.85em;
           line-height: 1.25;
         }
         .dlg-tab { padding: 0.35em 0.9em; }
         .whatif button { padding: 0.45em 0.85em; }
-        .whatif .wi-remove {
-          min-width: ${TARGET_MIN_PX}px;
-          padding: 0 0.45em;
-        }
-        .viewctl button {
-          width: auto; height: auto;
-          min-width: ${TARGET_MIN_PX}px; min-height: ${TARGET_MIN_PX}px;
-        }`;
+        .whatif .wi-remove { padding: 0 0.45em; }`;
   return `
     <style>
       ha-card { padding: 12px 12px 8px 12px; }
