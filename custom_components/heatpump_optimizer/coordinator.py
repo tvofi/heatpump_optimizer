@@ -4308,10 +4308,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if self._lower_floor_loss_samples % 10 == 0:
             await self._async_save_thermal_learning()
 
-
-
-
-
     def _check_pump_mode_expired(self) -> None:
         """Say so when the mode entity has gone quiet long enough to stop acting.
 
@@ -4361,7 +4357,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 ),
             },
         )
-
 
     def _dhw_current_hour(self) -> float:
         now = dt_util.now()
@@ -5227,8 +5222,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # #11: draw beyond what the compressor can pull means the immersion
         # element is running — a different appliance wearing the pump's meter.
         self._detect_immersion()
-        # #2 (gated): the curve learner's daily comfort evidence.
-        self._track_curve_comfort(dt_util.now())
         energy_reading = reader.read(CONF_ENERGY_ENTITY)
         self._measured_energy = energy_reading.value if energy_reading.ok else None
 
@@ -5337,6 +5330,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # active every thermal observation is contaminated, and the learners
         # need to know that rather than quietly absorbing it.
         self._update_external_heat_detection()
+
+        # #2 (gated): the curve learner's daily comfort evidence. Moved here,
+        # after the pump signals its ``_learning_frozen`` consult reads (#1331).
+        self._track_curve_comfort(dt_util.now())
 
         if dhw.ok and (dhw_value := dhw.value) is not None:
             frozen = await self._dhw_learner.async_learn_dynamics(dhw_value)
@@ -7387,7 +7384,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._manual_override = None
         await self._async_save_manual_plan()
         await self.async_request_refresh()
-
 
     # ==================================================================
     # Price horizon modelling (item 7)
@@ -10288,6 +10284,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if not ctx._config.get(
             CONF_COMFORT_LEARNING_ENABLED, DEFAULT_COMFORT_LEARNING_ENABLED
         ):
+            return
+        # The shared freeze discipline its sibling ``_track_curve_comfort``
+        # consults: a defrost or a dead indoor sensor fakes a flat plan (#1332).
+        if self._learning_frozen(CONF_INDOOR_TEMP_ENTITY) is not None:
             return
         result = self._optimization_result
         if result is None or not result.room_temp_trajectory:
