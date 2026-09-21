@@ -332,8 +332,9 @@ SCENARIO_BUDGET_FACTOR = float(os.environ.get("STRESS_SCENARIO_FACTOR", "3.0"))
 #: refused. SCENARIO_BUDGET_FACTOR and SOLVE_BUDGET_RATIO stay put.
 SCENARIO_STALE_FACTOR = float(os.environ.get("STRESS_STALE_FACTOR", "3.5"))
 #: The SINGLE-SCENARIO detection statistic (#346), measured in SOLVER WORK
-#: rather than in CPU time -- and the only per-scenario number in this file
-#: that is allowed to sit under DETECTION_TARGET.
+#: rather than in CPU time -- and the first per-scenario number in this
+#: file that was allowed to sit under DETECTION_TARGET
+#: (SCENARIO_KERNEL_FACTOR below, added for round-5 D9-07, is the second).
 #:
 #: SCENARIO_BUDGET_FACTOR above cannot be tightened, and its own comment is
 #: the record of why: CI ran shoulder/tariff+cycle at 2.28x its recorded
@@ -412,6 +413,32 @@ SCENARIO_STALE_FACTOR = float(os.environ.get("STRESS_STALE_FACTOR", "3.5"))
 #: confined to one scenario is still seen on both channels; the 1.5x
 #: history above is the pre-#1208 record of the same argument.
 SCENARIO_WORK_FACTOR = float(os.environ.get("STRESS_WORK_FACTOR", "1.80"))
+#: The kernel-cost twin of the factor above (round-5 D9-07): what the two
+#: simulate seams cost in CPU per call, judged against the baseline
+#: captured beside this run. Both channels above are integers the machine
+#: does not touch, which is what lets SCENARIO_WORK_FACTOR sit under
+#: DETECTION_TARGET; kernel CPU seconds are NOT machine-independent --
+#: identical work cost 1.10x to 1.44x of itself over six consecutive
+#: solves on one box (the #346 measurement that rejected every solve-wide
+#: CPU statistic) -- so this one is never judged against the recorded
+#: table, where the same scenario reads 1.435x its record on one machine
+#: and 0.865x on another (the bimodality SCENARIO_BUDGET_FACTOR records),
+#: but against the baseline that solved the same scenarios on this
+#: machine minutes ago. 1.80 clears the measured same-box movement with
+#: 25 % to spare, and what it sees that no count can: an exact 2x of
+#: PER-CALL kernel cost -- D9-07's injection, both seams run twice per
+#: call -- leaves both count channels at 1.0000x and the plan
+#: bit-identical while the seams' own time doubles, so the signal sits at
+#: 2.0x = 1.11x over this factor, the same razor SCENARIO_WORK_FACTOR
+#: rides for the 2x work injection. The whole-SOLVE CPU cannot carry this
+#: check at any factor: the same 2x injection moved solve CPU only
+#: 1.49-1.54x (the seams are about half the solve), inside the 1.44x
+#: clean movement -- #346's refusal of solve-wide CPU holds unchanged
+#: here. Count growth the counts themselves vouch for is divided out
+#: before the comparison (kernel_cost_over_verdict), so #1208's restarts,
+#: which legitimately sit at 1.80x of both counts on an unchanged plan,
+#: do not false-red.
+SCENARIO_KERNEL_FACTOR = float(os.environ.get("STRESS_KERNEL_FACTOR", "1.80"))
 #: How far this run's objective value may sit from the recorded one and
 #: still count as the same basin, relative.
 #:
@@ -803,6 +830,7 @@ class SolverWork:
         self.evaluations = 0
         self.calls = 0
         self.simulate_steps = 0
+        self.kernel_ms = 0.0
 
     def __enter__(self) -> "SolverWork":
         outer = self
@@ -817,7 +845,16 @@ class SolverWork:
         def counting_step(*args, **kwargs):
             # One call is one step: this is the scalar objective path.
             outer.simulate_steps += 1
-            return SolverWork._step_wrapped(*args, **kwargs)
+            # The per-call-cost channel (round-5 D9-07): the same clock
+            # the solve guard budgets (process_time, load-free), around
+            # the kernel only. A kernel that got slower per call moves
+            # no count and leaves the plan bit-identical; only this
+            # moves. Metered around the class attribute, so wrapping the
+            # seam itself (the injection shape) is inside the meter.
+            _t0 = time.process_time()
+            res = SolverWork._step_wrapped(*args, **kwargs)
+            outer.kernel_ms += (time.process_time() - _t0) * 1000.0
+            return res
 
         def counting_batch(*args, **kwargs):
             # Assigning a plain function to the class makes it a
@@ -829,7 +866,10 @@ class SolverWork:
             # rather than a quietly miscounted batch.
             matrix = args[2] if len(args) > 2 else kwargs["power_matrix"]
             outer.simulate_steps += int(matrix.shape[0] * matrix.shape[1])
-            return SolverWork._batch_wrapped(*args, **kwargs)
+            _t0 = time.process_time()
+            res = SolverWork._batch_wrapped(*args, **kwargs)
+            outer.kernel_ms += (time.process_time() - _t0) * 1000.0
+            return res
 
         optimizer_module._scoped_minimize = counting
         ThermalModel.simulate_step = counting_step
@@ -978,6 +1018,11 @@ def build_case(
         # equivalents the simulate channels actually ran, so a cost-only
         # regression that moves no evaluation can still be seen.
         "solver_simulate_steps": work.simulate_steps,
+        # ...and the per-call-cost channel those counts cannot carry
+        # (round-5 D9-07): CPU milliseconds spent inside the two simulate
+        # seams. A kernel that got slower per call moves no count and
+        # leaves the plan bit-identical; only its own time moves.
+        "solver_kernel_ms": work.kernel_ms,
         "model": model,
         "params": params,
         "config": opt_cfg,
@@ -1465,6 +1510,26 @@ def work_over_verdict(observed: int, recorded: int) -> bool:
     return observed > recorded * SCENARIO_WORK_FACTOR
 
 
+def kernel_cost_over_verdict(
+    observed_ms: float, baseline_ms: float, vouched_ratio: float = 1.0
+) -> bool:
+    """Has the kernel's own CPU cost grown past what its counts vouch for?
+
+    Round-5 D9-07's shape: both count channels at 1.0000x, the plan
+    bit-identical, the seams twice as dear per call. ``vouched_ratio`` is
+    the larger count ratio the same solve already reported (evaluations,
+    simulate step-equivalents): work the counts saw may spend
+    proportionally more kernel CPU (#1208's restarts sit at 1.80x of both
+    counts on an unchanged plan), so what this judges is the PER-CALL
+    cost -- kernel CPU per unit of counted work, with the work divided
+    out. Judged against the baseline captured beside the run, never the
+    recorded table; SCENARIO_KERNEL_FACTOR above records why. Shared by
+    the sweep's comparison and the checks that prove the comparison can
+    fail, for the same reason work_over_verdict is.
+    """
+    return observed_ms > baseline_ms * vouched_ratio * SCENARIO_KERNEL_FACTOR
+
+
 def rss_attrib_fail_threshold(recorded_attrib: float) -> float:
     """The scenario-attributable RSS growth (MiB) a probe may show before
     the check fails.
@@ -1526,6 +1591,31 @@ def traced_fail_threshold(recorded_traced: float) -> float:
     return recorded_traced * MEMORY_BUDGET_FACTOR
 
 
+def memory_stale_axes(
+    rss_attrib: float,
+    traced_peak: float,
+    recorded_attrib: float,
+    recorded_traced: float,
+):
+    """Yield (axis, observed, recorded) per memory field left stale-high.
+
+    The CPU ratio channel has had a stale-cheap rule since D9-03
+    (stale_cheap_verdict, in the sweep loop); the memory fields had none
+    (round-5 D9-08), so a 3.5x memory improvement left the table
+    stale-high and a later regression back to the old peak passed at
+    1.0x of a record under the 1.5x over-thresholds. Same rule, same
+    factor and same remedy as the ratio arm: re-record the memory half
+    (`--record-memory`). A generator so the memory pass can format each
+    axis with its own observed and recorded values, and so the selftest
+    arms can drive it on synthetic probe recordings without launching
+    the pass's subprocess probes.
+    """
+    if stale_cheap_verdict(rss_attrib, recorded_attrib):
+        yield "attributable RSS", rss_attrib, recorded_attrib
+    if stale_cheap_verdict(traced_peak, recorded_traced):
+        yield "traced peak", traced_peak, recorded_traced
+
+
 #: The worker that captures one tree's solver work, run as a fresh
 #: interpreter against a repository root.
 #:
@@ -1545,7 +1635,7 @@ def traced_fail_threshold(recorded_traced: float) -> float:
 #: own production code rather than this one's; PYTHONPATH is rewritten to
 #: the baseline's stub for the same reason.
 WORK_PROBE_DRIVER = '''
-import json, os, sys
+import json, os, sys, time
 root, out_path = sys.argv[1], sys.argv[2]
 os.chdir(root)
 for part in ("custom_components", os.path.join("tests", "hastub"), "tests"):
@@ -1560,21 +1650,31 @@ from heatpump_optimizer.thermal_model import ThermalModel
 # simulate_step call, rows x steps per simulate_trajectory_batch call --
 # the same convention as SolverWork's own channel, which the two windows
 # were measured to agree on (196128 both on the probe case; equal by
-# construction, since both wrap the same optimize() call).
+# construction, since both wrap the same optimize() call). The kernel's
+# own CPU seconds are metered here too (round-5 D9-07), with the same
+# clock and around the same region SolverWork's meter times in this
+# tree's own run, so the per-call-cost channel compares like with like.
 _STEP = ThermalModel.simulate_step
 _BATCH = ThermalModel.simulate_trajectory_batch
 count = 0
+kernel_ms = 0.0
 
 def counting_step(*args, **kwargs):
-    global count
+    global count, kernel_ms
     count += 1
-    return _STEP(*args, **kwargs)
+    _t0 = time.process_time()
+    res = _STEP(*args, **kwargs)
+    kernel_ms += (time.process_time() - _t0) * 1000.0
+    return res
 
 def counting_batch(*args, **kwargs):
-    global count
+    global count, kernel_ms
     matrix = args[2] if len(args) > 2 else kwargs["power_matrix"]
     count += int(matrix.shape[0] * matrix.shape[1])
-    return _BATCH(*args, **kwargs)
+    _t0 = time.process_time()
+    res = _BATCH(*args, **kwargs)
+    kernel_ms += (time.process_time() - _t0) * 1000.0
+    return res
 
 def install():
     ThermalModel.simulate_step = counting_step
@@ -1602,6 +1702,11 @@ for combo in stress.sweep_combinations():
         # being papered over by the fallback.
         "simulate": int(sim) if isinstance(sim, int) else int(count),
         "objective": float(run["result"].objective_value),
+        # The kernel's own CPU seconds, from THIS driver's meter: the
+        # tree under test may predate the channel in its SolverWork, but
+        # the seams it solves through are the ones metered here either
+        # way (round-5 D9-07).
+        "kernel_ms": round(kernel_ms, 3),
     }
 with open(out_path, "w") as fh:
     json.dump(rows, fh, indent=1, sort_keys=True)
@@ -1625,13 +1730,21 @@ def git_commit(repo: str, rev: str) -> str | None:
 def capture_work_rows(root: str, out_path: str) -> tuple[dict | None, str]:
     """Run one tree's sweep in a child process and read back its work rows.
 
-    ``{label: {"evals": int, "simulate": int, "objective": float}}`` --
-    the numbers the comparison needs and nothing else (the simulate count
-    added for #1229). No timing is captured here on purpose: CPU moves
-    between two runs of the same box (1.10x to 1.44x over six repeats of
-    bit-identical work, measured for #346) while the counts do not move at
-    all, and a baseline is only worth having in the quantity that does not
-    move.
+    ``{label: {"evals": int, "simulate": int, "objective": float,
+    "kernel_ms": float}}`` -- the numbers the comparison needs and nothing
+    more (the simulate count added for #1229, the kernel seconds for
+    round-5 D9-07). Whole-solve timing is still not captured, on purpose:
+    CPU moves between two runs of the same box (1.10x to 1.44x over six
+    repeats of bit-identical work, measured for #346) while the counts do
+    not move at all, and a baseline is only worth having in the quantity
+    that does not move. The kernel-seam seconds are the one measured
+    exception, and it is honest because the signal clears the movement
+    the noise does not: an exact 2x of per-call kernel cost leaves both
+    counts flat and doubles this field, while the same 2x reaches only
+    1.49-1.54x of the whole solve (the seams are about half of it) --
+    inside the 1.44x movement, which is exactly why solve-wide CPU is
+    still refused here. SCENARIO_KERNEL_FACTOR (1.80) sits between the
+    two.
     """
     env = dict(os.environ)
     env["PYTHONPATH"] = os.path.join(root, "tests", "hastub")
@@ -1719,19 +1832,22 @@ class WorkDrift:
     """The scenario-by-scenario verdict of the solver-work comparison.
 
     Every scenario the sweep ran lands in exactly one of ``covered``,
-    ``replanned`` and ``only_here``; ``over``, ``stale`` and ``sim_over``
-    are the verdicts within ``covered``, and ``only_baseline`` names
-    scenarios the baseline had and this tree does not. ``over`` and
-    ``sim_over`` are the same rule on the two channels SolverWork counts --
-    scipy evaluations and simulation steps (#1229) -- so a scenario can be
-    over on either, both, or neither. The three uncovered populations are
+    ``replanned`` and ``only_here``; ``over``, ``stale``, ``sim_over``
+    and ``cost_over`` are the verdicts within ``covered``, and
+    ``only_baseline`` names scenarios the baseline had and this tree does
+    not. ``over`` and ``sim_over`` are the same rule on the two channels
+    SolverWork counts -- scipy evaluations and simulation steps (#1229)
+    -- so a scenario can be over on either, both, or neither;
+    ``cost_over`` is the per-call-cost rule on the kernel's own CPU
+    seconds (round-5 D9-07), the quantity that moves when neither count
+    does. The three uncovered populations are
     LISTS, not a count, because the failure this file keeps having is a
     check that quietly narrowed to whatever still agreed -- a blind spot
     has to be printable by name before anyone can argue about it.
     """
 
     __slots__ = ("covered", "replanned", "only_here", "only_baseline",
-                 "over", "stale", "sim_over")
+                 "over", "stale", "sim_over", "cost_over")
 
     def __init__(self) -> None:
         self.covered: list[str] = []
@@ -1741,12 +1857,14 @@ class WorkDrift:
         self.over: list[str] = []
         self.stale: list[str] = []
         self.sim_over: list[str] = []
+        self.cost_over: list[str] = []
 
 
 def work_drift_compare(
     observed_evals: dict[str, int],
     observed_simulate: dict[str, int],
     observed_objective: dict[str, float],
+    observed_kernel: dict[str, float],
     baseline: dict[str, dict],
 ) -> WorkDrift:
     """Judge this tree's solver work against the baseline's, per scenario.
@@ -1755,10 +1873,13 @@ def work_drift_compare(
     sweep can fail both call this one function, so a test cannot pass by
     re-implementing the comparison it is meant to pin (tests/README.md).
 
-    Two channels are judged on every covered scenario: scipy evaluations
-    (``over``) and simulation steps (``sim_over``, #1229 -- the evaluation
-    count is blind to a kernel that got slower or is run twice without
-    adding evaluations, and the simulate channel is the one that moves).
+    Three channels are judged on every covered scenario: scipy
+    evaluations (``over``), simulation steps (``sim_over``, #1229 -- the
+    evaluation count is blind to a kernel that is run twice without
+    adding evaluations, and the simulate channel is the one that moves)
+    and the kernel's own CPU seconds (``cost_over``, round-5 D9-07 -- a
+    kernel that got slower PER CALL moves no count at all, so both count
+    channels are blind to it and only its time moves).
 
     A scenario is judged only where the two trees produced the SAME PLAN,
     which is what same_basin() decides on the objective value. That
@@ -1817,6 +1938,29 @@ def work_drift_compare(
                 f"{SCENARIO_WORK_FACTOR:.2f}x factor, on an unchanged "
                 f"plan (objective {_fmt_objective(objective)})"
             )
+        # The per-call-cost channel (round-5 D9-07). The counts above
+        # vouch for the WORK this solve did; this judges what each unit
+        # of that work cost in kernel CPU, against the baseline captured
+        # beside this run. A baseline row without usable kernel seconds
+        # is not judged here -- the sweep checks separately that every
+        # baseline row carries them, so that hole cannot open silently.
+        base_kernel = entry.get("kernel_ms") if isinstance(entry, dict) else None
+        got_kernel = float(observed_kernel.get(label, 0.0))
+        if (isinstance(base_kernel, (int, float))
+                and not isinstance(base_kernel, bool)
+                and base_kernel > 0.0):
+            vouched = got / base_evals
+            if isinstance(base_sim, int) and base_sim > 0:
+                vouched = max(vouched, int(got_sim) / base_sim)
+            if kernel_cost_over_verdict(got_kernel, float(base_kernel), vouched):
+                verdict.cost_over.append(
+                    f"{label} spent {got_kernel:.0f} ms of kernel CPU "
+                    f"against the baseline's {float(base_kernel):.0f} ms = "
+                    f"{got_kernel / float(base_kernel):.2f}x, over the "
+                    f"{SCENARIO_KERNEL_FACTOR:.2f}x factor on work the "
+                    f"counts vouch at {vouched:.2f}x, on an unchanged plan "
+                    f"(objective {_fmt_objective(objective)})"
+                )
         if stale_cheap_verdict(got, base_evals):
             # REPORTED, NOT FAILED, and the asymmetry is the point (#387).
             # The stale rule exists because a RECORD can go stale-high and
@@ -2080,13 +2224,16 @@ if __name__ == "__main__":
     # A synthetic baseline capture: what capture_baseline_work() hands the
     # comparison. Fifty-one scenarios, an evaluation count, the
     # simulate-equivalent count of the same solve (#1229, a separate channel
-    # so the two can be moved independently) and the objective value that
-    # identifies the plan it came from.
+    # so the two can be moved independently), the objective value that
+    # identifies the plan it came from, and the kernel's own CPU seconds
+    # (round-5 D9-07, movable independently of both counts for the same
+    # reason).
     _SYN = {
         f"synthetic/{i:02d}": {
             "evals": 20 + 7 * i,
             "simulate": 400 + 11 * i,
             "objective": 100.0 + i,
+            "kernel_ms": 30.0 + 5.0 * i,
         }
         for i in range(51)
     }
@@ -2096,22 +2243,25 @@ if __name__ == "__main__":
     _COHORT = _SYN_LABELS[:22]
     _VICTIM = _SYN_LABELS[7]
 
-    def _capture(work=1.0, objective=1.0, sim=1.0, only=None, drop=(),
-                 baseline=None):
+    def _capture(work=1.0, objective=1.0, sim=1.0, kernel=1.0, only=None,
+                 drop=(), baseline=None):
         """One tree's capture, perturbed off the baseline it is compared to.
 
         ``only`` restricts the perturbation to a set of scenarios; passing
         the same ``objective`` shift to BOTH captures is how a runner that
         holds a basin no table has ever seen is expressed, because that is
         what such a runner does -- it moves both halves together. ``work``
-        scales the evaluation count and ``sim`` the simulate-equivalent
-        count -- the two channels SolverWork meters (#1229) -- and they are
-        perturbed independently because the regression that motivates the
-        second channel (a doubled finite-difference gradient, round-5
-        D9-01) moves the second while the first sits still.
+        scales the evaluation count, ``sim`` the simulate-equivalent count
+        and ``kernel`` the seams' own CPU seconds -- the three channels
+        SolverWork meters (#1229, round-5 D9-07) -- and they are perturbed
+        independently because the regressions that motivated the last two
+        each move one while the first sits still (a doubled
+        finite-difference gradient moves only the simulate count, round-5
+        D9-01; a dearer kernel per call moves only the seconds, round-5
+        D9-07).
         """
         rows = baseline if baseline is not None else _SYN
-        evals, simulate, objectives = {}, {}, {}
+        evals, simulate, objectives, kernels = {}, {}, {}, {}
         for label, row in rows.items():
             if label in drop:
                 continue
@@ -2121,7 +2271,8 @@ if __name__ == "__main__":
                 round(row["simulate"] * (sim if hot else 1.0))
             )
             objectives[label] = row["objective"] * (objective if hot else 1.0)
-        return evals, simulate, objectives
+            kernels[label] = float(row["kernel_ms"]) * (kernel if hot else 1.0)
+        return evals, simulate, objectives, kernels
 
     def _shifted(factor, only=None):
         """The same baseline as solved by a machine with different kernels."""
@@ -2129,6 +2280,7 @@ if __name__ == "__main__":
             label: {
                 "evals": row["evals"],
                 "simulate": row["simulate"],
+                "kernel_ms": row["kernel_ms"],
                 "objective": row["objective"] * (
                     factor if (only is None or label in only) else 1.0
                 ),
@@ -2140,17 +2292,19 @@ if __name__ == "__main__":
         base = _SYN if baseline is None else baseline
         return work_drift_compare(*_capture(baseline=base, **kw), base)
 
-    # (a) the null: an unchanged tree fires nothing on either channel
-    # (#1229) and covers everything.
+    # (a) the null: an unchanged tree fires nothing on any channel
+    # (#1229, round-5 D9-07) and covers everything.
     _null = _verdict()
     R.check(
-        "an unchanged sweep fires the work check on no scenario, on either "
+        "an unchanged sweep fires the work check on no scenario, on any "
         "channel, and covers all of them",
         not _null.over
         and not _null.sim_over
+        and not _null.cost_over
         and len(_null.covered) == len(_SYN),
         f"{len(_null.over)} fired, {len(_null.sim_over)} fired on the "
-        f"simulate channel, {len(_null.covered)} of {len(_SYN)} covered",
+        f"simulate channel, {len(_null.cost_over)} on the kernel-cost "
+        f"channel, {len(_null.covered)} of {len(_SYN)} covered",
     )
 
     # (b) the finding itself, executed at 1.99x on one scenario. Before
@@ -2187,6 +2341,36 @@ if __name__ == "__main__":
         f"over={_sim_2x.over or 'nothing fired'} on a tree whose "
         f"evaluation count for {_VICTIM} is unchanged at "
         f"{_SYN[_VICTIM]['evals']}",
+    )
+
+    # (b3) the per-call-cost arm (round-5 D9-07): the regression BOTH
+    # count channels are blind to. Doubling what each kernel call costs
+    # leaves the evaluation count and the simulate count at 1.0000x with
+    # a bit-identical plan -- the finder measured the whole solve's CPU
+    # at only 1.51x, inside the 1.44x clean movement that made #346
+    # refuse every solve-wide CPU statistic -- while the kernel's own
+    # seconds double. This arm pins that the rule fires from the
+    # kernel-cost channel ALONE, with no count movement to lean on.
+    _kernel_2x = _verdict(kernel=1.99, only={_VICTIM})
+    R.check(
+        "a per-call kernel slowdown confined to one scenario is seen on "
+        "the kernel-cost channel, with both count channels flat (round-5 "
+        "D9-07)",
+        [f.split()[0] for f in _kernel_2x.cost_over] == [_VICTIM]
+        and not _kernel_2x.over
+        and not _kernel_2x.sim_over,
+        f"cost_over={_kernel_2x.cost_over or 'nothing fired'}, "
+        f"over={_kernel_2x.over or 'nothing fired'}, sim_over="
+        f"{_kernel_2x.sim_over or 'nothing fired'} on a tree whose counts "
+        f"for {_VICTIM} are unchanged at {_SYN[_VICTIM]['evals']} "
+        f"evaluations and {_SYN[_VICTIM]['simulate']} step-equivalents",
+    )
+    R.check(
+        "...and kernel seconds that grow only with the counts do not "
+        "fire it: the vouching is what makes this a per-CALL channel",
+        not _verdict(kernel=1.99, sim=1.99, only={_VICTIM}).cost_over,
+        "kernel seconds at 1.99x moved by counted work fired the "
+        "per-call channel",
     )
 
     # (c) THE #387 acceptance bar, and the reason the recorded fingerprint
@@ -2321,6 +2505,54 @@ if __name__ == "__main__":
         f"{SCENARIO_STALE_FACTOR - 0.5:.1f}x cheaper failed the stale rule",
     )
 
+    # (f2) the memory twin of (f), on both axes the memory pass judges
+    # (round-5 D9-08): the ratio channel has had a stale-cheap rule since
+    # D9-03; rss and traced had none, so a 3.5x memory improvement left
+    # the table stale-high and a regression back to the old peak passed
+    # at 1.0x under the 1.5x over-thresholds. Driven on synthetic probe
+    # recordings through memory_stale_axes -- the same decision path the
+    # memory pass calls -- because the real pass probes in subprocesses
+    # after the sweep.
+    R.check(
+        "a memory peak more than the stale factor cheaper is caught, on "
+        "both axes (round-5 D9-08)",
+        [
+            axis
+            for axis, _observed, _recorded in memory_stale_axes(
+                100.0 / (SCENARIO_STALE_FACTOR + 0.5),
+                100.0 / (SCENARIO_STALE_FACTOR + 0.5),
+                100.0,
+                100.0,
+            )
+        ]
+        == ["attributable RSS", "traced peak"],
+        f"{SCENARIO_STALE_FACTOR + 0.5:.1f}x cheaper passed the memory "
+        f"stale rule",
+    )
+    R.check(
+        "...and one less than the stale factor cheaper is still allowed "
+        "on the memory axes",
+        not list(
+            memory_stale_axes(
+                100.0 / (SCENARIO_STALE_FACTOR - 0.5),
+                100.0 / (SCENARIO_STALE_FACTOR - 0.5),
+                100.0,
+                100.0,
+            )
+        ),
+        f"{SCENARIO_STALE_FACTOR - 0.5:.1f}x cheaper failed the memory "
+        f"stale rule",
+    )
+    R.check(
+        "...and a regression back to a stale record passes the over side, "
+        "which is why the stale rule has to fire while the tree is cheap",
+        not list(memory_stale_axes(100.0, 100.0, 100.0, 100.0))
+        and 100.0 <= rss_attrib_fail_threshold(100.0 * SCENARIO_STALE_FACTOR)
+        and 100.0 <= traced_fail_threshold(100.0 * SCENARIO_STALE_FACTOR),
+        "a probe back at a record that is stale-high was caught by the "
+        "over side, or the at-record null fired the stale rule",
+    )
+
     # (g) the instrument itself, end to end: the hook has to reach the
     # solver and the count has to move with the work. A counter that
     # reports a plausible constant is the failure this file exists to
@@ -2400,23 +2632,27 @@ if __name__ == "__main__":
     # the statistic's properties; this one is the finding, and it is also
     # the whole shape of #387 executed rather than argued -- two computed
     # captures, no recorded number anywhere in it.
+    _plain_kernel = float(_plain.get("solver_kernel_ms", 0.0))
     _real_base = {
         _probe_label: {
             "evals": int(_plain["solver_evals"]),
             "simulate": _plain_sim,
             "objective": float(_plain["result"].objective_value),
+            "kernel_ms": _plain_kernel,
         }
     }
     _real_null = work_drift_compare(
         {_probe_label: int(_plain["solver_evals"])},
         {_probe_label: _plain_sim},
         {_probe_label: float(_plain["result"].objective_value)},
+        {_probe_label: _plain_kernel},
         _real_base,
     )
     _real_2x = work_drift_compare(
         {_probe_label: int(_doubled["solver_evals"])},
         {_probe_label: _doubled_sim},
         {_probe_label: float(_doubled["result"].objective_value)},
+        {_probe_label: float(_doubled.get("solver_kernel_ms", 0.0))},
         _real_base,
     )
     R.check(
@@ -2436,6 +2672,7 @@ if __name__ == "__main__":
         {_probe_label: int(_costly["solver_evals"])},
         {_probe_label: _costly_sim},
         {_probe_label: float(_costly["result"].objective_value)},
+        {_probe_label: float(_costly.get("solver_kernel_ms", 0.0))},
         _real_base,
     )
     R.check(
@@ -2449,6 +2686,61 @@ if __name__ == "__main__":
         f"{_costly_sim} with the batched gradient run twice, factor "
         f"{SCENARIO_WORK_FACTOR:.2f}; null fired {_real_null.sim_over}, "
         f"cost-only fired {_cost_only_rule.sim_over}",
+    )
+    # ...and the per-call-cost arm for the channel both counts are blind
+    # to (round-5 D9-07): both kernel seams run twice per call, through
+    # the same class attributes SolverWork hooks. The counts see one
+    # call each, the plan does not move, and only the kernel's own
+    # seconds double -- the finder's injection, which the whole solve's
+    # CPU carries at just 1.49-1.54x.
+    _saved_seam_batch = SolverWork._batch_wrapped
+    _saved_seam_step = SolverWork._step_wrapped
+
+    def _seam_twice(seam):
+        def _twice(*args, **kwargs):
+            seam(*args, **kwargs)
+            return seam(*args, **kwargs)
+        return _twice
+
+    SolverWork._batch_wrapped = _seam_twice(_saved_seam_batch)
+    SolverWork._step_wrapped = _seam_twice(_saved_seam_step)
+    try:
+        _slower = build_case(**_probe)
+    finally:
+        SolverWork._batch_wrapped = _saved_seam_batch
+        SolverWork._step_wrapped = _saved_seam_step
+        # build_case's own __exit__ re-published the wrappers onto the
+        # production seams, so restoring the class attributes alone would
+        # leave the twice-runners reachable from the module.
+        ThermalModel.simulate_trajectory_batch = _saved_seam_batch
+        ThermalModel.simulate_step = _saved_seam_step
+    _slower_kernel = float(_slower.get("solver_kernel_ms", 0.0))
+    _slower_rule = work_drift_compare(
+        {_probe_label: int(_slower["solver_evals"])},
+        {_probe_label: int(_slower.get("solver_simulate_steps", 0))},
+        {_probe_label: float(_slower["result"].objective_value)},
+        {_probe_label: _slower_kernel},
+        _real_base,
+    )
+    R.check(
+        "the per-call-cost arm reaches the rule the sweep applies, with "
+        "both count channels flat, and an unchanged solve does not "
+        "(round-5 D9-07)",
+        not _real_null.cost_over
+        and _real_null.covered == [_probe_label]
+        and [f.split()[0] for f in _slower_rule.cost_over] == [_probe_label]
+        and not _slower_rule.over
+        and not _slower_rule.sim_over,
+        f"{_probe_label}: {_plain_kernel:.0f} ms of kernel CPU plain, "
+        f"{_slower_kernel:.0f} ms with both seams run twice per call "
+        f"(x{_slower_kernel / max(_plain_kernel, 1e-9):.2f}); evaluations "
+        f"{_plain['solver_evals']} vs {_slower['solver_evals']}, simulate "
+        f"{_plain_sim} vs {_slower.get('solver_simulate_steps', 0)}; solve "
+        f"CPU {float(_plain['solve_cpu_ms']):.0f} vs "
+        f"{float(_slower['solve_cpu_ms']):.0f} ms; factor "
+        f"{SCENARIO_KERNEL_FACTOR:.2f}; null fired "
+        f"{_real_null.cost_over}, per-call-cost fired "
+        f"{_slower_rule.cost_over}",
     )
 
     # ===========================================================================
@@ -2552,6 +2844,7 @@ if __name__ == "__main__":
     new_table: dict[str, dict] = {}
     observed_evals: dict[str, int] = {}
     observed_simulate: dict[str, int] = {}
+    observed_kernel: dict[str, float] = {}
     observed_objective: dict[str, float] = {}
     if not record_mode and not budget_table:
         print(
@@ -2596,6 +2889,10 @@ if __name__ == "__main__":
         # the simulate channels actually ran. ``.get`` with a zero default
         # for the failing-first reason spelled out at the probe section.
         observed_simulate[label] = int(run.get("solver_simulate_steps", 0))
+        # ...and the seams' own CPU seconds (round-5 D9-07): the channel
+        # that moves when neither count does, ``.get`` for the same
+        # failing-first reason.
+        observed_kernel[label] = float(run.get("solver_kernel_ms", 0.0))
         # NaN when the solve failed, which same_basin() reads as "cannot
         # tell" rather than as agreement.
         observed_objective[label] = float(run["result"].objective_value)
@@ -2783,7 +3080,8 @@ if __name__ == "__main__":
         # scenario whose plan this branch changed has no comparable work,
         # and is named rather than judged.
         drift = work_drift_compare(
-            observed_evals, observed_simulate, observed_objective, baseline_work
+            observed_evals, observed_simulate, observed_objective,
+            observed_kernel, baseline_work,
         )
         _work_covered = len(drift.covered)
         print(
@@ -2812,15 +3110,19 @@ if __name__ == "__main__":
             "the check below cannot fail and means nothing",
         )
         R.check(
-            "the simulate-work meter counted something for every scenario "
-            "(#1229)",
+            "the simulate-work meter and the kernel-cost meter counted "
+            "something for every scenario (#1229, round-5 D9-07)",
             bool(observed_simulate)
-            and all(v > 0 for v in observed_simulate.values()),
+            and all(v > 0 for v in observed_simulate.values())
+            and bool(observed_kernel)
+            and all(v > 0.0 for v in observed_kernel.values()),
             f"{sum(1 for v in observed_simulate.values() if v <= 0)} "
-            "scenarios reported zero simulate step-equivalents -- "
-            "SolverWork's simulate channel (ThermalModel.simulate_step and "
-            "simulate_trajectory_batch) has stopped reaching the kernel, so "
-            "the simulate check below cannot fail and means nothing",
+            "scenarios reported zero simulate step-equivalents and "
+            f"{sum(1 for v in observed_kernel.values() if v <= 0.0)} zero "
+            "kernel seconds -- SolverWork's hooks on "
+            "ThermalModel.simulate_step and simulate_trajectory_batch have "
+            "stopped reaching the kernel, so the checks below cannot fail "
+            "and mean nothing",
         )
         R.check(
             "this tree's solver work has a baseline to be judged against",
@@ -2835,6 +3137,9 @@ if __name__ == "__main__":
                 isinstance(entry, dict)
                 and isinstance(entry.get("simulate"), int)
                 and entry["simulate"] > 0
+                and isinstance(entry.get("kernel_ms"), (int, float))
+                and not isinstance(entry.get("kernel_ms"), bool)
+                and entry["kernel_ms"] > 0.0
             )
         ]
         if not baseline_work:
@@ -2842,17 +3147,17 @@ if __name__ == "__main__":
         else:
             _sim_why = (
                 f"{len(_sim_base_missing)} of {len(baseline_work)} baseline "
-                f"rows carry no positive integer simulate count "
+                f"rows carry no positive simulate count or kernel seconds "
                 f"({', '.join(_sim_base_missing[:5])}"
                 + (" ..." if len(_sim_base_missing) > 5 else "")
-                + "), so the simulate channel judged nothing for them; the "
-                "capture worker (WORK_PROBE_DRIVER) counts the two kernel "
-                "seams itself so that an older baseline tree needs no "
-                "channel of its own"
+                + "), so the simulate and kernel-cost checks judged nothing "
+                "for them; the capture worker (WORK_PROBE_DRIVER) counts and "
+                "times the two kernel seams itself so that an older baseline "
+                "tree needs no channel of its own"
             )
         R.check(
-            "the baseline capture carries simulate counts this meter can "
-            "read (#1229)",
+            "the baseline capture carries simulate counts and kernel "
+            "seconds this meter can read (#1229, round-5 D9-07)",
             bool(baseline_work) and not _sim_base_missing,
             _sim_why,
         )
@@ -2869,11 +3174,23 @@ if __name__ == "__main__":
             "no scenario's simulate work grew on an unchanged plan (#1229)",
             not drift.sim_over,
             "; ".join(drift.sim_over)
-            + "; this is the cost-only half of the localised-regression "
-            "check -- the evaluation count cannot see a kernel that got "
-            "slower or is run twice without adding evaluations (round-5 "
-            "D9-01 measured a doubled batched gradient at 1.0000x of the "
-            "evaluation count and 1.9868x of this one)",
+            + "; this is the run-twice half of the localised cost check -- "
+            "the evaluation count cannot see a kernel that is run twice "
+            "without adding evaluations (round-5 D9-01 measured a doubled "
+            "batched gradient at 1.0000x of the evaluation count and "
+            "1.9868x of this one)",
+        )
+        R.check(
+            "no scenario's simulate kernel got slower per call on an "
+            "unchanged plan (round-5 D9-07)",
+            not drift.cost_over,
+            "; ".join(drift.cost_over)
+            + "; this is the per-call-cost half -- a kernel that got "
+            "slower PER CALL moves no count at all, and round-5 D9-07 "
+            "measured both count channels at 1.0000x with the solve CPU "
+            "at 1.49-1.54x passing every budget in this file, so the "
+            "kernel's own CPU seconds against the baseline captured "
+            "beside this run is the only channel that moves",
         )
         # Two different failures wear this check's name, and telling a
         # reader they made a behaviour change when the baseline simply
@@ -3039,6 +3356,7 @@ if __name__ == "__main__":
             mem_labels = [label for label, _ in _by_cost[:MEMORY_TOP_N]]
     rss_before_mb = rss_mb()
     mem_over: list[str] = []
+    mem_stale: list[str] = []
     mem_unrecorded: list[str] = []
     probe_env = _memory_probe_env()
 
@@ -3107,6 +3425,21 @@ if __name__ == "__main__":
                     f"{recorded_traced:.1f} MiB "
                     f"(x{MEMORY_BUDGET_FACTOR:.1f})"
                 )
+            # The stale-cheap side (round-5 D9-08), mirroring the rule the
+            # CPU ratio channel has carried since D9-03: a table left
+            # stale-high by a memory improvement would pass a regression
+            # back to the old peak at 1.0x under the over-thresholds
+            # above, so the cheap observation itself has to fail here.
+            for axis, observed, recorded in memory_stale_axes(
+                rss_attrib, traced_peak, recorded_attrib, recorded_traced
+            ):
+                mem_stale.append(
+                    f"{label} {axis} {observed:.2f} MiB vs recorded "
+                    f"{recorded:.2f} MiB (cheaper by more than "
+                    f"{SCENARIO_STALE_FACTOR:g}x: re-record the memory half "
+                    f"with `stress.py --record-memory`, or a regression "
+                    f"back to the old peak would pass unnoticed)"
+                )
         print(
             f"  {label:<34} RSS peak {rss_peak:7.1f} MiB, attributable "
             f"{rss_attrib:5.1f} MiB, traced {traced_peak:5.1f} MiB"
@@ -3170,6 +3503,12 @@ if __name__ == "__main__":
             "recorded budgets",
             not mem_over,
             "; ".join(mem_over),
+        )
+        R.check(
+            "no probed scenario's memory got dramatically cheaper without "
+            "a re-record",
+            not mem_stale,
+            "; ".join(mem_stale),
         )
         R.check(
             "every memory-pass scenario has recorded peaks",
@@ -3287,7 +3626,8 @@ if __name__ == "__main__":
         f"smallest UNIFORM regression this gate can see where it was "
         f"recorded; a regression confined to one scenario is seen at "
         f"{SCENARIO_WORK_FACTOR:.2f}x of that scenario's recorded solver "
-        f"work instead, and in nothing denominated in CPU"
+        f"work instead, or at {SCENARIO_KERNEL_FACTOR:.2f}x of the kernel "
+        f"CPU the baseline spent beside it (round-5 D9-07)"
     )
     # The memory rules owe the same answer (#949, round 4 D9-06): a 2x
     # memory regression -- the DETECTION_TARGET -- passed all sixty-two
@@ -3388,12 +3728,18 @@ if __name__ == "__main__":
     # can move -- #371 measured the min() at 1.420 for every value of that
     # factor from 3.0 to 100.0 and closed on it, which is what a decorative
     # check looks like. It is SCENARIO_WORK_FACTOR, and that constant IS
-    # free to be tightened, so this check can bind on it.
-    if SCENARIO_WORK_FACTOR >= DETECTION_TARGET:
+    # free to be tightened, so this check can bind on it -- as is
+    # SCENARIO_KERNEL_FACTOR, the kernel-CPU twin round-5 D9-07 added,
+    # which carries the one regression shape no count can see.
+    if SCENARIO_WORK_FACTOR >= DETECTION_TARGET or (
+        SCENARIO_KERNEL_FACTOR >= DETECTION_TARGET
+    ):
         _blind.append(
             f"a regression confined to ONE scenario is invisible below "
-            f"{SCENARIO_WORK_FACTOR:.2f}x of its recorded solver work, "
-            f"against a required {DETECTION_TARGET:.0f}x"
+            f"{SCENARIO_WORK_FACTOR:.2f}x of its recorded solver work or "
+            f"{SCENARIO_KERNEL_FACTOR:.2f}x of the kernel CPU the baseline "
+            f"spent beside it, against a required "
+            f"{DETECTION_TARGET:.0f}x"
         )
     R.check(
         f"the budgets are tight enough to see a {DETECTION_TARGET:.0f}x "
