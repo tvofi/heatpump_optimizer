@@ -569,3 +569,16 @@
 # waiting_for leaf is already in d4e33c2b, the merge base) and move nothing
 # under this diff -- fix/r5-renames touches no coordinator capture -- so they
 # are dropped rather than inherited. See the header's rule 2.
+# R5-D2-02 (#1307), fix branch fix/r5-valved-config: this diff claims
+# valve_storage_small_tank and NOTHING ELSE. It is the only scenario whose
+# tank is small enough for the buffer's emitter coupling to be stiff (35 L,
+# u*dt/C_buf = 8.62; every other valved scenario is 750 L, ratio 0.40, and
+# their step count is unchanged -- tools/audit/round5/D2/seat-a/
+# control_substeps.py prints the per-family count both ways). Direction: the
+# tank stops ringing, so buffer_temp_trajectory loses its step-1 overshoot
+# (44.505886 -> 32.796098, first of 96/97 indices), and a plan costed against
+# a non-chaotic tank is cheaper: baseline_cost 158.826466 -> 149.153601,
+# deferred_energy_cost 13.073536 -> 15.494942, with displace_schedule,
+# heat_pump_on_schedule and lower_setpoints re-shaped to match. No solver,
+# card or config fixture moves.
+valve_storage_small_tank # R5-D2-02 (#1307): valved 35 L buffer substep fix
