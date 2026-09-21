@@ -9035,6 +9035,61 @@ for _kind, _current in (
         str(_derived_live),
     )
 
+# --- D8-02 (round 5, #1334): the same clusters hold in Swedish ------------
+#
+# English leads each family above with a token of its own ("Cost ", "Plan ",
+# "Learning ", "DHW "). The round-5 D8 harness measures the Swedish side the
+# way it measures the English one: for a family, the longest common prefix of
+# its members' Swedish names must reach 3 characters -- below that the members
+# are led by no common token and the registry's default name-sorted view pulls
+# them apart. Measured before this fix: families_split_name_sv 4 against en 1,
+# sv_only_divergent_families 1 (the sun family), family_lcp_divergence_sv 2.
+# Four names dropped a token English keeps -- the two plan sensors
+# ("Värmeplan (nästa 24 h)" / "Varmvattenplan (nästa 24 h)"), the tariff pair's
+# spot price ("Kostnad elpris (nu)" inside a run of "Kostnad ..." names), and
+# the sun family's forecast ("Prognos för solöverskott" against "Sol ...").
+#
+# Read sv.json, the catalogue the frontend loads. The families are the two
+# shapes the harness names: the English-prefixed clusters the table above
+# pins, and the translation-key prefixes (its PREFIX_FAMILIES). The keys stay
+# the family definition in both, so a key that joins or leaves a family moves
+# the check with it; the bound is the harness's own.
+def _lead_token(_names):
+    """Longest common prefix of _names -- the harness's `lcp`."""
+    _prefix = _names[0]
+    for _name in _names[1:]:
+        while not _name.startswith(_prefix):
+            _prefix = _prefix[:-1]
+    return _prefix
+
+for _plat, _pins in sorted(_CLUSTER_PREFIXES.items()):
+    _clusters: dict[str, list[str]] = {}
+    for _key, _prefix in _pins.items():
+        _clusters.setdefault(_prefix, []).append(_key)
+    for _prefix, _keys in sorted(_clusters.items()):
+        if len(_keys) < 2:
+            continue
+        _sv_names = [_sv_entities[_plat][_k]["name"] for _k in sorted(_keys)]
+        R.check(
+            f"the Swedish {_plat} names {_prefix!r} leads keep a lead token too (#1334)",
+            len(_lead_token(_sv_names)) >= 3,
+            f"lcp={_lead_token(_sv_names)!r} over {_sv_names}",
+        )
+for _key_prefix in ("dhw_", "learning_", "ecl110_", "solar_"):
+    _prefix_names = sorted(
+        _body["name"]
+        for _ents in _sv_entities.values()
+        for _key, _body in _ents.items()
+        if _key.startswith(_key_prefix)
+    )
+    if len(_prefix_names) < 2:
+        continue
+    R.check(
+        f"the Swedish {_key_prefix}* family's names keep a lead token (#1334)",
+        len(_lead_token(_prefix_names)) >= 3,
+        f"lcp={_lead_token(_prefix_names)!r} over {_prefix_names}",
+    )
+
 # Belt-and-braces for the future: the four headline sensors advertise a
 # stable stat_kind attribute, same contract as plan_kind on the plan sensors.
 for _display, _kind in (
