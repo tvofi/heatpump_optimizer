@@ -1680,11 +1680,28 @@ def install():
     ThermalModel.simulate_step = counting_step
     ThermalModel.simulate_trajectory_batch = counting_batch
 
+# A tree whose SolverWork hooks the seams captures them into CLASS
+# ATTRIBUTES at import (_step_wrapped / _batch_wrapped) and rebinds the
+# module seams around those for every solve -- which silently bypasses
+# the wrappers above for exactly the trees that have their own channel:
+# their counts come back in the run dict, but a channel the tree lacks
+# (kernel seconds, on trees between #1229 and round-5 D9-07) would have
+# nowhere to come from: measured, 51 of 51 rows at 0.0 ms against a
+# bc5d62b baseline. Patch the class attributes too, so this meter sits
+# around the raw kernel whichever indirection the tree installs; a tree
+# without the hook leaves the module-level patch doing that job.
+if hasattr(stress.SolverWork, "_step_wrapped") and hasattr(
+    stress.SolverWork, "_batch_wrapped"
+):
+    stress.SolverWork._step_wrapped = counting_step
+    stress.SolverWork._batch_wrapped = counting_batch
+
 rows = {}
 for combo in stress.sweep_combinations():
     combo = dict(combo)
     label = combo.pop("label")
     count = 0
+    kernel_ms = 0.0
     # Re-installed before every build: a tree that HAS its own simulate
     # channel restores these class attributes when it leaves its own hook
     # (SolverWork.__exit__), which would otherwise drop this wrapper after
@@ -1693,6 +1710,7 @@ for combo in stress.sweep_combinations():
     install()
     run = stress.build_case(**combo)
     sim = run.get("solver_simulate_steps")
+    kms = run.get("solver_kernel_ms")
     rows[label] = {
         "evals": int(run["solver_evals"]),
         # The tree's own count when it has the channel -- the same
@@ -1702,11 +1720,14 @@ for combo in stress.sweep_combinations():
         # being papered over by the fallback.
         "simulate": int(sim) if isinstance(sim, int) else int(count),
         "objective": float(run["result"].objective_value),
-        # The kernel's own CPU seconds, from THIS driver's meter: the
-        # tree under test may predate the channel in its SolverWork, but
-        # the seams it solves through are the ones metered here either
-        # way (round-5 D9-07).
-        "kernel_ms": round(kernel_ms, 3),
+        # The kernel's own CPU seconds, same convention: the tree's own
+        # meter when it has the channel, this driver's when it predates
+        # it (round-5 D9-07).
+        "kernel_ms": (
+            float(kms)
+            if isinstance(kms, (int, float)) and not isinstance(kms, bool)
+            else round(kernel_ms, 3)
+        ),
     }
 with open(out_path, "w") as fh:
     json.dump(rows, fh, indent=1, sort_keys=True)
