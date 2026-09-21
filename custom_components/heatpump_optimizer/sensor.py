@@ -837,6 +837,10 @@ class SlabTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
+    # Integrated from the floor-return probe, which the shipping config flow
+    # leaves empty; unavailable without it, so disabled rather than shipped
+    # dead (#1335). Existing registry entries keep their state.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "slab_temp", "slab_temperature_estimated")
@@ -1059,6 +1063,10 @@ class LowerFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
+    # The lower-floor probe is an optional field the shipping config flow
+    # leaves empty; unavailable without it, so disabled rather than shipped
+    # dead (#1335). Existing registry entries keep their state.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
@@ -1087,6 +1095,10 @@ class FloorReturnTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBa
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
+    # The floor-return probe is an optional field the shipping config flow
+    # leaves empty; unavailable without it, so disabled rather than shipped
+    # dead (#1335). Existing registry entries keep their state.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
@@ -1147,6 +1159,10 @@ class BufferTankTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
+    # The buffer tank probe is optional and most installs do not have one
+    # (own docstring above); unavailable without it, so disabled rather than
+    # shipped dead (#1335). Existing registry entries keep their state.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
@@ -1182,6 +1198,11 @@ class DHWTemperatureSensor(
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
+    # Hot water is on from the tank volume alone, but the tank thermometer
+    # is an optional probe most installs never configure; unavailable
+    # without it, so disabled rather than shipped dead (#1335). Existing
+    # registry entries keep their state.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
@@ -1674,6 +1695,10 @@ class MeasuredPowerSensor(HeatPumpOptimizerSensorBase):
     _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
     _attr_device_class = SensorDeviceClass.POWER
     _attr_suggested_display_precision = 2
+    # Requires the opt-in measured-power entity; unavailable for everyone
+    # else, so disabled rather than shipped dead (#1335) — the same verdict
+    # as the frequency advisor. Existing registry entries keep their state.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "measured_power", "measured_power")
@@ -1964,6 +1989,10 @@ class MonthlyPeakSensor(HeatPumpOptimizerSensorBase):
     _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
     _attr_device_class = SensorDeviceClass.POWER
     _attr_suggested_display_precision = 2
+    # The capacity tariff is an options-page opt-in that ships off; without
+    # it there is no billed peak, so disabled rather than shipped dead
+    # (#1335). Existing registry entries keep their state.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "monthly_peak", "cost_monthly_peak_power")
@@ -2021,6 +2050,11 @@ class PVSurplusSensor(HeatPumpOptimizerSensorBase):
     # ENERGY_STORAGE (see ThermalBatteryEnergySensor, which does measure
     # stored energy) would be a lie told to silence a lint. The Gold rule
     # asks for device classes "where possible"; for a forecast it is not.
+    #
+    # PV self-consumption is an options-page opt-in that ships off; the
+    # surplus forecast is unavailable without it, so disabled rather than
+    # shipped dead (#1335). Existing registry entries keep their state.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "pv_surplus", "solar_surplus_forecast")
@@ -2272,6 +2306,11 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
     _attr_native_unit_of_measurement = UnitOfPower.KILO_WATT
     _attr_device_class = SensorDeviceClass.POWER
     _attr_suggested_display_precision = 2
+    # Answers only while a main fuse or a capacity tariff bounds the house
+    # (coordinator._power_headroom) — both options-page opt-ins that ship
+    # off; disabled rather than shipped dead (#1335), the same verdict as
+    # its Monthly Peak twin. Existing registry entries keep their state.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
@@ -2367,6 +2406,10 @@ class MixedHotWaterSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
     # VOLUME_STORAGE means; VOLUME would invite HA to treat it as throughput.
     _attr_device_class = SensorDeviceClass.VOLUME_STORAGE
     _attr_suggested_display_precision = 0
+    # The tank temperature in shower clothes, so the same gate and the same
+    # default as DHW Temperature above: the tank probe is optional and most
+    # installs never configure it (#1335). Existing entries keep their state.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         # Moved from mixed_hot_water in #174; see DHWEnergySensor.
@@ -2541,12 +2584,20 @@ class OptimizationScoreSensor(HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         insight = (self.coordinator.data or {}).get("insight") or {}
-        return {
+        scores = insight.get("scores") or {}
+        attrs = {
             # Card headline-stat marker; see PredictedSavingsSensor.
             "stat_kind": "optimization_score",
-            **(insight.get("scores") or {}),
+            **scores,
             "price_tiles": insight.get("price_tiles") or {},
         }
+        if scores.get("overall") is None:
+            # A card headline stat stays enabled for the card, so before the
+            # machine or operation sub-score has evidence it names the day
+            # book it waits for instead of reading as feature-dead (#1335),
+            # like the accuracy and savings waiters beside it.
+            attrs["waiting_for"] = "first_scored_day"
+        return attrs
 
 
 class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
@@ -2561,6 +2612,10 @@ class CompressorStartsSensor(HeatPumpOptimizerSensorBase):
 
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    # Counted from the opt-in measured-power entity (own docstring); the
+    # counter is unavailable without it, so disabled rather than shipped
+    # dead (#1335). Existing registry entries keep their state.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
@@ -2782,6 +2837,11 @@ class WoodBurnAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase)
     """48 h light/skip advice when the wood furnace is on (#702)."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    # The wood furnace is an options-page opt-in most installs never turn
+    # on; the advisor waits for it, so disabled rather than shipped dead
+    # (#1335), with the binary twin on the same gate. Existing registry
+    # entries keep their state.
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(

@@ -431,9 +431,13 @@ Every field and its range is documented in
 ## Entities
 
 All entities are created on every install. Where a feature is not configured, the
-entity exists but reports itself unavailable, so nothing appears and disappears
-under your dashboards. Six sensors are disabled by default and can be enabled
-from the entity registry.
+entity is either disabled by default or reports itself unavailable — waiting for
+its configuration or its first evidence, and saying which — so nothing appears
+and disappears under your dashboards. Nineteen entities (eighteen sensors and
+the wood binary sensor) are disabled by default because the ordinary install
+cannot light them: optional probes and meters, the capacity tariff, PV, the
+wood furnace, and niche hardware. They can be enabled from the entity registry,
+and an entity enabled later starts collecting from that moment.
 
 Since v5.0.0 the display names are translated (English and Swedish) and follow
 your Home Assistant language; the tables below show the English names. Entity ids
@@ -457,7 +461,7 @@ every sensor is created on every install regardless of which group it is in.
 | Recommended Power | kW | The electrical power the current plan step asks for | |
 | Cost Electricity Price (now) | CUR/kWh | The price the plan is being made against right now | |
 | Plan Narrative | — | The plan told in sentences, grouped by reason | Card headline |
-| Plan Optimization Score | — | Envelope, machine and operation graded 0–100 | Card headline; unavailable until the scores have evidence |
+| Plan Optimization Score | — | Envelope, machine and operation graded 0–100 | Card headline; unavailable until the scores have evidence, and says so (`waiting_for`) in attributes |
 | Predictive Optimization Insight | — | What the forecast is making the plan do | Diagnostic |
 | Optimization Status | — | Solver result for the current plan | Diagnostic |
 
@@ -495,11 +499,11 @@ every sensor is created on every install regardless of which group it is in.
 | Indoor Temperature (Optimizer) | °C | Indoor temperature as the optimizer sees it | |
 | Outdoor Temperature (Optimizer) | °C | Outdoor temperature as the optimizer sees it | Falls back to the forecast step the plan is solved on when no outdoor thermometer is configured; the `source` attribute says which |
 | Upper Floor Temperature | °C | The radiator zone | |
-| Lower Floor Temperature | °C | The slab zone | |
-| Floor Heating Return Temperature | °C | The return-water reading the slab estimate uses | |
-| Slab Temperature (Estimated) | °C | Modelled slab temperature | |
-| Buffer Tank Temperature (Model) | °C | Modelled buffer tank temperature | |
-| DHW Temperature | °C | Tank temperature, with the demand-window state and the learned cooling rate in attributes | |
+| Lower Floor Temperature | °C | The slab zone | Disabled by default; unavailable until the lower-floor probe is configured |
+| Floor Heating Return Temperature | °C | The return-water reading the slab estimate uses | Disabled by default; unavailable until the floor-return probe is configured |
+| Slab Temperature (Estimated) | °C | Modelled slab temperature | Disabled by default; unavailable until the floor-return probe feeds the model |
+| Buffer Tank Temperature (Model) | °C | Modelled buffer tank temperature | Disabled by default; unavailable until the buffer-tank probe is configured |
+| DHW Temperature | °C | Tank temperature, with the demand-window state and the learned cooling rate in attributes | Disabled by default; unavailable until the tank thermometer is configured |
 
 #### Energy, power and efficiency
 
@@ -507,13 +511,13 @@ every sensor is created on every install regardless of which group it is in.
 |---|---|---|---|
 | Learning Estimated COP | — | Modelled COP at the current outdoor temperature | Follows the Outdoor Temperature sensor below, forecast fallback included |
 | Learning Observed COP | — | Efficiency from measurement rather than the nameplate curve | Needs measured power |
-| Measured Power | kW | Real electrical draw, with the commanded power alongside | Unavailable until a power or energy entity is configured |
+| Measured Power | kW | Real electrical draw, with the commanded power alongside | Disabled by default; unavailable until a power or energy entity is configured |
 | Space Heating Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | |
 | DHW Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | Renamed from Hot Water Energy by #174; existing installs keep their entity id |
 | Total Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | |
-| Cost Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Unavailable unless the capacity tariff is enabled |
-| Cost Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Unavailable until it can be computed |
-| Compressor Starts | — | Realised starts counted from the meter, immersion events excluded | Diagnostic; needs measured power |
+| Cost Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Disabled by default; unavailable unless the capacity tariff is enabled |
+| Cost Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Disabled by default; unavailable until a main fuse or capacity tariff bounds the house |
+| Compressor Starts | — | Realised starts counted from the meter, immersion events excluded | Diagnostic; disabled by default; needs measured power |
 | Compressor Frequency Advisor | Hz | The frequency the plan's power asks for, from the learned kW-per-Hz map | Diagnostic; disabled by default; needs a compressor frequency number or sensor |
 
 #### The sun, and what the house is storing
@@ -522,7 +526,7 @@ every sensor is created on every install regardless of which group it is in.
 |---|---|---|---|
 | Solar Irradiance | W/m² | The irradiance the plan uses, with the forecast horizon in attributes | Absorbed the former Solar Radiation sensor in v5.0.0 |
 | Solar Heat Gain | kW | Passive solar gain through the windows right now | |
-| Solar Surplus Forecast | kWh | Forecast PV surplus the heat pump could absorb | Unavailable unless PV is enabled |
+| Solar Surplus Forecast | kWh | Forecast PV surplus the heat pump could absorb | Disabled by default; unavailable unless PV is enabled |
 | Thermal Battery Charge | % | State of charge of house and tanks against the comfort band | Unavailable when no store is sensed at all; `components[].measured` and `modelled_components` say which stores are estimated |
 | Thermal Battery Energy | kWh | Stored energy available above the comfort floor | Unavailable when no store is sensed at all; `modelled_components` says which are estimated |
 
@@ -531,7 +535,7 @@ every sensor is created on every install regardless of which group it is in.
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
 | DHW Setpoint Advisor | °C | The cheapest hot-water setpoint that still covers your heavy days | Diagnostic; unavailable until there is a recommendation |
-| DHW Mixed Water | L | Litres of 40 °C water the tank holds now, with shower minutes alongside | Unavailable without mixed-water data; renamed from Mixed Hot Water by #174 |
+| DHW Mixed Water | L | Litres of 40 °C water the tank holds now, with shower minutes alongside | Disabled by default; unavailable without the tank thermometer; renamed from Mixed Hot Water by #174 |
 | DHW Heavy Day Demand | kWh | The learned 90th-percentile draw per demand window | Diagnostic; disabled by default; needs weeks of data |
 
 #### How well it is doing, and what it has learned
@@ -544,11 +548,19 @@ every sensor is created on every install regardless of which group it is in.
 | ECL110 Effective Displace | °C | The shift the controller has actually reached, after its own lag | Diagnostic; disabled by default; ECL110 hardware |
 | Valve Target Recommendation | °C | What to set a manual mixing valve to, and why | Diagnostic; disabled by default; needs a mixing-valve mode |
 | Sensor-Gap Advisor | CUR | Estimated extra cost per month, in your currency, from the highest-value empty sensor slot | Diagnostic; outdoor, house meter, DHW probe |
-| Wood-Burn Night Advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; advisory only — never lights the stove |
+| Wood-Burn Night Advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; disabled by default; advisory only — never lights the stove |
 
-Disabled by default: ECL110 Displace, ECL110 Effective Displace, Cost
-Contract Comparison, DHW Heavy Day Demand, Valve Target Recommendation and
-Compressor Frequency Advisor.
+Disabled by default: Buffer Tank Temperature (Model), Compressor Frequency
+Advisor, Compressor Starts, Cost Contract Comparison, Cost Monthly Peak Power,
+Cost Power Headroom, DHW Heavy Day Demand, DHW Mixed Water, DHW Temperature,
+ECL110 Displace, ECL110 Effective Displace, Floor Heating Return Temperature,
+Lower Floor Temperature, Measured Power, Slab Temperature (Estimated), Solar
+Surplus Forecast, Valve Target Recommendation, Wood-Burn Night Advisor and
+Wood Cheaper Than Heat Pump.
+
+Since #1335 that list is every entity the ordinary install cannot light — the
+machinery advisories, the optional probes and meters, the capacity tariff, PV
+and the wood furnace — not only the six niche-hardware sensors it used to be.
 
 ### Binary Sensors (5 total)
 
@@ -558,7 +570,7 @@ Compressor Frequency Advisor.
 | Open Window Detected | The house is losing heat as if a window were open | Diagnostic; learning pauses while it is on |
 | External Heat Source | Something other than the heat pump is heating the tanks | Evidence in attributes |
 | Away Mode | The away setback is active | Return time and recovery state in attributes |
-| Wood Cheaper Than Heat Pump | Burning wood costs less per kWh than running the heat pump | Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Price and cheaper-hour count in attributes |
+| Wood Cheaper Than Heat Pump | Burning wood costs less per kWh than running the heat pump | Disabled by default. Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Price and cheaper-hour count in attributes |
 
 ### Buttons (4 total)
 

@@ -1831,7 +1831,8 @@
     "operation": null,
     "overall": null,
     "price_tiles": {},
-    "stat_kind": "optimization_score"
+    "stat_kind": "optimization_score",
+    "waiting_for": "first_scored_day"
    },
    "native_value": null
   },
