@@ -113,7 +113,7 @@ automation:
   - alias: Notify when a manual plan takes over
     trigger:
       - platform: state
-        entity_id: sensor.heat_pump_optimizer_space_heating_plan
+        entity_id: sensor.heat_pump_optimizer_plan_space_heating
         attribute: manual_override
     condition:
       - "{{ trigger.to_state.attributes.get('manual_override') is not none }}"
@@ -123,7 +123,7 @@ automation:
           title: Manual plan active
           message: >-
             Heating slots are pinned until
-            {{ state_attr('sensor.heat_pump_optimizer_space_heating_plan',
+            {{ state_attr('sensor.heat_pump_optimizer_plan_space_heating',
             'manual_override').expires_at }}.
 ```
 

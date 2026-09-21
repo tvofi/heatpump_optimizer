@@ -23,8 +23,8 @@ export const EDITOR_TAG = "heatpump-optimizer-card-editor";
 export const SOLAR_ID = "sensor.heat_pump_optimizer_solar_irradiance";
 // The plan sensors use has_entity_name, so a default install prefixes the
 // device name. These are the ids a real Home Assistant actually creates.
-export const DEFAULT_SPACE = "sensor.heat_pump_optimizer_space_heating_plan";
-export const DEFAULT_DHW = "sensor.heat_pump_optimizer_dhw_heating_plan";
+export const DEFAULT_SPACE = "sensor.heat_pump_optimizer_plan_space_heating";
+export const DEFAULT_DHW = "sensor.heat_pump_optimizer_plan_dhw_heating";
 export const HOUR = 3600000;
 
 /** The vm context the card runs in, plus the handles a harness drives it by.

@@ -988,9 +988,12 @@ const DEFAULTS = {
   // Entity ids are derived from the device name ("Heat Pump Optimizer"), since
   // the plan sensors use has_entity_name. These are the ids a default install
   // produces; if they are absent the card auto-discovers by the `plan_kind`
-  // attribute, so a renamed entity still works with no config change.
-  space_entity: "sensor.heat_pump_optimizer_space_heating_plan",
-  dhw_entity: "sensor.heat_pump_optimizer_dhw_heating_plan",
+  // attribute, so a renamed entity still works with no config change. #1333
+  // moved the two ids below into the plan_ family (new installs only); an
+  // existing install keeps its pre-#1333 id and resolves through `plan_kind`
+  // or the legacy suffix (`PLAN_ID_SUFFIXES` below).
+  space_entity: "sensor.heat_pump_optimizer_plan_space_heating",
+  dhw_entity: "sensor.heat_pump_optimizer_plan_dhw_heating",
   solar_entity: "sensor.heat_pump_optimizer_solar_irradiance",
   hours: 24,
   // The schedule editor lives in the expanded view. On by default: opening it
@@ -1359,6 +1362,30 @@ const LEGACY_STAT_SUFFIXES = {
   "_plan_savings_percentage": "_savings_percentage",
   "_plan_optimization_score": "_optimization_score",
   "_plan_monthly_savings": "_monthly_savings",
+};
+// #1333 renamed the two plan sensors' suggested object ids for new installs
+// only (`space_heating_plan` -> `plan_space_heating`, `dhw_heating_plan` ->
+// `plan_dhw_heating`); an existing install keeps its pre-#1333 registry id.
+// Each family therefore has two forms, current first, and both are needed in
+// two places that want slightly different strings:
+//
+//   * discovery (`resolveEntity`) matches a plan id's END, and must also
+//     catch a bare `sensor.space_heating_plan`-shaped id (a slim fixture, or
+//     a hand-renamed entity that kept the old slug), so it takes the bare
+//     suffix -- no leading separator;
+//   * derivation (the headline stats and the history view's actuals) STRIPS
+//     the resolved plan id's own suffix before appending a sibling's, so it
+//     needs the form carrying the separator that precedes the family token.
+//
+// Order matters in both: the current form leads, so a fresh install resolves
+// through it and the legacy entry is only the fallback.
+const PLAN_ID_SUFFIXES = {
+  space: ["plan_space_heating", "space_heating_plan"],
+  dhw: ["plan_dhw_heating", "dhw_heating_plan"],
+};
+const PLAN_ID_DERIVE = {
+  space: ["_plan_space_heating", "_space_heating_plan"],
+  dhw: ["_plan_dhw_heating", "_dhw_heating_plan"],
 };
 // Slot-drag edge auto-pan: how close to the plot edge (screen px) engages it,
 // and how often the parked pointer advances the view.
@@ -4240,12 +4267,10 @@ class PlanSource {
     const cached = this.resolvedCache[kind];
     if (cached && states[cached]) return cached;
 
-    const suffix =
-      kind === "space"
-        ? "space_heating_plan"
-        : kind === "dhw"
-        ? "dhw_heating_plan"
-        : "solar_irradiance";
+    const suffixes =
+      kind === "space" || kind === "dhw"
+        ? PLAN_ID_SUFFIXES[kind]
+        : ["solar_irradiance"];
     let byMarker = null;
     let bySuffix = null;
     for (const id of Object.keys(states).sort()) {
@@ -4255,7 +4280,9 @@ class PlanSource {
         byMarker = id;
         break;
       }
-      if (bySuffix === null && id.endsWith(suffix)) bySuffix = id;
+      if (bySuffix === null && suffixes.some((s) => id.endsWith(s))) {
+        bySuffix = id;
+      }
     }
     const found = byMarker || bySuffix;
     if (found) {
@@ -4480,19 +4507,17 @@ class PlanSource {
     }
 
     for (const cand of candidates) {
-      for (const [kind, planSuffix] of [
-        ["space", "_space_heating_plan"],
-        ["dhw", "_dhw_heating_plan"],
-      ]) {
+      for (const kind of ["space", "dhw"]) {
         const planId = this.resolveEntity(kind);
-        if (!planId || !states[planId] || !planId.endsWith(planSuffix)) {
-          continue;
-        }
-        const candidate = planId.slice(0, -planSuffix.length) + cand;
-        if (states[candidate]) {
-          this.statCache[suffix] = candidate;
-          delete this.statMissAt[suffix];
-          return states[candidate];
+        if (!planId || !states[planId]) continue;
+        for (const planSuffix of PLAN_ID_DERIVE[kind]) {
+          if (!planId.endsWith(planSuffix)) continue;
+          const candidate = planId.slice(0, -planSuffix.length) + cand;
+          if (states[candidate]) {
+            this.statCache[suffix] = candidate;
+            delete this.statMissAt[suffix];
+            return states[candidate];
+          }
         }
       }
     }
@@ -4611,8 +4636,9 @@ class HistorySource {
 
   /** The optimizer's own actual-carrying sensors, resolved the way the
    * headline stats are: derive from the RESOLVED plan sensor's prefix
-   * (has_entity_name keeps `_space_heating_plan` stable under any device
-   * name), then fall back to a sorted scan for hand-renamed entities. The
+   * (has_entity_name keeps `_plan_space_heating` / `_plan_dhw_heating` stable
+   * under any device name, with the pre-#1333 suffixes as the legacy
+   * fallback), then fall back to a sorted scan for hand-renamed entities. The
    * solar entity is the one the plan source already resolves -- config,
    * plan_kind marker, then suffix. */
   entityIds() {
@@ -4639,14 +4665,14 @@ class HistorySource {
         !!a && Array.isArray(a.options) && a.options.includes("pre_heat"),
     };
     const derive = (suffix) => {
-      for (const [kind, planSuffix] of [
-        ["space", "_space_heating_plan"],
-        ["dhw", "_dhw_heating_plan"],
-      ]) {
+      for (const kind of ["space", "dhw"]) {
         const planId = plan.resolveEntity(kind);
-        if (!planId || !planId.endsWith(planSuffix)) continue;
-        const candidate = planId.slice(0, -planSuffix.length) + suffix;
-        if (states[candidate]) return candidate;
+        if (!planId) continue;
+        for (const planSuffix of PLAN_ID_DERIVE[kind]) {
+          if (!planId.endsWith(planSuffix)) continue;
+          const candidate = planId.slice(0, -planSuffix.length) + suffix;
+          if (states[candidate]) return candidate;
+        }
       }
       for (const id of Object.keys(states).sort()) {
         if (!id.startsWith("sensor.") || !id.endsWith(suffix)) continue;

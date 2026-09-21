@@ -214,6 +214,12 @@ class AwayModeBinarySensor(_OptimizerBinarySensorBase):
 
 
 class WoodCheaperBinarySensor(_OptimizerBinarySensorBase):
+    # The wood furnace is an options-page opt-in most installs never turn
+    # on; the comparison is unavailable without it, so disabled rather than
+    # shipped dead (#1335), with the advisor twin on the same gate.
+    # Existing registry entries keep their state.
+    _attr_entity_registry_enabled_default = False
+
     def __init__(
         self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
     ) -> None:

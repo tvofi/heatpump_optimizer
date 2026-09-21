@@ -129,7 +129,7 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
 class BoostDhwSwitch(HeatPumpOptimizerEntity, SwitchEntity):
     """Two-hour maximum hot-water heat."""
 
-    _attr_translation_key = "boost_dhw"
+    _attr_translation_key = "dhw_boost"
 
     def __init__(
         self,
@@ -138,8 +138,12 @@ class BoostDhwSwitch(HeatPumpOptimizerEntity, SwitchEntity):
     ) -> None:
         super().__init__(coordinator)
         self._entry = entry
+        # The unique id keeps the pre-#1334 key: an existing install's registry
+        # entry (and its history) is identified by this string, so the rename
+        # moves the suggested object id for NEW installs only, exactly as #1227
+        # and #1333 moved the sensors'.
         self._attr_unique_id = f"{entry.entry_id}_boost_dhw"
-        self.entity_id = "switch.heat_pump_optimizer_boost_dhw"
+        self.entity_id = "switch.heat_pump_optimizer_dhw_boost"
 
     @property
     def is_on(self) -> bool:

@@ -623,8 +623,8 @@ Everything the editor offers can also be written by hand.
 ```yaml
 type: custom:heatpump-optimizer-card
 title: Heat pump plan                    # optional, default is localized
-space_entity: sensor.heat_pump_optimizer_space_heating_plan  # optional, auto-detected
-dhw_entity: sensor.heat_pump_optimizer_dhw_heating_plan      # optional, auto-detected
+space_entity: sensor.heat_pump_optimizer_plan_space_heating  # optional, auto-detected
+dhw_entity: sensor.heat_pump_optimizer_plan_dhw_heating      # optional, auto-detected
 solar_entity: sensor.heat_pump_optimizer_solar_irradiance    # optional, auto-detected
 hours: 24                                # optional, hours forward to plot, default 24
 what_if: true                            # optional, schedule editor in the enlarged view
@@ -658,8 +658,11 @@ series:                                  # optional, initial per-series visibili
 
 The plan sensors use `has_entity_name`, so Home Assistant prefixes them with the
 device name. A stock install produces
-`sensor.heat_pump_optimizer_space_heating_plan` and
-`sensor.heat_pump_optimizer_dhw_heating_plan`.
+`sensor.heat_pump_optimizer_plan_space_heating` and
+`sensor.heat_pump_optimizer_plan_dhw_heating`. An install upgraded from before
+the ids moved to that `plan_` family keeps its registry ids (the same two names
+with the older suffix order, ending `_space_heating_plan` and
+`_dhw_heating_plan`); the card resolves both.
 
 You normally do not need to configure either option. The card resolves entities
 in this order:
@@ -668,8 +671,10 @@ in this order:
 2. Any `sensor` whose `plan_kind` attribute is `space`, `dhw` or `solar`. This
    is a stable marker published by the integration, so renaming an entity does
    not break the card.
-3. Any `sensor` whose id ends in `space_heating_plan` / `dhw_heating_plan` /
-   `solar_irradiance`, for integration versions older than 2.6.1.
+3. Any `sensor` whose id ends in `plan_space_heating` / `plan_dhw_heating` /
+   `solar_irradiance` (current), or the older `space_heating_plan` /
+   `dhw_heating_plan` (for installs upgraded from before the ids moved, and for
+   integration versions older than 2.6.1).
 
 If nothing is found the card names the id it looked for, so check
 **Developer Tools → States** and set the option explicitly.

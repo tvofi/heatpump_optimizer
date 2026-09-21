@@ -1940,7 +1940,7 @@ R.check(
     _hwc["counting_since"] == "2026-08-15",
     str(_hwc.get("counting_since")),
 )
-_plan_attrs = by_name["DHW Heating Plan (next 24 h)"].extra_state_attributes
+_plan_attrs = by_name["Plan DHW Heating (next 24 h)"].extra_state_attributes
 R.check(
     "the plan sensors say their numbers are projections, not history",
     "recomputed" in _plan_attrs["projection"]
@@ -2036,7 +2036,7 @@ R.check(
 # The chart's edit ceiling and the service's expiry default have to be the same
 # number, or the card shows slots as pinned past the point `channel_pins` frees
 # them. The integration owns it and publishes it; the card reads it.
-space_plan = by_name["Space Heating Plan (next 24 h)"]
+space_plan = by_name["Plan Space Heating (next 24 h)"]
 R.check(
     "the plan sensor publishes the manual-plan window for the card",
     space_plan.extra_state_attributes.get("manual_plan_window_hours")
@@ -2063,7 +2063,7 @@ R.check(
 # what `dhw_windows` carries (the plan's reading: learned windows when none
 # are configured, one day's set of a weekly spec). The configuration travels
 # on its own attribute, in the spec grammar, on both paths and unrecorded.
-dhw_plan = by_name["DHW Heating Plan (next 24 h)"]
+dhw_plan = by_name["Plan DHW Heating (next 24 h)"]
 R.check(
     "the plan sensor publishes the configured hot-water windows for the card",
     dhw_plan.extra_state_attributes.get("dhw_windows_spec")
@@ -7630,7 +7630,7 @@ R.check("the away switch pins today's object id", away_sw.entity_id == "switch.h
 R.check("the away switch is off when the override is off", not away_sw.is_on)
 dhw_boost_sw = next(
     s for s in switches
-    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_boost_dhw"
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_dhw_boost"
 )
 space_boost_sw = next(
     s for s in switches
@@ -7638,7 +7638,7 @@ space_boost_sw = next(
 )
 R.check(
     "the DHW boost switch pins today's object id",
-    dhw_boost_sw.entity_id == "switch.heat_pump_optimizer_boost_dhw",
+    dhw_boost_sw.entity_id == "switch.heat_pump_optimizer_dhw_boost",
 )
 R.check(
     "the space boost switch pins today's object id",
@@ -7712,10 +7712,14 @@ R.check(
 # ===========================================================================
 R.section("Sensor metadata")
 
-# The disabled-by-default roster, pinned. These sensors are tied to opt-in
-# hardware or to learned evidence most installs never collect; every other
-# sensor must stay enabled, because flipping one silently hides it from
-# every fresh install.
+# The disabled-by-default roster, pinned. A sensor belongs here exactly
+# when the ordinary install (indoor + outdoor thermometers, a DHW tank, the
+# first solve's prices and forecast) cannot light it: opt-in hardware,
+# opt-in probes and opt-in meters publish nothing until configured, and an
+# enabled entity that is unavailable from the first hour is list noise a
+# fresh install cannot tell from a defect. Every other sensor must stay
+# enabled, because flipping one silently hides it from every fresh install
+# (#1335 widened this from the six machinery sensors to the whole gate).
 _expected_disabled = {
     "ecl110_displace",
     "ecl110_effective_displace",
@@ -7723,6 +7727,24 @@ _expected_disabled = {
     "frequency_advisor",
     "contract_comparison",
     "dhw_heavy_day",
+    # #1335: the capacity-tariff pair (options-page opt-in, off by default).
+    "monthly_peak",
+    "power_headroom",
+    # #1335: PV self-consumption (options-page opt-in).
+    "pv_surplus",
+    # #1335: the wood pair (furnace opt-in).
+    "wood_burn_advisor",
+    # #1335: the measured-power pair (opt-in power entity).
+    "measured_power",
+    "compressor_starts",
+    # #1335: probe-gated temperatures -- optional thermometers the shipping
+    # config flow leaves empty, each already availability-gated.
+    "dhw_temperature",
+    "dhw_mixed_water",
+    "floor_return_temp",
+    "lower_floor_temp",
+    "buffer_tank_temp",
+    "slab_temp",
 }
 _actually_disabled = {
     s._key
@@ -7730,7 +7752,7 @@ _actually_disabled = {
     if getattr(s, "_attr_entity_registry_enabled_default", True) is False
 }
 R.check(
-    "exactly the niche-hardware sensors are disabled by default",
+    "exactly the ordinary-install-dead sensors are disabled by default",
     _actually_disabled == _expected_disabled,
     f"unexpected {sorted(_actually_disabled ^ _expected_disabled)}",
 )
@@ -7861,6 +7883,13 @@ R.check(
 # ids did not. Three moved (hot_water_energy, hot_water_cost, mixed_hot_water)
 # for NEW installs only -- the unique ids are untouched, so an existing
 # install keeps its entity ids and its history through the registry.
+#
+# The plan family is exempt, on the key property rather than by name: the
+# DHW plan sensor's frozen unique-id key is still ``dhw_heating_plan`` (so it
+# registers here), but #1333 moved its *translation* key and suggested id into
+# the card's ``plan_`` run alongside the five other card-addressed sensors --
+# a card-resolved family whose object ids have to sort together, which a
+# ``dhw_`` object id cannot do.
 _dhw_keyed = [s for s in sensors if s._key.startswith("dhw")]
 R.check(
     "the hot-water domain is the nine dhw-keyed sensors",
@@ -7871,6 +7900,7 @@ _dhw_stray = sorted(
     f"{s._key}->{s.entity_id}"
     for s in _dhw_keyed
     if not s.entity_id.startswith("sensor.heat_pump_optimizer_dhw_")
+    and not getattr(s, "_attr_translation_key", "").startswith("plan_")
 )
 R.check(
     "every hot-water sensor suggests a dhw_ object id (#174)",
@@ -7990,10 +8020,227 @@ R.check(
     _actually_diagnostic == _expected_diagnostic,
     f"unexpected {sorted(_actually_diagnostic ^ _expected_diagnostic)}",
 )
+
+# --- #1335: the ordinary install's first hour — lit, waiting, or off --------
+#
+# The disabled roster above stood on a category rule (#177: disabled means
+# Diagnostic machinery) until #1335 moved it onto a measured one: an entity
+# is disabled by default exactly when the ordinary install cannot light it.
+# The population below is that install — the ``_honest_coordinator`` config
+# plus the first solve's injected prices, forecast and sun, the recipe
+# ``golden.py:_capture_coordinator`` uses — and every platform is collected
+# through the real ``async_setup_entry``, so a later entity joins the
+# population without being named here. Three lit combinations are allowed
+# (available; unavailable while naming ``waiting_for``; disabled by
+# default); the fourth — enabled, unavailable, no marker — is list noise a
+# fresh install cannot tell from a defect. The card's dependency list is
+# parsed from the card source and the README's first-hour rows from
+# README.md, so the boundary's protected set is the artifact, not a copy.
+_ord_hass, _ord_coord, _ = _honest_coordinator()
+_ord_start = datetime(2026, 1, 15, 0, 0)
+_ord_coord._prices = [
+    {
+        "total": round(0.6 + 0.5 * (h % 12) / 12.0, 4),
+        "starts_at": (_ord_start + timedelta(hours=h)).isoformat(),
+        "level": "NORMAL",
+    }
+    for h in range(48)
+]
+_ord_coord._weather_forecast = [
+    {
+        "datetime": (_ord_start + timedelta(hours=h)).isoformat(),
+        "temperature": -5.0 + 3.0 * (h % 24) / 24.0,
+        "wind_speed": 3.0,
+        "precipitation": 0.0,
+        "humidity": 85.0,
+    }
+    for h in range(48)
+]
+_ord_coord._solar_radiation_forecast = [
+    max(0.0, 200.0 * (1 - abs(12 - (h % 24)) / 12.0)) for h in range(24)
+]
+_ord_coord.data = _ord_coord._build_data_dict()
+
+_ord_entities = []
+for _ord_module in (
+    sensor,
+    binary_sensor,
+    button,
+    _switch_platform,
+    datetime_mod,
+    _climate_platform,
+):
+    _ord_entities.extend(collect(_ord_module, coordinator=_ord_coord))
+_ord_by_id = {e.entity_id: e for e in _ord_entities}
+
+
+def _ord_default_on(e) -> bool:
+    return getattr(type(e), "_attr_entity_registry_enabled_default", True) is not False
+
+
+def _ord_waiting_for(e):
+    attrs = getattr(e, "extra_state_attributes", None)
+    return (attrs or {}).get("waiting_for") if attrs else None
+
+
+_ord_disabled_platform_keys = {
+    e._key for e in _ord_entities if not _ord_default_on(e)
+}
 R.check(
-    "every disabled-by-default sensor is Diagnostic (#177)",
-    _actually_disabled <= _actually_diagnostic,
-    f"not diagnostic: {sorted(_actually_disabled - _actually_diagnostic)}",
+    "the disabled roster is platform-wide: sensors plus the wood pair (#1335)",
+    _ord_disabled_platform_keys == _expected_disabled | {"wood_cheaper"},
+    f"unexpected {sorted(_ord_disabled_platform_keys ^ (_expected_disabled | {'wood_cheaper'}))}",
+)
+def _ord_state(e):
+    # Sensors publish native_value, binary sensors is_on; the climate,
+    # switch, datetime and button platforms carry no state the registry
+    # would show as Unknown, so availability is their only gate.
+    if isinstance(getattr(type(e), "native_value", None), property):
+        return e.native_value
+    if isinstance(getattr(type(e), "is_on", None), property):
+        return e.is_on
+    return None
+
+
+# The ECL110 pair is the one disabled member that is NOT dead on the
+# ordinary install: it has no availability gate at all and publishes the
+# 0.0 placeholder, which is exactly why its default is off (its own
+# comment: "disabled, not a forever-unknown entity"). Every other disabled
+# entity must be unavailable or stateless there — that is the measured
+# cause its default is off, and a sensor flipped without one fails here.
+_ECL110_UNGATED = {"ecl110_displace", "ecl110_effective_displace"}
+_ord_dead = sorted(
+    e._key
+    for e in _ord_entities
+    if not _ord_default_on(e)
+    and e._key not in _ECL110_UNGATED
+    and e.available
+    and _ord_state(e) is not None
+)
+R.check(
+    "every disabled-by-default entity is dead on the ordinary install,"
+    " save the ungated ECL110 pair (#177, #1335)",
+    not _ord_dead,
+    f"alive while disabled: {_ord_dead}",
+)
+R.check(
+    "the ECL110 pair really is the ungated exception (#1335)",
+    all(
+        e.available
+        for e in _ord_entities
+        if getattr(e, "_key", None) in _ECL110_UNGATED
+    ),
+    "an ECL110 sensor grew an availability gate; re-cut the exception",
+)
+_ord_shipped_dead = sorted(
+    e.entity_id
+    for e in _ord_entities
+    if _ord_default_on(e)
+    and not e.available
+    and _ord_waiting_for(e) is None
+)
+R.check(
+    "no enabled entity ships dead on the ordinary install (#1335)",
+    not _ord_shipped_dead,
+    f"enabled, unavailable, no waiting_for marker: {_ord_shipped_dead}",
+)
+
+_card_text = Path(
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+).read_text()
+_card_ids = {
+    eid.strip('"')
+    for eid in re.findall(
+        r'"(?:sensor|binary_sensor|switch|datetime)\.heat_pump_optimizer_[a-z_]+"',
+        _card_text,
+    )
+}
+_card_headline = re.search(
+    r"const HEADLINE_SUFFIXES = \[(.*?)\];", _card_text, re.DOTALL
+)
+_card_ids |= {
+    f"sensor.heat_pump_optimizer{suffix}"
+    for suffix in re.findall(r'"(_[a-z_]+)"', _card_headline.group(1))
+}
+_card_disabled = sorted(
+    eid
+    for eid in _card_ids
+    if eid in _ord_by_id and not _ord_default_on(_ord_by_id[eid])
+)
+R.check(
+    "nothing the card addresses is disabled by default (#1335)",
+    not _card_disabled,
+    f"card dependency disabled: {_card_disabled}",
+)
+_strings_sensor = json.loads(
+    Path("custom_components/heatpump_optimizer/strings.json").read_text()
+)["entity"]["sensor"]
+_readme_name_to_key = {
+    entry["name"]: key for key, entry in _strings_sensor.items()
+}
+_readme_first_hour = set()
+for _line in readme.splitlines():
+    if not _line.startswith("|"):
+        continue
+    _cells = [c.strip() for c in _line.strip("|").split("|")]
+    if len(_cells) < 4:
+        continue
+    _notes = " ".join(_cells[3:])
+    if "Card headline" in _notes or "Backs the card" in _notes:
+        _key = _readme_name_to_key.get(_cells[0])
+        if _key:
+            _readme_first_hour.add(_key)
+_readme_disabled = sorted(
+    key
+    for key in _readme_first_hour
+    if f"sensor.heat_pump_optimizer_{key}" in _ord_by_id
+    and not _ord_default_on(_ord_by_id[f"sensor.heat_pump_optimizer_{key}"])
+)
+R.check(
+    "nothing the README's first-hour rows name is disabled by default (#1335)",
+    not _readme_disabled,
+    f"README card entity disabled: {_readme_disabled}",
+)
+
+# The one entity the boundary protects on the waiting side rather than the
+# disabled one: the score is a card headline stat (HEADLINE_SUFFIXES) and a
+# README first-hour row, so it stays enabled — and instead of reading as
+# feature-dead before the machine or operation sub-score has evidence, it
+# names the settled day book it waits for like its waiting siblings.
+_unscored_score = sensor.OptimizationScoreSensor(
+    FakeCoordinator(
+        {
+            **DATA,
+            "insight": {
+                **DATA["insight"],
+                "scores": {
+                    "envelope": None,
+                    "machine": None,
+                    "operation": None,
+                    "overall": None,
+                },
+            },
+        }
+    ),
+    ENTRY,
+)
+R.check(
+    "the optimization score is unavailable before any sub-score has evidence (#1335)",
+    not _unscored_score.available,
+)
+R.check(
+    "and names what it is waiting for (#1335)",
+    _unscored_score.extra_state_attributes.get("waiting_for") == "first_scored_day",
+    repr(_unscored_score.extra_state_attributes.get("waiting_for")),
+)
+_scored_score = by_name["Plan Optimization Score"]
+R.check(
+    "with evidence it is available, enabled and waits for nothing",
+    _scored_score.available
+    and _ord_default_on(_scored_score)
+    and _scored_score.extra_state_attributes.get("waiting_for") is None
+    and _scored_score.native_value == 100.0,
+    repr(_scored_score.native_value),
 )
 
 # --- D8-14 (#373): the published attribute-key SET, pinned per class -------
@@ -8762,12 +9009,14 @@ _CLUSTER_PREFIXES: dict[str, dict[str, str]] = {
         "plan_predicted_savings": "Plan ",
         "plan_savings_percentage": "Plan ",
         "plan_narrative": "Plan ",
+        "plan_space_heating": "Plan ",
+        "plan_dhw_heating": "Plan ",
     },
     "button": {
         "learning_run_system_identification": "Learning ",
         "learning_reset_comfort_weight": "Learning ",
     },
-    "switch": {"boost_dhw": "DHW "},
+    "switch": {"dhw_boost": "DHW "},
 }
 for _plat, _pins in _CLUSTER_PREFIXES.items():
     for _key, _prefix in sorted(_pins.items()):
@@ -8810,8 +9059,11 @@ R.check(
 # translation key cannot silently move the goalposts of the check above.
 for _display, _expected_id in (
     ("Solar Irradiance", "sensor.heat_pump_optimizer_solar_irradiance"),
-    ("Space Heating Plan (next 24 h)", "sensor.heat_pump_optimizer_space_heating_plan"),
-    ("DHW Heating Plan (next 24 h)", "sensor.heat_pump_optimizer_dhw_heating_plan"),
+    # #1333 moved these two deliberately (space_heating_plan -> plan_space_heating,
+    # dhw_heating_plan -> plan_dhw_heating, new installs only); the D8-01 section
+    # below pins the old->new pair and the unchanged unique ids.
+    ("Plan Space Heating (next 24 h)", "sensor.heat_pump_optimizer_plan_space_heating"),
+    ("Plan DHW Heating (next 24 h)", "sensor.heat_pump_optimizer_plan_dhw_heating"),
     ("Plan Predicted Savings", "sensor.heat_pump_optimizer_plan_predicted_savings"),
     ("Plan Monthly Savings", "sensor.heat_pump_optimizer_plan_monthly_savings"),
     ("Plan Savings Percentage", "sensor.heat_pump_optimizer_plan_savings_percentage"),
@@ -8831,11 +9083,12 @@ for _display, _expected_id in (
     )
 # The card derives headline-stat ids from the plan sensor id by suffix swap;
 # that derivation must keep landing on real ids. #1227 moved five headline
-# suffixes with their keys; the card reads the family-prefixed suffix and
-# keeps each pre-#1227 suffix as its legacy fallback (the card's
-# LEGACY_STAT_SUFFIXES, pinned just below), so on this roster the derivation
-# is required to land with the CURRENT suffix.
-_plan_id = by_name["Space Heating Plan (next 24 h)"].entity_id
+# suffixes with their keys and #1333 moved the two plan ids; the card reads
+# each family-prefixed suffix and keeps the pre-#1227 / pre-#1333 suffix as
+# its legacy fallback (the card's LEGACY_STAT_SUFFIXES and PLAN_ID_SUFFIXES,
+# pinned just below), so on this roster the derivation is required to land
+# with the CURRENT suffix.
+_plan_id = by_name["Plan Space Heating (next 24 h)"].entity_id
 for _stat_suffix in (
     "_plan_predicted_savings",
     "_plan_savings_percentage",
@@ -8843,7 +9096,7 @@ for _stat_suffix in (
     "_plan_monthly_savings",
     "_plan_narrative",
 ):
-    _derived = _plan_id.replace("_space_heating_plan", _stat_suffix)
+    _derived = _plan_id.replace("_plan_space_heating", _stat_suffix)
     R.check(
         f"the card's suffix derivation for {_stat_suffix} stays valid",
         _derived in {s.entity_id for s in sensors},
@@ -8934,6 +9187,212 @@ for _display, _new_id, _uid in (
         f"{_display} keeps unique id ..._{_uid}, so existing installs keep their entity id",
         _moved is not None and _moved._attr_unique_id == f"{ENTRY.entry_id}_{_uid}",
         str(getattr(_moved, "_attr_unique_id", None)),
+    )
+
+# --- D8-01 (round 5, #1333): the two plan sensors join the plan_ run -------
+#
+# #1227 above moved the four card headline stats and the Cost/Learning keys to
+# carry their family prefix, but left the two plan sensors on
+# ``space_heating_plan`` / ``dhw_heating_plan`` -- so the dashboard card's six
+# id-addressed sensors still sorted into three entity-id runs (the D8 harness's
+# split_blocks_entity_id=2, split_interlopers_entity_id=34,
+# families_split_entity_id=1). The plan sensors take the same prefix move:
+# ``space_heating_plan -> plan_space_heating`` and
+# ``dhw_heating_plan -> plan_dhw_heating``, which lands all six in ONE
+# contiguous run under all three orderings the harness sorts by.
+#
+# The harness's own ``split_blocks_*`` counter still reads 1 after the move,
+# and this check does not pin that down to 0 because it is not achievable
+# without un-doing #1227: the harness's family comes from parsing the card
+# text for ``sensor.heat_pump_optimizer_<key>`` literals and HEADLINE_SUFFIXES,
+# and one further plan sensor the card addresses -- the savings page's
+# ``statEntity("_plan_monthly_savings")`` -- is never spelled with that prefix,
+# so the harness counts it as an interloper inside the window. Measured with
+# the harness's own ``family_metrics`` over its own orderings, adding that
+# member takes all three to (0 blocks, 0 interlopers); see the PR body.
+#
+# NEW installs only, exactly as #1227: the unique ids are untouched, so an
+# existing install keeps its entity id and its history through the registry
+# (the #174 pattern above), and the card resolves the pre-#1333 ids as its
+# legacy fallback (pinned below).
+for _display, _new_id, _uid in (
+    ("Plan Space Heating (next 24 h)", "sensor.heat_pump_optimizer_plan_space_heating", "space_heating_plan"),
+    ("Plan DHW Heating (next 24 h)", "sensor.heat_pump_optimizer_plan_dhw_heating", "dhw_heating_plan"),
+):
+    _moved = by_name.get(_display)
+    R.check(
+        f"{_display} suggests {_new_id} on new installs (#1333)",
+        _moved is not None and _moved.entity_id == _new_id,
+        str(getattr(_moved, "entity_id", None)),
+    )
+    R.check(
+        f"{_display} keeps unique id ..._{_uid}, so existing installs keep their entity id",
+        _moved is not None and _moved._attr_unique_id == f"{ENTRY.entry_id}_{_uid}",
+        str(getattr(_moved, "_attr_unique_id", None)),
+    )
+
+# And the other half of the same contract: an existing install keeps its
+# pre-#1333 registry id, so the card has to resolve BOTH plan id generations
+# -- current suffix first, legacy after. Read the card's own maps, so deleting
+# a legacy entry fails here rather than silently breaking upgrades. Two maps,
+# because discovery matches an id's end (bare suffix) while derivation strips
+# the resolved id's own separator-carrying suffix.
+def _card_suffix_map(_name):
+    _blk = re.search(rf"const {_name} = \{{(.*?)\}};", _card_src, re.S)
+    _out = {}
+    if _blk:
+        for _m in re.finditer(r"(\w+):\s*\[([^\]]*)\]", _blk.group(1)):
+            _out[_m.group(1)] = re.findall(r'"([^"]+)"', _m.group(2))
+    return _out
+
+_card_scan = _card_suffix_map("PLAN_ID_SUFFIXES")
+_card_derive = _card_suffix_map("PLAN_ID_DERIVE")
+R.check(
+    "the card's plan discovery tries the current id before the pre-#1333 one",
+    _card_scan.get("space") == ["plan_space_heating", "space_heating_plan"]
+    and _card_scan.get("dhw") == ["plan_dhw_heating", "dhw_heating_plan"],
+    str(_card_scan),
+)
+R.check(
+    "the card's plan derivation tries the current id before the pre-#1333 one",
+    _card_derive.get("space") == ["_plan_space_heating", "_space_heating_plan"]
+    and _card_derive.get("dhw") == ["_plan_dhw_heating", "_dhw_heating_plan"],
+    str(_card_derive),
+)
+# The current entry must also be the one that lands on this roster's live id.
+for _kind, _current in (
+    ("space", "_plan_space_heating"),
+    ("dhw", "_plan_dhw_heating"),
+):
+    _derived_live = [
+        s.entity_id for s in sensors
+        if s.entity_id.endswith(_current)
+    ]
+    R.check(
+        f"the card's current {_kind} plan id matches a built sensor (#1333)",
+        _derived_live == [f"sensor.heat_pump_optimizer{_current}"],
+        str(_derived_live),
+    )
+
+# --- D8-02 (round 5, #1334): the same clusters hold in Swedish ------------
+#
+# English leads each family above with a token of its own ("Cost ", "Plan ",
+# "Learning ", "DHW "). The round-5 D8 harness measures the Swedish side the
+# way it measures the English one: for a family, the longest common prefix of
+# its members' Swedish names must reach 3 characters -- below that the members
+# are led by no common token and the registry's default name-sorted view pulls
+# them apart. Measured before this fix: families_split_name_sv 4 against en 1,
+# sv_only_divergent_families 1 (the sun family), family_lcp_divergence_sv 2.
+# Four names dropped a token English keeps -- the two plan sensors
+# ("Värmeplan (nästa 24 h)" / "Varmvattenplan (nästa 24 h)"), the tariff pair's
+# spot price ("Kostnad elpris (nu)" inside a run of "Kostnad ..." names), and
+# the sun family's forecast ("Prognos för solöverskott" against "Sol ...").
+#
+# Read sv.json, the catalogue the frontend loads. The families are the two
+# shapes the harness names: the English-prefixed clusters the table above
+# pins, and the translation-key prefixes (its PREFIX_FAMILIES). The keys stay
+# the family definition in both, so a key that joins or leaves a family moves
+# the check with it; the bound is the harness's own.
+def _lead_token(_names):
+    """Longest common prefix of _names -- the harness's `lcp`."""
+    _prefix = _names[0]
+    for _name in _names[1:]:
+        while not _name.startswith(_prefix):
+            _prefix = _prefix[:-1]
+    return _prefix
+
+for _plat, _pins in sorted(_CLUSTER_PREFIXES.items()):
+    _clusters: dict[str, list[str]] = {}
+    for _key, _prefix in _pins.items():
+        _clusters.setdefault(_prefix, []).append(_key)
+    for _prefix, _keys in sorted(_clusters.items()):
+        if len(_keys) < 2:
+            continue
+        _sv_names = [_sv_entities[_plat][_k]["name"] for _k in sorted(_keys)]
+        R.check(
+            f"the Swedish {_plat} names {_prefix!r} leads keep a lead token too (#1334)",
+            len(_lead_token(_sv_names)) >= 3,
+            f"lcp={_lead_token(_sv_names)!r} over {_sv_names}",
+        )
+for _key_prefix in ("dhw_", "learning_", "ecl110_", "solar_"):
+    _prefix_names = sorted(
+        _body["name"]
+        for _ents in _sv_entities.values()
+        for _key, _body in _ents.items()
+        if _key.startswith(_key_prefix)
+    )
+    if len(_prefix_names) < 2:
+        continue
+    R.check(
+        f"the Swedish {_key_prefix}* family's names keep a lead token (#1334)",
+        len(_lead_token(_prefix_names)) >= 3,
+        f"lcp={_lead_token(_prefix_names)!r} over {_prefix_names}",
+    )
+
+# A lead token is necessary, not sufficient: the finding's claim is a BLOCK
+# count (`families_split_name_sv` 4 against en 1), and the capacity-tariff
+# pair splits without ever losing a token -- its spot price, "Kostnad elpris
+# (nu)", shares the "Kostnad " lead but sorts BETWEEN the pair ("Kostnad
+# effektmarginal" < "Kostnad elpris (nu)" < "Kostnad månatligt toppeffekt").
+# "Kostnad aktuellt elpris" sorts ahead of both, so the pair stays whole.
+# Reproduce the harness's own block rule -- a family is whole when its
+# members occupy one contiguous run of the name-sorted view -- over the same
+# roster, with the harness's own families (PREFIX_FAMILIES plus the two the
+# claim names by hand: the card's plan family and this tariff_pair).
+_sv_rows = sorted(
+    (_body["name"], _plat, _key)
+    for _plat, _ents in _sv_entities.items()
+    for _key, _body in _ents.items()
+)
+_sv_seq = [(_plat, _key) for _name, _plat, _key in _sv_rows]
+
+
+def _runs(_members):
+    """Runs _members fall into in the sv name order -- the harness's blocks."""
+    _pos = [i for i, _row in enumerate(_sv_seq) if _row in _members]
+    if len(_pos) < 2:
+        return 0
+    _runs_n = 1
+    for _a, _b in zip(_pos, _pos[1:]):
+        if _b != _a + 1:
+            _runs_n += 1
+    return _runs_n
+
+
+for _label, _members in (
+    (
+        "card's plan family",
+        tuple(
+            ("sensor", _k)
+            for _k, _prefix in _CLUSTER_PREFIXES["sensor"].items()
+            if _prefix == "Plan "
+        ),
+    ),
+    (
+        "capacity-tariff pair",
+        (("sensor", "cost_monthly_peak_power"), ("sensor", "cost_power_headroom")),
+    ),
+    *(
+        (
+            f"{_key_prefix}* family",
+            tuple(
+                sorted(
+                    (_plat, _key)
+                    for _plat, _ents in _sv_entities.items()
+                    for _key in _ents
+                    if _key.startswith(_key_prefix)
+                )
+            ),
+        )
+        for _key_prefix in ("dhw_", "learning_", "ecl110_", "solar_")
+    ),
+):
+    if len(set(_members)) < 2:
+        continue
+    R.check(
+        f"the Swedish {_label} keeps its members in one name-sorted run (#1334)",
+        _runs(set(_members)) == 1,
+        f"{_runs(set(_members))} run(s)",
     )
 
 # Belt-and-braces for the future: the four headline sensors advertise a
@@ -15779,6 +16238,140 @@ R.check(
     "emptying someone else's claim list is the deletion a squash applies to "
     f"the baseline; got {_h493_del_err!r}",
 )
+# The CLAIM_HEAD head-read (#1359/#1356's deadlock). On a pull_request the
+# checkout is the synthetic merge tree, where a no-drift branch's solver list
+# resolves to the baseline's and falsely reads as inherited. CLAIM_HEAD names
+# the branch's own head, whose empty list "always passes".
+def _merge_hygiene_git():
+    """Three commits: base (five solver claims), branch (empties them, touches
+    a solver file), HEAD (the merge tree — the baseline's list with the
+    branch's solver-file touch)."""
+    import subprocess as _sp
+
+    root = _tempfile.mkdtemp(prefix="hch_")
+    five = (
+        "# claims-for: 6.3.15\n\n"
+        "coord_minimal  # R5-D8-03\n"
+        "coord_dhw  # R5-D8-03\n"
+        "coord_two_zone  # R5-D8-03\n"
+        "coord_grid_fee  # R5-D8-03\n"
+        "coord_all_features  # R5-D8-03\n"
+    )
+    (Path(root) / "tests" / "golden").mkdir(parents=True)
+    (Path(root) / "custom_components" / "heatpump_optimizer").mkdir(parents=True)
+    (Path(root) / "VERSION").write_text("6.3.15\n")
+    (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(five)
+    (Path(root) / "tests" / "golden" / "card_claimed_drift.txt").write_text("# claims-for: 6.3.15\n")
+    (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text("x = 1\n")
+    _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
+    _sp.run(["git", "config", "user.name", "t"], cwd=root, check=True)
+    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "base"], cwd=root, check=True, capture_output=True)
+    base = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text("# claims-for: 6.3.15\n")
+    (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text("x = 2\n")
+    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "branch"], cwd=root, check=True, capture_output=True)
+    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(five)
+    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "merge tree"], cwd=root, check=True, capture_output=True)
+    return root, base, branch
+
+
+_mt_root, _mt_base, _mt_branch = _merge_hygiene_git()
+_mt_without = _hyg(_mt_root, _mt_base) if callable(_hyg) else "missing"
+with _mock.patch.dict(_os.environ, {"CLAIM_HEAD": _mt_branch}):
+    _mt_with_head = _hyg(_mt_root, _mt_base) if callable(_hyg) else "missing"
+with _mock.patch.dict(_os.environ, {"CLAIM_HEAD": _mt_base}):
+    _mt_defect = _hyg(_mt_root, _mt_base) if callable(_hyg) else "missing"
+R.check(
+    "the merge-tree checkout's list is the baseline's, so without CLAIM_HEAD the inherited check fires",
+    callable(_hyg)
+    and isinstance(_mt_without, str)
+    and _mt_without.startswith("INHERITED CLAIMS"),
+    f"got {_mt_without!r}",
+)
+R.check(
+    "CLAIM_HEAD reads the branch's own empty list, so a no-drift branch over a claiming main passes",
+    callable(_hyg) and _mt_with_head is None,
+    f"got {_mt_with_head!r}",
+)
+R.check(
+    "CLAIM_HEAD pointing at a byte-identical list still fires the inherited check (the real-defect arm)",
+    callable(_hyg)
+    and isinstance(_mt_defect, str)
+    and _mt_defect.startswith("INHERITED CLAIMS"),
+    f"got {_mt_defect!r}",
+)
+
+# The false positive the fork-point baseline repairs (#1361/#1357/#1360). A
+# claim-UNTOUCHING branch: its head and its fork point carry IDENTICAL claim
+# lists while `ref` (main's tip) MOVED the solver list after the fork. The
+# record rule compares the branch's own list against the baseline, and on a
+# `pull_request` `ref` is main's tip, not the merge base -- so reading the
+# baseline off `ref` makes the moved list read as this branch's own authorship
+# and refuses it. Both sides must come from one commit, and the fork is that
+# commit; `check_claims_hygiene` computes `git merge-base <ref> <claim_head>`
+# for it. This is the shape all three live PRs have and `_merge_hygiene_git`
+# cannot see: there the branch empties the list its base carries five of, so
+# the head and the fork never agree and the fixture stays blind to it.
+def _untouched_hygiene_git():
+    """fork (five claims) -> branch (docs only, claims untouched)
+    -> main (solver list moved) -> HEAD (the synthetic merge tree)."""
+    import subprocess as _sp
+
+    root = _tempfile.mkdtemp(prefix="hcu_")
+    five = (
+        "# claims-for: 6.3.15\n\n"
+        "coord_minimal  # R5-D8-03\n"
+        "coord_dhw  # R5-D8-03\n"
+        "coord_two_zone  # R5-D8-03\n"
+        "coord_grid_fee  # R5-D8-03\n"
+        "coord_all_features  # R5-D8-03\n"
+    )
+    moved = (
+        "# claims-for: 6.3.15\n\n"
+        "coord_dhw  # R5-D8-03\n"
+        "coord_two_zone  # R5-D8-03\n"
+    )
+    (Path(root) / "tests" / "golden").mkdir(parents=True)
+    (Path(root) / "docs").mkdir(parents=True)
+    (Path(root) / "VERSION").write_text("6.3.15\n")
+    (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(five)
+    (Path(root) / "tests" / "golden" / "card_claimed_drift.txt").write_text("# claims-for: 6.3.15\n")
+    (Path(root) / "docs" / "rust.txt").write_text("start\n")
+    _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
+    _sp.run(["git", "config", "user.name", "t"], cwd=root, check=True)
+    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "fork"], cwd=root, check=True, capture_output=True)
+    # the branch: a docs-only change, both claim files left exactly as found
+    (Path(root) / "docs" / "rust.txt").write_text("branch\n")
+    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "branch"], cwd=root, check=True, capture_output=True)
+    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    # main moves the solver list after the fork (the branch is not its author)
+    _sp.run(["git", "checkout", "-q", "HEAD~1"], cwd=root, check=True, capture_output=True)
+    (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(moved)
+    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "main"], cwd=root, check=True, capture_output=True)
+    ref = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    # the synthetic merge tree a `pull_request` checks out: main merged with branch
+    _sp.run(["git", "merge", "--no-edit", "-q", branch], cwd=root, check=True, capture_output=True)
+    return root, ref, branch
+
+
+_ut_root, _ut_ref, _ut_branch = _untouched_hygiene_git()
+with _mock.patch.dict(_os.environ, {"CLAIM_HEAD": _ut_branch}):
+    _ut_err = _hyg(_ut_root, _ut_ref) if callable(_hyg) else "missing"
+R.check(
+    "a claim-untouching branch whose head and fork agree passes though ref moved",
+    callable(_hyg) and _ut_err is None,
+    f"got {_ut_err!r}",
+)
+
 # The stamp exemption end to end, through `check_claims_hygiene`: VERSION read
 # off the baseline with git, both claims-for lines read off the tree. The null
 # control is the same commit with VERSION left alone, which must stay refused.
@@ -19195,6 +19788,39 @@ R.check(
     "evidence must not drop it, and a line that is neither an entry nor a "
     "trailer must still be refused",
 )
+# A FRICTION ID MAY START WITH A DOT (#1305, D13-03). `FRICTION_ID` began
+# `[A-Za-z]`, so a repo-relative path -- the most explicit spelling there is of
+# the file it names -- parsed as NO id and landed in the histogram's unlabelled
+# bucket: `.claude/skills/steward/SKILL.md` is a key of `policy_budgets.json`'s
+# `files`, yet an entry naming it could not be filed against it. The leading
+# dot is admitted now. Pinned through the exported parser, with the null
+# controls that the widening bought no amnesty: `none` is still zero entries,
+# and a line naming no rule still yields no id.
+_FRICTION_DOT = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const ids = (t) => m.frictionEntries(t).map((e) => e.id);"
+     "console.log(JSON.stringify({"
+     "path: ids('`.claude/skills/steward/SKILL.md`: cost: the skill named by its path'),"
+     "dot_only: ids('.claude/rules/gate-scoping.md: stale: a path, unbackticked'),"
+     "none_only: ids('none').length,"
+     "junk: ids('this line names no rule').filter(Boolean)"
+     "})); })"],
+    capture_output=True, text=True).stdout or "{}")
+R.check(
+    "the friction id grammar admits a leading dot, so a repo-relative path parses (#1305)",
+    _FRICTION_DOT.get("path") == [".claude/skills/steward/SKILL.md"]
+    and _FRICTION_DOT.get("dot_only") == [".claude/rules/gate-scoping.md"],
+    f"parsed={_FRICTION_DOT} -- a path spelling resolved to no id, so the "
+    "histogram could not name the budget file it points at",
+)
+R.check(
+    "and the leading dot buys no amnesty: `none` is zero entries and a line "
+    "naming no rule still yields no id (null controls)",
+    _FRICTION_DOT.get("none_only") == 0 and _FRICTION_DOT.get("junk") == [],
+    f"parsed={_FRICTION_DOT} -- the widened first char must not make a "
+    "rule-less line parse",
+)
 # AN AUTOFIX COMMIT ON THE NAMED HEAD IS NOT A MOVED HEAD. `closures-autofix`
 # and `claims-autofix` push a commit onto a pull request after its body was
 # written, so the body names a head that is no longer the tip and `pr-contract`
@@ -19599,6 +20225,56 @@ R.check(
     f"findings={str(_STATS_DEGRADED)[:300]} -- three bare blocked verdicts over "
     "three pull requests reached the threshold with no class set to key "
     "them, and a constant proposed as friction is #1041 again (#1240)",
+)
+# A VERDICT THE WAVE REFUSES MUST NOT BE BLESSED AS `other` (#1304, D13-02).
+# The blocked arm matched the class word optionally AND WITHOUT its colon, so
+# `blocked <sha> <word> (<why>)` -- a class word with no colon, which
+# `web-fix-wave.js`'s VERDICT_RE REFUSES -- matched here with no class captured
+# and folded into `other`: the histogram blessed what its sibling discards,
+# against its own stated invariant (#1240's). The shape after the SHA now
+# mirrors the wave's own continuation. Property, not the instance: a
+# wave-refused shape is reported OUTSIDE the grammar and never keyed `other`.
+# The bare `blocked <sha>`, which the wave does route to `other`, is the null
+# control -- the fix must not over-refuse it.
+_STATS_BLOCKFOLD = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const sha = (c) => c.repeat(40);"
+     "const call = (bodies) => {"
+     "const prs = bodies.map((_, i) => ({ pr: i + 1 }));"
+     "const fetched = new Map(bodies.map((b, i) => "
+     "[i + 1, { body: 'x', comments: [{ body: b }] }]));"
+     "return m.statsFindings({ prs, fetched, fetchError: null, "
+     "classes: ['blocked', 'merge'] }).map((f) => f.message); };"
+     "const words = ['a', 'b', 'c'].map(sha);"
+     "console.log(JSON.stringify({"
+     "refused: call(words.map((s) => "
+     "'Fix review: blocked ' + s + ' class-c-live-worktree-deleted (POST-MERGE)')),"
+     "bare: call(words.map((s) => 'Fix review: blocked ' + s))"
+     "})); })"],
+    capture_output=True, text=True).stdout or "{}")
+
+
+def _stats_says(arm, sub):
+    return any(sub in m for m in _STATS_BLOCKFOLD.get(arm) or [])
+
+
+R.check(
+    "a blocked verdict whose shape the wave refuses is outside the grammar, "
+    "not folded into `other` (#1304)",
+    not _stats_says("refused", "recurring friction: other")
+    and sum("outside the grammar" in m
+            for m in _STATS_BLOCKFOLD.get("refused") or []) == 3,
+    f"findings={str(_STATS_BLOCKFOLD.get('refused'))[:300]} -- a no-colon class "
+    "word is refused by VERDICT_RE, so keying it `other` blessed what the wave "
+    "discards",
+)
+R.check(
+    "and the bare blocked verdict still routes to `other` (null control)",
+    _stats_says("bare", "recurring friction: other")
+    and not _stats_says("bare", "outside the grammar"),
+    f"findings={str(_STATS_BLOCKFOLD.get('bare'))[:300]} -- the fix must not "
+    "refuse a verdict the wave routes",
 )
 R.check(
     "the publishing lane runs on main alone, never on a pull request",
@@ -20153,7 +20829,7 @@ R.check(
 )
 
 # #1217 (D3-07): two of the D3 pre-screen's seven survivors are EQUIVALENT
-# mutants -- pump_mode.py:242 GUARD_OFF and __init__.py:337 BOOLOP, each
+# mutants -- pump_mode.py:242 GUARD_OFF and __init__.py:340 BOOLOP, each
 # measured against its own guarded input -- which no check could ever kill,
 # so a survivor count that mixes them with real gaps reads worse than the
 # suite is. The triage marks live in tests/mutation_budgets.json under
@@ -20228,7 +20904,7 @@ R.check(
 # same text -- so the pins are checked against the tree, not each other.
 _MUT_D3_07 = (
     "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF",
-    "custom_components/heatpump_optimizer/__init__.py:337 BOOLOP",
+    "custom_components/heatpump_optimizer/__init__.py:340 BOOLOP",
 )
 R.check(
     "the recorded triage marks both D3-07 equivalents, verdict and reason (#1217)",

@@ -206,6 +206,9 @@ jobs:
             # The PR's merge-base with its target: exactly the code this
             # PR forked from, so the drift comparison isolates the PR.
             REF=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
+            # The branch's OWN claim list is read from the PR head, not the
+            # synthetic merge tree this checkout is (env_drift's CLAIM_HEAD).
+            echo "CLAIM_HEAD=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_ENV"
           elif [ "${{ needs.recheck-gate.outputs.recheck }}" = "true" ]; then
             # Autofix dispatch is not a pull_request event. Compare against
             # main the same way a PR would, not HEAD^1 (the autofix commit's

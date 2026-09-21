@@ -7828,6 +7828,35 @@ R.check(
     "no valve, no keys -- existing captures of the coordinator's data must "
     "stay byte-for-byte identical",
 )
+# --- round-5 D3-04 (#1312): the valve ratio's two-price floor ----------------
+# The mutant that moved ``len(positives) >= 2`` to ``>= 200`` survived this
+# script's whole closure and the full gate: every check above reads a view
+# whose ``_prices`` is empty, so the ratio is None for a reason the floor
+# never had to reach. The floor is what makes the published price_ratio
+# non-None at all once two real prices are in, and a ratio that is always
+# None is the recommendation's only quantitative input silently switched off.
+_vr_two = _zone_coord(_BASE, mixing_valve_mode="manual", max_temperature=23.0)
+_vr_two._prices = [{"total": 1.0}, {"total": 4.0}]
+_vr_two_ratio = _vr_two._mixing_valve_view()["valve_target_recommendation"][
+    "price_ratio"
+]
+R.check(
+    "two published prices give the valve a price ratio",
+    _vr_two_ratio == 0.25,
+    f"price_ratio={_vr_two_ratio!r}: cheapest over dearest of [1.0, 4.0] is "
+    "0.25, and the >= 2 floor is the only thing that admits two",
+)
+_vr_one = _zone_coord(_BASE, mixing_valve_mode="manual", max_temperature=23.0)
+_vr_one._prices = [{"total": 1.0}]
+_vr_one_ratio = _vr_one._mixing_valve_view()["valve_target_recommendation"][
+    "price_ratio"
+]
+R.check(
+    "one published price is too few to state a ratio",
+    _vr_one_ratio is None,
+    f"price_ratio={_vr_one_ratio!r}: one price is its own cheapest and "
+    "dearest, a ratio of 1.0 that says nothing",
+)
 
 
 R.section("smart_write: the optimizer commands the valve (item 29)")
@@ -9911,6 +9940,8 @@ from heatpump_optimizer import grid_fee as _gf
 from heatpump_optimizer.ledger import MonthlyLedger as _Ledger
 from heatpump_optimizer.price_model import (
     PriceShapeModel as _PSM,
+    QUARTER_CONFIDENCE_DAYS,
+    QUARTER_FACTOR_MAX,
     hourly_from_entries as _hourly,
     quarters_from_entries as _quarters,
 )
@@ -10594,6 +10625,37 @@ R.check(
     and _loaded.sigma(_monday, 1.0) == 0.0
     and _loaded.shapes[0][0] == 1.1,
     "the silent-fallback loader must never discard learned state",
+)
+# --- round-5 D3-05 (#1313): the quarter-confidence ceiling ------------------
+# The mutant that deleted ``min(1.0, ...)`` from quarter_confidence survived
+# this script's whole closure and the full gate: _psm above is queried only
+# where its trust is 1.0 or less, so the cap never binds in view. Past the ramp
+# the ratio quarter_days / QUARTER_CONFIDENCE_DAYS is already above 1, and an
+# uncapped trust is no longer a saturation curve but a scale factor: the damped
+# factor 1 + (raw - 1) * trust overshoots the very range the clip admits.
+_qcap = _PSM()
+for _i in range(QUARTER_CONFIDENCE_DAYS + 3):
+    _qcap.observe_day_quarters(_monday, [1.0] * 96)
+R.check(
+    "quarter confidence saturates at one, however much evidence arrives",
+    _qcap.quarter_confidence(_monday) == 1.0,
+    f"quarter_days={_qcap.quarter_days[0]} against a ramp of "
+    f"{QUARTER_CONFIDENCE_DAYS} reads {_qcap.quarter_confidence(_monday)!r} "
+    "without the ceiling",
+)
+_spiked_q = [1.0] * 96
+_spiked_q[24:28] = [0.2, 0.2, 0.2, 3.0]  # hour 6: one quarter at 3x its mean
+_qcap2 = _PSM()
+for _i in range(QUARTER_CONFIDENCE_DAYS + 3):
+    _qcap2.observe_day_quarters(_monday, _spiked_q)
+_qraw = float(_qcap2.quarter_factors[0][27])
+_qdamped = _qcap2.quarter_factor(_monday.replace(hour=6, minute=45))
+R.check(
+    "the damped quarter factor never overshoots the learned factor it damps",
+    _qdamped <= QUARTER_FACTOR_MAX + 1e-9,
+    f"learned {_qraw:.3f}, damped {_qdamped:.3f} against a clip ceiling of "
+    f"{QUARTER_FACTOR_MAX}: trust above one pushes the factor past the range "
+    "the learned value is confined to",
 )
 
 # --- #34: risk-adjusted pricing on the guessed tail ---------------------------
@@ -13425,6 +13487,37 @@ R.check(
     not _c19._capacity_envelope,
     "the caps limit the plan and the plan limits the samples; folding "
     "partial load would ratchet every active bucket down to the floor",
+)
+# --- round-5 D3-06 (#1314): the envelope's finite/positive admission --------
+# The mutant that turned the guard into ``if False and (...)`` survived this
+# script's whole closure and the full gate: every _fold_capacity_envelope call
+# above passes a finite, positive COP, so the one line that keeps a bad figure
+# out never runs in view. An observed_cop that is NaN (read off a sensor
+# mid-solve) or non-positive reaches thermal_kw = cop * measured_power, and
+# without the guard it is folded straight in: max() propagates a NaN
+# permanently, so a single bad sample pins that bucket's envelope -- and its
+# cap -- at NaN for the life of the store.
+_c14_nan = _t2_coord(capacity_curve_enabled=True)
+_c14_nan._current_state.outdoor_temperature = -10.0
+_c14_nan._current_action = {"power": 5.0}  # commanded at nameplate
+_c14_nan._measured_power = 4.0
+_c14_nan._fold_capacity_envelope(float("nan"))
+R.check(
+    "a non-finite COP never enters the learned envelope",
+    _c14_nan._capacity_envelope == {},
+    f"envelope={_c14_nan._capacity_envelope!r}: only the isfinite arm keeps "
+    "NaN out, and max(NaN, x) makes it permanent",
+)
+_c14_neg = _t2_coord(capacity_curve_enabled=True)
+_c14_neg._current_state.outdoor_temperature = -10.0
+_c14_neg._current_action = {"power": 5.0}
+_c14_neg._measured_power = 4.0
+_c14_neg._fold_capacity_envelope(-1.0)
+R.check(
+    "a non-positive thermal figure never enters the learned envelope",
+    _c14_neg._capacity_envelope == {},
+    f"envelope={_c14_neg._capacity_envelope!r}: a negative COP is not "
+    "evidence of capacity either, so the <= 0.0 arm is load-bearing too",
 )
 R.check(
     "the envelope composes through caps_extra, never a second channel",

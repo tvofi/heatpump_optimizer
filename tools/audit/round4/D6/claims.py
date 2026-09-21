@@ -93,7 +93,12 @@ against a document that is CORRECT.
                                          and then)
     RESULT arch_map_listed=64            (was 45; 11 were missing)
     RESULT arch_map_missing=0            (was 11)
-    RESULT ha_module_level_importers=21  (architecture.md said 10; now says 21)
+    RESULT ha_module_level_importers=22  (was 21; #1299's defrost
+                                         normalisation imports
+                                         homeassistant.util.dt at module
+                                         level, and architecture.md moved
+                                         with the census in the same
+                                         commit)
 
 INSTRUMENTED SYMBOLS (driven, not read):
     heatpump_optimizer.{sensor,binary_sensor,button,climate,switch,datetime}
@@ -294,10 +299,10 @@ _readme_disabled = sorted(
     re.search(r"Disabled by default: (.*?)\.\n", README, re.S).group(1)
     .replace("\n", " ").replace(" and ", ", ").split(",") if x.strip()
 )
-eq("C6", "README.md:Entities", "Six sensors are disabled by default, and these are they",
+eq("C6", "README.md:Entities", "Nineteen entities are disabled by default, and these are they (#1335)",
    CMD, _readme_disabled, _disabled)
-eq("C7", "README.md:Entities", "exactly six sensors are disabled by default", CMD,
-   6, len(_disabled))
+eq("C7", "README.md:Entities", "exactly nineteen entities are disabled by default (#1335)", CMD,
+   19, len(_disabled))
 
 # README sensor table: name set and unit column against the constructed sensors
 _sensor_block = re.search(

@@ -43,7 +43,7 @@
 //   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
-//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names] [--paths-file f]
+//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names] [--paths-file f] [--author login]
 //   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
 //   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
 //   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
@@ -2303,20 +2303,26 @@ const bump = (hist, key, pr) => {
   cell.prs.add(pr)
 }
 
-// THE BLOCK-CLASS KEYING (#1240, D13-03). The blocked arm used to key every
-// blocked verdict on the word `blocked` -- one constant key, because the
-// grammar read was only the two verdict words. It now reads the same shape
-// the wave parser acts on: a blocked line that carries a full head SHA keys
-// on the CLASS WORD it carries -- a taught word as itself, an untaught word
-// as its own row, never folded into `other`, because a class the grammar does
-// not have is the drift signal, not noise -- and a blocked line with a SHA
-// and no class word routes to `other`, exactly where web-fix-wave.js routes
-// it (#1239). A blocked line with no SHA is outside the grammar and keeps its
-// own row: the head is the thing the wave refuses to act on, and a histogram
-// that counted it anyway would bless what the wave discards. The merge arm
-// stays keyed on the word alone -- the passing verdict is rework nowhere
-// however it is spelled, so that arm only withholds.
-const BLOCKED_SHAPE_RE = /^Fix review:\s*blocked\s+([0-9a-f]{40})(?:\s+([a-z][a-z0-9-]*)\s*:)?/i
+// THE BLOCK-CLASS KEYING (#1240, D13-03; the continuation is the wave's, #1304).
+// The blocked arm used to key every blocked verdict on the word `blocked` -- one
+// constant key, because the grammar read was only the two verdict words. It now
+// reads the same shape the wave parser acts on: a blocked line that carries a
+// full head SHA keys on the CLASS WORD it carries -- a taught word as itself, an
+// untaught word as its own row, never folded into `other`, because a class the
+// grammar does not have is the drift signal, not noise -- and a bare
+// `blocked <sha>` routes to `other`, where web-fix-wave.js routes it (#1239).
+// THE CONTINUATION AFTER THE SHA IS THE WAVE'S OWN, and until #1304 it was not:
+// the class word was optional and its colon with it, so `blocked <sha> <word>
+// (<why>)` -- a class word with no colon, which VERDICT_RE REFUSES -- matched
+// here with no class captured and folded into `other`. Blessing what the wave
+// discards is the same defect as counting a sha-less verdict, so the
+// continuation mirrors the wave's arms -- ` <class>: <why>`, `: <why>`, or
+// nothing, each ending the line -- and a blocked line the wave refuses keeps its
+// own row here, as a sha-less one always did: the head is the thing the wave
+// refuses to act on, and a histogram that counted it anyway would bless what the
+// wave discards. The merge arm stays keyed on the word alone -- the passing
+// verdict is rework nowhere however it is spelled, so that arm only withholds.
+const BLOCKED_SHAPE_RE = /^Fix review:\s*blocked\s+([0-9a-f]{40})(?:\s+([a-z][a-z0-9-]*)\s*:\s*.+|\s*:\s*.+|\s*)$/i
 
 function statsHistogram(prs, fetched, classes) {
   const verdicts = new Map()
@@ -3070,6 +3076,26 @@ function assertAcceptance(derived) {
       return 1
     }
     found.push(...errs)
+  }
+
+  // The author check (decision 0011): a body authored as tvofi — or any
+  // identity other than the hpo-author App — is refused; the App and an absent
+  // author are the null controls that must stay silent. One arm alone would
+  // pin a check that always fires or never does.
+  {
+    const rel = path.relative(ROOT, path.join(prepr, 'good.md'))
+    const wrong = checkPrBody(rel, { head: ZERO, author: 'tvofi' })
+    const right = checkPrBody(rel, { head: ZERO, author: 'app/hpo-author' })
+    const rightBot = checkPrBody(rel, { head: ZERO, author: 'hpo-author[bot]' })
+    const absent = checkPrBody(rel, { head: ZERO })
+    if (!wrong.some((e) => /hpo-author App/.test(e.message))) {
+      console.log('\nFIXTURE VACUOUS: the author check did not fire on a tvofi-authored body')
+      return 1
+    }
+    if (right.length || rightBot.length || absent.length) {
+      console.log('\nFIXTURE VACUOUS: the author check fired on the App (either form) or on an absent author (the null controls)')
+      return 1
+    }
   }
 
   // `## Approval` is keyed on the DIFF, so one fixture is driven twice and the
@@ -4658,14 +4684,18 @@ const isBareNa = (text) => {
 // bullet after a labelled entry folded into that entry's evidence -- accepted
 // by the contract, counted as unlabelled by the histogram, visible to nobody.
 //
-// The id charset admits `#` and `/`, so `CLAUDE.md#budgets` and a brief's path
-// parse as ids: the template constrains the class, not the id, and the class
-// is the half that carries meaning. Backticks around the id and the class are
-// tolerated because every other policy file writes an identifier that way.
+// The id charset admits `#`, `/` and a LEADING `.`, so `CLAUDE.md#budgets` and
+// a repo-relative path (`.claude/skills/steward/SKILL.md`) parse as ids: the
+// template constrains the class, not the id, and the class is the half that
+// carries meaning. The leading dot is #1305: a path is the most explicit
+// spelling of the file it names, and a grammar that could not start on `.`
+// dropped it into the unlabelled bucket, where it named no budget file at all.
+// Backticks around the id and the class are tolerated because every other
+// policy file writes an identifier that way.
 // A section that is `none` has no entries; that is the contract's accept path
 // and the histogram's zero, and it is decided here so neither caller can read
 // `none` as one unparseable entry.
-const FRICTION_ID = '[A-Za-z][A-Za-z0-9_.#/-]*'
+const FRICTION_ID = '[A-Za-z.][A-Za-z0-9_.#/-]*'
 const FRICTION_ENTRY_RE = new RegExp(`^[-*]?\\s*\`?(${FRICTION_ID})\`?\\s*:\\s*\`?([a-z-]+)\`?\\s*:\\s*(.+)$`)
 const FRICTION_OPENS_RE = new RegExp(`^[-*]?\\s*\`?${FRICTION_ID}\`?\\s*:\\s*\`?[a-z-]+\`?\\s*:`)
 const FRICTION_NEAR_MISS_RE = new RegExp(`^[-*]?\\s*\`?${FRICTION_ID}\`?\\s*:`)
@@ -4978,8 +5008,14 @@ function redHistorySkipLine(why) {
   return `  skip     red-history           ${why}; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here`
 }
 
-function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], notes = [] } = {}) {
+function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], notes = [], author = null } = {}) {
   const out = []
+  // The REST `/pulls/{n}` `.user.login` reports the App as `hpo-author[bot]`
+  // while the GraphQL `author.login` reports `app/hpo-author`; accept both.
+  if (author != null && author !== 'app/hpo-author' && author !== 'hpo-author[bot]') {
+    out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
+      message: `the pull request author is \`${author}\`; a pull request is authored by the hpo-author App (decision 0011) — re-open it via tools/audit/app_push.sh, never push.sh` })
+  }
   let body
   try {
     body = fs.readFileSync(bodyPath, 'utf8')
@@ -5085,6 +5121,10 @@ function cmdPrBody(args) {
     return i >= 0 ? args[i + 1] : null
   }
   const bodyPath = val('--pr-body')
+  // The pull request must be authored by the hpo-author App (decision 0011);
+  // a PR authored as tvofi or any other identity is refused, fail-closed,
+  // because an author cannot approve their own code-owned PR.
+  const author = val('--author')
   // `--red` may be REPEATED, once per name. A LONE `--red` value is still
   // split on commas -- the form `prepr.sh --self-test` drives -- but each
   // value of a repeated `--red` is ONE name, verbatim: CI's pr-contract job
@@ -5138,7 +5178,7 @@ function cmdPrBody(args) {
       redAll = [...new Set([...red, ...hist.reds])]
     }
   }
-  const findings = checkPrBody(bodyPath, { head, title: val('--title') ?? '', red: redAll, paths, notes })
+  const findings = checkPrBody(bodyPath, { head, title: val('--title') ?? '', red: redAll, paths, notes, author })
   for (const n of notes) console.log(n)
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)

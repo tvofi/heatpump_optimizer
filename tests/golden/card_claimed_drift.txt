@@ -25,6 +25,63 @@
 # next branch restates its own footprint, claims included.
 #
 
+# #1333 and #1334 (round-5 audit, D8-01 and D8-02): the plan family's ids
+# and names are carried into one block, so the card's own addressing of its
+# headline sensors is restated to match. This branch restates the list.
+#
+# #1333 (R5-D8-01): the #1227 rename covered only the four headline plan
+# statistics ("Plan beräknad besparing", "Plan besparing i procent", ...),
+# leaving the two plan sensors themselves addressed by the pre-#1227
+# `space_heating_plan` / `dhw_heating_plan` ids while the six sensors the
+# card head-lines all sit on `plan_*`. The card now ADDRESSES the renamed
+# ids -- DEFAULTS.space_entity / DEFAULTS.dhw_entity, PLAN_ID_SUFFIXES and
+# PLAN_ID_DERIVE -- and keeps discovering the older ones, so an install
+# upgraded from before the move keeps working: the pre-#1333 pair resolves
+# by its own device-prefixed suffix when nothing is configured (card.mjs
+# pins both arms as Scenario 3b). The unique ids are untouched, so no
+# registry entry moves and no coordinator fixture changes; only a NEW
+# install's suggested entity_id differs.
+#
+# Three of the 40 states move, and each moves in two places and nowhere
+# else. no_plan and no_plan_expanded are the states whose hass stub serves
+# no plan entity at all, so the card draws its "no entity found"
+# diagnostic, and that diagnostic names the id it looked for --
+#   `sensor.heat_pump_optimizer_space_heating_plan` -> `..._plan_space_heating`
+#   `sensor.heat_pump_optimizer_dhw_heating_plan`   -> `..._plan_dhw_heating`
+# Both dumps are the SAME LENGTH as the ref's (39997 and 41442 characters,
+# compared character by character): the two substitutions are in place and
+# the state's markup outside them is byte-identical -- nothing added,
+# removed or reordered. editor_schema is the third: it renders the config
+# editor's schema together with the card's own DEFAULT config, so its
+# `data` block carries the two new default ids (2 of the 6 lines that
+# changed are `space_entity` / `dhw_entity`; measured on the diff, the two
+# ids and nothing else). It is the ONLY state that renders those defaults,
+# which is why it does not move for the stylesheet reasons the historical
+# sections below record.
+#
+# Every other state resolves a plan entity from its fixture, never renders
+# that sentence or those defaults, and is byte-identical to the comparison
+# ref. Measured, not assumed: card_drift reports exactly these three as
+# DRIFT and refused the inherited 39-entry list as stale in the other 37,
+# which is what restating this list fixes.
+#
+# #1334 (R5-D8-02) touches no card state at all: it is translation_key and
+# catalogue text (the plan sensors and the DHW boost switch adopt their
+# family's lead token in Swedish as English already does). The card renders
+# those names only where Home Assistant hands them to it, and no state's
+# fixture feeds a renamed catalogue string into a card surface -- so the
+# claim list is the #1333 pair alone.
+#
+no_plan # the "no entity found" diagnostic names the id it looked for: ..._space_heating_plan / ..._dhw_heating_plan -> ..._plan_space_heating / ..._plan_dhw_heating (#1333)
+no_plan_expanded # the same two in-place <code> id substitutions in the expanded state's diagnostic (#1333)
+editor_schema # the config editor renders the card's DEFAULT config: its data block's space_entity / dhw_entity gain the new default ids (#1333)
+#
+
+# Historical, kept as record: the list above was restated by #1333/#1334.
+# Its 39 predecessor entries described the #1318/#1319 stylesheet diff
+# alone, and the 37 that still render those rules are byte-identical to
+# this branch's comparison ref.
+#
 # #1318 and #1319, both in the card's one stylesheet plus one inline style.
 #
 # #1319 (R5-D4-02): .hl-stat.hl-score is a control (role="button" arrives
@@ -40,15 +97,16 @@
 # paints none. Its inline style gains color:var(--primary-text-color), the
 # token every other text lane already sets.
 #
-# 39 of the 40 states are claimed, for the same measured reason as #822,
-# #936, #1220 and #1269 before it: the card injects ONE <style> block and
-# card_drift captures the whole shadow root, so the #1319 rule edit moves
-# every state that renders the stylesheet. editor_schema, the 40th, renders
-# the config editor's schema and no card stylesheet, so it does not move
-# (card_drift reports it identical and REFUSED a list that included it).
-# Every one of the 39 diffs is STYLESHEET TEXT ONLY -- no markup element
-# outside the style block is added, removed or reordered in any of them,
-# except wood_alert, whose diff additionally carries the banner's own
+#
+# 39 of the 40 states were claimed by it, for the same measured reason as
+# #822, #936, #1220 and #1269 before it: the card injects ONE <style> block
+# and card_drift captures the whole shadow root, so the #1319 rule edit moved
+# every state that rendered the stylesheet. editor_schema, the 40th, renders
+# the config editor's schema and no card stylesheet, so it did not move
+# (card_drift reported it identical and REFUSED a list that included it).
+# Every one of the 39 diffs was STYLESHEET TEXT ONLY -- no markup element
+# outside the style block was added, removed or reordered in any of them,
+# except wood_alert, whose diff additionally carried the banner's own
 # inline-style insertion (#1318), itself text-only inside one attribute.
 #
 # Measured at both ends with the finder's own harness,
@@ -61,45 +119,6 @@
 #   every other sweep class unchanged: overlap 831/831, overflow 12/12,
 #     coarse 728/728, focus_unreachable 135/135, hover 0/0, errors 0/0
 #
-no_plan # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-no_plan_expanded # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-plan_inline # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-plan_inline_sv # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-plan_short_window # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-custom_title_currency # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-hidden_series # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-score_open # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319); the state whose pill measured 158x15 and now floors at 25 px
-expanded_plan # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-what_if_off # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-expanded_zoomed # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-draft_dirty_menu_open # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-draft_mid_drag # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-whatif_edited # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-whatif_weekly # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-override_active # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-shared_steps # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-shared_steps_hover # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-tooltip_hover # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-coarse_pointer # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-reduced_motion # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-setup_single_buffer # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-setup_two_tank # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-setup_coil # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-advisor_page # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-layout_editing_dragged # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-layout_editing_tidy # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-picker_open_filtered # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-wood_alert # stylesheet text only (#1319) plus the banner's own inline style gaining color:var(--primary-text-color) (#1318); the 1.21:1 dark lane that now passes at 13.31:1
-wood_lane # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-wood_whatif # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-away_toggle # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-away_return # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-away_status # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-history_panned # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-history_deep_panned # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-history_no_power # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-history_unavailable # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
-history_pending # stylesheet text only: the .hl-stat.hl-score rule gains the 5 px hit padding (#1319)
 
 #
 

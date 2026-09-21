@@ -12,14 +12,21 @@ from __future__ import annotations
 import asyncio
 import sys
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
-from harness import CapturingOptimizer, FakeEntry, FakeHass, Results
+from harness import CapturingOptimizer, FakeEntry, FakeHass, FakeState, Results
 
 import numpy as np
 
 from homeassistant.util import dt as dt_util
 
+from heatpump_optimizer import const
+from heatpump_optimizer import (
+    _handover_stamps,
+    _plan_handovers,
+    _take_fresh_handover,
+)
 from heatpump_optimizer.coordinator import (
     FORECAST_STEP_MINUTES,
     HeatPumpOptimizerCoordinator,
@@ -27,6 +34,12 @@ from heatpump_optimizer.coordinator import (
     _utc_step_starts,
 )
 from heatpump_optimizer.manual_plan import ManualOverride, PIN_ON
+from heatpump_optimizer.disinfection import DisinfectionSwitch
+from heatpump_optimizer.legionella import LegionellaGuard
+from heatpump_optimizer.pump_signals import (
+    MODE_SOURCE_EXPIRED,
+    MODE_SOURCE_LAST_GOOD,
+)
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer,
     OptimizationConfig,
@@ -622,6 +635,319 @@ R.check(
         "%s/%dmin rates=%s" % (label, wm, _f777[(label, wm)]["rates"])
         for (label, wm) in _f777
     ),
+)
+
+# ===========================================================================
+# #1299 (round-5 D1-08): the age seams subtract wall clocks across DST
+# ===========================================================================
+R.section("age seams across the DST transitions (#1299)")
+
+# Every seam below subtracts two datetimes that carry Home Assistant's
+# single process-wide ZoneInfo instance, and CPython resolves subtraction
+# of two aware datetimes that SHARE one tzinfo object as naive wall-clock
+# subtraction -- so an age spanning a transition is off by the offset
+# delta (1 h here). A true 2 h fold-night outage therefore reads 60 min
+# old, under the 90-minute stale floor, and a dead plan keeps actuating;
+# the spring gap over-reads by the same hour; a backward clock step
+# publishes negative weather staleness. The null control throughout is
+# the same true 2 h on a plain night, where wall and true elapsed agree.
+FOLD_NIGHT = (
+    datetime(2026, 10, 25, 1, 30, tzinfo=STHLM),  # CEST, pre-fold
+    datetime(2026, 10, 25, 2, 30, tzinfo=STHLM, fold=1),  # CET, post-fold
+)
+GAP_NIGHT = (
+    datetime(2027, 3, 28, 1, 30, tzinfo=STHLM),  # CET, pre-gap
+    datetime(2027, 3, 28, 4, 30, tzinfo=STHLM),  # CEST, post-gap
+)
+PLAIN_NIGHT = (
+    datetime(2026, 10, 24, 1, 30, tzinfo=STHLM),
+    datetime(2026, 10, 24, 3, 30, tzinfo=STHLM),
+)
+
+
+def _age_coord(extra=None):
+    hass = FakeHass()
+    hass.states.set("sensor.indoor", FakeState("21.4"))
+    hass.states.set("sensor.outdoor", FakeState("5.0"))
+    config = {
+        const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+        const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+        const.CONF_DHW_TANK_VOLUME: 180.0,
+    }
+    config.update(extra or {})
+    return HeatPumpOptimizerCoordinator(hass, FakeEntry(data=config))
+
+
+def _seam_ages(night):
+    """The published plan age / staleness / weather hours over a TRUE 2 h."""
+    coord = _age_coord()
+    start, end = night
+    try:
+        dt_util.freeze(start)
+        coord._last_optimization = dt_util.now()
+        coord._weather_fetch_failed("simulated outage")
+        dt_util.freeze(end)
+        plan_age = coord._plan_age_minutes()
+        plan_stale = coord._plan_is_stale()
+        weather_hours = coord.weather_stale_hours()
+    finally:
+        dt_util.freeze(None)
+    true_minutes = (
+        end.astimezone(timezone.utc) - start.astimezone(timezone.utc)
+    ).total_seconds() / 60.0
+    return plan_age, plan_stale, weather_hours, true_minutes
+
+
+_fa, _fs, _fw, _ft = _seam_ages(FOLD_NIGHT)
+R.check(
+    "a 2 h fold-night outage reads its true age, not the wall clock's",
+    _fa == _ft,
+    f"published {_fa} min, true {_ft}",
+)
+R.check(
+    "and crosses the 90-minute stale floor a 2 h outage must cross",
+    _fs is True,
+    f"stale flag {_fs} at published {_fa} min",
+)
+R.check(
+    "weather staleness across the fold is the true 2 h",
+    _fw == 2.0,
+    f"published {_fw} h",
+)
+_ga, _gs, _gw, _gt = _seam_ages(GAP_NIGHT)
+R.check(
+    "spring gap: the plan age is the true 2 h, not 3 h of wall clock",
+    _ga == _gt,
+    f"published {_ga} min, true {_gt}",
+)
+R.check(
+    "spring gap: weather staleness is the true 2 h",
+    _gw == 2.0,
+    f"published {_gw} h",
+)
+_pa, _ps, _pw, _pt = _seam_ages(PLAIN_NIGHT)
+R.check(
+    "NULL CONTROL: the plain night's ages were always true",
+    _pa == _pt and _pw == 2.0,
+    f"age {_pa} min (true {_pt}), weather {_pw} h",
+)
+
+# A backward clock step (NTP step, or the fold itself seen from the far
+# side) puts ``now`` before the latch: staleness must clamp at 0, never
+# publish a negative age. The plan-age seam already clamps; this is the
+# weather seam's own arm.
+_JMP = datetime(2026, 10, 24, 12, 0, tzinfo=timezone.utc)
+_jc = _age_coord()
+try:
+    dt_util.freeze(_JMP)
+    _jc._last_optimization = dt_util.now()
+    _jc._weather_fetch_failed("simulated outage")
+    dt_util.freeze(_JMP - timedelta(hours=2))
+    _jw = _jc.weather_stale_hours()
+    _ja = _jc._plan_age_minutes()
+finally:
+    dt_util.freeze(None)
+R.check(
+    "a backward clock step publishes 0 h staleness, not a negative age",
+    _jw == 0.0,
+    f"weather_stale_hours={_jw}",
+)
+R.check(
+    "the plan age stays clamped at 0 after the same step",
+    _ja == 0.0,
+    f"plan age {_ja}",
+)
+
+# --- the siblings the sweep found carrying the identical shape ------------
+# ``_take_fresh_handover`` stamps with ``dt_util.now()`` at unload and
+# subtracts ``dt_util.now()`` at setup: across a fold the handover reads
+# half its true age, and a 2 h-old plan is reborn as fresh against a
+# 60-minute window. The plain-night arm is the null control.
+_taken = {}
+for _label, _night in (("fold", FOLD_NIGHT), ("plain", PLAIN_NIGHT)):
+    _h = FakeHass()
+    _plan_handovers(_h)["e1"] = {"plan": True}
+    try:
+        dt_util.freeze(_night[0])
+        _handover_stamps(_h)["e1"] = dt_util.now()
+        dt_util.freeze(_night[1])
+        _taken[_label] = _take_fresh_handover(_h, "e1", 60.0)
+    finally:
+        dt_util.freeze(None)
+R.check(
+    "a fold-night handover 2 h old is refused against a 60-min window",
+    _taken["fold"] is None,
+    f"got {_taken['fold']}",
+)
+R.check(
+    "NULL CONTROL: the plain-night 2 h handover is refused identically",
+    _taken["plain"] is None,
+    f"got {_taken['plain']}",
+)
+
+# ``LegionellaGuard.hours_since`` publishes the age of the last cycle;
+# the live latch is ``dt_util.now()`` on both sides of the subtraction.
+_lg = LegionellaGuard(
+    FakeHass(),
+    "dst",
+    ThermalParameters.from_config({}),
+    {},
+    action=lambda: {},
+    disinfect=DisinfectionSwitch({}, None, None),
+    dhw_blocked=lambda: False,
+)
+try:
+    dt_util.freeze(FOLD_NIGHT[0])
+    _lg.last_cycle = dt_util.now()
+    dt_util.freeze(FOLD_NIGHT[1])
+    _lh = _lg.hours_since()
+finally:
+    dt_util.freeze(None)
+R.check(
+    "legionella hours_since reads true elapsed across the fold",
+    _lh == 2.0,
+    f"published {_lh} h",
+)
+
+
+# The plan-step walk in ``_async_drive_pumps`` derives the pump's step
+# index from ``now - timestamps[0]`` -- the same shared-ZoneInfo shape.
+# The schedule is ON exactly for the steps the fold's 1 h wall error
+# lands on (steps 4-7 of the quarter grid): the naive walk stops there
+# while the true 2 h walk has left them, so at the bug the pump is
+# commanded ON by an hour-old step. Warm zones and a mild outdoor keep
+# every comfort rail out of the decision, so the command follows the plan.
+async def _pump_command(night):
+    coord = _age_coord({const.CONF_SPACE_PUMP_ENTITY: "switch.space"})
+    schedule = [1.0 if 4 <= i < 8 else 0.0 for i in range(96)]
+    try:
+        dt_util.freeze(night[0])
+        coord._optimization_result = SimpleNamespace(
+            timestamps=[dt_util.now()], power_schedule=schedule
+        )
+        dt_util.freeze(night[1])
+        await coord._async_drive_pumps()
+    finally:
+        dt_util.freeze(None)
+    return [
+        (service, data.get("entity_id"))
+        for domain, service, data in coord.hass.services.calls
+        if domain == "homeassistant"
+    ]
+
+
+_pf = asyncio.run(_pump_command(FOLD_NIGHT))
+_pp = asyncio.run(_pump_command(PLAIN_NIGHT))
+R.check(
+    "the pump walks the plan by TRUE elapsed steps across the fold",
+    _pf == _pp,
+    f"fold {_pf} vs plain {_pp}",
+)
+R.check(
+    "and that agreement is the OFF the true index commands",
+    _pp == [("turn_off", "switch.space")],
+    f"plain-night command {_pp}",
+)
+
+# The mode entity's last-good fallback is bounded by the age of the last
+# live reading (MODE_LAST_GOOD_MAX_AGE_MINUTES = 180): the seam at
+# coordinator.py's ``_pump_mode_last_good_at`` stamps ``dt_util.now()`` on
+# a live read and ages it with the same shared-ZoneInfo subtraction. The
+# fold reads a true-200-minute-old mode as 140 minutes -- inside the 180
+# bound -- so a mode that stopped acting three and a half hours ago keeps
+# suppressing channels it can no longer serve. Same shape as the plan-age
+# seam, one whole method up.
+MODE_STAMP_NIGHT = (
+    datetime(2026, 10, 25, 0, 30, tzinfo=STHLM),  # CEST, pre-fold
+    datetime(2026, 10, 25, 2, 50, tzinfo=STHLM, fold=1),  # CET, post-fold
+)
+MODE_PLAIN_NIGHT = (
+    datetime(2026, 10, 24, 0, 30, tzinfo=STHLM),
+    datetime(2026, 10, 24, 3, 50, tzinfo=STHLM),  # same TRUE 200 min
+)
+
+
+async def _mode_source_after_outage(night):
+    """mode_source once the entity is stale, one outage-spanning window."""
+    coord = _age_coord({const.CONF_HEAT_PUMP_MODE_ENTITY: "sensor.mode"})
+    start, end = night
+    try:
+        dt_util.freeze(start)
+        # "heating" alone is status-ambiguous for a plain sensor
+        # (pump_mode._STATUS_AMBIGUOUS); a multi-duty spelling is accepted
+        # from any domain, so this is a LIVE read.
+        coord.hass.states.set(
+            "sensor.mode",
+            FakeState("heating + hot water", last_updated=dt_util.now()),
+        )
+        await coord._update_current_state()
+        stamped = coord._pump_mode_last_good_at
+        # The entity now goes quiet: its state never updates again, so at
+        # ``end`` it is stale -- unreadable, which is exactly the state the
+        # last-good fallback exists for.
+        dt_util.freeze(end)
+        await coord._update_current_state()
+        source = coord._pump_signals.mode_source
+    finally:
+        dt_util.freeze(None)
+    return stamped, source
+
+
+_ms, _mf = asyncio.run(_mode_source_after_outage(MODE_STAMP_NIGHT))
+_mp, _mpf = asyncio.run(_mode_source_after_outage(MODE_PLAIN_NIGHT))
+R.check(
+    "the fold-night outage stamped its last-good at the pre-fold instant",
+    _ms is not None and _ms.utcoffset() == MODE_STAMP_NIGHT[0].utcoffset(),
+    f"stamped {_ms}",
+)
+R.check(
+    "a mode unreadable for a TRUE 3 h 20 min is expired, not held good",
+    _mf == MODE_SOURCE_EXPIRED,
+    f"fold-night mode_source={_mf!r}",
+)
+R.check(
+    "NULL CONTROL: the plain night expires the same-age mode identically",
+    _mpf == MODE_SOURCE_EXPIRED and _mp is not None,
+    f"plain-night mode_source={_mpf!r}",
+)
+
+# The defrost duty window accumulates seconds through ``_elapsed``, the
+# same shared-ZoneInfo subtraction with both stamps from ``dt_util.now()``:
+# across the fold a true-2 h defrost settles as one hour of duty.
+from heatpump_optimizer.defrost import DefrostWindow
+
+_dw_fold = DefrostWindow()
+_dw_plain = DefrostWindow()
+try:
+    dt_util.freeze(FOLD_NIGHT[0])
+    _dw_fold.observe(dt_util.now(), True)
+    dt_util.freeze(FOLD_NIGHT[1])
+    _fold_seconds = _dw_fold.peek(dt_util.now()).seconds
+
+    dt_util.freeze(PLAIN_NIGHT[0])
+    _dw_plain.observe(dt_util.now(), True)
+    dt_util.freeze(PLAIN_NIGHT[1])
+    _plain_seconds = _dw_plain.peek(dt_util.now()).seconds
+finally:
+    dt_util.freeze(None)
+R.check(
+    "a defrost running the fold's true 2 h books 7200 s of duty",
+    _fold_seconds == 7200.0,
+    f"fold {_fold_seconds} s",
+)
+R.check(
+    "NULL CONTROL: the plain night books the same 7200 s",
+    _plain_seconds == 7200.0,
+    f"plain {_plain_seconds} s",
+)
+R.check(
+    "and a mixed naive/aware pair is still declined, not guessed",
+    _dw_fold._elapsed(
+        datetime(2026, 10, 25, 2, 30),  # naive
+        datetime(2026, 10, 25, 2, 30, tzinfo=STHLM),
+    )
+    is None,
+    "the unknown-length contract survives the normalisation",
 )
 
 sys.exit(R.close("DST / QUARTER-GRID CHECKS"))

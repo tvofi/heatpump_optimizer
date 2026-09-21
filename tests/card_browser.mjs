@@ -57,8 +57,8 @@ const plan = JSON.parse(readFileSync(planPath, "utf8"));
 
 const CARD_SRC = path.join(repo, "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js");
 const SOLAR_ID = "sensor.heat_pump_optimizer_solar_irradiance";
-const SPACE_ID = "sensor.heat_pump_optimizer_space_heating_plan";
-const DHW_ID = "sensor.heat_pump_optimizer_dhw_heating_plan";
+const SPACE_ID = "sensor.heat_pump_optimizer_plan_space_heating";
+const DHW_ID = "sensor.heat_pump_optimizer_plan_dhw_heating";
 
 let fails = 0;
 function check(name, cond, detail = "") {
