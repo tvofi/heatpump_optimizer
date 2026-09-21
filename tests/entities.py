@@ -8959,11 +8959,23 @@ for _display, _new_id, _uid in (
 # split_blocks_entity_id=2, split_interlopers_entity_id=34,
 # families_split_entity_id=1). The plan sensors take the same prefix move:
 # ``space_heating_plan -> plan_space_heating`` and
-# ``dhw_heating_plan -> plan_dhw_heating``, which lands all six in one run
-# (split_blocks_entity_id -> 0). NEW installs only, exactly as #1227: the
-# unique ids are untouched, so an existing install keeps its entity id and its
-# history through the registry (the #174 pattern above), and the card resolves
-# the pre-#1333 ids as its legacy fallback (pinned below).
+# ``dhw_heating_plan -> plan_dhw_heating``, which lands all six in ONE
+# contiguous run under all three orderings the harness sorts by.
+#
+# The harness's own ``split_blocks_*`` counter still reads 1 after the move,
+# and this check does not pin that down to 0 because it is not achievable
+# without un-doing #1227: the harness's family comes from parsing the card
+# text for ``sensor.heat_pump_optimizer_<key>`` literals and HEADLINE_SUFFIXES,
+# and one further plan sensor the card addresses -- the savings page's
+# ``statEntity("_plan_monthly_savings")`` -- is never spelled with that prefix,
+# so the harness counts it as an interloper inside the window. Measured with
+# the harness's own ``family_metrics`` over its own orderings, adding that
+# member takes all three to (0 blocks, 0 interlopers); see the PR body.
+#
+# NEW installs only, exactly as #1227: the unique ids are untouched, so an
+# existing install keeps its entity id and its history through the registry
+# (the #174 pattern above), and the card resolves the pre-#1333 ids as its
+# legacy fallback (pinned below).
 for _display, _new_id, _uid in (
     ("Plan Space Heating (next 24 h)", "sensor.heat_pump_optimizer_plan_space_heating", "space_heating_plan"),
     ("Plan DHW Heating (next 24 h)", "sensor.heat_pump_optimizer_plan_dhw_heating", "dhw_heating_plan"),
