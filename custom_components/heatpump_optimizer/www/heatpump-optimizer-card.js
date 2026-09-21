@@ -3016,7 +3016,19 @@ function cardStyleBlock() {
         font-size: 0.82em; font-style: italic;
         color: var(--secondary-text-color);
       }
-      .hl-stat.hl-score { cursor: pointer; }
+      /* R5-D4-02 (#1319): the score pill is a control (role="button" and
+         tabindex arrive after render) but never joined the 24 px target
+         floor -- at phone width it measured 158x15, the label's own line
+         box. The .expand/.close pattern: vertical padding grows what a
+         pointer can land on and the equal negative margin gives the space
+         back, so the flex line, the sibling stats and the pill's own text
+         keep their geometry (measured: every anchor unchanged, the pill
+         15 -> 25 px) and only the invisible hit box grows. */
+      .hl-stat.hl-score {
+        cursor: pointer;
+        padding: 5px 0;
+        margin: -5px 0;
+      }
       /* Click-opened score breakdown (#2): one row per sub-score. */
       .score-breakdown {
         display: flex; flex-direction: column; gap: 6px;
@@ -4318,7 +4330,11 @@ class PlanSource {
   woodAlertHtml() {
     const f = this.woodFuel();
     if (!f || !f.cheaper) return "";
-    return `<div class="wood-alert" role="status" style="margin:0 0 .6em;padding:.45em .7em;border-left:3px solid var(--warning-color,#d98e00);background:var(--secondary-background-color,rgba(0,0,0,.06));font-size:.9em">${esc(
+    // R5-D4-01 (#1318): the banner owned its border, background and size but
+    // never its colour, so the text inherited the ambient page colour --
+    // black on HA's dark card background, 1.21:1, wherever the host paints
+    // none. Every other text lane sets a token; this one now does too.
+    return `<div class="wood-alert" role="status" style="margin:0 0 .6em;padding:.45em .7em;border-left:3px solid var(--warning-color,#d98e00);background:var(--secondary-background-color,rgba(0,0,0,.06));font-size:.9em;color:var(--primary-text-color)">${esc(
       L("wood.alert")
     )}</div>`;
   }
