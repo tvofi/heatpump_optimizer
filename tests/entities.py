@@ -20656,6 +20656,43 @@ R.check(
     "contract it states, which is #1195 (D11-05)",
 )
 
+# --- D11-02 (#1403): the corpus is graded by the base's checker -----------------
+#
+# The `policy-docs` job checks out no `ref:`, so every step in it ran the pull
+# request's own copy of the program under it: a one-line status that does not
+# track the findings at the end of `policy_lint.mjs` made the required context
+# exit 0 over a corpus the same run printed as red, with byte-identical stdout.
+# The step that restores the graders from the base commit is the fix, and
+# nothing in the tree refused its deletion until this check existed -- the
+# `_GOV_JOBS` pin above is set-level, so a step can leave `policy-docs` without
+# leaving that set, which is the shape every workflow assert in this file has
+# and the reason a wiring pin is written per step rather than per job.
+#
+# WHAT IT READS: the ref the restore comes from and the pathspec that names the
+# graders, so a step that dropped either token fails here -- a `git checkout`
+# with no ref restores the pull request's own copy and reads exactly like the
+# fix. WHAT IT CANNOT SEE, stated so nobody reads more into it: a grader added
+# as a MODULE beside `policy_lint.mjs` is a file the base does not have, so no
+# pathspec can restore it and this check passes while the corpus is graded by
+# the pull request's copy again. That residual, and the criteria files the pin
+# deliberately leaves to the pull request, are carried to the next D11 round in
+# `.claude/workflows/carry-201.json`.
+_GOV_PD = _workflow_job(Path(_GOV_WF).read_text(), "policy-docs")
+R.check(
+    "`policy-docs` restores its graders from the base commit before it grades",
+    "git checkout" in _GOV_PD
+    and "github.event.pull_request.base.sha" in _GOV_PD
+    and ".claude/workflows/*.mjs" in _GOV_PD,
+    "the restore step names "
+    f"`git checkout`={'git checkout' in _GOV_PD}, "
+    f"`github.event.pull_request.base.sha`="
+    f"{'github.event.pull_request.base.sha' in _GOV_PD}, "
+    f"`.claude/workflows/*.mjs`={'.claude/workflows/*.mjs' in _GOV_PD}. "
+    "Deleting the step reddens this check; without it the corpus, the Cursor "
+    "rules and the fragment copies are all graded by the copy the pull request "
+    "carries, which is #1403 (D11-02)",
+)
+
 # --- the release lane's attestation grant and subject (#960, D11-07) ---------
 #
 # Option B, owner-approved this wave (#201 comment 5670207248, item 5: "add
