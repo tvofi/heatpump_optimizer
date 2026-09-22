@@ -12,6 +12,7 @@
  "cut_grid": 200,
  "cut_learning": 285,
  "cut_views": 110,
+ "dead_methods": 0,
  "dead_top_level_symbols": 0,
  "duplication_blocks": 14,
  "functions_cc_over_15": 34,
@@ -23,5 +24,5 @@
  "max_method_loc": 387,
  "methods_over_150": 18,
  "methods_over_200": 11,
- "recorded_at": "e336cc2c530882a142ef298de6420706d96a6300"
+ "recorded_at": "aad94ced20217a589e6303b28aac06140338367d"
 }
