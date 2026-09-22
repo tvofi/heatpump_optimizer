@@ -536,4 +536,207 @@ R.check(
     f" -- False means the width guard reshaped it instead of dropping it",
 )
 
+# ===== solve certificate over the energy-diverse cell grid (#1409) =========
+# The "sub-optimal solve" class escaped every round's fix because the gate
+# raced a same-total-energy challenger on ONE winter cell while the gaps live
+# on energy-diverse cells (and, once, the one winter cell whose gap is zero).
+# This section replaces that with a certificate over a small grid of
+# energy-diverse cells, in two parts:
+#
+#   * the refined-equals-candidates invariant -- every candidate the seam is
+#     handed is refined (counted as `_lbfgsb_restart` calls), so no separate
+#     cut constant can silently discard one (R6 D0-02, #1378);
+#   * the re-polish certificate (C1) -- production's returned plan is a fixed
+#     point of its own solver: re-polish it with production's own L-BFGS-B at
+#     ftol=1e-8 and assert the objective does not improve by more than the bar;
+#     and the strict-superset ladder (missed seed) -- re-race the captured
+#     candidate list plus bang-bang anchors at several energy fractions and
+#     assert no anchor beats the plan by more than the bar.
+#
+# A cell whose gap exceeds the bar carries a recorded claim below (its
+# disposition -- closing it needs the refused production ladder, #1294, or a
+# refused tighter stop rule, #1293). A claimed cell whose gap has CLOSED
+# fails: the claim is stale, and that is the "gap column moved to 0" signal a
+# future fix is expected to trip. The grid grows by appending cells (and, if
+# they cannot close, claims) at the round that first found them.
+_CERT_CELLS = (
+    (False, "winter_typical", "winter_cold"),  # the gate's own cell: null, gap 0
+    (False, "summer_negative", "shoulder"),    # missed basin above the 1.0 anchor
+    (False, "shoulder", "winter_cold"),        # stop-rule residue + missed basin
+    (False, "winter_narrow", "shoulder"),      # missed basin
+)
+_CERT_LADDER = (0.7, 1.25, 1.5, 2.0, 2.5)   # energy fractions of the baseline
+_CERT_BAR = 0.001                           # 0.1 % of the shipped objective
+_CERT_CLAIMS = {
+    "one|summer_negative|shoulder":
+        "the optimum stores more than the baseline's energy and production's "
+        "anchors stop at 1.0x it; closing needs the production anchor ladder, "
+        "refused on cost (#1294).",
+    "one|shoulder|winter_cold":
+        "production stops at ftol=1e-6 short of its own fixed point; closing "
+        "needs a tighter stop rule, refused on money (#1293).",
+    "one|winter_narrow|shoulder":
+        "a missed basin above the baseline anchor; closing needs the refused "
+        "production ladder (#1294).",
+}
+
+
+def _cert_inputs(tz, pp, wp):
+    """Fresh space-only optimizer + inputs for one certificate cell."""
+    cfg = house(two_zone=tz)
+    p = ThermalParameters.from_config(cfg)
+    p.dhw_enabled = False
+    m = ThermalModel(p)
+    o = HeatPumpOptimizer(m, OptimizationConfig(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    pr = prices(pp, _kb_start)
+    ot, wi, ra, so = weather(wp, _kb_start)
+    st = ThermalState(
+        room_temperature=21.0, slab_temperature=22.0,
+        outdoor_temperature=float(ot[0]), upper_floor_temperature=21.0,
+        lower_floor_temperature=21.0, buffer_tank_temperature=40.0)
+    return o, m, pr, ot, wi, ra, so, st
+
+
+def _cert_capture(o, pr, ot, wi, ra, so, st):
+    """One production space-only solve; capture the seam and count restarts."""
+    cap = {}
+    n_restart = [0]
+    real_ms = _kb_mod._multi_start_minimize
+    real_restart = _kb_mod._lbfgsb_restart
+
+    def rec(objective, candidates, bounds, *a, **kw):
+        cap["objective"] = objective
+        cap["candidates"] = [np.asarray(c, float).copy() for c in candidates]
+        cap["bounds"] = [tuple(float(x) for x in b) for b in bounds]
+        cap["args"] = tuple(kw.get("args", a[0] if a else ()))
+        cap["maxiter"] = kw.get("maxiter")
+        cap["batch_objective"] = kw.get("batch_objective")
+        cap["fd_eps"] = kw.get("fd_eps", 1e-4)
+        return real_ms(objective, candidates, bounds, *a, **kw)
+
+    def rec_restart(*a, **kw):
+        n_restart[0] += 1
+        return real_restart(*a, **kw)
+
+    real_base = HeatPumpOptimizer._compute_baseline_power
+    base = {}
+
+    def base_rec(self, *a, **kw):
+        out = real_base(self, *a, **kw)
+        base["energy"] = float(np.sum(out[0]) * DT)
+        base["pmax"] = float(self.model.params.max_electrical_power)
+        return out
+
+    with _kb_mock.patch.object(_kb_mod, "_multi_start_minimize", rec), \
+            _kb_mock.patch.object(_kb_mod, "_lbfgsb_restart", rec_restart), \
+            _kb_mock.patch.object(HeatPumpOptimizer,
+                                  "_compute_baseline_power", base_rec):
+        r = o.optimize(st, pr, ot, wi, ra, so, _kb_start)
+    cap["n_cand"] = len(cap["candidates"])
+    cap["n_restart"] = n_restart[0]
+    cap["base_energy"] = base.get("energy", 0.0)
+    cap["pmax"] = base.get("pmax", 0.0)
+    return r, cap
+
+
+def _cert_gaps(r, cap, pr, ub):
+    """Re-polish and ladder gaps as fractions of the shipped objective."""
+    x = np.asarray(r.power_schedule, float)
+    obj = cap["objective"]
+    args = cap["args"]
+    bounds = cap["bounds"]
+    f0 = float(obj(x, *args))
+    # C1: production's own solver, from the returned point, at a tighter ftol.
+    # ftol=1e-8 reaches the same fixed point as 1e-12 (measured: nit 17 vs 19,
+    # identical gap) at ~2/3 the cost; maxiter never binds (nit is ~17). The
+    # batch jac is production's own polish path and reproduces scipy's FD
+    # bit-for-bit (challenger 4), at ~13x the speed.
+    _jac = None
+    if cap["batch_objective"] is not None and \
+            _kb_mod._bounds_supported_by_batch(bounds):
+        def _jac(xx, *a):
+            return _kb_mod._batch_fd_gradient(
+                cap["batch_objective"], a, xx, float(obj(xx, *a)),
+                cap["fd_eps"], bounds)
+    pol = _kb_mod._scoped_minimize(
+        obj, x, args=args, jac=_jac, method="L-BFGS-B", bounds=bounds,
+        options={"maxiter": 500, "ftol": 1e-8, "eps": 1e-4})
+    fp = float(obj(np.asarray(pol.x, float), *args))
+    gap_polish = (f0 - fp) / abs(f0) if f0 else 0.0
+    # Missed seed: the captured candidate list plus bang-bang anchors at the
+    # ladder's energy fractions, re-raced through the same seam (which now
+    # refines every candidate, so nothing is discarded).
+    seeds = [np.minimum(
+        _kb_mod._price_ranked_start(pr, cap["base_energy"] * f,
+                                    cap["pmax"], DT), ub)
+        for f in _CERT_LADDER]
+    res = _kb_mod._multi_start_minimize(
+        obj, cap["candidates"] + seeds, bounds, args=args,
+        maxiter=cap["maxiter"], batch_objective=cap["batch_objective"],
+        fd_eps=cap["fd_eps"])
+    best = float(obj(np.asarray(res.x, float), *args))
+    gap_ladder = (f0 - best) / abs(f0) if f0 else 0.0
+    return f0, gap_polish, gap_ladder
+
+
+R.section("solve certificate over the energy-diverse cell grid (#1409)")
+_cert_clean = 0
+_cert_claimed = 0
+for _tz, _pp, _wp in _CERT_CELLS:
+    _o, _m, _pr, _ot, _wi, _ra, _so, _st = _cert_inputs(_tz, _pp, _wp)
+    _r, _cap = _cert_capture(_o, _pr, _ot, _wi, _ra, _so, _st)
+    _name = f"{'two' if _tz else 'one'}|{_pp}|{_wp}"
+    _ub = np.array(_cap["bounds"], dtype=float)[:, 1]
+    R.check(f"{_name}: every candidate is refined (refined == candidates)",
+            _cap["n_restart"] == _cap["n_cand"],
+            f"handed {_cap['n_cand']} candidates, refined {_cap['n_restart']}")
+    _f0, _gp, _gl = _cert_gaps(_r, _cap, _pr, _ub)
+    _gap = max(_gp, _gl)
+    _claimed = _name in _CERT_CLAIMS
+    if _claimed:
+        _cert_claimed += 1
+    else:
+        _cert_clean += 1
+    print(f" cert {_name:28s} obj {_f0:9.6f}  re-polish {100*_gp:+.4f}%  "
+          f"ladder {100*_gl:+.4f}%  claimed={_claimed}")
+    R.check(f"{_name}: no unclaimed gap above the bar (re-polish + ladder)",
+            _claimed or _gap <= _CERT_BAR,
+            f"re-polish {100*_gp:.4f}%, ladder {100*_gl:.4f}%, bar "
+            f"{100*_CERT_BAR:.4f}%")
+    R.check(f"{_name}: a recorded claim still has a gap (not stale)",
+            (not _claimed) or _gap > _CERT_BAR,
+            f"claimed but gap {100*_gap:.4f}% is at or below the bar -- the "
+            f"claim closed and should be removed")
+R.check("the grid holds both a clean (null) and a claimed (gapped) cell",
+        _cert_clean >= 1 and _cert_claimed >= 1,
+        f"clean {_cert_clean}, claimed {_cert_claimed} -- both arms must be "
+        f"populated or the challenger is either always-silent or always-firing")
+
+# The warm-start path (#1295) hands a FIFTH candidate; before #1409 the fixed
+# refinement cut silently discarded it (R6 D0-02 measured 5 offered / 4
+# refined at 80/80 cells). The same capture on a warm solve pins
+# refined == candidates there, which is the assertion the production fix
+# makes true.
+_warm_o, _warm_m, _warm_pr, _warm_ot, _warm_wi, _warm_ra, _warm_so, _warm_st = \
+    _cert_inputs(False, "summer_negative", "shoulder")
+_warm_cold_r, _warm_cold_cap = _cert_capture(
+    _warm_o, _warm_pr, _warm_ot, _warm_wi, _warm_ra, _warm_so, _warm_st)
+_warm_o2, _, _, _, _, _, _, _ = _cert_inputs(False, "summer_negative", "shoulder")
+_warm_o2._prev_shipped_plan = np.asarray(
+    _warm_cold_r.power_schedule, float).copy()
+_warm_warm_r, _warm_warm_cap = _cert_capture(
+    _warm_o2, _warm_pr, _warm_ot, _warm_wi, _warm_ra, _warm_so, _warm_st)
+print(f" cert warm: cold {_warm_cold_cap['n_cand']}->{_warm_cold_cap['n_restart']}"
+      f" refined; warm {_warm_warm_cap['n_cand']}->"
+      f"{_warm_warm_cap['n_restart']} refined")
+R.check("the warm start adds one candidate and refines it (refined == candidates)",
+        _warm_warm_cap["n_cand"] == _warm_cold_cap["n_cand"] + 1
+        and _warm_warm_cap["n_restart"] == _warm_warm_cap["n_cand"],
+        f"cold {_warm_cold_cap['n_cand']}->{_warm_cold_cap['n_restart']}, "
+        f"warm {_warm_warm_cap['n_cand']}->{_warm_warm_cap['n_restart']} -- a "
+        f"warm refine count below the candidate count means the cut dropped a "
+        f"candidate")
+
 sys.exit(R.close("OPTIMALITY CHECKS"))

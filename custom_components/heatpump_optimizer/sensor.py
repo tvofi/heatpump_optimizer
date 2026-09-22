@@ -407,8 +407,29 @@ class _DHWEntityMixin(_SensorMixinBase):
     a working meter reporting a heat pump that never heats water.
 
     One gate rather than six copies of the same condition, so a seventh hot
-    water entity inherits it by construction.
+    water entity inherits it by construction. The registry default follows
+    the same condition (#1398): a fresh install with no hot water must not
+    ship enabled entities that are unavailable on every refresh, but a fresh
+    install *with* hot water must not have the card's DHW plan or the Energy
+    dashboard's DHW meters hidden either. So the default is on exactly where
+    ``dhw_enabled`` is, and off where there is no hot water. The probe-gated
+    temperature sensor keeps its own static default-off.
     """
+
+    @property
+    def entity_registry_enabled_default(self) -> bool:
+        """Enabled by default exactly where the install has hot water.
+
+        The registry reads this before the first refresh, so ``dhw_enabled``
+        is read from the config via ``_thermal_params``, not the runtime
+        payload; the test double exposes it on ``data`` instead.
+        """
+        if getattr(self, "_attr_entity_registry_enabled_default", True) is False:
+            return False
+        params = getattr(self.coordinator, "_thermal_params", None)
+        if params is not None:
+            return bool(params.dhw_enabled)
+        return bool((self.coordinator.data or {}).get("dhw_enabled", False))
 
     @property
     def available(self) -> bool:

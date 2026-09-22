@@ -3588,6 +3588,51 @@ for _cls in (
         "the gate must be able to open, or it is not a gate",
     )
 
+# #1398: the registry default follows the gate rather than a blanket off. The
+# five non-temperature hot-water entities are enabled by default exactly where
+# there is hot water -- a fresh no-hot-water install ships no dead enabled
+# entities, and a fresh hot-water install keeps its card plan and the Energy
+# dashboard's DHW meters on. The probe-gated temperature sensor stays off
+# regardless, because its gate is the optional tank probe, not hot water.
+for _cls in (
+    sensor.DHWScheduleSensor,
+    sensor.DHWHeatingCostSensor,
+    sensor.DHWHeatingPlanSensor,
+    sensor.DHWEnergySensor,
+    sensor.DHWCostSensor,
+):
+    R.check(
+        f"{_cls.__name__} is disabled by default with no hot water (#1398)",
+        not _cls(_no_dhw_fake, ENTRY).entity_registry_enabled_default,
+        "a fresh no-hot-water install would ship a dead entity",
+    )
+    R.check(
+        f"{_cls.__name__} is enabled by default once hot water is configured (#1398)",
+        _cls(_dhw_on_fake, ENTRY).entity_registry_enabled_default,
+        "the card plan and Energy-dashboard meters must stay on for hot-water installs",
+    )
+R.check(
+    "the probe-gated temperature sensor stays off by default even with hot water",
+    not sensor.DHWTemperatureSensor(_dhw_on_fake, ENTRY).entity_registry_enabled_default,
+    "it is gated on the optional tank probe, not on hot water",
+)
+
+# The registry reads the default before the first refresh, when the payload is
+# not yet built, so production derives dhw_enabled from the config via
+# _thermal_params. The FakeCoordinator checks above exercise the .data fallback;
+# pin the real-coordinator path at both ends too.
+_on_hass, _on_coord, _on = _honest_coordinator()
+R.check(
+    "the real coordinator derives the same off default from config (#1398)",
+    not sensor.DHWHeatingPlanSensor(_no_dhw_coord, ENTRY).entity_registry_enabled_default,
+    "the _thermal_params path must agree with the payload path",
+)
+R.check(
+    "the real coordinator derives the same on default from config (#1398)",
+    sensor.DHWHeatingPlanSensor(_on_coord, ENTRY).entity_registry_enabled_default,
+    "the _thermal_params path must agree with the payload path",
+)
+
 # --- unknown-versus-broken --------------------------------------------------
 R.section("Waiting for evidence is not the same as broken")
 
