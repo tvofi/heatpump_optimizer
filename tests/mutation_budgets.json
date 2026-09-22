@@ -4,7 +4,7 @@
     "changed": 0.2,
     "full": 0.3
   },
-  "unpinned_sites": 3788,
+  "unpinned_sites": 3786,
   "last_measured": {
     "changed": {
       "survivors": 2,
@@ -50,12 +50,48 @@
       "old": "        if task is not None and hasattr(task, \"cancel\"):",
       "reason": "hass.async_create_task (homeassistant.core.HomeAssistant.async_create_task) returns an asyncio.Task, which always carries cancel; the OR form differs only for a non-None object without a cancel attribute, which that return cannot be -- round-5 D3-07."
     },
-    "custom_components/heatpump_optimizer/optimizer.py:3546 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/optimizer.py:3564 GUARD_OFF": {
       "verdict": "equivalent",
       "old": "        if changed:",
-      "reason": "void mutant, round-6 D3-02 (#1385): the guard fences only a `_LOGGER.debug(...)` call; the function's `return changed` sits OUTSIDE the if, so `if changed:` -> `if True:` differs only in whether a debug line logs, which no check reads. No honest test should fail on this mutant."
+      "reason": "void mutant, round-6 D3-03 (#1385): the guard fences only a `_LOGGER.debug(...)` call; the function's `return changed` sits OUTSIDE the if, so `if changed:` -> `if True:` differs only in whether a debug line logs, which no check reads. No honest test should fail on this mutant."
     }
   },
-  "killed_by": {},
-  "reason": "max_survivor_fraction was OPEN at 1.0 and therefore unsatisfiable: rate = survivors/evaluated is a fraction in [0,1], so `if rate > 1.0` can never fire and a run in which every mutant survives printed PASSED. The caps are now recorded at the last measured rates -- 0.2 (2 survivors of 10) and 0.3 (12 of 40) -- so they are saturable. The ratchet is the exact-count `unpinned_sites`: 3791 candidate sites enumerated deterministically over all 64 production modules, of which 3788 carry no recorded disposition (3 are triaged equivalent: pump_mode.py:242, __init__.py:340, optimizer.py:3546). The recorded survivors in last_measured still need disposition -- the nightly burn-in kills or triages them in cost order -- and each disposition must name the mechanism; the ratchet refuses any NEW site without one. Do not raise `unpinned_sites` by hand: the exact count is re-derived every run by tests/mutation_table.py, which refuses growth and only records down via --record."
+  "killed_by": {
+    "custom_components/heatpump_optimizer/battery.py:320 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if params.dhw_enabled:",
+      "reason": "arrived with origin/main, commit d62195ade (fix(D12): guard the battery buffer/DHW stores on the config signal). `if params.dhw_enabled:` -> `if False:` raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/battery.py:341 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if params.buffer_is_store:",
+      "reason": "arrived with origin/main, commit d62195ade (fix(D12): guard the battery buffer/DHW stores on the config signal). `if params.buffer_is_store:` -> `if False:` makes tests/features.py exit 1 against a baseline exit of 0. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/defrost.py:166 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if value <= centers[0]:",
+      "reason": "arrived with origin/main, commit b4b029514 (R6-D2-01: interpolate the derate factor across buckets). `if value <= centers[0]:` -> `if False:` raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/defrost.py:169 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "        if value < centers[i + 1]:",
+      "reason": "arrived with origin/main, commit b4b029514 (R6-D2-01: interpolate the derate factor across buckets). `if value < centers[i + 1]:` -> `if False:` raises the driver's `FAILED` count to 19 against a 0 baseline. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/defrost.py:171 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "            return i, (value - centers[i]) / span",
+      "reason": "arrived with origin/main, commit b4b029514 (R6-D2-01: interpolate the derate factor across buckets). Removing the interpolated return raises the driver's `FAILED` count to 19 against a 0 baseline. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/defrost.py:172 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "    return len(centers) - 2, 1.0",
+      "reason": "arrived with origin/main, commit b4b029514 (R6-D2-01: interpolate the derate factor across buckets). Removing the extrapolation return makes tests/features.py exit 1 against a baseline exit of 0. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/thermal_model.py:1894 CLAMP_DROP": {
+      "killed_by": "tests/features.py",
+      "old": "        floor = min(p.dhw_inlet_reference, ambient_temp)",
+      "reason": "arrived with origin/main, commit 7eeea4d90 (D2-02: clamp the DHW inlet floor to the tank surroundings). Dropping the `min` clamp raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22."
+    }
+  },
+  "reason": "max_survivor_fraction was OPEN at 1.0 and therefore unsatisfiable: rate = survivors/evaluated is a fraction in [0,1], so `if rate > 1.0` can never fire and a run in which every mutant survives printed PASSED. The caps are now recorded at the last measured rates -- 0.2 (2 survivors of 10) and 0.3 (12 of 40) -- so they are saturable. The ratchet is the exact-count `unpinned_sites`: 3796 candidate sites enumerated deterministically over all 64 production modules, of which 3786 carry no recorded disposition (3 are triaged equivalent: pump_mode.py:242, __init__.py:340, optimizer.py:3564; 7 are killed by tests/features.py, recorded under `killed_by`). The two surviving sites the disposition pass measured -- defrost.py:310 GUARD_OFF and sysid.py:1522 GUARD_OFF, both added with origin/main -- stay unpinned on purpose: nothing in the recorded driver net kills them yet, and an unmarked survivor is a gap rather than an equivalence. The nightly burn-in kills or triages them in cost order, and each disposition must name the mechanism; the ratchet refuses any NEW site without one. Do not raise `unpinned_sites` by hand: the exact count is re-derived every run by tests/mutation_table.py, which refuses growth and only records down via --record."
 }
