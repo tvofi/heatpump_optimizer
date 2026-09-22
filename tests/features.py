@@ -4400,6 +4400,24 @@ R.check(
     .structure
     == presets.STRUCTURE_TIMBER_SLAB,
 )
+# #1386: normalisation keys on membership, not on "is it radiators". A valid
+# non-radiator emitter is a real answer the user gave, so validate() must keep
+# it; a mutant that forces the branch (`if True`) overwrites the floor answer
+# with radiators. The bogus arm is the null control -- it is clamped under both
+# the real guard and the mutant, so it shows the check exercises normalisation
+# rather than passing vacuously.
+R.check(
+    "a valid non-radiator emitter is kept, only an unknown one is clamped",
+    presets.BuildingPreset(upper_emitter=presets.EMITTER_FLOOR)
+    .validate()
+    .upper_emitter
+    == presets.EMITTER_FLOOR
+    and presets.BuildingPreset(upper_emitter="bogus")
+    .validate()
+    .upper_emitter
+    == presets.EMITTER_RADIATORS,
+    "floor upper emitter must survive validate(); only 'bogus' is clamped",
+)
 R.check(
     "the derived values are presented as a starting point",
     "learn" in presets.describe(presets.BuildingPreset())["note"].lower(),
@@ -22554,6 +22572,34 @@ R.check(
     "no window is None, with a derate set",
     _g4_sm.caps(_g4_eve, 96, 0.25, [], 0.7, 5.0) is None,
 )
+# #1384: the no-window guard is an EARLY-OUT, and asserting the None alone
+# cannot see it. With no window the fallthrough walks every step, finds none
+# inside a window, and returns None anyway -- so deleting the guard (`if
+# False`, mutant 17) passes the check above. The observable the guard owns is
+# that it returns BEFORE the per-step calendar walk, so pin that with a spy on
+# the resolution seam: under the mutant the walk runs 96 times and this goes
+# red. The spy is restored in a `finally` so a failure cannot leak into the
+# DST and day-selector checks that follow.
+_g4_wfd_seen: list[int] = []
+_g4_wfd_real = _g4_sm.windows_for_day
+
+
+def _g4_wfd_spy(*args, **kwargs):
+    _g4_wfd_seen.append(1)
+    return _g4_wfd_real(*args, **kwargs)
+
+
+_g4_sm.windows_for_day = _g4_wfd_spy
+try:
+    _g4_no_window_guard = _g4_sm.caps(_g4_eve, 96, 0.25, [], 0.7, 5.0)
+finally:
+    _g4_sm.windows_for_day = _g4_wfd_real
+R.check(
+    "with no window the guard returns before the step-grid calendar walk",
+    _g4_no_window_guard is None and not _g4_wfd_seen,
+    f"result {_g4_no_window_guard}, calendar walks {len(_g4_wfd_seen)} "
+    f"(want 0 -- the guard must short-circuit)",
+)
 R.check(
     "a window the horizon never reaches is None, not a nameplate array",
     _g4_sm.caps(_g4_eve, 4, 0.25, _g4_parse("02:00-03:00"), 0.7, 5.0) is None,
@@ -22794,6 +22840,23 @@ R.check(
     "a defrost spanning an interval boundary keeps its second half",
     abs(_wobs4.duty - 1.0) < 1e-9,
     f"duty {_wobs4.duty}; the level carries over across close()",
+)
+# #1387: an out-of-order sample -- a clock step back, or a stamp that arrives
+# late -- makes the elapsed time NEGATIVE. The interval has measured no
+# on-time into the past, so the accrual must be skipped, not subtracted; a
+# guard forced open (`if True`) banks the -5 s and under-reports the duty as
+# 0.20 where the honest value is 0.25. Every clean fixture has a positive
+# delta, so only a non-positive one separates the guard from the mutant.
+_w5 = DefrostWindow()
+_w5.observe(_PS_NOW, True)
+_w5.observe(_PS_NOW + timedelta(seconds=10), True)  # +10 s of on-time
+_w5.observe(_PS_NOW + timedelta(seconds=5), True)  # 5 s BEFORE the last stamp
+_w5.observe(_PS_NOW + timedelta(seconds=20), False)  # on-time ends here
+_wobs5 = _w5.peek(_PS_NOW + timedelta(seconds=100))
+R.check(
+    "a sample stamped before the last does not subtract from the on-time",
+    abs(_wobs5.duty - 0.25) < 1e-9,
+    f"duty {_wobs5.duty} (want 0.25); the -5 s sample must be skipped, not banked",
 )
 
 # -- the physics --------------------------------------------------------------
