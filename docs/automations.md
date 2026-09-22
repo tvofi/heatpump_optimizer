@@ -4,11 +4,10 @@ Without a heat pump on/off switch — and without the ECL110 or
 frequency-control paths — the optimizer's plan is published on sensors for
 your own automations to act on ([configuration.md](configuration.md) says
 exactly that where the trade-off is made). The examples below are complete and
-use only entities and services this integration actually creates. The entity
-prefix follows the name you gave the entry: these examples assume the default
-`Heat Pump Optimizer`, so they read
-`sensor.heat_pump_optimizer_cost_power_headroom` — change the prefix if you named
-yours differently.
+use only entities and services this integration actually creates. Entity ids
+are fixed at `sensor.heat_pump_optimizer_*` regardless of the name you gave the
+entry, so they read `sensor.heat_pump_optimizer_cost_power_headroom` on every
+install.
 
 ## Automation example: charge an EV from the Cost Power Headroom sensor
 

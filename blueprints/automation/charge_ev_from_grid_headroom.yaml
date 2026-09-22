@@ -14,9 +14,8 @@ blueprint:
     headroom_sensor:
       name: Cost Power Headroom sensor
       description: >-
-        The optimizer's Cost Power Headroom sensor, in kW. The entity
-        prefix follows the name you gave the entry; the default assumes
-        "Heat Pump Optimizer".
+        The optimizer's Cost Power Headroom sensor, in kW. Entity ids are
+        fixed at `sensor.heat_pump_optimizer_*` regardless of the entry name.
       default: sensor.heat_pump_optimizer_cost_power_headroom
       selector:
         entity:

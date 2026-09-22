@@ -448,6 +448,25 @@ INERT_EXCEPT = (
     # reference above: the docs/ prefix stays INERT, the file moves to
     # entities.py's recorded closure.
     "docs/automations.md",
+    # #1413: tests/doc_claims.py reads the remaining reader docs, the shipped
+    # blueprints and the generated model figures to derive the claim set from
+    # the documents and the fact set from code, failing closed on a stale-prose
+    # contradiction (D5-01/D6-01/D6-03). Same route as the three above: the
+    # docs/ and blueprints/ prefixes stay INERT, and each file a gate script
+    # opens moves to doc_claims.py's recorded closure, so an edit to it selects
+    # that script instead of skipping. A file a gate script reads is a
+    # dependency, not inert prose, whatever directory it lives in.
+    "docs/dashboard-card.md",
+    "docs/ecl110.md",
+    "docs/how-it-works.md",
+    "docs/setup.md",
+    "docs/img/dhw-demand-windows.svg",
+    "docs/img/dhw-store-decay.svg",
+    "docs/img/marginal-cop.svg",
+    "docs/img/make_model_figures.py",
+    "blueprints/automation/charge_ev_from_grid_headroom.yaml",
+    "blueprints/automation/economy_mode_on_price_peak.yaml",
+    "blueprints/automation/notify_on_manual_plan.yaml",
     ".gitignore",
     # #995, the .gitignore story one lane later: the live-header harness check
     # executes tools/audit/round4/D6/claims.py, whose re-run rewrites these two

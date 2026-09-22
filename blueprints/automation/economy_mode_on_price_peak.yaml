@@ -16,8 +16,8 @@ blueprint:
       name: Cost Electricity Price (now) sensor
       description: >-
         The optimizer's current-price sensor, publishing the hourly spot
-        price in your currency per kWh. The entity prefix follows the name
-        you gave the entry; the default assumes "Heat Pump Optimizer".
+        price in your currency per kWh. Entity ids are fixed at
+        `sensor.heat_pump_optimizer_*` regardless of the entry name.
       default: sensor.heat_pump_optimizer_cost_current_electricity_price
       selector:
         entity:

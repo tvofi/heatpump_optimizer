@@ -16,9 +16,9 @@ blueprint:
       name: Plan Space Heating sensor
       description: >-
         The optimizer's space heating plan sensor, whose manual_override
-        attribute appears while a manual plan is pinned. The entity prefix
-        follows the name you gave the entry; the default assumes
-        "Heat Pump Optimizer". An install upgraded from before the id moved
+        attribute appears while a manual plan is pinned. Entity ids are
+        fixed at `sensor.heat_pump_optimizer_*` regardless of the entry name.
+        An install upgraded from before the id moved
         to its current form keeps the older
         sensor.heat_pump_optimizer_space_heating_plan.
       default: sensor.heat_pump_optimizer_plan_space_heating
