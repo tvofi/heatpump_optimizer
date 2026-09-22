@@ -34874,17 +34874,22 @@ R.check(
 # RUNS where the gate passed, so what they measure is the surface that
 # ADMITS a finished fit. #1308: `identify`'s drift ridge under-corrects a
 # real ramp, the ΔT column then carries it into UA, and the confidence gate
-# adopted that minority at median UA bias 0.281 (max 0.316) against a 0.024
-# no-drift null -- the R3-D2-03 settle cross-check refuses the HONEST fits
-# (its precondition selects a fitted drift below the prior) and skips the
-# biased ones, a selection effect rather than protection. #1330: a >2 h
-# cadence gap in a DECLARED two-state plant rerouted the fit to the
-# one-state `identify()`, which is biased +7.22 % on the heavy_old plant
-# with no gap at all, and the adoption surface admitted it. The fixes:
-# temper the confidence by the share of the movement the fitted drift could
-# account for, and refuse the cadence-gap fallback BY NAME. Both checks read
-# the PRODUCTION adoption predicate (`completed and confidence >= 0.3`, plus
-# the #991 gate for #1330) rather than any internal of the driver.
+# adopted that minority -- the round-5 D2 harness prices the cell at median
+# |UA bias| 0.281 and max 0.316 with 4 of 30 admitted at 0.10 C/h of drift,
+# against a no-drift cell at median 0.026 (tools/audit/round5/D2/seat-b/
+# sysid_bias.py: drift010_30min vs white002_30min) -- and the R3-D2-03
+# settle cross-check refuses the HONEST fits (its precondition selects a
+# fitted drift below the prior) while skipping the biased ones, a selection
+# effect rather than protection. #1330: a >2 h cadence gap in a DECLARED
+# two-state plant rerouted the fit to the one-state `identify()`, the model
+# class the experiment exists to replace, and the adoption surface admitted
+# it -- the round-5 D7 harness reads that same cell at +7.29 % UA bias,
+# admitted at confidence 0.436, at the merge base (RESULT
+# gap_settle_bias_heavy_old). The fixes: temper the confidence by the share
+# of the movement the fitted drift could account for, and refuse the
+# cadence-gap fallback BY NAME. Both checks read the PRODUCTION adoption
+# predicate (`completed and confidence >= 0.3`, plus the #991 gate for
+# #1330) rather than any internal of the driver.
 _DRIFT_UA, _DRIFT_C, _DRIFT_G = 0.20, 10.0, 0.30
 _DRIFT_TOUT, _DRIFT_BASE, _DRIFT_COP = 2.0, 20.5, 3.0
 _DRIFT_NOW = datetime(2026, 4, 10, 23, 0, tzinfo=UTC)
@@ -34951,12 +34956,13 @@ R.check(
     "leaves the shipped +-10 % UA band",
     not _drift010_bad,
     f"adopted {len(_drift010)} of 40 {[round(b, 3) for b in _drift010]}, "
-    f"{len(_drift010_bad)} over the band -- at the merge base 129f96b3 the "
-    "same drive adopted 6 of 40 at median 0.281 (max 0.316), because the "
-    "drift ridge shrinks the fitted ramp short of the true 0.10 C/h and the "
-    "ΔT column carries the difference into UA; the confidence now discounts "
-    "the share of the window's movement the fitted drift could account for, "
-    "so a window that share cannot separate does not clear the 0.3 gate",
+    f"{len(_drift010_bad)} over the band -- at the merge base 129f96b3 this "
+    "check's own 40-seed drive adopted 6 of 40 at median 0.281 (max 0.316), "
+    "because the drift ridge shrinks the fitted ramp short of the true "
+    "0.10 C/h and the ΔT column carries the difference into UA; the "
+    "confidence now discounts the share of the window's movement the fitted "
+    "drift could account for, so a window that share cannot separate does "
+    "not clear the 0.3 gate",
 )
 _drift_null = _drift_adopted(0.0)
 R.check(
