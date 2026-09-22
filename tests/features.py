@@ -13416,8 +13416,10 @@ _dr.counts[0][1] = 20
 _tm21 = ThermalModel(ThermalParameters(defrost_derate=_dr, ambient_humidity=40.0))
 R.check(
     "the forecast humidity selects the derate bucket per step",
-    abs(_tm21.compute_cop(1.0, humidity=90.0) / _tm21.compute_cop(1.0, humidity=40.0) - 0.6)
+    abs(_tm21.compute_cop(1.0, humidity=90.0) / _tm21.compute_cop(1.0, humidity=35.0) - 0.6)
     < 1e-9,
+    # 35.0 % is the dry bucket's centre: the factor interpolates between bucket
+    # centres now, so the dry value (1.0) is read exactly there.
 )
 R.check(
     "NaN humidity falls back exactly like an absent argument",
