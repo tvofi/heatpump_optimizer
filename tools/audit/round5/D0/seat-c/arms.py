@@ -33,11 +33,12 @@ EXPECTED at head 6.6.8 + this branch, and the reason each check in
            behavioural check pins the seed itself.
   seed     same conclusion at the shipped cut: the seed's own effect is
            <= 0.0999% on every probed cell.
-  cutnull  a cut-null cell must be inert at BOTH stop rules -- at ftol 1e-6
-           the seeds-kept/cut-4 arm moves by +0.0681% on
-           tz=1,dhw=0,shoulder,winter_cold, so that cell cannot be the null;
-           tz=0,dhw=0,winter_extreme,winter_cold reads 80.7406 both ways at
-           both stop rules and is the cell the check uses.
+  cutnull  a cut-null cell must be inert: the seeds-kept/cut-4 arm IS the
+           production plan there, so the arm is not universally worse.
+           tz=0,dhw=0,winter_extreme,winter_cold reads 80.7406 both ways and
+           is the cell the check uses; the cells that do move under the cut
+           (fuse_guard, valve_storage_flat_prices at the fixture level) are
+           the ones the behavioural check measures instead.
 
 Nothing here re-derives a cost: every number is an objective value the
 production seam returned.  (Artifacts of this seat at head: the PR body's
@@ -116,11 +117,9 @@ def _drop_seed(cut, every_call):
     return arm
 
 
-def solve(tz, dhw, pp, wp, arm=None, ftol=None):
+def solve(tz, dhw, pp, wp, arm=None):
     o, pr, ot, wi, ra, so, st = inputs_for(tz, dhw, pp, wp)
     stack = []
-    if ftol is not None:
-        stack.append(mock.patch.object(om, "_LBFGSB_FTOL", ftol))
     if arm is not None:
         stack.append(mock.patch.object(om, "_multi_start_minimize", arm))
     for ctx in stack:
@@ -192,18 +191,13 @@ def probe_cutnull():
         (0, 0, "winter_narrow", "summer_cool"),
         (1, 0, "winter_typical", "shoulder"),
     ]
-    print(f"{'cell':42s} {'9: prod':>9s} {'9: cut4':>9s} {'9: gap%':>8s} "
-          f"{'6: prod':>9s} {'6: cut4':>9s} {'6: gap%':>8s}")
+    print(f"{'cell':42s} {'prod':>9s} {'cut4':>9s} {'gap%':>8s}")
     for tz, dhw, pp, wp in cells:
         cid = f"tz={tz},dhw={dhw},{pp},{wp}"
-        p9 = solve(tz, dhw, pp, wp, ftol=1e-9)
-        c9 = solve(tz, dhw, pp, wp, ftol=1e-9, arm=_cut(4))
-        p6 = solve(tz, dhw, pp, wp, ftol=1e-6)
-        c6 = solve(tz, dhw, pp, wp, ftol=1e-6, arm=_cut(4))
-        g9 = 100.0 * (c9 - p9) / abs(c9)
-        g6 = 100.0 * (c6 - p6) / abs(c6)
-        print(f"{cid:42s} {p9:9.4f} {c9:9.4f} {g9:+8.4f} "
-              f"{p6:9.4f} {c6:9.4f} {g6:+8.4f}")
+        p = solve(tz, dhw, pp, wp)
+        c = solve(tz, dhw, pp, wp, arm=_cut(4))
+        g = 100.0 * (c - p) / abs(c)
+        print(f"{cid:42s} {p:9.4f} {c:9.4f} {g:+8.4f}")
 
 
 PROBES = {"prefix": probe_prefix, "seed": probe_seed, "cutnull": probe_cutnull}

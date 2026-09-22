@@ -444,26 +444,11 @@ def _bounds_supported_by_batch(bounds: list[tuple[float, float]]) -> bool:
 #: 4.83e-6 to 3.67e-5 -- 2e-5's nearest neighbours are 4.1x below it and
 #: 1.8x above -- so no fixture's adoption decision can flip on
 #: last-decimal drift the way 1e-4's did. It keeps every gap the round-5
-#: finding counted (smallest: 1.34e-4, worst: 1.17e-2) and sits four
-#: orders of magnitude over the ``_LBFGSB_FTOL`` stop-rule tick below.
-#: That band was measured with the tick at 1e-6, and #1293's fix only
-#: shrank it to 1e-9, so the separation widens rather than narrows. No
-#: new seed.
+#: finding counted (smallest: 1.34e-4, worst: 1.17e-2) and stays 20x
+#: over the 1e-6 ftol tick the features pin refuses. No new seed.
 #: (Landed by the owner directive of 2026-09-20, #1207 comment c1329fe /
 #: database id 5750296026, via #1208's scoped may-drift path.)
 _LBFGSB_RESTART_KEEP_REL = 2e-5
-
-
-#: The L-BFGS-B stop rule, passed at both call sites below (the multi-start's
-#: refinement solves and the per-candidate restart polish). Round 5's D0-b
-#: budget race (#1293) measured what 1e-6 cost: on its 14-cell core grid the
-#: identical search stopped at 1e-9 shipped plans 0.2124% cheaper on the
-#: objective on average (worst 0.7124%, 13 of 14 cells), and the iteration cap
-#: never bind (0 of 14), so the solve was stopping early rather than running
-#: out of budget. Tightening production to 1e-9 collapses that arm's measured
-#: gap to +0.0000 exactly; its price is more iterations on the same iterate
-#: path (nit 22 -> 54 on the grid's first cell), not a different one.
-_LBFGSB_FTOL = 1e-9
 
 
 def _lbfgsb_restart(
@@ -492,7 +477,7 @@ def _lbfgsb_restart(
             jac=jac,
             method="L-BFGS-B",
             bounds=bounds,
-            options={"maxiter": maxiter, "ftol": _LBFGSB_FTOL, "eps": 1e-4},
+            options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
         )
     except Exception:  # pragma: no cover - solver blow-up
         return best
@@ -614,7 +599,7 @@ def _multi_start_minimize(
                 jac=jac,
                 method="L-BFGS-B",
                 bounds=bounds,
-                options={"maxiter": maxiter, "ftol": _LBFGSB_FTOL, "eps": 1e-4},
+                options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
             )
         except Exception as err:  # pragma: no cover - solver blow-up
             last_error = err

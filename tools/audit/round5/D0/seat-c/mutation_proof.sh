@@ -7,14 +7,17 @@
 # COMMAND (from the tree root; MUT is a git checkout of this branch):
 #   sh tools/audit/round5/D0/seat-c/mutation_proof.sh <MUT> <out-dir>
 #
-# EXPECTED: M1 1 red (#1293), M2p 1 red (#1294 cut), M2 2 red (#1294 cut +
-# seed counts), M3 1 red (#1295), nothing else moving in any run.
+# EXPECTED: M2p 1 red (#1294 cut), M2s 0 red (the seeds are pinned
+# structurally, and no behavioural check covers them -- see the note under the
+# cut check), M2 2 red (#1294 cut + seed counts), M3 1 red (#1295), nothing
+# else moving in any run.  #1293's stop-rule knob is not in this diff and has
+# no mutation here.
 set -u
 MUT=$1
 OUT=$2
 HERE=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$OUT"
-for M in M1_ftol_loose M2p_cut_only M2_seeds_and_cut M3_warm_none; do
+for M in M2p_cut_only M2s_seeds_only M2_seeds_and_cut M3_warm_none; do
     echo "### $M"
     git -C "$MUT" checkout -- custom_components/heatpump_optimizer/optimizer.py
     python3 "$HERE/mutate.py" "$MUT" "$M" || exit 1

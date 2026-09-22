@@ -582,44 +582,54 @@
 # heat_pump_on_schedule and lower_setpoints re-shaped to match. No solver,
 # card or config fixture moves.
 #
-# R5-W3 (#1293 #1294 #1295), fix branch fix/r5-w3-search: this branch's BARE
-# list is the seven plan fixtures the three convergence knobs re-solve, and
-# nothing else. The knobs -- the L-BFGS-B stop rule at 1e-9 where it was
-# 1e-6, the refinement cut at six solved candidates where it was four, and
-# the previous cycle's shipped plan offered as one more first-solve start --
-# change which local optimum a plan settles in, so the fixtures that move are
-# exactly the ones whose committed plan sits near a basin boundary. The moved
-# leaves are plan-shape keys (compressor_starts, deferred_energy_cost, the
-# displace and on schedules, the setpoint arrays); baseline_cost is unmoved in
-# all seven, the signature of a re-shaped plan rather than a re-priced one.
+# R5-W3 (#1294 #1295), fix branch fix/r5-w3-search: this branch's BARE list is
+# the three plan fixtures the two shipping convergence knobs re-solve, and
+# nothing else. The knobs -- the refinement cut at six solved candidates where
+# it was four, and the previous cycle's shipped plan offered as one more
+# first-solve start -- change which local optimum a plan settles in, so the
+# fixtures that move are exactly the ones whose committed plan sits near a
+# basin boundary. The moved leaves are plan-shape keys (compressor_starts,
+# deferred_energy_cost, the displace and on schedules, the setpoint arrays);
+# baseline_cost is unmoved in all three (away_setback 50.155768, horizon_48h
+# 242.069921, valve_storage_flat_prices 108.500922, identical to the merge
+# base), the signature of a re-shaped plan rather than a re-priced one.
+#
+# Which knob moves which is measured, not assumed. Capturing the tree four
+# times -- as shipped, with the cut back at 4, with the two appended seeds
+# deleted, with `_warm_start_starts` returning None -- and diffing the
+# captures scenario by scenario says: the cut alone moves 2 of the 56
+# (fuse_guard, valve_storage_flat_prices), the seeds alone move 7 (these three
+# plus the four #1207 may-drift names below, which their own entries carry),
+# and the #1295 warm start moves NONE -- it is inert on every fixture,
+# because the coordinator is its only writer and no capture seeds a previous
+# plan. The first two of these were byte-identical with the cut reverted; the
+# third is byte-identical under both single reverts and different from the
+# shipped plan under each, i.e. it moves when the appended candidate is not in
+# the refined set, which is #1294's pair and not either half of it.
 #
 # The R5-D2-02 bare line that sat here -- valve_storage_small_tank, the valved
 # 35 L buffer substep fix -- is the baseline's own (fix/r5-valved-config,
 # merged at 9ca8665, this branch's merge base) and moves nothing under this
 # diff; it is dropped rather than inherited, and its note above stays as
-# history. valve_storage_small_tank is claimed below on this branch's own
-# reason: the same knobs re-solve it, so the claim covers this diff's move and
-# not #1307's.
+# history. Four of the R5-W3 claims this branch carried at an earlier head
+# (mild_windy_rain, start_below_band, valve_storage_low_target,
+# valve_storage_small_tank) are dropped here for the same reason: the third
+# knob that moved them, the L-BFGS-B stop rule at 1e-9, is not in this diff.
+# Measured, not assumed -- with the stop rule reverted, all four read
+# byte-identical where this branch previously claimed them.
 #
-# Direction, measured at this head against the merge base (the drift log's
-# left value is the merge base's): away_setback deferred_energy_cost
-# 1.492571 -> 2.209902; horizon_48h compressor_starts 8 -> 12; the other five
-# re-shape their schedules and trajectories and are evidenced by the DRIFT
-# blocks `python3 tests/env_drift.py --all` prints for this head. Each of the
-# seven was byte-identical against the merge base before this change and none
-# is on the may-drift list above, so this environment reproduced them and the
-# move is this diff's; each re-shapes its whole plan (404-913 leaves: the
-# schedules, the buffer trajectory, and on three of them the compressor-start
-# count), which is what this claim states. The objective leaves alone are not
-# all large -- mild_windy_rain deferred_energy_cost 3.806831 -> 3.807802,
-# start_below_band 30.422246 -> 30.330927 -- so the claim rests on the
-# re-shape and the start counts rather than on a cost margin, and #996's rule
-# stands: the runner is the judge of record for a moved set it does not
-# reproduce.
-away_setback # R5-W3 (#1293): the 1e-9 stop rule re-settles this plan
-horizon_48h # R5-W3 (#1293 #1294): the extra refined candidates re-settle this plan
-mild_windy_rain # R5-W3 (#1293): the 1e-9 stop rule re-settles this plan
-start_below_band # R5-W3 (#1293 #1295): the tighter stop rule and the handed-in previous plan re-settle this plan
-valve_storage_flat_prices # R5-W3 (#1293 #1294): the raised cut re-settles this valved plan
-valve_storage_low_target # R5-W3 (#1293 #1294): the raised cut re-settles this valved plan
-valve_storage_small_tank # R5-W3 (#1293): the solver knobs re-solve this valved plan (not #1307's substep fix)
+# Direction, measured at this head against the merge base: away_setback
+# deferred_energy_cost 1.492571 -> 1.259374, predicted_cost 31.520891 ->
+# 31.763089, compressor_starts 10 -> 10; horizon_48h compressor_starts
+# 8 -> 12, deferred_energy_cost 31.924586 -> 31.995201; valve_storage_flat_prices
+# compressor_starts 2 -> 1, deferred_energy_cost -11.395396 -> -10.764099. Each
+# of the three was byte-identical against the merge base before this change and
+# none is on the may-drift list above, so this environment reproduced them and
+# the move is this diff's; each re-shapes its whole plan (415, 914 and 809
+# leaves), which is what this claim states. The objective leaves alone are not
+# all large, so the claim rests on the re-shape and the start counts rather
+# than on a cost margin, and #996's rule stands: the runner is the judge of
+# record for a moved set it does not reproduce.
+away_setback # R5-W3 (#1294): the appended seed re-settles this plan
+horizon_48h # R5-W3 (#1294): the appended seed re-settles this plan
+valve_storage_flat_prices # R5-W3 (#1294): the appended seed, once the raised cut refines it, re-settles this valved plan
