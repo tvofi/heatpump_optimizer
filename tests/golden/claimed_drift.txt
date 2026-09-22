@@ -629,8 +629,3 @@
 # discharge_rate_kw, hours_of_autonomy and round_trip_efficiency_6h move with
 # the dropped standing loss. No plan, schedule or solver fixture moves: the
 # view is report-only and the optimizer never reads it.
-coord_all_features # R6-D12-01 (#1404): the non-store 35 L buffer leaves the battery view
-coord_dhw # R6-D12-01 (#1404): the non-store 35 L buffer leaves the battery view
-coord_grid_fee # R6-D12-01 (#1404): the non-store 35 L buffer leaves the battery view
-coord_minimal # R6-D12-01 (#1404): the non-store 35 L buffer leaves the battery view
-coord_two_zone # R6-D12-01 (#1404): the non-store 35 L buffer leaves the battery view
