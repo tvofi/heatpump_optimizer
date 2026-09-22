@@ -3,6 +3,7 @@
   "package_percent_ceiling": 96.0,
   "pragmas": 12,
   "recorded_at": "2026-09-14T21:27:07Z",
-  "reason": "W5-G8 (#195): the residual takes the package to 97.2 %, so the floor reaches its 96.0 % ceiling and stops tightening. modules_below_bar=0 by tools/audit/w5-partition/partition.py. config_flow_percent_floor recorded at the register flip (config-flow-test-coverage, Bronze): the instrument measured the config flow at full statement coverage over the default-gate scripts, and the row is keyed to this record by tests/entities.py so the done cannot rot silently (#951's pin re-take).",
-  "config_flow_percent_floor": 100.0
+  "reason": "W5-G8 (#195): the residual takes the package to 97.2 %, so the floor reaches its 96.0 % ceiling and stops tightening. modules_below_bar=0 by tools/audit/w5-partition/partition.py. config_flow_percent_floor recorded at the register flip (config-flow-test-coverage, Bronze): the instrument measured the config flow at full statement coverage over the default-gate scripts, and the row is keyed to this record by tests/entities.py so the done cannot rot silently (#951's pin re-take). module_percent_floor added by #1401 (R6-D10-01): the Silver rule test-coverage asks 'above 95 % for all integration modules', a per-MODULE bar the package ratio cannot see -- a small module can fall to zero while the package average stays over the floor -- so the lowest module is a recorded one-sided floor the register's test-coverage row is keyed to as well, exactly as config_flow_percent_floor keys the config-flow row. Raised back to the 95.0 bar at the recording: sysid.py, the one module the package floor had let fall (94.62 %), now clears it.",
+  "config_flow_percent_floor": 100.0,
+  "module_percent_floor": 95.0
 }
