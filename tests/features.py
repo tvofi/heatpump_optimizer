@@ -34744,6 +34744,16 @@ def _ridge_ensemble(params, sigma_c):
     return bias, refused
 
 
+def _ridge_ua_halfwidths(params, sigma_c, n=16):
+    """Completed two-state fits at sigma_c: their UA interval half-widths."""
+    out = []
+    for _k in range(n):
+        _sid, _rr, _ru = _ridge_drive(params, sigma_c, _RIDGE_SEED0 + _k)
+        if _rr.completed and _rr.ua_profile_halfwidth is not None:
+            out.append(_rr.ua_profile_halfwidth)
+    return out
+
+
 _ridge_sid0, _ridge_res0, _ridge_ua0 = _ridge_drive(
     _p942("typical_slab", 100.0), 0.01, _RIDGE_SEED0
 )
@@ -34811,20 +34821,19 @@ R.check(
 )
 
 
-# -- the sysid-estimator wave, act 2: the fitted arm's noise gate and the --
+# -- the sysid-estimator wave, act 2: the fitted arm's adoption gate and the --
 # re-derived slab mode (#942 options 2+3; ratification 5659441129). Where
 # act 1 above landed the ported intercept ridge behind the #991 gate, this
-# act lands the ratified adoption preconditions that sit AROUND the fit:
-# the residual-scatter noise gate (fitted values are adoptable only where
-# the window's own measured noise clears MAX_FIT_RESIDUAL_SCATTER_C --
-# the frontier's same cell degrades past the +-10% bar at 0.05 C, so the
-# window is refused BY NAME, not adopted at a discounted confidence), and
-# the tau_fast re-derivation (published as result.slab_mode_tau_hours,
-# computed from the FITTED room capacity against the CONFIG slab pair --
-# never the C_s/k_s split, which is unidentifiable; an adopted slab-mode
-# change is a config-class change whose claim grammar is the owner's
-# #996 decision, posted as comment 5663831849, and nothing here adopts
-# one).
+# act lands the adoption precondition that sits AROUND the fit: the fitted
+# UA's own 95 % profile-likelihood interval (#1410, superseding the #942
+# residual-scatter gate -- a clean residual is what a prior-dominated,
+# useless fit looks like, so the interval, not the scatter, is the quantity
+# the gate bounds), and the tau_fast re-derivation (published as
+# result.slab_mode_tau_hours, computed from the FITTED room capacity against
+# the CONFIG slab pair -- never the C_s/k_s split, which is unidentifiable;
+# an adopted slab-mode change is a config-class change whose claim grammar
+# is the owner's #996 decision, posted as comment 5663831849, and nothing
+# here adopts one).
 
 _est2_tau_true = _SysIdModule.slab_mode_tau_fast(
     float(_p942("typical_slab", 100.0).room_thermal_mass),
@@ -34844,28 +34853,27 @@ R.check(
     "config-class decision prices; a fit that changed the slab pair "
     "itself would be adopting the unidentifiable split",
 )
-_est2_bias05, _est2_refused05 = _ridge_ensemble(
-    _p942("typical_slab", 100.0), 0.05
-)
+_est2_hw_noisy = _ridge_ua_halfwidths(_p942("typical_slab", 100.0), 0.05)
+_est2_hw_clean = _ridge_ua_halfwidths(_p942("typical_slab", 100.0), 0.0)
 R.check(
-    "estimator act 2: 0.05 C noise is refused BY NAME at the residual-"
-    "scatter gate, never adopted degraded",
-    not _est2_bias05
-    and _est2_refused05
+    "estimator act 2: adoption is decided by the fitted UA's own interval "
+    "(#1410, superseding the residual-scatter gate): a 0.05 C noisy window's "
+    "interval is wide enough to refuse and a clean window's tight enough to "
+    "admit, so it is a refusal of the unidentifiable fits, not a blanket",
+    _est2_hw_clean
+    and _est2_hw_noisy
     and all(
-        "residual scatter" in r or "drifted beyond" in r
-        for r in _est2_refused05
+        hw > _SysIdModule.UA_ADOPTION_HALFWIDTH_BAR for hw in _est2_hw_noisy
     )
-    and any("residual scatter" in r for r in _est2_refused05),
-    f"adopted {len(_est2_bias05)} reasons "
-    f"{[r[:44] for r in _est2_refused05]} -- at sigma 0.05 the same cell "
-    "degrades past the +-10 % bar (fitted -23/+15, pre-study table), so "
-    "the ratified precondition (residual scatter <= ~0.02 C on the arm "
-    "window) refuses the window instead of adopting it; a draw may "
-    "instead abort on the comfort bound (act 1's documented sizing "
-    "knife-edge -- 1 of 16 at this sigma, measured), which adopts "
-    "nothing either, but every OTHER refusal reason would mean the gate "
-    "leaked",
+    and all(
+        hw <= _SysIdModule.UA_ADOPTION_HALFWIDTH_BAR for hw in _est2_hw_clean
+    ),
+    f"noisy {[round(h, 3) for h in _est2_hw_noisy]} clean "
+    f"{[round(h, 3) for h in _est2_hw_clean]} bar "
+    f"{_SysIdModule.UA_ADOPTION_HALFWIDTH_BAR:.3f} -- the interval is the "
+    "parameter's own uncertainty: past 0.05 C the same cell's fitted UA "
+    "spans more than +-10 %, so the gate refuses it, and a clean cell's "
+    "interval collapses to ~0 and the gate admits it",
 )
 
 

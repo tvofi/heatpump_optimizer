@@ -290,6 +290,15 @@ class SysIdResult:
     #: recorded on #996 (comment 5663831849), and until it lands the
     #: published tau is diagnostic, not an adopted value.
     slab_mode_tau_hours: float | None = None
+    #: 95 % profile-likelihood half-width of log UA, the interval the
+    #: adoption gate bounds (#1410, supersedes the #942 residual-scatter
+    #: precondition). ``None`` when the fit could not place an interval on
+    #: UA (a refused fit, or a one-state result whose covariance did not
+    #: invert). A wide value means the window cannot pin UA however clean
+    #: its residual looks. Not serialized into ``as_dict``: it is an
+    #: internal quantity the coordinator reads to decide adoption, not a
+    #: published surface (like ``sensor_drift_c_per_h``).
+    ua_profile_halfwidth: float | None = None
     reason: str = ""
 
     def as_dict(self) -> dict[str, Any]:
@@ -344,20 +353,27 @@ FAST_MODE_SETTLE_TAUS = 3.0
 #: own uncertainty (±0.1 kW on a 0.3 kW prior), not a tuning knob.
 SLAB_INTERCEPT_PRIOR_SD_KW = 0.1
 
-#: The noise gate on the two-state fitted arm (#942's wave, act 2): the
-#: fit's own residual scatter on the arm window, °C, above which the
-#: fitted values are refused by name instead of adopted. The ratified
-#: hybrid (owner decision on #942, 2026-09-14, comment 5659441129) prices
-#: fitted adoption at "residual noise <= ~0.02 °C": the pre-study's
-#: frontier measured the same gate-passing cell inside the ±10 % UA bar at
-#: σ=0.01–0.02 room noise and PAST it at σ=0.05, so the gate must separate
-#: those noise regimes, not pin the exact σ. The measured dof-adjusted
-#: scatter of a σ=0.02 window (n≈21) lands 0.017–0.027 and a σ=0.05 window
-#: 0.033–0.066, so 0.03 sits between the distributions with margin on both
-#: sides — a gate at exactly 0.02 would refuse half the windows the
-#: ratification priced as adoptable, and the "~" is that slack. A DESIGN
-#: constant: it prices the fitted arm's noise ceiling, not a tuning knob.
-MAX_FIT_RESIDUAL_SCATTER_C = 0.03
+#: The adoption bar on the fitted UA's own uncertainty (#1410, supersedes
+#: the #942 residual-scatter precondition): the 95 % profile-likelihood
+#: half-width of log UA above which the fitted heat-loss coefficient is
+#: refused by name instead of adopted. log(1.10) is the ±10 % bar the
+#: intercept ridge's docstring names as the adoption target: a fit whose
+#: interval admits a ≥10 % error is not adoptable however plausible its
+#: residual looks. The interval, not the residual scatter, is the quantity
+#: the gate exists to bound — a clean residual is exactly what a
+#: prior-dominated, useless fit looks like, so the #942 scatter ceiling was
+#: a proxy this bar replaces. A DESIGN constant: it prices the bar, not a
+#: tuning knob.
+UA_ADOPTION_HALFWIDTH_BAR = float(np.log(1.10))
+
+#: The 95 % critical value for a one-degree-of-freedom profile-likelihood
+#: interval (chi-square), the threshold the interval's cost must stay under.
+_PROFILE_CHI2_95 = 3.8414588
+
+#: The 95 % two-sided normal quantile, the linear-model half-width scale
+#: (the one-state regression's profile interval coincides with the
+#: linearized one).
+_Z_975 = 1.959963984540054
 
 
 def slab_mode_tau_fast(c_r: float, c_s: float, k_s: float) -> float:
@@ -509,6 +525,7 @@ def _lm_solve(
     residual: Callable[[np.ndarray], np.ndarray],
     x0: np.ndarray,
     max_iter: int = 60,
+    clip: tuple[int, float, float] | None = (2, -5.0, 10.0),
 ) -> tuple[np.ndarray, float]:
     """Levenberg–Marquardt on a least-squares residual, in plain numpy.
 
@@ -517,7 +534,9 @@ def _lm_solve(
     problem: forward-difference Jacobian, diagonal Marquardt damping,
     projection of the linear parameter into its loose band. Returns the
     best point found and its cost; convergence quality is pinned by the
-    ensemble test, not by this function's iteration count.
+    ensemble test, not by this function's iteration count. ``clip`` is
+    ``(index, lo, hi)`` for a single bounded parameter, or ``None`` to
+    leave every parameter unconstrained (the profiled sub-problem).
     """
     x = np.asarray(x0, dtype=float).copy()
     value = residual(x)
@@ -542,7 +561,10 @@ def _lm_solve(
                 damping *= 10.0
                 continue
             candidate = x + delta
-            candidate[2] = float(np.clip(candidate[2], -5.0, 10.0))
+            if clip is not None:
+                candidate[clip[0]] = float(
+                    np.clip(candidate[clip[0]], clip[1], clip[2])
+                )
             next_value = residual(candidate)
             next_cost = float(next_value @ next_value)
             if np.isfinite(next_cost) and next_cost < cost:
@@ -622,6 +644,111 @@ def _slab_confidence(rooms: np.ndarray, error: np.ndarray) -> float:
     noise = float(np.sqrt(ss_res / max(len(error), 1)))
     snr = signal / max(noise, 1e-9)
     return confidence * float(np.clip((snr - 1.0) / 3.0, 0.0, 1.0))
+
+
+def _slab_ua_profile_halfwidth(
+    x_hat: np.ndarray,
+    rooms: np.ndarray,
+    outdoors: np.ndarray,
+    powers: np.ndarray,
+    dts: np.ndarray,
+    slab_mass: float,
+    slab_transfer: float,
+    prior_g: float,
+) -> float:
+    """The two-state fit's UA half-width, as the adoption gate reads it.
+
+    The gate's quantity is the 95 % profile-likelihood interval of log UA,
+    resolved by the threshold check at the adoption bar (the rigorous form
+    the ruling requires): if the profiled cost at ``x_hat[0] ± bar`` is
+    still inside the 95 % threshold, the interval extends beyond the bar and
+    this returns ``inf`` (refused by name). Otherwise the interval is inside
+    the bar and this returns the linearized (Wald) half-width z_0.975·se --
+    the form the ruling accepts as the blend weight, and exact for the
+    narrow intervals the gate admits.
+    """
+
+    def _residual(x: np.ndarray) -> np.ndarray:
+        predicted = _simulate_slab_path(
+            float(np.exp(x[0])), float(np.exp(x[1])), float(x[2]),
+            slab_mass, slab_transfer, float(rooms[0]),
+            outdoors[:-1], powers[:-1], dts,
+        )
+        return np.append(
+            predicted[1:] - rooms[1:],
+            (float(x[2]) - prior_g) / SLAB_INTERCEPT_PRIOR_SD_KW,
+        )
+
+    def _profiled_cost(t: float) -> float:
+        def _inner(y: np.ndarray) -> np.ndarray:
+            predicted = _simulate_slab_path(
+                float(np.exp(t)), float(np.exp(y[0])), float(y[1]),
+                slab_mass, slab_transfer, float(rooms[0]),
+                outdoors[:-1], powers[:-1], dts,
+            )
+            return np.append(
+                predicted[1:] - rooms[1:],
+                (float(y[1]) - prior_g) / SLAB_INTERCEPT_PRIOR_SD_KW,
+            )
+        _y, _cost = _lm_solve(
+            _inner, np.array([x_hat[1], x_hat[2]]), max_iter=40,
+            clip=(1, -5.0, 10.0),
+        )
+        return _cost
+
+    cost_hat = float(_residual(x_hat) @ _residual(x_hat))
+    sigma2 = cost_hat / max(int(rooms.size) - 3, 1)
+    threshold = cost_hat + _PROFILE_CHI2_95 * sigma2
+    for sign in (1.0, -1.0):
+        if _profiled_cost(x_hat[0] + sign * UA_ADOPTION_HALFWIDTH_BAR) <= threshold:
+            return float("inf")
+    value = _residual(x_hat)
+    jac = np.empty((value.size, x_hat.size))
+    for i in range(x_hat.size):
+        step = 1e-6 * max(abs(float(x_hat[i])), 1.0)
+        bumped = np.asarray(x_hat, dtype=float).copy()
+        bumped[i] += step
+        jac[:, i] = (_residual(bumped) - value) / step
+    cov = np.linalg.inv(jac.T @ jac) * sigma2
+    se = float(np.sqrt(max(cov[0, 0], 0.0)))
+    return _Z_975 * se
+
+
+def _one_state_ua_halfwidth(
+    solution: np.ndarray,
+    gram: np.ndarray,
+    col_scale: np.ndarray,
+    s_noise: float,
+    design: np.ndarray,
+) -> float:
+    """95 % interval half-width of UA for the one-state (linear) fit.
+
+    UA = beta1 / beta2 with beta1 = UA/C (``solution[0]``) and
+    beta2 = 1/C (``solution[1]``). The one-state model is linear, so its
+    profile-likelihood interval coincides with the linearized (Wald)
+    interval: z_0.975 times the delta-method relative standard error. On
+    the main path (``solution`` carries the drift column) the covariance is
+    the full normal-equation inverse (ridged and EIV-corrected), unscaled;
+    on the two-column fallback it is the plain least-squares inverse of the
+    fallback design.
+    """
+    beta1 = float(solution[0])
+    beta2 = float(solution[1])
+    if beta2 <= 1e-12:
+        return float("inf")
+    if solution.shape[0] >= 4:
+        cov_s = np.linalg.inv(gram)
+        cov = cov_s[:2, :2] * (s_noise ** 2) / np.outer(
+            col_scale[:2], col_scale[:2]
+        )
+    else:
+        design2 = design[:, :2]
+        cov = np.linalg.inv(design2.T @ design2) * (s_noise ** 2)
+    g = np.array([1.0 / beta2, -beta1 / (beta2 ** 2)])
+    var_ua = float(g @ cov @ g)
+    if not np.isfinite(var_ua) or var_ua < 0.0:
+        return float("inf")
+    return _Z_975 * float(np.sqrt(var_ua) / abs(beta1 / beta2))
 
 
 class SystemIdentification:
@@ -1238,6 +1365,11 @@ class SystemIdentification:
         capacity = 1.0 / one_over_c
         ua = ua_over_c * capacity
         tau = 1.0 / ua_over_c
+        # #1410: the adopted parameter's own interval; the one-state model is
+        # linear, so the profile interval coincides with the linearized one.
+        ua_profile_halfwidth = _one_state_ua_halfwidth(
+            solution, gram, col_scale, s_noise, a
+        )
         if solution.shape[0] >= 4:
             # rate carries (UA/C)·d on the centred elapsed column, so the
             # sensor's drift falls straight out of the ratio.
@@ -1368,6 +1500,7 @@ class SystemIdentification:
             thermal_mass_kwh_per_c=capacity,
             internal_gains_kw=gains_kw,
             sensor_drift_c_per_h=drift_c_per_h,
+            ua_profile_halfwidth=ua_profile_halfwidth,
             confidence=confidence,
             reason="ok",
         )
@@ -1398,12 +1531,12 @@ class SystemIdentification:
         correction, D2-07 drift column and R3-D2-03 settle cross-check.
         The outcome guards and the confidence ingredients mirror
         :meth:`identify` (R², sample count, achieved excursion, residual
-        SNR) so the adoption surface — completed, confidence ≥ 0.3 and
-        the #991 gate — is the same surface; and the wave's act 2 adds the
-        ratified residual-scatter gate on top: a window whose own noise
-        exceeds ``MAX_FIT_RESIDUAL_SCATTER_C`` is refused by name rather
-        than discounted, because past that ceiling the same cell degrades
-        outside the ±10 % bar the blend exists to beat.
+        SNR) so the confidence surface is the same surface; adoption is
+        decided separately, by the fitted UA's own profile-likelihood
+        interval (#1410): ``_slab_outcome`` publishes
+        ``ua_profile_halfwidth`` and the coordinator refuses any fit whose
+        interval admits more than ±10 % error, so a window that noisy is
+        refused by name rather than discounted, whatever its confidence.
 
         Reports the lumped equivalents a one-state consumer expects: UA
         (room-side), total capacity ``C_r + C_s`` and its time constant;
@@ -1526,10 +1659,10 @@ class SystemIdentification:
     ) -> SysIdResult:
         """Guard and package the converged two-state fit (the wave's act 2).
 
-        Two things happen between the solver and the result, and both are
-        the ratified hybrid's (#942, comment 5659441129) adoption
-        preconditions rather than tuning: the residual-scatter noise gate,
-        and the tau_fast re-derivation.
+        Two things happen between the solver and the result: the fitted
+        UA's own profile-likelihood interval is computed and published (the
+        #1410 adoption gate, superseding the #942 residual-scatter
+        precondition), and the tau_fast re-derivation.
         """
         ua = float(np.exp(best_x[0]))
         room_cap = float(np.exp(best_x[1]))
@@ -1551,27 +1684,16 @@ class SystemIdentification:
             dts,
         )
         error = predicted[1:] - rooms[1:]
-        # The noise gate: the fitted values are adoptable only where the
-        # window's own residual scatter clears the ratified ceiling — the
-        # pre-study's frontier measured this same cell PAST the +-10 % UA
-        # bar at sigma 0.05, so a window that noisy is refused BY NAME
-        # instead of adopted at whatever confidence the SNR term leaves.
-        # The scatter is dof-adjusted (three fitted parameters) so it
-        # estimates the sensor noise rather than the fit's degrees of
-        # freedom.
-        n_error = int(error.size)
-        scatter = float(
-            np.sqrt(np.sum(np.square(error)) / max(n_error - 3, 1))
+        # The adopted parameter's own uncertainty (#1410): the 95 %
+        # profile-likelihood interval on UA is computed here and published
+        # on the result, and the coordinator refuses adoption on it. A
+        # clean residual is exactly what a prior-dominated, useless fit
+        # looks like, so the interval — not the residual scatter — is the
+        # quantity the gate bounds.
+        profile_halfwidth = _slab_ua_profile_halfwidth(
+            best_x, rooms, outdoors, powers, dts, slab_mass, slab_transfer,
+            self.config.gains_prior_kw,
         )
-        if scatter > MAX_FIT_RESIDUAL_SCATTER_C:
-            return SysIdResult(
-                completed=False,
-                reason=(
-                    f"residual scatter {scatter:.3f} C exceeds the "
-                    f"{MAX_FIT_RESIDUAL_SCATTER_C:.2f} C noise gate for "
-                    "fitted adoption; config-trusted"
-                ),
-            )
         # tau_fast re-derives from the fit. The split itself is never
         # adopted — see SysIdResult.slab_mode_tau_hours and the #996
         # decision it points at.
@@ -1585,6 +1707,7 @@ class SystemIdentification:
             slab_mode_tau_hours=slab_mode_tau_fast(
                 room_cap, slab_mass, slab_transfer
             ),
+            ua_profile_halfwidth=profile_halfwidth,
             confidence=_slab_confidence(rooms, error),
             reason="ok",
         )
