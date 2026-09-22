@@ -20384,6 +20384,58 @@ R.check(
     f"findings={str(_STATS_BLOCKFOLD.get('bare'))[:300]} -- the fix must not "
     "refuse a verdict the wave routes",
 )
+# THE HISTOGRAM'S DENOMINATOR IS ITS OWN POPULATION, NOT THE WINDOW (#1406,
+# D13-02). `--stats` prints `STATS: N merged pull request(s)` -- the window --
+# and then a verdict table keyed on the pull requests that CARRIED a parsable
+# verdict. Where a merge carries none -- automation-authored merges are the
+# common case, and a window holding any is not rare -- the table rests on a
+# smaller population than the line above it, and a reader taking the two
+# together cannot see the difference. The judge measured it: 4 of 67 merges
+# carried no parsable verdict while the histogram's denominator read 64. The fix
+# names both counts on their own line beside `STATS:`. Driven on the production
+# symbols rather than a count re-derived here, and the window is 67 so a
+# denominator carrying only the verdict-carrying population reads 64.
+_STATS_COVER = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const mk = (n, verdicts) => ({"
+     "prs: Array.from({ length: n }, (_, i) => ({ pr: String(i + 1) })),"
+     "fetched: new Map(Array.from({ length: n }, (_, i) => "
+     "[String(i + 1), { body: 'x', comments: i < verdicts"
+     " ? [{ body: 'Fix review: merge' }] : [] }])) });"
+     "const line = (n, v) => {"
+     "const { prs, fetched } = mk(n, v);"
+     "const h = m.statsHistogram(prs, fetched, ['blocked', 'merge']);"
+     "return m.statsCoverageLine(h.coverage); };"
+     "console.log(JSON.stringify({ short: line(67, 64), full: line(67, 67) }));"
+     "})"],
+    capture_output=True, text=True).stdout or "{}")
+
+
+def _cover_says(arm, sub):
+    return sub in (_STATS_COVER.get(arm) or "")
+
+
+R.check(
+    "the stats histogram names the population it saw beside the window's merge "
+    "count, so a merge carrying no verdict is visible rather than absorbed "
+    "(#1406)",
+    _cover_says("short", "64 of 67")
+    and _cover_says("short", "carried a parsable verdict")
+    and _cover_says("short", "3 carried none"),
+    f"coverage line={(_STATS_COVER.get('short') or '')[:240]!r} -- the verdict "
+    "table's denominator is the pull requests that carried a verdict, and a "
+    "line printing only the window count hides the merges it could not classify",
+)
+R.check(
+    "and the coverage line tracks the histogram rather than a constant "
+    "(null control)",
+    _cover_says("full", "67 of 67")
+    and not _cover_says("full", "carried none"),
+    f"coverage line={(_STATS_COVER.get('full') or '')[:240]!r} -- with every "
+    "merge carrying a verdict the line must name the whole window, or the "
+    "counts are not derived from the histogram",
+)
 R.check(
     "the publishing lane runs on main alone, never on a pull request",
     "github.event_name == 'push'" in _DS_PUB_JOB

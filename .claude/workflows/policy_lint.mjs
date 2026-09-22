@@ -2345,7 +2345,7 @@ const bump = (hist, key, pr) => {
 // verdict is rework nowhere however it is spelled, so that arm only withholds.
 const BLOCKED_SHAPE_RE = /^Fix review:\s*blocked\s+([0-9a-f]{40})(?:\s+([a-z][a-z0-9-]*)\s*:\s*.+|\s*:\s*.+|\s*)$/i
 
-function statsHistogram(prs, fetched, classes) {
+export function statsHistogram(prs, fetched, classes) {
   const verdicts = new Map()
   const friction = new Map()
   const unclassified = []
@@ -2379,7 +2379,41 @@ function statsHistogram(prs, fetched, classes) {
     }
     for (const id of frictionIds(f.body)) bump(friction, id, pr)
   }
-  return { verdicts, friction, unclassified }
+  // THE HISTOGRAM'S COVERAGE (#1406, D13-02). The verdict table's population is
+  // the pull requests that CARRIED a parsable verdict -- `verdicts`' cells --
+  // and `--stats` printed that population's size as the window's, because the
+  // only count it printed was the merge total. A merge carrying none (an
+  // automation-authored merge with no `Fix review:` comment is the common case;
+  // one whose body or comments could not be fetched is the same gap with a
+  // different cause) then left the denominator silently. Both counts are
+  // derived from the SAME walk that built the table rather than by re-scanning
+  // `prs`, so the line cannot disagree with the rows above it. The window is
+  // `prs.length` -- the merges the window contains -- not the cells' union.
+  const verdictPrs = new Set()
+  for (const cell of verdicts.values()) for (const p of cell.prs) verdictPrs.add(p)
+  const all = prs.map(({ pr }) => pr)
+  const noVerdict = all.filter((pr) => !verdictPrs.has(pr))
+  const unfetched = all.filter((pr) => !fetched.has(pr))
+  return { verdicts, friction, unclassified, coverage: { window: prs.length, verdictPrs, noVerdict, unfetched } }
+}
+
+// The line `--stats` prints beside `STATS:` so the window's merge count and the
+// histogram's own verdict population are readable side by side (#1406, D13-02).
+// Pure over `statsHistogram`'s `coverage` -- the counts the table above it used,
+// not a second count taken here -- so the acceptance drives it offline and it
+// cannot drift from the rules that produced the table. BOTH numbers print: the
+// finding is that a window holding merges the histogram could not classify read
+// as a smaller denominator, and one count alone cannot show the gap. The pull
+// request list is capped so a large window grows the line by a constant.
+const COVERAGE_LIST_CAP = 10
+export function statsCoverageLine({ window: total, verdictPrs, noVerdict, unfetched }) {
+  const seen = verdictPrs.size
+  const missing = noVerdict.length
+  const shown = noVerdict.slice(0, COVERAGE_LIST_CAP).map((p) => `#${p}`).join(' ')
+  const more = missing > COVERAGE_LIST_CAP ? ` +${missing - COVERAGE_LIST_CAP} more` : ''
+  const gap = missing ? `; ${missing} carried none${shown ? ` (${shown}${more})` : ''}` : ''
+  const unf = unfetched.length ? `, ${unfetched.length} of them never fetched` : ''
+  return `STATS COVERAGE: ${seen} of ${total} merged pull request(s) in the window carried a parsable verdict${gap}${unf}; the histogram's verdict denominator is ${seen}, not the window's merge count`
 }
 
 // Findings are severity `info`: the acceptance counts every finding by class, so
@@ -5603,7 +5637,13 @@ function cmdStats(since) {
     : fetchWindow(prs)
   console.log(`STATS: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; verdict grammar ${JSON.stringify(classes)}${blocks ? ` over block classes ${JSON.stringify(blocks)}` : ' (VERDICT_CLASSES unreadable)'} read from ${WAVE_SCRIPT}`)
   if (!fetchError) {
-    const { verdicts, friction } = statsHistogram(prs, fetched, classes)
+    const { verdicts, friction, coverage } = statsHistogram(prs, fetched, classes)
+    // The coverage line, under `STATS:` and above the tables it describes
+    // (#1406, D13-02): the verdict table's denominator is the pull requests
+    // that carried a verdict, and until this line existed the mode printed only
+    // the window's merge count -- so a merge with no verdict read as one more
+    // row of a full window rather than as a gap in the table's population.
+    console.log(statsCoverageLine(coverage))
     // Both counts in the table, threshold on the left one, because a reader who
     // sees only "4" cannot tell 4 occasions from one body written four times.
     for (const [label, hist] of [['verdict class', verdicts], ['friction rule id', friction]]) {
