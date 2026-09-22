@@ -384,6 +384,11 @@ lane_units() {
   run "$PYTHON" tests/solar_alignment.py
   # Four #805 survivors that are not in coordinator.py or optimizer.py.
   run "$PYTHON" tests/guard_pins.py
+  # The finiteness sweep (#1408): every store is a QuarantiningStore whose load
+  # scrubs non-finite numeric leaves, and this derives the boundary set from the
+  # tree and drives a non-finite leaf through each one -- the property check
+  # that makes the fifth-seam escape of #1296/#1345 unreachable.
+  run "$PYTHON" tests/finite_boundary.py
   # #817: a harness header's EXPECTED RESULT lines must match what it prints.
   run_always "$PYTHON" tests/harness_headers.py
   # The only lane that runs the shape an installation runs (#513): the tracked

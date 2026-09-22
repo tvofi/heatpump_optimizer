@@ -17,7 +17,9 @@ Two rules are enforced deliberately, because a lenient stub hides real bugs:
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Generic, TypeVar
+
+_T = TypeVar("_T")
 
 # Class-level so a fresh Store instance with the same key — the way a restart is
 # simulated in tests — sees what a previous instance persisted.
@@ -29,11 +31,11 @@ _DISK: dict[str, str] = {}
 SAVE_COUNTS: dict[str, int] = {}
 
 
-class Store:
+class Store(Generic[_T]):
     def __init__(self, hass: Any = None, version: int = 1, key: str = "", **kwargs: Any) -> None:
         self._key = key
 
-    async def async_load(self) -> Any:
+    async def async_load(self) -> _T | None:
         if self._key not in _DISK:
             return None
         # Return a fresh copy so a caller mutating the loaded dict cannot reach

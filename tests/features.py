@@ -37981,9 +37981,9 @@ class _G8AwayCoord:
         return self._entity_states.get(entity_id, (None, {}))
 
 
-_g8_away_real_store = _g8_away.Store
+_g8_away_real_store = _g8_away.QuarantiningStore
 try:
-    _g8_away.Store = _G8AwayStore
+    _g8_away.QuarantiningStore = _G8AwayStore
 
     # A store that refuses to save must not break the service call.
     _G8AwayStore.saved = []
@@ -38016,7 +38016,7 @@ try:
     _g8_done_saved = list(_G8AwayStore.saved)
     _G8AwayStore.payload = None
 finally:
-    _g8_away.Store = _g8_away_real_store
+    _g8_away.QuarantiningStore = _g8_away_real_store
 
 R.check(
     "a store that refuses the save is logged, and the save was attempted",
@@ -38149,9 +38149,9 @@ class _G8BoostCoord:
         self.entry = _G8AwayEntry()
 
 
-_g8_boost_real_store = _g8_boost.Store
+_g8_boost_real_store = _g8_boost.QuarantiningStore
 try:
-    _g8_boost.Store = _G8BoostStore
+    _g8_boost.QuarantiningStore = _G8BoostStore
     _G8BoostStore.saved = []
     _G8BoostStore.raise_save = True
     _g8_bp_coord = _G8BoostCoord()
@@ -38181,7 +38181,7 @@ try:
     _g8_bn_held = dict(_g8_boost.held_for(_g8_bn_coord).until)
     _G8BoostStore.payload = None
 finally:
-    _g8_boost.Store = _g8_boost_real_store
+    _g8_boost.QuarantiningStore = _g8_boost_real_store
 
 R.check(
     "a boost store that refuses either direction costs the boost, not the setup",
@@ -38925,9 +38925,9 @@ R.check(
 
 
 # -- the learner's two stores, in both directions --------------------------
-_g8_dhwl_real_store = _g8_dhwl.Store
+_g8_dhwl_real_store = _g8_dhwl.QuarantiningStore
 try:
-    _g8_dhwl.Store = _G8TwoStore
+    _g8_dhwl.QuarantiningStore = _G8TwoStore
 
     # A profile store that will not load leaves the seeded defaults.
     _G8TwoStore.payloads, _G8TwoStore.saves = {}, []
@@ -38963,7 +38963,7 @@ try:
     _g8_l_save_attempts = [k for k, _ in _G8TwoStore.saves]
     _G8TwoStore.raise_on = set()
 finally:
-    _g8_dhwl.Store = _g8_dhwl_real_store
+    _g8_dhwl.QuarantiningStore = _g8_dhwl_real_store
 
 R.check(
     "a learner whose stores will not load keeps the configured defaults",
@@ -39049,11 +39049,11 @@ def _g8_guard(config=None, **params_kw):
                     dhw_blocked=lambda: False)
 
 
-_g8_leg_real_store = _g8_leg.Store
+_g8_leg_real_store = _g8_leg.QuarantiningStore
 _g8_leg_real_del = _g8_leg.ir.async_delete_issue
 _g8_leg_real_new = _g8_leg.ir.async_create_issue
 try:
-    _g8_leg.Store = _G8TwoStore
+    _g8_leg.QuarantiningStore = _G8TwoStore
 
     # An unreadable store starts the clock now and writes it back, so a
     # corrupt file cannot leave the countdown unknown for ever.
@@ -39108,7 +39108,7 @@ try:
     _g8_g_mode.mode_block_notice = 3
     _g8_leg_clears.append(_t6_call(_g8_g_mode.check_mode_block, False))
 finally:
-    _g8_leg.Store = _g8_leg_real_store
+    _g8_leg.QuarantiningStore = _g8_leg_real_store
     _g8_leg.ir.async_delete_issue = _g8_leg_real_del
     _g8_leg.ir.async_create_issue = _g8_leg_real_new
 
