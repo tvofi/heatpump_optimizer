@@ -78,6 +78,21 @@ TEMP_EDGES: tuple[float, ...] = (-30.0, -5.0, 0.0, 2.0, 5.0, 8.0, 40.0)
 # Humidity split. Frost needs moisture; dry cold air barely frosts at all.
 HUMIDITY_EDGES: tuple[float, ...] = (0.0, 70.0, 101.0)
 
+# Each bucket's learned value is taken to live at its centre, and
+# :meth:`DefrostDerate.factor` interpolates bilinearly between centres. The
+# factor is a function of two continuous forecasts -- outdoor temperature and
+# relative humidity -- so answering from a hard-edged bucket made the COP every
+# plan prices through step by a whole derate across a 1e-9 change in either
+# input (R6-D2-01). Centres, not edges: a bucket's value is a point estimate,
+# not a boundary condition.
+TEMP_CENTERS: tuple[float, ...] = tuple(
+    (TEMP_EDGES[i] + TEMP_EDGES[i + 1]) / 2.0 for i in range(len(TEMP_EDGES) - 1)
+)
+HUMIDITY_CENTERS: tuple[float, ...] = tuple(
+    (HUMIDITY_EDGES[i] + HUMIDITY_EDGES[i + 1]) / 2.0
+    for i in range(len(HUMIDITY_EDGES) - 1)
+)
+
 # The band whose under-delivery is attributed to frost. Two learners watch the
 # same commanded-versus-measured signal — the global COP scale and this derate —
 # and if both fold in the same interval, one shortfall is corrected twice and
@@ -137,6 +152,24 @@ def _bucket_index(value: float, edges: tuple[float, ...]) -> int:
         if edges[i] <= value < edges[i + 1]:
             return i
     return len(edges) - 2 if value >= edges[-1] else 0
+
+
+def _interp_position(value: float, centers: tuple[float, ...]) -> tuple[int, float]:
+    """Cell index and fractional position of ``value`` among cell centres.
+
+    Returns ``(i, u)`` with ``centers[i] <= value < centers[i + 1]`` and ``u``
+    in [0, 1]; outside the centre span it clamps to the outer cell, so the
+    factor is flat beyond the learned range rather than extrapolating.
+    Piecewise linear and matched at each centre, which is what keeps
+    :meth:`DefrostDerate.factor` continuous.
+    """
+    if value <= centers[0]:
+        return 0, 0.0
+    for i in range(len(centers) - 1):
+        if value < centers[i + 1]:
+            span = centers[i + 1] - centers[i]
+            return i, (value - centers[i]) / span
+    return len(centers) - 2, 1.0
 
 
 def _grid(fill: _T) -> list[list[_T]]:
@@ -258,8 +291,34 @@ class DefrostDerate:
         return "measured", measured, n_duty
 
     def factor(self, outdoor_temp: float, humidity: float | None = None) -> float:
-        """Derate for these conditions, blended towards 1.0 while uncertain."""
-        return self._decide(*self._bucket(outdoor_temp, humidity))[1]
+        """Derate for these conditions, blended towards 1.0 while uncertain.
+
+        Interpolates bilinearly between the four surrounding buckets' values so
+        the factor is continuous in outdoor temperature and humidity (R6-D2-01)
+        rather than a step function of the bucket. With no humidity the dry
+        bucket's centre is used, which keeps "no humidity" meaning "no frost"
+        exactly as the bucket lookup did.
+        """
+        t = float(outdoor_temp)
+        h = float(humidity) if humidity is not None else HUMIDITY_CENTERS[0]
+        ti, tu = _interp_position(t, TEMP_CENTERS)
+        hi, hu = _interp_position(h, HUMIDITY_CENTERS)
+        f00 = self._decide(ti, hi)[1]
+        f10 = self._decide(ti + 1, hi)[1]
+        f01 = self._decide(ti, hi + 1)[1]
+        f11 = self._decide(ti + 1, hi + 1)[1]
+        if f00 == f10 == f01 == f11:
+            # Uniform surroundings (the empty learner included): the interpolant
+            # is exactly that value, and returning it skips the float noise the
+            # four-weight sum would add, keeping a data-less derate inert to the
+            # last bit rather than perturbing the COP by 1e-16.
+            return f00
+        return (
+            f00 * (1.0 - tu) * (1.0 - hu)
+            + f10 * tu * (1.0 - hu)
+            + f01 * (1.0 - tu) * hu
+            + f11 * tu * hu
+        )
 
     def samples(self, outdoor_temp: float, humidity: float | None = None) -> int:
         """How many observations stand behind the derate actually in use."""
@@ -475,11 +534,13 @@ class DefrostDerate:
                         HUMIDITY_EDGES[h + 1],
                     ],
                     "source": source,
-                    # What the plan is ACTUALLY multiplying by: the value
-                    # ``factor`` returns, trust ramp and all. Reporting the
-                    # raw estimator here instead showed a user 0.80 while
-                    # the plan used 0.95, which is the one number on the row
-                    # they would act on.
+                    # What the plan multiplies by when conditions sit at this
+                    # bucket's centre -- the value ``factor`` returns there,
+                    # trust ramp and all (the factor interpolates between
+                    # centres, so the centre is where the row's derate is the
+                    # exact one in use). Reporting the raw estimator here
+                    # instead showed a user 0.80 while the plan used 0.95,
+                    # which is the one number on the row they would act on.
                     "derate": round(value, 3),
                     # And what this bucket has learned, before the trust
                     # ramp — the pair is how "we believe 0.80 but have not

@@ -2379,6 +2379,30 @@ R.check(
     DefrostDerate.from_dict({"factors": "nonsense"}).factor(2.0, 85.0) == 1.0,
 )
 
+# The factor is a function of two continuous inputs -- outdoor temperature and
+# relative humidity -- so it must not step at a bucket edge (R6-D2-01 / #1381):
+# a fully-earned duty folded into one bucket must not make the COP every plan
+# prices through jump by a whole derate across a 1e-9 change in either input.
+_cont = DefrostDerate()
+for _ in range(200):
+    _cont.observe_duty(1.0, 90.0, 0.30)  # fully-earned measured duty, bucket (2, 1)
+R.check(
+    "the derate factor is continuous across a temperature bucket edge",
+    abs(_cont.factor(1e-9, 90.0) - _cont.factor(-1e-9, 90.0)) < 1e-6,
+    f"step {abs(_cont.factor(1e-9, 90.0) - _cont.factor(-1e-9, 90.0)):.6f} at 0 C",
+)
+R.check(
+    "the derate factor is continuous across a humidity bucket edge",
+    abs(_cont.factor(1.0, 70.0 + 1e-9) - _cont.factor(1.0, 70.0 - 1e-9)) < 1e-6,
+    f"step {abs(_cont.factor(1.0, 70.0 + 1e-9) - _cont.factor(1.0, 70.0 - 1e-9)):.6f} "
+    f"at 70 % RH",
+)
+R.check(
+    "and continuity is reached by interpolation, not by disabling the derate",
+    _cont.factor(1.0, 90.0) < 0.6,
+    f"factor {_cont.factor(1.0, 90.0):.4f} — the learned bucket must still derate",
+)
+
 # The derate has to actually reach the COP the optimizer prices plans through.
 params = ThermalParameters()
 model = ThermalModel(params)
@@ -13461,8 +13485,10 @@ _dr.counts[0][1] = 20
 _tm21 = ThermalModel(ThermalParameters(defrost_derate=_dr, ambient_humidity=40.0))
 R.check(
     "the forecast humidity selects the derate bucket per step",
-    abs(_tm21.compute_cop(1.0, humidity=90.0) / _tm21.compute_cop(1.0, humidity=40.0) - 0.6)
+    abs(_tm21.compute_cop(1.0, humidity=90.0) / _tm21.compute_cop(1.0, humidity=35.0) - 0.6)
     < 1e-9,
+    # 35.0 % is the dry bucket's centre: the factor interpolates between bucket
+    # centres now, so the dry value (1.0) is read exactly there.
 )
 R.check(
     "NaN humidity falls back exactly like an absent argument",
@@ -22744,19 +22770,23 @@ R.check(
     derate_from_duty(1.0) >= 0.55,
 )
 
+# (3.5, 85.5) is the centre of bucket (3, 1), the bucket (2.0, 80.0) lands in;
+# factor() interpolates between bucket centres now, so the learned value is
+# read exactly at the centre and these checks keep asking about the estimator,
+# not the interpolant.
 _meas = DefrostDerate()
 for _ in range(40):
     _meas.observe_duty(2.0, 80.0, 0.10, events=1)
 R.check(
     "a measured bucket derates from its counted duty",
-    _meas.measured(2.0, 80.0)
-    and abs(_meas.factor(2.0, 80.0) - derate_from_duty(0.10)) < 0.01,
-    f"factor {_meas.factor(2.0, 80.0):.4f} vs {derate_from_duty(0.10):.4f}",
+    _meas.measured(3.5, 85.5)
+    and abs(_meas.factor(3.5, 85.5) - derate_from_duty(0.10)) < 0.01,
+    f"factor {_meas.factor(3.5, 85.5):.4f} vs {derate_from_duty(0.10):.4f}",
 )
 _meas.observe(2.0, 80.0, 1.4)
 R.check(
     "and a measurement is never averaged with an inference of the same thing",
-    abs(_meas.factor(2.0, 80.0) - derate_from_duty(0.10)) < 0.01,
+    abs(_meas.factor(3.5, 85.5) - derate_from_duty(0.10)) < 0.01,
     "mixing them produces a number that is neither, the more so when the "
     "inference is known to be biased",
 )
@@ -22811,9 +22841,9 @@ R.check(
 )
 R.check(
     "its learned factors are KEPT, not discarded",
-    abs(_migrated.factor(2.0, 80.0) - 0.88) < 1e-9
+    abs(_migrated.factor(3.5, 85.5) - 0.88) < 1e-9
     and _migrated.total_samples == 480,
-    f"factor {_migrated.factor(2.0, 80.0)} — a stored factor below 1.0 is "
+    f"factor {_migrated.factor(3.5, 85.5)} — a stored factor below 1.0 is "
     f"evidence pointing the careful way; resetting every bucket to 1.0 would "
     f"make frost-band plans LESS conservative on upgrade",
 )
@@ -22830,7 +22860,7 @@ R.check(
 R.check(
     "a measured duty then overrides the carried-over inference",
     (lambda d: [d.observe_duty(2.0, 80.0, 0.02) for _ in range(40)] and
-     abs(d.factor(2.0, 80.0) - derate_from_duty(0.02)) < 0.01)(
+     abs(d.factor(3.5, 85.5) - derate_from_duty(0.02)) < 0.01)(
         DefrostDerate.from_dict(_v1_store)
     ),
     "the carried value is a floor to stand on until something is counted, "
@@ -23296,7 +23326,11 @@ R.section("v5.3.0 review — presence is not trust (the defrost derate)")
 # exact optimistic reset from_dict was rewritten to avoid, arriving by another
 # door and on the very install this feature targets.
 
-_RV_T, _RV_H = 2.0, 60.0
+# (3.5, 35.0) is the centre of bucket (3, 0), i.e. the same bucket the old
+# (2.0, 60.0) landed in, but now a point where factor()'s interpolation returns
+# the bucket's learned value exactly -- so these checks keep asking about the
+# arbitration, not about the interpolant.
+_RV_T, _RV_H = 3.5, 35.0
 
 
 def _rv_mature(factor=0.80, counts=200):
@@ -25512,8 +25546,8 @@ _sm_row = [
 ][0]
 R.check(
     "the summary's derate is the one the plan multiplies by",
-    abs(_sm_row["derate"] - _sm_young.factor(2.0, 60.0)) < 1e-3,
-    f"summary {_sm_row['derate']} vs factor {_sm_young.factor(2.0, 60.0):.3f} "
+    abs(_sm_row["derate"] - _sm_young.factor(3.5, 35.0)) < 1e-3,
+    f"summary {_sm_row['derate']} vs factor {_sm_young.factor(3.5, 35.0):.3f} "
     f"— reporting the raw estimator showed 0.80 while the plan used 0.95",
 )
 R.check(
