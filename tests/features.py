@@ -34853,13 +34853,14 @@ R.check(
     "config-class decision prices; a fit that changed the slab pair "
     "itself would be adopting the unidentifiable split",
 )
-_est2_hw_noisy = _ridge_ua_halfwidths(_p942("typical_slab", 100.0), 0.05)
-_est2_hw_clean = _ridge_ua_halfwidths(_p942("typical_slab", 100.0), 0.0)
+_est2_hw_noisy = _ridge_ua_halfwidths(_p942("typical_slab"), 0.02)
+_est2_hw_clean = _ridge_ua_halfwidths(_p942("typical_slab"), 0.0)
 R.check(
     "estimator act 2: adoption is decided by the fitted UA's own interval "
-    "(#1410, superseding the residual-scatter gate): a 0.05 C noisy window's "
-    "interval is wide enough to refuse and a clean window's tight enough to "
-    "admit, so it is a refusal of the unidentifiable fits, not a blanket",
+    "(#1410, superseding the residual-scatter gate): a 0.02 C noisy window on "
+    "the shipped natural slab is refused (its UA interval admits > +-10 %) "
+    "and a clean window's interval collapses to ~0 and admits, so it is a "
+    "refusal of the unidentifiable fits, not a blanket",
     _est2_hw_clean
     and _est2_hw_noisy
     and all(
@@ -34871,9 +34872,10 @@ R.check(
     f"noisy {[round(h, 3) for h in _est2_hw_noisy]} clean "
     f"{[round(h, 3) for h in _est2_hw_clean]} bar "
     f"{_SysIdModule.UA_ADOPTION_HALFWIDTH_BAR:.3f} -- the interval is the "
-    "parameter's own uncertainty: past 0.05 C the same cell's fitted UA "
-    "spans more than +-10 %, so the gate refuses it, and a clean cell's "
-    "interval collapses to ~0 and the gate admits it",
+    "parameter's own uncertainty: on the natural slab the comfort bound keeps "
+    "the excursion within ~2 % of its mean, so UA is weakly identified at "
+    "0.02 C noise and the gate refuses it (the D7-01 regime), while a clean "
+    "cell's interval collapses to ~0 and the gate admits it",
 )
 
 
