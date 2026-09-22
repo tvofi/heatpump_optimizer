@@ -42,15 +42,17 @@ files under ``custom_components/heatpump_optimizer/``, Python and non-Python
 alike -- the only closure in ``tests/closures.json`` that reaches every
 production file. A diff touching any production file therefore selects this
 lane. That is a selection cost, not a duplicate-assertion one: the same
-recording finds 61 of the 300 script pairs (25 choose 2) sharing 0.80 or more
-of their production-module closure, all 61 among the 253 pairs whose two
+recording finds 70 of the 325 script pairs (26 choose 2) sharing 0.80 or more
+of their production-module closure, all 70 among the 276 pairs whose two
 scripts each have a non-empty production closure (``tests/ha_contract.py``
-and ``tests/harness_headers.py`` have none). Twelve of the pairs sit at
-exactly 1.00 -- structure.py/typing_ruler.py (64 shared production files),
-doc_claims.py/structure.py and doc_claims.py/typing_ruler.py (64 each),
-plan_view.py/solar_alignment.py (45), the optimality.py/validate.py/edge.py/
-backtest.py four (11, six pairs), golden.py/env_drift.py (74),
-card.mjs/card_drift.mjs (46) -- and which mutants each script actually kills
+and ``tests/harness_headers.py`` have none). Fifteen of the pairs sit at
+exactly 1.00 -- structure.py/typing_ruler.py (65 shared production files),
+doc_claims.py/finite_boundary.py, doc_claims.py/structure.py,
+doc_claims.py/typing_ruler.py, finite_boundary.py/structure.py and
+finite_boundary.py/typing_ruler.py (65 each), plan_view.py/solar_alignment.py
+(46), the optimality.py/validate.py/edge.py/backtest.py four (11, six pairs),
+golden.py/env_drift.py (74), card.mjs/card_drift.mjs (47) -- and which
+mutants each script actually kills
 was never measured, so nothing here says those runs are redundant either:
 the pre-screen stops at the first killer, and where a narrower closure here
 or a merged script for an exactly-equal pair would pay is recorded rather
