@@ -1,5 +1,43 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.6.9
+
+the round-5 audit fix wave completes — forty-eight findings judged, every
+surviving one fixed, refuted or deferred, and the release machinery hardened
+against its own escapes:
+
+- #1341 — the schema fix
+- #1342 — the weather feed fix
+- #1343 — the closure re-record fix
+- #1344 — the docs A3 install fix
+- #1345 — the non-finite guard fix
+- #1347 — the ECL110 displace fix
+- #1348 — the card CSS fix
+- #1349 — the defaults fix
+- #1350 — the pins fix
+- #1351 — the wood-ledger fix (D1)
+- #1356 — the quiet learner's freeze consult (D7-03/#1331, D7-04/#1332)
+- #1357 — policy_lint (D13-02/#1304, D13-03/#1305)
+- #1358 — the phantom check (D3-02/#1310)
+- #1359 — the ages fix (D1-08/#1299)
+- #1360 — the stress baseline capture (D9-07+08/#1338+#1339)
+- #1361 — pins-a (D3-04..06/#1312-1314)
+- #1362 — identity hardening
+- #1363 — the D8 renames (D8-01/#1333, D8-02/#1334)
+- #1364 — env_drift CLAIM_HEAD reads the PR head, not the merge tree
+- #1365 — record: delivery rows #1341-1362
+- #1366 — record: delivery rows #1363 and #1365
+- #1367 — sysid arming (D7-01/#1329): the arm gate prices the two-state fit
+- #1368 — the record rule's --require-rows and the in-tree CFR exclusion (D11-02/#1301, D13-01/#1303)
+- #1369 — the card's 44 px coarse-pointer floor (D4-03/#1320)
+- #1370 — the valved buffer's monotone bound (D2-02/#1307)
+- #1371 — the stress memory stale arm gate (D9-05/#1336)
+- #1372 — MPC warm start from the previous shipped plan (D0-04/#1295)
+- #1373 — requiredContextsDrift compares ruleset ids (D11-01/#1300)
+- #1374 — optimality assertion density 1.25 → 5.33 (D3-03/#1311)
+- #1375 — sysid adoption refuses drift-biased UA and the gap fallback (D2-03/#1308, D7-02/#1330)
+- #1376 — record: delivery rows #1356/#1360/#1364/#1366-1375
+
 ## v6.6.8
 
 the D0 economics programme completes, and the machine that runs it fixes
