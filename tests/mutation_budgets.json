@@ -1,9 +1,10 @@
 {
-  "_comment": "A one-sided cap on the fraction of mutants that survive, NOT an exact-count ratchet. The pool is a seeded sample over whichever files a diff put in scope, so an exact count is not comparable between two clean branches; see the header of tests/mutation_table.py. Lower it with --record on a run whose survivors are all explained; raise it only as a deliberate, argued edit.",
+  "_comment": "Two caps for two different things. max_survivor_fraction is a one-sided cap on the SAMPLED run's survivor rate (saturable: below 1.0, because a rate in [0,1] can never exceed 1.0). unpinned_sites is the exact-count ratchet over the DETERMINISTIC inventory -- every candidate site the six operators generate across the whole tree -- and only moves down: a diff that adds a candidate site without a disposition raises it and is refused. A site carries a disposition under survivor_triage (a verdict) or killed_by (a driver that kills it). See the header of tests/mutation_table.py.",
   "max_survivor_fraction": {
-    "changed": 1.0,
-    "full": 1.0
+    "changed": 0.2,
+    "full": 0.3
   },
+  "unpinned_sites": 3785,
   "last_measured": {
     "changed": {
       "survivors": 2,
@@ -48,7 +49,64 @@
       "verdict": "equivalent",
       "old": "        if task is not None and hasattr(task, \"cancel\"):",
       "reason": "hass.async_create_task (homeassistant.core.HomeAssistant.async_create_task) returns an asyncio.Task, which always carries cancel; the OR form differs only for a non-None object without a cancel attribute, which that return cannot be -- round-5 D3-07."
+    },
+    "custom_components/heatpump_optimizer/optimizer.py:3565 GUARD_OFF": {
+      "verdict": "equivalent",
+      "old": "        if changed:",
+      "reason": "void mutant, round-6 D3-03 (#1385): the guard fences only a `_LOGGER.debug(...)` call; the function's `return changed` sits OUTSIDE the if, so `if changed:` -> `if True:` differs only in whether a debug line logs, which no check reads. No honest test should fail on this mutant."
     }
   },
-  "reason": "Both caps stay OPEN at 1.0 and this is deliberate. The first real run of the changed scope (CI run 34658441338, on a runner rather than a laptop) killed 8 of 10 and is recorded in last_measured -- but 10 mutants is a sample, and a cap set at a sample's own rate reddens the next branch that happens to draw three survivors instead of two, which is the random failure this fraction exists to avoid. The 40-mutant full-package pool is the shape worth gating on, and mutation-nightly is on main: CI run 35395283955 drove it, its score recorded in last_measured.full -- but that score is NOT that estimate yet. The instrument that produced it drove mutants with 8 of the 24 recorded gate scripts and never ran the differential golden step (tests/env_drift.py --all, the step CI runs under GOLDEN_MODE=drift), which is the D3-01 finding: read those 12 survivors as what that instrument measured, not as the fraction this repository's PR gate would produce. The default driver net is now derived from tests/closures.json (#1211) and includes the module's own test drivers (#1225), so the first full run in that shape is the first estimate worth gating on. The fraction counts only survivors no triage has called equivalent: the two equivalent mutants the round-5 D3 pre-screen measured -- pump_mode.py:242 GUARD_OFF and __init__.py:337 BOOLOP, each indistinguishable from its original at every input (D3-07) -- are recorded under survivor_triage, pinned to the line text they were measured on, so those two no longer read as gaps. The cap still stays open because a cap moves down only on a run whose survivors are all explained (tests/mutation_table.py --record), and the recorded survivors have not all been triaged yet; record the cap here once that triage is done."
+  "killed_by": {
+    "custom_components/heatpump_optimizer/battery.py:320 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if params.dhw_enabled:",
+      "reason": "arrived with origin/main, commit d62195ade (fix(D12): guard the battery buffer/DHW stores on the config signal). `if params.dhw_enabled:` -> `if False:` raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/battery.py:341 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if params.buffer_is_store:",
+      "reason": "arrived with origin/main, commit d62195ade (fix(D12): guard the battery buffer/DHW stores on the config signal). `if params.buffer_is_store:` -> `if False:` makes tests/features.py exit 1 against a baseline exit of 0. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/defrost.py:166 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if value <= centers[0]:",
+      "reason": "arrived with origin/main, commit b4b029514 (R6-D2-01: interpolate the derate factor across buckets). `if value <= centers[0]:` -> `if False:` raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/defrost.py:169 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "        if value < centers[i + 1]:",
+      "reason": "arrived with origin/main, commit b4b029514 (R6-D2-01: interpolate the derate factor across buckets). `if value < centers[i + 1]:` -> `if False:` raises the driver's `FAILED` count to 19 against a 0 baseline. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/defrost.py:171 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "            return i, (value - centers[i]) / span",
+      "reason": "arrived with origin/main, commit b4b029514 (R6-D2-01: interpolate the derate factor across buckets). Removing the interpolated return raises the driver's `FAILED` count to 19 against a 0 baseline. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/defrost.py:172 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "    return len(centers) - 2, 1.0",
+      "reason": "arrived with origin/main, commit b4b029514 (R6-D2-01: interpolate the derate factor across buckets). Removing the extrapolation return makes tests/features.py exit 1 against a baseline exit of 0. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/thermal_model.py:1894 CLAMP_DROP": {
+      "killed_by": "tests/features.py",
+      "old": "        floor = min(p.dhw_inlet_reference, ambient_temp)",
+      "reason": "arrived with origin/main, commit 7eeea4d90 (D2-02: clamp the DHW inlet floor to the tank surroundings). Dropping the `min` clamp raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/sensor.py:427 GUARD_OFF": {
+      "killed_by": "tests/entities.py",
+      "old": "        if getattr(self, \"_attr_entity_registry_enabled_default\", True) is False:",
+      "reason": "arrived with origin/main, commit 5ae066a0 (fix(D8): make the hot-water registry default conditional on dhw_enabled, #1398). `if getattr(self, \"_attr_entity_registry_enabled_default\", True) is False:` -> `if False:` drops the static-default-off early return, so DHWTemperatureSensor -- which sets that attribute -- reports the hot water default instead of False, and tests/entities.py goes from rc=0 failed=0 to rc=1 failed=1. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/sensor.py:430 GUARD_OFF": {
+      "killed_by": "tests/entities.py",
+      "old": "        if params is not None:",
+      "reason": "arrived with origin/main, commit 5ae066a0 (fix(D8): make the hot-water registry default conditional on dhw_enabled, #1398). `if params is not None:` -> `if False:` skips the `_thermal_params` path the registry reads before the first refresh and falls back to `data`, where the real-coordinator checks of #1398 have no `dhw_enabled`: tests/entities.py goes from rc=0 failed=0 to rc=1 failed=1. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/sensor.py:432 RETURN_DEL": {
+      "killed_by": "tests/entities.py",
+      "old": "        return bool((self.coordinator.data or {}).get(\"dhw_enabled\", False))",
+      "reason": "arrived with origin/main, commit 5ae066a0 (fix(D8): make the hot-water registry default conditional on dhw_enabled, #1398). Removing the `data` fallback return makes the property fall off the end and answer None, so every hot-water entity whose registry default the payload path decides goes off and tests/entities.py goes from rc=0 failed=0 to rc=1 failed=5. Measured at the post-main head, 2026-09-22."
+    }
+  },
+  "reason": "max_survivor_fraction was OPEN at 1.0 and therefore unsatisfiable: rate = survivors/evaluated is a fraction in [0,1], so `if rate > 1.0` can never fire and a run in which every mutant survives printed PASSED. The caps are now recorded at the last measured rates -- 0.2 (2 survivors of 10) and 0.3 (12 of 40) -- so they are saturable. The ratchet is the exact-count `unpinned_sites`: 3798 candidate sites enumerated deterministically over all 64 production modules, of which 3785 carry no recorded disposition (3 are triaged equivalent: pump_mode.py:242, __init__.py:340, optimizer.py:3565; 10 are killed -- 7 by tests/features.py: battery.py:320, battery.py:341, defrost.py:166, defrost.py:169, defrost.py:171, defrost.py:172, thermal_model.py:1894, and 3 by tests/entities.py: sensor.py:427, sensor.py:430, sensor.py:432 -- recorded under `killed_by`). The two surviving sites the disposition pass measured -- defrost.py:310 GUARD_OFF and sysid.py:1522 GUARD_OFF, both added with origin/main -- stay unpinned on purpose: nothing in the recorded driver net kills them yet, and an unmarked survivor is a gap rather than an equivalence. The nightly burn-in kills or triages them in cost order, and each disposition must name the mechanism; the ratchet refuses any NEW site without one. Do not raise `unpinned_sites` by hand: the exact count is re-derived every run by tests/mutation_table.py, which refuses growth and only records down via --record."
 }
