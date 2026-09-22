@@ -2356,11 +2356,15 @@ const BLOCKED_SHAPE_RE = /^Fix review:\s*blocked\s+([0-9a-f]{40})(?:\s+([a-z][a-
 // moved head and `head-moved` held 0 verdicts. So a second-or-later parseable
 // verdict naming a head other than the pull request's FIRST parseable verdict's
 // is a re-verification of a moved head, and is keyed on the class the wave
-// defines for it rather than left in the passing row. Both heads must be
-// present: a verdict naming none is no evidence either way, so no rework is
-// inferred from the missing side. The key is the wave's own word -- a class the
-// wave stops teaching is a key nothing routes on, which the extraction check in
-// tests/entities.py refuses by name.
+// defines for it -- in a row of its own, beside the passing row that cannot show
+// it, because that row is where the verdict landed and a histogram that emptied
+// it would be reading the grammar rather than counting it. So the rows stop
+// partitioning the window's verdicts: the same round is one `merge` entry AND
+// one `head-moved` entry, and the second is the one that says a head moved.
+// Both heads must be present: a verdict naming none is no evidence either way,
+// so no rework is inferred from the missing side. The key is the wave's own word
+// -- a class the wave stops teaching is a key nothing routes on, which the
+// extraction check in tests/entities.py refuses by name.
 export const REWORK_CLASS = 'head-moved'
 const VERDICT_HEAD_RE = /^Fix review:\s*(?:blocked|merge)\s+([0-9a-f]{40})\b/i
 
@@ -2404,7 +2408,9 @@ export function statsHistogram(prs, fetched, classes) {
     }
     // THE REWORK ARM (#1405, D13-01): a later verdict naming a head the first
     // one did not is a re-verification of a moved head, keyed as the class the
-    // wave defines for it (see REWORK_CLASS above). One bump per round, so the
+    // wave defines for it (see REWORK_CLASS above). A bump BESIDE the row the
+    // verdict already landed in, never instead of it, so every figure this table
+    // printed before the change it still prints. One bump per round, so the
     // cell's distinct-PR count and its entry count are the two figures the
     // finder measured -- 7 merges and 11 rounds over the round-6 window.
     const firstHead = heads[0]

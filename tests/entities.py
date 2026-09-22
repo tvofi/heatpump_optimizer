@@ -20469,6 +20469,8 @@ _STATS_REWORK = json.loads(subprocess.run(
      "'head-moved'),"
      "reshaped: cell(load('tools/audit/round6/D13/fixtures/reshaped.json'), "
      "'head-moved'),"
+     "mergeBase: cell(load('tools/audit/round6/D13/fixtures/window_base.json'), "
+     "'merge'),"
      "sameHead: cell(synth(['Fix review: merge ' + sha('a'),"
      "'Fix review: merge ' + sha('a')]), 'head-moved'),"
      "noFirstHead: cell(synth(['Fix review: merge',"
@@ -20507,6 +20509,16 @@ R.check(
     f"head-moved cell={_rework_cell('reshaped')!r} -- the finder's `reshaped` "
     "fixture takes one rework verdict outside the grammar, so the same walk "
     "must report 10 rounds over 6 merges, not the base's 11 over 7",
+)
+R.check(
+    "and the passing row is left exactly as it was, so the rework key adds a "
+    "figure rather than moving one (#1405)",
+    _rework_cell("mergeBase").get("prs") == 63
+    and _rework_cell("mergeBase").get("entries") == 73,
+    f"merge cell={_rework_cell('mergeBase')!r} -- the round is counted BESIDE "
+    "the row the verdict already landed in, never instead of it: a rekey would "
+    "have emptied 11 entries out of this cell and moved a published figure, and "
+    "an instrument that changes a number a reader already trusts has to say so",
 )
 R.check(
     "and a verdict naming the same head twice, or no first head at all, is not "
