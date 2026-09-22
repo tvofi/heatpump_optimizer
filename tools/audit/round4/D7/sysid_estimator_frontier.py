@@ -11,19 +11,20 @@ frontier's bottom row -- gate-passing plants (slab_heat_transfer x100, the
 window -- re-derived through the production experiment, whose _finish
 routes a plant the arm-time gate admitted to identify_slab (act 1, #1013:
 the ported D2-01 ridge) with this wave's act 2 on top: the
-residual-scatter noise gate and the re-derived slab-mode tau. The ratified
-hybrid (owner decision 2026-09-14, comment 5659441129): fitted -- UA and
+fitted UA's own 95 % profile-likelihood interval and the re-derived
+slab-mode tau. The ratified hybrid (owner decision 2026-09-14, comment
+5659441129), as superseded by #1410's interval gate: fitted -- UA and
 tau_fast only, never the C_s/k_s split -- where the #991 gate passes AND
-the ridge is ported AND the fit's own residual scatter clears the noise
-gate; refused everywhere else, by name.
+the ridge is ported AND the fit's own interval clears the adoption bar;
+refused everywhere else.
 
 METRIC (one line): per (plant, sigma) cell, over n=16 sensor-noise draws
 of the production protocol (the recorder sees N(0, sigma); the plant rolls
 noise-free), the COUNT of draws whose production result completed with a
-fitted UA the adoption predicate accepts (confidence >= 0.3) within the
-+-10 % bar the frontier defines "useful" against, the count refused BY
-NAME at the residual-scatter gate, and the count aborted on the comfort
-bound (act 1's documented sizing knife-edge); plus the shipped-preset null
+fitted UA the adoption gate accepts (ua_profile_halfwidth <=
+UA_ADOPTION_HALFWIDTH_BAR) within the +-10 % bar the frontier defines
+"useful" against, the count refused by the interval gate (halfwidth
+above the bar), and the count aborted on the comfort bound (act 1's documented sizing knife-edge); plus the shipped-preset null
 control (arming now SUCCEEDS on all three presets the integration ships --
 before #1329 the one-state predicate priced the arm/adopt gate and refused
 all three by name, so these two rows were 0 armed / 3 named) and the
@@ -43,21 +44,21 @@ PERTURBATION (either, from the same tree):
     1e9 -- the ported ridge effectively deleted: the fitted counts collapse
     toward the frontier's unridged cell (-35/+46 % UA at sigma 0.01, the
     pre-study's measurement of exactly this deletion).
-  * HPO_EST_NOISE_GATE_OFF=1 lifts MAX_FIT_RESIDUAL_SCATTER_C to 1e9: the
-    sigma=0.05 noise_refused count -> 0 and that cell's fitted UA biases
-    print PAST the +-10 % bar -- the degradation the gate exists to
-    refuse, made visible.
+  * HPO_EST_INTERVAL_GATE_OFF=1 lifts UA_ADOPTION_HALFWIDTH_BAR to 1e9:
+    the sigma=0.05 interval_refused count -> 0 and that cell's fitted UA
+    biases print PAST the +-10 % bar -- the degradation the gate exists
+    to refuse, made visible.
 
 INSTRUMENTED SYMBOLS: custom_components/heatpump_optimizer/sysid.py:
 SystemIdentification.arm, SystemIdentification.step,
 SystemIdentification.identify_slab, slab_mode_identifiability,
 slab_mode_tau_fast, SLAB_INTERCEPT_PRIOR_SD_KW,
-MAX_FIT_RESIDUAL_SCATTER_C; custom_components/heatpump_optimizer/
+UA_ADOPTION_HALFWIDTH_BAR; custom_components/heatpump_optimizer/
 thermal_model.py: ThermalModel.simulate_step.
 
 EXPECTED on this tree (every line a COUNT with cross-build margin: the
 sigma=0.01 fitted biases stay inside +-4 % against the 10 % bar, the
-sigma=0.05 scatters sit at 0.038-0.086 against the 0.03 gate, and the one
+sigma=0.05 half-widths sit past the bar on the refused draws, and the one
 comfort-bound abort is a protocol-path draw with no solver in it; the
 sigma=0.02 cell is deliberately NOT pinned -- its refusals land on the
 gate itself and its p95 touches the bar, so its counts are printed as
@@ -68,11 +69,11 @@ context, never asserted):
     RESULT within10_typical_s001=16
     RESULT fitted_heavy_s001=16
     RESULT within10_heavy_s001=16
-    RESULT noise_refused_typical_s005=15
-    RESULT noise_refused_heavy_s005=16
+    RESULT interval_refused_typical_s005=14
+    RESULT interval_refused_heavy_s005=4
     RESULT shipped_presets_armed=3
     RESULT shipped_presets_gate_named=0
-    RESULT unridged_fitted_typical_s001=5
+    RESULT unridged_fitted_typical_s001=0
 
 ROOT RULE: ROOT = Path(".") -- this harness measures the working directory
 it is run from. Run it from the tree under test.
@@ -120,8 +121,8 @@ from profiles import house
 
 if os.environ.get("HPO_EST_RIDGE_OFF"):
     sysid_module.SLAB_INTERCEPT_PRIOR_SD_KW = 1e9
-if os.environ.get("HPO_EST_NOISE_GATE_OFF"):
-    sysid_module.MAX_FIT_RESIDUAL_SCATTER_C = 1e9
+if os.environ.get("HPO_EST_INTERVAL_GATE_OFF"):
+    sysid_module.UA_ADOPTION_HALFWIDTH_BAR = 1e9
 UTC = timezone.utc
 COP = 3.0
 BASE = 21.0
@@ -208,26 +209,27 @@ def _cell(name: str, sigma: float) -> dict[str, float]:
         float(p.slab_thermal_mass),
         float(p.slab_heat_transfer),
     )
-    fitted = within10 = noise_refused = aborted = 0
+    fitted = within10 = interval_refused = aborted = 0
     biases: list[float] = []
     taus: list[float] = []
     for draw in range(NDRAW):
         r, ua = _drive(p, sigma, SEED0 + draw)
         if r.completed and r.heat_loss_kw_per_c is not None:
-            if r.confidence >= 0.3:
+            hw = r.ua_profile_halfwidth
+            if hw is not None and hw <= sysid_module.UA_ADOPTION_HALFWIDTH_BAR:
                 fitted += 1
                 bias = (r.heat_loss_kw_per_c / ua - 1.0) * 100.0
                 biases.append(bias)
                 taus.append(r.slab_mode_tau_hours / tau_true)
                 within10 += abs(bias) <= 10.0
-        elif "residual scatter" in r.reason:
-            noise_refused += 1
+            else:
+                interval_refused += 1
         elif "drifted beyond" in r.reason:
             aborted += 1
     out = {
         "fitted": fitted,
         "within10": within10,
-        "noise_refused": noise_refused,
+        "interval_refused": interval_refused,
         "aborted": aborted,
     }
     if biases:
@@ -242,8 +244,8 @@ def main() -> int:
     print("=" * 92)
     print("sysid-estimator frontier: gate-passing cells through the production fit")
     print(
-        f"ridge width = {sysid_module.SLAB_INTERCEPT_PRIOR_SD_KW}; noise gate = "
-        f"{sysid_module.MAX_FIT_RESIDUAL_SCATTER_C}"
+        f"ridge width = {sysid_module.SLAB_INTERCEPT_PRIOR_SD_KW}; interval bar = "
+        f"{sysid_module.UA_ADOPTION_HALFWIDTH_BAR}"
     )
     print("=" * 92)
     counts: dict[tuple[str, float], dict[str, float]] = {}
@@ -259,7 +261,7 @@ def main() -> int:
             )
             print(
                 f"{name:13s} sigma={sigma:.2f}  fitted {c['fitted']:>2d}/{NDRAW} "
-                f"within10 {c['within10']:>2d}  noise-refused {c['noise_refused']:>2d} "
+                f"within10 {c['within10']:>2d}  interval-refused {c['interval_refused']:>2d} "
                 f"aborted {c['aborted']:>2d}  {extra}"
             )
     print(
@@ -307,7 +309,7 @@ def main() -> int:
         c5 = counts[(name, 0.05)]
         print(f"RESULT fitted_{tag}_s001={c1['fitted']} count")
         print(f"RESULT within10_{tag}_s001={c1['within10']} count")
-        print(f"RESULT noise_refused_{tag}_s005={c5['noise_refused']} count")
+        print(f"RESULT interval_refused_{tag}_s005={c5['interval_refused']} count")
     print(f"RESULT shipped_presets_armed={armed} count")
     print(f"RESULT shipped_presets_gate_named={named} count")
     if unridged >= 0:
