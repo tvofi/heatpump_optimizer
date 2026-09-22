@@ -28,6 +28,7 @@ Three families of check:
 """
 from __future__ import annotations
 
+import ast
 import copy
 import inspect
 import itertools
@@ -38,6 +39,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 import time
 import tracemalloc
 from datetime import datetime, timedelta
@@ -816,7 +818,7 @@ class SolverWork:
     see work the iterate path never reports.
 
     Hooking private symbols is a coupling, so it is one that fails loudly:
-    the class body below resolves all three at import, so a rename stops
+    the class body below resolves all four at import, so a rename stops
     the whole file rather than leaving a counter that silently reports
     zero -- and the sweep additionally refuses a scenario whose count came
     back zero.
@@ -825,6 +827,7 @@ class SolverWork:
     _wrapped = optimizer_module._scoped_minimize
     _step_wrapped = ThermalModel.simulate_step
     _batch_wrapped = ThermalModel.simulate_trajectory_batch
+    _dhw_step_wrapped = ThermalModel.simulate_dhw_step
 
     def __init__(self) -> None:
         self.evaluations = 0
@@ -871,16 +874,158 @@ class SolverWork:
             outer.kernel_ms += (time.process_time() - _t0) * 1000.0
             return res
 
+        def counting_dhw_step(*args, **kwargs):
+            # One call is one DHW step: the tank kernel the space-step
+            # channel is blind to (round-6 D9-02). Same clock as the space
+            # kernel, so a dearer DHW kernel moves the cost channel too.
+            outer.simulate_steps += 1
+            _t0 = time.process_time()
+            res = SolverWork._dhw_step_wrapped(*args, **kwargs)
+            outer.kernel_ms += (time.process_time() - _t0) * 1000.0
+            return res
+
         optimizer_module._scoped_minimize = counting
         ThermalModel.simulate_step = counting_step
         ThermalModel.simulate_trajectory_batch = counting_batch
+        ThermalModel.simulate_dhw_step = counting_dhw_step
         return self
 
     def __exit__(self, *exc) -> bool:
         optimizer_module._scoped_minimize = SolverWork._wrapped
         ThermalModel.simulate_step = SolverWork._step_wrapped
         ThermalModel.simulate_trajectory_batch = SolverWork._batch_wrapped
+        ThermalModel.simulate_dhw_step = SolverWork._dhw_step_wrapped
         return False
+
+
+def _simulate_surface() -> tuple[set[str], dict[str, set[str]], set[str]]:
+    """ThermalModel's simulation surface and call graph, derived from source.
+
+    The surface is the set of ``ThermalModel`` methods that advance simulated
+    state, by name: ``simulate*``, ``_simulate_step_*`` and ``extend_*``. The
+    call graph records which surface member each member calls -- including a
+    call made through a method-local alias (``x = self.simulate_dhw_step``
+    then ``x(...)``), which is how ``extend_dhw_temps`` reaches the DHW
+    primitive. The leaves are the members with no outgoing edge: the
+    primitives that advance state directly rather than by calling another
+    simulate method.
+
+    Returns ``(surface, edges, leaves)``.
+    """
+    source = textwrap.dedent(inspect.getsource(ThermalModel))
+    tree = ast.parse(source)
+    cls = next(
+        node for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "ThermalModel"
+    )
+
+    def _is_simulate(name: str) -> bool:
+        return (
+            name.startswith("simulate")
+            or name.startswith("_simulate_step_")
+            or name.startswith("extend_")
+        )
+
+    surface = {
+        node.name
+        for node in cls.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and _is_simulate(node.name)
+    }
+    edges: dict[str, set[str]] = {name: set() for name in surface}
+    for node in cls.body:
+        if (
+            not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            or node.name not in surface
+        ):
+            continue
+        aliases: dict[str, str] = {}
+        for sub in ast.walk(node):
+            if (
+                isinstance(sub, ast.Assign)
+                and len(sub.targets) == 1
+                and isinstance(sub.targets[0], ast.Name)
+                and isinstance(sub.value, ast.Attribute)
+                and isinstance(sub.value.value, ast.Name)
+                and sub.value.value.id == "self"
+                and sub.value.attr in surface
+            ):
+                aliases[sub.targets[0].id] = sub.value.attr
+        for sub in ast.walk(node):
+            if not isinstance(sub, ast.Call):
+                continue
+            fn = sub.func
+            if (
+                isinstance(fn, ast.Attribute)
+                and isinstance(fn.value, ast.Name)
+                and fn.value.id == "self"
+                and fn.attr in surface
+            ):
+                edges[node.name].add(fn.attr)
+            elif isinstance(fn, ast.Name) and fn.id in aliases:
+                edges[node.name].add(aliases[fn.id])
+    leaves = {name for name in surface if not edges[name]}
+    return surface, edges, leaves
+
+
+def _metered_simulate_seams() -> set[str]:
+    """The simulate seams ``SolverWork`` hooks, derived from its class body.
+
+    A seam is metered iff it is a ``ThermalModel`` function bound as a
+    ``SolverWork`` class attribute -- the ``_*_wrapped`` set, read rather
+    than hand-listed, so a seam wrapped here but forgotten in the cut check
+    is exactly as visible as a seam the model gained but the meter did not.
+    """
+    metered: set[str] = set()
+    for value in vars(SolverWork).values():
+        if not callable(value):
+            continue
+        qualname = getattr(value, "__qualname__", "")
+        if qualname.startswith("ThermalModel."):
+            metered.add(qualname[len("ThermalModel."):])
+    return metered
+
+
+def metered_seam_cut(
+    metered: set[str] | None = None, extra_leaf: str | None = None
+) -> tuple[set[str], set[str], set[str]]:
+    """The cut every leaf of the simulation surface must survive, or fail.
+
+    A leaf -- a simulate method that calls no other simulate method -- is
+    covered iff it is itself metered, or every one of its callers is covered
+    (recursively). ``uncovered`` is the leaves no meter reaches; it is the
+    population the check refuses, by name.
+
+    ``metered`` and ``extra_leaf`` exist only for the self-check's
+    adversarial arms: dropping a metered seam must move something to
+    ``uncovered``, and an injected, un-metered leaf must be reported -- the
+    closure, not a hard-coded ``simulate_dhw_step`` assertion.
+
+    Returns ``(leaves, metered, uncovered)``.
+    """
+    surface, edges, leaves = _simulate_surface()
+    if metered is None:
+        metered = _metered_simulate_seams()
+    if extra_leaf is not None:
+        surface = set(surface) | {extra_leaf}
+        leaves = set(leaves) | {extra_leaf}
+        edges = dict(edges)
+        edges[extra_leaf] = set()
+    callers: dict[str, set[str]] = {name: set() for name in surface}
+    for caller, callees in edges.items():
+        for callee in callees:
+            callers[callee].add(caller)
+    covered = set(metered) & surface
+    changed = True
+    while changed:
+        changed = False
+        for name in surface:
+            if name in covered:
+                continue
+            if callers[name] and callers[name] <= covered:
+                covered.add(name)
+                changed = True
+    return leaves, set(metered), leaves - covered
 
 
 def build_case(
@@ -1713,8 +1858,11 @@ from heatpump_optimizer.thermal_model import ThermalModel
 # tree's own run, so the per-call-cost channel compares like with like.
 _STEP = ThermalModel.simulate_step
 _BATCH = ThermalModel.simulate_trajectory_batch
+_DHW_STEP = ThermalModel.simulate_dhw_step
 count = 0
+dhw_count = 0
 kernel_ms = 0.0
+dhw_kernel_ms = 0.0
 
 def counting_step(*args, **kwargs):
     global count, kernel_ms
@@ -1733,9 +1881,20 @@ def counting_batch(*args, **kwargs):
     kernel_ms += (time.process_time() - _t0) * 1000.0
     return res
 
+def counting_dhw_step(*args, **kwargs):
+    # One DHW step per call, the space-step channel's blind side (round-6
+    # D9-02); its own kernel seconds metered with the same clock.
+    global dhw_count, dhw_kernel_ms
+    dhw_count += 1
+    _t0 = time.process_time()
+    res = _DHW_STEP(*args, **kwargs)
+    dhw_kernel_ms += (time.process_time() - _t0) * 1000.0
+    return res
+
 def install():
     ThermalModel.simulate_step = counting_step
     ThermalModel.simulate_trajectory_batch = counting_batch
+    ThermalModel.simulate_dhw_step = counting_dhw_step
 
 # A tree whose SolverWork hooks the seams captures them into CLASS
 # ATTRIBUTES at import (_step_wrapped / _batch_wrapped) and rebinds the
@@ -1752,13 +1911,19 @@ if hasattr(stress.SolverWork, "_step_wrapped") and hasattr(
 ):
     stress.SolverWork._step_wrapped = counting_step
     stress.SolverWork._batch_wrapped = counting_batch
+if hasattr(stress.SolverWork, "_dhw_step_wrapped"):
+    stress.SolverWork._dhw_step_wrapped = counting_dhw_step
+
+_tree_meters_dhw = hasattr(stress.SolverWork, "_dhw_step_wrapped")
 
 rows = {}
 for combo in stress.sweep_combinations():
     combo = dict(combo)
     label = combo.pop("label")
     count = 0
+    dhw_count = 0
     kernel_ms = 0.0
+    dhw_kernel_ms = 0.0
     # Re-installed before every build: a tree that HAS its own simulate
     # channel restores these class attributes when it leaves its own hook
     # (SolverWork.__exit__), which would otherwise drop this wrapper after
@@ -1768,23 +1933,33 @@ for combo in stress.sweep_combinations():
     run = stress.build_case(**combo)
     sim = run.get("solver_simulate_steps")
     kms = run.get("solver_kernel_ms")
+    # The tree's own count when it has the channel -- the same
+    # convention the sweep judges -- and this driver's count when the
+    # tree predates it. A channel that reports zero is kept as zero so
+    # that a broken one fails the baseline check loudly instead of
+    # being papered over by the fallback. A tree whose own channel
+    # predates the DHW metering (round-6 D9-02) reports space-only, so
+    # the DHW steps and seconds this driver metered are added back --
+    # both halves of the comparison must carry the same, complete
+    # convention.
+    tree_sim = int(sim) if isinstance(sim, int) else int(count)
+    tree_kms = (
+        float(kms)
+        if isinstance(kms, (int, float)) and not isinstance(kms, bool)
+        else kernel_ms
+    )
+    if not _tree_meters_dhw:
+        tree_sim += dhw_count
+        tree_kms += dhw_kernel_ms
     rows[label] = {
         "evals": int(run["solver_evals"]),
-        # The tree's own count when it has the channel -- the same
-        # convention the sweep judges -- and this driver's count when the
-        # tree predates it. A channel that reports zero is kept as zero so
-        # that a broken one fails the baseline check loudly instead of
-        # being papered over by the fallback.
-        "simulate": int(sim) if isinstance(sim, int) else int(count),
+        "simulate": tree_sim,
         "objective": float(run["result"].objective_value),
         # The kernel's own CPU seconds, same convention: the tree's own
         # meter when it has the channel, this driver's when it predates
-        # it (round-5 D9-07).
-        "kernel_ms": (
-            float(kms)
-            if isinstance(kms, (int, float)) and not isinstance(kms, bool)
-            else round(kernel_ms, 3)
-        ),
+        # it (round-5 D9-07), plus the DHW kernel when the tree's own
+        # channel does not meter it.
+        "kernel_ms": round(tree_kms, 3),
     }
 with open(out_path, "w") as fh:
     json.dump(rows, fh, indent=1, sort_keys=True)
@@ -2756,10 +2931,49 @@ if __name__ == "__main__":
                 ("_wrapped", optimizer_module._scoped_minimize),
                 ("_step_wrapped", ThermalModel.simulate_step),
                 ("_batch_wrapped", ThermalModel.simulate_trajectory_batch),
+                ("_dhw_step_wrapped", ThermalModel.simulate_dhw_step),
             )
         ),
         "SolverWork left a seam it hooks replaced (getattr default None: a "
         "tree without the simulate seams fails by name here, #1229)",
+    )
+    # The seam-coverage cut (round-6 D9-02 / #1411): the simulate-work
+    # meter's hooked set must be a derived cut of ThermalModel's simulation
+    # call graph -- every leaf primitive metered, or reached only through
+    # metered callers. Both halves are derived, not carried: the surface
+    # from the model's own source, the metered set from SolverWork's class
+    # body. A seam the model gains without a meter here fails by name, and
+    # a seam re-wired to bypass a meter fails the same way -- the blindness
+    # #1411 closes.
+    _cut_leaves, _cut_metered, _cut_uncovered = metered_seam_cut()
+    R.check(
+        "the simulation surface is non-empty -- the source scan found the "
+        "model's state-advancing methods to cut over",
+        bool(_cut_leaves),
+        "the source scan found no simulate entry points on ThermalModel; "
+        "a rename that erases the surface must fail, not pass on nothing",
+    )
+    R.check(
+        "every call-graph leaf of the simulation surface is metered, or "
+        "reached only through metered seams (round-6 D9-02)",
+        not _cut_uncovered,
+        "unmetered leaf seams: " + ", ".join(sorted(_cut_uncovered))
+        + " (metered: " + ", ".join(sorted(_cut_metered)) + ")",
+    )
+    R.check(
+        "...and dropping a metered seam from the hook set moves its leaves "
+        "to uncovered (green is not unconditional)",
+        bool(metered_seam_cut(metered=_cut_metered - {"simulate_step"})[2]),
+        "dropping simulate_step from the metered set left every leaf "
+        "covered -- the cut would pass on an emptied hook",
+    )
+    R.check(
+        "...and a leaf primitive added to the model is reported even with "
+        "the DHW seam metered (it is a closure, not one seam)",
+        "simulate_future_primitive"
+        in metered_seam_cut(extra_leaf="simulate_future_primitive")[2],
+        "an injected simulate_future_primitive leaf was not reported "
+        "uncovered",
     )
     # ...and the loop closes on REAL solves, through the same function the
     # sweep calls: the plain run is the baseline, the doubled run is the
