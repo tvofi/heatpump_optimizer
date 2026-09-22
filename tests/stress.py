@@ -1591,11 +1591,55 @@ def traced_fail_threshold(recorded_traced: float) -> float:
     return recorded_traced * MEMORY_BUDGET_FACTOR
 
 
+def attributable_reads_the_tree(
+    rss_attrib: float, rss_peak: float, recorded_rss_peak: float
+) -> bool:
+    """Is an attributable-RSS reading about the scenario, or about the floor?
+
+    The attributable is a difference of two SEPARATELY launched probe
+    watermarks (`max(0.0, rss_peak - baseline_rss)`, see the memory
+    pass), so it is floor-relative in a way the record is not, and a
+    reading at that floor is the RSS arm's blindness rather than a
+    cheaper tree:
+
+      * exactly at it. A scenario probe whose ru_maxrss high-water mark
+        lands at or below the empty probe's reads 0.00 MiB, and
+        `_memory_baseline_main` already records that the RSS arm "says
+        nothing about that scenario below the import peak".
+      * and one tick above it, which is the same blindness and not a
+        second thing. The watermark is rounded to 0.1 MiB, so a probe
+        that clears the empty base by ONE tick reads a positive
+        attributable no zero-guard can refuse. Measured on `fast (3.14)`
+        run 35664329700, job 106546561583 (2026-09-21): the empty probe
+        read 95.2 MiB and all six probed scenarios read 95.2-95.7 MiB,
+        an attributable of 0.0-0.5 MiB against records of 9.4-16.7 MiB
+        -- every scenario's whole recorded footprint below that
+        platform's import floor. The traced arm refutes a cheaper tree
+        independently in the same run (3.5 MiB against 3.4-3.5
+        recorded, unchanged), so what that difference measures is the
+        floor.
+
+    What makes a reading the scenario's own is the watermark it was
+    taken from. One empty-probe baseline is subtracted from every probe
+    of a run, so a fall in the difference is a fall in the watermark;
+    conversely a watermark that did not fall below its record says the
+    attributable did not fall either, and whatever moved was the
+    platform's own resident. The memory pass counts those readings as
+    declinations rather than as judged, and prints how many.
+
+    A tree that genuinely got cheaper lowers both, which is why this is
+    a precondition rather than a floor.
+    """
+    return rss_attrib > 0.0 and rss_peak < recorded_rss_peak
+
+
 def memory_stale_axes(
     rss_attrib: float,
     traced_peak: float,
     recorded_attrib: float,
     recorded_traced: float,
+    rss_peak: float,
+    recorded_rss_peak: float,
 ):
     """Yield (axis, observed, recorded) per memory field left stale-high.
 
@@ -1610,21 +1654,20 @@ def memory_stale_axes(
     arms can drive it on synthetic probe recordings without launching
     the pass's subprocess probes.
 
-    The attributable RSS is NOT judged at the instrument's floor. It is
-    a difference between two SEPARATELY launched probe subprocesses
-    (`max(0.0, rss_peak - baseline_rss)`, see the memory pass), so its
-    floor is reachable by noise: a scenario probe whose ru_maxrss
-    high-water mark lands at or below the empty probe's reads exactly
-    0.00 MiB, and `_memory_baseline_main` already records that the RSS
-    arm "says nothing about that scenario below the import peak". A
-    0.00 MiB reading is that blindness, not a >3.5x cheaper tree, and
-    judging it would red every recorded value (round-1's review measured
-    it at all six CI probes and one local probe). The stale rule
-    therefore declines where its own input is the clamp; a tree that
-    genuinely got cheaper reads a small POSITIVE attributable and still
-    fires (the selftest's other end).
+    The attributable-RSS arm is judged only where its reading measures
+    the scenario (`attributable_reads_the_tree`, given the probe's
+    watermark and its record beside the difference): a reading that is
+    the platform's import floor -- 0.00 MiB, or the 0.1-MiB tick above
+    it that no zero-guard can refuse -- is not a cheaper tree. The
+    traced arm takes no such witness, because it needs none: it is the
+    statistic that travels (a ~1 % clean spread, and 3.5 / 1.8
+    identical on the CI runner and in the record), which is why
+    `rss_attrib_fail_threshold`'s docstring calls it the precise
+    detector for Python-side growth.
     """
-    if rss_attrib > 0.0 and stale_cheap_verdict(rss_attrib, recorded_attrib):
+    if attributable_reads_the_tree(
+        rss_attrib, rss_peak, recorded_rss_peak
+    ) and stale_cheap_verdict(rss_attrib, recorded_attrib):
         yield "attributable RSS", rss_attrib, recorded_attrib
     if stale_cheap_verdict(traced_peak, recorded_traced):
         yield "traced peak", traced_peak, recorded_traced
@@ -2558,6 +2601,8 @@ if __name__ == "__main__":
                 100.0 / (SCENARIO_STALE_FACTOR + 0.5),
                 100.0,
                 100.0,
+                100.0 / (SCENARIO_STALE_FACTOR + 0.5),
+                100.0,
             )
         ]
         == ["attributable RSS", "traced peak"],
@@ -2573,6 +2618,8 @@ if __name__ == "__main__":
                 100.0 / (SCENARIO_STALE_FACTOR - 0.5),
                 100.0,
                 100.0,
+                100.0 / (SCENARIO_STALE_FACTOR - 0.5),
+                100.0,
             )
         ),
         f"{SCENARIO_STALE_FACTOR - 0.5:.1f}x cheaper failed the memory "
@@ -2585,21 +2632,56 @@ if __name__ == "__main__":
     # blindness below the import peak, not a 3.5x cheaper tree. Judging
     # that floor against a positive record red-zones every recorded value
     # (measured at all six CI probes and one local probe), so the stale
-    # rule declines where its input is the clamp. Paired with the first
-    # arm above, which still fires on a small POSITIVE attributable.
+    # rule declines where its input is the clamp. The watermark here IS
+    # below its record, so the clamp alone is what declines it.
     R.check(
         "...and an attributable RSS at the instrument's floor reads "
         "nothing: a probe clamped to 0.00 MiB against the empty probe is "
         "the RSS arm's blindness, not a >3.5x cheaper tree, so it fires "
         "nothing against a positive record (round-5 D9-08)",
-        not list(memory_stale_axes(0.0, 100.0, 100.0, 100.0)),
+        not list(memory_stale_axes(0.0, 100.0, 100.0, 100.0, 40.0, 100.0)),
         "a 0.00 MiB attributable reading fired the memory stale rule "
         "against a positive record -- the false red this arm pins",
+    )
+    # ...and its second end, the one round-1's guard missed: a reading one
+    # tick clear of the empty probe is the SAME blindness, because the
+    # watermark is rounded to 0.1 MiB and no zero-guard can refuse a
+    # positive tick. These are `fast (3.14)` run 35664329700's own numbers
+    # for winter/pv+cycle -- attributable 0.50 MiB against a 12.90 MiB
+    # record, on a probe whose watermark (95.7) did NOT fall below its own
+    # record (82.3), while the traced axis read 3.5 against 3.5 recorded
+    # (the independent refutation of "cheaper tree" in the same run). The
+    # arm below it is the same attributable with the watermark fallen,
+    # which still fires: both ends of the reading's range.
+    R.check(
+        "...and a tick above that floor is the same blindness, not a "
+        "third thing: the CI reading of 0.50 MiB against a 12.90 MiB "
+        "record is the platform's import floor, because the probe did not "
+        "fall below its own record's 82.3 MiB (round-5 D9-08, round-1 "
+        "follow-up)",
+        not list(memory_stale_axes(0.5, 3.5, 12.9, 3.5, 95.7, 82.3)),
+        "a 0.50 MiB attributable reading fired the memory stale rule "
+        "while the same run's watermark sat 13.4 MiB above its record -- "
+        "the false red this arm pins",
+    )
+    R.check(
+        "...and the same attributable with a fallen watermark DOES fire, "
+        "which is what keeps this a check: a scenario whose own RSS fell "
+        "lowers the probe watermark with it",
+        [
+            axis
+            for axis, _observed, _recorded in memory_stale_axes(
+                3.5, 3.5, 12.9, 12.0, 79.0, 82.3
+            )
+        ]
+        == ["attributable RSS"],
+        "a 3.7x cheaper attributable with a 3.3 MiB lower watermark did "
+        "not fire the attributable stale arm",
     )
     R.check(
         "...and a regression back to a stale record passes the over side, "
         "which is why the stale rule has to fire while the tree is cheap",
-        not list(memory_stale_axes(100.0, 100.0, 100.0, 100.0))
+        not list(memory_stale_axes(100.0, 100.0, 100.0, 100.0, 50.0, 100.0))
         and 100.0 <= rss_attrib_fail_threshold(100.0 * SCENARIO_STALE_FACTOR)
         and 100.0 <= traced_fail_threshold(100.0 * SCENARIO_STALE_FACTOR),
         "a probe back at a record that is stale-high was caught by the "
@@ -3411,6 +3493,12 @@ if __name__ == "__main__":
     mem_over: list[str] = []
     mem_stale: list[str] = []
     mem_unrecorded: list[str] = []
+    # Readings the attributable stale arm declines because the difference
+    # is the platform's import floor rather than the scenario
+    # (attributable_reads_the_tree). Named, not merely dropped: a platform
+    # whose floor sits above a record makes that arm say nothing, and the
+    # pass prints the count instead of counting those probes as judged.
+    mem_floor_declined: list[str] = []
     probe_env = _memory_probe_env()
 
     # The empty probe, launched FIRST and in the SAME run as the probes it
@@ -3482,9 +3570,18 @@ if __name__ == "__main__":
             # CPU ratio channel has carried since D9-03: a table left
             # stale-high by a memory improvement would pass a regression
             # back to the old peak at 1.0x under the over-thresholds
-            # above, so the cheap observation itself has to fail here.
+            # above, so the cheap observation itself has to fail here. An
+            # attributable reading that is the platform's import floor is
+            # declined rather than judged, and named for the pass to count.
+            if not attributable_reads_the_tree(rss_attrib, rss_peak, recorded_rss):
+                mem_floor_declined.append(label)
             for axis, observed, recorded in memory_stale_axes(
-                rss_attrib, traced_peak, recorded_attrib, recorded_traced
+                rss_attrib,
+                traced_peak,
+                recorded_attrib,
+                recorded_traced,
+                rss_peak,
+                recorded_rss,
             ):
                 mem_stale.append(
                     f"{label} {axis} {observed:.2f} MiB vs recorded "
@@ -3528,6 +3625,19 @@ if __name__ == "__main__":
             f"{_mem_recorded} recorded memory budgets; the unprobed ones "
             f"are compared only at recording time"
         )
+        if mem_floor_declined:
+            # Said rather than implied, like the coverage line above: on a
+            # platform whose import floor sits at or above a scenario's
+            # record the attributable is unreadable, and this says which
+            # probes the stale arm declined instead of leaving them to
+            # read as judged-and-fine.
+            print(
+                f"  attributable RSS: {len(mem_floor_declined)} of "
+                f"{len(mem_labels)} probe(s) read at this platform's import "
+                f"floor, so the stale arm says nothing about them (probe "
+                f"watermark not below the record): "
+                + "; ".join(mem_floor_declined)
+            )
         # The pass is only worth its CPU if it probes the scenarios that
         # actually allocate. It used to probe six samples of one middling
         # profile and miss both extremes, so this states the requirement
