@@ -25,6 +25,69 @@
 # next branch restates its own footprint, claims included.
 #
 
+# R6-D4-01 (#1388) and R6 (#1416), one claim list because both changes move the
+# same rendered tree.
+#
+# #1388 (R6-D4-01): the headline score pill is a control (role="button",
+# tabindex="0", a click handler that opens the score breakdown) but never
+# joined the coarse-pointer target floor -- 25 px at 375x812 and 39 px at the
+# two wider viewports, under the 44 px floor every other control shares.
+# `.hl-stat.hl-score` joins the `htmlTargetFloor` selector list, so the ONE
+# <style> block the card injects into its shadow root gains one selector and
+# its comment. card_drift captures the whole shadow root, so every state that
+# renders the stylesheet moves -- 39 of the 40. Each of those diffs is
+# STYLESHEET TEXT ONLY: no markup element, attribute or text node outside the
+# style block is added, removed or reordered.
+#
+# #1416: the DHW window day selector offered only daily/weekdays/weekend. It
+# now offers Monday..Sunday by day token ("Mo".."Su"). This moves only the two
+# states that render the what-if window editor, whatif_edited and
+# whatif_weekly, whose diff additionally carries the seven new <option> rows;
+# nothing outside the day selector moves in either.
+#
+# editor_schema, the 40th state, renders the config editor's schema and no
+# card stylesheet, so it does not move and is not claimed.
+#
+no_plan # R6-D4-01 (#1388): .hl-stat.hl-score joins the coarse-pointer floor (stylesheet text only)
+no_plan_expanded # R6-D4-01 (#1388): stylesheet text only
+plan_inline # R6-D4-01 (#1388): stylesheet text only
+plan_inline_sv # R6-D4-01 (#1388): stylesheet text only
+plan_short_window # R6-D4-01 (#1388): stylesheet text only
+custom_title_currency # R6-D4-01 (#1388): stylesheet text only
+hidden_series # R6-D4-01 (#1388): stylesheet text only
+score_open # R6-D4-01 (#1388): stylesheet text only
+expanded_plan # R6-D4-01 (#1388): stylesheet text only
+what_if_off # R6-D4-01 (#1388): stylesheet text only
+expanded_zoomed # R6-D4-01 (#1388): stylesheet text only
+draft_dirty_menu_open # R6-D4-01 (#1388): stylesheet text only
+draft_mid_drag # R6-D4-01 (#1388): stylesheet text only
+whatif_edited # R6-D4-01 (#1388) floor + R6 (#1416) the day selector gains Monday..Sunday
+whatif_weekly # R6-D4-01 (#1388) floor + R6 (#1416) the day selector gains Monday..Sunday
+override_active # R6-D4-01 (#1388): stylesheet text only
+shared_steps # R6-D4-01 (#1388): stylesheet text only
+shared_steps_hover # R6-D4-01 (#1388): stylesheet text only
+tooltip_hover # R6-D4-01 (#1388): stylesheet text only
+coarse_pointer # R6-D4-01 (#1388): stylesheet text only
+reduced_motion # R6-D4-01 (#1388): stylesheet text only
+setup_single_buffer # R6-D4-01 (#1388): stylesheet text only
+setup_two_tank # R6-D4-01 (#1388): stylesheet text only
+setup_coil # R6-D4-01 (#1388): stylesheet text only
+advisor_page # R6-D4-01 (#1388): stylesheet text only
+layout_editing_dragged # R6-D4-01 (#1388): stylesheet text only
+layout_editing_tidy # R6-D4-01 (#1388): stylesheet text only
+picker_open_filtered # R6-D4-01 (#1388): stylesheet text only
+wood_alert # R6-D4-01 (#1388): stylesheet text only
+wood_lane # R6-D4-01 (#1388): stylesheet text only
+wood_whatif # R6-D4-01 (#1388): stylesheet text only
+away_toggle # R6-D4-01 (#1388): stylesheet text only
+away_return # R6-D4-01 (#1388): stylesheet text only
+away_status # R6-D4-01 (#1388): stylesheet text only
+history_panned # R6-D4-01 (#1388): stylesheet text only
+history_deep_panned # R6-D4-01 (#1388): stylesheet text only
+history_no_power # R6-D4-01 (#1388): stylesheet text only
+history_unavailable # R6-D4-01 (#1388): stylesheet text only
+history_pending # R6-D4-01 (#1388): stylesheet text only
+
 # #1333 and #1334 (round-5 audit, D8-01 and D8-02): the plan family's ids
 # and names are carried into one block, so the card's own addressing of its
 # headline sensors is restated to match. This branch restates the list.

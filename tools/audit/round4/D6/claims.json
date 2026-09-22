@@ -965,9 +965,9 @@
  {
   "id": "C108",
   "source": "README.md + docs/*.md",
-  "claim": "every relative link resolves (88 links)",
+  "claim": "every relative link resolves (89 links)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "88 links, broken=[], of which removed-by-the-export=[]",
+  "result": "89 links, broken=[], of which removed-by-the-export=[]",
   "verdict": "true",
   "truth": ""
  },

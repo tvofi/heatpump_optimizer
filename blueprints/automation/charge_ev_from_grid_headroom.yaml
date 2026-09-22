@@ -17,7 +17,7 @@ blueprint:
         The optimizer's Cost Power Headroom sensor, in kW. The entity
         prefix follows the name you gave the entry; the default assumes
         "Heat Pump Optimizer".
-      default: sensor.heat_pump_optimizer_power_headroom
+      default: sensor.heat_pump_optimizer_cost_power_headroom
       selector:
         entity:
           domain: sensor

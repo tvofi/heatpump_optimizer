@@ -479,6 +479,23 @@ def _lbfgsb_restart(
     return best
 
 
+def _gil_yield() -> None:
+    """Release the GIL for one scheduler tick, from INSIDE a solve.
+
+    A single L-BFGS-B run is tens of milliseconds of contiguous Python (each
+    objective evaluation simulates the horizon, each batched gradient runs one
+    vectorized batch), so it holds the GIL even on an executor thread and
+    starves a co-located event loop. The between-run ``sleep``s cannot bound
+    that hold: they sit *between* runs, and the gap is set by the longest
+    run, not by what happens between runs (round 6 D9-01). A zero-length
+    sleep drops and re-acquires the GIL with no measurable delay, which is
+    exactly the yield a loop's 1 ms heartbeat needs, and it changes no
+    number. Inert on the shipped path, where the solve runs in a separate
+    interpreter, but that path does not need the yield.
+    """
+    _time_mod.sleep(0)
+
+
 def _multi_start_minimize(
     objective: Callable[..., float],
     candidates: list[np.ndarray],
@@ -514,6 +531,7 @@ def _multi_start_minimize(
 
     def memoized(x: np.ndarray, *a: Any) -> float:
         nonlocal _memo_key, _memo_val
+        _gil_yield()
         key = np.asarray(x, dtype=float).tobytes()
         if key != _memo_key:
             _memo_key = key
