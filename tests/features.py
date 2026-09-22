@@ -34968,6 +34968,145 @@ R.check(
 )
 
 
+# -- R6 D7-03 #1396/#1397: the two-state fit survives a drifting sensor ----
+# The audit measured the fit raising OverflowError at 0.05 degC/h of sensor
+# drift, and HANGING at 0.03/0.04 (a finite ~2.5e19 kW/K candidate UA driving
+# ~2.6e17 substeps, no log line). Both unwind through _finish into
+# _async_update_data and fail the whole update cycle. The fix projects the
+# solver's log parameters into a loose band (SLAB_LOG_*_LO/HI), reads a
+# non-finite rollout as a huge finite residual, and wraps _finish so a fit
+# that still raises fails the sysid step alone. This drives the heavy_old
+# plant -- the one shipped preset whose comfort bound lets the drift reach the
+# fit -- with a sensor ramp and asserts no raise, no hang, and a bounded
+# candidate UA. Zero drift is the null control: the healthy fit still adopts.
+R.section("sysid two-state fit survives a drifting room sensor (R6 D7-03)")
+
+import signal as _r6_signal  # noqa: E402
+
+
+class _R6Alarm(Exception):
+    pass
+
+
+def _r6_drift_drive(drift_c_per_h, seconds=30):
+    """One production experiment on heavy_old with a linear sensor drift.
+
+    Mirrors the round-6 D7 harness (PlantRig): the room SENSOR ramps at
+    drift_c_per_h while the house itself does not. Returns
+    ``(raised, hung, max_ua_seen, result)``. The run is deterministic (no
+    sensor noise), so one experiment per drift is the whole grid.
+    """
+    params = _p942("heavy_old")
+    model = ThermalModel(params)
+    ua_true = float(params.heat_loss_coefficient * params.house_heat_loss_scale)
+    gains = float(params.internal_gains)
+    sid = SystemIdentification(
+        _SysIdModule.SysIdConfig(enabled=True, min_days_between_runs=0.0)
+    )
+    assert sid.arm(_RIDGE_NOW, plant=params)
+    outdoor = 2.0
+    ks = max(float(params.slab_heat_transfer), 1e-9)
+    q_hold = max(ua_true * (20.0 - outdoor) - gains, 0.0)
+    cop = max(model.compute_cop(outdoor), 0.1)
+    state = ThermalState(
+        room_temperature=20.0,
+        slab_temperature=20.0 + q_hold / ks,
+        outdoor_temperature=outdoor,
+    )
+    prices = np.full(48, 0.40)
+    prices[0] = 0.01
+    when = _RIDGE_NOW
+    hours = 0.0
+    dt_h = 0.25
+    max_ua = {"v": 0.0}
+    orig_sim = _SysIdModule._simulate_slab_path
+
+    def watched(ua, room_cap, gains_kw, *rest, **kw):
+        if np.isfinite(ua) and ua > max_ua["v"]:
+            max_ua["v"] = float(ua)
+        return orig_sim(ua, room_cap, gains_kw, *rest, **kw)
+
+    _SysIdModule._simulate_slab_path = watched
+    raised = False
+    hung = False
+
+    def on_alarm(signum, frame):
+        raise _R6Alarm()
+
+    old = _r6_signal.signal(_r6_signal.SIGALRM, on_alarm)
+    _r6_signal.alarm(int(seconds))
+    try:
+        for _ in range(96):
+            reading = state.room_temperature + drift_c_per_h * hours
+            override = sid.step(
+                now=when,
+                room_temp=reading,
+                outdoor_temp=outdoor,
+                price=0.40,
+                price_horizon=prices,
+                learner_samples=0,
+                max_power_kw=float(params.max_electrical_power),
+                cop=cop,
+                plan_power_kw=(
+                    0.0 if sid.phase in ("step", "relax") else q_hold / cop
+                ),
+                house_ua=ua_true,
+                house_capacity=float(params.room_thermal_mass),
+                house_gains=gains,
+                house_slab_mass=float(params.slab_thermal_mass),
+                house_slab_transfer=float(params.slab_heat_transfer),
+            )
+            if sid.phase in ("done", "aborted", "idle"):
+                break
+            power = q_hold / cop if override is None else max(float(override), 0.0)
+            state = model.simulate_step(
+                state,
+                electrical_power=power,
+                outdoor_temp=outdoor,
+                dt_hours=dt_h,
+            )
+            hours += dt_h
+            when += timedelta(minutes=15)
+    except _R6Alarm:
+        hung = True
+    except Exception:  # noqa: BLE001 - the measurement is whether it raised
+        raised = True
+    finally:
+        _r6_signal.alarm(0)
+        _r6_signal.signal(_r6_signal.SIGALRM, old)
+        _SysIdModule._simulate_slab_path = orig_sim
+    return raised, hung, max_ua["v"], sid.result
+
+
+_r6_raise5, _r6_hang5, _r6_ua5, _r6_res5 = _r6_drift_drive(0.05)
+_r6_raise3, _r6_hang3, _r6_ua3, _r6_res3 = _r6_drift_drive(0.03)
+R.check(
+    "a 0.05 degC/h drifting sensor does not raise out of the two-state fit",
+    not _r6_raise5,
+    f"raised={_r6_raise5} reason={_r6_res5.reason!r}",
+)
+R.check(
+    "a 0.03 degC/h drifting sensor does not hang the two-state fit",
+    not _r6_hang3 and not _r6_raise3,
+    f"raised={_r6_raise3} hung={_r6_hang3} reason={_r6_res3.reason!r}",
+)
+R.check(
+    "the drift never pushes a candidate UA past the loose band (substeps stay "
+    "bounded, no divergence)",
+    np.isfinite(_r6_ua5) and np.isfinite(_r6_ua3)
+    and _r6_ua5 < 1e3 and _r6_ua3 < 1e3,
+    f"max UA attempted at 0.05={_r6_ua5:.3g}, at 0.03={_r6_ua3:.3g}",
+)
+_r6_null_raise, _r6_null_hang, _r6_null_ua, _r6_null_res = _r6_drift_drive(0.0)
+R.check(
+    "null control: a zero-drift heavy_old experiment still completes and "
+    "adopts (the fix does not shut the healthy fit)",
+    not _r6_null_raise and not _r6_null_hang and _r6_null_res.completed,
+    f"raised={_r6_null_raise} hung={_r6_null_hang} "
+    f"reason={_r6_null_res.reason!r}",
+)
+
+
 # -- #1308 (D2-03) / #1330 (D7-02): the ADOPTION side of the sysid seam ----
 # Both findings sit downstream of the #1329 arm gate: the two-state fit now
 # RUNS where the gate passed, so what they measure is the surface that
