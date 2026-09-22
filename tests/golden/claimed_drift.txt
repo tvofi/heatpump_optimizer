@@ -581,19 +581,4 @@
 # deferred_energy_cost 13.073536 -> 15.494942, with displace_schedule,
 # heat_pump_on_schedule and lower_setpoints re-shaped to match. No solver,
 # card or config fixture moves.
-# R5-D2-03 (#1308) + the cadence-gap fallback (#1330), fix branch
-# fix/r5-sysid-adoption: this branch claims NOTHING, and drops the
-# valve_storage_small_tank line it inherited (the guard requires this branch
-# to write its own list, and it moves no fixture). It changes sysid.py's
-# `identify` confidence and `identify_slab`'s cadence-gap branch, and
-# tests/features.py. No fixture runs an experiment: `arm` gates on outdoor
-# temperature, night hours and a cheap price, and every capture records
-# `system_identification.result` in its idle, not-completed state, so
-# neither the confidence nor the fallback's route is reachable from any
-# recorded scenario. No solver input, output or intermediate changes and no
-# coordinator surface moves -- the published idle SysIdResult is unchanged.
-# Measured, not assumed: GOLDEN_MODE=drift `tests/env_drift.py --all`
-# against origin/main 129f96b3 reports NO UNCLAIMED DRIFT and NO STALE
-# FIXTURE over 56 scenarios, with the inherited claim (deleted here) as
-# this file's only complaint before that deletion.
-
+valve_storage_small_tank # R5-D2-02 (#1307): valved 35 L buffer substep fix
