@@ -4736,6 +4736,53 @@ below = battery_view.StorageComponent(
 )
 R.check("a store below its floor never reports negative energy", below.stored_kwh == 0.0)
 
+# D12-01 (#1404): the buffer/DHW guards keyed on `state.<field> is not None`
+# over floats that never become None, so a 35 L buffer the plant's own
+# `describe_setup()` reports as `is_store: false` was still published as a
+# storage component. The real signal is `buffer_is_store` (valve + volume) and
+# `dhw_enabled`, not the never-None temperature.
+_plain_p = ThermalParameters()
+_plain_s = ThermalState(
+    room_temperature=21.0, slab_temperature=23.0, outdoor_temperature=0.0,
+)
+_plain_v = battery_view.build(
+    _plain_p, _plain_s, comfort_min=19.0, comfort_max=23.0,
+    dhw_min=45.0, dhw_max=65.0, cop=3.2,
+)
+_plain_names = {c.name for c in _plain_v.components}
+R.check(
+    "a 35 L buffer without a valve is not published as a store",
+    "buffer_tank" not in _plain_names,
+    "buffer_is_store is False but the component was still listed",
+)
+R.check(
+    "a disabled DHW tank is not published",
+    "dhw_tank" not in _plain_names,
+    "dhw_enabled is False",
+)
+
+# Null controls: the fix drops only what is not a store, not every tank.
+_store_p = ThermalParameters(buffer_tank_volume=750.0, mixing_valve_mode="manual")
+_store_v = battery_view.build(
+    _store_p, _plain_s, comfort_min=19.0, comfort_max=23.0,
+    dhw_min=45.0, dhw_max=65.0, cop=3.2,
+)
+R.check(
+    "a store-sized throttled buffer IS published",
+    any(c.name == "buffer_tank" for c in _store_v.components),
+    "buffer_is_store is True",
+)
+_dhw_p = ThermalParameters(dhw_enabled=True)
+_dhw_v = battery_view.build(
+    _dhw_p, _plain_s, comfort_min=19.0, comfort_max=23.0,
+    dhw_min=45.0, dhw_max=65.0, cop=3.2,
+)
+R.check(
+    "an enabled DHW tank IS published",
+    any(c.name == "dhw_tank" for c in _dhw_v.components),
+    "dhw_enabled is True",
+)
+
 
 
 # ===========================================================================

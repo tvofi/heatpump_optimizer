@@ -618,3 +618,19 @@
 # Measured, not assumed: at this head,
 # `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 9ca86655` prints
 # `NO UNCLAIMED DRIFT: 56` and `NO STALE FIXTURE: 56`, exit 0.
+#
+# R6-D12-01 (#1404), fix branch fix/r6-d12-01-battery-is-store-guard: this
+# diff claims the five coordinator captures and NOTHING ELSE. The direction is
+# DROP-ONE-COMPONENT. battery.build() now gates the buffer tank on the config
+# signal `buffer_is_store` (a throttling valve AND >= 100 L) instead of the
+# never-None `state.buffer_tank_temperature`, so a 35 L tank with no valve
+# leaves the view. Each capture's data.battery.components and
+# modelled_components lose exactly one entry (buffer_tank), and the derived
+# discharge_rate_kw, hours_of_autonomy and round_trip_efficiency_6h move with
+# the dropped standing loss. No plan, schedule or solver fixture moves: the
+# view is report-only and the optimizer never reads it.
+coord_all_features # R6-D12-01 (#1404): the non-store 35 L buffer leaves the battery view
+coord_dhw # R6-D12-01 (#1404): the non-store 35 L buffer leaves the battery view
+coord_grid_fee # R6-D12-01 (#1404): the non-store 35 L buffer leaves the battery view
+coord_minimal # R6-D12-01 (#1404): the non-store 35 L buffer leaves the battery view
+coord_two_zone # R6-D12-01 (#1404): the non-store 35 L buffer leaves the battery view
