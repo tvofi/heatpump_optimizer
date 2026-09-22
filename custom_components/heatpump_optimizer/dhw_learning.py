@@ -25,7 +25,7 @@ from typing import Any
 import numpy as np
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.storage import Store
+from .store import QuarantiningStore
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -100,7 +100,7 @@ class DhwProfileLearner:
         self.cooling_rate: float = float(params.dhw_cooling_rate)
         self.cooling_samples: int = 0
         self.heating_since_sample: bool = False
-        self.profile_store: Store[dict[str, Any]] = Store(
+        self.profile_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             DHW_PROFILE_STORE_VERSION,
             f"{DOMAIN}_{entry_id}_dhw_profile",
@@ -119,7 +119,7 @@ class DhwProfileLearner:
         self.daytype_last_day: list[str] = ["", ""]
         # #32/#20: per-window draw-occurrence statistics, own store.
         self.draw_stats = DrawStats()
-        self.draws_store: Store[dict[str, Any]] = Store(
+        self.draws_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             DHW_PROFILE_STORE_VERSION,
             f"{DOMAIN}_{entry_id}_dhw_draws",

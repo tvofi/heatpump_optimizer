@@ -20,7 +20,7 @@ from typing import Any, Callable
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
-from homeassistant.helpers.storage import Store
+from .store import QuarantiningStore
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -77,7 +77,7 @@ class LegionellaGuard:
         #: The (owned switches, latch) pair as last written to the store.
         self._switch_saved: tuple[tuple[str, ...], bool] = ((), False)
         self.last_cycle: datetime | None = None
-        self.store: Store[dict[str, Any]] = Store(
+        self.store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             DHW_PROFILE_STORE_VERSION,
             f"{DOMAIN}_{entry_id}_dhw_legionella",

@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from typing import Any, Protocol
 from weakref import WeakKeyDictionary
 
-from homeassistant.helpers.storage import Store
+from .store import QuarantiningStore
 from homeassistant.util import dt as dt_util
 
 from . import away as away_mode
@@ -140,8 +140,8 @@ def apply(coord: _BoostCoord) -> None:
     )
 
 
-def _store(coord: _BoostCoord) -> Store[dict[str, Any]]:
-    return Store(
+def _store(coord: _BoostCoord) -> QuarantiningStore[dict[str, Any]]:
+    return QuarantiningStore(
         coord.hass,
         BOOST_STORE_VERSION,
         f"{DOMAIN}_{coord.entry.entry_id}_boost",
