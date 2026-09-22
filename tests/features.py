@@ -28491,10 +28491,11 @@ R.check(
 
 # ---- #1395 ---------------------------------------------------------------
 # The dead-METHOD census's boundary, pinned where its false positives came
-# from. A first cut walked every class-body function and read 161 never-
-# referenced names; on the shipped tree every one was a Home Assistant hook the
-# platform looks up on the INSTANCE (native_value, async_step_*, is_on) or a
-# @property, which is an attribute surface rather than a call. The census is
+# from. Forcing both exemptions off is what prices them: the census then reads
+# 162 rows over 46 distinct names at this branch's merge base, every one a Home
+# Assistant hook the platform looks up on the INSTANCE (native_value,
+# async_step_*, is_on) or a @property, which is an attribute surface rather than
+# a call. The census is
 # name-based and CANNOT see #1395's own shape -- a method still CALLED but no
 # longer REACHABLE from production (that is `SystemIdentification.identify`,
 # reached by `_finish` but never on a declared plant) -- so that half is pinned
@@ -28515,7 +28516,8 @@ R.check(
     and not _hpo_i_conv("identify")
     and not _hpo_i_conv("conditions_met"),
     "a census that does not exempt the HA hooks calls every one of them dead; "
-    "the first cut read 161 false positives, every one an HA hook or a "
+    "measured with both exemptions forced off it reads 162 rows over 46 "
+    "distinct names at this branch's merge base, every one an HA hook or a "
     f"property (is_ha_convention_method = {_hpo_i_conv!r})",
 )
 R.check(
