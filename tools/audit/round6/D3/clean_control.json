@@ -1,0 +1,144 @@
+{
+ "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+ "seed": 20260922,
+ "deadline_min": 75.0,
+ "clean": true,
+ "mutants": [
+  {
+   "index": 0,
+   "module": "wear.py",
+   "lineno": 106,
+   "kind": "NOCLAMP",
+   "weight": 2,
+   "detail": "max",
+   "tier1": [
+    "tests/typing_ruler.py",
+    "tests/solar_alignment.py",
+    "tests/wood_advisor.py",
+    "tests/plan_view.py",
+    "tests/deployment_shape.py",
+    "tests/structure.py",
+    "tests/card_drift.mjs",
+    "tests/manual_plan.py",
+    "tests/card.mjs",
+    "tests/config_flow_steps.py"
+   ],
+   "tier2": [
+    "tests/features.py",
+    "tests/entities.py"
+   ],
+   "tier3": [
+    "tests/env_drift.py"
+   ],
+   "skipped": [
+    "tests/golden.py"
+   ],
+   "runs": [
+    {
+     "tier": "1",
+     "script": "tests/typing_ruler.py",
+     "rc": 0,
+     "wall_s": 0.6,
+     "cpu_s": 0.2,
+     "load1": 13.5
+    },
+    {
+     "tier": "1",
+     "script": "tests/solar_alignment.py",
+     "rc": 0,
+     "wall_s": 1.0,
+     "cpu_s": 0.9,
+     "load1": 13.5
+    },
+    {
+     "tier": "1",
+     "script": "tests/wood_advisor.py",
+     "rc": 0,
+     "wall_s": 0.9,
+     "cpu_s": 0.9,
+     "load1": 13.5
+    },
+    {
+     "tier": "1",
+     "script": "tests/plan_view.py",
+     "rc": 0,
+     "wall_s": 1.2,
+     "cpu_s": 1.2,
+     "load1": 13.5
+    },
+    {
+     "tier": "1",
+     "script": "tests/deployment_shape.py",
+     "rc": 0,
+     "wall_s": 2.4,
+     "cpu_s": 2.3,
+     "load1": 13.62
+    },
+    {
+     "tier": "1",
+     "script": "tests/structure.py",
+     "rc": 0,
+     "wall_s": 2.1,
+     "cpu_s": 2.0,
+     "load1": 13.62
+    },
+    {
+     "tier": "1",
+     "script": "tests/card_drift.mjs",
+     "rc": 0,
+     "wall_s": 5.9,
+     "cpu_s": 6.9,
+     "load1": 13.41
+    },
+    {
+     "tier": "1",
+     "script": "tests/manual_plan.py",
+     "rc": 0,
+     "wall_s": 8.6,
+     "cpu_s": 7.6,
+     "load1": 12.87
+    },
+    {
+     "tier": "1",
+     "script": "tests/card.mjs",
+     "rc": 0,
+     "wall_s": 10.7,
+     "cpu_s": 13.8,
+     "load1": 12.93
+    },
+    {
+     "tier": "1",
+     "script": "tests/config_flow_steps.py",
+     "rc": 0,
+     "wall_s": 13.6,
+     "cpu_s": 13.5,
+     "load1": 11.44
+    },
+    {
+     "tier": "2",
+     "script": "tests/features.py",
+     "rc": 0,
+     "wall_s": 155.0,
+     "cpu_s": 144.7,
+     "load1": 7.1
+    },
+    {
+     "tier": "2",
+     "script": "tests/entities.py",
+     "rc": 1,
+     "wall_s": 68.5,
+     "cpu_s": 63.5,
+     "load1": 12.28,
+     "tail": "Price entity is empty\nUnknown DSO catalog product not_a_swedish_dso_2026; not writing\nHot water: the anti-legionella cycle at 60 \u00b0C is above the 55 \u00b0C charge limit, so the tank is taken above that limit every 7 days\nHot water: the anti-legionella cycle at 60 \u00b0C is above the 52 \u00b0C charge limit, so the tank is taken above that limit every 7 days\nFailed to publish ECL110 displace command: mqtt unreachable\nNo forecast data returned for weather.home. Plans continue on the last forecast, marked stale.\nHot water: the anti-legionella cycle at 60 \u00b0C is above the 55 \u00b0C charge limit, so the tank is taken above that limit every 7 days\nHot water: the anti-legionella cycle at 60 \u00b0C is above the 55 \u00b0C charge limit, so the tank is taken above that limit every 7 days\nHot water: the anti-legionella cycle at 60 \u00b0C is above the 55 \u00b0C charge limit, so the tank is taken above that limit every 7 days\nHot water: the anti-legionella cycle at 60 \u00b0C is above the 55 \u00b0C charge limit, so the tank is taken above that limit every 7 days\nHot water: the anti-legionella cycle at 60 \u00b0C is above the 55 \u00b0C charge limit, so the tank is taken above that limit every 7 days\nHot water: the anti-legionella cycle at 60 \u00b0C is above the 55 \u00b0C charge limit, so the tank is taken above that limit every 7 days\nHot water: the anti-legionella cycle at 60 \u00b0C is above the 50 \u00b0C charge limit, so the tank is taken above that limit every 7 days\nHot water: the anti-legionella cycle at 60 \u00b0C is above the 50 \u00b0C charge limit, so the tank is taken above that limit every 7 days\nConfig entry version 8 is newer than the supported version 7; downgrade is not supported\nNo forecast data returned for weather.home. Plans continue on the last forecast, marked stale.\n/Users/timmalmstrom/audit-r6-D3/tests/harness.py:448: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited\n  callback()\nRuntimeWarning: Enable tracemalloc to get the object allocation traceback\nNo forecast data returned for weather.home. Plans continue on the last forecast, marked stale.\nNo forecast data returned for weather.home. Plans continue on the last forecast, marked stale.\nNo forecast data returned for weather.home. Plans continue on the last forecast, marked stale.\ngate_lock: waiting for the lease held by other (yours? export HPO_GATE_LOCK_LABEL with that label)\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)\nTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)"
+    }
+   ],
+   "killed_by": "tests/entities.py",
+   "verdict": "KILLED",
+   "tiers_run": [
+    "1",
+    "2"
+   ],
+   "thread_factor": 1.0
+  }
+ ]
+}

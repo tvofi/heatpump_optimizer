@@ -240,6 +240,13 @@ const STRINGS = {
     "whatif.days_daily": "Every day",
     "whatif.days_weekdays": "Weekdays",
     "whatif.days_weekend": "Weekend",
+    "whatif.days_monday": "Monday",
+    "whatif.days_tuesday": "Tuesday",
+    "whatif.days_wednesday": "Wednesday",
+    "whatif.days_thursday": "Thursday",
+    "whatif.days_friday": "Friday",
+    "whatif.days_saturday": "Saturday",
+    "whatif.days_sunday": "Sunday",
     "whatif.no_windows_hint":
       "No windows: hot water is never required, so the tank is only kept " +
       "above its idle minimum.",
@@ -678,6 +685,13 @@ const STRINGS = {
     "whatif.days_daily": "Alla dagar",
     "whatif.days_weekdays": "Vardagar",
     "whatif.days_weekend": "Helg",
+    "whatif.days_monday": "måndag",
+    "whatif.days_tuesday": "tisdag",
+    "whatif.days_wednesday": "onsdag",
+    "whatif.days_thursday": "torsdag",
+    "whatif.days_friday": "fredag",
+    "whatif.days_saturday": "lördag",
+    "whatif.days_sunday": "söndag",
     "whatif.no_windows_hint":
       "Inga fönster: varmvatten krävs aldrig, så tanken hålls bara över " +
       "sitt vilominimum.",
@@ -2101,15 +2115,25 @@ function overlayDhwDisplay(dhwFc, opts = {}) {
   return out;
 }
 
-/** The day selector's options: the three named sets, plus the window's own
- * selector when it is a day list the picker does not offer, so a schedule
- * typed in the options flow survives a round trip through the card. */
+/** The day selector's options: the three named sets, then the seven weekdays
+ * Monday-first (matching `DAY_TOKENS` and the backend's `dhw_windows_mon..sun`
+ * keys), plus the window's own selector when it is a day list the picker does
+ * not offer, so a schedule typed in the options flow survives a round trip
+ * through the card. A weekday is offered by its day token ("Mo"), the value
+ * `parseWindows` reads back and `formatWindows` writes out. */
 function daysOptionsHtml(days) {
   const current = days || "daily";
   const named = [
     ["daily", L("whatif.days_daily")],
     ["weekdays", L("whatif.days_weekdays")],
     ["weekend", L("whatif.days_weekend")],
+    ["Mo", L("whatif.days_monday")],
+    ["Tu", L("whatif.days_tuesday")],
+    ["We", L("whatif.days_wednesday")],
+    ["Th", L("whatif.days_thursday")],
+    ["Fr", L("whatif.days_friday")],
+    ["Sa", L("whatif.days_saturday")],
+    ["Su", L("whatif.days_sunday")],
   ];
   const out = named.map(
     ([value, label]) =>
@@ -2974,6 +2998,12 @@ function cardStyleBlock() {
         /* The advisor page's ranked rows (#1269), the same HTML-button
            surface as the picker's controls: the same floor. */
         .adv-row,
+        .hl-stat.hl-score,
+        /* The headline score pill (#1388, R6-D4-01) joins the floor: it is a
+           control -- role="button", tabindex="0" and a click handler open the
+           score breakdown -- but the R5-D4-02 padding rule alone reaches 25 px
+           under a fine pointer and never the 44 px coarse floor, so under
+           touch it was the one control on the surface below the floor. */
         /* The picker's own field and list, the same surface as the
            .sp-actions buttons they sit above: without this the text field
            laid out 23.19 px tall on a 375-768 px card, 0.81 px under the
