@@ -345,7 +345,6 @@ from unittest import mock as _kb_mock
 import heatpump_optimizer.optimizer as _kb_mod
 
 _kb_start = datetime(2026, 1, 15)
-_kb_dt = 0.25
 
 
 def _kb_inputs(tz, pp, wp, dhw):
@@ -389,18 +388,6 @@ def _kb_capture(o, pr, ot, wi, ra, so, st, extra=None):
     with _kb_mock.patch.object(_kb_mod, "_multi_start_minimize", rec):
         r = o.optimize(st, pr, ot, wi, ra, so, _kb_start)
     return r, seen
-
-
-def _kb_shipped(seen, shipped):
-    """The seam call whose returned iterate IS the shipped plan."""
-    for c in seen:
-        if np.allclose(c["x"], shipped, atol=1e-9):
-            return c
-        lo = np.array([b[0] for b in c["bounds"]])
-        hi = np.array([b[1] for b in c["bounds"]])
-        if np.allclose(np.clip(c["x"], lo, hi), shipped, atol=1e-9):
-            return c
-    return None
 
 
 # --- #1293: the L-BFGS-B stop rule ---------------------------------------
@@ -461,109 +448,113 @@ R.check(
     f"the finding measured at 0.000% -- the arm is not universally better",
 )
 
-# --- #1294: the structured candidates and the refinement cut --------------
+# --- #1294: the structured seeds and the refinement cut ------------------
 # The finding's own patch pair: seeds alone (patch_f1) left 21 of 160 cells
-# WORSE than the shipped plan because the four-solve cut displaced cheaper
-# candidates; seeds WITH the cut raised to six (patch_f1b) left 0 worse and
-# 19 better. So there are two checks: the shipped plan must clear a refine of
-# the new 0.15-energy seed (red without the seed), and must not be worse than
-# the pre-fix configuration on a cell the displaced candidate won (red
-# without the cut raise).
-_kb14_o, _kb14_m, _kb14_pr, _kb14_ot, _kb14_wi, _kb14_ra, _kb14_so, _kb14_st = (
-    _kb_inputs(True, "winter_moderate", "winter_cold", False))
-_kb14_r, _kb14_seen = _kb_capture(
-    _kb14_o, _kb14_pr, _kb14_ot, _kb14_wi, _kb14_ra, _kb14_so, _kb14_st)
-_kb14_c = _kb_shipped(_kb14_seen, np.asarray(_kb14_r.power_schedule, float))
-# ``baseline_energy`` is not returned, so read it off the candidate the seam
-# was handed: on the space-only path element 2 is ``clip(baseline_power)``,
-# whose total energy IS the baseline's (no step there is capped).
-_kb14_E = float(np.sum(_kb14_c["candidates"][2]) * _kb_dt)
-_kb14_seed = _kb_mod._price_ranked_start(
-    _kb14_pr, _kb14_E * 0.15, _kb14_m.params.max_electrical_power, _kb_dt)
-_kb14_res = _kb_mod._multi_start_minimize(
-    _kb14_c["objective"], [_kb14_seed], _kb14_c["bounds"],
-    args=_kb14_c["args"], maxiter=_kb14_c["maxiter"],
-    batch_objective=_kb14_c["batch"])
-_kb14_jship = float(_kb14_c["objective"](
-    _kb14_c["x"], *_kb14_c["args"]))
-_kb14_jseed = float(_kb14_c["objective"](
-    np.asarray(_kb14_res.x, float), *_kb14_c["args"]))
-print(f" seed0.15  : obj {_kb14_jship:8.4f} vs seed {_kb14_jseed:8.4f}")
-R.check(
-    "the shipped plan clears a refine of the 0.15-energy seed (#1294)",
-    _kb14_jship <= _kb14_jseed * 1.0005,
-    f"production {_kb14_jship:.4f} vs 0.15-energy seed "
-    f"{_kb14_jseed:.4f} "
-    f"({100.0 * (_kb14_jship - _kb14_jseed) / abs(_kb14_jseed):+.3f}% gap, "
-    f"bound 0.05%)",
-)
-
-# Null control: on a cell the round-5 race measured the 0.15 seed at 0.000%
-# against, it must stay at 0.000% -- the seed is not universally better.
-_kb14n_o, _kb14n_m, _kb14n_pr, _kb14n_ot, _kb14n_wi, _kb14n_ra, _kb14n_so, \
-    _kb14n_st = _kb_inputs(False, "winter_typical", "winter_cold", False)
-_kb14n_r, _kb14n_seen = _kb_capture(
-    _kb14n_o, _kb14n_pr, _kb14n_ot, _kb14n_wi, _kb14n_ra, _kb14n_so, _kb14n_st)
-_kb14n_c = _kb_shipped(
-    _kb14n_seen, np.asarray(_kb14n_r.power_schedule, float))
-_kb14n_E = float(np.sum(_kb14n_c["candidates"][2]) * _kb_dt)
-_kb14n_seed = _kb_mod._price_ranked_start(
-    _kb14n_pr, _kb14n_E * 0.15, _kb14n_m.params.max_electrical_power, _kb_dt)
-_kb14n_res = _kb_mod._multi_start_minimize(
-    _kb14n_c["objective"], [_kb14n_seed], _kb14n_c["bounds"],
-    args=_kb14n_c["args"], maxiter=_kb14n_c["maxiter"],
-    batch_objective=_kb14n_c["batch"])
-_kb14n_jship = float(_kb14n_c["objective"](
-    _kb14n_c["x"], *_kb14n_c["args"]))
-_kb14n_jseed = float(_kb14n_c["objective"](
-    np.asarray(_kb14n_res.x, float), *_kb14n_c["args"]))
-print(f" seed-null : obj {_kb14n_jship:8.4f} vs seed {_kb14n_jseed:8.4f}")
-R.check(
-    "the 0.15-energy seed is inert where the race measured it at 0.000% "
-    "(#1294 null)",
-    _kb14n_jseed >= _kb14n_jship * 0.9995,
-    f"production {_kb14n_jship:.4f} vs seed {_kb14n_jseed:.4f} on a cell the "
-    f"race measured at 0.000%",
-)
-
-# The cut check. ``shoulder``/``shoulder`` at tz0/dhw1 is a cell the round-5
-# judge's own patch diff measured seeds-alone at +0.5076% (f1 9.1874 vs base
-# 9.1410) and seeds + cut at +0.0000%. The arm here is the pre-fix
-# configuration: drop the candidate the fix appended (last on both default
-# paths) and restore the four-solve cut. The shipped plan must not be worse.
-_kb14c_o, _kb14c_m, _kb14c_pr, _kb14c_ot, _kb14c_wi, _kb14c_ra, _kb14c_so, \
-    _kb14c_st = _kb_inputs(False, "shoulder", "shoulder", True)
-_kb14c = _kb14c_o.optimize(
-    _kb14c_st, _kb14c_pr, _kb14c_ot, _kb14c_wi, _kb14c_ra, _kb14c_so, _kb_start)
-_j14c = float(_kb14c.objective_value)
-_kb14d_o, _kb14d_m, _kb14d_pr, _kb14d_ot, _kb14d_wi, _kb14d_ra, _kb14d_so, \
-    _kb14d_st = _kb_inputs(False, "shoulder", "shoulder", True)
+# WORSE than the pre-fix configuration because the four-solve cut displaced
+# cheaper candidates; seeds WITH the cut raised to six (patch_f1b) left 0
+# worse and 19 better. The pair is what ships and the cut is what makes it
+# safe, so the cut is checked behaviourally against the arm the finding itself
+# measured (patch_f1's configuration) and both appended seeds are pinned
+# structurally. Nothing here checks the seeds behaviourally: see the note under
+# the cut check for the measurement that says why.
 _kb_real_ms = _kb_mod._multi_start_minimize
-_kb_saves = _kb_mod._MULTI_START_SOLVES
+_kb_cut_keep = _kb_mod._MULTI_START_SOLVES
 
 
-def _kb_prefix_arm(objective, candidates, bounds, *a, **kw):
+def _kb_cut4_arm(objective, candidates, bounds, *a, **kw):
+    """The cut knob alone: every candidate kept, the cut back at 4."""
     _kb_mod._MULTI_START_SOLVES = 4
     try:
-        return _kb_real_ms(objective, list(candidates)[:-1], bounds, *a, **kw)
+        return _kb_real_ms(objective, candidates, bounds, *a, **kw)
     finally:
-        _kb_mod._MULTI_START_SOLVES = _kb_saves
+        _kb_mod._MULTI_START_SOLVES = _kb_cut_keep
 
 
-with _kb_mock.patch.object(_kb_mod, "_multi_start_minimize", _kb_prefix_arm):
-    _kb14d = _kb14d_o.optimize(
-        _kb14d_st, _kb14d_pr, _kb14d_ot, _kb14d_wi, _kb14d_ra, _kb14d_so,
-        _kb_start)
-_j14d = float(_kb14d.objective_value)
+def _kb_obj(tz, pp, wp, dhw, arm=None):
+    """One production solve on a fresh optimizer, so no warm start enters."""
+    o, _m, pr, ot, wi, ra, so, st = _kb_inputs(tz, pp, wp, dhw)
+    if arm is None:
+        r = o.optimize(st, pr, ot, wi, ra, so, _kb_start)
+    else:
+        with _kb_mock.patch.object(_kb_mod, "_multi_start_minimize", arm):
+            r = o.optimize(st, pr, ot, wi, ra, so, _kb_start)
+    return float(r.objective_value)
+
+
+# (a) the cut knob, and the reason it is not raised for free. patch_f1's own
+# JSON diff (race_cells_judgef1 against race_cells_judge) names this cell the
+# worst regression of the seeds-alone configuration: 1.1091 at the pre-fix
+# baseline against 1.1248 seeds-alone, +1.4177%. The arm here IS that
+# configuration -- every candidate kept, the cut back at 4 -- and at this head
+# the gap has narrowed but not closed: 1.1091 against 1.1168, +0.6894%.
+#
+# This is also the only behavioural #1294 check there is, and the reason is
+# measured, not assumed. The appended seed was re-measured at this head against
+# a faithful pre-fix arm -- the seed dropped, the cut back at 4, a
+# single-candidate repair call left intact. An arm that drops the last element
+# of EVERY call instead empties that one-candidate call and the arm fails
+# structurally; against it this cell printed 19.4353 with the seed and 19.6801
+# without, a 1.2440% "gain" that was the arm's own failure -- the faithful arm
+# reaches 19.4353 too, exactly the production plan. Against the faithful arm
+# every seed cell moves by 0.0999% or less, inside the band this suite calls
+# noise, so a check on the seed alone would be a check on a float. What ships
+# is the pair; the cut carries it.
+_j14c = _kb_obj(True, "summer_negative", "shoulder", True)
+_j14d = _kb_obj(True, "summer_negative", "shoulder", True, arm=_kb_cut4_arm)
 print(f" cut-prod  : obj {_j14c:8.4f}")
-print(f" cut-prefix: obj {_j14d:8.4f}")
+print(f" cut-4     : obj {_j14d:8.4f}")
 R.check(
-    "the raised refinement cut keeps the shipped plan no worse than the "
-    "pre-fix configuration (#1294)",
-    _j14c <= _j14d * 1.000002,
-    f"production {_j14c:.4f} vs seeds-alone/cut-4 {_j14d:.4f} "
-    f"({100.0 * (_j14c - _j14d) / abs(_j14d):+.3f}% gap) -- a positive gap "
-    f"means the cut displaced a cheaper candidate the fix kept",
+    "the raised refinement cut keeps the appended seeds from displacing a "
+    "cheaper candidate (#1294)",
+    _j14c <= _j14d * 0.999,
+    f"production {_j14c:.4f} vs seeds kept/cut 4 {_j14d:.4f} "
+    f"({100.0 * (_j14d - _j14c) / abs(_j14d):+.3f}% gain, bound 0.10%) -- "
+    f"the shipped plan must beat the seeds-alone configuration, and matching "
+    f"it means the cut went back to four and the displaced candidate is "
+    f"shipping again",
+)
+
+# Null control: on a cell no configuration regresses, the cut-4 arm IS the
+# production plan, so the arm is not universally worse either. This cell is
+# also inert at the loose stop rule -- 80.7406 against 80.7406 at ftol 1e-6
+# too -- so reverting #1293 does not move this null.
+_j14e = _kb_obj(False, "winter_extreme", "winter_cold", False)
+_j14f = _kb_obj(False, "winter_extreme", "winter_cold", False,
+                arm=_kb_cut4_arm)
+print(f" cut-null  : obj {_j14e:8.4f} vs cut 4 {_j14f:8.4f}")
+R.check(
+    "the seeds-kept/cut-4 arm is inert where the race measured no regression "
+    "(#1294 null)",
+    abs(_j14e - _j14f) <= abs(_j14e) * 5e-5,
+    f"production {_j14e:.4f} vs seeds kept/cut 4 {_j14f:.4f} on "
+    f"tz=0,dhw=0,winter_extreme,winter_cold -- equal means there was no "
+    f"candidate to displace there",
+)
+
+# (b) both appended seeds, pinned structurally. At this head their own cells
+# move by 0.0999% or less, inside the band, so presence is what is
+# BLAS-independent: one candidate more than the pre-fix four on each of the two
+# default paths, which is what the seam is handed. (tests/features.py pins the
+# DHW path's count a second time, off ``_solve_space`` itself.)
+_kb14p_o, _kb14p_m, _kb14p_pr, _kb14p_ot, _kb14p_wi, _kb14p_ra, _kb14p_so, \
+    _kb14p_st = _kb_inputs(False, "winter_typical", "summer_cool", False)
+_kb14p_r, _kb14p_seen = _kb_capture(
+    _kb14p_o, _kb14p_pr, _kb14p_ot, _kb14p_wi, _kb14p_ra, _kb14p_so, _kb14p_st)
+_kb14p_lens = [len(c["candidates"]) for c in _kb14p_seen]
+_kb14q_o, _kb14q_m, _kb14q_pr, _kb14q_ot, _kb14q_wi, _kb14q_ra, _kb14q_so, \
+    _kb14q_st = _kb_inputs(False, "flat", "shoulder", True)
+_kb14q_r, _kb14q_seen = _kb_capture(
+    _kb14q_o, _kb14q_pr, _kb14q_ot, _kb14q_wi, _kb14q_ra, _kb14q_so, _kb14q_st)
+_kb14q_lens = [len(c["candidates"]) for c in _kb14q_seen]
+print(f" space-only candidates per seam call: {_kb14p_lens}")
+print(f" dhw-path candidates per seam call:   {_kb14q_lens}")
+R.check(
+    "both default paths carry their appended seed as one more candidate "
+    "(#1294)",
+    _kb14p_lens == [5] and _kb14q_lens == [5],
+    f"space-only {_kb14p_lens}, dhw {_kb14q_lens} -- 4 means the #1294 seed "
+    f"went missing on that path; a longer list means the repair re-solve ran "
+    f"and this is reading the wrong call",
 )
 
 # --- #1295: the caller's previous plan as a candidate ---------------------
