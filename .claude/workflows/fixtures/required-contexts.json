@@ -39,6 +39,7 @@
     "env-matrix",
     "fast (3.14)",
     "hassfest",
+    "mutation",
     "policy-docs",
     "pr-contract",
     "typing",
