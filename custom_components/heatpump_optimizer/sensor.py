@@ -407,8 +407,15 @@ class _DHWEntityMixin(_SensorMixinBase):
     a working meter reporting a heat pump that never heats water.
 
     One gate rather than six copies of the same condition, so a seventh hot
-    water entity inherits it by construction.
+    water entity inherits it by construction. The same holds for the
+    registry default: an install with no hot water would otherwise ship six
+    enabled entities that are unavailable on every refresh, so the whole
+    family is disabled by default (#1398) rather than dead in the entity
+    list -- exactly the #1335 verdict the probe-gated ``dhw_temperature``
+    already carries. Existing registry entries keep their state.
     """
+
+    _attr_entity_registry_enabled_default = False
 
     @property
     def available(self) -> bool:
