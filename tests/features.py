@@ -34667,13 +34667,15 @@ _RIDGE_COP = 3.0
 _RIDGE_MAX_POWER_KW = 3.5
 
 
-def _ridge_drive(params, sigma_c, seed, declare_plant=True):
+def _ridge_drive(params, sigma_c, seed, declare_plant=True, gap_tick=None):
     """The production protocol on a two-state plant, sensor at sigma_c.
 
     The plant rolls on the production ``ThermalModel``; the recorder sees
     the noisy room series a real sensor would publish. Returns
     ``(recorder, SysIdResult, true UA)``. ``declare_plant=False`` drives
     the harness style -- armed without a plant, so the #991 gate never ran.
+    ``gap_tick`` injects one missed coordinator update (a 2.5 h interval
+    against the 0.25 h cadence, #1330's trigger) after that many steps.
     """
     rng = np.random.default_rng(seed)
     model = ThermalModel(params)
@@ -34694,6 +34696,7 @@ def _ridge_drive(params, sigma_c, seed, declare_plant=True):
     prices = np.full(48, 1.0)
     when = _RIDGE_NOW
     dt_h = 0.25
+    tick = 0
     for _ in range(int(5.0 / dt_h) + 4):
         reading = state.room_temperature + rng.normal(0.0, sigma_c)
         override = sid.step(
@@ -34722,7 +34725,10 @@ def _ridge_drive(params, sigma_c, seed, declare_plant=True):
             dt_hours=dt_h,
             external_heat_kw=elec * _RIDGE_COP,
         )
-        when += timedelta(hours=dt_h)
+        tick += 1
+        when += timedelta(
+            hours=(2.5 if (gap_tick is not None and tick == gap_tick) else dt_h)
+        )
     return sid, sid.result, ua_true
 
 
@@ -34860,6 +34866,152 @@ R.check(
     "knife-edge -- 1 of 16 at this sigma, measured), which adopts "
     "nothing either, but every OTHER refusal reason would mean the gate "
     "leaked",
+)
+
+
+# -- #1308 (D2-03) / #1330 (D7-02): the ADOPTION side of the sysid seam ----
+# Both findings sit downstream of the #1329 arm gate: the two-state fit now
+# RUNS where the gate passed, so what they measure is the surface that
+# ADMITS a finished fit. #1308: `identify`'s drift ridge under-corrects a
+# real ramp, the ΔT column then carries it into UA, and the confidence gate
+# adopted that minority at median UA bias 0.281 (max 0.316) against a 0.024
+# no-drift null -- the R3-D2-03 settle cross-check refuses the HONEST fits
+# (its precondition selects a fitted drift below the prior) and skips the
+# biased ones, a selection effect rather than protection. #1330: a >2 h
+# cadence gap in a DECLARED two-state plant rerouted the fit to the
+# one-state `identify()`, which is biased +7.22 % on the heavy_old plant
+# with no gap at all, and the adoption surface admitted it. The fixes:
+# temper the confidence by the share of the movement the fitted drift could
+# account for, and refuse the cadence-gap fallback BY NAME. Both checks read
+# the PRODUCTION adoption predicate (`completed and confidence >= 0.3`, plus
+# the #991 gate for #1330) rather than any internal of the driver.
+_DRIFT_UA, _DRIFT_C, _DRIFT_G = 0.20, 10.0, 0.30
+_DRIFT_TOUT, _DRIFT_BASE, _DRIFT_COP = 2.0, 20.5, 3.0
+_DRIFT_NOW = datetime(2026, 4, 10, 23, 0, tzinfo=UTC)
+
+
+def _drift_drive(seed, cadence_min=30, sigma_c=0.02, drift_c_per_h=0.0):
+    """#1308's harness shape: the production protocol on a first-order plant.
+
+    A one-state room whose truth the config priors match (the finding's own
+    favourable case), driven through the production ``arm``/``step``
+    protocol with the returned electrical override converted at COP; the
+    recorder sees the series a drifting, noisy sensor would publish.
+    Returns ``(SysIdResult, true UA)``.
+    """
+    rng = np.random.default_rng(seed)
+    sid = SystemIdentification(
+        _SysIdModule.SysIdConfig(
+            enabled=True, settle_hours=1.0, step_hours=2.0, relax_hours=2.0,
+            max_excursion_c=0.8, gains_prior_kw=_DRIFT_G,
+            thermal_mass_prior=_DRIFT_C,
+        )
+    )
+    assert sid.arm(now=_DRIFT_NOW, plant=None)  # the one-state fit path
+    cad = timedelta(minutes=cadence_min)
+    hours = cadence_min / 60.0
+    k = _DRIFT_UA / _DRIFT_C
+    temp_true = _DRIFT_BASE
+    measured = _DRIFT_BASE
+    now = _DRIFT_NOW
+    price_horizon = np.full(96, 0.4)
+    horizon = _DRIFT_NOW + timedelta(hours=6)
+    while now < horizon and sid.active:
+        override = sid.step(
+            now=now, room_temp=measured, outdoor_temp=_DRIFT_TOUT, price=0.2,
+            price_horizon=price_horizon, learner_samples=0, max_power_kw=5.0,
+            cop=_DRIFT_COP, plan_power_kw=0.0,
+        )
+        q = override * _DRIFT_COP if override else 0.0
+        t_ss = _DRIFT_TOUT + (q + _DRIFT_G) / _DRIFT_UA
+        temp_true = t_ss + (temp_true - t_ss) * np.exp(-k * hours)
+        measured = temp_true + drift_c_per_h * (
+            (now + cad) - _DRIFT_NOW
+        ).total_seconds() / 3600.0
+        if sigma_c:
+            measured += rng.normal(0.0, sigma_c)
+        now += cad
+    return sid.result, _DRIFT_UA
+
+
+def _drift_adopted(drift, n=40, sigma_c=0.02, cadence_min=30):
+    """The ADOPTED set under #1308's gate: |UA bias| per seed, and the count."""
+    out = []
+    for seed in range(1000, 1000 + n):
+        res, ua = _drift_drive(seed, cadence_min, sigma_c, drift)
+        if res.completed and res.heat_loss_kw_per_c and res.confidence >= 0.3:
+            out.append(abs(res.heat_loss_kw_per_c - ua) / ua)
+    return out
+
+
+_drift010 = _drift_adopted(0.10)
+_drift010_bad = [b for b in _drift010 if b > 0.10]
+R.check(
+    "#1308: at 0.10 C/h of sensor drift no fit the adoption gate accepts "
+    "leaves the shipped +-10 % UA band",
+    not _drift010_bad,
+    f"adopted {len(_drift010)} of 40 {[round(b, 3) for b in _drift010]}, "
+    f"{len(_drift010_bad)} over the band -- at the merge base the same drive "
+    "adopted 6 of 40 at median 0.281 (max 0.316), because the drift ridge "
+    "shrinks the fitted ramp short of the true 0.10 C/h and the ΔT column "
+    "carries the difference into UA; the confidence now discounts the share "
+    "of the window's movement the fitted drift could account for, so a "
+    "window that share cannot separate does not clear the 0.3 gate",
+)
+_drift_null = _drift_adopted(0.0)
+R.check(
+    "#1308 null control: with NO drift the same gate still adopts, and every "
+    "adopted fit is inside the band -- the discount is not a blanket refusal",
+    len(_drift_null) >= 1
+    and max(_drift_null, default=float("nan")) <= 0.10,
+    f"adopted {len(_drift_null)} of 40 "
+    f"{[round(b, 3) for b in _drift_null]}, worst "
+    f"{max(_drift_null, default=float('nan')):.3f} -- the finding's own "
+    "perturbation (drift 0.10 -> 0.0) removes the effect: the fitted drift "
+    "is ~0, its share of the movement is ~0 and the discount is ~1, so this "
+    "cell reads the same before and after the fix",
+)
+
+_gap_plant = _p942("light_new", 100.0)
+_gap_res = _ridge_drive(_gap_plant, 0.0, _RIDGE_SEED0, gap_tick=1)[1]
+_gap_admitted = bool(
+    _gap_res.completed
+    and _gap_res.confidence >= 0.3
+    and _SysIdModule.slab_mode_identifiability(
+        _gap_plant, _SysIdModule.SysIdConfig()
+    )[0]
+)
+R.check(
+    "#1330: a >2 h cadence gap on a DECLARED gate-passing plant is refused BY "
+    "NAME, never routed to the one-state regression and then admitted",
+    not _gap_res.completed
+    and "cadence gap" in _gap_res.reason
+    and not _gap_admitted,
+    f"completed {_gap_res.completed} conf {_gap_res.confidence:.3f} "
+    f"admitted {_gap_admitted} reason {_gap_res.reason[:72]!r} -- at the "
+    "merge base this fell back to identify() and the adoption gate took it "
+    "at confidence 0.997 and -20.06 % UA bias: a one-state fit of the "
+    "two-state plant the experiment was armed on",
+)
+_gap_null_sid, _gap_null_res, _gap_null_ua = _ridge_drive(
+    _gap_plant, 0.0, _RIDGE_SEED0
+)
+_gap_null_bias = (
+    (_gap_null_res.heat_loss_kw_per_c - _gap_null_ua) / _gap_null_ua
+    if _gap_null_res.completed and _gap_null_res.heat_loss_kw_per_c
+    else float("nan")
+)
+R.check(
+    "#1330 null control: with NO gap the two-state fit still runs and still "
+    "adopts, at the plant's own UA -- the refusal is the gap's, not the plant's",
+    _gap_null_res.completed
+    and abs(_gap_null_bias) <= 0.01
+    and _gap_null_res.confidence >= 0.3
+    and getattr(_gap_null_sid, "_slab_fit_used", False) is True,
+    f"bias {_gap_null_bias:+.4f} conf {_gap_null_res.confidence:.3f} "
+    f"slab_used {getattr(_gap_null_sid, '_slab_fit_used', None)!r} reason "
+    f"{_gap_null_res.reason!r} -- the finding's own perturbation, run at this "
+    "head: removing the gap returns the slab fit at -0.00 %, still admitted",
 )
 
 

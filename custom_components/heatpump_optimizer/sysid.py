@@ -1298,6 +1298,28 @@ class SystemIdentification:
         confidence *= float(np.clip(
             excursion / DEFAULT_MAX_EXCURSION_C, 0.3, 1.0
         ))
+        # D2-03: the correction above is a SHRINKAGE estimate, and its ridge
+        # (sensor_drift_prior_c_per_h) pulls the fitted drift short of a real
+        # ramp once 0.02 °C of sensor noise is present -- measured: the
+        # fitted drift is exact under the noiseless identity, and the design
+        # is near-singular (cond ~ 2e5) precisely because the drift column
+        # is carried in the ΔT column. So `excursion` is part plant and part
+        # uncorrected drift, and the audit adopted that drifted minority at
+        # median UA bias 0.281 (max 0.316) against a 0.024 no-drift null.
+        # A window cannot separate the two when the fitted drift's own span
+        # is a large share of the movement it is credited with, so the blend
+        # weight is tempered by that share: a window the drift could have
+        # produced is not adopted on the confidence its R² and row count
+        # alone suggest. The settle cross-check below (R3-D2-03) tests the
+        # same class, but its precondition -- a fitted drift below the prior
+        # -- selects the honest fits and skips the biased ones, so it cannot
+        # discharge this on its own (D2-14).
+        if drift_c_per_h is not None and a.shape[1] >= 4 and excursion > 1e-9:
+            t_span = float(np.max(a[:, 3]) - np.min(a[:, 3]))
+            drift_span = abs(float(drift_c_per_h)) * t_span
+            confidence *= float(np.clip(
+                (excursion - drift_span) / excursion, 0.0, 1.0
+            ))
         # D2-01's gate half: a fit is only as trustworthy as its residual
         # noise is small against the signal it claims to explain. The rate
         # signal here is the spread of the target column; the audit showed
@@ -1413,22 +1435,38 @@ class SystemIdentification:
         slab_mass, slab_transfer = self._slab_pair
         ua0, cr0 = self._slab_prior
         if bool(np.any((dts <= 1e-3) | (dts > 2.0))):
-            # A cadence gap breaks the rollout's state chain; the one-state
-            # regression tolerates gaps by skipping the interval, so the
-            # experiment falls back to it -- but ONLY where the one-state
-            # fit can read the plant. Admitting the arm on a slow-slab plant
-            # (#1329) makes this fallback reachable on exactly the plants
-            # the #991 predicate refuses, so the predicate is applied HERE:
-            # handing them to identify() would adopt the silent model-class
-            # error #942 named, or discard the window with a reason about
-            # excitation rather than about the slab mode that caused it.
+            # A cadence gap breaks the rollout's state chain, and the answer
+            # is NOT the one-state regression: the arm was granted on a
+            # DECLARED two-state plant (see _finish), so identify() fits the
+            # model class this experiment exists to replace. #1329 made this
+            # fallback REACHABLE by admitting the arm on slow-slab plants and
+            # guarded it with the #991 predicate, on the premise that where
+            # the predicate passes the one-state regression "can read the
+            # plant". The audit measured that premise false (#1330): on the
+            # heavy_old preset the predicate passes at k_s x100, and the
+            # fallback then ADOPTS a one-state fit of the two-state plant at
+            # confidence 0.436 and +7.29 % UA bias -- of which the >2 h gap
+            # supplies 0.07 pp; the one-state estimator is +7.22 % biased on
+            # this plant with no gap at all, so the substitution, not the
+            # gap, is the error. The predicate check stays FIRST, because
+            # its naming is right for the slow-slab plants it refuses and
+            # the #942 protection must survive verbatim; the path it admits
+            # is refused BY NAME instead, with a reason about the slab mode
+            # that caused it rather than about excitation.
             self._slab_fit_used = False
             one_state_ok, one_state_why = slab_mode_one_state_identifiability(
                 float(cr0), float(slab_mass), float(slab_transfer), self.config
             )
             if not one_state_ok:
                 return SysIdResult(completed=False, reason=one_state_why)
-            return self.identify()
+            return SysIdResult(
+                completed=False,
+                reason=(
+                    "cadence gap breaks the two-state rollout on a declared "
+                    "plant; the one-state regression is not the model that "
+                    "was armed for"
+                ),
+            )
         prior_g = self.config.gains_prior_kw
 
         def residual(x: np.ndarray) -> np.ndarray:
