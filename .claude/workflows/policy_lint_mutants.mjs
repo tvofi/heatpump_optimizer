@@ -49,6 +49,16 @@
 // rule -- which then scans every line with no regex and reports nothing. A
 // check that still "runs" is the harder of the two to notice, which is why it
 // is driven rather than argued about.
+//
+// ONE MORE ARM, ADDED WITH #1403 (D11-02). Every arm above -- and every drive
+// inside `assertAcceptance` -- reads a RETURN VALUE in this process. The value
+// the required `policy-docs` context reads is `process.exit`'s argument, one
+// step further out, and no assertion in here can see it. The block below the
+// null control drives the entry point as a PROCESS, at both ends, with NO
+// environment override of its own: the defect it was written for was keyed on an
+// override the drives themselves set, so a control carrying one would have had
+// the same blind spot. Its own comment carries the rest.
+import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -62,6 +72,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES } from './policy_lint.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
+// `ROOT` belongs to the entry-point control below alone: it starts the entry as
+// a child process, and that child must resolve its own fixtures from the
+// repository the lane is measuring rather than from whatever cwd called the lane.
+const ROOT = path.resolve(HERE, '..', '..')
 const ENTRY = 'policy_lint.mjs'
 const TARGET = path.join(HERE, ENTRY)
 // Any `.<module>.mutant-<name>.mjs` beside the originals, not `policy_lint`
@@ -178,6 +192,77 @@ function jobs() {
   ]
 }
 
+// ---------------------------------------------------------------------------
+// THE ENTRY POINT'S EXIT STATUS IS ITSELF A CHECK, AND NO ARM ABOVE DROVE IT.
+//
+// Every arm above -- and every drive inside `assertAcceptance` -- reads a RETURN
+// VALUE in this process. The value the required `policy-docs` context reads is
+// `process.exit`'s argument, one step further out: `main()` could reach the right
+// finding at the right severity and still exit 0, and nothing in here would
+// notice. One line at the end of `main()` decides it, and before this arm
+// nothing drove that line.
+//
+// SO THIS CONTROL STARTS A PROCESS, against the real entry point, and reads what
+// a shell reads. It passes NO override of the run's own environment --
+// `spawnSync` inherits this process's, untouched -- and that clause is the
+// load-bearing one. The first version of the defect was keyed on an override the
+// drives themselves set: `process.exit(process.env.POLICY_LINT_TEMPLATE ? ... :
+// 0)` left the template arm in `tests/entities.py`, which passes that variable,
+// seeing rc 1; left the default run, this lane and the corpus lint seeing 0; and
+// survived all three. A control that passed an override of its own would have
+// had the same blind spot, so it must not have one.
+//
+// BOTH ENDS, because a constant satisfies one: an unconditional `process.exit(0)`
+// fails the red arm, an unconditional `process.exit(1)` the green arm, and only a
+// status that tracks the findings passes both. The red arm is a fixture under
+// `fixtures/policy-rot/`, whose refusal the run itself prints -- the redness is
+// the linter's finding rather than this lane's belief about it -- and the green
+// arm is the default run, the shape CI executes.
+//
+// WHAT IT CANNOT SEE, stated rather than implied. It drives the entry point of
+// THIS checkout, so a branch that edits `policy_lint.mjs` and this lane together
+// is invisible to it. `governance.yml` runs this lane on the branch's own copy
+// deliberately -- its verdict is about the checkers, so a lane driven from the
+// base would report on neither -- and restores the checker from the base commit
+// for the steps that grade the corpus, which is where that residue is answered.
+const RED_ARM = path.join(ROOT, '.claude', 'workflows', 'fixtures', 'policy-rot', 'citations.md')
+
+function driveEntry(args) {
+  const r = spawnSync(process.execPath, [TARGET, ...args], {
+    cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
+  })
+  return { status: r.status, error: r.error, said: `${r.stdout || ''}\n${r.stderr || ''}` }
+}
+
+// `{ note }` when both ends hold, `{ fail }` when one does not -- so a control
+// that was never run can never print as a control that passed.
+function entryExitControl() {
+  const red = driveEntry([RED_ARM])
+  const redLine = (red.said.split('\n').find((l) => l.trim()) || '(no output)').trim().slice(0, 140)
+  if (red.error) {
+    return { fail: 'MUTANTS: the entry point could not be started ' +
+      `(${red.error.message}), so its exit status was NOT measured. An unmeasured control is not a ` +
+      'passing one.' }
+  }
+  if (red.status === 0) {
+    return { fail: 'MUTANTS: the entry point exited 0 on an input its own output calls red. ' +
+      `${ENTRY} ends in \`process.exit(errors > 0 || rc ? 1 : 0)\`, so an exit status that does not ` +
+      'track its findings -- `process.exit(0)` on that line, or any other unconditional status -- is ' +
+      'the required `policy-docs` context reporting green over a corpus the same run prints as red. ' +
+      `It said: ${redLine}` }
+  }
+  const green = driveEntry([])
+  if (green.error || green.status !== 0) {
+    return { fail: 'MUTANTS: the entry point exited ' +
+      `${green.error ? `with ${green.error.message}` : green.status} on the corpus as it stands. ` +
+      'The null control above passed in-process, so this lane does not believe the tree is red; an ' +
+      'entry that refuses a healthy corpus fails every arm below for free. First refusal: ' +
+      firstRefusal(green.said.split('\n')) }
+  }
+  return { note: `the exit status tracks the findings both ways: ${red.status} on the red fixture, ` +
+    "0 on the corpus as it stands, each driven as a process with this one's environment" }
+}
+
 async function main() {
   sweep()
   const srcs = new Map()
@@ -198,6 +283,14 @@ async function main() {
       `${control.rc}, so no mutant below proves anything. First refusal: ${firstRefusal(control.said)}`)
     return 1
   }
+
+  // The entry point's exit status, driven before anything is mutated. An entry
+  // that cannot refuse a red input makes every arm below unfalsifiable, which is
+  // the null control's own argument one step further out; the block above
+  // `main()` carries why it is a process and why it passes no override.
+  const entry = entryExitControl()
+  if (entry.fail) { console.log(entry.fail); return 1 }
+  rows.push({ lane: 'entry', name: 'exit-status', verdict: 'DRIVEN', why: entry.note })
 
   // A CHECK THE CLONE CANNOT EXERCISE IS NOT A CHECK THAT SURVIVED ITS DELETION.
   // In a clone with no `origin/main` the acceptance says so out loud and skips
@@ -277,7 +370,12 @@ async function main() {
   // its own line so an unmeasured check is never mistaken for a measured one,
   // which is the same stance `checkProvenance` takes about its own skip.
   const skips = rows.filter((r) => r.verdict === 'SKIP')
-  const bad = rows.filter((r) => r.verdict !== 'PIN' && r.verdict !== 'SKIP')
+  // `DRIVEN` joins `PIN` and `SKIP` as a verdict that is not a failure: it is the
+  // entry-point control's, printed in the same enumeration so a reader sees it
+  // ran. Named in the filter rather than left out of it, because a verdict
+  // arriving through the two that used to be here is how a lane starts reporting
+  // a control it no longer has.
+  const bad = rows.filter((r) => !['PIN', 'SKIP', 'DRIVEN'].includes(r.verdict))
   for (const r of skips) {
     console.log(`\nMUTANTS: \`${r.name}\` was NOT measured -- ${r.why}. An unmeasured check is not a passing one; this run does not certify it either way.`)
   }
