@@ -1305,7 +1305,8 @@ class SystemIdentification:
         # is near-singular (cond ~ 2e5) precisely because the drift column
         # is carried in the ΔT column. So `excursion` is part plant and part
         # uncorrected drift, and the audit adopted that drifted minority at
-        # median UA bias 0.281 (max 0.316) against a 0.024 no-drift null.
+        # median UA bias 0.281 (max 0.316) against a 0.026 no-drift cell
+        # (round-5 D2 harness: drift010_30min vs white002_30min, 30 seeds).
         # A window cannot separate the two when the fitted drift's own span
         # is a large share of the movement it is credited with, so the blend
         # weight is tempered by that share: a window the drift could have
@@ -1445,12 +1446,13 @@ class SystemIdentification:
             # plant". The audit measured that premise false (#1330): on the
             # heavy_old preset the predicate passes at k_s x100, and the
             # fallback then ADOPTS a one-state fit of the two-state plant at
-            # confidence 0.436 and +7.29 % UA bias -- of which the >2 h gap
-            # supplies 0.07 pp; the one-state estimator is +7.22 % biased on
-            # this plant with no gap at all, so the substitution, not the
-            # gap, is the error. The predicate check stays FIRST, because
-            # its naming is right for the slow-slab plants it refuses and
-            # the #942 protection must survive verbatim; the path it admits
+            # confidence 0.436 and +7.29 % UA bias (round-5 D7 harness,
+            # RESULT gap_settle_bias_heavy_old) -- the one-state regression
+            # is the model class the arm was declared against, so the
+            # substitution, not the gap, is the error. The predicate check
+            # stays FIRST, because its naming is right for the slow-slab
+            # plants it refuses and the #942 protection must survive
+            # verbatim; the path it admits
             # is refused BY NAME instead, with a reason about the slab mode
             # that caused it rather than about excitation.
             self._slab_fit_used = False
