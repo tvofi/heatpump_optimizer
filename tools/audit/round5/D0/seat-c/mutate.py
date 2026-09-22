@@ -27,10 +27,21 @@ the tree, so there is no M1 here. Its re-application instrument is
 ``refute_1293.py`` beside this file.
 
 EXPECTED redden, from `mutation_proof.sh`:
-  M3  exactly the #1295 checks -- the extra-candidate check (the seam's first
-      call carries one candidate fewer) and, where the handed-in plan is beaten
-      by the solve's own refinement set, the no-worse check.
+  M3  exactly ONE check -- the extra-candidate check, whose first seam call
+      then carries one candidate fewer (``cold [4]``, ``warm [4]``).  It is
+      the discriminating arm: the extra candidate's PRESENCE is what the knob
+      adds, and reverting the knob removes exactly that.
 No check outside the #1295 finding's name moves.
+
+The no-worse arm does NOT move here, and it is not claimed to. With the knob
+off, both arms run the same code on the same inputs and return the same
+objective (``warm 12.4354``, ``no-warm 12.4354``), so the bound is satisfied by
+equality. That arm is the DIRECTIONAL guarantee the old absolute-percentage
+check was re-cut into: an invariant of ``_multi_start_minimize`` -- a candidate
+added to the candidate set cannot raise the minimum -- and it is documented as
+an invariant beside the check rather than offered as a discriminator. The
+discriminating check is the structural one, and deleting the fix's production
+line is what reddens it.
 """
 import os
 import sys

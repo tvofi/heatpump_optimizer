@@ -449,7 +449,12 @@ R.check(
 # always refined and the multi-start minimum can only equal or improve it.
 # Exact (no slack) and BLAS-independent: both arms run the same code on the
 # same inputs, and the min over a candidate set that contains the cold optimum
-# cannot exceed it.
+# cannot exceed it. That makes this arm an INVARIANT rather than a
+# discriminator -- with the knob off both arms are the same run and the bound
+# holds by equality, so the mutation proof does not redden it. The check that
+# moves under the knob's own revert is the candidate-count check above; this
+# one pins the code's contract that a stale or wrong-shaped plan can lose,
+# never win.
 print(f" warm      : obj {_j15w:8.4f}")
 print(f" no-warm   : obj {_j15f:8.4f}")
 R.check(
