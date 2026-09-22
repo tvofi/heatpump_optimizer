@@ -20464,6 +20464,7 @@ _STATS_REWORK = json.loads(subprocess.run(
      "const synth = (bodies) => ({ prs: [{ pr: 1 }], fetched: new Map([[1,"
      "{ body: '', comments: bodies.map((b) => ({ body: b })) }]]) });"
      "console.log(JSON.stringify({"
+     "key: m.REWORK_CLASS,"
      "base: cell(load('tools/audit/round6/D13/fixtures/window_base.json'), "
      "'head-moved'),"
      "reshaped: cell(load('tools/audit/round6/D13/fixtures/reshaped.json'), "
@@ -20480,6 +20481,14 @@ def _rework_cell(arm):
     return _STATS_REWORK.get(arm) or {}
 
 
+R.check(
+    "the rework key is the class the wave teaches, so the histogram cannot key "
+    "a word no reviewer is told to write (#1405)",
+    _STATS_REWORK.get("key") in _VC_WORDS,
+    f"histogram rework key={_STATS_REWORK.get('key')!r}; wave "
+    f"VERDICT_CLASSES={_VC_WORDS} -- a key outside the wave's vocabulary is the "
+    "drift signal the block-class extraction check exists for, one row along",
+)
 R.check(
     "the stats histogram keys a rework round on a moved head as `head-moved`, "
     "the class the wave defines for it and the passing verdict hides (#1405)",
