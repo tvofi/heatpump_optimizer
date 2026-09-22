@@ -358,7 +358,7 @@ from .price_model import (
     pull_prices,
     quarters_from_entries,
 )
-from .sysid import SysIdConfig, SystemIdentification, slab_mode_identifiability
+from .sysid import SysIdConfig, SystemIdentification, UA_ADOPTION_HALFWIDTH_BAR, slab_mode_identifiability
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -10447,7 +10447,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _adopt_system_identification(self) -> None:
         """Seed the passive learners from a completed experiment."""
         result = self._sysid.result
-        if not result.completed or result.confidence < 0.3:
+        # #1410: adoption is decided by the fitted UA's own 95 % profile-
+        # likelihood interval (superseding the #942 residual-scatter gate):
+        # a fit whose UA is not pinned within +-10 % is refused, however
+        # plausible its residual looks.
+        hw = result.ua_profile_halfwidth
+        if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:
             return
         params = getattr(self, "_ctx", self)._thermal_params
         # #942: adoption is decided by identifiability -- a one-state fit of
@@ -10464,15 +10469,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if base_u <= 1e-6 or result.heat_loss_kw_per_c is None:
             return
         scale = result.heat_loss_kw_per_c / base_u
-        # A high-confidence experiment is a much better prior than weeks of
-        # ambiguous passive samples, but it is still one experiment: blend
-        # rather than overwrite, weighted by the fit quality.
-        blended = (
-            1.0 - result.confidence
-        ) * self._house_heat_loss_scale + result.confidence * scale
+        # The blend weight comes from the same interval as the gate: a fit at
+        # the bar adopts mildly, a pinned one at full weight.
+        weight = 1.0 - hw / UA_ADOPTION_HALFWIDTH_BAR
+        blended = (1.0 - weight) * self._house_heat_loss_scale + weight * scale
         self._apply_house_heat_loss_scale(blended)
         self._house_heat_loss_samples = max(
-            self._house_heat_loss_samples, int(20 * result.confidence)
+            self._house_heat_loss_samples, int(20 * weight)
         )
         self._sysid.result = replace(result, completed=False, reason="adopted")
         # Persist immediately: the whole point of an experiment is a result
