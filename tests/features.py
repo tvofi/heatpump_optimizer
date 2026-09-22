@@ -3599,6 +3599,75 @@ def _d0_restart_keeps_only_a_real_drop():
 _d0_restart_keeps_only_a_real_drop()
 
 
+def _d901_gil_yield_inside_run():
+    """R6-D9-01: the solve yields the GIL INSIDE a single L-BFGS-B run.
+
+    The eight between-run ``sleep(0.002)`` calls cannot bound the longest GIL
+    hold: they sit *between* runs, and the hold is set by the longest run.
+    The fix moves the yield into the objective (``_gil_yield``), so every
+    L-BFGS-B function evaluation releases the GIL on the solver thread. This
+    asserts that structurally -- the yield fires while inside a
+    ``_scoped_minimize`` call, on the executor thread -- not by wall clock.
+    """
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    real_minimize = _grad_optmod._scoped_minimize
+    real_yield = _grad_optmod._gil_yield
+
+    def obj(x, *_a):
+        d = np.asarray(x, dtype=float) - 1.0
+        return float(np.dot(d, d))
+
+    def batch_obj(mat, *_a):
+        d = np.asarray(mat, dtype=float) - 1.0
+        return np.einsum("ij,ij->i", d, d)
+
+    state = {"depth": 0, "inside": 0, "outside": 0, "threads": set()}
+
+    def tracking_minimize(*a, **k):
+        state["depth"] += 1
+        try:
+            return real_minimize(*a, **k)
+        finally:
+            state["depth"] -= 1
+
+    def tracking_yield():
+        if state["depth"] > 0:
+            state["inside"] += 1
+        else:
+            state["outside"] += 1
+        state["threads"].add(threading.get_ident())
+
+    _grad_optmod._scoped_minimize = tracking_minimize
+    _grad_optmod._gil_yield = tracking_yield
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            pool.submit(
+                _grad_optmod._multi_start_minimize,
+                obj, [np.zeros(6)], [(-2.0, 2.0)] * 6,
+                maxiter=15, batch_objective=batch_obj, fd_eps=1e-4,
+            ).result()
+    finally:
+        _grad_optmod._scoped_minimize = real_minimize
+        _grad_optmod._gil_yield = real_yield
+
+    main_tid = threading.main_thread().ident
+    R.check(
+        "D9-01 the solve yields the GIL inside a single L-BFGS-B run",
+        state["inside"] > 0,
+        f"in-run yields={state['inside']}, out-of-run yields={state['outside']}",
+    )
+    R.check(
+        "D9-01 the in-run yield fires on the worker thread, not the caller",
+        main_tid not in state["threads"],
+        f"yield threads={sorted(state['threads'])}, main={main_tid}",
+    )
+
+
+_d901_gil_yield_inside_run()
+
+
 # Space-only, uniform bounds (the historical five, unchanged).
 _grad_parity(False, label="single-zone")
 _grad_parity(True, label="two-zone")
