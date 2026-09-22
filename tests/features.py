@@ -4736,6 +4736,53 @@ below = battery_view.StorageComponent(
 )
 R.check("a store below its floor never reports negative energy", below.stored_kwh == 0.0)
 
+# D12-01 (#1404): the buffer/DHW guards keyed on `state.<field> is not None`
+# over floats that never become None, so a 35 L buffer the plant's own
+# `describe_setup()` reports as `is_store: false` was still published as a
+# storage component. The real signal is `buffer_is_store` (valve + volume) and
+# `dhw_enabled`, not the never-None temperature.
+_plain_p = ThermalParameters()
+_plain_s = ThermalState(
+    room_temperature=21.0, slab_temperature=23.0, outdoor_temperature=0.0,
+)
+_plain_v = battery_view.build(
+    _plain_p, _plain_s, comfort_min=19.0, comfort_max=23.0,
+    dhw_min=45.0, dhw_max=65.0, cop=3.2,
+)
+_plain_names = {c.name for c in _plain_v.components}
+R.check(
+    "a 35 L buffer without a valve is not published as a store",
+    "buffer_tank" not in _plain_names,
+    "buffer_is_store is False but the component was still listed",
+)
+R.check(
+    "a disabled DHW tank is not published",
+    "dhw_tank" not in _plain_names,
+    "dhw_enabled is False",
+)
+
+# Null controls: the fix drops only what is not a store, not every tank.
+_store_p = ThermalParameters(buffer_tank_volume=750.0, mixing_valve_mode="manual")
+_store_v = battery_view.build(
+    _store_p, _plain_s, comfort_min=19.0, comfort_max=23.0,
+    dhw_min=45.0, dhw_max=65.0, cop=3.2,
+)
+R.check(
+    "a store-sized throttled buffer IS published",
+    any(c.name == "buffer_tank" for c in _store_v.components),
+    "buffer_is_store is True",
+)
+_dhw_p = ThermalParameters(dhw_enabled=True)
+_dhw_v = battery_view.build(
+    _dhw_p, _plain_s, comfort_min=19.0, comfort_max=23.0,
+    dhw_min=45.0, dhw_max=65.0, cop=3.2,
+)
+R.check(
+    "an enabled DHW tank IS published",
+    any(c.name == "dhw_tank" for c in _dhw_v.components),
+    "dhw_enabled is True",
+)
+
 
 
 # ===========================================================================
@@ -34578,6 +34625,76 @@ R.check(
     "C_r*C_s/((C_r+C_s)*k_s) is 0.94/3.72/2.66 h on the shipped presets and "
     "under 0.04 h at k_s x100; the two-state fit rolls either plant, so "
     "neither the coupling nor the protocol's shortest phase is its bound",
+)
+
+# R6-D10-01 (#1401): the coverage ratchet's per-module floor
+# (tests/coverage_budgets.json module_percent_floor) holds every module at the
+# Silver rule's bar. sysid.py was the one module the package ratio had let fall
+# under it, and these guard paths are what the floor brought back under the
+# instrument -- each a direct call that reads the guard's own return value, not
+# a re-implementation of the arithmetic behind it.
+R.check(
+    "#1401: a degenerate slab triple gives tau_fast 0.0 (the helper's own guard)",
+    _SysIdModule.slab_mode_tau_fast(0.0, 1.0, 1.0) == 0.0
+    and _SysIdModule.slab_mode_tau_fast(1.0, 1.0, 1.0) > 0.0,
+)
+_g1401_one_state = _SysIdModule.slab_mode_one_state_identifiability(
+    0.0, 1.0, 1.0, _SysIdModule.SysIdConfig()
+)
+R.check(
+    "#1401: the one-state identifiability guard refuses unset slab constants "
+    "by name",
+    not _g1401_one_state[0]
+    and "slab constants not configured" in _g1401_one_state[1],
+    f"{_g1401_one_state!r}",
+)
+_g1401_refusal = _SysIdModule._slab_refusal(0.0, 400.0, 0.0, 200.0)
+R.check(
+    "#1401: the two-state fit's shared refusal still rejects an implausible sign",
+    _g1401_refusal is not None and "implausible signs" in _g1401_refusal.reason,
+    f"{_g1401_refusal!r}",
+)
+_g1401_short = _SysIdModule._slab_series(
+    [
+        _SysIdModule.SysIdSample(
+            when=NOW + timedelta(minutes=30 * i),
+            room_temp=20.0,
+            outdoor_temp=2.0,
+            power_kw=1.0,
+            phase=PHASE_ARMED,
+        )
+        for i in range(3)
+    ]
+)
+R.check(
+    "#1401: fewer than five intervals gives None (the one-state fit's own floor)",
+    _g1401_short is None,
+)
+_g1401_window = SystemIdentification(
+    _SysIdModule.SysIdConfig(enabled=True, start_hour=1, end_hour=5)
+)
+_g1401_window_ok, _g1401_window_why = _g1401_window.conditions_met(
+    datetime(2026, 2, 1, 3, 0, tzinfo=UTC), 2.0, 0.55, np.linspace(0.5, 2.0, 96), 5
+)
+R.check(
+    "#1401: a non-wrapping night window (start_hour <= end_hour) is honoured",
+    _g1401_window_ok,
+    _g1401_window_why,
+)
+_g1401_plant = ThermalParameters()
+# Set on the instance, as the g942 harness above does: the dataclass clamps a
+# non-positive room mass up on construction, so only the slab coupling can be
+# driven to zero here.
+_g1401_plant.slab_heat_transfer = 0.0
+_g1401_unseedable = SystemIdentification(_SysIdModule.SysIdConfig(enabled=True))
+_g1401_arm = _g1401_unseedable.arm(NOW, _g1401_plant)
+R.check(
+    "#1401: arming on a plant whose slab pair cannot be seeded is refused, "
+    "by name",
+    not _g1401_arm
+    and not _g1401_unseedable.result.completed
+    and "slab constants not configured" in _g1401_unseedable.result.reason,
+    f"{_g1401_unseedable.result.reason!r}",
 )
 
 

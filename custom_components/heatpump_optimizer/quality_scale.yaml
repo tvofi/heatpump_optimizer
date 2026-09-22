@@ -109,11 +109,13 @@ rules:
       re-truthed by #951 (R4-D10-01): the todo this row carried tracked
       issue #195, whose coverage tranches landed and the issue closed. The
       Silver rule asks that every module clear its bar; the standing
-      record is tests/coverage_budgets.json — the floor the
-      per-pull-request coverage job ratchets, over the same instrument
-      the residual tranche measured with — and tests/entities.py pins this
-      row to that floor, so the row cannot again disagree with the
-      measurement in either direction.
+      records are tests/coverage_budgets.json — the package floor and the
+      per-module floor the per-pull-request coverage job ratchets, over the
+      same instrument the residual tranche measured with — and
+      tests/entities.py pins this row to both, so the row cannot again
+      disagree with the measurement in either direction. The per-module
+      floor is #1401 (R6-D10-01): the package ratio alone could not see one
+      module fall, so the row is keyed to the lowest module's coverage too.
 
   # Gold
   devices: done
