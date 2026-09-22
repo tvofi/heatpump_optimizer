@@ -3363,19 +3363,20 @@ for _cls in (sensor.ThermalBatterySensor, sensor.ThermalBatteryEnergySensor):
         not _cls(_d801_blind, ENTRY).available,
         f"published {_cls(_d801_blind, ENTRY).native_value!r} from 55/40/22/21",
     )
+# A 35 L buffer with no valve is not a store (`buffer_is_store` is False), so
+# it is out of the view entirely (issue #1404) -- it is not merely "modelled",
+# it is absent. The remaining stores are named modelled, not dropped.
 R.check(
     "the view names every store it only modelled, rather than dropping them",
     set((_d801_blind_data.get("battery") or {}).get("modelled_components") or [])
-    == {"house", "slab", "dhw_tank", "buffer_tank"}
+    == {"house", "slab", "dhw_tank"}
     and not (_d801_blind_data.get("battery") or {}).get("measured_components"),
     str(_d801_blind_data.get("battery", {}).get("modelled_components")),
 )
 R.check(
-    "and the figures themselves are left alone, so no recorded series is "
-    "silently rescaled",
-    (_d801_blind_data.get("battery") or {}).get("state_of_charge_percent") == 86.8,
-    "dropping a component would change the SOC denominator for every "
-    "partly-probed install",
+    "and the reported charge drops the non-store buffer from its denominator",
+    (_d801_blind_data.get("battery") or {}).get("state_of_charge_percent") == 88.4,
+    "a 35 L tank with no valve is not a store, so it no longer pads the SOC",
 )
 R.check(
     "the energy sensor carries the same disclosure in its own attributes",
@@ -3525,7 +3526,7 @@ R.check(
 R.check(
     "with the stores it only modelled named rather than dropped",
     set((_d801_indoor_only.get("battery") or {}).get("modelled_components") or [])
-    == {"slab", "dhw_tank", "buffer_tank"},
+    == {"slab", "dhw_tank"},
     str((_d801_indoor_only.get("battery") or {}).get("modelled_components")),
 )
 
