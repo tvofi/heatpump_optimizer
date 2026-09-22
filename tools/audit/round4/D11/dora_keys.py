@@ -26,6 +26,27 @@ repository produced 1000 push-event runs on `main` in five days, so anything
 older is truncated and a longer window would silently under-count reds. The
 window starts one day inside the truncation boundary.
 
+THE D13 RE-TAKE: THE CHANGE-FAILURE RATE IS REPORTED AT BOTH KEYINGS. The
+D13 brief (#4) re-takes the rate PER CHECK-RUN NAME, "then without the jobs on
+an exclusion list of by-design reds" (`.claude/workflows/cfr_exclusions.json`).
+A merge is judged at two surfaces and they are not the same population: a check
+that is `if: github.event_name != 'pull_request'` is SKIPPED at the pull-request
+head and RUNS at the merge commit, and vice versa. D13-03 (#1407) established
+that the exclusion list is keyed at the SURFACE THAT CANNOT GATE A MERGE --
+`record` fails at 58 of the window's 67 merge commits but is skipped at all 67
+pull-request heads -- so dropping it moves the merge-keyed rate and leaves the
+head-keyed rate, the surface a merge is actually gated on, exactly where it was.
+Reporting one number hides that; the block below prints both, and neither the
+list nor its keying changes here. `cfr_merge_keyed` is the excluded rate at the
+merge commit, `cfr_head_keyed` the excluded rate at the pull-request head, and
+`cfr_merge_unexcluded` / `cfr_head_unexcluded` the same two before the
+exclusion, so the delta the exclusion buys is visible on each keying.
+
+   D13 window `v6.6.0..e336cc2c` (67 merges): cfr_merge_keyed=0.09
+   cfr_head_keyed=0.134 cfr_merge_unexcluded=0.925 cfr_head_unexcluded=0.134.
+   The head keying does not move because neither `nightly-status` (7 of 67
+   heads) nor `delivery-status` (2 of 67) is excluded, and must not be.
+
 COMMAND (from the repository root):
   PYTHONPATH=tests/hastub python3 tools/audit/round4/D11/dora_keys.py
 
@@ -42,6 +63,7 @@ a constant rather than the run history.
 
 import collections
 import datetime
+import json
 import os
 import re
 import sys
@@ -51,6 +73,71 @@ import d11lib as L  # noqa: E402
 
 W0 = os.environ.get("D11_WINDOW_START", "2026-09-08T00:00:00Z")
 W1 = os.environ.get("D11_WINDOW_END", "2026-09-12T10:44:12Z")
+
+# The D13 re-take's window and its registered exclusion artifact. The window is
+# pinned to the finding's baseline (D13-03 measured at `e336cc2c`, the round-6
+# baseline) the way every audit instrument pins its baseline: the number is a
+# statement about the repository at a fixed commit, so a re-run next week
+# reproduces it rather than tracking a moving `main`. Override either with
+# D13_SINCE / D13_HEAD to re-take at a later head.
+D13_SINCE = os.environ.get("D13_SINCE", "v6.6.0")
+D13_HEAD = os.environ.get(
+    "D13_HEAD", "e336cc2c530882a142ef298de6420706d96a6300")
+CFR_EXCLUSIONS = ".claude/workflows/cfr_exclusions.json"
+
+
+def latest_by_name(runs):
+    """{name: run} keeping the LATEST run (by started_at) per check-run name."""
+    out = {}
+    for r in runs:
+        n = r["name"]
+        if n not in out or (r.get("started_at") or "") > (
+                out[n].get("started_at") or ""):
+            out[n] = r
+    return out
+
+
+def load_exclusions(root=None):
+    """The `excluded_jobs` map, FAILING CLOSED when the artifact is unreadable.
+
+    A rate reported "minus the by-design reds" must not silently exclude
+    nothing when the list it names is missing: that would publish the
+    un-excluded rate under the excluded rate's name. A missing, malformed or
+    empty artifact raises rather than degrading to `exclude nobody` (the same
+    fail-closed read `.claude/workflows/cfr_exclusions.json`'s owning
+    instrument, tools/audit/round5/D13/seat-a/dora_cfr.py, performs)."""
+    base = root if root is not None else L.git(
+        "rev-parse", "--show-toplevel").strip()
+    with open(os.path.join(base, CFR_EXCLUSIONS)) as fh:
+        payload = json.load(fh)
+    excl = payload.get("excluded_jobs")
+    if not isinstance(excl, dict) or not excl:
+        raise SystemExit(
+            f"{os.path.join(base, CFR_EXCLUSIONS)}: no `excluded_jobs` map")
+    return excl
+
+
+def cfr_keyings(merge_fail, head_fail, excluded, n):
+    """The change-failure rate at BOTH keyings, and both before the exclusion.
+
+    `merge_fail` / `head_fail` map a pull-request number to the set of
+    check-run names whose LATEST run at, respectively, its merge commit and
+    its pull-request head concluded `failure`. Both are reported because
+    `.claude/workflows/cfr_exclusions.json` narrows ONE of them: the merge
+    keying is where the list acts, and the head keying is the surface the
+    merge is actually gated on, so a reader can see the narrowing move one
+    number and leave the other where it was.
+
+    Returns {merge_keyed, head_keyed, merge_unexcluded, head_unexcluded}."""
+    def rate(m, drop):
+        return round(
+            sum(1 for names in m.values() if names - drop) / n, 3) if n else 0.0
+    return {
+        "merge_keyed": rate(merge_fail, excluded),
+        "head_keyed": rate(head_fail, excluded),
+        "merge_unexcluded": rate(merge_fail, set()),
+        "head_unexcluded": rate(head_fail, set()),
+    }
 
 
 def t(ts):
@@ -178,6 +265,43 @@ def main():
             L.result(f"ttr_max_h_{wf}", round(durs[-1], 2), "h")
     L.result("governance_failing_job_record", jobc.get("record", 0))
     L.result("governance_failing_job_sample", sampled)
+
+    # ---- D13 re-take: change failure PER CHECK-RUN NAME, both keyings -------
+    # See the header. The exclusion artifact is READ (fail-closed), never
+    # edited: an excluded name is a narrowing of the metric and this block
+    # reports what the narrowing does at each surface rather than widening it.
+    root = L.git("rev-parse", "--show-toplevel").strip()
+    excl = load_exclusions(root=root)
+    cut = set(L.git("log", "--first-parent", "--format=%H",
+                    f"{D13_SINCE}..{D13_HEAD}", root=root).split())
+    merge_fail, head_fail = {}, {}
+    for num, p in L.merged_prs().items():
+        mc = (p.get("mergeCommit") or {}).get("oid")
+        if mc not in cut:
+            continue
+        head = p.get("headRefOid")
+        merge_fail[num] = {
+            r["name"] for r in latest_by_name(L.check_runs(mc) or []).values()
+            if r.get("conclusion") == "failure"}
+        head_fail[num] = {
+            r["name"] for r in latest_by_name(
+                L.check_runs(head) or []).values()
+            if r.get("conclusion") == "failure"} if head else set()
+    n13 = len(merge_fail)
+    merge_names = collections.Counter(
+        name for names in merge_fail.values() for name in names)
+    head_names = collections.Counter(
+        name for names in head_fail.values() for name in names)
+    print(f"\nD13 window {D13_SINCE}..{D13_HEAD[:10]}: {n13} window merges; "
+          f"exclusion list {sorted(excl)}")
+    print(f"  failing AT THE MERGE COMMIT: {dict(merge_names)}")
+    print(f"  failing AT THE PR HEAD:      {dict(head_names)}")
+    L.result("d13_window_merges", n13)
+    L.result("d13_window", f"{D13_SINCE}..{D13_HEAD[:10]}")
+    L.result("cfr_exclusions", json.dumps(sorted(excl)))
+    for key, value in cfr_keyings(
+            merge_fail, head_fail, set(excl), n13).items():
+        L.result(f"cfr_{key}", value)
     L.footer()
 
 
