@@ -3573,6 +3573,51 @@ for _cls in (
         "the gate must be able to open, or it is not a gate",
     )
 
+# #1398: the registry default follows the gate rather than a blanket off. The
+# five non-temperature hot-water entities are enabled by default exactly where
+# there is hot water -- a fresh no-hot-water install ships no dead enabled
+# entities, and a fresh hot-water install keeps its card plan and the Energy
+# dashboard's DHW meters on. The probe-gated temperature sensor stays off
+# regardless, because its gate is the optional tank probe, not hot water.
+for _cls in (
+    sensor.DHWScheduleSensor,
+    sensor.DHWHeatingCostSensor,
+    sensor.DHWHeatingPlanSensor,
+    sensor.DHWEnergySensor,
+    sensor.DHWCostSensor,
+):
+    R.check(
+        f"{_cls.__name__} is disabled by default with no hot water (#1398)",
+        not _cls(_no_dhw_fake, ENTRY).entity_registry_enabled_default,
+        "a fresh no-hot-water install would ship a dead entity",
+    )
+    R.check(
+        f"{_cls.__name__} is enabled by default once hot water is configured (#1398)",
+        _cls(_dhw_on_fake, ENTRY).entity_registry_enabled_default,
+        "the card plan and Energy-dashboard meters must stay on for hot-water installs",
+    )
+R.check(
+    "the probe-gated temperature sensor stays off by default even with hot water",
+    not sensor.DHWTemperatureSensor(_dhw_on_fake, ENTRY).entity_registry_enabled_default,
+    "it is gated on the optional tank probe, not on hot water",
+)
+
+# The registry reads the default before the first refresh, when the payload is
+# not yet built, so production derives dhw_enabled from the config via
+# _thermal_params. The FakeCoordinator checks above exercise the .data fallback;
+# pin the real-coordinator path at both ends too.
+_on_hass, _on_coord, _on = _honest_coordinator()
+R.check(
+    "the real coordinator derives the same off default from config (#1398)",
+    not sensor.DHWHeatingPlanSensor(_no_dhw_coord, ENTRY).entity_registry_enabled_default,
+    "the _thermal_params path must agree with the payload path",
+)
+R.check(
+    "the real coordinator derives the same on default from config (#1398)",
+    sensor.DHWHeatingPlanSensor(_on_coord, ENTRY).entity_registry_enabled_default,
+    "the _thermal_params path must agree with the payload path",
+)
+
 # --- unknown-versus-broken --------------------------------------------------
 R.section("Waiting for evidence is not the same as broken")
 
@@ -7745,14 +7790,6 @@ _expected_disabled = {
     "lower_floor_temp",
     "buffer_tank_temp",
     "slab_temp",
-    # #1398: the rest of the hot-water family, gated on ``dhw_enabled``
-    # rather than a probe -- dead whenever the install has no hot water, so
-    # disabled by default like their probe-gated sibling ``dhw_temperature``.
-    "dhw_schedule",
-    "dhw_heating_cost",
-    "dhw_heating_plan",
-    "dhw_energy",
-    "dhw_cost_total",
 }
 _actually_disabled = {
     s._key
@@ -8110,34 +8147,24 @@ def _ord_state(e):
     return None
 
 
-# A disabled-by-default entity must be dead (unavailable or stateless) on
-# the ordinary install, or its default-off hides a working sensor from a
-# fresh install. Two named exception families, each dead on a different
-# install:
-#
-# * the ECL110 pair is ungated and publishes the 0.0 placeholder, so it is
-#   alive here and disabled for its own reason (its own comment: "disabled,
-#   not a forever-unknown entity");
-# * the hot-water family is gated on ``dhw_enabled``, so it is alive on the
-#   ordinary (hot-water) install and dead only where there is no hot water
-#   -- the install its default-off hides it from (#1398). That death is what
-#   the ``_ord_no_dhw_dead`` check below pins, not this population.
+# The ECL110 pair is the one disabled member that is NOT dead on the
+# ordinary install: it has no availability gate at all and publishes the
+# 0.0 placeholder, which is exactly why its default is off (its own
+# comment: "disabled, not a forever-unknown entity"). Every other disabled
+# entity must be unavailable or stateless there — that is the measured
+# cause its default is off, and a sensor flipped without one fails here.
 _ECL110_UNGATED = {"ecl110_displace", "ecl110_effective_displace"}
-_DHW_MIXIN_KEYS = {
-    s._key for s in sensors if isinstance(s, sensor._DHWEntityMixin)
-}
 _ord_dead = sorted(
     e._key
     for e in _ord_entities
     if not _ord_default_on(e)
     and e._key not in _ECL110_UNGATED
-    and e._key not in _DHW_MIXIN_KEYS
     and e.available
     and _ord_state(e) is not None
 )
 R.check(
     "every disabled-by-default entity is dead on the ordinary install,"
-    " save the ungated ECL110 pair and the hot-water family (#177, #1335, #1398)",
+    " save the ungated ECL110 pair (#177, #1335)",
     not _ord_dead,
     f"alive while disabled: {_ord_dead}",
 )
@@ -8149,17 +8176,6 @@ R.check(
         if getattr(e, "_key", None) in _ECL110_UNGATED
     ),
     "an ECL110 sensor grew an availability gate; re-cut the exception",
-)
-_ord_no_dhw_dead = sorted(
-    e._key
-    for e in collect(sensor, data=_no_dhw)
-    if isinstance(e, sensor._DHWEntityMixin) and not e.available
-)
-R.check(
-    "the hot-water family is dead without hot water, the cause its default is off (#1398)",
-    _ord_no_dhw_dead == sorted(_DHW_MIXIN_KEYS),
-    f"available without hot water: "
-    f"{sorted(set(_DHW_MIXIN_KEYS) - set(_ord_no_dhw_dead))}",
 )
 _ord_shipped_dead = sorted(
     e.entity_id
@@ -8194,12 +8210,10 @@ _card_ids |= {
 _card_disabled = sorted(
     eid
     for eid in _card_ids
-    if eid in _ord_by_id
-    and not _ord_default_on(_ord_by_id[eid])
-    and _ord_by_id[eid]._key not in _DHW_MIXIN_KEYS
+    if eid in _ord_by_id and not _ord_default_on(_ord_by_id[eid])
 )
 R.check(
-    "nothing the card addresses is disabled by default, save the hot-water family (#1335, #1398)",
+    "nothing the card addresses is disabled by default (#1335)",
     not _card_disabled,
     f"card dependency disabled: {_card_disabled}",
 )
@@ -8226,11 +8240,9 @@ _readme_disabled = sorted(
     for key in _readme_first_hour
     if f"sensor.heat_pump_optimizer_{key}" in _ord_by_id
     and not _ord_default_on(_ord_by_id[f"sensor.heat_pump_optimizer_{key}"])
-    and _ord_by_id[f"sensor.heat_pump_optimizer_{key}"]._key not in _DHW_MIXIN_KEYS
 )
 R.check(
-    "nothing the README's first-hour rows name is disabled by default,"
-    " save the hot-water family (#1335, #1398)",
+    "nothing the README's first-hour rows name is disabled by default (#1335)",
     not _readme_disabled,
     f"README card entity disabled: {_readme_disabled}",
 )
