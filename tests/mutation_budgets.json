@@ -4,7 +4,7 @@
     "changed": 0.2,
     "full": 0.3
   },
-  "unpinned_sites": 3786,
+  "unpinned_sites": 3785,
   "last_measured": {
     "changed": {
       "survivors": 2,
@@ -50,7 +50,7 @@
       "old": "        if task is not None and hasattr(task, \"cancel\"):",
       "reason": "hass.async_create_task (homeassistant.core.HomeAssistant.async_create_task) returns an asyncio.Task, which always carries cancel; the OR form differs only for a non-None object without a cancel attribute, which that return cannot be -- round-5 D3-07."
     },
-    "custom_components/heatpump_optimizer/optimizer.py:3564 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/optimizer.py:3565 GUARD_OFF": {
       "verdict": "equivalent",
       "old": "        if changed:",
       "reason": "void mutant, round-6 D3-03 (#1385): the guard fences only a `_LOGGER.debug(...)` call; the function's `return changed` sits OUTSIDE the if, so `if changed:` -> `if True:` differs only in whether a debug line logs, which no check reads. No honest test should fail on this mutant."
@@ -91,7 +91,22 @@
       "killed_by": "tests/features.py",
       "old": "        floor = min(p.dhw_inlet_reference, ambient_temp)",
       "reason": "arrived with origin/main, commit 7eeea4d90 (D2-02: clamp the DHW inlet floor to the tank surroundings). Dropping the `min` clamp raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/sensor.py:427 GUARD_OFF": {
+      "killed_by": "tests/entities.py",
+      "old": "        if getattr(self, \"_attr_entity_registry_enabled_default\", True) is False:",
+      "reason": "arrived with origin/main, commit 5ae066a0 (fix(D8): make the hot-water registry default conditional on dhw_enabled, #1398). `if getattr(self, \"_attr_entity_registry_enabled_default\", True) is False:` -> `if False:` drops the static-default-off early return, so DHWTemperatureSensor -- which sets that attribute -- reports the hot water default instead of False, and tests/entities.py goes from rc=0 failed=0 to rc=1 failed=1. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/sensor.py:430 GUARD_OFF": {
+      "killed_by": "tests/entities.py",
+      "old": "        if params is not None:",
+      "reason": "arrived with origin/main, commit 5ae066a0 (fix(D8): make the hot-water registry default conditional on dhw_enabled, #1398). `if params is not None:` -> `if False:` skips the `_thermal_params` path the registry reads before the first refresh and falls back to `data`, where the real-coordinator checks of #1398 have no `dhw_enabled`: tests/entities.py goes from rc=0 failed=0 to rc=1 failed=1. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/sensor.py:432 RETURN_DEL": {
+      "killed_by": "tests/entities.py",
+      "old": "        return bool((self.coordinator.data or {}).get(\"dhw_enabled\", False))",
+      "reason": "arrived with origin/main, commit 5ae066a0 (fix(D8): make the hot-water registry default conditional on dhw_enabled, #1398). Removing the `data` fallback return makes the property fall off the end and answer None, so every hot-water entity whose registry default the payload path decides goes off and tests/entities.py goes from rc=0 failed=0 to rc=1 failed=5. Measured at the post-main head, 2026-09-22."
     }
   },
-  "reason": "max_survivor_fraction was OPEN at 1.0 and therefore unsatisfiable: rate = survivors/evaluated is a fraction in [0,1], so `if rate > 1.0` can never fire and a run in which every mutant survives printed PASSED. The caps are now recorded at the last measured rates -- 0.2 (2 survivors of 10) and 0.3 (12 of 40) -- so they are saturable. The ratchet is the exact-count `unpinned_sites`: 3796 candidate sites enumerated deterministically over all 64 production modules, of which 3786 carry no recorded disposition (3 are triaged equivalent: pump_mode.py:242, __init__.py:340, optimizer.py:3564; 7 are killed by tests/features.py, recorded under `killed_by`). The two surviving sites the disposition pass measured -- defrost.py:310 GUARD_OFF and sysid.py:1522 GUARD_OFF, both added with origin/main -- stay unpinned on purpose: nothing in the recorded driver net kills them yet, and an unmarked survivor is a gap rather than an equivalence. The nightly burn-in kills or triages them in cost order, and each disposition must name the mechanism; the ratchet refuses any NEW site without one. Do not raise `unpinned_sites` by hand: the exact count is re-derived every run by tests/mutation_table.py, which refuses growth and only records down via --record."
+  "reason": "max_survivor_fraction was OPEN at 1.0 and therefore unsatisfiable: rate = survivors/evaluated is a fraction in [0,1], so `if rate > 1.0` can never fire and a run in which every mutant survives printed PASSED. The caps are now recorded at the last measured rates -- 0.2 (2 survivors of 10) and 0.3 (12 of 40) -- so they are saturable. The ratchet is the exact-count `unpinned_sites`: 3798 candidate sites enumerated deterministically over all 64 production modules, of which 3785 carry no recorded disposition (3 are triaged equivalent: pump_mode.py:242, __init__.py:340, optimizer.py:3565; 10 are killed -- 7 by tests/features.py: battery.py:320, battery.py:341, defrost.py:166, defrost.py:169, defrost.py:171, defrost.py:172, thermal_model.py:1894, and 3 by tests/entities.py: sensor.py:427, sensor.py:430, sensor.py:432 -- recorded under `killed_by`). The two surviving sites the disposition pass measured -- defrost.py:310 GUARD_OFF and sysid.py:1522 GUARD_OFF, both added with origin/main -- stay unpinned on purpose: nothing in the recorded driver net kills them yet, and an unmarked survivor is a gap rather than an equivalence. The nightly burn-in kills or triages them in cost order, and each disposition must name the mechanism; the ratchet refuses any NEW site without one. Do not raise `unpinned_sites` by hand: the exact count is re-derived every run by tests/mutation_table.py, which refuses growth and only records down via --record."
 }
