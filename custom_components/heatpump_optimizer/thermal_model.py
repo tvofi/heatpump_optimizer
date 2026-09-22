@@ -1881,13 +1881,17 @@ class ThermalModel:
             dT = dT_cap
         new_temp = dhw_temp + dT * dt_hours
 
-        # Physical bounds (can't go below the cold water inlet). With the
-        # scaled draw this floor is a genuine no-op safety bound — the draw
-        # vanishes as the tank approaches the inlet, and the tank's ambient
-        # (20 °C) sits above the inlet so standby "loss" warms a colder tank.
-        # Any heat it does have to fabricate is booked so the energy balance
-        # stays honest instead of silently created.
-        floor = p.dhw_inlet_reference
+        # Physical bound: the tank cannot fall below its surroundings, which
+        # sit at `ambient_temp` (20 °C indoors), nor below the cold-water inlet
+        # it refills at — whichever is lower. With the scaled draw the floor is
+        # a genuine no-op safety bound: the draw vanishes as the tank
+        # approaches the inlet, and an inlet below ambient is warmed by its own
+        # standby "loss". The bound is clamped to ambient because an inlet
+        # above ambient would otherwise pin the tank there and turn the floor
+        # into a heat source with no physical origin (R6-D2-02). Any heat the
+        # bound does have to fabricate is booked so the energy balance stays
+        # honest instead of silently created.
+        floor = min(p.dhw_inlet_reference, ambient_temp)
         if new_temp < floor:
             self._step_dhw_floor_injected = (
                 (floor - new_temp) * C_dhw / max(dt_hours, 1e-6)

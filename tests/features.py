@@ -2379,6 +2379,30 @@ R.check(
     DefrostDerate.from_dict({"factors": "nonsense"}).factor(2.0, 85.0) == 1.0,
 )
 
+# The factor is a function of two continuous inputs -- outdoor temperature and
+# relative humidity -- so it must not step at a bucket edge (R6-D2-01 / #1381):
+# a fully-earned duty folded into one bucket must not make the COP every plan
+# prices through jump by a whole derate across a 1e-9 change in either input.
+_cont = DefrostDerate()
+for _ in range(200):
+    _cont.observe_duty(1.0, 90.0, 0.30)  # fully-earned measured duty, bucket (2, 1)
+R.check(
+    "the derate factor is continuous across a temperature bucket edge",
+    abs(_cont.factor(1e-9, 90.0) - _cont.factor(-1e-9, 90.0)) < 1e-6,
+    f"step {abs(_cont.factor(1e-9, 90.0) - _cont.factor(-1e-9, 90.0)):.6f} at 0 C",
+)
+R.check(
+    "the derate factor is continuous across a humidity bucket edge",
+    abs(_cont.factor(1.0, 70.0 + 1e-9) - _cont.factor(1.0, 70.0 - 1e-9)) < 1e-6,
+    f"step {abs(_cont.factor(1.0, 70.0 + 1e-9) - _cont.factor(1.0, 70.0 - 1e-9)):.6f} "
+    f"at 70 % RH",
+)
+R.check(
+    "and continuity is reached by interpolation, not by disabling the derate",
+    _cont.factor(1.0, 90.0) < 0.6,
+    f"factor {_cont.factor(1.0, 90.0):.4f} — the learned bucket must still derate",
+)
+
 # The derate has to actually reach the COP the optimizer prices plans through.
 params = ThermalParameters()
 model = ThermalModel(params)
@@ -3599,6 +3623,75 @@ def _d0_restart_keeps_only_a_real_drop():
 _d0_restart_keeps_only_a_real_drop()
 
 
+def _d901_gil_yield_inside_run():
+    """R6-D9-01: the solve yields the GIL INSIDE a single L-BFGS-B run.
+
+    The eight between-run ``sleep(0.002)`` calls cannot bound the longest GIL
+    hold: they sit *between* runs, and the hold is set by the longest run.
+    The fix moves the yield into the objective (``_gil_yield``), so every
+    L-BFGS-B function evaluation releases the GIL on the solver thread. This
+    asserts that structurally -- the yield fires while inside a
+    ``_scoped_minimize`` call, on the executor thread -- not by wall clock.
+    """
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    real_minimize = _grad_optmod._scoped_minimize
+    real_yield = _grad_optmod._gil_yield
+
+    def obj(x, *_a):
+        d = np.asarray(x, dtype=float) - 1.0
+        return float(np.dot(d, d))
+
+    def batch_obj(mat, *_a):
+        d = np.asarray(mat, dtype=float) - 1.0
+        return np.einsum("ij,ij->i", d, d)
+
+    state = {"depth": 0, "inside": 0, "outside": 0, "threads": set()}
+
+    def tracking_minimize(*a, **k):
+        state["depth"] += 1
+        try:
+            return real_minimize(*a, **k)
+        finally:
+            state["depth"] -= 1
+
+    def tracking_yield():
+        if state["depth"] > 0:
+            state["inside"] += 1
+        else:
+            state["outside"] += 1
+        state["threads"].add(threading.get_ident())
+
+    _grad_optmod._scoped_minimize = tracking_minimize
+    _grad_optmod._gil_yield = tracking_yield
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            pool.submit(
+                _grad_optmod._multi_start_minimize,
+                obj, [np.zeros(6)], [(-2.0, 2.0)] * 6,
+                maxiter=15, batch_objective=batch_obj, fd_eps=1e-4,
+            ).result()
+    finally:
+        _grad_optmod._scoped_minimize = real_minimize
+        _grad_optmod._gil_yield = real_yield
+
+    main_tid = threading.main_thread().ident
+    R.check(
+        "D9-01 the solve yields the GIL inside a single L-BFGS-B run",
+        state["inside"] > 0,
+        f"in-run yields={state['inside']}, out-of-run yields={state['outside']}",
+    )
+    R.check(
+        "D9-01 the in-run yield fires on the worker thread, not the caller",
+        main_tid not in state["threads"],
+        f"yield threads={sorted(state['threads'])}, main={main_tid}",
+    )
+
+
+_d901_gil_yield_inside_run()
+
+
 # Space-only, uniform bounds (the historical five, unchanged).
 _grad_parity(False, label="single-zone")
 _grad_parity(True, label="two-zone")
@@ -4642,6 +4735,53 @@ below = battery_view.StorageComponent(
     min_temperature=19.0, max_temperature=23.0,
 )
 R.check("a store below its floor never reports negative energy", below.stored_kwh == 0.0)
+
+# D12-01 (#1404): the buffer/DHW guards keyed on `state.<field> is not None`
+# over floats that never become None, so a 35 L buffer the plant's own
+# `describe_setup()` reports as `is_store: false` was still published as a
+# storage component. The real signal is `buffer_is_store` (valve + volume) and
+# `dhw_enabled`, not the never-None temperature.
+_plain_p = ThermalParameters()
+_plain_s = ThermalState(
+    room_temperature=21.0, slab_temperature=23.0, outdoor_temperature=0.0,
+)
+_plain_v = battery_view.build(
+    _plain_p, _plain_s, comfort_min=19.0, comfort_max=23.0,
+    dhw_min=45.0, dhw_max=65.0, cop=3.2,
+)
+_plain_names = {c.name for c in _plain_v.components}
+R.check(
+    "a 35 L buffer without a valve is not published as a store",
+    "buffer_tank" not in _plain_names,
+    "buffer_is_store is False but the component was still listed",
+)
+R.check(
+    "a disabled DHW tank is not published",
+    "dhw_tank" not in _plain_names,
+    "dhw_enabled is False",
+)
+
+# Null controls: the fix drops only what is not a store, not every tank.
+_store_p = ThermalParameters(buffer_tank_volume=750.0, mixing_valve_mode="manual")
+_store_v = battery_view.build(
+    _store_p, _plain_s, comfort_min=19.0, comfort_max=23.0,
+    dhw_min=45.0, dhw_max=65.0, cop=3.2,
+)
+R.check(
+    "a store-sized throttled buffer IS published",
+    any(c.name == "buffer_tank" for c in _store_v.components),
+    "buffer_is_store is True",
+)
+_dhw_p = ThermalParameters(dhw_enabled=True)
+_dhw_v = battery_view.build(
+    _dhw_p, _plain_s, comfort_min=19.0, comfort_max=23.0,
+    dhw_min=45.0, dhw_max=65.0, cop=3.2,
+)
+R.check(
+    "an enabled DHW tank IS published",
+    any(c.name == "dhw_tank" for c in _dhw_v.components),
+    "dhw_enabled is True",
+)
 
 
 
@@ -13392,8 +13532,10 @@ _dr.counts[0][1] = 20
 _tm21 = ThermalModel(ThermalParameters(defrost_derate=_dr, ambient_humidity=40.0))
 R.check(
     "the forecast humidity selects the derate bucket per step",
-    abs(_tm21.compute_cop(1.0, humidity=90.0) / _tm21.compute_cop(1.0, humidity=40.0) - 0.6)
+    abs(_tm21.compute_cop(1.0, humidity=90.0) / _tm21.compute_cop(1.0, humidity=35.0) - 0.6)
     < 1e-9,
+    # 35.0 % is the dry bucket's centre: the factor interpolates between bucket
+    # centres now, so the dry value (1.0) is read exactly there.
 )
 R.check(
     "NaN humidity falls back exactly like an absent argument",
@@ -18074,6 +18216,36 @@ R.check(
     f"72 °C cooled to {_over:.2f} °C — only the charging direction is clamped",
 )
 
+# R6-D2-02: the inlet floor must not manufacture heat above the tank's
+# surroundings. The floor is a lower bound, and the tank stands in a room at
+# DHW_AMBIENT_TEMP (20 °C); a configured or sensor-supplied inlet reference
+# above that room turns the bound into a source that pins the tank at the
+# inlet and books the fabricated heat on _step_dhw_floor_injected. The floor
+# belongs at min(inlet_reference, ambient), where an unheated tank settles of
+# its own accord and nothing needs injecting.
+_ff_p = ThermalParameters(dhw_tank_volume=300.0)
+_ff_p.dhw_inlet_current = 25.0  # the shipped config surface allows inlet <= 25 °C
+_ff_m = ThermalModel(_ff_p)
+_ff_temp = _ff_m.params.dhw_inlet_reference
+_ff_free = 0.0
+for _i in range(96):
+    _ff_temp = _ff_m.simulate_dhw_step(
+        _ff_temp, 0.0, _i * 0.25, dt_hours=0.25
+    )
+    _ff_free += _ff_m._step_dhw_floor_injected * 0.25
+R.check(
+    "an inlet above the tank's surroundings manufactures no heat over 24 h",
+    _ff_free == 0.0,
+    f"injected {_ff_free:.4f} kWh/day with inlet "
+    f"{_ff_m.params.dhw_inlet_reference:.1f} °C",
+)
+R.check(
+    "the tank is not pinned at the inlet: it settles toward its surroundings",
+    _ff_temp < _ff_m.params.dhw_inlet_reference - 0.5,
+    f"ended {_ff_temp:.1f} °C against inlet "
+    f"{_ff_m.params.dhw_inlet_reference:.1f} °C",
+)
+
 # One inlet reference everywhere: the coil split loses its hardcoded 10 °C.
 _red_d, _coil_d = _coil_split(2.0, 40.0, 55.0)
 R.check(
@@ -22645,19 +22817,23 @@ R.check(
     derate_from_duty(1.0) >= 0.55,
 )
 
+# (3.5, 85.5) is the centre of bucket (3, 1), the bucket (2.0, 80.0) lands in;
+# factor() interpolates between bucket centres now, so the learned value is
+# read exactly at the centre and these checks keep asking about the estimator,
+# not the interpolant.
 _meas = DefrostDerate()
 for _ in range(40):
     _meas.observe_duty(2.0, 80.0, 0.10, events=1)
 R.check(
     "a measured bucket derates from its counted duty",
-    _meas.measured(2.0, 80.0)
-    and abs(_meas.factor(2.0, 80.0) - derate_from_duty(0.10)) < 0.01,
-    f"factor {_meas.factor(2.0, 80.0):.4f} vs {derate_from_duty(0.10):.4f}",
+    _meas.measured(3.5, 85.5)
+    and abs(_meas.factor(3.5, 85.5) - derate_from_duty(0.10)) < 0.01,
+    f"factor {_meas.factor(3.5, 85.5):.4f} vs {derate_from_duty(0.10):.4f}",
 )
 _meas.observe(2.0, 80.0, 1.4)
 R.check(
     "and a measurement is never averaged with an inference of the same thing",
-    abs(_meas.factor(2.0, 80.0) - derate_from_duty(0.10)) < 0.01,
+    abs(_meas.factor(3.5, 85.5) - derate_from_duty(0.10)) < 0.01,
     "mixing them produces a number that is neither, the more so when the "
     "inference is known to be biased",
 )
@@ -22712,9 +22888,9 @@ R.check(
 )
 R.check(
     "its learned factors are KEPT, not discarded",
-    abs(_migrated.factor(2.0, 80.0) - 0.88) < 1e-9
+    abs(_migrated.factor(3.5, 85.5) - 0.88) < 1e-9
     and _migrated.total_samples == 480,
-    f"factor {_migrated.factor(2.0, 80.0)} — a stored factor below 1.0 is "
+    f"factor {_migrated.factor(3.5, 85.5)} — a stored factor below 1.0 is "
     f"evidence pointing the careful way; resetting every bucket to 1.0 would "
     f"make frost-band plans LESS conservative on upgrade",
 )
@@ -22731,7 +22907,7 @@ R.check(
 R.check(
     "a measured duty then overrides the carried-over inference",
     (lambda d: [d.observe_duty(2.0, 80.0, 0.02) for _ in range(40)] and
-     abs(d.factor(2.0, 80.0) - derate_from_duty(0.02)) < 0.01)(
+     abs(d.factor(3.5, 85.5) - derate_from_duty(0.02)) < 0.01)(
         DefrostDerate.from_dict(_v1_store)
     ),
     "the carried value is a floor to stand on until something is counted, "
@@ -23197,7 +23373,11 @@ R.section("v5.3.0 review — presence is not trust (the defrost derate)")
 # exact optimistic reset from_dict was rewritten to avoid, arriving by another
 # door and on the very install this feature targets.
 
-_RV_T, _RV_H = 2.0, 60.0
+# (3.5, 35.0) is the centre of bucket (3, 0), i.e. the same bucket the old
+# (2.0, 60.0) landed in, but now a point where factor()'s interpolation returns
+# the bucket's learned value exactly -- so these checks keep asking about the
+# arbitration, not about the interpolant.
+_RV_T, _RV_H = 3.5, 35.0
 
 
 def _rv_mature(factor=0.80, counts=200):
@@ -25413,8 +25593,8 @@ _sm_row = [
 ][0]
 R.check(
     "the summary's derate is the one the plan multiplies by",
-    abs(_sm_row["derate"] - _sm_young.factor(2.0, 60.0)) < 1e-3,
-    f"summary {_sm_row['derate']} vs factor {_sm_young.factor(2.0, 60.0):.3f} "
+    abs(_sm_row["derate"] - _sm_young.factor(3.5, 35.0)) < 1e-3,
+    f"summary {_sm_row['derate']} vs factor {_sm_young.factor(3.5, 35.0):.3f} "
     f"— reporting the raw estimator showed 0.80 while the plan used 0.95",
 )
 R.check(
@@ -34866,6 +35046,145 @@ R.check(
     "knife-edge -- 1 of 16 at this sigma, measured), which adopts "
     "nothing either, but every OTHER refusal reason would mean the gate "
     "leaked",
+)
+
+
+# -- R6 D7-03 #1396/#1397: the two-state fit survives a drifting sensor ----
+# The audit measured the fit raising OverflowError at 0.05 degC/h of sensor
+# drift, and HANGING at 0.03/0.04 (a finite ~2.5e19 kW/K candidate UA driving
+# ~2.6e17 substeps, no log line). Both unwind through _finish into
+# _async_update_data and fail the whole update cycle. The fix projects the
+# solver's log parameters into a loose band (SLAB_LOG_*_LO/HI), reads a
+# non-finite rollout as a huge finite residual, and wraps _finish so a fit
+# that still raises fails the sysid step alone. This drives the heavy_old
+# plant -- the one shipped preset whose comfort bound lets the drift reach the
+# fit -- with a sensor ramp and asserts no raise, no hang, and a bounded
+# candidate UA. Zero drift is the null control: the healthy fit still adopts.
+R.section("sysid two-state fit survives a drifting room sensor (R6 D7-03)")
+
+import signal as _r6_signal  # noqa: E402
+
+
+class _R6Alarm(Exception):
+    pass
+
+
+def _r6_drift_drive(drift_c_per_h, seconds=30):
+    """One production experiment on heavy_old with a linear sensor drift.
+
+    Mirrors the round-6 D7 harness (PlantRig): the room SENSOR ramps at
+    drift_c_per_h while the house itself does not. Returns
+    ``(raised, hung, max_ua_seen, result)``. The run is deterministic (no
+    sensor noise), so one experiment per drift is the whole grid.
+    """
+    params = _p942("heavy_old")
+    model = ThermalModel(params)
+    ua_true = float(params.heat_loss_coefficient * params.house_heat_loss_scale)
+    gains = float(params.internal_gains)
+    sid = SystemIdentification(
+        _SysIdModule.SysIdConfig(enabled=True, min_days_between_runs=0.0)
+    )
+    assert sid.arm(_RIDGE_NOW, plant=params)
+    outdoor = 2.0
+    ks = max(float(params.slab_heat_transfer), 1e-9)
+    q_hold = max(ua_true * (20.0 - outdoor) - gains, 0.0)
+    cop = max(model.compute_cop(outdoor), 0.1)
+    state = ThermalState(
+        room_temperature=20.0,
+        slab_temperature=20.0 + q_hold / ks,
+        outdoor_temperature=outdoor,
+    )
+    prices = np.full(48, 0.40)
+    prices[0] = 0.01
+    when = _RIDGE_NOW
+    hours = 0.0
+    dt_h = 0.25
+    max_ua = {"v": 0.0}
+    orig_sim = _SysIdModule._simulate_slab_path
+
+    def watched(ua, room_cap, gains_kw, *rest, **kw):
+        if np.isfinite(ua) and ua > max_ua["v"]:
+            max_ua["v"] = float(ua)
+        return orig_sim(ua, room_cap, gains_kw, *rest, **kw)
+
+    _SysIdModule._simulate_slab_path = watched
+    raised = False
+    hung = False
+
+    def on_alarm(signum, frame):
+        raise _R6Alarm()
+
+    old = _r6_signal.signal(_r6_signal.SIGALRM, on_alarm)
+    _r6_signal.alarm(int(seconds))
+    try:
+        for _ in range(96):
+            reading = state.room_temperature + drift_c_per_h * hours
+            override = sid.step(
+                now=when,
+                room_temp=reading,
+                outdoor_temp=outdoor,
+                price=0.40,
+                price_horizon=prices,
+                learner_samples=0,
+                max_power_kw=float(params.max_electrical_power),
+                cop=cop,
+                plan_power_kw=(
+                    0.0 if sid.phase in ("step", "relax") else q_hold / cop
+                ),
+                house_ua=ua_true,
+                house_capacity=float(params.room_thermal_mass),
+                house_gains=gains,
+                house_slab_mass=float(params.slab_thermal_mass),
+                house_slab_transfer=float(params.slab_heat_transfer),
+            )
+            if sid.phase in ("done", "aborted", "idle"):
+                break
+            power = q_hold / cop if override is None else max(float(override), 0.0)
+            state = model.simulate_step(
+                state,
+                electrical_power=power,
+                outdoor_temp=outdoor,
+                dt_hours=dt_h,
+            )
+            hours += dt_h
+            when += timedelta(minutes=15)
+    except _R6Alarm:
+        hung = True
+    except Exception:  # noqa: BLE001 - the measurement is whether it raised
+        raised = True
+    finally:
+        _r6_signal.alarm(0)
+        _r6_signal.signal(_r6_signal.SIGALRM, old)
+        _SysIdModule._simulate_slab_path = orig_sim
+    return raised, hung, max_ua["v"], sid.result
+
+
+_r6_raise5, _r6_hang5, _r6_ua5, _r6_res5 = _r6_drift_drive(0.05)
+_r6_raise3, _r6_hang3, _r6_ua3, _r6_res3 = _r6_drift_drive(0.03)
+R.check(
+    "a 0.05 degC/h drifting sensor does not raise out of the two-state fit",
+    not _r6_raise5,
+    f"raised={_r6_raise5} reason={_r6_res5.reason!r}",
+)
+R.check(
+    "a 0.03 degC/h drifting sensor does not hang the two-state fit",
+    not _r6_hang3 and not _r6_raise3,
+    f"raised={_r6_raise3} hung={_r6_hang3} reason={_r6_res3.reason!r}",
+)
+R.check(
+    "the drift never pushes a candidate UA past the loose band (substeps stay "
+    "bounded, no divergence)",
+    np.isfinite(_r6_ua5) and np.isfinite(_r6_ua3)
+    and _r6_ua5 < 1e3 and _r6_ua3 < 1e3,
+    f"max UA attempted at 0.05={_r6_ua5:.3g}, at 0.03={_r6_ua3:.3g}",
+)
+_r6_null_raise, _r6_null_hang, _r6_null_ua, _r6_null_res = _r6_drift_drive(0.0)
+R.check(
+    "null control: a zero-drift heavy_old experiment still completes and "
+    "adopts (the fix does not shut the healthy fit)",
+    not _r6_null_raise and not _r6_null_hang and _r6_null_res.completed,
+    f"raised={_r6_null_raise} hung={_r6_null_hang} "
+    f"reason={_r6_null_res.reason!r}",
 )
 
 

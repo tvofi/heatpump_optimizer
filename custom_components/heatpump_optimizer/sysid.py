@@ -505,6 +505,22 @@ def _simulate_slab_path(
     return np.asarray(rooms)
 
 
+#: The loose band the two-state solver projects its LOG parameters into. The
+#: adoption guards (:func:`_slab_refusal`) are far tighter -- UA in [0.01, 5.0],
+#: tau in [0.1, 200] -- so this band only stops the *divergence* the audit
+#: measured (R6 D7-03 #1396/#1397): a candidate whose log-UA walks outward
+#: makes ``np.exp`` overflow to +inf (an OverflowError inside
+#: ``ThermalModel._stability_substeps``' ``int(np.ceil(...))``) or, staying
+#: finite at ~1e19 kW/K, drives the rollout's substep count to ~2.6e17 and
+#: hangs the event loop. ``exp`` over this band is finite and keeps the worst
+#: substep count bounded (the loose bound is ~4-5 decades outside the seed on
+#: each side, so a legitimate fit never touches it).
+SLAB_LOG_UA_LO = float(np.log(1e-4))
+SLAB_LOG_UA_HI = float(np.log(1e2))
+SLAB_LOG_ROOM_CAP_LO = float(np.log(1e-3))
+SLAB_LOG_ROOM_CAP_HI = float(np.log(1e3))
+
+
 def _lm_solve(
     residual: Callable[[np.ndarray], np.ndarray],
     x0: np.ndarray,
@@ -515,7 +531,7 @@ def _lm_solve(
     The integration runs on Home Assistant installs that do not ship
     scipy, so the two-state fit solves its own small (three-parameter)
     problem: forward-difference Jacobian, diagonal Marquardt damping,
-    projection of the linear parameter into its loose band. Returns the
+    projection of each parameter into its loose band. Returns the
     best point found and its cost; convergence quality is pinned by the
     ensemble test, not by this function's iteration count.
     """
@@ -543,6 +559,14 @@ def _lm_solve(
                 continue
             candidate = x + delta
             candidate[2] = float(np.clip(candidate[2], -5.0, 10.0))
+            # The two log parameters get the same loose projection as the
+            # linear one (see SLAB_LOG_*_LO/HI): without it a diverging
+            # candidate's log-UA leaves the numeric-safe range and either
+            # overflows exp() or, finite at ~1e19 kW/K, hangs the rollout.
+            candidate[0] = float(np.clip(candidate[0], SLAB_LOG_UA_LO, SLAB_LOG_UA_HI))
+            candidate[1] = float(
+                np.clip(candidate[1], SLAB_LOG_ROOM_CAP_LO, SLAB_LOG_ROOM_CAP_HI)
+            )
             next_value = residual(candidate)
             next_cost = float(next_value @ next_value)
             if np.isfinite(next_cost) and next_cost < cost:
@@ -975,11 +999,22 @@ class SystemIdentification:
         # plant is fitted in the two-state form (with the ported intercept
         # ridge); everything else — a harness that declared no plant — keeps
         # the one-state regression. The gate's refusals never reach here.
-        if self._slab_pair is not None:
-            self.result = self.identify_slab()
-        else:
+        try:
+            if self._slab_pair is not None:
+                self.result = self.identify_slab()
+            else:
+                self._slab_fit_used = False
+                self.result = self.identify()
+        except Exception as err:  # noqa: BLE001 - the fit must fail alone
+            # A fit that raises must not fail the coordinator's whole update
+            # cycle (R6 D7-03 #1396): the armed night is discarded and a
+            # refusal is published, instead of the exception unwinding through
+            # _async_update_data. The solver's own bounds stop the measured
+            # OverflowError before it reaches here; this is the seam guard for
+            # whatever shape the divergence takes next.
+            _LOGGER.exception("System identification fit raised: %s", err)
             self._slab_fit_used = False
-            self.result = self.identify()
+            self.result = SysIdResult(completed=False, reason="fit raised")
         if self.result.completed:
             _LOGGER.info(
                 "System identification complete: tau=%.2f h, UA=%.4f kW/°C, "
@@ -1483,11 +1518,17 @@ class SystemIdentification:
                 powers[:-1],
                 dts,
             )
+            error = predicted[1:] - rooms[1:]
+            if not bool(np.all(np.isfinite(error))):
+                # A candidate whose rollout left the finite range reads as a
+                # huge finite cost instead of poisoning the Jacobian with a
+                # NaN, or raising out of the fit (R6 D7-03 #1396/#1397).
+                return np.full(error.size + 1, 1e12, dtype=float)
             # The ported ridge itself: one pseudo-observation on G, weighed
             # against the whole room series through its width. Deleting
             # this append is the mutation the ensemble test flips on.
             return np.append(
-                predicted[1:] - rooms[1:],
+                error,
                 (float(x[2]) - prior_g) / SLAB_INTERCEPT_PRIOR_SD_KW,
             )
 

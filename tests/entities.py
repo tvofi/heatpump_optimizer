@@ -3363,19 +3363,20 @@ for _cls in (sensor.ThermalBatterySensor, sensor.ThermalBatteryEnergySensor):
         not _cls(_d801_blind, ENTRY).available,
         f"published {_cls(_d801_blind, ENTRY).native_value!r} from 55/40/22/21",
     )
+# A 35 L buffer with no valve is not a store (`buffer_is_store` is False), so
+# it is out of the view entirely (issue #1404) -- it is not merely "modelled",
+# it is absent. The remaining stores are named modelled, not dropped.
 R.check(
     "the view names every store it only modelled, rather than dropping them",
     set((_d801_blind_data.get("battery") or {}).get("modelled_components") or [])
-    == {"house", "slab", "dhw_tank", "buffer_tank"}
+    == {"house", "slab", "dhw_tank"}
     and not (_d801_blind_data.get("battery") or {}).get("measured_components"),
     str(_d801_blind_data.get("battery", {}).get("modelled_components")),
 )
 R.check(
-    "and the figures themselves are left alone, so no recorded series is "
-    "silently rescaled",
-    (_d801_blind_data.get("battery") or {}).get("state_of_charge_percent") == 86.8,
-    "dropping a component would change the SOC denominator for every "
-    "partly-probed install",
+    "and the reported charge drops the non-store buffer from its denominator",
+    (_d801_blind_data.get("battery") or {}).get("state_of_charge_percent") == 88.4,
+    "a 35 L tank with no valve is not a store, so it no longer pads the SOC",
 )
 R.check(
     "the energy sensor carries the same disclosure in its own attributes",
@@ -3525,7 +3526,7 @@ R.check(
 R.check(
     "with the stores it only modelled named rather than dropped",
     set((_d801_indoor_only.get("battery") or {}).get("modelled_components") or [])
-    == {"slab", "dhw_tank", "buffer_tank"},
+    == {"slab", "dhw_tank"},
     str((_d801_indoor_only.get("battery") or {}).get("modelled_components")),
 )
 
@@ -20654,6 +20655,43 @@ R.check(
     f"1); the real template -> rc={_TA[1]} (must be 0). Without the arm's "
     "refusal the acceptance concluded success over a template that fails the "
     "contract it states, which is #1195 (D11-05)",
+)
+
+# --- D11-02 (#1403): the corpus is graded by the base's checker -----------------
+#
+# The `policy-docs` job checks out no `ref:`, so every step in it ran the pull
+# request's own copy of the program under it: a one-line status that does not
+# track the findings at the end of `policy_lint.mjs` made the required context
+# exit 0 over a corpus the same run printed as red, with byte-identical stdout.
+# The step that restores the graders from the base commit is the fix, and
+# nothing in the tree refused its deletion until this check existed -- the
+# `_GOV_JOBS` pin above is set-level, so a step can leave `policy-docs` without
+# leaving that set, which is the shape every workflow assert in this file has
+# and the reason a wiring pin is written per step rather than per job.
+#
+# WHAT IT READS: the ref the restore comes from and the pathspec that names the
+# graders, so a step that dropped either token fails here -- a `git checkout`
+# with no ref restores the pull request's own copy and reads exactly like the
+# fix. WHAT IT CANNOT SEE, stated so nobody reads more into it: a grader added
+# as a MODULE beside `policy_lint.mjs` is a file the base does not have, so no
+# pathspec can restore it and this check passes while the corpus is graded by
+# the pull request's copy again. That residual, and the criteria files the pin
+# deliberately leaves to the pull request, are carried to the next D11 round in
+# `.claude/workflows/carry-201.json`.
+_GOV_PD = _workflow_job(Path(_GOV_WF).read_text(), "policy-docs")
+R.check(
+    "`policy-docs` restores its graders from the base commit before it grades",
+    "git checkout" in _GOV_PD
+    and "github.event.pull_request.base.sha" in _GOV_PD
+    and ".claude/workflows/*.mjs" in _GOV_PD,
+    "the restore step names "
+    f"`git checkout`={'git checkout' in _GOV_PD}, "
+    f"`github.event.pull_request.base.sha`="
+    f"{'github.event.pull_request.base.sha' in _GOV_PD}, "
+    f"`.claude/workflows/*.mjs`={'.claude/workflows/*.mjs' in _GOV_PD}. "
+    "Deleting the step reddens this check; without it the corpus, the Cursor "
+    "rules and the fragment copies are all graded by the copy the pull request "
+    "carries, which is #1403 (D11-02)",
 )
 
 # --- the release lane's attestation grant and subject (#960, D11-07) ---------
