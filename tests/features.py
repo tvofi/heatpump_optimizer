@@ -34951,12 +34951,12 @@ R.check(
     "leaves the shipped +-10 % UA band",
     not _drift010_bad,
     f"adopted {len(_drift010)} of 40 {[round(b, 3) for b in _drift010]}, "
-    f"{len(_drift010_bad)} over the band -- at the merge base the same drive "
-    "adopted 6 of 40 at median 0.281 (max 0.316), because the drift ridge "
-    "shrinks the fitted ramp short of the true 0.10 C/h and the ΔT column "
-    "carries the difference into UA; the confidence now discounts the share "
-    "of the window's movement the fitted drift could account for, so a "
-    "window that share cannot separate does not clear the 0.3 gate",
+    f"{len(_drift010_bad)} over the band -- at the merge base 129f96b3 the "
+    "same drive adopted 6 of 40 at median 0.281 (max 0.316), because the "
+    "drift ridge shrinks the fitted ramp short of the true 0.10 C/h and the "
+    "ΔT column carries the difference into UA; the confidence now discounts "
+    "the share of the window's movement the fitted drift could account for, "
+    "so a window that share cannot separate does not clear the 0.3 gate",
 )
 _drift_null = _drift_adopted(0.0)
 R.check(
@@ -34967,9 +34967,10 @@ R.check(
     f"adopted {len(_drift_null)} of 40 "
     f"{[round(b, 3) for b in _drift_null]}, worst "
     f"{max(_drift_null, default=float('nan')):.3f} -- the finding's own "
-    "perturbation (drift 0.10 -> 0.0) removes the effect: the fitted drift "
-    "is ~0, its share of the movement is ~0 and the discount is ~1, so this "
-    "cell reads the same before and after the fix",
+    "perturbation (drift 0.10 -> 0.0) must remove the effect: the fitted "
+    "drift is ~0, its share of the movement is ~0 and the discount is ~1, so "
+    "this cell is the one the fix must NOT move. Red here means the discount "
+    "refused an honest no-drift window, not that the finding reproduced",
 )
 
 _gap_plant = _p942("light_new", 100.0)
@@ -34988,10 +34989,13 @@ R.check(
     and "cadence gap" in _gap_res.reason
     and not _gap_admitted,
     f"completed {_gap_res.completed} conf {_gap_res.confidence:.3f} "
-    f"admitted {_gap_admitted} reason {_gap_res.reason[:72]!r} -- at the "
-    "merge base this fell back to identify() and the adoption gate took it "
-    "at confidence 0.997 and -20.06 % UA bias: a one-state fit of the "
-    "two-state plant the experiment was armed on",
+    f"admitted {_gap_admitted} reason {_gap_res.reason[:72]!r} -- with this "
+    "refusal deleted (this check's own mutation proof) the same drive "
+    "completes and the adoption gate takes it, and what it takes is the "
+    "one-state regression applied to the two-state plant the experiment was "
+    "armed on. The size of that bias is the finder's measurement, not this "
+    "check's: tools/audit/round5/D7/seat-a/sysid_step_bias.py, RESULT "
+    "gap_settle_bias_heavy_old, at both ends of this fix",
 )
 _gap_null_sid, _gap_null_res, _gap_null_ua = _ridge_drive(
     _gap_plant, 0.0, _RIDGE_SEED0
@@ -35011,7 +35015,9 @@ R.check(
     f"bias {_gap_null_bias:+.4f} conf {_gap_null_res.confidence:.3f} "
     f"slab_used {getattr(_gap_null_sid, '_slab_fit_used', None)!r} reason "
     f"{_gap_null_res.reason!r} -- the finding's own perturbation, run at this "
-    "head: removing the gap returns the slab fit at -0.00 %, still admitted",
+    "head: removing the >2 h gap returns the two-state slab fit at the "
+    "plant's own UA (the bias above), still admitted. Red here means the "
+    "refusal caught the PLANT as well as the gap",
 )
 
 
