@@ -28,7 +28,7 @@ production lines. You work in your own worktree branched from `origin/main`.
    from a sliding window, or one an instrument prints, is stale after you write
    it: state the rule or name the instrument, never the number. A learner or guard
    change is measured at both ends of its input range — an install with zero
-   evidence, and one on the clamp — a fix has been worse than its bug before.
+   evidence, and one on the clamp — a fix has been worse than its bug before. The class's seams and the rule that enumerates them are step 8's.
 4. **Goldens that move are claimed by whoever measured the drift**, in
    `tests/golden/claimed_drift.txt` or `card_claimed_drift.txt`, with the
    expected direction per fixture. `claims-for:` stays at the live `VERSION`.
@@ -90,19 +90,20 @@ production lines. You work in your own worktree branched from `origin/main`.
 7. The PR body closes its issues (`Closes #N`), names the head SHA measured,
    and carries every executed number, each in `## Figures` with its command.
 8. **A quoted number states the rule that produced it, not just its value.**
-   Three agents counting "the same" published-attribute census (#373) got
-   59, 50, and 124/147/50, because each asked a subtly different question;
-   only a count whose rule is written down is re-derivable by whoever reads
-   the body next.
-   **Name the instrument you re-ran, and its scope.** If the block you are
-   clearing was demonstrated with an *instance*, your verification may not be a
-   search for that instance — it must check the *property* the block stated. If
-   no such instrument exists, say so, and say what you did instead.
-   A root-cause analysis established this class over three pull requests where
-   each fix was verified against the demonstrated instance's form while a
-   sibling carrying the same property in a different form survived — one of them
-   created by the same commit. That analysis, its cost test and the detector it
-   built and rejected are recorded on **#592**, which is where this step was
+   Three agents counting "the same" published-attribute census (#373) got 59, 50,
+   and 124/147/50, because each asked a subtly different question; only a count whose
+   rule is written down is re-derivable by whoever reads the body next.
+   **Name the instrument you re-ran, and its scope.** If the block you are clearing
+   was demonstrated with an *instance*, your verification may not be a search for
+   that instance — it must check the property the phenomenon states, not the property
+   the block's text states: name a rule that enumerates the class's seams (a command,
+   not a description), run it, and put every seam it returns in `## Figures` against
+   its disposition — closed in this diff, already guarded, or a distinct finding named
+   by id. An un-dispositioned returned seam is an open seam, class not closed. If no
+   such instrument exists, say so, and say what you did instead. This is step 11 applied
+   to your own instrument: one inherited from the finder is keyed to the instance the
+   finder demonstrated. A root-cause analysis established the class over three pull
+   requests; its cost test and rejected detector are on **#592**, where this step was
    added. Its figures decay (step 3); a reviewer refuted all three a draft quoted.
 
 9. **A claim should be true; if wrong, correct it — anchored to a lane,

@@ -39,7 +39,7 @@
     },
     "finding": {
       "type": "object",
-      "required": ["id", "title", "severity", "claim", "evidence", "instrumented_symbol", "perturbation", "metric_definition", "stop_rule_class", "files", "proposed_fix_scope"],
+      "required": ["id", "title", "severity", "claim", "evidence", "instrumented_symbol", "perturbation", "metric_definition", "phenomenon_property", "seam_rule", "stop_rule_class", "files", "proposed_fix_scope"],
       "properties": {
         "id": {"type": "string", "pattern": "^D(1[0-3]|[0-9])-[0-9]{2}$"},
         "title": {"type": "string", "maxLength": 120},
@@ -54,6 +54,8 @@
           "properties": {"change": {"type": "string"}, "expected_direction": {"enum": ["up", "down", "to_zero", "sign_flip"]}, "observed_value": {"type": ["number", "string"]}}
         },
         "metric_definition": {"type": "string", "maxLength": 200},
+        "phenomenon_property": {"type": "string", "description": "The phenomenon stated as a property; the fixer is held to it, not the block's text (fixer.md step 8)"},
+        "seam_rule": {"type": "string", "description": "The command that enumerates the class's seams, in the same form as harness_path"},
         "null_control": {"type": "object", "properties": {"command": {"type": "string"}, "value": {"type": ["number", "string"]}, "note": {"type": "string"}}},
         "leave_one_out": {"type": "object", "properties": {"cells": {"type": "integer", "minimum": 5}, "min": {"type": "number"}, "max": {"type": "number"}, "drop_most_favourable": {"type": "number"}}},
         "reproduction_steps": {"type": "array", "items": {"type": "string"}},

@@ -71,6 +71,11 @@ outcome — not derived at all, and the refused technique gets attempted again.
   at `resume.stage: done` is not a destination: nothing dispatches or lints it.
   `brief_lint.mjs` states the fields and refuses a carry at an issue a live
   group covers, so no stage has two destinations.
+- **A sibling seam in the same stage** — an open seam the enumeration rule returns
+  (`fixer.md` step 8) — goes to **a new issue filed by the same pull request**, or a
+  `.claude/workflows/carry-<N>.json` under the branch above. The destinations this rule
+  names are stages that have not started, so a seam in the stage that is running has none:
+  that is how the fifth seam escaped #1345.
 
 **While two copies disagree, the newer one is right and the other is the bug.**
 Say which is which in the carry, because a seat that finds its brief and the
