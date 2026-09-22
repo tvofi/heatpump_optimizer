@@ -6,11 +6,12 @@
 #   tools/audit/app_approve.sh [--dry-run] <owner/repo> <pr> <40-hex head sha>
 #   tools/audit/app_approve.sh --self-test
 #
-# WHY THIS EXISTS. Since decision 0009 step 6, `main-protect` merges nothing
-# without one approving review, and GitHub never lets an author approve their
-# own pull request. An ordinary pull request's review comes from the App after
-# a `merge` verdict (`tools/audit/briefs/orchestrator.md` section 11); a policy
-# pull request's comes from the owner, on GitHub, and this script refuses one.
+# WHY THIS EXISTS. Since decision 0009 step 6, the `main-protect-checks`
+# ruleset requires one approving review, and GitHub never lets an author
+# approve their own pull request. An ordinary pull request's review comes from
+# the App after a `merge` verdict (`tools/audit/briefs/orchestrator.md`
+# section 11); a policy pull request's comes from the owner, on GitHub, and
+# this script refuses one.
 #
 # IT REFUSES, AND POSTS NOTHING, UNLESS ALL OF THESE HOLD:
 #   - the App id file holds digits only and the private key file exists

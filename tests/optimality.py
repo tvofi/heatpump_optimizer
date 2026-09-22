@@ -46,6 +46,39 @@ def score_plan(m,pw,st,ot,wi,ra,so,pr,minT=16.5):
     viol=float(np.maximum(0,minT-r).sum())
     return cost,viol,r.min(),r.max()
 
+def pin_result(label,res,m,st,ot,wi,ra,so,pr,dhw=False):
+    """Pin the post-conditions every solve in this file owes.
+
+    Twelve real solves run here. Before this helper, nine of them were pinned
+    by exactly one check -- the comparison that justified calling them -- so a
+    solve that returned its own start vector as a plan, or one whose schedule
+    left the model's own power bounds, satisfied that comparison and passed.
+    These are the properties a solve owes before any comparison is meaningful,
+    and the two about a computed quantity read a PRODUCTION symbol rather than
+    a copy of one: the model's own ``max_electrical_power`` for the bounds, and
+    ``ThermalModel.simulate_trajectory`` (through ``score_plan``) for the
+    comfort floor. ``dhw`` adds the same two pins on the hot-water channel.
+    """
+    pw=np.asarray(res.power_schedule,dtype=float)
+    pmax=float(m.params.max_electrical_power)
+    R.check(f"{label}: one finite schedule entry per horizon step",
+            pw.shape==(N,) and bool(np.all(np.isfinite(pw))),
+            f"schedule shape {pw.shape}")
+    R.check(f"{label}: every step inside the model's own power bounds",
+            bool(np.all(pw>=-1e-9) and np.all(pw<=pmax+1e-9)),
+            f"range {pw.min():.3f}-{pw.max():.3f} kW, bound {pmax:.3f}")
+    _,viol,_,_=score_plan(m,pw,st,ot,wi,ra,so,pr)
+    R.check(f"{label}: the plan holds the comfort floor",viol<=1e-6,
+            f"degree-steps below floor: {viol:.4f}")
+    if dhw:
+        dpw=np.asarray(res.dhw_power_schedule,dtype=float)
+        R.check(f"{label}: one finite DHW entry per horizon step",
+                dpw.shape==(N,) and bool(np.all(np.isfinite(dpw))),
+                f"DHW schedule shape {dpw.shape}")
+        R.check(f"{label}: every DHW step inside the model's own power bounds",
+                bool(np.all(dpw>=-1e-9) and np.all(dpw<=pmax+1e-9)),
+                f"DHW range {dpw.min():.3f}-{dpw.max():.3f} kW")
+
 for tz in (False,True):
     R.section(f"two_zone={tz}")
     opt,m,pr,ot,wi,ra,so,st,start=setup(tz)
@@ -55,6 +88,7 @@ for tz in (False,True):
     print(f" optimizer : cost {c0:7.2f}  room {mn0:.2f}-{mx0:.2f}  viol {v0:.3f}")
     R.check("optimizer plan meets the comfort floor", v0 <= 1e-6,
             f"degree-steps below floor: {v0:.4f}")
+    pin_result(f"space base (two_zone={tz})",r,m,st,ot,wi,ra,so,pr)
 
     # Challenger 1: same total energy, greedily moved to the cheapest slots.
     # It may run the house colder than the optimizer chose to (comfort is
@@ -111,6 +145,7 @@ for tz in (False,True):
                 v3 <= 1e-6 and c0 <= c3 * 0.95,
                 f"full-budget {c0:.2f} vs starved {c3:.2f} "
                 f"({100.0*(c3-c0)/c3:.1f}% gap)")
+        pin_result("space starved-budget arm (two_zone=True)",r3,m,st,ot,wi,ra,so,pr)
 
     # Challenger 4: the batched-FD jac (issue #97) must move no plan. The
     # production path solves through objective_batch/_batch_fd_gradient; a
@@ -137,6 +172,7 @@ for tz in (False,True):
     R.check("the batched-FD jac reproduces scipy's own gradient path exactly",
             same,
             "schedules differ -- the jac is not bit-identical to scipy's FD")
+    pin_result(f"space no-batch control (two_zone={tz})",r_fd,m,st,ot,wi,ra,so,pr)
 
 # Challenger 5: the same batched-jac bit-identity race, but for a DHW-ENABLED
 # solve -- the class the batched jac was blocked from until D9-01. Enabling DHW
@@ -193,6 +229,8 @@ for _tz in (False, True):
         same_dhw,
         "DHW schedules differ -- the batched jac diverges from scipy's FD "
         "on non-uniform (DHW-pinned) bounds")
+    pin_result(f"DHW base (two_zone={_tz})",r_batch,m,st,ot,wi,ra,so,pr,dhw=True)
+    pin_result(f"DHW no-batch control (two_zone={_tz})",r_fd,m,st,ot,wi,ra,so,pr,dhw=True)
 
 # Challenger 7 (DHW two-zone only): the solver's own STOP RULE, raced
 # against itself the way challenger 3 races the budget. R4-D0-02 (#921)
@@ -226,6 +264,7 @@ _o7, _m7, _pr7, _ot7, _wi7, _ra7, _so7, _st7, _start7 = _dhw_setup(True)
 _r7 = _o7.optimize(_st7, _pr7, _ot7, _wi7, _ra7, _so7, _start7)
 _c70, _v70, _, _ = score_plan(_m7, np.asarray(_r7.power_schedule),
                               _st7, _ot7, _wi7, _ra7, _so7, _pr7)
+pin_result("stop-rule production arm",_r7,_m7,_st7,_ot7,_wi7,_ra7,_so7,_pr7,dhw=True)
 _full_scoped_7 = _optm_dhw._scoped_minimize
 _full_ms_7 = _optm_dhw._multi_start_minimize
 _full_restart_7 = _optm_dhw._lbfgsb_restart
@@ -257,6 +296,7 @@ with _mock_dhw.patch.object(_optm_dhw, "_multi_start_minimize", _loose_ms_7):
     _r7l = _o7.optimize(_st7, _pr7, _ot7, _wi7, _ra7, _so7, _start7)
 _c7l, _v7l, _, _ = score_plan(_m7, np.asarray(_r7l.power_schedule),
                               _st7, _ot7, _wi7, _ra7, _so7, _pr7)
+pin_result("stop-rule loosened arm",_r7l,_m7,_st7,_ot7,_wi7,_ra7,_so7,_pr7,dhw=True)
 print(f" stop-prod : cost {_c70:7.2f}  viol {_v70:.3f}")
 print(f" stop-rule: cost {_c7l:7.2f}  viol {_v7l:.3f}")
 # The bound was 1% (0.99) against a 2.6% measured gap until #1207 dropped
@@ -303,12 +343,16 @@ _zr = _zopt.optimize(_zst, _zpr, _zot, _zwi, _zra, _zso, _zstart,
                      space_pins=_pins)
 _zbase = np.asarray(_zr.power_schedule)
 _zc0, _zv0, _zmn, _zmx = score_plan(_zm, _zbase, _zst, _zot, _zwi, _zra, _zso, _zpr)
+pin_result("zero-range pinned plan",_zr,_zm,_zst,_zot,_zwi,_zra,_zso,_zpr)
 print(f" pinned    : cost {_zc0:7.2f}  room {_zmn:.2f}-{_zmx:.2f}  viol {_zv0:.3f}")
 R.check("a pinned plan still meets the comfort floor", _zv0 <= 1e-6,
         f"degree-steps below floor: {_zv0:.4f}")
 R.check("the forced-off pin is honoured, or reported as safety-released",
         (90 in _zr.manual_released_space) or _zbase[90] <= 1e-6,
         f"step 90 planned {_zbase[90]:.3f} kW and was not released")
+R.check("no step is reported released that was never pinned",
+        set(_zr.manual_released_space) <= {90},
+        f"released {sorted(_zr.manual_released_space)}, only step 90 was pinned")
 _ztotal = _zbase.sum()
 _zpmax = _zm.params.max_electrical_power
 _zgreedy = np.zeros(N); _zleft = _ztotal
@@ -324,5 +368,172 @@ print(f" greedy    : cost {_zc1:7.2f}  viol {_zv1:.3f}")
 if _zv1 <= _zv0 + 1e-6:
     R.check("greedy does not rout the plan built with a fixed variable",
             _zc1 >= _zc0 * 0.95, f"greedy {_zc1:.2f} vs optimizer {_zc0:.2f}")
+
+# ===== round-5 solver convergence knob: the warm start (#1295) ===========
+# One finding ships from the round-5 D0 seam: the previous cycle's shipped
+# plan offered to the fresh per-solve optimizer as one more first-solve
+# candidate (#1295). The round's other two knobs do not. The tighter
+# L-BFGS-B stop rule (#1293) is refuted on money (that is why it is not in
+# the diff; tests/backtest.py's shoulder check is the detector), and the
+# raised refinement cut with its two appended seeds (#1294) cost a quarter of
+# the sweep's solver CPU for a plan-quality gain that does not reproduce
+# across BLAS builds, over the D9 sweep budget.
+#
+# What is checked here is the MECHANISM, not a plan margin. The warm start's
+# plan-quality effect is BLAS-dependent: on a developer box it moves the
+# objective, and on CI's runner the added candidate is screened out of the
+# refinement set and the solve is byte-identical to a cold one. A check that
+# pinned its percentage would therefore be a check on a float that does not
+# travel -- the void-harness case the judge contract names. The three
+# properties below hold on any BLAS, and the first moves under the knob's own
+# defect, so the check is not vacuous:
+#
+#   * the previous plan IS offered as exactly one extra candidate, with the
+#     structural candidates unchanged around it;
+#   * handing a plan in never returns a plan worse than the one handed in --
+#     the multi-start scores every candidate and keeps the cheapest, and the
+#     handed-in plan is the best-scoring one here, so it is always refined;
+#   * a plan of the wrong width is refused outright.
+#
+# "Objective" is the production closure value the solve returns, so nothing
+# here re-derives a cost; every arm is scored through the production seam
+# (``_multi_start_minimize``), never a re-implementation.
+from unittest import mock as _kb_mock
+import heatpump_optimizer.optimizer as _kb_mod
+
+_kb_start = datetime(2026, 1, 15)
+
+
+def _kb_inputs(tz, pp, wp, dhw):
+    """Fresh optimizer + inputs, so no prior plan and no warm start."""
+    cfg = house(two_zone=tz)
+    p = ThermalParameters.from_config(cfg)
+    p.dhw_enabled = dhw
+    m = ThermalModel(p)
+    o = HeatPumpOptimizer(m, OptimizationConfig(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    pr = prices(pp, _kb_start)
+    ot, wi, ra, so = weather(wp, _kb_start)
+    st = ThermalState(
+        room_temperature=21.0, slab_temperature=22.0,
+        outdoor_temperature=float(ot[0]), upper_floor_temperature=21.0,
+        lower_floor_temperature=21.0, buffer_tank_temperature=40.0,
+        dhw_temperature=48.0)
+    return o, m, pr, ot, wi, ra, so, st
+
+
+def _kb_capture(o, pr, ot, wi, ra, so, st):
+    """One production solve; every seam call it makes is recorded, with the
+    seam left intact."""
+    seen = []
+    real = _kb_mod._multi_start_minimize
+
+    def rec(objective, candidates, bounds, *a, **kw):
+        res = real(objective, candidates, bounds, *a, **kw)
+        seen.append([np.asarray(c, float).copy() for c in candidates])
+        return res
+
+    with _kb_mock.patch.object(_kb_mod, "_multi_start_minimize", rec):
+        r = o.optimize(st, pr, ot, wi, ra, so, _kb_start)
+    return r, seen
+
+
+# --- #1295: the caller's previous plan as a candidate ---------------------
+# The coordinator rebuilds the optimizer every cycle, so it is the seat that
+# carries the last shipped plan across one (``coordinator._warm_seeded``), and
+# the next solve offers it as one extra multi-start candidate. The cell is
+# solved cold first; its own plan is then what a later cycle would hand in,
+# so the warm arm is the same solve with one candidate added and nothing else
+# changed. That makes the candidate lists comparable cell-for-cell, which is
+# what the structural check reads.
+_kb15c_o, _kb15c_m, _kb15c_pr, _kb15c_ot, _kb15c_wi, _kb15c_ra, _kb15c_so, \
+    _kb15c_st = _kb_inputs(False, "winter_typical", "shoulder", True)
+_kb15_cold, _kb15_cold_seen = _kb_capture(
+    _kb15c_o, _kb15c_pr, _kb15c_ot, _kb15c_wi, _kb15c_ra, _kb15c_so, _kb15c_st)
+_kb15_prev = np.asarray(_kb15_cold.power_schedule, dtype=float)
+_j15f = float(_kb15_cold.objective_value)
+
+_kb15w_o, _kb15w_m, _kb15w_pr, _kb15w_ot, _kb15w_wi, _kb15w_ra, _kb15w_so, \
+    _kb15w_st = _kb_inputs(False, "winter_typical", "shoulder", True)
+_kb15w_o._prev_shipped_plan = _kb15_prev.copy()
+_kb15_warm, _kb15_warm_seen = _kb_capture(
+    _kb15w_o, _kb15w_pr, _kb15w_ot, _kb15w_wi, _kb15w_ra, _kb15w_so, _kb15w_st)
+_j15w = float(_kb15_warm.objective_value)
+
+# The candidate is prepended by the path (``h.extra_starts``), so the handed
+# plan is the first entry of the first solve's candidate list, and the rest is
+# the cold solve's own list, unchanged. Every other solve is untouched.
+_kb15_first_cold = _kb15_cold_seen[0]
+_kb15_first_warm = _kb15_warm_seen[0]
+_kb15_extra = (
+    len(_kb15_first_warm) == len(_kb15_first_cold) + 1
+    and np.array_equal(_kb15_first_warm[0], _kb15_prev)
+    and all(
+        np.array_equal(a, b)
+        for a, b in zip(_kb15_first_warm[1:], _kb15_first_cold)
+    )
+    and _kb15_warm_seen[1:] == _kb15_cold_seen[1:]
+)
+print(f" cold candidates per seam call: {[len(c) for c in _kb15_cold_seen]}")
+print(f" warm candidates per seam call: {[len(c) for c in _kb15_warm_seen]}")
+R.check(
+    "the handed-in plan is one extra candidate and the rest are unchanged "
+    "(#1295)",
+    _kb15_extra,
+    f"cold {[len(c) for c in _kb15_cold_seen]}, "
+    f"warm {[len(c) for c in _kb15_warm_seen]}, extra candidate is the "
+    f"handed plan: {_kb15_extra} -- equal counts mean ``_warm_start_starts`` "
+    f"offered nothing (the #1295 knob switched off); a changed tail means the "
+    f"handed plan was substituted for a structural candidate instead of "
+    f"added beside it",
+)
+
+# No-worse: the handed plan is the best candidate on the objective, so it is
+# always refined and the multi-start minimum can only equal or improve it.
+# Exact (no slack) and BLAS-independent: both arms run the same code on the
+# same inputs, and the min over a candidate set that contains the cold optimum
+# cannot exceed it. That makes this arm an INVARIANT rather than a
+# discriminator -- with the knob off both arms are the same run and the bound
+# holds by equality, so the mutation proof does not redden it. The check that
+# moves under the knob's own revert is the candidate-count check above; this
+# one pins the code's contract that a stale or wrong-shaped plan can lose,
+# never win.
+print(f" warm      : obj {_j15w:8.4f}")
+print(f" no-warm   : obj {_j15f:8.4f}")
+R.check(
+    "the handed-in plan is never beaten by the solve that hands it back "
+    "(#1295)",
+    _j15w <= _j15f * (1 + 1e-9),
+    f"warm {_j15w:.4f} vs no-warm {_j15f:.4f} -- a warm plan above the "
+    f"handed-in plan's own objective means the candidate was dropped from the "
+    f"refinement set it should have led",
+)
+
+# Null control: a previous plan of the wrong width is dropped, not clipped or
+# padded into a plausible-looking guess, so the solve is the cold solve
+# exactly -- byte-identical on any BLAS, because both arms run the same code
+# path on the same inputs.
+_kb15d_o, _kb15d_m, _kb15d_pr, _kb15d_ot, _kb15d_wi, _kb15d_ra, _kb15d_so, \
+    _kb15d_st = _kb_inputs(False, "summer_negative", "shoulder", False)
+_kb15d_o._prev_shipped_plan = np.zeros(48)
+_kb15d = _kb15d_o.optimize(
+    _kb15d_st, _kb15d_pr, _kb15d_ot, _kb15d_wi, _kb15d_ra, _kb15d_so, _kb_start)
+_kb15e_o, _kb15e_m, _kb15e_pr, _kb15e_ot, _kb15e_wi, _kb15e_ra, _kb15e_so, \
+    _kb15e_st = _kb_inputs(False, "summer_negative", "shoulder", False)
+_kb15e = _kb15e_o.optimize(
+    _kb15e_st, _kb15e_pr, _kb15e_ot, _kb15e_wi, _kb15e_ra, _kb15e_so, _kb_start)
+print(f" width-null: obj {_kb15d.objective_value:.6f} vs fresh "
+      f"{_kb15e.objective_value:.6f}")
+R.check(
+    "a previous plan of the wrong width is dropped, not clipped (#1295 null)",
+    np.array_equal(np.asarray(_kb15d.power_schedule),
+                   np.asarray(_kb15e.power_schedule))
+    and np.array_equal(np.asarray(_kb15d.dhw_power_schedule),
+                       np.asarray(_kb15e.dhw_power_schedule)),
+    f"wrong-width plan reproduced the fresh plan: "
+    f"{np.array_equal(np.asarray(_kb15d.power_schedule), np.asarray(_kb15e.power_schedule))}"
+    f" -- False means the width guard reshaped it instead of dropping it",
+)
 
 sys.exit(R.close("OPTIMALITY CHECKS"))

@@ -3947,7 +3947,7 @@ function assertAcceptance(derived) {
     return 1
   }
   const RC_THREE = { contexts: ['policy-docs', 'probe-a', 'probe-b'], count: 3, rulesets: [1] }
-  const rcFixture = (contexts) => JSON.stringify({ contexts })
+  const rcFixture = (contexts, rulesets = [1]) => JSON.stringify({ contexts, rulesets })
   const rcRot = '.claude/workflows/fixtures/policy-rot/required-contexts.md'
   const rcRotText = read(rcRot)
   if (rcRotText == null) {
@@ -3986,6 +3986,32 @@ function assertAcceptance(derived) {
   const shrank = driveRC({ contexts: RC_THREE.contexts.slice(0, 2), count: 2, rulesets: [1] }, rcFixture(RC_THREE.contexts), [])
   if (shrank.found.length !== 1 || !shrank.found[0].message.includes('no longer returns it') || !shrank.found[0].message.includes('probe-b')) {
     console.log('\nFIXTURE VACUOUS: a context the live set dropped was not reported by name; a retired required context would read as still recorded')
+    return 1
+  }
+  // Drift by RULESET ID, both directions (#1300). The context names above are
+  // only half the boundary: a ruleset change that moves WHICH ruleset supplies
+  // the required contexts, leaving the names byte-identical, read as 0 findings
+  // against a fixture that recorded a different ruleset -- which the committed
+  // fixture did (`main-protect` 22628467 against a boundary drawing the checks
+  // from `main-protect-checks` 23698884), leaving the check blind to the exact
+  // drift the fixture exists to expose. Each arm is 1 finding, not 2: the
+  // contexts agree, only the id moved.
+  pins += 3
+  const idGrew = driveRC({ ...RC_THREE, rulesets: [1, 2] }, rcFixture(RC_THREE.contexts, [1]), [])
+  if (idGrew.found.length !== 1 || !idGrew.found[0].message.includes('ruleset `2`')) {
+    console.log('\nFIXTURE VACUOUS: a ruleset the live boundary gained as a source of the required contexts was not reported by id; a boundary whose checks moved to a new ruleset would read as unchanged')
+    return 1
+  }
+  const idShrank = driveRC({ ...RC_THREE, rulesets: [1] }, rcFixture(RC_THREE.contexts, [1, 2]), [])
+  if (idShrank.found.length !== 1 || !idShrank.found[0].message.includes('`2` is recorded in `rulesets`')) {
+    console.log('\nFIXTURE VACUOUS: a recorded ruleset id the live boundary no longer draws the contexts from was not reported; a retired ruleset would read as still recorded')
+    return 1
+  }
+  // An ABSENT record fires too. Skipping it would reinstate the same blindness
+  // by deletion: drop the `rulesets` key and a ruleset move is invisible again.
+  const idAbsent = driveRC(RC_THREE, JSON.stringify({ contexts: RC_THREE.contexts }), [])
+  if (idAbsent.found.length !== 1 || !idAbsent.found[0].message.includes('ruleset `1`')) {
+    console.log('\nFIXTURE VACUOUS: a fixture naming no rulesets did not fire; deleting the key would make a ruleset move invisible again')
     return 1
   }
   // Silent on equality (over-fire control) and SKIPPING on a dead fetch, line

@@ -62,7 +62,7 @@ paths. `hpo-runs` approves held CI runs; stamps push over the deploy key
 Everything named here but `docs/HANDOVER.md` is **policy**, and so is this file.
 The owner approves a change to any of it before **merging**, not drafting — so
 open the pull request and surface it. Approval is the owner's approving GitHub
-review, which `main-protect`'s code-owner rule requires (0009 step 6). Every
+review, which `main-protect-checks`'s code-owner rule requires (0009 step 6). Every
 rewrite looks like a correction from the inside; if the honest description is
 *"this changes what a seat must do"*, it is policy however small the diff.
 
