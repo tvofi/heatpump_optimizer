@@ -46,6 +46,39 @@ def score_plan(m,pw,st,ot,wi,ra,so,pr,minT=16.5):
     viol=float(np.maximum(0,minT-r).sum())
     return cost,viol,r.min(),r.max()
 
+def pin_result(label,res,m,st,ot,wi,ra,so,pr,dhw=False):
+    """Pin the post-conditions every solve in this file owes.
+
+    Twelve real solves run here. Before this helper, nine of them were pinned
+    by exactly one check -- the comparison that justified calling them -- so a
+    solve that returned its own start vector as a plan, or one whose schedule
+    left the model's own power bounds, satisfied that comparison and passed.
+    These are the properties a solve owes before any comparison is meaningful,
+    and the two about a computed quantity read a PRODUCTION symbol rather than
+    a copy of one: the model's own ``max_electrical_power`` for the bounds, and
+    ``ThermalModel.simulate_trajectory`` (through ``score_plan``) for the
+    comfort floor. ``dhw`` adds the same two pins on the hot-water channel.
+    """
+    pw=np.asarray(res.power_schedule,dtype=float)
+    pmax=float(m.params.max_electrical_power)
+    R.check(f"{label}: one finite schedule entry per horizon step",
+            pw.shape==(N,) and bool(np.all(np.isfinite(pw))),
+            f"schedule shape {pw.shape}")
+    R.check(f"{label}: every step inside the model's own power bounds",
+            bool(np.all(pw>=-1e-9) and np.all(pw<=pmax+1e-9)),
+            f"range {pw.min():.3f}-{pw.max():.3f} kW, bound {pmax:.3f}")
+    _,viol,_,_=score_plan(m,pw,st,ot,wi,ra,so,pr)
+    R.check(f"{label}: the plan holds the comfort floor",viol<=1e-6,
+            f"degree-steps below floor: {viol:.4f}")
+    if dhw:
+        dpw=np.asarray(res.dhw_power_schedule,dtype=float)
+        R.check(f"{label}: one finite DHW entry per horizon step",
+                dpw.shape==(N,) and bool(np.all(np.isfinite(dpw))),
+                f"DHW schedule shape {dpw.shape}")
+        R.check(f"{label}: every DHW step inside the model's own power bounds",
+                bool(np.all(dpw>=-1e-9) and np.all(dpw<=pmax+1e-9)),
+                f"DHW range {dpw.min():.3f}-{dpw.max():.3f} kW")
+
 for tz in (False,True):
     R.section(f"two_zone={tz}")
     opt,m,pr,ot,wi,ra,so,st,start=setup(tz)
@@ -55,6 +88,7 @@ for tz in (False,True):
     print(f" optimizer : cost {c0:7.2f}  room {mn0:.2f}-{mx0:.2f}  viol {v0:.3f}")
     R.check("optimizer plan meets the comfort floor", v0 <= 1e-6,
             f"degree-steps below floor: {v0:.4f}")
+    pin_result(f"space base (two_zone={tz})",r,m,st,ot,wi,ra,so,pr)
 
     # Challenger 1: same total energy, greedily moved to the cheapest slots.
     # It may run the house colder than the optimizer chose to (comfort is
@@ -111,6 +145,7 @@ for tz in (False,True):
                 v3 <= 1e-6 and c0 <= c3 * 0.95,
                 f"full-budget {c0:.2f} vs starved {c3:.2f} "
                 f"({100.0*(c3-c0)/c3:.1f}% gap)")
+        pin_result("space starved-budget arm (two_zone=True)",r3,m,st,ot,wi,ra,so,pr)
 
     # Challenger 4: the batched-FD jac (issue #97) must move no plan. The
     # production path solves through objective_batch/_batch_fd_gradient; a
@@ -137,6 +172,7 @@ for tz in (False,True):
     R.check("the batched-FD jac reproduces scipy's own gradient path exactly",
             same,
             "schedules differ -- the jac is not bit-identical to scipy's FD")
+    pin_result(f"space no-batch control (two_zone={tz})",r_fd,m,st,ot,wi,ra,so,pr)
 
 # Challenger 5: the same batched-jac bit-identity race, but for a DHW-ENABLED
 # solve -- the class the batched jac was blocked from until D9-01. Enabling DHW
@@ -193,6 +229,8 @@ for _tz in (False, True):
         same_dhw,
         "DHW schedules differ -- the batched jac diverges from scipy's FD "
         "on non-uniform (DHW-pinned) bounds")
+    pin_result(f"DHW base (two_zone={_tz})",r_batch,m,st,ot,wi,ra,so,pr,dhw=True)
+    pin_result(f"DHW no-batch control (two_zone={_tz})",r_fd,m,st,ot,wi,ra,so,pr,dhw=True)
 
 # Challenger 7 (DHW two-zone only): the solver's own STOP RULE, raced
 # against itself the way challenger 3 races the budget. R4-D0-02 (#921)
@@ -226,6 +264,7 @@ _o7, _m7, _pr7, _ot7, _wi7, _ra7, _so7, _st7, _start7 = _dhw_setup(True)
 _r7 = _o7.optimize(_st7, _pr7, _ot7, _wi7, _ra7, _so7, _start7)
 _c70, _v70, _, _ = score_plan(_m7, np.asarray(_r7.power_schedule),
                               _st7, _ot7, _wi7, _ra7, _so7, _pr7)
+pin_result("stop-rule production arm",_r7,_m7,_st7,_ot7,_wi7,_ra7,_so7,_pr7,dhw=True)
 _full_scoped_7 = _optm_dhw._scoped_minimize
 _full_ms_7 = _optm_dhw._multi_start_minimize
 _full_restart_7 = _optm_dhw._lbfgsb_restart
@@ -257,6 +296,7 @@ with _mock_dhw.patch.object(_optm_dhw, "_multi_start_minimize", _loose_ms_7):
     _r7l = _o7.optimize(_st7, _pr7, _ot7, _wi7, _ra7, _so7, _start7)
 _c7l, _v7l, _, _ = score_plan(_m7, np.asarray(_r7l.power_schedule),
                               _st7, _ot7, _wi7, _ra7, _so7, _pr7)
+pin_result("stop-rule loosened arm",_r7l,_m7,_st7,_ot7,_wi7,_ra7,_so7,_pr7,dhw=True)
 print(f" stop-prod : cost {_c70:7.2f}  viol {_v70:.3f}")
 print(f" stop-rule: cost {_c7l:7.2f}  viol {_v7l:.3f}")
 # The bound was 1% (0.99) against a 2.6% measured gap until #1207 dropped
@@ -303,12 +343,16 @@ _zr = _zopt.optimize(_zst, _zpr, _zot, _zwi, _zra, _zso, _zstart,
                      space_pins=_pins)
 _zbase = np.asarray(_zr.power_schedule)
 _zc0, _zv0, _zmn, _zmx = score_plan(_zm, _zbase, _zst, _zot, _zwi, _zra, _zso, _zpr)
+pin_result("zero-range pinned plan",_zr,_zm,_zst,_zot,_zwi,_zra,_zso,_zpr)
 print(f" pinned    : cost {_zc0:7.2f}  room {_zmn:.2f}-{_zmx:.2f}  viol {_zv0:.3f}")
 R.check("a pinned plan still meets the comfort floor", _zv0 <= 1e-6,
         f"degree-steps below floor: {_zv0:.4f}")
 R.check("the forced-off pin is honoured, or reported as safety-released",
         (90 in _zr.manual_released_space) or _zbase[90] <= 1e-6,
         f"step 90 planned {_zbase[90]:.3f} kW and was not released")
+R.check("no step is reported released that was never pinned",
+        set(_zr.manual_released_space) <= {90},
+        f"released {sorted(_zr.manual_released_space)}, only step 90 was pinned")
 _ztotal = _zbase.sum()
 _zpmax = _zm.params.max_electrical_power
 _zgreedy = np.zeros(N); _zleft = _ztotal
