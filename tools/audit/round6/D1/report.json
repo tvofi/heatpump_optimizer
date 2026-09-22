@@ -1,0 +1,149 @@
+{
+ "dimension": "D1",
+ "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+ "report_path": "tools/audit/round6/D1/REPORT.md",
+ "exposure": "",
+ "findings": [
+  {
+   "id": "D1-01",
+   "title": "Non-finite persisted DHW cooling rate reaches the live model, never reset",
+   "severity": "high",
+   "claim": "A DHW-profile store whose cooling_rate is NaN installs a non-finite value on the live ThermalModel.params.dhw_cooling_rate that is never quarantined or reset and emits no log line, so ThermalModel.dhw_hold_hours() and the published payload are non-finite too and the next save writes NaN back.",
+   "mechanism": "DhwProfileLearner.async_load_profile parses the stored rate with float(rate) under (TypeError, ValueError, OverflowError); float('nan') raises nothing. DhwProfileLearner.apply_cooling_rate is float(np.clip(rate, MIN, MAX)) and np.clip propagates NaN. The four sibling learned scalars dispatched from _async_load_thermal_learning are each wrapped in coordinator:_refuses_non_finite, whose docstring names this exact hazard; this fifth seam of that family is the one without the guard. The learner's own EWMA (1-a)*self.cooling_rate + a*observed then absorbs NaN on every later fold, so the corruption is self-perpetuating.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D1/dhw_cooling_ratchet.py",
+    "harness_path": "tools/audit/round6/D1/dhw_cooling_ratchet.py",
+    "value": 5,
+    "unit": "count",
+    "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+    "machine": "Apple M1, 8 GB, macOS 25.6.0, shared audit box",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: shared with the other round-6 auditors, load1 74.97; the metric is a count, which contention cannot move",
+    "tolerance": "exact",
+    "load1": 74.97,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "dhw_learning:DhwProfileLearner.apply_cooling_rate",
+   "perturbation": {
+    "change": "Wrap DhwProfileLearner.apply_cooling_rate so a non-finite argument is dropped instead of clamped (the guard coordinator:_refuses_non_finite already gives the four sibling learned scalars); the harness applies it by monkey-patch and reverts it in a finally.",
+    "expected_direction": "down",
+    "observed_value": 0
+   },
+   "metric_definition": "Non-finite values among DhwProfileLearner.cooling_rate, ThermalModel.params.dhw_cooling_rate, ThermalModel.dhw_hold_hours(), data['dhw_cooling_rate'] and data['dhw_hold_hours'] after the reload.",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D1/dhw_cooling_ratchet.py (null-control section)",
+    "value": 0,
+    "note": "The healthy payload's own rate and 0.42 both give nonfinite_live=0 and resaved_finite=True; the count is a property of the corrupt input, not of the load path."
+   },
+   "leave_one_out": {
+    "cells": 6,
+    "min": 0.0,
+    "max": 5.0,
+    "drop_most_favourable": 0.0
+   },
+   "reproduction_steps": [
+    "cd /Users/timmalmstrom/audit-r6-baseline",
+    "PYTHONPATH=tests/hastub python3 tools/audit/round6/D1/dhw_cooling_ratchet.py",
+    "Read RESULT nonfinite_live (5) beside RESULT nonfinite_live_perturbed (0)."
+   ],
+   "proposed_fix_scope": "One finiteness guard in DhwProfileLearner.apply_cooling_rate (drop a non-finite rate, leaving the previous finite value in place, log once) plus the same test in async_load_profile. Healthy path byte-identical; no golden fixture should move.",
+   "files": [
+    "custom_components/heatpump_optimizer/dhw_learning.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D1-02",
+   "title": "Non-finite persisted defrost duty silently becomes the floor derate",
+   "severity": "high",
+   "claim": "A NaN in one cell of the accuracy store's defrost.duty survives DefrostDerate.from_dict, is never quarantined or reset, emits no log line, and makes ThermalModel.compute_cop price every step in that temperature/humidity bucket at 0.55x the healthy COP, permanently.",
+   "mechanism": "DefrostDerate.from_dict builds both grids through a shared local _grid_of(key, cast) helper that does cast(v) for v in row with no finiteness test. The sibling grid 'factors' is re-clamped with min(DERATE_MAX, max(DERATE_MIN, v)) on the next lines, which returns a bound (not NaN) for NaN, so factors is safe by accident; duty gets no such clamp, and float('nan') raises nothing. The reader derate_from_duty's min(max(float(duty), 0.0), DEFROST_DUTY_MAX) also returns a bound for NaN, so the NaN becomes DERATE_MIN = 0.55 rather than a NaN and the failure is silent. A bucket only needs duty_counts[t][h] >= 1 for the measured estimator to be consulted in _decide.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D1/defrost_duty_floor.py",
+    "harness_path": "tools/audit/round6/D1/defrost_duty_floor.py",
+    "value": 0.55,
+    "unit": "ratio",
+    "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+    "machine": "Apple M1, 8 GB, macOS 25.6.0, shared audit box",
+    "cpu_or_wall": "ratio",
+    "contention_note": "fan-out: shared with the other round-6 auditors, load1 70.65; the metric is a ratio against the healthy store measured in the same process, which contention cancels",
+    "tolerance": "exact",
+    "load1": 70.65,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "defrost:DefrostDerate.from_dict",
+   "perturbation": {
+    "change": "Add the finiteness test that the sibling 'factors' grid gets by accident to _grid_of's 'duty' call in DefrostDerate.from_dict (v if math.isfinite(v) else 0.0), applied by monkey-patch and reverted in a finally.",
+    "expected_direction": "up",
+    "observed_value": 1.0
+   },
+   "metric_definition": "ThermalModel.compute_cop(T, H) at the poisoned bucket after loading the corrupted accuracy store, divided by the same call from the same code with a healthy store.",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D1/defrost_duty_floor.py (NULL CONTROL section)",
+    "value": 1.0,
+    "note": "The healthy payload through the same loader gives cop_ratio_null_control=1.000000 and nonfinite_duty_live=0; the ratio is a property of the corrupt cell, not of the measurement."
+   },
+   "leave_one_out": {
+    "cells": 8,
+    "min": 0.55,
+    "max": 0.55,
+    "drop_most_favourable": 0.55
+   },
+   "reproduction_steps": [
+    "cd /Users/timmalmstrom/audit-r6-baseline",
+    "PYTHONPATH=tests/hastub python3 tools/audit/round6/D1/defrost_duty_floor.py",
+    "Read RESULT cop_ratio (0.550000) beside RESULT cop_ratio_perturbed (1.000000) and RESULT cop_ratio_null_control (1.000000)."
+   ],
+   "proposed_fix_scope": "One finiteness test in DefrostDerate.from_dict's duty grid (v if math.isfinite(v) else 0.0), matching what factors gets by accident and duty_counts gets for free. No golden fixture should move.",
+   "files": [
+    "custom_components/heatpump_optimizer/defrost.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "No store loader lets an exception escape on a random structural mutant: 9 stores x 220 seeded mutants (type swaps, deleted/renamed keys, truncation, NaN/inf/1e308 leaves, wrong nesting).",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D1/store_fuzz.py",
+   "value": "RESULT loader_escape_total=0 count over RESULT mutants_per_store=220 count and RESULT stores_fuzzed=9 count"
+  },
+  {
+   "claim": "No store loader lets an exception escape on the systematic sweep either: every numeric leaf of 11 stores x 9 non-finite substitutions.",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D1/store_fuzz2.py",
+   "value": "RESULT loader_escape_total=0 count, RESULT stores_swept=11 count"
+  },
+  {
+   "claim": "The four learned scalars wrapped in coordinator:_refuses_non_finite hold against every non-finite substitution.",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D1/store_fuzz2.py",
+   "value": "model_poison_total attributable to the thermal_learning store = 0 of 207 mutants"
+  },
+  {
+   "claim": "The price_model, ledger, energy, manual_plan, snapshots, dhw_draws and away loaders leave nothing non-finite on the live model or in the published payload.",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D1/store_fuzz2.py",
+   "value": "0 per store; RESULT model_poison_total=98 count is concentrated in accuracy (96) and dhw_profile (2) of 4379 mutants"
+  },
+  {
+   "claim": "InputReader.read rejects every hostile stamp on a ten-cell clock grid: a 4-hour-old report, reports stamped 1 h and 7 d ahead of now, a 2-day forward clock jump, a 2-day backward clock jump (#775), and the raw states unknown/unavailable/None.",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D1/staleness_probe.py",
+   "value": "RESULT accepted_cells=2 count of RESULT cells=10 count, RESULT cells_disagreeing_with_the_grid=0 count (only the 5-minute-old stamp under a still clock and the untimestamped one are accepted)"
+  },
+  {
+   "claim": "The three corrupt-store loaders emit no log line while silently accepting a non-finite scalar, which is the brief's quarantine-or-reset-with-one-log-line criterion failing.",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D1/dhw_cooling_ratchet.py && PYTHONPATH=tests/hastub python3 tools/audit/round6/D1/defrost_duty_floor.py",
+   "value": "RESULT log_warnings_on_corrupt_load=0 count in both harnesses"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round6/D1/store_fuzz.py",
+  "tools/audit/round6/D1/store_fuzz2.py",
+  "tools/audit/round6/D1/dhw_cooling_ratchet.py",
+  "tools/audit/round6/D1/defrost_duty_floor.py",
+  "tools/audit/round6/D1/staleness_probe.py"
+ ]
+}

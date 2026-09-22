@@ -1,0 +1,58 @@
+{
+  "dimension": "D12",
+  "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+  "report_path": "tools/audit/round6/D12/REPORT.md",
+  "report_written": false,
+  "report_note": "Subagent report-file guard refused REPORT.md; orchestrator reconstructed it. 8 harnesses on disk.",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D12-01",
+      "title": "Battery view publishes buffer/DHW stores at ThermalState constructor defaults on plants that do not model them",
+      "severity": "medium",
+      "claim": "battery.build() guards the optional buffer/DHW stores with `state.<field> is not None` on non-Optional floats defaulting to 40.0/55.0 C that no code path ever sets to None, so both guards are invariant: a 35 L buffer the plant's own describe_setup() reports as is_store=false is listed as a storage component, and the default-on BATTERY/ENERGY_STORAGE aggregate includes heat at a temperature nothing measured.",
+      "mechanism": "battery.py:333 (buffer) and :320 (DHW) guard on `is not None` against thermal_model.py:1080/1085 non-Optional floats defaulting 40.0/55.0; the only live-state write is coordinator.py:5284 inside `if buffer_reading.ok`, the only other assignment is dataclasses.replace at thermal_model.py:2318. Contrast the wood tank (thermal_model.py:1109 made Optional) where the sentinel is reachable.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D12/buffer_store.py",
+        "harness_path": "tools/audit/round6/D12/buffer_store.py",
+        "value": 8,
+        "unit": "cells (of 8)",
+        "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+        "machine": "8-core Apple M1, 8 GB RAM (darwin arm64)",
+        "cpu_or_wall": "count",
+        "contention_note": "shared 8-core box, load1 8.5-13.4; count metric",
+        "tolerance": "exact",
+        "load1": 11.68,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.battery:build",
+      "perturbation": {
+        "change": "make buffer_is_store true (volume 750.0, manual mixing valve) on every cell; separately map both probes (buffer 45.0 C, DHW 52.0 C)",
+        "expected_direction": "to_zero",
+        "observed_value": "invented_buffer_stores 8 -> 0; fabricated_store_kwh 13.32 -> 0.0"
+      },
+      "metric_definition": "cells (of 8) whose published battery components list buffer_tank while the same plant's describe_setup()['buffer']['is_store'] is false",
+      "null_control": {"command": "buffer_store.py (unperturbed grid re-run)", "value": "null_control_repeat_identical=1", "note": "both tallies reproduce exactly on a second pass"},
+      "leave_one_out": {"cells": 8, "min": 1, "max": 1, "drop_most_favourable": 7},
+      "reproduction_steps": ["cd /Users/timmalmstrom/audit-r6-baseline", "PYTHONPATH=tests/hastub python3 tools/audit/round6/D12/buffer_store.py", "expect invented_buffer_stores=8, store_variant=0, fabricated_store_kwh=13.32 -> probed 0.0"],
+      "proposed_fix_scope": "report-only surface: make ThermalState.buffer_tank_temperature/dhw_temperature Optional, or gate components on params.buffer_is_store and reading_ok; and/or extend _MeasuredStoreMixin.available. Golden-bearing: 5 tests/golden/coord_*.json pin data.battery; a fixer owes the claim-file process.",
+      "files": ["custom_components/heatpump_optimizer/battery.py", "custom_components/heatpump_optimizer/thermal_model.py", "custom_components/heatpump_optimizer/sensor.py", "custom_components/heatpump_optimizer/coordinator.py", "tests/golden/coord_minimal.json"],
+      "expected_golden_drift": ["tests/golden/coord_minimal.json data.battery.components[buffer_tank]", "tests/golden/coord_dhw.json data.battery", "tests/golden/coord_two_zone.json data.battery", "tests/golden/coord_all_features.json data.battery", "tests/golden/coord_grid_fee.json data.battery"],
+      "stop_rule_class": "bug"
+    }
+  ],
+  "non_findings": [
+    {"claim": "every describable plant completes a real refresh", "command": "fullcell.py", "value": "cells=27 failed=0"},
+    {"claim": "omitting any one of 21 optional entity slots leaves a working refresh", "command": "grid.py", "value": "cells=21 failed=0"},
+    {"claim": "construct + all six platform setups per cell", "command": "probe.py", "value": "cells=10 failed=0"},
+    {"claim": "#1335 probe gating live", "command": "sensors.py", "value": "available_probe_absent=0 of 4"},
+    {"claim": "aggregate battery available on partly-probed plant (finding precondition)", "command": "sensors.py", "value": "thermal_battery_available=1, measured_components=house"},
+    {"claim": "two-zone gate live", "command": "batt.py minimal", "value": "single-zone -> house, slab, buffer_tank"},
+    {"claim": "dhw_enabled=false omits dhw_tank", "command": "batt.py minimal", "value": "no dhw_tank component"},
+    {"claim": "wood tank not fabricated (needs real probe)", "command": "thermal_model.py:374 + battery.py:355-356", "value": "no wood_tank without probe"},
+    {"claim": "ECL110 not invented", "command": "dumpcell.py minimal", "value": "topics '', DIAGNOSTIC, off by default"},
+    {"claim": "no compressor modulation for fixed-speed pump", "command": "dumpcell.py onoff_pump", "value": "freq_control mode=unconfigured, reported_hz=null"},
+    {"claim": "PV enabled without peak fabricates none", "command": "const.py:546", "value": "DEFAULT_PV_PEAK_KW=0.0"}
+  ],
+  "harnesses": ["tools/audit/round6/D12/buffer_store.py", "tools/audit/round6/D12/sensors.py", "tools/audit/round6/D12/fullcell.py", "tools/audit/round6/D12/grid.py", "tools/audit/round6/D12/probe.py", "tools/audit/round6/D12/batt.py", "tools/audit/round6/D12/dumpcell.py", "tools/audit/round6/D12/dump.py"]
+}

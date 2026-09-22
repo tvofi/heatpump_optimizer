@@ -13,17 +13,13 @@ import types
 
 
 def _json_bytes(obj: object) -> bytes:
-    """orjson's refusals: non-finite floats, set, bytes.
+    """Refuse non-finite floats, set and bytes, then serialize.
 
-    Upstream is ``orjson.dumps``. The default-encoder path for Home Assistant
-    types is not modelled.
+    The refusals run before the ``orjson.dumps`` fast path because orjson
+    serialises non-finite floats as ``null`` rather than refusing them, so a
+    stub that delegated first would let ``inf``/``nan`` through. The
+    default-encoder path for Home Assistant types is not modelled.
     """
-    try:
-        import orjson
-
-        return orjson.dumps(obj)
-    except ImportError:
-        pass
 
     def walk(node: object) -> None:
         if isinstance(node, float) and not math.isfinite(node):
@@ -38,6 +34,14 @@ def _json_bytes(obj: object) -> bytes:
                 walk(value)
 
     walk(obj)
+
+    try:
+        import orjson
+
+        return orjson.dumps(obj)
+    except ImportError:
+        pass
+
     return json.dumps(obj).encode()
 
 

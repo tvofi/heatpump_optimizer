@@ -46,7 +46,8 @@ production lines. You work in your own worktree branched from `origin/main`.
    that is safe and what it costs: CI runs the same `run.sh` in the same drift
    mode against the same merge base, and a full run is about forty minutes. So
    `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
-   doc — not an instruction to reproduce CI.
+   doc — not an instruction to reproduce CI. An untracked scratch file is one:
+   keep the handoff body outside the worktree `app_push.sh` refuses when dirty.
 
    **Running locally does not discharge CI.** What `scope.run` names is green
    locally and the body passes `tools/audit/prepr.sh` before anything leaves

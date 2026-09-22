@@ -1,0 +1,51 @@
+{
+  "dimension": "D8",
+  "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+  "report_path": "tools/audit/round6/D8/REPORT.md",
+  "report_written": false,
+  "report_note": "REPORT.md write refused; orchestrator reconstructed it. harness matrix.py on disk.",
+  "exposure": "tools/audit/briefs/D8.md carries round-5 finding #1333 (Traps section). No gh/GitHub.",
+  "findings": [
+    {
+      "id": "D8-01",
+      "title": "Five DHW entities stay enabled-by-default and permanently unavailable with hot water unconfigured",
+      "severity": "medium",
+      "claim": "With DHW unconfigured, five of the six _DHWEntityMixin entities are enabled by default and available is False in every refresh, so a user with no hot water is shown five dead entities.",
+      "mechanism": "sensor._DHWEntityMixin.available gates on coordinator.data['dhw_enabled'], but _attr_entity_registry_enabled_default is True for five of the six classes; only DHWTemperatureSensor sets it False.",
+      "evidence": {
+        "command": "cd /Users/timmalmstrom/audit-r6-baseline && PYTHONPATH=tests/hastub python3 tools/audit/round6/D8/matrix.py",
+        "harness_path": "tools/audit/round6/D8/matrix.py",
+        "value": 5,
+        "unit": "entities",
+        "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+        "machine": "MacBookAir arm64, 8 cores, 8 GB, Darwin 25.6.0",
+        "cpu_or_wall": "count",
+        "contention_note": "D4/D7/D9 running concurrently; counts deterministic",
+        "tolerance": "exact",
+        "load1": 7.277,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "sensor:_DHWEntityMixin.available",
+      "perturbation": {"change": "configure DHW on coord_minimal (dhw_tank_volume=200, dhw_setpoint=55, dhw_min_temperature=45)", "expected_direction": "to_zero", "observed_value": 0},
+      "metric_definition": "Enabled-by-default _DHWEntityMixin entities whose available is False after a reference-recipe build of coord_minimal (dhw_enabled == False)",
+      "null_control": {"command": "D8_PERTURB=stale_indoor ... matrix.py", "value": 0, "note": "with DHW configured reports 0; every other violation class stays 0 under each non-matching perturbation and moves to 1 under the one it names"},
+      "reproduction_steps": ["cd /Users/timmalmstrom/audit-r6-baseline", "PYTHONPATH=tests/hastub python3 tools/audit/round6/D8/matrix.py", "grep RESULT d8_no_dhw_enabled_unavailable -> 5"],
+      "proposed_fix_scope": "Set _attr_entity_registry_enabled_default = False on the five classes (or on _DHWEntityMixin)",
+      "files": ["custom_components/heatpump_optimizer/sensor.py"],
+      "stop_rule_class": "hygiene"
+    }
+  ],
+  "non_findings": [
+    {"claim": "no state raises / enum not listed / non-numeric measurement / naive ts / non-datetime ts / unit-on-nonnumeric / unit-device-class mismatch / non-json", "command": "matrix.py", "value": "all 0 across 13 cells"},
+    {"claim": "no enabled+available sensor publishes None while its data key holds a value", "command": "matrix.py", "value": "d8_enabled_dead=0"},
+    {"claim": "reference build equals all five committed golden payloads", "command": "matrix.py", "value": "d8_golden_payload_mismatch=0"},
+    {"claim": "indoor/outdoor/tank/price follow changed payloads between cycles", "command": "matrix.py", "value": "d8_stale_*=0"},
+    {"claim": "every named family is one contiguous run with no interlopers", "command": "matrix.py", "value": "1 run / 0 interlopers for all 7 families"},
+    {"claim": "plan headline family has 7 members", "command": "matrix.py", "value": "7 members / 1 run / 0 interlopers"},
+    {"claim": "nothing README/card first-hour names is disabled by default", "command": "matrix.py", "value": "d8_first_hour_disabled=0"},
+    {"claim": "only iconless entity is climate (domain default applies)", "command": "matrix.py", "value": "d8_no_icon=1"},
+    {"claim": "translations en+sv: 73 named entities, 0 missing/0 extra", "command": "matrix.py", "value": "coverage 73/73"},
+    {"claim": "narrative template keys en+sv identical", "command": "matrix.py", "value": "14 keys each, 0 missing/0 extra"}
+  ],
+  "harnesses": ["tools/audit/round6/D8/matrix.py"]
+}
