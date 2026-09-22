@@ -18,7 +18,7 @@ blueprint:
         The optimizer's current-price sensor, publishing the hourly spot
         price in your currency per kWh. The entity prefix follows the name
         you gave the entry; the default assumes "Heat Pump Optimizer".
-      default: sensor.heat_pump_optimizer_current_electricity_price
+      default: sensor.heat_pump_optimizer_cost_current_electricity_price
       selector:
         entity:
           domain: sensor
