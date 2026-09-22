@@ -106,6 +106,11 @@ p1=$!
 (
   rec tests/features.py
   rec tests/entities.py
+  # #1413: the doc-claims-vs-code-facts detector. A selectable script the
+  # lanes never recorded fails the closures job on main with "NO recording
+  # this run" however complete the committed table is -- the same trap
+  # config_flow_steps.py documents below.
+  rec tests/doc_claims.py
   rec tests/wood_advisor.py
   # The config-flow driver (#194), in lane order next to entities.py: a
   # selectable script the lanes never recorded reads as "no closure" and
