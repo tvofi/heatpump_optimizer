@@ -4588,6 +4588,97 @@ repeat = SystemIdentification(SysIdConfig(enabled=True, min_days_between_runs=30
 repeat.last_run = NOW - timedelta(days=2)
 R.check("a recent run blocks another", not repeat.arm(NOW))
 
+# ``identify()`` (the one-state regression) is HARNESS-ONLY (#1395). Every
+# production experiment arms with a declared plant, so ``_finish`` routes it to
+# ``identify_slab()``; the one-state regression is reached only by a caller
+# that declares no plant. A name-based scan cannot pin this -- ``_finish`` DOES
+# reference ``identify`` by name, so the method census reads 0 (which is what
+# ``tests/structure.py``'s #1395 metric checks) -- so the shape is pinned here,
+# by counting entries along each sequence. The no-plant arm is the null
+# control: it must reach ``identify()``, or a screen that counted 0 everywhere
+# would read as proof of a property it never tested.
+from heatpump_optimizer.sysid import slab_mode_identifiability as _sid_idable
+
+_sid_plant = ThermalParameters()
+R.check(
+    "the default plant passes the arm-time identifiability gate",
+    _sid_idable(_sid_plant, SysIdConfig(enabled=True))[0],
+    "production arms with a declared plant; the gate must accept it, or the "
+    "production sequence the pin below drives is not the production one",
+)
+
+_sid_calls = {"identify": 0, "identify_slab": 0}
+_sid_identify = SystemIdentification.identify
+_sid_identify_slab = SystemIdentification.identify_slab
+
+
+def _sid_count(method, key):
+    def _wrapper(self, *args, **kwargs):
+        _sid_calls[key] += 1
+        return method(self, *args, **kwargs)
+
+    return _wrapper
+
+
+SystemIdentification.identify = _sid_count(_sid_identify, "identify")
+SystemIdentification.identify_slab = _sid_count(_sid_identify_slab, "identify_slab")
+
+
+def _sid_drive(with_plant):
+    experiment = SystemIdentification(
+        SysIdConfig(
+            enabled=True,
+            settle_hours=0.5,
+            step_hours=2.0,
+            relax_hours=2.0,
+            max_excursion_c=5.0,
+        )
+    )
+    if with_plant:
+        experiment.arm(night, plant=_sid_plant)
+    else:
+        experiment.arm(night)
+    house_capacity, house_ua, outdoor, cop = 8.0, 0.2, 0.0, 3.0
+    room, when = 20.0, night
+    for _ in range(40):
+        power = experiment.step(
+            now=when, room_temp=room, outdoor_temp=outdoor, price=0.55,
+            price_horizon=cheap, learner_samples=5, max_power_kw=5.0, cop=cop,
+        )
+        room += (
+            (power or 0.0) * cop - house_ua * (room - outdoor)
+        ) / house_capacity * 0.25
+        when += timedelta(minutes=15)
+    return experiment
+
+
+_sid_before = dict(_sid_calls)
+_sid_prod = _sid_drive(with_plant=True)
+_sid_prod_calls = {k: _sid_calls[k] - _sid_before[k] for k in _sid_calls}
+R.check(
+    "the production sequence (declared plant) never enters identify()",
+    _sid_prod.phase == PHASE_DONE
+    and _sid_prod_calls["identify"] == 0
+    and _sid_prod_calls["identify_slab"] == 1,
+    f"phase={_sid_prod.phase} identify={_sid_prod_calls['identify']} "
+    f"identify_slab={_sid_prod_calls['identify_slab']}",
+)
+
+_sid_before = dict(_sid_calls)
+_sid_harness = _sid_drive(with_plant=False)
+_sid_harness_calls = {k: _sid_calls[k] - _sid_before[k] for k in _sid_calls}
+R.check(
+    "the no-plant harness path still reaches identify()",
+    _sid_harness.phase == PHASE_DONE
+    and _sid_harness_calls["identify"] >= 1
+    and _sid_harness_calls["identify_slab"] == 0,
+    f"phase={_sid_harness.phase} identify={_sid_harness_calls['identify']} "
+    f"identify_slab={_sid_harness_calls['identify_slab']}",
+)
+
+SystemIdentification.identify = _sid_identify
+SystemIdentification.identify_slab = _sid_identify_slab
+
 
 # ===========================================================================
 # Item 19: revealed-preference comfort tuning
@@ -28459,6 +28550,79 @@ R.check(
     "exists to perform. It is the obvious next proposal and it is wrong, so the "
     "refusal belongs where the next person reads it, not only in the issue. "
     f"docstring mentions sum_cc: {'sum_cc' in (_hpo_st.__doc__ or '')}",
+)
+
+# ---- #1395 ---------------------------------------------------------------
+# The dead-METHOD census's boundary, pinned where its false positives came
+# from. Forcing both exemptions off is what prices them: the census then reads
+# 162 rows over 46 distinct names at this branch's merge base, every one a Home
+# Assistant hook the platform looks up on the INSTANCE (native_value,
+# async_step_*, is_on) or a @property, which is an attribute surface rather than
+# a call. The census is
+# name-based and CANNOT see #1395's own shape -- a method still CALLED but no
+# longer REACHABLE from production (that is `SystemIdentification.identify`,
+# reached by `_finish` but never on a declared plant) -- so that half is pinned
+# behaviourally in the sysid block above, not here.
+#
+# Driven through the two pure predicates and an AST check of structure.py's own
+# source, NOT by calling measure() (#374's rule: measure() walks
+# custom_components/ and would widen this script's closure with modules these
+# checks do not test).
+_hpo_i_conv = getattr(_hpo_st, "is_ha_convention_method", None)
+_hpo_i_prop = getattr(_hpo_st, "is_property_getter", None)
+R.check(
+    "the dead-method census exempts the names HA looks up on an instance (#1395)",
+    _hpo_i_conv is not None
+    and _hpo_i_conv("native_value")
+    and _hpo_i_conv("is_on")
+    and _hpo_i_conv("async_step_thermal_model")
+    and not _hpo_i_conv("identify")
+    and not _hpo_i_conv("conditions_met"),
+    "a census that does not exempt the HA hooks calls every one of them dead; "
+    "measured with both exemptions forced off it reads 162 rows over 46 "
+    "distinct names at this branch's merge base, every one an HA hook or a "
+    f"property (is_ha_convention_method = {_hpo_i_conv!r})",
+)
+R.check(
+    "and a @property is out of the method census by construction (#1395)",
+    _hpo_i_prop is not None
+    and _hpo_i_prop(
+        _hpo_ast.parse("class C:\n  @property\n  def x(self):\n    return 1\n")
+        .body[0].body[0]
+    )
+    and _hpo_i_prop(
+        _hpo_ast.parse("class C:\n  @x.setter\n  def x(self, v):\n    pass\n")
+        .body[0].body[0]
+    )
+    and not _hpo_i_prop(
+        _hpo_ast.parse("class C:\n  def x(self):\n    return 1\n").body[0].body[0]
+    ),
+    "a property is the object's named attribute surface, read by the platform; "
+    "the census is about functions reached by a CALL, so it is out of scope "
+    f"rather than exempted (is_property_getter = {_hpo_i_prop!r})",
+)
+R.check(
+    "and measure() carries the count and print_report prints an evidence line (#1395)",
+    any(
+        isinstance(_hpo_n, _hpo_ast.Dict)
+        and {
+            _hpo_k.value
+            for _hpo_k in _hpo_n.keys
+            if isinstance(_hpo_k, _hpo_ast.Constant)
+        }
+        >= {"dead_methods", "dead_top_level_symbols"}
+        for _hpo_n in _hpo_ast.walk(_hpo_struct_tree)
+    )
+    and f'metrics["dead_methods"]' in _hpo_struct_src
+    and "dead_methods = %d" in _hpo_struct_src,
+    "the census must be a budget key -- the ratchet's two-way key-set check "
+    "fails a measured-but-absent key -- and it must print an evidence line, "
+    "because a budgeted number with no evidence line above it is the shape "
+    "tests/README.md refuses. Only `dead_methods` is required to carry the "
+    "`= %d` line: the module-level screen it mirrors does not print one, and "
+    "pinning both was this check's own first form, which refused the correct "
+    "tree (measured: `dead_top_level_symbols = %d` is absent from "
+    "tests/structure.py)",
 )
 
 # ===========================================================================

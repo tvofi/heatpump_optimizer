@@ -1128,6 +1128,16 @@ class SystemIdentification:
         # plant is fitted in the two-state form (with the ported intercept
         # ridge); everything else — a harness that declared no plant — keeps
         # the one-state regression. The gate's refusals never reach here.
+        #
+        # The one-state branch is HARNESS-ONLY (#1395): production always arms
+        # with a declared plant (``HeatPumpOptimizerCoordinator.
+        # async_arm_system_identification`` passes ``_thermal_params``), and a
+        # plant that fails the arm-time gate never finishes an experiment — so
+        # ``_slab_pair`` is set on every ``_finish`` production reaches, and
+        # ``identify()`` is entered zero times by the production call sequence.
+        # It stays for a harness that drives the state machine with no declared
+        # plant, which is why it is retained rather than deleted; the pin is
+        # behavioural (``tests/features.py``).
         try:
             if self._slab_pair is not None:
                 self.result = self.identify_slab()
@@ -1156,6 +1166,22 @@ class SystemIdentification:
 
     # -- fitting ------------------------------------------------------------
 
+    # HARNESS-ONLY (#1395). The production call sequence never enters
+    # ``identify`` below: the coordinator always arms with a declared plant
+    # (``async_arm_system_identification`` passes ``_thermal_params``), so
+    # ``_finish`` routes every experiment production can finish to
+    # ``identify_slab``, and ``identify`` is entered zero times by that
+    # sequence. #1330 removed this method's last production route by refusing
+    # the cadence-gap fallback BY NAME rather than handing a slow-slab plant to
+    # the one-state regression. What reaches here is a harness that drives the
+    # state machine with no declared plant (round-3/4/5 D7 and D2 harnesses
+    # call it directly, and ``tests/features.py`` drives it through
+    # ``arm``/``step``), which is why the method is retained rather than
+    # deleted. ``tests/features.py`` pins both halves: the production sequence
+    # enters it zero times, the no-plant harness path enters it. That pin is
+    # BEHAVIOURAL, because a name-based scan cannot see this shape -- ``_finish``
+    # does reference ``identify`` by name, so ``tests/structure.py``'s
+    # ``dead_methods`` census correctly reads 0.
     def identify(self) -> SysIdResult:
         """Fit a first-order model to the recorded step response.
 
@@ -1176,7 +1202,7 @@ class SystemIdentification:
         UA and C — the exact parameters the experiment exists to pin. When
         the data cannot support three columns (rank < 3) the fit degrades
         to the historical two-column form rather than failing outright,
-        and reports no gains figure.
+        and reports no gains figure. Harness-only: see the note above (#1395).
         """
         usable = [
             s
@@ -1587,7 +1613,9 @@ class SystemIdentification:
         if self._slab_pair is None or self._slab_prior is None:
             # Called without an arm-time plant (a harness replaying samples
             # directly): the one-state regression is what the pre-wave tree
-            # ran on that path, and it stays what runs there.
+            # ran on that path, and it stays what runs there. This is the other
+            # harness-only route to ``identify()`` (#1395): production cannot
+            # arrive without a plant, so neither branch is a production path.
             self._slab_fit_used = False
             return self.identify()
         usable = [

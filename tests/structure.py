@@ -98,6 +98,17 @@ Metrics (definitions, one line each; the code is the authority):
                               four constants a runtime ``getattr`` assembles
                               are exempted by name, with their proof re-checked
                               on every run (``DYNAMIC_REFERENCES``)
+  dead_methods                the same screen one level in (#1395): class-body
+                              functions whose NAME is never referenced
+                              anywhere in the integration, excluding dunders,
+                              ``HA_CONVENTION_METHODS`` (the names HA looks up
+                              on an instance -- an entity's ``native_value``,
+                              a config flow's ``async_step_*``) and
+                              ``@property`` getters (an attribute surface, not
+                              a call). NAME-based, so it cannot see a method
+                              that is still called from inside its own class
+                              but no longer reachable from production; that
+                              shape is pinned behaviourally, not here
   internal_call_edges         ``self.m(...)`` call occurrences inside the
                               coordinator where ``m`` is one of its own methods
   cross_seam_edges            those edges whose endpoints sit in different
@@ -244,6 +255,59 @@ HA_CONVENTION_NAMES = {
     "PARALLEL_UPDATES",
     "PLATFORMS",
 }
+
+# The method-shaped twin of ``HA_CONVENTION_NAMES`` (#1395). Home Assistant
+# imports the module, instantiates the class (an entity, the coordinator, a
+# config-flow handler) and looks the name up on the INSTANCE, so no module in
+# the package ever writes ``self.native_value()`` or ``x.is_on()`` and the
+# method screen would call every one of them dead. Each entry says which
+# convention it is; ``async_step_*`` is a family, matched by prefix below.
+HA_CONVENTION_METHODS = {
+    # DataUpdateCoordinator's own template method.
+    "_async_update_data",
+    # Entity platform APIs, called by HA on the entity instance.
+    "async_press",
+    "async_set_hvac_mode",
+    "async_set_preset_mode",
+    "async_set_temperature",
+    "async_set_value",
+    "async_turn_on",
+    "async_turn_off",
+    "is_on",
+    "current_temperature",
+    "hvac_action",
+    # Entity properties the platform reads as attributes.
+    "native_value",
+    "extra_state_attributes",
+    # ConfigFlow / OptionsFlow: the flow engine dispatches on the step name.
+    "async_get_options_flow",
+}
+HA_CONVENTION_METHOD_PREFIXES = ("async_step_",)
+
+
+def is_ha_convention_method(name: str) -> bool:
+    """Whether HA reaches ``name`` on an instance by convention, not import."""
+    return (
+        name in HA_CONVENTION_METHODS
+        or name.startswith(HA_CONVENTION_METHOD_PREFIXES)
+    )
+
+
+def is_property_getter(node: ast.AST) -> bool:
+    """Whether a class-body function is a ``@property`` (or a sibling accessor).
+
+    A property is the object's named ATTRIBUTE surface, not a callable: a read
+    is an attribute load, which ``module_references`` already records when it
+    happens, and the dead-METHOD screen below is about functions reached by a
+    call. So this is the screen's boundary, not an exemption for a name: a
+    property nothing reads is out of the method census's scope by construction.
+    """
+    return any(
+        (isinstance(d, ast.Name) and d.id == "property")
+        or (isinstance(d, ast.Attribute) and d.attr in ("setter", "getter", "deleter"))
+        for d in getattr(node, "decorator_list", [])
+    )
+
 
 # Symbols no static scan can see, because the name is assembled at runtime.
 # An EXPLICIT, RE-CHECKED allowlist -- not a widening of what "referenced"
@@ -783,6 +847,7 @@ def measure() -> dict:
     const_fanout = {}      # file -> imported names from .const
     local_imports = []     # (file, line, statement)
     dead_symbols = []      # (file, line, name)
+    dead_methods = []      # (file, class, method, line)
     duplication = []       # (file, func_name, func_line, start-end, length)
 
     # -- classes, functions, imports, dead symbols -------------------------
@@ -902,6 +967,37 @@ def measure() -> dict:
             continue
         dead_symbols.append((rel, lineno, name))
 
+    # -- dead methods (#1395) ----------------------------------------------
+    # The same screen as ``dead_top_level_symbols``, one level in: a method
+    # whose NAME is never referenced anywhere in the package. Methods were
+    # outside every budgeted metric until this one -- ``dead_top_level_symbols``
+    # walks ``tree.body`` -- so a method the tree stopped calling was invisible
+    # to the ratchet. Dunders and the names HA looks up on the instance by
+    # convention (``HA_CONVENTION_METHODS``) are excluded for the same reason
+    # as their module-level twins; a ``@property`` is the object's attribute
+    # surface, not a call (``is_property_getter``), so it is out of scope here.
+    # The screen is deliberately name-based and therefore cannot see a method
+    # that is still CALLED but no longer REACHABLE from production -- #1395's
+    # ``SystemIdentification.identify`` is exactly that shape, and it is pinned
+    # behaviourally (``tests/features.py``) rather than by this count.
+    for path, tree in trees:
+        rel = str(path.relative_to(REPO_ROOT))
+        for cls in [n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]:
+            for node in cls.body:
+                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                if node.name.startswith("__") and node.name.endswith("__"):
+                    continue
+                if node.name in HA_CONVENTION_NAMES:
+                    continue
+                if is_ha_convention_method(node.name):
+                    continue
+                if is_property_getter(node):
+                    continue
+                if node.name in referenced_names:
+                    continue
+                dead_methods.append((rel, cls.name, node.name, node.lineno))
+
     # -- the coordinator's seam metrics ------------------------------------
     coordinator = None
     coord_file = PACKAGE_DIR / "coordinator.py"
@@ -956,6 +1052,7 @@ def measure() -> dict:
         "const_modules_over_50": sum(1 for n in const_fanout.values() if n > CONST_FANOUT_LIMIT),
         "local_imports": len(local_imports),
         "dead_top_level_symbols": len(dead_symbols),
+        "dead_methods": len(dead_methods),
         "internal_call_edges": seam["internal_call_edges"],
         "cross_seam_edges": seam["cross_edges"],
         **coordinator,
@@ -970,6 +1067,7 @@ def measure() -> dict:
         "const_fanout": dict(sorted(const_fanout.items(), key=lambda kv: -kv[1])),
         "local_imports": sorted(local_imports),
         "dead_symbols": dead_symbols,
+        "dead_methods": sorted(dead_methods),
         "dynamic_exempt": sorted(dynamic_exempt),
         "dynamic_problems": dynamic_problems,
         "duplication": sorted(duplication),
@@ -1034,6 +1132,14 @@ def print_report(result: dict) -> None:
     print("########## dead top-level symbols ##########")
     for rel, line, name in tables["dead_symbols"]:
         print(f"  {rel}:{line}  {name}")
+
+    print()
+    print("########## dead methods (name never referenced in the package) ##########")
+    for rel, cls, name, line in tables["dead_methods"]:
+        print(f"  {rel}:{line}  {cls}.{name}")
+    print("  dead_methods = %d (name never referenced in the package; the same"
+          " screen as dead_top_level_symbols, one level in)"
+          % metrics["dead_methods"])
 
     print()
     print("########## dynamic-reference allowlist (not counted above) ##########")
