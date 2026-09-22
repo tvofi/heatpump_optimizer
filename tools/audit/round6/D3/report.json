@@ -1,0 +1,111 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+ "report_path": "tools/audit/round6/D3/REPORT.md",
+ "exposure": "",
+ "findings": [
+  {
+   "id": "D3-01",
+   "title": "entities.py's A3 orjson checks are red or green by whether the optional, unpinned orjson is installed",
+   "severity": "medium",
+   "claim": "tests/entities.py, a script in the measured production closure of all 64 production modules, reports 3 of 1678 checks failed on the pristine baseline tree whenever the optional, unpinned package orjson is importable, because tests/hastub's json_bytes stub takes an orjson.dumps fast path that does not refuse non-finite floats and its refusal walk() is only reached when orjson is missing.",
+   "mechanism": "tests/hastub/homeassistant/helpers/__init__.py:_json_bytes returns orjson.dumps(obj) inside a try/except ImportError. orjson.dumps serialises float('inf') instead of refusing it, so the hand-written walk() below -- the code the docstring calls 'orjson's refusals' -- is dead on any box where orjson is installed. tests/entities.py asserts json_bytes({'k': inf}) raises, so three A3 checks fail. tests/requirements-ci.txt does not pin orjson.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D3/json_bytes_probe.py",
+    "harness_path": "tools/audit/round6/D3/json_bytes_probe.py",
+    "value": 3,
+    "unit": "failing checks of 1678 in tests/entities.py on the pristine baseline tree",
+    "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+    "machine": "8-core Apple M1, 8 GB, macOS 25.6.0, Python 3.11 (framework), numpy 2.4.6 / scipy 1.17.1",
+    "cpu_or_wall": "count",
+    "contention_note": "shared audit box, load1 5.5-12.3 during the fan-out; every wall and CPU number here is provisional and the quiet window re-takes it",
+    "tolerance": "exact",
+    "load1": 8.18,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tests/hastub/homeassistant/helpers/__init__.py:_json_bytes",
+   "perturbation": {
+    "change": "make 'import orjson' fail (sys.modules['orjson'] = None), which is the shape of a runner that has not installed it",
+    "expected_direction": "to_zero",
+    "observed_value": "3 -> 0 failing checks; json_bytes({'k': inf}) moves accepted -> refused (ValueError)"
+   },
+   "metric_definition": "R.check failures tests/entities.py prints in its own closing line, on the unmutated baseline tree",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 tests/entities.py ; then the same with sys.modules['orjson'] = None",
+    "value": "3 of 1678 ENTITY CHECKS FAILED (exit 1) / ALL 1678 ENTITY CHECKS PASSED (exit 0)",
+    "note": "Both arms are a pristine baseline tree; only the importability of orjson differs, so the effect is not the tree."
+   },
+   "reproduction_steps": [
+    "cd /Users/timmalmstrom/audit-r6-D3 (worktree at e336cc2c5308)",
+    "PYTHONPATH=tests/hastub python3 tools/audit/round6/D3/json_bytes_probe.py",
+    "PYTHONPATH=tests/hastub python3 tests/entities.py   # 3 of 1678, exit 1",
+    "python3 -c \"import sys,os,runpy; sys.path.insert(0,os.path.abspath('tests')); sys.modules['orjson']=None; runpy.run_path('tests/entities.py', run_name='__main__')\"   # ALL 1678 PASSED"
+   ],
+   "proposed_fix_scope": "tests/hastub/homeassistant/helpers/__init__.py -- run the non-finite/set/bytes walk before the orjson fast path, or give the fast path the same refusals. One file; no production code, no version bump.",
+   "files": [
+    "tests/hastub/homeassistant/helpers/__init__.py",
+    "tests/entities.py"
+   ],
+   "stop_rule_class": "bug"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "entities.py's three reds are an instrument defect, not a production defect: the chain is entirely inside tests/hastub",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D3/json_bytes_probe.py",
+   "value": "json_bytes({'k': inf}) accepted as found, refused with orjson blocked; production is untouched by the perturbation"
+  },
+  {
+   "claim": "env_drift.py --all is green on the pristine baseline tree",
+   "command": "PYTHONPATH=tests/hastub python3 tests/env_drift.py --all e336cc2c530882a142ef298de6420706d96a6300",
+   "value": "exit 0; NO UNCLAIMED DRIFT: 56 scenario(s) checked; NO STALE FIXTURE: 56 committed fixture(s) still match; 358.6 s wall / 311.95 s user"
+  },
+  {
+   "claim": "card_drift.mjs is runnable in this worktree and green on an unchanged tree",
+   "command": "PYTHONPATH=tests/hastub node tests/card_drift.mjs e336cc2c530882a142ef298de6420706d96a6300 (after tests/plan_view.py)",
+   "value": "rc 0, median 4.0 s over 27 runs, under an empty commit that moves HEAD off the baseline"
+  },
+  {
+   "claim": "optimizer.py:4652's min(p_max * 0.8, p_max) is an equivalent mutant: the clamp cannot change the value",
+   "command": "python3 -c \"xs=[-1e6,-1,-1e-9,0,1e-9,0.1,0.15,1,2.5,6,11,16,22,1e6,float('inf')]; print([x for x in xs if max(0.1,min(x*0.8,x))!=max(0.1,x*0.8)])\"",
+   "value": "disagreements over 15 points: [] -- so the single SURVIVOR in the sample is unobservable, not a suite gap"
+  },
+  {
+   "claim": "tests/golden.py is not a second differential opinion: in GOLDEN_MODE=drift the gate skips it",
+   "command": "grep -n -A6 'lane_golden' tests/run.sh ; grep -n 'DRIFT_SCRIPT' tests/golden.py",
+   "value": "run.sh lane_golden skips golden.py under drift and runs env_drift.py --all; tests/golden.py:166 hands the whole comparison to env_drift.py --all"
+  },
+  {
+   "claim": "the cheap tier of the closure is a real instrument: 12 of the 30 kills came from tier 1, four of them from scripts under 10 s",
+   "command": "python3 tools/audit/round6/D3/prescreen.py --indices 0-35 (records in results_A.json / results_B.json)",
+   "value": "kill attribution: features.py 18, config_flow_steps.py 6, manual_plan.py 4, frontend.py 1, guard_pins.py 1; 12 killed in tier 1, 18 in tier 2"
+  },
+  {
+   "claim": "the recorded seconds in tests/closures.json size the forced set low by about 7x",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D3/resources.py",
+   "value": "forced_suite_s=55.1 recorded across 6 scripts; env_drift.py recorded 0.4 s and measured 301.5-358.6 s, so the honest forced set is ~412.9 s"
+  },
+  {
+   "claim": "over-approximating closures are not the resource problem; co-extensive ones are",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D3/resources.py",
+   "value": "twelve top pairwise production-closure overlaps are all Jaccard 1.000; five scripts claim the identical 64-module set"
+  },
+  {
+   "claim": "the pre-screen cannot run without committing each mutant, because env_drift.py refuses a ref that resolves to HEAD",
+   "command": "python3 tests/env_drift.py --all e336cc2c530882a142ef298de6420706d96a6300 (unmutated tree)",
+   "value": "SELF-COMPARISON: 'e336cc2c5308...' resolves to e336cc2c5308, which is HEAD (exit 1)"
+  },
+  {
+   "claim": "tests/entities.py is red on the unmutated tree, so it cannot be a kill signal; the clean control excludes it",
+   "command": "python3 tools/audit/round6/D3/prescreen.py --indices 0 --clean --no-tier3",
+   "value": "control run: entities.py rc 1; every other closure script rc 0 (tier 1) and features.py rc 0 in 155.0 s"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round6/D3/candidates.py",
+  "tools/audit/round6/D3/mutate.py",
+  "tools/audit/round6/D3/prescreen.py",
+  "tools/audit/round6/D3/resources.py",
+  "tools/audit/round6/D3/json_bytes_probe.py"
+ ]
+}

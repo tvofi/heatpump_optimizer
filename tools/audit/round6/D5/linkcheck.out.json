@@ -1,0 +1,25 @@
+{
+ "broken_file": [
+  [
+   "README.md",
+   "docs/audit-2026-08.md"
+  ],
+  [
+   "README.md",
+   "docs/audit-2026-09.md"
+  ],
+  [
+   "README.md",
+   "docs/backlog.md"
+  ],
+  [
+   "docs/how-it-works.md",
+   "backlog.md"
+  ],
+  [
+   "docs/plan-open-issues.md",
+   "audit-2026-09.md"
+  ]
+ ],
+ "broken_anchor": []
+}
