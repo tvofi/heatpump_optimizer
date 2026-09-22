@@ -19,10 +19,14 @@
 // the `would open "[policy] recurring friction: <key>"` lines out of a stats
 // output the job has already produced. The classifier -- the verdict grammar
 // read from web-fix-wave.js, the threshold of three, and the exclusion that
-// withholds the passing verdict because a merge is rework nowhere -- stays in
+// withholds the passing verdict from its own row, while the rework that row
+// cannot show is counted under the wave's `head-moved` -- stays in
 // exactly one place, policy_lint.mjs, and this script cannot fire on a class
 // that classifier excluded, because an excluded class prints `not opened:` and
-// never `would open "`.
+// never `would open "`. The `head-moved` row is NOT excluded (it is the rework
+// the passing verdict spells), so this lane can and will file on it: that is
+// the row's whole purpose, and a window at the threshold opens
+// `[policy] recurring friction: head-moved` like any other.
 //
 // IDEMPOTENCE IS THE WHOLE SAFETY ARGUMENT. A cron with `issues: write` and no
 // memory would file one issue per beat per key, and a flaky API that made the
@@ -724,8 +728,10 @@ export function selfTest() {
 
   // The merge-is-not-rework exclusion, respected WITHOUT reimplementing it:
   // the passing verdict prints `not opened:`, and that line is not a trigger.
+  // The line below is policy_lint's own, verbatim, so the fixture cannot drift
+  // from the text this lane classifies against (#1405 moved its tail).
   const excluded = parseHistogram(
-    `  INFO    [stats] (window): not opened: verdict class "merge" at 9 is the passing verdict .claude/workflows/web-fix-wave.js requires before a merge, so it counts rework nowhere. Friction is rework.\n${STATS_OK(0)}`)
+    `  INFO    [stats] (window): not opened: verdict class "merge" at 9 pull request(s) is the passing verdict .claude/workflows/web-fix-wave.js requires before a merge, so this row counts rework nowhere -- the rework a merge verdict spells is keyed under the wave's "head-moved", a later verdict naming a moved head. Friction is rework.\n${STATS_OK(0)}`)
   st(excluded.ok && excluded.entries.length, 0,
     'a passing-verdict line over threshold is NOT a trigger (the exclusion lives in policy_lint and this parser only reads `would open`)')
 
