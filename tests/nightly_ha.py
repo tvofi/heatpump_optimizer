@@ -2528,10 +2528,9 @@ def _seed_payload(*, thermometers: bool = True) -> dict:
         "tibber_token": "nightly-ha-local",
         "weather_entity": "weather.ci_weather",
         "heat_pump_power_entity": "sensor.ci_heat_pump_power",
-        # No broker here, and the topic defaults are non-empty, so a
-        # defaults-only entry publishes on every cycle and logs the failure at
-        # ERROR. Blanked rather than tolerated: `_publish_ecl110` returns early
-        # on two empty topics, which is the install-without-MQTT case.
+        # No broker here. The shipped topic default is empty, so a
+        # defaults-only entry never publishes; the explicit "" below pins the
+        # install-without-MQTT case `_publish_ecl110` returns early on.
         "ecl110_command_topic": "",
         "ecl110_displace_set_topic": "",
     }

@@ -346,6 +346,10 @@ lane_units() {
   run_always "$PYTHON" tests/closure.py selftest
   run "$PYTHON" tests/features.py
   run "$PYTHON" tests/entities.py
+  # #1413: derive the claim set from the reader docs and the fact set from
+  # code, fail-closed on a contradiction -- the stale-prose class (D5-01/D6-01/
+  # D6-03). Own script so the claim shapes are scanned, not enumerated.
+  run "$PYTHON" tests/doc_claims.py
   # #796: default-on sensors must not render Unknown. Own script so the
   # rule is not a fourteenth `_D801_IN_SCOPE` roster entry in entities.py.
   run "$PYTHON" tests/wood_advisor.py

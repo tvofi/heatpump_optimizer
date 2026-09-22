@@ -210,8 +210,9 @@ installing rather than discover it after:
   on-and-off needs one of the other paths.
 - **ECL110 control is MQTT-only.** The ECL110 path is for installs that have
   such a controller on MQTT, and publishing goes through Home Assistant's own
-  `mqtt.publish` service, "so the MQTT integration has to be set up". If you
-  have no ECL110, clear the two command topics on the options page. Details in
+  `mqtt.publish` service, "so the MQTT integration has to be set up". The two
+  command topics ship empty, so an install without an ECL110 has nothing to
+  clear on the options page. Details in
   [ECL110 heat-curve control](#ecl110-heat-curve-control) and
   [docs/ecl110.md](docs/ecl110.md).
 - **Frequency control needs a `number` entity and your explicit say-so.** The
@@ -891,10 +892,10 @@ The integration can drive a Danfoss ECL110-compatible controller over MQTT,
 publishing a heat-pump on/off decision and an integer parallel shift (*displace*)
 onto the controller's own heat curve. Since v4.1.0 the ECL110 settings live only
 on the **Heat curve control (ECL110)** options page, not in initial setup, and
-both ECL110 sensors are disabled by default. Both MQTT topics ship non-empty;
-if you do not have an ECL110, clear them on that options page or every cycle
-logs a failed publish attempt. Topics, payloads, options and the PI/PID lag
-handling are documented in [docs/ecl110.md](docs/ecl110.md).
+both ECL110 sensors are disabled by default. The MQTT topics ship empty;
+nothing is published or subscribed until you set a topic, so an install without
+an ECL110 never touches the topics at all. Topics, payloads, options and the
+PI/PID lag handling are documented in [docs/ecl110.md](docs/ecl110.md).
 
 ## Project status
 

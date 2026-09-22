@@ -67,10 +67,10 @@ reported as a connection problem rather than as a bad token.
 
 The Danfoss ECL110 MQTT fields were asked here until v4.1.0. Eight questions
 only ECL110 owners can answer do not belong on everyone's first screen, so they
-now live on their own options page — where both MQTT topics ship non-empty and
-must be cleared by hand if you do not have an ECL110 (see
-[ecl110.md](ecl110.md)); left at their defaults, every cycle attempts a
-publish and logs the failure.
+now live on their own options page — where both MQTT topics ship empty and
+nothing is published or subscribed until a topic is set (see
+[ecl110.md](ecl110.md)); an install without an ECL110 never touches the
+topics.
 
 ### 2 · Temperatures
 
