@@ -20436,6 +20436,79 @@ R.check(
     "merge carrying a verdict the line must name the whole window, or the "
     "counts are not derived from the histogram",
 )
+# EVERY REWORK ROUND IS A RE-VERIFICATION OF A MOVED HEAD, AND THE HISTOGRAM
+# COULD NOT SEE IT (#1405, D13-01). `web-fix-wave.js` teaches the class
+# `head-moved` for "the head moved under the review", but a reviewer that
+# re-measures rather than blocking posts the PASSING verdict -- `merge <new
+# head>` -- which the histogram excludes from rework by construction, so the
+# rework this programme actually pays is invisible to its own instrument.
+# Measured over v6.6.0..e336cc2c: 74 parseable verdicts, 11 of them a rework
+# round naming a head other than that merge's first verdict's, and `head-moved`
+# at 0. The fix keys those rounds on the class the wave defines for them, in the
+# same walk that builds the table. Driven on `statsHistogram` (the production
+# symbol) over the finder's committed window fixture, so the figures are
+# re-derived rather than transcribed.
+_STATS_REWORK = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import fs from 'node:fs';"
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const load = (f) => { const d = JSON.parse(fs.readFileSync(f, 'utf8'));"
+     "return { prs: d.records.map((r) => ({ pr: r.pr })),"
+     "fetched: new Map(d.records.map((r) => "
+     "[r.pr, { body: '', comments: r.comments || [] }])) }; };"
+     "const cell = (fx, key) => {"
+     "const c = m.statsHistogram(fx.prs, fx.fetched, "
+     "['blocked', 'merge']).verdicts.get(key);"
+     "return c ? { prs: c.prs.size, entries: c.entries } : null; };"
+     "const sha = (c) => c.repeat(40);"
+     "const synth = (bodies) => ({ prs: [{ pr: 1 }], fetched: new Map([[1,"
+     "{ body: '', comments: bodies.map((b) => ({ body: b })) }]]) });"
+     "console.log(JSON.stringify({"
+     "base: cell(load('tools/audit/round6/D13/fixtures/window_base.json'), "
+     "'head-moved'),"
+     "reshaped: cell(load('tools/audit/round6/D13/fixtures/reshaped.json'), "
+     "'head-moved'),"
+     "sameHead: cell(synth(['Fix review: merge ' + sha('a'),"
+     "'Fix review: merge ' + sha('a')]), 'head-moved'),"
+     "noFirstHead: cell(synth(['Fix review: merge',"
+     "'Fix review: merge ' + sha('b')]), 'head-moved')"
+     "})); })"],
+    capture_output=True, text=True).stdout or "{}")
+
+
+def _rework_cell(arm):
+    return _STATS_REWORK.get(arm) or {}
+
+
+R.check(
+    "the stats histogram keys a rework round on a moved head as `head-moved`, "
+    "the class the wave defines for it and the passing verdict hides (#1405)",
+    _rework_cell("base").get("prs") == 7
+    and _rework_cell("base").get("entries") == 11,
+    f"head-moved cell={_rework_cell('base')!r} -- 11 of the window's 74 "
+    "parseable verdicts are a second-or-later verdict naming a head other than "
+    "the merge's first, and until the histogram counted them the class the wave "
+    "defines for exactly that had zero verdicts",
+)
+R.check(
+    "and the rework count tracks the window rather than a constant "
+    "(null control; the finder's own perturbation)",
+    _rework_cell("reshaped").get("prs") == 6
+    and _rework_cell("reshaped").get("entries") == 10,
+    f"head-moved cell={_rework_cell('reshaped')!r} -- the finder's `reshaped` "
+    "fixture takes one rework verdict outside the grammar, so the same walk "
+    "must report 10 rounds over 6 merges, not the base's 11 over 7",
+)
+R.check(
+    "and a verdict naming the same head twice, or no first head at all, is not "
+    "rework (null control)",
+    _rework_cell("sameHead").get("prs") is None
+    and _rework_cell("noFirstHead").get("prs") is None,
+    f"sameHead={_STATS_REWORK.get('sameHead')!r}; "
+    f"noFirstHead={_STATS_REWORK.get('noFirstHead')!r} -- two verdicts on one "
+    "head are one round, and a first verdict naming no head is no evidence of "
+    "a moved one",
+)
 R.check(
     "the publishing lane runs on main alone, never on a pull request",
     "github.event_name == 'push'" in _DS_PUB_JOB
