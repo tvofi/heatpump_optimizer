@@ -43,7 +43,7 @@ from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.helpers.storage import Store
+from .store import QuarantiningStore
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -1752,7 +1752,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._immersion_events: list[str] = []
         # #42: the weekly ring of learner snapshots.
         self._snapshot_ring = SnapshotRing()
-        self._snapshot_store: Store[dict[str, Any]] = Store(
+        self._snapshot_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass, 1, f"{DOMAIN}_{entry.entry_id}_snapshots"
         )
         self._rollback_done_for_alarm: bool = False
@@ -1928,7 +1928,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._lower_floor_loss_ratio: float = DEFAULT_LOWER_FLOOR_LOSS_RATIO
         self._lower_floor_loss_samples: int = 0
 
-        self._thermal_learning_store: Store[dict[str, Any]] = Store(
+        self._thermal_learning_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             THERMAL_LEARNING_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_thermal_learning",
@@ -1989,7 +1989,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._price_model = PriceShapeModel()
         self._price_days_seen: set[str] = set()
         self._price_known_steps: int = 0
-        self._price_model_store: Store[dict[str, Any]] = Store(
+        self._price_model_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             PRICE_MODEL_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_price_model",
@@ -2014,7 +2014,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # was raised for; None = no issue.
         self._band_issue_problem: str | None = None
         self._ledger = MonthlyLedger()
-        self._ledger_store: Store[dict[str, Any]] = Store(
+        self._ledger_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             1,
             f"{DOMAIN}_{entry.entry_id}_ledger",
@@ -2100,7 +2100,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # not the tank's.
         self._dhw_accuracy = AccuracyTracker()
         self._pending_prediction: dict[str, Any] | None = None
-        self._accuracy_store: Store[dict[str, Any]] = Store(
+        self._accuracy_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             ACCURACY_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_accuracy",
@@ -2155,7 +2155,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         #: The date the lifetime accumulators started, restored from the
         #: energy store; set on first publish when the store has none.
         self._energy_totals_since: str | None = None
-        self._energy_store: Store[dict[str, Any]] = Store(
+        self._energy_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             ENERGY_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_energy",
@@ -2167,7 +2167,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # options reloads the whole entry) so a plan survives a restart within
         # the day it was set for.
         self._manual_override: ManualOverride | None = None
-        self._manual_plan_store: Store[dict[str, Any]] = Store(
+        self._manual_plan_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             MANUAL_PLAN_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_manual_plan",
@@ -7162,7 +7162,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         self._apply_comfort_weight()
     async def _async_save_if_changed(
-        self, name: str, store: Store[dict[str, Any]], payload: dict[str, Any]
+        self, name: str, store: QuarantiningStore[dict[str, Any]], payload: dict[str, Any]
     ) -> None:
         """Write ``payload`` unless the store already holds exactly it.
 

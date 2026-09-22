@@ -26,7 +26,7 @@ from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from typing import Any, Protocol
 
-from homeassistant.helpers.storage import Store
+from .store import QuarantiningStore
 
 from .const import (
     CONF_AWAY_DHW_MIN_TEMP,
@@ -326,8 +326,8 @@ def restore_setback(
     thermal_params.dhw_idle_min_temp = original["dhw_idle_min_temp"]
 
 
-def _away_store(coord: _AwayCoord) -> Store[dict[str, Any]]:
-    return Store(
+def _away_store(coord: _AwayCoord) -> QuarantiningStore[dict[str, Any]]:
+    return QuarantiningStore(
         coord.hass,
         AWAY_STORE_VERSION,
         f"{DOMAIN}_{coord.entry.entry_id}_away",
