@@ -53,21 +53,16 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Refuse a Cursor rule that is not the generated form of its source
-        run: node .claude/workflows/rules_sync.mjs --check
-
-      # GITHUB_TOKEN: the required-contexts class reads the live ruleset through
-      # `gh api` -- the branch endpoint and the ruleset objects -- and reddens
-      # when the corpus's literals or its recorded fixture drift from it. With
-      # no token the fetch fails and the class skips, loudly, which is its
-      # designed failure mode; CI is where the live set is meant to be checked,
-      # so the token is mapped here and costs the two API calls, about a
-      # second.
-      - name: Lint the policy corpus
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .claude/workflows/policy_lint.mjs
-
+      # EVERY STEP ABOVE THE PIN BELOW DRIVES A PROGRAM THE PULL REQUEST
+      # CARRIES; EVERY STEP BELOW IT GRADES THE PULL REQUEST'S DATA WITH MAIN'S.
+      # The split is the whole design, so it is stated once here rather than at
+      # each step. A self-test's verdict is about a program's own refusals, and
+      # the copy that must answer is the one the pull request carries -- a lane
+      # run from the base over the base's own program reports on neither, which
+      # is docs/decisions/0004's subject. A grading step's verdict is about the
+      # corpus, so the program it runs must be the one on main, or the check is
+      # executed from the change it is checking (#1403).
+      #
       # Three corpus checks shipped measuring nothing, each with an acceptance
       # its author believed pinned it. This lane empties one check at a time --
       # the corpus enumeration and the record mode's, and for the `caps` rule
@@ -77,13 +72,6 @@ jobs:
       # reader.
       - name: Refuse a corpus or record-mode check that survives its own deletion
         run: node .claude/workflows/policy_lint_mutants.mjs
-
-      # A workflow script cannot import another, so the five web-*.js each carry
-      # their own copy of the shared prompt block and web-fragments.md said to
-      # keep them in sync by hand. The copy was not byte-identical in the commit
-      # that created it, and stayed that way.
-      - name: Refuse a prompt fragment that has drifted from its canonical text
-        run: node .claude/workflows/fragments_sync.mjs
 
       - name: Show the fragment check refusing its own perturbation
         run: node .claude/workflows/fragments_sync.mjs --self-test
@@ -119,6 +107,85 @@ jobs:
       # cannot fail for a reason is the defect this step exists to catch.
       - name: Show the record-predicate sweep refusing its own perturbations
         run: node tools/audit/record-predicate/sweep.mjs --self-test
+
+      # THE CHECK IS NOT EXECUTED FROM THE CHANGE IT IS CHECKING (#1403, D11-02).
+      #
+      # The four steps below grade the corpus the pull request carries and were
+      # themselves taken from that pull request: `actions/checkout` with no
+      # `ref:` lands the branch's own commit, so a one-line `process.exit(0)` at
+      # the end of `policy_lint.mjs` made this job exit 0 over a corpus the same
+      # run printed as `TOTAL: 4 error(s)`. Stdout was byte-identical and the
+      # required `policy-docs` context stayed green, and the steps above could
+      # not see it: every arm of the mutation lane reads a return value in this
+      # process, and the entry-point arm that lane grew for this reads the exit
+      # status of the pull request's own copy of `main()`.
+      #
+      # So the check source is restored from the commit the pull request is
+      # based on. `github.sha` stands in where there is no pull request, and
+      # there it is the ref already checked out: on a push to main, on the
+      # schedule and on a dispatch this step is a no-op, which is why the count
+      # it prints may legitimately be 0 and is printed rather than asserted.
+      #
+      # WHAT IT RESTORES: every `.mjs` and `.py` program in `.claude/workflows/`
+      # and the vendored markdown parser one of them requires -- which is where a
+      # mutation would otherwise live, since `render_md.mjs` reads the corpus
+      # through it. A pathspec rather than a list of names, so a check added to
+      # an existing program is covered without an edit here.
+      #
+      # WHAT IT DOES NOT RESTORE, deliberately: the corpus and the policy
+      # documents, which are what a pull request is for; `fixtures/`, which are
+      # graded inputs rather than graders -- the pinned checker carries what each
+      # fixture must produce, so restoring them from the base would put the
+      # expectation and the input on the same side of the line, and a pull
+      # request that weakens one is now refused by the base's own numbers;
+      # `policy_budgets.json`, `policy_known_bad.json`, `cfr_exclusions.json` and
+      # the `wave-*`/`carry-*` documents, the same argument one level out, since
+      # a grader's criteria are data; the `web-*.js` fragments, which the
+      # fragment step below byte-compares with `web-fragments.md` and which are
+      # therefore graded artifacts -- pinning them would compare the base's
+      # copies with the pull request's canonical text and redden every pull
+      # request that updates the fragment on purpose; and `.claude/hooks/` with
+      # `tools/audit/record-predicate/`, whose steps run ABOVE this one because
+      # they are self-tests, so restoring them here would leave a pull request
+      # that edits a hook or the sweep graded by nothing at all.
+      #
+      # The one shape it cannot pin: a file the base does not have, since there
+      # is nothing to restore it from. A program added BESIDE the program it
+      # extends rather than inside it is therefore the pull request's own, which
+      # is the reason the corpus checks are functions in `CORPUS_CHECK_NAMES`
+      # and not modules beside `policy_lint.mjs`.
+      - name: Restore the check source from the base commit
+        run: |
+          set -euo pipefail
+          PINNED="${{ github.event.pull_request.base.sha || github.sha }}"
+          git checkout "$PINNED" -- \
+            '.claude/workflows/*.mjs' \
+            '.claude/workflows/*.py' \
+            '.claude/workflows/vendor'
+          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          test -f .claude/workflows/policy_lint.mjs
+
+      - name: Refuse a Cursor rule that is not the generated form of its source
+        run: node .claude/workflows/rules_sync.mjs --check
+
+      # GITHUB_TOKEN: the required-contexts class reads the live ruleset through
+      # `gh api` -- the branch endpoint and the ruleset objects -- and reddens
+      # when the corpus's literals or its recorded fixture drift from it. With
+      # no token the fetch fails and the class skips, loudly, which is its
+      # designed failure mode; CI is where the live set is meant to be checked,
+      # so the token is mapped here and costs the two API calls, about a
+      # second.
+      - name: Lint the policy corpus
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .claude/workflows/policy_lint.mjs
+
+      # A workflow script cannot import another, so the five web-*.js each carry
+      # their own copy of the shared prompt block and web-fragments.md said to
+      # keep them in sync by hand. The copy was not byte-identical in the commit
+      # that created it, and stayed that way.
+      - name: Refuse a prompt fragment that has drifted from its canonical text
+        run: node .claude/workflows/fragments_sync.mjs
 
       - name: Report what the linter found
         if: always()
