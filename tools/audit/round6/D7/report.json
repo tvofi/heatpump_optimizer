@@ -1,0 +1,190 @@
+{
+ "dimension": "D7",
+ "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+ "report_path": "tools/audit/round6/D7/REPORT.md",
+ "exposure": "",
+ "findings": [
+  {
+   "id": "D7-01",
+   "title": "sysid adoption gate admits UA errors up to 28.7% at adoptable sensor noise",
+   "severity": "high",
+   "claim": "On the three shipped presets, with the room sensor the only noisy input, 14 of the 75 experiments that clear the production adoption gate (completed and confidence >= 0.3) identify UA more than 10% wrong, worst -28.7% at confidence 0.978, and _adopt_system_identification blends that value into the persisted heat-loss scale at that confidence.",
+   "mechanism": "The ported intercept ridge (SLAB_INTERCEPT_PRIOR_SD_KW=0.1) is one pseudo-observation on G; the comfort bound holds the experiment's dT within a few percent of its mean, so UA and G are collinear and a ridge on G buys UA no error bar. _slab_confidence is R^2 x rows x excursion x residual SNR and contains no term for the UA standard error, so a clean-looking window reports ~1.0 while its slope is 29% off.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D7/sysid_adoption_bias.py",
+    "harness_path": "tools/audit/round6/D7/sysid_adoption_bias.py",
+    "value": 14,
+    "unit": "count of gate-admitted grid cells with |UA bias| > 10 %",
+    "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+    "machine": "8-core Apple M1, 8 GB, darwin arm64",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out live; load1=12.0; all values are counts of production arithmetic, contention-immune",
+    "tolerance": "\u00b12 cells (seeded grid, seed=cell index; not wall-clock dependent)",
+    "load1": 11.9951,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "sysid:SystemIdentification.identify_slab",
+   "perturbation": {
+    "change": "--sigmas 0.0 (null control) -> --sigmas 0.02 (room-sensor noise sigma 0 -> 0.02 degC)",
+    "expected_direction": "up",
+    "observed_value": 6
+   },
+   "metric_definition": "count of grid cells whose identify_slab UA (SysIdResult.heat_loss_kw_per_c) passes completed and confidence>=0.3 and is >10% from the plant's true UA (heat_loss_coefficient*house_heat_loss_scale)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D7/sysid_adoption_bias.py --sigmas 0.0",
+    "value": 0,
+    "note": "0 of 24 admitted cells biased at zero sensor noise; largest |bias| over all 24 experiments 1.33549e-12 %"
+   },
+   "leave_one_out": {
+    "cells": 12,
+    "min": 0.0,
+    "max": 28.7018,
+    "drop_most_favourable": 22.5461
+   },
+   "reproduction_steps": [
+    "cd /Users/timmalmstrom/audit-r6-baseline",
+    "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D7/sysid_adoption_bias.py",
+    "expect RESULT admitted_and_biased=14 count, RESULT admitted=75 count, RESULT worst_adopted_bias=-28.7018 pct",
+    "perturbation arm: add --sigmas 0.02 -> admitted_and_biased=6; null arm: --sigmas 0.0 -> 0"
+   ],
+   "proposed_fix_scope": "Add an adoption gate on the fitted UA's own uncertainty (profile-likelihood interval, or the ridge's pull on G against the fit curvature), or price that uncertainty into the blend weight at coordinator.py:10470-10473 instead of using R^2-class confidence. Not a one-line change: the confidence formula has no term for the parameter of interest.",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D7-02",
+   "title": "379-line production method has no production caller; ratchet metric cannot see it",
+   "severity": "low",
+   "claim": "SystemIdentification.identify is entered 0 times by the production call sequence on a declared plant (arm sets _slab_pair, so _finish routes to identify_slab), and tests/structure_budgets.json's dead_top_level_symbols=0 covers only module-level definitions while the package holds 1 unreachable statement (optimizer.py:2100).",
+   "mechanism": "arm(now, plant=...) sets _slab_pair whenever slab_mode_identifiability passes, and make impossible the only precondition identify_slab's own guard names (_slab_pair is None). Both production call sites of identify are inside sysid.py itself. The companion one-state sizer _predict_step_excursion is entered 0 times too, its only caller being a _LOGGER.debug.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D7/production_dead_paths.py",
+    "harness_path": "tools/audit/round6/D7/production_dead_paths.py",
+    "value": 0,
+    "unit": "entries into SystemIdentification.identify during one production experiment",
+    "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+    "machine": "8-core Apple M1, 8 GB, darwin arm64",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out live; load1=12.6; counts only",
+    "tolerance": "exact",
+    "load1": 12.6089,
+    "thread_factor": 0.999999
+   },
+   "instrumented_symbol": "sysid:SystemIdentification.identify",
+   "perturbation": {
+    "change": "drop the plant= declaration from the arm call (--no-plant), which is the only input sysid._finish routes on",
+    "expected_direction": "up",
+    "observed_value": 1
+   },
+   "metric_definition": "count of runtime entries into sysid:SystemIdentification.identify, by a sentinel wrapping the production method, over one complete production experiment on a shipped preset",
+   "reproduction_steps": [
+    "cd /Users/timmalmstrom/audit-r6-baseline",
+    "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D7/production_dead_paths.py",
+    "expect RESULT identify_calls_production_path=0, RESULT identify_slab_calls_production_path=1, RESULT identify_loc=379 lines, RESULT dead_statements_unreachable=1",
+    "perturbation: add --no-plant -> identify_calls_production_path=1"
+   ],
+   "proposed_fix_scope": "Decide whether the one-state regression is the intended cadence-gap fallback (then sysid.py:1438-1471's by-name refusal is the bug and the fallback should call it) or is dead (then delete identify, _predict_step_excursion and the tests pinned on them, and give dead_top_level_symbols a statement-level sibling in tests/structure.py).",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "tests/structure.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "hygiene"
+  },
+  {
+   "id": "D7-03",
+   "title": "production two-state fit raises uncaught OverflowError out of the update cycle",
+   "severity": "medium",
+   "claim": "On the heavy_old preset with a room sensor drifting at 0.05 degC/h, identify_slab raises OverflowError out of _finish in 4 of 4 seeds, and coordinator._run_system_identification has no try, so the exception unwinds through _async_update_data and fails the whole update cycle.",
+   "mechanism": "_lm_solve documents 'projection of the linear parameter into its loose band' but clips only candidate[2]; on the third multi-start (mult=3.0) the log-UA iterate walks outward (-1.17 -> -100.4 -> -223.3) and then overflows exp(x[0]) to +inf. _simulate_slab_path feeds inf into ThermalModel.simulate_step, where _stability_substeps computes an infinite ratio and int(np.ceil(inf)) raises. residual() has no finiteness guard and identify_slab does not catch it.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D7/sysid_fit_exception.py",
+    "harness_path": "tools/audit/round6/D7/sysid_fit_exception.py",
+    "value": 8,
+    "unit": "count of experiments where identify_slab raised",
+    "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+    "machine": "8-core Apple M1, 8 GB, darwin arm64",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out live; load1=12.6; counts only",
+    "tolerance": "exact (seeded grid, seed=cell index)",
+    "load1": 12.6128,
+    "thread_factor": 0.999999
+   },
+   "instrumented_symbol": "sysid:_lm_solve",
+   "perturbation": {
+    "change": "--drifts 0.0 (null control) -> --drifts 0.05 (room-sensor drift degC/h)",
+    "expected_direction": "up",
+    "observed_value": 4
+   },
+   "metric_definition": "count of complete production experiments on which SystemIdentification.identify_slab raises instead of returning a SysIdResult, over presets x drift x seeds",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D7/sysid_fit_exception.py --drifts 0.0",
+    "value": 0,
+    "note": "0 of 12 raise at zero drift; all 12 complete"
+   },
+   "leave_one_out": {
+    "cells": 12,
+    "min": 0,
+    "max": 4,
+    "drop_most_favourable": 8
+   },
+   "reproduction_steps": [
+    "cd /Users/timmalmstrom/audit-r6-baseline",
+    "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D7/sysid_fit_exception.py",
+    "expect RESULT fit_exceptions=8 count of 48, RESULT exception_kind_OverflowError=8 count",
+    "perturbation: --drifts 0.05 -> fit_exceptions=4 of 12; null: --drifts 0.0 -> 0 of 12"
+   ],
+   "proposed_fix_scope": "Bound x[0] and x[1] where x[2] is already bounded in _lm_solve (sysid.py:545), and make residual() return a large finite cost for a non-finite rollout; optionally also make the sysid call in coordinator.py:4921 defensive.",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "the production two-state fit is exactly unbiased when the room sensor is exact (null control and rig-fidelity check)",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D7/sysid_adoption_bias.py --sigmas 0.0",
+   "value": "24 experiments, 24 admitted, 0 biased; largest |UA bias| = 1.33549e-12 % (typical_slab)"
+  },
+  {
+   "claim": "the ratified residual-scatter gate does refuse the windows it was priced for",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D7/sysid_adoption_bias.py",
+   "value": "20 of 96 refused, reason 'residual scatter 0.038-0.063 C exceeds the 0.03 C noise gate' on the sigma=0.03 cells of all three presets"
+  },
+  {
+   "claim": "the comfort-excursion abort protects the light plants from a drifting sensor, so the drift reaches the fit only on heavy_old",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D7/sysid_common.py (drift 0.05, 3 seeds each)",
+   "value": "light_new 3/3 and typical_slab 3/3 abort 'room temperature drifted beyond the allowed excursion'; heavy_old 0/3"
+  },
+  {
+   "claim": "slab_mode_identifiability admits every plant the tree ships, so the arm gate is open as documented",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D7/sysid_adoption_bias.py",
+   "value": "arm asserted true on all three presets in all 96 experiments"
+  },
+  {
+   "claim": "dead_top_level_symbols=0 in tests/structure_budgets.json is accurate for its own rule; the blind spot is at statement and method granularity",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D7/production_dead_paths.py",
+   "value": "dead_statements_files_scanned=64 files; every module-level def/class/assignment referenced; dead_statements_unreachable=1 countable only by a statement-level rule tests/structure.py:903 does not implement"
+  },
+  {
+   "claim": "the valve-hold candidate re-solve does not stale the optimizer's stashed per-solve state",
+   "command": "read: custom_components/heatpump_optimizer/optimizer.py:2698, 2956, 3022-3050, 6211",
+   "value": "_stash_price_horizon called once per optimize() and both _solve() invocations share initial_state, so _initial_buffer_temp and _price_known cannot be stale; READ, NOT EXECUTED"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round6/D7/sysid_common.py",
+  "tools/audit/round6/D7/sysid_adoption_bias.py",
+  "tools/audit/round6/D7/production_dead_paths.py",
+  "tools/audit/round6/D7/sysid_fit_exception.py"
+ ]
+}
