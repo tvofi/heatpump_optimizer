@@ -34287,16 +34287,23 @@ R.check(
 
 # -- `_adopt_system_identification`: one experiment against weeks of samples
 # A step-response experiment is a far better prior than ambiguous passive
-# samples, and the blend is what stops it being an overwrite. The arithmetic
-# is the check: confidence c takes the learned scale to
-# (1-c)*old + c*(sysid_UA / base_UA), and the sample floor to int(20c), so a
-# mediocre experiment cannot claim a well-sampled learner's authority.
+# samples, and the blend weight is what stops a marginal fit overwriting a
+# well-sampled learner. The arithmetic is the check: the weight is
+# 1 - ua_profile_halfwidth / UA_ADOPTION_HALFWIDTH_BAR, which takes the
+# learned scale to (1-w)*old + w*(sysid_UA / base_UA) and the sample floor to
+# int(20w), so a marginal experiment cannot claim a well-sampled learner's
+# authority.
+_bar = _SysIdModule.UA_ADOPTION_HALFWIDTH_BAR
+
+
 def _t4_adopt(*, two_zone=False, ua=None, upper=None, lower=None,
-              confidence=0.8, heat_loss=0.30, completed=True):
+              halfwidth=0.0, heat_loss=0.30, completed=True):
     """Seed the passive learner from one completed experiment.
 
     Runs on an identifiable (fast-slab) plant: the #942 gate refuses the
     default one, and these checks pin the blend arithmetic, not the gate.
+    ``halfwidth`` is the fitted UA's profile half-width; the gate refuses a
+    value above ``UA_ADOPTION_HALFWIDTH_BAR``.
     """
     c = _t4_coord(**(_T4_TWO_ZONE if two_zone else {}))
     c._thermal_params.slab_heat_transfer *= 100.0
@@ -34309,7 +34316,7 @@ def _t4_adopt(*, two_zone=False, ua=None, upper=None, lower=None,
     c._sysid.result = _dc_replace(
         c._sysid.result,
         completed=completed,
-        confidence=confidence,
+        ua_profile_halfwidth=halfwidth,
         heat_loss_kw_per_c=heat_loss,
     )
     c._t4_escaped = _t4_call(c._adopt_system_identification)
@@ -34318,32 +34325,33 @@ def _t4_adopt(*, two_zone=False, ua=None, upper=None, lower=None,
 
 _t4_ad_ok = _t4_adopt(ua=0.15)
 R.check(
-    "a high-confidence experiment is BLENDED into the learned scale, not written over it",
-    _t4_ad_ok._house_heat_loss_scale == 1.8
-    and _t4_ad_ok._house_heat_loss_samples == 16
+    "a pinned experiment is taken at full weight, not blended against the "
+    "passive learner",
+    _t4_ad_ok._house_heat_loss_scale == 2.0
+    and _t4_ad_ok._house_heat_loss_samples == 20
     and not isinstance(_t4_ad_ok._t4_escaped, Exception),
     f"scale {_t4_ad_ok._house_heat_loss_scale!r} samples "
     f"{_t4_ad_ok._house_heat_loss_samples!r} -- a 0.30 kW/K fit against a "
-    "0.15 kW/K nameplate is a scale of 2.0, and at confidence 0.8 the blend "
-    "is 0.2*1.0 + 0.8*2.0; an overwrite would read 2.0",
+    "0.15 kW/K nameplate is a scale of 2.0, and at halfwidth 0 the weight is "
+    "1.0, so the pinned experiment is trusted over the passive estimate",
 )
-_t4_ad_mid = _t4_adopt(ua=0.15, confidence=0.4)
+_t4_ad_mid = _t4_adopt(ua=0.15, halfwidth=_bar / 2.0)
 R.check(
-    "a mediocre experiment moves the scale less and claims fewer samples",
-    _t4_ad_mid._house_heat_loss_scale == 1.4
-    and _t4_ad_mid._house_heat_loss_samples == 8,
+    "a half-bar experiment moves the scale half way and claims half the samples",
+    _t4_ad_mid._house_heat_loss_scale == 1.5
+    and _t4_ad_mid._house_heat_loss_samples == 10,
     f"scale {_t4_ad_mid._house_heat_loss_scale!r} samples "
-    f"{_t4_ad_mid._house_heat_loss_samples!r} at confidence 0.4 against "
+    f"{_t4_ad_mid._house_heat_loss_samples!r} at halfwidth bar/2 against "
     f"{_t4_ad_ok._house_heat_loss_scale!r} and "
-    f"{_t4_ad_ok._house_heat_loss_samples!r} at 0.8 -- both the weight and "
-    "the sample floor are linear in the confidence, which is what stops a "
-    "weak fit borrowing a well-sampled learner's authority",
+    f"{_t4_ad_ok._house_heat_loss_samples!r} at 0 -- both the weight and the "
+    "sample floor are linear in the half-width, which is what stops a "
+    "marginal fit borrowing a well-sampled learner's authority",
 )
 _t4_ad_two = _t4_adopt(two_zone=True, ua=0.60, upper=0.05, lower=0.10)
 R.check(
     "the two-zone base is the ZONES' sum, not the whole-house coefficient",
-    abs(_t4_ad_two._house_heat_loss_scale - 1.8) < 1e-9
-    and _t4_adopt(ua=0.60)._house_heat_loss_scale == 0.6,
+    abs(_t4_ad_two._house_heat_loss_scale - 2.0) < 1e-9
+    and _t4_adopt(ua=0.60)._house_heat_loss_scale == 0.5,
     "zones 0.05+0.10 against a whole-house 0.60 -> "
     f"{_t4_ad_two._house_heat_loss_scale!r}, "
     f"the same whole-house figure single-zone -> {_t4_adopt(ua=0.60)._house_heat_loss_scale!r} "
@@ -34351,20 +34359,21 @@ R.check(
     "by four times the right UA and the learner adopts a scale four times too "
     "small",
 )
-_t4_ad_low = _t4_adopt(ua=0.15, confidence=0.2)
-_t4_ad_open = _t4_adopt(ua=0.15, completed=False, confidence=0.9)
+_t4_ad_wide = _t4_adopt(ua=0.15, halfwidth=2.0 * _bar)
+_t4_ad_open = _t4_adopt(ua=0.15, completed=False)
 _t4_ad_nofit = _t4_adopt(ua=0.15, heat_loss=None)
 _t4_ad_zero = _t4_adopt(ua=0.0)
 R.check(
-    "a weak fit, an unfinished run, a fit with no UA and a zero nameplate all adopt nothing",
+    "a wide-interval fit, an unfinished run, a fit with no UA and a zero "
+    "nameplate all adopt nothing",
     all(
         c._house_heat_loss_scale == 1.0
         and c._house_heat_loss_samples == 0
         and not isinstance(c._t4_escaped, Exception)
-        for c in (_t4_ad_low, _t4_ad_open, _t4_ad_nofit, _t4_ad_zero)
+        for c in (_t4_ad_wide, _t4_ad_open, _t4_ad_nofit, _t4_ad_zero)
     ),
-    "confidence 0.2 -> "
-    f"{_t4_ad_low._house_heat_loss_scale!r}, not completed -> "
+    "halfwidth 2*bar -> "
+    f"{_t4_ad_wide._house_heat_loss_scale!r}, not completed -> "
     f"{_t4_ad_open._house_heat_loss_scale!r}, no fitted UA -> "
     f"{_t4_ad_nofit._house_heat_loss_scale!r}, zero nameplate UA -> "
     f"{_t4_ad_zero._house_heat_loss_scale!r} -- the zero nameplate is the one "
@@ -34449,13 +34458,14 @@ R.check(
 
 
 def _adopt942(*, slab_mult=1.0, ua=None):
-    """Offer one completed confidence-0.8 fit to the adoption path."""
+    """Offer one completed pinned fit to the adoption path."""
     c = _t4_coord()
     c._thermal_params.slab_heat_transfer *= slab_mult
     if ua is not None:
         c._thermal_params.heat_loss_coefficient = ua
     c._sysid.result = _dc_replace(
-        c._sysid.result, completed=True, confidence=0.8, heat_loss_kw_per_c=0.30
+        c._sysid.result, completed=True, ua_profile_halfwidth=0.0,
+        heat_loss_kw_per_c=0.30,
     )
     c._t4_escaped = _t4_call(c._adopt_system_identification)
     return c
@@ -34464,14 +34474,14 @@ def _adopt942(*, slab_mult=1.0, ua=None):
 _ad942_fast = _adopt942(slab_mult=100.0, ua=0.15)
 R.check(
     "#1329/#942: the same fit on the fast-slab plant adopts THROUGH the gate",
-    _ad942_fast._house_heat_loss_scale == 1.8
-    and _ad942_fast._house_heat_loss_samples == 16
+    _ad942_fast._house_heat_loss_scale == 2.0
+    and _ad942_fast._house_heat_loss_samples == 20
     and _ad942_fast._sysid.result.reason == "adopted",
     f"scale {_ad942_fast._house_heat_loss_scale!r} samples "
     f"{_ad942_fast._house_heat_loss_samples!r} reason "
     f"{_ad942_fast._sysid.result.reason!r} -- the gate admits a fast-slab "
-    "plant exactly as before; the DEFAULT plant's own adoption is pinned in "
-    "the #1329 block below",
+    "plant exactly as before (a pinned fit at weight 1.0); the DEFAULT "
+    "plant's own adoption is pinned in the #1329 block below",
 )
 
 
@@ -34592,8 +34602,8 @@ R.check(
     f"scale {_ad1329._house_heat_loss_scale!r} samples "
     f"{_ad1329._house_heat_loss_samples!r} reason "
     f"{_ad1329._sysid.result.reason!r} -- the DEFAULT plant's own tau_fast is "
-    "4.17 h; the same completed confidence-0.8 fit used to be refused by "
-    "name at the adoption path",
+    "4.17 h; the same completed pinned fit used to be refused by name at the "
+    "adoption path",
 )
 
 # The #942 protection survives where it is actually needed. A cadence gap
