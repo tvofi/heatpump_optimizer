@@ -16,7 +16,7 @@ blueprint:
       description: >-
         The optimizer's Cost Power Headroom sensor, in kW. Entity ids are
         fixed at `sensor.heat_pump_optimizer_*` regardless of the entry name.
-      default: sensor.heat_pump_optimizer_power_headroom
+      default: sensor.heat_pump_optimizer_cost_power_headroom
       selector:
         entity:
           domain: sensor
