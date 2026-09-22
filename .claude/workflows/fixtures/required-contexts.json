@@ -5,18 +5,28 @@
     "endpoint named below -- a clone whose origin is a local path or a fork",
     "still asks THIS repository, because the corpus's claims are about it --",
     "reads the branch endpoint AND the ruleset objects (bypass-aware; the",
-    "branch endpoint alone is not) and reddens on any name the live set and",
-    "this shape disagree on, so the next ruleset change reddens the tree",
-    "within one push. When it reddens: re-record THIS file by hand from the",
-    "API, never by copying the linter's message, and re-read every assertion",
-    "site against the new list. An unreachable or rate-limited API must NOT",
-    "redden this class (policy-docs is itself a required context; a transient",
-    "outage must not block every merge), which is why a failed fetch is a",
-    "printed skip, never a finding."
+    "branch endpoint alone is not) and reddens on any name OR ruleset id the",
+    "live set and this shape disagree on, so the next ruleset change reddens",
+    "the tree within one push. `rulesets` records the ids the derivation READ",
+    "the contexts out of -- the branch endpoint's required_status_checks rule's",
+    "ruleset_id -- and a fixture naming none fires rather than skipping (#1300).",
+    "When it reddens: re-record THIS file by hand from the API, never by copying",
+    "the linter's message, and re-read every assertion site against the new",
+    "list. An unreachable or rate-limited API must NOT redden this class",
+    "(policy-docs is itself a required context; a transient outage must not",
+    "block every merge), which is why a failed fetch is a printed skip, never a",
+    "finding.",
+    "The default-branch boundary spans TWO rulesets, and only the second is",
+    "recorded here: `main-protect` 22628467 carries deletion and",
+    "non-fast-forward (the push surface, no required context -- naming it here",
+    "was the #1300 defect, because the drift check then compared contexts",
+    "against a ruleset that supplies none), while `main-protect-checks`",
+    "23698884 carries the required contexts, the `pull_request` review rule and",
+    "the deploy key's `always` bypass -- everything this file is about."
   ],
   "branch_endpoint": "repos/tvofi/heatpump_optimizer/rules/branches/main",
   "rulesets": [
-    22628467
+    23698884
   ],
   "contexts": [
     "Analyze (actions)",

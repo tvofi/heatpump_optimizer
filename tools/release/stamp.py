@@ -35,7 +35,7 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      (`<last v* tag>..HEAD`, first-parent) and the instrument is
      `tests/delivery_status.py --require-rows`, which answers it from git alone
      so a stamp needs no token. This is the countermeasure to #1301 (D11-02):
-     the deploy-key tag push is main-protect's only bypass, so a stamp was the
+     the deploy-key tag push is `main-protect-checks`'s only bypass, so a stamp was the
      one event that could close a window over rowless merges and make them
      unreachable -- the next window starts after the merge, and no later run
      ever sees it again. Three consecutive stamps did exactly that (v6.6.7 over
@@ -65,7 +65,7 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      never runs.
 
 --push-key PATH pushes the commit and the tag over a deploy key to the SSH URL
-instead of to origin (#954): main-protect's only bypass is that key (decision
+instead of to origin (#954): `main-protect-checks`'s only bypass is that key (decision
 0009 steps 5 and 6), so a direct push to main lands over it and nothing else. The
 key and its pinned host file are checked before rule 1, and a key push that is
 refused is never retried as origin.
@@ -1182,7 +1182,7 @@ def claims_selfcheck(runner=None) -> tuple[bool, str]:
 # `record` job applies to `main`, re-run here -- before the stamp commit is
 # made -- because this tool is the one writer whose push can MOVE the window
 # `record` reads. `<last v* tag>..origin/main` is `record`'s window, the
-# deploy-key tag push is main-protect's only bypass, so a stamp taken over a
+# deploy-key tag push is `main-protect-checks`'s only bypass, so a stamp taken over a
 # rowless merge is the one event that can make that merge unreachable: the
 # next window starts after the merge, and no later run ever sees it. That is
 # not hypothetical -- v6.6.7 closed over 4/4 rowless merges, v6.6.6 over 9/16,
@@ -1407,7 +1407,7 @@ def main() -> int:
     # Rule 5: the window this tag closes holds no merged pull request without
     # a disposition. Rules 1-4 ask whether the NOTES are ready; this asks
     # about the WINDOW. `<last v* tag>..origin/main` is the window `record`
-    # reads, and the tag push below is main-protect's only bypass, so this run
+    # reads, and the tag push below is `main-protect-checks`'s only bypass, so this run
     # is the one writer that can carry a rowless merge out of every future
     # window at once (#1301/D11-02: three consecutive stamps did, while the
     # instrument, asked only what was OVERDUE, read zero). `record`'s own
