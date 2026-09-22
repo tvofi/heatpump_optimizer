@@ -24180,10 +24180,11 @@ R.check(
 
 _ss_cold, _, _ = _ss_run([0.0, 0.0, 0.0])
 R.check(
-    "the first solve (no warm start) adds the three structural seeds",
-    len(_ss_calls) == 1 and len(_ss_calls[0]["starts"]) == 4,
+    "the first solve (no warm start) adds the four structural seeds",
+    len(_ss_calls) == 1 and len(_ss_calls[0]["starts"]) == 5,
     f"nstarts={len(_ss_calls[0]['starts']) if _ss_calls else 0} — 1 means "
-    f"the warm-start gate was inverted and the D0-01 seeds never ran",
+    f"the warm-start gate was inverted and the D0-01 seeds never ran; 4 means "
+    f"the #1294 0.85-energy seed went missing",
 )
 
 _ss_pin_h = _SsNS(

@@ -1219,6 +1219,28 @@ async def _await_optimize(
     return result
 
 
+def _warm_seeded(
+    coord: "HeatPumpOptimizerCoordinator", optimizer: Any
+) -> Any:
+    """Hand a fresh per-solve optimizer the previous cycle's shipped plan.
+
+    ``_solve_snapshot`` rebuilds the optimizer for every solve and the solve
+    itself runs in a worker process, so no optimizer survives an MPC cycle.
+    This is the seat that carries the MPC warm start (#1295) across one: the
+    previous plan lives on the coordinator as ``_optimization_result``, and
+    ``HeatPumpOptimizer`` reads it back as one extra multi-start candidate.
+    Nothing is copied when there is no previous plan (a cold start), and the
+    optimizer itself drops a plan whose width does not match the horizon it is
+    asked to solve.
+    """
+    result = coord._optimization_result
+    if result is not None:
+        optimizer._prev_shipped_plan = np.asarray(
+            result.power_schedule, dtype=float
+        ).copy()
+    return optimizer
+
+
 def _diagnose_payload(coord: "HeatPumpOptimizerCoordinator") -> tuple[Any, ...]:
     """Picklable diagnose args; the coordinator itself is not picklable."""
     record = coord._last_interval_record
@@ -4587,7 +4609,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         state = copy.deepcopy(ctx._current_state)
         params = copy.deepcopy(ctx._thermal_params)
         config = copy.deepcopy(ctx._opt_config)
-        return state, HeatPumpOptimizer(ThermalModel(params), config)
+        return state, _warm_seeded(self, HeatPumpOptimizer(ThermalModel(params), config))
     async def async_run_optimization(self) -> str | None:
         """Run the MPC optimization.
 

@@ -247,9 +247,19 @@ _COMFORT_PULL_TWO_ZONE = 0.0125
 # 10 price profiles (marginal on flat days, up to ~0.1 SEK/day), so every
 # candidate is now refined: with v6.2.8's batched gradient a solve is ~7x
 # cheaper than when the two-solve cap was set, and the stress gate's
-# per-scenario budgets (v6.2.16) police the runtime cost. The candidates
-# number four, so this is the whole list.
-_MULTI_START_SOLVES = 4
+# per-scenario budgets (v6.2.16) police the runtime cost.
+#
+# Round 5's D0-a race (#1294) then measured what the cut still cost: on
+# 45 of 160 cells a structured seed the seam had NOT refined beat the shipped
+# plan (mean 0.1476% on non-flat prices, worst 5.9430%), and refining the two
+# seeds this file now builds for itself (the 0.85-energy bang-bang in
+# ``_solve_space`` and the 0.15-energy one in ``_optimize_space_only``)
+# closed 19 cells and worsened none -- but ONLY with this number raised, because
+# at four the extra candidates displaced cheaper ones (seeds alone: 17 cells
+# better, 21 worse). Six sits one above the five candidates both default paths
+# build, so the cut discards nothing there; it still binds where
+# ``_cap_tighten_starts`` adds its two extra seeds to the repair re-solve.
+_MULTI_START_SOLVES = 6
 
 # The low-energy bang-bang seed (R1-D0-01): the historical candidates all
 # anchored to the same TOTAL energy (the baseline's), and on
@@ -434,11 +444,26 @@ def _bounds_supported_by_batch(bounds: list[tuple[float, float]]) -> bool:
 #: 4.83e-6 to 3.67e-5 -- 2e-5's nearest neighbours are 4.1x below it and
 #: 1.8x above -- so no fixture's adoption decision can flip on
 #: last-decimal drift the way 1e-4's did. It keeps every gap the round-5
-#: finding counted (smallest: 1.34e-4, worst: 1.17e-2) and stays 20x
-#: over the 1e-6 ftol tick the features pin refuses. No new seed.
+#: finding counted (smallest: 1.34e-4, worst: 1.17e-2) and sits four
+#: orders of magnitude over the ``_LBFGSB_FTOL`` stop-rule tick below.
+#: That band was measured with the tick at 1e-6, and #1293's fix only
+#: shrank it to 1e-9, so the separation widens rather than narrows. No
+#: new seed.
 #: (Landed by the owner directive of 2026-09-20, #1207 comment c1329fe /
 #: database id 5750296026, via #1208's scoped may-drift path.)
 _LBFGSB_RESTART_KEEP_REL = 2e-5
+
+
+#: The L-BFGS-B stop rule, passed at both call sites below (the multi-start's
+#: refinement solves and the per-candidate restart polish). Round 5's D0-b
+#: budget race (#1293) measured what 1e-6 cost: on its 14-cell core grid the
+#: identical search stopped at 1e-9 shipped plans 0.2124% cheaper on the
+#: objective on average (worst 0.7124%, 13 of 14 cells), and the iteration cap
+#: never bind (0 of 14), so the solve was stopping early rather than running
+#: out of budget. Tightening production to 1e-9 collapses that arm's measured
+#: gap to +0.0000 exactly; its price is more iterations on the same iterate
+#: path (nit 22 -> 54 on the grid's first cell), not a different one.
+_LBFGSB_FTOL = 1e-9
 
 
 def _lbfgsb_restart(
@@ -467,7 +492,7 @@ def _lbfgsb_restart(
             jac=jac,
             method="L-BFGS-B",
             bounds=bounds,
-            options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+            options={"maxiter": maxiter, "ftol": _LBFGSB_FTOL, "eps": 1e-4},
         )
     except Exception:  # pragma: no cover - solver blow-up
         return best
@@ -589,7 +614,7 @@ def _multi_start_minimize(
                 jac=jac,
                 method="L-BFGS-B",
                 bounds=bounds,
-                options={"maxiter": maxiter, "ftol": 1e-6, "eps": 1e-4},
+                options={"maxiter": maxiter, "ftol": _LBFGSB_FTOL, "eps": 1e-4},
             )
         except Exception as err:  # pragma: no cover - solver blow-up
             last_error = err
@@ -2844,7 +2869,10 @@ class HeatPumpOptimizer:
                 return self._optimize_with_dhw(horizon)
             return self._optimize_space_only(horizon)
 
-        result = _solve()
+        # #1295: the plan the caller hands in -- the coordinator seeds it from
+        # the last shipped plan -- is one extra candidate on the FIRST solve
+        # only; ``_warm_start_starts`` says why later solves get none.
+        result = _solve(self._warm_start_starts(n_steps))
 
         # A blocked channel is withheld from the release loop entirely. Its
         # floor IS breached — that is the whole point, and the plan reports it
@@ -2986,6 +3014,35 @@ class HeatPumpOptimizer:
             temp_min_bounds,
         )
         return result
+
+    def _warm_start_starts(self, n_steps: int) -> tuple[np.ndarray, ...] | None:
+        """The caller's previous plan as one extra candidate (#1295).
+
+        The optimizer keeps no memory of its own solves, so this is an input:
+        ``_prev_shipped_plan`` is set by the caller that knows the previous
+        plan -- in production ``coordinator._warm_seeded``, which rebuilds this
+        optimizer every solve and so is the only seat that can carry the plan
+        across an MPC cycle. L-BFGS-B is then restarted from that point, a lead
+        no structural seed reproduces: the same problem one step later, already
+        comfort-feasible by construction. It is a *candidate*, not a warm start
+        that bypasses the multi-start -- ``_multi_start_minimize`` scores it
+        against every structural seed and keeps the cheapest, so a stale or
+        wrong-shaped plan can lose, never win.
+
+        It rides on the FIRST solve of a call only: the pin-release loop and
+        the cap-tighten repair correct a plan the caller already changed, not
+        fresh re-plans, so an extra candidate there would buy solves and no
+        plan.
+
+        A different step count means the caller is planning a different
+        horizon (the coordinator's own horizon is fixed, but a service call or
+        a test need not match it), and a plan of the wrong width is dropped
+        rather than clipped or padded into a plausible-looking guess.
+        """
+        prev = getattr(self, "_prev_shipped_plan", None)
+        if prev is None or len(prev) != n_steps:
+            return None
+        return (np.asarray(prev, dtype=float),)
 
     def _stash_price_horizon(
         self,
@@ -3342,6 +3399,19 @@ class HeatPumpOptimizer:
                         p_max,
                         dt,
                     ),
+                    headroom,
+                )
+            )
+            # #1294: the 0.85-energy bang-bang, the seed the round-5 D0-a race
+            # (#1294) measured a shipped-plan gap against -- 45 of 160 cells,
+            # mean 0.1476% on non-flat prices. It is appended rather than
+            # swapped in for one of the three above, because at the old
+            # four-solve cut the extra candidates displaced cheaper ones (17
+            # cells better, 21 worse); with the cut at `_MULTI_START_SOLVES`
+            # they are scored and solved alongside.
+            starts.append(
+                np.minimum(
+                    _price_ranked_start(prices, energy * 0.85, p_max, dt),
                     headroom,
                 )
             )
@@ -3866,6 +3936,14 @@ class HeatPumpOptimizer:
         ]
         if h.extra_starts:
             starts = list(h.extra_starts) + starts
+        # #1294, the other half of the same race: a 0.15-energy bang-bang. The
+        # low-energy seed above buys 35% of the baseline's energy and this one
+        # buys 15%, so a price shape whose cheapest hours cannot carry the
+        # comfort floor at 35% still gets a start that is cheap to climb out
+        # of. Appended for the same reason as the 0.85 seed in ``_solve_space``.
+        starts.append(
+            _price_ranked_start(prices, baseline_energy * 0.15, p_max, dt)
+        )
 
         try:
             result = _multi_start_minimize(
