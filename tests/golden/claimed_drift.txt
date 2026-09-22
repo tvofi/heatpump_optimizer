@@ -581,4 +581,3 @@
 # deferred_energy_cost 13.073536 -> 15.494942, with displace_schedule,
 # heat_pump_on_schedule and lower_setpoints re-shaped to match. No solver,
 # card or config fixture moves.
-valve_storage_small_tank # R5-D2-02 (#1307): valved 35 L buffer substep fix
