@@ -1600,11 +1600,15 @@ R.check(
 #
 #   test-coverage must agree with tests/coverage_budgets.json's
 #   package_percent_floor -- the number the per-pull-request coverage job
-#   ratchets -- against the Silver rule's bar. That floor is the tree's
-#   standing executable statement of package coverage, so the row may not
-#   disagree with it in either direction. (The keying is encoded rather
-#   than the verdict: a future re-record of the floor below the bar must
-#   flip the row, not orphan the check.)
+#   ratchets -- against the Silver rule's bar, AND with the module_percent_floor
+#   beside it, because the Silver rule asks the bar of every module, not of the
+#   package average (#1401, R6-D10-01). A package floor alone let a module
+#   small enough to barely move the average fall all the way to zero with the
+#   check green; the module floor is the tree's standing executable statement
+#   of the lowest module's coverage, so the row may not disagree with either in
+#   either direction. (The keying is encoded rather than the verdict: a future
+#   re-record of either floor below the bar must flip the row, not orphan the
+#   check.)
 #
 #   config-flow-test-coverage must agree with tests/coverage_budgets.json's
 #   config_flow_percent_floor -- the raw module percentage the same
@@ -1644,12 +1648,22 @@ def _qs_comment(name: str) -> str:
 _qs_budgets = json.loads(Path("tests/coverage_budgets.json").read_text())
 _qs_floor = _qs_budgets["package_percent_floor"]
 _qs_cf_floor = _qs_budgets.get("config_flow_percent_floor")
+_qs_module_floor = _qs_budgets.get("module_percent_floor")
 R.check(
-    "the register's test-coverage row agrees with the recorded coverage floor",
-    _qs_status("test-coverage") == ("done" if _qs_floor >= 95.0 else "todo"),
+    "the register's test-coverage row agrees with the recorded coverage floors",
+    _qs_status("test-coverage")
+    == (
+        "done"
+        if _qs_floor >= 95.0
+        and _qs_module_floor is not None
+        and float(_qs_module_floor) >= 95.0
+        else "todo"
+    ),
     f"register says {_qs_status('test-coverage')!r}; "
     f"tests/coverage_budgets.json package_percent_floor={_qs_floor} "
-    "against the Silver rule's 95% bar (#195 closed; #951)",
+    f"module_percent_floor={_qs_module_floor!r} "
+    "against the Silver rule's 95 % bar over the package AND every module "
+    "(#195 closed; #951; per-module keying #1401)",
 )
 R.check(
     "the register's config-flow-test-coverage row agrees with the recorded "
