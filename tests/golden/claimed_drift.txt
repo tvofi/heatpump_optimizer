@@ -581,4 +581,40 @@
 # deferred_energy_cost 13.073536 -> 15.494942, with displace_schedule,
 # heat_pump_on_schedule and lower_setpoints re-shaped to match. No solver,
 # card or config fixture moves.
-valve_storage_small_tank # R5-D2-02 (#1307): valved 35 L buffer substep fix
+#
+# R5-W3 (#1294 #1295), fix branch fix/r5-w3-search: this branch's BARE list is
+# EMPTY, and that is the whole claim. Two solver knobs were measured for this
+# round and only one ships.
+#
+#   * The refinement cut (4 -> 6) and the two structured seeds the raised cut
+#     admits (#1294) are NOT in this diff. They bought plan quality here, but
+#     they cost about a quarter of the whole sweep's solver CPU on a
+#     Raspberry-Pi-class target -- tests/stress.py's sweep reading against the
+#     merge base's on the same box -- and that is over the D9 sweep budget. The
+#     gain also does not travel across BLAS: the two checks that pinned it read
+#     IDENTICAL arms on CI, where the box reads a small percentage. A 24%
+#     solver-CPU bill for an effect that does not reproduce is not worth it, so
+#     the finding is dropped and nothing it moved is owed here.
+#
+#   * The previous cycle's shipped plan offered as one more first-solve
+#     candidate (#1295) does ship, but it moves NO fixture. Its only writer is
+#     coordinator._warm_seeded, and no capture runs it: capture_coordinator
+#     builds the published dict and the sensors without ever solving, and
+#     golden.capture builds its optimizer directly, so a capture seeds no
+#     previous plan and the knob is inert on all 56. It is pinned by mechanism,
+#     not by a fixture.
+#
+# With #1294 out and #1295 inert on every capture, this branch's capture is
+# identical to the merge base's, so it claims nothing and the bare list is
+# empty. An empty list is not the same as an untouched file here: with #1294
+# out the branch moves nothing, but the merge base's own list moves nothing
+# either once our capture equals its, and a list exactly equal to the
+# baseline's is refused as INHERITED CLAIMS -- the R5-D2-02 bare line that sat
+# at the end of this file (valve_storage_small_tank, the valved 35 L buffer
+# substep fix, fix/r5-valved-config at 9ca86655) is the baseline's claim for
+# the baseline's diff, and a claim describes one diff. It comes out rather than
+# carried, and its note above stays as history.
+#
+# Measured, not assumed: at this head,
+# `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 9ca86655` prints
+# `NO UNCLAIMED DRIFT: 56` and `NO STALE FIXTURE: 56`, exit 0.

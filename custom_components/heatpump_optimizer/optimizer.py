@@ -2844,7 +2844,10 @@ class HeatPumpOptimizer:
                 return self._optimize_with_dhw(horizon)
             return self._optimize_space_only(horizon)
 
-        result = _solve()
+        # #1295: the plan the caller hands in -- the coordinator seeds it from
+        # the last shipped plan -- is one extra candidate on the FIRST solve
+        # only; ``_warm_start_starts`` says why later solves get none.
+        result = _solve(self._warm_start_starts(n_steps))
 
         # A blocked channel is withheld from the release loop entirely. Its
         # floor IS breached — that is the whole point, and the plan reports it
@@ -2986,6 +2989,35 @@ class HeatPumpOptimizer:
             temp_min_bounds,
         )
         return result
+
+    def _warm_start_starts(self, n_steps: int) -> tuple[np.ndarray, ...] | None:
+        """The caller's previous plan as one extra candidate (#1295).
+
+        The optimizer keeps no memory of its own solves, so this is an input:
+        ``_prev_shipped_plan`` is set by the caller that knows the previous
+        plan -- in production ``coordinator._warm_seeded``, which rebuilds this
+        optimizer every solve and so is the only seat that can carry the plan
+        across an MPC cycle. L-BFGS-B is then restarted from that point, a lead
+        no structural seed reproduces: the same problem one step later, already
+        comfort-feasible by construction. It is a *candidate*, not a warm start
+        that bypasses the multi-start -- ``_multi_start_minimize`` scores it
+        against every structural seed and keeps the cheapest, so a stale or
+        wrong-shaped plan can lose, never win.
+
+        It rides on the FIRST solve of a call only: the pin-release loop and
+        the cap-tighten repair correct a plan the caller already changed, not
+        fresh re-plans, so an extra candidate there would buy solves and no
+        plan.
+
+        A different step count means the caller is planning a different
+        horizon (the coordinator's own horizon is fixed, but a service call or
+        a test need not match it), and a plan of the wrong width is dropped
+        rather than clipped or padded into a plausible-looking guess.
+        """
+        prev = getattr(self, "_prev_shipped_plan", None)
+        if prev is None or len(prev) != n_steps:
+            return None
+        return (np.asarray(prev, dtype=float),)
 
     def _stash_price_horizon(
         self,
