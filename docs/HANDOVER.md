@@ -62,21 +62,25 @@ request (#1081), linked from here and never restated.
   floor either way, never the substitute — they check that a change is
   well-formed, not that it is wanted.
 - **`main` is guarded, and this is the first thing about the merge boundary
-  that is enforced rather than asserted.** Ruleset **`main-protect`, id
-  `22628467`**, active on the default branch: deletion, non-fast-forward
-  and the required checks its endpoint returns, never a count from here.
-  GitHub refuses the merge rather than a
-  policy asking you not to. Since 0009 step 6 (2026-09-17 04:58Z) it also
-  carries a `pull_request` rule: one approving review, and the code owner's
-  review on a path `.github/CODEOWNERS` names. **The one bypass is the deploy
-  key `hpo-stamp`, `always`**; the admin role no longer bypasses, so the rule
-  binds the orchestrator's merges as `tvofi` too. **The merge flow**: seats
-  author as `tvofi-seat-author`; an ordinary pull request merges after an
-  adversarial `merge` verdict and the App `hpo-approver`'s approving review
-  (first: #1100); a policy one needs the owner's approving review on GitHub
-  (first: #1098), which a seat cannot obtain for itself — open it, surface it,
-  and wait. That bypass and the rollback below are the owner's levers, not a
-  seat's. One DELETE to that ruleset reverses it all.
+  that is enforced rather than asserted.** Two rulesets are active on the
+  default branch. **`main-protect`, id `22628467`**, carries the push guards:
+  deletion and non-fast-forward. **`main-protect-checks`, id `23698884`**
+  (created 2026-09-19), carries the merge guards: the required checks its
+  endpoint returns, never a count from here, the `pull_request` rule — one
+  approving review and the code owner's review on a path `.github/CODEOWNERS`
+  names (0009 step 6, 2026-09-17 04:58Z) — and the one bypass, the deploy key
+  `hpo-stamp`, `always`. The admin role no longer bypasses, so the rule binds
+  the orchestrator's merges as `tvofi` too; GitHub refuses the merge rather
+  than a policy asking you not to. **The merge flow**: seats author as
+  `tvofi-seat-author`; an ordinary pull request merges after an adversarial
+  `merge` verdict and the App `hpo-approver`'s approving review (first:
+  #1100); a policy one needs the owner's approving review on GitHub (first:
+  #1098), which a seat cannot obtain for itself — open it, surface it, and
+  wait. That bypass and the rollback below are the owner's levers, not a
+  seat's. **The rollback is one DELETE per ruleset, not one**: deleting
+  `main-protect-checks` drops the required checks, the review rule and the
+  bypass; deleting `main-protect` drops the push guards. Deleting either alone
+  leaves the other half of the boundary standing (#1300).
   **Before adding a required context**, confirm it reports on a *pull-request
   head*, not merely on a push to `main`: the two shapes differ, `CodeQL`
   reports on one and not the other, and a context that never reports blocks
@@ -273,8 +277,9 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
   waits on a full-package run that "cannot happen until mutation-nightly is on
   main"; the `mutation-nightly` job is in `.github/workflows/tests.yml` and
   `last_measured.full` is still `null`. **`mutation` is not a required check** —
-  read the contexts from the `main-protect` ruleset endpoint, never a count from
-  here; `coverage`, `mutation-nightly`, `slow` and `nightly-status` are absent
+  read the contexts from the `main-protect-checks` ruleset endpoint, never a
+  count from here; `coverage`, `mutation-nightly`, `slow` and `nightly-status`
+  are absent
   from it too, and `/branches/main/protection` answers 404, so the ruleset
   endpoint is the only reader. With `max_survivor_fraction` at 1.0 in both
   scopes and the refusal written `if rate > cap`, the lane cannot fail on a

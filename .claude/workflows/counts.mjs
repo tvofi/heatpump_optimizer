@@ -299,11 +299,22 @@ export function checkRequiredContexts(rel, text, live) {
   return out
 }
 
-// The recorded-shape fixture against the live list, name by name: a COUNT
-// alone would pass a ruleset change that swapped one context for another, and
-// the two reds below are what make the next ruleset change visible within one
-// push. Red here means re-record the fixture BY HAND from the API (both
-// surfaces, as above) and re-read every assertion site against the new list.
+// The recorded-shape fixture against the live boundary, by context NAME and by
+// ruleset ID. A COUNT alone would pass a ruleset change that swapped one
+// context for another, and the name reds below are what make that visible
+// within one push. The ID reds are the other half (#1300): `live.rulesets` is
+// the contributing ruleset the derivation READ the contexts out of, and a
+// fixture recording a different id -- as the committed one did, naming
+// `main-protect` 22628467 while the required contexts live on
+// `main-protect-checks` 23698884 -- gave byte-identical output for a boundary
+// whose checks are drawn from a ruleset the record never named. A stale id is
+// not cosmetic: it is the difference between a record of the live boundary and
+// a record of a ruleset that carries none of it. A fixture that names no
+// rulesets at all FIRES rather than skipping -- silence on an absent record is
+// exactly the blindness this comparison exists to end.
+//
+// Red here means re-record the fixture BY HAND from the API (both surfaces, as
+// above) and re-read every assertion site against the new list.
 export function requiredContextsDrift(fixtureRel, fixture, live) {
   if (fixture == null || live == null) return []
   const out = []
@@ -324,6 +335,26 @@ export function requiredContextsDrift(fixtureRel, fixture, live) {
       check: 'required-contexts',
       where: fixtureRel,
       message: `\`${c}\` is recorded as a required context but the live set no longer returns it. The ruleset changed: re-record ${fixtureRel} and re-read every assertion site against the new list.`,
+    })
+  }
+  const recordedIds = new Set((fixture.rulesets || []).map(Number))
+  const liveIds = new Set((live.rulesets || []).map(Number))
+  for (const id of liveIds) {
+    if (recordedIds.has(id)) continue
+    out.push({
+      severity: 'error',
+      check: 'required-contexts',
+      where: fixtureRel,
+      message: `the live boundary draws its required contexts from ruleset \`${id}\`, which the recorded shape's \`rulesets\` list does not name. Re-record ${fixtureRel} from the API and re-read every assertion site against the new ruleset.`,
+    })
+  }
+  for (const id of recordedIds) {
+    if (liveIds.has(id)) continue
+    out.push({
+      severity: 'error',
+      check: 'required-contexts',
+      where: fixtureRel,
+      message: `\`${id}\` is recorded in \`rulesets\` as carrying the required contexts, but the live boundary does not draw them from it. Re-record ${fixtureRel} from the API and re-read every assertion site against the new ruleset.`,
     })
   }
   return out
