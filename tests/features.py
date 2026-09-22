@@ -34627,6 +34627,76 @@ R.check(
     "neither the coupling nor the protocol's shortest phase is its bound",
 )
 
+# R6-D10-01 (#1401): the coverage ratchet's per-module floor
+# (tests/coverage_budgets.json module_percent_floor) holds every module at the
+# Silver rule's bar. sysid.py was the one module the package ratio had let fall
+# under it, and these guard paths are what the floor brought back under the
+# instrument -- each a direct call that reads the guard's own return value, not
+# a re-implementation of the arithmetic behind it.
+R.check(
+    "#1401: a degenerate slab triple gives tau_fast 0.0 (the helper's own guard)",
+    _SysIdModule.slab_mode_tau_fast(0.0, 1.0, 1.0) == 0.0
+    and _SysIdModule.slab_mode_tau_fast(1.0, 1.0, 1.0) > 0.0,
+)
+_g1401_one_state = _SysIdModule.slab_mode_one_state_identifiability(
+    0.0, 1.0, 1.0, _SysIdModule.SysIdConfig()
+)
+R.check(
+    "#1401: the one-state identifiability guard refuses unset slab constants "
+    "by name",
+    not _g1401_one_state[0]
+    and "slab constants not configured" in _g1401_one_state[1],
+    f"{_g1401_one_state!r}",
+)
+_g1401_refusal = _SysIdModule._slab_refusal(0.0, 400.0, 0.0, 200.0)
+R.check(
+    "#1401: the two-state fit's shared refusal still rejects an implausible sign",
+    _g1401_refusal is not None and "implausible signs" in _g1401_refusal.reason,
+    f"{_g1401_refusal!r}",
+)
+_g1401_short = _SysIdModule._slab_series(
+    [
+        _SysIdModule.SysIdSample(
+            when=NOW + timedelta(minutes=30 * i),
+            room_temp=20.0,
+            outdoor_temp=2.0,
+            power_kw=1.0,
+            phase=PHASE_ARMED,
+        )
+        for i in range(3)
+    ]
+)
+R.check(
+    "#1401: fewer than five intervals gives None (the one-state fit's own floor)",
+    _g1401_short is None,
+)
+_g1401_window = SystemIdentification(
+    _SysIdModule.SysIdConfig(enabled=True, start_hour=1, end_hour=5)
+)
+_g1401_window_ok, _g1401_window_why = _g1401_window.conditions_met(
+    datetime(2026, 2, 1, 3, 0, tzinfo=UTC), 2.0, 0.55, np.linspace(0.5, 2.0, 96), 5
+)
+R.check(
+    "#1401: a non-wrapping night window (start_hour <= end_hour) is honoured",
+    _g1401_window_ok,
+    _g1401_window_why,
+)
+_g1401_plant = ThermalParameters()
+# Set on the instance, as the g942 harness above does: the dataclass clamps a
+# non-positive room mass up on construction, so only the slab coupling can be
+# driven to zero here.
+_g1401_plant.slab_heat_transfer = 0.0
+_g1401_unseedable = SystemIdentification(_SysIdModule.SysIdConfig(enabled=True))
+_g1401_arm = _g1401_unseedable.arm(NOW, _g1401_plant)
+R.check(
+    "#1401: arming on a plant whose slab pair cannot be seeded is refused, "
+    "by name",
+    not _g1401_arm
+    and not _g1401_unseedable.result.completed
+    and "slab constants not configured" in _g1401_unseedable.result.reason,
+    f"{_g1401_unseedable.result.reason!r}",
+)
+
 
 def _adopt942(*, slab_mult=1.0, ua=None):
     """Offer one completed confidence-0.8 fit to the adoption path."""

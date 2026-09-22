@@ -22,6 +22,22 @@ denominator. So the escape is itself ratcheted, and downward: a new exemption
 fails this check, and removing one must be re-recorded. Without this row the
 coverage floor is not a floor at all, it is an invitation.
 
+**The module floor is per-MODULE, and the package floor cannot stand in for
+it.** The Silver quality-scale rule ``test-coverage`` asks for "above 95 %
+test coverage for all integration modules" -- a bar over every module, not
+over the package average. ``package_percent_floor`` alone could not see the
+difference (#1401, R6-D10-01): a module small enough to barely move the
+average can fall all the way to zero -- most of this package's own modules
+could, on the baseline -- while the package check stayed green, because the
+floor is a ratio. This row records the LOWEST module percentage the same
+instrument measured and refuses any module below it, so a single module
+dropping is caught where the ratio was blind. It is one-sided like the others:
+the record only rises, and a fall needs ``--allow-regression`` with its
+reason. The bar is the rule's own 95 %, so a tree already under it records
+the value it has and the register row (``tests/entities.py``) flips to todo
+rather than the check orphaning -- the #951 keying, extended from the package
+floor to the module floor.
+
 **The config flow is pinned at full coverage, exactly.** The quality-scale
 rule (register row ``config-flow-test-coverage``, Bronze) asks for FULL
 statement coverage of the config flow -- not a bar to sit above but a
@@ -116,6 +132,13 @@ def read_coverage(path: Path) -> tuple[float, int, int]:
 #: is about, keyed by filename inside the payload the instrument writes.
 CONFIG_FLOW = "config_flow.py"
 
+#: The Silver rule ``test-coverage``'s per-module bar, in percent: "above 95 %
+#: for all integration modules". It is the top of the recorded
+#: ``module_percent_floor`` -- a tree that clears it records the bar, a tree
+#: under it records what it measured -- so the record's top and the register
+#: row's key are the same number as the rule's.
+MODULE_BAR = 95.0
+
 
 def read_module_percent(path: Path, filename: str) -> float:
     """The RAW statement percentage of one module in the payload."""
@@ -133,6 +156,30 @@ def read_module_percent(path: Path, filename: str) -> float:
     )
 
 
+def module_percentages(path: Path) -> dict[str, float]:
+    """Every module in the payload's RAW statement percentage, by basename."""
+    data = json.loads(path.read_text())
+    out: dict[str, float] = {}
+    for name, entry in data.get("files", {}).items():
+        summary = entry["summary"]
+        out[name.rsplit("/", 1)[-1]] = 100.0 * (
+            summary["covered_lines"] / summary["num_statements"]
+        )
+    if not out:
+        raise SystemExit(
+            "coverage payload reports no files; the instrument measured "
+            "nothing and a per-module floor over no modules is not a floor"
+        )
+    return out
+
+
+def modules_below(path: Path, floor: float) -> list[tuple[str, float]]:
+    """(module, percent) for every module under `floor`, worst first."""
+    rows = [(n, p) for n, p in module_percentages(path).items() if p < floor]
+    rows.sort(key=lambda r: (r[1], r[0]))
+    return rows
+
+
 def load_budgets() -> dict:
     return json.loads(BUDGETS.read_text())
 
@@ -145,9 +192,10 @@ def main() -> int:
     ap.add_argument(
         "--allow-regression", default="",
         help="record a pragma count HIGHER than the recorded cap, or a floor "
-             "LOWER than the recorded one. Both are the ratchet running "
-             "backwards, so each needs its reason here and the same reason in "
-             "the commit message (`tests/structure.py`'s idiom).",
+             "LOWER than the recorded one (package, config-flow or module). "
+             "Both are the ratchet running backwards, so each needs its reason "
+             "here and the same reason in the commit message "
+             "(`tests/structure.py`'s idiom).",
     )
     args = ap.parse_args()
 
@@ -155,6 +203,7 @@ def main() -> int:
     floor = float(budgets["package_percent_floor"])
     ceiling = float(budgets["package_percent_ceiling"])
     pragma_cap = int(budgets["pragmas"])
+    module_floor = budgets.get("module_percent_floor")
 
     failures: list[str] = []
     improvements: list[str] = []
@@ -228,6 +277,35 @@ def main() -> int:
                     "unreachable branch (#542) -- do not lower this record "
                     "quietly."
                 )
+        # The module-floor row: the Silver test-coverage rule asks "above 95 %
+        # for ALL integration modules", a bar the package ratio above cannot
+        # see (#1401) because a small module barely moves the average. The
+        # record holds the LOWEST module percentage measured, capped at the
+        # rule's own 95 % bar, and every module in the payload must clear it.
+        if module_floor is None:
+            failures.append(
+                "no module_percent_floor recorded: the register's "
+                "test-coverage row is keyed to this standing per-module record "
+                "and the record is absent, so nothing holds a single module to "
+                "the Silver rule's bar"
+            )
+        else:
+            module_floor = float(module_floor)
+            below = modules_below(Path(args.coverage), module_floor)
+            print(f"  {'ok  ' if not below else 'FAIL'} every module >= "
+                  f"{module_floor:.1f} %  ({len(below)} below)")
+            for name, pct in below:
+                print(f"       {name}: {pct:.2f} %")
+            if below:
+                named = ", ".join(f"{n} {p:.2f} %" for n, p in below)
+                failures.append(
+                    f"{len(below)} module(s) below the {module_floor:.1f} % "
+                    f"per-module floor: {named}. The Silver rule asks above "
+                    "95 % coverage for ALL integration modules; the package "
+                    "floor above is a ratio and cannot see one module fall. "
+                    "Cover the module, or remove a genuinely unreachable "
+                    "branch (#542) -- do not lower this record quietly."
+                )
     else:
         print("  skip coverage -- no --coverage payload; the pragma row still ran")
 
@@ -242,6 +320,7 @@ def main() -> int:
         backwards: list[str] = []
         new_floor = floor
         new_cf_floor = budgets.get("config_flow_percent_floor")
+        new_module_floor = budgets.get("module_percent_floor")
         if args.coverage:
             raw, _stmts, _missed = read_coverage(Path(args.coverage))
             new_floor = min(math.floor((raw - TOLERANCE) * 10) / 10, ceiling)
@@ -266,6 +345,24 @@ def main() -> int:
                     f"{float(budgets['config_flow_percent_floor']):.2f} % -> "
                     f"{new_cf_floor:.2f} %"
                 )
+            # The module floor holds the LOWEST module percentage, capped at
+            # the rule's own bar (MODULE_BAR): a tree clearing the bar records
+            # the bar, a tree under it records the value it has -- the same
+            # "record the property's top" shape as the config-flow row, and it
+            # is one-sided like every row here.
+            new_module_floor = min(
+                round(min(module_percentages(Path(args.coverage)).values()), 2),
+                MODULE_BAR,
+            )
+            if (
+                budgets.get("module_percent_floor") is not None
+                and new_module_floor < float(budgets["module_percent_floor"])
+            ):
+                backwards.append(
+                    "the module floor would fall "
+                    f"{float(budgets['module_percent_floor']):.2f} % -> "
+                    f"{new_module_floor:.2f} %"
+                )
         if measured_pragmas > pragma_cap:
             backwards.append(
                 f"the pragma cap would rise {pragma_cap} -> {measured_pragmas}"
@@ -285,12 +382,15 @@ def main() -> int:
         budgets["recorded_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         if new_cf_floor is not None:
             budgets["config_flow_percent_floor"] = new_cf_floor
+        if new_module_floor is not None:
+            budgets["module_percent_floor"] = new_module_floor
         if args.reason:
             budgets["reason"] = args.reason
         BUDGETS.write_text(json.dumps(budgets, indent=2) + "\n")
         print(f"\nRECORDED floor={budgets['package_percent_floor']} "
               f"pragmas={budgets['pragmas']} "
-              f"config_flow={budgets.get('config_flow_percent_floor')}")
+              f"config_flow={budgets.get('config_flow_percent_floor')} "
+              f"module={budgets.get('module_percent_floor')}")
         return 0
 
     if failures:
