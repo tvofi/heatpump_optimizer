@@ -1,0 +1,154 @@
+{
+ "dimension": "D0",
+ "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+ "report_path": "tools/audit/round6/D0/REPORT.md",
+ "exposure": "No GitHub, no `gh`, no docs/audit-*.md, no docs/backlog.md and no tools/audit/round3|4|5 \u2014 none were opened; the worktree contains none. Only tests/profiles.py and tests/optimality.py were read as reusable builders. No earlier-round finding or issue body was consulted.",
+ "findings": [
+  {
+   "id": "D0-01",
+   "title": "The space solve refines only its four pre-scored candidates, so a cheaper reachable plan is never found",
+   "severity": "medium",
+   "claim": "On the 64 heating cells of the 8x5 price x weather grid (single- and two-zone, dhw off), extending the candidate list handed to optimizer:_multi_start_minimize with 8 structured bang-bang seeds and raising _MULTI_START_SOLVES so every candidate is refined lowers the objective the solve's own captured closure scores, by a median of 0.0615 % and a maximum of 11.1729 %, with comfort-floor parity.",
+   "mechanism": "_multi_start_minimize scores every candidate at its RAW seed, sorts, and refines only scored[:_MULTI_START_SOLVES] (=4). A seed whose start score is poor but whose basin is cheaper is discarded before it is ever optimised, and _optimize_space_only's four structural seeds all anchor to the same total energy (or 0.35x it), so the basins between those anchors are unreachable from the refined set. Measured from the other side: appending 16 byte-copies of production's own candidates to the same seam made the shipped objective WORSE (100.0011 -> 100.4995 on two|flat|winter_cold) because the stable sort seats a duplicate beside its twin inside the top four and pushes a real basin out.",
+   "evidence": {
+    "command": "cd /Users/timmalmstrom/audit-r6-D0 && PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D0/seed_race.py",
+    "harness_path": "tools/audit/round6/D0/seed_race.py",
+    "value": 0.0615,
+    "unit": "% objective gap, median over 64 heating cells (max 11.1729 %)",
+    "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+    "machine": "darwin arm64, 8-core Apple M1, 8 GB, shared with the other round-6 finders (load1 6.2-21.4 across the session)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: D0 plus the other round-6 finders on the same 8-core box; counts and objective values are contention-immune. thread_factor measured 1.0000 (process_cpu 201.83 s / thread_cpu 201.83 s, BLAS pinned to 1). load1 6.2-21.4. swapins printed from vm_stat's cumulative Pageins counter, a machine-lifetime figure.",
+    "tolerance": "exact (deterministic objective values; harness self-checks: production replay bitwise 80/80, null control bitwise 80/80)",
+    "load1": 6.25,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize",
+   "perturbation": {
+    "change": "extend the candidate list handed to _multi_start_minimize with 8 structured seeds (bang-bang cheapest-steps-first at 0.2/0.35/0.5/0.65/0.8/1.0/1.25/1.5 x the shipped plan's own total energy, clipped to the solve's own per-step upper bounds) and raise optimizer._MULTI_START_SOLVES from 4 to the candidate count",
+    "expected_direction": "down",
+    "observed_value": "0.0615 % median, 11.1729 % max, 24 of 64 cells above 0.1 %"
+   },
+   "metric_definition": "gap_rel = (A-B)/A per cell: A = objective value of the shipped space plan on the solve's captured objective closure; B = the value the same seam returns with the candidate list extended",
+   "null_control": {
+    "command": "same harness: appends 3 candidates that pre-score strictly worse than the worst already-refined one, and the inverse arm sets _MULTI_START_SOLVES=1",
+    "value": "null_control_bitwise_cells=80/80 (null_control_max_abs=0.000000 %); inverse arm gap_cut1 median=-0.0018 %, max=0.0000 %",
+    "note": "the flat-price arm is the price control and the residual there is named: median falls 5.0x to 0.0146 % (flat) from 0.0729 % (non-flat) and max by 36x to 0.3087 % from 11.1729 %, so the surviving flat-price gap is solver convergence, not arbitrage"
+   },
+   "leave_one_out": {
+    "cells": 64,
+    "min": 0.0,
+    "max": 0.111729,
+    "drop_most_favourable": 0.111729
+   },
+   "reproduction_steps": [
+    "cd /Users/timmalmstrom/audit-r6-D0",
+    "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D0/seed_race.py",
+    "check RESULT production_replay_bitwise_cells=80/80 and RESULT null_control_bitwise_cells=80/80",
+    "optional: CELLS=DEEP for the widest 16 cells"
+   ],
+   "proposed_fix_scope": "optimizer.py only: add the structured seeds to the `starts` list in _optimize_space_only (and _solve_space) and let the refinement cover them, e.g. by ranking candidates after a cheap short refinement rather than only at the raw seed. Costs candidate evaluations, not solves, unless a new seed enters the refined set. Expect golden drift on the affected scenarios.",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D0-02",
+   "title": "Every production solve offers five candidates and refines four; the constant's comment says the list is four",
+   "severity": "low",
+   "claim": "coordinator:_warm_seeded sets _prev_shipped_plan on every production cycle, so optimizer:_multi_start_minimize is handed 5 candidates in 80 of 80 cells while _MULTI_START_SOLVES is 4, and one candidate is dropped after pre-scoring \u2014 though optimizer.py:251 states 'The candidates number four, so this is the whole list.'",
+   "mechanism": "#1295 added the coordinator's previous shipped plan as a fifth candidate but the comment beside _MULTI_START_SOLVES was not updated; the pre-refinement cut then discards whichever candidate scores worst at its own start.",
+   "evidence": {
+    "command": "cd /Users/timmalmstrom/audit-r6-D0 && CELLS=SPACE PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D0/discard.py",
+    "harness_path": "tools/audit/round6/D0/discard.py",
+    "value": 80,
+    "unit": "cells of 80 in which the seam is handed 5 candidates with _MULTI_START_SOLVES=4",
+    "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+    "machine": "darwin arm64, 8-core Apple M1, 8 GB, shared with the other round-6 finders (load1 6.2-21.4 across the session)",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: D0 plus the other round-6 finders on the same 8-core box; counts and objective values are contention-immune. thread_factor measured 1.0000 (process_cpu 201.83 s / thread_cpu 201.83 s, BLAS pinned to 1). load1 6.2-21.4. swapins printed from vm_stat's cumulative Pageins counter, a machine-lifetime figure.",
+    "tolerance": "exact",
+    "load1": 6.2,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize",
+   "perturbation": {
+    "change": "set HeatPumpOptimizer._prev_shipped_plan (which coordinator:_warm_seeded sets from the previous cycle's OptimizationResult.power_schedule) from unset to the previous cycle's plan",
+    "expected_direction": "up",
+    "observed_value": "offered candidate count 4 -> 5; n_discarded 0 -> 1"
+   },
+   "metric_definition": "the number of candidates offered to _multi_start_minimize in one production solve, against optimizer._MULTI_START_SOLVES, the number refined",
+   "null_control": {
+    "command": "same harness, raising the cut to refine the dropped candidate and re-running the seam",
+    "value": "gap_max=0.0000 %, n_cells_gap_gt_0 = 0 of 80",
+    "note": "so the drop costs nothing measurable on this grid and the defect is the stale count, not the cut"
+   },
+   "leave_one_out": {
+    "cells": 80,
+    "min": 0.0,
+    "max": 0.0,
+    "drop_most_favourable": 0.0
+   },
+   "reproduction_steps": [
+    "cd /Users/timmalmstrom/audit-r6-D0",
+    "CELLS=SPACE PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D0/discard.py",
+    "read RESULT n_cells_with_n_cand_gt_4=80 and RESULT n_cells_gap_gt_0=0",
+    "compare with the comment at custom_components/heatpump_optimizer/optimizer.py:251"
+   ],
+   "proposed_fix_scope": "one comment at optimizer.py:251; if the drop is also judged wrong, the cut itself, but this grid measures no plan cost from it",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "hygiene"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "_co_optimize is a dead pass among the DHW paths",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D0/diag_coopt2.py",
+   "value": "32 cells: 12 early-return, 20 re-plan, 4 ship a DHW plan that differs from the first"
+  },
+  {
+   "claim": "a further DHW<->space pass would lower the objective",
+   "command": "CELLS=FIRE K=5 PYTHONPATH=tests/hastub python3 tools/audit/round6/D0/coopt.py",
+   "value": "gap_max=0.0000 % on the 5 cells where the pass fires; the loop returns identical plans after pass 2"
+  },
+  {
+   "claim": "the iteration budget (maxiter) binds the solve",
+   "command": "tools/audit/round6/D0/challenge.py (captured maxiter 200 space-only / 300 with DHW)",
+   "value": "inherited: round 4 measured 0 of 488 L-BFGS-B calls at the cap, worst nit 52; not re-measured here"
+  },
+  {
+   "claim": "the captured objective closure is a pure function of the schedule",
+   "command": "direct probe over the captured closure inside tools/audit/round6/D0/seed_race.py development",
+   "value": "6 repeats at one x bit-identical; objective_batch(matrix)[0] == scalar at the same row to 0.000e+00"
+  },
+  {
+   "claim": "the batched jac moves the plan",
+   "command": "tests/optimality.py challengers 4 and 5 (pre-existing, not re-run)",
+   "value": "both arms of every race in this round used the captured batch_objective, so no arm silently took scipy's scalar FD path"
+  },
+  {
+   "claim": "no low-energy seed exists, so the solver never considers buying less",
+   "command": "seed_race.py start-score capture",
+   "value": "false: _LOW_ENERGY_START_FRACTION=0.35 seeds one, and the added seeds win by landing in basins BETWEEN the existing anchors (two|winter_typical|winter_cold start scores 77.884..10876.689)"
+  },
+  {
+   "claim": "the pre-refinement cut discards a candidate that would win",
+   "command": "CELLS=SPACE PYTHONPATH=tests/hastub python3 tools/audit/round6/D0/discard.py",
+   "value": "n_discarded=1 in 80/80 cells; refining the dropped candidate changes the shipped objective by 0.0000 % in 80/80"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round6/D0/seed_race.py",
+  "tools/audit/round6/D0/discard.py",
+  "tools/audit/round6/D0/challenge.py",
+  "tools/audit/round6/D0/coopt.py",
+  "tools/audit/round6/D0/diag_coopt.py",
+  "tools/audit/round6/D0/diag_coopt2.py",
+  "tools/audit/round6/D0/summarize.py",
+  "tools/audit/round6/D0/recon.py"
+ ]
+}
