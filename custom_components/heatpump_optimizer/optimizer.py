@@ -247,19 +247,9 @@ _COMFORT_PULL_TWO_ZONE = 0.0125
 # 10 price profiles (marginal on flat days, up to ~0.1 SEK/day), so every
 # candidate is now refined: with v6.2.8's batched gradient a solve is ~7x
 # cheaper than when the two-solve cap was set, and the stress gate's
-# per-scenario budgets (v6.2.16) police the runtime cost.
-#
-# Round 5's D0-a race (#1294) then measured what the cut still cost: on
-# 45 of 160 cells a structured seed the seam had NOT refined beat the shipped
-# plan (mean 0.1476% on non-flat prices, worst 5.9430%), and refining the two
-# seeds this file now builds for itself (the 0.85-energy bang-bang in
-# ``_solve_space`` and the 0.15-energy one in ``_optimize_space_only``)
-# closed 19 cells and worsened none -- but ONLY with this number raised, because
-# at four the extra candidates displaced cheaper ones (seeds alone: 17 cells
-# better, 21 worse). Six sits one above the five candidates both default paths
-# build, so the cut discards nothing there; it still binds where
-# ``_cap_tighten_starts`` adds its two extra seeds to the repair re-solve.
-_MULTI_START_SOLVES = 6
+# per-scenario budgets (v6.2.16) police the runtime cost. The candidates
+# number four, so this is the whole list.
+_MULTI_START_SOLVES = 4
 
 # The low-energy bang-bang seed (R1-D0-01): the historical candidates all
 # anchored to the same TOTAL energy (the baseline's), and on
@@ -3387,19 +3377,6 @@ class HeatPumpOptimizer:
                     headroom,
                 )
             )
-            # #1294: the 0.85-energy bang-bang, the seed the round-5 D0-a race
-            # (#1294) measured a shipped-plan gap against -- 45 of 160 cells,
-            # mean 0.1476% on non-flat prices. It is appended rather than
-            # swapped in for one of the three above, because at the old
-            # four-solve cut the extra candidates displaced cheaper ones (17
-            # cells better, 21 worse); with the cut at `_MULTI_START_SOLVES`
-            # they are scored and solved alongside.
-            starts.append(
-                np.minimum(
-                    _price_ranked_start(prices, energy * 0.85, p_max, dt),
-                    headroom,
-                )
-            )
         try:
             res = _multi_start_minimize(
                 objective, starts, bounds, args=(dhw_plan,), maxiter=300,
@@ -3921,14 +3898,6 @@ class HeatPumpOptimizer:
         ]
         if h.extra_starts:
             starts = list(h.extra_starts) + starts
-        # #1294, the other half of the same race: a 0.15-energy bang-bang. The
-        # low-energy seed above buys 35% of the baseline's energy and this one
-        # buys 15%, so a price shape whose cheapest hours cannot carry the
-        # comfort floor at 35% still gets a start that is cheap to climb out
-        # of. Appended for the same reason as the 0.85 seed in ``_solve_space``.
-        starts.append(
-            _price_ranked_start(prices, baseline_energy * 0.15, p_max, dt)
-        )
 
         try:
             result = _multi_start_minimize(

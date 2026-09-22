@@ -325,16 +325,35 @@ if _zv1 <= _zv0 + 1e-6:
     R.check("greedy does not rout the plan built with a fixed variable",
             _zc1 >= _zc0 * 0.95, f"greedy {_zc1:.2f} vs optimizer {_zc0:.2f}")
 
-# ===== round-5 solver convergence knobs (#1294 / #1295) ==================
-# Two findings, one seam: every knob below decides which basin the
-# multi-start L-BFGS-B settles in -- how many structured candidates the
-# refinement cut keeps, and whether the previous cycle's shipped plan is
-# offered as a candidate. Each check is the smallest arm that moves under its
-# own knob's defect and no other, and the cells are the round-5 core grid's,
-# named in each comment.
+# ===== round-5 solver convergence knob: the warm start (#1295) ===========
+# One finding ships from the round-5 D0 seam: the previous cycle's shipped
+# plan offered to the fresh per-solve optimizer as one more first-solve
+# candidate (#1295). The round's other two knobs do not. The tighter
+# L-BFGS-B stop rule (#1293) is refuted on money (that is why it is not in
+# the diff; tests/backtest.py's shoulder check is the detector), and the
+# raised refinement cut with its two appended seeds (#1294) cost a quarter of
+# the sweep's solver CPU for a plan-quality gain that does not reproduce
+# across BLAS builds, over the D9 sweep budget.
+#
+# What is checked here is the MECHANISM, not a plan margin. The warm start's
+# plan-quality effect is BLAS-dependent: on a developer box it moves the
+# objective, and on CI's runner the added candidate is screened out of the
+# refinement set and the solve is byte-identical to a cold one. A check that
+# pinned its percentage would therefore be a check on a float that does not
+# travel -- the void-harness case the judge contract names. The three
+# properties below hold on any BLAS, and the first moves under the knob's own
+# defect, so the check is not vacuous:
+#
+#   * the previous plan IS offered as exactly one extra candidate, with the
+#     structural candidates unchanged around it;
+#   * handing a plan in never returns a plan worse than the one handed in --
+#     the multi-start scores every candidate and keeps the cheapest, and the
+#     handed-in plan is the best-scoring one here, so it is always refined;
+#   * a plan of the wrong width is refused outright.
+#
 # "Objective" is the production closure value the solve returns, so nothing
 # here re-derives a cost; every arm is scored through the production seam
-# (``_multi_start_minimize``/``_scoped_minimize``), never a re-implementation.
+# (``_multi_start_minimize``), never a re-implementation.
 from unittest import mock as _kb_mock
 import heatpump_optimizer.optimizer as _kb_mod
 
@@ -360,23 +379,15 @@ def _kb_inputs(tz, pp, wp, dhw):
     return o, m, pr, ot, wi, ra, so, st
 
 
-def _kb_capture(o, pr, ot, wi, ra, so, st, extra=None):
+def _kb_capture(o, pr, ot, wi, ra, so, st):
     """One production solve; every seam call it makes is recorded, with the
-    seam left intact except for ``extra`` (an optional wrapper)."""
+    seam left intact."""
     seen = []
     real = _kb_mod._multi_start_minimize
-    inner = real if extra is None else extra
 
     def rec(objective, candidates, bounds, *a, **kw):
-        res = inner(objective, candidates, bounds, *a, **kw)
-        seen.append(dict(
-            objective=objective,
-            candidates=[np.asarray(c, float).copy() for c in candidates],
-            bounds=[tuple(b) for b in bounds],
-            args=tuple(kw.get("args") or a),
-            maxiter=int(kw.get("maxiter") or 300),
-            batch=kw.get("batch_objective"),
-            x=np.asarray(res.x, float).copy()))
+        res = real(objective, candidates, bounds, *a, **kw)
+        seen.append([np.asarray(c, float).copy() for c in candidates])
         return res
 
     with _kb_mock.patch.object(_kb_mod, "_multi_start_minimize", rec):
@@ -384,167 +395,96 @@ def _kb_capture(o, pr, ot, wi, ra, so, st, extra=None):
     return r, seen
 
 
-# --- #1294: the structured seeds and the refinement cut ------------------
-# The finding's own patch pair: seeds alone (patch_f1) left 21 of 160 cells
-# WORSE than the pre-fix configuration because the four-solve cut displaced
-# cheaper candidates; seeds WITH the cut raised to six (patch_f1b) left 0
-# worse and 19 better. The pair is what ships and the cut is what makes it
-# safe, so the cut is checked behaviourally against the arm the finding itself
-# measured (patch_f1's configuration) and both appended seeds are pinned
-# structurally. Nothing here checks the seeds behaviourally: see the note under
-# the cut check for the measurement that says why.
-_kb_real_ms = _kb_mod._multi_start_minimize
-_kb_cut_keep = _kb_mod._MULTI_START_SOLVES
-
-
-def _kb_cut4_arm(objective, candidates, bounds, *a, **kw):
-    """The cut knob alone: every candidate kept, the cut back at 4."""
-    _kb_mod._MULTI_START_SOLVES = 4
-    try:
-        return _kb_real_ms(objective, candidates, bounds, *a, **kw)
-    finally:
-        _kb_mod._MULTI_START_SOLVES = _kb_cut_keep
-
-
-def _kb_obj(tz, pp, wp, dhw, arm=None):
-    """One production solve on a fresh optimizer, so no warm start enters."""
-    o, _m, pr, ot, wi, ra, so, st = _kb_inputs(tz, pp, wp, dhw)
-    if arm is None:
-        r = o.optimize(st, pr, ot, wi, ra, so, _kb_start)
-    else:
-        with _kb_mock.patch.object(_kb_mod, "_multi_start_minimize", arm):
-            r = o.optimize(st, pr, ot, wi, ra, so, _kb_start)
-    return float(r.objective_value)
-
-
-# (a) the cut knob, and the reason it is not raised for free. patch_f1's own
-# JSON diff (race_cells_judgef1 against race_cells_judge) names this cell the
-# worst regression of the seeds-alone configuration: 1.1091 at the pre-fix
-# baseline against 1.1248 seeds-alone, +1.4177%. The arm here IS that
-# configuration -- every candidate kept, the cut back at 4 -- and it lands on
-# the judge's own seeds-alone value exactly: 1.1090981870 against
-# 1.1248217169, +1.3979%.
-#
-# This is also the only behavioural #1294 check there is, and the reason is
-# measured, not assumed. The appended seed was re-measured at this head against
-# a faithful pre-fix arm -- the seed dropped, the cut back at 4, a
-# single-candidate repair call left intact. An arm that drops the last element
-# of EVERY call instead empties that one-candidate call and the arm fails
-# structurally; against it this cell printed 19.5535 with the seed and 19.8017
-# without, a 1.2537% "gain" that was the arm's own failure -- the faithful arm
-# reaches 19.5535 too, exactly the production plan. Against the faithful arm
-# every seed cell moves by 0.0668% or less, inside the band this suite calls
-# noise, so a check on the seed alone would be a check on a float. What ships
-# is the pair; the cut carries it.
-_j14c = _kb_obj(True, "summer_negative", "shoulder", True)
-_j14d = _kb_obj(True, "summer_negative", "shoulder", True, arm=_kb_cut4_arm)
-print(f" cut-prod  : obj {_j14c:8.4f}")
-print(f" cut-4     : obj {_j14d:8.4f}")
-R.check(
-    "the raised refinement cut keeps the appended seeds from displacing a "
-    "cheaper candidate (#1294)",
-    _j14c <= _j14d * 0.999,
-    f"production {_j14c:.4f} vs seeds kept/cut 4 {_j14d:.4f} "
-    f"({100.0 * (_j14d - _j14c) / abs(_j14d):+.3f}% gain, bound 0.10%) -- "
-    f"the shipped plan must beat the seeds-alone configuration, and matching "
-    f"it means the cut went back to four and the displaced candidate is "
-    f"shipping again",
-)
-
-# Null control: on a cell no configuration regresses, the cut-4 arm IS the
-# production plan, so the arm is not universally worse either.
-_j14e = _kb_obj(False, "winter_extreme", "winter_cold", False)
-_j14f = _kb_obj(False, "winter_extreme", "winter_cold", False,
-                arm=_kb_cut4_arm)
-print(f" cut-null  : obj {_j14e:8.4f} vs cut 4 {_j14f:8.4f}")
-R.check(
-    "the seeds-kept/cut-4 arm is inert where the race measured no regression "
-    "(#1294 null)",
-    abs(_j14e - _j14f) <= abs(_j14e) * 5e-5,
-    f"production {_j14e:.4f} vs seeds kept/cut 4 {_j14f:.4f} on "
-    f"tz=0,dhw=0,winter_extreme,winter_cold -- equal means there was no "
-    f"candidate to displace there",
-)
-
-# (b) both appended seeds, pinned structurally. At this head their own cells
-# move by 0.0668% or less, inside the band, so presence is what is
-# BLAS-independent: one candidate more than the pre-fix four on each of the two
-# default paths, which is what the seam is handed. (tests/features.py pins the
-# DHW path's count a second time, off ``_solve_space`` itself.)
-_kb14p_o, _kb14p_m, _kb14p_pr, _kb14p_ot, _kb14p_wi, _kb14p_ra, _kb14p_so, \
-    _kb14p_st = _kb_inputs(False, "winter_typical", "summer_cool", False)
-_kb14p_r, _kb14p_seen = _kb_capture(
-    _kb14p_o, _kb14p_pr, _kb14p_ot, _kb14p_wi, _kb14p_ra, _kb14p_so, _kb14p_st)
-_kb14p_lens = [len(c["candidates"]) for c in _kb14p_seen]
-_kb14q_o, _kb14q_m, _kb14q_pr, _kb14q_ot, _kb14q_wi, _kb14q_ra, _kb14q_so, \
-    _kb14q_st = _kb_inputs(False, "flat", "shoulder", True)
-_kb14q_r, _kb14q_seen = _kb_capture(
-    _kb14q_o, _kb14q_pr, _kb14q_ot, _kb14q_wi, _kb14q_ra, _kb14q_so, _kb14q_st)
-_kb14q_lens = [len(c["candidates"]) for c in _kb14q_seen]
-print(f" space-only candidates per seam call: {_kb14p_lens}")
-print(f" dhw-path candidates per seam call:   {_kb14q_lens}")
-R.check(
-    "both default paths carry their appended seed as one more candidate "
-    "(#1294)",
-    _kb14p_lens == [5] and _kb14q_lens == [5],
-    f"space-only {_kb14p_lens}, dhw {_kb14q_lens} -- 4 means the #1294 seed "
-    f"went missing on that path; a longer list means the repair re-solve ran "
-    f"and this is reading the wrong call",
-)
-
 # --- #1295: the caller's previous plan as a candidate ---------------------
 # The coordinator rebuilds the optimizer every cycle, so it is the seat that
 # carries the last shipped plan across one (``coordinator._warm_seeded``), and
-# the next solve offers it as one extra multi-start candidate. The pair below
-# is the race's own walk predecessor (flat/summer_cool -> winter_typical/
-# shoulder, tz=0, DHW on) for a cell whose prev-plan seed won 0.323% at the
-# merge base and where the lead still moves at this head. The same cell solved
-# with no plan handed in is the no-warm-start arm.
-_kb15a_o, _kb15a_m, _kb15a_pr, _kb15a_ot, _kb15a_wi, _kb15a_ra, _kb15a_so, \
-    _kb15a_st = _kb_inputs(False, "flat", "summer_cool", True)
-_kb15b_o, _kb15b_m, _kb15b_pr, _kb15b_ot, _kb15b_wi, _kb15b_ra, _kb15b_so, \
-    _kb15b_st = _kb_inputs(False, "winter_typical", "shoulder", True)
-_kb15a_prev = _kb15a_o.optimize(
-    _kb15a_st, _kb15a_pr, _kb15a_ot, _kb15a_wi, _kb15a_ra, _kb15a_so, _kb_start)
-_kb15b_o._prev_shipped_plan = np.asarray(
-    _kb15a_prev.power_schedule, dtype=float)
-_kb15_warm = _kb15b_o.optimize(
-    _kb15b_st, _kb15b_pr, _kb15b_ot, _kb15b_wi, _kb15b_ra, _kb15b_so, _kb_start)
+# the next solve offers it as one extra multi-start candidate. The cell is
+# solved cold first; its own plan is then what a later cycle would hand in,
+# so the warm arm is the same solve with one candidate added and nothing else
+# changed. That makes the candidate lists comparable cell-for-cell, which is
+# what the structural check reads.
 _kb15c_o, _kb15c_m, _kb15c_pr, _kb15c_ot, _kb15c_wi, _kb15c_ra, _kb15c_so, \
     _kb15c_st = _kb_inputs(False, "winter_typical", "shoulder", True)
-_kb15_fresh = _kb15c_o.optimize(
-    _kb15c_st, _kb15c_pr, _kb15c_ot, _kb15c_wi, _kb15c_ra, _kb15c_so, _kb_start)
+_kb15_cold, _kb15_cold_seen = _kb_capture(
+    _kb15c_o, _kb15c_pr, _kb15c_ot, _kb15c_wi, _kb15c_ra, _kb15c_so, _kb15c_st)
+_kb15_prev = np.asarray(_kb15_cold.power_schedule, dtype=float)
+_j15f = float(_kb15_cold.objective_value)
+
+_kb15w_o, _kb15w_m, _kb15w_pr, _kb15w_ot, _kb15w_wi, _kb15w_ra, _kb15w_so, \
+    _kb15w_st = _kb_inputs(False, "winter_typical", "shoulder", True)
+_kb15w_o._prev_shipped_plan = _kb15_prev.copy()
+_kb15_warm, _kb15_warm_seen = _kb_capture(
+    _kb15w_o, _kb15w_pr, _kb15w_ot, _kb15w_wi, _kb15w_ra, _kb15w_so, _kb15w_st)
 _j15w = float(_kb15_warm.objective_value)
-_j15f = float(_kb15_fresh.objective_value)
+
+# The candidate is prepended by the path (``h.extra_starts``), so the handed
+# plan is the first entry of the first solve's candidate list, and the rest is
+# the cold solve's own list, unchanged. Every other solve is untouched.
+_kb15_first_cold = _kb15_cold_seen[0]
+_kb15_first_warm = _kb15_warm_seen[0]
+_kb15_extra = (
+    len(_kb15_first_warm) == len(_kb15_first_cold) + 1
+    and np.array_equal(_kb15_first_warm[0], _kb15_prev)
+    and all(
+        np.array_equal(a, b)
+        for a, b in zip(_kb15_first_warm[1:], _kb15_first_cold)
+    )
+    and _kb15_warm_seen[1:] == _kb15_cold_seen[1:]
+)
+print(f" cold candidates per seam call: {[len(c) for c in _kb15_cold_seen]}")
+print(f" warm candidates per seam call: {[len(c) for c in _kb15_warm_seen]}")
+R.check(
+    "the handed-in plan is one extra candidate and the rest are unchanged "
+    "(#1295)",
+    _kb15_extra,
+    f"cold {[len(c) for c in _kb15_cold_seen]}, "
+    f"warm {[len(c) for c in _kb15_warm_seen]}, extra candidate is the "
+    f"handed plan: {_kb15_extra} -- equal counts mean ``_warm_start_starts`` "
+    f"offered nothing (the #1295 knob switched off); a changed tail means the "
+    f"handed plan was substituted for a structural candidate instead of "
+    f"added beside it",
+)
+
+# No-worse: the handed plan is the best candidate on the objective, so it is
+# always refined and the multi-start minimum can only equal or improve it.
+# Exact (no slack) and BLAS-independent: both arms run the same code on the
+# same inputs, and the min over a candidate set that contains the cold optimum
+# cannot exceed it.
 print(f" warm      : obj {_j15w:8.4f}")
 print(f" no-warm   : obj {_j15f:8.4f}")
 R.check(
-    "the handed-in previous plan buys a better MPC plan (#1295)",
-    _j15w <= _j15f * 0.999,
-    f"warm {_j15w:.4f} vs no-warm {_j15f:.4f} "
-    f"({100.0 * (_j15f - _j15w) / abs(_j15f):+.3f}% gain, bound 0.10%)",
+    "the handed-in plan is never beaten by the solve that hands it back "
+    "(#1295)",
+    _j15w <= _j15f * (1 + 1e-9),
+    f"warm {_j15w:.4f} vs no-warm {_j15f:.4f} -- a warm plan above the "
+    f"handed-in plan's own objective means the candidate was dropped from the "
+    f"refinement set it should have led",
 )
 
 # Null control: a previous plan of the wrong width is dropped, not clipped or
-# padded into a plausible-looking guess, so the solve is the no-warm-start
-# solve exactly.
-_kb15c_o, _kb15c_m, _kb15c_pr, _kb15c_ot, _kb15c_wi, _kb15c_ra, _kb15c_so, \
-    _kb15c_st = _kb_inputs(False, "summer_negative", "shoulder", False)
-_kb15c_o._prev_shipped_plan = np.zeros(48)
-_kb15c = _kb15c_o.optimize(
-    _kb15c_st, _kb15c_pr, _kb15c_ot, _kb15c_wi, _kb15c_ra, _kb15c_so, _kb_start)
-_j15c = float(_kb15c.objective_value)
+# padded into a plausible-looking guess, so the solve is the cold solve
+# exactly -- byte-identical on any BLAS, because both arms run the same code
+# path on the same inputs.
 _kb15d_o, _kb15d_m, _kb15d_pr, _kb15d_ot, _kb15d_wi, _kb15d_ra, _kb15d_so, \
     _kb15d_st = _kb_inputs(False, "summer_negative", "shoulder", False)
+_kb15d_o._prev_shipped_plan = np.zeros(48)
 _kb15d = _kb15d_o.optimize(
     _kb15d_st, _kb15d_pr, _kb15d_ot, _kb15d_wi, _kb15d_ra, _kb15d_so, _kb_start)
-_j15d = float(_kb15d.objective_value)
-print(f" width-null: obj {_j15c:8.4f} vs fresh {_j15d:8.4f}")
+_kb15e_o, _kb15e_m, _kb15e_pr, _kb15e_ot, _kb15e_wi, _kb15e_ra, _kb15e_so, \
+    _kb15e_st = _kb_inputs(False, "summer_negative", "shoulder", False)
+_kb15e = _kb15e_o.optimize(
+    _kb15e_st, _kb15e_pr, _kb15e_ot, _kb15e_wi, _kb15e_ra, _kb15e_so, _kb_start)
+print(f" width-null: obj {_kb15d.objective_value:.6f} vs fresh "
+      f"{_kb15e.objective_value:.6f}")
 R.check(
     "a previous plan of the wrong width is dropped, not clipped (#1295 null)",
-    abs(_j15c - _j15d) <= abs(_j15d) * 1e-9,
-    f"wrong-width {_j15c:.4f} vs fresh {_j15d:.4f} -- equal means the width "
-    f"guard rejected it rather than reshaping it",
+    np.array_equal(np.asarray(_kb15d.power_schedule),
+                   np.asarray(_kb15e.power_schedule))
+    and np.array_equal(np.asarray(_kb15d.dhw_power_schedule),
+                       np.asarray(_kb15e.dhw_power_schedule)),
+    f"wrong-width plan reproduced the fresh plan: "
+    f"{np.array_equal(np.asarray(_kb15d.power_schedule), np.asarray(_kb15e.power_schedule))}"
+    f" -- False means the width guard reshaped it instead of dropping it",
 )
 
 sys.exit(R.close("OPTIMALITY CHECKS"))

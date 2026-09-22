@@ -9,26 +9,28 @@ MUTATIONS (each is a subset of the shipping change, applied by exact-string
 substitution with a count-of-one assertion, so a mutation that no longer
 matches the source refuses instead of silently doing nothing):
 
-  M2p_cut_only       _MULTI_START_SOLVES 6 -> 4           (the cut alone)
-  M2s_seeds_only     both appended seeds deleted          (the seeds alone)
-  M2_seeds_and_cut   _MULTI_START_SOLVES 6 -> 4, both appended seeds deleted
   M3_warm_none       _warm_start_starts returns None      (the #1295 revert)
 
-#1293's knob (the L-BFGS-B stop rule) is NOT in this diff: it was reverted
-before this branch's handoff, and ``_LBFGSB_FTOL`` no longer exists in the
-tree, so there is no M1 here.
+WHY THERE IS ONE. This branch shipped three D0 knobs and now ships one. The
+raised refinement cut and its two appended seeds (#1294) were dropped on cost
+and on non-reproducibility, so their source literals -- ``_MULTI_START_SOLVES =
+6``, the 0.85-energy seed and the 0.15-energy seed -- are not in the tree and
+the M2p/M2s/M2 mutations that reverted them can no longer match; they were
+removed with the finding rather than left to refuse on a vanished literal. That
+finding is deferred, and its instruments travel with it: the finder's
+``../seat-a/race.py`` and ``../seat-a/perturb_prev.py``, and this seat's
+``arms.py`` (which still arms the cut at run time) and ``regression.py``.
 
-EXPECTED reddens, from `mutation_proof.sh`:
-  M2p exactly the #1294 cut check, because production and the seeds-kept/cut-4
-      arm become the same configuration.
-  M2s 2 red: the both-paths candidate count, and the cut check -- with the
-      appended candidate gone, production and the seeds-kept/cut-4 arm become
-      the same configuration.  The seeds have no behavioural check of their
-      own because their cells move inside the noise band; see the note under
-      the cut check in tests/optimality.py.
-  M2  the #1294 cut check and the both-paths seed-count check.
-  M3  exactly the #1295 warm check.
-No check outside its own finding's name moves under any of the four.
+#1293's knob (the L-BFGS-B stop rule) is NOT in this diff: it was refuted on
+money before this branch's handoff, and ``_LBFGSB_FTOL`` no longer exists in
+the tree, so there is no M1 here. Its re-application instrument is
+``refute_1293.py`` beside this file.
+
+EXPECTED redden, from `mutation_proof.sh`:
+  M3  exactly the #1295 checks -- the extra-candidate check (the seam's first
+      call carries one candidate fewer) and, where the handed-in plan is beaten
+      by the solve's own refinement set, the no-worse check.
+No check outside the #1295 finding's name moves.
 """
 import os
 import sys
@@ -47,34 +49,13 @@ def sub(old, new):
     s = s.replace(old, new)
 
 
-CUT = "_MULTI_START_SOLVES = 6"
-SEED85 = """            starts.append(
-                np.minimum(
-                    _price_ranked_start(prices, energy * 0.85, p_max, dt),
-                    headroom,
-                )
-            )
-"""
-SEED15 = """        starts.append(
-            _price_ranked_start(prices, baseline_energy * 0.15, p_max, dt)
-        )
-"""
 WARM = """        prev = getattr(self, "_prev_shipped_plan", None)
         if prev is None or len(prev) != n_steps:
             return None
         return (np.asarray(prev, dtype=float),)
 """
 
-if name == "M2p_cut_only":
-    sub(CUT, "_MULTI_START_SOLVES = 4")
-elif name == "M2s_seeds_only":
-    sub(SEED85, "")
-    sub(SEED15, "")
-elif name == "M2_seeds_and_cut":
-    sub(CUT, "_MULTI_START_SOLVES = 4")
-    sub(SEED85, "")
-    sub(SEED15, "")
-elif name == "M3_warm_none":
+if name == "M3_warm_none":
     sub(WARM, "        return None\n")
 else:
     raise SystemExit(f"unknown mutation {name!r}")
