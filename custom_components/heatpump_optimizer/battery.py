@@ -317,7 +317,7 @@ def build(
         )
     )
 
-    if params.dhw_enabled and state.dhw_temperature is not None:
+    if params.dhw_enabled:
         components.append(
             StorageComponent(
                 name="dhw_tank",
@@ -330,7 +330,7 @@ def build(
             )
         )
 
-    if state.buffer_tank_temperature is not None:
+    if params.buffer_is_store:
         components.append(
             StorageComponent(
                 name="buffer_tank",
