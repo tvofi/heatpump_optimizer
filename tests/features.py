@@ -18074,6 +18074,36 @@ R.check(
     f"72 °C cooled to {_over:.2f} °C — only the charging direction is clamped",
 )
 
+# R6-D2-02: the inlet floor must not manufacture heat above the tank's
+# surroundings. The floor is a lower bound, and the tank stands in a room at
+# DHW_AMBIENT_TEMP (20 °C); a configured or sensor-supplied inlet reference
+# above that room turns the bound into a source that pins the tank at the
+# inlet and books the fabricated heat on _step_dhw_floor_injected. The floor
+# belongs at min(inlet_reference, ambient), where an unheated tank settles of
+# its own accord and nothing needs injecting.
+_ff_p = ThermalParameters(dhw_tank_volume=300.0)
+_ff_p.dhw_inlet_current = 25.0  # the shipped config surface allows inlet <= 25 °C
+_ff_m = ThermalModel(_ff_p)
+_ff_temp = _ff_m.params.dhw_inlet_reference
+_ff_free = 0.0
+for _i in range(96):
+    _ff_temp = _ff_m.simulate_dhw_step(
+        _ff_temp, 0.0, _i * 0.25, dt_hours=0.25
+    )
+    _ff_free += _ff_m._step_dhw_floor_injected * 0.25
+R.check(
+    "an inlet above the tank's surroundings manufactures no heat over 24 h",
+    _ff_free == 0.0,
+    f"injected {_ff_free:.4f} kWh/day with inlet "
+    f"{_ff_m.params.dhw_inlet_reference:.1f} °C",
+)
+R.check(
+    "the tank is not pinned at the inlet: it settles toward its surroundings",
+    _ff_temp < _ff_m.params.dhw_inlet_reference - 0.5,
+    f"ended {_ff_temp:.1f} °C against inlet "
+    f"{_ff_m.params.dhw_inlet_reference:.1f} °C",
+)
+
 # One inlet reference everywhere: the coil split loses its hardcoded 10 °C.
 _red_d, _coil_d = _coil_split(2.0, 40.0, 55.0)
 R.check(
