@@ -100,12 +100,10 @@ production lines. You work in your own worktree branched from `origin/main`.
    the block's text states: name a rule that enumerates the class's seams (a command,
    not a description), run it, and put every seam it returns in `## Figures` against
    its disposition — closed in this diff, already guarded, or a distinct finding named
-   by id. An un-dispositioned returned seam is an open seam, class not closed. If no
-   such instrument exists, say so, and say what you did instead. This is step 11 applied
-   to your own instrument: one inherited from the finder is keyed to the instance the
-   finder demonstrated. A root-cause analysis established the class over three pull
-   requests; its cost test and rejected detector are on **#592**, where this step was
-   added. Its figures decay (step 3); a reviewer refuted all three a draft quoted.
+   by id. An un-dispositioned returned seam is an open seam, class not closed. If no such instrument
+   exists, say so, and say what you did instead. This is step 11 applied to your own instrument: one
+   inherited from the finder is keyed to the instance it demonstrated. A root-cause analysis on **#592**
+   added this step; its figures decay (step 3), and a reviewer refuted all three a draft quoted.
 
 9. **A claim should be true; if wrong, correct it — anchored to a lane,
    function, marker or SHA, never a bare line number — and delete only when
