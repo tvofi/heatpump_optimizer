@@ -1,0 +1,22 @@
+{
+ "_comment": "Exit code of each gate script on the UNMUTATED baseline tree in this worktree, measured by tools/audit/round6/D3/prescreen.py --clean (which moves HEAD off the baseline with an empty commit so the ref-vs-HEAD guards inside env_drift.py and card_drift.mjs behave exactly as they do for a mutant) and by direct runs. A script that is non-zero here is EXCLUDED from kill attribution: it would otherwise report every mutant as killed. See REPORT.md, 'The control'.",
+ "tests/typing_ruler.py": 0,
+ "tests/structure.py": 0,
+ "tests/deployment_shape.py": 0,
+ "tests/guard_pins.py": 0,
+ "tests/wood_advisor.py": 0,
+ "tests/solar_alignment.py": 0,
+ "tests/plan_view.py": 0,
+ "tests/card.mjs": 0,
+ "tests/card_drift.mjs": 0,
+ "tests/manual_plan.py": 0,
+ "tests/config_flow_steps.py": 0,
+ "tests/validate.py": 0,
+ "tests/open_meteo.py": 0,
+ "tests/frontend.py": 0,
+ "tests/ha_contract.py": 0,
+ "tests/features.py": 0,
+ "tests/optimality.py": 0,
+ "tests/env_drift.py": 0,
+ "tests/entities.py": 1
+}

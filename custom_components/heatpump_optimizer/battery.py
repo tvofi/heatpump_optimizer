@@ -317,7 +317,7 @@ def build(
         )
     )
 
-    if params.dhw_enabled and state.dhw_temperature is not None:
+    if params.dhw_enabled:
         components.append(
             StorageComponent(
                 name="dhw_tank",
@@ -330,7 +330,15 @@ def build(
             )
         )
 
-    if state.buffer_tank_temperature is not None:
+    # The buffer is a battery component only when the plant itself treats it
+    # as a store: a throttling valve AND enough volume to matter (>= 100 L).
+    # A 35 L tank with no valve is published by `describe_setup()` as
+    # `is_store: false` and the optimizer never plans around it, so counting it
+    # here fabricated stored and usable capacity (issue #1404). The old guard
+    # was `state.buffer_tank_temperature is not None` over a non-Optional float
+    # that nothing sets to None, so it was invariant and every plant published
+    # a buffer component.
+    if params.buffer_is_store:
         components.append(
             StorageComponent(
                 name="buffer_tank",

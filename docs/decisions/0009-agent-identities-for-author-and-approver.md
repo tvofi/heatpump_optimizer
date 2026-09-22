@@ -274,3 +274,15 @@ says so. "No separate human approval is required" above holds for every other
 path. How the code-owner requirement treats the unowned files of a mixed pull
 request is not stated in GitHub's documentation and was not probed before step
 6; #1098, a mixed pull request, merged on the owner's review alone.
+
+> **Status note, 2026-09-22 (R6-D11-01, #1402).** The list above is the policy
+> set, and it was the whole surface: 0 of the 37 tracked files that produce or
+> implement the checks `main-protect-checks` requires carried a code owner, so
+> `require_code_owner_review` could not demand the owner for a change to the
+> checks themselves. `.github/CODEOWNERS` now names `@tvofi` on them too — the
+> six `.github/workflows/*.yml`, the hooks and their wiring, and the scripts
+> those workflows execute with an interpreter — and its header carries the
+> derivation. `tools/audit/round6/D11/fix/codeowners_gap.py` prints the surface
+> size and how many of its files an owner-carrying pattern matches: against the
+> pre-#1402 file that count was zero, and against the file this note describes
+> it is the surface size.

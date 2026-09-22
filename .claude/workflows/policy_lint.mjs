@@ -537,6 +537,27 @@ const CORPUS_EXCLUDED = new Set([
   // rather than optional: `tools/audit/briefs/fixer.md` and
   // `tools/audit/briefs/fix-review.md` cite it and are capped.
   'docs/decisions/0011-app-authored-identity.md',
+  // Round-6 audit evidence. COMMON.md's report-shape line and fixer.md's
+  // baseline line NAME these by filename (REPORT.md / BASELINE.md), so the
+  // named-docs check holds each to a cap no glob matches. They are finder
+  // reports and the round baseline -- data a later seat reads, not policy
+  // prose -- so they are excluded rather than capped. Named one by one because
+  // a `.md` is never excused by location (the rule stated above).
+  'tools/audit/round6/BASELINE.md',
+  'tools/audit/round6/D0/REPORT.md',
+  'tools/audit/round6/D1/REPORT.md',
+  'tools/audit/round6/D2/REPORT.md',
+  'tools/audit/round6/D3/REPORT.md',
+  'tools/audit/round6/D4/REPORT.md',
+  'tools/audit/round6/D5/REPORT.md',
+  'tools/audit/round6/D6/REPORT.md',
+  'tools/audit/round6/D7/REPORT.md',
+  'tools/audit/round6/D8/REPORT.md',
+  'tools/audit/round6/D9/REPORT.md',
+  'tools/audit/round6/D10/REPORT.md',
+  'tools/audit/round6/D11/REPORT.md',
+  'tools/audit/round6/D12/REPORT.md',
+  'tools/audit/round6/D13/REPORT.md',
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
