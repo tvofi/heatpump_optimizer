@@ -20631,6 +20631,75 @@ R.check(
     "list is meant to be a deliberate edit this check makes you record",
 )
 
+# --- D13-03 (#1407): the change-failure rate is reported at BOTH keyings -----
+#
+# `.claude/workflows/cfr_exclusions.json` removes a by-design red from the
+# change-failure rate, and round 6 (D13-03) established that it is keyed at the
+# MERGE COMMIT, where the excluded job cannot gate a merge: `record` fails at 58
+# of the window's 67 merge commits but is SKIPPED at all 67 pull-request heads,
+# so dropping it moves the merge-keyed rate and leaves the head-keyed rate --
+# the surface a merge is actually gated on -- exactly where it was. The
+# instrument now reports both keyings (tools/audit/round4/D11/dora_keys.py,
+# `cfr_keyings`), and this drives that production symbol on the window the
+# finding recorded. Nothing is added to the exclusion list: `nightly-status`
+# (7 of 67 heads) is a real head-keyed red, and excluding it would hide exactly
+# what the head keying exists to show.
+#
+# The histogram is that window's 67 merges, each keyed
+#   (fails `record` at the merge commit, fails `fast (3.14)` at the merge
+#    commit, fails `nightly-status` at the PR head, fails `delivery-status` at
+#    the PR head) -> how many merges carry that signature.
+_D13_WINDOW_SIGS = (
+    ((False, False, False, False), 1),
+    ((False, False, True, False), 4),
+    ((False, True, False, False), 1),
+    ((False, True, True, False), 3),
+    ((True, False, False, False), 54),
+    ((True, False, False, True), 2),
+    ((True, True, False, False), 2),
+)
+try:
+    import importlib.util as _d13_util
+    _D13_INSTR = _closure.ROOT / "tools/audit/round4/D11/dora_keys.py"
+    _d13_spec = _d13_util.spec_from_file_location(
+        "hpo_d13_keys", str(_D13_INSTR))
+    _d13 = _d13_util.module_from_spec(_d13_spec)
+    _d13_spec.loader.exec_module(_d13)
+    _d13_merge, _d13_head, _d13_pr = {}, {}, 0
+    for _sig, _count in _D13_WINDOW_SIGS:
+        for _ in range(_count):
+            _d13_pr += 1
+            _d13_merge[_d13_pr] = {
+                n for n, on in zip(("record", "fast (3.14)"), _sig[:2]) if on}
+            _d13_head[_d13_pr] = {
+                n for n, on in zip(
+                    ("nightly-status", "delivery-status"), _sig[2:]) if on}
+    _d13_rates = _d13.cfr_keyings(
+        _d13_merge, _d13_head, set(_CFR_EXCL), _d13_pr)
+    _D13_KEYINGS_OK = bool(
+        _d13_pr == 67
+        and _d13_rates["merge_keyed"] == 0.09
+        and _d13_rates["head_keyed"] == 0.134
+        # The null control the finding turns on: the exclusion moves the
+        # merge keying and leaves the head keying where it already was.
+        and _d13_rates["head_unexcluded"] == _d13_rates["head_keyed"]
+        and _d13_rates["merge_unexcluded"] > _d13_rates["merge_keyed"]
+    )
+    _d13_detail = f"cfr_keyings on the recorded 67-merge window: {_d13_rates}"
+except Exception as _d13_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _D13_KEYINGS_OK = False
+    _d13_detail = f"{type(_d13_exc).__name__}: {_d13_exc}"
+R.check(
+    "the change-failure instrument reports the merge-keyed AND the PR-head-keyed "
+    "rate (#1407)",
+    _D13_KEYINGS_OK,
+    _d13_detail + " -- a list keyed at the merge commit narrows the rate at a "
+    "surface the excluded job cannot gate, so one number hides whether the "
+    "narrowing touches the surface a merge is actually gated on. Both keyings "
+    "are reported, and adding `nightly-status` to the list is what the key-set "
+    "null control above exists to refuse",
+)
+
 # --- D11-04 (#1194): the disposition refusal can set the record job's status --
 #
 # The refusing step carried `continue-on-error: true`, which is exactly what

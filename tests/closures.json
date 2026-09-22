@@ -569,6 +569,7 @@
    "tests/validate.py",
    "tools/audit/preflight.sh",
    "tools/audit/round4/D11/d11lib.py",
+   "tools/audit/round4/D11/dora_keys.py",
    "tools/audit/round4/D11/governance_cost.py",
    "tools/audit/round4/D6/claims.json",
    "tools/audit/round5/D13/seat-a/dora_cfr.py",
