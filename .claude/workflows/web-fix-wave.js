@@ -183,7 +183,7 @@ const normaliseStage = (raw) =>
 const VERDICT_CLASSES = [
   'mutation-vacuous', 'harness', 'null-control', 'claims', 'version',
   'head-moved', 'carry-missing', 'root-cause-unanswered', 'preflight-mismatch',
-  'conflict', 'other',
+  'class-open', 'conflict', 'other',
 ]
 // A class that means the fix is sound but the PROCESS owes an answer. The
 // root-cause seat runs beside a fix and never inside it (root-cause.md), so it

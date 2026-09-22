@@ -48,16 +48,13 @@ A finding is a falsifiable claim about the baseline with:
 3. **A perturbation**: a config change or one-line production edit under
    which the number must move, and the direction. The judge runs it; a
    harness whose number does not move is voided.
-   Key the counted number on the value the production seam delivers, never
-   solely on an input attribute an honest fix cannot rewrite: #961's
-   `tools/audit/round4/D12/units.py` keyed its misread count on the entity's
-   `unit_of_measurement`, and its `--convert` wrapper moved the count by
-   re-labelling the wrapper's own records, so the perturbation passed while
-   the real fix — which converts the delivered value and must not touch the
-   entity's own attributes — left the count unmoved and the defect reading
-   as open at a fixed head. State the count's key in the harness header, so
-   a fix review re-derives under that key rather than reading an unmoved
-   count as an unfixed defect.
+   Key the counted number on the value the production seam delivers, never solely on an
+   input attribute an honest fix cannot rewrite: #961's `tools/audit/round4/D12/units.py`
+   keyed its misread count on the entity's `unit_of_measurement`, and its `--convert`
+   wrapper moved the count by re-labelling its own records, so the perturbation passed while
+   the real fix — which converts the delivered value and must not touch the entity's own
+   attributes — left the count unmoved. State the count's key in the harness header, so a fix
+   review re-derives under that key rather than reading an unmoved count as an unfixed defect.
 4. **A metric definition** in one line, so a verifier measuring the same
    thing can tell whether it measured the same thing.
 5. **A null control** whenever the claim is about cost, gain or time: the
@@ -78,8 +75,11 @@ A finding is a falsifiable claim about the baseline with:
 8. **A stop-rule class**: `bug` (the code does something wrong) or `hygiene`
    (naming, wording, structure, dead code). Provisional; the judge sets it.
 
-Group by phenomenon, not by symptom: one finding per mechanism, however many
-places it shows.
+Group by phenomenon, not by symptom: one finding per mechanism, however many places it
+shows — and state the phenomenon as a property plus the rule that enumerates its seams (a
+command, in the same form as `harness_path`). The seams the finder demonstrated are the
+evidence; the property and its rule are what the fixer is held to, because verification may
+not go beyond what the block states (`fixer.md` step 8).
 
 ## What a non-finding is
 

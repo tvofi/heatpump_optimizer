@@ -20384,6 +20384,58 @@ R.check(
     f"findings={str(_STATS_BLOCKFOLD.get('bare'))[:300]} -- the fix must not "
     "refuse a verdict the wave routes",
 )
+# THE HISTOGRAM'S DENOMINATOR IS ITS OWN POPULATION, NOT THE WINDOW (#1406,
+# D13-02). `--stats` prints `STATS: N merged pull request(s)` -- the window --
+# and then a verdict table keyed on the pull requests that CARRIED a parsable
+# verdict. Where a merge carries none -- automation-authored merges are the
+# common case, and a window holding any is not rare -- the table rests on a
+# smaller population than the line above it, and a reader taking the two
+# together cannot see the difference. The judge measured it: 4 of 67 merges
+# carried no parsable verdict while the histogram's denominator read 64. The fix
+# names both counts on their own line beside `STATS:`. Driven on the production
+# symbols rather than a count re-derived here, and the window is 67 so a
+# denominator carrying only the verdict-carrying population reads 64.
+_STATS_COVER = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const mk = (n, verdicts) => ({"
+     "prs: Array.from({ length: n }, (_, i) => ({ pr: String(i + 1) })),"
+     "fetched: new Map(Array.from({ length: n }, (_, i) => "
+     "[String(i + 1), { body: 'x', comments: i < verdicts"
+     " ? [{ body: 'Fix review: merge' }] : [] }])) });"
+     "const line = (n, v) => {"
+     "const { prs, fetched } = mk(n, v);"
+     "const h = m.statsHistogram(prs, fetched, ['blocked', 'merge']);"
+     "return m.statsCoverageLine(h.coverage); };"
+     "console.log(JSON.stringify({ short: line(67, 64), full: line(67, 67) }));"
+     "})"],
+    capture_output=True, text=True).stdout or "{}")
+
+
+def _cover_says(arm, sub):
+    return sub in (_STATS_COVER.get(arm) or "")
+
+
+R.check(
+    "the stats histogram names the population it saw beside the window's merge "
+    "count, so a merge carrying no verdict is visible rather than absorbed "
+    "(#1406)",
+    _cover_says("short", "64 of 67")
+    and _cover_says("short", "carried a parsable verdict")
+    and _cover_says("short", "3 carried none"),
+    f"coverage line={(_STATS_COVER.get('short') or '')[:240]!r} -- the verdict "
+    "table's denominator is the pull requests that carried a verdict, and a "
+    "line printing only the window count hides the merges it could not classify",
+)
+R.check(
+    "and the coverage line tracks the histogram rather than a constant "
+    "(null control)",
+    _cover_says("full", "67 of 67")
+    and not _cover_says("full", "carried none"),
+    f"coverage line={(_STATS_COVER.get('full') or '')[:240]!r} -- with every "
+    "merge carrying a verdict the line must name the whole window, or the "
+    "counts are not derived from the histogram",
+)
 R.check(
     "the publishing lane runs on main alone, never on a pull request",
     "github.event_name == 'push'" in _DS_PUB_JOB
@@ -20577,6 +20629,75 @@ R.check(
     "own jobs and the required contexts are named absent, and the key set is "
     "pinned to the one name measured failing at the round's heads. Growing the "
     "list is meant to be a deliberate edit this check makes you record",
+)
+
+# --- D13-03 (#1407): the change-failure rate is reported at BOTH keyings -----
+#
+# `.claude/workflows/cfr_exclusions.json` removes a by-design red from the
+# change-failure rate, and round 6 (D13-03) established that it is keyed at the
+# MERGE COMMIT, where the excluded job cannot gate a merge: `record` fails at 58
+# of the window's 67 merge commits but is SKIPPED at all 67 pull-request heads,
+# so dropping it moves the merge-keyed rate and leaves the head-keyed rate --
+# the surface a merge is actually gated on -- exactly where it was. The
+# instrument now reports both keyings (tools/audit/round4/D11/dora_keys.py,
+# `cfr_keyings`), and this drives that production symbol on the window the
+# finding recorded. Nothing is added to the exclusion list: `nightly-status`
+# (7 of 67 heads) is a real head-keyed red, and excluding it would hide exactly
+# what the head keying exists to show.
+#
+# The histogram is that window's 67 merges, each keyed
+#   (fails `record` at the merge commit, fails `fast (3.14)` at the merge
+#    commit, fails `nightly-status` at the PR head, fails `delivery-status` at
+#    the PR head) -> how many merges carry that signature.
+_D13_WINDOW_SIGS = (
+    ((False, False, False, False), 1),
+    ((False, False, True, False), 4),
+    ((False, True, False, False), 1),
+    ((False, True, True, False), 3),
+    ((True, False, False, False), 54),
+    ((True, False, False, True), 2),
+    ((True, True, False, False), 2),
+)
+try:
+    import importlib.util as _d13_util
+    _D13_INSTR = _closure.ROOT / "tools/audit/round4/D11/dora_keys.py"
+    _d13_spec = _d13_util.spec_from_file_location(
+        "hpo_d13_keys", str(_D13_INSTR))
+    _d13 = _d13_util.module_from_spec(_d13_spec)
+    _d13_spec.loader.exec_module(_d13)
+    _d13_merge, _d13_head, _d13_pr = {}, {}, 0
+    for _sig, _count in _D13_WINDOW_SIGS:
+        for _ in range(_count):
+            _d13_pr += 1
+            _d13_merge[_d13_pr] = {
+                n for n, on in zip(("record", "fast (3.14)"), _sig[:2]) if on}
+            _d13_head[_d13_pr] = {
+                n for n, on in zip(
+                    ("nightly-status", "delivery-status"), _sig[2:]) if on}
+    _d13_rates = _d13.cfr_keyings(
+        _d13_merge, _d13_head, set(_CFR_EXCL), _d13_pr)
+    _D13_KEYINGS_OK = bool(
+        _d13_pr == 67
+        and _d13_rates["merge_keyed"] == 0.09
+        and _d13_rates["head_keyed"] == 0.134
+        # The null control the finding turns on: the exclusion moves the
+        # merge keying and leaves the head keying where it already was.
+        and _d13_rates["head_unexcluded"] == _d13_rates["head_keyed"]
+        and _d13_rates["merge_unexcluded"] > _d13_rates["merge_keyed"]
+    )
+    _d13_detail = f"cfr_keyings on the recorded 67-merge window: {_d13_rates}"
+except Exception as _d13_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _D13_KEYINGS_OK = False
+    _d13_detail = f"{type(_d13_exc).__name__}: {_d13_exc}"
+R.check(
+    "the change-failure instrument reports the merge-keyed AND the PR-head-keyed "
+    "rate (#1407)",
+    _D13_KEYINGS_OK,
+    _d13_detail + " -- a list keyed at the merge commit narrows the rate at a "
+    "surface the excluded job cannot gate, so one number hides whether the "
+    "narrowing touches the surface a merge is actually gated on. Both keyings "
+    "are reported, and adding `nightly-status` to the list is what the key-set "
+    "null control above exists to refuse",
 )
 
 # --- D11-04 (#1194): the disposition refusal can set the record job's status --

@@ -4400,6 +4400,24 @@ R.check(
     .structure
     == presets.STRUCTURE_TIMBER_SLAB,
 )
+# #1386: normalisation keys on membership, not on "is it radiators". A valid
+# non-radiator emitter is a real answer the user gave, so validate() must keep
+# it; a mutant that forces the branch (`if True`) overwrites the floor answer
+# with radiators. The bogus arm is the null control -- it is clamped under both
+# the real guard and the mutant, so it shows the check exercises normalisation
+# rather than passing vacuously.
+R.check(
+    "a valid non-radiator emitter is kept, only an unknown one is clamped",
+    presets.BuildingPreset(upper_emitter=presets.EMITTER_FLOOR)
+    .validate()
+    .upper_emitter
+    == presets.EMITTER_FLOOR
+    and presets.BuildingPreset(upper_emitter="bogus")
+    .validate()
+    .upper_emitter
+    == presets.EMITTER_RADIATORS,
+    "floor upper emitter must survive validate(); only 'bogus' is clamped",
+)
 R.check(
     "the derived values are presented as a starting point",
     "learn" in presets.describe(presets.BuildingPreset())["note"].lower(),
@@ -22554,6 +22572,34 @@ R.check(
     "no window is None, with a derate set",
     _g4_sm.caps(_g4_eve, 96, 0.25, [], 0.7, 5.0) is None,
 )
+# #1384: the no-window guard is an EARLY-OUT, and asserting the None alone
+# cannot see it. With no window the fallthrough walks every step, finds none
+# inside a window, and returns None anyway -- so deleting the guard (`if
+# False`, mutant 17) passes the check above. The observable the guard owns is
+# that it returns BEFORE the per-step calendar walk, so pin that with a spy on
+# the resolution seam: under the mutant the walk runs 96 times and this goes
+# red. The spy is restored in a `finally` so a failure cannot leak into the
+# DST and day-selector checks that follow.
+_g4_wfd_seen: list[int] = []
+_g4_wfd_real = _g4_sm.windows_for_day
+
+
+def _g4_wfd_spy(*args, **kwargs):
+    _g4_wfd_seen.append(1)
+    return _g4_wfd_real(*args, **kwargs)
+
+
+_g4_sm.windows_for_day = _g4_wfd_spy
+try:
+    _g4_no_window_guard = _g4_sm.caps(_g4_eve, 96, 0.25, [], 0.7, 5.0)
+finally:
+    _g4_sm.windows_for_day = _g4_wfd_real
+R.check(
+    "with no window the guard returns before the step-grid calendar walk",
+    _g4_no_window_guard is None and not _g4_wfd_seen,
+    f"result {_g4_no_window_guard}, calendar walks {len(_g4_wfd_seen)} "
+    f"(want 0 -- the guard must short-circuit)",
+)
 R.check(
     "a window the horizon never reaches is None, not a nameplate array",
     _g4_sm.caps(_g4_eve, 4, 0.25, _g4_parse("02:00-03:00"), 0.7, 5.0) is None,
@@ -22794,6 +22840,23 @@ R.check(
     "a defrost spanning an interval boundary keeps its second half",
     abs(_wobs4.duty - 1.0) < 1e-9,
     f"duty {_wobs4.duty}; the level carries over across close()",
+)
+# #1387: an out-of-order sample -- a clock step back, or a stamp that arrives
+# late -- makes the elapsed time NEGATIVE. The interval has measured no
+# on-time into the past, so the accrual must be skipped, not subtracted; a
+# guard forced open (`if True`) banks the -5 s and under-reports the duty as
+# 0.20 where the honest value is 0.25. Every clean fixture has a positive
+# delta, so only a non-positive one separates the guard from the mutant.
+_w5 = DefrostWindow()
+_w5.observe(_PS_NOW, True)
+_w5.observe(_PS_NOW + timedelta(seconds=10), True)  # +10 s of on-time
+_w5.observe(_PS_NOW + timedelta(seconds=5), True)  # 5 s BEFORE the last stamp
+_w5.observe(_PS_NOW + timedelta(seconds=20), False)  # on-time ends here
+_wobs5 = _w5.peek(_PS_NOW + timedelta(seconds=100))
+R.check(
+    "a sample stamped before the last does not subtract from the on-time",
+    abs(_wobs5.duty - 0.25) < 1e-9,
+    f"duty {_wobs5.duty} (want 0.25); the -5 s sample must be skipped, not banked",
 )
 
 # -- the physics --------------------------------------------------------------
@@ -34467,16 +34530,23 @@ R.check(
 
 # -- `_adopt_system_identification`: one experiment against weeks of samples
 # A step-response experiment is a far better prior than ambiguous passive
-# samples, and the blend is what stops it being an overwrite. The arithmetic
-# is the check: confidence c takes the learned scale to
-# (1-c)*old + c*(sysid_UA / base_UA), and the sample floor to int(20c), so a
-# mediocre experiment cannot claim a well-sampled learner's authority.
+# samples, and the blend weight is what stops a marginal fit overwriting a
+# well-sampled learner. The arithmetic is the check: the weight is
+# 1 - ua_profile_halfwidth / UA_ADOPTION_HALFWIDTH_BAR, which takes the
+# learned scale to (1-w)*old + w*(sysid_UA / base_UA) and the sample floor to
+# int(20w), so a marginal experiment cannot claim a well-sampled learner's
+# authority.
+_bar = _SysIdModule.UA_ADOPTION_HALFWIDTH_BAR
+
+
 def _t4_adopt(*, two_zone=False, ua=None, upper=None, lower=None,
-              confidence=0.8, heat_loss=0.30, completed=True):
+              halfwidth=0.0, heat_loss=0.30, completed=True):
     """Seed the passive learner from one completed experiment.
 
     Runs on an identifiable (fast-slab) plant: the #942 gate refuses the
     default one, and these checks pin the blend arithmetic, not the gate.
+    ``halfwidth`` is the fitted UA's profile half-width; the gate refuses a
+    value above ``UA_ADOPTION_HALFWIDTH_BAR``.
     """
     c = _t4_coord(**(_T4_TWO_ZONE if two_zone else {}))
     c._thermal_params.slab_heat_transfer *= 100.0
@@ -34489,7 +34559,7 @@ def _t4_adopt(*, two_zone=False, ua=None, upper=None, lower=None,
     c._sysid.result = _dc_replace(
         c._sysid.result,
         completed=completed,
-        confidence=confidence,
+        ua_profile_halfwidth=halfwidth,
         heat_loss_kw_per_c=heat_loss,
     )
     c._t4_escaped = _t4_call(c._adopt_system_identification)
@@ -34498,32 +34568,33 @@ def _t4_adopt(*, two_zone=False, ua=None, upper=None, lower=None,
 
 _t4_ad_ok = _t4_adopt(ua=0.15)
 R.check(
-    "a high-confidence experiment is BLENDED into the learned scale, not written over it",
-    _t4_ad_ok._house_heat_loss_scale == 1.8
-    and _t4_ad_ok._house_heat_loss_samples == 16
+    "a pinned experiment is taken at full weight, not blended against the "
+    "passive learner",
+    _t4_ad_ok._house_heat_loss_scale == 2.0
+    and _t4_ad_ok._house_heat_loss_samples == 20
     and not isinstance(_t4_ad_ok._t4_escaped, Exception),
     f"scale {_t4_ad_ok._house_heat_loss_scale!r} samples "
     f"{_t4_ad_ok._house_heat_loss_samples!r} -- a 0.30 kW/K fit against a "
-    "0.15 kW/K nameplate is a scale of 2.0, and at confidence 0.8 the blend "
-    "is 0.2*1.0 + 0.8*2.0; an overwrite would read 2.0",
+    "0.15 kW/K nameplate is a scale of 2.0, and at halfwidth 0 the weight is "
+    "1.0, so the pinned experiment is trusted over the passive estimate",
 )
-_t4_ad_mid = _t4_adopt(ua=0.15, confidence=0.4)
+_t4_ad_mid = _t4_adopt(ua=0.15, halfwidth=_bar / 2.0)
 R.check(
-    "a mediocre experiment moves the scale less and claims fewer samples",
-    _t4_ad_mid._house_heat_loss_scale == 1.4
-    and _t4_ad_mid._house_heat_loss_samples == 8,
+    "a half-bar experiment moves the scale half way and claims half the samples",
+    _t4_ad_mid._house_heat_loss_scale == 1.5
+    and _t4_ad_mid._house_heat_loss_samples == 10,
     f"scale {_t4_ad_mid._house_heat_loss_scale!r} samples "
-    f"{_t4_ad_mid._house_heat_loss_samples!r} at confidence 0.4 against "
+    f"{_t4_ad_mid._house_heat_loss_samples!r} at halfwidth bar/2 against "
     f"{_t4_ad_ok._house_heat_loss_scale!r} and "
-    f"{_t4_ad_ok._house_heat_loss_samples!r} at 0.8 -- both the weight and "
-    "the sample floor are linear in the confidence, which is what stops a "
-    "weak fit borrowing a well-sampled learner's authority",
+    f"{_t4_ad_ok._house_heat_loss_samples!r} at 0 -- both the weight and the "
+    "sample floor are linear in the half-width, which is what stops a "
+    "marginal fit borrowing a well-sampled learner's authority",
 )
 _t4_ad_two = _t4_adopt(two_zone=True, ua=0.60, upper=0.05, lower=0.10)
 R.check(
     "the two-zone base is the ZONES' sum, not the whole-house coefficient",
-    abs(_t4_ad_two._house_heat_loss_scale - 1.8) < 1e-9
-    and _t4_adopt(ua=0.60)._house_heat_loss_scale == 0.6,
+    abs(_t4_ad_two._house_heat_loss_scale - 2.0) < 1e-9
+    and _t4_adopt(ua=0.60)._house_heat_loss_scale == 0.5,
     "zones 0.05+0.10 against a whole-house 0.60 -> "
     f"{_t4_ad_two._house_heat_loss_scale!r}, "
     f"the same whole-house figure single-zone -> {_t4_adopt(ua=0.60)._house_heat_loss_scale!r} "
@@ -34531,20 +34602,21 @@ R.check(
     "by four times the right UA and the learner adopts a scale four times too "
     "small",
 )
-_t4_ad_low = _t4_adopt(ua=0.15, confidence=0.2)
-_t4_ad_open = _t4_adopt(ua=0.15, completed=False, confidence=0.9)
+_t4_ad_wide = _t4_adopt(ua=0.15, halfwidth=2.0 * _bar)
+_t4_ad_open = _t4_adopt(ua=0.15, completed=False)
 _t4_ad_nofit = _t4_adopt(ua=0.15, heat_loss=None)
 _t4_ad_zero = _t4_adopt(ua=0.0)
 R.check(
-    "a weak fit, an unfinished run, a fit with no UA and a zero nameplate all adopt nothing",
+    "a wide-interval fit, an unfinished run, a fit with no UA and a zero "
+    "nameplate all adopt nothing",
     all(
         c._house_heat_loss_scale == 1.0
         and c._house_heat_loss_samples == 0
         and not isinstance(c._t4_escaped, Exception)
-        for c in (_t4_ad_low, _t4_ad_open, _t4_ad_nofit, _t4_ad_zero)
+        for c in (_t4_ad_wide, _t4_ad_open, _t4_ad_nofit, _t4_ad_zero)
     ),
-    "confidence 0.2 -> "
-    f"{_t4_ad_low._house_heat_loss_scale!r}, not completed -> "
+    "halfwidth 2*bar -> "
+    f"{_t4_ad_wide._house_heat_loss_scale!r}, not completed -> "
     f"{_t4_ad_open._house_heat_loss_scale!r}, no fitted UA -> "
     f"{_t4_ad_nofit._house_heat_loss_scale!r}, zero nameplate UA -> "
     f"{_t4_ad_zero._house_heat_loss_scale!r} -- the zero nameplate is the one "
@@ -34699,13 +34771,14 @@ R.check(
 
 
 def _adopt942(*, slab_mult=1.0, ua=None):
-    """Offer one completed confidence-0.8 fit to the adoption path."""
+    """Offer one completed pinned fit to the adoption path."""
     c = _t4_coord()
     c._thermal_params.slab_heat_transfer *= slab_mult
     if ua is not None:
         c._thermal_params.heat_loss_coefficient = ua
     c._sysid.result = _dc_replace(
-        c._sysid.result, completed=True, confidence=0.8, heat_loss_kw_per_c=0.30
+        c._sysid.result, completed=True, ua_profile_halfwidth=0.0,
+        heat_loss_kw_per_c=0.30,
     )
     c._t4_escaped = _t4_call(c._adopt_system_identification)
     return c
@@ -34714,14 +34787,14 @@ def _adopt942(*, slab_mult=1.0, ua=None):
 _ad942_fast = _adopt942(slab_mult=100.0, ua=0.15)
 R.check(
     "#1329/#942: the same fit on the fast-slab plant adopts THROUGH the gate",
-    _ad942_fast._house_heat_loss_scale == 1.8
-    and _ad942_fast._house_heat_loss_samples == 16
+    _ad942_fast._house_heat_loss_scale == 2.0
+    and _ad942_fast._house_heat_loss_samples == 20
     and _ad942_fast._sysid.result.reason == "adopted",
     f"scale {_ad942_fast._house_heat_loss_scale!r} samples "
     f"{_ad942_fast._house_heat_loss_samples!r} reason "
     f"{_ad942_fast._sysid.result.reason!r} -- the gate admits a fast-slab "
-    "plant exactly as before; the DEFAULT plant's own adoption is pinned in "
-    "the #1329 block below",
+    "plant exactly as before (a pinned fit at weight 1.0); the DEFAULT "
+    "plant's own adoption is pinned in the #1329 block below",
 )
 
 
@@ -34842,8 +34915,8 @@ R.check(
     f"scale {_ad1329._house_heat_loss_scale!r} samples "
     f"{_ad1329._house_heat_loss_samples!r} reason "
     f"{_ad1329._sysid.result.reason!r} -- the DEFAULT plant's own tau_fast is "
-    "4.17 h; the same completed confidence-0.8 fit used to be refused by "
-    "name at the adoption path",
+    "4.17 h; the same completed pinned fit used to be refused by name at the "
+    "adoption path",
 )
 
 # The #942 protection survives where it is actually needed. A cadence gap
@@ -34994,6 +35067,16 @@ def _ridge_ensemble(params, sigma_c):
     return bias, refused
 
 
+def _ridge_ua_halfwidths(params, sigma_c, n=16):
+    """Completed two-state fits at sigma_c: their UA interval half-widths."""
+    out = []
+    for _k in range(n):
+        _sid, _rr, _ru = _ridge_drive(params, sigma_c, _RIDGE_SEED0 + _k)
+        if _rr.completed and _rr.ua_profile_halfwidth is not None:
+            out.append(_rr.ua_profile_halfwidth)
+    return out
+
+
 _ridge_sid0, _ridge_res0, _ridge_ua0 = _ridge_drive(
     _p942("typical_slab", 100.0), 0.01, _RIDGE_SEED0
 )
@@ -35061,20 +35144,19 @@ R.check(
 )
 
 
-# -- the sysid-estimator wave, act 2: the fitted arm's noise gate and the --
+# -- the sysid-estimator wave, act 2: the fitted arm's adoption gate and the --
 # re-derived slab mode (#942 options 2+3; ratification 5659441129). Where
 # act 1 above landed the ported intercept ridge behind the #991 gate, this
-# act lands the ratified adoption preconditions that sit AROUND the fit:
-# the residual-scatter noise gate (fitted values are adoptable only where
-# the window's own measured noise clears MAX_FIT_RESIDUAL_SCATTER_C --
-# the frontier's same cell degrades past the +-10% bar at 0.05 C, so the
-# window is refused BY NAME, not adopted at a discounted confidence), and
-# the tau_fast re-derivation (published as result.slab_mode_tau_hours,
-# computed from the FITTED room capacity against the CONFIG slab pair --
-# never the C_s/k_s split, which is unidentifiable; an adopted slab-mode
-# change is a config-class change whose claim grammar is the owner's
-# #996 decision, posted as comment 5663831849, and nothing here adopts
-# one).
+# act lands the adoption precondition that sits AROUND the fit: the fitted
+# UA's own 95 % profile-likelihood interval (#1410, superseding the #942
+# residual-scatter gate -- a clean residual is what a prior-dominated,
+# useless fit looks like, so the interval, not the scatter, is the quantity
+# the gate bounds), and the tau_fast re-derivation (published as
+# result.slab_mode_tau_hours, computed from the FITTED room capacity against
+# the CONFIG slab pair -- never the C_s/k_s split, which is unidentifiable;
+# an adopted slab-mode change is a config-class change whose claim grammar
+# is the owner's #996 decision, posted as comment 5663831849, and nothing
+# here adopts one).
 
 _est2_tau_true = _SysIdModule.slab_mode_tau_fast(
     float(_p942("typical_slab", 100.0).room_thermal_mass),
@@ -35094,28 +35176,29 @@ R.check(
     "config-class decision prices; a fit that changed the slab pair "
     "itself would be adopting the unidentifiable split",
 )
-_est2_bias05, _est2_refused05 = _ridge_ensemble(
-    _p942("typical_slab", 100.0), 0.05
-)
+_est2_hw_noisy = _ridge_ua_halfwidths(_p942("typical_slab"), 0.02)
+_est2_hw_clean = _ridge_ua_halfwidths(_p942("typical_slab"), 0.0)
 R.check(
-    "estimator act 2: 0.05 C noise is refused BY NAME at the residual-"
-    "scatter gate, never adopted degraded",
-    not _est2_bias05
-    and _est2_refused05
+    "estimator act 2: adoption is decided by the fitted UA's own interval "
+    "(#1410, superseding the residual-scatter gate): a 0.02 C noisy window on "
+    "the shipped natural slab is refused (its UA interval admits > +-10 %) "
+    "and a clean window's interval collapses to ~0 and admits, so it is a "
+    "refusal of the unidentifiable fits, not a blanket",
+    _est2_hw_clean
+    and _est2_hw_noisy
     and all(
-        "residual scatter" in r or "drifted beyond" in r
-        for r in _est2_refused05
+        hw > _SysIdModule.UA_ADOPTION_HALFWIDTH_BAR for hw in _est2_hw_noisy
     )
-    and any("residual scatter" in r for r in _est2_refused05),
-    f"adopted {len(_est2_bias05)} reasons "
-    f"{[r[:44] for r in _est2_refused05]} -- at sigma 0.05 the same cell "
-    "degrades past the +-10 % bar (fitted -23/+15, pre-study table), so "
-    "the ratified precondition (residual scatter <= ~0.02 C on the arm "
-    "window) refuses the window instead of adopting it; a draw may "
-    "instead abort on the comfort bound (act 1's documented sizing "
-    "knife-edge -- 1 of 16 at this sigma, measured), which adopts "
-    "nothing either, but every OTHER refusal reason would mean the gate "
-    "leaked",
+    and all(
+        hw <= _SysIdModule.UA_ADOPTION_HALFWIDTH_BAR for hw in _est2_hw_clean
+    ),
+    f"noisy {[round(h, 3) for h in _est2_hw_noisy]} clean "
+    f"{[round(h, 3) for h in _est2_hw_clean]} bar "
+    f"{_SysIdModule.UA_ADOPTION_HALFWIDTH_BAR:.3f} -- the interval is the "
+    "parameter's own uncertainty: on the natural slab the comfort bound keeps "
+    "the excursion within ~2 % of its mean, so UA is weakly identified at "
+    "0.02 C noise and the gate refuses it (the D7-01 regime), while a clean "
+    "cell's interval collapses to ~0 and the gate admits it",
 )
 
 

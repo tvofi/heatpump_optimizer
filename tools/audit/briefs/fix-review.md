@@ -21,6 +21,12 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
 5. Check `VERSION`, the manifest version and the notes heading are untouched.
 6. Attack the fix at other configurations the finding's harness accepts:
    the other topologies, the other price profiles, the zero-evidence install.
+   **And open the class: a harness's configurations are its parameters, not its
+   population.** Run the enumeration rule the body names and compare its output with
+   the diff: a seam it returns that is neither in the diff nor dispositioned in the body
+   is `blocked <sha> harness: class-open <seam>`. A body whose issue states more than one
+   seam and names no rule is `blocked <sha> harness: class-rule-missing`. A body whose rule
+   returns nothing is a body whose class is one seam — say so rather than treating the absence as compliance.
 7. Confirm the head SHA in the PR body is the head you measured.
 8. **A quoted number you cannot re-derive is not verified — say so.** Three
    agents counting "the same" published-attribute census (#373) got three
@@ -29,8 +35,7 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
    merge base and zero at head under all of them, so the conclusion held
    despite every headline number in the bodies disagreeing. Re-derive
    under the PR's stated rule before trusting its count; if you cannot, or
-   if you had to build your own definition to check it, write that in the
-   verdict rather than reporting a number as confirmed.
+   if you had to build your own definition to check it, write that in the verdict rather than reporting a number as confirmed.
 9. **When the finding has no committed harness, that is itself a finding.**
    Step 2 assumes one exists to measure with; twice it has not. #373's
    instrument was a shell `grep` in the issue's own body, nothing at tag
@@ -38,8 +43,7 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
    comment and must be recreated from there. #290's is committed: W3-G3 landed
    it as `harnesses/j5_gil.py`. A fixer who builds their own instrument must
    disclose it as their own, not the finder's -- so do you, if you built one.
-   Read the finding's own judge ruling first — #290's brief still prescribes a
-   harness its judge already refused.
+   Read the finding's own judge ruling first — #290's brief still prescribes a harness its judge already refused.
 
 10. **Check the forward-carry before you return `merge`.** The PR body names
     where a finding that changes a later stage was written; open that
@@ -54,8 +58,7 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
     or the finding that none exists. Both pass; silence is
     `blocked <sha> root-cause-unanswered: <check> went red, unanswered`.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
-    (`ci-autofix.md`). You check that the trigger was answered, not the answer
-    — the analysis is a separate seat, `root-cause.md`.
+    (`ci-autofix.md`). You check that the trigger was answered, not the answer — the analysis is a separate seat, `root-cause.md`.
     **A red `nightly-status` is not this pull request's** unless its diff reaches
     the nightly lane: #713 attached the check to every pull request and it
     reports `main`'s cron, not this head. The control, re-run at your own base —
@@ -91,8 +94,7 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
     The handoff makes the head yours from then on, so one that moved under you
     is a broken rule rather than an accident: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
     instead is yours to offer and is never owed — a violation the reviewer
-    absorbs silently costs the seat that committed it nothing, which is how it
-    recurs.
+    absorbs silently costs the seat that committed it nothing, which is how it recurs.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run
@@ -107,8 +109,7 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
     than `tests/golden/claimed_drift.txt` and `tests/golden/card_claimed_drift.txt`
     is yours to block on, because you cannot know the merged result is correct.
 
-    **The driver's verdict is in that command's stderr. Read it; do not infer it
-    from the paths.** Unlike
+    **The driver's verdict is in that command's stderr. Read it; do not infer it from the paths.** Unlike
     GitHub, `merge-tree` *does* invoke the `claimnotes` driver — measured, one
     invocation per conflicting claim file — but only if you installed it:
 
@@ -129,8 +130,7 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
     `may-drift` line **is** a `#` comment, and `merge_claim_defect` refuses
     when one is lost. A rule of the form "a conflict confined to the `#`
     comment notes is merge-prep" therefore waves through a real refusal, on a
-    file with no bare claim lines on any side. Why the driver refuses at all is
-    `claim-files.md`'s.
+    file with no bare claim lines on any side. Why the driver refuses at all is `claim-files.md`'s.
 
 Return a verdict with your RESULT lines, in the exact shape your dispatch
 prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first
