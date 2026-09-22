@@ -7729,8 +7729,8 @@ if _got234 is not None:
         "wired extra_starts are not (clipped prev, equal-energy bang-bang)",
     )
 
-# Extra seeds occupy two of `_MULTI_START_SOLVES` slots. On winter_extreme
-# that displaced a cheaper unseeded basin. Seeds may only win.
+# The cap-tighten re-solve runs both arms -- seeded and unseeded -- and keeps
+# the better. Seeds may only win.
 _keep234 = {"seeded": 0, "unseeded": 0}
 _unseeded_keep234 = _StoreRes(
     power_schedule=_prev234.tolist(),

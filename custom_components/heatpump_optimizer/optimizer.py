@@ -240,16 +240,16 @@ _COMFORT_FLOOR_L1 = 2.0
 _COMFORT_PULL_SINGLE_ZONE = 0.025
 _COMFORT_PULL_TWO_ZONE = 0.0125
 
-# How many of the candidate starting points are actually optimized. Going from
-# one to two removes most of the local-optimum gap in the two-zone model
-# (2.2% cheaper in the validation scenarios). The audit's R1-D0-02 finding then
-# measured the DISCARDED candidate refining below the shipped result in 5 of
-# 10 price profiles (marginal on flat days, up to ~0.1 SEK/day), so every
-# candidate is now refined: with v6.2.8's batched gradient a solve is ~7x
-# cheaper than when the two-solve cap was set, and the stress gate's
-# per-scenario budgets (v6.2.16) police the runtime cost. The candidates
-# number four, so this is the whole list.
-_MULTI_START_SOLVES = 4
+# Every candidate the seam is handed is refined; the refined count is derived
+# from the candidate list itself, not from a separate constant. A fixed cut
+# used to sit here (_MULTI_START_SOLVES = 4) and, per the comment R1-D0-02
+# then carried, "every candidate is now refined" -- an invariant a later fix
+# in the same class silently broke: #1295's warm start hands a FIFTH candidate
+# on every production cycle, and the cut discarded the worst-scoring
+# structural seed (R6 D0-02, #1378, measured at 80/80 cells). The extra
+# refinement is one short L-BFGS-B run of a lead that converges almost
+# immediately, and the stress gate's per-scenario budgets police the runtime,
+# exactly as they did for the 2->4 raise.
 
 # The low-energy bang-bang seed (R1-D0-01): the historical candidates all
 # anchored to the same TOTAL energy (the baseline's), and on
@@ -497,10 +497,11 @@ def _multi_start_minimize(
     at a schedule that random perturbation can beat, which is exactly what the
     two-zone case showed.
 
-    Rather than pay for a full solve from every candidate, the candidates are
-    first scored on the objective directly, which is cheap, and only the two
-    most promising are actually optimized. That keeps the cost at roughly two
-    solves while removing the dependence on a single lucky initial guess.
+    Rather than pay for a full solve from every candidate at full cost, the
+    candidates are first scored on the objective directly, which is cheap, and
+    every candidate is then refined (the fixed refinement cut was removed --
+    see the note beside the seed constants above). Scoring only ranks the
+    candidates; the cross-candidate minimum below is what ships.
 
     The one-entry memo (#288) shares scipy's last ``fun(x)`` with the batched
     jac's ``f0`` at the same ``x``. The judge measured that identity at 1.000
@@ -535,7 +536,7 @@ def _multi_start_minimize(
     best = None
     best_score = np.inf
     last_error: Exception | None = None
-    for solve_index, (_, guess) in enumerate(scored[:_MULTI_START_SOLVES]):
+    for solve_index, (_, guess) in enumerate(scored):
         if solve_index:
             # Timing only, between consecutive starts: each L-BFGS-B run is
             # Python-heavy and holds the GIL even from an executor thread,
@@ -3586,9 +3587,9 @@ class HeatPumpOptimizer:
                 dt,
                 p_max,
             )
-            # Extra seeds occupy two of `_MULTI_START_SOLVES` slots and can
-            # displace a cheaper unseeded basin. Run both arms; seeds may
-            # only win.
+            # Extra seeds can only add basins now that every candidate is
+            # refined (no refinement cut to displace them). Run both arms
+            # anyway; seeds may only win.
             result = _better_objective(solve(), solve(extras))
         return result
 
