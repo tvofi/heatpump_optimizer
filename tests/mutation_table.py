@@ -30,17 +30,22 @@ count rises above the baseline's.
 a run killed mid-mutant cannot leave a production file edited -- the failure mode
 an in-place `try/finally` still has, because a SIGKILL does not run `finally`.
 
-**The budget is a one-sided cap on the survivor FRACTION, and deliberately not
-the exact-count ratchet `tests/structure.py` and `tests/coverage_ratchet.py`
-use.** Those measure the whole tree deterministically, so an exact count is
-reproducible and "improved and not yet recorded" is a fair refusal. This does
-not: the pool is a seeded sample drawn from whichever files the diff put in
-scope, so two clean branches touching different modules draw different pools and
-score differently through no fault of either. An exact-count ratchet over that
-would go red at random, which is how a gate teaches seats to re-record it
-unread. So the cap is a rate, it only moves down, and the run prints every
-survivor by file, line and operator -- the table is the product, the cap only
-stops it rotting.
+**The budget carries two caps, for two different things.** The survivor
+FRACTION (`max_survivor_fraction`) stays a one-sided cap on the sampled run: the
+pool is a seeded sample drawn from whichever files the diff put in scope, so two
+clean branches touching different modules draw different pools and score
+differently through no fault of either, and an exact count over the sample would
+go red at random. Beside it sits the exact-count ratchet the sample could not
+carry: `unpinned_sites`, an exact count over a DETERMINISTIC inventory of every
+candidate site the six operators generate, which `tests/structure.py`'s ratchet
+could use only because it measures the whole tree. The inventory below is that
+whole tree, so an exact count over it is reproducible and "improved and not yet
+recorded" is a fair refusal. A site is unpinned until it carries a disposition
+-- a `killed_by` driver or a `survivor_triage` verdict -- and a diff that adds a
+site without one raises the count and is refused. The ratchet is what stops a
+guard from leaving the tree unaccounted for; recording the sampled run's kills
+into the ledger (`killed_by`) is the nightly burn-in's follow-up, not this
+enforcement.
 
 A survivor is not automatically a defect. An equivalent mutant cannot be killed
 by any test, and several of the twenty-five guards W5-G7 measured are worth
@@ -444,6 +449,131 @@ def triage_problems(triage: dict) -> list[str]:
     return out
 
 
+# ------------------------------------------------ deterministic inventory
+#
+# The fraction cap above is a sample: the seeded draw over `--per-file` and
+# `--max` reaches ~1% of the tree, so a guard the sample never draws cannot
+# fail the lane, and a cap parked at 1.0 cannot refuse anyway (the rate is a
+# fraction in [0, 1]). The inventory below enumerates EVERY candidate the six
+# operators generate, deterministically -- `candidates()` walks the AST in a
+# fixed order -- so an exact count over it is reproducible and comparable
+# between clean branches, which is the property `tests/structure.py`'s ratchet
+# has and the sampled pool could not. A site carries a disposition (`killed_by`
+# or `survivor_triage`) or it is unpinned; the ratchet refuses when the unpinned
+# count grows, and the completeness check refuses when the ledger disagrees
+# with the inventory in either direction.
+
+
+def inventory(files: list[Path] | None = None) -> list[dict]:
+    """Every candidate site the six operators generate, deterministically.
+
+    `candidates()` walks the AST breadth-first in a fixed order and `rglob`
+    sorts the files, so the list is stable across runs and across clean
+    branches. The sort key is the whole identity -- file, line, kind, then the
+    `old` text -- so unlike the seeded sample this is the whole tree and an
+    exact count over it is a fair ratchet.
+    """
+    files = files if files is not None else sorted(PRODUCTION.rglob("*.py"))
+    out: list[dict] = []
+    for path in files:
+        out.extend(candidates(path))
+    out.sort(key=lambda m: (m["file"], m["line"], m["kind"], m["old"]))
+    return out
+
+
+def dispositions(budgets: dict) -> dict[str, dict]:
+    """Every recorded disposition, merged from the two ledger maps.
+
+    `survivor_triage` holds verdicts (equivalent/gap); `killed_by` holds a
+    driver name. Both are keyed `file:line KIND` and pinned to the `old` text.
+    """
+    out: dict[str, dict] = {}
+    for key, entry in budgets.get("survivor_triage", {}).items():
+        out[key] = dict(entry)
+    for key, entry in budgets.get("killed_by", {}).items():
+        out[key] = dict(entry)
+    return out
+
+
+def disposition_matches(entry: object, site: dict) -> bool:
+    """True when a recorded disposition covers THIS exact site.
+
+    The key is `file:line KIND` and the pin is the exact `old` line text -- a
+    mark must not outlive the line it explains.
+    """
+    if not isinstance(entry, dict):
+        return False
+    if entry.get("old") != site["old"]:
+        return False
+    return (
+        entry.get("verdict") in TRIAGE_VERDICTS
+        or "killed_by" in entry
+    )
+
+
+def unpinned_sites(budgets: dict, sites: list[dict]) -> list[dict]:
+    """The candidate sites no recorded disposition covers."""
+    disp = dispositions(budgets)
+    return [s for s in sites
+            if not disposition_matches(disp.get(triage_key(s)), s)]
+
+
+def ratchet_refusal(budgets: dict, unpinned: list[dict]) -> int | None:
+    """The exact-count ratchet's verdict: 1 (refuse) or None (proceed).
+
+    `unpinned_sites` only moves down. A diff that adds a candidate site without
+    a disposition raises the count and is refused; a budget with no record yet
+    is not refused (there is nothing to ratchet against), and a count at or
+    below the record proceeds -- a count below is an improvement to record.
+    """
+    record = budgets.get("unpinned_sites")
+    if record is None:
+        return None
+    return 1 if len(unpinned) > record else None
+
+
+def completeness_problems(budgets: dict, sites: list[dict]) -> list[str]:
+    """Every way the ledger and the deterministic inventory disagree.
+
+    Two directions, plus the null control: a disposition whose key and `old`
+    pin no longer name a site the inventory generates (a mark outliving its
+    line, or the inventory having dropped a site), and an empty inventory,
+    which is RED rather than green-by-skipping. The forward direction -- a
+    site with no disposition -- is the ratchet's count, not a refusal here.
+    """
+    if not sites:
+        return ["0 candidate site(s) in scope -- an empty inventory is a "
+                "failed enumeration, not a passing one"]
+    out: list[str] = []
+    for key, entry in sorted(dispositions(budgets).items()):
+        old = entry.get("old") if isinstance(entry, dict) else None
+        if not any(triage_key(s) == key and s["old"] == old for s in sites):
+            out.append(f"{key}: disposition names no site the inventory "
+                       f"generates (old pin {old!r})")
+    return out
+
+
+def cap_problems(budgets: dict) -> list[str]:
+    """Every fraction cap that cannot refuse, one sentence each.
+
+    `rate = survivors/evaluated` is a fraction in [0, 1], so a cap of 1.0
+    makes `if rate > cap` unreachable: a run in which every mutant survives
+    still prints PASSED. A cap has to be saturable to be a gate.
+    """
+    out: list[str] = []
+    for scope, value in sorted(budgets.get("max_survivor_fraction", {}).items()):
+        try:
+            f = float(value)
+        except (TypeError, ValueError):
+            out.append(f"max_survivor_fraction[{scope}]={value!r} is not a "
+                       f"number")
+            continue
+        if f >= 1.0:
+            out.append(f"max_survivor_fraction[{scope}]={f} is unsatisfiable: "
+                       f"a survivor rate in [0, 1] can never exceed it")
+    return out
+
+
 # ------------------------------------------------------------------- runner
 
 class ScriptRun(NamedTuple):
@@ -638,6 +768,14 @@ def main() -> int:
     sys.stdout.reconfigure(line_buffering=True)
 
     budgets = json.loads(BUDGETS.read_text())
+    # A cap that cannot fail is not a gate (#1412). Refused before any
+    # baseline cost, symmetric to the triage check below.
+    cap_p = cap_problems(budgets)
+    if cap_p:
+        print("MUTATION TABLE REFUSED -- a cap that cannot fail:")
+        for p in cap_p:
+            print(f"    - {p}")
+        return 1
     cap = float(budgets["max_survivor_fraction"][args.scope])
     # The survivor triage (#1217): recorded equivalence marks are audit
     # measurements pinned to the line text they were made on. A malformed one
@@ -650,6 +788,39 @@ def main() -> int:
         for p in problems:
             print(f"    - {p}")
         return 1
+    # The deterministic inventory + completeness ledger (#1412). Source-only:
+    # no clone, no baseline, no solve, and it covers the WHOLE tree -- the
+    # 3791 sites the sampled pool never draws. It runs before the sample
+    # because the ratchet is over the whole tree, not over the diff's pool.
+    sites = inventory()
+    comp = completeness_problems(budgets, sites)
+    if comp:
+        print("MUTATION TABLE REFUSED -- the ledger disagrees with the "
+              "deterministic inventory:")
+        for p in comp:
+            print(f"    - {p}")
+        return 1
+    unpinned = unpinned_sites(budgets, sites)
+    record = budgets.get("unpinned_sites")
+    if ratchet_refusal(budgets, unpinned) == 1:
+        print(f"MUTATION TABLE REFUSED -- {len(unpinned)} unpinned site(s) "
+              f"against a recorded {record}. A new guard, clamp, removable "
+              f"return or doubled constant left the tree without a recorded "
+              f"disposition; record it under killed_by or survivor_triage and "
+              f"the count falls back.")
+        for s in sorted(unpinned, key=lambda m: (m["file"], m["line"]))[:20]:
+            print(f"    {triage_key(s)}: {s['old'].strip()[:72]}")
+        return 1
+    if record is None:
+        print(f"  {len(unpinned)} candidate site(s) in the deterministic "
+              f"inventory; no `unpinned_sites` recorded yet -- run --record "
+              f"to set the ratchet")
+    elif len(unpinned) < record:
+        print(f"  {len(unpinned)} unpinned site(s) < recorded {record} -- "
+              f"re-record with --record to ratchet the count down")
+    else:
+        print(f"  {len(unpinned)} unpinned site(s) of {len(sites)} candidate "
+              f"sites; the ledger agrees with the deterministic inventory")
     files, why = scope_files(args.scope, args.base)
     allow = [s for s in args.scripts.split(",") if s]
     closures = load_closures()
@@ -800,6 +971,9 @@ def main() -> int:
                   "deliberate, argued edit.")
             return 1
         budgets["max_survivor_fraction"][args.scope] = round(rate, 4)
+        # The ratchet only moves down too: the pre-pass above already refused
+        # growth, so `unpinned` is at or below the recorded count here.
+        budgets["unpinned_sites"] = len(unpinned)
         budgets["last_measured"][args.scope] = {
             # `survivors` is the fraction's numerator -- survivors no triage
             # has called equivalent -- and `equivalent` the part of this run

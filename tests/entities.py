@@ -20788,18 +20788,20 @@ R.check(
     "headroom for an exemption nobody argued for",
 )
 
-# The mutation cap is a FRACTION and deliberately not the exact-count ratchet
-# tests/structure.py and tests/coverage_ratchet.py use: the pool is a seeded
-# sample over whichever files a diff put in scope, so two clean branches
-# touching different modules draw different pools and an exact count would go
-# red at random. What can still be pinned is that it is a fraction at all, and
-# that whatever was last measured is inside the cap it was recorded against --
-# a cap below its own measurement is a gate that fails on the tree it was
-# written from.
+# The mutation budget carries two caps. The survivor FRACTION is a saturable
+# one-sided cap on the sampled run: the pool is a seeded sample over whichever
+# files a diff put in scope, so two clean branches touching different modules
+# draw different pools and an exact count over the SAMPLE would go red at
+# random. What can still be pinned is that it is a saturable fraction at all --
+# at 1.0 `rate > cap` is unreachable, so a run in which every mutant survives
+# still prints PASSED -- and that whatever was last measured sits inside the
+# cap it was recorded against. The exact-count ratchet (`unpinned_sites`) is
+# pinned below by driving the inventory functions, not by re-enumerating the
+# tree here.
 _MB = json.loads(Path("tests/mutation_budgets.json").read_text())
 _MB_BAD = [
     f"{_scope}={_v}" for _scope, _v in _MB["max_survivor_fraction"].items()
-    if not 0.0 <= _v <= 1.0
+    if not 0.0 <= _v < 1.0
 ]
 _MB_BAD += [
     f"{_scope}: {_m['survivors']}/{_m['evaluated']} over the recorded "
@@ -20813,7 +20815,7 @@ _MB_BAD += [
     > _MB["max_survivor_fraction"][_scope]
 ]
 R.check(
-    "both mutation caps are fractions, and each holds its own last measurement",
+    "both mutation caps are saturable fractions that hold their last measurement",
     not _MB_BAD and set(_MB["max_survivor_fraction"]) == {"changed", "full"},
     f"{_MB_BAD or 'in band'}; scopes recorded: "
     f"{sorted(_MB['max_survivor_fraction'])}",
@@ -20957,6 +20959,129 @@ R.check(
     "a `raise` alone under its `if` cannot become `pass` without an "
     "IndentationError -- the refusal is in candidates(), not in the runner",
 )
+
+# The deterministic inventory + completeness ledger + exact-count ratchet
+# (#1412). The class this closes: the sampled pool reached ~1% of the tree and
+# the fraction cap was parked at 1.0, so the gate could neither see a guard off
+# the sample nor refuse one it saw. The inventory is the whole tree,
+# deterministically; the ratchet refuses when the un-dispositioned count grows;
+# the completeness check refuses when the ledger disagrees with the inventory
+# in either direction, and refuses an empty inventory rather than passing it.
+_INV = getattr(_mut, "inventory", None)
+_UNPIN = getattr(_mut, "unpinned_sites", None)
+_COMP = getattr(_mut, "completeness_problems", None)
+_CAPP = getattr(_mut, "cap_problems", None)
+
+# cap_problems, driven, with the near-1.0 null control: a cap has to be
+# SATURABLE, so 1.0 is refused and 0.9999 is not.
+R.check(
+    "cap_problems refuses a cap that cannot fail, and passes a saturable one",
+    _CAPP is not None
+    and len(_CAPP({"max_survivor_fraction":
+                   {"changed": 1.0, "full": 1.0}})) == 2
+    and _CAPP({"max_survivor_fraction":
+               {"changed": 0.2, "full": 0.3}}) == []
+    and _CAPP({"max_survivor_fraction":
+               {"changed": 0.9999, "full": 0.9999}}) == [],
+    f"1.0/1.0 -> "
+    f"{len(_CAPP({'max_survivor_fraction': {'changed': 1.0, 'full': 1.0}})) if _CAPP else 'n/a'}"
+    f" problem(s); 0.2/0.3 and 0.9999/0.9999 -> none -- near-1.0 is saturable, "
+    f"only 1.0 is not",
+)
+
+# The inventory over the synthetic module: deterministic (two passes agree) and
+# the same candidate set the operator checks already drove.
+_MUT_INV = _INV([_MUT_FILE]) if _INV else []
+R.check(
+    "inventory() is deterministic and returns the full candidate set",
+    _INV is not None
+    and _INV([_MUT_FILE]) == _MUT_INV
+    and len(_MUT_INV) == len(_MUT_GOT)
+    and {m["kind"] for m in _MUT_INV} == {m["kind"] for m in _MUT_GOT},
+    f"inventory([sample]) -> {len(_MUT_INV)} site(s), twice identical "
+    f"{_INV([_MUT_FILE]) == _MUT_INV if _INV else 'n/a'}, vs {len(_MUT_GOT)} "
+    f"from candidates()",
+)
+
+# The ledger + ratchet, driven over the synthetic candidates. A site is
+# unpinned until it carries a disposition (a verdict or a killed_by driver),
+# keyed `file:line KIND` and pinned to the `old` text.
+_MUT_FIRST = _MUT_GOT[0]
+_MUT_KEY = _mut.triage_key(_MUT_FIRST)
+_MUT_EMPTY = {"survivor_triage": {}, "killed_by": {}}
+_MUT_DISP = {"survivor_triage": {
+    _MUT_KEY: {"verdict": "equivalent", "old": _MUT_FIRST["old"],
+               "reason": "synthetic"},
+}, "killed_by": {}}
+R.check(
+    "unpinned_sites counts a site unpinned until it carries a disposition",
+    _UNPIN is not None
+    and len(_UNPIN(_MUT_EMPTY, _MUT_GOT)) == len(_MUT_GOT)
+    and len(_UNPIN(_MUT_DISP, _MUT_GOT)) == len(_MUT_GOT) - 1,
+    f"empty ledger -> {len(_UNPIN(_MUT_EMPTY, _MUT_GOT)) if _UNPIN else 'n/a'}"
+    f"/{len(_MUT_GOT)}; one disposition -> "
+    f"{len(_UNPIN(_MUT_DISP, _MUT_GOT)) if _UNPIN else 'n/a'}/{len(_MUT_GOT)}",
+)
+
+# The ratchet verdict, driven: growth is refused, a bootstrap (no record) and
+# an at-or-below record are not.
+_REFUSE = getattr(_mut, "ratchet_refusal", None)
+R.check(
+    "ratchet_refusal refuses growth and nothing else",
+    _REFUSE is not None
+    and _REFUSE({}, _MUT_GOT) is None
+    and _REFUSE({"unpinned_sites": 0}, _MUT_GOT) == 1
+    and _REFUSE({"unpinned_sites": len(_MUT_GOT)}, _MUT_GOT) is None
+    and _REFUSE({"unpinned_sites": len(_MUT_GOT) + 5}, _MUT_GOT) is None,
+    f"bootstrap -> {_REFUSE({}, _MUT_GOT) if _REFUSE else 'n/a'}; "
+    f"record 0 -> {_REFUSE({'unpinned_sites': 0}, _MUT_GOT) if _REFUSE else 'n/a'}"
+    f"; at/above record -> None",
+)
+
+# The completeness check, both directions, plus the empty-inventory null
+# control. A stale mark (a disposition whose key+old no longer names a site)
+# and an empty inventory are each REFUSED; a consistent ledger passes.
+_MUT_STALE = {"survivor_triage": {}, "killed_by": {
+    "custom_components/heatpump_optimizer/gone.py:1 GUARD_OFF": {
+        "killed_by": "tests/gone.py", "old": "    if x:"},
+}}
+R.check(
+    "completeness_problems refuses a stale mark and an empty inventory",
+    _COMP is not None
+    and len(_COMP(_MUT_STALE, _MUT_GOT)) == 1
+    and len(_COMP(_MUT_EMPTY, [])) == 1
+    and _COMP(_MUT_EMPTY, _MUT_GOT) == [],
+    f"stale -> {len(_COMP(_MUT_STALE, _MUT_GOT)) if _COMP else 'n/a'}; "
+    f"empty inventory -> {len(_COMP(_MUT_EMPTY, [])) if _COMP else 'n/a'}; "
+    f"consistent -> {_COMP(_MUT_EMPTY, _MUT_GOT) if _COMP else 'n/a'}",
+)
+
+# The budget carries the ratchet record: a non-negative integer, not a
+# fraction the way max_survivor_fraction is.
+_MB_UNPIN = _MB.get("unpinned_sites")
+R.check(
+    "the mutation budget records an unpinned-site ratchet count",
+    isinstance(_MB_UNPIN, int) and not isinstance(_MB_UNPIN, bool)
+    and _MB_UNPIN >= 0,
+    f"unpinned_sites={_MB_UNPIN!r} -- the exact count the deterministic "
+    f"inventory ratchets against",
+)
+
+# The pre-pass is wired into the driver's main flow: defined-but-never-called
+# is the silent-green shape this repository keeps finding.
+_MUT_BODY = pathlib.Path(_mut.__file__).read_text()
+R.check(
+    "the ledger pre-pass runs in the driver before the sampled pool (#1412)",
+    "inventory()" in _MUT_BODY
+    and "completeness_problems(budgets, sites)" in _MUT_BODY
+    and "unpinned_sites(budgets, sites)" in _MUT_BODY
+    and "cap_problems(budgets)" in _MUT_BODY
+    and "ratchet_refusal(budgets, unpinned)" in _MUT_BODY,
+    "the deterministic inventory, the completeness check, the unpinned count, "
+    "the cap refusal and the ratchet verdict must all run before the sampled "
+    "pool, or the ratchet is defined and never enforced",
+)
+
 _mut_shutil.rmtree(_MUT_DIR, ignore_errors=True)
 
 # Scope: a mutant is driven only by scripts whose MEASURED closure contains
