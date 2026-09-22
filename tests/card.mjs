@@ -1698,6 +1698,19 @@ check("the hand-scheduled reason has a label",
   check("and the mouse arm is not handed that EXTRA",
     !floored(fineCss, ".viewctl button", COARSE_FLOOR) && !floored(fineCss, ".chip", COARSE_FLOOR),
     "the 44 px coarse floor leaked into the every-pointer arm");
+  // R6-D4-01 (#1388): the headline score pill is a control (role="button",
+  // tabindex="0", a click handler) but the R5-D4-02 padding rule alone
+  // reaches 25 px under a fine pointer and never the 44 px coarse floor, so
+  // under touch it is the one control on the surface below the floor. It
+  // must sit in the same selector list, floored at the pointer in force, in
+  // BOTH arms.
+  check("under touch, the score pill joins the coarse floor (#1388)",
+    floored(coarseCss, ".hl-stat.hl-score", COARSE_FLOOR),
+    "the score pill never joined the 44 px coarse floor the other controls share");
+  check("and under a mouse it still carries the every-pointer 24 px floor",
+    floored(fineCss, ".hl-stat.hl-score", FLOOR) &&
+    !floored(fineCss, ".hl-stat.hl-score", COARSE_FLOOR),
+    "the score pill's floor must be the every-pointer 24 px, not the coarse 44 px");
 }
 
 // ---------------------------------------------------------------------------
@@ -6819,6 +6832,39 @@ const setupBox = (card, place) =>
   await flat.whatIf.run();
   check("a flat schedule is sent back flat",
     called && called.data.dhw_windows === "06:00-08:30, 17:00-22:00", called && called.data.dhw_windows);
+}
+
+// --- #1416: the window day selector offers specific weekdays -----------------
+// The backend ships per-weekday keys (`dhw_windows_mon..sun`) and the card's
+// own grammar already reads and writes a single day as its day token ("Mo"),
+// but the selector offered only the three named sets, so a Monday-only window
+// could only be reached by typing it in the options flow.
+{
+  const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  st[DEFAULT_DHW].attributes.dhw_windows_spec = "Mo 05:30-07:00, Fr 17:00-19:00";
+  const wd = build(st, { what_if: true });
+  wd._hass = mkHass(wd._hass.states);
+  wd._onCardClick({});
+  const dump = collect(wd.shadowRoot).join("\n");
+  check("a single-day window pre-fills its own day token",
+    wd.whatIf.draft().dhwWindows.length === 2 &&
+    wd.whatIf.draft().dhwWindows[0].days === "Mo" &&
+    wd.whatIf.draft().dhwWindows[1].days === "Fr",
+    JSON.stringify(wd.whatIf.draft().dhwWindows));
+  check("the selector offers Monday through Sunday, the day token selected",
+    /<option value="Mo" selected>Monday<\/option>/.test(dump) &&
+    /<option value="Fr" selected>Friday<\/option>/.test(dump) &&
+    /<option value="Su">Sunday<\/option>/.test(dump),
+    "expected the seven weekday options, each keyed by its day token");
+  // Selecting a weekday and simulating sends that day's token back.
+  const sel = wd.shadowRoot.querySelectorAll(".wi-win-days")[0];
+  sel.value = "Tu";
+  wd.whatIf.onSlotEdit({ stopPropagation(){} });
+  called = null;
+  await wd.whatIf.run();
+  check("a window switched to a weekday keeps that day's token",
+    called && called.data.dhw_windows === "Tu 05:30-07:00, Fr 17:00-19:00",
+    called && called.data.dhw_windows);
 }
 
 
