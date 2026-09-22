@@ -25,14 +25,14 @@ EXPECTED at head 6.6.8 + this branch, and the reason each check in
 ``tests/optimality.py`` is written the way it is:
 
   prefix   the 0.85 seed is NOT load-bearing on tz=1,dhw=1,summer_negative,
-           winter_cold: prod 19.4353 against a faithful arm's 19.4353
+           winter_cold: prod 19.5535 against a faithful arm's 19.5535
            (+0.0000%), while the arm that empties the repair call prints
-           19.6801 (+1.2440%) -- a gap that is the arm's structural failure,
+           19.8017 (+1.2537%) -- a gap that is the arm's structural failure,
            not the seed.  Across the seed's mover cells the faithful arm sits
-           within 0.0999%, inside the band the suite calls noise, so no
+           within 0.0668%, inside the band the suite calls noise, so no
            behavioural check pins the seed itself.
   seed     same conclusion at the shipped cut: the seed's own effect is
-           <= 0.0999% on every probed cell.
+           <= 0.0668% on every probed cell.
   cutnull  a cut-null cell must be inert: the seeds-kept/cut-4 arm IS the
            production plan there, so the arm is not universally worse.
            tz=0,dhw=0,winter_extreme,winter_cold reads 80.7406 both ways and

@@ -430,10 +430,10 @@ def _kb_obj(tz, pp, wp, dhw, arm=None):
 # a faithful pre-fix arm -- the seed dropped, the cut back at 4, a
 # single-candidate repair call left intact. An arm that drops the last element
 # of EVERY call instead empties that one-candidate call and the arm fails
-# structurally; against it this cell printed 19.4353 with the seed and 19.6801
-# without, a 1.2440% "gain" that was the arm's own failure -- the faithful arm
-# reaches 19.4353 too, exactly the production plan. Against the faithful arm
-# every seed cell moves by 0.0999% or less, inside the band this suite calls
+# structurally; against it this cell printed 19.5535 with the seed and 19.8017
+# without, a 1.2537% "gain" that was the arm's own failure -- the faithful arm
+# reaches 19.5535 too, exactly the production plan. Against the faithful arm
+# every seed cell moves by 0.0668% or less, inside the band this suite calls
 # noise, so a check on the seed alone would be a check on a float. What ships
 # is the pair; the cut carries it.
 _j14c = _kb_obj(True, "summer_negative", "shoulder", True)
@@ -467,7 +467,7 @@ R.check(
 )
 
 # (b) both appended seeds, pinned structurally. At this head their own cells
-# move by 0.0999% or less, inside the band, so presence is what is
+# move by 0.0668% or less, inside the band, so presence is what is
 # BLAS-independent: one candidate more than the pre-fix four on each of the two
 # default paths, which is what the seam is handed. (tests/features.py pins the
 # DHW path's count a second time, off ``_solve_space`` itself.)

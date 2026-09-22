@@ -21,9 +21,11 @@ tree, so there is no M1 here.
 EXPECTED reddens, from `mutation_proof.sh`:
   M2p exactly the #1294 cut check, because production and the seeds-kept/cut-4
       arm become the same configuration.
-  M2s no check: the seeds are pinned structurally (the both-paths candidate
-      count) and by no behavioural check, because their own cells move inside
-      the noise band -- see the note under the cut check in tests/optimality.py.
+  M2s 2 red: the both-paths candidate count, and the cut check -- with the
+      appended candidate gone, production and the seeds-kept/cut-4 arm become
+      the same configuration.  The seeds have no behavioural check of their
+      own because their cells move inside the noise band; see the note under
+      the cut check in tests/optimality.py.
   M2  the #1294 cut check and the both-paths seed-count check.
   M3  exactly the #1295 warm check.
 No check outside its own finding's name moves under any of the four.

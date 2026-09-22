@@ -24,8 +24,8 @@ EXPECTED at head 6.6.8 + this branch, and where the judge% column comes from:
   ones re-measured.
 
   Measured here, the regressions have narrowed but not closed: worst
-  +0.6894% (1.1091 against 1.1168) on that same cell, every other cell
-  +0.3917% or less, and six of the twelve exactly +0.0000%.  That is
+  +1.3979% (1.1091 against 1.1248) on that same cell, every other cell
+  +0.5050% or less, and three of the twelve exactly +0.0000%.  That is
   the measurement behind the #1294 check's cell and its 0.10% bound, and the
   reason the cut ships with the seeds instead of the seeds alone.
 
