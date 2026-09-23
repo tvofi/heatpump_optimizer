@@ -23,6 +23,26 @@ on:
     # `edited` is the point of this workflow being separate from tests.yml: a
     # body edit must re-check the contract without re-running the
     # forty-minute gate. `closed` left with the ledger PR's #201 splice.
+    #
+    # AND ONLY THE CONTRACT RE-RUNS (D13-04, #1474). An `edited` event starts
+    # ONE run of this file, and every job whose `if:` passes is dispatched in
+    # it, so the guard on each job below is what makes this comment true. It was
+    # not: keyed on the workflow-run id in each check run's `details_url`
+    # (`tools/audit/round7/D13/gov_cost.py`), the heads of the closed window
+    # `v6.6.9..f9d6f78` carried 46 dispatches over 31 heads -- 15 extra, at 145 s
+    # of jobs each, of which `pr-contract` is 22 s and `env-matrix`, a matrix
+    # that cannot read a pull request's body, is 73 s. The guard is
+    # `github.event_name != 'pull_request'` OR the action, not the action alone:
+    # on a push, a schedule and a dispatch the payload carries no `action`, and
+    # this file must not depend on how GitHub coerces a property that is not
+    # there.
+    #
+    # A SKIPPED REQUIRED CHECK SATISFIES THE RULESET, which is what makes the
+    # guard free at the merge boundary: `policy-docs`, `env-matrix` and
+    # `wave-script` are required contexts, and the probe recorded in
+    # docs/HANDOVER.md (a required `closures` SKIPPED beside `policy-docs`
+    # SUCCESS at `MERGEABLE / UNSTABLE`, with the never-reports context as the
+    # negative control) is why a skip is not a blocked merge.
     types: [opened, edited, synchronize, reopened]
   # 07:00 UTC on Mondays. The `record` job below is the only one that needs a
   # clock: a merge with no disposition is not detectable from any one pull
@@ -39,6 +59,11 @@ permissions:
 
 jobs:
   policy-docs:
+    # A body edit cannot change the corpus or the pull request's data, so this
+    # job does not run for one. See the `on:` block's `edited` note (D13-04,
+    # #1474) for the guard's wording and for why a skipped required context
+    # costs the merge boundary nothing.
+    if: github.event_name != 'pull_request' || github.event.action != 'edited'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -204,6 +229,10 @@ jobs:
   # single run can establish, so it is a separate job rather than another step
   # above: `policy-docs` proves the checks are right, this proves they ran.
   env-matrix:
+    # A body edit cannot change an environment shape. See the `on:` block's
+    # `edited` note (D13-04, #1474); this is the largest item the trigger
+    # re-ran for one, at 73 s against the contract's 22 s.
+    if: github.event_name != 'pull_request' || github.event.action != 'edited'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -239,6 +268,9 @@ jobs:
         run: node .claude/workflows/policy_lint_envmatrix.mjs "$PWD" "${RUNNER_TEMP}/envmatrix" "$(git rev-parse HEAD)"
 
   wave-script:
+    # A body edit cannot change `.claude/workflows/`. See the `on:` block's
+    # `edited` note (D13-04, #1474).
+    if: github.event_name != 'pull_request' || github.event.action != 'edited'
     # The control flow a wave resume rests on. `.claude/` is INERT in
     # tests/closure.py -- and closure.py FAILS if an INERT path appears in a
     # recorded closure -- so the gate structurally cannot select this. It ran by
@@ -585,35 +617,6 @@ jobs:
             --since "${{ steps.window.outputs.since }}" \
             2>&1 | tee "$RUNNER_TEMP/record.txt"
 
-      # The reported surface, on the `delivery-status` reporter shape: the
-      # verdict, the refusal itself, and a footer saying what the verdict does
-      # and does not gate. Written to the run's summary page, which is the
-      # first thing a seat opening this run reads, and echoed to this log so
-      # it is greppable without the UI. Both arms report, the way
-      # `delivery_status.py` prints OK and not only OVERDUE.
-      - name: Report the refusal on the run summary
-        if: always()
-        env:
-          REFUSAL_OUTCOME: ${{ steps.refusal.outcome }}
-        run: |
-          if [ "$REFUSAL_OUTCOME" = "failure" ]; then
-            VERDICT="REFUSED -- merged pull request(s) with no disposition"
-          else
-            VERDICT="clean -- every merged pull request in the window has a disposition"
-          fi
-          {
-            echo "### record: $VERDICT"
-            echo
-            echo '```text'
-            cat "$RUNNER_TEMP/record.txt" 2>/dev/null \
-              || echo "(the disposition check produced no output)"
-            echo '```'
-            echo
-            echo "REFUSED fails this job (D11-04): a rowless merge is the batch interval"
-            echo "the record protocol promises, cleared by the next \`record:\` beat writing"
-            echo "the row. The job is not a required context and must not become one."
-          } | tee /dev/stderr >> "$GITHUB_STEP_SUMMARY"
-
       # Reporting only, and deliberately unable to fail the job: a histogram and
       # a sunset list are inputs to a judgement a seat makes, not a gate. Both
       # print what they would open; since #959 (option B) the histogram's
@@ -623,6 +626,7 @@ jobs:
       # above already owns this job's deliberate failures. `tee` captures the
       # histogram for that step without changing this step's exit behaviour.
       - name: Friction and verdict histograms
+        id: histogram
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -638,7 +642,21 @@ jobs:
       # refusals from rotting the way an unexecuted enumerator's does -- driven
       # offline, no network, the same pattern as `gh_comment.py self-test` in
       # `policy-docs`.
+      #
+      # BOTH FILER STEPS CARRY `always()` (D11-01, #1467). The refusal above is
+      # red on the protocol's steady state -- a merge is rowless for the whole
+      # batch interval, cleared by the next beat -- and GitHub skips a step with
+      # no `if:` once an earlier step in the job has failed. So the trigger ran
+      # and the actor did not: the filer ran in the runs the refusal did not
+      # fail and in none of the runs it did, which is the pair
+      # `tools/audit/round7-fix/governance/skipped_step_seams.py` measures --
+      # these two steps returned as skipped, beside the two steps of this job
+      # that carry `always()` and are not. A filing lane whose trigger the
+      # histogram produces and whose actor never runs is #959 option B
+      # producing nothing, silently.
       - name: Show the friction filer refusing its own fixtures
+        id: filer_selftest
+        if: always()
         run: node .claude/workflows/friction_issues.mjs --self-test
 
       # The trigger text is the histogram's own line: this step parses the
@@ -651,15 +669,92 @@ jobs:
       # issue's body carries the histogram line, the window and the derivation
       # command, and states that a seat -- never the bot -- disposes it.
       - name: File the recurring-friction issues the histogram named
+        id: filer
+        if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node .claude/workflows/friction_issues.mjs --stats-file "$RUNNER_TEMP/stats.txt" --since "${{ steps.window.outputs.since }}"
 
       - name: Rules that have outlived their reason
+        id: sunset
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node .claude/workflows/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" || true
+
+      # THE REPORT, AND IT COMES LAST. It reports on the steps above it, so it
+      # has to be after them -- the ordering `tests/entities.py` pins for the
+      # autofix report steps, where a report that preempted its own subject
+      # threw away what it existed to report. It is `always()`, because the
+      # refusal above it is red on the protocol's steady state.
+      #
+      # The reported surface, on the `delivery-status` reporter shape: the
+      # verdict, the refusal itself, the steps that did not run, and a footer
+      # saying what the verdict does and does not gate. Written to the run's
+      # summary page, which is the first thing a seat opening this run reads,
+      # and echoed to this log so it is greppable without the UI. All arms
+      # report, the way `delivery_status.py` prints OK and not only OVERDUE.
+      #
+      # THE HEADLINE IS NOT THE EXIT CODE ALONE (D13-03, #1473). `--record`
+      # exits 0 when `/commits/<sha>/pulls` will not answer: the subject-mode
+      # fallback enumerates nothing, `enumSkipLine` prints its UNCHECKED marker
+      # into this step's captured output, and the run then reported the window
+      # it could not read CLEANER than a window it read and found a violation --
+      # 0 against 1. So `clean` now needs an explicit `success` AND an
+      # enumerated window; a marker present, or a refusal step that did not run
+      # at all, reads UNCHECKED. `enumSkipLine` covers a dead FETCH; the
+      # `refuse since-ref` arm is the sibling marker for a `--since` that names
+      # no revision, and it exits non-zero, so it arrives here as REFUSED.
+      - name: Report the refusal on the run summary
+        if: always()
+        env:
+          REFUSAL_OUTCOME: ${{ steps.refusal.outcome }}
+          WINDOW_OUTCOME: ${{ steps.window.outcome }}
+          HISTOGRAM_OUTCOME: ${{ steps.histogram.outcome }}
+          SELFTEST_OUTCOME: ${{ steps.filer_selftest.outcome }}
+          FILER_OUTCOME: ${{ steps.filer.outcome }}
+          SUNSET_OUTCOME: ${{ steps.sunset.outcome }}
+        run: |
+          RECORD_TXT="$RUNNER_TEMP/record.txt"
+          if [ "$REFUSAL_OUTCOME" = "failure" ]; then
+            VERDICT="REFUSED -- merged pull request(s) with no disposition"
+          elif [ "$REFUSAL_OUTCOME" != "success" ]; then
+            VERDICT="UNCHECKED -- the disposition check did not run (${REFUSAL_OUTCOME:-no outcome})"
+          elif grep -q 'merge-enumeration' "$RECORD_TXT"; then
+            VERDICT="UNCHECKED -- the window's merged pull requests could not be enumerated"
+          else
+            VERDICT="clean -- every merged pull request in the window has a disposition"
+          fi
+          # EVERY STEP THAT DID NOT SUCCEED, BY NAME, over the run's own record
+          # of them. This is the half of D11-01 that outlives the `always()`
+          # above: a step added to this job that the refusal's failure can skip
+          # says so on the summary instead of leaving the run looking complete.
+          DID_NOT_RUN=""
+          for s in \
+            "Choose the window=$WINDOW_OUTCOME" \
+            "Friction and verdict histograms=$HISTOGRAM_OUTCOME" \
+            "Show the friction filer refusing its own fixtures=$SELFTEST_OUTCOME" \
+            "File the recurring-friction issues the histogram named=$FILER_OUTCOME" \
+            "Rules that have outlived their reason=$SUNSET_OUTCOME"; do
+            case "$s" in
+              *"=success") ;;
+              *) DID_NOT_RUN="${DID_NOT_RUN}${DID_NOT_RUN:+, }${s%%=*} (${s##*=})" ;;
+            esac
+          done
+          {
+            echo "### record: $VERDICT"
+            echo
+            echo "steps this job did not run: ${DID_NOT_RUN:-none}"
+            echo
+            echo '```text'
+            cat "$RECORD_TXT" 2>/dev/null \
+              || echo "(the disposition check produced no output)"
+            echo '```'
+            echo
+            echo "REFUSED fails this job (D11-04): a rowless merge is the batch interval"
+            echo "the record protocol promises, cleared by the next \`record:\` beat writing"
+            echo "the row. The job is not a required context and must not become one."
+          } | tee /dev/stderr >> "$GITHUB_STEP_SUMMARY"
 
   # `main`'s CURRENT `record` conclusion, reported as a red check on every pull
   # request. #713's construction (`nightly-status`, `tests/nightly_status.py`)
@@ -707,7 +802,10 @@ jobs:
   # `tests/entities.py` pins that absence, the way it pins `nightly_status.py`
   # taking no `--run`.
   delivery-status:
-    if: github.event_name == 'pull_request'
+    # A body edit cannot change the window this reads, and it is not a required
+    # context, so an `edited` dispatch skips it. See the `on:` block's `edited`
+    # note (D13-04, #1474).
+    if: github.event_name == 'pull_request' && github.event.action != 'edited'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

@@ -20255,6 +20255,51 @@ R.check(
     "its mechanism fails, because a filing lane that fails green stopped "
     "filing; the histogram and sunset printings never redden it",
 )
+# --- D11-01 (#1467) / D13-03 (#1473): the record job's tail is REACHED, and its
+# summary says what it could not measure. GitHub skips a step with no `if:`
+# once an earlier step of the same job has failed, and the disposition refusal
+# above fails on a merge that has no row -- the protocol's steady state, since
+# the row is promised in a batch. So an unguarded step after it never runs, and
+# the pair that separates the guard from the failure is measured by
+# `tools/audit/round7-fix/governance/skipped_step_seams.py`: the filer steps are
+# returned as skipped and the two `always()` steps of the same job are not.
+# Derived, not listed: every step after the refusal, and the report step's own
+# reader of their outcomes.
+_REC_TAIL = _REC_JOB.split(
+    "- name: Every merged pull request has a disposition")[1].split(
+        "\n      - name: ")[1:]
+_REC_UNGUARDED = [s.splitlines()[0] for s in _REC_TAIL if "if: always()" not in s]
+R.check(
+    "no step of the record job is skipped by the disposition refusal's failure",
+    not _REC_UNGUARDED,
+    f"steps after the refusal with no `if: always()`: {_REC_UNGUARDED}. The "
+    "refusal is red whenever a merge is still inside the batch interval it "
+    "promises, so an unguarded step below it is an actor that never acts "
+    "while its trigger runs (#1467, D11-01)",
+)
+_REC_REPORT = next(
+    (s for s in _REC_TAIL if s.startswith("Report the refusal")), "")
+_REC_NAMED = set(_re.findall(r"steps\.(\w+)\.outcome", _REC_REPORT))
+_REC_IDS = set(_re.findall(r"^        id: (\w+)$", _REC_JOB, _re.M))
+R.check(
+    "the record job's summary names every step of its own record",
+    _REC_IDS and _REC_NAMED == _REC_IDS,
+    f"step ids={sorted(_REC_IDS)}; outcomes the report reads={sorted(_REC_NAMED)} "
+    "-- a step added to this job must be named on the summary, because a step "
+    "the refusal's failure can skip is otherwise invisible to whoever opens "
+    "the run (#1467)",
+)
+R.check(
+    "the record summary's verdict is not the exit code alone",
+    "merge-enumeration" in _REC_REPORT and "UNCHECKED" in _REC_REPORT
+    and '!= "success"' in _REC_REPORT,
+    "`--record` exits 0 when `/commits/<sha>/pulls` will not answer, so a "
+    "window that could not be enumerated was reported `clean` -- cleaner than "
+    "a window read and found in violation -- beside the same run's "
+    "`enumSkipLine` UNCHECKED marker; and a refusal step that never ran read "
+    "`clean` too. The marker, the word and the did-not-run arm are the three "
+    "strings that carry the three answers (#1473, D13-03)",
+)
 # D13-04 (#1241): the governance-cost instrument's GOV set is measured against
 # the workflow files, never remembered. It named `record-status` for a window
 # after that job had been renamed -- a job that exists nowhere costs nothing
@@ -20308,6 +20353,37 @@ R.check(
     f"GOV={sorted(_GOV_MOD.GOV)} -- `fast` is the gate; `briefs` (tests.yml) "
     "is the one governance job that lives outside governance.yml, named by "
     "the instrument's own recorded rule",
+)
+# --- D13-04 (#1474): an edited body dispatches the contract job, and only it.
+# A `pull_request` event starts ONE run of governance.yml and every job whose
+# `if:` passes runs in it, so a job a body edit cannot affect is a check
+# re-run for nothing: keyed on the workflow-run id in each check run's
+# `details_url`, the 31 heads of the closed window `v6.6.9..f9d6f78` carried 46
+# dispatches -- 15 extra over the one per head -- executing five jobs at 145 s
+# each, `pr-contract` being 22 s of that and `env-matrix`, which cannot read a
+# pull request's body, 73 s. Derived over the jobs the file defines, so the
+# next job added without a guard lands in the list.
+def _job_guard(text: str, name: str) -> str:
+    m = _re.search(r"^    if: (.+)$", _workflow_job(text, name), _re.M)
+    return m.group(1) if m else ""
+
+
+def _dispatched_on_body_edit(name: str) -> bool:
+    g = _job_guard(_DS_GOV, name)
+    return ("github.event_name != 'pull_request'" not in g
+            and "github.event_name == 'push'" not in g
+            and "github.event.action != 'edited'" not in g)
+
+
+_BODY_EDIT_JOBS = [j for j in sorted(_GOV_JOBS) if _dispatched_on_body_edit(j)]
+R.check(
+    "an edited body dispatches the contract job, and only it",
+    _BODY_EDIT_JOBS == ["pr-contract"],
+    f"jobs a body edit dispatches: {_BODY_EDIT_JOBS} -- every other job here "
+    "is one the edit re-ran at 145 s of jobs for a 22 s contract, which is "
+    "what the `edited` type exists to avoid (D13-04, #1474). A skipped "
+    "required check satisfies the ruleset, so the guard costs the merge "
+    "boundary nothing",
 )
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string
