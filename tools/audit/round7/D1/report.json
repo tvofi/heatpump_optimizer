@@ -1,0 +1,146 @@
+{
+ "dimension": "D1",
+ "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+ "report_path": "tools/audit/round7/D1/REPORT.md",
+ "exposure": "",
+ "findings": [
+  {
+   "id": "D1-01",
+   "title": "What-if rate limiter is skipped on every failing return of async_simulate",
+   "severity": "medium",
+   "claim": "A what-if whose shadow solve raises returns without setting _last_simulation, so the rate limiter never engages and each further simulate_plan call launches another full solve: 5 calls start 5 solves where the success path starts 1.",
+   "mechanism": "HeatPumpOptimizerCoordinator.async_simulate (coordinator.py:10537) sets self._last_simulation = now only on the success return (coordinator.py:10751). The three other returns - {\"error\": str(err)} at coordinator.py:10700 after the shadow solve raises, invalid_windows, and wood_err - leave the slot empty. #783's WORKER_FALLBACK_CAP makes _await_optimize raise UpdateFailed on every solve once the process worker has failed four times running, so an install whose child interpreter cannot start re-solves on every dashboard slider drag, in the very process whose worker is already unusable.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py  (run from /Users/timmalmstrom/audit-r7-baseline)",
+    "harness_path": "tools/audit/round7/D1/guards.py",
+    "value": 5,
+    "unit": "shadow-solve submissions per 5 async_simulate calls",
+    "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+    "machine": "8-core Apple M1, 8GB, darwin 25.6.0, Python 3.11.5, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "Shared fan-out box, load1 6.46; the metric is a call count, not a timing, so contention does not move it.",
+    "tolerance": "exact",
+    "load1": 6.46,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:_await_process",
+   "perturbation": {
+    "change": "One-line production edit: insert `self._last_simulation = now` immediately before `return {\"error\": str(err), \"rate_limited\": False}` at coordinator.py:10700.",
+    "expected_direction": "down",
+    "observed_value": 1
+   },
+   "metric_definition": "Shadow-solve submissions, counted at the production _await_process seam, across 5 consecutive async_simulate calls with the clock frozen and the rate-limit slot left untouched.",
+   "phenomenon_property": "Every return path of a rate-limited entry point must consume the rate-limit slot, not only its success path.",
+   "seam_rule": "Enumerate the returns of coordinator.py:HeatPumpOptimizerCoordinator.async_simulate; every one that can follow a scheduled solve must set _last_simulation.",
+   "stop_rule_class": "bug",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py  (run from /Users/timmalmstrom/audit-r7-baseline)",
+    "value": 1,
+    "note": "The same five calls with the shadow solve succeeding (RESULT simulate_solves_after_5_successful_calls=1): the effect vanishes exactly where the solve succeeds, so the count is a property of the failing return path and not of the call loop."
+   },
+   "reproduction_steps": [
+    "cd /Users/timmalmstrom/audit-r7-baseline",
+    "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py",
+    "read RESULT simulate_solves_after_5_failing_calls=5 and RESULT simulate_solves_after_5_successful_calls=1"
+   ],
+   "proposed_fix_scope": "coordinator.py async_simulate: set self._last_simulation = now on every return that follows a scheduled solve (the error return at :10700 at minimum). Roughly one line plus its comment.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "expected_golden_drift": []
+  },
+  {
+   "id": "D1-02",
+   "title": "Stale-plan actuation gate covers the switch path but not the circulation-pump path",
+   "severity": "low",
+   "claim": "_plan_is_stale is consulted by _apply_action only; a stale plan still drives _async_drive_pumps, so 1 of the 2 actuating write paths in the same tick writes to the plant from a horizon the plan has been declared unfit to actuate.",
+   "mechanism": "_apply_action (coordinator.py:6560) returns early when _mode is AUTO/ECONOMY and _plan_is_stale(), and its docstring states the rule: the pump's own weather-compensated curve holds comfort instead. _async_drive_pumps (coordinator.py:2590) is called one statement later in _async_update_data with no staleness test; it derives idx from now - result.timestamps[0] and lets pump_schedule.plan_commands_heat clamp it to n-1, so an expired plan is read at its last step and the pumps keep being commanded from it. The direction is the safe one (curve_driven from the same stale _current_action forces the space pump ON), which is why this is low rather than high.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py  (run from /Users/timmalmstrom/audit-r7-baseline)",
+    "harness_path": "tools/audit/round7/D1/guards.py",
+    "value": 1,
+    "unit": "actuating write paths still writing when the plan is stale",
+    "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+    "machine": "8-core Apple M1, 8GB, darwin 25.6.0, Python 3.11.5, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "Shared fan-out box, load1 6.46; a call count under the frozen clock, immune to contention.",
+    "tolerance": "exact",
+    "load1": 6.46,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_drive_pumps (with _apply_action and _plan_is_stale)",
+   "perturbation": {
+    "change": "One-line production edit: insert `if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale(): return` at the top of _async_drive_pumps (coordinator.py:2590).",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Of the actuating write paths driven with _plan_is_stale() true, how many still reach a hass.services.async_call or _async_set_pump.",
+   "phenomenon_property": "A guard that withdraws actuation authority from an expired plan must cover every write path in the same tick, not one of them.",
+   "seam_rule": "Enumerate the write paths _async_update_data drives after the solve (the statement list following `boost.apply(self)`, coordinator.py:4479); each must consult _plan_is_stale before it commands the plant.",
+   "stop_rule_class": "hygiene",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py  (run from /Users/timmalmstrom/audit-r7-baseline)",
+    "value": 2,
+    "note": "The same paths with a fresh plan: fresh_paths_detail={'heat_pump_switch': 1, 'space_pump': 2}, i.e. every path writes when the plan is current -- so the count is a property of the stale gate, not of the drive loop."
+   },
+   "reproduction_steps": [
+    "cd /Users/timmalmstrom/audit-r7-baseline",
+    "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py",
+    "read RESULT actuating_paths_stale_gated=1, actuating_paths_still_writing_when_stale=1 and RESULT stale_paths_detail={'space_pump': 2}"
+   ],
+   "proposed_fix_scope": "coordinator.py _async_drive_pumps: consult _plan_is_stale (or have _async_update_data skip the pump drive on the same early-return branch _apply_action uses). One guard line.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "expected_golden_drift": []
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Real-loop lifecycle: unloading mid-solve leaves no live task holding the torn-down coordinator, no store written after async_shutdown, no state listener and no tracked background task.",
+   "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/_explore_lifecycle.py",
+   "value": "mid_solve=True -> escaped=CancelledError task_done=True live_tasks=1 holding_coord=0 saves_after_shutdown={} state_listeners=0 bg=0 (and the same with mid_solve=False)"
+  },
+  {
+   "claim": "Store corruption by type swap: no mutant of any of the 12 persisted payloads makes its real loader raise.",
+   "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/store_types.py --mutants 240",
+   "value": "RESULT raising_pairs=0 count over RESULT mutant_pairs=626 count, stores_driven=12, stores_missing=0"
+  },
+  {
+   "claim": "Every config key read through a real InputReader has an age limit in const.INPUT_MAX_AGE_MINUTES, except the one read UNBOUNDED by design.",
+   "command": "AST enumeration of `.read|.read_state|.read_bool|.read_power_kw` call keys across custom_components/heatpump_optimizer, compared against const.INPUT_MAX_AGE_MINUTES",
+   "value": "29 call sites, 27 distinct keys, 1 without a limit (CONF_DHW_DISINFECTION_SWITCH_ENTITY, const.py:833 documents it as UNBOUNDED), 0 missing by oversight"
+  },
+  {
+   "claim": "tests/finite_boundary.py is green at this baseline.",
+   "command": "PYTHONPATH=tests/hastub python3 tests/finite_boundary.py",
+   "value": "ALL 25 PASSED; RESULT loader_escape_total=0, model_poison_total=0, published_poison_total=0, stores_swept=12"
+  },
+  {
+   "claim": "tests/guard_pins.py is green at this baseline.",
+   "command": "PYTHONPATH=tests/hastub python3 tests/guard_pins.py",
+   "value": "ALL 6 PASSED"
+  },
+  {
+   "claim": "tests/dst_checks.py is green under its own documented environment.",
+   "command": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 tests/dst_checks.py",
+   "value": "ALL 51 PASSED (without HASTUB_TZ: 1 of 51, the file's own precondition check)"
+  },
+  {
+   "claim": "tests/features.py's single failure at this baseline is a gap of the export, not a defect: recorded_at resolves to 'unknown' because there is no .git.",
+   "command": "PYTHONPATH=tests/hastub python3 tests/features.py",
+   "value": "1 of 3099 FAILED: 'and the path that proceeds still stamps a resolvable recorded_at (#363) [recorded_at = \\'unknown\\']'; tests/structure.py:1191 returns the literal \"unknown\" when git merge-base cannot run"
+  },
+  {
+   "claim": "The two internal borrowers of async_simulate do not poison its cache and are not affected by D1-01's missing slot.",
+   "command": "read coordinator.py:_maybe_run_fuse_advisor (:7865) and _maybe_refresh_price_tile (:9997)",
+   "value": "both snapshot and restore (_last_simulation, _simulation_cache) in a finally; the fuse advisor additionally rejects a payload whose overrides.power_cap_kw != cap_kw; the tile rejects rate_limited; the card renders whatif.rate_limited (www/heatpump-optimizer-card.js:9041)"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round7/D1/guards.py",
+  "tools/audit/round7/D1/store_types.py",
+  "tools/audit/round7/D1/_explore_lifecycle.py",
+  "tools/audit/round7/D1/_explore_cycle.py"
+ ]
+}
