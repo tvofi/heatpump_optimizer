@@ -559,13 +559,28 @@ R.check(
 # fails: the claim is stale, and that is the "gap column moved to 0" signal a
 # future fix is expected to trip. The grid grows by appending cells (and, if
 # they cannot close, claims) at the round that first found them.
+#
+# The ladder is widened in the same way, and for the same reason: it is the
+# set of energy anchors production does NOT build, so a fraction becomes an
+# entry the round its absence is found. Round 7 D0-01 (#1447) found the
+# under-heat direction -- the optimum of the default TWO-ZONE winter cell
+# sits at 0.20x the baseline energy, below both of production's anchors
+# (0.35x and 1.0x), and the ladder's floor was 0.7. Both the cell and the two
+# sub-0.35 fractions therefore join here: 0.20 is the anchor the fix installs
+# (its removal must go red on this cell, which is the regression pin), and
+# 0.10 is the next anchor below it, so the ladder still asks whether a deeper
+# basin exists than the one production reaches. 0.10 was measured not to beat
+# 0.20 on that cell (the round-7 harness reports the ladder's winner as
+# 0.20), so it is a live challenger and not a claim.
 _CERT_CELLS = (
     (False, "winter_typical", "winter_cold"),  # the gate's own cell: null, gap 0
+    (True, "winter_typical", "winter_cold"),   # R7 D0-01: the under-heat cell
     (False, "summer_negative", "shoulder"),    # missed basin above the 1.0 anchor
     (False, "shoulder", "winter_cold"),        # stop-rule residue + missed basin
     (False, "winter_narrow", "shoulder"),      # missed basin
 )
-_CERT_LADDER = (0.7, 1.25, 1.5, 2.0, 2.5)   # energy fractions of the baseline
+#: Energy fractions of the baseline, low to high (R7 D0-01 added the two low).
+_CERT_LADDER = (0.1, 0.2, 0.7, 1.25, 1.5, 2.0, 2.5)
 _CERT_BAR = 0.001                           # 0.1 % of the shipped objective
 _CERT_CLAIMS = {
     "one|summer_negative|shoulder":
