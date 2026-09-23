@@ -1344,6 +1344,9 @@ class PredictiveInsightSensor(HeatPumpOptimizerSensorBase):
 
     # The forecast analysis's internal factors, not a plan quantity (#179).
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    # The per-hour usage profile is series-shaped, read by the card from the
+    # live coordinator; the recorder gains nothing from writing it each cycle.
+    _unrecorded_attributes = frozenset({"dhw_usage_profile"})
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
@@ -1823,6 +1826,12 @@ class _AccumulatingSensor(HeatPumpOptimizerSensorBase):
     _data_key: str = ""
     #: The ledger line this channel books under, for the month attribute.
     _ledger_line: str | None = None
+    # ``period`` and ``split_method`` are static documentation strings, byte-
+    # identical on all six accumulators. They stay visible in the UI on every
+    # accumulator, but the recorder writes them once per accumulating sensor
+    # per cycle for nothing — so every accumulator declares them unrecorded
+    # and exactly one (TotalCostSensor) keeps them in the recorder (#1462).
+    _unrecorded_attributes = frozenset({"period", "split_method"})
 
     @property
     def native_value(self) -> float | None:
@@ -1934,6 +1943,10 @@ class DHWCostSensor(_DHWEntityMixin, _AccumulatingCostSensor):
 
 class TotalCostSensor(_AccumulatingCostSensor):
     _data_key = "total_cost"
+    # The one accumulator that keeps ``period``/``split_method`` in the
+    # recorder, so the lifetime explanation is written once per cycle rather
+    # than once per accumulating sensor (#1462). See _AccumulatingSensor.
+    _unrecorded_attributes = frozenset()
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "total_cost", "cost_total_heating")
@@ -2119,6 +2132,10 @@ class ThermalBatterySensor(_MeasuredStoreMixin, HeatPumpOptimizerSensorBase):
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_device_class = SensorDeviceClass.BATTERY
     _attr_suggested_display_precision = 1
+    # The per-store component list is series-shaped, read by the card from
+    # the live coordinator; the recorder gains nothing from writing it each
+    # cycle.
+    _unrecorded_attributes = frozenset({"components"})
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
@@ -2358,13 +2375,18 @@ class PowerHeadroomSensor(HeatPumpOptimizerSensorBase):
         return data
 
 
-class DHWSetpointAdvisorSensor(HeatPumpOptimizerSensorBase):
+class DHWSetpointAdvisorSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
     """The cheapest hot-water setpoint that still covers the heavy days (#9).
 
     Read-only by design: it replays candidate setpoints against everything
     the integration has learned — the usage profile, the per-window draw
     quantiles, the tank's own cooling rate, the inlet — and reports what
     each would cost per day. Whether to act on it stays the user's call.
+
+    Wrapped in the DHW gate (#1461): it was the one hot-water sensor outside
+    ``_DHWEntityMixin``, so a no-DHW install shipped it enabled-by-default
+    while its ``available`` (which needs ``dhw_advisor.recommended_setpoint``)
+    was False forever.
     """
 
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -2376,6 +2398,9 @@ class DHWSetpointAdvisorSensor(HeatPumpOptimizerSensorBase):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     # The advisor sweeps whole-degree candidate setpoints.
     _attr_suggested_display_precision = 0
+    # The candidate sweep is series-shaped, read by the card from the live
+    # coordinator; the recorder gains nothing from writing it every cycle.
+    _unrecorded_attributes = frozenset({"candidates"})
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
@@ -2808,6 +2833,9 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 0
+    # The ranked slot list is series-shaped, read by the card from the live
+    # coordinator; the recorder gains nothing from writing it each cycle.
+    _unrecorded_attributes = frozenset({"gaps"})
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry) -> None:
         super().__init__(
