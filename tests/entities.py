@@ -20395,14 +20395,19 @@ R.check(
 # names both counts on their own line beside `STATS:`. Driven on the production
 # symbols rather than a count re-derived here, and the window is 67 so a
 # denominator carrying only the verdict-carrying population reads 64.
+# The verdict lines carry a full 40-hex head because the histogram classifies
+# with the wave's own `VERDICT_RE` since #1472 (D13-02): a sha-less
+# `Fix review: merge` is refused by both readers, so it would land in the
+# outside-grammar report instead of the population this check measures.
 _STATS_COVER = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
      "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const head = (i) => String(i).padStart(2, '0').repeat(20);"
      "const mk = (n, verdicts) => ({"
      "prs: Array.from({ length: n }, (_, i) => ({ pr: String(i + 1) })),"
      "fetched: new Map(Array.from({ length: n }, (_, i) => "
      "[String(i + 1), { body: 'x', comments: i < verdicts"
-     " ? [{ body: 'Fix review: merge' }] : [] }])) });"
+     " ? [{ body: 'Fix review: merge ' + head(i + 1) }] : [] }])) });"
      "const line = (n, v) => {"
      "const { prs, fetched } = mk(n, v);"
      "const h = m.statsHistogram(prs, fetched, ['blocked', 'merge']);"
@@ -20435,6 +20440,259 @@ R.check(
     f"coverage line={(_STATS_COVER.get('full') or '')[:240]!r} -- with every "
     "merge carrying a verdict the line must name the whole window, or the "
     "counts are not derived from the histogram",
+)
+# THE HISTOGRAM'S GRAMMAR IS THE WAVE'S OWN (#1472, D13-02). `cmdStats` prints
+# its table under a header claiming the grammar was READ from `web-fix-wave.js`,
+# and `statsHistogram` built a second one -- `^Fix review:\s*(blocked|merge)\b`,
+# case-insensitive, no head required -- so the two diverged on four axes, every
+# one one-directional: the histogram counted a line the wave's `VERDICT_RE`
+# refuses. The two arms of the one function disagreed with each other too, the
+# merge arm taking a sha-less line while the blocked arm sent its own to
+# `unclassified`. The property is the AGREEMENT, not the instances, so this
+# drives both production readers over a battery -- the histogram's classification
+# against the regex built from the wave script's own literal, the technique
+# `check-wave-script.mjs` uses for the same grammar -- and counts the shapes they
+# disagree on. The control is inside the battery: the in-grammar shapes must
+# still be counted by BOTH readers, and the refused ones must be reported by the
+# histogram rather than silently dropped, or "agrees" would be satisfied by a
+# reader that classifies nothing.
+_STATS_GRAMMAR = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import fs from 'node:fs';"
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const src = fs.readFileSync('.claude/workflows/web-fix-wave.js', 'utf8');"
+     "const key = 'const VERDICT_RE = ';"
+     "const start = src.indexOf(key) + key.length;"
+     "const end = src.indexOf('\\n)', start) + 2;"
+     "const wave = new Function('VERDICT_CLASSES', 'return ' + "
+     "src.slice(start, end))(['blocked', 'merge']);"
+     "const sha = (c) => c.repeat(40);"
+     "const SHAPES = ["
+     "'Fix review: merge ' + sha('a'),"
+     "'Fix review: blocked ' + sha('b') + ' mutation-vacuous: the mutant survived',"
+     "'Fix review: merge',"
+     "'Fix review: merge ' + sha('a').slice(0, 12),"
+     "'Fix review: MERGE ' + sha('a'),"
+     "'Fix review:merge ' + sha('a'),"
+     "'Fix review: merge ' + sha('a') + ' please land it',"
+     "'Fix review: blocked ' + sha('b'),"
+     "'Fix review: Blocked ' + sha('b') + ' claims: the branch moves 5 entries'"
+     "];"
+     "const rows = SHAPES.map((line, i) => {"
+     "const h = m.statsHistogram([{ pr: i + 1 }], "
+     "new Map([[i + 1, { body: '', comments: [{ body: line }] }]]), "
+     "['blocked', 'merge']);"
+     "return { line, wave: wave.test(line), counted: h.verdicts.size > 0, "
+     "outside: h.unclassified.length > 0 }; });"
+     "console.log(JSON.stringify({"
+     "diverge: rows.filter((r) => r.counted !== r.wave).map((r) => r.line),"
+     "both: rows.filter((r) => r.wave && r.counted).length,"
+     "outside: rows.filter((r) => !r.wave && r.outside).length,"
+     "total: rows.length"
+     "})); })"],
+    capture_output=True, text=True).stdout or "{}")
+R.check(
+    "the stats histogram classifies exactly the grammar the wave script's own "
+    "VERDICT_RE parses (#1472)",
+    _STATS_GRAMMAR.get("diverge") == []
+    and _STATS_GRAMMAR.get("both", 0) >= 2
+    and _STATS_GRAMMAR.get("outside", 0) >= 2,
+    f"divergent shape(s)={_STATS_GRAMMAR.get('diverge')!r} of "
+    f"{_STATS_GRAMMAR.get('total')}; counted-by-both={_STATS_GRAMMAR.get('both')}, "
+    f"refused-by-both={_STATS_GRAMMAR.get('outside')} -- a shape only one of the "
+    "two readers counts is the divergence: before #1472 the merge arm took a "
+    "sha-less head, the case variants and the abbreviation while the wave "
+    "refused all four, and the merge and blocked arms of one function disagreed "
+    "about the head",
+)
+# AND BOTH ENDPOINTS A VERDICT CAN ARRIVE ON (#1471, D13-01). The reviewer
+# contract defines a verdict as a comment OR a review; `fetchWindow` fetched the
+# pull request and its issue comments and never its reviews, so a review-posted
+# verdict was invisible rather than unweighted -- the merge read as one that
+# "carried none", which `statsCoverageLine` then printed as a gap in the
+# histogram's population. The request itself is counted by the D13 ledger
+# harness, against a stub transport; what a check in this file can hold is the
+# other half: that the walk counts a review-posted verdict once fetched, and that
+# the census names the endpoint each verdict arrived on. The null control is the
+# same merge verdict arriving as an issue comment, and the reviews row at 0 over
+# a window that posted none -- a constant census satisfies neither direction.
+_STATS_REVIEWS = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const sha = (c) => c.repeat(40);"
+     "const run = (second) => {"
+     "const h = m.statsHistogram([{ pr: 1 }, { pr: 2 }], new Map(["
+     "[1, { body: '', comments: [{ body: 'Fix review: merge ' + sha('a') }] }],"
+     "[2, second]]), ['blocked', 'merge']);"
+     "const cell = h.verdicts.get('merge');"
+     "return { merges: cell ? cell.prs.size : 0, outside: h.unclassified.length,"
+     "line: m.statsEndpointLine(h.endpoints) }; };"
+     "console.log(JSON.stringify({"
+     "asReview: run({ body: '', reviews: [{ body: 'Fix review: merge ' + sha('b') }] }),"
+     "asComment: run({ body: '', comments: [{ body: 'Fix review: merge ' + sha('b') }] }),"
+     "noReviews: run({ body: '', comments: [] })"
+     "})); })"],
+    capture_output=True, text=True).stdout or "{}")
+
+
+def _review_arm(arm):
+    return _STATS_REVIEWS.get(arm) or {}
+
+
+R.check(
+    "a verdict posted as a pull-request review is counted, and the census names "
+    "the endpoint it arrived on (#1471)",
+    _review_arm("asReview").get("merges") == 2
+    and _review_arm("asReview").get("outside") == 0
+    and "/pulls/<n>/reviews (review): 1" in _review_arm("asReview").get("line", "")
+    and "/issues/<n>/comments (issue comment): 1" in _review_arm("asReview").get("line", ""),
+    f"two merges, one posted as a review: {_review_arm('asReview')!r} -- the "
+    "review endpoint the reader never asked for is how a verdict became "
+    "invisible, and a census that does not name it leaves the next zero "
+    "unreadable",
+)
+R.check(
+    "and the same verdict posted as an issue comment, and a window with no "
+    "reviews at all, are the null controls (#1471)",
+    _review_arm("asComment").get("merges") == 2
+    and "/pulls/<n>/reviews (review): 0" in _review_arm("asComment").get("line", "")
+    and _review_arm("noReviews").get("merges") == 1
+    and _review_arm("noReviews").get("outside") == 0,
+    f"as comment={_review_arm('asComment')!r}; no reviews="
+    f"{_review_arm('noReviews')!r} -- the census must read the walk rather than "
+    "the flag: the comment path counts the same verdict, and a window that "
+    "posted no review reads 0 on that row",
+)
+# AND THE READ ITSELF, WHICH NO ASSERTION OVER `statsHistogram` CAN REACH
+# (#1471). The checks above hand the walk a payload that already carries
+# `reviews`; the defect was that `fetchWindow` never built one, so the walk had
+# nothing to count and the merge read as one that carried none. The transport is
+# `ghGet`'s `curl` execFileSync, so a stub `curl` first on PATH is the ledger the
+# finding's own harness reads -- driven here for the same reason the loop
+# fixtures are pure: no network, no token and no repository history. BOTH ENDS,
+# because the request and the join are two claims: a stub that answers with one
+# review (the request must appear AND reach the map) and one that answers empty
+# (the request must still appear, since a zero over a read that never happened is
+# the finding). The null control inside the ledger is the body and comment reads:
+# a request count that is zero on all three would be a dead ledger rather than a
+# missing endpoint.
+_FETCH_BIN = Path(_tempfile.mkdtemp(prefix="hpo-fetch-ledger-")) / "bin"
+_FETCH_BIN.mkdir()
+_FETCH_LEDGER = _FETCH_BIN.parent
+(_FETCH_BIN / "curl").write_text(
+    "#!/bin/sh\n"
+    'url=""\n'
+    'for a in "$@"; do url="$a"; done\n'
+    "cat >/dev/null 2>&1\n"
+    "printf '%s\\n' \"$url\" >> \"$HPO_STUB_LOG\"\n"
+    'case "$url" in\n'
+    '  */pulls/7001/reviews*)\n'
+    '    if [ "$HPO_STUB_REVIEWS" = "1" ]; then\n'
+    f"      printf '[{{\"body\": \"Fix review: merge {_SHA40}\"}}]\\n200'\n"
+    "    else printf '[]\\n200'; fi ;;\n"
+    "  */issues/7001/comments*) printf '[]\\n200' ;;\n"
+    '  */pulls/7001) printf \'{"body": ""}\\n200\' ;;\n'
+    "  *) printf '[]\\n200' ;;\n"
+    "esac\n"
+)
+(_FETCH_BIN / "curl").chmod(0o755)
+
+
+def _fetch_ledger(reviews: str):
+    """Drive `fetchWindow` with the stub transport; return its map and ledger."""
+    log = _FETCH_LEDGER / f"ledger-{reviews}"
+    log.write_text("")
+    env = {**_os.environ,
+           "PATH": f"{_FETCH_BIN}:{_os.environ['PATH']}",
+           "GITHUB_TOKEN": "stub-not-a-credential",
+           "HPO_STUB_LOG": str(log),
+           "HPO_STUB_REVIEWS": reviews}
+    run = subprocess.run(
+        ["node", "--input-type=module", "-e",
+         "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+         "const r = m.fetchWindow([{ pr: 7001 }]);"
+         "const f = r.fetched.get(7001) || {};"
+         "console.log(JSON.stringify({ error: r.fetchError,"
+         "reviews: (f.reviews || []).map((x) => x.body),"
+         "comments: (f.comments || []).length })); })"],
+        capture_output=True, text=True, env=env)
+    try:
+        got = json.loads(run.stdout or "null")
+    except ValueError:
+        got = None
+    lines = log.read_text().splitlines()
+    return {"got": got,
+            "entry": got is not None and isinstance(got, dict),
+            "reviews_request": any("/pulls/7001/reviews" in x for x in lines),
+            "comments_request": any("/issues/7001/comments" in x for x in lines),
+            "body_request": any(x.endswith("/pulls/7001") for x in lines)}
+
+
+_FETCH_WITH = _fetch_ledger("1")
+_FETCH_NONE = _fetch_ledger("0")
+R.check(
+    "the window reader asks the reviews endpoint and joins what it answers into "
+    "its map (#1471)",
+    _FETCH_WITH["reviews_request"]
+    and _FETCH_WITH["entry"]
+    and (_FETCH_WITH["got"] or {}).get("reviews") == [f"Fix review: merge {_SHA40}"]
+    and (_FETCH_WITH["got"] or {}).get("error") is None,
+    f"ledger has a reviews request={_FETCH_WITH['reviews_request']}; "
+    f"fetchWindow returned {_FETCH_WITH['got']!r} -- the endpoint the reviewer "
+    "contract allows a verdict to arrive on is the one a reader that never asks "
+    "for it cannot see, and the map is what the walk counts",
+)
+R.check(
+    "and it asks whether or not the window posted a review, with the body and "
+    "comment reads as the ledger's null control (#1471)",
+    _FETCH_NONE["reviews_request"]
+    and _FETCH_NONE["entry"]
+    and (_FETCH_NONE["got"] or {}).get("reviews") == []
+    and _FETCH_NONE["body_request"]
+    and _FETCH_NONE["comments_request"],
+    f"empty window: {_FETCH_NONE['got']!r}; ledger body={_FETCH_NONE['body_request']} "
+    f"comments={_FETCH_NONE['comments_request']} reviews={_FETCH_NONE['reviews_request']} "
+    "-- a zero on the reviews row must be a read that answered nothing, not a "
+    "read that was never made, which is what the other two rows are here to say",
+)
+# AND THE LINE SAYS SO IN THE MODE, NOT ONLY IN ITS FUNCTION (#1469, D11-03).
+# `sunsetMarkerLine` is pinned at both ends and against its own mutation inside
+# `policy_lint.mjs`'s acceptance -- but that pin drives the FUNCTION, so it
+# survives the call site being deleted, which is the shape `policy_lint_mutants
+# .mjs` exists for one level down. This is the wiring half, driven as a process
+# and read the way a shell reads it. The window is empty by construction: the
+# ref is `mainRef()`'s own -- `origin/main`, or `HEAD` where the remote is not
+# configured, which `--sunset` itself then reports as its range -- so
+# `ref..origin/main` contains no commit, no API call is made, and the pin
+# depends on no token and no rate limit.
+def _sunset_drive():
+    ref = "origin/main"
+    if subprocess.run(["git", "rev-parse", "--verify", "--quiet", "origin/main"],
+                      capture_output=True, text=True).returncode != 0:
+        ref = "HEAD"
+    return subprocess.run(
+        ["node", ".claude/workflows/policy_lint.mjs", "--sunset", "--since", ref],
+        capture_output=True, text=True, env={**_os.environ, "GITHUB_TOKEN": ""})
+
+
+_SUNSET_RUN = _sunset_drive()
+_SUNSET_HEADER = re.search(r"^SUNSET: (\d+) policy file\(s\)", _SUNSET_RUN.stdout, re.M)
+_SUNSET_CENSUS = re.search(
+    r"^SUNSET MARKERS: (\d+) policy file\(s\) scanned; REFUSED BY (\d+), "
+    r"SUNSET: (\d+), HONOUR: (\d+)", _SUNSET_RUN.stdout, re.M)
+R.check(
+    "the --sunset mode prints the marker census its zero is a zero of, beside "
+    "the corpus count (#1469)",
+    _SUNSET_RUN.returncode == 0
+    and _SUNSET_CENSUS is not None
+    and _SUNSET_HEADER is not None
+    and _SUNSET_CENSUS.group(1) == _SUNSET_HEADER.group(1)
+    and ("PARTICIPATION zero" in _SUNSET_RUN.stdout
+         or "has a population in these files" in _SUNSET_RUN.stdout),
+    f"rc={_SUNSET_RUN.returncode}; stdout={_SUNSET_RUN.stdout[:400]!r} -- the "
+    "class fires only on a marker a policy file declares for itself, so "
+    "`proposed (0) held (0)` over a corpus carrying none is the participation "
+    "zero, and the file count is the corpus both lines were taken over",
 )
 # EVERY REWORK ROUND IS A RE-VERIFICATION OF A MOVED HEAD, AND THE HISTOGRAM
 # COULD NOT SEE IT (#1405, D13-01). `web-fix-wave.js` teaches the class
@@ -20521,14 +20779,16 @@ R.check(
     "an instrument that changes a number a reader already trusts has to say so",
 )
 R.check(
-    "and a verdict naming the same head twice, or no first head at all, is not "
-    "rework (null control)",
+    "and a verdict naming the same head twice, or a first line the grammar "
+    "refuses, is not rework (null control)",
     _rework_cell("sameHead").get("prs") is None
     and _rework_cell("noFirstHead").get("prs") is None,
     f"sameHead={_STATS_REWORK.get('sameHead')!r}; "
     f"noFirstHead={_STATS_REWORK.get('noFirstHead')!r} -- two verdicts on one "
-    "head are one round, and a first verdict naming no head is no evidence of "
-    "a moved one",
+    "head are one round, and a first line outside the grammar is no evidence of "
+    "a moved one: since #1472 the wave's grammar requires a full head on every "
+    "parseable verdict, so a `Fix review:` line naming none reaches the walk as "
+    "an outside-grammar report and never as a head",
 )
 R.check(
     "the publishing lane runs on main alone, never on a pull request",
