@@ -9,10 +9,12 @@
     "the same pull request. `carries` holds the one seam that fix left open, which",
     "reading those sites turned up rather than the rule returning it.",
     "",
-    "One correction to the text this file was created with: it named the fold in",
-    "dhw_learning.py as `pattern_for`, which is not a symbol in the tree. The fold",
-    "that floored the capacity is `async_fold_draw_stats`, disposed below; a seat",
-    "grepping the old name finds the draw-pattern helpers and no floor.",
+    "One correction to the text this file was created with: it named the",
+    "dhw_learning.py site as `pattern_for`, which is a real method of the same class",
+    "(`DhwProfileLearner.pattern_for(weekend)`, the draw-pattern helper) but not the",
+    "method carrying the floor the brief quotes. The fold that read",
+    "`intensity * dt_hours * max(..., 0.05)` is `async_fold_draw_stats`, disposed",
+    "below; a seat opening the carried name finds a helper that reads no capacity",
     "",
     "Shape and required fields: .claude/rules/finding-propagation.md. Linted by",
     ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
@@ -69,7 +71,7 @@
       "site": "dhw_learning.py:async_fold_draw_stats",
       "reading": "coefficient",
       "disposition": "fixed in the round-7 D2-03 pull request",
-      "evidence": "It converts an interval's beyond-standby temperature drop into stored energy as `intensity * dt_h * capacity`, so dividing the folded energy by the capacity it was multiplied by must give the tank's own mass whatever that mass is. Pre-fix the folded energy per kWh/K was 30.34 at 5 L against 3.52 at 200 L; post-fix the two agree. This is the site the carry created with this file named `pattern_for`, which is not a symbol in the tree."
+      "evidence": "It converts an interval's beyond-standby temperature drop into stored energy as `intensity * dt_h * capacity`, so dividing the folded energy by the capacity it was multiplied by must give the tank's own mass whatever that mass is. Pre-fix the folded energy per kWh/K was 30.34 at 5 L against 3.52 at 200 L; post-fix the two agree. This is the site the carry named as `dhw_learning.py:pattern_for` -- a method of the same class, not the one holding the floor."
     },
     {
       "site": "optimizer.py:_clamp_dhw_to_capacity",
