@@ -22,7 +22,6 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -62,7 +61,7 @@ class _OptimizerBinarySensorBase(HeatPumpOptimizerEntity, BinarySensorEntity):
     def __init__(
         self,
         coordinator: HeatPumpOptimizerCoordinator,
-        entry: ConfigEntry,
+        entry: HeatPumpOptimizerConfigEntry,
         key: str,
         translation_key: str,
     ) -> None:
@@ -93,7 +92,7 @@ class InputHealthBinarySensor(_OptimizerBinarySensorBase):
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     def __init__(
-        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
     ) -> None:
         super().__init__(coordinator, entry, "input_health", "input_problem")
 
@@ -132,7 +131,7 @@ class VentilationBinarySensor(_OptimizerBinarySensorBase):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(
-        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
     ) -> None:
         super().__init__(
             coordinator, entry, "ventilation", "open_window_detected"
@@ -159,7 +158,7 @@ class ExternalHeatBinarySensor(_OptimizerBinarySensorBase):
 
     _attr_device_class = BinarySensorDeviceClass.HEAT
     def __init__(
-        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
     ) -> None:
         super().__init__(coordinator, entry, "external_heat", "external_heat_source")
 
@@ -192,7 +191,7 @@ class AwayModeBinarySensor(_OptimizerBinarySensorBase):
     """
 
     def __init__(
-        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
     ) -> None:
         super().__init__(coordinator, entry, "away_mode", "away_mode")
 
@@ -221,7 +220,7 @@ class WoodCheaperBinarySensor(_OptimizerBinarySensorBase):
     _attr_entity_registry_enabled_default = False
 
     def __init__(
-        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
     ) -> None:
         super().__init__(coordinator, entry, "wood_cheaper", "wood_cheaper")
 
