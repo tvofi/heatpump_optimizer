@@ -35442,6 +35442,24 @@ R.check(
     "(no interval published) on every aborted or guard-refused experiment, so "
     "both absent arms have to answer without raising",
 )
+_d701_combine = getattr(_SysIdModule, "slab_ua_adoption_halfwidth", None)
+_d701_arms = []
+for _d701_a, _d701_b in ((0.3, 0.4), (0.3, None), (None, 0.4), (None, None)):
+    try:
+        _d701_arms.append(callable(_d701_combine) and _d701_combine(_d701_a, _d701_b))
+    except Exception as _d701_err:  # noqa: BLE001
+        _d701_arms.append(f"raised {type(_d701_err).__name__}")
+R.check(
+    "round-7 D7-01 (#1459): the gate's combiner answers all four arms of its "
+    "own contract -- an interval published on both sides, on either one, and "
+    "on neither",
+    _d701_arms == [0.5, 0.3, None, None],
+    f"arms (0.3,0.4) (0.3,None) (None,0.4) (None,None) -> {_d701_arms} -- a "
+    "refused fit publishes neither side and a ONE-STATE result publishes no "
+    "prior term, so an arm that raises breaks the caller instead of refusing "
+    "the fit; the two absent arms also mask each other, which is what makes "
+    "each one's presence invisible to every other check in this file",
+)
 
 
 # -- R6 D7-03 #1396/#1397: the two-state fit survives a drifting sensor ----
