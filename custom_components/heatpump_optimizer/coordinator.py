@@ -358,7 +358,7 @@ from .price_model import (
     pull_prices,
     quarters_from_entries,
 )
-from .sysid import SysIdConfig, SystemIdentification, UA_ADOPTION_HALFWIDTH_BAR, slab_mode_identifiability
+from .sysid import SysIdConfig, SystemIdentification, UA_ADOPTION_HALFWIDTH_BAR, slab_mode_identifiability, slab_ua_adoption_halfwidth
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -10450,8 +10450,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # #1410: adoption is decided by the fitted UA's own 95 % profile-
         # likelihood interval (superseding the #942 residual-scatter gate):
         # a fit whose UA is not pinned within +-10 % is refused, however
-        # plausible its residual looks.
-        hw = result.ua_profile_halfwidth
+        # plausible its residual looks. D7-01 (#1459) added its other source.
+        hw = slab_ua_adoption_halfwidth(result.ua_profile_halfwidth, result.ua_prior_halfwidth)
         if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:
             return
         params = getattr(self, "_ctx", self)._thermal_params
