@@ -639,3 +639,32 @@ config_flow  # #1495: the mold-guard page gains mold_floor_breach_margin (2 leav
 # discharge_rate_kw, hours_of_autonomy and round_trip_efficiency_6h move with
 # the dropped standing loss. No plan, schedule or solver fixture moves: the
 # view is report-only and the optimizer never reads it.
+
+# R7-D8-01 (#1460), branch fix/r7-coordinator: this diff claims the five
+# coordinator captures and NOTHING ELSE. The direction is ADD-ONLY.
+# `_build_data_dict` now publishes the three keys `SensorGapAdvisorSensor`
+# reads and no seam wrote -- `heat_pump_power_series` (the measured pump
+# draw per settled interval), `house_power_series` (the whole-house meter's
+# own readings, empty without one) and `peak_tariff` (the configured
+# capacity tariff's price_per_kw / window_minutes / peaks_averaged) -- so
+# each capture's `data` gains those keys and nothing else moves. No plan,
+# schedule or solver fixture moves and the optimizer is not modified: the
+# published dict is the only surface the new keys reach. The five fixtures
+# were re-recorded (`golden.py --record --only coord_`) and then cut back to
+# the three keys this branch adds: at this head
+# `tests/env_drift.py --all 6e2a0f2a` reports `32 fixture(s), 13972
+# leaf/leaves differ from the committed files in value alone` -- reported,
+# never failed -- and those value differences predate the branch, so
+# recording them here would write values this diff did not measure.
+
+# R7 (#1495) merge of origin/main (cdf82daa) into fix/r7-mold-warning: the
+# five coordinator claims this file inherited from the merge base (the #1461
+# note above) come OUT. They were main's own -- written for #1489's diff --
+# and on this merged tree every one of the five coord captures is
+# byte-identical to cdf82daa, so `env_drift.py --all cdf82daa` reports all
+# five STALE ("nothing drifted, remove it") and exits 1. A claim describes
+# exactly ONE diff and never carries forward (header rule 2), so this
+# branch's bare list keeps only config_flow, which THIS diff moves. The
+# deletion is hand-made: the list ADDED a line beside the baseline's, which
+# `drop_inherited_claim_lines` treats as a rewrite and refuses to touch
+# (#1255), so `apply_inherited_claims` cannot lift this one.

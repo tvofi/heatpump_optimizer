@@ -1627,6 +1627,47 @@ def _disinfection_switch(hass: HomeAssistant, config: dict[str, Any]) -> Disinfe
         lambda entity_id: getattr(hass.states.get(entity_id), "state", None),
     )
 
+
+def _power_windows(coord: Any) -> tuple[list[float], list[float]]:
+    """The measured power windows the sensor advisors read (#1460).
+
+    ``(heat_pump_power_series, house_power_series)``. The pump's window is
+    one entry per interval `_record_accuracy` settled, from the pump's own
+    meter; the house's is the whole-house meter's reading, one per cycle,
+    and it is empty on an install with no house meter -- the state the
+    sensor-gap advisor's house-power row ranks in, and the honest answer
+    rather than the pump's own draw published under the house's name.
+    """
+    accuracy = getattr(coord, "_accuracy", None)
+    tracker = getattr(coord, "_peak_tracker", None)
+    pump = (
+        [
+            float(sample.actual_power_kw)
+            for sample in accuracy.samples
+            if sample.actual_power_kw is not None
+        ]
+        if accuracy is not None
+        else []
+    )
+    return pump, list(tracker.house_samples) if tracker is not None else []
+
+
+def _space_pump_to_drive(coord: Any) -> str | None:
+    """The space pump entity to command, or None when it must be left alone.
+
+    None both when none is configured and when the plan is stale in a mode
+    that actuates it (#1449): `_apply_action` refuses a plan `_plan_is_stale`
+    has declared unfit, and the space pump reads the same retained plan --
+    its `idx` is the expired horizon's last step -- so it is held with it.
+    The VVC's half of the same method is not held: it follows the user's DHW
+    window schedule, which cannot go stale.
+    """
+    if coord._mode in (MODE_AUTO, MODE_ECONOMY) and coord._plan_is_stale():
+        return None
+    entity = getattr(coord, "_ctx", coord)._config.get(CONF_SPACE_PUMP_ENTITY)
+    return str(entity) if entity else None
+
+
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     """Coordinator for Heat Pump Cost Optimizer."""
 
@@ -2595,7 +2636,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         ctx = getattr(self, "_ctx", self)
         vvc_entity = ctx._config.get(CONF_VVC_PUMP_ENTITY)
-        space_entity = ctx._config.get(CONF_SPACE_PUMP_ENTITY)
+        space_entity = _space_pump_to_drive(self)
         if not vvc_entity and not space_entity:
             return
         now = dt_util.now()
@@ -4499,8 +4540,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug("Frequency command skipped: %s", err)
 
-            # T3 #6: follow the plan with the circulation pumps. Every tick,
-            # transitions only, and never allowed to break the cycle.
             try:
                 await self._async_drive_pumps()
             except Exception as err:  # noqa: BLE001
@@ -6869,6 +6908,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 dt_util.now()
             ),
             "peak_tariff_enabled": tariff.enabled,
+            "peak_tariff": tariff.billing_summary() if tariff.enabled else {},
             "billed_peak_kw": round(self._peak_tracker.billed_peak_kw(tariff), 2),
             "peak_threshold_kw": round(self._peak_tracker.threshold_kw(tariff), 2),
             "peak_month": self._peak_tracker.month,
@@ -7002,6 +7042,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._mixing_valve_view,
         ):
             data.update(view())
+        data["heat_pump_power_series"], data["house_power_series"] = _power_windows(self)
         data.update(self._away_state.as_dict())
         data.update({k: round(v, 4) for k, v in self._energy_totals.items()})
         # The date the lifetime accumulators started: a number that answers
@@ -7544,20 +7585,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _track_realised_peak(self) -> None:
         """Fold the current whole-house draw into this month's peaks.
 
-        Without a house power entity, the heat pump's own draw is all that can
-        be seen. That under-states the real peak, so the threshold it produces
-        is conservative in the wrong direction — which is why the config flow
-        asks for a house meter and says why.
+        Without a house meter the pump's own draw is all that can be seen, so
+        the peak is under-stated; a meter's own reading is the payload's
+        ``house_power_series`` (#1460).
         """
         tariff = self._capacity_tariff()
         if not tariff.enabled:
             return
-        house = self._measured_house_power
-        if house is None:
-            house = self._measured_power
+        measured = self._measured_house_power
+        house = self._measured_power if measured is None else measured
         if house is None:
             house = float(self._current_action.get("power", 0.0))
-        self._peak_tracker.observe(dt_util.now(), float(house), tariff)
+        self._peak_tracker.observe(dt_util.now(), float(house), tariff,
+                                   measured_house_kw=measured)
 
     # ==================================================================
     # Live peak guard (#7), fuse (#3/#5) and outage recovery (#22) — T2
@@ -10544,7 +10584,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         * it runs off a **copy** of the configuration, so an exploratory drag
           can never disturb actual operation;
         * it is **rate-limited**, because a full solve is seconds of CPU and
-          dragging a slider would otherwise trigger one per pixel.
+          dragging a slider would otherwise trigger one per pixel. The slot
+          is spent when a solve starts, so the failing arm is limited (#1448).
         """
         ctx = getattr(self, "_ctx", self)
         now = dt_util.now()
@@ -10639,6 +10680,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return {"error": wood_err, "rate_limited": False}
 
         scratch = HeatPumpOptimizer(ThermalModel(scratch_params), scratch_config)
+        self._last_simulation = now
         try:
             simulated = await _await_optimize(
                 self.hass,
@@ -10751,7 +10793,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "overrides": overrides,
             "rate_limited": False,
         }
-        self._last_simulation = now
         self._simulation_cache = payload
         return payload
 

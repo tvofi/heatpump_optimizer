@@ -262,6 +262,7 @@
    "comfortable_days": 0,
    "resets": 0
   },
+  "heat_pump_power_series": [],
   "heat_pump_signals": {
    "backup_heater": null,
    "capacity_limited": null,
@@ -288,6 +289,7 @@
   "house_heat_loss_learned": false,
   "house_heat_loss_samples": 0,
   "house_heat_loss_scale": 1.0,
+  "house_power_series": [],
   "immersion_active": false,
   "immersion_evidence": [],
   "indoor_temperature": 21.0,
@@ -337,6 +339,11 @@
   "peak_guard_evidence": [],
   "peak_guard_suppressing": false,
   "peak_month": "",
+  "peak_tariff": {
+   "peaks_averaged": 3,
+   "price_per_kw": 45.0,
+   "window_minutes": 60
+  },
   "peak_tariff_enabled": true,
   "peak_threshold_kw": Infinity,
   "plan_age_minutes": null,

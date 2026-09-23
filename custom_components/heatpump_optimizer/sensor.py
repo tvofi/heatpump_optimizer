@@ -87,10 +87,13 @@ def _sensor_advisor_attribute(coordinator: Any) -> dict[str, Any]:
     """The #1269 ranking attribute, published only when something ranks.
 
     Computed from configuration plus the same live power series the #699
-    gap advisor reads, so it exists before the first plan does and never
-    needs a solve. Absent when every optional temperature sensor is
-    already configured: a fully wired install publishes exactly the
-    attributes it did before the feature.
+    gap advisor reads, so it needs no solve of its own. That series is the
+    measured pump window the coordinator publishes as
+    `heat_pump_power_series` (#1460); before the first interval settles a
+    reading it is empty and the ranking falls back to its duty-fraction
+    prior. Absent when every optional temperature sensor is already
+    configured: a fully wired install publishes exactly the attributes it
+    did before the feature.
     """
     config = getattr(coordinator, "_config", None) or {}
     data = coordinator.data or {}
@@ -2789,8 +2792,12 @@ def _gap_probe_terms(
     """The COP-miss and DHW-coast inputs, from the series the payload carries.
 
     With no measured power series there is nothing to price, so every term
-    stays 0.0 rather than being invented from an imaginary duty cycle -- which
-    is also why the advisor against a series-less payload ranks nothing. Once
+    stays 0.0 rather than being invented from an imaginary duty cycle --
+    which is also why the advisor against a series-less payload ranks
+    nothing. That payload is the measured window `_build_data_dict`
+    publishes (#1460), so it is non-empty exactly when a power meter is
+    reading; an install with none ranks nothing, and its zero is the absent
+    window rather than a priced one. Once
     a series is present the COP terms read the pump load and duty cycle the
     window shows; the DHW term is a month of the tank's usable band, one
     reheat a day at the resolved rate, priced from the configured tank volume
