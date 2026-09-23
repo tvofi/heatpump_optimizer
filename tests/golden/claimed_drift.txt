@@ -665,8 +665,14 @@ valve_storage_flat_prices # R7-D0-01 (#1447): the 0.20x anchor settles this valv
 # never failed -- and those value differences predate the branch, so
 # recording them here would write values this diff did not measure.
 
-coord_all_features
-coord_dhw
-coord_grid_fee
-coord_minimal
-coord_two_zone
+# R7-D0-01 merge of origin/main (cdf82daa) into fix/r7-optimizer-seeds: the
+# five coordinator claims this file inherited from the merge base (R7-D8-01
+# / #1461's note above) come OUT. They were main's own -- written for #1489's
+# diff -- and on this merged tree every one of the five coord captures is
+# byte-identical to cdf82daa, so `env_drift.py --all cdf82daa` reports all
+# five STALE ("nothing drifted, remove it") and exits 1. A claim describes
+# exactly ONE diff and never carries forward (header rule 2), so this
+# branch's bare list keeps only what THIS diff moves. The deletion is
+# hand-made: the list ADDED a line beside the baseline's, which
+# `drop_inherited_claim_lines` treats as a rewrite and refuses to touch
+# (#1255), so `apply_inherited_claims` cannot lift this one.
