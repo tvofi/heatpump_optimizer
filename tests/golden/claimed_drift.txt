@@ -60,6 +60,16 @@
 # next branch restates its own footprint, claims included.
 #
 
+# #1495 (mold-floor breach warning): this branch claims the config_flow
+# fixture and nothing else, ADD-ONLY. The comfort page's mold section gains
+# the mold_floor_breach_margin option, so capture_config_flow's schema
+# carries two new leaves (both under comfort.mold.fields), each present on
+# one side only. config_flow is float-free (carries_floats is False), so
+# env_drift compares it exactly and the committed fixture is re-recorded
+# alongside. No solver input, output or intermediate changes -- the plan
+# fixtures and the coordinator captures are untouched, so neither is claimed.
+config_flow  # #1495: the mold-guard page gains mold_floor_breach_margin (2 leaves, ADD-ONLY)
+
 # The sysid-estimator wave (#942 options 2+3, fitted arm): this branch
 # claims the five coordinator captures and NOTHING ELSE; the direction is
 # ADD-ONLY. SysIdResult.as_dict() publishes the re-derived slab-mode tau
