@@ -2059,6 +2059,69 @@ async def options_advanced_pages():
         f"options={entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)!r}",
     )
 
+    # D12-01: the guard must derive two-zone the way the model does, not from
+    # the mass-key presence. two_zone_mode="off" with the (unerasable) zone
+    # keys still present is single-zone to ThermalParameters.from_config, so a
+    # "flow" target must be refused -- not saved and then silently no-op'd
+    # every cycle by _command_valve_target's own two-zone guard.
+    flow, entry, _ = fresh_options(
+        pre_options={
+            const.CONF_UPPER_FLOOR_THERMAL_MASS: 4.0,
+            const.CONF_LOWER_FLOOR_THERMAL_MASS: 8.0,
+            const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_OFF,
+        }
+    )
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {
+            **BUILDING_PAGE_ANSWERS,
+            const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: (
+                config_flow.mixing_valve.WRITE_TARGET_FLOW
+            ),
+        },
+    )
+    check(
+        "opt_building",
+        "error",
+        "'flow' with two_zone_mode=off is refused even with zone keys present (D12-01)",
+        shows(result, "building")
+        and result.get("errors", {}).get(
+            const.CONF_MIXING_VALVE_WRITE_TARGET_KIND
+        )
+        == "flow_target_needs_two_zone"
+        and const.CONF_MIXING_VALVE_WRITE_TARGET_KIND not in entry.options,
+        f"errors={result.get('errors')} options={sorted(entry.options)}",
+    )
+
+    # Null control: an explicit two_zone_mode="on" is two-zone to the model
+    # even without the mass keys, so "flow" saves cleanly under it -- the fix
+    # tracks the model's override, it does not just refuse on key absence.
+    flow, entry, _ = fresh_options(
+        pre_options={const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_ON}
+    )
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {
+            **BUILDING_PAGE_ANSWERS,
+            const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: (
+                config_flow.mixing_valve.WRITE_TARGET_FLOW
+            ),
+        },
+    )
+    check(
+        "opt_building",
+        "happy",
+        "'flow' with two_zone_mode=on saves cleanly even without zone keys (D12-01)",
+        shows_menu(result, "advanced")
+        and entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        == config_flow.mixing_valve.WRITE_TARGET_FLOW,
+        f"options={entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)!r}",
+    )
+
     # #1067: pricing the curve lift is for a direct plant. Behind a
     # throttling valve the tank temperature already is the priced flow, so
     # the page refuses the pair rather than saving a switch that does nothing.

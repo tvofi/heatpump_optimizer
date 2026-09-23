@@ -397,6 +397,7 @@ from . import (
     topology,
 )
 from .wood_fuel import wood_furnace_on
+from .thermal_model import ThermalParameters
 from .currency import resolve_currency
 from .dhw_schedule import (
     ERROR_TOO_SHORT as DHW_ERROR_TOO_SHORT,
@@ -3397,7 +3398,9 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             if (
                 user_input.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND)
                 == mixing_valve.WRITE_TARGET_FLOW
-                and not current.get(CONF_UPPER_FLOOR_THERMAL_MASS)
+                and not ThermalParameters.from_config(
+                    {**current, **user_input}
+                ).two_zone_enabled
             ):
                 errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = (
                     "flow_target_needs_two_zone"
