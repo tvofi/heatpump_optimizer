@@ -629,3 +629,25 @@
 # discharge_rate_kw, hours_of_autonomy and round_trip_efficiency_6h move with
 # the dropped standing loss. No plan, schedule or solver fixture moves: the
 # view is report-only and the optimizer never reads it.
+
+# R7-D8-01 (#1460), branch fix/r7-coordinator: this diff claims the five
+# coordinator captures and NOTHING ELSE. The direction is ADD-ONLY.
+# `_build_data_dict` now publishes the three keys `SensorGapAdvisorSensor`
+# reads and no seam wrote -- `heat_pump_power_series` (the measured pump
+# draw per settled interval), `house_power_series` (the whole-house meter's
+# own readings, empty without one) and `peak_tariff` (the configured
+# capacity tariff's price_per_kw / window_minutes / peaks_averaged) -- so
+# each capture's `data` gains those keys and nothing else moves. No plan,
+# schedule or solver fixture moves and the optimizer is not modified: the
+# published dict is the only surface the new keys reach. Fixtures are NOT
+# re-recorded here: `tests/env_drift.py --all 6e2a0f2a` reports this box's
+# capture of these five as float-bearing fixtures whose committed leaves
+# already differ in value (27 fixtures, 13857 leaves, reported never
+# failed), so a re-record on this machine would move values it did not
+# measure -- the drift report's own instruction.
+
+coord_all_features
+coord_dhw
+coord_grid_fee
+coord_minimal
+coord_two_zone

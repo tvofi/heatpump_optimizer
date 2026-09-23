@@ -7584,10 +7584,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _track_realised_peak(self) -> None:
         """Fold the current whole-house draw into this month's peaks.
 
-        Without a house power entity, the heat pump's own draw is all that can
-        be seen, so the peak is under-stated — conservative in the wrong
-        direction, which is why the config flow asks for a meter. A meter's
-        own reading is the payload's ``house_power_series`` (#1460).
+        Without a house meter the pump's own draw is all that can be seen, so
+        the peak is under-stated; a meter's own reading is the payload's
+        ``house_power_series`` (#1460).
         """
         tariff = self._capacity_tariff()
         if not tariff.enabled:
