@@ -88,4 +88,5 @@
 /tests/nightly_ha.py                      @tvofi
 /tests/nightly_status.py                  @tvofi
 /tests/plan_view.py                       @tvofi
+/tests/replay.py                          @tvofi
 /tests/typing_ruler.py                    @tvofi
