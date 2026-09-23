@@ -4,7 +4,7 @@
     "changed": 0.2,
     "full": 0.3
   },
-  "unpinned_sites": 3780,
+  "unpinned_sites": 3771,
   "last_measured": {
     "changed": {
       "survivors": 2,
@@ -140,22 +140,22 @@
     "custom_components/heatpump_optimizer/coordinator.py:1652 RETURN_DEL": {
       "killed_by": "tests/entities.py",
       "old": "    return pump, list(tracker.house_samples) if tracker is not None else []",
-      "reason": "This branch's `_power_windows`, the module-level window reader `_build_data_dict` calls (#1460). Deleting the return leaves the function answering None, and the caller's `data[\"heat_pump_power_series\"], data[\"house_power_series\"] = _power_windows(self)` raises `TypeError: cannot unpack non-iterable NoneType object`. Measured on this head 2026-09-23: tests/entities.py rc=1, in its D8-01 payload helper."
+      "reason": "This branch's `_power_windows`, the module-level window reader `_build_data_dict` calls (#1460). Deleting the return leaves the function answering None, and the caller's `data[\"heat_pump_power_series\"], data[\"house_power_series\"] = _power_windows(self)` raises `TypeError: cannot unpack non-iterable NoneType object`. Measured: tests/entities.py rc=1, in its D8-01 payload helper."
     },
     "custom_components/heatpump_optimizer/coordinator.py:1665 BOOLOP": {
       "killed_by": "tests/features.py",
       "old": "    if coord._mode in (MODE_AUTO, MODE_ECONOMY) and coord._plan_is_stale():",
-      "reason": "This branch's `_space_pump_to_drive` staleness guard (#1449), with `and` -> `or`: the guard still names `_plan_is_stale`, so the D1-02 enumeration rule keeps reporting this seam gated, while the space pump is now held in every AUTO/ECONOMY cycle and a fresh plan commands nothing. Measured at this head 2026-09-23: tests/features.py rc=1, 4 of 3109 failed, `and a fresh plan drives the space pump, so the check above is not vacuous [fresh plan commanded ['switch.vvc']]` among them."
+      "reason": "This branch's `_space_pump_to_drive` staleness guard (#1449), with `and` -> `or`: the guard still names `_plan_is_stale`, so the D1-02 enumeration rule keeps reporting this seam gated, while the space pump is now held in every AUTO/ECONOMY cycle and a fresh plan commands nothing. Measured: tests/features.py rc=1, `and a fresh plan drives the space pump, so the check above is not vacuous [fresh plan commanded ['switch.vvc']]` among the failures."
     },
     "custom_components/heatpump_optimizer/coordinator.py:1665 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if coord._mode in (MODE_AUTO, MODE_ECONOMY) and coord._plan_is_stale():",
-      "reason": "The same guard deleted whole: the space pump is then driven on every plan, stale included, while `_apply_action` refuses it -- and the D1-02 enumeration rule reports this seam ungated, so two checks red. Measured at this head 2026-09-23: tests/features.py rc=1, 2 of 3109 failed -- `the space pump is not driven from a plan _plan_is_stale refused (#1449) [commanded ['switch.vvc', 'switch.space_pump'] from a 400-minute-old plan]` and the rule check, reporting ('_async_drive_pumps', False)."
+      "reason": "The same guard deleted whole: the space pump is then driven on every plan, stale included, while `_apply_action` refuses it -- and the D1-02 enumeration rule reports this seam ungated, so two checks red. Measured: tests/features.py rc=1, `the space pump is not driven from a plan _plan_is_stale refused (#1449) [commanded ['switch.vvc', 'switch.space_pump'] from a 400-minute-old plan]` and the rule check, reporting ('_async_drive_pumps', False)."
     },
     "custom_components/heatpump_optimizer/coordinator.py:1668 RETURN_DEL": {
       "killed_by": "tests/features.py",
       "old": "    return str(entity) if entity else None",
-      "reason": "`_space_pump_to_drive`'s entity return (#1449): deleting it leaves the guard at 1665 intact, so the rule still reports this seam gated, while the space pump is never commanded, fresh plan included. Measured at this head 2026-09-23: tests/features.py rc=1, 4 of 3109 failed, `each configured pump is commanded on its own, by entity id [vvc alone -> [...]; space alone -> []]` among them."
+      "reason": "`_space_pump_to_drive`'s entity return (#1449): deleting it leaves the guard above intact, so the rule still reports this seam gated, while the space pump is never commanded, fresh plan included. Measured: tests/features.py rc=1, `each configured pump is commanded on its own, by entity id [vvc alone -> [...]; space alone -> []]` among the failures."
     },
     "custom_components/heatpump_optimizer/defrost.py:166 GUARD_OFF": {
       "killed_by": "tests/features.py",
@@ -260,17 +260,17 @@
     "custom_components/heatpump_optimizer/tariff.py:217 BOOLOP": {
       "killed_by": "tests/entities.py",
       "old": "        if measured_house_kw is not None and np.isfinite(measured_house_kw):",
-      "reason": "`PeakTracker.observe`'s measured-reading guard (#1460), with `and` -> `or`: the no-meter path reaches `np.isfinite(None)`, `TypeError: ufunc 'isfinite' not supported for the input types`, in every driver that folds a cycle's peak. Measured on this head 2026-09-23: tests/entities.py rc=1."
+      "reason": "`PeakTracker.observe`'s measured-reading guard (#1460), with `and` -> `or`: the no-meter path reaches `np.isfinite(None)`, `TypeError: ufunc 'isfinite' not supported for the input types`, in every driver that folds a cycle's peak. Measured: tests/entities.py rc=1."
     },
     "custom_components/heatpump_optimizer/tariff.py:217 GUARD_OFF": {
       "killed_by": "tests/entities.py",
       "old": "        if measured_house_kw is not None and np.isfinite(measured_house_kw):",
-      "reason": "The same guard deleted: the whole-house window then records readings the house meter never took, and the no-meter arm stops being empty. Measured on this head 2026-09-23: tests/entities.py rc=1, `and the whole-house window, from the whole-house meter's own reading (#1460) [got []]`."
+      "reason": "The same guard deleted: the whole-house window then records readings the house meter never took, and the no-meter arm stops being empty. Measured: tests/entities.py rc=1, `and the whole-house window, from the whole-house meter's own reading (#1460) [got []]`."
     },
-    "custom_components/heatpump_optimizer/thermal_model.py:1894 CLAMP_DROP": {
+    "custom_components/heatpump_optimizer/thermal_model.py:1897 CLAMP_DROP": {
       "killed_by": "tests/features.py",
       "old": "        floor = min(p.dhw_inlet_reference, ambient_temp)",
-      "reason": "arrived with origin/main, commit 7eeea4d90 (D2-02: clamp the DHW inlet floor to the tank surroundings). Dropping the `min` clamp raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22."
+      "reason": "arrived with origin/main, commit 7eeea4d90 (D2-02: clamp the DHW inlet floor to the tank surroundings). Dropping the `min` clamp raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22, and re-pinned 1894 -> 1897 by PR #1488, whose D2-01 fix adds three comment lines above this site."
     }
   },
   "reason": "The ratchet is the exact-count `unpinned_sites`: the deterministic inventory enumerates every candidate the six operators generate over the production package, and a site leaves that count only by carrying a disposition -- a `killed_by` driver, or a `survivor_triage` verdict (equivalent/gap) pinned to the exact `old` line. This record was re-derived at 467d3d9c on 2026-09-23 and moved 3785 -> 3781. The inventory stands at 3816 candidates, because the round-6 class fixes added 22 sites and removed 4 against the 3798 the previous record was written on. All 22 new sites now carry a disposition: 10 are killed by a recorded driver -- 6 by tests/finite_boundary.py (store.py:52, store.py:54, store.py:59, store.py:60, store.py:62, store.py:66; the store-load boundary of #1425) and 4 by tests/features.py (coordinator.py:10455, the adoption gate of #1410/#1437; sysid.py:585, sysid.py:723, sysid.py:740) -- 3 are triaged equivalent (store.py:50, a void mutant whose two arms are the same `return value`; sysid.py:726 and sysid.py:739, clamps whose `max` cannot select its second arm), and 9 are recorded as gap triage (store.py:64 and eight sysid.py sites no driver in the recorded net detects behaviourally). One property the 12 triage entries share, stated here so no reason hides it: tests/entities.py's #1217 mark-staleness self-check reddens when any `survivor_triage`-marked line is mutated, because the mark's pin then names a mutant the tree no longer generates. That is a property of the RECORD, not a behavioural kill -- the instrument's own D3-07 `equivalent` marks redden identically -- so these sites are survivors here and not `killed_by` entries, and a `killed_by` mark would not reproduce (entities.py reads `survivor_triage` only; moving a mark there yields entities.py rc=0, measured). The `gap` verdict is used here for the first time in this file's history: it records a MEASURED survivor, it is the honest disposition for one, and it does NOT move the fraction -- `survivor_gaps` counts every survivor no triage has called equivalent, so the sampled cap still reads these as gaps. Both caps and both `last_measured` blocks are unchanged. Do not raise `unpinned_sites` by hand: the exact count is re-derived every run by tests/mutation_table.py, which refuses growth and only records down via --record (and --record cannot fire on a branch whose diff puts no production file in scope, so this file was edited deliberately, with the measurement in the commit message). Re-derived again on the round-7 D7-01 fix for #1459: the fix adds a SysIdResult field and two module functions to sysid.py ahead of fourteen recorded sites, so their FILE:LINE keys were re-pointed to the same line text (no verdict changed), and the fix's five new candidate sites take dispositions -- four killed by tests/features.py and one recorded as a measured `gap` (sysid.py:834, a defensive non-finite guard no recorded net reaches). `unpinned_sites` is unchanged: the fourteen re-keys keep the dispositions they had, and each of the five new sites carries one."
