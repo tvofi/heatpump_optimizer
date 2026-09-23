@@ -21,7 +21,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const src = fs.readFileSync(path.join(here, 'web-fix-wave.js'), 'utf8')
@@ -597,6 +597,149 @@ await block('the contract\'s verdict examples parse under the script\'s own gram
     !re.test('Fix review: blocked: finding not carried to <stage>'), 'the old form parses, so this pin cannot fail')
   t('a bare merge verdict with the full 40-hex SHA parses (null control)', re.test(`Fix review: merge ${SHA_STAND_IN}`), 'rejected')
   t('an abbreviated SHA is refused, not merely a \\S+ null control (#1106)', !re.test('Fix review: merge 995b48e'), 'an abbreviated SHA parsed clean, which is the #1106 defect')
+})
+
+await block('group 14 -- the two readers of a blocked verdict deliver one class', async () => {
+  // #1475 (D13-05). A blocked verdict is read by TWO programs: `policy_lint.mjs`'s
+  // `statsHistogram`, which keys its class table on the word it finds, and this
+  // script's `parseVerdict`, which ROUTES the word (a taught one as itself, an
+  // untaught one to `other`). The reviewer prompt teaches ONE vocabulary
+  // (`${VERDICT_CLASSES.join(', ')}` in web-fix-wave.js) and `policy_lint.mjs`
+  // extracts the same literal, so a class the window's reviewer wrote must be a
+  // class both readers deliver -- or they disagree about one verdict, which is
+  // what happened at round 7's #1429: `product-tradeoff-regression` was keyed by
+  // the histogram and routed to `other` by the wave, 1 of the window's 2 blocked
+  // verdicts and 100% of its engineering blocks. Both readers are DRIVEN below.
+  const { statsHistogram } = await import(pathToFileURL(path.join(here, 'policy_lint.mjs')).href)
+  const words = [...src.matchAll(/const VERDICT_CLASSES = \[([^\]]*)\]/g)]
+    .flatMap((m) => [...m[1].matchAll(/'([a-z][a-z0-9-]*)'/g)].map((x) => x[1]))
+  t('the class vocabulary is extracted from the wave script', words.length >= 10, `found ${words.length}`)
+  // The round-7 window's `blocked` first lines, verbatim (yield_rounds.py prints
+  // them from /issues/<n>/comments over the round's window; the audit's own
+  // harness drives both readers over them at tools/audit/round7/D13/
+  // class_vocabulary.mjs). #1418 is the taught control.
+  const WINDOW = [
+    ['1418', 'root-cause-unanswered'],
+    ['1429', 'product-tradeoff-regression'],
+  ].map(([pr, word]) => [pr, word, `Fix review: blocked ${'a'.repeat(40)} ${word}: the reviewer's own words`])
+  // The histogram's cell key, through its OWN argument shape: the CLI passes the
+  // verdict words plus the classes, one fixture comment per verdict line.
+  const histKey = (line) => [...statsHistogram(
+    [{ pr: 7002 }],
+    new Map([[7002, { body: '', comments: [{ body: line }] }]]),
+    [...new Set(['merge', 'blocked', ...words])],
+  ).verdicts.keys()].join('+') || null
+  const rows = []
+  for (const [pr, expected, line] of WINDOW) {
+    const { out } = await run({ groups: [G('A')], groupsFile: 'r.json', reconResult: OK, agentImpl: REVIEW(line) })
+    const route = out.results[0]?.class ?? null
+    const key = histKey(line)
+    rows.push({ pr, expected, key, route, disagree: key !== route, taught: words.includes(expected) })
+  }
+  for (const r of rows) console.log(`  class  #${r.pr} expected=${r.expected} taught=${r.taught ? 1 : 0} histogram_key=${r.key} wave_route=${r.route} disagree=${r.disagree ? 1 : 0}`)
+  const bad = rows.filter((r) => r.disagree)
+  t("every class the window's blocked verdicts name is keyed by the histogram AND routed by the wave",
+    rows.length === WINDOW.length && bad.length === 0,
+    `disagreeing: ${bad.map((r) => `#${r.pr} key=${r.key} route=${r.route}`).join(', ') || '(none)'}`)
+  // THE ARM THAT SAYS THE COMPARISON CAN FAIL. Every row above is now a taught
+  // word, so agreement is what the check prints whether or not it is comparing
+  // anything. An invented word is NOT taught, so the histogram keys it raw while
+  // the wave routes `other` (#1240's deliberate drift signal) -- if this arm
+  // agreed too, the comparison would be reading one reader twice.
+  const invented = `Fix review: blocked ${'b'.repeat(40)} not-a-real-class: invented`
+  t('the comparison fires: an untaught class word is keyed raw and routed to `other` (positive control)',
+    !words.includes('not-a-real-class') && histKey(invented) === 'not-a-real-class',
+    `histogram_key=${histKey(invented)} with ${words.length} taught word(s)`)
+  // ...and the taught control row, which is the whole reason a disagreement here
+  // is a finding about the untutored word rather than about the readers.
+  t('a taught class agrees in the same run (null control)',
+    rows.filter((r) => r.taught && !r.disagree).length === rows.filter((r) => r.taught).length
+      && rows.some((r) => r.taught),
+    J(rows))
+})
+
+console.log('-- The round driver: the schedule every dimension brief must be in')
+// R7-INSTR-01 (#1477). `.claude/workflows/audit-find.js` is the committed
+// workflow that runs a round, and its `DIMS` stopped at D12 through round 7 while
+// `tools/audit/briefs/D13.md` had been in the tree since round 6: the brief
+// existed, the schedule did not name it, and nothing said so -- the dedup
+// prompt's `/reports/` count and path list are both built from DIMS, and the
+// missing-dimension log iterates it, so a dimension absent from the list is
+// absent from the round's record too. Round 7's prep dispatched D13 by hand.
+// `WAVES` must partition DIMS (a dimension in no wave never runs), and
+// `ISOLATED` with `API_DIMS` decides the worktree a finder gets and whether it
+// may read GitHub -- both narrower lists a new dimension joins deliberately.
+// `tools/audit/prepare_baseline.sh` carries the same worktree set in a
+// shell file and says in its own comment that a seat editing one edits both, so// the agreement is asserted rather than remembered. It belongs HERE because
+// `.claude/` is INERT in tests/closure.py and the gate structurally cannot
+// select any of this; the `wave-script` job is never scoped.
+await block('the round driver', async () => {
+  const rd = fs.readFileSync(path.join(here, 'audit-find.js'), 'utf8')
+  const dimsIn = (text) => [...text.matchAll(/'([A-Z]\d+)'/g)].map((m) => m[1])
+  const grab = (re) => { const m = re.exec(rd); return m ? dimsIn(m[1]) : [] }
+  // `WAVES` is a list of lists; brace counting rather than a line-anchored match,
+  // so re-wrapping the literal does not silently yield an empty schedule -- an
+  // empty extraction that reported "no gap" would be this check's own defect.
+  const waveList = (() => {
+    const key = 'const WAVES = ['
+    const start = rd.indexOf(key)
+    if (start < 0) return []
+    const from = start + key.length - 1
+    let depth = 0, end = -1
+    for (let i = from; i < rd.length; i += 1) {
+      if (rd[i] === '[') depth += 1
+      else if (rd[i] === ']') { depth -= 1; if (depth === 0) { end = i; break } }
+    }
+    if (end < 0) return []
+    return [...rd.slice(from, end + 1).matchAll(/\[([^\]]*)\]/g)].map((m) => dimsIn(m[1]))
+  })()
+  const shell = fs.readFileSync(
+    path.join(here, '..', '..', 'tools', 'audit', 'prepare_baseline.sh'), 'utf8')
+  const S = {
+    dims: grab(/const DIMS = \[([^\]]*)\]/),
+    waves: waveList,
+    isolated: grab(/const ISOLATED = new Set\(\[([^\]]*)\]/),
+    api: grab(/const API_DIMS = new Set\(\[([^\]]*)\]/),
+    baseline: ((/^ISOLATED_DIMS="([^"]*)"/m.exec(shell) ?? [, ''])[1]).split(/\s+/).filter(Boolean),
+    briefs: fs.readdirSync(path.join(here, '..', '..', 'tools', 'audit', 'briefs'))
+      .filter((f) => /^D\d+\.md$/.test(f)).map((f) => f.slice(0, -3)).sort(),
+  }
+  // One predicate, two callers: the tree below and the synthetic controls after
+  // it. A control that re-implements the rule tests the copy.
+  const scheduleGaps = (s) => {
+    const gaps = []
+    for (const k of ['dims', 'waves', 'isolated', 'api', 'baseline']) {
+      if (!s[k]?.length) gaps.push(`${k} not found (an empty extraction is a gap, never an exemption)`)
+    }
+    if (gaps.length) return gaps
+    for (const d of s.briefs) if (!s.dims.includes(d)) gaps.push(`briefs/${d}.md has no DIMS entry`)
+    for (const d of s.dims) if (!s.briefs.includes(d)) gaps.push(`DIMS names ${d}, which has no brief`)
+    for (const d of s.dims) if (s.dims.indexOf(d) !== s.dims.lastIndexOf(d)) gaps.push(`DIMS names ${d} twice`)
+    const inWaves = (d) => s.waves.filter((w) => w.includes(d)).length
+    for (const d of s.dims) if (inWaves(d) !== 1) gaps.push(`${d} runs in ${inWaves(d)} wave(s), not exactly one`)
+    for (const w of s.waves.flat()) if (!s.dims.includes(w)) gaps.push(`a wave runs ${w}, which DIMS does not name`)
+    for (const d of s.isolated) if (!s.dims.includes(d)) gaps.push(`ISOLATED names ${d}, which DIMS does not`)
+    for (const d of s.api) if (!s.isolated.includes(d)) gaps.push(`API_DIMS names ${d}, which ISOLATED does not (its history needs a worktree with .git)`)
+    const base = [...s.baseline].sort().join(','), iso = [...s.isolated].sort().join(',')
+    if (base !== iso) gaps.push(`prepare_baseline.sh ISOLATED_DIMS [${base}] != audit-find.js ISOLATED [${iso}]`)
+    return gaps
+  }
+  const real = scheduleGaps(S)
+  console.log(`  scope  ${S.dims.length} dimension(s), ${S.waves.length} wave(s), ${S.isolated.length} isolated, ${S.api.length} API-reading, ${S.briefs.length} brief(s)`)
+  t("every dimension brief is in the round driver's DIMS, and its waves and worktree lists agree",
+    S.briefs.length >= 14 && real.length === 0, `gaps: ${real.join('; ')}`)
+  t('the check fires: a DIMS list that stops short of a brief is refused (positive control)',
+    scheduleGaps({ ...S, dims: S.dims.filter((d) => d !== 'D13') }).length > 0,
+    'a schedule missing a dimension brief passed, so this check cannot see R7-INSTR-01')
+  t('the check fires: a wave list that does not partition DIMS is refused (positive control)',
+    scheduleGaps({ ...S, waves: [(S.waves[0] ?? []).filter((d) => d !== 'D13'), S.waves[1] ?? []] }).length > 0,
+    'a wave list that runs no D13 passed')
+  t('the check fires: the two worktree lists drifting apart is refused (positive control)',
+    scheduleGaps({ ...S, baseline: S.baseline.filter((d) => d !== 'D13') }).length > 0,
+    'audit-find.js and prepare_baseline.sh may disagree, which its own comment forbids')
+  t('and an empty extraction is refused rather than reported clean (null control)',
+    scheduleGaps({ dims: [], waves: [], isolated: [], api: [], baseline: [], briefs: [] }).length > 0,
+    'a schedule read out of nothing reported no gap')
 })
 
 // The guard above is only worth having if it is actually called.

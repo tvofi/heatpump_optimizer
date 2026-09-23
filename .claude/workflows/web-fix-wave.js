@@ -184,6 +184,17 @@ const VERDICT_CLASSES = [
   'mutation-vacuous', 'harness', 'null-control', 'claims', 'version',
   'head-moved', 'carry-missing', 'root-cause-unanswered', 'preflight-mismatch',
   'class-open', 'conflict', 'other',
+  // #1475 (D13-05). A class a REVIEWER wrote and this vocabulary never taught:
+  // round 7's window carries `Fix review: blocked <sha>
+  // product-tradeoff-regression: <why>` at #1429 -- the window's only block
+  // naming a defect in the fixed code -- and a word the vocabulary lacks is a
+  // word parseVerdict routes to `other` while policy_lint.mjs's statsHistogram
+  // keys the histogram on it raw, so the two readers of ONE verdict delivered
+  // two different classes (1 of the window's 2 blocked verdicts). The list is
+  // still one list: the reviewer prompt below interpolates it and
+  // `policy_lint.mjs:blockClasses` extracts it from this same literal, so
+  // teaching the word here is what makes the three agree.
+  'product-tradeoff-regression',
 ]
 // A class that means the fix is sound but the PROCESS owes an answer. The
 // root-cause seat runs beside a fix and never inside it (root-cause.md), so it
