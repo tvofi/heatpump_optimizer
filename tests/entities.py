@@ -20493,7 +20493,7 @@ _STATS_GRAMMAR = json.loads(subprocess.run(
     capture_output=True, text=True).stdout or "{}")
 R.check(
     "the stats histogram classifies exactly the grammar the wave script's own "
-    "VERDICT_RE parses (#1472)",
+    "VERDICT_RE parses, over `Fix review:` FIRST LINES (#1472)",
     _STATS_GRAMMAR.get("diverge") == []
     and _STATS_GRAMMAR.get("both", 0) >= 2
     and _STATS_GRAMMAR.get("outside", 0) >= 2,
@@ -20504,6 +20504,113 @@ R.check(
     "sha-less head, the case variants and the abbreviation while the wave "
     "refused all four, and the merge and blocked arms of one function disagreed "
     "about the head",
+)
+# THE GRAMMAR IS NOT THE WHOLE READER, AND THE CHECK ABOVE SAYS SO NOW (#1480
+# review, class-open). Its universal -- "classifies exactly the grammar
+# VERDICT_RE parses" -- was false over comment BODIES, and the `## Figures`
+# harness could never see it: that instrument enumerates `Fix review:` first
+# lines, where the two readers' extractions coincide by construction. The wave
+# extracts a verdict with `String(...).trim().split('\n')[0]` -- trim the body,
+# then take its first line -- and the histogram took the first line and trimmed
+# it, which differs for exactly two shapes of body: a verdict line ending in
+# whitespace (trimmed away here, KEPT there, so a line the wave throws on
+# counted as a verdict) and a body opening with a blank line (`''` first line
+# here, which failed the `Fix review:` gate before anything could report it,
+# while the wave reads the verdict on the next line). Both directions are closed
+# by taking the wave's own extraction, and the property is driven over bodies
+# through BOTH production readers -- `parseVerdict` sliced out of
+# `web-fix-wave.js` and evaluated with that file's own `VERDICT_RE` and
+# `VERDICT_CLASSES` bound, the technique the D13 harness for this grammar uses,
+# since the file runs a wave at import and cannot be imported. `counted` is the
+# histogram's delivered cell; `dropped` is the silent half -- a body the wave
+# accepts that the histogram neither counts nor reports.
+_STATS_BODIES = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import fs from 'node:fs';"
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const waveText = fs.readFileSync('.claude/workflows/web-fix-wave.js', 'utf8');"
+     "const reKey = 'const VERDICT_RE = ';"
+     "const reEnd = waveText.indexOf('\\n)', waveText.indexOf(reKey)) + 2;"
+     "const clsKey = 'const VERDICT_CLASSES = ';"
+     "const clsEnd = waveText.indexOf('\\n]', waveText.indexOf(clsKey)) + 2;"
+     "const VERDICT_RE = eval(waveText.slice(waveText.indexOf(reKey) + reKey.length, reEnd));"
+     "const VERDICT_CLASSES = eval(waveText.slice(waveText.indexOf(clsKey) + clsKey.length, clsEnd));"
+     "const fnKey = 'function parseVerdict(review) {';"
+     "const fnStart = waveText.indexOf(fnKey);"
+     "let depth = 0; let fnEnd = -1;"
+     "for (let i = waveText.indexOf('{', fnStart); i < waveText.length; i += 1) {"
+     "if (waveText[i] === '{') depth += 1;"
+     "else if (waveText[i] === '}') { depth -= 1; if (depth === 0) { fnEnd = i + 1; break; } } }"
+     "const parseVerdict = new Function('VERDICT_RE', 'VERDICT_CLASSES',"
+     "waveText.slice(fnStart, fnEnd) + '\\nreturn parseVerdict')(VERDICT_RE, VERDICT_CLASSES);"
+     "const sha = (c) => c.repeat(40);"
+     "const V = 'Fix review: merge ' + sha('a');"
+     "const B = 'Fix review: blocked ' + sha('b') + ' mutation-vacuous: the mutant survived';"
+     "const BODIES = ["
+     "['plain-merge', V],"
+     "['plain-blocked', B],"
+     "['merge-trailing-space', V + ' \\n\\nRESULT x'],"
+     "['merge-trailing-tab', V + '\\t\\n\\nRESULT x'],"
+     "['blank-opener', '\\n' + V],"
+     "['crlf-opener', '\\r\\n' + V],"
+     "['space-opener', ' \\n' + V],"
+     "['crlf-after-verdict', V + '\\r\\nRESULT x'],"
+     "['abbreviated-head', 'Fix review: merge ' + sha('a').slice(0, 12)],"
+     "['sha-less', 'Fix review: merge'],"
+     "['not-a-verdict', 'x\\n' + V]"
+     "];"
+     "const rows = BODIES.map(([label, body], i) => {"
+     "const h = m.statsHistogram([{ pr: i + 1 }], "
+     "new Map([[i + 1, { body: '', comments: [{ body }] }]]), ['blocked', 'merge']);"
+     "let wave = null;"
+     "try { wave = parseVerdict({ comment: body }).verdict } catch { wave = null; }"
+     "return { label, wave, counted: h.verdicts.size > 0, outside: h.unclassified.length > 0 }; });"
+     "console.log(JSON.stringify({"
+     "rows: rows.map((r) => [r.label, r.wave, r.counted, r.outside]),"
+     "over: rows.filter((r) => r.counted && !r.wave).map((r) => r.label),"
+     "dropped: rows.filter((r) => r.wave && !r.counted && !r.outside).map((r) => r.label),"
+     "both: rows.filter((r) => r.wave && r.counted).length,"
+     "refused: rows.filter((r) => !r.wave && !r.counted && r.outside).length,"
+     "total: rows.length"
+     "})); })"],
+    capture_output=True, text=True).stdout or "{}")
+
+
+def _body_row(label):
+    return next((r for r in _STATS_BODIES.get("rows") or [] if r[0] == label), [])
+
+
+R.check(
+    "and it classifies a comment BODY exactly as the wave script's own "
+    "`parseVerdict` reads it, both readers driven (#1480)",
+    _STATS_BODIES.get("over") == []
+    and _STATS_BODIES.get("dropped") == []
+    and _STATS_BODIES.get("both", 0) >= 2
+    and _STATS_BODIES.get("refused", 0) >= 2,
+    f"counted-but-refused={_STATS_BODIES.get('over')!r}; "
+    f"accepted-and-silently-dropped={_STATS_BODIES.get('dropped')!r}; "
+    f"counted-by-both={_STATS_BODIES.get('both')}, "
+    f"refused-by-both={_STATS_BODIES.get('refused')} of "
+    f"{_STATS_BODIES.get('total')} body shape(s) -- the matcher can be the "
+    "wave's grammar while the EXTRACTION is not, and the two differ exactly "
+    "where a body's first line is not its first non-blank line, or its first "
+    "line ends in whitespace",
+)
+R.check(
+    "and the two shapes the extractions disagreed on are closed in their own "
+    "directions (#1480)",
+    _body_row("merge-trailing-space")[2:] == [False, True]
+    and _body_row("merge-trailing-tab")[2:] == [False, True]
+    and _body_row("blank-opener")[1:3] == ["merge", True]
+    and _body_row("crlf-opener")[1:3] == ["merge", True]
+    and _body_row("space-opener")[1:3] == ["merge", True],
+    f"trailing space={_body_row('merge-trailing-space')!r}, trailing tab="
+    f"{_body_row('merge-trailing-tab')!r}, blank opener="
+    f"{_body_row('blank-opener')!r}, crlf opener={_body_row('crlf-opener')!r}, "
+    f"space opener={_body_row('space-opener')!r} -- [label, wave, counted, "
+    "outside]: the over-count direction is a line the wave throws on and the "
+    "histogram reported outside the grammar instead of counting, and the "
+    "silent-drop direction is a body the wave reads and the histogram counts",
 )
 # AND BOTH ENDPOINTS A VERDICT CAN ARRIVE ON (#1471, D13-01). The reviewer
 # contract defines a verdict as a comment OR a review; `fetchWindow` fetched the

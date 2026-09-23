@@ -2447,7 +2447,21 @@ export function statsHistogram(prs, fetched, classes) {
     // carries both words itself.)
     const heads = []
     for (const { body, origin } of verdictWalk(f)) {
-      const first = String(body ?? '').split('\n')[0].trim()
+      // THE EXTRACTION IS THE WAVE'S OWN, not only the matcher (#1480 review,
+      // class-open). `web-fix-wave.js`'s `parseVerdict` does
+      // `String(...).trim().split('\n')[0]` -- TRIM THE BODY, then take its
+      // first line -- and this read did the opposite: take the first line, then
+      // trim it. The two differ for exactly two shapes of body, and each moves
+      // a verdict in the direction the other one does not: a body whose verdict
+      // line ends in whitespace has its trailing space REMOVED here and KEPT
+      // there, so a line the wave throws on counted as a verdict; and a body
+      // opening with a blank line has `''` as its first line here, which fails
+      // the `Fix review:` gate below and was neither counted nor reported,
+      // while the wave reads the verdict on the second line. The `## Figures`
+      // harness could not see either: it enumerates `Fix review:` FIRST LINES,
+      // where the two extractions coincide by construction. Trim first, as the
+      // wave does, and both directions close.
+      const first = String(body ?? '').trim().split('\n')[0]
       if (!/^Fix review:/i.test(first)) continue
       const m = re == null ? null : re.exec(first)
       if (!m) {
