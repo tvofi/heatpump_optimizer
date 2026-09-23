@@ -2771,8 +2771,8 @@ def _gap_probe_terms(
     which is also why the advisor against a series-less payload ranks
     nothing. That payload is the measured window `_build_data_dict`
     publishes (#1460), so it is non-empty exactly when a power meter is
-    reading; an install with none ranks nothing and says so, which is the
-    honest answer rather than a zero dressed as a measurement. Once
+    reading; an install with none ranks nothing, and its zero is the absent
+    window rather than a priced one. Once
     a series is present the COP terms read the pump load and duty cycle the
     window shows; the DHW term is a month of the tank's usable band, one
     reheat a day at the resolved rate, priced from the configured tank volume
