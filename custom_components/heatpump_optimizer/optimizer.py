@@ -6873,10 +6873,11 @@ class HeatPumpOptimizer:
             if result.displace_schedule and i < len(result.displace_schedule)
             else 0.0
         )
+        on_threshold = max(0.1, self.model.params.min_electrical_power * 0.5)
         heat_pump_on = (
             result.heat_pump_on_schedule[i]
             if result.heat_pump_on_schedule and i < len(result.heat_pump_on_schedule)
-            else power > max(0.1, self.model.params.min_electrical_power * 0.5)
+            else power > on_threshold
         )
 
         p_range = (
@@ -6887,8 +6888,14 @@ class HeatPumpOptimizer:
             power - self.model.params.min_electrical_power
         ) / max(p_range, 0.1)
 
-        if p_norm < 0.1:
+        # The band is the SPACE circuit's, but "off" means the pump is off
+        # (#1499): a space step below the band's first rung still runs, and
+        # a step where only DHW clears the on threshold is hot_water.
+        space_on = power >= on_threshold
+        if not heat_pump_on:
             mode = "off"
+        elif not space_on:
+            mode = "hot_water"
         elif p_norm < 0.4:
             mode = "eco"
         elif p_norm < 0.7:
@@ -6905,6 +6912,7 @@ class HeatPumpOptimizer:
             "price": round(price, 4),
             "power_normalized": round(p_norm, 2),
             "heat_pump_on": bool(heat_pump_on),
+            "space_heating_active": bool(heat_pump_on and space_on),
             "displace_value": float(displace_value),
             # T6: the reason codes for THIS step ride with the action, so
             # the settlement can tag every booked SEK with why the plan

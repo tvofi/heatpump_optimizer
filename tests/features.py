@@ -31189,6 +31189,49 @@ R.check(
     "baseline_kw" in _act_zero and _act_zero["baseline_kw"] == 0.0,
     repr(_act_zero.get("baseline_kw")),
 )
+
+# #1499: Heat Pump Action read "off" while the pump ran. The band is keyed on
+# SPACE power, so a DHW-only step (space blocked, tank heating) and a space
+# step at the pump's minimum modulation both fell under the "off" rung. The
+# on/off schedule is built by the solve's own helper, as _build_result does.
+_hw_p = _bl_opt.model.params
+_hw_space = [0.0, _hw_p.min_electrical_power, 0.0, _hw_p.max_electrical_power]
+_hw_dhw = [2.0, 0.0, 0.0, 0.0]
+_res_hw = _SavOR(
+    power_schedule=_hw_space,
+    room_temp_trajectory=[21.0] * 5,
+    slab_temp_trajectory=[22.0] * 5,
+    timestamps=_ts_sav,
+    prices=[1.0] * 4,
+    predicted_cost=1.0,
+    baseline_cost=2.0,
+    predicted_savings=1.0,
+    savings_percentage=50.0,
+    optimal_setpoints=[21.0] * 4,
+    status="optimal",
+    dhw_power_schedule=_hw_dhw,
+    heat_pump_on_schedule=_bl_opt._power_to_heat_pump_schedule(
+        np.asarray(_hw_space), np.asarray(_hw_dhw)
+    ),
+)
+_hw_acts = [_bl_opt.get_current_action(_res_hw, _t) for _t in _ts_sav]
+R.check(
+    "a DHW-only step reads hot_water, not off (#1499)",
+    _hw_acts[0]["mode"] == "hot_water"
+    and _hw_acts[0]["heat_pump_on"]
+    and _hw_acts[0]["space_heating_active"] is False,
+    repr(_hw_acts[0]),
+)
+R.check(
+    "a space step at the pump's minimum modulation reads eco, not off",
+    _hw_acts[1]["mode"] == "eco" and _hw_acts[1]["space_heating_active"] is True,
+    repr(_hw_acts[1]),
+)
+R.check(
+    "off is kept for a step where neither circuit runs, boost for full power",
+    [_a["mode"] for _a in _hw_acts[2:]] == ["off", "boost"],
+    repr([_a["mode"] for _a in _hw_acts]),
+)
 _src_br = _sav_inspect.getsource(_SavOpt._build_result)
 R.check(
     "_build_result writes baseline_power_schedule",
