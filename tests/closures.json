@@ -2,19 +2,19 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched. recorded.seconds for the two differential guards (tests/golden.py, tests/env_drift.py) time the deliberately cheap stub invocation derive_closures.sh records with (golden.py --only __no_such_scenario__, env_drift.py --cache-key <ref> --all), not a real differential run: a real one costs minutes, the record says under a second (#934).",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 20.6,
+   "seconds": 114.3,
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 4.8,
+   "seconds": 11.2,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 2.9,
+   "seconds": 4.8,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 16.8,
+   "seconds": 23.9,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -22,19 +22,19 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 22.1,
+   "seconds": 55.2,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 51.1,
+   "seconds": 54.4,
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.4,
+   "seconds": 0.5,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 136.1,
+   "seconds": 252.2,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -42,11 +42,11 @@
    "rc": 0
   },
   "tests/golden.py": {
-   "seconds": 0.4,
+   "seconds": 0.6,
    "rc": 0
   },
   "tests/manual_plan.py": {
-   "seconds": 4.5,
+   "seconds": 8.7,
    "rc": 0
   },
   "tests/open_meteo.py": {
@@ -54,31 +54,31 @@
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 42.0,
+   "seconds": 198.4,
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 0.8,
+   "seconds": 1.1,
    "rc": 0
   },
   "tests/solar_alignment.py": {
-   "seconds": 0.5,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 387.1,
+   "seconds": 958.2,
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 1.6,
+   "seconds": 2.5,
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 18.8,
+   "seconds": 56.5,
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 2.2,
+   "seconds": 2.1,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -86,7 +86,7 @@
    "rc": 0
   },
   "tests/typing_ruler.py": {
-   "seconds": 0.1,
+   "seconds": 0.2,
    "rc": 0
   },
   "tests/guard_pins.py": {
@@ -94,7 +94,7 @@
    "rc": 0
   },
   "tests/wood_advisor.py": {
-   "seconds": 0.6,
+   "seconds": 0.7,
    "rc": 0
   },
   "tests/harness_headers.py": {
@@ -102,17 +102,18 @@
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 1.1,
+   "seconds": 1.5,
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 6.3,
+   "seconds": 8.8,
    "rc": 0
   }
  },
  "closures": {
   "tests/backtest.py": [
    "custom_components/heatpump_optimizer/__init__.py",
+   "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
@@ -404,6 +405,7 @@
   ],
   "tests/edge.py": [
    "custom_components/heatpump_optimizer/__init__.py",
+   "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
@@ -1134,6 +1136,7 @@
   ],
   "tests/optimality.py": [
    "custom_components/heatpump_optimizer/__init__.py",
+   "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
@@ -1300,6 +1303,7 @@
   ],
   "tests/stress.py": [
    "custom_components/heatpump_optimizer/__init__.py",
+   "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
@@ -1397,6 +1401,7 @@
   ],
   "tests/validate.py": [
    "custom_components/heatpump_optimizer/__init__.py",
+   "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
@@ -1606,6 +1611,7 @@
   ],
   "tests/guard_pins.py": [
    "custom_components/heatpump_optimizer/__init__.py",
+   "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_learning.py",
