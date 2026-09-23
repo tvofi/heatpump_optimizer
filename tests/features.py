@@ -29994,6 +29994,62 @@ R.check(
 )
 
 # ---------------------------------------------------------------------------
+R.section("the jointly-raised branch ships when the coil is not monotone (R7 D0-01)")
+
+# `_apply_dhw_min_run` gives two answers to the same question. It raises EVERY
+# weak slot to `run_power` when the all-raised trajectory stays inside
+# `max(ceiling, the plan's own trajectory)`; otherwise it falls into a per-slot
+# loop that may ZERO a slot instead. The two are not the same rule, because the
+# tank trajectory is not monotone in a slot's power at production draw rates:
+# the coil carries part of the draw, so pumping heat into a step can COOL the
+# tank. Measured over this fixture's regime, 1007 of 5760 single-slot raises
+# lower the tank somewhere, worst by 8.29 K. So a case exists where the branch
+# raises a slot and the loop zeroes it, and this is one, found by sweeping 60k
+# production-shaped inputs (3 of them diverged; the branch was taken in 48465):
+# a 48.19 L tank, a 13.65 kW peak draw, a tank starting at 35.9 C, and weak
+# slots 67-70 against a 02:00-duty draw block. The assertion is the SHIPPED
+# answer, not a re-derivation of it: delete the branch's `return
+# jointly_raised` and slot 69 comes back 0.0 while the other three stay raised.
+from profiles import house as _mb_house
+from heatpump_optimizer.optimizer import (
+    HeatPumpOptimizer as _MbOpt, OptimizationConfig as _MbCfg)
+from heatpump_optimizer.thermal_model import (
+    ThermalModel as _MbModel, ThermalParameters as _MbParams)
+
+_mb_ref = _MbModel(_MbParams.from_config(_mb_house(two_zone=True)))
+_mb_cfg = _mb_house(two_zone=True)
+_mb_cfg["dhw_tank_volume"] = 48.19285871883017
+_mb_cfg["dhw_daily_consumption"] = _mb_cfg["dhw_daily_consumption"] * (
+    13.645818427395806 / float(np.max(_mb_ref.dhw_draw_rates(np.arange(96) * 0.25))))
+_mb_cfg["min_electrical_power"] = 1.7658172597694195
+_mb_params = _MbParams.from_config(_mb_cfg)
+_mb_model = _MbModel(_mb_params)
+_mb_opt = _MbOpt(_mb_model, _MbCfg(
+    horizon_hours=24, time_step_minutes=15, target_temp=21.0,
+    min_temp=17.0, max_temp=23.0))
+_mb_min = min(4.8, max(0.15, _mb_params.min_electrical_power * 0.6))
+_mb_plan = np.zeros(96)
+_mb_stage = 3.747060981420774
+_mb_plan[[4, 10, 75]] = _mb_stage
+_mb_plan[[67, 68, 69, 70]] = [0.5123444691241006, 0.507004671114509,
+                             0.025442863317439675, 0.08387927216962915]
+_mb_out = _mb_opt._apply_dhw_min_run(
+    plan=_mb_plan.copy(), initial_temp=35.885047342513275,
+    outdoor_temps=np.full(96, -5.0),
+    draw_rates=_mb_model.dhw_draw_rates(np.arange(96) * 0.25), dt=0.25,
+    p_dhw_max=4.8, min_run_power=_mb_min, max_temp=np.full(96, 55.0))
+R.check(
+    "every weak slot is raised, none zeroed, in the branch-taken case",
+    bool(np.allclose(_mb_out[[67, 68, 69, 70]], _mb_min)),
+    f"slots 67-70 -> {[round(float(_mb_out[i]), 6) for i in (67, 68, 69, 70)]}, "
+    f"run_power {_mb_min}",
+)
+R.check(
+    "...and the plan's own full blocks are untouched",
+    bool(np.allclose(_mb_out[[4, 10, 75]], _mb_stage)),
+    f"blocks -> {[round(float(_mb_out[i]), 6) for i in (4, 10, 75)]}",
+)
+
 R.section("W3-G3 — process-route the solve off the GIL (#290 #199)")
 
 from heatpump_optimizer.coordinator import (  # noqa: E402

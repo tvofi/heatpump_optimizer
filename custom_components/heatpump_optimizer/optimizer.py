@@ -262,6 +262,36 @@ _COMFORT_PULL_TWO_ZONE = 0.0125
 # more, but which wins outright when pre-heating less is the better plan.
 _LOW_ENERGY_START_FRACTION = 0.35
 
+# The deep low-energy bang-bang seed (round 7 D0-01, #1447). The seed above
+# brackets the two-store shape; on the default two-zone winter cell it does
+# not bracket the OPTIMUM, which sits below both anchors: measured, the
+# objective's best point is at 0.20x the baseline energy (77.543533 against
+# production's 77.884228, 0.4374 % of the shipped objective, 1.060 SEK/day),
+# and the 0.35x seed is not merely unhelpful there -- refined it lands at
+# 79.12, a worse basin than the shipped plan, and the smooth/baseline/1.0x
+# seeds all refine into the ~77.88 basin. Pre-heating less and buying the
+# shortfall later is cheaper because the day's price curve is steeper than
+# the stores' round-trip loss. Under-heating is a priced decision, not a
+# comfort one: the anchor is climbed out of at no comfort cost (0.0
+# degree-steps of floor violation on both arms of the harness), and at flat
+# prices the same seed stops beating production (gap 0.0000 %), which is the
+# null control separating a price gap from a comfort or cycling artefact.
+# The 0.20 fraction is the ladder's measured winner, not a fitted value: the
+# 0.10 anchor does not beat it on the cell the harness drives.
+#
+# TWO-ZONE ONLY, and the reach is the point. The anchor is appended in
+# `_optimize_space_only` only under `two_zone_enabled`, because the
+# single-zone plan is the state the solve certificate's recorded claims are
+# calibrated on and this seed moves it to a different local optimum on some
+# runners and not others: measured, the certificate's own grid reads
+# `one|shoulder|winter_cold`'s ladder gap at 0.73 % here and closed on CI's
+# runner, which is a claim that can be neither kept nor withdrawn. Restricting
+# the reach leaves every single-zone solve byte-identical, so those claims keep
+# their calibration, and the finding's own fix scope asks for the two-zone
+# path. The two-zone cell carries the same portability limit and states it
+# where it is measured -- see `_CERT_BARS` in tests/optimality.py.
+_DEEP_LOW_ENERGY_START_FRACTION = 0.20
+
 # Resolved by name, not imported: threadpoolctl publishes no py.typed and no
 # stub distribution exists, so a static import is an `import-untyped` error
 # with no annotation that reaches it -- while the try/except below already
@@ -619,10 +649,17 @@ def _multi_start_minimize(
         # result after the loop, so a candidate whose own polish would have
         # dropped below that result never got one: measured on the round-5
         # grid, production shipped up to 1.40% above the best its own code
-        # reaches from the same candidates. Each polish restarts from that
-        # candidate's own converged point at the full restart budget, so it
-        # costs one short L-BFGS-B run per candidate, not a second solve;
-        # the cross-candidate minimum below is what ships.
+        # reaches from the same candidates. The cross-candidate minimum below
+        # is what ships.
+        #
+        # The restart stops on its own convergence, not on the budget handed
+        # in here. Round 7 D9-02 (#1463) measured the polish at 0.4-0.6 of a
+        # main run and ~35% of the solve, refuting the "one short L-BFGS-B
+        # run per candidate" this comment used to claim, and priced every cut
+        # of it -- a maxiter cap, a cap at the main run's own nit, polishing
+        # only the best-scoring candidates, a looser polish ftol -- each of
+        # which moves the shipped plan. The cost is what the 1.40% is bought
+        # with; the stress gate's per-scenario CPU budgets police it.
         res = _lbfgsb_restart(
             res, memoized, bounds, args, maxiter, batch_objective, fd_eps,
         )
@@ -2114,8 +2151,6 @@ class HeatPumpOptimizer:
                     for name in ("room", "slab", "upper", "lower", "buffer")
                 })
             return out
-        return cost_batch
-
         return cost_batch
 
     def _zone_setpoints(
@@ -3892,9 +3927,10 @@ class HeatPumpOptimizer:
 
         # Multiple starting points: the smooth price-weighted guess above, a
         # bang-bang schedule that buys the cheapest steps first, a flat
-        # schedule, and the low-energy bang-bang seed (R1-D0-01 -- see
-        # _LOW_ENERGY_START_FRACTION for why the same-energy candidates all
-        # refine into one basin on arbitrage prices). See
+        # schedule, and the low-energy bang-bang seeds (R1-D0-01 and R7-D0-01
+        # -- see the two fractions' comments for why the same-energy
+        # candidates all refine into one basin on arbitrage prices, and why
+        # 0.35x alone does not bracket the optimum's energy). See
         # _multi_start_minimize for why one guess is not enough.
         # Computed once and reused below for the savings reference; the same
         # simulation also makes a good solver start.
@@ -3915,6 +3951,17 @@ class HeatPumpOptimizer:
                 dt,
             ),
         ]
+        if self.model.params.two_zone_enabled:
+            # The deep low-energy anchor, two-zone only -- see its own
+            # comment for why the reach is deliberately this narrow.
+            starts.append(
+                _price_ranked_start(
+                    prices,
+                    baseline_energy * _DEEP_LOW_ENERGY_START_FRACTION,
+                    p_max,
+                    dt,
+                )
+            )
         if h.extra_starts:
             starts = list(h.extra_starts) + starts
 

@@ -19,7 +19,11 @@ production lines. You work in your own worktree branched from `origin/main`.
    and a vacuous mutation reads exactly like a passing check — `exit 3` on the
    end of `.claude/hooks/pre-edit.sh` left `policy_lint --hooks` at rc=0.
 3. **Re-execute the finding's harness on your branch**: before and after, with
-   the head SHA measured, in the PR body. **Every quantified claim carries a
+   the head SHA measured, in the PR body. It may not be at your head — a round's
+   `D*/*.py` harnesses stay out of the tree (a Linux-only closure re-derivation;
+   commit `21acaf8e`) and its register can merge after you — so run it from the
+   baseline export and cite `$EXPORT/<path>` with its sha1, which `figure_lint`
+   reports unverified, not refused. **Every quantified claim carries a
    null control, not only cost, gain and time**: a count, a percentage, an
    "every" or a "none" is a measurement, owed the command that produced it and
    the result that would have appeared had it been false. **Never print a
@@ -262,12 +266,6 @@ that went red in the body and answer it there — the cheaper detector and its
 standing cost, or the finding that none exists. `UNDER-SCOPED` and `INHERITED
 CLAIMS` are answered by naming them (`ci-autofix.md`). You are naming the
 trigger, not analysing it; the analysis is `root-cause.md`'s seat.
-
-A harness the closure recorder cannot see — one that shells out to
-subprocesses, like `tests/harness_headers.py` — will not turn red on your PR
-at all; treat its headers' EXPECTED lines as production state and re-record
-them in the same pull request that changes what they print (#968 → #979:
-only main's forced-full run caught it).
 
 ## Past three rounds, re-cut rather than repair
 
