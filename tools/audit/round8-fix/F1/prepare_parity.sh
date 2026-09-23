@@ -34,6 +34,9 @@
 # -> prepare_rc=2, and the harness stops there. Direction: up.
 # NULL CONTROL: the controls above; a check that fails in both trees (an
 # origin that is a local path, for instance) is not counted.
+# Two runs at once, or one beside a gate run, can flake entities' gate-lease
+# check ("run.sh leases a FULL or stress run itself") in either tree: re-run
+# before reading an extra fail as the strip's.
 set -uo pipefail
 SCRATCH="${1:?scratch dir (must not exist)}"; ENT="${2:-}"
 PY="${PYTHON:-$(command -v python3)}"   # prepare_baseline.sh wants an executable path
