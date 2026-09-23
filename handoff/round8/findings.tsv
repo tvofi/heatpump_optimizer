@@ -1,0 +1,286 @@
+round	id	severity	class	mechanism_summary	production_files
+R1	D1-01	critical	P1	Corrupted ledger month wedges every update cycle (from_dict accepts malformed lines)	ledger.py
+R1	D1-04	medium	P6	Weather fetch failure fabricates flatlined zero forecast forever, no staleness flag	coordinator.py
+R1	D1-05	medium	P1	Corrupted snapshot accuracy field crashes drift-rollback path	coordinator.py
+R1	D2-01	medium	P5	sysid.identify() over-estimates UA under sensor noise; adoption gate rewards drift	sysid.py
+R1	D4-04	high	P8	Hardcoded SEK in config-flow labels and Repairs notices despite currency-agnostic price data	config_flow.py
+R1	D4-01	critical	P9	Card chart SVG text renders at 3.19px glyph height on phone width	card.js
+R1	D4-02	high	P9	Single-point series render nothing while legend chip still reads active	card.js
+R1	D4-03	high	P9	Estimated prices label overlaps lane-row labels	card.js
+R1	D4-06	medium	P9	Projected savings headline discloses baseline only via hover tooltip	card.js
+R1	D7-01	critical	P2	10,041-line coordinator class; state is the coupling across 249 methods	coordinator.py
+R1	D7-02	high	P5	sysid fits first-order plant to >=2nd order house; wrong-signed coefficient on target houses	sysid.py
+R1	D7-03	high	P10	Scalar vs batch physics ~720 duplicated lines kept identical only by _grad_parity	thermal_model.py
+R1	D7-04	medium	P6	last_buffer_trajectory side-channel: scalar writes, batch doesn't; latent stale-read trap	thermal_model.py
+R1	D7-05	medium	P2	Freeze-gate asymmetry: _accuracy.record() gated only on pump signals, not open-window	coordinator.py
+R1	D9-01	critical	P10	Batched gradient bypassed on 38/39 DHW golden scenarios; ~40x slower solve	optimizer.py
+R1	D9-02	high	P10	Solve in executor starves HA event loop 75-76% of solve wall time (GIL)	coordinator.py
+R1	D10-06	critical	P2	async_shutdown() drops super(); base coordinator timer/debouncer leak on unload	coordinator.py
+R1	D10-07	high	P6	Tibber fetch failures swallowed; last_update_success never flips	coordinator.py
+R1	D10-01	high	I5	Services registered per config-entry not in async_setup (HA quality rule)	__init__.py
+R1	D10-02	high	I5	hass.data[DOMAIN] everywhere; ConfigEntry.runtime_data never used	coordinator.py
+R1	D10-03	high	P2	No duplicate-entry protection in config flow	config_flow.py
+R1	D10-08	high	P2	No reauthentication flow for Tibber token	config_flow.py
+R1	D10-12	medium	I5	No diagnostics platform for 149 published keys, incl. token	(none)
+R1	D10-13	low	I5	64 hardcoded _attr_icon, zero icons.json	sensor.py
+R1	D0-01	medium	P4	All three L-BFGS-B starts cluster in one basin; bang-bang start reaches cheaper plans	optimizer.py
+R1	D0-02	low	P4	_MULTI_START_SOLVES=2 discards a candidate that refines below the shipped result	optimizer.py
+R1	D3-01	critical	I1	Compressor-cycling penalty deletable, vacuous even in its titled test	stress.py
+R1	D3-02	critical	I1	COP-learner trust-region clamp deletable; full closure passes	curve_learning.py
+R1	D3-03	high	I1	ECL110 first-order lag physics deletable, asserted nowhere	ecl110.py
+R1	D3-04	high	I1	COP-degradation repair text claims full monthly bill for 1% shortfall, only keys checked	coordinator.py
+R1	D3-05	high	I1	pump_mode_unreadable notification path made a no-op, nothing notices	coordinator.py
+R1	D3-06	high	I1	climate.hvac_action hard-coded wrong value, zero test references	climate.py
+R1	D3-07	medium	I1	Grid-fee day-range wrap-around branch deletable, no string exercises it	grid_fee.py
+R1	D3-08	medium	I1	Config-flow DHW deadband validation permanently disabled, no test notices	config_flow.py
+R1	D5-01	high	I5	configuration.md missing four real always-asked fields	docs/configuration.md
+R1	D5-02	high	I5	configuration.md field counts wrong (21 actual vs 17/18 documented)	docs/configuration.md
+R1	D5-03	medium	I5	architecture.md module map omits pump_mode.py/pump_signals.py	docs/architecture.md
+R1	D5-04	medium	I5	plan-open-issues.md lists six shipped issues as open	docs/plan-open-issues.md
+R1	D6-01	medium	I5	manifest.json documentation/issue_tracker/codeowners point to 404 GitHub identity	manifest.json
+R1	D6-02	medium	I5	apply_manual_plan documented example values fail the service's own schema	services.yaml
+R1	D8-01	critical	P6	ScheduleSensor leaks numpy.float64 via solar_gain_trajectory, orjson crashes	sensor.py
+R1	D8-02	high	P6	_fetch_weather_forecast empty-result silently keeps stale forecast forever	coordinator.py
+R2	D0-01	medium	P4	Capacity-tariff single-zone solver stalls on top-k peak plateau (2-point gradient can't see it)	tariff.py, optimizer.py
+R2	D0-02	low	P4	Two-zone solves stop on FACTR at non-stationary points	optimizer.py
+R2	D0-03	medium	P3	Small buffer tank + manual mixing valve: re-solve stops at tank-clamp kink	optimizer.py
+R2	D1-01	medium	P2	ConfigEntryNotReady leaks listeners/MQTT subs per retry; guard on hass not entry.async_on_unload	coordinator.py
+R2	D1-02	medium	P2	Reload during scheduled solve: torn-down coordinator finishes update after async_shutdown	coordinator.py
+R2	D1-03	medium	P1	Store loaders crash on corrupt payloads; 152/2000 seeded mutants leave 3 stores forever lost	*.py (7 stores)
+R2	D1-04	medium	P6	Price list not covering horizon planned/actuated on flat 0.5 fallback, only price_known_steps=0 discloses it	tariff.py
+R2	D1-05	low	P6	async_simulate replace() shares live DefrostDerate/gains/dhw_windows with loop mid-solve	coordinator.py
+R2	D2-01	high	P3	Batched single-zone sim ignores Euler sub-step; two-zone twin diverges >=5.28C	thermal_model.py
+R2	D2-02	medium	P8	With mixing valve, compute_cop falls as outdoor temp rises above 10-17C (non-monotone)	thermal_model.py
+R2	D2-03	medium	P7	Planning grid steps wall-clock time; 84/96 steps mispriced on DST transition days	optimizer.py
+R2	D2-04	low	P5	sysid confidence cannot reach 0.3 adoption gate at 30-min sampling; drift (not noise) passes it biased	sysid.py
+R2	D2-05	low	P3	wood_share jumps 1.0 for 1e-6K change where docstring claims continuity	thermal_model.py
+R2	D3-01	medium	I1	PredictiveInsightSensor loses all 21 attributes, no closure script notices	sensor.py
+R2	D3-02	medium	I1	dhw_next_window_in_hours inside-a-window return deletable; all goldens start outside a window	dhw_schedule.py
+R2	D3-03	medium	I1	DHW setpoint advisor non-positive-mean-price floor deletable, no negative-price scenario used	coordinator.py
+R2	D3-04	low	I1	grid_fee._parse_rule finiteness check deletable, NaN rate reaches fee_vector	grid_fee.py
+R2	D3-05	low	I1	AccuracyTracker.from_dict non-numeric-key handler deletable, no test carries a bad key	accuracy.py
+R2	D3-06	low	I1	open_meteo per-sample timestamp handler deletable, none of 30 checks carries a malformed one	open_meteo.py
+R2	D3-07	low	I1	InputReader._age_minutes clamp deletable, could publish negative age	inputs.py
+R2	D3-08	low	I1	Six closure scripts run 30-34 mutants each and kill none (thin assertion surface)	optimality.py etc
+R2	D3-09	low	I2	Measured closures are the whole package import; validate.py executes 8/38 of its own closure	__init__.py
+R2	D3-10	medium	I1	Drift gate cannot fail on five SENSITIVE fixtures by design; env_drift --all returns rc 0 with 458 leaves moved	env_drift.py
+R2	D4-01	high	P9	Chart text 3.70px on 359px phone tile at first paint, no re-render on resize (regression of R1 fix)	card.js
+R2	D4-02	high	P9	Schedule-editor targets 5.5-19.9px tall, 1,883 targets under 24px	card.js
+R2	D4-03	medium	P9	Axis labels collide at plot corners in every chart state	card.js
+R2	D4-04	medium	P9	Empty-state code entity ids spill 31-44px past card box on 359px tiles	card.js
+R2	D4-05	medium	P9	Primary-color text and Save button render at 2.63:1 contrast in HA default light theme	card.js
+R2	D4-06	medium	P9	Opacity-faded active content below AA contrast	card.js
+R2	D4-07	medium	P9	No control grows for coarse pointer; 548 targets under 44px	card.js
+R2	D4-08	low	P9	Three of seven SERIES_DEFS colours below WCAG 1.4.11 3:1 on light background	card.js
+R2	D5-01	low	I5	tests/README.md contradicts tree in seven statements	tests/README.md
+R2	D5-02	low	I5	configuration.md/ecl110.md contradict shipped MQTT defaults	docs/configuration.md
+R2	D5-03	low	I5	Three docs unreachable from README.md by relative links	docs/*.md
+R2	D5-04	low	I5	Five content defects: broken prose, stale version, undefined term	docs/how-it-works.md
+R2	D5-05	low	I5	Comments cite wrong service name / physically-wrong constant claim	open_meteo.py, thermal_model.py
+R2	D6-01	low	I5	README sensor-table names lack lifetime/next-24h qualifiers strings.json carries	README.md
+R2	D6-02	low	I5	services.yaml example value contradicts DEFAULT_WIND_SENSITIVITY	services.yaml
+R2	D6-03	low	I5	services.yaml declares min 0.0 where schema binds vol.Range(min=0.01)	services.yaml
+R2	D6-04	low	I5	README quoted reference run figures do not reproduce	README.md
+R2	D6-05	low	I5	DISCLAIMER.md savings baseline description imprecise vs actual simulated thermostat	DISCLAIMER.md
+R2	D7-01	medium	P5	Active sysid cannot identify production two-store plant; 0/24 cells usable fit	sysid.py
+R2	D7-02	medium	P2	Defrost flag freezes COP learner but not fabric learners, delivered-heat shortfall booked as heat loss	coordinator.py
+R2	D7-03	low	P2	_record_accuracy skips only on pump-signal freeze; open-window/external-heat intervals still recorded	coordinator.py
+R2	D7-04	low	P6	last_buffer_trajectory side channel still worth 5.42 SEK if sim intervenes between writer/reader	thermal_model.py
+R2	D7-05	low	P2	10,269-line coordinator, 256 methods, no clustering gets cross-cluster refs under 0.33	coordinator.py
+R2	D7-06	low	I5	Five dead defs (46 lines) never started by any gate script	various
+R2	D8-01	high	P6	ThermalState() constructor defaults published as available temps while corresponding sensors unavailable	climate.py, sensor.py
+R2	D8-02	low	P1	numpy scalars reach entity attributes at three sites, bypassing _plain_types	sensor.py, climate.py
+R2	D8-03	low	I5	Optimization/DHW Schedule truncated to 6h while README says whole 24h	sensor.py
+R2	D8-04	low	P2	Alphabetical order splits ten hand-listed entity families	const.py
+R2	D9-01	high	P4	One zero-range bound puts whole solve on scalar FD path, 710-751x reference	optimizer.py
+R2	D9-02	medium	I1	Stress gate can't see 2x/4x solve regression at baseline (smallest detectable 4.69x)	stress.py
+R2	D9-03	low	P10	Batched jac re-evaluates f(x) scipy just computed, doubling scalar steps	optimizer.py
+R2	D9-04	low	I1	DHW planning cost share mismeasured; per-slot re-simulation 43-59% uncounted	optimizer.py
+R2	D9-05	medium	P10	Solve starves event loop 96.7-99.8% of wall time on real asyncio loop	coordinator.py
+R2	D10-01	medium	I5	Nothing prevents second config entry (0 duplicate-entry guards)	config_flow.py
+R2	D10-02	medium	P6	Rejected Tibber token reported as transient UpdateFailed, not ConfigEntryAuthFailed	coordinator.py
+R2	D10-03	low	I3	Three failed refreshes produce four ERROR records with tracebacks (regression of D10-09 fix)	coordinator.py
+R2	D10-04	low	P6	Service actions swallow operational failures, return instead of raising HomeAssistantError	services.py
+R2	D10-05	low	P2	Two buttons stay available after failed refresh; other 63 entities gated	button.py
+R2	D10-09	low	I5	0/14 ServiceValidationError raises carry translation_domain/translation_key	services.py
+R2	D10-15	low	I5	solar_surplus_forecast/dhw_heavy_day_demand publish kWh without ENERGY device class	sensor.py
+R3	D1-01	high	P1	A JSON string 'nan' in thermal_learning store makes every update cycle raise UpdateFailed permanently	thermal_learning store
+R3	D1-02	low	P6	Reload plan handover has no expiry: a 7-day-old plan reports 0.0 minutes old	coordinator.py
+R3	D1-03	medium	P7	Backward host-clock step under-reports input age; staleness watchdog fails open	coordinator.py
+R3	D2-01	low	P5	COP falls as outdoor temp rises in heating band when Carnot flow correction on	thermal_model.py
+R3	D2-02	low	P7	tariff.window_factors walks wall clock while plan walks UTC; DST days label wrong hour	tariff.py
+R3	D2-03	high	P5	Drifting room sensor lands in identified heat-loss coefficient; adoption gate rewards the drift	sysid.py
+R3	D7-01	medium	P5	sysid step experiment sized by one-state model of a two-state plant, adopts nothing	sysid.py
+R3	D7-03	medium	P2	Frequency map folded during reverse-cycle cooling, inherited when user switches control mode	optimizer.py
+R3	D9-02	low	I1	Fuse advisor weekly rate limit is memory-only, restart re-runs shadow solve	fuse advisor
+R3	D9-03	low	P10	In-process solve fallback holds GIL ~90% of solve, no cap on time spent there	optimizer.py
+R3	D9-04	low	I1	Solve worker released only at HA shutdown, nothing measures its cost honestly	coordinator.py
+R3	D8-01	medium	P6	Wood night advisor gated on a value nothing supplies, though tree already computes it	coordinator.py
+R3	D8-02	low	P2	One enabled-by-default sensor renders Unknown where siblings render Unavailable	sensor.py
+R3	D8-03	low	I5	Entity display names mix leading/trailing nouns, alphabetical sort splits families	const.py
+R3	D11-01	critical	I3	main's ruleset cannot require a review from any actor; merging identity bypasses every rule	(governance)
+R3	D11-02	high	I3	record is a required context whose job cannot run on a pull request	governance.yml
+R3	D11-03	high	I3	Owner-approval section required only when author's own title starts with policy:	governance.yml
+R3	D11-04	low	I5	No SECURITY.md advertises the private vulnerability channel already enabled	(docs)
+R3	D11-05	medium	I3	Five dispatch prompts read GitHub free text while holding merge authority; no rule says it's untrusted	governance.yml
+R3	D3-01	medium	I1	15/34 single-line production mutants survive fast gate and differential golden gate	(gate)
+R3	D3-02	medium	I1	A sensor can be made to return None for every state and the gate stays green	sensor.py
+R3	D3-03	medium	I1	Price-shape isfinite guard unpinned; one NaN hour poisons whole weekday profile	price_model.py
+R3	D3-04	medium	I1	Disabling irradiance fallback caught only by a ratchet that calls it an improvement	structure.py
+R3	D3-05	low	I1	Line deletion is the wrong operator for the end-to-end solver scripts	(mutation harness)
+R3	D3-FLAKE	medium	I2	Wall-clock lower bound in #525 null control makes ~15% of features.py runs red at random	features.py
+R3	D5-01	low	I5	12/180 adjudicated docs field-help audit rows; finder's 10 conservative	docs/*.md
+R3	D5-02	low	I5	2/739 unresolvable docs symbol refs; gloss inflates actionable population 13x	docs/*.md
+R3	D5-03	low	I5	1 broken anchor of 338 links / 98 md files	docs/*.md
+R3	D5-04	low	I5	1 supersession pair, both halves broken; two metrics move independently	docs/*.md
+R3	D6-01	medium	I5	21 offered / 6 top / 15 advanced vs 13 documented options-page census wrong	docs/configuration.md
+R3	D6-02	low	I5	74 constants by two independent counting rules; 5 false census sentences	docs/*.md
+R3	D6-04	low	I5	12 constructed / 10 listed entities; repair is gate-blocked (tests/entities.py uses vars())	tests/entities.py
+R3	D0-01	low	P4	Same cell is the maximum for both arms on both grids; unfair comparison, not actionable	optimizer.py
+R3	D0-02	low	P4	Actionable half of the same defect; price-shape qualifier is a band-17 artefact	optimizer.py
+R3	D10-02	low	I5	1 of 270 / 3 of 810 HA quality-scale claim mismatches, ruler-robust	quality_scale.yaml
+R4	D0-01	low	P4	L-BFGS-B ftol=1e-6 halts space solve short in 34/70 priced cells	optimizer.py
+R4	D0-02	low	P4	Iteration budget policed by tests never binding; ftol, which moves every plan, has no gate	optimizer.py
+R4	D1-01	high	P1	Non-finite bin in persisted price shape prices 4/96 steps at 0.0 SEK/kWh silently	tariff.py
+R4	D1-02	high	P1	Corrupt scalar in accuracy store raises in _async_load_accuracy, next cycle overwrites learned fields	accuracy.py
+R4	D2-01	high	P3	tariff._smooth_topk_sum bisects on a bracket not scaled by its logistic temperature	tariff.py
+R4	D2-02	medium	P3	Every shipped DSO catalog row writes a peak-hours mask that discounts 0/672 windows	grid_fee.py
+R4	D2-03	high	P3	thermal_model.wood_share discontinuous at hp_temp==flow_set, docstring claims continuity	thermal_model.py
+R4	D2-04	medium	P8	Modelled COP falls below 1.0 in 51/328 cells, inverts below -21C; Carnot/DHW factors apply after floor	thermal_model.py
+R4	D2-05	low	P6	Grid-fee decimal commas unreachable: parse_rules splits on comma _parse_rule converts	grid_fee.py
+R4	D3-S1	-	I1	grid_fee.py non-wrapping range like Mar-Sep becomes year-round; only wrapping case is asserted	grid_fee.py
+R4	D3-S2	-	I1	legionella.py disabled-feature guard, both assertions run enabled	legionella.py
+R4	D3-S3	-	I1	tariff.py top-k clamp a no-op on the one fixture that calls it	tariff.py
+R4	D4-01	high	P9	Plan lane strip labels render at 6.4 CSS px / 1.01:1 contrast; card_browser.mjs filters lane-* out of own check	card.js
+R4	D5-01	medium	I5	docs/configuration.md names 15 of 200 shipped options fields nowhere	docs/configuration.md
+R4	D5-02	low	I5	tests/README.md states stress sweep of 48; sweep_combinations() returns 51	tests/README.md
+R4	D6-01	high	I5	docs/architecture.md stale in ten claims including the HA-boundary claim it exists to state	docs/architecture.md
+R4	D6-02	medium	P8	Sensor-Gap Euro Advisor documented with currency unit, publishes none (unitless)	sensor.py
+R4	D6-03	low	I5	docs/automations.md states a Power Headroom precondition the code does not enforce	docs/automations.md
+R4	D7-01	medium	P5	sysid experiment adopted in 0/18 cells: identifier fits one state to a two-state plant	sysid.py
+R4	D7-02	medium	P3	sysid._sizing_model leaves slab constants at defaults for every house, breaching excursion in 6/18 cells	sysid.py
+R4	D7-03	high	P2	_learning_frozen never consults _pump_signals.defrosting; 3/4 learners fold a defrost interval	coordinator.py
+R4	D8-01	low	P2	Alphabetical order leaves 159 foreign entities inside seven families' spans	const.py
+R4	D8-02	low	I5	Four entities are the only ones with no icons.json entry	icons.json
+R4	D9-05	medium	P10	Batched objective vectorizes physics then recomputes cost in a Python loop: 33.3% of solve wall	optimizer.py
+R4	D9-06	medium	I1	tests/stress.py cannot detect a 2x memory regression on any of 51 scenarios	stress.py
+R4	D10-01	low	I5	quality_scale.yaml drifted: 3/54 rows contradicted by execution	quality_scale.yaml
+R4	D10-02	low	I5	docs-known-limitations declared done with 0 such headings across 4075 lines	docs/*.md
+R4	D10-03	low	P2	Package root re-binds HeatPumpOptimizerConfigEntry to bare ConfigEntry; runtime_data reveals Any	__init__.py
+R4	D11-01	critical	I3	main-protect carries no pull_request rule in any of five versions; 0/592 merges have approving review	governance.yml
+R4	D11-02	critical	I3	Eight sites instruct a merge-privileged seat to act on issue/PR text, zero sentences naming it untrusted	(governance prompts)
+R4	D11-03	high	I3	The one root-cause trigger CLAUDE.md calls enforced is inert in CI: no --red passed	governance.yml
+R4	D11-04	high	I3	Eight tree assertions contradict the live required-check set (18->17->16)	policy files
+R4	D11-05	medium	I3	Disposition rule cannot be satisfied before merge; turns main red on 44% of pushes	governance.yml
+R4	D11-06	medium	I4	policy_lint --stats reports a class over threshold and opens nothing; runs under || true	policy_lint.mjs
+R4	D11-07	low	I3	No release artefact/provenance: SLSA level 0, 7/9 workflow actions on mutable tags	workflows
+R4	D12-01	high	P8	Every temperature input adopted as degC whatever unit HA reports; 96-step plan totals 0.0 kWh	inputs.py
+R5	D0-01	medium	P4	ftol=1e-6 stop rule ships plans 0.04-0.93% above what ftol 1e-9 reaches	optimizer.py
+R5	D0-03	medium	P4	Fixed four-seed multi-start ships plans strictly above basins one extra structured seed reaches	optimizer.py
+R5	D0-04	medium	P4	MPC never warm-starts from the previous shipped plan, though that seed is the most frequent winner	optimizer.py
+R5	D1-05	high	P1	One non-finite value in DHW-profile store survives loader into learned state (220 NaN leaves)	dhw_learning.py, dhw_draws.py, tariff.py, curve_learning.py
+R5	D1-06	high	P1	'nan' sensor state publishes a failed plan while cycle reports success; Tibber crash escapes 6/6	coordinator.py
+R5	D1-07	medium	P1	Weather success path not exception-safe: one non-numeric solar_irradiance latches forecast stale	open_meteo.py
+R5	D1-08	medium	P7	Age seams subtract same-ZoneInfo datetimes naively: +-1h across DST	coordinator.py
+R5	D2-01	medium	P3	Wood tank 95C ceiling clamps charge rate, silently deletes external-heat forecast (no refused ledger)	thermal_model.py
+R5	D2-02	medium	P3	Shipped 35L valved buffer: more power can leave buffer cooler (non-monotone, discontinuous)	thermal_model.py
+R5	D2-03	medium	P5	sysid.identify admits sensor-drift-biased UA through the confidence>=0.3 gate: median -28.1%	sysid.py
+R5	D3-01	medium	I2	Closure recorder attributes 0 files to warm-__pycache__ exec_module load; warm re-derivations miss real deps	closure.py
+R5	D3-02	low	I2	tests/closures.json carries 199 phantom entries; merge never drops committed entries	closures.json
+R5	D3-03	low	I1	optimality.py is thinnest assertion surface per solve (1.25 checks/solve)	optimality.py
+R5	D3-04	medium	I1	Gate can't fail on coordinator._mixing_valve_view's >=2-positives guard	coordinator.py
+R5	D3-05	medium	I1	Gate can't fail on price_model.quarter_confidence's min(1.0,...) cap	price_model.py
+R5	D3-06	medium	I1	Gate can't fail on coordinator._fold_capacity_envelope's non-finite guard	coordinator.py
+R5	D3-07	low	I1	Gate can't fail on sensor._finite's ndarray branch (unobservable via __init_subclass__ scrub)	sensor.py
+R5	D3-08	low	I1	Gate can't fail on curve_learning._step_down's bias clamp	curve_learning.py
+R5	D3-09	low	I1	Gate can't fail on topology blind-spot cost's floor/count guard	topology.py
+R5	D4-01	low	P9	Wood-cheaper alert banner is the only text lane with no colour token: 1.21:1 dark contrast	card.js
+R5	D4-02	low	P9	Two clickable controls escape the card's 24px hit floor at phone width	card.js
+R5	D4-03	low	P9	Coarse pointer: 728 of ~1100 targets under the 44px touch floor	card.js
+R5	D5-01	medium	I5	README Requirements/Quick start describe the replaced pre-v6.6.5 setup flow	README.md
+R5	D5-02	low	I5	52 shipped PR links (pull/1076..1156 band) return HTTP 404	docs/delivery/*.md
+R5	D5-03	low	I5	HANDOVER.md and plan-1067 have no inbound link from user-reachable docs	docs/HANDOVER.md
+R5	D5-04	low	I5	Entry docstrings say Tibber-only pricing while const.PRICE_SOURCES ships PRICE_SOURCE_ENTITY	__init__.py
+R5	D5-05	low	I5	DefrostDerate docstring contradicts _decide in 11/12 duty-count cells	defrost.py
+R5	D6-01	low	I5	Docs name away datetime entity 'Away Return' vs shipped 'Expected Return'	docs/*.md
+R5	D6-02	low	I5	configuration.md cites two files that exist only in a different repo	docs/configuration.md
+R5	D6-03	low	I5	run_optimization is the 1 of 12 registered services with no services.yaml entry	services.yaml
+R5	D7-01	medium	P5	sysid can never arm on any install the tree can produce: 0/360 preset-answer combos pass gate	sysid.py
+R5	D7-02	medium	P5	>2h settle gap routes identify_slab to one-state identify(), adoption admits +7.29% biased UA	sysid.py
+R5	D7-03	medium	P2	_track_curve_comfort runs before the cycle's pump-signal read; freeze gate one cycle stale	coordinator.py
+R5	D7-04	medium	P2	Comfort quiet-period learner is the only learner outside the shared freeze discipline	coordinator.py
+R5	D8-01	low	P2	6 card-addressed sensors sort into 3 entity-id blocks; #1227 rename covered only 4 headline stats	sensor.py
+R5	D8-02	low	I5	Swedish names drop family lead tokens English keeps	strings.json, sv.json
+R5	D8-03	low	P2	14 enabled-by-default entities unavailable with no evidence marker while 6 peers with same gate are disabled	sensor.py
+R5	D9-05	medium	I1	#1208 polish-every-candidate runs restart 4x/solve costing 36.7% of simulate-step-equivalents	optimizer.py
+R5	D9-06	medium	P10	On #511 fallback route, in-process solve starves loop's 1ms heartbeat 96.6-97.6% of wall	optimizer.py
+R5	D9-07	medium	I1	Stress gate blind to per-call kernel slowdown below 3.0x (doubling cost -> 1.512x solve CPU, 0/51 fire)	stress.py
+R5	D9-08	low	I1	Memory budget fields have no stale-cheap rule; 3.5x memory improvement leaves table stale-high	stress.py
+R5	D11-01	medium	I3	Committed required-contexts fixture names one ruleset only; live boundary is two rulesets	governance.yml
+R5	D11-02	medium	I3	Record disposition enforcement escapable by stamping: 3 consecutive stamp windows closed over rowless merges	stamp.py
+R5	D12-01	medium	P8	Installs with no ecl110_* key still publish 2 ECL110 mqtt.publish commands to shipped default topics	coordinator.py
+R5	D13-01	medium	I4	CFR constant 1.0 (8/8): record red at every merge head is a by-design red no in-tree exclusion covers	policy_lint.mjs
+R5	D13-02	medium	I4	--stats folds a blocked verdict VERDICT_RE refuses into class 'other'	policy_lint.mjs, web-fix-wave.js
+R5	D13-03	medium	I4	Friction id grammar FRICTION_ID cannot start with a dot; path spellings parse as no id	policy_lint.mjs
+R5	R5-INST-01	low	I2	finding.schema.json admits D0-D12 only; D13 reports/harness paths cannot validate	finding.schema.json
+R6	D0-02	low	P4	_MULTI_START_SOLVES is 4 while seam is handed 5 candidates in 80/80 cells; comment stale	optimizer.py
+R6	D1-01	high	P1	NaN in DHW-profile store's cooling_rate installs non-finite value on live model, never reset/logged (sibling of #1296)	dhw_learning.py
+R6	D1-02	high	P1	NaN in accuracy store's defrost.duty survives from_dict, becomes DERATE_MIN: COP priced at 0.55x permanently	defrost.py
+R6	D2-01	high	P2	DefrostDerate.factor answers from hard-edged buckets: COP steps up to 1.61 across a 1e-9C change	defrost.py
+R6	D2-02	medium	P3	simulate_dhw_step's inlet floor is a heat source with no source: clamp manufactures 0.10-1.30 kWh/day	thermal_model.py
+R6	D3-01	medium	I1	tests/entities.py reports 3/1678 checks failed whenever optional unpinned orjson is importable	hastub, sensor.py
+R6	D3-02	low	I1	Deleting the silent-mode no-window guard survives the full gate	silent_mode.py
+R6	D3-03	low	I1	Forcing the buffer-cap re-solve branch survives the full gate	optimizer.py
+R6	D3-04	low	I1	Forcing the emitter-normalisation branch survives the full gate	presets.py
+R6	D3-05	low	I1	Forcing the defrost accrual branch survives the full gate	defrost.py
+R6	D4-01	medium	P9	Plan card's score pill is the one control under the coarse-pointer floor in a 528-cell matrix	card.js
+R6	D5-01	medium	I5	Committed marginal-cop.svg is not what its generator produces from the shipped model (predates #928 bound)	docs/img/marginal-cop.svg
+R6	D5-02	low	I5	README Documentation table omits docs/automations.md, a page the README links four times	README.md
+R6	D6-01	medium	I5	README tells users without an ECL110 to clear two MQTT topics; all three ship empty by default	README.md
+R6	D6-02	medium	P6	Two of three blueprints default sensor input to entity ids the sensor platform never builds	blueprints/*.yaml
+R6	D6-03	low	I5	docs/automations.md tells users entity prefix follows entry name; it's a hard-coded literal	docs/automations.md
+R6	D7-01	high	P5	Production sysid adoption gate admits UA errors over 10% in 14/75 experiments, worst -28.7%	sysid.py
+R6	D7-02	low	I5	SystemIdentification.identify (379 lines) entered 0 times by production; structure.py's dead-symbol check reads 0	sysid.py
+R6	D7-03	medium	P3	On heavy_old with drifting room sensor, identify_slab raises uncaught OverflowError out of _lm_solve	sysid.py
+R6	D7-03-EXT	high	P3	Same drifting-room divergence hangs silently: 2.5e19 kW/K drives 2.6e17 substeps with no log line	sysid.py
+R6	D8-01	medium	P2	With DHW unconfigured, five of six _DHWEntityMixin entities are enabled-default and unavailable every refresh	sensor.py
+R6	D9-01	medium	P10	Production solve on ThreadPoolExecutor starves loop heartbeat for 0.9737 of wall time; yields don't fix max gap	coordinator.py
+R6	D9-02	low	I1	tests/stress.py:SolverWork counts step-equivalents on two seams only; DHW planner's 29.63% of work uncounted	stress.py
+R6	D10-01	medium	I5	Silver test-coverage row keyed to package ratio; sysid.py already below per-module 95% bar at 94.62%	quality_scale.yaml
+R6	D11-01	high	I3	0/37 tracked files that implement the checks the ruleset requires is matched by a CODEOWNERS pattern	CODEOWNERS
+R6	D11-02	high	I3	Required check executed from the change it is checking: policy-docs job checks out no ref:	governance.yml
+R6	D12-01	medium	P2	battery.build() guards optional stores with 'is not None' on non-Optional floats nothing ever sets None	battery.py
+R6	D13-01	high	I4	All 11 of window's rework verdicts are head-moved re-verification; the head-moved class has 0 verdicts	web-fix-wave.js
+R6	D13-02	medium	I4	4/67 merges carry no parsable verdict; policy_lint.mjs --stats reports denominator of 64	policy_lint.mjs
+R6	D13-03	medium	I4	cfr_exclusions.json keyed where excluded job cannot gate a merge (record skipped at 67/67 PR heads)	cfr_exclusions.json
+R7	D0-01	medium	P4	Space-only multi-start anchors to {0.35,1.0}, never brackets the true 0.20x optimum on default two-zone winter cell	optimizer.py
+R7	D1-01	medium	P6	async_simulate sets _last_simulation only on success; every failing return leaves rate-limit slot empty	coordinator.py
+R7	D1-02	low	P2	_plan_is_stale consulted by _apply_action but not _async_drive_pumps; 1 of 2 actuating paths writes an expired plan	coordinator.py
+R7	D2-01	low	P3	_simulate_step_two_zone computes tank rate over max(C_buf,0.01) while availability bound uses raw C_buf (3 more seams)	thermal_model.py
+R7	D2-02	low	I1	HeatPumpOptimizer._terminal_cost_batch ends with two identical return lines, second unreachable	optimizer.py
+R7	D3-01	low	I1	Four production guards/clamps deletable with no driver in their measured closure failing (confirmed at full gate)	legionella.py, optimizer.py, sensor.py, thermal_model.py
+R7	D3-02	medium	I1	tests/mutation_table.py counts a structure.py 'improved' exit (rc=2, zero failing checks) as a kill	mutation_table.py, structure.py
+R7	D4-01	high	P9	Savings table's last column painted 22.4-75.2px outside a box no gesture can widen (overflow-x hidden)	card.js
+R7	D4-02	medium	P9	.dlg-tabs flex 0 0 auto inside overflow:hidden clips longer Swedish tab label 7.5-45.9px	card.js
+R7	D4-03	medium	P8	Headline savings takes sensor's unit_of_measurement, savings table takes different currency() precedence	card.js
+R7	D5-01	low	I5	legionella.py comment names a symbol that doesn't exist in the package (already mirrored into tests/features.py)	legionella.py
+R7	D5-02	low	I5	Card's hours error message states a bound its own check does not enforce (0 < hours <= 168 vs 'between 1 and 168')	card.js
+R7	D7-01	medium	P5	identify_slab appends fixed-width 0.1kW pseudo-observation; clean data can't out-weigh it, +7.44% UA bias passes gate	sysid.py
+R7	D8-01	medium	P6	SensorGapAdvisorSensor prices missing house-power meter from keys _build_data_dict never writes; publishes 0.00 SEK not 30.0	sensor.py, coordinator.py
+R7	D8-02	low	P2	DHWSetpointAdvisorSensor is the one hot-water sensor not wrapped in _DHWEntityMixin; ships enabled-default & unavailable	sensor.py
+R7	D9-01	medium	P6	36.1% of recorder-written entity-attribute bytes/cycle are either already-excluded-class series or byte-identical repeats	sensor.py
+R7	D9-02	medium	P10	optimizer._lbfgsb_restart consumes 37.1% of gradients / 35.2% of CPU per default two-zone DHW solve (polish-per-candidate)	optimizer.py
+R7	D9-03	low	I4	stress.py docstring says zero-range takes solve off batched jac; SolverWork's own definition disagrees by 96x	stress.py
+R7	D10-01	low	I5	quality_scale.yaml marks strict-typing 'done' on a comment absent from the rule text; py.typed ships 0 files	quality_scale.yaml
+R7	D10-02	medium	P2	runtime-data alias defined but only 10 of 100 entry parameters use it; 88 are bare ConfigEntry	__init__.py, services.py
+R7	D11-01	high	I3	Friction-histogram filer step is skipped in 39/40 record-job runs whose preceding disposition-refusal step fails	governance.yml
+R7	D11-02	medium	I3	friction_issues.mjs:decide never reads existing.state; recurrence written onto a closed issue, reported UPDATED	friction_issues.mjs
+R7	D11-03	medium	I4	--sunset fires only on a self-declared marker; 0/39 policy files carry one, reports 'held(0)' as if measured	policy_lint.mjs
+R7	D12-01	medium	P2	two_zone_mode='off' options-flow guard tests key-presence instead of the model's two_zone_enabled: 0 valve writes forever	config_flow.py, thermal_model.py
+R7	D13-01	medium	I4	policy_lint.mjs:fetchWindow never fetches /pulls/<n>/reviews; a verdict posted as a review is invisible	policy_lint.mjs
+R7	D13-02	medium	I4	Histogram matcher diverges from web-fix-wave.js's VERDICT_RE on four axes, all one-directional	policy_lint.mjs, web-fix-wave.js
+R7	D13-03	medium	I4	record job's summary reads exit code only; an UNCHECKED window reports cleaner than a read one that found a violation	governance.yml
+R7	D13-04	medium	I3	pull_request:[edited] re-runs 5/7 governance jobs; governance_cost.py publishes dispatch count as body-contract rounds	governance.yml
+R7	D13-05	medium	I4	product-tradeoff-regression block class is outside VERDICT_CLASSES; histogram and parseVerdict disagree	policy_lint.mjs
+R7	D13-06	medium	I4	Merge-keyed CFR counts a merge that passed the same lane at its own head (mutation: 4/7 merge-keyed vs 0/31 heads)	cfr_exclusions.json
+R7	R7-INSTR-01	medium	I2	audit-find.js DIMS list has no D13 entry; a round driven by this workflow cannot register D13 findings at all	audit-find.js
