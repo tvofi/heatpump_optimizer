@@ -1,6 +1,6 @@
 """Binary sensors for Heat Pump Cost Optimizer.
 
-Five states are worth surfacing as their own entities rather than as
+Six states are worth surfacing as their own entities rather than as
 attributes buried on another sensor, because each one is something a user may
 reasonably want to automate on or be alerted about:
 
@@ -10,6 +10,8 @@ reasonably want to automate on or be alerted about:
 * "Away Mode" — whether the house is unoccupied and the deep setback applies,
 * "Open Window Detected" — whether the house is losing heat like a window is
   open,
+* "Mold Floor Breach" — whether the measured room sits below the mold-safe
+  floor the optimizer promises, typically because space heating is blocked,
 * "Wood Cheaper Than Heat Pump" — whether burning wood costs less per kWh
   than running the heat pump.
 """
@@ -28,6 +30,16 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity
+from .const import (
+    CONF_MOLD_FLOOR_BREACH_MARGIN,
+    CONF_MOLD_GUARD_ENABLED,
+    CONF_THERMAL_BRIDGE_FRSI,
+    DEFAULT_MOLD_FLOOR_BREACH_MARGIN,
+    DEFAULT_MOLD_GUARD_ENABLED,
+    DEFAULT_THERMAL_BRIDGE_FRSI,
+    MOLD_SURFACE_RH_LIMIT,
+)
+from .thermal_model import mold_safe_room_floor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,6 +62,7 @@ async def async_setup_entry(
             ExternalHeatBinarySensor(coordinator, entry),
             AwayModeBinarySensor(coordinator, entry),
             VentilationBinarySensor(coordinator, entry),
+            MoldFloorBreachBinarySensor(coordinator, entry),
             WoodCheaperBinarySensor(coordinator, entry),
         ]
     )
@@ -145,6 +158,98 @@ class VentilationBinarySensor(_OptimizerBinarySensorBase):
     def extra_state_attributes(self) -> dict[str, Any]:
         return {
             "evidence": self._data().get("ventilation_evidence", []),
+        }
+
+
+class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
+    """On while the measured room sits below the mold-safe floor (#1495).
+
+    The mold guard computes the lowest room temperature that keeps the worst
+    thermal-bridge surface under the mold RH limit (~18 °C in cold/damp
+    weather), and the solve holds the plan's predicted room at that floor. In
+    DHW-only / space-blocked mode the pump cannot deliver space heat, so the
+    room free-cools below the floor while the dashboard card charts the plan's
+    promise instead of the room. This fires when the measured room is that far
+    below the floor, and carries the floor, the shortfall and whether space
+    heating is blocked so a breach and its cause are one glance apart.
+    """
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
+    ) -> None:
+        super().__init__(coordinator, entry, "mold_floor_breach", "mold_floor_breach")
+        self._config = {**entry.data, **entry.options}
+
+    def _margin_c(self) -> float:
+        """The breach margin, °C: a noisily jittering reading must not fire."""
+        raw = self._config.get(
+            CONF_MOLD_FLOOR_BREACH_MARGIN, DEFAULT_MOLD_FLOOR_BREACH_MARGIN
+        )
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return float(DEFAULT_MOLD_FLOOR_BREACH_MARGIN)
+
+    def _floor(self) -> tuple[float | None, float | None]:
+        """``(floor_c, shortfall_c)`` against the measured room, or ``(None, None)``.
+
+        Recomputes ``thermal_model.mold_safe_room_floor`` against the measured
+        room rather than the forecast series the solve uses, because the
+        coordinator publishes neither the floor nor the indoor humidity and the
+        structure budget prices every coordinator line. The humidity read
+        reuses the coordinator's own age-checked reader, so the floor this
+        sensor compares against is the floor the solve was built from.
+        """
+        data = self._data()
+        if not data:
+            return None, None
+        if not bool(
+            self._config.get(CONF_MOLD_GUARD_ENABLED, DEFAULT_MOLD_GUARD_ENABLED)
+        ):
+            return None, None
+        # Only a live indoor reading is a measurement: without one the payload
+        # carries ThermalState's 21.0 °C constructor default, which is a seed,
+        # not the room. Same gate the temperature sensors' availability uses.
+        if not (data.get("reading_ok") or {}).get("upper_floor_temperature"):
+            return None, None
+        two_zone = bool(data.get("two_zone_enabled"))
+        room = data.get("upper_floor_temperature" if two_zone else "indoor_temperature")
+        outdoor = data.get("outdoor_temperature")
+        if room is None or outdoor is None:
+            return None, None
+        read_rh = getattr(self.coordinator, "_indoor_humidity_value", None)
+        rh = read_rh() if callable(read_rh) else None
+        if rh is None:
+            return None, None
+        try:
+            frsi = float(
+                self._config.get(CONF_THERMAL_BRIDGE_FRSI, DEFAULT_THERMAL_BRIDGE_FRSI)
+            )
+        except (TypeError, ValueError):
+            frsi = float(DEFAULT_THERMAL_BRIDGE_FRSI)
+        floor = mold_safe_room_floor(
+            float(room), rh, float(outdoor), frsi, MOLD_SURFACE_RH_LIMIT
+        )
+        return round(float(floor), 2), round(float(floor) - float(room), 2)
+
+    @property
+    def is_on(self) -> bool:
+        _floor, shortfall = self._floor()
+        return bool(shortfall is not None and shortfall >= self._margin_c())
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        floor, shortfall = self._floor()
+        data = self._data()
+        return {
+            "floor_c": floor,
+            "shortfall_c": shortfall,
+            "space_blocked": bool(
+                (data.get("heat_pump_signals") or {}).get("space_blocked")
+            ),
         }
 
 

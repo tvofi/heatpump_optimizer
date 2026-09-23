@@ -4133,7 +4133,7 @@ R.section("Binary sensors")
 
 binaries = collect(binary_sensor)
 b_by_name = {display_name("binary_sensor", b): b for b in binaries}
-R.check("five binary sensors are added", len(binaries) == 5, str(len(binaries)))
+R.check("six binary sensors are added", len(binaries) == 6, str(len(binaries)))
 
 health = b_by_name["Input Problem"]
 R.check("a stale input raises the problem flag", health.is_on)
@@ -4424,12 +4424,101 @@ R.check(
     == {"sek_per_kwh": 0.6, "cheaper_hour_count": 1},
 )
 
+# Mold Floor Breach (#1495). The floor is the same closed form the solve
+# enforces (thermal_model.mold_safe_room_floor), recomputed against the
+# measured room; the entity reads the indoor humidity through the
+# coordinator's own age-checked reader, so these go through a real
+# coordinator after one input-read cycle rather than a data dict alone.
+breach = b_by_name["Mold Floor Breach"]
+R.check("the mold-floor breach is off while the guard is disabled", not breach.is_on)
+R.check(
+    "the breach is off without a live humidity and carries no floor",
+    not binary_sensor.MoldFloorBreachBinarySensor(
+        FakeCoordinator(
+            {
+                "reading_ok": {"upper_floor_temperature": True},
+                "indoor_temperature": 16.0,
+                "upper_floor_temperature": 16.0,
+                "outdoor_temperature": -3.0,
+            }
+        ),
+        FakeEntry(data={const.CONF_MOLD_GUARD_ENABLED: True}),
+    ).is_on
+    and binary_sensor.MoldFloorBreachBinarySensor(
+        FakeCoordinator(
+            {
+                "reading_ok": {"upper_floor_temperature": True},
+                "indoor_temperature": 16.0,
+                "upper_floor_temperature": 16.0,
+                "outdoor_temperature": -3.0,
+            }
+        ),
+        FakeEntry(data={const.CONF_MOLD_GUARD_ENABLED: True}),
+    ).extra_state_attributes["floor_c"] is None,
+)
+
+_breach_config = {
+    const.CONF_MOLD_GUARD_ENABLED: True,
+    const.CONF_THERMAL_BRIDGE_FRSI: 0.75,
+    const.CONF_INDOOR_HUMIDITY_ENTITY: "sensor.humidity",
+}
+# Cold and damp: room 16.0 °C at 70 % RH with −3 °C outside raises the floor
+# above the room, so the shortfall is positive and the sensor fires.
+_breach_hass, _breach_coord, _breach_data = _honest_coordinator(
+    _breach_config,
+    {
+        "sensor.indoor": FakeState("16.0"),
+        "sensor.humidity": FakeState("70.0", last_updated=dt_util.utcnow()),
+    },
+)
+_breach_coord.data = _breach_data
+_breach_entity = binary_sensor.MoldFloorBreachBinarySensor(
+    _breach_coord, FakeEntry(data=_breach_config)
+)
+_breach_attrs = _breach_entity.extra_state_attributes
+R.check(
+    "a cold damp room below its floor fires the breach",
+    _breach_entity.is_on and _breach_attrs["shortfall_c"] >= 0.5,
+    f"is_on={_breach_entity.is_on} shortfall={_breach_attrs.get('shortfall_c')!r}",
+)
+R.check(
+    "the breach carries the computed floor and the shortfall",
+    isinstance(_breach_attrs["floor_c"], (int, float))
+    and isinstance(_breach_attrs["shortfall_c"], (int, float))
+    and _breach_attrs["space_blocked"] is False,
+    f"floor={_breach_attrs.get('floor_c')!r} "
+    f"shortfall={_breach_attrs.get('shortfall_c')!r} "
+    f"space_blocked={_breach_attrs.get('space_blocked')!r}",
+)
+# Dry air: the same room is comfortably above its floor, so it stays quiet.
+_safe_hass, _safe_coord, _safe_data = _honest_coordinator(
+    _breach_config,
+    {"sensor.humidity": FakeState("40.0", last_updated=dt_util.utcnow())},
+)
+_safe_coord.data = _safe_data
+_safe_entity = binary_sensor.MoldFloorBreachBinarySensor(
+    _safe_coord, FakeEntry(data=_breach_config)
+)
+R.check(
+    "a room above its floor stays quiet",
+    not _safe_entity.is_on,
+    f"shortfall={_safe_entity.extra_state_attributes.get('shortfall_c')!r}",
+)
+_blocked_entity = binary_sensor.MoldFloorBreachBinarySensor(
+    FakeCoordinator({"heat_pump_signals": {"space_blocked": True}}), ENTRY
+)
+R.check(
+    "the breach attribute reports a space block",
+    _blocked_entity.extra_state_attributes["space_blocked"] is True,
+)
+
 b_crashed = []
 for entity in (
     binary_sensor.InputHealthBinarySensor(empty, ENTRY),
     binary_sensor.ExternalHeatBinarySensor(empty, ENTRY),
     binary_sensor.AwayModeBinarySensor(empty, ENTRY),
     binary_sensor.VentilationBinarySensor(empty, ENTRY),
+    binary_sensor.MoldFloorBreachBinarySensor(empty, ENTRY),
     binary_sensor.WoodCheaperBinarySensor(empty, ENTRY),
 ):
     try:
@@ -8618,7 +8707,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "dhw_min_temperature_max", "dhw_setpoint", "dhw_windows",
         "dhw_windows_spec", "forecast", "horizon_hours", "manual_override",
         "manual_plan_window_hours", "next_slot_start", "plan_kind",
-        "projection", "sensor_advisor", "setup_topology", "slot_count", "slots", "total_cost",
+        "projection", "sensor_advisor", "setup_topology", "slot_count", "slots",
+        "space_blocked", "total_cost",
         "total_energy_kwh", "wood_fuel"
     }),
     # keys are the configured windows, see _ATTR_KEYS_ARE_DATA above
@@ -8681,6 +8771,9 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     }),
     "MixedHotWaterSensor": frozenset({
         "litres_40c", "shower_minutes", "tank_temperature"
+    }),
+    "MoldFloorBreachBinarySensor": frozenset({
+        "floor_c", "shortfall_c", "space_blocked"
     }),
     "MonthlyPeakSensor": frozenset({
         "free_headroom_threshold_kw", "fuse_advisor", "month",
@@ -8749,7 +8842,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "dhw_min_temperature_max", "dhw_setpoint", "dhw_windows",
         "dhw_windows_spec", "forecast", "horizon_hours", "manual_override",
         "manual_plan_window_hours", "next_slot_start", "plan_kind",
-        "projection", "sensor_advisor", "setup_topology", "slot_count", "slots", "total_cost",
+        "projection", "sensor_advisor", "setup_topology", "slot_count", "slots",
+        "space_blocked", "total_cost",
         "total_energy_kwh", "wood_fuel"
     }),
     "ThermalBatteryEnergySensor": frozenset({
@@ -8940,7 +9034,8 @@ _POPULATED_PLAN_ATTRS = frozenset({
     "dhw_min_temperature_max", "dhw_setpoint", "dhw_windows",
     "dhw_windows_spec", "forecast", "horizon_hours", "manual_override",
     "manual_plan_window_hours", "next_slot_start", "plan_kind", "projection",
-    "sensor_advisor", "setup_topology", "slot_count", "slots", "total_cost", "total_energy_kwh",
+    "sensor_advisor", "setup_topology", "slot_count", "slots", "space_blocked",
+    "total_cost", "total_energy_kwh",
     "wood_fuel",
 })
 for _plan_cls in (sensor.SpaceHeatingPlanSensor, sensor.DHWHeatingPlanSensor):

@@ -413,7 +413,7 @@ Every field and its range is documented in
 
 ### Your first week
 
-- **Immediately.** All 74 entities appear and the first plan is solved within one
+- **Immediately.** All 75 entities appear and the first plan is solved within one
   optimization interval (30 minutes by default). Add the dashboard card and you
   can see what it intends to do.
 - **Day one.** If you want the commissioning step test, first switch on *Allow a
@@ -563,7 +563,7 @@ Since #1335 that list is every entity the ordinary install cannot light — the
 machinery advisories, the optional probes and meters, the capacity tariff, PV
 and the wood furnace — not only the six niche-hardware sensors it used to be.
 
-### Binary Sensors (5 total)
+### Binary Sensors (6 total)
 
 | Binary sensor | On when | Notes |
 |---|---|---|
@@ -571,6 +571,7 @@ and the wood furnace — not only the six niche-hardware sensors it used to be.
 | Open Window Detected | The house is losing heat as if a window were open | Diagnostic; learning pauses while it is on |
 | External Heat Source | Something other than the heat pump is heating the tanks | Evidence in attributes |
 | Away Mode | The away setback is active | Return time and recovery state in attributes |
+| Mold Floor Breach | The measured room sits below the mold-safe floor the plan promises | Diagnostic; on when the measured room is below the mold floor by the configured margin (default 0.5 °C), typically because space heating is blocked. `floor_c`, `shortfall_c` and `space_blocked` in attributes |
 | Wood Cheaper Than Heat Pump | Burning wood costs less per kWh than running the heat pump | Disabled by default. Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Price and cheaper-hour count in attributes |
 
 ### Buttons (4 total)

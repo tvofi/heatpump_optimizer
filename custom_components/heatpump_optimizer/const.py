@@ -971,6 +971,11 @@ CONF_THERMAL_BRIDGE_FRSI: Final = "thermal_bridge_frsi"
 DEFAULT_THERMAL_BRIDGE_FRSI: Final = 0.75
 #: Mold growth needs sustained surface RH above roughly this fraction.
 MOLD_SURFACE_RH_LIMIT: Final = 0.8
+#: #1495 — the mold-floor breach warning: fire when the measured room sits
+#: this far (°C) below the computed mold-safe floor, so a DHW-only / blocked
+#: install free-cooling past its promise is visible instead of silent.
+CONF_MOLD_FLOOR_BREACH_MARGIN: Final = "mold_floor_breach_margin"
+DEFAULT_MOLD_FLOOR_BREACH_MARGIN: Final = 0.5
 
 # T6 — insight (#29 #52 #55 #65 #39 #40). Everything here reads the system;
 # the only plan-affecting piece is the wear autotune, gated off by default.
