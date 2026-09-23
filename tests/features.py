@@ -44198,4 +44198,94 @@ R.check(
     "under `_clamp_dhw_to_capacity` cannot bind and is kept as a guard",
 )
 
+# --- Sites the D2-03 diff's mutation sample draws (round 7) ---------------
+#
+# `tests/mutation_table.py --scope changed` draws a seeded sample from every
+# candidate site in each production file a diff touches, not only from the
+# diff's own lines. The D2-03 diff touches optimizer.py, coordinator.py and
+# dhw_learning.py, and the sample drew three live sites that no driver
+# watched. Each check below kills one of them. The two sampled survivors that
+# are equivalent are recorded under `survivor_triage` in
+# tests/mutation_budgets.json instead.
+from heatpump_optimizer.const import (  # noqa: E402
+    DHW_COOLING_REFERENCE_DELTA as _R7PIN_REF_DELTA,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    DHW_AMBIENT_TEMP as _R7PIN_AMBIENT,
+)
+
+# `async_load_profile` restores a stored pooled profile only when it is a
+# 24-entry list. With that guard forced off, a well-formed store is ignored
+# and the learner keeps its seeded pattern. The stored flat profile
+# normalises to exactly 1.0 an hour, and the seeded pattern is not flat, so
+# the two readings differ.
+_r7pin_prof = _store_coord()
+_aio.run(_r7pin_prof._dhw_learner.profile_store.async_save(
+    {"hourly_profile": [2.0] * 24}
+))
+_r7pin_seeded = list(_r7pin_prof._dhw_learner.hourly_profile)
+_aio.run(_r7pin_prof._dhw_learner.async_load_profile())
+R.check(
+    "a stored 24-hour DHW profile is restored on load",
+    _r7pin_prof._dhw_learner.hourly_profile == [1.0] * 24
+    and _r7pin_seeded != [1.0] * 24,
+    f"loaded {_r7pin_prof._dhw_learner.hourly_profile[:3]}... from a flat "
+    f"store, against a seeded {_r7pin_seeded[:3]}...",
+)
+
+
+# `async_fold_draw_stats` subtracts the tank's standby loss before it books
+# a drop as a draw, and the standby rate scales with how far the tank sits
+# above ambient. A drop that equals the standby loss exactly is no draw at
+# all, so it books 0 kWh. With the above-ambient term clamped to zero, the
+# whole drop books as a draw.
+def _r7pin_standby_fold(previous_temp):
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))
+    coord._thermal_params.dhw_enabled = True
+    learner = coord._dhw_learner
+    learner.cooling_rate = 0.3
+    standby = (
+        0.3 * max(0.0, previous_temp - _R7PIN_AMBIENT) / _R7PIN_REF_DELTA
+    )
+    _aio.run(learner.async_fold_draw_stats(
+        datetime(2026, 2, 1, 7, 0, tzinfo=timezone.utc), previous_temp,
+        standby * 1.0, 1.0,
+    ))
+    return standby, learner.draw_stats._open_kwh
+
+
+_r7pin_rate, _r7pin_kwh = _r7pin_standby_fold(60.0)
+R.check(
+    "a drop that is all standby loss books no draw",
+    _r7pin_rate > 0.0 and _r7pin_kwh == 0.0,
+    f"a {_r7pin_rate:.4f} K/h standby drop at 60 C booked {_r7pin_kwh!r} kWh",
+)
+
+# `_plan_dhw_min_cost` limits DHW power at each step to what the
+# compressor has left after space heating, with a displacement variable
+# that pays for anything it pushes out. With that constraint's guard forced
+# off, the capacity-contention columns are still built for a row block that
+# no longer exists, and the program raises instead of planning. Here the four
+# cheap steps have no room left and the four dear steps have all of it.
+_r7pin_opt, _ = _r7d203_opt(200.0)
+try:
+    _r7pin_plan = _r7pin_opt._plan_dhw_min_cost(
+        45.0, np.array([45.0] * 7 + [55.0]), np.array([0.1] * 4 + [1.0] * 4),
+        np.full(8, -5.0), np.zeros(8), 8, 1.0, 3.0, 0.232, np.full(8, 60.0),
+        space_demand=np.array([5.0] * 4 + [0.0] * 4), p_total_max=5.0,
+    )
+    _r7pin_err = None
+except Exception as _err:  # noqa: BLE001
+    _r7pin_plan, _r7pin_err = None, f"{type(_err).__name__}: {_err}"
+R.check(
+    "the DHW cost program plans under space-heating contention",
+    _r7pin_plan is not None
+    and len(_r7pin_plan) == 8
+    and float(np.max(_r7pin_plan[:4])) < float(np.max(_r7pin_plan[4:])),
+    f"plan {None if _r7pin_plan is None else np.round(_r7pin_plan, 4).tolist()}"
+    f"; raised {_r7pin_err}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
