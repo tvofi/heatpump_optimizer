@@ -54,9 +54,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.6.9
+# claims-for: 6.6.10
 #
-# v6.6.9: the round-5 audit fix wave completes. The stamp empties the list; the
+# v6.6.10: round-6 audit fix wave. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 

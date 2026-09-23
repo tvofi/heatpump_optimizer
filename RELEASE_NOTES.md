@@ -1,5 +1,43 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.6.10
+
+the round-6 audit fix wave completes — thirty-one dimension findings judged and
+fixed or refuted, seven class-eliminating remediation changes landed, and the
+release machinery re-hardened against the class it kept re-opening:
+
+- #1415 — classify round-6 evidence files in the policy corpus
+- #1417 — restore cost_ prefix to two blueprint sensor defaults (D6-02)
+- #1418 — index docs/automations.md in the README Documentation table (D5-02)
+- #1419 — refuse non-finite floats before the orjson fast path (D3-01)
+- #1420 — clamp the DHW inlet floor to the tank surroundings (D2-02)
+- #1421 — meter simulate_dhw_step and derive the metered-seam cut (D9-02)
+- #1422 — floor the score pill and offer weekday DHW windows (D4-01)
+- #1423 — re-record the #1218 selection-cost note for the new closure
+- #1424 — yield the GIL inside each L-BFGS-B run (D9-01)
+- #1425 — close the non-finite-into-live-state class at the store-load boundary (D1-01/D1-02)
+- #1426 — deterministic mutation inventory + unpinned-site ratchet (D3-02..05)
+- #1427 — bound the two-state fit's log parameters and guard divergence (D7-03)
+- #1428 — query the dry derate bucket at its centre (D2-01)
+- #1429 — disable the hot-water entity family by default when unconfigured (D8-01)
+- #1430 — the untracked-body trap into the fixer contract (D11-01)
+- #1431 — document the buffer_is_store gate on the battery component (D12-01)
+- #1432 — hold the Silver coverage row to a per-module floor (D10-01)
+- #1433 — the two-keying constraint into carry-201.json (D13-03)
+- #1434 — grade the corpus with the base's checker (D11-02)
+- #1435 — solve certificate + energy-diverse cell grid (D0-01/D0-02)
+- #1436 — raise corpus_tokens for the C1-C4 fix-protocol prose
+- #1437 — pin the adoption blend arithmetic on the interval weight (D7-01)
+- #1438 — add mutation to the required-contexts fixture
+- #1439 — print a coverage line beside STATS (D13-02)
+- #1440 — record: delivery rows #1417-1438
+- #1441 — killing tests for the three D3 mutation survivors (D3-02/04/05)
+- #1442 — carry the passing verdict's rework into the lane that reads it (D13-01)
+- #1443 — re-measure the #1395 census and carry the screens' limits (D7-02)
+- #1444 — record: delivery rows for the round-6 fix wave
+- #1445 — re-derive the mutation ledger for the fix wave's new sites
+- #1446 — record: delivery rows for #1444-#1445
+
 ## v6.6.9
 
 the round-5 audit fix wave completes — forty-eight findings judged, every
