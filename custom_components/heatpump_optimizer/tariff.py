@@ -35,15 +35,10 @@ from typing import Any, Callable
 
 import numpy as np
 
+from .accuracy import HISTORY_LENGTH
 from .dhw_schedule import Window, hour_in_windows
 
 _LOGGER = logging.getLogger(__name__)
-
-#: How many per-cycle readings ``PeakTracker.house_samples`` keeps (#1460):
-#: two weeks at the default half-hour interval, the depth the payload's
-#: ``house_power_series`` is priced over. The window is a live fingerprint,
-#: not persisted state, so an install that restarts carries none of it.
-HOUSE_WINDOW_SAMPLES = 672
 
 
 def _window_slot(when: datetime, window_minutes: int) -> datetime:
@@ -172,8 +167,10 @@ class PeakTracker:
     month: str = ""
     #: Highest billed-equivalent window averages seen this month, descending.
     peaks: list[float] = field(default_factory=list)
-    #: The measured whole-house readings behind ``peaks``, newest last and
-    #: bounded, one per CYCLE (#1460): the payload's ``house_power_series``.
+    #: The measured whole-house readings behind ``peaks``, newest last, one
+    #: per CYCLE and bounded at `accuracy.HISTORY_LENGTH` like the pump's own
+    #: window -- the payload's ``house_power_series`` (#1460). A live
+    #: fingerprint, not persisted state: a restart carries none of it.
     #: The meter-event path (#7) samples at 10-second spacing, where a
     #: windowed power series would be a different quantity, so a sample is
     #: recorded only when the caller says its value was measured. Not
@@ -219,7 +216,7 @@ class PeakTracker:
             return
         if measured_house_kw is not None and np.isfinite(measured_house_kw):
             self.house_samples.append(float(measured_house_kw))
-            del self.house_samples[:-HOUSE_WINDOW_SAMPLES]
+            del self.house_samples[:-HISTORY_LENGTH]
         month = when.strftime("%Y-%m")
         if month != self.month:
             # A new month starts with a clean slate; last month's peaks are

@@ -639,12 +639,13 @@
 # capacity tariff's price_per_kw / window_minutes / peaks_averaged) -- so
 # each capture's `data` gains those keys and nothing else moves. No plan,
 # schedule or solver fixture moves and the optimizer is not modified: the
-# published dict is the only surface the new keys reach. Fixtures are NOT
-# re-recorded here: `tests/env_drift.py --all 6e2a0f2a` reports this box's
-# capture of these five as float-bearing fixtures whose committed leaves
-# already differ in value (27 fixtures, 13857 leaves, reported never
-# failed), so a re-record on this machine would move values it did not
-# measure -- the drift report's own instruction.
+# published dict is the only surface the new keys reach. The five fixtures
+# were re-recorded (`golden.py --record --only coord_`) and then cut back to
+# the three keys this branch adds: at this head
+# `tests/env_drift.py --all 6e2a0f2a` reports `32 fixture(s), 13972
+# leaf/leaves differ from the committed files in value alone` -- reported,
+# never failed -- and those value differences predate the branch, so
+# recording them here would write values this diff did not measure.
 
 coord_all_features
 coord_dhw

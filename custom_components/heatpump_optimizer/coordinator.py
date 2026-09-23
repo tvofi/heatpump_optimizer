@@ -1664,7 +1664,8 @@ def _space_pump_to_drive(coord: Any) -> str | None:
     """
     if coord._mode in (MODE_AUTO, MODE_ECONOMY) and coord._plan_is_stale():
         return None
-    return getattr(coord, "_ctx", coord)._config.get(CONF_SPACE_PUMP_ENTITY)
+    entity = getattr(coord, "_ctx", coord)._config.get(CONF_SPACE_PUMP_ENTITY)
+    return str(entity) if entity else None
 
 
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):

@@ -12507,6 +12507,121 @@ R.check(
     f"fresh plan commanded {_pump_entities(_fresh_pumps)}",
 )
 
+# The class D1-02 states, as a rule rather than an instance: every actuation
+# seam the cycle reaches (a `hass.services.async_call` whose service verb
+# writes, `async_publish_current_action`, or `_async_set_pump`) is either
+# gated on `_plan_is_stale` -- itself or through a module-level helper it
+# calls by name -- or is named below with the reason it is not. The rule reads
+# the source, so a write path added to the cycle is returned by it and has to
+# be dispositioned here instead of passing unseen.
+#
+# Design choice, stated: "actuation" is the four verbs this integration drives
+# a plant with (turn_on, turn_off, set_value, set_temperature) plus the two
+# named seams above, and a service call whose verb is not a literal counts as
+# actuation -- so an unknown call is reported rather than skipped. A read-only
+# service (weather.get_forecasts) is not an actuation, which is what keeps the
+# cycle's fetch paths out of the list. `_command_frequency` is the one seam
+# without a gate, and the reason is D1-02's: its write is keyed on
+# `_commanded_power()`, which reads the same frozen `_current_action` the
+# frequency watchdog's divergence test reads, so gating the write alone would
+# stand control down on a command the pump is entitled to ignore.
+import ast as _d102_ast  # noqa: E402
+import inspect as _d102_inspect  # noqa: E402
+
+from heatpump_optimizer import coordinator as _d102_mod  # noqa: E402
+
+_D102_VERBS = {"turn_on", "turn_off", "set_value", "set_temperature"}
+_D102_DIRECT = {"async_publish_current_action", "_async_set_pump"}
+_D102_FUNCS = (_d102_ast.FunctionDef, _d102_ast.AsyncFunctionDef)
+
+
+def _cycle_actuation_paths() -> list[tuple[str, bool]]:
+    """`(method, gated on _plan_is_stale)` for every actuation seam the
+    cycle `_async_update_data` reaches.
+
+    Both tests walk the AST rather than the text: a docstring or comment that
+    *names* `_plan_is_stale` is not a gate and does not make a seam look
+    gated, which is the mutation this check was first written blind to.
+    """
+    src = _d102_inspect.getsource(_d102_mod)
+    tree = _d102_ast.parse(src)
+    cls = next(
+        n
+        for n in _d102_ast.walk(tree)
+        if isinstance(n, _d102_ast.ClassDef) and n.name == Coord.__name__
+    )
+    methods = {m.name: m for m in cls.body if isinstance(m, _D102_FUNCS)}
+    module_funcs = {
+        n.name: n for n in tree.body if isinstance(n, _D102_FUNCS)
+    }
+
+    def bare_calls(node) -> list[str]:
+        return [
+            c.func.id
+            for c in _d102_ast.walk(node)
+            if isinstance(c, _d102_ast.Call)
+            and isinstance(c.func, _d102_ast.Name)
+        ]
+
+    def writes(node) -> bool:
+        for call in _d102_ast.walk(node):
+            if not isinstance(call, _d102_ast.Call):
+                continue
+            if not isinstance(call.func, _d102_ast.Attribute):
+                continue
+            if call.func.attr in _D102_DIRECT:
+                return True
+            if call.func.attr != "async_call":
+                continue
+            lits = [
+                a.value for a in call.args[:2] if isinstance(a, _d102_ast.Constant)
+            ]
+            if len(lits) < 2 or lits[1] in _D102_VERBS:
+                return True
+        return False
+
+    def gated(node) -> bool:
+        for ref in _d102_ast.walk(node):
+            if isinstance(ref, _d102_ast.Attribute) and ref.attr == "_plan_is_stale":
+                return True
+        return any(
+            gated(module_funcs[name])
+            for name in bare_calls(node)
+            if name in module_funcs
+        )
+
+    out = []
+    for call in _d102_ast.walk(methods["_async_update_data"]):
+        if not (
+            isinstance(call, _d102_ast.Call)
+            and isinstance(call.func, _d102_ast.Attribute)
+            and isinstance(call.func.value, _d102_ast.Name)
+            and call.func.value.id == "self"
+        ):
+            continue
+        name = call.func.attr
+        if name in methods and writes(methods[name]):
+            pair = (name, gated(methods[name]))
+            if pair not in out:
+                out.append(pair)
+    return out
+
+
+_d102_paths = _cycle_actuation_paths()
+R.check(
+    "every actuation seam the cycle reaches is gated on plan staleness, or is "
+    "the frequency stage whose reason D1-02 records (#1449)",
+    sorted(_d102_paths)
+    == sorted(
+        [
+            ("_apply_action", True),
+            ("_async_drive_pumps", True),
+            ("_command_frequency", False),
+        ]
+    ),
+    f"the enumeration rule returned {_d102_paths}",
+)
+
 # --- #47 through the coordinator path (the review's major finding) --------------
 # The ceiling must be None with a young prior even when the user opted
 # in: the mechanism-level None is only real protection if the coordinator
