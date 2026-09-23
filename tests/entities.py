@@ -20794,6 +20794,144 @@ R.check(
     "null control above exists to refuse",
 )
 
+# --- D13-06 (#1476): the rate is published PER CHECK-RUN NAME, both keyings ----
+#
+# Two aggregate rates say the two surfaces differ; they do not say WHICH name
+# separates them, and over the round-7 window the whole difference is one name.
+# `mutation` fails 4 of the window's 31 merge commits and 0 of its 31
+# pull-request heads, so the merge-keyed rate reads 0.226 against the head-keyed
+# 0.129 -- and the 4/31 between them is invisible in either published figure.
+# The lane's inventory is the TREE (`tests/mutation_table.py`'s `unpinned_sites`)
+# and on a push to `main` its scoping base IS `HEAD`, so it measures the MERGED
+# tree: the four merges are two pairs 4-5 s apart, i.e. two batch merges, where
+# neither pull request's own head failed it.
+#
+# THE FIXTURE IS THE WINDOW, NOT A BATTERY. `cfr_by_name` is driven on the
+# round-7 window's OWN per-name counts, as the instrument prints them over the
+# closed window `v6.6.9..f9d6f782` at this fix's merge base -- 31 merges; at the
+# merge commit `record` 30, `mutation` 4, `env-matrix` 2, `fast (3.14)` 1,
+# `policy-docs` 2; at the pull-request head `delivery-status` 4 -- so the pairs
+# pinned below are the numbers a reader of the fixed instrument sees, and a
+# round that re-takes the window meets the same table rather than a restatement.
+# Nine (name, merge) pairs over the seven merges carrying a name other than
+# `record` means two of those merges fail TWO names, which is why the movement
+# the perturbation below measures is 0.097 rather than the name's own 0.129.
+# `delivery-status` is the mirror of `mutation` -- 0.0 merge-keyed against 0.129
+# head-keyed -- so the pinned pairs separate the surfaces in BOTH directions.
+_D13_06_WINDOW = (
+    # (names failing AT THE MERGE COMMIT, names failing AT THE PULL-REQUEST HEAD,
+    #  how many of the window's merges look like this)
+    (("record", "mutation", "env-matrix"), (), 1),
+    (("record", "mutation"), ("delivery-status",), 1),
+    (("record", "mutation"), (), 2),
+    (("record", "env-matrix", "fast (3.14)"), (), 1),
+    (("record", "policy-docs"), ("delivery-status",), 2),
+    (("record",), ("delivery-status",), 1),
+    (("record",), (), 22),
+    ((), (), 1),
+)
+_D13_06_NAMES = {
+    "record": [0.968, 0.0], "mutation": [0.129, 0.0], "env-matrix": [0.065, 0.0],
+    "fast (3.14)": [0.032, 0.0], "policy-docs": [0.065, 0.0],
+    "delivery-status": [0.0, 0.129],
+}
+try:
+    _d13b_merge, _d13b_head, _d13b_pr = {}, {}, 0
+    for _mfail, _hfail, _count in _D13_06_WINDOW:
+        for _ in range(_count):
+            _d13b_pr += 1
+            _d13b_merge[_d13b_pr] = set(_mfail)
+            _d13b_head[_d13b_pr] = set(_hfail)
+    _d13b_sum = sum(_c for _m, _h, _c in _D13_06_WINDOW)
+    _d13b_by = _d13.cfr_by_name(_d13b_merge, _d13b_head, _d13b_pr)
+    _d13b_rates = _d13.cfr_keyings(
+        _d13b_merge, _d13b_head, set(_CFR_EXCL), _d13b_pr)
+    # The perturbation the finding turns on: ONE name added in memory to the
+    # exclusion list moves the merge-keyed rate (0.226 -> 0.129) and leaves the
+    # head-keyed rate exactly where it was -- the arithmetic statement that
+    # `mutation` is a merge-surface red and not a head-surface one. Nothing is
+    # written to the artifact: widening the list is the exclusion owner's call.
+    _d13b_dropped = _d13.cfr_keyings(
+        _d13b_merge, _d13b_head, set(_CFR_EXCL) | {"mutation"}, _d13b_pr)
+    _D13_06_OK = bool(
+        _d13b_pr == 31 == _d13b_sum
+        and _d13b_by == _D13_06_NAMES
+        # Set equality is the absence control as well as the value one: the
+        # map's keys come only from the two maps' VALUES, so a name failing at
+        # neither surface is ABSENT rather than a zero row -- the wrong shape, a
+        # vocabulary carried in from somewhere else with zeros filled in, adds a
+        # key here and fails this arm without moving any rate.
+        and set(_d13b_by) == set(_D13_06_NAMES)
+        and _d13b_rates["merge_keyed"] == 0.226
+        and _d13b_rates["head_keyed"] == 0.129
+        and _d13b_rates["merge_unexcluded"] == 0.968
+        and _d13b_rates["head_unexcluded"] == 0.129
+        and _d13b_dropped["merge_keyed"] == 0.129
+        and _d13b_dropped["head_keyed"] == _d13b_rates["head_keyed"]
+    )
+    _d13_06_detail = (
+        f"cfr_by_name on the round-7 window's 31 merges: {_d13b_by}; both keyings "
+        f"{_d13b_rates}; with `mutation` dropped in memory {_d13b_dropped}"
+    )
+except Exception as _d13b_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _D13_06_OK = False
+    _d13_06_detail = f"{type(_d13b_exc).__name__}: {_d13b_exc}"
+R.check(
+    "the change-failure instrument publishes the rate per check-run NAME at both "
+    "keyings, so the name that separates them is visible (#1476)",
+    _D13_06_OK,
+    _d13_06_detail + " -- two aggregate rates hide which name separates the "
+    "surfaces, and here the whole difference is one name: `mutation` is 4 of 31 "
+    "merge commits and 0 of 31 pull-request heads, because the lane's inventory "
+    "is the tree and a batch merge measures a tree no pull request's head had. "
+    "The pair for every name failing at either surface is what the exclusion "
+    "list owner needs to judge whether that red is a change failure",
+)
+
+# ...and the artifact records the name it deliberately does NOT exclude (#1476),
+# in the shape the #1303 check above pins for `excluded_jobs`: a reason and a
+# citation that has to be quoting something the tree carries. The citation is
+# pinned against `tests/mutation_table.py`'s own refusal text, so the entry
+# cannot drift into a quote nothing in the tree supports -- and the exclusion map
+# itself is asserted UNCHANGED, because recording a refusal to widen the list is
+# not a widening.
+try:
+    _cfr_now = json.loads(
+        (_closure.ROOT / ".claude/workflows/cfr_exclusions.json").read_text())
+    _CFR_NOT_EXCL = _cfr_now.get("not_excluded") or {}
+    _CFR_EXCL_NOW = _cfr_now.get("excluded_jobs") or {}
+    _MUT_QUOTE = "unpinned site(s)"
+    _MUT_SRC = (_closure.ROOT / "tests/mutation_table.py").read_text()
+    _CFR_NOT_EXCL_OK = bool(
+        isinstance(_CFR_NOT_EXCL, dict)
+        and all(isinstance(v, dict) and v.get("reason") and v.get("citation")
+                for v in _CFR_NOT_EXCL.values())
+        and "mutation" in _CFR_NOT_EXCL
+        and _MUT_QUOTE in _CFR_NOT_EXCL["mutation"]["citation"]
+        and _MUT_QUOTE in _MUT_SRC
+        and "mutation" not in _CFR_EXCL_NOW
+    )
+    _cfr_not_excl_detail = (
+        f"not_excluded={sorted(_CFR_NOT_EXCL)}; excluded_jobs="
+        f"{sorted(_CFR_EXCL_NOW)}; the mutation entry cites the lane's own "
+        f"words: {_MUT_QUOTE in (_CFR_NOT_EXCL.get('mutation') or {}).get('citation', '')}, "
+        f"and tests/mutation_table.py says them: {_MUT_QUOTE in _MUT_SRC}"
+    )
+except Exception as _cfr_ne_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _CFR_NOT_EXCL_OK = False
+    _cfr_not_excl_detail = f"{type(_cfr_ne_exc).__name__}: {_cfr_ne_exc}"
+R.check(
+    "and the exclusion artifact records `mutation` as deliberately NOT excluded, "
+    "with a reason and a citation the tree carries (#1476)",
+    _CFR_NOT_EXCL_OK,
+    _cfr_not_excl_detail + " -- the D13-06 finding is filed about the INSTRUMENT, "
+    "not as a request to widen the list: whether a merge-surface red on a "
+    "batch-merged tree is a change failure or a by-design protocol beat is the "
+    "exclusion list owner's judgement. So the next reader meets the name in "
+    "`cfr_by_name`'s output and finds the refusal recorded here rather than in a "
+    "merged pull request's comments",
+)
+
 # --- D11-04 (#1194): the disposition refusal can set the record job's status --
 #
 # The refusing step carried `continue-on-error: true`, which is exactly what
