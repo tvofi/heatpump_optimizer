@@ -5601,6 +5601,110 @@ R.check(
     f"clean={_gap_spike_clean} holed={_gap_spike_holed}",
 )
 
+# --- R7 D8-01 (#1460): the series the advisors read are the payload's own ---
+# `SensorGapAdvisorSensor._gaps` reads `house_power_series` and
+# `heat_pump_power_series`, and `_build_data_dict` wrote neither -- the only
+# occurrences of those names in production were the two reads -- so every
+# install ranked the house-power row 0.00, and every check above stayed green
+# because it hands the advisor a payload it made up. These drive the
+# production seams that now publish them: one settled interval through
+# `_record_accuracy` (the pump's own measured draw) and one through
+# `_track_realised_peak` (the whole-house meter's reading).
+
+
+def _gap_series_payload(house_kw, *, peak_tariff: bool = True):
+    """A payload built from the panels a real cycle writes."""
+    coord = _NpCoord(
+        FakeHass(),
+        FakeEntry(
+            data={
+                "peak_tariff_enabled": peak_tariff,
+                "peak_tariff_price_per_kw": 90.0,
+            }
+        ),
+    )
+    coord._measured_power = 2.5
+    coord._measured_house_power = house_kw
+    coord._track_realised_peak()
+    coord._pending_prediction = {
+        "when": dt_util.now() - timedelta(minutes=30),
+        "power": 2.0,
+        "space_power": 2.0,
+        "dhw_power": 0.0,
+        "price": 1.0,
+        "spot_price": 1.0,
+        "predicted_temp": 21.0,
+    }
+    coord._record_accuracy()
+    payload = coord._build_data_dict()
+    # Sensors read `coordinator.data`, and an unset one would make every
+    # check below a check over an empty payload (`_capture_coordinator`'s
+    # own trap in tests/golden.py).
+    coord.data = payload
+    return coord, payload
+
+
+_series_coord, _series_data = _gap_series_payload(6.5)
+R.check(
+    "the payload publishes the pump's measured window (#1460)",
+    _series_data.get("heat_pump_power_series") == [2.5],
+    f"got {_series_data.get('heat_pump_power_series')!r}",
+)
+R.check(
+    "and the whole-house window, from the whole-house meter's own reading "
+    "(#1460)",
+    _series_data.get("house_power_series") == [6.5],
+    f"got {_series_data.get('house_power_series')!r}",
+)
+_series_bare, _series_bare_data = _gap_series_payload(None)
+R.check(
+    "with no whole-house meter the house window is empty rather than the "
+    "pump's own draw under the house's name (#1460)",
+    _series_bare_data.get("house_power_series") == []
+    and _series_bare_data.get("heat_pump_power_series") == [2.5],
+    f"house={_series_bare_data.get('house_power_series')!r} "
+    f"pump={_series_bare_data.get('heat_pump_power_series')!r}",
+)
+_series_gap_sensor = sensor.SensorGapAdvisorSensor(_series_coord, ENTRY)
+_series_gaps = {
+    row["key"]: row
+    for row in _series_gap_sensor.extra_state_attributes["gaps"]
+}
+R.check(
+    "the advisor prices an empty outdoor slot from the payload's own window "
+    "(#1460)",
+    _series_gaps[const.CONF_OUTDOOR_TEMP_ENTITY]["sek_per_month"] > 0.0,
+    repr(_series_gaps),
+)
+
+
+class _ReadRecordingData(dict):
+    """The payload, remembering which keys a reader asked it for."""
+
+    def __init__(self, payload):
+        super().__init__(payload)
+        self.asked = set()
+
+    def get(self, key, default=None):
+        self.asked.add(key)
+        return super().get(key, default)
+
+
+# The seam rule this finding states, as a rule rather than an instance: every
+# key the advisor reads must be a key the payload writes. It reads the
+# production sensor over the production payload, so a key that stops being
+# published fails here rather than silently ranking 0.00.
+_series_recorder = _ReadRecordingData(_series_data)
+_series_coord.data = _series_recorder
+sensor.SensorGapAdvisorSensor(_series_coord, ENTRY).extra_state_attributes
+_series_unwritten = sorted(_series_recorder.asked - set(_series_data))
+R.check(
+    "every payload key the gap advisor reads is one `_build_data_dict` "
+    "writes (#1460)",
+    _series_unwritten == [],
+    f"read but never written: {_series_unwritten}",
+)
+
 # --- #1269 sensor advisor: value of ADDING an unconfigured sensor -----------
 # The inverse of the #699 lane above: rank_sensor_gaps prices what the
 # CONFIGURED sensors' absence costs; rank_sensor_advisor prices how much the

@@ -39,6 +39,12 @@ from .dhw_schedule import Window, hour_in_windows
 
 _LOGGER = logging.getLogger(__name__)
 
+#: How many per-cycle readings ``PeakTracker.house_samples`` keeps (#1460):
+#: two weeks at the default half-hour interval, the depth the payload's
+#: ``house_power_series`` is priced over. The window is a live fingerprint,
+#: not persisted state, so an install that restarts carries none of it.
+HOUSE_WINDOW_SAMPLES = 672
+
 
 def _window_slot(when: datetime, window_minutes: int) -> datetime:
     """The start of the metering window containing ``when``.
@@ -138,6 +144,19 @@ class CapacityTariff:
             return 1.0
         return float(min(1.0, max(0.0, self.offpeak_factor)))
 
+    def billing_summary(self) -> dict[str, float]:
+        """The three figures the peak term is priced with (#1460).
+
+        What the sensor-gap advisor reads to price a missing house meter:
+        a payload that publishes these lets the row use the user's own
+        tariff instead of the documented default.
+        """
+        return {
+            "price_per_kw": self.price_per_kw,
+            "window_minutes": self.window_minutes,
+            "peaks_averaged": self.peaks_averaged,
+        }
+
 
 @dataclass
 class PeakTracker:
@@ -153,6 +172,13 @@ class PeakTracker:
     month: str = ""
     #: Highest billed-equivalent window averages seen this month, descending.
     peaks: list[float] = field(default_factory=list)
+    #: The measured whole-house readings behind ``peaks``, newest last and
+    #: bounded, one per CYCLE (#1460): the payload's ``house_power_series``.
+    #: The meter-event path (#7) samples at 10-second spacing, where a
+    #: windowed power series would be a different quantity, so a sample is
+    #: recorded only when the caller says its value was measured. Not
+    #: persisted -- it is rebuilt from the cycles after a restart.
+    house_samples: list[float] = field(default_factory=list)
     #: Accumulator for the window currently being metered.
     _window_key: str = ""
     _window_sum: float = 0.0
@@ -175,6 +201,7 @@ class PeakTracker:
         house_power_kw: float,
         tariff: CapacityTariff,
         dt_hours: float | None = None,
+        measured_house_kw: float | None = None,
     ) -> None:
         """Fold one power sample into the current metering window.
 
@@ -182,9 +209,17 @@ class PeakTracker:
         stood for; a window holding any weighted sample closes on the
         weighted average. Without it (every pre-T2 caller) the unweighted
         sample mean is used, unchanged.
+
+        ``measured_house_kw`` is the whole-house meter's own reading, for the
+        per-cycle caller only: the payload's ``house_power_series`` is the
+        readings that were MEASURED, so a cycle the integration could only
+        estimate from the plan contributes to the peak and not to the series.
         """
         if not np.isfinite(house_power_kw) or house_power_kw < 0:
             return
+        if measured_house_kw is not None and np.isfinite(measured_house_kw):
+            self.house_samples.append(float(measured_house_kw))
+            del self.house_samples[:-HOUSE_WINDOW_SAMPLES]
         month = when.strftime("%Y-%m")
         if month != self.month:
             # A new month starts with a clean slate; last month's peaks are

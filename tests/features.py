@@ -12428,6 +12428,85 @@ R.check(
     "meant one unavailable moment froze the pump state forever",
 )
 
+# R7 D1-02 / #1449: `_apply_action` returns without actuating a plan
+# `_plan_is_stale` has declared unfit, and `_async_drive_pumps` runs one call
+# later off the SAME retained plan -- so it kept commanding the expired
+# horizon's last step. The VVC half is deliberately NOT gated and must not
+# be: its input is the user's DHW window schedule, which cannot go stale, and
+# it is the rail that keeps the loop warm through the outage.
+
+
+def _stale_plan_coord(stale: bool):
+    """A pump-coordinator whose published plan is 400 minutes old, or new."""
+    from heatpump_optimizer.optimizer import OptimizationResult
+
+    coord = _t2_coord(
+        vvc_pump_entity="switch.vvc",
+        space_circulation_pump_entity="switch.space_pump",
+    )
+    n = 48
+    coord._optimization_result = OptimizationResult(
+        power_schedule=[3.0] * n,
+        room_temp_trajectory=[21.0] * (n + 1),
+        slab_temp_trajectory=[22.0] * (n + 1),
+        timestamps=[
+            dt_util.now() + timedelta(minutes=15 * i) for i in range(n)
+        ],
+        prices=[1.0] * n,
+        predicted_cost=10.0,
+        baseline_cost=12.0,
+        predicted_savings=2.0,
+        savings_percentage=16.6,
+        optimal_setpoints=[21.0] * n,
+        status="ok",
+        compressor_starts=3,
+        projected_peak_kw=4.0,
+    )
+    # The retained action, exactly as the live one is kept: it holds
+    # heat_pump_on, which is the curve rail that forces the space pump ON --
+    # the reason the defect's direction was the safe one.
+    coord._current_action = {
+        "power": 3.0,
+        "setpoint": 21.0,
+        "mode": "auto",
+        "price": 1.0,
+        "power_normalized": 1.0,
+        "heat_pump_on": True,
+        "displace_value": 0.5,
+    }
+    coord._mode = _MODE_AUTO
+    coord._last_optimization = dt_util.now() - timedelta(
+        minutes=400 if stale else 0
+    )
+    if coord._plan_is_stale() is not stale:
+        raise AssertionError("probe: the staleness precondition did not hold")
+    _asyncio.run(coord._async_drive_pumps())
+    return coord
+
+
+def _pump_entities(coord) -> list[str]:
+    return [call[2]["entity_id"] for call in coord.hass.services.calls]
+
+
+_stale_pumps = _stale_plan_coord(True)
+_fresh_pumps = _stale_plan_coord(False)
+R.check(
+    "the space pump is not driven from a plan _plan_is_stale refused (#1449)",
+    "switch.space_pump" not in _pump_entities(_stale_pumps),
+    f"commanded {_pump_entities(_stale_pumps)} from a 400-minute-old plan",
+)
+R.check(
+    "the VVC is not gated with it: its window schedule cannot go stale (#1449)",
+    "switch.vvc" in _pump_entities(_stale_pumps),
+    f"commanded {_pump_entities(_stale_pumps)} — a plan outage must not "
+    "stop the DHW loop",
+)
+R.check(
+    "and a fresh plan drives the space pump, so the check above is not vacuous",
+    _pump_entities(_fresh_pumps) == ["switch.vvc", "switch.space_pump"],
+    f"fresh plan commanded {_pump_entities(_fresh_pumps)}",
+)
+
 # --- #47 through the coordinator path (the review's major finding) --------------
 # The ceiling must be None with a young prior even when the user opted
 # in: the mechanism-level None is only real protection if the coordinator
@@ -20348,6 +20427,61 @@ R.check(
     _wc_config is not None
     and _wc_config.baseline_load_kw is not _wc_coord._opt_config.baseline_load_kw,
     "the scratch config shares the live baseline load array",
+)
+
+# R7 D1-01 / #1448: the what-if's rate-limit slot is consumed when a solve is
+# STARTED, so the arm where the shadow solve raises is limited too. The judge
+# drove the real (unstubbed) path: on this arm 5 calls started 5 solves --
+# 2,225 ms against 377 ms healthy -- and on the #783 worker-fallback arm 0,
+# so the slot is spent on the solve arm only: the pre-solve returns
+# (no_plan, no_prices, invalid_windows, wood_err) spend no CPU and would
+# otherwise delay the next call for nothing.
+_WHATIF_CALLS = 5
+
+
+async def _whatif_solves(*, fails: bool) -> int:
+    """Shadow solves started by _WHATIF_CALLS consecutive what-if calls.
+
+    The clock is frozen: a solve takes about a second of wall clock, so on
+    the live clock the third call would already be outside the three-second
+    interval and the count would measure the solve's duration rather than
+    the limiter.
+    """
+    coord = _solve_coord()
+    await coord.async_run_optimization()
+    real = _coord_mod._await_optimize
+    started = []
+
+    async def _shadow(*args, **kwargs):
+        started.append(1)
+        if fails:
+            raise RuntimeError("probe: the shadow solve failed")
+        return await real(*args, **kwargs)
+
+    coord._last_simulation = None
+    _coord_mod._await_optimize = _shadow
+    dt_util.freeze(dt_util.now())
+    try:
+        for _ in range(_WHATIF_CALLS):
+            await coord.async_simulate({"power_cap_kw": 3.0})
+    finally:
+        _coord_mod._await_optimize = real
+        dt_util.freeze(None)
+    return len(started)
+
+
+_whatif_failed_solves = _asyncio.run(_whatif_solves(fails=True))
+_whatif_ok_solves = _asyncio.run(_whatif_solves(fails=False))
+R.check(
+    "a failing what-if spends the rate-limit slot: 5 calls, 1 solve (#1448)",
+    _whatif_failed_solves == 1,
+    f"{_WHATIF_CALLS} failing calls started {_whatif_failed_solves} solves",
+)
+R.check(
+    "the success arm is limited to one solve, which is what makes the check "
+    "above about the failing arm and not about the call loop (#1448)",
+    _whatif_ok_solves == 1,
+    f"{_WHATIF_CALLS} succeeding calls started {_whatif_ok_solves} solves",
 )
 
 R.section("v5.1.3 — an unusable sensor freezes the learners, not just a quiet one")
