@@ -558,6 +558,24 @@ const CORPUS_EXCLUDED = new Set([
   'tools/audit/round6/D11/REPORT.md',
   'tools/audit/round6/D12/REPORT.md',
   'tools/audit/round6/D13/REPORT.md',
+  // Round-7 audit evidence (same rule as the round-6 block above: finder
+  // reports and the round baseline, data a later seat reads rather than policy
+  // prose).
+  'tools/audit/round7/BASELINE.md',
+  'tools/audit/round7/D0/REPORT.md',
+  'tools/audit/round7/D1/REPORT.md',
+  'tools/audit/round7/D2/REPORT.md',
+  'tools/audit/round7/D3/REPORT.md',
+  'tools/audit/round7/D4/REPORT.md',
+  'tools/audit/round7/D5/REPORT.md',
+  'tools/audit/round7/D6/REPORT.md',
+  'tools/audit/round7/D7/REPORT.md',
+  'tools/audit/round7/D8/REPORT.md',
+  'tools/audit/round7/D9/REPORT.md',
+  'tools/audit/round7/D10/REPORT.md',
+  'tools/audit/round7/D11/REPORT.md',
+  'tools/audit/round7/D12/REPORT.md',
+  'tools/audit/round7/D13/REPORT.md',
 ])
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
