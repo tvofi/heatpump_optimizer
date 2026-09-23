@@ -281,11 +281,11 @@ BY_NAME = {display(p, e): (p, e) for p, es in CENSUS.items() for e in es}
 CMD = "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py"
 
 # --- C1..C9  entity census -------------------------------------------------
-eq("C1", "README.md:Entities", "All 74 entities are created on every install",
+eq("C1", "README.md:Entities", "All 75 entities are created on every install",
    CMD, int(re.search(r"All (\d+) entities", README).group(1)), TOTAL)
 eq("C2", "README.md:### Sensors", "Sensors (59 total)", CMD,
    int(re.search(r"### Sensors \((\d+) total\)", README).group(1)), COUNTS["sensor"])
-eq("C3", "README.md:### Binary Sensors", "Binary Sensors (5 total)", CMD,
+eq("C3", "README.md:### Binary Sensors", "Binary Sensors (6 total)", CMD,
    int(re.search(r"### Binary Sensors \((\d+) total\)", README).group(1)),
    COUNTS["binary_sensor"])
 eq("C4", "README.md:### Buttons", "Buttons (4 total)", CMD,

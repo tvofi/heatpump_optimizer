@@ -2,7 +2,7 @@
  {
   "id": "C1",
   "source": "README.md:Entities",
-  "claim": "All 74 entities are created on every install",
+  "claim": "All 75 entities are created on every install",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
   "result": "documented=75 measured=75",
   "verdict": "true",
@@ -20,7 +20,7 @@
  {
   "id": "C3",
   "source": "README.md:### Binary Sensors",
-  "claim": "Binary Sensors (5 total)",
+  "claim": "Binary Sensors (6 total)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
   "result": "documented=6 measured=6",
   "verdict": "true",
