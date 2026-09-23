@@ -15,7 +15,6 @@ import logging
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
@@ -57,7 +56,7 @@ class OptimizerEnableSwitch(HeatPumpOptimizerEntity, SwitchEntity):
     def __init__(
         self,
         coordinator: HeatPumpOptimizerCoordinator,
-        entry: ConfigEntry,
+        entry: HeatPumpOptimizerConfigEntry,
     ) -> None:
         """Initialize the switch."""
         super().__init__(coordinator)
@@ -108,7 +107,7 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
     def __init__(
         self,
         coordinator: HeatPumpOptimizerCoordinator,
-        entry: ConfigEntry,
+        entry: HeatPumpOptimizerConfigEntry,
     ) -> None:
         super().__init__(coordinator)
         self._entry = entry
@@ -134,7 +133,7 @@ class BoostDhwSwitch(HeatPumpOptimizerEntity, SwitchEntity):
     def __init__(
         self,
         coordinator: HeatPumpOptimizerCoordinator,
-        entry: ConfigEntry,
+        entry: HeatPumpOptimizerConfigEntry,
     ) -> None:
         super().__init__(coordinator)
         self._entry = entry
@@ -164,7 +163,7 @@ class BoostSpaceSwitch(HeatPumpOptimizerEntity, SwitchEntity):
     def __init__(
         self,
         coordinator: HeatPumpOptimizerCoordinator,
-        entry: ConfigEntry,
+        entry: HeatPumpOptimizerConfigEntry,
     ) -> None:
         super().__init__(coordinator)
         self._entry = entry

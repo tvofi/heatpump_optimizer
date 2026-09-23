@@ -400,6 +400,12 @@ const LOOP_CHECK_NAMES = [
   // That is the defect this entry arrived with, and it was invisible to the
   // whole acceptance until the keying window pinned it.
   { name: 'frictionKey', file: 'policy_lint.mjs', kind: 'return' },
+  // The seventh: `--sunset`'s marker census (sunsetMarkerLine), printed by the
+  // third loop mode. Same shape as the fifth and sixth -- no findings, so the
+  // acceptance drives its SHAPE and both ends of it -- and the reason it exists
+  // is that this class's zero was the one print in the corpus that a reader
+  // could not tell from a measurement (#1469, D11-03).
+  { name: 'sunsetMarkerLine', file: 'policy_lint.mjs', kind: 'return' },
 ]
 
 // WHAT THIS PIN DOES NOT COVER, stated rather than implied. It compares the
@@ -2184,6 +2190,40 @@ export function blockClasses(text = read(WAVE_SCRIPT)) {
   return words.length ? words : null
 }
 
+// THE MATCHER IS THE WAVE'S OWN GRAMMAR, NOT A SECOND ONE (#1472, D13-02). The
+// histogram built its matcher from the two words above -- `^Fix review:\s*
+// (blocked|merge)\b`, case-insensitive -- while the header line asserted it had
+// read the grammar "from .claude/workflows/web-fix-wave.js". It had read half of
+// it, and the halves diverged on four axes, every one one-directional: no space
+// after the colon, case, an abbreviated head, and no head at all. The wave
+// refuses all four (`\s+`, no `i`, `[0-9a-f]{40}`, and a SHA required on both
+// arms); the histogram counted them, and the merge arm took a SHA-less line
+// while the blocked arm in the same function sent its own to `unclassified`.
+// That asymmetry is also what a rework round is measured against -- a verdict
+// naming no head is no evidence of a moved one -- so the looser grammar did not
+// merely over-count, it moved the rework figure. The reader now classifies with
+// the wave's `VERDICT_RE` itself, read out of that file the way `verdictClasses`
+// reads the words, so a line the wave throws on lands in `unclassified` where
+// the drift shows; the extraction technique is `check-wave-script.mjs`'s, which
+// builds the same regex from the same literal to check the reviewer contracts'
+// own examples. Unreadable yields null and the caller withholds, as with the
+// words and the block classes.
+const VERDICT_RE_LITERAL_RE = /const VERDICT_RE = new RegExp\(\n([\s\S]*?)\n\)/
+
+export function waveVerdictRe(text = read(WAVE_SCRIPT)) {
+  if (text == null) return null
+  const m = VERDICT_RE_LITERAL_RE.exec(text)
+  if (!m) return null
+  try {
+    // eslint-disable-next-line no-new-func -- the literal is the wave script's
+    // own, from this repository, and building it is how check-wave-script.mjs
+    // reads the same grammar.
+    return new Function('VERDICT_CLASSES', `return new RegExp(${m[1]})`)(blockClasses(text) ?? [])
+  } catch {
+    return null
+  }
+}
+
 // A `## Friction` section names, per entry, the rule id that cost the seat
 // time. The key is the `<rule_id>` of the template's grammar, read by the SAME
 // parser `checkPrBody` refuses with (`frictionEntries`), so a body the contract
@@ -2342,28 +2382,23 @@ const bump = (hist, key, pr) => {
   cell.prs.add(pr)
 }
 
-// THE BLOCK-CLASS KEYING (#1240, D13-03; the continuation is the wave's, #1304).
-// The blocked arm used to key every blocked verdict on the word `blocked` -- one
-// constant key, because the grammar read was only the two verdict words. It now
-// reads the same shape the wave parser acts on: a blocked line that carries a
-// full head SHA keys on the CLASS WORD it carries -- a taught word as itself, an
+// THE SAME KEYING, ONE GRAMMAR (#1240, D13-03; #1304; #1472, D13-02). The
+// blocked arm used to key every blocked verdict on the word `blocked` -- one
+// constant key, because the grammar read was only the two verdict words. It keys
+// the CLASS WORD the wave's own parser captures now: a taught word as itself, an
 // untaught word as its own row, never folded into `other`, because a class the
 // grammar does not have is the drift signal, not noise -- and a bare
 // `blocked <sha>` routes to `other`, where web-fix-wave.js routes it (#1239).
-// THE CONTINUATION AFTER THE SHA IS THE WAVE'S OWN, and until #1304 it was not:
-// the class word was optional and its colon with it, so `blocked <sha> <word>
-// (<why>)` -- a class word with no colon, which VERDICT_RE REFUSES -- matched
-// here with no class captured and folded into `other`. Blessing what the wave
-// discards is the same defect as counting a sha-less verdict, so the
-// continuation mirrors the wave's arms -- ` <class>: <why>`, `: <why>`, or
-// nothing, each ending the line -- and a blocked line the wave refuses keeps its
-// own row here, as a sha-less one always did: the head is the thing the wave
-// refuses to act on, and a histogram that counted it anyway would bless what the
-// wave discards. The merge arm stays keyed on the word alone -- the passing
-// verdict is not rework IN ITS OWN ROW however it is spelled, so that arm only
-// withholds -- and the rework that row cannot see is keyed separately below.
-const BLOCKED_SHAPE_RE = /^Fix review:\s*blocked\s+([0-9a-f]{40})(?:\s+([a-z][a-z0-9-]*)\s*:\s*.+|\s*:\s*.+|\s*)$/i
-
+// The continuation after the head was this file's own reconstruction of the
+// wave's until #1472: it once matched a class word with no colon (which
+// VERDICT_RE REFUSES, #1304) and it required a SHA on the blocked arm alone
+// while the merge arm took a SHA-less line. Both are gone with
+// BLOCKED_SHAPE_RE -- one matcher, the wave's, so a line the wave refuses is
+// reported outside the grammar on EITHER arm rather than blessed as a row here.
+// The merge arm stays keyed on the word alone: the passing verdict is not rework
+// IN ITS OWN ROW however it is spelled, so that arm only withholds, and the
+// rework that row cannot see is keyed separately below.
+//
 // THE REWORK THE PASSING VERDICT HIDES (#1405, D13-01). `merge` is the verdict
 // the wave requires before it merges, so the exclusion above prints it and
 // counts rework nowhere -- and the rework this programme pays takes exactly
@@ -2379,50 +2414,88 @@ const BLOCKED_SHAPE_RE = /^Fix review:\s*blocked\s+([0-9a-f]{40})(?:\s+([a-z][a-
 // it would be reading the grammar rather than counting it. So the rows stop
 // partitioning the window's verdicts: the same round is one `merge` entry AND
 // one `head-moved` entry, and the second is the one that says a head moved.
-// Both heads must be present: a verdict naming none is no evidence either way,
-// so no rework is inferred from the missing side. The key is the wave's own word
-// -- a class the wave stops teaching is a key nothing routes on, which the
-// extraction check in tests/entities.py refuses by name.
+// Every parseable verdict names a full head -- the wave's grammar requires one
+// on both arms -- so there is no missing side to infer from: a `Fix review:`
+// line with no head is outside the grammar and reaches the rework arm never.
+// The key is the wave's own word -- a class the wave stops teaching is a key
+// nothing routes on, which the extraction check in tests/entities.py refuses by
+// name.
 export const REWORK_CLASS = 'head-moved'
-const VERDICT_HEAD_RE = /^Fix review:\s*(?:blocked|merge)\s+([0-9a-f]{40})\b/i
+
+// WHICH ENDPOINT A VERDICT ARRIVED ON (#1471, D13-01). A verdict is an issue
+// comment or a pull-request review, and `fetchWindow` asked only for
+// `/issues/<n>/comments` -- so a review-posted verdict was not merely
+// unweighted, the pull request read as one that carried none. Both endpoints are
+// fetched now, and every verdict carries the one it came from, so the census
+// line beside the coverage line can say which endpoint a window's verdicts
+// arrived on rather than leaving a zero to be read as "none were written".
+const VERDICT_ENDPOINTS = [
+  { origin: 'issue comment', field: 'comments', at: 'created_at', path: '/issues/<n>/comments' },
+  { origin: 'review', field: 'reviews', at: 'submitted_at', path: '/pulls/<n>/reviews' },
+]
+
+// The verdict walk, over both endpoints, in the order the two were WRITTEN: the
+// bodies carry no shared sequence number, so the timestamps are the only
+// ordering the API gives (comments oldest-first, reviews by `submitted_at`; both
+// ISO-8601, so a string compare is the compare). A payload with no timestamps --
+// both loop fixtures, and the round-6 window fixture -- keeps the order it was
+// written in, which is `Array.prototype.sort`'s stability on equal keys.
+function verdictWalk(f) {
+  const rows = []
+  for (const { origin, field, at } of VERDICT_ENDPOINTS) {
+    for (const c of f[field] ?? []) rows.push({ body: c.body, at: c[at], origin })
+  }
+  return rows.sort((a, b) => String(a.at ?? '').localeCompare(String(b.at ?? '')))
+}
 
 export function statsHistogram(prs, fetched, classes) {
   const verdicts = new Map()
   const friction = new Map()
   const unclassified = []
-  const re = new RegExp(`^Fix review:\\s*(${classes.join('|')})\\b`, 'i')
+  const endpoints = new Map()
+  const re = waveVerdictRe()
   for (const { pr } of prs) {
     const f = fetched.get(pr)
     if (!f) continue
-    // The head each parseable verdict names, oldest comment first (the API's
-    // own order), with null where the line names none. The rework arm after the
-    // walk compares against the first of these.
+    // The head each parseable verdict names, in the order the verdicts were
+    // written. The rework arm after the walk compares against the first of
+    // these. (`classes` stays in this signature because every caller passes the
+    // words the reviewer prompt teaches and `statsFindings` keys its arms on
+    // them; the matcher below no longer needs them, because the grammar it reads
+    // carries both words itself.)
     const heads = []
-    for (const c of f.comments ?? []) {
-      const first = String(c.body ?? '').split('\n')[0].trim()
+    for (const { body, origin } of verdictWalk(f)) {
+      // THE EXTRACTION IS THE WAVE'S OWN, not only the matcher (#1480 review,
+      // class-open). `web-fix-wave.js`'s `parseVerdict` does
+      // `String(...).trim().split('\n')[0]` -- TRIM THE BODY, then take its
+      // first line -- and this read did the opposite: take the first line, then
+      // trim it. The two differ for exactly two shapes of body, and each moves
+      // a verdict in the direction the other one does not: a body whose verdict
+      // line ends in whitespace has its trailing space REMOVED here and KEPT
+      // there, so a line the wave throws on counted as a verdict; and a body
+      // opening with a blank line has `''` as its first line here, which fails
+      // the `Fix review:` gate below and was neither counted nor reported,
+      // while the wave reads the verdict on the second line. The `## Figures`
+      // harness could not see either: it enumerates `Fix review:` FIRST LINES,
+      // where the two extractions coincide by construction. Trim first, as the
+      // wave does, and both directions close.
+      const first = String(body ?? '').trim().split('\n')[0]
       if (!/^Fix review:/i.test(first)) continue
-      const m = first.match(re)
+      const m = re == null ? null : re.exec(first)
       if (!m) {
         // A verdict that says "Fix review:" and then something the wave script
-        // never taught a reviewer to say. Reported rather than bucketed: it is
-        // the grammar drifting, and a histogram that quietly absorbs it would
-        // hide exactly that.
-        unclassified.push(`#${pr}: ${first.slice(0, 70)}`)
+        // refuses to parse. Reported rather than bucketed, with the endpoint it
+        // arrived on: it is the grammar drifting, and a histogram that quietly
+        // absorbed it would hide exactly that.
+        unclassified.push(`#${pr} (${origin}): ${first.slice(0, 70)}`)
         continue
       }
-      const word = m[1].toLowerCase()
-      if (word !== 'blocked') {
-        bump(verdicts, word, pr)
-        heads.push((VERDICT_HEAD_RE.exec(first) ?? [])[1]?.toLowerCase() ?? null)
-        continue
-      }
-      const bm = BLOCKED_SHAPE_RE.exec(first)
-      if (!bm) {
-        unclassified.push(`#${pr}: ${first.slice(0, 70)}`)
-        continue
-      }
-      bump(verdicts, bm[2] ? bm[2].toLowerCase() : 'other', pr)
-      heads.push(bm[1].toLowerCase())
+      const word = m[1] ? m[1] : m[5] ? m[5].toLowerCase() : 'other'
+      // The head the wave's grammar captured: arm 2 for `merge`, arm 4 for
+      // `blocked`, both required to be 40 hex by that grammar.
+      heads.push((m[1] ? m[2] : m[4]).toLowerCase())
+      bump(verdicts, word, pr)
+      bump(endpoints, origin, pr)
     }
     // THE REWORK ARM (#1405, D13-01): a later verdict naming a head the first
     // one did not is a re-verification of a moved head, keyed as the class the
@@ -2431,8 +2504,7 @@ export function statsHistogram(prs, fetched, classes) {
     // printed before the change it still prints. One bump per round, so the
     // cell's distinct-PR count and its entry count are the two figures the
     // finder measured -- 7 merges and 11 rounds over the round-6 window.
-    const firstHead = heads[0]
-    if (firstHead) for (const h of heads.slice(1)) if (h && h !== firstHead) bump(verdicts, REWORK_CLASS, pr)
+    for (const h of heads.slice(1)) if (h !== heads[0]) bump(verdicts, REWORK_CLASS, pr)
     for (const id of frictionIds(f.body)) bump(friction, id, pr)
   }
   // THE HISTOGRAM'S COVERAGE (#1406, D13-02). The verdict table's population is
@@ -2450,7 +2522,30 @@ export function statsHistogram(prs, fetched, classes) {
   const all = prs.map(({ pr }) => pr)
   const noVerdict = all.filter((pr) => !verdictPrs.has(pr))
   const unfetched = all.filter((pr) => !fetched.has(pr))
-  return { verdicts, friction, unclassified, coverage: { window: prs.length, verdictPrs, noVerdict, unfetched } }
+  return {
+    verdicts,
+    friction,
+    unclassified,
+    endpoints,
+    coverage: { window: prs.length, verdictPrs, noVerdict, unfetched },
+  }
+}
+
+// WHICH ENDPOINT THE WINDOW'S VERDICTS ARRIVED ON (#1471, D13-01), printed
+// beside the coverage line. The population it counts is the walk's own -- the
+// parseable verdicts `endpoints` was bumped with inside the same loop that
+// builds the table -- so it cannot disagree with the rows above it, and a
+// refused line stays visible with its endpoint in the `outside the grammar`
+// report rather than being folded in here. Both endpoints are named with the
+// path the reader asks for, because the finding is that one of them was never
+// asked for: a census whose reviews row is zero over a reader that does ask
+// means "none were posted", which is a fact about the window.
+export function statsEndpointLine(endpoints) {
+  const rows = VERDICT_ENDPOINTS.map(({ origin, path }) => {
+    const cell = endpoints.get(origin)
+    return `${path} (${origin}): ${cell ? cell.entries : 0}`
+  })
+  return `STATS ENDPOINTS: parsable verdict(s) by the endpoint they arrived on -- ${rows.join('; ')}. Both endpoints are read, so a verdict posted as a review is counted rather than read as a merge that carried none.`
 }
 
 // The line `--stats` prints beside `STATS:` so the window's merge count and the
@@ -2553,6 +2648,42 @@ const DETECTOR_TOKEN_RE = /(?<![\w./-])((?:tests|tools|\.claude|\.github)\/[A-Za
 function detectorExists(token, rel) {
   if (resolvePathToken(token)) return true
   return !token.includes('/') && symbolElsewhere(token, rel)
+}
+
+// THE MARKER CENSUS (#1469, D11-03), printed beside the corpus count. All three
+// arms of this class fire on a MARKER a rule declares for itself -- `REFUSED BY
+// <detector>`, `SUNSET: <date>`, `HONOUR: <id>` -- so the class can name a rule
+// that has outlived its reason, and it names none where no rule declares one. No
+// policy file in this corpus carries any of the three, and `proposed (0) held
+// (0)` on its own then prints in the shape of a measurement over a swept corpus:
+// a reader cannot tell "no rule has expired" from "this class has nothing to
+// read". This line states what the zero is a zero OF and moves the moment a
+// marker lands, which is what makes it a census rather than a caption. The count
+// is taken over the same rows `checkSunset` walks, with the same three regexes,
+// so the two cannot disagree about what a marker is.
+const SUNSET_MARKERS = [
+  ['REFUSED BY', REFUSED_BY_RE],
+  ['SUNSET:', SUNSET_MARKER_RE],
+  ['HONOUR:', HONOUR_RE],
+]
+
+export function sunsetMarkerLine(rows) {
+  let declared = 0
+  const counts = SUNSET_MARKERS.map(([name, re]) => {
+    let n = 0
+    for (const { text } of rows) {
+      // matchAll clones the regex WITH its lastIndex, so it must be reset here:
+      // these three are shared with `checkSunset` and are left mid-walk there.
+      re.lastIndex = 0
+      n += [...String(text ?? '').matchAll(re)].length
+    }
+    declared += n
+    return `${name} ${n}`
+  })
+  const reading = declared
+    ? `${declared} marker(s) declared, so this class has a population in these files`
+    : 'no marker is declared in these files, so the (0) counts below are the PARTICIPATION zero -- this class has nothing to read here, which is not the same as a corpus swept clean'
+  return `SUNSET MARKERS: ${rows.length} policy file(s) scanned; ${counts.join(', ')} -- ${reading}`
 }
 
 // `frictionIds` null means the friction data could not be fetched. Every class
@@ -2688,7 +2819,20 @@ function ghGet(pathname, token = process.env.GITHUB_TOKEN) {
 // Returns {fetched, fetchError}. ANY failure aborts into fetchError rather than
 // yielding a partial map: a histogram over the pull requests that happened to
 // answer is a claim about the window that the window did not make.
-function fetchWindow(prs) {
+//
+// BOTH ENDPOINTS A VERDICT CAN ARRIVE ON (#1471, D13-01). The reviewer contract
+// defines a verdict as a comment OR a review, and this read asked for the pull
+// request and its issue comments only -- so a verdict posted as a review was
+// invisible rather than unweighted, and `statsCoverageLine` reported that merge
+// as one that carried none. `/pulls/<n>/reviews` is fetched here, and the two
+// lists reach the walk as one stream. The cost is one request per pull request
+// per window, counted by endpoint class in the D13 harness that drove this read.
+//
+// EXPORTED for one reason, the same one `statsCoverageLine` carries: the read is
+// the half no assertion over `statsHistogram` can reach, so a check drives this
+// with a stub `curl` first on PATH and reads the ledger it leaves -- which is
+// how the finding measured it.
+export function fetchWindow(prs) {
   const slug = repoSlug()
   if (!slug) return { fetched: new Map(), fetchError: 'no github remote on origin' }
   const fetched = new Map()
@@ -2697,7 +2841,13 @@ function fetchWindow(prs) {
     if (!body.ok) return { fetched: new Map(), fetchError: body.why }
     const comments = ghGet(`/repos/${slug}/issues/${pr}/comments?per_page=100`)
     if (!comments.ok) return { fetched: new Map(), fetchError: comments.why }
-    fetched.set(pr, { body: body.data?.body ?? '', comments: Array.isArray(comments.data) ? comments.data : [] })
+    const reviews = ghGet(`/repos/${slug}/pulls/${pr}/reviews?per_page=100`)
+    if (!reviews.ok) return { fetched: new Map(), fetchError: reviews.why }
+    fetched.set(pr, {
+      body: body.data?.body ?? '',
+      comments: Array.isArray(comments.data) ? comments.data : [],
+      reviews: Array.isArray(reviews.data) ? reviews.data : [],
+    })
   }
   return { fetched, fetchError: null }
 }
@@ -3466,6 +3616,29 @@ function assertAcceptance(derived) {
   }
   if (resolvesToCommit('no-such-ref-6f2a1c9e-policy-lint-acceptance')) {
     console.log('\nFIXTURE VACUOUS: the since-ref predicate accepts a name that resolves to nothing, so an unresolvable --since reaches the enumerator and the marker above is unreachable')
+    rc = 1
+  }
+
+  // The sunset class's marker census, pinned on SHAPE and at BOTH ENDS (#1469,
+  // D11-03). It produces no findings -- it is the line that says what the
+  // `proposed (0) held (0)` beneath it is a zero of -- so the counts above cannot
+  // see it. One end is the corpus as it stands: no marker, and the line must SAY
+  // so, because a bare zero beside a class that fires on markers reads as a
+  // swept corpus. The other end is a row that carries a marker: the counts must
+  // move, or the line is a caption rather than a census and the first assertion
+  // is satisfied by any constant string. Emptying `sunsetMarkerLine` (the
+  // LOOP_CHECK_NAMES mutation) fails both.
+  pins += 2
+  const noMarkers = sunsetMarkerLine([{ file: 'fixture.md', text: '# a rule, with no marker of its own\n' }])
+  const oneMarker = sunsetMarkerLine([{ file: 'fixture.md', text: '- (expiry) SUNSET: 2020-01-01\n' }])
+  if (!/^SUNSET MARKERS: 1 policy file\(s\) scanned; /.test(noMarkers)
+      || !noMarkers.includes('REFUSED BY 0') || !noMarkers.includes('SUNSET: 0') || !noMarkers.includes('HONOUR: 0')
+      || !noMarkers.includes('PARTICIPATION zero')) {
+    console.log('\nFIXTURE VACUOUS: the sunset marker census does not name the corpus\'s marker population, so `proposed (0) held (0)` prints with nothing to say whether a rule has outlived its reason or no rule carries a marker at all')
+    rc = 1
+  }
+  if (!oneMarker.includes('SUNSET: 1') || !oneMarker.includes('has a population')) {
+    console.log('\nFIXTURE VACUOUS: the sunset marker census reports the same reading over a corpus carrying a marker as over one carrying none, so it is a constant and not a count of the rows `checkSunset` walks')
     rc = 1
   }
 
@@ -5673,7 +5846,13 @@ function cmdStats(since) {
   const enumerated = mergedPRsFromWindow(since)
   const prs = enumerated.prs
   const classes = verdictClasses()
-  if (!classes) {
+  // BOTH HALVES OF THE GRAMMAR, or nothing: the words the reviewer prompt
+  // teaches and the parser the wave acts on (#1472, D13-02). With the parser
+  // unreadable every `Fix review:` line would land outside the grammar and this
+  // mode would print a histogram of zeroes -- the opposite-claims shape the
+  // fetch guard below exists to refuse -- so it withholds, as it does for the
+  // words.
+  if (!classes || !waveVerdictRe()) {
     console.log(`STATS: could not read the verdict grammar from ${WAVE_SCRIPT}; classifying nothing rather than against a list typed here.`)
     process.exit(0)
   }
@@ -5693,13 +5872,18 @@ function cmdStats(since) {
     : fetchWindow(prs)
   console.log(`STATS: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; verdict grammar ${JSON.stringify(classes)}${blocks ? ` over block classes ${JSON.stringify(blocks)}` : ' (VERDICT_CLASSES unreadable)'} read from ${WAVE_SCRIPT}`)
   if (!fetchError) {
-    const { verdicts, friction, coverage } = statsHistogram(prs, fetched, classes)
+    const { verdicts, friction, coverage, endpoints } = statsHistogram(prs, fetched, classes)
     // The coverage line, under `STATS:` and above the tables it describes
     // (#1406, D13-02): the verdict table's denominator is the pull requests
     // that carried a verdict, and until this line existed the mode printed only
     // the window's merge count -- so a merge with no verdict read as one more
     // row of a full window rather than as a gap in the table's population.
     console.log(statsCoverageLine(coverage))
+    // ...and the endpoint census beside it (#1471, D13-01): the coverage line
+    // says how many merges carried a verdict, this one says which of the two
+    // endpoints they arrived on, so a reviews row at zero is read as "none were
+    // posted" over a reader that does ask for them.
+    console.log(statsEndpointLine(endpoints))
     // Both counts in the table, threshold on the left one, because a reader who
     // sees only "4" cannot tell 4 occasions from one body written four times.
     for (const [label, hist] of [['verdict class', verdicts], ['friction rule id', friction]]) {
@@ -5746,6 +5930,10 @@ function cmdSunset(since) {
   const rows = policyFiles().map((f) => ({ file: f, text: read(f) }))
   const found = checkSunset(rows, { friction, fires, today: new Date() })
   console.log(`SUNSET: ${rows.length} policy file(s) over ${since}..${mainRef()}${fetchError ? `; no friction data (${fetchError}), so honour rules are not evaluated` : ''}`)
+  // What the zeroes below are a zero OF (#1469, D11-03): the class reads markers
+  // a rule declares for itself, so it says which of them the corpus carries
+  // before it prints the counts that would otherwise read as a swept clean.
+  console.log(sunsetMarkerLine(rows))
   const propose = found.filter((f) => f.propose)
   const held = found.filter((f) => !f.propose)
   console.log(`\nproposed for sunset (${propose.length}) -- this mode changes nothing:`)

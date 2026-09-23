@@ -78,7 +78,7 @@
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 1.5,
+   "seconds": 2.2,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -652,6 +652,7 @@
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/py.typed",
    "custom_components/heatpump_optimizer/quick_setup.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/sensor.py",
@@ -939,6 +940,7 @@
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/py.typed",
    "custom_components/heatpump_optimizer/quick_setup.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/sensor.py",
@@ -1474,6 +1476,7 @@
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/py.typed",
    "custom_components/heatpump_optimizer/quality_scale.yaml",
    "custom_components/heatpump_optimizer/quick_setup.py",
    "custom_components/heatpump_optimizer/repairs.py",

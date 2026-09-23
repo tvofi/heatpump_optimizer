@@ -37,7 +37,7 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 76
+records every read, so this lane's recorded closure is the package: all 77
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
 alike -- the only closure in ``tests/closures.json`` that reaches every
 production file. A diff touching any production file therefore selects this
@@ -51,7 +51,7 @@ doc_claims.py/finite_boundary.py, doc_claims.py/structure.py,
 doc_claims.py/typing_ruler.py, finite_boundary.py/structure.py and
 finite_boundary.py/typing_ruler.py (65 each), plan_view.py/solar_alignment.py
 (46), the optimality.py/validate.py/edge.py/backtest.py four (11, six pairs),
-golden.py/env_drift.py (74), card.mjs/card_drift.mjs (47) -- and which
+golden.py/env_drift.py (75), card.mjs/card_drift.mjs (47) -- and which
 mutants each script actually kills
 was never measured, so nothing here says those runs are redundant either:
 the pre-screen stops at the first killer, and where a narrower closure here

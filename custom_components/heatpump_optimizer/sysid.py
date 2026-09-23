@@ -299,6 +299,14 @@ class SysIdResult:
     #: internal quantity the coordinator reads to decide adoption, not a
     #: published surface (like ``sensor_drift_c_per_h``).
     ua_profile_halfwidth: float | None = None
+    #: 95 % half-width of log UA contributed by the intercept prior's OWN
+    #: stated width — the term the profile interval above cannot see, because
+    #: it holds ``prior_g`` fixed and counts the ridge as data (round-7 D7-01,
+    #: #1459: a prior-dominated fit reads as tight). The gate bounds
+    #: :func:`slab_ua_adoption_halfwidth` of the two. ``None`` on every
+    #: one-state result, whose ridge is data-scaled. Not serialized, like
+    #: ``ua_profile_halfwidth``.
+    ua_prior_halfwidth: float | None = None
     reason: str = ""
 
     def as_dict(self) -> dict[str, Any]:
@@ -775,6 +783,97 @@ def _one_state_ua_halfwidth(
     if not np.isfinite(var_ua) or var_ua < 0.0:
         return float("inf")
     return _Z_975 * float(np.sqrt(var_ua) / abs(beta1 / beta2))
+
+
+def _slab_ua_prior_halfwidth(
+    x_hat: np.ndarray,
+    rooms: np.ndarray,
+    outdoors: np.ndarray,
+    powers: np.ndarray,
+    dts: np.ndarray,
+    slab_mass: float,
+    slab_transfer: float,
+    prior_g: float,
+) -> float:
+    """The UA interval the intercept prior ITSELF contributes (D7-01).
+
+    :func:`_slab_ua_profile_halfwidth` profiles log UA at a FIXED
+    ``prior_g`` and appends the ridge's pseudo-observation to the residual,
+    so what it bounds is the fit's self-consistency and not its accuracy:
+    where UA and G are collinear the ridge pins the intercept, the fitted UA
+    becomes a function of the prior, and the residual of such a fit -- and so
+    its interval -- is tiny. Round 7's D7-01 measured the consequence on a
+    noise-free window whose true free heat is 0 kW: UA +7.4 % high, a
+    profile interval of 1e-4, admitted at weight ~1.0.
+
+    The prior is not known, it is asserted with width
+    ``SLAB_INTERCEPT_PRIOR_SD_KW``, so the interval the gate bounds has to
+    widen by how far ONE prior-width moves the answer: the largest
+    ``|log UA(prior_g ± width) − log UA(prior_g)|``, in the same 95 % form
+    (``_Z_975``) as the profile term it is combined with. Measured on the
+    round-7 harness window: 2.34 % per kW of prior, i.e. 0.046 (4.6 %) at the
+    95 % level, against a profile term of 3e-4.
+
+    Each shifted fit is a local re-solve seeded at the converged point, which
+    the measurement showed lands where the full multi-start refit does
+    (identical to six decimals over the presets, noise levels and step sizes
+    in the round-7 harness) at a third of the cost. ``x`` is always finite --
+    the residual maps a divergent rollout to a large finite cost -- so this
+    needs no non-finite arm; the shifted UA is bounded by ``_lm_solve``'s own
+    log-UA projection, and a shift that large is refused by the gate.
+    """
+
+    def _shifted(shifted_prior: float) -> float:
+        def _residual(x: np.ndarray) -> np.ndarray:
+            predicted = _simulate_slab_path(
+                float(np.exp(x[0])), float(np.exp(x[1])), float(x[2]),
+                slab_mass, slab_transfer, float(rooms[0]),
+                outdoors[:-1], powers[:-1], dts,
+            )
+            error = predicted[1:] - rooms[1:]
+            if not bool(np.all(np.isfinite(error))):
+                return np.full(error.size + 1, 1e12, dtype=float)
+            return np.append(
+                error,
+                (float(x[2]) - shifted_prior) / SLAB_INTERCEPT_PRIOR_SD_KW,
+            )
+
+        x, _cost = _lm_solve(
+            _residual, np.array([float(x_hat[0]), float(x_hat[1]), shifted_prior])
+        )
+        return abs(float(x[0]) - float(x_hat[0]))
+
+    width = SLAB_INTERCEPT_PRIOR_SD_KW
+    return _Z_975 * max(
+        _shifted(prior_g + width), _shifted(prior_g - width)
+    )
+
+
+def slab_ua_adoption_halfwidth(
+    profile_halfwidth: float | None, prior_halfwidth: float | None
+) -> float | None:
+    """The single interval the #1410 adoption gate bounds (D7-01).
+
+    Two sources, combined in quadrature because each is a standard error of
+    the same parameter: the fit's own profile-likelihood width
+    (:func:`_slab_ua_profile_halfwidth`) and the intercept prior's
+    (:func:`_slab_ua_prior_halfwidth`). The gate refuses above
+    ``UA_ADOPTION_HALFWIDTH_BAR`` and blends by ``1 − hw / bar``, so a fit
+    whose UA is partly the prior's is discounted in proportion -- which is
+    what the prior-dominated fits the round-7 audit measured never were.
+
+    A ``None`` profile stays ``None`` (a refused fit, or a result whose
+    covariance did not invert) and the gate refuses it, as before. A ``None``
+    prior term means the fit published none, which is every ONE-STATE result:
+    the linear program's ridge is data-scaled (``prior_rel = s_noise /
+    prior_sd``), so it carries no fixed prior for this term to price, and the
+    profile form is what the gate reads there exactly as before.
+    """
+    if profile_halfwidth is None:
+        return None
+    if prior_halfwidth is None:
+        return profile_halfwidth
+    return float(np.hypot(profile_halfwidth, prior_halfwidth))
 
 
 class SystemIdentification:
@@ -1765,6 +1864,15 @@ class SystemIdentification:
             best_x, rooms, outdoors, powers, dts, slab_mass, slab_transfer,
             self.config.gains_prior_kw,
         )
+        # ... and the interval the intercept prior itself contributes (round-7
+        # D7-01, #1459): the profile term above holds prior_g FIXED, so on the
+        # collinear windows this experiment produces it reports ~1e-4 while
+        # one prior-width moves UA by ~2.3 %, and only the pair of them is
+        # what the adoption gate may read.
+        prior_halfwidth = _slab_ua_prior_halfwidth(
+            best_x, rooms, outdoors, powers, dts, slab_mass, slab_transfer,
+            self.config.gains_prior_kw,
+        )
         # tau_fast re-derives from the fit. The split itself is never
         # adopted — see SysIdResult.slab_mode_tau_hours and the #996
         # decision it points at.
@@ -1779,6 +1887,7 @@ class SystemIdentification:
                 room_cap, slab_mass, slab_transfer
             ),
             ua_profile_halfwidth=profile_halfwidth,
+            ua_prior_halfwidth=prior_halfwidth,
             confidence=_slab_confidence(rooms, error),
             reason="ok",
         )

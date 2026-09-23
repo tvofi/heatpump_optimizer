@@ -20,7 +20,6 @@ from __future__ import annotations
 import logging
 
 from homeassistant.components.button import ButtonEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -58,7 +57,7 @@ class _OptimizerButtonBase(HeatPumpOptimizerEntity, ButtonEntity):
     def __init__(
         self,
         coordinator: HeatPumpOptimizerCoordinator,
-        entry: ConfigEntry,
+        entry: HeatPumpOptimizerConfigEntry,
         key: str,
         translation_key: str,
     ) -> None:
@@ -76,7 +75,7 @@ class ForceOptimizationButton(_OptimizerButtonBase):
     """Run the optimization now, without waiting for the next interval."""
 
     def __init__(
-        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
     ) -> None:
         super().__init__(coordinator, entry, "force_optimization", "optimize_now")
 
@@ -103,7 +102,7 @@ class SystemIdentificationButton(_OptimizerButtonBase):
     _attr_entity_category = None
 
     def __init__(
-        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
     ) -> None:
         super().__init__(
             coordinator, entry, "system_identification", "learning_run_system_identification"
@@ -127,7 +126,7 @@ class ResetComfortWeightButton(_OptimizerButtonBase):
     """
 
     def __init__(
-        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
     ) -> None:
         super().__init__(
             coordinator, entry, "reset_comfort_weight", "learning_reset_comfort_weight"
@@ -152,7 +151,7 @@ class DiagnoseIntervalButton(_OptimizerButtonBase):
     _attr_entity_category = None
 
     def __init__(
-        self, coordinator: HeatPumpOptimizerCoordinator, entry: ConfigEntry
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
     ) -> None:
         super().__init__(
             coordinator, entry, "diagnose_interval", "diagnose_last_interval"

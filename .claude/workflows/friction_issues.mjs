@@ -290,9 +290,16 @@ export function searchOutcome(rc, stdout) {
 // query is issued as `"<title>" in:title`, and GitHub's phrase search can still
 // return issues whose titles merely CONTAIN the phrase (a key that is a prefix
 // of another key, "blocked" inside "blocked-on-review"), so the create/update
-// decision keys on byte equality of the whole title.
+// decision keys on byte equality of the whole title. Among exact matches, OPEN
+// sorts before CLOSED, then lowest number -- the same preference `pickNormalized`
+// applies -- because a reopen files a fresh OPEN issue beside the disposed
+// CLOSED one, the next beat's search returns both with no ordering guarantee,
+// and a first-match pick would file a third byte-identical issue every run
+// (#1468).
 export function pickExact(rows, title) {
-  for (const r of rows) {
+  const openRank = (r) => (String(r?.state).toUpperCase() === 'OPEN' ? 0 : 1)
+  const sorted = [...rows].sort((a, b) => openRank(a) - openRank(b) || (a?.number ?? 0) - (b?.number ?? 0))
+  for (const r of sorted) {
     if (r && typeof r.title === 'string' && r.title === title) {
       return { number: r.number, state: r.state, body: r.body }
     }
@@ -435,9 +442,12 @@ export function titleFor(key) {
 // create / edit / no-op, decided before anything is written so --dry-run and
 // the self-test drive the same decision the live run acts on. `refuse` is the
 // only other answer: an existing issue whose body cannot be read is not an
-// excuse to file a second one.
+// excuse to file a second one. An existing issue that is not OPEN is treated
+// as no existing issue at all: a key whose issue a seat disposed by closing it
+// must be able to reopen, so the recurrence files a fresh open issue rather
+// than refreshing a dead one (#1468).
 export function decide({ existing, currentBody, body }) {
-  if (!existing) return 'create'
+  if (!existing || existing.state !== 'OPEN') return 'create'
   if (currentBody == null) return 'refuse'
   return currentBody === body ? 'no-op' : 'edit'
 }
@@ -777,6 +787,19 @@ export function selfTest() {
     'a title no row carries exactly answers null (null control on the pick)')
   st(pickExact(rows, '[policy] recurring friction: blocked-on-review')?.number, 40,
     'the longer key picks its own row -- one issue per KEY, keys not prefixes')
+  // The closed-first sibling, the same OPEN-before-CLOSED preference
+  // `pickNormalized` sorts by (#1468): a CLOSED issue listed BEFORE an OPEN one
+  // with the same exact title must still pick the OPEN one, never by listing
+  // order. The live trigger (#1128, CLOSED) makes this load-bearing -- after
+  // the reopen files a fresh OPEN issue, the next beat's search returns both
+  // with equal score, and a first-match pick would file a third byte-identical
+  // issue every run.
+  const CLOSEDFIRST = [
+    { number: 1128, title: '[policy] recurring friction: tools/audit/briefs/fixer.md', state: 'CLOSED' },
+    { number: 1190, title: '[policy] recurring friction: tools/audit/briefs/fixer.md', state: 'OPEN' },
+  ]
+  st(pickExact(CLOSEDFIRST, '[policy] recurring friction: tools/audit/briefs/fixer.md')?.number, 1190,
+    'a CLOSED exact-title sibling listed first is passed over for the OPEN one: OPEN before CLOSED, never by listing order')
 
   // --- the normalized filing lookup (regression: #1070/#1127, #1087/#1128) ---
   // The exact-title guard alone is byte equality and cannot see an issue filed
@@ -896,9 +919,13 @@ export function selfTest() {
   // The decision matrix.
   const body = bodyFor({ key: 'blocked', kind: 'verdict class', count: 4, threshold: 3, line: LINE('blocked', 'verdict class', 4).trim() }, 'v9.9.9')
   st(decide({ existing: null, currentBody: null, body }), 'create', 'no existing issue: file')
-  st(decide({ existing: { number: 41 }, currentBody: body, body }), 'no-op', 'an existing issue already carrying this exact measurement: NO write')
-  st(decide({ existing: { number: 41 }, currentBody: body + 'x', body }), 'edit', 'a measurement that moved within the window: edit the one issue in place')
-  st(decide({ existing: { number: 41 }, currentBody: null, body }), 'refuse', 'an existing issue whose body cannot be read: refuse, never a second file')
+  st(decide({ existing: { number: 41, state: 'OPEN' }, currentBody: body, body }), 'no-op', 'an existing issue already carrying this exact measurement: NO write')
+  st(decide({ existing: { number: 41, state: 'OPEN' }, currentBody: body + 'x', body }), 'edit', 'a measurement that moved within the window: edit the one issue in place')
+  st(decide({ existing: { number: 41, state: 'OPEN' }, currentBody: null, body }), 'refuse', 'an existing issue whose body cannot be read: refuse, never a second file')
+  st(decide({ existing: { number: 41, state: 'CLOSED' }, currentBody: body, body }), 'create',
+    'a CLOSED issue carrying this key is not refreshed: the disposed key reopens as a new issue (#1468)')
+  st(decide({ existing: { number: 41, state: 'CLOSED' }, currentBody: body + 'x', body }), 'create',
+    'and a moved measurement over a CLOSED issue still creates rather than editing the dead issue')
 
   // The body is the idempotence contract: byte-identical for the same
   // measurement, different only when the measurement moved. The entries carry
@@ -940,7 +967,7 @@ export function selfTest() {
   // control the owner's card asked to see demonstrated, before the live
   // demonstration runs the same shape through real gh calls.
   const d1 = decide({ existing: null, currentBody: null, body })
-  const d2 = decide({ existing: { number: 41 }, currentBody: body, body })
+  const d2 = decide({ existing: { number: 41, state: 'OPEN' }, currentBody: body, body })
   st(`${d1},${d2}`, 'create,no-op', 'two drives over one window and one measurement: ONE file, then NO write at all')
 
   // --- the close path ---------------------------------------------------
