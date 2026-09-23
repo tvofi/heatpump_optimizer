@@ -358,7 +358,7 @@ from .price_model import (
     pull_prices,
     quarters_from_entries,
 )
-from .sysid import SysIdConfig, SystemIdentification, UA_ADOPTION_HALFWIDTH_BAR, slab_mode_identifiability
+from .sysid import SysIdConfig, SystemIdentification, UA_ADOPTION_HALFWIDTH_BAR, slab_mode_identifiability, slab_ua_adoption_halfwidth
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -10450,8 +10450,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # #1410: adoption is decided by the fitted UA's own 95 % profile-
         # likelihood interval (superseding the #942 residual-scatter gate):
         # a fit whose UA is not pinned within +-10 % is refused, however
-        # plausible its residual looks.
-        hw = result.ua_profile_halfwidth
+        # plausible its residual looks. Round-7 D7-01 (#1459) added the second
+        # source of that uncertainty: the profile form holds the intercept
+        # prior fixed, so a prior-dominated fit reads as pinned when its UA is
+        # really the prior's. The gate reads both (sysid.py).
+        hw = slab_ua_adoption_halfwidth(result.ua_profile_halfwidth, result.ua_prior_halfwidth)
         if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:
             return
         params = getattr(self, "_ctx", self)._thermal_params
@@ -10470,7 +10473,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
         scale = result.heat_loss_kw_per_c / base_u
         # The blend weight comes from the same interval as the gate: a fit at
-        # the bar adopts mildly, a pinned one at full weight.
+        # the bar adopts mildly, a pinned one at full weight. Since D7-01 that
+        # interval includes the intercept prior's own term, so a fit whose UA
+        # is largely the assumed free heat is discounted by the same rule --
+        # on the round-7 harness window, where the profile term alone claimed
+        # 3e-4, the pair puts the weight near a half.
         weight = 1.0 - hw / UA_ADOPTION_HALFWIDTH_BAR
         blended = (1.0 - weight) * self._house_heat_loss_scale + weight * scale
         self._apply_house_heat_loss_scale(blended)

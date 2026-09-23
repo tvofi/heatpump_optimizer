@@ -35366,6 +35366,84 @@ R.check(
 )
 
 
+# -- round 7 D7-01 (#1459): the adoption gate prices the intercept prior -----
+# #1410's interval holds the intercept prior FIXED at its central value and
+# appends the ridge's own pseudo-observation to the residual, so what it bounds
+# is the fit's SELF-CONSISTENCY: a prior-dominated fit has a tiny residual and
+# therefore a tiny interval. The round-7 D7 harness measured the consequence --
+# a noise-free step response whose true free heat is 0 kW (the unoccupied night
+# window the experiment runs in) against the default 0.3 kW prior gives a fitted
+# UA +7.4 % high with a profile interval of 1e-4, admitted at weight ~1.0.
+# The fixed-width ridge is a deliberate mitigation (-91/+112 % UA bias unridged
+# at sigma=0.01, pre-study 5656402482), so the correction belongs at the gate:
+# the interval it bounds must also carry the uncertainty the intercept prior
+# ITSELF contributes -- |d log UA / d prior_g| times the prior's own stated
+# width (SLAB_INTERCEPT_PRIOR_SD_KW). On the harness window that term is
+# 2.34 % per kW of prior, i.e. 4.6 % at the 95 % level, two orders of magnitude
+# above the profile term the gate read alone.
+#
+# Null control: a result whose intercept-prior term is absent (the fabricated
+# results above, and every one-state result, whose ridge is data-scaled) keeps
+# the pre-fix weight exactly -- the checks at the top of this section pin that,
+# so the gate change only ever subtracts where a prior term exists.
+_d701_params = _p942("typical_slab", 100.0)
+_d701_params.internal_gains = 0.0
+_d701_sid, _d701_res, _d701_true_ua = _ridge_drive(
+    _d701_params, 0.0, _RIDGE_SEED0
+)
+_d701_fit_ua = _d701_res.heat_loss_kw_per_c
+_d701_prior_hw = getattr(_d701_res, "ua_prior_halfwidth", None)
+R.check(
+    "round-7 D7-01 (#1459): a two-state result publishes the UA interval its "
+    "intercept prior itself contributes, and on a window whose UA is a "
+    "function of the assumed free heat that term dwarfs the profile interval "
+    "the gate bounded alone",
+    _d701_res.completed
+    and _d701_prior_hw is not None
+    and _d701_res.ua_profile_halfwidth is not None
+    and _d701_prior_hw > 0.25 * _bar
+    and _d701_prior_hw > 100.0 * _d701_res.ua_profile_halfwidth,
+    f"fit UA {_d701_fit_ua} prior term {_d701_prior_hw} profile "
+    f"{_d701_res.ua_profile_halfwidth} bar {_bar:.4f} -- the profile form "
+    "profiles at a FIXED prior_g and counts the ridge as data, so it cannot "
+    "see that the ridge is carrying the answer; what the gate has to price is "
+    "UA's dependence on the ASSUMED free heat, which is what this term is",
+)
+_d701_c = _t4_coord()
+_d701_c._thermal_params.slab_heat_transfer *= 100.0
+_d701_c._thermal_params.heat_loss_coefficient = _d701_true_ua
+_d701_c._sysid.result = _d701_res
+_d701_c._t4_escaped = _t4_call(_d701_c._adopt_system_identification)
+_d701_scale_fit = _d701_fit_ua / _d701_true_ua
+R.check(
+    "round-7 D7-01 (#1459): the gate does not hand the learner the whole "
+    "intercept prior's bias -- at most three quarters of the fit's UA offset "
+    "is adopted, because the prior term alone is over a third of the bar",
+    not isinstance(_d701_c._t4_escaped, Exception)
+    and _d701_c._sysid.result.reason == "adopted"
+    and abs(_d701_c._house_heat_loss_scale - 1.0)
+    <= 0.75 * abs(_d701_scale_fit - 1.0),
+    f"adopted scale {_d701_c._house_heat_loss_scale} against the fit's own "
+    f"{_d701_scale_fit} from UA {_d701_fit_ua} (true {_d701_true_ua}) -- the "
+    "gate's own interval says this fit's UA is not pinned by the data, so "
+    "adopting it at weight 1.0 books the prior's whole error as measurement",
+)
+_d701_none = _t4_coord()
+_d701_none._t4_escaped = _t4_call(_d701_none._adopt_system_identification)
+R.check(
+    "round-7 D7-01 (#1459): a result that published no interval adopts "
+    "nothing and raises nothing",
+    not isinstance(_d701_none._t4_escaped, Exception)
+    and _d701_none._house_heat_loss_scale == 1.0
+    and _d701_none._house_heat_loss_samples == 0,
+    f"scale {_d701_none._house_heat_loss_scale!r} samples "
+    f"{_d701_none._house_heat_loss_samples!r} escaped "
+    f"{_d701_none._t4_escaped!r} -- the gate is handed a refused fit's result "
+    "(no interval published) on every aborted or guard-refused experiment, so "
+    "both absent arms have to answer without raising",
+)
+
+
 # -- R6 D7-03 #1396/#1397: the two-state fit survives a drifting sensor ----
 # The audit measured the fit raising OverflowError at 0.05 degC/h of sensor
 # drift, and HANGING at 0.03/0.04 (a finite ~2.5e19 kW/K candidate UA driving
