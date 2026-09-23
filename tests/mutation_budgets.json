@@ -50,7 +50,7 @@
       "old": "        if task is not None and hasattr(task, \"cancel\"):",
       "reason": "hass.async_create_task (homeassistant.core.HomeAssistant.async_create_task) returns an asyncio.Task, which always carries cancel; the OR form differs only for a non-None object without a cancel attribute, which that return cannot be -- round-5 D3-07."
     },
-    "custom_components/heatpump_optimizer/optimizer.py:3588 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/optimizer.py:3600 GUARD_OFF": {
       "verdict": "equivalent",
       "old": "        if changed:",
       "reason": "void mutant, round-6 D3-03 (#1385): the guard fences only a `_LOGGER.debug(...)` call; the function's `return changed` sits OUTSIDE the if, so `if changed:` -> `if True:` differs only in whether a debug line logs, which no check reads. No honest test should fail on this mutant."
