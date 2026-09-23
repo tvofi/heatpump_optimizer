@@ -5868,6 +5868,61 @@ async def options_modbus_prefill():
         f"errors={power.get('errors')} options={entry_low.options}",
     )
 
+    # D12-01: the pre-fill save path must carry the same two-zone rule as the
+    # building page. A GCHV pump under water control (register 4109 == 0)
+    # offers a flow write target, and this page's save never passes through the
+    # guarded building page, so a two_zone_mode=off install with the zone keys
+    # present must be refused here rather than saved and silently no-op'd.
+    water = {"sensor.hp_gchv_r4109": FakeState("0")}
+    off_opts = {
+        const.CONF_UPPER_FLOOR_THERMAL_MASS: 3.0,
+        const.CONF_LOWER_FLOOR_THERMAL_MASS: 8.0,
+        const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_OFF,
+    }
+    flow, entry, _ = _g7_flow(water, options=off_opts)
+    preview = await submit(flow, step, {prefix_key: "hp"})
+    check(
+        f"opt_{step}", "happy",
+        "a water-controlled pump offers the flow target even on two_zone_mode=off (D12-01)",
+        const.CONF_MIXING_VALVE_WRITE_TARGET_KIND in rendered_keys(preview)
+        and suggested_value(preview, const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        == config_flow.mixing_valve.WRITE_TARGET_FLOW,
+        f"{rendered_keys(preview)}",
+    )
+    refused = await submit(flow, step, {
+        const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: config_flow.mixing_valve.WRITE_TARGET_FLOW,
+    })
+    check(
+        f"opt_{step}", "error",
+        "the pre-fill save refuses the flow target on a single-zone install (D12-01)",
+        shows(refused, step)
+        and refused.get("errors", {}).get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        == "flow_target_needs_two_zone"
+        and const.CONF_MIXING_VALVE_WRITE_TARGET_KIND not in entry.options,
+        f"errors={refused.get('errors')} options={sorted(entry.options)}",
+    )
+
+    # Null control: an explicit two_zone_mode=on is two-zone to the model, so
+    # the same pre-fill save of a flow target is accepted, not refused.
+    on_opts = {
+        const.CONF_UPPER_FLOOR_THERMAL_MASS: 3.0,
+        const.CONF_LOWER_FLOOR_THERMAL_MASS: 8.0,
+        const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_ON,
+    }
+    flow_on, entry_on, _ = _g7_flow(water, options=on_opts)
+    await submit(flow_on, step, {prefix_key: "hp"})
+    saved_on = await submit(flow_on, step, {
+        const.CONF_MIXING_VALVE_WRITE_TARGET_KIND: config_flow.mixing_valve.WRITE_TARGET_FLOW,
+    })
+    check(
+        f"opt_{step}", "happy",
+        "'flow' through the pre-fill saves cleanly on two_zone_mode=on (D12-01 null control)",
+        shows_menu(saved_on, "init")
+        and entry_on.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        == config_flow.mixing_valve.WRITE_TARGET_FLOW,
+        f"options={entry_on.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)!r}",
+    )
+
 
 # ---------------------------------------------------------------------------
 # #1067 W1067-G7b-1: the same page, fed by a heat-pump DEVICE instead of a

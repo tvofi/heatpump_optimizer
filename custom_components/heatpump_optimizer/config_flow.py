@@ -2017,6 +2017,16 @@ def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str,
     stored pair the pre-fill never touched cannot block it.
     """
     errors: dict[str, str] = {}
+    # D12-01: the pre-fill save never passes through the guarded building page,
+    # and a GCHV pump under water control offers a flow write target, so the
+    # building page's two-zone rule must fire here too -- a flow target saved on
+    # a single-zone install would otherwise be silently no-op'd every cycle.
+    if (
+        saved.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND)
+        == mixing_valve.WRITE_TARGET_FLOW
+        and not ThermalParameters.from_config({**current, **saved}).two_zone_enabled
+    ):
+        errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = "flow_target_needs_two_zone"
     for key in (CONF_DHW_WINDOWS, CONF_SILENT_MODE_WINDOWS):
         problem = dhw_spec_problem(saved[key]) if key in saved else None
         if problem == DHW_ERROR_TOO_SHORT and key == CONF_SILENT_MODE_WINDOWS:
