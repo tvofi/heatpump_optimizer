@@ -653,9 +653,9 @@ def run_script(script: str, cwd: Path, timeout: int,
 # "Nothing here is a violation" (#808): a mutant that makes code unreachable
 # can lower a metric, and reading that status as a kill recorded a site no
 # check covers as killed. Keyed per driver: the same status from any other
-# script is still a changed status. The rule that enumerates the class --
-# every status a driver can exit with, other than 0 and 1 -- is the #1453
-# pull request's `## Figures`.
+# script is still a changed status. The class is every status a driver can
+# exit with other than 0 and 1, on the invocation drive_spec() makes; a driver
+# that gains one belongs here, with the sentence its own output prints.
 NON_VIOLATION_EXITS: dict[str, frozenset[int]] = {
     "tests/structure.py": frozenset({2}),
 }
