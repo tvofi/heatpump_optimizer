@@ -31217,14 +31217,12 @@ _res_hw = _SavOR(
 _hw_acts = [_bl_opt.get_current_action(_res_hw, _t) for _t in _ts_sav]
 R.check(
     "a DHW-only step reads hot_water, not off (#1499)",
-    _hw_acts[0]["mode"] == "hot_water"
-    and _hw_acts[0]["heat_pump_on"]
-    and _hw_acts[0]["space_heating_active"] is False,
+    _hw_acts[0]["mode"] == "hot_water" and _hw_acts[0]["heat_pump_on"],
     repr(_hw_acts[0]),
 )
 R.check(
     "a space step at the pump's minimum modulation reads eco, not off",
-    _hw_acts[1]["mode"] == "eco" and _hw_acts[1]["space_heating_active"] is True,
+    _hw_acts[1]["mode"] == "eco" and _hw_acts[1]["heat_pump_on"],
     repr(_hw_acts[1]),
 )
 R.check(

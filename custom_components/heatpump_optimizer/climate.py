@@ -172,9 +172,9 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
 
             if mode == MODE_OFF:
                 return HVACAction.OFF
-            # The rooms, not the machine: a DHW-only step leaves them idle,
-            # while a space step below the band's first rung heats (#1499).
-            if power_norm > 0.1 or action.get("space_heating_active"):
+            # The machine, not only the space band: a step below the band's
+            # first rung and a DHW-only step both run the pump (#1499).
+            if power_norm > 0.1 or action.get("heat_pump_on"):
                 return HVACAction.HEATING
             return HVACAction.IDLE
         return None

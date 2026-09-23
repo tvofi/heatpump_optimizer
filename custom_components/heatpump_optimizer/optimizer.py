@@ -6912,7 +6912,6 @@ class HeatPumpOptimizer:
             "price": round(price, 4),
             "power_normalized": round(p_norm, 2),
             "heat_pump_on": bool(heat_pump_on),
-            "space_heating_active": bool(heat_pump_on and space_on),
             "displace_value": float(displace_value),
             # T6: the reason codes for THIS step ride with the action, so
             # the settlement can tag every booked SEK with why the plan

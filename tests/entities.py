@@ -7649,12 +7649,12 @@ R.check(
     str(_hvac_idle.hvac_action),
 )
 # #1499: a space step at minimum modulation sits below the band's first rung
-# (power_normalized 0.0) yet heats the rooms; a DHW-only step does not.
+# (power_normalized 0.0), and a DHW-only step below zero; both run the pump.
 _hvac_low = climate_mod.HeatPumpOptimizerClimate(
     FakeCoordinator(
         {**DATA, "mode": const.MODE_AUTO,
          "current_action": {"power": 1.0, "power_normalized": 0.0,
-                            "space_heating_active": True}}
+                            "heat_pump_on": True}}
     ),
     clim._entry,
 )
@@ -7667,14 +7667,13 @@ _hvac_dhw = climate_mod.HeatPumpOptimizerClimate(
     FakeCoordinator(
         {**DATA, "mode": const.MODE_AUTO,
          "current_action": {"power": 0.0, "power_normalized": -0.25,
-                            "mode": "hot_water", "heat_pump_on": True,
-                            "space_heating_active": False}}
+                            "mode": "hot_water", "heat_pump_on": True}}
     ),
     clim._entry,
 )
 R.check(
-    "hvac_action reports IDLE while only the DHW tank is heating",
-    _hvac_dhw.hvac_action == climate_mod.HVACAction.IDLE,
+    "hvac_action reports HEATING while only the DHW tank is heating",
+    _hvac_dhw.hvac_action == climate_mod.HVACAction.HEATING,
     str(_hvac_dhw.hvac_action),
 )
 _hvac_off = climate_mod.HeatPumpOptimizerClimate(
