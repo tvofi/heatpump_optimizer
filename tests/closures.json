@@ -26,8 +26,8 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 148.0,
-   "rc": 1
+   "seconds": 83.1,
+   "rc": 0
   },
   "tests/env_drift.py": {
    "seconds": 0.5,
