@@ -112,9 +112,10 @@ NOT_A_TEST = {
     "setup_qa_render.mjs",
     "card_browser.mjs", "nightly_ha.py",
     # The replay lane (round 8, move 2): recorded days through the real
-    # coordinator, a step of the nightly `slow` job. Nightly until its cost on
-    # a week of real data is known; it is also INERT below, since nothing in
-    # this gate reads it.
+    # coordinator, a step of the nightly `slow` job, nightly until its cost on
+    # a week of real data is known. NOT inert: `tests/entities.py` drives its
+    # invariant controls, its sanitiser over every fixture and the synthetic
+    # fixture's regeneration, so a change to any of them selects a script.
     "replay.py",
     # The nightly's reporter (#533): its own `nightly-status` job runs it on
     # every pull request, and it needs the GitHub Actions API, which this suite
@@ -334,12 +335,6 @@ INERT = (
     # any of them, and each of these three runs on `pull_request`.
     # A manual QA render (writes ../setup-qa/). No gate script reads it.
     "tests/setup_qa_render.mjs",
-    # The replay lane, its fixtures, and the exporter the owner runs on his
-    # own install to produce them: the nightly `slow` job runs the lane, and
-    # no gate script opens any of the three.
-    "tests/replay.py",
-    "tests/replay/",
-    "tools/replay/",
     # tests/nightly_ha.py was here, on the argument that a lane needing Docker
     # is one "no gate script reads and none ever will". The first half held and
     # still does -- it stays on NOT_A_TEST above, and nothing in this gate runs

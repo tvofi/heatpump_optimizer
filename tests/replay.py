@@ -61,7 +61,10 @@ fixture, and regenerates the synthetic fixture through
 ``tools/replay/synthesize.py`` and requires it byte-identical to the committed
 one.
 
-Nightly, never per pull request (``tests/closure.py`` NOT_A_TEST):
+The fixture replays are nightly, never per pull request (``tests/closure.py``
+NOT_A_TEST). The cheap half is not: ``tests/entities.py`` runs the controls,
+the sanitiser checks and the regeneration on every pull request that touches
+this file, a fixture, or ``tools/replay/``.
 
     python3 tests/replay.py                  # every fixture
     python3 tests/replay.py --fixture F.json --step-minutes 60
@@ -70,8 +73,10 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import dataclasses
 import importlib
+import io
 import json
 import math
 import os
@@ -341,16 +346,18 @@ def sanitiser_checks(paths: list[Path]) -> list[tuple[str, bool, str]]:
 
 
 def synthetic_reproduces() -> tuple[str, bool, str]:
+    """In this process, so a recorder of this interpreter sees both files read."""
+    import synthesize
+
     committed = FIXTURES / "synthetic-dhw-only.json"
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "again.json"
-        proc = subprocess.run(
-            [sys.executable, str(REPLAY_TOOLS / "synthesize.py"), "--out", str(out)],
-            capture_output=True, text=True,
-        )
-        same = proc.returncode == 0 and out.read_bytes() == committed.read_bytes()
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = synthesize.main(["--out", str(out)])
+        same = rc == 0 and out.read_bytes() == committed.read_bytes()
+        size = out.stat().st_size if out.exists() else None
     return ("synthetic_reproduces", same,
-            f"rc={proc.returncode} {proc.stderr.strip()[-200:]}")
+            f"rc={rc} regenerated={size} B committed={committed.stat().st_size} B")
 
 
 # --- one fixture, in this interpreter -----------------------------------------
