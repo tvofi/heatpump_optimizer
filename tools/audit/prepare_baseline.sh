@@ -9,8 +9,9 @@
 # worktrees directory:
 #   ../audit-r<round>-baseline        the export (D1, D2, D4, D5, D6, D7, D8, D10, D12)
 #   ../audit-r<round>-<dim>           a worktree per dimension in ISOLATED_DIMS below
-#                                     (the instrumenting finders, and D11, which audits
-#                                      the process and so needs .git and the API)
+#                                     (the instrumenting finders, and D11 and D13, which
+#                                      audit the process and read `main`'s history and
+#                                      the API, so they need .git)
 # and writes tools/audit/round<round>/BASELINE.md into each with the paths the
 # finders need. Idempotent: refuses to overwrite an existing export.
 set -euo pipefail
@@ -55,8 +56,13 @@ strip_earlier_rounds() {
 strip_earlier_rounds "$EXPORT"
 
 # One list, read three times below. audit-find.js's ISOLATED must agree with it;
-# they are separate files and a seat that edits one edits both.
-ISOLATED_DIMS="D0 D3 D9 D11"
+# they are separate files and a seat that edits one edits both. D13 joined it
+# with R7-INSTR-01 (#1477): the round driver's DIMS/WAVES/ISOLATED stopped at
+# D12, and D13 reads `main`'s history and the API just as D11 does, so it needs
+# a worktree rather than the export. The check in
+# .claude/workflows/check-wave-script.mjs derives both lists and refuses them
+# drifting apart again.
+ISOLATED_DIMS="D0 D3 D9 D11 D13"
 
 for dim in $ISOLATED_DIMS; do
   wt="$PARENT/audit-r${ROUND}-${dim}"

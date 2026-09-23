@@ -521,3 +521,71 @@
 # history_unavailable and history_pending are byte-identical to the
 # comparison ref: the degradation paths they pin are unchanged by this
 # repair, and the ref renders them the same way.
+
+# R7-D4-01 (#1454) and R7-D4-02 (#1455), one claim list because one edit
+# moves the same rendered tree.
+#
+# The card injects ONE <style> block into its shadow root, and card_drift
+# captures the whole shadow root, so a stylesheet change moves every state
+# that renders the card. Both edits are inside that block:
+#
+#   * `.dlg-body { overflow-x: hidden }` -> `auto`, so content wider than the
+#     dialog is reachable by a gesture rather than painted outside one. The
+#     instance was the savings table's right-aligned `%` column: a
+#     `width:100%` table whose min-content width exceeds the body, with the
+#     hidden strip exactly the digits.
+#   * `.dlg-tabs` becomes shrinkable and wrappable (`flex: 0 0 auto` ->
+#     `0 1 auto; flex-wrap: wrap; min-width: 0`), so `dialog.expanded`'s own
+#     `overflow: hidden` no longer cuts the Swedish tab label off.
+#
+# Every state below is byte-identical to the comparison ref OUTSIDE that
+# `<style>` block -- measured for all 39, not sampled: the diff each one
+# prints is the stylesheet text alone. Nothing else in the card changed:
+# the only other production edits on this branch are a savings-currency
+# resolver that is a pure refactor of what `headlineHtml` already did, and
+# the `hours` lower bound in `setConfig`, and neither is reachable from a
+# state this gate renders (no state opens the savings dialog page, which is
+# the only surface the resolver feeds).
+#
+# `editor_schema` is the 40th state and is NOT claimed: it renders the
+# config editor's schema, not the card, so it does not move.
+
+no_plan  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+no_plan_expanded  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+plan_inline  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+plan_inline_sv  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+plan_short_window  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+custom_title_currency  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+hidden_series  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+score_open  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+expanded_plan  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+what_if_off  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+expanded_zoomed  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+draft_dirty_menu_open  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+draft_mid_drag  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+whatif_edited  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+whatif_weekly  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+override_active  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+shared_steps  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+shared_steps_hover  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+tooltip_hover  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+coarse_pointer  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+reduced_motion  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+setup_single_buffer  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+setup_two_tank  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+setup_coil  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+advisor_page  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+layout_editing_dragged  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+layout_editing_tidy  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+picker_open_filtered  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+wood_alert  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+wood_lane  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+wood_whatif  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+away_toggle  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+away_return  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+away_status  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+history_panned  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+history_deep_panned  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+history_no_power  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+history_unavailable  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
+history_pending  # R7-D4-01/D4-02: the injected <style> gains the .dlg-body scroll and .dlg-tabs wrap rules
