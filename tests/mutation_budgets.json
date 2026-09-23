@@ -4,7 +4,7 @@
     "changed": 0.2,
     "full": 0.3
   },
-  "unpinned_sites": 3785,
+  "unpinned_sites": 3781,
   "last_measured": {
     "changed": {
       "survivors": 2,
@@ -54,6 +54,66 @@
       "verdict": "equivalent",
       "old": "        if changed:",
       "reason": "void mutant, round-6 D3-03 (#1385): the guard fences only a `_LOGGER.debug(...)` call; the function's `return changed` sits OUTSIDE the if, so `if changed:` -> `if True:` differs only in whether a debug line logs, which no check reads. No honest test should fail on this mutant."
+    },
+    "custom_components/heatpump_optimizer/store.py:50 GUARD_OFF": {
+      "verdict": "equivalent",
+      "old": "    if isinstance(value, bool):",
+      "reason": "arrived with origin/main, commit 8e5d1ace (\"Close the non-finite-into-live-state class at the store-load boundary\", #1425); void mutant: the guard's body is `return value` and the fall-through end of `_sanitize` is the same `return value`, and a bool is not a float/str/dict/list/tuple -- so `if isinstance(value, bool):` -> `if False:` answers identically for EVERY input, not merely for bools. No check can kill it. Measured surviving over the whole recorded driver net at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:726 CLAMP_DROP": {
+      "verdict": "equivalent",
+      "old": "    sigma2 = cost_hat / max(int(rooms.size) - 3, 1)",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); redundant clamp: `rooms` is built by `_slab_series` (sysid.py:607), which refuses fewer than five usable intervals (`len(dts) < 5`, and `dts` is one element shorter than the series), so every call reaching `_slab_ua_profile_halfwidth` passes rooms.size >= 6 and `max(int(rooms.size) - 3, 1)` equals `int(rooms.size) - 3` on both paths. Measured surviving over the recorded driver net at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:739 CLAMP_DROP": {
+      "verdict": "equivalent",
+      "old": "    se = float(np.sqrt(max(cov[0, 0], 0.0)))",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); redundant clamp: `cov` is `np.linalg.inv(jac.T @ jac) * sigma2` with sigma2 >= 0, and the (0,0) diagonal of the inverse of a positive-definite Gram matrix is positive (a singular gram raises LinAlgError in both arms, since the mutant changes only the max), so `cov[0, 0] >= 0` for every input that reaches the line and `max(cov[0, 0], 0.0)` selects its first arm in both. Measured surviving over the recorded driver net at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/store.py:64 GUARD_OFF": {
+      "verdict": "gap",
+      "old": "    if isinstance(value, tuple):",
+      "reason": "arrived with origin/main, commit 8e5d1ace (\"Close the non-finite-into-live-state class at the store-load boundary\", #1425); a real gap: the tuple arm is untested and the payload TYPE admits it -- `_StorePayload` is bound to `Mapping | Sequence` (store.py:35), so a tuple leaf is type-admissible even though json.loads (the only value HA's Store hands back) never produces one; dropping the arm returns the tuple's children unscanned. What pins it is a unit-level assertion on `_sanitize` (a tuple carrying a non-finite leaf must come back scrubbed), which no recorded driver makes. Measured surviving over the recorded driver net at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:371 CONST": {
+      "verdict": "gap",
+      "old": "_PROFILE_CHI2_95 = 3.8414588",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: `_PROFILE_CHI2_95 = 3.8414588` -> `7.682918` only widens the band of profiled costs that count as inside the 95 % interval, and tests/features.py's estimator-act-2 check (features.py:35344) compares each published half-width against UA_ADOPTION_HALFWIDTH_BAR rather than against the threshold -- the 0.02 C noisy window's intervals stay above the bar and the clean window's stay below it on either constant. A fit whose profiled cost at x_hat[0] +/- bar straddles the threshold would pin it; no recorded driver builds one. Measured surviving over the recorded driver net at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:376 CONST": {
+      "verdict": "gap",
+      "old": "_Z_975 = 1.959963984540054",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: `_Z_975 = 1.959963984540054` -> `3.919928` doubles every Wald half-width the two-state fit publishes, and no recorded driver reads one back as a number: the estimator-act-2 check compares each half-width against the bar, and the noisy window's are already above it while the clean window's collapse to ~0, so the comparison holds under either constant. An assertion on a finite half-width's value would pin it. Measured surviving over the recorded driver net at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:590 GUARD_OFF": {
+      "verdict": "gap",
+      "old": "            if clip is not None:",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: `_profiled_cost` passes `clip=(1, -5.0, 10.0)` (sysid.py:721), so `if clip is not None:` -> `if False:` removes the only projection of the profiled C_r iterate, and the loops' other two projections (the `if x.size >= 3:` band) are not this band. It is distinguishable exactly when the profiled iterate leaves [-5, 10], which no driven fit's does. Measured surviving over the recorded driver net at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:729 GUARD_OFF": {
+      "verdict": "gap",
+      "old": "        if _profiled_cost(x_hat[0] + sign * UA_ADOPTION_HALFWIDTH_BAR) <= threshold:",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: the refusal-by-name arm is untested. The mutant answers the Wald half-width where the ruling requires `inf` -- the case where the profiled cost at the bar is still inside the threshold, i.e. the interval extends past the bar. Every driven fit either has an interval far enough past the bar that the Wald width also exceeds it, or one inside it, so the driver's `hw > bar` comparison reads the same either way. Measured surviving over the recorded driver net at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:734 CLAMP_DROP": {
+      "verdict": "gap",
+      "old": "        step = 1e-6 * max(abs(float(x_hat[i])), 1.0)",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: dropping `max(..., 1.0)` shrinks the finite-difference step to `1e-6 * |x_hat[i]|` for any `|x_hat[i]| < 1` (a fitted G below 1), which moves the Jacobian and the published interval in its low digits -- inside the driver's margin to the bar, which reads a comparison and never the number. An assertion on the half-width's value would pin it. Measured surviving over the recorded driver net at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:763 GUARD_OFF": {
+      "verdict": "gap",
+      "old": "    if beta2 <= 1e-12:",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: the degenerate-capacity guard is untested. Without it a solution with beta2 <= 1e-12 falls through to `1.0 / beta2` and `-beta1 / beta2 ** 2` -- raising ZeroDivisionError at exactly 0.0 and answering a meaningless-but-finite interval just above it -- and no driven fit's fitted C is near-degenerate. Measured surviving over the recorded driver net at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:775 GUARD_OFF": {
+      "verdict": "gap",
+      "old": "    if not np.isfinite(var_ua) or var_ua < 0.0:",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: the non-finite-variance guard is the only thing between a non-finite or negative delta-method variance and `np.sqrt`, which would answer nan where the original refuses by name; on every driven fit var_ua is finite and non-negative, so the arm never fires. Measured surviving over the recorded driver net at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:777 RETURN_DEL": {
+      "verdict": "gap",
+      "old": "    return _Z_975 * float(np.sqrt(var_ua) / abs(beta1 / beta2))",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap, and the sharp one: deleting the return makes `_one_state_ua_halfwidth` fall off the end and answer None, which the coordinator's gate reads as 'no interval' and refuses adoption (`hw is None` at coordinator.py:10455) -- while tests/features.py's own collector (features.py:35239) SKIPS a result whose ua_profile_halfwidth is None, so the mutant removes the row the driver would have judged instead of failing it. The one-state interval's value is unpinned throughout. Measured surviving over the recorded driver net at 467d3d9c, 2026-09-23."
     }
   },
   "killed_by": {
@@ -106,7 +166,57 @@
       "killed_by": "tests/entities.py",
       "old": "        return bool((self.coordinator.data or {}).get(\"dhw_enabled\", False))",
       "reason": "arrived with origin/main, commit 5ae066a0 (fix(D8): make the hot-water registry default conditional on dhw_enabled, #1398). Removing the `data` fallback return makes the property fall off the end and answer None, so every hot-water entity whose registry default the payload path decides goes off and tests/entities.py goes from rc=0 failed=0 to rc=1 failed=5. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:10455 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "        if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437): the fitted UA's own 95 % profile-likelihood interval supersedes the #942 residual-scatter precondition. `if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:` -> `if False:` adopts every completed experiment whatever its interval: the blend weight 1 - hw / bar goes negative for hw > bar, so `_t4_adopt(halfwidth=2*bar)` moves the learned scale to 0.0 against the recorded 1.0 and the sample floor to int(20 * -1) = -20. Measured: tests/features.py rc=0 failed=0 -> rc=1 failed=1. Measured at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/store.py:52 GUARD_OFF": {
+      "killed_by": "tests/finite_boundary.py",
+      "old": "    if isinstance(value, float):",
+      "reason": "arrived with origin/main, the round-6 non-finite class fix (#1425, commit 8e5d1ace): `QuarantiningStore.async_load` scrubs non-finite numeric leaves to None before any loader sees them. `if isinstance(value, float):` -> `if False:` returns a non-finite float unscrubbed, so a poisoned leaf reaches the live model. Measured: tests/finite_boundary.py rc=0 failed=0 -> rc=1 failed=0 (it exits 1 without a FAILED line -- the mutant is the only difference from the baseline run). Measured at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/store.py:54 GUARD_OFF": {
+      "killed_by": "tests/finite_boundary.py",
+      "old": "    if isinstance(value, str):",
+      "reason": "arrived with origin/main, the round-6 non-finite class fix (#1425, commit 8e5d1ace). `if isinstance(value, str):` -> `if False:` skips the string spellings float() turns into a non-finite number without raising (`\"NaN\"`, `\"Infinity\"`, `\"-Infinity\"`), so each loader's own float() coercion reconstitutes the poison. Measured: tests/finite_boundary.py rc=0 failed=0 -> rc=1 failed=5. Measured at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/store.py:59 RETURN_DEL": {
+      "killed_by": "tests/finite_boundary.py",
+      "old": "        return value if math.isfinite(parsed) else None",
+      "reason": "arrived with origin/main, the round-6 non-finite class fix (#1425, commit 8e5d1ace). Removing the scrubbing return leaves the parsed-string branch to fall through to the function's final `return value`, so the ORIGINAL string (`\"NaN\"`) is handed back instead of the loaders' absent-data None. Measured: tests/finite_boundary.py rc=0 failed=0 -> rc=1 failed=0 (it exits 1 without a FAILED line). Measured at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/store.py:60 GUARD_OFF": {
+      "killed_by": "tests/finite_boundary.py",
+      "old": "    if isinstance(value, dict):",
+      "reason": "arrived with origin/main, the round-6 non-finite class fix (#1425, commit 8e5d1ace). `if isinstance(value, dict):` -> `if False:` returns a dict with every child unscanned, so a nested non-finite leaf survives the boundary at any depth. Measured: tests/finite_boundary.py rc=0 failed=0 -> rc=1 failed=8. Measured at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/store.py:62 GUARD_OFF": {
+      "killed_by": "tests/finite_boundary.py",
+      "old": "    if isinstance(value, list):",
+      "reason": "arrived with origin/main, the round-6 non-finite class fix (#1425, commit 8e5d1ace). `if isinstance(value, list):` -> `if False:` returns a list with every element unscanned -- the shape the raw-JSON store payloads actually carry. Measured: tests/finite_boundary.py rc=0 failed=0 -> rc=1 failed=7. Measured at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/store.py:66 RETURN_DEL": {
+      "killed_by": "tests/finite_boundary.py",
+      "old": "    return value",
+      "reason": "arrived with origin/main, the round-6 non-finite class fix (#1425, commit 8e5d1ace). Deleting the final `return value` makes `_sanitize` answer None for every value the five isinstance branches do not claim -- including the None payload itself and every int -- so a healthy payload is replaced by None at the boundary. Measured: tests/finite_boundary.py rc=0 failed=0 -> rc=1 failed=1. Measured at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:585 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "            if x.size >= 3:",
+      "reason": "arrived with origin/main, the R6 D7-03 fix (#1396/#1397: the log parameters get a loose projection in the three-parameter full solve; blame resolves the line to the merge 97fe0b03). `if x.size >= 3:` -> `if False:` drops the projection of [log UA, log C_r] into SLAB_LOG_UA_*/SLAB_LOG_ROOM_CAP_*, so a drifting sensor can drive the candidate outside the band -- the failure the wave's own drift block (tests/features.py, 'sysid two-state fit survives a drifting room sensor') pins. Measured: tests/features.py rc=0 failed=0 -> rc=1 failed=1. Measured at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:723 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "        return _cost",
+      "reason": "arrived with origin/main, commit 96374e62 (the #1410/#1437 adoption gate). `_profiled_cost` falls off the end and answers None, so `_profiled_cost(x_hat[0] + sign * UA_ADOPTION_HALFWIDTH_BAR) <= threshold` compares None against a float and raises. Measured: tests/features.py rc=0 failed=0 -> rc=1 failed=0 (it exits 1 without a FAILED line -- the mutant is the only difference from the baseline run). Measured at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:740 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "    return _Z_975 * se",
+      "reason": "arrived with origin/main, commit 96374e62 (the #1410/#1437 adoption gate). `_slab_ua_profile_halfwidth` answers None where the Wald half-width belongs, so `_ridge_ua_halfwidths` (tests/features.py:35239) drops the clean window's rows and `_est2_hw_clean` is empty against `_est2_hw_clean and _est2_hw_noisy`'s requirement of a non-empty list. Measured: tests/features.py rc=0 failed=0 -> rc=1 failed=2. Measured at 467d3d9c, 2026-09-23."
     }
   },
-  "reason": "max_survivor_fraction was OPEN at 1.0 and therefore unsatisfiable: rate = survivors/evaluated is a fraction in [0,1], so `if rate > 1.0` can never fire and a run in which every mutant survives printed PASSED. The caps are now recorded at the last measured rates -- 0.2 (2 survivors of 10) and 0.3 (12 of 40) -- so they are saturable. The ratchet is the exact-count `unpinned_sites`: 3798 candidate sites enumerated deterministically over all 64 production modules, of which 3785 carry no recorded disposition (3 are triaged equivalent: pump_mode.py:242, __init__.py:340, optimizer.py:3565; 10 are killed -- 7 by tests/features.py: battery.py:320, battery.py:341, defrost.py:166, defrost.py:169, defrost.py:171, defrost.py:172, thermal_model.py:1894, and 3 by tests/entities.py: sensor.py:427, sensor.py:430, sensor.py:432 -- recorded under `killed_by`). The two surviving sites the disposition pass measured -- defrost.py:310 GUARD_OFF and sysid.py:1522 GUARD_OFF, both added with origin/main -- stay unpinned on purpose: nothing in the recorded driver net kills them yet, and an unmarked survivor is a gap rather than an equivalence. The nightly burn-in kills or triages them in cost order, and each disposition must name the mechanism; the ratchet refuses any NEW site without one. Do not raise `unpinned_sites` by hand: the exact count is re-derived every run by tests/mutation_table.py, which refuses growth and only records down via --record."
+  "reason": "The ratchet is the exact-count `unpinned_sites`: the deterministic inventory enumerates every candidate the six operators generate over the production package, and a site leaves that count only by carrying a disposition -- a `killed_by` driver, or a `survivor_triage` verdict (equivalent/gap) pinned to the exact `old` line. This record was re-derived at 467d3d9c on 2026-09-23 and moved 3785 -> 3781. The inventory stands at 3816 candidates, because the round-6 class fixes added 22 sites and removed 4 against the 3798 the previous record was written on. All 22 new sites now carry a disposition: 10 are killed by a recorded driver -- 6 by tests/finite_boundary.py (store.py:52, store.py:54, store.py:59, store.py:60, store.py:62, store.py:66; the store-load boundary of #1425) and 4 by tests/features.py (coordinator.py:10455, the adoption gate of #1410/#1437; sysid.py:585, sysid.py:723, sysid.py:740) -- 3 are triaged equivalent (store.py:50, a void mutant whose two arms are the same `return value`; sysid.py:726 and sysid.py:739, clamps whose `max` cannot select its second arm), and 9 are recorded as gap triage (store.py:64 and eight sysid.py sites whose distinguishing inputs the recorded driver net never builds). The `gap` verdict is used here for the first time in this file's history: it records a MEASURED survivor, it is the honest disposition for one, and it does NOT move the fraction -- `survivor_gaps` counts every survivor no triage has called equivalent, so the sampled cap still reads these as gaps. Both caps and both `last_measured` blocks are unchanged. Do not raise `unpinned_sites` by hand: the exact count is re-derived every run by tests/mutation_table.py, which refuses growth and only records down via --record (and --record cannot fire on a branch whose diff puts no production file in scope, so this file was edited deliberately, with the measurement in the commit message)."
 }

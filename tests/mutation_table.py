@@ -790,7 +790,7 @@ def main() -> int:
         return 1
     # The deterministic inventory + completeness ledger (#1412). Source-only:
     # no clone, no baseline, no solve, and it covers the WHOLE tree -- the
-    # 3798 sites the sampled pool never draws. It runs before the sample
+    # 3816 sites the sampled pool never draws. It runs before the sample
     # because the ratchet is over the whole tree, not over the diff's pool.
     sites = inventory()
     comp = completeness_problems(budgets, sites)
