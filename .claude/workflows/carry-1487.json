@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "Carry destination for issue #1487 (round-7 D2 sibling seam): optimizer.py",
+    "_dhw_coil_wood_forecast still floors the wood capacity with",
+    "max(p.wood_tank_thermal_mass, 0.01) — the same max(<capacity>, 0.01) divisor class",
+    "D2-01 (#1450) removed from thermal_model.py. Found by the round-7 thermal_model",
+    "fixer's step-8 enumeration while fixing #1450; not fixed there because it is a",
+    "different file (the optimizer fixer, PR #1486, does not touch _dhw_coil_wood_forecast).",
+    "Shape and required fields: .claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1487,
+  "stage": "any later seat that fixes D2-class capacity floors, or a later round's D2 dimension (tools/audit/briefs/D2.md is its method); no roster group claims #1487",
+  "carries": [
+    {
+      "from": "the pull request fixing D2-01 (#1450), which removed nine max(<capacity>, 0.01) divisors and the DHW guard from thermal_model.py but left the one in optimizer.py:_dhw_coil_wood_forecast",
+      "effect": "narrows",
+      "control": "D2-01's own measurement: the two-zone tank rate used max(C_buf, 0.01) while the same step used the raw C_buf, so the floor diverges the divisor from the value. The thermal_model.py fix removed those floors and added seven arms in tests/features.py. optimizer.py:_dhw_coil_wood_forecast is the same class — a wood capacity floored by max(..., 0.01) — and is the one remaining site after #1450; the perturbing arm that would falsify it is deleting the max(...) wrapper and confirming the wood capacity flows through raw.",
+      "remeasure": "At your own merge base, from the repository root: `grep -rn 'max(.*0.01)' custom_components/heatpump_optimizer/optimizer.py` names _dhw_coil_wood_forecast's floor as the survivor; the D2-01 fix's tests/features.py arms are the instrument for the thermal_model.py sites. Do not trust the line number 4441 across the optimizer PR #1486 (it inserts a bang-bang start and shifts lines) — name the symbol.",
+      "brief": "One line to repair: drop the max(p.wood_tank_thermal_mass, 0.01) floor in _dhw_coil_wood_forecast, matching the D2-01 treatment. Same gate scope as D2-01. The name _dhw_coil_wood_forecast, not the line number, is the identifier that survives the optimizer PR's line shift."
+    }
+  ]
+}
