@@ -9735,6 +9735,228 @@ R.check(
 )
 
 
+# --- One capacity per store, above and below the guard (round 7, D2-01) ---
+#
+# `_simulate_step_two_zone` divided the tank's rate by `max(C_buf, 0.01)`
+# while the same step's availability bound and `_stability_substeps` used the
+# raw `C_buf`, so below the guard (buffer under 8.62 L) the tank's stored
+# energy became `C_actual / 0.01` of the heat the step was handed and the
+# balance closed by exactly `(C_actual - 0.01) * dT_buf` -- at 5 L, +5.456e-03
+# kWh on one step. The config flow's own buffer floor is 10 L, so no shipped
+# config reaches it, and the conservation block above cannot see it either: it
+# prices `dE` at `max(C, 0.01)` on both sides, mirroring the bug's own
+# capacity. The balances below price each store at its ACTUAL configured mass
+# (`volume * WATER_SPECIFIC_HEAT`), which is what makes the divergence visible.
+
+_R7CAP_POWER = 4.0
+_R7CAP_DT = 0.003  # `_stability_substeps` == 1 at every volume here, so the
+                   # sub-step composition cannot mask the tank's own leak
+
+
+def _r7cap_balance(buffer_l, wood_l=0.0, dt=_R7CAP_DT):
+    """One-step whole-plant residual (kWh) at the ACTUAL store capacities.
+
+    Net heat in minus every store's enthalpy change, priced at
+    `buffer_l`/`wood_l` litres -- never at a guard. Positive means the model
+    delivered heat the stores were not credited with.
+    """
+    params = ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=buffer_l,
+        mixing_valve_mode=_w2t_mv.MODE_MANUAL, mixing_valve_target=21.0,
+        cop_flow_carnot=True,
+        wood_tank_configured=wood_l > 0.0, wood_tank_volume=wood_l,
+    )
+    model = ThermalModel(params)
+    state = _w2t_state(60.0 if wood_l > 0.0 else None, buf=45.0)
+    outdoor = state.outdoor_temperature
+    u_up = model.effective_heat_loss_coefficient(
+        params.upper_floor_heat_loss, 6.0, 0.5)
+    u_lo = model.effective_heat_loss_coefficient(
+        params.lower_floor_heat_loss_learned, 3.0, 0.25)
+    injected = (
+        model.compute_cop(
+            outdoor, humidity=72.0, flow_temp=state.buffer_tank_temperature
+        ) * _R7CAP_POWER
+        + model.internal_gains_at(7.0)
+        + model.compute_solar_gain(300.0)
+    )
+    losses = (
+        u_up * (state.upper_floor_temperature - outdoor)
+        + u_lo * (state.lower_floor_temperature - outdoor)
+        + params.buffer_tank_heat_loss_coefficient
+        * (state.buffer_tank_temperature - 20.0)
+    )
+    if wood_l > 0.0:
+        losses += params.wood_tank_heat_loss_coefficient * (
+            state.wood_tank_temperature - 20.0)
+    new = model.simulate_step(
+        state, _R7CAP_POWER, outdoor, wind_speed=6.0, precipitation=0.5,
+        solar_radiation=300.0, dt_hours=dt, humidity=72.0, hour_of_day=7.0,
+    )
+    # Refused charge is a loss the stores never saw, so it joins the loss side
+    # after the step writes it -- the same ledger the cap balance above uses.
+    losses += model._step_buffer_refused + model._step_wood_refused
+    de = (
+        params.upper_floor_thermal_mass
+        * (new.upper_floor_temperature - state.upper_floor_temperature)
+        + params.lower_floor_thermal_mass
+        * (new.lower_floor_temperature - state.lower_floor_temperature)
+        + params.slab_thermal_mass
+        * (new.slab_temperature - state.slab_temperature)
+        + params.buffer_tank_thermal_mass
+        * (new.buffer_tank_temperature - state.buffer_tank_temperature)
+    )
+    if wood_l > 0.0:
+        de += params.wood_tank_thermal_mass * (
+            new.wood_tank_temperature - state.wood_tank_temperature)
+    return de - (injected - losses) * dt
+
+
+_r7cap_buf5 = _r7cap_balance(5.0)
+R.check(
+    "the tank's rate divides by the capacity the tank has, not by the guard",
+    abs(_r7cap_buf5) < 1e-9,
+    f"one step at 5 L (C_buf = {5.0 * 0.00116:.5f} kWh/K) closes to "
+    f"{_r7cap_buf5:+.3e} kWh; a max(C_buf, 0.01) divisor leaves the tank's "
+    "own discharge partly unaccounted",
+)
+_r7cap_buf200 = _r7cap_balance(200.0)
+_r7cap_buf10 = _r7cap_balance(10.0)
+R.check(
+    "and is unchanged above the guard (10 L floor, 200 L null arm)",
+    abs(_r7cap_buf200) < 1e-9 and abs(_r7cap_buf10) < 1e-9,
+    f"200 L closes to {_r7cap_buf200:.3e} kWh and 10 L -- the config flow's "
+    f"own floor, C_buf = {10.0 * 0.00116:.5f} -- to {_r7cap_buf10:+.3e}: "
+    "the repair is inert for every schema-reachable volume",
+)
+_r7cap_wood5 = _r7cap_balance(200.0, wood_l=5.0)
+R.check(
+    "the wood tank's rate divides by its own capacity too",
+    abs(_r7cap_wood5) < 1e-9,
+    f"one two-tank step at 5 L wood closes to {_r7cap_wood5:+.3e} kWh; the "
+    "same max(C_w, 0.01) divisor was written on that store's rate",
+)
+
+
+# The wood store's fourth read in one iteration is the DHW refill coil's
+# decrement, and it carried the same `max(C_w, 0.01)`: the coil removed heat
+# from a tank that kept part of it. The identity that pins it is conservation
+# rather than a temperature -- the heat recovered from the tank's own drop, at
+# the tank's own capacity, must not depend on how much the tank holds, because
+# it is one coil removing one quantity of heat in one iteration.
+def _r7cap_coil_implied_q(wood_l, dt=_R7CAP_DT):
+    """Coil heat (kW) implied by the wood tank's drop at its own capacity."""
+    params = ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=200.0,
+        mixing_valve_mode=_w2t_mv.MODE_MANUAL, mixing_valve_target=21.0,
+        cop_flow_carnot=True, wood_tank_configured=True,
+        wood_tank_volume=wood_l, dhw_enabled=True, dhw_tank_volume=200.0,
+        dhw_wood_coil_enabled=True,
+    )
+    model = ThermalModel(params)
+    # Wood at 20 C: level with its own ambient, so the step's wood loss is
+    # zero and the tank is a pass-through -- both arms enter the coil at the
+    # same temperature, which is what makes the two drops comparable.
+    out = model.simulate_trajectory_with_dhw(
+        _w2t_state(20.0, buf=45.0),
+        np.full(1, 2.0), np.zeros(1), np.full(1, -5.0),
+        start_hour=7.0, dt_hours=dt,
+    )
+    return (20.0 - out[6][1]) * params.wood_tank_thermal_mass / dt
+
+
+_r7cap_iq5 = _r7cap_coil_implied_q(5.0)
+_r7cap_iq10 = _r7cap_coil_implied_q(10.0)
+_r7cap_iq200 = _r7cap_coil_implied_q(200.0)
+R.check(
+    "the refill coil takes the same heat from a 5 L wood tank as a 200 L one",
+    _r7cap_iq5 > 1e-9
+    and abs(_r7cap_iq5 - _r7cap_iq10) < 1e-12
+    and abs(_r7cap_iq200 - _r7cap_iq10) < 1e-12,
+    f"the coil's heat, recovered from each tank's own drop at its own "
+    f"capacity, reads {_r7cap_iq5:.9f} kW at 5 L, {_r7cap_iq10:.9f} at 10 L "
+    f"and {_r7cap_iq200:.9f} at 200 L; a max(C_w, 0.01) divisor on the "
+    "decrement recovers only 58 % of the same coil at 5 L",
+)
+
+# The batched twin must read the same capacity as the scalar step: both paths
+# share `_stability_substeps` and one divisor, so repairing one and not the
+# other would split them. Before the repair the two agreed only because both
+# used the same guard -- the parity check below pins them to each other, not
+# to a value.
+_r7cap_m = ThermalModel(ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=5.0,
+    mixing_valve_mode=_w2t_mv.MODE_MANUAL, mixing_valve_target=21.0,
+    cop_flow_carnot=True,
+))
+_r7cap_st = _w2t_state(None, buf=45.0)
+_r7cap_pw = np.full((2, 12), 2.0)
+_r7cap_ot = np.full(12, -5.0)
+_r7cap_z = np.zeros(12)
+_r7cap_batch = _r7cap_m.simulate_trajectory_batch(
+    _r7cap_st, _r7cap_pw, _r7cap_ot, _r7cap_z, _r7cap_z, _r7cap_z, 0.25)
+_r7cap_mism = []
+for _b in range(_r7cap_pw.shape[0]):
+    _r7cap_sr = _r7cap_m.simulate_trajectory(
+        _r7cap_st, _r7cap_pw[_b], _r7cap_ot, _r7cap_z, _r7cap_z, _r7cap_z, 0.25)
+    for _nm, _arr, _ref in (
+        ("room", _r7cap_batch["room"][_b], _r7cap_sr[0]),
+        ("upper", _r7cap_batch["upper"][_b], _r7cap_sr[2]),
+        ("lower", _r7cap_batch["lower"][_b], _r7cap_sr[3]),
+        ("buffer", _r7cap_batch["buffer"][_b], _r7cap_sr[4]),
+    ):
+        if not np.array_equal(_arr, _ref):
+            _r7cap_mism.append(f"{_nm}[{_b}]")
+R.check(
+    "the batched two-zone step divides by the same capacity, bit for bit",
+    not _r7cap_mism,
+    f"scalar/batch divergence at 5 L in {_r7cap_mism[:4]}; the twin must use "
+    "the same C_buf the scalar step does",
+)
+
+# The sibling seam on the DHW tank: the step returned the tank UNCHANGED when
+# C_dhw < 0.01, so the heat it was handed vanished from a store that has a
+# capacity. Same repair, same shape.
+_r7cap_dhw = ThermalModel(ThermalParameters(
+    dhw_enabled=True, dhw_tank_volume=5.0,
+))
+_r7cap_dhw_new = _r7cap_dhw.simulate_dhw_step(
+    50.0, 20.0, 7.0, dt_hours=0.25, draw_power=0.0)
+R.check(
+    "a DHW tank below the guard still takes the heat it is given",
+    _r7cap_dhw_new > 50.0,
+    f"20 kW into a 5 L tank (C_dhw = {5.0 * 0.00116:.5f} kWh/K) for 0.25 h "
+    f"moved it 50.0 -> {_r7cap_dhw_new:.4f} C; the old guard froze it",
+)
+
+
+# The same store's capacity is read a second time in `dhw_coast_hours`, and
+# that expression reads it TWICE: the numerator is `C_dhw` while the `UA` it
+# divides by is built from the same mass (`rate * C_dhw / delta`). A floor on
+# one of the two does not guard anything, it removes the volume from the
+# quotient -- and the quotient is the tank's own configured cooling rate, so
+# the coast time between two temperatures must not depend on how much the tank
+# holds. Measured at the merge base: 41.333631 h at 5 L against 23.973506 h at
+# 10 L and at 200 L.
+def _r7cap_coast(volume_l):
+    return ThermalModel(ThermalParameters(
+        dhw_enabled=True, dhw_tank_volume=volume_l,
+    )).dhw_coast_hours(60.0, 50.0)
+
+
+_r7cap_coast5 = _r7cap_coast(5.0)
+_r7cap_coast10 = _r7cap_coast(10.0)
+_r7cap_coast200 = _r7cap_coast(200.0)
+R.check(
+    "the tank's own standby coast time does not depend on what it holds",
+    abs(_r7cap_coast5 - _r7cap_coast10) < 1e-9
+    and abs(_r7cap_coast200 - _r7cap_coast10) < 1e-9,
+    f"60 -> 50 C reads {_r7cap_coast5:.9f} h at 5 L, {_r7cap_coast10:.9f} at "
+    f"10 L and {_r7cap_coast200:.9f} at 200 L; a max(C_dhw, 0.01) numerator "
+    "against a UA built from the raw mass reads 41.333631 h at 5 L",
+)
+
+
 # --- Step length ----------------------------------------------------------
 
 _w2t_m_q, _w2t_out_q = _w2t_run(_w2t_params_two, 60.0, 3.0, n=24, dt=0.25)
