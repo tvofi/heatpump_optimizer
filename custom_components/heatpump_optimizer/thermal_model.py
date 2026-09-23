@@ -1779,17 +1779,17 @@ class ThermalModel:
         p = self.params
         if to_temp >= from_temp:
             return 0.0
-        # The tank's own capacity, unfloored (D2-01): this expression reads the
-        # store twice -- here, and through `ua`, which is built from the same
-        # mass -- so a floor on one of the two is a disagreement, not a guard.
+        # One store, read twice (D2-01): `ua` is built from this same mass, so
+        # `C/ua` is `delta/rate` by construction -- a floor on *either* is a
+        # disagreement, not a guard. A zero coefficient is the only guard left.
         c_dhw = p.dhw_tank_thermal_mass
-        ua = max(p.dhw_tank_heat_loss_coefficient, 1e-5)
+        ua = p.dhw_tank_heat_loss_coefficient
         hot = from_temp - ambient_temp
         cold = to_temp - ambient_temp
         if hot <= 0.0:
             return 0.0
-        if cold <= 0.0:
-            # The target is at or below ambient; the tank never gets there.
+        if cold <= 0.0 or ua <= 0.0:
+            # At or below ambient, or no loss at all: it never gets there.
             return 168.0
         return float(np.clip((c_dhw / ua) * np.log(hot / cold), 0.0, 168.0))
 

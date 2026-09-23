@@ -9885,17 +9885,19 @@ R.check(
 # used the same guard -- the parity check below pins them to each other, not
 # to a value.
 #
-# Two axes, because either alone can go blind (reviewer, PR #1488).
-# * The state axes need a step the divisor is visible in. At 5 L the
-#   availability bound is dT_cap = (70 - 45) / 0.25 = 100 K/h while the net
-#   rate is Q/C: at the 2 kW this arm first used that is 344.8 K/h raw against
-#   200.0 K/h floored, so BOTH paths saturate on step 1 and every state axis
-#   reads max_abs_diff = 0.000e+00 in either mutation direction -- an arm that
-#   cannot fail. 0.5 kW puts the net rate at ~86 K/h raw against ~50 K/h
-#   floored, both under the bound, so the first steps differ.
-# * The refused channel is the one the divisor cannot hide from even when the
-#   tank does saturate, so it is compared too -- and its own non-emptiness is
-#   asserted below, or the comparison would be vacuous the same way.
+# The power is chosen so the arm can fail at all (reviewer, PR #1488). At 5 L
+# the availability bound is dT_cap = (70 - 45) / 0.25 = 100 K/h while the net
+# rate is Q/C: at the 2 kW this arm first used that is 344.8 K/h raw against
+# 200.0 K/h floored, so BOTH paths saturate on step 1 and every compared axis
+# reads max_abs_diff = 0.000e+00 in either one-sided mutation -- an arm that
+# cannot fail. 0.5 kW puts the net rate at ~86 K/h raw against ~50 K/h floored,
+# both under the bound, so the state axes diverge as soon as one path is
+# floored and the other is not, which is the mutation this arm exists to catch.
+# The refused channel is deliberately not compared: a step that never saturates
+# refuses nothing, so at this power both sides read 0.0 and the axis would be
+# empty. The arm below asserts that non-saturation instead, since it is what
+# keeps the compared axes live -- at 2 kW it reads 0.901 kWh and the state axes
+# go blind.
 _r7cap_m = ThermalModel(ThermalParameters(
     two_zone_enabled=True, buffer_tank_volume=5.0,
     mixing_valve_mode=_w2t_mv.MODE_MANUAL, mixing_valve_target=21.0,
@@ -9916,7 +9918,6 @@ for _b in range(_r7cap_pw.shape[0]):
         ("upper", _r7cap_batch["upper"][_b], _r7cap_sr[2]),
         ("lower", _r7cap_batch["lower"][_b], _r7cap_sr[3]),
         ("buffer", _r7cap_batch["buffer"][_b], _r7cap_sr[4]),
-        ("refused", _r7cap_batch["refused"][_b], _r7cap_sr[5]),
     ):
         if not np.array_equal(_arr, _ref):
             _r7cap_mism.append(f"{_nm}[{_b}]")
@@ -9928,11 +9929,11 @@ R.check(
     "the same C_buf the scalar step does",
 )
 R.check(
-    "and the parity arm's refused channel is one the step actually exercises",
-    _r7cap_refused_max > 0.0,
-    f"the batch's refused peak reads {_r7cap_refused_max:.6f} kWh over a 0.5 kW "
-    "schedule; at 0.0 the refused axis above compares two empty arrays and the "
-    "arm is back to the saturated state axes that could not fail",
+    "and its schedule is one the compared axes can see the divisor in",
+    _r7cap_refused_max < 1e-9,
+    f"the batch refuses {_r7cap_refused_max:.9f} kWh over a 0.5 kW schedule; "
+    "at 0.0 nothing saturates and the state axes above diverge under a "
+    "one-sided mutation, which is the arm's whole point",
 )
 
 # The sibling seam on the DHW tank: the step returned the tank UNCHANGED when
@@ -9954,11 +9955,13 @@ R.check(
 # The same store's capacity is read a second time in `dhw_coast_hours`, and
 # that expression reads it TWICE: the numerator is `C_dhw` while the `UA` it
 # divides by is built from the same mass (`rate * C_dhw / delta`). A floor on
-# one of the two does not guard anything, it removes the volume from the
-# quotient -- and the quotient is the tank's own configured cooling rate, so
-# the coast time between two temperatures must not depend on how much the tank
-# holds. Measured at the merge base: 41.333631 h at 5 L against 23.973506 h at
-# 10 L and at 200 L.
+# either does not guard anything, it removes the volume from the quotient --
+# and the quotient is the tank's own configured cooling rate, so the coast time
+# between two temperatures must not depend on how much the tank holds. Both
+# floors are measured here: at the merge base the numerator's read 41.333631 h
+# at 5 L against 23.973506 h at 10 L, and with only that one repaired the `UA`
+# floor still read 16.685560 h at 0.5 L and 0.333711 h at 0.01 L -- the band a
+# service call reaches, `POSITIVE_PARAM_FLOOR` being 0.01 L.
 def _r7cap_coast(volume_l):
     return ThermalModel(ThermalParameters(
         dhw_enabled=True, dhw_tank_volume=volume_l,
@@ -9968,13 +9971,17 @@ def _r7cap_coast(volume_l):
 _r7cap_coast5 = _r7cap_coast(5.0)
 _r7cap_coast10 = _r7cap_coast(10.0)
 _r7cap_coast200 = _r7cap_coast(200.0)
+_r7cap_coast_band = [_r7cap_coast(v) for v in (0.01, 0.5, 8.62)]
 R.check(
     "the tank's own standby coast time does not depend on what it holds",
     abs(_r7cap_coast5 - _r7cap_coast10) < 1e-9
-    and abs(_r7cap_coast200 - _r7cap_coast10) < 1e-9,
+    and abs(_r7cap_coast200 - _r7cap_coast10) < 1e-9
+    and all(abs(c - _r7cap_coast10) < 1e-9 for c in _r7cap_coast_band),
     f"60 -> 50 C reads {_r7cap_coast5:.9f} h at 5 L, {_r7cap_coast10:.9f} at "
     f"10 L and {_r7cap_coast200:.9f} at 200 L; a max(C_dhw, 0.01) numerator "
-    "against a UA built from the raw mass reads 41.333631 h at 5 L",
+    f"against a UA built from the raw mass reads 41.333631 h at 5 L, and a "
+    f"max(UA, 1e-5) denominator reads {_r7cap_coast_band[0]:.6f} h at 0.01 L "
+    f"and {_r7cap_coast_band[1]:.6f} at 0.5 L",
 )
 
 
