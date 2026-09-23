@@ -352,8 +352,13 @@ def synthetic_reproduces() -> tuple[str, bool, str]:
     committed = FIXTURES / "synthetic-dhw-only.json"
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "again.json"
-        with contextlib.redirect_stdout(io.StringIO()):
-            rc = synthesize.main(["--out", str(out)])
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                rc = synthesize.main(["--out", str(out)])
+        except (SystemExit, Exception) as err:  # noqa: BLE001 - one red check
+            # The exporter refuses with SystemExit; inside tests/entities.py
+            # that would end the whole run, not fail this one check.
+            rc = f"{type(err).__name__}: {err}"
         same = rc == 0 and out.read_bytes() == committed.read_bytes()
         size = out.stat().st_size if out.exists() else None
     return ("synthetic_reproduces", same,
