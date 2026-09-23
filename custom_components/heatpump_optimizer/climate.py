@@ -172,9 +172,12 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
 
             if mode == MODE_OFF:
                 return HVACAction.OFF
-            # The rooms, not the machine: a DHW-only step leaves them idle,
-            # while a space step below the band's first rung heats (#1499).
-            if power_norm > 0.1 or action.get("space_heating_active"):
+            # The rooms, not the machine: a DHW-only step (hot_water) leaves
+            # them idle, while eco, the one space rung that reaches below
+            # power_normalized 0.1, heats them (#1499). Keyed on the mode,
+            # which every overlay rewrites, not on a flag the system
+            # identification's spread of the plan's action would carry stale.
+            if power_norm > 0.1 or action.get("mode") == "eco":
                 return HVACAction.HEATING
             return HVACAction.IDLE
         return None

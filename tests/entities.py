@@ -7654,7 +7654,7 @@ _hvac_low = climate_mod.HeatPumpOptimizerClimate(
     FakeCoordinator(
         {**DATA, "mode": const.MODE_AUTO,
          "current_action": {"power": 1.0, "power_normalized": 0.0,
-                            "space_heating_active": True}}
+                            "mode": "eco", "heat_pump_on": True}}
     ),
     clim._entry,
 )
@@ -7667,8 +7667,7 @@ _hvac_dhw = climate_mod.HeatPumpOptimizerClimate(
     FakeCoordinator(
         {**DATA, "mode": const.MODE_AUTO,
          "current_action": {"power": 0.0, "power_normalized": -0.25,
-                            "mode": "hot_water", "heat_pump_on": True,
-                            "space_heating_active": False}}
+                            "mode": "hot_water", "heat_pump_on": True}}
     ),
     clim._entry,
 )
@@ -7676,6 +7675,25 @@ R.check(
     "hvac_action reports IDLE while only the DHW tank is heating",
     _hvac_dhw.hvac_action == climate_mod.HVACAction.IDLE,
     str(_hvac_dhw.hvac_action),
+)
+# The system identification's override spreads the plan's action and
+# rewrites power, power_normalized, heat_pump_on and mode; a key it does not
+# rewrite rides over from the plan. Its off phase over an eco plan step must
+# read IDLE, whatever else the plan's action carried.
+_hvac_sysid = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(
+        {**DATA, "mode": const.MODE_AUTO,
+         "current_action": {"power": 0.0, "power_normalized": 0.0,
+                            "heat_pump_on": False,
+                            "mode": "system_identification",
+                            "space_heating_active": True}}
+    ),
+    clim._entry,
+)
+R.check(
+    "hvac_action reports IDLE in a system-identification off phase over an eco step",
+    _hvac_sysid.hvac_action == climate_mod.HVACAction.IDLE,
+    str(_hvac_sysid.hvac_action),
 )
 _hvac_off = climate_mod.HeatPumpOptimizerClimate(
     FakeCoordinator(

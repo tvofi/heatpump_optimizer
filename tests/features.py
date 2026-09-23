@@ -2240,6 +2240,21 @@ _space_action = {
 boost_mod.overlay(
     _space_action, _boost_space, max_power=6.0, max_temp=24.0, ecl_max=8.0,
 )
+# #1499: a DHW boost turns the pump on, so a plan step that said "off" (or
+# no plan, "idle") must not keep publishing that the pump is off.
+_dhw_off_action = {"power": 0.0, "mode": "off", "heat_pump_on": False}
+boost_mod.overlay(
+    _dhw_off_action, _boost_dhw, max_power=6.0, max_temp=24.0, ecl_max=8.0,
+)
+_dhw_eco_action = {"power": 1.0, "mode": "eco", "heat_pump_on": True}
+boost_mod.overlay(
+    _dhw_eco_action, _boost_dhw, max_power=6.0, max_temp=24.0, ecl_max=8.0,
+)
+R.check(
+    "a DHW boost over an off step reads hot_water; over a space step, the space rung",
+    _dhw_off_action["mode"] == "hot_water" and _dhw_eco_action["mode"] == "eco",
+    f"{_dhw_off_action['mode']} / {_dhw_eco_action['mode']}",
+)
 R.check(
     "space boost maxes space heat without rewriting DHW power",
     _space_action["power"] == 6.0
@@ -31218,13 +31233,12 @@ _hw_acts = [_bl_opt.get_current_action(_res_hw, _t) for _t in _ts_sav]
 R.check(
     "a DHW-only step reads hot_water, not off (#1499)",
     _hw_acts[0]["mode"] == "hot_water"
-    and _hw_acts[0]["heat_pump_on"]
-    and _hw_acts[0]["space_heating_active"] is False,
+    and _hw_acts[0]["heat_pump_on"],
     repr(_hw_acts[0]),
 )
 R.check(
     "a space step at the pump's minimum modulation reads eco, not off",
-    _hw_acts[1]["mode"] == "eco" and _hw_acts[1]["space_heating_active"] is True,
+    _hw_acts[1]["mode"] == "eco" and _hw_acts[1]["heat_pump_on"],
     repr(_hw_acts[1]),
 )
 R.check(
