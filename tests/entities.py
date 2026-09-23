@@ -20210,11 +20210,12 @@ R.check(
 # summary says what it could not measure. GitHub skips a step with no `if:`
 # once an earlier step of the same job has failed, and the disposition refusal
 # above fails on a merge that has no row -- the protocol's steady state, since
-# the row is promised in a batch. So an unguarded step after it never runs:
-# over the last 40 `record` runs on `main` the histogram ran in 40 and the
-# filing step it feeds in 7, and every one of those 7 is a run the refusal did
-# not fail (`filer_ran_with_refusal_failed=0`). Derived, not listed: every step
-# after the refusal, and the report step's own reader of their outcomes.
+# the row is promised in a batch. So an unguarded step after it never runs, and
+# the pair that separates the guard from the failure is measured by
+# `tools/audit/round7-fix/governance/skipped_step_seams.py`: the filer steps are
+# returned as skipped and the two `always()` steps of the same job are not.
+# Derived, not listed: every step after the refusal, and the report step's own
+# reader of their outcomes.
 _REC_TAIL = _REC_JOB.split(
     "- name: Every merged pull request has a disposition")[1].split(
         "\n      - name: ")[1:]

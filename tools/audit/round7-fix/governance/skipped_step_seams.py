@@ -18,16 +18,22 @@ COMMAND.  GITHUB_TOKEN=$(gh auth token) python3 \
           steps whose name contains the substring -- the control for a step the
           seam rule does NOT return.
 
-BASELINE. 60 runs of `governance.yml` listed 2026-09-23, `origin/main` 6e2a0f2a:
-8 seam pairs over 298 job instances, 5 of them the runner's own
-`Post Run <action>` teardown; the `record` job's two filer steps are 2 of the
-remaining 3, both skipped by `Every merged pull request has a disposition`
-(19 each), and the third is `policy-docs`'s fragment check skipped by `Lint the
-policy corpus` (1). `delivery-status-publish`'s ledger step is NOT among them
-(18 success, 0 skipped). The same rule over 25 runs each of `tests.yml`,
-`hassfest.yml`, `validate.yml` and `codeql.yml` returns one seam pair, a
-`Post Run` teardown in `tests.yml` (5), and no other: `tests.yml`'s own controls
-are 11 guard pairs, so the two arms separate there.
+BASELINE. A sample of 60 runs of `governance.yml` listed 2026-09-23 at
+`origin/main` 6e2a0f2a printed the `record` job's two filer steps as seams, both
+skipped by `Every merged pull request has a disposition`, beside the runner's
+own `Post Run <action>` teardown steps -- and the two `always()` steps of the
+same job (histogram, sunset) as NOT seams. Every count here moves with the
+window (`--runs` is "the last N runs at the moment it is run": two samples taken
+twenty minutes apart printed 8 and 5 seam pairs), so the counts are dated rather
+than carried; the CLASS is what the dispositions are keyed on.
+`delivery-status-publish`'s ledger step is not a seam: its tally is `success` in
+every run of both samples and `skipped` in none. `policy-docs`'s fragment check
+is a seam in one sample and not the next (its predecessor is `Lint the policy
+corpus`), and it is not this defect: that job's conclusion already carries the
+failure. The same rule over 25 runs each of `tests.yml`, `hassfest.yml`,
+`validate.yml` and `codeql.yml` returns the runner's teardown steps and nothing
+else, with `tests.yml`'s own `if:` guards in the control arm, so the two arms
+separate there.
 
 WHY IT EXISTS. `fixer.md` step 8: a fix demonstrated with an instance owes a
 rule that enumerates the class's seams, run, with every returned seam

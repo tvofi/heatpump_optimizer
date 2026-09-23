@@ -646,12 +646,14 @@ jobs:
       # BOTH FILER STEPS CARRY `always()` (D11-01, #1467). The refusal above is
       # red on the protocol's steady state -- a merge is rowless for the whole
       # batch interval, cleared by the next beat -- and GitHub skips a step with
-      # no `if:` once an earlier step in the job has failed. So the actor was
-      # skipped in every run whose trigger fired: over the last 40 `record` runs
-      # on `main`, the histogram ran in 40 and the filer in 1, and the one run
-      # the filer ran in is the one run the refusal did not fail. A filing lane
-      # whose trigger the histogram produces and whose actor never runs is #959
-      # option B producing nothing, silently.
+      # no `if:` once an earlier step in the job has failed. So the trigger ran
+      # and the actor did not: the filer ran in the runs the refusal did not
+      # fail and in none of the runs it did, which is the pair
+      # `tools/audit/round7-fix/governance/skipped_step_seams.py` measures --
+      # these two steps returned as skipped, beside the two steps of this job
+      # that carry `always()` and are not. A filing lane whose trigger the
+      # histogram produces and whose actor never runs is #959 option B
+      # producing nothing, silently.
       - name: Show the friction filer refusing its own fixtures
         id: filer_selftest
         if: always()
