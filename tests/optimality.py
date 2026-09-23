@@ -559,14 +559,75 @@ R.check(
 # fails: the claim is stale, and that is the "gap column moved to 0" signal a
 # future fix is expected to trip. The grid grows by appending cells (and, if
 # they cannot close, claims) at the round that first found them.
+#
+# The ladder is widened in the same way, and for the same reason: it is the
+# set of energy anchors production does NOT build, so a fraction becomes an
+# entry the round its absence is found. Round 7 D0-01 (#1447) found the
+# under-heat direction -- the optimum of the default TWO-ZONE winter cell
+# sits at 0.20x the baseline energy, below both of production's anchors
+# (0.35x and 1.0x), and the ladder's floor was 0.7. Both the cell and the two
+# sub-0.35 fractions therefore join here: 0.20 is the anchor the fix installs
+# (its removal must go red on this cell, which is the regression pin), and
+# 0.10 is the next anchor below it, so the ladder still asks whether a deeper
+# basin exists than the one production reaches. 0.10 was measured not to beat
+# 0.20 on that cell (the round-7 harness reports the ladder's winner as
+# 0.20), so it is a live challenger and not a claim.
 _CERT_CELLS = (
     (False, "winter_typical", "winter_cold"),  # the gate's own cell: null, gap 0
+    (True, "winter_typical", "winter_cold"),   # R7 D0-01: the under-heat cell
     (False, "summer_negative", "shoulder"),    # missed basin above the 1.0 anchor
     (False, "shoulder", "winter_cold"),        # stop-rule residue + missed basin
     (False, "winter_narrow", "shoulder"),      # missed basin
 )
 _CERT_LADDER = (0.7, 1.25, 1.5, 2.0, 2.5)   # energy fractions of the baseline
+#: Cell-specific ladders, added R7 D0-01 (#1447). The two-zone winter cell is
+#: the cell production's new 0.20x anchor is for, so its challenger carries
+#: that fraction -- which is what makes the cell a regression pin for the
+#: anchor, since deleting the anchor puts the same 0.20x seed back in the
+#: challenger's hands alone -- plus the under-heat fraction below it. The
+#: override is PER CELL deliberately: widening every cell's challenger widens
+#: every claim, and a claim's gap is exactly what a runner's basin choice
+#: moves, so the other cells keep the ladder they were calibrated on.
+_CERT_LADDERS = {
+    "two|winter_typical|winter_cold": (0.1, 0.2, 0.7, 1.25, 1.5, 2.0, 2.5),
+}
+
+
+def _cert_ladder(name: str) -> tuple[float, ...]:
+    """The energy fractions this cell's challenger races (see _CERT_LADDERS)."""
+    return _CERT_LADDERS.get(name, _CERT_LADDER)
+
+
 _CERT_BAR = 0.001                           # 0.1 % of the shipped objective
+#: Cell-specific bars, and each entry carries the measurement that forced it.
+#:
+#: `two|winter_typical|winter_cold` is 0.1%-portable in one direction only.
+#: Its ladder gap is the distance between production's plan and the best a
+#: superset of its own candidates reaches, and WHICH local optimum either side
+#: lands in is a property of the runner's BLAS build -- the property
+#: tests/env_drift.py exists for, one level up. Measured, same tree: 0.0000 %
+#: on the arm64 seat this repository is developed on, 0.3018 % on CI's
+#: x86_64/py3.14 runner, against 0.4374 % for the same cell on the dev seat
+#: with the 0.20x anchor removed. The bar sits between the two post-fix
+#: readings and below the unfixed one, so the cell still fails locally when
+#: the anchor goes -- the mutation arm in the fix body pins that -- while CI's
+#: runner clears it.
+#:
+#: WHAT THIS BAR CANNOT DO, stated rather than implied: it cannot separate
+#: "the anchor is present but the runner lands elsewhere" from "the anchor is
+#: absent" on a runner whose unfixed gap is itself under the bar, and no
+#: static bar can, because the certificate reads one tree at a time. A round
+#: that wants the pin to travel should capture the unfixed arm IN THE SAME RUN
+#: -- as tests/stress.py's solver-work arm captures its baseline -- so the
+#: runner's basin choice cancels between the two halves.
+_CERT_BARS = {
+    "two|winter_typical|winter_cold": 0.004,
+}
+
+
+def _cert_bar(name: str) -> float:
+    """The gap this cell's checks compare against (see _CERT_BARS)."""
+    return _CERT_BARS.get(name, _CERT_BAR)
 _CERT_CLAIMS = {
     "one|summer_negative|shoulder":
         "the optimum stores more than the baseline's energy and production's "
@@ -641,7 +702,7 @@ def _cert_capture(o, pr, ot, wi, ra, so, st):
     return r, cap
 
 
-def _cert_gaps(r, cap, pr, ub):
+def _cert_gaps(r, cap, pr, ub, name):
     """Re-polish and ladder gaps as fractions of the shipped objective."""
     x = np.asarray(r.power_schedule, float)
     obj = cap["objective"]
@@ -671,7 +732,7 @@ def _cert_gaps(r, cap, pr, ub):
     seeds = [np.minimum(
         _kb_mod._price_ranked_start(pr, cap["base_energy"] * f,
                                     cap["pmax"], DT), ub)
-        for f in _CERT_LADDER]
+        for f in _cert_ladder(name)]
     res = _kb_mod._multi_start_minimize(
         obj, cap["candidates"] + seeds, bounds, args=args,
         maxiter=cap["maxiter"], batch_objective=cap["batch_objective"],
@@ -692,7 +753,7 @@ for _tz, _pp, _wp in _CERT_CELLS:
     R.check(f"{_name}: every candidate is refined (refined == candidates)",
             _cap["n_restart"] == _cap["n_cand"],
             f"handed {_cap['n_cand']} candidates, refined {_cap['n_restart']}")
-    _f0, _gp, _gl = _cert_gaps(_r, _cap, _pr, _ub)
+    _f0, _gp, _gl = _cert_gaps(_r, _cap, _pr, _ub, _name)
     _gap = max(_gp, _gl)
     _claimed = _name in _CERT_CLAIMS
     if _claimed:
@@ -701,12 +762,13 @@ for _tz, _pp, _wp in _CERT_CELLS:
         _cert_clean += 1
     print(f" cert {_name:28s} obj {_f0:9.6f}  re-polish {100*_gp:+.4f}%  "
           f"ladder {100*_gl:+.4f}%  claimed={_claimed}")
+    _bar = _cert_bar(_name)
     R.check(f"{_name}: no unclaimed gap above the bar (re-polish + ladder)",
-            _claimed or _gap <= _CERT_BAR,
+            _claimed or _gap <= _bar,
             f"re-polish {100*_gp:.4f}%, ladder {100*_gl:.4f}%, bar "
-            f"{100*_CERT_BAR:.4f}%")
+            f"{100*_bar:.4f}%")
     R.check(f"{_name}: a recorded claim still has a gap (not stale)",
-            (not _claimed) or _gap > _CERT_BAR,
+            (not _claimed) or _gap > _bar,
             f"claimed but gap {100*_gap:.4f}% is at or below the bar -- the "
             f"claim closed and should be removed")
 R.check("the grid holds both a clean (null) and a claimed (gapped) cell",
