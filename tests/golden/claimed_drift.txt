@@ -629,3 +629,22 @@
 # discharge_rate_kw, hours_of_autonomy and round_trip_efficiency_6h move with
 # the dropped standing loss. No plan, schedule or solver fixture moves: the
 # view is report-only and the optimizer never reads it.
+
+# R7-D0-01 (#1447), fix branch fix/r7-optimizer: this diff claims ONE fixture
+# and NOTHING ELSE, and its direction is CHEAPER.
+# `_optimize_space_only`'s seed set gains a fifth bang-bang anchor at 0.20x
+# the baseline energy (`_DEEP_LOW_ENERGY_START_FRACTION`), below the 0.35x and
+# 1.0x anchors it had, so a cell whose objective prefers under-heating reaches
+# that basin now. Measured through the same capture the fixture is recorded
+# from: this valved flat-price cell 89.785511 -> 89.328352 (-0.509 %) and
+# winter_two_zone_no_dhw 58.784961 -> 57.725197 (-1.80 %), each strictly
+# cheaper and each holding the room floor (minimum 17.2119 K). The change is
+# on the DHW-DISABLED path only, so no dhw=True fixture can move; the memory
+# pass's own probe reads the same 3.5 MiB traced peak at both ends of the diff.
+# winter_two_zone_no_dhw is already may-drifted under the #1208 ruling, so its
+# move is printed rather than judged, and the reason recorded there
+# (polish-every-candidate) predates this diff -- restating it here would claim
+# a fixture the gate has already exempted.
+# `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all <merge-base>`
+# prints NO UNCLAIMED DRIFT when this list is current.
+valve_storage_flat_prices # R7-D0-01 (#1447): the 0.20x anchor settles this valved flat-price plan lower
