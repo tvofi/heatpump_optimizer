@@ -1,0 +1,131 @@
+{
+ "dimension": "D8",
+ "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+ "report_path": "tools/audit/round7/D8/REPORT.md",
+ "exposure": "",
+ "findings": [
+  {
+   "id": "D8-01",
+   "title": "Sensor-gap advisor reads unpublished power series; house-power gap is always 0.00 SEK/month",
+   "severity": "medium",
+   "claim": "SensorGapAdvisorSensor reads coordinator.data['house_power_series'] and ['heat_pump_power_series'], but _build_data_dict never writes either key, so on a real install the missing house-power meter always ranks 0.00 SEK/month instead of the ~30.00 the series would price.",
+   "mechanism": "sensor.py:2825-2826 reads house_power_series/heat_pump_power_series from coordinator.data; topology.rank_sensor_gaps -> peak_miss_sek -> _window_peak returns 0.0 for an empty series, and native_value filters out a 0.0 gap, publishing 0.0. The only producers of the two keys in the whole tree are tests/entities.py fixtures (_gap_load_data), which is why the gap tests stay green against a fake coordinator while the production payload carries neither.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/gap_series.py  (run from /Users/timmalmstrom/audit-r7-baseline)",
+    "harness_path": "tools/audit/round7/D8/gap_series.py",
+    "value": 0.0,
+    "unit": "SEK/month (house-power slot, house-power entity unconfigured)",
+    "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+    "machine": "8-core Apple M1, 8GB, darwin 25.6.0, Python 3.11.5, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "Shared fan-out box, load1 3.30; the metric is a computed advisory figure from a fixed series, immune to contention.",
+    "tolerance": "exact",
+    "load1": 3.3,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:SensorGapAdvisorSensor._gaps",
+   "perturbation": {
+    "change": "One-line production edit in coordinator.py _build_data_dict: publish the live power series, e.g. data['heat_pump_power_series'] = <series> and data['house_power_series'] = <series> (the harness injects the two keys, equivalent to the fix taking effect).",
+    "expected_direction": "up",
+    "observed_value": 30.0
+   },
+   "metric_definition": "The house-power slot's sek_per_month in SensorGapAdvisorSensor._gaps(), with the house-power entity unconfigured, on a real post-solve coordinator payload.",
+   "phenomenon_property": "A published advisory value must read a key the coordinator publishes; a value read from a key nothing writes is the empty-input fallback for every install.",
+   "seam_rule": "Enumerate data.get(\"*_power_series\") read sites in custom_components/heatpump_optimizer/sensor.py; each key read there must be written by coordinator._build_data_dict.",
+   "stop_rule_class": "bug",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/gap_series.py",
+    "value": "30.0",
+    "note": "Same harness with the two series present: gap_house_power_sek_per_month_with_series=30.0. The effect is absent exactly when the series exists, so the 0.0 is a property of the missing keys, not of the ranking function."
+   },
+   "reproduction_steps": [
+    "cd /Users/timmalmstrom/audit-r7-baseline",
+    "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/gap_series.py",
+    "read RESULT series_keys_present=0, gap_house_power_sek_per_month=0.0, gap_house_power_sek_per_month_with_series=30.0"
+   ],
+   "proposed_fix_scope": "coordinator.py _build_data_dict: publish the rolling house and heat-pump power series under house_power_series and heat_pump_power_series (the live-power window the advisor and the #1269 sensor advisor already read). Roughly two lines plus whatever rolling buffer exists.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "expected_golden_drift": []
+  },
+  {
+   "id": "D8-02",
+   "title": "dhw_setpoint_advisor ships enabled-by-default on a no-DHW install, the one DHW sensor without the gate",
+   "severity": "low",
+   "claim": "DHWSetpointAdvisorSensor is the only hot-water sensor not wrapped in _DHWEntityMixin, so a no-DHW install ships it enabled by default while it is permanently unavailable (1 of 59 sensors), where the five mixin-wrapped DHW entities correctly ship off.",
+   "mechanism": "_DHWEntityMixin.entity_registry_enabled_default returns dhw_enabled, and its available gates on data['dhw_enabled']; the five entities that inherit it (dhw_cost, dhw_energy, dhw_heating_cost, dhw_heating_schedule, plan_dhw_heating) are therefore disabled by default without DHW. DHWSetpointAdvisorSensor (sensor.py:2361) extends HeatPumpOptimizerSensorBase directly, declares no _attr_entity_registry_enabled_default, and its available requires dhw_advisor.recommended_setpoint, which _build_data_dict emits only when DHW is on.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/dhw_advisor_default.py  (run from /Users/timmalmstrom/audit-r7-baseline)",
+    "harness_path": "tools/audit/round7/D8/dhw_advisor_default.py",
+    "value": 1,
+    "unit": "DHW-gated sensor entities shipped enabled-by-default on a no-DHW install",
+    "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+    "machine": "8-core Apple M1, 8GB, darwin 25.6.0, Python 3.11.5, numpy 2.4.6",
+    "cpu_or_wall": "count",
+    "contention_note": "Shared fan-out box, load1 4.02; a census count over a frozen clock, immune to contention.",
+    "tolerance": "exact",
+    "load1": 4.02,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:DHWSetpointAdvisorSensor.entity_registry_enabled_default",
+   "perturbation": {
+    "change": "One-line production edit: wrap DHWSetpointAdvisorSensor in _DHWEntityMixin (class DHWSetpointAdvisorSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase)).",
+    "expected_direction": "to_zero",
+    "observed_value": "False"
+   },
+   "metric_definition": "Count of sensor entities whose registry default is enabled and whose available is False on a no-DHW config but True on a DHW config (DHW-gated yet shipped enabled).",
+   "phenomenon_property": "A feature-gated entity that is unavailable on every refresh of a no-feature install must ship disabled by default, as every sibling DHW entity does.",
+   "seam_rule": "Enumerate sensors whose available reads dhw_enabled or dhw_advisor; each must either inherit _DHWEntityMixin or declare _attr_entity_registry_enabled_default=False.",
+   "stop_rule_class": "hygiene",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/dhw_advisor_default.py",
+    "value": "5",
+    "note": "The five _DHWEntityMixin entities ship off without DHW (dhw_entities_off_by_default_without_dhw=5), and the fixed variant flips to False on the no-DHW coordinator (fixed_dhw_setpoint_advisor_enabled_default=False) \u2014 so the count of 1 is the gap, not the census method."
+   },
+   "reproduction_steps": [
+    "cd /Users/timmalmstrom/audit-r7-baseline",
+    "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/dhw_advisor_default.py",
+    "read RESULT dhw_gated_enabled_by_default=1 (DETAIL dhw_setpoint_advisor) and RESULT fixed_dhw_setpoint_advisor_enabled_default=False"
+   ],
+   "proposed_fix_scope": "sensor.py DHWSetpointAdvisorSensor: add _DHWEntityMixin to its bases (or set _attr_entity_registry_enabled_default=False and gate available on dhw_enabled). One line plus the base-class change.",
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "expected_golden_drift": []
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Every published leaf of every entity of all five platforms is JSON/orjson-serialisable (no numpy scalar, numpy array, NaN/inf, or non-JSON type), across 9 configs x 2 cycles.",
+   "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/matrix.py",
+   "value": "RESULT json_bad=0 over total_entities=630"
+  },
+  {
+   "claim": "No ENUM sensor publishes a state outside its options, and no MEASUREMENT/TOTAL/TOTAL_INCREASING sensor publishes a non-numeric state, and no TIMESTAMP sensor publishes a non-datetime.",
+   "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/matrix.py",
+   "value": "RESULT enum_bad=0, numeric_bad=0, timestamp_bad=0"
+  },
+  {
+   "claim": "No sensor's unit mismatches its device_class and no device_class/state_class pair violates Home Assistant's DEVICE_CLASS_STATE_CLASSES table.",
+   "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/matrix.py",
+   "value": "RESULT unit_bad=0, state_class_bad=0, unit_on_non_numeric_bad=0"
+  },
+  {
+   "claim": "Every entity_id matches {domain}.heat_pump_optimizer_{translation_key}, is unique, and every translation_key is present in strings.json, en.json and sv.json.",
+   "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/matrix.py",
+   "value": "RESULT entity_id_bad=0, dup_entity_id=0, translation_bad=0"
+  },
+  {
+   "claim": "The plan_* prefix that separates plan_space_heating/plan_dhw_heating from the space_heating_*/dhw_* families is a deliberate #1333 grouping, not an accidental split.",
+   "command": "read custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js PLAN_ID_SUFFIXES (lines 1396-1403) and sensor.py class list",
+   "value": "PLAN_ID_SUFFIXES names both forms per family; the card's four headline stats are all plan_* and enabled by default"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round7/D8/matrix.py",
+  "tools/audit/round7/D8/gap_series.py",
+  "tools/audit/round7/D8/dhw_advisor_default.py"
+ ]
+}

@@ -27436,7 +27436,7 @@ R.section("v5.1.10 — a commanded cycle is credited only when something saw it"
 
 # With no tank probe it is tempting to write the COMPLETION timestamp for a
 # boost nothing has verified. The claim buys no scheduling benefit whatsoever:
-# `_dhw_hours_since_legionella` already counts attempts, so an attempt drives
+# `hours_since` already counts attempts, so an attempt drives
 # the countdown from 192 h to 0 identically — and it costs the ability to say
 # the cycle is unverified. This integration publishes a plan; the actuation
 # may be an automation that never ran.

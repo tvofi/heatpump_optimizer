@@ -804,7 +804,14 @@ class SolverWork:
     gradient's 97 schedules), charged at the batch's own geometry because
     that is what the batch replaces -- the scalar parity contract in
     simulate_trajectory_batch's own docstring is the licence for grading a
-    batch at the work it stands in for. The channel exists because the
+    batch at the work it stands in for. Because a batch is charged at
+    ``rows x steps`` -- exactly what the rows of scalar calls it replaces
+    would record -- this channel cannot tell a batched solve from a scalar
+    one for the same plan: a solve that stops batching moves
+    ``simulate_steps`` by fractions of a percent while its ``kernel_ms`` and
+    its evaluation count both move by an order of magnitude (D9-03). It is a
+    WORK channel, not a COST channel; read the other two to see a
+    batched-vs-scalar swap. The channel exists because the
     evaluation count is BLIND to cost that changes no answer: running the
     batched gradient twice returns the same gradient, adds no scipy
     evaluations and leaves every plan bit-identical -- round-5 D9-01
@@ -1049,13 +1056,15 @@ def build_case(
     ``power_cap_kw`` supplies a flat per-step ``power_caps_extra`` -- the fuse
     guard's channel, a ceiling on space *plus* hot water -- and
     ``pin_off_steps`` supplies a manual-plan ``space_pins`` array with those
-    steps forced off. Both exist so the sweep samples the ZERO-RANGE BOUND
-    path (#286): the moment one variable's bound has ``lo == hi`` the batched
-    jacobian is refused and scipy estimates every gradient with n scalar
-    objective calls instead of three batched ones. Nothing in ``stress.py``
-    or ``optimality.py`` passed either argument before, so a regression
-    confined to that path was invisible to the whole gate (#287) -- not
-    under-budgeted, UNSAMPLED.
+    steps forced off. Both produce a ZERO-RANGE BOUND (``lo == hi`` on the
+    forced steps) (#286). Since D9-01 the batched jacobian serves that shape:
+    ``_bounds_supported_by_batch`` no longer carves ``lo == hi`` out, and
+    ``_batch_fd_gradient`` returns an exact 0.0 at a fixed variable, so these
+    scenarios sample the batched path, not scipy's n-scalar-call finite
+    differences -- the scalar-FD fallback is no longer in the sweep at all.
+    Nothing in ``stress.py`` or ``optimality.py`` passed either argument
+    before, so a regression confined to that shape was invisible to the whole
+    gate (#287) -- not under-budgeted, UNSAMPLED.
     """
     price_key, weather_key = SEASONS[season]
     cfg = house(two_zone=two_zone, dhw=dhw)
