@@ -190,7 +190,7 @@ def _take_fresh_handover(
     return payload
 
 
-async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_migrate_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> bool:
     """Migrate a config entry created by an older version of the integration.
 
     Every option the integration reads is looked up with a default, so older
@@ -228,7 +228,7 @@ RETIRED_ENTITIES: tuple[tuple[str, str], ...] = (
 )
 
 
-def _async_remove_retired_entities(hass: HomeAssistant, entry: ConfigEntry) -> None:
+def _async_remove_retired_entities(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
     """Drop registry entries for entities this release no longer creates.
 
     Without this the retired unique_ids linger as permanently-unavailable
@@ -415,7 +415,7 @@ async def async_unload_entry(
     return unload_ok
 
 
-async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def async_remove_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
     """Drop a leftover reload handover when the entry is deleted."""
     _plan_handovers(hass).pop(entry.entry_id, None)
     _handover_stamps(hass).pop(entry.entry_id, None)
