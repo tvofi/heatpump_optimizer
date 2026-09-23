@@ -543,46 +543,46 @@ const CORPUS_EXCLUDED = new Set([
   // rather than optional: `tools/audit/briefs/fixer.md` and
   // `tools/audit/briefs/fix-review.md` cite it and are capped.
   'docs/decisions/0011-app-authored-identity.md',
-  // Round-6 audit evidence. COMMON.md's report-shape line and fixer.md's
-  // baseline line NAME these by filename (REPORT.md / BASELINE.md), so the
-  // named-docs check holds each to a cap no glob matches. They are finder
-  // reports and the round baseline -- data a later seat reads, not policy
-  // prose -- so they are excluded rather than capped. Named one by one because
-  // a `.md` is never excused by location (the rule stated above).
-  'tools/audit/round6/BASELINE.md',
-  'tools/audit/round6/D0/REPORT.md',
-  'tools/audit/round6/D1/REPORT.md',
-  'tools/audit/round6/D2/REPORT.md',
-  'tools/audit/round6/D3/REPORT.md',
-  'tools/audit/round6/D4/REPORT.md',
-  'tools/audit/round6/D5/REPORT.md',
-  'tools/audit/round6/D6/REPORT.md',
-  'tools/audit/round6/D7/REPORT.md',
-  'tools/audit/round6/D8/REPORT.md',
-  'tools/audit/round6/D9/REPORT.md',
-  'tools/audit/round6/D10/REPORT.md',
-  'tools/audit/round6/D11/REPORT.md',
-  'tools/audit/round6/D12/REPORT.md',
-  'tools/audit/round6/D13/REPORT.md',
-  // Round-7 audit evidence (same rule as the round-6 block above: finder
-  // reports and the round baseline, data a later seat reads rather than policy
-  // prose).
-  'tools/audit/round7/BASELINE.md',
-  'tools/audit/round7/D0/REPORT.md',
-  'tools/audit/round7/D1/REPORT.md',
-  'tools/audit/round7/D2/REPORT.md',
-  'tools/audit/round7/D3/REPORT.md',
-  'tools/audit/round7/D4/REPORT.md',
-  'tools/audit/round7/D5/REPORT.md',
-  'tools/audit/round7/D6/REPORT.md',
-  'tools/audit/round7/D7/REPORT.md',
-  'tools/audit/round7/D8/REPORT.md',
-  'tools/audit/round7/D9/REPORT.md',
-  'tools/audit/round7/D10/REPORT.md',
-  'tools/audit/round7/D11/REPORT.md',
-  'tools/audit/round7/D12/REPORT.md',
-  'tools/audit/round7/D13/REPORT.md',
+  // Round-evidence exclusions (finder reports and round baselines) are DATA,
+  // not source: they live in .claude/workflows/corpus_excluded.json and are
+  // merged into this set below. They are not here because the `policy-docs`
+  // job's restore step (#1403) rewrites this file from the base commit before
+  // grading, so a round could not ship its evidence and its exclusions in the
+  // same branch -- the catch-22 the data file exists to break.
 ])
+
+// The round-evidence part of the exclusion set is read from a DATA file rather
+// than written into the Set above, so a round can ship its evidence files and
+// their exclusions in the same branch: the `policy-docs` job's restore step
+// (#1403) rewrites `.claude/workflows/*.mjs` from the base commit before
+// grading, which would erase a round block written here, while a `.json` data
+// file is outside that pathspec. This is the shape the #1403 fix's own comment
+// names for `policy_budgets.json`, `policy_known_bad.json` and
+// `cfr_exclusions.json`: a grader's criteria are data, and a fixture's expected
+// outcome has to be the data under test.
+//
+// Fail-closed by construction, so no separate pin is needed for the read: a
+// missing or unparseable file, or a non-array `excluded`, merges nothing, and
+// the cited-but-unexcluded evidence files then re-arm `named-docs` on the
+// production run -- which is the same refusal that would have fired on the
+// branch that added them, one restore step later. The `deadExcluded` pin below
+// still holds every merged entry to a tracked file, so a vacuous entry in the
+// data file is refused exactly as a vacuous entry in the Set was.
+const CORPUS_EXCLUDED_DATA = '.claude/workflows/corpus_excluded.json'
+for (const rel of roundEvidenceExclusions()) CORPUS_EXCLUDED.add(rel)
+
+function roundEvidenceExclusions() {
+  const raw = read(CORPUS_EXCLUDED_DATA)
+  if (raw == null) return []
+  let parsed
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return []
+  }
+  const entries = parsed?.excluded
+  return Array.isArray(entries) ? entries.filter((e) => typeof e === 'string') : []
+}
 
 // Widening the scan past `.md` brought in every `.txt` a policy file cites, and
 // in this tree every one of them is DATA rather than a document: the two claim
