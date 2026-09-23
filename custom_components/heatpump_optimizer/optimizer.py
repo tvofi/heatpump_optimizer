@@ -278,6 +278,18 @@ _LOW_ENERGY_START_FRACTION = 0.35
 # null control separating a price gap from a comfort or cycling artefact.
 # The 0.20 fraction is the ladder's measured winner, not a fitted value: the
 # 0.10 anchor does not beat it on the cell the harness drives.
+#
+# TWO-ZONE ONLY, and the reach is the point. The anchor is appended in
+# `_optimize_space_only` only under `two_zone_enabled`, because the
+# single-zone plan is the state the solve certificate's recorded claims are
+# calibrated on and this seed moves it to a different local optimum on some
+# runners and not others: measured, the certificate's own grid reads
+# `one|shoulder|winter_cold`'s ladder gap at 0.73 % here and closed on CI's
+# runner, which is a claim that can be neither kept nor withdrawn. Restricting
+# the reach leaves every single-zone solve byte-identical, so those claims keep
+# their calibration, and the finding's own fix scope asks for the two-zone
+# path. The two-zone cell carries the same portability limit and states it
+# where it is measured -- see `_CERT_BARS` in tests/optimality.py.
 _DEEP_LOW_ENERGY_START_FRACTION = 0.20
 
 # Resolved by name, not imported: threadpoolctl publishes no py.typed and no
@@ -3938,13 +3950,18 @@ class HeatPumpOptimizer:
                 p_max,
                 dt,
             ),
-            _price_ranked_start(
-                prices,
-                baseline_energy * _DEEP_LOW_ENERGY_START_FRACTION,
-                p_max,
-                dt,
-            ),
         ]
+        if self.model.params.two_zone_enabled:
+            # The deep low-energy anchor, two-zone only -- see its own
+            # comment for why the reach is deliberately this narrow.
+            starts.append(
+                _price_ranked_start(
+                    prices,
+                    baseline_energy * _DEEP_LOW_ENERGY_START_FRACTION,
+                    p_max,
+                    dt,
+                )
+            )
         if h.extra_starts:
             starts = list(h.extra_starts) + starts
 
