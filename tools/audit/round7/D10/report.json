@@ -1,0 +1,171 @@
+{
+  "dimension": "D10",
+  "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+  "report_path": "tools/audit/round7/D10/REPORT.md",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D10-01",
+      "title": "py.typed is absent, and the register's stated basis for exempting it is not in the rule text",
+      "severity": "medium",
+      "claim": "The strict-typing platinum rule requires the package to ship a py.typed marker file and states there are no exceptions, but the package ships 0 of them and the register marks the row done on an exemption the rule text does not contain.",
+      "mechanism": "The rule text (fetched /tmp/harules/strict-typing.md) says \"you need to add a `py.typed` file to your library\" and its Exceptions section says \"There are no exceptions to this rule\"; the register's comment (\"the Platinum rule's marker-file half does not apply to a custom integration\") is invented and appears in neither the rule nor its warning box.",
+      "evidence": {
+        "command": "cd /Users/timmalmstrom/audit-r7-baseline && PYTHONPATH=tests/hastub:custom_components:tests /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D10/qs_rules_r7.py",
+        "harness_path": "tools/audit/round7/D10/qs_rules_r7.py",
+        "value": 0,
+        "unit": "count of py.typed files in the package (qs_py_typed_files)",
+        "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+        "machine": "darwin 25.6.0 arm64, 8-core Apple M1, 8 GB, Python 3.11.5, mypy 2.3.1",
+        "cpu_or_wall": "count",
+        "contention_note": "shared 8-core box under round-7 fan-out; every number here is a count or a parse of deterministic output, so none is contention-sensitive",
+        "tolerance": "exact",
+        "load1": 2.98,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components.heatpump_optimizer: the package's py.typed marker file",
+      "perturbation": {
+        "change": "write an empty py.typed into the package in a scratch copy (--perturb py-typed)",
+        "expected_direction": "up",
+        "observed_value": 1
+      },
+      "metric_definition": "count of py.typed files anywhere under the package directory (qs_py_typed_files)",
+      "phenomenon_property": "A package that declares strict-typing adherence ships a py.typed marker file at its root, and the register may not record the row done on a carve-out the rule text lacks.",
+      "seam_rule": "tools/audit/round7/D10/qs_rules_r7.py",
+      "stop_rule_class": "hygiene",
+      "files": [
+        "custom_components/heatpump_optimizer/quality_scale.yaml"
+      ],
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub:custom_components:tests /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D10/qs_rules_r7.py  ->  RESULT qs_py_typed_files=0 count",
+        "PYTHONPATH=... python3 tools/audit/round7/D10/qs_rules_r7.py --perturb py-typed  ->  before 0, after 1",
+        "read /tmp/harules/strict-typing.md: the Rule section requires the file; the Exceptions section says there are none"
+      ],
+      "proposed_fix_scope": "ship custom_components/heatpump_optimizer/py.typed (empty is sufficient), and replace the register row's unsupported exemption with the executed number or a basis the rule text carries."
+    },
+    {
+      "id": "D10-02",
+      "title": "The custom typed config entry is not 'used throughout': 88 of 100 entry parameters are bare ConfigEntry",
+      "severity": "high",
+      "claim": "The strict-typing rule's warning requires the custom typed MyIntegrationConfigEntry 'used throughout' when the integration implements runtime-data, but only 10 of 100 entry parameters use the alias HeatPumpOptimizerConfigEntry and 88 use bare, unparameterised ConfigEntry.",
+      "mechanism": "entry.runtime_data is assigned in async_setup_entry (runtime-data is implemented) and the alias HeatPumpOptimizerConfigEntry exists, but every platform module and config_flow.py annotate their entry parameter as plain ConfigEntry, so runtime_data reads as Any at each of the 88 sites. mypy --strict flags exactly this as [type-arg] 'Missing type arguments for generic type'.",
+      "evidence": {
+        "command": "cd /Users/timmalmstrom/audit-r7-baseline && PYTHONPATH=tests/hastub:custom_components:tests /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D10/qs_rules_r7.py",
+        "harness_path": "tools/audit/round7/D10/qs_rules_r7.py",
+        "value": 88,
+        "unit": "count of entry parameters annotated bare ConfigEntry (qs_entry_param_bare)",
+        "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+        "machine": "darwin 25.6.0 arm64, 8-core Apple M1, 8 GB, Python 3.11.5, mypy 2.3.1",
+        "cpu_or_wall": "count",
+        "contention_note": "shared 8-core box under round-7 fan-out; every number here is a count or a parse of deterministic output, so none is contention-sensitive",
+        "tolerance": "exact",
+        "load1": 2.98,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components.heatpump_optimizer: every function parameter named 'entry' and its annotation (bare ConfigEntry vs the HeatPumpOptimizerConfigEntry alias)",
+      "perturbation": {
+        "change": "rewrite every bare 'entry: ConfigEntry' parameter with the custom HeatPumpOptimizerConfigEntry alias, all three source spellings, in a scratch copy (--perturb entry-alias)",
+        "expected_direction": "to_zero",
+        "observed_value": 0
+      },
+      "metric_definition": "count of parameters named 'entry' annotated bare ConfigEntry across the package (qs_entry_param_bare)",
+      "phenomenon_property": "With runtime-data implemented, every entry parameter is typed with the integration's custom typed config entry, so entry.runtime_data carries the coordinator type at every site.",
+      "seam_rule": "tools/audit/round7/D10/mypy_strict.py",
+      "null_control": {
+        "command": "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D10/mypy_strict.py --perturb no-strict",
+        "value": 0,
+        "note": "the [type-arg] slice falls 95 -> 0 without --strict, confirming the diagnostic is strictly a strict-mode one and not noise"
+      },
+      "stop_rule_class": "hygiene",
+      "files": [
+        "custom_components/heatpump_optimizer/config_flow.py",
+        "custom_components/heatpump_optimizer/sensor.py",
+        "custom_components/heatpump_optimizer/binary_sensor.py",
+        "custom_components/heatpump_optimizer/switch.py",
+        "custom_components/heatpump_optimizer/climate.py",
+        "custom_components/heatpump_optimizer/button.py",
+        "custom_components/heatpump_optimizer/datetime.py"
+      ],
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub:custom_components:tests /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D10/qs_rules_r7.py  ->  qs_entry_param_bare=88, qs_entry_param_custom=10, qs_entry_param_other=2",
+        "PYTHONPATH=... python3 tools/audit/round7/D10/qs_rules_r7.py --perturb entry-alias  ->  bare 88 -> 0, custom 10 -> 98",
+        "PYTHONPATH=tests/hastub MYPYPATH=tests/hastub python3 tools/audit/round7/D10/mypy_strict.py  ->  mypy_type_arg=95",
+        "PYTHONPATH=tests/hastub MYPYPATH=tests/hastub python3 tools/audit/round7/D10/mypy_strict.py --perturb entry-alias  ->  mypy_type_arg 95 -> 7",
+        "python3 tools/audit/round7/D10/mypy_strict.py --perturb no-strict  ->  mypy_type_arg 95 -> 0 (null control)"
+      ],
+      "proposed_fix_scope": "annotate every 'entry' parameter with the existing HeatPumpOptimizerConfigEntry alias across the six platform modules and config_flow.py (88 sites); re-run mypy_strict.py and expect mypy_type_arg to fall to single digits."
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "every service is documented in README.md and docs/configuration.md",
+      "command": "qs_rules_r7.py",
+      "value": "qs_services_undocumented=0, qs_services_registered=12"
+    },
+    {
+      "claim": "every entity carries a translation key or is device-named",
+      "command": "qs_rules_r7.py",
+      "value": "qs_entities_without_tk=0 of 74 entities"
+    },
+    {
+      "claim": "every user-facing exception is translatable",
+      "command": "qs_rules_r7.py",
+      "value": "qs_user_facing_raises_keyed=21 of 21; qs_user_facing_keys_undeclared=0"
+    },
+    {
+      "claim": "every repair issue is declared and used",
+      "command": "qs_rules_r7.py",
+      "value": "qs_issue_keys_named=19, qs_issue_keys_undeclared=0, qs_issue_dynamic_sites=1"
+    },
+    {
+      "claim": "the diagnostic-entity count matches the README tables",
+      "command": "qs_rules_r7.py",
+      "value": "qs_entity_category_diagnostic=20 == qs_readme_diagnostic_rows=20; qs_entity_category_config=0"
+    },
+    {
+      "claim": "no entity pins a hard-coded icon instead of a translation",
+      "command": "qs_rules_r7.py",
+      "value": "qs_attr_icon_pins=0; qs_icons_keys_missing=0"
+    },
+    {
+      "claim": "no direct ClientSession construction (inject-websession)",
+      "command": "qs_rules_r7.py",
+      "value": "qs_direct_clientsession_sites=0; 3 async_get_clientsession calls"
+    },
+    {
+      "claim": "test-before-setup's basis is in the rule text, not a shortcut",
+      "command": "read /tmp/harules/test-before-setup.md",
+      "value": "the rule's own info box admits async_config_entry_first_refresh() as the implicit implementation; explicit raise sites=0"
+    },
+    {
+      "claim": "package coverage clears the 96.0 floor and config_flow.py the 100.0 floor",
+      "command": "W5P_WORK=/tmp/d10r7/cov tools/audit/w5-partition/coverage_tree.sh fast; qs_rules_r7.py --coverage",
+      "value": "qs_coverage_package_pct=97.49 >= 96.0; qs_coverage_config_flow_pct=100.0 == 100.0"
+    },
+    {
+      "claim": "the coverage ratchet's diagnostics.py 70.27 % breach is the export, not the module",
+      "command": "PYTHONPATH=tests/hastub:custom_components:tests python3 tools/audit/round7/D10/diag_export_control.py",
+      "value": "diag_control_pct=100.00 isolated vs 70.27 in the export; entities.py dies at line 15312 before its diagnostics block at line 17620"
+    },
+    {
+      "claim": "brands: logo byte-identical to icon is an observation, not a ruled defect (requirement source is GitHub, unreadable offline)",
+      "command": "qs_rules_r7.py",
+      "value": "qs_brand_logo_identical_icon=1 (98834 B both); qs_brand_icon_px=256x256"
+    },
+    {
+      "claim": "entity-device-class: no unit-with-class gap",
+      "command": "qs_rules_r7.py",
+      "value": "11 distinct device classes; MONETARY correctly absent where the state class must not be TOTAL"
+    },
+    {
+      "claim": "entity-disabled-by-default: documented, not silent",
+      "command": "qs_rules_r7.py",
+      "value": "qs_entity_registry_enabled_default_false=19 (8 diagnostic + 11 README-documented)"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round7/D10/qs_rules_r7.py",
+    "tools/audit/round7/D10/mypy_strict.py",
+    "tools/audit/round7/D10/diag_export_control.py"
+  ]
+}

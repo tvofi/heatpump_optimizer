@@ -1,0 +1,138 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+ "report_path": "tools/audit/round7/D3/REPORT.md",
+ "exposure": "None. No git log, no gh, no GitHub, no docs/ was read. The one exposure that changes a measurement is recorded because it is forced by the export, not chosen: the worktree has 571 files deleted against the baseline (COMMON.md's deliberate stripping of earlier rounds), and tests/entities.py:14596 opens docs/audit-2026-09.md, so tests/entities.py is red at baseline in this export (rc=1, 38 failing checks). It is red in both arms alike, so kill detection for it is keyed on fails > 38 and no false survivor can come from it.",
+ "findings": [
+  {
+   "id": "D3-01",
+   "title": "Four production guards and clamps are deletable with no driver in their measured closure failing",
+   "severity": "medium",
+   "claim": "Removing any of four single production lines -- legionella.py:528, optimizer.py:3131, sensor.py:2547, thermal_model.py:1309 -- leaves every driver in that line's measured closure producing the same exit status and the same failing-check count, including tests/features.py and the differential tests/env_drift.py --all, while each removal is a real behaviour change.",
+   "mechanism": "The four lines are defensive: a Repairs-issue de-duplication, a horizon-length pad, a payload-type guard and a setpoint clamp. Each fires only on an input no driver constructs (a second tick with an unchanged ceiling signature; a min_temp_margins array shorter than n_steps; a truthy non-list insight.narrative.items; a tank above its setpoint in the coil-draw path), so no assertion observes either arm.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D3/screen.py --tier confirm --only custom_components/heatpump_optimizer/legionella.py:528:GUARD_OFF custom_components/heatpump_optimizer/optimizer.py:3131:GUARD_OFF custom_components/heatpump_optimizer/sensor.py:2547:GUARD_OFF custom_components/heatpump_optimizer/thermal_model.py:1309:CLAMP_DROP custom_components/heatpump_optimizer/tariff.py:139:RETURN_DEL",
+    "harness_path": "tools/audit/round7/D3/screen.py",
+    "value": "4 of 5 sites killed=0",
+    "unit": "mutant",
+    "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+    "machine": "8-core Apple M1, 8 GB, OpenBLAS, shared with the round-7 fan-out",
+    "cpu_or_wall": "count",
+    "contention_note": "Box shared; load1 2.29 at the end of this run, 6-9 for most of the round. Every returned number is a count of red drivers, so contention cannot move it.",
+    "tolerance": "exact",
+    "load1": 2.29,
+    "thread_factor": 0.998
+   },
+   "instrumented_symbol": "heatpump_optimizer.legionella:LegionellaGuard.check_ceiling, heatpump_optimizer.optimizer:HeatPumpOptimizer._build_comfort_bounds, heatpump_optimizer.sensor:PlanNarrativeSensor.native_value, heatpump_optimizer.thermal_model:ThermalModel.dhw_coil_draw_reduction",
+   "perturbation": {
+    "change": "one production line, replaced by tests/mutation_table.py's own single-line mutant: legionella.py:528 `if signature == self.ceiling_notice:` -> `if False:`; optimizer.py:3131 `if m.size < n_steps:` -> `if False:`; sensor.py:2547 `if not isinstance(items, list):` -> `if False:`; thermal_model.py:1309 `t_in = min(t_in, dhw_setpoint)` -> `t_in = (t_in)`",
+    "expected_direction": "up",
+    "observed_value": 0
+   },
+   "metric_definition": "Number of driver scripts, out of the scripts whose measured closure in tests/closures.json reaches the mutated file, that fail (exit status changed, or FAILED count above baseline) under one mutant.",
+   "phenomenon_property": "Every production guard, clamp and type check is exercised by at least one driver: some driver's exit status or failing-check count must change when the guard's condition is forced to its opposite.",
+   "seam_rule": "tools/audit/round7/D3/screen.py --tier confirm --only <file>:<line>:<KIND> for one site; the class's seams are enumerated by tests/mutation_table.py's inventory() over custom_components/heatpump_optimizer/**, filtered to the GUARD_OFF and CLAMP_DROP operators.",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D3/screen.py --tier t1 (unmutated tree, baseline pass)",
+    "value": "0 failing drivers on the unmutated tree for every driver in baseline-t1.json and baseline-confirm.json",
+    "note": "The unmutated arm is the null: every driver's baseline exit status and FAILED count is taken on the same tree in the same session before the mutant is applied, and a kill is only counted against that record."
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 tools/audit/round7/D3/screen.py --sample --write --seed 20260923",
+    "PYTHONPATH=tests/hastub python3 tools/audit/round7/D3/screen.py --tier confirm --only custom_components/heatpump_optimizer/legionella.py:528:GUARD_OFF custom_components/heatpump_optimizer/optimizer.py:3131:GUARD_OFF custom_components/heatpump_optimizer/sensor.py:2547:GUARD_OFF custom_components/heatpump_optimizer/thermal_model.py:1309:CLAMP_DROP custom_components/heatpump_optimizer/tariff.py:139:RETURN_DEL",
+    "read RESULT mutant=<site> drivers=<n> killed=0 for the four and killed=2 for tariff.py:139"
+   ],
+   "proposed_fix_scope": "Add one driver per demonstrated seam: a second LegionellaGuard.check_ceiling tick whose signature is unchanged (the issue is not re-created); a _build_comfort_bounds call with min_temp_margins shorter than the horizon (the result is padded, not raised); a PlanNarrativeSensor.native_value read over a truthy non-list items payload (None, not 'idle'); a dhw_coil_draw_reduction call with the tank above the setpoint (clamped). Each must import and call the production symbol, never a copy of it.",
+   "files": [
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D3-02",
+   "title": "A mutation-table kill can be credited to a driver that reports no violation",
+   "severity": "medium",
+   "claim": "tests/mutation_table.py counts a changed exit status as a kill, and tests/structure.py exits 2 for a mutant that only IMPROVED a structure metric -- its own output says 'Nothing here is a violation' -- so a mutant no assertion covers is recorded as killed; over the frozen 40-mutant sample this channel produced 1 kill with zero failing checks anywhere.",
+   "mechanism": "A single-line GUARD_OFF makes the guarded block statically unreachable, so tests/structure.py's call-edge screen stops counting the calls inside it; cut_learning falls 285 -> 284, the metric ratchet refuses an unrecorded improvement with exit 2, and mutation_table's kill rule reads the exit-status change as a detection. The mutant's behaviour change is covered by no assertion, so the recorded survivor_fraction under-states how blind the suite is.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D3/structure_kill.py --sites 40",
+    "harness_path": "tools/audit/round7/D3/structure_kill.py",
+    "value": "1 of 40",
+    "unit": "mutants fired on with zero failing checks",
+    "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+    "machine": "8-core Apple M1, 8 GB, OpenBLAS, shared with the round-7 fan-out",
+    "cpu_or_wall": "count",
+    "contention_note": "Box shared; load1 3.25 on the re-take, 6-9 earlier. The number is a count of structure.py exit statuses and failing checks.",
+    "tolerance": "exact",
+    "load1": 3.25,
+    "thread_factor": 0.997
+   },
+   "instrumented_symbol": "tests/structure.py:main (exit 2 = IMPROVED AND NOT YET RECORDED), read by tests/mutation_table.py:run_script",
+   "perturbation": {
+    "change": "one production line, custom_components/heatpump_optimizer/coordinator.py:8708, `if not self._snapshot_ring.alarmed:` -> `if False:` (tests/mutation_table.py's GUARD_OFF)",
+    "expected_direction": "up",
+    "observed_value": 3
+   },
+   "metric_definition": "Number of mutants in the frozen sample on which tests/structure.py alone exits non-zero, and of those the number whose run reports zero failing checks.",
+   "phenomenon_property": "Every exit status tests/mutation_table.py reads as a kill corresponds to a check that failed; a driver exiting for a bookkeeping reason (an unrecorded improvement) is not a detection and must not be counted as one.",
+   "seam_rule": "tools/audit/round7/D3/structure_kill.py --sites 40, over the frozen sample in tools/audit/round7/D3/sample.json; the class's seams are every site tests/mutation_table.py:inventory() generates.",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D3/structure_kill.py --control",
+    "value": "control_structure_rc=0, control_structure_failures=0",
+    "note": "The unmutated tree is the null: structure.py passes with 25 metric keys and zero failing checks, so the 3 fires are the mutants' doing."
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 tools/audit/round7/D3/structure_kill.py --sites 40",
+    "read RESULT structure_fires=3 of 40 mutants and RESULT fired_with_zero_assertion_failures=1 count",
+    "grep STRUCTURE> for the coordinator.py:8708 line: 'cut_learning 285 284 -1 BETTER (lower is better)' then 'Nothing here is a violation.'"
+   ],
+   "proposed_fix_scope": "tests/mutation_table.py's kill rule should key on the failing-check signal it already reads (#805) for drivers whose non-zero exit is not a violation, or tests/structure.py's rc=2 arm should be excluded from the kill rule by name, with the reason stated beside the rule. Either way the recorded survivor_fraction is re-taken, because last_measured.full already sits exactly at its cap (0.30 of 0.30).",
+   "files": [
+    "tests/mutation_table.py",
+    "tests/structure.py",
+    "tests/mutation_budgets.json"
+   ],
+   "stop_rule_class": "bug"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "A t1-only pre-screen produces false survivors; D3.md's '+ env_drift.py --all' step is load-bearing and both of the two highest-consequence t1 survivors are killed once it joins.",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D3/screen.py --tier confirm --only custom_components/heatpump_optimizer/optimizer.py:6377:CLAMP_DROP custom_components/heatpump_optimizer/coordinator.py:7743:BOOLOP",
+   "value": "RESULT tier=confirm evaluated=2 survivors=0; coordinator.py:7743 killed by tests/features.py (rc=1, fails=5), optimizer.py:6377 killed by tests/env_drift.py (rc=1, fails=0)"
+  },
+  {
+   "claim": "probe.py is not a probe that fires on everything: on the two inputs the mutant should not move, both arms agree.",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D3/probe.py guard_floor_hold ; ... --mutate",
+   "value": "control 0/1/0/1, mutant 1/1/raised:TypeError/1 -- 2 of 4 inputs differ; the cold room (0 vs 0 kept: both 1) and the below-minimum DHW tank (1 vs 1) do not"
+  },
+  {
+   "claim": "tests/mutation_budgets.json's unpinned_sites ratchet is not stale: the recorded count equals the count derived from the tree.",
+   "command": "PYTHONPATH=tests/hastub python3 -c \"import importlib.util,json,pathlib; ...; mt.unpinned_sites(budgets, mt.inventory())\"",
+   "value": "inventory=3816 sites, unpinned=3781, recorded=3781, ratchet_refusal=None, completeness_problems=[], cap_problems=[]"
+  },
+  {
+   "claim": "The structure ratchet's other 24 keys and the unmutated tree pass cleanly, so D3-02's fires are the mutants' doing.",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D3/structure_kill.py --control",
+   "value": "control_structure_rc=0, control_structure_failures=0 count, 'STRUCTURE RATCHET PASSED'"
+  },
+  {
+   "claim": "17 of the 22 t1-screened mutants were killed by no t1 driver, but the t1 tier is an upper bound on survivors and not the verdict: 5 of 7 carried into confirm survived and 2 did not.",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D3/screen.py --tier t1",
+   "value": "RESULT tier=t1 evaluated=22 survivors=17; then RESULT tier=confirm evaluated=7 survivors=4 (confirm.json + confirm2.json)"
+  },
+  {
+   "claim": "last_measured.full sits exactly at its cap, so any further survivor reddens the sample ratchet.",
+   "command": "read tests/mutation_budgets.json",
+   "value": "12 survivors of 40 evaluated = 0.300 against max_survivor_fraction.full = 0.30"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round7/D3/screen.py",
+  "tools/audit/round7/D3/structure_kill.py",
+  "tools/audit/round7/D3/probe.py"
+ ]
+}
