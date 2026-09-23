@@ -665,6 +665,154 @@ try {
       : ""));
   await coarsePage.close();
 
+  // --- R7 D4-01 / D4-02 (#1454, #1455) ------------------------------------
+  // The dialog painted content whose intrinsic width exceeded its own box and
+  // then hid the overflow, so the ink could not be reached by any gesture:
+  // the savings table's `%` column (a `width:100%` table whose min-content
+  // width is wider than `.dlg-body`, right-aligned so the hidden strip is
+  // exactly the digits) and the Swedish tab row (`Rådgivare`). card.mjs
+  // cannot see either -- its stub's getBoundingClientRect is a constant --
+  // and neither could the checks above, which read the chart. What is
+  // measured here is the FINDER's metric, in the lane that runs on every
+  // pull request: the pixels by which a text run's ink extends past the right
+  // edge of the nearest clipping ancestor, MINUS what that ancestor (or the
+  // document) can scroll to reveal. Anything positive is text a phone user
+  // cannot reach at all.
+  //
+  // The grid is the three phone widths in both languages on both dialog
+  // pages, plus 1280 px as the null control: a wide dialog has no
+  // min-content overflow to hide, so a metric that read positive there would
+  // be measuring something other than reachability.
+  const clipPage = await browser.newPage({ viewport: { width: 375, height: 812 } });
+  clipPage.on("pageerror", (err) => console.log(`  page error: ${err.message}`));
+  await clipPage.goto("about:blank");
+  await clipPage.addScriptTag({ path: CARD_SRC });
+  // The savings page only draws a table when the savings sensor publishes
+  // months, and this lane's fixture has none: without these the savings arms
+  // measure an empty page and pass for the wrong reason. Twelve months of
+  // realistic figures, because the table's width is data-driven.
+  const clipStates = {
+    ...states,
+    "sensor.heat_pump_optimizer_monthly_savings": {
+      state: "246.91",
+      attributes: {
+        unit_of_measurement: "SEK",
+        savings_months: Array.from({ length: 12 }, (_, m) => ({
+          month: `2026-${String(m + 1).padStart(2, "0")}`,
+          baseline_sek: 1234.56 + m * 17,
+          actual_sek: 987.65 + m * 9,
+          savings_sek: 246.91 + m * 8,
+          savings_pct: 20 + m,
+          estimated: m % 4 === 3,
+        })),
+      },
+    },
+  };
+  const unreachableInk = async (w, lang, dlgPage) => {
+    await clipPage.setViewportSize({ width: w, height: 812 });
+    return clipPage.evaluate(async ([st, w2, lang2, pg]) => {
+      document.head.querySelectorAll("style.hpo-test").forEach((n) => n.remove());
+      document.body.innerHTML = "";
+      const style = document.createElement("style");
+      style.className = "hpo-test";
+      // The same font stack the other measurements here use: a table's
+      // min-content width is font-dependent.
+      style.textContent =
+        `body{margin:0;font-family:-apple-system,"Segoe UI",sans-serif}` +
+        `heatpump-optimizer-card{display:block;width:${w2}px}`;
+      document.head.appendChild(style);
+      const card = document.createElement("heatpump-optimizer-card");
+      card.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
+      card.hass = { states: st, language: lang2 };
+      document.body.appendChild(card);
+      card._onCardClick({});
+      card.dialog.page = pg;
+      card._render();
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await new Promise((r) => setTimeout(r, 140));
+      // The dialog is the surface under test: the compact card behind it is
+      // not what a phone user is reading here.
+      const dlg = card.shadowRoot.querySelector("dialog.expanded");
+      if (!dlg) return { over: -1, who: "no dialog", runs: 0 };
+      // The reachable extra of a clipping ancestor: `hidden`/`clip` reaches
+      // none of its overflow, `auto`/`scroll` reaches all of it -- which is
+      // what the fix buys.
+      const clipOf = (el) => {
+        let n = el.parentElement;
+        while (n) {
+          const ox = getComputedStyle(n).overflowX;
+          if (ox === "hidden" || ox === "clip") {
+            return { rect: n.getBoundingClientRect(), extra: 0,
+                     who: String(n.className || n.tagName) };
+          }
+          if (ox === "auto" || ox === "scroll") {
+            const extra = Math.max(0, n.scrollWidth - n.clientWidth);
+            if (extra > 0) {
+              return { rect: n.getBoundingClientRect(), extra,
+                       who: String(n.className || n.tagName) };
+            }
+          }
+          n = n.parentElement;
+        }
+        const de = document.documentElement;
+        return { rect: de.getBoundingClientRect(),
+                 extra: Math.max(0, de.scrollWidth - de.clientWidth),
+                 who: "document" };
+      };
+      let worst = null;
+      let runs = 0;
+      let tableRuns = 0;
+      for (const el of dlg.querySelectorAll("*")) {
+        if (!el.getClientRects().length) continue;
+        const cs = getComputedStyle(el);
+        if (cs.display === "none" || cs.visibility === "hidden") continue;
+        const direct = [...el.childNodes].filter((x) => x.nodeType === 3)
+          .map((x) => x.textContent).join("").trim();
+        if (!direct) continue;
+        const rg = document.createRange();
+        rg.selectNodeContents(el);
+        const ink = rg.getBoundingClientRect();
+        if (ink.width < 1 || ink.height < 1) continue;
+        runs += 1;
+        if (el.closest(".savings-table")) tableRuns += 1;
+        const c = clipOf(el);
+        const over = +(ink.right - (c.rect.right + c.extra)).toFixed(1);
+        if (over > 0.5 && (!worst || over > worst.over)) {
+          worst = { over, clip: c.who, cls: String(el.className || el.tagName).slice(0, 24),
+                    txt: direct.slice(0, 24) };
+        }
+      }
+      return worst ? { ...worst, runs, tableRuns } : { over: -1, who: "none", runs, tableRuns };
+    }, [clipStates, w, lang, dlgPage]);
+  };
+
+  const clipCells = [];
+  for (const w of [375, 360, 320, 1280]) {
+    for (const lang of ["en", "sv-SE"]) {
+      for (const pg of ["savings", "plan"]) {
+        clipCells.push({ w, lang, pg, ...(await unreachableInk(w, lang, pg)) });
+      }
+    }
+  }
+  const unreachable = clipCells.filter((c) => c.over > 0.5);
+  check("no dialog text is painted outside a box a gesture can reach",
+    unreachable.length === 0,
+    unreachable.length
+      ? unreachable.map((c) =>
+          `${c.w}px ${c.lang}/${c.pg}: ${c.over}px "${c.txt}" clipped by ${c.clip}`).join("; ")
+      : `${clipCells.length} cell(s) clean; worst ink reach ` +
+        `${Math.max(...clipCells.map((c) => c.over)).toFixed(1)} px`);
+  // The control on the metric itself: a walk that found no text run would
+  // report no unreachable text for the wrong reason, and the savings arms
+  // only measure the defect if the table actually rendered.
+  check("and the walk really measured the dialog's text",
+    clipCells.every((c) => c.runs > 0) &&
+      clipCells.filter((c) => c.pg === "savings").every((c) => c.tableRuns > 0),
+    `${Math.min(...clipCells.map((c) => c.runs))} text run(s) in the thinnest cell, ` +
+    `${Math.min(...clipCells.filter((c) => c.pg === "savings").map((c) => c.tableRuns))} ` +
+    `in the thinnest savings table`);
+  await clipPage.close();
+
   // #258: axis unit labels must not ink-collide with their top tick once the
   // D4-01 font floor engages. Rasterize each text alone and pair units with
   // the top tick on the same axis (same x band); positive overlap in both

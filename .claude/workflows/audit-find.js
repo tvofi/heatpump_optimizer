@@ -18,12 +18,31 @@ const baseline = args?.baseline
 const repo = args?.repo
 if (!baseline || !repo) throw new Error('args.baseline (sha) and args.repo (absolute path of a checkout) are required')
 
-const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11', 'D12']
+const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11', 'D12', 'D13']
 // Compute-heavy finders share a box with everyone else; at most three of them
 // run together and the Chromium one never beside them (tools/audit/README.md).
-const WAVES = [['D0', 'D2', 'D3', 'D1', 'D5', 'D6', 'D7', 'D10', 'D11', 'D12'], ['D9', 'D4', 'D8']]
-// D11 audits the process itself, so it needs `.git` and the API: a worktree, not an export.
-const ISOLATED = new Set(['D0', 'D3', 'D9', 'D11'])
+const WAVES = [['D0', 'D2', 'D3', 'D1', 'D5', 'D6', 'D7', 'D10', 'D11', 'D12', 'D13'], ['D9', 'D4', 'D8']]
+// D11 audits the process itself, so it needs `.git` and the API: a worktree, not
+// an export. D13 reads the same sources and needs the same (tools/audit/briefs/
+// D13.md), so it is isolated too. These two lists -- DIMS and ISOLATED, with
+// WAVES partitioning the first -- are the schedule: EVERY brief under
+// tools/audit/briefs/D<N>.md belongs in DIMS, and every DIMS entry in exactly one
+// wave. They stopped at D12 through round 7 (R7-INSTR-01, #1477), so a round
+// driven by this workflow dispatched thirteen dimensions and could not register
+// a D13 at all -- the dedup prompt's count and path list both come from DIMS, and
+// the missing-dimension log iterates it -- and the omission was silent. The
+// check in .claude/workflows/check-wave-script.mjs now derives all three from the
+// briefs directory and refuses the next one.
+const ISOLATED = new Set(['D0', 'D3', 'D9', 'D11', 'D13'])
+// WHICH FINDERS MAY READ GITHUB, narrower than ISOLATED on purpose: D0, D3 and D9
+// are isolated to MUTATE production, not to read the API, and the wall COMMON.md
+// draws (a finder's verdicts are its population, never its evidence) is what this
+// grants an exception to. D13 is here because its brief's six required outputs
+// read `main`'s history and the API -- round 7's own D13 was first dispatched
+// with GitHub out of scope and returned one of the six (docs/audit-2026-09.md,
+// R7-INSTR-01). A dim in here must also be in ISOLATED: the history it reads
+// comes from a worktree with `.git`, which is what ISOLATED buys.
+const API_DIMS = new Set(['D11', 'D13'])
 
 const reportSchema = {
   type: 'object',
@@ -70,7 +89,7 @@ Return JSON {exportDir, worktrees: {${[...ISOLATED].join(', ')}}, python, node}.
 if (!prep) throw new Error('baseline preparation failed (agent returned null); relaunch')
 
 const finder = (dim) => agent(
-  `You are the ${dim} auditor of round ${round}. Work only in ${ISOLATED.has(dim) ? prep.worktrees[dim] : prep.exportDir} (an export/worktree of baseline ${baseline}; no earlier audit records are in it and you must not go looking for them; ${dim === 'D11' ? 'your brief is the one exception to the GitHub wall -- read the history and the API it names, and record what you read under exposure' : 'do not run gh'}). Use the interpreter ${prep.python} with PYTHONPATH=tests/hastub from that directory's root.
+  `You are the ${dim} auditor of round ${round}. Work only in ${ISOLATED.has(dim) ? prep.worktrees[dim] : prep.exportDir} (an export/worktree of baseline ${baseline}; no earlier audit records are in it and you must not go looking for them; ${API_DIMS.has(dim) ? 'your brief is the one exception to the GitHub wall -- read the history and the API it names, and record what you read under exposure' : 'do not run gh'}). Use the interpreter ${prep.python} with PYTHONPATH=tests/hastub from that directory's root.
 Read tools/audit/briefs/COMMON.md, then tools/audit/briefs/${dim}.md, then tools/audit/README.md, and follow them exactly. Write your harnesses under tools/audit/round${round}/${dim}/ and your report to tools/audit/round${round}/${dim}/REPORT.md. Every finding needs an executed number from a committed harness that hooks a named production symbol and moves under a named perturbation; a finding without those cannot be returned. Mark any wall/CPU/RSS number provisional: true — it will be re-taken on a quiet box.
 Return the JSON report described by tools/audit/finding.schema.json (fields: dimension, baseline_sha, report_path, exposure, findings, non_findings, harnesses).`,
   { label: dim, schema: reportSchema },

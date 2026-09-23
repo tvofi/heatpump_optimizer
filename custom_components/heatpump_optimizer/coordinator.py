@@ -358,7 +358,7 @@ from .price_model import (
     pull_prices,
     quarters_from_entries,
 )
-from .sysid import SysIdConfig, SystemIdentification, UA_ADOPTION_HALFWIDTH_BAR, slab_mode_identifiability
+from .sysid import SysIdConfig, SystemIdentification, UA_ADOPTION_HALFWIDTH_BAR, slab_mode_identifiability, slab_ua_adoption_halfwidth
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -1059,7 +1059,7 @@ def _shutdown_process_pool(*, at_exit: bool = False) -> None:
 
 
 @callback
-def async_register_worker_shutdown(hass: HomeAssistant, entry: ConfigEntry) -> None:
+def async_register_worker_shutdown(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
     """Reap the solve worker at Home Assistant's stop, on the executor (#525).
 
     ``Popen.wait`` polls with ``time.sleep``, and the ``atexit`` backstop
@@ -1676,7 +1676,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     _current_state = _hub("_current_state")
     _opt_config = _hub("_opt_config")
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Initialize. ``_init_*`` create state in order; hubs live on ``_ctx``."""
         self.entry = entry
         config = {**entry.data, **entry.options}
@@ -1769,7 +1769,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         task.add_done_callback(self._background_tasks.discard)
         return task
 
-    def _init_insurance(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def _init_insurance(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """The learners' insurance and the drift detectors (v4.0.0 T4a).
 
         Detection ships default-on because a freeze only stops learning —
@@ -1900,7 +1900,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # it instantly, without even a network fetch. Never persisted.
         self._reload_handover: dict[str, Any] | None = None
 
-    def _init_dhw_learning(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def _init_dhw_learning(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Hot water: the profile/draw learner, the tank reading and the legionella timer."""
         ctx = getattr(self, "_ctx", self)
         # DHW state
@@ -1939,7 +1939,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             dhw_blocked=lambda: self._pump_signals.dhw_blocked,
         )
 
-    def _init_thermal_learning(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def _init_thermal_learning(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """House, buffer and COP-health learned state (#193 S5, S8)."""
         ctx = getattr(self, "_ctx", self)
         # Self-learned buffer tank standby cooling, in °C/h at the same
@@ -2024,7 +2024,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._input_health: InputHealth | None = None
         self._learner_freeze_reason: str | None = None
 
-    def _init_grid(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def _init_grid(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Price modelling, the capacity tariff and PV surplus."""
         # --- Unknown price horizon (item 7) --------------------------------
         self._price_model = PriceShapeModel()
@@ -2116,7 +2116,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # fresh write per boot. Costs one 5-minute delay after any start.
         self._freq_last_write: datetime | None = dt_util.now()
 
-    def _init_features(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def _init_features(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Away mode, accuracy tracking, learning experiments and totals."""
         ctx = getattr(self, "_ctx", self)
         self._external_heat = ExternalHeatDetector(self._external_heat_config())
@@ -10490,8 +10490,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # #1410: adoption is decided by the fitted UA's own 95 % profile-
         # likelihood interval (superseding the #942 residual-scatter gate):
         # a fit whose UA is not pinned within +-10 % is refused, however
-        # plausible its residual looks.
-        hw = result.ua_profile_halfwidth
+        # plausible its residual looks. D7-01 (#1459) added its other source.
+        hw = slab_ua_adoption_halfwidth(result.ua_profile_halfwidth, result.ua_prior_halfwidth)
         if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:
             return
         params = getattr(self, "_ctx", self)._thermal_params

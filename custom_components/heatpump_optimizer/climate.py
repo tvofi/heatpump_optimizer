@@ -18,7 +18,6 @@ from homeassistant.components.climate import (
     HVACAction,
     HVACMode,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -93,7 +92,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
     def __init__(
         self,
         coordinator: HeatPumpOptimizerCoordinator,
-        entry: ConfigEntry,
+        entry: HeatPumpOptimizerConfigEntry,
     ) -> None:
         """Initialize the climate entity."""
         super().__init__(coordinator)

@@ -3633,6 +3633,55 @@ R.check(
     "the _thermal_params path must agree with the payload path",
 )
 
+# D8-02 (#1461): the setpoint advisor is the one hot-water sensor not wrapped
+# in _DHWEntityMixin, so a no-DHW install ships it enabled-by-default while its
+# available (which needs dhw_advisor.recommended_setpoint) is False forever.
+# The wrap is the fix: the gate then provides both the availability gate and the
+# registry default, which the sibling #1398 block above already pins for the
+# other five.
+R.check(
+    "the setpoint advisor is wrapped in the DHW gate like its siblings (#1461)",
+    issubclass(sensor.DHWSetpointAdvisorSensor, sensor._DHWEntityMixin),
+    "the one hot-water sensor outside the gate ships enabled on a no-DHW install",
+)
+
+# D9-01 (#1462): series-shaped attributes and duplicated static documentation
+# ride into the recorder every cycle. The plan sensors already declare their
+# series unrecorded (forecast, slots, schedule, dhw_schedule); four other
+# entities publish series-shaped attributes the recorder writes per cycle for
+# nothing history can use, and the six accumulators write the same two static
+# strings six times a cycle.
+for _cls, _key in (
+    (sensor.PredictiveInsightSensor, "dhw_usage_profile"),
+    (sensor.ThermalBatterySensor, "components"),
+    (sensor.DHWSetpointAdvisorSensor, "candidates"),
+    (sensor.SensorGapAdvisorSensor, "gaps"),
+):
+    R.check(
+        f"{_cls.__name__} keeps its series-shaped {_key} out of the recorder (#1462)",
+        _key in getattr(_cls, "_unrecorded_attributes", frozenset()),
+        f"{_key} is written every cycle on {_cls.__name__}",
+    )
+_accumulators = (
+    sensor.SpaceEnergySensor,
+    sensor.DHWEnergySensor,
+    sensor.TotalEnergySensor,
+    sensor.SpaceCostSensor,
+    sensor.DHWCostSensor,
+    sensor.TotalCostSensor,
+)
+_records_period = [
+    _cls
+    for _cls in _accumulators
+    if "period" not in getattr(_cls, "_unrecorded_attributes", frozenset())
+]
+R.check(
+    "period/split_method are recorded once, on one accumulator (#1462)",
+    _records_period == [sensor.TotalCostSensor],
+    f"recorded on {sorted(c.__name__ for c in _records_period)!r} instead of "
+    "just TotalCostSensor",
+)
+
 # --- unknown-versus-broken --------------------------------------------------
 R.section("Waiting for evidence is not the same as broken")
 
@@ -20310,6 +20359,51 @@ R.check(
     "its mechanism fails, because a filing lane that fails green stopped "
     "filing; the histogram and sunset printings never redden it",
 )
+# --- D11-01 (#1467) / D13-03 (#1473): the record job's tail is REACHED, and its
+# summary says what it could not measure. GitHub skips a step with no `if:`
+# once an earlier step of the same job has failed, and the disposition refusal
+# above fails on a merge that has no row -- the protocol's steady state, since
+# the row is promised in a batch. So an unguarded step after it never runs, and
+# the pair that separates the guard from the failure is measured by
+# `tools/audit/round7-fix/governance/skipped_step_seams.py`: the filer steps are
+# returned as skipped and the two `always()` steps of the same job are not.
+# Derived, not listed: every step after the refusal, and the report step's own
+# reader of their outcomes.
+_REC_TAIL = _REC_JOB.split(
+    "- name: Every merged pull request has a disposition")[1].split(
+        "\n      - name: ")[1:]
+_REC_UNGUARDED = [s.splitlines()[0] for s in _REC_TAIL if "if: always()" not in s]
+R.check(
+    "no step of the record job is skipped by the disposition refusal's failure",
+    not _REC_UNGUARDED,
+    f"steps after the refusal with no `if: always()`: {_REC_UNGUARDED}. The "
+    "refusal is red whenever a merge is still inside the batch interval it "
+    "promises, so an unguarded step below it is an actor that never acts "
+    "while its trigger runs (#1467, D11-01)",
+)
+_REC_REPORT = next(
+    (s for s in _REC_TAIL if s.startswith("Report the refusal")), "")
+_REC_NAMED = set(_re.findall(r"steps\.(\w+)\.outcome", _REC_REPORT))
+_REC_IDS = set(_re.findall(r"^        id: (\w+)$", _REC_JOB, _re.M))
+R.check(
+    "the record job's summary names every step of its own record",
+    _REC_IDS and _REC_NAMED == _REC_IDS,
+    f"step ids={sorted(_REC_IDS)}; outcomes the report reads={sorted(_REC_NAMED)} "
+    "-- a step added to this job must be named on the summary, because a step "
+    "the refusal's failure can skip is otherwise invisible to whoever opens "
+    "the run (#1467)",
+)
+R.check(
+    "the record summary's verdict is not the exit code alone",
+    "merge-enumeration" in _REC_REPORT and "UNCHECKED" in _REC_REPORT
+    and '!= "success"' in _REC_REPORT,
+    "`--record` exits 0 when `/commits/<sha>/pulls` will not answer, so a "
+    "window that could not be enumerated was reported `clean` -- cleaner than "
+    "a window read and found in violation -- beside the same run's "
+    "`enumSkipLine` UNCHECKED marker; and a refusal step that never ran read "
+    "`clean` too. The marker, the word and the did-not-run arm are the three "
+    "strings that carry the three answers (#1473, D13-03)",
+)
 # D13-04 (#1241): the governance-cost instrument's GOV set is measured against
 # the workflow files, never remembered. It named `record-status` for a window
 # after that job had been renamed -- a job that exists nowhere costs nothing
@@ -20363,6 +20457,37 @@ R.check(
     f"GOV={sorted(_GOV_MOD.GOV)} -- `fast` is the gate; `briefs` (tests.yml) "
     "is the one governance job that lives outside governance.yml, named by "
     "the instrument's own recorded rule",
+)
+# --- D13-04 (#1474): an edited body dispatches the contract job, and only it.
+# A `pull_request` event starts ONE run of governance.yml and every job whose
+# `if:` passes runs in it, so a job a body edit cannot affect is a check
+# re-run for nothing: keyed on the workflow-run id in each check run's
+# `details_url`, the 31 heads of the closed window `v6.6.9..f9d6f78` carried 46
+# dispatches -- 15 extra over the one per head -- executing five jobs at 145 s
+# each, `pr-contract` being 22 s of that and `env-matrix`, which cannot read a
+# pull request's body, 73 s. Derived over the jobs the file defines, so the
+# next job added without a guard lands in the list.
+def _job_guard(text: str, name: str) -> str:
+    m = _re.search(r"^    if: (.+)$", _workflow_job(text, name), _re.M)
+    return m.group(1) if m else ""
+
+
+def _dispatched_on_body_edit(name: str) -> bool:
+    g = _job_guard(_DS_GOV, name)
+    return ("github.event_name != 'pull_request'" not in g
+            and "github.event_name == 'push'" not in g
+            and "github.event.action != 'edited'" not in g)
+
+
+_BODY_EDIT_JOBS = [j for j in sorted(_GOV_JOBS) if _dispatched_on_body_edit(j)]
+R.check(
+    "an edited body dispatches the contract job, and only it",
+    _BODY_EDIT_JOBS == ["pr-contract"],
+    f"jobs a body edit dispatches: {_BODY_EDIT_JOBS} -- every other job here "
+    "is one the edit re-ran at 145 s of jobs for a 22 s contract, which is "
+    "what the `edited` type exists to avoid (D13-04, #1474). A skipped "
+    "required check satisfies the ruleset, so the guard costs the merge "
+    "boundary nothing",
 )
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string
@@ -20499,14 +20624,19 @@ R.check(
 # names both counts on their own line beside `STATS:`. Driven on the production
 # symbols rather than a count re-derived here, and the window is 67 so a
 # denominator carrying only the verdict-carrying population reads 64.
+# The verdict lines carry a full 40-hex head because the histogram classifies
+# with the wave's own `VERDICT_RE` since #1472 (D13-02): a sha-less
+# `Fix review: merge` is refused by both readers, so it would land in the
+# outside-grammar report instead of the population this check measures.
 _STATS_COVER = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
      "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const head = (i) => String(i).padStart(2, '0').repeat(20);"
      "const mk = (n, verdicts) => ({"
      "prs: Array.from({ length: n }, (_, i) => ({ pr: String(i + 1) })),"
      "fetched: new Map(Array.from({ length: n }, (_, i) => "
      "[String(i + 1), { body: 'x', comments: i < verdicts"
-     " ? [{ body: 'Fix review: merge' }] : [] }])) });"
+     " ? [{ body: 'Fix review: merge ' + head(i + 1) }] : [] }])) });"
      "const line = (n, v) => {"
      "const { prs, fetched } = mk(n, v);"
      "const h = m.statsHistogram(prs, fetched, ['blocked', 'merge']);"
@@ -20539,6 +20669,366 @@ R.check(
     f"coverage line={(_STATS_COVER.get('full') or '')[:240]!r} -- with every "
     "merge carrying a verdict the line must name the whole window, or the "
     "counts are not derived from the histogram",
+)
+# THE HISTOGRAM'S GRAMMAR IS THE WAVE'S OWN (#1472, D13-02). `cmdStats` prints
+# its table under a header claiming the grammar was READ from `web-fix-wave.js`,
+# and `statsHistogram` built a second one -- `^Fix review:\s*(blocked|merge)\b`,
+# case-insensitive, no head required -- so the two diverged on four axes, every
+# one one-directional: the histogram counted a line the wave's `VERDICT_RE`
+# refuses. The two arms of the one function disagreed with each other too, the
+# merge arm taking a sha-less line while the blocked arm sent its own to
+# `unclassified`. The property is the AGREEMENT, not the instances, so this
+# drives both production readers over a battery -- the histogram's classification
+# against the regex built from the wave script's own literal, the technique
+# `check-wave-script.mjs` uses for the same grammar -- and counts the shapes they
+# disagree on. The control is inside the battery: the in-grammar shapes must
+# still be counted by BOTH readers, and the refused ones must be reported by the
+# histogram rather than silently dropped, or "agrees" would be satisfied by a
+# reader that classifies nothing.
+_STATS_GRAMMAR = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import fs from 'node:fs';"
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const src = fs.readFileSync('.claude/workflows/web-fix-wave.js', 'utf8');"
+     "const key = 'const VERDICT_RE = ';"
+     "const start = src.indexOf(key) + key.length;"
+     "const end = src.indexOf('\\n)', start) + 2;"
+     "const wave = new Function('VERDICT_CLASSES', 'return ' + "
+     "src.slice(start, end))(['blocked', 'merge']);"
+     "const sha = (c) => c.repeat(40);"
+     "const SHAPES = ["
+     "'Fix review: merge ' + sha('a'),"
+     "'Fix review: blocked ' + sha('b') + ' mutation-vacuous: the mutant survived',"
+     "'Fix review: merge',"
+     "'Fix review: merge ' + sha('a').slice(0, 12),"
+     "'Fix review: MERGE ' + sha('a'),"
+     "'Fix review:merge ' + sha('a'),"
+     "'Fix review: merge ' + sha('a') + ' please land it',"
+     "'Fix review: blocked ' + sha('b'),"
+     "'Fix review: Blocked ' + sha('b') + ' claims: the branch moves 5 entries'"
+     "];"
+     "const rows = SHAPES.map((line, i) => {"
+     "const h = m.statsHistogram([{ pr: i + 1 }], "
+     "new Map([[i + 1, { body: '', comments: [{ body: line }] }]]), "
+     "['blocked', 'merge']);"
+     "return { line, wave: wave.test(line), counted: h.verdicts.size > 0, "
+     "outside: h.unclassified.length > 0 }; });"
+     "console.log(JSON.stringify({"
+     "diverge: rows.filter((r) => r.counted !== r.wave).map((r) => r.line),"
+     "both: rows.filter((r) => r.wave && r.counted).length,"
+     "outside: rows.filter((r) => !r.wave && r.outside).length,"
+     "total: rows.length"
+     "})); })"],
+    capture_output=True, text=True).stdout or "{}")
+R.check(
+    "the stats histogram classifies exactly the grammar the wave script's own "
+    "VERDICT_RE parses, over `Fix review:` FIRST LINES (#1472)",
+    _STATS_GRAMMAR.get("diverge") == []
+    and _STATS_GRAMMAR.get("both", 0) >= 2
+    and _STATS_GRAMMAR.get("outside", 0) >= 2,
+    f"divergent shape(s)={_STATS_GRAMMAR.get('diverge')!r} of "
+    f"{_STATS_GRAMMAR.get('total')}; counted-by-both={_STATS_GRAMMAR.get('both')}, "
+    f"refused-by-both={_STATS_GRAMMAR.get('outside')} -- a shape only one of the "
+    "two readers counts is the divergence: before #1472 the merge arm took a "
+    "sha-less head, the case variants and the abbreviation while the wave "
+    "refused all four, and the merge and blocked arms of one function disagreed "
+    "about the head",
+)
+# THE GRAMMAR IS NOT THE WHOLE READER, AND THE CHECK ABOVE SAYS SO NOW (#1480
+# review, class-open). Its universal -- "classifies exactly the grammar
+# VERDICT_RE parses" -- was false over comment BODIES, and the `## Figures`
+# harness could never see it: that instrument enumerates `Fix review:` first
+# lines, where the two readers' extractions coincide by construction. The wave
+# extracts a verdict with `String(...).trim().split('\n')[0]` -- trim the body,
+# then take its first line -- and the histogram took the first line and trimmed
+# it, which differs for exactly two shapes of body: a verdict line ending in
+# whitespace (trimmed away here, KEPT there, so a line the wave throws on
+# counted as a verdict) and a body opening with a blank line (`''` first line
+# here, which failed the `Fix review:` gate before anything could report it,
+# while the wave reads the verdict on the next line). Both directions are closed
+# by taking the wave's own extraction, and the property is driven over bodies
+# through BOTH production readers -- `parseVerdict` sliced out of
+# `web-fix-wave.js` and evaluated with that file's own `VERDICT_RE` and
+# `VERDICT_CLASSES` bound, the technique the D13 harness for this grammar uses,
+# since the file runs a wave at import and cannot be imported. `counted` is the
+# histogram's delivered cell; `dropped` is the silent half -- a body the wave
+# accepts that the histogram neither counts nor reports.
+_STATS_BODIES = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import fs from 'node:fs';"
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const waveText = fs.readFileSync('.claude/workflows/web-fix-wave.js', 'utf8');"
+     "const reKey = 'const VERDICT_RE = ';"
+     "const reEnd = waveText.indexOf('\\n)', waveText.indexOf(reKey)) + 2;"
+     "const clsKey = 'const VERDICT_CLASSES = ';"
+     "const clsEnd = waveText.indexOf('\\n]', waveText.indexOf(clsKey)) + 2;"
+     "const VERDICT_RE = eval(waveText.slice(waveText.indexOf(reKey) + reKey.length, reEnd));"
+     "const VERDICT_CLASSES = eval(waveText.slice(waveText.indexOf(clsKey) + clsKey.length, clsEnd));"
+     "const fnKey = 'function parseVerdict(review) {';"
+     "const fnStart = waveText.indexOf(fnKey);"
+     "let depth = 0; let fnEnd = -1;"
+     "for (let i = waveText.indexOf('{', fnStart); i < waveText.length; i += 1) {"
+     "if (waveText[i] === '{') depth += 1;"
+     "else if (waveText[i] === '}') { depth -= 1; if (depth === 0) { fnEnd = i + 1; break; } } }"
+     "const parseVerdict = new Function('VERDICT_RE', 'VERDICT_CLASSES',"
+     "waveText.slice(fnStart, fnEnd) + '\\nreturn parseVerdict')(VERDICT_RE, VERDICT_CLASSES);"
+     "const sha = (c) => c.repeat(40);"
+     "const V = 'Fix review: merge ' + sha('a');"
+     "const B = 'Fix review: blocked ' + sha('b') + ' mutation-vacuous: the mutant survived';"
+     "const BODIES = ["
+     "['plain-merge', V],"
+     "['plain-blocked', B],"
+     "['merge-trailing-space', V + ' \\n\\nRESULT x'],"
+     "['merge-trailing-tab', V + '\\t\\n\\nRESULT x'],"
+     "['blank-opener', '\\n' + V],"
+     "['crlf-opener', '\\r\\n' + V],"
+     "['space-opener', ' \\n' + V],"
+     "['crlf-after-verdict', V + '\\r\\nRESULT x'],"
+     "['abbreviated-head', 'Fix review: merge ' + sha('a').slice(0, 12)],"
+     "['sha-less', 'Fix review: merge'],"
+     "['not-a-verdict', 'x\\n' + V]"
+     "];"
+     "const rows = BODIES.map(([label, body], i) => {"
+     "const h = m.statsHistogram([{ pr: i + 1 }], "
+     "new Map([[i + 1, { body: '', comments: [{ body }] }]]), ['blocked', 'merge']);"
+     "let wave = null;"
+     "try { wave = parseVerdict({ comment: body }).verdict } catch { wave = null; }"
+     "return { label, wave, counted: h.verdicts.size > 0, outside: h.unclassified.length > 0 }; });"
+     "console.log(JSON.stringify({"
+     "rows: rows.map((r) => [r.label, r.wave, r.counted, r.outside]),"
+     "over: rows.filter((r) => r.counted && !r.wave).map((r) => r.label),"
+     "dropped: rows.filter((r) => r.wave && !r.counted && !r.outside).map((r) => r.label),"
+     "both: rows.filter((r) => r.wave && r.counted).length,"
+     "refused: rows.filter((r) => !r.wave && !r.counted && r.outside).length,"
+     "total: rows.length"
+     "})); })"],
+    capture_output=True, text=True).stdout or "{}")
+
+
+def _body_row(label):
+    return next((r for r in _STATS_BODIES.get("rows") or [] if r[0] == label), [])
+
+
+R.check(
+    "and it classifies a comment BODY exactly as the wave script's own "
+    "`parseVerdict` reads it, both readers driven (#1480)",
+    _STATS_BODIES.get("over") == []
+    and _STATS_BODIES.get("dropped") == []
+    and _STATS_BODIES.get("both", 0) >= 2
+    and _STATS_BODIES.get("refused", 0) >= 2,
+    f"counted-but-refused={_STATS_BODIES.get('over')!r}; "
+    f"accepted-and-silently-dropped={_STATS_BODIES.get('dropped')!r}; "
+    f"counted-by-both={_STATS_BODIES.get('both')}, "
+    f"refused-by-both={_STATS_BODIES.get('refused')} of "
+    f"{_STATS_BODIES.get('total')} body shape(s) -- the matcher can be the "
+    "wave's grammar while the EXTRACTION is not, and the two differ exactly "
+    "where a body's first line is not its first non-blank line, or its first "
+    "line ends in whitespace",
+)
+R.check(
+    "and the two shapes the extractions disagreed on are closed in their own "
+    "directions (#1480)",
+    _body_row("merge-trailing-space")[2:] == [False, True]
+    and _body_row("merge-trailing-tab")[2:] == [False, True]
+    and _body_row("blank-opener")[1:3] == ["merge", True]
+    and _body_row("crlf-opener")[1:3] == ["merge", True]
+    and _body_row("space-opener")[1:3] == ["merge", True],
+    f"trailing space={_body_row('merge-trailing-space')!r}, trailing tab="
+    f"{_body_row('merge-trailing-tab')!r}, blank opener="
+    f"{_body_row('blank-opener')!r}, crlf opener={_body_row('crlf-opener')!r}, "
+    f"space opener={_body_row('space-opener')!r} -- [label, wave, counted, "
+    "outside]: the over-count direction is a line the wave throws on and the "
+    "histogram reported outside the grammar instead of counting, and the "
+    "silent-drop direction is a body the wave reads and the histogram counts",
+)
+# AND BOTH ENDPOINTS A VERDICT CAN ARRIVE ON (#1471, D13-01). The reviewer
+# contract defines a verdict as a comment OR a review; `fetchWindow` fetched the
+# pull request and its issue comments and never its reviews, so a review-posted
+# verdict was invisible rather than unweighted -- the merge read as one that
+# "carried none", which `statsCoverageLine` then printed as a gap in the
+# histogram's population. The request itself is counted by the D13 ledger
+# harness, against a stub transport; what a check in this file can hold is the
+# other half: that the walk counts a review-posted verdict once fetched, and that
+# the census names the endpoint each verdict arrived on. The null control is the
+# same merge verdict arriving as an issue comment, and the reviews row at 0 over
+# a window that posted none -- a constant census satisfies neither direction.
+_STATS_REVIEWS = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const sha = (c) => c.repeat(40);"
+     "const run = (second) => {"
+     "const h = m.statsHistogram([{ pr: 1 }, { pr: 2 }], new Map(["
+     "[1, { body: '', comments: [{ body: 'Fix review: merge ' + sha('a') }] }],"
+     "[2, second]]), ['blocked', 'merge']);"
+     "const cell = h.verdicts.get('merge');"
+     "return { merges: cell ? cell.prs.size : 0, outside: h.unclassified.length,"
+     "line: m.statsEndpointLine(h.endpoints) }; };"
+     "console.log(JSON.stringify({"
+     "asReview: run({ body: '', reviews: [{ body: 'Fix review: merge ' + sha('b') }] }),"
+     "asComment: run({ body: '', comments: [{ body: 'Fix review: merge ' + sha('b') }] }),"
+     "noReviews: run({ body: '', comments: [] })"
+     "})); })"],
+    capture_output=True, text=True).stdout or "{}")
+
+
+def _review_arm(arm):
+    return _STATS_REVIEWS.get(arm) or {}
+
+
+R.check(
+    "a verdict posted as a pull-request review is counted, and the census names "
+    "the endpoint it arrived on (#1471)",
+    _review_arm("asReview").get("merges") == 2
+    and _review_arm("asReview").get("outside") == 0
+    and "/pulls/<n>/reviews (review): 1" in _review_arm("asReview").get("line", "")
+    and "/issues/<n>/comments (issue comment): 1" in _review_arm("asReview").get("line", ""),
+    f"two merges, one posted as a review: {_review_arm('asReview')!r} -- the "
+    "review endpoint the reader never asked for is how a verdict became "
+    "invisible, and a census that does not name it leaves the next zero "
+    "unreadable",
+)
+R.check(
+    "and the same verdict posted as an issue comment, and a window with no "
+    "reviews at all, are the null controls (#1471)",
+    _review_arm("asComment").get("merges") == 2
+    and "/pulls/<n>/reviews (review): 0" in _review_arm("asComment").get("line", "")
+    and _review_arm("noReviews").get("merges") == 1
+    and _review_arm("noReviews").get("outside") == 0,
+    f"as comment={_review_arm('asComment')!r}; no reviews="
+    f"{_review_arm('noReviews')!r} -- the census must read the walk rather than "
+    "the flag: the comment path counts the same verdict, and a window that "
+    "posted no review reads 0 on that row",
+)
+# AND THE READ ITSELF, WHICH NO ASSERTION OVER `statsHistogram` CAN REACH
+# (#1471). The checks above hand the walk a payload that already carries
+# `reviews`; the defect was that `fetchWindow` never built one, so the walk had
+# nothing to count and the merge read as one that carried none. The transport is
+# `ghGet`'s `curl` execFileSync, so a stub `curl` first on PATH is the ledger the
+# finding's own harness reads -- driven here for the same reason the loop
+# fixtures are pure: no network, no token and no repository history. BOTH ENDS,
+# because the request and the join are two claims: a stub that answers with one
+# review (the request must appear AND reach the map) and one that answers empty
+# (the request must still appear, since a zero over a read that never happened is
+# the finding). The null control inside the ledger is the body and comment reads:
+# a request count that is zero on all three would be a dead ledger rather than a
+# missing endpoint.
+_FETCH_BIN = Path(_tempfile.mkdtemp(prefix="hpo-fetch-ledger-")) / "bin"
+_FETCH_BIN.mkdir()
+_FETCH_LEDGER = _FETCH_BIN.parent
+(_FETCH_BIN / "curl").write_text(
+    "#!/bin/sh\n"
+    'url=""\n'
+    'for a in "$@"; do url="$a"; done\n'
+    "cat >/dev/null 2>&1\n"
+    "printf '%s\\n' \"$url\" >> \"$HPO_STUB_LOG\"\n"
+    'case "$url" in\n'
+    '  */pulls/7001/reviews*)\n'
+    '    if [ "$HPO_STUB_REVIEWS" = "1" ]; then\n'
+    f"      printf '[{{\"body\": \"Fix review: merge {_SHA40}\"}}]\\n200'\n"
+    "    else printf '[]\\n200'; fi ;;\n"
+    "  */issues/7001/comments*) printf '[]\\n200' ;;\n"
+    '  */pulls/7001) printf \'{"body": ""}\\n200\' ;;\n'
+    "  *) printf '[]\\n200' ;;\n"
+    "esac\n"
+)
+(_FETCH_BIN / "curl").chmod(0o755)
+
+
+def _fetch_ledger(reviews: str):
+    """Drive `fetchWindow` with the stub transport; return its map and ledger."""
+    log = _FETCH_LEDGER / f"ledger-{reviews}"
+    log.write_text("")
+    env = {**_os.environ,
+           "PATH": f"{_FETCH_BIN}:{_os.environ['PATH']}",
+           "GITHUB_TOKEN": "stub-not-a-credential",
+           "HPO_STUB_LOG": str(log),
+           "HPO_STUB_REVIEWS": reviews}
+    run = subprocess.run(
+        ["node", "--input-type=module", "-e",
+         "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+         "const r = m.fetchWindow([{ pr: 7001 }]);"
+         "const f = r.fetched.get(7001) || {};"
+         "console.log(JSON.stringify({ error: r.fetchError,"
+         "reviews: (f.reviews || []).map((x) => x.body),"
+         "comments: (f.comments || []).length })); })"],
+        capture_output=True, text=True, env=env)
+    try:
+        got = json.loads(run.stdout or "null")
+    except ValueError:
+        got = None
+    lines = log.read_text().splitlines()
+    return {"got": got,
+            "entry": got is not None and isinstance(got, dict),
+            "reviews_request": any("/pulls/7001/reviews" in x for x in lines),
+            "comments_request": any("/issues/7001/comments" in x for x in lines),
+            "body_request": any(x.endswith("/pulls/7001") for x in lines)}
+
+
+_FETCH_WITH = _fetch_ledger("1")
+_FETCH_NONE = _fetch_ledger("0")
+R.check(
+    "the window reader asks the reviews endpoint and joins what it answers into "
+    "its map (#1471)",
+    _FETCH_WITH["reviews_request"]
+    and _FETCH_WITH["entry"]
+    and (_FETCH_WITH["got"] or {}).get("reviews") == [f"Fix review: merge {_SHA40}"]
+    and (_FETCH_WITH["got"] or {}).get("error") is None,
+    f"ledger has a reviews request={_FETCH_WITH['reviews_request']}; "
+    f"fetchWindow returned {_FETCH_WITH['got']!r} -- the endpoint the reviewer "
+    "contract allows a verdict to arrive on is the one a reader that never asks "
+    "for it cannot see, and the map is what the walk counts",
+)
+R.check(
+    "and it asks whether or not the window posted a review, with the body and "
+    "comment reads as the ledger's null control (#1471)",
+    _FETCH_NONE["reviews_request"]
+    and _FETCH_NONE["entry"]
+    and (_FETCH_NONE["got"] or {}).get("reviews") == []
+    and _FETCH_NONE["body_request"]
+    and _FETCH_NONE["comments_request"],
+    f"empty window: {_FETCH_NONE['got']!r}; ledger body={_FETCH_NONE['body_request']} "
+    f"comments={_FETCH_NONE['comments_request']} reviews={_FETCH_NONE['reviews_request']} "
+    "-- a zero on the reviews row must be a read that answered nothing, not a "
+    "read that was never made, which is what the other two rows are here to say",
+)
+# AND THE LINE SAYS SO IN THE MODE, NOT ONLY IN ITS FUNCTION (#1469, D11-03).
+# `sunsetMarkerLine` is pinned at both ends and against its own mutation inside
+# `policy_lint.mjs`'s acceptance -- but that pin drives the FUNCTION, so it
+# survives the call site being deleted, which is the shape `policy_lint_mutants
+# .mjs` exists for one level down. This is the wiring half, driven as a process
+# and read the way a shell reads it. The window is empty by construction: the
+# ref is `mainRef()`'s own -- `origin/main`, or `HEAD` where the remote is not
+# configured, which `--sunset` itself then reports as its range -- so
+# `ref..origin/main` contains no commit, no API call is made, and the pin
+# depends on no token and no rate limit.
+def _sunset_drive():
+    ref = "origin/main"
+    if subprocess.run(["git", "rev-parse", "--verify", "--quiet", "origin/main"],
+                      capture_output=True, text=True).returncode != 0:
+        ref = "HEAD"
+    return subprocess.run(
+        ["node", ".claude/workflows/policy_lint.mjs", "--sunset", "--since", ref],
+        capture_output=True, text=True, env={**_os.environ, "GITHUB_TOKEN": ""})
+
+
+_SUNSET_RUN = _sunset_drive()
+_SUNSET_HEADER = re.search(r"^SUNSET: (\d+) policy file\(s\)", _SUNSET_RUN.stdout, re.M)
+_SUNSET_CENSUS = re.search(
+    r"^SUNSET MARKERS: (\d+) policy file\(s\) scanned; REFUSED BY (\d+), "
+    r"SUNSET: (\d+), HONOUR: (\d+)", _SUNSET_RUN.stdout, re.M)
+R.check(
+    "the --sunset mode prints the marker census its zero is a zero of, beside "
+    "the corpus count (#1469)",
+    _SUNSET_RUN.returncode == 0
+    and _SUNSET_CENSUS is not None
+    and _SUNSET_HEADER is not None
+    and _SUNSET_CENSUS.group(1) == _SUNSET_HEADER.group(1)
+    and ("PARTICIPATION zero" in _SUNSET_RUN.stdout
+         or "has a population in these files" in _SUNSET_RUN.stdout),
+    f"rc={_SUNSET_RUN.returncode}; stdout={_SUNSET_RUN.stdout[:400]!r} -- the "
+    "class fires only on a marker a policy file declares for itself, so "
+    "`proposed (0) held (0)` over a corpus carrying none is the participation "
+    "zero, and the file count is the corpus both lines were taken over",
 )
 # EVERY REWORK ROUND IS A RE-VERIFICATION OF A MOVED HEAD, AND THE HISTOGRAM
 # COULD NOT SEE IT (#1405, D13-01). `web-fix-wave.js` teaches the class
@@ -20625,14 +21115,16 @@ R.check(
     "an instrument that changes a number a reader already trusts has to say so",
 )
 R.check(
-    "and a verdict naming the same head twice, or no first head at all, is not "
-    "rework (null control)",
+    "and a verdict naming the same head twice, or a first line the grammar "
+    "refuses, is not rework (null control)",
     _rework_cell("sameHead").get("prs") is None
     and _rework_cell("noFirstHead").get("prs") is None,
     f"sameHead={_STATS_REWORK.get('sameHead')!r}; "
     f"noFirstHead={_STATS_REWORK.get('noFirstHead')!r} -- two verdicts on one "
-    "head are one round, and a first verdict naming no head is no evidence of "
-    "a moved one",
+    "head are one round, and a first line outside the grammar is no evidence of "
+    "a moved one: since #1472 the wave's grammar requires a full head on every "
+    "parseable verdict, so a `Fix review:` line naming none reaches the walk as "
+    "an outside-grammar report and never as a head",
 )
 R.check(
     "the publishing lane runs on main alone, never on a pull request",
@@ -20896,6 +21388,144 @@ R.check(
     "narrowing touches the surface a merge is actually gated on. Both keyings "
     "are reported, and adding `nightly-status` to the list is what the key-set "
     "null control above exists to refuse",
+)
+
+# --- D13-06 (#1476): the rate is published PER CHECK-RUN NAME, both keyings ----
+#
+# Two aggregate rates say the two surfaces differ; they do not say WHICH name
+# separates them, and over the round-7 window the whole difference is one name.
+# `mutation` fails 4 of the window's 31 merge commits and 0 of its 31
+# pull-request heads, so the merge-keyed rate reads 0.226 against the head-keyed
+# 0.129 -- and the 4/31 between them is invisible in either published figure.
+# The lane's inventory is the TREE (`tests/mutation_table.py`'s `unpinned_sites`)
+# and on a push to `main` its scoping base IS `HEAD`, so it measures the MERGED
+# tree: the four merges are two pairs 4-5 s apart, i.e. two batch merges, where
+# neither pull request's own head failed it.
+#
+# THE FIXTURE IS THE WINDOW, NOT A BATTERY. `cfr_by_name` is driven on the
+# round-7 window's OWN per-name counts, as the instrument prints them over the
+# closed window `v6.6.9..f9d6f782` at this fix's merge base -- 31 merges; at the
+# merge commit `record` 30, `mutation` 4, `env-matrix` 2, `fast (3.14)` 1,
+# `policy-docs` 2; at the pull-request head `delivery-status` 4 -- so the pairs
+# pinned below are the numbers a reader of the fixed instrument sees, and a
+# round that re-takes the window meets the same table rather than a restatement.
+# Nine (name, merge) pairs over the seven merges carrying a name other than
+# `record` means two of those merges fail TWO names, which is why the movement
+# the perturbation below measures is 0.097 rather than the name's own 0.129.
+# `delivery-status` is the mirror of `mutation` -- 0.0 merge-keyed against 0.129
+# head-keyed -- so the pinned pairs separate the surfaces in BOTH directions.
+_D13_06_WINDOW = (
+    # (names failing AT THE MERGE COMMIT, names failing AT THE PULL-REQUEST HEAD,
+    #  how many of the window's merges look like this)
+    (("record", "mutation", "env-matrix"), (), 1),
+    (("record", "mutation"), ("delivery-status",), 1),
+    (("record", "mutation"), (), 2),
+    (("record", "env-matrix", "fast (3.14)"), (), 1),
+    (("record", "policy-docs"), ("delivery-status",), 2),
+    (("record",), ("delivery-status",), 1),
+    (("record",), (), 22),
+    ((), (), 1),
+)
+_D13_06_NAMES = {
+    "record": [0.968, 0.0], "mutation": [0.129, 0.0], "env-matrix": [0.065, 0.0],
+    "fast (3.14)": [0.032, 0.0], "policy-docs": [0.065, 0.0],
+    "delivery-status": [0.0, 0.129],
+}
+try:
+    _d13b_merge, _d13b_head, _d13b_pr = {}, {}, 0
+    for _mfail, _hfail, _count in _D13_06_WINDOW:
+        for _ in range(_count):
+            _d13b_pr += 1
+            _d13b_merge[_d13b_pr] = set(_mfail)
+            _d13b_head[_d13b_pr] = set(_hfail)
+    _d13b_sum = sum(_c for _m, _h, _c in _D13_06_WINDOW)
+    _d13b_by = _d13.cfr_by_name(_d13b_merge, _d13b_head, _d13b_pr)
+    _d13b_rates = _d13.cfr_keyings(
+        _d13b_merge, _d13b_head, set(_CFR_EXCL), _d13b_pr)
+    # The perturbation the finding turns on: ONE name added in memory to the
+    # exclusion list moves the merge-keyed rate (0.226 -> 0.129) and leaves the
+    # head-keyed rate exactly where it was -- the arithmetic statement that
+    # `mutation` is a merge-surface red and not a head-surface one. Nothing is
+    # written to the artifact: widening the list is the exclusion owner's call.
+    _d13b_dropped = _d13.cfr_keyings(
+        _d13b_merge, _d13b_head, set(_CFR_EXCL) | {"mutation"}, _d13b_pr)
+    _D13_06_OK = bool(
+        _d13b_pr == 31 == _d13b_sum
+        and _d13b_by == _D13_06_NAMES
+        # Set equality is the absence control as well as the value one: the
+        # map's keys come only from the two maps' VALUES, so a name failing at
+        # neither surface is ABSENT rather than a zero row -- the wrong shape, a
+        # vocabulary carried in from somewhere else with zeros filled in, adds a
+        # key here and fails this arm without moving any rate.
+        and set(_d13b_by) == set(_D13_06_NAMES)
+        and _d13b_rates["merge_keyed"] == 0.226
+        and _d13b_rates["head_keyed"] == 0.129
+        and _d13b_rates["merge_unexcluded"] == 0.968
+        and _d13b_rates["head_unexcluded"] == 0.129
+        and _d13b_dropped["merge_keyed"] == 0.129
+        and _d13b_dropped["head_keyed"] == _d13b_rates["head_keyed"]
+    )
+    _d13_06_detail = (
+        f"cfr_by_name on the round-7 window's 31 merges: {_d13b_by}; both keyings "
+        f"{_d13b_rates}; with `mutation` dropped in memory {_d13b_dropped}"
+    )
+except Exception as _d13b_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _D13_06_OK = False
+    _d13_06_detail = f"{type(_d13b_exc).__name__}: {_d13b_exc}"
+R.check(
+    "the change-failure instrument publishes the rate per check-run NAME at both "
+    "keyings, so the name that separates them is visible (#1476)",
+    _D13_06_OK,
+    _d13_06_detail + " -- two aggregate rates hide which name separates the "
+    "surfaces, and here the whole difference is one name: `mutation` is 4 of 31 "
+    "merge commits and 0 of 31 pull-request heads, because the lane's inventory "
+    "is the tree and a batch merge measures a tree no pull request's head had. "
+    "The pair for every name failing at either surface is what the exclusion "
+    "list owner needs to judge whether that red is a change failure",
+)
+
+# ...and the artifact records the name it deliberately does NOT exclude (#1476),
+# in the shape the #1303 check above pins for `excluded_jobs`: a reason and a
+# citation that has to be quoting something the tree carries. The citation is
+# pinned against `tests/mutation_table.py`'s own refusal text, so the entry
+# cannot drift into a quote nothing in the tree supports -- and the exclusion map
+# itself is asserted UNCHANGED, because recording a refusal to widen the list is
+# not a widening.
+try:
+    _cfr_now = json.loads(
+        (_closure.ROOT / ".claude/workflows/cfr_exclusions.json").read_text())
+    _CFR_NOT_EXCL = _cfr_now.get("not_excluded") or {}
+    _CFR_EXCL_NOW = _cfr_now.get("excluded_jobs") or {}
+    _MUT_QUOTE = "unpinned site(s)"
+    _MUT_SRC = (_closure.ROOT / "tests/mutation_table.py").read_text()
+    _CFR_NOT_EXCL_OK = bool(
+        isinstance(_CFR_NOT_EXCL, dict)
+        and all(isinstance(v, dict) and v.get("reason") and v.get("citation")
+                for v in _CFR_NOT_EXCL.values())
+        and "mutation" in _CFR_NOT_EXCL
+        and _MUT_QUOTE in _CFR_NOT_EXCL["mutation"]["citation"]
+        and _MUT_QUOTE in _MUT_SRC
+        and "mutation" not in _CFR_EXCL_NOW
+    )
+    _cfr_not_excl_detail = (
+        f"not_excluded={sorted(_CFR_NOT_EXCL)}; excluded_jobs="
+        f"{sorted(_CFR_EXCL_NOW)}; the mutation entry cites the lane's own "
+        f"words: {_MUT_QUOTE in (_CFR_NOT_EXCL.get('mutation') or {}).get('citation', '')}, "
+        f"and tests/mutation_table.py says them: {_MUT_QUOTE in _MUT_SRC}"
+    )
+except Exception as _cfr_ne_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _CFR_NOT_EXCL_OK = False
+    _cfr_not_excl_detail = f"{type(_cfr_ne_exc).__name__}: {_cfr_ne_exc}"
+R.check(
+    "and the exclusion artifact records `mutation` as deliberately NOT excluded, "
+    "with a reason and a citation the tree carries (#1476)",
+    _CFR_NOT_EXCL_OK,
+    _cfr_not_excl_detail + " -- the D13-06 finding is filed about the INSTRUMENT, "
+    "not as a request to widen the list: whether a merge-surface red on a "
+    "batch-merged tree is a change failure or a by-design protocol beat is the "
+    "exclusion list owner's judgement. So the next reader meets the name in "
+    "`cfr_by_name`'s output and finds the refusal recorded here rather than in a "
+    "merged pull request's comments",
 )
 
 # --- D11-04 (#1194): the disposition refusal can set the record job's status --

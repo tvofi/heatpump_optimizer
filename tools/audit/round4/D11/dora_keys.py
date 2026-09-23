@@ -47,6 +47,23 @@ exclusion, so the delta the exclusion buys is visible on each keying.
    The head keying does not move because neither `nightly-status` (7 of 67
    heads) nor `delivery-status` (2 of 67) is excluded, and must not be.
 
+THE D13 RE-TAKE REPORTS THE RATE PER CHECK-RUN NAME AT BOTH KEYINGS (#1476,
+D13-06). Two aggregate rates say the surfaces differ; they do not say which
+name separates them, and over the round-7 window the whole difference is one
+name: `cfr_by_name` puts every name failing at either surface beside its rate
+at BOTH, and its first row is `mutation` -- 4 of the window's 31 merge commits
+(0.129) and 0 of its 31 pull-request heads (0.0), so the merge-keyed rate
+reads 0.226 against the head-keyed 0.129 while the lane that separates them
+passed at every head. The lane is `tests/mutation_table.py`, whose count is an
+inventory of THE TREE (its `unpinned_sites`); on a push to `main` its scoping
+base IS `HEAD`, so it measures the merged tree and two batch merges 4-5 s apart
+can fail it where neither pull request's own head did. `mutation` is therefore
+NOT on the exclusion list, and this block does not put it there: whether a
+merge-surface red on a batch-merged tree is a change failure or a by-design
+protocol beat is the exclusion list owner's judgement, and the pair is what
+that judgement needs. `.claude/workflows/cfr_exclusions.json` records the
+refusal in its `not_excluded` map, and tests/entities.py pins it.
+
 COMMAND (from the repository root):
   PYTHONPATH=tests/hastub python3 tools/audit/round4/D11/dora_keys.py
 
@@ -138,6 +155,41 @@ def cfr_keyings(merge_fail, head_fail, excluded, n):
         "merge_unexcluded": rate(merge_fail, set()),
         "head_unexcluded": rate(head_fail, set()),
     }
+
+
+def cfr_by_name(merge_fail, head_fail, n):
+    """PER CHECK-RUN NAME, the rate at BOTH keyings: {name: [merge, head]}.
+
+    `cfr_keyings` reports two AGGREGATE rates and hides which name separates
+    them, which is the D13-06 finding (#1476). Over the round-7 window the
+    merge-keyed rate is 0.226 and the head-keyed one 0.129, and the whole
+    0.129 between them is ONE name: `mutation`, failing at 4 of the window's
+    31 merge commits and at 0 of the 31 pull-request heads. The lane's own
+    log at the first of those merges reads "MUTATION TABLE REFUSED --
+    <n> unpinned site(s) against a recorded <m>", and `tests/mutation_table.py`
+    computes that count from an inventory of THE TREE (`unpinned_sites`); on a
+    push to `main` the scoping base IS `HEAD`, so the lane measures the MERGED
+    tree, which is why two batch merges 4-5 s apart can fail it while each
+    pull request's own head passed it.
+
+    Whether that is a change failure or a by-design protocol beat is the
+    exclusion list owner's judgement, and this is what puts the pair in front
+    of them: the rate at BOTH surfaces for every name failing at EITHER, so
+    the asymmetry of a name like `mutation` is published rather than
+    invisible. A name failing at neither keying is ABSENT rather than a zero
+    row -- the D13 brief's rule is to compare the SET of names, never a total
+    -- and the rounding is `cfr_keyings`'s, so the two are read together.
+    This widens no exclusion: the values are the UN-excluded rates, and the
+    list stays `.claude/workflows/cfr_exclusions.json`'s."""
+    names = sorted({name for names in merge_fail.values() for name in names}
+                   | {name for names in head_fail.values() for name in names})
+
+    def rate(m, name):
+        return round(
+            sum(1 for names in m.values() if name in names) / n, 3) if n else 0.0
+
+    return {name: [rate(merge_fail, name), rate(head_fail, name)]
+            for name in names}
 
 
 def t(ts):
@@ -302,6 +354,14 @@ def main():
     for key, value in cfr_keyings(
             merge_fail, head_fail, set(excl), n13).items():
         L.result(f"cfr_{key}", value)
+    # THE PER-NAME PAIR (#1476, D13-06). The two aggregate rates above say the
+    # two keyings differ; they do not say WHICH check-run name separates them,
+    # and that name is the whole difference. Compact JSON (no spaces) so the
+    # value stays a single whitespace-delimited token for any RESULT reader.
+    by_name = cfr_by_name(merge_fail, head_fail, n13)
+    L.result("cfr_by_name", json.dumps(by_name, separators=(",", ":")))
+    for name, (mrate, hrate) in by_name.items():
+        print(f"  per name {name!r}: merge_keyed={mrate} head_keyed={hrate}")
     L.footer()
 
 

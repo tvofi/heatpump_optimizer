@@ -4,7 +4,6 @@ from __future__ import annotations
 from datetime import datetime
 
 from homeassistant.components.datetime import DateTimeEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -32,7 +31,7 @@ class AwayReturnDateTime(HeatPumpOptimizerEntity, DateTimeEntity):
     def __init__(
         self,
         coordinator: HeatPumpOptimizerCoordinator,
-        entry: ConfigEntry,
+        entry: HeatPumpOptimizerConfigEntry,
     ) -> None:
         super().__init__(coordinator)
         self._entry = entry
