@@ -647,6 +647,15 @@ def run_script(script: str, cwd: Path, timeout: int,
     )
 
 
+def killed(script: str, run: ScriptRun, baseline: ScriptRun) -> bool:
+    """Whether one driver's run on a mutant noticed the mutation.
+
+    The mutant's run differs from the unmutated baseline's: its exit status
+    changed, or its `N of M ... FAILED` count rose.
+    """
+    return run.rc != baseline.rc or run.failed > baseline.failed
+
+
 def clone_tree(dest: Path) -> Path:
     """A real, independent checkout for one worker to mutate.
 
@@ -919,7 +928,7 @@ def main() -> int:
                     extra_args, extra_env = drive_spec(s, ref)
                     run = run_script(s, tree, args.timeout, extra_args,
                                      extra_env)
-                    if run.rc != baseline[s].rc or run.failed > baseline[s].failed:
+                    if killed(s, run, baseline[s]):
                         verdict = f"killed by {s}"
                         break
             finally:
