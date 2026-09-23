@@ -20,8 +20,11 @@ import numpy as np
 sys.path.insert(0, "tests")
 sys.path.insert(0, "custom_components")
 
+import heatpump_optimizer.legionella as legionella_mod
 from harness import FakeHass, Results
 from heatpump_optimizer.dhw_learning import DhwProfileLearner
+from heatpump_optimizer.disinfection import DisinfectionSwitch
+from heatpump_optimizer.legionella import LegionellaGuard
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.price_model import PriceShapeModel
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters
@@ -158,6 +161,39 @@ def _pinned_guess_respects_the_lower_bound() -> bool:
     return bool(out[0] == 1.5 and out[1] == 4.0)
 
 
+def _ceiling_notice_is_deduplicated() -> bool:
+    """D3-01: an unchanged ceiling signature must not re-raise the notice.
+
+    ``check_ceiling`` raises ``dhw_legionella_above_setpoint`` only when the
+    (legionella, setpoint, interval) signature changes. Without the
+    ``if signature == self.ceiling_notice`` guard, ``create_issue`` runs on
+    every coordinator tick and a notice the user dismissed comes straight
+    back.
+    """
+    params = ThermalParameters()
+    params.dhw_enabled = True
+    params.dhw_legionella_enabled = True
+    params.dhw_setpoint = 52.0  # non-stock, so legionella 60 > setpoint is active
+    guard = LegionellaGuard(
+        FakeHass(),
+        "guard-pins-ceiling",
+        params,
+        {},
+        action=lambda: {},
+        disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+        dhw_blocked=lambda: False,
+    )
+    calls: list[int] = []
+    original = legionella_mod.create_issue
+    legionella_mod.create_issue = lambda *a, **k: calls.append(1)
+    try:
+        guard.check_ceiling()
+        guard.check_ceiling()
+    finally:
+        legionella_mod.create_issue = original
+    return len(calls) == 1
+
+
 def main() -> int:
     R = Results("Guard pins (#805 non-coordinator)")
     R.check(
@@ -188,6 +224,12 @@ def main() -> int:
         "a starting guess below a pinned bound is lifted to the bound",
         _pinned_guess_respects_the_lower_bound(),
         "the lower clamp of _seed_pinned_guess must bind",
+    )
+    R.check(
+        "an unchanged ceiling signature does not re-raise the notice",
+        _ceiling_notice_is_deduplicated(),
+        "the signature guard in check_ceiling must stop the Repairs issue "
+        "being re-created on every tick",
     )
     return R.close("GUARD PIN CHECKS")
 
