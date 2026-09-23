@@ -7649,12 +7649,12 @@ R.check(
     str(_hvac_idle.hvac_action),
 )
 # #1499: a space step at minimum modulation sits below the band's first rung
-# (power_normalized 0.0) yet heats the rooms; a DHW-only step does not.
+# (power_normalized 0.0), and a DHW-only step below zero; both run the pump.
 _hvac_low = climate_mod.HeatPumpOptimizerClimate(
     FakeCoordinator(
         {**DATA, "mode": const.MODE_AUTO,
          "current_action": {"power": 1.0, "power_normalized": 0.0,
-                            "mode": "eco", "heat_pump_on": True}}
+                            "heat_pump_on": True}}
     ),
     clim._entry,
 )
@@ -7672,21 +7672,21 @@ _hvac_dhw = climate_mod.HeatPumpOptimizerClimate(
     clim._entry,
 )
 R.check(
-    "hvac_action reports IDLE while only the DHW tank is heating",
-    _hvac_dhw.hvac_action == climate_mod.HVACAction.IDLE,
+    "hvac_action reports HEATING while only the DHW tank is heating",
+    _hvac_dhw.hvac_action == climate_mod.HVACAction.HEATING,
     str(_hvac_dhw.hvac_action),
 )
 # The system identification's override spreads the plan's action and
 # rewrites power, power_normalized, heat_pump_on and mode; a key it does not
-# rewrite rides over from the plan. Its off phase over an eco plan step must
-# read IDLE, whatever else the plan's action carried.
+# rewrite rides over from the plan, so hvac_action may read only keys the
+# override rewrites. Its off phase over a running plan step reads IDLE.
 _hvac_sysid = climate_mod.HeatPumpOptimizerClimate(
     FakeCoordinator(
         {**DATA, "mode": const.MODE_AUTO,
          "current_action": {"power": 0.0, "power_normalized": 0.0,
                             "heat_pump_on": False,
                             "mode": "system_identification",
-                            "space_heating_active": True}}
+                            "dhw_heating_active": True}}
     ),
     clim._entry,
 )
