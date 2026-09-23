@@ -926,8 +926,15 @@ class HeatPumpActionSensor(HeatPumpOptimizerSensorBase):
     def extra_state_attributes(self) -> dict[str, Any]:
         if self.coordinator.data:
             action = self.coordinator.data.get("current_action", {})
+            # power_kw is the pump's whole commanded draw, space plus DHW:
+            # the card's actioned series reads it against both plan slots,
+            # and a DHW-only step is not 0 kW (#1499).
+            space = _as_float(action.get("power"))
             attrs = {
-                "power_kw": action.get("power"),
+                "power_kw": (
+                    None if space is None
+                    else round(space + (_as_float(action.get("dhw_power")) or 0.0), 2)
+                ),
                 "setpoint": action.get("setpoint"),
                 "price": action.get("price"),
                 "power_normalized": action.get("power_normalized"),

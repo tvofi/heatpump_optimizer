@@ -1,0 +1,24 @@
+{
+  "_comment": [
+    "Carry destination for a sibling seam of issue #1499 (Heat Pump Action read",
+    "'off' while the pump heated only the DHW tank). The class is 'space power",
+    "read as the whole machine'; the #1499 pull request closed the action mode,",
+    "the climate hvac_action and the action sensor's power_kw attribute, and",
+    "left this one seam open because its fix costs a structural budget the",
+    "owner must confirm. No roster group in this tree claims #1499, so this",
+    "file is that stage's brief. Shape and required fields:",
+    ".claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1499,
+  "stage": "any later seat that fixes coordinator._track_realised_peak's no-meter fallback, or that prices a raise of internal_call_edges in tests/structure_budgets.json",
+  "carries": [
+    {
+      "from": "the #1499 fix pull request (Heat Pump Action hot_water state), whose step-8 seam enumeration and the #1499 root-cause seat both returned this seam",
+      "effect": "narrows",
+      "control": "The seam was established by driving the production method, not by reading it: a coordinator with no whole-house meter and no pump meter (_measured_house_power and _measured_power both None), a peak tariff enabled, and _current_action = {power: 0.0, dhw_power: 4.8, heat_pump_on: True}, the shape a DHW-only step writes. _track_realised_peak then folds 0.0 kW into the month's peak window while _commanded_power() on the same coordinator returns 4.8 kW. The null control is the same drive with the space allocation carrying the draw (power: 4.8, dhw_power: 0.0): it folds 4.8, so the fixture measures the fallback and not a tariff or window that folds nothing. The fix's own control is the structural one: replacing the fallback's read with self._commanded_power() makes tests/structure.py print `FAIL internal_call_edges 320 > 319 (+1)`, so the obvious fix is refused by the ratchet rather than by review.",
+      "remeasure": "Re-drive the method at your own merge base, from the repository root with `PYTHONPATH=tests/hastub`: build HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data={peak_tariff_enabled: True, peak_tariff_price_per_kw: 90.0})) as tests/entities.py's `_gap_series_payload` does, set both meters to None and the DHW-only action above, call _track_realised_peak(), and read _peak_tracker.window_snapshot(dt_util.now(), _capacity_tariff())[1]. Run tests/structure.py for the current internal_call_edges row rather than trusting the 319 quoted here; it is this branch's.",
+      "brief": "With no meter at all, coordinator._track_realised_peak falls back to float(self._current_action.get(\"power\", 0.0)), which is the SPACE allocation only, so a DHW-only step folds 0 kW into the capacity-tariff peak although the plan commands the whole hot-water charge; the method's own docstring says it folds 'the pump's own draw', which _commanded_power() (space plus DHW, with _commanded_split's operating-mode gate) is. The fix is one line and costs no class line: `house = self._commanded_power()`. It does cost one internal call edge, and internal_call_edges sits at zero headroom, so it needs either the owner's confirmed raise before the branch is pushed (CLAUDE.md rule 2) or an edge paid elsewhere in the coordinator. An inline `power + dhw_power` sum avoids the edge but duplicates _commanded_power while dropping its mode gate; if a seat chooses it, it says so in the body rather than presenting it as equivalent. Failing test first: the drive above, asserting 4.8."
+    }
+  ]
+}

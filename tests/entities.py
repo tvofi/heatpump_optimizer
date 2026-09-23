@@ -7695,6 +7695,26 @@ R.check(
     _hvac_sysid.hvac_action == climate_mod.HVACAction.IDLE,
     str(_hvac_sysid.hvac_action),
 )
+# Heat Pump Action's power_kw is what the card's actioned series draws
+# against the plan's space and DHW slots together, so it is the pump's whole
+# commanded draw: a DHW-only step is not 0 kW (#1499).
+def _action_power_kw(action):
+    return sensor.HeatPumpActionSensor(
+        FakeCoordinator({**DATA, "current_action": action}), clim._entry
+    ).extra_state_attributes.get("power_kw")
+
+
+_pkw = [
+    _action_power_kw({"power": 0.0, "dhw_power": 4.8, "mode": "hot_water"}),
+    _action_power_kw({"power": 2.0, "dhw_power": 0.5, "mode": "normal"}),
+    _action_power_kw({"power": 2.0, "mode": "normal"}),
+    _action_power_kw({"mode": "idle"}),
+]
+R.check(
+    "Heat Pump Action power_kw is space plus DHW, and None with no power (#1499)",
+    _pkw == [4.8, 2.5, 2.0, None],
+    repr(_pkw),
+)
 _hvac_off = climate_mod.HeatPumpOptimizerClimate(
     FakeCoordinator(
         {**DATA, "mode": const.MODE_OFF,
