@@ -3329,7 +3329,13 @@ function cardStyleBlock() {
         flex: 1 1 auto;
         min-height: 0;
         overflow-y: auto;
-        overflow-x: hidden;
+        /* R7-D4-01 (#1454): a width:100% table whose min-content width
+           exceeds this box overflows it, and hidden put that overflow
+           outside every gesture -- the savings table's right-aligned percent
+           column was the instance, painted where no scroll could reach it.
+           auto reaches it instead, and costs nothing at a width where
+           nothing overflows. */
+        overflow-x: auto;
         /* Room for the scrollbar so it never lands on top of the chart. */
         scrollbar-gutter: stable;
       }
@@ -3375,7 +3381,11 @@ function cardStyleBlock() {
       dialog.expanded .close svg { width: 1.4em; height: 1.4em; }
 
       /* Dialog page tabs and the setup page (item 33) */
-      .dlg-tabs { display: flex; gap: 0.3em; flex: 0 0 auto; }
+      /* R7-D4-02 (#1455): flex: 0 0 auto cannot shrink below its content,
+         and dialog.expanded hides the spill rather than showing it -- the
+         longer Swedish tab label was cut off at phone width. Shrinkable and
+         wrappable, the row is never wider than the dialog it sits in. */
+      .dlg-tabs { display: flex; gap: 0.3em; flex: 0 1 auto; flex-wrap: wrap; min-width: 0; }
       .dlg-tab {
         border: 1px solid var(--divider-color, #e0e0e0);
         background: transparent; color: var(--secondary-text-color);
@@ -6647,6 +6657,23 @@ function scoreBreakdownHtml(plan) {
   return `<div class="score-breakdown">${rows}</div>`;
 }
 
+/** The currency a savings figure is denominated in.
+ *
+ * A savings sensor declares the unit its own value is in (the integration
+ * sets `native_unit_of_measurement` from the coordinator's currency), and
+ * nothing in this card converts, so that declaration leads and `currency()`
+ * only fills in when the sensor publishes none. R7-D4-03 (#1456): the
+ * savings table took `plan.currency()` alone, whose chain puts a card-config
+ * `currency:` ahead of the sensor's own token, so the override relabelled
+ * un-converted figures under a headline that still named SEK. Both savings
+ * surfaces resolve through here, so they cannot name different currencies.
+ */
+function savingsUnit(plan, statKey) {
+  const st = plan.statEntity(statKey);
+  const declared = st && st.attributes && st.attributes.unit_of_measurement;
+  return declared || plan.currency();
+}
+
 /** The compact stats row under the header, or nothing at all.
  *
  * Every part is optional because every source sensor is: the score sensor
@@ -6663,13 +6690,8 @@ function headlineHtml(plan, cfg, scoreOpen) {
     const pct = plan.statNumber("_plan_savings_percentage");
     // The savings sensor declares the unit its value is denominated in;
     // nothing here converts, so a card-config `currency:` must not relabel
-    // it. `_currency()` only fills in when the sensor declares no unit.
-    const savingsSt = plan.statEntity("_plan_predicted_savings");
-    const unit =
-      (savingsSt &&
-        savingsSt.attributes &&
-        savingsSt.attributes.unit_of_measurement) ||
-      plan.currency();
+    // it. `savingsUnit` only fills in when the sensor declares no unit.
+    const unit = savingsUnit(plan, "_plan_predicted_savings");
     const value =
       `${savings.toFixed(2)} ${unit}` +
       (pct !== null
@@ -10480,7 +10502,11 @@ function parseConfig(config) {
     throw new Error(L("errors.cfg_show_stats"));
   }
   const hours = Number(cfg.hours);
-  if (!Number.isFinite(hours) || hours <= 0 || hours > 168) {
+  // The bound the message states and the editor's number selector pins
+  // (`min: 1` in `_schema`). R7-D5-02 (#1458): `hours <= 0` admitted 0.5,
+  // which `errors.cfg_hours` called invalid and the editor could neither
+  // produce nor correct.
+  if (!Number.isFinite(hours) || hours < 1 || hours > 168) {
     throw new Error(L("errors.cfg_hours"));
   }
   cfg.hours = hours;
@@ -11125,7 +11151,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     if (!rows.length) {
       return `<p class="savings-empty" style="margin:1em 0">${esc(L("savings.empty"))}</p>`;
     }
-    const cur = this.plan.currency();
+    // The rows come from the monthly savings sensor, so the unit they are
+    // denominated in is that sensor's own declaration -- the rule the
+    // headline reads through, and the one a card-config `currency:` must not
+    // override (R7-D4-03, #1456).
+    const cur = savingsUnit(this.plan, "_plan_monthly_savings");
     const money = (n) =>
       typeof n === "number" && Number.isFinite(n) ? n.toFixed(2) : "—";
     const pct = (n) =>

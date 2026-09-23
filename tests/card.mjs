@@ -3525,6 +3525,26 @@ check("the hand-scheduled reason has a label",
     /\.setup-canvas \{ overflow-x: auto/.test(phone) &&
     /\.setup-canvas svg \{ min-width/.test(phone),
     "slot rows scaled to a 380px dialog are too small to read or tap");
+
+  // R7-D4-01 (#1454) and R7-D4-02 (#1455): the dialog draws content whose
+  // intrinsic width can exceed its own box and then hides the overflow, which
+  // is ink no gesture can reach. Measured instances: the savings table's `%`
+  // column (its `width:100%` table has a min-content width larger than
+  // `.dlg-body`, and right-aligned cells put the digits in the hidden strip)
+  // and the Swedish tab label `Rådgivare` (`.dlg-tabs` could not shrink, and
+  // `dialog.expanded` cut the spill off). The geometry is measured in
+  // tests/card_browser.mjs, which lays the card out in real Chromium; here,
+  // where the stub computes no layout, what is pinned is that the dialog's
+  // own declarations do not hide what a phone cannot otherwise reach.
+  check("the dialog body reaches sideways content instead of hiding it",
+    /\.dlg-body \{[^}]*overflow-x: auto/.test(cardSrc),
+    "with overflow-x: hidden, a table whose min-content width exceeds the "
+    + "body is painted outside a box no gesture can widen");
+  check("and the tab row wraps rather than spilling out of the dialog",
+    /\.dlg-tabs \{[^}]*flex-wrap: wrap/.test(cardSrc) &&
+    /\.dlg-tabs \{[^}]*flex: 0 1 auto/.test(cardSrc),
+    "`.dlg-tabs { flex: 0 0 auto }` cannot shrink below its content, and "
+    + "`dialog.expanded { overflow: hidden }` then cuts the last tab off");
 }
 
 // --- Scenario: shared-step honesty (T3b, user report on v3.16.0) -----------
@@ -3868,6 +3888,50 @@ function ctxL(card, key) {
   try { new Card().setConfig(fired); } catch (e) { firedErr = e; }
   check("the emitted config passes setConfig", firedErr === null,
     firedErr && firedErr.message);
+}
+
+// --- D5-02 (#1458): the hours bound is one number, stated once --------------
+//
+// `setConfig` rejected on `hours <= 0 || hours > 168` -- the accepted range
+// was (0, 168] -- while its own message said "between 1 and 168" and the
+// editor schema pinned `min: 1`. A hand-written `hours: 0.5` therefore passed
+// validation while the message called it invalid, and the editor could
+// neither produce nor correct it (0.5 is not on its step-1 grid from 1).
+//
+// The checks read the bound where all three parties state it: the message the
+// card throws, the guard that threw it, and the schema the editor offers. The
+// message's own two numbers are the test's inputs, so a reworded message
+// cannot make this pass by moving the goalposts -- what must hold is that the
+// bounds it names are accepted and anything outside them is not.
+{
+  let msg = null;
+  try { new Card().setConfig({ type: "custom:heatpump-optimizer-card", hours: 0.5 }); }
+  catch (e) { msg = e.message; }
+  check("a fractional hour count is rejected, as the message says it is",
+    msg !== null, msg === null ? "hours: 0.5 was accepted" : "");
+  const stated = (msg || "").match(/between\s+(\d+(?:\.\d+)?)\s+and\s+(\d+(?:\.\d+)?)/);
+  const lo = stated ? Number(stated[1]) : null;
+  const hi = stated ? Number(stated[2]) : null;
+  const accepts = (h) => {
+    try { new Card().setConfig({ type: "custom:heatpump-optimizer-card", hours: h }); return true; }
+    catch { return false; }
+  };
+  check("the bounds the hours message names are exactly the ones the check enforces",
+    stated !== null && accepts(lo) && accepts(hi) && accepts(24) &&
+      !accepts(lo - 0.5) && !accepts(hi + 1),
+    `message names ${lo} and ${hi}; accepts ${lo}, 24, ${hi}; ` +
+    `rejects ${lo - 0.5} and ${hi + 1}`);
+  // The editor's floor is the same number: it can produce the smallest value
+  // the check accepts, and nothing below it.
+  const Editor = ctx.customElements.get("heatpump-optimizer-card-editor");
+  const ed = new Editor();
+  ed.hass = { states: {}, language: "en" };
+  ed.setConfig({ type: "custom:heatpump-optimizer-card" });
+  const hoursRow = ed.querySelector("ha-form").schema.find((s) => s.name === "hours");
+  const editorMin = hoursRow.selector.number.min;
+  check("and the editor's floor is the bound its own check enforces",
+    editorMin === lo && accepts(editorMin) && !accepts(editorMin - 0.5),
+    `editor min ${editorMin}, message min ${lo}`);
 }
 
 // --- Scenario: the headline stats row (v4.2.0) ------------------------------
@@ -7950,6 +8014,77 @@ const STOCK_THEMES = {
     check(`and the bar itself is perceptible on a ${theme} card`,
       contrast(bar, th.card) >= 1.3, `${contrast(bar, th.card).toFixed(3)}:1 at opacity ${barAlpha}`);
   }
+}
+
+// --- D4-03 (#1456): one screen, one quantity, one currency -----------------
+//
+// The headline savings item names the unit the plan SENSOR declares, and says
+// so in its own comment -- "nothing here converts, so a card-config
+// `currency:` must not relabel it". The savings table named every column from
+// `plan.currency()`, whose chain puts `config.currency` ahead of that same
+// declared unit, so one screen could print "300.25 SEK" above a table headed
+// "Baseline (EUR)". Nothing converts anywhere: the table relabels the
+// sensor's own figures. The checks read the RENDERED heads and the RENDERED
+// headline, never the config that produced them.
+{
+  const savStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  const months = [
+    { month: "2026-01", baseline_sek: 1200.5, actual_sek: 900.25,
+      savings_sek: 300.25, savings_pct: 25 },
+  ];
+  // Both savings surfaces of one install, as production publishes them: the
+  // two sensors carry the same currency (the coordinator's), and this harness
+  // gives them the same token too, so "the screen agrees with itself" is a
+  // property of the resolution and not of the fixture.
+  const surface = (unit, config) => {
+    const st = { ...savStates };
+    st["sensor.heat_pump_optimizer_monthly_savings"] = {
+      state: "300.25",
+      attributes: unit
+        ? { unit_of_measurement: unit, savings_months: months }
+        : { savings_months: months } };
+    st["sensor.heat_pump_optimizer_predicted_savings"] = {
+      state: "300.25",
+      attributes: unit ? { unit_of_measurement: unit } : {} };
+    st["sensor.heat_pump_optimizer_savings_percentage"] = {
+      state: "25", attributes: {} };
+    const c = build(st, { show_stats: true, ...config });
+    c.dialog.open();
+    c.dialog.page = "savings";
+    c._sig = null;
+    c._render();
+    const root = c.shadowRoot;
+    const headline = [...root.querySelectorAll(".hl-stat")]
+      .map((e) => e.textContent.replace(/\s+/g, " ").trim())
+      .find((t) => /saving/i.test(t)) || "";
+    return {
+      // The token each surface names: the trailing one of the headline
+      // figure, the parenthesised one on a column head.
+      headlineUnit: (headline.match(/\d[\d.,]*\s+([A-Za-z]{2,5})\b/) || [])[1] || "",
+      units: [...root.querySelectorAll(".savings-table thead th")]
+        .map((th) => th.textContent.trim())
+        .map((t) => (t.match(/\(([^)]+)\)/) || [])[1] || ""),
+      headline,
+    };
+  };
+
+  const own = surface("SEK", { currency: "EUR" });
+  check("a card currency does not relabel the savings table's figures",
+    own.units.length === 5 && own.units[0] === "" &&
+      own.units.slice(1, 4).length === 3 &&
+      own.units.slice(1, 4).every((u) => u === "SEK"),
+    `units ${JSON.stringify(own.units)}`);
+  check("so one screen names one currency, as the headline already did",
+    own.headlineUnit === "SEK" && own.units.slice(1, 4).every((u) => u === own.headlineUnit),
+    `headline "${own.headline}" names ${own.headlineUnit}`);
+
+  // The control: a savings sensor that declares no unit still falls back to
+  // the resolved currency, so the fix cannot pass by having frozen the token
+  // at whatever the sensor happened to say.
+  const blind = surface(null, { currency: "EUR" });
+  check("a savings sensor that declares no unit still takes the card's currency",
+    blind.headlineUnit === "EUR" && blind.units.slice(1, 4).every((u) => u === "EUR"),
+    `headline names ${blind.headlineUnit}; units ${JSON.stringify(blind.units)}`);
 }
 
 // --- The history pan (owner request, part of #201) ---------------------------
