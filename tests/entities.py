@@ -4527,6 +4527,45 @@ R.check(
     not _safe_entity.is_on,
     f"shortfall={_safe_entity.extra_state_attributes.get('shortfall_c')!r}",
 )
+# No live indoor reading: the payload's room is ThermalState's 21.0 °C seed,
+# not a measurement, so no floor is published even with a live humidity and
+# outdoor reading. Without the `reading_ok` gate the seed would be compared.
+_seed_hass, _seed_coord, _seed_data = _honest_coordinator(
+    _breach_config,
+    {
+        "sensor.indoor": FakeState("unavailable"),
+        "sensor.humidity": FakeState("70.0", last_updated=dt_util.utcnow()),
+    },
+)
+_seed_coord.data = _seed_data
+_seed_attrs = binary_sensor.MoldFloorBreachBinarySensor(
+    _seed_coord, FakeEntry(data=_breach_config)
+).extra_state_attributes
+R.check(
+    "a seeded (not measured) room publishes no floor",
+    _seed_attrs["floor_c"] is None and _seed_attrs["shortfall_c"] is None,
+    f"floor={_seed_attrs.get('floor_c')!r} "
+    f"reading_ok={(_seed_data.get('reading_ok') or {}).get('upper_floor_temperature')!r} "
+    f"room={_seed_data.get('indoor_temperature')!r}",
+)
+# A live room and humidity with no outdoor temperature: the floor's closed
+# form needs the outdoor side of the bridge, so there is no floor to publish.
+_no_out_hass, _no_out_coord, _no_out_data = _honest_coordinator(
+    _breach_config,
+    {
+        "sensor.indoor": FakeState("16.0"),
+        "sensor.humidity": FakeState("70.0", last_updated=dt_util.utcnow()),
+    },
+)
+_no_out_coord.data = {**_no_out_data, "outdoor_temperature": None}
+_no_out_attrs = binary_sensor.MoldFloorBreachBinarySensor(
+    _no_out_coord, FakeEntry(data=_breach_config)
+).extra_state_attributes
+R.check(
+    "a missing outdoor temperature publishes no floor",
+    _no_out_attrs["floor_c"] is None and _no_out_attrs["shortfall_c"] is None,
+    f"floor={_no_out_attrs.get('floor_c')!r}",
+)
 _blocked_entity = binary_sensor.MoldFloorBreachBinarySensor(
     FakeCoordinator({"heat_pump_signals": {"space_blocked": True}}), ENTRY
 )

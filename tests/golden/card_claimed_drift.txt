@@ -21,6 +21,535 @@
 #
 # claims-for: 6.6.10
 #
+# v6.6.10: round-6 audit fix wave. The stamp empties the list; the
+# next branch restates its own footprint, claims included.
+#
+
+# R6-D4-01 (#1388) and R6 (#1416), one claim list because both changes move the
+# same rendered tree.
+#
+# #1388 (R6-D4-01): the headline score pill is a control (role="button",
+# tabindex="0", a click handler that opens the score breakdown) but never
+# joined the coarse-pointer target floor -- 25 px at 375x812 and 39 px at the
+# two wider viewports, under the 44 px floor every other control shares.
+# `.hl-stat.hl-score` joins the `htmlTargetFloor` selector list, so the ONE
+# <style> block the card injects into its shadow root gains one selector and
+# its comment. card_drift captures the whole shadow root, so every state that
+# renders the stylesheet moves -- 39 of the 40. Each of those diffs is
+# STYLESHEET TEXT ONLY: no markup element, attribute or text node outside the
+# style block is added, removed or reordered.
+#
+# #1416: the DHW window day selector offered only daily/weekdays/weekend. It
+# now offers Monday..Sunday by day token ("Mo".."Su"). This moves only the two
+# states that render the what-if window editor, whatif_edited and
+# whatif_weekly, whose diff additionally carries the seven new <option> rows;
+# nothing outside the day selector moves in either.
+#
+# editor_schema, the 40th state, renders the config editor's schema and no
+# card stylesheet, so it does not move and is not claimed.
+#
+
+# #1333 and #1334 (round-5 audit, D8-01 and D8-02): the plan family's ids
+# and names are carried into one block, so the card's own addressing of its
+# headline sensors is restated to match. This branch restates the list.
+#
+# #1333 (R5-D8-01): the #1227 rename covered only the four headline plan
+# statistics ("Plan beräknad besparing", "Plan besparing i procent", ...),
+# leaving the two plan sensors themselves addressed by the pre-#1227
+# `space_heating_plan` / `dhw_heating_plan` ids while the six sensors the
+# card head-lines all sit on `plan_*`. The card now ADDRESSES the renamed
+# ids -- DEFAULTS.space_entity / DEFAULTS.dhw_entity, PLAN_ID_SUFFIXES and
+# PLAN_ID_DERIVE -- and keeps discovering the older ones, so an install
+# upgraded from before the move keeps working: the pre-#1333 pair resolves
+# by its own device-prefixed suffix when nothing is configured (card.mjs
+# pins both arms as Scenario 3b). The unique ids are untouched, so no
+# registry entry moves and no coordinator fixture changes; only a NEW
+# install's suggested entity_id differs.
+#
+# #1320 (R5-D4-03), the round-5 D4 audit's coarse-pointer finding: the card
+# injects ONE <style> block into its shadow root, and this branch changes the
+# pixel value that block emits for the HTML target floor under a coarse
+# pointer -- 24 px (the every-pointer minimum, WCAG 2.2 SC 2.5.8) becomes the
+# 44 px touch EXTRA (SC 2.5.5 AAA / platform HIG) that _targetMinPx() already
+# gave the SVG-drawn lane and slot rects. The floor now reads the SAME
+# predicate the drawn geometry does, _coarsePointer(), so the coarse arm gets
+# 44 px where every other arm is bit-for-bit unchanged.
+#
+# EXACTLY ONE of the 40 states moves: coarse_pointer, the state that renders
+# the card with the coarse-pointer arm switched on. Its diff is STYLESHEET
+# TEXT ONLY -- six declarations inside the one <style> block change 24 -> 44
+# (the shared selector-list rule's min-height and min-width, the
+# .whatif input[type="range"] min-height, the .whatif .wi-remove min-width,
+# and the .viewctl button min-width and min-height); no markup element,
+# attribute or text node outside the style block is added, removed or
+# reordered.
+#
+# The mouse arm is byte-identical to the comparison ref, by construction and
+# by measurement: the floor emits the same template text with 24 in place of
+# 44, so all 39 states that render under a fine pointer do not move at all.
+# Measured, not assumed: card_drift reports exactly this one state as DRIFT
+# and reports the other 39 identical.
+#
+# The #1333/#1334 pair the comment above records is HISTORICAL for this file:
+# the comparison ref already carries it, so its three states (no_plan,
+# no_plan_expanded, editor_schema) are byte-identical to the ref here and a
+# claim on any of them is stale -- which is what the ref's own list, inherited
+# verbatim, reported before this restatement.
+#
+#
+
+# Historical, kept as record: the list above was restated by #1333/#1334.
+# Its 39 predecessor entries described the #1318/#1319 stylesheet diff
+# alone, and the 37 that still render those rules are byte-identical to
+# this branch's comparison ref.
+#
+# #1318 and #1319, both in the card's one stylesheet plus one inline style.
+#
+# #1319 (R5-D4-02): .hl-stat.hl-score is a control (role="button" arrives
+# after render) that never joined the 24 px target floor and measured
+# 158x15 px at phone width. It gains the .expand/.close pattern -- 5 px
+# vertical padding with an equal negative margin -- so the hit box grows to
+# 25 px while the flex line, the sibling stats and the pill's own text keep
+# their geometry (measured: every anchor unchanged, the pill 15 -> 25 px).
+#
+# #1318 (R5-D4-01): the wood-cheaper banner owned its border, background
+# and size but never its colour, so its text inherited the ambient page
+# colour -- 1.21:1 black on the dark card background wherever the host
+# paints none. Its inline style gains color:var(--primary-text-color), the
+# token every other text lane already sets.
+#
+#
+# 39 of the 40 states were claimed by it, for the same measured reason as
+# #822, #936, #1220 and #1269 before it: the card injects ONE <style> block
+# and card_drift captures the whole shadow root, so the #1319 rule edit moved
+# every state that rendered the stylesheet. editor_schema, the 40th, renders
+# the config editor's schema and no card stylesheet, so it did not move
+# (card_drift reported it identical and REFUSED a list that included it).
+# Every one of the 39 diffs was STYLESHEET TEXT ONLY -- no markup element
+# outside the style block was added, removed or reordered in any of them,
+# except wood_alert, whose diff additionally carried the banner's own
+# inline-style insertion (#1318), itself text-only inside one attribute.
+#
+# Measured at both ends with the finder's own harness,
+# tools/audit/round5/D4/seat-a/sweep.mjs (342 renders, frozen clock):
+#   contrast_aa_fail 3 -> 0 (light 0/0, dark 3 -> 0, sv 0/0)
+#   hit_under24_fine 6 -> 4 of 7848 (the pill 158x15 x2 gone; the two that
+#     remain are rect.slot-hit[6] 16.7x24.5, the 15-minute slot the growth
+#     algorithm documents as both-sides-boxed-in: 14.33 px of empty lane
+#     around 22.11 px of need, neighbours' ink on both sides)
+#   every other sweep class unchanged: overlap 831/831, overflow 12/12,
+#     coarse 728/728, focus_unreachable 135/135, hover 0/0, errors 0/0
+#
+
+#
+
+#
+#
+
+# #521, the real-Home-Assistant nightly: this branch claims NOTHING. A new
+# test script, its two classification entries and one workflow job -- no
+# production file is touched, so every fixture is byte-identical by
+# construction.
+#
+# #509, the diagnostics privacy fix: this branch claims NOTHING. No card
+# source is touched; diagnostics.py is loaded by Home Assistant for
+# `Download diagnostics` and is not on any path that renders the card.
+#
+# #523 (an autofix job that reported success without repairing): this
+# branch claims NOTHING. Gate plumbing and CI only -- no card source is
+# touched.
+#
+#
+#
+# The finding-propagation destination fix: this branch claims NOTHING. Two
+# rules files and CLAUDE.md only -- no card source is touched.
+#
+# The document-contradiction fixes (tools/audit/briefs/fixer.md step 5,
+# tests/README.md exclusion list and script counts): this branch claims
+# NOTHING. Prose in two documents only -- no card source, template or style
+# is touched, so the rendered markup is byte-identical by construction.
+#
+# #546, the unsaveable setup page: this branch claims NOTHING. The card's
+# only edit is a comment above its own PLACE_LABELS map; no box, position
+# or payload key is touched, so every rendered state is byte-identical.
+# Claim-file merge driver: this branch claims NOTHING. No card source, no
+# payload key and no published value is touched.
+#
+#
+# #304 (cover the 21 named config_flow.py statements): this branch claims
+# NOTHING. Two test files only; no card source is touched.
+#
+#
+# #539 (tools/audit generated the forbidden mkdir gate lock into the text new
+# auditors read): this branch claims NOTHING. No card source, template or
+# style is touched -- the diff is a shell generator, agent prompt strings
+# under .claude/workflows/ and audit prose.
+#
+#
+# #550 (the apply_topology set check pinned the reverse direction against a
+# module constant, not the schema): this branch claims NOTHING. tests/features.py
+# only; no card source, template, style or payload key is touched.
+# The claim-driver policy text, split out of #545 for approval: this branch
+# claims NOTHING. Two prose files only -- no card source is touched.
+# W4-G8 S7 (#193, the thermal-learning seam): this branch claims NOTHING.
+# One numeric helper moves out of two coordinator learners -- no card
+# source, no payload key and no published value is touched.
+# W4-G9 S8 (#193, the COP-health watch): this branch claims NOTHING. Two
+# coordinator initialisations move between init methods -- no card source, no
+# payload key and no published value is touched.
+# #547, the config-flow stored-value arm: this branch claims NOTHING. Two
+# test scripts, tests/golden.py and the config_flow golden fixture only --
+# no card source, template, style or payload key is touched, so every
+# rendered state is byte-identical by construction.
+#
+# The README section on AI use: this branch claims NOTHING. README.md only
+# -- no card source is touched.
+# W4-G10 S9 (#224, optimize's breach-report tail): this branch claims NOTHING.
+# One optimizer method is split in two -- no card source, no payload key and no
+# published value is touched.
+# #558 D2/D3 (lane D): this branch claims NOTHING. No card source, template,
+# style or payload key is touched. The card reads narrative.lines and renders
+# them verbatim, so the currency change alters what those already-rendered
+# strings SAY without changing any card state this lane records; the sensor
+# device class and the state translations are Home Assistant surfaces the
+# card never reads. Measured: card_drift reports "identical in all 34 states".
+
+# #558 lane C, items C2 and C3. 33 of the 34 states move; the 34th,
+# editor_schema, is the card's own config editor and draws neither the legend,
+# the chart nor the card's style block -- the gate reports it identical.
+#
+# Direction, by what each state actually draws.
+#
+# All 33: MORE markup, never less, from two sources that render on every
+# page -- the style block gains the .legend-note, .savings-table and .sv-mag
+# rules, and every legend chip gains an aria-pressed attribute.
+#
+# The 31 that draw a chart also gain a .legend-note row carrying the
+# hot-water band's sentence, an aria-describedby on the chip that owns it,
+# and a class="series band" envelope path under the two dashed edges. They
+# are the only states with any SUBTRACTION: the same sentence leaves the
+# chip's title= attribute, and one or two time-axis labels are dropped per
+# chart, wherever a label clamped to the plot edge overlapped its neighbour.
+#
+# no_plan and no_plan_expanded draw the legend but no chart and no band, so
+# they move by the style block and aria-pressed alone -- purely additive.
+#
+# #558 C1, the chart's four contrast defects. 33 of 34 states move; the
+# 34th, editor_schema, is the card's own config editor and draws neither the
+# legend nor the chart.
+#
+# Every listed state moves for the SAME reason first: the legend row is
+# rendered on every tab, including the setup pages, so the solar chip's
+# swatch changes on all of them -- #9a7700 -> #ed6900, and solid -> a dashed
+# repeating-linear-gradient. Direction: one <span class="dot"> style string
+# per state. The 21 states that also draw the chart move further, in four
+# more ways, all in the same direction (more ink, never less):
+#
+#   the "now" marker and its label   var(--primary-color,#03a9f4) and the
+#                                    #026aa8 constant -> var(--primary-text-color,#212121),
+#                                    plus class="now" / class="now-label"
+#   the estimated-price region       fill-opacity 0.07 -> 0.16, and ONE new
+#                                    <line class="estimated-edge"> per chart
+#                                    (absent where the region starts at or
+#                                    before the plot's left edge)
+#   the time grid                    the unlabelled hourly rules are GONE
+#                                    (fewer <line> elements); the labelled
+#                                    ones change token, width and opacity
+#   value gridlines                  new: one <line class="grid grid-h"> per
+#                                    tick of the outermost drawn axis
+#   the solar series stroke          gains stroke-dasharray="6 3"
+#
+# No payload key, published value or solver path is touched: this branch
+# changes the card's own drawing only.
+#
+# #558 C4, the dark-theme and graphics contrast witness. 33 of 34 states
+# move; editor_schema is the card's own config editor and draws neither the
+# stylesheet sites C4 retargets nor the chart.
+#
+# Every listed state moves for the same reason: text that sat on
+# ACCENT_READABLE (#026aa8, 2.95:1 on HA dark) or MUTED_READABLE
+# (#666666, 2.97:1 on HA dark) now uses var(--primary-text-color). No
+# fixed hex clears 4.5:1 on both #ffffff and #1c1c1c. Direction: colour
+# tokens in the style block (and one lane-more fill), never added or
+# removed markup. ACCENT_READABLE stays only on .wi-save's filled
+# border/background (white-on-fill, theme-independent). MUTED_READABLE
+# is gone. No payload key, published value or solver path is touched.
+#
+# #558 B12, the Playwright README hero: this branch claims NOTHING. The
+# committed PNG is a screenshot of the card, not a change to the card;
+# no card source, template, style or payload key is touched, so every
+# rendered state is byte-identical by construction.
+
+# #822 and #823, both in the card's one stylesheet.
+#
+# #822: .chip.nodata was `cursor: not-allowed; opacity: 0.3`, which was wrong
+# twice. The opacity put the label at 1.90:1 light and 2.36:1 dark against a
+# 4.5:1 floor; the cursor claimed the chip was inert while a click on it
+# toggles and persists like every other chip -- and all seven chips are the
+# card's only tab stops, so that is the whole keyboard surface. The state now
+# rides on the dot (a graphic, 3:1 under WCAG 1.4.11) and italics, never on
+# fading the text. This is the fix #261 already applied to .chip.off.
+#
+#   chip_nodata_contrast_light   1.90 -> 16.10
+#   chip_nodata_contrast_dark    2.36 -> 13.03
+#   chip_nodata_opacity          0.3  -> 1
+#   chip_nodata_cursor           not-allowed -> pointer
+#
+# #823: .away-strip had no CSS rule matching it at all -- a 13px checkbox,
+# a 14px label and a 0px visual gap, so the two labels rendered as
+# "AwayReturn". This branch adds base .away-strip rules and adds the strip's
+# own controls to coarseHtmlTargets, the card's 24px coarse-pointer floor.
+#
+# 33 of the 34 states are claimed. That is not over-claiming: the card injects
+# one <style> block and card_drift captures the whole shadow root, so a rule
+# added anywhere moves every state's snapshot. Measured, not assumed --
+# card_drift reports exactly these as DRIFT, and it REFUSED an earlier version
+# of this list that claimed all 34: `editor_schema` renders the config editor's
+# schema and no card stylesheet, so it does not move and claiming it is stale.
+# The MARKUP is unchanged
+# in every state; only the stylesheet text differs, except in the states that
+# render the away strip, where its computed layout changes too.
+#
+# Measured at both ends with the finder's own harness,
+# tools/audit/round3/D4/card_ux_defects.mjs:
+#   away_checkbox_min_px  13   ->24
+#   away_label_min_px     14   ->24
+#   away_return_min_px    21.3 ->24
+#   away strip layout     display:block, gap:normal -> display:flex, gap:12px
+#   visual gap between the two labels  0px -> 12px
+#   coarse_ruleset_min_px 24 at both ends (the control arm, undisturbed)
+
+# #935 (R4-D4-01), the lane strip's labels: 6.4 px over their own slots.
+# 30 of the 34 states move; the four that do not (no_plan, no_plan_expanded,
+# what_if_off, editor_schema) draw no lane strip at the stub's constant
+# 900-unit width -- no plan, the editor off, the config editor.
+#
+# Direction, one mechanism in every claimed state, all additive-or-moved and
+# never subtractive of another element's markup:
+#   each lane label   gains a <rect class="lane-label-plate"> painted
+#                     immediately before it -- an opaque rounded plate of
+#                     var(--card-background-color) so the label's ink is
+#                     measured against the card, not against whatever slot
+#                     ran beneath it (the wood lane's 1.01:1 instance)
+#   the label itself  moves into its own <g class="lane-labels"> emitted
+#                     after the series paths (it used to sit under the
+#                     lane-past tint, the slots and the series bars)
+#   the font          keeps its 0.8 em ratio through a chartFontUnits pass
+#                     of its own, so the rendered size is floored at 8 px
+#                     wherever the axis floor binds; at the 900-unit width
+#                     this gate renders, the font-size ATTRIBUTE is
+#                     unchanged (8 inline / 12 expanded) and only the plate
+#                     and the z-order move
+
+# #936 (audit round 4, D4-03): the 24 px HTML target floor was emitted only
+# inside @media (pointer: coarse) and its _coarsePointer() JS duplicate, so
+# under a mouse the zoom pair laid out at 20.22x20.22 px with 22.22 px
+# between centres -- under SC 2.5.8's 24 px minimum and inside the spacing
+# exception's 24 px circle at once. The floor (renamed htmlTargetFloor) is
+# now emitted once, unconditionally; the media wrapper and the JS duplicate
+# are gone. The card's touch EXTRA stays coarse-only (_targetMinPx()'s 44 px
+# for SVG-drawn targets), exactly as before.
+#
+# 33 of the 34 states are claimed, for the same measured reason as #822/#823
+# above: the card injects one <style> block and card_drift captures the whole
+# shadow root, and editor_schema renders the config editor's schema and no
+# card stylesheet, so it does not move. Every one of the 33 diffs is
+# STYLESTHEET TEXT ONLY -- no markup element is added, removed or reordered
+# in any state (checked line by line: every changed line is the shadow root's
+# own html= dump, and it changes only inside the <style> block).
+#
+# Measured at both ends with the finder's own harness,
+# tools/audit/round4/D4/target_size.mjs (2 arms x 3 viewports x 34 states,
+# frozen clock): fine-pointer targets failing SC 2.5.8 364 -> 11 (the 11
+# that remain are SVG-drawn rects -- setup-hit and the 15-minute slot-hit --
+# sized by different code, and slot-hit is the same residue the coarse arm
+# has always carried); coarse arm 2 -> 2, the control, undisturbed. The
+# zoom pair itself, tools/audit/round4/D4/d4_own_D4-03.mjs, both ends on
+# this box: 20.22x20.22 at 22.22 px centres -> 24.00x24.00 at 26.00 px at
+# all three tiles, fine and coarse arms alike.
+
+# #1219 (round-5 audit, D4-01): the setup diagram's click-to-assign rows.
+# Their hit height was the bare `rowH - 2` = 15 viewBox units under a fine
+# pointer -- the 24 px floor sat behind `_coarsePointer()`, and the coarse
+# branch converted px to viewBox units with `SETUP_W / 280`, a render width
+# nothing ships (the canvas renders 560-1190 px), so at 375 px that was
+# 11.67 px and un-gating it as written would have landed 49+ px rows. The
+# floor now applies to every pointer and converts with the width the canvas
+# is actually drawn at (`SETUP_W / drawnWidth`, the scale `point(ev)`
+# hit-tests with); a first paint with no width yet is re-rendered once by
+# `_refitCharts`, the chart's #256 contract.
+#
+# Direction, one mechanism in every claimed state: each `rect.setup-hit`
+# height attribute goes 15 -> 19.6 units, which is the floor's 24.5 px (24 +
+# the card's documented 0.5 px slack) at this gate's 1.25 px/unit stub, and
+# its y re-centres by half the growth (hitY = y - rowH + 5 - (hitH -
+# hitBase) / 2; 41 -> 38.7 measured). Scope of this change: the 6 states
+# below are every state that draws the setup page. Normalising ONLY the
+# setup-hit boxes (x/y/width/height triple) away leaves the 6 byte-identical
+# to the ref apart from the #1220 stylesheet insertion, which claims the 27
+# states after it; nothing else moves for #1219. The other 28 draw no
+# diagram, which also covers every chart-bearing state -- docs/img's figures
+# are chart pictures and stay valid.
+
+
+# #1220 (round-5 audit, D4-02): the picker's own field and list were absent
+# from the htmlTargetFloor selector list, so `.sp-filter` laid out 23.19 px
+# tall at 375 and 768 px wide -- 0.81 px under SC 2.5.8's 24 px floor,
+# sub-pixel but a miss. The fix is the one the issue body scopes: the
+# selector list gains `.sp-filter, .sp-select,`, and the field floors at
+# 24.00 px. `.sp-select` (132.31 px tall) and the save button (24.00 px,
+# its floor already engaged through .sp-actions) were over already, stay
+# put, and are re-measured as controls.
+#
+# Direction, one mechanism in every claimed state: the card injects ONE
+# <style> block and the selector list is part of it, so its text gains the
+# four comment lines and the selector line, and every state that renders
+# the stylesheet moves. A pure-insertion check over each state's serialized
+# dump shows exactly ONE insertion of the same 298 characters at the same
+# point and no deletion or replacement anywhere -- markup outside the style
+# text is byte-identical in all 27. The 6 setup states above also move for
+# #1219's reason and were claimed there; editor_schema, the 34th, renders
+# the config editor's schema and no card stylesheet, so it does not move.
+#
+# Measured at both ends with the finder's own harness,
+# tools/audit/round5/D4/picker_target.mjs (3 viewports, frozen clock):
+#   picker_under_floor_baseline        2 -> 0
+#   sp_filter_height_375_baseline  23.19 -> 24.00 px
+#   sp_filter_height_768_baseline  23.19 -> 24.00 px
+#   sp_filter_height_1280_baseline 24.72 -> 24.72 px (already over; unchanged)
+#   sp_select_height_baseline         132.31 px, control, undisturbed
+#   sp_save_height_control             24.00 px, control, undisturbed
+# The harness's own SELF-CHECK pins the parent's counts (underBase >= 1) and
+# therefore reads FAIL at any fixed head; that is the fix landing, and it is
+# recorded in the PR body.
+
+
+# #1269, the sensor advisor page. 33 of the 34 pre-existing states move;
+# editor_schema, the 34th, renders the config editor's schema and no card
+# stylesheet, so it does not move (measured: card_drift reports it
+# identical and REFUSED this list when it was included).
+#
+# Direction, one mechanism in 27 of the 33: the card injects ONE <style>
+# block into every render, and this change adds rules to it (the .adv-*
+# set for the advisor page's rows, and the .adv-row line inside the
+# every-pointer 24px htmlTargetFloor selector list), so every state that
+# renders the stylesheet at all moves by stylesheet text only -- no
+# markup element outside the style block is added, removed or reordered
+# in those 27.
+#
+# The remaining 6 also render an expanded dialog, which gains exactly one
+# tab button (data-page="advisor", Advisor/Rådgivare) in the tab list --
+# additive markup on top of the same stylesheet change:
+#   no_plan_expanded, expanded_plan, expanded_zoomed, setup_single_buffer,
+#   setup_two_tank, setup_coil, plus the layout/picker states below whose
+#   dialogs sit on the setup page.
+#
+# advisor_page is NEW in this change's roster (the state drives the new
+# page through the sensor_advisor attribute); the comparison ref renders
+# its dialog on the plan page instead, so the diff there is the feature
+# itself: the page's ranked rows, estimate badges, basis line and the
+# unpriced group.
+#
+# No payload key, published value or solver path is touched by the card
+# change; the backend half is covered by tests/entities.py and the
+# solver's own claim file is untouched.
+#
+
+# The history pan (owner request, part of #201): the plan chart pans back
+# through the recorder's own past, up to 48 h. All 39 states move, in two
+# mechanisms, and the four history_* states are NEW in this roster.
+#
+# Mechanism one, the 35 pre-existing states: SERIES_DEFS gains an eighth
+# series ("actioned", Actioned power / Utförd effekt, kW, teal #00838f
+# stepBars on the power axis) for the pump's own commanded power out of
+# heat_pump_action's recorded history, and every state that renders the
+# legend gains that one chip -- additive markup, nothing removed or
+# reordered. The 34 legend-bearing states also keep everything else they
+# drew: no style rule, axis, marker or series path changes for them, and
+# a hass without callApi keeps the forward-only pan (card.mjs pins that as
+# a null control). editor_schema, the 35th, renders the config editor's
+# schema and data rather than the legend: its diff is the series list
+# gaining the one actioned toggle in both.
+#
+# Mechanism two, the four NEW states, where the diff is the feature
+# itself: each drives a hass whose callApi serves the rig's recorder stub
+# and pans the expanded chart back. history_panned (-10 h) and
+# history_deep_panned (-40 h) show the measured indoor/outdoor
+# temperatures, spot price and irradiance riding the plan's OWN series
+# left of the "now" rule (the seam -- the plan's forward series are cut
+# at the live edge, so past and forecast never double-book a timestamp),
+# plus the actioned power bars and the plan's own bars to the right of
+# the seam; the comparison ref has no history, so its window stays
+# clamped at now and its chart is the plan-only rendering.
+# history_unavailable (every entity answering empty) degrades to a
+# role="status" notice over the live view and snaps the window back to
+# now. history_pending (a fetch that has not answered) draws the same
+# plan plus a loading notice. Neither errors.
+#
+# The legend's localStorage toggle and the config `series:` map accept
+# the new key; no payload key, published value, solver path or backend
+# file is touched.
+
+# The #1286 bug-round repair (owner report + owner's state-first
+# correction): the time loop and the missing actioned slots. Three states
+# move, and all three are the history states whose fixtures were replaced
+# -- the fixed-grid synthetic fixture could neither produce the loop nor
+# represent an install without power, which is exactly how both defects
+# reached a release.
+#
+# Mechanism one, history_panned and history_deep_panned (the realistic
+# fixture now carries irregular 4-11-minute gaps beside 5-hour silences,
+# microsecond+offset stamps across a spring-forward transition, and
+# attribute-only action rows): every smooth series' control points change
+# where a narrow gap neighbours a wide one, because smoothLine's control
+# xs are now clamped to their own segment -- the authored 1/6 tangent put
+# them beyond the far knot and the bezier ran backward in x, the reported
+# temperature loop (measured before the fix: 126 sampled x steps backward
+# on this very fixture; after: 0). Direction-agnostic clamping keeps every
+# other path the card draws byte-identical, so no other state moves.
+#
+# Mechanism two, all three states: the actioned record is state-first.
+# The mode band (class="actioned-band" rects along the plot base, teal,
+# one per heating-mode run forward-filled between heat_pump_action's
+# recorded state changes) now draws on every install, and the power bars
+# ride above it only where the power_kw attribute exists -- history_no_power
+# is NEW in this roster and is the install with no power attribute at all,
+# whose slots render from state alone. The tooltip gains an "Actioned:
+# <mode>" row over the recorded past, and the actioned chip no longer
+# reads nodata when only the band has data.
+#
+# history_unavailable and history_pending are byte-identical to the
+# comparison ref: the degradation paths they pin are unchanged by this
+# repair, and the ref renders them the same way.
+
+# R7-D4-01 (#1454) and R7-D4-02 (#1455), one claim list because one edit
+# moves the same rendered tree.
+#
+# The card injects ONE <style> block into its shadow root, and card_drift
+# captures the whole shadow root, so a stylesheet change moves every state
+# that renders the card. Both edits are inside that block:
+#
+#   * `.dlg-body { overflow-x: hidden }` -> `auto`, so content wider than the
+#     dialog is reachable by a gesture rather than painted outside one. The
+#     instance was the savings table's right-aligned `%` column: a
+#     `width:100%` table whose min-content width exceeds the body, with the
+#     hidden strip exactly the digits.
+#   * `.dlg-tabs` becomes shrinkable and wrappable (`flex: 0 0 auto` ->
+#     `0 1 auto; flex-wrap: wrap; min-width: 0`), so `dialog.expanded`'s own
+#     `overflow: hidden` no longer cuts the Swedish tab label off.
+#
+# Every state below is byte-identical to the comparison ref OUTSIDE that
+# `<style>` block -- measured for all 39, not sampled: the diff each one
+# prints is the stylesheet text alone. Nothing else in the card changed:
+# the only other production edits on this branch are a savings-currency
+# resolver that is a pure refactor of what `headlineHtml` already did, and
+# the `hours` lower bound in `setConfig`, and neither is reachable from a
+# state this gate renders (no state opens the savings dialog page, which is
+# the only surface the resolver feeds).
+#
+# `editor_schema` is the 40th state and is NOT claimed: it renders the
+# config editor's schema, not the card, so it does not move.
+
 # #1495 (mold-floor breach): the plan figure gains a measured "now"
 # temperature in the corner, and the promised house/upper/lower traces are
 # dimmed under a "DHW only — no space heating" banner while space heating is
