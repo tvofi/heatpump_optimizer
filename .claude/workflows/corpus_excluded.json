@@ -1,0 +1,22 @@
+{
+  "_comment": "Round-evidence exclusions for the named-docs check, in the shape .claude/workflows/cfr_exclusions.json takes (a top-level object of keyed entries beside a _comment). policy_lint.mjs merges `excluded` into its CORPUS_EXCLUDED set at load, so each entry here is a named document the corpus cites -- COMMON.md's report-shape line names REPORT.md, fixer.md's baseline line names BASELINE.md -- that holds a finder report or a round baseline, data a later seat reads rather than policy prose. A `.md` is never excused by location, so they are excluded one by one rather than by prefix.",
+  "_why_data_not_source": "These entries must be DATA and not a hardcoded block inside .claude/workflows/policy_lint.mjs. The `policy-docs` job's 'Restore the check source from the base commit' step (#1403) rewrites `.claude/workflows/*.mjs` and `*.py` from the base commit before grading, so a round that ships its evidence files and their exclusions in one branch would have the exclusions erased on CI and fail named-docs; pre-registering them first is refused as FIXTURE VACUOUS, because an exclusion that names no tracked file yet is a destination waiting to be used. This file is outside that pathspec, so it arrives with the branch that adds the evidence it excludes -- the same shape the #1403 fix's own comment names for policy_budgets.json, policy_known_bad.json and cfr_exclusions.json: a grader's criteria are data, and a fixture's expected outcome has to be the data under test.",
+  "_fail_closed": "A missing or unparseable file, or a non-array `excluded`, makes policy_lint.mjs merge nothing, and the cited-but-unexcluded evidence files then re-arm named-docs on the production run -- so this list cannot silently drop an entry; the check that consumes it notices.",
+  "excluded": [
+    "tools/audit/round6/BASELINE.md",
+    "tools/audit/round6/D0/REPORT.md",
+    "tools/audit/round6/D1/REPORT.md",
+    "tools/audit/round6/D2/REPORT.md",
+    "tools/audit/round6/D3/REPORT.md",
+    "tools/audit/round6/D4/REPORT.md",
+    "tools/audit/round6/D5/REPORT.md",
+    "tools/audit/round6/D6/REPORT.md",
+    "tools/audit/round6/D7/REPORT.md",
+    "tools/audit/round6/D8/REPORT.md",
+    "tools/audit/round6/D9/REPORT.md",
+    "tools/audit/round6/D10/REPORT.md",
+    "tools/audit/round6/D11/REPORT.md",
+    "tools/audit/round6/D12/REPORT.md",
+    "tools/audit/round6/D13/REPORT.md"
+  ]
+}
