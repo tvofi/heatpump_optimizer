@@ -355,7 +355,7 @@ class LegionellaGuard:
             # publishes a plan — the actuation may be an external automation
             # that never ran. An attempt already drives `hours_since` from
             # 192 h to 0 exactly as a completion would, because
-            # `_dhw_hours_since_legionella` counts attempts too, so claiming
+            # `hours_since` counts attempts too, so claiming
             # success bought no scheduling benefit at all and cost the ability
             # to say the cycle is unverified. It is said instead.
             self.hold_minutes = 0.0

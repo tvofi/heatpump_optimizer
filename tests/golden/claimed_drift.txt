@@ -648,3 +648,25 @@
 # `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all <merge-base>`
 # prints NO UNCLAIMED DRIFT when this list is current.
 valve_storage_flat_prices # R7-D0-01 (#1447): the 0.20x anchor settles this valved flat-price plan lower
+# R7-D8-01 (#1460), branch fix/r7-coordinator: this diff claims the five
+# coordinator captures and NOTHING ELSE. The direction is ADD-ONLY.
+# `_build_data_dict` now publishes the three keys `SensorGapAdvisorSensor`
+# reads and no seam wrote -- `heat_pump_power_series` (the measured pump
+# draw per settled interval), `house_power_series` (the whole-house meter's
+# own readings, empty without one) and `peak_tariff` (the configured
+# capacity tariff's price_per_kw / window_minutes / peaks_averaged) -- so
+# each capture's `data` gains those keys and nothing else moves. No plan,
+# schedule or solver fixture moves and the optimizer is not modified: the
+# published dict is the only surface the new keys reach. The five fixtures
+# were re-recorded (`golden.py --record --only coord_`) and then cut back to
+# the three keys this branch adds: at this head
+# `tests/env_drift.py --all 6e2a0f2a` reports `32 fixture(s), 13972
+# leaf/leaves differ from the committed files in value alone` -- reported,
+# never failed -- and those value differences predate the branch, so
+# recording them here would write values this diff did not measure.
+
+coord_all_features
+coord_dhw
+coord_grid_fee
+coord_minimal
+coord_two_zone

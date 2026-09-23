@@ -1779,14 +1779,17 @@ class ThermalModel:
         p = self.params
         if to_temp >= from_temp:
             return 0.0
-        c_dhw = max(p.dhw_tank_thermal_mass, 0.01)
-        ua = max(p.dhw_tank_heat_loss_coefficient, 1e-5)
+        # One store, read twice (D2-01): `ua` is built from this same mass, so
+        # `C/ua` is `delta/rate` by construction -- a floor on *either* is a
+        # disagreement, not a guard. A zero coefficient is the only guard left.
+        c_dhw = p.dhw_tank_thermal_mass
+        ua = p.dhw_tank_heat_loss_coefficient
         hot = from_temp - ambient_temp
         cold = to_temp - ambient_temp
         if hot <= 0.0:
             return 0.0
-        if cold <= 0.0:
-            # The target is at or below ambient; the tank never gets there.
+        if cold <= 0.0 or ua <= 0.0:
+            # At or below ambient, or no loss at all: it never gets there.
             return 168.0
         return float(np.clip((c_dhw / ua) * np.log(hot / cold), 0.0, 168.0))
 
@@ -1818,7 +1821,7 @@ class ThermalModel:
         self._step_dhw_floor_injected = 0.0
         self._step_dhw_draw_kw = 0.0
         C_dhw = p.dhw_tank_thermal_mass
-        if C_dhw < 0.01:
+        if C_dhw <= 0.0:
             return dhw_temp
 
         # Heat input from heat pump
@@ -2251,22 +2254,23 @@ class ThermalModel:
             # the buffer and DHW caps' rule (R5-D2-01: a 6 h 12 kW burn into
             # 200 L deleted 18.35 kWh from every balance that could not see
             # it).
+            # One capacity per store, read once per step (D2-01): the raw
+            # `C_buf`/`C_w` -- never a floor -- is what the rate, the
+            # availability bounds above and `_stability_substeps` all use.
             dT_buf = (
                 thermal_power - q_rad_from_buf - q_floor_from_buf
                 - q_buf_loss + wood_draw
-            ) / max(C_buf, 0.01)
-            dT_wood = (ext - wood_draw - q_wood_loss) / max(C_w, 0.01)
+            ) / C_buf
+            dT_wood = (ext - wood_draw - q_wood_loss) / C_w
             dT_wood_cap = max(0.0, WOOD_TANK_MAX_TEMP - wood_temp) / max(
                 dt_hours, 1e-6
             )
             if dT_wood > dT_wood_cap:
-                self._step_wood_refused = (dT_wood - dT_wood_cap) * max(
-                    C_w, 0.01
-                )
+                self._step_wood_refused = (dT_wood - dT_wood_cap) * C_w
                 dT_wood = dT_wood_cap
             new_wood = wood_temp + dT_wood * dt_hours
         else:
-            dT_buf = (thermal_power - q_rad_from_buf - q_floor_from_buf - q_buf_loss) / max(C_buf, 0.01)
+            dT_buf = (thermal_power - q_rad_from_buf - q_floor_from_buf - q_buf_loss) / C_buf
         self._step_buffer_refused = 0.0
         if throttled:
             # Physical ceiling: heat that would push the tank past its safe
@@ -2279,7 +2283,7 @@ class ThermalModel:
             # its physical rate.
             dT_cap = max(0.0, p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6)
             if dT_buf > dT_cap:
-                self._step_buffer_refused = (dT_buf - dT_cap) * max(C_buf, 0.01)
+                self._step_buffer_refused = (dT_buf - dT_cap) * C_buf
                 dT_buf = dT_cap
 
         # --- Slab dynamics ---
@@ -2747,7 +2751,6 @@ class ThermalModel:
         C_buf = p.buffer_tank_thermal_mass
         if C_buf < 1e-6:
             C_buf = 0.04
-        C_buf_div = max(C_buf, 0.01)
         rad_fraction = p.radiator_power_fraction
         area_ratio = p.upper_floor_area_ratio
         q_internal_upper_base = None
@@ -2759,7 +2762,6 @@ class ThermalModel:
             ua_floor = (1.0 - rad_fraction) * design_power / design_dt
         if two_tank:
             C_w = p.wood_tank_thermal_mass
-            C_w_div = max(C_w, 0.01)
 
         T_upper = upper[:, 0].copy()
         T_lower = lower[:, 0].copy()
@@ -2914,8 +2916,8 @@ class ThermalModel:
                             - q_floor
                             - q_buf_loss
                             + wood_draw
-                        ) / C_buf_div
-                        dT_wood = (ext - wood_draw - q_wood_loss) / C_w_div
+                        ) / C_buf
+                        dT_wood = (ext - wood_draw - q_wood_loss) / C_w
                         dT_wood_cap = np.maximum(
                             0.0, WOOD_TANK_MAX_TEMP - T_wood
                         ) / max(dt, 1e-6)
@@ -2925,7 +2927,7 @@ class ThermalModel:
                     else:
                         dT_buf = (
                             thermal_power - q_rad - q_floor - q_buf_loss
-                        ) / C_buf_div
+                        ) / C_buf
                     pass  # refused handled after the substep below
                     if throttled:
                         dT_cap = np.maximum(
@@ -2935,7 +2937,7 @@ class ThermalModel:
                         # Accumulated per substep, averaged at record time --
                         # exactly the scalar path's refused += / n_sub.
                         refused_acc = refused_acc + np.where(
-                            over, (dT_buf - dT_cap) * C_buf_div, 0.0
+                            over, (dT_buf - dT_cap) * C_buf, 0.0
                         )
                         dT_buf = np.where(over, dT_cap, dT_buf)
 
@@ -3140,11 +3142,15 @@ class ThermalModel:
                     inlet_temp=self.params.dhw_inlet_reference,
                 )
                 if q_coil > 0.0:
+                    # The capacity is the raw one, not a floor: this decrement
+                    # and the space step above it are one iteration of one
+                    # store's dynamics, and the step already divides by
+                    # `p.wood_tank_thermal_mass` unguarded (D2-01).
                     state.wood_tank_temperature = max(
                         self.params.dhw_inlet_reference,
                         state.wood_tank_temperature
                         - q_coil * dt_hours
-                        / max(self.params.wood_tank_thermal_mass, 0.01),
+                        / self.params.wood_tank_thermal_mass,
                     )
 
             # DHW simulation (runs in parallel with space heating)

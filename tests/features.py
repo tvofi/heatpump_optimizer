@@ -9735,6 +9735,344 @@ R.check(
 )
 
 
+# --- One capacity per store, above and below the guard (round 7, D2-01) ---
+#
+# `_simulate_step_two_zone` divided the tank's rate by `max(C_buf, 0.01)`
+# while the same step's availability bound and `_stability_substeps` used the
+# raw `C_buf`, so below the guard (buffer under 8.62 L) the tank's stored
+# energy became `C_actual / 0.01` of the heat the step was handed and the
+# balance closed by exactly `(C_actual - 0.01) * dT_buf` -- at 5 L, +5.456e-03
+# kWh on one step. The config flow's own buffer floor is 10 L, so no shipped
+# config reaches it, and the conservation block above cannot see it either: it
+# prices `dE` at `max(C, 0.01)` on both sides, mirroring the bug's own
+# capacity. The balances below price each store at its ACTUAL configured mass
+# (`volume * WATER_SPECIFIC_HEAT`), which is what makes the divergence visible.
+
+_R7CAP_POWER = 4.0
+_R7CAP_DT = 0.003  # `_stability_substeps` == 1 at every volume here, so the
+                   # sub-step composition cannot mask the tank's own leak
+
+
+def _r7cap_balance(buffer_l, wood_l=0.0, dt=_R7CAP_DT):
+    """One-step whole-plant residual (kWh) at the ACTUAL store capacities.
+
+    Net heat in minus every store's enthalpy change, priced at
+    `buffer_l`/`wood_l` litres -- never at a guard. Positive means the model
+    delivered heat the stores were not credited with.
+    """
+    params = ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=buffer_l,
+        mixing_valve_mode=_w2t_mv.MODE_MANUAL, mixing_valve_target=21.0,
+        cop_flow_carnot=True,
+        wood_tank_configured=wood_l > 0.0, wood_tank_volume=wood_l,
+    )
+    model = ThermalModel(params)
+    state = _w2t_state(60.0 if wood_l > 0.0 else None, buf=45.0)
+    outdoor = state.outdoor_temperature
+    u_up = model.effective_heat_loss_coefficient(
+        params.upper_floor_heat_loss, 6.0, 0.5)
+    u_lo = model.effective_heat_loss_coefficient(
+        params.lower_floor_heat_loss_learned, 3.0, 0.25)
+    injected = (
+        model.compute_cop(
+            outdoor, humidity=72.0, flow_temp=state.buffer_tank_temperature
+        ) * _R7CAP_POWER
+        + model.internal_gains_at(7.0)
+        + model.compute_solar_gain(300.0)
+    )
+    losses = (
+        u_up * (state.upper_floor_temperature - outdoor)
+        + u_lo * (state.lower_floor_temperature - outdoor)
+        + params.buffer_tank_heat_loss_coefficient
+        * (state.buffer_tank_temperature - 20.0)
+    )
+    if wood_l > 0.0:
+        losses += params.wood_tank_heat_loss_coefficient * (
+            state.wood_tank_temperature - 20.0)
+    new = model.simulate_step(
+        state, _R7CAP_POWER, outdoor, wind_speed=6.0, precipitation=0.5,
+        solar_radiation=300.0, dt_hours=dt, humidity=72.0, hour_of_day=7.0,
+    )
+    # Refused charge is a loss the stores never saw, so it joins the loss side
+    # after the step writes it -- the same ledger the cap balance above uses.
+    losses += model._step_buffer_refused + model._step_wood_refused
+    de = (
+        params.upper_floor_thermal_mass
+        * (new.upper_floor_temperature - state.upper_floor_temperature)
+        + params.lower_floor_thermal_mass
+        * (new.lower_floor_temperature - state.lower_floor_temperature)
+        + params.slab_thermal_mass
+        * (new.slab_temperature - state.slab_temperature)
+        + params.buffer_tank_thermal_mass
+        * (new.buffer_tank_temperature - state.buffer_tank_temperature)
+    )
+    if wood_l > 0.0:
+        de += params.wood_tank_thermal_mass * (
+            new.wood_tank_temperature - state.wood_tank_temperature)
+    return de - (injected - losses) * dt
+
+
+_r7cap_buf5 = _r7cap_balance(5.0)
+R.check(
+    "the tank's rate divides by the capacity the tank has, not by the guard",
+    abs(_r7cap_buf5) < 1e-9,
+    f"one step at 5 L (C_buf = {5.0 * 0.00116:.5f} kWh/K) closes to "
+    f"{_r7cap_buf5:+.3e} kWh; a max(C_buf, 0.01) divisor leaves the tank's "
+    "own discharge partly unaccounted",
+)
+_r7cap_buf200 = _r7cap_balance(200.0)
+_r7cap_buf10 = _r7cap_balance(10.0)
+R.check(
+    "and is unchanged above the guard (10 L floor, 200 L null arm)",
+    abs(_r7cap_buf200) < 1e-9 and abs(_r7cap_buf10) < 1e-9,
+    f"200 L closes to {_r7cap_buf200:.3e} kWh and 10 L -- the config flow's "
+    f"own floor, C_buf = {10.0 * 0.00116:.5f} -- to {_r7cap_buf10:+.3e}: "
+    "the repair is inert for every schema-reachable volume",
+)
+_r7cap_wood5 = _r7cap_balance(200.0, wood_l=5.0)
+R.check(
+    "the wood tank's rate divides by its own capacity too",
+    abs(_r7cap_wood5) < 1e-9,
+    f"one two-tank step at 5 L wood closes to {_r7cap_wood5:+.3e} kWh; the "
+    "same max(C_w, 0.01) divisor was written on that store's rate",
+)
+
+
+# The wood store's fourth read in one iteration is the DHW refill coil's
+# decrement, and it carried the same `max(C_w, 0.01)`: the coil removed heat
+# from a tank that kept part of it. The identity that pins it is conservation
+# rather than a temperature -- the heat recovered from the tank's own drop, at
+# the tank's own capacity, must not depend on how much the tank holds, because
+# it is one coil removing one quantity of heat in one iteration.
+def _r7cap_coil_implied_q(wood_l, dt=_R7CAP_DT):
+    """Coil heat (kW) implied by the wood tank's drop at its own capacity."""
+    params = ThermalParameters(
+        two_zone_enabled=True, buffer_tank_volume=200.0,
+        mixing_valve_mode=_w2t_mv.MODE_MANUAL, mixing_valve_target=21.0,
+        cop_flow_carnot=True, wood_tank_configured=True,
+        wood_tank_volume=wood_l, dhw_enabled=True, dhw_tank_volume=200.0,
+        dhw_wood_coil_enabled=True,
+    )
+    model = ThermalModel(params)
+    # Wood at 20 C: level with its own ambient, so the step's wood loss is
+    # zero and the tank is a pass-through -- both arms enter the coil at the
+    # same temperature, which is what makes the two drops comparable.
+    out = model.simulate_trajectory_with_dhw(
+        _w2t_state(20.0, buf=45.0),
+        np.full(1, 2.0), np.zeros(1), np.full(1, -5.0),
+        start_hour=7.0, dt_hours=dt,
+    )
+    return (20.0 - out[6][1]) * params.wood_tank_thermal_mass / dt
+
+
+_r7cap_iq5 = _r7cap_coil_implied_q(5.0)
+_r7cap_iq10 = _r7cap_coil_implied_q(10.0)
+_r7cap_iq200 = _r7cap_coil_implied_q(200.0)
+R.check(
+    "the refill coil takes the same heat from a 5 L wood tank as a 200 L one",
+    _r7cap_iq5 > 1e-9
+    and abs(_r7cap_iq5 - _r7cap_iq10) < 1e-12
+    and abs(_r7cap_iq200 - _r7cap_iq10) < 1e-12,
+    f"the coil's heat, recovered from each tank's own drop at its own "
+    f"capacity, reads {_r7cap_iq5:.9f} kW at 5 L, {_r7cap_iq10:.9f} at 10 L "
+    f"and {_r7cap_iq200:.9f} at 200 L; a max(C_w, 0.01) divisor on the "
+    "decrement recovers only 58 % of the same coil at 5 L",
+)
+
+# The batched twin must read the same capacity as the scalar step: both paths
+# share `_stability_substeps` and one divisor, so repairing one and not the
+# other would split them. Before the repair the two agreed only because both
+# used the same guard -- the parity check below pins them to each other, not
+# to a value.
+#
+# The power is chosen so the arm can fail at all (reviewer, PR #1488). At 5 L
+# the availability bound is dT_cap = (70 - 45) / 0.25 = 100 K/h while the net
+# rate is Q/C: at the 2 kW this arm first used that is 344.8 K/h raw against
+# 200.0 K/h floored, so BOTH paths saturate on step 1 and every compared axis
+# reads max_abs_diff = 0.000e+00 in either one-sided mutation -- an arm that
+# cannot fail. 0.5 kW puts the net rate at ~86 K/h raw against ~50 K/h floored,
+# both under the bound, so the state axes diverge as soon as one path is
+# floored and the other is not, which is the mutation this arm exists to catch.
+# The refused channel is deliberately not compared: a step that never saturates
+# refuses nothing, so at this power both sides read 0.0 and the axis would be
+# empty. The arm below asserts that non-saturation instead, since it is what
+# keeps the compared axes live -- at 2 kW it reads 0.901 kWh and the state axes
+# go blind.
+_r7cap_m = ThermalModel(ThermalParameters(
+    two_zone_enabled=True, buffer_tank_volume=5.0,
+    mixing_valve_mode=_w2t_mv.MODE_MANUAL, mixing_valve_target=21.0,
+    cop_flow_carnot=True,
+))
+_r7cap_st = _w2t_state(None, buf=45.0)
+_r7cap_pw = np.full((2, 12), 0.5)
+_r7cap_ot = np.full(12, -5.0)
+_r7cap_z = np.zeros(12)
+_r7cap_batch = _r7cap_m.simulate_trajectory_batch(
+    _r7cap_st, _r7cap_pw, _r7cap_ot, _r7cap_z, _r7cap_z, _r7cap_z, 0.25)
+_r7cap_mism = []
+for _b in range(_r7cap_pw.shape[0]):
+    _r7cap_sr = _r7cap_m.simulate_trajectory(
+        _r7cap_st, _r7cap_pw[_b], _r7cap_ot, _r7cap_z, _r7cap_z, _r7cap_z, 0.25)
+    for _nm, _arr, _ref in (
+        ("room", _r7cap_batch["room"][_b], _r7cap_sr[0]),
+        ("upper", _r7cap_batch["upper"][_b], _r7cap_sr[2]),
+        ("lower", _r7cap_batch["lower"][_b], _r7cap_sr[3]),
+        ("buffer", _r7cap_batch["buffer"][_b], _r7cap_sr[4]),
+    ):
+        if not np.array_equal(_arr, _ref):
+            _r7cap_mism.append(f"{_nm}[{_b}]")
+_r7cap_refused_max = float(np.max(_r7cap_batch["refused"]))
+R.check(
+    "the batched two-zone step divides by the same capacity, bit for bit",
+    not _r7cap_mism,
+    f"scalar/batch divergence at 5 L in {_r7cap_mism[:4]}; the twin must use "
+    "the same C_buf the scalar step does",
+)
+R.check(
+    "and its schedule is one the compared axes can see the divisor in",
+    _r7cap_refused_max < 1e-9,
+    f"the batch refuses {_r7cap_refused_max:.9f} kWh over a 0.5 kW schedule; "
+    "at 0.0 nothing saturates and the state axes above diverge under a "
+    "one-sided mutation, which is the arm's whole point",
+)
+
+# The sibling seam on the DHW tank: the step returned the tank UNCHANGED when
+# C_dhw < 0.01, so the heat it was handed vanished from a store that has a
+# capacity. Same repair, same shape.
+_r7cap_dhw = ThermalModel(ThermalParameters(
+    dhw_enabled=True, dhw_tank_volume=5.0,
+))
+_r7cap_dhw_new = _r7cap_dhw.simulate_dhw_step(
+    50.0, 20.0, 7.0, dt_hours=0.25, draw_power=0.0)
+R.check(
+    "a DHW tank below the guard still takes the heat it is given",
+    _r7cap_dhw_new > 50.0,
+    f"20 kW into a 5 L tank (C_dhw = {5.0 * 0.00116:.5f} kWh/K) for 0.25 h "
+    f"moved it 50.0 -> {_r7cap_dhw_new:.4f} C; the old guard froze it",
+)
+
+
+# The same store's capacity is read a second time in `dhw_coast_hours`, and
+# that expression reads it TWICE: the numerator is `C_dhw` while the `UA` it
+# divides by is built from the same mass (`rate * C_dhw / delta`). A floor on
+# either does not guard anything, it removes the volume from the quotient --
+# and the quotient is the tank's own configured cooling rate, so the coast time
+# between two temperatures must not depend on how much the tank holds. Both
+# floors are measured here: at the merge base the numerator's read 41.333631 h
+# at 5 L against 23.973506 h at 10 L, and with only that one repaired the `UA`
+# floor still read 16.685560 h at 0.5 L and 0.333711 h at 0.01 L -- the band a
+# service call reaches, `POSITIVE_PARAM_FLOOR` being 0.01 L.
+def _r7cap_coast(volume_l):
+    return ThermalModel(ThermalParameters(
+        dhw_enabled=True, dhw_tank_volume=volume_l,
+    )).dhw_coast_hours(60.0, 50.0)
+
+
+_r7cap_coast5 = _r7cap_coast(5.0)
+_r7cap_coast10 = _r7cap_coast(10.0)
+_r7cap_coast200 = _r7cap_coast(200.0)
+_r7cap_coast_band = [_r7cap_coast(v) for v in (0.01, 0.5, 8.62)]
+R.check(
+    "the tank's own standby coast time does not depend on what it holds",
+    abs(_r7cap_coast5 - _r7cap_coast10) < 1e-9
+    and abs(_r7cap_coast200 - _r7cap_coast10) < 1e-9
+    and all(abs(c - _r7cap_coast10) < 1e-9 for c in _r7cap_coast_band),
+    f"60 -> 50 C reads {_r7cap_coast5:.9f} h at 5 L, {_r7cap_coast10:.9f} at "
+    f"10 L and {_r7cap_coast200:.9f} at 200 L; a max(C_dhw, 0.01) numerator "
+    f"against a UA built from the raw mass reads 41.333631 h at 5 L, and a "
+    f"max(UA, 1e-5) denominator reads {_r7cap_coast_band[0]:.6f} h at 0.01 L "
+    f"and {_r7cap_coast_band[1]:.6f} at 0.5 L",
+)
+
+
+# The optional weather arrays default to zero, on all three simulators.
+#
+# `wind_speeds`, `precipitation` and `solar_radiation` each default to `None` in
+# `simulate_trajectory`, in its batch twin and in the DHW-carrying twin, and
+# `None` means calm, dry and dark. Every call site in this file passes an
+# explicit array, so the default branch has no driver here -- and the CI
+# mutation table reports exactly one of its guards as a survivor:
+# `thermal_model.py:2716 GUARD_OFF` (`if wind_speeds is None:` -> `if False:`)
+# runs `None` into the per-step read. These legs pin the default on all three
+# simulators, then show each array is live at these parameters, so a green arm
+# is not three dead ones agreeing.
+def _r7cap_same(a, b):
+    """Structural, bit-for-bit equality over a tuple/dict/array of results."""
+    if isinstance(a, dict):
+        return set(a) == set(b) and all(_r7cap_same(a[k], b[k]) for k in a)
+    if isinstance(a, (tuple, list)):
+        return len(a) == len(b) and all(_r7cap_same(x, y) for x, y in zip(a, b))
+    if isinstance(a, np.ndarray):
+        return isinstance(b, np.ndarray) and a.shape == b.shape and np.array_equal(a, b)
+    return a == b
+
+
+def _r7cap_weather(omit):
+    """The three simulators with `omit` of the optional weather arrays defaulted.
+
+    A flipped guard runs `None` into the per-step read; the exception comes back
+    as a string, so it reports as a failed check rather than a crashed suite.
+    """
+    _w = None if "wind" in omit else _r7cap_z
+    _p = None if "precip" in omit else _r7cap_z
+    _s = None if "solar" in omit else _r7cap_z
+    try:
+        return {
+            "batch": _r7cap_m.simulate_trajectory_batch(
+                _r7cap_st, _r7cap_pw, _r7cap_ot, _w, _p, _s, 0.25),
+            "scalar": _r7cap_m.simulate_trajectory(
+                _r7cap_st, _r7cap_pw[0], _r7cap_ot, _w, _p, _s, 0.25),
+            "dhw": _r7cap_dhw.simulate_trajectory_with_dhw(
+                _r7cap_st, np.full(1, 0.5), _r7cap_z[:1], _r7cap_ot[:1],
+                _w, _p, _s, dt_hours=0.25),
+        }
+    except Exception as exc:  # noqa: BLE001 -- reported, not swallowed
+        return f"{type(exc).__name__}: {exc}"
+
+
+_r7cap_weather_omitted = []
+_r7cap_zeros = _r7cap_weather(())
+if isinstance(_r7cap_zeros, str):
+    _r7cap_weather_omitted.append(f"the explicit-zeros control raised {_r7cap_zeros}")
+else:
+    for _omit in (("wind",), ("precip",), ("solar",),
+                  ("wind", "precip"), ("wind", "precip", "solar")):
+        _got = _r7cap_weather(_omit)
+        if isinstance(_got, str):
+            _r7cap_weather_omitted.append(f"{'+'.join(_omit)} omitted: {_got}")
+        else:
+            for _sim in ("batch", "scalar", "dhw"):
+                if not _r7cap_same(_got[_sim], _r7cap_zeros[_sim]):
+                    _r7cap_weather_omitted.append(f"{_sim} with {'+'.join(_omit)} omitted")
+R.check(
+    "a weather array left at its default is the zero array, on every simulator",
+    not _r7cap_weather_omitted,
+    f"omitting an array that is None by default moved {_r7cap_weather_omitted[:4]} "
+    "against the same call given explicit zeros; `if wind_speeds is None:` is "
+    "the whole of that default in the batch twin",
+)
+_r7cap_live = {}
+for _nm, _pos in (("wind", 3), ("precip", 4), ("solar", 5)):
+    _args = [_r7cap_st, _r7cap_pw, _r7cap_ot, _r7cap_z, _r7cap_z, _r7cap_z, 0.25]
+    if _nm == "wind":
+        _args[_pos] = np.full(12, 15.0)
+    elif _nm == "precip":
+        _args[_pos] = np.concatenate([np.zeros(3), np.full(3, 5.0), np.zeros(6)])
+    else:
+        _args[_pos] = np.concatenate([np.zeros(6), np.full(6, 400.0)])
+    _got = _r7cap_m.simulate_trajectory_batch(*_args)
+    _r7cap_live[_nm] = max(
+        float(np.max(np.abs(_got[_ax] - _r7cap_batch[_ax])))
+        for _ax in ("room", "upper", "lower", "buffer")
+    )
+R.check(
+    "and each of those arrays is live at these parameters",
+    all(_v > 1e-6 for _v in _r7cap_live.values()),
+    "strong wind, rain and sun each move a state axis, so the equality above is "
+    f"not vacuous: {_r7cap_live}",
+)
+
+
 # --- Step length ----------------------------------------------------------
 
 _w2t_m_q, _w2t_out_q = _w2t_run(_w2t_params_two, 60.0, 3.0, n=24, dt=0.25)
@@ -12426,6 +12764,200 @@ R.check(
     "switch.vvc" not in _c6c._pump_commanded,
     f"cache {_c6c._pump_commanded} — recording before the call succeeded "
     "meant one unavailable moment froze the pump state forever",
+)
+
+# R7 D1-02 / #1449: `_apply_action` returns without actuating a plan
+# `_plan_is_stale` has declared unfit, and `_async_drive_pumps` runs one call
+# later off the SAME retained plan -- so it kept commanding the expired
+# horizon's last step. The VVC half is deliberately NOT gated and must not
+# be: its input is the user's DHW window schedule, which cannot go stale, and
+# it is the rail that keeps the loop warm through the outage.
+
+
+def _stale_plan_coord(stale: bool):
+    """A pump-coordinator whose published plan is 400 minutes old, or new."""
+    from heatpump_optimizer.optimizer import OptimizationResult
+
+    coord = _t2_coord(
+        vvc_pump_entity="switch.vvc",
+        space_circulation_pump_entity="switch.space_pump",
+    )
+    n = 48
+    coord._optimization_result = OptimizationResult(
+        power_schedule=[3.0] * n,
+        room_temp_trajectory=[21.0] * (n + 1),
+        slab_temp_trajectory=[22.0] * (n + 1),
+        timestamps=[
+            dt_util.now() + timedelta(minutes=15 * i) for i in range(n)
+        ],
+        prices=[1.0] * n,
+        predicted_cost=10.0,
+        baseline_cost=12.0,
+        predicted_savings=2.0,
+        savings_percentage=16.6,
+        optimal_setpoints=[21.0] * n,
+        status="ok",
+        compressor_starts=3,
+        projected_peak_kw=4.0,
+    )
+    # The retained action, exactly as the live one is kept: it holds
+    # heat_pump_on, which is the curve rail that forces the space pump ON --
+    # the reason the defect's direction was the safe one.
+    coord._current_action = {
+        "power": 3.0,
+        "setpoint": 21.0,
+        "mode": "auto",
+        "price": 1.0,
+        "power_normalized": 1.0,
+        "heat_pump_on": True,
+        "displace_value": 0.5,
+    }
+    coord._mode = _MODE_AUTO
+    coord._last_optimization = dt_util.now() - timedelta(
+        minutes=400 if stale else 0
+    )
+    if coord._plan_is_stale() is not stale:
+        raise AssertionError("probe: the staleness precondition did not hold")
+    _asyncio.run(coord._async_drive_pumps())
+    return coord
+
+
+def _pump_entities(coord) -> list[str]:
+    return [call[2]["entity_id"] for call in coord.hass.services.calls]
+
+
+_stale_pumps = _stale_plan_coord(True)
+_fresh_pumps = _stale_plan_coord(False)
+R.check(
+    "the space pump is not driven from a plan _plan_is_stale refused (#1449)",
+    "switch.space_pump" not in _pump_entities(_stale_pumps),
+    f"commanded {_pump_entities(_stale_pumps)} from a 400-minute-old plan",
+)
+R.check(
+    "the VVC is not gated with it: its window schedule cannot go stale (#1449)",
+    "switch.vvc" in _pump_entities(_stale_pumps),
+    f"commanded {_pump_entities(_stale_pumps)} — a plan outage must not "
+    "stop the DHW loop",
+)
+R.check(
+    "and a fresh plan drives the space pump, so the check above is not vacuous",
+    _pump_entities(_fresh_pumps) == ["switch.vvc", "switch.space_pump"],
+    f"fresh plan commanded {_pump_entities(_fresh_pumps)}",
+)
+
+# The class D1-02 states, as a rule rather than an instance: every actuation
+# seam the cycle reaches (a `hass.services.async_call` whose service verb
+# writes, `async_publish_current_action`, or `_async_set_pump`) is either
+# gated on `_plan_is_stale` -- itself or through a module-level helper it
+# calls by name -- or is named below with the reason it is not. The rule reads
+# the source, so a write path added to the cycle is returned by it and has to
+# be dispositioned here instead of passing unseen.
+#
+# Design choice, stated: "actuation" is the four verbs this integration drives
+# a plant with (turn_on, turn_off, set_value, set_temperature) plus the two
+# named seams above, and a service call whose verb is not a literal counts as
+# actuation -- so an unknown call is reported rather than skipped. A read-only
+# service (weather.get_forecasts) is not an actuation, which is what keeps the
+# cycle's fetch paths out of the list. `_command_frequency` is the one seam
+# without a gate, and the reason is D1-02's: its write is keyed on
+# `_commanded_power()`, which reads the same frozen `_current_action` the
+# frequency watchdog's divergence test reads, so gating the write alone would
+# stand control down on a command the pump is entitled to ignore.
+import ast as _d102_ast  # noqa: E402
+import inspect as _d102_inspect  # noqa: E402
+
+from heatpump_optimizer import coordinator as _d102_mod  # noqa: E402
+
+_D102_VERBS = {"turn_on", "turn_off", "set_value", "set_temperature"}
+_D102_DIRECT = {"async_publish_current_action", "_async_set_pump"}
+_D102_FUNCS = (_d102_ast.FunctionDef, _d102_ast.AsyncFunctionDef)
+
+
+def _cycle_actuation_paths() -> list[tuple[str, bool]]:
+    """`(method, gated on _plan_is_stale)` for every actuation seam the
+    cycle `_async_update_data` reaches.
+
+    Both tests walk the AST rather than the text: a docstring or comment that
+    *names* `_plan_is_stale` is not a gate and does not make a seam look
+    gated, which is the mutation this check was first written blind to.
+    """
+    src = _d102_inspect.getsource(_d102_mod)
+    tree = _d102_ast.parse(src)
+    cls = next(
+        n
+        for n in _d102_ast.walk(tree)
+        if isinstance(n, _d102_ast.ClassDef) and n.name == Coord.__name__
+    )
+    methods = {m.name: m for m in cls.body if isinstance(m, _D102_FUNCS)}
+    module_funcs = {
+        n.name: n for n in tree.body if isinstance(n, _D102_FUNCS)
+    }
+
+    def bare_calls(node) -> list[str]:
+        return [
+            c.func.id
+            for c in _d102_ast.walk(node)
+            if isinstance(c, _d102_ast.Call)
+            and isinstance(c.func, _d102_ast.Name)
+        ]
+
+    def writes(node) -> bool:
+        for call in _d102_ast.walk(node):
+            if not isinstance(call, _d102_ast.Call):
+                continue
+            if not isinstance(call.func, _d102_ast.Attribute):
+                continue
+            if call.func.attr in _D102_DIRECT:
+                return True
+            if call.func.attr != "async_call":
+                continue
+            lits = [
+                a.value for a in call.args[:2] if isinstance(a, _d102_ast.Constant)
+            ]
+            if len(lits) < 2 or lits[1] in _D102_VERBS:
+                return True
+        return False
+
+    def gated(node) -> bool:
+        for ref in _d102_ast.walk(node):
+            if isinstance(ref, _d102_ast.Attribute) and ref.attr == "_plan_is_stale":
+                return True
+        return any(
+            gated(module_funcs[name])
+            for name in bare_calls(node)
+            if name in module_funcs
+        )
+
+    out = []
+    for call in _d102_ast.walk(methods["_async_update_data"]):
+        if not (
+            isinstance(call, _d102_ast.Call)
+            and isinstance(call.func, _d102_ast.Attribute)
+            and isinstance(call.func.value, _d102_ast.Name)
+            and call.func.value.id == "self"
+        ):
+            continue
+        name = call.func.attr
+        if name in methods and writes(methods[name]):
+            pair = (name, gated(methods[name]))
+            if pair not in out:
+                out.append(pair)
+    return out
+
+
+_d102_paths = _cycle_actuation_paths()
+R.check(
+    "every actuation seam the cycle reaches is gated on plan staleness, or is "
+    "the frequency stage whose reason D1-02 records (#1449)",
+    sorted(_d102_paths)
+    == sorted(
+        [
+            ("_apply_action", True),
+            ("_async_drive_pumps", True),
+            ("_command_frequency", False),
+        ]
+    ),
+    f"the enumeration rule returned {_d102_paths}",
 )
 
 # --- #47 through the coordinator path (the review's major finding) --------------
@@ -20350,6 +20882,61 @@ R.check(
     "the scratch config shares the live baseline load array",
 )
 
+# R7 D1-01 / #1448: the what-if's rate-limit slot is consumed when a solve is
+# STARTED, so the arm where the shadow solve raises is limited too. The judge
+# drove the real (unstubbed) path: on this arm 5 calls started 5 solves --
+# 2,225 ms against 377 ms healthy -- and on the #783 worker-fallback arm 0,
+# so the slot is spent on the solve arm only: the pre-solve returns
+# (no_plan, no_prices, invalid_windows, wood_err) spend no CPU and would
+# otherwise delay the next call for nothing.
+_WHATIF_CALLS = 5
+
+
+async def _whatif_solves(*, fails: bool) -> int:
+    """Shadow solves started by _WHATIF_CALLS consecutive what-if calls.
+
+    The clock is frozen: a solve takes about a second of wall clock, so on
+    the live clock the third call would already be outside the three-second
+    interval and the count would measure the solve's duration rather than
+    the limiter.
+    """
+    coord = _solve_coord()
+    await coord.async_run_optimization()
+    real = _coord_mod._await_optimize
+    started = []
+
+    async def _shadow(*args, **kwargs):
+        started.append(1)
+        if fails:
+            raise RuntimeError("probe: the shadow solve failed")
+        return await real(*args, **kwargs)
+
+    coord._last_simulation = None
+    _coord_mod._await_optimize = _shadow
+    dt_util.freeze(dt_util.now())
+    try:
+        for _ in range(_WHATIF_CALLS):
+            await coord.async_simulate({"power_cap_kw": 3.0})
+    finally:
+        _coord_mod._await_optimize = real
+        dt_util.freeze(None)
+    return len(started)
+
+
+_whatif_failed_solves = _asyncio.run(_whatif_solves(fails=True))
+_whatif_ok_solves = _asyncio.run(_whatif_solves(fails=False))
+R.check(
+    "a failing what-if spends the rate-limit slot: 5 calls, 1 solve (#1448)",
+    _whatif_failed_solves == 1,
+    f"{_WHATIF_CALLS} failing calls started {_whatif_failed_solves} solves",
+)
+R.check(
+    "the success arm is limited to one solve, which is what makes the check "
+    "above about the failing arm and not about the call loop (#1448)",
+    _whatif_ok_solves == 1,
+    f"{_WHATIF_CALLS} succeeding calls started {_whatif_ok_solves} solves",
+)
+
 R.section("v5.1.3 — an unusable sensor freezes the learners, not just a quiet one")
 
 # The rank-1 finding of the second audit. `_learning_frozen` froze only on
@@ -27098,7 +27685,7 @@ R.section("v5.1.10 — a commanded cycle is credited only when something saw it"
 
 # With no tank probe it is tempting to write the COMPLETION timestamp for a
 # boost nothing has verified. The claim buys no scheduling benefit whatsoever:
-# `_dhw_hours_since_legionella` already counts attempts, so an attempt drives
+# `hours_since` already counts attempts, so an attempt drives
 # the countdown from 192 h to 0 identically — and it costs the ability to say
 # the cycle is unverified. This integration publishes a plan; the actuation
 # may be an automation that never ran.

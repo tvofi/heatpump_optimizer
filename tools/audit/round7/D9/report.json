@@ -1,0 +1,194 @@
+{
+ "dimension": "D9",
+ "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+ "report_path": "tools/audit/round7/D9/REPORT.md",
+ "exposure": "none: no docs/, no GitHub, no earlier round's findings were read; the only citations encountered are the D<k>-nn / #NNN prose inside production and test comments, which COMMON.md classifies as context rather than a to-do",
+ "findings": [
+  {
+   "id": "D9-01",
+   "title": "36 % of the recorder payload per cycle is series-shaped or byte-identical on repeat",
+   "severity": "medium",
+   "claim": "Of the 9,512 bytes of entity attributes written to the recorder every optimisation cycle, 1,753 B are series-shaped data of the class the plan sensors declare unrecorded and 1,684 B are byte-identical repeats of a (key, value) another entity published in the same cycle, so 36.1 % of the payload is avoidable by the project's own rule.",
+   "mechanism": "_unrecorded_attributes covers the plan sensors' series (forecast, slots, schedule, dhw_schedule) but not the series-shaped attributes of PredictiveInsightSensor (dhw_usage_profile, 481 B), ThermalBatterySensor (components, 470 B), DHWSetpointAdvisorSensor (candidates, 504 B) or SensorGapAdvisorSensor (gaps, 298 B); and six accumulating energy/cost sensors each publish their own copy of the same period and split_method values, byte-identical across all six.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/payload_bytes.py",
+    "harness_path": "tools/audit/round7/D9/payload_bytes.py",
+    "value": 9512,
+    "unit": "recorded attribute bytes per cycle over 64 entities (1,684 B/cycle duplicated, 1,753 B/cycle series-shaped)",
+    "cpu_or_wall": "bytes",
+    "contention_note": "bytes: contention-immune; the fan-out box ran other finders (load1 3.18) and cannot move a byte count",
+    "tolerance": "exact (deterministic fixtures, clock frozen at tests/golden.py START)",
+    "load1": 3.18,
+    "thread_factor": 1.0,
+    "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+    "machine": "Apple M1, 8 GB, darwin 25.6.0, audit box shared with other finders"
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:HeatPumpOptimizerSensorBase.extra_state_attributes (with each subclass's _unrecorded_attributes, which HA's recorder filters on)",
+   "perturbation": {
+    "change": "add 'dhw_usage_profile' to PredictiveInsightSensor._unrecorded_attributes (the one-line production edit a fix makes)",
+    "expected_direction": "down",
+    "observed_value": 9008
+   },
+   "metric_definition": "recorded attribute bytes per cycle: sum over every entity the platforms add of len(json.dumps(extra_state_attributes)) after removing that entity's unrecorded_attributes keys",
+   "phenomenon_property": "Every attribute an entity publishes outside its own unrecorded_attributes is written to the recorder on each state change; an attribute that is a series, or a byte-identical repeat of another entity's, is therefore a per-cycle write the project's own exclusion rule already rejects elsewhere.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/payload_bytes.py --top 64 \u2014 enumerate every entity both platforms add and read its extra_state_attributes against its unrecorded_attributes",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/payload_bytes.py --exclude nosuchkey",
+    "value": 9512,
+    "note": "a key no entity publishes: recorded and excluded totals are byte-identical to the shipped arm, so the number is the payload and not the harness's own edit"
+   },
+   "leave_one_out": {
+    "cells": 64,
+    "min": 2,
+    "max": 1097,
+    "drop_most_favourable": 8415
+   },
+   "reproduction_steps": [
+    "cd /Users/timmalmstrom/audit-r7-D9",
+    "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/payload_bytes.py",
+    "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/payload_bytes.py --exclude dhw_usage_profile",
+    "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/payload_bytes.py --exclude nosuchkey"
+   ],
+   "stop_rule_class": "hygiene",
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/binary_sensor.py"
+   ],
+   "proposed_fix_scope": "One pull request: add dhw_usage_profile, components, candidates and gaps to the respective entities' unrecorded_attributes (or drop them from the payload if the card reads them live), and publish period/split_method once instead of once per accumulating sensor. Leave-one-out: the recorded total with the largest single entity dropped is 8,415 B/cycle, so the finding does not rest on PredictiveInsightSensor alone."
+  },
+  {
+   "id": "D9-02",
+   "title": "The per-candidate polish is 35 % of every solve's CPU and 37 % of its gradients",
+   "severity": "medium",
+   "claim": "optimizer._lbfgsb_restart runs once per starting candidate and consumes 164 of the default two-zone DHW solve's 442 batched gradients (37.1 %) and 762.1 of its 2,170.4 ms CPU (35.1 %), against the code's own cost model of 'one short L-BFGS-B run per candidate, not a second solve'.",
+   "mechanism": "_multi_start_minimize polishes every scored candidate inside the loop (round-5 D0-02 / #1208) and hands each polish the same maxiter budget the main run got, so a polish is ~59 % of a main run's length (41 gradients against ~70) rather than a short one; four candidates means eight L-BFGS-B runs where four would do.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/polish_cost.py",
+    "harness_path": "tools/audit/round7/D9/polish_cost.py",
+    "value": 762.1,
+    "unit": "CPU ms inside _lbfgsb_restart of a 2170.4 ms solve (share 0.3511, 40.216 reference solves)",
+    "cpu_or_wall": "cpu",
+    "contention_note": "provisional: fan-out box, load1 4.00, thread_factor 1.000; the ratio against tests/stress.py:reference_solve and the gradient counts are the final half",
+    "tolerance": "+/- 5 % on the share (two re-takes within 1.5 %); the counts are exact",
+    "load1": 4.0,
+    "thread_factor": 1.0,
+    "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+    "machine": "Apple M1, 8 GB, darwin 25.6.0, audit box shared with other finders"
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:_lbfgsb_restart",
+   "perturbation": {
+    "change": "return best at the top of _lbfgsb_restart (the one-line production edit that removes the polish)",
+    "expected_direction": "to_zero",
+    "observed_value": 0.0
+   },
+   "metric_definition": "CPU ms inside optimizer._lbfgsb_restart and the batched gradients it runs, as a fraction of the whole optimize() CPU, over one default two-zone DHW solve",
+   "phenomenon_property": "A per-candidate polish that runs at the full restart budget is a second solver pass over the same candidates rather than a short refinement, and its cost is stated in the code as a short run.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/polish_cost.py \u2014 one run per shape that calls _multi_start_minimize (two-zone DHW, two-zone space-only), each timing _lbfgsb_restart and the gradients that arrive inside it",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/polish_cost.py --dhw-free",
+    "value": 0.358,
+    "note": "the same instrument on the space-only shape (dhw=False), a different candidate set and no DHW stage: polish CPU share 0.3580, gradient share 0.3595, so the cost belongs to the polish and not to the DHW planner, which measures 93.3 ms / 4.3 % under the same instrument"
+   },
+   "reproduction_steps": [
+    "cd /Users/timmalmstrom/audit-r7-D9",
+    "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/polish_cost.py",
+    "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/polish_cost.py --no-polish",
+    "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/polish_cost.py --dhw-free"
+   ],
+   "stop_rule_class": "hygiene",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "proposed_fix_scope": "One pull request in optimizer.py: give the polish its own smaller maxiter (a short run, as the comment claims) or polish only the top-k candidates by score, and restate the measured share in the comment. Re-run tools/audit/round7/D9/polish_cost.py at both ends; the plan may move, so the golden may-drift path applies if a fixture moves."
+  },
+  {
+   "id": "D9-03",
+   "title": "The cap/pin shapes still batch, and the work channel cannot tell the paths apart",
+   "severity": "low",
+   "claim": "tests/stress.py:1052-1058 states that a zero-range bound (power_cap_kw or pin_off_steps) 'takes the whole solve off the batched jacobian', but the fuse-cap shape build_case produces runs 316 batched gradients, and under the one-line edit that really does take it off, the gate's simulate_steps channel moves +0.019 % while the solve's CPU moves 16.1x.",
+   "mechanism": "D9-01 removed the fixed-variable carve-out from _bounds_supported_by_batch and moved the NaN case into _batch_fd_gradient, so no shipped bound shape refuses the batch; the sweep's cap and pin scenarios now sample the batched path, and the #1229 work channel charges a batch at rows x steps, which makes the two paths record the same step-equivalents for the same solve.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/gradient_cost.py --zero-range  # then the same harness with --scalar",
+    "harness_path": "tools/audit/round7/D9/gradient_cost.py",
+    "value": "batched_gradients 316 (zero-range) vs 0 (--scalar); simulate_steps 4128216 vs 4128984 (+0.019 %); kernel_ms 1238.1 vs 29807.9; solve_cpu_ms 2233.9 vs 35940.1",
+    "unit": "counts (gradients, steps) plus CPU ms of one winter/2z/dhw solve",
+    "cpu_or_wall": "ratio",
+    "contention_note": "provisional for the CPU ms (fan-out box, load1 4.30, thread_factor 1.000); the counts and the +0.019 % work delta are exact and contention-immune",
+    "tolerance": "counts exact; the CPU ratio reproduced 16.1/16.4/16.1 across three re-takes",
+    "load1": 4.3,
+    "thread_factor": 1.0,
+    "baseline_sha": "f9d6f78243fa65f6fa128d2357752a2ae7f60648",
+    "machine": "Apple M1, 8 GB, darwin 25.6.0, audit box shared with other finders"
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:_bounds_supported_by_batch, with optimizer:_batch_fd_gradient and tests/stress.py:SolverWork.simulate_steps counted at the same seam",
+   "perturbation": {
+    "change": "can_batch = False in _multi_start_minimize, i.e. optimizer._bounds_supported_by_batch returning False for every bound vector",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "batched gradients = calls to optimizer._batch_fd_gradient per solve; work = scalar step calls plus rows x steps of simulate_trajectory_batch (stress.SolverWork.simulate_steps)",
+   "phenomenon_property": "Every bound shape the sweep builds is served by the batched finite-difference jacobian, and the gate's step-equivalent channel cannot distinguish a vectorized 96-row batch from 96 scalar trajectories, so any claim that keys on either must be re-derived by running the arm rather than read from the docstring or the budget.",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/gradient_cost.py --zero-range \u2014 one run per zero-range channel the sweep builds (power_cap_kw, pin_off_steps), plus --scalar as the arm where the batch is genuinely refused",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/gradient_cost.py",
+    "value": "4128216 steps",
+    "note": "the arm where the effect should vanish: no perturbation, the shipped batched path, 442 gradients and 4128216 step-equivalents against the scalar arm's 4128984 (+0.019 %) while the CPU differs 16.1x; on the zero-range shape the count is 316 against the docstring's 0"
+   },
+   "reproduction_steps": [
+    "cd /Users/timmalmstrom/audit-r7-D9",
+    "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/gradient_cost.py",
+    "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/gradient_cost.py --zero-range",
+    "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/gradient_cost.py --scalar"
+   ],
+   "stop_rule_class": "hygiene",
+   "files": [
+    "tests/stress.py",
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "proposed_fix_scope": "One pull request, doc-and-instrument only: correct tests/stress.py's build_case docstring (the cap and pin shapes have sampled the batched path since D9-01, so the sweep no longer covers the scalar-FD path on either side of the change \u2014 add a scenario that does or retract the sentence), and state in SolverWork's docstring that simulate_steps cannot see a batched-vs-scalar swap while kernel_ms and the evaluation count can, so the work rule is not read as a cost rule."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "The solve does not run on the event loop: one cycle's loop-thread CPU is 0.135 reference solves and the solve lands in the process worker, not this interpreter",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/cycle_solves.py --cycles 2",
+   "value": "loop_thread_cpu_ms_per_cycle=2.6 ms = 0.1354 reference_solves; wall 2647.2 ms/cycle; one job submitted per cycle"
+  },
+  {
+   "claim": "One coordinator cycle runs one full solve with all features on (coord_all_features)",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/cycle_solves.py --cycles 2",
+   "value": "optimize_jobs_total=2 over 2 cycles; all from coordinator.py:async_run_optimization"
+  },
+  {
+   "claim": "The DHW planning loops are not the cost they were suspected to be",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/polish_cost.py with an instrument on _build_dhw_requirements",
+   "value": "_build_dhw_requirements 93.3 ms of a 2174.3 ms solve = 4.3 %; _clamp_dhw_to_capacity 10 calls / 960 dhw steps; extend_dhw_temps 10008 dhw steps"
+  },
+  {
+   "claim": "The batched jacobian buys CPU, not work: both arms run the same physics to within 0.019 %",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/gradient_cost.py  # and --scalar",
+   "value": "simulate_step_equivalents 4128216 vs 4128984; solve CPU 2233.9 vs 35940.1 ms (16.1x)"
+  },
+  {
+   "claim": "The one scalar objective evaluation per gradient is scipy's own, not waste the optimizer adds",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/gradient_cost.py (step_callsites channel)",
+   "value": "43392 of 43680 scalar simulate_step calls arrive from scipy._differentiable_functions._update_fun and 0 from inside _batch_fd_gradient; 452 scalar trajectories = 355.9 ms of a 2261.6 ms solve"
+  },
+  {
+   "claim": "Zero-range bounds are served by the batched jac and still converge after the D9-01 carve-out removal",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/gradient_cost.py --zero-range",
+   "value": "batched_gradients=316, status='optimal', solve CPU 1599.9 ms, work 2949058 step-equivalents"
+  },
+  {
+   "claim": "The coordinator's retained payload is small: the whole assembled data dict is under 10 kB",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/payload_bytes.py",
+   "value": "data_dict_bytes_per_cycle=9412 bytes over 162 keys"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round7/D9/payload_bytes.py",
+  "tools/audit/round7/D9/polish_cost.py",
+  "tools/audit/round7/D9/gradient_cost.py",
+  "tools/audit/round7/D9/cycle_solves.py"
+ ]
+}
