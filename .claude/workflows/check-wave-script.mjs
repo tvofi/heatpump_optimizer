@@ -742,6 +742,123 @@ await block('the round driver', async () => {
     'a schedule read out of nothing reported no gap')
 })
 
+console.log('-- The rotation: seats per round, and the coverage ledger every brief must agree with')
+// The round-8 convergence programme's rotation (design A). A brief's numbered
+// method steps are its step ids, D<k>.M<n>; tools/audit/rotation.json carries
+// them per dimension beside each round's coverage, and audit-find.js dispatches
+// from it. A ledger that lost a dimension or a step dispatches a round that
+// never covers it, silently -- R7-INSTR-01's shape one level down -- so the
+// ledger is held to the briefs here, where the schedule already is.
+await block('the rotation', async () => {
+  const root = path.join(here, '..', '..')
+  const rd = fs.readFileSync(path.join(here, 'audit-find.js'), 'utf8')
+  const briefsDir = path.join(root, 'tools', 'audit', 'briefs')
+  const briefSteps = Object.fromEntries(fs.readdirSync(briefsDir).filter((f) => /^D\d+\.md$/.test(f)).map((f) => [
+    f.slice(0, -3), [...fs.readFileSync(path.join(briefsDir, f), 'utf8').matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1]))]))
+  const ledger = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'rotation.json'), 'utf8'))
+  // One predicate, the tree and the synthetic ledgers below both through it.
+  const ledgerGaps = (briefs, led) => {
+    const gaps = []
+    if (!Object.keys(briefs).length) gaps.push('no dimension brief found (an empty extraction is a gap)')
+    for (const [d, nums] of Object.entries(briefs)) {
+      if (!nums.length) { gaps.push(`briefs/${d}.md numbers no method step`); continue }
+      if (nums.some((n, i) => n !== i + 1)) gaps.push(`briefs/${d}.md numbers its steps ${nums.join(',')}, not 1..${nums.length}`)
+      const want = nums.map((n) => `M${n}`)
+      const have = led[d]?.steps
+      if (!Array.isArray(have)) { gaps.push(`rotation.json has no ${d}`); continue }
+      for (const m of want) if (!have.includes(m)) gaps.push(`rotation.json ${d} lacks ${d}.${m}, which the brief numbers`)
+      for (const m of have) if (!want.includes(m)) gaps.push(`rotation.json ${d} names ${d}.${m}, which the brief no longer has`)
+      for (const [r, e] of Object.entries(led[d].rounds ?? {})) {
+        for (const m of Object.keys(e.coverage ?? {})) if (!want.includes(m)) gaps.push(`rotation.json ${d} round ${r} covers ${m}, which the brief no longer has`)
+      }
+    }
+    for (const d of Object.keys(led)) if (!d.startsWith('_') && !briefs[d]) gaps.push(`rotation.json names ${d}, which has no brief`)
+    return gaps
+  }
+  const real = ledgerGaps(briefSteps, ledger)
+  console.log(`  scope  ${Object.keys(briefSteps).length} brief(s), ${Object.values(briefSteps).flat().length} step(s); ledger ${Object.keys(ledger).filter((k) => !k.startsWith('_')).length} dimension(s)`)
+  t('every brief numbers its method steps 1..n, and rotation.json carries exactly those steps for every brief',
+    real.length === 0, `gaps: ${real.join('; ')}`)
+  const drop = (d, m) => ({ ...ledger, [d]: { ...ledger[d], steps: ledger[d].steps.filter((x) => x !== m) } })
+  const { D2: _gone, ...noD2 } = ledger
+  t('the check fires: a ledger missing a dimension is refused (positive control)',
+    ledgerGaps(briefSteps, noD2).some((g) => /has no D2$/.test(g)), 'a ledger with no D2 passed')
+  t('the check fires: a ledger missing a step the brief numbers is refused (positive control)',
+    ledgerGaps(briefSteps, drop('D2', 'M3')).some((g) => /lacks D2\.M3/.test(g)), 'a ledger without D2.M3 passed')
+  t('the check fires: a step the brief no longer has is refused (positive control)',
+    ledgerGaps({ ...briefSteps, D2: briefSteps.D2.slice(0, -1) }, ledger).some((g) => /no longer has/.test(g)), 'a brief that lost its last step passed against the old ledger')
+  t('and an empty extraction is refused rather than reported clean (null control)',
+    ledgerGaps({}, {}).length > 0, 'a ledger read against no briefs reported no gap')
+
+  // The dispatch rule, evaluated alone: the block between the markers uses
+  // nothing outside itself, so a helper it grew would fail here, not in a round.
+  const blk = rd.match(/\/\/ ROTATION:BEGIN[\s\S]*?\/\/ ROTATION:END/)
+  t('the dispatch block is delimited in audit-find.js', !!blk, 'no ROTATION:BEGIN..END block')
+  const code = blk[0]
+  t('the dispatch block draws on no randomness and no clock', !/Math\.random|Date\b|performance\.now|crypto/.test(code), 'found one')
+  const { SEATS, activeIn, planSeats } = new Function(`${code}\nreturn { SEATS, activeIn, planSeats }`)()
+  const dims = [...(/const DIMS = \[([^\]]*)\]/.exec(rd)?.[1] ?? '').matchAll(/'([A-Z]\d+)'/g)].map((m) => m[1])
+  const seatGaps = [...dims.filter((d) => !SEATS[d]).map((d) => `${d} has no SEATS row`),
+    ...Object.keys(SEATS).filter((d) => !dims.includes(d)).map((d) => `SEATS names ${d}, which DIMS does not`),
+    ...dims.filter((d) => !briefSteps[d]).map((d) => `DIMS names ${d}, which has no brief`)]
+  t('every DIMS entry has exactly one SEATS row and the table names no other', dims.length > 0 && seatGaps.length === 0, seatGaps.join('; '))
+  const perRound = [8, 9, 10, 11, 12].map((r) => [r, dims.filter((d) => activeIn(r, d)).reduce((n, d) => n + SEATS[d].seats, 0)])
+  console.log(`  seats  ${perRound.map(([r, n]) => `round ${r}: ${n}`).join(', ')}`)
+  t('a dimension that runs every third round runs in round 9 and not in round 10 (the table is read by round number)',
+    activeIn(9, 'D11') && !activeIn(10, 'D11') && activeIn(10, 'D5') && !activeIn(9, 'D5'), 'the cadence is not derived from the round')
+  const L = JSON.parse(JSON.stringify(ledger))
+  const a = planSeats(L, 'D2', 2, 9), b = planSeats(L, 'D2', 2, 9)
+  t('the same ledger and round dispatch the same seats (a relaunch replays)', J(a) === J(b), `${J(a)} vs ${J(b)}`)
+  t('every step lands on exactly one seat', L.D2.steps.every((m) => a.flatMap((p) => p.deep.concat(p.spot)).filter((x) => x === m).length === 1), J(a))
+  const R = (coverage, extra = {}) => ({ seats: [], coverage, unfinished: [], yield: {}, ...extra })
+  const allDeep = (except) => Object.fromEntries(L.D2.steps.map((m) => [m, m === except ? 'spot' : 'deep']))
+  const led = { D2: { steps: L.D2.steps, rounds: { 8: R(allDeep('M4'), { unfinished: [{ step: 'M2', what: 'capacity envelope' }] }) } } }
+  const p9 = planSeats(led, 'D2', 1, 9)
+  t('the step not deep last round, or named unfinished, takes the deep focus (M4: 9 rounds since deep beats M2: 1+2)',
+    J(p9[0].deep) === J(['M4']), J(p9))
+  t('a step yielding last round outranks an equally covered one (M2 before M1, both deep in round 8)',
+    J(planSeats({ D2: { steps: L.D2.steps, rounds: { 8: R(allDeep(), { yield: { M2: 1 } }) } } }, 'D2', 1, 9)[0].deep) === J(['M2']), 'M2 not chosen')
+  t('an unfinished step outranks an equally covered one (M2 before M1, both deep in round 8)',
+    J(planSeats({ D2: { steps: L.D2.steps, rounds: { 8: R(allDeep(), { unfinished: [{ step: 'M2', what: 'x' }] }) } } }, 'D2', 1, 9)[0].deep) === J(['M2']), 'M2 not chosen')
+  // M1 deep in rounds 7 and 8 and named unfinished in 8 (priority 1+2), M2 deep
+  // in 7 only (2): M1 outranks M2, so only the rest rule can hand M2 the focus,
+  // and one judged finding at M1 (the perturbation) must hand it back.
+  const fx = (y8) => ({ D2: { steps: ['M1', 'M2'], rounds: { 7: R({ M1: 'deep', M2: 'deep' }), 8: R({ M1: 'deep', M2: 'spot' }, { yield: y8, unfinished: [{ step: 'M1', what: 'x' }] }) } } })
+  const resting = planSeats(fx({}), 'D2', 1, 9), yielded = planSeats(fx({ M1: 1 }), 'D2', 1, 9)
+  t('a step deep twice running with zero yield drops to spot for a round', J(resting[0].deep) === J(['M2']) && resting[0].spot.includes('M1'), J(resting))
+  t('...and one judged finding there moves the deep focus back to it (perturbation)', J(yielded[0].deep) === J(['M1']), J(yielded))
+  // And the whole driver, stubbed: the seats a round dispatches, and the
+  // refusal when the passed ledger is not the committed one.
+  const i0 = rd.indexOf('export const meta')
+  const rbody = rd.slice(0, i0) + rd.slice(rd.indexOf('\n}\n', i0) + 3)
+  const drive = async (args, prepOver = {}) => {
+    const labels = []
+    const agent = async (prompt, o) => {
+      labels.push(o.label)
+      if (o.label === 'prepare') return { exportDir: '/x', worktrees: { D0: '/w', D3: '/w', D9: '/w', D11: '/w', D13: '/w', D14: '/w' }, python: 'py', rotation_ok: true, ...prepOver }
+      if (o.label === 'quiet') return { quiet_path: '/q', retaken: [], d3_confirmed: [] }
+      if (o.label === 'dedup') return { branch: 'b', findings: [], rejected: [], corroborations: [] }
+      return { dimension: o.label.split('-')[0], report_path: `/r/${o.label}`, coverage: [], unfinished: [], findings: [], non_findings: [], harnesses: [] }
+    }
+    const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${rbody} })()`)
+    const out = await fn(agent, () => {}, () => {}, (items, f) => Promise.all(items.map((x) => f(x))), args)
+    return { out, labels }
+  }
+  const base = { round: 9, baseline: 'b', repo: '/r', rotation: ledger }
+  const r9 = await drive(base)
+  const finders = r9.labels.filter((l) => !['prepare', 'quiet', 'dedup'].includes(l))
+  const want9 = perRound.find(([r]) => r === 9)[1]
+  console.log(`  drive  round 9 dispatched ${finders.length} finder seat(s): ${finders.join(' ')}`)
+  t('the driver dispatches exactly the SEATS table for round 9, one agent per seat', finders.length === want9 && finders.includes('D0-s2') && finders.includes('D11') && !finders.includes('D5'), J(finders))
+  t('and returns the round\'s ledger entry for every active dimension', Object.keys(r9.out.rotation_round ?? {}).length === dims.filter((d) => activeIn(9, d)).length, J(Object.keys(r9.out.rotation_round ?? {})))
+  let refused = ''
+  try { await drive(base, { rotation_ok: false, rotation_note: 'differs' }) } catch (e) { refused = e.message }
+  t('a ledger that is not the committed file stops the round before any finder', /not the committed tools\/audit\/rotation\.json/.test(refused), refused || 'did not throw')
+  refused = ''
+  try { await drive({ ...base, rotation: undefined }) } catch (e) { refused = e.message }
+  t('and a round with no ledger at all is refused', /args\.rotation is required/.test(refused), refused || 'did not throw')
+})
+
 // The guard above is only worth having if it is actually called.
 await block('the harness guard is wired', async () => {
   const before = fail
