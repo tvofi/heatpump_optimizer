@@ -9884,13 +9884,25 @@ R.check(
 # other would split them. Before the repair the two agreed only because both
 # used the same guard -- the parity check below pins them to each other, not
 # to a value.
+#
+# Two axes, because either alone can go blind (reviewer, PR #1488).
+# * The state axes need a step the divisor is visible in. At 5 L the
+#   availability bound is dT_cap = (70 - 45) / 0.25 = 100 K/h while the net
+#   rate is Q/C: at the 2 kW this arm first used that is 344.8 K/h raw against
+#   200.0 K/h floored, so BOTH paths saturate on step 1 and every state axis
+#   reads max_abs_diff = 0.000e+00 in either mutation direction -- an arm that
+#   cannot fail. 0.5 kW puts the net rate at ~86 K/h raw against ~50 K/h
+#   floored, both under the bound, so the first steps differ.
+# * The refused channel is the one the divisor cannot hide from even when the
+#   tank does saturate, so it is compared too -- and its own non-emptiness is
+#   asserted below, or the comparison would be vacuous the same way.
 _r7cap_m = ThermalModel(ThermalParameters(
     two_zone_enabled=True, buffer_tank_volume=5.0,
     mixing_valve_mode=_w2t_mv.MODE_MANUAL, mixing_valve_target=21.0,
     cop_flow_carnot=True,
 ))
 _r7cap_st = _w2t_state(None, buf=45.0)
-_r7cap_pw = np.full((2, 12), 2.0)
+_r7cap_pw = np.full((2, 12), 0.5)
 _r7cap_ot = np.full(12, -5.0)
 _r7cap_z = np.zeros(12)
 _r7cap_batch = _r7cap_m.simulate_trajectory_batch(
@@ -9904,14 +9916,23 @@ for _b in range(_r7cap_pw.shape[0]):
         ("upper", _r7cap_batch["upper"][_b], _r7cap_sr[2]),
         ("lower", _r7cap_batch["lower"][_b], _r7cap_sr[3]),
         ("buffer", _r7cap_batch["buffer"][_b], _r7cap_sr[4]),
+        ("refused", _r7cap_batch["refused"][_b], _r7cap_sr[5]),
     ):
         if not np.array_equal(_arr, _ref):
             _r7cap_mism.append(f"{_nm}[{_b}]")
+_r7cap_refused_max = float(np.max(_r7cap_batch["refused"]))
 R.check(
     "the batched two-zone step divides by the same capacity, bit for bit",
     not _r7cap_mism,
     f"scalar/batch divergence at 5 L in {_r7cap_mism[:4]}; the twin must use "
     "the same C_buf the scalar step does",
+)
+R.check(
+    "and the parity arm's refused channel is one the step actually exercises",
+    _r7cap_refused_max > 0.0,
+    f"the batch's refused peak reads {_r7cap_refused_max:.6f} kWh over a 0.5 kW "
+    "schedule; at 0.0 the refused axis above compares two empty arrays and the "
+    "arm is back to the saturated state axes that could not fail",
 )
 
 # The sibling seam on the DHW tank: the step returned the tank UNCHANGED when

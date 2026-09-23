@@ -147,10 +147,10 @@
       "old": "    return len(centers) - 2, 1.0",
       "reason": "arrived with origin/main, commit b4b029514 (R6-D2-01: interpolate the derate factor across buckets). Removing the extrapolation return makes tests/features.py exit 1 against a baseline exit of 0. Measured at the post-main head, 2026-09-22."
     },
-    "custom_components/heatpump_optimizer/thermal_model.py:1894 CLAMP_DROP": {
+    "custom_components/heatpump_optimizer/thermal_model.py:1897 CLAMP_DROP": {
       "killed_by": "tests/features.py",
       "old": "        floor = min(p.dhw_inlet_reference, ambient_temp)",
-      "reason": "arrived with origin/main, commit 7eeea4d90 (D2-02: clamp the DHW inlet floor to the tank surroundings). Dropping the `min` clamp raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22."
+      "reason": "arrived with origin/main, commit 7eeea4d90 (D2-02: clamp the DHW inlet floor to the tank surroundings). Dropping the `min` clamp raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22, and re-pinned 1894 -> 1897 by PR #1488, whose D2-01 fix adds three comment lines above this site."
     },
     "custom_components/heatpump_optimizer/sensor.py:427 GUARD_OFF": {
       "killed_by": "tests/entities.py",
