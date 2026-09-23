@@ -630,6 +630,24 @@
 # the dropped standing loss. No plan, schedule or solver fixture moves: the
 # view is report-only and the optimizer never reads it.
 
+# R7-D0-01 (#1447), fix branch fix/r7-optimizer: this diff claims ONE fixture
+# and NOTHING ELSE, and its direction is CHEAPER.
+# `_optimize_space_only`'s seed set gains a fifth bang-bang anchor at 0.20x
+# the baseline energy (`_DEEP_LOW_ENERGY_START_FRACTION`), below the 0.35x and
+# 1.0x anchors it had, so a cell whose objective prefers under-heating reaches
+# that basin now. Measured through the same capture the fixture is recorded
+# from: this valved flat-price cell 89.785511 -> 89.328352 (-0.509 %) and
+# winter_two_zone_no_dhw 58.784961 -> 57.725197 (-1.80 %), each strictly
+# cheaper and each holding the room floor (minimum 17.2119 K). The change is
+# on the DHW-DISABLED path only, so no dhw=True fixture can move; the memory
+# pass's own probe reads the same 3.5 MiB traced peak at both ends of the diff.
+# winter_two_zone_no_dhw is already may-drifted under the #1208 ruling, so its
+# move is printed rather than judged, and the reason recorded there
+# (polish-every-candidate) predates this diff -- restating it here would claim
+# a fixture the gate has already exempted.
+# `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all <merge-base>`
+# prints NO UNCLAIMED DRIFT when this list is current.
+valve_storage_flat_prices # R7-D0-01 (#1447): the 0.20x anchor settles this valved flat-price plan lower
 # R7-D8-01 (#1460), branch fix/r7-coordinator: this diff claims the five
 # coordinator captures and NOTHING ELSE. The direction is ADD-ONLY.
 # `_build_data_dict` now publishes the three keys `SensorGapAdvisorSensor`
@@ -647,8 +665,14 @@
 # never failed -- and those value differences predate the branch, so
 # recording them here would write values this diff did not measure.
 
-coord_all_features
-coord_dhw
-coord_grid_fee
-coord_minimal
-coord_two_zone
+# R7-D0-01 merge of origin/main (cdf82daa) into fix/r7-optimizer-seeds: the
+# five coordinator claims this file inherited from the merge base (R7-D8-01
+# / #1461's note above) come OUT. They were main's own -- written for #1489's
+# diff -- and on this merged tree every one of the five coord captures is
+# byte-identical to cdf82daa, so `env_drift.py --all cdf82daa` reports all
+# five STALE ("nothing drifted, remove it") and exits 1. A claim describes
+# exactly ONE diff and never carries forward (header rule 2), so this
+# branch's bare list keeps only what THIS diff moves. The deletion is
+# hand-made: the list ADDED a line beside the baseline's, which
+# `drop_inherited_claim_lines` treats as a rewrite and refuses to touch
+# (#1255), so `apply_inherited_claims` cannot lift this one.
