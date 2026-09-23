@@ -9985,6 +9985,94 @@ R.check(
 )
 
 
+# The optional weather arrays default to zero, on all three simulators.
+#
+# `wind_speeds`, `precipitation` and `solar_radiation` each default to `None` in
+# `simulate_trajectory`, in its batch twin and in the DHW-carrying twin, and
+# `None` means calm, dry and dark. Every call site in this file passes an
+# explicit array, so the default branch has no driver here -- and the CI
+# mutation table reports exactly one of its guards as a survivor:
+# `thermal_model.py:2716 GUARD_OFF` (`if wind_speeds is None:` -> `if False:`)
+# runs `None` into the per-step read. These legs pin the default on all three
+# simulators, then show each array is live at these parameters, so a green arm
+# is not three dead ones agreeing.
+def _r7cap_same(a, b):
+    """Structural, bit-for-bit equality over a tuple/dict/array of results."""
+    if isinstance(a, dict):
+        return set(a) == set(b) and all(_r7cap_same(a[k], b[k]) for k in a)
+    if isinstance(a, (tuple, list)):
+        return len(a) == len(b) and all(_r7cap_same(x, y) for x, y in zip(a, b))
+    if isinstance(a, np.ndarray):
+        return isinstance(b, np.ndarray) and a.shape == b.shape and np.array_equal(a, b)
+    return a == b
+
+
+def _r7cap_weather(omit):
+    """The three simulators with `omit` of the optional weather arrays defaulted.
+
+    A flipped guard runs `None` into the per-step read; the exception comes back
+    as a string, so it reports as a failed check rather than a crashed suite.
+    """
+    _w = None if "wind" in omit else _r7cap_z
+    _p = None if "precip" in omit else _r7cap_z
+    _s = None if "solar" in omit else _r7cap_z
+    try:
+        return {
+            "batch": _r7cap_m.simulate_trajectory_batch(
+                _r7cap_st, _r7cap_pw, _r7cap_ot, _w, _p, _s, 0.25),
+            "scalar": _r7cap_m.simulate_trajectory(
+                _r7cap_st, _r7cap_pw[0], _r7cap_ot, _w, _p, _s, 0.25),
+            "dhw": _r7cap_dhw.simulate_trajectory_with_dhw(
+                _r7cap_st, np.full(1, 0.5), _r7cap_z[:1], _r7cap_ot[:1],
+                _w, _p, _s, dt_hours=0.25),
+        }
+    except Exception as exc:  # noqa: BLE001 -- reported, not swallowed
+        return f"{type(exc).__name__}: {exc}"
+
+
+_r7cap_weather_omitted = []
+_r7cap_zeros = _r7cap_weather(())
+if isinstance(_r7cap_zeros, str):
+    _r7cap_weather_omitted.append(f"the explicit-zeros control raised {_r7cap_zeros}")
+else:
+    for _omit in (("wind",), ("precip",), ("solar",),
+                  ("wind", "precip"), ("wind", "precip", "solar")):
+        _got = _r7cap_weather(_omit)
+        if isinstance(_got, str):
+            _r7cap_weather_omitted.append(f"{'+'.join(_omit)} omitted: {_got}")
+        else:
+            for _sim in ("batch", "scalar", "dhw"):
+                if not _r7cap_same(_got[_sim], _r7cap_zeros[_sim]):
+                    _r7cap_weather_omitted.append(f"{_sim} with {'+'.join(_omit)} omitted")
+R.check(
+    "a weather array left at its default is the zero array, on every simulator",
+    not _r7cap_weather_omitted,
+    f"omitting an array that is None by default moved {_r7cap_weather_omitted[:4]} "
+    "against the same call given explicit zeros; `if wind_speeds is None:` is "
+    "the whole of that default in the batch twin",
+)
+_r7cap_live = {}
+for _nm, _pos in (("wind", 3), ("precip", 4), ("solar", 5)):
+    _args = [_r7cap_st, _r7cap_pw, _r7cap_ot, _r7cap_z, _r7cap_z, _r7cap_z, 0.25]
+    if _nm == "wind":
+        _args[_pos] = np.full(12, 15.0)
+    elif _nm == "precip":
+        _args[_pos] = np.concatenate([np.zeros(3), np.full(3, 5.0), np.zeros(6)])
+    else:
+        _args[_pos] = np.concatenate([np.zeros(6), np.full(6, 400.0)])
+    _got = _r7cap_m.simulate_trajectory_batch(*_args)
+    _r7cap_live[_nm] = max(
+        float(np.max(np.abs(_got[_ax] - _r7cap_batch[_ax])))
+        for _ax in ("room", "upper", "lower", "buffer")
+    )
+R.check(
+    "and each of those arrays is live at these parameters",
+    all(_v > 1e-6 for _v in _r7cap_live.values()),
+    "strong wind, rain and sun each move a state axis, so the equality above is "
+    f"not vacuous: {_r7cap_live}",
+)
+
+
 # --- Step length ----------------------------------------------------------
 
 _w2t_m_q, _w2t_out_q = _w2t_run(_w2t_params_two, 60.0, 3.0, n=24, dt=0.25)
