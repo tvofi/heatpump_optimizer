@@ -3633,6 +3633,55 @@ R.check(
     "the _thermal_params path must agree with the payload path",
 )
 
+# D8-02 (#1461): the setpoint advisor is the one hot-water sensor not wrapped
+# in _DHWEntityMixin, so a no-DHW install ships it enabled-by-default while its
+# available (which needs dhw_advisor.recommended_setpoint) is False forever.
+# The wrap is the fix: the gate then provides both the availability gate and the
+# registry default, which the sibling #1398 block above already pins for the
+# other five.
+R.check(
+    "the setpoint advisor is wrapped in the DHW gate like its siblings (#1461)",
+    issubclass(sensor.DHWSetpointAdvisorSensor, sensor._DHWEntityMixin),
+    "the one hot-water sensor outside the gate ships enabled on a no-DHW install",
+)
+
+# D9-01 (#1462): series-shaped attributes and duplicated static documentation
+# ride into the recorder every cycle. The plan sensors already declare their
+# series unrecorded (forecast, slots, schedule, dhw_schedule); four other
+# entities publish series-shaped attributes the recorder writes per cycle for
+# nothing history can use, and the six accumulators write the same two static
+# strings six times a cycle.
+for _cls, _key in (
+    (sensor.PredictiveInsightSensor, "dhw_usage_profile"),
+    (sensor.ThermalBatterySensor, "components"),
+    (sensor.DHWSetpointAdvisorSensor, "candidates"),
+    (sensor.SensorGapAdvisorSensor, "gaps"),
+):
+    R.check(
+        f"{_cls.__name__} keeps its series-shaped {_key} out of the recorder (#1462)",
+        _key in getattr(_cls, "_unrecorded_attributes", frozenset()),
+        f"{_key} is written every cycle on {_cls.__name__}",
+    )
+_accumulators = (
+    sensor.SpaceEnergySensor,
+    sensor.DHWEnergySensor,
+    sensor.TotalEnergySensor,
+    sensor.SpaceCostSensor,
+    sensor.DHWCostSensor,
+    sensor.TotalCostSensor,
+)
+_records_period = [
+    _cls
+    for _cls in _accumulators
+    if "period" not in getattr(_cls, "_unrecorded_attributes", frozenset())
+]
+R.check(
+    "period/split_method are recorded once, on one accumulator (#1462)",
+    _records_period == [sensor.TotalCostSensor],
+    f"recorded on {sorted(c.__name__ for c in _records_period)!r} instead of "
+    "just TotalCostSensor",
+)
+
 # --- unknown-versus-broken --------------------------------------------------
 R.section("Waiting for evidence is not the same as broken")
 
