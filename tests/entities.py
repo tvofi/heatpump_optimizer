@@ -4490,6 +4490,29 @@ R.check(
     f"shortfall={_breach_attrs.get('shortfall_c')!r} "
     f"space_blocked={_breach_attrs.get('space_blocked')!r}",
 )
+# The configured margin is READ, not the 0.5 default: the same cold-damp room
+# (shortfall ~3.6 °C, well above the default) stays quiet at a 4.0 °C margin.
+# A sensor that ignored CONF_MOLD_FLOOR_BREACH_MARGIN and compared against a
+# hardcoded 0.5 would fire here, so this arm is the option's mutation killer.
+_margin_config = {**_breach_config, const.CONF_MOLD_FLOOR_BREACH_MARGIN: 4.0}
+_margin_hass, _margin_coord, _margin_data = _honest_coordinator(
+    _margin_config,
+    {
+        "sensor.indoor": FakeState("16.0"),
+        "sensor.humidity": FakeState("70.0", last_updated=dt_util.utcnow()),
+    },
+)
+_margin_coord.data = _margin_data
+_margin_entity = binary_sensor.MoldFloorBreachBinarySensor(
+    _margin_coord, FakeEntry(data=_margin_config)
+)
+R.check(
+    "a configured margin above the shortfall keeps the breach quiet",
+    not _margin_entity.is_on
+    and _margin_entity.extra_state_attributes["shortfall_c"] >= 0.5,
+    f"is_on={_margin_entity.is_on} "
+    f"shortfall={_margin_entity.extra_state_attributes.get('shortfall_c')!r}",
+)
 # Dry air: the same room is comfortably above its floor, so it stays quiet.
 _safe_hass, _safe_coord, _safe_data = _honest_coordinator(
     _breach_config,
