@@ -43809,9 +43809,10 @@ _r7d203_sweep_200 = _r7d203_sweep(200.0, 0.3)
 R.check(
     "a tank under the floor cannot be said to cover a window it cannot hold",
     _r7d203_sweep_5[0] is False and _r7d203_sweep_200[0] is True,
-    "a 5 L tank is credited with "
-    f"{_r7d203_sweep_5[2]!r} kWh/K and reported as covering a 0.3 kWh window "
-    f"at {_r7d203_sweep_5[1]} °C; the 200 L control still covers it at "
+    f"a 5 L tank (its own capacity {_r7d203_sweep_5[2]!r} kWh/K) reads "
+    f"covers_heaviest_window={_r7d203_sweep_5[0]!r} at a "
+    f"{_r7d203_sweep_5[1]} °C recommendation, and the 200 L control reads "
+    f"covers_heaviest_window={_r7d203_sweep_200[0]!r} at "
     f"{_r7d203_sweep_200[1]} °C",
 )
 
