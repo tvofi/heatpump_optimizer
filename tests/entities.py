@@ -23284,6 +23284,45 @@ R.check(
 
 _mut_shutil.rmtree(_MUT_DIR, ignore_errors=True)
 
+# --pin-killed (the mutation-ledger autofix): it drives only the sites the diff
+# ADDED unpinned, keyed by anchor, so a site the base already left unpinned is
+# not re-measured; and a kill is recorded with the driver and both runs, never
+# a survivor. The null control is a site unpinned at both ends.
+_PIN_NEW = getattr(_mut, "new_unpinned", None)
+_PIN_ENTRY = getattr(_mut, "pin_entry", None)
+_pin_a = {"anchor": "f.py:g GUARD_OFF aaaa", "old": "    if a:"}
+_pin_b = {"anchor": "f.py:g GUARD_OFF bbbb", "old": "    if b:"}
+try:
+    _PIN_GOT = (
+        [x["anchor"] for x in _PIN_NEW([_pin_a, _pin_b], [_pin_a])],
+        _PIN_NEW([_pin_a], [_pin_a]),
+        _PIN_ENTRY(dict(_pin_b, kind="GUARD_OFF", new="    if False:"),
+                   "tests/x.py", _mut.ScriptRun(1, 3, 1.0, ""),
+                   _mut.ScriptRun(0, 0, 1.0, ""), "abc123"),
+    )
+except Exception as _pin_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _PIN_GOT = (f"{type(_pin_exc).__name__}: {_pin_exc}",)
+R.check(
+    "--pin-killed drives only the sites the diff added and records the measured kill",
+    len(_PIN_GOT) == 3
+    and _PIN_GOT[0] == ["f.py:g GUARD_OFF bbbb"] and _PIN_GOT[1] == []
+    and _PIN_GOT[2].get("killed_by") == "tests/x.py"
+    and _PIN_GOT[2].get("old") == "    if b:"
+    and "rc=0 failed=0 to rc=1 failed=3" in _PIN_GOT[2].get("reason", "")
+    and "verdict" not in _PIN_GOT[2],
+    f"(new over base, unpinned at both ends, entry) -> {_PIN_GOT}",
+)
+R.check(
+    "--pin-killed is wired: new sites from the base's own unpinned list, "
+    "a pin only from a recorded kill run",
+    "new_unpinned(unpinned, base_sites)" in _MUT_BODY
+    and "base_unpinned_sites(rbase, sites)" in _MUT_BODY
+    and "kill_runs.get((id(mut), script))" in _MUT_BODY
+    and "pin_entry(" in _MUT_BODY,
+    "the mode must read the base's unpinned sites and pin only a mutant whose "
+    "killing run it holds; a pin without a run is an assertion, not a kill",
+)
+
 # Scope: a mutant is driven only by scripts whose MEASURED closure contains
 # its file. Driving one hand-picked script instead would let a mutant survive
 # because its driver never imports the module, and a survivor that says
