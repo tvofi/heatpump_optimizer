@@ -1,0 +1,24 @@
+{
+  "_comment": [
+    "Carry destination for issue #1499's widened part (b): the kW the no-meter path feeds",
+    "PeakTracker.observe. Written by the R8-P11 pull request (#1512, the distinct-days bill",
+    "oracle), which merged or was ready while #1499 had no pull request; plan section 4 wave 1",
+    "orders #1499 first when both are ready, and the #1499 fixer inherits the oracle otherwise.",
+    "The #1499 branch (fix/r7-heatpump-action) writes its own copy of this file with one carry",
+    "about the same no-meter fallback. The two do not disagree: whichever merges second unions",
+    "the carries arrays, and neither entry supersedes the other. No roster group claims #1499,",
+    "so this file is that stage's brief. Shape and required fields:",
+    ".claude/rules/finding-propagation.md. Linted by .claude/workflows/brief_lint.mjs."
+  ],
+  "issue": 1499,
+  "stage": "the #1499 fixer, or any later seat that changes the kW coordinator._track_realised_peak or the live meter listener feeds PeakTracker.observe",
+  "carries": [
+    {
+      "from": "the pull request fixing #1512 (R8-D2-s2-01): PeakTracker now bills the k highest peaks on k different days, and tests/features.py holds billed_peak_kw and threshold_kw to a bill oracle computed from each CapacityTariff's stated rule",
+      "effect": "narrows",
+      "control": "The oracle's own controls, re-run at the #1512 head: the section `R8-D2-s2-01 — the capacity bill from each tariff's stated rule (#1512)` in tests/features.py drives every SWEDEN_CATALOG row through the coordinator's config parse, over seeded month traces including both DST months, and its null control counts the cells where the per-day and the per-window bill differ (a cell with one peak per day would pass either rule, so a zero there makes the equality check vacuous). Deleting the distinct-days merge in tariff.PeakTracker._close_window turns the equality check red. What the oracle does NOT yet drive is the kW itself on a no-meter install: every trace feeds PeakTracker.observe directly, so a change to what coordinator._track_realised_peak folds is invisible to it.",
+      "remeasure": "At your own merge base, from the repository root: `PYTHONPATH=tests/hastub python3 tests/features.py` and read the lines of the #1512 section; the cell count and the separating-cell count it prints are that tree's, never the ones in the #1512 body. Then run the #1499 drive this file's sibling carry names (a coordinator with no whole-house meter and no pump meter, a DHW-only action) before and after your change.",
+      "brief": "Add a no-meter arm to the #1512 bill oracle in tests/features.py (the helpers `_bo_oracle`, `_bo_drive` and the rule table `_bo_rules`): drive a month through the production coordinator._track_realised_peak on an install with neither meter, with the plan's actions carrying DHW-only steps, and assert the tracker's billed_peak_kw and threshold_kw equal `_bo_oracle` over the commanded kW the fixed fallback is meant to fold (space plus DHW). The existing arms feed observe directly and cannot see the fallback, so without this arm the #1499 part (b) fix has no bill-level pin. Keep distinct_days at the catalog's value in the arm: a DHW-only morning is exactly the same-day stacking #1512 fixed, so the arm also checks the two fixes compose."
+    }
+  ]
+}
