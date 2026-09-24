@@ -1,0 +1,287 @@
+# The pull-request contract: a body is checked against the evidence it owes.
+#
+# WHY ITS OWN FILE (#1514). The contract must re-run when a body is edited,
+# because a body edit is the only change it reads that a commit does not make;
+# no other required check reads a body. `pull_request: [edited]` therefore
+# lives here and nowhere else. It lived in governance.yml, whose other jobs
+# carried an `if:` that skipped them on an `edited` event (#1484) -- and a
+# skipped job still writes a check run at the head. A body edit re-created
+# `policy-docs`, `env-matrix` and `wave-script` as SKIPPED at an unchanged
+# head, the latest run of each context superseding the real verdict before
+# it. An event this file does not list starts no run of it, so nothing here
+# can be superseded that way. `tests/entities.py` pins the split: every
+# workflow that lists `edited` holds this one job and no other.
+#
+# `tests.yml` must not carry `edited` either: it would re-run the whole
+# forty-minute gate every time a body is edited.
+
+name: PR contract
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-contract:
+    # The evidence sections a body owes, checked at the head CI is running.
+    # `pull_request: [edited]` is why this workflow is separate from tests.yml:
+    # a body edit must re-run this and must NOT re-run the forty-minute gate.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # THE GRANTS THIS JOB ADDS ARE READS. The red-list step below reads the
+    # head's check runs through `/commits/<sha>/check-runs`, which the token
+    # refuses without `checks: read` (#956); the body step reads the pull
+    # request's own resource through `/pulls/<number>`, which it refuses
+    # without `pull-requests: read` (the `record` job's `--stats` carries the
+    # same grant for the same read); `contents: read` restates the workflow
+    # floor a job-level block replaces, because the checkout needs it. A
+    # read-only widening on the one job that reads the API is the
+    # `nightly-status` precedent in tests.yml, and the override pin in
+    # tests/entities.py counts this block and carries this argument.
+    permissions:
+      contents: read
+      checks: read
+      pull-requests: read
+    steps:
+      # fetch-depth 0 because `## Approval` is keyed on the DIFF (R3-D11-03):
+      # the base commit has to be in the clone for `git diff base...head` to
+      # answer. The default depth-1 checkout has neither the base nor any
+      # history, and a diff that cannot run would read as "touches no policy
+      # file" -- the fail-open this keying exists to close.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+
+      - name: Show the pre-PR self-check refusing its own fixtures
+        run: bash tools/audit/prepr.sh --self-test
+
+      # The push script's own decisions, driven over the same fixtures. It runs
+      # here rather than in the gate because `tools/audit/` is INERT in
+      # tests/closure.py -- nothing under tests/ reads it -- and this job is
+      # never scoped, the same argument prepr.sh's line above rests on.
+      - name: Show the push script's decisions refusing their own fixtures
+        run: bash tools/audit/push.sh --self-test
+
+      # The App approval's refusals and token cleanup, over stubbed gh, curl
+      # and openssl: no network, no key. INERT for the same reason as push.sh.
+      - name: Show the App approval refusing its own fixtures
+        run: bash tools/audit/app_approve.sh --self-test
+
+      # #679: `## Figures` asks for the command that printed each figure, and
+      # nothing looked at it. The section was a paste. #715 round seven is the
+      # defect: an enumerator passing `--arg` to `gh api`, which has no such
+      # flag, so it errored client-side and printed `0` for every possible state
+      # of the world. A fix reviewer found it by running it.
+      #
+      # This does NOT execute the body. #679 proposed re-executing an allowlist
+      # and comparing values; figure_lint.mjs's header records the reasons that
+      # is refused and which of them were withdrawn under measurement. The
+      # shortest surviving one WAS that this job checks out at depth 1 with no
+      # origin/main -- and #818 falsified it by setting fetch-depth: 0 above, so
+      # reason 4 in figure_lint.mjs's header is the one that still stands. Do NOT
+      # restate a quantity here: two of the original four
+      # reasons were counts, both were wrong, and this copy is where the wrong
+      # ones survived a sweep of the body, the header and both plan rows.
+      # What the check does is confirm that each command RESOLVES.
+      - name: Show the figure check refusing its own fixtures
+        if: always()
+        run: node .claude/workflows/figure_lint.mjs --self-test
+
+      # The enumerator behind the two quantities that header argues from. It is
+      # run here for its self-test only -- no `gh`, no network: an enumerator
+      # nobody executes rots into the false figure it exists to prevent, which
+      # is the #715 defect one level up.
+      - name: Show the figure census pinning its counting rule
+        if: always()
+        run: node .claude/workflows/figure_census.mjs --self-test
+
+      # THE CHECK IS NOT EXECUTED FROM THE CHANGE IT IS CHECKING (#1515, the
+      # `policy-docs` step of #1403 applied to this job). Every step above
+      # drives a program the pull request carries, on purpose: a self-test's
+      # verdict is about that copy. Every step below grades the pull request's
+      # body and diff, so the program must be the base's -- one appended
+      # `process.exit(0)` to the unowned `counts.mjs` that `policy_lint.mjs`
+      # imports turned this job's refusal of an empty body into rc 0. The same
+      # pathspecs as `policy-docs`, plus the two `tools/audit/` scripts a step
+      # below grades with. `if: always()`, because the grading steps below are:
+      # a restore skipped by an earlier red would leave them running the pull
+      # request's copy. A file the base does not have cannot be restored, the
+      # limit `policy-docs` states.
+      - name: Restore the check source from the base commit
+        if: always()
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git checkout "$PINNED" -- \
+            '.claude/workflows/*.mjs' \
+            '.claude/workflows/*.py' \
+            '.claude/workflows/vendor' \
+            'tools/audit/prepr.sh' \
+            'tools/audit/preflight.sh'
+          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          test -f .claude/workflows/policy_lint.mjs
+
+      # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT
+      # PAYLOAD. `${{ github.event.pull_request.body }}` is the body as it
+      # stood when the event fired, and `gh run rerun` replays that payload,
+      # so a body corrected after the event never reached this check. Measured
+      # on #1059 at head a93a43b: the body was edited to name a93a43b, run
+      # 35093322057 was re-run twice (attempts 2 and 3) and refused both times
+      # with "`## Head` does not name a93a43b" while `GET /pulls/1059` showed
+      # the corrected body; a close/reopen -- a fresh event at the same head,
+      # no tree change -- passed as run 35098726083. The ledger lane in
+      # governance.yml edited its PR's body with GITHUB_TOKEN until decision
+      # 0009 step 3b moved that write to the seat author; those edits fired no
+      # `pull_request` event, so a manual re-run was the only route to green
+      # there and the one route that could not work. The `if:` on this job
+      # keeps the read off the `schedule` and `push` paths, which carry no
+      # pull request to read.
+      #
+      # Fail-closed, on the red-list step's principle: a read that fails must
+      # fail the step, because an empty file from a failed fetch is "no
+      # sections", and that reads as a contract violation the author did not
+      # commit. `printf '%s'` keeps the file shape the payload write had --
+      # no newline the API did not send; the command substitution drops only
+      # trailing newlines, which every reader (`sections()` in policy_lint,
+      # `head_section_sha`, figure_lint, preflight's `$(cat)`) trims anyway.
+      # The number goes through `env:` and never into the shell line, so the
+      # untrusted-context census in tools/audit/round4/D11/untrusted_text.py
+      # counts the same `env:` interpolations and the same zero free-text
+      # shell ones as before this step changed.
+      - name: Read the body off the API, not the event payload
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          BODY=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.body // ""')
+          printf '%s' "$BODY" > /tmp/pr-body.md
+          AUTHOR=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.user.login // ""')
+          printf '%s' "$AUTHOR" > /tmp/pr-author.txt
+
+      # The paths decide whether `## Approval` is owed, so this runs WITHOUT
+      # `|| true` and with `set -o pipefail`: a derivation that fails must fail
+      # the step. policy_lint refuses an unreadable or empty list for the same
+      # reason -- an empty diff is not a thing a pull request has.
+      - name: List the paths this pull request changes
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # --no-renames, and it is not cosmetic: a rename is reported by its
+          # DESTINATION only, so moving CLAUDE.md to RENAMED.md yields a list
+          # matching no glob and the approval gate would not fire on the change
+          # that removed a policy file. Measured both ways before wiring it.
+          git diff --no-renames --name-only "$PR_BASE...$PR_HEAD" > /tmp/pr-files.txt
+          wc -l < /tmp/pr-files.txt
+
+      # #956: the red-check trigger CLAUDE.md calls enforced, enforced. The
+      # head's check runs are listed FIRST, the red names are handed to the
+      # body check as `--red`, and the same body that exited 0 when CI passed
+      # no `--red` exits 1 now -- the only behaviour change of this wiring.
+      #
+      # THE EXCLUSION KEY IS THE CHECK-RUN NAME `pr-contract`, and nothing
+      # else. Every run this job ever produces carries that name -- GitHub
+      # Actions names a job's check run after the job, this job has no matrix,
+      # and re-runs keep the name -- so keying on it excludes this job's OWN
+      # prior runs at the head whatever produced them: the `synchronize` run,
+      # the `edited` run a body edit fires at the outgoing head (#1031's run
+      # 34896491442 sat exactly there), a manual re-run's new attempt. A key
+      # on any run or attempt IDENTIFIER is wrong twice over: a re-run gets a
+      # new id, and an event-driven re-run at the SAME head gets a new run id
+      # -- the #1031 shape -- so an id-keyed exclusion lets this job's own red
+      # back into the list and the deadlock the caveat names returns: a body
+      # refused for not naming a red caused by not naming it. The name key
+      # cannot exclude a FOREIGN red -- a red from another check the body must
+      # answer -- because the listing's other entries are runs other jobs
+      # produced and every foreign job carries a foreign name; `pr-contract`
+      # is the only job by that name in this repository. RED means the
+      # corpus's own predicate: conclusion `failure` at the head, so a
+      # skipped, cancelled, timed-out or still-running check is not red, and a
+      # check that failed and then succeeded still is (the listing, never
+      # `gh pr checks` -- the no-gh rule's own reason). One call, one page per
+      # hundred runs (`--paginate`): single-digit seconds inside a job that
+      # already runs about 75 s.
+      - name: List the red checks at this head
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Fail-closed, on the paths-file step's own principle: a derivation
+          # that fails must fail the step, because an empty red list read from
+          # a failed fetch is "no reds" -- the fail-open this wiring closes.
+          gh api --paginate \
+            "repos/${GITHUB_REPOSITORY}/commits/${PR_HEAD}/check-runs" \
+            --jq '.check_runs[]
+                   | select(.status == "completed" and .conclusion == "failure")
+                   | select(.name != "pr-contract")
+                   | .name' | sort -u > /tmp/pr-reds.txt
+          printf 'red checks the body must answer: %s\n' \
+            "$(paste -sd, /tmp/pr-reds.txt)"
+
+      - name: Check the body against the contract
+        env:
+          # Interpolating a title into a shell line is script injection: the
+          # title is written by whoever opened the pull request. The same is
+          # true of the title as EVIDENCE, which is R3-D11-03: `## Approval` is
+          # keyed on --paths-file below, and the title only adds to it.
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # One --red flag per name, never one comma-joined value: a check
+          # name containing a comma would split into fragments neither the
+          # refusal nor `## Red checks` can match.
+          RED_ARGS=()
+          while IFS= read -r name; do
+            RED_ARGS+=(--red "$name")
+          done < /tmp/pr-reds.txt
+          node .claude/workflows/policy_lint.mjs \
+            --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \
+            --author "$(cat /tmp/pr-author.txt)" \
+            --paths-file /tmp/pr-files.txt "${RED_ARGS[@]}"
+
+      - name: Every figure's command resolves at this head
+        if: always()
+        run: node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md
+
+      - name: Pre-flight the body for unmeasured claims
+        if: always()
+        run: bash tools/audit/preflight.sh < /tmp/pr-body.md || true
+
+      # CLAUDE.md rule 4, refused where it binds. `prepr.sh` step 5 held this
+      # check and ran only on a seat's own machine; the self-test above drives
+      # its predicate over strings and never reads this pull request's diff, so
+      # a VERSION bump passed every check (measured on this PR's own harness).
+      # One function, `version_edit`, serves both callers.
+      #
+      # A STEP IN THIS JOB, NOT A NEW JOB: `pr-contract` is already a required
+      # context, and a new job's context would need a ruleset change, which is
+      # the owner's. The job's `if:` limits it to `pull_request`, so the stamp
+      # itself -- pushed straight to main -- never reaches this step. Last and
+      # `if: always()`, so a refused body does not hide it and it does not
+      # hide the body's refusals.
+      #
+      # THE MAIN REF IS FETCHED, NOT THE PAYLOAD'S `base.sha`: a re-run replays
+      # the payload, and a base older than a stamp the branch has since merged
+      # would put that stamp inside the three-dot. `version_edit` takes the
+      # merge base itself, so a main that moved past a stamp adds nothing.
+      - name: Refuse a version, manifest-version or notes-heading edit
+        if: always()
+        env:
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          bash tools/audit/prepr.sh --version-edit origin/main "$PR_HEAD"
