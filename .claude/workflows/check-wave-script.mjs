@@ -938,6 +938,45 @@ await block('the verification pass', async () => {
     `verifier calls ${verifiers(res).length}; judge sees ${judgeSees(res).length} of ${findings.length}`)
 })
 
+console.log('-- The verification pass feeds the rotation ledger its yield')
+// The dispatch rule's +1 term reads rounds[<round>][<dim>].yield, the
+// judge-surviving findings per step. audit-find.js writes a round's coverage
+// through its dedup agent onto the register branch; audit-verify.js writes the
+// yield the same way, computed here in the script from the judge's verdicts and
+// each finding's `step`, so the number is the script's and not an agent's count.
+await block('the rotation yield', async () => {
+  const vsrc = fs.readFileSync(path.join(here, 'audit-verify.js'), 'utf8')
+  const vi = vsrc.indexOf('export const meta')
+  const vbody = vsrc.slice(0, vi) + vsrc.slice(vsrc.indexOf('\n}\n', vi) + 3)
+  const F = (id, dimension, step) => ({ id, dimension, step, severity: 'low', title: id, claim: id, report_path: 'r', harness_paths: [], attached_refutation: null })
+  const findings = [F('D2-s1-01', 'D2', 'D2.M2'), F('D2-s2-01', 'D2', 'D2.M2'), F('D2-s2-02', 'D2', 'D2.M4'), F('D14-01', 'D14', 'D14.M3'), F('D1-s1-01', 'D1', 'D1.M1')]
+  const verdict = { 'D2-s1-01': 'verified', 'D2-s2-01': 'weakened', 'D2-s2-02': 'refuted', 'D14-01': 'verified', 'D1-s1-01': 'unreproduced' }
+  const drive = async (from) => {
+    const calls = []
+    const agent = async (prompt, o) => {
+      calls.push({ label: o.label, prompt })
+      if (o.label === 'read') return { findings }
+      if (o.label === 'judge') return { verdicts: findings.map((f) => ({ id: f.id, verdict: verdict[f.id] })) }
+      if (o.label === 'register') return { issues: [] }
+      return { votes: [] }
+    }
+    const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${vbody} })()`)
+    const out = await fn(agent, () => {}, () => {}, (xs, f) => Promise.all(xs.map(f)), { round: 9, repo: '/repo', ...(from ? { from } : {}) })
+    return { out, calls }
+  }
+  const want = { D1: {}, D14: { M3: 1 }, D2: { M2: 2 } }
+  for (const from of [undefined, 'judge']) {
+    const { out, calls } = await drive(from)
+    const reg = calls.find((c) => c.label === 'register')?.prompt ?? ''
+    t(`the pass returns each dimension's judge-surviving count per step, refuted and unreproduced not counted (from ${from ?? 'panels'})`,
+      J(out?.rotation_yield) === J(want), `got ${J(out?.rotation_yield)}, want ${J(want)}`)
+    t(`and the register writer is told to write exactly that into tools/audit/rotation.json (from ${from ?? 'panels'})`,
+      reg.includes('tools/audit/rotation.json') && reg.includes(J(want)), 'the writer prompt does not carry the yield')
+  }
+  t('the read step is asked for each finding\'s step, or the count has nothing to key on',
+    /step/.test(vsrc.match(/label: 'read'/) ? vsrc.slice(0, vsrc.indexOf("label: 'read'")).split('phase(\'Read the register\')')[1] ?? '' : ''), 'the read prompt names no step')
+})
+
 // The guard above is only worth having if it is actually called.
 await block('the harness guard is wired', async () => {
   const before = fail
