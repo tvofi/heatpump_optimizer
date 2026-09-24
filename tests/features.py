@@ -45132,7 +45132,8 @@ R.check(
 # is driven through the production ``_adopt_system_identification``. The
 # invariant is read on the published learning view: a fit that was not
 # adopted is never still published as completed with the fit's own "ok" --
-# the silent first guard left 10 of 19 finished experiments that way.
+# the silent first guard left 10 of 19 finished experiments that way at the
+# finder's baseline (cdf82daa, s1_gate_silent.py).
 _p5_bar = _SysIdModule.UA_ADOPTION_HALFWIDTH_BAR
 
 
