@@ -163,7 +163,7 @@ rules:
     comment: >-
       #217 (round 2, D10-17) landed: exceptions section present in
       strings.json / en / sv with an entry for every raise site. #1546 routed
-      the coordinator's UpdateFailed raises through _update_failed, and
+      the coordinator's UpdateFailed raises through _raise_update_failed, and
       tests/doc_claims.py censuses every raise site and its key.
   icon-translations:
     status: done

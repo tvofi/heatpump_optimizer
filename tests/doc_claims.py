@@ -478,10 +478,10 @@ def _names_bare_entry(node: ast.AST | None) -> bool:
     )
 
 
-def bare_entry_annotations() -> list[str]:
+def bare_entry_annotations(trees: dict[str, ast.Module] | None = None) -> list[str]:
     """Every parameter, return and variable annotation naming the bare ConfigEntry."""
     hits: list[str] = []
-    for name, tree in _PKG_TREES.items():
+    for name, tree in (_PKG_TREES if trees is None else trees).items():
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 a = node.args
@@ -513,7 +513,7 @@ def _translated(call: ast.Call) -> bool:
     return {"translation_domain", "translation_key"} <= {kw.arg for kw in call.keywords}
 
 
-def exception_helpers() -> dict[str, int]:
+def exception_helpers(trees: dict[str, ast.Module] | None = None) -> dict[str, int]:
     """Key-forwarding raise helpers: name -> the position of their key parameter.
 
     #1546 routed the coordinator's UpdateFailed raises through one helper, so
@@ -523,7 +523,7 @@ def exception_helpers() -> dict[str, int]:
     parameters; any other function's family calls are counted where they are.
     """
     out: dict[str, int] = {}
-    for tree in _PKG_TREES.values():
+    for tree in (_PKG_TREES if trees is None else trees).values():
         for node in tree.body:
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
@@ -540,7 +540,9 @@ def exception_helpers() -> dict[str, int]:
     return out
 
 
-def exception_raise_census() -> tuple[int, list[str], set[str]]:
+def exception_raise_census(
+    trees: dict[str, ast.Module] | None = None,
+) -> tuple[int, list[str], set[str]]:
     """(exception sites, the untranslated ones, the translation keys they name).
 
     A site is every construction of a family exception outside a helper,
@@ -548,9 +550,10 @@ def exception_raise_census() -> tuple[int, list[str], set[str]]:
     construction rather than ``raise``, so an error built into a variable
     first, or returned by a factory, is still counted.
     """
-    helpers = exception_helpers()
+    trees = _PKG_TREES if trees is None else trees
+    helpers = exception_helpers(trees)
     total, missing, keys = 0, [], set()
-    for name, tree in _PKG_TREES.items():
+    for name, tree in trees.items():
         inside = {
             id(n)
             for f in tree.body
@@ -580,6 +583,110 @@ def exception_raise_census() -> tuple[int, list[str], set[str]]:
     return total, missing, keys
 
 
+# Self-test fixtures: synthetic modules with every defect shape the censuses
+# must see, and a clean module they must pass. A census that matched nothing,
+# or read every raise as translated, would leave the real tree's arms green
+# (the #1590 review measured both), so each census is held to exact results
+# on these every run. Each line's trailing comment is the shape it pins.
+_TYPING_BAD = """
+from homeassistant import config_entries
+from homeassistant.config_entries import ConfigEntry
+def name_param(entry: ConfigEntry) -> None: ...
+def attr_param(entry: config_entries.ConfigEntry) -> None: ...
+def posonly(entry: ConfigEntry, /) -> None: ...
+def kwonly(*, entry: ConfigEntry[X]) -> None: ...
+def star(*entries: ConfigEntry, **named: ConfigEntry) -> None: ...
+def union_return(n: int) -> config_entries.ConfigEntry | None: ...
+def stringly(entry: "ConfigEntry") -> None: ...
+async def coroutine(entry: ConfigEntry) -> None: ...
+class Flow:
+    def __init__(self) -> None:
+        self.entry: config_entries.ConfigEntry | None = None
+"""
+_TYPING_BAD_HITS = [
+    "m.py:4 name_param(entry)",
+    "m.py:5 attr_param(entry)",
+    "m.py:6 posonly(entry)",
+    "m.py:7 kwonly(entry)",
+    "m.py:8 star(entries)",
+    "m.py:8 star(named)",
+    "m.py:9 union_return -> return",
+    "m.py:10 stringly(entry)",
+    "m.py:11 coroutine(entry)",
+    "m.py:14 self.entry",
+]
+_TYPING_CLEAN = """
+def ok(entry: HeatPumpOptimizerConfigEntry, n: int, /, *a: str, k: ConfigEntryX = None) -> HeatPumpOptimizerConfigEntry: ...
+x: "HeatPumpOptimizerConfigEntry | None" = None
+"""
+_RAISE_BAD = """
+def _raise_helper(key, message, cause=None, **ph):
+    raise UpdateFailed(message, translation_domain=DOMAIN, translation_key=key) from cause
+def _literal_key(message):
+    return HomeAssistantError(message, translation_domain=DOMAIN, translation_key="lit")
+def _untranslated_factory(message):
+    return UpdateFailed(message)
+def sites():
+    raise UpdateFailed("x")
+    raise ServiceValidationError(translation_domain=DOMAIN)
+    raise ServiceValidationError(translation_key="k1")
+    raise exceptions.HomeAssistantError("y", translation_domain=DOMAIN, translation_key="k2")
+    raise ConfigEntryNotReady
+    _raise_helper("k3", "m")
+    _raise_helper(key="k4", message="m")
+    raise ValueError("not in the family")
+"""
+_RAISE_BAD_RESULT = (
+    9,
+    [
+        "m.py:7 UpdateFailed",
+        "m.py:9 UpdateFailed",
+        "m.py:10 ServiceValidationError",
+        "m.py:11 ServiceValidationError",
+        "m.py:13 ConfigEntryNotReady (no call)",
+        "m.py:15 _raise_helper() names no key",
+    ],
+    {"lit", "k1", "k2", "k3"},
+)
+_RAISE_CLEAN = """
+def _raise_helper(key, message):
+    raise UpdateFailed(message, translation_domain=DOMAIN, translation_key=key)
+def sites():
+    raise ServiceValidationError(translation_domain=DOMAIN, translation_key="a")
+    raise exceptions.UpdateFailed(translation_domain=DOMAIN, translation_key="b")
+    _raise_helper("c", "m")
+    raise ValueError("not in the family")
+"""
+
+
+def _fixture(src: str) -> dict[str, ast.Module]:
+    return {"m.py": ast.parse(src)}
+
+
+def check_census_self_test() -> None:
+    """Hold both censuses to exact results on the synthetic fixtures above."""
+    R.section("quality_scale census self-test (#1545, #1546)")
+    hits = bare_entry_annotations(_fixture(_TYPING_BAD))
+    R.check(
+        "the typing census finds every bare ConfigEntry shape, and only those",
+        hits == _TYPING_BAD_HITS,
+        f"got {hits}",
+    )
+    clean = bare_entry_annotations(_fixture(_TYPING_CLEAN))
+    R.check("the typing census passes the alias and look-alike names (null control)", clean == [], repr(clean))
+    total, missing, keys = exception_raise_census(_fixture(_RAISE_BAD))
+    R.check(
+        "the exception census counts every site, refuses each untranslated one, and reads each key",
+        (total, sorted(missing), keys) == (_RAISE_BAD_RESULT[0], sorted(_RAISE_BAD_RESULT[1]), _RAISE_BAD_RESULT[2]),
+        f"got {(total, sorted(missing), sorted(keys))}",
+    )
+    R.check(
+        "the exception census passes a translated module (null control)",
+        exception_raise_census(_fixture(_RAISE_CLEAN)) == (3, [], {"a", "b", "c"}),
+        repr(exception_raise_census(_fixture(_RAISE_CLEAN))),
+    )
+
+
 def _exception_keys(path: pathlib.Path) -> set[str]:
     return set(json.loads(path.read_text()).get("exceptions", {}))
 
@@ -596,14 +703,7 @@ def check_quality_scale() -> None:
         claimed is not None and int(claimed.group(1)) == len(bare),
         f"claimed {claimed.group(1) if claimed else None}, census {len(bare)}: {bare}",
     )
-    # Null control: a walker that matched nothing would make the census 0 and
-    # the equality above green, so it must flag the union shape #1545's
-    # second harness found, and must pass the alias.
-    R.check(
-        "the walker flags a union-wrapped ConfigEntry and passes the alias (null control)",
-        _names_bare_entry(ast.parse("x: ConfigEntry[Coordinator] | None").body[0].annotation)
-        and not _names_bare_entry(ast.parse("x: HeatPumpOptimizerConfigEntry").body[0].annotation),
-    )
+    # The census itself is held to exact results by check_census_self_test.
 
     status = _rule_block("exception-translations").split(":", 1)[1]
     done = re.match(r"\s*(?:status:\s*)?done\b", status) is not None
@@ -630,6 +730,7 @@ def main() -> int:
     check_entity_prefix()
     check_requirements_claim()
     check_quickstart_numbering()
+    check_census_self_test()
     check_quality_scale()
     return R.close("checks")
 
