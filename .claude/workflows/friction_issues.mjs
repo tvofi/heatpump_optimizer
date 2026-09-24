@@ -36,8 +36,8 @@
 // pure function of the measurement (key, kind, count, threshold, window), so
 // two runs of the same window with the same counts produce byte-identical
 // bodies and the second run is a no-op -- no create, no edit, no comment. A
-// moved measurement within the window (a count that grew) edits the body once;
-// it never opens a second issue.
+// moved measurement within the window (a count that grew) edits an open body
+// once; over a CLOSED issue it files only past the count disposed (`decide`).
 //
 // FAIL CLOSED ON EVERY UNKNOWN. A search that errored, that printed prose, or
 // that returned a shape this parser does not recognise is `unknown`, and
@@ -442,12 +442,25 @@ export function titleFor(key) {
 // create / edit / no-op, decided before anything is written so --dry-run and
 // the self-test drive the same decision the live run acts on. `refuse` is the
 // only other answer: an existing issue whose body cannot be read is not an
-// excuse to file a second one. An existing issue that is not OPEN is treated
-// as no existing issue at all: a key whose issue a seat disposed by closing it
-// must be able to reopen, so the recurrence files a fresh open issue rather
-// than refreshing a dead one (#1468).
+// excuse to file a second one. A key whose issue a seat disposed by closing it
+// must be able to reopen, so a recurrence files a fresh open issue rather than
+// refreshing a dead one (#1468) -- but only a RECURRENCE. The window's count is
+// fixed by bodies already merged, so no disposition can move it, and treating
+// every closed issue as absent re-filed #1498 and #1494 as #1501 and #1502 on
+// the next push, over the same three pull requests each. A closed issue whose
+// body carries this window at a count no lower than this one's is the window's
+// one issue, disposed: nothing is filed until the count grows or a tag turns
+// the window. A body naming neither proves nothing was disposed, and files.
+const MEASURED_RE = /^- histogram line: `.* at (\d+) in this window, threshold \d+\.[\s\S]*^- window: `([^`]+)`$/m
+function disposedHere(closedBody, body) {
+  const was = MEASURED_RE.exec(String(closedBody ?? ''))
+  const now = MEASURED_RE.exec(body)
+  return Boolean(was && now && was[2] === now[2] && Number(now[1]) <= Number(was[1]))
+}
+
 export function decide({ existing, currentBody, body }) {
-  if (!existing || existing.state !== 'OPEN') return 'create'
+  if (!existing) return 'create'
+  if (existing.state !== 'OPEN') return disposedHere(currentBody, body) ? 'no-op' : 'create'
   if (currentBody == null) return 'refuse'
   return currentBody === body ? 'no-op' : 'edit'
 }
@@ -620,6 +633,8 @@ function fileEntries(parsed, since, dryRun) {
       const res = gh(['issue', 'edit', String(existing.number), '--body-file', file])
       if (res.rc !== 0) die(`gh issue edit refused #${existing.number} (gh exit ${res.rc}, <<${res.stderr.slice(0, 200)}>>)`)
       console.log(`UPDATED: #${existing.number} ${JSON.stringify(title)} -- ${entry.kind} at ${entry.count} in this window (one issue per key per window; the body, not a duplicate)`)
+    } else if (existing.state !== 'OPEN') {
+      console.log(`DISPOSED: #${existing.number} ${JSON.stringify(title)} was closed carrying this window at no lower a count (${entry.kind} at ${entry.count}); no write made`)
     } else {
       console.log(`CURRENT: #${existing.number} ${JSON.stringify(title)} already carries this measurement (${entry.kind} at ${entry.count}); no write made`)
     }
