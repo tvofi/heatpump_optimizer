@@ -38,7 +38,7 @@ from .const import (
     OPTIMIZATION_MODE_STATES,
 )
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
-from .entity import HeatPumpOptimizerEntity
+from .entity import HeatPumpOptimizerEntity, commanded_power_kw
 
 if TYPE_CHECKING:
     _SensorMixinBase = HeatPumpOptimizerEntity
@@ -711,9 +711,7 @@ class CurrentPowerSensor(HeatPumpOptimizerSensorBase):
     @property
     def native_value(self) -> float | None:
         if self.coordinator.data:
-            action = self.coordinator.data.get("current_action", {})
-            val = action.get("power")
-            return round(val, 2) if val is not None else None
+            return commanded_power_kw(self.coordinator.data.get("current_action"))
         return None
 
 
@@ -926,15 +924,10 @@ class HeatPumpActionSensor(HeatPumpOptimizerSensorBase):
     def extra_state_attributes(self) -> dict[str, Any]:
         if self.coordinator.data:
             action = self.coordinator.data.get("current_action", {})
-            # power_kw is the pump's whole commanded draw, space plus DHW:
-            # the card's actioned series reads it against both plan slots,
-            # and a DHW-only step is not 0 kW (#1499).
-            space = _as_float(action.get("power"))
             attrs = {
-                "power_kw": (
-                    None if space is None
-                    else round(space + (_as_float(action.get("dhw_power")) or 0.0), 2)
-                ),
+                # The whole commanded draw: the card's actioned series reads
+                # it against both plan slots (#1499).
+                "power_kw": commanded_power_kw(action),
                 "setpoint": action.get("setpoint"),
                 "price": action.get("price"),
                 "power_normalized": action.get("power_normalized"),
@@ -1751,7 +1744,7 @@ class MeasuredPowerSensor(HeatPumpOptimizerSensorBase):
     def extra_state_attributes(self) -> dict[str, Any]:
         data = self.coordinator.data or {}
         return {
-            "recommended_power": (data.get("current_action") or {}).get("power"),
+            "recommended_power": commanded_power_kw(data.get("current_action")),
             "house_power": data.get("measured_house_power"),
             "energy_meter": data.get("measured_energy"),
         }
