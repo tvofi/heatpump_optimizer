@@ -42,7 +42,7 @@
     "drop_most_favourable": 0.0
    },
    "reproduction_steps": [
-    "cd /Users/timmalmstrom/audit-r6-baseline",
+    "cd ~/audit-r6-baseline",
     "PYTHONPATH=tests/hastub python3 tools/audit/round6/D1/dhw_cooling_ratchet.py",
     "Read RESULT nonfinite_live (5) beside RESULT nonfinite_live_perturbed (0)."
    ],
@@ -93,7 +93,7 @@
     "drop_most_favourable": 0.55
    },
    "reproduction_steps": [
-    "cd /Users/timmalmstrom/audit-r6-baseline",
+    "cd ~/audit-r6-baseline",
     "PYTHONPATH=tests/hastub python3 tools/audit/round6/D1/defrost_duty_floor.py",
     "Read RESULT cop_ratio (0.550000) beside RESULT cop_ratio_perturbed (1.000000) and RESULT cop_ratio_null_control (1.000000)."
    ],

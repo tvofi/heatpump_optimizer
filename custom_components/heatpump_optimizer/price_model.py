@@ -47,6 +47,7 @@ from .const import (
     DEFAULT_PRICE_VAT,
     PRICE_SOURCE_ENTITY,
 )
+from .inputs import normalize_price_per_kwh
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -688,9 +689,15 @@ def prices_from_entity_attributes(
     vat: float = 1.0,
     surcharge: float = 0.0,
 ) -> list[dict[str, Any]] | str:
-    """Nord Pool / ENTSO-E-style `raw_today` / `raw_tomorrow` into price rows."""
+    """Nord Pool / ENTSO-E-style `raw_today` / `raw_tomorrow` into price rows.
+
+    Each value is read in the entity's own unit (#1513): an öre/kWh or
+    EUR/MWh series is the same price as SEK/kWh or EUR/kWh, before VAT and
+    the SEK/kWh surcharge are applied to it.
+    """
     if not isinstance(attrs, dict) or not attrs:
         return "Price entity published no today/tomorrow series"
+    scale = normalize_price_per_kwh(1.0, attrs.get("unit_of_measurement")) or 1.0
     rows: list[dict[str, Any]] = []
     for key in ("raw_today", "raw_tomorrow", "today", "tomorrow"):
         block = attrs.get(key)
@@ -704,7 +711,7 @@ def prices_from_entity_attributes(
             if start is None or value is None:
                 continue
             rows.append(
-                {"total": value, "starts_at": start, "level": "NORMAL"}
+                {"total": value * scale, "starts_at": start, "level": "NORMAL"}
             )
     if not rows:
         return "Price entity published no today/tomorrow series"

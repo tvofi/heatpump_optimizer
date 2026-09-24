@@ -1304,10 +1304,10 @@ Comfort miss (margin -0.10 °C) with curve bias -1.0 K applied; bias reset to 0
   ok   the insight view publishes every T6 surface, inert on a fresh install
 Skipping malformed ledger month 2026-03 while freezing monthly receipts; recording an empty receipt instead
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 10293, in _roll_month
+  File "~/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 10293, in _roll_month
     self._month_reports[month] = self._freeze_month_report(month)
                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 12272, in _exploding_freeze
+  File "~/wt/w5-g5-195-coverage/tests/features.py", line 12272, in _exploding_freeze
     raise ValueError("D1-01: malformed month wedges the freezer")
 ValueError: D1-01: malformed month wedges the freezer
 Compressor frequency control stood down: number.freq reports 90.0 Hz against a commanded 45.0 Hz for 3 ticks
@@ -1325,45 +1325,45 @@ No snapshot qualifies for restore (healthy inputs and in-band accuracy at captur
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: tariff exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5246, in async_run_optimization
+  File "~/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5246, in async_run_optimization
     tariff = self._capacity_tariff()
              ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 13134, in _tariff_boom
+  File "~/wt/w5-g5-195-coverage/tests/features.py", line 13134, in _tariff_boom
     raise RuntimeError("tariff exploded")
 RuntimeError: tariff exploded
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: tariff exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5246, in async_run_optimization
+  File "~/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5246, in async_run_optimization
     tariff = self._capacity_tariff()
              ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 13134, in _tariff_boom
+  File "~/wt/w5-g5-195-coverage/tests/features.py", line 13134, in _tariff_boom
     raise RuntimeError("tariff exploded")
 RuntimeError: tariff exploded
 No electricity price data available; skipping optimization until prices can be fetched
 No weather forecast available — using current conditions. Predictive optimization will be limited.
 Optimization failed: solver exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5219, in async_run_optimization
+  File "~/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5219, in async_run_optimization
     horizon = self._forecast_arrays(now)
               ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 13586, in _g_boom
+  File "~/wt/w5-g5-195-coverage/tests/features.py", line 13586, in _g_boom
     raise RuntimeError("solver exploded")
 RuntimeError: solver exploded
 Optimization failed: solver exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5219, in async_run_optimization
+  File "~/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5219, in async_run_optimization
     horizon = self._forecast_arrays(now)
               ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 13586, in _g_boom
+  File "~/wt/w5-g5-195-coverage/tests/features.py", line 13586, in _g_boom
     raise RuntimeError("solver exploded")
 RuntimeError: solver exploded
 Optimization failed: solver exploded
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5219, in async_run_optimization
+  File "~/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 5219, in async_run_optimization
     horizon = self._forecast_arrays(now)
               ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/features.py", line 13586, in _g_boom
+  File "~/wt/w5-g5-195-coverage/tests/features.py", line 13586, in _g_boom
     raise RuntimeError("solver exploded")
 RuntimeError: solver exploded
   ok   starts, receipts and the operation score ride the ledger store
@@ -1636,18 +1636,18 @@ ALL 27 DST / QUARTER-GRID CHECKS PASSED
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 6091, in _fetch_tibber_prices
+  File "~/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 6091, in _fetch_tibber_prices
     session = async_get_clientsession(self.hass)
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/wt/w5-g5-195-coverage/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
 Unexpected error fetching prices: no HTTP session available in the test stub
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 6091, in _fetch_tibber_prices
+  File "~/wt/w5-g5-195-coverage/custom_components/heatpump_optimizer/coordinator.py", line 6091, in _fetch_tibber_prices
     session = async_get_clientsession(self.hass)
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/wt/w5-g5-195-coverage/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
+  File "~/wt/w5-g5-195-coverage/tests/hastub/homeassistant/helpers/aiohttp_client.py", line 5, in async_get_clientsession
     raise RuntimeError("no HTTP session available in the test stub")
 RuntimeError: no HTTP session available in the test stub
   ok   the ensemble's UA bias p90 is inside 15 % (pre-fix production: +54 %)

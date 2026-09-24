@@ -1,7 +1,7 @@
 # D1 - Robustness and stability, round 7
 
 Baseline: `f9d6f78243fa65f6fa128d2357752a2ae7f60648` (round-6 fix wave merged), export at
-`/Users/timmalmstrom/audit-r7-baseline`. Machine: 8-core Apple M1, 8 GB, darwin 25.6.0,
+`~/audit-r7-baseline`. Machine: 8-core Apple M1, 8 GB, darwin 25.6.0,
 Python 3.11.5, numpy 2.4.6. Everything below was run from the export root with
 `PYTHONPATH=tests/hastub`.
 

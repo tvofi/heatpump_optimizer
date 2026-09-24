@@ -1,6 +1,6 @@
 # D11 — Governance mechanisms and policy — round 7
 
-Baseline `f9d6f78243fa65f6fa128d2357752a2ae7f60648` (round-6 fix wave fully merged), audited in the isolated worktree `/Users/timmalmstrom/audit-r7-D11`. Interpreter `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3`, `PYTHONPATH=tests/hastub`, every command run from the worktree root.
+Baseline `f9d6f78243fa65f6fa128d2357752a2ae7f60648` (round-6 fix wave fully merged), audited in the isolated worktree `~/audit-r7-D11`. Interpreter `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3`, `PYTHONPATH=tests/hastub`, every command run from the worktree root.
 
 > report_note: the finder's `REPORT.md` write was refused, so this file is reconstructed by the orchestrator from the finder's JSON return (the `report_markdown` field), per the round-6 precedent.
 

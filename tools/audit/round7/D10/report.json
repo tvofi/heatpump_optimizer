@@ -11,7 +11,7 @@
       "claim": "The strict-typing platinum rule requires the package to ship a py.typed marker file and states there are no exceptions, but the package ships 0 of them and the register marks the row done on an exemption the rule text does not contain.",
       "mechanism": "The rule text (fetched /tmp/harules/strict-typing.md) says \"you need to add a `py.typed` file to your library\" and its Exceptions section says \"There are no exceptions to this rule\"; the register's comment (\"the Platinum rule's marker-file half does not apply to a custom integration\") is invented and appears in neither the rule nor its warning box.",
       "evidence": {
-        "command": "cd /Users/timmalmstrom/audit-r7-baseline && PYTHONPATH=tests/hastub:custom_components:tests /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D10/qs_rules_r7.py",
+        "command": "cd ~/audit-r7-baseline && PYTHONPATH=tests/hastub:custom_components:tests /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D10/qs_rules_r7.py",
         "harness_path": "tools/audit/round7/D10/qs_rules_r7.py",
         "value": 0,
         "unit": "count of py.typed files in the package (qs_py_typed_files)",
@@ -50,7 +50,7 @@
       "claim": "The strict-typing rule's warning requires the custom typed MyIntegrationConfigEntry 'used throughout' when the integration implements runtime-data, but only 10 of 100 entry parameters use the alias HeatPumpOptimizerConfigEntry and 88 use bare, unparameterised ConfigEntry.",
       "mechanism": "entry.runtime_data is assigned in async_setup_entry (runtime-data is implemented) and the alias HeatPumpOptimizerConfigEntry exists, but every platform module and config_flow.py annotate their entry parameter as plain ConfigEntry, so runtime_data reads as Any at each of the 88 sites. mypy --strict flags exactly this as [type-arg] 'Missing type arguments for generic type'.",
       "evidence": {
-        "command": "cd /Users/timmalmstrom/audit-r7-baseline && PYTHONPATH=tests/hastub:custom_components:tests /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D10/qs_rules_r7.py",
+        "command": "cd ~/audit-r7-baseline && PYTHONPATH=tests/hastub:custom_components:tests /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D10/qs_rules_r7.py",
         "harness_path": "tools/audit/round7/D10/qs_rules_r7.py",
         "value": 88,
         "unit": "count of entry parameters annotated bare ConfigEntry (qs_entry_param_bare)",
