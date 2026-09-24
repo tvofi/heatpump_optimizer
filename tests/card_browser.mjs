@@ -1408,11 +1408,14 @@ try {
 
   // Every view the card draws: the tile (and its score breakdown), and each
   // dialog page -- the plan page twice, the second with every optional
-  // control the what-if panel and the zoom row can add.
+  // control the what-if panel and the zoom row can add, and the setup page
+  // twice, the second with its entity picker open.
   const ORDER_VIEWS = [
     { name: "tile" }, { name: "tile_score", score: true },
     { name: "plan", page: "plan" }, { name: "plan_busy", page: "plan", busy: true },
-    { name: "setup", page: "setup" }, { name: "savings", page: "savings" },
+    { name: "setup", page: "setup" },
+    { name: "setup_picker", page: "setup", open: "dialog rect.setup-hit" },
+    { name: "savings", page: "savings" },
     { name: "advisor", page: "advisor" },
   ];
   const orderCells = [];
@@ -1462,6 +1465,15 @@ try {
           card._render();
         }
         await settle();
+        // The setup picker, opened from the keyboard as a user would: focus
+        // a diagram row, press Enter. It overlays the diagram.
+        if (v.open) {
+          const hit = card.shadowRoot.querySelector(v.open);
+          hit.focus();
+          hit.dispatchEvent(new KeyboardEvent("keydown",
+            { key: "Enter", bubbles: true, composed: true }));
+          await settle();
+        }
         // Zoomed in, the view's reset button is enabled and joins the walk.
         if (v.busy) {
           card.shadowRoot.querySelector("dialog .vc-in").click();
