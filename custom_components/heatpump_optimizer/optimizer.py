@@ -4355,10 +4355,10 @@ class HeatPumpOptimizer:
         # they meant.
         runup_temps = np.zeros(max(n_steps, 0))
         boost_top = min(70.0, float(params.dhw_hard_max_temp))
-        if legionella_step is not None and n_steps > 0 and boost_top > float(
-            params.dhw_max_temp
+        if c_dhw > 0.0 and legionella_step is not None and n_steps > 0 and (
+            boost_top > float(params.dhw_max_temp)
         ):
-            ua = max(params.dhw_tank_heat_loss_coefficient, 1e-6)
+            ua = params.dhw_tank_heat_loss_coefficient
             decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
             gain = ua * DHW_AMBIENT_TEMP * dt / c_dhw
             everyday = float(params.dhw_max_temp)
@@ -4518,7 +4518,9 @@ class HeatPumpOptimizer:
         hours = np.asarray(h.step_hours, dtype=float) % 24.0
         raw = np.asarray(self.model.dhw_draw_rates(hours), dtype=float)
         out = np.array(wood, dtype=float, copy=True)
-        c_w = max(p.wood_tank_thermal_mass, 0.01)
+        # The wood store's own capacity, unfloored: the same reduction
+        # `simulate_trajectory` above applies reads it raw (#1487, D2-03).
+        c_w = p.wood_tank_thermal_mass
         inlet = p.dhw_inlet_reference
         setpoint = p.dhw_setpoint
         dt = h.dt
@@ -4569,7 +4571,10 @@ class HeatPumpOptimizer:
         dhw_min_temp = params.dhw_min_temp
         dhw_setpoint = params.dhw_setpoint
         idle_min_temp = min(params.dhw_idle_min_temp, dhw_min_temp)
-        c_dhw = max(params.dhw_tank_thermal_mass, 0.05)
+        # The tank's own capacity, unfloored: the three planners this is
+        # threaded into and the legionella run-up all read this one value
+        # (D2-03, the class D2-01 closed in thermal_model.py).
+        c_dhw = params.dhw_tank_thermal_mass
 
         hours_mod = np.asarray(step_hours, dtype=float) % 24.0
         # Weekly windows (#3): when the configured spec names days, the
@@ -4661,7 +4666,7 @@ class HeatPumpOptimizer:
                 * max(0.5 * (dhw_setpoint + dhw_min_temp) - 20.0, 0.0)
                 * window_hours
             )
-            needed_delta = (draw_energy + standby_energy) / c_dhw
+            needed_delta = (draw_energy + standby_energy) / c_dhw if c_dhw else 0.0
             # T4a #11 (gated): when the immersion element keeps rescuing
             # late tanks, the coordinator asks for a little extra
             # readiness. 0.0 — the default — is byte-inert.
@@ -5106,32 +5111,31 @@ class HeatPumpOptimizer:
         Returns ``None`` when the solve fails, so the caller can fall back to
         the greedy planner.
         """
-        if n_steps == 0:
+        if n_steps == 0 or c_dhw <= 0.0:
             return None
 
         max_temp = np.asarray(max_temp, dtype=float)
         requirement = np.minimum(np.asarray(requirement, dtype=float), max_temp)
         params = self.model.params
-        ua = max(params.dhw_tank_heat_loss_coefficient, 1e-6)
-        c = max(c_dhw, 0.05)
+        ua = params.dhw_tank_heat_loss_coefficient
 
         # Per-step decay of stored heat. Guarded so an absurdly leaky tank or a
         # long time step cannot produce a negative (unstable) factor.
-        decay = float(np.clip(1.0 - ua * dt / c, 0.0, 1.0))
-        gain = ua * DHW_AMBIENT_TEMP * dt / c
+        decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
+        gain = ua * DHW_AMBIENT_TEMP * dt / c_dhw
 
         # Free trajectory: what the tank does with no heating at all.
         free = np.zeros(n_steps + 1)
         free[0] = initial_temp
         for i in range(n_steps):
             free[i + 1] = (
-                decay * free[i] - float(draw_rates[i]) * dt / c + gain
+                decay * free[i] - float(draw_rates[i]) * dt / c_dhw + gain
             )
 
         # Influence matrix: A[m, j] = degrees at step m+1 per thermal kWh at j.
         idx = np.arange(n_steps)
         lag = idx[:, None] - idx[None, :]
-        influence = np.where(lag >= 0, np.power(decay, np.maximum(lag, 0)) / c, 0.0)
+        influence = np.where(lag >= 0, np.power(decay, np.maximum(lag, 0)) / c_dhw, 0.0)
 
         # COP is temperature dependent; solve once against the requirement
         # level, then re-solve against the trajectory the first pass produced.
@@ -5338,7 +5342,7 @@ class HeatPumpOptimizer:
         """
         plan = np.asarray(plan, dtype=float).copy()
         n = plan.size
-        if n == 0 or requirement is None:
+        if n == 0 or requirement is None or c_dhw <= 0.0:
             return plan
         ceiling = np.asarray(max_temp, dtype=float)[:n]
         # Clipped to the ceiling, exactly as both planners clip it: a floor
@@ -5348,8 +5352,8 @@ class HeatPumpOptimizer:
         # The tank's own per-step decay, the same factor the linear program
         # uses: heat added now is worth less later, so the ceiling bound
         # below can price how much of a top-up still survives at each step.
-        ua = max(self.model.params.dhw_tank_heat_loss_coefficient, 1e-6)
-        decay = float(np.clip(1.0 - ua * dt / max(c_dhw, 0.05), 0.0, 1.0))
+        ua = self.model.params.dhw_tank_heat_loss_coefficient
+        decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
         # Breaches no ceiling-legal top-up can close. Skipped rather than
         # returned on: a demand window later in the day is not helped by
         # giving up at the first step the tank cannot quite reach, and a
@@ -5744,7 +5748,7 @@ class HeatPumpOptimizer:
             plan = np.clip(
                 np.array(initial_plan, dtype=float), 0.0, p_dhw_max
             )
-        if n_steps == 0:
+        if n_steps == 0 or c_dhw <= 0.0:
             return plan
 
         # A requirement above the step's own ceiling can never be met; asking
@@ -5757,7 +5761,7 @@ class HeatPumpOptimizer:
         # Fraction of stored heat lost per hour of storage: raising the tank by
         # ΔT stores C·ΔT kWh but adds U·ΔT kW of standby loss.
         loss_rate_per_hour = (
-            self.model.params.dhw_tank_heat_loss_coefficient / max(c_dhw, 0.05)
+            self.model.params.dhw_tank_heat_loss_coefficient / c_dhw
         )
 
         tolerance = 0.05  # °C
