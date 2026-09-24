@@ -501,11 +501,11 @@ every sensor is created on every install regardless of which group it is in.
 | Indoor Temperature (Optimizer) | °C | Indoor temperature as the optimizer sees it | |
 | Outdoor Temperature (Optimizer) | °C | Outdoor temperature as the optimizer sees it | Falls back to the forecast step the plan is solved on when no outdoor thermometer is configured; the `source` attribute says which |
 | Upper Floor Temperature | °C | The radiator zone | |
-| Lower Floor Temperature | °C | The slab zone | Disabled by default; unavailable until the lower-floor probe is configured |
-| Floor Heating Return Temperature | °C | The return-water reading the slab estimate uses | Disabled by default; unavailable until the floor-return probe is configured |
-| Slab Temperature (Estimated) | °C | Modelled slab temperature | Disabled by default; unavailable until the floor-return probe feeds the model |
-| Buffer Tank Temperature (Model) | °C | Modelled buffer tank temperature | Disabled by default; unavailable until the buffer-tank probe is configured |
-| DHW Temperature | °C | Tank temperature, with the demand-window state and the learned cooling rate in attributes | Disabled by default; unavailable until the tank thermometer is configured |
+| Lower Floor Temperature | °C | The slab zone | Disabled by default unless the lower-floor probe is configured at setup; unavailable without it |
+| Floor Heating Return Temperature | °C | The return-water reading the slab estimate uses | Disabled by default unless the floor-return probe is configured at setup; unavailable without it |
+| Slab Temperature (Estimated) | °C | Modelled slab temperature | Disabled by default unless the floor-return probe is configured at setup; unavailable until it feeds the model |
+| Buffer Tank Temperature (Model) | °C | Modelled buffer tank temperature | Disabled by default unless the buffer-tank probe is configured at setup; unavailable without it |
+| DHW Temperature | °C | Tank temperature, with the demand-window state and the learned cooling rate in attributes | Disabled by default unless the tank thermometer is configured at setup; unavailable without it |
 
 #### Energy, power and efficiency
 
@@ -537,7 +537,7 @@ every sensor is created on every install regardless of which group it is in.
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
 | DHW Setpoint Advisor | °C | The cheapest hot-water setpoint that still covers your heavy days | Diagnostic; unavailable until there is a recommendation |
-| DHW Mixed Water | L | Litres of 40 °C water the tank holds now, with shower minutes alongside | Disabled by default; unavailable without the tank thermometer; renamed from Mixed Hot Water by #174 |
+| DHW Mixed Water | L | Litres of 40 °C water the tank holds now, with shower minutes alongside | Disabled by default unless the tank thermometer is configured at setup; unavailable without it; renamed from Mixed Hot Water by #174 |
 | DHW Heavy Day Demand | kWh | The learned 90th-percentile draw per demand window | Diagnostic; disabled by default; needs weeks of data |
 
 #### How well it is doing, and what it has learned
@@ -546,8 +546,8 @@ every sensor is created on every install regardless of which group it is in.
 |---|---|---|---|
 | Prediction Accuracy | °C | Mean indoor-temperature error, with the signed bias and the last diagnosis in attributes | Diagnostic; unavailable until an interval has been scored |
 | Learning Comfort Weight | — | The comfort weight in force, learned or configured | Diagnostic |
-| ECL110 Displace | °C | The parallel shift commanded to an ECL110 heat curve | Diagnostic; disabled by default; ECL110 hardware |
-| ECL110 Effective Displace | °C | The shift the controller has actually reached, after its own lag | Diagnostic; disabled by default; ECL110 hardware |
+| ECL110 Displace | °C | The parallel shift commanded to an ECL110 heat curve | Diagnostic; disabled by default unless an ECL110 MQTT topic is configured at setup; unavailable without one |
+| ECL110 Effective Displace | °C | The shift the controller has actually reached, after its own lag | Diagnostic; disabled by default unless an ECL110 MQTT topic is configured at setup; unavailable without one |
 | Valve Target Recommendation | °C | What to set a manual mixing valve to, and why | Diagnostic; disabled by default; needs a mixing-valve mode |
 | Sensor-Gap Advisor | CUR | Estimated extra cost per month, in your currency, from the highest-value empty sensor slot | Diagnostic; outdoor, house meter, DHW probe |
 | Wood-Burn Night Advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; disabled by default; advisory only — never lights the stove |
@@ -596,7 +596,9 @@ recovery heat in the cheapest hours before it. Both are also driven by the
 **DHW Boost** and **Boost Space Heating** each apply maximum heat on that
 channel for two hours: the planner's DHW ceiling, or nameplate space heat with
 the comfort ceiling and full curve displace. They expire on their own and do
-not switch the optimizer into the global boost mode.
+not switch the optimizer into the global boost mode. Without hot water
+configured, DHW Boost is unavailable and disabled by default, and applies no
+heat.
 
 The **climate entity** is a virtual thermostat with HVAC modes (off, heat, auto)
 and presets (auto, comfort, economy, boost). Its target temperature is *your*
