@@ -10,11 +10,9 @@ Every fix pull request re-records ``tests/mutation_budgets.json``,
 branches in flight collide there in a line merge even when they recorded
 different keys. ``--replay`` re-runs every branch-side merge since a date
 twice, without and with this driver, and counts the ledger conflicts; from
-2026-09-10 to 2026-09-24 that is 48 without it and 3 with it, and on every
-merge there that the plain text merge resolved cleanly the driver writes the
-same bytes. Until #1577 keys the mutation ledger by content, a merge that
-shifts code still leaves line-keyed dispositions to re-key by hand; the driver
-removes the conflict, not that work.
+2026-09-10 to 2026-09-24 that is 60 without it and 0 with it. Where the plain
+text merge resolved cleanly the driver writes the same JSON value, and the
+same bytes except that raw non-ASCII is written escaped, as the writers do.
 
 The driver parses base, ours and theirs and merges three ways per key:
 
@@ -38,7 +36,17 @@ The driver parses base, ours and theirs and merges three ways per key:
     chose; in ``closures.json`` it sits under ``recorded`` (seconds, rc),
     which no check reads for a decision, so it takes the larger;
   * ``recorded_at`` both sides changed takes whichever SHA descends from the
-    other.
+    other;
+  * in a disposition map (``survivor_triage``, ``killed_by``) a row is first
+    given one key on all three sides by what it is -- file, operator and
+    pinned ``old`` text -- so a re-key (#1577's content anchors, or a line
+    shift) is not read as a deletion plus an addition, and a branch's own
+    rows and edits survive it (``_rekey``); run
+    ``tests/mutation_table.py --normalize`` afterwards;
+  * a top-level key the writer retired (``unpinned_sites``, derived since
+    #1577) is dropped when one side deleted it;
+  * a prose string one side only appended to (``reason``) takes the other
+    side's text plus that addition.
 
 Anything else both sides changed differently REFUSES, and so does a file
 whose bytes do not round-trip through the formatter its writer uses (a hand
@@ -61,6 +69,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -72,6 +81,10 @@ LEDGERS = {
     "tests/structure_budgets.json": "sum",
     "tests/closures.json": "max",
 }
+#: Top-level keys a ledger's writer no longer stores. #1577 made the unpinned
+#: count derived, so a side that deleted it wins over a branch cut before
+#: #1577 that still re-recorded it.
+RETIRED = {"unpinned_sites"}
 #: The ``json.dumps`` shapes the three writers use (mutation_table.py indent 2;
 #: structure.py indent 1 sorted; closure.py indent 1). A file that is not
 #: byte-identical under one of them (raw or escaped non-ASCII aside) is
@@ -89,6 +102,8 @@ class Refuse(Exception):
 
 
 _ABSENT = object()
+#: The retired ``FILE:LINE KIND`` disposition key (tests/mutation_table.py).
+_LINE_KEY = re.compile(r"^[^:\s]+:\d+ [A-Z_]+$")
 
 
 def _is_str_list(v) -> bool:
@@ -122,6 +137,75 @@ def _key_order(ours: dict, theirs: dict) -> list:
     return keys
 
 
+def _site(key: str, value) -> tuple | None:
+    """A disposition's identity apart from its key: file, operator, pinned text.
+
+    Both key shapes the ledger has used carry the file before the first ``:``
+    and the operator as the second word (``FILE:LINE KIND`` retired,
+    ``FILE:SCOPE KIND DIGEST`` since #1577); the row carries its ``old`` pin.
+    """
+    words = key.split(" ")
+    if ":" not in words[0] or len(words) < 2 or not isinstance(value, dict):
+        return None
+    old = value.get("old")
+    return (words[0].split(":", 1)[0], words[1], old) if isinstance(old, str) else None
+
+
+def _rekey(base: dict, ours: dict, theirs: dict, notes: list, where: str):
+    """The three sides of a disposition map with each row under one key.
+
+    When a side re-keys rows (#1577 moved every key from its line number to a
+    content anchor; a line shift re-keys line-keyed rows), a key merge sees a
+    deletion plus an addition, and a row the OTHER side changed or added
+    beside it is lost or doubled: #1572 re-applied its 9 rows by hand after
+    #1577 landed. So a row whose identity (``_site``) is unique on every side
+    gets one key on all three sides: the key as a three-way merge of the key
+    itself would have it (the side that moved it; when both did, the content
+    anchor, else theirs'), and the
+    ordinary merge then keeps a branch's own rows and applies both sides'
+    edits to the same row. Nothing is renamed unless every row of the map has
+    an identity; a row whose identity repeats on a side (identical pinned
+    lines, which the anchor tells apart by scope and ordinal) keeps its key,
+    and any rename that would collide abandons the pass for the map.
+    """
+    sides = (base, ours, theirs)
+    keyof, twice = [], set()
+    for side in sides:
+        ids = {}
+        for k, v in side.items():
+            site = _site(k, v)
+            if site is None:
+                return sides
+            if site in ids:
+                twice.add(site)   # identical pinned lines: left to the key merge
+            ids[site] = k
+        keyof.append(ids)
+    canon = {}
+    for site in (set(keyof[0]) | set(keyof[1]) | set(keyof[2])) - twice:
+        kb, ko, kt = (ids.get(site) for ids in keyof)
+        if ko is None or ko == kb:
+            canon[site] = kt or ko or kb   # only theirs moved it, or ours lacks it
+        elif kt is None or kt == kb:
+            canon[site] = ko               # only ours moved it (a line shift of its own)
+        else:                              # both moved it: the anchored key, else theirs
+            canon[site] = ko if _LINE_KEY.match(kt) and not _LINE_KEY.match(ko) else kt
+    out = []
+    moved = 0
+    for side in sides:
+        renamed = {}
+        for k, v in side.items():
+            new = canon.get(_site(k, v), k)
+            if new in renamed:
+                return sides
+            moved += new != k
+            renamed[new] = v
+        out.append(renamed)
+    if moved:
+        notes.append(f"{where}: {moved} row key(s) aligned across sides by file, "
+                     "operator and pinned text; run mutation_table.py --normalize")
+    return tuple(out)
+
+
 def merge3(base, ours, theirs, *, numbers: str, path: str = "",
            repo: str = ROOT, notes: list | None = None, depth: int = 0):
     """Three-way merge of parsed JSON values; raises ``Refuse``."""
@@ -143,6 +227,14 @@ def merge3(base, ours, theirs, *, numbers: str, path: str = "",
         if depth >= 2 and not numeric:
             raise Refuse(f"{where}: both sides rewrote this record differently")
         b = base if isinstance(base, dict) else {}
+        if depth == 1:
+            b, ours, theirs = _rekey(b, ours, theirs, notes, where)
+            if ours == theirs:
+                return ours
+            if ours == b:
+                return theirs
+            if theirs == b:
+                return ours
         out = {}
         for k in _key_order(ours, theirs):
             v = merge3(b.get(k, _ABSENT), ours.get(k, _ABSENT), theirs.get(k, _ABSENT),
@@ -181,6 +273,19 @@ def merge3(base, ours, theirs, *, numbers: str, path: str = "",
         if _descends(theirs, ours, repo):
             return theirs
         raise Refuse(f"{where}: neither SHA descends from the other")
+    if depth == 1 and path in RETIRED and _ABSENT in (ours, theirs):
+        notes.append(f"{where}: retired by one side, so dropped")
+        return _ABSENT
+    if all(isinstance(v, str) for v in (base, ours, theirs)) and base:
+        # A prose field one side only appended to (a ledger's `reason`, which
+        # a pre-#1577 re-record extended): keep the other side's text and
+        # append that side's addition, so neither side's words are lost.
+        if ours.startswith(base):
+            notes.append(f"{where}: appended this branch's addition to the incoming text")
+            return theirs + ours[len(base):]
+        if theirs.startswith(base):
+            notes.append(f"{where}: appended the incoming addition to this branch's text")
+            return ours + theirs[len(base):]
     raise Refuse(f"{where}: both sides changed it differently")
 
 
@@ -404,6 +509,71 @@ def self_test() -> int:
         _dump({"max_survivor_fraction": {"changed": 0.2, "full": 0.4}}, FORMATS[2]), "sum"))
     check("mutation: a cap both sides raised takes the lower raise, not the sum",
           got["max_survivor_fraction"]["full"] == 0.35)
+
+    # #1572 after #1577: main re-keyed every disposition to its content anchor
+    # while a branch, still on line keys, added rows, edited one and re-keyed
+    # another after its own line shift. The branch's rows must survive, its
+    # edit must land on main's key, and no row may appear twice.
+    P = "custom_components/heatpump_optimizer/"
+    rb = {"killed_by": {P + "a.py:10 GUARD_OFF": {"killed_by": "t", "old": "if x:"},
+                        P + "a.py:20 CONST": {"killed_by": "t", "old": "n = 1"}}}
+    ro = {"killed_by": {P + "a.py:12 GUARD_OFF": {"killed_by": "t", "old": "if x:"},
+                        P + "a.py:22 CONST": {"killed_by": "u", "old": "n = 1"},
+                        P + "a.py:30 RETURN_DEL": {"killed_by": "t", "old": "return y"}}}
+    rt = {"killed_by": {P + "a.py:f GUARD_OFF 1234abcd": {"killed_by": "t", "old": "if x:"},
+                        P + "a.py:g CONST 5678abcd": {"killed_by": "t", "old": "n = 1"}}}
+    got_r = json.loads(merge_text(_dump(rb, FORMATS[2]), _dump(ro, FORMATS[2]),
+                                  _dump(rt, FORMATS[2]), "sum"))["killed_by"]
+    check("re-keyed ledger: a row the branch added survives main's re-key",
+          got_r.get(P + "a.py:30 RETURN_DEL", {}).get("old") == "return y")
+    check("re-keyed ledger: the branch's edit lands on main's key",
+          got_r.get(P + "a.py:g CONST 5678abcd", {}).get("killed_by") == "u")
+    check("re-keyed ledger: a row both sides re-keyed appears once, under main's key",
+          len(got_r) == 3 and P + "a.py:f GUARD_OFF 1234abcd" in got_r)
+
+    # And a row only the branch re-keyed (its own line shift, main untouched)
+    # keeps the branch's key, as the text merge does (merge 75231a63).
+    sb = {"survivor_triage": {P + "o.py:3565 GUARD_OFF": {"verdict": "gap", "old": "if c:"},
+                              P + "o.py:9 CONST": {"verdict": "gap", "old": "k = 2"}}}
+    so = {"survivor_triage": {P + "o.py:3588 GUARD_OFF": {"verdict": "gap", "old": "if c:"},
+                              P + "o.py:9 CONST": {"verdict": "gap", "old": "k = 2"}}}
+    st = {"survivor_triage": {P + "o.py:3565 GUARD_OFF": {"verdict": "gap", "old": "if c:"},
+                              P + "o.py:9 CONST": {"verdict": "equivalent", "old": "k = 2"}}}
+    got_s = json.loads(merge_text(_dump(sb, FORMATS[2]), _dump(so, FORMATS[2]),
+                                  _dump(st, FORMATS[2]), "sum"))["survivor_triage"]
+    check("re-keyed ledger: a row only the branch re-keyed keeps the branch's key",
+          set(got_s) == {P + "o.py:3588 GUARD_OFF", P + "o.py:9 CONST"})
+
+    # A branch cut before #1577 merging it (#1572's own merge, 87045701): main
+    # retired unpinned_sites and rewrote `reason`; the branch re-recorded the
+    # count and appended to `reason`.
+    pb = {"unpinned_sites": 3725, "reason": "base."}
+    po = {"unpinned_sites": 3724, "reason": "base. Re-derived on R8-P2."}
+    pt = {"reason": "anchored."}
+    try:
+        got_p = json.loads(merge_text(_dump(pb, FORMATS[2]), _dump(po, FORMATS[2]),
+                                      _dump(pt, FORMATS[2]), "sum"))
+    except Refuse as why:
+        got_p = {"unpinned_sites": str(why), "reason": str(why)}
+    check("pre-#1577 branch: a count main retired is dropped, not refused",
+          "unpinned_sites" not in got_p)
+    check("pre-#1577 branch: its addition to `reason` is appended to main's text",
+          got_p["reason"] == "anchored. Re-derived on R8-P2.")
+    check("refuses: a prose field both sides rewrote (neither only appended)",
+          refused(lambda: merge_text(_dump({"reason": "a"}), _dump({"reason": "b"}),
+                                     _dump({"reason": "c"}), "sum")))
+
+    # Both sides moved a row: the content anchor wins over a line key, on
+    # whichever side it is (a branch that already normalized, merging a main
+    # that has not).
+    ab = {"killed_by": {P + "a.py:10 GUARD_OFF": {"killed_by": "t", "old": "if x:"}}}
+    ao = {"killed_by": {P + "a.py:f GUARD_OFF 1234abcd": {"killed_by": "t", "old": "if x:"}}}
+    at_ = {"killed_by": {P + "a.py:11 GUARD_OFF": {"killed_by": "t", "old": "if x:"},
+                         P + "a.py:40 CONST": {"killed_by": "t", "old": "z = 0"}}}
+    got_a = json.loads(merge_text(_dump(ab, FORMATS[2]), _dump(ao, FORMATS[2]),
+                                  _dump(at_, FORMATS[2]), "sum"))["killed_by"]
+    check("re-keyed ledger: when both sides moved a row, the anchored key wins",
+          set(got_a) == {P + "a.py:f GUARD_OFF 1234abcd", P + "a.py:40 CONST"})
 
     # Refusals: the ones that make the driver safe to route real files to.
     mo2 = json.loads(json.dumps(mb))
