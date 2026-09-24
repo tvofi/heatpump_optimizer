@@ -20,6 +20,8 @@ from homeassistant.helpers.translation import async_get_translations
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigFlowResult
 
+    from .coordinator import HeatPumpOptimizerConfigEntry
+
 
 class _ShowFormParent(Protocol):
     def async_show_form(
@@ -2211,8 +2213,8 @@ class HeatPumpOptimizerConfigFlow(
         self._data: dict[str, Any] = {}
         # Set by async_step_reconfigure (D10-14): the entry being
         # reconfigured, or None while this is a plain setup flow.
-        self._reconfigure_entry: config_entries.ConfigEntry | None = None
-        self._reauth_entry: config_entries.ConfigEntry | None = None
+        self._reconfigure_entry: HeatPumpOptimizerConfigEntry | None = None
+        self._reauth_entry: HeatPumpOptimizerConfigEntry | None = None
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
@@ -2889,7 +2891,7 @@ class HeatPumpOptimizerConfigFlow(
     @staticmethod
     @callback
     def async_get_options_flow(
-        config_entry: config_entries.ConfigEntry,
+        config_entry: HeatPumpOptimizerConfigEntry,
     ) -> HeatPumpOptimizerOptionsFlow:
         """Get the options flow for this handler."""
         return HeatPumpOptimizerOptionsFlow(config_entry)
@@ -2908,7 +2910,7 @@ class HeatPumpOptimizerConfigFlow(
         self._reauth_entry = getter() if getter else self._entry_from_context()
         return await self.async_step_reauth_confirm()
 
-    def _entry_from_context(self) -> config_entries.ConfigEntry | None:
+    def _entry_from_context(self) -> HeatPumpOptimizerConfigEntry | None:
         """The entry a sourced flow (reauth, reconfigure) is here to change.
 
         The manager stamps the entry's id into the flow's context; this
@@ -2991,7 +2993,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     _ADVANCED_LABEL = "Advanced settings"
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+    def __init__(self, config_entry: HeatPumpOptimizerConfigEntry) -> None:
         """Initialize options flow."""
         # Assigning to ``self.config_entry`` goes through a property setter that
         # Home Assistant deprecated in 2024.11 and removed in 2025.12, which makes

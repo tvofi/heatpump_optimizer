@@ -417,8 +417,9 @@ def check_quality_scale() -> None:
         claimed is not None and int(claimed.group(1)) == len(bare),
         f"claimed {claimed.group(1) if claimed else None}, census {len(bare)}: {bare}",
     )
-    # Null control: the census sees the alias's own definition site, so a
-    # walker that found nothing at all would be red here, not green above.
+    # Null control: a walker that matched nothing would make the census 0 and
+    # the equality above green, so it must flag the union shape #1545's
+    # second harness found, and must pass the alias.
     R.check(
         "the walker flags a union-wrapped ConfigEntry and passes the alias (null control)",
         _names_bare_entry(ast.parse("x: ConfigEntry[Coordinator] | None").body[0].annotation)
