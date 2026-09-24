@@ -1,7 +1,7 @@
 # D11 round 4 — verifier 2 report
 
 - **verifier** 2 of 3, panel D11-0, audit round 4
-- **worktree** `/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D11-2`, detached at `0855277edc49cb3cce3b1095fa1e5edcda7663c8` (branch head; baseline `7dd68dd` is an ancestor)
+- **worktree** `~/.zcode/workspace/default/audit-r4-verify-D11-2`, detached at `0855277edc49cb3cce3b1095fa1e5edcda7663c8` (branch head; baseline `7dd68dd` is an ancestor)
 - **measured** 2026-09-12T15:10–15:37Z. Live GitHub state re-read with a **fresh private cache** (`D11_CACHE=/tmp/d11v2/cache`), never the finder's `~/.cache/hpo-d11-round4`, so every API number below is my own read, not the finder's.
 - **box** load1 2.93 at close (quoted, not gated). **No number below is a timing or memory figure**: all are API counts, static counts, or durations GitHub itself reports, so no `thread_factor` applies and none is quoted. `api_failures=0` on every harness run.
 - **stance** refute-first. Attacks in the contract's order: gate mode (not applicable — no finding rests on the golden/mutant gate), aggregate artefact (the scorecard reports per-criterion, never the aggregate), null control (driven for every harness that declares one), reachability (the seat scripts and CI steps are read in-tree and traced to their callers), severity (judged per finding below).

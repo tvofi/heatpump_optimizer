@@ -1,7 +1,7 @@
 # D6 — README and documentation claim verification (round 7)
 
 Baseline `f9d6f78243fa65f6fa128d2357752a2ae7f60648` (round-6 fix wave fully
-merged), export at `/Users/timmalmstrom/audit-r7-baseline`.
+merged), export at `~/audit-r7-baseline`.
 
 ## Method
 

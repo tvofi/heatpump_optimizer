@@ -1,6 +1,6 @@
 # D5 verification — verifier 3 of 3 (panel D5-0, round 4)
 
-- **Worktree**: `/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D5-3`,
+- **Worktree**: `~/.zcode/workspace/default/audit-r4-verify-D5-3`,
   detached at `0855277` ("Merge remote-tracking branch 'origin/main' into
   claude/13-dimension-audit-920935").
 - **Baseline the finder measured**: `7dd68dd`. `git diff 7dd68dd..0855277` over

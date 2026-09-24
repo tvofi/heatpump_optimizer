@@ -36,7 +36,7 @@
     "note": "Both arms are a pristine baseline tree; only the importability of orjson differs, so the effect is not the tree."
    },
    "reproduction_steps": [
-    "cd /Users/timmalmstrom/audit-r6-D3 (worktree at e336cc2c5308)",
+    "cd ~/audit-r6-D3 (worktree at e336cc2c5308)",
     "PYTHONPATH=tests/hastub python3 tools/audit/round6/D3/json_bytes_probe.py",
     "PYTHONPATH=tests/hastub python3 tests/entities.py   # 3 of 1678, exit 1",
     "python3 -c \"import sys,os,runpy; sys.path.insert(0,os.path.abspath('tests')); sys.modules['orjson']=None; runpy.run_path('tests/entities.py', run_name='__main__')\"   # ALL 1678 PASSED"

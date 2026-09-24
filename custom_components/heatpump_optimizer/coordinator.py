@@ -2549,7 +2549,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         params = ctx._thermal_params
         if not params.dhw_enabled or not self._prices:
             return {}
-        c_dhw = max(params.dhw_tank_thermal_mass, 0.05)
+        c_dhw = params.dhw_tank_thermal_mass
         outdoor = float(ctx._current_state.outdoor_temperature)
         mean_price = float(np.mean([p.get("total", 0.0) for p in self._prices]))
         # The sweep ranks candidates by cost, and ranking needs a positive
@@ -7595,7 +7595,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         measured = self._measured_house_power
         house = self._measured_power if measured is None else measured
         if house is None:
-            house = float(self._current_action.get("power", 0.0))
+            house = self._commanded_power()
         self._peak_tracker.observe(dt_util.now(), float(house), tariff,
                                    measured_house_kw=measured)
 

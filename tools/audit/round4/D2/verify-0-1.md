@@ -1,6 +1,6 @@
 # D2 round 4 — verifier report, seat 1 of 3 (verify-0-1)
 
-- **Worktree** `/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D2-1`,
+- **Worktree** `~/.zcode/workspace/default/audit-r4-verify-D2-1`,
   detached at `0855277` (branch head of `claude/13-dimension-audit-920935`).
 - **Production code vs finder baseline**: `git diff --stat 7dd68dd..HEAD --
   custom_components/` = `manifest.json` and `www/heatpump-optimizer-card.js`

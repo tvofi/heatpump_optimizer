@@ -12,12 +12,12 @@ RESULT v1_min_traced_multiple_required_to_fail=2.07637
 RESULT v1_scenarios_2x_traced_passes=51 scenarios
 RESULT v1_scenarios_never_probed_in_check_mode=45 scenarios
 Traceback (most recent call last):
-  File "/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D9-1/tools/audit/round4/D9/d9_own_d9_06.py", line 202, in <module>
+  File "~/.zcode/workspace/default/audit-r4-verify-D9-1/tools/audit/round4/D9/d9_own_d9_06.py", line 202, in <module>
     main()
-  File "/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D9-1/tools/audit/round4/D9/d9_own_d9_06.py", line 174, in main
+  File "~/.zcode/workspace/default/audit-r4-verify-D9-1/tools/audit/round4/D9/d9_own_d9_06.py", line 174, in main
     inj = probe(winter_pv, inject=True)
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D9-1/tools/audit/round4/D9/d9_own_d9_06.py", line 132, in probe
+  File "~/.zcode/workspace/default/audit-r4-verify-D9-1/tools/audit/round4/D9/d9_own_d9_06.py", line 132, in probe
     return json.loads(lines[-1])
            ^^^^^^^^^^^^^^^^^^^^^
   File "/Library/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/__init__.py", line 346, in loads

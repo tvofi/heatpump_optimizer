@@ -72,7 +72,8 @@ name: Tests
 #   merge too late -- five times (#354).
 #
 # * slow — nightly and on demand. Same suite plus SLOW=1, which adds
-#   tests/rolling.py (the closed-loop learner simulation, ~15 minutes).
+#   tests/rolling.py (the closed-loop learner simulation, ~15 minutes),
+#   then tests/replay.py (recorded days through the real coordinator).
 #
 # * nightly-ha — nightly and on demand. The only lane that runs the
 #   integration inside a real Home Assistant instead of tests/hastub, in
@@ -747,6 +748,16 @@ jobs:
           OPENBLAS_NUM_THREADS: "1"
           MKL_NUM_THREADS: "1"
         run: ./tests/run.sh
+
+      # Recorded days (tests/replay/*.json, written by tools/replay/export.py)
+      # fed through the real coordinator cycle by cycle, every published
+      # entity judged -- the lane #1499 argued for: a defect found in use
+      # after seven synthetic audit rounds. Its own step, run whatever the
+      # suite above concluded, so its red is its own. Nightly rather than per
+      # pull request until a week of real data has been timed.
+      - name: Replay recorded days through the real coordinator
+        if: success() || failure()
+        run: python3 tests/replay.py
 
   # Real Home Assistant, in the container an installation actually runs
   # (#521). Every other lane -- tests/deployment_shape.py included -- gets

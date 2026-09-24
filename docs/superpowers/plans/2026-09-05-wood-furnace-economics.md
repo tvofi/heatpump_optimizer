@@ -21,7 +21,7 @@
 - Gate lock `/tmp/hpo-gate.lock` if the select is `MODE: FULL` or names `tests/stress.py`. Default select is features / config_flow_steps / entities / card / structure — no lock.
 - Three-dot diffs vs merge-base. `cp` backups for source mutation; restore and confirm md5.
 - This repo’s tests are plain scripts, not pytest. Commands below are exact.
-- Worktree under `~/wt/<branch>`. Never commit in `/Users/timmalmstrom/heatpump_optimizer`.
+- Worktree under `~/wt/<branch>`. Never commit in `~/heatpump_optimizer`.
 
 ## Seat (do not skip)
 
@@ -161,7 +161,7 @@ R.check(
 - [ ] **Step 2: Run the checks and confirm they fail**
 
 ```bash
-cd /Users/timmalmstrom/wt/<branch>
+cd ~/wt/<branch>
 PYTHONPATH=tests/hastub python3 tests/features.py
 ```
 

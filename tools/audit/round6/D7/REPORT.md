@@ -2,7 +2,7 @@
 
 - **baseline**: `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9, the round-5
   completion stamp — `tools/audit/round6/BASELINE.md`)
-- **tree**: `/Users/timmalmstrom/audit-r6-baseline`, an export with no `.git`
+- **tree**: `~/audit-r6-baseline`, an export with no `.git`
 - **python**: `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3`
   (3.11.5, numpy 2.4.6, scipy 1.17.1); every command below runs from the export
   root with `PYTHONPATH=tests/hastub`
