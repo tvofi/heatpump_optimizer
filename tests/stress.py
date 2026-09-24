@@ -1737,7 +1737,9 @@ def cpu_scaler(factor: float = 2.0):
     return doubled
 
 
-def per_call_cost_rounds(probe: dict, rounds: int = KERNEL_ARM_ROUNDS):
+def per_call_cost_rounds(
+    probe: dict, rounds: int = KERNEL_ARM_ROUNDS, solve=None
+):
     """Solve ``probe`` plain, with every kernel seam call's CPU doubled, and
     plain again, ``rounds`` times interleaved; return the three arms' median
     kernel milliseconds and the last doubled and second-plain runs. While
@@ -1757,11 +1759,32 @@ def per_call_cost_rounds(probe: dict, rounds: int = KERNEL_ARM_ROUNDS):
     a few percent under 2x of a margin that is only 11 %. Burning the
     measured CPU is 2x per call on any machine, net of the clock reads
     the burn itself adds.
+
+    ``solve(kind)`` returns one run dict for ``kind`` in "base", "slow" and
+    "null"; left None it is the real solve above. A stub is how the round
+    and batch decisions are pinned without a clock.
     """
     saved_batch = SolverWork._batch_wrapped
     saved_step = SolverWork._step_wrapped
-    _cost_twice = cpu_scaler(2.0)
+    _cost_twice = cpu_scaler(2.0) if solve is None else None
 
+    def _real(kind: str) -> dict:
+        if kind != "slow":
+            return build_case(**probe)
+        SolverWork._batch_wrapped = _cost_twice(saved_batch)
+        SolverWork._step_wrapped = _cost_twice(saved_step)
+        try:
+            return build_case(**probe)
+        finally:
+            SolverWork._batch_wrapped = saved_batch
+            SolverWork._step_wrapped = saved_step
+            # build_case's own __exit__ re-published the wrappers onto the
+            # production seams, so restoring the class attributes alone
+            # would leave the doublers reachable from the module.
+            ThermalModel.simulate_trajectory_batch = saved_batch
+            ThermalModel.simulate_step = saved_step
+
+    solve = solve or _real
     base_ms, slow_ms, null_ms = [], [], []
     slower = null = None
 
@@ -1779,21 +1802,10 @@ def per_call_cost_rounds(probe: dict, rounds: int = KERNEL_ARM_ROUNDS):
     for _ in range(rounds * KERNEL_ARM_BATCHES):
         if len(base_ms) >= rounds and len(base_ms) % rounds == 0 and not _in_doubt():
             break
-        base_ms.append(float(build_case(**probe).get("solver_kernel_ms", 0.0)))
-        SolverWork._batch_wrapped = _cost_twice(saved_batch)
-        SolverWork._step_wrapped = _cost_twice(saved_step)
-        try:
-            slower = build_case(**probe)
-        finally:
-            SolverWork._batch_wrapped = saved_batch
-            SolverWork._step_wrapped = saved_step
-            # build_case's own __exit__ re-published the wrappers onto the
-            # production seams, so restoring the class attributes alone
-            # would leave the doublers reachable from the module.
-            ThermalModel.simulate_trajectory_batch = saved_batch
-            ThermalModel.simulate_step = saved_step
+        base_ms.append(float(solve("base").get("solver_kernel_ms", 0.0)))
+        slower = solve("slow")
         slow_ms.append(float(slower.get("solver_kernel_ms", 0.0)))
-        null = build_case(**probe)
+        null = solve("null")
         null_ms.append(float(null.get("solver_kernel_ms", 0.0)))
     return (float(np.median(base_ms)), float(np.median(slow_ms)),
             float(np.median(null_ms)), slower, null)
@@ -2875,6 +2887,68 @@ if __name__ == "__main__":
         f"at 1.60x cost_doubt={_in_band.cost_doubt}, cost_over="
         f"{_in_band.cost_over}; floor {KERNEL_DOUBT_FLOOR:.2f}, factor "
         f"{SCENARIO_KERNEL_FACTOR:.2f}",
+    )
+
+    # (b4) the per-call-cost arm's round and batch decisions, on stubbed
+    # readings through the production per_call_cost_rounds -- no clock, no
+    # solve. Each case is (base, slow, null) kernel ms per round, a list
+    # read in order (the last value repeats), and the rounds and medians
+    # the arm must land on. The edges are the band's own: 1.50x is outside
+    # it (floor exclusive) and 1.80x inside (factor inclusive, since the
+    # factor fires only strictly above).
+    def _arm_stub(base, slow, null):
+        seq = {"base": base, "slow": slow, "null": null}
+        seen = {"base": 0, "slow": 0, "null": 0}
+
+        def _solve(kind):
+            vals = seq[kind]
+            v = vals[min(seen[kind], len(vals) - 1)]
+            seen[kind] += 1
+            return {"solver_kernel_ms": float(v)}
+
+        got = per_call_cost_rounds({}, solve=_solve)
+        return seen["base"], seen["slow"], seen["null"], got[:3]
+
+    _R = KERNEL_ARM_ROUNDS
+    _arm_cases = [
+        # clean 2x, both medians outside the band: one batch
+        ("out of band", [50], [100], [50], _R, (50.0, 100.0, 50.0)),
+        # the doubled median in the band all along: every batch
+        ("slow in band", [50], [85], [50], _R * KERNEL_ARM_BATCHES,
+         (50.0, 85.0, 50.0)),
+        # the null median in the band: every batch too
+        ("null in band", [50], [100], [80], _R * KERNEL_ARM_BATCHES,
+         (50.0, 100.0, 80.0)),
+        # exactly on the floor: outside
+        ("on the floor", [50], [75], [50], _R, (50.0, 75.0, 50.0)),
+        # exactly on the factor: inside
+        ("on the factor", [50], [90], [50], _R * KERNEL_ARM_BATCHES,
+         (50.0, 90.0, 50.0)),
+        # in band after batch 1 (median 85 of 4x85, 3x200), out after
+        # batch 2: stops on the batch boundary, not on the first round
+        # whose running median left the band
+        ("leaves at a boundary", [50], [85] * 4 + [200] * 3 + [200], [50],
+         _R * 2, (50.0, 200.0, 50.0)),
+        # batch 2 alone is out of band (100 = 2.0x) but the median over
+        # both batches (90 = 1.8x) is in: a third batch, and the reading is
+        # the median of all 21 (7x80, 7x100, 7x110), not of the last batch
+        ("median over all rounds", [50], [80] * 7 + [100] * 7 + [110],
+         [50], _R * KERNEL_ARM_BATCHES, (50.0, 100.0, 50.0)),
+    ]
+    _arm_bad = []
+    for _name, _b, _s, _n, _want_rounds, _want_med in _arm_cases:
+        _nb, _ns, _nn, _med = _arm_stub(_b, _s, _n)
+        if (_nb, _ns, _nn) != (_want_rounds,) * 3 or tuple(_med) != _want_med:
+            _arm_bad.append(
+                f"{_name}: {_nb}/{_ns}/{_nn} rounds, medians {_med}; want "
+                f"{_want_rounds} rounds, {_want_med}"
+            )
+    R.check(
+        "the per-call-cost arm solves one batch outside the kernel doubt "
+        "band and up to KERNEL_ARM_BATCHES inside it, on the medians of "
+        "every round (round-5 D9-07, stubbed readings)",
+        not _arm_bad,
+        "; ".join(_arm_bad),
     )
 
     # (c) THE #387 acceptance bar, and the reason the recorded fingerprint
