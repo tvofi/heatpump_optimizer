@@ -567,7 +567,7 @@ def _end_to_end() -> list[tuple[str, object, object]]:
         os.makedirs(stub)
         with open(os.path.join(stub, "gh"), "w") as f:
             f.write(_STUB_GH)
-        os.chmod(os.path.join(stub, "gh"), 0o755)
+        os.chmod(os.path.join(stub, "gh"), 0o700)
         env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "GH_", "GITHUB_"))}
         env.update(PATH=stub + os.pathsep + os.environ.get("PATH", ""), BRG_STUB=stub,
                    GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t",
