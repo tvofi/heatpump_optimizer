@@ -259,6 +259,15 @@ def collect(platform: str, coordinator=None):
     return added
 
 
+def registry_off(entity) -> bool:
+    """Disabled by default, as the registry reads it: a class's dynamic
+    ``entity_registry_enabled_default`` where it has one (the hot-water gate,
+    #1542), the static ``_attr_`` otherwise. The stub carries no such
+    property, and a static read misses every dynamic default."""
+    return not getattr(entity, "entity_registry_enabled_default",
+                       getattr(entity, "_attr_entity_registry_enabled_default", True))
+
+
 def display(platform, entity):
     key = getattr(entity, "_attr_translation_key", None)
     return ENTITY_STRINGS.get(platform, {}).get(key, {}).get(
@@ -292,7 +301,7 @@ eq("C5", "docs/architecture.md:mermaid", "74 entities / 59 sensors / 5 binary se
 
 _disabled = sorted(
     display(p, e) for p, es in CENSUS.items() for e in es
-    if getattr(e, "_attr_entity_registry_enabled_default", True) is False
+    if registry_off(e)
 )
 _readme_disabled = sorted(
     x.strip() for x in
@@ -361,7 +370,7 @@ _dis_bad = []
 for _name, _unit, _what, _notes in _rows:
     _e = _code_sensors[_name]
     _claims = "disabled by default" in _notes.lower()
-    _is = getattr(_e, "_attr_entity_registry_enabled_default", True) is False
+    _is = registry_off(_e)
     if _claims != _is:
         _dis_bad.append((_name, _claims, _is))
 claim("C11", "README.md:### Sensors",
@@ -944,10 +953,10 @@ _ecl_sensors = [display("sensor", e) for e in CENSUS["sensor"]
                 if str(getattr(e, "_attr_translation_key", "")).startswith("ecl110")]
 claim("C81", "docs/ecl110.md", "both ECL110 sensors are disabled by default and diagnostic",
       CMD,
-      str([(n, getattr(BY_NAME[n][1], "_attr_entity_registry_enabled_default", True),
+      str([(n, not registry_off(BY_NAME[n][1]),
             str(getattr(BY_NAME[n][1], "_attr_entity_category", None))) for n in _ecl_sensors]),
       "true" if all(
-          getattr(BY_NAME[n][1], "_attr_entity_registry_enabled_default", True) is False
+          registry_off(BY_NAME[n][1])
           and "diagnostic" in str(getattr(BY_NAME[n][1], "_attr_entity_category", "")).lower()
           for n in _ecl_sensors) and len(_ecl_sensors) == 2 else "false")
 

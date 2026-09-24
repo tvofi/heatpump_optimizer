@@ -37,7 +37,7 @@ import logging
 import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Awaitable
 
 import aiohttp
 from homeassistant.core import HomeAssistant
@@ -178,8 +178,14 @@ def _parse_block(
     read as "no sun" instead of "no data". ``max_value`` is the variable's own
     plausibility ceiling — the GHI limit means nothing to a humidity series.
     """
+    # A wrong-shaped member (a list, a string, a scalar ``time``) is no data,
+    # not an exception out of a refresh that promises never to raise (#1519).
+    if not isinstance(block, dict):
+        return _EMPTY
     times_raw = block.get("time") or []
     values_raw = block.get(variable) or []
+    if not isinstance(times_raw, list) or not isinstance(values_raw, list):
+        return _EMPTY
 
     times: list[datetime] = []
     values: list[float] = []
@@ -331,11 +337,11 @@ class OpenMeteoSolar:
         self._last_attempt = now
         session = async_get_clientsession(self._hass)
 
-        forecast = await self._fetch_forecast(session)
+        forecast = await self._fenced(self._fetch_forecast(session))
         if forecast:
             self._forecast = forecast
 
-        observed = await self._fetch_observed(session)
+        observed = await self._fenced(self._fetch_observed(session))
         if observed:
             self._observed = observed
 
@@ -366,6 +372,20 @@ class OpenMeteoSolar:
                 )
 
         return self.available
+
+    @staticmethod
+    async def _fenced(fetch: Awaitable[IrradianceSeries]) -> IrradianceSeries:
+        """The fetch's series, or no data when parsing a body raised.
+
+        The shape guards in ``_parse_block`` cover the shapes seen so far; this
+        fence covers the next one, so the "never raises" above holds by
+        construction rather than by enumeration (#1519).
+        """
+        try:
+            return await fetch
+        except Exception as err:  # noqa: BLE001 - never break the update cycle
+            _LOGGER.debug("Open-Meteo response could not be parsed: %r", err)
+            return _EMPTY
 
     async def _get_json(
         self, session: aiohttp.ClientSession, url: str, params: dict[str, Any]

@@ -73,6 +73,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+
 ROOT = Path(__file__).resolve().parent.parent
 BUDGETS = ROOT / "tests" / "coverage_budgets.json"
 PRODUCTION = ROOT / "custom_components" / "heatpump_optimizer"
@@ -180,8 +181,84 @@ def modules_below(path: Path, floor: float) -> list[tuple[str, float]]:
     return rows
 
 
+# A VERBATIM copy of tests/structure.py's cap_problem, the recorded-number
+# barrier every ratchet shares (#1583's review). This grader is a single
+# standard-library file on purpose -- a job may restore it from the base
+# and run it under `python3 -I`, where a sibling import neither resolves
+# nor stays the base's -- so it carries the copy, and tests/entities.py
+# refuses any copy that differs from the original by one character.
+def cap_problem(where: str, table: object, key: str, *, integer: bool = False,
+                low: float = 0.0, low_open: bool = False,
+                high: float | None = None) -> str | None:
+    """Why ``table[key]`` cannot be a ratchet's recorded number, or None.
+
+    The class this closes (#1583's review): Python's json reads ``NaN``,
+    ``Infinity``, ``-Infinity`` and ``1e999`` as floats without complaint, and
+    every comparison against NaN is False -- ``current > nan`` never fires and
+    ``raw < nan`` never fires -- so a cap edited to NaN was an unlimited raise
+    that this script printed as ``ok cut_views 110 <= nan``. Infinity passes
+    by arithmetic. The other spellings fail differently per script and none of
+    them says why: a string crashed one comparison and ``float()``-coerced in
+    another (``"nan"`` into NaN), and a bool is 0 or 1 to Python.
+
+    So every ratchet calls this on load and refuses before it compares. It
+    refuses: an absent key, a bool, anything not an int or float, a
+    non-finite number, a float where ``integer`` asks for a count, a value
+    below ``low`` (or equal to it when ``low_open``), and one above ``high``.
+    The message names the file, the key and the value, so the refusal is the
+    fix's instructions.
+    """
+    if not isinstance(table, dict) or key not in table:
+        return (f"{where}: {key} is absent -- a ratchet with no recorded "
+                f"number compares against nothing")
+    value = table[key]
+    label = f"{where}: {key}={value!r:.40}"
+    if isinstance(value, bool):
+        return (f"{label} is a boolean, which Python compares as "
+                f"{int(value)}; record the number")
+    if not isinstance(value, (int, float)):
+        return f"{label} is a {type(value).__name__}, not a number"
+    # An int before isfinite: json reads a 400-digit integer as an exact int,
+    # and math.isfinite (like every float() a ratchet then applies) raises
+    # OverflowError on one no float can hold.
+    if isinstance(value, int):
+        if abs(value) > 2 ** 53:
+            return (f"{label} is past the largest integer a float holds "
+                    f"exactly, so no comparison with a measurement means "
+                    f"anything")
+    elif not math.isfinite(value):
+        return (f"{label} is not finite: every comparison against NaN is "
+                f"false and nothing exceeds Infinity, so this cap would be an "
+                f"unlimited raise")
+    if integer and not isinstance(value, int):
+        return f"{label} is a float where a count is recorded"
+    if value < low or (low_open and value == low):
+        return f"{label} is {'at or ' if low_open else ''}below {low:g}"
+    if high is not None and value > high:
+        return f"{label} is above {high:g}"
+    return None
+
+
 def load_budgets() -> dict:
     return json.loads(BUDGETS.read_text())
+
+
+def budget_problems(budgets: dict) -> list[str]:
+    """Every recorded number here that cannot serve as a floor or cap.
+
+    Through `cap_problem` (the verbatim copy above), the barrier every
+    ratchet shares: `raw < nan` is False, so a NaN floor refused nothing, and
+    the module floor's `p < nan` left every module above it (#1583's review). The percentages are
+    finite numbers in [0, 100]; the pragma cap is a non-negative count. All
+    five rows are required: the two floors the register keys to already fail
+    when absent under `--coverage`, and without it they were never read.
+    """
+    where = BUDGETS.name
+    out = [cap_problem(where, budgets, key, high=100.0)
+           for key in ("package_percent_floor", "package_percent_ceiling",
+                       "config_flow_percent_floor", "module_percent_floor")]
+    out.append(cap_problem(where, budgets, "pragmas", integer=True))
+    return [p for p in out if p]
 
 
 def main() -> int:
@@ -200,6 +277,12 @@ def main() -> int:
     args = ap.parse_args()
 
     budgets = load_budgets()
+    malformed = budget_problems(budgets)
+    if malformed:
+        print("COVERAGE RATCHET REFUSED -- a recorded number that cannot be compared:")
+        for problem in malformed:
+            print(f"  - {problem}")
+        return 1
     floor = float(budgets["package_percent_floor"])
     ceiling = float(budgets["package_percent_ceiling"])
     pragma_cap = int(budgets["pragmas"])

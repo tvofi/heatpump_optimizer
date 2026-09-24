@@ -22,6 +22,7 @@ from homeassistant.util import dt as dt_util
 from . import boost
 from .const import MODE_AUTO, MODE_OFF
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .entity import DHWEntityMixin
 from .entity import HeatPumpOptimizerEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -125,8 +126,8 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
         await self.coordinator.async_set_away(active=False)
 
 
-class BoostDhwSwitch(HeatPumpOptimizerEntity, SwitchEntity):
-    """Two-hour maximum hot-water heat."""
+class BoostDhwSwitch(DHWEntityMixin, SwitchEntity):
+    """Two-hour maximum hot-water heat; gated like every hot-water entity (#1527)."""
 
     _attr_translation_key = "dhw_boost"
 

@@ -329,9 +329,9 @@ class PeakTracker:
         That infinity is a *decision sentinel* for the solver, never a number
         to publish. It is what this returns on the 1st of every month, for
         every install with a capacity tariff, because the tracker starts each
-        month with no peaks. Two consumers have to know that: the sensor
-        platform maps non-finite to ``None`` at the publication boundary
-        (``sensor._finite``), and ``_power_headroom`` reads it as "the bill is
+        month with no peaks. Two consumers have to know that: the entity
+        base maps non-finite to ``None`` at the publication boundary
+        (``entity._finite``), and ``_power_headroom`` reads it as "the bill is
         set from zero", not as "draw what you like".
         """
         if not self.peaks:
