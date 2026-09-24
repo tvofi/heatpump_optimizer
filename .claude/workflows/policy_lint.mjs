@@ -543,6 +543,15 @@ const CORPUS_EXCLUDED = new Set([
   // rather than optional: `tools/audit/briefs/fixer.md` and
   // `tools/audit/briefs/fix-review.md` cite it and are capped.
   'docs/decisions/0011-app-authored-identity.md',
+  // The process-diet record (round-8 convergence programme, item F6): the
+  // process moratorium until 2026-10-31, the D11/D13-every-third-round and
+  // D5/D6-alternate-rounds cadence, the one-enforcement-point rule, and
+  // D14's stop rule. Named one by one per the rule above. Cited by nothing
+  // in the capped corpus as of this pull request -- TOTAL stays at 0 for
+  // this entry -- so no capped file's `checkNamedDocs` count depends on it
+  // yet; the line is paid here anyway, per this list's own rule that the
+  // next ADR costs a line regardless of citation.
+  'docs/decisions/0012-process-diet-and-round-cadence.md',
   // Round-evidence exclusions (finder reports and round baselines) are DATA,
   // not source: they live in .claude/workflows/corpus_excluded.json and are
   // merged into this set below. They are not here because the `policy-docs`
@@ -3404,13 +3413,25 @@ function assertAcceptance(derived) {
   }
 
   // The wiring is the half a fixture cannot reach, and round two measured the
-  // cost of leaving it unpinned: dropping `--paths-file` from governance.yml
-  // restores R3-D11-03 exactly, and dropping `--no-renames` reopens the rename
-  // hole, and BOTH leave every instrument in this repository green. So the
-  // step's own text is read here. This asserts the flags are passed, not that
-  // GitHub runs the job -- no check in a repository can assert the second.
-  const WORKFLOW = '.github/workflows/governance.yml'
-  const wf = read(WORKFLOW)
+  // cost of leaving it unpinned: dropping `--paths-file` from the contract's
+  // workflow restores R3-D11-03 exactly, and dropping `--no-renames` reopens
+  // the rename hole, and BOTH leave every instrument in this repository green.
+  // So the step's own text is read here. This asserts the flags are passed,
+  // not that GitHub runs the job -- no check in a repository can assert the
+  // second.
+  //
+  // THE FILE IS THE ONE THAT DEFINES THE `pr-contract` JOB, found rather than
+  // named (#1514). The job moved out of governance.yml into its own workflow,
+  // and a name typed here is the pin a move silently voids: `policy-docs`
+  // grades with the base's copy of this file, so a named path must be right
+  // on both sides of the move at once. Exactly one file may define the job;
+  // none, or two, is itself a refusal below.
+  const WF_DIR = '.github/workflows'
+  let wfNames = []
+  try { wfNames = fs.readdirSync(path.join(ROOT, WF_DIR)).filter((n) => /\.ya?ml$/.test(n)).sort() } catch {}
+  const contractFiles = wfNames.filter((n) => /\n  pr-contract:\n/.test(read(`${WF_DIR}/${n}`) ?? ''))
+  const WORKFLOW = contractFiles.length === 1 ? `${WF_DIR}/${contractFiles[0]}` : `${WF_DIR}/(${contractFiles.length} files define pr-contract)`
+  const wf = contractFiles.length === 1 ? read(WORKFLOW) : null
   if (wf == null) {
     console.log(`\nFIXTURE VACUOUS: ${WORKFLOW} is unreadable, so the approval gate's wiring is unpinned`)
     return 1
