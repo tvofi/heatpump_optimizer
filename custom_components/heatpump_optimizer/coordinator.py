@@ -1386,6 +1386,29 @@ def _forecast_in_c(state: Any, forecast: list[dict[str, Any]]) -> list[dict[str,
     return rows
 
 
+def _fabricated_forecast(state: Any) -> list[dict[str, Any]]:
+    """48 constant hourly rows from a weather entity's current attributes.
+
+    What a failed first fetch plans on. The temperature is degC by the
+    entity's ``temperature_unit`` (#1513), 5.0 when it will not parse; the
+    wind stays in the entity's own unit, which ``_forecast_arrays`` scales
+    once -- it used to be scaled here as well, so a km/h entity was planned
+    at 1/3.6 of its wind.
+    """
+    attrs = getattr(state, "attributes", None) or {}
+    temp = temperature_c(attrs.get("temperature"), attrs.get("temperature_unit"))
+    start = dt_util.now()
+    return [
+        {
+            "datetime": (start + timedelta(hours=i)).isoformat(),
+            "temperature": 5.0 if temp is None else temp,
+            "wind_speed": attrs.get("wind_speed"),
+            "precipitation": 0.0,
+        }
+        for i in range(48)
+    ]
+
+
 def _solve_anchor(now: datetime) -> datetime:
     """``now`` floored onto the grid the forecast arrays are built on.
 
@@ -5761,20 +5784,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 # already marked stale by the failure above -- a plan built
                 # on it discloses what it is standing on.
                 try:
-                    # The entity's own values in its own units: every row
-                    # is converted where a forecast row is (#1513), so the
-                    # wind is scaled once, in _forecast_arrays, not twice.
-                    self._weather_forecast = _forecast_in_c(state, [
-                        {
-                            "datetime": (
-                                dt_util.now() + timedelta(hours=i)
-                            ).isoformat(),
-                            "temperature": state.attributes.get("temperature"),
-                            "wind_speed": state.attributes.get("wind_speed"),
-                            "precipitation": 0.0,
-                        }
-                        for i in range(48)
-                    ])
+                    self._weather_forecast = _fabricated_forecast(state)
                     self._solar_radiation_forecast = [0.0] * 48
                 except (ValueError, TypeError):
                     pass
