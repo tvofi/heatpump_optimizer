@@ -44,14 +44,58 @@ mkdir -p "$EXPORT/tools/audit/round${ROUND}"
 # tracked at the baseline, and the cp above copies every round the SOURCE
 # checkout holds. Round 4 was prepared with 116 round-3 files in every finder
 # tree, ledger/verdicts.tsv among them -- 43 findings with their verdicts and
-# headlines. tools/audit/ is INERT in tests/closure.py, so removing them selects
-# no script and leaves the gate untouched (measured: tests/entities.py passes
-# 1360 of 1360 in a worktree with the directory removed).
+# headlines.
+#
+# BUT THE GATE READS SOME OF THEM, so the wall stops at what a test reads
+# (round 8, F1). Stripping every earlier round made finders_can_start below
+# refuse this script's own output (tests/entities.py opens
+# round4/D11/governance_cost.py and round4/D6/claims.json unguarded), and past
+# that, tests/entities.py failed checks in a stripped tree that pass in an
+# unstripped one: d11lib.py, dora_keys.py, the round-5 D13 harness and
+# fixtures, the round-6 D13 fixtures, and the PHANTOM check that every file a
+# committed closure names exists. What survives is the union of two rules, each
+# derived from the tree being stripped, never a carried list:
+#   1. every tools/audit/round*/ path tests/closures.json names -- the MEASURED
+#      read set, which includes tests/harness_headers.py's discovery corpus;
+#   2. every file (or directory's files) a literal tools/audit/round... string in
+#      tests/*.py, tests/*.mjs or tests/*.sh names -- because a committed
+#      closure can miss a read: the round-6 D13 fixtures, opened by a `node -e`
+#      child of tests/entities.py, are in none. A literal naming a whole round
+#      directory is ignored.
+# Everything else in an earlier round -- reports, verdicts, ledgers, logs -- is
+# removed. The instruments that survive are the ones tools/audit/harnesses/
+# README.md's rule would keep live anyway: evidence is archived, instruments
+# are kept.
 strip_earlier_rounds() {
-  local dir="$1" n
-  n=$(find "$dir/tools/audit" -maxdepth 1 -type d -name 'round*' ! -name "round${ROUND}" 2>/dev/null | wc -l | tr -d ' ')
-  find "$dir/tools/audit" -maxdepth 1 -type d -name 'round*' ! -name "round${ROUND}" -exec rm -rf {} +
-  echo "RESULT stripped_earlier_rounds=$n dir=$dir"
+  "$PYTHON" - "$1" "$ROUND" <<'PY'
+import json, re, sys
+from pathlib import Path
+root, cur = Path(sys.argv[1]), f"round{sys.argv[2]}"
+rounds = sorted(d for d in (root / "tools/audit").glob("round*") if d.is_dir() and d.name != cur)
+keep = {f for fs in json.loads((root / "tests/closures.json").read_text())["closures"].values()
+        for f in fs if f.startswith("tools/audit/round")}
+lit = re.compile(r"tools/audit/round[A-Za-z0-9_.-]*(?:/[A-Za-z0-9_.-]+)*")
+for t in sorted(p for g in ("*.py", "*.mjs", "*.sh") for p in (root / "tests").glob(g)):
+    for m in lit.findall(t.read_text(errors="replace")):
+        p = root / m.rstrip("/.")
+        if p.is_file():
+            keep.add(p.relative_to(root).as_posix())
+        elif p.is_dir() and len(p.relative_to(root).parts) > 3:
+            keep.update(f.relative_to(root).as_posix() for f in p.rglob("*") if f.is_file())
+removed = kept = 0
+for d in rounds:
+    for f in sorted(d.rglob("*")):
+        if f.is_file() or f.is_symlink():
+            if f.relative_to(root).as_posix() in keep:
+                kept += 1
+            else:
+                f.unlink()
+                removed += 1
+    for sub in sorted((d, *(p for p in d.rglob("*") if p.is_dir())), key=lambda p: -len(p.parts)):
+        if not any(sub.iterdir()):
+            sub.rmdir()
+print(f"RESULT stripped_earlier_rounds={len(rounds)} files_removed={removed} files_kept={kept} dir={root}")
+PY
 }
 strip_earlier_rounds "$EXPORT"
 

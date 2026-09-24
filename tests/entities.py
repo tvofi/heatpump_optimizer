@@ -22093,6 +22093,62 @@ R.check(
     "mutant dies and the table reports a suite that notices everything",
 )
 
+# #1453 (D3-02): an exit status is not always a failed check. structure.py
+# exits 2 for a metric that IMPROVED -- "Nothing here is a violation" (#808) --
+# and a mutant that makes code unreachable can lower one, so a kill keyed on
+# the status alone recorded an uncovered site as killed. Driven through the
+# REAL ratchet over a scratch budget table (the recorded one, one row moved),
+# so a change to what structure.py prints or returns moves these checks.
+def _mut_structure_run(delta: int) -> "_mut.ScriptRun":
+    import contextlib as _cl
+    import io as _io
+    budgets = json.loads(_s5_structure.BUDGET_FILE.read_text())
+    metrics = {k: v for k, v in budgets.items() if k != "recorded_at"}
+    metrics["cut_learning"] += delta
+    with _tempfile.TemporaryDirectory() as td:
+        table = Path(td) / "structure_budgets.json"
+        table.write_text(json.dumps(budgets))
+        saved, _s5_structure.BUDGET_FILE = _s5_structure.BUDGET_FILE, table
+        buf = _io.StringIO()
+        try:
+            with _cl.redirect_stdout(buf):
+                rc = _s5_structure.ratchet(
+                    {"metrics": metrics, "tables": {"top_is_coordinator": True}})
+        finally:
+            _s5_structure.BUDGET_FILE = saved
+    hits = _mut._FAILED.findall(buf.getvalue())
+    return _mut.ScriptRun(rc, int(hits[-1][0]) if hits else 0, 0.0,
+                          buf.getvalue())
+
+
+_MUT_S_BASE, _MUT_S_GAIN, _MUT_S_BREACH = (
+    _mut_structure_run(0), _mut_structure_run(-1), _mut_structure_run(+1))
+R.check(
+    "a structure run that only IMPROVED a metric is not a kill",
+    _MUT_S_BASE.rc == 0 and _MUT_S_GAIN.rc == 2
+    and not _mut.killed("tests/structure.py", _MUT_S_GAIN, _MUT_S_BASE),
+    f"base rc={_MUT_S_BASE.rc}, improved rc={_MUT_S_GAIN.rc}: an unrecorded "
+    "gain names no failing check, so the mutant it came from is a survivor",
+)
+R.check(
+    "and a structure run that BREACHED a budget still is",
+    _MUT_S_BREACH.rc == 1
+    and _mut.killed("tests/structure.py", _MUT_S_BREACH, _MUT_S_BASE),
+    f"breach rc={_MUT_S_BREACH.rc}: the null control -- the rule must not "
+    "go blind to the structure driver altogether",
+)
+# The probes the declared status does not name: the same status from another
+# driver, and the declared status with a FAIL line printed beside it.
+R.check(
+    "the non-violation status is keyed to its driver and to a FAIL-free output",
+    _mut.killed("tests/features.py", _MUT_S_GAIN, _MUT_S_BASE)
+    and _mut.killed("tests/structure.py",
+                    _MUT_S_GAIN._replace(stdout="FAIL cut_learning\n"),
+                    _MUT_S_BASE),
+    "rc 2 is a gain only where structure.py says so, and only when no check "
+    "in the output failed",
+)
+
 # The six operators, driven over a module written to carry one of each. A
 # generated mutant that does not PARSE cannot run, and a mutant that cannot
 # run reports as a survivor -- which reads as a finding about production.
