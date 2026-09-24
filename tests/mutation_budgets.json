@@ -451,6 +451,46 @@
       "old": "    return value_c / factor - offset",
       "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 with no FAIL line: the mutant raises `TypeError: type NoneType doesn't define __round__ method` out of the production reader the #1513 section drives. Measured at d6d79847, 2026-09-24."
     },
+    "custom_components/heatpump_optimizer/ledger.py:_clean_month GUARD_OFF 03c3c95c": {
+      "killed_by": "tests/features.py",
+      "old": "    if not isinstance(lines, dict) or not isinstance(meta, dict):",
+      "reason": "R8-P1 (#1518): `if False:` lets a string `lines` reach .items(), and the D1-01 wrong-shape check raises AttributeError out of from_dict; tests/features.py goes from rc=0 to rc=1. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
+    },
+    "custom_components/heatpump_optimizer/ledger.py:_clean_month GUARD_OFF d997c270": {
+      "killed_by": "tests/features.py",
+      "old": "    if not isinstance(value, dict):",
+      "reason": "R8-P1 (#1518): `if False:` lets a list month reach value.get(), and the #1518 check's list month raises AttributeError out of from_dict; tests/features.py goes from rc=0 to rc=1. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
+    },
+    "custom_components/heatpump_optimizer/ledger.py:_leaf GUARD_OFF 9a0a59f0": {
+      "killed_by": "tests/features.py",
+      "old": "    if not math.isfinite(value):",
+      "reason": "R8-P1 (#1518): `if False:` lets a NaN amount reached directly through from_dict load, so the #1518 check's NaN case keeps the month and tests/features.py goes from rc=0 failed=0 to rc=1 failed=1. The store boundary scrubs a NaN read from disk to None first, which is why tests/finite_boundary.py does not see this one. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
+    },
+    "custom_components/heatpump_optimizer/ledger.py:_leaf GUARD_OFF f5aa49a8": {
+      "killed_by": "tests/features.py",
+      "old": "    if isinstance(raw, bool):",
+      "reason": "R8-P1 (#1518): `if False:` lets a JSON `true` load as the amount 1.0, so the #1518 check's bool case keeps the month and tests/features.py goes from rc=0 failed=0 to rc=1 failed=1. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
+    },
+    "custom_components/heatpump_optimizer/ledger.py:_leaf RETURN_DEL d4c9e2a6": {
+      "killed_by": "tests/features.py",
+      "old": "    return value",
+      "reason": "R8-P1 (#1518): removing the return makes every amount None, and the #1518 check's healthy month raises TypeError in line(); tests/features.py goes from rc=0 to rc=1. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
+    },
+    "custom_components/heatpump_optimizer/open_meteo.py:OpenMeteoSolar._fenced RETURN_DEL bae930c4": {
+      "killed_by": "tests/open_meteo.py",
+      "old": "            return _EMPTY",
+      "reason": "R8-P1 (#1519): removing the fence's return hands back None for a raising fetch; async_refresh reads None as no data, so only the check that the fence returns the empty series itself fails; tests/open_meteo.py goes from rc=0 to rc=1. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
+    },
+    "custom_components/heatpump_optimizer/open_meteo.py:_parse_block GUARD_OFF 4dbd7835": {
+      "killed_by": "tests/open_meteo.py",
+      "old": "    if not isinstance(times_raw, list) or not isinstance(values_raw, list):",
+      "reason": "R8-P1 (#1519): `if False:` lets a scalar `time` or value member reach zip(), and the scalar-time and scalar-values _parse_block checks fail with TypeError; tests/open_meteo.py goes from rc=0 to rc=1. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
+    },
+    "custom_components/heatpump_optimizer/open_meteo.py:_parse_block GUARD_OFF 658201a7": {
+      "killed_by": "tests/open_meteo.py",
+      "old": "    if not isinstance(block, dict):",
+      "reason": "R8-P1 (#1519): `if False:` lets a list, string or int block reach block.get(), and four hostile-shape _parse_block checks fail with AttributeError; tests/open_meteo.py goes from rc=0 to rc=1. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
+    },
     "custom_components/heatpump_optimizer/optimizer.py:<module> CONST da4c412b": {
       "killed_by": "tests/optimality.py",
       "old": "_DEEP_LOW_ENERGY_START_FRACTION = 0.20",

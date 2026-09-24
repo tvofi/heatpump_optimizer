@@ -104,6 +104,7 @@ import configparser
 import contextlib
 import io
 import json
+import math
 import os
 import re
 import subprocess
@@ -111,6 +112,7 @@ import sys
 import tempfile
 import tomllib
 from pathlib import Path
+
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PACKAGE_REL = "custom_components/heatpump_optimizer"
@@ -187,8 +189,106 @@ class Report:
         return 0
 
 
+# A VERBATIM copy of tests/structure.py's cap_problem, the recorded-number
+# barrier every ratchet shares (#1583's review). This grader is a single
+# standard-library file on purpose -- a job may restore it from the base
+# and run it under `python3 -I`, where a sibling import neither resolves
+# nor stays the base's -- so it carries the copy, and tests/entities.py
+# refuses any copy that differs from the original by one character.
+def cap_problem(where: str, table: object, key: str, *, integer: bool = False,
+                low: float = 0.0, low_open: bool = False,
+                high: float | None = None) -> str | None:
+    """Why ``table[key]`` cannot be a ratchet's recorded number, or None.
+
+    The class this closes (#1583's review): Python's json reads ``NaN``,
+    ``Infinity``, ``-Infinity`` and ``1e999`` as floats without complaint, and
+    every comparison against NaN is False -- ``current > nan`` never fires and
+    ``raw < nan`` never fires -- so a cap edited to NaN was an unlimited raise
+    that this script printed as ``ok cut_views 110 <= nan``. Infinity passes
+    by arithmetic. The other spellings fail differently per script and none of
+    them says why: a string crashed one comparison and ``float()``-coerced in
+    another (``"nan"`` into NaN), and a bool is 0 or 1 to Python.
+
+    So every ratchet calls this on load and refuses before it compares. It
+    refuses: an absent key, a bool, anything not an int or float, a
+    non-finite number, a float where ``integer`` asks for a count, a value
+    below ``low`` (or equal to it when ``low_open``), and one above ``high``.
+    The message names the file, the key and the value, so the refusal is the
+    fix's instructions.
+    """
+    if not isinstance(table, dict) or key not in table:
+        return (f"{where}: {key} is absent -- a ratchet with no recorded "
+                f"number compares against nothing")
+    value = table[key]
+    label = f"{where}: {key}={value!r:.40}"
+    if isinstance(value, bool):
+        return (f"{label} is a boolean, which Python compares as "
+                f"{int(value)}; record the number")
+    if not isinstance(value, (int, float)):
+        return f"{label} is a {type(value).__name__}, not a number"
+    # An int before isfinite: json reads a 400-digit integer as an exact int,
+    # and math.isfinite (like every float() a ratchet then applies) raises
+    # OverflowError on one no float can hold.
+    if isinstance(value, int):
+        if abs(value) > 2 ** 53:
+            return (f"{label} is past the largest integer a float holds "
+                    f"exactly, so no comparison with a measurement means "
+                    f"anything")
+    elif not math.isfinite(value):
+        return (f"{label} is not finite: every comparison against NaN is "
+                f"false and nothing exceeds Infinity, so this cap would be an "
+                f"unlimited raise")
+    if integer and not isinstance(value, int):
+        return f"{label} is a float where a count is recorded"
+    if value < low or (low_open and value == low):
+        return f"{label} is {'at or ' if low_open else ''}below {low:g}"
+    if high is not None and value > high:
+        return f"{label} is above {high:g}"
+    return None
+
+
 def budgets() -> dict:
     return json.loads(BUDGET_FILE.read_text())
+
+
+def budget_problems(budget: dict) -> list[str]:
+    """Every recorded count here that cannot serve as a cap.
+
+    Through `cap_problem` (the verbatim copy above), the barrier every
+    ratchet shares: `ignores > nan` is False, so a NaN `type_ignores` or census row was an unlimited
+    raise this ruler printed as "did not grow" (#1583's review). Every number
+    is a non-negative integer count. `census` may be null -- the documented
+    not-yet-recorded state the `typing` job refuses -- but a recorded one has
+    an `errors` count and a `by_code` table of counts.
+    """
+    where = BUDGET_FILE.name
+    out = [cap_problem(where, budget, "type_ignores", integer=True)]
+    census = budget.get("census")
+    if census is not None:
+        out.append(cap_problem(where, census, "errors", integer=True))
+        by_code = census.get("by_code") if isinstance(census, dict) else None
+        if not isinstance(by_code, dict):
+            out.append(f"{where}: census.by_code={by_code!r} is not a table of counts")
+        else:
+            out.extend(cap_problem(where, by_code, code, integer=True)
+                       for code in sorted(by_code))
+    return [p for p in out if p]
+
+
+#: Set by the selftest's lane drive so it runs once (see ``selftest``).
+_BARRIER_DRIVEN = False
+
+
+def budget_refused(report: Report, budget: dict) -> bool:
+    """Refuse, as a failed check, a budget ``budget_problems`` rejects."""
+    problems = budget_problems(budget)
+    report.check(
+        "every recorded typing count is a finite non-negative integer",
+        not problems,
+        "; ".join(problems) + ". Restore the recorded value; no comparison "
+        "below can use it",
+    )
+    return bool(problems)
 
 
 def head_sha() -> str:
@@ -666,6 +766,62 @@ def selftest(report: Report, budget: dict) -> None:
         "not the census (#504)",
     )
 
+    # The barrier's arms (#1583's review): every malformed spelling of each
+    # recorded count is refused, and the committed budget -- the null
+    # control -- is not.
+    bad = {"nan": float("nan"), "inf": float("inf"), "-inf": float("-inf"),
+           "null": None, "string": "0", "string-nan": "nan", "true": True,
+           "negative": -1, "float": 0.5, "huge-int": 10 ** 400}
+    accepted = []
+    for field in ("type_ignores", "census.errors", "census.by_code"):
+        for name, value in [*bad.items(), ("absent", ...)]:
+            probe_budget = json.loads(json.dumps(budget))
+            if field == "census.by_code":
+                probe_budget.setdefault("census", {"errors": 0, "by_code": {}})
+                probe_budget["census"]["by_code"]["probe-code"] = value
+            else:
+                node = probe_budget
+                if field.startswith("census."):
+                    node = probe_budget.setdefault(
+                        "census", {"errors": 0, "by_code": {}})
+                key = field.rsplit(".", 1)[-1]
+                if value is ...:
+                    node.pop(key, None)
+                else:
+                    node[key] = value
+            if value is ... and field == "census.by_code":
+                continue
+            if not budget_problems(probe_budget):
+                accepted.append(f"{field}={name}")
+    report.check(
+        "the budget barrier refuses every non-finite or malformed count",
+        not accepted and budget_problems(budget) == [],
+        f"accepted: {accepted}; committed budget: {budget_problems(budget)} "
+        "(the null control)",
+    )
+    # ...and both lanes call it before comparing. Driven, not grepped: each
+    # lane over a NaN budget must fail the barrier's own check. The nested
+    # source lane would re-enter this selftest if its call were deleted, so
+    # the drive runs once, from the outermost selftest only.
+    global _BARRIER_DRIVEN
+    if not _BARRIER_DRIVEN:
+        _BARRIER_DRIVEN = True
+        nan_budget = json.loads(json.dumps(budget))
+        nan_budget["type_ignores"] = float("nan")
+        unwired = []
+        for lane, drive in (("source", lambda r: source_checks(r, nan_budget)),
+                            ("mypy", lambda r: mypy_checks(r, nan_budget, None))):
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                drive(Report(f"barrier arm, {lane} lane"))
+            if "FAIL every recorded typing count" not in buf.getvalue():
+                unwired.append(lane)
+        report.check(
+            "and both lanes refuse a NaN budget before comparing",
+            not unwired,
+            f"lane(s) that compared a NaN type_ignores: {unwired}",
+        )
+
     # The lock check's null control: a budget no lock can agree with.
     report.check(
         "the lock check refuses a lock that disagrees with the budget",
@@ -685,6 +841,8 @@ def selftest(report: Report, budget: dict) -> None:
 
 
 def source_checks(report: Report, budget: dict) -> None:
+    if budget_refused(report, budget):
+        return
     ignores, where = count_suppressions()
     for line in where[:20]:
         report.note("suppression", line)
@@ -739,6 +897,8 @@ def source_checks(report: Report, budget: dict) -> None:
 
 
 def mypy_checks(report: Report, budget: dict, emit: str | None) -> None:
+    if budget_refused(report, budget):
+        return
     if not check_pins(report, budget):
         print()
         print("REFUSING to measure. A count from an unpinned tool is not the")

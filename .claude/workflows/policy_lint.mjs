@@ -43,7 +43,7 @@
 //   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
-//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names] [--paths-file f] [--author login]
+//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login]
 //   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
 //   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
 //   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
@@ -1499,16 +1499,47 @@ function sizes(files) {
 // seat pays one document at a time, the payment is small and local, and a band
 // there would buy silent growth in every one of 39 files at once.
 //
-// Absent or unparseable, the band is 0 and every comparison is what it was.
+// Absent or malformed, the band is 0 and every comparison is what it was. Not
+// `Number(_band)`: that coerced "1e12", " 1e12", [1e12] and "0x1000000" into a
+// band that lifted every aggregate cap with rc 0 (#1595's review). The band is
+// a cap like the rest, so it passes capProblem or it is 0 -- and checkBudgets
+// refuses a present, malformed one as a finding rather than reading it as 0.
 function bandOf(b) {
-  const n = Number(b && b._band)
-  return Number.isFinite(n) && n > 0 ? n : 0
+  const v = b ? b._band : undefined
+  return capProblem(v) === null && v > 0 ? v : 0
+}
+
+// The recorded-number barrier: the JS half of tests/structure.py's
+// cap_problem (#1583's review). JSON.parse refuses a NaN literal but reads
+// 1e999 as Infinity, and every comparison below coerces: `lines > 'abc'` is
+// `lines > NaN`, false, and so is `lines > {}`; `true` is 1; and an aggregate
+// that was null or absent was skipped by its `!= null` guard. Each was an
+// unlimited raise. A cap is a whole, finite, non-negative number or it is
+// refused, before anything is compared against it.
+function capProblem(value) {
+  if (value === undefined) return 'is absent, so the comparison it guards would be skipped'
+  if (typeof value !== 'number') return `is ${value === null ? 'null' : Array.isArray(value) ? 'an array' : `a ${typeof value}`} (${JSON.stringify(value)}), not a number`
+  if (!Number.isFinite(value)) return `is ${value}: nothing exceeds Infinity and every comparison against NaN is false, so this cap would be an unlimited raise`
+  if (!Number.isInteger(value)) return `is ${value}, not a whole number`
+  // Parity with cap_problem's 2**53 bound: past it a JSON integer is no longer
+  // the number written, so a comparison with a measurement means nothing.
+  if (!Number.isSafeInteger(value)) return `is ${value}, past the largest integer a double holds exactly`
+  if (value < 0) return `is ${value}, below zero`
+  return null
 }
 
 function checkBudgets(files, budget) {
   const b = budget !== undefined ? budget : policyBudgets()
   if (!b) return []
   const out = []
+  // Refuses a malformed cap as a finding at `where` and says whether it did,
+  // so the comparison it would have made is skipped rather than coerced.
+  const refused = (where, key, value) => {
+    const p = capProblem(value)
+    if (p) out.push({ severity: 'error', check: 'budgets', where, message: `${key} in ${BUDGET_FILE} ${p}. Restore the recorded value; a cap is refused rather than compared unless it is a whole, finite, non-negative number.` })
+    return !!p
+  }
+  if (b._band !== undefined) refused('(working band)', '_band', b._band)
   const band = bandOf(b)
   const ceiling = (cap) => cap + band
   // What the seat is told it exceeded: the ceiling it actually hit, and the two
@@ -1526,6 +1557,7 @@ function checkBudgets(files, budget) {
       })
       continue
     }
+    if (refused(r.file, `files["${r.file}"]`, cap)) continue
     if (r.lines > cap) {
       out.push({
         severity: 'error',
@@ -1536,7 +1568,7 @@ function checkBudgets(files, budget) {
     }
   }
   const alwaysTokens = rows.filter((r) => r.always).reduce((n, r) => n + Math.round(r.bytes / 4), 0)
-  if (b.always_loaded_tokens != null && alwaysTokens > ceiling(b.always_loaded_tokens)) {
+  if (!refused('(always-loaded set)', 'always_loaded_tokens', b.always_loaded_tokens) && alwaysTokens > ceiling(b.always_loaded_tokens)) {
     out.push({
       severity: 'error',
       check: 'budgets',
@@ -1555,7 +1587,7 @@ function checkBudgets(files, budget) {
   // the corpus, which a move does not change, and the per-role load, which is
   // what a seat that opens a file actually pays.
   const corpusTokens = rows.reduce((n, r) => n + Math.round(r.bytes / 4), 0)
-  if (b.corpus_tokens != null && corpusTokens > ceiling(b.corpus_tokens)) {
+  if (!refused('(whole corpus)', 'corpus_tokens', b.corpus_tokens) && corpusTokens > ceiling(b.corpus_tokens)) {
     out.push({
       severity: 'error',
       check: 'budgets',
@@ -1564,9 +1596,13 @@ function checkBudgets(files, budget) {
     })
   }
 
+  if (b.roles === null || typeof b.roles !== 'object' || !Object.keys(b.roles).length) {
+    out.push({ severity: 'error', check: 'budgets', where: '(role table)', message: `roles in ${BUDGET_FILE} is ${JSON.stringify(b.roles)}: with no role recorded, no per-role cap is compared at all.` })
+  }
   for (const [role, spec] of Object.entries(b.roles || {})) {
+    if (refused(`(role ${role})`, `roles.${role}.cap`, spec && spec.cap)) continue
     const t = roleTokens(rows, spec.opens)
-    if (spec.cap != null && t > ceiling(spec.cap)) {
+    if (t > ceiling(spec.cap)) {
       out.push({
         severity: 'error',
         check: 'budgets',
@@ -3740,6 +3776,32 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: a body whose \`## Red checks\` does not name the two earlier-head reds produced ${clearedRefusals.length} error(s), not 2; the derived names have to reach the refusal the --red path already drives`)
     rc = 1
   }
+  // A reporter that grades `main` is owed no answer while the diff touches none
+  // of its inputs; `typing` beside it is still owed one (the null control), and
+  // so is a name that only resembles a reporter's. Each voiding route then
+  // restores the obligation on its own: an existing row edited or deleted, a
+  // reporter's own script, no `existing` list (every row counts), no paths.
+  const unnamed = path.relative(ROOT, path.join(prepr, 'unnamed-red.md'))
+  const OWN_ROW = ['tests/x.py', 'docs/delivery/9999.md']
+  const REPORTER_CASES = [
+    ['exempt, own row added', ['nightly-status', 'delivery-status', 'typing', 'delivery-status-publish', 'Nightly-Status'],
+      OWN_ROW, ['tests/x.py'], ['typing', 'delivery-status-publish', 'Nightly-Status']],
+    ['a merged row deleted', ['delivery-status'],
+      ['docs/delivery/1570.md'], ['docs/delivery/1570.md'], ['delivery-status']],
+    ["the reporter's own script", ['nightly-status'],
+      ['tests/nightly_status.py'], ['tests/nightly_status.py'], ['nightly-status']],
+    ['no existing list', ['delivery-status'], OWN_ROW, null, ['delivery-status']],
+    ['no paths', ['nightly-status'], [], null, ['nightly-status']],
+  ]
+  for (const [label, redNames, paths, existing, owed] of REPORTER_CASES) {
+    pins += 1
+    const got = checkPrBody(unnamed, { head: ZERO, red: redNames, paths, existing })
+      .map((f) => /check `([^`]+)` is red/.exec(f.message)?.[1]).filter(Boolean)
+    if (got.join('|') !== owed.join('|')) {
+      console.log(`\nFIXTURE VACUOUS: MAIN_STATE_REPORTERS (${label}): red ${JSON.stringify(redNames)} over paths ${JSON.stringify(paths)} owed answers for ${JSON.stringify(got)}, not ${JSON.stringify(owed)}; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone`)
+      rc = 1
+    }
+  }
   // Both markers on SHAPE, for the reason `enumSkipLine`'s pin above gives: they
   // carry no finding, so no count can see them. The skip line is the only thing
   // between an unread history and a green that measured nothing, and the record
@@ -4220,6 +4282,51 @@ function assertAcceptance(derived) {
   pins += 1
   if (bandOf({}) !== 0 || bandOf({ _band: 'wide' }) !== 0 || bandOf({ _band: -1 }) !== 0) {
     console.log(`\nFIXTURE VACUOUS: an absent, unparseable or negative _band does not read as 0, so a budget file that never opted in would be compared against a ceiling nobody recorded.`)
+    return 1
+  }
+
+  // The recorded-number barrier (#1583's review). Every malformed spelling of
+  // each cap class, one at a time on the budget nothing can exceed: each must
+  // produce a finding where the generous budget produced none, which is the
+  // null control the OVER-FIRES pin above already holds. Before the barrier a
+  // NaN, Infinity, string or object cap compared false and a null or absent
+  // aggregate was skipped, so every arm here was silent.
+  // Every spelling Number() would have coerced into a number is here too: a
+  // string with an exponent, padding or a hex prefix, and a one-element array.
+  const CAP_BAD = { nan: NaN, infinity: Infinity, 'minus-infinity': -Infinity, null: null, absent: undefined, string: '1000000000', word: 'nan', exponent: '1e12', padded: ' 1e12', hex: '0x1000000', 'one-element-array': [1e12], bool: true, negative: -1, fraction: 0.5, unsafe: 1e300, object: {}, array: [] }
+  const capSlots = {
+    file: (bgt, v) => { bgt.files[policyFiles()[0]] = v },
+    floor: (bgt, v) => { bgt.always_loaded_tokens = v },
+    corpus: (bgt, v) => { bgt.corpus_tokens = v },
+    role: (bgt, v) => { bgt.roles.probe.cap = v },
+  }
+  pins += 1
+  const capSilent = []
+  for (const [cls, set] of Object.entries(capSlots)) {
+    for (const [name, v] of Object.entries(CAP_BAD)) {
+      const bgt = { ...hugeBudget, files: { ...hugeBudget.files }, roles: { probe: { ...hugeBudget.roles.probe } } }
+      set(bgt, v)
+      if (v === undefined && cls !== 'file') delete bgt[cls === 'floor' ? 'always_loaded_tokens' : cls === 'corpus' ? 'corpus_tokens' : 'roles']
+      const found = checkBudgets(policyFiles(), bgt).filter((f) => classOf(f) === cls)
+      if (!found.length) capSilent.push(`${cls}=${name}`)
+      // A non-finite cap is refused as one, not as a fraction: the seat reads
+      // the message to learn what to restore.
+      else if (typeof v === 'number' && !Number.isFinite(v) && !found.some((f) => /unlimited raise/.test(f.message))) capSilent.push(`${cls}=${name} (refused, but not named non-finite)`)
+    }
+  }
+  // The band, on caps one band below the measurement: a malformed band must
+  // be refused by name AND read as 0, so all three aggregates still fire.
+  // Before #1595's review, Number() read "1e12" as a band that silenced them.
+  for (const [name, v] of Object.entries(CAP_BAD)) {
+    if (v === undefined) continue // absent is the documented default of 0
+    const bgt = { ...banded(-BAND_PROBE), _band: v }
+    const found = checkBudgets(policyFiles(), bgt)
+    const classes = new Set(found.map(classOf))
+    const named = found.some((f) => f.where === '(working band)')
+    if (!named || !['floor', 'corpus', 'role'].every((c) => classes.has(c))) capSilent.push(`_band=${name}${named ? ' (refused, but lifted a cap)' : ''}`)
+  }
+  if (capSilent.length) {
+    console.log(`\nFIXTURE VACUOUS: the budget check compared a malformed cap as within budget: ${capSilent.join(', ')}. A cap that is not a whole, finite, non-negative number is an unlimited raise unless it is refused.`)
     return 1
   }
 
@@ -5263,6 +5370,37 @@ function autofixChain(head, names) {
 // `checkPrBody` itself does not change: `red` is still a list of names, and the
 // refusal it drives is the one #956 wired.
 const PR_CONTRACT_CHECK = 'pr-contract'
+// THE REPORTERS THAT GRADE `main`, NOT THIS HEAD. `nightly-status` reports
+// main's last scheduled run and `delivery-status` main's rowless merges; both
+// run on every pull request so a stopped lane or batch is seen. Owing a
+// `## Red checks` answer for them made every open pull request re-explain one
+// fact about `main` (the 2026-09-24 CI census: most "red and not named"
+// refusals were these two). Their tick stays red on the pull request; clearing
+// it is the orchestrator's, on `main` (defect-root-cause.md). The set is read
+// from the base's copy of this file, so a pull request cannot widen it.
+//
+// BUT BOTH RUN THE PULL REQUEST'S OWN CHECKOUT, so a diff that reaches what
+// they read can redden them itself: deleting a merged pull request's row turns
+// `delivery-status` OVERDUE, and nothing else refuses that before the merge
+// (the #1592 review). The exemption is therefore VOID when the diff touches a
+// reporter input: a path in REPORTER_INPUTS, or a delivery row that already
+// existed at the base. Adding the pull request's own row is not a touch, which
+// is why `existing` (the paths the base already had) is separate from `paths`;
+// without it every row counts, so a caller that cannot say which rows are new
+// loses the exemption rather than gaining it. No paths at all voids it too.
+const MAIN_STATE_REPORTERS = new Set(['nightly-status', 'delivery-status'])
+const REPORTER_INPUTS = new Set([
+  'tests/delivery_status.py', 'tests/nightly_status.py',
+  '.github/workflows/tests.yml', '.github/workflows/governance.yml',
+  'docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md',
+])
+const DELIVERY_ROW = /^docs\/delivery\/[^/]+\.md$/
+
+function reporterInputsTouched(paths, existing) {
+  if (!paths.length) return ['(no changed-path list, so none can be ruled out)']
+  const rows = (existing ?? paths).filter((p) => DELIVERY_ROW.test(p))
+  return [...new Set([...paths.filter((p) => REPORTER_INPUTS.has(p)), ...rows])].sort()
+}
 const RED_HISTORY_PAGE = 100
 const RED_HISTORY_MAX_PAGES = 10
 
@@ -5375,7 +5513,7 @@ function redHistorySkipLine(why) {
   return `  skip     red-history           ${why}; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here`
 }
 
-function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], notes = [], author = null } = {}) {
+function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null } = {}) {
   const out = []
   // The REST `/pulls/{n}` `.user.login` reports the App as `hpo-author[bot]`
   // while the GraphQL `author.login` reports `app/hpo-author`; accept both.
@@ -5473,10 +5611,14 @@ function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], no
   // ANALYSIS stays honour -- a script cannot judge whether an answer is good --
   // but naming it is mechanical, and naming it is what gets skipped.
   const redSec = (secs.get('Red checks') ?? '').trim()
+  const touched = reporterInputsTouched(paths, existing)
   for (const name of red) {
-    if (redSec.includes(name)) continue
+    if (redSec.includes(name) || (MAIN_STATE_REPORTERS.has(name) && !touched.length)) continue
+    const why = MAIN_STATE_REPORTERS.has(name)
+      ? ` It grades \`main\`, but this diff touches what it reads (${touched.join(', ')}), so the red may be this pull request's own.`
+      : ''
     out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
-      message: `check \`${name}\` is red and \`## Red checks\` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.` })
+      message: `check \`${name}\` is red and \`## Red checks\` does not name it.${why} Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.` })
   }
 
   return out
@@ -5518,6 +5660,20 @@ function cmdPrBody(args) {
     }
     paths = got.paths
   }
+  // The changed paths the base already had (`--diff-filter=a`), which may be
+  // empty: a pull request can add every file it touches. Absent, it stays null
+  // and `reporterInputsTouched` counts every delivery row; unreadable refuses,
+  // on `--paths-file`'s own argument.
+  const existingFile = val('--existing-file')
+  let existing = null
+  if (existingFile != null) {
+    try {
+      existing = fs.readFileSync(existingFile, 'utf8').split('\n').map((x) => x.trim()).filter(Boolean)
+    } catch {
+      console.log(`  ERROR   [pr-body] --existing-file ${existingFile}: unreadable. A list that cannot be read is not a diff that added everything.`)
+      return 1
+    }
+  }
   // THE `## Red checks` OBLIGATION IS OVER EVERY HEAD (#1144). CI derives `red`
   // from `commits/$PR_HEAD/check-runs`, so a red a later push cleared has no
   // check-run record at the head this runs on and silently drops out of the
@@ -5545,7 +5701,7 @@ function cmdPrBody(args) {
       redAll = [...new Set([...red, ...hist.reds])]
     }
   }
-  const findings = checkPrBody(bodyPath, { head, title: val('--title') ?? '', red: redAll, paths, notes, author })
+  const findings = checkPrBody(bodyPath, { head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author })
   for (const n of notes) console.log(n)
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)
