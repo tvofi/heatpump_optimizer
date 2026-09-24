@@ -2568,7 +2568,7 @@ export function statsRoundsLine({ rounds, coverage }) {
   const share = (k) => `${k}/${n}${n ? ` = ${(k / n).toFixed(3)}` : ''}`
   const { reverify, repair, repeat } = rounds
   const later = reverify.entries + repair.entries + repeat.entries
-  return `STATS ROUNDS: over the ${n} merged pull request(s) carrying a parsable verdict, first-verdict yield ${share(rounds.firstMerge)} (the first verdict was \`merge\`), one-round yield ${share(rounds.oneRound)} (merged on that one verdict, no later round). Of the ${later} verdict(s) after a pull request's first, by the verdict before each: ${reverify.entries} re-verified a head that moved after a \`merge\` (${reverify.prs.size} PR(s), the "${REWORK_CLASS}" row), ${repair.entries} repaired after a \`blocked\`, ${repeat.entries} repeated the previous verdict's head.`
+  return `STATS ROUNDS: over the ${n} merged pull request(s) carrying a parsable verdict, first-verdict yield ${share(rounds.firstMerge)} (the first verdict was \`merge\`), one-round yield ${share(rounds.oneRound)} (merged on that one verdict, no later parsable one). Of the ${later} parsable verdict(s) after a pull request's first, by the verdict before each: ${reverify.entries} re-verified a head that moved after a \`merge\` (${reverify.prs.size} PR(s), the "${REWORK_CLASS}" row), ${repair.entries} repaired after a \`blocked\`, ${repeat.entries} repeated the previous verdict's head. A \`Fix review:\` line outside the grammar is in none of these; each is reported below.`
 }
 
 // WHICH ENDPOINT THE WINDOW'S VERDICTS ARRIVED ON (#1471, D13-01), printed
