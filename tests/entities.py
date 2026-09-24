@@ -22340,11 +22340,11 @@ R.check(
     f"from candidates()",
 )
 
-# The ledger + ratchet, driven over the synthetic candidates. A site is
+# The ledger + ratchet, driven over the synthetic inventory. A site is
 # unpinned until it carries a disposition (a verdict or a killed_by driver),
-# keyed `file:line KIND` and pinned to the `old` text.
-_MUT_FIRST = _MUT_GOT[0]
-_MUT_KEY = _mut.triage_key(_MUT_FIRST)
+# keyed by the site's content anchor and pinned to the `old` text.
+_MUT_FIRST = _MUT_INV[0] if _MUT_INV else _MUT_GOT[0]
+_MUT_KEY = _MUT_FIRST.get("anchor", _mut.triage_key(_MUT_FIRST))
 _MUT_EMPTY = {"survivor_triage": {}, "killed_by": {}}
 _MUT_DISP = {"survivor_triage": {
     _MUT_KEY: {"verdict": "equivalent", "old": _MUT_FIRST["old"],
@@ -22353,26 +22353,27 @@ _MUT_DISP = {"survivor_triage": {
 R.check(
     "unpinned_sites counts a site unpinned until it carries a disposition",
     _UNPIN is not None
-    and len(_UNPIN(_MUT_EMPTY, _MUT_GOT)) == len(_MUT_GOT)
-    and len(_UNPIN(_MUT_DISP, _MUT_GOT)) == len(_MUT_GOT) - 1,
-    f"empty ledger -> {len(_UNPIN(_MUT_EMPTY, _MUT_GOT)) if _UNPIN else 'n/a'}"
+    and len(_UNPIN(_MUT_EMPTY, _MUT_INV)) == len(_MUT_GOT)
+    and len(_UNPIN(_MUT_DISP, _MUT_INV)) == len(_MUT_GOT) - 1,
+    f"empty ledger -> {len(_UNPIN(_MUT_EMPTY, _MUT_INV)) if _UNPIN else 'n/a'}"
     f"/{len(_MUT_GOT)}; one disposition -> "
-    f"{len(_UNPIN(_MUT_DISP, _MUT_GOT)) if _UNPIN else 'n/a'}/{len(_MUT_GOT)}",
+    f"{len(_UNPIN(_MUT_DISP, _MUT_INV)) if _UNPIN else 'n/a'}/{len(_MUT_GOT)}",
 )
 
-# The ratchet verdict, driven: growth is refused, a bootstrap (no record) and
-# an at-or-below record are not.
+# The ratchet verdict, driven against the count at the ratchet base: growth is
+# refused, an at-or-below count is not, and an unreadable base is REFUSED --
+# a ratchet with nothing to compare against must not go green by skipping.
 _REFUSE = getattr(_mut, "ratchet_refusal", None)
+try:
+    _MUT_RATCHET = (
+        _REFUSE(None, _MUT_GOT), _REFUSE(0, _MUT_GOT),
+        _REFUSE(len(_MUT_GOT), _MUT_GOT), _REFUSE(len(_MUT_GOT) + 5, _MUT_GOT))
+except Exception as _mut_r_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _MUT_RATCHET = (f"{type(_mut_r_exc).__name__}: {_mut_r_exc}",)
 R.check(
-    "ratchet_refusal refuses growth and nothing else",
-    _REFUSE is not None
-    and _REFUSE({}, _MUT_GOT) is None
-    and _REFUSE({"unpinned_sites": 0}, _MUT_GOT) == 1
-    and _REFUSE({"unpinned_sites": len(_MUT_GOT)}, _MUT_GOT) is None
-    and _REFUSE({"unpinned_sites": len(_MUT_GOT) + 5}, _MUT_GOT) is None,
-    f"bootstrap -> {_REFUSE({}, _MUT_GOT) if _REFUSE else 'n/a'}; "
-    f"record 0 -> {_REFUSE({'unpinned_sites': 0}, _MUT_GOT) if _REFUSE else 'n/a'}"
-    f"; at/above record -> None",
+    "ratchet_refusal refuses growth over the base count, and an unreadable base",
+    _MUT_RATCHET == (1, 1, None, None),
+    f"(no base, base 0, base = count, base above) -> {_MUT_RATCHET}",
 )
 
 # The completeness check, both directions, plus the empty-inventory null
@@ -22385,23 +22386,97 @@ _MUT_STALE = {"survivor_triage": {}, "killed_by": {
 R.check(
     "completeness_problems refuses a stale mark and an empty inventory",
     _COMP is not None
-    and len(_COMP(_MUT_STALE, _MUT_GOT)) == 1
+    and len(_COMP(_MUT_STALE, _MUT_INV)) == 1
     and len(_COMP(_MUT_EMPTY, [])) == 1
-    and _COMP(_MUT_EMPTY, _MUT_GOT) == [],
-    f"stale -> {len(_COMP(_MUT_STALE, _MUT_GOT)) if _COMP else 'n/a'}; "
+    and _COMP(_MUT_EMPTY, _MUT_INV) == [],
+    f"stale -> {len(_COMP(_MUT_STALE, _MUT_INV)) if _COMP else 'n/a'}; "
     f"empty inventory -> {len(_COMP(_MUT_EMPTY, [])) if _COMP else 'n/a'}; "
-    f"consistent -> {_COMP(_MUT_EMPTY, _MUT_GOT) if _COMP else 'n/a'}",
+    f"consistent -> {_COMP(_MUT_EMPTY, _MUT_INV) if _COMP else 'n/a'}",
 )
 
-# The budget carries the ratchet record: a non-negative integer, not a
-# fraction the way max_survivor_fraction is.
+# A disposition belongs to the SITE, not to where the site sits (RCA
+# fix/rca-ledger-anchors). A `file:line KIND` key moved with every edit above
+# the site, so each merge that shifted a production file re-keyed pins that
+# every other open branch had copied, and those branches went DIRTY on the
+# ledger. Driven: a ledger disposing every synthetic site still covers every
+# one after three lines are inserted above them all; the null control edits
+# ONE pinned line's text, and exactly that disposition drops out.
+try:
+    _MUT_ALL = {"survivor_triage": {}, "killed_by": {
+        _s["anchor"]: {"killed_by": "tests/x.py", "old": _s["old"]}
+        for _s in _MUT_INV}}
+    _MUT_FILE.write_text("# a\n# b\n\n" + _MUT_SRC)
+    _MUT_SHIFTED = _INV([_MUT_FILE])
+    _MUT_FILE.write_text(_MUT_SRC.replace("    if flag:", "    if flag :"))
+    _MUT_EDITED = _INV([_MUT_FILE])
+    _MUT_SHIFT = (
+        all(_a["line"] == _b["line"] + 3
+            for _a, _b in zip(_MUT_SHIFTED, _MUT_INV)),
+        len(_UNPIN(_MUT_ALL, _MUT_SHIFTED)), _COMP(_MUT_ALL, _MUT_SHIFTED),
+        len(_UNPIN(_MUT_ALL, _MUT_EDITED)), len(_COMP(_MUT_ALL, _MUT_EDITED)))
+except Exception as _mut_s_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _MUT_SHIFT = (f"{type(_mut_s_exc).__name__}: {_mut_s_exc}",)
+finally:
+    _MUT_FILE.write_text(_MUT_SRC)
+R.check(
+    "a line shift keeps every disposition; an edit to the pinned text drops it",
+    _MUT_SHIFT == (True, 0, [], 1, 1),
+    f"(every site moved 3 lines, unpinned after shift, completeness after "
+    f"shift, unpinned after an edit, stale after an edit) -> {_MUT_SHIFT}",
+)
+
+# The canonical form, each refusal driven with its fixture: a retired
+# `file:line KIND` key, a map out of key order, and a committed count are the
+# three shapes that made unrelated branches conflict. `normalize` maps a
+# retired key to the anchor of the site at that line whose text is the pin,
+# sorts, drops the count, and reports (keeps) a retired key naming no site.
+_FORM = getattr(_mut, "ledger_form_problems", None)
+_NORM = getattr(_mut, "normalize", None)
+try:
+    # The synthetic sites re-homed under the package, as the real ledger's are.
+    _MUT_PKG_INV = _mut.anchor_sites(_MUT_SRC, [
+        dict(_m, file=_mut.PKG + "sample.py") for _m in _MUT_GOT])
+    _MUT_A, _MUT_B = _MUT_PKG_INV[0], _MUT_PKG_INV[-1]
+    _MUT_LEG = {"unpinned_sites": 7, "survivor_triage": {}, "killed_by": {
+        _mut.triage_key(_MUT_B): {"killed_by": "tests/x.py",
+                                  "old": _MUT_B["old"]},
+        _mut.triage_key(_MUT_A): {"killed_by": "tests/x.py",
+                                  "old": _MUT_A["old"]},
+        "custom_components/heatpump_optimizer/gone.py:1 GUARD_OFF": {
+            "killed_by": "tests/x.py", "old": "    if x:"}}}
+    _MUT_FIXED, _MUT_UNMAPPED = _NORM(_MUT_LEG, _MUT_PKG_INV)
+    _MUT_CANON = {"survivor_triage": {}, "killed_by": dict(sorted({
+        _MUT_A["anchor"]: {"killed_by": "tests/x.py", "old": _MUT_A["old"]},
+        _MUT_B["anchor"]: {"killed_by": "tests/x.py", "old": _MUT_B["old"]},
+    }.items()))}
+    _MUT_UNSORTED = {"survivor_triage": {}, "killed_by": dict(
+        reversed(list(_MUT_CANON["killed_by"].items())))}
+    _MUT_FORM = (
+        len(_FORM(_MUT_LEG)), len(_FORM(_MUT_UNSORTED)),
+        _FORM(_MUT_CANON), _FORM(_MB),
+        "unpinned_sites" in _MUT_FIXED,
+        list(_MUT_FIXED["killed_by"]) == sorted(_MUT_FIXED["killed_by"])
+        and set(_MUT_CANON["killed_by"]) <= set(_MUT_FIXED["killed_by"]),
+        len(_MUT_UNMAPPED))
+except Exception as _mut_f_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _MUT_FORM = (f"{type(_mut_f_exc).__name__}: {_mut_f_exc}",)
+R.check(
+    "the ledger's canonical form is enforced, and --normalize reaches it",
+    _MUT_FORM == (3, 1, [], [], False, True, 1),
+    f"(problems: retired keys + unsorted + committed count, unsorted alone, "
+    f"canonical, the recorded ledger; normalize keeps the count, maps both "
+    f"retired keys, reports the stale one) -> {_MUT_FORM}",
+)
+
+# The ratchet's other end is the count at its base, derived there the same
+# way as here: a committed count is refused (above), and the driver reads the
+# base through `base_unpinned` rather than through the budget file.
 _MB_UNPIN = _MB.get("unpinned_sites")
 R.check(
-    "the mutation budget records an unpinned-site ratchet count",
-    isinstance(_MB_UNPIN, int) and not isinstance(_MB_UNPIN, bool)
-    and _MB_UNPIN >= 0,
-    f"unpinned_sites={_MB_UNPIN!r} -- the exact count the deterministic "
-    f"inventory ratchets against",
+    "the mutation budget commits no unpinned-site count; the base supplies it",
+    _MB_UNPIN is None and callable(getattr(_mut, "base_unpinned", None)),
+    f"unpinned_sites={_MB_UNPIN!r} -- a committed count is a line every "
+    f"branch that records rewrites, so the ratchet derives it at the base",
 )
 
 # The pre-pass is wired into the driver's main flow: defined-but-never-called
@@ -22413,7 +22488,9 @@ R.check(
     and "completeness_problems(budgets, sites)" in _MUT_BODY
     and "unpinned_sites(budgets, sites)" in _MUT_BODY
     and "cap_problems(budgets)" in _MUT_BODY
-    and "ratchet_refusal(budgets, unpinned)" in _MUT_BODY,
+    and "ledger_form_problems(budgets)" in _MUT_BODY
+    and "base_unpinned(rbase, sites)" in _MUT_BODY
+    and "ratchet_refusal(base_count, unpinned)" in _MUT_BODY,
     "the deterministic inventory, the completeness check, the unpinned count, "
     "the cap refusal and the ratchet verdict must all run before the sampled "
     "pool, or the ratchet is defined and never enforced",
@@ -22534,18 +22611,23 @@ _MUT_TRIAGE_PROBLEMS = getattr(_mut, "triage_problems",
                                lambda _t: ["no triage_problems"])
 # Two synthetic survivors shaped like the table's rows; the triage fixture
 # marks one of them, key and pin alike.
+_EQ_KEY = ("custom_components/heatpump_optimizer/pump_mode.py:resolve "
+           "GUARD_OFF 0a1b2c3d")
 _EQ_MUT = {"file": "custom_components/heatpump_optimizer/pump_mode.py",
-           "line": 242, "kind": "GUARD_OFF", "old": "    if raw is None:"}
+           "line": 242, "kind": "GUARD_OFF", "old": "    if raw is None:",
+           "anchor": _EQ_KEY}
 _GAP_MUT = {"file": "custom_components/heatpump_optimizer/frontend.py",
             "line": 110, "kind": "BOOLOP",
-            "old": '        if a and b:'}
-_EQ_KEY = "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF"
+            "old": '        if a and b:',
+            "anchor": ("custom_components/heatpump_optimizer/frontend.py:f "
+                       "BOOLOP 4e5f6a7b")}
 _TRIAGE_FIXTURE = {_EQ_KEY: {"verdict": "equivalent",
                              "old": "    if raw is None:",
                              "reason": "probe: no input can tell it apart"}}
 R.check(
     "a survivor triaged equivalent is off the fraction; an unmarked one stays (#1217)",
-    _MUT_TRIAGE_KEY(_EQ_MUT) == _EQ_KEY
+    _MUT_TRIAGE_KEY(_EQ_MUT)
+    == "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF"
     and _MUT_GAPS([_EQ_MUT, _GAP_MUT], _TRIAGE_FIXTURE)
     == ([_GAP_MUT], [_EQ_MUT]),
     f"key={_MUT_TRIAGE_KEY(_EQ_MUT)!r}, gaps -> "
@@ -22553,16 +22635,19 @@ R.check(
     "leaves the numerator; the unmarked survivor stays in it, because the "
     "default has to stay guilty until a reason moves it",
 )
-# The line pin is half the mark: file and line are where the mutant WAS, and
-# a production edit moves text under the same coordinates all the time. The
-# other half is the verdict: a "gap" triage records a real gap and must not
-# come off the fraction. The null controls drive all three arms through the
-# same predicate.
+# The line pin is half the mark: a production edit changes text under the
+# same key, and the mark must not follow it. The line NUMBER is not part of the
+# mark (the anchor is): the same site one line further down keeps it, and a
+# site under another anchor does not. The other half is the verdict: a "gap"
+# triage records a real gap and must not come off the fraction. The null
+# controls drive every arm through the same predicate.
 R.check(
     "and only an `equivalent` verdict applies, pinned line text and all (#1217)",
     _MUT_EQ(_TRIAGE_FIXTURE, _EQ_MUT) is True
     and _MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, old="    if raw:")) is False
-    and _MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, line=243)) is False
+    and _MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, line=243)) is True
+    and _MUT_EQ(_TRIAGE_FIXTURE,
+                dict(_EQ_MUT, anchor=_EQ_KEY.replace("resolve", "fold"))) is False
     and _MUT_EQ({_EQ_KEY: {"verdict": "gap", "old": _EQ_MUT["old"],
                            "reason": "a real gap, triaged"}}, _EQ_MUT) is False,
     f"same pin -> {_MUT_EQ(_TRIAGE_FIXTURE, _EQ_MUT)!r}, moved text -> "
@@ -22591,9 +22676,11 @@ R.check(
 # reason; the validator holds over the whole real table; and every mark
 # names a mutant THIS tree still generates -- same line, same operator,
 # same text -- so the pins are checked against the tree, not each other.
-_MUT_D3_07 = (
-    "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF",
-    "custom_components/heatpump_optimizer/__init__.py:340 BOOLOP",
+_MUT_D3_07 = (  # the two marks' ledger anchors: resolve()'s guard, and setup's
+    "custom_components/heatpump_optimizer/pump_mode.py:resolve GUARD_OFF "
+    "f7c55656",
+    "custom_components/heatpump_optimizer/__init__.py:async_setup_entry BOOLOP "
+    "47200394",
 )
 R.check(
     "the recorded triage marks both D3-07 equivalents, verdict and reason (#1217)",
@@ -22605,12 +22692,13 @@ R.check(
     "survivor table that does not say so charges the suite for them",
 )
 _MUT_TRIAGE_STALE = []
+_MUT_TRIAGE_SITES: dict[str, dict] = {}
+for _rel in sorted({_k.split(":", 1)[0] for _k in _MUT_TRIAGE}):
+    for _m in _mut.inventory([Path(_rel)]):
+        _MUT_TRIAGE_SITES.setdefault(_m.get("anchor"), _m)
 for _k, _ent in sorted(_MUT_TRIAGE.items()):
-    _rel, _rest = _k.split(":")
-    _ln, _kind = _rest.split(" ", 1)
-    _hit = [m for m in _mut.candidates(Path(_rel))
-            if m["line"] == int(_ln) and m["kind"] == _kind]
-    if len(_hit) != 1 or _hit[0]["old"] != _ent.get("old"):
+    _hit = _MUT_TRIAGE_SITES.get(_k)
+    if _hit is None or _hit["old"] != _ent.get("old"):
         _MUT_TRIAGE_STALE.append(_k)
 R.check(
     "and every mark still names a mutant this tree generates, pin and all (#1217)",
