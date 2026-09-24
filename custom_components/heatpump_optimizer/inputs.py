@@ -47,6 +47,9 @@ from .const import (
     ENERGY_UNIT_TO_KWH,
     INPUT_MAX_AGE_MINUTES,
     POWER_UNIT_TO_KW,
+    PRICE_ENERGY_TO_KWH,
+    PRICE_MAJOR_SYMBOLS,
+    PRICE_MINOR_UNITS,
     STALENESS_SCALE_MAX,
     STALENESS_SCALE_MIN,
     TEMPERATURE_UNIT_TO_C,
@@ -250,6 +253,80 @@ def normalize_energy_kwh(value: float, unit: Any) -> float | None:
     if factor is None:
         return None
     return value * factor
+
+
+def state_unit(state: Any) -> Any:
+    """The ``unit_of_measurement`` a state declares, or ``None``."""
+    return (getattr(state, "attributes", None) or {}).get("unit_of_measurement")
+
+
+def _finite(raw: Any) -> float | None:
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return None
+    return value if math.isfinite(value) else None
+
+
+def temperature_c(raw: Any, unit: Any) -> float | None:
+    """A raw temperature in degC, or ``None`` if not a finite number (#1513).
+
+    Converted when ``unit`` is a temperature unit and adopted raw otherwise,
+    which is what :func:`_value_in_model_units` does for ``read`` (#961).
+    """
+    value = _finite(raw)
+    if value is None:
+        return None
+    converted = normalize_temperature_c(value, unit)
+    return value if converted is None else converted
+
+
+def temperature_from_c(value_c: float, unit: Any) -> float:
+    """:func:`normalize_temperature_c` inverted, for a write in an entity's
+    own unit; the identity for a unit outside the table."""
+    spec = TEMPERATURE_UNIT_TO_C.get(str(unit).strip())
+    if spec is None:
+        return value_c
+    offset, factor = spec
+    return value_c / factor - offset
+
+
+def normalize_price_per_kwh(value: float, unit: Any) -> float | None:
+    """Convert a price to major currency per kWh using its unit (#1513).
+
+    A price sensor declares ``<money>/<energy>``: an ISO code or a symbol is
+    the major unit, a minor one (öre, cent) a hundredth of it, and the energy
+    kWh, MWh or Wh. Reading öre/kWh as SEK/kWh put a Nord Pool sensor's
+    ``price_in_cents`` option into the plan at 100x. No unit at all is major
+    currency per kWh, which is what a unit-less template sensor has always
+    meant here; a unit outside this grammar returns ``None`` rather than a
+    guess. The currency itself is never converted.
+    """
+    if unit is None or not str(unit).strip():
+        return value
+    money, sep, energy = str(unit).strip().partition("/")
+    per_kwh = PRICE_ENERGY_TO_KWH.get(energy.strip().lower())
+    money = money.strip()
+    if not sep or per_kwh is None:
+        return None
+    if money.lower() in PRICE_MINOR_UNITS:
+        return value * per_kwh / 100.0
+    major = money in PRICE_MAJOR_SYMBOLS or (
+        len(money) == 3 and money.isalpha() and money.isupper()
+    )
+    return value * per_kwh if major else None
+
+
+def price_per_kwh(raw: Any, unit: Any) -> float | None:
+    """A raw price in major currency per kWh, or ``None`` if not a finite
+    number. An unparseable unit keeps the raw number, as every install read
+    it before; the coordinator's ``price_unit_unrecognised`` notice names it.
+    """
+    value = _finite(raw)
+    if value is None:
+        return None
+    converted = normalize_price_per_kwh(value, unit)
+    return value if converted is None else converted
 
 
 def _value_in_model_units(

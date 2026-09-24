@@ -307,6 +307,7 @@ from .const import (
     DEFAULT_COMPRESSOR_FREQ_MAX_HZ,
     CONF_FREQ_CONTROL_MODE,
     DEFAULT_FREQ_CONTROL_MODE,
+    TEMPERATURE_UNIT_TO_C,
 )
 from .inputs import (
     UNBOUNDED,
@@ -314,8 +315,12 @@ from .inputs import (
     InputReader,
     age_of,
     normalize_power_kw,
+    normalize_price_per_kwh,
     parse_bool,
+    price_per_kwh,
     stale_summary,
+    state_unit,
+    temperature_c,
 )
 from .external_heat import (
     ExternalHeatConfig,
@@ -1306,18 +1311,126 @@ def _hub(name: str) -> property:
 
 
 def _grid_fee_entity_value(hass: HomeAssistant, config: dict[str, Any]) -> float | None:
-    """The live SEK/kWh fee entity's value, when one is configured."""
-    entity_id = config.get(CONF_GRID_FEE_ENTITY)
-    if not entity_id:
+    """The live fee entity's value per kWh, in its own unit (#1513)."""
+    return _entity_price(hass, config.get(CONF_GRID_FEE_ENTITY))
+
+
+def _entity_price(hass: HomeAssistant, entity_id: Any) -> float | None:
+    """A price entity's state in major currency per kWh, or ``None``."""
+    state = hass.states.get(entity_id) if entity_id else None
+    return None if state is None else price_per_kwh(state.state, state_unit(state))
+
+
+def _audit_price_units(hass: HomeAssistant, config: dict[str, Any]) -> None:
+    """Name a price unit the reader cannot parse, once per slot (#1513).
+
+    The reader keeps that entity's raw number, as every install did before
+    the unit was read, so the plan is exactly as wrong as it always was --
+    but no longer silently. The notice clears when the unit parses, or the
+    slot is emptied.
+    """
+    for slot, entity_id in (
+        ("price", config.get(CONF_PRICE_ENTITY)),
+        ("export", config.get(CONF_PV_EXPORT_PRICE_ENTITY)),
+        ("grid_fee", config.get(CONF_GRID_FEE_ENTITY)),
+    ):
+        state = hass.states.get(entity_id) if entity_id else None
+        unit = state_unit(state)
+        if state is None or normalize_price_per_kwh(1.0, unit) is not None:
+            ir.async_delete_issue(hass, DOMAIN, f"price_unit_{slot}")
+            continue
+        _create_issue(
+            hass,
+            DOMAIN,
+            f"price_unit_{slot}",
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="price_unit_unrecognised",
+            translation_placeholders={"entity": str(entity_id), "unit": str(unit)},
+        )
+
+
+def _dhw_inlet_c(hass: HomeAssistant, entity_id: Any) -> float | None:
+    """The live DHW inlet probe in degC, in its own unit (#1513), or ``None``.
+
+    An inlet probe is slow-moving, so a generous day-scale limit -- but a
+    probe frozen since last winter would otherwise pin the inlet at winter
+    cold forever. Stale or implausible degrades to the seasonal model, which
+    is the configured no-sensor behaviour.
+    """
+    state = hass.states.get(entity_id) if entity_id else None
+    age = age_of(state, dt_util.utcnow()) if state is not None else None
+    if state is None or age is None or age > timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES):
         return None
-    state = hass.states.get(entity_id)
-    if state is None:
-        return None
-    try:
-        value = float(state.state)
-    except (TypeError, ValueError):
-        return None
-    return value if np.isfinite(value) else None
+    value = temperature_c(state.state, state_unit(state))
+    return value if value is not None and -5.0 <= value <= 35.0 else None
+
+
+def _wind_speed_scale_of(state: Any) -> float:
+    """Factor converting a weather entity's wind unit into m/s.
+
+    Home Assistant converts forecast wind speed into whichever unit the
+    user has configured, and reports that unit on the weather entity as
+    ``wind_speed_unit``. An unrecognised or absent unit falls back to 1.0
+    (m/s), which is the Home Assistant metric default.
+    """
+    unit: Any = (getattr(state, "attributes", None) or {}).get("wind_speed_unit")
+    scale = _WIND_UNIT_TO_MS.get(unit)
+    if scale is None:
+        if unit:
+            _LOGGER.debug("Unknown wind speed unit %r; assuming m/s", unit)
+        return 1.0
+    return scale
+
+
+def _forecast_in_model_units(state: Any, forecast: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Forecast rows in degC and m/s, by the weather entity's own units (#1513).
+
+    Home Assistant hands a weather entity's forecast over in the entity's
+    display units -- degF and mph on a US-customary instance. Converting
+    once, where the rows are stored, gives every reader the model's units:
+    the horizon arrays, ``forecast_outdoor_now`` and ``_current_weather``,
+    whose wind the learners read and which used to see the display unit. A
+    degC and m/s entity returns the rows untouched, and a temperature that
+    will not parse is kept, so the consumers' own fallbacks still apply.
+    """
+    unit = (getattr(state, "attributes", None) or {}).get("temperature_unit")
+    to_c = TEMPERATURE_UNIT_TO_C.get(str(unit).strip(), (0.0, 1.0)) != (0.0, 1.0)
+    wind = _wind_speed_scale_of(state)
+    if not to_c and wind == 1.0:
+        return forecast
+    rows: list[dict[str, Any]] = []
+    for entry in forecast:
+        row = dict(entry)
+        value = temperature_c(entry.get("temperature"), unit) if to_c else None
+        if value is not None:
+            row["temperature"] = value
+        if wind != 1.0:  # every reader takes a missing wind as 0.0 anyway
+            row["wind_speed"] = _as_float(entry.get("wind_speed"), 0.0) * wind
+        rows.append(row)
+    return rows
+
+
+def _fabricated_forecast(state: Any) -> list[dict[str, Any]]:
+    """48 constant hourly rows from a weather entity's current attributes.
+
+    What a failed first fetch plans on, converted like a fetched forecast
+    (#1513): the temperature in degC, 5.0 when it will not parse, and the
+    wind in m/s. The wind used to be scaled here and again in
+    ``_forecast_arrays``, so a km/h entity was planned at 1/3.6 of it.
+    """
+    attrs = getattr(state, "attributes", None) or {}
+    start = dt_util.now()
+    rows = _forecast_in_model_units(state, [
+        {
+            "datetime": (start + timedelta(hours=i)).isoformat(),
+            "temperature": temperature_c(attrs.get("temperature"), None),
+            "wind_speed": attrs.get("wind_speed"),
+            "precipitation": 0.0,
+        }
+        for i in range(48)
+    ])
+    return [r if r["temperature"] is not None else {**r, "temperature": 5.0} for r in rows]
 
 
 def _solve_anchor(now: datetime) -> datetime:
@@ -2429,24 +2542,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # The inlet: live sensor wins, then the seasonal model, whose
         # default amplitude of zero keeps it at the configured mean.
-        inlet: float | None = None
-        entity = ctx._config.get(CONF_DHW_INLET_ENTITY)
-        if entity:
-            state = self.hass.states.get(entity)
-            # An inlet probe is slow-moving, so a generous day-scale limit —
-            # but a probe frozen since last winter would otherwise pin the
-            # inlet at winter cold forever. Stale degrades to the seasonal
-            # model below, which is the configured no-sensor behaviour.
-            age = age_of(state, dt_util.utcnow()) if state is not None else None
-            if age is not None and age <= timedelta(
-                minutes=DHW_INLET_MAX_AGE_MINUTES
-            ):
-                try:
-                    value = float(state.state)
-                except (TypeError, ValueError):
-                    value = None
-                if value is not None and -5.0 <= value <= 35.0:
-                    inlet = value
+        inlet = _dhw_inlet_c(self.hass, ctx._config.get(CONF_DHW_INLET_ENTITY))
         if inlet is None:
             inlet = params.seasonal_inlet_temp(now.timetuple().tm_yday)
         params.dhw_inlet_current = inlet
@@ -5560,6 +5656,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         cfg = getattr(self, "_ctx", self)._config
         hass = self.hass
+        _audit_price_units(hass, cfg)
         try:
             session = (
                 None
@@ -5672,7 +5769,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if result and weather_entity in result:
                 forecast_data = result[weather_entity].get("forecast", [])
                 if forecast_data:
-                    self._weather_forecast = forecast_data
+                    self._weather_forecast = _forecast_in_model_units(
+                        self.hass.states.get(weather_entity), forecast_data)
 
                     # Extract solar radiation forecast if present in weather data
                     self._solar_radiation_forecast = []
@@ -5710,21 +5808,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 # already marked stale by the failure above -- a plan built
                 # on it discloses what it is standing on.
                 try:
-                    temp = _as_float(state.attributes.get("temperature"), 5.0)
-                    wind = _as_float(
-                        state.attributes.get("wind_speed"), 0.0
-                    ) * self._wind_speed_scale()
-                    self._weather_forecast = [
-                        {
-                            "datetime": (
-                                dt_util.now() + timedelta(hours=i)
-                            ).isoformat(),
-                            "temperature": temp,
-                            "wind_speed": wind,
-                            "precipitation": 0.0,
-                        }
-                        for i in range(48)
-                    ]
+                    self._weather_forecast = _fabricated_forecast(state)
                     self._solar_radiation_forecast = [0.0] * 48
                 except (ValueError, TypeError):
                     pass
@@ -5844,31 +5928,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
         return points
 
-    def _wind_speed_scale(self) -> float:
-        """Factor converting the weather entity's wind unit into m/s.
-
-        Home Assistant converts forecast wind speed into whichever unit the
-        user has configured, and reports that unit on the weather entity as
-        ``wind_speed_unit``. An unrecognised unit falls back to 1.0 (m/s),
-        which is the Home Assistant metric default.
-        """
-        entity_id = getattr(self, "_ctx", self)._config.get(CONF_WEATHER_ENTITY)
-        if not entity_id:
-            return 1.0
-        state = self.hass.states.get(entity_id)
-        if state is None:
-            return 1.0
-        unit = state.attributes.get("wind_speed_unit")
-        scale = _WIND_UNIT_TO_MS.get(unit)
-        if scale is None:
-            if unit:
-                _LOGGER.debug(
-                    "Unknown wind speed unit %r on %s; assuming m/s",
-                    unit,
-                    entity_id,
-                )
-            return 1.0
-        return scale
 
     def _price_series(
         self, n_steps: int, midnight: datetime, step_offset: int
@@ -5985,10 +6044,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 [float("nan")] * n_steps,
             )
 
-        # Convert using the unit the weather entity actually reports in.
-        # Guessing from the magnitude misreads a moderate 20 km/h breeze as a
-        # 20 m/s storm and doubles the predicted heat loss.
-        wind_scale = self._wind_speed_scale()
+        # The rows are already in m/s (`_forecast_in_model_units`, #1513):
+        # guessing from the magnitude misreads a moderate 20 km/h breeze as
+        # a 20 m/s storm and doubles the predicted heat loss.
         step_starts = _utc_step_starts(midnight, n_steps, step_offset)
 
         parsed: list[
@@ -5996,7 +6054,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ] = []
         for idx, entry in enumerate(self._weather_forecast):
             temp = _as_float(entry.get("temperature"), 5.0)
-            gust = max(0.0, _as_float(entry.get("wind_speed"), 0.0) * wind_scale)
+            gust = max(0.0, _as_float(entry.get("wind_speed"), 0.0))
             rain = max(0.0, _as_float(entry.get("precipitation"), 0.0))
             # NaN, not a guess: the model reads NaN as "use the ambient
             # value", while any invented number would select a real
@@ -6291,7 +6349,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         A fee rate above ``IMPLAUSIBLE_FEE_SEK_PER_KWH`` is öre typed into a
         SEK field (25 for 0.25 — the 100× slip), whether it arrived through
         the rules text, the fixed component, a hand-edited store, or a
-        sensor publishing öre. The plan keeps running on exactly what was
+        sensor publishing öre with no unit saying so (#1513 reads one). The plan keeps running on exactly what was
         configured — mutating or suppressing the value here would make the
         planning prices silently diverge from what the user typed and from
         the settlement paths reading the same schedule — so the only output
@@ -8862,20 +8920,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """Export compensation, preferring a live entity over the static value."""
         ctx = getattr(self, "_ctx", self)
         entity_id = ctx._config.get(CONF_PV_EXPORT_PRICE_ENTITY)
-        if entity_id:
-            state = self.hass.states.get(entity_id)
-            if state is not None and str(state.state).lower() not in (
-                "unknown",
-                "unavailable",
-                "",
-            ):
-                try:
-                    return float(state.state)
-                except (TypeError, ValueError):
-                    pass
-        return _as_float(
-            ctx._config.get(CONF_PV_EXPORT_PRICE), DEFAULT_PV_EXPORT_PRICE
-        )
+        live = _entity_price(self.hass, entity_id) if entity_id else None
+        if live is not None:
+            return live
+        return _as_float(ctx._config.get(CONF_PV_EXPORT_PRICE), DEFAULT_PV_EXPORT_PRICE)
     def _pv_measured_production(self, config: pv_model.PVConfig) -> float | None:
         """Live production in kW from the configured entity, if readable."""
         entity_id = config.production_entity

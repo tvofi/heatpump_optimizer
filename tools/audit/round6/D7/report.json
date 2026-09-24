@@ -42,7 +42,7 @@
     "drop_most_favourable": 22.5461
    },
    "reproduction_steps": [
-    "cd /Users/timmalmstrom/audit-r6-baseline",
+    "cd ~/audit-r6-baseline",
     "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D7/sysid_adoption_bias.py",
     "expect RESULT admitted_and_biased=14 count, RESULT admitted=75 count, RESULT worst_adopted_bias=-28.7018 pct",
     "perturbation arm: add --sigmas 0.02 -> admitted_and_biased=6; null arm: --sigmas 0.0 -> 0"
@@ -82,7 +82,7 @@
    },
    "metric_definition": "count of runtime entries into sysid:SystemIdentification.identify, by a sentinel wrapping the production method, over one complete production experiment on a shipped preset",
    "reproduction_steps": [
-    "cd /Users/timmalmstrom/audit-r6-baseline",
+    "cd ~/audit-r6-baseline",
     "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D7/production_dead_paths.py",
     "expect RESULT identify_calls_production_path=0, RESULT identify_slab_calls_production_path=1, RESULT identify_loc=379 lines, RESULT dead_statements_unreachable=1",
     "perturbation: add --no-plant -> identify_calls_production_path=1"
@@ -134,7 +134,7 @@
     "drop_most_favourable": 8
    },
    "reproduction_steps": [
-    "cd /Users/timmalmstrom/audit-r6-baseline",
+    "cd ~/audit-r6-baseline",
     "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D7/sysid_fit_exception.py",
     "expect RESULT fit_exceptions=8 count of 48, RESULT exception_kind_OverflowError=8 count",
     "perturbation: --drifts 0.05 -> fit_exceptions=4 of 12; null: --drifts 0.0 -> 0 of 12"

@@ -1,6 +1,6 @@
 # D8 — Sensor verification and ordering — audit round 6
 
-Baseline `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9), export `/Users/timmalmstrom/audit-r6-baseline`. Machine 8-core Apple M1, 8 GB. Counts are deterministic; `thread_factor=1.0`, `load1` 7.3 (shared with D4/D7/D9).
+Baseline `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9), export `~/audit-r6-baseline`. Machine 8-core Apple M1, 8 GB. Counts are deterministic; `thread_factor=1.0`, `load1` 7.3 (shared with D4/D7/D9).
 
 > Reconstructed by the orchestrator from the finder's inline return (REPORT.md write refused; harness matrix.py on disk).
 
