@@ -340,11 +340,12 @@ CACHE_ENV_NAMES = (
 )
 #: This repository's own variables are keyed BY NAME, and only the ones a
 #: capture reads (#1531). The namespaces used to be prefix-matched too, which
-#: split the key on HPO_PLANDATA and the gate lock's HPO_GATE_* -- set by the
-#: harness contract and by tests/run.sh's locked path, read by no capture --
-#: so a locked run re-captured a baseline it already had. tests/entities.py
-#: derives the names a capture reads under TREE_ENV_NAMESPACES from the
-#: measured closure of tests/golden.py and refuses any difference from this.
+#: split the key on the harness contract's plan-data path and on the gate
+#: lock's label and child flag -- set by tests/run.sh's locked path, read by
+#: no capture -- so a locked run re-captured a baseline it already had.
+#: tests/entities.py derives the names a capture reads under
+#: TREE_ENV_NAMESPACES from the measured closure of tests/golden.py and
+#: refuses any difference from this.
 CACHE_TREE_ENV_NAMES = ("HASTUB_TZ",)
 TREE_ENV_NAMESPACES = ("HASTUB_", "HPO_", "HEATPUMP_")
 
