@@ -363,7 +363,7 @@ from .price_model import (
     pull_prices,
     quarters_from_entries,
 )
-from .sysid import SysIdConfig, SystemIdentification, UA_ADOPTION_HALFWIDTH_BAR, slab_mode_identifiability, slab_ua_adoption_halfwidth
+from .sysid import SysIdConfig, SystemIdentification, adoption_decision
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -1779,6 +1779,24 @@ def _space_pump_to_drive(coord: Any) -> str | None:
         return None
     entity = getattr(coord, "_ctx", coord)._config.get(CONF_SPACE_PUMP_ENTITY)
     return str(entity) if entity else None
+
+
+def _sysid_stand_down(coord: Any) -> str | None:
+    """Why an active step-response experiment must abort now, or ``None``.
+
+    #1523: the experiment is a heat-loss learner, so it stands down on the
+    house learner's own freeze -- external heat, a defrost, an open window,
+    an unusable room or outdoor reading, and the pump's freezes, which
+    ``_learning_frozen`` ranks first -- and on a mode that cannot heat. A
+    module-level predicate in the ``_freq_fold_blocked`` idiom: the one
+    question the experiment asks each cycle, asked in one place.
+    """
+    if coord._pump_signals.space_blocked:
+        return f"heat pump mode {coord._pump_signals.mode.label} cannot heat the house"
+    frozen: str | None = coord._learning_frozen(
+        CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY
+    )
+    return frozen
 
 
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
@@ -10479,7 +10497,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _run_system_identification(self, prices: np.ndarray) -> None:
         """Advance sysid and override the plan when the experiment commands heat.
 
-        Subject to the mode gate and pump freeze like every other power path.
+        Subject to the mode gate and the learners' freeze (#1523).
         Writes ``_current_action["power"]`` after the solve — the one route
         that bypasses mode bounds — so a response measured while cooling,
         faulted or offline seeds wrong parameters via ``_adopt_system_identification``.
@@ -10487,14 +10505,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ctx = getattr(self, "_ctx", self)
         if not self._sysid.active:
             return
-        if self._pump_signals.space_blocked:
-            self._sysid.abort(
-                f"heat pump mode {self._pump_signals.mode.label} cannot heat "
-                "the house"
-            )
-            return
-        if self._pump_signals.freeze_reason is not None:
-            self._sysid.abort(self._pump_signals.freeze_reason)
+        why = _sysid_stand_down(self)
+        if why is not None:
+            self._sysid.abort(why)
             return
         params = ctx._thermal_params
         state = ctx._current_state
@@ -10533,39 +10546,26 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "dhw_reason": None,
         }
     def _adopt_system_identification(self) -> None:
-        """Seed the passive learners from a completed experiment."""
+        """Seed the passive learners from a completed experiment.
+
+        :func:`sysid.adoption_decision` rules, and its reason is published
+        on every path (#1525): a refusal no longer leaves the fit's "ok".
+        """
         result = self._sysid.result
-        # #1410: adoption is decided by the fitted UA's own 95 % profile-
-        # likelihood interval (superseding the #942 residual-scatter gate):
-        # a fit whose UA is not pinned within +-10 % is refused, however
-        # plausible its residual looks. D7-01 (#1459) added its other source.
-        hw = slab_ua_adoption_halfwidth(result.ua_profile_halfwidth, result.ua_prior_halfwidth)
-        if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:
+        if not result.completed:
             return
         params = getattr(self, "_ctx", self)._thermal_params
-        # #942: adoption is decided by identifiability -- a one-state fit of
-        # a slow-slab two-state plant is refused by name, not silently.
-        identifiable, why = slab_mode_identifiability(params, self._sysid.config)
-        if not identifiable:
-            self._sysid.result = replace(result, completed=False, reason=why)
-            _LOGGER.info("System identification not adopted: %s", why)
+        decision = adoption_decision(result, params, self._sysid.config)
+        self._sysid.result = replace(result, completed=False, reason=decision.reason)
+        if not decision.admit:
+            _LOGGER.info("System identification not adopted: %s", decision.reason)
             return
-        if params.two_zone_enabled:
-            base_u = params.upper_floor_heat_loss + params.lower_floor_heat_loss
-        else:
-            base_u = params.heat_loss_coefficient
-        if base_u <= 1e-6 or result.heat_loss_kw_per_c is None:
-            return
-        scale = result.heat_loss_kw_per_c / base_u
-        # The blend weight comes from the same interval as the gate: a fit at
-        # the bar adopts mildly, a pinned one at full weight.
-        weight = 1.0 - hw / UA_ADOPTION_HALFWIDTH_BAR
-        blended = (1.0 - weight) * self._house_heat_loss_scale + weight * scale
+        weight = decision.weight
+        blended = (1.0 - weight) * self._house_heat_loss_scale + weight * decision.scale
         self._apply_house_heat_loss_scale(blended)
         self._house_heat_loss_samples = max(
             self._house_heat_loss_samples, int(20 * weight)
         )
-        self._sysid.result = replace(result, completed=False, reason="adopted")
         # Persist immediately: the whole point of an experiment is a result
         # good enough to outlive a restart, and the passive learner's periodic
         # save may be many samples away.
