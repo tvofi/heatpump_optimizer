@@ -347,7 +347,7 @@ def sanitiser_checks(paths: list[Path]) -> list[tuple[str, bool, str]]:
     return res + leak_probes()
 
 
-#: The review of #1508's leak probe: eleven shapes of private data a recorder
+#: The review of #1508's leak probe (the first eleven): shapes of private data a recorder
 #: row or a config entry can carry, each of which passed the first exporter.
 #: Every one must be dropped by the export AND refused by ``--check`` when it
 #: is put back into a committed fixture by hand.
@@ -364,6 +364,10 @@ LEAK_PROBES = {
     "email": {"account_email": "owner@example.com"},
     "serial_mac": {"serial_number": "SN-0098-7766", "mac": "aa:bb:cc:dd:ee:ff"},
     "entry_address": {"tibber_home": "Storgatan 12, 111 22 Stockholm"},
+    # Two more, each in a place the key allowlist lets through, so only the
+    # value rule (``export.text_ok``) stands between them and the file.
+    "entry_url_in_allowed_key": {"ecl110_state_topic": "mqtt://ecl:s3cretpw@10.0.0.7/ecl"},
+    "state_address": {"state": "Storgatan 12, 111 22 Stockholm"},
 }
 PROBE_ENTITY = "sensor.heat_pump_power"
 
@@ -384,13 +388,16 @@ def leak_probes() -> list[tuple[str, bool, str]]:
     conf = export.entry_keys(*export.default_const_paths())
     for name, values in LEAK_PROBES.items():
         in_entry = name.startswith("entry_")
+        in_state = name.startswith("state_")
         series, data = synthesize._series, synthesize.ENTRY_DATA
         if in_entry:
             synthesize.ENTRY_DATA = {**data, **values}
         else:
-            def patched(values=values, series=series):
+            def patched(values=values, series=series, in_state=in_state):
                 out = series()
-                out[PROBE_ENTITY] = [(t, st, {**a, **values}) for t, st, a in out[PROBE_ENTITY]]
+                out[PROBE_ENTITY] = [
+                    (t, values["state"], a) if in_state else (t, st, {**a, **values})
+                    for t, st, a in out[PROBE_ENTITY]]
                 return out
             synthesize._series = patched
         try:
@@ -411,6 +418,8 @@ def leak_probes() -> list[tuple[str, bool, str]]:
         planted = json.loads(json.dumps(committed))
         if in_entry:
             planted["entry"]["data"].update(values)
+        elif in_state:
+            planted["states"][PROBE_ENTITY][0][1] = values["state"]
         else:
             planted["states"][PROBE_ENTITY][0][2] = {
                 **(planted["states"][PROBE_ENTITY][0][2] or {}), **values}
