@@ -20578,13 +20578,14 @@ R.check(
 )
 _RC_NULL = _if_under("github.event_name != 'pull_request' || "
                      "github.event.action != 'edited'", _EDITED_EVENT)
+_RC_OWN = _if_under("github.event_name == 'pull_request'", _EDITED_EVENT)
 R.check(
     "and #1484's guard reads as skipping under that event (null control)",
     _RC_NULL is False
-    and _if_under("github.event_name == 'pull_request'", _EDITED_EVENT) is True
+    and _RC_OWN is True
     and _if_under("contains(github.ref, 'x')", _EDITED_EVENT) is None,
     f"#1484 guard -> {_RC_NULL}; the contract's own `if:` -> "
-    f"{_if_under(\"github.event_name == 'pull_request'\", _EDITED_EVENT)}; an "
+    f"{_RC_OWN}; an "
     "undecidable expression -> None, which the check above counts as skippable",
 )
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
