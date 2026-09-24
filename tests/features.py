@@ -1556,8 +1556,10 @@ R.check(
 
 tracker = PeakTracker()
 base = datetime(2026, 3, 1, 0, 0)
-for hour, load in enumerate([2.0, 5.0, 9.0, 4.0, 7.0, 3.0]):
-    tracker.observe(base + timedelta(hours=hour), load, tariff)
+# One peak a day: the billed peaks fall on different days (#1512), and this
+# block pins the averaging, not the day rule (the #1512 oracle pins that).
+for day, load in enumerate([2.0, 5.0, 9.0, 4.0, 7.0, 3.0]):
+    tracker.observe(base + timedelta(days=day), load, tariff)
 tracker._close_window(tariff)
 R.check(
     "the billed peak averages the highest hours",
@@ -11138,6 +11140,244 @@ R.check(
     and _gf.apply_catalog("vattenfall_eldistribution_effekt_2026") is None
     and _gf.apply_catalog("eon_energidistribution_effekt_2026") is None,
     f"choices {_gf.catalog_choices()!r}",
+)
+
+# --- #1512 / R8-D2-s2-01: the capacity bill from each tariff's stated rule ---
+# PeakTracker kept the k highest metering WINDOWS of the month, while both
+# catalog DSOs bill the k highest peaks "fördelat på tre olika dygn": one cold
+# morning with three high hours published three peaks, billed_peak_kw read
+# high, and threshold_kw priced a later day's real peak as free. The oracle
+# below computes the month's bill straight from a CapacityTariff's stated
+# terms -- peaks_averaged, distinct_days, window_minutes, months, peak_hours,
+# weekdays_only, offpeak_factor -- over seeded month traces (DST months
+# included), independently of PeakTracker's arithmetic, and holds the
+# tracker's billed_peak_kw and threshold_kw to it. Every SWEDEN_CATALOG row is
+# driven through the coordinator's own config parse (``_catalog_tariff``), so
+# a row added to the catalog is driven by construction. The design choice it
+# encodes: threshold_kw is the k-th highest DAY maximum (lowest seen before k
+# days), never raised to today's own maximum -- tariff.threshold_kw's
+# docstring says why.
+R.section("R8-D2-s2-01 — the capacity bill from each tariff's stated rule (#1512)")
+
+import json as _bo_json  # noqa: E402
+from zoneinfo import ZoneInfo as _BoZone  # noqa: E402
+
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_PEAK_TARIFF_DISTINCT_DAYS as _BO_DISTINCT,
+)
+
+_BO_TZ = _BoZone("Europe/Stockholm")
+
+
+def _bo_factor(ct, start):
+    """What a window starting at ``start`` counts at, from the stated masks."""
+    if ct.months and start.month not in ct.months:
+        return 0.0
+    hour = start.hour + start.minute / 60.0
+    off = (ct.weekdays_only and start.weekday() >= 5) or (
+        bool(ct.peak_hours)
+        and not any(a <= hour < b or (b >= 24.0 and hour >= a) for a, b in ct.peak_hours)
+    )
+    return min(1.0, max(0.0, ct.offpeak_factor)) if off else 1.0
+
+
+def _bo_trace(year, month, window, seed):
+    """(local window start, kW) for every real metering window of a month.
+
+    Walked in UTC, so the spring gap's missing hour is absent and the autumn
+    fold's repeated hour is metered twice, as the meter does. Morning and
+    evening bumps every day; on ~20% of days a multi-hour cold-snap plateau,
+    the shape that stacks several near-equal windows on one morning.
+    """
+    rng = np.random.default_rng(seed)
+    start = datetime(year, month, 1, tzinfo=_BO_TZ).astimezone(timezone.utc)
+    nxt = datetime(year + month // 12, month % 12 + 1, 1, tzinfo=_BO_TZ)
+    end = nxt.astimezone(timezone.utc)
+    level, snap, out, day = 0.0, 0.0, [], None
+    t = start
+    while t < end:
+        local = t.astimezone(_BO_TZ)
+        if local.date() != day:
+            day = local.date()
+            level = rng.uniform(4.0, 7.0)
+            snap = rng.uniform(7.5, 10.0) if rng.random() < 0.2 else 0.0
+        kw = 2.5 + rng.uniform(0.0, 0.5)
+        if local.hour in (7, 18):
+            kw = level * rng.uniform(0.85, 1.05)
+        if snap and 5 <= local.hour <= 8:
+            kw = snap * rng.uniform(0.95, 1.0)
+        out.append((local, kw))
+        t += timedelta(minutes=window)
+    return out
+
+
+def _bo_oracle(ct, trace, distinct):
+    """(billed kW, threshold kW) the stated rule gives for a trace."""
+    windows = [(s.date(), kw * _bo_factor(ct, s)) for s, kw in trace if _bo_factor(ct, s) > 0.0]
+    if distinct:
+        best = {}
+        for day, kw in windows:
+            best[day] = max(best.get(day, 0.0), kw)
+        ranked = sorted(best.values(), reverse=True)
+    else:
+        ranked = sorted((kw for _, kw in windows), reverse=True)
+    k = max(1, ct.peaks_averaged)
+    if not ranked:
+        return 0.0, float("inf")
+    top = ranked[:k]
+    return sum(top) / len(top), ranked[k - 1] if len(ranked) >= k else ranked[-1]
+
+
+def _bo_drive(ct, trace):
+    """Feed a trace through PeakTracker.observe, two samples per window,
+    through a JSON store round trip mid-month (the persisted shape)."""
+    tracker = PeakTracker()
+    half = timedelta(minutes=ct.window_minutes / 2.0)
+    for index, (start, kw) in enumerate(trace):
+        if index == len(trace) // 2:
+            tracker = PeakTracker.from_dict(_bo_json.loads(_bo_json.dumps(tracker.as_dict())))
+        tracker.observe(start, kw * 0.9, ct)
+        tracker.observe((start.astimezone(timezone.utc) + half).astimezone(_BO_TZ), kw * 1.1, ct)
+    tracker._close_window(ct)
+    return tracker
+
+
+def _bo_catalog(product_id, **overrides):
+    applied = _gf.apply_catalog(product_id)
+    coord = _Coord(_FakeHass({}), _FakeEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home", **applied, **overrides,
+    }))
+    return coord._capacity_tariff()
+
+
+_bo_rules = {f"catalog:{pid}": _bo_catalog(pid) for pid in _gf.SWEDEN_CATALOG}
+_bo_rules["catalog:goteborg, distinct days switched off in the config"] = _bo_catalog(
+    "goteborg_energi_effekt_2026", **{_BO_DISTINCT: False}
+)
+_bo_rules["one peak averaged (the rule is inert)"] = CapacityTariff(
+    enabled=True, price_per_kw=49.0, peaks_averaged=1
+)
+_bo_rules["five peaks, Nov-Mar only, weekdays 07-20, off-peak free, 15 min"] = CapacityTariff(
+    enabled=True, price_per_kw=135.0, peaks_averaged=5, window_minutes=15,
+    months=frozenset({11, 12, 1, 2, 3}), peak_hours=((7.0, 20.0),),
+    weekdays_only=True, offpeak_factor=0.0,
+)
+_bo_months = ((2026, 1), (2026, 3), (2026, 7), (2026, 10))  # DST: 29 Mar, 25 Oct
+_bo_bad, _bo_cells, _bo_separating = [], 0, 0
+for _bo_label, _bo_ct in _bo_rules.items():
+    for _bo_seed, (_bo_y, _bo_m) in enumerate(_bo_months):
+        _bo_tr = _bo_trace(_bo_y, _bo_m, _bo_ct.window_minutes, 1512 + _bo_seed)
+        _bo_want = _bo_oracle(_bo_ct, _bo_tr, _bo_ct.distinct_days)
+        _bo_other = _bo_oracle(_bo_ct, _bo_tr, not _bo_ct.distinct_days)
+        _bo_t = _bo_drive(_bo_ct, _bo_tr)
+        _bo_got = (_bo_t.billed_peak_kw(_bo_ct), _bo_t.threshold_kw(_bo_ct))
+        _bo_cells += 1
+        _bo_separating += int(abs(_bo_want[0] - _bo_other[0]) > 1e-6)
+        # 5e-4: as_dict records a peak to 3 decimals, and every cell crosses
+        # one store round trip. The two rules differ by whole kW.
+        if not all(g == w or abs(g - w) <= 5e-4 + 1e-12 for g, w in zip(_bo_got, _bo_want)):
+            _bo_bad.append(f"{_bo_label} {_bo_y}-{_bo_m:02d}: got {_bo_got}, bill {_bo_want}")
+R.check(
+    "billed_peak_kw and threshold_kw equal the bill each tariff's stated "
+    "rule gives, every catalog row and rule shape, DST months included",
+    not _bo_bad and _bo_cells == len(_bo_rules) * len(_bo_months),
+    f"{len(_bo_bad)} of {_bo_cells} cells differ: {_bo_bad[:3]}",
+)
+print(f"RESULT bill_oracle_cells={_bo_cells} separating={_bo_separating} count")
+R.check(
+    "the oracle separates the two rules: in some cell the per-day and the "
+    "per-window bill differ (null control -- a trace with one peak per day "
+    "would pass either implementation)",
+    _bo_separating > 0,
+    f"{_bo_separating} of {_bo_cells} cells separate the rules",
+)
+R.check(
+    "every catalog row states the distinct-days rule its source quotes",
+    all(
+        _bo_rules[f"catalog:{pid}"].distinct_days
+        and _gf.apply_catalog(pid).get(_BO_DISTINCT) is True
+        for pid in _gf.SWEDEN_CATALOG
+    )
+    and not _bo_rules["catalog:goteborg, distinct days switched off in the config"].distinct_days,
+    "both sourced rows bill three peaks on three different days (#926/#968)",
+)
+R.check(
+    "billing_summary publishes the tariff's own stated terms",
+    all(
+        ct.billing_summary() == {
+            "price_per_kw": ct.price_per_kw,
+            "window_minutes": ct.window_minutes,
+            "peaks_averaged": ct.peaks_averaged,
+        }
+        for ct in _bo_rules.values()
+    ),
+)
+
+# The finder's headline, exact: Göteborg, k=3, a cold morning of 10/9.8/9.6
+# kW on one day and single evening peaks of 7 and 6.5 on two others. The bill
+# is (10+7+6.5)/3; the per-window tracker published (10+9.8+9.6)/3 and a
+# 9.6 kW threshold under which a 9.0 kW hour on a new day read as free.
+_bo_ge = _bo_rules["catalog:goteborg_energi_effekt_2026"]
+_bo_head = PeakTracker()
+for _bo_d, _bo_hours in ((1, {6: 10.0, 7: 9.8, 8: 9.6}), (2, {18: 7.0}), (3, {18: 6.5})):
+    for _bo_h in range(24):
+        _bo_head.observe(datetime(2026, 10, _bo_d, _bo_h, tzinfo=_BO_TZ), _bo_hours.get(_bo_h, 3.0), _bo_ge)
+_bo_head._close_window(_bo_ge)
+R.check(
+    "one cold morning is one peak: billed (10+7+6.5)/3 kW, threshold 6.5 kW",
+    abs(_bo_head.billed_peak_kw(_bo_ge) - 23.5 / 3) < 1e-9
+    and _bo_head.threshold_kw(_bo_ge) == 6.5,
+    f"billed {_bo_head.billed_peak_kw(_bo_ge)}, threshold {_bo_head.threshold_kw(_bo_ge)}",
+)
+
+# The persisted shape (#1512): a store written before peak_days loads every
+# peak undated, which bills exactly as the per-window tracker did until the
+# month rolls over -- never merged into a day it cannot name. A malformed
+# label list loads the same way per entry, and never raises.
+_bo_legacy = PeakTracker.from_dict({"month": "2026-10", "peaks": [10.0, 9.8, 9.6, 7.0]})
+_bo_mixed = PeakTracker.from_dict({
+    "month": "2026-10", "peaks": [10.0, float("nan"), 9.8, 9.6],
+    "peak_days": ["2026-10-01", "2026-10-02", 7],
+})
+_bo_scalar = PeakTracker.from_dict({"month": "2026-10", "peaks": [9.0], "peak_days": "2026-10-01"})
+
+
+def _bo_load(payload):
+    """PeakTracker.from_dict's peaks, or the name of what it raised."""
+    try:
+        return PeakTracker.from_dict(payload).peaks
+    except Exception as exc:  # noqa: BLE001 - a raise is the failure measured
+        return type(exc).__name__
+
+
+_bo_nolist = [_bo_load({"month": "2026-10", "peaks": bad}) for bad in (9.0, None, "9.0")]
+R.check(
+    "an old store's peaks load undated and bill as they were billed",
+    _bo_legacy.peak_days == ["", "", "", ""]
+    and abs(_bo_legacy.billed_peak_kw(_bo_ge) - 29.4 / 3) < 1e-9,
+    f"days {_bo_legacy.peak_days}, billed {_bo_legacy.billed_peak_kw(_bo_ge)}",
+)
+R.check(
+    "a malformed store loads per entry: the non-finite peak goes with its "
+    "label, a non-string label and a missing one load undated, and a peak "
+    "list that is not a list loads empty",
+    _bo_mixed.peaks == [10.0, 9.8, 9.6]
+    and _bo_mixed.peak_days == ["2026-10-01", "", ""]
+    and _bo_scalar.peak_days == [""]
+    and _bo_nolist == [[], [], []],
+    f"peaks {_bo_mixed.peaks}, days {_bo_mixed.peak_days}, scalar {_bo_scalar.peak_days}, "
+    f"non-list peaks {_bo_nolist}",
+)
+_bo_legacy.observe(datetime(2026, 10, 5, 12, tzinfo=_BO_TZ), 11.0, _bo_ge)
+_bo_legacy.observe(datetime(2026, 10, 5, 13, tzinfo=_BO_TZ), 3.0, _bo_ge)
+_bo_legacy.observe(datetime(2026, 10, 5, 14, tzinfo=_BO_TZ), 3.0, _bo_ge)
+R.check(
+    "after an upgrade, new windows are dated and merged by day beside the "
+    "undated legacy peaks",
+    _bo_legacy.peaks[:2] == [11.0, 10.0]
+    and _bo_legacy.peak_days[0] == "2026-10-05"
+    and _bo_legacy.peak_days.count("2026-10-05") == 1,
+    f"peaks {_bo_legacy.peaks}, days {_bo_legacy.peak_days}",
 )
 
 # --- #697 15-minute billed clock ---------------------------------------------
