@@ -109,19 +109,120 @@ figures_check() { # body file
 # per-job tables are /mnt/project-files/ci-autofix/). The checks are CI's own
 # commands, so this is the cheaper detector for the same refusal, never a
 # second opinion, and the jobs stay as the backstop.
-claims_check() { # ref
-  PYTHONPATH=tests/hastub python3 tests/env_drift.py --claims-only "$1"
+#
+# CI's `fast` passes the MERGE BASE and names the head as CLAIM_HEAD, so the
+# claim list is compared with its own fork point (#1361). Main's tip would
+# refuse a docs-only branch whenever main moved its list after the fork, and
+# pass one that inherits a list main later dropped -- the #1591 review
+# measured 38 of 188 main commits moving a list. So the base is derived here,
+# not passed in: a caller cannot hand it the tip.
+claims_check() { # prints env_drift's verdict; rc 0 holds, 1 refused, 2 no base
+  local base
+  base=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "no merge base with origin/main"; return 2; }
+  CLAIM_HEAD=$(git rev-parse HEAD) PYTHONPATH=tests/hastub \
+    python3 tests/env_drift.py --claims-only "$base"
+}
+
+# The remedy each refusal names, keyed on what env_drift printed: the two
+# refusals want opposite repairs, so one fixed hint is wrong for one of them.
+claims_remedy() { # env_drift output file
+  local base; base=$(git merge-base origin/main HEAD 2>/dev/null)
+  case "$(cat "$1")" in
+    *"INHERITED CLAIMS"*) echo "run \`python3 tests/env_drift.py --drop-inherited $base\` and commit what it empties, the commit claims-autofix would push" ;;
+    *"RECORD PR CLAIMS"*) echo "restore both claim files to $base's content: this branch claims nothing" ;;
+    *) echo "run \`python3 tests/env_drift.py --claims-only $base\` for the whole refusal" ;;
+  esac
 }
 
 # Which scripts this machine may record for the closure check. Python lanes
 # record through `sys.addaudithook`, so any platform is sound for them; a node
 # recording on a machine without strace is not the recording CI compares, and
-# ci-autofix.md forbids it replacing a Linux one, so it is left to CI.
+# ci-autofix.md forbids it replacing a Linux one, so it is left to CI. A
+# script the gate lease guards (`gate_lock.py needs-lease`: stress.py, which
+# measures the machine) is left to CI too: a push is no place to wait on or
+# break another seat's lease.
 closure_lane() { # script, strace present (1 or 0)
+  local one; one=$(mktemp)
+  printf '%s\n' "$1" > "$one"
+  if [ "$(python3 tests/gate_lock.py needs-lease "$one" 2>/dev/null)" = lease ]; then
+    rm -f "$one"; echo needs-lease; return
+  fi
+  rm -f "$one"
   case "$1" in
     *.mjs|*.js) if [ "$2" = 1 ]; then echo record; else echo node-needs-linux; fi ;;
     *) echo record ;;
   esac
+}
+
+# The verdict over a directory of `--record-only` recordings. A recording's
+# own `rc` is read from its JSON, as `closure.py merge` reads it for
+# `skip-failed-recording`: derive_closures.sh echoes the recording WRAPPER's
+# status, which is 0 when the script under it died (the #1591 review's G).
+# A failed recording is refused as that, never as UNDER-SCOPED, whose remedy
+# (re-derive) ci-autofix.md says records the same truncation.
+closures_verdict() { # recording dir; prints one detail line; rc 0 covered, 1 refused
+  local failed out
+  failed=$(python3 - "$1" <<'PY'
+import json, pathlib, sys
+for p in sorted(pathlib.Path(sys.argv[1]).glob("*.json")):
+    rec = json.loads(p.read_text())
+    if rec.get("rc", 1) != 0:
+        print(f"{rec.get('script', p.stem)} (exit {rec.get('rc')})")
+PY
+) || { echo "the recordings could not be read"; return 1; }
+  if [ -n "$failed" ]; then
+    echo "failed while being recorded: $(echo $failed) -- fix the script first; a re-derive would record the same truncation"
+    return 1
+  fi
+  out=$(PYTHONPATH=tests/hastub python3 tests/closure.py check --in-dir "$1" --partial 2>&1) && {
+    echo "scoped recordings are covered"; return 0; }
+  echo "$(printf '%s\n' "$out" | grep -m1 'UNDER-SCOPED\|NOT A FILE') -- run \`./tests/derive_closures.sh --single <script>\` for each UNDER-SCOPED script and commit tests/closures.json, the commit closures-autofix would push"
+  return 1
+}
+
+# Steps 6a and 6b whole, as the lines the step prints: the step is `step
+# <name> $? <line>` over these, so `--self-test` drives the decisions the
+# step makes rather than a copy of them (the #1591 review: 10 of 12 mutants
+# of the call sites survived a self-test that drove only `closure_lane`).
+claims_line() { # rc 0 holds, 1 refused
+  local out r; out=$(mktemp)
+  claims_check >"$out" 2>&1; r=$?
+  if [ "$r" -eq 0 ]; then tail -1 "$out"
+  else echo "$(grep -m1 -E '[A-Z]{4}' "$out") -- $(claims_remedy "$out")"; r=1; fi
+  rm -f "$out"; return "$r"
+}
+
+# The recorder is `derive_closures.sh` unless PREPR_RECORD names another one
+# taking the same arguments, which only `--self-test` does. rc 3 is a skip.
+closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
+  local cw kind s v left="" strace=0 r
+  cw=$(mktemp -d)
+  if git diff --name-only "$1"...HEAD > "$cw/changed.txt"; then
+    python3 tests/closure.py affected --files-from "$cw/changed.txt" --workdir "$cw/aff" >/dev/null 2>&1
+    kind=$(cat "$cw/aff/affected.case" 2>/dev/null)
+  else
+    kind=""
+  fi
+  case "$kind" in
+    skip) echo "the diff reaches no selectable script's closure"; r=3 ;;
+    full) echo "the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden"; r=3 ;;
+    scoped)
+      command -v strace >/dev/null && strace=1
+      while read -r s; do
+        [ -n "$s" ] || continue
+        if [ "$(closure_lane "$s" "$strace")" != record ]; then left="$left $s"; continue; fi
+        GOLDEN_REF=origin/main ${PREPR_RECORD:-./tests/derive_closures.sh} --single "$s" \
+          --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
+      done < "$cw/aff/affected.scripts"
+      if [ ! -d "$cw/rec" ]; then
+        echo "nothing scoped can be recorded on this machine; left to CI:$left"; r=3
+      else
+        v=$(closures_verdict "$cw/rec"); r=$?
+        echo "$v${left:+; left to CI:$left}"
+      fi ;;
+    *) echo "closure.py affected derived no case from $1...HEAD"; r=1 ;;
+  esac
+  rm -rf "$cw"; return "$r"
 }
 
 # Step 7's body check, and the path list the `## Approval` gate is keyed on.
@@ -598,6 +699,53 @@ if [ "${1:-}" = "--self-test" ]; then
   [ "$(closure_lane tests/card_drift.mjs 0)" = node-needs-linux ]; st $? 0 "a node script is not recorded without strace"
   [ "$(closure_lane tests/card_drift.mjs 1)" = record ]; st $? 0 "and is recorded with it (null control)"
   [ "$(closure_lane tests/entities.py 0)" = record ]; st $? 0 "a Python script is recorded without strace"
+  [ "$(closure_lane tests/stress.py 1)" = needs-lease ]; st $? 0 "stress.py is left to CI: a push takes no gate lease"
+
+  # Steps 6a and 6b over a throwaway clone, driven through the functions the
+  # steps print (`claims_line`, `closures_line`). Main claims a lane AFTER the
+  # branches fork: one branch inherits the list (refused); one forked before
+  # it writes only a delivery row (passes: CI compares with the fork point,
+  # and main's tip would refuse it -- the #1591 review's E); one writes its
+  # own claim (passes). For 6b a branch edits a selectable script and a stub
+  # recorder hands back a recording built from the committed closure, so no
+  # script runs: covered passes, an unlisted read refuses as UNDER-SCOPED,
+  # the same read by a recording that exited 3 refuses as a failed recording.
+  CLM=$(mktemp -d)
+  G="git -c user.name=prepr -c user.email=prepr@selftest -c commit.gpgsign=false"
+  (git clone -q --shared . "$CLM/r" && cd "$CLM/r" && $G checkout -q -b fork \
+    && $G checkout -q -b rec && mkdir -p docs/delivery && echo row > docs/delivery/9999.md \
+    && $G add -A && $G commit -qm rec \
+    && $G checkout -q -b own fork && echo "# own" >> custom_components/heatpump_optimizer/away.py \
+    && echo "own_lane  # this branch's claim" >> tests/golden/claimed_drift.txt && $G commit -qam own \
+    && $G checkout -q -b cl fork && echo "# a comment" >> tests/wood_advisor.py && $G commit -qam cl \
+    && $G checkout -q -b main fork && echo "main_lane  # claimed on main after the fork" >> tests/golden/claimed_drift.txt \
+    && $G commit -qam main && git update-ref refs/remotes/origin/main main \
+    && $G checkout -q -b inh && echo "# inh" >> custom_components/heatpump_optimizer/away.py \
+    && $G commit -qam inh) >/dev/null 2>&1
+  claims_at() { (cd "$CLM/r" && git checkout -q "$1" && got=$(claims_line); echo "$?:$(printf '%s' "$got" | grep -o -e '--drop-inherited' -e 'restore both' | head -1)"); }
+  got=$(claims_at inh); st "$got" '1:--drop-inherited' "6a refuses a branch that inherits main's claim list, naming --drop-inherited"
+  got=$(claims_at rec); st "$got" '0:' "6a passes a row-only branch forked before main claimed (the fork point, not the tip)"
+  got=$(claims_at own); st "$got" '0:' "6a passes a branch that writes its own claim (null control)"
+
+  mkdir "$CLM/ok" "$CLM/under" "$CLM/dead"
+  python3 - "$CLM" <<'PY'
+import json, pathlib, subprocess, sys
+d = pathlib.Path(sys.argv[1])
+s = "tests/wood_advisor.py"
+files = json.loads(pathlib.Path("tests/closures.json").read_text())["closures"][s]
+extra = next(f for f in subprocess.run(["git", "ls-files"], capture_output=True, text=True).stdout.split()
+             if f not in files and f.endswith(".md"))
+rec = {"script": s, "rc": 0, "seconds": 0.1, "files": files, "spawned": [], "how": "audithook+sys.modules", "argv": [s]}
+for sub, over in (("ok", {}), ("under", {"files": files + [extra]}), ("dead", {"rc": 3, "files": files + [extra]})):
+    (d / sub / "wood_advisor.py.json").write_text(json.dumps(dict(rec, **over)))
+PY
+  printf '#!/bin/bash\nmkdir -p "$5" && cp "$FIXTURE_REC/$(basename "$2").json" "$5/"\n' > "$CLM/rec.sh"; chmod +x "$CLM/rec.sh"
+  closures_at() { (cd "$CLM/r" && git checkout -q "$1" && got=$(PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/$2" closures_line fork); echo "$?:${got%%:*}"); }
+  got=$(closures_at cl ok); st "$got" '0:scoped recordings are covered' "6b passes a scoped script its committed closure covers (null control)"
+  got=$(closures_at cl under); st "$got" '1:UNDER-SCOPED' "6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED"
+  got=$(closures_at cl dead); st "$got" '1:failed while being recorded' "6b refuses a recording that exited non-zero as failed, not UNDER-SCOPED"
+  got=$(closures_at rec under); st "${got%%:*}" 3 "6b skips a diff that reaches no selectable script, recording nothing"
+  rm -rf "$CLM"
 
   printf 'Closes #999\n' | bash tools/audit/preflight.sh >/dev/null 2>&1
   st $? 1 "preflight refuses an unintended closing keyword"
@@ -724,56 +872,26 @@ else
 fi
 
 # --- 6a. no inherited claim list: `fast`'s INHERITED CLAIMS, before CI.
-# The same command `run.sh` runs unconditionally (`claims_check` above).
-claims_check origin/main >/tmp/prepr-claims.$$ 2>&1
-if [ $? -eq 0 ]; then
-  step "claims hygiene" 0 "$(tail -1 /tmp/prepr-claims.$$)"
-else
-  step "claims hygiene" 1 "$(grep -m1 -E '[A-Z]{4}' /tmp/prepr-claims.$$) -- for INHERITED CLAIMS run \`python3 tests/env_drift.py --drop-inherited origin/main\` and commit what it empties, the commit claims-autofix would push"
-fi
-rm -f /tmp/prepr-claims.$$
+# CI's own command with CI's own arguments (`claims_check` above).
+CLAIMS_LINE=$(claims_line)
+step "claims hygiene" $? "$CLAIMS_LINE"
 
 # --- 6b. the closures cover what the scoped scripts read: `closures`'s
 # UNDER-SCOPED, before CI. The scope is CI's own derivation (`closure.py
 # affected`, three-dot), the recordings are `--record-only` so the committed
 # file is compared and never rewritten, and a full re-record is never run here
-# (gate-scoping.md). It runs the scoped scripts once, which the fixer runs
-# anyway; PREPR_SKIP_CLOSURES=1 skips it on a push that only re-bodies.
+# (gate-scoping.md). It runs the scoped scripts once, without the gate lease,
+# so a script that needs one is left to CI (`closure_lane`);
+# PREPR_SKIP_CLOSURES=1 skips it on a push that only re-bodies.
 if [ -n "${PREPR_SKIP_CLOSURES:-}" ]; then
   say skip "closures" "PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left"
 else
-  CW=$(mktemp -d)
-  git diff --name-only "$BASE"...HEAD > "$CW/changed.txt"
-  python3 tests/closure.py affected --files-from "$CW/changed.txt" --workdir "$CW/aff" >/dev/null 2>&1
-  CASE=$(cat "$CW/aff/affected.case" 2>/dev/null)
-  case "$CASE" in
-    skip) say skip "closures" "the diff reaches no selectable script's closure" ;;
-    full) say skip "closures" "the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden" ;;
-    scoped)
-      STRACE=0; command -v strace >/dev/null && STRACE=1
-      LEFT=""; FAILED=""
-      while read -r s; do
-        [ -n "$s" ] || continue
-        if [ "$(closure_lane "$s" "$STRACE")" != record ]; then LEFT="$LEFT $s"; continue; fi
-        GOLDEN_REF=origin/main ./tests/derive_closures.sh --single "$s" \
-          --record-only --out-dir "$CW/rec" > "$CW/derive.out" 2>&1
-        grep -q '(exit 0)' "$CW/derive.out" || FAILED="$FAILED $s"
-      done < "$CW/aff/affected.scripts"
-      if [ -n "$FAILED" ]; then
-        step "closures" 1 "failed while being recorded:$FAILED -- fix the script first; a re-derive would record the same truncation"
-      elif [ ! -d "$CW/rec" ]; then
-        say skip "closures" "only node scripts are scoped and this machine has no strace:$LEFT"
-      else
-        PYTHONPATH=tests/hastub python3 tests/closure.py check --in-dir "$CW/rec" --partial > "$CW/check.out" 2>&1
-        if [ $? -eq 0 ]; then
-          step "closures" 0 "scoped recordings are covered${LEFT:+; left to CI:$LEFT}"
-        else
-          step "closures" 1 "$(grep -m1 'UNDER-SCOPED\|NOT A FILE' "$CW/check.out") -- run \`./tests/derive_closures.sh --single <script>\` for each UNDER-SCOPED script and commit tests/closures.json, the commit closures-autofix would push"
-        fi
-      fi ;;
-    *) step "closures" 1 "closure.py affected derived no case from $BASE...HEAD" ;;
+  CLOSURES_LINE=$(closures_line "$BASE")
+  case $? in
+    3) say skip "closures" "$CLOSURES_LINE" ;;
+    0) step "closures" 0 "$CLOSURES_LINE" ;;
+    *) step "closures" 1 "$CLOSURES_LINE" ;;
   esac
-  rm -rf "$CW"
 fi
 
 # --- 7. the body, when one was passed.
