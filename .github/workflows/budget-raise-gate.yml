@@ -21,7 +21,11 @@ name: Budget raise gate
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    # `edited`: retargeting a pull request to another base fires it, and the
+    # merge base the gate compares against moves with the base. A body edit
+    # fires it too and re-runs the full verdict; this job has no `if:`, so the
+    # run it writes is never a skipped one (#1514's shape).
+    types: [opened, edited, synchronize, reopened]
   pull_request_review:
     types: [submitted, edited, dismissed]
 

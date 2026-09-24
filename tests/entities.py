@@ -20666,8 +20666,13 @@ for _wf in sorted(Path(".github/workflows").glob("*.y*ml")):
     if _lists:
         _EDITED_FILES[_wf.name] = sorted(_jobs)
 R.check(
-    "a body edit starts a run of the contract job, and of no other job",
-    _EDITED_FILES == {"pr-contract.yml": ["pr-contract"]},
+    "a body edit starts a run of the contract job and the budget gate, and of "
+    "no other job",
+    _EDITED_FILES == {"pr-contract.yml": ["pr-contract"],
+                      # A base retarget moves the merge base the gate reads;
+                      # its one job carries no `if:`, which `_brg_defects`
+                      # below pins, so an `edited` run is a full verdict.
+                      "budget-raise-gate.yml": ["budget-raise-gate"]},
     f"workflows listing `edited` and their jobs: {_EDITED_FILES} -- any other "
     "job in such a file writes a check run on every body edit, skipped or "
     "not, at the unchanged head: a skipped run of a required context "
@@ -20787,6 +20792,8 @@ def _brg_defects(text: str) -> "list[str]":
     if sorted((on.get("pull_request_review") or {}).get("types", [])) != [
             "dismissed", "edited", "submitted"]:
         out.append("review trigger")
+    if "edited" not in ((on.get("pull_request") or {}).get("types") or []):
+        out.append("no `edited`: a base retarget would not re-run it")
     if not gate or not restore or any(runs[:restore[0]]) or gate[0] < restore[0]:
         out.append(f"restore at {restore}, gate at {gate}")
     if not all(re.search(r"python3 -I \.claude/workflows/budget_raise_gate\.py", runs[i])
