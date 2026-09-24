@@ -14,7 +14,7 @@ Input: 38 judged findings, filed as #1512–#1549 (`issues-filed.json`). Draft r
 | 1 | R8-I3 | I3 required-check / release hole | #1514 (D11-s1-01), #1515 (D11-s2-01), #1516 (D11-s2-02), #1547 (D11-s1-03) | **H H H** L | **yes** (workflows, CODEOWNERS, hooks) | none | none | **#1514, #1515** |
 | 1 | R8-I1a | I1 kill rule, and the I2 cache key | #1521 (D3-s1-01), #1531 (D3-s1-02) | M L | **yes** (`mutation_table.py`, `env_drift.py`) | none | none | – |
 | 1 | R8-P9 | P9 card rule misses a control | #1522 (D4-01) | M | **yes** (`card_browser.mjs`) | none | none | – |
-| 2 | R8-P5 | P5 sysid gate (+P2 freeze seam) | #1523 (D7-s1-01), #1524 (D7-s1-02), #1525 (D7-s1-03) | M M M | no | sysid run/adopt | **likeliest raise** (`internal_call_edges`) | **#1525** |
+| 2 | R8-P5 | P5 sysid gate (+P2 freeze seam) | #1523 (D7-s1-01), #1525 (D7-s1-03); #1524 (D7-s1-02) moves to R8-P5b, a two-zone sysid model after R8-P5 (owner ruling) | M M M | no | sysid run/adopt | **likeliest raise** (`internal_call_edges`) | **#1525** |
 | 2 | R8-P1 | P1 unvalidated value at a boundary | #1518 (D1-s2-01), #1519 (D1-s3-01), #1541 (D8-s1-01) | M M L | no | none | none expected | – |
 | 2 | R8-P2 | P2 "has DHW / has probe" sibling seam | #1527 (D12-s1-02), #1542 (D8-s2-02) | M L | no | none | none | – |
 | 2 | R8-P12 | **P12 (new)** live state across await/thread | #1517 (D1-s1-01), #1529 (D1-s1-02) | M L | no | none (fix goes in `away.py`) | none | – |
@@ -31,7 +31,7 @@ Input: 38 judged findings, filed as #1512–#1549 (`issues-filed.json`). Draft r
 | – | ruling | I3 verdict on owner path | #1528 (D13-s1-02) | M | – | – | – | – |
 
 **Owner rulings (6).** Each has a recommended default, and a seat can start on the default. See §5.
-1. #1524, two-zone sysid: refuse to arm.
+1. #1524, two-zone sysid: ~~refuse to arm~~ ruled 2026-09-24: build a two-zone model (group R8-P5b).
 2. #1512, distinct-days default for existing installs: ON where `peaks_averaged` is above one.
 3. #1543 against the #1463 refusal: refuse.
 4. #1528, fix-review verdict on owner-approved merges: require it, with no new check.
@@ -176,6 +176,8 @@ The groups are R8-I5a, R8-I5b, R8-I1b and R8-I4.
 - #1501 and #1502: friction issues. Nothing here touches the stats keying.
 
 ## 5. Owner rulings, each with a recommended default
+
+**Ruled by Tim on 2026-09-24T04:19Z:** row 1 is overruled (build a two-zone model; the new group R8-P5b, after R8-P5, carries #1524). Rows 2 to 6 are accepted as recommended.
 
 | # | question | recommended default | why |
 |---|---|---|---|
