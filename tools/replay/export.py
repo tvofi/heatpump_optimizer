@@ -23,16 +23,36 @@ publishes (from the registry; carried for comparison, never fed back), and any
 inside it.
 
 WHAT IT KEEPS is an allowlist, because the file goes into a public
-repository: the entry's keys that are this integration's own ``CONF_*`` names
-(read from the installed ``const.py``), the state attributes the replay reads
-(``ATTRIBUTE_KEYS``), and string values that are an entity id, a number, an
-ISO time or a short word-like label. Everything else is dropped or nulled --
-friendly names, addresses, URLs, e-mails, serials, MACs. On top of that, every
-key naming a credential is dropped wherever it occurs (``tibber_token``
-included), and every coordinate key (``latitude``, ``lat``, ``lon``, any
-case) is cut to two decimals, the rule ``tests/nightly_ha.py``'s A10 checks
-apply to diagnostics. The export then searches its own output for every
-unsafe value it removed, and refuses to write if one survives.
+repository:
+
+* entry keys that are this integration's own ``CONF_*`` names (read from the
+  installed ``const.py``); a key naming an entity (``*_entity``) must hold an
+  entity id, and ``*_entities`` only entity ids;
+* the state attributes the replay reads (``ATTRIBUTE_KEYS``), each cut to its
+  shape (``ATTRIBUTE_SHAPES``): numbers where numbers belong, a three-letter
+  currency, select options as short word labels with no digits, price series
+  as rows of an ISO time and a number and nothing else;
+* string values, at any depth, that are an entity id, a number, an ISO time or
+  a short label -- letters first, none of ``@ : , ?``, no run of four digits,
+  no host followed by a path (``nas.example.se/x``, scheme or not), no run of
+  twelve hex digits (a MAC without separators).
+
+Every key naming a credential is dropped wherever it occurs, and every
+coordinate key (``latitude``, ``lat``, ``lon``, any case) is cut to two
+decimals, the rule ``tests/nightly_ha.py``'s A10 checks apply to diagnostics.
+The export then searches its own output for every unsafe string it removed,
+and refuses to write if one survives.
+
+WHAT IT CANNOT REMOVE without removing the data the replay needs, so a person
+reads the file before it is committed:
+
+* entity ids, which the user named and which may embed a name, a street or a
+  device's MAC (``sensor.anna_storgatan_power``);
+* numbers: a state or a numeric attribute is kept whatever it is, so a long
+  number, or a coordinate published as a sensor's state, survives -- only
+  keys named as coordinates are rounded;
+* short word labels that are a select's option or a state (a Wi-Fi name, a
+  person's name written as one word).
 
 ``--check FILE`` applies the same rules to a file already written and exits 1
 on any violation; ``tests/replay.py`` runs it on every committed fixture.
@@ -97,6 +117,15 @@ ATTRIBUTE_KEYS = frozenset({
     "hvac_action", "current_temperature", "heat_pump_on", "power_kw",
 })
 KEY = re.compile(r"^[a-z0-9_]+(\.[a-z0-9_]+)?$")  # a key, or an entity id
+#: A host followed by a path, with or without a scheme ("nas.example.se/cam").
+HOST_PATH = re.compile(r"[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+/")
+#: Twelve hex digits in a row: a MAC written without separators.
+HEX12 = re.compile(r"[0-9A-Fa-f]{12}")
+SNAKE = re.compile(r"^[a-z_]{1,32}$")
+CURRENCY = re.compile(r"^[A-Z]{3}$")
+_DROP = object()
+SERIES_TIME_KEYS = frozenset({"start", "end", "starts_at"})
+SERIES_VALUE_KEYS = frozenset({"value", "price", "total"})
 LABEL = re.compile(r"^[A-Za-z\u00b0][A-Za-z0-9 _+\-./()\u00b0%\u00b2\u00b3]{0,39}$")
 ISO_TIME = re.compile(r"^\d{4}-\d\d-\d\d([T ][\d:.]+([+-]\d\d:\d\d|Z)?)?$")
 CONST_PATTERN = re.compile(r'^CONF_\w+: Final = "([a-z0-9_]+)"', re.M)
@@ -147,6 +176,8 @@ def text_ok(value: str) -> bool:
         return True
     if any(p.search(value) for p in SECRET_TEXT):
         return False
+    if HOST_PATH.search(value) or HEX12.search(value):
+        return False
     try:
         float(value)
         return "," not in value
@@ -185,14 +216,109 @@ def clean_value(node: object, dropped: list[str]) -> object:
     return node
 
 
-def _keep_keys(section: object, allowed: frozenset[str], dropped: list[str]) -> dict:
+# THE SHAPE EACH ALLOWLISTED ATTRIBUTE MUST HAVE. A key on the allowlist is
+# not a licence for any value under it: a name in ``currency``, a dict of
+# strings in ``options`` or a token in ``today`` has the right key and the
+# wrong shape. Each function returns the value cut to its shape, or _DROP.
+
+
+def _number(value: object) -> object:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return value
+    return _DROP
+
+
+def _unit(value: object) -> object:
+    if value is None or (isinstance(value, str) and len(value) <= 16 and text_ok(value)):
+        return value
+    return _DROP
+
+
+def _snake(value: object) -> object:
+    return value if value is None or (isinstance(value, str) and SNAKE.match(value)) else _DROP
+
+
+def _options(value: object) -> object:
+    """A select's option labels: short, word-like, no digits at all."""
+    if value is None:
+        return None
+    if not isinstance(value, list):
+        return _DROP
+    return [v for v in value if isinstance(v, str) and text_ok(v) and LABEL.match(v)
+            and not re.search(r"\d", v)]
+
+
+def _series(value: object) -> object:
+    """A price series: rows of a time and a number, nothing else."""
+    if value is None:
+        return None
+    if not isinstance(value, list):
+        return _DROP
+    rows = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        row = {k: v for k, v in item.items()
+               if (k in SERIES_TIME_KEYS and isinstance(v, str) and ISO_TIME.match(v))
+               or (k in SERIES_VALUE_KEYS and _number(v) is not _DROP)}
+        if set(row) & SERIES_TIME_KEYS and set(row) & SERIES_VALUE_KEYS:
+            rows.append(row)
+    return rows
+
+
+def _time(value: object) -> object:
+    return value if value is None or (isinstance(value, str) and ISO_TIME.match(value)) else _DROP
+
+
+ATTRIBUTE_SHAPES = {
+    **{k: _unit for k in ("unit_of_measurement", "temperature_unit",
+                          "wind_speed_unit", "precipitation_unit")},
+    **{k: _snake for k in ("device_class", "state_class", "hvac_action")},
+    **{k: _number for k in ("temperature", "wind_speed", "precipitation", "min",
+                            "max", "current_temperature", "power_kw")},
+    **{k: _series for k in ("raw_today", "raw_tomorrow", "today", "tomorrow")},
+    "options": _options,
+    "currency": lambda v: v if v is None or (isinstance(v, str) and CURRENCY.match(v)) else _DROP,
+    "start_time": _time,
+    "end_time": _time,
+    "heat_pump_on": lambda v: v if v is None or isinstance(v, bool) else _DROP,
+}
+assert set(ATTRIBUTE_SHAPES) == ATTRIBUTE_KEYS
+
+
+def _entry_shape(key: str, value: object) -> object:
+    """An entry key naming an entity holds entity ids and nothing else."""
+    if key.endswith("_entity"):
+        if value in (None, "") or (isinstance(value, str) and ENTITY_ID.match(value)):
+            return value
+        return _DROP
+    if key.endswith("_entities"):
+        if isinstance(value, list):
+            return [v for v in value if isinstance(v, str) and ENTITY_ID.match(v)]
+        return _DROP
+    return value
+
+
+def _keep_keys(section: object, allowed: frozenset[str], dropped: list[str],
+               shape=None) -> dict:
     out = {}
     for key, value in (section if isinstance(section, dict) else {}).items():
-        if key in allowed and not SECRET_KEY.search(str(key)):
-            out[key] = value
-        else:
-            _collect_strings(value, dropped, bool(SECRET_KEY.search(str(key))))
+        secret = bool(SECRET_KEY.search(str(key)))
+        shaped = _DROP if secret or key not in allowed else (
+            shape(key, value) if shape else value)
+        if shaped is _DROP:
+            _collect_strings(value, dropped, secret)
+            continue
+        if shaped != value:
+            _collect_strings(value, dropped)
+        out[key] = shaped
     return clean_value(out, dropped)
+
+
+def _attr_shape(key: str, value: object) -> object:
+    return ATTRIBUTE_SHAPES[key](value)
 
 
 def sanitise(raw: dict, conf: frozenset[str], dropped: list[str]) -> dict:
@@ -203,15 +329,15 @@ def sanitise(raw: dict, conf: frozenset[str], dropped: list[str]) -> dict:
     """
     out = dict(raw)
     entry = dict(raw["entry"])
-    entry["data"] = _keep_keys(entry.get("data"), conf, dropped)
-    entry["options"] = _keep_keys(entry.get("options"), conf, dropped)
+    entry["data"] = _keep_keys(entry.get("data"), conf, dropped, _entry_shape)
+    entry["options"] = _keep_keys(entry.get("options"), conf, dropped, _entry_shape)
     out["entry"] = entry
     states = {}
     for entity_id, rows in raw["states"].items():
         clean_rows = []
         for updated, state, attrs, reported in rows:
             if attrs is not None:
-                attrs = _keep_keys(attrs, ATTRIBUTE_KEYS, dropped)
+                attrs = _keep_keys(attrs, ATTRIBUTE_KEYS, dropped, _attr_shape)
             if isinstance(state, str) and not text_ok(state):
                 dropped.append(state)
                 state = None
@@ -273,6 +399,8 @@ def violations(payload: object, conf: frozenset[str] | None = None) -> list[str]
         for key in block:
             if (conf is not None and key not in conf) or not KEY.match(str(key)):
                 found.append(f"entry.{section}.{key}: not an entry key of this integration")
+            elif _entry_shape(key, block[key]) != block[key]:
+                found.append(f"entry.{section}.{key}: must hold entity ids only")
     for entity_id, rows in (payload.get("states") or {}).items():
         if not ENTITY_ID.match(str(entity_id)):
             found.append(f"states.{entity_id}: not an entity id")
@@ -281,6 +409,8 @@ def violations(payload: object, conf: frozenset[str] | None = None) -> list[str]
             for key in (attrs or {}):
                 if key not in ATTRIBUTE_KEYS:
                     found.append(f"states.{entity_id}[{i}].{key}: attribute outside the allowlist")
+                elif _attr_shape(key, attrs[key]) != attrs[key]:
+                    found.append(f"states.{entity_id}[{i}].{key}: not the shape this attribute has")
     return found
 
 

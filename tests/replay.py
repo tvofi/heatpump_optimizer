@@ -368,15 +368,27 @@ LEAK_PROBES = {
     # value rule (``export.text_ok``) stands between them and the file.
     "entry_url_in_allowed_key": {"ecl110_state_topic": "mqtt://ecl:s3cretpw@10.0.0.7/ecl"},
     "state_address": {"state": "Storgatan 12, 111 22 Stockholm"},
+    # The review's second probe (leakprobe2, round 2 of #1508): the right key
+    # holding the wrong shape, a host without a scheme, a MAC without colons.
+    "n1_options_dict": {"options": {"home_owner": "Tim Malmstrom", "street": "Storgatan"}},
+    "n2_currency_name": {"currency": "Tim Malmstrom"},
+    "n3_options_address": {"options": ["Storgatan 12", "Sodermalm 11"]},
+    "n4_token_in_series": {"today": ["abcDEFghiJKLmnoPQRstu9vWX7yz"]},
+    "state_n10_host_path": {"state": "nas.malmstrom.se/cam/front"},
+    "n11_host_path_unit": {"unit_of_measurement": "home.local/api/x"},
+    "entry_n13_text_in_entity_key": {"weather_entity": "Storgatan 12 Stockholm"},
+    "n14_mac_no_colons": {"options": ["aabbccddeeff"]},
 }
 PROBE_ENTITY = "sensor.heat_pump_power"
 
 
-def _probe_texts(values: dict) -> list[str]:
-    out = []
-    for value in values.values():
-        out += [str(value), json.dumps(value)]
-    return out
+def _probe_texts(values: object) -> list[str]:
+    """Every leaf string of a probe, which must not appear in the export."""
+    if isinstance(values, dict):
+        return [t for v in values.values() for t in _probe_texts(v)]
+    if isinstance(values, list):
+        return [t for v in values for t in _probe_texts(v)]
+    return [str(values)]
 
 
 def leak_probes() -> list[tuple[str, bool, str]]:
