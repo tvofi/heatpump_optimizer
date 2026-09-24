@@ -32,9 +32,11 @@ The driver parses base, ours and theirs and merges three ways per key:
     ``survivor_lines``): base, plus what either side added, less what either
     removed;
   * a number both sides changed: in ``structure_budgets.json`` and
-    ``mutation_budgets.json`` it is a count, so it takes base plus both deltas;
-    in ``closures.json`` it sits under ``recorded`` (seconds, rc), which no
-    check reads for a decision, so it takes the larger;
+    ``mutation_budgets.json`` an integer is a count, so it takes base plus
+    both deltas, and a fraction is a cap (``max_survivor_fraction``), so it
+    takes the lower -- a sum of two raises would loosen a budget neither side
+    chose; in ``closures.json`` it sits under ``recorded`` (seconds, rc),
+    which no check reads for a decision, so it takes the larger;
   * ``recorded_at`` both sides changed takes whichever SHA descends from the
     other.
 
@@ -162,6 +164,12 @@ def merge3(base, ours, theirs, *, numbers: str, path: str = "",
         if numbers == "max":
             notes.append(f"{where}: took the larger of {ours} and {theirs}")
             return max(ours, theirs)
+        if not all(isinstance(v, int) for v in (base, ours, theirs)):
+            # A fraction is a cap (``max_survivor_fraction``), not a count:
+            # summing two raises would loosen it past what either side chose,
+            # and no gate compares a cap with its base. Take the stricter.
+            notes.append(f"{where}: took the lower cap of {ours} and {theirs}")
+            return min(ours, theirs)
         if _is_num(base):
             got = base + (ours - base) + (theirs - base)
             notes.append(f"{where}: {base} + both deltas = {got}")
@@ -321,6 +329,11 @@ def self_test() -> int:
           got["recorded"]["a"]["seconds"] == 27.2)
     check("closures: an addition on one side and a removal on the other both land",
           got["closures"]["a"] == ["w", "x"])
+    tb = {"closures": {"a": ["x", "y"]}}
+    got_t = json.loads(merge_text(_dump(tb), _dump({"closures": {"a": ["x"]}}),
+                                  _dump({"closures": {"a": ["v", "x", "y"]}}), "max"))
+    check("closures: a file only theirs added lands beside ours' removal",
+          got_t["closures"]["a"] == ["v", "x"])
     check("closures: a key only one side changed takes that side",
           got["closures"]["b"] == ["y", "z"])
 
@@ -382,6 +395,16 @@ def self_test() -> int:
     check("an unsorted map places a new key where the text merge would",
           list(json.loads(got)) == ["z", "n", "a", "m"])
 
+    # A cap both sides raised keeps the lower raise, never their sum (review
+    # of #1593: 0.3 -> 0.35 and 0.4 summed to 0.45, a looser cap than either).
+    cb = {"max_survivor_fraction": {"changed": 0.2, "full": 0.3}}
+    got = json.loads(merge_text(
+        _dump(cb, FORMATS[2]),
+        _dump({"max_survivor_fraction": {"changed": 0.2, "full": 0.35}}, FORMATS[2]),
+        _dump({"max_survivor_fraction": {"changed": 0.2, "full": 0.4}}, FORMATS[2]), "sum"))
+    check("mutation: a cap both sides raised takes the lower raise, not the sum",
+          got["max_survivor_fraction"]["full"] == 0.35)
+
     # Refusals: the ones that make the driver safe to route real files to.
     mo2 = json.loads(json.dumps(mb))
     mt2 = json.loads(json.dumps(mb))
@@ -390,6 +413,12 @@ def self_test() -> int:
     check("refuses: one disposition both sides rewrote differently",
           refused(lambda: merge_text(_dump(mb, FORMATS[2]), _dump(mo2, FORMATS[2]),
                                      _dump(mt2, FORMATS[2]), "sum")))
+    md = json.loads(json.dumps(mb))
+    del md["survivor_triage"]["k1"]
+    for label, a, b in (("ours deletes", md, mo2), ("theirs deletes", mo2, md)):
+        check(f"refuses: a disposition one side deleted and the other rewrote ({label})",
+              refused(lambda a=a, b=b: merge_text(_dump(mb, FORMATS[2]), _dump(a, FORMATS[2]),
+                                                  _dump(b, FORMATS[2]), "sum")))
     check("refuses: a side not in its writer's own format",
           refused(lambda: merge_text(_dump(mb), json.dumps(mo, indent=4) + "\n",
                                      _dump(mt), "sum")))
