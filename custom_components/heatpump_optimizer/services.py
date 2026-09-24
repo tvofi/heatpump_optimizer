@@ -962,10 +962,9 @@ async def handle_diagnose_interval(hass: HomeAssistant, call: ServiceCall) -> di
     target_entry = dict(call.data).get("entry_id")
     reports: dict[str, Any] = {}
     for entry_id, coord in _manual_targets(hass, target_entry):
-        reports[entry_id] = await hass.async_add_executor_job(
-            coord.diagnose_last_interval
-        )
-        await coord.async_request_refresh()
+        # The button's snapshot path; a bound method on the executor read
+        # live coordinator state off the loop (#1529).
+        reports[entry_id] = await coord.async_diagnose_interval()
     return {"diagnosis": reports}
 
 
