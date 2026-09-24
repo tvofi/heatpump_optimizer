@@ -158,15 +158,19 @@ def _rekey(base: dict, ours: dict, theirs: dict, notes: list, where: str):
     content anchor; a line shift re-keys line-keyed rows), a key merge sees a
     deletion plus an addition, and a row the OTHER side changed or added
     beside it is lost or doubled: #1572 re-applied its 9 rows by hand after
-    #1577 landed. So a row whose identity (``_site``) is unique on every side
-    gets one key on all three sides: the key as a three-way merge of the key
-    itself would have it (the side that moved it; when both did, the content
-    anchor, else theirs'), and the
+    #1577 landed. So a row whose identity (``_site``) is unique on every side,
+    and whose keys differ only in FORM -- line keys on some sides, one content
+    anchor on the others -- gets that anchor on all three sides, and the
     ordinary merge then keeps a branch's own rows and applies both sides'
-    edits to the same row. Nothing is renamed unless every row of the map has
-    an identity; a row whose identity repeats on a side (identical pinned
-    lines, which the anchor tells apart by scope and ordinal) keeps its key,
-    and any rename that would collide abandons the pass for the map.
+    edits to the same row. A base row that line shifts moved (before #1577)
+    takes the moved key the same way, theirs' when both sides moved it, as a
+    text merge of main's shifted lines would. Nothing else is a re-key: two
+    different anchors, or line keys no base row joins, name the same pinned
+    text in two places (``return None`` in two functions) and stay separate
+    rows for the key merge. Nothing is renamed unless every row of the map has an identity; a
+    row whose identity repeats on a side (identical pinned lines, which the
+    anchor tells apart by scope and ordinal) keeps its key, and any rename
+    that would collide abandons the pass for the map.
     """
     sides = (base, ours, theirs)
     keyof, twice = [], set()
@@ -183,12 +187,13 @@ def _rekey(base: dict, ours: dict, theirs: dict, notes: list, where: str):
     canon = {}
     for site in (set(keyof[0]) | set(keyof[1]) | set(keyof[2])) - twice:
         kb, ko, kt = (ids.get(site) for ids in keyof)
-        if ko is None or ko == kb:
-            canon[site] = kt or ko or kb   # only theirs moved it, or ours lacks it
-        elif kt is None or kt == kb:
-            canon[site] = ko               # only ours moved it (a line shift of its own)
-        else:                              # both moved it: the anchored key, else theirs
-            canon[site] = ko if _LINE_KEY.match(kt) and not _LINE_KEY.match(ko) else kt
+        keys = {k for k in (kb, ko, kt) if k is not None}
+        anchors = {k for k in keys if not _LINE_KEY.match(k)}
+        if len(anchors) == 1 and len(keys) > 1:
+            canon[site] = anchors.pop()    # line key(s) on one side, the anchor on another
+        elif not anchors and kb is not None and len(keys) > 1:
+            # a base row's line shift: theirs' key when it moved, else ours'
+            canon[site] = kt if kt not in (None, kb) else ko
     out = []
     moved = 0
     for side in sides:
@@ -574,6 +579,76 @@ def self_test() -> int:
                                   _dump(at_, FORMATS[2]), "sum"))["killed_by"]
     check("re-keyed ledger: when both sides moved a row, the anchored key wins",
           set(got_a) == {P + "a.py:f GUARD_OFF 1234abcd", P + "a.py:40 CONST"})
+
+    # Only a change of key form is a re-key (review of #1593, round 2). The
+    # same pinned text under two anchors is two rows: `return None` added in
+    # f on one side and in g on the other must not merge into one.
+    def rows(b, o, t, *, strict=False):
+        try:
+            return json.loads(merge_text(*(_dump({"killed_by": x}, FORMATS[2])
+                                           for x in (b, o, t)), "sum"))["killed_by"]
+        except Refuse:
+            if strict:
+                raise
+            return {}
+    rec = {"killed_by": "t", "old": "    return None"}
+    h = {P + "a.py:h CONST 00000000": {"killed_by": "t", "old": "n = 1"}}
+    got_2 = rows(h, {**h, P + "a.py:f RETURN_DEL 1111aaaa": rec},
+                 {**h, P + "a.py:g RETURN_DEL 1111aaaa": rec})
+    check("re-keyed ledger: the same pinned text added under two anchors stays two rows",
+          len(got_2) == 3)
+    check("re-keyed ledger: the same pinned text added at two line keys stays two rows",
+          len(rows(h, {**h, P + "a.py:10 RETURN_DEL": rec},
+                   {**h, P + "a.py:50 RETURN_DEL": rec})) == 3)
+    got_3 = rows({P + "a.py:f RETURN_DEL 1111aaaa": rec},
+                 {P + "a.py:g RETURN_DEL 1111aaaa": rec},
+                 {P + "a.py:h RETURN_DEL 1111aaaa": rec})
+    check("re-keyed ledger: a row moved to two different anchors is not merged into one",
+          len(got_3) != 1)
+    # Two line-keyed rows that swapped places on one side: no rename may
+    # collide, and the other side's addition still lands.
+    x, y = {"killed_by": "t", "old": "if x:"}, {"killed_by": "t", "old": "if y:"}
+    k10, k12 = P + "a.py:10 GUARD_OFF", P + "a.py:12 GUARD_OFF"
+    got_1 = rows({k10: x, k12: y}, {k12: x, k10: y},
+                 {k10: x, k12: y, P + "a.py:30 CONST": {"killed_by": "t", "old": "n = 1"}})
+    check("re-keyed ledger: rows that swapped keys on one side keep that side's keys",
+          got_1 == {k12: x, k10: y, P + "a.py:30 CONST": {"killed_by": "t", "old": "n = 1"}})
+    # The retired count is dropped only when one side deleted it; a count
+    # both sides still record merges as a count.
+    got_n = json.loads(merge_text(_dump({"unpinned_sites": 10}, FORMATS[2]),
+                                  _dump({"unpinned_sites": 8}, FORMATS[2]),
+                                  _dump({"unpinned_sites": 11}, FORMATS[2]), "sum"))
+    check("a retired count both sides still record merges as base plus both deltas",
+          got_n.get("unpinned_sites") == 9)
+    check("a retired key both sides still hold is merged, not dropped",
+          "unpinned_sites" in json.loads(merge_text(
+              _dump({"unpinned_sites": "a."}, FORMATS[2]),
+              _dump({"unpinned_sites": "a. b."}, FORMATS[2]),
+              _dump({"unpinned_sites": "c."}, FORMATS[2]), "sum")))
+    # A repeated pinned line is left out of the alignment on its own; the
+    # map's other rows are still aligned, so an edit to one of them lands.
+    rn = {"killed_by": "t", "old": "    return None"}
+    ix, iu = {"killed_by": "t", "old": "if x:"}, {"killed_by": "u", "old": "if x:"}
+    fa, ga, xa = (P + "a.py:f RETURN_DEL 1111aaaa", P + "a.py:g RETURN_DEL 1111aaaa",
+                  P + "a.py:k GUARD_OFF 2222bbbb")
+    l1, l2, l10 = P + "a.py:1 RETURN_DEL", P + "a.py:2 RETURN_DEL", P + "a.py:10 GUARD_OFF"
+    got_t = rows({l1: rn, l2: rn, l10: ix}, {l1: rn, l2: rn, l10: iu},
+                 {fa: rn, ga: rn, xa: ix})
+    check("re-keyed ledger: a repeated pinned line does not stop the other rows aligning",
+          got_t == {fa: rn, ga: rn, xa: iu})
+    # A base row both sides' line shifts moved (before #1577): one row, under
+    # theirs' key, carrying ours' edit (merges 507f0cf0, 2af75ad4).
+    iu12 = {"killed_by": "u", "old": "if x:"}
+    check("re-keyed ledger: a row both sides' line shifts moved is one row, under theirs' key",
+          rows({P + "a.py:10 GUARD_OFF": ix}, {P + "a.py:12 GUARD_OFF": iu12},
+               {P + "a.py:11 GUARD_OFF": ix}) == {P + "a.py:11 GUARD_OFF": iu12})
+    # Two rows whose renames would land on one key: the pass is abandoned
+    # for the map, and the key merge refuses rather than keep one of them.
+    iy, l12 = {"killed_by": "t", "old": "if y:"}, P + "a.py:12 GUARD_OFF"
+    got_c = refused(lambda: rows({l10: ix, l12: iy}, {xa: ix, l12: iy}, {l10: ix, xa: iy},
+                                 strict=True))
+    check("re-keyed ledger: renames that would collide are refused, not collapsed",
+          got_c)
 
     # Refusals: the ones that make the driver safe to route real files to.
     mo2 = json.loads(json.dumps(mb))
