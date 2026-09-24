@@ -4,7 +4,7 @@
     "changed": 0.2,
     "full": 0.3
   },
-  "unpinned_sites": 3721,
+  "unpinned_sites": 3719,
   "last_measured": {
     "changed": {
       "survivors": 2,
@@ -125,7 +125,7 @@
       "old": "            if not np.any(external_heat_kw > 0.0):",
       "reason": "An all-zero free-heat forecast plans exactly as none: the guard only normalises zeros to None, and every downstream use adds the per-step value. Measured with the #1499 branch's probe (optimize() on the winter_cold / winter_typical profile, 12 h, space-only and with DHW): with the guard switched off, external_heat_kw=zeros and external_heat_kw=None give byte-identical power, DHW and room-temperature schedules and objective (sha1 prefixes 7a584e785045f9d5 and 31317c75945a2724 in both arms), while a 1 kW forecast moves both (c5b5e420dec7c4a8, 0204b401a95de984) -- the probe's null control that it can see free heat at all. Measured at 6c86f6ae, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:9437 CLAMP_DROP": {
+    "custom_components/heatpump_optimizer/coordinator.py:9414 CLAMP_DROP": {
       "verdict": "equivalent",
       "old": "        dt_h = max(ctx._opt_config.time_step_minutes, 1.0) / 60.0",
       "reason": "drawn by the round-7 D2-03 diff's per-file sample over coordinator.py. `max(time_step_minutes, 1.0)` -> `(time_step_minutes)` cannot select its second arm: `OptimizationConfig.time_step_minutes` is the dataclass default 15.0, `OptimizationConfig.from_mapping` does not set it, and nothing in the package assigns it (`grep -rn 'time_step_minutes' custom_components/` lists only the default and reads). No production input tells the two apart."
@@ -387,12 +387,12 @@
       "old": "    return value if value is not None and -5.0 <= value <= 35.0 else None",
       "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 2 failed, among them `a live inlet probe still wins`; `the DHW inlet probe is read in its unit (50 degF is 10 degC)`. Measured at d6d79847, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:8949 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/coordinator.py:8926 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "        if live is not None:",
       "reason": "#1513 (R8-P8): GUARD_OFF on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 2 failed, among them `a live export-price entity wins over the configured number`; `the export-price entity is read in its unit`. Measured at d6d79847, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:8951 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/coordinator.py:8928 RETURN_DEL": {
       "killed_by": "tests/features.py",
       "old": "        return _as_float(ctx._config.get(CONF_PV_EXPORT_PRICE), DEFAULT_PV_EXPORT_PRICE)",
       "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 3 failed, among them `with no entity the configured export price is used`; `the three non-values, a non-numeric state and a missing entity all fall back`. Measured at d6d79847, 2026-09-24."
@@ -522,22 +522,22 @@
       "old": "    return [r if r[\"temperature\"] is not None else {**r, \"temperature\": 5.0} for r in rows]",
       "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 with no FAIL line: the mutant raises `TypeError: object of type 'NoneType' has no len()`. Measured at 25497c4b, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:6083 CLAMP_DROP": {
+    "custom_components/heatpump_optimizer/coordinator.py:6060 CLAMP_DROP": {
       "killed_by": "tests/features.py",
       "old": "            gust = max(0.0, _as_float(entry.get(\"wind_speed\"), 0.0))",
       "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `and its wind is scaled once, not twice (3.6 km/h is 1 m/s)`. Measured at 25497c4b, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:8354 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/coordinator.py:8331 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "        if self._curve_day and day != self._curve_day:",
       "reason": "#1513 (R8-P8) round 3, a survivor CI's changed-scope mutation lane drew at 1a8cbcce. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `a new day folds the previous day's worst margin into the curve learner once`. Measured at 25497c4b, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:8354 BOOLOP": {
+    "custom_components/heatpump_optimizer/coordinator.py:8331 BOOLOP": {
       "killed_by": "tests/features.py",
       "old": "        if self._curve_day and day != self._curve_day:",
       "reason": "#1513 (R8-P8) round 3, a survivor CI's changed-scope mutation lane drew at 1a8cbcce. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `a new day folds the previous day's worst margin into the curve learner once`. Measured at 25497c4b, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:10237 BOOLOP": {
+    "custom_components/heatpump_optimizer/coordinator.py:10214 BOOLOP": {
       "killed_by": "tests/features.py",
       "old": "                self._commanded_power() > 0.05 and reported >= hz_min",
       "reason": "#1513 (R8-P8) round 3, a survivor CI's changed-scope mutation lane drew at 1a8cbcce. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `an idle plan or a pump below its running range is not watched`. Measured at 25497c4b, 2026-09-24."
@@ -552,27 +552,17 @@
       "old": "    return entity_id.split(\".\", 1)[0], \"turn_on\" if on else \"turn_off\"",
       "reason": "#1526 (R8-P6): RETURN_DEL on _on_off_service, the heat-pump switch route this diff added. Applied in a detached worktree at 2a451021, the full tests/features.py goes to 7 of 3180 FAILED against a 0 baseline, including the P6 census ('the consumer issued no call' for every heat-pump target) five existing _apply_action switch-off/on checks and a cycle null control. Measured 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:1804 GUARD_OFF": {
-      "killed_by": "tests/features.py",
-      "old": "    if coord._pump_signals.space_blocked:",
-      "reason": "R8-P5 (#1523/#1525) added this site. `if coord._pump_signals.space_blocked:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 2 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `a hot-water-only mode aborts an armed experiment instead of commanding heat`; `#1523: a mode that cannot heat still aborts by its own name (the mode gate moved into the same predicate)`."
-    },
-    "custom_components/heatpump_optimizer/coordinator.py:1809 RETURN_DEL": {
-      "killed_by": "tests/features.py",
-      "old": "    return frozen",
-      "reason": "R8-P5 (#1523/#1525) added this site. `return frozen` -> `pass`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 2 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `a pump that is off the network aborts an armed experiment instead of commanding heat`; `#1523: every condition the house learner freezes on aborts the experiment by that freeze's own name, and records nothing`."
-    },
-    "custom_components/heatpump_optimizer/coordinator.py:10507 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/coordinator.py:10492 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "        if why is not None:",
       "reason": "R8-P5 (#1523/#1525) added this site. `if why is not None:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 6 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `a cooling mode aborts an armed experiment instead of commanding heat`; `a hot-water-only mode aborts an armed experiment instead of commanding heat`; `a pump that is off the network aborts an armed experiment instead of commanding heat`; `the aborted result carries the cause`."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:10553 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/coordinator.py:10538 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "        if not result.completed:",
       "reason": "R8-P5 (#1523/#1525) added this site. `if not result.completed:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 1 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `#1525: an unfinished result offered on a later cycle is left as it is and logs nothing`."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:10558 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/coordinator.py:10543 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "        if not decision.admit:",
       "reason": "R8-P5 (#1523/#1525) added this site. `if not decision.admit:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 2 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `#1525: no finished experiment stays published as completed or 'ok' -- adopted means applied, and each refusal publishes and logs its own reason`; `#1525: the admits are exactly the in-bar fits (a NaN width is refused, which 'hw > bar' let through)`."
@@ -592,17 +582,17 @@
       "old": "    if not hw <= UA_ADOPTION_HALFWIDTH_BAR:",
       "reason": "R8-P5 (#1523/#1525) added this site. `if not hw <= UA_ADOPTION_HALFWIDTH_BAR:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 4 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `a wide-interval fit, an unfinished run, a fit with no UA and a zero nameplate all adopt nothing`; `#1525: the cases drive every return of adoption_decision (the barrier covers each path the gate has, including one added later)`; `#1525: no finished experiment stays published as completed or 'ok' -- adopted means applied, and each refusal publishes and logs its own reason`; `#1525: the admits are exactly the in-bar fits (a NaN width is refused, which 'hw > bar' let through)`."
     },
-    "custom_components/heatpump_optimizer/sysid.py:923 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:924 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if not identifiable:",
       "reason": "R8-P5 (#1523/#1525) added this site. `if not identifiable:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 2 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `#1525: the cases drive every return of adoption_decision (the barrier covers each path the gate has, including one added later)`; `#1525: the admits are exactly the in-bar fits (a NaN width is refused, which 'hw > bar' let through)`."
     },
-    "custom_components/heatpump_optimizer/sysid.py:925 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:926 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if result.heat_loss_kw_per_c is None:",
       "reason": "R8-P5 (#1523/#1525) added this site. `if result.heat_loss_kw_per_c is None:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 3 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `a wide-interval fit, an unfinished run, a fit with no UA and a zero nameplate all adopt nothing`; `#1525: the cases drive every return of adoption_decision (the barrier covers each path the gate has, including one added later)`; `#1525: no finished experiment stays published as completed or 'ok' -- adopted means applied, and each refusal publishes and logs its own reason`."
     },
-    "custom_components/heatpump_optimizer/sysid.py:931 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:932 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if not base_u > 1e-6:",
       "reason": "R8-P5 (#1523/#1525) added this site. `if not base_u > 1e-6:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 3 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `a wide-interval fit, an unfinished run, a fit with no UA and a zero nameplate all adopt nothing`; `#1525: the cases drive every return of adoption_decision (the barrier covers each path the gate has, including one added later)`; `#1525: no finished experiment stays published as completed or 'ok' -- adopted means applied, and each refusal publishes and logs its own reason`."
