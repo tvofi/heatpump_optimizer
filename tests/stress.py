@@ -1707,13 +1707,14 @@ KERNEL_DOUBT_FLOOR = 1.50
 KERNEL_DOUBT_ROUNDS = 3
 
 
-def cpu_doubler():
-    """A wrapper factory that makes each call of a seam cost twice its CPU.
+def cpu_scaler(factor: float = 2.0):
+    """A wrapper factory that makes each call of a seam cost ``factor``
+    times its CPU.
 
-    The wrapped seam runs once and then burns its own measured CPU again,
-    net of the three clock reads the burn adds inside the meter (its two
-    own and the loop's last), which on ~8 us step calls would otherwise
-    read as a few percent over 2x.
+    The wrapped seam runs once and then burns ``factor - 1`` times its own
+    measured CPU, net of the three clock reads the burn adds inside the
+    meter (its two own and the loop's last), which on ~8 us step calls
+    would otherwise read as a few percent over.
     """
     started = time.process_time()
     for _ in range(1000):
@@ -1724,7 +1725,8 @@ def cpu_doubler():
         def _twice(*args, **kwargs):
             started = time.process_time()
             res = seam(*args, **kwargs)
-            until = 2.0 * time.process_time() - started - 3.0 * clock
+            ended = time.process_time()
+            until = ended + (factor - 1.0) * (ended - started) - 3.0 * clock
             while time.process_time() < until:
                 pass
             return res
@@ -1752,7 +1754,7 @@ def per_call_cost_rounds(probe: dict, rounds: int = KERNEL_ARM_ROUNDS):
     """
     saved_batch = SolverWork._batch_wrapped
     saved_step = SolverWork._step_wrapped
-    _cost_twice = cpu_doubler()
+    _cost_twice = cpu_scaler(2.0)
 
     base_ms, slow_ms, null_ms = [], [], []
     slower = null = None
@@ -3311,11 +3313,14 @@ if __name__ == "__main__":
         f"{_slower_rule.cost_over}",
     )
     # ...and the sweep's doubt band end to end, through the function the
-    # sweep calls: a real 2x whose single reading landed in the band (as
-    # low as 1.6x, below the factor) is re-solved on both trees -- the
-    # baseline in a re-created worktree of WORK_DRIFT_REF, this tree with
-    # every seam call's CPU doubled -- and confirmed on the medians.
-    _doubler = cpu_doubler()
+    # sweep calls: a real per-call regression whose single reading landed
+    # in the band (1.6x, below the factor) is re-solved on both trees --
+    # the baseline in a re-created worktree of WORK_DRIFT_REF, this tree
+    # with every seam call's CPU tripled -- and confirmed on the medians.
+    # Tripled, not doubled: this pins the re-solve's WIRING, and a 2x
+    # rides the 1.11x margin whose miss rate under load is
+    # tools/audit/harnesses/d907_kernel_band.py's to measure, not a gate's.
+    _doubler = cpu_scaler(3.0)
     SolverWork._batch_wrapped = _doubler(_saved_seam_batch)
     SolverWork._step_wrapped = _doubler(_saved_seam_step)
     try:
@@ -3333,9 +3338,9 @@ if __name__ == "__main__":
         ThermalModel.simulate_trajectory_batch = _saved_seam_batch
         ThermalModel.simulate_step = _saved_seam_step
     R.check(
-        "a real 2x read once inside the kernel doubt band is re-solved on "
-        "both trees and confirmed by the rule the sweep applies (round-5 "
-        "D9-07)",
+        "a real per-call regression read once inside the kernel doubt band "
+        "is re-solved on both trees and confirmed by the rule the sweep "
+        "applies (round-5 D9-07)",
         _band_ok
         and [f.split()[0] for f in _band_drift.cost_over] == [_probe_label],
         f"{_band_note}; per-call-cost fired {_band_drift.cost_over}",

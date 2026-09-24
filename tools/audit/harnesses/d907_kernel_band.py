@@ -14,10 +14,14 @@ the scenario the per-call-cost arm in tests/stress.py also uses:
     the medians.
 
 INJECTED trials run this tree with every kernel seam call's CPU doubled
-(stress.cpu_doubler, the arm's own injection) -- a miss is a trial where
+(stress.cpu_scaler(2.0), the arm's own injection) -- a miss is a trial where
 cost_over stayed empty. CLEAN trials run it unchanged -- a false fire is a
 trial where cost_over was not empty, and the RESULT line also counts how
 often the doubt band sent a clean tree to a re-solve and what that cost.
+BAND trials force the re-solve on a real 2x: this tree doubled, its single
+reading replaced by 1.6x of the baseline's (inside the band), so every trial
+measures the median-of-KERNEL_DOUBT_ROUNDS confirmation itself -- a miss is
+a trial the medians did not carry over the factor.
 
 Run from the repository root, against a baseline ref that is not HEAD:
 
@@ -54,7 +58,7 @@ SAVED = (W._batch_wrapped, W._step_wrapped)
 
 def seams(doubled: bool) -> None:
     if doubled:
-        twice = stress.cpu_doubler()
+        twice = stress.cpu_scaler(2.0)
         W._batch_wrapped, W._step_wrapped = twice(SAVED[0]), twice(SAVED[1])
     else:
         W._batch_wrapped, W._step_wrapped = SAVED
@@ -74,7 +78,7 @@ def baseline_row(worktree: str, tmp: str, driver: str) -> dict:
     return rows
 
 
-def trial(worktree: str, tmp: str, doubled: bool) -> tuple:
+def trial(worktree: str, tmp: str, doubled: bool, band: bool = False) -> tuple:
     old_base = baseline_row(worktree, tmp, OLD_DRIVER)
     new_base = baseline_row(worktree, tmp, NEW_DRIVER)
     seams(doubled)
@@ -86,6 +90,8 @@ def trial(worktree: str, tmp: str, doubled: bool) -> tuple:
             {label: float(run["result"].objective_value)},
             {label: float(run.get("solver_kernel_ms", 0.0))},
         )
+        if band:
+            obs = obs[:3] + ({label: 1.6 * new_base[label]["kernel_ms"]},)
         before = stress.work_drift_compare(*obs, old_base)
         started = time.perf_counter()
         after, ok, note = stress.judge_work(
@@ -105,6 +111,16 @@ def trial(worktree: str, tmp: str, doubled: bool) -> tuple:
 with stress.baseline_worktree(ROOT, REF) as (worktree, tmp, where):
     if worktree is None:
         raise SystemExit(f"RESULT error: {where}")
+    band = []
+    for n in range(TRIALS):
+        r = trial(worktree, tmp, True, band=True)
+        band.append(r)
+        print(f"band {n}: after fired={r[1]} {r[4]:.1f} s ok={r[2]}", flush=True)
+    print(f"RESULT band {label} vs {where}: a real 2x forced into the doubt "
+          f"band was confirmed {sum(r[1] for r in band)}/{TRIALS} at "
+          f"{stress.KERNEL_DOUBT_ROUNDS} rounds; re-measure failures "
+          f"{sum(not r[2] for r in band)}; mean re-solve "
+          f"{sum(r[4] for r in band) / TRIALS:.1f} s")
     for doubled in (True, False):
         arm = "injected" if doubled else "clean"
         results = []
