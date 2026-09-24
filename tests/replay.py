@@ -311,8 +311,10 @@ COST_DETECTION = 2.0
 #: regression argued in the commit message. The commit that records a figure
 #: names the machine; the band check validates it on whichever runner reads
 #: it, since a run outside (budget / 2, budget] is red and prints its own.
+#: Across several runs, record the largest ``record:`` value, and keep it
+#: under every doubled arm's figure.
 COST_BUDGETS: dict[str, dict[str, float]] = {
-    "synthetic-dhw-only.json": {"cpu_ratio": 4.376, "peak_kib": 2688.0},
+    "synthetic-dhw-only.json": {"cpu_ratio": 3.576, "peak_kib": 2686.0},
 }
 #: A reference solve after every this many cycles, beside the ones before
 #: and after the day, so the unit tracks the runner through the replay.
