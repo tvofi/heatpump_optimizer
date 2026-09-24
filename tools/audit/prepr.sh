@@ -101,6 +101,29 @@ figures_check() { # body file
   node .claude/workflows/figure_lint.mjs --pr-body "$1"
 }
 
+# Steps 6a and 6b: the two failures CI already repairs, refused before the push.
+# `claims-autofix` and `closures-autofix` fire only after `fast` or `closures`
+# has gone red, so every repair they make costs a gate run, a held-run approval
+# and a bot commit on a head a reviewer may already be reading. In the week to
+# 2026-09-24 they were the most frequent repairable reds (the census and its
+# per-job tables are /mnt/project-files/ci-autofix/). The checks are CI's own
+# commands, so this is the cheaper detector for the same refusal, never a
+# second opinion, and the jobs stay as the backstop.
+claims_check() { # ref
+  PYTHONPATH=tests/hastub python3 tests/env_drift.py --claims-only "$1"
+}
+
+# Which scripts this machine may record for the closure check. Python lanes
+# record through `sys.addaudithook`, so any platform is sound for them; a node
+# recording on a machine without strace is not the recording CI compares, and
+# ci-autofix.md forbids it replacing a Linux one, so it is left to CI.
+closure_lane() { # script, strace present (1 or 0)
+  case "$1" in
+    *.mjs|*.js) if [ "$2" = 1 ]; then echo record; else echo node-needs-linux; fi ;;
+    *) echo record ;;
+  esac
+}
+
 # Step 7's body check, and the path list the `## Approval` gate is keyed on.
 # Same argument as `figures_check` above: the step calls these, so `--self-test`
 # drives the code the step runs rather than a second copy of the command.
@@ -572,6 +595,10 @@ if [ "${1:-}" = "--self-test" ]; then
   case "$out" in *"ok       body path"*) st 1 1 "printing an ok line, so a skipped step is visible";; *) st 0 1 "printing an ok line, so a skipped step is visible";; esac
   rm -rf "$SRD"
 
+  [ "$(closure_lane tests/card_drift.mjs 0)" = node-needs-linux ]; st $? 0 "a node script is not recorded without strace"
+  [ "$(closure_lane tests/card_drift.mjs 1)" = record ]; st $? 0 "and is recorded with it (null control)"
+  [ "$(closure_lane tests/entities.py 0)" = record ]; st $? 0 "a Python script is recorded without strace"
+
   printf 'Closes #999\n' | bash tools/audit/preflight.sh >/dev/null 2>&1
   st $? 1 "preflight refuses an unintended closing keyword"
   printf 'Closes #999\n' | bash tools/audit/preflight.sh 999 >/dev/null 2>&1
@@ -694,6 +721,59 @@ if [ -n "${CLAIMS// /}" ]; then
   say check "claim files" "$CLAIMS changed -- intended only if this branch claims drift"
 else
   step "claim files" 0 "byte-identical to origin/main"
+fi
+
+# --- 6a. no inherited claim list: `fast`'s INHERITED CLAIMS, before CI.
+# The same command `run.sh` runs unconditionally (`claims_check` above).
+claims_check origin/main >/tmp/prepr-claims.$$ 2>&1
+if [ $? -eq 0 ]; then
+  step "claims hygiene" 0 "$(tail -1 /tmp/prepr-claims.$$)"
+else
+  step "claims hygiene" 1 "$(grep -m1 -E '[A-Z]{4}' /tmp/prepr-claims.$$) -- for INHERITED CLAIMS run \`python3 tests/env_drift.py --drop-inherited origin/main\` and commit what it empties, the commit claims-autofix would push"
+fi
+rm -f /tmp/prepr-claims.$$
+
+# --- 6b. the closures cover what the scoped scripts read: `closures`'s
+# UNDER-SCOPED, before CI. The scope is CI's own derivation (`closure.py
+# affected`, three-dot), the recordings are `--record-only` so the committed
+# file is compared and never rewritten, and a full re-record is never run here
+# (gate-scoping.md). It runs the scoped scripts once, which the fixer runs
+# anyway; PREPR_SKIP_CLOSURES=1 skips it on a push that only re-bodies.
+if [ -n "${PREPR_SKIP_CLOSURES:-}" ]; then
+  say skip "closures" "PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left"
+else
+  CW=$(mktemp -d)
+  git diff --name-only "$BASE"...HEAD > "$CW/changed.txt"
+  python3 tests/closure.py affected --files-from "$CW/changed.txt" --workdir "$CW/aff" >/dev/null 2>&1
+  CASE=$(cat "$CW/aff/affected.case" 2>/dev/null)
+  case "$CASE" in
+    skip) say skip "closures" "the diff reaches no selectable script's closure" ;;
+    full) say skip "closures" "the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden" ;;
+    scoped)
+      STRACE=0; command -v strace >/dev/null && STRACE=1
+      LEFT=""; FAILED=""
+      while read -r s; do
+        [ -n "$s" ] || continue
+        if [ "$(closure_lane "$s" "$STRACE")" != record ]; then LEFT="$LEFT $s"; continue; fi
+        GOLDEN_REF=origin/main ./tests/derive_closures.sh --single "$s" \
+          --record-only --out-dir "$CW/rec" > "$CW/derive.out" 2>&1
+        grep -q '(exit 0)' "$CW/derive.out" || FAILED="$FAILED $s"
+      done < "$CW/aff/affected.scripts"
+      if [ -n "$FAILED" ]; then
+        step "closures" 1 "failed while being recorded:$FAILED -- fix the script first; a re-derive would record the same truncation"
+      elif [ ! -d "$CW/rec" ]; then
+        say skip "closures" "only node scripts are scoped and this machine has no strace:$LEFT"
+      else
+        PYTHONPATH=tests/hastub python3 tests/closure.py check --in-dir "$CW/rec" --partial > "$CW/check.out" 2>&1
+        if [ $? -eq 0 ]; then
+          step "closures" 0 "scoped recordings are covered${LEFT:+; left to CI:$LEFT}"
+        else
+          step "closures" 1 "$(grep -m1 'UNDER-SCOPED\|NOT A FILE' "$CW/check.out") -- run \`./tests/derive_closures.sh --single <script>\` for each UNDER-SCOPED script and commit tests/closures.json, the commit closures-autofix would push"
+        fi
+      fi ;;
+    *) step "closures" 1 "closure.py affected derived no case from $BASE...HEAD" ;;
+  esac
+  rm -rf "$CW"
 fi
 
 # --- 7. the body, when one was passed.
