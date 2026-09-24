@@ -29,8 +29,8 @@ file is.
    production feature, **raise the budget with the repository owner's explicit
    confirmation, obtained before the branch is pushed** — never loosen one
    quietly, never delete working functionality merely to fit, and stop and ask
-   rather than push and explain. `cross_seam_edges`, the count that replaced the
-   tolerance-banded ratio on 2026-09-10, ratchets like every other row.
+   rather than push and explain. A raise in any `*_budgets.json` merges only on
+   the owner's approving review at its head: `budget-raise-gate` (0013).
 3. **Value-bearing golden fixtures are claimed, not re-recorded.** Solver floats
    do not reproduce across BLAS builds, so only a canonical environment can
    honestly record one. Drift is declared in `tests/golden/claimed_drift.txt` (or
