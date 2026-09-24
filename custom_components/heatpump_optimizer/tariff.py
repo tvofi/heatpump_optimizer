@@ -592,6 +592,66 @@ def window_factors(
     )
 
 
+def plan_window_days(
+    n_windows: int, window_minutes: int, start_time: datetime
+) -> np.ndarray:
+    """The local day of each metering window of a plan, as ordinals (#1512).
+
+    Walked exactly as ``window_factors`` walks the windows -- from the slot
+    ``start_time`` falls in, in UTC, converted back -- so a window is dated by
+    the real start the meter dates it by, across both DST transitions.
+    """
+    window = int(window_minutes)
+    slot0 = _window_slot(start_time, window)
+    tz = slot0.tzinfo
+    base = slot0 if tz is None else slot0.astimezone(timezone.utc)
+    starts = [base + timedelta(minutes=window * i) for i in range(int(n_windows))]
+    return np.asarray(
+        [(s if tz is None else s.astimezone(tz)).toordinal() for s in starts],
+        dtype=np.int64,
+    )
+
+
+def _day_peaks(
+    excess: np.ndarray,
+    window_days: np.ndarray | None,
+    window_minutes: int,
+    day_max_of: Callable[[np.ndarray], float],
+) -> np.ndarray:
+    """Each plan day's excess: one value per day, in plan order (#1512).
+
+    Under a distinct-days tariff a day contributes one peak, so k high
+    windows on one morning are one billed excess, not k. Windows are
+    chronological, so each day is one contiguous run of labels. A plan with
+    no labels (no clock) is taken to start at local midnight on the metering
+    grid: the anchor ``metering_windows``' ``offset_steps=0`` already
+    assumes. Windows past the labels join the last labelled day's run.
+    """
+    if window_days is None:
+        window_days = np.arange(excess.size) * int(window_minutes) // (24 * 60)
+    edges = np.flatnonzero(np.diff(np.asarray(window_days)[: excess.size])) + 1
+    return np.asarray(
+        [day_max_of(run) for run in np.split(excess, edges)], dtype=float
+    )
+
+
+def _hard_day_max(run: np.ndarray) -> float:
+    return float(np.max(run))
+
+
+def _plateau_aware_day_max(run: np.ndarray) -> float:
+    """A day's peak for the solver: exact unless its windows tie at the top.
+
+    #232's blindness one level down: a hard max over tied windows reads flat
+    to a downward probe on any one of them, so on a same-day plateau the
+    smooth top-1 spreads the descent signal across the tied windows.
+    """
+    peak = float(np.max(run))
+    if int(np.sum(run >= peak - _PEAK_TIE_BAND)) > 1:
+        return _smooth_topk_sum(run, 1, _PEAK_SMOOTH_TAU)
+    return peak
+
+
 # Soft top-k temperature as a fraction of the largest excess. Small enough
 # that separated peaks still match the billed sum; large enough that tied
 # windows all carry gradient (#232).
@@ -722,6 +782,9 @@ def _peak_charge(
     offset_steps: int,
     window_factors: np.ndarray | None,
     top_sum_of: Callable[[np.ndarray, int], float],
+    day_max_of: Callable[[np.ndarray], float],
+    window_days: np.ndarray | None,
+    distinct_days: bool,
 ) -> float:
     """One scaffolding for both peak charges, parameterised by the top-k rule.
 
@@ -739,6 +802,8 @@ def _peak_charge(
     )
     if excess is None:
         return 0.0
+    if distinct_days:
+        excess = _day_peaks(excess, window_days, window_minutes, day_max_of)
     k = max(1, min(int(peaks_averaged), excess.size))
     return float(price_per_kw * top_sum_of(excess, k))
 
@@ -753,6 +818,8 @@ def peak_cost(
     peaks_averaged: int = 3,
     offset_steps: int = 0,
     window_factors: np.ndarray | None = None,
+    window_days: np.ndarray | None = None,
+    distinct_days: bool = True,
 ) -> float:
     """What this plan would add to the monthly capacity charge.
 
@@ -782,10 +849,15 @@ def peak_cost(
     peak, but only windows that end the *month* in the top k actually do.
     Early in a month that is usually true; late in a high-peak month it
     over-charges and the plan is more peak-shy than strictly necessary —
-    the conservative side of the error. It also ranks windows, not days:
-    k high windows on one morning are charged k times here, where a
-    distinct-days tariff bills that morning once (#1512). The day rule lives
-    in ``PeakTracker``, whose threshold this term is charged against.
+    the conservative side of the error.
+
+    Under ``distinct_days`` (#1512) a plan day contributes one excess, its
+    highest window's, before the top-k: k high windows on one morning are
+    billed once, as the DSO bills them, not k times. ``window_days`` dates
+    each window (``plan_window_days``); without it a plan is taken to start
+    at local midnight. A plan day that is today is still charged against the
+    month's threshold, not against today's recorded maximum -- the
+    conservative side again, and the tracker's threshold docstring says why.
 
     Only the excess above the threshold is charged: if the month already has a
     9 kW peak recorded, an 8 kW hour changes nothing and costs nothing.
@@ -799,7 +871,8 @@ def peak_cost(
     return _peak_charge(
         total_power_kw, baseline_load_kw, threshold_kw, price_per_kw,
         window_minutes, dt_hours, peaks_averaged, offset_steps,
-        window_factors, _exact_topk_sum,
+        window_factors, _exact_topk_sum, _hard_day_max, window_days,
+        distinct_days,
     )
 
 
@@ -813,6 +886,8 @@ def peak_cost_smooth(
     peaks_averaged: int = 3,
     offset_steps: int = 0,
     window_factors: np.ndarray | None = None,
+    window_days: np.ndarray | None = None,
+    distinct_days: bool = True,
 ) -> float:
     """The solver's capacity term: exact off plateaus, smooth on them.
 
@@ -839,7 +914,8 @@ def peak_cost_smooth(
     return _peak_charge(
         total_power_kw, baseline_load_kw, threshold_kw, price_per_kw,
         window_minutes, dt_hours, peaks_averaged, offset_steps,
-        window_factors, _plateau_aware_topk_sum,
+        window_factors, _plateau_aware_topk_sum, _plateau_aware_day_max,
+        window_days, distinct_days,
     )
 
 
@@ -853,6 +929,8 @@ def peak_cost_batch(
     peaks_averaged: int = 3,
     offset_steps: int = 0,
     window_factors: np.ndarray | None = None,
+    distinct_days: bool = True,
+    window_days: np.ndarray | None = None,
 ) -> np.ndarray:
     """``peak_cost_smooth`` for a [B, n] batch of plans, one entry per row (#948).
 
@@ -896,6 +974,10 @@ def peak_cost_batch(
         if not np.any(excess > 0):
             out[b] = 0.0
             continue
+        if distinct_days:
+            excess = _day_peaks(
+                excess, window_days, window_minutes, _plateau_aware_day_max
+            )
         k = max(1, min(int(peaks_averaged), excess.size))
         peak = float(np.max(excess))
         n_at_peak = int(np.sum(excess >= peak - _PEAK_TIE_BAND))

@@ -4714,9 +4714,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # on the next run rather than on the next restart.
             tariff = self._capacity_tariff()
             ctx._opt_config.peak_price_per_kw = tariff.marginal_price_per_kw
-            ctx._opt_config.peak_threshold_kw = self._peak_tracker.threshold_kw(
-                tariff
-            )
+            tracker = self._peak_tracker
+            ctx._opt_config.peak_threshold_kw = tracker.threshold_kw(tariff)
             # Post-outage recovery (#22): every neighbour restarts at once,
             # so the fresh-month "no reference yet" free pass is exactly
             # wrong now. Force the peak term active by pricing from zero
@@ -4727,6 +4726,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 ctx._opt_config.peak_threshold_kw = 0.0
             ctx._opt_config.peak_window_minutes = tariff.window_minutes
             ctx._opt_config.peak_count = tariff.peaks_averaged
+            ctx._opt_config.peak_distinct_days = tariff.distinct_days
             ctx._opt_config.peak_months = tariff.months
             ctx._opt_config.peak_hours = tariff.peak_hours
             ctx._opt_config.peak_weekdays_only = tariff.weekdays_only
