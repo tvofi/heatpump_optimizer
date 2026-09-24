@@ -494,6 +494,11 @@ INERT_EXCEPT = (
     # script opens is a dependency, not inert, whatever prefix it lives under.
     # An edit to the verdict grammar now selects tests/entities.py.
     ".claude/workflows/web-fix-wave.js",
+    # #1514: tests/entities.py maps each context in the recorded required set
+    # to the job that produces it, and refuses one a body edit can re-report as
+    # skipped. The fixture is the list the ruleset reads, so it is a
+    # dependency, the web-fix-wave.js route: an edit to it selects entities.py.
+    ".claude/workflows/fixtures/required-contexts.json",
     # #1303 (D13-01): tests/entities.py reads the by-design-red exclusion list
     # and the D13 harness that consumes it, to pin that the harness reads the
     # REGISTERED artifact rather than a copy beside itself (step 11: a check
