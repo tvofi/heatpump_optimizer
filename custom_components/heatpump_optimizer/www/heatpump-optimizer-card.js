@@ -2842,8 +2842,13 @@ function setupSvgHtml(topo, ctx) {
         ? Math.max(hitBase, _targetMinPx() * unitsPerPx)
         : hitBase;
       const hitY = y - rowH + 5 - (hitH - hitBase) / 2;
+      // While the picker is open it covers the diagram, and it follows the
+      // svg in the markup: rows left in the Tab order would send focus down
+      // through the covered diagram and back up into the picker (#1522).
+      // -1, not `inert`: a click on another row still retargets the picker,
+      // and closing it restores focus to a row by script.
       rows.push(`<rect class="setup-hit" data-key="${esc(s.key)}"
-        tabindex="0" role="button" aria-label="${esc(full)}"
+        tabindex="${ctx.picking ? "-1" : "0"}" role="button" aria-label="${esc(full)}"
         x="${b.x + 4}" y="${hitY}" width="${colW - 8}"
         height="${hitH}" rx="3">
         <title>${esc(full)}</title></rect>`);
@@ -9360,6 +9365,7 @@ class SetupPage {
     return setupSvgHtml(topo, {
       editing,
       edit,
+      picking: this.openSlot() !== null,
       // Recorded as it is read, so `_refitCharts` can compare what this
       // render assumed against what the browser then did (D4-01).
       setupWidth: () => {

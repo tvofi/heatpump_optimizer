@@ -560,7 +560,10 @@
 # and its three buttons change place among `.chartwrap`'s children, nothing
 # else. `no_plan` and `no_plan_expanded` draw no chart and `editor_schema`
 # renders the editor's schema, so those three do not move and are not
-# claimed. The R7-D4-01/D4-02 list this replaces was the previous branch's;
+# claimed. `picker_open_filtered` moves once more: while the setup picker is
+# open it covers the diagram, so its rows drop out of the Tab order
+# (`tabindex="-1"`, still clickable); no other state renders an open picker.
+# The R7-D4-01/D4-02 list this replaces was the previous branch's;
 # two of its 39 entries (the no_plan pair) no longer move.
 
 plan_inline  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
@@ -588,7 +591,7 @@ setup_coil  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg in
 advisor_page  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
 layout_editing_dragged  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
 layout_editing_tidy  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
-picker_open_filtered  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+picker_open_filtered  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap; the covered setup rows take tabindex -1 while the picker is open
 wood_alert  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
 wood_lane  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
 wood_whatif  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
