@@ -733,7 +733,7 @@ PROBES = [
     ("python3 - heredoc", _run("python3 - <<'PY'\nimport runpy\nPY")),
     ("$GITHUB_PATH shim", _run('mkdir -p "$RUNNER_TEMP/shim"\necho "$RUNNER_TEMP/shim" >> "$GITHUB_PATH"')),
     ("$GITHUB_ENV BASH_ENV", _run('echo "BASH_ENV=$PWD/' + T + '" >> "$GITHUB_ENV"')),
-    ("PATH= assignment", _run('PATH="$PWD/tools:$PATH" python3 --version')),
+    ("PATH= assignment", _run('PATH="$PWD/tools:$PATH" git rev-parse HEAD')),
     ("echo $(script)", _run('echo "$(' + T + ')"')),
     ("backtick", _run("echo `" + T + "`")),
     ("github-script require", "\n      - uses: actions/github-script@v7\n        with:\n"
