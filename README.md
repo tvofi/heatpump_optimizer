@@ -162,7 +162,8 @@ flowchart LR
   Home Assistant price sensor such as Nord Pool exposing `raw_today` /
   `raw_tomorrow`
 - A weather integration with hourly forecasts (Met.no or similar)
-- `numpy` and `scipy`, installed automatically from the integration manifest
+- `numpy`, `scipy` and `threadpoolctl`, installed automatically from the
+  integration manifest
 
 Everything else — indoor and outdoor thermometers, tank probes, a power meter —
 is optional. The optimizer runs without them and gets steadily better with each
@@ -329,18 +330,18 @@ be added later from the options pages.
 ```mermaid
 flowchart TD
     A["1 · Basics<br/>name, Tibber token or price entity,<br/>weather entity"] --> B["2 · Optional sensors<br/>temperatures, switch, tank probes"]
-    B --> M["Finish setup now? — a menu:<br/>Quick setup (recommended), Continue setup,<br/>or Finish setup now"]
+    B --> M["3 · Finish setup now? — a menu:<br/>Quick setup (recommended), Continue setup,<br/>or Finish setup now"]
     M -- "Quick setup (recommended)" --> Q["One page of house questions,<br/>then the heat pump's entities<br/>read automatically"]
     M -- "Finish setup now" --> J(["Done — first plan<br/>within one interval"])
-    M -- "Continue setup" --> C["3 · Temperatures<br/>targets, day/night comfort, hours"]
-    C --> D{"4 · How do you want to<br/>describe your building?"}
+    M -- "Continue setup" --> C["4 · Temperatures<br/>targets, day/night comfort, hours"]
+    C --> D{"5 · How do you want to<br/>describe your building?"}
     D -- "Describe my building<br/>(recommended)" --> E["Questionnaire<br/>structure, era, foundation,<br/>heated area, emitters"]
     E --> F["Heat pump basics<br/>COP, max/min power"]
     D -- "Enter thermal values<br/>directly (expert)" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
     G --> H["Two-zone & solar<br/>per-floor masses, buffer tank,<br/>windows, orientation"]
-    F --> I["5 · Hot water<br/>tank, setpoint, schedule,<br/>legionella"]
+    F --> I["6 · Hot water<br/>tank, setpoint, schedule,<br/>legionella"]
     H --> I
-    I --> K["6 · Weather sensitivity<br/>wind, rain"]
+    I --> K["7 · Weather sensitivity<br/>wind, rain"]
     K --> J
     Q --> J
 ```
