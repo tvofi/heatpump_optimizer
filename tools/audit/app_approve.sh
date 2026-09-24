@@ -17,16 +17,23 @@
 #   - the App id file holds digits only and the private key file exists
 #     (fail closed, before any call);
 #   - the pull request is open, and its live head is exactly <sha>;
-#   - among comments whose author is in VERDICT_AUTHORS AND whose
-#     author_association is OWNER, MEMBER or COLLABORATOR, the NEWEST whose
-#     first line starts `Fix review:` is exactly `Fix review: merge <sha>` --
-#     the grammar `fix-review.md` sends reviewers to. Every other comment is
-#     ignored, so an outsider's later line neither approves nor displaces one.
-#     Verdicts post only as `tvofi` (decision 0011: the reviewer seat hands
-#     the verdict text to the orchestrator, who posts it as `tvofi`; pull
-#     requests author as the `hpo-author` App, never as a verdict author).
+#   - among comments whose author is the approver App -- login in
+#     VERDICT_AUTHORS, user type `Bot` AND user id VERDICT_AUTHOR_ID -- the
+#     NEWEST whose first line starts `Fix review:` is exactly
+#     `Fix review: merge <sha>`, the grammar `fix-review.md` sends reviewers
+#     to. Every other comment is ignored, so an outsider's later line neither
+#     approves nor displaces one. Verdicts post only as `hpo-approver[bot]`
+#     (decision 0013, amending 0011: the orchestrator posts the reviewer
+#     seat's text with `tools/audit/app_comment.sh`; never as the author App,
+#     #1233's defect, and no longer as `tvofi`). The id pin replaces the
+#     author_association guard this line carried while verdicts were
+#     `tvofi`'s: an App's association reads NONE (measured on the ten
+#     `hpo-approver[bot]` reviews of #1489-#1557 read 2026-09-24), so that
+#     guard would refuse every App verdict, while a `[bot]` login cannot be
+#     registered by a user and the numeric id cannot be renamed. The id was read off
+#     `GET /users/hpo-approver%5Bbot%5D` on 2026-09-24.
 #     WHAT THIS CANNOT TELL: the allowlist still cannot prove WHICH seat's
-#     word a `tvofi` verdict carries. It keeps out every other account,
+#     word an App verdict carries. It keeps out every other account,
 #     nothing more;
 #   - that verdict CITES ITS EVIDENCE: at least one absolute path in the
 #     verdict comment's body is a directory that exists ON THIS MACHINE (the
@@ -58,7 +65,8 @@ set -uo pipefail
 
 API=https://api.github.com
 ACCEPT='Accept: application/vnd.github+json'
-VERDICT_AUTHORS="tvofi"
+VERDICT_AUTHORS="hpo-approver[bot]"
+VERDICT_AUTHOR_ID=330097732
 die() { printf 'app_approve: REFUSE: %s\n' "$*" >&2; exit 1; }
 
 # A JSON document per page from `gh api --paginate`, flattened to one list.
@@ -109,9 +117,10 @@ approve() {
   # with spaces survives the shell round trip whole -- the evidence gate
   # below reads it, not only the first line.
   verdict=$(gh api --paginate "repos/$repo/issues/$pr/comments?per_page=100" | python3 -c "$PAGES_PY"'
-authors = set(sys.argv[1].split()); assoc = {"OWNER", "MEMBER", "COLLABORATOR"}
+authors = set(sys.argv[1].split()); uid = int(sys.argv[2])
 vs = [c for c in out
-      if (c.get("user") or {}).get("login") in authors and c.get("author_association") in assoc
+      if (c.get("user") or {}).get("login") in authors and (c.get("user") or {}).get("type") == "Bot"
+      and (c.get("user") or {}).get("id") == uid
       and (c.get("body") or "").split("\n", 1)[0].strip().lower().startswith("fix review:")]
 vs.sort(key=lambda c: (c["created_at"], c["id"]))
 if not vs: print("NONE")
@@ -119,10 +128,10 @@ else:
     c = vs[-1]
     print(c["id"]); print(c["html_url"])
     print(c["body"].split("\n", 1)[0].strip())
-    print((c.get("body") or "").replace("\n", "\x01"))' "$VERDICT_AUTHORS") \
+    print((c.get("body") or "").replace("\n", "\x01"))' "$VERDICT_AUTHORS" "$VERDICT_AUTHOR_ID") \
     || die "could not read the comments on #$pr"
   [ "$verdict" != "NONE" ] \
-    || die "no 'Fix review:' verdict on #$pr from an allowlisted collaborator ($VERDICT_AUTHORS); an approval needs 'Fix review: merge $sha'"
+    || die "no 'Fix review:' verdict on #$pr from the approver App ($VERDICT_AUTHORS, id $VERDICT_AUTHOR_ID); an approval needs 'Fix review: merge $sha'"
   vid=$(printf '%s\n'   "$verdict" | sed -n 1p)
   vurl=$(printf '%s\n'  "$verdict" | sed -n 2p)
   vline=$(printf '%s\n' "$verdict" | sed -n 3p)
@@ -308,9 +317,12 @@ STUB
 chmod +x "$W/bin/gh" "$W/bin/openssl" "$W/bin/curl"
 
 pr_json() { printf '{"state": "%s", "merged": %s, "head": {"sha": "%s"}}' "$1" "$2" "$3"; }
-comment() { # id first-line [login [association [extra-body-line]]]
-  printf '{"id": %s, "created_at": "2026-09-17T0%s:00:00Z", "html_url": "https://example.test/c%s", "user": {"login": "%s"}, "author_association": "%s", "body": "%s\\nRESULT x%s"}' \
-    "$1" "$1" "$1" "${3:-seat-retired-login}" "${4:-COLLABORATOR}" "$2" "${5:+\\n$5}"
+comment() { # id first-line [login [association [extra-body-line [type [user-id]]]]]
+  local login="${3:-seat-retired-login}" type="${6:-}" uid="${7:-}"
+  [ -n "$type" ] || case "$login" in *'[bot]') type=Bot ;; *) type=User ;; esac
+  [ -n "$uid" ] || { [ "$login" = "$APPR" ] && uid=$APPR_ID || uid=$((1000 + $1)); }
+  printf '{"id": %s, "created_at": "2026-09-17T0%s:00:00Z", "html_url": "https://example.test/c%s", "user": {"login": "%s", "type": "%s", "id": %s}, "author_association": "%s", "body": "%s\\nRESULT x%s"}' \
+    "$1" "$1" "$1" "$login" "$type" "$uid" "${4:-NONE}" "$2" "${5:+\\n$5}"
 }
 files_json() { # path... -> a pulls/N/files page
   python3 -c 'import sys,json; print(json.dumps([{"filename": p, "status": "modified"} for p in sys.argv[1:]]))' "$@"
@@ -328,7 +340,10 @@ run() { # name args... -> rc; out/err captured. BASHX=1 runs the tool under bash
 calls() { grep -c "^$2" "$W/$1/log"; }
 leftover() { find "$W/$1/tmp" -mindepth 1 | wc -l | tr -d ' '; }
 leaks() { cat "$W/$1/out" "$W/$1/err" | grep -c -e "$TOKEN" -e STUBKEYMATERIAL -e STUBSIGNATURE -e "$JWTHEAD" -e "$SIGB64"; }
-GOOD="[$(comment 1 'An ordinary comment'),$(comment 2 "Fix review: merge $SHA" tvofi COLLABORATOR "evidence: $EV")]"
+APPR='hpo-approver[bot]'; APPR_ID=330097732   # the live login and id, read 2026-09-24
+st "$(sed -n 's/^VERDICT_AUTHORS="\(.*\)"$/\1/p;s/^VERDICT_AUTHOR_ID=\([0-9]*\)$/\1/p' "$SELF" | tr '\n' ' ')" \
+   "$APPR $APPR_ID " "the allowlist is exactly the approver App's login and id"
+GOOD="[$(comment 1 'An ordinary comment'),$(comment 2 "Fix review: merge $SHA" "$APPR" NONE "evidence: $EV")]"
 
 mkcase ok open false "$SHA" "$GOOD"
 run ok o/r 7 "$SHA"; st $? 0 "a merge verdict at the live head of an open, unowned pull request is approved"
@@ -372,12 +387,12 @@ run none o/r 7 "$SHA"; st $? 1 "REFUSE: no Fix review verdict at all"
 st "$(grep -c "no 'Fix review:' verdict" "$W/none/err")" 1 "saying so, not falling through to the SHA comparison"
 st "$(calls none curl)" 0 "and nothing was minted or posted"
 
-mkcase stale open false "$SHA" "[$(comment 1 "Fix review: merge $OTHER" tvofi)]"
+mkcase stale open false "$SHA" "[$(comment 1 "Fix review: merge $OTHER" "$APPR")]"
 run stale o/r 7 "$SHA"; st $? 1 "REFUSE: the merge verdict is for another SHA"
 st "$(grep -c "is 'Fix review: merge $OTHER'" "$W/stale/err")" 1 "naming the SHA the verdict is for"
 
 mkcase blocked open false "$SHA" "$GOOD"
-printf '[%s]' "$(comment 3 "Fix review: blocked $SHA claims: moved" tvofi)" > "$W/blocked/c2.json"
+printf '[%s]' "$(comment 3 "Fix review: blocked $SHA claims: moved" "$APPR")" > "$W/blocked/c2.json"
 run blocked o/r 7 "$SHA"; st $? 1 "REFUSE: a newer blocked verdict, on a later page, overrides an older merge"
 
 mkcase outsider open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" mallory NONE)]"
@@ -385,27 +400,36 @@ run outsider o/r 7 "$SHA"; st $? 1 "REFUSE: a merge verdict from an outsider (as
 st "$(calls outsider curl)" 0 "and nothing was minted or posted"
 mkcase contrib open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" mallory CONTRIBUTOR)]"
 run contrib o/r 7 "$SHA"; st $? 1 "REFUSE: a merge verdict from a CONTRIBUTOR outside the allowlist"
-mkcase badassoc open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" tvofi NONE)]"
-run badassoc o/r 7 "$SHA"; st $? 1 "REFUSE: an allowlisted login without a collaborator association"
+mkcase owner open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" tvofi OWNER "evidence: $EV")]"
+run owner o/r 7 "$SHA"; st $? 1 "REFUSE: a tvofi verdict, the identity decision 0013 retired from verdicts"
+st "$(grep -c "no 'Fix review:' verdict" "$W/owner/err")" 1 "read as no App verdict, its OWNER association and evidence notwithstanding"
+st "$(calls owner curl)" 0 "and nothing was minted or posted"
+mkcase author open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" 'hpo-author[bot]' NONE "evidence: $EV" Bot 331381602)]"
+run author o/r 7 "$SHA"; st $? 1 "REFUSE: a verdict as the author App (#1233's defect)"
+mkcase usertype open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" COLLABORATOR "evidence: $EV" User)]"
+run usertype o/r 7 "$SHA"; st $? 1 "REFUSE: the App's login on a non-Bot user record"
+mkcase wrongid open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: $EV" Bot 424242)]"
+run wrongid o/r 7 "$SHA"; st $? 1 "REFUSE: the App's login and type under another numeric id"
+st "$(calls wrongid curl)" 0 "and nothing was minted or posted"
 mkcase retired open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" seat-retired-login COLLABORATOR "evidence: $EV")]"
 run retired o/r 7 "$SHA"; st $? 1 "REFUSE: a verdict from the retired seat account is outside the allowlist"
 st "$(grep -c "no 'Fix review:' verdict" "$W/retired/err")" 1 "read as no allowlisted verdict, its evidence dir notwithstanding"
 st "$(calls retired curl)" 0 "and nothing was minted or posted"
-mkcase evmissing open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" tvofi COLLABORATOR "evidence: /tmp/hpo-orch/fixer-identity/no-such-review-dir")]"
+mkcase evmissing open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: /tmp/hpo-orch/fixer-identity/no-such-review-dir")]"
 run evmissing o/r 7 "$SHA"; st $? 1 "REFUSE: the verdict cites an evidence directory that does not exist"
 st "$(grep -c 'is not a directory that exists' "$W/evmissing/err")" 1 "naming the missing directory"
 st "$(calls evmissing curl)" 0 "and nothing was minted or posted"
 mkdir -p "$W/evnosha-dir"; printf 'a review that names no head at all\n' > "$W/evnosha-dir/notes.md"
-mkcase evnosha open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" tvofi COLLABORATOR "evidence: $W/evnosha-dir")]"
+mkcase evnosha open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: $W/evnosha-dir")]"
 run evnosha o/r 7 "$SHA"; st $? 1 "REFUSE: the evidence directory holds no file naming the head"
 st "$(grep -c 'names the head' "$W/evnosha/err")" 1 "naming the exact-sha rule it failed"
 st "$(calls evnosha curl)" 0 "and nothing was minted or posted"
 mkcase displace open false "$SHA" \
-  "[$(comment 1 "Fix review: blocked $SHA other: bad" tvofi),$(comment 2 "Fix review: merge $SHA" mallory NONE)]"
+  "[$(comment 1 "Fix review: blocked $SHA other: bad" "$APPR"),$(comment 2 "Fix review: merge $SHA" mallory NONE)]"
 run displace o/r 7 "$SHA"; st $? 1 "REFUSE: an outsider's later merge does not displace an allowlisted blocked"
 st "$(grep -c "is 'Fix review: blocked $SHA" "$W/displace/err")" 1 "the allowlisted blocked verdict is the one read"
 mkcase notdisplace open false "$SHA" \
-  "[$(comment 1 "Fix review: merge $SHA" tvofi OWNER "evidence: $EV"),$(comment 2 "Fix review: blocked $SHA other: x" mallory NONE)]"
+  "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: $EV"),$(comment 2 "Fix review: blocked $SHA other: x" mallory NONE)]"
 run notdisplace o/r 7 "$SHA"; st $? 0 "an outsider's later blocked does not displace an allowlisted merge either"
 
 mkcase policy open false "$SHA" "$GOOD"; files_json docs/x.md tools/audit/briefs/fixer.md > "$W/policy/files.json"

@@ -143,7 +143,7 @@ exactly that.
   re-measure rather than trust, and the destination its own carry must reach.
 - **Name the null control you expect**, where one is knowable. A seat told what
   must *not* fire returns better evidence than one told only what must.
-- **Every brief names the identity -- the three-identity model of #201 comment 5744682317**: the author is the `hpo-author` App, minting orchestrator-centralized (seats LOCAL-ONLY, hand off, the orchestrator pushes); the approver is the `hpo-approver` App; verdicts, merges and closes are `tvofi` (decision 0011). The retired account makes no GitHub write: its writes can vanish (phantom) and its artifacts purge retroactively.
+- **Every brief names the identity -- the three-identity model**: the author is the `hpo-author` App, minting orchestrator-centralized (seats LOCAL-ONLY, hand off, the orchestrator pushes); the approver, which also posts verdicts, is the `hpo-approver` App; merges and closes are `tvofi` (decisions 0011, 0013). The retired account makes no GitHub write: its writes can vanish and purge retroactively.
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
   the handoff it prepares against the merge base only (`fix-review.md`).
 - **Name its scratch directory ABSOLUTE, and its own worktree under it.** A
