@@ -662,6 +662,75 @@ R.check(
     "those are entities, not fields on Away and holiday mode",
 )
 
+# #1535: the Quick start mermaid diagram numbers its screens, and the numbered
+# prose paragraphs below it must agree. Round 1 shifted the four already-
+# numbered screens down by one to match the diagram, but left the diagram's
+# menu node unnumbered -- so the shifted "Temperatures" (moved to 3) collided
+# with the untouched "The finish menu ..." prose heading (already 3), and
+# nothing caught it because the finder's harness (and the first version of
+# this check) only compares a label numbered on BOTH sides, and the menu had
+# no diagram-side number to compare against. Round 2 numbers the diagram's
+# menu node too (3 ·, matching the prose it was already carrying) and shifts
+# the diagram's other four nodes to 4-7 to match, so every one of the 7
+# Quick start concepts is numbered on both sides and every number is unique.
+_qs_section = readme.split("## Quick start", 1)[1].split("\n## ", 1)[0]
+_qs_diagram_re = re.compile(r'[\[{]"(\d+)\s*\xb7\s*([^"<]+?)(?:<br/>|")')
+_qs_prose_re = re.compile(r'^\*\*(\d+)\s*\xb7\s*([^*]+?)\.?\*\*', re.M)
+
+
+def _qs_normalize(label: str) -> str:
+    label = label.strip().rstrip(".?").lower()
+    label = re.sub(r"[^a-z0-9 ]", "", label)
+    return " ".join(label.split()[:3])
+
+
+_qs_diagram: dict[str, int] = {}
+for _m in _qs_diagram_re.finditer(_qs_section):
+    _qs_diagram.setdefault(_qs_normalize(_m.group(2)), int(_m.group(1)))
+_qs_prose: dict[str, int] = {}
+_qs_prose_numbers: list[int] = []
+for _m in _qs_prose_re.finditer(_qs_section):
+    _qs_num = int(_m.group(1))
+    _qs_prose.setdefault(_qs_normalize(_m.group(2)), _qs_num)
+    _qs_prose_numbers.append(_qs_num)
+_qs_mismatches = [
+    (label, dnum, _qs_prose[label])
+    for label, dnum in _qs_diagram.items()
+    if label in _qs_prose and _qs_prose[label] != dnum
+]
+R.check(
+    "the Quick start prose step numbers agree with the diagram's",
+    not _qs_mismatches,
+    repr(_qs_mismatches),
+)
+# The label-normalizing match above is silent if a screen's wording diverges
+# enough between diagram and prose that the two never pair up at all (#1535's
+# own case: the diagram's "How do you want to describe your building" vs the
+# prose's "How to describe your building" share no 3-word prefix). Check that
+# pairing directly rather than assume the fuzzy match above caught everything.
+R.check(
+    "the diagram's 'how do you want to' step pairs with the prose's "
+    "'how to describe' step (#1535 label-wording gap)",
+    _qs_diagram.get("how do you") == _qs_prose.get("how to describe") == 5,
+    f"diagram={_qs_diagram.get('how do you')!r} prose={_qs_prose.get('how to describe')!r}",
+)
+# Round 2's own regression: the number-agreement check above is silent on a
+# label with no diagram-side counterpart to compare against at all (the
+# label-collapsing dicts above also hide a same-number collision between two
+# DIFFERENT labels), which is exactly the shape that let round 1 ship a
+# duplicate "3 ·". Check uniqueness over the raw number list, not the dicts.
+_qs_seen: set[int] = set()
+_qs_dupes: list[int] = []
+for _qs_n in _qs_prose_numbers:
+    if _qs_n in _qs_seen and _qs_n not in _qs_dupes:
+        _qs_dupes.append(_qs_n)
+    _qs_seen.add(_qs_n)
+R.check(
+    "every Quick start prose heading number is used exactly once",
+    not _qs_dupes,
+    f"duplicated number(s) {_qs_dupes!r} in {_qs_prose_numbers!r}",
+)
+
 # #937: the README sends the reader to the reference with "Every field and its
 # range is documented in docs/configuration.md", and round 4 measured 15 of
 # the 200 shipped options fields whose label occurred nowhere in any reader
@@ -7132,6 +7201,17 @@ R.check(
     "English copied into sv.json passes the key check and fails the user",
 )
 
+# #1534: the ECL110 MQTT QoS label was byte-identical English left in sv.json
+# (the key-identity check above passes on an untranslated copy the same way
+# the tibber_token case above does -- this is that same class of gap, named
+# by its own field).
+R.check(
+    "the ECL110 MQTT QoS label is actually translated in Swedish",
+    files["sv"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"]
+    != files["en"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"],
+    "English copied into sv.json passes the key check and fails the user",
+)
+
 # The stored-value warning is rendered on a form the user merely opened, so
 # an untranslated one is especially visible. It has to exist for both flows —
 # the widening applies to initial setup as well — and be a real translation.
@@ -11403,7 +11483,7 @@ _svc_coord.async_apply_manual_plan = _svc_record("apply_manual", {"applied": Tru
 _svc_coord.async_clear_manual_plan = _svc_record("clear_manual")
 _svc_coord.async_restore_learned_snapshot = _svc_record("restore", True)
 _svc_coord.async_set_away = _svc_record("set_away")
-_svc_coord.diagnose_last_interval = lambda: {"residual": None}
+_svc_coord.async_diagnose_interval = _svc_record("diagnose", {"residual": None})
 
 
 def _svc_call(service, payload=None):
@@ -11690,6 +11770,13 @@ _diag = _svc_call(const.SERVICE_DIAGNOSE_INTERVAL)
 R.check(
     "diagnose_interval returns the per-entry report",
     _svc_entry.entry_id in _diag["diagnosis"],
+)
+R.check(
+    "diagnose_interval runs the button's snapshot path, not a thread (#1529)",
+    "diagnose" in _svc_log
+    and _diag["diagnosis"].get(_svc_entry.entry_id) == {"residual": None},
+    f"{_diag}: the service handed a bound coordinator method to the executor, "
+    "which read live parameters and the interval record off the loop",
 )
 
 _svc_registered = set(
@@ -18634,6 +18721,146 @@ def _callee_name(node):
             return node.func.id
     return None
 
+# --- P12 (#1529): no bound coordinator method crosses to a thread ----------
+# A bound coordinator method handed to an executor runs on a worker thread
+# against live coordinator state the event loop keeps writing: the
+# diagnose_interval service handed ``coord.diagnose_last_interval`` to
+# ``async_add_executor_job``, which read the live parameters and the last
+# interval record off the loop while the Diagnose button already went through
+# the snapshot path. Enumerated, not named: every call in the package whose
+# callable argument lands on a thread -- an executor hand-off, or an event
+# helper given a plain synchronous function, which Home Assistant dispatches
+# to its executor -- is resolved to the bound methods it carries (directly,
+# through ``functools.partial``, or called inside a lambda). A method of the
+# coordinator or its context is refused unless the allow-table below keys it
+# with a reason; for an event helper, ``@callback`` or ``async def`` is the
+# reason, because either keeps the call on the loop. The key is the method
+# NAME, which carries no receiver: a same-named method of another object is
+# refused too, and belongs in the table with its reason, never silently.
+_P12_THREAD_ARG = {
+    "async_add_executor_job": 0,
+    "async_add_import_executor_job": 0,
+    "run_in_executor": 1,
+    "to_thread": 0,
+    "submit": 0,
+    "_await_process": 1,
+    "_run_in_process": 0,
+}
+_P12_LOOP_ARG = {
+    "async_track_state_change_event": 2,
+    "async_track_time_interval": 1,
+    "async_track_time_change": 1,
+    "async_track_point_in_time": 1,
+    "async_track_point_in_utc_time": 1,
+    "async_call_later": 2,
+    "async_listen": 1,
+    "async_listen_once": 1,
+}
+_P12_ALLOWED: dict[tuple[str, str], str] = {}
+_P12_METHODS = {
+    _m.name: _m
+    for _c in ast.walk(_PKG_TREES["coordinator.py"])
+    if isinstance(_c, ast.ClassDef)
+    and _c.name in ("HeatPumpOptimizerCoordinator", "CoordinatorContext")
+    for _m in _c.body
+    if isinstance(_m, (ast.FunctionDef, ast.AsyncFunctionDef))
+}
+
+
+def _p12_bound(node, methods):
+    """Coordinator-method names a callable expression carries onto a thread."""
+    if isinstance(node, ast.Attribute):
+        return [node.attr] if node.attr in methods else []
+    if isinstance(node, ast.Call) and _callee_name(node) == "partial" and node.args:
+        return _p12_bound(node.args[0], methods)
+    if isinstance(node, ast.Lambda):
+        return [
+            _n.func.attr
+            for _n in ast.walk(node.body)
+            if isinstance(_n, ast.Call)
+            and isinstance(_n.func, ast.Attribute)
+            and _n.func.attr in methods
+        ]
+    return []
+
+
+def _p12_on_loop(method):
+    return isinstance(method, ast.AsyncFunctionDef) or any(
+        (_d.id if isinstance(_d, ast.Name) else getattr(_d, "attr", None))
+        == "callback"
+        for _d in method.decorator_list
+    )
+
+
+def _p12_handoffs(trees, methods):
+    """Every (file:line, kind, method) where a coordinator method goes to a thread."""
+    found = []
+    for _fname, _tree in trees.items():
+        for _node in ast.walk(_tree):
+            _name = _callee_name(_node)
+            for _kind, _table in (("executor", _P12_THREAD_ARG), ("event", _P12_LOOP_ARG)):
+                _i = _table.get(_name)
+                if _i is None or len(_node.args) <= _i:
+                    continue
+                for _meth in _p12_bound(_node.args[_i], methods):
+                    if _kind == "event" and _p12_on_loop(methods[_meth]):
+                        continue
+                    found.append((f"{_fname}:{_node.lineno}", _kind, _meth))
+    return found
+
+
+_p12_sites = _p12_handoffs(_PKG_TREES, _P12_METHODS)
+_p12_refused = [
+    _s for _s in _p12_sites if (_s[0].split(":")[0], _s[2]) not in _P12_ALLOWED
+]
+R.check(
+    "no bound coordinator method is handed to a thread (P12, #1529)",
+    _p12_refused == [],
+    f"{_p12_refused}: run it through a snapshot on the loop and hand the "
+    "executor a module function over copies (async_diagnose_interval's "
+    "shape), or key it in _P12_ALLOWED with the reason it is safe",
+)
+# The positive control is the pre-fix services.py call site, verbatim, with
+# the method it handed over (deleted by the fix) restored to the set; its
+# partial, lambda and event-helper spellings are refused too. The nulls are a
+# module function on the executor, and an event helper given an @callback
+# method and an async one, which all keep coordinator state on the loop.
+_p12_ctl_methods = dict(
+    _P12_METHODS,
+    diagnose_last_interval=ast.parse("def diagnose_last_interval(self): ...").body[0],
+)
+_p12_ctl = {
+    "services.py": ast.parse(
+        "async def handle_diagnose_interval(hass, call):\n"
+        "    for entry_id, coord in _manual_targets(hass, None):\n"
+        "        reports[entry_id] = await hass.async_add_executor_job(\n"
+        "            coord.diagnose_last_interval\n"
+        "        )\n"
+        "    await hass.async_add_executor_job(partial(coord.diagnose_last_interval))\n"
+        "    await hass.async_add_executor_job(lambda: coord.diagnose_last_interval())\n"
+        "    async_track_state_change_event(hass, [e], coord.diagnose_last_interval)\n"
+    ),
+    "null.py": ast.parse(
+        "async def ok(hass, coord):\n"
+        "    await hass.async_add_executor_job(diagnosis.diagnose_record, a, b)\n"
+        "    async_track_state_change_event(hass, [e], coord._on_power_event)\n"
+        "    async_track_state_change_event(hass, [e], coord.async_diagnose_interval)\n"
+    ),
+}
+_p12_ctl_found = _p12_handoffs(_p12_ctl, _p12_ctl_methods)
+R.check(
+    "the P12 barrier refuses the pre-fix diagnose hand-off and passes its nulls",
+    sorted((_s[0], _s[1]) for _s in _p12_ctl_found)
+    == [
+        ("services.py:3", "executor"),
+        ("services.py:6", "executor"),
+        ("services.py:7", "executor"),
+        ("services.py:8", "event"),
+    ],
+    f"found {_p12_ctl_found}; a barrier that misses its own positive "
+    "control, or refuses a module function, pins nothing",
+)
+
 
 _action_producers, _pending = set(), []
 for _tree in _PKG_TREES.values():
@@ -23692,6 +23919,36 @@ R.check(
     "null control: a bare read, direct or through a local, is refused",
     len(_p8_refusals(_p8_sites + _p8_float_sites({"probe.py": _p8_probe}))) == 2,
     f"{_p8_refusals(_p8_float_sites({'probe.py': _p8_probe}))}",
+)
+
+
+# #1536: a comment abbreviated a real identifier to a shorthand that occurs
+# nowhere in code (const.py's bare ``MIN_POWER``, optimizer.py's bare
+# ``min_power``) -- checked against the real, importable production symbols
+# so a rename of either symbol re-breaks this rather than a hand-typed
+# string silently going stale.
+_const_src = (ROOT / "const.py").read_text()
+_optimizer_src = (ROOT / "optimizer.py").read_text()
+R.check(
+    "const.py's power-entity comment names the real CONF_HEAT_PUMP_MIN_POWER, "
+    "not a bare MIN_POWER shorthand",
+    const.CONF_HEAT_PUMP_MIN_POWER == "heat_pump_min_power"
+    and "CONF_HEAT_PUMP_MIN_POWER" in _const_src
+    and not re.search(r"[^A-Za-z_]MIN_POWER[^A-Za-z_]", _const_src),
+    "a bare MIN_POWER in a comment names no real symbol",
+)
+R.check(
+    "optimizer.py names the real min_electrical_power attribute at all "
+    "(the symbol the comment should point readers at)",
+    "min_electrical_power" in _optimizer_src
+    and hasattr(optimizer_mod, "HeatPumpOptimizer"),
+    "the real attribute the comment should name",
+)
+R.check(
+    "and optimizer.py's baseline comment itself uses the real name",
+    "min_electrical_power * 24 h per day" in _optimizer_src
+    and not re.search(r"[^A-Za-z_.]min_power[^A-Za-z_]", _optimizer_src),
+    "a bare min_power in a comment names no real symbol",
 )
 
 
