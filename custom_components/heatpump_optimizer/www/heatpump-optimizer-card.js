@@ -11078,7 +11078,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * a positioned ancestor.
    */
   _chartBlock(built, expanded) {
-    const { svg: chart, plot, geom, viewH } = renderChart(built, {
+    const { svg, plot, geom, viewH } = renderChart(built, {
       expanded,
       // Recorded as it is read, so `_refitCharts` can compare what
       // this render assumed against what the browser then did (D4-01).
@@ -11118,6 +11118,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // The controls overlay the chart rather than sitting under it: the expanded
     // dialog budgets its height from a fixed guess at how tall the chrome is
     // (item 26), and a new row of buttons would eat straight into that budget.
+    // They come BEFORE the svg in the markup although they paint over its top
+    // edge: the svg ends in the lane strip's focusable slot targets, and Tab
+    // follows the markup, so controls after it sent focus from the bottom of
+    // the chart back up to its top (#1522).
+    const chart = `${this.view.controlsHtml()}${svg}`;
     const pannable = this.view.adjustable() ? " pannable" : "";
     // `.chartwrap.big` sizes the chart from a fixed aspect ratio, so the
     // expanded editor's added lane band (D4-02) has to travel with it or the
@@ -11127,7 +11132,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
         ? ` style="aspect-ratio:${VIEW_W} / ${Number(viewH.toFixed(2))}"`
         : "";
     return `${this.plan.woodAlertHtml()}${this.histSource.noteHtml()}<div class="chartwrap${expanded ? " big" : ""}${pannable}"${ratio}>${chart}
-      ${this.view.controlsHtml()}
       <div class="tooltip" hidden></div></div>`;
   }
 
