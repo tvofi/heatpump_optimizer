@@ -2240,6 +2240,21 @@ _space_action = {
 boost_mod.overlay(
     _space_action, _boost_space, max_power=6.0, max_temp=24.0, ecl_max=8.0,
 )
+# #1499: a DHW boost turns the pump on, so a plan step that said "off" (or
+# no plan, "idle") must not keep publishing that the pump is off.
+_dhw_off_action = {"power": 0.0, "mode": "off", "heat_pump_on": False}
+boost_mod.overlay(
+    _dhw_off_action, _boost_dhw, max_power=6.0, max_temp=24.0, ecl_max=8.0,
+)
+_dhw_eco_action = {"power": 1.0, "mode": "eco", "heat_pump_on": True}
+boost_mod.overlay(
+    _dhw_eco_action, _boost_dhw, max_power=6.0, max_temp=24.0, ecl_max=8.0,
+)
+R.check(
+    "a DHW boost over an off step reads hot_water; over a space step, the space rung",
+    _dhw_off_action["mode"] == "hot_water" and _dhw_eco_action["mode"] == "eco",
+    f"{_dhw_off_action['mode']} / {_dhw_eco_action['mode']}",
+)
 R.check(
     "space boost maxes space heat without rewriting DHW power",
     _space_action["power"] == 6.0
@@ -6881,6 +6896,12 @@ R.check(
     "a better-insulated tank is discounted less than a bare one",
     _survival(_ua750 * 8.0, 70.0, 0.5) < _survival(_ua750, 70.0, 0.5),
     "the discount is this tank's learned physics, not a tuning constant",
+)
+R.check(
+    "a tank that loses nothing keeps its whole credit, even with no demand",
+    _survival(0.0, 70.0, 0.0) == 1.0 and _survival(0.0, 70.0, 0.5) == 1.0,
+    "the zero-demand collapse above is leakage over an unbounded hold; with "
+    "UA 0 there is no leakage to collapse to",
 )
 # The discount must not be a function of the end temperature the solver is
 # choosing, or the terminal term gains a second-order kink and the descent
@@ -31244,6 +31265,47 @@ R.check(
     "a 0.0 baseline step is copied, not treated as missing",
     "baseline_kw" in _act_zero and _act_zero["baseline_kw"] == 0.0,
     repr(_act_zero.get("baseline_kw")),
+)
+
+# #1499: Heat Pump Action read "off" while the pump ran. The band is keyed on
+# SPACE power, so a DHW-only step (space blocked, tank heating) and a space
+# step at the pump's minimum modulation both fell under the "off" rung. The
+# on/off schedule is built by the solve's own helper, as _build_result does.
+_hw_p = _bl_opt.model.params
+_hw_space = [0.0, _hw_p.min_electrical_power, 0.0, _hw_p.max_electrical_power]
+_hw_dhw = [2.0, 0.0, 0.0, 0.0]
+_res_hw = _SavOR(
+    power_schedule=_hw_space,
+    room_temp_trajectory=[21.0] * 5,
+    slab_temp_trajectory=[22.0] * 5,
+    timestamps=_ts_sav,
+    prices=[1.0] * 4,
+    predicted_cost=1.0,
+    baseline_cost=2.0,
+    predicted_savings=1.0,
+    savings_percentage=50.0,
+    optimal_setpoints=[21.0] * 4,
+    status="optimal",
+    dhw_power_schedule=_hw_dhw,
+    heat_pump_on_schedule=_bl_opt._power_to_heat_pump_schedule(
+        np.asarray(_hw_space), np.asarray(_hw_dhw)
+    ),
+)
+_hw_acts = [_bl_opt.get_current_action(_res_hw, _t) for _t in _ts_sav]
+R.check(
+    "a DHW-only step reads hot_water, not off (#1499)",
+    _hw_acts[0]["mode"] == "hot_water" and _hw_acts[0]["heat_pump_on"],
+    repr(_hw_acts[0]),
+)
+R.check(
+    "a space step at the pump's minimum modulation reads eco, not off",
+    _hw_acts[1]["mode"] == "eco" and _hw_acts[1]["heat_pump_on"],
+    repr(_hw_acts[1]),
+)
+R.check(
+    "off is kept for a step where neither circuit runs, boost for full power",
+    [_a["mode"] for _a in _hw_acts[2:]] == ["off", "boost"],
+    repr([_a["mode"] for _a in _hw_acts]),
 )
 _src_br = _sav_inspect.getsource(_SavOpt._build_result)
 R.check(

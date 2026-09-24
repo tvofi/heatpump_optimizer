@@ -11,8 +11,27 @@ platform file that owns it.
 """
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+
+def commanded_power_kw(action: Any) -> float | None:
+    """The current plan step's whole electrical ask, space plus DHW, in kW.
+
+    ``action["power"]`` is the SPACE allocation alone, so publishing it as the
+    step's power read 0 kW on a step heating only the tank (#1499). Every
+    entity that publishes the step's commanded power -- Heat Pump Action's
+    ``power_kw``, Recommended Power, the climate's ``recommended_power_kw``
+    and Measured Power's ``recommended_power`` -- reads it here, so they
+    cannot disagree. None when the action carries no power at all.
+    """
+    action = action or {}
+    space = action.get("power")
+    if space is None:
+        return None
+    return round(float(space) + float(action.get("dhw_power") or 0.0), 2)
 
 
 class HeatPumpOptimizerEntity(CoordinatorEntity):

@@ -4,7 +4,7 @@
     "changed": 0.2,
     "full": 0.3
   },
-  "unpinned_sites": 3752,
+  "unpinned_sites": 3749,
   "last_measured": {
     "changed": {
       "survivors": 2,
@@ -119,6 +119,11 @@
       "verdict": "gap",
       "old": "            if not bool(np.all(np.isfinite(error))):",
       "reason": "The round-7 D7-01 fix's shifted-prior re-solve keeps the two-state fit's own non-finite guard -- a divergent rollout reads as a large finite cost instead of poisoning the Jacobian (the R6 D7-03 shape at the fit's residual, #1396). `if not bool(np.all(np.isfinite(error))):` -> `if False:` leaves tests/features.py at rc=0 against a baseline of 0: nine further standalone scripts whose recorded closure reaches sysid.py were run on the same mutated tree: seven pass (typing_ruler, doc_claims, finite_boundary, config_flow_steps, deployment_shape, manual_plan, plan_view) and two (structure.py, entities.py) exit 1 on the UNMUTATED tree at that head too, for the coordinator comment block and the stale ledger dispositions this branch fixes -- so neither red carries signal about this mutant. The shifted re-solve starts at the converged fit and moves the intercept prior by one SLAB_INTERCEPT_PRIOR_SD_KW, which is what keeps it inside the finite range on every configuration measured. Recorded as a `gap` rather than equivalent: the two arms are distinguishable, they are simply not reached. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/optimizer.py:2778 GUARD_OFF": {
+      "verdict": "equivalent",
+      "old": "            if not np.any(external_heat_kw > 0.0):",
+      "reason": "An all-zero free-heat forecast plans exactly as none: the guard only normalises zeros to None, and every downstream use adds the per-step value. Measured with the #1499 branch's probe (optimize() on the winter_cold / winter_typical profile, 12 h, space-only and with DHW): with the guard switched off, external_heat_kw=zeros and external_heat_kw=None give byte-identical power, DHW and room-temperature schedules and objective (sha1 prefixes 7a584e785045f9d5 and 31317c75945a2724 in both arms), while a 1 kW forecast moves both (c5b5e420dec7c4a8, 0204b401a95de984) -- the probe's null control that it can see free heat at all. Measured at 6c86f6ae, 2026-09-24."
     },
     "custom_components/heatpump_optimizer/coordinator.py:9364 CLAMP_DROP": {
       "verdict": "equivalent",
@@ -277,11 +282,6 @@
       "old": "        if self.model.params.two_zone_enabled:",
       "reason": "arrived with round 7 D0-01 (#1447): the gate that scopes the deep low-energy anchor to the two-zone path, so every single-zone plan stays byte-identical to origin/main and the certificate's three claims keep their calibration. Killed by tests/optimality.py -- `if self.model.params.two_zone_enabled:` -> `if False:` never appends the anchor, which is the same tree as deleting it: FAIL two|winter_typical|winter_cold: no unclaimed gap above the bar [ladder 0.4374%, bar 0.4000%], 1 of 84, measured on this branch."
     },
-    "custom_components/heatpump_optimizer/optimizer.py:5636 RETURN_DEL": {
-      "killed_by": "tests/features.py",
-      "old": "            return jointly_raised",
-      "reason": "arrived with round 7 D0-01 (#1447)'s scope, drawn not introduced: a new module constant and a new guard reshuffle the seeded per-file sample over optimizer.py. NOT equivalent, and the round-5 verdict that said so is withdrawn -- its premise (the tank trajectory is non-decreasing in a slot's power) was measured at draw rates under 0.004 kW, three orders below production, and fails there: 1007 of 5760 single-slot raises lower the tank, worst by 8.29 K, because the coil carries part of the draw. Killed by tests/features.py's `the jointly-raised branch ships when the coil is not monotone (R7 D0-01)` block: a 48.19 L tank, a 13.65 kW peak draw, tank at 35.9 C and weak slots 67-70 -- the branch raises all four to run_power 0.6, the fall-through loop zeroes slot 69. Deleting the branch's return reddens that check: FAIL every weak slot is raised, none zeroed, in the branch-taken case [slots 67-70 -> [0.6, 0.6, 0.0, 0.6], run_power 0.6], 1 of 3105. Survival measured UNMARKED with 19 drivers in the recorded net before the pin existed."
-    },
     "custom_components/heatpump_optimizer/tariff.py:217 BOOLOP": {
       "killed_by": "tests/entities.py",
       "old": "        if measured_house_kw is not None and np.isfinite(measured_house_kw):",
@@ -296,6 +296,31 @@
       "killed_by": "tests/features.py",
       "old": "        floor = min(p.dhw_inlet_reference, ambient_temp)",
       "reason": "arrived with origin/main, commit 7eeea4d90 (D2-02: clamp the DHW inlet floor to the tank surroundings). Dropping the `min` clamp raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22, and re-pinned 1894 -> 1897 by PR #1488, whose D2-01 fix adds three comment lines above this site."
+    },
+    "custom_components/heatpump_optimizer/boost.py:124 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "        if action.get(\"mode\") in (None, \"off\", \"idle\"):",
+      "reason": "#1499: boost.overlay's DHW channel turns the pump on, and this guard rewrites a standing off/idle/absent mode to hot_water. `if action.get(\"mode\") in (None, \"off\", \"idle\"):` -> `if False:` fails `a DHW boost over an off step reads hot_water; over a space step, the space rung` ([off / eco]): tests/features.py rc=0 failed=0 -> rc=1 failed=1. Measured at 4538cb59, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/entity.py:32 GUARD_OFF": {
+      "killed_by": "tests/entities.py",
+      "old": "    if space is None:",
+      "reason": "#1499 review: commanded_power_kw's no-power guard. `if space is None:` -> `if False:` makes float(None) raise for an action with no power: tests/entities.py rc=0 -> rc=1 (`no sensor crashes before the first update`, MeasuredPowerSensor). Measured at f16d004e, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/entity.py:34 RETURN_DEL": {
+      "killed_by": "tests/entities.py",
+      "old": "    return round(float(space) + float(action.get(\"dhw_power\") or 0.0), 2)",
+      "reason": "#1499 review: commanded_power_kw's space-plus-DHW return. Deleting it returns None for every action: tests/entities.py 0 -> 3 of 1741 FAILED (`measured power keeps the commanded value alongside`, `Heat Pump Action power_kw is space plus DHW, and None with no power (#1499)`, `Recommended Power, climate recommended_power_kw and Measured Power's recommended_power are the step's whole ask, space plus DHW (#1499)`). Measured at f16d004e, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/optimizer.py:1559 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if ua <= 0.0:",
+      "reason": "stored_heat_survival's lossless-tank guard. `if ua <= 0.0:` -> `if False:` sends a UA-0 tank with no demand down the zero-demand branch, which returns 0.0 (every stored kWh leaks away) where a tank that loses nothing keeps 1.0: tests/features.py 0 -> 1 of 3126 FAILED (`a tank that loses nothing keeps its whole credit, even with no demand`). Added in #1499's round 2: this site was the changed-scope sample's one survivor, and a surviving optimizer.py mutant runs tests/stress.py and tests/env_drift.py, about 25 of CI's 90 minutes. Measured at 4b106fe6, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/optimizer.py:5636 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "            return jointly_raised",
+      "reason": "arrived with round 7 D0-01 (#1447)'s scope, drawn not introduced: a new module constant and a new guard reshuffle the seeded per-file sample over optimizer.py. NOT equivalent, and the round-5 verdict that said so is withdrawn -- its premise (the tank trajectory is non-decreasing in a slot's power) was measured at draw rates under 0.004 kW, three orders below production, and fails there: 1007 of 5760 single-slot raises lower the tank, worst by 8.29 K, because the coil carries part of the draw. Killed by tests/features.py's `the jointly-raised branch ships when the coil is not monotone (R7 D0-01)` block: a 48.19 L tank, a 13.65 kW peak draw, tank at 35.9 C and weak slots 67-70 -- the branch raises all four to run_power 0.6, the fall-through loop zeroes slot 69. Deleting the branch's return reddens that check: FAIL every weak slot is raised, none zeroed, in the branch-taken case [slots 67-70 -> [0.6, 0.6, 0.0, 0.6], run_power 0.6], 1 of 3105. Survival measured UNMARKED with 19 drivers in the recorded net before the pin existed."
     },
     "custom_components/heatpump_optimizer/dhw_learning.py:160 GUARD_OFF": {
       "killed_by": "tests/features.py",
@@ -312,7 +337,7 @@
       "old": "            if headroom is not None:",
       "reason": "drawn by the round-7 D2-03 diff's per-file sample over optimizer.py, not introduced by it. `if False:` drops the space-heating headroom rows from `_plan_dhw_min_cost` while the displacement columns are still built for them, so the LP raises. Killed by tests/features.py's `the DHW cost program plans under space-heating contention`: FAIL [plan None; raised ValueError: could not broadcast input array from shape (8,8) into shape (0,8)], 1 of 3133, measured at bc1903f8."
     },
-    "custom_components/heatpump_optimizer/optimizer.py:7004 BOOLOP": {
+    "custom_components/heatpump_optimizer/optimizer.py:7011 BOOLOP": {
       "killed_by": "tests/features.py",
       "old": "        if result.dhw_temp_trajectory and i < len(result.dhw_temp_trajectory):",
       "reason": "drawn by the round-7 D2-03 diff's per-file sample over optimizer.py, not introduced by it (CI's mutation job at 8e41434e reported it LIVES). `and` -> `or` indexes a non-empty DHW trajectory past its end when it is shorter than the schedule. Killed by tests/features.py's `a DHW trajectory shorter than the schedule is read only where it exists`: FAIL [step 8 of a one-entry trajectory: raised IndexError: list index out of range], 1 of 3141, measured at b5121ba3."

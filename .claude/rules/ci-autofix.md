@@ -79,7 +79,7 @@ failure — so its summary line is its only signal.
 
 Those subjects are loop guards. A `GITHUB_TOKEN` push's `pull_request` runs wait `action_required` for a
 human; the job dispatches Tests/Hassfest/Validate and CodeQL, which run at once. Governance's contexts come
-from the unheld `edited` run a body edit fires. `recheck-gate` treats `ci:` as PR-like (not `slow`). Both
+from the held run once approved (#1514). `recheck-gate` treats `ci:` as PR-like (not `slow`). Both
 jobs also approve those held runs as a dedicated Actions-only App, fail-soft while its secrets are absent.
 
 Do not automate golden drift, structure budgets, `no-copies`, orphan →

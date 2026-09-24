@@ -90,6 +90,9 @@ if [ "${1:-}" = "--self-test" ]; then
   T=$(mktemp -d)
   if [ -n "$T" ] && git -C "$T" init -q 2>/dev/null; then
     mkdir -p "$T/.claude/workflows"
+    # The linter stub is untracked and would read as a new policy file; a real
+    # clone tracks policy_lint.mjs, so the stub is ignored the way no real one is.
+    printf '.claude/workflows/policy_lint.mjs\n' >>"$T/.git/info/exclude"
     printf 'seed\n' >"$T/CLAUDE.md"; printf 'seed\n' >"$T/prod.py"
     git -C "$T" add -A >/dev/null 2>&1
     git -C "$T" -c user.email=t@t -c user.name=t commit -qm seed >/dev/null 2>&1
@@ -107,6 +110,21 @@ if [ "${1:-}" = "--self-test" ]; then
     printf 'changed\n' >"$T/prod.py"
     printf 'process.exit(1)\n' >"$LINT"
     e2e 0 "$T" '{}' "END TO END: a production-only turn exits 0 without consulting the linter"
+    printf 'seed\n' >"$T/prod.py"
+
+    # THE INDEX AND THE UNTRACKED, with the corpus red (#1547). A policy change
+    # that was `git add`ed is not in `git diff --name-only`, and a new policy
+    # file nobody added is in no diff at all; each must still refuse the turn.
+    printf 'staged\n' >"$T/CLAUDE.md"; git -C "$T" add CLAUDE.md
+    e2e 2 "$T" '{}' "END TO END: a staged policy change on a red corpus exits 2"
+    git -C "$T" reset -q -- CLAUDE.md; printf 'seed\n' >"$T/CLAUDE.md"
+    mkdir -p "$T/.claude/rules"; printf 'new\n' >"$T/.claude/rules/new.md"
+    git -C "$T" add .claude/rules/new.md
+    e2e 2 "$T" '{}' "END TO END: a staged new policy file on a red corpus exits 2"
+    git -C "$T" reset -q -- .claude/rules/new.md
+    e2e 2 "$T" '{}' "END TO END: an untracked new policy file on a red corpus exits 2"
+    rm -f "$T/.claude/rules/new.md"
+    e2e 0 "$T" '{}' "END TO END: and a clean tree with the same red corpus exits 0 (null control)"
 
     # A MUTATION ARM: a tracked, committed production file altered and left --
     # what a stopped fixer leaves between breaking a check and restoring it. The
@@ -163,7 +181,12 @@ fi
 
 BASE=$(git merge-base origin/main HEAD 2>/dev/null) || exit 0
 [ -n "$BASE" ] || exit 0
-CHANGED=$(git diff --name-only "$BASE"...HEAD 2>/dev/null; git diff --name-only 2>/dev/null)
+# Every state a turn can leave a changed path in (#1547): committed on the
+# branch, modified in the worktree, staged in the index, and new and not yet
+# added. `git diff --name-only` alone compares the worktree with the INDEX, so a
+# change that was `git add`ed is in neither of the first two lists.
+CHANGED=$(git diff --name-only "$BASE"...HEAD 2>/dev/null; git diff --name-only 2>/dev/null
+          git diff --cached --name-only 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null)
 touches_policy "$CHANGED" || exit 0
 
 # No node, no verdict. Refusing a turn because the checker is absent would
