@@ -27,13 +27,11 @@ def commanded_power_kw(action: Any) -> float | None:
     and Measured Power's ``recommended_power`` -- reads it here, so they
     cannot disagree. None when the action carries no power at all.
     """
-    if not isinstance(action, dict):
+    action = action or {}
+    space = action.get("power")
+    if space is None:
         return None
-    space, dhw = action.get("power"), action.get("dhw_power")
-    if not isinstance(space, (int, float)) or isinstance(space, bool):
-        return None
-    extra = dhw if isinstance(dhw, (int, float)) and not isinstance(dhw, bool) else 0.0
-    return round(float(space) + float(extra), 2)
+    return round(float(space) + float(action.get("dhw_power") or 0.0), 2)
 
 
 class HeatPumpOptimizerEntity(CoordinatorEntity):
