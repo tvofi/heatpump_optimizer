@@ -102,7 +102,7 @@
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 1.5,
+   "seconds": 2.3,
    "rc": 0
   },
   "tests/finite_boundary.py": {
@@ -1993,6 +1993,7 @@
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
    "custom_components/heatpump_optimizer/legionella.py",
+   "custom_components/heatpump_optimizer/manifest.json",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/modbus_prefill.py",

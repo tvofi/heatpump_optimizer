@@ -6567,7 +6567,7 @@ class HeatPumpOptimizer:
             # modulate that low cycles on and off, and over a step the average
             # power is what determines energy use. Forcing the baseline up to
             # the minimum modulation power made it burn a constant
-            # min_power * 24 h per day even when the house needed no heat at
+            # min_electrical_power * 24 h per day even when the house needed no heat at
             # all, which inflated both the baseline and the savings.
             power = float(
                 np.clip(required_thermal / cop, 0.0, p.max_electrical_power)
