@@ -223,6 +223,7 @@ for name in ("binary_sensor", "button"):
 # on the coordinator, which commands one heat pump, and two of them racing
 # is two commands to one machine.
 from heatpump_optimizer import climate as _climate_platform
+from heatpump_optimizer import entity as _entity_base
 from heatpump_optimizer import datetime as datetime_mod
 from heatpump_optimizer import switch as _switch_platform
 
@@ -8779,10 +8780,10 @@ R.check(
 )
 # Round-5 D3-07 (#1315), the direct half: the assertions above all read the
 # scrub through a sensor, so they pin only what some sensor happens to
-# publish. This one calls _finite itself, pre-scrub, with the shape no
+# publish. This one calls _finite itself (entity.py since #1541), pre-scrub, with the shape no
 # sensor above carries -- a 2-D array whose non-finite members must come
 # back None, recursively, as plain Python.
-_arr_scrubbed = sensor._finite(_np.array([[1.5, _np.inf], [_np.nan, 2.0]]))
+_arr_scrubbed = _entity_base._finite(_np.array([[1.5, _np.inf], [_np.nan, 2.0]]))
 R.check(
     "the finite scrub converts an ndarray recursively, non-finite to None",
     type(_arr_scrubbed) is list
@@ -15449,6 +15450,8 @@ _NON_GATE_WORKFLOWS = [
     # #1514 split `pr-contract` out of governance.yml; this script reads it
     # for the contract pins below and for the `edited` barrier.
     ".github/workflows/pr-contract.yml",
+    # Decision 0013 as amended: the budget-raise gate, read for its wiring pins.
+    ".github/workflows/budget-raise-gate.yml",
 ]
 for _wf in _NON_GATE_WORKFLOWS:
     R.check(
@@ -19912,9 +19915,12 @@ R.check(
 )
 
 _NS_JOB = _workflow_job(_TESTS_YML, "nightly-status")
+# The invocation lines: since #1589 the reporter runs inside the step that
+# restores it from the base, so the line is a `run: |` body line, not `run:`.
 _NS_RUNS = [
     _l.strip() for _l in _NS_JOB.splitlines()
-    if "tests/nightly_status.py" in _l and _l.strip().startswith("run:")
+    if "tests/nightly_status.py" in _l
+    and re.match(r"(?:run:\s*)?python", _l.strip())
 ]
 R.check(
     "the nightly reporter is wired into a job that runs on pull requests",
@@ -19926,7 +19932,7 @@ R.check(
 # always-green check this repository keeps catching. CI must never pass it.
 R.check(
     "and passes it no argument that would pin its answer",
-    bool(_NS_RUNS) and _NS_RUNS[0] == "run: python tests/nightly_status.py",
+    bool(_NS_RUNS) and _NS_RUNS[0] == "python -I -S tests/nightly_status.py",
     f"the invocation is {_NS_RUNS[0] if _NS_RUNS else '(absent)'!r}",
 )
 # The permission widening, checked as a PROPERTY rather than as its instance:
@@ -21533,8 +21539,13 @@ for _wf in sorted(Path(".github/workflows").glob("*.y*ml")):
     if _lists:
         _EDITED_FILES[_wf.name] = sorted(_jobs)
 R.check(
-    "a body edit starts a run of the contract job, and of no other job",
-    _EDITED_FILES == {"pr-contract.yml": ["pr-contract"]},
+    "a body edit starts a run of the contract job and the budget gate, and of "
+    "no other job",
+    _EDITED_FILES == {"pr-contract.yml": ["pr-contract"],
+                      # A base retarget moves the merge base the gate reads;
+                      # its one job carries no `if:`, which `_brg_defects`
+                      # below pins, so an `edited` run is a full verdict.
+                      "budget-raise-gate.yml": ["budget-raise-gate"]},
     f"workflows listing `edited` and their jobs: {_EDITED_FILES} -- any other "
     "job in such a file writes a check run on every body edit, skipped or "
     "not, at the unchanged head: a skipped run of a required context "
@@ -21627,6 +21638,61 @@ R.check(
     f"#1484 guard -> {_RC_NULL}; the contract's own `if:` -> "
     f"{_RC_OWN}; an "
     "undecidable expression -> None, which the check above counts as skippable",
+)
+# --- decision 0013 as amended: the budget-raise gate's wiring. The budget
+# files carry no code owner, so this job is the only thing between a raise and
+# a merge on the approver App's review. Each property is a way the gate goes
+# green without grading: an `if:` (a skipped required context passes); a
+# second job in the file (a review event re-reports it); no review trigger (an
+# approval never turns it green); the gate run before the restore, without it
+# or without `-I` (the pull request grades itself); a write grant. The null
+# control drives the same predicate over a copy with the restore removed.
+def _brg_defects(text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    on = doc.get(True, doc.get("on")) or {}
+    jobs = doc.get("jobs") or {}
+    job = jobs.get("budget-raise-gate") or {}
+    runs = [str(s.get("run", "")) for s in job.get("steps") or []]
+    gate = [i for i, r in enumerate(runs)
+            if re.search(r"python3?\s+(?:-\w+\s+)*\S*budget_raise_gate\.py", r)]
+    restore = [i for i, r in enumerate(runs)
+               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+    out = []
+    if list(jobs) != ["budget-raise-gate"]:
+        out.append(f"jobs {list(jobs)}")
+    if "if" in job:
+        out.append("a job-level if:")
+    if sorted((on.get("pull_request_review") or {}).get("types", [])) != [
+            "dismissed", "edited", "submitted"]:
+        out.append("review trigger")
+    if "edited" not in ((on.get("pull_request") or {}).get("types") or []):
+        out.append("no `edited`: a base retarget would not re-run it")
+    if not gate or not restore or any(runs[:restore[0]]) or gate[0] < restore[0]:
+        out.append(f"restore at {restore}, gate at {gate}")
+    if not all(re.search(r"python3 -I \.claude/workflows/budget_raise_gate\.py", runs[i])
+               for i in gate):
+        out.append("gate not under python3 -I")
+    if doc.get("permissions") != {"contents": "read", "pull-requests": "read"} or any(
+            "permissions" in (j or {}) for j in jobs.values()):
+        out.append(f"permissions {doc.get('permissions')}")
+    return out
+
+
+_BRG_TEXT = Path(".github/workflows/budget-raise-gate.yml").read_text()
+_BRG_DEFECTS = _brg_defects(_BRG_TEXT)
+R.check(
+    "the budget-raise gate is one unguarded job that re-runs on a review and "
+    "grades with the base's copy of its program",
+    _BRG_DEFECTS == [],
+    f"defects: {_BRG_DEFECTS}",
+)
+_BRG_NULL = _brg_defects(re.sub(
+    r"git checkout \"\$PINNED\" -- \\\n\s*'\.claude/workflows/\*\.py'\n",
+    "true\n", _BRG_TEXT))
+R.check(
+    "and the same file with its restore removed is refused (null control)",
+    any(d.startswith("restore at") for d in _BRG_NULL),
+    f"defects on the unpinned copy: {_BRG_NULL}",
 )
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string
@@ -22999,7 +23065,9 @@ import mutation_table as _mut  # noqa: E402
 
 _MUT_JOB = _workflow_job(_TESTS_YML, "mutation")
 _MUTN_JOB = _workflow_job(_TESTS_YML, "mutation-nightly")
-_COV_JOB = _workflow_job(_TESTS_YML, "coverage")
+# The ratchet grades in its own job since #1589: `coverage` runs the pull
+# request's suite, and a grader after that in the same job is not the base's.
+_COV_JOB = _workflow_job(_TESTS_YML, "coverage-ratchet")
 
 R.check(
     "the coverage ratchet is wired into a job that runs on pull requests",
@@ -23217,6 +23285,197 @@ R.check(
     and not hasattr(_mut, "NON_VIOLATION_EXITS"),
     "rc 2 with no failing check reads the same from every driver; a FAIL "
     "line beside it is a kill whatever the status",
+)
+
+# The ratchet-finite class (#1583's review). Python's json reads NaN,
+# Infinity, -Infinity and 1e999 as floats, and every comparison against NaN is
+# false: `current > nan` never fires, so a cap edited to NaN was an unlimited
+# raise that tests/structure.py printed as `ok cut_views 110 <= nan`. Infinity
+# passes by arithmetic; a string crashed one script and float()-coerced in
+# another ("nan" into NaN); a bool is 0 or 1 to Python. The barrier is ONE
+# function, structure.cap_problem (copied verbatim into the three graders
+# that must stay single-file), and every ratchet calls it on load. Each is
+# driven below with every malformed spelling and must refuse, and with its own
+# committed table -- the null control -- must not. typing_ruler.py (not
+# imported here) drives its arms in its own selftest; policy_lint.mjs in its
+# fixture acceptance.
+_CAP_ABSENT = object()
+_CAP_BAD = {
+    "nan": float("nan"), "inf": float("inf"), "-inf": float("-inf"),
+    "null": None, "string": "110", "string-nan": "nan", "true": True,
+    "negative": -1, "huge-int": 10 ** 400,
+}
+_CAP_BAD_COUNT = {**_CAP_BAD, "float": 110.5, "absent": _CAP_ABSENT}
+
+
+def _cap_set(table: dict, path: tuple, value) -> dict:
+    """A deep copy of ``table`` with the leaf at ``path`` replaced or removed."""
+    out = json.loads(json.dumps(table))
+    node = out
+    for step in path[:-1]:
+        node = node[step]
+    if value is _CAP_ABSENT:
+        node.pop(path[-1], None)
+    else:
+        node[path[-1]] = value
+    return out
+
+
+def _cap_structure_run(value) -> tuple:
+    """The REAL structure ratchet over a scratch table with cut_views set."""
+    import contextlib as _cl
+    import io as _io
+    budgets = json.loads(_s5_structure.BUDGET_FILE.read_text())
+    metrics = {k: v for k, v in budgets.items() if k != "recorded_at"}
+    with _tempfile.TemporaryDirectory() as td:
+        table = Path(td) / "structure_budgets.json"
+        table.write_text(json.dumps(_cap_set(budgets, ("cut_views",), value)))
+        saved, _s5_structure.BUDGET_FILE = _s5_structure.BUDGET_FILE, table
+        buf = _io.StringIO()
+        try:
+            with _cl.redirect_stdout(buf):
+                rc = _s5_structure.ratchet(
+                    {"metrics": metrics, "tables": {"top_is_coordinator": True}})
+        except Exception as exc:  # a crash is not a refusal that says why
+            rc = f"raised {type(exc).__name__}"
+        finally:
+            _s5_structure.BUDGET_FILE = saved
+    return rc, buf.getvalue()
+
+
+_CAP_S = {name: _cap_structure_run(v) for name, v in _CAP_BAD_COUNT.items()}
+_CAP_S_REAL = _cap_structure_run(
+    json.loads(_s5_structure.BUDGET_FILE.read_text())["cut_views"])
+R.check(
+    "the structure ratchet refuses a non-finite or malformed cap by name",
+    all(rc == 1 and "FAIL cut_views" in out for rc, out in _CAP_S.values())
+    and _CAP_S_REAL[0] == 0,
+    "; ".join(f"{n}: rc={rc}" for n, (rc, _o) in _CAP_S.items())
+    + f"; real table rc={_CAP_S_REAL[0]} (the null control)",
+)
+
+# ONE barrier, three verbatim copies. mutation_table.py, coverage_ratchet.py
+# and typing_ruler.py are graders a job may restore from the base and run
+# under `python3 -I`, where importing tests/structure.py neither resolves nor
+# stays the base's; so each carries the function, and any copy that differs
+# from the original by one character is refused here.
+def _cap_source(rel: str) -> str:
+    _src = Path(rel).read_text()
+    for _node in ast.parse(_src).body:
+        if isinstance(_node, ast.FunctionDef) and _node.name == "cap_problem":
+            return ast.get_source_segment(_src, _node)
+    return ""
+
+
+_CAP_ORIGINAL = _cap_source("tests/structure.py")
+_CAP_DRIFTED = [
+    _rel for _rel in ("tests/mutation_table.py", "tests/coverage_ratchet.py",
+                      "tests/typing_ruler.py")
+    if _cap_source(_rel) != _CAP_ORIGINAL
+]
+R.check(
+    "every grader's copy of the barrier is the original, character for character",
+    bool(_CAP_ORIGINAL) and not _CAP_DRIFTED,
+    f"original found: {bool(_CAP_ORIGINAL)}; copies that differ or are "
+    f"missing: {_CAP_DRIFTED}",
+)
+
+_CAP_MB_OK = {"max_survivor_fraction": {"changed": 0.2, "full": 0.3}}
+_CAP_M_FRAC = {
+    n: _mut.cap_problems(_cap_set(_CAP_MB_OK, ("max_survivor_fraction", "changed"), v))
+    for n, v in {**_CAP_BAD, "string": "0.2", "absent": _CAP_ABSENT}.items()
+}
+R.check(
+    "the mutation table refuses a non-finite or malformed survivor cap",
+    all(_CAP_M_FRAC.values())
+    and _mut.cap_problems(_MB) == [] and _mut.cap_problems(_CAP_MB_OK) == [],
+    f"accepted: {[n for n, p in _CAP_M_FRAC.items() if not p]}; committed "
+    f"table: {_mut.cap_problems(_MB)} (the null control)",
+)
+
+_CAP_COV = getattr(_cov, "budget_problems", None)
+_CAP_C = {
+    (key, n): (_CAP_COV(_cap_set(_CB, (key,), v)) if _CAP_COV else [])
+    for key in ("package_percent_floor", "package_percent_ceiling",
+                "config_flow_percent_floor", "module_percent_floor")
+    for n, v in {**_CAP_BAD, "over-100": 100.5, "absent": _CAP_ABSENT}.items()
+}
+_CAP_C.update({
+    ("pragmas", n): (_CAP_COV(_cap_set(_CB, ("pragmas",), v)) if _CAP_COV else [])
+    for n, v in _CAP_BAD_COUNT.items()
+})
+R.check(
+    "the coverage ratchet refuses a non-finite or malformed floor or cap",
+    _CAP_COV is not None and all(_CAP_C.values()) and _CAP_COV(_CB) == [],
+    f"budget_problems={'present' if _CAP_COV else 'missing'}; accepted: "
+    f"{[k for k, p in _CAP_C.items() if not p]}; committed table: "
+    f"{_CAP_COV(_CB) if _CAP_COV else 'n/a'} (the null control)",
+)
+
+
+def _cap_cov_main(table: dict) -> int:
+    """coverage_ratchet.main() over a scratch table: is the barrier WIRED."""
+    import contextlib as _cl
+    import io as _io
+    with _tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "coverage_budgets.json"
+        path.write_text(json.dumps(table))
+        saved, _cov.BUDGETS = _cov.BUDGETS, path
+        saved_argv, sys.argv = sys.argv, ["coverage_ratchet.py"]
+        try:
+            with _cl.redirect_stdout(_io.StringIO()):
+                return _cov.main()
+        finally:
+            _cov.BUDGETS, sys.argv = saved, saved_argv
+
+
+R.check(
+    "and main() runs it before comparing anything",
+    _cap_cov_main(_cap_set(_CB, ("package_percent_floor",), float("nan"))) == 1
+    and _cap_cov_main(_CB) == 0,
+    "a NaN floor must refuse the run the pragma row alone would pass; the "
+    "committed table must still pass it (the null control)",
+)
+
+_CAP_ST = getattr(_stress_mod, "budget_table_problems", None)
+_CAP_ST_TABLE = json.loads(Path("tests/stress_budgets.json").read_text())
+_CAP_ST_ROW = sorted(k for k in _CAP_ST_TABLE if "/" in k)[0]
+_CAP_T = {
+    (field, n): (_CAP_ST(_cap_set(_CAP_ST_TABLE, (_CAP_ST_ROW, field), v))
+                 if _CAP_ST else [])
+    for field in ("ratio", "rss_attrib_mb", "rss_peak_mb", "traced_peak_mb")
+    for n, v in {**_CAP_BAD, "zero": 0.0}.items()
+}
+R.check(
+    "the stress budget table refuses a non-finite or malformed recorded cost",
+    _CAP_ST is not None and all(_CAP_T.values()) and _CAP_ST(_CAP_ST_TABLE) == [],
+    f"budget_table_problems={'present' if _CAP_ST else 'missing'}; accepted: "
+    f"{[k for k, p in _CAP_T.items() if not p]}; committed table: "
+    f"{_CAP_ST(_CAP_ST_TABLE) if _CAP_ST else 'n/a'} (the null control)",
+)
+
+
+def _cap_stress_load(table: dict):
+    """stress.load_budget_table() over a scratch file: refused, or the table."""
+    with _tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "stress_budgets.json"
+        path.write_text(json.dumps(table))
+        try:
+            return _stress_mod.load_budget_table(str(path))
+        except SystemExit as exc:
+            return f"refused: {exc}"
+        except TypeError as exc:  # the base has no path parameter
+            return f"raised {exc}"
+
+
+_CAP_ST_NAN = _cap_stress_load(
+    _cap_set(_CAP_ST_TABLE, (_CAP_ST_ROW, "ratio"), float("nan")))
+R.check(
+    "and load_budget_table refuses such a table instead of returning it",
+    isinstance(_CAP_ST_NAN, str) and _CAP_ST_NAN.startswith("refused")
+    and _cap_stress_load(_CAP_ST_TABLE) == _CAP_ST_TABLE,
+    f"NaN ratio -> {str(_CAP_ST_NAN)[:120]!r}; the committed table must load "
+    "unchanged (the null control)",
 )
 
 # #1521: env_drift.py refuses an inherited claim list BEFORE capturing
@@ -23869,6 +24128,86 @@ R.check(
 )
 
 _mut_shutil.rmtree(_MUT_DIR, ignore_errors=True)
+
+# --pin-killed (the mutation-ledger autofix): it drives only the sites the diff
+# ADDED unpinned, keyed by anchor, so a site the base already left unpinned is
+# not re-measured; and a kill is recorded with the driver and both runs, never
+# a survivor. The null control is a site unpinned at both ends.
+_PIN_NEW = getattr(_mut, "new_unpinned", None)
+_PIN_ENTRY = getattr(_mut, "pin_entry", None)
+_pin_a = {"anchor": "f.py:g GUARD_OFF aaaa", "old": "    if a:"}
+_pin_b = {"anchor": "f.py:g GUARD_OFF bbbb", "old": "    if b:"}
+try:
+    _PIN_GOT = (
+        [x["anchor"] for x in _PIN_NEW([_pin_a, _pin_b], [_pin_a])],
+        _PIN_NEW([_pin_a], [_pin_a]),
+        _PIN_ENTRY(dict(_pin_b, kind="GUARD_OFF", new="    if False:"),
+                   "tests/x.py", _mut.ScriptRun(1, 3, 1.0, ""),
+                   _mut.ScriptRun(0, 0, 1.0, ""), "abc123"),
+    )
+except Exception as _pin_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _PIN_GOT = (f"{type(_pin_exc).__name__}: {_pin_exc}",)
+R.check(
+    "--pin-killed drives only the sites the diff added and records the measured kill",
+    len(_PIN_GOT) == 3
+    and _PIN_GOT[0] == ["f.py:g GUARD_OFF bbbb"] and _PIN_GOT[1] == []
+    and _PIN_GOT[2].get("killed_by") == "tests/x.py"
+    and _PIN_GOT[2].get("old") == "    if b:"
+    and "rc=0 failed=0 to rc=1 failed=3" in _PIN_GOT[2].get("reason", "")
+    and "verdict" not in _PIN_GOT[2],
+    f"(new over base, unpinned at both ends, entry) -> {_PIN_GOT}",
+)
+R.check(
+    "--pin-killed is wired: new sites from the base's own unpinned list, "
+    "a pin only from a recorded kill run",
+    "new_unpinned(unpinned, base_sites)" in _MUT_BODY
+    and "base_unpinned_sites(rbase, sites)" in _MUT_BODY
+    and "pin_results(results, kill_runs, baseline,\n" in _MUT_BODY
+    and ".update(entries)" in _MUT_BODY and "return pin_rc" in _MUT_BODY,
+    "the mode must read the base's unpinned sites, write only what pin_results "
+    "earned from the kill runs, and exit with its rc",
+)
+
+# The pin loop itself, behaviourally (the #1594 review's S1/S2 survived the
+# wiring strings above). A disposition covers every site under its anchor, so
+# a clamp's `max(`/`min(` twins pin together or not at all: a killed twin
+# beside a living one pins NEITHER. Anything left is rc 1.
+_PR = getattr(_mut, "pin_results", None)
+_pr_base = {"tests/x.py": _mut.ScriptRun(0, 0, 1.0, "")}
+_pr_kill = _mut.ScriptRun(1, 2, 1.0, "")
+_pr_site = lambda anchor, line, new="    if False:": {  # noqa: E731
+    "anchor": anchor, "file": "f.py", "line": line, "kind": "CLAMP_DROP",
+    "old": f"    x{line} = 1", "new": new}
+_pr_k, _pr_l, _pr_s = (_pr_site("f.py:g CLAMP_DROP k", 1), _pr_site("f.py:g CLAMP_DROP l", 2),
+                       _pr_site("f.py:g CLAMP_DROP s", 3))
+_pr_m1, _pr_m2 = _pr_site("f.py:g CLAMP_DROP m", 4, "a"), _pr_site("f.py:g CLAMP_DROP m", 4, "b")
+_pr_b1, _pr_b2 = _pr_site("f.py:g CLAMP_DROP b", 5, "a"), _pr_site("f.py:g CLAMP_DROP b", 5, "b")
+_pr_u1 = _pr_site("f.py:g CLAMP_DROP u", 6, "a")
+_PR_SITES = [_pr_k, _pr_l, _pr_s, _pr_m1, _pr_m2, _pr_b1, _pr_b2, _pr_u1,
+             _pr_site("f.py:g CLAMP_DROP u", 6, "b")]
+_KB = "killed by tests/x.py"
+try:
+    _PR_ALL = _PR(
+        [(_pr_k, _KB), (_pr_l, "LIVES"), (_pr_s, "SKIP-MOVED"), (_pr_m1, _KB),
+         (_pr_m2, "LIVES"), (_pr_b1, _KB), (_pr_b2, _KB), (_pr_u1, _KB)],
+        {(id(m), "tests/x.py"): _pr_kill for m in (_pr_k, _pr_m1, _pr_b1, _pr_b2, _pr_u1)},
+        _pr_base, _PR_SITES, "abc123")
+    _PR_CLEAN = _PR([(_pr_k, _KB)], {(id(_pr_k), "tests/x.py"): _pr_kill},
+                    _pr_base, [_pr_k], "abc123")
+    # A verdict that claims a kill with no kept run is not a kill.
+    _PR_NORUN = _PR([(_pr_k, _KB)], {}, _pr_base, [_pr_k], "abc123")
+    _PR_GOT = (sorted(_PR_ALL[0]), _PR_ALL[2], sorted(_PR_CLEAN[0]), _PR_CLEAN[2],
+               sorted(_PR_NORUN[0]), _PR_NORUN[2],
+               _PR_ALL[0].get("f.py:g CLAMP_DROP k", {}).get("killed_by"))
+except Exception as _pr_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _PR_GOT = (f"{type(_pr_exc).__name__}: {_pr_exc}",)
+R.check(
+    "--pin-killed pins an anchor only when every site under it was killed, and exits 1 with any left",
+    _PR_GOT == (["f.py:g CLAMP_DROP b", "f.py:g CLAMP_DROP k"], 1,
+                ["f.py:g CLAMP_DROP k"], 0, [], 1, "tests/x.py"),
+    "(kill+lives+skip+mixed twin+both-killed twin+undriven twin: pinned, rc; "
+    f"kill alone: pinned, rc; kill with no run: pinned, rc; driver) -> {_PR_GOT}",
+)
 
 # Scope: a mutant is driven only by scripts whose MEASURED closure contains
 # its file. Driving one hand-picked script instead would let a mutant survive
