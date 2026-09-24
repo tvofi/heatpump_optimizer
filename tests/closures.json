@@ -442,6 +442,7 @@
    ".claude/workflows/vendor/markdown-it.min.js",
    ".claude/workflows/web-fix-wave.js",
    ".gitattributes",
+   ".github/workflows/budget-raise-gate.yml",
    ".github/workflows/codeql.yml",
    ".github/workflows/governance.yml",
    ".github/workflows/hassfest.yml",
