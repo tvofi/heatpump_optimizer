@@ -218,6 +218,10 @@ def budget_problems(budget: dict) -> list[str]:
     return [p for p in out if p]
 
 
+#: Set by the selftest's lane drive so it runs once (see ``selftest``).
+_BARRIER_DRIVEN = False
+
+
 def budget_refused(report: Report, budget: dict) -> bool:
     """Refuse, as a failed check, a budget ``budget_problems`` rejects."""
     problems = budget_problems(budget)
@@ -738,6 +742,28 @@ def selftest(report: Report, budget: dict) -> None:
         f"accepted: {accepted}; committed budget: {budget_problems(budget)} "
         "(the null control)",
     )
+    # ...and both lanes call it before comparing. Driven, not grepped: each
+    # lane over a NaN budget must fail the barrier's own check. The nested
+    # source lane would re-enter this selftest if its call were deleted, so
+    # the drive runs once, from the outermost selftest only.
+    global _BARRIER_DRIVEN
+    if not _BARRIER_DRIVEN:
+        _BARRIER_DRIVEN = True
+        nan_budget = json.loads(json.dumps(budget))
+        nan_budget["type_ignores"] = float("nan")
+        unwired = []
+        for lane, drive in (("source", lambda r: source_checks(r, nan_budget)),
+                            ("mypy", lambda r: mypy_checks(r, nan_budget, None))):
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                drive(Report(f"barrier arm, {lane} lane"))
+            if "FAIL every recorded typing count" not in buf.getvalue():
+                unwired.append(lane)
+        report.check(
+            "and both lanes refuse a NaN budget before comparing",
+            not unwired,
+            f"lane(s) that compared a NaN type_ignores: {unwired}",
+        )
 
     # The lock check's null control: a budget no lock can agree with.
     report.check(
