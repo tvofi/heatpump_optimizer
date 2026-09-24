@@ -136,3 +136,84 @@ class HeatPumpOptimizerEntity(CoordinatorEntity):
         """Return device info."""
         info: DeviceInfo = self.coordinator.device_info
         return info
+
+
+def has_hot_water(coordinator: Any) -> bool:
+    """Whether this install has hot water: the one answer every reader takes.
+
+    The configured flag via ``_thermal_params``, because the registry asks
+    before the first refresh; the payload's copy where a test double has
+    only that. The boost overlay asks here too (#1527), so a no-DHW install
+    cannot be handed hot-water power by a switch it should never have used.
+    """
+    params = getattr(coordinator, "_thermal_params", None)
+    if params is not None:
+        return bool(params.dhw_enabled)
+    return bool((getattr(coordinator, "data", None) or {}).get("dhw_enabled"))
+
+
+def input_configured(coordinator: Any, slot: str) -> bool:
+    """Whether the user configured this input slot. Read from the config,
+    because the registry asks before the first refresh builds a payload."""
+    config = getattr(coordinator, "_config", None) or {}
+    return bool(config.get(slot))
+
+
+class ConfiguredInputMixin(HeatPumpOptimizerEntity):
+    """An entity that reads an optional input, gated on that input existing.
+
+    Available, and enabled by default, exactly where one of its config
+    slots is configured. Four probe temperatures (#1542's shape) and the two
+    ECL110 readouts (#1527's) kept a static default-off, or no gate at all,
+    beside inputs the user had configured; ``tests/entities.py`` enumerates
+    every entity whose default should follow a configured input.
+    """
+
+    #: Config slots this entity reads; any one configured lights it.
+    _input_slots: tuple[str, ...] = ()
+
+    @property
+    def entity_registry_enabled_default(self) -> bool:
+        return any(input_configured(self.coordinator, s) for s in self._input_slots)
+
+    @property
+    def available(self) -> bool:
+        return bool(super().available and self.entity_registry_enabled_default)
+
+
+class DHWEntityMixin(HeatPumpOptimizerEntity):
+    """A hot-water entity, gated on the install actually having hot water.
+
+    Every entity whose subject is hot water takes its availability and its
+    registry default from here, on every platform, so a new one inherits the
+    gate by construction; ``tests/entities.py`` enumerates them and names
+    the exceptions. Two DHW Energy-dashboard meters stuck at 0.0 on a
+    no-DHW install, a sixth sensor outside the gate (#1461), and a boost
+    switch that injected hot-water power on a plant with no tank (#1527)
+    were each this gate missing from one sibling.
+
+    The default is on exactly where there is hot water (#1398), and where
+    the entity also needs an optional probe, only once that probe is
+    configured (#1542): a tank thermometer the user wired up is not hidden.
+    """
+
+    #: The config slot of an optional probe this entity reads beside hot
+    #: water, such as the tank thermometer. Empty: hot water alone gates it.
+    _dhw_probe_slot: str = ""
+
+    @property
+    def entity_registry_enabled_default(self) -> bool:
+        """On where the install has hot water and any probe it needs."""
+        if not has_hot_water(self.coordinator):
+            return False
+        if not self._dhw_probe_slot:
+            return True
+        return input_configured(self.coordinator, self._dhw_probe_slot)
+
+    @property
+    def available(self) -> bool:
+        return bool(
+            super().available
+            and self.coordinator.data
+            and has_hot_water(self.coordinator)
+        )
