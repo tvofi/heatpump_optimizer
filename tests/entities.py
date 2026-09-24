@@ -2625,22 +2625,19 @@ R.check(
 )
 
 # S5 of #193: the self-learned house and buffer state is initialised OUTSIDE
-# the dhw seam. structure.py buckets a coordinator method by its NAME, so
-# while `_init_dhw_learning` assigned these, dhw *owned* them and every
-# learner read of them was priced against hot water -- 88 of cut_dhw for
+# the dhw seam. structure.py buckets a coordinator method by its seam-map
+# entry, so while `_init_dhw_learning` assigned these, dhw *owned* them and
+# every learner read of them was priced against hot water -- 88 of cut_dhw for
 # state no dhw method ever reads. Merging the block back would give that
 # back with nothing else failing, which is what these checks exist to stop.
-# The seam list is imported from the metric rather than restated here, so a
-# change to SEAM_REGEXES moves this test with it.
+# The seam is read from the metric's own map (#1539) rather than restated
+# here, so a change to tests/seam_map.json moves this test with it.
 R.section("S5 thermal-learning state outside the dhw seam (#193)")
 import structure as _s5_structure
 
 
 def _s5_seam(_name: str) -> str:
-    for _label, _rx in _s5_structure.SEAM_REGEXES:
-        if _rx.search(_name):
-            return _label
-    return "core"
+    return _s5_structure.load_seam_map().get(_name, "unmapped")
 
 
 # The names come from the initialiser itself, not from a list kept here: a
@@ -2703,8 +2700,8 @@ R.check(
 # `_observe_frequency` / `_command_frequency` read was priced against the grid
 # seam: 28 of cut_grid for state no grid method reads. Merging the block back
 # is the regression these checks exist to stop; nothing else in the suite could
-# fail on it. `_s5_seam` is reused deliberately -- it buckets by structure.py's
-# own SEAM_REGEXES, so a change to the metric moves this test with it.
+# fail on it. `_s5_seam` is reused deliberately -- it reads structure.py's
+# own seam map, so a change to the metric moves this test with it.
 R.section("S6 inverter-frequency state outside the grid seam (#193)")
 _s6_init = next(
     (

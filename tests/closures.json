@@ -590,6 +590,7 @@
    "tests/requirements-coverage.txt",
    "tests/requirements-typing.txt",
    "tests/run.sh",
+   "tests/seam_map.json",
    "tests/stress.py",
    "tests/stress_budgets.json",
    "tests/structure.py",
@@ -1417,6 +1418,7 @@
    "custom_components/heatpump_optimizer/topology.py",
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
+   "tests/seam_map.json",
    "tests/structure.py",
    "tests/structure_budgets.json"
   ],

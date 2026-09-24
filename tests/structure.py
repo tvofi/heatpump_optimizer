@@ -221,10 +221,16 @@ DUP_BLOCK_LINES = 10
 CC_LIMITS = (25, 15)
 CONST_FANOUT_LIMIT = 50
 
-# The seam partition of #193's plan of record: a method belongs to the FIRST
-# seam whose regex matches its name; everything else is core. Order matters
-# and is part of the metric definition -- a method named _fetch_dhw_prices is
-# a dhw method, not a fetch method.
+# The seam partition of #193's plan of record. A coordinator method's seam is
+# its entry in SEAM_MAP_FILE, never its name (#1539): bucketing by name let a
+# pure rename move cross_seam_edges. A method the map does not name is refused,
+# so a new or renamed method is assigned to a seam in a diff a reviewer sees.
+SEAM_LABELS = ("dhw", "learning", "fetch", "grid", "views")
+SEAM_MAP_FILE = REPO_ROOT / "tests" / "seam_map.json"
+
+# The SEED rule only (``--seed-seam-map``), no longer the measurement: a method
+# belongs to the FIRST seam whose regex matches its name, everything else is
+# core -- a method named _fetch_dhw_prices is a dhw method, not a fetch one.
 SEAM_REGEXES: list[tuple[str, re.Pattern[str]]] = [
     ("dhw", re.compile(r"dhw|hot_water|legionella|draw")),
     ("learning", re.compile(r"learn|reanchor|drift|curve|comfort|cop")),
@@ -827,27 +833,69 @@ def state_root_bindings(fn: ast.AST) -> tuple[frozenset[str], frozenset[int]]:
     return frozenset(aliases), frozenset(hops)
 
 
-def seam_metrics(coord_class: ast.ClassDef) -> dict:
+class SeamMapError(ValueError):
+    """The seam map and the class it partitions disagree (#1539)."""
+
+
+def regex_seam(method_name: str) -> str:
+    """The seam ``SEAM_REGEXES`` gives a name: the seed rule, not the metric."""
+    for label, regex in SEAM_REGEXES:
+        if regex.search(method_name):
+            return label
+    return "core"
+
+
+def load_seam_map() -> dict[str, str]:
+    if not SEAM_MAP_FILE.exists():
+        raise SeamMapError(f"no {SEAM_MAP_FILE.name}: seed it with --seed-seam-map")
+    return json.loads(SEAM_MAP_FILE.read_text())["seams"]
+
+
+def seed_seam_map() -> int:
+    """Rewrite SEAM_MAP_FILE from ``regex_seam`` over every coordinator method.
+
+    The introduction's null control and the re-seed after a coordinator merge:
+    the result measures byte-identically to the retired name rule. Every later
+    change to the map is a hand edit, a seam decision a reviewer reads.
+    """
+    tree = ast.parse((PACKAGE_DIR / "coordinator.py").read_text())
+    cls = next(n for n in ast.walk(tree)
+               if isinstance(n, ast.ClassDef) and n.name == COORDINATOR_CLASS_NAME)
+    seams = {m.name: regex_seam(m.name) for m in cls.body
+             if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    SEAM_MAP_FILE.write_text(json.dumps(
+        {"_comment": "Each coordinator method's seam for tests/structure.py (#1539)."
+                     " Seeded by `python3 tests/structure.py --seed-seam-map`;"
+                     " a method missing here fails the ratchet.",
+         "seams": dict(sorted(seams.items()))}, indent=1, ensure_ascii=False) + "\n")
+    print(f"wrote {len(seams)} methods to {SEAM_MAP_FILE.relative_to(REPO_ROOT)}")
+    return 0
+
+
+def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None) -> dict:
     """The coordinator's seam partition: cut costs, call edges, per-seam rows.
 
     Split out of ``measure`` so the counting rules can be pinned on sources of
     our own (``self_check``) rather than only on whatever ``coordinator.py``
     happens to hold. #510 was a counting rule that was wrong across four
-    merges with nothing in the suite able to fail on it.
+    merges with nothing in the suite able to fail on it. ``seams`` defaults to
+    SEAM_MAP_FILE, and must name exactly the class's methods.
     """
     methods = {
         m.name: m
         for m in coord_class.body
         if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
-
-    def seam_bucket(method_name: str) -> str:
-        for label, regex in SEAM_REGEXES:
-            if regex.search(method_name):
-                return label
-        return "core"
-
-    buckets = {name: seam_bucket(name) for name in methods}
+    seams = load_seam_map() if seams is None else seams
+    unmapped = sorted(set(methods) - set(seams))
+    stale = sorted(set(seams) - set(methods))
+    unknown = sorted(n for n, label in seams.items() if label not in (*SEAM_LABELS, "core"))
+    if unmapped or stale or unknown:
+        raise SeamMapError(
+            f"seam map disagrees with {coord_class.name}: unmapped {unmapped},"
+            f" stale {stale}, unknown seam {unknown}. Give each new or renamed"
+            f" method its seam in {SEAM_MAP_FILE.name} (#1539)")
+    buckets = {name: seams[name] for name in methods}
     attr_refs: dict[str, Counter] = defaultdict(Counter)  # attr -> bucket -> occurrences
     attr_owners: dict[str, set[str]] = defaultdict(set)   # attr -> buckets that store it
     call_edges = Counter()                                # (caller bucket, callee bucket) -> occurrences
@@ -882,7 +930,7 @@ def seam_metrics(coord_class: ast.ClassDef) -> dict:
 
     seam_rows = []
     cut_costs = {}
-    for label, _ in SEAM_REGEXES:
+    for label in SEAM_LABELS:
         owned = {attr for attr, owners in attr_owners.items() if label in owners}
         cross_attr_refs = 0
         for attr, counter in attr_refs.items():
@@ -1715,10 +1763,19 @@ def seam_self_check() -> tuple[tuple[str, bool], ...]:
     charged for reaching state it owns itself.
     """
 
-    def cut(body: str) -> int:
-        tree = ast.parse(SEAM_SELF_CHECK_SOURCE % body)
+    seams = {"__init__": "core", "_fetch_prices": "fetch"}
+
+    def cut(body: str, rename: str = "_fetch_prices", seam_map=seams) -> int:
+        tree = ast.parse((SEAM_SELF_CHECK_SOURCE % body).replace("_fetch_prices", rename))
         cls = next(n for n in ast.walk(tree) if isinstance(n, ast.ClassDef))
-        return seam_metrics(cls)["cut_costs"]["cut_fetch"]
+        return seam_metrics(cls, seam_map)["cut_costs"]["cut_fetch"]
+
+    def refused(seam_map: dict[str, str]) -> bool:
+        try:
+            cut("        return 0", seam_map=seam_map)
+        except SeamMapError:
+            return True
+        return False
 
     base = cut("        return 0")
     crossing = [cut(t % {"attr": "_depth"}) for t in SEAM_SELF_CHECK_SPELLINGS]
@@ -1731,6 +1788,13 @@ def seam_self_check() -> tuple[tuple[str, bool], ...]:
          all(c == base for c in owned)),
         ("the state root is the binding, not the name it is bound to",
          all(c == base for c in foreign)),
+        ("a method's seam is its map entry, not its name (#1539)",
+         cut("        return self._depth", "_zz", {"__init__": "core", "_zz": "fetch"})
+         == crossing[0]),
+        ("a method the map does not name is refused",
+         refused({"__init__": "core"})),
+        ("a map entry naming no method, or no seam, is refused",
+         refused({**seams, "_gone": "core"}) and refused({**seams, "__init__": "nowhere"})),
     )
 
 
@@ -1873,12 +1937,24 @@ def main() -> int:
              "a budget for a new production feature needs the repository "
              "owner's explicit confirmation before the branch is pushed",
     )
+    parser.add_argument(
+        "--seed-seam-map",
+        action="store_true",
+        help="rewrite tests/seam_map.json from SEAM_REGEXES over every "
+             "coordinator method (#1539), then measure",
+    )
     args = parser.parse_args()
 
+    if args.seed_seam_map:
+        seed_seam_map()
     if self_check():
         return 1
 
-    result = measure()
+    try:
+        result = measure()
+    except SeamMapError as err:
+        print(f"SEAM MAP REFUSED: {err}")
+        return 1
     print_report(result)
     problems = result["tables"]["dynamic_problems"]
     if problems:
