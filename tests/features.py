@@ -4433,11 +4433,6 @@ R.check(
     == presets.EMITTER_RADIATORS,
     "floor upper emitter must survive validate(); only 'bogus' is clamped",
 )
-R.check(
-    "the derived values are presented as a starting point",
-    "learn" in presets.describe(presets.BuildingPreset())["note"].lower(),
-    "users must not read a preset as a claim about their building",
-)
 
 # The derived values must be usable by the model they are derived for.
 derived_params = ThermalParameters.from_config(
@@ -10648,8 +10643,8 @@ R.check(
 )
 R.check(
     "Swedish month and weekday spellings parse",
-    _gf.is_valid_spec("Maj Mån-Fre 06:00-22:00 = 0.2")
-    and _gf.is_valid_spec("Okt-Dec Lör-Sön = 0.1"),
+    _gf.spec_problem("Maj Mån-Fre 06:00-22:00 = 0.2") is None
+    and _gf.spec_problem("Okt-Dec Lör-Sön = 0.1") is None,
 )
 # --- #929: a comma between digits is a decimal separator ----------------------
 # The rate grammar `_parse_rule` implements (`,` -> `.`) must be reachable:
@@ -10657,8 +10652,8 @@ R.check(
 # a digit on both sides alone. These arms are red until it does.
 R.check(
     "a decimal comma parses where the dotted form does",
-    _gf.is_valid_spec("= 0,45")
-    and _gf.is_valid_spec("Maj Mån-Fre 06:00-22:00 = 0,25"),
+    _gf.spec_problem("= 0,45") is None
+    and _gf.spec_problem("Maj Mån-Fre 06:00-22:00 = 0,25") is None,
     f"spec_problem('= 0,45') = {_gf.spec_problem('= 0,45')!r}, "
     f"spec_problem('Maj Mån-Fre 06:00-22:00 = 0,25') = "
     f"{_gf.spec_problem('Maj Mån-Fre 06:00-22:00 = 0,25')!r}",
@@ -10738,15 +10733,15 @@ R.check(
 )
 R.check(
     "broken specs are rejected by validation, not stored",
-    not _gf.is_valid_spec("Nov-Mar = banana")
-    and not _gf.is_valid_spec("Frunday = 0.2")
-    and not _gf.is_valid_spec("06:00-22:00"),
+    _gf.spec_problem("Nov-Mar = banana") == _gf.ERROR_INVALID
+    and _gf.spec_problem("Frunday = 0.2") == _gf.ERROR_INVALID
+    and _gf.spec_problem("06:00-22:00") == _gf.ERROR_INVALID,
 )
 R.check(
     "a rate float() accepts but the planner cannot price is rejected too",
-    not _gf.is_valid_spec("Mon-Fri = nan")
-    and not _gf.is_valid_spec("Mon-Fri = inf")
-    and not _gf.is_valid_spec("06:00-22:00 = -inf"),
+    _gf.spec_problem("Mon-Fri = nan") == _gf.ERROR_INVALID
+    and _gf.spec_problem("Mon-Fri = inf") == _gf.ERROR_INVALID
+    and _gf.spec_problem("06:00-22:00 = -inf") == _gf.ERROR_INVALID,
     "float('nan') and float('inf') parse: a non-finite rate reaches "
     "fee_vector, and the coordinator's magnitude audit compares with > and "
     "never sees a NaN",

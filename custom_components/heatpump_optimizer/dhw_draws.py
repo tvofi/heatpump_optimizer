@@ -32,7 +32,6 @@ Shape decisions, all in the service of staying inert and honest:
 """
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -40,8 +39,6 @@ from typing import Any
 import numpy as np
 
 from .dhw_schedule import Window
-
-_LOGGER = logging.getLogger(__name__)
 
 #: Occurrence totals kept per window — about six weeks of daily windows.
 MAX_EVENTS_PER_WINDOW = 40

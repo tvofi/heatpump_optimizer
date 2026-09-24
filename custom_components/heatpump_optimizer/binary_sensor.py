@@ -15,7 +15,6 @@ reasonably want to automate on or be alerted about:
 """
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from homeassistant.components.binary_sensor import (
@@ -28,8 +27,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity
-
-_LOGGER = logging.getLogger(__name__)
 
 # Coordinator-fed and read-only: the coordinator serialises the one inbound
 # refresh, and no entity here calls out, so there is nothing to throttle

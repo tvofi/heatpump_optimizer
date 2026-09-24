@@ -26,13 +26,10 @@ itself carries far more error than the model would remove.
 """
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
-
-_LOGGER = logging.getLogger(__name__)
 
 # Reference irradiance at which a panel produces its rated output.
 STC_IRRADIANCE = 1000.0  # W/m²
