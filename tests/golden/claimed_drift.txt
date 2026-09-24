@@ -656,7 +656,8 @@ config_flow # #1512: the new peak_tariff_distinct_days field (add-only)
 # The plan side (fix-review round 1): peak_cost_smooth, the solver's
 # capacity term, now charges a plan day once under distinct days, so every
 # plan solved under a k=3 capacity tariff sees a weaker same-day charge and
-# settles elsewhere. Measured against 99231bc3 in one environment: the
+# settles elsewhere. Measured against 233a36bd (and 99231bc3, the same
+# figures) in one environment: the
 # published peak_cost stays 0.0 and projected_peak_kw stays 6.5 kW;
 # predicted_cost 29.146650 -> 32.416769, deferred_energy_cost
 # 32.764410 -> 30.681727, compressor_starts 7 -> 6. The three other
