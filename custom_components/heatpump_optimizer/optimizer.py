@@ -4325,7 +4325,7 @@ class HeatPumpOptimizer:
         if c_dhw > 0.0 and legionella_step is not None and n_steps > 0 and (
             boost_top > float(params.dhw_max_temp)
         ):
-            ua = max(params.dhw_tank_heat_loss_coefficient, 1e-6)
+            ua = params.dhw_tank_heat_loss_coefficient
             decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
             gain = ua * DHW_AMBIENT_TEMP * dt / c_dhw
             everyday = float(params.dhw_max_temp)
@@ -5084,7 +5084,7 @@ class HeatPumpOptimizer:
         max_temp = np.asarray(max_temp, dtype=float)
         requirement = np.minimum(np.asarray(requirement, dtype=float), max_temp)
         params = self.model.params
-        ua = max(params.dhw_tank_heat_loss_coefficient, 1e-6)
+        ua = params.dhw_tank_heat_loss_coefficient
 
         # Per-step decay of stored heat. Guarded so an absurdly leaky tank or a
         # long time step cannot produce a negative (unstable) factor.
@@ -5319,7 +5319,7 @@ class HeatPumpOptimizer:
         # The tank's own per-step decay, the same factor the linear program
         # uses: heat added now is worth less later, so the ceiling bound
         # below can price how much of a top-up still survives at each step.
-        ua = max(self.model.params.dhw_tank_heat_loss_coefficient, 1e-6)
+        ua = self.model.params.dhw_tank_heat_loss_coefficient
         decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
         # Breaches no ceiling-legal top-up can close. Skipped rather than
         # returned on: a demand window later in the day is not helped by
