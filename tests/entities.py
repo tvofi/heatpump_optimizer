@@ -20351,6 +20351,41 @@ R.check(
     "before this step the check ran only on a seat's machine and a VERSION "
     "bump passed every required context",
 )
+# Decision 0013: verdicts post as the approver App through app_comment.sh,
+# and app_approve.sh accepts only that App's verdicts. Both carry offline
+# self-tests pinning the allowlist, the identity read-back and the grammar;
+# what they cannot see is whether CI still RUNS them. They run in
+# governance.yml's `instrument-self-tests`, the job that drives the pull
+# request's own copies and grades nothing, so no grading job runs pull-request
+# code ahead of its graders. Pinned over that job's non-comment lines, one step
+# each; tools/audit/ is INERT, so this reads the workflow, never the scripts.
+_IST_JOB = "\n".join(
+    _l for _l in _workflow_job(_DS_GOV, "instrument-self-tests").split("\n")
+    if not _l.lstrip().startswith("#"))
+
+
+def _runs_selftest(job: str, script: str) -> bool:
+    return any(
+        f"\n        run: bash tools/audit/{script} --self-test" in "\n" + _blk
+        for _blk in job.split("\n      - name: ")[1:])
+
+
+R.check(
+    "the instrument self-test job runs both App identity self-tests",
+    _runs_selftest(_IST_JOB, "app_approve.sh")
+    and _runs_selftest(_IST_JOB, "app_comment.sh"),
+    "governance.yml's instrument-self-tests must run `bash tools/audit/"
+    "app_approve.sh --self-test` and `bash tools/audit/app_comment.sh "
+    "--self-test` as steps; without them the approver-only verdict allowlist "
+    "and the poster's read-back are unpinned",
+)
+R.check(
+    "and a job with the poster's step removed is not (null control)",
+    not _runs_selftest(
+        _IST_JOB.replace("run: bash tools/audit/app_comment.sh", "run: true", 1),
+        "app_comment.sh"),
+    "the predicate must read the step's run line, not the file name anywhere",
+)
 # `## Friction` AND A DECLARATION THAT IS NOT THE WHOLE SECTION. `isNone` read a
 # section as `none` whenever the token stood at its START -- no end anchor, no
 # `m` flag -- so `frictionEntries` tested that against the WHOLE multi-line
@@ -23317,14 +23352,10 @@ R.check(
 # baseline costs a reviewer round and carries no mutation information: the
 # table evaluated nothing. `mutation` is not a required context and `fast` is.
 #
-# The baseline's driver set is NOT the scoped gate's selection, and the
-# difference is the whole of what a pull request gives up: on a diff that
-# changes no production file, `scope_files` falls back to the closure of the
-# changed TEST scripts, which on this branch's own diff is 63 production files
-# and 19 drivers against the gate's 1 selected script. Re-derive that pair at
-# your merge base rather than carrying it; `baseline_refusal`'s docstring says
-# with what. The NIGHTLY keeps the refusal: nothing else reports that lane's
-# baseline per commit.
+# The baseline's drivers are those whose closure reaches a file the diff wrote
+# code in, a subset of the scoped gate's selection; `baseline_refusal`'s
+# docstring says how to re-derive that. The NIGHTLY keeps the refusal: nothing
+# else reports that lane's baseline per commit.
 #
 # Driven as a function rather than through `main()`, which clones the tree and
 # runs real scripts; the fixtures below carry the shape `run_script` returns.
@@ -23490,6 +23521,368 @@ R.check(
 )
 _mut_shutil.rmtree(_MUT_PROBE_DIR, ignore_errors=True)
 
+# The `mutation` job's schedule (the mutation-timeout root cause). A run with
+# one survivor cost two full sweeps of the driver net back to back -- the
+# baseline serial on one tree, then the survivor's every driver on the one
+# worker that drew it -- and on CI's slower runner class that passed the
+# 90-minute timeout with no verdict. Each check below drives the REAL
+# scheduler with a fake driver that waits on a barrier: it clears only when
+# `workers` runs are in flight AT ONCE, so a serial schedule breaks it rather
+# than passing slowly. The design choice is concurrency, not a figure: the
+# wall-clock model and its numbers are the pull request's.
+import threading as _mut_threading  # noqa: E402
+
+_mut_baselines = getattr(_mut, "drive_baselines", None)
+_mut_pool = getattr(_mut, "drive_pool", None)
+
+
+def _mut_barrier_run(barrier, seen, *key):
+    """A fake driver: records `key`, then waits until `barrier` fills."""
+    seen.append(key)
+    try:
+        barrier.wait(timeout=10)
+        return True
+    except _mut_threading.BrokenBarrierError:
+        return False
+
+
+_MUT_B_SEEN: list = []
+_MUT_B_BAR = _mut_threading.Barrier(3)
+_MUT_B_OUT = (_mut_baselines(
+    ["tests/a.py", "tests/b.py", "tests/c.py"], 3,
+    lambda w, s: _mut.ScriptRun(
+        0 if _mut_barrier_run(_MUT_B_BAR, _MUT_B_SEEN, w, s) else 1, 0, 0.0))
+    if _mut_baselines is not None else {})
+R.check(
+    "the baseline drives its drivers over every worker tree at once",
+    sorted(_MUT_B_OUT) == ["tests/a.py", "tests/b.py", "tests/c.py"]
+    and all(r.rc == 0 for r in _MUT_B_OUT.values())
+    and {w for w, _ in _MUT_B_SEEN} == {0, 1, 2},
+    f"drive_baselines={'absent' if _mut_baselines is None else 'present'}, "
+    f"runs={_MUT_B_SEEN!r} -- three drivers on three trees must be in flight "
+    "together; one tree at a time breaks the barrier",
+)
+_MUT_B_ORDER: list = []
+if _mut_baselines is not None:
+    _mut_baselines(["tests/a.py", "tests/env_drift.py", "tests/stress.py"], 1,
+                   lambda w, s: (_MUT_B_ORDER.append(s),
+                                 _mut.ScriptRun(0, 0, 0.0))[1])
+R.check(
+    "and the ref-driven shared drivers start first, stress.py last and alone",
+    _MUT_B_ORDER == ["tests/env_drift.py", "tests/a.py", "tests/stress.py"],
+    f"order={_MUT_B_ORDER!r} -- a long run started last sets the makespan, "
+    "and the driver that measures the machine waits until it has the runner",
+)
+
+# stress.py measures the machine (tests/stress_budgets.json): beside three
+# other drivers its baseline hit the 1200 s per-driver timeout on #1565's
+# first CI run, where alone it takes 674-960 s. Each fake run below records
+# its wall-clock interval; an EXCLUSIVE driver's interval must meet no other.
+_MUT_X_SPANS: list = []
+_MUT_X_LOCK = _mut_threading.Lock()
+
+
+def _mut_x_span(key):
+    """Run for 50 ms and record (key, start, end)."""
+    t0 = _time.monotonic()
+    _time.sleep(0.05)
+    with _MUT_X_LOCK:
+        _MUT_X_SPANS.append((key, t0, _time.monotonic()))
+
+
+def _mut_x_overlaps():
+    """Every (exclusive, other) pair of recorded runs that shared the clock."""
+    return [(k, o) for k, a0, a1 in _MUT_X_SPANS
+            if k[-1] == "tests/stress.py"
+            for o, b0, b1 in _MUT_X_SPANS
+            if o != k and b0 < a1 and a0 < b1]
+
+
+if _mut_baselines is not None:
+    _mut_baselines(["tests/a.py", "tests/b.py", "tests/c.py",
+                    "tests/stress.py"], 3,
+                   lambda w, s: (_mut_x_span(("base", s)),
+                                 _mut.ScriptRun(0, 0, 0.0))[1])
+_MUT_X_BASE = list(_MUT_X_SPANS)
+R.check(
+    "the stress.py baseline shares the runner with no other driver",
+    getattr(_mut, "EXCLUSIVE", ()) == ("tests/stress.py",)
+    and any(k == ("base", "tests/stress.py") for k, _, _ in _MUT_X_BASE)
+    and not _mut_x_overlaps(),
+    f"overlaps={_mut_x_overlaps()!r} runs={[k for k, _, _ in _MUT_X_BASE]!r}",
+)
+_MUT_X_SPANS.clear()
+_MUT_X_POOL = [{"file": f"x{i}.py", "line": i, "kind": "CONST",
+                "drivers": ["tests/a.py", "tests/b.py", "tests/stress.py"]}
+               for i in range(3)]
+_MUT_X_OUT = (_mut_pool(
+    _MUT_X_POOL, 3, {"tests/a.py": 1, "tests/b.py": 2, "tests/stress.py": 9},
+    lambda w, m, s: (_mut_x_span((m["line"], s)),
+                     m["line"] == 0 and s == "tests/a.py")[1])
+    if _mut_pool is not None else [])
+R.check(
+    "a mutant's stress.py run shares the runner with no other driver, and "
+    "only a mutant no shared driver killed pays for one",
+    [v for _, v in _MUT_X_OUT] == ["killed by tests/a.py", "LIVES", "LIVES"]
+    and sorted(k for k, _, _ in _MUT_X_SPANS if k[1] == "tests/stress.py")
+    == [(1, "tests/stress.py"), (2, "tests/stress.py")]
+    and not _mut_x_overlaps(),
+    f"verdicts={[v for _, v in _MUT_X_OUT]!r} overlaps={_mut_x_overlaps()!r} "
+    f"stress runs={[k for k, _, _ in _MUT_X_SPANS if k[1] == 'tests/stress.py']!r}",
+)
+
+# A survivor is the mutant that cannot stop early: every driver must run.
+# Alone in the pool, its three drivers must run on three workers at once.
+_MUT_P_SEEN: list = []
+_MUT_P_BAR = _mut_threading.Barrier(3)
+_MUT_P_SURV = {"file": "x.py", "line": 1, "kind": "GUARD_OFF",
+               "drivers": ["tests/a.py", "tests/b.py", "tests/c.py"]}
+_MUT_P_OUT = (_mut_pool(
+    [_MUT_P_SURV], 3, {"tests/a.py": 1, "tests/b.py": 2, "tests/c.py": 3},
+    lambda w, m, s: not _mut_barrier_run(_MUT_P_BAR, _MUT_P_SEEN, w, s))
+    if _mut_pool is not None else [])
+R.check(
+    "an idle worker helps drive a survivor's remaining drivers",
+    [v for _, v in _MUT_P_OUT] == ["LIVES"]
+    and {w for w, _ in _MUT_P_SEEN} == {0, 1, 2}
+    and sorted(s for _, s in _MUT_P_SEEN) == _MUT_P_SURV["drivers"],
+    f"drive_pool={'absent' if _mut_pool is None else 'present'}, "
+    f"verdicts={[v for _, v in _MUT_P_OUT]!r}, runs={_MUT_P_SEEN!r} -- one "
+    "worker sweeping a survivor alone is a second full sweep of the net",
+)
+
+# The race that sharing opens: the owner finishes its last driver while a
+# helper is still running the costliest one. The barrier puts both in flight
+# together; the helper's driver then kills after the owner's has returned.
+_MUT_R_BAR = _mut_threading.Barrier(2)
+
+
+def _mut_r_drive(w, m, s):
+    """tests/a.py returns at once, green; tests/b.py kills 0.3 s later."""
+    _mut_barrier_run(_MUT_R_BAR, [], w, s)
+    if s == "tests/a.py":
+        return False
+    _time.sleep(0.3)
+    return True
+
+
+_MUT_R_OUT = (_mut_pool(
+    [dict(_MUT_P_SURV, drivers=["tests/a.py", "tests/b.py"])], 2,
+    {"tests/a.py": 1, "tests/b.py": 2}, _mut_r_drive)
+    if _mut_pool is not None else [])
+R.check(
+    "a mutant is not LIVES while a helper's driver is still running",
+    [v for _, v in _MUT_R_OUT] == ["killed by tests/b.py"],
+    f"verdicts={[v for _, v in _MUT_R_OUT]!r} -- the helper's kill landed "
+    "after the owner ran out of drivers, and it is the verdict",
+)
+
+# The verdicts are the serial sweep's: a mutant is killed iff SOME driver
+# kills it, and LIVES only once every one of its drivers ran -- the null
+# control, since a scheduler that dropped a driver would go green by
+# skipping it. Twelve mutants, four workers, kills scattered over the net.
+_MUT_V_DRIVERS = [f"tests/d{i}.py" for i in range(6)]
+_MUT_V_POOL = [{"file": f"m{i}.py", "line": i, "kind": "CONST",
+                "drivers": _MUT_V_DRIVERS[: 2 + i % 5]} for i in range(12)]
+_MUT_V_KILLS = {(i, s) for i in range(12) for s in _MUT_V_DRIVERS
+                if (i * 7 + int(s[-4])) % 11 == 0}
+_MUT_V_RAN: list = []
+_MUT_V_LOCK = _mut_threading.Lock()
+
+
+def _mut_v_drive(w, m, s):
+    with _MUT_V_LOCK:
+        _MUT_V_RAN.append((m["line"], s))
+    # Longer for a costlier driver, so helpers and owners really overlap.
+    _time.sleep(0.01 * int(s[-4]))
+    return (m["line"], s) in _MUT_V_KILLS
+
+
+_MUT_V_OUT = (_mut_pool(_MUT_V_POOL, 4,
+                        {s: i for i, s in enumerate(_MUT_V_DRIVERS)},
+                        _mut_v_drive)
+              if _mut_pool is not None else [])
+_MUT_V_BAD = [
+    (m["line"], v) for m, v in _MUT_V_OUT
+    if (v == "LIVES") == any((m["line"], s) in _MUT_V_KILLS
+                             for s in m["drivers"])
+    or (v != "LIVES" and (m["line"], v.removeprefix("killed by "))
+        not in _MUT_V_KILLS)
+    or (v == "LIVES" and sorted(s for ln, s in _MUT_V_RAN if ln == m["line"])
+        != sorted(m["drivers"]))
+]
+R.check(
+    "every verdict is the serial sweep's: killed iff a driver kills it, "
+    "LIVES only after every driver ran once",
+    len(_MUT_V_OUT) == len(_MUT_V_POOL) and not _MUT_V_BAD
+    and any(v == "LIVES" for _, v in _MUT_V_OUT)
+    and any(v != "LIVES" for _, v in _MUT_V_OUT),
+    f"{len(_MUT_V_OUT)} verdict(s) of {len(_MUT_V_POOL)}; wrong: "
+    f"{_MUT_V_BAD!r}",
+)
+
+
+# `--scope changed` draws only from lines the diff adds or modifies (tvofi's
+# ruling on #1565: a survivor on a line the pull request never touched blocked
+# #1559, #1560 and #1562). Driven against a real throwaway repository, three
+# branches off one base: a code edit, a comment/whitespace-only edit, and a
+# docs/test-only edit. `drawable` is what main() draws the pool from.
+import subprocess as _mutl_sp  # noqa: E402
+
+_mut_lines = getattr(_mut, "changed_lines", None)
+_mut_draw = getattr(_mut, "drawable", None)
+_MUTL_DIR = Path(_tempfile.mkdtemp(prefix="mutation-lines-"))
+_MUTL_REL = _mut.PKG + "mod.py"
+_MUTL_SRC = (
+    "# a fixture module\n"
+    "LIMIT = 3\n\n\n"
+    "def f(x):\n"
+    "    if x > LIMIT:\n"
+    "        return min(x, 9)\n"
+    "    return x\n\n\n"
+    "def g(y):\n"
+    "    if y < 0:\n"
+    "        raise ValueError(y)\n"
+    "    return y\n"
+)
+
+
+def _mutl_git(*args):
+    return _mutl_sp.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid",
+         "-c", "commit.gpgsign=false", *args],
+        cwd=_MUTL_DIR, capture_output=True, text=True, check=True).stdout
+
+
+def _mutl_branch(name, edits):
+    """A branch off `base` whose one commit writes `edits` {rel: text}."""
+    _mutl_git("checkout", "-q", "-B", name, "base")
+    for rel, text in edits.items():
+        (_MUTL_DIR / rel).parent.mkdir(parents=True, exist_ok=True)
+        (_MUTL_DIR / rel).write_text(text)
+    _mutl_git("add", "-A")
+    _mutl_git("commit", "-q", "--no-verify", "-m", name)
+    return _mut_lines("base", root=_MUTL_DIR) if _mut_lines else None
+
+
+(_MUTL_DIR / _MUTL_REL).parent.mkdir(parents=True)
+(_MUTL_DIR / _MUTL_REL).write_text(_MUTL_SRC)
+_mutl_git("init", "-q")
+_mutl_git("add", "-A")
+_mutl_git("commit", "-q", "--no-verify", "-m", "base")
+_mutl_git("branch", "base")
+_MUTL_CODE = _mutl_branch("code", {
+    _MUTL_REL: _MUTL_SRC.replace("if y < 0:", "if y < -1:")})
+_MUTL_ALL = list(_mut.candidates(_MUTL_DIR / _MUTL_REL))
+_MUTL_DRAWN = (_mut_draw(_MUTL_DIR / _MUTL_REL, _MUTL_REL, _MUTL_CODE)
+               if _mut_draw and _MUTL_CODE is not None else _MUTL_ALL)
+R.check(
+    "a changed-scope pool draws only sites on lines the diff modified",
+    _MUTL_CODE == {_MUTL_REL: {12}}
+    and {m["line"] for m in _MUTL_DRAWN} == {12}
+    and {m["line"] for m in _MUTL_ALL} - {12},
+    f"touched={_MUTL_CODE!r} drawn={sorted({m['line'] for m in _MUTL_DRAWN})} "
+    f"of sites on {sorted({m['line'] for m in _MUTL_ALL})} -- the untouched "
+    "lines' sites are the null control: they exist, and are never drawn",
+)
+_MUTL_COMMENT = _mutl_branch("comment", {_MUTL_REL: _MUTL_SRC.replace(
+    "    if x > LIMIT:\n", "    # the limit is inclusive\n    if x > LIMIT:  # why\n"
+).replace("    return y\n", "    return  y\n")})
+_MUTL_DOCS = _mutl_branch("docs", {"README.md": "docs\n",
+                                   "tests/extra.py": "print(1)\n"})
+R.check(
+    "and a comment-, whitespace-, docs- or test-only diff draws nothing",
+    _MUTL_COMMENT == {} and _MUTL_DOCS == {},
+    f"comment={_MUTL_COMMENT!r} docs={_MUTL_DOCS!r} -- an empty map is an "
+    "empty pool, which main() passes before any clone or baseline",
+)
+_MUTL_FULL = (_mut_draw(_MUTL_DIR / _MUTL_REL, _MUTL_REL, None)
+              if _mut_draw else [])
+R.check(
+    "and --scope full still draws from every site",
+    len(_MUTL_FULL) == len(_MUTL_ALL) > 1,
+    f"{len(_MUTL_FULL)} of {len(_MUTL_ALL)} site(s)",
+)
+# #1561's null control on a line-scoped pool: it is the tool's own comment
+# edit, so it is read off a pool file directly, never through `drawable`
+# (which would filter out every comment line), and an empty pool has none.
+_mut_null_for = getattr(_mut, "null_for", None)
+_MUTL_NULL = _mut_null_for(_MUTL_DRAWN) if _mut_null_for else None
+R.check(
+    "the null control is drawn from a file of the line-scoped pool, on a line "
+    "the diff never touched",
+    _MUTL_NULL is not None and _MUTL_NULL["line"] == 1
+    and _MUTL_NULL["line"] not in {m["line"] for m in _MUTL_DRAWN}
+    and _mut_null_for([]) is None,
+    f"null={_MUTL_NULL and (_MUTL_NULL['file'][-6:], _MUTL_NULL['line'])} "
+    f"from a pool on lines {sorted({m['line'] for m in _MUTL_DRAWN})}",
+)
+_MUT_MAIN = pathlib.Path(_mut.__file__).read_text()
+_MUT_MAIN = _MUT_MAIN[_MUT_MAIN.index("def main("):]
+R.check(
+    "and an empty pool passes before a null control is sought",
+    "PASSED (empty pool)" in _MUT_MAIN and "null = null_for(pool)" in _MUT_MAIN
+    and _MUT_MAIN.index("PASSED (empty pool)")
+    < _MUT_MAIN.index("null = null_for(pool)"),
+    "main() must return on an empty pool before null_for, or a comment-only "
+    "diff would be refused for having no null control",
+)
+# A null control whose edit never reaches its tree is the baseline run again:
+# it "survives" every driver and measures nothing (found in #1565's review, a
+# hole since #1561). Inside `null_edit` the tree differs from the unmutated
+# file on exactly one line -- the null comment -- and after it, on none; and
+# main()'s null runs go through `null_edit`.
+_mut_null_edit = getattr(_mut, "null_edit", None)
+_MUTL_BEFORE = (_MUTL_DIR / _MUTL_REL).read_text().splitlines()
+_MUTL_DIFF: list = ["null_edit absent"]
+if _mut_null_edit is not None and _MUTL_NULL is not None:
+    _MUTL_EDIT = dict(_MUTL_NULL, file=_MUTL_REL)
+    with _mut_null_edit(_MUTL_DIR, _MUTL_EDIT):
+        _MUTL_DURING = (_MUTL_DIR / _MUTL_REL).read_text().splitlines()
+    _MUTL_AFTER = (_MUTL_DIR / _MUTL_REL).read_text().splitlines()
+    _MUTL_DIFF = [(_i + 1, _b, _d) for _i, (_b, _d)
+                  in enumerate(zip(_MUTL_BEFORE, _MUTL_DURING)) if _b != _d]
+    if len(_MUTL_BEFORE) != len(_MUTL_DURING) or _MUTL_AFTER != _MUTL_BEFORE:
+        _MUTL_DIFF.append("line count moved, or the tree was not restored")
+R.check(
+    "the null run's tree differs from the baseline tree on exactly the null "
+    "comment's line, and main() drives it through null_edit",
+    _MUTL_NULL is not None
+    and _MUTL_DIFF == [(_MUTL_NULL["line"], _MUTL_NULL["old"],
+                        _MUTL_NULL["new"])]
+    and "with null_edit(trees[w], null):" in _MUT_MAIN,
+    f"diff={_MUTL_DIFF!r} -- an empty diff is a null control that never ran",
+)
+_mut_shutil.rmtree(_MUTL_DIR, ignore_errors=True)
+
+# The null control's runs are baseline-phase tasks: every driver in play runs
+# under it (none stops at a kill -- drive_baselines judges nothing), on the
+# worker trees rather than as a process beside them, and its stress.py run is
+# alone like the baseline's.
+_MUT_X_SPANS.clear()
+_MUT_N_OUT: dict = {}
+if _mut_baselines is not None:
+    try:
+        _mut_baselines(
+            ["tests/a.py", "tests/b.py", "tests/stress.py"], 3,
+            lambda w, s: (_mut_x_span(("base", s)),
+                          _mut.ScriptRun(0, 0, 0.0))[1],
+            null_run=lambda w, s: (_mut_x_span(("null", s)),
+                                   _mut.ScriptRun(1, 1, 0.0))[1],
+            null_out=_MUT_N_OUT)
+    except TypeError:
+        pass
+R.check(
+    "the null control runs under every driver in the baseline phase, and its "
+    "stress.py run shares the runner with nothing",
+    sorted(_MUT_N_OUT) == ["tests/a.py", "tests/b.py", "tests/stress.py"]
+    and ("null", "tests/stress.py") in [k for k, _, _ in _MUT_X_SPANS]
+    and not _mut_x_overlaps()
+    and len(_MUT_X_SPANS) == 6,
+    f"null runs={sorted(_MUT_N_OUT)} overlaps={_mut_x_overlaps()!r} "
+    f"runs={sorted(k for k, _, _ in _MUT_X_SPANS)}",
+)
+
 
 # --- P8: every float() of an entity's state goes through a unit (#1513) -------
 #
@@ -23628,6 +24021,191 @@ R.check(
     f"{_p8_refusals(_p8_float_sites({'probe.py': _p8_probe}))}",
 )
 
+
+# --- every CI install is hash-pinned (#1548, R8-D11-s2-03) -----------------
+# Every `uses:` ref is SHA-pinned (#960), but the installs those jobs ran were
+# pinned by version only: an index that served different bytes under the same
+# version was installed without complaint. The barrier is keyed on the
+# PROPERTY -- a dependency-install command in a `run:` step of ANY workflow --
+# not on the twelve commands the finder counted, so a new job, a new workflow
+# or a reworded install is read the same way.
+#
+# What passes, and the design choice in it, said out loud (fixer.md step 11):
+#   pip   `pip install` (bare, `python -m pip` or `uv pip`) with
+#         `--require-hashes`, `--build-constraint FILE` and one or more
+#         `-r FILE`, no positional package spec, and every FILE a committed
+#         path whose every requirement is `name==version` with a sha256.
+#         `--build-constraint` is required even of a lock with no sdist in it:
+#         `--require-hashes` does not reach the isolated environment that
+#         builds an sdist, so an sdist added to a lock later would otherwise
+#         fetch its build requirements unhashed with nothing here noticing.
+#         A file generated at run time (`$RUNNER_TEMP/...`) is refused: it is
+#         the shape the typing lane had, and no reviewer ever sees its hashes.
+#         An unknown pip flag is refused rather than guessed about.
+#   npm   `npm ci` only, over a committed package-lock.json whose every
+#         package carries an `integrity`; `npm install`/`i`/`add`/`exec`,
+#         `npx` and the other runners that fetch by name are refused.
+# NOT covered, deliberately: `apt-get install` (the distribution's signed
+# archive, which OpenSSF Scorecard's Pinned-Dependencies does not count), the
+# toolchains `setup-python`/`setup-node` fetch (their actions are SHA-pinned),
+# the Chromium build `playwright install` downloads (fixed by the now
+# hash-locked playwright-core, not hash-checked by it), and the container
+# image `tests/nightly_ha.py` runs by tag.
+import shlex as _pin_shlex  # noqa: E402
+
+_PIN_PIP = re.compile(r"\bpip3?\s+install\b")
+_PIN_FETCHERS = re.compile(
+    r"\bnpm\s+(?:install|i|add|exec|x|update|up)\b|\bnpx\b|\byarn\b|\bpnpm\b"
+    r"|\bbunx?\b|\bpipx\b|\buvx\b|\buv\s+tool\b|\bgo\s+install\b"
+    r"|\bgem\s+install\b|\bcargo\s+install\b"
+)
+_PIN_REQ = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*(\[[^\]]*\])?==[^\s;\\]+")
+_PIN_HASH = re.compile(r"--hash=sha256:[0-9a-f]{64}\b")
+
+
+def _pin_lock_problem(label: str, text: str) -> "str | None":
+    """Why a requirements file's text is not fully hash-pinned, or None."""
+    logical = re.sub(r"\\\n", " ", text)
+    reqs = [ln.strip() for ln in logical.splitlines()
+            if ln.strip() and not ln.lstrip().startswith("#")]
+    bad = [ln[:40] for ln in reqs
+           if not (_PIN_REQ.match(ln) and _PIN_HASH.search(ln))]
+    if not reqs or bad:
+        return f"{label}: unhashed or unpinned requirement(s) {bad[:3] or 'none at all'}"
+    return None
+
+
+def _pin_unhashed_lock(path: str) -> "str | None":
+    """Why the requirements file a workflow names is not a committed, hashed lock."""
+    if "$" in path or path.startswith("/") or not (_closure.ROOT / path).is_file():
+        return f"{path} is not a committed file"
+    return _pin_lock_problem(path, (_closure.ROOT / path).read_text())
+
+
+def _pin_pip_refusal(cmd: str) -> "str | None":
+    """Why one `pip install` command is not hash-pinned, or None."""
+    try:
+        toks = _pin_shlex.split(cmd[_PIN_PIP.search(cmd).end():])
+    except ValueError as exc:
+        return f"unparseable: {exc}"
+    flags, files, i = set(), [], 0
+    while i < len(toks):
+        tok = toks[i]
+        if tok in ("-r", "--requirement", "--build-constraint") and i + 1 < len(toks):
+            flags.add("-r" if tok != "--build-constraint" else tok)
+            files.append(toks[i + 1])
+            i += 2
+            continue
+        if tok in ("--require-hashes", "-q", "--quiet"):
+            flags.add(tok)
+        else:
+            return f"argument {tok!r} is a package spec or an unvetted flag"
+        i += 1
+    missing = {"--require-hashes", "--build-constraint", "-r"} - flags
+    if missing:
+        return f"missing {sorted(missing)}"
+    for f in files:
+        why = _pin_unhashed_lock(f)
+        if why:
+            return why
+    return None
+
+
+def _pin_unhashed_installs(label: str, text: str) -> "tuple[list[str], int]":
+    """(refusals, installs inspected) over one workflow's `run:` steps."""
+    doc = _yaml.safe_load(text) or {}
+    refusals, seen = [], 0
+    for job_name, job in (doc.get("jobs") or {}).items():
+        for step in (job or {}).get("steps") or []:
+            run = (step or {}).get("run") or ""
+            run = "\n".join(ln for ln in run.splitlines()
+                            if not ln.lstrip().startswith("#"))
+            run = re.sub(r"\\\n\s*", " ", run)
+            for seg in re.split(r"&&|\|\||[;|\n]", run):
+                seg = seg.strip()
+                where = f"{label}:{job_name}: {seg[:70]}"
+                if _PIN_FETCHERS.search(seg):
+                    seen += 1
+                    refusals.append(f"{where} -- fetches by name, not by lock")
+                elif _PIN_PIP.search(seg):
+                    seen += 1
+                    why = _pin_pip_refusal(seg)
+                    if why:
+                        refusals.append(f"{where} -- {why}")
+                elif re.search(r"\bnpm\s+ci\b", seg):
+                    seen += 1
+    return refusals, seen
+
+
+def _pin_lock_without_integrity(path: Path) -> "list[str]":
+    pkgs = json.loads(path.read_text()).get("packages") or {}
+    return [k for k, v in pkgs.items()
+            if k and not str(v.get("integrity", "")).startswith("sha512-")]
+
+
+_PIN_REFUSED, _PIN_SEEN = [], 0
+for _pin_wf in sorted((_closure.ROOT / ".github" / "workflows").glob("*.y*ml")):
+    _r, _n = _pin_unhashed_installs(_pin_wf.name, _pin_wf.read_text())
+    _PIN_REFUSED += _r
+    _PIN_SEEN += _n
+_PIN_NPM_LOCKS = [
+    f for f in _subprocess.run(
+        ["git", "ls-files", "*package-lock.json"], cwd=_closure.ROOT,
+        capture_output=True, text=True,
+    ).stdout.split()
+]
+for _pin_lock in _PIN_NPM_LOCKS:
+    _missing = _pin_lock_without_integrity(_closure.ROOT / _pin_lock)
+    if _missing:
+        _PIN_REFUSED.append(f"{_pin_lock}: no sha512 integrity for {_missing[:3]}")
+R.check(
+    "every dependency install in every workflow is hash-pinned (#1548)",
+    not _PIN_REFUSED and _PIN_SEEN > 0 and _PIN_NPM_LOCKS,
+    f"{len(_PIN_REFUSED)} refused of {_PIN_SEEN} install command(s), "
+    f"{len(_PIN_NPM_LOCKS)} npm lock(s): {_PIN_REFUSED[:4]}. Install from a "
+    "committed hashed lock (`uv pip compile --generate-hashes`; the header of "
+    "tests/requirements-ci.txt has the command) or `npm ci`",
+)
+
+# The barrier's own arms, driven through the same functions over synthetic
+# workflows, so a reader that stopped seeing installs cannot pass the check
+# above by finding nothing: each red arm must refuse and the green arm must not.
+_PIN_OK = ("pip install --require-hashes --build-constraint "
+           "tests/requirements-build.txt -r tests/requirements-ci.txt")
+_PIN_ARMS = {
+    "the finder's version-pinned install": ("pip install -r tests/requirements-ci.txt", 1),
+    "a bare package spec beside the flags": (_PIN_OK + " 'coverage==7.13.1'", 1),
+    "a lock generated at run time": (
+        _PIN_OK.replace("tests/requirements-ci.txt", '"$RUNNER_TEMP/typing-requirements.txt"'), 1),
+    "an install with no build constraint": (
+        "python -m pip install --require-hashes -r tests/requirements-ci.txt", 1),
+    "a continued npm install and npx": (
+        'npm install --prefix "$RUNNER_TEMP/pw" playwright@1.49.0\n'
+        "PW=1 \\\n  npx --yes playwright@1.49.0 install chromium", 2),
+    "the hashed installs this workflow uses": (_PIN_OK + "\nnpm ci --prefix x", 0),
+    "an install named only in a comment": ("# pip install -r x\necho ok", 0),
+}
+for _arm, (_run, _want) in _PIN_ARMS.items():
+    _wf = _yaml.safe_dump({"jobs": {"j": {"steps": [{"run": _run}]}}})
+    _r, _ = _pin_unhashed_installs("arm", _wf)
+    R.check(
+        f"hash-pin barrier arm: {_arm} -> {_want} refusal(s)",
+        len(_r) == _want,
+        f"got {len(_r)}: {_r}",
+    )
+# ... and a lock that loses its hashes on one requirement is refused, read
+# through the same reader the workflows' `-r` files are read through.
+_PIN_COV = _closure.ROOT / "tests" / "requirements-ci.txt"
+_PIN_STRIPPED = re.sub(r"(==\S+) \\\n(?:\s+--hash=\S+ \\\n)*\s+--hash=\S+", r"\1",
+                       _PIN_COV.read_text(), count=1)
+R.check(
+    "hash-pin barrier arm: a lock with one requirement stripped of its hashes is refused",
+    _PIN_STRIPPED != _PIN_COV.read_text()
+    and _pin_lock_problem("stripped", _PIN_STRIPPED) is not None
+    and _pin_unhashed_lock("tests/requirements-ci.txt") is None,
+    f"stripped={_pin_lock_problem('stripped', _PIN_STRIPPED)!r} "
+    f"committed={_pin_unhashed_lock('tests/requirements-ci.txt')!r}",
+)
 
 # --- the replay lane's cheap half, on every pull request (round 8, move 2) ---
 #

@@ -82,7 +82,8 @@ move exists to stop.
 
 Unchanged by this record, named because the process diet is a subtraction and
 each of these was weighed and kept: the identity model of decision 0011
-(App-authored PRs, App-approved non-code-owned paths, `tvofi` verdicts), the
+(App-authored PRs, App-approved non-code-owned paths, `tvofi` verdicts —
+`hpo-approver` verdicts since 0013), the
 fix-review adversarial verdict, the scoped gate (`GATE_SCOPE=auto` against
 measured closures, forced `full` on a push to `main`), and the golden-fixture
 claim protocol (`claimed_drift.txt` / `card_claimed_drift.txt`). These guard
