@@ -4520,11 +4520,16 @@ class HeatPumpOptimizer:
         setpoint = p.dhw_setpoint
         dt = h.dt
         n_apply = min(len(raw), len(out) - 1)
+        # The drain carries forward: what the coil took at step i is gone from
+        # every later step too, not only from step i (R8-P3).
+        drained = 0.0
         for i in range(n_apply):
+            out[i + 1] = max(inlet, out[i + 1] - drained)
             _, q_coil = dhw_coil_draw_reduction(
                 float(raw[i]), float(out[i + 1]), setpoint, inlet_temp=inlet,
             )
             if q_coil > 0.0:
+                drained += q_coil * dt / c_w
                 out[i + 1] = max(inlet, out[i + 1] - q_coil * dt / c_w)
         return out
 

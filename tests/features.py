@@ -27362,7 +27362,7 @@ R.check(
 def _lg_whole_tail_repair(
     self, *, plan, initial_temp, outdoor_temps, draw_rates, dt,
     requirement, max_temp, p_dhw_max, min_run_power, prices, c_dhw,
-    forced_off=None,
+    forced_off=None, humidity=None,
 ):
     """The rejected floor repair: the room bound taken over the WHOLE tail, and
     nothing behind it to enforce the ceiling. Same loop, same ranking, same
@@ -29797,7 +29797,9 @@ R.check(
 _g2_saved_extend = _G2Tm.extend_dhw_temps
 
 
-def _g2_extend_via_full_sim(self, temps, from_step, schedule, outdoor, draws, dt_hours=0.25):
+def _g2_extend_via_full_sim(
+    self, temps, from_step, schedule, outdoor, draws, dt_hours=0.25, humidity=None,
+):
     _G2Tm.extend_dhw_temps = _g2_saved_extend
     try:
         new = self.simulate_dhw_only(
@@ -29806,6 +29808,7 @@ def _g2_extend_via_full_sim(self, temps, from_step, schedule, outdoor, draws, dt
             outdoor_temps=outdoor,
             draw_rates=draws,
             dt_hours=dt_hours,
+            humidity=humidity,
         )
     finally:
         _G2Tm.extend_dhw_temps = _g2_extend_via_full_sim
@@ -29962,7 +29965,9 @@ R.check(
 _mr_saved_extend = _G2Tm.extend_dhw_temps
 
 
-def _mr_extend_via_full_sim(self, temps, from_step, schedule, outdoor, draws, dt_hours=0.25):
+def _mr_extend_via_full_sim(
+    self, temps, from_step, schedule, outdoor, draws, dt_hours=0.25, humidity=None,
+):
     _G2Tm.extend_dhw_temps = _mr_saved_extend
     try:
         new = self.simulate_dhw_only(
@@ -29971,6 +29976,7 @@ def _mr_extend_via_full_sim(self, temps, from_step, schedule, outdoor, draws, dt
             outdoor_temps=outdoor,
             draw_rates=draws,
             dt_hours=dt_hours,
+            humidity=humidity,
         )
     finally:
         _G2Tm.extend_dhw_temps = _mr_extend_via_full_sim
@@ -45497,6 +45503,47 @@ R.check(
     [(s[1], s[2]) for s in _p3_seams(_p3_probe, "probe")]
     == [("a", "compute_cop_dhw"), ("b", "marginal_cop"), ("c", "compute_cop_dhw")],
     f"{_p3_seams(_p3_probe, 'probe')}",
+)
+
+# Found by this group: the wood-coil forecast took each step's coil drain out of
+# that step's wood temperature only, so every later step was credited against a
+# tank the coil had not cooled -- its docstring promises the opposite. Under the
+# #1530 law the credited plan left the tank ~0.6 K under dhw_min_temp inside a
+# demand window (the #400 check above), and the same breach appears at the merge
+# base under cop_scale 0.9, so the COP law only exposed it. The drain is read
+# as the gap between the forecast and the same forecast with the coil credit
+# zeroed: it may only grow along the horizon.
+import heatpump_optimizer.optimizer as _p3_opt_mod  # noqa: E402
+
+_p3_coil_args = {}
+_p3_coil_real = _p3_opt_mod.HeatPumpOptimizer._dhw_coil_wood_forecast
+
+
+def _p3_coil_spy(self, h, space_power=None):
+    _p3_coil_args.setdefault("call", (self, h, space_power))
+    return _p3_coil_real(self, h, space_power)
+
+
+_p3_opt_mod.HeatPumpOptimizer._dhw_coil_wood_forecast = _p3_coil_spy
+try:
+    _coil_plan(enabled=True, wood=85.0)
+finally:
+    _p3_opt_mod.HeatPumpOptimizer._dhw_coil_wood_forecast = _p3_coil_real
+_p3_self, _p3_h, _p3_sp = _p3_coil_args["call"]
+_p3_with = np.asarray(_p3_coil_real(_p3_self, _p3_h, _p3_sp), dtype=float)
+_p3_red = _p3_opt_mod.dhw_coil_draw_reduction
+_p3_opt_mod.dhw_coil_draw_reduction = lambda rate, *a, **k: (rate, 0.0)
+try:
+    _p3_without = np.asarray(_p3_coil_real(_p3_self, _p3_h, _p3_sp), dtype=float)
+finally:
+    _p3_opt_mod.dhw_coil_draw_reduction = _p3_red
+_p3_drain = _p3_without - _p3_with
+R.check(
+    "the coil's drain on the wood forecast carries forward: it never shrinks "
+    "along the horizon, and it is not zero",
+    bool(np.all(np.diff(_p3_drain) >= -1e-12)) and float(_p3_drain[-1]) > 0.0,
+    f"drain at the end {float(_p3_drain[-1]):.4f} K; largest step back "
+    f"{float(np.min(np.diff(_p3_drain))):.4f} K",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
