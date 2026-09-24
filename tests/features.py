@@ -44288,4 +44288,114 @@ R.check(
     f"; raised {_r7pin_err}",
 )
 
+# --- The DHW standby coefficient, read raw (round 7, D2-03 review) --------
+#
+# The tank's standby loss coefficient `ua` is derived, not configured:
+# `rate * C_tank / DHW_COOLING_REFERENCE_DELTA`, with the rate clipped to
+# [DHW_COOLING_RATE_MIN, DHW_COOLING_RATE_MAX]. So `ua / C_tank` -- the
+# fraction of stored heat lost per hour -- does not depend on the tank's
+# volume, and neither does any temperature the planner derives from it. The
+# simulator reads `ua` raw. Three planner methods read it as
+# `max(ua, 1e-6)`, a floor that binds below about 0.43 L at the minimum rate,
+# a volume the service's POSITIVE_PARAM_FLOOR (0.01 L) admits.
+#
+# The property each arm checks: with power scaled by the tank's capacity,
+# the planner's answer scales with the capacity too, so two tanks give the
+# same answer per kWh/K. 0.1 L and 0.2 L both sit under the epsilon, so a
+# floor makes their loss rates differ (by a factor of two) and the answers
+# with them. The 5 L / 10 L pair sits above it and is the null: the floor
+# cannot bind there, and the pair agrees with or without it.
+#
+# The repair arm's ceiling falls by only half a degree: its decay prices how
+# much of a top-up survives to a falling ceiling, so a small fall is the
+# shape that decay can move (a 54 C fall was measured blind to the floor).
+#
+# `ua` is only ever a multiplier in these methods, so a zero `ua` leaves
+# decay at 1.0 and gain at 0.0 and needs no guard. The zero it comes from,
+# a zero capacity, is refused upstream by each method's own `c_dhw` guard
+# (the zero-capacity arm above).
+_R7UA_RATE = 0.05
+
+
+def _r7ua_min_cost(volume):
+    opt, params = _r7d203_opt(volume, dhw_cooling_rate=_R7UA_RATE)
+    c = params.dhw_tank_thermal_mass
+    n = 12
+    plan = opt._plan_dhw_min_cost(
+        45.0, np.array([45.0] * 8 + [55.0] * 4), np.linspace(0.5, 1.5, n),
+        np.full(n, -5.0), np.zeros(n), n, 1.0, 50.0 * c, c,
+        np.full(n, 60.0),
+    )
+    return None if plan is None else np.asarray(plan, dtype=float) / c
+
+
+def _r7ua_repair(volume):
+    opt, params = _r7d203_opt(volume, dhw_cooling_rate=_R7UA_RATE)
+    c = params.dhw_tank_thermal_mass
+    n = 12
+    plan = opt._repair_dhw_floor(
+        plan=np.zeros(n), initial_temp=45.0, outdoor_temps=np.full(n, -5.0),
+        draw_rates=np.zeros(n), dt=1.0,
+        requirement=np.array([45.0] * 9 + [60.0] * 3),
+        max_temp=np.array([60.0] * 4 + [59.5] * 8), p_dhw_max=50.0 * c,
+        min_run_power=5.0 * c, prices=np.linspace(0.5, 1.5, n), c_dhw=c,
+    )
+    return np.asarray(plan, dtype=float) / c
+
+
+def _r7ua_legionella(volume):
+    opt, params = _r7d203_opt(volume, dhw_cooling_rate=_R7UA_RATE)
+    c = params.dhw_tank_thermal_mass
+    n = 24
+    res = opt._dhw_legionella_ceilings(
+        params=params, n_steps=n, dt=1.0, c_dhw=c, draw_rates=np.zeros(n),
+        floor_temps=np.full(n, 20.0), outdoor_temps=np.full(n, -5.0),
+        p_dhw_run=2.0 * c, legionella_due=True, legionella_hour=20.0,
+        legionella_step=20,
+    )
+    return np.asarray(res.runup_temps, dtype=float)
+
+
+def _r7ua_gap(fn, a, b):
+    x, y = fn(a), fn(b)
+    if x is None or y is None:
+        return float("inf")
+    return float(np.max(np.abs(x - y)))
+
+
+_r7ua_rows = [
+    ("_plan_dhw_min_cost", _r7ua_min_cost, 1e-6),
+    ("_repair_dhw_floor", _r7ua_repair, 1e-9),
+    ("_dhw_legionella_ceilings", _r7ua_legionella, 1e-9),
+]
+_r7ua_ua = _R7D203_PARAMS(
+    dhw_enabled=True, dhw_tank_volume=0.2, dhw_cooling_rate=_R7UA_RATE,
+).dhw_tank_heat_loss_coefficient
+for _name, _fn, _tol in _r7ua_rows:
+    _sub = _r7ua_gap(_fn, 0.1, 0.2)
+    _over = _r7ua_gap(_fn, 5.0, 10.0)
+    R.check(
+        f"{_name} reads the tank's own standby coefficient at any volume",
+        _r7ua_ua < 1e-6 and _sub <= _tol and _over <= _tol,
+        f"per kWh/K, 0.1 L and 0.2 L (ua {_r7ua_ua:.3e} kW/K at 0.2 L, under "
+        f"the 1e-6 floor) differ by {_sub:.3e}; the 5 L / 10 L null differs "
+        f"by {_over:.3e}; tolerance {_tol}",
+    )
+
+# The arms above can only fail if the answer moves with the loss rate at
+# all. This leg changes nothing but the rate, at 5 L, and requires all three
+# answers to move.
+for _name, _fn, _tol in _r7ua_rows:
+    _slow = _fn(5.0)
+    _R7UA_RATE = 3.0
+    _fast = _fn(5.0)
+    _R7UA_RATE = 0.05
+    R.check(
+        f"{_name}'s answer moves with the tank's loss rate (liveness)",
+        _slow is not None and _fast is not None
+        and float(np.max(np.abs(_slow - _fast))) > 100 * _tol,
+        "the same 5 L tank at 0.05 and 3.0 C/h differs by "
+        f"{float(np.max(np.abs(_slow - _fast))) if _slow is not None and _fast is not None else 'n/a'}",
+    )
+
 sys.exit(R.close("FEATURE CHECKS"))
