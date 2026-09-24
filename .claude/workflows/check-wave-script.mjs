@@ -742,6 +742,178 @@ await block('the round driver', async () => {
     'a schedule read out of nothing reported no gap')
 })
 
+console.log('-- The rotation: seats per round, and the coverage ledger every brief must agree with')
+// The round-8 convergence programme's rotation (design A). A brief's numbered
+// method steps are its step ids, D<k>.M<n>; tools/audit/rotation.json carries
+// them per dimension beside each round's coverage, and audit-find.js dispatches
+// from it. A ledger that lost a dimension or a step dispatches a round that
+// never covers it, silently -- R7-INSTR-01's shape one level down -- so the
+// ledger is held to the briefs here, where the schedule already is.
+await block('the rotation', async () => {
+  const root = path.join(here, '..', '..')
+  const rd = fs.readFileSync(path.join(here, 'audit-find.js'), 'utf8')
+  const briefsDir = path.join(root, 'tools', 'audit', 'briefs')
+  const briefSteps = Object.fromEntries(fs.readdirSync(briefsDir).filter((f) => /^D\d+\.md$/.test(f)).map((f) => [
+    f.slice(0, -3), [...fs.readFileSync(path.join(briefsDir, f), 'utf8').matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1]))]))
+  const ledger = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'rotation.json'), 'utf8'))
+  // One predicate, the tree and the synthetic ledgers below both through it.
+  const ledgerGaps = (briefs, led) => {
+    const gaps = []
+    if (!Object.keys(briefs).length) gaps.push('no dimension brief found (an empty extraction is a gap)')
+    for (const [d, nums] of Object.entries(briefs)) {
+      if (!nums.length) { gaps.push(`briefs/${d}.md numbers no method step`); continue }
+      if (nums.some((n, i) => n !== i + 1)) gaps.push(`briefs/${d}.md numbers its steps ${nums.join(',')}, not 1..${nums.length}`)
+      const want = nums.map((n) => `M${n}`)
+      const have = led[d]?.steps
+      if (!Array.isArray(have)) { gaps.push(`rotation.json has no ${d}`); continue }
+      for (const m of want) if (!have.includes(m)) gaps.push(`rotation.json ${d} lacks ${d}.${m}, which the brief numbers`)
+      for (const m of have) if (!want.includes(m)) gaps.push(`rotation.json ${d} names ${d}.${m}, which the brief no longer has`)
+      for (const [r, e] of Object.entries(led[d].rounds ?? {})) {
+        for (const m of Object.keys(e.coverage ?? {})) if (!want.includes(m)) gaps.push(`rotation.json ${d} round ${r} covers ${m}, which the brief no longer has`)
+      }
+    }
+    for (const d of Object.keys(led)) if (!d.startsWith('_') && !briefs[d]) gaps.push(`rotation.json names ${d}, which has no brief`)
+    return gaps
+  }
+  const real = ledgerGaps(briefSteps, ledger)
+  console.log(`  scope  ${Object.keys(briefSteps).length} brief(s), ${Object.values(briefSteps).flat().length} step(s); ledger ${Object.keys(ledger).filter((k) => !k.startsWith('_')).length} dimension(s)`)
+  t('every brief numbers its method steps 1..n, and rotation.json carries exactly those steps for every brief',
+    real.length === 0, `gaps: ${real.join('; ')}`)
+  const drop = (d, m) => ({ ...ledger, [d]: { ...ledger[d], steps: ledger[d].steps.filter((x) => x !== m) } })
+  const { D2: _gone, ...noD2 } = ledger
+  t('the check fires: a ledger missing a dimension is refused (positive control)',
+    ledgerGaps(briefSteps, noD2).some((g) => /has no D2$/.test(g)), 'a ledger with no D2 passed')
+  t('the check fires: a ledger missing a step the brief numbers is refused (positive control)',
+    ledgerGaps(briefSteps, drop('D2', 'M3')).some((g) => /lacks D2\.M3/.test(g)), 'a ledger without D2.M3 passed')
+  t('the check fires: a step the brief no longer has is refused (positive control)',
+    ledgerGaps({ ...briefSteps, D2: briefSteps.D2.slice(0, -1) }, ledger).some((g) => /no longer has/.test(g)), 'a brief that lost its last step passed against the old ledger')
+  t('and an empty extraction is refused rather than reported clean (null control)',
+    ledgerGaps({}, {}).length > 0, 'a ledger read against no briefs reported no gap')
+
+  // The dispatch rule, evaluated alone: the block between the markers uses
+  // nothing outside itself, so a helper it grew would fail here, not in a round.
+  const blk = rd.match(/\/\/ ROTATION:BEGIN[\s\S]*?\/\/ ROTATION:END/)
+  t('the dispatch block is delimited in audit-find.js', !!blk, 'no ROTATION:BEGIN..END block')
+  const code = blk[0]
+  t('the dispatch block draws on no randomness and no clock', !/Math\.random|Date\b|performance\.now|crypto/.test(code), 'found one')
+  const { SEATS, activeIn, planSeats } = new Function(`${code}\nreturn { SEATS, activeIn, planSeats }`)()
+  const dims = [...(/const DIMS = \[([^\]]*)\]/.exec(rd)?.[1] ?? '').matchAll(/'([A-Z]\d+)'/g)].map((m) => m[1])
+  const seatGaps = [...dims.filter((d) => !SEATS[d]).map((d) => `${d} has no SEATS row`),
+    ...Object.keys(SEATS).filter((d) => !dims.includes(d)).map((d) => `SEATS names ${d}, which DIMS does not`),
+    ...dims.filter((d) => !briefSteps[d]).map((d) => `DIMS names ${d}, which has no brief`)]
+  t('every DIMS entry has exactly one SEATS row and the table names no other', dims.length > 0 && seatGaps.length === 0, seatGaps.join('; '))
+  const perRound = [8, 9, 10, 11, 12].map((r) => [r, dims.filter((d) => activeIn(r, d)).reduce((n, d) => n + SEATS[d].seats, 0)])
+  console.log(`  seats  ${perRound.map(([r, n]) => `round ${r}: ${n}`).join(', ')}`)
+  t('a dimension that runs every third round runs in round 9 and not in round 10 (the table is read by round number)',
+    activeIn(9, 'D11') && !activeIn(10, 'D11') && activeIn(10, 'D5') && !activeIn(9, 'D5'), 'the cadence is not derived from the round')
+  const L = JSON.parse(JSON.stringify(ledger))
+  const a = planSeats(L, 'D2', 2, 9), b = planSeats(L, 'D2', 2, 9)
+  t('the same ledger and round dispatch the same seats (a relaunch replays)', J(a) === J(b), `${J(a)} vs ${J(b)}`)
+  t('every step lands on exactly one seat', L.D2.steps.every((m) => a.flatMap((p) => p.deep.concat(p.spot)).filter((x) => x === m).length === 1), J(a))
+  const R = (coverage, extra = {}) => ({ seats: [], coverage, unfinished: [], yield: {}, ...extra })
+  const allDeep = (except) => Object.fromEntries(L.D2.steps.map((m) => [m, m === except ? 'spot' : 'deep']))
+  const led = { D2: { steps: L.D2.steps, rounds: { 8: R(allDeep('M4'), { unfinished: [{ step: 'M2', what: 'capacity envelope' }] }) } } }
+  const p9 = planSeats(led, 'D2', 1, 9)
+  t('the step not deep last round, or named unfinished, takes the deep focus (M4: 9 rounds since deep beats M2: 1+2)',
+    J(p9[0].deep) === J(['M4']), J(p9))
+  t('a step yielding last round outranks an equally covered one (M2 before M1, both deep in round 8)',
+    J(planSeats({ D2: { steps: L.D2.steps, rounds: { 8: R(allDeep(), { yield: { M2: 1 } }) } } }, 'D2', 1, 9)[0].deep) === J(['M2']), 'M2 not chosen')
+  t('an unfinished step outranks an equally covered one (M2 before M1, both deep in round 8)',
+    J(planSeats({ D2: { steps: L.D2.steps, rounds: { 8: R(allDeep(), { unfinished: [{ step: 'M2', what: 'x' }] }) } } }, 'D2', 1, 9)[0].deep) === J(['M2']), 'M2 not chosen')
+  // M1 deep in rounds 7 and 8 and named unfinished in 8 (priority 1+2), M2 deep
+  // in 7 only (2): M1 outranks M2, so only the rest rule can hand M2 the focus,
+  // and one judged finding at M1 (the perturbation) must hand it back.
+  const fx = (y8) => ({ D2: { steps: ['M1', 'M2'], rounds: { 7: R({ M1: 'deep', M2: 'deep' }), 8: R({ M1: 'deep', M2: 'spot' }, { yield: y8, unfinished: [{ step: 'M1', what: 'x' }] }) } } })
+  const resting = planSeats(fx({}), 'D2', 1, 9), yielded = planSeats(fx({ M1: 1 }), 'D2', 1, 9)
+  t('a step deep twice running with zero yield drops to spot for a round', J(resting[0].deep) === J(['M2']) && resting[0].spot.includes('M1'), J(resting))
+  t('...and one judged finding there moves the deep focus back to it (perturbation)', J(yielded[0].deep) === J(['M1']), J(yielded))
+  // HAND-COMPUTED PLANS. Each case's expected plan is worked out from the rule's
+  // prose above planSeats, not from running it; the review of #1510 showed four
+  // mutants of the rule (only one seat taking a deep focus, every spot to seat 1,
+  // the unfinished bonus cut to +1, the tie-break reversed) surviving the
+  // single-seat pins above. The cases follow that review's own probe.
+  const S = (plan) => plan.map((p) => ({ d: p.deep, s: p.spot }))
+  const hand = (name, got, want) => t(`hand-computed plan: ${name}`, J(S(got)) === J(want), `got ${J(S(got))} want ${J(want)}`)
+  // A. Empty ledger, 7 steps, 2 seats, round 9: every priority is 9, so step
+  // order decides; M1, M2 deep; spots alternate to the lighter seat, seat 1 on ties.
+  hand('A empty ledger, two seats', planSeats({ D0: { steps: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7'], rounds: {} } }, 'D0', 2, 9),
+    [{ d: ['M1'], s: ['M3', 'M5', 'M7'] }, { d: ['M2'], s: ['M4', 'M6'] }])
+  // B. r=10, last round 9. M1 = 1 and resting (deep in 8 and 9, no yield); M2 = 2
+  // (deep in 8); M3 = 1; M4 = 10 (never deep); M5 = 2 (its yield was in round 8,
+  // not the last round). Order M4, M2, M5, M3, then resting M1.
+  hand('B two recorded rounds, a resting step and a never-deep one', planSeats({ D2: { steps: ['M1', 'M2', 'M3', 'M4', 'M5'], rounds: {
+    8: R({ M1: 'deep', M2: 'deep', M3: 'spot', M4: 'none', M5: 'deep' }, { yield: { M5: 1 }, unfinished: [{ step: 'M2', what: 'x' }] }),
+    9: R({ M1: 'deep', M2: 'spot', M3: 'deep', M4: 'spot', M5: 'spot' }) } } }, 'D2', 2, 10),
+    [{ d: ['M4'], s: ['M5', 'M1'] }, { d: ['M2'], s: ['M3'] }])
+  // C. One recorded round, all deep: base 1 each; M3 yielded (+1) = 2; M5
+  // unfinished (+2) = 3. M5 deep, then M3, then M1, M2, M4 by step order.
+  hand('C the unfinished bonus (+2) outranks the yield bonus (+1)', planSeats({ D2: { steps: ['M1', 'M2', 'M3', 'M4', 'M5'], rounds: {
+    9: R({ M1: 'deep', M2: 'deep', M3: 'deep', M4: 'deep', M5: 'deep' }, { yield: { M3: 2 }, unfinished: [{ step: 'M5', what: 'y' }] }) } } }, 'D2', 1, 10),
+    [{ d: ['M5'], s: ['M3', 'M1', 'M2', 'M4'] }])
+  // D. A round at or after the one being planned is not history.
+  hand('D a recorded round >= the planned one is ignored', planSeats({ D2: { steps: ['M1', 'M2', 'M3'], rounds: { 10: R({ M1: 'deep', M2: 'deep', M3: 'deep' }) } } }, 'D2', 1, 10),
+    [{ d: ['M1'], s: ['M2', 'M3'] }])
+  // E. Every step resting: each seat still takes one deep focus, by step order.
+  hand('E every step resting still gives each seat a deep focus', planSeats({ D9: { steps: ['M1', 'M2'], rounds: { 7: R({ M1: 'deep', M2: 'deep' }), 8: R({ M1: 'deep', M2: 'deep' }) } } }, 'D9', 2, 9),
+    [{ d: ['M1'], s: [] }, { d: ['M2'], s: [] }])
+  // F. A cadence-2 dimension recorded at 8 and 10, planned at 12, unfinished in
+  // its string form. M1 = 4, M2 = 2, M3 = 12 + 2, M4 = 12.
+  hand('F gapped rounds and string-form unfinished', planSeats({ D5: { steps: ['M1', 'M2', 'M3', 'M4'], rounds: {
+    8: R({ M1: 'deep', M2: 'spot', M3: 'spot', M4: 'spot' }), 10: R({ M1: 'spot', M2: 'deep', M3: 'spot', M4: 'spot' }, { unfinished: ['M3'] }) } } }, 'D5', 1, 12),
+    [{ d: ['M3'], s: ['M4', 'M1', 'M2'] }])
+
+  // And the whole driver, stubbed: the seats a round dispatches, and the
+  // refusal when the passed ledger is not the committed one.
+  const i0 = rd.indexOf('export const meta')
+  const rbody = rd.slice(0, i0) + rd.slice(rd.indexOf('\n}\n', i0) + 3)
+  const drive = async (args, prepOver = {}) => {
+    const labels = []
+    const agent = async (prompt, o) => {
+      labels.push(o.label)
+      if (o.label === 'prepare') return { exportDir: '/x', worktrees: { D0: '/w', D3: '/w', D9: '/w', D11: '/w', D13: '/w', D14: '/w' }, python: 'py', rotation_ok: true, ...prepOver }
+      if (o.label === 'quiet') return { quiet_path: '/q', retaken: [], d3_confirmed: [] }
+      if (o.label === 'dedup') return { branch: 'b', findings: [], rejected: [], corroborations: [] }
+      return { dimension: o.label.split('-')[0], report_path: `/r/${o.label}`, coverage: [], unfinished: [], findings: [], non_findings: [], harnesses: [] }
+    }
+    const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${rbody} })()`)
+    const out = await fn(agent, () => {}, () => {}, (items, f) => Promise.all(items.map((x) => f(x))), args)
+    return { out, labels }
+  }
+  const base = { round: 9, baseline: 'b', repo: '/r', rotation: ledger }
+  const r9 = await drive(base)
+  const finders = r9.labels.filter((l) => !['prepare', 'quiet', 'dedup'].includes(l))
+  const want9 = perRound.find(([r]) => r === 9)[1]
+  console.log(`  drive  round 9 dispatched ${finders.length} finder seat(s): ${finders.join(' ')}`)
+  t('the driver dispatches exactly the SEATS table for round 9, one agent per seat', finders.length === want9 && finders.includes('D0-s2') && finders.includes('D11') && !finders.includes('D5'), J(finders))
+  t('and returns the round\'s ledger entry for every active dimension', Object.keys(r9.out.rotation_round ?? {}).length === dims.filter((d) => activeIn(9, d)).length, J(Object.keys(r9.out.rotation_round ?? {})))
+  // The earlier-findings wall, per dimension. D14's method IS the class ledger
+  // and the pre-fix history of its instances, so its prompt lifts the wall and
+  // names both; every other finder keeps it. A D14 dispatched behind the wall
+  // cannot run its own step 3 (the review of #1510, item 4).
+  const prompts = {}
+  {
+    const agent = async (prompt, o) => { prompts[o.label] = prompt; return o.label === 'prepare' ? { exportDir: '/x', worktrees: { D0: '/w', D3: '/w', D9: '/w', D11: '/w', D13: '/w', D14: '/w' }, python: 'py', rotation_ok: true } : null }
+    const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${rbody} })()`)
+    await fn(agent, () => {}, () => {}, (items, f) => Promise.all(items.map((x) => f(x))), base).catch(() => null)
+  }
+  const walled = (p) => /must not go looking for earlier findings/.test(p ?? '')
+  const setOf = (name) => [...(new RegExp(`const ${name} = new Set\\(\\[([^\\]]*)\\]`).exec(rd)?.[1] ?? '').matchAll(/'([A-Z]\d+)'/g)].map((m) => m[1])
+  const ledgerDims = setOf('LEDGER_DIMS'), isolated = setOf('ISOLATED')
+  const others = Object.entries(prompts).filter(([l]) => /^D\d+(-s\d+)?$/.test(l) && !l.startsWith('D14'))
+  t("D14's finder may read the class ledger and its instances' history, and is not told the wall forbids it",
+    !walled(prompts.D14) && /tools\/audit\/bugclasses\.json/.test(prompts.D14 ?? '') && /pre-fix commits/.test(prompts.D14 ?? ''), (prompts.D14 ?? '(no D14 prompt)').slice(0, 200))
+  t('every other finder keeps the earlier-findings wall (null control)',
+    others.length >= 17 && others.every(([, p]) => walled(p)), `${others.length} other finder prompt(s); unwalled: ${others.filter(([, p]) => !walled(p)).map(([l]) => l).join(', ')}`)
+  t('a dimension that reads history has a worktree with .git (LEDGER_DIMS inside ISOLATED)',
+    ledgerDims.length > 0 && ledgerDims.every((d) => isolated.includes(d)), `LEDGER_DIMS ${J(ledgerDims)} ISOLATED ${J(isolated)}`)
+  let refused = ''
+  try { await drive(base, { rotation_ok: false, rotation_note: 'differs' }) } catch (e) { refused = e.message }
+  t('a ledger that is not the committed file stops the round before any finder', /not the committed tools\/audit\/rotation\.json/.test(refused), refused || 'did not throw')
+  refused = ''
+  try { await drive({ ...base, rotation: undefined }) } catch (e) { refused = e.message }
+  t('and a round with no ledger at all is refused', /args\.rotation is required/.test(refused), refused || 'did not throw')
+})
+
 console.log('-- The verification pass: one verifier per dimension, every finding to the judge')
 // Round 8, the owner's panel shape. `audit-verify.js` dispatched three verifiers
 // per panel of at most eight findings and dropped a majority-refuted finding
@@ -819,6 +991,45 @@ await block('the verification pass', async () => {
   t('from "judge" runs no verifier and hands the judge every registered finding',
     verifiers(res).length === 0 && judgeSees(res).length === findings.length,
     `verifier calls ${verifiers(res).length}; judge sees ${judgeSees(res).length} of ${findings.length}`)
+})
+
+console.log('-- The verification pass feeds the rotation ledger its yield')
+// The dispatch rule's +1 term reads rounds[<round>][<dim>].yield, the
+// judge-surviving findings per step. audit-find.js writes a round's coverage
+// through its dedup agent onto the register branch; audit-verify.js writes the
+// yield the same way, computed here in the script from the judge's verdicts and
+// each finding's `step`, so the number is the script's and not an agent's count.
+await block('the rotation yield', async () => {
+  const vsrc = fs.readFileSync(path.join(here, 'audit-verify.js'), 'utf8')
+  const vi = vsrc.indexOf('export const meta')
+  const vbody = vsrc.slice(0, vi) + vsrc.slice(vsrc.indexOf('\n}\n', vi) + 3)
+  const F = (id, dimension, step) => ({ id, dimension, step, severity: 'low', title: id, claim: id, report_path: 'r', harness_paths: [], attached_refutation: null })
+  const findings = [F('D2-s1-01', 'D2', 'D2.M2'), F('D2-s2-01', 'D2', 'D2.M2'), F('D2-s2-02', 'D2', 'D2.M4'), F('D14-01', 'D14', 'D14.M3'), F('D1-s1-01', 'D1', 'D1.M1')]
+  const verdict = { 'D2-s1-01': 'verified', 'D2-s2-01': 'weakened', 'D2-s2-02': 'refuted', 'D14-01': 'verified', 'D1-s1-01': 'unreproduced' }
+  const drive = async (from) => {
+    const calls = []
+    const agent = async (prompt, o) => {
+      calls.push({ label: o.label, prompt })
+      if (o.label === 'read') return { findings }
+      if (o.label === 'judge') return { verdicts: findings.map((f) => ({ id: f.id, verdict: verdict[f.id] })) }
+      if (o.label === 'register') return { issues: [] }
+      return { votes: [] }
+    }
+    const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${vbody} })()`)
+    const out = await fn(agent, () => {}, () => {}, (xs, f) => Promise.all(xs.map(f)), { round: 9, repo: '/repo', ...(from ? { from } : {}) })
+    return { out, calls }
+  }
+  const want = { D1: {}, D14: { M3: 1 }, D2: { M2: 2 } }
+  for (const from of [undefined, 'judge']) {
+    const { out, calls } = await drive(from)
+    const reg = calls.find((c) => c.label === 'register')?.prompt ?? ''
+    t(`the pass returns each dimension's judge-surviving count per step, refuted and unreproduced not counted (from ${from ?? 'panels'})`,
+      J(out?.rotation_yield) === J(want), `got ${J(out?.rotation_yield)}, want ${J(want)}`)
+    t(`and the register writer is told to write exactly that into tools/audit/rotation.json (from ${from ?? 'panels'})`,
+      reg.includes('tools/audit/rotation.json') && reg.includes(J(want)), 'the writer prompt does not carry the yield')
+  }
+  t('the read step is asked for each finding\'s step, or the count has nothing to key on',
+    /step/.test(vsrc.match(/label: 'read'/) ? vsrc.slice(0, vsrc.indexOf("label: 'read'")).split('phase(\'Read the register\')')[1] ?? '' : ''), 'the read prompt names no step')
 })
 
 // The guard above is only worth having if it is actually called.

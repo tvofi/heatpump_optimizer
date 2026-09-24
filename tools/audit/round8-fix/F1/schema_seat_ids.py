@@ -24,7 +24,8 @@ EXPECTED (tolerance: exact):
 Exit status 1 when either of the first two is not 0.
 
 PERTURBATION: restore the pattern `^D(1[0-3]|[0-9])-[0-9]{2}$` ->
-must_admit_refused=3 (the three seat-scoped ids). Direction: up.
+must_admit_refused=4 (the three seat-scoped ids and D14-01, admitted since
+the rotation/D14 PR). Direction: up.
 NULL CONTROL: the seven must-refuse ids are refused under both patterns, so
 the widening admits the seat form and nothing else in the table.
 """
@@ -37,8 +38,8 @@ from pathlib import Path
 from jsonschema import Draft7Validator
 
 SCHEMA = Path("tools/audit/finding.schema.json")
-MUST_ADMIT = ["D0-01", "D1-01", "D13-99", "D1-s1-01", "D2-s2-02", "D13-s12-03"]
-MUST_REFUSE = ["D1-1", "D1-001", "D14-01", "D1-s-01", "D1-sa-01", "D1-s1-1", "D1-S1-01"]
+MUST_ADMIT = ["D0-01", "D1-01", "D13-99", "D14-01", "D1-s1-01", "D2-s2-02", "D13-s12-03"]
+MUST_REFUSE = ["D1-1", "D1-001", "D15-01", "D1-s-01", "D1-sa-01", "D1-s1-1", "D1-S1-01"]
 
 
 def main() -> int:

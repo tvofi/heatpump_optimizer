@@ -1,0 +1,24 @@
+## round 1 inject 1 7.60 9.74 12.32 7/200 1807
+RESULT loop_cpu_per_cycle=43.59 ms (provisional)
+RESULT reference_solve_cpu=150.0 ms (provisional)
+RESULT loop_cpu_share_of_reference=0.2906 ratio
+RESULT thread_factor=1.003
+RESULT load1=7.27
+## round 1 inject 2 7.27 9.15 11.91 7/203 2052
+RESULT loop_cpu_per_cycle=52.90 ms (provisional)
+RESULT reference_solve_cpu=148.8 ms (provisional)
+RESULT loop_cpu_share_of_reference=0.3555 ratio
+RESULT thread_factor=1.003
+RESULT load1=7.43
+## round 2 inject 1 7.39 8.72 11.53 8/203 2261
+RESULT loop_cpu_per_cycle=42.36 ms (provisional)
+RESULT reference_solve_cpu=157.4 ms (provisional)
+RESULT loop_cpu_share_of_reference=0.2691 ratio
+RESULT thread_factor=1.003
+RESULT load1=7.44
+## round 2 inject 2 7.44 8.41 11.20 6/206 2600
+RESULT loop_cpu_per_cycle=53.29 ms (provisional)
+RESULT reference_solve_cpu=149.0 ms (provisional)
+RESULT loop_cpu_share_of_reference=0.3577 ratio
+RESULT thread_factor=1.003
+RESULT load1=7.15
