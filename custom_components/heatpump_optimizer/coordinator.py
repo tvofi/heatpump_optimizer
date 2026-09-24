@@ -1374,7 +1374,7 @@ def _wind_speed_scale_of(state: Any) -> float:
     ``wind_speed_unit``. An unrecognised or absent unit falls back to 1.0
     (m/s), which is the Home Assistant metric default.
     """
-    unit = (getattr(state, "attributes", None) or {}).get("wind_speed_unit")
+    unit: Any = (getattr(state, "attributes", None) or {}).get("wind_speed_unit")
     scale = _WIND_UNIT_TO_MS.get(unit)
     if scale is None:
         if unit:
