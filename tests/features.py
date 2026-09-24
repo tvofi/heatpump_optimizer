@@ -43819,6 +43819,7 @@ from heatpump_optimizer import setpoint_check as _p8_sp  # noqa: E402
 from heatpump_optimizer.const import (  # noqa: E402
     CONF_GRID_FEE_ENTITY as _P8_FEE,
     CONF_PV_EXPORT_PRICE_ENTITY as _P8_EXPORT,
+    DEFAULT_PV_EXPORT_PRICE as _P8_EXPORT_DEFAULT,
 )
 
 _p8_norm = getattr(inputs_mod, "normalize_price_per_kwh", None)
@@ -44035,6 +44036,38 @@ R.check(
     _p8_flow.hass.services.calls
     == [("number", "set_value", {"entity_id": "number.dhw_sp", "value": 131.0})],
     f"got {_p8_flow.hass.services.calls!r}",
+)
+
+_p8_stale = _FakeHass(
+    {"sensor.inlet": FakeState("10", unit="°C", last_updated=datetime.now(UTC) - timedelta(days=2))}
+)
+R.check(
+    "and a stale, implausible or non-numeric inlet reading is refused",
+    _p8_inlet is not None
+    and _p8_inlet(_p8_stale, "sensor.inlet") is None
+    and _p8_inlet_at(40.0, "°C") is None
+    and _p8_inlet_at("unknown", "°C") is None,
+    f"{[_p8_inlet(_p8_stale, 'sensor.inlet'), _p8_inlet_at(40.0, '°C')] if _p8_inlet else 'missing'}",
+)
+R.check(
+    "an unavailable export-price entity falls back to the configured price",
+    _p8_export("SEK/kWh", "unavailable") == _P8_EXPORT_DEFAULT
+    and _p8_export("öre/kWh", "unavailable") == _P8_EXPORT_DEFAULT,
+    f"got {_p8_export('SEK/kWh', 'unavailable')!r}",
+)
+R.check(
+    "an unavailable grid-fee entity reads as no fee entity at all",
+    _p8_fee("öre/kWh", "unavailable") is None,
+    f"got {_p8_fee('öre/kWh', 'unavailable')!r}",
+)
+_p8_noent = _sp_repairs.DhwSetpointRepairFlow()
+_p8_noent.hass = _FakeHass({})
+_p8_noent.data = {"target": 55.0, "value": 131.0}
+_asyncio.run(_p8_noent.async_step_confirm({}))
+R.check(
+    "a repair with no entity id writes nothing",
+    _p8_noent.hass.services.calls == [],
+    f"got {_p8_noent.hass.services.calls!r}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

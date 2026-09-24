@@ -311,11 +311,10 @@ def normalize_price_per_kwh(value: float, unit: Any) -> float | None:
         return None
     if money.lower() in PRICE_MINOR_UNITS:
         return value * per_kwh / 100.0
-    if money in PRICE_MAJOR_SYMBOLS or (
+    major = money in PRICE_MAJOR_SYMBOLS or (
         len(money) == 3 and money.isalpha() and money.isupper()
-    ):
-        return value * per_kwh
-    return None
+    )
+    return value * per_kwh if major else None
 
 
 def price_per_kwh(raw: Any, unit: Any) -> float | None:
