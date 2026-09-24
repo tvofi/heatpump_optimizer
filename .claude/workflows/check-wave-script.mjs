@@ -827,6 +827,41 @@ await block('the rotation', async () => {
   const resting = planSeats(fx({}), 'D2', 1, 9), yielded = planSeats(fx({ M1: 1 }), 'D2', 1, 9)
   t('a step deep twice running with zero yield drops to spot for a round', J(resting[0].deep) === J(['M2']) && resting[0].spot.includes('M1'), J(resting))
   t('...and one judged finding there moves the deep focus back to it (perturbation)', J(yielded[0].deep) === J(['M1']), J(yielded))
+  // HAND-COMPUTED PLANS. Each case's expected plan is worked out from the rule's
+  // prose above planSeats, not from running it; the review of #1510 showed four
+  // mutants of the rule (only one seat taking a deep focus, every spot to seat 1,
+  // the unfinished bonus cut to +1, the tie-break reversed) surviving the
+  // single-seat pins above. The cases follow that review's own probe.
+  const S = (plan) => plan.map((p) => ({ d: p.deep, s: p.spot }))
+  const hand = (name, got, want) => t(`hand-computed plan: ${name}`, J(S(got)) === J(want), `got ${J(S(got))} want ${J(want)}`)
+  // A. Empty ledger, 7 steps, 2 seats, round 9: every priority is 9, so step
+  // order decides; M1, M2 deep; spots alternate to the lighter seat, seat 1 on ties.
+  hand('A empty ledger, two seats', planSeats({ D0: { steps: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7'], rounds: {} } }, 'D0', 2, 9),
+    [{ d: ['M1'], s: ['M3', 'M5', 'M7'] }, { d: ['M2'], s: ['M4', 'M6'] }])
+  // B. r=10, last round 9. M1 = 1 and resting (deep in 8 and 9, no yield); M2 = 2
+  // (deep in 8); M3 = 1; M4 = 10 (never deep); M5 = 2 (its yield was in round 8,
+  // not the last round). Order M4, M2, M5, M3, then resting M1.
+  hand('B two recorded rounds, a resting step and a never-deep one', planSeats({ D2: { steps: ['M1', 'M2', 'M3', 'M4', 'M5'], rounds: {
+    8: R({ M1: 'deep', M2: 'deep', M3: 'spot', M4: 'none', M5: 'deep' }, { yield: { M5: 1 }, unfinished: [{ step: 'M2', what: 'x' }] }),
+    9: R({ M1: 'deep', M2: 'spot', M3: 'deep', M4: 'spot', M5: 'spot' }) } } }, 'D2', 2, 10),
+    [{ d: ['M4'], s: ['M5', 'M1'] }, { d: ['M2'], s: ['M3'] }])
+  // C. One recorded round, all deep: base 1 each; M3 yielded (+1) = 2; M5
+  // unfinished (+2) = 3. M5 deep, then M3, then M1, M2, M4 by step order.
+  hand('C the unfinished bonus (+2) outranks the yield bonus (+1)', planSeats({ D2: { steps: ['M1', 'M2', 'M3', 'M4', 'M5'], rounds: {
+    9: R({ M1: 'deep', M2: 'deep', M3: 'deep', M4: 'deep', M5: 'deep' }, { yield: { M3: 2 }, unfinished: [{ step: 'M5', what: 'y' }] }) } } }, 'D2', 1, 10),
+    [{ d: ['M5'], s: ['M3', 'M1', 'M2', 'M4'] }])
+  // D. A round at or after the one being planned is not history.
+  hand('D a recorded round >= the planned one is ignored', planSeats({ D2: { steps: ['M1', 'M2', 'M3'], rounds: { 10: R({ M1: 'deep', M2: 'deep', M3: 'deep' }) } } }, 'D2', 1, 10),
+    [{ d: ['M1'], s: ['M2', 'M3'] }])
+  // E. Every step resting: each seat still takes one deep focus, by step order.
+  hand('E every step resting still gives each seat a deep focus', planSeats({ D9: { steps: ['M1', 'M2'], rounds: { 7: R({ M1: 'deep', M2: 'deep' }), 8: R({ M1: 'deep', M2: 'deep' }) } } }, 'D9', 2, 9),
+    [{ d: ['M1'], s: [] }, { d: ['M2'], s: [] }])
+  // F. A cadence-2 dimension recorded at 8 and 10, planned at 12, unfinished in
+  // its string form. M1 = 4, M2 = 2, M3 = 12 + 2, M4 = 12.
+  hand('F gapped rounds and string-form unfinished', planSeats({ D5: { steps: ['M1', 'M2', 'M3', 'M4'], rounds: {
+    8: R({ M1: 'deep', M2: 'spot', M3: 'spot', M4: 'spot' }), 10: R({ M1: 'spot', M2: 'deep', M3: 'spot', M4: 'spot' }, { unfinished: ['M3'] }) } } }, 'D5', 1, 12),
+    [{ d: ['M3'], s: ['M4', 'M1', 'M2'] }])
+
   // And the whole driver, stubbed: the seats a round dispatches, and the
   // refusal when the passed ledger is not the committed one.
   const i0 = rd.indexOf('export const meta')
@@ -851,6 +886,26 @@ await block('the rotation', async () => {
   console.log(`  drive  round 9 dispatched ${finders.length} finder seat(s): ${finders.join(' ')}`)
   t('the driver dispatches exactly the SEATS table for round 9, one agent per seat', finders.length === want9 && finders.includes('D0-s2') && finders.includes('D11') && !finders.includes('D5'), J(finders))
   t('and returns the round\'s ledger entry for every active dimension', Object.keys(r9.out.rotation_round ?? {}).length === dims.filter((d) => activeIn(9, d)).length, J(Object.keys(r9.out.rotation_round ?? {})))
+  // The earlier-findings wall, per dimension. D14's method IS the class ledger
+  // and the pre-fix history of its instances, so its prompt lifts the wall and
+  // names both; every other finder keeps it. A D14 dispatched behind the wall
+  // cannot run its own step 3 (the review of #1510, item 4).
+  const prompts = {}
+  {
+    const agent = async (prompt, o) => { prompts[o.label] = prompt; return o.label === 'prepare' ? { exportDir: '/x', worktrees: { D0: '/w', D3: '/w', D9: '/w', D11: '/w', D13: '/w', D14: '/w' }, python: 'py', rotation_ok: true } : null }
+    const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${rbody} })()`)
+    await fn(agent, () => {}, () => {}, (items, f) => Promise.all(items.map((x) => f(x))), base).catch(() => null)
+  }
+  const walled = (p) => /must not go looking for earlier findings/.test(p ?? '')
+  const setOf = (name) => [...(new RegExp(`const ${name} = new Set\\(\\[([^\\]]*)\\]`).exec(rd)?.[1] ?? '').matchAll(/'([A-Z]\d+)'/g)].map((m) => m[1])
+  const ledgerDims = setOf('LEDGER_DIMS'), isolated = setOf('ISOLATED')
+  const others = Object.entries(prompts).filter(([l]) => /^D\d+(-s\d+)?$/.test(l) && !l.startsWith('D14'))
+  t("D14's finder may read the class ledger and its instances' history, and is not told the wall forbids it",
+    !walled(prompts.D14) && /tools\/audit\/bugclasses\.json/.test(prompts.D14 ?? '') && /pre-fix commits/.test(prompts.D14 ?? ''), (prompts.D14 ?? '(no D14 prompt)').slice(0, 200))
+  t('every other finder keeps the earlier-findings wall (null control)',
+    others.length >= 17 && others.every(([, p]) => walled(p)), `${others.length} other finder prompt(s); unwalled: ${others.filter(([, p]) => !walled(p)).map(([l]) => l).join(', ')}`)
+  t('a dimension that reads history has a worktree with .git (LEDGER_DIMS inside ISOLATED)',
+    ledgerDims.length > 0 && ledgerDims.every((d) => isolated.includes(d)), `LEDGER_DIMS ${J(ledgerDims)} ISOLATED ${J(isolated)}`)
   let refused = ''
   try { await drive(base, { rotation_ok: false, rotation_note: 'differs' }) } catch (e) { refused = e.message }
   t('a ledger that is not the committed file stops the round before any finder', /not the committed tools\/audit\/rotation\.json/.test(refused), refused || 'did not throw')

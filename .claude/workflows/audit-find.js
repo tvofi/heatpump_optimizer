@@ -51,6 +51,10 @@ const ISOLATED = new Set(['D0', 'D3', 'D9', 'D11', 'D13', 'D14'])
 // R7-INSTR-01). A dim in here must also be in ISOLATED: the history it reads
 // comes from a worktree with `.git`, which is what ISOLATED buys.
 const API_DIMS = new Set(['D11', 'D13'])
+// D14 is the one finder whose METHOD is earlier findings (tools/audit/briefs/D14.md):
+// it reads tools/audit/bugclasses.json and, in its worktree's .git, the history of
+// the instances listed there (pre-fix commits). No GitHub: that stays API_DIMS'.
+const LEDGER_DIMS = new Set(['D14'])
 
 // ROTATION:BEGIN -- check-wave-script.mjs evaluates this block on its own, so it
 // uses nothing from outside it. Seats per dimension, and how often it runs:
@@ -69,8 +73,11 @@ const activeIn = (r, dim) => !!SEATS[dim] && r % SEATS[dim].every === 0
 // was last covered `deep`, +2 if the last round named it `unfinished`, +1 if the
 // last round's yield there was at least one; ties go to the lower step number. A
 // step `deep` in each of the last two recorded rounds with zero yield in both is
-// spot-only this round. The S highest become one deep focus per seat; every other
-// step is a spot check for the seat carrying the fewest steps (lowest seat first).
+// ranked after every other step this round, so it takes a deep focus only when
+// the dimension has fewer non-resting steps than seats: every seat keeps one deep
+// focus while it has a step to take. The S highest become one deep focus per seat;
+// every other step is a spot check for the seat carrying the fewest steps (lowest
+// seat first).
 const planSeats = (ledger, dim, seats, r) => {
   const entry = ledger?.[dim]
   if (!entry || !Array.isArray(entry.steps) || !entry.steps.length) throw new Error(`rotation ledger has no steps for ${dim}`)
@@ -88,8 +95,8 @@ const planSeats = (ledger, dim, seats, r) => {
   const order = entry.steps.map((s, i) => ({ s, i, p: priority(s), rest: resting(s) }))
     .sort((a, b) => (a.rest - b.rest) || (b.p - a.p) || (a.i - b.i))
   const plan = Array.from({ length: seats }, (_, k) => ({ seat: k + 1, deep: [], spot: [] }))
-  order.forEach(({ s, rest }, n) => {
-    if (n < seats && !rest) { plan[n].deep.push(s); return }
+  order.forEach(({ s }, n) => {
+    if (n < seats) { plan[n].deep.push(s); return }
     const light = plan.reduce((a, b) => (b.deep.length + b.spot.length < a.deep.length + a.spot.length ? b : a))
     light.spot.push(s)
   })
@@ -156,7 +163,7 @@ if (!prep.rotation_ok) throw new Error(`args.rotation is not the committed tools
 log(`round ${round}: ${ACTIVE.length} dimension(s), ${seatList(ACTIVE).length} finder seat(s): ${seatList(ACTIVE).map((s) => `${seatId(s)} deep=${s.deep.join('+') || '-'}`).join(', ')}`)
 
 const finder = (seat) => { const dim = seat.dim; return agent(
-  `You are the ${dim} auditor of round ${round}${seat.of > 1 ? `, seat ${seat.seat} of ${seat.of}` : ''}. Work only in ${ISOLATED.has(dim) ? prep.worktrees[dim] : prep.exportDir} (an export/worktree of baseline ${baseline}; the earlier-round files left in it are the ones the gate reads, not a record for you, and you must not go looking for earlier findings; ${API_DIMS.has(dim) ? 'your brief is the one exception to the GitHub wall -- read the history and the API it names, and record what you read under exposure' : 'do not run gh'}). Use the interpreter ${prep.python} with PYTHONPATH=tests/hastub from that directory's root.
+  `You are the ${dim} auditor of round ${round}${seat.of > 1 ? `, seat ${seat.seat} of ${seat.of}` : ''}. Work only in ${ISOLATED.has(dim) ? prep.worktrees[dim] : prep.exportDir} (an export/worktree of baseline ${baseline}; ${LEDGER_DIMS.has(dim) ? 'your brief is the exception to the earlier-findings wall: read tools/audit/bugclasses.json and the git history of the instances it lists (their pre-fix commits, from this worktree\'s .git), and record what you read under exposure' : 'the earlier-round files left in it are the ones the gate reads, not a record for you, and you must not go looking for earlier findings'}; ${API_DIMS.has(dim) ? 'your brief is the one exception to the GitHub wall -- read the history and the API it names, and record what you read under exposure' : 'do not run gh'}). Use the interpreter ${prep.python} with PYTHONPATH=tests/hastub from that directory's root.
 Read tools/audit/briefs/COMMON.md, then tools/audit/briefs/${dim}.md, then tools/audit/README.md, and follow them exactly. The brief's numbered method steps are ${dim}.M1, ${dim}.M2, ... in order. Your deep focus this round: ${seat.deep.map((m) => `${dim}.${m}`).join(', ') || '(none)'}; spot-check only: ${seat.spot.map((m) => `${dim}.${m}`).join(', ') || '(none)'}. Write your harnesses under ${seatDir(seat)}/ and your report to ${seatDir(seat)}/REPORT.md. Every finding needs an executed number from a committed harness that hooks a named production symbol and moves under a named perturbation; a finding without those cannot be returned. Mark any wall/CPU/RSS number provisional: true — it will be re-taken on a quiet box.
 Return the JSON report described by tools/audit/finding.schema.json (fields: dimension, baseline_sha, report_path, exposure, coverage, unfinished, findings, non_findings, harnesses). Number your findings ${seatId(seat)}-01, -02, ... (finding.schema.json's id pattern); coverage names every step of yours with depth deep, spot or none and its evidence; unfinished names each step you could not finish and what is left; every finding names its step.`,
   { label: seatId(seat), schema: reportSchema },

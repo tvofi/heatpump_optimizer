@@ -140,7 +140,7 @@ individually, because a range reads as complete while covering a fraction:
 | `D11.md` | governance mechanisms and policy |
 | `D12.md` | generalization |
 | `D13.md` | process yield and cost |
-| `D14.md` | recurring bug classes (draft, owner to confirm) |
+| `D14.md` | recurring bug classes |
 
 ### The suite, the register, the handover
 
