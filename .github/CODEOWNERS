@@ -106,5 +106,6 @@
 /tests/nightly_status.py                  @tvofi
 /tests/plan_view.py                       @tvofi
 /tests/profiles.py                        @tvofi
+/tests/replay.py                          @tvofi
 /tests/run.sh                             @tvofi
 /tests/typing_ruler.py                    @tvofi

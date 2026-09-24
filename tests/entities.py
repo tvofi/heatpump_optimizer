@@ -22998,4 +22998,27 @@ R.check(
     f"committed={_pin_unhashed_lock('tests/requirements-ci.txt')!r}",
 )
 
+# --- the replay lane's cheap half, on every pull request (round 8, move 2) ---
+#
+# `tests/replay.py` replays recorded days nightly. What it would take a night to
+# notice -- an invariant that can no longer fire, a committed fixture carrying a
+# token or an exact coordinate, a synthetic fixture its generator no longer
+# writes, the step gone from the nightly job -- costs seconds, so it is judged
+# here, the #533 lesson `nightly_ha.py`'s pins above already apply.
+R.section("The replay lane: controls, sanitiser, fixture, wiring")
+import replay as _replay  # noqa: E402
+
+for _rp_name, _rp_ok, _rp_detail in (
+    _replay.controls()
+    + _replay.sanitiser_checks(sorted(_replay.FIXTURES.glob("*.json")))
+    + [_replay.synthetic_reproduces()]
+):
+    R.check(f"replay {_rp_name}", _rp_ok, _rp_detail)
+R.check(
+    "the nightly slow job runs the replay lane as its own step",
+    "run: python3 tests/replay.py" in _workflow_job(_tests_workflow, "slow"),
+    "tests.yml's `slow` job has no `python3 tests/replay.py` step",
+)
+
+
 sys.exit(R.close("ENTITY CHECKS"))
