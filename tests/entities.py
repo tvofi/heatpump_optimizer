@@ -22676,5 +22676,121 @@ R.check(
 )
 _mut_shutil.rmtree(_MUT_PROBE_DIR, ignore_errors=True)
 
+# The `mutation` job's schedule (the mutation-timeout root cause). A run with
+# one survivor cost two full sweeps of the driver net back to back -- the
+# baseline serial on one tree, then the survivor's every driver on the one
+# worker that drew it -- and on CI's slower runner class that passed the
+# 90-minute timeout with no verdict. Each check below drives the REAL
+# scheduler with a fake driver that waits on a barrier: it clears only when
+# `workers` runs are in flight AT ONCE, so a serial schedule breaks it rather
+# than passing slowly. The design choice is concurrency, not a figure: the
+# wall-clock model and its numbers are the pull request's.
+import threading as _mut_threading  # noqa: E402
+
+_mut_baselines = getattr(_mut, "drive_baselines", None)
+_mut_pool = getattr(_mut, "drive_pool", None)
+
+
+def _mut_barrier_run(barrier, seen, *key):
+    """A fake driver: records `key`, then waits until `barrier` fills."""
+    seen.append(key)
+    try:
+        barrier.wait(timeout=10)
+        return True
+    except _mut_threading.BrokenBarrierError:
+        return False
+
+
+_MUT_B_SEEN: list = []
+_MUT_B_BAR = _mut_threading.Barrier(3)
+_MUT_B_OUT = (_mut_baselines(
+    ["tests/a.py", "tests/b.py", "tests/c.py"], 3,
+    lambda w, s: _mut.ScriptRun(
+        0 if _mut_barrier_run(_MUT_B_BAR, _MUT_B_SEEN, w, s) else 1, 0, 0.0))
+    if _mut_baselines is not None else {})
+R.check(
+    "the baseline drives its drivers over every worker tree at once",
+    sorted(_MUT_B_OUT) == ["tests/a.py", "tests/b.py", "tests/c.py"]
+    and all(r.rc == 0 for r in _MUT_B_OUT.values())
+    and {w for w, _ in _MUT_B_SEEN} == {0, 1, 2},
+    f"drive_baselines={'absent' if _mut_baselines is None else 'present'}, "
+    f"runs={_MUT_B_SEEN!r} -- three drivers on three trees must be in flight "
+    "together; one tree at a time breaks the barrier",
+)
+_MUT_B_ORDER: list = []
+if _mut_baselines is not None:
+    _mut_baselines(["tests/a.py", "tests/env_drift.py", "tests/stress.py"], 1,
+                   lambda w, s: (_MUT_B_ORDER.append(s),
+                                 _mut.ScriptRun(0, 0, 0.0))[1])
+R.check(
+    "and the ref-driven drivers, the net's longest runs, start first",
+    _MUT_B_ORDER[:2] == sorted(_mut.REF_DRIVEN),
+    f"order={_MUT_B_ORDER!r} -- a long run started last sets the makespan",
+)
+
+# A survivor is the mutant that cannot stop early: every driver must run.
+# Alone in the pool, its three drivers must run on three workers at once.
+_MUT_P_SEEN: list = []
+_MUT_P_BAR = _mut_threading.Barrier(3)
+_MUT_P_SURV = {"file": "x.py", "line": 1, "kind": "GUARD_OFF",
+               "drivers": ["tests/a.py", "tests/b.py", "tests/c.py"]}
+_MUT_P_OUT = (_mut_pool(
+    [_MUT_P_SURV], 3, {"tests/a.py": 1, "tests/b.py": 2, "tests/c.py": 3},
+    lambda w, m, s: not _mut_barrier_run(_MUT_P_BAR, _MUT_P_SEEN, w, s))
+    if _mut_pool is not None else [])
+R.check(
+    "an idle worker helps drive a survivor's remaining drivers",
+    [v for _, v in _MUT_P_OUT] == ["LIVES"]
+    and {w for w, _ in _MUT_P_SEEN} == {0, 1, 2}
+    and sorted(s for _, s in _MUT_P_SEEN) == _MUT_P_SURV["drivers"],
+    f"drive_pool={'absent' if _mut_pool is None else 'present'}, "
+    f"verdicts={[v for _, v in _MUT_P_OUT]!r}, runs={_MUT_P_SEEN!r} -- one "
+    "worker sweeping a survivor alone is a second full sweep of the net",
+)
+
+# The verdicts are the serial sweep's: a mutant is killed iff SOME driver
+# kills it, and LIVES only once every one of its drivers ran -- the null
+# control, since a scheduler that dropped a driver would go green by
+# skipping it. Twelve mutants, four workers, kills scattered over the net.
+_MUT_V_DRIVERS = [f"tests/d{i}.py" for i in range(6)]
+_MUT_V_POOL = [{"file": f"m{i}.py", "line": i, "kind": "CONST",
+                "drivers": _MUT_V_DRIVERS[: 2 + i % 5]} for i in range(12)]
+_MUT_V_KILLS = {(i, s) for i in range(12) for s in _MUT_V_DRIVERS
+                if (i * 7 + int(s[-4])) % 11 == 0}
+_MUT_V_RAN: list = []
+_MUT_V_LOCK = _mut_threading.Lock()
+
+
+def _mut_v_drive(w, m, s):
+    with _MUT_V_LOCK:
+        _MUT_V_RAN.append((m["line"], s))
+    # Longer for a costlier driver, so helpers and owners really overlap.
+    _time.sleep(0.01 * int(s[-4]))
+    return (m["line"], s) in _MUT_V_KILLS
+
+
+_MUT_V_OUT = (_mut_pool(_MUT_V_POOL, 4,
+                        {s: i for i, s in enumerate(_MUT_V_DRIVERS)},
+                        _mut_v_drive)
+              if _mut_pool is not None else [])
+_MUT_V_BAD = [
+    (m["line"], v) for m, v in _MUT_V_OUT
+    if (v == "LIVES") == any((m["line"], s) in _MUT_V_KILLS
+                             for s in m["drivers"])
+    or (v != "LIVES" and (m["line"], v.removeprefix("killed by "))
+        not in _MUT_V_KILLS)
+    or (v == "LIVES" and sorted(s for ln, s in _MUT_V_RAN if ln == m["line"])
+        != sorted(m["drivers"]))
+]
+R.check(
+    "every verdict is the serial sweep's: killed iff a driver kills it, "
+    "LIVES only after every driver ran once",
+    len(_MUT_V_OUT) == len(_MUT_V_POOL) and not _MUT_V_BAD
+    and any(v == "LIVES" for _, v in _MUT_V_OUT)
+    and any(v != "LIVES" for _, v in _MUT_V_OUT),
+    f"{len(_MUT_V_OUT)} verdict(s) of {len(_MUT_V_POOL)}; wrong: "
+    f"{_MUT_V_BAD!r}",
+)
+
 
 sys.exit(R.close("ENTITY CHECKS"))

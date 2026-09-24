@@ -78,6 +78,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
@@ -716,6 +717,103 @@ def drop_tree(dest: Path) -> None:
     )
 
 
+# ----------------------------------------------------------------- schedule
+#
+# The job's wall clock is the baseline plus the slowest worker, and both were
+# serial where the verdict did not need them to be (the mutation-timeout root
+# cause). The baseline drove every driver in play on one tree while the other
+# workers idled -- one full sweep of the net, which #1211 made env_drift.py and
+# stress.py part of -- and a mutant's drivers ran only on the worker that drew
+# it, so a survivor, which every driver must see, was a second full sweep on
+# one worker. Both are spread over the worker trees below. No driver leaves
+# the net and no mutant stops sooner than it did, so every verdict is the one
+# the serial sweep gave; only which driver is NAMED as a mutant's killer can
+# change, as it already could with the measured cheapest-first order.
+
+
+def _share(workers: int, work) -> None:
+    """Run `work(worker)` on every worker at once; re-raise what any raised."""
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        for fut in [ex.submit(work, w) for w in range(workers)]:
+            fut.result()
+
+
+def drive_baselines(needed: list[str], workers: int, run) -> dict[str, ScriptRun]:
+    """Every driver's unmutated run, spread over `workers` trees.
+
+    `run(worker, script)` drives one script in that worker's tree. The
+    ref-driven drivers are queued first: they are the whole-solve comparisons
+    and the longest runs in the net, and a long run started last is what sets
+    the makespan.
+    """
+    queue = sorted(needed, key=lambda s: (s not in REF_DRIVEN, s))
+    lock = threading.Lock()
+    out: dict[str, ScriptRun] = {}
+
+    def work(w: int) -> None:
+        while True:
+            with lock:
+                if not queue:
+                    return
+                script = queue.pop(0)
+            out[script] = run(w, script)
+
+    _share(workers, work)
+    return out
+
+
+def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
+               drive) -> list[tuple[dict, str]]:
+    """Each mutant's verdict, its drivers shared over `workers` trees.
+
+    `drive(worker, mut, script)` runs one driver on `mut` in that worker's tree
+    and says whether it killed it. A worker sweeps the next unstarted mutant,
+    its drivers in the order given (cheapest first), stopping at the first
+    kill. Once no mutant is left unstarted it helps instead: it takes the
+    costliest not-yet-started driver of a mutant still undecided, since a
+    survivor's sweep is the one that cannot stop early. A mutant is killed by
+    the first driver to report a kill, and LIVES only once every one of its
+    drivers has run and none did.
+    """
+    lock = threading.Lock()
+    todo = [list(m["drivers"]) for m in pool]
+    running = [0] * len(pool)
+    verdict: list[str | None] = [None] * len(pool)
+    unstarted = list(range(len(pool)))
+    own: list[int | None] = [None] * workers
+
+    def take(w: int) -> tuple[int, str] | None:
+        with lock:
+            i = own[w]
+            if i is None or verdict[i] is not None or not todo[i]:
+                i = own[w] = unstarted.pop(0) if unstarted else None
+            if i is not None:
+                script = todo[i].pop(0)
+            else:
+                open_ = [j for j in range(len(pool))
+                         if verdict[j] is None and todo[j]]
+                if not open_:
+                    return None
+                i = max(open_, key=lambda j: cost.get(todo[j][-1], 0.0))
+                script = todo[i].pop()
+            running[i] += 1
+            return i, script
+
+    def work(w: int) -> None:
+        while (task := take(w)) is not None:
+            i, script = task
+            hit = drive(w, pool[i], script)
+            with lock:
+                running[i] -= 1
+                if verdict[i] is None and hit:
+                    verdict[i] = f"killed by {script}"
+                elif verdict[i] is None and not todo[i] and not running[i]:
+                    verdict[i] = "LIVES"
+
+    _share(workers, work)
+    return [(m, v or "LIVES") for m, v in zip(pool, verdict)]
+
+
 def baseline_refusal(baseline: dict[str, ScriptRun], scope: str) -> int | None:
     """The verdict on a red baseline, or ``None`` when it is green.
 
@@ -900,15 +998,21 @@ def main() -> int:
     work = Path(tempfile.mkdtemp(prefix="mutation-table-"))
     made: list[Path] = []
     try:
-        base_tree = clone_tree(work / "baseline")
-        made.append(base_tree)
-        baseline: dict[str, ScriptRun] = {}
-        for s in needed:
+        # One tree per worker, cloned before the baseline: the baseline runs
+        # in them too, while each is still unmutated.
+        jobs = max(1, args.jobs)
+        trees = [clone_tree(work / f"w{i}") for i in range(jobs)]
+        made.extend(trees)
+
+        def run_baseline(w: int, s: str) -> ScriptRun:
             extra_args, extra_env = drive_spec(s, ref)
-            run = run_script(s, base_tree, args.timeout, extra_args, extra_env)
-            baseline[s] = run
+            run = run_script(s, trees[w], args.timeout, extra_args, extra_env)
+            # One write per line: the workers print concurrently.
             print(f"  baseline {s}: rc={run.rc} failed={run.failed} "
-                  f"{run.seconds:.0f}s")
+                  f"{run.seconds:.0f}s\n", end="")
+            return run
+
+        baseline = drive_baselines(needed, jobs, run_baseline)
         verdict = baseline_refusal(baseline, args.scope)
         if verdict is not None:
             return verdict
@@ -917,50 +1021,40 @@ def main() -> int:
         for mut in pool:
             mut["drivers"].sort(key=lambda s: baseline[s].seconds)
 
-        jobs = max(1, min(args.jobs, len(pool)))
-        trees = [clone_tree(work / f"w{i}") for i in range(jobs)]
-        made.extend(trees)
         results: list[tuple[dict, str]] = []
-
-        def drive(job: tuple[int, dict]) -> None:
-            idx, mut = job
-            tree = trees[idx % jobs]
-            path = tree / mut["file"]
-            lines = path.read_text().splitlines(True)
+        mutated: dict[int, str] = {}
+        for mut in pool:
+            lines = (trees[0] / mut["file"]).read_text().splitlines(True)
             i = mut["line"] - 1
             if i >= len(lines) or lines[i].rstrip("\n") != mut["old"]:
                 results.append((mut, "SKIP-MOVED"))
-                return
+                continue
             lines[i] = mut["new"] + "\n"
-            mutated = "".join(lines)
             try:
-                ast.parse(mutated)
+                ast.parse("".join(lines))
             except SyntaxError:
                 # A mutant that cannot run reports as a survivor, and a survivor
                 # reads as a finding about production. W5-G7 t5 measured two.
                 results.append((mut, "SKIP-UNPARSEABLE"))
-                return
+                continue
+            mutated[id(mut)] = "".join(lines)
+
+        def drive(w: int, mut: dict, s: str) -> bool:
+            # One task per worker at a time, so a tree carries one mutant.
+            path = trees[w] / mut["file"]
             original = path.read_text()
-            path.write_text(mutated)
+            path.write_text(mutated[id(mut)])
             try:
-                verdict = "LIVES"
-                for s in mut["drivers"]:
-                    extra_args, extra_env = drive_spec(s, ref)
-                    run = run_script(s, tree, args.timeout, extra_args,
-                                     extra_env)
-                    if killed(s, run, baseline[s]):
-                        verdict = f"killed by {s}"
-                        break
+                extra_args, extra_env = drive_spec(s, ref)
+                run = run_script(s, trees[w], args.timeout, extra_args,
+                                 extra_env)
+                return killed(s, run, baseline[s])
             finally:
                 path.write_text(original)
-            results.append((mut, verdict))
 
-        with ThreadPoolExecutor(max_workers=jobs) as ex:
-            # Serialised per worker tree by the index, so two mutants never
-            # edit one copy at the same time.
-            for i in range(jobs):
-                ex.submit(lambda i=i: [drive((i, m))
-                                       for m in pool[i::jobs]])
+        results += drive_pool(
+            [m for m in pool if id(m) in mutated], jobs,
+            {s: r.seconds for s, r in baseline.items()}, drive)
     finally:
         for tree in made:
             drop_tree(tree)
