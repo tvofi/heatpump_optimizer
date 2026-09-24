@@ -45503,6 +45503,41 @@ R.check(
     f"{float(_p3_none_wet[0].sum()) * 0.25:.3f}",
 )
 
+# The coordinator's capacity envelope (#17) turns each FORECAST step's learned
+# thermal ceiling into an electrical cap at that step's COP, so it is a planning
+# seam like the optimizer's: it must price the step's forecast humidity, not the
+# current one (R8-P3 round 2, from the fix review). Null arm: the step priced at
+# the ambient humidity would cap differently, so the derate is live here.
+from heatpump_optimizer.const import (  # noqa: E402
+    CAPACITY_FLOOR_FRACTION as _P3_CAP_FLOOR,
+    CAPACITY_MIN_SAMPLES as _P3_CAP_MIN,
+)
+
+_p3_cc = _t2_coord(capacity_curve_enabled=True)
+_p3_cc._thermal_params.defrost_derate = _p3_derate()
+_p3_cc._thermal_params.ambient_humidity = 55.0
+_p3_cc._capacity_envelope[0] = [8.0, _P3_CAP_MIN + 2]
+_p3_pmax = float(_p3_cc._thermal_params.max_electrical_power)
+_p3_cc_hum = np.array([90.0, 60.0])
+_p3_cc_caps = _p3_cc._capacity_caps(np.array([1.0, 1.0]), _p3_cc_hum)
+
+
+def _p3_cap_at(h):
+    cop = _p3_cc._thermal_model.compute_cop(1.0, humidity=h)
+    return float(np.clip(8.0 / cop, _P3_CAP_FLOOR * _p3_pmax, _p3_pmax))
+
+
+R.check(
+    "the capacity envelope caps each forecast step at that step's humidity",
+    _p3_cc_caps is not None
+    and abs(float(_p3_cc_caps[0]) - _p3_cap_at(90.0)) < 1e-9
+    and abs(float(_p3_cc_caps[1]) - _p3_cap_at(60.0)) < 1e-9
+    and abs(_p3_cap_at(90.0) - _p3_cap_at(None)) > 1e-3,
+    f"caps {None if _p3_cc_caps is None else _p3_cc_caps.tolist()} vs "
+    f"{_p3_cap_at(90.0):.4f}/{_p3_cap_at(60.0):.4f}; at the ambient "
+    f"{_p3_cap_at(None):.4f}",
+)
+
 # The seam rule, as a barrier: every call in the planner's two modules to a
 # ThermalModel method that takes ``humidity`` passes it, by keyword or by
 # position. The callee set is read from the methods' own signatures, so a new
