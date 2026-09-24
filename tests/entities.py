@@ -14776,6 +14776,8 @@ _NON_GATE_WORKFLOWS = [
     # #1514 split `pr-contract` out of governance.yml; this script reads it
     # for the contract pins below and for the `edited` barrier.
     ".github/workflows/pr-contract.yml",
+    # Decision 0013 as amended: the budget-raise gate, read for its wiring pins.
+    ".github/workflows/budget-raise-gate.yml",
 ]
 for _wf in _NON_GATE_WORKFLOWS:
     R.check(
@@ -20758,6 +20760,59 @@ R.check(
     f"#1484 guard -> {_RC_NULL}; the contract's own `if:` -> "
     f"{_RC_OWN}; an "
     "undecidable expression -> None, which the check above counts as skippable",
+)
+# --- decision 0013 as amended: the budget-raise gate's wiring. The budget
+# files carry no code owner, so this job is the only thing between a raise and
+# a merge on the approver App's review. Each property is a way the gate goes
+# green without grading: an `if:` (a skipped required context passes); a
+# second job in the file (a review event re-reports it); no review trigger (an
+# approval never turns it green); the gate run before the restore, without it
+# or without `-I` (the pull request grades itself); a write grant. The null
+# control drives the same predicate over a copy with the restore removed.
+def _brg_defects(text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    on = doc.get(True, doc.get("on")) or {}
+    jobs = doc.get("jobs") or {}
+    job = jobs.get("budget-raise-gate") or {}
+    runs = [str(s.get("run", "")) for s in job.get("steps") or []]
+    gate = [i for i, r in enumerate(runs)
+            if re.search(r"python3?\s+(?:-\w+\s+)*\S*budget_raise_gate\.py", r)]
+    restore = [i for i, r in enumerate(runs)
+               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+    out = []
+    if list(jobs) != ["budget-raise-gate"]:
+        out.append(f"jobs {list(jobs)}")
+    if "if" in job:
+        out.append("a job-level if:")
+    if sorted((on.get("pull_request_review") or {}).get("types", [])) != [
+            "dismissed", "edited", "submitted"]:
+        out.append("review trigger")
+    if not gate or not restore or any(runs[:restore[0]]) or gate[0] < restore[0]:
+        out.append(f"restore at {restore}, gate at {gate}")
+    if not all(re.search(r"python3 -I \.claude/workflows/budget_raise_gate\.py", runs[i])
+               for i in gate):
+        out.append("gate not under python3 -I")
+    if doc.get("permissions") != {"contents": "read", "pull-requests": "read"} or any(
+            "permissions" in (j or {}) for j in jobs.values()):
+        out.append(f"permissions {doc.get('permissions')}")
+    return out
+
+
+_BRG_TEXT = Path(".github/workflows/budget-raise-gate.yml").read_text()
+_BRG_DEFECTS = _brg_defects(_BRG_TEXT)
+R.check(
+    "the budget-raise gate is one unguarded job that re-runs on a review and "
+    "grades with the base's copy of its program",
+    _BRG_DEFECTS == [],
+    f"defects: {_BRG_DEFECTS}",
+)
+_BRG_NULL = _brg_defects(re.sub(
+    r"git checkout \"\$PINNED\" -- \\\n\s*'\.claude/workflows/\*\.py'\n",
+    "true\n", _BRG_TEXT))
+R.check(
+    "and the same file with its restore removed is refused (null control)",
+    any(d.startswith("restore at") for d in _BRG_NULL),
+    f"defects on the unpinned copy: {_BRG_NULL}",
 )
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string

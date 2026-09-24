@@ -50,17 +50,10 @@
 /docs/decisions/                          @tvofi
 /.github/PULL_REQUEST_TEMPLATE.md         @tvofi
 /.github/CODEOWNERS                       @tvofi
-# The ratchet caps (decision 0013, the owner's ruling of 2026-09-24: policy
-# and budget files are the owner's). A budget may only move down without the
-# owner, and CLAUDE.md rule 2 already asks the owner before a raise; owning the
-# files makes GitHub enforce what that sentence asks. Named one by one, never
-# `*_budgets.json`: a new cap file is owned when it is added here.
-/.claude/workflows/policy_budgets.json    @tvofi
-/tests/coverage_budgets.json              @tvofi
-/tests/mutation_budgets.json              @tvofi
-/tests/stress_budgets.json                @tvofi
-/tests/structure_budgets.json             @tvofi
-/tests/typing_budgets.json                @tvofi
+# The ratchet caps (`*_budgets.json`) carry no owner (decision 0013 as amended
+# 2026-09-24): a raise is the owner's, a routine edit is not, and a path pattern
+# cannot tell the two apart. The required context `budget-raise-gate` can: it
+# refuses any raise the owner has not approved at the head.
 
 # --- The required-check enforcement surface (R6-D11-01, #1402). ---
 # The workflow files that hold the jobs whose status contexts the ruleset

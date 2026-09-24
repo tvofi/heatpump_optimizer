@@ -1,0 +1,67 @@
+# The budget-raise gate (decision 0013, amended 2026-09-24): a raise in any
+# `*_budgets.json` merges only on the owner's approving review at the head.
+# The budget files carry no code owner, so a routine edit -- a ledger row, a
+# metric re-recorded down -- merges on the approver App's review alone; the
+# direction of the edit, not its path, is what calls for the owner.
+#
+# WHY ITS OWN FILE. It is the only job that must re-run when a review lands,
+# since an approval is the one change it reads that a commit does not make.
+# An event a workflow lists starts a run of every job in it, and a job an `if:`
+# skips still writes a check run at the head -- a skipped run of a required
+# context counts as passing (#1514's shape). So this file holds one job, it has
+# no `if:`, and every run it starts computes the verdict in full.
+#
+# `pull_request_review` runs the pull request's workflow file, as
+# `pull_request` does; `.github/workflows/` stays owned for that reason
+# (0013). The check's program is pinned instead: restored from the base
+# before it runs, under `python3 -I`, and nothing of the pull request's runs
+# before it. `codeowners_gap.py --check` reads that restore.
+
+name: Budget raise gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+
+# Workflow-level and read-only: the reviews list needs `pull-requests: read`,
+# the checkout `contents: read`. No job widens it.
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  budget-raise-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # fetch-depth 0: the merge base and both ends are read out of the clone.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Restore the check source from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
+          git checkout "$PINNED" -- \
+            '.claude/workflows/*.py'
+          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          test -f .claude/workflows/budget_raise_gate.py
+
+      # The head is the payload's: it is the commit this run's check run is
+      # written on. The reviews are read live, so a re-run after an approval
+      # reads the approval.
+      - name: Refuse a budget raise the owner has not approved at this head
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          python3 -I .claude/workflows/budget_raise_gate.py \
+            --base "$PR_BASE" --head "$PR_HEAD" --pr "$PR_NUMBER"

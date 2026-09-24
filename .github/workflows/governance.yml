@@ -259,6 +259,12 @@ jobs:
       - name: Show the App verdict poster refusing its own fixtures
         run: bash tools/audit/app_comment.sh --self-test
 
+      # The budget-raise gate (0013 as amended): a raise and a routine edit
+      # per budget file, every tracked file's caps moved both ways, and the
+      # owner's approval -- current, stale, dismissed, the App's -- offline.
+      - name: Show the budget-raise gate refusing its own fixtures
+        run: python3 .claude/workflows/budget_raise_gate.py --self-test
+
       - name: Show the figure check refusing its own fixtures
         if: always()
         run: node .claude/workflows/figure_lint.mjs --self-test
