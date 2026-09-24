@@ -1,6 +1,6 @@
 # D11 — Governance mechanisms and policy — audit round 6
 
-Baseline `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9), worktree `/Users/timmalmstrom/audit-r6-D11`. Interpreter system `python3` (3.11.5); Node v20.10.0; `gh` read-only as tvofi. Every number is a count, a fraction of counts, or an exit status — no wall/CPU/RSS, so nothing is provisional.
+Baseline `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9), worktree `~/audit-r6-D11`. Interpreter system `python3` (3.11.5); Node v20.10.0; `gh` read-only as tvofi. Every number is a count, a fraction of counts, or an exit status — no wall/CPU/RSS, so nothing is provisional.
 
 > Reconstructed by the orchestrator from the finder's inline return (REPORT.md write refused; 4 harnesses on disk).
 

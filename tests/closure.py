@@ -111,6 +111,12 @@ NOT_A_TEST = {
     "harness.py", "profiles.py", "closure.py", "gate_lock.py",
     "setup_qa_render.mjs",
     "card_browser.mjs", "nightly_ha.py",
+    # The replay lane (round 8, move 2): recorded days through the real
+    # coordinator, a step of the nightly `slow` job, nightly until its cost on
+    # a week of real data is known. NOT inert: `tests/entities.py` drives its
+    # invariant controls, its sanitiser over every fixture and the synthetic
+    # fixture's regeneration, so a change to any of them selects a script.
+    "replay.py",
     # The nightly's reporter (#533): its own `nightly-status` job runs it on
     # every pull request, and it needs the GitHub Actions API, which this suite
     # has neither the network nor the token for. Like `nightly_ha.py` above it

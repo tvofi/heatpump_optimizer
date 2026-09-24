@@ -44,7 +44,7 @@
     "drop_most_favourable": 8415
    },
    "reproduction_steps": [
-    "cd /Users/timmalmstrom/audit-r7-D9",
+    "cd ~/audit-r7-D9",
     "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/payload_bytes.py",
     "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/payload_bytes.py --exclude dhw_usage_profile",
     "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/payload_bytes.py --exclude nosuchkey"
@@ -90,7 +90,7 @@
     "note": "the same instrument on the space-only shape (dhw=False), a different candidate set and no DHW stage: polish CPU share 0.3580, gradient share 0.3595, so the cost belongs to the polish and not to the DHW planner, which measures 93.3 ms / 4.3 % under the same instrument"
    },
    "reproduction_steps": [
-    "cd /Users/timmalmstrom/audit-r7-D9",
+    "cd ~/audit-r7-D9",
     "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/polish_cost.py",
     "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/polish_cost.py --no-polish",
     "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/polish_cost.py --dhw-free"
@@ -135,7 +135,7 @@
     "note": "the arm where the effect should vanish: no perturbation, the shipped batched path, 442 gradients and 4128216 step-equivalents against the scalar arm's 4128984 (+0.019 %) while the CPU differs 16.1x; on the zero-range shape the count is 316 against the docstring's 0"
    },
    "reproduction_steps": [
-    "cd /Users/timmalmstrom/audit-r7-D9",
+    "cd ~/audit-r7-D9",
     "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/gradient_cost.py",
     "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/gradient_cost.py --zero-range",
     "PYTHONPATH=tests/hastub python3 tools/audit/round7/D9/gradient_cost.py --scalar"

@@ -1,6 +1,6 @@
 # D10 verify — seat 1 of 3 (round 4)
 
-- **Worktree**: `/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D10-1`, detached at **0855277** (branch head). Baseline was **7dd68dd**.
+- **Worktree**: `~/.zcode/workspace/default/audit-r4-verify-D10-1`, detached at **0855277** (branch head). Baseline was **7dd68dd**.
 - **Tree movement**: none in the measured surface. `git diff --stat 7dd68dd..0855277` over `custom_components/heatpump_optimizer/`, `README.md`, the six user docs, `tests/coverage_budgets.json` and the coverage instrument is empty; the 25 commits are audit bookkeeping. Every baseline number below therefore stands unchanged at the head (and all of them reproduced exactly).
 - **Box / contention**: 8-core Apple M1. `load1` during my session ran 2.85–8.60 (other agents active). Every number here is a count, a ratio, a percentage or a type name — no timing or memory RESULT is gated, so nothing below is contention-sensitive; no refute rests on a timing mismatch.
 - **Toolchain**: python3 = 3.11.5 (`/Library/Frameworks/.../3.11/bin/python3`), coverage 7.16.0, PyYAML present. `mypy` is **not** on the system interpreter, but the finder's two scratch venvs (`/private/tmp/hpo-d10-mypy{,13}/venv`, mypy 2.3.1 in both, arm B = homeassistant-stubs 2025.4.4 on Python 3.13.1) still exist, so `mypy_arms.sh` was re-runnable as its header requires. Nothing was installed.

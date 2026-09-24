@@ -1,7 +1,7 @@
 # D3 — test-suite gaps, round 7
 
 Baseline: `f9d6f78243fa65f6fa128d2357752a2ae7f60648` (round-6 fix wave merged).
-Tree: `/Users/timmalmstrom/audit-r7-D3`, an isolated git worktree of that SHA
+Tree: `~/audit-r7-D3`, an isolated git worktree of that SHA
 with earlier audit rounds stripped from the working tree.
 
 ## Method

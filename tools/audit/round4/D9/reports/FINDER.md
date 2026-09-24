@@ -1,7 +1,7 @@
 # D9 — CPU and memory efficiency (Raspberry-Pi-class target), round 4
 
 - **Baseline**: `7dd68dd327fe3dbfb09f3bd0fe38910c58877697`
-- **Tree**: `/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-r4-D9` (isolated worktree, instrumentation permitted)
+- **Tree**: `~/heatpump_optimizer/.claude/worktrees/audit-r4-D9` (isolated worktree, instrumentation permitted)
 - **Machine**: 8-core Apple M1, 8 GB, macOS 25.6, python 3.11.5, numpy 2.4.6
 - **Interpreter**: `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3`, always `PYTHONPATH=tests/hastub`, always from the worktree root
 - **Wave**: 2. D4 (Chromium) and D8 (entity matrices) shared the box. `load1` ran

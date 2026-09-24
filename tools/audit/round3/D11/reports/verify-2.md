@@ -36,7 +36,9 @@ set and not the total.
 Nothing was created, edited, closed, commented on, merged, pushed, dispatched or
 re-run on GitHub. The finder's ten artefacts are byte-identical to how I found
 them (`conformance_raw.json` `sha256:5e0b12b8a2b4…`, moved aside and restored
-from a backup taken first, verified equal).
+from a backup taken first, verified equal). #1568 later replaced one
+home-directory path in that file with `~`; it hashes `sha256:b6d84ef4c596…`
+since.
 
 ---
 

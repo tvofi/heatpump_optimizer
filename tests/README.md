@@ -444,6 +444,7 @@ here rather than only explaining an exclusion: `card_browser.mjs` and
 `nightly_ha.py` are real tests that this gate must never run — Chromium and
 Docker are not available to it — and neither may gate a pull request; see "Note
 on browser checks" below for where the first one runs instead.
+`replay.py` runs in the nightly `slow` job instead.
 `derive_closures.sh` is not excluded because it was never in scope: the loop
 globs `tests/*.py tests/*.mjs`, so a `.sh` is not a candidate for wiring.
 

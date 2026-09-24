@@ -8,12 +8,12 @@
     "#304 is NOT in this wave (it is Wave 4 W4-G11, before #223).",
     "#412 stays last of the programme, after Wave 5 \u2014 not in this roster. Do not create a group for it.",
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument.",
-    "Per-group worker briefs live out of tree: /Users/timmalmstrom/wt/briefs/w5-gN-*.md"
+    "Per-group worker briefs live out of tree: ~/wt/briefs/w5-gN-*.md"
   ],
   "fork": "07a85ce857e82d48ca3d5267c386bcb3c7ca30cc",
   "fork_note": "Same SHA as the Wave 4 roster at prepare time. STALE until Wave 4 finishes \u2014 cut every Wave 5 branch from origin/main after W4-G14 merges. Re-measure structure at the seat's merge-base. coordinator_loc ceiling is that merge-base value (do not raise). claims-for stays 6.3.15. #412 not in this wave.",
   "session": "claude-web",
-  "repo": "/Users/timmalmstrom/heatpump_optimizer",
+  "repo": "~/heatpump_optimizer",
   "serial": true,
   "struck": [],
   "groups": [
