@@ -523,39 +523,77 @@ writes, at every 15-minute plan step:
 
 | Plan step | Operating mode | Heat pump DHW set-point | Space-heating set-point |
 |---|---|---|---|
-| Hot water only | *DHW (Hot Water)*, when the mode entity offers it | the **hot water set-point** on the hot water page | the suitable value, or the gate (below) |
-| Anything else, and every fallback | *Heating + DHW* | the same | the suitable value |
+| Hot water only | *DHW (Hot Water)*, when the mode entity offers it | the **hot water set-point** on the hot water page | the suitable value, or the space gate (below) |
+| Space heating only | *Heating*, when the mode entity offers it | the same, or the hot water gate (below) | the suitable value |
+| Both | *Heating + DHW* | the same | the suitable value |
+| Neither (idle) | left as it is | the same | the suitable value |
+| Every fallback | *Heating + DHW* | the same | the suitable value |
 
 - **The suitable space value** is the plan's own: the weather-curve supply
   temperature for a *Flow temperature* entity, the step's planned room
   temperature for an *Indoor temperature* one — clamped to the entity's range.
-- **Heating only is never written**: it would stop the pump's own hot water and
-  disinfection.
+- **Space heating steps are heating only.** The cheapest hours to heat the
+  house need not be the ones that keep the tank ready for its next hot water
+  window, so the pump's own tank thermostat is kept out of them. The
+  exception: while the optimizer holds your **disinfection switch** on, a space
+  step is *Heating + DHW*, so the planned anti-legionella cycle can run. A
+  heating-only mode the optimizer wrote does not stop the next plan from making
+  hot water, and the "set-point below the disinfection temperature" notice does
+  not fire on the optimizer's own hot water gate.
+- **Idle steps leave the mode alone.** The mode on the pump served the duty
+  that just finished, whose thermostat the plan has just satisfied, so it is
+  the least likely to start anything; *Heating + DHW* would arm both.
 - **Tuya or Modbus, the same logic.** The entities decide. The tuya_heat_pump
-  mode select offers *DHW (Hot Water)*, so the mode is the space gate. The GCHV
-  Modbus package's *HP Setting mode* (register 44) offers only Off / Cool + DHW
-  / Heat + DHW, so where no hot-water-only option exists the space set-point
-  (for example *HP Occupied heating water setpoint*, register 401) is lowered to
-  the entity's minimum on hot-water-only steps instead. Map *HP DHW normal
-  setpoint* (register 404) as the DHW set-point entity.
+  mode select offers *DHW (Hot Water)* and *Heating*, so the mode is the gate.
+  The GCHV Modbus package's *HP Setting mode* (register 44) offers only Off /
+  Cool + DHW / Heat + DHW — no single-duty heating mode either way — so the
+  other duty's set-point is the gate: the space set-point (for example *HP
+  Occupied heating water setpoint*, register 401) is lowered to the entity's
+  minimum (never below 25 °C) on hot-water-only steps, and the DHW set-point
+  (*HP DHW normal setpoint*, register 404) to its minimum (never below 30 °C)
+  on space-only steps.
 - **Rails.** A hot-water-only stretch lasts at most 90 minutes (30 below
-  -10 °C outdoors), then *Heating + DHW* returns. A stale plan, the comfort,
-  boost and off modes, a boost switch, a system-identification experiment and
-  unloading the integration all get the fallback row.
-- **A change you make wins.** Any change to those three entities the
-  optimizer did not write — made on the pump, in an app, by a schedule, or a
-  write the pump refused — turns **Optimizer active** off and raises a repair
+  -10 °C outdoors), idle steps after it included, then *Heating + DHW*
+  returns. A stale plan, the comfort, boost and off modes, a boost switch, a
+  system-identification experiment and unloading the integration all get the
+  fallback row.
+- **A write the pump ignores is retried.** If the entity still reads what it
+  read before the write, 20 seconds and more later, and never showed the new
+  value, the pump (or its cloud) dropped the write. A warning repair notice is
+  raised, the value is sent again every 5 minutes, the optimizer stays on, and
+  the notice clears on the first write that takes.
+- **A change you make wins.** Any other change to those three entities —
+  made on the pump, in an app or by a schedule: a value that is neither the
+  optimizer's nor the one before, or any change after the optimizer's value
+  had been read back — turns **Optimizer active** off and raises a repair
   notice. Nothing is written over your setting until you turn **Optimizer
   active** back on, which hands control back and clears the notice. Readings in
   the first 20 seconds after a write are not counted: the tuya_heat_pump
   integration shows the value it sent for 8 seconds whatever the pump reports.
+- **Where the two cannot be told apart.** Setting a value back to exactly what
+  it was before the optimizer's write, before the optimizer ever read its own
+  value back, looks like an ignored write: it is overwritten once, five minutes
+  later. A pump that takes a write and reverts it within a minute looks the
+  same. After a restart the readings from before each write are gone, so any
+  difference counts as your change.
 - **Its own mode is not a pump limit.** A hot-water-only mode the optimizer
   wrote does not stop the next plan from heating the house; one set by anybody
   else still does, as before.
 
-*Observe* writes nothing and logs, per step, the duty planned against the mode
-the pump reports; the diagnostics download carries the same under
-`pump_duty`. *Off* (the default) does neither.
+**Observe** writes nothing. In *Observe* and *Control* the optimizer keeps a
+ledger of the last 24 hours: per 15-minute step, the duty the plan wanted
+against what the pump did, and a verdict — *delivered*, *space-instead*,
+*dhw-instead*, *idle-instead*, *unknown* or *baseline* (no plan duty). What the
+pump did is read from what the integration already reads: the **power
+entity** (running or not), the operating mode (*DHW (Hot Water)*) and the
+**tank temperature** (a rise of 0.5 °C over the step counts as hot water).
+Without a power entity only hot water can be seen, and other steps are
+*unknown*; a Heating + DHW run reads as hot water, and a large draw can hide a
+tank rise. The counts and the steps are in the diagnostics download under
+`pump_duty` → `ledger`, and start empty after a restart. Their use is to decide
+whether *Control* is worth turning on: the share of *delivered* steps is how
+often the pump already does what the plan wanted. *Off* (the default) does
+neither.
 
 ### Heating system and heat storage
 

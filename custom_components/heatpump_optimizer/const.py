@@ -848,8 +848,8 @@ CONF_DHW_DISINFECTION_MODE: Final = "dhw_disinfection_mode"
 DEFAULT_DHW_DISINFECTION_MODE: Final = "observe"
 #: The pump-duty arbiter (pump_arbiter.py): off (the default) writes and
 #: reads nothing; observe classifies what the pump did on each planned step;
-#: control writes the pump's mode and set-points per step and stands down to
-#: off on any change it did not make.
+#: control writes the pump's mode and set-points per step, retries a write
+#: the pump ignored and stands down to off on any other change it did not make.
 CONF_PUMP_DUTY_MODE: Final = "pump_duty_mode"
 DEFAULT_PUMP_DUTY_MODE: Final = "off"
 PUMP_DUTY_MODES: Final = ("off", "observe", "control")

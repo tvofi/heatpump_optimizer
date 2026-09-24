@@ -45103,8 +45103,8 @@ _pa_tuya.device("number.water_set", "34")
 _pa_tuya.hass.services.calls.clear()
 _pa_run(_pa_tuya, 31)
 R.check(
-    "the space step at the next boundary writes Heating + DHW back and nothing else",
-    _pa_tuya.writes() == [("select", "select_option", "Heating + DHW")],
+    "the space step at the next boundary writes heating only, and nothing else",
+    _pa_tuya.writes() == [("select", "select_option", "Heating")],
     f"{_pa_tuya.writes()}",
 )
 
@@ -45123,7 +45123,7 @@ _pa_man = _PaCoord(_PA_TUYA)
 _pa_run(_pa_man, 0)
 _pa_man.device("number.dhw_set", "48")
 _pa_man.device("number.water_set", "34")
-_pa_man.device("select.pump_mode", "Heating + DHW")
+_pa_man.device("select.pump_mode", "Heating")
 _pa_man.hass.services.calls.clear()
 _pa_aio.run(_pa.apply(_pa_man, _PA_T0 + timedelta(seconds=5)))
 R.check(
@@ -45255,7 +45255,7 @@ _pa_run(_pa_noset, 1)
 R.check(
     "an indoor space set-point gets the step's planned room temperature, and none without one",
     ("number", "set_value", 21.0) in _pa_room.writes()
-    and [w for w in _pa_noset.writes() if w[2] not in (48.0, "Heating + DHW")] == [],
+    and [w for w in _pa_noset.writes() if w[2] not in (48.0, "Heating")] == [],
     f"{_pa_room.writes()} / {_pa_noset.writes()}",
 )
 _pa_hot = _PaCoord(_PA_TUYA, duties="ss")
@@ -45348,6 +45348,129 @@ R.check(
     "the plan step decides the duty: hot water, space, both and idle",
     [_pa.step_duty(_pa_result("dsb-"), _PA_T0 + timedelta(minutes=15 * i + 1), 0.2)
      for i in range(4)] == ["dhw", "space", "both", "idle"],
+)
+
+# tvofi 2026-09-24: space-only steps are heating only; idle writes no mode.
+_pa_heat_own = _PaCoord(_PA_TUYA, duties="s")
+_pa_run(_pa_heat_own, 1)
+_pa_heat_sig = _pa.own(_pa_heat_own, _pa_heat)
+R.check(
+    "the arbiter's own heating-only write does not block hot water in the next solve",
+    ("select", "select_option", "Heating") in _pa_heat_own.writes()
+    and _pa_heat_sig.mode_owned and not _pa_heat_sig.dhw_blocked,
+    f"{_pa_heat_own.writes()} {_pa_heat_sig.mode_owned=}",
+)
+_pa_mbs = _PaCoord(_PA_MODBUS, duties="s")
+_pa_mbs._thermal_params = _PaNS(
+    dhw_setpoint=48.0, dhw_min_temp=45.0, dhw_legionella_enabled=True, dhw_legionella_temp=60.0
+)
+_pa_settled(_pa_mbs, 1)
+_p8_sp.evaluate(_pa_mbs)
+_pa_mbs_issues = [i for i in getattr(_pa_mbs.hass, "issues", []) if i[1] == _p8_sp.ISSUE_DHW]
+_pa_mbs_null = _PaCoord(_PA_MODBUS, duties="s", duty="observe")
+_pa_mbs_null._thermal_params = _pa_mbs._thermal_params
+_pa_mbs_null.device("number.dhw_set", "40")
+_p8_sp.evaluate(_pa_mbs_null)
+R.check(
+    "with no heating-only mode (GCHV Modbus) the hot-water set-point is the gate, at the entity's minimum",
+    _pa_mbs.hass.states.get("number.dhw_set").state == "40.0"
+    and _pa_mbs.hass.states.get("select.pump_mode").state == "Heat + DHW",
+)
+R.check(
+    "the arbiter's own hot-water gate raises no disinfection-floor notice; a person's 40 does",
+    _pa_mbs_issues == []
+    and [i for i in getattr(_pa_mbs_null.hass, "issues", []) if i[1] == _p8_sp.ISSUE_DHW],
+    f"{_pa_mbs_issues=}",
+)
+_pa_dis = _PaCoord(_PA_TUYA, duties="s")
+_pa_dis._legionella = _PaNS(disinfect=_PaNS(memo=True))
+_pa_run(_pa_dis, 1)
+_pa_dis_mb = _PaCoord(_PA_MODBUS, duties="s")
+_pa_dis_mb._legionella = _PaNS(disinfect=_PaNS(memo=True))
+_pa_run(_pa_dis_mb, 1)
+R.check(
+    "a disinfection cycle held on turns a space-only step into Heating + DHW, with no hot-water gate",
+    ("select", "select_option", "Heating + DHW") in _pa_dis.writes()
+    and ("select", "select_option", "Heating") not in _pa_dis.writes()
+    and ("number", "set_value", 40.0) not in _pa_dis_mb.writes(),
+    f"{_pa_dis.writes()} / {_pa_dis_mb.writes()}",
+)
+_pa_idle = _PaCoord(_PA_TUYA, duties="s--")
+_pa_settled(_pa_idle, 1)
+_pa_run(_pa_idle, 16)
+R.check(
+    "an idle step writes no mode: the pump keeps the duty it just finished",
+    _pa_idle.writes() == [] and _pa_idle.hass.states.get("select.pump_mode").state == "Heating",
+    f"{_pa_idle.writes()}",
+)
+_pa_idle_d = _PaCoord(_PA_TUYA, duties="d" + "-" * 11)
+_pa_settled(_pa_idle_d, 0)
+_pa_settled(_pa_idle_d, 89)
+_pa_run(_pa_idle_d, 91)
+R.check(
+    "the hot-water-only lease keeps counting across idle steps",
+    _pa_idle_d.writes() == [("select", "select_option", "Heating + DHW")],
+    f"{_pa_idle_d.writes()}",
+)
+
+# An ignored write: the reading never moved off the value before our write.
+_pa_ign = _PaCoord(_PA_TUYA)
+_pa_run(_pa_ign, 0)
+_pa_ign.hass.services.calls.clear()
+_pa_aio.run(_pa.apply(_pa_ign, _PA_T0 + timedelta(seconds=60)))
+_pa_ign_issue = [i for i in getattr(_pa_ign.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED]
+R.check(
+    "a write the pump never took is a warning, not a manual change: the optimizer stays on",
+    _pa_ign.set_modes == [] and len(_pa_ign_issue) == 1 and _pa_ign.writes() == [],
+    f"{_pa_ign.set_modes=} {_pa_ign.writes()=}",
+)
+_pa_run(_pa_ign, 4)
+_pa_ign_wait = list(_pa_ign.writes())
+_pa_settled(_pa_ign, 6)
+_pa_ign_retry = _pa_ign.hass.states.get("select.pump_mode").state
+_pa_run(_pa_ign, 7)
+R.check(
+    "an ignored write is sent again after five minutes, and the first one that lands clears the warning",
+    _pa_ign_wait == [] and _pa_ign_retry == "DHW (Hot Water)"
+    and not [i for i in getattr(_pa_ign.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED]
+    and _pa_ign.set_modes == [],
+    f"{_pa_ign_wait=} {_pa_ign_retry=}",
+)
+_pa_back = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_back, 0)
+_pa_run(_pa_back, 1)
+_pa_back.device("select.pump_mode", "Heating + DHW")
+_pa_run(_pa_back, 2)
+R.check(
+    "a return to the old value after our write was seen to land is a manual change",
+    _pa_back.set_modes == [_PA_OFF],
+    f"{_pa_back.set_modes=}",
+)
+
+# Observe: a ledger of planned duty against what the pump did, per step.
+_pa_led = _PaCoord(_PA_TUYA, duties="dss--", duty="observe")
+_pa_led._current_state.dhw_temperature = 45.0
+for _pa_m, _pa_kw, _pa_tank in ((1, 2.0, 45.0), (14, 2.0, 47.0), (16, 1.5, 47.0),
+                               (31, 0.0, 47.0), (46, 1.5, 47.0), (61, 1.5, 47.0),
+                               (74, 1.5, 48.0), (76, 0.0, 48.0)):
+    _pa_led._measured_power, _pa_led._current_state.dhw_temperature = _pa_kw, _pa_tank
+    _pa_run(_pa_led, _pa_m)
+_pa_ledger = _pa.view(_pa_led)["ledger"]
+R.check(
+    "observe keeps a per-step ledger: delivered, idle-instead, space-instead, dhw-instead",
+    [r["verdict"] for r in _pa_ledger["steps"]]
+    == ["delivered", "delivered", "idle-instead", "space-instead", "dhw-instead"]
+    and _pa_ledger["counts"]["delivered"] == 2 and _pa_led.writes() == [],
+    f"{_pa_ledger}",
+)
+_pa_nometer = _PaCoord(_PA_TUYA, duties="ss", duty="observe")
+_pa_nometer._current_state.dhw_temperature = 45.0
+_pa_run(_pa_nometer, 1)
+_pa_run(_pa_nometer, 16)
+R.check(
+    "without a power meter or a tank rise the ledger says unknown, not delivered",
+    [r["verdict"] for r in _pa.view(_pa_nometer)["ledger"]["steps"]] == ["unknown"],
+    f"{_pa.view(_pa_nometer)['ledger']}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
