@@ -101,21 +101,22 @@ _FAILED = re.compile(r"^\s*(\d+) of (\d+) .*FAILED\s*$", re.M)
 # `Results.check`), and the three drivers that keep their own counter with it.
 _CHECK_FAIL = re.compile(r"^\s*FAIL\s+(.+?)\s*$", re.M)
 # The other failing-check forms the drivers print (#1521). A summary count:
-# `N <WHAT> CHECK(S) FAILED` (frontend, open_meteo, deployment_shape,
-# solar_alignment), `N FAILURES` (edge), `N ISSUES:` (validate) and
-# env_drift.py's three verdicts. And plan_view.py's `PLAN VIEW ISSUES:` heading
-# over one `  - ` bullet per issue. `tests/entities.py` refuses a driver whose
-# source prints none of these forms, so it cannot go blind by printing a new one.
+# `N [<WHAT>] CHECK(S) FAILED` (frontend and deployment_shape name what;
+# open_meteo and solar_alignment do not), `N FAILURES` (edge), `N ISSUES:`
+# (validate) and env_drift.py's three verdicts. And plan_view.py's `PLAN VIEW
+# ISSUES:` heading over one `  - ` bullet per issue. `main()` refuses a run
+# whose drivers include one whose source prints none of these forms
+# (`verdict_form_problems`), so a driver cannot go blind by printing a new one.
 _SUMMARY_FAILS = re.compile(
-    r"^\s*(\d+) (?:[A-Z][A-Z -]*CHECK\(S\) FAILED|FAILURES\b|ISSUES:"
+    r"^\s*(\d+) (?:(?:[A-Z][A-Z -]* )?CHECK\(S\) FAILED|FAILURES\b|ISSUES:"
     r"|UNCLAIMED DRIFT\(S\)|COMMITTED FIXTURE\(S\) ARE STALE"
     r"|STALE CLAIM\(S\))", re.M)
 _ISSUE_BULLETS = re.compile(r"^[A-Z][A-Z ]*ISSUES:\n((?:[ \t]+- .*(?:\n|$))+)",
                             re.M)
-# An uncaught exception ends stderr with its traceback's last line.
+# An uncaught exception prints its traceback to stderr, whatever the class is
+# called -- UpdateFailed, AbortFlow, StopIteration, one carrying notes or a
+# multi-line assert message all end differently, so the header is the key.
 _TRACEBACK = "Traceback (most recent call last):"
-_EXCEPTION_LINE = re.compile(r"^[A-Za-z_][\w.]*(?:Error|Exception|Exit|Interrupt)"
-                             r"\b")
 TIMEOUT_RC = 124
 
 # Candidate drivers for `--scripts` are the GATE's recorded set, not a
@@ -696,9 +697,7 @@ def failing_count(run: ScriptRun) -> int:
         n = sum(bullets)
     else:
         n = len(_CHECK_FAIL.findall(out))
-    tail = [ln for ln in run.stderr.splitlines() if ln.strip()]
-    crashed = (_TRACEBACK in run.stderr and bool(tail)
-               and bool(_EXCEPTION_LINE.match(tail[-1])))
+    crashed = _TRACEBACK in run.stderr
     timed_out = run.rc == TIMEOUT_RC and not out
     return n + int(crashed) + int(timed_out)
 
@@ -791,6 +790,24 @@ def null_control(path: Path) -> dict | None:
                         old=lines[ln - 1],
                         new=lines[ln - 1] + " (null control)")
     return None
+
+
+def null_control_verdict(runs: dict[str, ScriptRun],
+                         baseline: dict[str, ScriptRun]) -> str:
+    """LIVES, or which drivers "killed" the null control and on what.
+
+    Every driver in play is scored, none is skipped at the first kill, and a
+    driver the null control never ran under is a verdict too ("not run"): the
+    point is to name every driver that is judging the diff.
+    """
+    missing = sorted(set(baseline) - set(runs))
+    if missing:
+        return "not run under " + ", ".join(missing)
+    killers = [
+        f"{s} ({'; '.join(failed_checks(runs[s])) or 'no FAIL line'})"
+        for s in sorted(baseline) if killed(s, runs[s], baseline[s])
+    ]
+    return "killed by " + ", ".join(killers) if killers else "LIVES"
 
 
 def null_control_refusal(key: str, verdict: str) -> str | None:
@@ -1028,9 +1045,21 @@ def main() -> int:
     if any(s in REF_DRIVEN for s in needed):
         print(f"  ref-driven drivers compare against {ref!r} "
               f"(run.sh's GOLDEN_REF resolution)")
-    # The null control rides the pool, driven by EVERY driver in play and
-    # never stopped at the first "kill": a comment-only edit in a file the
-    # sample already mutates, so it runs under the mutants' own environment.
+    # A driver whose red output the kill rule cannot read can never kill, and
+    # every mutant only it reaches would read as a survivor: refuse first.
+    blind = verdict_form_problems(needed)
+    if blind:
+        print("\nMUTATION TABLE REFUSED -- a driver in play prints no "
+              "failing-check form `failing_count` reads:")
+        for b in blind:
+            print(f"    - {b}")
+        return 1
+    # The null control: a comment-only edit in a file the sample already
+    # mutates, driven by EVERY driver in play and never stopped at the first
+    # "kill". It runs in its own tree BESIDE the serial baseline phase, which
+    # drives the same drivers, so it adds that phase's contention and not a
+    # second serial pass of every driver to the mutant phase (#1561 review:
+    # riding the pool, it put the job at 82 of its 90 minutes).
     null = next(filter(None, (null_control(ROOT / f)
                               for f in sorted({m["file"] for m in pool}))),
                 None)
@@ -1039,8 +1068,6 @@ def main() -> int:
               "in the pool, so the run has no null control and no verdict "
               "can be told apart from a driver reacting to the diff itself")
         return 1
-    null["drivers"] = list(needed)
-    pool.insert(0, null)
     print(f"  null control: {triage_key(null)}, a comment-only edit every "
           f"driver in play must let survive")
 
@@ -1049,16 +1076,42 @@ def main() -> int:
     try:
         base_tree = clone_tree(work / "baseline")
         made.append(base_tree)
+        null_tree = clone_tree(work / "null")
+        made.append(null_tree)
+        null_path = null_tree / null["file"]
+        null_lines = null_path.read_text().splitlines(True)
+        null_lines[null["line"] - 1] = null["new"] + "\n"
+        null_path.write_text("".join(null_lines))
+        null_runs: dict[str, ScriptRun] = {}
+
+        def drive_null() -> None:
+            for s in needed:
+                extra_args, extra_env = drive_spec(s, ref)
+                null_runs[s] = run_script(s, null_tree, args.timeout,
+                                          extra_args, extra_env)
+
         baseline: dict[str, ScriptRun] = {}
-        for s in needed:
-            extra_args, extra_env = drive_spec(s, ref)
-            run = run_script(s, base_tree, args.timeout, extra_args, extra_env)
-            baseline[s] = run
-            print(f"  baseline {s}: rc={run.rc} failed={run.failed} "
-                  f"{run.seconds:.0f}s")
+        # The `with` joins the null thread even when the baseline raises, so
+        # the `finally` below never removes a tree a driver is still running in.
+        with ThreadPoolExecutor(max_workers=1) as null_ex:
+            null_job = null_ex.submit(drive_null)
+            for s in needed:
+                extra_args, extra_env = drive_spec(s, ref)
+                run = run_script(s, base_tree, args.timeout, extra_args,
+                                 extra_env)
+                baseline[s] = run
+                print(f"  baseline {s}: rc={run.rc} failed={run.failed} "
+                      f"{run.seconds:.0f}s")
+            null_job.result()
         verdict = baseline_refusal(baseline, args.scope)
         if verdict is not None:
             return verdict
+        refusal = null_control_refusal(
+            triage_key(null), null_control_verdict(null_runs, baseline))
+        if refusal:
+            print(refusal)
+            return 1
+        print(f"  null control {triage_key(null)} survived every driver")
         # Cheapest first, measured here rather than carried: a kill then costs
         # the cheapest driver that can see it.
         for mut in pool:
@@ -1091,19 +1144,13 @@ def main() -> int:
             path.write_text(mutated)
             try:
                 verdict = "LIVES"
-                is_null = mut is null
                 for s in mut["drivers"]:
                     extra_args, extra_env = drive_spec(s, ref)
                     run = run_script(s, tree, args.timeout, extra_args,
                                      extra_env)
                     if killed(s, run, baseline[s]):
-                        if not is_null:
-                            verdict = f"killed by {s}"
-                            break
-                        verdict = (f"{verdict}, {s}" if verdict != "LIVES"
-                                   else f"killed by {s}")
-                        checks = "; ".join(failed_checks(run)) or "no FAIL line"
-                        verdict += f" ({checks})"
+                        verdict = f"killed by {s}"
+                        break
             finally:
                 path.write_text(original)
             results.append((mut, verdict))
@@ -1120,14 +1167,6 @@ def main() -> int:
         subprocess.run(["git", "worktree", "prune"], cwd=ROOT,
                        capture_output=True)
         shutil.rmtree(work, ignore_errors=True)
-
-    null_verdict = next((v for m, v in results if m is null), "not run")
-    results = [(m, v) for m, v in results if m is not null]
-    refusal = null_control_refusal(triage_key(null), null_verdict)
-    if refusal:
-        print(refusal)
-        return 1
-    print(f"  null control {triage_key(null)} survived every driver")
 
     survivors = []
     for mut, verdict in sorted(results, key=lambda r: (r[0]["file"], r[0]["line"])):

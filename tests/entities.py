@@ -22149,6 +22149,8 @@ _MUT_FORMS = {
     "plan_view": ("PLAN VIEW ISSUES:\n  - one\n  - two\n  - three\n", 3),
     "edge": ("3 FAILURES\n  [a] x\n", 3),
     "frontend": ("  FAIL  a\n\n1 FRONTEND CHECK(S) FAILED\n", 1),
+    # open_meteo.py and solar_alignment.py name no subject before CHECK(S).
+    "open_meteo": ("\n2 CHECK(S) FAILED\n", 2),
     "harness": ("  FAIL a\n  FAIL b\n\n2 of 9 X CHECKS FAILED\n", 2),
     # A nested control's own FAIL lines and tally, then the driver's.
     "nested": ("  FAIL c\n3 of 5 NESTED CHECKS FAILED\n  FAIL real\n\n"
@@ -22167,17 +22169,87 @@ R.check(
     == 0,
     f"got={_MUT_FORM_GOT}",
 )
-_MUT_VF_TMP = _tempfile.NamedTemporaryFile("w", suffix=".py", delete=False)
-_MUT_VF_TMP.write("import sys\nprint('broken')\nsys.exit(1)\n")
-_MUT_VF_TMP.close()
-_MUT_VF = _mut.verdict_form_problems(_mut.DEFAULT_SCRIPTS.split(","))
-_MUT_VF_NULL = _mut.verdict_form_problems([_MUT_VF_TMP.name])
-Path(_MUT_VF_TMP.name).unlink()
+# `main()` refuses a run whose drivers include one that prints no form the
+# rule reads (`verdict_form_problems`). Driven here over synthetic drivers
+# only: reading the real ones would put every driver's source in this
+# script's measured closure, and every driver edit would then select it (#1561
+# review). The instrument applies it to the real drivers on each run.
+def _mut_vf(src: str) -> list:
+    with _tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as _f:
+        _f.write(src)
+    try:
+        return _mut.verdict_form_problems([_f.name])
+    finally:
+        Path(_f.name).unlink()
+
+
+_MUT_VF = {
+    "blind": _mut_vf("import sys\nprint('broken')\nsys.exit(1)\n"),
+    "fail_line": _mut_vf("print(f'  FAIL {1}')\n"),
+    "issues": _mut_vf("print('PLAN VIEW ISSUES:')\n"),
+    "harness": _mut_vf("from harness import Results\n"),
+}
 R.check(
-    "every driver the table drives prints a failing-check form it reads",
-    _MUT_VF == [] and len(_MUT_VF_NULL) == 1,
-    f"blind={_MUT_VF}; null control (a driver printing only 'broken') "
-    f"reported={len(_MUT_VF_NULL)}",
+    "a driver printing no failing-check form the rule reads is reported",
+    len(_MUT_VF["blind"]) == 1
+    and not any(_MUT_VF[_k] for _k in ("fail_line", "issues", "harness")),
+    f"{ {_k: len(_v) for _k, _v in _MUT_VF.items()} }: only the driver "
+    "printing 'broken' is blind; a FAIL line, an ISSUES list and the "
+    "harness's own forms each count",
+)
+
+# The crash rule, over REAL tracebacks: a subprocess that raises, exits 1 and
+# prints nothing on stdout, for the shapes #1561's review found scored as no
+# kill when the rule keyed on the exception line's class name -- a class not
+# ending in Error (UpdateFailed, AbortFlow, ConfigEntryNotReady are this
+# repository's), StopIteration, a multi-line assert message and an exception
+# carrying notes. The null control: the same subprocesses exiting 1 WITHOUT a
+# traceback, which is what env_drift's refusals do.
+_MUT_CRASH_SRC = {
+    "custom class": "class UpdateFailed(Exception): pass\n"
+                    "raise UpdateFailed('Error updating data: x')",
+    "StopIteration": "next(iter([]))",
+    "multi-line assert": "assert False, 'first line\\nsecond line'",
+    "exception notes": "e = ValueError('x'); e.add_note('a note'); raise e",
+    "chained": "try:\n  1/0\nexcept Exception as e:\n"
+               "  raise RuntimeError('wrapped') from e",
+}
+
+
+def _mut_crash(code: str) -> "_mut.ScriptRun":
+    _p = _subprocess.run([sys.executable, "-c", code], capture_output=True,
+                         text=True, timeout=60)
+    return _mut.ScriptRun(_p.returncode, 0, 0.0, _p.stdout, _p.stderr)
+
+
+_MUT_CRASHES = {_k: _mut_crash(_c) for _k, _c in _MUT_CRASH_SRC.items()}
+_MUT_REFUSE = _mut_crash("import sys; print('INHERITED CLAIMS: x'); "
+                         "sys.exit(1)")
+_MUT_OK = _mut.ScriptRun(0, 0, 0.0, "ok\n")
+R.check(
+    "any uncaught exception on a red run is a kill, whatever its class",
+    all(_r.rc != 0 and _mut.killed("tests/x.py", _r, _MUT_OK)
+        for _r in _MUT_CRASHES.values())
+    and _MUT_REFUSE.rc == 1
+    and not _mut.killed("tests/x.py", _MUT_REFUSE, _MUT_OK),
+    f"killed={ {_k: _mut.killed('tests/x.py', _r, _MUT_OK) for _k, _r in _MUT_CRASHES.items()} }, "
+    f"refusal without a traceback killed="
+    f"{_mut.killed('tests/x.py', _MUT_REFUSE, _MUT_OK)}",
+)
+
+# The null control's verdict names every driver that noticed a comment, and a
+# driver it never ran under is no survival.
+_MUT_NV_BASE = {"a": _MUT_OK, "b": _MUT_OK}
+R.check(
+    "the null control is scored over every driver, never the first kill only",
+    _mut.null_control_verdict({"a": _MUT_OK, "b": _MUT_OK},
+                              _MUT_NV_BASE) == "LIVES"
+    and _mut.null_control_verdict(
+        {"a": _MUT_CRASHES["StopIteration"], "b": _MUT_CRASHES["chained"]},
+        _MUT_NV_BASE).count("(") == 2
+    and _mut.null_control_verdict({"a": _MUT_OK}, _MUT_NV_BASE)
+    .startswith("not run"),
+    "two drivers that notice it are both named; a missing driver refuses",
 )
 # The run's own null control: a comment-only edit that moves no line number,
 # no code token and no line count, so no driver can notice it by behaviour.
