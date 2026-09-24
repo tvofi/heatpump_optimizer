@@ -7655,7 +7655,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         measured = self._measured_house_power
         house = self._measured_power if measured is None else measured
         if house is None:
-            house = float(self._current_action.get("power", 0.0))
+            house = self._commanded_power()
         self._peak_tracker.observe(dt_util.now(), float(house), tariff,
                                    measured_house_kw=measured)
 

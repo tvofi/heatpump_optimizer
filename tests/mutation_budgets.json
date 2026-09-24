@@ -4,7 +4,7 @@
     "changed": 0.2,
     "full": 0.3
   },
-  "unpinned_sites": 3759,
+  "unpinned_sites": 3756,
   "last_measured": {
     "changed": {
       "survivors": 2,
@@ -119,6 +119,11 @@
       "verdict": "gap",
       "old": "            if not bool(np.all(np.isfinite(error))):",
       "reason": "The round-7 D7-01 fix's shifted-prior re-solve keeps the two-state fit's own non-finite guard -- a divergent rollout reads as a large finite cost instead of poisoning the Jacobian (the R6 D7-03 shape at the fit's residual, #1396). `if not bool(np.all(np.isfinite(error))):` -> `if False:` leaves tests/features.py at rc=0 against a baseline of 0: nine further standalone scripts whose recorded closure reaches sysid.py were run on the same mutated tree: seven pass (typing_ruler, doc_claims, finite_boundary, config_flow_steps, deployment_shape, manual_plan, plan_view) and two (structure.py, entities.py) exit 1 on the UNMUTATED tree at that head too, for the coordinator comment block and the stale ledger dispositions this branch fixes -- so neither red carries signal about this mutant. The shifted re-solve starts at the converged fit and moves the intercept prior by one SLAB_INTERCEPT_PRIOR_SD_KW, which is what keeps it inside the finite range on every configuration measured. Recorded as a `gap` rather than equivalent: the two arms are distinguishable, they are simply not reached. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/optimizer.py:2778 GUARD_OFF": {
+      "verdict": "equivalent",
+      "old": "            if not np.any(external_heat_kw > 0.0):",
+      "reason": "An all-zero free-heat forecast plans exactly as none: the guard only normalises zeros to None, and every downstream use adds the per-step value. Measured with the #1499 branch's probe (optimize() on the winter_cold / winter_typical profile, 12 h, space-only and with DHW): with the guard switched off, external_heat_kw=zeros and external_heat_kw=None give byte-identical power, DHW and room-temperature schedules and objective (sha1 prefixes 7a584e785045f9d5 and 31317c75945a2724 in both arms), while a 1 kW forecast moves both (c5b5e420dec7c4a8, 0204b401a95de984) -- the probe's null control that it can see free heat at all. Measured at 6c86f6ae, 2026-09-24."
     }
   },
   "killed_by": {
@@ -131,31 +136,6 @@
       "killed_by": "tests/features.py",
       "old": "    if params.buffer_is_store:",
       "reason": "arrived with origin/main, commit d62195ade (fix(D12): guard the battery buffer/DHW stores on the config signal). `if params.buffer_is_store:` -> `if False:` makes tests/features.py exit 1 against a baseline exit of 0. Measured at the post-main head, 2026-09-22."
-    },
-    "custom_components/heatpump_optimizer/coordinator.py:10545 GUARD_OFF": {
-      "killed_by": "tests/features.py",
-      "old": "        if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:",
-      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437): the fitted UA's own 95 % profile-likelihood interval supersedes the #942 residual-scatter precondition. `if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:` -> `if False:` adopts every completed experiment whatever its interval: the blend weight 1 - hw / bar goes negative for hw > bar, so `_t4_adopt(halfwidth=2*bar)` moves the learned scale to 0.0 against the recorded 1.0 and the sample floor to int(20 * -1) = -20. Measured: tests/features.py rc=0 failed=0 -> rc=1 failed=1. Measured at 467d3d9c, 2026-09-23."
-    },
-    "custom_components/heatpump_optimizer/coordinator.py:1741 RETURN_DEL": {
-      "killed_by": "tests/entities.py",
-      "old": "    return pump, list(tracker.house_samples) if tracker is not None else []",
-      "reason": "This branch's `_power_windows`, the module-level window reader `_build_data_dict` calls (#1460). Deleting the return leaves the function answering None, and the caller's `data[\"heat_pump_power_series\"], data[\"house_power_series\"] = _power_windows(self)` raises `TypeError: cannot unpack non-iterable NoneType object`. Measured: tests/entities.py rc=1, in its D8-01 payload helper."
-    },
-    "custom_components/heatpump_optimizer/coordinator.py:1754 BOOLOP": {
-      "killed_by": "tests/features.py",
-      "old": "    if coord._mode in (MODE_AUTO, MODE_ECONOMY) and coord._plan_is_stale():",
-      "reason": "This branch's `_space_pump_to_drive` staleness guard (#1449), with `and` -> `or`: the guard still names `_plan_is_stale`, so the D1-02 enumeration rule keeps reporting this seam gated, while the space pump is now held in every AUTO/ECONOMY cycle and a fresh plan commands nothing. Measured: tests/features.py rc=1, `and a fresh plan drives the space pump, so the check above is not vacuous [fresh plan commanded ['switch.vvc']]` among the failures."
-    },
-    "custom_components/heatpump_optimizer/coordinator.py:1754 GUARD_OFF": {
-      "killed_by": "tests/features.py",
-      "old": "    if coord._mode in (MODE_AUTO, MODE_ECONOMY) and coord._plan_is_stale():",
-      "reason": "The same guard deleted whole: the space pump is then driven on every plan, stale included, while `_apply_action` refuses it -- and the D1-02 enumeration rule reports this seam ungated, so two checks red. Measured: tests/features.py rc=1, `the space pump is not driven from a plan _plan_is_stale refused (#1449) [commanded ['switch.vvc', 'switch.space_pump'] from a 400-minute-old plan]` and the rule check, reporting ('_async_drive_pumps', False)."
-    },
-    "custom_components/heatpump_optimizer/coordinator.py:1757 RETURN_DEL": {
-      "killed_by": "tests/features.py",
-      "old": "    return str(entity) if entity else None",
-      "reason": "`_space_pump_to_drive`'s entity return (#1449): deleting it leaves the guard above intact, so the rule still reports this seam gated, while the space pump is never commanded, fresh plan included. Measured: tests/features.py rc=1, `each configured pump is commanded on its own, by entity id [vvc alone -> [...]; space alone -> []]` among the failures."
     },
     "custom_components/heatpump_optimizer/defrost.py:166 GUARD_OFF": {
       "killed_by": "tests/features.py",
@@ -286,6 +266,51 @@
       "killed_by": "tests/features.py",
       "old": "        floor = min(p.dhw_inlet_reference, ambient_temp)",
       "reason": "arrived with origin/main, commit 7eeea4d90 (D2-02: clamp the DHW inlet floor to the tank surroundings). Dropping the `min` clamp raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22, and re-pinned 1894 -> 1897 by PR #1488, whose D2-01 fix adds three comment lines above this site."
+    },
+    "custom_components/heatpump_optimizer/boost.py:124 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "        if action.get(\"mode\") in (None, \"off\", \"idle\"):",
+      "reason": "#1499: boost.overlay's DHW channel turns the pump on, and this guard rewrites a standing off/idle/absent mode to hot_water. `if action.get(\"mode\") in (None, \"off\", \"idle\"):` -> `if False:` fails `a DHW boost over an off step reads hot_water; over a space step, the space rung` ([off / eco]): tests/features.py rc=0 failed=0 -> rc=1 failed=1. Measured at 4538cb59, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/entity.py:32 GUARD_OFF": {
+      "killed_by": "tests/entities.py",
+      "old": "    if space is None:",
+      "reason": "#1499 review: commanded_power_kw's no-power guard. `if space is None:` -> `if False:` makes float(None) raise for an action with no power: tests/entities.py rc=0 -> rc=1 (`no sensor crashes before the first update`, MeasuredPowerSensor). Measured at f16d004e, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/entity.py:34 RETURN_DEL": {
+      "killed_by": "tests/entities.py",
+      "old": "    return round(float(space) + float(action.get(\"dhw_power\") or 0.0), 2)",
+      "reason": "#1499 review: commanded_power_kw's space-plus-DHW return. Deleting it returns None for every action: tests/entities.py 0 -> 3 of 1741 FAILED (`measured power keeps the commanded value alongside`, `Heat Pump Action power_kw is space plus DHW, and None with no power (#1499)`, `Recommended Power, climate recommended_power_kw and Measured Power's recommended_power are the step's whole ask, space plus DHW (#1499)`). Measured at f16d004e, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/optimizer.py:1559 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if ua <= 0.0:",
+      "reason": "stored_heat_survival's lossless-tank guard. `if ua <= 0.0:` -> `if False:` sends a UA-0 tank with no demand down the zero-demand branch, which returns 0.0 (every stored kWh leaks away) where a tank that loses nothing keeps 1.0: tests/features.py 0 -> 1 of 3126 FAILED (`a tank that loses nothing keeps its whole credit, even with no demand`). Added in #1499's round 2: this site was the changed-scope sample's one survivor, and a surviving optimizer.py mutant runs tests/stress.py and tests/env_drift.py, about 25 of CI's 90 minutes. Measured at 4b106fe6, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:10545 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "        if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437): the fitted UA's own 95 % profile-likelihood interval supersedes the #942 residual-scatter precondition. `if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:` -> `if False:` adopts every completed experiment whatever its interval: the blend weight 1 - hw / bar goes negative for hw > bar, so `_t4_adopt(halfwidth=2*bar)` moves the learned scale to 0.0 against the recorded 1.0 and the sample floor to int(20 * -1) = -20. Measured: tests/features.py rc=0 failed=0 -> rc=1 failed=1. Measured at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:1741 RETURN_DEL": {
+      "killed_by": "tests/entities.py",
+      "old": "    return pump, list(tracker.house_samples) if tracker is not None else []",
+      "reason": "This branch's `_power_windows`, the module-level window reader `_build_data_dict` calls (#1460). Deleting the return leaves the function answering None, and the caller's `data[\"heat_pump_power_series\"], data[\"house_power_series\"] = _power_windows(self)` raises `TypeError: cannot unpack non-iterable NoneType object`. Measured: tests/entities.py rc=1, in its D8-01 payload helper."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:1754 BOOLOP": {
+      "killed_by": "tests/features.py",
+      "old": "    if coord._mode in (MODE_AUTO, MODE_ECONOMY) and coord._plan_is_stale():",
+      "reason": "This branch's `_space_pump_to_drive` staleness guard (#1449), with `and` -> `or`: the guard still names `_plan_is_stale`, so the D1-02 enumeration rule keeps reporting this seam gated, while the space pump is now held in every AUTO/ECONOMY cycle and a fresh plan commands nothing. Measured: tests/features.py rc=1, `and a fresh plan drives the space pump, so the check above is not vacuous [fresh plan commanded ['switch.vvc']]` among the failures."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:1754 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if coord._mode in (MODE_AUTO, MODE_ECONOMY) and coord._plan_is_stale():",
+      "reason": "The same guard deleted whole: the space pump is then driven on every plan, stale included, while `_apply_action` refuses it -- and the D1-02 enumeration rule reports this seam ungated, so two checks red. Measured: tests/features.py rc=1, `the space pump is not driven from a plan _plan_is_stale refused (#1449) [commanded ['switch.vvc', 'switch.space_pump'] from a 400-minute-old plan]` and the rule check, reporting ('_async_drive_pumps', False)."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:1757 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "    return str(entity) if entity else None",
+      "reason": "`_space_pump_to_drive`'s entity return (#1449): deleting it leaves the guard above intact, so the rule still reports this seam gated, while the space pump is never commanded, fresh plan included. Measured: tests/features.py rc=1, `each configured pump is commanded on its own, by entity id [vvc alone -> [...]; space alone -> []]` among the failures."
     },
     "custom_components/heatpump_optimizer/coordinator.py:1315 RETURN_DEL": {
       "killed_by": "tests/features.py",
