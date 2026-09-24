@@ -119,11 +119,6 @@
       "verdict": "gap",
       "old": "            if not bool(np.all(np.isfinite(error))):",
       "reason": "The round-7 D7-01 fix's shifted-prior re-solve keeps the two-state fit's own non-finite guard -- a divergent rollout reads as a large finite cost instead of poisoning the Jacobian (the R6 D7-03 shape at the fit's residual, #1396). `if not bool(np.all(np.isfinite(error))):` -> `if False:` leaves tests/features.py at rc=0 against a baseline of 0: nine further standalone scripts whose recorded closure reaches sysid.py were run on the same mutated tree: seven pass (typing_ruler, doc_claims, finite_boundary, config_flow_steps, deployment_shape, manual_plan, plan_view) and two (structure.py, entities.py) exit 1 on the UNMUTATED tree at that head too, for the coordinator comment block and the stale ledger dispositions this branch fixes -- so neither red carries signal about this mutant. The shifted re-solve starts at the converged fit and moves the intercept prior by one SLAB_INTERCEPT_PRIOR_SD_KW, which is what keeps it inside the finite range on every configuration measured. Recorded as a `gap` rather than equivalent: the two arms are distinguishable, they are simply not reached. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23."
-    },
-    "custom_components/heatpump_optimizer/binary_sensor.py:207 GUARD_OFF": {
-      "verdict": "equivalent",
-      "old": "        if not data:",
-      "reason": "MoldFloorBreachBinarySensor._floor's `if not data:` is redundant: `_data()` returns `coordinator.data or {}`, so a falsy data is `{}`, and on `{}` the next reached return -- the mold-guard-disabled check or the `reading_ok` gate, `({}.get(\"reading_ok\") or {}).get(...)` is None -- returns the same `(None, None)`; nothing between them has a side effect (config reads only). Measured: `if False:` leaves tests/entities.py at rc=0 failed=0, the same as the unmutated tree, at the round-3 head of #1497, 2026-09-23."
     }
   },
   "killed_by": {
@@ -136,36 +131,6 @@
       "killed_by": "tests/features.py",
       "old": "    if params.buffer_is_store:",
       "reason": "arrived with origin/main, commit d62195ade (fix(D12): guard the battery buffer/DHW stores on the config signal). `if params.buffer_is_store:` -> `if False:` makes tests/features.py exit 1 against a baseline exit of 0. Measured at the post-main head, 2026-09-22."
-    },
-    "custom_components/heatpump_optimizer/binary_sensor.py:216 GUARD_OFF": {
-      "killed_by": "tests/entities.py",
-      "old": "        if not (data.get(\"reading_ok\") or {}).get(\"upper_floor_temperature\"):",
-      "reason": "the #1495 mold-floor breach sensor's seed-room gate. `if not (data.get(\"reading_ok\") or {}).get(\"upper_floor_temperature\"):` -> `if False:` compares ThermalState's 21.0 degC constructor seed as if measured: the arm `a seeded (not measured) room publishes no floor` fails with floor=26.12 reading_ok=False room=21.0 (a seeded room would FIRE the breach). tests/entities.py rc=0 failed=0 -> rc=1 failed=1. Measured at the round-3 head of #1497 (fix/r7-mold-warning, merged with origin/main cdf82daa), 2026-09-23, by driving the mutant through tests/entities.py in a separate worktree."
-    },
-    "custom_components/heatpump_optimizer/binary_sensor.py:221 GUARD_OFF": {
-      "killed_by": "tests/entities.py",
-      "old": "        if room is None or outdoor is None:",
-      "reason": "the #1495 mold-floor breach sensor's room/outdoor None guard. `if room is None or outdoor is None:` -> `if False:` reaches float(None) on the arm `a missing outdoor temperature publishes no floor`: tests/entities.py rc=0 -> rc=1 (TypeError: float() argument must be a string or a real number, not 'NoneType'). Measured at the round-3 head of #1497 (fix/r7-mold-warning, merged with origin/main cdf82daa), 2026-09-23, by driving the mutant through tests/entities.py in a separate worktree."
-    },
-    "custom_components/heatpump_optimizer/binary_sensor.py:225 GUARD_OFF": {
-      "killed_by": "tests/entities.py",
-      "old": "        if rh is None:",
-      "reason": "the #1495 mold-floor breach sensor's humidity guard. `if rh is None:` -> `if False:` passes rh=None into mold_safe_room_floor: tests/entities.py rc=0 -> rc=1 (TypeError: '>' not supported between instances of 'float' and 'NoneType'). Measured at the round-3 head of #1497 (fix/r7-mold-warning, merged with origin/main cdf82daa), 2026-09-23, by driving the mutant through tests/entities.py in a separate worktree."
-    },
-    "custom_components/heatpump_optimizer/binary_sensor.py:236 RETURN_DEL": {
-      "killed_by": "tests/entities.py",
-      "old": "        return round(float(floor), 2), round(float(floor) - float(room), 2)",
-      "reason": "the #1495 mold-floor breach sensor's `_floor` return. Deleting `return round(float(floor), 2), round(float(floor) - float(room), 2)` returns None, which the callers unpack: tests/entities.py rc=0 -> rc=1 (TypeError: cannot unpack non-iterable NoneType object). Measured at the round-3 head of #1497 (fix/r7-mold-warning, merged with origin/main cdf82daa), 2026-09-23, by driving the mutant through tests/entities.py in a separate worktree."
-    },
-    "custom_components/heatpump_optimizer/binary_sensor.py:241 BOOLOP": {
-      "killed_by": "tests/entities.py",
-      "old": "        return bool(shortfall is not None and shortfall >= self._margin_c())",
-      "reason": "the #1495 mold-floor breach sensor's is_on predicate. `shortfall is not None and shortfall >= self._margin_c()` -> `or` compares None against the margin when no floor exists: tests/entities.py rc=0 -> rc=1 (TypeError: '>=' not supported between instances of 'NoneType' and 'float'). Measured at the round-3 head of #1497 (fix/r7-mold-warning, merged with origin/main cdf82daa), 2026-09-23, by driving the mutant through tests/entities.py in a separate worktree."
-    },
-    "custom_components/heatpump_optimizer/binary_sensor.py:241 RETURN_DEL": {
-      "killed_by": "tests/entities.py",
-      "old": "        return bool(shortfall is not None and shortfall >= self._margin_c())",
-      "reason": "the #1495 mold-floor breach sensor's is_on return. Deleting it makes is_on None: the arm `a cold damp room below its floor fires the breach` fails with is_on=None shortfall=3.57. tests/entities.py rc=0 failed=0 -> rc=1 failed=1. Measured at the round-3 head of #1497 (fix/r7-mold-warning, merged with origin/main cdf82daa), 2026-09-23, by driving the mutant through tests/entities.py in a separate worktree."
     },
     "custom_components/heatpump_optimizer/coordinator.py:10495 GUARD_OFF": {
       "killed_by": "tests/features.py",

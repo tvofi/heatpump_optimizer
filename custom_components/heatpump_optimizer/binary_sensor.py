@@ -33,6 +33,7 @@ from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordina
 from .entity import HeatPumpOptimizerEntity
 from .const import (
     CONF_MOLD_FLOOR_BREACH_MARGIN,
+    CONF_OUTDOOR_TEMP_ENTITY,
     DEFAULT_MOLD_FLOOR_BREACH_MARGIN,
 )
 
@@ -193,20 +194,29 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
         """``(floor_c, shortfall_c)`` against the measured room, or ``(None, None)``.
 
         The floor is the one the solve enforces: the coordinator's own
-        ``_mold_floor_series`` evaluated at the measured outdoor temperature,
+        ``_mold_floor_series`` evaluated at the payload's outdoor temperature,
         so the guard toggle, the humidity entity's age check and the cap at
         the configured comfort target are the solve's, not a second copy.
         """
         data = self._data()
         ok = data.get("reading_ok") or {}
-        # Only live readings are measurements: without an indoor or outdoor
-        # thermometer the payload carries ThermalState's constructor seeds
-        # (21.0 / 5.0 °C), which must not be compared as if measured.
-        if not (ok.get("upper_floor_temperature") and ok.get("outdoor_temperature")):
+        # Only a live room reading is a measurement: without one the payload
+        # carries ThermalState's 21.0 °C constructor seed.
+        if not ok.get("upper_floor_temperature"):
             return None, None
-        floors = self.coordinator._mold_floor_series(
-            np.array([float(data["outdoor_temperature"])])
-        )
+        # A configured outdoor thermometer that is not reading leaves the
+        # 5.0 °C seed, so no floor. An install with no outdoor thermometer at
+        # all is gated on the room alone and evaluated at that same default,
+        # the outdoor its Outdoor sensor and COP model read: gating it on a
+        # reading it can never produce would silence the warning forever.
+        outdoor_live = ok.get("outdoor_temperature")
+        if self._config.get(CONF_OUTDOOR_TEMP_ENTITY) and not outdoor_live:
+            return None, None
+        # A partial payload (the entity sweeps' contract) carries no outdoor.
+        outdoor = data.get("outdoor_temperature")
+        if outdoor is None:
+            return None, None
+        floors = self.coordinator._mold_floor_series(np.array([float(outdoor)]))
         if floors is None:
             return None, None
         two_zone = bool(data.get("two_zone_enabled"))

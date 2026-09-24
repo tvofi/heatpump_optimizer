@@ -45,6 +45,13 @@ from harness import (
     ha_unload_entry,
 )
 
+# #1495: the Mold Floor Breach sensor reads its floor from the coordinator's
+# own _mold_floor_series. A FakeCoordinator stands for an install at the
+# default (mold guard off), where that series is None; the arms that need a
+# floor use a real coordinator after one input-read cycle. Set here rather
+# than in harness.py for the reason the next comment gives.
+FakeCoordinator._mold_floor_series = lambda self, outdoor, target_cap=None: None
+
 # #924: the fixed first refresh fetches through the base class, and a token
 # config has no HTTP under the stub. The entity feed is a real production
 # source that works offline. Local rather than shared through harness.py:
@@ -4430,33 +4437,11 @@ R.check(
 # after one input-read cycle rather than a data dict alone.
 breach = b_by_name["Mold Floor Breach"]
 R.check("the mold-floor breach is off while the guard is disabled", not breach.is_on)
-R.check(
-    "the breach is off without a live humidity and carries no floor",
-    not binary_sensor.MoldFloorBreachBinarySensor(
-        FakeCoordinator(
-            {
-                "reading_ok": {"upper_floor_temperature": True},
-                "indoor_temperature": 16.0,
-                "upper_floor_temperature": 16.0,
-                "outdoor_temperature": -3.0,
-            }
-        ),
-        FakeEntry(data={const.CONF_MOLD_GUARD_ENABLED: True}),
-    ).is_on
-    and binary_sensor.MoldFloorBreachBinarySensor(
-        FakeCoordinator(
-            {
-                "reading_ok": {"upper_floor_temperature": True},
-                "indoor_temperature": 16.0,
-                "upper_floor_temperature": 16.0,
-                "outdoor_temperature": -3.0,
-            }
-        ),
-        FakeEntry(data={const.CONF_MOLD_GUARD_ENABLED: True}),
-    ).extra_state_attributes["floor_c"] is None,
-)
-
 _breach_config = {
+    # The thermometers _honest_coordinator configures, restated so the
+    # entity's own entry carries the configuration the coordinator read.
+    const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+    const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
     const.CONF_MOLD_GUARD_ENABLED: True,
     const.CONF_THERMAL_BRIDGE_FRSI: 0.75,
     const.CONF_INDOOR_HUMIDITY_ENTITY: "sensor.humidity",
@@ -4568,6 +4553,51 @@ R.check(
     f"floor={_no_out_attrs.get('floor_c')!r} "
     f"reading_ok={(_no_out_data.get('reading_ok') or {}).get('outdoor_temperature')!r} "
     f"outdoor={_no_out_data.get('outdoor_temperature')!r}",
+)
+# No outdoor thermometer configured at all: the room alone gates the floor,
+# evaluated at the payload's outdoor default. Gating such an install on an
+# outdoor reading it can never produce would silence the warning forever.
+_unconf_config = {**_breach_config, const.CONF_OUTDOOR_TEMP_ENTITY: None}
+_unconf_hass, _unconf_coord, _unconf_data = _honest_coordinator(
+    _unconf_config,
+    {
+        "sensor.indoor": FakeState("16.0"),
+        "sensor.humidity": FakeState("70.0", last_updated=dt_util.utcnow()),
+    },
+)
+_unconf_coord.data = _unconf_data
+_unconf_entity = binary_sensor.MoldFloorBreachBinarySensor(
+    _unconf_coord, FakeEntry(data=_unconf_config)
+)
+_unconf_attrs = _unconf_entity.extra_state_attributes
+_unconf_solve = _unconf_coord._mold_floor_series(
+    [float(_unconf_data["outdoor_temperature"])]
+)
+R.check(
+    "with no outdoor thermometer configured, a cold damp room still fires on the solve's floor",
+    _unconf_solve is not None
+    and _unconf_attrs["floor_c"] == round(float(_unconf_solve[0]), 2)
+    and _unconf_entity.is_on,
+    f"floor={_unconf_attrs.get('floor_c')!r} "
+    f"solve_floor={None if _unconf_solve is None else float(_unconf_solve[0])!r} "
+    f"reading_ok={(_unconf_data.get('reading_ok') or {}).get('outdoor_temperature')!r} "
+    f"is_on={_unconf_entity.is_on}",
+)
+# No live humidity: the solve's floor series is None (its humidity gate), so
+# the cold room that fires above publishes no floor.
+_dry_hass, _dry_coord, _dry_data = _honest_coordinator(
+    _breach_config, {"sensor.indoor": FakeState("16.0")}
+)
+_dry_coord.data = _dry_data
+_dry_entity = binary_sensor.MoldFloorBreachBinarySensor(
+    _dry_coord, FakeEntry(data=_breach_config)
+)
+R.check(
+    "the breach is off without a live humidity and carries no floor",
+    not _dry_entity.is_on
+    and _dry_entity.extra_state_attributes["floor_c"] is None,
+    f"is_on={_dry_entity.is_on} "
+    f"floor={_dry_entity.extra_state_attributes.get('floor_c')!r}",
 )
 # The guard toggle, with every input live: the cold damp room that fires the
 # breach above publishes no floor once the mold guard is switched off (#1495:
