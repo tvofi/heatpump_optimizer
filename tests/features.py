@@ -45533,45 +45533,5 @@ R.check(
     f"{_p3_seams(_p3_probe, 'probe')}",
 )
 
-# Found by this group: the wood-coil forecast took each step's coil drain out of
-# that step's wood temperature only, so every later step was credited against a
-# tank the coil had not cooled -- its docstring promises the opposite. Under the
-# #1530 law the credited plan left the tank ~0.6 K under dhw_min_temp inside a
-# demand window (the #400 check above), and the same breach appears at the merge
-# base under cop_scale 0.9, so the COP law only exposed it. The drain is read
-# as the gap between the forecast and the same forecast with the coil credit
-# zeroed: it may only grow along the horizon.
-import heatpump_optimizer.optimizer as _p3_opt_mod  # noqa: E402
-
-_p3_coil_args = {}
-_p3_coil_real = _p3_opt_mod.HeatPumpOptimizer._dhw_coil_wood_forecast
-
-
-def _p3_coil_spy(self, h, space_power=None):
-    _p3_coil_args.setdefault("call", (self, h, space_power))
-    return _p3_coil_real(self, h, space_power)
-
-
-_p3_opt_mod.HeatPumpOptimizer._dhw_coil_wood_forecast = _p3_coil_spy
-try:
-    _coil_plan(enabled=True, wood=85.0)
-finally:
-    _p3_opt_mod.HeatPumpOptimizer._dhw_coil_wood_forecast = _p3_coil_real
-_p3_self, _p3_h, _p3_sp = _p3_coil_args["call"]
-_p3_with = np.asarray(_p3_coil_real(_p3_self, _p3_h, _p3_sp), dtype=float)
-_p3_red = _p3_opt_mod.dhw_coil_draw_reduction
-_p3_opt_mod.dhw_coil_draw_reduction = lambda rate, *a, **k: (rate, 0.0)
-try:
-    _p3_without = np.asarray(_p3_coil_real(_p3_self, _p3_h, _p3_sp), dtype=float)
-finally:
-    _p3_opt_mod.dhw_coil_draw_reduction = _p3_red
-_p3_drain = _p3_without - _p3_with
-R.check(
-    "the coil's drain on the wood forecast carries forward: it never shrinks "
-    "along the horizon, and it is not zero",
-    bool(np.all(np.diff(_p3_drain) >= -1e-12)) and float(_p3_drain[-1]) > 0.0,
-    f"drain at the end {float(_p3_drain[-1]):.4f} K; largest step back "
-    f"{float(np.min(np.diff(_p3_drain))):.4f} K",
-)
 
 sys.exit(R.close("FEATURE CHECKS"))

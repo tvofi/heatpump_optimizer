@@ -4481,10 +4481,10 @@ class HeatPumpOptimizer:
     ) -> np.ndarray | None:
         """Per-step wood temps the DHW coil credit is priced against (#400).
 
-        ``simulate_trajectory`` already applies standby loss, ``wood_share``
-        and the external-heat forecast. Coil drain is folded in with
-        ``dhw_coil_draw_reduction`` so later hours are not credited at a tank
-        the coil itself has cooled. Planner-only: physics still sees raw draws.
+        Read from ``simulate_trajectory_with_dhw`` with no electric DHW, the
+        physics the published plan runs: standby loss, ``wood_share``, the
+        external-heat forecast and the coil's own drain, coupled step by step.
+        A re-derived drain beside it drifted both ways (RCA coil-drain, R8-P3).
         """
         p = self.model.params
         if not p.dhw_coil_active or h.initial_state.wood_tank_temperature is None:
@@ -4495,43 +4495,26 @@ class HeatPumpOptimizer:
             if space_power is None
             else np.asarray(space_power, dtype=float)[:n]
         )
-        *_, wood = self.model.simulate_trajectory(
+        hours = np.asarray(h.step_hours, dtype=float) % 24.0
+        raw = np.asarray(self.model.dhw_draw_rates(hours), dtype=float)
+        *_, wood = self.model.simulate_trajectory_with_dhw(
             initial_state=h.initial_state,
-            power_schedule=power,
+            space_power_schedule=power,
+            dhw_power_schedule=np.zeros(n),
             outdoor_temps=h.outdoor_temps,
             wind_speeds=h.wind_speeds,
             precipitation=h.precipitation,
             solar_radiation=h.solar_radiation,
+            start_hour=float(h.step_hours[0]),
             dt_hours=h.dt,
+            dhw_draw_rates=raw,
             external_heat_kw=h.external_heat_kw,
             valve_targets=h.valve_targets,
             humidity=h.humidity,
-            start_hour=float(h.step_hours[0]),
         )
         if wood is None:
             return None
-        hours = np.asarray(h.step_hours, dtype=float) % 24.0
-        raw = np.asarray(self.model.dhw_draw_rates(hours), dtype=float)
-        out = np.array(wood, dtype=float, copy=True)
-        # The wood store's own capacity, unfloored: the same reduction
-        # `simulate_trajectory` above applies reads it raw (#1487, D2-03).
-        c_w = p.wood_tank_thermal_mass
-        inlet = p.dhw_inlet_reference
-        setpoint = p.dhw_setpoint
-        dt = h.dt
-        n_apply = min(len(raw), len(out) - 1)
-        # The drain carries forward: what the coil took at step i is gone from
-        # every later step too, not only from step i (R8-P3).
-        drained = 0.0
-        for i in range(n_apply):
-            out[i + 1] = max(inlet, out[i + 1] - drained)
-            _, q_coil = dhw_coil_draw_reduction(
-                float(raw[i]), float(out[i + 1]), setpoint, inlet_temp=inlet,
-            )
-            if q_coil > 0.0:
-                drained += q_coil * dt / c_w
-                out[i + 1] = max(inlet, out[i + 1] - q_coil * dt / c_w)
-        return out
+        return np.array(wood, dtype=float, copy=True)
 
     def _dhw_planner_draws(
         self,
