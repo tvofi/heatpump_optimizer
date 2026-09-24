@@ -1,7 +1,7 @@
 # D3 — test-suite gaps, audit round 6
 
 Baseline **`e336cc2c530882a142ef298de6420706d96a6300`** (v6.6.9), audited in the
-isolated worktree `/Users/timmalmstrom/audit-r6-D3`. Interpreter
+isolated worktree `~/audit-r6-D3`. Interpreter
 `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3` (numpy 2.4.6,
 scipy 1.17.1, orjson 3.12.0); everything run from the worktree root with
 `PYTHONPATH=tests/hastub`, `GATE_JOBS=1`, one `env_drift.py` at a time, no

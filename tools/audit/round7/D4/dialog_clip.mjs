@@ -10,7 +10,7 @@
 //   HPO_PLANDATA=/tmp/d4-clip.json PYTHONPATH=tests/hastub \
 //   /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tests/plan_view.py
 //   NODE_PATH=/tmp/pw-r5d4/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers \
-//   /Users/timmalmstrom/.nvm/versions/node/v20.10.0/bin/node \
+//   ~/.nvm/versions/node/v20.10.0/bin/node \
 //     tools/audit/round7/D4/dialog_clip.mjs --seam savings --width 375 --lang en
 //   (no HPO_PLANDATA set? the harness writes one under the temp root itself)
 //

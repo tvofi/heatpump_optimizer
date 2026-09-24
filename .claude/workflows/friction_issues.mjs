@@ -36,8 +36,8 @@
 // pure function of the measurement (key, kind, count, threshold, window), so
 // two runs of the same window with the same counts produce byte-identical
 // bodies and the second run is a no-op -- no create, no edit, no comment. A
-// moved measurement within the window (a count that grew) edits the body once;
-// it never opens a second issue.
+// moved measurement within the window (a count that grew) edits an open body
+// once; over a CLOSED issue it files only past the count disposed (`decide`).
 //
 // FAIL CLOSED ON EVERY UNKNOWN. A search that errored, that printed prose, or
 // that returned a shape this parser does not recognise is `unknown`, and
@@ -396,6 +396,17 @@ export function planEntry(entry, since, { search, getNormalizedLookup, readBody 
   if (action === 'refuse') {
     return { refuse: true, why: `issue #${existing.number} exists but its body is unreadable, so the idempotence check cannot compare` }
   }
+  // The resolved row is the lowest-numbered closed one, which may be an older
+  // window's (#1128 beside #1494 under the fixer.md title). ANY closed
+  // exact-title row that disposed this window at no lower a count suffices.
+  if (action === 'create' && existing && existing.state !== 'OPEN') {
+    for (const r of searched.rows) {
+      if (r?.title !== title || r.number === existing.number || r.state === 'OPEN') continue
+      const read = readBody(r.number)
+      if (read.unknown) return { refuse: true, why: `closed issue #${r.number} carries the exact title but its body could not be read, so whether it disposed this window is unknown` }
+      if (decide({ existing: r, currentBody: read.body, body }) === 'no-op') return { refuse: false, action: 'no-op', existing: r, body, title }
+    }
+  }
   return { refuse: false, action, existing, body, title }
 }
 
@@ -442,12 +453,25 @@ export function titleFor(key) {
 // create / edit / no-op, decided before anything is written so --dry-run and
 // the self-test drive the same decision the live run acts on. `refuse` is the
 // only other answer: an existing issue whose body cannot be read is not an
-// excuse to file a second one. An existing issue that is not OPEN is treated
-// as no existing issue at all: a key whose issue a seat disposed by closing it
-// must be able to reopen, so the recurrence files a fresh open issue rather
-// than refreshing a dead one (#1468).
+// excuse to file a second one. A key whose issue a seat disposed by closing it
+// must be able to reopen, so a recurrence files a fresh open issue rather than
+// refreshing a dead one (#1468) -- but only a RECURRENCE. The window's count is
+// fixed by bodies already merged, so no disposition can move it, and treating
+// every closed issue as absent re-filed #1498 and #1494 as #1501 and #1502 on
+// the next push, over the same three pull requests each. A closed issue whose
+// body carries this window at a count no lower than this one's is the window's
+// one issue, disposed: nothing is filed until the count grows or a tag turns
+// the window. A body naming neither proves nothing was disposed, and files.
+const MEASURED_RE = /^- histogram line: `.* at (\d+) in this window, threshold \d+\.[\s\S]*^- window: `([^`]+)`$/m
+function disposedHere(closedBody, body) {
+  const was = MEASURED_RE.exec(String(closedBody ?? ''))
+  const now = MEASURED_RE.exec(body)
+  return Boolean(was && now && was[2] === now[2] && Number(now[1]) <= Number(was[1]))
+}
+
 export function decide({ existing, currentBody, body }) {
-  if (!existing || existing.state !== 'OPEN') return 'create'
+  if (!existing) return 'create'
+  if (existing.state !== 'OPEN') return disposedHere(currentBody, body) ? 'no-op' : 'create'
   if (currentBody == null) return 'refuse'
   return currentBody === body ? 'no-op' : 'edit'
 }
@@ -620,6 +644,8 @@ function fileEntries(parsed, since, dryRun) {
       const res = gh(['issue', 'edit', String(existing.number), '--body-file', file])
       if (res.rc !== 0) die(`gh issue edit refused #${existing.number} (gh exit ${res.rc}, <<${res.stderr.slice(0, 200)}>>)`)
       console.log(`UPDATED: #${existing.number} ${JSON.stringify(title)} -- ${entry.kind} at ${entry.count} in this window (one issue per key per window; the body, not a duplicate)`)
+    } else if (existing.state !== 'OPEN') {
+      console.log(`DISPOSED: #${existing.number} ${JSON.stringify(title)} was closed carrying this window at no lower a count (${entry.kind} at ${entry.count}); no write made`)
     } else {
       console.log(`CURRENT: #${existing.number} ${JSON.stringify(title)} already carries this measurement (${entry.kind} at ${entry.count}); no write made`)
     }
@@ -922,10 +948,34 @@ export function selfTest() {
   st(decide({ existing: { number: 41, state: 'OPEN' }, currentBody: body, body }), 'no-op', 'an existing issue already carrying this exact measurement: NO write')
   st(decide({ existing: { number: 41, state: 'OPEN' }, currentBody: body + 'x', body }), 'edit', 'a measurement that moved within the window: edit the one issue in place')
   st(decide({ existing: { number: 41, state: 'OPEN' }, currentBody: null, body }), 'refuse', 'an existing issue whose body cannot be read: refuse, never a second file')
-  st(decide({ existing: { number: 41, state: 'CLOSED' }, currentBody: body, body }), 'create',
-    'a CLOSED issue carrying this key is not refreshed: the disposed key reopens as a new issue (#1468)')
-  st(decide({ existing: { number: 41, state: 'CLOSED' }, currentBody: body + 'x', body }), 'create',
-    'and a moved measurement over a CLOSED issue still creates rather than editing the dead issue')
+  const CLOSED = { number: 41, state: 'CLOSED' }
+  const at = (n, since = 'v9.9.9') => bodyFor({ key: 'blocked', kind: 'verdict class', count: n, threshold: 3, line: LINE('blocked', 'verdict class', n).trim() }, since)
+  st(decide({ existing: CLOSED, currentBody: at(4, 'v9.9.8'), body }), 'create',
+    'a CLOSED issue from an earlier window is not refreshed: the disposed key reopens as a new issue (#1468)')
+  st(decide({ existing: CLOSED, currentBody: at(3), body }), 'create',
+    'and a count that GREW past the closed issue within the window is a new occurrence: file it')
+  st(decide({ existing: CLOSED, currentBody: body, body }), 'no-op',
+    'a CLOSED issue carrying this window at this count is the one the seat disposed: no second file (#1501, #1502)')
+  st(decide({ existing: CLOSED, currentBody: at(5), body }), 'no-op',
+    'nor at a count that fell within the window: nothing recurred that the seat did not dispose')
+  st(decide({ existing: CLOSED, currentBody: 'no measurement here', body }), 'create',
+    'a CLOSED body naming no window or count proves nothing disposed: file')
+  // Two CLOSED rows under one exact title -- the fixer.md shape, #1128 in an old
+  // window and #1494 in this one. `pickExact` resolves the lowest number, so the
+  // old row alone would answer create; EVERY closed row is read.
+  const BLK = { key: 'blocked', kind: 'verdict class', count: 4, threshold: 3, line: LINE('blocked', 'verdict class', 4).trim() }
+  const twoClosed = (bodies) => planEntry(BLK, 'v9.9.9', {
+    search: () => ({ unknown: false, rows: Object.keys(bodies).map((n) => ({ number: Number(n), title: titleFor('blocked'), state: 'CLOSED' })) }),
+    getNormalizedLookup: () => ({ rows: [], normalize: new Map() }),
+    readBody: (n) => (bodies[n] == null ? { unknown: true } : { unknown: false, body: bodies[n] }),
+  })
+  const both = twoClosed({ 11: at(4, 'v9.9.8'), 41: at(4) })
+  st(`${both.action} #${both.existing?.number}`, 'no-op #41',
+    'two CLOSED rows, an old window and this one: the later row disposed this window, so nothing is filed')
+  st(twoClosed({ 11: at(4, 'v9.9.8'), 41: at(3) }).action, 'create',
+    'null control: the same two rows with this window disposed at a LOWER count still file')
+  st(twoClosed({ 11: at(4, 'v9.9.8'), 41: null }).refuse, true,
+    'and a closed row whose body cannot be read refuses rather than filing beside it')
 
   // The body is the idempotence contract: byte-identical for the same
   // measurement, different only when the measurement moved. The entries carry

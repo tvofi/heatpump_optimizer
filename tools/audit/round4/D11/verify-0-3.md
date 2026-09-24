@@ -1,6 +1,6 @@
 # D11 round 4 — verifier 3 of 3 (panel D11-0)
 
-- **tree** `/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D11-3`, HEAD
+- **tree** `~/.zcode/workspace/default/audit-r4-verify-D11-3`, HEAD
   `0855277` (branch head; baseline was `7dd68dd`). Tree-scanning harnesses therefore
   measured the branch head, not the baseline, per the round's resume instruction.
 - **method** every harness re-run from that root with `PYTHONPATH=tests/hastub` and a

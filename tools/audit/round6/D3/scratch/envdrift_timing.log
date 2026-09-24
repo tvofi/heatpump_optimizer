@@ -1,7 +1,7 @@
 ==========================================================================
 DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing e336cc2c530882a142ef298de6420706d96a6300 from scratch
   key       5b95bbd7dc4c820e5c152dc2e107e2fb4cafd8d75fdbf1218f56f64d370b9d23
-  entry     /Users/timmalmstrom/.cache/heatpump_optimizer/drift-baseline/5b95bbd7dc4c820e5c152dc2e107e2fb4cafd8d75fdbf1218f56f64d370b9d23.json
+  entry     ~/.cache/heatpump_optimizer/drift-baseline/5b95bbd7dc4c820e5c152dc2e107e2fb4cafd8d75fdbf1218f56f64d370b9d23.json
     baseline_commit  d7542566c944
     baseline_tree    411a74928b51
     cache_format     391552c099c1
@@ -17,7 +17,7 @@ DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing e336cc2c530882a14
 ==========================================================================
   captured 56 scenarios from branch
   captured 56 scenarios from baseline
-  cached   the e336cc2c530882a142ef298de6420706d96a6300 baseline under key 5b95bbd7dc4c820e in /Users/timmalmstrom/.cache/heatpump_optimizer/drift-baseline/5b95bbd7dc4c820e5c152dc2e107e2fb4cafd8d75fdbf1218f56f64d370b9d23.json
+  cached   the e336cc2c530882a142ef298de6420706d96a6300 baseline under key 5b95bbd7dc4c820e in ~/.cache/heatpump_optimizer/drift-baseline/5b95bbd7dc4c820e5c152dc2e107e2fb4cafd8d75fdbf1218f56f64d370b9d23.json
 
 ########## committed fixtures: staleness (#347) ##########
   56 fixture(s) compared against this tree's capture; 1 of them float-free and compared exactly.

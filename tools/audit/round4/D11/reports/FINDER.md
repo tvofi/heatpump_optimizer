@@ -1,7 +1,7 @@
 # D11 — Governance mechanisms and policy (round 4)
 
 - **baseline** `7dd68dd327fe3dbfb09f3bd0fe38910c58877697` (2026-09-12T10:44:09Z)
-- **tree** `/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-r4-D11` (a real checkout, `.git` present, because the subject is the process)
+- **tree** `~/heatpump_optimizer/.claude/worktrees/audit-r4-D11` (a real checkout, `.git` present, because the subject is the process)
 - **harnesses** `tools/audit/round4/D11/*.py`, each runnable by the single command in its header
 - **interpreter** `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3`, `PYTHONPATH=tests/hastub`, from the repository root; node v20.10.0
 - **limits observed** `main` never perturbed, the live ruleset never perturbed, no comment posted on any live pull request. Every perturbation was run against a scratch copy under `/tmp/claude-501/d11/pert`.

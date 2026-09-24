@@ -1,11 +1,11 @@
 # Round 4 baseline
 
 - baseline: 7dd68dd327fe3dbfb09f3bd0fe38910c58877697
-- export (read-only finders): /Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-r4-baseline
-- worktrees (isolated finders): D0 /Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-r4-D0, D3 /Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-r4-D3, D9 /Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-r4-D9, D11 /Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-r4-D11
+- export (read-only finders): ~/heatpump_optimizer/.claude/worktrees/audit-r4-baseline
+- worktrees (isolated finders): D0 ~/heatpump_optimizer/.claude/worktrees/audit-r4-D0, D3 ~/heatpump_optimizer/.claude/worktrees/audit-r4-D3, D9 ~/heatpump_optimizer/.claude/worktrees/audit-r4-D9, D11 ~/heatpump_optimizer/.claude/worktrees/audit-r4-D11
 - python: /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 (run from the directory root with PYTHONPATH=tests/hastub)
-- node: /Users/timmalmstrom/.nvm/versions/node/v20.10.0/bin/node
-- chromium: /Users/timmalmstrom/.cache/pw-browsers/chromium-1148 (PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers)
+- node: ~/.nvm/versions/node/v20.10.0/bin/node
+- chromium: ~/.cache/pw-browsers/chromium-1148 (PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers)
 - playwright module: install into a scratch prefix, e.g. `npm i --prefix /tmp/pw playwright@1.49.0`, then NODE_PATH=/tmp/pw/node_modules
 - gate lock: take it only when tests/closure.py select reports MODE: FULL or names
   tests/stress.py -- that one script is what the lock exists for. Use
