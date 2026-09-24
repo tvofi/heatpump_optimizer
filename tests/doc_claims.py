@@ -587,7 +587,9 @@ def exception_raise_census(
 # must see, and a clean module they must pass. A census that matched nothing,
 # or read every raise as translated, would leave the real tree's arms green
 # (the #1590 review measured both), so each census is held to exact results
-# on these every run. Each line's trailing comment is the shape it pins.
+# on these every run. _RAISE_BAD's two extra helpers pin the helper rule: a
+# key-forwarding helper that omits the domain is not a helper (its own raise
+# is refused), and a helper's key may be any positional parameter.
 _TYPING_BAD = """
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry
@@ -626,6 +628,10 @@ def _literal_key(message):
     return HomeAssistantError(message, translation_domain=DOMAIN, translation_key="lit")
 def _untranslated_factory(message):
     return UpdateFailed(message)
+def _half_helper(key, message):
+    raise UpdateFailed(message, translation_key=key)
+def _second_key(message, key):
+    raise HomeAssistantError(message, translation_domain=DOMAIN, translation_key=key)
 def sites():
     raise UpdateFailed("x")
     raise ServiceValidationError(translation_domain=DOMAIN)
@@ -634,19 +640,22 @@ def sites():
     raise ConfigEntryNotReady
     _raise_helper("k3", "m")
     _raise_helper(key="k4", message="m")
+    _half_helper("k5", "m")
+    _second_key("m", "k6")
     raise ValueError("not in the family")
 """
 _RAISE_BAD_RESULT = (
-    9,
+    11,
     [
         "m.py:7 UpdateFailed",
         "m.py:9 UpdateFailed",
-        "m.py:10 ServiceValidationError",
-        "m.py:11 ServiceValidationError",
-        "m.py:13 ConfigEntryNotReady (no call)",
-        "m.py:15 _raise_helper() names no key",
+        "m.py:13 UpdateFailed",
+        "m.py:14 ServiceValidationError",
+        "m.py:15 ServiceValidationError",
+        "m.py:17 ConfigEntryNotReady (no call)",
+        "m.py:19 _raise_helper() names no key",
     ],
-    {"lit", "k1", "k2", "k3"},
+    {"lit", "<m.py:9>", "k1", "k2", "k3", "k6"},
 )
 _RAISE_CLEAN = """
 def _raise_helper(key, message):
