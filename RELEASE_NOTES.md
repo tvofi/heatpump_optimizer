@@ -1,5 +1,44 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.6.11
+
+the round-7 fix wave lands and round 8 opens: the Heat Pump Action and wood-floor
+findings carried, the round-8 audit machinery (seat rotation, the D14 bug-class
+dimension, one verifier per dimension, the process diet) and the round-8 register
+merged, and the CI trust holes that let a pull request grade itself closed:
+
+- #1478 — let a disposed friction key reopen instead of refreshing its closed issue
+- #1479 — derive two-zone from the model in the flow-target guard (D12)
+- #1480 — policy_lint: the wave's verdict grammar, the reviews endpoint, the sunset zero
+- #1481 — card: reach the dialog's clipped ink, and one currency per savings screen
+- #1482 — teach the wave the class a reviewer wrote, publish the CFR name, and run D13
+- #1483 — gate the setpoint advisor and shrink the recorder payload
+- #1484 — reach the record job's tail, and guard the body-edit dispatch
+- #1485 — re-point the mutation ledger after D7-01's line shift, and record its five new sites
+- #1486 — re-pin the moved mutation mark and claim the fixture D0-01 settles
+- #1488 — carry the optimizer.py wood-capacity floor sibling seam (#1487)
+- #1489 — the gap advisor's zero is the absent window, not a priced one (#1460)
+- #1490 — ship the strict-typing marker and type every entry parameter (D10)
+- #1491 — delivery rows for the round-7 fix wave (first nine merges)
+- #1492 — the round-7 register, merged up to main
+- #1493 — round-7 tests-group findings D3-01, D5-01, D9-03
+- #1496 — move CORPUS_EXCLUDED to a data file so the restore step leaves new evidence usable
+- #1500 — fixer.md: say where the finder's harness lives when it is not at your head
+- #1503 — allow web and read-only file tools without a prompt
+- #1504 — D8.md: check a published operating state against the plan's own draw (#1499 root cause)
+- #1505 — one verifier per dimension, one judge over every finding (round-8 F2)
+- #1506 — a mutation kill must be a failing check, not only a non-zero exit (R7-D3-02)
+- #1507 — prepare_baseline keeps what the gate reads; seat-scoped finding ids validate (round-8 F1)
+- #1509 — delivery rows for #1486-#1496 and #1500-#1507
+- #1510 — rotating seat focus and the D14 bug-class dimension (round-8 F3+F4)
+- #1550 — decision 0012, the process diet (round-8 F6)
+- #1551 — the round-8 audit register and its evidence
+- #1552 — the delivery row for #1551
+- #1553 — card: zoom controls ahead of the chart, so Tab reads top-down (#1522)
+- #1554 — policy_lint finds the workflow that defines pr-contract instead of naming it
+- #1557 — the round-8 fix-wave roster, with #1551's carries folded in
+- #1558 — CI trust: pr-contract in its own workflow, checks restored from base, owners over the transitive closure, release ancestry, the stop hook sees staged files (#1514, #1515, #1547)
+
 ## v6.6.10
 
 the round-6 audit fix wave completes — thirty-one dimension findings judged and
