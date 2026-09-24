@@ -29,6 +29,18 @@ THE SURFACE (derived, never carried -- the run prints each group's size):
      line appended to `counts.mjs`, which `policy_lint.mjs` imports. The walk
      does not enter a shell script's body: `tests/run.sh` runs the whole
      suite, and owning the suite is not what this surface is.
+  F  what B's and E's governance scripts can EXECUTE by path (#1515 review,
+     round 1): a script outside `tests/` that holds an evaluating construct
+     -- `new Function(`, `eval(`, `vm.`, `import(`, `exec(`, `runpy` -- joins
+     the tracked code files it names in a quoted string, repo-relative or
+     relative to itself. `policy_lint.mjs` builds `web-fix-wave.js`'s
+     VERDICT_RE through `new Function`, and one line there turned a red
+     corpus's `policy-docs` green; E, which follows only imports, never
+     reached it. A name is not proof of evaluation, so F over-approximates:
+     every file it returns is owned rather than argued. Strings, docstrings
+     and block comments are blanked before the construct is looked for, and
+     a RegExp's `.exec(` is not one. `tests/` is out of F for E's reason: the
+     suite runs the pull request's code by design.
   C  the hooks population, `.claude/hooks/*` (three are wired by
      `.claude/settings.json`; `always-fails.sh` is a deliberate unwired
      control -- the whole directory is the surface)
@@ -52,7 +64,11 @@ ARMS.
 The matcher mirrors GitHub's CODEOWNERS semantics for the pattern forms this
 repository uses: a trailing-slash directory pattern, and an exact path.
 
-    PYTHONPATH=tests/hastub python3 tools/audit/round6/D11/fix/codeowners_gap.py [--check]
+    python3 -I tools/audit/round6/D11/fix/codeowners_gap.py [--check]
+
+`-I` in the gate, always: without it Python puts this file's directory first on
+sys.path, and a pull request that adds `subprocess.py` beside it runs its own
+module before the check (#1515 review, round 1).
 """
 
 import os
@@ -70,7 +86,7 @@ SETTINGS = ".claude/settings.json"
 # A script the workflows execute: invoked with an interpreter on a line that
 # is not a comment.
 EXEC = re.compile(
-    r"(?<![\w./-])(?:(?:node|python3|python|bash|sh|npx|pnpm)\s+|\./)"
+    r"(?<![\w./-])(?:(?:node|python3|python|bash|sh|npx|pnpm)\s+(?:-[A-Za-z]+\s+)*|\./)"
     r"((?:tests|tools|\.claude|\.github)/[A-Za-z0-9_./-]+\.(?:py|mjs|js|sh|yml))\b"
 )
 
@@ -83,6 +99,37 @@ JS_LOAD = re.compile(
 # resolved beside the importer and under `tests/`, where the suite puts its
 # shared modules on `sys.path`.
 PY_LOAD = re.compile(r"^\s*(?:from\s+([\w.]+)\s+import|import\s+([\w.]+(?:\s*,\s*[\w.]+)*))", re.M)
+
+
+# Group F. A quoted path to a code file, and the constructs that can run one.
+NAMED = re.compile(r"""['"]((?:\.{1,2}/)?[A-Za-z0-9_][A-Za-z0-9_./-]*\.(?:js|mjs|cjs|py|sh))['"]""")
+# `.exec(` is a RegExp method, not an evaluation, so `eval(`/`exec(` must not follow a dot.
+EVALS = re.compile(r"new Function\(|(?<![.\w])(?:eval|exec)\(|\bvm\.|\bimport\(|\brunpy\b")
+CODE_EXT = (".js", ".mjs", ".cjs", ".py", ".sh")
+# Docstrings and block comments are prose, not code.
+BLOCKS = re.compile(r'"""[\s\S]*?"""' + r"|'''[\s\S]*?'''" + r"|/\*[\s\S]*?\*/")
+QUOTED = re.compile(r"'(?:[^'\\]|\\.)*'" + r'|"(?:[^"\\]|\\.)*"')
+
+
+def named(path: str, have: set[str]) -> set[str]:
+    """The tracked code files an evaluating script outside tests/ names (group F)."""
+    if path.startswith("tests/") or not path.endswith(CODE_EXT):
+        return set()
+    text = BLOCKS.sub("", (ROOT / path).read_text(errors="replace"))
+    live = [ln for ln in text.splitlines()
+            if not ln.lstrip().startswith(("#", "//", "*", "/*"))]
+    # The construct must be code, not text: quoted strings are blanked first, so
+    # a pattern that names `exec(` (this file's own EVALS) is not an evaluation.
+    if not any(EVALS.search(QUOTED.sub("''", ln)) for ln in live):
+        return set()
+    out: set[str] = set()
+    for ln in live:
+        for m in NAMED.finditer(ln):
+            v = m.group(1)
+            for p in (os.path.normpath(v), os.path.normpath(os.path.join(os.path.dirname(path), v))):
+                if p in have and p != path and p.endswith(CODE_EXT):
+                    out.add(p)
+    return out
 
 
 def loads(path: str, have: set[str]) -> set[str]:
@@ -136,11 +183,20 @@ def surface() -> dict[str, list[str]]:
             seen.add(f)
             todo += sorted(loads(f, have))
     imported = seen - execs - set(workflows)
+    evaluated: set[str] = set()
+    todo = sorted(seen)
+    while todo:
+        f = todo.pop()
+        for p in sorted(named(f, have) | loads(f, have)):
+            if p not in seen:
+                seen.add(p)
+                evaluated.add(p)
+                todo.append(p)
 
     hooks = sorted(f for f in have if f.startswith(HOOKS_DIR + "/"))
     settings = [f for f in sorted(have) if f == SETTINGS]
     return {"workflows": workflows, "execs": sorted(execs), "imports": sorted(imported),
-            "hooks": hooks, "settings": settings}
+            "evaluated": sorted(evaluated), "hooks": hooks, "settings": settings}
 
 
 def patterns() -> list[tuple[str, list[str]]]:
@@ -186,7 +242,8 @@ def covered(files: list[str], rules: list[tuple[str, list[str]]]) -> list[str]:
 
 def run(arm: str) -> int:
     s = surface()
-    files = sorted(set(s["workflows"] + s["execs"] + s["imports"] + s["hooks"] + s["settings"]))
+    files = sorted(set(s["workflows"] + s["execs"] + s["imports"] + s["evaluated"]
+                       + s["hooks"] + s["settings"]))
     rules = patterns()
 
     if arm in ("add-dir", "add-dir-unown"):
@@ -198,7 +255,7 @@ def run(arm: str) -> int:
 
     print(f"# arm {arm}: {len(rules)} pattern(s), {len(cov)} covered")
     print(f"# surface: {len(s['workflows'])} workflow(s), {len(s['execs'])} exec'd script(s), "
-          f"{len(s['imports'])} imported by them, "
+          f"{len(s['imports'])} imported by them, {len(s['evaluated'])} run by path, "
           f"{len(s['hooks'])} hook(s), {len(s['settings'])} settings file = {len(files)}")
     for path in files:
         print(f"#   {'COVERED' if path in cov else 'UNCOVERED'} {path}")

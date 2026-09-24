@@ -177,8 +177,11 @@ jobs:
       # the owner's review. The base's copy of the walk (restored above) reads
       # the pull request's CODEOWNERS and workflows; every job's surface, not
       # only the required ones, because a job becomes required in settings.
+      # `-I`: without it Python puts the script's own directory first on
+      # sys.path, and a `subprocess.py` the pull request adds beside it would
+      # run before the check.
       - name: Refuse a check script no CODEOWNERS pattern owns
-        run: python3 tools/audit/round6/D11/fix/codeowners_gap.py --check
+        run: python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check
 
       # GITHUB_TOKEN: the required-contexts class reads the live ruleset through
       # `gh api` -- the branch endpoint and the ruleset objects -- and reddens

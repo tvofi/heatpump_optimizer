@@ -76,6 +76,12 @@
 /.claude/workflows/policy_lint_mutants.mjs    @tvofi
 /.claude/workflows/render_md.mjs          @tvofi
 /.claude/workflows/rules_sync.mjs         @tvofi
+# The wave scripts a required job EVALUATES by path: `check-wave-script.mjs`
+# runs them, and `policy_lint.mjs` builds `web-fix-wave.js`'s VERDICT_RE with
+# `new Function` inside the corpus lint (#1515 review, round 1).
+/.claude/workflows/audit-find.js          @tvofi
+/.claude/workflows/audit-verify.js        @tvofi
+/.claude/workflows/web-fix-wave.js        @tvofi
 /.claude/workflows/vendor/                @tvofi
 # The audit tooling a required-check job executes -- including the two that
 # approve and push, which decide whether a pull request may land at all.
