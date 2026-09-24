@@ -45029,6 +45029,11 @@ R.check(
     f"got {_p8r_rain('in', 0.1)!r}",
 )
 R.check(
+    "a cm entity's 0.1 cm/h is planned and read as 1.0 mm/h",
+    _p8r_rain("cm", 0.1) == ([1.0] * 4, 1.0),
+    f"got {_p8r_rain('cm', 0.1)!r}",
+)
+R.check(
     "null control: a mm or unit-less entity's rain is its own number",
     _p8r_rain("mm", 0.1) == ([0.1] * 4, 0.1) and _p8r_rain(None, 0.1) == ([0.1] * 4, 0.1),
     f"mm {_p8r_rain('mm', 0.1)!r}, none {_p8r_rain(None, 0.1)!r}",
