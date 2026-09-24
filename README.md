@@ -162,7 +162,8 @@ flowchart LR
   Home Assistant price sensor such as Nord Pool exposing `raw_today` /
   `raw_tomorrow`
 - A weather integration with hourly forecasts (Met.no or similar)
-- `numpy` and `scipy`, installed automatically from the integration manifest
+- `numpy`, `scipy` and `threadpoolctl`, installed automatically from the
+  integration manifest
 
 Everything else — indoor and outdoor thermometers, tank probes, a power meter —
 is optional. The optimizer runs without them and gets steadily better with each
@@ -368,13 +369,13 @@ the entry immediately with shipped defaults you refine later in Options. Quick
 setup arrived in v6.6.5 — an install set up on an earlier version never saw
 the menu, and its entries are complete all the same.
 
-**4 · Temperatures.** Your target (21 °C), the band you allow around it, and the
+**3 · Temperatures.** Your target (21 °C), the band you allow around it, and the
 comfort temperatures for day (21 °C) and night (19.5 °C) with the hours the day
 runs (07:00–22:00). The width of the band is the single biggest lever you have:
 a wide one gives the optimizer room to shift heating into cheap hours, a narrow
 one keeps the house near the setpoint.
 
-**5 · How to describe your building.** This is a choice, not a step.
+**4 · How to describe your building.** This is a choice, not a step.
 
 - **Describe my building (recommended)** asks what your house is made of —
   structure, era, foundation, heated area, and what each floor is heated by —
@@ -393,7 +394,7 @@ and the power limits are on **Advanced settings → Thermal model (expert)**;
 buffer tank volume is on **Heating system and heat storage**; window area,
 orientation factor and SHGC are on **Building type and emitters**.
 
-**6 · Hot water.** Tank volume, setpoint and minimum, daily consumption, and the
+**5 · Hot water.** Tank volume, setpoint and minimum, daily consumption, and the
 demand time frames — the periods when hot water must be available (`06:00-08:30,
 17:00-22:00` by default). Outside them the tank is *meant* to cool down; that is
 where most of the savings come from. The frames can name different days
@@ -404,7 +405,7 @@ around the clock. Anti-legionella is on by default at 60 °C every 7 days; that
 temperature applies only during a cycle, so the rest of the week the tank is
 never charged above the limit you set.
 
-**7 · Weather sensitivity.** How much wind and rain raise your heat loss.
+**6 · Weather sensitivity.** How much wind and rain raise your heat loss.
 The defaults (3 % per m/s of wind, 15 % while raining) are a reasonable
 starting point for a detached house.
 

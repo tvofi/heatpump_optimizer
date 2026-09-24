@@ -89,6 +89,20 @@ def ecl110_topic_defaults() -> dict[str, str]:
     return {row.key: row.default for row in config_flow._OPTION_FIELDS if row.key in keys}
 
 
+def manifest_requirement_names() -> list[str]:
+    """Package names (PEP 508, stripped of version specifiers) that
+    ``manifest.json`` pins, in the order the manifest lists them.
+
+    #1537's fact: the manifest's own ``requirements`` list, which Home
+    Assistant installs automatically -- the set the README's Requirements
+    section claims to enumerate.
+    """
+    import json
+
+    manifest = json.loads((PKG / "manifest.json").read_text())
+    return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
+
+
 def entity_id_prefix_literals() -> dict[str, str]:
     """The object-id prefix token each platform pins in its ``entity_id`` f-string.
 
@@ -274,10 +288,32 @@ def check_entity_prefix() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Arm 4 -- README requirements claim vs manifest.json (D6-s1 / #1537)
+# ---------------------------------------------------------------------------
+
+def check_requirements_claim() -> None:
+    R.section("README requirements vs manifest.json (#1537)")
+    names = manifest_requirement_names()
+    # Anchor: the manifest still pins requirements at all, and README still
+    # has a Requirements section -- the absence of either side is itself red.
+    R.check("manifest.json still pins requirements (anchor)", bool(names), repr(names))
+    m = re.search(r"## Requirements\n(.*?)\n## ", README, re.S)
+    section = m.group(1) if m else ""
+    R.check("README still has a Requirements section (anchor)", bool(section))
+    undocumented = [n for n in names if n.lower() not in section.lower()]
+    R.check(
+        "every manifest requirement is named in README's Requirements section",
+        not undocumented,
+        repr(undocumented),
+    )
+
+
 def main() -> int:
     check_figures()
     check_ecl110_defaults()
     check_entity_prefix()
+    check_requirements_claim()
     return R.close("checks")
 
 

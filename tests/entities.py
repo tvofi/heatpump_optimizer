@@ -662,6 +662,51 @@ R.check(
     "those are entities, not fields on Away and holiday mode",
 )
 
+# #1535: the Quick start mermaid diagram numbers its screens, and the numbered
+# prose paragraphs below it must agree -- the "finish menu" branch inserts an
+# unnumbered-in-the-diagram step of its own as prose step 3, which pushed
+# every later screen's prose number one ahead of the diagram's own.
+_qs_section = readme.split("## Quick start", 1)[1].split("\n## ", 1)[0]
+_qs_diagram_re = re.compile(r'[\[{]"(\d+)\s*\xb7\s*([^"<]+?)(?:<br/>|")')
+_qs_prose_re = re.compile(r'^\*\*(\d+)\s*\xb7\s*([^*]+?)\.?\*\*', re.M)
+
+
+def _qs_normalize(label: str) -> str:
+    label = label.strip().rstrip(".?").lower()
+    label = re.sub(r"[^a-z0-9 ]", "", label)
+    return " ".join(label.split()[:3])
+
+
+_qs_diagram: dict[str, int] = {}
+for _m in _qs_diagram_re.finditer(_qs_section):
+    _qs_diagram.setdefault(_qs_normalize(_m.group(2)), int(_m.group(1)))
+_qs_prose: dict[str, int] = {}
+for _m in _qs_prose_re.finditer(_qs_section):
+    _qs_prose.setdefault(_qs_normalize(_m.group(2)), int(_m.group(1)))
+_qs_mismatches = [
+    (label, dnum, _qs_prose[label])
+    for label, dnum in _qs_diagram.items()
+    if label in _qs_prose and _qs_prose[label] != dnum
+]
+R.check(
+    "the Quick start prose step numbers agree with the diagram's",
+    not _qs_mismatches,
+    repr(_qs_mismatches),
+)
+# The label-normalizing match above is silent if a screen's wording diverges
+# enough between diagram and prose that the two never pair up at all (#1535's
+# own case: the diagram's "How do you want to describe your building" vs the
+# prose's "How to describe your building" share no 3-word prefix). Check that
+# pairing directly against the one heading this README always inserts with no
+# diagram counterpart (the finish-menu branch) rather than assume the fuzzy
+# match above caught everything.
+R.check(
+    "the diagram's 'how do you want to' step pairs with the prose's "
+    "'how to describe' step (#1535 label-wording gap)",
+    _qs_diagram.get("how do you") == _qs_prose.get("how to describe") == 4,
+    f"diagram={_qs_diagram.get('how do you')!r} prose={_qs_prose.get('how to describe')!r}",
+)
+
 # #937: the README sends the reader to the reference with "Every field and its
 # range is documented in docs/configuration.md", and round 4 measured 15 of
 # the 200 shipped options fields whose label occurred nowhere in any reader
@@ -7089,6 +7134,17 @@ R.check(
     != files["en"]["config"]["step"]["reauth_confirm"]["data_description"][
         "tibber_token"
     ],
+    "English copied into sv.json passes the key check and fails the user",
+)
+
+# #1534: the ECL110 MQTT QoS label was byte-identical English left in sv.json
+# (the key-identity check above passes on an untranslated copy the same way
+# the tibber_token case above does -- this is that same class of gap, named
+# by its own field).
+R.check(
+    "the ECL110 MQTT QoS label is actually translated in Swedish",
+    files["sv"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"]
+    != files["en"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"],
     "English copied into sv.json passes the key check and fails the user",
 )
 
@@ -22577,5 +22633,34 @@ R.check(
 )
 _mut_shutil.rmtree(_MUT_PROBE_DIR, ignore_errors=True)
 
+
+# #1536: a comment abbreviated a real identifier to a shorthand that occurs
+# nowhere in code (const.py's bare ``MIN_POWER``, optimizer.py's bare
+# ``min_power``) -- checked against the real, importable production symbols
+# so a rename of either symbol re-breaks this rather than a hand-typed
+# string silently going stale.
+_const_src = (ROOT / "const.py").read_text()
+_optimizer_src = (ROOT / "optimizer.py").read_text()
+R.check(
+    "const.py's power-entity comment names the real CONF_HEAT_PUMP_MIN_POWER, "
+    "not a bare MIN_POWER shorthand",
+    const.CONF_HEAT_PUMP_MIN_POWER == "heat_pump_min_power"
+    and "CONF_HEAT_PUMP_MIN_POWER" in _const_src
+    and not re.search(r"[^A-Za-z_]MIN_POWER[^A-Za-z_]", _const_src),
+    "a bare MIN_POWER in a comment names no real symbol",
+)
+R.check(
+    "optimizer.py names the real min_electrical_power attribute at all "
+    "(the symbol the comment should point readers at)",
+    "min_electrical_power" in _optimizer_src
+    and hasattr(optimizer_mod, "HeatPumpOptimizer"),
+    "the real attribute the comment should name",
+)
+R.check(
+    "and optimizer.py's baseline comment itself uses the real name",
+    "min_electrical_power * 24 h per day" in _optimizer_src
+    and not re.search(r"[^A-Za-z_.]min_power[^A-Za-z_]", _optimizer_src),
+    "a bare min_power in a comment names no real symbol",
+)
 
 sys.exit(R.close("ENTITY CHECKS"))
