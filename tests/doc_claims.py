@@ -5,7 +5,7 @@ The round-6 stale-prose class (CONDENSED.md section 6): a reader doc asserts a
 fact about shipped code that the code no longer makes, and the only
 doc-vs-code machinery is keyed to claims someone hand-enumerated -- so a newly
 written sentence escapes until a later round names it. This check derives BOTH
-sides for five claim shapes, and fails closed on a contradiction:
+sides for seven claim shapes, and fails closed on a contradiction:
 
   * generated-figure freshness    -- D5-01 #1389 (marginal-cop.svg predates the
     #928 resistive clamp)
@@ -13,6 +13,8 @@ sides for five claim shapes, and fails closed on a contradiction:
     topics that ship empty)
   * entity object-id prefix       -- D6-03 #1393 (docs say the prefix follows
     the entry name; the code pins a hard-coded literal)
+  * README requirements vs manifest.json -- D6-s1 #1537
+  * Quick start step numbering    -- D5-s1 #1535
   * quality_scale strict-typing census -- R8-D10-s1-01 #1545 (the yaml states
     qs_entry_param_bare=0 while annotations still name the bare ConfigEntry)
   * quality_scale exception-translation census -- R8-D10-s1-02 #1546 (the
@@ -96,6 +98,20 @@ def ecl110_topic_defaults() -> dict[str, str]:
         const.CONF_ECL110_STATE_TOPIC,
     )
     return {row.key: row.default for row in config_flow._OPTION_FIELDS if row.key in keys}
+
+
+def manifest_requirement_names() -> list[str]:
+    """Package names (PEP 508, stripped of version specifiers) that
+    ``manifest.json`` pins, in the order the manifest lists them.
+
+    #1537's fact: the manifest's own ``requirements`` list, which Home
+    Assistant installs automatically -- the set the README's Requirements
+    section claims to enumerate.
+    """
+    import json
+
+    manifest = json.loads((PKG / "manifest.json").read_text())
+    return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
 
 
 def entity_id_prefix_literals() -> dict[str, str]:
@@ -284,7 +300,152 @@ def check_entity_prefix() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Arms 4 and 5 -- quality_scale.yaml censuses (#1545, #1546)
+# Arm 4 -- README requirements claim vs manifest.json (D6-s1 / #1537)
+# ---------------------------------------------------------------------------
+
+def check_requirements_claim() -> None:
+    R.section("README requirements vs manifest.json (#1537)")
+    names = manifest_requirement_names()
+    # Anchor: the manifest still pins requirements at all, and README still
+    # has a Requirements section -- the absence of either side is itself red.
+    R.check("manifest.json still pins requirements (anchor)", bool(names), repr(names))
+    m = re.search(r"## Requirements\n(.*?)\n## ", README, re.S)
+    section = m.group(1) if m else ""
+    R.check("README still has a Requirements section (anchor)", bool(section))
+    undocumented = [n for n in names if n.lower() not in section.lower()]
+    R.check(
+        "every manifest requirement is named in README's Requirements section",
+        not undocumented,
+        repr(undocumented),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Arm 5 -- Quick start step numbering: distinct, and diagram agrees with
+# prose (D5-s1 / #1535, round 2)
+# ---------------------------------------------------------------------------
+
+# #1535 round 1 shifted four prose headings down by one to agree with the
+# diagram's own numbered nodes, without noticing that the diagram's *menu*
+# node (unnumbered by construction, since it has no matching prose-side
+# label the finder's harness compares against) collided with the shifted
+# "Temperatures" heading -- both read "3 ·" at that PR's head. The finder's
+# own harness (s1_stepnum.py) cannot see this: it only compares a label that
+# is numbered on BOTH sides, and "the finish menu" has no diagram-side
+# numbered counterpart to compare against by construction. This arm adds the
+# property that harness never checked: every prose heading number in the
+# Quick start section is used exactly once.
+_QS_DIAGRAM_NODE_RE = re.compile(r'[\[{]"(\d+)\s*\xb7\s*([^"<]+?)(?:<br/>|")')
+_QS_PROSE_HEADING_RE = re.compile(r'^\*\*(\d+)\s*\xb7\s*([^*]+?)\.?\*\*', re.M)
+
+
+def _qs_normalize(label: str) -> str:
+    label = label.strip().rstrip(".?").lower()
+    label = re.sub(r"[^a-z0-9 ]", "", label)
+    return " ".join(label.split()[:3])
+
+
+def _qs_extract(text: str) -> tuple[dict[str, int], dict[str, int], list[int]]:
+    """(diagram label->number, prose label->number, prose numbers in order).
+
+    The third element carries every prose heading's number, duplicates and
+    all -- the first two dicts collapse repeats under `setdefault`, which is
+    exactly the shape that hid #1535 round 1's duplicate "3 ·": two distinct
+    labels sharing a number look like one entry per dict, so uniqueness has
+    to be checked over the list, not the dicts.
+    """
+    section = text.split("## Quick start", 1)[1]
+    section = section.split("\n## ", 1)[0]
+    diagram: dict[str, int] = {}
+    for m in _QS_DIAGRAM_NODE_RE.finditer(section):
+        diagram.setdefault(_qs_normalize(m.group(2)), int(m.group(1)))
+    prose: dict[str, int] = {}
+    prose_numbers: list[int] = []
+    for m in _QS_PROSE_HEADING_RE.finditer(section):
+        num = int(m.group(1))
+        prose.setdefault(_qs_normalize(m.group(2)), num)
+        prose_numbers.append(num)
+    return diagram, prose, prose_numbers
+
+
+def _qs_duplicates(numbers: list[int]) -> list[int]:
+    seen: set[int] = set()
+    dupes: list[int] = []
+    for n in numbers:
+        if n in seen and n not in dupes:
+            dupes.append(n)
+        seen.add(n)
+    return dupes
+
+
+def check_quickstart_numbering() -> None:
+    R.section("Quick start step numbering is distinct and diagram-agreed (#1535)")
+    diagram, prose, prose_numbers = _qs_extract(README)
+    # Anchor: the section still exists and still has several numbered
+    # headings on both sides -- the absence of the claim's subject (an empty
+    # section, or a Quick start rewritten with no numbered steps at all)
+    # would otherwise read as a vacuous pass.
+    R.check(
+        "the Quick start section still has 5+ numbered prose headings and "
+        "5+ numbered diagram nodes (anchor)",
+        len(prose_numbers) >= 5 and len(diagram) >= 5,
+        f"prose={prose_numbers!r} diagram={diagram!r}",
+    )
+    mismatches = [
+        (label, dnum, prose[label])
+        for label, dnum in diagram.items()
+        if label in prose and prose[label] != dnum
+    ]
+    R.check(
+        "every label numbered in both the diagram and the prose agrees on "
+        "its number",
+        not mismatches,
+        repr(mismatches),
+    )
+    dupes = _qs_duplicates(prose_numbers)
+    R.check(
+        "every Quick start prose heading number is used exactly once (the "
+        "property #1535 round 1's own fix broke: two headings both read "
+        "'3 \xb7' at that PR's head)",
+        not dupes,
+        f"duplicated number(s) {dupes!r} in {prose_numbers!r}",
+    )
+    # Null control: the duplicate-check must actually fire on the shape it
+    # exists to catch, not just on the (already-fixed) real README. Rebuild
+    # round 1's own regression -- the untouched "finish menu" heading at 3,
+    # colliding with a "Temperatures" heading shifted down to 3 as well --
+    # as a synthetic section, and confirm the duplicate is detected there.
+    _bad_section = (
+        "## Quick start\n\n"
+        "**1 \xb7 Basics.** x\n\n"
+        "**2 \xb7 Optional sensors.** x\n\n"
+        "**3 \xb7 The finish menu: Quick setup, Continue setup or Finish "
+        "setup now.** x\n\n"
+        "**3 \xb7 Temperatures.** x\n\n"
+        "## Entities\n"
+    )
+    _bad_diagram, _bad_prose, _bad_numbers = _qs_extract(_bad_section)
+    R.check(
+        "the duplicate-number check fires on round 1's own regression "
+        "(null control)",
+        _qs_duplicates(_bad_numbers) == [3],
+        f"got {_qs_duplicates(_bad_numbers)!r} from {_bad_numbers!r}",
+    )
+    # And the same synthetic section is clean once renumbered the way this
+    # PR's round 2 fix renumbers the real README (menu keeps 3, the shifted
+    # heading moves to 4 instead of colliding) -- the check must not flag a
+    # section that is actually fine.
+    _good_section = _bad_section.replace("**3 \xb7 Temperatures.**", "**4 \xb7 Temperatures.**")
+    _, _, _good_numbers = _qs_extract(_good_section)
+    R.check(
+        "and does not fire on the corrected shape (null control, other arm)",
+        _qs_duplicates(_good_numbers) == [],
+        f"got {_qs_duplicates(_good_numbers)!r} from {_good_numbers!r}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Arms 6 and 7 -- quality_scale.yaml censuses (#1545, #1546)
 # ---------------------------------------------------------------------------
 
 QUALITY_SCALE = (PKG / "quality_scale.yaml").read_text()
@@ -467,6 +628,8 @@ def main() -> int:
     check_figures()
     check_ecl110_defaults()
     check_entity_prefix()
+    check_requirements_claim()
+    check_quickstart_numbering()
     check_quality_scale()
     return R.close("checks")
 
