@@ -1320,10 +1320,6 @@ def _entity_price(hass: HomeAssistant, entity_id: Any) -> float | None:
     return None if state is None else price_per_kwh(state.state, state_unit(state))
 
 
-# The slots a price is read from, each with its own ``price_unit_*`` notice.
-_PRICE_ENTITY_SLOTS = (CONF_PRICE_ENTITY, CONF_PV_EXPORT_PRICE_ENTITY, CONF_GRID_FEE_ENTITY)
-
-
 def _audit_price_units(hass: HomeAssistant, config: dict[str, Any]) -> None:
     """Name a price unit the reader cannot parse, once per slot (#1513).
 
@@ -1332,8 +1328,11 @@ def _audit_price_units(hass: HomeAssistant, config: dict[str, Any]) -> None:
     but no longer silently. The notice clears when the unit parses, or the
     slot is emptied.
     """
-    for slot in _PRICE_ENTITY_SLOTS:
-        entity_id = config.get(slot)
+    for slot, entity_id in (
+        ("price", config.get(CONF_PRICE_ENTITY)),
+        ("export", config.get(CONF_PV_EXPORT_PRICE_ENTITY)),
+        ("grid_fee", config.get(CONF_GRID_FEE_ENTITY)),
+    ):
         state = hass.states.get(entity_id) if entity_id else None
         unit = state_unit(state)
         if state is None or normalize_price_per_kwh(1.0, unit) is not None:
@@ -8891,12 +8890,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _pv_export_price(self) -> float:
         """Export compensation, preferring a live entity over the static value."""
         ctx = getattr(self, "_ctx", self)
-        live = _entity_price(self.hass, ctx._config.get(CONF_PV_EXPORT_PRICE_ENTITY))
+        entity_id = ctx._config.get(CONF_PV_EXPORT_PRICE_ENTITY)
+        live = _entity_price(self.hass, entity_id) if entity_id else None
         if live is not None:
             return live
-        return _as_float(
-            ctx._config.get(CONF_PV_EXPORT_PRICE), DEFAULT_PV_EXPORT_PRICE
-        )
+        return _as_float(ctx._config.get(CONF_PV_EXPORT_PRICE), DEFAULT_PV_EXPORT_PRICE)
     def _pv_measured_production(self, config: pv_model.PVConfig) -> float | None:
         """Live production in kW from the configured entity, if readable."""
         entity_id = config.production_entity
