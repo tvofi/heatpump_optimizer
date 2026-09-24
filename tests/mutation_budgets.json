@@ -4,7 +4,7 @@
     "changed": 0.2,
     "full": 0.3
   },
-  "unpinned_sites": 3756,
+  "unpinned_sites": 3743,
   "last_measured": {
     "changed": {
       "survivors": 2,
@@ -124,6 +124,16 @@
       "verdict": "equivalent",
       "old": "            if not np.any(external_heat_kw > 0.0):",
       "reason": "An all-zero free-heat forecast plans exactly as none: the guard only normalises zeros to None, and every downstream use adds the per-step value. Measured with the #1499 branch's probe (optimize() on the winter_cold / winter_typical profile, 12 h, space-only and with DHW): with the guard switched off, external_heat_kw=zeros and external_heat_kw=None give byte-identical power, DHW and room-temperature schedules and objective (sha1 prefixes 7a584e785045f9d5 and 31317c75945a2724 in both arms), while a 1 kW forecast moves both (c5b5e420dec7c4a8, 0204b401a95de984) -- the probe's null control that it can see free heat at all. Measured at 6c86f6ae, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:1380 GUARD_OFF": {
+      "verdict": "equivalent",
+      "old": "        if unit:",
+      "reason": "_wind_speed_scale_of's `if unit:` guards only a DEBUG log line for an unknown wind unit; both arms then return 1.0, so the value is identical and only a log record differs. Measured: tests/features.py rc=0 at 25497c4b with the mutant applied (R8-P8 round 3)."
+    },
+    "custom_components/heatpump_optimizer/repairs.py:88 GUARD_OFF": {
+      "verdict": "equivalent",
+      "old": "    if issue_id == ISSUE_SPACE:",
+      "reason": "async_create_fix_flow's ISSUE_SPACE arm returns ConfirmRepairFlow(), and with the guard off control falls through to the final `return ConfirmRepairFlow()` -- a fresh instance of the same class either way, so no caller can tell the two apart. Measured: tests/features.py rc=0 at 25497c4b with the mutant applied (R8-P8 round 3, a survivor CI's changed-scope lane drew at 1a8cbcce)."
     }
   },
   "killed_by": {
@@ -431,6 +441,71 @@
       "killed_by": "tests/features.py",
       "old": "    return rows",
       "reason": "#1513 (R8-P8) round 2: RETURN_DEL on the inlet reader or the weather temperature_unit conversion. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 4 failed, among them `the fabricated fallback forecast exists and is stale from birth`; `a degF weather entity's forecast is planned in degC (50 degF is 10 degC)`. Measured at 64cdb76b, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:1382 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "        return 1.0",
+      "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 8 failed, among them `the fabricated fallback forecast exists and is stale from birth`; `a successful fetch clears the outage and the staleness`. Measured at 25497c4b, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/const.py:1184 CLAMP_DROP": {
+      "killed_by": "tests/features.py",
+      "old": "        volume_m3 = max(float(volume_litres), 1e-6) / 1000.0",
+      "reason": "#1513 (R8-P8) round 3, a survivor CI's changed-scope mutation lane drew at 1a8cbcce. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `a zero or negative tank volume still has a real, positive surface area`. Measured at 25497c4b, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:1379 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if scale is None:",
+      "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 8 failed, among them `the fabricated fallback forecast exists and is stale from birth`; `a successful fetch clears the outage and the staleness`. Measured at 25497c4b, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:1383 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "    return scale",
+      "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 with no FAIL line: the mutant raises `TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'`. Measured at 25497c4b, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:1400 BOOLOP": {
+      "killed_by": "tests/features.py",
+      "old": "    if not to_c and wind == 1.0:",
+      "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 4 failed, among them `a degF weather entity's forecast is planned in degC (50 degF is 10 degC)`; `the fabricated trajectory of a failed first fetch is converted too`. Measured at 25497c4b, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:1400 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if not to_c and wind == 1.0:",
+      "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `the rows are the same object when nothing converts (goldens cannot move)`. Measured at 25497c4b, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:1406 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "        if value is not None:",
+      "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 2 failed, among them `a degF weather entity's forecast is planned in degC (50 degF is 10 degC)`; `the fabricated trajectory of a failed first fetch is converted too`. Measured at 25497c4b, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:1433 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "    return [r if r[\"temperature\"] is not None else {**r, \"temperature\": 5.0} for r in rows]",
+      "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 with no FAIL line: the mutant raises `TypeError: object of type 'NoneType' has no len()`. Measured at 25497c4b, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:6057 CLAMP_DROP": {
+      "killed_by": "tests/features.py",
+      "old": "            gust = max(0.0, _as_float(entry.get(\"wind_speed\"), 0.0))",
+      "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `and its wind is scaled once, not twice (3.6 km/h is 1 m/s)`. Measured at 25497c4b, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:8329 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "        if self._curve_day and day != self._curve_day:",
+      "reason": "#1513 (R8-P8) round 3, a survivor CI's changed-scope mutation lane drew at 1a8cbcce. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `a new day folds the previous day's worst margin into the curve learner once`. Measured at 25497c4b, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:8329 BOOLOP": {
+      "killed_by": "tests/features.py",
+      "old": "        if self._curve_day and day != self._curve_day:",
+      "reason": "#1513 (R8-P8) round 3, a survivor CI's changed-scope mutation lane drew at 1a8cbcce. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `a new day folds the previous day's worst margin into the curve learner once`. Measured at 25497c4b, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:10221 BOOLOP": {
+      "killed_by": "tests/features.py",
+      "old": "                self._commanded_power() > 0.05 and reported >= hz_min",
+      "reason": "#1513 (R8-P8) round 3, a survivor CI's changed-scope mutation lane drew at 1a8cbcce. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `an idle plan or a pump below its running range is not watched`. Measured at 25497c4b, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/inputs.py:772 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "        return reading.value",
+      "reason": "#1513 (R8-P8) round 3, a survivor CI's changed-scope mutation lane drew at 1a8cbcce. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `null control: value() returns a fresh reading's number`. Measured at 25497c4b, 2026-09-24."
     }
   },
   "reason": "The ratchet is the exact-count `unpinned_sites`: the deterministic inventory enumerates every candidate the six operators generate over the production package, and a site leaves that count only by carrying a disposition -- a `killed_by` driver, or a `survivor_triage` verdict (equivalent/gap) pinned to the exact `old` line. This record was re-derived at 467d3d9c on 2026-09-23 and moved 3785 -> 3781. The inventory stands at 3816 candidates, because the round-6 class fixes added 22 sites and removed 4 against the 3798 the previous record was written on. All 22 new sites now carry a disposition: 10 are killed by a recorded driver -- 6 by tests/finite_boundary.py (store.py:52, store.py:54, store.py:59, store.py:60, store.py:62, store.py:66; the store-load boundary of #1425) and 4 by tests/features.py (coordinator.py:10455, the adoption gate of #1410/#1437; sysid.py:585, sysid.py:723, sysid.py:740) -- 3 are triaged equivalent (store.py:50, a void mutant whose two arms are the same `return value`; sysid.py:726 and sysid.py:739, clamps whose `max` cannot select its second arm), and 9 are recorded as gap triage (store.py:64 and eight sysid.py sites no driver in the recorded net detects behaviourally). One property the 12 triage entries share, stated here so no reason hides it: tests/entities.py's #1217 mark-staleness self-check reddens when any `survivor_triage`-marked line is mutated, because the mark's pin then names a mutant the tree no longer generates. That is a property of the RECORD, not a behavioural kill -- the instrument's own D3-07 `equivalent` marks redden identically -- so these sites are survivors here and not `killed_by` entries, and a `killed_by` mark would not reproduce (entities.py reads `survivor_triage` only; moving a mark there yields entities.py rc=0, measured). The `gap` verdict is used here for the first time in this file's history: it records a MEASURED survivor, it is the honest disposition for one, and it does NOT move the fraction -- `survivor_gaps` counts every survivor no triage has called equivalent, so the sampled cap still reads these as gaps. Both caps and both `last_measured` blocks are unchanged. Do not raise `unpinned_sites` by hand: the exact count is re-derived every run by tests/mutation_table.py, which refuses growth and only records down via --record (and --record cannot fire on a branch whose diff puts no production file in scope, so this file was edited deliberately, with the measurement in the commit message). Re-derived again on the round-7 D7-01 fix for #1459: the fix adds a SysIdResult field and two module functions to sysid.py ahead of fourteen recorded sites, so their FILE:LINE keys were re-pointed to the same line text (no verdict changed), and the fix's five new candidate sites take dispositions -- four killed by tests/features.py and one recorded as a measured `gap` (sysid.py:834, a defensive non-finite guard no recorded net reaches). `unpinned_sites` is unchanged: the fourteen re-keys keep the dispositions they had, and each of the five new sites carries one. Re-derived on the round-7 optimizer fix's merge of origin/main (cdf82daa) into fix/r7-optimizer-seeds (d674f063), 2026-09-23: the two sides' dispositions are disjoint -- the branch moves optimizer.py alone, main moves sensor.py, coordinator.py, tariff.py, thermal_model.py and their neighbours -- so the merged ledger is their union, the inventory stands at 3818 candidates, and the count re-records down 3771 -> 3769 (main's own record) as the branch's three optimizer.py dispositions land on a tree the whole-tree inventory also enumerates."
