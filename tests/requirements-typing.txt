@@ -6,8 +6,10 @@
 # homeassistant-stubs pin disagrees with the recorded pair, or when a
 # third-party name is missing from it.
 #
-# Linux only in practice: two packages (lru-dict, PyRIC) have no 3.13 wheel
-# and build from source under tests/requirements-build.txt.
+# Linux only. It is resolved for linux x86_64, so on macOS bleak's pyobjc
+# dependencies are not in it and hash-checking mode refuses the install. Two
+# packages (lru-dict, PyRIC) have no 3.13 wheel and build from source under
+# tests/requirements-build.txt.
 #
 # Regenerate after the pair moves in tests/typing_budgets.json:
 #   python3 tests/typing_ruler.py --print-requirements \
