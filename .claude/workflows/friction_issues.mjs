@@ -922,10 +922,18 @@ export function selfTest() {
   st(decide({ existing: { number: 41, state: 'OPEN' }, currentBody: body, body }), 'no-op', 'an existing issue already carrying this exact measurement: NO write')
   st(decide({ existing: { number: 41, state: 'OPEN' }, currentBody: body + 'x', body }), 'edit', 'a measurement that moved within the window: edit the one issue in place')
   st(decide({ existing: { number: 41, state: 'OPEN' }, currentBody: null, body }), 'refuse', 'an existing issue whose body cannot be read: refuse, never a second file')
-  st(decide({ existing: { number: 41, state: 'CLOSED' }, currentBody: body, body }), 'create',
-    'a CLOSED issue carrying this key is not refreshed: the disposed key reopens as a new issue (#1468)')
-  st(decide({ existing: { number: 41, state: 'CLOSED' }, currentBody: body + 'x', body }), 'create',
-    'and a moved measurement over a CLOSED issue still creates rather than editing the dead issue')
+  const CLOSED = { number: 41, state: 'CLOSED' }
+  const at = (n, since = 'v9.9.9') => bodyFor({ key: 'blocked', kind: 'verdict class', count: n, threshold: 3, line: LINE('blocked', 'verdict class', n).trim() }, since)
+  st(decide({ existing: CLOSED, currentBody: at(4, 'v9.9.8'), body }), 'create',
+    'a CLOSED issue from an earlier window is not refreshed: the disposed key reopens as a new issue (#1468)')
+  st(decide({ existing: CLOSED, currentBody: at(3), body }), 'create',
+    'and a count that GREW past the closed issue within the window is a new occurrence: file it')
+  st(decide({ existing: CLOSED, currentBody: body, body }), 'no-op',
+    'a CLOSED issue carrying this window at this count is the one the seat disposed: no second file (#1501, #1502)')
+  st(decide({ existing: CLOSED, currentBody: at(5), body }), 'no-op',
+    'nor at a count that fell within the window: nothing recurred that the seat did not dispose')
+  st(decide({ existing: CLOSED, currentBody: 'no measurement here', body }), 'create',
+    'a CLOSED body naming no window or count proves nothing disposed: file')
 
   // The body is the idempotence contract: byte-identical for the same
   // measurement, different only when the measurement moved. The entries carry
