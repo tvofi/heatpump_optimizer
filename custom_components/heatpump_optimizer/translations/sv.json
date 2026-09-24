@@ -849,7 +849,7 @@
           "ecl110_displace_set_topic": "Topic för förskjutningskommando",
           "ecl110_command_topic": "Äldre JSON-kommandotopic",
           "ecl110_state_topic": "Statustopic",
-          "ecl110_mqtt_qos": "MQTT quality of service",
+          "ecl110_mqtt_qos": "MQTT-kvalitetsnivå",
           "ecl110_mqtt_retain": "Behåll MQTT-meddelanden",
           "ecl110_displace_min": "Största nedåtförskjutning",
           "ecl110_displace_max": "Största uppåtförskjutning",
