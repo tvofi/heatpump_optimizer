@@ -719,10 +719,15 @@ jobs:
       # the installed drivers and no write grant: the drivers are the pull
       # request's code, so they never run beside a token that can push. Only
       # a ratchet refusal ("N unpinned site(s) against M") is measured -- a
-      # breached survivor cap is a finding, not a missing pin. The PROGRAM is
-      # the base's copy of mutation_table.py, so a pull request that edits the
-      # tool cannot write its own kills; a base without `--pin-killed` reports
-      # that rather than measuring with the head's.
+      # breached survivor cap is a finding, not a missing pin. The measuring
+      # PROGRAM is the base's copy of mutation_table.py, so a pull request that
+      # edits the tool cannot change how its own kills are measured; the status
+      # and the apply step are this head's code, the trust every autofix job
+      # already extends. The copy is kept out of the worker overlay
+      # (`.git/info/exclude`): an untracked script there reddens entities.py's
+      # closure checks at baseline and no kill could ever be measured (#1599's
+      # review). The status is `measurement()`'s, read from the program's own
+      # summary line, so a run that did not measure reddens the job.
       - name: Measure pins for the sites this diff added unpinned
         id: pins
         if: >-
@@ -731,34 +736,39 @@ jobs:
           && github.event.pull_request.head.repo.full_name == github.repository
         timeout-minutes: 60
         shell: bash
+        env:
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           set -uo pipefail
           out="$RUNNER_TEMP/mutation-pins"
           mkdir -p "$out"
-          if ! grep -qE '^MUTATION TABLE REFUSED -- [0-9]+ unpinned site\(s\) against' \
-               "$RUNNER_TEMP/mutation-table.txt"; then
-            echo skip-not-unpinned > "$out/status"; exit 0
-          fi
-          if ! git show origin/main:tests/mutation_table.py > tests/_mutation_table_base.py \
-             || ! grep -q -- '--pin-killed' tests/_mutation_table_base.py; then
-            rm -f tests/_mutation_table_base.py
-            echo skip-no-base-program > "$out/status"; exit 0
-          fi
-          # This checkout is the merge ref, so the ledger is carried as the
-          # entries the run ADDED, never as the file: the file here holds
-          # main's ledger too, and the push goes to the pull request's head.
+          printf '%s\n' "$PR_HEAD" > "$out/head"
           cp tests/mutation_budgets.json "$RUNNER_TEMP/ledger-before.json"
-          python3 tests/_mutation_table_base.py --pin-killed --base origin/main --jobs 3 \
-            | tee "$out/pins.txt"
+          rm -f "$RUNNER_TEMP/pin-run.txt"
+          if grep -qE '^MUTATION TABLE REFUSED -- [0-9]+ unpinned site\(s\) against' \
+               "$RUNNER_TEMP/mutation-table.txt" \
+             && git show origin/main:tests/mutation_table.py > tests/_mutation_table_base.py \
+             && grep -q -- '--pin-killed' tests/_mutation_table_base.py; then
+            echo tests/_mutation_table_base.py >> .git/info/exclude
+            python3 tests/_mutation_table_base.py --pin-killed --base origin/main --jobs 3 \
+              2>&1 | tee "$RUNNER_TEMP/pin-run.txt"
+          fi
           rm -f tests/_mutation_table_base.py
-          python3 - "$RUNNER_TEMP/ledger-before.json" tests/mutation_budgets.json "$out" <<'PY'
+          python3 - "$RUNNER_TEMP" "$out" <<'PY'
           import json, sys
-          before = json.load(open(sys.argv[1])).get("killed_by", {})
-          after = json.load(open(sys.argv[2])).get("killed_by", {})
-          added = {k: v for k, v in after.items() if before.get(k) != v}
-          json.dump(added, open(f"{sys.argv[3]}/pins.json", "w"), indent=2)
-          open(f"{sys.argv[3]}/status", "w").write(
-              "measured\n" if added else "skip-nothing-killed\n")
+          from pathlib import Path
+          sys.path.insert(0, "tests")
+          import mutation_table
+          tmp, out = Path(sys.argv[1]), Path(sys.argv[2])
+          run = tmp / "pin-run.txt"
+          status, added = mutation_table.measurement(
+              (tmp / "mutation-table.txt").read_text(),
+              run.read_text() if run.exists() else None,
+              json.loads((tmp / "ledger-before.json").read_text()),
+              json.loads(mutation_table.BUDGETS.read_text()))
+          (out / "pins.json").write_text(json.dumps(added, indent=2))
+          (out / "status").write_text(status + "\n")
+          print(f"measure: {status}, {len(added)} anchor(s)")
           PY
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -1926,8 +1936,10 @@ jobs:
           if not allowed:
               status = "skip-not-allowed"
           else:
-              import mutation_table
-              status = mutation_table.apply_pins(os.environ["PINS"])
+              import subprocess, mutation_table
+              head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
+                                    text=True).stdout.strip()
+              status = mutation_table.apply_pins(os.environ["PINS"], head)
           print(f"AUTOFIX: {status}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"status={status}\n")

@@ -786,14 +786,46 @@ def new_unpinned(unpinned: list[dict], base: list[dict]) -> list[dict]:
     return [s for s in unpinned if s["anchor"] not in was]
 
 
-def apply_pins(pins_dir: str) -> str:
+UNPINNED_REFUSAL = re.compile(
+    r"^MUTATION TABLE REFUSED -- \d+ unpinned site\(s\) against", re.M)
+PIN_SUMMARY = re.compile(r"^PIN KILLED: (\d+) pinned, \d+ left unpinned", re.M)
+
+
+def measurement(table: str, run: str | None, before: dict,
+                after: dict) -> tuple[str, dict]:
+    """The status and `killed_by` entries `mutation`'s measure step uploads.
+
+    Only a ratchet refusal is measured (`table` is the lane's output). The
+    status comes from the base program's OWN summary line, never from the
+    ledger diff alone: a red baseline (INCONCLUSIVE, rc 0), a refusal or a
+    crash prints no `PIN KILLED:` line and changes nothing, which a diff
+    would read as "every site survived" -- the #523 class, measured by the
+    #1599 review. `run` is None when the base had no `--pin-killed`.
+    """
+    if not UNPINNED_REFUSAL.search(table):
+        return "skip-not-unpinned", {}
+    if run is None:
+        return "skip-no-base-program", {}
+    if "PIN KILLED: nothing to pin" in run:
+        return "skip-nothing-drivable", {}
+    summary = PIN_SUMMARY.search(run)
+    old = before.get("killed_by", {})
+    added = {k: v for k, v in after.get("killed_by", {}).items() if old.get(k) != v}
+    if summary is None or (int(summary.group(1)) > 0) != bool(added):
+        return "skip-measure-failed", {}
+    return ("measured" if added else "skip-nothing-killed"), added
+
+
+def apply_pins(pins_dir: str, head: str) -> str:
     """Merge the `killed_by` entries `mutation` measured into this ledger.
 
     `mutation-autofix`'s apply step (tests.yml). The measurement ran on the
-    merge ref, so its entries are re-checked here against THIS tree's
-    inventory -- same anchor, same `old` text, not already disposed -- and
-    only those are written. The status is the job's summary line;
-    `closure.AUTOFIX_QUIET` decides which ones owe a human nothing.
+    merge ref of one pull-request head, so a checkout at any other head is
+    refused: a push since may have removed the check that killed. The
+    entries are then re-checked against THIS tree's inventory -- same
+    anchor, same `old` text, not already disposed -- and only those are
+    written. The status is the job's summary line; `closure.AUTOFIX_QUIET`
+    decides which ones owe a human nothing.
     """
     d = Path(pins_dir)
     try:
@@ -804,8 +836,11 @@ def apply_pins(pins_dir: str) -> str:
         return status or "skip-no-measurement"
     try:
         pins = json.loads((d / "pins.json").read_text())
+        measured_at = (d / "head").read_text().strip()
     except (OSError, ValueError):
         return "skip-no-measurement"
+    if measured_at != head:
+        return "skip-head-moved"
     budgets = json.loads(BUDGETS.read_text())
     sites = inventory()
     by_anchor = {s["anchor"]: s for s in sites}

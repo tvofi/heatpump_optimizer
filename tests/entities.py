@@ -23888,43 +23888,139 @@ R.check(
 
 # `mutation-autofix` applies what `mutation` measured on the MERGE ref, so an
 # entry lands only where THIS tree has the same anchor and `old` text and no
-# disposition yet; a second apply of the same pins changes nothing. Each arm
-# is a status `closure.AUTOFIX_QUIET` grades, so a wrong one is a wrong tick.
+# disposition yet; a second apply of the same pins changes nothing, and a
+# measurement of another head is refused. Each arm is a status
+# `closure.AUTOFIX_QUIET` grades, so a wrong one is a wrong tick.
 _AP_DIR = Path(_tempfile.mkdtemp(prefix="hpo-apply-pins-"))
 _AP_SAVED = (_mut.BUDGETS, _mut.inventory)
 _ap_b = dict(_pin_b, kind="GUARD_OFF", new="    if False:", file="f.py", line=4)
+_ap_c = dict(_ap_b, anchor="a.py:g GUARD_OFF cccc", old="    if c:", file="a.py", line=9)
 try:
     (_AP_DIR / "ledger.json").write_text(_AP_SAVED[0].read_text())
     _mut.BUDGETS = _AP_DIR / "ledger.json"
-    _mut.inventory = lambda *_a: [_ap_b]
+    _mut.inventory = lambda *_a: [_ap_b, _ap_c]
     _ap_pins = _AP_DIR / "pins"
     _ap_pins.mkdir()
-    _AP_GOT = [_mut.apply_pins(str(_ap_pins))]
+    _AP_GOT = [_mut.apply_pins(str(_ap_pins), "H1")]
     for _ap_status in ("skip-nothing-killed", "skip-no-base-program"):
         (_ap_pins / "status").write_text(_ap_status + "\n")
-        _AP_GOT.append(_mut.apply_pins(str(_ap_pins)))
+        _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H1"))
     (_ap_pins / "status").write_text("measured\n")
+    (_ap_pins / "pins.json").write_text("{not json")
+    (_ap_pins / "head").write_text("H1\n")
+    _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H1"))
     (_ap_pins / "pins.json").write_text(json.dumps({
         _ap_b["anchor"]: {"killed_by": "tests/x.py", "old": "    if STALE:"},
+        _ap_c["anchor"]: {"old": "    if c:", "reason": "no killed_by"},
         "gone.py:h GUARD_OFF cccc": {"killed_by": "tests/x.py", "old": "x"}}))
-    _AP_GOT.append(_mut.apply_pins(str(_ap_pins)))
+    _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H1"))
+    # `a.py` sorts before every ledger key, so only `normalize` puts it in order.
     (_ap_pins / "pins.json").write_text(json.dumps({
+        _ap_c["anchor"]: {"killed_by": "tests/y.py", "old": "    if c:",
+                          "reason": "measured"},
         _ap_b["anchor"]: {"killed_by": "tests/x.py", "old": "    if b:",
                           "reason": "measured"}}))
-    _AP_GOT += [_mut.apply_pins(str(_ap_pins)), _mut.apply_pins(str(_ap_pins)),
-                json.loads(_mut.BUDGETS.read_text()).get("killed_by", {})
-                .get(_ap_b["anchor"], {}).get("killed_by")]
+    _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H2"))
+    _ap_before = _mut.BUDGETS.read_text()
+    _AP_GOT += [_mut.BUDGETS.read_text() == _ap_before,
+                _mut.apply_pins(str(_ap_pins), "H1"), _mut.apply_pins(str(_ap_pins), "H1")]
+    _ap_kb = json.loads(_mut.BUDGETS.read_text()).get("killed_by", {})
+    _AP_GOT += [_ap_kb.get(_ap_b["anchor"], {}).get("killed_by"),
+                _ap_kb.get(_ap_c["anchor"], {}).get("killed_by"),
+                list(_ap_kb) == sorted(_ap_kb)]
 except Exception as _ap_exc:  # noqa: BLE001 -- one red check, never a partial run
     _AP_GOT = [f"{type(_ap_exc).__name__}: {_ap_exc}"]
 finally:
     _mut.BUDGETS, _mut.inventory = _AP_SAVED
     _mut_shutil.rmtree(_AP_DIR, ignore_errors=True)
 R.check(
-    "mutation-autofix applies only a measured pin whose anchor and text this tree still has",
+    "mutation-autofix applies only a measured pin whose anchor, text and head this tree still has",
     _AP_GOT == ["skip-no-measurement", "skip-nothing-killed", "skip-no-base-program",
-                "skip-unchanged",
-                "changed", "skip-unchanged", "tests/x.py"],
-    f"(no status, two passed-through statuses, stale+gone, fresh, again, written) -> {_AP_GOT}",
+                "skip-no-measurement", "skip-unchanged", "skip-head-moved", True,
+                "changed", "skip-unchanged", "tests/x.py", "tests/y.py", True],
+    "(no status, two passed-through statuses, unreadable pins, stale+no killed_by+gone, "
+    f"other head, untouched, fresh, again, written x2, sorted) -> {_AP_GOT}",
+)
+
+# The measure step's status is the BASE program's own summary line, never the
+# ledger diff alone: a red baseline prints INCONCLUSIVE with rc 0 and pins
+# nothing, which a diff reads as "every site survived" and grades green -- the
+# #523 class, measured on this job by the #1599 review.
+_MS_REF = "MUTATION TABLE REFUSED -- 2 unpinned site(s) against abc at the ratchet base\n"
+_MS_KB = {"a": {"killed_by": "tests/x.py", "old": "o"}}
+_MS_GOT = [
+    _mut.measurement("MUTATION TABLE REFUSED -- 1 mutant(s) survived\n", "", {}, {}),
+    _mut.measurement(_MS_REF, None, {}, {}),
+    _mut.measurement(_MS_REF, "PIN KILLED: nothing to pin\n", {}, {}),
+    _mut.measurement(_MS_REF, "INCONCLUSIVE: baseline red\n", {}, {}),
+    _mut.measurement(_MS_REF, "PIN KILLED: 0 pinned, 2 left unpinned\n", {}, {}),
+    _mut.measurement(_MS_REF, "PIN KILLED: 1 pinned, 1 left unpinned\n", {},
+                     {"killed_by": _MS_KB}),
+    _mut.measurement(_MS_REF, "PIN KILLED: 1 pinned, 1 left unpinned\n",
+                     {"killed_by": _MS_KB}, {"killed_by": _MS_KB}),
+    _mut.measurement(_MS_REF, "PIN KILLED: 0 pinned, 2 left unpinned\n", {},
+                     {"killed_by": _MS_KB}),
+]
+R.check(
+    "mutation's measure step grades a run by its own summary, not by the ledger diff",
+    _MS_GOT == [("skip-not-unpinned", {}), ("skip-no-base-program", {}),
+                ("skip-nothing-drivable", {}), ("skip-measure-failed", {}),
+                ("skip-nothing-killed", {}), ("measured", _MS_KB),
+                ("skip-measure-failed", {}), ("skip-measure-failed", {})],
+    "(other refusal, no base program, nothing to pin, INCONCLUSIVE, 0 pinned, "
+    f"1 pinned+diff, 1 pinned+no diff, 0 pinned+diff) -> {_MS_GOT}",
+)
+_MA = "mutation-autofix"
+R.check(
+    "mutation-autofix stays quiet exactly on a repair made or none owed",
+    _closure.AUTOFIX_QUIET[_MA] == ("changed", "skip-not-allowed", "skip-not-unpinned",
+                                    "skip-nothing-killed", "skip-head-moved")
+    and all(_closure.autofix_repair_failed(_MA, s) for s in (
+        "skip-measure-failed", "skip-nothing-drivable", "skip-no-measurement",
+        "skip-no-base-program", "skip-unchanged", "")),
+    f"quiet={_closure.AUTOFIX_QUIET[_MA]}",
+)
+_ma_returns = (_returned_statuses(_mut.measurement)
+               | _returned_statuses(_mut.apply_pins))
+R.check(
+    "every status mutation-autofix's two functions return is classified",
+    _ma_returns == {"measured", "skip-not-unpinned", "skip-no-base-program",
+                    "skip-nothing-drivable", "skip-measure-failed",
+                    "skip-nothing-killed", "skip-no-measurement",
+                    "skip-head-moved", "skip-unchanged", "changed"},
+    f"returned={sorted(_ma_returns)}",
+)
+# A correct `measurement` the workflow does not call is the green check the
+# review found, so the wiring is asserted against the YAML itself: the BASE's
+# copy of the tool, hidden from the worker overlay, measured only on a
+# same-repo ratchet failure, graded by `measurement`, and a push grant only
+# in the job that runs no pull-request driver.
+_ma_mut = _workflow_job(_TESTS_YML, "mutation")
+_ma_fix = _workflow_job(_TESTS_YML, _MA)
+_ma_meas = [s for s in _ma_mut.split("\n      - ") if "mutation-pins" in s
+            and "measurement(" in s]
+_MA_WIRING = [w for w in (
+    "git show origin/main:tests/mutation_table.py > tests/_mutation_table_base.py",
+    "tests/_mutation_table_base.py --pin-killed",
+    "_mutation_table_base.py >> .git/info/exclude",
+    "mutation_table.measurement(",
+    '(out / "status").write_text(status',
+    "github.event.pull_request.head.repo.full_name == github.repository",
+) if not _ma_meas or w not in _ma_meas[0]]
+R.check(
+    "mutation's measure step runs the base's tool, hidden, and grades by measurement()",
+    len(_ma_meas) == 1 and not _MA_WIRING
+    and "failure()" in _ma_meas[0]
+    and "contents: write" not in _ma_mut,
+    f"measure steps={len(_ma_meas)} missing={_MA_WIRING}",
+)
+R.check(
+    "mutation-autofix runs only after a failed mutation lane on a same-repo pull request",
+    "needs.mutation.result == 'failure'" in _ma_fix
+    and "github.event.pull_request.head.repo.full_name == github.repository" in _ma_fix
+    and "contents: write" in _ma_fix
+    and "apply_pins(" in _ma_fix and '"rev-parse", "HEAD"' in _ma_fix,
+    "the job's if:, its push grant, and the head it hands apply_pins",
 )
 
 # Scope: a mutant is driven only by scripts whose MEASURED closure contains

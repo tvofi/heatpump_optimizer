@@ -15,8 +15,8 @@ replace a Linux node recording.
 **That wait is conditional: it holds only while the job reports that it is
 repairing.** Each job pushes on `changed` alone, and every other status used
 to fall through to job success, so a skipped repair was indistinguishable
-from a completed one and the wait never ended (#523). Each job now ends by
-printing their status to the job summary, and `closures-autofix` goes red on
+from a completed one and the wait never ended (#523). Each job now prints
+its status to the job summary, and `closures-autofix` goes red on
 `skip-failed-recording`, `skip-merge-failed`, `skip-still-fails` and
 `skip-unchanged` — UNDER-SCOPED was printed, a repair was owed, and it did
 not happen. **A red autofix job means there will be no bot commit.** The
@@ -31,8 +31,7 @@ same truncation.
 **What green means, exactly — read the summary line, not the tick.** Green is
 `changed` (repaired and pushed), `skip-clean` or `skip-not-under-scoped` (no
 repair was owed *to the bot*), or `skip-not-allowed` (the job declined to
-classify at all). The conclusion cannot tell "repaired" from "nothing was
-owed"; the summary line can. `claims-autofix` reddens on nothing it can return
+classify at all). `claims-autofix` reddens on nothing it can return
 today — `apply_inherited_claims` has no failure status, and its
 `skip-not-inherited` is the ordinary answer for every unrelated `fast`
 failure — so its summary line is its only signal.
@@ -61,12 +60,9 @@ failure — so its summary line is its only signal.
   script that failed normally reddens `fast` in the same run; one that fails
   *only* under recording would not.
 
-  A failed recording's file list is **not** simply a subset of what a clean run
-  would touch: an error path can read files the clean path never does (a
-  traceback pulls source through `linecache`). So an UNDER-SCOPED reached with
-  a failed recording present may be genuine or an artefact of the failure — and
-  the remedy does not branch: fix the failing script, and the next push
-  re-records. That is why `skip-failed-recording` does **not** say re-derive.
+  A failed recording can also read files a clean run never does (a traceback
+  pulls source through `linecache`), so an UNDER-SCOPED beside one may be an
+  artefact; either way, fix the script and the next push re-records.
 
 | Failure | Job | Commit subject | Code |
 |---|---|---|---|

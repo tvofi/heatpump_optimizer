@@ -1669,12 +1669,14 @@ AUTOFIX_QUIET = {
     "claims-autofix": ("changed", "skip-not-allowed", "skip-not-inherited",
                        "skip-moves-nothing-claimable", "skip-cannot-compare"),
     # `skip-not-unpinned` is every `mutation` failure that was not a ratchet
-    # refusal, and `skip-nothing-killed` a refusal whose every site survived:
-    # a survivor is a human's by design, so neither is a skipped repair.
-    # `skip-no-measurement`, `skip-no-base-program` and `skip-unchanged`
-    # (kills measured, none applied to the head) are, and redden.
+    # refusal, `skip-nothing-killed` a measurement whose own summary pinned
+    # nothing (every site survived), and `skip-head-moved` a measurement of a
+    # head a newer push replaced, which the newer run measures: none is a
+    # skipped repair. `skip-measure-failed` (no summary: a red baseline, a
+    # refusal, a crash), `skip-nothing-drivable`, `skip-no-measurement`,
+    # `skip-no-base-program` and `skip-unchanged` are, and redden.
     "mutation-autofix": ("changed", "skip-not-allowed", "skip-not-unpinned",
-                         "skip-nothing-killed"),
+                         "skip-nothing-killed", "skip-head-moved"),
 }
 
 # Keyed by status where the job-wide remedy would misdirect. A failed

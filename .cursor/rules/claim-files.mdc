@@ -49,5 +49,5 @@ and inherits whatever `stamp.py` last wrote to `claims-for:` — which is also h
 you stop hand-editing that line wrong. Edit these files only when you are
 actually claiming drift; there a conflict is meaningful, and rare.
 
-Why no third autofix job repairs this, and what the `claims-autofix` job does
+Why no autofix job repairs this, and what the `claims-autofix` job does
 instead, are in `ci-autofix.md`.
