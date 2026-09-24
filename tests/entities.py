@@ -23382,8 +23382,9 @@ try:
     _ap_pins = _AP_DIR / "pins"
     _ap_pins.mkdir()
     _AP_GOT = [_mut.apply_pins(str(_ap_pins))]
-    (_ap_pins / "status").write_text("skip-nothing-killed\n")
-    _AP_GOT.append(_mut.apply_pins(str(_ap_pins)))
+    for _ap_status in ("skip-nothing-killed", "skip-no-base-program"):
+        (_ap_pins / "status").write_text(_ap_status + "\n")
+        _AP_GOT.append(_mut.apply_pins(str(_ap_pins)))
     (_ap_pins / "status").write_text("measured\n")
     (_ap_pins / "pins.json").write_text(json.dumps({
         _ap_b["anchor"]: {"killed_by": "tests/x.py", "old": "    if STALE:"},
@@ -23402,9 +23403,10 @@ finally:
     _mut_shutil.rmtree(_AP_DIR, ignore_errors=True)
 R.check(
     "mutation-autofix applies only a measured pin whose anchor and text this tree still has",
-    _AP_GOT == ["skip-no-measurement", "skip-nothing-killed", "skip-unchanged",
+    _AP_GOT == ["skip-no-measurement", "skip-nothing-killed", "skip-no-base-program",
+                "skip-unchanged",
                 "changed", "skip-unchanged", "tests/x.py"],
-    f"(no status, passed-through status, stale+gone, fresh, again, written) -> {_AP_GOT}",
+    f"(no status, two passed-through statuses, stale+gone, fresh, again, written) -> {_AP_GOT}",
 )
 
 # Scope: a mutant is driven only by scripts whose MEASURED closure contains
