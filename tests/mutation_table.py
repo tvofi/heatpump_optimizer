@@ -75,6 +75,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import contextlib
 import io
 import json
 import os
@@ -889,6 +890,25 @@ def null_for(pool: list[dict]) -> dict | None:
                 None)
 
 
+@contextlib.contextmanager
+def null_edit(tree: Path, null: dict):
+    """`tree` with the null control's comment written in, restored on exit.
+
+    The edit is the whole null control: a run in a tree it never reached is
+    the unmutated baseline again, and would "survive" every driver while
+    measuring nothing.
+    """
+    path = tree / null["file"]
+    original = path.read_text()
+    lines = original.splitlines(True)
+    lines[null["line"] - 1] = null["new"] + "\n"
+    path.write_text("".join(lines))
+    try:
+        yield path
+    finally:
+        path.write_text(original)
+
+
 def clone_tree(dest: Path) -> Path:
     """A real, independent checkout for one worker to mutate.
 
@@ -1271,17 +1291,10 @@ def main() -> int:
             return run
 
         def run_null(w: int, s: str) -> ScriptRun:
-            path = trees[w] / null["file"]
-            original = path.read_text()
-            lines = original.splitlines(True)
-            lines[null["line"] - 1] = null["new"] + "\n"
-            path.write_text("".join(lines))
-            try:
+            with null_edit(trees[w], null):
                 extra_args, extra_env = drive_spec(s, ref)
                 return run_script(s, trees[w], args.timeout, extra_args,
                                   extra_env)
-            finally:
-                path.write_text(original)
 
         null_runs: dict[str, ScriptRun] = {}
         baseline = drive_baselines(needed, jobs, run_baseline,

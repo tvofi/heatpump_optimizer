@@ -23465,6 +23465,32 @@ R.check(
     "main() must return on an empty pool before null_for, or a comment-only "
     "diff would be refused for having no null control",
 )
+# A null control whose edit never reaches its tree is the baseline run again:
+# it "survives" every driver and measures nothing (found in #1565's review, a
+# hole since #1561). Inside `null_edit` the tree differs from the unmutated
+# file on exactly one line -- the null comment -- and after it, on none; and
+# main()'s null runs go through `null_edit`.
+_mut_null_edit = getattr(_mut, "null_edit", None)
+_MUTL_BEFORE = (_MUTL_DIR / _MUTL_REL).read_text().splitlines()
+_MUTL_DIFF: list = ["null_edit absent"]
+if _mut_null_edit is not None and _MUTL_NULL is not None:
+    _MUTL_EDIT = dict(_MUTL_NULL, file=_MUTL_REL)
+    with _mut_null_edit(_MUTL_DIR, _MUTL_EDIT):
+        _MUTL_DURING = (_MUTL_DIR / _MUTL_REL).read_text().splitlines()
+    _MUTL_AFTER = (_MUTL_DIR / _MUTL_REL).read_text().splitlines()
+    _MUTL_DIFF = [(_i + 1, _b, _d) for _i, (_b, _d)
+                  in enumerate(zip(_MUTL_BEFORE, _MUTL_DURING)) if _b != _d]
+    if len(_MUTL_BEFORE) != len(_MUTL_DURING) or _MUTL_AFTER != _MUTL_BEFORE:
+        _MUTL_DIFF.append("line count moved, or the tree was not restored")
+R.check(
+    "the null run's tree differs from the baseline tree on exactly the null "
+    "comment's line, and main() drives it through null_edit",
+    _MUTL_NULL is not None
+    and _MUTL_DIFF == [(_MUTL_NULL["line"], _MUTL_NULL["old"],
+                        _MUTL_NULL["new"])]
+    and "with null_edit(trees[w], null):" in _MUT_MAIN,
+    f"diff={_MUTL_DIFF!r} -- an empty diff is a null control that never ran",
+)
 _mut_shutil.rmtree(_MUTL_DIR, ignore_errors=True)
 
 # The null control's runs are baseline-phase tasks: every driver in play runs
