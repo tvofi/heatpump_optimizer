@@ -920,9 +920,9 @@
  {
   "id": "C103",
   "source": "README.md:Entities Notes",
-  "claim": "every `Unavailable ...` note holds on an install with only an indoor and an outdoor thermometer and a tank volume (17 notes)",
+  "claim": "every `Unavailable ...` note holds on an install with only an indoor and an outdoor thermometer and a tank volume (19 notes)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "17 notes checked, still available=[]",
+  "result": "19 notes checked, still available=[]",
   "verdict": "true",
   "truth": ""
  },

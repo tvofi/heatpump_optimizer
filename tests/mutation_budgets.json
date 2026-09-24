@@ -216,6 +216,11 @@
       "old": "        return bool(shortfall is not None and shortfall >= self._margin_c())",
       "reason": "the #1495 breach sensor's is_on return. Deleting it makes is_on None: the arms `a cold damp room below its floor fires the breach` (is_on=None shortfall=3.57), `the floor is taken at the plan step covering now, not the plan's first step` (is_on=None) and `the breach floor is the solve's own floor at the forecast step covering now` (is_on=None) fail. rc=0 failed=0 -> rc=1 failed=3. Measured at c4e68cac (#1497, fix/r7-mold-warning, merged with origin/main ca8204f4), 2026-09-24, by driving the mutant through tests/entities.py in a separate worktree against a baseline of rc=0 failed=0."
     },
+    "custom_components/heatpump_optimizer/boost.py:apply GUARD_OFF 4793d79b": {
+      "killed_by": "tests/entities.py",
+      "old": "    if not has_hot_water(coord):",
+      "reason": "added by R8-P2 (#1527). `if not has_hot_water(coord):` -> `if False:` lets a DHW boost reach the action on a plant with no hot water: tests/entities.py fails `the boost overlay drops hot-water power where the plant has no hot water (#1527)` (dhw_power=4.0), 12 -> 13 failed. Measured at head ca79a473 on 2026-09-24, each mutant in its own copy of the tree against an unmutated copy (12 git-dependent checks fail in both, since a copy has no .git)."
+    },
     "custom_components/heatpump_optimizer/boost.py:overlay GUARD_OFF ca555667": {
       "killed_by": "tests/features.py",
       "old": "        if action.get(\"mode\") in (None, \"off\", \"idle\"):",
@@ -391,6 +396,26 @@
       "old": "        if isinstance(profile, list) and len(profile) == 24:",
       "reason": "drawn by the round-7 D2-03 diff's per-file sample over dhw_learning.py, not introduced by it. `if False:` ignores a well-formed stored pooled profile, so the learner keeps its seeded pattern. Killed by tests/features.py's `a stored 24-hour DHW profile is restored on load`: FAIL [loaded [0.2078, 0.1039, 0.1039]... from a flat store, against a seeded [0.2078, ...]], 1 of 3133, measured at bc1903f8. Survival measured UNMARKED at d413ba84 plus this branch's production diff, with 17 drivers in the net (env_drift and stress excluded for a red baseline)."
     },
+    "custom_components/heatpump_optimizer/entity.py:ConfiguredInputMixin.available BOOLOP 10cd15e4": {
+      "killed_by": "tests/entities.py",
+      "old": "        return bool(super().available and self.entity_registry_enabled_default)",
+      "reason": "added by R8-P2 (#1542 widened). `and` -> `or` in ConfiguredInputMixin.available lights every input-gated entity regardless of its input, and after a failed refresh: tests/entities.py fails `and none of them is available after a failed coordinator refresh`, the ordinary-install dead-roster check and `an input-gated entity is off and unavailable with its input unconfigured`, 12 -> 15 failed. Measured at 3568643c on 2026-09-24, each mutant in its own copy of the tree against an unmutated copy (12 git-dependent checks fail in both, since a copy has no .git)."
+    },
+    "custom_components/heatpump_optimizer/entity.py:DHWEntityMixin.entity_registry_enabled_default GUARD_OFF 60ac03b2": {
+      "killed_by": "tests/entities.py",
+      "old": "        if not self._dhw_probe_slot:",
+      "reason": "added by R8-P2 (#1542). `if not self._dhw_probe_slot:` -> `if False:` sends every hot-water entity through the probe lookup, so the five probe-less ones read off by default: tests/entities.py fails the five #1398 on-default checks, the real-coordinator on-default check, `every gated hot-water entity is on by default with hot water and its probe (#1542)` and the disabled roster, 8 checks above the unmutated copy before the run stopped. Measured at head ca79a473 on 2026-09-24, each mutant in its own copy of the tree against an unmutated copy (12 git-dependent checks fail in both, since a copy has no .git)."
+    },
+    "custom_components/heatpump_optimizer/entity.py:DHWEntityMixin.entity_registry_enabled_default GUARD_OFF c02431b2": {
+      "killed_by": "tests/entities.py",
+      "old": "        if not has_hot_water(self.coordinator):",
+      "reason": "added by R8-P2 (#1527/#1542). `if not has_hot_water(...)` -> `if False:` lets the registry default ignore hot water: tests/entities.py fails the five #1398 off-default checks, the real-coordinator off-default check and `no hot-water entity is enabled by default on a plant with no hot water`, 12 -> 19 failed. Measured at head ca79a473 on 2026-09-24, each mutant in its own copy of the tree against an unmutated copy (12 git-dependent checks fail in both, since a copy has no .git)."
+    },
+    "custom_components/heatpump_optimizer/entity.py:DHWEntityMixin.entity_registry_enabled_default RETURN_DEL 1b5963d0": {
+      "killed_by": "tests/entities.py",
+      "old": "        return input_configured(self.coordinator, self._dhw_probe_slot)",
+      "reason": "added by R8-P2 (#1542), now through `input_configured()`. Removing the probe-slot return makes a probe-keyed hot-water entity answer None with its probe configured: tests/entities.py fails `every gated hot-water entity is on by default with hot water and its probe (#1542)`, 12 -> 13 failed. Measured at 3568643c on 2026-09-24, each mutant in its own copy of the tree against an unmutated copy (12 git-dependent checks fail in both, since a copy has no .git)."
+    },
     "custom_components/heatpump_optimizer/entity.py:commanded_power_kw GUARD_OFF 75347d36": {
       "killed_by": "tests/entities.py",
       "old": "    if space is None:",
@@ -400,6 +425,21 @@
       "killed_by": "tests/entities.py",
       "old": "    return round(float(space) + float(action.get(\"dhw_power\") or 0.0), 2)",
       "reason": "#1499 review: commanded_power_kw's space-plus-DHW return. Deleting it returns None for every action: tests/entities.py 0 -> 3 of 1741 FAILED (`measured power keeps the commanded value alongside`, `Heat Pump Action power_kw is space plus DHW, and None with no power (#1499)`, `Recommended Power, climate recommended_power_kw and Measured Power's recommended_power are the step's whole ask, space plus DHW (#1499)`). Measured at f16d004e, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/entity.py:has_hot_water GUARD_OFF 7f44624a": {
+      "killed_by": "tests/entities.py",
+      "old": "    if params is not None:",
+      "reason": "moved from sensor.py:432 by R8-P2 (#1527/#1542), where `_DHWEntityMixin`'s registry default became `has_hot_water()`. `if params is not None:` -> `if False:` skips the configured `_thermal_params` path and falls back to the payload, which a real coordinator has not built at registration: tests/entities.py fails `the real coordinator derives the same on default from config (#1398)` and `the boost overlay keeps hot-water power where the plant has hot water (#1527)`, 12 -> 14 failed. Measured at head ca79a473 on 2026-09-24, each mutant in its own copy of the tree against an unmutated copy (12 git-dependent checks fail in both, since a copy has no .git)."
+    },
+    "custom_components/heatpump_optimizer/entity.py:has_hot_water RETURN_DEL 2d5d5a68": {
+      "killed_by": "tests/entities.py",
+      "old": "    return bool((getattr(coordinator, \"data\", None) or {}).get(\"dhw_enabled\"))",
+      "reason": "moved from sensor.py:434 by R8-P2 (#1527/#1542). Removing the payload fallback makes `has_hot_water()` answer None for every coordinator without `_thermal_params`, so every hot-water entity reads as no-hot-water: tests/entities.py fails the #1398 on-default and availability checks for all six sensors and `every gated hot-water entity is on by default with hot water and its probe (#1542)`, 12 -> 28 failed. Measured at head ca79a473 on 2026-09-24, each mutant in its own copy of the tree against an unmutated copy (12 git-dependent checks fail in both, since a copy has no .git)."
+    },
+    "custom_components/heatpump_optimizer/entity.py:input_configured RETURN_DEL f068a7f9": {
+      "killed_by": "tests/entities.py",
+      "old": "    return bool(config.get(slot))",
+      "reason": "added by R8-P2 (#1542 widened). Removing `input_configured()`'s return answers None for every slot, so every probe temperature and ECL110 readout reads unconfigured: tests/entities.py fails the four `reports its sensor once one is configured` / slab checks, `and on and available once its input is configured (#1542)` and two more, 12 -> 19 failed. Measured at 3568643c on 2026-09-24, each mutant in its own copy of the tree against an unmutated copy (12 git-dependent checks fail in both, since a copy has no .git)."
     },
     "custom_components/heatpump_optimizer/inputs.py:InputReader.value RETURN_DEL 6cf530e8": {
       "killed_by": "tests/features.py",
@@ -495,21 +535,6 @@
       "killed_by": "tests/features.py",
       "old": "        if entity_id and value is not None:",
       "reason": "#1513 (R8-P8): GUARD_OFF on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 5 failed, among them `Fix writes the configured disinfection temperature to the number entity`; `Fix commands a climate entity through set_temperature`. Measured at d6d79847, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/sensor.py:_DHWEntityMixin.entity_registry_enabled_default GUARD_OFF 5658c49e": {
-      "killed_by": "tests/entities.py",
-      "old": "        if params is not None:",
-      "reason": "arrived with origin/main, commit 5ae066a0 (fix(D8): make the hot-water registry default conditional on dhw_enabled, #1398). `if params is not None:` -> `if False:` skips the `_thermal_params` path the registry reads before the first refresh and falls back to `data`, where the real-coordinator checks of #1398 have no `dhw_enabled`: tests/entities.py goes from rc=0 failed=0 to rc=1 failed=1. Measured at the post-main head, 2026-09-22."
-    },
-    "custom_components/heatpump_optimizer/sensor.py:_DHWEntityMixin.entity_registry_enabled_default GUARD_OFF cc21363e": {
-      "killed_by": "tests/entities.py",
-      "old": "        if getattr(self, \"_attr_entity_registry_enabled_default\", True) is False:",
-      "reason": "arrived with origin/main, commit 5ae066a0 (fix(D8): make the hot-water registry default conditional on dhw_enabled, #1398). `if getattr(self, \"_attr_entity_registry_enabled_default\", True) is False:` -> `if False:` drops the static-default-off early return, so DHWTemperatureSensor -- which sets that attribute -- reports the hot water default instead of False, and tests/entities.py goes from rc=0 failed=0 to rc=1 failed=1. Measured at the post-main head, 2026-09-22."
-    },
-    "custom_components/heatpump_optimizer/sensor.py:_DHWEntityMixin.entity_registry_enabled_default RETURN_DEL 08259dfb": {
-      "killed_by": "tests/entities.py",
-      "old": "        return bool((self.coordinator.data or {}).get(\"dhw_enabled\", False))",
-      "reason": "arrived with origin/main, commit 5ae066a0 (fix(D8): make the hot-water registry default conditional on dhw_enabled, #1398). Removing the `data` fallback return makes the property fall off the end and answer None, so every hot-water entity whose registry default the payload path decides goes off and tests/entities.py goes from rc=0 failed=0 to rc=1 failed=5. Measured at the post-main head, 2026-09-22."
     },
     "custom_components/heatpump_optimizer/setpoint_check.py:_read_setpoint RETURN_DEL 85c60179": {
       "killed_by": "tests/features.py",

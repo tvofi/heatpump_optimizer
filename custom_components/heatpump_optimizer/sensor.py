@@ -27,8 +27,15 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import narrative
 from . import topology
 from .const import (
+    CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_CONTRACT_FIXED_PRICE,
     CONF_DHW_TANK_VOLUME,
+    CONF_DHW_TEMP_ENTITY,
+    CONF_ECL110_COMMAND_TOPIC,
+    CONF_ECL110_DISPLACE_SET_TOPIC,
+    CONF_ECL110_STATE_TOPIC,
+    CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_LOWER_FLOOR_TEMP_ENTITY,
     DEFAULT_DHW_MIN_TEMP,
     DEFAULT_DHW_SETPOINT,
     DEFAULT_DHW_TANK_VOLUME,
@@ -38,6 +45,8 @@ from .const import (
     OPTIMIZATION_MODE_STATES,
 )
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .entity import ConfiguredInputMixin as _ConfiguredInputMixin
+from .entity import DHWEntityMixin as _DHWEntityMixin
 from .entity import HeatPumpOptimizerEntity, commanded_power_kw
 
 if TYPE_CHECKING:
@@ -46,6 +55,14 @@ else:
     _SensorMixinBase = object
 
 _LOGGER = logging.getLogger(__name__)
+
+#: The ECL110 MQTT topics: any one stored means the hardware is in use, the
+#: arm-off rule `_ecl110_topic` states for the publish and subscribe seams.
+ECL110_TOPIC_SLOTS = (
+    CONF_ECL110_DISPLACE_SET_TOPIC,
+    CONF_ECL110_COMMAND_TOPIC,
+    CONF_ECL110_STATE_TOPIC,
+)
 
 # Coordinator-fed and read-only: the coordinator serialises the one inbound
 # refresh, and no entity here calls out, so there is nothing to throttle
@@ -395,48 +412,6 @@ class _MeasuredTemperatureMixin(_SensorMixinBase):
     def available(self) -> bool:
         return bool(
             super().available and _reading_ok(self.coordinator, self._reading_key)
-        )
-
-
-class _DHWEntityMixin(_SensorMixinBase):
-    """A hot-water entity, gated on the install actually having hot water.
-
-    Six entities were offered unconditionally, hot water configured or not.
-    Two of them are Energy dashboard sources: with DHW disabled the optimizer
-    plans no hot water at all, so ``dhw_energy_kwh`` and ``dhw_cost`` stay at
-    0.0 forever, and a user who wires "DHW Energy (lifetime)" into the Energy
-    dashboard's water-heating slot gets a permanent flat zero that looks like
-    a working meter reporting a heat pump that never heats water.
-
-    One gate rather than six copies of the same condition, so a seventh hot
-    water entity inherits it by construction. The registry default follows
-    the same condition (#1398): a fresh install with no hot water must not
-    ship enabled entities that are unavailable on every refresh, but a fresh
-    install *with* hot water must not have the card's DHW plan or the Energy
-    dashboard's DHW meters hidden either. So the default is on exactly where
-    ``dhw_enabled`` is, and off where there is no hot water. The probe-gated
-    temperature sensor keeps its own static default-off.
-    """
-
-    @property
-    def entity_registry_enabled_default(self) -> bool:
-        """Enabled by default exactly where the install has hot water.
-
-        The registry reads this before the first refresh, so ``dhw_enabled``
-        is read from the config via ``_thermal_params``, not the runtime
-        payload; the test double exposes it on ``data`` instead.
-        """
-        if getattr(self, "_attr_entity_registry_enabled_default", True) is False:
-            return False
-        params = getattr(self.coordinator, "_thermal_params", None)
-        if params is not None:
-            return bool(params.dhw_enabled)
-        return bool((self.coordinator.data or {}).get("dhw_enabled", False))
-
-    @property
-    def available(self) -> bool:
-        return bool(
-            super().available and (self.coordinator.data or {}).get("dhw_enabled")
         )
 
 
@@ -843,7 +818,9 @@ class SolarIrradianceSensor(HeatPumpOptimizerSensorBase):
         return attrs
 
 
-class SlabTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+class SlabTempSensor(
+    _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+):
     """The modelled slab temperature, while there is something modelling it.
 
     The slab is never measured. It is integrated forward from the floor
@@ -859,9 +836,8 @@ class SlabTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
     # Integrated from the floor-return probe, which the shipping config flow
-    # leaves empty; unavailable without it, so disabled rather than shipped
-    # dead (#1335). Existing registry entries keep their state.
-    _attr_entity_registry_enabled_default = False
+    # leaves empty: off by default without it (#1335), on with it.
+    _input_slots = (CONF_FLOOR_RETURN_TEMP_ENTITY,)
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(coordinator, entry, "slab_temp", "slab_temperature_estimated")
@@ -1070,7 +1046,9 @@ class UpperFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
         return {"source": "indoor_temperature"}
 
 
-class LowerFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+class LowerFloorTempSensor(
+    _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+):
     """The lower zone's temperature, when a thermometer reports it.
 
     With no lower-floor sensor the coordinator falls back to the room
@@ -1087,9 +1065,8 @@ class LowerFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
     # The lower-floor probe is an optional field the shipping config flow
-    # leaves empty; unavailable without it, so disabled rather than shipped
-    # dead (#1335). Existing registry entries keep their state.
-    _attr_entity_registry_enabled_default = False
+    # leaves empty: off by default without it (#1335), on with it.
+    _input_slots = (CONF_LOWER_FLOOR_TEMP_ENTITY,)
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(
@@ -1104,7 +1081,9 @@ class LowerFloorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
         return None
 
 
-class FloorReturnTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+class FloorReturnTempSensor(
+    _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+):
     """The floor heating return temperature, straight from the sensor.
 
     ``_floor_return_temp`` holds the last good reading and is never cleared,
@@ -1119,9 +1098,8 @@ class FloorReturnTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBa
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
     # The floor-return probe is an optional field the shipping config flow
-    # leaves empty; unavailable without it, so disabled rather than shipped
-    # dead (#1335). Existing registry entries keep their state.
-    _attr_entity_registry_enabled_default = False
+    # leaves empty: off by default without it (#1335), on with it.
+    _input_slots = (CONF_FLOOR_RETURN_TEMP_ENTITY,)
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(
@@ -1168,7 +1146,9 @@ class SolarHeatGainSensor(HeatPumpOptimizerSensorBase):
         return {}
 
 
-class BufferTankTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+class BufferTankTempSensor(
+    _ConfiguredInputMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+):
     """The buffer tank temperature, while a sensor is reporting it.
 
     The buffer tank probe is optional and most installs do not have one.
@@ -1183,9 +1163,8 @@ class BufferTankTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBas
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
     # The buffer tank probe is optional and most installs do not have one
-    # (own docstring above); unavailable without it, so disabled rather than
-    # shipped dead (#1335). Existing registry entries keep their state.
-    _attr_entity_registry_enabled_default = False
+    # (own docstring above): off by default without it (#1335), on with it.
+    _input_slots = (CONF_BUFFER_TANK_TEMP_ENTITY,)
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(
@@ -1222,10 +1201,9 @@ class DHWTemperatureSensor(
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
     # Hot water is on from the tank volume alone, but the tank thermometer
-    # is an optional probe most installs never configure; unavailable
-    # without it, so disabled rather than shipped dead (#1335). Existing
-    # registry entries keep their state.
-    _attr_entity_registry_enabled_default = False
+    # is an optional probe most installs never configure: off by default
+    # without it (#1335), on once it is configured (#1542).
+    _dhw_probe_slot = CONF_DHW_TEMP_ENTITY
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(
@@ -1404,16 +1382,16 @@ class PredictiveInsightSensor(HeatPumpOptimizerSensorBase):
         return {}
 
 
-class ECL110DisplaceSensor(HeatPumpOptimizerSensorBase):
+class ECL110DisplaceSensor(_ConfiguredInputMixin, HeatPumpOptimizerSensorBase):
     """Current ECL110 displace command value."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_suggested_display_precision = 1
     # ECL110 hardware is a per-install opt-in (its MQTT topics live on the
-    # heat-curve options page); everyone else gets this disabled, not a
-    # forever-unknown entity. Existing registry entries keep their state.
-    _attr_entity_registry_enabled_default = False
+    # heat-curve options page): with no topic stored nothing is commanded or
+    # read, so the readout is off and unavailable; with one, on (#1302).
+    _input_slots = ECL110_TOPIC_SLOTS
     # Diagnostic like every other opt-in hardware advisory here (the
     # frequency advisor, the valve target): an opt-in path's readout belongs
     # with the machinery, not the headline (#177).
@@ -1430,14 +1408,14 @@ class ECL110DisplaceSensor(HeatPumpOptimizerSensorBase):
         return None
 
 
-class ECL110EffectiveDisplaceSensor(HeatPumpOptimizerSensorBase):
+class ECL110EffectiveDisplaceSensor(_ConfiguredInputMixin, HeatPumpOptimizerSensorBase):
     """Modeled effective displace after ECL110 PI/PID dynamics."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_suggested_display_precision = 1
-    # Same opt-in hardware as ECL110 Displace above, same category.
-    _attr_entity_registry_enabled_default = False
+    # Same opt-in hardware as ECL110 Displace above, same gate and category.
+    _input_slots = ECL110_TOPIC_SLOTS
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
@@ -2428,7 +2406,9 @@ class DHWSetpointAdvisorSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
         return dict((self.coordinator.data or {}).get("dhw_advisor", {}) or {})
 
 
-class MixedHotWaterSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+class MixedHotWaterSensor(
+    _DHWEntityMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+):
     """The tank translated into shower terms (#28).
 
     ``V·(T_tank − T_inlet)/(40 − T_inlet)`` litres of 40 °C water. "212
@@ -2456,9 +2436,8 @@ class MixedHotWaterSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
     _attr_device_class = SensorDeviceClass.VOLUME_STORAGE
     _attr_suggested_display_precision = 0
     # The tank temperature in shower clothes, so the same gate and the same
-    # default as DHW Temperature above: the tank probe is optional and most
-    # installs never configure it (#1335). Existing entries keep their state.
-    _attr_entity_registry_enabled_default = False
+    # probe-keyed default as DHW Temperature above (#1335, #1542).
+    _dhw_probe_slot = CONF_DHW_TEMP_ENTITY
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         # Moved from mixed_hot_water in #174; see DHWEnergySensor.
