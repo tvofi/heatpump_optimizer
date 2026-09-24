@@ -45600,4 +45600,212 @@ R.check(
     f"{_r7cool_ratio!r}, expected 1 - 0.25",
 )
 
+
+# ===========================================================================
+# #1526 (class P6): every domain a written slot accepts has a route
+# ===========================================================================
+R.section("Actuation routing: every accepted domain reaches its consumer (#1526)")
+
+# `assign_entity` accepted input_boolean and climate for the heat-pump switch
+# while `_apply_action` always called `switch.turn_*`, which Home Assistant
+# resolves against `switch.*` entities only: those installs never followed the
+# plan. This census is the class barrier. It reads every slot's accepted
+# domains from both producers (the config and options flows' entity pickers,
+# and `topology.ASSIGNABLE_KEYS`, which `assign_entity` validates against),
+# drives the REAL consumer of every written slot once per accepted domain, and
+# refuses a recorded call the target's domain does not implement. A domain
+# added to an accept-list without a route fails here by construction.
+#
+# Design choices it encodes: `_P6_IMPLEMENTS` is Home Assistant's entity
+# services per domain, and a domain missing from it is refused, not assumed;
+# a slot that also accepts a `sensor` is a reading, since nothing commands a
+# sensor; and a consumer that issues NO call for an accepted domain fails
+# too, because a silent skip does the same harm as a misrouted call.
+import asyncio as _p6_aio  # noqa: E402
+
+from harness import FakeEntry as _P6Entry  # noqa: E402
+from heatpump_optimizer import config_flow as _p6_cf  # noqa: E402
+from heatpump_optimizer import repairs as _p6_repairs  # noqa: E402
+from heatpump_optimizer import topology as _p6_topo  # noqa: E402
+from heatpump_optimizer.disinfection import DisinfectionSwitch as _P6Dis  # noqa: E402
+
+_P6_IMPLEMENTS = {
+    "switch": {"turn_on", "turn_off", "toggle"},
+    "input_boolean": {"turn_on", "turn_off", "toggle"},
+    "climate": {"turn_on", "turn_off", "toggle", "set_temperature", "set_hvac_mode"},
+    "number": {"set_value"},
+    "input_number": {"set_value", "increment", "decrement"},
+}
+#: `homeassistant.<svc>` re-dispatches to `<entity domain>.<svc>`.
+_P6_GENERIC = {"turn_on", "turn_off", "toggle"}
+#: Domains nothing commands.
+_P6_READ_DOMAINS = {"sensor", "binary_sensor", "weather", "person",
+                    "device_tracker", "calendar"}
+#: Slots that accept a commandable domain yet are only read, with the reader.
+_P6_READ_ONLY = {
+    hp_const.CONF_SPACE_SETPOINT_ENTITY: "setpoint_check reads it; the space "
+    "repair is a confirm flow that writes nothing",
+}
+
+
+def _p6_accepts():
+    """{slot: accepted domains}, the union over both producers."""
+    acc: dict[str, set[str]] = {}
+
+    def picked(widget):
+        return [d for f in (getattr(widget, "config", None) or {}).get("filter", [])
+                for d in f.get("domain", [])]
+
+    for key, domains in _p6_topo.ASSIGNABLE_KEYS.items():
+        acc.setdefault(key, set()).update(domains)
+    fields = [(r.key, r.widget) for r in _p6_cf._OPTION_FIELDS]
+    fields += list(_p6_cf._user_sensors_fields(FakeHass()).items())
+    fields += list(_p6_cf._user_credentials_fields().items())
+    for key, widget in fields:
+        if isinstance(widget, _p6_cf.selector.EntitySelector):
+            acc.setdefault(str(getattr(key, "schema", key)), set()).update(
+                picked(widget)
+            )
+    return acc
+
+
+def _p6_coord(states, **cfg):
+    data = {"tibber_token": "x", "weather_entity": "weather.home",
+            "indoor_temp_entity": "sensor.indoor",
+            "outdoor_temp_entity": "sensor.outdoor", **cfg}
+    return Coord(FakeHass(states), _P6Entry(data=data))
+
+
+async def _p6_switch(eid):
+    coord = _p6_coord({}, **{hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY: eid})
+
+    async def _no_publish(**_kw):
+        return None
+
+    coord.async_publish_current_action = _no_publish
+    for on in (True, False):
+        coord._current_action = {"heat_pump_on": on}
+        await coord._apply_action()
+    return coord.hass.services.calls
+
+
+async def _p6_pump(eid):
+    coord = _p6_coord({})
+    await coord._async_set_pump(eid, True, "p6")
+    await coord._async_set_pump(eid, False, "p6")
+    return coord.hass.services.calls
+
+
+async def _p6_disinfect(eid):
+    hass = FakeHass({eid: FakeState("off")})
+    dis = _P6Dis({hp_const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: eid},
+                 hass.services.async_call, lambda _e: "off")
+    await dis._write(eid, "turn_on")
+    return hass.services.calls
+
+
+async def _p6_valve(eid):
+    coord = _p6_coord({}, mixing_valve_mode="smart_write",
+                      **{hp_const.CONF_MIXING_VALVE_WRITE_ENTITY: eid})
+    await coord._command_valve_target()
+    return coord.hass.services.calls
+
+
+async def _p6_freq(eid):
+    coord = _p6_coord(
+        {eid: FakeState("50", attributes={"min": 20, "max": 120})},
+        **{hp_const.CONF_COMPRESSOR_FREQ_ENTITY: eid,
+           hp_const.CONF_FREQ_CONTROL_MODE: "control"},
+    )
+    coord._freq_map.recommend = lambda *_a, **_k: 55.0
+    coord._freq_last_write = None  # construction starts the write interval
+    await coord._command_frequency()
+    return coord.hass.services.calls
+
+
+async def _p6_setpoint(eid):
+    hass = FakeHass({})
+    await _p6_repairs._write_setpoint(hass, eid, 55.0)
+    return hass.services.calls
+
+
+#: Every slot a consumer writes, and that consumer, driven for real.
+_P6_WRITERS = {
+    hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY: _p6_switch,
+    hp_const.CONF_SPACE_PUMP_ENTITY: _p6_pump,
+    hp_const.CONF_VVC_PUMP_ENTITY: _p6_pump,
+    hp_const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: _p6_disinfect,
+    hp_const.CONF_MIXING_VALVE_WRITE_ENTITY: _p6_valve,
+    hp_const.CONF_COMPRESSOR_FREQ_ENTITY: _p6_freq,
+    hp_const.CONF_DHW_SETPOINT_ENTITY: _p6_setpoint,
+}
+
+
+def _p6_routes(eid, calls):
+    """Refusals for one driven entity: unroutable calls, or none at all."""
+    domain = eid.split(".", 1)[0]
+    mine = [(d, s) for d, s, data in calls if (data or {}).get("entity_id") == eid]
+    if domain not in _P6_IMPLEMENTS:
+        return [f"{eid}: no service table for domain {domain!r}"]
+    if not mine:
+        return [f"{eid}: the consumer issued no call"]
+    return [
+        f"{eid}: {d}.{s}" for d, s in mine
+        if not ((d == domain and s in _P6_IMPLEMENTS[domain])
+                or (d == "homeassistant" and s in _P6_GENERIC
+                    and s in _P6_IMPLEMENTS[domain]))
+    ]
+
+
+def _p6_census(accepts):
+    """(unclassified slots, refusals, driven pairs) over one accept map."""
+    unclassified, refusals, driven = [], [], []
+    for key, domains in sorted(accepts.items()):
+        if key in _P6_READ_ONLY or "sensor" in domains:
+            continue
+        if not domains - _P6_READ_DOMAINS:
+            continue
+        driver = _P6_WRITERS.get(key)
+        if driver is None:
+            unclassified.append(key)
+            continue
+        for domain in sorted(domains):
+            eid = f"{domain}.p6_{key}"
+            refusals += _p6_routes(eid, _p6_aio.run(driver(eid)))
+            driven.append(eid)
+    return unclassified, refusals, driven
+
+
+_p6_acc = _p6_accepts()
+_p6_unclassified, _p6_refused, _p6_driven = _p6_census(_p6_acc)
+R.check(
+    "every slot accepting a commandable domain is a driven writer or a named "
+    "reading",
+    not _p6_unclassified and set(_P6_WRITERS) <= set(_p6_acc),
+    f"unclassified {_p6_unclassified}; writers no producer offers "
+    f"{sorted(set(_P6_WRITERS) - set(_p6_acc))}",
+)
+R.check(
+    "every domain a written slot accepts is commanded through a service that "
+    "domain implements (#1526)",
+    not _p6_refused
+    and {e.split(".p6_", 1)[1] for e in _p6_driven} == set(_P6_WRITERS),
+    f"{len(_p6_driven)} (slot, domain) pairs driven; refused {_p6_refused}",
+)
+# The census's own control: over the production map with an unrouted domain
+# added to two writers and one unclassified written slot, it must name all
+# three, so a green run above is not an empty walk.
+_p6_bad = {k: set(v) for k, v in _p6_acc.items()}
+_p6_bad[hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY].add("number")
+_p6_bad[hp_const.CONF_MIXING_VALVE_WRITE_ENTITY].add("switch")
+_p6_bad["p6_new_slot"] = {"switch"}
+_p6_bad_unc, _p6_bad_ref, _ = _p6_census(_p6_bad)
+R.check(
+    "and the census refuses an accepted domain with no route",
+    _p6_bad_unc == ["p6_new_slot"]
+    and any(r.startswith("number.p6_heat_pump_switch_entity") for r in _p6_bad_ref)
+    and any(r.startswith("switch.p6_mixing_valve_write_entity") for r in _p6_bad_ref),
+    f"unclassified {_p6_bad_unc}; refused {_p6_bad_ref}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

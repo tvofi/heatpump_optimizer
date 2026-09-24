@@ -46,16 +46,35 @@ THE SURFACE (derived, never carried -- the run prints each group's size):
      control -- the whole directory is the surface)
   D  `.claude/settings.json`, the wiring that gives a session its hooks
 
-THE METRIC. Count of surface files matched by a CODEOWNERS pattern that
-carries an owner, last-match-wins (GitHub's rule; a later ownerless line
-un-owns a path -- this file's own header relies on that for COMMON.md).
+THE METRIC. Count of surface files COVERED: matched by a CODEOWNERS pattern
+that carries an owner, last-match-wins (GitHub's rule; a later ownerless line
+un-owns a path -- this file's own header relies on that for COMMON.md), or
+PINNED (decision 0013): a file in B, E or F that no job reachable from a pull
+request executes from the pull request's own copy. A job is reachable unless
+its `if:` names `github.event_name` only against other events; a job whose
+`env:` sets `HPO_JOB_GRADES: nothing` runs self-tests whose verdict is about
+the pull request's instruments and grades nothing, and is skipped -- `--check`
+refuses one that a required context names. In every other reachable job, each
+execution of the file must come after a step of the form
+`git checkout "$PINNED" -- '<pathspec>' ...` whose pathspecs match it (git's
+glob, where `*` crosses `/`), and a pinned `.py` must run under `python3 -I`,
+so a module the pull request adds beside it cannot shadow an import. The
+workflows, hooks and settings (A, C, D) are never pinned: GitHub runs the pull
+request's own workflow file, and a hook is graded by no job. So a pull request
+editing a pinned file changes nothing its own required checks run -- the
+restore puts the base's copy back first -- and the edit reaches `main` only
+through review; an owned file needs the owner's review besides.
 
 ARMS.
   none           -- the tree's `.github/CODEOWNERS` unchanged (the null control)
   add-dir        -- perturbed: append `/.claude/workflows/  @tvofi`
   add-dir-unown  -- perturbed: that line, then an ownerless one naming
-                    `.claude/workflows/policy_lint.mjs` (last-match-wins:
+                    `.claude/workflows/web-fix-wave.js`, which a grader
+                    evaluates from the pull request's copy (last-match-wins:
                     one surface file back out of coverage)
+  unpin          -- perturbed: the pinnable files (B, E, F outside tests/ and
+                    the evaluated wave scripts) lose their owners, AND the
+                    restore steps are dropped: every one goes uncovered
   --check        -- the standing gate (#1515): arm `none`, exit 1 when any
                     surface file is uncovered or the surface is empty. The
                     `policy-docs` job runs it with the base commit's copy of
@@ -199,6 +218,113 @@ def surface() -> dict[str, list[str]]:
             "evaluated": sorted(evaluated), "hooks": hooks, "settings": settings}
 
 
+RESTORE = re.compile(r"""git checkout\s+"?\$\{?PINNED\}?"?\s+--\s+((?:\\?\s*'[^']+'\s*)+)""")
+SELF_TEST_ONLY = re.compile(r"^      HPO_JOB_GRADES:\s*[\"']?nothing[\"']?\s*$", re.M)
+EVENT_IF = re.compile(r"github\.event_name\s*(==|!=)\s*'([a-z_]+)'")
+
+
+def spec_hit(spec: str, path: str) -> bool:
+    """git pathspec semantics for the forms the restore steps use."""
+    import fnmatch
+
+    if any(ch in spec for ch in "*?["):
+        return fnmatch.fnmatch(path, spec)
+    return path == spec or path.startswith(spec.rstrip("/") + "/")
+
+
+def jobs_of(wf_text: str) -> list[tuple[str, str]]:
+    """(job id, job text) for every job under the top-level `jobs:` key."""
+    i = wf_text.find("\njobs:\n")
+    if i < 0:
+        return []
+    body = wf_text[i + len("\njobs:\n"):]
+    parts = re.split(r"^  ([A-Za-z][\w-]*):\n", body, flags=re.M)
+    return [(parts[k], parts[k + 1]) for k in range(1, len(parts) - 1, 2)]
+
+
+def pr_reachable(wf_text: str, job_text: str) -> bool:
+    """False only when the workflow has no `pull_request` trigger, or the job's
+    `if:` compares `github.event_name` solely against other events."""
+    head = wf_text[: wf_text.find("\njobs:\n")]
+    if not re.search(r"^  pull_request:", head, re.M) and "pull_request]" not in head:
+        return False
+    m = re.search(r"^    if:(.*?)(?=^    [a-z-]+:)", job_text, re.M | re.S)
+    if not m:
+        return True
+    tests = EVENT_IF.findall(m.group(1))
+    if not tests:
+        return True
+    if any(op == "!=" and ev == "pull_request" for op, ev in tests):
+        return False
+    return any(ev == "pull_request" for op, ev in tests if op == "==") or any(op == "!=" for op, _ in tests)
+
+
+def executions(have: set[str]) -> list[tuple[str, str, str, bool, bool]]:
+    """Every (workflow, job, file, pinned, isolated) a PR-reachable grading job
+    executes or loads, in step order."""
+    out = []
+    workflows = sorted(f for f in have if f.startswith(WF_DIR + "/") and f.endswith(".yml"))
+    for wf in workflows:
+        text = (ROOT / wf).read_text()
+        for job, jt in jobs_of(text):
+            if not pr_reachable(text, jt) or SELF_TEST_ONLY.search(jt):
+                continue
+            specs: list[str] = []
+            for step in jt.split("\n      - ")[1:]:
+                live = "\n".join(ln for ln in step.splitlines() if not ln.lstrip().startswith("#"))
+                r = RESTORE.search(live)
+                if r:
+                    specs += re.findall(r"'([^']+)'", r.group(1))
+                for line in live.splitlines():
+                    for m in EXEC.finditer(line):
+                        entry = m.group(1)
+                        if entry not in have:
+                            continue
+                        iso = bool(re.search(r"python3?\s+(?:-[A-Za-z]+\s+)*-I\b", line))
+                        seen, todo = set(), [entry]
+                        while todo:
+                            f = todo.pop()
+                            if f in seen:
+                                continue
+                            seen.add(f)
+                            todo += sorted(loads(f, have) | named(f, have))
+                        for f in sorted(seen):
+                            out.append((wf, job, f, any(spec_hit(sp, f) for sp in specs), iso))
+    return out
+
+
+def self_test_only_required(have: set[str]) -> list[str]:
+    """Self-test-only jobs a required context names -- refused by --check."""
+    try:
+        import json
+
+        ctx = set(json.loads((ROOT / ".claude/workflows/fixtures/required-contexts.json").read_text())["contexts"])
+    except (OSError, ValueError, KeyError):
+        return []
+    bad = []
+    for wf in sorted(f for f in have if f.startswith(WF_DIR + "/") and f.endswith(".yml")):
+        for job, jt in jobs_of((ROOT / wf).read_text()):
+            if SELF_TEST_ONLY.search(jt) and job in ctx:
+                bad.append(f"{wf}:{job}")
+    return bad
+
+
+def pinned(files: list[str], ex: list[tuple[str, str, str, bool, bool]], s: dict) -> list[str]:
+    """Pinnable surface files (B, E, F) that every PR-reachable grading job runs
+    from the base's copy -- `.py` under `-I`."""
+    pinnable = set(s["execs"] + s["imports"] + s["evaluated"])
+    out = []
+    for f in files:
+        if f not in pinnable:
+            continue
+        runs = [e for e in ex if e[2] == f]
+        # `-I` is the interpreter's, so it is read off the line that started
+        # the process and holds for every module that process imports.
+        if all(p and (iso or not f.endswith(".py")) for (_, _, _, p, iso) in runs):
+            out.append(f)
+    return out
+
+
 def patterns() -> list[tuple[str, list[str]]]:
     """CODEOWNERS read as (pattern, owners) in file order. Blank/comment out."""
     rules = []
@@ -245,22 +371,31 @@ def run(arm: str) -> int:
     files = sorted(set(s["workflows"] + s["execs"] + s["imports"] + s["evaluated"]
                        + s["hooks"] + s["settings"]))
     rules = patterns()
+    ex = executions(tracked())
 
     if arm in ("add-dir", "add-dir-unown"):
         rules = list(rules) + [("/.claude/workflows/", ["@tvofi"])]
         if arm == "add-dir-unown":
-            rules = rules + [("/.claude/workflows/policy_lint.mjs", [])]
+            rules = rules + [("/.claude/workflows/web-fix-wave.js", [])]
+    if arm == "unpin":
+        pin_now = set(pinned(files, ex, s))
+        rules = list(rules) + [("/" + f, []) for f in sorted(pin_now)]
+        ex = [(w, j, f, False, iso) for (w, j, f, _, iso) in ex]
 
-    cov = covered(files, rules)
+    owned = covered(files, rules)
+    pins = [f for f in pinned(files, ex, s) if f not in owned]
+    cov = sorted(set(owned) | set(pins))
 
-    print(f"# arm {arm}: {len(rules)} pattern(s), {len(cov)} covered")
+    print(f"# arm {arm}: {len(rules)} pattern(s), {len(cov)} covered ({len(pins)} of them pinned, not owned)")
     print(f"# surface: {len(s['workflows'])} workflow(s), {len(s['execs'])} exec'd script(s), "
           f"{len(s['imports'])} imported by them, {len(s['evaluated'])} run by path, "
           f"{len(s['hooks'])} hook(s), {len(s['settings'])} settings file = {len(files)}")
     for path in files:
-        print(f"#   {'COVERED' if path in cov else 'UNCOVERED'} {path}")
+        tag = "COVERED" if path in owned else "PINNED" if path in pins else "UNCOVERED"
+        print(f"#   {tag} {path}")
     print(f"RESULT enforcement_surface_files={len(files)} count")
-    print(f"RESULT covered_by_an_owner={len(cov)} count")
+    print(f"RESULT covered_by_an_owner={len(owned)} count")
+    print(f"RESULT pinned_by_base_restore={len(pins)} count")
     print(f"RESULT uncovered_files={len(files) - len(cov)} count")
     return len(files) - len(cov) if files else -1
 
@@ -268,13 +403,19 @@ def run(arm: str) -> int:
 def main() -> int:
     if sys.argv[1:] == ["--check"]:
         gap = run("none")
+        bad = self_test_only_required(tracked())
+        if bad:
+            print("REFUSED: a job marked `HPO_JOB_GRADES: nothing` is a required context "
+                  f"({', '.join(bad)}); it runs the pull request's own copies, so it cannot grade")
+            return 1
         if gap:
             print("REFUSED: " + ("the surface is empty -- nothing was derived" if gap < 0 else
                   f"{gap} file(s) a workflow executes or loads carry no CODEOWNERS owner; "
-                  "add each above, or the pull request can change the check it is graded by (#1515)"))
+                  "own each above, or restore it from the base before every PR-reachable job runs it, "
+                  "or the pull request can change the check it is graded by (#1515)"))
             return 1
         return 0
-    arms = sys.argv[1:] or ["none", "add-dir", "add-dir-unown"]
+    arms = sys.argv[1:] or ["none", "add-dir", "add-dir-unown", "unpin"]
     for arm in arms:
         run(arm)
     return 0
