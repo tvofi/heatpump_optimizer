@@ -4,7 +4,7 @@ Status: recorded 2026-09-24 from the round-8 convergence design and the
 owner's inputs in the round-8 audit thread, including the end date confirmed
 2026-09-24. Source: the design handed over 2026-09-23
 (`/private/tmp/audit-7/r8prog/design-rotation-and-D14.md`, sections A, B and
-D) and Tim's inputs recorded there. This record is item F6 of that design's
+D) and tvofi's inputs recorded there. This record is item F6 of that design's
 section F.
 
 ## Context
@@ -35,7 +35,7 @@ F5 (the real-day replay export and sanitiser, move 2) is in flight as
   dimension, carrying both halves of `verifier.md`, and one common judge over
   every finding — landed in `#1505`.
 - **Move 2 — real-day replay.** A nightly lane (`tests/replay.py`) replays a
-  sanitised day of Tim's own Home Assistant recorder data through the real
+  sanitised day of tvofi's own Home Assistant recorder data through the real
   coordinator, checking invariants a synthetic matrix does not exercise
   (`#1499`'s shape: state/attribute disagreement). Gated nightly, not
   per-PR, until its runtime is measured. In flight as `#1508`.

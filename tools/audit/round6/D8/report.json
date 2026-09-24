@@ -13,7 +13,7 @@
       "claim": "With DHW unconfigured, five of the six _DHWEntityMixin entities are enabled by default and available is False in every refresh, so a user with no hot water is shown five dead entities.",
       "mechanism": "sensor._DHWEntityMixin.available gates on coordinator.data['dhw_enabled'], but _attr_entity_registry_enabled_default is True for five of the six classes; only DHWTemperatureSensor sets it False.",
       "evidence": {
-        "command": "cd /Users/timmalmstrom/audit-r6-baseline && PYTHONPATH=tests/hastub python3 tools/audit/round6/D8/matrix.py",
+        "command": "cd ~/audit-r6-baseline && PYTHONPATH=tests/hastub python3 tools/audit/round6/D8/matrix.py",
         "harness_path": "tools/audit/round6/D8/matrix.py",
         "value": 5,
         "unit": "entities",
@@ -29,7 +29,7 @@
       "perturbation": {"change": "configure DHW on coord_minimal (dhw_tank_volume=200, dhw_setpoint=55, dhw_min_temperature=45)", "expected_direction": "to_zero", "observed_value": 0},
       "metric_definition": "Enabled-by-default _DHWEntityMixin entities whose available is False after a reference-recipe build of coord_minimal (dhw_enabled == False)",
       "null_control": {"command": "D8_PERTURB=stale_indoor ... matrix.py", "value": 0, "note": "with DHW configured reports 0; every other violation class stays 0 under each non-matching perturbation and moves to 1 under the one it names"},
-      "reproduction_steps": ["cd /Users/timmalmstrom/audit-r6-baseline", "PYTHONPATH=tests/hastub python3 tools/audit/round6/D8/matrix.py", "grep RESULT d8_no_dhw_enabled_unavailable -> 5"],
+      "reproduction_steps": ["cd ~/audit-r6-baseline", "PYTHONPATH=tests/hastub python3 tools/audit/round6/D8/matrix.py", "grep RESULT d8_no_dhw_enabled_unavailable -> 5"],
       "proposed_fix_scope": "Set _attr_entity_registry_enabled_default = False on the five classes (or on _DHWEntityMixin)",
       "files": ["custom_components/heatpump_optimizer/sensor.py"],
       "stop_rule_class": "hygiene"

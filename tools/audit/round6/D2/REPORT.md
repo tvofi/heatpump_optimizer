@@ -1,7 +1,7 @@
 # D2 — Mathematical and physical sanity, audit round 6
 
 - **Baseline**: `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9), export at
-  `/Users/timmalmstrom/audit-r6-baseline`.
+  `~/audit-r6-baseline`.
 - **Machine**: 8-core Apple M1, 8 GB, macOS 25.6.0, numpy 2.4.6, scipy 1.17.1,
   interpreter `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3`.
 - **Harness**: `tools/audit/round6/D2/sanity.py` — one command, run from the

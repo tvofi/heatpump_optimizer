@@ -2420,13 +2420,20 @@ const bump = (hist, key, pr) => {
 // the reviewer, so the `blocked <sha> head-moved` that class exists for was
 // never written. Measured over v6.6.0..e336cc2c, all 11 rework rounds named a
 // moved head and `head-moved` held 0 verdicts. So a second-or-later parseable
-// verdict naming a head other than the pull request's FIRST parseable verdict's
-// is a re-verification of a moved head, and is keyed on the class the wave
+// verdict that follows a `merge` verdict and names a different head is a
+// re-verification of a moved head, and is keyed on the class the wave
 // defines for it -- in a row of its own, beside the passing row that cannot show
 // it, because that row is where the verdict landed and a histogram that emptied
 // it would be reading the grammar rather than counting it. So the rows stop
 // partitioning the window's verdicts: the same round is one `merge` entry AND
 // one `head-moved` entry, and the second is the one that says a head moved.
+// KEYED AGAINST THE VERDICT BEFORE IT, NOT THE FIRST (#1549, D13-s1-01). Keyed
+// against the first verdict's head, the row also took a repair after a block
+// and a verdict repeating the previous head: over the round-8 window it read 19,
+// of which 15 were re-verifications. Every round after a pull request's first
+// is now one of three parts by the verdict before it -- `reverify`, `repair`,
+// `repeat` -- and only the first enters this row; a reviewer who wrote
+// `blocked <sha> head-moved` on that round is already in it by the word.
 // Every parseable verdict names a full head -- the wave's grammar requires one
 // on both arms -- so there is no missing side to infer from: a `Fix review:`
 // line with no head is outside the grammar and reaches the rework arm never.
@@ -2463,6 +2470,8 @@ function verdictWalk(f) {
 
 export function statsHistogram(prs, fetched, classes) {
   const verdicts = new Map()
+  const part = () => ({ entries: 0, prs: new Set() })
+  const rounds = { firstMerge: 0, oneRound: 0, reverify: part(), repair: part(), repeat: part() }
   const friction = new Map()
   const unclassified = []
   const endpoints = new Map()
@@ -2506,18 +2515,24 @@ export function statsHistogram(prs, fetched, classes) {
       const word = m[1] ? m[1] : m[5] ? m[5].toLowerCase() : 'other'
       // The head the wave's grammar captured: arm 2 for `merge`, arm 4 for
       // `blocked`, both required to be 40 hex by that grammar.
-      heads.push((m[1] ? m[2] : m[4]).toLowerCase())
+      heads.push({ head: (m[1] ? m[2] : m[4]).toLowerCase(), passed: Boolean(m[1]), word })
       bump(verdicts, word, pr)
       bump(endpoints, origin, pr)
     }
-    // THE REWORK ARM (#1405, D13-01): a later verdict naming a head the first
-    // one did not is a re-verification of a moved head, keyed as the class the
-    // wave defines for it (see REWORK_CLASS above). A bump BESIDE the row the
-    // verdict already landed in, never instead of it, so every figure this table
-    // printed before the change it still prints. One bump per round, so the
-    // cell's distinct-PR count and its entry count are the two figures the
-    // finder measured -- 7 merges and 11 rounds over the round-6 window.
-    for (const h of heads.slice(1)) if (h !== heads[0]) bump(verdicts, REWORK_CLASS, pr)
+    // THE REWORK ARM (#1405; #1549): each round after the first, by the verdict
+    // before it (see REWORK_CLASS above). A re-verification is bumped BESIDE the
+    // row the verdict already landed in, never instead of it, and once: a
+    // reviewer's own `head-moved` word already put it there.
+    if (heads.length && heads[0].passed) rounds.firstMerge += 1
+    if (heads.length === 1 && heads[0].passed) rounds.oneRound += 1
+    for (let i = 1; i < heads.length; i += 1) {
+      const prev = heads[i - 1]
+      const cur = heads[i]
+      const kind = !prev.passed ? 'repair' : cur.head !== prev.head ? 'reverify' : 'repeat'
+      rounds[kind].entries += 1
+      rounds[kind].prs.add(pr)
+      if (kind === 'reverify' && cur.word !== REWORK_CLASS) bump(verdicts, REWORK_CLASS, pr)
+    }
     for (const id of frictionIds(f.body)) bump(friction, id, pr)
   }
   // THE HISTOGRAM'S COVERAGE (#1406, D13-02). The verdict table's population is
@@ -2540,8 +2555,24 @@ export function statsHistogram(prs, fetched, classes) {
     friction,
     unclassified,
     endpoints,
+    rounds,
     coverage: { window: prs.length, verdictPrs, noVerdict, unfetched },
   }
+}
+
+// THE YIELD, UNDER THE RULE EACH NAME STATES (#1549, D13-s1-01). A merge whose
+// first verdict was `merge` and whose head then moved was reviewed again, so
+// the share of first verdicts that passed is not the share merged on one
+// review; the second was measured by nobody and a first-pass label read the
+// first as it. Both print, each named for its rule, over the verdict table's
+// own denominator, with the three parts of every later round beside them.
+// Pure over `statsHistogram`'s return, like the coverage line.
+export function statsRoundsLine({ rounds, coverage }) {
+  const n = coverage.verdictPrs.size
+  const share = (k) => `${k}/${n}${n ? ` = ${(k / n).toFixed(3)}` : ''}`
+  const { reverify, repair, repeat } = rounds
+  const later = reverify.entries + repair.entries + repeat.entries
+  return `STATS ROUNDS: over the ${n} merged pull request(s) carrying a parsable verdict, first-verdict yield ${share(rounds.firstMerge)} (the first verdict was \`merge\`), one-round yield ${share(rounds.oneRound)} (merged on that one verdict, no later parsable one). Of the ${later} parsable verdict(s) after a pull request's first, by the verdict before each: ${reverify.entries} re-verified a head that moved after a \`merge\` (${reverify.prs.size} PR(s), the "${REWORK_CLASS}" row), ${repair.entries} repaired after a \`blocked\`, ${repeat.entries} repeated the previous verdict's head. A \`Fix review:\` line outside the grammar is in none of these; each is reported below.`
 }
 
 // WHICH ENDPOINT THE WINDOW'S VERDICTS ARRIVED ON (#1471, D13-01), printed
@@ -2618,7 +2649,7 @@ export function statsFindings({ prs, fetched, fetchError, classes, blocks = bloc
           severity: 'info',
           check: 'stats',
           where: '(window)',
-          message: `not opened: verdict class "${k}" at ${n} pull request(s) is the passing verdict ${WAVE_SCRIPT} requires before a merge, so this row counts rework nowhere -- the rework a merge verdict spells is keyed under the wave's "${REWORK_CLASS}", a later verdict naming a moved head. Friction is rework.`,
+          message: `not opened: verdict class "${k}" at ${n} pull request(s) is the passing verdict ${WAVE_SCRIPT} requires before a merge, so this row counts rework nowhere -- a merge verdict re-verifying a head that moved after a \`merge\` is keyed under the wave's "${REWORK_CLASS}", and a repair after a block is on the STATS ROUNDS line. Friction is rework.`,
         })
         continue
       }
@@ -5897,7 +5928,7 @@ function cmdStats(since) {
     : fetchWindow(prs)
   console.log(`STATS: ${prs.length} merged pull request(s) in ${since}..${mainRef()}; verdict grammar ${JSON.stringify(classes)}${blocks ? ` over block classes ${JSON.stringify(blocks)}` : ' (VERDICT_CLASSES unreadable)'} read from ${WAVE_SCRIPT}`)
   if (!fetchError) {
-    const { verdicts, friction, coverage, endpoints } = statsHistogram(prs, fetched, classes)
+    const { verdicts, friction, coverage, endpoints, rounds } = statsHistogram(prs, fetched, classes)
     // The coverage line, under `STATS:` and above the tables it describes
     // (#1406, D13-02): the verdict table's denominator is the pull requests
     // that carried a verdict, and until this line existed the mode printed only
@@ -5909,6 +5940,8 @@ function cmdStats(since) {
     // endpoints they arrived on, so a reviews row at zero is read as "none were
     // posted" over a reader that does ask for them.
     console.log(statsEndpointLine(endpoints))
+    // ...and the yield under both rules, with the rounds split (#1549).
+    console.log(statsRoundsLine({ rounds, coverage }))
     // Both counts in the table, threshold on the left one, because a reader who
     // sees only "4" cannot tell 4 occasions from one body written four times.
     for (const [label, hist] of [['verdict class', verdicts], ['friction rule id', friction]]) {

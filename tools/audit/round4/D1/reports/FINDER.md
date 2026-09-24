@@ -1,7 +1,7 @@
 # D1 — Robustness and stability (round 4)
 
 Baseline `7dd68dd327fe3dbfb09f3bd0fe38910c58877697`, export at
-`/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-r4-baseline`.
+`~/heatpump_optimizer/.claude/worktrees/audit-r4-baseline`.
 Machine: 8-core Apple M1, 8 GB, macOS 25.6.0, CPython 3.11, OpenBLAS pinned to
 one thread. Ten finders shared the box; `load1` was 4.1–7.8 throughout. Every
 number below is a **count**, so none of them is contention-sensitive; the two

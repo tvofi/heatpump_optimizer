@@ -72,14 +72,9 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
     lane prints `MUTATION TABLE INCONCLUSIVE` and exits 0 on `--scope changed`
     when its baseline is red, so a green conclusion means either no mutant
     survived or none was evaluated, and only the run's own log separates them.
-    The second branch is covered by no required check: the baseline's drivers
-    are **not** the scoped gate's selection, and on a diff that changes no
-    production file `scope_files` falls back to the closure of the changed test
-    scripts -- on #1120's own diff, 8 drivers against `scope.run`'s 1 script.
-    Re-derive that pair at your own base before relying on either number:
-    `mutation_table.scope_files("changed", base)` with `drivers_for`, against
-    `python3 tests/closure.py select --diff <merge-base>`. Where the answer
-    turns on it, read the lane's log rather than its conclusion.
+    A diff that writes no production code line draws no mutant at all
+    (`changed_lines`). Where the answer turns on it, read the lane's log
+    rather than its conclusion.
 
 12. **Re-read the head before you post.** Name the SHA you measured in the
     verdict, and check it is still the head when you post it. A branch that

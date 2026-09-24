@@ -99,4 +99,5 @@
 /tests/profiles.py                        @tvofi
 /tests/replay.py                          @tvofi
 /tests/run.sh                             @tvofi
+/tests/stress.py                          @tvofi
 /tests/typing_ruler.py                    @tvofi

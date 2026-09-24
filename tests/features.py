@@ -33987,18 +33987,40 @@ R.check(
 # survived a mutation that reads the whole-house pair, because the
 # simulation's own residual moves with the upper mass as well, so the two
 # runs stayed ordered the way the check expected.
-_t2_hl_light = _t2_house(two_zone=True, upper_floor_thermal_mass=3.0)
-_t2_drive(_t2_hl_light, "_async_learn_house_heat_loss")
-_t2_hl_heavy = _t2_house(two_zone=True, upper_floor_thermal_mass=9.0)
-_t2_drive(_t2_hl_heavy, "_async_learn_house_heat_loss")
-_t2_hl_rtm_small = _t2_house(two_zone=True)
-_t2_hl_rtm_small._thermal_params.room_thermal_mass = 10.0
-_t2_hl_rtm_small._thermal_params.heat_loss_coefficient = 0.15
-_t2_drive(_t2_hl_rtm_small, "_async_learn_house_heat_loss")
-_t2_hl_rtm_big = _t2_house(two_zone=True)
-_t2_hl_rtm_big._thermal_params.room_thermal_mass = 100.0
-_t2_hl_rtm_big._thermal_params.heat_loss_coefficient = 0.15
-_t2_drive(_t2_hl_rtm_big, "_async_learn_house_heat_loss")
+#
+# The equality below compares two SEPARATE replays, so it needs the same
+# `dt_hours` on both sides of the Newton step (#812's own root-cause note,
+# 2026-09-24): `_t2_house` stamps `_last_house_sample_time` from a live
+# `dt_util.now()` at construction, and `_async_learn_house_heat_loss` reads
+# `dt_util.now()` again, live, when driven. Unfrozen, the two replays pick up
+# whatever real wall-clock gap the scheduler happens to leave between
+# construction and drive -- normally sub-millisecond and lost in the 1e-8
+# guard, but stretched under machine load to a few milliseconds, which this
+# Newton step (residual and simulation both linear-ish in `dt_hours`) turns
+# into scale differences of 1e-8..1e-7 -- diffs of 1.08e-8 and 1.55e-8 were
+# both observed this way. `_t2_buffer` above already freezes the clock before
+# driving its own learner for exactly this reason; this block didn't.
+# Freezing both replays to one instant removes the wall-clock gap and
+# reproduces byte-for-byte: 20 runs forced with 5ms of injected jitter
+# between construction and drive, unfrozen, gave diffs up to 6.42e-8 (well
+# above the guard); the same 20 runs frozen gave exactly 0.0 every time.
+_t2_mass_now = dt_util.now()
+dt_util.freeze(_t2_mass_now)
+try:
+    _t2_hl_light = _t2_house(two_zone=True, upper_floor_thermal_mass=3.0)
+    _t2_drive(_t2_hl_light, "_async_learn_house_heat_loss")
+    _t2_hl_heavy = _t2_house(two_zone=True, upper_floor_thermal_mass=9.0)
+    _t2_drive(_t2_hl_heavy, "_async_learn_house_heat_loss")
+    _t2_hl_rtm_small = _t2_house(two_zone=True)
+    _t2_hl_rtm_small._thermal_params.room_thermal_mass = 10.0
+    _t2_hl_rtm_small._thermal_params.heat_loss_coefficient = 0.15
+    _t2_drive(_t2_hl_rtm_small, "_async_learn_house_heat_loss")
+    _t2_hl_rtm_big = _t2_house(two_zone=True)
+    _t2_hl_rtm_big._thermal_params.room_thermal_mass = 100.0
+    _t2_hl_rtm_big._thermal_params.heat_loss_coefficient = 0.15
+    _t2_drive(_t2_hl_rtm_big, "_async_learn_house_heat_loss")
+finally:
+    dt_util.freeze(None)
 R.check(
     "the two-zone fit moves with the upper zone's mass and not the house's",
     _t2_hl_light._house_heat_loss_samples == 1
@@ -38393,18 +38415,15 @@ R.check(
 )
 
 
-# -- `_wind_speed_scale`: the unit the weather entity actually reports ----
+# -- `_wind_speed_scale_of`: the unit the weather entity actually reports --
 def _t6_wind(unit=_T6_UNSET, *, entity=True):
     """The wind scale for a weather entity reporting `unit`."""
     if not entity:
-        return _t6_call(
-            HeatPumpOptimizerCoordinator(
-                FakeHass({}), FakeEntry(data={"tibber_token": "x"})
-            )._wind_speed_scale
-        )
+        return _t6_call(_t6_coord_module._wind_speed_scale_of, None)
     attrs = {} if unit is _T6_UNSET else {"wind_speed_unit": unit}
-    states = {"weather.home": FakeState("sunny", attributes=attrs)}
-    return _t6_call(_t6_coord(states)._wind_speed_scale)
+    return _t6_call(
+        _t6_coord_module._wind_speed_scale_of, FakeState("sunny", attributes=attrs)
+    )
 
 
 R.check(
@@ -38419,11 +38438,9 @@ R.check(
     "doubles the predicted heat loss",
 )
 R.check(
-    "no weather entity, and one missing from the bus, both read as m/s",
-    _t6_wind(entity=False) == 1.0
-    and _t6_call(_t6_coord({})._wind_speed_scale) == 1.0,
-    f"unconfigured -> {_t6_wind(entity=False)!r}, configured but absent -> "
-    f"{_t6_call(_t6_coord({})._wind_speed_scale)!r} -- 1.0 is Home "
+    "no weather entity state reads as m/s",
+    _t6_wind(entity=False) == 1.0,
+    f"no weather state -> {_t6_wind(entity=False)!r} -- 1.0 is Home "
     "Assistant's own metric default, so an install with no weather entity is "
     "not silently scaled",
 )
@@ -43864,6 +43881,1116 @@ R.check(
     and _qs_suggested(_qs.derive({**_qs_base, **_qs_grid[1]})) == _qs_grid[1],
     "the Configure page suggests exactly what a fresh page shows on an "
     "unanswered entry, and the entry's own answers on a configured one",
+)
+
+# ---------------------------------------------------------------------------
+R.section("P8 — a price or temperature entity's unit is read at the seam (#1513)")
+#
+# Every reader below is the production one. The discriminating arm of each is
+# a unit the old code read as SEK/kWh or degC; the SEK/kWh and degC arms are
+# the null control, and must come through bit-for-bit.
+import math as _p8_math  # noqa: E402
+from types import SimpleNamespace as _p8_ns  # noqa: E402
+
+from heatpump_optimizer import coordinator as _p8_coord  # noqa: E402
+from heatpump_optimizer import price_model as _p8_pm  # noqa: E402
+from heatpump_optimizer import setpoint_check as _p8_sp  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_GRID_FEE_ENTITY as _P8_FEE,
+    CONF_PV_EXPORT_PRICE_ENTITY as _P8_EXPORT,
+    DEFAULT_PV_EXPORT_PRICE as _P8_EXPORT_DEFAULT,
+)
+
+_p8_norm = getattr(inputs_mod, "normalize_price_per_kwh", None)
+_P8_FACTORS = {
+    "SEK/kWh": 1.0,
+    "öre/kWh": 0.01,
+    "SEK/MWh": 0.001,
+    "EUR/MWh": 0.001,
+    "c/kWh": 0.01,
+    "€/kWh": 1.0,
+    "NOK/Wh": 1000.0,
+    None: 1.0,
+}
+R.check(
+    "normalize_price_per_kwh takes each unit to major currency per kWh",
+    _p8_norm is not None
+    and all(
+        _p8_math.isclose(_p8_norm(2.0, _u) or _p8_math.nan, 2.0 * _f)
+        for _u, _f in _P8_FACTORS.items()
+    ),
+    f"{[(u, _p8_norm(2.0, u)) for u in _P8_FACTORS] if _p8_norm else 'missing'}",
+)
+R.check(
+    "and a unit it cannot parse returns None rather than a guess",
+    _p8_norm is not None
+    and all(_p8_norm(2.0, _u) is None for _u in ("kWh", "SEK", "SEK/GJ", "bananas/kWh")),
+)
+
+_P8_SCALE = {"SEK/kWh": 1.0, "öre/kWh": 100.0, "SEK/MWh": 1000.0}
+
+
+def _p8_price_state(unit, scale):
+    rows = [
+        {
+            "start": f"2026-11-03T{h:02d}:00:00+01:00",
+            "value": (0.30 + 0.05 * h) * scale,
+        }
+        for h in range(24)
+    ]
+    return FakeState(str(rows[0]["value"]), unit=unit, attributes={"raw_today": rows})
+
+
+def _p8_totals(unit, scale):
+    rows = _p8_pm.prices_from_entity_state(_p8_price_state(unit, scale), 1.25, 0.10)
+    return [r["total"] for r in rows] if isinstance(rows, list) else rows
+
+
+_p8_truth = [(0.30 + 0.05 * h) * 1.25 + 0.10 for h in range(24)]
+R.check(
+    "the price entity's today/tomorrow rows are read in their unit",
+    all(
+        isinstance(_p8_totals(_u, _s), list)
+        and all(
+            _p8_math.isclose(a, b, rel_tol=1e-12)
+            for a, b in zip(_p8_totals(_u, _s), _p8_truth)
+        )
+        for _u, _s in _P8_SCALE.items()
+    ),
+    f"{ {u: _p8_totals(u, s)[:2] for u, s in _P8_SCALE.items()} }",
+)
+R.check(
+    "and an unparseable unit keeps the raw rows, as before",
+    _p8_totals("SEK/GJ", 1.0) == _p8_totals(None, 1.0)
+    and all(
+        _p8_math.isclose(a, b, rel_tol=1e-12)
+        for a, b in zip(_p8_totals("SEK/GJ", 1.0), _p8_truth)
+    ),
+)
+
+_P8_CFG = {
+    "tibber_token": "x",
+    "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor",
+    "outdoor_temp_entity": "sensor.outdoor",
+    "pv_enabled": True,
+}
+
+
+def _p8_export(unit, value):
+    coord = _Coord(
+        _FakeHass({"sensor.export": FakeState(str(value), unit=unit)}),
+        _FakeEntry(data={**_P8_CFG, _P8_EXPORT: "sensor.export"}),
+    )
+    return coord._pv_export_price()
+
+
+R.check(
+    "the export-price entity is read in its unit",
+    all(
+        _p8_math.isclose(_p8_export(_u, 0.45 * _s), 0.45, rel_tol=1e-12)
+        for _u, _s in _P8_SCALE.items()
+    ),
+    f"{ {u: _p8_export(u, 0.45 * s) for u, s in _P8_SCALE.items()} }",
+)
+
+
+def _p8_fee(unit, value):
+    return _p8_coord._grid_fee_entity_value(
+        _FakeHass({"sensor.fee": FakeState(str(value), unit=unit)}),
+        {_P8_FEE: "sensor.fee"},
+    )
+
+
+R.check(
+    "the grid-fee entity is read in its unit",
+    all(
+        _p8_fee(_u, 0.25 * _s) is not None
+        and _p8_math.isclose(_p8_fee(_u, 0.25 * _s), 0.25, rel_tol=1e-12)
+        for _u, _s in _P8_SCALE.items()
+    ),
+    f"{ {u: _p8_fee(u, 0.25 * s) for u, s in _P8_SCALE.items()} }",
+)
+
+
+def _p8_unit_issues(hass):
+    return [
+        i
+        for i in getattr(hass, "issues", [])
+        if i[2].get("translation_key") == "price_unit_unrecognised"
+    ]
+
+
+_p8_hass = _FakeHass(
+    {
+        "sensor.nordpool": _p8_price_state("SEK/GJ", 1.0),
+        "sensor.fee": FakeState("0.25", unit="SEK/kWh"),
+    }
+)
+_p8_hass.issues = []
+_p8_live = _Coord(
+    _p8_hass,
+    _FakeEntry(
+        data={
+            **_P8_CFG,
+            "price_source": "entity",
+            "price_entity": "sensor.nordpool",
+            _P8_FEE: "sensor.fee",
+        }
+    ),
+)
+_asyncio.run(_p8_live._fetch_tibber_prices())
+_p8_raised = _p8_unit_issues(_p8_hass)
+R.check(
+    "an unparseable price unit raises one repair notice naming the entity and unit",
+    len(_p8_raised) == 1
+    and _p8_raised[0][2].get("translation_placeholders")
+    == {"entity": "sensor.nordpool", "unit": "SEK/GJ"},
+    f"got {_p8_raised!r}",
+)
+_p8_hass.states.set("sensor.nordpool", _p8_price_state("SEK/kWh", 1.0))
+_asyncio.run(_p8_live._fetch_tibber_prices())
+R.check(
+    "and it clears once the unit is one the reader understands",
+    _p8_unit_issues(_p8_hass) == [],
+    f"got {_p8_unit_issues(_p8_hass)!r}",
+)
+
+_p8_inlet = getattr(_p8_coord, "_dhw_inlet_c", None)
+
+
+def _p8_inlet_at(value, unit):
+    hass = _FakeHass(
+        {"sensor.inlet": FakeState(str(value), unit=unit, last_updated=datetime.now(UTC))}
+    )
+    return _p8_inlet(hass, "sensor.inlet")
+
+
+R.check(
+    "the DHW inlet probe is read in its unit (50 degF is 10 degC)",
+    _p8_inlet is not None
+    and _p8_math.isclose(_p8_inlet_at(50.0, "°F") or 0.0, 10.0)
+    and _p8_inlet_at(10.0, "°C") == 10.0
+    and _p8_inlet_at(10.0, None) == 10.0,
+    f"{[_p8_inlet_at(50.0, '°F'), _p8_inlet_at(10.0, '°C')] if _p8_inlet else 'missing'}",
+)
+
+
+def _p8_setpoint(state):
+    hass = _FakeHass({"number.dhw_sp": state})
+    hass.issues = []
+    params = _p8_ns(dhw_min_temp=55.0, dhw_legionella_enabled=False, dhw_legionella_temp=60.0)
+    _p8_sp._dhw(hass, {_SP_DHW_ENT: "number.dhw_sp"}, params)
+    return [i for i in hass.issues if i[1] == _SP_ISSUE_DHW]
+
+
+_p8_sp_f = _p8_setpoint(FakeState("122", unit="°F"))
+R.check(
+    "a degF DHW set-point is compared in degC (122 degF is below a 55 degC floor)",
+    len(_p8_sp_f) == 1
+    and _p8_sp_f[0][2].get("translation_placeholders", {}).get("pump") == "50.0",
+    f"got {_p8_sp_f!r}",
+)
+R.check(
+    "and its Fix writes the floor in the entity's own unit (131 degF)",
+    bool(_p8_sp_f)
+    and _p8_sp_f[0][2].get("data", {}).get("target") == 55.0
+    and _p8_sp_f[0][2].get("data", {}).get("value") == 131.0,
+    f"got {_p8_sp_f!r}",
+)
+_p8_sp_c = _p8_setpoint(FakeState("50", unit="°C"))
+R.check(
+    "null control: a degC set-point raises the same notice and writes 55",
+    len(_p8_sp_c) == 1
+    and _p8_sp_c[0][2].get("translation_placeholders", {}).get("pump") == "50.0"
+    and _p8_sp_c[0][2].get("data", {}).get("value") == 55.0,
+    f"got {_p8_sp_c!r}",
+)
+_p8_flow = _sp_repairs.DhwSetpointRepairFlow()
+_p8_flow.hass = _FakeHass({})
+_p8_flow.data = dict(_p8_sp_f[0][2].get("data", {})) if _p8_sp_f else {}
+_asyncio.run(_p8_flow.async_step_confirm({}))
+R.check(
+    "the repair flow writes the converted value, not the degC target",
+    _p8_flow.hass.services.calls
+    == [("number", "set_value", {"entity_id": "number.dhw_sp", "value": 131.0})],
+    f"got {_p8_flow.hass.services.calls!r}",
+)
+
+_p8_stale = _FakeHass(
+    {"sensor.inlet": FakeState("10", unit="°C", last_updated=datetime.now(UTC) - timedelta(days=2))}
+)
+R.check(
+    "and a stale, implausible or non-numeric inlet reading is refused",
+    _p8_inlet is not None
+    and _p8_inlet(_p8_stale, "sensor.inlet") is None
+    and _p8_inlet_at(40.0, "°C") is None
+    and _p8_inlet_at("unknown", "°C") is None,
+    f"{[_p8_inlet(_p8_stale, 'sensor.inlet'), _p8_inlet_at(40.0, '°C')] if _p8_inlet else 'missing'}",
+)
+R.check(
+    "an unavailable export-price entity falls back to the configured price",
+    _p8_export("SEK/kWh", "unavailable") == _P8_EXPORT_DEFAULT
+    and _p8_export("öre/kWh", "unavailable") == _P8_EXPORT_DEFAULT,
+    f"got {_p8_export('SEK/kWh', 'unavailable')!r}",
+)
+R.check(
+    "an unavailable grid-fee entity reads as no fee entity at all",
+    _p8_fee("öre/kWh", "unavailable") is None,
+    f"got {_p8_fee('öre/kWh', 'unavailable')!r}",
+)
+_p8_noent = _sp_repairs.DhwSetpointRepairFlow()
+_p8_noent.hass = _FakeHass({})
+_p8_noent.data = {"target": 55.0, "value": 131.0}
+_asyncio.run(_p8_noent.async_step_confirm({}))
+R.check(
+    "a repair with no entity id writes nothing",
+    _p8_noent.hass.services.calls == [],
+    f"got {_p8_noent.hass.services.calls!r}",
+)
+
+# The weather sibling: get_forecasts rows arrive in the weather entity's own
+# temperature_unit, as its wind does in wind_speed_unit. 50 degF is 10 degC.
+from homeassistant.util import dt as _p8_dt  # noqa: E402
+
+_p8_fc_in_c = getattr(_p8_coord, "_forecast_in_model_units", None)
+
+
+def _p8_weather(unit, temp, *, fail=False, wind_unit="m/s", wind=3.6):
+    attrs = {"temperature": temp, "wind_speed": wind, "wind_speed_unit": wind_unit}
+    if unit is not None:
+        attrs["temperature_unit"] = unit
+    hass = _FakeHass({"weather.home": FakeState("cloudy", attributes=attrs)})
+    coord = _Coord(hass, _FakeEntry(data=dict(_P8_CFG)))
+    now = _p8_dt.now().replace(minute=0, second=0, microsecond=0)
+    rows = [
+        {"datetime": (now + timedelta(hours=h)).isoformat(), "temperature": temp,
+         "wind_speed": wind, "precipitation": 0.0}
+        for h in range(48)
+    ]
+
+    async def _call(domain, service, data=None, **kwargs):
+        if fail:
+            raise RuntimeError("weather integration down")
+        return {"weather.home": {"forecast": rows}}
+
+    hass.services.async_call = _call
+    _asyncio.run(coord._fetch_weather_forecast())
+    return coord, now
+
+
+def _p8_outdoor(unit, temp, **kw):
+    coord, now = _p8_weather(unit, temp, **kw)
+    series = coord._weather_series(4, now, 0)
+    return [round(v, 9) for v in series[0]], [round(v, 9) for v in series[1]]
+
+
+R.check(
+    "a degF weather entity's forecast is planned in degC (50 degF is 10 degC)",
+    _p8_fc_in_c is not None and _p8_outdoor("°F", 50.0)[0] == [10.0] * 4,
+    f"got {_p8_outdoor('°F', 50.0)[0]}",
+)
+R.check(
+    "null control: a degC or unit-less weather entity's forecast is untouched",
+    _p8_outdoor("°C", 10.0)[0] == [10.0] * 4 and _p8_outdoor(None, 10.0)[0] == [10.0] * 4,
+    f"got {_p8_outdoor('°C', 10.0)[0]}, {_p8_outdoor(None, 10.0)[0]}",
+)
+_P8_ROWS = [{"temperature": 10.0}]
+R.check(
+    "the rows are the same object when nothing converts (goldens cannot move)",
+    _p8_fc_in_c is not None
+    and _p8_fc_in_c(FakeState("x", attributes={"temperature_unit": "°C"}), _P8_ROWS) is _P8_ROWS
+    and _p8_fc_in_c(FakeState("x", attributes={}), _P8_ROWS) is _P8_ROWS,
+)
+R.check(
+    "a row whose temperature will not parse keeps it for the consumers' fallback",
+    _p8_fc_in_c is not None
+    and _p8_fc_in_c(
+        FakeState("x", attributes={"temperature_unit": "°F"}), [{"temperature": "n/a"}]
+    ) == [{"temperature": "n/a"}],
+)
+R.check(
+    "the fabricated trajectory of a failed first fetch is converted too",
+    _p8_outdoor("°F", 50.0, fail=True)[0] == [10.0] * 4,
+    f"got {_p8_outdoor('°F', 50.0, fail=True)[0]}",
+)
+R.check(
+    "and its wind is scaled once, not twice (3.6 km/h is 1 m/s)",
+    _p8_outdoor("°C", 10.0, fail=True, wind_unit="km/h")[1] == [1.0] * 4
+    and _p8_outdoor("°C", 10.0, wind_unit="km/h")[1] == [1.0] * 4,
+    f"fabricated {_p8_outdoor('°C', 10.0, fail=True, wind_unit='km/h')[1]}, "
+    f"fetched {_p8_outdoor('°C', 10.0, wind_unit='km/h')[1]}",
+)
+R.check(
+    "the current wind the learners read is m/s on both paths (3.6 km/h is 1 m/s)",
+    _p8_weather("°C", 10.0, wind_unit="km/h")[0]._current_weather()[0] == 1.0
+    and _p8_weather("°C", 10.0, fail=True, wind_unit="km/h")[0]._current_weather()[0] == 1.0,
+    f"fetched {_p8_weather('°C', 10.0, wind_unit='km/h')[0]._current_weather()}, "
+    f"fabricated {_p8_weather('°C', 10.0, fail=True, wind_unit='km/h')[0]._current_weather()}",
+)
+R.check(
+    "null control: an m/s entity's current wind is its own number on both paths",
+    _p8_weather("°C", 10.0, wind=1.0)[0]._current_weather()[0] == 1.0
+    and _p8_weather("°C", 10.0, fail=True, wind=1.0)[0]._current_weather()[0] == 1.0,
+)
+
+# ---------------------------------------------------------------------------
+R.section("R8-P8 round 3: mutation survivors on lines this diff's files carry")
+# CI's changed-scope mutation lane drew these pre-existing sites from the
+# files #1513 touches, and nothing killed them. Each check drives the
+# production symbol; the repairs.py survivor is triaged equivalent instead.
+import math as _p8s_math  # noqa: E402
+from types import SimpleNamespace as _p8s_ns  # noqa: E402
+
+from heatpump_optimizer import const as _p8s_const  # noqa: E402
+from heatpump_optimizer.freq_control import (  # noqa: E402
+    FREQ_MODE_CONTROL as _P8S_CONTROL,
+    FREQ_SOURCE_NUMBER as _P8S_NUMBER,
+)
+
+# const.buffer_tank_surface_area's floor: a zero or negative volume is a
+# tiny real tank, never 0.0 m2 (a zero clamp range) or a complex number.
+_p8s_areas = [_p8s_const.buffer_tank_surface_area(v) for v in (0.0, -50.0)]
+R.check(
+    "a zero or negative tank volume still has a real, positive surface area",
+    all(isinstance(a, float) and _p8s_math.isfinite(a) and a > 0.0 for a in _p8s_areas),
+    f"{_p8s_areas!r}",
+)
+
+# InputReader.value: a STALE reading keeps its number (read() leaves it for a
+# caller that explicitly wants the last value) but value() must not hand it
+# out -- the default path treats stale as absent.
+_p8s_now = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
+_p8s_reader = InputReader(
+    FakeHass({"sensor.indoor": FakeState("21.4", last_updated=_p8s_now - timedelta(days=3))}),
+    {"indoor_temp_entity": "sensor.indoor"},
+    now=lambda: _p8s_now,
+)
+_p8s_stale = _p8s_reader.read("indoor_temp_entity")
+R.check(
+    "value() returns the default for a stale reading that still holds a number",
+    _p8s_stale.stale
+    and _p8s_stale.value == 21.4
+    and _p8s_reader.value("indoor_temp_entity", -99.0) == -99.0
+    and _p8s_reader.value("outdoor_temp_entity", -99.0) == -99.0,
+    f"stale={_p8s_stale.stale} held={_p8s_stale.value!r} "
+    f"value={_p8s_reader.value('indoor_temp_entity', -99.0)!r}",
+)
+_p8s_fresh = InputReader(
+    FakeHass({"sensor.indoor": FakeState("21.4", last_updated=_p8s_now - timedelta(minutes=5))}),
+    {"indoor_temp_entity": "sensor.indoor"},
+    now=lambda: _p8s_now,
+)
+_p8s_fresh.read("indoor_temp_entity")
+R.check(
+    "null control: value() returns a fresh reading's number",
+    _p8s_fresh.value("indoor_temp_entity", -99.0) == 21.4,
+    f"got {_p8s_fresh.value('indoor_temp_entity', -99.0)!r}",
+)
+
+# _track_curve_comfort folds YESTERDAY's worst margin when a new day starts.
+_p8s_cc = _Coord(_FakeHass(), _FakeEntry(data={**_P8_CFG, "curve_learning_enabled": True}))
+_p8s_cc._learning_frozen = lambda key: None
+_p8s_days = []
+_p8s_cc._curve_learner = _p8s_ns(
+    bias=0.0,
+    record_day=lambda now, worst: _p8s_days.append((now.date().isoformat(), worst)),
+    record_miss=lambda now, margin: None,
+)
+_p8s_cc._current_state.room_temperature = 21.5
+_p8s_cc._track_curve_comfort(datetime(2026, 1, 15, 12, 0, tzinfo=UTC))
+_p8s_first = _p8s_cc._curve_day_worst
+_p8s_cc._track_curve_comfort(datetime(2026, 1, 16, 12, 0, tzinfo=UTC))
+R.check(
+    "a new day folds the previous day's worst margin into the curve learner once",
+    _p8s_first is not None and _p8s_days == [("2026-01-16", _p8s_first)],
+    f"folded {_p8s_days!r}, first day worst {_p8s_first!r}",
+)
+
+
+_P8_CFG_NOW = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
+
+
+# _observe_frequency: the watchdog counts a divergence only while the plan
+# asks for the compressor AND the pump reads in its running range.
+def _p8s_watch(commanded_kw, reported_hz):
+    coord = _Coord(
+        _FakeHass(),
+        _FakeEntry(data={**_P8_CFG, "freq_control_mode": _P8S_CONTROL,
+                         "compressor_freq_entity": "number.freq"}),
+    )
+    seen = []
+    coord._freq_entity_reading = lambda: (reported_hz, 20.0, 120.0, _P8S_NUMBER)
+    coord._commanded_power = lambda: commanded_kw
+    coord._freq_watchdog = _p8s_ns(
+        note_report=lambda reported, active: seen.append(active) or False
+    )
+    coord._observe_frequency(_P8_CFG_NOW)
+    return seen
+
+
+R.check(
+    "an idle plan or a pump below its running range is not watched",
+    _p8s_watch(0.0, 45.0) == [False] and _p8s_watch(2.0, 10.0) == [False],
+    f"idle at 45 Hz -> {_p8s_watch(0.0, 45.0)}, running at 10 Hz -> {_p8s_watch(2.0, 10.0)}",
+)
+R.check(
+    "null control: a running plan with the pump in range is watched",
+    _p8s_watch(2.0, 45.0) == [True],
+    f"got {_p8s_watch(2.0, 45.0)}",
+)
+
+# --- One store capacity, read raw wherever it is read (round 7, D2-03) -----
+#
+# The class D2-01 named and repaired in `thermal_model.py`: a store's capacity
+# floored by `max(<capacity>, <number>)` in ONE expression of a computation
+# whose other expressions read the same capacity raw, so two expressions of one
+# computation disagree about how big the store is. The floor is a COEFFICIENT
+# wherever it scales a rate, a decay or a loss per hour -- the code then models
+# a bigger store than the user configured -- and a THRESHOLD only where the
+# number means "the least store worth planning around", `buffer_is_store`'s
+# `BUFFER_STORE_MIN_VOLUME` being that shape. The seams, by disposition:
+#
+#   optimizer.py:_dhw_coil_wood_forecast    coefficient -- fixed, #1487
+#   optimizer.py:_dhw_window_floors         coefficient -- fixed
+#   optimizer.py:_plan_dhw_min_cost         coefficient -- fixed
+#   optimizer.py:_repair_dhw_floor          coefficient -- fixed
+#   optimizer.py:_plan_dhw_cheapest_first   coefficient -- fixed
+#   coordinator.py:_dhw_setpoint_sweep      coefficient -- fixed
+#   dhw_learning.py:async_fold_draw_stats   coefficient -- fixed
+#   optimizer.py:_clamp_dhw_to_capacity     THRESHOLD   -- recorded, kept
+#
+# Each fixed floor binds only at a tank volume the service call
+# `SERVICE_SCHEMA_SET_THERMAL_PARAMS` admits and the config flow does not reach:
+# 0.05 kWh/K is 43.1 L and 0.01 kWh/K is 8.62 L, against the config flow's 50 L
+# floor and the service's `POSITIVE_PARAM_FLOOR` of 0.01 L. No shipped
+# configuration moves, so every arm below builds its own sub-floor tank instead
+# of reaching one through a flow. The figures quoted in these comments are the
+# pre-fix readings at the merge base, and each arm's own detail string prints
+# the live one.
+#
+# The clamp's `1e-6` is the one floor kept, on the class's own rule: a not-zero
+# epsilon BELOW the capacity the service floor yields cannot bind, so it can
+# only be a division guard. `POSITIVE_PARAM_FLOOR` is 0.01 L, whose thermal mass
+# is 1.16e-05 kWh/K, and 1e-6 kWh/K is 8.62e-04 L -- two orders under it. The
+# last check pins that relation, so raising the epsilon into a coefficient is a
+# red check and not a silent regression.
+from heatpump_optimizer import mixing_valve as _r7d203_mv  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    POSITIVE_PARAM_FLOOR as _R7D203_SERVICE_FLOOR,
+)
+from heatpump_optimizer.dhw_draws import labels_for as _r7d203_labels  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _R7D203_PLANNER,
+    OptimizationConfig as _R7D203_CFG,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _R7D203_MODEL,
+    ThermalParameters as _R7D203_PARAMS,
+    ThermalState as _R7D203_STATE,
+    WATER_SPECIFIC_HEAT as _R7D203_CP,
+    dhw_coil_draw_reduction as _r7d203_coil_draw,
+)
+from harness import FakeEntry as _r7d203_entry  # noqa: E402
+
+_R7D203_OPTCFG = _R7D203_CFG(
+    horizon_hours=24, time_step_minutes=15, target_temp=21.0,
+    min_temp=17.0, max_temp=23.0,
+)
+
+
+def _r7d203_opt(volume, **over):
+    """A planner over a one-tank install, at the volume it is handed."""
+    params = _R7D203_PARAMS(dhw_enabled=True, dhw_tank_volume=volume, **over)
+    return _R7D203_PLANNER(_R7D203_MODEL(params), _R7D203_OPTCFG), params
+
+
+def _r7d203_horizon(n=96, wood=60.0):
+    """A day of steps at a steady -5 °C, with the DHW draw profile's draws."""
+    hours = np.arange(n) * 0.25
+    state = _R7D203_STATE(
+        room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=-5.0,
+        dhw_temperature=48.0, dhw_hours_since_legionella=20.0,
+        buffer_tank_temperature=45.0, wood_tank_temperature=wood,
+    )
+    return _Horizon(
+        initial_state=state, prices=np.zeros(n), outdoor_temps=np.full(n, -5.0),
+        wind_speeds=np.zeros(n), precipitation=np.zeros(n),
+        solar_radiation=np.zeros(n), start_time=None, n_steps=n, dt=0.25,
+        comfort_targets=np.full(n, 21.0), temp_min_bounds=np.full(n, 17.0),
+        temp_max_bounds=np.full(n, 23.0), step_hours=hours,
+        solar_gains=np.zeros(n), heat_loss_factors=np.ones(n), forecast={},
+        t_start=0.0,
+    )
+
+
+# `_dhw_coil_wood_forecast` folds the coil's own heat into the tank it prices
+# against, by dividing the wood store's capacity into it. The same reduction is
+# what `simulate_trajectory` applies to the raw trajectory, so the forecast's
+# per-step drop must be the coil's thermal draw at the wood store's own
+# capacity. Counted: steps where the two differ by more than 1e-12 kWh, over the
+# steps whose raw draw the coil actually serves. At 5 L the pre-fix reading is
+# 96 of 96 steps and 0.0086 kWh worst; at 200 L, 0 of 96 -- the null, since the
+# floor does not bind there. 0.01 kWh/K is 8.62 L, so a 5 L wood tank is under
+# it and the config flow's wood floor (50 L) is over it.
+def _r7d203_coil_mismatches(wood_l):
+    opt, params = _r7d203_opt(
+        200.0, two_zone_enabled=True, buffer_tank_volume=200.0,
+        mixing_valve_mode=_r7d203_mv.MODE_MANUAL, mixing_valve_target=21.0,
+        wood_tank_configured=True, wood_tank_volume=wood_l,
+        dhw_wood_coil_enabled=True,
+    )
+    h = _r7d203_horizon()
+    forecast = opt._dhw_coil_wood_forecast(h)
+    if forecast is None:
+        return None
+    *_, raw_temps = opt.model.simulate_trajectory(
+        initial_state=h.initial_state, power_schedule=np.zeros(h.n_steps),
+        outdoor_temps=h.outdoor_temps, wind_speeds=h.wind_speeds,
+        precipitation=h.precipitation, solar_radiation=h.solar_radiation,
+        dt_hours=h.dt, external_heat_kw=h.external_heat_kw,
+        valve_targets=h.valve_targets, humidity=h.humidity,
+        start_hour=float(h.step_hours[0]),
+    )
+    rates = opt.model.dhw_draw_rates(np.asarray(h.step_hours) % 24.0)
+    drawn = mismatched = 0
+    for i in range(min(len(rates), len(forecast) - 1)):
+        _, q_coil = _r7d203_coil_draw(
+            float(rates[i]), float(raw_temps[i + 1]), params.dhw_setpoint,
+            inlet_temp=params.dhw_inlet_reference,
+        )
+        if q_coil <= 0.0:
+            continue
+        drawn += 1
+        drop = (raw_temps[i + 1] - forecast[i + 1]) * params.wood_tank_thermal_mass
+        if abs(drop - q_coil * h.dt) > 1e-12:
+            mismatched += 1
+    return drawn, mismatched
+
+
+# `_dhw_window_floors` RETURNS the capacity it divided the window's energy by,
+# and the three planners it is threaded into take that value as their own
+# `c_dhw`. So the value it returns is the shared quantity: it must be the tank's
+# own capacity. At 5 L the pre-fix reading is 0.05 kWh/K against a configured
+# 0.0058; at 200 L both are 0.232 (the null).
+def _r7d203_window_capacity(volume):
+    opt, params = _r7d203_opt(volume)
+    windows, _ = opt._effective_dhw_windows()
+    res = opt._dhw_window_floors(
+        params, windows, np.arange(96) * 0.25, None, 0.25, 96, None
+    )
+    return res[0], params.dhw_tank_thermal_mass
+
+
+# The three planners below each took the floored capacity as a whole, so a
+# sub-floor tank was silently planned at the floor. `_plan_dhw_min_cost` is the
+# sharpest witness: the floored capacity is the ONLY way the argument reaches
+# the model, so before the fix every sub-floor capacity produces the same plan
+# as 0.05 kWh/K exactly -- measured 0.930050086 for each of 0.0058, 0.01, 0.03
+# and 0.049. Above the floor the argument reaches the model directly (0.06 and
+# 0.10 give 1.000130631 and 1.280905743), which is the liveness leg: the
+# comparison can tell two capacities apart, so it is not a dead arm.
+def _r7d203_min_cost(c_dhw, n=12, dt=1.0):
+    opt, _ = _r7d203_opt(200.0, dhw_cooling_rate=0.3)
+    plan = opt._plan_dhw_min_cost(
+        45.0, np.full(n, 60.0), np.full(n, 1.0), np.full(n, -5.0),
+        np.zeros(n), n, dt, 3.0, c_dhw, np.full(n, 60.0),
+    )
+    return None if plan is None else float(plan.sum())
+
+
+# `_plan_dhw_cheapest_first`'s loss rate divides the same capacity, and it is
+# the rate the slot ranking is priced against: `prices[j] / retained_fraction(j)`
+# decides WHERE the blocks go. So the observable is the set of steps it places,
+# and the arm holds the install (and so its `ua`) fixed while varying only the
+# capacity it hands the planner. Three readings: a 5 L tank's own 0.0058 kWh/K
+# places [0, 11], the floor's 0.05 places [0, 1], and an above-floor 0.1 places
+# [0]; pre-fix the first two are the same plan, which is the defect. The third
+# is the liveness leg -- the ranking does move with the rate it is given, so an
+# equal count is not a dead arm.
+def _r7d203_greedy_steps(c_dhw, volume=43.1, req=50.0, ceiling=55.0, n=12):
+    opt, _ = _r7d203_opt(volume, dhw_cooling_rate=0.3)
+    plan = opt._plan_dhw_cheapest_first(
+        45.0, np.full(n, req), np.linspace(0.2, 2.0, n), np.full(n, -5.0),
+        np.zeros(n), n, 1.0, 3.0, 0.1, 24, c_dhw, np.full(n, ceiling),
+    )
+    return [i for i, value in enumerate(plan) if value > 0.0]
+
+
+# `_repair_dhw_floor`'s decay factor is the tank's own loss per step, inverted
+# to price how much of a top-up still survives at the breach. It is the one
+# place the floored capacity reaches the search's SHAPE rather than its scale:
+# with a ceiling that FALLS mid-horizon (the post-disinfection shape the
+# method's own docstring names) the room bound is the tightest of
+# `(room at m) / decay^(m-j)`, so the decay decides where blocks land. At
+# 17.24 L (0.02 kWh/K), 3.0 kWh/h/K, a ceiling of 60 for four steps and 54 for
+# eight, and a requirement of 45 for nine steps then 60, the pre-fix arm places
+# three blocks ([0, 5, 9]) and post-fix four ([0, 3, 7, 11]); a flat 60 ceiling
+# is unchanged by the fix ([0, 3, 6, 9] both ways), which is the null -- with
+# nothing falling there is no decay-sensitive bound to move.
+_R7D203_FALL = [60.0] * 4 + [54.0] * 8
+_R7D203_FALL_REQ = [45.0] * 9 + [60.0] * 3
+
+
+def _r7d203_repair_steps(c_dhw, ceiling, requirement, volume=17.24, n=12):
+    opt, _ = _r7d203_opt(volume, dhw_cooling_rate=3.0)
+    plan = opt._repair_dhw_floor(
+        plan=np.zeros(n), initial_temp=45.0, outdoor_temps=np.full(n, -5.0),
+        draw_rates=np.zeros(n), dt=1.0,
+        requirement=np.asarray(requirement, dtype=float),
+        max_temp=np.asarray(ceiling, dtype=float), p_dhw_max=3.0,
+        min_run_power=0.1, prices=np.linspace(0.5, 1.5, n), c_dhw=c_dhw,
+    )
+    return [i for i, value in enumerate(plan) if value > 0.0]
+
+
+# `_dhw_setpoint_sweep` sizes what the tank can deliver as
+# `c_dhw * (t - dhw_min_temp)`. Floored, a 5 L tank was credited with 8.6 times
+# its own capacity, so the sweep reported a heaviest window as covered that the
+# tank cannot hold: at 5 L with a 0.3 kWh heaviest window the pre-fix reading is
+# covered True at a 52 °C recommendation. At 200 L and the same window the
+# recommendation is 48 °C, and that reading does not move with the fix (the
+# null, since the floor does not bind there).
+def _r7d203_sweep(volume, heavy):
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home",
+              "dhw_tank_volume": volume},
+    ))
+    coord._thermal_params.dhw_enabled = True
+    coord._prices = [{"total": 1.0}] * 24
+    reservoirs = coord._dhw_learner.draw_stats.reservoirs
+    for label in _r7d203_labels(coord._thermal_params.dhw_demand_windows):
+        reservoirs[label] = [heavy] * 10
+    sweep = coord._dhw_setpoint_sweep()
+    return (
+        sweep.get("covers_heaviest_window"),
+        sweep.get("recommended_setpoint"),
+        coord._thermal_params.dhw_tank_thermal_mass,
+    )
+
+
+# `async_fold_draw_stats` converts an interval's beyond-standby temperature drop
+# into stored energy, `intensity * dt_h * capacity`. Divided by the capacity it
+# was multiplied by, the folded energy must be proportional to the tank's own
+# mass whatever that mass is. Pre-fix the folded energy per kWh/K is 30.34 at
+# 5 L against 3.52 at 200 L -- the floor's own ratio is 0.05/0.0058 = 8.6, and
+# the rest is that the fold also reads the raw capacity for its standby term.
+def _r7d203_fold_per_capacity(volume):
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home",
+              "dhw_tank_volume": volume},
+    ))
+    coord._thermal_params.dhw_enabled = True
+    learner = coord._dhw_learner
+    learner.cooling_rate = 0.3
+    _aio.run(learner.async_fold_draw_stats(
+        datetime(2026, 2, 1, 7, 0, tzinfo=timezone.utc), 60.0, 4.0, 1.0,
+    ))
+    return learner.draw_stats._open_kwh / coord._thermal_params.dhw_tank_thermal_mass
+
+
+_r7d203_wood_drawn, _r7d203_wood_bad = _r7d203_coil_mismatches(5.0)
+_r7d203_wood_null = _r7d203_coil_mismatches(200.0)
+R.check(
+    "a wood tank under the floor draws the coil's own heat, per step",
+    _r7d203_wood_bad == 0 and _r7d203_wood_null == (96, 0),
+    "the coil forecast's per-step drop differs from the coil's thermal draw at "
+    f"the wood store's own capacity on {_r7d203_wood_bad} of "
+    f"{_r7d203_wood_drawn} served steps at 5 L; the 200 L control reads "
+    f"{_r7d203_wood_null}",
+)
+
+_r7d203_floor_c, _r7d203_own_c = _r7d203_window_capacity(5.0)
+_r7d203_null_c, _r7d203_null_own = _r7d203_window_capacity(200.0)
+R.check(
+    "the window-floor planner reports the tank's own capacity",
+    _r7d203_floor_c == _r7d203_own_c and _r7d203_null_c == _r7d203_null_own,
+    f"the capacity threaded into the three planners is {_r7d203_floor_c!r} "
+    f"against a configured {_r7d203_own_c!r} at 5 L; at 200 L it is "
+    f"{_r7d203_null_c!r}",
+)
+
+_r7d203_min_lo = _r7d203_min_cost(0.0116)
+_r7d203_min_hi = _r7d203_min_cost(0.0499)
+_r7d203_min_over_lo = _r7d203_min_cost(0.06)
+_r7d203_min_over_hi = _r7d203_min_cost(0.10)
+R.check(
+    "a sub-floor capacity reaches the linear-cost planner",
+    _r7d203_min_lo != _r7d203_min_hi
+    and _r7d203_min_over_lo != _r7d203_min_over_hi,
+    "0.0116 and 0.0499 kWh/K both plan as the floor's 0.05 (a plan of "
+    f"{_r7d203_min_lo!r} each); above the floor the argument reaches the model, "
+    f"so 0.06 and 0.10 give {_r7d203_min_over_lo!r} and "
+    f"{_r7d203_min_over_hi!r} -- the comparison is live",
+)
+
+_r7d203_below = _r7d203_greedy_steps(0.0058)
+_r7d203_at_floor = _r7d203_greedy_steps(0.05)
+_r7d203_above = _r7d203_greedy_steps(0.1)
+R.check(
+    "a sub-floor capacity reaches the greedy planner's slot ranking",
+    _r7d203_below != _r7d203_at_floor and _r7d203_above != _r7d203_below,
+    f"a 5 L tank's own capacity places {_r7d203_below} where the floor's 0.05 "
+    f"places {_r7d203_at_floor}; 0.1 kWh/K places {_r7d203_above}, so the "
+    "ranking moves with the rate it is given",
+)
+
+_r7d203_fall = _r7d203_repair_steps(0.0199984, _R7D203_FALL, _R7D203_FALL_REQ)
+_r7d203_flat = _r7d203_repair_steps(0.0199984, [60.0] * 12, [60.0] * 12)
+R.check(
+    "a falling ceiling is repaired from the tank's own decay",
+    len(_r7d203_fall) == 4 and len(_r7d203_flat) == 4,
+    "on a ceiling that drops to 54 after four steps the repair places "
+    f"{_r7d203_fall} (three of four blocks pre-fix); on a flat ceiling it "
+    f"places {_r7d203_flat}, which the fix does not move",
+)
+
+_r7d203_sweep_5 = _r7d203_sweep(5.0, 0.3)
+_r7d203_sweep_200 = _r7d203_sweep(200.0, 0.3)
+R.check(
+    "a tank under the floor cannot be said to cover a window it cannot hold",
+    _r7d203_sweep_5[0] is False and _r7d203_sweep_200[0] is True,
+    f"a 5 L tank (its own capacity {_r7d203_sweep_5[2]!r} kWh/K) reads "
+    f"covers_heaviest_window={_r7d203_sweep_5[0]!r} at a "
+    f"{_r7d203_sweep_5[1]} °C recommendation, and the 200 L control reads "
+    f"covers_heaviest_window={_r7d203_sweep_200[0]!r} at "
+    f"{_r7d203_sweep_200[1]} °C",
+)
+
+_r7d203_fold_5 = _r7d203_fold_per_capacity(5.0)
+_r7d203_fold_200 = _r7d203_fold_per_capacity(200.0)
+R.check(
+    "a folded draw's energy is proportional to the tank's own capacity",
+    abs(_r7d203_fold_5 - _r7d203_fold_200) < 1e-9,
+    "the folded energy per kWh/K is "
+    f"{_r7d203_fold_5:.9f} at 5 L and {_r7d203_fold_200:.9f} at 200 L; the "
+    "floor makes the first read as a 43.1 L tank heat",
+)
+
+# A zero-capacity tank is the input the floors were hiding. With the capacity
+# read raw, four of the seams below divide by it, so each has to decline to
+# plan rather than raise. Pre-fix this arm answers "ZeroDivisionError": the
+# legionella run-up has no guard of its own and takes `c_dhw` straight from
+# `_dhw_window_floors`, whose 0.05 floor was the only thing keeping it off a
+# raise. So the floors cannot come out without the zero guard going in, and
+# this arm is what pins the guard: the capacity the window planner reports, the
+# legionella boost that is skipped, and the three planners' declines.
+def _r7d203_zero_capacity():
+    opt, params = _r7d203_opt(0.0, dhw_cooling_rate=0.3)
+    windows, _ = opt._effective_dhw_windows()
+    try:
+        window = float(opt._dhw_window_floors(
+            params, windows, np.arange(24) * 1.0, None, 1.0, 24, None
+        )[0])
+        legionella = opt._dhw_legionella_ceilings(
+            params=params, n_steps=12, dt=1.0, c_dhw=0.0,
+            draw_rates=np.zeros(12), floor_temps=np.full(12, 45.0),
+            outdoor_temps=np.full(12, -5.0), p_dhw_run=3.0,
+            legionella_due=True, legionella_hour=6.0, legionella_step=5,
+        )
+        min_cost = opt._plan_dhw_min_cost(
+            45.0, np.full(12, 55.0), np.full(12, 1.0), np.full(12, -5.0),
+            np.zeros(12), 12, 1.0, 3.0, 0.0, np.full(12, 55.0),
+        )
+        repair = opt._repair_dhw_floor(
+            plan=np.zeros(12), initial_temp=45.0,
+            outdoor_temps=np.full(12, -5.0), draw_rates=np.zeros(12), dt=1.0,
+            requirement=np.full(12, 55.0), max_temp=np.full(12, 55.0),
+            p_dhw_max=3.0, min_run_power=0.1, prices=np.full(12, 1.0),
+            c_dhw=0.0,
+        )
+        greedy = opt._plan_dhw_cheapest_first(
+            45.0, np.full(12, 55.0), np.full(12, 1.0), np.full(12, -5.0),
+            np.zeros(12), 12, 1.0, 3.0, 0.1, 6, 0.0, np.full(12, 55.0),
+        )
+    except ZeroDivisionError:
+        return "ZeroDivisionError"
+    return (
+        window,
+        float(legionella.max_temp[5]),
+        min_cost is None,
+        float(np.sum(repair)),
+        float(np.sum(greedy)),
+    )
+
+
+_r7d203_zero = _r7d203_zero_capacity()
+R.check(
+    "a zero-capacity tank yields no plan rather than a division error",
+    _r7d203_zero == (0.0, 55.0, True, 0.0, 0.0),
+    "the window planner must report the tank's own 0.0 and the legionella "
+    "run-up must be skipped rather than raise; the three planners decline with "
+    f"empty plans -- the arm answers {_r7d203_zero!r}",
+)
+
+R.check(
+    "the capacity clamp's epsilon is a division guard, not a threshold",
+    min(_R7D203_PARAMS(dhw_tank_volume=v).dhw_tank_thermal_mass for v in (
+        _R7D203_SERVICE_FLOOR, 0.5, 5.0, 43.1, 50.0, 200.0, 2000.0,
+    )) > 1e-6,
+    "the smallest capacity the service floor ("
+    f"{_R7D203_SERVICE_FLOOR} L) can yield is "
+    f"{_R7D203_SERVICE_FLOOR * _R7D203_CP:.3e} kWh/K, so a 1e-6 kWh/K max() "
+    "under `_clamp_dhw_to_capacity` cannot bind and is kept as a guard",
+)
+
+# --- Sites the D2-03 diff's mutation sample draws (round 7) ---------------
+#
+# `tests/mutation_table.py --scope changed` draws a seeded sample from every
+# candidate site in each production file a diff touches, not only from the
+# diff's own lines. The D2-03 diff touches optimizer.py, coordinator.py and
+# dhw_learning.py, and the sample drew three live sites that no driver
+# watched. Each check below kills one of them. The two sampled survivors that
+# are equivalent are recorded under `survivor_triage` in
+# tests/mutation_budgets.json instead.
+from heatpump_optimizer.const import (  # noqa: E402
+    DHW_COOLING_REFERENCE_DELTA as _R7PIN_REF_DELTA,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    DHW_AMBIENT_TEMP as _R7PIN_AMBIENT,
+)
+
+# `async_load_profile` restores a stored pooled profile only when it is a
+# 24-entry list. With that guard forced off, a well-formed store is ignored
+# and the learner keeps its seeded pattern. The stored flat profile
+# normalises to exactly 1.0 an hour, and the seeded pattern is not flat, so
+# the two readings differ.
+_r7pin_prof = _store_coord()
+_aio.run(_r7pin_prof._dhw_learner.profile_store.async_save(
+    {"hourly_profile": [2.0] * 24}
+))
+_r7pin_seeded = list(_r7pin_prof._dhw_learner.hourly_profile)
+_aio.run(_r7pin_prof._dhw_learner.async_load_profile())
+R.check(
+    "a stored 24-hour DHW profile is restored on load",
+    _r7pin_prof._dhw_learner.hourly_profile == [1.0] * 24
+    and _r7pin_seeded != [1.0] * 24,
+    f"loaded {_r7pin_prof._dhw_learner.hourly_profile[:3]}... from a flat "
+    f"store, against a seeded {_r7pin_seeded[:3]}...",
+)
+
+
+# `async_fold_draw_stats` subtracts the tank's standby loss before it books
+# a drop as a draw, and the standby rate scales with how far the tank sits
+# above ambient. A drop that equals the standby loss exactly is no draw at
+# all, so it books 0 kWh. With the above-ambient term clamped to zero, the
+# whole drop books as a draw.
+def _r7pin_standby_fold(previous_temp):
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))
+    coord._thermal_params.dhw_enabled = True
+    learner = coord._dhw_learner
+    learner.cooling_rate = 0.3
+    standby = (
+        0.3 * max(0.0, previous_temp - _R7PIN_AMBIENT) / _R7PIN_REF_DELTA
+    )
+    _aio.run(learner.async_fold_draw_stats(
+        datetime(2026, 2, 1, 7, 0, tzinfo=timezone.utc), previous_temp,
+        standby * 1.0, 1.0,
+    ))
+    return standby, learner.draw_stats._open_kwh
+
+
+_r7pin_rate, _r7pin_kwh = _r7pin_standby_fold(60.0)
+R.check(
+    "a drop that is all standby loss books no draw",
+    _r7pin_rate > 0.0 and _r7pin_kwh == 0.0,
+    f"a {_r7pin_rate:.4f} K/h standby drop at 60 C booked {_r7pin_kwh!r} kWh",
+)
+
+# `_plan_dhw_min_cost` limits DHW power at each step to what the
+# compressor has left after space heating, with a displacement variable
+# that pays for anything it pushes out. With that constraint's guard forced
+# off, the capacity-contention columns are still built for a row block that
+# no longer exists, and the program raises instead of planning. Here the four
+# cheap steps have no room left and the four dear steps have all of it.
+_r7pin_opt, _ = _r7d203_opt(200.0)
+try:
+    _r7pin_plan = _r7pin_opt._plan_dhw_min_cost(
+        45.0, np.array([45.0] * 7 + [55.0]), np.array([0.1] * 4 + [1.0] * 4),
+        np.full(8, -5.0), np.zeros(8), 8, 1.0, 3.0, 0.232, np.full(8, 60.0),
+        space_demand=np.array([5.0] * 4 + [0.0] * 4), p_total_max=5.0,
+    )
+    _r7pin_err = None
+except Exception as _err:  # noqa: BLE001
+    _r7pin_plan, _r7pin_err = None, f"{type(_err).__name__}: {_err}"
+R.check(
+    "the DHW cost program plans under space-heating contention",
+    _r7pin_plan is not None
+    and len(_r7pin_plan) == 8
+    and float(np.max(_r7pin_plan[:4])) < float(np.max(_r7pin_plan[4:])),
+    f"plan {None if _r7pin_plan is None else np.round(_r7pin_plan, 4).tolist()}"
+    f"; raised {_r7pin_err}",
+)
+
+# --- The DHW standby coefficient, read raw (round 7, D2-03 review) --------
+#
+# The tank's standby loss coefficient `ua` is derived, not configured:
+# `rate * C_tank / DHW_COOLING_REFERENCE_DELTA`, with the rate clipped to
+# [DHW_COOLING_RATE_MIN, DHW_COOLING_RATE_MAX]. So `ua / C_tank` -- the
+# fraction of stored heat lost per hour -- does not depend on the tank's
+# volume, and neither does any temperature the planner derives from it. The
+# simulator reads `ua` raw. Three planner methods read it as
+# `max(ua, 1e-6)`, a floor that binds below about 0.43 L at the minimum rate,
+# a volume the service's POSITIVE_PARAM_FLOOR (0.01 L) admits.
+#
+# The property each arm checks: with power scaled by the tank's capacity,
+# the planner's answer scales with the capacity too, so two tanks give the
+# same answer per kWh/K. 0.1 L and 0.2 L both sit under the epsilon, so a
+# floor makes their loss rates differ (by a factor of two) and the answers
+# with them. The 5 L / 10 L pair sits above it and is the null: the floor
+# cannot bind there, and the pair agrees with or without it.
+#
+# The repair arm's ceiling falls by only half a degree: its decay prices how
+# much of a top-up survives to a falling ceiling, so a small fall is the
+# shape that decay can move (a 54 C fall was measured blind to the floor).
+#
+# `ua` is only ever a multiplier in these methods, so a zero `ua` leaves
+# decay at 1.0 and gain at 0.0 and needs no guard. The zero it comes from,
+# a zero capacity, is refused upstream by each method's own `c_dhw` guard
+# (the zero-capacity arm above).
+_R7UA_RATE = 0.05
+
+
+def _r7ua_min_cost(volume):
+    opt, params = _r7d203_opt(volume, dhw_cooling_rate=_R7UA_RATE)
+    c = params.dhw_tank_thermal_mass
+    n = 12
+    plan = opt._plan_dhw_min_cost(
+        45.0, np.array([45.0] * 8 + [55.0] * 4), np.linspace(0.5, 1.5, n),
+        np.full(n, -5.0), np.zeros(n), n, 1.0, 50.0 * c, c,
+        np.full(n, 60.0),
+    )
+    return None if plan is None else np.asarray(plan, dtype=float) / c
+
+
+def _r7ua_repair(volume):
+    opt, params = _r7d203_opt(volume, dhw_cooling_rate=_R7UA_RATE)
+    c = params.dhw_tank_thermal_mass
+    n = 12
+    plan = opt._repair_dhw_floor(
+        plan=np.zeros(n), initial_temp=45.0, outdoor_temps=np.full(n, -5.0),
+        draw_rates=np.zeros(n), dt=1.0,
+        requirement=np.array([45.0] * 9 + [60.0] * 3),
+        max_temp=np.array([60.0] * 4 + [59.5] * 8), p_dhw_max=50.0 * c,
+        min_run_power=5.0 * c, prices=np.linspace(0.5, 1.5, n), c_dhw=c,
+    )
+    return np.asarray(plan, dtype=float) / c
+
+
+def _r7ua_legionella(volume):
+    opt, params = _r7d203_opt(volume, dhw_cooling_rate=_R7UA_RATE)
+    c = params.dhw_tank_thermal_mass
+    n = 24
+    res = opt._dhw_legionella_ceilings(
+        params=params, n_steps=n, dt=1.0, c_dhw=c, draw_rates=np.zeros(n),
+        floor_temps=np.full(n, 20.0), outdoor_temps=np.full(n, -5.0),
+        p_dhw_run=2.0 * c, legionella_due=True, legionella_hour=20.0,
+        legionella_step=20,
+    )
+    return np.asarray(res.runup_temps, dtype=float)
+
+
+def _r7ua_gap(fn, a, b):
+    x, y = fn(a), fn(b)
+    if x is None or y is None:
+        return float("inf")
+    return float(np.max(np.abs(x - y)))
+
+
+_r7ua_rows = [
+    ("_plan_dhw_min_cost", _r7ua_min_cost, 1e-6),
+    ("_repair_dhw_floor", _r7ua_repair, 1e-9),
+    ("_dhw_legionella_ceilings", _r7ua_legionella, 1e-9),
+]
+_r7ua_ua = _R7D203_PARAMS(
+    dhw_enabled=True, dhw_tank_volume=0.2, dhw_cooling_rate=_R7UA_RATE,
+).dhw_tank_heat_loss_coefficient
+for _name, _fn, _tol in _r7ua_rows:
+    _sub = _r7ua_gap(_fn, 0.1, 0.2)
+    _over = _r7ua_gap(_fn, 5.0, 10.0)
+    R.check(
+        f"{_name} reads the tank's own standby coefficient at any volume",
+        _r7ua_ua < 1e-6 and _sub <= _tol and _over <= _tol,
+        f"per kWh/K, 0.1 L and 0.2 L (ua {_r7ua_ua:.3e} kW/K at 0.2 L, under "
+        f"the 1e-6 floor) differ by {_sub:.3e}; the 5 L / 10 L null differs "
+        f"by {_over:.3e}; tolerance {_tol}",
+    )
+
+# The arms above can only fail if the answer moves with the loss rate at
+# all. This leg changes nothing but the rate, at 5 L, and requires all three
+# answers to move.
+for _name, _fn, _tol in _r7ua_rows:
+    _slow = _fn(5.0)
+    _R7UA_RATE = 3.0
+    _fast = _fn(5.0)
+    _R7UA_RATE = 0.05
+    R.check(
+        f"{_name}'s answer moves with the tank's loss rate (liveness)",
+        _slow is not None and _fast is not None
+        and float(np.max(np.abs(_slow - _fast))) > 100 * _tol,
+        "the same 5 L tank at 0.05 and 3.0 C/h differs by "
+        f"{float(np.max(np.abs(_slow - _fast))) if _slow is not None and _fast is not None else 'n/a'}",
+    )
+
+# --- Two more sites the D2-03 diff's mutation sample draws (CI, round 2) --
+#
+# `get_current_action` reads the DHW temperature trajectory only while the
+# step index is inside it. A trajectory shorter than the schedule (a
+# truncated or restored result) must leave the late steps without a DHW
+# temperature, not raise. With the guard's `and` read as `or`, a non-empty
+# short trajectory is indexed past its end.
+_r7act_res = _dc_replace(_hold_r, dhw_temp_trajectory=[50.0])
+try:
+    _r7act_late = _ao.get_current_action(_r7act_res, _r7act_res.timestamps[8])
+    _r7act_err = None
+except Exception as _err:  # noqa: BLE001
+    _r7act_late, _r7act_err = None, f"{type(_err).__name__}: {_err}"
+_r7act_early = _ao.get_current_action(_r7act_res, _r7act_res.timestamps[0])
+R.check(
+    "a DHW trajectory shorter than the schedule is read only where it exists",
+    _r7act_late is not None
+    and "dhw_temperature" not in _r7act_late
+    and _r7act_early.get("dhw_temperature") == 50.0,
+    f"step 8 of a one-entry trajectory: raised {_r7act_err}, action "
+    f"dhw_temperature {None if _r7act_late is None else _r7act_late.get('dhw_temperature')!r}; "
+    f"step 0 reads {_r7act_early.get('dhw_temperature')!r}",
+)
+
+
+# `async_learn_cooling` folds a quieter observed cooling rate in as a lower
+# envelope: each repeat of the same quiet reading closes a fixed fraction of
+# the remaining gap, DHW_COOLING_ALPHA_DOWN. So the ratio of two successive
+# steps is 1 - alpha, whatever the observed rate, and this reads it from the
+# learner's own output. This check encodes a design choice (a quarter of the
+# gap per quiet reading). A deliberate retune changes the expected ratio here
+# with it.
+def _r7cool_steps():
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))
+    coord._thermal_params.dhw_enabled = True
+    learner = coord._dhw_learner
+    learner.apply_cooling_rate(2.0)
+    rates = [learner.cooling_rate]
+    for _ in range(2):
+        _aio.run(learner.async_learn_cooling(60.0, 59.0, 2.0))
+        rates.append(learner.cooling_rate)
+    return rates
+
+
+_r7cool = _r7cool_steps()
+_r7cool_ratio = (
+    (_r7cool[2] - _r7cool[1]) / (_r7cool[1] - _r7cool[0])
+    if _r7cool[1] != _r7cool[0] else float("nan")
+)
+R.check(
+    "a quieter cooling reading closes a quarter of the gap each time",
+    _r7cool[2] < _r7cool[1] < _r7cool[0]
+    and abs(_r7cool_ratio - 0.75) < 1e-9,
+    f"rates {[round(r, 6) for r in _r7cool]}; successive-step ratio "
+    f"{_r7cool_ratio!r}, expected 1 - 0.25",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
