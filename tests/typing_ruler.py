@@ -315,6 +315,34 @@ def requirement_lines(budget: dict) -> list[str]:
     ]
 
 
+# The typing job installs this hashed lock, not --print-requirements (#1548).
+LOCK = REPO_ROOT / "tests" / "requirements-typing.txt"
+
+
+def lock_disagreements(budget: dict, text: str) -> list[str]:
+    """Where the typing job's lock stops installing what ``requirement_lines`` names.
+
+    The pair can move in the budget and not in the lock. Guard 2 would refuse
+    that in CI, after the pull request; this is the same comparison made from
+    the file, in the source lane, where it costs nothing.
+    """
+    def key(name: str) -> str:
+        return re.sub(r"[-_.]+", "-", name.lower())
+
+    pinned = {
+        key(m.group(1)): m.group(2)
+        for m in re.finditer(r"^([A-Za-z0-9][A-Za-z0-9._-]*)==(\S+)", text, re.M)
+    }
+    out = []
+    for line in requirement_lines(budget):
+        name, _, version = line.partition("==")
+        if key(name) not in pinned:
+            out.append(f"{name} is not in the lock")
+        elif version and pinned[key(name)] != version:
+            out.append(f"{name}=={pinned[key(name)]} in the lock, =={version} in the budget")
+    return out
+
+
 def third_party_versions(budget: dict) -> dict[str, str]:
     return {
         name: installed_version(name) or "MISSING"
@@ -638,6 +666,13 @@ def selftest(report: Report, budget: dict) -> None:
         "not the census (#504)",
     )
 
+    # The lock check's null control: a budget no lock can agree with.
+    report.check(
+        "the lock check refuses a lock that disagrees with the budget",
+        bool(lock_disagreements(impossible, LOCK.read_text())),
+        "a mypy pin of 0.0.0+never-installed matched the committed lock",
+    )
+
     checks, failures, text = _arm(None)
     report.check(
         f"guard 5: unset prints how to enable it and fails nothing",
@@ -666,6 +701,13 @@ def source_checks(report: Report, budget: dict) -> None:
         report.check("type_ignores did not grow", True)
         if ignores < budgeted:
             report_improvements([("type_ignores", budgeted, ignores)])
+
+    drift = lock_disagreements(budget, LOCK.read_text())
+    report.check(
+        "the typing job's hashed lock installs the recorded pins",
+        not drift,
+        "; ".join(drift) + f". Regenerate {LOCK.name} with the command in its header",
+    )
 
     # Guard 4.
     surfaces = find_suppression_surfaces()

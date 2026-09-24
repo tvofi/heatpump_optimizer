@@ -23695,6 +23695,191 @@ R.check(
 )
 
 
+# --- every CI install is hash-pinned (#1548, R8-D11-s2-03) -----------------
+# Every `uses:` ref is SHA-pinned (#960), but the installs those jobs ran were
+# pinned by version only: an index that served different bytes under the same
+# version was installed without complaint. The barrier is keyed on the
+# PROPERTY -- a dependency-install command in a `run:` step of ANY workflow --
+# not on the twelve commands the finder counted, so a new job, a new workflow
+# or a reworded install is read the same way.
+#
+# What passes, and the design choice in it, said out loud (fixer.md step 11):
+#   pip   `pip install` (bare, `python -m pip` or `uv pip`) with
+#         `--require-hashes`, `--build-constraint FILE` and one or more
+#         `-r FILE`, no positional package spec, and every FILE a committed
+#         path whose every requirement is `name==version` with a sha256.
+#         `--build-constraint` is required even of a lock with no sdist in it:
+#         `--require-hashes` does not reach the isolated environment that
+#         builds an sdist, so an sdist added to a lock later would otherwise
+#         fetch its build requirements unhashed with nothing here noticing.
+#         A file generated at run time (`$RUNNER_TEMP/...`) is refused: it is
+#         the shape the typing lane had, and no reviewer ever sees its hashes.
+#         An unknown pip flag is refused rather than guessed about.
+#   npm   `npm ci` only, over a committed package-lock.json whose every
+#         package carries an `integrity`; `npm install`/`i`/`add`/`exec`,
+#         `npx` and the other runners that fetch by name are refused.
+# NOT covered, deliberately: `apt-get install` (the distribution's signed
+# archive, which OpenSSF Scorecard's Pinned-Dependencies does not count), the
+# toolchains `setup-python`/`setup-node` fetch (their actions are SHA-pinned),
+# the Chromium build `playwright install` downloads (fixed by the now
+# hash-locked playwright-core, not hash-checked by it), and the container
+# image `tests/nightly_ha.py` runs by tag.
+import shlex as _pin_shlex  # noqa: E402
+
+_PIN_PIP = re.compile(r"\bpip3?\s+install\b")
+_PIN_FETCHERS = re.compile(
+    r"\bnpm\s+(?:install|i|add|exec|x|update|up)\b|\bnpx\b|\byarn\b|\bpnpm\b"
+    r"|\bbunx?\b|\bpipx\b|\buvx\b|\buv\s+tool\b|\bgo\s+install\b"
+    r"|\bgem\s+install\b|\bcargo\s+install\b"
+)
+_PIN_REQ = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*(\[[^\]]*\])?==[^\s;\\]+")
+_PIN_HASH = re.compile(r"--hash=sha256:[0-9a-f]{64}\b")
+
+
+def _pin_lock_problem(label: str, text: str) -> "str | None":
+    """Why a requirements file's text is not fully hash-pinned, or None."""
+    logical = re.sub(r"\\\n", " ", text)
+    reqs = [ln.strip() for ln in logical.splitlines()
+            if ln.strip() and not ln.lstrip().startswith("#")]
+    bad = [ln[:40] for ln in reqs
+           if not (_PIN_REQ.match(ln) and _PIN_HASH.search(ln))]
+    if not reqs or bad:
+        return f"{label}: unhashed or unpinned requirement(s) {bad[:3] or 'none at all'}"
+    return None
+
+
+def _pin_unhashed_lock(path: str) -> "str | None":
+    """Why the requirements file a workflow names is not a committed, hashed lock."""
+    if "$" in path or path.startswith("/") or not (_closure.ROOT / path).is_file():
+        return f"{path} is not a committed file"
+    return _pin_lock_problem(path, (_closure.ROOT / path).read_text())
+
+
+def _pin_pip_refusal(cmd: str) -> "str | None":
+    """Why one `pip install` command is not hash-pinned, or None."""
+    try:
+        toks = _pin_shlex.split(cmd[_PIN_PIP.search(cmd).end():])
+    except ValueError as exc:
+        return f"unparseable: {exc}"
+    flags, files, i = set(), [], 0
+    while i < len(toks):
+        tok = toks[i]
+        if tok in ("-r", "--requirement", "--build-constraint") and i + 1 < len(toks):
+            flags.add("-r" if tok != "--build-constraint" else tok)
+            files.append(toks[i + 1])
+            i += 2
+            continue
+        if tok in ("--require-hashes", "-q", "--quiet"):
+            flags.add(tok)
+        else:
+            return f"argument {tok!r} is a package spec or an unvetted flag"
+        i += 1
+    missing = {"--require-hashes", "--build-constraint", "-r"} - flags
+    if missing:
+        return f"missing {sorted(missing)}"
+    for f in files:
+        why = _pin_unhashed_lock(f)
+        if why:
+            return why
+    return None
+
+
+def _pin_unhashed_installs(label: str, text: str) -> "tuple[list[str], int]":
+    """(refusals, installs inspected) over one workflow's `run:` steps."""
+    doc = _yaml.safe_load(text) or {}
+    refusals, seen = [], 0
+    for job_name, job in (doc.get("jobs") or {}).items():
+        for step in (job or {}).get("steps") or []:
+            run = (step or {}).get("run") or ""
+            run = "\n".join(ln for ln in run.splitlines()
+                            if not ln.lstrip().startswith("#"))
+            run = re.sub(r"\\\n\s*", " ", run)
+            for seg in re.split(r"&&|\|\||[;|\n]", run):
+                seg = seg.strip()
+                where = f"{label}:{job_name}: {seg[:70]}"
+                if _PIN_FETCHERS.search(seg):
+                    seen += 1
+                    refusals.append(f"{where} -- fetches by name, not by lock")
+                elif _PIN_PIP.search(seg):
+                    seen += 1
+                    why = _pin_pip_refusal(seg)
+                    if why:
+                        refusals.append(f"{where} -- {why}")
+                elif re.search(r"\bnpm\s+ci\b", seg):
+                    seen += 1
+    return refusals, seen
+
+
+def _pin_lock_without_integrity(path: Path) -> "list[str]":
+    pkgs = json.loads(path.read_text()).get("packages") or {}
+    return [k for k, v in pkgs.items()
+            if k and not str(v.get("integrity", "")).startswith("sha512-")]
+
+
+_PIN_REFUSED, _PIN_SEEN = [], 0
+for _pin_wf in sorted((_closure.ROOT / ".github" / "workflows").glob("*.y*ml")):
+    _r, _n = _pin_unhashed_installs(_pin_wf.name, _pin_wf.read_text())
+    _PIN_REFUSED += _r
+    _PIN_SEEN += _n
+_PIN_NPM_LOCKS = [
+    f for f in _subprocess.run(
+        ["git", "ls-files", "*package-lock.json"], cwd=_closure.ROOT,
+        capture_output=True, text=True,
+    ).stdout.split()
+]
+for _pin_lock in _PIN_NPM_LOCKS:
+    _missing = _pin_lock_without_integrity(_closure.ROOT / _pin_lock)
+    if _missing:
+        _PIN_REFUSED.append(f"{_pin_lock}: no sha512 integrity for {_missing[:3]}")
+R.check(
+    "every dependency install in every workflow is hash-pinned (#1548)",
+    not _PIN_REFUSED and _PIN_SEEN > 0 and _PIN_NPM_LOCKS,
+    f"{len(_PIN_REFUSED)} refused of {_PIN_SEEN} install command(s), "
+    f"{len(_PIN_NPM_LOCKS)} npm lock(s): {_PIN_REFUSED[:4]}. Install from a "
+    "committed hashed lock (`uv pip compile --generate-hashes`; the header of "
+    "tests/requirements-ci.txt has the command) or `npm ci`",
+)
+
+# The barrier's own arms, driven through the same functions over synthetic
+# workflows, so a reader that stopped seeing installs cannot pass the check
+# above by finding nothing: each red arm must refuse and the green arm must not.
+_PIN_OK = ("pip install --require-hashes --build-constraint "
+           "tests/requirements-build.txt -r tests/requirements-ci.txt")
+_PIN_ARMS = {
+    "the finder's version-pinned install": ("pip install -r tests/requirements-ci.txt", 1),
+    "a bare package spec beside the flags": (_PIN_OK + " 'coverage==7.13.1'", 1),
+    "a lock generated at run time": (
+        _PIN_OK.replace("tests/requirements-ci.txt", '"$RUNNER_TEMP/typing-requirements.txt"'), 1),
+    "an install with no build constraint": (
+        "python -m pip install --require-hashes -r tests/requirements-ci.txt", 1),
+    "a continued npm install and npx": (
+        'npm install --prefix "$RUNNER_TEMP/pw" playwright@1.49.0\n'
+        "PW=1 \\\n  npx --yes playwright@1.49.0 install chromium", 2),
+    "the hashed installs this workflow uses": (_PIN_OK + "\nnpm ci --prefix x", 0),
+    "an install named only in a comment": ("# pip install -r x\necho ok", 0),
+}
+for _arm, (_run, _want) in _PIN_ARMS.items():
+    _wf = _yaml.safe_dump({"jobs": {"j": {"steps": [{"run": _run}]}}})
+    _r, _ = _pin_unhashed_installs("arm", _wf)
+    R.check(
+        f"hash-pin barrier arm: {_arm} -> {_want} refusal(s)",
+        len(_r) == _want,
+        f"got {len(_r)}: {_r}",
+    )
+# ... and a lock that loses its hashes on one requirement is refused, read
+# through the same reader the workflows' `-r` files are read through.
+_PIN_COV = _closure.ROOT / "tests" / "requirements-ci.txt"
+_PIN_STRIPPED = re.sub(r"(==\S+) \\\n(?:\s+--hash=\S+ \\\n)*\s+--hash=\S+", r"\1",
+                       _PIN_COV.read_text(), count=1)
+R.check(
+    "hash-pin barrier arm: a lock with one requirement stripped of its hashes is refused",
+    _PIN_STRIPPED != _PIN_COV.read_text()
+    and _pin_lock_problem("stripped", _PIN_STRIPPED) is not None
+    and _pin_unhashed_lock("tests/requirements-ci.txt") is None,
+    f"stripped={_pin_lock_problem('stripped', _PIN_STRIPPED)!r} "
+    f"committed={_pin_unhashed_lock('tests/requirements-ci.txt')!r}",
+)
+
 # --- the replay lane's cheap half, on every pull request (round 8, move 2) ---
 #
 # `tests/replay.py` replays recorded days nightly. What it would take a night to
