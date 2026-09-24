@@ -543,6 +543,15 @@ const CORPUS_EXCLUDED = new Set([
   // rather than optional: `tools/audit/briefs/fixer.md` and
   // `tools/audit/briefs/fix-review.md` cite it and are capped.
   'docs/decisions/0011-app-authored-identity.md',
+  // The process-diet record (round-8 convergence programme, item F6): the
+  // process moratorium until 2026-10-31, the D11/D13-every-third-round and
+  // D5/D6-alternate-rounds cadence, the one-enforcement-point rule, and
+  // D14's stop rule. Named one by one per the rule above. Cited by nothing
+  // in the capped corpus as of this pull request -- TOTAL stays at 0 for
+  // this entry -- so no capped file's `checkNamedDocs` count depends on it
+  // yet; the line is paid here anyway, per this list's own rule that the
+  // next ADR costs a line regardless of citation.
+  'docs/decisions/0012-process-diet-and-round-cadence.md',
   // Round-evidence exclusions (finder reports and round baselines) are DATA,
   // not source: they live in .claude/workflows/corpus_excluded.json and are
   // merged into this set below. They are not here because the `policy-docs`
