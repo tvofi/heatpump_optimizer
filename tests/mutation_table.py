@@ -7,12 +7,12 @@ line they were named for and pinned nothing, and twenty-five production guards
 turned out to be deletable with no check failing. Every one of those was green
 coverage. `tests/coverage_ratchet.py` holds the floor; this holds the meaning.
 
-**Scope is the files that were actually tested.** On a pull request the changed
-production files are mutated; a test-only diff is mapped through the closure
-recording in `tests/closures.json` -- the same recording the scoped gate selects
-by -- so "the files this change tested" is read off a measurement rather than
-guessed. `--scope full` puts every production module in scope, which is the
-nightly's job and far too slow for a pull request.
+**Scope is the lines the pull request touched.** `--scope changed` draws its
+mutants only from sites on production lines the diff adds or modifies
+(`changed_lines`), so a survivor it reports is on a line the branch wrote. A
+pre-existing line is the nightly's, and a comment-only, docs-only or test-only
+diff draws nothing. `--scope full` puts every production module in scope, which
+is the nightly's job and far too slow for a pull request.
 
 **Each mutant is driven only by the scripts whose recorded closure reaches its
 file.** Driving every script would cost a full suite per mutant; driving one
@@ -75,6 +75,8 @@ from __future__ import annotations
 
 import argparse
 import ast
+import contextlib
+import io
 import json
 import os
 import random
@@ -83,7 +85,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
+import tokenize
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
@@ -252,57 +256,105 @@ def load_closures() -> dict[str, list[str]]:
     return raw.get("closures", raw)
 
 
-def changed_paths(base: str) -> list[str]:
-    """Files this branch changed, three-dot against `base` (never two-dot)."""
-    merge_base = subprocess.run(
-        ["git", "merge-base", base, "HEAD"], cwd=ROOT,
-        capture_output=True, text=True,
-    ).stdout.strip()
+def _git(*args: str, root: Path | None = None) -> str:
+    return subprocess.run(["git", *args], cwd=root or ROOT,
+                          capture_output=True, text=True).stdout
+
+
+def _code(lines: list[str]) -> list[tuple[str, tuple[str, ...]]]:
+    """Each line's indentation and code tokens, comments and blanks dropped.
+
+    Tokenized a line at a time, so a line that opens a bracket or a string
+    keeps the tokens read before the tokenizer gives up.
+    """
+    skip = {tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,
+            tokenize.DEDENT, tokenize.ENDMARKER}
+    out = []
+    for line in lines:
+        toks: list[str] = []
+        try:
+            for tok in tokenize.generate_tokens(io.StringIO(line.strip()).readline):
+                if tok.type not in skip:
+                    toks.append(tok.string)
+        except (tokenize.TokenError, SyntaxError):
+            pass
+        if toks:
+            out.append((_indent(line), tuple(toks)))
+    return out
+
+
+def hunk_lines(diff: str) -> dict[str, set[int]]:
+    """The new-side lines of a `git diff -U0`, per file, code hunks only.
+
+    A pure deletion leaves no line to mutate. A hunk whose code tokens and
+    indentation match on both sides -- a comment or whitespace edit, a
+    trailing comment added to a code line -- is dropped whole.
+    """
+    out: dict[str, set[int]] = {}
+    path, start, old, new = None, 0, [], []
+
+    def flush() -> None:
+        if path and new and _code(old) != _code(new):
+            out.setdefault(path, set()).update(range(start, start + len(new)))
+
+    for line in diff.splitlines():
+        if line.startswith("+++ ") or line.startswith("@@"):
+            flush()
+            old, new = [], []
+            if line.startswith("+++ "):
+                path = line[6:] if line.startswith("+++ b/") else None
+            else:
+                start = int(re.match(r"@@ -\S+ \+(\d+)", line).group(1))
+        elif line.startswith("-") and not line.startswith("--- "):
+            old.append(line[1:])
+        elif line.startswith("+"):
+            new.append(line[1:])
+    flush()
+    return out
+
+
+def changed_lines(base: str, root: Path | None = None) -> dict[str, set[int]]:
+    """The production lines this branch adds or modifies, per file.
+
+    Three-dot against the merge base (never two-dot, which would count
+    `base`'s own newer commits), plus what is not committed yet: run by hand
+    that is the work in front of the seat, and in CI it adds nothing. An
+    untracked production file counts whole.
+    """
+    root = root or ROOT
+    merge_base = _git("merge-base", base, "HEAD", root=root).strip()
     if not merge_base:
-        return []
-    out = subprocess.run(
-        ["git", "diff", "--name-only", f"{merge_base}...HEAD"], cwd=ROOT,
-        capture_output=True, text=True,
-    ).stdout
-    changed = {ln.strip() for ln in out.splitlines() if ln.strip()}
-    # Plus what is not committed yet. In CI the diff is the whole change and
-    # this adds nothing; run by hand it is the difference between scoping the
-    # work in front of the seat and scoping its last commit.
-    status = subprocess.run(
-        ["git", "status", "--porcelain", "-z"], cwd=ROOT,
-        capture_output=True, text=True,
-    ).stdout
-    for entry in status.split("\0"):
-        if len(entry) > 3:
-            changed.add(entry[3:].strip())
-    return sorted(changed)
+        return {}
+    out = hunk_lines(_git("diff", "-U0", "--no-renames", "--no-ext-diff",
+                          merge_base, "--", PKG, root=root))
+    for rel in _git("ls-files", "--others", "--exclude-standard", "--", PKG,
+                    root=root).splitlines():
+        if rel.endswith(".py"):
+            n = len((root / rel).read_text().splitlines())
+            out[rel] = set(range(1, n + 1))
+    return {f: ln for f, ln in out.items() if f.endswith(".py") and ln}
 
 
 def scope_files(scope: str, base: str) -> tuple[list[Path], str]:
     """The production files in scope, and the sentence that says why."""
     if scope == "full":
         return sorted(PRODUCTION.rglob("*.py")), "every production module"
-    changed = changed_paths(base)
-    if not changed:
-        return [], "nothing changed against the base"
-    direct = sorted({
-        ROOT / p for p in changed
-        if p.startswith(PKG) and p.endswith(".py") and (ROOT / p).exists()
-    })
-    if direct:
-        return direct, f"{len(direct)} production file(s) this diff changes"
-    closures = load_closures()
-    scripts = [p for p in changed if p.startswith("tests/") and p.endswith(".py")]
-    reached = sorted({
-        ROOT / f for s in scripts for f in closures.get(s, [])
-        if f.startswith(PKG) and f.endswith(".py") and (ROOT / f).exists()
-    })
-    if reached:
-        return reached, (
-            f"{len(reached)} production file(s) in the measured closure of "
-            f"{len(scripts)} changed test script(s)"
-        )
-    return [], "no production file is in scope for this diff"
+    touched = sorted(ROOT / f for f in changed_lines(base)
+                     if (ROOT / f).exists())
+    if touched:
+        return touched, (f"{len(touched)} production file(s) whose code this "
+                         "diff adds or modifies")
+    return [], "no production code line added or modified against the base"
+
+
+def drawable(path: Path, rel: str, touched: dict[str, set[int]] | None) -> list[dict]:
+    """The candidate sites the pool may draw from one file.
+
+    Every site under `--scope full` (`touched` None); under `--scope changed`
+    only the sites on lines `changed_lines` returned for `rel`.
+    """
+    return [m for m in candidates(path)
+            if touched is None or m["line"] in touched.get(rel, ())]
 
 
 def drivers_for(rel: str, closures: dict, allow: list[str]) -> list[str]:
@@ -825,6 +877,38 @@ def null_control_refusal(key: str, verdict: str) -> str | None:
             "none of this run's kills can be told apart from that.")
 
 
+def null_for(pool: list[dict]) -> dict | None:
+    """The run's null control: a whole-line comment in a file of the pool.
+
+    Read off the file itself, never through `drawable`: the null control is
+    this tool's own edit, not the diff's, and a line-scoped pool would
+    otherwise filter out the only kind of line it can edit. An empty pool has
+    no null control, and main() passes it before asking.
+    """
+    return next(filter(None, (null_control(ROOT / f)
+                              for f in sorted({m["file"] for m in pool}))),
+                None)
+
+
+@contextlib.contextmanager
+def null_edit(tree: Path, null: dict):
+    """`tree` with the null control's comment written in, restored on exit.
+
+    The edit is the whole null control: a run in a tree it never reached is
+    the unmutated baseline again, and would "survive" every driver while
+    measuring nothing.
+    """
+    path = tree / null["file"]
+    original = path.read_text()
+    lines = original.splitlines(True)
+    lines[null["line"] - 1] = null["new"] + "\n"
+    path.write_text("".join(lines))
+    try:
+        yield path
+    finally:
+        path.write_text(original)
+
+
 def clone_tree(dest: Path) -> Path:
     """A real, independent checkout for one worker to mutate.
 
@@ -865,6 +949,137 @@ def drop_tree(dest: Path) -> None:
     )
 
 
+# ----------------------------------------------------------------- schedule
+#
+# The job's wall clock is the baseline plus the slowest worker, and both were
+# serial where the verdict did not need them to be (the mutation-timeout root
+# cause). The baseline drove every driver in play on one tree while the other
+# workers idled -- one full sweep of the net, which #1211 made env_drift.py and
+# stress.py part of -- and a mutant's drivers ran only on the worker that drew
+# it, so a survivor, which every driver must see, was a second full sweep on
+# one worker. Both are spread over the worker trees below. No driver leaves
+# the net and no mutant stops sooner than it did, so every verdict is the one
+# the serial sweep gave; only which driver is NAMED as a mutant's killer can
+# change, as it already could with the measured cheapest-first order.
+# The one driver kept off that sharing is EXCLUSIVE below.
+
+
+def _share(workers: int, work) -> None:
+    """Run `work(worker)` on every worker at once; re-raise what any raised."""
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        for fut in [ex.submit(work, w) for w in range(workers)]:
+            fut.result()
+
+
+# Drivers that measure the MACHINE while they run, so they never share it.
+# stress.py times its solves against tests/stress_budgets.json -- the reason
+# `/tmp/hpo-gate.lock` serialises it locally -- and beside three other drivers
+# on a CI runner its baseline hit the 1200 s per-driver timeout (#1565's first
+# run: rc=124, the table INCONCLUSIVE with no mutant scored) where alone it
+# takes 674-960 s. An exclusive driver runs with no other driver in flight, in
+# the baseline and for every mutant alike.
+EXCLUSIVE = ("tests/stress.py",)
+
+
+def drive_baselines(needed: list[str], workers: int, run, *, null_run=None,
+                    null_out: dict | None = None) -> dict[str, ScriptRun]:
+    """Every driver's unmutated run, spread over `workers` trees.
+
+    `run(worker, script)` drives one script in that worker's tree. The shared
+    drivers go first, the ref-driven ones at the head of the queue: they are
+    the net's longest shared runs, and a long run started last is what sets
+    the makespan. Each EXCLUSIVE driver then runs alone.
+
+    `null_run(worker, script)`, when given, drives the null control under the
+    same script, and its result lands in `null_out`: a task in the same queue
+    beside that script's baseline, never a process beside the workers, and
+    alone like the baseline when the script is EXCLUSIVE.
+    """
+    kinds = (False, True) if null_run is not None else (False,)
+    tasks = [(s, k) for s in sorted(needed,
+                                    key=lambda s: (s not in REF_DRIVEN, s))
+             for k in kinds]
+    queue = [t for t in tasks if t[0] not in EXCLUSIVE]
+    lock = threading.Lock()
+    out: dict[str, ScriptRun] = {}
+
+    def one(w: int, task: tuple[str, bool]) -> None:
+        script, is_null = task
+        if is_null:
+            null_out[script] = null_run(w, script)
+        else:
+            out[script] = run(w, script)
+
+    def work(w: int) -> None:
+        while True:
+            with lock:
+                if not queue:
+                    return
+                task = queue.pop(0)
+            one(w, task)
+
+    _share(workers, work)
+    for task in (t for t in tasks if t[0] in EXCLUSIVE):
+        one(0, task)
+    return out
+
+
+def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
+               drive) -> list[tuple[dict, str]]:
+    """Each mutant's verdict, its drivers shared over `workers` trees.
+
+    `drive(worker, mut, script)` runs one driver on `mut` in that worker's tree
+    and says whether it killed it. A worker sweeps the next unstarted mutant,
+    its shared drivers in the order given (cheapest first), stopping at the
+    first kill. Once no mutant is left unstarted it helps instead: it takes the
+    costliest not-yet-started shared driver of a mutant still undecided, since
+    a survivor's sweep is the one that cannot stop early. Every EXCLUSIVE
+    driver is deferred past that phase and run alone, one at a time, for each
+    mutant no shared driver killed -- so only those pay for it. A mutant is
+    killed by the first driver to report a kill, and LIVES only once every one
+    of its drivers has run and none did.
+    """
+    lock = threading.Lock()
+    todo = [[s for s in m["drivers"] if s not in EXCLUSIVE] for m in pool]
+    running = [0] * len(pool)
+    verdict: list[str | None] = [None] * len(pool)
+    unstarted = [i for i in range(len(pool)) if todo[i]]
+    own: list[int | None] = [None] * workers
+
+    def take(w: int) -> tuple[int, str] | None:
+        with lock:
+            i = own[w]
+            if i is None or verdict[i] is not None or not todo[i]:
+                i = own[w] = unstarted.pop(0) if unstarted else None
+            if i is not None:
+                script = todo[i].pop(0)
+            else:
+                open_ = [j for j in range(len(pool))
+                         if verdict[j] is None and todo[j]]
+                if not open_:
+                    return None
+                i = max(open_, key=lambda j: cost.get(todo[j][-1], 0.0))
+                script = todo[i].pop()
+            running[i] += 1
+            return i, script
+
+    def work(w: int) -> None:
+        while (task := take(w)) is not None:
+            i, script = task
+            hit = drive(w, pool[i], script)
+            with lock:
+                running[i] -= 1
+                if verdict[i] is None and hit:
+                    verdict[i] = f"killed by {script}"
+
+    _share(workers, work)
+    for i, mut in enumerate(pool):
+        for script in (s for s in mut["drivers"] if s in EXCLUSIVE):
+            if verdict[i] is None and drive(0, mut, script):
+                verdict[i] = f"killed by {script}"
+    return [(m, v or "LIVES") for m, v in zip(pool, verdict)]
+
+
 def baseline_refusal(baseline: dict[str, ScriptRun], scope: str) -> int | None:
     """The verdict on a red baseline, or ``None`` when it is green.
 
@@ -873,24 +1088,12 @@ def baseline_refusal(baseline: dict[str, ScriptRun], scope: str) -> int | None:
     scopes differ only in what that is worth reporting as, and `mutation` is
     not a required context while `fast` is.
 
-    **The baseline's driver set is not the scoped gate's selection, and on a
-    test-only diff it is much wider.** Where the diff changes production files
-    the drivers are a subset of what the gate selects, so a red here really is
-    `fast`'s red restated. Where it changes none, `scope_files` falls back to
-    every production file in the measured closure of the changed TEST scripts
-    (the branch just above), and `drivers_for` returns every net script whose
-    closure reaches one of them: measured on this function's own branch, 63
-    production files and 19 drivers against the scoped gate's 1 selected
-    script. (Both counts follow the driver net: the wider net of #1211 reaches
-    more of the same files, and the baseline phase pays for each driver once.)
-    That wider net is what a pull request gives up here -- an
-    accidental detector, firing only when a scoped-out script happens to be
-    red, never when a closure is merely wrong. The designed detectors for that
-    hole are `closures`, `closure-scope`, `closures-autofix` and the forced
-    `full` run on every push to `main`, and they are required. Re-derive the
-    two numbers at your own merge base rather than trusting these:
-    `scope_files("changed", base)` with `drivers_for`, against
-    `tests/closure.py select --diff <merge-base>`.
+    **The baseline's driver set is a subset of the scoped gate's selection.**
+    The drivers are those whose measured closure reaches a file the diff
+    wrote code in, and the gate selects every script whose closure reaches a
+    changed file, so a red here is `fast`'s red restated. Re-derive that at
+    your own merge base: `scope_files("changed", base)` with `drivers_for`,
+    against `tests/closure.py select --diff <merge-base>`.
 
     `--scope full` keeps the refusal: it runs on a schedule, where nothing
     else reports that lane's baseline per commit.
@@ -1022,13 +1225,15 @@ def main() -> int:
 
     rng = random.Random(args.seed)
     pool: list[dict] = []
+    # A pull request draws only from the lines it wrote (`changed_lines`).
+    touched = changed_lines(args.base) if args.scope == "changed" else None
     for path in files:
         rel = str(path.relative_to(ROOT))
         drivers = drivers_for(rel, closures, allow)
         if not drivers:
             print(f"  no recorded closure reaches {rel}; skipped")
             continue
-        got = list(candidates(path))
+        got = drawable(path, rel, touched)
         rng.shuffle(got)
         for mut in got[: args.per_file]:
             mut["drivers"] = drivers
@@ -1054,15 +1259,12 @@ def main() -> int:
         for b in blind:
             print(f"    - {b}")
         return 1
-    # The null control: a comment-only edit in a file the sample already
-    # mutates, driven by EVERY driver in play and never stopped at the first
-    # "kill". It runs in its own tree BESIDE the serial baseline phase, which
-    # drives the same drivers, so it adds that phase's contention and not a
-    # second serial pass of every driver to the mutant phase (#1561 review:
-    # riding the pool, it put the job at 82 of its 90 minutes).
-    null = next(filter(None, (null_control(ROOT / f)
-                              for f in sorted({m["file"] for m in pool}))),
-                None)
+    # The null control: a comment-only edit in a file the pool already
+    # mutates (`null_for`), driven by EVERY driver in play and never stopped
+    # at the first "kill". Its runs are baseline-phase tasks on the worker
+    # trees (`drive_baselines`), so it is never a process beside them, and its
+    # stress.py run is EXCLUSIVE like any other (#1565).
+    null = null_for(pool)
     if null is None:
         print("\nMUTATION TABLE REFUSED -- no full-line comment in any file "
               "in the pool, so the run has no null control and no verdict "
@@ -1074,35 +1276,29 @@ def main() -> int:
     work = Path(tempfile.mkdtemp(prefix="mutation-table-"))
     made: list[Path] = []
     try:
-        base_tree = clone_tree(work / "baseline")
-        made.append(base_tree)
-        null_tree = clone_tree(work / "null")
-        made.append(null_tree)
-        null_path = null_tree / null["file"]
-        null_lines = null_path.read_text().splitlines(True)
-        null_lines[null["line"] - 1] = null["new"] + "\n"
-        null_path.write_text("".join(null_lines))
+        # One tree per worker, cloned before the baseline: the baseline and
+        # the null control run in them too, each on an unmutated tree.
+        jobs = max(1, args.jobs)
+        trees = [clone_tree(work / f"w{i}") for i in range(jobs)]
+        made.extend(trees)
+
+        def run_baseline(w: int, s: str) -> ScriptRun:
+            extra_args, extra_env = drive_spec(s, ref)
+            run = run_script(s, trees[w], args.timeout, extra_args, extra_env)
+            # One write per line: the workers print concurrently.
+            print(f"  baseline {s}: rc={run.rc} failed={run.failed} "
+                  f"{run.seconds:.0f}s\n", end="")
+            return run
+
+        def run_null(w: int, s: str) -> ScriptRun:
+            with null_edit(trees[w], null):
+                extra_args, extra_env = drive_spec(s, ref)
+                return run_script(s, trees[w], args.timeout, extra_args,
+                                  extra_env)
+
         null_runs: dict[str, ScriptRun] = {}
-
-        def drive_null() -> None:
-            for s in needed:
-                extra_args, extra_env = drive_spec(s, ref)
-                null_runs[s] = run_script(s, null_tree, args.timeout,
-                                          extra_args, extra_env)
-
-        baseline: dict[str, ScriptRun] = {}
-        # The `with` joins the null thread even when the baseline raises, so
-        # the `finally` below never removes a tree a driver is still running in.
-        with ThreadPoolExecutor(max_workers=1) as null_ex:
-            null_job = null_ex.submit(drive_null)
-            for s in needed:
-                extra_args, extra_env = drive_spec(s, ref)
-                run = run_script(s, base_tree, args.timeout, extra_args,
-                                 extra_env)
-                baseline[s] = run
-                print(f"  baseline {s}: rc={run.rc} failed={run.failed} "
-                      f"{run.seconds:.0f}s")
-            null_job.result()
+        baseline = drive_baselines(needed, jobs, run_baseline,
+                                   null_run=run_null, null_out=null_runs)
         verdict = baseline_refusal(baseline, args.scope)
         if verdict is not None:
             return verdict
@@ -1117,50 +1313,40 @@ def main() -> int:
         for mut in pool:
             mut["drivers"].sort(key=lambda s: baseline[s].seconds)
 
-        jobs = max(1, min(args.jobs, len(pool)))
-        trees = [clone_tree(work / f"w{i}") for i in range(jobs)]
-        made.extend(trees)
         results: list[tuple[dict, str]] = []
-
-        def drive(job: tuple[int, dict]) -> None:
-            idx, mut = job
-            tree = trees[idx % jobs]
-            path = tree / mut["file"]
-            lines = path.read_text().splitlines(True)
+        mutated: dict[int, str] = {}
+        for mut in pool:
+            lines = (trees[0] / mut["file"]).read_text().splitlines(True)
             i = mut["line"] - 1
             if i >= len(lines) or lines[i].rstrip("\n") != mut["old"]:
                 results.append((mut, "SKIP-MOVED"))
-                return
+                continue
             lines[i] = mut["new"] + "\n"
-            mutated = "".join(lines)
             try:
-                ast.parse(mutated)
+                ast.parse("".join(lines))
             except SyntaxError:
                 # A mutant that cannot run reports as a survivor, and a survivor
                 # reads as a finding about production. W5-G7 t5 measured two.
                 results.append((mut, "SKIP-UNPARSEABLE"))
-                return
+                continue
+            mutated[id(mut)] = "".join(lines)
+
+        def drive(w: int, mut: dict, s: str) -> bool:
+            # One task per worker at a time, so a tree carries one mutant.
+            path = trees[w] / mut["file"]
             original = path.read_text()
-            path.write_text(mutated)
+            path.write_text(mutated[id(mut)])
             try:
-                verdict = "LIVES"
-                for s in mut["drivers"]:
-                    extra_args, extra_env = drive_spec(s, ref)
-                    run = run_script(s, tree, args.timeout, extra_args,
-                                     extra_env)
-                    if killed(s, run, baseline[s]):
-                        verdict = f"killed by {s}"
-                        break
+                extra_args, extra_env = drive_spec(s, ref)
+                run = run_script(s, trees[w], args.timeout, extra_args,
+                                 extra_env)
+                return killed(s, run, baseline[s])
             finally:
                 path.write_text(original)
-            results.append((mut, verdict))
 
-        with ThreadPoolExecutor(max_workers=jobs) as ex:
-            # Serialised per worker tree by the index, so two mutants never
-            # edit one copy at the same time.
-            for i in range(jobs):
-                ex.submit(lambda i=i: [drive((i, m))
-                                       for m in pool[i::jobs]])
+        results += drive_pool(
+            [m for m in pool if id(m) in mutated], jobs,
+            {s: r.seconds for s, r in baseline.items()}, drive)
     finally:
         for tree in made:
             drop_tree(tree)
