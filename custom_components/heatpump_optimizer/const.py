@@ -1349,8 +1349,8 @@ OPERATION_MODES: Final = (
 OPTIMIZATION_MODE_STATES: Final = (*OPERATION_MODES, "unknown")
 
 #: Heat Pump Action publishes ``current_action["mode"]``, written by four
-#: producers: optimizer.get_current_action's power-band ladder (off, eco,
-#: normal, pre_heat, boost), optimizer._idle_action (idle), the coordinator's
+#: producers: optimizer.get_current_action's power-band ladder (off, hot_water,
+#: eco, normal, pre_heat, boost), optimizer._idle_action (idle), the coordinator's
 #: fixed-rule branches when the plan is not what runs (comfort, boost, off),
 #: and _run_system_identification (system_identification). "unknown" is the
 #: sensor's no-data fallback. tests/entities.py re-derives this set from those
@@ -1360,6 +1360,7 @@ HEAT_PUMP_ACTION_STATES: Final = (
     "boost",
     "comfort",
     "eco",
+    "hot_water",
     "idle",
     "normal",
     "off",
