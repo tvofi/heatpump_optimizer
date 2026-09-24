@@ -179,6 +179,7 @@ import argparse  # noqa: E402
 import ast  # noqa: E402
 import hashlib  # noqa: E402
 import json  # noqa: E402
+import math  # noqa: E402
 import re  # noqa: E402
 import subprocess  # noqa: E402
 import sys  # noqa: E402
@@ -1250,6 +1251,62 @@ def recorded_at_unreachable(recorded: str) -> str | None:
     return None  # no upstream to compare against; nothing to assert
 
 
+# ---------------------------------------------------------------------------
+# the recorded-number barrier, shared by every ratchet under tests/
+
+
+def cap_problem(where: str, table: object, key: str, *, integer: bool = False,
+                low: float = 0.0, low_open: bool = False,
+                high: float | None = None) -> str | None:
+    """Why ``table[key]`` cannot be a ratchet's recorded number, or None.
+
+    The class this closes (#1583's review): Python's json reads ``NaN``,
+    ``Infinity``, ``-Infinity`` and ``1e999`` as floats without complaint, and
+    every comparison against NaN is False -- ``current > nan`` never fires and
+    ``raw < nan`` never fires -- so a cap edited to NaN was an unlimited raise
+    that this script printed as ``ok cut_views 110 <= nan``. Infinity passes
+    by arithmetic. The other spellings fail differently per script and none of
+    them says why: a string crashed one comparison and ``float()``-coerced in
+    another (``"nan"`` into NaN), and a bool is 0 or 1 to Python.
+
+    So every ratchet calls this on load and refuses before it compares. It
+    refuses: an absent key, a bool, anything not an int or float, a
+    non-finite number, a float where ``integer`` asks for a count, a value
+    below ``low`` (or equal to it when ``low_open``), and one above ``high``.
+    The message names the file, the key and the value, so the refusal is the
+    fix's instructions.
+    """
+    if not isinstance(table, dict) or key not in table:
+        return (f"{where}: {key} is absent -- a ratchet with no recorded "
+                f"number compares against nothing")
+    value = table[key]
+    label = f"{where}: {key}={value!r:.40}"
+    if isinstance(value, bool):
+        return (f"{label} is a boolean, which Python compares as "
+                f"{int(value)}; record the number")
+    if not isinstance(value, (int, float)):
+        return f"{label} is a {type(value).__name__}, not a number"
+    # An int before isfinite: json reads a 400-digit integer as an exact int,
+    # and math.isfinite (like every float() a ratchet then applies) raises
+    # OverflowError on one no float can hold.
+    if isinstance(value, int):
+        if abs(value) > 2 ** 53:
+            return (f"{label} is past the largest integer a float holds "
+                    f"exactly, so no comparison with a measurement means "
+                    f"anything")
+    elif not math.isfinite(value):
+        return (f"{label} is not finite: every comparison against NaN is "
+                f"false and nothing exceeds Infinity, so this cap would be an "
+                f"unlimited raise")
+    if integer and not isinstance(value, int):
+        return f"{label} is a float where a count is recorded"
+    if value < low or (low_open and value == low):
+        return f"{label} is {'at or ' if low_open else ''}below {low:g}"
+    if high is not None and value > high:
+        return f"{label} is above {high:g}"
+    return None
+
+
 def regression_rows(old: dict, new: dict) -> list[tuple[str, float, float]]:
     """Every metric a re-record would move in the WORSENING direction.
 
@@ -1436,6 +1493,17 @@ def ratchet(result: dict) -> int:
               % BUDGET_FILE)
         return 1
     budgets = json.loads(BUDGET_FILE.read_text())
+    # Before any comparison: a cap that is not a finite count compares as
+    # "ok" (NaN), crashes (a string), or means something nobody recorded.
+    malformed = [p for p in (cap_problem(BUDGET_FILE.name, budgets, key, integer=True)
+                             for key in sorted(budgets) if key != "recorded_at") if p]
+    if malformed:
+        for problem in malformed:
+            print(f"FAIL {problem.split(': ', 1)[1]}")
+        print(f"{len(malformed)} STRUCTURE BUDGET(S) MALFORMED -- every row is a")
+        print("non-negative integer count; restore the recorded value, or re-record")
+        print("with tests/structure.py --record.")
+        return 1
     if not result["tables"]["top_is_coordinator"]:
         print(f"FAIL {COORDINATOR_CLASS_NAME} is no longer the top attr-bag class;")
         print("  the coordinator_* budgets describe something else. Re-record deliberately.")

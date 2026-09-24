@@ -148,3 +148,76 @@ routine.
   push. The check makes the owner's approval the condition of the merge.
 - Adding the context to `main-protect-checks` is a ruleset change, and the
   owner's.
+
+## Amendment, 2026-09-24: the test-side graders are pinned too
+
+The owner's direction of 2026-09-24, answering whether the check scripts
+should stay code-owned: "I want fully autonomous". The bullet above that kept
+"the rest of the `tests/` block" owned is narrowed to the files where a pin
+cannot hold. The rule is unchanged: a file leaves the owner only where a base
+restore replaces the owner as the barrier.
+
+**When a pin holds.** Only in a job that runs none of the pull request's code
+before the grader. After one such program the job belongs to the pull
+request: it can overwrite the restored file, set `BASH_ENV`, `LD_PRELOAD` or
+`PATH` for every later step through `$GITHUB_ENV`, or use the runner's
+passwordless sudo, so no later restore can be trusted. An install is such a
+program: it runs build code the pull request's lock chooses. Round 1 of
+#1589's review found `coverage` running the suite between the restore and the
+ratchet; the ratchet now grades in a job of its own.
+
+**What keeps it true, and what does not.** Whether a job runs the pull
+request's code before its grader is a property of the workflow files, and
+`.github/workflows/` stays `@tvofi`'s: no pull request changes what a job runs
+without the owner's review. That review is the barrier. `codeowners_gap.py
+--check` is a lint over those owned files. It admits only a short list of
+steps before a pinned grader, and fails when an unowned surface file is not
+pinned under it. It is not a shell parser and it does not prove a job safe:
+rounds 2 to 4 of the review each found forms an earlier version admitted
+(18, then 8), every one an edit to an owned workflow. `--self-test` keeps the
+forms found so far refused.
+
+- **Pinned, so the owner goes:**
+  - `tests/coverage_ratchet.py` runs in `coverage-ratchet`, a job of its own
+    that grades the JSON `coverage` measured.
+  - `tests/nightly_status.py` runs in `nightly-status`.
+  - `tests/delivery_status.py` runs in `delivery-status`.
+
+  Each imports only the standard library. The step that runs it first
+  restores it from the base, then checks it byte-identical to the base's
+  object, then runs it under `-I -S`, so no `.pth` file and no sibling module
+  loads. The pull request's own copy runs in `graders-head-copy`, which is
+  not required and runs only when the diff touches that grader. Its red
+  blocks nothing by itself: `pr-contract` makes the body answer it, and the
+  fix review blocks an unanswered one.
+- **No pull-request job runs them:** `tests/nightly_ha.py` and
+  `tests/replay.py` run on the schedule only, so they grade no pull request
+  and carry no owner. `codeowners_gap.py` tags them `NO-PR-JOB`.
+- **Kept owned, and why, file by file:**
+  - `tests/mutation_table.py` and `tests/typing_ruler.py`. Their jobs install
+    the pull request's requirement locks before the grader runs, and
+    `mutation_table.py` runs the pull request's tests itself.
+  - The suite: `tests/run.sh`, `env_drift.py`, `golden.py`, `harness.py`,
+    `profiles.py`, `stress.py`, `plan_view.py` and `card_browser.mjs`. `fast`
+    and `browser` must run the pull request's code, and a test that changes
+    with the behaviour it pins would be refused by the base's copy.
+  - `tests/closure.py` and `tests/derive_closures.sh`. Their INERT,
+    NOT_A_TEST and lane rosters are edited by the same pull request that adds
+    a test script or makes a test read a new file. The base's copy refuses
+    that pull request (`closure.py check`: "selectable script(s) with NO
+    recording").
+- **What a pin does not reach:**
+  - None of the three graders' jobs is a required context: not
+    `coverage-ratchet`, not `nightly-status`, not `delivery-status`. So a red
+    from the base's grader blocks nothing by itself either. It is enforced
+    only by answering it in the body, which `pr-contract` requires, and by
+    the fix review's refusal of an unanswered red.
+  - A pinned grader reads what the pull request's code produced: the
+    coverage JSON, and the tree it reports on. A suite that misreports is
+    left to review.
+  - The base is `pull_request.base.sha`, the base branch's tip when the
+    event fired. A stricter grader that lands on `main` afterwards reaches
+    an open pull request only when that request is re-run against the newer
+    base.
+  - A change that must move a pinned grader and its caller together lands in
+    two pull requests, the grader's tolerant form first.
