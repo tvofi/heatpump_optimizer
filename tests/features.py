@@ -44993,4 +44993,361 @@ R.check(
     f"{_r7cool_ratio!r}, expected 1 - 0.25",
 )
 
+
+R.section("pump-duty arbiter — mode and set-points per plan step, never over a person")
+
+import asyncio as _pa_aio  # noqa: E402
+from types import SimpleNamespace as _PaNS  # noqa: E402
+
+from heatpump_optimizer import pump_arbiter as _pa  # noqa: E402
+from heatpump_optimizer.const import MODE_AUTO as _PA_AUTO, MODE_OFF as _PA_OFF  # noqa: E402
+
+_PA_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+_PA_TUYA = ("Heating", "DHW (Hot Water)", "Heating + DHW", "Cooling", "Cooling + DHW")
+_PA_MODBUS = ("Off", "Cool + DHW", "Heat + DHW")
+
+
+def _pa_result(duties):
+    """A plan of 15-min steps from ``duties`` ('s', 'd', 'b', '-')."""
+    return _PaNS(
+        timestamps=[_PA_T0 + timedelta(minutes=15 * i) for i in range(len(duties))],
+        power_schedule=[1.5 if c in "sb" else 0.15 if c == "x" else 0.0 for c in duties],
+        dhw_power_schedule=[2.0 if c in "dbx" else 0.0 for c in duties],
+        optimal_setpoints=[21.0 for _ in duties],
+    )
+
+
+_PA_IDS = __import__("itertools").count()
+
+
+class _PaCoord:
+    def __init__(self, options, duties="dds-", flow=True, duty="control"):
+        self.hass = FakeHass({
+            "select.pump_mode": FakeState("Heating + DHW", attributes={"options": list(options)}),
+            "number.dhw_set": FakeState("53", attributes={"min": 40, "max": 63}),
+            "number.water_set": FakeState("53", attributes={"min": 25, "max": 63}),
+        })
+        self._config = {
+            "pump_duty_mode": duty,
+            "heat_pump_mode_entity": "select.pump_mode",
+            "dhw_setpoint_entity": "number.dhw_set",
+            "space_setpoint_entity": "number.water_set",
+            "space_setpoint_unit": "flow" if flow else "indoor",
+        }
+        self._mode = _PA_AUTO
+        self.stale = False
+        self._current_action = {"mode": "eco"}
+        self._optimization_result = _pa_result(duties)
+        self._thermal_model = _PaNS(
+            params=_PaNS(min_electrical_power=0.4), curve_flow_temp=lambda _o: 34.2
+        )
+        self._thermal_params = _PaNS(dhw_setpoint=48.0)
+        self._current_state = _PaNS(outdoor_temperature=2.0)
+        # One store key per coordinator: the storage stub outlives FakeHass.
+        self.entry = _PaNS(entry_id=f"pa{next(_PA_IDS)}")
+        self.set_modes = []
+
+    def _plan_is_stale(self):
+        return self.stale
+
+    async def async_set_mode(self, mode):
+        self.set_modes.append(mode)
+        self._mode = mode
+
+    def device(self, entity, value):
+        self.hass.states.get(entity).state = value
+
+    def writes(self):
+        return [(d, sv, (data or {}).get("option", (data or {}).get("value")))
+                for d, sv, data in self.hass.services.calls]
+
+
+def _pa_run(coord, minutes):
+    _pa_aio.run(_pa.apply(coord, _PA_T0 + timedelta(minutes=minutes)))
+
+
+# The lock-in (P2): the arbiter's own DHW-only write must not reach the next
+# solve as "the pump cannot heat", or no plan ever writes Heating + DHW back.
+_pa_dhw = PumpSignals(mode=pump_mode.MODES[pump_mode.MODE_DHW], mode_observed=True)
+_pa_lock = _PaCoord(_PA_TUYA)
+_pa_run(_pa_lock, 1)
+_pa_owned = _pa.own(_pa_lock, _pa_dhw)
+R.check(
+    "a DHW-only mode nobody here wrote still blocks space heat (null control)",
+    _pa_dhw.space_blocked and not _pa.own(_PaCoord(_PA_TUYA), _pa_dhw).mode_owned,
+)
+R.check(
+    "the arbiter's own DHW-only write does not block space heat in the next solve",
+    _pa_owned.mode_owned and not _pa_owned.space_blocked and not _pa_owned.dhw_blocked,
+    f"{_pa_owned.mode_owned=} {_pa_owned.space_blocked=}",
+)
+R.check(
+    "…while capability, which the learners read, still says the pump is not heating",
+    _pa_owned.space_heat is False,
+)
+
+_pa_tuya = _PaCoord(_PA_TUYA)
+_pa_run(_pa_tuya, 1)
+R.check(
+    "a hot-water-only step writes DHW only, the configured hot-water set-point and the curve supply",
+    _pa_tuya.writes() == [
+        ("select", "select_option", "DHW (Hot Water)"),
+        ("number", "set_value", 48.0),
+        ("number", "set_value", 34.0),
+    ],
+    f"{_pa_tuya.writes()}",
+)
+_pa_tuya.device("select.pump_mode", "DHW (Hot Water)")
+_pa_tuya.device("number.dhw_set", "48")
+_pa_tuya.device("number.water_set", "34")
+_pa_tuya.hass.services.calls.clear()
+_pa_run(_pa_tuya, 31)
+R.check(
+    "the space step at the next boundary writes Heating + DHW back and nothing else",
+    _pa_tuya.writes() == [("select", "select_option", "Heating + DHW")],
+    f"{_pa_tuya.writes()}",
+)
+
+_pa_mb = _PaCoord(_PA_MODBUS)
+_pa_run(_pa_mb, 1)
+R.check(
+    "with no DHW-only mode (GCHV Modbus) the space set-point is the gate, at the entity's minimum",
+    ("number", "set_value", 25.0) in _pa_mb.writes()
+    and all(w[2] != "DHW (Hot Water)" for w in _pa_mb.writes()),
+    f"{_pa_mb.writes()}",
+)
+
+# Manual change: a differing device report inside the echo window is ignored,
+# one past it stands the arbiter down until the user turns it back on.
+_pa_man = _PaCoord(_PA_TUYA)
+_pa_run(_pa_man, 0)
+_pa_man.device("number.dhw_set", "48")
+_pa_man.device("number.water_set", "34")
+_pa_man.device("select.pump_mode", "Heating + DHW")
+_pa_man.hass.services.calls.clear()
+_pa_aio.run(_pa.apply(_pa_man, _PA_T0 + timedelta(seconds=5)))
+R.check(
+    "a differing reading inside the fork's echo window is not a manual change",
+    _pa_man.set_modes == [] and _pa_man.writes() == [],
+)
+_pa_aio.run(_pa.apply(_pa_man, _PA_T0 + timedelta(seconds=60)))
+_pa_issue = [i for i in getattr(_pa_man.hass, "issues", []) if i[1] == _pa.ISSUE_MANUAL]
+R.check(
+    "a change the arbiter did not make turns the optimizer off and raises a repair",
+    _pa_man.set_modes == [_PA_OFF] and len(_pa_issue) == 1 and _pa_man.writes() == [],
+    f"{_pa_man.set_modes=} {_pa_man.writes()=}",
+)
+_pa_run(_pa_man, 5)
+R.check(
+    "nothing is written over the manual setting while the optimizer is off",
+    _pa_man.writes() == [],
+)
+_pa_man._mode = _PA_AUTO
+_pa_run(_pa_man, 6)
+R.check(
+    "turning the optimizer back on clears the repair and hands control back",
+    not [i for i in getattr(_pa_man.hass, "issues", []) if i[1] == _pa.ISSUE_MANUAL]
+    and ("select", "select_option", "DHW (Hot Water)") in _pa_man.writes(),
+    f"{_pa_man.writes()}",
+)
+
+# Rails: the lease, the cold rail, a stale plan and the unload.
+_pa_lease = _PaCoord(_PA_TUYA, duties="d" * 12)
+_pa_run(_pa_lease, 0)
+_pa_lease.device("select.pump_mode", "DHW (Hot Water)")
+_pa_lease.device("number.dhw_set", "48")
+_pa_lease.device("number.water_set", "34")
+_pa_run(_pa_lease, 89)
+_pa_before = list(_pa_lease.writes())
+_pa_run(_pa_lease, 91)
+R.check(
+    "a hot-water-only stretch is released to Heating + DHW past the 90-minute lease",
+    ("select", "select_option", "Heating + DHW") not in _pa_before
+    and _pa_lease.writes()[-1] == ("select", "select_option", "Heating + DHW"),
+    f"{_pa_lease.writes()}",
+)
+_pa_cold = _PaCoord(_PA_TUYA, duties="d" * 12)
+_pa_cold._current_state.outdoor_temperature = -15.0
+_pa_run(_pa_cold, 0)
+_pa_cold.device("select.pump_mode", "DHW (Hot Water)")
+_pa_cold.device("number.dhw_set", "48")
+_pa_cold.device("number.water_set", "34")
+_pa_run(_pa_cold, 31)
+R.check(
+    "below the cold rail the lease is 30 minutes",
+    _pa_cold.writes()[-1] == ("select", "select_option", "Heating + DHW"),
+    f"{_pa_cold.writes()}",
+)
+_pa_stale = _PaCoord(_PA_TUYA)
+_pa_stale.stale = True
+_pa_run(_pa_stale, 1)
+R.check(
+    "a stale plan gets the baseline, never a hot-water-only step",
+    ("select", "select_option", "DHW (Hot Water)") not in _pa_stale.writes()
+    and ("number", "set_value", 48.0) in _pa_stale.writes(),
+    f"{_pa_stale.writes()}",
+)
+_pa_tuya.hass.services.calls.clear()
+_pa_tuya.device("select.pump_mode", "Heating + DHW")
+_pa_run(_pa_tuya, 1)
+_pa_tuya.device("select.pump_mode", "DHW (Hot Water)")
+_pa_tuya.hass.services.calls.clear()
+_pa_aio.run(_pa.release(_pa_tuya))
+R.check(
+    "unloading writes the baseline over a mode the arbiter still owns",
+    ("select", "select_option", "Heating + DHW") in _pa_tuya.writes(),
+    f"{_pa_tuya.writes()}",
+)
+_pa_off = _PaCoord(_PA_TUYA, duty="off")
+_pa_run(_pa_off, 1)
+_pa_obs = _PaCoord(_PA_TUYA, duty="observe")
+_pa_run(_pa_obs, 1)
+R.check(
+    "off and observe write nothing, and off subscribes to nothing",
+    _pa_off.writes() == [] and _pa_obs.writes() == []
+    and not getattr(_pa_off.hass, "state_listeners", [])
+    and _pa.view(_pa_obs)["last_duty"] == "dhw",
+)
+_pa_cool = _PaCoord(_PA_TUYA)
+_pa_cool.device("select.pump_mode", "Cooling")
+_pa_run(_pa_cool, 1)
+R.check(
+    "a pump in a cooling mode is left alone: cooling is the user's season",
+    _pa_cool.writes() == [],
+    f"{_pa_cool.writes()}",
+)
+
+
+def _pa_settled(coord, minutes=0):
+    """Run one pass and report back exactly what was written, as a device would."""
+    _pa_run(coord, minutes)
+    for domain, _svc, data in coord.hass.services.calls:
+        value = data.get("option", data.get("value"))
+        coord.device(data["entity_id"], str(value))
+    coord.hass.services.calls.clear()
+
+
+_pa_grace = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_grace)
+_pa_grace.device("number.dhw_set", "55")
+_pa_aio.run(_pa.apply(_pa_grace, _PA_T0 + timedelta(seconds=25)))
+R.check(
+    "a set-point reading that differs 25 s after the write is a device report, and a manual change",
+    _pa_grace.set_modes == [_PA_OFF],
+    f"{_pa_grace.set_modes=}",
+)
+R.check(
+    "outside the plan's horizon there is no step, so no duty",
+    _pa.step_duty(_pa_result("dd"), _PA_T0 - timedelta(minutes=1), 0.2) is None
+    and _pa.step_duty(_pa_result("dd"), _PA_T0 + timedelta(minutes=45), 0.2) is None,
+)
+_pa_heat = PumpSignals(mode=pump_mode.MODES[pump_mode.MODE_HEAT], mode_observed=True)
+R.check(
+    "a mode the arbiter did not write is not marked owned, even while it owns another",
+    not _pa.own(_pa_lock, _pa_heat).mode_owned and _pa.own(_pa_lock, _pa_heat).dhw_blocked,
+)
+_pa_room = _PaCoord(_PA_TUYA, duties="ss", flow=False)
+_pa_room.hass.states.get("number.water_set").attributes = {"min": 5, "max": 30}
+_pa_run(_pa_room, 1)
+_pa_noset = _PaCoord(_PA_TUYA, duties="ss", flow=False)
+_pa_noset._optimization_result.optimal_setpoints = []
+_pa_run(_pa_noset, 1)
+R.check(
+    "an indoor space set-point gets the step's planned room temperature, and none without one",
+    ("number", "set_value", 21.0) in _pa_room.writes()
+    and [w for w in _pa_noset.writes() if w[2] not in (48.0, "Heating + DHW")] == [],
+    f"{_pa_room.writes()} / {_pa_noset.writes()}",
+)
+_pa_hot = _PaCoord(_PA_TUYA, duties="ss")
+_pa_hot._thermal_model.curve_flow_temp = lambda _o: 70.0
+_pa_run(_pa_hot, 1)
+R.check(
+    "a curve supply above the entity's maximum is clamped to it",
+    ("number", "set_value", 63.0) in _pa_hot.writes(),
+    f"{_pa_hot.writes()}",
+)
+_pa_sysid = _PaCoord(_PA_TUYA)
+_pa_sysid._current_action = {"mode": "system_identification"}
+_pa_run(_pa_sysid, 1)
+_pa_boosted = _PaCoord(_PA_TUYA)
+boost_mod.held_for(_pa_boosted).until["dhw"] = _PA_T0 + timedelta(hours=2)
+_pa_run(_pa_boosted, 1)
+_pa_noplan = _PaCoord(_PA_TUYA)
+_pa_noplan._optimization_result = None
+_pa_run(_pa_noplan, 1)
+R.check(
+    "an experiment, a boost and a missing plan each get the baseline, not hot water only",
+    all(
+        ("select", "select_option", "DHW (Hot Water)") not in c.writes()
+        and ("number", "set_value", 48.0) in c.writes()
+        for c in (_pa_sysid, _pa_boosted, _pa_noplan)
+    ),
+    f"{_pa_sysid.writes()} / {_pa_boosted.writes()} / {_pa_noplan.writes()}",
+)
+_pa_small = _PaCoord(_PA_TUYA, duties="xx")
+_pa_run(_pa_small, 1)
+R.check(
+    "a space draw below half the pump's minimum is not a space duty: the step stays hot water only",
+    ("select", "select_option", "DHW (Hot Water)") in _pa_small.writes(),
+    f"{_pa_small.writes()}",
+)
+_pa_reset = _PaCoord(_PA_TUYA, duties="dddds" + "d" * 8)
+for _pa_m in (1, 61, 76):
+    _pa_settled(_pa_reset, _pa_m)
+_pa_run(_pa_reset, 160)
+R.check(
+    "a space step ends the lease: the next hot-water stretch gets its own 90 minutes",
+    _pa_reset.writes() == [],
+    f"{_pa_reset.writes()}",
+)
+_pa_half = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_half)
+_pa_half.device("number.dhw_set", "48.5")
+_pa_run(_pa_half, 2)
+R.check(
+    "a half-degree change by hand, one step of the pump's own set-point, is a manual change",
+    _pa_half.set_modes == [_PA_OFF],
+    f"{_pa_half.set_modes=}",
+)
+_pa_sp = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_sp)
+_pa_sp.device("number.water_set", "40")
+_pa_run(_pa_sp, 2)
+R.check(
+    "a space set-point changed by hand is a manual change too",
+    _pa_sp.set_modes == [_PA_OFF],
+    f"{_pa_sp.set_modes=}",
+)
+_pa_user = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_user)
+_pa_user._mode = _PA_OFF
+_pa_settled(_pa_user, 2)
+_pa_restored = _pa_user.hass.states.get("select.pump_mode").state
+_pa_user.device("select.pump_mode", "DHW (Hot Water)")
+_pa_run(_pa_user, 3)
+_pa_user._mode = _PA_AUTO
+_pa_run(_pa_user, 30)
+R.check(
+    "switching the optimizer off restores Heating + DHW, and what a person sets while it is off is theirs",
+    _pa_restored == "Heating + DHW" and _pa_user.set_modes == [],
+    f"{_pa_restored=} {_pa_user.set_modes=}",
+)
+_pa_subs = _PaCoord(_PA_TUYA)
+_pa_run(_pa_subs, 1)
+_pa_run(_pa_subs, 2)
+_pa_none = _PaCoord(_PA_TUYA)
+for _pa_k in ("heat_pump_mode_entity", "dhw_setpoint_entity", "space_setpoint_entity"):
+    _pa_none._config[_pa_k] = None
+_pa_run(_pa_none, 1)
+R.check(
+    "one state subscription per coordinator, and none with no pump entity configured",
+    len(getattr(_pa_subs.hass, "state_listeners", [])) == 1
+    and not getattr(_pa_none.hass, "state_listeners", []),
+)
+R.check(
+    "the plan step decides the duty: hot water, space, both and idle",
+    [_pa.step_duty(_pa_result("dsb-"), _PA_T0 + timedelta(minutes=15 * i + 1), 0.2)
+     for i in range(4)] == ["dhw", "space", "both", "idle"],
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

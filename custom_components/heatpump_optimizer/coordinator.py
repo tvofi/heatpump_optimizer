@@ -343,7 +343,7 @@ from .accuracy import (
 )
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
-from . import pump_signals
+from . import pump_arbiter, pump_signals
 from . import setpoint_check
 from . import silent_mode
 from .pump_mode import ModeCapability
@@ -5280,6 +5280,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._unsub_timer = None
         self._release_registrations()
         await self._legionella.async_release_switch()
+        await pump_arbiter.release(self)
         pending = [t for t in self._background_tasks if not t.done()]
         if pending:
             _LOGGER.debug(
@@ -5470,12 +5471,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         # ``previous``: this attribute still holds last cycle's result
         # until the assignment lands, which is all the rising edge needs.
-        self._pump_signals = pump_signals.read(
+        self._pump_signals = pump_arbiter.own(self, pump_signals.read(
             reader,
             last_good=self._pump_mode_last_good,
             last_good_age_minutes=_last_good_age,
             previous=self._pump_signals,
-        )
+        ))
         if self._pump_signals.mode_source == pump_signals.MODE_SOURCE_LIVE:
             self._pump_mode_last_good = self._pump_signals.mode
             self._pump_mode_last_good_at = _mode_now
@@ -6652,6 +6653,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def _apply_action(self) -> None:
         """Apply current action as (heat_pump_on, displace_value)."""
+        await pump_arbiter.apply(self)
         if not self._current_action:
             return
         if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():

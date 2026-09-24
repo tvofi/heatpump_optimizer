@@ -60,7 +60,7 @@ reported as a connection problem rather than as a bad token.
 | Lower floor temperature sensor | none | Two-zone houses only. Without it the lower zone is modelled from the main room sensor and labelled as modelled on the plan chart; a repair notice says so. |
 | Hot water tank temperature sensor | none | Recommended. Lets a manual hot-water boost reset the anti-legionella timer, and unlocks the learned draw quantiles. Without one, a disinfection cycle the plan commands resets the countdown but is recorded as an *attempt* rather than a verified cycle, and a note in Repairs says the cycle cannot be verified. |
 | Buffer tank temperature sensor | none | When set, the tank's cooling rate is learned instead of assumed. |
-| Heat pump operating mode | none | The pump's own mode selector — cooling, heating, hot water, or a combination of two. Read only: the optimizer never changes it. Left empty, the optimizer assumes the pump can do everything, exactly as before. |
+| Heat pump operating mode | none | The pump's own mode selector — cooling, heating, hot water, or a combination of two. Read only unless **Pump duty control** is set to Control. Left empty, the optimizer assumes the pump can do everything, exactly as before. |
 | Defrosting | none | On while the pump reverses to melt frost off the outdoor coil. A sample of defrost activity, not a stopwatch — many pumps are only polled every few minutes. |
 | Pump online | none | Strongly recommended for a cloud-connected pump. On while the pump is actually reachable, which a stale cloud republish cannot tell you on its own. |
 | Fault alarm | none | On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself. |
@@ -335,7 +335,7 @@ The temperatures the schedule holds the tank to:
 | Hot water temperature you need | 45 °C | 35–55 | Guaranteed inside the time frames. Must be at least 5 °C below the charge limit, or the plan sits in permanent slight violation. |
 | Let the tank cool to | 20 °C | 10–55 | How cold the tank may get between periods. The default is roughly room temperature — nothing is spent at all. |
 | Highest tank temperature to charge to | 55 °C | 40–65 | An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays. |
-| Heat pump DHW set-point entity | none | `number` / `input_number` / `climate` | Optional. The pump's own DHW set-point, used only to notice when it cannot be read. |
+| Heat pump DHW set-point entity | none | `number` / `input_number` / `climate` | Optional. The pump's own DHW set-point, used to notice when it cannot be read and, with **Pump duty control** at Control, written with the hot water set-point above. |
 | Run an anti-legionella cycle | on | on/off | Because the tank now spends long stretches cool, it is periodically heated hot enough to kill legionella. Strongly recommended. |
 | Anti-legionella temperature | 60 °C | 55–70 | The usual recommendation is 60 °C. Check what applies where you live. |
 | Anti-legionella interval | 7 days | 1–30 | Placed in the cheapest hour before each deadline. |
@@ -471,7 +471,7 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Indoor / outdoor temperature | from setup | temperature sensors | See setup step 1. |
 | Hot water tank, buffer tank, floor return, lower floor sensors | from setup | temperature sensors | See setup step 1. |
 | Heat pump on/off switch | from setup | a `switch` | See setup step 1. |
-| Space-heating set-point entity | none | `number` / `input_number` / `climate` | Optional. Used only to notice when the entity cannot be read. The optimizer never writes a recommended space set-point. |
+| Space-heating set-point entity | none | `number` / `input_number` / `climate` | Optional. Used to notice when the entity cannot be read. Written only with **Pump duty control** at Control, and then with the plan's own number (see below), never a recommended optimum. |
 | What that set-point entity expects | Indoor temperature | Indoor temperature / Flow temperature | A declaration, not a write. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C. |
 
 ### Power and solar sensors
@@ -492,7 +492,8 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
-| Heat pump operating mode | from setup | the pump's mode entity | Read only: the optimizer never changes it. Left empty, the optimizer assumes the pump can do everything. |
+| Heat pump operating mode | from setup | the pump's mode entity | Read only unless **Pump duty control** is set to Control. Left empty, the optimizer assumes the pump can do everything. |
+| Pump duty control | Off | Off / Observe / Control | Whether the optimizer tells the pump which duty to serve on each plan step. See [Pump duty control](#pump-duty-control) below. |
 | Defrosting | from setup | a binary sensor | On while the pump reverses to melt frost off the outdoor coil. |
 | Pump online | from setup | a binary sensor | On while the pump is actually reachable. |
 | Fault alarm | from setup | a binary sensor | On while the pump is reporting a fault. Only whether there is a fault is used. |
@@ -512,6 +513,49 @@ degrees or more. *Floor return temperature* is what the optimizer estimates
 your slab temperature from, so filling it with the pump's return on such a
 system tells it the slab is far hotter or colder than it is, and it will
 under- or over-heat the lower floor accordingly.
+
+#### Pump duty control
+
+A pump left on its own serves whichever demand its two thermostats see, so a
+step the plan meant for hot water only can turn into space heating in a house
+that is already warm. With **Pump duty control** at *Control* the optimizer
+writes, at every 15-minute plan step:
+
+| Plan step | Operating mode | Heat pump DHW set-point | Space-heating set-point |
+|---|---|---|---|
+| Hot water only | *DHW (Hot Water)*, when the mode entity offers it | the **hot water set-point** on the hot water page | the suitable value, or the gate (below) |
+| Anything else, and every fallback | *Heating + DHW* | the same | the suitable value |
+
+- **The suitable space value** is the plan's own: the weather-curve supply
+  temperature for a *Flow temperature* entity, the step's planned room
+  temperature for an *Indoor temperature* one — clamped to the entity's range.
+- **Heating only is never written**: it would stop the pump's own hot water and
+  disinfection.
+- **Tuya or Modbus, the same logic.** The entities decide. The tuya_heat_pump
+  mode select offers *DHW (Hot Water)*, so the mode is the space gate. The GCHV
+  Modbus package's *HP Setting mode* (register 44) offers only Off / Cool + DHW
+  / Heat + DHW, so where no hot-water-only option exists the space set-point
+  (for example *HP Occupied heating water setpoint*, register 401) is lowered to
+  the entity's minimum on hot-water-only steps instead. Map *HP DHW normal
+  setpoint* (register 404) as the DHW set-point entity.
+- **Rails.** A hot-water-only stretch lasts at most 90 minutes (30 below
+  -10 °C outdoors), then *Heating + DHW* returns. A stale plan, the comfort,
+  boost and off modes, a boost switch, a system-identification experiment and
+  unloading the integration all get the fallback row.
+- **A change you make wins.** Any change to those three entities the
+  optimizer did not write — made on the pump, in an app, by a schedule, or a
+  write the pump refused — turns **Optimizer active** off and raises a repair
+  notice. Nothing is written over your setting until you turn **Optimizer
+  active** back on, which hands control back and clears the notice. Readings in
+  the first 20 seconds after a write are not counted: the tuya_heat_pump
+  integration shows the value it sent for 8 seconds whatever the pump reports.
+- **Its own mode is not a pump limit.** A hot-water-only mode the optimizer
+  wrote does not stop the next plan from heating the house; one set by anybody
+  else still does, as before.
+
+*Observe* writes nothing and logs, per step, the duty planned against the mode
+the pump reports; the diagnostics download carries the same under
+`pump_duty`. *Off* (the default) does neither.
 
 ### Heating system and heat storage
 
