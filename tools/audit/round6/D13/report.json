@@ -17,7 +17,7 @@
       "perturbation": {"change": "D13_FIXTURE=fixtures/reshaped.json reshapes one rework verdict; second arm D13_WAVE deletes the merge alternative from VERDICT_RE", "expected_direction": "down", "observed_value": "reshaped: extra_rounds 11->10; no-merge arm: rounds 74->1, no-verdict 4->66"},
       "metric_definition": "a merge's second-or-later parseable verdicts whose named head sha differs from that merge's first parseable verdict's",
       "null_control": {"command": "D13_FIXTURE=fixtures/window_base.json python3 yield_rounds.py", "value": "0.925 / 1.104 / 11 / 11 / 0 / 1 / 74 reproduces live exactly", "note": "the fixture carries the same fetched records"},
-      "reproduction_steps": ["cd /Users/timmalmstrom/audit-r6-D13", "PYTHONPATH=tests/hastub python3 tools/audit/round6/D13/yield_rounds.py"],
+      "reproduction_steps": ["cd ~/audit-r6-D13", "PYTHONPATH=tests/hastub python3 tools/audit/round6/D13/yield_rounds.py"],
       "proposed_fix_scope": "emit blocked <sha> head-moved: on a moved head, or count a second merge on a different head as rework in statsHistogram; do not widen VERDICT_RE",
       "files": [".claude/workflows/web-fix-wave.js", ".claude/workflows/policy_lint.mjs", "tools/audit/briefs/fixer.md"],
       "stop_rule_class": "hygiene"
@@ -32,7 +32,7 @@
       "instrumented_symbol": "policy_lint.mjs:statsHistogram",
       "perturbation": {"change": "D13_FIXTURE=fixtures/covered.json gives the first verdict-less merge a merge comment; opposite arm reshaped removes a parseable verdict", "expected_direction": "down", "observed_value": "no-verdict 4->3, yield 0.925->0.940; opposite arm leaves count at 4"},
       "metric_definition": "merges_with_no_parsable_verdict / merges, over merges first-parent in the window",
-      "reproduction_steps": ["cd /Users/timmalmstrom/audit-r6-D13", "D13_FIXTURE=fixtures/covered.json PYTHONPATH=tests/hastub python3 yield_rounds.py"],
+      "reproduction_steps": ["cd ~/audit-r6-D13", "D13_FIXTURE=fixtures/covered.json PYTHONPATH=tests/hastub python3 yield_rounds.py"],
       "proposed_fix_scope": "print a coverage line beside STATS: the counts the histogram saw vs the window's merge count",
       "files": [".claude/workflows/policy_lint.mjs"],
       "stop_rule_class": "hygiene"
@@ -47,7 +47,7 @@
       "instrumented_symbol": ".claude/workflows/cfr_exclusions.json",
       "perturbation": {"change": "D13_EXCLUDE=fixtures/exclusions_plus_nightly.json (add nightly-status)", "expected_direction": "down", "observed_value": "cfr_head_any_excl 0.134 -> 0.030 (fall of exactly 7/67); cfr_any_excl stays 0.090"},
       "metric_definition": "cfr_head_any_excl = share of merges with an unexcluded check run concluding failure at the merged PR head sha",
-      "reproduction_steps": ["cd /Users/timmalmstrom/audit-r6-D13", "D13_EXCLUDE=fixtures/exclusions_plus_nightly.json PYTHONPATH=tests/hastub python3 dora_keys.py"],
+      "reproduction_steps": ["cd ~/audit-r6-D13", "D13_EXCLUDE=fixtures/exclusions_plus_nightly.json PYTHONPATH=tests/hastub python3 dora_keys.py"],
       "proposed_fix_scope": "report both keyings; do not add nightly-status to the list",
       "files": [".claude/workflows/cfr_exclusions.json", "tools/audit/round4/D11/dora_keys.py"],
       "stop_rule_class": "hygiene"

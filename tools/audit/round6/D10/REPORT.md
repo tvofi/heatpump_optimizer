@@ -206,7 +206,7 @@ and `inject-websession` uses `async_get_clientsession` (6 sites, 0 owned session
   `RESULT aggregate_headroom_statements=0.0`.
 - **Reproduction**:
   ```
-  cd /Users/timmalmstrom/audit-r6-baseline
+  cd ~/audit-r6-baseline
   PYTHONPATH=tests/hastub python3 tools/audit/round6/D10/coverage_gap.py             # 59 blind
   PYTHONPATH=tests/hastub python3 tools/audit/round6/D10/coverage_gap.py --floor 100 # 0 blind
   W5P_WORK=$(mktemp -d) bash tools/audit/w5-partition/coverage_tree.sh fast          # ~15 min

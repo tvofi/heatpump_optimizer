@@ -1,7 +1,7 @@
 # D0 — price optimality, audit round 6
 
 Baseline: `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9), measured in the
-worktree `/Users/timmalmstrom/audit-r6-D0`. Interpreter
+worktree `~/audit-r6-D0`. Interpreter
 `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3` (numpy 2.4.6,
 scipy 1.17.1); every run from the repository root with `PYTHONPATH=tests/hastub`.
 
