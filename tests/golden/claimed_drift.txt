@@ -685,8 +685,9 @@
 # predicted_cost up) and the always-hot baseline's DHW costs more too
 # (baseline_cost up). baseline_cost is a MAY_DRIFT_JUDGED_KEY, which a may-drift
 # entry cannot excuse and a name cannot be both, so the entry is suspended
-# above. The wood-coil forecast's drain now carries forward (found by this
-# group), so later steps are credited against a cooler wood tank: again more
+# above. The wood-coil forecast now reads the published physics instead of a
+# re-derived drain (found by this group, with the RCA coil-drain seat), so later
+# steps are credited against the wood tank the coil actually cooled: again more
 # hot-water electricity, same direction. The humidity half moves nothing here:
 # no fixture learns a derate.
-wood_coil # R8-P3 (#1530 + the coil drain carry-forward): DHW kWh, dhw_heating_cost, predicted_cost and baseline_cost up
+wood_coil # R8-P3 (#1530 + the coil forecast read from physics): DHW kWh, dhw_heating_cost, predicted_cost and baseline_cost up
