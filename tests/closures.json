@@ -106,7 +106,7 @@
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 4.2,
+   "seconds": 62.3,
    "rc": 0
   }
  },
@@ -2134,7 +2134,13 @@
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
+   "tests/hastub/homeassistant/components/binary_sensor.py",
+   "tests/hastub/homeassistant/components/button.py",
+   "tests/hastub/homeassistant/components/climate.py",
+   "tests/hastub/homeassistant/components/datetime.py",
    "tests/hastub/homeassistant/components/mqtt.py",
+   "tests/hastub/homeassistant/components/sensor.py",
+   "tests/hastub/homeassistant/components/switch.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
@@ -2144,6 +2150,7 @@
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
+   "tests/hastub/homeassistant/helpers/entity_platform.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
    "tests/hastub/homeassistant/helpers/issue_registry.py",

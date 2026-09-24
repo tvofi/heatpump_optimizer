@@ -216,6 +216,7 @@ for name in ("binary_sensor", "button"):
 # on the coordinator, which commands one heat pump, and two of them racing
 # is two commands to one machine.
 from heatpump_optimizer import climate as _climate_platform
+from heatpump_optimizer import entity as _entity_base
 from heatpump_optimizer import datetime as datetime_mod
 from heatpump_optimizer import switch as _switch_platform
 
@@ -8458,10 +8459,10 @@ R.check(
 )
 # Round-5 D3-07 (#1315), the direct half: the assertions above all read the
 # scrub through a sensor, so they pin only what some sensor happens to
-# publish. This one calls _finite itself, pre-scrub, with the shape no
+# publish. This one calls _finite itself (entity.py since #1541), pre-scrub, with the shape no
 # sensor above carries -- a 2-D array whose non-finite members must come
 # back None, recursively, as plain Python.
-_arr_scrubbed = sensor._finite(_np.array([[1.5, _np.inf], [_np.nan, 2.0]]))
+_arr_scrubbed = _entity_base._finite(_np.array([[1.5, _np.inf], [_np.nan, 2.0]]))
 R.check(
     "the finite scrub converts an ndarray recursively, non-finite to None",
     type(_arr_scrubbed) is list
