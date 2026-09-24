@@ -141,9 +141,9 @@ restore replaces the owner as the barrier.
 - **Kept owned, and why, file by file:**
   - The suite: `tests/run.sh`, `env_drift.py`, `golden.py`, `harness.py`,
     `profiles.py`, `stress.py`, `plan_view.py` and `card_browser.mjs`. `fast`
-    and `browser` must run the pull request's code. `harness.py` alone has
-    about a hundred importers, and a test that changes with the behaviour it
-    pins would be refused by the base's copy.
+    and `browser` must run the pull request's code: these are the shared
+    modules the other test scripts import, and a test that changes with the
+    behaviour it pins would be refused by the base's copy.
   - `tests/closure.py` and `tests/derive_closures.sh`. Their INERT,
     NOT_A_TEST and lane rosters are edited by the same pull request that adds
     a test script or makes a test read a new file, and the base's copy
