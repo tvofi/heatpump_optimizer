@@ -45381,6 +45381,14 @@ R.check(
     f"{ {n: (r['applied'], r['reason']) for n, r in _p5_runs.items()} }",
 )
 R.check(
+    "#1525: an interval the fit could not bound is published as unbounded, "
+    "never as a '+-inf %' width",
+    "unbounded" in _p5_runs["infinite"]["reason"]
+    and "inf" not in _p5_runs["infinite"]["reason"]
+    and "+-21 %" in _p5_runs["wide"]["reason"],
+    f"infinite {_p5_runs['infinite']['reason']!r}; wide {_p5_runs['wide']['reason']!r}",
+)
+R.check(
     "#1525: the admits are exactly the in-bar fits (a NaN width is refused, "
     "which 'hw > bar' let through)",
     {n for n, r in _p5_runs.items() if r["applied"]} == {"pinned", "half_bar", "at_bar"}
@@ -45455,6 +45463,44 @@ R.check(
     len(_p5w_returns) >= 2 and _p5w_returns <= _p5w_lines,
     f"returns at lines {sorted(_p5w_returns)}, executed "
     f"{sorted(_p5w_lines & _p5w_returns)}; not driven: {sorted(_p5w_returns - _p5w_lines)}",
+)
+
+# The service write that resets the learned heat loss and the buffer cooling
+# rate persists once, and that one write carries both resets. It used to save
+# the whole store twice, the first time with only the heat-loss half applied.
+def _p5_service_saves(params):
+    c = _t4_coord()
+    c._house_heat_loss_samples, c._buffer_cooling_samples = 9, 7
+    c._p5_payloads = []
+    inner = c._async_save_thermal_learning
+
+    async def counted():
+        c._p5_payloads.append(c._thermal_learning_payload())
+        return await inner()
+
+    c._async_save_thermal_learning = counted
+    _t4_drive(c, "async_update_thermal_params", params)
+    return c._p5_payloads
+
+
+_p5_both = _p5_service_saves(
+    {"house_heat_loss_coefficient": 0.2, "buffer_cooling_rate": 1.5}
+)
+_p5_one = {k: _p5_service_saves({k: v}) for k, v in (
+    ("house_heat_loss_coefficient", 0.2), ("buffer_cooling_rate", 1.5),
+    ("dhw_idle_min_temperature", 33))}
+R.check(
+    "a service write resetting both learners saves once, with both resets in it; "
+    "either alone still saves once, and neither saves nothing",
+    len(_p5_both) == 1
+    and _p5_both[0]["house_heat_loss_samples"] == 0
+    and _p5_both[0]["buffer_cooling_samples"] == 0
+    and _p5_both[0]["buffer_cooling_rate"] == 1.5
+    and len(_p5_one["house_heat_loss_coefficient"]) == 1
+    and len(_p5_one["buffer_cooling_rate"]) == 1
+    and _p5_one["dhw_idle_min_temperature"] == [],
+    f"both {[(p['house_heat_loss_samples'], p['buffer_cooling_samples']) for p in _p5_both]}; "
+    f"alone { {k: len(v) for k, v in _p5_one.items()} }",
 )
 
 # P2 class check for #1523: every function in coordinator.py that feeds a
@@ -45568,13 +45614,15 @@ R.check(
     f"{sorted(set(_P5_DISPOSED) - _p5_open)}; feeders {len(_p5_feeds)}",
 )
 # The class check's own null control: the same rule over a copy of the module
-# with the experiment's stand-down predicate made inert finds #1523's seam.
-_p5_mut = _p5_ast.parse(_p5_inspect.getsource(_p5_coord_mod).replace(
-    "why = _sysid_stand_down(self)", "why = None"))
+# with the experiment's freeze consult removed finds #1523's seam.
+_P5_CONSULT = "else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)"
+_p5_src_now = _p5_inspect.getsource(_p5_coord_mod)
+_p5_mut = _p5_ast.parse(_p5_src_now.replace(_P5_CONSULT, "else None"))
 R.check(
     "#1523 class check null control: dropping the experiment's consult "
     "re-opens exactly its seam",
-    _p5_feeders(_p5_mut)[1] - set(_P5_DISPOSED) == {"_run_system_identification"},
+    _p5_src_now.count(_P5_CONSULT) == 1
+    and _p5_feeders(_p5_mut)[1] - set(_P5_DISPOSED) == {"_run_system_identification"},
     f"{sorted(_p5_feeders(_p5_mut)[1] - set(_P5_DISPOSED))}",
 )
 

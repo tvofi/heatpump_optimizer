@@ -915,9 +915,10 @@ def adoption_decision(
         return refuse("the fit placed no interval on the heat-loss coefficient")
     if not hw <= UA_ADOPTION_HALFWIDTH_BAR:
         bar_pct = np.expm1(UA_ADOPTION_HALFWIDTH_BAR) * 100
+        width = f"+-{np.expm1(hw) * 100:.0f} %" if np.isfinite(hw) else "unbounded"
         return refuse(
-            f"heat-loss interval +-{np.expm1(hw) * 100:.0f} % is wider than "
-            f"the +-{bar_pct:.0f} % adoption bar"
+            f"heat-loss interval ({width}) is wider than the "
+            f"+-{bar_pct:.0f} % adoption bar"
         )
     identifiable, why = slab_mode_identifiability(params, config)
     if not identifiable:

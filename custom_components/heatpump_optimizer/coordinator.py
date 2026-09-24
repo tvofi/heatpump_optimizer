@@ -1791,24 +1791,6 @@ def _space_pump_to_drive(coord: Any) -> str | None:
     return str(entity) if entity else None
 
 
-def _sysid_stand_down(coord: Any) -> str | None:
-    """Why an active step-response experiment must abort now, or ``None``.
-
-    #1523: the experiment is a heat-loss learner, so it stands down on the
-    house learner's own freeze -- external heat, a defrost, an open window,
-    an unusable room or outdoor reading, and the pump's freezes, which
-    ``_learning_frozen`` ranks first -- and on a mode that cannot heat. A
-    module-level predicate in the ``_freq_fold_blocked`` idiom: the one
-    question the experiment asks each cycle, asked in one place.
-    """
-    if coord._pump_signals.space_blocked:
-        return f"heat pump mode {coord._pump_signals.mode.label} cannot heat the house"
-    frozen: str | None = coord._learning_frozen(
-        CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY
-    )
-    return frozen
-
-
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     """Coordinator for Heat Pump Cost Optimizer."""
 
@@ -5212,11 +5194,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # only coefficient change, leaving the next start 0.80x wrong).
             self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
             self._house_heat_loss_samples = 0
-            await self._async_save_thermal_learning()
 
         if CONF_BUFFER_COOLING_RATE in params:
             self._apply_buffer_cooling_rate(float(params[CONF_BUFFER_COOLING_RATE]))
             self._buffer_cooling_samples = 0
+
+        # One write for either reset: a call carrying both used to save the
+        # whole store twice, the first time with only half the reset in it.
+        if "house_heat_loss_coefficient" in params or CONF_BUFFER_COOLING_RATE in params:
             await self._async_save_thermal_learning()
 
         if CONF_DHW_COOLING_RATE in params:
@@ -5253,22 +5238,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             except DHWWindowError as err:
                 _LOGGER.warning("Ignoring invalid DHW demand windows: %s", err)
-        if CONF_DHW_IDLE_MIN_TEMP in params:
-            ctx._thermal_params.dhw_idle_min_temp = float(
-                params[CONF_DHW_IDLE_MIN_TEMP]
-            )
-        if CONF_DHW_LEGIONELLA_ENABLED in params:
-            ctx._thermal_params.dhw_legionella_enabled = bool(
-                params[CONF_DHW_LEGIONELLA_ENABLED]
-            )
-        if CONF_DHW_LEGIONELLA_TEMP in params:
-            ctx._thermal_params.dhw_legionella_temp = float(
-                params[CONF_DHW_LEGIONELLA_TEMP]
-            )
-        if CONF_DHW_LEGIONELLA_INTERVAL_DAYS in params:
-            ctx._thermal_params.dhw_legionella_interval_days = float(
-                params[CONF_DHW_LEGIONELLA_INTERVAL_DAYS]
-            )
+        for key, attribute, convert in (
+            (CONF_DHW_IDLE_MIN_TEMP, "dhw_idle_min_temp", float),
+            (CONF_DHW_LEGIONELLA_ENABLED, "dhw_legionella_enabled", bool),
+            (CONF_DHW_LEGIONELLA_TEMP, "dhw_legionella_temp", float),
+            (CONF_DHW_LEGIONELLA_INTERVAL_DAYS, "dhw_legionella_interval_days", float),
+        ):
+            if key in params:
+                setattr(ctx._thermal_params, attribute, convert(params[key]))
 
         # Attribute writes bypass __post_init__, so the thermal-mass divisor
         # floor is re-enforced here — the one chokepoint for service writes.
@@ -10503,7 +10480,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ctx = getattr(self, "_ctx", self)
         if not self._sysid.active:
             return
-        why = _sysid_stand_down(self)
+        # #1523: the experiment is a heat-loss learner, so it stands down on
+        # the house learner's own freeze (external heat, a defrost, an open
+        # window, an unusable room or outdoor reading, the pump's freezes,
+        # which ``_learning_frozen`` ranks first) and on a mode that cannot heat.
+        why = (
+            f"heat pump mode {self._pump_signals.mode.label} cannot heat the house"
+            if self._pump_signals.space_blocked
+            else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)
+        )
         if why is not None:
             self._sysid.abort(why)
             return
