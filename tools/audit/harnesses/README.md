@@ -29,7 +29,7 @@ The done wave rosters — `wave-1b-groups.json`, `wave-2-groups.json`,
 judge established and refuted, so read them before re-deriving anything a group
 in them already settled.
 
-## The three that stayed
+## The instruments that stayed
 
 Each was added by a fix pull request *after* its round closed, and each is an
 instrument someone re-runs rather than a report someone reads. That is the whole
@@ -40,8 +40,9 @@ of the rule: evidence is archived, instruments are kept.
 | `j5_gil.py` | starvation share = sum(heartbeat gaps > 5 ms) / solve wall, on a real asyncio loop with a 1 ms heartbeat and `HeatPumpOptimizer.optimize` submitted the way production submits it | `8542e51` (W3-G3, #290 #199) | the #290 judge built it; `briefs/fix-review.md` §9 sends a fix reviewer to it |
 | `h8_single_scenario.py` | whether the stress gate detects a 2x regression confined to one scenario, and stays quiet on a multi-start basin flip (#346) | `291ae76` (#378) | anyone changing `tests/stress.py`'s per-scenario or solver-work rules |
 | `h9_basin_coverage.py` | how many of the 51 sweep scenarios the solver-work rule judges rather than exempts, against the tree's own floor (#387) | `32f309f` (#388) | the same |
+| `d907_kernel_band.py` | the sweep's per-call kernel rule on one scenario, before and after the kernel doubt band: misses of a real 2x (every seam call's CPU doubled), false fires and re-solves on an unchanged tree (round-5 D9-07) | the PR that added `KERNEL_DOUBT_FLOOR` | the same |
 
-All three drive production symbols and print `RESULT` lines under the harness
+All of them drive production symbols and print `RESULT` lines under the harness
 contract in `tools/audit/README.md`. `j5_gil.py` must never be run on
 `FakeHass`, whose executor runs inline and would measure nothing. Their run
 commands were updated to this directory when they moved; nothing else changed.

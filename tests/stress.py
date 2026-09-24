@@ -1693,14 +1693,16 @@ def kernel_cost_over_verdict(
 #: and the rounds interleave so slow drift lands on every arm.
 KERNEL_ARM_ROUNDS = 7
 #: The sweep's own kernel rule reads one solve per scenario per tree, so
-#: it rides the same razor: a real 2x read as low as x1.518 under forced
-#: contention, below the factor. A scenario whose single reading lands
+#: it rides the same razor: one reading of a real 2x went as low as x1.518
+#: under forced contention (the arm's single-pair shape, in the PR that
+#: added this), below the factor. A scenario whose single reading lands
 #: between this floor and SCENARIO_KERNEL_FACTOR is re-solved on both trees
 #: and judged on the median of KERNEL_DOUBT_ROUNDS interleaved readings.
-#: Under that 1.518 so a real 2x cannot read beneath it on the measured
-#: noise, and over the 1.373 an unchanged solve read at its worst on the
-#: same load, so a clean tree pays nothing. It only decides what gets
-#: measured again; the factor alone decides what fails.
+#: The floor sits under that lowest real-2x reading, and above the highest
+#: reading of an unchanged solve on the same load
+#: (tools/audit/harnesses/d907_kernel_band.py's clean arm), so a clean
+#: tree is not re-solved. It only decides what gets measured again; the
+#: factor alone decides what fails.
 KERNEL_DOUBT_FLOOR = 1.50
 KERNEL_DOUBT_ROUNDS = 3
 
@@ -2013,8 +2015,9 @@ def install():
 # But NOT for a tree that already times the kernel itself: there this
 # wrapper would sit INSIDE the tree's own meter, and its call and clock
 # reads were charged to the baseline's kernel seconds and never to the
-# in-process sweep it is compared with -- measured at about 1.13x on the
-# probe scenario, which pulled a real 2x under the factor.
+# in-process sweep it is compared with, which pulled a real 2x toward the
+# factor (tools/audit/harnesses/d907_kernel_band.py prints both drivers'
+# readings side by side).
 _tree_meters_kernel = "kernel_ms" in vars(stress.SolverWork())
 if not _tree_meters_kernel and hasattr(
     stress.SolverWork, "_step_wrapped"
