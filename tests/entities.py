@@ -11403,7 +11403,7 @@ _svc_coord.async_apply_manual_plan = _svc_record("apply_manual", {"applied": Tru
 _svc_coord.async_clear_manual_plan = _svc_record("clear_manual")
 _svc_coord.async_restore_learned_snapshot = _svc_record("restore", True)
 _svc_coord.async_set_away = _svc_record("set_away")
-_svc_coord.diagnose_last_interval = lambda: {"residual": None}
+_svc_coord.async_diagnose_interval = _svc_record("diagnose", {"residual": None})
 
 
 def _svc_call(service, payload=None):
@@ -11690,6 +11690,13 @@ _diag = _svc_call(const.SERVICE_DIAGNOSE_INTERVAL)
 R.check(
     "diagnose_interval returns the per-entry report",
     _svc_entry.entry_id in _diag["diagnosis"],
+)
+R.check(
+    "diagnose_interval runs the button's snapshot path, not a thread (#1529)",
+    "diagnose" in _svc_log
+    and _diag["diagnosis"].get(_svc_entry.entry_id) == {"residual": None},
+    f"{_diag}: the service handed a bound coordinator method to the executor, "
+    "which read live parameters and the interval record off the loop",
 )
 
 _svc_registered = set(
@@ -18633,6 +18640,146 @@ def _callee_name(node):
         if isinstance(node.func, ast.Name):
             return node.func.id
     return None
+
+# --- P12 (#1529): no bound coordinator method crosses to a thread ----------
+# A bound coordinator method handed to an executor runs on a worker thread
+# against live coordinator state the event loop keeps writing: the
+# diagnose_interval service handed ``coord.diagnose_last_interval`` to
+# ``async_add_executor_job``, which read the live parameters and the last
+# interval record off the loop while the Diagnose button already went through
+# the snapshot path. Enumerated, not named: every call in the package whose
+# callable argument lands on a thread -- an executor hand-off, or an event
+# helper given a plain synchronous function, which Home Assistant dispatches
+# to its executor -- is resolved to the bound methods it carries (directly,
+# through ``functools.partial``, or called inside a lambda). A method of the
+# coordinator or its context is refused unless the allow-table below keys it
+# with a reason; for an event helper, ``@callback`` or ``async def`` is the
+# reason, because either keeps the call on the loop. The key is the method
+# NAME, which carries no receiver: a same-named method of another object is
+# refused too, and belongs in the table with its reason, never silently.
+_P12_THREAD_ARG = {
+    "async_add_executor_job": 0,
+    "async_add_import_executor_job": 0,
+    "run_in_executor": 1,
+    "to_thread": 0,
+    "submit": 0,
+    "_await_process": 1,
+    "_run_in_process": 0,
+}
+_P12_LOOP_ARG = {
+    "async_track_state_change_event": 2,
+    "async_track_time_interval": 1,
+    "async_track_time_change": 1,
+    "async_track_point_in_time": 1,
+    "async_track_point_in_utc_time": 1,
+    "async_call_later": 2,
+    "async_listen": 1,
+    "async_listen_once": 1,
+}
+_P12_ALLOWED: dict[tuple[str, str], str] = {}
+_P12_METHODS = {
+    _m.name: _m
+    for _c in ast.walk(_PKG_TREES["coordinator.py"])
+    if isinstance(_c, ast.ClassDef)
+    and _c.name in ("HeatPumpOptimizerCoordinator", "CoordinatorContext")
+    for _m in _c.body
+    if isinstance(_m, (ast.FunctionDef, ast.AsyncFunctionDef))
+}
+
+
+def _p12_bound(node, methods):
+    """Coordinator-method names a callable expression carries onto a thread."""
+    if isinstance(node, ast.Attribute):
+        return [node.attr] if node.attr in methods else []
+    if isinstance(node, ast.Call) and _callee_name(node) == "partial" and node.args:
+        return _p12_bound(node.args[0], methods)
+    if isinstance(node, ast.Lambda):
+        return [
+            _n.func.attr
+            for _n in ast.walk(node.body)
+            if isinstance(_n, ast.Call)
+            and isinstance(_n.func, ast.Attribute)
+            and _n.func.attr in methods
+        ]
+    return []
+
+
+def _p12_on_loop(method):
+    return isinstance(method, ast.AsyncFunctionDef) or any(
+        (_d.id if isinstance(_d, ast.Name) else getattr(_d, "attr", None))
+        == "callback"
+        for _d in method.decorator_list
+    )
+
+
+def _p12_handoffs(trees, methods):
+    """Every (file:line, kind, method) where a coordinator method goes to a thread."""
+    found = []
+    for _fname, _tree in trees.items():
+        for _node in ast.walk(_tree):
+            _name = _callee_name(_node)
+            for _kind, _table in (("executor", _P12_THREAD_ARG), ("event", _P12_LOOP_ARG)):
+                _i = _table.get(_name)
+                if _i is None or len(_node.args) <= _i:
+                    continue
+                for _meth in _p12_bound(_node.args[_i], methods):
+                    if _kind == "event" and _p12_on_loop(methods[_meth]):
+                        continue
+                    found.append((f"{_fname}:{_node.lineno}", _kind, _meth))
+    return found
+
+
+_p12_sites = _p12_handoffs(_PKG_TREES, _P12_METHODS)
+_p12_refused = [
+    _s for _s in _p12_sites if (_s[0].split(":")[0], _s[2]) not in _P12_ALLOWED
+]
+R.check(
+    "no bound coordinator method is handed to a thread (P12, #1529)",
+    _p12_refused == [],
+    f"{_p12_refused}: run it through a snapshot on the loop and hand the "
+    "executor a module function over copies (async_diagnose_interval's "
+    "shape), or key it in _P12_ALLOWED with the reason it is safe",
+)
+# The positive control is the pre-fix services.py call site, verbatim, with
+# the method it handed over (deleted by the fix) restored to the set; its
+# partial, lambda and event-helper spellings are refused too. The nulls are a
+# module function on the executor, and an event helper given an @callback
+# method and an async one, which all keep coordinator state on the loop.
+_p12_ctl_methods = dict(
+    _P12_METHODS,
+    diagnose_last_interval=ast.parse("def diagnose_last_interval(self): ...").body[0],
+)
+_p12_ctl = {
+    "services.py": ast.parse(
+        "async def handle_diagnose_interval(hass, call):\n"
+        "    for entry_id, coord in _manual_targets(hass, None):\n"
+        "        reports[entry_id] = await hass.async_add_executor_job(\n"
+        "            coord.diagnose_last_interval\n"
+        "        )\n"
+        "    await hass.async_add_executor_job(partial(coord.diagnose_last_interval))\n"
+        "    await hass.async_add_executor_job(lambda: coord.diagnose_last_interval())\n"
+        "    async_track_state_change_event(hass, [e], coord.diagnose_last_interval)\n"
+    ),
+    "null.py": ast.parse(
+        "async def ok(hass, coord):\n"
+        "    await hass.async_add_executor_job(diagnosis.diagnose_record, a, b)\n"
+        "    async_track_state_change_event(hass, [e], coord._on_power_event)\n"
+        "    async_track_state_change_event(hass, [e], coord.async_diagnose_interval)\n"
+    ),
+}
+_p12_ctl_found = _p12_handoffs(_p12_ctl, _p12_ctl_methods)
+R.check(
+    "the P12 barrier refuses the pre-fix diagnose hand-off and passes its nulls",
+    sorted((_s[0], _s[1]) for _s in _p12_ctl_found)
+    == [
+        ("services.py:3", "executor"),
+        ("services.py:6", "executor"),
+        ("services.py:7", "executor"),
+        ("services.py:8", "event"),
+    ],
+    f"found {_p12_ctl_found}; a barrier that misses its own positive "
+    "control, or refuses a module function, pins nothing",
+)
 
 
 _action_producers, _pending = set(), []
