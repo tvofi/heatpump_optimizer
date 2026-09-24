@@ -4,7 +4,7 @@
     "changed": 0.2,
     "full": 0.3
   },
-  "unpinned_sites": 3726,
+  "unpinned_sites": 3724,
   "last_measured": {
     "changed": {
       "survivors": 2,
@@ -145,35 +145,25 @@
       "old": "    if issue_id == ISSUE_SPACE:",
       "reason": "async_create_fix_flow's ISSUE_SPACE arm returns ConfirmRepairFlow(), and with the guard off control falls through to the final `return ConfirmRepairFlow()` -- a fresh instance of the same class either way, so no caller can tell the two apart. Measured: tests/features.py rc=0 at 25497c4b with the mutant applied (R8-P8 round 3, a survivor CI's changed-scope lane drew at 1a8cbcce)."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:108 CONST": {
-      "verdict": "equivalent",
-      "old": "_STORE_VERSION = 1",
-      "reason": "void under this driver and in production today: the store version is only compared against a stored payload's own version on load, and no migration exists for either value, so 1 -> 2 changes the key HA's Store stamps and nothing the arbiter reads."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:253 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:336 GUARD_OFF": {
       "verdict": "equivalent",
       "old": "    if result is None:",
       "reason": "void mutant: with `result is None` let through, step_duty(None, ...) reads no timestamps, bisects an empty list to -1 and returns None -- the same baseline the guard returns. The guard is a shortcut, not a behaviour."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:274 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:363 GUARD_OFF": {
       "verdict": "equivalent",
       "old": "    if observed is None or value is None:",
-      "reason": "void mutant: _differs is reached only from foreign_change, which skips a None observation before calling it, and from _write, whose recorded value is never None (only a written value is recorded); so neither argument is None at any call site."
+      "reason": "void mutant: every caller of _differs passes non-None values -- foreign_change skips a None observation and tests `prior is None` before comparing against it, dhw_gated returns early on a None reading or record, and _write compares two written values, which are never None; so the guard's `return False` is unreachable."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:295 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:401 RETURN_DEL": {
       "verdict": "equivalent",
       "old": "    return None",
       "reason": "void mutant: `return None` is the last statement of foreign_change; deleting it falls off the end, which returns None too."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:354 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:152 CONST": {
       "verdict": "equivalent",
-      "old": "    if duty == held.last_duty:",
-      "reason": "log-only: the guard stops _observe re-logging an unchanged duty; without it the same INFO line repeats each pass and last_duty is reassigned the value it already holds. No state any check or caller reads changes."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:454 GUARD_OFF": {
-      "verdict": "equivalent",
-      "old": "    if held.loaded:",
-      "reason": "cost-only: without the guard the store is re-read on every pass; the record read back is the one _persist wrote after every change to it, so the restored ownership and manual flag equal the in-memory ones. It costs a store read a minute, which is why the guard stays."
+      "old": "_STORE_VERSION = 1",
+      "reason": "void under this driver and in production today: the store version is only compared against a stored payload's own version on load, and no migration exists for either value, so 1 -> 2 changes the key HA's Store stamps and nothing the arbiter reads."
     }
   },
   "killed_by": {
@@ -482,17 +472,17 @@
       "old": "        if entity_id and value is not None:",
       "reason": "#1513 (R8-P8): GUARD_OFF on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 5 failed, among them `Fix writes the configured disinfection temperature to the number entity`; `Fix commands a climate entity through set_temperature`. Measured at d6d79847, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/setpoint_check.py:107 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/setpoint_check.py:114 RETURN_DEL": {
       "killed_by": "tests/features.py",
       "old": "    return None if reading is None else reading[0]",
       "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 2 failed, among them `space set-point is never recommended, only reported unreadable`; `a set-point reads through the state, then the attribute, then gives up`. Measured at d6d79847, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/setpoint_check.py:122 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/setpoint_check.py:129 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if value is None:",
       "reason": "#1513 (R8-P8): GUARD_OFF on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 2 failed, among them `a climate entity's target temperature is the pump set-point`; `a set-point reads through the state, then the attribute, then gives up`. Measured at d6d79847, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/setpoint_check.py:127 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/setpoint_check.py:134 RETURN_DEL": {
       "killed_by": "tests/features.py",
       "old": "    return None if value is None else (value, unit)",
       "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 12 failed, among them `raised on a pump set-point below the configured disinfection temperature`; `and that set-point notice carries a documentation link`. Measured at d6d79847, 2026-09-24."
@@ -572,285 +562,415 @@
       "old": "        return reading.value",
       "reason": "#1513 (R8-P8) round 3, a survivor CI's changed-scope mutation lane drew at 1a8cbcce. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `null control: value() returns a fresh reading's number`. Measured at 25497c4b, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:99 CONST": {
-      "killed_by": "tests/features.py",
-      "old": "ECHO_GRACE_S = 20.0",
-      "reason": "arrived with the pump-duty arbiter; `ECHO_GRACE_S = 20.0` -> `ECHO_GRACE_S = 40.0` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:100 CONST": {
-      "killed_by": "tests/features.py",
-      "old": "LEASE_MINUTES = 90.0",
-      "reason": "arrived with the pump-duty arbiter; `LEASE_MINUTES = 90.0` -> `LEASE_MINUTES = 180.0` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:101 CONST": {
-      "killed_by": "tests/features.py",
-      "old": "COLD_LEASE_MINUTES = 30.0",
-      "reason": "arrived with the pump-duty arbiter; `COLD_LEASE_MINUTES = 30.0` -> `COLD_LEASE_MINUTES = 60.0` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:105 CONST": {
-      "killed_by": "tests/features.py",
-      "old": "FLOW_GATE_C = 25.0",
-      "reason": "arrived with the pump-duty arbiter; `FLOW_GATE_C = 25.0` -> `FLOW_GATE_C = 50.0` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:106 CONST": {
-      "killed_by": "tests/features.py",
-      "old": "SETPOINT_TOLERANCE = 0.3",
-      "reason": "arrived with the pump-duty arbiter; `SETPOINT_TOLERANCE = 0.3` -> `SETPOINT_TOLERANCE = 0.6` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:154 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:205 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if held is None:",
-      "reason": "arrived with the pump-duty arbiter; `if held is None:` -> `if False:` crashes the driver (uncaught exception) in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `if held is None:` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:157 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:208 RETURN_DEL": {
       "killed_by": "tests/features.py",
       "old": "    return held",
-      "reason": "arrived with the pump-duty arbiter; `return held` -> `pass` crashes the driver (uncaught exception) in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `return held` -> `pass` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:162 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:213 RETURN_DEL": {
       "killed_by": "tests/features.py",
       "old": "    return mode if mode in PUMP_DUTY_MODES else DUTY_OFF",
-      "reason": "arrived with the pump-duty arbiter; `return mode if mode in PUMP_DUTY_MODES else DUTY_OFF` -> `pass` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `return mode if mode in PUMP_DUTY_MODES else DUTY_OFF` -> `pass` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:169 BOOLOP": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:220 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):",
-      "reason": "arrived with the pump-duty arbiter; `if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):` -> `if i < 0 or (i == len(stamps) - 1 or now - stamps[i] > timedelta(minutes=15)):` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:169 GUARD_OFF": {
-      "killed_by": "tests/features.py",
-      "old": "    if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):",
-      "reason": "arrived with the pump-duty arbiter; `if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:173 BOOLOP": {
-      "killed_by": "tests/features.py",
-      "old": "    s_on = i < len(space) and space[i] >= on_kw",
-      "reason": "arrived with the pump-duty arbiter; `s_on = i < len(space) and space[i] >= on_kw` -> `s_on = i < len(space) or space[i] >= on_kw` fails 12 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:174 BOOLOP": {
-      "killed_by": "tests/features.py",
-      "old": "    d_on = i < len(dhw) and dhw[i] > 0.1",
-      "reason": "arrived with the pump-duty arbiter; `d_on = i < len(dhw) and dhw[i] > 0.1` -> `d_on = i < len(dhw) or dhw[i] > 0.1` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:183 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:234 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if duty_mode(coord._config) != DUTY_CONTROL or written is None:",
-      "reason": "arrived with the pump-duty arbiter; `if duty_mode(coord._config) != DUTY_CONTROL or written is None:` -> `if False:` crashes the driver (uncaught exception) in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:185 GUARD_OFF": {
-      "killed_by": "tests/features.py",
-      "old": "    if signals.mode.key != written[0]:",
-      "reason": "arrived with the pump-duty arbiter; `if signals.mode.key != written[0]:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:187 RETURN_DEL": {
-      "killed_by": "tests/features.py",
-      "old": "    return replace(signals, mode_owned=True)",
-      "reason": "arrived with the pump-duty arbiter; `return replace(signals, mode_owned=True)` -> `pass` crashes the driver (uncaught exception) in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:192 RETURN_DEL": {
-      "killed_by": "tests/features.py",
-      "old": "    return coord.hass.states.get(entity) if entity else None",
-      "reason": "arrived with the pump-duty arbiter; `return coord.hass.states.get(entity) if entity else None` -> `pass` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:197 RETURN_DEL": {
-      "killed_by": "tests/features.py",
-      "old": "    return next((o for o in options if pump_mode.resolve(o) == key), None)",
-      "reason": "arrived with the pump-duty arbiter; `return next((o for o in options if pump_mode.resolve(o) == key), None)` -> `pass` fails 8 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:202 GUARD_OFF": {
-      "killed_by": "tests/features.py",
-      "old": "    if value is None or state is None:",
-      "reason": "arrived with the pump-duty arbiter; `if value is None or state is None:` -> `if False:` crashes the driver (uncaught exception) in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:209 CLAMP_DROP": {
-      "killed_by": "tests/features.py",
-      "old": "    value = min(value, high) if high is not None else value",
-      "reason": "arrived with the pump-duty arbiter; `value = min(value, high) if high is not None else value` -> `value = (value) if high is not None else value` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:210 RETURN_DEL": {
-      "killed_by": "tests/features.py",
-      "old": "    return round(value * 2.0) / 2.0",
-      "reason": "arrived with the pump-duty arbiter; `return round(value * 2.0) / 2.0` -> `pass` fails 9 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:216 GUARD_OFF": {
-      "killed_by": "tests/features.py",
-      "old": "    if _flow(coord._config):",
-      "reason": "arrived with the pump-duty arbiter; `if _flow(coord._config):` -> `if False:` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:218 RETURN_DEL": {
-      "killed_by": "tests/features.py",
-      "old": "        return _bounded(state, coord._thermal_model.curve_flow_temp(outdoor), FLOW_GATE_C)",
-      "reason": "arrived with the pump-duty arbiter; `return _bounded(state, coord._thermal_model.curve_flow_temp(outdoor), FLOW_GATE_C)` -> `pass` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:222 RETURN_DEL": {
-      "killed_by": "tests/features.py",
-      "old": "    return _bounded(state, points[i] if 0 <= i < len(points) else None)",
-      "reason": "arrived with the pump-duty arbiter; `return _bounded(state, points[i] if 0 <= i < len(points) else None)` -> `pass` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:232 GUARD_OFF": {
-      "killed_by": "tests/features.py",
-      "old": "    if pump_mode.capability(getattr(mode_state, \"state\", None)).cooling:",
-      "reason": "arrived with the pump-duty arbiter; `if pump_mode.capability(getattr(mode_state, \"state\", None)).cooling:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `if duty_mode(coord._config) != DUTY_CONTROL or written is None:` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
     "custom_components/heatpump_optimizer/pump_arbiter.py:236 GUARD_OFF": {
       "killed_by": "tests/features.py",
-      "old": "    if duty != \"dhw\":",
-      "reason": "arrived with the pump-duty arbiter; `if duty != \"dhw\":` -> `if False:` fails 8 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "old": "    if signals.mode.key != written[0]:",
+      "reason": "pump-duty arbiter revision; `if signals.mode.key != written[0]:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:238 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:238 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "    return replace(signals, mode_owned=True)",
+      "reason": "pump-duty arbiter revision; `return replace(signals, mode_owned=True)` -> `pass` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:243 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "    return coord.hass.states.get(entity) if entity else None",
+      "reason": "pump-duty arbiter revision; `return coord.hass.states.get(entity) if entity else None` -> `pass` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:248 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "    return next((o for o in options if pump_mode.resolve(o) == key), None)",
+      "reason": "pump-duty arbiter revision; `return next((o for o in options if pump_mode.resolve(o) == key), None)` -> `pass` fails 16 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:253 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if value is None or state is None:",
+      "reason": "pump-duty arbiter revision; `if value is None or state is None:` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:261 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "    return round(value * 2.0) / 2.0",
+      "reason": "pump-duty arbiter revision; `return round(value * 2.0) / 2.0` -> `pass` fails 12 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:267 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if _flow(coord._config):",
+      "reason": "pump-duty arbiter revision; `if _flow(coord._config):` -> `if False:` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:273 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "    return _bounded(state, points[i] if 0 <= i < len(points) else None)",
+      "reason": "pump-duty arbiter revision; `return _bounded(state, points[i] if 0 <= i < len(points) else None)` -> `pass` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:283 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if pump_mode.capability(getattr(mode_state, \"state\", None)).cooling:",
+      "reason": "pump-duty arbiter revision; `if pump_mode.capability(getattr(mode_state, \"state\", None)).cooling:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:287 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if duty == \"space\" and _disinfecting(coord):",
+      "reason": "pump-duty arbiter revision; `if duty == \"space\" and _disinfecting(coord):` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:289 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if duty == \"idle\":",
+      "reason": "pump-duty arbiter revision; `if duty == \"idle\":` -> `if False:` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:297 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if duty == \"space\":",
+      "reason": "pump-duty arbiter revision; `if duty == \"space\":` -> `if False:` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:301 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if duty != \"dhw\":",
+      "reason": "pump-duty arbiter revision; `if duty != \"dhw\":` -> `if False:` fails 8 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:303 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if _option_for(mode_state, pump_mode.MODE_DHW):",
-      "reason": "arrived with the pump-duty arbiter; `if _option_for(mode_state, pump_mode.MODE_DHW):` -> `if False:` fails 8 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `if _option_for(mode_state, pump_mode.MODE_DHW):` -> `if False:` fails 11 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:241 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:306 RETURN_DEL": {
       "killed_by": "tests/features.py",
       "old": "    return PumpCommand(both, dhw, gate)",
-      "reason": "arrived with the pump-duty arbiter; `return PumpCommand(both, dhw, gate)` -> `pass` crashes the driver (uncaught exception) in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `return PumpCommand(both, dhw, gate)` -> `pass` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:246 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:312 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "    return getattr(switch, \"memo\", None) is True",
+      "reason": "pump-duty arbiter revision; `return getattr(switch, \"memo\", None) is True` -> `pass` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:318 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if reading is None or written is None or _differs(\"dhw_setpoint\", reading, written[0]):",
+      "reason": "pump-duty arbiter revision; `if reading is None or written is None or _differs(\"dhw_setpoint\", reading, written[0]):` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:321 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "    return bool(written[0] < configured - SETPOINT_TOLERANCE)",
+      "reason": "pump-duty arbiter revision; `return bool(written[0] < configured - SETPOINT_TOLERANCE)` -> `pass` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:329 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if coord._mode not in (MODE_AUTO, MODE_ECONOMY) or coord._plan_is_stale():",
-      "reason": "arrived with the pump-duty arbiter; `if coord._mode not in (MODE_AUTO, MODE_ECONOMY) or coord._plan_is_stale():` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `if coord._mode not in (MODE_AUTO, MODE_ECONOMY) or coord._plan_is_stale():` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:248 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:331 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if (coord._current_action or {}).get(\"mode\") == \"system_identification\":",
-      "reason": "arrived with the pump-duty arbiter; `if (coord._current_action or {}).get(\"mode\") == \"system_identification\":` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `if (coord._current_action or {}).get(\"mode\") == \"system_identification\":` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:250 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:333 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if boost.held_for(coord).until:",
-      "reason": "arrived with the pump-duty arbiter; `if boost.held_for(coord).until:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `if boost.held_for(coord).until:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:255 CLAMP_DROP": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:338 RETURN_DEL": {
       "killed_by": "tests/features.py",
-      "old": "    on_kw = max(0.1, float(coord._thermal_model.params.min_electrical_power) * 0.5)",
-      "reason": "arrived with the pump-duty arbiter; `on_kw = max(0.1, float(coord._thermal_model.params.min_electrical_power) * 0.5)` -> `on_kw = (0.1)` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "old": "    return step_duty(result, now, _on_kw(coord))",
+      "reason": "pump-duty arbiter revision; `return step_duty(result, now, _on_kw(coord))` -> `pass` fails 20 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:256 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:350 GUARD_OFF": {
       "killed_by": "tests/features.py",
-      "old": "    return step_duty(result, now, on_kw)",
-      "reason": "arrived with the pump-duty arbiter; `return step_duty(result, now, on_kw)` -> `pass` fails 11 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "old": "    if duty != \"dhw\" and (duty != \"idle\" or held.dhw_since is None):",
+      "reason": "pump-duty arbiter revision; `if duty != \"dhw\" and (duty != \"idle\" or held.dhw_since is None):` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:261 GUARD_OFF": {
-      "killed_by": "tests/features.py",
-      "old": "    if duty != \"dhw\":",
-      "reason": "arrived with the pump-duty arbiter; `if duty != \"dhw\":` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:263 RETURN_DEL": {
-      "killed_by": "tests/features.py",
-      "old": "        return duty",
-      "reason": "arrived with the pump-duty arbiter; `return duty` -> `pass` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:267 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:356 RETURN_DEL": {
       "killed_by": "tests/features.py",
       "old": "    return None if now - held.dhw_since > timedelta(minutes=cap) else duty",
-      "reason": "arrived with the pump-duty arbiter; `return None if now - held.dhw_since > timedelta(minutes=cap) else duty` -> `pass` fails 11 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `return None if now - held.dhw_since > timedelta(minutes=cap) else duty` -> `pass` fails 14 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:272 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:361 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if slot == \"mode\":",
-      "reason": "arrived with the pump-duty arbiter; `if slot == \"mode\":` -> `if False:` crashes the driver (uncaught exception) in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `if slot == \"mode\":` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:276 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:365 RETURN_DEL": {
       "killed_by": "tests/features.py",
       "old": "    return bool(abs(observed - value) > SETPOINT_TOLERANCE)",
-      "reason": "arrived with the pump-duty arbiter; `return bool(abs(observed - value) > SETPOINT_TOLERANCE)` -> `pass` fails 3 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `return bool(abs(observed - value) > SETPOINT_TOLERANCE)` -> `pass` fails 4 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:281 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:371 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if slot == \"mode\":",
-      "reason": "arrived with the pump-duty arbiter; `if slot == \"mode\":` -> `if False:` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `if slot == \"mode\":` -> `if False:` fails 4 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:283 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:374 RETURN_DEL": {
       "killed_by": "tests/features.py",
-      "old": "    return _read_setpoint(coord.hass, entity)",
-      "reason": "arrived with the pump-duty arbiter; `return _read_setpoint(coord.hass, entity)` -> `pass` fails 3 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "old": "    return setpoint_check._read_setpoint(coord.hass, entity)",
+      "reason": "pump-duty arbiter revision; `return setpoint_check._read_setpoint(coord.hass, entity)` -> `pass` fails 4 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:290 GUARD_OFF": {
-      "killed_by": "tests/features.py",
-      "old": "        if observed is None or (now - at).total_seconds() < ECHO_GRACE_S:",
-      "reason": "arrived with the pump-duty arbiter; `if observed is None or (now - at).total_seconds() < ECHO_GRACE_S:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:292 GUARD_OFF": {
-      "killed_by": "tests/features.py",
-      "old": "        if _differs(slot, observed, value):",
-      "reason": "arrived with the pump-duty arbiter; `if _differs(slot, observed, value):` -> `if False:` fails 5 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:294 RETURN_DEL": {
-      "killed_by": "tests/features.py",
-      "old": "            return f\"{entity}: {observed} (set by the optimizer: {value})\"",
-      "reason": "arrived with the pump-duty arbiter; `return f\"{entity}: {observed} (set by the optimizer: {value})\"` -> `pass` fails 5 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:302 BOOLOP": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:435 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):",
-      "reason": "arrived with the pump-duty arbiter; `if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):` -> `if value is None or state is None or (recorded or not _differs(slot, recorded[0], value)):` crashes the driver (uncaught exception) in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):` -> `if False:` fails 10 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:302 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:437 GUARD_OFF": {
       "killed_by": "tests/features.py",
-      "old": "    if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):",
-      "reason": "arrived with the pump-duty arbiter; `if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):` -> `if False:` fails 8 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "old": "    if slot in held.retry and now < held.retry[slot]:",
+      "reason": "pump-duty arbiter revision; `if slot in held.retry and now < held.retry[slot]:` -> `if False:` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:370 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:497 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if row is None or row[\"start\"] != start:",
+      "reason": "pump-duty arbiter revision; `if row is None or row[\"start\"] != start:` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:503 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if power is not None:",
+      "reason": "pump-duty arbiter revision; `if power is not None:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:536 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if mode == DUTY_OFF:",
-      "reason": "arrived with the pump-duty arbiter; `if mode == DUTY_OFF:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `if mode == DUTY_OFF:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:380 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:546 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if coord._mode == MODE_OFF or mode != DUTY_CONTROL:",
-      "reason": "arrived with the pump-duty arbiter; `if coord._mode == MODE_OFF or mode != DUTY_CONTROL:` -> `if False:` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "reason": "pump-duty arbiter revision; `if coord._mode == MODE_OFF or mode != DUTY_CONTROL:` -> `if False:` fails 3 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:381 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:556 GUARD_OFF": {
       "killed_by": "tests/features.py",
-      "old": "        if held.written and held.manual is None and mode == DUTY_CONTROL:",
-      "reason": "arrived with the pump-duty arbiter; `if held.written and held.manual is None and mode == DUTY_CONTROL:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "old": "    if held.manual is not None:",
+      "reason": "pump-duty arbiter revision; `if held.manual is not None:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:383 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:560 GUARD_OFF": {
       "killed_by": "tests/features.py",
-      "old": "        if held.written:",
-      "reason": "arrived with the pump-duty arbiter; `if held.written:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "old": "    if mode != DUTY_CONTROL:",
+      "reason": "pump-duty arbiter revision; `if mode != DUTY_CONTROL:` -> `if False:` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:563 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if detail is not None:",
+      "reason": "pump-duty arbiter revision; `if detail is not None:` -> `if False:` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:573 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if held.written and held.manual is None and duty_mode(coord._config) == DUTY_CONTROL:",
+      "reason": "pump-duty arbiter revision; `if held.written and held.manual is None and duty_mode(coord._config) == DUTY_CONTROL:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:585 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if held.unsubs:",
+      "reason": "pump-duty arbiter revision; `if held.unsubs:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:597 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if entities:",
+      "reason": "pump-duty arbiter revision; `if entities:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:622 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if held.loaded:",
+      "reason": "pump-duty arbiter revision; `if held.loaded:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:630 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "    if not isinstance(raw, dict):",
+      "reason": "pump-duty arbiter revision; `if not isinstance(raw, dict):` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:224 BOOLOP": {
+      "killed_by": "tests/features.py",
+      "old": "    s_on = i < len(space) and space[i] >= on_kw",
+      "reason": "pump-duty arbiter revision; `s_on = i < len(space) and space[i] >= on_kw` -> `s_on = i < len(space) or space[i] >= on_kw` fails 15 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:225 BOOLOP": {
+      "killed_by": "tests/features.py",
+      "old": "    d_on = i < len(dhw) and dhw[i] > 0.1",
+      "reason": "pump-duty arbiter revision; `d_on = i < len(dhw) and dhw[i] > 0.1` -> `d_on = i < len(dhw) or dhw[i] > 0.1` fails 8 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:269 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "        return _bounded(state, coord._thermal_model.curve_flow_temp(outdoor), FLOW_GATE_C)",
+      "reason": "pump-duty arbiter revision; `return _bounded(state, coord._thermal_model.curve_flow_temp(outdoor), FLOW_GATE_C)` -> `pass` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:287 BOOLOP": {
+      "killed_by": "tests/features.py",
+      "old": "    if duty == \"space\" and _disinfecting(coord):",
+      "reason": "pump-duty arbiter revision; `if duty == \"space\" and _disinfecting(coord):` -> `if duty == \"space\" or _disinfecting(coord):` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:298 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "        if _option_for(mode_state, pump_mode.MODE_HEAT):",
+      "reason": "pump-duty arbiter revision; `if _option_for(mode_state, pump_mode.MODE_HEAT):` -> `if False:` fails 4 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:300 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "        return PumpCommand(both, _bounded(_state(coord, \"dhw_setpoint\"), DHW_GATE_C), space)",
+      "reason": "pump-duty arbiter revision; `return PumpCommand(both, _bounded(_state(coord, \"dhw_setpoint\"), DHW_GATE_C), space)` -> `pass` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:342 CLAMP_DROP": {
+      "killed_by": "tests/features.py",
+      "old": "    return max(0.1, float(coord._thermal_model.params.min_electrical_power) * 0.5)",
+      "reason": "pump-duty arbiter revision; `return max(0.1, float(coord._thermal_model.params.min_electrical_power) * 0.5)` -> `return (0.1)` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:350 BOOLOP": {
+      "killed_by": "tests/features.py",
+      "old": "    if duty != \"dhw\" and (duty != \"idle\" or held.dhw_since is None):",
+      "reason": "pump-duty arbiter revision; `if duty != \"dhw\" and (duty != \"idle\" or held.dhw_since is None):` -> `if duty != \"dhw\" or (duty != \"idle\" or held.dhw_since is None):` fails 3 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:352 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "        return duty",
+      "reason": "pump-duty arbiter revision; `return duty` -> `pass` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:373 RETURN_DEL": {
+      "killed_by": "tests/features.py",
+      "old": "        return raw if pump_mode.resolve(raw) is not None else None",
+      "reason": "pump-duty arbiter revision; `return raw if pump_mode.resolve(raw) is not None else None` -> `pass` fails 4 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
     "custom_components/heatpump_optimizer/pump_arbiter.py:386 GUARD_OFF": {
       "killed_by": "tests/features.py",
-      "old": "        if coord._mode == MODE_OFF:",
-      "reason": "arrived with the pump-duty arbiter; `if coord._mode == MODE_OFF:` -> `if False:` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "old": "        if observed is None:",
+      "reason": "pump-duty arbiter revision; `if observed is None:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
     "custom_components/heatpump_optimizer/pump_arbiter.py:388 GUARD_OFF": {
       "killed_by": "tests/features.py",
-      "old": "    if held.manual is not None:",
-      "reason": "arrived with the pump-duty arbiter; `if held.manual is not None:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "old": "        if not _differs(slot, observed, value):",
+      "reason": "pump-duty arbiter revision; `if not _differs(slot, observed, value):` -> `if False:` fails 8 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:392 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:393 GUARD_OFF": {
       "killed_by": "tests/features.py",
-      "old": "    if mode != DUTY_CONTROL:",
-      "reason": "arrived with the pump-duty arbiter; `if mode != DUTY_CONTROL:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "old": "        if (now - at).total_seconds() < ECHO_GRACE_S:",
+      "reason": "pump-duty arbiter revision; `if (now - at).total_seconds() < ECHO_GRACE_S:` -> `if False:` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:395 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:398 GUARD_OFF": {
       "killed_by": "tests/features.py",
-      "old": "    if detail is not None:",
-      "reason": "arrived with the pump-duty arbiter; `if detail is not None:` -> `if False:` fails 5 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "old": "        if slot in held.landed or prior is None or _differs(slot, observed, prior):",
+      "reason": "pump-duty arbiter revision; `if slot in held.landed or prior is None or _differs(slot, observed, prior):` -> `if False:` fails 5 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:405 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:437 BOOLOP": {
       "killed_by": "tests/features.py",
-      "old": "    if held.written and held.manual is None and duty_mode(coord._config) == DUTY_CONTROL:",
-      "reason": "arrived with the pump-duty arbiter; `if held.written and held.manual is None and duty_mode(coord._config) == DUTY_CONTROL:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "old": "    if slot in held.retry and now < held.retry[slot]:",
+      "reason": "pump-duty arbiter revision; `if slot in held.retry and now < held.retry[slot]:` -> `if slot in held.retry or now < held.retry[slot]:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:417 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:498 GUARD_OFF": {
       "killed_by": "tests/features.py",
-      "old": "    if held.unsubs:",
-      "reason": "arrived with the pump-duty arbiter; `if held.unsubs:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "old": "        if row is not None:",
+      "reason": "pump-duty arbiter revision; `if row is not None:` -> `if False:` fails 3 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:429 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:512 BOOLOP": {
       "killed_by": "tests/features.py",
-      "old": "    if entities:",
-      "reason": "arrived with the pump-duty arbiter; `if entities:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "old": "    rose = None not in (tank, row[\"tank\"]) and float(tank) - float(row[\"tank\"]) >= TANK_RISE_C",
+      "reason": "pump-duty arbiter revision; `rose = None not in (tank, row[\"tank\"]) and float(tank) - float(row[\"tank\"]) >= TANK_RISE_C` -> `rose = None not in (tank, row[\"tank\"]) or float(tank) - float(row[\"tank\"]) >= TANK_RISE_C` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/pump_arbiter.py:462 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/pump_arbiter.py:547 GUARD_OFF": {
       "killed_by": "tests/features.py",
-      "old": "    if not isinstance(raw, dict):",
-      "reason": "arrived with the pump-duty arbiter; `if not isinstance(raw, dict):` -> `if False:` crashes the driver (uncaught exception) in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+      "old": "        if held.written and held.manual is None and mode == DUTY_CONTROL:",
+      "reason": "pump-duty arbiter revision; `if held.written and held.manual is None and mode == DUTY_CONTROL:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:549 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "        if held.written or held.retry:",
+      "reason": "pump-duty arbiter revision; `if held.written or held.retry:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:554 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "        if coord._mode == MODE_OFF:",
+      "reason": "pump-duty arbiter revision; `if coord._mode == MODE_OFF:` -> `if False:` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:220 BOOLOP": {
+      "killed_by": "tests/features.py",
+      "old": "    if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):",
+      "reason": "pump-duty arbiter revision; `if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):` -> `if i < 0 or (i == len(stamps) - 1 or now - stamps[i] > timedelta(minutes=15)):` fails 5 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:260 CLAMP_DROP": {
+      "killed_by": "tests/features.py",
+      "old": "    value = min(value, high) if high is not None else value",
+      "reason": "pump-duty arbiter revision; `value = min(value, high) if high is not None else value` -> `value = (value) if high is not None else value` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:390 GUARD_OFF": {
+      "killed_by": "tests/features.py",
+      "old": "            if held.retry.pop(slot, None) is not None and not held.retry:",
+      "reason": "pump-duty arbiter revision; `if held.retry.pop(slot, None) is not None and not held.retry:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:435 BOOLOP": {
+      "killed_by": "tests/features.py",
+      "old": "    if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):",
+      "reason": "pump-duty arbiter revision; `if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):` -> `if value is None or state is None or (recorded or not _differs(slot, recorded[0], value)):` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:390 BOOLOP": {
+      "killed_by": "tests/features.py",
+      "old": "            if held.retry.pop(slot, None) is not None and not held.retry:",
+      "reason": "pump-duty arbiter revision; `and` -> `or` fails \"the warning stays while any ignored write is still pending, and leaving control clears it\" (test tightened after the first drive), against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:523 BOOLOP": {
+      "killed_by": "tests/features.py",
+      "old": "    elif actual == planned or (planned == \"both\" and actual != \"idle\"):",
+      "reason": "pump-duty arbiter revision; `elif actual == planned or (planned == \"both\" and actual != \"idle\"):` -> `elif actual == planned or (planned == \"both\" or actual != \"idle\"):` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:136 CONST": {
+      "killed_by": "tests/features.py",
+      "old": "ECHO_GRACE_S = 20.0",
+      "reason": "pump-duty arbiter revision; `ECHO_GRACE_S = 20.0` -> `ECHO_GRACE_S = 40.0` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:137 CONST": {
+      "killed_by": "tests/features.py",
+      "old": "LEASE_MINUTES = 90.0",
+      "reason": "pump-duty arbiter revision; `LEASE_MINUTES = 90.0` -> `LEASE_MINUTES = 180.0` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:138 CONST": {
+      "killed_by": "tests/features.py",
+      "old": "COLD_LEASE_MINUTES = 30.0",
+      "reason": "pump-duty arbiter revision; `COLD_LEASE_MINUTES = 30.0` -> `COLD_LEASE_MINUTES = 60.0` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:142 CONST": {
+      "killed_by": "tests/features.py",
+      "old": "FLOW_GATE_C = 25.0",
+      "reason": "pump-duty arbiter revision; `FLOW_GATE_C = 25.0` -> `FLOW_GATE_C = 50.0` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:144 CONST": {
+      "killed_by": "tests/features.py",
+      "old": "DHW_GATE_C = 30.0",
+      "reason": "pump-duty arbiter revision; `DHW_GATE_C = 30.0` -> `DHW_GATE_C = 60.0` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:145 CONST": {
+      "killed_by": "tests/features.py",
+      "old": "SETPOINT_TOLERANCE = 0.3",
+      "reason": "pump-duty arbiter revision; `SETPOINT_TOLERANCE = 0.3` -> `SETPOINT_TOLERANCE = 0.6` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:149 CONST": {
+      "killed_by": "tests/features.py",
+      "old": "RETRY_MINUTES = 5.0",
+      "reason": "pump-duty arbiter revision; `RETRY_MINUTES = 5.0` -> `RETRY_MINUTES = 10.0` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:150 CONST": {
+      "killed_by": "tests/features.py",
+      "old": "TANK_RISE_C = 0.5",
+      "reason": "pump-duty arbiter revision; `TANK_RISE_C = 0.5` -> `TANK_RISE_C = 1.0` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:151 CONST": {
+      "killed_by": "tests/features.py",
+      "old": "LOG_STEPS = 96",
+      "reason": "pump-duty arbiter revision; `LOG_STEPS = 96` -> `LOG_STEPS = 192` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
     }
   },
   "reason": "The ratchet is the exact-count `unpinned_sites`: the deterministic inventory enumerates every candidate the six operators generate over the production package, and a site leaves that count only by carrying a disposition -- a `killed_by` driver, or a `survivor_triage` verdict (equivalent/gap) pinned to the exact `old` line. This record was re-derived at 467d3d9c on 2026-09-23 and moved 3785 -> 3781. The inventory stands at 3816 candidates, because the round-6 class fixes added 22 sites and removed 4 against the 3798 the previous record was written on. All 22 new sites now carry a disposition: 10 are killed by a recorded driver -- 6 by tests/finite_boundary.py (store.py:52, store.py:54, store.py:59, store.py:60, store.py:62, store.py:66; the store-load boundary of #1425) and 4 by tests/features.py (coordinator.py:10455, the adoption gate of #1410/#1437; sysid.py:585, sysid.py:723, sysid.py:740) -- 3 are triaged equivalent (store.py:50, a void mutant whose two arms are the same `return value`; sysid.py:726 and sysid.py:739, clamps whose `max` cannot select its second arm), and 9 are recorded as gap triage (store.py:64 and eight sysid.py sites no driver in the recorded net detects behaviourally). One property the 12 triage entries share, stated here so no reason hides it: tests/entities.py's #1217 mark-staleness self-check reddens when any `survivor_triage`-marked line is mutated, because the mark's pin then names a mutant the tree no longer generates. That is a property of the RECORD, not a behavioural kill -- the instrument's own D3-07 `equivalent` marks redden identically -- so these sites are survivors here and not `killed_by` entries, and a `killed_by` mark would not reproduce (entities.py reads `survivor_triage` only; moving a mark there yields entities.py rc=0, measured). The `gap` verdict is used here for the first time in this file's history: it records a MEASURED survivor, it is the honest disposition for one, and it does NOT move the fraction -- `survivor_gaps` counts every survivor no triage has called equivalent, so the sampled cap still reads these as gaps. Both caps and both `last_measured` blocks are unchanged. Do not raise `unpinned_sites` by hand: the exact count is re-derived every run by tests/mutation_table.py, which refuses growth and only records down via --record (and --record cannot fire on a branch whose diff puts no production file in scope, so this file was edited deliberately, with the measurement in the commit message). Re-derived again on the round-7 D7-01 fix for #1459: the fix adds a SysIdResult field and two module functions to sysid.py ahead of fourteen recorded sites, so their FILE:LINE keys were re-pointed to the same line text (no verdict changed), and the fix's five new candidate sites take dispositions -- four killed by tests/features.py and one recorded as a measured `gap` (sysid.py:834, a defensive non-finite guard no recorded net reaches). `unpinned_sites` is unchanged: the fourteen re-keys keep the dispositions they had, and each of the five new sites carries one. Re-derived on the round-7 optimizer fix's merge of origin/main (cdf82daa) into fix/r7-optimizer-seeds (d674f063), 2026-09-23: the two sides' dispositions are disjoint -- the branch moves optimizer.py alone, main moves sensor.py, coordinator.py, tariff.py, thermal_model.py and their neighbours -- so the merged ledger is their union, the inventory stands at 3818 candidates, and the count re-records down 3771 -> 3769 (main's own record) as the branch's three optimizer.py dispositions land on a tree the whole-tree inventory also enumerates."

@@ -321,6 +321,9 @@ def dhw_gated(coord: Any, reading: float | None) -> bool:
     return bool(written[0] < configured - SETPOINT_TOLERANCE)
 
 
+setpoint_check.dhw_gated = dhw_gated
+
+
 def _planned_duty(coord: Any, now: datetime) -> str | None:
     """The duty to serve now, or ``None`` for the baseline."""
     if coord._mode not in (MODE_AUTO, MODE_ECONOMY) or coord._plan_is_stale():
@@ -363,9 +366,11 @@ def _differs(slot: str, observed: Any, value: Any) -> bool:
 
 
 def _observed(coord: Any, slot: str) -> Any:
+    """The reading, or ``None`` when there is none: an unavailable select is not a mode."""
     entity = _entities(coord._config)[slot]
     if slot == "mode":
-        return getattr(coord.hass.states.get(entity) if entity else None, "state", None)
+        raw = getattr(coord.hass.states.get(entity) if entity else None, "state", None)
+        return raw if pump_mode.resolve(raw) is not None else None
     return setpoint_check._read_setpoint(coord.hass, entity)
 
 
@@ -541,8 +546,10 @@ async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -
     if coord._mode == MODE_OFF or mode != DUTY_CONTROL:
         if held.written and held.manual is None and mode == DUTY_CONTROL:
             await _command(coord, desired(coord, None, now), now)
-        if held.written:
+        if held.written or held.retry:
+            # A pending retry dies with control, and so does its warning.
             _forget(held)
+            _clear(coord, ISSUE_IGNORED)
             await _persist(coord)
         if coord._mode == MODE_OFF:
             return

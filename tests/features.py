@@ -45446,13 +45446,39 @@ R.check(
     _pa_back.set_modes == [_PA_OFF],
     f"{_pa_back.set_modes=}",
 )
+_pa_two = _PaCoord(_PA_TUYA)
+_pa_run(_pa_two, 0)
+_pa_aio.run(_pa.apply(_pa_two, _PA_T0 + timedelta(seconds=60)))
+_pa_run(_pa_two, 6)
+_pa_two.device("select.pump_mode", "DHW (Hot Water)")
+_pa_aio.run(_pa.apply(_pa_two, _PA_T0 + timedelta(minutes=6, seconds=10)))
+_pa_two_kept = [i for i in getattr(_pa_two.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED]
+_pa_two._config["pump_duty_mode"] = "observe"
+_pa_run(_pa_two, 8)
+R.check(
+    "the warning stays while any ignored write is still pending, and leaving control clears it",
+    len(_pa_two_kept) == 1 and _pa_two.set_modes == []
+    and not [i for i in getattr(_pa_two.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED]
+    and _pa.view(_pa_two)["retrying"] == [],
+    f"{_pa_two_kept=} {_pa_two.set_modes=} {_pa.view(_pa_two)['retrying']=}",
+)
+_pa_unav = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_unav, 0)
+_pa_unav.device("select.pump_mode", "unavailable")
+_pa_run(_pa_unav, 2)
+R.check(
+    "an unavailable mode select is no reading: neither a manual change nor an ignored write",
+    _pa_unav.set_modes == []
+    and not [i for i in getattr(_pa_unav.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED],
+    f"{_pa_unav.set_modes=}",
+)
 
 # Observe: a ledger of planned duty against what the pump did, per step.
 _pa_led = _PaCoord(_PA_TUYA, duties="dss--", duty="observe")
 _pa_led._current_state.dhw_temperature = 45.0
 for _pa_m, _pa_kw, _pa_tank in ((1, 2.0, 45.0), (14, 2.0, 47.0), (16, 1.5, 47.0),
                                (31, 0.0, 47.0), (46, 1.5, 47.0), (61, 1.5, 47.0),
-                               (74, 1.5, 48.0), (76, 0.0, 48.0)):
+                               (74, 1.5, 47.5), (76, 0.0, 47.5)):
     _pa_led._measured_power, _pa_led._current_state.dhw_temperature = _pa_kw, _pa_tank
     _pa_run(_pa_led, _pa_m)
 _pa_ledger = _pa.view(_pa_led)["ledger"]
@@ -45462,6 +45488,16 @@ R.check(
     == ["delivered", "delivered", "idle-instead", "space-instead", "dhw-instead"]
     and _pa_ledger["counts"]["delivered"] == 2 and _pa_led.writes() == [],
     f"{_pa_ledger}",
+)
+_pa_day = _PaCoord(_PA_TUYA, duties="s" * 100, duty="observe")
+for _pa_m in range(0, 15 * 100, 15):
+    _pa_run(_pa_day, _pa_m + 1)
+_pa_day_log = _pa.view(_pa_day)["ledger"]["steps"]
+R.check(
+    "the ledger holds the last 24 hours of steps, and no more",
+    len(_pa_day_log) == 96
+    and _pa_day_log[-1]["start"] == (_PA_T0 + timedelta(minutes=15 * 98)).isoformat(),
+    f"{len(_pa_day_log)=}",
 )
 _pa_nometer = _PaCoord(_PA_TUYA, duties="ss", duty="observe")
 _pa_nometer._current_state.dhw_temperature = 45.0

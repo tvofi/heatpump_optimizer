@@ -561,7 +561,8 @@ writes, at every 15-minute plan step:
   read before the write, 20 seconds and more later, and never showed the new
   value, the pump (or its cloud) dropped the write. A warning repair notice is
   raised, the value is sent again every 5 minutes, the optimizer stays on, and
-  the notice clears on the first write that takes.
+  the notice clears on the first write that takes, or when *Control* is left.
+  An unavailable mode entity is no reading at all, and counts as neither.
 - **A change you make wins.** Any other change to those three entities —
   made on the pump, in an app or by a schedule: a value that is neither the
   optimizer's nor the one before, or any change after the optimizer's value
