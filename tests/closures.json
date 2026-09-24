@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 316.3,
+   "seconds": 249.4,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -86,7 +86,7 @@
    "rc": 0
   },
   "tests/typing_ruler.py": {
-   "seconds": 0.2,
+   "seconds": 1.0,
    "rc": 0
   },
   "tests/guard_pins.py": {
@@ -579,8 +579,13 @@
    "tests/nightly_ha.py",
    "tests/nightly_status.py",
    "tests/profiles.py",
+   "tests/pwlane/package-lock.json",
    "tests/replay.py",
    "tests/replay/synthetic-dhw-only.json",
+   "tests/requirements-build.txt",
+   "tests/requirements-ci.txt",
+   "tests/requirements-coverage.txt",
+   "tests/requirements-typing.txt",
    "tests/run.sh",
    "tests/stress.py",
    "tests/structure.py",
@@ -1613,6 +1618,7 @@
    "custom_components/heatpump_optimizer/topology.py",
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
+   "tests/requirements-typing.txt",
    "tests/typing_budgets.json",
    "tests/typing_ruler.py"
   ],
