@@ -530,6 +530,12 @@ def bound_references(trees: list[tuple[Path, ast.Module]]) -> set[tuple[str, str
     return {(str(mods[m][0].relative_to(REPO_ROOT)), n) for m, n in found if m in mods}
 
 
+def is_dead_symbol(key: tuple[str, str], bound: set[tuple[str, str]],
+                   exempt: set[tuple[str, str]]) -> bool:
+    """No load resolves to ``(rel, name)``, and no convention or proof exempts it."""
+    return key[1] not in HA_CONVENTION_NAMES and key not in bound and key not in exempt
+
+
 def dynamic_reference_audit(
     trees: list[tuple[Path, ast.Module]],
     top_level_defs: dict[tuple[str, str], int],
@@ -971,7 +977,6 @@ def measure() -> dict:
     cc_scores = []         # (cc, file, line, name)
     const_fanout = {}      # file -> imported names from .const
     local_imports = []     # (file, line, statement)
-    dead_symbols = []      # (file, line, name)
     dead_methods = []      # (file, class, method, line)
     duplication = []       # (file, func_name, func_line, start-end, length)
 
@@ -1084,14 +1089,8 @@ def measure() -> dict:
     dynamic_exempt, dynamic_problems = dynamic_reference_audit(
         trees, top_level_defs, bound
     )
-    for (rel, name), lineno in sorted(top_level_defs.items()):
-        if name in HA_CONVENTION_NAMES:
-            continue
-        if (rel, name) in bound:
-            continue
-        if (rel, name) in dynamic_exempt:
-            continue
-        dead_symbols.append((rel, lineno, name))
+    dead_symbols = [(rel, lineno, name) for (rel, name), lineno in sorted(top_level_defs.items())
+                    if is_dead_symbol((rel, name), bound, dynamic_exempt)]
 
     # -- dead methods (#1395) ----------------------------------------------
     # The same screen as ``dead_top_level_symbols``, one level in: a method
@@ -1860,19 +1859,24 @@ BOUND_SELF_CHECK_SOURCES = {
             "def recurse(n):\n    return recurse(n - 1)\n",
     "b.py": "_LOGGER = 2\ndef g():\n    return _LOGGER\ndef h(): pass\n"
             "def untyped(): pass\ndef own(): pass\n",
-    "c.py": "def shared(): pass\n_LOGGER = 3\n",
+    "c.py": "def shared(): pass\n_LOGGER = 3\ndef g(): pass\n",
 }
 
 
 def bound_self_check() -> tuple[tuple[str, bool], ...]:
     """Pin ``bound_references``' four arms on a three-module tree (#1538)."""
-    refs = {(Path(rel).name, name) for rel, name in bound_references(
-        [(PACKAGE_DIR / m, ast.parse(src)) for m, src in BOUND_SELF_CHECK_SOURCES.items()])}
+    bound = bound_references(
+        [(PACKAGE_DIR / m, ast.parse(src)) for m, src in BOUND_SELF_CHECK_SOURCES.items()])
+    refs = {(Path(rel).name, name) for rel, name in bound}
+    c_logger = (str((PACKAGE_DIR / "c.py").relative_to(REPO_ROOT)), "_LOGGER")
     return (
         ("an aliased import resolves to the symbol it binds", ("c.py", "shared") in refs),
         ("a same-named symbol read elsewhere is not a reference",
          ("b.py", "_LOGGER") in refs and not {("a.py", "_LOGGER"), ("c.py", "_LOGGER")} & refs),
-        ("m.N reaches N in m and nothing else", ("b.py", "g") in refs and ("b.py", "h") not in refs),
+        ("the screen reports a symbol whose name another module reads",
+         is_dead_symbol(c_logger, bound, set())),
+        ("m.N reaches N in m and nothing else",
+         ("b.py", "g") in refs and not {("b.py", "h"), ("c.py", "g")} & refs),
         ("x.N on an untyped value reaches every top-level N", ("b.py", "untyped") in refs),
         ("self.N is not a module reference", ("b.py", "own") not in refs),
         ("a function calling itself is not bound-referenced", ("a.py", "recurse") not in refs),
