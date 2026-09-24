@@ -1,7 +1,7 @@
 # D7 — Architecture and maintainability — round 4
 
 - baseline: `7dd68dd327fe3dbfb09f3bd0fe38910c58877697`
-- tree: `/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-r4-baseline` (export, no `.git`)
+- tree: `~/heatpump_optimizer/.claude/worktrees/audit-r4-baseline` (export, no `.git`)
 - interpreter: `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3`,
   always `PYTHONPATH=tests/hastub`, always from the export root
 - machine: 8-core Apple M1, 8 GB, macOS 25.6, numpy on OpenBLAS, BLAS threads

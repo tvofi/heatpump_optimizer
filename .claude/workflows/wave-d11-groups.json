@@ -13,7 +13,7 @@
   "fork": "2a480b6e7d6557dde68566b83fa8a52a2f4b9560",
   "fork_note": "origin/main after #1028 (2a480b6). Re-derive every number at your own merge base. claims-for = the repo-root VERSION file, read it. Empty claims unless a card names drift. Do not stamp from a wave seat.",
   "session": "zcode-r4",
-  "repo": "/Users/timmalmstrom/heatpump_optimizer",
+  "repo": "~/heatpump_optimizer",
   "serial": false,
   "struck": [],
   "groups": [

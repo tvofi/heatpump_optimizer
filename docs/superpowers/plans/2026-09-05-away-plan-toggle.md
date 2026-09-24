@@ -20,7 +20,7 @@
 - Gate lock `/tmp/hpo-gate.lock` if the select is `MODE: FULL` or names `tests/stress.py`. Default select is features / config_flow_steps / entities / card / structure — no lock.
 - Three-dot diffs vs merge-base. `cp` backups for source mutation; restore and confirm md5.
 - This repo’s tests are plain scripts, not pytest. Commands below are exact.
-- Worktree under `~/wt/<branch>`. Never commit in `/Users/timmalmstrom/heatpump_optimizer`.
+- Worktree under `~/wt/<branch>`. Never commit in `~/heatpump_optimizer`.
 - Do not start production while W3-G3 or 3L-G8/G9 hold `coordinator.py` or the card. Cut the branch from `origin/main` after those seats. Re-measure structure at that merge-base.
 
 ## Seat (do not skip)

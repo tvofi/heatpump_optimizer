@@ -46,8 +46,11 @@ class DhwSetpointRepairFlow(RepairsFlow):
                 },
             )
         entity_id = data.get("entity_id")
-        if entity_id and target is not None:
-            await _write_setpoint(self.hass, str(entity_id), float(target))
+        # ``value`` is the target in the entity's own unit (#1513); a notice
+        # raised before it existed carries only the degC ``target``.
+        value = data.get("value", target)
+        if entity_id and value is not None:
+            await _write_setpoint(self.hass, str(entity_id), float(value))
         try:
             ir.async_delete_issue(self.hass, DOMAIN, ISSUE_DHW)
         except Exception as err:  # noqa: BLE001 - clearing is best-effort

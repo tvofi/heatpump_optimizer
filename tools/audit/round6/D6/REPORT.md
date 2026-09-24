@@ -1,6 +1,6 @@
 # D6 — README and documentation claim verification — audit round 6
 
-Baseline `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9), export `/Users/timmalmstrom/audit-r6-baseline`. Machine 8-core Apple M1, 8 GB. All harnesses count-class; `thread_factor=1.0`, `swapins=0`; `load1` 12–22 (provisional, shared box).
+Baseline `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9), export `~/audit-r6-baseline`. Machine 8-core Apple M1, 8 GB. All harnesses count-class; `thread_factor=1.0`, `swapins=0`; `load1` 12–22 (provisional, shared box).
 
 > Reconstructed by the orchestrator from the finder's inline return (the Write tool refused REPORT.md for the subagent; its 7 harnesses + claims.tsv are on disk).
 

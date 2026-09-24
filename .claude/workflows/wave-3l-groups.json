@@ -8,7 +8,7 @@
   "fork": "e4bc3756d47c4adbc4d76284cdfe4d5e1dd3a52f",
   "fork_note": "origin/main after 3L-G10 #492 (`e4bc375`). Re-measure structure at this merge-base. coordinator_loc 10344. claims-for stays 6.3.15. #465 closed. Next seat Wave 4 S0 (W4-G1); seats not started.",
   "session": "claude-web",
-  "repo": "/Users/timmalmstrom/heatpump_optimizer",
+  "repo": "~/heatpump_optimizer",
   "serial": true,
   "struck": [],
   "groups": [

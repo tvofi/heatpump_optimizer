@@ -7,7 +7,7 @@ OpenBLAS, all five thread variables pinned to `"1"` before the numpy import
 
 **No production or test file was touched.** Every hook is `unittest.mock`.
 Verified by byte comparison against the worktree at
-`/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/12-dimension-repo-audit-9e1d6b`
+`~/heatpump_optimizer/.claude/worktrees/12-dimension-repo-audit-9e1d6b`
 after all runs: `compared=192 differing=0` over every `.py`, `.mjs`, `.json`,
 `.sh`, `.md` and `.txt` under `custom_components/` and `tests/`. My instruments
 are all new files under `tools/audit/round3/D0/verify-3/`, raw output under
@@ -683,7 +683,7 @@ count or a ratio of call counts, so none of them is a timing number and none is
 provisional.
 
 **Tree integrity.** Byte-compared after every run against the worktree at
-`/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/12-dimension-repo-audit-9e1d6b`:
+`~/heatpump_optimizer/.claude/worktrees/12-dimension-repo-audit-9e1d6b`:
 192 files under `custom_components/` and `tests/` compared, **0 differing**.
 
 **What I did not run.** The closed-loop receding-horizon arm (`mpc_realised.py`

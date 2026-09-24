@@ -1,7 +1,7 @@
 # D5 — Docs structure, flow and content; code comments (round 7)
 
 Baseline: `f9d6f78243fa65f6fa128d2357752a2ae7f60648` (round-6 fix wave merged).
-Export: `/Users/timmalmstrom/audit-r7-baseline` (no `.git`; audit records, the
+Export: `~/audit-r7-baseline` (no `.git`; audit records, the
 backlog and `RELEASE_NOTES.md` stripped).
 Interpreter: `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3`,
 `PYTHONPATH=tests/hastub`, run from the repository root.
