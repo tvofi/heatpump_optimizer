@@ -1692,6 +1692,9 @@ def kernel_cost_over_verdict(
 #: runners (x1.51, x1.57). The median of each arm's rounds is its reading,
 #: and the rounds interleave so slow drift lands on every arm.
 KERNEL_ARM_ROUNDS = 7
+#: At most this many batches of KERNEL_ARM_ROUNDS when a median lands in the
+#: kernel doubt band (per_call_cost_rounds); an arm outside it pays one.
+KERNEL_ARM_BATCHES = 3
 #: The sweep's own kernel rule reads one solve per scenario per tree, so
 #: it rides the same razor: one reading of a real 2x went as low as x1.518
 #: under forced contention (the arm's single-pair shape, in the PR that
@@ -1737,7 +1740,10 @@ def cpu_scaler(factor: float = 2.0):
 def per_call_cost_rounds(probe: dict, rounds: int = KERNEL_ARM_ROUNDS):
     """Solve ``probe`` plain, with every kernel seam call's CPU doubled, and
     plain again, ``rounds`` times interleaved; return the three arms' median
-    kernel milliseconds and the last doubled and second-plain runs.
+    kernel milliseconds and the last doubled and second-plain runs. While
+    either median sits in the kernel doubt band after a batch of ``rounds``,
+    another batch is solved and the medians are taken over all of them, up
+    to KERNEL_ARM_BATCHES batches; a median outside the band stops it.
 
     The first plain arm is the baseline, the doubled arm the injection
     (through the class attributes SolverWork hooks), and the second plain
@@ -1758,7 +1764,21 @@ def per_call_cost_rounds(probe: dict, rounds: int = KERNEL_ARM_ROUNDS):
 
     base_ms, slow_ms, null_ms = [], [], []
     slower = null = None
-    for _ in range(rounds):
+
+    def _in_doubt() -> bool:
+        # Either median inside the kernel doubt band: the same band the
+        # sweep re-solves (judge_work), for the same reason -- a 2x median
+        # read at x1.780 on an idle Linux runner at seven rounds.
+        base = float(np.median(base_ms))
+        return any(
+            base * KERNEL_DOUBT_FLOOR < float(np.median(arm))
+            <= base * SCENARIO_KERNEL_FACTOR
+            for arm in (slow_ms, null_ms)
+        )
+
+    for _ in range(rounds * KERNEL_ARM_BATCHES):
+        if len(base_ms) >= rounds and len(base_ms) % rounds == 0 and not _in_doubt():
+            break
         base_ms.append(float(build_case(**probe).get("solver_kernel_ms", 0.0)))
         SolverWork._batch_wrapped = _cost_twice(saved_batch)
         SolverWork._step_wrapped = _cost_twice(saved_step)
