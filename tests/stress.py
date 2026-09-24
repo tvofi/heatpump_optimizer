@@ -1684,6 +1684,76 @@ def kernel_cost_over_verdict(
     return observed_ms > baseline_ms * vouched_ratio * SCENARIO_KERNEL_FACTOR
 
 
+#: Interleaved rounds the per-call-cost arm solves (round-5 D9-07). One
+#: plain solve against one doubled solve is a ratio of two single ~50 ms
+#: kernel readings, and under contention one reading moves by more than
+#: the 1.11x a 2x clears SCENARIO_KERNEL_FACTOR by, so the arm missed on
+#: runners (x1.51, x1.57). The median of each arm's rounds is its reading,
+#: and the rounds interleave so slow drift lands on every arm.
+KERNEL_ARM_ROUNDS = 7
+
+
+def per_call_cost_rounds(probe: dict, rounds: int = KERNEL_ARM_ROUNDS):
+    """Solve ``probe`` plain, with every kernel seam call's CPU doubled, and
+    plain again, ``rounds`` times interleaved; return the three arms' median
+    kernel milliseconds and the last doubled and second-plain runs.
+
+    The first plain arm is the baseline, the doubled arm the injection
+    (through the class attributes SolverWork hooks), and the second plain
+    arm an independent null solved beside them -- a null compared with its
+    own numbers cannot fire, so it pins nothing.
+
+    The injection spends each seam call's own CPU a second time, rather
+    than repeating the call as the finder did: a repeat of an identical
+    call runs on warm caches and read a median 0.94x of the first over
+    eight contended solves, so "twice" delivered under 2x and its
+    seven-round median still missed the factor in 2 of 20 contended trials
+    (the PR that added this). Burning the measured CPU is 2x per call on
+    any machine, net of the clock reads the burn itself adds.
+    """
+    saved_batch = SolverWork._batch_wrapped
+    saved_step = SolverWork._step_wrapped
+    # What one clock read costs: the doubler adds three per call inside the
+    # meter (its two own and the loop's last) that the plain call never
+    # pays, which on ~8 us step calls would read as a few percent over 2x.
+    started = time.process_time()
+    for _ in range(1000):
+        time.process_time()
+    clock = (time.process_time() - started) / 1000.0
+
+    def _cost_twice(seam):
+        def _twice(*args, **kwargs):
+            started = time.process_time()
+            res = seam(*args, **kwargs)
+            until = 2.0 * time.process_time() - started - 3.0 * clock
+            while time.process_time() < until:
+                pass
+            return res
+        return _twice
+
+    base_ms, slow_ms, null_ms = [], [], []
+    slower = null = None
+    for _ in range(rounds):
+        base_ms.append(float(build_case(**probe).get("solver_kernel_ms", 0.0)))
+        SolverWork._batch_wrapped = _cost_twice(saved_batch)
+        SolverWork._step_wrapped = _cost_twice(saved_step)
+        try:
+            slower = build_case(**probe)
+        finally:
+            SolverWork._batch_wrapped = saved_batch
+            SolverWork._step_wrapped = saved_step
+            # build_case's own __exit__ re-published the wrappers onto the
+            # production seams, so restoring the class attributes alone
+            # would leave the doublers reachable from the module.
+            ThermalModel.simulate_trajectory_batch = saved_batch
+            ThermalModel.simulate_step = saved_step
+        slow_ms.append(float(slower.get("solver_kernel_ms", 0.0)))
+        null = build_case(**probe)
+        null_ms.append(float(null.get("solver_kernel_ms", 0.0)))
+    return (float(np.median(base_ms)), float(np.median(slow_ms)),
+            float(np.median(null_ms)), slower, null)
+
+
 def rss_attrib_fail_threshold(recorded_attrib: float) -> float:
     """The scenario-attributable RSS growth (MiB) a probe may show before
     the check fails.
@@ -3046,58 +3116,46 @@ if __name__ == "__main__":
         f"cost-only fired {_cost_only_rule.sim_over}",
     )
     # ...and the per-call-cost arm for the channel both counts are blind
-    # to (round-5 D9-07): both kernel seams run twice per call, through
-    # the same class attributes SolverWork hooks. The counts see one
-    # call each, the plan does not move, and only the kernel's own
-    # seconds double -- the finder's injection, which the whole solve's
-    # CPU carries at just 1.49-1.54x.
-    _saved_seam_batch = SolverWork._batch_wrapped
-    _saved_seam_step = SolverWork._step_wrapped
-
-    def _seam_twice(seam):
-        def _twice(*args, **kwargs):
-            seam(*args, **kwargs)
-            return seam(*args, **kwargs)
-        return _twice
-
-    SolverWork._batch_wrapped = _seam_twice(_saved_seam_batch)
-    SolverWork._step_wrapped = _seam_twice(_saved_seam_step)
-    try:
-        _slower = build_case(**_probe)
-    finally:
-        SolverWork._batch_wrapped = _saved_seam_batch
-        SolverWork._step_wrapped = _saved_seam_step
-        # build_case's own __exit__ re-published the wrappers onto the
-        # production seams, so restoring the class attributes alone would
-        # leave the twice-runners reachable from the module.
-        ThermalModel.simulate_trajectory_batch = _saved_seam_batch
-        ThermalModel.simulate_step = _saved_seam_step
-    _slower_kernel = float(_slower.get("solver_kernel_ms", 0.0))
-    _slower_rule = work_drift_compare(
-        {_probe_label: int(_slower["solver_evals"])},
-        {_probe_label: int(_slower.get("solver_simulate_steps", 0))},
-        {_probe_label: float(_slower["result"].objective_value)},
-        {_probe_label: _slower_kernel},
-        _real_base,
+    # to (round-5 D9-07): every call of both kernel seams costs twice its
+    # own CPU, through the same class attributes SolverWork hooks. The
+    # counts see one call each, the plan does not move, and only the
+    # kernel's own seconds double -- which the whole solve's CPU carries
+    # at just 1.49-1.54x. Medians over interleaved rounds, beside an
+    # independent plain null (per_call_cost_rounds says why both).
+    _kbase_ms, _kslow_ms, _knull_ms, _slower, _knull = per_call_cost_rounds(
+        _probe
     )
+    _kbase = {_probe_label: dict(_real_base[_probe_label], kernel_ms=_kbase_ms)}
+
+    def _kernel_rule(run, kernel_ms):
+        return work_drift_compare(
+            {_probe_label: int(run["solver_evals"])},
+            {_probe_label: int(run.get("solver_simulate_steps", 0))},
+            {_probe_label: float(run["result"].objective_value)},
+            {_probe_label: kernel_ms},
+            _kbase,
+        )
+
+    _slower_rule = _kernel_rule(_slower, _kslow_ms)
+    _knull_rule = _kernel_rule(_knull, _knull_ms)
     R.check(
         "the per-call-cost arm reaches the rule the sweep applies, with "
         "both count channels flat, and an unchanged solve does not "
         "(round-5 D9-07)",
-        not _real_null.cost_over
-        and _real_null.covered == [_probe_label]
+        not _knull_rule.cost_over
+        and _knull_rule.covered == [_probe_label]
         and [f.split()[0] for f in _slower_rule.cost_over] == [_probe_label]
         and not _slower_rule.over
         and not _slower_rule.sim_over,
-        f"{_probe_label}: {_plain_kernel:.0f} ms of kernel CPU plain, "
-        f"{_slower_kernel:.0f} ms with both seams run twice per call "
-        f"(x{_slower_kernel / max(_plain_kernel, 1e-9):.2f}); evaluations "
+        f"{_probe_label}, median of {KERNEL_ARM_ROUNDS} interleaved rounds: "
+        f"{_kbase_ms:.0f} ms of kernel CPU plain, {_knull_ms:.0f} ms plain "
+        f"again (x{_knull_ms / max(_kbase_ms, 1e-9):.2f}), {_kslow_ms:.0f} "
+        f"ms with every seam call's CPU doubled "
+        f"(x{_kslow_ms / max(_kbase_ms, 1e-9):.2f}); evaluations "
         f"{_plain['solver_evals']} vs {_slower['solver_evals']}, simulate "
-        f"{_plain_sim} vs {_slower.get('solver_simulate_steps', 0)}; solve "
-        f"CPU {float(_plain['solve_cpu_ms']):.0f} vs "
-        f"{float(_slower['solve_cpu_ms']):.0f} ms; factor "
+        f"{_plain_sim} vs {_slower.get('solver_simulate_steps', 0)}; factor "
         f"{SCENARIO_KERNEL_FACTOR:.2f}; null fired "
-        f"{_real_null.cost_over}, per-call-cost fired "
+        f"{_knull_rule.cost_over}, per-call-cost fired "
         f"{_slower_rule.cost_over}",
     )
 
