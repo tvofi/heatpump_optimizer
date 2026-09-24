@@ -39295,20 +39295,25 @@ R.check(
     "nobody else wrote still come back off; the ones a service wrote keep "
     "the service's value",
 )
-_g8_env_opt, _g8_env_th = _G8Opt(), _G8Therm()
-_g8_env = _g8_away.apply_setback(
-    _g8_away.AwayState(active=True, target_temperature=16.0), _g8_env_opt,
-    _g8_env_th,
-)
-_g8_away.lower_floor(_g8_env, _g8_env_opt, 1.5)
-_g8_env_low = _g8_env_opt.min_temp
-_g8_away.restore_setback(_g8_env, _g8_env_opt, _g8_env_th)
+def _g8_widen(**state_kw):
+    opt, th = _G8Opt(), _G8Therm()
+    rec = _g8_away.apply_setback(_g8_away.AwayState(**state_kw), opt, th)
+    _g8_away.lower_floor(rec, opt, 1.5)
+    low = opt.min_temp
+    _g8_away.restore_setback(rec, opt, th)
+    return low, opt.min_temp
+
+
+_g8_env = {
+    "home": _g8_widen(active=False),
+    "away": _g8_widen(active=True, target_temperature=16.0),
+}
 R.check(
     "the envelope's own floor widening is recorded, so it still unwinds",
-    _g8_env_low == 15.0 and _g8_env_opt.min_temp == 19.0,
-    f"widened to {_g8_env_low!r}, restored to {_g8_env_opt.min_temp!r}: "
-    "economy and the open-window relax lower min_temp inside the envelope, "
-    "and a compare-and-restore that did not know about them would leak the "
+    _g8_env == {"home": (17.5, 19.0), "away": (15.0, 19.0)},
+    f"(widened, restored) {_g8_env}: economy and the open-window relax lower "
+    "min_temp inside the envelope, never below the absolute floor, and a "
+    "compare-and-restore that did not know about them would leak the "
     "widening into every later solve",
 )
 

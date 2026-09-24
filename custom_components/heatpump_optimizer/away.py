@@ -316,17 +316,19 @@ def apply_setback(
 ) -> SetbackRecord:
     """Temporarily lower comfort targets while away. Returns the originals."""
     original = SetbackRecord(_setback_fields(opt_config, thermal_params))
-    if state.active and not state.recovery_active:
-        target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
-        opt_config.target_temp = min(original["target_temp"], target)
-        opt_config.min_temp = min(original["min_temp"], target)
-        opt_config.comfort_temp_day = target
-        opt_config.comfort_temp_night = target
-        dhw_floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
-        thermal_params.dhw_min_temp = min(original["dhw_min_temp"], dhw_floor)
-        thermal_params.dhw_idle_min_temp = min(
-            original["dhw_idle_min_temp"], dhw_floor
-        )
+    original.written = dict(original)
+    if not state.active or state.recovery_active:
+        return original
+    target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
+    opt_config.target_temp = min(original["target_temp"], target)
+    opt_config.min_temp = min(original["min_temp"], target)
+    opt_config.comfort_temp_day = target
+    opt_config.comfort_temp_night = target
+    dhw_floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
+    thermal_params.dhw_min_temp = min(original["dhw_min_temp"], dhw_floor)
+    thermal_params.dhw_idle_min_temp = min(
+        original["dhw_idle_min_temp"], dhw_floor
+    )
     original.written = _setback_fields(opt_config, thermal_params)
     return original
 

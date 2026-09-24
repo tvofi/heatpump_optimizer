@@ -132,27 +132,27 @@
       "old": "    if params.buffer_is_store:",
       "reason": "arrived with origin/main, commit d62195ade (fix(D12): guard the battery buffer/DHW stores on the config signal). `if params.buffer_is_store:` -> `if False:` makes tests/features.py exit 1 against a baseline exit of 0. Measured at the post-main head, 2026-09-22."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:10495 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/coordinator.py:10483 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "        if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:",
       "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437): the fitted UA's own 95 % profile-likelihood interval supersedes the #942 residual-scatter precondition. `if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:` -> `if False:` adopts every completed experiment whatever its interval: the blend weight 1 - hw / bar goes negative for hw > bar, so `_t4_adopt(halfwidth=2*bar)` moves the learned scale to 0.0 against the recorded 1.0 and the sample floor to int(20 * -1) = -20. Measured: tests/features.py rc=0 failed=0 -> rc=1 failed=1. Measured at 467d3d9c, 2026-09-23."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:1652 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/coordinator.py:1651 RETURN_DEL": {
       "killed_by": "tests/entities.py",
       "old": "    return pump, list(tracker.house_samples) if tracker is not None else []",
       "reason": "This branch's `_power_windows`, the module-level window reader `_build_data_dict` calls (#1460). Deleting the return leaves the function answering None, and the caller's `data[\"heat_pump_power_series\"], data[\"house_power_series\"] = _power_windows(self)` raises `TypeError: cannot unpack non-iterable NoneType object`. Measured: tests/entities.py rc=1, in its D8-01 payload helper."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:1665 BOOLOP": {
+    "custom_components/heatpump_optimizer/coordinator.py:1664 BOOLOP": {
       "killed_by": "tests/features.py",
       "old": "    if coord._mode in (MODE_AUTO, MODE_ECONOMY) and coord._plan_is_stale():",
       "reason": "This branch's `_space_pump_to_drive` staleness guard (#1449), with `and` -> `or`: the guard still names `_plan_is_stale`, so the D1-02 enumeration rule keeps reporting this seam gated, while the space pump is now held in every AUTO/ECONOMY cycle and a fresh plan commands nothing. Measured: tests/features.py rc=1, `and a fresh plan drives the space pump, so the check above is not vacuous [fresh plan commanded ['switch.vvc']]` among the failures."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:1665 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/coordinator.py:1664 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if coord._mode in (MODE_AUTO, MODE_ECONOMY) and coord._plan_is_stale():",
       "reason": "The same guard deleted whole: the space pump is then driven on every plan, stale included, while `_apply_action` refuses it -- and the D1-02 enumeration rule reports this seam ungated, so two checks red. Measured: tests/features.py rc=1, `the space pump is not driven from a plan _plan_is_stale refused (#1449) [commanded ['switch.vvc', 'switch.space_pump'] from a 400-minute-old plan]` and the rule check, reporting ('_async_drive_pumps', False)."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:1668 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/coordinator.py:1667 RETURN_DEL": {
       "killed_by": "tests/features.py",
       "old": "    return str(entity) if entity else None",
       "reason": "`_space_pump_to_drive`'s entity return (#1449): deleting it leaves the guard above intact, so the rule still reports this seam gated, while the space pump is never commanded, fresh plan included. Measured: tests/features.py rc=1, `each configured pump is commanded on its own, by entity id [vvc alone -> [...]; space alone -> []]` among the failures."
