@@ -729,6 +729,7 @@ def drop_tree(dest: Path) -> None:
 # the net and no mutant stops sooner than it did, so every verdict is the one
 # the serial sweep gave; only which driver is NAMED as a mutant's killer can
 # change, as it already could with the measured cheapest-first order.
+# The one driver kept off that sharing is EXCLUSIVE below.
 
 
 def _share(workers: int, work) -> None:
@@ -738,15 +739,26 @@ def _share(workers: int, work) -> None:
             fut.result()
 
 
+# Drivers that measure the MACHINE while they run, so they never share it.
+# stress.py times its solves against tests/stress_budgets.json -- the reason
+# `/tmp/hpo-gate.lock` serialises it locally -- and beside three other drivers
+# on a CI runner its baseline hit the 1200 s per-driver timeout (#1565's first
+# run: rc=124, the table INCONCLUSIVE with no mutant scored) where alone it
+# takes 674-960 s. An exclusive driver runs with no other driver in flight, in
+# the baseline and for every mutant alike.
+EXCLUSIVE = ("tests/stress.py",)
+
+
 def drive_baselines(needed: list[str], workers: int, run) -> dict[str, ScriptRun]:
     """Every driver's unmutated run, spread over `workers` trees.
 
-    `run(worker, script)` drives one script in that worker's tree. The
-    ref-driven drivers are queued first: they are the whole-solve comparisons
-    and the longest runs in the net, and a long run started last is what sets
-    the makespan.
+    `run(worker, script)` drives one script in that worker's tree. The shared
+    drivers go first, the ref-driven ones at the head of the queue: they are
+    the net's longest shared runs, and a long run started last is what sets
+    the makespan. Each EXCLUSIVE driver then runs alone.
     """
-    queue = sorted(needed, key=lambda s: (s not in REF_DRIVEN, s))
+    queue = sorted((s for s in needed if s not in EXCLUSIVE),
+                   key=lambda s: (s not in REF_DRIVEN, s))
     lock = threading.Lock()
     out: dict[str, ScriptRun] = {}
 
@@ -759,6 +771,8 @@ def drive_baselines(needed: list[str], workers: int, run) -> dict[str, ScriptRun
             out[script] = run(w, script)
 
     _share(workers, work)
+    for script in sorted(s for s in needed if s in EXCLUSIVE):
+        out[script] = run(0, script)
     return out
 
 
@@ -768,18 +782,20 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
 
     `drive(worker, mut, script)` runs one driver on `mut` in that worker's tree
     and says whether it killed it. A worker sweeps the next unstarted mutant,
-    its drivers in the order given (cheapest first), stopping at the first
-    kill. Once no mutant is left unstarted it helps instead: it takes the
-    costliest not-yet-started driver of a mutant still undecided, since a
-    survivor's sweep is the one that cannot stop early. A mutant is killed by
-    the first driver to report a kill, and LIVES only once every one of its
-    drivers has run and none did.
+    its shared drivers in the order given (cheapest first), stopping at the
+    first kill. Once no mutant is left unstarted it helps instead: it takes the
+    costliest not-yet-started shared driver of a mutant still undecided, since
+    a survivor's sweep is the one that cannot stop early. Every EXCLUSIVE
+    driver is deferred past that phase and run alone, one at a time, for each
+    mutant no shared driver killed -- so only those pay for it. A mutant is
+    killed by the first driver to report a kill, and LIVES only once every one
+    of its drivers has run and none did.
     """
     lock = threading.Lock()
-    todo = [list(m["drivers"]) for m in pool]
+    todo = [[s for s in m["drivers"] if s not in EXCLUSIVE] for m in pool]
     running = [0] * len(pool)
     verdict: list[str | None] = [None] * len(pool)
-    unstarted = list(range(len(pool)))
+    unstarted = [i for i in range(len(pool)) if todo[i]]
     own: list[int | None] = [None] * workers
 
     def take(w: int) -> tuple[int, str] | None:
@@ -807,10 +823,12 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
                 running[i] -= 1
                 if verdict[i] is None and hit:
                     verdict[i] = f"killed by {script}"
-                elif verdict[i] is None and not todo[i] and not running[i]:
-                    verdict[i] = "LIVES"
 
     _share(workers, work)
+    for i, mut in enumerate(pool):
+        for script in (s for s in mut["drivers"] if s in EXCLUSIVE):
+            if verdict[i] is None and drive(0, mut, script):
+                verdict[i] = f"killed by {script}"
     return [(m, v or "LIVES") for m, v in zip(pool, verdict)]
 
 

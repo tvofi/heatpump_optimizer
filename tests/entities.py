@@ -22723,9 +22723,67 @@ if _mut_baselines is not None:
                    lambda w, s: (_MUT_B_ORDER.append(s),
                                  _mut.ScriptRun(0, 0, 0.0))[1])
 R.check(
-    "and the ref-driven drivers, the net's longest runs, start first",
-    _MUT_B_ORDER[:2] == sorted(_mut.REF_DRIVEN),
-    f"order={_MUT_B_ORDER!r} -- a long run started last sets the makespan",
+    "and the ref-driven shared drivers start first, stress.py last and alone",
+    _MUT_B_ORDER == ["tests/env_drift.py", "tests/a.py", "tests/stress.py"],
+    f"order={_MUT_B_ORDER!r} -- a long run started last sets the makespan, "
+    "and the driver that measures the machine waits until it has the runner",
+)
+
+# stress.py measures the machine (tests/stress_budgets.json): beside three
+# other drivers its baseline hit the 1200 s per-driver timeout on #1565's
+# first CI run, where alone it takes 674-960 s. Each fake run below records
+# its wall-clock interval; an EXCLUSIVE driver's interval must meet no other.
+_MUT_X_SPANS: list = []
+_MUT_X_LOCK = _mut_threading.Lock()
+
+
+def _mut_x_span(key):
+    """Run for 50 ms and record (key, start, end)."""
+    t0 = _time.monotonic()
+    _time.sleep(0.05)
+    with _MUT_X_LOCK:
+        _MUT_X_SPANS.append((key, t0, _time.monotonic()))
+
+
+def _mut_x_overlaps():
+    """Every (exclusive, other) pair of recorded runs that shared the clock."""
+    return [(k, o) for k, a0, a1 in _MUT_X_SPANS
+            if k[-1] in _mut.EXCLUSIVE
+            for o, b0, b1 in _MUT_X_SPANS
+            if o != k and b0 < a1 and a0 < b1]
+
+
+if _mut_baselines is not None:
+    _mut_baselines(["tests/a.py", "tests/b.py", "tests/c.py",
+                    "tests/stress.py"], 3,
+                   lambda w, s: (_mut_x_span(("base", s)),
+                                 _mut.ScriptRun(0, 0, 0.0))[1])
+_MUT_X_BASE = list(_MUT_X_SPANS)
+R.check(
+    "the stress.py baseline shares the runner with no other driver",
+    getattr(_mut, "EXCLUSIVE", ()) == ("tests/stress.py",)
+    and any(k == ("base", "tests/stress.py") for k, _, _ in _MUT_X_BASE)
+    and not _mut_x_overlaps(),
+    f"overlaps={_mut_x_overlaps()!r} runs={[k for k, _, _ in _MUT_X_BASE]!r}",
+)
+_MUT_X_SPANS.clear()
+_MUT_X_POOL = [{"file": f"x{i}.py", "line": i, "kind": "CONST",
+                "drivers": ["tests/a.py", "tests/b.py", "tests/stress.py"]}
+               for i in range(3)]
+_MUT_X_OUT = (_mut_pool(
+    _MUT_X_POOL, 3, {"tests/a.py": 1, "tests/b.py": 2, "tests/stress.py": 9},
+    lambda w, m, s: (_mut_x_span((m["line"], s)),
+                     m["line"] == 0 and s == "tests/a.py")[1])
+    if _mut_pool is not None else [])
+R.check(
+    "a mutant's stress.py run shares the runner with no other driver, and "
+    "only a mutant no shared driver killed pays for one",
+    [v for _, v in _MUT_X_OUT] == ["killed by tests/a.py", "LIVES", "LIVES"]
+    and sorted(k for k, _, _ in _MUT_X_SPANS if k[1] == "tests/stress.py")
+    == [(1, "tests/stress.py"), (2, "tests/stress.py")]
+    and not _mut_x_overlaps(),
+    f"verdicts={[v for _, v in _MUT_X_OUT]!r} overlaps={_mut_x_overlaps()!r} "
+    f"stress runs={[k for k, _, _ in _MUT_X_SPANS if k[1] == 'tests/stress.py']!r}",
 )
 
 # A survivor is the mutant that cannot stop early: every driver must run.
