@@ -6897,6 +6897,12 @@ R.check(
     _survival(_ua750 * 8.0, 70.0, 0.5) < _survival(_ua750, 70.0, 0.5),
     "the discount is this tank's learned physics, not a tuning constant",
 )
+R.check(
+    "a tank that loses nothing keeps its whole credit, even with no demand",
+    _survival(0.0, 70.0, 0.0) == 1.0 and _survival(0.0, 70.0, 0.5) == 1.0,
+    "the zero-demand collapse above is leakage over an unbounded hold; with "
+    "UA 0 there is no leakage to collapse to",
+)
 # The discount must not be a function of the end temperature the solver is
 # choosing, or the terminal term gains a second-order kink and the descent
 # path bends for no physical reason. Proof: the cost stays exactly linear in
