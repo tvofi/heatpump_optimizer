@@ -177,17 +177,17 @@
       "old": "    return len(centers) - 2, 1.0",
       "reason": "arrived with origin/main, commit b4b029514 (R6-D2-01: interpolate the derate factor across buckets). Removing the extrapolation return makes tests/features.py exit 1 against a baseline exit of 0. Measured at the post-main head, 2026-09-22."
     },
-    "custom_components/heatpump_optimizer/sensor.py:429 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sensor.py:352 GUARD_OFF": {
       "killed_by": "tests/entities.py",
       "old": "        if getattr(self, \"_attr_entity_registry_enabled_default\", True) is False:",
       "reason": "arrived with origin/main, commit 5ae066a0 (fix(D8): make the hot-water registry default conditional on dhw_enabled, #1398). `if getattr(self, \"_attr_entity_registry_enabled_default\", True) is False:` -> `if False:` drops the static-default-off early return, so DHWTemperatureSensor -- which sets that attribute -- reports the hot water default instead of False, and tests/entities.py goes from rc=0 failed=0 to rc=1 failed=1. Measured at the post-main head, 2026-09-22."
     },
-    "custom_components/heatpump_optimizer/sensor.py:432 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sensor.py:355 GUARD_OFF": {
       "killed_by": "tests/entities.py",
       "old": "        if params is not None:",
       "reason": "arrived with origin/main, commit 5ae066a0 (fix(D8): make the hot-water registry default conditional on dhw_enabled, #1398). `if params is not None:` -> `if False:` skips the `_thermal_params` path the registry reads before the first refresh and falls back to `data`, where the real-coordinator checks of #1398 have no `dhw_enabled`: tests/entities.py goes from rc=0 failed=0 to rc=1 failed=1. Measured at the post-main head, 2026-09-22."
     },
-    "custom_components/heatpump_optimizer/sensor.py:434 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/sensor.py:357 RETURN_DEL": {
       "killed_by": "tests/entities.py",
       "old": "        return bool((self.coordinator.data or {}).get(\"dhw_enabled\", False))",
       "reason": "arrived with origin/main, commit 5ae066a0 (fix(D8): make the hot-water registry default conditional on dhw_enabled, #1398). Removing the `data` fallback return makes the property fall off the end and answer None, so every hot-water entity whose registry default the payload path decides goes off and tests/entities.py goes from rc=0 failed=0 to rc=1 failed=5. Measured at the post-main head, 2026-09-22."

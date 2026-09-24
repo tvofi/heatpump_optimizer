@@ -11411,6 +11411,7 @@ for _leaf_name, _bad_leaf in (
                     "meta": {"spot_price": {"sum": _bad_leaf, "count": 1}},
                 },
                 "2025-07": {"lines": {"spot": {"kwh": 3, "sek": "4.5"}}, "meta": {}},
+                "2025-08": [_bad_leaf],
             }
         }
     )

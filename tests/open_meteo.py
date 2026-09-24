@@ -787,6 +787,16 @@ except Exception as exc:  # noqa: BLE001
     _fenced_ok, _fenced_err = None, type(exc).__name__
 finally:
     om._parse_block = _real_parse
+
+
+async def _raising_fetch():
+    raise RuntimeError("a body nobody guarded")
+
+
+check(
+    "the fence hands back the empty series, not None, for a raising fetch",
+    run(om.OpenMeteoSolar._fenced(_raising_fetch())) is om._EMPTY,
+)
 check(
     "a parse that raises is fenced into a counted failure, not an exception",
     _fenced_ok is False and _fenced._failures == 1,
