@@ -4424,11 +4424,10 @@ R.check(
     == {"sek_per_kwh": 0.6, "cheaper_hour_count": 1},
 )
 
-# Mold Floor Breach (#1495). The floor is the same closed form the solve
-# enforces (thermal_model.mold_safe_room_floor), recomputed against the
-# measured room; the entity reads the indoor humidity through the
-# coordinator's own age-checked reader, so these go through a real
-# coordinator after one input-read cycle rather than a data dict alone.
+# Mold Floor Breach (#1495). The floor is the one the solve enforces -- the
+# coordinator's own _mold_floor_series at the measured outdoor temperature --
+# compared against the measured room, so these go through a real coordinator
+# after one input-read cycle rather than a data dict alone.
 breach = b_by_name["Mold Floor Breach"]
 R.check("the mold-floor breach is off while the guard is disabled", not breach.is_on)
 R.check(
@@ -4548,23 +4547,81 @@ R.check(
     f"reading_ok={(_seed_data.get('reading_ok') or {}).get('upper_floor_temperature')!r} "
     f"room={_seed_data.get('indoor_temperature')!r}",
 )
-# A live room and humidity with no outdoor temperature: the floor's closed
-# form needs the outdoor side of the bridge, so there is no floor to publish.
+# No outdoor thermometer: the payload's outdoor is ThermalState's 5.0 °C
+# constructor seed with reading_ok.outdoor_temperature False. The seed is
+# not a measurement, so no floor is published -- the same gate as the room.
 _no_out_hass, _no_out_coord, _no_out_data = _honest_coordinator(
     _breach_config,
+    {
+        "sensor.indoor": FakeState("21.0"),
+        "sensor.outdoor": FakeState("unavailable"),
+        "sensor.humidity": FakeState("70.0", last_updated=dt_util.utcnow()),
+    },
+)
+_no_out_coord.data = _no_out_data
+_no_out_attrs = binary_sensor.MoldFloorBreachBinarySensor(
+    _no_out_coord, FakeEntry(data=_breach_config)
+).extra_state_attributes
+R.check(
+    "a seeded (not measured) outdoor temperature publishes no floor",
+    _no_out_attrs["floor_c"] is None and _no_out_attrs["shortfall_c"] is None,
+    f"floor={_no_out_attrs.get('floor_c')!r} "
+    f"reading_ok={(_no_out_data.get('reading_ok') or {}).get('outdoor_temperature')!r} "
+    f"outdoor={_no_out_data.get('outdoor_temperature')!r}",
+)
+# The guard toggle, with every input live: the cold damp room that fires the
+# breach above publishes no floor once the mold guard is switched off (#1495:
+# the warning respects CONF_MOLD_GUARD_ENABLED).
+_off_config = {**_breach_config, const.CONF_MOLD_GUARD_ENABLED: False}
+_off_hass, _off_coord, _off_data = _honest_coordinator(
+    _off_config,
     {
         "sensor.indoor": FakeState("16.0"),
         "sensor.humidity": FakeState("70.0", last_updated=dt_util.utcnow()),
     },
 )
-_no_out_coord.data = {**_no_out_data, "outdoor_temperature": None}
-_no_out_attrs = binary_sensor.MoldFloorBreachBinarySensor(
-    _no_out_coord, FakeEntry(data=_breach_config)
-).extra_state_attributes
+_off_coord.data = _off_data
+_off_entity = binary_sensor.MoldFloorBreachBinarySensor(
+    _off_coord, FakeEntry(data=_off_config)
+)
 R.check(
-    "a missing outdoor temperature publishes no floor",
-    _no_out_attrs["floor_c"] is None and _no_out_attrs["shortfall_c"] is None,
-    f"floor={_no_out_attrs.get('floor_c')!r}",
+    "a disabled mold guard publishes no floor, even for a cold damp room",
+    not _off_entity.is_on
+    and _off_entity.extra_state_attributes["floor_c"] is None,
+    f"is_on={_off_entity.is_on} "
+    f"floor={_off_entity.extra_state_attributes.get('floor_c')!r}",
+)
+# The floor is the one the solve enforces, the coordinator's own
+# _mold_floor_series, which caps the physical floor at the configured comfort
+# target: a damp house held AT its 21.0 °C target in -15 °C weather is not in
+# breach (the uncapped physical floor there is above 23 °C, which the
+# optimizer by design never heats to -- that is dehumidification's job).
+_target_config = {**_breach_config, const.CONF_TARGET_TEMP: 21.0}
+_target_hass, _target_coord, _target_data = _honest_coordinator(
+    _target_config,
+    {
+        "sensor.indoor": FakeState("21.0"),
+        "sensor.outdoor": FakeState("-15.0"),
+        "sensor.humidity": FakeState("50.0", last_updated=dt_util.utcnow()),
+    },
+)
+_target_coord.data = _target_data
+_target_entity = binary_sensor.MoldFloorBreachBinarySensor(
+    _target_coord, FakeEntry(data=_target_config)
+)
+_target_attrs = _target_entity.extra_state_attributes
+_target_solve = _target_coord._mold_floor_series(
+    [float(_target_data["outdoor_temperature"])]
+)
+R.check(
+    "a damp house held at its target publishes the solve's capped floor and stays quiet",
+    _target_solve is not None
+    and _target_attrs["floor_c"] == round(float(_target_solve[0]), 2)
+    and _target_attrs["floor_c"] <= 21.0
+    and not _target_entity.is_on,
+    f"floor={_target_attrs.get('floor_c')!r} "
+    f"solve_floor={None if _target_solve is None else float(_target_solve[0])!r} "
+    f"is_on={_target_entity.is_on}",
 )
 _blocked_entity = binary_sensor.MoldFloorBreachBinarySensor(
     FakeCoordinator({"heat_pump_signals": {"space_blocked": True}}), ENTRY
