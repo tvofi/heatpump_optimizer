@@ -1,0 +1,74 @@
+# Hash-pinned BUILD dependencies (#1548), passed to every CI `pip install` as
+# `--build-constraint`. `--require-hashes` checks what pip installs, not what
+# it installs into the isolated environment that builds an sdist, so without
+# this file each sdist build fetched setuptools, wheel and Cython unpinned.
+# Three pinned packages publish no wheel for the runners' interpreters and
+# build from source: PyYAML 6.0.1 (tests/requirements-ci.txt) and lru-dict
+# 1.3.0 and PyRIC 0.1.6.3 (tests/requirements-typing.txt). Their declared
+# build requirements are the input: PyYAML's `setuptools`, `wheel`,
+# `Cython<3.0`; lru-dict's `setuptools>=61`, `wheel`; PyRIC declares none, so
+# pip's default `setuptools>=40.8.0` applies.
+#
+# A pinned build requirement NOT listed here fails the build closed, with
+# "all requirements must have their versions pinned", rather than resolving it
+# unhashed. Needs pip >= 25.3 for `--build-constraint`; the runners' CPython
+# 3.13.15 and 3.14.7 bundle pip 26.2.1.
+#
+# Regenerate (3.13.15 and 3.14.7 produced one body):
+#   printf 'setuptools>=61\nwheel\nCython<3.0\n' | uv pip compile - \
+#     --python-version 3.13.15 --python-platform x86_64-manylinux_2_28 \
+#     --generate-hashes --no-header --no-annotate -o <body>
+# and replace everything below the blank line that ends this header.
+
+cython==0.29.37 \
+    --hash=sha256:0301d4739c6894e012f1d410052082fdda9e63888c815d9e23e0f7f82fff7d79 \
+    --hash=sha256:0544f7a3e4437b89b356baa15387494c18214e03f2ffaddada5a2c71c3dfd24b \
+    --hash=sha256:0a0a6d5972bb3b8c7363cf19a42a988bb0c0bb5ebd9c736c84eca85113ccfdbe \
+    --hash=sha256:12192ab269e7185720f2d2f8894587bf1da4276db1b9b869e4622a093f18cae6 \
+    --hash=sha256:177481b0a7e003e5c49e2bf0dda1d6fe610c239f17642a5da9f18c2ad0c5f6b6 \
+    --hash=sha256:2618af0b8df26d32ee4e8858d4ad8167546596762620aeade84954ae37194a0e \
+    --hash=sha256:29415d8eb2fdc1ea518ca4810c50a2d062b387d4c9fbcfb3352346e93db22c6d \
+    --hash=sha256:2ad634dc77a6a74022881826099eccac19c9b79153942cc82e754ffac2bec116 \
+    --hash=sha256:2de3e729d25f041036e81e2f15683dd129f977dfb5b06267e30e8d7acec43225 \
+    --hash=sha256:3f87bef1808d255cf13be378c7ad27ae7c6db6df7732217d32428d1daf4109be \
+    --hash=sha256:4658499a41255431f6bbdca7e634e9c8d3a4c190bf24b4aa1646dac751d3da4d \
+    --hash=sha256:562f8f911dbd6f1a1b9be8f6cba097125700355688f613994ccd4406f220557a \
+    --hash=sha256:6c672089fba6a8f6690b8d7924a58c04477771401ad101d53171a13405ee12cb \
+    --hash=sha256:6cddb567dadb3aa3e280a8a35e5126030915ea744c2812206e9c194b8881475d \
+    --hash=sha256:79ecfc48694e156402c05561e0adb0e25a6e9d35ac0b41693733a08219d38c58 \
+    --hash=sha256:852cd4378cbc9ade02f53709107ff9fdad55019a3a636e8a27663ba6cfce10b6 \
+    --hash=sha256:8bf38373773f967cfd793997a6fb96cf972d41a9fce987ace5767349d6f15572 \
+    --hash=sha256:8c39c2f5a0fe29bb01de9b1fb449bf65bed6f192317c677f181732791c63fe28 \
+    --hash=sha256:9450e0766ab65947f8a2a36f9e59079fc879c3807ec936c61725a48c97741a52 \
+    --hash=sha256:95f1d6a83ef2729e67b3fa7318c829ce5b07ac64c084cd6af11c228e0364662c \
+    --hash=sha256:9a455347e20ddfad0c5dfee32a3e855ee96811269e5fd86be622ddc4cb326404 \
+    --hash=sha256:9e68bafeeb97d5a403fb1f7700bd4a55a1f8989824c323ae02ae8a4fcd88f6a1 \
+    --hash=sha256:a6164a05440dcd9daa760c6488bc91bdac1380c7b4b3aca38cf307ba66042d54 \
+    --hash=sha256:ac910a28a2fd3d280faf3077b6fe63b97a4b93994ff05647581846f0e4b2f8d1 \
+    --hash=sha256:af03854571738307a5f30cc6b724081d72db12f907699e7fdfc04c12c839158e \
+    --hash=sha256:af8e7b4397620e2d18259a11f3bfa026eff9846657e397d02616962dd5dd035a \
+    --hash=sha256:b048354fd380278f2fa096e7526973beb6e0491a9d44d7e4e29df52612d25776 \
+    --hash=sha256:b225d5e2091c224d4ab328165fef224ba3919b3ed44bd9b3241416f523b4d51a \
+    --hash=sha256:b6c48f1032b379135a5b4a31976d6c468e02490688acf9254c6c8ed27bd4cbd4 \
+    --hash=sha256:b82584836e9e7c0d6effee976595e5cd7fa88dbef3e96e900187983c1d4637d1 \
+    --hash=sha256:bbce388431a2608a81c8ab13cb14c50611473843ca766031b8b24bb1723faf79 \
+    --hash=sha256:c33508ede9172a6f6f99d5a6dadc7fee23c840423b411ef8b5a403c04e530297 \
+    --hash=sha256:cc1b9ce2b73b9ee8c305e06173b35c7c202d4b82d084a0cd73dcedfd6d310aec \
+    --hash=sha256:d94caf90ae9cb56116ca6d54cdcbccd3c4df6b0cb7233922b2233ee7fe81d05b \
+    --hash=sha256:e14cd44c830e53cf9d7269c87a6bcc638bb065ec07e24990e338162c7001d3c3 \
+    --hash=sha256:e841a8b4f9ceefb2916e32dac4f28a895cd519e8ece71505144da1ee355c548a \
+    --hash=sha256:e8af5975ecfae254d8c0051204fca995dda8f93cf9f0bbf7571e3cda2b0cef4d \
+    --hash=sha256:ea6d208be1906c5df25b674777d5905c6d8e9ef0b201b830849e0729ba08caba \
+    --hash=sha256:f2d621fe4cb50007446742134a890500b34e3f50abaf7993baaca02634af7e15 \
+    --hash=sha256:f813d4a6dd94adee5d4ff266191d1d95bf6d4164a4facc535422c021b2504cfb \
+    --hash=sha256:fa5b6a0f69bf1823c9fd038fa77a2568b78fda2de045a95b48a71dee4d0d578f \
+    --hash=sha256:fe0eaf6b1e9ee97c5ee7bfc943f00e36cf59d929db16886cb018352bff8208da
+packaging==26.3 \
+    --hash=sha256:94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79 \
+    --hash=sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c
+setuptools==84.0.0 \
+    --hash=sha256:51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670 \
+    --hash=sha256:f4695c21257f0d9b537ec2692c941d02ee143b7cc1276941349a546573b2ef73
+wheel==0.48.0 \
+    --hash=sha256:3217dcc807155e45db462d7ef2431f5ddda0d7273b700d05a67b271ceb1287ab \
+    --hash=sha256:94800765601e9171bf5d58d066e640662842bcedcbab982b2c90787a2c987322

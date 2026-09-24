@@ -11403,7 +11403,7 @@ _svc_coord.async_apply_manual_plan = _svc_record("apply_manual", {"applied": Tru
 _svc_coord.async_clear_manual_plan = _svc_record("clear_manual")
 _svc_coord.async_restore_learned_snapshot = _svc_record("restore", True)
 _svc_coord.async_set_away = _svc_record("set_away")
-_svc_coord.diagnose_last_interval = lambda: {"residual": None}
+_svc_coord.async_diagnose_interval = _svc_record("diagnose", {"residual": None})
 
 
 def _svc_call(service, payload=None):
@@ -11690,6 +11690,13 @@ _diag = _svc_call(const.SERVICE_DIAGNOSE_INTERVAL)
 R.check(
     "diagnose_interval returns the per-entry report",
     _svc_entry.entry_id in _diag["diagnosis"],
+)
+R.check(
+    "diagnose_interval runs the button's snapshot path, not a thread (#1529)",
+    "diagnose" in _svc_log
+    and _diag["diagnosis"].get(_svc_entry.entry_id) == {"residual": None},
+    f"{_diag}: the service handed a bound coordinator method to the executor, "
+    "which read live parameters and the interval record off the loop",
 )
 
 _svc_registered = set(
@@ -18634,6 +18641,146 @@ def _callee_name(node):
             return node.func.id
     return None
 
+# --- P12 (#1529): no bound coordinator method crosses to a thread ----------
+# A bound coordinator method handed to an executor runs on a worker thread
+# against live coordinator state the event loop keeps writing: the
+# diagnose_interval service handed ``coord.diagnose_last_interval`` to
+# ``async_add_executor_job``, which read the live parameters and the last
+# interval record off the loop while the Diagnose button already went through
+# the snapshot path. Enumerated, not named: every call in the package whose
+# callable argument lands on a thread -- an executor hand-off, or an event
+# helper given a plain synchronous function, which Home Assistant dispatches
+# to its executor -- is resolved to the bound methods it carries (directly,
+# through ``functools.partial``, or called inside a lambda). A method of the
+# coordinator or its context is refused unless the allow-table below keys it
+# with a reason; for an event helper, ``@callback`` or ``async def`` is the
+# reason, because either keeps the call on the loop. The key is the method
+# NAME, which carries no receiver: a same-named method of another object is
+# refused too, and belongs in the table with its reason, never silently.
+_P12_THREAD_ARG = {
+    "async_add_executor_job": 0,
+    "async_add_import_executor_job": 0,
+    "run_in_executor": 1,
+    "to_thread": 0,
+    "submit": 0,
+    "_await_process": 1,
+    "_run_in_process": 0,
+}
+_P12_LOOP_ARG = {
+    "async_track_state_change_event": 2,
+    "async_track_time_interval": 1,
+    "async_track_time_change": 1,
+    "async_track_point_in_time": 1,
+    "async_track_point_in_utc_time": 1,
+    "async_call_later": 2,
+    "async_listen": 1,
+    "async_listen_once": 1,
+}
+_P12_ALLOWED: dict[tuple[str, str], str] = {}
+_P12_METHODS = {
+    _m.name: _m
+    for _c in ast.walk(_PKG_TREES["coordinator.py"])
+    if isinstance(_c, ast.ClassDef)
+    and _c.name in ("HeatPumpOptimizerCoordinator", "CoordinatorContext")
+    for _m in _c.body
+    if isinstance(_m, (ast.FunctionDef, ast.AsyncFunctionDef))
+}
+
+
+def _p12_bound(node, methods):
+    """Coordinator-method names a callable expression carries onto a thread."""
+    if isinstance(node, ast.Attribute):
+        return [node.attr] if node.attr in methods else []
+    if isinstance(node, ast.Call) and _callee_name(node) == "partial" and node.args:
+        return _p12_bound(node.args[0], methods)
+    if isinstance(node, ast.Lambda):
+        return [
+            _n.func.attr
+            for _n in ast.walk(node.body)
+            if isinstance(_n, ast.Call)
+            and isinstance(_n.func, ast.Attribute)
+            and _n.func.attr in methods
+        ]
+    return []
+
+
+def _p12_on_loop(method):
+    return isinstance(method, ast.AsyncFunctionDef) or any(
+        (_d.id if isinstance(_d, ast.Name) else getattr(_d, "attr", None))
+        == "callback"
+        for _d in method.decorator_list
+    )
+
+
+def _p12_handoffs(trees, methods):
+    """Every (file:line, kind, method) where a coordinator method goes to a thread."""
+    found = []
+    for _fname, _tree in trees.items():
+        for _node in ast.walk(_tree):
+            _name = _callee_name(_node)
+            for _kind, _table in (("executor", _P12_THREAD_ARG), ("event", _P12_LOOP_ARG)):
+                _i = _table.get(_name)
+                if _i is None or len(_node.args) <= _i:
+                    continue
+                for _meth in _p12_bound(_node.args[_i], methods):
+                    if _kind == "event" and _p12_on_loop(methods[_meth]):
+                        continue
+                    found.append((f"{_fname}:{_node.lineno}", _kind, _meth))
+    return found
+
+
+_p12_sites = _p12_handoffs(_PKG_TREES, _P12_METHODS)
+_p12_refused = [
+    _s for _s in _p12_sites if (_s[0].split(":")[0], _s[2]) not in _P12_ALLOWED
+]
+R.check(
+    "no bound coordinator method is handed to a thread (P12, #1529)",
+    _p12_refused == [],
+    f"{_p12_refused}: run it through a snapshot on the loop and hand the "
+    "executor a module function over copies (async_diagnose_interval's "
+    "shape), or key it in _P12_ALLOWED with the reason it is safe",
+)
+# The positive control is the pre-fix services.py call site, verbatim, with
+# the method it handed over (deleted by the fix) restored to the set; its
+# partial, lambda and event-helper spellings are refused too. The nulls are a
+# module function on the executor, and an event helper given an @callback
+# method and an async one, which all keep coordinator state on the loop.
+_p12_ctl_methods = dict(
+    _P12_METHODS,
+    diagnose_last_interval=ast.parse("def diagnose_last_interval(self): ...").body[0],
+)
+_p12_ctl = {
+    "services.py": ast.parse(
+        "async def handle_diagnose_interval(hass, call):\n"
+        "    for entry_id, coord in _manual_targets(hass, None):\n"
+        "        reports[entry_id] = await hass.async_add_executor_job(\n"
+        "            coord.diagnose_last_interval\n"
+        "        )\n"
+        "    await hass.async_add_executor_job(partial(coord.diagnose_last_interval))\n"
+        "    await hass.async_add_executor_job(lambda: coord.diagnose_last_interval())\n"
+        "    async_track_state_change_event(hass, [e], coord.diagnose_last_interval)\n"
+    ),
+    "null.py": ast.parse(
+        "async def ok(hass, coord):\n"
+        "    await hass.async_add_executor_job(diagnosis.diagnose_record, a, b)\n"
+        "    async_track_state_change_event(hass, [e], coord._on_power_event)\n"
+        "    async_track_state_change_event(hass, [e], coord.async_diagnose_interval)\n"
+    ),
+}
+_p12_ctl_found = _p12_handoffs(_p12_ctl, _p12_ctl_methods)
+R.check(
+    "the P12 barrier refuses the pre-fix diagnose hand-off and passes its nulls",
+    sorted((_s[0], _s[1]) for _s in _p12_ctl_found)
+    == [
+        ("services.py:3", "executor"),
+        ("services.py:6", "executor"),
+        ("services.py:7", "executor"),
+        ("services.py:8", "event"),
+    ],
+    f"found {_p12_ctl_found}; a barrier that misses its own positive "
+    "control, or refuses a module function, pins nothing",
+)
+
 
 _action_producers, _pending = set(), []
 for _tree in _PKG_TREES.values():
@@ -23694,6 +23841,191 @@ R.check(
     f"{_p8_refusals(_p8_float_sites({'probe.py': _p8_probe}))}",
 )
 
+
+# --- every CI install is hash-pinned (#1548, R8-D11-s2-03) -----------------
+# Every `uses:` ref is SHA-pinned (#960), but the installs those jobs ran were
+# pinned by version only: an index that served different bytes under the same
+# version was installed without complaint. The barrier is keyed on the
+# PROPERTY -- a dependency-install command in a `run:` step of ANY workflow --
+# not on the twelve commands the finder counted, so a new job, a new workflow
+# or a reworded install is read the same way.
+#
+# What passes, and the design choice in it, said out loud (fixer.md step 11):
+#   pip   `pip install` (bare, `python -m pip` or `uv pip`) with
+#         `--require-hashes`, `--build-constraint FILE` and one or more
+#         `-r FILE`, no positional package spec, and every FILE a committed
+#         path whose every requirement is `name==version` with a sha256.
+#         `--build-constraint` is required even of a lock with no sdist in it:
+#         `--require-hashes` does not reach the isolated environment that
+#         builds an sdist, so an sdist added to a lock later would otherwise
+#         fetch its build requirements unhashed with nothing here noticing.
+#         A file generated at run time (`$RUNNER_TEMP/...`) is refused: it is
+#         the shape the typing lane had, and no reviewer ever sees its hashes.
+#         An unknown pip flag is refused rather than guessed about.
+#   npm   `npm ci` only, over a committed package-lock.json whose every
+#         package carries an `integrity`; `npm install`/`i`/`add`/`exec`,
+#         `npx` and the other runners that fetch by name are refused.
+# NOT covered, deliberately: `apt-get install` (the distribution's signed
+# archive, which OpenSSF Scorecard's Pinned-Dependencies does not count), the
+# toolchains `setup-python`/`setup-node` fetch (their actions are SHA-pinned),
+# the Chromium build `playwright install` downloads (fixed by the now
+# hash-locked playwright-core, not hash-checked by it), and the container
+# image `tests/nightly_ha.py` runs by tag.
+import shlex as _pin_shlex  # noqa: E402
+
+_PIN_PIP = re.compile(r"\bpip3?\s+install\b")
+_PIN_FETCHERS = re.compile(
+    r"\bnpm\s+(?:install|i|add|exec|x|update|up)\b|\bnpx\b|\byarn\b|\bpnpm\b"
+    r"|\bbunx?\b|\bpipx\b|\buvx\b|\buv\s+tool\b|\bgo\s+install\b"
+    r"|\bgem\s+install\b|\bcargo\s+install\b"
+)
+_PIN_REQ = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*(\[[^\]]*\])?==[^\s;\\]+")
+_PIN_HASH = re.compile(r"--hash=sha256:[0-9a-f]{64}\b")
+
+
+def _pin_lock_problem(label: str, text: str) -> "str | None":
+    """Why a requirements file's text is not fully hash-pinned, or None."""
+    logical = re.sub(r"\\\n", " ", text)
+    reqs = [ln.strip() for ln in logical.splitlines()
+            if ln.strip() and not ln.lstrip().startswith("#")]
+    bad = [ln[:40] for ln in reqs
+           if not (_PIN_REQ.match(ln) and _PIN_HASH.search(ln))]
+    if not reqs or bad:
+        return f"{label}: unhashed or unpinned requirement(s) {bad[:3] or 'none at all'}"
+    return None
+
+
+def _pin_unhashed_lock(path: str) -> "str | None":
+    """Why the requirements file a workflow names is not a committed, hashed lock."""
+    if "$" in path or path.startswith("/") or not (_closure.ROOT / path).is_file():
+        return f"{path} is not a committed file"
+    return _pin_lock_problem(path, (_closure.ROOT / path).read_text())
+
+
+def _pin_pip_refusal(cmd: str) -> "str | None":
+    """Why one `pip install` command is not hash-pinned, or None."""
+    try:
+        toks = _pin_shlex.split(cmd[_PIN_PIP.search(cmd).end():])
+    except ValueError as exc:
+        return f"unparseable: {exc}"
+    flags, files, i = set(), [], 0
+    while i < len(toks):
+        tok = toks[i]
+        if tok in ("-r", "--requirement", "--build-constraint") and i + 1 < len(toks):
+            flags.add("-r" if tok != "--build-constraint" else tok)
+            files.append(toks[i + 1])
+            i += 2
+            continue
+        if tok in ("--require-hashes", "-q", "--quiet"):
+            flags.add(tok)
+        else:
+            return f"argument {tok!r} is a package spec or an unvetted flag"
+        i += 1
+    missing = {"--require-hashes", "--build-constraint", "-r"} - flags
+    if missing:
+        return f"missing {sorted(missing)}"
+    for f in files:
+        why = _pin_unhashed_lock(f)
+        if why:
+            return why
+    return None
+
+
+def _pin_unhashed_installs(label: str, text: str) -> "tuple[list[str], int]":
+    """(refusals, installs inspected) over one workflow's `run:` steps."""
+    doc = _yaml.safe_load(text) or {}
+    refusals, seen = [], 0
+    for job_name, job in (doc.get("jobs") or {}).items():
+        for step in (job or {}).get("steps") or []:
+            run = (step or {}).get("run") or ""
+            run = "\n".join(ln for ln in run.splitlines()
+                            if not ln.lstrip().startswith("#"))
+            run = re.sub(r"\\\n\s*", " ", run)
+            for seg in re.split(r"&&|\|\||[;|\n]", run):
+                seg = seg.strip()
+                where = f"{label}:{job_name}: {seg[:70]}"
+                if _PIN_FETCHERS.search(seg):
+                    seen += 1
+                    refusals.append(f"{where} -- fetches by name, not by lock")
+                elif _PIN_PIP.search(seg):
+                    seen += 1
+                    why = _pin_pip_refusal(seg)
+                    if why:
+                        refusals.append(f"{where} -- {why}")
+                elif re.search(r"\bnpm\s+ci\b", seg):
+                    seen += 1
+    return refusals, seen
+
+
+def _pin_lock_without_integrity(path: Path) -> "list[str]":
+    pkgs = json.loads(path.read_text()).get("packages") or {}
+    return [k for k, v in pkgs.items()
+            if k and not str(v.get("integrity", "")).startswith("sha512-")]
+
+
+_PIN_REFUSED, _PIN_SEEN = [], 0
+for _pin_wf in sorted((_closure.ROOT / ".github" / "workflows").glob("*.y*ml")):
+    _r, _n = _pin_unhashed_installs(_pin_wf.name, _pin_wf.read_text())
+    _PIN_REFUSED += _r
+    _PIN_SEEN += _n
+_PIN_NPM_LOCKS = [
+    f for f in _subprocess.run(
+        ["git", "ls-files", "*package-lock.json"], cwd=_closure.ROOT,
+        capture_output=True, text=True,
+    ).stdout.split()
+]
+for _pin_lock in _PIN_NPM_LOCKS:
+    _missing = _pin_lock_without_integrity(_closure.ROOT / _pin_lock)
+    if _missing:
+        _PIN_REFUSED.append(f"{_pin_lock}: no sha512 integrity for {_missing[:3]}")
+R.check(
+    "every dependency install in every workflow is hash-pinned (#1548)",
+    not _PIN_REFUSED and _PIN_SEEN > 0 and _PIN_NPM_LOCKS,
+    f"{len(_PIN_REFUSED)} refused of {_PIN_SEEN} install command(s), "
+    f"{len(_PIN_NPM_LOCKS)} npm lock(s): {_PIN_REFUSED[:4]}. Install from a "
+    "committed hashed lock (`uv pip compile --generate-hashes`; the header of "
+    "tests/requirements-ci.txt has the command) or `npm ci`",
+)
+
+# The barrier's own arms, driven through the same functions over synthetic
+# workflows, so a reader that stopped seeing installs cannot pass the check
+# above by finding nothing: each red arm must refuse and the green arm must not.
+_PIN_OK = ("pip install --require-hashes --build-constraint "
+           "tests/requirements-build.txt -r tests/requirements-ci.txt")
+_PIN_ARMS = {
+    "the finder's version-pinned install": ("pip install -r tests/requirements-ci.txt", 1),
+    "a bare package spec beside the flags": (_PIN_OK + " 'coverage==7.13.1'", 1),
+    "a lock generated at run time": (
+        _PIN_OK.replace("tests/requirements-ci.txt", '"$RUNNER_TEMP/typing-requirements.txt"'), 1),
+    "an install with no build constraint": (
+        "python -m pip install --require-hashes -r tests/requirements-ci.txt", 1),
+    "a continued npm install and npx": (
+        'npm install --prefix "$RUNNER_TEMP/pw" playwright@1.49.0\n'
+        "PW=1 \\\n  npx --yes playwright@1.49.0 install chromium", 2),
+    "the hashed installs this workflow uses": (_PIN_OK + "\nnpm ci --prefix x", 0),
+    "an install named only in a comment": ("# pip install -r x\necho ok", 0),
+}
+for _arm, (_run, _want) in _PIN_ARMS.items():
+    _wf = _yaml.safe_dump({"jobs": {"j": {"steps": [{"run": _run}]}}})
+    _r, _ = _pin_unhashed_installs("arm", _wf)
+    R.check(
+        f"hash-pin barrier arm: {_arm} -> {_want} refusal(s)",
+        len(_r) == _want,
+        f"got {len(_r)}: {_r}",
+    )
+# ... and a lock that loses its hashes on one requirement is refused, read
+# through the same reader the workflows' `-r` files are read through.
+_PIN_COV = _closure.ROOT / "tests" / "requirements-ci.txt"
+_PIN_STRIPPED = re.sub(r"(==\S+) \\\n(?:\s+--hash=\S+ \\\n)*\s+--hash=\S+", r"\1",
+                       _PIN_COV.read_text(), count=1)
+R.check(
+    "hash-pin barrier arm: a lock with one requirement stripped of its hashes is refused",
+    _PIN_STRIPPED != _PIN_COV.read_text()
+    and _pin_lock_problem("stripped", _PIN_STRIPPED) is not None
+    and _pin_unhashed_lock("tests/requirements-ci.txt") is None,
+    f"stripped={_pin_lock_problem('stripped', _PIN_STRIPPED)!r} "
+    f"committed={_pin_unhashed_lock('tests/requirements-ci.txt')!r}",
+)
 
 # --- the replay lane's cheap half, on every pull request (round 8, move 2) ---
 #

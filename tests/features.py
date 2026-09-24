@@ -15890,7 +15890,7 @@ R.check(
 _cd = _t2_coord()
 R.check(
     "no settled interval means no diagnosis, not a crash",
-    _cd.diagnose_last_interval() is None,
+    _asyncio.run(_cd.async_diagnose_interval()) is None,
 )
 _cd._last_interval_record = {
     "when": _T6.isoformat(),
@@ -15900,7 +15900,7 @@ _cd._last_interval_record = {
     "realised": {"outdoor_temp": -10.0},
     "actual": _dbase - 0.3,
 }
-_cd_report = _cd.diagnose_last_interval()
+_cd_report = _asyncio.run(_cd.async_diagnose_interval())
 R.check(
     "the coordinator's diagnosis runs the settled triple and publishes it",
     _cd_report is not None
@@ -16221,7 +16221,7 @@ def _spy_attribute(model, state, planned, realised, actual):
 
 _coord_mod.diagnosis.attribute = _spy_attribute
 try:
-    _cd10.diagnose_last_interval()
+    _coord_mod.diagnosis.diagnose_record(*_coord_mod._diagnose_payload(_cd10))
 finally:
     _coord_mod.diagnosis.attribute = _real_attribute
 R.check(
@@ -39341,6 +39341,134 @@ R.check(
 )
 
 
+# -- #1517 (P12): the set-back unwind is compare-and-restore ---------------
+# The solve's `finally` restores the set-back. A service or climate write that
+# lands while the cycle is parked on its solve await is newer than the
+# snapshot, so an unconditional restore reverted it: the DHW minimums a
+# set_thermal_parameters call wrote came back at their pre-solve values, live
+# and published. A field is restored only while it still holds what the
+# envelope itself left there.
+def _g8_race(**state_kw):
+    opt, th = _G8Opt(), _G8Therm()
+    rec = _g8_away.apply_setback(_g8_away.AwayState(**state_kw), opt, th)
+    th.dhw_min_temp, th.dhw_idle_min_temp = 38.0, 31.0  # the mid-solve write
+    opt.target_temp = 19.5  # a climate set_temperature, same window
+    _g8_away.restore_setback(rec, opt, th)
+    return opt, th
+
+
+_g8_race_home = _g8_race(active=False)
+_g8_race_away = _g8_race(active=True, target_temperature=16.0,
+                         dhw_min_temperature=35.0)
+R.check(
+    "a write landing inside the set-back envelope survives its unwind (#1517)",
+    all(
+        (th.dhw_min_temp, th.dhw_idle_min_temp, opt.target_temp)
+        == (38.0, 31.0, 19.5)
+        for opt, th in (_g8_race_home, _g8_race_away)
+    )
+    and (_g8_race_away[0].min_temp, _g8_race_away[0].comfort_temp_day)
+    == (19.0, 21.0),
+    f"home {vars(_g8_race_home[1])} target {_g8_race_home[0].target_temp}; "
+    f"away {vars(_g8_race_away[1])} {vars(_g8_race_away[0])}. The fields "
+    "nobody else wrote still come back off; the ones a service wrote keep "
+    "the service's value",
+)
+# Round-1 review of #1563: two shapes a value compare gets wrong. A mid-solve
+# write EQUAL to what the set-back left is still a newer write (a service call
+# carries its own float, never the envelope's), and a NaN away target is never
+# == itself, so a value compare left both comfort numbers NaN after away ended.
+def _g8_equal_write():
+    opt, th = _G8Opt(), _G8Therm()
+    rec = _g8_away.apply_setback(
+        _g8_away.AwayState(active=True, target_temperature=16.0,
+                           dhw_min_temperature=35.0), opt, th)
+    th.dhw_min_temp, opt.target_temp = float("35.0"), float("16.0")
+    _g8_away.restore_setback(rec, opt, th)
+    return th.dhw_min_temp, opt.target_temp, th.dhw_idle_min_temp
+
+
+def _g8_nan_target():
+    opt, th = _G8Opt(), _G8Therm()
+    rec = _g8_away.apply_setback(
+        _g8_away.AwayState(active=True, target_temperature=float("nan")), opt, th)
+    _g8_away.restore_setback(rec, opt, th)
+    return opt.target_temp, opt.min_temp, opt.comfort_temp_day, opt.comfort_temp_night
+
+
+R.check(
+    "a mid-solve write equal to the set-back value still survives the unwind",
+    _g8_equal_write() == (35.0, 16.0, 42.0),
+    f"(dhw_min, target, dhw_idle untouched) {_g8_equal_write()}: the service "
+    "wrote 35.0 and 16.0 during the solve; comparing by value read them as "
+    "the envelope's own and put back 45.0 and 21.0",
+)
+R.check(
+    "a NaN away target still unwinds every comfort number",
+    _g8_nan_target() == (21.0, 19.0, 21.0, 19.5),
+    f"{_g8_nan_target()}: NaN != NaN, so a value compare never restored the "
+    "two comfort temperatures the set-back had written NaN into",
+)
+
+
+def _g8_widen(**state_kw):
+    opt, th = _G8Opt(), _G8Therm()
+    rec = _g8_away.apply_setback(_g8_away.AwayState(**state_kw), opt, th)
+    _g8_away.lower_floor(rec, opt, 1.5)
+    low = opt.min_temp
+    _g8_away.restore_setback(rec, opt, th)
+    return low, opt.min_temp
+
+
+_g8_env = {
+    "home": _g8_widen(active=False),
+    "away": _g8_widen(active=True, target_temperature=16.0),
+}
+R.check(
+    "the envelope's own floor widening is recorded, so it still unwinds",
+    _g8_env == {"home": (17.5, 19.0), "away": (15.0, 19.0)},
+    f"(widened, restored) {_g8_env}: economy and the open-window relax lower "
+    "min_temp inside the envelope, never below the absolute floor, and a "
+    "compare-and-restore that did not know about them would leak the "
+    "widening into every later solve",
+)
+
+# The same race through the production cycle: the writes are injected at the
+# solve await, where the event loop really can run a service call, and the
+# solve is then refused so no plan is needed. Economy mode is on, so the
+# cycle's own widening is inside the envelope the same run unwinds.
+_g8_cyc = _solve_coord()
+_g8_cyc._mode = MODE_ECONOMY
+_g8_cyc_floor = _g8_cyc._ctx._opt_config.min_temp
+_g8_cyc_real = _coord_mod._await_optimize
+
+
+async def _g8_cyc_mid_solve(*_args, **_kwargs):
+    await _g8_cyc.async_update_thermal_params(
+        {"dhw_min_temperature": 38.0, "dhw_idle_min_temperature": 31.0}
+    )
+    await _g8_cyc.async_set_target_temperature(19.5)
+    raise RuntimeError("the solve is not the point here")
+
+
+_coord_mod._await_optimize = _g8_cyc_mid_solve
+try:
+    for _ in range(2):
+        _asyncio.run(_g8_cyc.async_run_optimization())
+finally:
+    _coord_mod._await_optimize = _g8_cyc_real
+_g8_cyc_p, _g8_cyc_c = _g8_cyc._ctx._thermal_params, _g8_cyc._ctx._opt_config
+R.check(
+    "a service write during the production solve outlives the cycle (#1517)",
+    (_g8_cyc_p.dhw_min_temp, _g8_cyc_p.dhw_idle_min_temp,
+     _g8_cyc_c.target_temp) == (38.0, 31.0, 19.5)
+    and _g8_cyc_c.min_temp == _g8_cyc_floor,
+    f"after two economy cycles: DHW {_g8_cyc_p.dhw_min_temp!r}/"
+    f"{_g8_cyc_p.dhw_idle_min_temp!r}, target {_g8_cyc_c.target_temp!r}, "
+    f"floor {_g8_cyc_c.min_temp!r} against {_g8_cyc_floor!r} before",
+)
+
+
 # -- away._as_num and _parse_return_time -----------------------------------
 _g8_nums = {
     "None": _g8_away._as_num(None, 7.0),
@@ -45507,6 +45635,214 @@ R.check(
     "without a power meter or a tank rise the ledger says unknown, not delivered",
     [r["verdict"] for r in _pa.view(_pa_nometer)["ledger"]["steps"]] == ["unknown"],
     f"{_pa.view(_pa_nometer)['ledger']}",
+)
+
+
+# ===========================================================================
+# #1526 (class P6): every domain a written slot accepts has a route
+# ===========================================================================
+R.section("Actuation routing: every accepted domain reaches its consumer (#1526)")
+
+# `assign_entity` accepted input_boolean and climate for the heat-pump switch
+# while `_apply_action` always called `switch.turn_*`, which Home Assistant
+# resolves against `switch.*` entities only: those installs never followed the
+# plan. This census is the class barrier. It reads every slot's accepted
+# domains from both producers (the config and options flows' entity pickers,
+# and `topology.ASSIGNABLE_KEYS`, which `assign_entity` validates against),
+# drives the REAL consumer of every written slot once per accepted domain, and
+# refuses a recorded call the target's domain does not implement. A domain
+# added to an accept-list without a route fails here by construction.
+#
+# Design choices it encodes: `_P6_IMPLEMENTS` is Home Assistant's entity
+# services per domain, and a domain missing from it is refused, not assumed;
+# a slot that also accepts a `sensor` is a reading, since nothing commands a
+# sensor; and a consumer that issues NO call for an accepted domain fails
+# too, because a silent skip does the same harm as a misrouted call.
+import asyncio as _p6_aio  # noqa: E402
+
+from harness import FakeEntry as _P6Entry  # noqa: E402
+from heatpump_optimizer import config_flow as _p6_cf  # noqa: E402
+from heatpump_optimizer import repairs as _p6_repairs  # noqa: E402
+from heatpump_optimizer import topology as _p6_topo  # noqa: E402
+from heatpump_optimizer.disinfection import DisinfectionSwitch as _P6Dis  # noqa: E402
+
+_P6_IMPLEMENTS = {
+    "switch": {"turn_on", "turn_off", "toggle"},
+    "input_boolean": {"turn_on", "turn_off", "toggle"},
+    "climate": {"turn_on", "turn_off", "toggle", "set_temperature", "set_hvac_mode"},
+    "number": {"set_value"},
+    "input_number": {"set_value", "increment", "decrement"},
+}
+#: `homeassistant.<svc>` re-dispatches to `<entity domain>.<svc>`.
+_P6_GENERIC = {"turn_on", "turn_off", "toggle"}
+#: Domains nothing commands.
+_P6_READ_DOMAINS = {"sensor", "binary_sensor", "weather", "person",
+                    "device_tracker", "calendar"}
+#: Slots that accept a commandable domain yet are only read, with the reader.
+_P6_READ_ONLY = {
+    hp_const.CONF_SPACE_SETPOINT_ENTITY: "setpoint_check reads it; the space "
+    "repair is a confirm flow that writes nothing",
+}
+
+
+def _p6_accepts():
+    """{slot: accepted domains}, the union over both producers."""
+    acc: dict[str, set[str]] = {}
+
+    def picked(widget):
+        return [d for f in (getattr(widget, "config", None) or {}).get("filter", [])
+                for d in f.get("domain", [])]
+
+    for key, domains in _p6_topo.ASSIGNABLE_KEYS.items():
+        acc.setdefault(key, set()).update(domains)
+    fields = [(r.key, r.widget) for r in _p6_cf._OPTION_FIELDS]
+    fields += list(_p6_cf._user_sensors_fields(FakeHass()).items())
+    fields += list(_p6_cf._user_credentials_fields().items())
+    for key, widget in fields:
+        if isinstance(widget, _p6_cf.selector.EntitySelector):
+            acc.setdefault(str(getattr(key, "schema", key)), set()).update(
+                picked(widget)
+            )
+    return acc
+
+
+def _p6_coord(states, **cfg):
+    data = {"tibber_token": "x", "weather_entity": "weather.home",
+            "indoor_temp_entity": "sensor.indoor",
+            "outdoor_temp_entity": "sensor.outdoor", **cfg}
+    return Coord(FakeHass(states), _P6Entry(data=data))
+
+
+async def _p6_switch(eid):
+    coord = _p6_coord({}, **{hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY: eid})
+
+    async def _no_publish(**_kw):
+        return None
+
+    coord.async_publish_current_action = _no_publish
+    for on in (True, False):
+        coord._current_action = {"heat_pump_on": on}
+        await coord._apply_action()
+    return coord.hass.services.calls
+
+
+async def _p6_pump(eid):
+    coord = _p6_coord({})
+    await coord._async_set_pump(eid, True, "p6")
+    await coord._async_set_pump(eid, False, "p6")
+    return coord.hass.services.calls
+
+
+async def _p6_disinfect(eid):
+    hass = FakeHass({eid: FakeState("off")})
+    dis = _P6Dis({hp_const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: eid},
+                 hass.services.async_call, lambda _e: "off")
+    await dis._write(eid, "turn_on")
+    return hass.services.calls
+
+
+async def _p6_valve(eid):
+    coord = _p6_coord({}, mixing_valve_mode="smart_write",
+                      **{hp_const.CONF_MIXING_VALVE_WRITE_ENTITY: eid})
+    await coord._command_valve_target()
+    return coord.hass.services.calls
+
+
+async def _p6_freq(eid):
+    coord = _p6_coord(
+        {eid: FakeState("50", attributes={"min": 20, "max": 120})},
+        **{hp_const.CONF_COMPRESSOR_FREQ_ENTITY: eid,
+           hp_const.CONF_FREQ_CONTROL_MODE: "control"},
+    )
+    coord._freq_map.recommend = lambda *_a, **_k: 55.0
+    coord._freq_last_write = None  # construction starts the write interval
+    await coord._command_frequency()
+    return coord.hass.services.calls
+
+
+async def _p6_setpoint(eid):
+    hass = FakeHass({})
+    await _p6_repairs._write_setpoint(hass, eid, 55.0)
+    return hass.services.calls
+
+
+#: Every slot a consumer writes, and that consumer, driven for real.
+_P6_WRITERS = {
+    hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY: _p6_switch,
+    hp_const.CONF_SPACE_PUMP_ENTITY: _p6_pump,
+    hp_const.CONF_VVC_PUMP_ENTITY: _p6_pump,
+    hp_const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: _p6_disinfect,
+    hp_const.CONF_MIXING_VALVE_WRITE_ENTITY: _p6_valve,
+    hp_const.CONF_COMPRESSOR_FREQ_ENTITY: _p6_freq,
+    hp_const.CONF_DHW_SETPOINT_ENTITY: _p6_setpoint,
+}
+
+
+def _p6_routes(eid, calls):
+    """Refusals for one driven entity: unroutable calls, or none at all."""
+    domain = eid.split(".", 1)[0]
+    mine = [(d, s) for d, s, data in calls if (data or {}).get("entity_id") == eid]
+    if domain not in _P6_IMPLEMENTS:
+        return [f"{eid}: no service table for domain {domain!r}"]
+    if not mine:
+        return [f"{eid}: the consumer issued no call"]
+    return [
+        f"{eid}: {d}.{s}" for d, s in mine
+        if not ((d == domain and s in _P6_IMPLEMENTS[domain])
+                or (d == "homeassistant" and s in _P6_GENERIC
+                    and s in _P6_IMPLEMENTS[domain]))
+    ]
+
+
+def _p6_census(accepts):
+    """(unclassified slots, refusals, driven pairs) over one accept map."""
+    unclassified, refusals, driven = [], [], []
+    for key, domains in sorted(accepts.items()):
+        if key in _P6_READ_ONLY or "sensor" in domains:
+            continue
+        if not domains - _P6_READ_DOMAINS:
+            continue
+        driver = _P6_WRITERS.get(key)
+        if driver is None:
+            unclassified.append(key)
+            continue
+        for domain in sorted(domains):
+            eid = f"{domain}.p6_{key}"
+            refusals += _p6_routes(eid, _p6_aio.run(driver(eid)))
+            driven.append(eid)
+    return unclassified, refusals, driven
+
+
+_p6_acc = _p6_accepts()
+_p6_unclassified, _p6_refused, _p6_driven = _p6_census(_p6_acc)
+R.check(
+    "every slot accepting a commandable domain is a driven writer or a named "
+    "reading",
+    not _p6_unclassified and set(_P6_WRITERS) <= set(_p6_acc),
+    f"unclassified {_p6_unclassified}; writers no producer offers "
+    f"{sorted(set(_P6_WRITERS) - set(_p6_acc))}",
+)
+R.check(
+    "every domain a written slot accepts is commanded through a service that "
+    "domain implements (#1526)",
+    not _p6_refused
+    and {e.split(".p6_", 1)[1] for e in _p6_driven} == set(_P6_WRITERS),
+    f"{len(_p6_driven)} (slot, domain) pairs driven; refused {_p6_refused}",
+)
+# The census's own control: over the production map with an unrouted domain
+# added to two writers and one unclassified written slot, it must name all
+# three, so a green run above is not an empty walk.
+_p6_bad = {k: set(v) for k, v in _p6_acc.items()}
+_p6_bad[hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY].add("number")
+_p6_bad[hp_const.CONF_MIXING_VALVE_WRITE_ENTITY].add("switch")
+_p6_bad["p6_new_slot"] = {"switch"}
+_p6_bad_unc, _p6_bad_ref, _ = _p6_census(_p6_bad)
+R.check(
+    "and the census refuses an accepted domain with no route",
+    _p6_bad_unc == ["p6_new_slot"]
+    and any(r.startswith("number.p6_heat_pump_switch_entity") for r in _p6_bad_ref)
+    and any(r.startswith("switch.p6_mixing_valve_write_entity") for r in _p6_bad_ref),
+    f"unclassified {_p6_bad_unc}; refused {_p6_bad_ref}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
