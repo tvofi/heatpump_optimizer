@@ -44575,6 +44575,7 @@ R.check(
 # is 1.16e-05 kWh/K, and 1e-6 kWh/K is 8.62e-04 L -- two orders under it. The
 # last check pins that relation, so raising the epsilon into a coefficient is a
 # red check and not a silent regression.
+import copy as _copy  # noqa: E402
 from heatpump_optimizer import mixing_valve as _r7d203_mv  # noqa: E402
 from heatpump_optimizer.const import (  # noqa: E402
     POSITIVE_PARAM_FLOOR as _R7D203_SERVICE_FLOOR,
@@ -44624,15 +44625,17 @@ def _r7d203_horizon(n=96, wood=60.0):
     )
 
 
-# `_dhw_coil_wood_forecast` folds the coil's own heat into the tank it prices
-# against, by dividing the wood store's capacity into it. The same reduction is
-# what `simulate_trajectory` applies to the raw trajectory, so the forecast's
-# per-step drop must be the coil's thermal draw at the wood store's own
-# capacity. Counted: steps where the two differ by more than 1e-12 kWh, over the
-# steps whose raw draw the coil actually serves. At 5 L the pre-fix reading is
-# 96 of 96 steps and 0.0086 kWh worst; at 200 L, 0 of 96 -- the null, since the
-# floor does not bind there. 0.01 kWh/K is 8.62 L, so a 5 L wood tank is under
-# it and the config flow's wood floor (50 L) is over it.
+# The coil's own heat leaves the wood store at the store's own capacity. Since
+# R8-P3 round 2 `_dhw_coil_wood_forecast` IS the physics
+# (`simulate_trajectory_with_dhw`, no electric DHW; the parity check near #400
+# pins that), so the capacity is read where the physics divides by it: one step
+# from the horizon's state, with the step's draw and with none. The two differ
+# only in the coil decrement, which must be the coil's thermal draw at the wood
+# store's own capacity. Counted: steps where the two differ by more than 1e-12
+# kWh, over the draws the coil serves. At 5 L the pre-#1487 reading was 96 of 96
+# steps; at 200 L, 0 -- the null, since the floor does not bind there. 0.01
+# kWh/K is 8.62 L, so a 5 L wood tank is under it and the config flow's wood
+# floor (50 L) is over it.
 def _r7d203_coil_mismatches(wood_l):
     opt, params = _r7d203_opt(
         200.0, two_zone_enabled=True, buffer_tank_volume=200.0,
@@ -44641,37 +44644,35 @@ def _r7d203_coil_mismatches(wood_l):
         dhw_wood_coil_enabled=True,
     )
     h = _r7d203_horizon()
-    forecast = opt._dhw_coil_wood_forecast(h)
-    if forecast is None:
+    if opt._dhw_coil_wood_forecast(h) is None:
         return None
-    *_, raw_temps = opt.model.simulate_trajectory(
-        initial_state=h.initial_state, power_schedule=np.zeros(h.n_steps),
-        outdoor_temps=h.outdoor_temps, wind_speeds=h.wind_speeds,
-        precipitation=h.precipitation, solar_radiation=h.solar_radiation,
-        dt_hours=h.dt, external_heat_kw=h.external_heat_kw,
-        valve_targets=h.valve_targets, humidity=h.humidity,
-        start_hour=float(h.step_hours[0]),
-    )
     rates = opt.model.dhw_draw_rates(np.asarray(h.step_hours) % 24.0)
+
+    def one_step(rate):
+        *_, wood = opt.model.simulate_trajectory_with_dhw(
+            initial_state=_copy.deepcopy(h.initial_state),
+            space_power_schedule=np.zeros(1), dhw_power_schedule=np.zeros(1),
+            outdoor_temps=h.outdoor_temps[:1], wind_speeds=h.wind_speeds[:1],
+            precipitation=h.precipitation[:1],
+            solar_radiation=h.solar_radiation[:1],
+            start_hour=float(h.step_hours[0]), dt_hours=h.dt,
+            dhw_draw_rates=np.array([rate]),
+        )
+        return float(wood[1])
+
+    dry = one_step(0.0)
     drawn = mismatched = 0
-    # R8-P3: the drain carries forward, so each step's drop is read on top of
-    # what earlier steps already took, at the tank those steps left.
-    carried = 0.0
-    for i in range(min(len(rates), len(forecast) - 1)):
+    for rate in rates:
         _, q_coil = _r7d203_coil_draw(
-            float(rates[i]),
-            max(params.dhw_inlet_reference, float(raw_temps[i + 1]) - carried),
-            params.dhw_setpoint, inlet_temp=params.dhw_inlet_reference,
+            float(rate), dry, params.dhw_setpoint,
+            inlet_temp=params.dhw_inlet_reference,
         )
         if q_coil <= 0.0:
             continue
         drawn += 1
-        drop = (
-            raw_temps[i + 1] - forecast[i + 1] - carried
-        ) * params.wood_tank_thermal_mass
+        drop = (dry - one_step(float(rate))) * params.wood_tank_thermal_mass
         if abs(drop - q_coil * h.dt) > 1e-12:
             mismatched += 1
-        carried += q_coil * h.dt / params.wood_tank_thermal_mass
     return drawn, mismatched
 
 
