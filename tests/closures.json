@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 178.1,
+   "seconds": 316.3,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -579,6 +579,8 @@
    "tests/nightly_ha.py",
    "tests/nightly_status.py",
    "tests/profiles.py",
+   "tests/replay.py",
+   "tests/replay/synthetic-dhw-only.json",
    "tests/run.sh",
    "tests/stress.py",
    "tests/structure.py",
@@ -599,7 +601,9 @@
    "tools/audit/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
    "tools/audit/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
    "tools/audit/round5/D13/seat-a/fixtures/window_merges.json",
-   "tools/release/stamp.py"
+   "tools/release/stamp.py",
+   "tools/replay/export.py",
+   "tools/replay/synthesize.py"
   ],
   "tests/env_drift.py": [
    "custom_components/heatpump_optimizer/__init__.py",
