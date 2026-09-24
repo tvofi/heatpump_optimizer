@@ -28178,6 +28178,10 @@ _ET_KEYS = {
     "restore_learned_snapshot_no_snapshot": {"entry_ids"},
     "set_thermal_params_invalid_dhw_windows": {"error", "windows"},
     "set_temperature_comfort_band_violation": {"violations"},
+    # #1546: the coordinator's UpdateFailed raises, through _raise_update_failed.
+    "process_worker_unusable": {"cycles"},
+    "update_failed": {"error"},
+    "tibber_fetch_failed": {"error"},
 }
 
 
