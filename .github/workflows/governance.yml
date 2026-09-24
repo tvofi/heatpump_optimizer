@@ -685,12 +685,12 @@ jobs:
       # by the dependency set, and it costs seconds beside a forty-minute gate.
       # PINNED (decision 0013): restored from the base, checked byte-identical
       # to the base's object, and run under `-I -S`, all in this one step.
-      # Everything before it in this job is on `codeowners_gap.py`'s allowlist
-      # of what cannot run the pull request's code: after anything else, the
-      # job is the pull request's (it can overwrite the file, put a shim on
-      # `$GITHUB_PATH`, set `BASH_ENV` through `$GITHUB_ENV`, or use the
-      # runner's sudo), and `--check` then does not count the grader as
-      # pinned, so an unowned one fails it. The pull
+      # Nothing before it in this job runs the pull request's code: after
+      # anything that did, the job would be the pull request's (it could
+      # overwrite the file, put a shim on `$GITHUB_PATH`, set `BASH_ENV`
+      # through `$GITHUB_ENV`, or use the runner's sudo). This file is
+      # @tvofi's, so that review keeps it true; `codeowners_gap.py --check` is
+      # a lint that refuses the forms known to break it. The pull
       # request's own copy runs in `tests.yml`'s `graders-head-copy`, which is
       # not required.
       - name: Report what is pending and what is overdue a row

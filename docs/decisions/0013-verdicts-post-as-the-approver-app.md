@@ -124,26 +124,25 @@ should stay code-owned: "I want fully autonomous". The bullet above that kept
 cannot hold. The rule is unchanged: a file leaves the owner only where a base
 restore replaces the owner as the barrier.
 
-**When a pin holds.** Only when everything the job runs before the grader
-is on an allowlist of what cannot run the pull request's code. After anything
-else, the job belongs to the pull request. That program can overwrite the restored file. It can set
-`BASH_ENV`, `LD_PRELOAD` or `PATH` for every later step through
-`$GITHUB_ENV`. It can use the runner's passwordless sudo to replace `git` or
-`python3`. So no restore that comes after it can be trusted, however close it
-sits to the grader. An install counts as such a program: it runs build code
-that the pull request's lock chooses, and it drops `.pth` files. Round 1 of
-#1589's review showed the ordering break in `coverage`: the suite overwrote
-the restored ratchet before the ratchet ran; round 2's denylist of such
-programs let 18 of the reviewer's 23 one-step insertions through.
-`codeowners_gap.py` now counts a file as pinned only when every `uses:` before
-it in its job is a listed action at its pinned revision, and every `run:` line
-before it holds only listed commands: `git` read and restore subcommands,
-`set`, `test`, `echo`, `printf`, `cmp`, `mkdir`, the text tools `wc`, `sort`,
-`paste`, `cat`, `jq` and `gh api`, and the job's other pinned graders. It also
-requires no write to `$GITHUB_ENV` or `$GITHUB_PATH`, no assignment to a
-code-loading variable, and no line it cannot parse. `--check` fails on an
-unowned surface file that is not pinned, and `--self-test` drives the probes
-and the admitted controls.
+**When a pin holds.** Only in a job that runs none of the pull request's code
+before the grader. After one such program the job belongs to the pull
+request: it can overwrite the restored file, set `BASH_ENV`, `LD_PRELOAD` or
+`PATH` for every later step through `$GITHUB_ENV`, or use the runner's
+passwordless sudo, so no later restore can be trusted. An install is such a
+program: it runs build code the pull request's lock chooses. Round 1 of
+#1589's review found `coverage` running the suite between the restore and the
+ratchet; the ratchet now grades in a job of its own.
+
+**What keeps it true, and what does not.** Whether a job runs the pull
+request's code before its grader is a property of the workflow files, and
+`.github/workflows/` stays `@tvofi`'s: no pull request changes what a job runs
+without the owner's review. That review is the barrier. `codeowners_gap.py
+--check` is a lint over those owned files. It admits only a short list of
+steps before a pinned grader, and fails when an unowned surface file is not
+pinned under it. It is not a shell parser and it does not prove a job safe:
+rounds 2 to 4 of the review each found forms an earlier version admitted
+(18, then 8), every one an edit to an owned workflow. `--self-test` keeps the
+forms found so far refused.
 
 - **Pinned, so the owner goes:**
   - `tests/coverage_ratchet.py` runs in `coverage-ratchet`, a job of its own

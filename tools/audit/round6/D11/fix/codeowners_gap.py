@@ -72,15 +72,16 @@ schedule, and an instrument driven only by a `HPO_JOB_GRADES: nothing` job
 grades nothing -- is covered with nothing to restore; the run tags it
 `NO-PR-JOB` rather than `PINNED`, so the two are not read as one claim.
 
-A restore holds only in a job whose every step before the grader is on an
-ALLOWLIST of what cannot run the pull request's code (#1589 review, rounds 1
-to 3; the list and its reasons are at ALLOWED_USES below). Round 1's
-`coverage` ran the suite between the restore and the ratchet; round 2's
-denylist of such programs let 18 of 23 one-step insertions through. Anything
-off the list -- including a line this reader cannot parse -- makes nothing
-later in that job count as pinned. `--self-test` drives the probe table
-(PROBES, every one must unpin) and its null controls (NULLS, every one must
-stay pinned).
+A restore holds only in a job that runs none of the pull request's code before
+the grader (#1589 review, round 1: `coverage` ran the suite between the
+restore and the ratchet). That is a property of the workflow files, which stay
+@tvofi's, so the owner's review of a workflow edit is what keeps it; this
+harness is a LINT that reads those owned files and refuses the forms that
+would break it (the allowlist at ALLOWED_USES below). It is not the trust
+boundary and not a shell parser: round 2's denylist missed 18 of 23 probes and
+round 3's allowlist 8 more, all of them edits to an owned workflow.
+`--self-test` drives the probe table (PROBES, every one must unpin) and its
+null controls (NULLS, every one must stay pinned).
 
 What a pin does not reach. The test-side pinned graders' jobs
 (`coverage-ratchet`, `nightly-status`, `delivery-status`) are not required
@@ -287,41 +288,57 @@ def pr_reachable(wf_text: str, job_text: str) -> bool:
     return any(ev == "pull_request" for op, ev in tests if op == "==") or any(op == "!=" for op, _ in tests)
 
 
-# WHAT MAY RUN BEFORE A PINNED GRADER IN ITS JOB -- an ALLOWLIST (#1589
-# review, round 3). Once a job has run one program the pull request can
-# steer, that program can rewrite a restored file, put a `python3` shim on
-# `$GITHUB_PATH`, set `BASH_ENV`/`LD_PRELOAD` through `$GITHUB_ENV`, or use the
-# runner's passwordless sudo, so nothing later in that job is the base's. A
-# denylist of such programs (round 2) caught 4 of 23 probes; this admits only:
-#   * `uses:` of the actions below, at these exact pinned revisions;
-#   * in `run:`, simple commands whose word is `set` (flags only), `git` with
-#     `cat-file|fetch|checkout|rev-parse|hash-object|show` (`checkout` only
-#     from "$PINNED"), `test`/`[`, `echo`/`printf` without command
-#     substitution, `cmp`, `mkdir`, `true`, and a PINNED GRADER: a file this
-#     job restored earlier, run by an interpreter or by path, `.py` under `-I`;
-#     `$(...)` only around an admitted command, redirection only into the
-#     runner's scratch (`$RUNNER_TEMP`, `/tmp`, `$GITHUB_OUTPUT`,
+# WHAT MAY RUN BEFORE A PINNED GRADER IN ITS JOB -- an ALLOWLIST LINT (#1589
+# review, rounds 1 to 4). It is a lint over `.github/workflows/`, which is
+# @tvofi's: every construct it refuses is an edit to an owned file, so the
+# owner's review is the barrier, and this keeps the owned workflows honest as
+# they change. It is not a shell parser and does not prove a job safe; it
+# reads the forms below and counts a grader as pinned only when every step
+# before it, and the grader's own line, uses nothing else:
+#   * `uses:` of ALLOWED_USES, at these exact revisions;
+#   * in `run:`, simple commands whose word is `set` (flags only), `git` with a
+#     GIT_OK subcommand (`checkout` only from "$PINNED", `-c` only for the
+#     identity), `test`/`[`, `echo`/`printf`, a PLAIN_OK tool, `gh api`, shell
+#     keywords, or a pinned grader: a file this job restored earlier, run by a
+#     BARE interpreter name or by its path, `.py` under `-I`;
+#   * `$(...)` only around an admitted command, and output redirection only
+#     into the runner's scratch (`$RUNNER_TEMP`, `/tmp`, `$GITHUB_OUTPUT`,
 #     `$GITHUB_STEP_SUMMARY`, `/dev/null`).
-# Anything else taints the job from that line on, and so does a line this
-# reader cannot parse: a heredoc, a backtick, a subshell, a control keyword, an
-# assignment, an operator it does not know, a write to `$GITHUB_ENV` or
-# `$GITHUB_PATH`, a step `shell:` or `working-directory:`, or a step `env:`
-# value naming a tracked path. A pinned grader itself runs base code over the
-# pull request's tree; a grader that EVALUATES a pull-request artifact
-# (`check-wave-script.mjs`) is why those artifacts stay owned.
+# It refuses, from that line on: any other command; a line it cannot parse (a
+# heredoc, a backtick, a subshell, an unknown operator); a word that makes an
+# admitted tool write a file (`-o`, `--output`, `-O`); an assignment to
+# `PINNED` or a CODE_VARS name as a bare assignment, a command prefix,
+# `read` or `printf -v`, and every `export`/`declare`; a write to `$GITHUB_ENV`
+# or `$GITHUB_PATH`; a step or job `shell:`, `working-directory:` or
+# `defaults:`; an `env:` value naming a tracked path, a CODE_VARS name in
+# `env:`, or a `PINNED` other than the two PINNED_OK forms. Other assignments
+# (`BODY=$(...)`, arrays) are admitted: `pr-contract` uses them.
 ALLOWED_USES = {
     "actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
     "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
     "actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
     "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
 }
-GIT_OK = {"cat-file", "fetch", "checkout", "rev-parse", "hash-object", "show", "diff", "log", "merge-base", "commit"}
+# `diff` and `commit` because pinned jobs on `main` use them; `show` and `log`
+# were dropped in round 4 (`git show --output=` writes a file).
+GIT_OK = {"cat-file", "fetch", "checkout", "rev-parse", "hash-object", "diff", "merge-base", "commit"}
 PLAIN_OK = {"test", "[", "cmp", "mkdir", "true", "rm", "wc", "sort", "paste", "cat", "jq", "read"}
 # Shell grammar words: the commands between them are each checked.
 KEYWORDS = {"if", "then", "else", "elif", "fi", "while", "until", "do", "done", "for", "in", "!"}
 # A variable that makes a later program load code it names.
-CODE_VARS = re.compile(r"^(?:PATH|BASH_ENV|ENV|LD_\w+|NODE_\w+|PYTHON\w*|GIT_\w+|PERL5\w*|RUBY\w*)\+?=")
-INTERP = re.compile(r"^(?:[\w.-]+/)*(?:python3?|node|bash|sh)$")
+# A variable that makes a later program load code it names, and `PINNED`,
+# which names the ref every restore and byte check reads.
+CODE_VAR_NAME = re.compile(r"^(?:PINNED|PATH|BASH_ENV|ENV|LD_\w+|NODE_\w+|PYTHON\w*|GIT_\w+|PERL5\w*|RUBY\w*)$")
+CODE_VARS = re.compile(r"^(?:PINNED|PATH|BASH_ENV|ENV|LD_\w+|NODE_\w+|PYTHON\w*|GIT_\w+|PERL5\w*|RUBY\w*)\+?=")
+# A word that tells a program to write a file: `sort -o`, `git diff --output=`,
+# `curl -O`. Any such word outside `set` taints (round 4).
+WRITES_FILE = re.compile(r"^(?:-[A-Za-z]*[oO][A-Za-z]*|--output\b.*|--o=.*)$")
+# The two admitted values of `PINNED` in a step or job `env:`.
+PINNED_OK = {"${{ github.event.pull_request.base.sha || github.sha }}",
+             "${{ github.event.pull_request.base.sha }}"}
+# A bare interpreter name, resolved on the job's PATH, which nothing admitted
+# can change; never a path (round 4: `tools/shim/python3`).
+INTERP = re.compile(r"^(?:python3?|node|bash|sh)$")
 SCRATCH = ("$RUNNER_TEMP", "${RUNNER_TEMP}", "/tmp/", "$GITHUB_OUTPUT", "${GITHUB_OUTPUT}",
            "$GITHUB_STEP_SUMMARY", "${GITHUB_STEP_SUMMARY}", "/dev/null")
 OPS = {";", "&&", "||", "|", "&", "|&"}
@@ -408,8 +425,15 @@ def admitted(line: str, have: set[str], specs: list[str], _depth: int = 0) -> bo
         if not words:
             continue
         w = words[0]
-        if w in ("export", "declare", "local", "readonly"):
+        if w in ("export", "declare", "local", "readonly", "typeset"):
             return False
+        if w in PLAIN_OK | {"git", "echo", "printf", "gh"}:
+            if any(WRITES_FILE.match(a) for a in words[1:]):
+                return False  # `sort -o`, `git diff --output=`: a write into the tree
+            if w == "printf" and "-v" in words[1:]:
+                return False  # `printf -v PATH ...` assigns
+            if w == "read" and any(CODE_VAR_NAME.match(a) for a in words[1:]):
+                return False  # `read -r PATH < file` assigns
         if w == "set":
             if not all(a.startswith(("-", "+")) or a == "pipefail" for a in words[1:]):
                 return False
@@ -488,6 +512,18 @@ def step_uses(step: str) -> str:
     return m.group(1) if m else ""
 
 
+def _bad_pinned(env_block: str) -> bool:
+    """True when an `env:` block sets PINNED, or a code-loading variable, to
+    anything but the two admitted forms (round 4: `PINNED: ${{ github.sha }}`
+    makes the restore and the byte check read the pull request's own commit)."""
+    for name, val in re.findall(r"^\s*([A-Za-z_]\w*):\s*(.*?)\s*$", env_block, re.M):
+        if name == "PINNED" and val.strip("'\"") not in PINNED_OK:
+            return True
+        if name != "PINNED" and CODE_VAR_NAME.match(name):
+            return True
+    return False
+
+
 def _names_tracked(env_block: str, have: set[str]) -> bool:
     """True when an `env:` value names a tracked file or directory."""
     for val in re.findall(r":\s*(.*)$", env_block, re.M):
@@ -508,7 +544,7 @@ def job_executions(wf: str, job: str, jt: str, have: set[str]) -> list[tuple[str
     # job-level `env:` value naming a tracked path can load it into one.
     tainted = bool(re.search(r"^    defaults:", jt, re.M))
     jenv = re.search(r"^    env:\n((?:      .*\n?)*)", jt, re.M)
-    if jenv and _names_tracked(jenv.group(1), have):
+    if jenv and (_names_tracked(jenv.group(1), have) or _bad_pinned(jenv.group(1))):
         tainted = True
     for step in jt.split("\n      - ")[1:]:
         step = "      - " + step
@@ -519,11 +555,14 @@ def job_executions(wf: str, job: str, jt: str, have: set[str]) -> list[tuple[str
         if re.search(r"^        (?:shell|working-directory):", live, re.M):
             tainted = True
         envm = re.search(r"^        env:\n((?:          .*\n?)*)", live, re.M)
-        if envm and _names_tracked(envm.group(1), have):
+        if envm and (_names_tracked(envm.group(1), have) or _bad_pinned(envm.group(1))):
             tainted = True
         lines = run_lines(live)
         for line in lines:
             r = RESTORE.search(line)
+            # The grader's own line must be admitted too: a grader run by
+            # `tools/shim/python3` is the shim's, not the base's.
+            line_ok = admitted(line, have, specs)
             for m in EXEC.finditer(line):
                 entry = m.group(1)
                 if entry not in have:
@@ -537,7 +576,8 @@ def job_executions(wf: str, job: str, jt: str, have: set[str]) -> list[tuple[str
                     seen.add(f)
                     todo += sorted(loads(f, have) | named(f, have))
                 for f in sorted(seen):
-                    out.append((wf, job, f, not tainted and any(spec_hit(sp, f) for sp in specs), iso))
+                    out.append((wf, job, f,
+                                not tainted and line_ok and any(spec_hit(sp, f) for sp in specs), iso))
             if r:
                 specs += re.findall(r"'([^']+)'", r.group(1))
             if not admitted(line, have, specs):
@@ -702,6 +742,11 @@ SELF_TEST_JOB = """  probe-job:
 T = "tools/audit/w5-partition/coverage_tree.sh"
 
 
+def _GRADE(cmd: str):
+    """A line inserted into the grading step, before its restore."""
+    return lambda jt: jt.replace("          set -euo pipefail\n", "          set -euo pipefail\n          " + cmd + "\n", 1)
+
+
 def _run(cmd: str) -> str:
     body = "\n".join("          " + ln for ln in cmd.splitlines())
     return "\n      - name: probe\n        run: |\n" + body + "\n"
@@ -745,12 +790,23 @@ PROBES = [
      "          NODE_OPTIONS: --require ./tests/harness.py\n        run: echo ok\n"),
     ("git checkout HEAD -- grader", _run("git checkout HEAD -- tests/coverage_ratchet.py")),
     ("redirect into the tree", _run("echo 'import sys' > tests/coverage_ratchet.py")),
+    # Round 4: eight insertions inside the grading step itself that round 3 admitted.
+    ("sort -o into the grader", _GRADE("sort -o tests/coverage_ratchet.py tests/harness.py")),
+    ("git show --output=", _GRADE("git show --output=tests/coverage_ratchet.py HEAD:tests/harness.py")),
+    ("git diff --output=", _GRADE("git diff --output=tests/coverage_ratchet.py HEAD")),
+    ("printf -v PATH", _GRADE("printf -v PATH '%s' \"tools:$PATH\"")),
+    ("read -r PATH", _GRADE("read -r PATH < tests/README.md")),
+    ("bare PINNED=HEAD before the restore", _GRADE("PINNED=HEAD")),
+    ("step env PINNED: github.sha", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}", "PINNED: ${{ github.sha }}")),
+    ("grader run by an interpreter path", lambda jt: jt.replace(
+        "python3 -I -S tests/coverage_ratchet.py", "tools/shim/python3 -I -S tests/coverage_ratchet.py")),
 ]
 NULLS = [
     ("no inserted step", ""),
     ("echo and printf", _run("echo ok\nprintf '%s\\n' done")),
-    ("git fetch, rev-parse, show", _run('git fetch -q --no-tags --depth=1 origin main\n'
-                                          'git rev-parse HEAD\ngit show HEAD --stat > /dev/null')),
+    ("git fetch, rev-parse, hash-object", _run('git fetch -q --no-tags --depth=1 origin main\n'
+                                                 'git rev-parse HEAD\ngit hash-object README.md > /dev/null')),
     ("set, test, mkdir, cmp", _run('set -eo pipefail\ntest -f README.md\nmkdir -p "$RUNNER_TEMP/x"\n'
                                    'cmp README.md README.md')),
     ("download-artifact at its pin", "\n      - uses: actions/download-artifact@"
@@ -765,7 +821,7 @@ def self_test() -> int:
     bad = 0
     for kind, rows, want in (("PROBE", PROBES, False), ("NULL", NULLS, True)):
         for name, step in rows:
-            jt = SELF_TEST_JOB % step
+            jt = step(SELF_TEST_JOB % "") if callable(step) else SELF_TEST_JOB % step
             ex = [e for e in job_executions("probe.yml", "probe-job", jt.split(":\n", 1)[1], have)
                   if e[2] == grader]
             got = bool(ex) and all(p for (_, _, _, p, _) in ex)
