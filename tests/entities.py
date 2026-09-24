@@ -2072,6 +2072,19 @@ R.check(
     sensor.SpaceHeatingPlanSensor(no_plan_coord, ENTRY).extra_state_attributes.get("currency")
     == no_plan_coord.currency,
 )
+# Its state separates "no solve yet" from "a plan with nothing in it"; the
+# empty plan is the null arm that keeps the first from passing by accident.
+_plan_states = (
+    sensor.SpaceHeatingPlanSensor(no_plan_coord, ENTRY).native_value,
+    sensor.SpaceHeatingPlanSensor(
+        FakeCoordinator({**DATA, "space_plan": {"slots": []}}), ENTRY
+    ).native_value,
+)
+R.check(
+    "a plan sensor reads 'no plan' before a plan exists, 'no heating planned' for an empty one",
+    _plan_states == ("no plan", "no heating planned"),
+    repr(_plan_states),
+)
 
 # The schedule editor edits the CONFIGURED hot-water windows, which are not
 # what `dhw_windows` carries (the plan's reading: learned windows when none
@@ -5714,6 +5727,33 @@ R.check(
     f"house={_series_bare_data.get('house_power_series')!r} "
     f"pump={_series_bare_data.get('heat_pump_power_series')!r}",
 )
+# #1499's class, "space power read as the whole machine": with no meter at
+# all the realised peak folds the plan's own draw, and a DHW-only step asks
+# the pump for its whole hot-water charge while the space allocation is 0.
+# The space-only step is the null arm: it folds 4.8 before and after.
+def _peak_fold(action):
+    coord = _NpCoord(
+        FakeHass(),
+        FakeEntry(data={"peak_tariff_enabled": True, "peak_tariff_price_per_kw": 90.0}),
+    )
+    coord._measured_power = None
+    coord._measured_house_power = None
+    coord._current_action = action
+    coord._track_realised_peak()
+    return coord._peak_tracker.window_snapshot(
+        dt_util.now(), coord._capacity_tariff()
+    )[1]
+
+
+_peak_folds = (
+    _peak_fold({"power": 0.0, "dhw_power": 4.8, "heat_pump_on": True}),
+    _peak_fold({"power": 4.8, "dhw_power": 0.0, "heat_pump_on": True}),
+)
+R.check(
+    "with no meter the realised peak folds the step's whole ask, DHW included (#1499)",
+    _peak_folds == (4.8, 4.8),
+    repr(_peak_folds),
+)
 _series_gap_sensor = sensor.SensorGapAdvisorSensor(_series_coord, ENTRY)
 _series_gaps = {
     row["key"]: row
@@ -7647,6 +7687,102 @@ R.check(
     "hvac_action reports IDLE while auto but the compressor is not running",
     _hvac_idle.hvac_action == climate_mod.HVACAction.IDLE,
     str(_hvac_idle.hvac_action),
+)
+# #1499: a space step at minimum modulation sits below the band's first rung
+# (power_normalized 0.0), and a DHW-only step below zero; both run the pump.
+_hvac_low = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(
+        {**DATA, "mode": const.MODE_AUTO,
+         "current_action": {"power": 1.0, "power_normalized": 0.0,
+                            "heat_pump_on": True}}
+    ),
+    clim._entry,
+)
+R.check(
+    "hvac_action reports HEATING for a space step at minimum modulation",
+    _hvac_low.hvac_action == climate_mod.HVACAction.HEATING,
+    str(_hvac_low.hvac_action),
+)
+_hvac_dhw = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(
+        {**DATA, "mode": const.MODE_AUTO,
+         "current_action": {"power": 0.0, "power_normalized": -0.25,
+                            "mode": "hot_water", "heat_pump_on": True}}
+    ),
+    clim._entry,
+)
+R.check(
+    "hvac_action reports HEATING while only the DHW tank is heating",
+    _hvac_dhw.hvac_action == climate_mod.HVACAction.HEATING,
+    str(_hvac_dhw.hvac_action),
+)
+# The system identification's override spreads the plan's action and
+# rewrites power, power_normalized, heat_pump_on and mode; a key it does not
+# rewrite rides over from the plan, so hvac_action may read only keys the
+# override rewrites. Its off phase over a running plan step reads IDLE.
+_hvac_sysid = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(
+        {**DATA, "mode": const.MODE_AUTO,
+         "current_action": {"power": 0.0, "power_normalized": 0.0,
+                            "heat_pump_on": False,
+                            "mode": "system_identification",
+                            "dhw_heating_active": True}}
+    ),
+    clim._entry,
+)
+R.check(
+    "hvac_action reports IDLE in a system-identification off phase over an eco step",
+    _hvac_sysid.hvac_action == climate_mod.HVACAction.IDLE,
+    str(_hvac_sysid.hvac_action),
+)
+# Heat Pump Action's power_kw is what the card's actioned series draws
+# against the plan's space and DHW slots together, so it is the pump's whole
+# commanded draw: a DHW-only step is not 0 kW (#1499).
+def _action_power_kw(action):
+    return sensor.HeatPumpActionSensor(
+        FakeCoordinator({**DATA, "current_action": action}), clim._entry
+    ).extra_state_attributes.get("power_kw")
+
+
+_pkw = [
+    _action_power_kw({"power": 0.0, "dhw_power": 4.8, "mode": "hot_water"}),
+    _action_power_kw({"power": 2.0, "dhw_power": 0.5, "mode": "normal"}),
+    _action_power_kw({"power": 2.0, "mode": "normal"}),
+    _action_power_kw({"mode": "idle"}),
+]
+R.check(
+    "Heat Pump Action power_kw is space plus DHW, and None with no power (#1499)",
+    _pkw == [4.8, 2.5, 2.0, None],
+    repr(_pkw),
+)
+# The same step's whole ask on the three other entities that publish it:
+# Recommended Power (README: "the electrical power the current plan step asks
+# for"), the climate's recommended_power_kw, and the recommended_power Measured
+# Power carries beside the pump's whole measured draw (#1499 review). The
+# space-only step is the null arm: it reads the same before and after.
+def _recommended_kw(action):
+    coord = FakeCoordinator(
+        {**DATA, "current_action": action, "measured_power_available": True}
+    )
+    return (
+        sensor.CurrentPowerSensor(coord, clim._entry).native_value,
+        climate_mod.HeatPumpOptimizerClimate(coord, clim._entry)
+        .extra_state_attributes.get("recommended_power_kw"),
+        sensor.MeasuredPowerSensor(coord, clim._entry)
+        .extra_state_attributes.get("recommended_power"),
+    )
+
+
+_rkw = [
+    _recommended_kw({"power": 0.0, "dhw_power": 4.8, "mode": "hot_water"}),
+    _recommended_kw({"power": 1.07, "mode": "eco"}),
+    _recommended_kw({"mode": "idle"}),
+]
+R.check(
+    "Recommended Power, climate recommended_power_kw and Measured Power's "
+    "recommended_power are the step's whole ask, space plus DHW (#1499)",
+    _rkw == [(4.8, 4.8, 4.8), (1.07, 1.07, 1.07), (None, None, None)],
+    repr(_rkw),
 )
 _hvac_off = climate_mod.HeatPumpOptimizerClimate(
     FakeCoordinator(
@@ -14637,6 +14773,9 @@ _NON_GATE_WORKFLOWS = [
     ".github/workflows/hassfest.yml",
     ".github/workflows/validate.yml",
     ".github/workflows/codeql.yml",
+    # #1514 split `pr-contract` out of governance.yml; this script reads it
+    # for the contract pins below and for the `edited` barrier.
+    ".github/workflows/pr-contract.yml",
 ]
 for _wf in _NON_GATE_WORKFLOWS:
     R.check(
@@ -15199,9 +15338,11 @@ for _job in ("closures-autofix", "claims-autofix"):
 # dispatched run skips it, and docs/HANDOVER.md records a probe in which a
 # skipped required context satisfies the ruleset: the dispatch would be a
 # green `pr-contract` that never read the body. `record`
-# would also run on the branch with `issues: write`. Governance's route is the
+# would also run on the branch with `issues: write`. The contract's route is the
 # body PATCH `## Head` forces after a new head: its `edited` run is unheld and
-# carried all four Governance contexts at dac077e (run 35166880265).
+# carried all four Governance contexts at dac077e (run 35166880265) -- three of
+# them as skips, which is #1514. Since that split only `pr-contract.yml` lists
+# `edited`, so the other three come from the held run once it is approved.
 #
 # Parsed from the push step's non-comment lines only: a commented-out
 # dispatch, or one moved into the `always()` report step (which also runs when
@@ -19724,12 +19865,15 @@ R.check(
 # check runs through `/commits/<sha>/check-runs`, which the token refuses
 # without `checks: read`, and the body off `/pulls/<number>` at run time
 # rather than out of the event payload, which a re-run replays (the pin below).
+# `pr-contract` lives in its own workflow since #1514, so the set is read over
+# both files: the blast radius did not change because a job changed file.
 _DS_GOV = Path(".github/workflows/governance.yml").read_text()
+_PC_WF = Path(".github/workflows/pr-contract.yml").read_text()
 _DS_PUB_JOB = _workflow_job(_DS_GOV, "delivery-status-publish")
 _DS_OVERRIDES = sorted(
-    _m.group(1) for _m in re.finditer(
+    _m.group(1) for _wf_text in (_DS_GOV, _PC_WF) for _m in re.finditer(
         r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
-        _DS_GOV, re.M | re.S)
+        _wf_text, re.M | re.S)
 )
 R.check(
     "exactly three governance jobs override the workflow's read-only floor",
@@ -19741,7 +19885,7 @@ R.check(
 )
 _PC_PERMS = re.search(
     r"^    permissions:\n((?:^      .*\n)+)",
-    _workflow_job(_DS_GOV, "pr-contract"), re.M)
+    _workflow_job(_PC_WF, "pr-contract"), re.M)
 R.check(
     "and the contract lane's widening is the one read it needs",
     bool(_PC_PERMS)
@@ -19775,7 +19919,7 @@ R.check(
 # replaced, and a pin that cannot tell a comment from a grant would refuse
 # the sentence that explains the grant.
 _PC_BODY_STEP = "\n".join(
-    _l for _l in _workflow_job(_DS_GOV, "pr-contract").split("\n")
+    _l for _l in _workflow_job(_PC_WF, "pr-contract").split("\n")
     if not _l.lstrip().startswith("#"))
 _PC_API_READ = "/pulls/${PR_NUMBER}" in _PC_BODY_STEP
 _PC_BODY_FIELD = "--jq '.body" in _PC_BODY_STEP
@@ -19800,7 +19944,7 @@ R.check(
 # the exclusion of the job's own name (delete it and the deadlock returns: a
 # body refused for not naming a red caused by not naming it), and the flag
 # itself.
-_PC_JOB = _workflow_job(_DS_GOV, "pr-contract")
+_PC_JOB = _workflow_job(_PC_WF, "pr-contract")
 _PC_EXCLUSION = '.name != "pr-contract"'
 R.check(
     "the contract lane passes the head's red checks to the body check",
@@ -20458,36 +20602,127 @@ R.check(
     "is the one governance job that lives outside governance.yml, named by "
     "the instrument's own recorded rule",
 )
-# --- D13-04 (#1474): an edited body dispatches the contract job, and only it.
-# A `pull_request` event starts ONE run of governance.yml and every job whose
-# `if:` passes runs in it, so a job a body edit cannot affect is a check
-# re-run for nothing: keyed on the workflow-run id in each check run's
-# `details_url`, the 31 heads of the closed window `v6.6.9..f9d6f78` carried 46
-# dispatches -- 15 extra over the one per head -- executing five jobs at 145 s
-# each, `pr-contract` being 22 s of that and `env-matrix`, which cannot read a
-# pull request's body, 73 s. Derived over the jobs the file defines, so the
-# next job added without a guard lands in the list.
-def _job_guard(text: str, name: str) -> str:
-    m = _re.search(r"^    if: (.+)$", _workflow_job(text, name), _re.M)
-    return m.group(1) if m else ""
+# --- #1514: a body edit starts a run of the contract, and of nothing else.
+# An event a workflow lists starts ONE run of that file, and every job in it
+# writes a check run at the head, SKIPPED if its `if:` is false. #1484 kept
+# `edited` on governance.yml and skipped the other jobs with an `if:`, so each
+# body edit re-created `policy-docs`, `env-matrix` and `wave-script` as skipped
+# check runs at an unchanged head, the latest run of each required context
+# superseding the real verdict before it. The property is keyed on the
+# TRIGGER, not on any guard: every workflow file that lists `edited` for
+# `pull_request` defines exactly one job, `pr-contract`. Read over every file
+# in `.github/workflows/`, so a new workflow that lists `edited` beside a
+# second job reddens here whatever its guards say. The null control drives the
+# same predicate over #1484's shape -- `edited` listed, a guarded second job.
+def _edited_listing_jobs(text: str) -> "tuple[bool, set[str]]":
+    """(lists `edited` for pull_request, the job ids the file defines)."""
+    doc = _yaml.safe_load(text) or {}
+    on = doc.get(True, doc.get("on")) or {}
+    pr = on.get("pull_request") if isinstance(on, dict) else None
+    types = (pr or {}).get("types", []) if isinstance(pr, dict) else []
+    return "edited" in types, set((doc.get("jobs") or {}).keys())
 
 
-def _dispatched_on_body_edit(name: str) -> bool:
-    g = _job_guard(_DS_GOV, name)
-    return ("github.event_name != 'pull_request'" not in g
-            and "github.event_name == 'push'" not in g
-            and "github.event.action != 'edited'" not in g)
-
-
-_BODY_EDIT_JOBS = [j for j in sorted(_GOV_JOBS) if _dispatched_on_body_edit(j)]
+_EDITED_FILES = {}
+for _wf in sorted(Path(".github/workflows").glob("*.y*ml")):
+    _lists, _jobs = _edited_listing_jobs(_wf.read_text())
+    if _lists:
+        _EDITED_FILES[_wf.name] = sorted(_jobs)
 R.check(
-    "an edited body dispatches the contract job, and only it",
-    _BODY_EDIT_JOBS == ["pr-contract"],
-    f"jobs a body edit dispatches: {_BODY_EDIT_JOBS} -- every other job here "
-    "is one the edit re-ran at 145 s of jobs for a 22 s contract, which is "
-    "what the `edited` type exists to avoid (D13-04, #1474). A skipped "
-    "required check satisfies the ruleset, so the guard costs the merge "
-    "boundary nothing",
+    "a body edit starts a run of the contract job, and of no other job",
+    _EDITED_FILES == {"pr-contract.yml": ["pr-contract"]},
+    f"workflows listing `edited` and their jobs: {_EDITED_FILES} -- any other "
+    "job in such a file writes a check run on every body edit, skipped or "
+    "not, at the unchanged head: a skipped run of a required context "
+    "superseded its real verdict (#1514)",
+)
+_EDITED_NULL = _edited_listing_jobs(
+    "on:\n  pull_request:\n    types: [opened, edited, synchronize]\n"
+    "jobs:\n  policy-docs:\n"
+    "    if: github.event_name != 'pull_request' || "
+    "github.event.action != 'edited'\n    runs-on: x\n"
+    "  pr-contract:\n    runs-on: x\n")
+R.check(
+    "and #1484's shape -- `edited` listed, a second job guarded -- is refused "
+    "(null control)",
+    _EDITED_NULL == (True, {"policy-docs", "pr-contract"}),
+    f"predicate over the #1484 shape: {_EDITED_NULL} -- a reader that "
+    "missed `edited` or a guarded job would pass the check above vacuously",
+)
+# The same property keyed on what the ruleset reads rather than on one file
+# (#1514's root cause: #1484's review enumerated the jobs of the file it
+# edited, never the required contexts). Each context in the recorded shape of
+# the live required set is mapped to the job that produces it -- by the job's
+# `name:` (a `${{ }}` in it matches any text), by its id, or by its id followed
+# by a matrix suffix -- and in every workflow that lists `edited`, each such
+# job's `if:` is evaluated under that event. False, or an expression this
+# reader cannot decide, is a required context a body edit can re-report as
+# skipped at an existing head. The mapping must cover every context, so the
+# check cannot pass by mapping none.
+_RC_CONTEXTS = json.loads(Path(
+    ".claude/workflows/fixtures/required-contexts.json").read_text())["contexts"]
+_RC_DOCS = {_wf.name: _yaml.safe_load(_wf.read_text()) or {}
+            for _wf in sorted(Path(".github/workflows").glob("*.y*ml"))}
+
+
+def _rc_producer(context: str) -> "tuple[str, str] | None":
+    for _name, _doc in _RC_DOCS.items():
+        for _jid, _job in (_doc.get("jobs") or {}).items():
+            _label = str((_job or {}).get("name") or _jid)
+            _pat = ".+".join(re.escape(_part)
+                             for _part in re.split(r"\$\{\{.*?\}\}", _label))
+            if (re.fullmatch(_pat, context) or context == _jid
+                    or re.fullmatch(re.escape(_jid) + r" \(.+\)", context)):
+                return _name, _jid
+    return None
+
+
+def _if_under(expr, event: "dict[str, str]") -> "bool | None":
+    """A job `if:` under `event`; None when this reader cannot decide it."""
+    if expr is None:
+        return True
+    s = str(expr).strip()
+    if s.startswith("${{") and s.endswith("}}"):
+        s = s[3:-2]
+    s = s.replace("always()", " True ")
+    s = re.sub(r"\b(?:github|needs|inputs|env|vars)(?:\.[\w-]+)+",
+               lambda m: repr(event.get(m.group(0))), s)
+    s = s.replace("&&", " and ").replace("||", " or ")
+    s = re.sub(r"!(?!=)", " not ", s)
+    if not re.fullmatch(r"(?:\s|\(|\)|==|!=|and|or|not|True|False|None"
+                        r"|'[^']*')*", s):
+        return None
+    return bool(eval(s, {"__builtins__": {}}, {}))  # literals and operators only
+
+
+_EDITED_EVENT = {"github.event_name": "pull_request",
+                 "github.event.action": "edited"}
+_RC_MAP = {c: _rc_producer(c) for c in _RC_CONTEXTS}
+_RC_SKIPPED = sorted(
+    c for c, where in _RC_MAP.items()
+    if where and _edited_listing_jobs(
+        (Path(".github/workflows") / where[0]).read_text())[0]
+    and _if_under(_RC_DOCS[where[0]]["jobs"][where[1]].get("if"),
+                  _EDITED_EVENT) is not True)
+R.check(
+    "no required context can be re-reported as skipped by a body edit",
+    _RC_CONTEXTS and all(_RC_MAP.values()) and not _RC_SKIPPED,
+    f"{len(_RC_CONTEXTS)} required context(s) mapped: "
+    f"{ {c: '/'.join(w) if w else None for c, w in _RC_MAP.items()} }; "
+    f"skippable under `pull_request: edited`: {_RC_SKIPPED} -- a skipped run "
+    "written after a real verdict at the same head supersedes it (#1514)",
+)
+_RC_NULL = _if_under("github.event_name != 'pull_request' || "
+                     "github.event.action != 'edited'", _EDITED_EVENT)
+_RC_OWN = _if_under("github.event_name == 'pull_request'", _EDITED_EVENT)
+R.check(
+    "and #1484's guard reads as skipping under that event (null control)",
+    _RC_NULL is False
+    and _RC_OWN is True
+    and _if_under("contains(github.ref, 'x')", _EDITED_EVENT) is None,
+    f"#1484 guard -> {_RC_NULL}; the contract's own `if:` -> "
+    f"{_RC_OWN}; an "
+    "undecidable expression -> None, which the check above counts as skippable",
 )
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string

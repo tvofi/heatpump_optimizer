@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 97.5,
+   "seconds": 178.1,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -433,6 +433,7 @@
    ".claude/workflows/brief_lint.mjs",
    ".claude/workflows/cfr_exclusions.json",
    ".claude/workflows/counts.mjs",
+   ".claude/workflows/fixtures/required-contexts.json",
    ".claude/workflows/policy_lint.mjs",
    ".claude/workflows/render_md.mjs",
    ".claude/workflows/vendor/markdown-it.LICENSE",
@@ -442,6 +443,7 @@
    ".github/workflows/codeql.yml",
    ".github/workflows/governance.yml",
    ".github/workflows/hassfest.yml",
+   ".github/workflows/pr-contract.yml",
    ".github/workflows/release.yml",
    ".github/workflows/tests.yml",
    ".github/workflows/validate.yml",
@@ -577,8 +579,6 @@
    "tests/nightly_ha.py",
    "tests/nightly_status.py",
    "tests/profiles.py",
-   "tests/replay.py",
-   "tests/replay/synthetic-dhw-only.json",
    "tests/run.sh",
    "tests/stress.py",
    "tests/structure.py",
@@ -599,9 +599,7 @@
    "tools/audit/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
    "tools/audit/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
    "tools/audit/round5/D13/seat-a/fixtures/window_merges.json",
-   "tools/release/stamp.py",
-   "tools/replay/export.py",
-   "tools/replay/synthesize.py"
+   "tools/release/stamp.py"
   ],
   "tests/env_drift.py": [
    "custom_components/heatpump_optimizer/__init__.py",
