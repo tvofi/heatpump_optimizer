@@ -239,7 +239,7 @@ def approval(reviews: list[dict], head: str) -> tuple[bool, str]:
         return False, f"{OWNER_LOGIN}'s latest decisive review is {last.get('state')}"
     if last.get("commit_id") != head:
         return False, (f"{OWNER_LOGIN}'s approval is on {str(last.get('commit_id'))[:12]}, "
-                       f"not this head {head[:12]}: a stale approval does not cover what was pushed after it")
+                       f"not this head {head[:12]}: an approval covers only the commit it was given on")
     return True, f"{OWNER_LOGIN} approved this head {head[:12]}"
 
 
@@ -444,6 +444,10 @@ def self_test() -> int:
           rc(R, [rv(own, "APPROVED", OLD), rv(own, "APPROVED")]), 0)
     check("an account named tvofi with another id fails",
           rc(R, [rv({**own, "id": OWNER_ID + 1}, "APPROVED")]), 1)
+    check("the owner's id under another login fails (a rename is re-pinned, not followed)",
+          rc(R, [rv({**own, "login": "tvofi-renamed"}, "APPROVED")]), 1)
+    check("the owner's id and login on a non-User account fails",
+          rc(R, [rv({**own, "type": "Bot"}, "APPROVED")]), 1)
     check("a reviews read that fails, fails closed", rc(R, RuntimeError("HTTP 502")), 1)
 
     # Every tracked budget file, as it stands: the schema must know it, a copy
