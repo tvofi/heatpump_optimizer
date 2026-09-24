@@ -21361,6 +21361,90 @@ R.check(
     "parseable verdict, so a `Fix review:` line naming none reaches the walk as "
     "an outside-grammar report and never as a head",
 )
+# THE ROW SAYS HEAD-MOVED AND THE YIELD SAYS FIRST PASS (#1549, D13-s1-01).
+# The rework arm keyed every later verdict naming a head other than the FIRST
+# verdict's, so `head-moved` also counted a repair after a block and a verdict
+# repeating the previous head: 19 entries over the round-8 window, 15 of them
+# re-verifications. And a merge reviewed twice read as first pass, because
+# nothing printed the one-round figure beside the first-verdict one. Driven on
+# the production symbols over five synthetic merges, one per shape: one round
+# (1), a re-verification (2), a repair (3), a re-verification then a repeat
+# (4), and a reviewer's own `blocked <sha> head-moved` on a moved head (5).
+_STATS_ROUNDS = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const sha = (c) => c.repeat(40);"
+     "const M = (c) => 'Fix review: merge ' + sha(c);"
+     "const B = (c, k) => 'Fix review: blocked ' + sha(c) + ' ' + k + ': x';"
+     "const run = (first3) => { const w = [[M('a')], [M('a'), M('b')],"
+     "[first3, M('b')], [M('a'), M('b'), M('b')],"
+     "[M('a'), B('b', 'head-moved')]];"
+     "const prs = w.map((_, i) => ({ pr: String(i + 1) }));"
+     "const fetched = new Map(w.map((v, i) => [String(i + 1), { body: '',"
+     "comments: v.map((body) => ({ body })) }]));"
+     "const h = m.statsHistogram(prs, fetched, ['blocked', 'merge']);"
+     "const c = h.verdicts.get(m.REWORK_CLASS);"
+     "const r = h.rounds || {};"
+     "const n = (k) => (r[k] ? r[k].entries : null);"
+     "return { cell: c ? [c.prs.size, c.entries] : null,"
+     "reverify: n('reverify'), repair: n('repair'), repeat: n('repeat'),"
+     "line: m.statsRoundsLine ? m.statsRoundsLine(h) : '' }; };"
+     "console.log(JSON.stringify({ base: run(B('a', 'claims')),"
+     "flipped: run(M('a')) })); })"],
+    capture_output=True, text=True).stdout or "{}")
+
+
+def _rounds(arm):
+    return _STATS_ROUNDS.get(arm) or {}
+
+
+R.check(
+    "the head-moved row counts a re-verification of a head that moved after a "
+    "`merge` verdict, once per round, and not a repair or a repeat (#1549)",
+    _rounds("base").get("cell") == [3, 3],
+    f"head-moved cell={_rounds('base').get('cell')!r}, want [3, 3] (PRs 2, 4 "
+    "and 5, one round each) -- keyed against the FIRST verdict's head it also "
+    "counts #3's repair after a block, #4's repeat of the previous head, and "
+    "#5's reviewer-written `head-moved` a second time: [4, 6]",
+)
+R.check(
+    "and every round after a merge's first is split by the verdict before it: "
+    "re-verification, repair, repeat (#1549)",
+    [_rounds("base").get(k) for k in ("reverify", "repair", "repeat")]
+    == [3, 1, 1],
+    f"reverify/repair/repeat={[_rounds('base').get(k) for k in ('reverify', 'repair', 'repeat')]!r}, "
+    "want [3, 1, 1]: six rounds after five first verdicts, each in one part",
+)
+R.check(
+    "and the split tracks the verdict before the round rather than a constant "
+    "(null control: #3's block rewritten as a merge)",
+    [_rounds("flipped").get(k) for k in ("reverify", "repair", "repeat")]
+    == [4, 0, 1]
+    and _rounds("flipped").get("cell") == [4, 4],
+    f"flipped={_rounds('flipped')!r} -- a `merge` before #3's second round "
+    "makes that round a re-verification of a moved head, so it must leave the "
+    "repair part and enter the head-moved row",
+)
+_ROUNDS_LINE = _rounds("base").get("line") or ""
+R.check(
+    "the stats mode prints the one-round yield beside the first-verdict yield, "
+    "each named for its rule (#1549)",
+    "first-verdict yield 4/5" in _ROUNDS_LINE
+    and "one-round yield 1/5" in _ROUNDS_LINE
+    and "3 re-verified" in _ROUNDS_LINE
+    and "1 repaired" in _ROUNDS_LINE
+    and "1 repeated" in _ROUNDS_LINE,
+    f"rounds line={_ROUNDS_LINE[:400]!r} -- 4 of 5 merges had `merge` as their "
+    "first verdict but only #1 merged on that one verdict, so a yield printed "
+    "alone under a first-pass label counts three re-reviewed merges as passes",
+)
+R.check(
+    "and the one-round yield moves with the window (null control: #3 flipped "
+    "to a first `merge` raises the first-verdict yield only)",
+    "first-verdict yield 5/5" in (_rounds("flipped").get("line") or "")
+    and "one-round yield 1/5" in (_rounds("flipped").get("line") or ""),
+    f"flipped line={(_rounds('flipped').get('line') or '')[:400]!r}",
+)
 R.check(
     "the publishing lane runs on main alone, never on a pull request",
     "github.event_name == 'push'" in _DS_PUB_JOB
