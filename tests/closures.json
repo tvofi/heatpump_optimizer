@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 249.4,
+   "seconds": 75.7,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -606,6 +606,7 @@
    "tools/audit/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
    "tools/audit/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
    "tools/audit/round5/D13/seat-a/fixtures/window_merges.json",
+   "tools/merge/ledger_merge.py",
    "tools/release/stamp.py",
    "tools/replay/export.py",
    "tools/replay/synthesize.py"

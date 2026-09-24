@@ -16387,6 +16387,30 @@ R.check(
     f"routed too; got {_CM_HALF_ROUTED!r}",
 )
 
+# The ledger merge driver (tools/merge/ledger_merge.py) resolves the three
+# measured JSON ledgers key by key; its self-test pins each merge rule and each
+# refusal, and that .gitattributes routes all three files to it.
+import contextlib as _lm_contextlib  # noqa: E402
+import importlib.util as _lm_util  # noqa: E402
+import io as _lm_io  # noqa: E402
+try:
+    _lm_spec = _lm_util.spec_from_file_location(
+        "hpo_ledger_merge", _closure.ROOT / "tools" / "merge" / "ledger_merge.py")
+    _lm = _lm_util.module_from_spec(_lm_spec)
+    _lm_spec.loader.exec_module(_lm)
+    with _lm_contextlib.redirect_stdout(_lm_io.StringIO()) as _lm_out, \
+            _lm_contextlib.redirect_stderr(_lm_io.StringIO()):
+        _lm_ok = _lm.self_test() == 0
+    _lm_detail = _lm_out.getvalue()
+except Exception as _lm_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+    _lm_ok, _lm_detail = False, f"{type(_lm_exc).__name__}: {_lm_exc}"
+R.check(
+    "tools/merge/ledger_merge.py --self-test passes",
+    _lm_ok,
+    "run `python3 tools/merge/ledger_merge.py --self-test` for the failing "
+    "check names:\n" + _lm_detail,
+)
+
 # --- #493: inherited card claims on a roster-only three-dot -----------------
 #
 # PR #493 (squash ae97a65) touched only INERT roster/plan files. Claim files
