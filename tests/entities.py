@@ -22583,7 +22583,8 @@ R.check(
 # raise that tests/structure.py printed as `ok cut_views 110 <= nan`. Infinity
 # passes by arithmetic; a string crashed one script and float()-coerced in
 # another ("nan" into NaN); a bool is 0 or 1 to Python. The barrier is ONE
-# function, structure.cap_problem, and every ratchet calls it on load. Each is
+# function, structure.cap_problem (copied verbatim into the three graders
+# that must stay single-file), and every ratchet calls it on load. Each is
 # driven below with every malformed spelling and must refuse, and with its own
 # committed table -- the null control -- must not. typing_ruler.py (not
 # imported here) drives its arms in its own selftest; policy_lint.mjs in its
@@ -22641,6 +22642,32 @@ R.check(
     and _CAP_S_REAL[0] == 0,
     "; ".join(f"{n}: rc={rc}" for n, (rc, _o) in _CAP_S.items())
     + f"; real table rc={_CAP_S_REAL[0]} (the null control)",
+)
+
+# ONE barrier, three verbatim copies. mutation_table.py, coverage_ratchet.py
+# and typing_ruler.py are graders a job may restore from the base and run
+# under `python3 -I`, where importing tests/structure.py neither resolves nor
+# stays the base's; so each carries the function, and any copy that differs
+# from the original by one character is refused here.
+def _cap_source(rel: str) -> str:
+    _src = Path(rel).read_text()
+    for _node in ast.parse(_src).body:
+        if isinstance(_node, ast.FunctionDef) and _node.name == "cap_problem":
+            return ast.get_source_segment(_src, _node)
+    return ""
+
+
+_CAP_ORIGINAL = _cap_source("tests/structure.py")
+_CAP_DRIFTED = [
+    _rel for _rel in ("tests/mutation_table.py", "tests/coverage_ratchet.py",
+                      "tests/typing_ruler.py")
+    if _cap_source(_rel) != _CAP_ORIGINAL
+]
+R.check(
+    "every grader's copy of the barrier is the original, character for character",
+    bool(_CAP_ORIGINAL) and not _CAP_DRIFTED,
+    f"original found: {bool(_CAP_ORIGINAL)}; copies that differ or are "
+    f"missing: {_CAP_DRIFTED}",
 )
 
 _CAP_MB_OK = {"max_survivor_fraction": {"changed": 0.2, "full": 0.3},

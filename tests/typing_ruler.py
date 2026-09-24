@@ -104,6 +104,7 @@ import configparser
 import contextlib
 import io
 import json
+import math
 import os
 import re
 import subprocess
@@ -112,8 +113,6 @@ import tempfile
 import tomllib
 from pathlib import Path
 
-# The recorded-number barrier every ratchet shares (#1583's review).
-from structure import cap_problem
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PACKAGE_REL = "custom_components/heatpump_optimizer"
@@ -190,6 +189,56 @@ class Report:
         return 0
 
 
+# A VERBATIM copy of tests/structure.py's cap_problem, the recorded-number
+# barrier every ratchet shares (#1583's review). This grader is a single
+# standard-library file on purpose -- a job may restore it from the base
+# and run it under `python3 -I`, where a sibling import neither resolves
+# nor stays the base's -- so it carries the copy, and tests/entities.py
+# refuses any copy that differs from the original by one character.
+def cap_problem(where: str, table: object, key: str, *, integer: bool = False,
+                low: float = 0.0, low_open: bool = False,
+                high: float | None = None) -> str | None:
+    """Why ``table[key]`` cannot be a ratchet's recorded number, or None.
+
+    The class this closes (#1583's review): Python's json reads ``NaN``,
+    ``Infinity``, ``-Infinity`` and ``1e999`` as floats without complaint, and
+    every comparison against NaN is False -- ``current > nan`` never fires and
+    ``raw < nan`` never fires -- so a cap edited to NaN was an unlimited raise
+    that this script printed as ``ok cut_views 110 <= nan``. Infinity passes
+    by arithmetic. The other spellings fail differently per script and none of
+    them says why: a string crashed one comparison and ``float()``-coerced in
+    another (``"nan"`` into NaN), and a bool is 0 or 1 to Python.
+
+    So every ratchet calls this on load and refuses before it compares. It
+    refuses: an absent key, a bool, anything not an int or float, a
+    non-finite number, a float where ``integer`` asks for a count, a value
+    below ``low`` (or equal to it when ``low_open``), and one above ``high``.
+    The message names the file, the key and the value, so the refusal is the
+    fix's instructions.
+    """
+    if not isinstance(table, dict) or key not in table:
+        return (f"{where}: {key} is absent -- a ratchet with no recorded "
+                f"number compares against nothing")
+    value = table[key]
+    label = f"{where}: {key}={value!r}"
+    if isinstance(value, bool):
+        return (f"{label} is a boolean, which Python compares as "
+                f"{int(value)}; record the number")
+    if not isinstance(value, (int, float)):
+        return f"{label} is a {type(value).__name__}, not a number"
+    if not math.isfinite(value):
+        return (f"{label} is not finite: every comparison against NaN is "
+                f"false and nothing exceeds Infinity, so this cap would be an "
+                f"unlimited raise")
+    if integer and not isinstance(value, int):
+        return f"{label} is a float where a count is recorded"
+    if value < low or (low_open and value == low):
+        return f"{label} is {'at or ' if low_open else ''}below {low:g}"
+    if high is not None and value > high:
+        return f"{label} is above {high:g}"
+    return None
+
+
 def budgets() -> dict:
     return json.loads(BUDGET_FILE.read_text())
 
@@ -197,8 +246,8 @@ def budgets() -> dict:
 def budget_problems(budget: dict) -> list[str]:
     """Every recorded count here that cannot serve as a cap.
 
-    Through `structure.cap_problem`, the barrier every ratchet shares: `ignores
-    > nan` is False, so a NaN `type_ignores` or census row was an unlimited
+    Through `cap_problem` (the verbatim copy above), the barrier every
+    ratchet shares: `ignores > nan` is False, so a NaN `type_ignores` or census row was an unlimited
     raise this ruler printed as "did not grow" (#1583's review). Every number
     is a non-negative integer count. `census` may be null -- the documented
     not-yet-recorded state the `typing` job refuses -- but a recorded one has
