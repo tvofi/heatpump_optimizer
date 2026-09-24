@@ -102,7 +102,7 @@
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 2.3,
+   "seconds": 2.1,
    "rc": 0
   },
   "tests/finite_boundary.py": {
