@@ -263,6 +263,24 @@ def collect(module, data=None, coordinator=None):
     return added
 
 
+def registry_default(entity) -> bool:
+    """What the registry reads at first registration, static or dynamic.
+
+    Upstream ``Entity.entity_registry_enabled_default`` returns the
+    ``_attr_`` value and a class may override it with a property (the
+    hot-water gate does); the stub has no such property, so read the
+    override where there is one. A census reading only ``_attr_`` misses
+    every dynamic default -- the reader deciding the fact on a second path.
+    """
+    return bool(
+        getattr(
+            entity,
+            "entity_registry_enabled_default",
+            getattr(entity, "_attr_entity_registry_enabled_default", True),
+        )
+    )
+
+
 # A representative published payload, covering every key the new entities read.
 DATA = {
     "energy_totals_counting_since": "2026-08-15",
@@ -2934,7 +2952,7 @@ _sensed_hass, _sensed_coord, _sensed = _honest_coordinator(
         "sensor.downstairs": FakeState("20.1"),
     },
 )
-_sensed_fake = FakeCoordinator(_sensed)
+_sensed_fake = FakeCoordinator(_sensed, _config=dict(_sensed_coord._config))
 for _cls, _expected in (
     (sensor.DHWTemperatureSensor, 48.2),
     (sensor.BufferTankTempSensor, 36.5),
@@ -3199,7 +3217,7 @@ def _d801_publications(config, cycles):
         added = []
         asyncio.run(module.async_setup_entry(hass, entry, added.extend))
         for entity in added:
-            if not getattr(entity, "_attr_entity_registry_enabled_default", True):
+            if not registry_default(entity):
                 continue
             if not entity.available:
                 continue
@@ -3694,9 +3712,9 @@ for _cls in (
         "the card plan and Energy-dashboard meters must stay on for hot-water installs",
     )
 R.check(
-    "the probe-gated temperature sensor stays off by default even with hot water",
+    "the probe-gated temperature sensor stays off with hot water but no tank probe",
     not sensor.DHWTemperatureSensor(_dhw_on_fake, ENTRY).entity_registry_enabled_default,
-    "it is gated on the optional tank probe, not on hot water",
+    "it is gated on the optional tank probe as well as on hot water (#1335)",
 )
 
 # The registry reads the default before the first refresh, when the payload is
@@ -3726,6 +3744,141 @@ R.check(
     issubclass(sensor.DHWSetpointAdvisorSensor, sensor._DHWEntityMixin),
     "the one hot-water sensor outside the gate ships enabled on a no-DHW install",
 )
+
+# #1527 / #1542, class P2 (one fact decided on one path and not its sibling):
+# whether the install has hot water, and a tank probe. #1237, #1302, #1398,
+# #1461 and these two were each that answer missing from one more reader --
+# here a boost switch on the switch platform that put hot-water power into the
+# live action on a plant with no tank, and two probe-gated sensors kept off by
+# default where the probe is configured. So the population is not a list: it
+# is every entity every platform in PLATFORM_LIST registers whose subject is
+# hot water, by its translation key or by the dhw_ config slot it reads
+# (``READING_SOURCES`` via ``_reading_key``). Each takes its availability and
+# registry default from ``DHWEntityMixin`` unless named below with its reason.
+from heatpump_optimizer import boost as _boost_mod
+from heatpump_optimizer.coordinator import READING_SOURCES as _READING_SOURCES
+from heatpump_optimizer.entity import DHWEntityMixin as _DHWGate
+
+#: Hot-water entities that keep a registry default of their own, and why.
+_DHW_GATE_EXCEPTIONS = {
+    # Evidence-gated, not config-gated (#1335): the learned draw quantiles
+    # need weeks of draws, so it ships off even on a hot-water install. Its
+    # availability is still pinned below at the no-hot-water end.
+    "DHWHeavyDaySensor",
+}
+
+
+def _dhw_subject(entity) -> bool:
+    key = getattr(entity, "_attr_translation_key", None) or ""
+    slot = _READING_SOURCES.get(getattr(entity, "_reading_key", ""), "")
+    return "dhw" in key or slot.startswith("dhw_")
+
+
+def _dhw_family(coordinator):
+    found = {}
+    for _p in integration.PLATFORM_LIST:
+        _mod = _importlib.import_module(f"heatpump_optimizer.{_p}")
+        for _e in collect(_mod, coordinator=coordinator):
+            if _dhw_subject(_e):
+                found[type(_e).__name__] = _e
+    return found
+
+
+_probe_slot = const.CONF_DHW_TEMP_ENTITY
+_fam_off = _dhw_family(FakeCoordinator(_no_dhw))
+_fam_on = _dhw_family(FakeCoordinator(DATA))
+_fam_probe = _dhw_family(FakeCoordinator(DATA, _config={_probe_slot: "sensor.tank"}))
+_fam_platforms = {type(_e).__module__.rsplit(".", 1)[-1] for _e in _fam_on.values()}
+R.check(
+    "the hot-water census reaches more than the sensor platform (#1527)",
+    {"sensor", "switch"} <= _fam_platforms and len(_fam_on) > 1,
+    f"{len(_fam_on)} entities on {sorted(_fam_platforms)}: an empty sweep pins nothing",
+)
+R.check(
+    "every named exception is a hot-water entity the census found",
+    _DHW_GATE_EXCEPTIONS <= set(_fam_on),
+    f"stale: {sorted(_DHW_GATE_EXCEPTIONS - set(_fam_on))}",
+)
+_outside = sorted(
+    n for n, e in _fam_on.items()
+    if n not in _DHW_GATE_EXCEPTIONS and not isinstance(e, _DHWGate)
+)
+R.check(
+    "every hot-water entity takes the one gate (#1461, #1527)",
+    not _outside,
+    f"outside DHWEntityMixin: {_outside}",
+)
+_static = sorted(
+    n for n, e in _fam_on.items()
+    if n not in _DHW_GATE_EXCEPTIONS
+    and any("_attr_entity_registry_enabled_default" in k.__dict__ for k in type(e).__mro__)
+)
+R.check(
+    "no gated hot-water entity carries a static default beside the gate (#1542)",
+    not _static,
+    f"a static default a census reads instead of the gate: {_static}",
+)
+_live_off = sorted(n for n, e in _fam_off.items() if e.available)
+R.check(
+    "no hot-water entity is available on a plant with no hot water",
+    not _live_off,
+    f"available with dhw_enabled False: {_live_off}",
+)
+_on_off = sorted(n for n, e in _fam_off.items() if registry_default(e))
+R.check(
+    "no hot-water entity is enabled by default on a plant with no hot water",
+    not _on_off,
+    f"enabled by default with dhw_enabled False: {_on_off}",
+)
+_hidden = sorted(
+    n for n, e in _fam_probe.items()
+    if n not in _DHW_GATE_EXCEPTIONS and not registry_default(e)
+)
+R.check(
+    "every gated hot-water entity is on by default with hot water and its probe (#1542)",
+    not _hidden,
+    f"disabled by default with the tank probe configured: {_hidden}",
+)
+_probe_off = sorted(
+    n for n, e in _fam_on.items()
+    if getattr(e, "_dhw_probe_slot", "") and registry_default(e)
+)
+R.check(
+    "a probe-keyed entity stays off by default until its probe is configured (#1335)",
+    not _probe_off and any(getattr(e, "_dhw_probe_slot", "") for e in _fam_on.values()),
+    f"on without the probe: {_probe_off}",
+)
+_slot_mismatch = sorted(
+    n for n, e in _fam_on.items()
+    if _READING_SOURCES.get(getattr(e, "_reading_key", ""), "").startswith("dhw_")
+    and getattr(e, "_dhw_probe_slot", "") != _READING_SOURCES[e._reading_key]
+)
+R.check(
+    "a hot-water entity reading a probe keys its default on that probe's slot",
+    not _slot_mismatch,
+    f"_dhw_probe_slot disagrees with READING_SOURCES: {_slot_mismatch}",
+)
+
+# The overlay end of #1527: an unavailable switch is not called by Home
+# Assistant, but a boost set before hot water was switched off, or restored
+# from the store, must still never reach the action. Both ends, on the real
+# coordinator: no hot water drops the channel, hot water keeps it.
+for _label, _coord, _want in (
+    ("drops", _no_dhw_coord, False),
+    ("keeps", _on_coord, True),
+):
+    _coord._current_action = {}
+    _boost_mod.held_for(_coord).set(_boost_mod.CHANNEL_DHW, True, dt_util.now())
+    _boost_mod.apply(_coord)
+    _got = float(_coord._current_action.get("dhw_power") or 0.0) > 0.0
+    R.check(
+        f"the boost overlay {_label} hot-water power where the plant "
+        f"{'has' if _want else 'has no'} hot water (#1527)",
+        _got is _want,
+        f"dhw_power={_coord._current_action.get('dhw_power')!r}",
+    )
+    _boost_mod._STATES.pop(_coord, None)
+    _coord._current_action = {}
 
 # D9-01 (#1462): series-shaped attributes and duplicated static documentation
 # ride into the recorder every cycle. The plan sensors already declare their
@@ -3825,8 +3978,20 @@ R.section("A failed refresh reaches every entity")
 # the second half can only be failing for the reason it claims. Without it,
 # deleting a `super().available and` would still pass: everything would be
 # unavailable for its own reasons and the sweep would never notice.
-_healthy = FakeCoordinator(DATA)
-_broken = FakeCoordinator(DATA)
+# Every optional input configured, too: an entity gated on a configured
+# input (#1542's class) is only healthy where its input exists.
+_EVERY_INPUT = {
+    _slot: f"sensor.{_slot}"
+    for _slot in (
+        const.CONF_DHW_TEMP_ENTITY,
+        const.CONF_BUFFER_TANK_TEMP_ENTITY,
+        const.CONF_FLOOR_RETURN_TEMP_ENTITY,
+        const.CONF_LOWER_FLOOR_TEMP_ENTITY,
+        *sensor.ECL110_TOPIC_SLOTS,
+    )
+}
+_healthy = FakeCoordinator(DATA, _config=_EVERY_INPUT)
+_broken = FakeCoordinator(DATA, _config=_EVERY_INPUT)
 _broken.last_update_success = False
 # Every platform is in the roster (#295). The two action buttons were once
 # held out of it on the theory that "run an optimization now" is exactly what
@@ -8178,7 +8343,7 @@ _expected_disabled = {
 _actually_disabled = {
     s._key
     for s in sensors
-    if getattr(s, "_attr_entity_registry_enabled_default", True) is False
+    if not registry_default(s)
 }
 R.check(
     "exactly the ordinary-install-dead sensors are disabled by default",
@@ -8504,7 +8669,7 @@ _ord_by_id = {e.entity_id: e for e in _ord_entities}
 
 
 def _ord_default_on(e) -> bool:
-    return getattr(type(e), "_attr_entity_registry_enabled_default", True) is not False
+    return registry_default(e)
 
 
 def _ord_waiting_for(e):
@@ -8531,35 +8696,23 @@ def _ord_state(e):
     return None
 
 
-# The ECL110 pair is the one disabled member that is NOT dead on the
-# ordinary install: it has no availability gate at all and publishes the
-# 0.0 placeholder, which is exactly why its default is off (its own
-# comment: "disabled, not a forever-unknown entity"). Every other disabled
-# entity must be unavailable or stateless there — that is the measured
-# cause its default is off, and a sensor flipped without one fails here.
-_ECL110_UNGATED = {"ecl110_displace", "ecl110_effective_displace"}
+# Every disabled-by-default entity must be unavailable or stateless on the
+# ordinary install -- that is the measured cause its default is off, and a
+# sensor flipped without one fails here. The ECL110 pair used to be the one
+# exception, available with no ECL110 topic stored and publishing a 0.0
+# placeholder; it now takes the configured-input gate, so it has none.
 _ord_dead = sorted(
     e._key
     for e in _ord_entities
     if not _ord_default_on(e)
-    and e._key not in _ECL110_UNGATED
     and e.available
     and _ord_state(e) is not None
 )
 R.check(
     "every disabled-by-default entity is dead on the ordinary install,"
-    " save the ungated ECL110 pair (#177, #1335)",
+    " the ECL110 pair included (#177, #1335)",
     not _ord_dead,
     f"alive while disabled: {_ord_dead}",
-)
-R.check(
-    "the ECL110 pair really is the ungated exception (#1335)",
-    all(
-        e.available
-        for e in _ord_entities
-        if getattr(e, "_key", None) in _ECL110_UNGATED
-    ),
-    "an ECL110 sensor grew an availability gate; re-cut the exception",
 )
 _ord_shipped_dead = sorted(
     e.entity_id
@@ -8572,6 +8725,112 @@ R.check(
     "no enabled entity ships dead on the ordinary install (#1335)",
     not _ord_shipped_dead,
     f"enabled, unavailable, no waiting_for marker: {_ord_shipped_dead}",
+)
+
+# #1542 / #1527 widened (R8-P2): the hot-water gate above is one instance of
+# a wider class -- an entity whose default and availability should follow an
+# input the user configures. The population is derived, not listed: every
+# entity the ordinary install ships disabled by default, plus every entity
+# whose ``_reading_key`` names a READING_SOURCES slot the ordinary install
+# leaves empty. Each takes ``ConfiguredInputMixin`` (or the hot-water gate),
+# or is named below with the reason its default stays its own.
+from heatpump_optimizer.entity import ConfiguredInputMixin as _InputGate
+
+_ord_config = _ord_coord._config
+_INPUT_GATE_EXCEPTIONS = {
+    # Evidence-gated: configured or not, these wait on weeks of draws, a
+    # billing month or a learned map before they have a value (#1335).
+    "DHWHeavyDaySensor": "evidence: learned per-window draw quantiles",
+    "ContractComparisonSensor": "evidence: a settled billing month",
+    "FrequencyAdvisorSensor": "evidence: the learned kW-per-Hz map",
+    "WoodBurnAdvisorSensor": "evidence: the wood fuel model's readiness",
+    # Feature opt-ins keyed on an options-page choice rather than an input
+    # entity slot; their default is #1335's static off, not yet ruled to
+    # follow the choice (R8-P2 hand-back).
+    "MonthlyPeakSensor": "opt-in: capacity tariff choice",
+    "PowerHeadroomSensor": "opt-in: capacity tariff or main fuse",
+    "PVSurplusSensor": "opt-in: PV enabled flag",
+    "ValveTargetRecommendationSensor": "opt-in: mixing-valve mode choice",
+    "WoodCheaperBinarySensor": "opt-in: wood furnace flag",
+    "MeasuredPowerSensor": "opt-in: measured power entity (#1335 roster)",
+    "CompressorStartsSensor": "opt-in: measured power entity (#1335 roster)",
+}
+_input_population = {}
+for _e in _ord_entities:
+    _slot = _READING_SOURCES.get(getattr(_e, "_reading_key", ""), "")
+    if not _ord_default_on(_e) or (_slot and not _ord_config.get(_slot)):
+        _input_population[type(_e).__name__] = _e
+R.check(
+    "the configured-input census finds the probe temperatures and ECL110",
+    {"SlabTempSensor", "LowerFloorTempSensor", "FloorReturnTempSensor",
+     "BufferTankTempSensor", "ECL110DisplaceSensor",
+     "ECL110EffectiveDisplaceSensor", "DHWTemperatureSensor"}
+    <= set(_input_population),
+    f"census: {sorted(_input_population)}",
+)
+_ungated = sorted(
+    n for n, e in _input_population.items()
+    if n not in _INPUT_GATE_EXCEPTIONS
+    and not isinstance(e, (_InputGate, _DHWGate))
+)
+R.check(
+    "every entity whose default should follow a configured input takes the gate",
+    not _ungated,
+    f"static or ungated: {_ungated}",
+)
+_stale_exc = sorted(
+    n for n in _INPUT_GATE_EXCEPTIONS
+    if n not in _input_population
+    or isinstance(_input_population[n], (_InputGate, _DHWGate))
+)
+R.check(
+    "every named input-gate exception is still in the census and still ungated",
+    not _stale_exc,
+    f"stale: {_stale_exc}",
+)
+_input_members = [e for e in _input_population.values() if isinstance(e, _InputGate)]
+_static_inputs = sorted(
+    type(e).__name__ for e in _input_members
+    if any("_attr_entity_registry_enabled_default" in k.__dict__ for k in type(e).__mro__)
+)
+R.check(
+    "no input-gated entity carries a static default beside the gate",
+    not _static_inputs,
+    f"static: {_static_inputs}",
+)
+_slot_bad = sorted(
+    type(e).__name__ for e in _input_members
+    if getattr(e, "_reading_key", "")
+    and _READING_SOURCES.get(e._reading_key) not in e._input_slots
+)
+R.check(
+    "an input-gated entity reading a probe is keyed on that probe's slot",
+    not _slot_bad,
+    f"_input_slots disagrees with READING_SOURCES: {_slot_bad}",
+)
+# Both ends per member: with none of its slots configured it is off and
+# unavailable (the null control -- a payload that satisfies every other
+# gate); with its first slot configured it is on and available.
+_off_wrong, _on_wrong = [], []
+for _e in _input_members:
+    _cls = type(_e)
+    _bare = _cls(FakeCoordinator(DATA, _config={}), ENTRY)
+    if _bare.entity_registry_enabled_default or _bare.available:
+        _off_wrong.append(_cls.__name__)
+    _lit = _cls(
+        FakeCoordinator(DATA, _config={_cls._input_slots[0]: "configured"}), ENTRY
+    )
+    if not (_lit.entity_registry_enabled_default and _lit.available):
+        _on_wrong.append(_cls.__name__)
+R.check(
+    "an input-gated entity is off and unavailable with its input unconfigured",
+    _input_members and not _off_wrong,
+    f"{len(_input_members)} members; lit anyway: {_off_wrong}",
+)
+R.check(
+    "and on and available once its input is configured (#1542)",
+    not _on_wrong,
+    f"still off or unavailable: {_on_wrong}",
 )
 
 _card_text = Path(
@@ -14863,6 +15122,8 @@ _NON_GATE_WORKFLOWS = [
     # #1514 split `pr-contract` out of governance.yml; this script reads it
     # for the contract pins below and for the `edited` barrier.
     ".github/workflows/pr-contract.yml",
+    # Decision 0013 as amended: the budget-raise gate, read for its wiring pins.
+    ".github/workflows/budget-raise-gate.yml",
 ]
 for _wf in _NON_GATE_WORKFLOWS:
     R.check(
@@ -20971,8 +21232,13 @@ for _wf in sorted(Path(".github/workflows").glob("*.y*ml")):
     if _lists:
         _EDITED_FILES[_wf.name] = sorted(_jobs)
 R.check(
-    "a body edit starts a run of the contract job, and of no other job",
-    _EDITED_FILES == {"pr-contract.yml": ["pr-contract"]},
+    "a body edit starts a run of the contract job and the budget gate, and of "
+    "no other job",
+    _EDITED_FILES == {"pr-contract.yml": ["pr-contract"],
+                      # A base retarget moves the merge base the gate reads;
+                      # its one job carries no `if:`, which `_brg_defects`
+                      # below pins, so an `edited` run is a full verdict.
+                      "budget-raise-gate.yml": ["budget-raise-gate"]},
     f"workflows listing `edited` and their jobs: {_EDITED_FILES} -- any other "
     "job in such a file writes a check run on every body edit, skipped or "
     "not, at the unchanged head: a skipped run of a required context "
@@ -21065,6 +21331,61 @@ R.check(
     f"#1484 guard -> {_RC_NULL}; the contract's own `if:` -> "
     f"{_RC_OWN}; an "
     "undecidable expression -> None, which the check above counts as skippable",
+)
+# --- decision 0013 as amended: the budget-raise gate's wiring. The budget
+# files carry no code owner, so this job is the only thing between a raise and
+# a merge on the approver App's review. Each property is a way the gate goes
+# green without grading: an `if:` (a skipped required context passes); a
+# second job in the file (a review event re-reports it); no review trigger (an
+# approval never turns it green); the gate run before the restore, without it
+# or without `-I` (the pull request grades itself); a write grant. The null
+# control drives the same predicate over a copy with the restore removed.
+def _brg_defects(text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    on = doc.get(True, doc.get("on")) or {}
+    jobs = doc.get("jobs") or {}
+    job = jobs.get("budget-raise-gate") or {}
+    runs = [str(s.get("run", "")) for s in job.get("steps") or []]
+    gate = [i for i, r in enumerate(runs)
+            if re.search(r"python3?\s+(?:-\w+\s+)*\S*budget_raise_gate\.py", r)]
+    restore = [i for i, r in enumerate(runs)
+               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+    out = []
+    if list(jobs) != ["budget-raise-gate"]:
+        out.append(f"jobs {list(jobs)}")
+    if "if" in job:
+        out.append("a job-level if:")
+    if sorted((on.get("pull_request_review") or {}).get("types", [])) != [
+            "dismissed", "edited", "submitted"]:
+        out.append("review trigger")
+    if "edited" not in ((on.get("pull_request") or {}).get("types") or []):
+        out.append("no `edited`: a base retarget would not re-run it")
+    if not gate or not restore or any(runs[:restore[0]]) or gate[0] < restore[0]:
+        out.append(f"restore at {restore}, gate at {gate}")
+    if not all(re.search(r"python3 -I \.claude/workflows/budget_raise_gate\.py", runs[i])
+               for i in gate):
+        out.append("gate not under python3 -I")
+    if doc.get("permissions") != {"contents": "read", "pull-requests": "read"} or any(
+            "permissions" in (j or {}) for j in jobs.values()):
+        out.append(f"permissions {doc.get('permissions')}")
+    return out
+
+
+_BRG_TEXT = Path(".github/workflows/budget-raise-gate.yml").read_text()
+_BRG_DEFECTS = _brg_defects(_BRG_TEXT)
+R.check(
+    "the budget-raise gate is one unguarded job that re-runs on a review and "
+    "grades with the base's copy of its program",
+    _BRG_DEFECTS == [],
+    f"defects: {_BRG_DEFECTS}",
+)
+_BRG_NULL = _brg_defects(re.sub(
+    r"git checkout \"\$PINNED\" -- \\\n\s*'\.claude/workflows/\*\.py'\n",
+    "true\n", _BRG_TEXT))
+R.check(
+    "and the same file with its restore removed is refused (null control)",
+    any(d.startswith("restore at") for d in _BRG_NULL),
+    f"defects on the unpinned copy: {_BRG_NULL}",
 )
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string
