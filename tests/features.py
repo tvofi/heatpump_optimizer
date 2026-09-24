@@ -15869,7 +15869,7 @@ R.check(
 _cd = _t2_coord()
 R.check(
     "no settled interval means no diagnosis, not a crash",
-    _cd.diagnose_last_interval() is None,
+    _asyncio.run(_cd.async_diagnose_interval()) is None,
 )
 _cd._last_interval_record = {
     "when": _T6.isoformat(),
@@ -15879,7 +15879,7 @@ _cd._last_interval_record = {
     "realised": {"outdoor_temp": -10.0},
     "actual": _dbase - 0.3,
 }
-_cd_report = _cd.diagnose_last_interval()
+_cd_report = _asyncio.run(_cd.async_diagnose_interval())
 R.check(
     "the coordinator's diagnosis runs the settled triple and publishes it",
     _cd_report is not None
@@ -16200,7 +16200,7 @@ def _spy_attribute(model, state, planned, realised, actual):
 
 _coord_mod.diagnosis.attribute = _spy_attribute
 try:
-    _cd10.diagnose_last_interval()
+    _coord_mod.diagnosis.diagnose_record(*_coord_mod._diagnose_payload(_cd10))
 finally:
     _coord_mod.diagnosis.attribute = _real_attribute
 R.check(
@@ -39259,6 +39259,92 @@ R.check(
     "the tell here: a configured 0.0 would take the default too, which is "
     "right for a temperature nobody sets to zero and worth pinning as the "
     "behaviour rather than the accident",
+)
+
+
+# -- #1517 (P12): the set-back unwind is compare-and-restore ---------------
+# The solve's `finally` restores the set-back. A service or climate write that
+# lands while the cycle is parked on its solve await is newer than the
+# snapshot, so an unconditional restore reverted it: the DHW minimums a
+# set_thermal_parameters call wrote came back at their pre-solve values, live
+# and published. A field is restored only while it still holds what the
+# envelope itself left there.
+def _g8_race(**state_kw):
+    opt, th = _G8Opt(), _G8Therm()
+    rec = _g8_away.apply_setback(_g8_away.AwayState(**state_kw), opt, th)
+    th.dhw_min_temp, th.dhw_idle_min_temp = 38.0, 31.0  # the mid-solve write
+    opt.target_temp = 19.5  # a climate set_temperature, same window
+    _g8_away.restore_setback(rec, opt, th)
+    return opt, th
+
+
+_g8_race_home = _g8_race(active=False)
+_g8_race_away = _g8_race(active=True, target_temperature=16.0,
+                         dhw_min_temperature=35.0)
+R.check(
+    "a write landing inside the set-back envelope survives its unwind (#1517)",
+    all(
+        (th.dhw_min_temp, th.dhw_idle_min_temp, opt.target_temp)
+        == (38.0, 31.0, 19.5)
+        for opt, th in (_g8_race_home, _g8_race_away)
+    )
+    and (_g8_race_away[0].min_temp, _g8_race_away[0].comfort_temp_day)
+    == (19.0, 21.0),
+    f"home {vars(_g8_race_home[1])} target {_g8_race_home[0].target_temp}; "
+    f"away {vars(_g8_race_away[1])} {vars(_g8_race_away[0])}. The fields "
+    "nobody else wrote still come back off; the ones a service wrote keep "
+    "the service's value",
+)
+_g8_env_opt, _g8_env_th = _G8Opt(), _G8Therm()
+_g8_env = _g8_away.apply_setback(
+    _g8_away.AwayState(active=True, target_temperature=16.0), _g8_env_opt,
+    _g8_env_th,
+)
+_g8_away.lower_floor(_g8_env, _g8_env_opt, 1.5)
+_g8_env_low = _g8_env_opt.min_temp
+_g8_away.restore_setback(_g8_env, _g8_env_opt, _g8_env_th)
+R.check(
+    "the envelope's own floor widening is recorded, so it still unwinds",
+    _g8_env_low == 15.0 and _g8_env_opt.min_temp == 19.0,
+    f"widened to {_g8_env_low!r}, restored to {_g8_env_opt.min_temp!r}: "
+    "economy and the open-window relax lower min_temp inside the envelope, "
+    "and a compare-and-restore that did not know about them would leak the "
+    "widening into every later solve",
+)
+
+# The same race through the production cycle: the writes are injected at the
+# solve await, where the event loop really can run a service call, and the
+# solve is then refused so no plan is needed. Economy mode is on, so the
+# cycle's own widening is inside the envelope the same run unwinds.
+_g8_cyc = _solve_coord()
+_g8_cyc._mode = MODE_ECONOMY
+_g8_cyc_floor = _g8_cyc._ctx._opt_config.min_temp
+_g8_cyc_real = _coord_mod._await_optimize
+
+
+async def _g8_cyc_mid_solve(*_args, **_kwargs):
+    await _g8_cyc.async_update_thermal_params(
+        {"dhw_min_temperature": 38.0, "dhw_idle_min_temperature": 31.0}
+    )
+    await _g8_cyc.async_set_target_temperature(19.5)
+    raise RuntimeError("the solve is not the point here")
+
+
+_coord_mod._await_optimize = _g8_cyc_mid_solve
+try:
+    for _ in range(2):
+        _asyncio.run(_g8_cyc.async_run_optimization())
+finally:
+    _coord_mod._await_optimize = _g8_cyc_real
+_g8_cyc_p, _g8_cyc_c = _g8_cyc._ctx._thermal_params, _g8_cyc._ctx._opt_config
+R.check(
+    "a service write during the production solve outlives the cycle (#1517)",
+    (_g8_cyc_p.dhw_min_temp, _g8_cyc_p.dhw_idle_min_temp,
+     _g8_cyc_c.target_temp) == (38.0, 31.0, 19.5)
+    and _g8_cyc_c.min_temp == _g8_cyc_floor,
+    f"after two economy cycles: DHW {_g8_cyc_p.dhw_min_temp!r}/"
+    f"{_g8_cyc_p.dhw_idle_min_temp!r}, target {_g8_cyc_c.target_temp!r}, "
+    f"floor {_g8_cyc_c.min_temp!r} against {_g8_cyc_floor!r} before",
 )
 
 

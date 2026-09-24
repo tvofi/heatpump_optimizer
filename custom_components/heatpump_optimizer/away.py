@@ -38,6 +38,7 @@ from .const import (
     DEFAULT_AWAY_ENABLED,
     DEFAULT_AWAY_TEMPERATURE,
     DOMAIN,
+    ECONOMY_ABSOLUTE_FLOOR,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -286,44 +287,71 @@ def config_from_mapping(config: Mapping[str, Any]) -> AwayConfig:
     )
 
 
+_OPT_FIELDS = ("target_temp", "min_temp", "comfort_temp_day", "comfort_temp_night")
+_DHW_FIELDS = ("dhw_min_temp", "dhw_idle_min_temp")
+
+
+class SetbackRecord(dict[str, float]):
+    """The originals ``apply_setback`` replaced; ``written`` is what it left.
+
+    The unwind needs both (#1517): a field is restored only while it still
+    holds the envelope's own value, so a write that landed while the solve
+    was parked on its await is newer than the snapshot and survives it.
+    """
+
+    written: dict[str, float]
+
+
+def _setback_fields(
+    opt_config: _SetbackConfig, thermal_params: _SetbackThermal
+) -> dict[str, float]:
+    return {
+        **{n: getattr(opt_config, n) for n in _OPT_FIELDS},
+        **{n: getattr(thermal_params, n) for n in _DHW_FIELDS},
+    }
+
+
 def apply_setback(
     state: AwayState, opt_config: _SetbackConfig, thermal_params: _SetbackThermal
-) -> dict[str, float]:
+) -> SetbackRecord:
     """Temporarily lower comfort targets while away. Returns the originals."""
-    original = {
-        "target_temp": opt_config.target_temp,
-        "min_temp": opt_config.min_temp,
-        "comfort_temp_day": opt_config.comfort_temp_day,
-        "comfort_temp_night": opt_config.comfort_temp_night,
-        "dhw_min_temp": thermal_params.dhw_min_temp,
-        "dhw_idle_min_temp": thermal_params.dhw_idle_min_temp,
-    }
-    if not state.active or state.recovery_active:
-        return original
-    target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
-    opt_config.target_temp = min(original["target_temp"], target)
-    opt_config.min_temp = min(original["min_temp"], target)
-    opt_config.comfort_temp_day = target
-    opt_config.comfort_temp_night = target
-    dhw_floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
-    thermal_params.dhw_min_temp = min(original["dhw_min_temp"], dhw_floor)
-    thermal_params.dhw_idle_min_temp = min(
-        original["dhw_idle_min_temp"], dhw_floor
-    )
+    original = SetbackRecord(_setback_fields(opt_config, thermal_params))
+    if state.active and not state.recovery_active:
+        target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
+        opt_config.target_temp = min(original["target_temp"], target)
+        opt_config.min_temp = min(original["min_temp"], target)
+        opt_config.comfort_temp_day = target
+        opt_config.comfort_temp_night = target
+        dhw_floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
+        thermal_params.dhw_min_temp = min(original["dhw_min_temp"], dhw_floor)
+        thermal_params.dhw_idle_min_temp = min(
+            original["dhw_idle_min_temp"], dhw_floor
+        )
+    original.written = _setback_fields(opt_config, thermal_params)
     return original
 
 
+def lower_floor(record: SetbackRecord, opt_config: _SetbackConfig, by: float) -> None:
+    """Widen the comfort floor for this solve only, as the envelope's own write.
+
+    Economy and the open-window relax lower ``min_temp`` inside the envelope
+    and rely on its unwind; recording the value here is what lets the
+    compare-and-restore take it back off.
+    """
+    opt_config.min_temp = max(ECONOMY_ABSOLUTE_FLOOR, opt_config.min_temp - by)
+    record.written["min_temp"] = opt_config.min_temp
+
+
 def restore_setback(
-    original: dict[str, float],
+    original: SetbackRecord,
     opt_config: _SetbackConfig,
     thermal_params: _SetbackThermal,
 ) -> None:
-    opt_config.target_temp = original["target_temp"]
-    opt_config.min_temp = original["min_temp"]
-    opt_config.comfort_temp_day = original["comfort_temp_day"]
-    opt_config.comfort_temp_night = original["comfort_temp_night"]
-    thermal_params.dhw_min_temp = original["dhw_min_temp"]
-    thermal_params.dhw_idle_min_temp = original["dhw_idle_min_temp"]
+    """Compare-and-restore: undo only the fields the envelope still holds."""
+    for obj, names in ((opt_config, _OPT_FIELDS), (thermal_params, _DHW_FIELDS)):
+        for name in names:
+            if getattr(obj, name) == original.written[name]:
+                setattr(obj, name, original[name])
 
 
 def _away_store(coord: _AwayCoord) -> QuarantiningStore[dict[str, Any]]:
