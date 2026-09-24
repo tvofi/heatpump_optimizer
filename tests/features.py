@@ -10335,8 +10335,10 @@ from golden import (
     SCENARIOS as _COIL_SCENARIOS,
 )
 
-def _coil_plan(*, enabled, wood):
+def _coil_plan(*, enabled, wood, cop_scale=None):
     spec = dict(_COIL_SCENARIOS["wood_coil"])
+    if cop_scale is not None:
+        spec["param_overrides"] = {"cop_scale": cop_scale}
     spec["config_overrides"] = {
         **spec["config_overrides"],
         "wood_tank_volume": 2000.0,
@@ -10405,6 +10407,17 @@ R.check(
     f"in-window min {float(np.min(_coil_on_in_window)):.2f} over "
     f"{_coil_on_in_window.size} steps vs floor {_coil_on_p.dhw_min_temp}",
 )
+# The floor holds wherever cop_scale is learned (0.5-1.6), not only at 1.0: a
+# dear COP runs the plan close to the floor, where the planner's credited coil
+# draws undershooting the physics' breached it by up to 0.115 K (R8-P3 hand-back).
+for _cs in (0.5, 0.6, 0.7, 0.8, 0.9, 1.2, 1.4, 1.6):
+    _cs_res, _cs_p = _coil_plan(enabled=True, wood=85.0, cop_scale=_cs)
+    _cs_in = np.asarray(_cs_res.dhw_temp_trajectory)[1:][_coil_on_window]
+    R.check(
+        f"and it clears dhw_min_temp inside every window at cop_scale {_cs}",
+        _cs_in.size > 0 and float(np.min(_cs_in)) >= float(_cs_p.dhw_min_temp) - 1e-9,
+        f"in-window margin {float(np.min(_cs_in)) - _cs_p.dhw_min_temp:+.3f} K",
+    )
 R.check(
     "coil off, or wood at the inlet reference, is byte-identical to HEAD",
     np.array_equal(_coil_off_dhw, _coil_null_dhw)
