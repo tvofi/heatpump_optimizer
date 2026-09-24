@@ -24,7 +24,8 @@ survivor at all.
 pre-screen that read the last 1200 bytes scored seven real kills as survivors,
 because two scripts print their summary line before trailing log noise. A mutant
 is killed when a driver's exit status changes, or when its `N of M ... FAILED`
-count rises above the baseline's.
+count rises above the baseline's -- except a status the driver itself documents
+as "no check failed" (`NON_VIOLATION_EXITS`, #1453).
 
 **Nothing is mutated in the working tree.** Each worker mutates its own copy, so
 a run killed mid-mutant cannot leave a production file edited -- the failure mode
@@ -647,6 +648,34 @@ def run_script(script: str, cwd: Path, timeout: int,
     )
 
 
+# Exit statuses a driver documents as "no check failed" (#1453, D3-02).
+# tests/structure.py exits 2 for IMPROVED AND NOT YET RECORDED and says
+# "Nothing here is a violation" (#808): a mutant that makes code unreachable
+# can lower a metric, and reading that status as a kill recorded a site no
+# check covers as killed. Keyed per driver: the same status from any other
+# script is still a changed status. The class is every status a driver can
+# exit with other than 0 and 1, on the invocation drive_spec() makes; a driver
+# that gains one belongs here, with the sentence its own output prints.
+NON_VIOLATION_EXITS: dict[str, frozenset[int]] = {
+    "tests/structure.py": frozenset({2}),
+}
+
+
+def killed(script: str, run: ScriptRun, baseline: ScriptRun) -> bool:
+    """Whether one driver's run on a mutant noticed the mutation.
+
+    The mutant's run differs from the unmutated baseline's: its exit status
+    changed, or its `N of M ... FAILED` count rose. A status the driver
+    declares in NON_VIOLATION_EXITS reads as 0, but only while its output
+    names no FAIL line -- the status says no check failed, and the output
+    has to agree.
+    """
+    def status(r: ScriptRun) -> int:
+        quiet = r.rc in NON_VIOLATION_EXITS.get(script, ())
+        return 0 if quiet and not _CHECK_FAIL.search(r.stdout) else r.rc
+    return status(run) != status(baseline) or run.failed > baseline.failed
+
+
 def clone_tree(dest: Path) -> Path:
     """A real, independent checkout for one worker to mutate.
 
@@ -919,7 +948,7 @@ def main() -> int:
                     extra_args, extra_env = drive_spec(s, ref)
                     run = run_script(s, tree, args.timeout, extra_args,
                                      extra_env)
-                    if run.rc != baseline[s].rc or run.failed > baseline[s].failed:
+                    if killed(s, run, baseline[s]):
                         verdict = f"killed by {s}"
                         break
             finally:

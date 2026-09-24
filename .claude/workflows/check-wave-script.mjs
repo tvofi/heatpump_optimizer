@@ -859,6 +859,85 @@ await block('the rotation', async () => {
   t('and a round with no ledger at all is refused', /args\.rotation is required/.test(refused), refused || 'did not throw')
 })
 
+console.log('-- The verification pass: one verifier per dimension, every finding to the judge')
+// Round 8, the owner's panel shape. `audit-verify.js` dispatched three verifiers
+// per panel of at most eight findings and dropped a majority-refuted finding
+// from the judge's survivors. It now dispatches ONE verifier per dimension,
+// however many findings that dimension has, and one judge whose prompt names
+// every finding -- a refute is a vote the judge re-measures, never a kill.
+// Driven, not grepped: the script body runs against stubbed agent()/pipeline().
+await block('the verification pass', async () => {
+  const vsrc = fs.readFileSync(path.join(here, 'audit-verify.js'), 'utf8')
+  const vi = vsrc.indexOf('export const meta')
+  const vbody = vsrc.slice(0, vi) + vsrc.slice(vsrc.indexOf('\n}\n', vi) + 3)
+  const F = (id, dimension) => ({ id, dimension, severity: 'low', title: id, claim: id, report_path: 'r', harness_paths: [], attached_refutation: null })
+  const findings = [...Array.from({ length: 9 }, (_, k) => F(`D1-${k}`, 'D1')), F('D3-01', 'D3')]
+  const isVerifier = (label) => label.endsWith('/verify') || /^D\d+-\d+\/v\d$/.test(label)
+  // Drives the real body. `nullDims` names dimensions whose verifier returns
+  // null on every call; every other verifier refutes everything it is shown.
+  const drive = async ({ from, nullDims = [] } = {}) => {
+    const calls = []
+    const agent = async (prompt, opts) => {
+      const label = opts?.label ?? '?'
+      calls.push({ label, prompt })
+      if (label === 'read') return { findings }
+      if (isVerifier(label)) {
+        if (nullDims.some((d) => prompt.includes(`dimension ${d} `))) return null
+        const ids = findings.filter((f) => prompt.includes(`"${f.id}"`)).map((f) => f.id)
+        return { votes: ids.map((id) => ({ id, vote: 'refute' })) }
+      }
+      if (label === 'judge') return { verdicts: [] }
+      return { issues: [] }
+    }
+    const pipeline = (items, fn) => Promise.all(items.map(fn))
+    const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${vbody} })()`)
+    await fn(agent, () => {}, () => {}, pipeline, { round: 8, repo: '/repo', ...(from ? { from } : {}) })
+    return calls
+  }
+  const verifiers = (cs) => cs.filter((c) => isVerifier(c.label))
+  const judgeSees = (cs) => {
+    const judges = cs.filter((c) => c.label === 'judge')
+    return judges.length === 1 ? findings.filter((f) => judges[0].prompt.includes(`"${f.id}"`)).map((f) => f.id) : []
+  }
+  // One predicate, two callers: the driven run and the synthetic control.
+  const shapeGaps = (cs) => {
+    const gaps = []
+    const vs = verifiers(cs)
+    const dims = [...new Set(findings.map((f) => f.dimension))]
+    if (vs.length !== dims.length) gaps.push(`${vs.length} verifier call(s) for ${dims.length} dimension(s)`)
+    for (const d of dims) if (vs.filter((c) => c.prompt.includes(`dimension ${d} `)).length !== 1) gaps.push(`${d} has no single verifier`)
+    const judges = cs.filter((c) => c.label === 'judge')
+    if (judges.length !== 1) gaps.push(`${judges.length} judge call(s)`)
+    const seen = judgeSees(cs)
+    const missing = findings.filter((f) => !seen.includes(f.id))
+    if (missing.length) gaps.push(`the judge never sees ${missing.map((f) => f.id).join(', ')}`)
+    return gaps
+  }
+  const real = shapeGaps(await drive())
+  t('one verifier per dimension (9 findings in one, 1 in another) and one judge shown every finding, all refuted',
+    real.length === 0, real.join('; '))
+  // The old shape: two panels for D1's nine findings, three seats each, and a
+  // judge prompt that names no finding (every one killed by majority refute).
+  const old = [{ label: 'read', prompt: '' },
+    ...['D1-0', 'D1-1', 'D3-0'].flatMap((p) => [1, 2, 3].map((s) => ({ label: `${p}/v${s}`, prompt: `panel ${p} dimension ${p.slice(0, 2)} ` }))),
+    { label: 'judge', prompt: 'Votes as counted: {}' }]
+  t('the check fires: three seats per panel and a judge that sees only survivors is refused (positive control)',
+    shapeGaps(old).length > 0, 'the round-7 shape passed')
+  // A verifier that returns null twice: re-run exactly once, and its findings
+  // still reach the judge, marked unvoted rather than dropped.
+  const nul = await drive({ nullDims: ['D3'] })
+  const d3calls = verifiers(nul).filter((c) => c.prompt.includes('dimension D3 ')).length
+  const judgeNul = nul.find((c) => c.label === 'judge')?.prompt ?? ''
+  t('a null verifier is re-run once, and its findings reach the judge unvoted',
+    d3calls === 2 && /"id":"D3-01"[^}]*"verifier":\{"vote":"unvoted"/.test(judgeNul) && judgeSees(nul).length === findings.length,
+    `D3 verifier calls ${d3calls}; judge sees ${judgeSees(nul).length} of ${findings.length}; D3-01 unvoted ${/"id":"D3-01"[^}]*"verifier":\{"vote":"unvoted"/.test(judgeNul)}`)
+  // args.from "judge": no verifier runs, and the judge is handed every finding.
+  const res = await drive({ from: 'judge' })
+  t('from "judge" runs no verifier and hands the judge every registered finding',
+    verifiers(res).length === 0 && judgeSees(res).length === findings.length,
+    `verifier calls ${verifiers(res).length}; judge sees ${judgeSees(res).length} of ${findings.length}`)
+})
+
 // The guard above is only worth having if it is actually called.
 await block('the harness guard is wired', async () => {
   const before = fail
