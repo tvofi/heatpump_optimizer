@@ -45283,6 +45283,52 @@ R.check(
     f"result {_p5_idle._sysid.result!r} log {_p5_idle_log.lines!r}",
 )
 
+# #1525 root cause: the gate that went silent was not in a decision function.
+# #1410 put it in the wrapper's own first guard, where a walk of
+# adoption_decision cannot see it. So the wrapper's returns are paths too, and
+# the same cases, plus the unfinished result, must drive each one. A return
+# added here on a condition no case reaches fails this check. Without it, such
+# a return passes the rest of the suite.
+import textwrap as _p5w_textwrap  # noqa: E402
+
+_p5w_fn = _p5_coord_mod.HeatPumpOptimizerCoordinator._adopt_system_identification
+_p5w_lines = set()
+
+
+def _p5w_tracer(frame, event, arg):
+    if frame.f_code is _p5w_fn.__code__:
+        def _local(f, ev, a):
+            if ev == "line":
+                _p5w_lines.add(f.f_lineno)
+            return _local
+        return _local
+    return None
+
+
+_p5w_prev = _p5_sys.gettrace()
+_p5_sys.settrace(_p5w_tracer)
+try:
+    for _p5w_kw in _p5_cases.values():
+        _p5_adopt(**_p5w_kw)
+    _p5w_idle = _t4_coord()
+    _p5w_idle._sysid.result = _SysIdModule.SysIdResult(completed=False, reason="ventilation")
+    _t4_call(_p5w_idle._adopt_system_identification)
+finally:
+    _p5_sys.settrace(_p5w_prev)
+_p5w_src, _p5w_first = _p5_inspect.getsourcelines(_p5w_fn)
+_p5w_returns = {
+    _p5w_first - 1 + n.lineno
+    for n in _p5_ast.walk(_p5_ast.parse(_p5w_textwrap.dedent("".join(_p5w_src))))
+    if isinstance(n, _p5_ast.Return)
+}
+R.check(
+    "#1525: the cases drive every return of _adopt_system_identification too "
+    "(a guard added in the wrapper, where #1410 put the silent one, is a path)",
+    len(_p5w_returns) >= 2 and _p5w_returns <= _p5w_lines,
+    f"returns at lines {sorted(_p5w_returns)}, executed "
+    f"{sorted(_p5w_lines & _p5w_returns)}; not driven: {sorted(_p5w_returns - _p5w_lines)}",
+)
+
 # P2 class check for #1523: every function in coordinator.py that feeds a
 # learner consults ``_learning_frozen`` or is dispositioned. RULE (the class's
 # seams): a learner is an attribute ``_thermal_learning_payload`` persists, or
