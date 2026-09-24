@@ -2231,6 +2231,16 @@
     "default": "'sensor.seed_heat_pump_supply_temp_entity'",
     "required": "Optional",
     "selector": "EntitySelector"
+   },
+   "pump_duty_mode": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['off', 'observe', 'control']",
+     "translation_key": "'pump_duty_mode'"
+    },
+    "default": "'off'",
+    "required": "Optional",
+    "selector": "SelectSelector"
    }
   },
   "grid": {
@@ -4735,6 +4745,16 @@
    "default": null,
    "required": "Optional",
    "selector": "EntitySelector"
+  },
+  "pump_duty_mode": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['off', 'observe', 'control']",
+    "translation_key": "'pump_duty_mode'"
+   },
+   "default": "'off'",
+   "required": "Optional",
+   "selector": "SelectSelector"
   }
  },
  "grid": {
