@@ -1,7 +1,8 @@
 # 0011 — Pull requests are authored by the `hpo-author` App; the retired account never writes again
 
 Status: recorded 2026-09-19 from the repository owner's decision, #201
-comment 5744682317.
+comment 5744682317. Amended by 0013 (2026-09-24): verdicts post as the
+`hpo-approver` App, not `tvofi`.
 
 ## Context
 
@@ -30,7 +31,7 @@ The owner's words, #201 comment 5744682317 — **the three-identity model**:
 - **author** = the `hpo-author` App (orchestrator-centralized minting — seats
   stay LOCAL-ONLY, hand off, orchestrator pushes);
 - **approver** = the `hpo-approver` App;
-- **verdicts/merges/closes = `tvofi`.**
+- **verdicts/merges/closes = `tvofi`.** (Verdicts: `hpo-approver` since 0013.)
 
 Measured properties of the App this rests on: slug `hpo-author`, id `5003531`,
 owner `tvofi`, installation `163073454`; the repository is readable through
@@ -42,7 +43,7 @@ credential helper so the token never sits on a command line, opens or re-bodies
 the pull request as the App, and reads the body back byte-identical. Seats hold
 no App credential: the id file and private key live with the orchestrator and
 are never printed. `tools/audit/app_approve.sh`'s verdict allowlist narrows to
-`tvofi` and requires a `merge` verdict to cite an evidence directory that
+`tvofi` (the approver App since 0013) and requires a `merge` verdict to cite an evidence directory that
 exists, is non-empty, and names the head SHA.
 
 **The retired account makes no GitHub write.** Its writes can vanish (phantom)
@@ -65,7 +66,7 @@ cannot be a code owner (0009's amendment of 2026-09-16), so neither
   conversations**, not the account's write role; no tool, brief or brief
   change re-grants it one.
 - The reviewer seat hands verdict text to the orchestrator, who posts it as
-  `tvofi` (`tools/audit/briefs/fix-review.md`); the fixer hands the branch and
+  `tvofi` — as `hpo-approver` since 0013 (`tools/audit/briefs/fix-review.md`); the fixer hands the branch and
   body off locally (`tools/audit/briefs/fixer.md` step 5); every brief names
   the three-identity model (`tools/audit/briefs/orchestrator.md` section 5).
 - `tools/audit/push.sh` remains in the tree for a seat that legitimately

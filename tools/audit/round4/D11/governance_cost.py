@@ -53,7 +53,8 @@ import d11lib as L  # noqa: E402
 # governance.yml job missing from GOV both redden there, so the next job the
 # governance workflow grows is refused until this set names it.
 GOV = {"policy-docs", "env-matrix", "wave-script", "pr-contract", "record",
-       "delivery-status", "delivery-status-publish", "briefs"}
+       "delivery-status", "delivery-status-publish", "briefs",
+       "instrument-self-tests"}
 W0 = os.environ.get("D11_WINDOW_START", "2026-09-09T09:37:08Z")
 W1 = os.environ.get("D11_WINDOW_END", L.BASELINE_UTC)
 
