@@ -22,13 +22,17 @@ publishes (from the registry; carried for comparison, never fed back), and any
 ``--extra-entity``. For each, the last state before the window and every state
 inside it.
 
-WHAT IT REMOVES, by the rules ``tests/nightly_ha.py``'s A10 checks enforce on
-diagnostics (``a10:no_credential``, ``a10:no_precise_location``): every key
-naming a credential is dropped wherever it occurs (``tibber_token`` included),
-every ``latitude``/``longitude`` is rounded to two decimals, and ``entity_picture``
-and any ``?token=`` URL are dropped because a camera or media picture carries an
-access token there. The literal value of every dropped credential is then
-searched for in the output, and the export refuses to write if one survives.
+WHAT IT KEEPS is an allowlist, because the file goes into a public
+repository: the entry's keys that are this integration's own ``CONF_*`` names
+(read from the installed ``const.py``), the state attributes the replay reads
+(``ATTRIBUTE_KEYS``), and string values that are an entity id, a number, an
+ISO time or a short word-like label. Everything else is dropped or nulled --
+friendly names, addresses, URLs, e-mails, serials, MACs. On top of that, every
+key naming a credential is dropped wherever it occurs (``tibber_token``
+included), and every coordinate key (``latitude``, ``lat``, ``lon``, any
+case) is cut to two decimals, the rule ``tests/nightly_ha.py``'s A10 checks
+apply to diagnostics. The export then searches its own output for every
+unsafe value it removed, and refuses to write if one survives.
 
 ``--check FILE`` applies the same rules to a file already written and exits 1
 on any violation; ``tests/replay.py`` runs it on every committed fixture.
@@ -57,20 +61,65 @@ ENTITY_ID = re.compile(r"^[a-z_]+\.[a-z0-9_]+$")
 #: so ``tibber_token``, ``access_token``, ``api_key`` and ``password`` all hit.
 SECRET_KEY = re.compile(
     r"(token|password|passwd|secret|api_?key|credential|auth|webhook|cookie|"
-    r"entity_picture)",
+    r"entity_picture|pin$|pin_|passcode|access_code|psk|private_key|email|"
+    r"serial|mac_?address|^mac$)",
     re.I,
 )
-COORDINATE_KEYS = frozenset({"latitude", "longitude"})
+#: Keys whose number is a coordinate, in any capitalisation.
+COORDINATE_KEYS = frozenset({"latitude", "longitude", "lat", "lon", "lng"})
 MAX_COORDINATE_DECIMALS = 2
 #: A string that carries a credential whatever key it sits under.
 SECRET_TEXT = (
     re.compile(r"eyJ[\w-]{8,}\.[\w-]{8,}\."),  # a JWT
-    re.compile(r"[?&](token|access_token|api_key)=", re.I),
+    re.compile(r"[?&](token|access_token|api_?key)=", re.I),
     re.compile(r"\bbearer\s+\S{12,}", re.I),
 )
 
+# THE ALLOWLIST. The export goes into a public repository, so what leaves the
+# install is what the replay reads and nothing else; a denylist of secret
+# names let eleven constructed leaks through (review of #1508). Three parts:
+#
+# * entry keys: the integration's own ``CONF_*`` names, parsed from the
+#   installed ``const.py`` -- so the list cannot drift from the release;
+# * attribute keys: the ones the integration reads off an input's state
+#   (unit, device class, options, the weather and price series, the away
+#   calendar's span) plus the few published ones the replay compares;
+# * every string value, at any depth, must be an entity id, a number, an ISO
+#   time, or a short word-like label (letters first; no ``@ : , ?``; no run
+#   of four digits). Anything else -- an address, a URL, an e-mail, a MAC, a
+#   serial, a "lat,lon" pair -- is redacted to null.
+ATTRIBUTE_KEYS = frozenset({
+    "unit_of_measurement", "device_class", "state_class", "options",
+    "temperature", "temperature_unit", "wind_speed", "wind_speed_unit",
+    "precipitation", "precipitation_unit",
+    "raw_today", "raw_tomorrow", "today", "tomorrow", "currency",
+    "min", "max", "start_time", "end_time",
+    "hvac_action", "current_temperature", "heat_pump_on", "power_kw",
+})
+KEY = re.compile(r"^[a-z0-9_]+(\.[a-z0-9_]+)?$")  # a key, or an entity id
+LABEL = re.compile(r"^[A-Za-z\u00b0][A-Za-z0-9 _+\-./()\u00b0%\u00b2\u00b3]{0,39}$")
+ISO_TIME = re.compile(r"^\d{4}-\d\d-\d\d([T ][\d:.]+([+-]\d\d:\d\d|Z)?)?$")
+CONST_PATTERN = re.compile(r'^CONF_\w+: Final = "([a-z0-9_]+)"', re.M)
 
-# --- the rules ---------------------------------------------------------------
+
+def entry_keys(*candidates: Path) -> frozenset[str]:
+    """The ``CONF_*`` values of the first ``const.py`` that exists; refuses if none."""
+    for path in candidates:
+        if path.is_file():
+            keys = frozenset(CONST_PATTERN.findall(path.read_text()))
+            if keys:
+                return keys
+    raise SystemExit(
+        "no heatpump_optimizer const.py found to take the entry allowlist from; "
+        "pass --const PATH"
+    )
+
+
+def default_const_paths(config_dir: Path | None = None) -> list[Path]:
+    here = Path(__file__).resolve().parent
+    rel = Path("custom_components") / DOMAIN / "const.py"
+    out = [config_dir / rel] if config_dir else []
+    return out + [here / rel, here.parent.parent / rel]
 
 
 def json_decimal_places(value: object) -> int | None:
@@ -92,75 +141,155 @@ def json_decimal_places(value: object) -> int | None:
     return len(dumped.split(".", 1)[1])
 
 
-def sanitise(node: object, dropped: list[str]) -> object:
-    """A copy of ``node`` with the credential keys gone and coordinates coarse.
+def text_ok(value: str) -> bool:
+    """Whether a string may leave the install."""
+    if value == "" or ENTITY_ID.match(value) or ISO_TIME.match(value):
+        return True
+    if any(p.search(value) for p in SECRET_TEXT):
+        return False
+    try:
+        float(value)
+        return "," not in value
+    except ValueError:
+        pass
+    return bool(LABEL.match(value)) and not re.search(r"\d{4}", value)
 
-    ``dropped`` collects the string value of every dropped key, so the caller
-    can prove none of them survived anywhere else in the payload.
-    """
+
+def _is_coordinate(key: str) -> bool:
+    return str(key).lower() in COORDINATE_KEYS
+
+
+def clean_value(node: object, dropped: list[str]) -> object:
+    """``node`` with every unsafe string nulled, every unsafe key gone."""
     if isinstance(node, dict):
         out = {}
         for key, value in node.items():
-            if SECRET_KEY.search(str(key)):
-                _collect_strings(value, dropped)
+            if SECRET_KEY.search(str(key)) or not KEY.match(str(key)):
+                _collect_strings(value, dropped, bool(SECRET_KEY.search(str(key))))
                 continue
-            if key in COORDINATE_KEYS and isinstance(value, (int, float, str)) \
+            if _is_coordinate(key) and isinstance(value, (int, float, str)) \
                     and not isinstance(value, bool):
                 try:
                     out[key] = round(float(value), MAX_COORDINATE_DECIMALS)
                 except ValueError:
-                    out[key] = value
+                    dropped.append(str(value))
+                    out[key] = None
                 continue
-            out[key] = sanitise(value, dropped)
+            out[key] = clean_value(value, dropped)
         return out
     if isinstance(node, list):
-        return [sanitise(v, dropped) for v in node]
-    if isinstance(node, str) and any(p.search(node) for p in SECRET_TEXT):
+        return [clean_value(v, dropped) for v in node]
+    if isinstance(node, str) and not text_ok(node):
         dropped.append(node)
         return None
     return node
 
 
-def _collect_strings(node: object, into: list[str]) -> None:
-    if isinstance(node, str) and node:
-        into.append(node)
+def _keep_keys(section: object, allowed: frozenset[str], dropped: list[str]) -> dict:
+    out = {}
+    for key, value in (section if isinstance(section, dict) else {}).items():
+        if key in allowed and not SECRET_KEY.search(str(key)):
+            out[key] = value
+        else:
+            _collect_strings(value, dropped, bool(SECRET_KEY.search(str(key))))
+    return clean_value(out, dropped)
+
+
+def sanitise(raw: dict, conf: frozenset[str], dropped: list[str]) -> dict:
+    """The export payload cut down to the allowlist.
+
+    ``dropped`` collects every string removed, so the caller can prove none
+    of them survived anywhere else in the payload.
+    """
+    out = dict(raw)
+    entry = dict(raw["entry"])
+    entry["data"] = _keep_keys(entry.get("data"), conf, dropped)
+    entry["options"] = _keep_keys(entry.get("options"), conf, dropped)
+    out["entry"] = entry
+    states = {}
+    for entity_id, rows in raw["states"].items():
+        clean_rows = []
+        for updated, state, attrs, reported in rows:
+            if attrs is not None:
+                attrs = _keep_keys(attrs, ATTRIBUTE_KEYS, dropped)
+            if isinstance(state, str) and not text_ok(state):
+                dropped.append(state)
+                state = None
+            clean_rows.append([updated, state, attrs, reported])
+        states[entity_id] = clean_rows
+    out["states"] = states
+    return clean_value(out, dropped)
+
+
+def _collect_strings(node: object, into: list[str], secret: bool = False) -> None:
+    """Collect what the leak check must not find again: every value under a
+    credential-named key, and every string that fails ``text_ok`` elsewhere.
+    A plain label dropped only for sitting under an unlisted key ("Hot water",
+    a friendly name) may legitimately appear elsewhere, so it is not collected."""
+    if isinstance(node, bool) or node is None:
+        return
+    if isinstance(node, (str, int, float)):
+        text = str(node)
+        if text and (secret or (isinstance(node, str) and not text_ok(node))):
+            into.append(text)
     elif isinstance(node, dict):
-        for value in node.values():
-            _collect_strings(value, into)
+        for key, value in node.items():
+            _collect_strings(value, into, secret or bool(SECRET_KEY.search(str(key))))
     elif isinstance(node, list):
         for value in node:
-            _collect_strings(value, into)
+            _collect_strings(value, into, secret)
 
 
-def violations(payload: object, path: str = "") -> list[str]:
-    """Every place ``payload`` breaks a rule. Empty means committable."""
-    found: list[str] = []
-    if isinstance(payload, dict):
-        for key, value in payload.items():
+def _walk(node: object, path: str, found: list[str]) -> None:
+    if isinstance(node, dict):
+        for key, value in node.items():
             here = f"{path}.{key}" if path else str(key)
             if SECRET_KEY.search(str(key)) and value not in (None, "", [], {}):
                 found.append(f"{here}: a credential-named key carries a value")
-            if key in COORDINATE_KEYS:
+            if _is_coordinate(key):
                 places = json_decimal_places(value)
                 if places is not None and places > MAX_COORDINATE_DECIMALS:
                     found.append(f"{here}={value!r}: {places} decimals")
-            found.extend(violations(value, here))
-    elif isinstance(payload, list):
-        for i, value in enumerate(payload):
-            found.extend(violations(value, f"{path}[{i}]"))
-    elif isinstance(payload, str):
-        for pattern in SECRET_TEXT:
-            if pattern.search(payload):
-                found.append(f"{path}: text matching {pattern.pattern!r}")
+            _walk(value, here, found)
+    elif isinstance(node, list):
+        for i, value in enumerate(node):
+            _walk(value, f"{path}[{i}]", found)
+    elif isinstance(node, str) and not text_ok(node):
+        found.append(f"{path}: text outside the allowlist")
+
+
+def violations(payload: object, conf: frozenset[str] | None = None) -> list[str]:
+    """Every place ``payload`` breaks a rule. Empty means committable.
+
+    Without ``conf`` the entry's keys are judged by shape only; ``check_file``
+    always passes the installed allowlist.
+    """
+    found: list[str] = []
+    _walk(payload, "", found)
+    if not isinstance(payload, dict):
+        return found
+    for section in ("data", "options"):
+        block = (payload.get("entry") or {}).get(section) or {}
+        for key in block:
+            if (conf is not None and key not in conf) or not KEY.match(str(key)):
+                found.append(f"entry.{section}.{key}: not an entry key of this integration")
+    for entity_id, rows in (payload.get("states") or {}).items():
+        if not ENTITY_ID.match(str(entity_id)):
+            found.append(f"states.{entity_id}: not an entity id")
+        for i, row in enumerate(rows if isinstance(rows, list) else []):
+            attrs = row[2] if isinstance(row, list) and len(row) > 2 else None
+            for key in (attrs or {}):
+                if key not in ATTRIBUTE_KEYS:
+                    found.append(f"states.{entity_id}[{i}].{key}: attribute outside the allowlist")
     return found
 
 
-def check_file(path: Path) -> list[str]:
+def check_file(path: Path, conf: frozenset[str] | None = None) -> list[str]:
     try:
         payload = json.loads(path.read_text())
     except (OSError, ValueError) as err:
         return [f"{path}: unreadable ({err})"]
-    found = violations(payload)
+    found = violations(payload, conf if conf is not None else entry_keys(*default_const_paths()))
     if not isinstance(payload, dict) or payload.get("format") != FORMAT:
         found.insert(0, f"format is not {FORMAT!r}")
     return found
@@ -250,6 +379,7 @@ def build_export(
     entry_id: str | None,
     extra: list[str],
     price_entity: str | None,
+    const: Path | None = None,
 ) -> dict:
     entries = [
         e for e in _storage(config_dir, "core.config_entries")["entries"]
@@ -314,8 +444,9 @@ def build_export(
         "price_series_entity": price_entity,
         "states": states,
     }
+    conf = entry_keys(*([const] if const else default_const_paths(config_dir)))
     dropped: list[str] = []
-    clean = sanitise(raw, dropped)
+    clean = sanitise(raw, conf, dropped)
     blob = json.dumps(clean, sort_keys=True)
     leaked = sorted({s for s in dropped if len(s) >= 6 and s in blob})
     if leaked:
@@ -323,7 +454,7 @@ def build_export(
             f"refusing to write: {len(leaked)} dropped credential value(s) "
             "survive elsewhere in the payload"
         )
-    left = violations(clean)
+    left = violations(clean, conf)
     if left:
         raise SystemExit("refusing to write: " + "; ".join(left[:5]))
     return clean
@@ -342,13 +473,16 @@ def main(argv: list[str] | None = None) -> int:
         help="with the Tibber source: a recorded price sensor (its state is "
         "the price) the replay builds the day's series from",
     )
+    ap.add_argument("--const", type=Path, help="the integration's const.py "
+                    "(default: <config-dir>/custom_components/heatpump_optimizer/const.py)")
     ap.add_argument("--out", type=Path)
     ap.add_argument("--check", type=Path, metavar="FILE",
                     help="refuse FILE if it breaks a sanitising rule")
     args = ap.parse_args(argv)
 
     if args.check:
-        found = check_file(args.check)
+        found = check_file(args.check, entry_keys(
+            *([args.const] if args.const else default_const_paths(args.config_dir))))
         for line in found:
             print(f"  VIOLATION {line}")
         print(f"{args.check}: {len(found)} violation(s)")
@@ -363,6 +497,7 @@ def main(argv: list[str] | None = None) -> int:
         args.entry_id,
         args.extra_entity,
         args.price_entity,
+        args.const,
     )
     args.out.write_text(json.dumps(payload, sort_keys=True, indent=1) + "\n")
     rows = sum(len(v) for v in payload["states"].values())

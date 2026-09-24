@@ -332,16 +332,90 @@ def sanitiser_checks(paths: list[Path]) -> list[tuple[str, bool, str]]:
                     str(checks.results)))
     # The null control: an unsanitised payload is refused by the same rules.
     raw = {"format": export.FORMAT, "entry": {"data": {"tibber_token": "abc123xyz",
-           "solar_location": {"latitude": 59.334591}}},
-           "states": {"camera.x": [["t", "idle", {"entity_picture": "/p?token=q"}]]}}
+           "solar_location": {"latitude": 59.334591}}, "options": {}},
+           "states": {"camera.x": [["t", "idle", {"entity_picture": "/p?token=q"}, None]]}}
     found = export.violations(raw)
     joined = "; ".join(found)
     res.append(("control:sanitiser_refuses",
                 all(k in joined for k in ("tibber_token", "latitude", "entity_picture")),
                 joined))
     dropped: list[str] = []
-    res.append(("control:sanitise_clears", not export.violations(export.sanitise(raw, dropped)),
+    conf = export.entry_keys(*export.default_const_paths())
+    res.append(("control:sanitise_clears",
+                not export.violations(export.sanitise(raw, conf, dropped), conf),
                 f"dropped {len(dropped)} value(s)"))
+    return res + leak_probes()
+
+
+#: The review of #1508's leak probe: eleven shapes of private data a recorder
+#: row or a config entry can carry, each of which passed the first exporter.
+#: Every one must be dropped by the export AND refused by ``--check`` when it
+#: is put back into a committed fixture by hand.
+LEAK_PROBES = {
+    "capital_Latitude": {"Latitude": 59.334591, "Longitude": 18.063240},
+    "lat_lon_short": {"lat": 59.334591, "lon": 18.063240},
+    "coord_list": {"location": [59.334591, 18.063240]},
+    "coord_string": {"gps": "59.334591,18.063240"},
+    "basic_auth_url": {"stream_source": "rtsp://admin:hunter2pass@192.168.1.5/live"},
+    "apikey_query": {"url": "https://api.example.com/v1?apikey=ABCDEF0123456789"},
+    "pin_code": {"pin": "482913", "access_code": "771234"},
+    "psk": {"wifi_psk": "correct-horse-battery",
+            "private_key": "-----BEGIN PRIVATE KEY-----MIIE"},
+    "email": {"account_email": "owner@example.com"},
+    "serial_mac": {"serial_number": "SN-0098-7766", "mac": "aa:bb:cc:dd:ee:ff"},
+    "entry_address": {"tibber_home": "Storgatan 12, 111 22 Stockholm"},
+}
+PROBE_ENTITY = "sensor.heat_pump_power"
+
+
+def _probe_texts(values: dict) -> list[str]:
+    out = []
+    for value in values.values():
+        out += [str(value), json.dumps(value)]
+    return out
+
+
+def leak_probes() -> list[tuple[str, bool, str]]:
+    import export
+    import synthesize
+
+    res = []
+    committed = json.loads((FIXTURES / "synthetic-dhw-only.json").read_text())
+    conf = export.entry_keys(*export.default_const_paths())
+    for name, values in LEAK_PROBES.items():
+        in_entry = name.startswith("entry_")
+        series, data = synthesize._series, synthesize.ENTRY_DATA
+        if in_entry:
+            synthesize.ENTRY_DATA = {**data, **values}
+        else:
+            def patched(values=values, series=series):
+                out = series()
+                out[PROBE_ENTITY] = [(t, st, {**a, **values}) for t, st, a in out[PROBE_ENTITY]]
+                return out
+            synthesize._series = patched
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                db = synthesize.write_install(Path(tmp))
+                payload = export.build_export(
+                    Path(tmp), db, 1, (synthesize.DAY + timedelta(days=1)).date().isoformat(),
+                    None, [], None)
+            blob = json.dumps(payload)
+            survived = [t for t in _probe_texts(values) if t in blob]
+            outcome = f"written, survived={survived}"
+        except SystemExit as err:
+            survived, outcome = [], f"refused: {err}"
+        finally:
+            synthesize._series, synthesize.ENTRY_DATA = series, data
+        res.append((f"leak_probe:{name}:export_drops", not survived, outcome))
+        # Put back by hand into a committed fixture: --check must refuse it.
+        planted = json.loads(json.dumps(committed))
+        if in_entry:
+            planted["entry"]["data"].update(values)
+        else:
+            planted["states"][PROBE_ENTITY][0][2] = {
+                **(planted["states"][PROBE_ENTITY][0][2] or {}), **values}
+        found = export.violations(planted, conf)
+        res.append((f"leak_probe:{name}:check_refuses", bool(found), "; ".join(found[:3])))
     return res
 
 
