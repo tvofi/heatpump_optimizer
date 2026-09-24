@@ -1,7 +1,7 @@
 # D4 — UI/UX, round 6
 
 Baseline `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9).
-Export: `/Users/timmalmstrom/audit-r6-baseline` (no `.git`). No earlier audit
+Export: `~/audit-r6-baseline` (no `.git`). No earlier audit
 record was read and no `gh`/GitHub access was used, so `exposure` is empty.
 Machine: 8-core Apple M1, 8 GB RAM, darwin arm64, `load1 = 4.71` at the final
 run (the box is shared with the other round-6 seats). Every number below is a

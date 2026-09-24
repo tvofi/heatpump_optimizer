@@ -1,6 +1,6 @@
 # D5 verify-0-1 — verifier 1 of 3, panel D5-0, audit round 4
 
-- **verifier tree**: `/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D5-1`,
+- **verifier tree**: `~/.zcode/workspace/default/audit-r4-verify-D5-1`,
   detached HEAD `0855277` (`claude/13-dimension-audit-920935` head, "Merge remote-tracking
   branch 'origin/main' into claude/13-dimension-audit-920935")
 - **baseline cited by finder**: `7dd68dd327fe3dbfb09f3bd0fe38910c58877697` (25 commits

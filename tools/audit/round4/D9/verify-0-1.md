@@ -1,6 +1,6 @@
 # D9 verify-0-1 — round 4, panel D9-0, seat 1 of 3
 
-- **Worktree**: `/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D9-1`
+- **Worktree**: `~/.zcode/workspace/default/audit-r4-verify-D9-1`
   (detached at `ae2a60b58e22ae06d14554fa131612f726ef53b7`, branch
   `claude/13-dimension-audit-920935`; production code byte-identical to the
   finder's baseline `7dd68dd` for everything measured here).

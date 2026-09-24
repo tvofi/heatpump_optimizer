@@ -1,7 +1,7 @@
 # D2 - mathematical and physical sanity (round 7)
 
 Baseline `f9d6f78243fa65f6fa128d2357752a2ae7f60648`, export at
-`/Users/timmalmstrom/audit-r7-baseline`, python
+`~/audit-r7-baseline`, python
 `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3`, every command
 run from the export root with `PYTHONPATH=tests/hastub`. Machine: 8-core Apple
 M1, 8 GB, darwin arm64, shared with the other round-7 finders (`load1` 7.5-8.6

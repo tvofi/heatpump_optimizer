@@ -9,7 +9,7 @@
 //
 // RUN (from the export root; playwright resolves from NODE_PATH):
 //   NODE_PATH=/tmp/pw-r5d4/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers \
-//   /Users/timmalmstrom/.nvm/versions/node/v20.10.0/bin/node \
+//   ~/.nvm/versions/node/v20.10.0/bin/node \
 //     tools/audit/round7/D4/currency_units.mjs [--config EUR] [--hass USD] [--sensor SEK]
 //   (no HPO_PLANDATA set? the harness writes one under the temp root itself)
 //

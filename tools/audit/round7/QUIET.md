@@ -6,10 +6,10 @@ the two numbers round 7 left provisional or pre-screened. Two jobs, run serially
 `tests/stress.py`, which calibrates against this machine while it solves):
 
 1. **D9-02** — the one provisional wall/CPU number, re-taken in
-   `/Users/timmalmstrom/audit-r7-D9`.
+   `~/audit-r7-D9`.
 2. **D3-01** — the four mutant sites the D3 finder pre-screened with their
    measured closures, re-run through the **full** gate in
-   `/Users/timmalmstrom/audit-r7-D3`.
+   `~/audit-r7-D3`.
 
 ## Environment, identical for every run in this file
 
