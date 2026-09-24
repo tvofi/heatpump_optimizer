@@ -1311,6 +1311,198 @@ try {
       g.series.missing ? "no .series[data-key]" : `worst ${g.series.ratio}:1`);
   }
 
+  // --- R8 D4-01 (#1522): keyboard reading order ---------------------------
+  // The rules above each read a selector list, and a control no list names is
+  // a control no rule measures. Tab reaches every control by construction, so
+  // this arm walks real Tab presses through every view -- the tile and each
+  // dialog page -- at the three required viewports, and refuses a step whose
+  // target sits more than ROW_TOL of a row ABOVE the previous stop while not
+  // starting to the right of that stop's right edge: a jump back up the
+  // screen, rather than a wrap to the next row or a move to the top of the
+  // next column. Positions are read after the walk, with every scroller
+  // reset, so a focus that scrolled the body is not a jump. A positive
+  // tabindex would satisfy the walk by overriding the DOM order a screen
+  // reader still follows, so it is refused outright.
+  const ROW_TOL = 0.6;
+  const orderPage = await browser.newPage({ viewport: { width: 375, height: 812 } });
+  orderPage.on("pageerror", (err) => console.log(`  page error: ${err.message}`));
+  await orderPage.goto("about:blank");
+  await orderPage.addScriptTag({ path: CARD_SRC });
+  await orderPage.evaluate(([frozen]) => {
+    const Real = Date;
+    class Frozen extends Real {
+      constructor(...a) { super(...(a.length ? a : [frozen])); }
+      static now() { return frozen; }
+    }
+    window.Date = Frozen;
+  }, [Date.parse(plan.dhw_plan.forecast[0].t) + 6 * 3600 * 1000]);
+  const tabWalk = async () => {
+    await orderPage.evaluate(() => {
+      window.__stops = [];
+      if (document.activeElement) document.activeElement.blur();
+    });
+    for (let i = 0; i < 200; i++) {
+      await orderPage.keyboard.press("Tab");
+      const more = await orderPage.evaluate(() => {
+        let el = document.activeElement;
+        while (el && el.shadowRoot && el.shadowRoot.activeElement) el = el.shadowRoot.activeElement;
+        if (!el || el === document.body) return false;
+        const s = window.__stops;
+        if (s.length && s[0] === el) return false;
+        // A time input takes one Tab per field: one control, one stop.
+        if (s[s.length - 1] !== el) s.push(el);
+        return true;
+      });
+      if (!more) break;
+    }
+    return orderPage.evaluate(() => {
+      window.scrollTo(0, 0);
+      const scrollers = (n) => {
+        const out = [];
+        for (; n; n = n.parentNode || n.host) {
+          if (n.nodeType === 1 && (n.scrollTop || n.scrollLeft)) out.push(n);
+        }
+        return out;
+      };
+      for (const el of window.__stops) for (const n of scrollers(el)) { n.scrollTop = 0; n.scrollLeft = 0; }
+      const root = window.__card ? window.__card.shadowRoot : document;
+      return {
+        positive: [...root.querySelectorAll("[tabindex]")].filter((e) => e.tabIndex > 0).length,
+        stops: window.__stops.map((el) => {
+          const r = el.getBoundingClientRect();
+          const cls = el.getAttribute("class") || "";
+          return { who: `${el.tagName.toLowerCase()}.${cls.split(" ")[0]}`,
+                   x: r.left, y: r.top, w: r.width, h: r.height };
+        }).filter((s) => s.w > 0 && s.h > 0),
+      };
+    });
+  };
+  const backward = (stops) => {
+    const out = [];
+    for (let i = 1; i < stops.length; i++) {
+      const a = stops[i - 1], b = stops[i];
+      const row = Math.max(a.h, b.h, 16);
+      if (a.y - b.y > ROW_TOL * row && b.x <= a.x + a.w) {
+        out.push(`${a.who}@(${a.x.toFixed(0)},${a.y.toFixed(0)}) -> ${b.who}@(${b.x.toFixed(0)},${b.y.toFixed(0)})`);
+      }
+    }
+    return out;
+  };
+  // The positive control: a hand-built row whose DOM order runs against its
+  // painted order, and its null twin -- the rule must fire on the first and
+  // only the first, or it is measuring something other than reading order.
+  const handBuilt = async (dir) => {
+    await orderPage.evaluate((d) => {
+      window.__card = null;
+      document.body.innerHTML =
+        `<div style="display:flex;flex-direction:${d};gap:12px;padding:12px">` +
+        `<button>first</button><button>second</button><button>third</button></div>`;
+    }, dir);
+    return backward((await tabWalk()).stops);
+  };
+  const reversed = await handBuilt("column-reverse");
+  const straight = await handBuilt("column");
+  check("R8 D4-01 the reading-order rule fires on a hand-built out-of-order row",
+    reversed.length === 2 && straight.length === 0,
+    `reversed ${reversed.length}, straight ${straight.length} backward step(s)`);
+
+  // Every view the card draws: the tile (and its score breakdown), and each
+  // dialog page -- the plan page twice, the second with every optional
+  // control the what-if panel and the zoom row can add, and the setup page
+  // twice, the second with its entity picker open.
+  const ORDER_VIEWS = [
+    { name: "tile" }, { name: "tile_score", score: true },
+    { name: "plan", page: "plan" }, { name: "plan_busy", page: "plan", busy: true },
+    { name: "setup", page: "setup" },
+    { name: "setup_picker", page: "setup", open: "dialog rect.setup-hit" },
+    { name: "savings", page: "savings" },
+    { name: "advisor", page: "advisor" },
+  ];
+  const orderCells = [];
+  for (const [w, h] of [[375, 812], [768, 1024], [1280, 800]]) {
+    await orderPage.setViewportSize({ width: w, height: h });
+    for (const view of ORDER_VIEWS) {
+      await orderPage.evaluate(async ([st0, w2, v]) => {
+        const st = JSON.parse(JSON.stringify(st0));
+        if (v.score) {
+          // The headline stats, whose score pill is a control and opens a
+          // breakdown panel.
+          st["sensor.heat_pump_optimizer_predicted_savings"] = {
+            state: "12.34", attributes: { unit_of_measurement: "SEK" } };
+          st["sensor.heat_pump_optimizer_savings_percentage"] = { state: "8.2", attributes: {} };
+          st["sensor.heat_pump_optimizer_optimization_score"] = {
+            state: "82", attributes: { envelope: 90, machine: 75 } };
+        }
+        if (v.busy) {
+          // Every optional what-if control drawn at once: DHW windows (a
+          // select, two times and a remove each) and the override's
+          // back-to-automatic button.
+          st["sensor.heat_pump_optimizer_plan_dhw_heating"].attributes.dhw_windows_spec =
+            "weekdays 06:00-08:30, weekend 08:00-09:30";
+          st["sensor.heat_pump_optimizer_plan_space_heating"].attributes.manual_override = {
+            active: true, expires_at: new Date(Date.now() + 5 * 3600e3).toISOString(),
+            space_slots: [], dhw_slots: [], released_space: [], released_dhw: [] };
+        }
+        document.body.innerHTML =
+          `<style>body{margin:0;font-family:-apple-system,"Segoe UI",sans-serif}` +
+          `heatpump-optimizer-card{display:block;width:${Math.min(w2 - 16, 500)}px;margin:8px}</style>`;
+        const card = document.createElement("heatpump-optimizer-card");
+        card.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
+        card.hass = { states: st, language: "en" };
+        document.body.appendChild(card);
+        window.__card = card;
+        const settle = async () => {
+          await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+          await new Promise((r) => setTimeout(r, 120));
+        };
+        if (v.score) {
+          card._scoreOpen = true;
+          card._render();
+        }
+        if (v.page) {
+          card._onCardClick({});
+          card.dialog.page = v.page;
+          card._render();
+        }
+        await settle();
+        // The setup picker, opened from the keyboard as a user would: focus
+        // a diagram row, press Enter. It overlays the diagram.
+        if (v.open) {
+          const hit = card.shadowRoot.querySelector(v.open);
+          hit.focus();
+          hit.dispatchEvent(new KeyboardEvent("keydown",
+            { key: "Enter", bubbles: true, composed: true }));
+          await settle();
+        }
+        // Zoomed in, the view's reset button is enabled and joins the walk.
+        if (v.busy) {
+          card.shadowRoot.querySelector("dialog .vc-in").click();
+          await settle();
+        }
+      }, [clipStates, w, view]);
+      const walk = await tabWalk();
+      orderCells.push({ w, h, view: view.name, n: walk.stops.length, positive: walk.positive,
+                        back: backward(walk.stops) });
+    }
+  }
+  await orderPage.close();
+  console.log(`        tab stops: ${orderCells.map((c) => `${c.w} ${c.view}=${c.n}`).join(", ")}`);
+  const jumps = orderCells.filter((c) => c.back.length);
+  check("R8 D4-01 no Tab step jumps back up the screen, on any view at 375, 768 or 1280",
+    jumps.length === 0,
+    jumps.length
+      ? jumps.map((c) => `${c.w}x${c.h} ${c.view}: ${c.back.join(" | ")}`).join("; ")
+      : `${orderCells.length} cell(s), ${orderCells.reduce((s, c) => s + c.n, 0)} stop(s)`);
+  check("R8 D4-01 and no control reorders Tab with a positive tabindex",
+    orderCells.every((c) => c.positive === 0),
+    orderCells.filter((c) => c.positive).map((c) => `${c.w} ${c.view}: ${c.positive}`).join(", "));
+  // The walk's own control: a view that yielded a handful of stops would pass
+  // the rule above for having nothing to order.
+  check("R8 D4-01 and the walk reached the controls of every view",
+    orderCells.every((c) => c.n >= 3) &&
+      orderCells.filter((c) => c.view === "plan").every((c) => c.n >= 20),
+    orderCells.map((c) => `${c.w} ${c.view}=${c.n}`).join(", "));
+
   // B12: the README hero is a screenshot of this lane, not the card_rig
   // SVG B4 committed as an interim. Frozen at the payload's first sample
   // so the plot is the full horizon (same instant make_card_figures.mjs
