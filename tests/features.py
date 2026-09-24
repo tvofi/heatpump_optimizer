@@ -10546,6 +10546,20 @@ R.check(
     )["edges"],
     "the DHW tank floated unconnected in every drawing (#40 item 2)",
 )
+# #1540 (R8-D7-s2-03): the refill coil is the one two_tank_4way edge drawn
+# only under a flag, and nothing drove the flag on -- `if dhw_coil:` ->
+# `if False:` in layout_edges dropped the published wood_tank->dhw_tank edge
+# with every check green. The coil-off config above is the null control.
+_coil_edges = _topo.describe_setup(
+    {**_u_cfg, "dhw_wood_coil_enabled": True}
+)["edges"]
+R.check(
+    "a wood coil in the hot water tank draws wood_tank->dhw_tank, and only "
+    "with the coil (#1540)",
+    ["wood_tank", "dhw_tank"] in _coil_edges
+    and ["wood_tank", "dhw_tank"] not in _u["edges"],
+    f"coil on {_coil_edges}; coil off {_u['edges']}",
+)
 R.check(
     "and no hot-water pipe is drawn for a house without hot water",
     ["heat_pump", "dhw_tank"]
@@ -25777,6 +25791,23 @@ R.check(
     "an unknown history is not evidence of an overdue cycle",
     not _lg_issues(_lg_unknown),
 )
+# #1532 (R8-D3-s2-01): a last cycle stamped in the FUTURE -- a clock stepped
+# back, an NTP correction, a stamp restored from a backup -- is 0 h ago, not a
+# negative age. Deleting hours_since's clamp moved a 2 h-future reading to
+# -2.0 h, and the countdown past the interval, with every check green. The
+# 2 h-past reading is the null control: the clamp bites only below zero.
+_lg_skew = _lg_coord()
+_lg_skew._legionella.last_cycle = dt_util.now() + timedelta(hours=2)
+_lg_skew_future = _lg_skew._legionella.hours_since()
+_lg_skew._legionella.last_cycle = dt_util.now() - timedelta(hours=2)
+_lg_skew_past = _lg_skew._legionella.hours_since()
+R.check(
+    "a last cycle stamped in the future is 0 h ago, not a negative age (#1532)",
+    _lg_skew_future == 0.0
+    and _lg_skew_past is not None
+    and abs(_lg_skew_past - 2.0) < 1e-3,
+    f"future {_lg_skew_future!r} h, past {_lg_skew_past!r} h",
+)
 for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json"):
     _lg_doc = _json.loads(
         (_PKG_DIR / _lang_file).read_text(encoding="utf-8")
@@ -28279,6 +28310,43 @@ _et_check(
     ),
     "manual_plan_invalid_slots",
 )
+
+# #1533 (R8-D3-s2-02): a minimum exactly AT the ceiling (setpoint less
+# DHW_MIN_TEMP_SETPOINT_MARGIN) is a legal zero-width deadband, and both
+# handlers accept it. A `>` -> `>=` flip at either rejected that legal value
+# with every check green. The null control is the same call 0.01 degrees
+# past the ceiling, which each handler must refuse, so the accepted value is
+# the boundary and not merely somewhere below it. A fresh entry, so the
+# accepted writes land nowhere another check reads.
+from heatpump_optimizer.const import (  # noqa: E402
+    DHW_MIN_TEMP_SETPOINT_MARGIN as _DHW_MIN_MARGIN,
+)
+
+_et_bnd_hass = FakeHass()
+_seed_prices(_et_bnd_hass)
+_et_bnd_entry = FakeEntry(data=_LC_DATA)
+_asyncio.run(_ha_setup_entry(_integ, _et_bnd_hass, _et_bnd_entry))
+_et_bnd_ceiling = (
+    _et_bnd_entry.runtime_data._thermal_params.dhw_setpoint - _DHW_MIN_MARGIN
+)
+for _et_bnd_svc, _et_bnd_key in (
+    ("set_thermal_parameters", "set_thermal_params_dhw_min_no_deadband"),
+    ("apply_schedule", "apply_schedule_dhw_min_no_deadband"),
+):
+    _et_bnd_past = _et_call(
+        _et_bnd_hass, _et_bnd_svc,
+        {"dhw_min_temperature": _et_bnd_ceiling + 0.01},
+    )
+    _et_bnd_at = _et_call(
+        _et_bnd_hass, _et_bnd_svc, {"dhw_min_temperature": _et_bnd_ceiling}
+    )
+    R.check(
+        f"{_et_bnd_svc} accepts a hot water minimum exactly at the deadband "
+        "ceiling and refuses one 0.01 past it (#1533)",
+        _et_bnd_at is None and not _et_why(_et_bnd_past, _et_bnd_key),
+        f"at {_et_bnd_ceiling:g}: {_et_bnd_at!r}; "
+        f"past: {_et_why(_et_bnd_past, _et_bnd_key) or 'refused'}",
+    )
 
 # The thirteenth site is the coordinator's, reached the way a user reaches
 # it: the thermostat's set_temperature (climate.py:281), which refuses a
