@@ -33987,18 +33987,40 @@ R.check(
 # survived a mutation that reads the whole-house pair, because the
 # simulation's own residual moves with the upper mass as well, so the two
 # runs stayed ordered the way the check expected.
-_t2_hl_light = _t2_house(two_zone=True, upper_floor_thermal_mass=3.0)
-_t2_drive(_t2_hl_light, "_async_learn_house_heat_loss")
-_t2_hl_heavy = _t2_house(two_zone=True, upper_floor_thermal_mass=9.0)
-_t2_drive(_t2_hl_heavy, "_async_learn_house_heat_loss")
-_t2_hl_rtm_small = _t2_house(two_zone=True)
-_t2_hl_rtm_small._thermal_params.room_thermal_mass = 10.0
-_t2_hl_rtm_small._thermal_params.heat_loss_coefficient = 0.15
-_t2_drive(_t2_hl_rtm_small, "_async_learn_house_heat_loss")
-_t2_hl_rtm_big = _t2_house(two_zone=True)
-_t2_hl_rtm_big._thermal_params.room_thermal_mass = 100.0
-_t2_hl_rtm_big._thermal_params.heat_loss_coefficient = 0.15
-_t2_drive(_t2_hl_rtm_big, "_async_learn_house_heat_loss")
+#
+# The equality below compares two SEPARATE replays, so it needs the same
+# `dt_hours` on both sides of the Newton step (#812's own root-cause note,
+# 2026-09-24): `_t2_house` stamps `_last_house_sample_time` from a live
+# `dt_util.now()` at construction, and `_async_learn_house_heat_loss` reads
+# `dt_util.now()` again, live, when driven. Unfrozen, the two replays pick up
+# whatever real wall-clock gap the scheduler happens to leave between
+# construction and drive -- normally sub-millisecond and lost in the 1e-8
+# guard, but stretched under machine load to a few milliseconds, which this
+# Newton step (residual and simulation both linear-ish in `dt_hours`) turns
+# into scale differences of 1e-8..1e-7 -- diffs of 1.08e-8 and 1.55e-8 were
+# both observed this way. `_t2_buffer` above already freezes the clock before
+# driving its own learner for exactly this reason; this block didn't.
+# Freezing both replays to one instant removes the wall-clock gap and
+# reproduces byte-for-byte: 20 runs forced with 5ms of injected jitter
+# between construction and drive, unfrozen, gave diffs up to 6.42e-8 (well
+# above the guard); the same 20 runs frozen gave exactly 0.0 every time.
+_t2_mass_now = dt_util.now()
+dt_util.freeze(_t2_mass_now)
+try:
+    _t2_hl_light = _t2_house(two_zone=True, upper_floor_thermal_mass=3.0)
+    _t2_drive(_t2_hl_light, "_async_learn_house_heat_loss")
+    _t2_hl_heavy = _t2_house(two_zone=True, upper_floor_thermal_mass=9.0)
+    _t2_drive(_t2_hl_heavy, "_async_learn_house_heat_loss")
+    _t2_hl_rtm_small = _t2_house(two_zone=True)
+    _t2_hl_rtm_small._thermal_params.room_thermal_mass = 10.0
+    _t2_hl_rtm_small._thermal_params.heat_loss_coefficient = 0.15
+    _t2_drive(_t2_hl_rtm_small, "_async_learn_house_heat_loss")
+    _t2_hl_rtm_big = _t2_house(two_zone=True)
+    _t2_hl_rtm_big._thermal_params.room_thermal_mass = 100.0
+    _t2_hl_rtm_big._thermal_params.heat_loss_coefficient = 0.15
+    _t2_drive(_t2_hl_rtm_big, "_async_learn_house_heat_loss")
+finally:
+    dt_util.freeze(None)
 R.check(
     "the two-zone fit moves with the upper zone's mass and not the house's",
     _t2_hl_light._house_heat_loss_samples == 1
