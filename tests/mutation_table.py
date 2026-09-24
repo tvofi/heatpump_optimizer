@@ -7,12 +7,12 @@ line they were named for and pinned nothing, and twenty-five production guards
 turned out to be deletable with no check failing. Every one of those was green
 coverage. `tests/coverage_ratchet.py` holds the floor; this holds the meaning.
 
-**Scope is the files that were actually tested.** On a pull request the changed
-production files are mutated; a test-only diff is mapped through the closure
-recording in `tests/closures.json` -- the same recording the scoped gate selects
-by -- so "the files this change tested" is read off a measurement rather than
-guessed. `--scope full` puts every production module in scope, which is the
-nightly's job and far too slow for a pull request.
+**Scope is the lines the pull request touched.** `--scope changed` draws its
+mutants only from sites on production lines the diff adds or modifies
+(`changed_lines`), so a survivor it reports is on a line the branch wrote. A
+pre-existing line is the nightly's, and a comment-only, docs-only or test-only
+diff draws nothing. `--scope full` puts every production module in scope, which
+is the nightly's job and far too slow for a pull request.
 
 **Each mutant is driven only by the scripts whose recorded closure reaches its
 file.** Driving every script would cost a full suite per mutant; driving one
@@ -70,6 +70,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import io
 import json
 import os
 import random
@@ -80,6 +81,7 @@ import sys
 import tempfile
 import threading
 import time
+import tokenize
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
@@ -230,57 +232,105 @@ def load_closures() -> dict[str, list[str]]:
     return raw.get("closures", raw)
 
 
-def changed_paths(base: str) -> list[str]:
-    """Files this branch changed, three-dot against `base` (never two-dot)."""
-    merge_base = subprocess.run(
-        ["git", "merge-base", base, "HEAD"], cwd=ROOT,
-        capture_output=True, text=True,
-    ).stdout.strip()
+def _git(*args: str, root: Path | None = None) -> str:
+    return subprocess.run(["git", *args], cwd=root or ROOT,
+                          capture_output=True, text=True).stdout
+
+
+def _code(lines: list[str]) -> list[tuple[str, tuple[str, ...]]]:
+    """Each line's indentation and code tokens, comments and blanks dropped.
+
+    Tokenized a line at a time, so a line that opens a bracket or a string
+    keeps the tokens read before the tokenizer gives up.
+    """
+    skip = {tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,
+            tokenize.DEDENT, tokenize.ENDMARKER}
+    out = []
+    for line in lines:
+        toks: list[str] = []
+        try:
+            for tok in tokenize.generate_tokens(io.StringIO(line.strip()).readline):
+                if tok.type not in skip:
+                    toks.append(tok.string)
+        except (tokenize.TokenError, SyntaxError):
+            pass
+        if toks:
+            out.append((_indent(line), tuple(toks)))
+    return out
+
+
+def hunk_lines(diff: str) -> dict[str, set[int]]:
+    """The new-side lines of a `git diff -U0`, per file, code hunks only.
+
+    A pure deletion leaves no line to mutate. A hunk whose code tokens and
+    indentation match on both sides -- a comment or whitespace edit, a
+    trailing comment added to a code line -- is dropped whole.
+    """
+    out: dict[str, set[int]] = {}
+    path, start, old, new = None, 0, [], []
+
+    def flush() -> None:
+        if path and new and _code(old) != _code(new):
+            out.setdefault(path, set()).update(range(start, start + len(new)))
+
+    for line in diff.splitlines():
+        if line.startswith("+++ ") or line.startswith("@@"):
+            flush()
+            old, new = [], []
+            if line.startswith("+++ "):
+                path = line[6:] if line.startswith("+++ b/") else None
+            else:
+                start = int(re.match(r"@@ -\S+ \+(\d+)", line).group(1))
+        elif line.startswith("-") and not line.startswith("--- "):
+            old.append(line[1:])
+        elif line.startswith("+"):
+            new.append(line[1:])
+    flush()
+    return out
+
+
+def changed_lines(base: str, root: Path | None = None) -> dict[str, set[int]]:
+    """The production lines this branch adds or modifies, per file.
+
+    Three-dot against the merge base (never two-dot, which would count
+    `base`'s own newer commits), plus what is not committed yet: run by hand
+    that is the work in front of the seat, and in CI it adds nothing. An
+    untracked production file counts whole.
+    """
+    root = root or ROOT
+    merge_base = _git("merge-base", base, "HEAD", root=root).strip()
     if not merge_base:
-        return []
-    out = subprocess.run(
-        ["git", "diff", "--name-only", f"{merge_base}...HEAD"], cwd=ROOT,
-        capture_output=True, text=True,
-    ).stdout
-    changed = {ln.strip() for ln in out.splitlines() if ln.strip()}
-    # Plus what is not committed yet. In CI the diff is the whole change and
-    # this adds nothing; run by hand it is the difference between scoping the
-    # work in front of the seat and scoping its last commit.
-    status = subprocess.run(
-        ["git", "status", "--porcelain", "-z"], cwd=ROOT,
-        capture_output=True, text=True,
-    ).stdout
-    for entry in status.split("\0"):
-        if len(entry) > 3:
-            changed.add(entry[3:].strip())
-    return sorted(changed)
+        return {}
+    out = hunk_lines(_git("diff", "-U0", "--no-renames", "--no-ext-diff",
+                          merge_base, "--", PKG, root=root))
+    for rel in _git("ls-files", "--others", "--exclude-standard", "--", PKG,
+                    root=root).splitlines():
+        if rel.endswith(".py"):
+            n = len((root / rel).read_text().splitlines())
+            out[rel] = set(range(1, n + 1))
+    return {f: ln for f, ln in out.items() if f.endswith(".py") and ln}
 
 
 def scope_files(scope: str, base: str) -> tuple[list[Path], str]:
     """The production files in scope, and the sentence that says why."""
     if scope == "full":
         return sorted(PRODUCTION.rglob("*.py")), "every production module"
-    changed = changed_paths(base)
-    if not changed:
-        return [], "nothing changed against the base"
-    direct = sorted({
-        ROOT / p for p in changed
-        if p.startswith(PKG) and p.endswith(".py") and (ROOT / p).exists()
-    })
-    if direct:
-        return direct, f"{len(direct)} production file(s) this diff changes"
-    closures = load_closures()
-    scripts = [p for p in changed if p.startswith("tests/") and p.endswith(".py")]
-    reached = sorted({
-        ROOT / f for s in scripts for f in closures.get(s, [])
-        if f.startswith(PKG) and f.endswith(".py") and (ROOT / f).exists()
-    })
-    if reached:
-        return reached, (
-            f"{len(reached)} production file(s) in the measured closure of "
-            f"{len(scripts)} changed test script(s)"
-        )
-    return [], "no production file is in scope for this diff"
+    touched = sorted(ROOT / f for f in changed_lines(base)
+                     if (ROOT / f).exists())
+    if touched:
+        return touched, (f"{len(touched)} production file(s) whose code this "
+                         "diff adds or modifies")
+    return [], "no production code line added or modified against the base"
+
+
+def drawable(path: Path, rel: str, touched: dict[str, set[int]] | None) -> list[dict]:
+    """The candidate sites the pool may draw from one file.
+
+    Every site under `--scope full` (`touched` None); under `--scope changed`
+    only the sites on lines `changed_lines` returned for `rel`.
+    """
+    return [m for m in candidates(path)
+            if touched is None or m["line"] in touched.get(rel, ())]
 
 
 def drivers_for(rel: str, closures: dict, allow: list[str]) -> list[str]:
@@ -840,24 +890,12 @@ def baseline_refusal(baseline: dict[str, ScriptRun], scope: str) -> int | None:
     scopes differ only in what that is worth reporting as, and `mutation` is
     not a required context while `fast` is.
 
-    **The baseline's driver set is not the scoped gate's selection, and on a
-    test-only diff it is much wider.** Where the diff changes production files
-    the drivers are a subset of what the gate selects, so a red here really is
-    `fast`'s red restated. Where it changes none, `scope_files` falls back to
-    every production file in the measured closure of the changed TEST scripts
-    (the branch just above), and `drivers_for` returns every net script whose
-    closure reaches one of them: measured on this function's own branch, 63
-    production files and 19 drivers against the scoped gate's 1 selected
-    script. (Both counts follow the driver net: the wider net of #1211 reaches
-    more of the same files, and the baseline phase pays for each driver once.)
-    That wider net is what a pull request gives up here -- an
-    accidental detector, firing only when a scoped-out script happens to be
-    red, never when a closure is merely wrong. The designed detectors for that
-    hole are `closures`, `closure-scope`, `closures-autofix` and the forced
-    `full` run on every push to `main`, and they are required. Re-derive the
-    two numbers at your own merge base rather than trusting these:
-    `scope_files("changed", base)` with `drivers_for`, against
-    `tests/closure.py select --diff <merge-base>`.
+    **The baseline's driver set is a subset of the scoped gate's selection.**
+    The drivers are those whose measured closure reaches a file the diff
+    wrote code in, and the gate selects every script whose closure reaches a
+    changed file, so a red here is `fast`'s red restated. Re-derive that at
+    your own merge base: `scope_files("changed", base)` with `drivers_for`,
+    against `tests/closure.py select --diff <merge-base>`.
 
     `--scope full` keeps the refusal: it runs on a schedule, where nothing
     else reports that lane's baseline per commit.
@@ -989,13 +1027,15 @@ def main() -> int:
 
     rng = random.Random(args.seed)
     pool: list[dict] = []
+    # A pull request draws only from the lines it wrote (`changed_lines`).
+    touched = changed_lines(args.base) if args.scope == "changed" else None
     for path in files:
         rel = str(path.relative_to(ROOT))
         drivers = drivers_for(rel, closures, allow)
         if not drivers:
             print(f"  no recorded closure reaches {rel}; skipped")
             continue
-        got = list(candidates(path))
+        got = drawable(path, rel, touched)
         rng.shuffle(got)
         for mut in got[: args.per_file]:
             mut["drivers"] = drivers

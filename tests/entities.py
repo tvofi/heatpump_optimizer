@@ -22503,14 +22503,10 @@ R.check(
 # baseline costs a reviewer round and carries no mutation information: the
 # table evaluated nothing. `mutation` is not a required context and `fast` is.
 #
-# The baseline's driver set is NOT the scoped gate's selection, and the
-# difference is the whole of what a pull request gives up: on a diff that
-# changes no production file, `scope_files` falls back to the closure of the
-# changed TEST scripts, which on this branch's own diff is 63 production files
-# and 19 drivers against the gate's 1 selected script. Re-derive that pair at
-# your merge base rather than carrying it; `baseline_refusal`'s docstring says
-# with what. The NIGHTLY keeps the refusal: nothing else reports that lane's
-# baseline per commit.
+# The baseline's drivers are those whose closure reaches a file the diff wrote
+# code in, a subset of the scoped gate's selection; `baseline_refusal`'s
+# docstring says how to re-derive that. The NIGHTLY keeps the refusal: nothing
+# else reports that lane's baseline per commit.
 #
 # Driven as a function rather than through `main()`, which clones the tree and
 # runs real scripts; the fixtures below carry the shape `run_script` returns.
@@ -22875,6 +22871,89 @@ R.check(
     f"{len(_MUT_V_OUT)} verdict(s) of {len(_MUT_V_POOL)}; wrong: "
     f"{_MUT_V_BAD!r}",
 )
+
+
+# `--scope changed` draws only from lines the diff adds or modifies (tvofi's
+# ruling on #1565: a survivor on a line the pull request never touched blocked
+# #1559, #1560 and #1562). Driven against a real throwaway repository, three
+# branches off one base: a code edit, a comment/whitespace-only edit, and a
+# docs/test-only edit. `drawable` is what main() draws the pool from.
+import subprocess as _mutl_sp  # noqa: E402
+
+_mut_lines = getattr(_mut, "changed_lines", None)
+_mut_draw = getattr(_mut, "drawable", None)
+_MUTL_DIR = Path(_tempfile.mkdtemp(prefix="mutation-lines-"))
+_MUTL_REL = _mut.PKG + "mod.py"
+_MUTL_SRC = (
+    "LIMIT = 3\n\n\n"
+    "def f(x):\n"
+    "    if x > LIMIT:\n"
+    "        return min(x, 9)\n"
+    "    return x\n\n\n"
+    "def g(y):\n"
+    "    if y < 0:\n"
+    "        raise ValueError(y)\n"
+    "    return y\n"
+)
+
+
+def _mutl_git(*args):
+    return _mutl_sp.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid",
+         "-c", "commit.gpgsign=false", *args],
+        cwd=_MUTL_DIR, capture_output=True, text=True, check=True).stdout
+
+
+def _mutl_branch(name, edits):
+    """A branch off `base` whose one commit writes `edits` {rel: text}."""
+    _mutl_git("checkout", "-q", "-B", name, "base")
+    for rel, text in edits.items():
+        (_MUTL_DIR / rel).parent.mkdir(parents=True, exist_ok=True)
+        (_MUTL_DIR / rel).write_text(text)
+    _mutl_git("add", "-A")
+    _mutl_git("commit", "-q", "--no-verify", "-m", name)
+    return _mut_lines("base", root=_MUTL_DIR) if _mut_lines else None
+
+
+(_MUTL_DIR / _MUTL_REL).parent.mkdir(parents=True)
+(_MUTL_DIR / _MUTL_REL).write_text(_MUTL_SRC)
+_mutl_git("init", "-q")
+_mutl_git("add", "-A")
+_mutl_git("commit", "-q", "--no-verify", "-m", "base")
+_mutl_git("branch", "base")
+_MUTL_CODE = _mutl_branch("code", {
+    _MUTL_REL: _MUTL_SRC.replace("if y < 0:", "if y < -1:")})
+_MUTL_ALL = list(_mut.candidates(_MUTL_DIR / _MUTL_REL))
+_MUTL_DRAWN = (_mut_draw(_MUTL_DIR / _MUTL_REL, _MUTL_REL, _MUTL_CODE)
+               if _mut_draw and _MUTL_CODE is not None else _MUTL_ALL)
+R.check(
+    "a changed-scope pool draws only sites on lines the diff modified",
+    _MUTL_CODE == {_MUTL_REL: {11}}
+    and {m["line"] for m in _MUTL_DRAWN} == {11}
+    and {m["line"] for m in _MUTL_ALL} - {11},
+    f"touched={_MUTL_CODE!r} drawn={sorted({m['line'] for m in _MUTL_DRAWN})} "
+    f"of sites on {sorted({m['line'] for m in _MUTL_ALL})} -- the untouched "
+    "lines' sites are the null control: they exist, and are never drawn",
+)
+_MUTL_COMMENT = _mutl_branch("comment", {_MUTL_REL: _MUTL_SRC.replace(
+    "    if x > LIMIT:\n", "    # the limit is inclusive\n    if x > LIMIT:  # why\n"
+).replace("    return y\n", "    return  y\n")})
+_MUTL_DOCS = _mutl_branch("docs", {"README.md": "docs\n",
+                                   "tests/extra.py": "print(1)\n"})
+R.check(
+    "and a comment-, whitespace-, docs- or test-only diff draws nothing",
+    _MUTL_COMMENT == {} and _MUTL_DOCS == {},
+    f"comment={_MUTL_COMMENT!r} docs={_MUTL_DOCS!r} -- an empty map is an "
+    "empty pool, which main() passes before any clone or baseline",
+)
+_MUTL_FULL = (_mut_draw(_MUTL_DIR / _MUTL_REL, _MUTL_REL, None)
+              if _mut_draw else [])
+R.check(
+    "and --scope full still draws from every site",
+    len(_MUTL_FULL) == len(_MUTL_ALL) > 1,
+    f"{len(_MUTL_FULL)} of {len(_MUTL_ALL)} site(s)",
+)
+_mut_shutil.rmtree(_MUTL_DIR, ignore_errors=True)
 
 
 sys.exit(R.close("ENTITY CHECKS"))
