@@ -38415,18 +38415,15 @@ R.check(
 )
 
 
-# -- `_wind_speed_scale`: the unit the weather entity actually reports ----
+# -- `_wind_speed_scale_of`: the unit the weather entity actually reports --
 def _t6_wind(unit=_T6_UNSET, *, entity=True):
     """The wind scale for a weather entity reporting `unit`."""
     if not entity:
-        return _t6_call(
-            HeatPumpOptimizerCoordinator(
-                FakeHass({}), FakeEntry(data={"tibber_token": "x"})
-            )._wind_speed_scale
-        )
+        return _t6_call(_t6_coord_module._wind_speed_scale_of, None)
     attrs = {} if unit is _T6_UNSET else {"wind_speed_unit": unit}
-    states = {"weather.home": FakeState("sunny", attributes=attrs)}
-    return _t6_call(_t6_coord(states)._wind_speed_scale)
+    return _t6_call(
+        _t6_coord_module._wind_speed_scale_of, FakeState("sunny", attributes=attrs)
+    )
 
 
 R.check(
@@ -38441,11 +38438,9 @@ R.check(
     "doubles the predicted heat loss",
 )
 R.check(
-    "no weather entity, and one missing from the bus, both read as m/s",
-    _t6_wind(entity=False) == 1.0
-    and _t6_call(_t6_coord({})._wind_speed_scale) == 1.0,
-    f"unconfigured -> {_t6_wind(entity=False)!r}, configured but absent -> "
-    f"{_t6_call(_t6_coord({})._wind_speed_scale)!r} -- 1.0 is Home "
+    "no weather entity state reads as m/s",
+    _t6_wind(entity=False) == 1.0,
+    f"no weather state -> {_t6_wind(entity=False)!r} -- 1.0 is Home "
     "Assistant's own metric default, so an install with no weather entity is "
     "not silently scaled",
 )
@@ -43886,6 +43881,463 @@ R.check(
     and _qs_suggested(_qs.derive({**_qs_base, **_qs_grid[1]})) == _qs_grid[1],
     "the Configure page suggests exactly what a fresh page shows on an "
     "unanswered entry, and the entry's own answers on a configured one",
+)
+
+# ---------------------------------------------------------------------------
+R.section("P8 — a price or temperature entity's unit is read at the seam (#1513)")
+#
+# Every reader below is the production one. The discriminating arm of each is
+# a unit the old code read as SEK/kWh or degC; the SEK/kWh and degC arms are
+# the null control, and must come through bit-for-bit.
+import math as _p8_math  # noqa: E402
+from types import SimpleNamespace as _p8_ns  # noqa: E402
+
+from heatpump_optimizer import coordinator as _p8_coord  # noqa: E402
+from heatpump_optimizer import price_model as _p8_pm  # noqa: E402
+from heatpump_optimizer import setpoint_check as _p8_sp  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_GRID_FEE_ENTITY as _P8_FEE,
+    CONF_PV_EXPORT_PRICE_ENTITY as _P8_EXPORT,
+    DEFAULT_PV_EXPORT_PRICE as _P8_EXPORT_DEFAULT,
+)
+
+_p8_norm = getattr(inputs_mod, "normalize_price_per_kwh", None)
+_P8_FACTORS = {
+    "SEK/kWh": 1.0,
+    "öre/kWh": 0.01,
+    "SEK/MWh": 0.001,
+    "EUR/MWh": 0.001,
+    "c/kWh": 0.01,
+    "€/kWh": 1.0,
+    "NOK/Wh": 1000.0,
+    None: 1.0,
+}
+R.check(
+    "normalize_price_per_kwh takes each unit to major currency per kWh",
+    _p8_norm is not None
+    and all(
+        _p8_math.isclose(_p8_norm(2.0, _u) or _p8_math.nan, 2.0 * _f)
+        for _u, _f in _P8_FACTORS.items()
+    ),
+    f"{[(u, _p8_norm(2.0, u)) for u in _P8_FACTORS] if _p8_norm else 'missing'}",
+)
+R.check(
+    "and a unit it cannot parse returns None rather than a guess",
+    _p8_norm is not None
+    and all(_p8_norm(2.0, _u) is None for _u in ("kWh", "SEK", "SEK/GJ", "bananas/kWh")),
+)
+
+_P8_SCALE = {"SEK/kWh": 1.0, "öre/kWh": 100.0, "SEK/MWh": 1000.0}
+
+
+def _p8_price_state(unit, scale):
+    rows = [
+        {
+            "start": f"2026-11-03T{h:02d}:00:00+01:00",
+            "value": (0.30 + 0.05 * h) * scale,
+        }
+        for h in range(24)
+    ]
+    return FakeState(str(rows[0]["value"]), unit=unit, attributes={"raw_today": rows})
+
+
+def _p8_totals(unit, scale):
+    rows = _p8_pm.prices_from_entity_state(_p8_price_state(unit, scale), 1.25, 0.10)
+    return [r["total"] for r in rows] if isinstance(rows, list) else rows
+
+
+_p8_truth = [(0.30 + 0.05 * h) * 1.25 + 0.10 for h in range(24)]
+R.check(
+    "the price entity's today/tomorrow rows are read in their unit",
+    all(
+        isinstance(_p8_totals(_u, _s), list)
+        and all(
+            _p8_math.isclose(a, b, rel_tol=1e-12)
+            for a, b in zip(_p8_totals(_u, _s), _p8_truth)
+        )
+        for _u, _s in _P8_SCALE.items()
+    ),
+    f"{ {u: _p8_totals(u, s)[:2] for u, s in _P8_SCALE.items()} }",
+)
+R.check(
+    "and an unparseable unit keeps the raw rows, as before",
+    _p8_totals("SEK/GJ", 1.0) == _p8_totals(None, 1.0)
+    and all(
+        _p8_math.isclose(a, b, rel_tol=1e-12)
+        for a, b in zip(_p8_totals("SEK/GJ", 1.0), _p8_truth)
+    ),
+)
+
+_P8_CFG = {
+    "tibber_token": "x",
+    "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor",
+    "outdoor_temp_entity": "sensor.outdoor",
+    "pv_enabled": True,
+}
+
+
+def _p8_export(unit, value):
+    coord = _Coord(
+        _FakeHass({"sensor.export": FakeState(str(value), unit=unit)}),
+        _FakeEntry(data={**_P8_CFG, _P8_EXPORT: "sensor.export"}),
+    )
+    return coord._pv_export_price()
+
+
+R.check(
+    "the export-price entity is read in its unit",
+    all(
+        _p8_math.isclose(_p8_export(_u, 0.45 * _s), 0.45, rel_tol=1e-12)
+        for _u, _s in _P8_SCALE.items()
+    ),
+    f"{ {u: _p8_export(u, 0.45 * s) for u, s in _P8_SCALE.items()} }",
+)
+
+
+def _p8_fee(unit, value):
+    return _p8_coord._grid_fee_entity_value(
+        _FakeHass({"sensor.fee": FakeState(str(value), unit=unit)}),
+        {_P8_FEE: "sensor.fee"},
+    )
+
+
+R.check(
+    "the grid-fee entity is read in its unit",
+    all(
+        _p8_fee(_u, 0.25 * _s) is not None
+        and _p8_math.isclose(_p8_fee(_u, 0.25 * _s), 0.25, rel_tol=1e-12)
+        for _u, _s in _P8_SCALE.items()
+    ),
+    f"{ {u: _p8_fee(u, 0.25 * s) for u, s in _P8_SCALE.items()} }",
+)
+
+
+def _p8_unit_issues(hass):
+    return [
+        i
+        for i in getattr(hass, "issues", [])
+        if i[2].get("translation_key") == "price_unit_unrecognised"
+    ]
+
+
+_p8_hass = _FakeHass(
+    {
+        "sensor.nordpool": _p8_price_state("SEK/GJ", 1.0),
+        "sensor.fee": FakeState("0.25", unit="SEK/kWh"),
+    }
+)
+_p8_hass.issues = []
+_p8_live = _Coord(
+    _p8_hass,
+    _FakeEntry(
+        data={
+            **_P8_CFG,
+            "price_source": "entity",
+            "price_entity": "sensor.nordpool",
+            _P8_FEE: "sensor.fee",
+        }
+    ),
+)
+_asyncio.run(_p8_live._fetch_tibber_prices())
+_p8_raised = _p8_unit_issues(_p8_hass)
+R.check(
+    "an unparseable price unit raises one repair notice naming the entity and unit",
+    len(_p8_raised) == 1
+    and _p8_raised[0][2].get("translation_placeholders")
+    == {"entity": "sensor.nordpool", "unit": "SEK/GJ"},
+    f"got {_p8_raised!r}",
+)
+_p8_hass.states.set("sensor.nordpool", _p8_price_state("SEK/kWh", 1.0))
+_asyncio.run(_p8_live._fetch_tibber_prices())
+R.check(
+    "and it clears once the unit is one the reader understands",
+    _p8_unit_issues(_p8_hass) == [],
+    f"got {_p8_unit_issues(_p8_hass)!r}",
+)
+
+_p8_inlet = getattr(_p8_coord, "_dhw_inlet_c", None)
+
+
+def _p8_inlet_at(value, unit):
+    hass = _FakeHass(
+        {"sensor.inlet": FakeState(str(value), unit=unit, last_updated=datetime.now(UTC))}
+    )
+    return _p8_inlet(hass, "sensor.inlet")
+
+
+R.check(
+    "the DHW inlet probe is read in its unit (50 degF is 10 degC)",
+    _p8_inlet is not None
+    and _p8_math.isclose(_p8_inlet_at(50.0, "°F") or 0.0, 10.0)
+    and _p8_inlet_at(10.0, "°C") == 10.0
+    and _p8_inlet_at(10.0, None) == 10.0,
+    f"{[_p8_inlet_at(50.0, '°F'), _p8_inlet_at(10.0, '°C')] if _p8_inlet else 'missing'}",
+)
+
+
+def _p8_setpoint(state):
+    hass = _FakeHass({"number.dhw_sp": state})
+    hass.issues = []
+    params = _p8_ns(dhw_min_temp=55.0, dhw_legionella_enabled=False, dhw_legionella_temp=60.0)
+    _p8_sp._dhw(hass, {_SP_DHW_ENT: "number.dhw_sp"}, params)
+    return [i for i in hass.issues if i[1] == _SP_ISSUE_DHW]
+
+
+_p8_sp_f = _p8_setpoint(FakeState("122", unit="°F"))
+R.check(
+    "a degF DHW set-point is compared in degC (122 degF is below a 55 degC floor)",
+    len(_p8_sp_f) == 1
+    and _p8_sp_f[0][2].get("translation_placeholders", {}).get("pump") == "50.0",
+    f"got {_p8_sp_f!r}",
+)
+R.check(
+    "and its Fix writes the floor in the entity's own unit (131 degF)",
+    bool(_p8_sp_f)
+    and _p8_sp_f[0][2].get("data", {}).get("target") == 55.0
+    and _p8_sp_f[0][2].get("data", {}).get("value") == 131.0,
+    f"got {_p8_sp_f!r}",
+)
+_p8_sp_c = _p8_setpoint(FakeState("50", unit="°C"))
+R.check(
+    "null control: a degC set-point raises the same notice and writes 55",
+    len(_p8_sp_c) == 1
+    and _p8_sp_c[0][2].get("translation_placeholders", {}).get("pump") == "50.0"
+    and _p8_sp_c[0][2].get("data", {}).get("value") == 55.0,
+    f"got {_p8_sp_c!r}",
+)
+_p8_flow = _sp_repairs.DhwSetpointRepairFlow()
+_p8_flow.hass = _FakeHass({})
+_p8_flow.data = dict(_p8_sp_f[0][2].get("data", {})) if _p8_sp_f else {}
+_asyncio.run(_p8_flow.async_step_confirm({}))
+R.check(
+    "the repair flow writes the converted value, not the degC target",
+    _p8_flow.hass.services.calls
+    == [("number", "set_value", {"entity_id": "number.dhw_sp", "value": 131.0})],
+    f"got {_p8_flow.hass.services.calls!r}",
+)
+
+_p8_stale = _FakeHass(
+    {"sensor.inlet": FakeState("10", unit="°C", last_updated=datetime.now(UTC) - timedelta(days=2))}
+)
+R.check(
+    "and a stale, implausible or non-numeric inlet reading is refused",
+    _p8_inlet is not None
+    and _p8_inlet(_p8_stale, "sensor.inlet") is None
+    and _p8_inlet_at(40.0, "°C") is None
+    and _p8_inlet_at("unknown", "°C") is None,
+    f"{[_p8_inlet(_p8_stale, 'sensor.inlet'), _p8_inlet_at(40.0, '°C')] if _p8_inlet else 'missing'}",
+)
+R.check(
+    "an unavailable export-price entity falls back to the configured price",
+    _p8_export("SEK/kWh", "unavailable") == _P8_EXPORT_DEFAULT
+    and _p8_export("öre/kWh", "unavailable") == _P8_EXPORT_DEFAULT,
+    f"got {_p8_export('SEK/kWh', 'unavailable')!r}",
+)
+R.check(
+    "an unavailable grid-fee entity reads as no fee entity at all",
+    _p8_fee("öre/kWh", "unavailable") is None,
+    f"got {_p8_fee('öre/kWh', 'unavailable')!r}",
+)
+_p8_noent = _sp_repairs.DhwSetpointRepairFlow()
+_p8_noent.hass = _FakeHass({})
+_p8_noent.data = {"target": 55.0, "value": 131.0}
+_asyncio.run(_p8_noent.async_step_confirm({}))
+R.check(
+    "a repair with no entity id writes nothing",
+    _p8_noent.hass.services.calls == [],
+    f"got {_p8_noent.hass.services.calls!r}",
+)
+
+# The weather sibling: get_forecasts rows arrive in the weather entity's own
+# temperature_unit, as its wind does in wind_speed_unit. 50 degF is 10 degC.
+from homeassistant.util import dt as _p8_dt  # noqa: E402
+
+_p8_fc_in_c = getattr(_p8_coord, "_forecast_in_model_units", None)
+
+
+def _p8_weather(unit, temp, *, fail=False, wind_unit="m/s", wind=3.6):
+    attrs = {"temperature": temp, "wind_speed": wind, "wind_speed_unit": wind_unit}
+    if unit is not None:
+        attrs["temperature_unit"] = unit
+    hass = _FakeHass({"weather.home": FakeState("cloudy", attributes=attrs)})
+    coord = _Coord(hass, _FakeEntry(data=dict(_P8_CFG)))
+    now = _p8_dt.now().replace(minute=0, second=0, microsecond=0)
+    rows = [
+        {"datetime": (now + timedelta(hours=h)).isoformat(), "temperature": temp,
+         "wind_speed": wind, "precipitation": 0.0}
+        for h in range(48)
+    ]
+
+    async def _call(domain, service, data=None, **kwargs):
+        if fail:
+            raise RuntimeError("weather integration down")
+        return {"weather.home": {"forecast": rows}}
+
+    hass.services.async_call = _call
+    _asyncio.run(coord._fetch_weather_forecast())
+    return coord, now
+
+
+def _p8_outdoor(unit, temp, **kw):
+    coord, now = _p8_weather(unit, temp, **kw)
+    series = coord._weather_series(4, now, 0)
+    return [round(v, 9) for v in series[0]], [round(v, 9) for v in series[1]]
+
+
+R.check(
+    "a degF weather entity's forecast is planned in degC (50 degF is 10 degC)",
+    _p8_fc_in_c is not None and _p8_outdoor("°F", 50.0)[0] == [10.0] * 4,
+    f"got {_p8_outdoor('°F', 50.0)[0]}",
+)
+R.check(
+    "null control: a degC or unit-less weather entity's forecast is untouched",
+    _p8_outdoor("°C", 10.0)[0] == [10.0] * 4 and _p8_outdoor(None, 10.0)[0] == [10.0] * 4,
+    f"got {_p8_outdoor('°C', 10.0)[0]}, {_p8_outdoor(None, 10.0)[0]}",
+)
+_P8_ROWS = [{"temperature": 10.0}]
+R.check(
+    "the rows are the same object when nothing converts (goldens cannot move)",
+    _p8_fc_in_c is not None
+    and _p8_fc_in_c(FakeState("x", attributes={"temperature_unit": "°C"}), _P8_ROWS) is _P8_ROWS
+    and _p8_fc_in_c(FakeState("x", attributes={}), _P8_ROWS) is _P8_ROWS,
+)
+R.check(
+    "a row whose temperature will not parse keeps it for the consumers' fallback",
+    _p8_fc_in_c is not None
+    and _p8_fc_in_c(
+        FakeState("x", attributes={"temperature_unit": "°F"}), [{"temperature": "n/a"}]
+    ) == [{"temperature": "n/a"}],
+)
+R.check(
+    "the fabricated trajectory of a failed first fetch is converted too",
+    _p8_outdoor("°F", 50.0, fail=True)[0] == [10.0] * 4,
+    f"got {_p8_outdoor('°F', 50.0, fail=True)[0]}",
+)
+R.check(
+    "and its wind is scaled once, not twice (3.6 km/h is 1 m/s)",
+    _p8_outdoor("°C", 10.0, fail=True, wind_unit="km/h")[1] == [1.0] * 4
+    and _p8_outdoor("°C", 10.0, wind_unit="km/h")[1] == [1.0] * 4,
+    f"fabricated {_p8_outdoor('°C', 10.0, fail=True, wind_unit='km/h')[1]}, "
+    f"fetched {_p8_outdoor('°C', 10.0, wind_unit='km/h')[1]}",
+)
+R.check(
+    "the current wind the learners read is m/s on both paths (3.6 km/h is 1 m/s)",
+    _p8_weather("°C", 10.0, wind_unit="km/h")[0]._current_weather()[0] == 1.0
+    and _p8_weather("°C", 10.0, fail=True, wind_unit="km/h")[0]._current_weather()[0] == 1.0,
+    f"fetched {_p8_weather('°C', 10.0, wind_unit='km/h')[0]._current_weather()}, "
+    f"fabricated {_p8_weather('°C', 10.0, fail=True, wind_unit='km/h')[0]._current_weather()}",
+)
+R.check(
+    "null control: an m/s entity's current wind is its own number on both paths",
+    _p8_weather("°C", 10.0, wind=1.0)[0]._current_weather()[0] == 1.0
+    and _p8_weather("°C", 10.0, fail=True, wind=1.0)[0]._current_weather()[0] == 1.0,
+)
+
+# ---------------------------------------------------------------------------
+R.section("R8-P8 round 3: mutation survivors on lines this diff's files carry")
+# CI's changed-scope mutation lane drew these pre-existing sites from the
+# files #1513 touches, and nothing killed them. Each check drives the
+# production symbol; the repairs.py survivor is triaged equivalent instead.
+import math as _p8s_math  # noqa: E402
+from types import SimpleNamespace as _p8s_ns  # noqa: E402
+
+from heatpump_optimizer import const as _p8s_const  # noqa: E402
+from heatpump_optimizer.freq_control import (  # noqa: E402
+    FREQ_MODE_CONTROL as _P8S_CONTROL,
+    FREQ_SOURCE_NUMBER as _P8S_NUMBER,
+)
+
+# const.buffer_tank_surface_area's floor: a zero or negative volume is a
+# tiny real tank, never 0.0 m2 (a zero clamp range) or a complex number.
+_p8s_areas = [_p8s_const.buffer_tank_surface_area(v) for v in (0.0, -50.0)]
+R.check(
+    "a zero or negative tank volume still has a real, positive surface area",
+    all(isinstance(a, float) and _p8s_math.isfinite(a) and a > 0.0 for a in _p8s_areas),
+    f"{_p8s_areas!r}",
+)
+
+# InputReader.value: a STALE reading keeps its number (read() leaves it for a
+# caller that explicitly wants the last value) but value() must not hand it
+# out -- the default path treats stale as absent.
+_p8s_now = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
+_p8s_reader = InputReader(
+    FakeHass({"sensor.indoor": FakeState("21.4", last_updated=_p8s_now - timedelta(days=3))}),
+    {"indoor_temp_entity": "sensor.indoor"},
+    now=lambda: _p8s_now,
+)
+_p8s_stale = _p8s_reader.read("indoor_temp_entity")
+R.check(
+    "value() returns the default for a stale reading that still holds a number",
+    _p8s_stale.stale
+    and _p8s_stale.value == 21.4
+    and _p8s_reader.value("indoor_temp_entity", -99.0) == -99.0
+    and _p8s_reader.value("outdoor_temp_entity", -99.0) == -99.0,
+    f"stale={_p8s_stale.stale} held={_p8s_stale.value!r} "
+    f"value={_p8s_reader.value('indoor_temp_entity', -99.0)!r}",
+)
+_p8s_fresh = InputReader(
+    FakeHass({"sensor.indoor": FakeState("21.4", last_updated=_p8s_now - timedelta(minutes=5))}),
+    {"indoor_temp_entity": "sensor.indoor"},
+    now=lambda: _p8s_now,
+)
+_p8s_fresh.read("indoor_temp_entity")
+R.check(
+    "null control: value() returns a fresh reading's number",
+    _p8s_fresh.value("indoor_temp_entity", -99.0) == 21.4,
+    f"got {_p8s_fresh.value('indoor_temp_entity', -99.0)!r}",
+)
+
+# _track_curve_comfort folds YESTERDAY's worst margin when a new day starts.
+_p8s_cc = _Coord(_FakeHass(), _FakeEntry(data={**_P8_CFG, "curve_learning_enabled": True}))
+_p8s_cc._learning_frozen = lambda key: None
+_p8s_days = []
+_p8s_cc._curve_learner = _p8s_ns(
+    bias=0.0,
+    record_day=lambda now, worst: _p8s_days.append((now.date().isoformat(), worst)),
+    record_miss=lambda now, margin: None,
+)
+_p8s_cc._current_state.room_temperature = 21.5
+_p8s_cc._track_curve_comfort(datetime(2026, 1, 15, 12, 0, tzinfo=UTC))
+_p8s_first = _p8s_cc._curve_day_worst
+_p8s_cc._track_curve_comfort(datetime(2026, 1, 16, 12, 0, tzinfo=UTC))
+R.check(
+    "a new day folds the previous day's worst margin into the curve learner once",
+    _p8s_first is not None and _p8s_days == [("2026-01-16", _p8s_first)],
+    f"folded {_p8s_days!r}, first day worst {_p8s_first!r}",
+)
+
+
+_P8_CFG_NOW = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
+
+
+# _observe_frequency: the watchdog counts a divergence only while the plan
+# asks for the compressor AND the pump reads in its running range.
+def _p8s_watch(commanded_kw, reported_hz):
+    coord = _Coord(
+        _FakeHass(),
+        _FakeEntry(data={**_P8_CFG, "freq_control_mode": _P8S_CONTROL,
+                         "compressor_freq_entity": "number.freq"}),
+    )
+    seen = []
+    coord._freq_entity_reading = lambda: (reported_hz, 20.0, 120.0, _P8S_NUMBER)
+    coord._commanded_power = lambda: commanded_kw
+    coord._freq_watchdog = _p8s_ns(
+        note_report=lambda reported, active: seen.append(active) or False
+    )
+    coord._observe_frequency(_P8_CFG_NOW)
+    return seen
+
+
+R.check(
+    "an idle plan or a pump below its running range is not watched",
+    _p8s_watch(0.0, 45.0) == [False] and _p8s_watch(2.0, 10.0) == [False],
+    f"idle at 45 Hz -> {_p8s_watch(0.0, 45.0)}, running at 10 Hz -> {_p8s_watch(2.0, 10.0)}",
+)
+R.check(
+    "null control: a running plan with the pump in range is watched",
+    _p8s_watch(2.0, 45.0) == [True],
+    f"got {_p8s_watch(2.0, 45.0)}",
 )
 
 # --- One store capacity, read raw wherever it is read (round 7, D2-03) -----

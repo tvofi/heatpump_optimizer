@@ -23164,6 +23164,144 @@ R.check(
 _mut_shutil.rmtree(_MUT_PROBE_DIR, ignore_errors=True)
 
 
+# --- P8: every float() of an entity's state goes through a unit (#1513) -------
+#
+# The class: a number read off a Home Assistant State with its unit never
+# consulted, so an öre/kWh price reached the plan at 100x and a degF probe was
+# taken as degC. inputs.py holds the normalisers (price, temperature, power,
+# energy), so a read routed through one of them does its float() THERE and is
+# not a site here. The rule: in every package module but inputs.py, a call to
+# float() or _as_float() whose argument derives -- through local names -- from
+# a State's .state or .attributes, a State being hass.states.get(...), an
+# event's new_state/old_state, or a name bound to either. Every site it
+# returns is in the table below, keyed on (module, function, call text) and
+# matched exactly once, with the normaliser the function must also call (or
+# None) and the reason. Blind spot, stated: a value handed to ANOTHER function
+# before its float() -- the price arrays' _raw_value(item) -- is not followed;
+# that seam is closed in price_model and pinned by tests/features.py.
+_P8_ALLOWED = {
+    ("coordinator.py", "_on_power_event", "float(raw_state)"): (
+        "normalize_power_kw", "converted to kW by the entity's unit on the next line"),
+    ("coordinator.py", "_pv_measured_production", "float(state.state)"): (
+        "normalize_power_kw", "converted to kW by the entity's unit on the next line"),
+    ("coordinator.py", "_indoor_humidity_value", "float(state.state)"): (
+        None, "relative humidity is a dimensionless percent: there is no unit to resolve"),
+}
+
+
+def _p8_state_obj(n, objs):
+    if isinstance(n, ast.Name):
+        return n.id in objs
+    if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "get":
+        if isinstance(n.func.value, ast.Attribute) and n.func.value.attr == "states":
+            return True
+        return any(
+            isinstance(a, ast.Constant) and a.value in ("new_state", "old_state")
+            for a in n.args
+        )
+    return False
+
+
+def _p8_source(n, objs, vals):
+    if isinstance(n, ast.Name):
+        return n.id in vals
+    if isinstance(n, ast.Attribute) and n.attr in ("state", "attributes"):
+        return _p8_state_obj(n.value, objs)
+    return (
+        isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Name)
+        and n.func.id == "getattr"
+        and len(n.args) >= 2
+        and isinstance(n.args[1], ast.Constant)
+        and n.args[1].value in ("state", "attributes")
+        and _p8_state_obj(n.args[0], objs)
+    )
+
+
+def _p8_names(t):
+    if isinstance(t, ast.Name):
+        return [t.id]
+    if isinstance(t, (ast.Tuple, ast.List)):
+        return [x for e in t.elts for x in _p8_names(e)]
+    return _p8_names(t.value) if isinstance(t, ast.Starred) else []
+
+
+def _p8_float_sites(trees):
+    sites = []
+    for fname, tree in trees.items():
+        if fname == "inputs.py":
+            continue
+        for fn in ast.walk(tree):
+            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            binds = []
+            for n in ast.walk(fn):
+                if isinstance(n, (ast.Assign, ast.AnnAssign, ast.NamedExpr)) and n.value:
+                    tg = n.targets if isinstance(n, ast.Assign) else [n.target]
+                    binds.append((n.value, [x for t in tg for x in _p8_names(t)]))
+                elif isinstance(n, (ast.For, ast.AsyncFor, ast.comprehension)):
+                    binds.append((n.iter, _p8_names(n.target)))
+            objs = {a.arg for a in fn.args.args if a.arg in ("state", "new_state")}
+            vals = set()
+            for _ in range(4):
+                for value, names in binds:
+                    if _p8_state_obj(value, objs):
+                        objs.update(names)
+                    elif any(_p8_source(s, objs, vals) for s in ast.walk(value)):
+                        vals.update(names)
+            called = {
+                c.func.attr if isinstance(c.func, ast.Attribute) else c.func.id
+                for c in ast.walk(fn)
+                if isinstance(c, ast.Call) and isinstance(c.func, (ast.Attribute, ast.Name))
+            }
+            for n in ast.walk(fn):
+                if (
+                    isinstance(n, ast.Call)
+                    and isinstance(n.func, ast.Name)
+                    and n.func.id in ("float", "_as_float")
+                    and n.args
+                    and any(_p8_source(s, objs, vals) for s in ast.walk(n.args[0]))
+                ):
+                    sites.append(((fname, fn.name, ast.unparse(n)), called))
+    return sites
+
+
+def _p8_refusals(sites):
+    keys = [k for k, _ in sites]
+    bad = [f"{k} is not dispositioned" for k in keys if k not in _P8_ALLOWED]
+    bad += [f"{k} matches {keys.count(k)} sites" for k in set(keys) if keys.count(k) > 1]
+    bad += [f"{k} is dispositioned but no longer a site" for k in _P8_ALLOWED if k not in keys]
+    bad += [
+        f"{k} claims {_P8_ALLOWED[k][0]} but its function never calls it"
+        for k, called in sites
+        if k in _P8_ALLOWED and _P8_ALLOWED[k][0] and _P8_ALLOWED[k][0] not in called
+    ]
+    return sorted(set(bad))
+
+
+_p8_sites = _p8_float_sites(_PKG_TREES)
+for _p8_key, _ in _p8_sites:
+    print(f"  .. P8 site {_p8_key}: {_P8_ALLOWED.get(_p8_key, ('UNDISPOSITIONED',))[0]}")
+R.check(
+    "every float() of an entity's state outside inputs.py is normalised or dispositioned (#1513)",
+    _p8_sites and _p8_refusals(_p8_sites) == [],
+    f"{len(_p8_sites)} site(s); " + "; ".join(_p8_refusals(_p8_sites)),
+)
+_p8_probe = ast.parse(
+    "def _export(self):\n"
+    "    state = self.hass.states.get('sensor.x')\n"
+    "    raw = getattr(state, 'state', None)\n"
+    "    return float(raw)\n"
+    "def _humid(hass):\n"
+    "    return float(hass.states.get('sensor.h').state)\n"
+)
+R.check(
+    "null control: a bare read, direct or through a local, is refused",
+    len(_p8_refusals(_p8_sites + _p8_float_sites({"probe.py": _p8_probe}))) == 2,
+    f"{_p8_refusals(_p8_float_sites({'probe.py': _p8_probe}))}",
+)
+
+
 # --- the replay lane's cheap half, on every pull request (round 8, move 2) ---
 #
 # `tests/replay.py` replays recorded days nightly. What it would take a night to
