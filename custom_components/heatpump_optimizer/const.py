@@ -77,7 +77,7 @@ CONF_DHW_TEMP_ENTITY: Final = "dhw_temp_entity"
 
 # --- Measured electrical draw (item 6) -------------------------------------
 #
-# ``CONF_HEAT_PUMP_MAX_POWER`` / ``MIN_POWER`` are nameplate limits, and the
+# ``CONF_HEAT_PUMP_MAX_POWER`` / ``CONF_HEAT_PUMP_MIN_POWER`` are nameplate limits, and the
 # "Recommended Power" sensor publishes what the optimizer is *commanding*.
 # Neither is a measurement. An optional real power entity closes that gap: it
 # makes COP observable, lets predicted cost be checked against reality, and
