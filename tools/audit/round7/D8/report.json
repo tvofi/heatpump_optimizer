@@ -11,7 +11,7 @@
    "claim": "SensorGapAdvisorSensor reads coordinator.data['house_power_series'] and ['heat_pump_power_series'], but _build_data_dict never writes either key, so on a real install the missing house-power meter always ranks 0.00 SEK/month instead of the ~30.00 the series would price.",
    "mechanism": "sensor.py:2825-2826 reads house_power_series/heat_pump_power_series from coordinator.data; topology.rank_sensor_gaps -> peak_miss_sek -> _window_peak returns 0.0 for an empty series, and native_value filters out a 0.0 gap, publishing 0.0. The only producers of the two keys in the whole tree are tests/entities.py fixtures (_gap_load_data), which is why the gap tests stay green against a fake coordinator while the production payload carries neither.",
    "evidence": {
-    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/gap_series.py  (run from /Users/timmalmstrom/audit-r7-baseline)",
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/gap_series.py  (run from ~/audit-r7-baseline)",
     "harness_path": "tools/audit/round7/D8/gap_series.py",
     "value": 0.0,
     "unit": "SEK/month (house-power slot, house-power entity unconfigured)",
@@ -39,7 +39,7 @@
     "note": "Same harness with the two series present: gap_house_power_sek_per_month_with_series=30.0. The effect is absent exactly when the series exists, so the 0.0 is a property of the missing keys, not of the ranking function."
    },
    "reproduction_steps": [
-    "cd /Users/timmalmstrom/audit-r7-baseline",
+    "cd ~/audit-r7-baseline",
     "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/gap_series.py",
     "read RESULT series_keys_present=0, gap_house_power_sek_per_month=0.0, gap_house_power_sek_per_month_with_series=30.0"
    ],
@@ -57,7 +57,7 @@
    "claim": "DHWSetpointAdvisorSensor is the only hot-water sensor not wrapped in _DHWEntityMixin, so a no-DHW install ships it enabled by default while it is permanently unavailable (1 of 59 sensors), where the five mixin-wrapped DHW entities correctly ship off.",
    "mechanism": "_DHWEntityMixin.entity_registry_enabled_default returns dhw_enabled, and its available gates on data['dhw_enabled']; the five entities that inherit it (dhw_cost, dhw_energy, dhw_heating_cost, dhw_heating_schedule, plan_dhw_heating) are therefore disabled by default without DHW. DHWSetpointAdvisorSensor (sensor.py:2361) extends HeatPumpOptimizerSensorBase directly, declares no _attr_entity_registry_enabled_default, and its available requires dhw_advisor.recommended_setpoint, which _build_data_dict emits only when DHW is on.",
    "evidence": {
-    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/dhw_advisor_default.py  (run from /Users/timmalmstrom/audit-r7-baseline)",
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/dhw_advisor_default.py  (run from ~/audit-r7-baseline)",
     "harness_path": "tools/audit/round7/D8/dhw_advisor_default.py",
     "value": 1,
     "unit": "DHW-gated sensor entities shipped enabled-by-default on a no-DHW install",
@@ -85,7 +85,7 @@
     "note": "The five _DHWEntityMixin entities ship off without DHW (dhw_entities_off_by_default_without_dhw=5), and the fixed variant flips to False on the no-DHW coordinator (fixed_dhw_setpoint_advisor_enabled_default=False) \u2014 so the count of 1 is the gap, not the census method."
    },
    "reproduction_steps": [
-    "cd /Users/timmalmstrom/audit-r7-baseline",
+    "cd ~/audit-r7-baseline",
     "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D8/dhw_advisor_default.py",
     "read RESULT dhw_gated_enabled_by_default=1 (DETAIL dhw_setpoint_advisor) and RESULT fixed_dhw_setpoint_advisor_enabled_default=False"
    ],

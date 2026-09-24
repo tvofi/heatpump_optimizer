@@ -469,6 +469,21 @@ def _publish_arm() -> None:
         print(f"RESULT publish_{platform}_leaks={len(leaks)} count")
 
 
+def _no_rewrap_check() -> None:
+    """The base wraps a published property once. A subclass that re-exports an
+    inherited, already-scrubbed property in its own namespace must reuse that
+    wrapper, not stack a second one per level (``_finite_scrubbed``)."""
+    from heatpump_optimizer import sensor
+
+    parent = sensor.CurrentPriceSensor
+    alias = type("_AliasedPrice", (parent,), {"native_value": parent.native_value})
+    R.check(
+        "an inherited scrubbed property re-exported by a subclass is not wrapped twice",
+        alias.native_value.fget is parent.native_value.fget,
+        "the subclass's native_value was re-wrapped around the parent's wrapper",
+    )
+
+
 def _main() -> int:
     disk = _healthy_payloads()
     by_name = {}
@@ -589,6 +604,7 @@ def _main() -> int:
     print(f"RESULT type_drift_total={type_drift} count")
     print(f"RESULT refresh_escape_total={refresh_escape} count")
     _publish_arm()
+    _no_rewrap_check()
     return R.close("FINITE BOUNDARY CHECKS")
 
 

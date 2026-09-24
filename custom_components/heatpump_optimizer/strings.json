@@ -1633,6 +1633,10 @@
       "title": "Disinfection goes above your hot water charge limit",
       "description": "The anti-legionella cycle is set to {legionella_temp} °C, which is above the {setpoint} °C you set as the highest tank temperature to charge to. That is allowed and nothing is wrong: every {interval_days} days the tank is taken up to {legionella_temp} °C for the cycle, and the rest of the time it is never charged above {setpoint} °C. This notice is here so the one hot day a week does not come as a surprise. Raise the charge limit, lower the disinfection temperature, or switch the cycle off to change it."
     },
+    "price_unit_unrecognised": {
+      "title": "A price entity reports a unit the optimizer cannot read",
+      "description": "{entity} reports its price in {unit}. The optimizer reads a price as a currency or its hundredth (öre, cent) per kWh, MWh or Wh, and cannot tell what this unit means, so it uses the number exactly as published, as it always has. If that is not a price per kWh in whole currency units, the plan is priced wrongly. Choose a price sensor, or a sensor option, whose unit is one of those forms and this notice clears on the next planning cycle."
+    },
     "grid_fee_magnitude": {
       "title": "A configured grid fee looks 100× too large",
       "description": "The grid fee layer contains a rate of {rate} {currency}/kWh (from the {source} input). Transfer fees run a few tenths of a {currency} per kWh, so a value this size is almost always öre or cents entered where whole {currency} were meant — 25 instead of 0.25. Nothing is changed or capped: the plan keeps pricing with exactly the value configured. Correct the value under the DSO fee options (or fix the fee sensor) and this notice clears on the next planning cycle."

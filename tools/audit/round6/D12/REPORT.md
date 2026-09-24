@@ -1,6 +1,6 @@
 # D12 — Generalization — audit round 6
 
-Baseline `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9), export `/Users/timmalmstrom/audit-r6-baseline`. Interpreter system `python3` (3.11.5). Threads pinned before numpy; `thread_factor=1.0`, `load1` 8.5–13.4 (shared box), `cpu_seconds` provisional.
+Baseline `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9), export `~/audit-r6-baseline`. Interpreter system `python3` (3.11.5). Threads pinned before numpy; `thread_factor=1.0`, `load1` 8.5–13.4 (shared box), `cpu_seconds` provisional.
 
 > Reconstructed by the orchestrator from the finder's inline return (the subagent report-file guard refused REPORT.md; 8 harnesses on disk).
 

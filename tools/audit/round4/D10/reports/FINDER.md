@@ -1,7 +1,7 @@
 # D10 — Home Assistant integration quality scale (audit round 4)
 
 - **Baseline**: `7dd68dd327fe3dbfb09f3bd0fe38910c58877697`
-- **Tree**: `/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-r4-baseline` (export, no `.git`)
+- **Tree**: `~/heatpump_optimizer/.claude/worktrees/audit-r4-baseline` (export, no `.git`)
 - **Box**: 8-core Apple M1, 8 GB, macOS 25.6.0. Shared with the other round-4
   finders throughout; `load1` at the measurements below ran 4.1 – 13.9. Every
   number in this report is a **count or a ratio** (rules, statements, error

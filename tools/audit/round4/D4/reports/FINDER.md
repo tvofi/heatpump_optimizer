@@ -2,7 +2,7 @@
 
 - dimension: D4, the card and the config flow
 - baseline: `7dd68dd327fe3dbfb09f3bd0fe38910c58877697`
-- tree: `/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-r4-baseline` (export, no `.git`)
+- tree: `~/heatpump_optimizer/.claude/worktrees/audit-r4-baseline` (export, no `.git`)
 - box: 8-core Apple M1, 8 GB, macOS 25.6.0; node v20.10.0; Playwright 1.49.0
   from `/private/tmp/hpo-pw/node_modules`; Chromium `chromium-1148`
   (HeadlessChrome 131.0.6778.33) from `$HOME/.cache/pw-browsers`

@@ -1,6 +1,6 @@
 # D5 — docs structure, flow and content; code comments — audit round 6
 
-Baseline `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9), export `/Users/timmalmstrom/audit-r6-baseline`. Machine 8-core Apple M1, 8 GB. All load/CPU numbers provisional (shared box); all counts exact.
+Baseline `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9), export `~/audit-r6-baseline`. Machine 8-core Apple M1, 8 GB. All load/CPU numbers provisional (shared box); all counts exact.
 
 > This report was reconstructed from the finder's inline return by the orchestrator — the finder's Write of REPORT.md did not land on disk (its six harnesses did).
 

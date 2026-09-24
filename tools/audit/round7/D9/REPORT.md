@@ -1,7 +1,7 @@
 # D9 — CPU and memory efficiency, round 7
 
 Baseline `f9d6f78243fa65f6fa128d2357752a2ae7f60648` (round-6 fix wave fully
-merged), measured in `/Users/timmalmstrom/audit-r7-D9` with
+merged), measured in `~/audit-r7-D9` with
 `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3` and
 `PYTHONPATH=tests/hastub`, always from that root. Box: 8-core Apple M1, 8 GB,
 shared with other finders (`load1` between 3.1 and 4.3 on every run, quoted in

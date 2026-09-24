@@ -1,6 +1,6 @@
 # D7 round 4 — verifier 3 of 3 (seat re-run)
 
-- worktree: `/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D7-3`
+- worktree: `~/.zcode/workspace/default/audit-r4-verify-D7-3`
   (detached at `3e91f85`, branch head of `claude/13-dimension-audit-920935`;
   findings were measured at baseline `7dd68dd` — per-cell reasons and all
   counts reproduce identically at the head)

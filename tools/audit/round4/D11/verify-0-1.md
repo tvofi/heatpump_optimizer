@@ -1,6 +1,6 @@
 # D11 round 4 — verifier seat 1 report
 
-- **worktree** `/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D11-1`, detached at `0855277` (branch head; 25 commits past the baseline `7dd68dd`, merge of origin/main)
+- **worktree** `~/.zcode/workspace/default/audit-r4-verify-D11-1`, detached at `0855277` (branch head; 25 commits past the baseline `7dd68dd`, merge of origin/main)
 - **date** 2026-09-12, measured 15:24–16:05 UTC
 - **interpreter** `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3`, `PYTHONPATH=tests/hastub`, from the worktree root; node v20.10.0
 - **stance** refute-first; every finding re-measured with a harness I wrote myself (`d11_own_D11-0*.py`, beside the finder's) plus a re-run of every finder harness exactly as its header commands

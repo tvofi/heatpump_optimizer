@@ -1,7 +1,7 @@
 # D13 — process yield and cost (round 7)
 
 Baseline `f9d6f78243fa65f6fa128d2357752a2ae7f60648`, worktree
-`/Users/timmalmstrom/audit-r7-D13`. Machine: Apple M1, 8-core, 8 GB, macOS
+`~/audit-r7-D13`. Machine: Apple M1, 8-core, 8 GB, macOS
 25.6.0 — the shared audit box, during fan-out. Every number below is a **count**
 (call counts, shape counts, exit codes) and therefore final under fan-out
 contention; no wall/CPU/RSS number is reported, so none is provisional.
@@ -289,7 +289,7 @@ sets, per the brief.
 | `gov_cost.py` | `tools/audit/round4/D11/governance_cost.py` and its `GOV` set, re-derived from `.github/workflows/` | `PYTHONPATH=tests/hastub python3 tools/audit/round7/D13/gov_cost.py --perturb` |
 | `class_vocabulary.mjs` | `policy_lint.mjs:statsHistogram` + `web-fix-wave.js:parseVerdict`/`VERDICT_CLASSES` | `node tools/audit/round7/D13/class_vocabulary.mjs --perturb` |
 
-All four run from `/Users/timmalmstrom/audit-r7-D13` with
+All four run from `~/audit-r7-D13` with
 `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3` and
 `node v20.10.0`; `d13lib.py` is their shared plumbing (cached, failure-counted
 `gh api`, importing `d11lib.py`'s `check_runs` **verbatim** so a D13 figure and

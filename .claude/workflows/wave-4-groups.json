@@ -10,12 +10,12 @@
     "#412 stays last of the programme, after Wave 5 — not in this roster.",
     "#457 / 3L-G6 is not Wave 4. Do not invent a setup conflict flow.",
     "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument.",
-    "Per-group worker briefs lived out of tree under /Users/timmalmstrom/wt/briefs/w4-gN-*.md while the wave ran."
+    "Per-group worker briefs lived out of tree under ~/wt/briefs/w4-gN-*.md while the wave ran."
   ],
   "fork": "e08213659322cc03857533b418b3145a4f0f1d9b origin/main after the W4-G14 close-out merged (#740). Wave 4 is closed; no later Wave 4 branch is cut from this roster. coordinator_loc ceiling = the merge base, never raised from here; claims-for = the repo-root VERSION file at a merge base, never a literal from here. Next seat: none in Wave 4 -- Wave 5 runs from wave-5-groups.json.",
   "fork_note": "origin/main after W4-G2 #500 (`67e1cf3`). Cut later Wave 4 branches from this SHA (or later origin/main). Re-measure structure at the seat's merge-base. coordinator_loc ceiling 10344, coordinator_attrs 175. claims-for stays 6.3.15. Next seat W4-G3. #377 closed. #412 not in this wave.",
   "session": "claude-web",
-  "repo": "/Users/timmalmstrom/heatpump_optimizer",
+  "repo": "~/heatpump_optimizer",
   "serial": true,
   "struck": [
     {

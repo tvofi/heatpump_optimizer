@@ -1,7 +1,7 @@
 # D5 — docs structure, flow and content; comments in code
 
 - **baseline**: `7dd68dd327fe3dbfb09f3bd0fe38910c58877697`
-- **tree**: `/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-r4-baseline` (export, no `.git`)
+- **tree**: `~/heatpump_optimizer/.claude/worktrees/audit-r4-baseline` (export, no `.git`)
 - **machine**: Apple M1, 8 core, 8 GB, macOS 25.6. Shared with the other round-4
   finders throughout; `load1` ran 2.4–12.6. Every number below is a **count over
   file bytes or over one builder call** — contention-immune by construction. No

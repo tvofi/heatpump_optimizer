@@ -2,7 +2,7 @@
 
 - baseline: `7dd68dd327fe3dbfb09f3bd0fe38910c58877697`
 - tree: the read-only export at
-  `/Users/timmalmstrom/heatpump_optimizer/.claude/worktrees/audit-r4-baseline`
+  `~/heatpump_optimizer/.claude/worktrees/audit-r4-baseline`
   (no `.git`); nothing under `custom_components/` or `tests/` was modified.
 - interpreter: `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3`,
   always `PYTHONPATH=tests/hastub` (plus `/tmp/d8pkgs` for `orjson`), always
