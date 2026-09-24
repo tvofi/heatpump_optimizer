@@ -22702,6 +22702,8 @@ def _p8_refusals(sites):
 
 
 _p8_sites = _p8_float_sites(_PKG_TREES)
+for _p8_key, _ in _p8_sites:
+    print(f"  .. P8 site {_p8_key}: {_P8_ALLOWED.get(_p8_key, ('UNDISPOSITIONED',))[0]}")
 R.check(
     "every float() of an entity's state outside inputs.py is normalised or dispositioned (#1513)",
     _p8_sites and _p8_refusals(_p8_sites) == [],
