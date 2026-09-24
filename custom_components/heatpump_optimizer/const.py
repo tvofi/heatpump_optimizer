@@ -447,6 +447,11 @@ CONF_PEAK_TARIFF_WEEKDAYS_ONLY: Final = "peak_tariff_weekdays_only"
 DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY: Final = False
 CONF_PEAK_TARIFF_OFFPEAK_FACTOR: Final = "peak_tariff_offpeak_factor"
 DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR: Final = 1.0
+# The k billed peaks fall on k different days (#1512). On by default: the
+# Swedish tariffs this models bill that way, and at one peak averaged the
+# rule changes nothing.
+CONF_PEAK_TARIFF_DISTINCT_DAYS: Final = "peak_tariff_distinct_days"
+DEFAULT_PEAK_TARIFF_DISTINCT_DAYS: Final = True
 
 # Risk-adjusted pricing on the unpublished horizon (#34). λ = 0 keeps the
 # prior's mean pricing; the sigma vector still rides along for display.

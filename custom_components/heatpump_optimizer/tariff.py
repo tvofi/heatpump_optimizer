@@ -106,6 +106,12 @@ class CapacityTariff:
     #: (the flat model); 0.5 = the common half-rate night peak; 0.0 =
     #: off-peak hours are free.
     offpeak_factor: float = 1.0
+    #: The k billed peaks fall on k different days (#1512): a day
+    #: contributes only its highest window, so one cold morning is one peak,
+    #: not three. Both catalog DSOs bill this way ("de tre högsta topparna
+    #: fördelat på tre olika dygn"). Inert at ``peaks_averaged`` 1, where the
+    #: highest window is the highest day's.
+    distinct_days: bool = True
 
     @property
     def marginal_price_per_kw(self) -> float:
@@ -167,6 +173,11 @@ class PeakTracker:
     month: str = ""
     #: Highest billed-equivalent window averages seen this month, descending.
     peaks: list[float] = field(default_factory=list)
+    #: The local date of each entry in ``peaks``, index for index (#1512).
+    #: ``""`` is a peak whose day is unknown -- a store written before the
+    #: field -- and is never merged with another, which bills it exactly as
+    #: the per-window tracker did until the month rolls over.
+    peak_days: list[str] = field(default_factory=list)
     #: The measured whole-house readings behind ``peaks``, newest last, one
     #: per CYCLE and bounded at `accuracy.HISTORY_LENGTH` like the pump's own
     #: window -- the payload's ``house_power_series`` (#1460). A live
@@ -223,6 +234,7 @@ class PeakTracker:
             # already billed and constrain nothing.
             self.month = month
             self.peaks = []
+            self.peak_days = []
             self._window_key = ""
             self._window_sum = 0.0
             self._window_samples = 0
@@ -291,12 +303,19 @@ class PeakTracker:
             # off-peak hours that are free). Contributing nothing is the
             # point; contributing zero would be a discount.
             return
-        self.peaks.append(average * self._window_factor)
-        self.peaks.sort(reverse=True)
+        days = self.peak_days[: len(self.peaks)]
+        ranked = list(zip(self.peaks, days + [""] * (len(self.peaks) - len(days))))
+        # The window key opens with the slot's local date, and a slot never
+        # crosses midnight: ``_window_slot`` anchors every window there.
+        ranked.append((average * self._window_factor, self._window_key[:10]))
+        if tariff.distinct_days:
+            ranked = _one_per_day(ranked)
+        ranked.sort(key=lambda entry: entry[0], reverse=True)
         # Keep a little more than the billed count so that a later correction
         # (a retracted sample) does not lose the runner-up.
-        keep = max(tariff.peaks_averaged * 2, 6)
-        del self.peaks[keep:]
+        del ranked[max(tariff.peaks_averaged * 2, 6):]
+        self.peaks = [kw for kw, _ in ranked]
+        self.peak_days = [day for _, day in ranked]
 
     # -- reporting ----------------------------------------------------------
 
@@ -313,6 +332,10 @@ class PeakTracker:
 
         Once the month has ``peaks_averaged`` peaks recorded, this is the
         lowest of them: anything under it displaces nothing and is free.
+        Under ``distinct_days`` a peak is a day's highest window (#1512), so
+        this is the k-th highest DAY. It is deliberately not raised to the
+        current day's own maximum, below which a window today is also free:
+        the plan this feeds runs past midnight, and tomorrow has no maximum.
 
         Before that there is no reference, and the honest answer is *not*
         zero. Treating every kW as a brand-new peak makes the capacity term
@@ -345,6 +368,7 @@ class PeakTracker:
         return {
             "month": self.month,
             "peaks": [round(p, 3) for p in self.peaks],
+            "peak_days": list(self.peak_days),
             "window_key": self._window_key,
             "window_sum": self._window_sum,
             "window_samples": self._window_samples,
@@ -359,23 +383,9 @@ class PeakTracker:
         if not isinstance(data, dict):
             return tracker
         tracker.month = str(data.get("month", ""))
-        peaks = data.get("peaks")
-        if isinstance(peaks, list):
-            # R5-D1-05 (#1296): a non-finite peak survives `float()` and
-            # poisons the billed-peak average and `threshold_kw` (an inf
-            # peak disarms the capacity term). Dropped per entry; the
-            # finite ones are real evidence and stay.
-            for p in peaks:
-                if not isinstance(p, (int, float)):
-                    continue
-                try:
-                    value = float(p)
-                except OverflowError:  # a huge JSON int
-                    continue
-                if not math.isfinite(value):
-                    continue
-                tracker.peaks.append(value)
-            tracker.peaks.sort(reverse=True)
+        ranked = _stored_peaks(data.get("peaks"), data.get("peak_days"))
+        tracker.peaks = [kw for kw, _ in ranked]
+        tracker.peak_days = [day for _, day in ranked]
         tracker._window_key = str(data.get("window_key", ""))
         try:
             tracker._window_sum = float(data.get("window_sum", 0.0))
@@ -413,6 +423,47 @@ class PeakTracker:
             tracker._window_wsum = 0.0
             tracker._window_weight = 0.0
         return tracker
+
+
+def _one_per_day(ranked: list[tuple[float, str]]) -> list[tuple[float, str]]:
+    """Each dated day's highest entry, plus every undated one (#1512)."""
+    best: dict[str, tuple[float, str]] = {}
+    undated: list[tuple[float, str]] = []
+    for kw, day in ranked:
+        if not day:
+            undated.append((kw, day))
+        elif day not in best or kw > best[day][0]:
+            best[day] = (kw, day)
+    return undated + list(best.values())
+
+
+def _stored_peaks(peaks: Any, days: Any) -> list[tuple[float, str]]:
+    """A persisted peak list and its day labels, descending, finite only.
+
+    R5-D1-05 (#1296): a non-finite peak survives ``float()`` and poisons the
+    billed-peak average and ``threshold_kw`` (an inf peak disarms the
+    capacity term), so it is dropped per entry with its label; the finite
+    ones are real evidence and stay. A store written before ``peak_days``
+    (#1512), or one whose labels are not a list of strings, loads every
+    unlabelled peak as undated: billed as the per-window tracker did.
+    """
+    if not isinstance(peaks, list):
+        return []
+    labels = days if isinstance(days, list) else []
+    ranked: list[tuple[float, str]] = []
+    for index, p in enumerate(peaks):
+        if not isinstance(p, (int, float)):
+            continue
+        try:
+            value = float(p)
+        except OverflowError:  # a huge JSON int
+            continue
+        if not math.isfinite(value):
+            continue
+        day = labels[index] if index < len(labels) else ""
+        ranked.append((value, day if isinstance(day, str) else ""))
+    ranked.sort(key=lambda entry: entry[0], reverse=True)
+    return ranked
 
 
 def metering_windows(
@@ -731,7 +782,10 @@ def peak_cost(
     peak, but only windows that end the *month* in the top k actually do.
     Early in a month that is usually true; late in a high-peak month it
     over-charges and the plan is more peak-shy than strictly necessary —
-    the conservative side of the error.
+    the conservative side of the error. It also ranks windows, not days:
+    k high windows on one morning are charged k times here, where a
+    distinct-days tariff bills that morning once (#1512). The day rule lives
+    in ``PeakTracker``, whose threshold this term is charged against.
 
     Only the excess above the threshold is charged: if the month already has a
     9 kW peak recorded, an 8 kW hour changes nothing and costs nothing.

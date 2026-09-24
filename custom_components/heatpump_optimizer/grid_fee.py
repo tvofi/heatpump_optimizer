@@ -43,6 +43,7 @@ from .const import (
     CONF_GRID_FEE_MODE,
     CONF_GRID_FEE_RULES,
     CONF_PEAK_TARIFF_COUNT,
+    CONF_PEAK_TARIFF_DISTINCT_DAYS,
     CONF_PEAK_TARIFF_ENABLED,
     CONF_PEAK_TARIFF_HOURS,
     CONF_PEAK_TARIFF_MONTHS,
@@ -457,6 +458,7 @@ SWEDEN_CATALOG: dict[str, dict[str, Any]] = {
         "peak_tariff_price_per_kw": 81.25,
         "peak_tariff_peaks_averaged": 3,
         "peak_tariff_offpeak_factor": 0.5,
+        "peak_tariff_distinct_days": True,
     },
     "goteborg_energi_effekt_2026": {
         "label": "Göteborg Energi — villa elnätsavgift (2026)",
@@ -469,6 +471,7 @@ SWEDEN_CATALOG: dict[str, dict[str, Any]] = {
         "peak_tariff_price_per_kw": 49.0,
         "peak_tariff_peaks_averaged": 3,
         "peak_tariff_offpeak_factor": 1.0,
+        "peak_tariff_distinct_days": True,
     },
 }
 
@@ -511,4 +514,6 @@ def apply_catalog(product_id: str | None) -> dict[str, Any] | None:
         CONF_PEAK_TARIFF_OFFPEAK_FACTOR: row.get(
             "peak_tariff_offpeak_factor", DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR
         ),
+        # #1512: both sourced rows quote "fördelat på tre olika dygn".
+        CONF_PEAK_TARIFF_DISTINCT_DAYS: row["peak_tariff_distinct_days"],
     }

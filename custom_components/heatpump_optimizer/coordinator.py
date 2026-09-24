@@ -182,6 +182,8 @@ from .const import (
     DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
     CONF_PEAK_TARIFF_OFFPEAK_FACTOR,
     DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
+    CONF_PEAK_TARIFF_DISTINCT_DAYS,
+    DEFAULT_PEAK_TARIFF_DISTINCT_DAYS,
     CONF_PRICE_RISK_LAMBDA,
     DEFAULT_PRICE_RISK_LAMBDA,
     CONF_CONTRACT_FIXED_PRICE,
@@ -7506,11 +7508,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     def _capacity_tariff(self) -> CapacityTariff:
         ctx = getattr(self, "_ctx", self)
+        cfg = ctx._config
         return CapacityTariff(
             enabled=bool(
-                ctx._config.get(
-                    CONF_PEAK_TARIFF_ENABLED, DEFAULT_PEAK_TARIFF_ENABLED
-                )
+                cfg.get(CONF_PEAK_TARIFF_ENABLED, DEFAULT_PEAK_TARIFF_ENABLED)
             ),
             price_per_kw=_as_float(
                 ctx._config.get(CONF_PEAK_TARIFF_PRICE),
@@ -7536,6 +7537,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
                 )
             ),
+            distinct_days=bool(cfg.get(CONF_PEAK_TARIFF_DISTINCT_DAYS, DEFAULT_PEAK_TARIFF_DISTINCT_DAYS)),
             offpeak_factor=_as_float(
                 ctx._config.get(CONF_PEAK_TARIFF_OFFPEAK_FACTOR),
                 DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
