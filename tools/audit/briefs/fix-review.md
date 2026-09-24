@@ -6,7 +6,7 @@ implementations on this project looked right and were wrong, one worse than
 its bug. You are checking that the numbers are real.
 **That worktree holds this contract as well as the tree and is frozen by design, so your copy can be arbitrarily old** — and `preflight.sh` warns only before a push a reviewer never makes.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- tools/audit/briefs/`; empty is current.
-Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"), prepare against the merge base only, no head measurement; steps 2, 12 govern after. Hand the verdict text to the orchestrator, who posts it as `tvofi` -- never as either App (#1233's defect), never the owner's approving review (owner-only, GitHub-side) -- citing an evidence directory that exists on this box, is non-empty, and names the head SHA, which `tools/audit/app_approve.sh` requires (decision 0011).
+Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"), prepare against the merge base only, no head measurement; steps 2, 12 govern after. Hand the verdict text to the orchestrator, who posts it as `hpo-approver` via `app_comment.sh` -- never as the author App (#1233's defect), never the owner's approving review (owner-only, GitHub-side) -- citing an evidence directory on this box, non-empty and naming the head SHA, as `app_approve.sh` requires (decision 0013).
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
    run the closure, confirm the named checks fail, restore. If nothing fails,
@@ -72,14 +72,9 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
     lane prints `MUTATION TABLE INCONCLUSIVE` and exits 0 on `--scope changed`
     when its baseline is red, so a green conclusion means either no mutant
     survived or none was evaluated, and only the run's own log separates them.
-    The second branch is covered by no required check: the baseline's drivers
-    are **not** the scoped gate's selection, and on a diff that changes no
-    production file `scope_files` falls back to the closure of the changed test
-    scripts -- on #1120's own diff, 8 drivers against `scope.run`'s 1 script.
-    Re-derive that pair at your own base before relying on either number:
-    `mutation_table.scope_files("changed", base)` with `drivers_for`, against
-    `python3 tests/closure.py select --diff <merge-base>`. Where the answer
-    turns on it, read the lane's log rather than its conclusion.
+    A diff that writes no production code line draws no mutant at all
+    (`changed_lines`). Where the answer turns on it, read the lane's log
+    rather than its conclusion.
 
 12. **Re-read the head before you post.** Name the SHA you measured in the
     verdict, and check it is still the head when you post it. A branch that

@@ -552,6 +552,10 @@ const CORPUS_EXCLUDED = new Set([
   // yet; the line is paid here anyway, per this list's own rule that the
   // next ADR costs a line regardless of citation.
   'docs/decisions/0012-process-diet-and-round-cadence.md',
+  // The verdict-identity record (the owner's ruling of 2026-09-24): verdicts
+  // post as the `hpo-approver` App, budget files are code-owned. Named one by
+  // one per the rule above; cited by no capped file, so TOTAL stays at 0.
+  'docs/decisions/0013-verdicts-post-as-the-approver-app.md',
   // Round-evidence exclusions (finder reports and round baselines) are DATA,
   // not source: they live in .claude/workflows/corpus_excluded.json and are
   // merged into this set below. They are not here because the `policy-docs`
