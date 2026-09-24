@@ -466,11 +466,6 @@
       "old": "            return jointly_raised",
       "reason": "arrived with round 7 D0-01 (#1447)'s scope, drawn not introduced: a new module constant and a new guard reshuffle the seeded per-file sample over optimizer.py. NOT equivalent, and the round-5 verdict that said so is withdrawn -- its premise (the tank trajectory is non-decreasing in a slot's power) was measured at draw rates under 0.004 kW, three orders below production, and fails there: 1007 of 5760 single-slot raises lower the tank, worst by 8.29 K, because the coil carries part of the draw. Killed by tests/features.py's `the jointly-raised branch ships when the coil is not monotone (R7 D0-01)` block: a 48.19 L tank, a 13.65 kW peak draw, tank at 35.9 C and weak slots 67-70 -- the branch raises all four to run_power 0.6, the fall-through loop zeroes slot 69. Deleting the branch's return reddens that check: FAIL every weak slot is raised, none zeroed, in the branch-taken case [slots 67-70 -> [0.6, 0.6, 0.0, 0.6], run_power 0.6], 1 of 3105. Survival measured UNMARKED with 19 drivers in the recorded net before the pin existed."
     },
-    "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._dhw_coil_wood_forecast CLAMP_DROP b0026abf": {
-      "killed_by": "tests/features.py",
-      "old": "            out[i + 1] = max(inlet, out[i + 1] - drained)",
-      "reason": "R8-P3: the wood-coil forecast's carried drain. `(inlet)` pins every served step's wood at the inlet reference, so the coil is credited nothing. Measured in a git-less copy of 7c50f736 (null 1 of 3192): 4 of 3192 FAILED, among them `the DHW planner buys less electricity with a hot wood-tank coil` (7.082905 vs 7.082905 kWh), `a wood tank under the floor draws the coil's own heat, per step` and `the coil's drain on the wood forecast carries forward`. Deleting the line instead (the pre-fix drain) fails `and the credited plan still clears dhw_min_temp inside every demand window` (44.42) and the two drain checks."
-    },
     "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._optimize_space_only GUARD_OFF 6a3be0ea": {
       "killed_by": "tests/optimality.py",
       "old": "        if self.model.params.two_zone_enabled:",
