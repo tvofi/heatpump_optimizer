@@ -883,8 +883,9 @@ class AdoptionDecision:
     admit: bool
     #: The blend weight the adopted scale enters with; 0.0 on a refusal.
     weight: float
-    #: The fitted UA over the configured base UA; None on a refusal.
-    scale: float | None
+    #: The fitted UA over the configured base UA; 0.0 on a refusal, whose
+    #: weight is 0.0 too.
+    scale: float
     #: Published as the result's reason: "adopted", or why not (#942, #1525).
     reason: str
 
@@ -903,7 +904,7 @@ def adoption_decision(
     """
 
     def refuse(why: str) -> AdoptionDecision:
-        return AdoptionDecision(False, 0.0, None, why)
+        return AdoptionDecision(False, 0.0, 0.0, why)
 
     if not result.completed:
         return refuse(result.reason)
