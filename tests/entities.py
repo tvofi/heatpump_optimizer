@@ -7728,6 +7728,35 @@ R.check(
     _pkw == [4.8, 2.5, 2.0, None],
     repr(_pkw),
 )
+# The same step's whole ask on the three other entities that publish it:
+# Recommended Power (README: "the electrical power the current plan step asks
+# for"), the climate's recommended_power_kw, and the recommended_power Measured
+# Power carries beside the pump's whole measured draw (#1499 review). The
+# space-only step is the null arm: it reads the same before and after.
+def _recommended_kw(action):
+    coord = FakeCoordinator(
+        {**DATA, "current_action": action, "measured_power_available": True}
+    )
+    return (
+        sensor.CurrentPowerSensor(coord, clim._entry).native_value,
+        climate_mod.HeatPumpOptimizerClimate(coord, clim._entry)
+        .extra_state_attributes.get("recommended_power_kw"),
+        sensor.MeasuredPowerSensor(coord, clim._entry)
+        .extra_state_attributes.get("recommended_power"),
+    )
+
+
+_rkw = [
+    _recommended_kw({"power": 0.0, "dhw_power": 4.8, "mode": "hot_water"}),
+    _recommended_kw({"power": 1.07, "mode": "eco"}),
+    _recommended_kw({"mode": "idle"}),
+]
+R.check(
+    "Recommended Power, climate recommended_power_kw and Measured Power's "
+    "recommended_power are the step's whole ask, space plus DHW (#1499)",
+    _rkw == [(4.8, 4.8, 4.8), (1.07, 1.07, 1.07), (None, None, None)],
+    repr(_rkw),
+)
 _hvac_off = climate_mod.HeatPumpOptimizerClimate(
     FakeCoordinator(
         {**DATA, "mode": const.MODE_OFF,
