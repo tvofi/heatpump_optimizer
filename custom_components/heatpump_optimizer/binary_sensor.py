@@ -28,12 +28,12 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity
 from .const import (
     CONF_MOLD_FLOOR_BREACH_MARGIN,
-    CONF_OUTDOOR_TEMP_ENTITY,
     DEFAULT_MOLD_FLOOR_BREACH_MARGIN,
 )
 
@@ -194,9 +194,11 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
         """``(floor_c, shortfall_c)`` against the measured room, or ``(None, None)``.
 
         The floor is the one the solve enforces: the coordinator's own
-        ``_mold_floor_series`` evaluated at the payload's outdoor temperature,
-        so the guard toggle, the humidity entity's age check and the cap at
-        the configured comfort target are the solve's, not a second copy.
+        ``_mold_floor_series`` evaluated at the outdoor forecast of the plan
+        step covering now -- the same ``outdoor_temps[i]`` the solve passed
+        it -- so the guard toggle, the humidity entity's age check and the cap
+        at the configured comfort target are the solve's, not a second copy.
+        A stale plan, or none, publishes no floor.
         """
         data = self._data()
         ok = data.get("reading_ok") or {}
@@ -204,16 +206,7 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
         # carries ThermalState's 21.0 °C constructor seed.
         if not ok.get("upper_floor_temperature"):
             return None, None
-        # A configured outdoor thermometer that is not reading leaves the
-        # 5.0 °C seed, so no floor. An install with no outdoor thermometer at
-        # all is gated on the room alone and evaluated at that same default,
-        # the outdoor its Outdoor sensor and COP model read: gating it on a
-        # reading it can never produce would silence the warning forever.
-        outdoor_live = ok.get("outdoor_temperature")
-        if self._config.get(CONF_OUTDOOR_TEMP_ENTITY) and not outdoor_live:
-            return None, None
-        # A partial payload (the entity sweeps' contract) carries no outdoor.
-        outdoor = data.get("outdoor_temperature")
+        outdoor = self._plan_outdoor_now(data)
         if outdoor is None:
             return None, None
         floors = self.coordinator._mold_floor_series(np.array([float(outdoor)]))
@@ -223,6 +216,27 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
         room = float(data["upper_floor_temperature" if two_zone else "indoor_temperature"])
         floor = float(floors[0])
         return round(floor, 2), round(floor - room, 2)
+
+    @staticmethod
+    def _plan_outdoor_now(data: dict[str, Any]) -> float | None:
+        """The space plan's forecast outdoor for the step covering now.
+
+        ``None`` when the plan is stale or there is no step covering now: a
+        floor from yesterday's forecast is not the floor the solve holds.
+        """
+        if data.get("plan_stale"):
+            return None
+        forecast = (data.get("space_plan") or {}).get("forecast") or []
+        now = dt_util.utcnow()
+        for step, following in zip(forecast, forecast[1:]):
+            start = dt_util.parse_datetime(str(step.get("t")))
+            end = dt_util.parse_datetime(str(following.get("t")))
+            # A naive label is local wall time, as HA reads one (as_utc).
+            if start is None or end is None:
+                continue
+            if dt_util.as_utc(start) <= now < dt_util.as_utc(end):
+                return step.get("outdoor")
+        return None
 
     @property
     def is_on(self) -> bool:
