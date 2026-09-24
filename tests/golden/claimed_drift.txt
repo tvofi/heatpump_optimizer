@@ -187,7 +187,8 @@
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R8-P3 suspends wood_coil's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
@@ -675,3 +676,14 @@
 # hand-made: the list ADDED a line beside the baseline's, which
 # `drop_inherited_claim_lines` treats as a rewrite and refuses to touch
 # (#1255), so `apply_inherited_claims` cannot lift this one.
+
+# R8-P3 (#1530, #1520): this branch claims wood_coil and nothing else. It is the
+# one fixture with a throttling valve AND hot water, so the only one where
+# compute_cop_dhw now prices the tank at the buffer's Carnot lift instead of its
+# own penalty. Direction, measured base vs branch in one environment: the tank
+# COP falls, so the plan buys MORE hot-water electricity (dhw_heating_cost and
+# predicted_cost up) and the always-hot baseline's DHW costs more too
+# (baseline_cost up). baseline_cost is a MAY_DRIFT_JUDGED_KEY, which a may-drift
+# entry cannot excuse and a name cannot be both, so the entry is suspended
+# above. The humidity half moves nothing here: no fixture learns a derate.
+wood_coil # R8-P3 (#1530): DHW priced by the buffer's Carnot law under the valve; DHW kWh and baseline_cost up
