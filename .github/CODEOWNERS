@@ -89,17 +89,23 @@
 # and `browser` load) must run the pull request's code, and `closure.py` and
 # `derive_closures.sh` carry the rosters a new test script or a newly read file
 # edits in the same pull request, so a base copy would refuse that pull request.
-# The single-job graders a job runs before any code of the pull request's
-# (`mutation_table.py`, `typing_ruler.py`, `coverage_ratchet.py`,
-# `delivery_status.py`, `nightly_status.py`) are PINNED and carry no owner; so
-# are `nightly_ha.py` and `replay.py`, which no pull-request job runs.
+# `mutation_table.py` and `typing_ruler.py` stay owned too: their jobs install
+# the pull request's requirement locks before the grader, and an install runs
+# build code that lock chooses, which owns the runner from then on (and
+# `mutation_table.py` runs the pull request's tests besides). The
+# graders no program of the pull request's precedes (`coverage_ratchet.py` in
+# its own job, `delivery_status.py`, `nightly_status.py`) are PINNED and carry
+# no owner; so are `nightly_ha.py` and `replay.py`, which no pull-request job
+# runs.
 /tests/card_browser.mjs                   @tvofi
 /tests/closure.py                         @tvofi
 /tests/derive_closures.sh                 @tvofi
 /tests/env_drift.py                       @tvofi
 /tests/golden.py                          @tvofi
 /tests/harness.py                         @tvofi
+/tests/mutation_table.py                  @tvofi
 /tests/plan_view.py                       @tvofi
 /tests/profiles.py                        @tvofi
 /tests/run.sh                             @tvofi
 /tests/stress.py                          @tvofi
+/tests/typing_ruler.py                    @tvofi

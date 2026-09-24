@@ -72,13 +72,25 @@ schedule, and an instrument driven only by a `HPO_JOB_GRADES: nothing` job
 grades nothing -- is covered with nothing to restore; the run tags it
 `NO-PR-JOB` rather than `PINNED`, so the two are not read as one claim.
 
+A restore holds only in a job that has run no program of the pull
+request's before it (#1589 review, round 1: `coverage` ran the suite between
+the restore and the ratchet, and the suite could overwrite the ratchet). A
+line TAINTS its job when it installs packages (build code and `.pth` files
+the pull request's lock chooses), runs a stdin program (`python -`), executes
+a tracked file the restores so far do not cover -- through EXEC, or as a bare
+path at command position, which EXEC does not count as an invocation
+(`tools/audit/w5-partition/coverage_tree.sh fast`) -- or is a local
+`uses: ./` action. From then on, nothing that job executes counts as pinned:
+the program can rewrite the file, set `BASH_ENV` or `LD_PRELOAD` through
+`$GITHUB_ENV`, or use the runner's sudo. A restore therefore also has to come
+before the grader, in the same step or an earlier one.
+
 What a pin does not reach. A pinned grader still reads the pull request's
-tree as data, and one that drives the pull request's code (`mutation_table.py`
-runs its tests; the coverage recorder runs its suite) grades what that code
-produced. Pinning closes the edit to the grader, not a pull request whose own
-code misbehaves at run time, which no restore can close and review reads in
-the diff. The ratchet data a grader compares against is the `*_budgets.json`
-set, which is the owner's.
+tree and what its code produced (the coverage JSON), so a suite that
+misreports is left to review. And the base is `pull_request.base.sha`, the
+base branch's tip when the event fired: a stricter grader that lands on
+`main` later reaches an open pull request only when it is re-run against the
+newer base, so until then the pin can be laxer than `main`.
 
 ARMS.
   none           -- the tree's `.github/CODEOWNERS` unchanged (the null control)

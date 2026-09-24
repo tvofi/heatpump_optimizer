@@ -483,21 +483,6 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
-      # PINNED (decision 0013): the grader below runs as the base commit's
-      # copy, so a pull request cannot change the check that grades it, and
-      # under `-I`, so a module added beside it cannot shadow an import. It
-      # runs before any program the pull request carries. The pull request's
-      # own copy runs in `graders-head-copy`, which is not required.
-      - name: Restore the grader from the base commit
-        env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
-        run: |
-          set -euo pipefail
-          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
-          git checkout "$PINNED" -- \
-            'tests/typing_ruler.py'
-          echo "grader restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-
       # Not matrixed over the interpreters `fast` uses. The pin is a PAIR and
       # the two halves constrain each other: homeassistant-stubs 2026.2.3
       # refuses to install below Python 3.13.2, and every release after it
@@ -525,7 +510,7 @@ jobs:
       # environment it is measuring in rather than being told about it.
       - name: Run the ruler and ratchet its three numbers
         run: |
-          .venv-typing/bin/python -I tests/typing_ruler.py --mypy \
+          .venv-typing/bin/python tests/typing_ruler.py --mypy \
             --emit "$RUNNER_TEMP/typing-census.json"
 
       # Kept on a failure too: the run that refuses because the census is not
@@ -562,21 +547,6 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-
-      # PINNED (decision 0013): the grader below runs as the base commit's
-      # copy, so a pull request cannot change the check that grades it, and
-      # under `-I`, so a module added beside it cannot shadow an import. It
-      # runs before any program the pull request carries. The pull request's
-      # own copy runs in `graders-head-copy`, which is not required.
-      - name: Restore the grader from the base commit
-        env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
-        run: |
-          set -euo pipefail
-          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
-          git checkout "$PINNED" -- \
-            'tests/coverage_ratchet.py'
-          echo "grader restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -626,11 +596,6 @@ jobs:
             exit 1
           }
 
-      - name: Ratchet the floor and the pragma count
-        run: |
-          python3 -I tests/coverage_ratchet.py \
-            --coverage "$W5P_WORK/out/coverage.json"
-
       # Kept on a failure too: the run that refuses because the floor moved is
       # exactly the run whose per-module numbers are wanted.
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -639,6 +604,57 @@ jobs:
           name: coverage-json
           path: ${{ env.W5P_WORK }}/out/coverage.json
           if-no-files-found: ignore
+
+  # The coverage ratchet, in a job of its own (decision 0013, amended).
+  # `coverage` above runs the pull request's suite, so nothing after that in
+  # the same job is the base's any more. This job runs no program the pull
+  # request carries before its grader, and grades the JSON `coverage`
+  # measured. That measurement is still the output of the pull request's code:
+  # the pin closes an edit to the grader, not a suite that misreports.
+  coverage-ratchet:
+    needs: [recheck-gate, coverage]
+    if: >-
+      always() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck == 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      # A missing artifact fails this step, so a measurement that never
+      # happened is a red here, never a green.
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: coverage-json
+          path: ${{ runner.temp }}/coverage
+
+      # PINNED (decision 0013): restored from the base, checked byte-identical
+      # to the base's object, and run under `-I -S`, all in this one step. No
+      # earlier step of this job runs a program the pull request carries: after
+      # one, the job is the pull request's (it can overwrite the file, set
+      # `BASH_ENV` or `LD_PRELOAD` through `$GITHUB_ENV`, or use the runner's
+      # sudo), and no restore after it can be trusted. `codeowners_gap.py
+      # --check` refuses a grader that runs after such a step. The pull
+      # request's own copy runs in `graders-head-copy`, which is not required.
+      - name: Ratchet the floor and the pragma count with the base's grader
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          git checkout "$PINNED" -- \
+            'tests/coverage_ratchet.py'
+          test "$(git hash-object tests/coverage_ratchet.py)" = "$(git rev-parse "$PINNED:tests/coverage_ratchet.py")"
+          python3 -I -S tests/coverage_ratchet.py \
+            --coverage "$RUNNER_TEMP/coverage/coverage.json"
 
   # The mutation table. Scope is the files that were actually tested: the
   # production files a pull request changes, or -- for a test-only diff -- the
@@ -667,21 +683,6 @@ jobs:
           # shallow clone does not have.
           fetch-depth: 0
 
-      # PINNED (decision 0013): the grader below runs as the base commit's
-      # copy, so a pull request cannot change the check that grades it, and
-      # under `-I`, so a module added beside it cannot shadow an import. It
-      # runs before any program the pull request carries. The pull request's
-      # own copy runs in `graders-head-copy`, which is not required.
-      - name: Restore the grader from the base commit
-        env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
-        run: |
-          set -euo pipefail
-          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
-          git checkout "$PINNED" -- \
-            'tests/mutation_table.py'
-          echo "grader restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
@@ -702,7 +703,7 @@ jobs:
         run: |
           git fetch --no-tags origin main
           set -o pipefail
-          python3 -I tests/mutation_table.py \
+          python3 tests/mutation_table.py \
             --scope changed --base origin/main --max 10 --jobs 3 \
             | tee "$RUNNER_TEMP/mutation-table.txt"
 
@@ -981,48 +982,47 @@ jobs:
         with:
           python-version: "3.13"
 
-      # PINNED (decision 0013): the grader below runs as the base commit's
-      # copy, so a pull request cannot change the check that grades it, and
-      # under `-I`, so a module added beside it cannot shadow an import. It
-      # runs before any program the pull request carries. The pull request's
-      # own copy runs in `graders-head-copy`, which is not required.
-      - name: Restore the grader from the base commit
+      # No `pip install` step, unlike the jobs that install
+      # `tests/requirements-ci.txt`: the reporter is stdlib-only on purpose. A
+      # check whose job is to notice that a lane went dark must not be
+      # breakable by the same dependency set that darkened it -- which is
+      # exactly how #533's lane went dark -- and it costs seconds this way.
+      # PINNED (decision 0013): restored from the base, checked byte-identical
+      # to the base's object, and run under `-I -S`, all in this one step. No
+      # earlier step of this job runs a program the pull request carries: after
+      # one, the job is the pull request's (it can overwrite the file, set
+      # `BASH_ENV` or `LD_PRELOAD` through `$GITHUB_ENV`, or use the runner's
+      # sudo), and no restore after it can be trusted. `codeowners_gap.py
+      # --check` refuses a grader that runs after such a step. The pull
+      # request's own copy runs in `graders-head-copy`, which is not required.
+      - name: Report the last scheduled run's conclusion
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PINNED: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
           git checkout "$PINNED" -- \
             'tests/nightly_status.py'
-          echo "grader restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-
-      # No `pip install` step, unlike the jobs that install
-      # `tests/requirements-ci.txt`: the reporter is stdlib-only on purpose. A
-      # check whose job is to notice that a lane went dark must not be
-      # breakable by the same dependency set that darkened it -- which is
-      # exactly how #533's lane went dark -- and it costs seconds this way.
-      - name: Report the last scheduled run's conclusion
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python -I tests/nightly_status.py
+          test "$(git hash-object tests/nightly_status.py)" = "$(git rev-parse "$PINNED:tests/nightly_status.py")"
+          python -I -S tests/nightly_status.py
 
   # THE PULL REQUEST'S OWN COPY OF EACH PINNED GRADER (decision 0013, amended
-  # 2026-09-24). `mutation`, `typing`, `coverage`, `nightly-status` and
-  # governance.yml's `delivery-status` restore their grader from the base
-  # before running it, so a pull request that changes one is graded by the old
-  # copy there. This job runs the new copy, the way each of those jobs runs it,
-  # so a changed grader still shows red or green on the pull request that
-  # changes it. It is not a required context, and `HPO_JOB_GRADES: nothing`
-  # tells `codeowners_gap.py` it grades nothing. A red here still blocks the
-  # merge, because the merge refuses any red check run, required or not.
-  # Each step runs only when the three-dot diff touches its grader, so a pull
-  # request that changes none costs one checkout. `nightly_status.py` is not
-  # here: it needs `actions: read`, and `fast` already drives the pull
-  # request's copy through `tests/entities.py`.
+  # 2026-09-24). `coverage-ratchet`, `nightly-status` and governance.yml's
+  # `delivery-status` restore their grader from the base, so a pull request
+  # that changes one is graded by the old copy there. This job runs the new
+  # copy the way that job does, so a changed grader still shows red or green
+  # on the pull request that changes it. It is not a required context, and
+  # `HPO_JOB_GRADES: nothing` tells `codeowners_gap.py` it grades nothing. A
+  # red here still blocks the merge, because the merge refuses any red check
+  # run. Each step runs only when the three-dot diff touches its grader.
+  # `nightly_status.py` is not here: it needs `actions: read`, and `fast`
+  # already drives the pull request's copy through `tests/entities.py`.
   graders-head-copy:
-    if: github.event_name == 'pull_request'
+    needs: [coverage]
+    if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 250
+    timeout-minutes: 10
     env:
       HPO_JOB_GRADES: nothing
     steps:
@@ -1042,7 +1042,7 @@ jobs:
         run: |
           set -euo pipefail
           git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
-          for g in mutation_table typing_ruler coverage_ratchet delivery_status; do
+          for g in coverage_ratchet delivery_status; do
             if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
               echo "$g=true" >> "$GITHUB_OUTPUT"
               echo "tests/$g.py changed: its own copy runs below"
@@ -1051,44 +1051,17 @@ jobs:
             fi
           done
 
-      - name: Install pinned test dependencies
-        if: >-
-          steps.changed.outputs.mutation_table == 'true'
-          || steps.changed.outputs.coverage_ratchet == 'true'
-        run: >-
-          pip install --require-hashes
-          --build-constraint tests/requirements-build.txt
-          -r tests/requirements-ci.txt
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        if: steps.changed.outputs.coverage_ratchet == 'true'
+        with:
+          name: coverage-json
+          path: ${{ runner.temp }}/coverage
 
-      - name: The pull request's mutation_table.py, as `mutation` runs it
-        if: steps.changed.outputs.mutation_table == 'true'
-        shell: bash
+      - name: The pull request's coverage_ratchet.py, as `coverage-ratchet` runs it
+        if: steps.changed.outputs.coverage_ratchet == 'true'
         run: |
-          git fetch --no-tags origin main
-          python3 tests/mutation_table.py \
-            --scope changed --base origin/main --max 10 --jobs 3
-
-      - name: The pull request's typing_ruler.py, as `typing` runs it
-        if: always() && steps.changed.outputs.typing_ruler == 'true'
-        run: |
-          python3 -m venv .venv-typing
-          .venv-typing/bin/python -m pip install --require-hashes \
-            --build-constraint tests/requirements-build.txt \
-            -r tests/requirements-typing.txt
-          .venv-typing/bin/python tests/typing_ruler.py --mypy \
-            --emit "$RUNNER_TEMP/typing-census.json"
-
-      - name: The pull request's coverage_ratchet.py, as `coverage` runs it
-        if: always() && steps.changed.outputs.coverage_ratchet == 'true'
-        run: |
-          pip install --require-hashes \
-            --build-constraint tests/requirements-build.txt \
-            -r tests/requirements-coverage.txt
-          export W5P_WORK
-          W5P_WORK=$(mktemp -d)
-          tools/audit/w5-partition/coverage_tree.sh fast || true
           python3 tests/coverage_ratchet.py \
-            --coverage "$W5P_WORK/out/coverage.json"
+            --coverage "$RUNNER_TEMP/coverage/coverage.json"
 
       - name: The pull request's delivery_status.py, as `delivery-status` runs it
         if: always() && steps.changed.outputs.delivery_status == 'true'

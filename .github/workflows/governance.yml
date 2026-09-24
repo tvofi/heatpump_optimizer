@@ -672,13 +672,19 @@ jobs:
         with:
           python-version: "3.13"
 
-      # PINNED (decision 0013): the grader below runs as the base commit's
-      # copy, so a pull request cannot change the check that grades it, and
-      # under `-I`, so a module added beside it cannot shadow an import. It
-      # runs before any program the pull request carries. The pull request's
-      # own copy runs in `tests.yml`'s `graders-head-copy`, which is not
-      # required.
-      - name: Restore the grader from the base commit
+      # No `pip install`, the same reason `record-status` had none: a reporter
+      # whose job is to notice that something went dark must not be breakable
+      # by the dependency set, and it costs seconds beside a forty-minute gate.
+      # PINNED (decision 0013): restored from the base, checked byte-identical
+      # to the base's object, and run under `-I -S`, all in this one step. No
+      # earlier step of this job runs a program the pull request carries: after
+      # one, the job is the pull request's (it can overwrite the file, set
+      # `BASH_ENV` or `LD_PRELOAD` through `$GITHUB_ENV`, or use the runner's
+      # sudo), and no restore after it can be trusted. `codeowners_gap.py
+      # --check` refuses a grader that runs after such a step. The pull
+      # request's own copy runs in `tests.yml`'s `graders-head-copy`, which is
+      # not required.
+      - name: Report what is pending and what is overdue a row
         env:
           PINNED: ${{ github.event.pull_request.base.sha }}
         run: |
@@ -686,15 +692,9 @@ jobs:
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
           git checkout "$PINNED" -- \
             'tests/delivery_status.py'
-          echo "grader restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-
-      # No `pip install`, the same reason `record-status` had none: a reporter
-      # whose job is to notice that something went dark must not be breakable
-      # by the dependency set, and it costs seconds beside a forty-minute gate.
-      - name: Report what is pending and what is overdue a row
-        run: |
+          test "$(git hash-object tests/delivery_status.py)" = "$(git rev-parse "$PINNED:tests/delivery_status.py")"
           git fetch --no-tags --quiet origin main
-          python -I tests/delivery_status.py --check
+          python -I -S tests/delivery_status.py --check
 
   # #201's region, regenerated on every push to main. The ledger itself needs
   # no publishing to be findable WITHOUT credentials: `tests/delivery_status.py`

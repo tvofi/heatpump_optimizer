@@ -124,36 +124,53 @@ should stay code-owned: "I want fully autonomous". The bullet above that kept
 cannot hold. The rule is unchanged: a file leaves the owner only where a base
 restore replaces the owner as the barrier.
 
-- **Pinned, so the owner goes:** `tests/mutation_table.py` (`mutation`),
-  `tests/typing_ruler.py` (`typing`), `tests/coverage_ratchet.py`
-  (`coverage`), `tests/nightly_status.py` (`nightly-status`) and
-  `tests/delivery_status.py` (`delivery-status`). Each is one job's grader, it
-  imports only the standard library, and its job restores it from the base
-  before any program the pull request carries, then runs it under `-I`. Its
-  ratchet data is the `*_budgets.json` set, which stays the owner's. The pull
-  request's own copy runs in `graders-head-copy`, which is not required. It
-  runs only when the diff touches that grader, so a changed grader still
-  shows red or green on the pull request that changes it, and a red blocks
-  the merge like any other.
+**When a pin holds.** Only when no step of the job runs a program the pull
+request carries before the grader starts. After one, the job belongs to the
+pull request. That program can overwrite the restored file. It can set
+`BASH_ENV`, `LD_PRELOAD` or `PATH` for every later step through
+`$GITHUB_ENV`. It can use the runner's passwordless sudo to replace `git` or
+`python3`. So no restore that comes after it can be trusted, however close it
+sits to the grader. An install counts as such a program: it runs build code
+that the pull request's lock chooses, and it drops `.pth` files. Round 1 of
+#1589's review showed the ordering break in `coverage`: the suite overwrote
+the restored ratchet before the ratchet ran. `codeowners_gap.py --check` now
+refuses any grader that runs after such a step, in the same job.
+
+- **Pinned, so the owner goes:**
+  - `tests/coverage_ratchet.py` runs in `coverage-ratchet`, a job of its own
+    that grades the JSON `coverage` measured.
+  - `tests/nightly_status.py` runs in `nightly-status`.
+  - `tests/delivery_status.py` runs in `delivery-status`.
+
+  Each imports only the standard library. The step that runs it first
+  restores it from the base, then checks it byte-identical to the base's
+  object, then runs it under `-I -S`, so no `.pth` file and no sibling module
+  loads. The pull request's own copy runs in `graders-head-copy`, which is
+  not required. It runs only when the diff touches that grader, and its red
+  still blocks the merge.
 - **No pull-request job runs them:** `tests/nightly_ha.py` and
   `tests/replay.py` run on the schedule only, so they grade no pull request
   and carry no owner. `codeowners_gap.py` tags them `NO-PR-JOB`.
 - **Kept owned, and why, file by file:**
+  - `tests/mutation_table.py` and `tests/typing_ruler.py`. Their jobs install
+    the pull request's requirement locks before the grader runs, and
+    `mutation_table.py` runs the pull request's tests itself.
   - The suite: `tests/run.sh`, `env_drift.py`, `golden.py`, `harness.py`,
     `profiles.py`, `stress.py`, `plan_view.py` and `card_browser.mjs`. `fast`
-    and `browser` must run the pull request's code: these are the shared
-    modules the other test scripts import, and a test that changes with the
-    behaviour it pins would be refused by the base's copy.
+    and `browser` must run the pull request's code, and a test that changes
+    with the behaviour it pins would be refused by the base's copy.
   - `tests/closure.py` and `tests/derive_closures.sh`. Their INERT,
     NOT_A_TEST and lane rosters are edited by the same pull request that adds
-    a test script or makes a test read a new file, and the base's copy
-    refuses that pull request (`closure.py check`: "selectable script(s)
-    with NO recording"). Pinning them first needs the rosters moved into a
-    data file the pinned code reads from the pull request's tree.
-- **What a pin does not reach.** A grader that drives the pull request's
-  code (`mutation_table.py` runs its tests; `coverage` runs its suite before
-  the ratchet) grades what that code produced. So a pull request whose own
-  code misbehaves at run time is left to review, pinned or not; the pin
-  closes the edit to the grader. A change that must move a pinned grader and
-  its caller together lands in two pull requests: the grader's tolerant form
-  first.
+    a test script or makes a test read a new file. The base's copy refuses
+    that pull request (`closure.py check`: "selectable script(s) with NO
+    recording").
+- **What a pin does not reach:**
+  - A pinned grader reads what the pull request's code produced: the
+    coverage JSON, and the tree it reports on. A suite that misreports is
+    left to review.
+  - The base is `pull_request.base.sha`, the base branch's tip when the
+    event fired. A stricter grader that lands on `main` afterwards reaches
+    an open pull request only when that request is re-run against the newer
+    base.
+  - A change that must move a pinned grader and its caller together lands in
+    two pull requests, the grader's tolerant form first.
