@@ -43989,7 +43989,7 @@ def _p8_inlet_at(value, unit):
 R.check(
     "the DHW inlet probe is read in its unit (50 degF is 10 degC)",
     _p8_inlet is not None
-    and _p8_math.isclose(_p8_inlet_at(50.0, "°F"), 10.0)
+    and _p8_math.isclose(_p8_inlet_at(50.0, "°F") or 0.0, 10.0)
     and _p8_inlet_at(10.0, "°C") == 10.0
     and _p8_inlet_at(10.0, None) == 10.0,
     f"{[_p8_inlet_at(50.0, '°F'), _p8_inlet_at(10.0, '°C')] if _p8_inlet else 'missing'}",
