@@ -216,11 +216,18 @@ def inv_no_default(records: list[dict], defaults: list[float], readings: list[fl
     return out
 
 
-def inv_agreement(records: list[dict], plan_draws: bool | None) -> list[str]:
+POWER_TOL = 0.05
+
+
+def inv_agreement(records: list[dict], plan_draws: bool | None,
+                  plan_kw: float | None = None) -> list[str]:
     """Heat Pump Action and hvac_action agree with the pump actually running.
 
     ``plan_draws`` is whether the plan's current step clears the optimizer's
     own on threshold on space + DHW power, or None when no plan exists.
+    ``plan_kw`` is that step's space + DHW draw, read from the plan's own
+    space action and DHW forecast; Heat Pump Action's ``power_kw`` must equal
+    it (#1499's power half: a DHW-only step published 0 kW).
     """
     out = []
     for rec in records:
@@ -234,6 +241,11 @@ def inv_agreement(records: list[dict], plan_draws: bool | None) -> list[str]:
             if rec["state"] == "off" and plan_draws:
                 out.append(f"{rec['entity_id']}: state 'off' while the plan's "
                            "current step draws space + DHW power")
+            published = attrs.get("power_kw")
+            if plan_kw is not None and isinstance(published, (int, float)) \
+                    and abs(float(published) - plan_kw) > POWER_TOL:
+                out.append(f"{rec['entity_id']}: power_kw {published} while the "
+                           f"plan's current step draws {plan_kw:.2f} kW")
         if rec["entity_id"].startswith("climate."):
             action = attrs.get("hvac_action")
             if action in ("idle", "off") and attrs.get("_heat_pump_on") is True \
@@ -304,6 +316,9 @@ def controls() -> list[tuple[str, bool, str]]:
     pair("agreement:plan",
          inv_agreement([rec(**hpa, state="off", attributes={"heat_pump_on": False})], True),
          inv_agreement([rec(**hpa, state="off", attributes={"heat_pump_on": False})], False))
+    pair("agreement:power",
+         inv_agreement([rec(**hpa, state="hot_water", attributes={"power_kw": 0.0})], True, 2.0),
+         inv_agreement([rec(**hpa, state="hot_water", attributes={"power_kw": 2.0})], True, 2.0))
     pair("agreement:climate",
          inv_agreement([rec(entity_id="climate.x", state="auto",
                             attributes={"hvac_action": "idle", "_heat_pump_on": True})], None),
@@ -624,7 +639,8 @@ def run_fixture(path: Path, step_minutes: int | None) -> dict:
         results["unit"] += inv_unit(records, table)
         results["no_default"] += inv_no_default(records, defaults, readings)
         results["agreement"] += [f"{t.isoformat()} {o}" for o in
-                                 inv_agreement(records, plan_draws(coord, data, t))]
+                                 inv_agreement(records, plan_draws(coord, data, t),
+                                               plan_draw_kw(data, t))]
         for r in records:
             for key, value in [("state", r["state"])] + list((r["attributes"] or {}).items()):
                 label = f"{r['entity_id']}.{key}"
@@ -644,9 +660,10 @@ def run_fixture(path: Path, step_minutes: int | None) -> dict:
             "counts": {k: len(v) for k, v in results.items()}}
 
 
-def plan_draws(coord, data: dict, t: datetime) -> bool | None:
-    """Whether the plan's step covering ``t`` runs the pump, by the optimizer's
-    own helper -- the same call ``_build_result`` makes for its on schedule."""
+def _plan_step(data: dict, t: datetime) -> tuple[float, float] | None:
+    """(space, DHW) kW of the plan's step covering ``t``: space from the
+    current action, DHW from the plan's own DHW forecast -- not the action's
+    ``dhw_power``, which is what the published power reads."""
     forecast = ((data.get("dhw_plan") or {}).get("forecast")) or []
     dhw = 0.0
     for row in forecast:
@@ -656,8 +673,21 @@ def plan_draws(coord, data: dict, t: datetime) -> bool | None:
     action = data.get("current_action") or {}
     if "power" not in action:
         return None
-    space = float(action.get("power") or 0.0)
-    return bool(coord._optimizer._power_to_heat_pump_schedule([space], [dhw])[0])
+    return float(action.get("power") or 0.0), dhw
+
+
+def plan_draws(coord, data: dict, t: datetime) -> bool | None:
+    """Whether the plan's step covering ``t`` runs the pump, by the optimizer's
+    own helper -- the same call ``_build_result`` makes for its on schedule."""
+    step = _plan_step(data, t)
+    if step is None:
+        return None
+    return bool(coord._optimizer._power_to_heat_pump_schedule([step[0]], [step[1]])[0])
+
+
+def plan_draw_kw(data: dict, t: datetime) -> float | None:
+    step = _plan_step(data, t)
+    return None if step is None else step[0] + step[1]
 
 
 def sweep(entities: list, action: dict, errors: list[str], t: datetime) -> list[dict]:
