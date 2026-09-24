@@ -44070,4 +44070,77 @@ R.check(
     f"got {_p8_noent.hass.services.calls!r}",
 )
 
+# The weather sibling: get_forecasts rows arrive in the weather entity's own
+# temperature_unit, as its wind does in wind_speed_unit. 50 degF is 10 degC.
+from homeassistant.util import dt as _p8_dt  # noqa: E402
+
+_p8_fc_in_c = getattr(_p8_coord, "_forecast_in_c", None)
+
+
+def _p8_weather(unit, temp, *, fail=False, wind_unit="m/s", wind=3.6):
+    attrs = {"temperature": temp, "wind_speed": wind, "wind_speed_unit": wind_unit}
+    if unit is not None:
+        attrs["temperature_unit"] = unit
+    hass = _FakeHass({"weather.home": FakeState("cloudy", attributes=attrs)})
+    coord = _Coord(hass, _FakeEntry(data=dict(_P8_CFG)))
+    now = _p8_dt.now().replace(minute=0, second=0, microsecond=0)
+    rows = [
+        {"datetime": (now + timedelta(hours=h)).isoformat(), "temperature": temp,
+         "wind_speed": wind, "precipitation": 0.0}
+        for h in range(48)
+    ]
+
+    async def _call(domain, service, data=None, **kwargs):
+        if fail:
+            raise RuntimeError("weather integration down")
+        return {"weather.home": {"forecast": rows}}
+
+    hass.services.async_call = _call
+    _asyncio.run(coord._fetch_weather_forecast())
+    return coord, now
+
+
+def _p8_outdoor(unit, temp, **kw):
+    coord, now = _p8_weather(unit, temp, **kw)
+    series = coord._weather_series(4, now, 0)
+    return [round(v, 9) for v in series[0]], [round(v, 9) for v in series[1]]
+
+
+R.check(
+    "a degF weather entity's forecast is planned in degC (50 degF is 10 degC)",
+    _p8_fc_in_c is not None and _p8_outdoor("°F", 50.0)[0] == [10.0] * 4,
+    f"got {_p8_outdoor('°F', 50.0)[0]}",
+)
+R.check(
+    "null control: a degC or unit-less weather entity's forecast is untouched",
+    _p8_outdoor("°C", 10.0)[0] == [10.0] * 4 and _p8_outdoor(None, 10.0)[0] == [10.0] * 4,
+    f"got {_p8_outdoor('°C', 10.0)[0]}, {_p8_outdoor(None, 10.0)[0]}",
+)
+_P8_ROWS = [{"temperature": 10.0}]
+R.check(
+    "the rows are the same object when nothing converts (goldens cannot move)",
+    _p8_fc_in_c is not None
+    and _p8_fc_in_c(FakeState("x", attributes={"temperature_unit": "°C"}), _P8_ROWS) is _P8_ROWS
+    and _p8_fc_in_c(FakeState("x", attributes={}), _P8_ROWS) is _P8_ROWS,
+)
+R.check(
+    "a row whose temperature will not parse keeps it for the consumers' fallback",
+    _p8_fc_in_c is not None
+    and _p8_fc_in_c(
+        FakeState("x", attributes={"temperature_unit": "°F"}), [{"temperature": "n/a"}]
+    ) == [{"temperature": "n/a"}],
+)
+R.check(
+    "the fabricated trajectory of a failed first fetch is converted too",
+    _p8_outdoor("°F", 50.0, fail=True)[0] == [10.0] * 4,
+    f"got {_p8_outdoor('°F', 50.0, fail=True)[0]}",
+)
+R.check(
+    "and its wind is scaled once, not twice (3.6 km/h is 1 m/s)",
+    _p8_outdoor("°C", 10.0, fail=True, wind_unit="km/h")[1] == [1.0] * 4
+    and _p8_outdoor("°C", 10.0, wind_unit="km/h")[1] == [1.0] * 4,
+    f"fabricated {_p8_outdoor('°C', 10.0, fail=True, wind_unit='km/h')[1]}, "
+    f"fetched {_p8_outdoor('°C', 10.0, wind_unit='km/h')[1]}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

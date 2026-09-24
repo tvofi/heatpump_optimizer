@@ -22600,14 +22600,6 @@ _P8_ALLOWED = {
         "normalize_power_kw", "converted to kW by the entity's unit on the next line"),
     ("coordinator.py", "_indoor_humidity_value", "float(state.state)"): (
         None, "relative humidity is a dimensionless percent: there is no unit to resolve"),
-    ("coordinator.py", "_fetch_weather_forecast",
-     "_as_float(state.attributes.get('wind_speed'), 0.0)"): (
-        "_wind_speed_scale", "scaled to m/s by the weather entity's wind_speed_unit"),
-    ("coordinator.py", "_fetch_weather_forecast",
-     "_as_float(state.attributes.get('temperature'), 5.0)"): (
-        None, "a distinct finding, not this seam: the weather entity's "
-        "temperature_unit is read nowhere, the get_forecasts response included, "
-        "and that response is outside this rule (R8-P8 PR body)"),
 }
 
 

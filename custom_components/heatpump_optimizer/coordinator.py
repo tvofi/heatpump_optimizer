@@ -307,6 +307,7 @@ from .const import (
     DEFAULT_COMPRESSOR_FREQ_MAX_HZ,
     CONF_FREQ_CONTROL_MODE,
     DEFAULT_FREQ_CONTROL_MODE,
+    TEMPERATURE_UNIT_TO_C,
 )
 from .inputs import (
     UNBOUNDED,
@@ -1359,10 +1360,30 @@ def _dhw_inlet_c(hass: HomeAssistant, entity_id: Any) -> float | None:
     """
     state = hass.states.get(entity_id) if entity_id else None
     age = age_of(state, dt_util.utcnow()) if state is not None else None
-    if age is None or age > timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES):
+    if state is None or age is None or age > timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES):
         return None
     value = temperature_c(state.state, state_unit(state))
     return value if value is not None and -5.0 <= value <= 35.0 else None
+
+
+def _forecast_in_c(state: Any, forecast: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Forecast rows with ``temperature`` in degC, by the weather entity's
+    ``temperature_unit`` (#1513).
+
+    Home Assistant hands a weather entity's forecast over in the entity's
+    display unit -- degF on a US-customary instance -- exactly as it does the
+    wind speed ``_wind_speed_scale`` converts. A degC or absent unit returns
+    the rows untouched, and a row whose value will not parse keeps it, so the
+    consumers' own fallbacks still apply.
+    """
+    unit = (getattr(state, "attributes", None) or {}).get("temperature_unit")
+    if TEMPERATURE_UNIT_TO_C.get(str(unit).strip(), (0.0, 1.0)) == (0.0, 1.0):
+        return forecast
+    rows: list[dict[str, Any]] = []
+    for entry in forecast:
+        value = temperature_c(entry.get("temperature"), unit)
+        rows.append(entry if value is None else {**entry, "temperature": value})
+    return rows
 
 
 def _solve_anchor(now: datetime) -> datetime:
@@ -5701,7 +5722,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if result and weather_entity in result:
                 forecast_data = result[weather_entity].get("forecast", [])
                 if forecast_data:
-                    self._weather_forecast = forecast_data
+                    self._weather_forecast = _forecast_in_c(
+                        self.hass.states.get(weather_entity), forecast_data)
 
                     # Extract solar radiation forecast if present in weather data
                     self._solar_radiation_forecast = []
@@ -5739,21 +5761,20 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 # already marked stale by the failure above -- a plan built
                 # on it discloses what it is standing on.
                 try:
-                    temp = _as_float(state.attributes.get("temperature"), 5.0)
-                    wind = _as_float(
-                        state.attributes.get("wind_speed"), 0.0
-                    ) * self._wind_speed_scale()
-                    self._weather_forecast = [
+                    # The entity's own values in its own units: every row
+                    # is converted where a forecast row is (#1513), so the
+                    # wind is scaled once, in _forecast_arrays, not twice.
+                    self._weather_forecast = _forecast_in_c(state, [
                         {
                             "datetime": (
                                 dt_util.now() + timedelta(hours=i)
                             ).isoformat(),
-                            "temperature": temp,
-                            "wind_speed": wind,
+                            "temperature": state.attributes.get("temperature"),
+                            "wind_speed": state.attributes.get("wind_speed"),
                             "precipitation": 0.0,
                         }
                         for i in range(48)
-                    ]
+                    ])
                     self._solar_radiation_forecast = [0.0] * 48
                 except (ValueError, TypeError):
                     pass
