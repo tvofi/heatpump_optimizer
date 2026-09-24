@@ -949,6 +949,22 @@ export function selfTest() {
     'nor at a count that fell within the window: nothing recurred that the seat did not dispose')
   st(decide({ existing: CLOSED, currentBody: 'no measurement here', body }), 'create',
     'a CLOSED body naming no window or count proves nothing disposed: file')
+  // Two CLOSED rows under one exact title -- the fixer.md shape, #1128 in an old
+  // window and #1494 in this one. `pickExact` resolves the lowest number, so the
+  // old row alone would answer create; EVERY closed row is read.
+  const BLK = { key: 'blocked', kind: 'verdict class', count: 4, threshold: 3, line: LINE('blocked', 'verdict class', 4).trim() }
+  const twoClosed = (bodies) => planEntry(BLK, 'v9.9.9', {
+    search: () => ({ unknown: false, rows: Object.keys(bodies).map((n) => ({ number: Number(n), title: titleFor('blocked'), state: 'CLOSED' })) }),
+    getNormalizedLookup: () => ({ rows: [], normalize: new Map() }),
+    readBody: (n) => (bodies[n] == null ? { unknown: true } : { unknown: false, body: bodies[n] }),
+  })
+  const both = twoClosed({ 11: at(4, 'v9.9.8'), 41: at(4) })
+  st(`${both.action} #${both.existing?.number}`, 'no-op #41',
+    'two CLOSED rows, an old window and this one: the later row disposed this window, so nothing is filed')
+  st(twoClosed({ 11: at(4, 'v9.9.8'), 41: at(3) }).action, 'create',
+    'null control: the same two rows with this window disposed at a LOWER count still file')
+  st(twoClosed({ 11: at(4, 'v9.9.8'), 41: null }).refuse, true,
+    'and a closed row whose body cannot be read refuses rather than filing beside it')
 
   // The body is the idempotence contract: byte-identical for the same
   // measurement, different only when the measurement moved. The entries carry
