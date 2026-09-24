@@ -2072,6 +2072,19 @@ R.check(
     sensor.SpaceHeatingPlanSensor(no_plan_coord, ENTRY).extra_state_attributes.get("currency")
     == no_plan_coord.currency,
 )
+# Its state separates "no solve yet" from "a plan with nothing in it"; the
+# empty plan is the null arm that keeps the first from passing by accident.
+_plan_states = (
+    sensor.SpaceHeatingPlanSensor(no_plan_coord, ENTRY).native_value,
+    sensor.SpaceHeatingPlanSensor(
+        FakeCoordinator({**DATA, "space_plan": {"slots": []}}), ENTRY
+    ).native_value,
+)
+R.check(
+    "a plan sensor reads 'no plan' before a plan exists, 'no heating planned' for an empty one",
+    _plan_states == ("no plan", "no heating planned"),
+    repr(_plan_states),
+)
 
 # The schedule editor edits the CONFIGURED hot-water windows, which are not
 # what `dhw_windows` carries (the plan's reading: learned windows when none
