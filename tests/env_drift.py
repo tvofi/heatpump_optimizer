@@ -274,10 +274,10 @@ MAY_DRIFT_JUDGED_KEYS = frozenset({
 #     a different libm changes it. The interpreter, the platform, the numpy
 #     build config and the full installed distribution inventory are in the key
 #     too, because a library can change behaviour without changing arithmetic.
-#   * The environment variables the capture path actually reads. The only one
-#     in the tree is HASTUB_TZ (tests/hastub/homeassistant/util/dt.py), but the
-#     key takes the whole family of locale, timezone, BLAS-threading and
-#     Python-runtime variables rather than just that one. PYTHONPATH is
+#   * The environment variables the capture path actually reads. Of the
+#     tree's own, that is CACHE_TREE_ENV_NAMES, by name (#1531); beside them
+#     the key takes the whole family of locale, timezone, BLAS-threading and
+#     Python-runtime variables the libraries read. PYTHONPATH is
 #     deliberately excluded: main() overwrites it for the capture subprocess
 #     with a path derived from the tree being captured, so the caller's value
 #     cannot reach it.
@@ -323,12 +323,11 @@ CACHE_KEEP_DEFAULT = 24
 #: baseline.
 WARM_ENV = "DRIFT_WARM_CACHE"
 
-#: Environment variables that can change what a capture computes: the tree's
-#: own HASTUB_TZ, the timezone and locale beneath it, every BLAS/OpenMP
-#: threading knob, and the interpreter's own switches. Prefix-matched so a
-#: variable added later is covered without an edit here.
+#: Environment variables that can change what a capture computes: the
+#: timezone and locale, every BLAS/OpenMP threading knob, and the
+#: interpreter's own switches -- read by libraries, so prefix-matched and a
+#: knob added upstream is covered without an edit here.
 CACHE_ENV_PREFIXES = (
-    "HASTUB_", "HPO_", "HEATPUMP_",
     "NPY_", "NUMPY_", "SCIPY_",
     "OPENBLAS_", "MKL_", "OMP_", "NUMEXPR_", "VECLIB_", "BLIS_", "GOTOBLAS_",
     "LC_",
@@ -339,6 +338,15 @@ CACHE_ENV_NAMES = (
     "PYTHONUTF8", "PYTHONWARNINGS", "PYTHONNOUSERSITE", "PYTHONSAFEPATH",
     "PYTHONINTMAXSTRDIGITS", "PYTHONFAULTHANDLER",
 )
+#: This repository's own variables are keyed BY NAME, and only the ones a
+#: capture reads (#1531). The namespaces used to be prefix-matched too, which
+#: split the key on HPO_PLANDATA and the gate lock's HPO_GATE_* -- set by the
+#: harness contract and by tests/run.sh's locked path, read by no capture --
+#: so a locked run re-captured a baseline it already had. tests/entities.py
+#: derives the names a capture reads under TREE_ENV_NAMESPACES from the
+#: measured closure of tests/golden.py and refuses any difference from this.
+CACHE_TREE_ENV_NAMES = ("HASTUB_TZ",)
+TREE_ENV_NAMESPACES = ("HASTUB_", "HPO_", "HEATPUMP_")
 
 
 def cache_disabled() -> bool:
@@ -448,7 +456,8 @@ def _relevant_environment() -> list[str]:
     """The environment variables a capture's output can depend on."""
     out = []
     for name, value in os.environ.items():
-        if name.startswith(CACHE_ENV_PREFIXES) or name in CACHE_ENV_NAMES:
+        if (name.startswith(CACHE_ENV_PREFIXES) or name in CACHE_ENV_NAMES
+                or name in CACHE_TREE_ENV_NAMES):
             out.append(f"{name}={value}")
     return sorted(out)
 
