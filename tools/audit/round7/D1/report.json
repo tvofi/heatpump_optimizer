@@ -11,7 +11,7 @@
    "claim": "A what-if whose shadow solve raises returns without setting _last_simulation, so the rate limiter never engages and each further simulate_plan call launches another full solve: 5 calls start 5 solves where the success path starts 1.",
    "mechanism": "HeatPumpOptimizerCoordinator.async_simulate (coordinator.py:10537) sets self._last_simulation = now only on the success return (coordinator.py:10751). The three other returns - {\"error\": str(err)} at coordinator.py:10700 after the shadow solve raises, invalid_windows, and wood_err - leave the slot empty. #783's WORKER_FALLBACK_CAP makes _await_optimize raise UpdateFailed on every solve once the process worker has failed four times running, so an install whose child interpreter cannot start re-solves on every dashboard slider drag, in the very process whose worker is already unusable.",
    "evidence": {
-    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py  (run from /Users/timmalmstrom/audit-r7-baseline)",
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py  (run from ~/audit-r7-baseline)",
     "harness_path": "tools/audit/round7/D1/guards.py",
     "value": 5,
     "unit": "shadow-solve submissions per 5 async_simulate calls",
@@ -34,12 +34,12 @@
    "seam_rule": "Enumerate the returns of coordinator.py:HeatPumpOptimizerCoordinator.async_simulate; every one that can follow a scheduled solve must set _last_simulation.",
    "stop_rule_class": "bug",
    "null_control": {
-    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py  (run from /Users/timmalmstrom/audit-r7-baseline)",
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py  (run from ~/audit-r7-baseline)",
     "value": 1,
     "note": "The same five calls with the shadow solve succeeding (RESULT simulate_solves_after_5_successful_calls=1): the effect vanishes exactly where the solve succeeds, so the count is a property of the failing return path and not of the call loop."
    },
    "reproduction_steps": [
-    "cd /Users/timmalmstrom/audit-r7-baseline",
+    "cd ~/audit-r7-baseline",
     "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py",
     "read RESULT simulate_solves_after_5_failing_calls=5 and RESULT simulate_solves_after_5_successful_calls=1"
    ],
@@ -56,7 +56,7 @@
    "claim": "_plan_is_stale is consulted by _apply_action only; a stale plan still drives _async_drive_pumps, so 1 of the 2 actuating write paths in the same tick writes to the plant from a horizon the plan has been declared unfit to actuate.",
    "mechanism": "_apply_action (coordinator.py:6560) returns early when _mode is AUTO/ECONOMY and _plan_is_stale(), and its docstring states the rule: the pump's own weather-compensated curve holds comfort instead. _async_drive_pumps (coordinator.py:2590) is called one statement later in _async_update_data with no staleness test; it derives idx from now - result.timestamps[0] and lets pump_schedule.plan_commands_heat clamp it to n-1, so an expired plan is read at its last step and the pumps keep being commanded from it. The direction is the safe one (curve_driven from the same stale _current_action forces the space pump ON), which is why this is low rather than high.",
    "evidence": {
-    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py  (run from /Users/timmalmstrom/audit-r7-baseline)",
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py  (run from ~/audit-r7-baseline)",
     "harness_path": "tools/audit/round7/D1/guards.py",
     "value": 1,
     "unit": "actuating write paths still writing when the plan is stale",
@@ -79,12 +79,12 @@
    "seam_rule": "Enumerate the write paths _async_update_data drives after the solve (the statement list following `boost.apply(self)`, coordinator.py:4479); each must consult _plan_is_stale before it commands the plant.",
    "stop_rule_class": "hygiene",
    "null_control": {
-    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py  (run from /Users/timmalmstrom/audit-r7-baseline)",
+    "command": "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py  (run from ~/audit-r7-baseline)",
     "value": 2,
     "note": "The same paths with a fresh plan: fresh_paths_detail={'heat_pump_switch': 1, 'space_pump': 2}, i.e. every path writes when the plan is current -- so the count is a property of the stale gate, not of the drive loop."
    },
    "reproduction_steps": [
-    "cd /Users/timmalmstrom/audit-r7-baseline",
+    "cd ~/audit-r7-baseline",
     "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round7/D1/guards.py",
     "read RESULT actuating_paths_stale_gated=1, actuating_paths_still_writing_when_stale=1 and RESULT stale_paths_detail={'space_pump': 2}"
    ],

@@ -21324,20 +21324,21 @@ R.check(
     "the stats histogram keys a rework round on a moved head as `head-moved`, "
     "the class the wave defines for it and the passing verdict hides (#1405)",
     _rework_cell("base").get("prs") == 7
-    and _rework_cell("base").get("entries") == 11,
+    and _rework_cell("base").get("entries") == 9,
     f"head-moved cell={_rework_cell('base')!r} -- 11 of the window's 74 "
-    "parseable verdicts are a second-or-later verdict naming a head other than "
-    "the merge's first, and until the histogram counted them the class the wave "
-    "defines for exactly that had zero verdicts",
+    "parseable verdicts are a second-or-later verdict, and 9 of them follow a "
+    "`merge` verdict at another head (the other two are a repair after a block "
+    "and a repeat of the previous head, #1549); until the histogram counted "
+    "them the class the wave defines for exactly that had zero verdicts",
 )
 R.check(
     "and the rework count tracks the window rather than a constant "
     "(null control; the finder's own perturbation)",
     _rework_cell("reshaped").get("prs") == 6
-    and _rework_cell("reshaped").get("entries") == 10,
+    and _rework_cell("reshaped").get("entries") == 8,
     f"head-moved cell={_rework_cell('reshaped')!r} -- the finder's `reshaped` "
     "fixture takes one rework verdict outside the grammar, so the same walk "
-    "must report 10 rounds over 6 merges, not the base's 11 over 7",
+    "must report 8 rounds over 6 merges, not the base's 9 over 7",
 )
 R.check(
     "and the passing row is left exactly as it was, so the rework key adds a "
@@ -21346,7 +21347,7 @@ R.check(
     and _rework_cell("mergeBase").get("entries") == 73,
     f"merge cell={_rework_cell('mergeBase')!r} -- the round is counted BESIDE "
     "the row the verdict already landed in, never instead of it: a rekey would "
-    "have emptied 11 entries out of this cell and moved a published figure, and "
+    "have emptied 9 entries out of this cell and moved a published figure, and "
     "an instrument that changes a number a reader already trusts has to say so",
 )
 R.check(
@@ -21360,6 +21361,90 @@ R.check(
     "a moved one: since #1472 the wave's grammar requires a full head on every "
     "parseable verdict, so a `Fix review:` line naming none reaches the walk as "
     "an outside-grammar report and never as a head",
+)
+# THE ROW SAYS HEAD-MOVED AND THE YIELD SAYS FIRST PASS (#1549, D13-s1-01).
+# The rework arm keyed every later verdict naming a head other than the FIRST
+# verdict's, so `head-moved` also counted a repair after a block and a verdict
+# repeating the previous head: 19 entries over the round-8 window, 15 of them
+# re-verifications. And a merge reviewed twice read as first pass, because
+# nothing printed the one-round figure beside the first-verdict one. Driven on
+# the production symbols over five synthetic merges, one per shape: one round
+# (1), a re-verification (2), a repair (3), a re-verification then a repeat
+# (4), and a reviewer's own `blocked <sha> head-moved` on a moved head (5).
+_STATS_ROUNDS = json.loads(subprocess.run(
+    ["node", "--input-type=module", "-e",
+     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "const sha = (c) => c.repeat(40);"
+     "const M = (c) => 'Fix review: merge ' + sha(c);"
+     "const B = (c, k) => 'Fix review: blocked ' + sha(c) + ' ' + k + ': x';"
+     "const run = (first3) => { const w = [[M('a')], [M('a'), M('b')],"
+     "[first3, M('b')], [M('a'), M('b'), M('b')],"
+     "[M('a'), B('b', 'head-moved')]];"
+     "const prs = w.map((_, i) => ({ pr: String(i + 1) }));"
+     "const fetched = new Map(w.map((v, i) => [String(i + 1), { body: '',"
+     "comments: v.map((body) => ({ body })) }]));"
+     "const h = m.statsHistogram(prs, fetched, ['blocked', 'merge']);"
+     "const c = h.verdicts.get(m.REWORK_CLASS);"
+     "const r = h.rounds || {};"
+     "const n = (k) => (r[k] ? r[k].entries : null);"
+     "return { cell: c ? [c.prs.size, c.entries] : null,"
+     "reverify: n('reverify'), repair: n('repair'), repeat: n('repeat'),"
+     "line: m.statsRoundsLine ? m.statsRoundsLine(h) : '' }; };"
+     "console.log(JSON.stringify({ base: run(B('a', 'claims')),"
+     "flipped: run(M('a')) })); })"],
+    capture_output=True, text=True).stdout or "{}")
+
+
+def _rounds(arm):
+    return _STATS_ROUNDS.get(arm) or {}
+
+
+R.check(
+    "the head-moved row counts a re-verification of a head that moved after a "
+    "`merge` verdict, once per round, and not a repair or a repeat (#1549)",
+    _rounds("base").get("cell") == [3, 3],
+    f"head-moved cell={_rounds('base').get('cell')!r}, want [3, 3] (PRs 2, 4 "
+    "and 5, one round each) -- keyed against the FIRST verdict's head it also "
+    "counts #3's repair after a block, #4's repeat of the previous head, and "
+    "#5's reviewer-written `head-moved` a second time: [4, 6]",
+)
+R.check(
+    "and every round after a merge's first is split by the verdict before it: "
+    "re-verification, repair, repeat (#1549)",
+    [_rounds("base").get(k) for k in ("reverify", "repair", "repeat")]
+    == [3, 1, 1],
+    f"reverify/repair/repeat={[_rounds('base').get(k) for k in ('reverify', 'repair', 'repeat')]!r}, "
+    "want [3, 1, 1]: six rounds after five first verdicts, each in one part",
+)
+R.check(
+    "and the split tracks the verdict before the round rather than a constant "
+    "(null control: #3's block rewritten as a merge)",
+    [_rounds("flipped").get(k) for k in ("reverify", "repair", "repeat")]
+    == [4, 0, 1]
+    and _rounds("flipped").get("cell") == [4, 4],
+    f"flipped={_rounds('flipped')!r} -- a `merge` before #3's second round "
+    "makes that round a re-verification of a moved head, so it must leave the "
+    "repair part and enter the head-moved row",
+)
+_ROUNDS_LINE = _rounds("base").get("line") or ""
+R.check(
+    "the stats mode prints the one-round yield beside the first-verdict yield, "
+    "each named for its rule (#1549)",
+    "first-verdict yield 4/5" in _ROUNDS_LINE
+    and "one-round yield 1/5" in _ROUNDS_LINE
+    and "3 re-verified" in _ROUNDS_LINE
+    and "1 repaired" in _ROUNDS_LINE
+    and "1 repeated" in _ROUNDS_LINE,
+    f"rounds line={_ROUNDS_LINE[:400]!r} -- 4 of 5 merges had `merge` as their "
+    "first verdict but only #1 merged on that one verdict, so a yield printed "
+    "alone under a first-pass label counts three re-reviewed merges as passes",
+)
+R.check(
+    "and the one-round yield moves with the window (null control: #3 flipped "
+    "to a first `merge` raises the first-verdict yield only)",
+    "first-verdict yield 5/5" in (_rounds("flipped").get("line") or "")
+    and "one-round yield 1/5" in (_rounds("flipped").get("line") or ""),
+    f"flipped line={(_rounds('flipped').get('line') or '')[:400]!r}",
 )
 R.check(
     "the publishing lane runs on main alone, never on a pull request",
@@ -22215,16 +22300,282 @@ R.check(
     f"breach rc={_MUT_S_BREACH.rc}: the null control -- the rule must not "
     "go blind to the structure driver altogether",
 )
-# The probes the declared status does not name: the same status from another
-# driver, and the declared status with a FAIL line printed beside it.
+# #1521 (R8-D3-s1-01) generalised #1453's rule: no driver's status alone is a
+# kill, so the per-driver table of "no check failed" statuses is gone rather
+# than grown. Probed both ways: the same FAIL-free status from another driver
+# is no kill either, and structure.py's exit 2 beside a FAIL line is one.
 R.check(
-    "the non-violation status is keyed to its driver and to a FAIL-free output",
-    _mut.killed("tests/features.py", _MUT_S_GAIN, _MUT_S_BASE)
+    "a status is a kill for no driver unless the output names a failing check",
+    not _mut.killed("tests/features.py", _MUT_S_GAIN, _MUT_S_BASE)
     and _mut.killed("tests/structure.py",
                     _MUT_S_GAIN._replace(stdout="FAIL cut_learning\n"),
-                    _MUT_S_BASE),
-    "rc 2 is a gain only where structure.py says so, and only when no check "
-    "in the output failed",
+                    _MUT_S_BASE)
+    and not hasattr(_mut, "NON_VIOLATION_EXITS"),
+    "rc 2 with no failing check reads the same from every driver; a FAIL "
+    "line beside it is a kill whatever the status",
+)
+
+# #1521: env_drift.py refuses an inherited claim list BEFORE capturing
+# anything, and a mutant is a production edit, so while the fork point carries
+# a claim list it refused every mutant -- a comment-only edit included -- and
+# the old rule scored each as "killed by tests/env_drift.py". Driven with the
+# driver's REAL refusal texts (the functions main() prints them from), against
+# the green line its --all run prints on the unmutated tree.
+_MUT_ED_BASE = _mut.ScriptRun(0, 0, 0.0, "claims hygiene: ok\n")
+_MUT_ED_REFUSALS = {
+    "inherited": _env_drift.inherited_claims_error(
+        {"valve_storage_flat_prices": ["r"]},
+        {"valve_storage_flat_prices": ["r"]}, "HEAD^1"),
+    "record_pr": _env_drift.record_pr_claims_error([], {"x": ["r"]}, {}),
+    "self": _env_drift.self_comparison_error("HEAD", "0" * 40),
+}
+_MUT_ED_KILLS = {
+    _k: _mut.killed("tests/env_drift.py",
+                    _mut.ScriptRun(1, 0, 0.0, _v + "\n"), _MUT_ED_BASE)
+    for _k, _v in _MUT_ED_REFUSALS.items()
+}
+R.check(
+    "an env_drift refusal before capture is not a kill (#1521)",
+    all(_MUT_ED_REFUSALS.values()) and not any(_MUT_ED_KILLS.values()),
+    f"killed={_MUT_ED_KILLS}: a refusal judges the diff's claim files, not "
+    "the mutated line",
+)
+# The null control: the drift verdict and a crash still are kills, so the rule
+# did not simply go blind to env_drift. The summary lines are the ones main()
+# and print_staleness print; the entities check below refuses a driver whose
+# source stops printing every form `failing_count` reads.
+_MUT_ED_RED = {
+    "drift": "  DRIFT x: 3 leaves moved vs HEAD^1\n\n"
+             "1 UNCLAIMED DRIFT(S) vs HEAD^1\n",
+    "stale": "\n2 COMMITTED FIXTURE(S) ARE STALE\n",
+}
+R.check(
+    "and its drift verdict, its stale fixtures and a crash still are",
+    all(_mut.killed("tests/env_drift.py", _mut.ScriptRun(1, 0, 0.0, _o),
+                    _MUT_ED_BASE) for _o in _MUT_ED_RED.values())
+    and _mut.killed("tests/env_drift.py", _mut.ScriptRun(
+        1, 0, 0.0, "", "Traceback (most recent call last):\n  File x\n"
+        "subprocess.CalledProcessError: Command died\n"), _MUT_ED_BASE)
+    and not _mut.killed("tests/env_drift.py", _mut.ScriptRun(
+        0, 0, 0.0, "  DRIFT x: moved\n1 UNCLAIMED DRIFT(S) vs r\n"),
+        _MUT_ED_BASE),
+    "a red run naming a drift, a stale fixture or an uncaught exception is "
+    "a kill; the same text on a green run is not",
+)
+# The other drivers' forms, each read as the count it is. validate.py and
+# plan_view.py list issues rather than printing FAIL lines, edge.py counts
+# FAILURES, and a timeout is a mutant noticed.
+_MUT_FORMS = {
+    "validate": ("\n2 ISSUES:\n  [a] x\n  [b] y\n", 2),
+    "plan_view": ("PLAN VIEW ISSUES:\n  - one\n  - two\n  - three\n", 3),
+    "edge": ("3 FAILURES\n  [a] x\n", 3),
+    "frontend": ("  FAIL  a\n\n1 FRONTEND CHECK(S) FAILED\n", 1),
+    # open_meteo.py and solar_alignment.py name no subject before CHECK(S).
+    "open_meteo": ("\n2 CHECK(S) FAILED\n", 2),
+    "harness": ("  FAIL a\n  FAIL b\n\n2 of 9 X CHECKS FAILED\n", 2),
+    # A nested control's own FAIL lines and tally, then the driver's.
+    "nested": ("  FAIL c\n3 of 5 NESTED CHECKS FAILED\n  FAIL real\n\n"
+               "1 of 9 ENTITY CHECKS FAILED\n", 1),
+}
+_MUT_FORM_GOT = {
+    _k: _mut.failing_count(_mut.ScriptRun(1, 0, 0.0, _o))
+    for _k, (_o, _n) in _MUT_FORMS.items()
+}
+R.check(
+    "every driver's failing-check form reads as its count",
+    _MUT_FORM_GOT == {_k: _n for _k, (_o, _n) in _MUT_FORMS.items()}
+    and _mut.failing_count(_mut.ScriptRun(_mut.TIMEOUT_RC, 1, 9.0, "", "t"))
+    == 1
+    and _mut.failing_count(_mut.ScriptRun(0, 0, 0.0, "  FAIL a\n  FAIL b\n"))
+    == 0,
+    f"got={_MUT_FORM_GOT}",
+)
+# `main()` refuses a run whose drivers include one that prints no form the
+# rule reads (`verdict_form_problems`). Driven here over synthetic drivers
+# only: reading the real ones would put every driver's source in this
+# script's measured closure, and every driver edit would then select it (#1561
+# review). The instrument applies it to the real drivers on each run.
+def _mut_vf(src: str) -> list:
+    with _tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as _f:
+        _f.write(src)
+    try:
+        return _mut.verdict_form_problems([_f.name])
+    finally:
+        Path(_f.name).unlink()
+
+
+_MUT_VF = {
+    "blind": _mut_vf("import sys\nprint('broken')\nsys.exit(1)\n"),
+    "fail_line": _mut_vf("print(f'  FAIL {1}')\n"),
+    "issues": _mut_vf("print('PLAN VIEW ISSUES:')\n"),
+    "harness": _mut_vf("from harness import Results\n"),
+}
+R.check(
+    "a driver printing no failing-check form the rule reads is reported",
+    len(_MUT_VF["blind"]) == 1
+    and not any(_MUT_VF[_k] for _k in ("fail_line", "issues", "harness")),
+    f"{ {_k: len(_v) for _k, _v in _MUT_VF.items()} }: only the driver "
+    "printing 'broken' is blind; a FAIL line, an ISSUES list and the "
+    "harness's own forms each count",
+)
+
+# The crash rule, over REAL tracebacks: a subprocess that raises, exits 1 and
+# prints nothing on stdout, for the shapes #1561's review found scored as no
+# kill when the rule keyed on the exception line's class name -- a class not
+# ending in Error (UpdateFailed, AbortFlow, ConfigEntryNotReady are this
+# repository's), StopIteration, a multi-line assert message and an exception
+# carrying notes. The null control: the same subprocesses exiting 1 WITHOUT a
+# traceback, which is what env_drift's refusals do.
+_MUT_CRASH_SRC = {
+    "custom class": "class UpdateFailed(Exception): pass\n"
+                    "raise UpdateFailed('Error updating data: x')",
+    "StopIteration": "next(iter([]))",
+    "multi-line assert": "assert False, 'first line\\nsecond line'",
+    "exception notes": "e = ValueError('x'); e.add_note('a note'); raise e",
+    "chained": "try:\n  1/0\nexcept Exception as e:\n"
+               "  raise RuntimeError('wrapped') from e",
+}
+
+
+def _mut_crash(code: str) -> "_mut.ScriptRun":
+    _p = _subprocess.run([sys.executable, "-c", code], capture_output=True,
+                         text=True, timeout=60)
+    return _mut.ScriptRun(_p.returncode, 0, 0.0, _p.stdout, _p.stderr)
+
+
+_MUT_CRASHES = {_k: _mut_crash(_c) for _k, _c in _MUT_CRASH_SRC.items()}
+_MUT_REFUSE = _mut_crash("import sys; print('INHERITED CLAIMS: x'); "
+                         "sys.exit(1)")
+_MUT_OK = _mut.ScriptRun(0, 0, 0.0, "ok\n")
+R.check(
+    "any uncaught exception on a red run is a kill, whatever its class",
+    all(_r.rc != 0 and _mut.killed("tests/x.py", _r, _MUT_OK)
+        for _r in _MUT_CRASHES.values())
+    and _MUT_REFUSE.rc == 1
+    and not _mut.killed("tests/x.py", _MUT_REFUSE, _MUT_OK),
+    f"killed={ {_k: _mut.killed('tests/x.py', _r, _MUT_OK) for _k, _r in _MUT_CRASHES.items()} }, "
+    f"refusal without a traceback killed="
+    f"{_mut.killed('tests/x.py', _MUT_REFUSE, _MUT_OK)}",
+)
+
+# The null control's verdict names every driver that noticed a comment, and a
+# driver it never ran under is no survival.
+_MUT_NV_BASE = {"a": _MUT_OK, "b": _MUT_OK}
+
+
+def _mut_nv_missing() -> str:
+    """The verdict when driver `b` never ran under the null control."""
+    try:
+        return _mut.null_control_verdict({"a": _MUT_OK}, _MUT_NV_BASE)
+    except Exception as _e:  # noqa: BLE001 - a crash is this check's FAIL
+        return f"raised {type(_e).__name__}"
+R.check(
+    "the null control is scored over every driver, never the first kill only",
+    _mut.null_control_verdict({"a": _MUT_OK, "b": _MUT_OK},
+                              _MUT_NV_BASE) == "LIVES"
+    and _mut.null_control_verdict(
+        {"a": _MUT_CRASHES["StopIteration"], "b": _MUT_CRASHES["chained"]},
+        _MUT_NV_BASE).count("(") == 2
+    and _mut_nv_missing().startswith("not run"),
+    "two drivers that notice it are both named; a missing driver refuses "
+    f"(missing -> {_mut_nv_missing()!r})",
+)
+# The run's own null control: a comment-only edit that moves no line number,
+# no code token and no line count, so no driver can notice it by behaviour.
+_MUT_NULL_SRC = _tempfile.NamedTemporaryFile("w", suffix=".py", delete=False)
+_MUT_NULL_SRC.write('X = "# not a comment"\nY = 1  # trailing\n'
+                    "    # an indented comment\n# a full-line comment\n")
+_MUT_NULL_SRC.close()
+_MUT_NULL = _mut.null_control(Path(_MUT_NULL_SRC.name))
+Path(_MUT_NULL_SRC.name).unlink()
+R.check(
+    "the null control edits a whole-line comment and nothing else",
+    _MUT_NULL is not None and _MUT_NULL["line"] == 3
+    and _MUT_NULL["new"].startswith(_MUT_NULL["old"])
+    and _MUT_NULL["new"] != _MUT_NULL["old"] and "\n" not in _MUT_NULL["new"],
+    f"picked={_MUT_NULL and (_MUT_NULL['line'], _MUT_NULL['new'])}: not the "
+    "string that looks like one, not a trailing comment on a code line",
+)
+R.check(
+    "a run whose null control did not survive is refused",
+    _mut.null_control_refusal("f.py:3 NULL_COMMENT", "LIVES") is None
+    and all(_mut.null_control_refusal("f.py:3 NULL_COMMENT", _v)
+            for _v in ("killed by tests/env_drift.py (x)", "SKIP-MOVED",
+                       "not run")),
+    "a kill, a skip and a missing verdict each refuse; only LIVES proceeds",
+)
+
+# #1531 (R8-D3-s1-02): the drift cache key took every HPO_/HEATPUMP_/HASTUB_
+# variable by prefix, so HPO_PLANDATA and the gate lock's HPO_GATE_* -- read
+# by no capture -- split it and forced a re-capture. The key now takes this
+# tree's own variables by NAME, and the names are derived here from what a
+# capture executes: tests/golden.py's MEASURED closure, plus the worker entry
+# in env_drift.py itself. Any string literal in those files that names a
+# variable in one of the tree's namespaces -- or IS a bare namespace prefix,
+# which would be a read by prefix -- is a variable a capture can read.
+_CK_NAME = re.compile(
+    "^(?:" + "|".join(map(re.escape, _env_drift.TREE_ENV_NAMESPACES))
+    + r")[A-Z0-9_]*$")
+
+
+def _ck_reads(sources: list) -> set:
+    return {
+        _n.value for _src in sources for _n in _ast_af.walk(_ast_af.parse(_src))
+        if isinstance(_n, _ast_af.Constant) and isinstance(_n.value, str)
+        and _CK_NAME.match(_n.value)
+    }
+
+
+# env_drift.py is in that closure because golden.py's drift mode execs it;
+# of it, a capture runs `capture_tree` alone, so that is what is read.
+_CK_FILES = [
+    _f for _f in _mut.load_closures().get("tests/golden.py", [])
+    if _f.endswith(".py") and _f != "tests/env_drift.py"
+]
+_CK_READS = _ck_reads(
+    [Path(_f).read_text() for _f in _CK_FILES]
+    + [_inspect.getsource(_env_drift.capture_tree)])
+R.check(
+    "the drift cache key takes exactly the tree variables a capture reads",
+    bool(_CK_FILES) and _CK_READS == set(_env_drift.CACHE_TREE_ENV_NAMES)
+    and not any(_p.startswith(_env_drift.TREE_ENV_NAMESPACES)
+                for _p in _env_drift.CACHE_ENV_PREFIXES),
+    f"read={sorted(_CK_READS)} keyed={list(_env_drift.CACHE_TREE_ENV_NAMES)} "
+    f"over {len(_CK_FILES)} file(s) of tests/golden.py's closure",
+)
+R.check(
+    "and the derivation sees a new read, a prefix read and nothing else",
+    _ck_reads(['import os\nos.environ.get("HPO_NEW")\n',
+               'n.startswith("HEATPUMP_")\n', 'x = "HPO lower"\n'])
+    == {"HPO_NEW", "HEATPUMP_"},
+    "the null control: a read the key misses must fail the check above",
+)
+
+
+def _ck_env(extra: dict) -> list:
+    _saved = dict(_os.environ)
+    try:
+        for _k in [k for k in _os.environ
+                   if k.startswith(_env_drift.TREE_ENV_NAMESPACES)]:
+            del _os.environ[_k]
+        _os.environ.update(extra)
+        return _env_drift._relevant_environment()
+    finally:
+        _os.environ.clear()
+        _os.environ.update(_saved)
+
+
+_CK_CLEAN = _ck_env({})
+_CK_UNREAD = {
+    "HPO_PLANDATA": "/tmp/plandata", "HPO_GATE_LOCK_LABEL": "seat",
+    "HPO_GATE_FLOCK_CHILD": "1", "HEATPUMP_ANY": "1",
+}
+R.check(
+    "a variable no capture reads leaves the key; one it reads moves it",
+    _ck_env(_CK_UNREAD) == _CK_CLEAN
+    and _ck_env({"HASTUB_TZ": "Europe/Stockholm"}) != _CK_CLEAN,
+    "HPO_PLANDATA and the gate lock's names split the key before #1531; "
+    "HASTUB_TZ is the positive control",
 )
 
 # The six operators, driven over a module written to carry one of each. A
@@ -22899,6 +23250,144 @@ R.check(
     "script must not be read as naming a failing check",
 )
 _mut_shutil.rmtree(_MUT_PROBE_DIR, ignore_errors=True)
+
+
+# --- P8: every float() of an entity's state goes through a unit (#1513) -------
+#
+# The class: a number read off a Home Assistant State with its unit never
+# consulted, so an öre/kWh price reached the plan at 100x and a degF probe was
+# taken as degC. inputs.py holds the normalisers (price, temperature, power,
+# energy), so a read routed through one of them does its float() THERE and is
+# not a site here. The rule: in every package module but inputs.py, a call to
+# float() or _as_float() whose argument derives -- through local names -- from
+# a State's .state or .attributes, a State being hass.states.get(...), an
+# event's new_state/old_state, or a name bound to either. Every site it
+# returns is in the table below, keyed on (module, function, call text) and
+# matched exactly once, with the normaliser the function must also call (or
+# None) and the reason. Blind spot, stated: a value handed to ANOTHER function
+# before its float() -- the price arrays' _raw_value(item) -- is not followed;
+# that seam is closed in price_model and pinned by tests/features.py.
+_P8_ALLOWED = {
+    ("coordinator.py", "_on_power_event", "float(raw_state)"): (
+        "normalize_power_kw", "converted to kW by the entity's unit on the next line"),
+    ("coordinator.py", "_pv_measured_production", "float(state.state)"): (
+        "normalize_power_kw", "converted to kW by the entity's unit on the next line"),
+    ("coordinator.py", "_indoor_humidity_value", "float(state.state)"): (
+        None, "relative humidity is a dimensionless percent: there is no unit to resolve"),
+}
+
+
+def _p8_state_obj(n, objs):
+    if isinstance(n, ast.Name):
+        return n.id in objs
+    if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "get":
+        if isinstance(n.func.value, ast.Attribute) and n.func.value.attr == "states":
+            return True
+        return any(
+            isinstance(a, ast.Constant) and a.value in ("new_state", "old_state")
+            for a in n.args
+        )
+    return False
+
+
+def _p8_source(n, objs, vals):
+    if isinstance(n, ast.Name):
+        return n.id in vals
+    if isinstance(n, ast.Attribute) and n.attr in ("state", "attributes"):
+        return _p8_state_obj(n.value, objs)
+    return (
+        isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Name)
+        and n.func.id == "getattr"
+        and len(n.args) >= 2
+        and isinstance(n.args[1], ast.Constant)
+        and n.args[1].value in ("state", "attributes")
+        and _p8_state_obj(n.args[0], objs)
+    )
+
+
+def _p8_names(t):
+    if isinstance(t, ast.Name):
+        return [t.id]
+    if isinstance(t, (ast.Tuple, ast.List)):
+        return [x for e in t.elts for x in _p8_names(e)]
+    return _p8_names(t.value) if isinstance(t, ast.Starred) else []
+
+
+def _p8_float_sites(trees):
+    sites = []
+    for fname, tree in trees.items():
+        if fname == "inputs.py":
+            continue
+        for fn in ast.walk(tree):
+            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            binds = []
+            for n in ast.walk(fn):
+                if isinstance(n, (ast.Assign, ast.AnnAssign, ast.NamedExpr)) and n.value:
+                    tg = n.targets if isinstance(n, ast.Assign) else [n.target]
+                    binds.append((n.value, [x for t in tg for x in _p8_names(t)]))
+                elif isinstance(n, (ast.For, ast.AsyncFor, ast.comprehension)):
+                    binds.append((n.iter, _p8_names(n.target)))
+            objs = {a.arg for a in fn.args.args if a.arg in ("state", "new_state")}
+            vals = set()
+            for _ in range(4):
+                for value, names in binds:
+                    if _p8_state_obj(value, objs):
+                        objs.update(names)
+                    elif any(_p8_source(s, objs, vals) for s in ast.walk(value)):
+                        vals.update(names)
+            called = {
+                c.func.attr if isinstance(c.func, ast.Attribute) else c.func.id
+                for c in ast.walk(fn)
+                if isinstance(c, ast.Call) and isinstance(c.func, (ast.Attribute, ast.Name))
+            }
+            for n in ast.walk(fn):
+                if (
+                    isinstance(n, ast.Call)
+                    and isinstance(n.func, ast.Name)
+                    and n.func.id in ("float", "_as_float")
+                    and n.args
+                    and any(_p8_source(s, objs, vals) for s in ast.walk(n.args[0]))
+                ):
+                    sites.append(((fname, fn.name, ast.unparse(n)), called))
+    return sites
+
+
+def _p8_refusals(sites):
+    keys = [k for k, _ in sites]
+    bad = [f"{k} is not dispositioned" for k in keys if k not in _P8_ALLOWED]
+    bad += [f"{k} matches {keys.count(k)} sites" for k in set(keys) if keys.count(k) > 1]
+    bad += [f"{k} is dispositioned but no longer a site" for k in _P8_ALLOWED if k not in keys]
+    bad += [
+        f"{k} claims {_P8_ALLOWED[k][0]} but its function never calls it"
+        for k, called in sites
+        if k in _P8_ALLOWED and _P8_ALLOWED[k][0] and _P8_ALLOWED[k][0] not in called
+    ]
+    return sorted(set(bad))
+
+
+_p8_sites = _p8_float_sites(_PKG_TREES)
+for _p8_key, _ in _p8_sites:
+    print(f"  .. P8 site {_p8_key}: {_P8_ALLOWED.get(_p8_key, ('UNDISPOSITIONED',))[0]}")
+R.check(
+    "every float() of an entity's state outside inputs.py is normalised or dispositioned (#1513)",
+    _p8_sites and _p8_refusals(_p8_sites) == [],
+    f"{len(_p8_sites)} site(s); " + "; ".join(_p8_refusals(_p8_sites)),
+)
+_p8_probe = ast.parse(
+    "def _export(self):\n"
+    "    state = self.hass.states.get('sensor.x')\n"
+    "    raw = getattr(state, 'state', None)\n"
+    "    return float(raw)\n"
+    "def _humid(hass):\n"
+    "    return float(hass.states.get('sensor.h').state)\n"
+)
+R.check(
+    "null control: a bare read, direct or through a local, is refused",
+    len(_p8_refusals(_p8_sites + _p8_float_sites({"probe.py": _p8_probe}))) == 2,
+    f"{_p8_refusals(_p8_float_sites({'probe.py': _p8_probe}))}",
+)
 
 
 # --- the replay lane's cheap half, on every pull request (round 8, move 2) ---

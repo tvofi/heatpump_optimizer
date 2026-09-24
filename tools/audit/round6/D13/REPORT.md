@@ -1,6 +1,6 @@
 # D13 — process yield and cost — audit round 6
 
-Baseline `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9), worktree `/Users/timmalmstrom/audit-r6-D13`. Window `v6.6.0..e336cc2c` = 5.12 days. `api_failures=0` on every harness; no timing claim (the one timing-shaped figure is GitHub's own run durations), so nothing provisional.
+Baseline `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9), worktree `~/audit-r6-D13`. Window `v6.6.0..e336cc2c` = 5.12 days. `api_failures=0` on every harness; no timing claim (the one timing-shaped figure is GitHub's own run durations), so nothing provisional.
 
 > Reconstructed by the orchestrator from the finder's inline return (REPORT.md write refused; 6 harnesses + fixtures on disk, untracked).
 

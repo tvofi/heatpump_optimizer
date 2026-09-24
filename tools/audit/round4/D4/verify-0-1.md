@@ -1,6 +1,6 @@
 # D4 — round 4 — verifier report, seat 0-1 (verifier 1 of 3)
 
-- worktree: `/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D4-1`
+- worktree: `~/.zcode/workspace/default/audit-r4-verify-D4-1`
   (detached at `0855277`, branch `claude/13-dimension-audit-920935`)
 - payload: `HPO_PLANDATA=/private/tmp/hpo-d4-verify1/plandata.json` (written by
   `tests/plan_view.py` from this tree, private temp root)

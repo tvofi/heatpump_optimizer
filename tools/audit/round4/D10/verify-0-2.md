@@ -1,6 +1,6 @@
 # D10 round-4 verification — verifier 2 of 3 (panel D10-0)
 
-- **Worktree**: `/Users/timmalmstrom/.zcode/workspace/default/audit-r4-verify-D10-2`,
+- **Worktree**: `~/.zcode/workspace/default/audit-r4-verify-D10-2`,
   detached at `0855277` (branch head of `claude/13-dimension-audit-920935`).
 - **Baseline the finder measured**: `7dd68dd`. Between `7dd68dd` and `0855277`
   nothing under `custom_components/` and none of the user docs changed (only

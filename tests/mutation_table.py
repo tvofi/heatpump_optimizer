@@ -20,12 +20,17 @@ hand-picked script would let a mutant survive because its driver never imports
 the module, and a survivor that says nothing about the suite is worse than no
 survivor at all.
 
-**The kill rule reads the whole output.** #805 recorded the alternative: a
-pre-screen that read the last 1200 bytes scored seven real kills as survivors,
-because two scripts print their summary line before trailing log noise. A mutant
-is killed when a driver's exit status changes, or when its `N of M ... FAILED`
-count rises above the baseline's -- except a status the driver itself documents
-as "no check failed" (`NON_VIOLATION_EXITS`, #1453).
+**A kill is a failing check, read out of the whole output.** #805 recorded
+the alternative to reading all of it: a pre-screen that read the last 1200 bytes
+scored seven real kills as survivors, because two scripts print their summary
+line before trailing log noise. A mutant is killed when a driver's run is red
+AND names more failing checks than the unmutated baseline's (`killed()`). An
+exit status alone is not a failed check: #1453 scored structure.py's "improved,
+not yet recorded" exit as a kill, and #1521 scored env_drift.py's INHERITED
+CLAIMS refusal -- which fires on ANY production edit, a comment included, before
+anything is captured -- as a kill of every mutant it drove. Every run also
+drives one comment-only edit through every driver in play, and refuses itself
+if that null control dies.
 
 **Nothing is mutated in the working tree.** Each worker mutates its own copy, so
 a run killed mid-mutant cannot leave a production file edited -- the failure mode
@@ -99,6 +104,24 @@ _FAILED = re.compile(r"^\s*(\d+) of (\d+) .*FAILED\s*$", re.M)
 # The per-check line the shared harness prints (`tests/harness.py`,
 # `Results.check`), and the three drivers that keep their own counter with it.
 _CHECK_FAIL = re.compile(r"^\s*FAIL\s+(.+?)\s*$", re.M)
+# The other failing-check forms the drivers print (#1521). A summary count:
+# `N [<WHAT>] CHECK(S) FAILED` (frontend and deployment_shape name what;
+# open_meteo and solar_alignment do not), `N FAILURES` (edge), `N ISSUES:`
+# (validate) and env_drift.py's three verdicts. And plan_view.py's `PLAN VIEW
+# ISSUES:` heading over one `  - ` bullet per issue. `main()` refuses a run
+# whose drivers include one whose source prints none of these forms
+# (`verdict_form_problems`), so a driver cannot go blind by printing a new one.
+_SUMMARY_FAILS = re.compile(
+    r"^\s*(\d+) (?:(?:[A-Z][A-Z -]* )?CHECK\(S\) FAILED|FAILURES\b|ISSUES:"
+    r"|UNCLAIMED DRIFT\(S\)|COMMITTED FIXTURE\(S\) ARE STALE"
+    r"|STALE CLAIM\(S\))", re.M)
+_ISSUE_BULLETS = re.compile(r"^[A-Z][A-Z ]*ISSUES:\n((?:[ \t]+- .*(?:\n|$))+)",
+                            re.M)
+# An uncaught exception prints its traceback to stderr, whatever the class is
+# called -- UpdateFailed, AbortFlow, StopIteration, one carrying notes or a
+# multi-line assert message all end differently, so the header is the key.
+_TRACEBACK = "Traceback (most recent call last):"
+TIMEOUT_RC = 124
 
 # Candidate drivers for `--scripts` are the GATE's recorded set, not a
 # hand-kept shortlist (#1211, D3-01). `default_scripts()` derives the list
@@ -852,40 +875,166 @@ def run_script(script: str, cwd: Path, timeout: int,
         )
     except subprocess.TimeoutExpired:
         # A mutant that hangs its driver is noticed, not silently survived.
-        return ScriptRun(124, 0, time.monotonic() - started)
-    hits = _FAILED.findall(proc.stdout)
-    return ScriptRun(
-        proc.returncode, (int(hits[-1][0]) if hits else 0),
-        time.monotonic() - started, proc.stdout, proc.stderr,
-    )
+        return ScriptRun(TIMEOUT_RC, 1, time.monotonic() - started, "",
+                         f"{script}: timed out after {timeout}s")
+    run = ScriptRun(proc.returncode, 0, time.monotonic() - started,
+                    proc.stdout, proc.stderr)
+    return run._replace(failed=failing_count(run))
 
 
-# Exit statuses a driver documents as "no check failed" (#1453, D3-02).
-# tests/structure.py exits 2 for IMPROVED AND NOT YET RECORDED and says
-# "Nothing here is a violation" (#808): a mutant that makes code unreachable
-# can lower a metric, and reading that status as a kill recorded a site no
-# check covers as killed. Keyed per driver: the same status from any other
-# script is still a changed status. The class is every status a driver can
-# exit with other than 0 and 1, on the invocation drive_spec() makes; a driver
-# that gains one belongs here, with the sentence its own output prints.
-NON_VIOLATION_EXITS: dict[str, frozenset[int]] = {
-    "tests/structure.py": frozenset({2}),
-}
+def failing_count(run: ScriptRun) -> int:
+    """How many failing checks a run names as its own -- 0 for a green run.
+
+    A green run names none, whatever it printed: tests/entities.py's green run
+    prints dozens of `FAIL` lines, every one a negative control it drove on
+    purpose. A red run's tally is read from the first form it prints, most
+    authoritative first: the harness's closing `N of M ... FAILED` (the LAST
+    one, as a nested control may print its own earlier), the sum of the
+    summary counts (`_SUMMARY_FAILS`; env_drift.py prints up to three), the
+    `ISSUES:` bullets, and only then the `FAIL <name>` lines -- plus one for an
+    uncaught exception, an assertion the driver never finished, and one for a
+    timeout. A red run that names none of these is a refusal, not a verdict.
+    """
+    if run.rc == 0:
+        return 0
+    out = run.stdout
+    n_of_m = _FAILED.findall(out)
+    summaries = [int(n) for n in _SUMMARY_FAILS.findall(out)]
+    bullets = [len(b.splitlines()) for b in _ISSUE_BULLETS.findall(out)]
+    if n_of_m:
+        n = int(n_of_m[-1][0])
+    elif summaries:
+        n = sum(summaries)
+    elif bullets:
+        n = sum(bullets)
+    else:
+        n = len(_CHECK_FAIL.findall(out))
+    crashed = _TRACEBACK in run.stderr
+    timed_out = run.rc == TIMEOUT_RC and not out
+    return n + int(crashed) + int(timed_out)
 
 
 def killed(script: str, run: ScriptRun, baseline: ScriptRun) -> bool:
-    """Whether one driver's run on a mutant noticed the mutation.
+    """Whether `script`'s run on a mutant noticed the mutation (#1453, #1521).
 
-    The mutant's run differs from the unmutated baseline's: its exit status
-    changed, or its `N of M ... FAILED` count rose. A status the driver
-    declares in NON_VIOLATION_EXITS reads as 0, but only while its output
-    names no FAIL line -- the status says no check failed, and the output
-    has to agree.
+    Killed when the run is red AND names more failing checks than the
+    unmutated baseline's did -- which, the baseline being green by the time any
+    mutant is driven (`baseline_refusal`), means at least one. A changed exit status alone is not a kill: it
+    is how a driver also says "nothing here is a violation" (structure.py's
+    exit 2 for a metric that only IMPROVED, #1453) and "I refuse to measure
+    this diff" (env_drift.py's INHERITED CLAIMS refusal, which fires before any
+    capture on every production edit while the fork point carries a claim
+    list, #1521). The rule is the same for every driver, so a driver that
+    gains a new non-violation status needs no entry anywhere; the old
+    per-driver table (`NON_VIOLATION_EXITS`) is retired, because this rule
+    reads structure.py's exit 2 as no kill without it. `script` names the
+    driver for the caller's verdict line; the rule itself is driver-blind.
     """
-    def status(r: ScriptRun) -> int:
-        quiet = r.rc in NON_VIOLATION_EXITS.get(script, ())
-        return 0 if quiet and not _CHECK_FAIL.search(r.stdout) else r.rc
-    return status(run) != status(baseline) or run.failed > baseline.failed
+    del script
+    return run.rc != 0 and failing_count(run) > failing_count(baseline)
+
+
+# How a driver's SOURCE prints each form `failing_count` reads: a string
+# literal (an f-string's constant parts included) that opens a FAIL line or
+# carries a summary's wording. Source text, not a run: running every driver
+# red is the nightly's cost, and this only has to see that one form exists.
+_VERDICT_SOURCE = re.compile(
+    r"^\s*FAIL\b|FAILED\b|FAILURES\b|ISSUES:|UNCLAIMED DRIFT\(S\)"
+    r"|COMMITTED FIXTURE\(S\) ARE STALE")
+
+
+def verdict_form_problems(scripts: list[str]) -> list[str]:
+    """Each driver whose source prints no failing-check form the rule reads.
+
+    Such a driver can exit red on a mutant and never kill it, which reads as
+    a survivor and as a finding about production. A driver that imports
+    `tests/harness.py` prints through `Results.check`/`close`, so the harness's
+    literals count as its own.
+    """
+    out: list[str] = []
+    for script in scripts:
+        path = Path(script) if Path(script).is_absolute() else ROOT / script
+        if path.suffix != ".py" or not path.exists():
+            continue
+        tree = ast.parse(path.read_text())
+        sources = [tree]
+        if any(isinstance(n, (ast.Import, ast.ImportFrom))
+               and "harness" in ([a.name for a in n.names]
+                                 + [getattr(n, "module", None) or ""])
+               for n in ast.walk(tree)):
+            sources.append(ast.parse((ROOT / "tests/harness.py").read_text()))
+        if not any(isinstance(n, ast.Constant) and isinstance(n.value, str)
+                   and _VERDICT_SOURCE.search(n.value)
+                   for t in sources for n in ast.walk(t)):
+            out.append(f"{script}: prints no FAIL line, FAILED/FAILURES "
+                       "count, ISSUES list or drift verdict, so a red run of "
+                       "it can never read as a kill")
+    return out
+
+
+def null_control(path: Path) -> dict | None:
+    """A comment-only edit of `path`: the run's built-in null control (#1521).
+
+    The first line that holds a comment and nothing else gains a few words at
+    its end, so no line number, no code token and no line count moves. No
+    driver can notice it through behaviour, so a driver that "kills" it is
+    reacting to the diff's shape -- env_drift.py's claim hygiene did, on every
+    mutant -- and every verdict that driver gave in the same run is suspect.
+    """
+    import io
+    import tokenize
+
+    src = path.read_text()
+    lines = src.splitlines()
+    try:
+        toks = list(tokenize.generate_tokens(io.StringIO(src).readline))
+    except (tokenize.TokenError, SyntaxError):
+        return None
+    for tok in toks:
+        ln = tok.start[0]
+        if (tok.type == tokenize.COMMENT and lines[ln - 1].strip() == tok.string
+                and len(lines[ln - 1]) < 60):
+            try:
+                rel = str(path.relative_to(ROOT))
+            except ValueError:
+                rel = str(path)
+            return dict(kind="NULL_COMMENT", file=rel, line=ln,
+                        old=lines[ln - 1],
+                        new=lines[ln - 1] + " (null control)")
+    return None
+
+
+def null_control_verdict(runs: dict[str, ScriptRun],
+                         baseline: dict[str, ScriptRun]) -> str:
+    """LIVES, or which drivers "killed" the null control and on what.
+
+    Every driver in play is scored, none is skipped at the first kill, and a
+    driver the null control never ran under is a verdict too ("not run"): the
+    point is to name every driver that is judging the diff.
+    """
+    missing = sorted(set(baseline) - set(runs))
+    if missing:
+        return "not run under " + ", ".join(missing)
+    killers = [
+        f"{s} ({'; '.join(failed_checks(runs[s])) or 'no FAIL line'})"
+        for s in sorted(baseline) if killed(s, runs[s], baseline[s])
+    ]
+    return "killed by " + ", ".join(killers) if killers else "LIVES"
+
+
+def null_control_refusal(key: str, verdict: str) -> str | None:
+    """The run's refusal when its null control did not survive, else None.
+
+    Anything but LIVES refuses -- a kill, and equally a null control that was
+    skipped or never ran, because then nothing separates a kill from a driver
+    reacting to the diff itself.
+    """
+    if verdict == "LIVES":
+        return None
+    return (f"\nMUTATION TABLE REFUSED -- the null control {key} was "
+            f"{verdict}. A comment-only edit changes no behaviour, so a driver "
+            "that notices it is judging the diff rather than the code, and "
+            "none of this run's kills can be told apart from that.")
 
 
 def clone_tree(dest: Path) -> Path:
@@ -1127,22 +1276,73 @@ def main() -> int:
     if any(s in REF_DRIVEN for s in needed):
         print(f"  ref-driven drivers compare against {ref!r} "
               f"(run.sh's GOLDEN_REF resolution)")
+    # A driver whose red output the kill rule cannot read can never kill, and
+    # every mutant only it reaches would read as a survivor: refuse first.
+    blind = verdict_form_problems(needed)
+    if blind:
+        print("\nMUTATION TABLE REFUSED -- a driver in play prints no "
+              "failing-check form `failing_count` reads:")
+        for b in blind:
+            print(f"    - {b}")
+        return 1
+    # The null control: a comment-only edit in a file the sample already
+    # mutates, driven by EVERY driver in play and never stopped at the first
+    # "kill". It runs in its own tree BESIDE the serial baseline phase, which
+    # drives the same drivers, so it adds that phase's contention and not a
+    # second serial pass of every driver to the mutant phase (#1561 review:
+    # riding the pool, it put the job at 82 of its 90 minutes).
+    null = next(filter(None, (null_control(ROOT / f)
+                              for f in sorted({m["file"] for m in pool}))),
+                None)
+    if null is None:
+        print("\nMUTATION TABLE REFUSED -- no full-line comment in any file "
+              "in the pool, so the run has no null control and no verdict "
+              "can be told apart from a driver reacting to the diff itself")
+        return 1
+    print(f"  null control: {triage_key(null)}, a comment-only edit every "
+          f"driver in play must let survive")
 
     work = Path(tempfile.mkdtemp(prefix="mutation-table-"))
     made: list[Path] = []
     try:
         base_tree = clone_tree(work / "baseline")
         made.append(base_tree)
+        null_tree = clone_tree(work / "null")
+        made.append(null_tree)
+        null_path = null_tree / null["file"]
+        null_lines = null_path.read_text().splitlines(True)
+        null_lines[null["line"] - 1] = null["new"] + "\n"
+        null_path.write_text("".join(null_lines))
+        null_runs: dict[str, ScriptRun] = {}
+
+        def drive_null() -> None:
+            for s in needed:
+                extra_args, extra_env = drive_spec(s, ref)
+                null_runs[s] = run_script(s, null_tree, args.timeout,
+                                          extra_args, extra_env)
+
         baseline: dict[str, ScriptRun] = {}
-        for s in needed:
-            extra_args, extra_env = drive_spec(s, ref)
-            run = run_script(s, base_tree, args.timeout, extra_args, extra_env)
-            baseline[s] = run
-            print(f"  baseline {s}: rc={run.rc} failed={run.failed} "
-                  f"{run.seconds:.0f}s")
+        # The `with` joins the null thread even when the baseline raises, so
+        # the `finally` below never removes a tree a driver is still running in.
+        with ThreadPoolExecutor(max_workers=1) as null_ex:
+            null_job = null_ex.submit(drive_null)
+            for s in needed:
+                extra_args, extra_env = drive_spec(s, ref)
+                run = run_script(s, base_tree, args.timeout, extra_args,
+                                 extra_env)
+                baseline[s] = run
+                print(f"  baseline {s}: rc={run.rc} failed={run.failed} "
+                      f"{run.seconds:.0f}s")
+            null_job.result()
         verdict = baseline_refusal(baseline, args.scope)
         if verdict is not None:
             return verdict
+        refusal = null_control_refusal(
+            triage_key(null), null_control_verdict(null_runs, baseline))
+        if refusal:
+            print(refusal)
+            return 1
+        print(f"  null control {triage_key(null)} survived every driver")
         # Cheapest first, measured here rather than carried: a kill then costs
         # the cheapest driver that can see it.
         for mut in pool:

@@ -1,7 +1,7 @@
 # D1 - robustness and stability, audit round 6
 
 Baseline: `e336cc2c530882a142ef298de6420706d96a6300` (v6.6.9), exported at
-`/Users/timmalmstrom/audit-r6-baseline`. Interpreter
+`~/audit-r6-baseline`. Interpreter
 `/Library/Frameworks/Python.framework/Versions/3.11/bin/python3` (numpy 2.4.6,
 scipy 1.17.1), `PYTHONPATH=tests/hastub`, run from the export root.
 Machine: 8-core Apple M1, 8 GB, shared with the other round-6 auditors.

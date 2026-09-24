@@ -42,7 +42,7 @@ ROOT = Path(__file__).resolve().parents[4]
 HERE = Path(__file__).resolve().parent
 BASE_SHA = "7dd68dd327fe3dbfb09f3bd0fe38910c58877697"
 PY = sys.executable
-NODE = "/Users/timmalmstrom/.nvm/versions/node/v20.10.0/bin/node"
+NODE = os.path.expanduser("~/.nvm/versions/node/v20.10.0/bin/node")
 _FAILED = re.compile(r"^\s*(\d+) of (\d+) .*FAILED\s*$", re.M)
 
 # The fast scripts of a closure. stress.py, edge.py and backtest.py are the
