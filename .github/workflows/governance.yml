@@ -262,8 +262,14 @@ jobs:
       # The budget-raise gate (0013 as amended): a raise and a routine edit
       # per budget file, every tracked file's caps moved both ways, and the
       # owner's approval -- current, stale, dismissed, the App's -- offline.
+      # The exit status alone is not trusted: a gate whose entry point always
+      # exits 0 would pass here, and it is pinned but not owned. The tally line
+      # must say 0 failed (#1583 review r2).
       - name: Show the budget-raise gate refusing its own fixtures
-        run: python3 .claude/workflows/budget_raise_gate.py --self-test
+        run: |
+          set -o pipefail
+          python3 .claude/workflows/budget_raise_gate.py --self-test | tee "$RUNNER_TEMP/brg-self-test.txt"
+          grep -Eq '^budget_raise_gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/brg-self-test.txt"
 
       - name: Show the figure check refusing its own fixtures
         if: always()
