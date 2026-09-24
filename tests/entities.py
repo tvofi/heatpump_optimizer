@@ -4599,6 +4599,15 @@ _unplanned_coord, _unplanned_entity = _breach_sensor(_breach_config, _breach_sta
 _unplanned_coord.data = {
     k: v for k, v in _unplanned_coord.data.items() if k != "space_plan"
 }
+# A plan step whose label does not parse covers no instant: no floor, and no
+# crash (the entity sweeps' contract for a malformed payload).
+_unlabelled_coord, _unlabelled_entity = _breach_sensor(_breach_config, _breach_states)
+_unlabelled_coord.data["space_plan"]["forecast"][0]["t"] = None
+R.check(
+    "a plan step with no parseable label publishes no floor",
+    _unlabelled_entity.extra_state_attributes["floor_c"] is None,
+    f"floor={_unlabelled_entity.extra_state_attributes.get('floor_c')!r}",
+)
 R.check(
     "a stale plan, or no plan yet, publishes no floor for the cold damp room",
     _stale_entity.extra_state_attributes["floor_c"] is None
