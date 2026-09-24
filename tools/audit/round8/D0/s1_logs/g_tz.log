@@ -1,0 +1,2 @@
+CELL winter_typical|winter_cold|dhw=0|tz=1 calls=1 maxiter=200 ncand=4 J_prod=77.884228 seeds=-3.495e-04 budget=+6.189e-03 best=budget gap=6.189e-03 e2e=6.189e-03 feas=True cost 58.785->57.576 step0 6.000->6.000 win_cand=2 cand_spread=1.639e-02 max_nit=15 budget_nits=[34, 32, 41, 41]
+CELL winter_typical|winter_mild|dhw=0|tz=1 calls=1 maxiter=200 ncand=4 J_prod=29.678816 seeds=+3.391e-04 budget=+1.228e-03 best=budget gap=1.228e-03 e2e=1.228e-03 feas=True cost 19.717->19.636 step0 0.000->0.000 win_cand=2 cand_spread=1.613e-02 max_nit=30 budget_nits=[17, 28, 40, 41]

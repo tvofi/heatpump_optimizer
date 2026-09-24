@@ -1,0 +1,24 @@
+
+=== Stress and economics ===
+# solves=30 accuracy_samples=29
+# loop cpu series ms: [50.8, 49.9, 57.6, 48.8, 47.3, 50.6, 51.0, 54.2, 56.2, 54.1, 56.5, 54.6, 53.4, 56.3, 53.5, 56.7, 53.2, 53.4, 51.9, 60.6, 60.5, 55.3, 61.4, 62.5, 59.8, 59.9, 67.5, 57.4, 54.7, 57.3]
+RESULT loop_cpu_per_cycle=56.38 ms (provisional)
+RESULT loop_cpu_max_cycle=67.55 ms (provisional)
+RESULT reference_solve_cpu=155.3 ms (provisional)
+RESULT loop_cpu_share_of_reference=0.3630 ratio
+RESULT traced_slope_first_half=2998 bytes/cycle
+RESULT traced_slope_second_half=1904 bytes/cycle
+# attr growth first half: [(8980, '_accuracy'), (0, 'refresh_requests'), (0, 'name'), (0, 'logger'), (0, 'last_update_success'), (0, 'last_exception')]
+# attr growth second half: [(7972, '_accuracy'), (12, '_optimization_result'), (0, 'refresh_requests'), (0, 'name'), (0, 'logger'), (0, 'last_update_success')]
+RESULT data_dict_bytes=75092 bytes
+RESULT entities=74 count
+RESULT recorded_attr_bytes_per_cycle=7897 bytes
+RESULT excluded_attr_bytes_per_cycle=78602 bytes
+RESULT max_recorded_attr_bytes_one_entity=776 bytes
+# top recorded: [(776, 2, 'climate.HeatPumpOptimizerClimate'), (698, 480, 'sensor.predictive_insight'), (504, 23269, 'sensor.space_heating_plan'), (500, 23490, 'sensor.dhw_heating_plan'), (472, 2, 'sensor.plan_narrative')]
+RESULT ipc_job_bytes=12997 bytes
+RESULT ipc_reply_bytes=16661 bytes
+RESULT deliberate_thread_cpu=86.7 ms
+RESULT thread_factor=1.003
+RESULT load1=25.53
+RESULT swapins=0
