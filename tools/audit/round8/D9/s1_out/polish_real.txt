@@ -1,0 +1,22 @@
+
+=== Stress and economics ===
+RESULT real.scenarios=51 count
+RESULT real.njev_total=18967 count
+RESULT real.njev_start=14326 count
+RESULT real.njev_polish_adopted=3441 count
+RESULT real.njev_polish_discarded=1200 count
+RESULT real.polishes=206 count
+RESULT real.polishes_discarded=149 count
+RESULT real.polishes_abnormal_nit0=24 count
+RESULT real.njev_abnormal_nit0=501 count
+RESULT real.discarded_polish_share=0.0633 ratio
+RESULT real.polish_share=0.2447 ratio
+RESULT real.loo.cells=51 count
+RESULT real.loo.min=0.0000 ratio
+RESULT real.loo.max=0.4155 ratio
+RESULT real.loo.median=0.1311 ratio
+RESULT real.loo.mean_drop_highest=0.1258 ratio
+RESULT real.discarded_polish_cpu_share=0.0480 ratio (provisional)
+RESULT thread_factor=1.000
+RESULT load1=24.00
+RESULT swapins=0
