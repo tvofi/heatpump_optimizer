@@ -274,9 +274,45 @@ def pr_reachable(wf_text: str, job_text: str) -> bool:
     return any(ev == "pull_request" for op, ev in tests if op == "==") or any(op == "!=" for op, _ in tests)
 
 
+# A line that runs a program the pull request controls (round 2 of #1589's
+# review). Past one, the job is TAINTED: the program can overwrite a restored
+# file, write `$GITHUB_ENV` (`BASH_ENV`, `LD_PRELOAD`, `PATH`) for every later
+# step, or use the runner's passwordless sudo to replace `git` or `python3`, so
+# no later restore, however adjacent to its grader, can be trusted in that job.
+# Installs run build scripts and drop `.pth` files; a stdin program (`python -`)
+# is taken as importing the tree; a bare tracked path at command position is
+# an invocation even though EXEC, which needs an interpreter or `./`, misses it
+# (`tools/audit/w5-partition/coverage_tree.sh fast`).
+INSTALL = re.compile(r"\b(?:pip3?|npm|npx|pnpm|yarn|uv)\s+(?:install|ci|i|add|sync|pip\s+install)\b"
+                     r"|-m\s+pip\s+install\b|\bpython3?\s+-(?:\s|$)")
+TOKEN = re.compile(r"[A-Za-z0-9_.][A-Za-z0-9_./-]*")
+
+
+def taints(line: str, have: set[str], specs: list[str]) -> bool:
+    """True when `line` runs a program the pull request controls."""
+    body = line.strip()
+    if body.startswith("run:"):
+        body = body[4:].strip().lstrip("|>-").strip()
+    if not body:
+        return False
+    if INSTALL.search(body):
+        return True
+    for m in EXEC.finditer(body):
+        if m.group(1) in have and not any(spec_hit(sp, m.group(1)) for sp in specs):
+            return True
+    first = TOKEN.match(body.split("=", 1)[-1] if re.match(r"^[A-Z_]+=\S*\s", body) else body)
+    if first:
+        head = os.path.normpath(first.group(0))
+        if head in have and not any(spec_hit(sp, head) for sp in specs):
+            return True
+    return False
+
+
 def executions(have: set[str]) -> list[tuple[str, str, str, bool, bool]]:
     """Every (workflow, job, file, pinned, isolated) a PR-reachable grading job
-    executes or loads, in step order."""
+    executes or loads, in step order. `pinned` needs a restore EARLIER in the
+    job whose pathspec matches the file, and no program the pull request
+    controls anywhere before it in the job (`taints`)."""
     out = []
     workflows = sorted(f for f in have if f.startswith(WF_DIR + "/") and f.endswith(".yml"))
     for wf in workflows:
@@ -285,12 +321,23 @@ def executions(have: set[str]) -> list[tuple[str, str, str, bool, bool]]:
             if not pr_reachable(text, jt) or SELF_TEST_ONLY.search(jt):
                 continue
             specs: list[str] = []
+            tainted = False
             for step in jt.split("\n      - ")[1:]:
+                if re.match(r"\s*uses:\s*\./", step):
+                    tainted = True
                 live = "\n".join(ln for ln in step.splitlines() if not ln.lstrip().startswith("#"))
                 r = RESTORE.search(live)
-                if r:
-                    specs += re.findall(r"'([^']+)'", r.group(1))
-                for line in live.splitlines():
+                r_span = (r.start(), r.end()) if r else (-1, -1)
+                in_run, pos = False, 0
+                for line in live.splitlines(keepends=True):
+                    at, pos = pos, pos + len(line)
+                    line = line.rstrip("\n")
+                    if re.match(r"\s*run:", line):
+                        in_run = True
+                    if r and at < r_span[1] and r_span[0] < at + len(line) + 1:
+                        if at <= r_span[0] <= at + len(line):
+                            specs += re.findall(r"'([^']+)'", r.group(1))
+                        continue
                     for m in EXEC.finditer(line):
                         entry = m.group(1)
                         if entry not in have:
@@ -304,7 +351,10 @@ def executions(have: set[str]) -> list[tuple[str, str, str, bool, bool]]:
                             seen.add(f)
                             todo += sorted(loads(f, have) | named(f, have))
                         for f in sorted(seen):
-                            out.append((wf, job, f, any(spec_hit(sp, f) for sp in specs), iso))
+                            out.append((wf, job, f,
+                                        not tainted and any(spec_hit(sp, f) for sp in specs), iso))
+                    if in_run and taints(line, have, specs):
+                        tainted = True
     return out
 
 
