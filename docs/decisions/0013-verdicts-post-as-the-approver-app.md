@@ -115,3 +115,45 @@ second pull request's CODEOWNERS, 6 of those 17 would touch no owned path.
   longer blocks a merge by itself.
 - `docs/decisions/` is `@tvofi`'s; this record needs the owner's approving
   review before it merges.
+
+## Amendment, 2026-09-24: the test-side graders are pinned too
+
+The owner's direction of 2026-09-24, answering whether the check scripts
+should stay code-owned: "I want fully autonomous". The bullet above that kept
+"the rest of the `tests/` block" owned is narrowed to the files where a pin
+cannot hold. The rule is unchanged: a file leaves the owner only where a base
+restore replaces the owner as the barrier.
+
+- **Pinned, so the owner goes:** `tests/mutation_table.py` (`mutation`),
+  `tests/typing_ruler.py` (`typing`), `tests/coverage_ratchet.py`
+  (`coverage`), `tests/nightly_status.py` (`nightly-status`) and
+  `tests/delivery_status.py` (`delivery-status`). Each is one job's grader, it
+  imports only the standard library, and its job restores it from the base
+  before any program the pull request carries, then runs it under `-I`. Its
+  ratchet data is the `*_budgets.json` set, which stays the owner's. The pull
+  request's own copy runs in `graders-head-copy`, which is not required. It
+  runs only when the diff touches that grader, so a changed grader still
+  shows red or green on the pull request that changes it, and a red blocks
+  the merge like any other.
+- **No pull-request job runs them:** `tests/nightly_ha.py` and
+  `tests/replay.py` run on the schedule only, so they grade no pull request
+  and carry no owner. `codeowners_gap.py` tags them `NO-PR-JOB`.
+- **Kept owned, and why, file by file:**
+  - The suite: `tests/run.sh`, `env_drift.py`, `golden.py`, `harness.py`,
+    `profiles.py`, `stress.py`, `plan_view.py` and `card_browser.mjs`. `fast`
+    and `browser` must run the pull request's code. `harness.py` alone has
+    about a hundred importers, and a test that changes with the behaviour it
+    pins would be refused by the base's copy.
+  - `tests/closure.py` and `tests/derive_closures.sh`. Their INERT,
+    NOT_A_TEST and lane rosters are edited by the same pull request that adds
+    a test script or makes a test read a new file, and the base's copy
+    refuses that pull request (`closure.py check`: "selectable script(s)
+    with NO recording"). Pinning them first needs the rosters moved into a
+    data file the pinned code reads from the pull request's tree.
+- **What a pin does not reach.** A grader that drives the pull request's
+  code (`mutation_table.py` runs its tests; `coverage` runs its suite before
+  the ratchet) grades what that code produced. So a pull request whose own
+  code misbehaves at run time is left to review, pinned or not; the pin
+  closes the edit to the grader. A change that must move a pinned grader and
+  its caller together lands in two pull requests: the grader's tolerant form
+  first.

@@ -19284,7 +19284,7 @@ R.check(
 # always-green check this repository keeps catching. CI must never pass it.
 R.check(
     "and passes it no argument that would pin its answer",
-    bool(_NS_RUNS) and _NS_RUNS[0] == "run: python tests/nightly_status.py",
+    bool(_NS_RUNS) and _NS_RUNS[0] == "run: python -I tests/nightly_status.py",
     f"the invocation is {_NS_RUNS[0] if _NS_RUNS else '(absent)'!r}",
 )
 # The permission widening, checked as a PROPERTY rather than as its instance:

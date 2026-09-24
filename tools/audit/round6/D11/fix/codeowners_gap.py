@@ -20,7 +20,10 @@ THE SURFACE (derived, never carried -- the run prints each group's size):
      invoked bare and is not counted. The `./` form is round 8's addition
      (#1515): `./tests/run.sh` and `./tests/derive_closures.sh` are how two
      required jobs run their scripts, and the interpreter-only rule missed
-     both.
+     both. An interpreter named by its path counts too (2026-09-24): the
+     required `typing` job runs `.venv-typing/bin/python tests/typing_ruler.py`,
+     which the bare-name rule never saw, so the ruler was owned by a line no
+     derivation asked for.
   E  what B's scripts load, transitively (#1515): a relative `import`,
      `import()` or `require()` in a `.mjs`/`.js`, and a Python `import` or
      `from ... import` naming a tracked module beside the importer or under
@@ -63,7 +66,19 @@ workflows, hooks and settings (A, C, D) are never pinned: GitHub runs the pull
 request's own workflow file, and a hook is graded by no job. So a pull request
 editing a pinned file changes nothing its own required checks run -- the
 restore puts the base's copy back first -- and the edit reaches `main` only
-through review; an owned file needs the owner's review besides.
+through review; an owned file needs the owner's review besides. A file no
+pull-request job grades with -- `nightly_ha.py` and `replay.py` run on the
+schedule, and an instrument driven only by a `HPO_JOB_GRADES: nothing` job
+grades nothing -- is covered with nothing to restore; the run tags it
+`NO-PR-JOB` rather than `PINNED`, so the two are not read as one claim.
+
+What a pin does not reach. A pinned grader still reads the pull request's
+tree as data, and one that drives the pull request's code (`mutation_table.py`
+runs its tests; the coverage recorder runs its suite) grades what that code
+produced. Pinning closes the edit to the grader, not a pull request whose own
+code misbehaves at run time, which no restore can close and review reads in
+the diff. The ratchet data a grader compares against is the `*_budgets.json`
+set, which is the owner's.
 
 ARMS.
   none           -- the tree's `.github/CODEOWNERS` unchanged (the null control)
@@ -105,7 +120,7 @@ SETTINGS = ".claude/settings.json"
 # A script the workflows execute: invoked with an interpreter on a line that
 # is not a comment.
 EXEC = re.compile(
-    r"(?<![\w./-])(?:(?:node|python3|python|bash|sh|npx|pnpm)\s+(?:-[A-Za-z]+\s+)*|\./)"
+    r"(?<![\w./-])(?:(?:[\w.-]+/)*(?:node|python3|python|bash|sh|npx|pnpm)\s+(?:-[A-Za-z]+\s+)*|\./)"
     r"((?:tests|tools|\.claude|\.github)/[A-Za-z0-9_./-]+\.(?:py|mjs|js|sh|yml))\b"
 )
 
@@ -385,17 +400,20 @@ def run(arm: str) -> int:
     owned = covered(files, rules)
     pins = [f for f in pinned(files, ex, s) if f not in owned]
     cov = sorted(set(owned) | set(pins))
+    unrun = {f for f in pins if not any(e[2] == f for e in ex)}
 
     print(f"# arm {arm}: {len(rules)} pattern(s), {len(cov)} covered ({len(pins)} of them pinned, not owned)")
     print(f"# surface: {len(s['workflows'])} workflow(s), {len(s['execs'])} exec'd script(s), "
           f"{len(s['imports'])} imported by them, {len(s['evaluated'])} run by path, "
           f"{len(s['hooks'])} hook(s), {len(s['settings'])} settings file = {len(files)}")
     for path in files:
-        tag = "COVERED" if path in owned else "PINNED" if path in pins else "UNCOVERED"
+        tag = ("COVERED" if path in owned else "NO-PR-JOB" if path in unrun
+               else "PINNED" if path in pins else "UNCOVERED")
         print(f"#   {tag} {path}")
     print(f"RESULT enforcement_surface_files={len(files)} count")
     print(f"RESULT covered_by_an_owner={len(owned)} count")
     print(f"RESULT pinned_by_base_restore={len(pins)} count")
+    print(f"RESULT of_which_no_pr_job_runs={len(unrun)} count")
     print(f"RESULT uncovered_files={len(files) - len(cov)} count")
     return len(files) - len(cov) if files else -1
 

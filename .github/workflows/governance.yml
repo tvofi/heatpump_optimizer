@@ -672,13 +672,29 @@ jobs:
         with:
           python-version: "3.13"
 
+      # PINNED (decision 0013): the grader below runs as the base commit's
+      # copy, so a pull request cannot change the check that grades it, and
+      # under `-I`, so a module added beside it cannot shadow an import. It
+      # runs before any program the pull request carries. The pull request's
+      # own copy runs in `tests.yml`'s `graders-head-copy`, which is not
+      # required.
+      - name: Restore the grader from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          git checkout "$PINNED" -- \
+            'tests/delivery_status.py'
+          echo "grader restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+
       # No `pip install`, the same reason `record-status` had none: a reporter
       # whose job is to notice that something went dark must not be breakable
       # by the dependency set, and it costs seconds beside a forty-minute gate.
       - name: Report what is pending and what is overdue a row
         run: |
           git fetch --no-tags --quiet origin main
-          python tests/delivery_status.py --check
+          python -I tests/delivery_status.py --check
 
   # #201's region, regenerated on every push to main. The ledger itself needs
   # no publishing to be findable WITHOUT credentials: `tests/delivery_status.py`
