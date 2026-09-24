@@ -385,11 +385,11 @@ LEAK_PROBES = {
     "state_address": {"state": "Storgatan 12, 111 22 Stockholm"},
     # The review's second probe (leakprobe2, round 2 of #1508): the right key
     # holding the wrong shape, a host without a scheme, a MAC without colons.
-    "n1_options_dict": {"options": {"home_owner": "Tim Malmstrom", "street": "Storgatan"}},
-    "n2_currency_name": {"currency": "Tim Malmstrom"},
+    "n1_options_dict": {"options": {"home_owner": "Anna Exempel", "street": "Storgatan"}},
+    "n2_currency_name": {"currency": "Anna Exempel"},
     "n3_options_address": {"options": ["Storgatan 12", "Sodermalm 11"]},
     "n4_token_in_series": {"today": ["abcDEFghiJKLmnoPQRstu9vWX7yz"]},
-    "state_n10_host_path": {"state": "nas.malmstrom.se/cam/front"},
+    "state_n10_host_path": {"state": "nas.exempel.se/cam/front"},
     "n11_host_path_unit": {"unit_of_measurement": "home.local/api/x"},
     "entry_n13_text_in_entity_key": {"weather_entity": "Storgatan 12 Stockholm"},
     "n14_mac_no_colons": {"options": ["aabbccddeeff"]},
