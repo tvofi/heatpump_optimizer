@@ -45334,7 +45334,7 @@ R.check(
     "off and observe write nothing, and off subscribes to nothing",
     _pa_off.writes() == [] and _pa_obs.writes() == []
     and not getattr(_pa_off.hass, "state_listeners", [])
-    and _pa.view(_pa_obs)["last_duty"] == "dhw",
+    and _pa.diagnostics_view(_pa_obs)["last_duty"] == "dhw",
 )
 _pa_cool = _PaCoord(_PA_TUYA)
 _pa_cool.device("select.pump_mode", "Cooling")
@@ -45587,8 +45587,8 @@ R.check(
     "the warning stays while any ignored write is still pending, and leaving control clears it",
     len(_pa_two_kept) == 1 and _pa_two.set_modes == []
     and not [i for i in getattr(_pa_two.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED]
-    and _pa.view(_pa_two)["retrying"] == [],
-    f"{_pa_two_kept=} {_pa_two.set_modes=} {_pa.view(_pa_two)['retrying']=}",
+    and _pa.diagnostics_view(_pa_two)["retrying"] == [],
+    f"{_pa_two_kept=} {_pa_two.set_modes=} {_pa.diagnostics_view(_pa_two)['retrying']=}",
 )
 _pa_unav = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_unav, 0)
@@ -45609,7 +45609,7 @@ for _pa_m, _pa_kw, _pa_tank in ((1, 2.0, 45.0), (14, 2.0, 47.0), (16, 1.5, 47.0)
                                (74, 1.5, 47.5), (76, 0.0, 47.5)):
     _pa_led._measured_power, _pa_led._current_state.dhw_temperature = _pa_kw, _pa_tank
     _pa_run(_pa_led, _pa_m)
-_pa_ledger = _pa.view(_pa_led)["ledger"]
+_pa_ledger = _pa.diagnostics_view(_pa_led)["ledger"]
 R.check(
     "observe keeps a per-step ledger: delivered, idle-instead, space-instead, dhw-instead",
     [r["verdict"] for r in _pa_ledger["steps"]]
@@ -45620,7 +45620,7 @@ R.check(
 _pa_day = _PaCoord(_PA_TUYA, duties="s" * 100, duty="observe")
 for _pa_m in range(0, 15 * 100, 15):
     _pa_run(_pa_day, _pa_m + 1)
-_pa_day_log = _pa.view(_pa_day)["ledger"]["steps"]
+_pa_day_log = _pa.diagnostics_view(_pa_day)["ledger"]["steps"]
 R.check(
     "the ledger holds the last 24 hours of steps, and no more",
     len(_pa_day_log) == 96
@@ -45633,8 +45633,140 @@ _pa_run(_pa_nometer, 1)
 _pa_run(_pa_nometer, 16)
 R.check(
     "without a power meter or a tank rise the ledger says unknown, not delivered",
-    [r["verdict"] for r in _pa.view(_pa_nometer)["ledger"]["steps"]] == ["unknown"],
-    f"{_pa.view(_pa_nometer)['ledger']}",
+    [r["verdict"] for r in _pa.diagnostics_view(_pa_nometer)["ledger"]["steps"]] == ["unknown"],
+    f"{_pa.diagnostics_view(_pa_nometer)['ledger']}",
+)
+
+# An unread reading on either side of a set-point compare is "no difference",
+# not a write trigger -- the mode branch has its own null (a select with no
+# match), this is the numeric slots' one.
+R.check(
+    "_differs treats an unread reading (either side None) as no difference",
+    _pa._differs("dhw_setpoint", None, 50.0) is False
+    and _pa._differs("dhw_setpoint", 50.0, None) is False,
+)
+
+# A step observed while the coordinator is not driving a plan (manual mode,
+# a stale plan, system ID, an active boost) has no planned duty at all --
+# distinct from "unknown", which is an observed step the plan DID cover.
+_pa_baseline = _PaCoord(_PA_TUYA, duties="s", duty="observe")
+_pa_baseline._current_state.dhw_temperature = 45.0
+_pa_baseline.stale = True
+_pa_run(_pa_baseline, 1)
+_pa_baseline.stale = False
+_pa_run(_pa_baseline, 16)
+R.check(
+    "a step observed with no plan behind it logs as baseline, not unknown",
+    _pa.diagnostics_view(_pa_baseline)["ledger"]["steps"][0]["verdict"] == "baseline",
+    f"{_pa.diagnostics_view(_pa_baseline)['ledger']}",
+)
+
+# _listen wires the tick and the state-change subscription exactly once;
+# both callbacks are exercised directly, since the interval stub does not
+# run on its own and the state-change one only fires on a real event.
+_pa_listen = _PaCoord(_PA_TUYA, duties="d", duty="control")
+_pa_orig_track_interval = _pa.async_track_time_interval
+_pa_ticks: list = []
+_pa.async_track_time_interval = (
+    lambda hass, action, interval: _pa_ticks.append(action) or (lambda: None)
+)
+try:
+    _pa._listen(_pa_listen)
+finally:
+    _pa.async_track_time_interval = _pa_orig_track_interval
+R.check(
+    "listening wires one time interval and one state-change subscription",
+    len(_pa_ticks) == 1 and len(getattr(_pa_listen.hass, "state_listeners", [])) == 1,
+    f"{len(_pa_ticks)=} {getattr(_pa_listen.hass, 'state_listeners', [])=}",
+)
+dt_util.freeze(_PA_T0 + timedelta(minutes=1))
+try:
+    _pa_aio.run(_pa_ticks[0]())
+finally:
+    dt_util.freeze(None)
+_pa_changed_entities, _pa_changed_cb = _pa_listen.hass.state_listeners[0]
+_pa_changed_cb(_PaNS(data={}))
+R.check(
+    "the tick and the state-change callback both drive apply() without raising",
+    True,
+)
+
+# Four best-effort failure paths (#542): a repair issue the registry refuses
+# to clear, a write the pump refuses, a store save that fails, a store load
+# that fails or comes back malformed. None of these may raise past the
+# arbiter -- they are retried, logged, or ignored, not fatal.
+_pa_orig_delete_issue = _pa.ir.async_delete_issue
+
+
+def _pa_failing_delete_issue(hass, domain, issue_id):
+    raise RuntimeError("registry unavailable")
+
+
+_pa.ir.async_delete_issue = _pa_failing_delete_issue
+_pa_clear_ok = True
+try:
+    _pa._clear(_PaCoord(_PA_TUYA), _pa.ISSUE_IGNORED)
+except Exception:  # noqa: BLE001 - the check is that nothing escapes
+    _pa_clear_ok = False
+_pa.ir.async_delete_issue = _pa_orig_delete_issue
+R.check(
+    "a repair issue the registry refuses to clear does not raise (best-effort)",
+    _pa_clear_ok,
+)
+
+
+async def _pa_failing_call(domain, service, data=None, **kwargs):
+    raise RuntimeError("pump offline")
+
+_pa_write_fail = _PaCoord(_PA_TUYA, duties="d", duty="control")
+_pa_write_fail.hass.services.async_call = _pa_failing_call
+_pa_run(_pa_write_fail, 1)
+R.check(
+    "a write the pump raises on is not recorded as landed",
+    _pa.state_for(_pa_write_fail).written == {},
+    f"{_pa.state_for(_pa_write_fail).written=}",
+)
+
+
+class _PaBadStore:
+    async def async_save(self, payload):
+        raise RuntimeError("disk full")
+
+    async def async_load(self):
+        raise RuntimeError("disk unreadable")
+
+
+class _PaMalformedStore:
+    async def async_load(self):
+        return {"manual": None, "written": {"dhw_setpoint": ["only-one-element"]}}
+
+
+_pa_orig_store = _pa._store
+
+_pa.state_for(_PaCoord(_PA_TUYA))  # unrelated instance; keeps _STATES warm
+_pa._store = lambda c: _PaBadStore()
+_pa_persist_ok = True
+try:
+    _pa_aio.run(_pa._persist(_PaCoord(_PA_TUYA)))
+except Exception:  # noqa: BLE001 - the check is that nothing escapes
+    _pa_persist_ok = False
+_pa_load_ok = True
+try:
+    _pa_aio.run(_pa._load(_PaCoord(_PA_TUYA)))
+except Exception:  # noqa: BLE001 - the check is that nothing escapes
+    _pa_load_ok = False
+_pa._store = lambda c: _PaMalformedStore()
+_pa_malformed_coord = _PaCoord(_PA_TUYA)
+_pa_aio.run(_pa._load(_pa_malformed_coord))
+_pa._store = _pa_orig_store
+R.check(
+    "a failed persist or load is swallowed, not raised (best-effort)",
+    _pa_persist_ok and _pa_load_ok,
+)
+R.check(
+    "a malformed written entry is skipped, not raised, and leaves nothing recorded",
+    _pa.state_for(_pa_malformed_coord).written == {},
+    f"{_pa.state_for(_pa_malformed_coord).written=}",
 )
 
 

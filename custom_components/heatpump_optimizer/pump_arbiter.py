@@ -196,8 +196,8 @@ def _entities(config: Any) -> dict[str, Any]:
     }
 
 
-def _flow(config: Any) -> bool:
-    return config.get(CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT) == "flow"
+def _flow_unit(config: Any) -> bool:
+    return bool(config.get(CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT) == "flow")
 
 
 def state_for(coord: Any) -> ArbiterState:
@@ -238,7 +238,7 @@ def own(coord: Any, signals: Any) -> Any:
     return replace(signals, mode_owned=True)
 
 
-def _state(coord: Any, slot: str) -> Any:
+def _slot_state(coord: Any, slot: str) -> Any:
     entity = _entities(coord._config)[slot]
     return coord.hass.states.get(entity) if entity else None
 
@@ -263,8 +263,8 @@ def _bounded(state: Any, value: float | None, floor: float = -1e9) -> float | No
 
 def _space_target(coord: Any, result: Any, now: datetime) -> float | None:
     """The plan's own space set-point: the curve supply, or the room target."""
-    state = _state(coord, "space_setpoint")
-    if _flow(coord._config):
+    state = _slot_state(coord, "space_setpoint")
+    if _flow_unit(coord._config):
         outdoor = float(coord._current_state.outdoor_temperature)
         return _bounded(state, coord._thermal_model.curve_flow_temp(outdoor), FLOW_GATE_C)
     stamps = list(getattr(result, "timestamps", None) or [])
@@ -276,9 +276,9 @@ def _space_target(coord: Any, result: Any, now: datetime) -> float | None:
 def desired(coord: Any, duty: str | None, now: datetime) -> PumpCommand:
     """The row of the module table for ``duty``; ``None`` is the baseline."""
     result = getattr(coord, "_optimization_result", None)
-    mode_state = _state(coord, "mode")
-    space_state = _state(coord, "space_setpoint")
-    dhw = _bounded(_state(coord, "dhw_setpoint"), float(coord._thermal_params.dhw_setpoint))
+    mode_state = _slot_state(coord, "mode")
+    space_state = _slot_state(coord, "space_setpoint")
+    dhw = _bounded(_slot_state(coord, "dhw_setpoint"), float(coord._thermal_params.dhw_setpoint))
     space = _space_target(coord, result, now)
     if pump_mode.capability(getattr(mode_state, "state", None)).cooling:
         # Cooling is the user's season, not a duty the plan chose: hands off.
@@ -297,12 +297,12 @@ def desired(coord: Any, duty: str | None, now: datetime) -> PumpCommand:
     if duty == "space":
         if _option_for(mode_state, pump_mode.MODE_HEAT):
             return PumpCommand(pump_mode.MODE_HEAT, dhw, space)
-        return PumpCommand(both, _bounded(_state(coord, "dhw_setpoint"), DHW_GATE_C), space)
+        return PumpCommand(both, _bounded(_slot_state(coord, "dhw_setpoint"), DHW_GATE_C), space)
     if duty != "dhw":
         return PumpCommand(both, dhw, space)
     if _option_for(mode_state, pump_mode.MODE_DHW):
         return PumpCommand(pump_mode.MODE_DHW, dhw, space)
-    gate = _bounded(space_state, FLOW_GATE_C if _flow(coord._config) else 5.0)
+    gate = _bounded(space_state, FLOW_GATE_C if _flow_unit(coord._config) else 5.0)
     return PumpCommand(both, dhw, gate)
 
 
@@ -359,7 +359,7 @@ def _leased(coord: Any, held: ArbiterState, duty: str | None, now: datetime) -> 
 def _differs(slot: str, observed: Any, value: Any) -> bool:
     """``observed`` is the select's state for the mode, degC for a set-point."""
     if slot == "mode":
-        return pump_mode.resolve(observed) != value
+        return bool(pump_mode.resolve(observed) != value)
     if observed is None or value is None:
         return False
     return bool(abs(observed - value) > SETPOINT_TOLERANCE)
@@ -430,7 +430,7 @@ def _forget(held: ArbiterState) -> None:
 
 async def _write(coord: Any, slot: str, value: Any, now: datetime) -> None:
     held = state_for(coord)
-    state, entity = _state(coord, slot), _entities(coord._config)[slot]
+    state, entity = _slot_state(coord, slot), _entities(coord._config)[slot]
     recorded = held.written.get(slot)
     if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):
         return
@@ -503,7 +503,7 @@ def _observe(coord: Any, held: ArbiterState, duty: str | None, now: datetime) ->
     if power is not None:
         row["measured"] = True
         row["ran"] = row["ran"] or float(power) >= _on_kw(coord)
-    mode = pump_mode.resolve(getattr(_state(coord, "mode"), "state", None))
+    mode = pump_mode.resolve(getattr(_slot_state(coord, "mode"), "state", None))
     row["dhw_mode"] = row["dhw_mode"] or mode == pump_mode.MODE_DHW
 
 
@@ -637,7 +637,7 @@ async def _load(coord: Any) -> None:
             continue
 
 
-def view(coord: Any) -> dict[str, Any]:
+def diagnostics_view(coord: Any) -> dict[str, Any]:
     """The diagnostics view."""
     held = state_for(coord)
     return {

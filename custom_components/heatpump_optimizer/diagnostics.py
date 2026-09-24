@@ -115,7 +115,7 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
             except Exception:  # noqa: BLE001 -- diagnostics never breaks
                 snap[name.lstrip("_")] = "summary unavailable"
     try:
-        snap["pump_duty"] = pump_arbiter.view(coord)
+        snap["pump_duty"] = pump_arbiter.diagnostics_view(coord)
     except Exception:  # noqa: BLE001 -- diagnostics never breaks
         snap["pump_duty"] = "unavailable"
     return snap
