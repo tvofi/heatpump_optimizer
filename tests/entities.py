@@ -663,9 +663,16 @@ R.check(
 )
 
 # #1535: the Quick start mermaid diagram numbers its screens, and the numbered
-# prose paragraphs below it must agree -- the "finish menu" branch inserts an
-# unnumbered-in-the-diagram step of its own as prose step 3, which pushed
-# every later screen's prose number one ahead of the diagram's own.
+# prose paragraphs below it must agree. Round 1 shifted the four already-
+# numbered screens down by one to match the diagram, but left the diagram's
+# menu node unnumbered -- so the shifted "Temperatures" (moved to 3) collided
+# with the untouched "The finish menu ..." prose heading (already 3), and
+# nothing caught it because the finder's harness (and the first version of
+# this check) only compares a label numbered on BOTH sides, and the menu had
+# no diagram-side number to compare against. Round 2 numbers the diagram's
+# menu node too (3 ·, matching the prose it was already carrying) and shifts
+# the diagram's other four nodes to 4-7 to match, so every one of the 7
+# Quick start concepts is numbered on both sides and every number is unique.
 _qs_section = readme.split("## Quick start", 1)[1].split("\n## ", 1)[0]
 _qs_diagram_re = re.compile(r'[\[{]"(\d+)\s*\xb7\s*([^"<]+?)(?:<br/>|")')
 _qs_prose_re = re.compile(r'^\*\*(\d+)\s*\xb7\s*([^*]+?)\.?\*\*', re.M)
@@ -681,8 +688,11 @@ _qs_diagram: dict[str, int] = {}
 for _m in _qs_diagram_re.finditer(_qs_section):
     _qs_diagram.setdefault(_qs_normalize(_m.group(2)), int(_m.group(1)))
 _qs_prose: dict[str, int] = {}
+_qs_prose_numbers: list[int] = []
 for _m in _qs_prose_re.finditer(_qs_section):
-    _qs_prose.setdefault(_qs_normalize(_m.group(2)), int(_m.group(1)))
+    _qs_num = int(_m.group(1))
+    _qs_prose.setdefault(_qs_normalize(_m.group(2)), _qs_num)
+    _qs_prose_numbers.append(_qs_num)
 _qs_mismatches = [
     (label, dnum, _qs_prose[label])
     for label, dnum in _qs_diagram.items()
@@ -697,14 +707,28 @@ R.check(
 # enough between diagram and prose that the two never pair up at all (#1535's
 # own case: the diagram's "How do you want to describe your building" vs the
 # prose's "How to describe your building" share no 3-word prefix). Check that
-# pairing directly against the one heading this README always inserts with no
-# diagram counterpart (the finish-menu branch) rather than assume the fuzzy
-# match above caught everything.
+# pairing directly rather than assume the fuzzy match above caught everything.
 R.check(
     "the diagram's 'how do you want to' step pairs with the prose's "
     "'how to describe' step (#1535 label-wording gap)",
-    _qs_diagram.get("how do you") == _qs_prose.get("how to describe") == 4,
+    _qs_diagram.get("how do you") == _qs_prose.get("how to describe") == 5,
     f"diagram={_qs_diagram.get('how do you')!r} prose={_qs_prose.get('how to describe')!r}",
+)
+# Round 2's own regression: the number-agreement check above is silent on a
+# label with no diagram-side counterpart to compare against at all (the
+# label-collapsing dicts above also hide a same-number collision between two
+# DIFFERENT labels), which is exactly the shape that let round 1 ship a
+# duplicate "3 ·". Check uniqueness over the raw number list, not the dicts.
+_qs_seen: set[int] = set()
+_qs_dupes: list[int] = []
+for _qs_n in _qs_prose_numbers:
+    if _qs_n in _qs_seen and _qs_n not in _qs_dupes:
+        _qs_dupes.append(_qs_n)
+    _qs_seen.add(_qs_n)
+R.check(
+    "every Quick start prose heading number is used exactly once",
+    not _qs_dupes,
+    f"duplicated number(s) {_qs_dupes!r} in {_qs_prose_numbers!r}",
 )
 
 # #937: the README sends the reader to the reference with "Every field and its

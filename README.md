@@ -330,18 +330,18 @@ be added later from the options pages.
 ```mermaid
 flowchart TD
     A["1 · Basics<br/>name, Tibber token or price entity,<br/>weather entity"] --> B["2 · Optional sensors<br/>temperatures, switch, tank probes"]
-    B --> M["Finish setup now? — a menu:<br/>Quick setup (recommended), Continue setup,<br/>or Finish setup now"]
+    B --> M["3 · Finish setup now? — a menu:<br/>Quick setup (recommended), Continue setup,<br/>or Finish setup now"]
     M -- "Quick setup (recommended)" --> Q["One page of house questions,<br/>then the heat pump's entities<br/>read automatically"]
     M -- "Finish setup now" --> J(["Done — first plan<br/>within one interval"])
-    M -- "Continue setup" --> C["3 · Temperatures<br/>targets, day/night comfort, hours"]
-    C --> D{"4 · How do you want to<br/>describe your building?"}
+    M -- "Continue setup" --> C["4 · Temperatures<br/>targets, day/night comfort, hours"]
+    C --> D{"5 · How do you want to<br/>describe your building?"}
     D -- "Describe my building<br/>(recommended)" --> E["Questionnaire<br/>structure, era, foundation,<br/>heated area, emitters"]
     E --> F["Heat pump basics<br/>COP, max/min power"]
     D -- "Enter thermal values<br/>directly (expert)" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
     G --> H["Two-zone & solar<br/>per-floor masses, buffer tank,<br/>windows, orientation"]
-    F --> I["5 · Hot water<br/>tank, setpoint, schedule,<br/>legionella"]
+    F --> I["6 · Hot water<br/>tank, setpoint, schedule,<br/>legionella"]
     H --> I
-    I --> K["6 · Weather sensitivity<br/>wind, rain"]
+    I --> K["7 · Weather sensitivity<br/>wind, rain"]
     K --> J
     Q --> J
 ```
@@ -369,13 +369,13 @@ the entry immediately with shipped defaults you refine later in Options. Quick
 setup arrived in v6.6.5 — an install set up on an earlier version never saw
 the menu, and its entries are complete all the same.
 
-**3 · Temperatures.** Your target (21 °C), the band you allow around it, and the
+**4 · Temperatures.** Your target (21 °C), the band you allow around it, and the
 comfort temperatures for day (21 °C) and night (19.5 °C) with the hours the day
 runs (07:00–22:00). The width of the band is the single biggest lever you have:
 a wide one gives the optimizer room to shift heating into cheap hours, a narrow
 one keeps the house near the setpoint.
 
-**4 · How to describe your building.** This is a choice, not a step.
+**5 · How to describe your building.** This is a choice, not a step.
 
 - **Describe my building (recommended)** asks what your house is made of —
   structure, era, foundation, heated area, and what each floor is heated by —
@@ -394,7 +394,7 @@ and the power limits are on **Advanced settings → Thermal model (expert)**;
 buffer tank volume is on **Heating system and heat storage**; window area,
 orientation factor and SHGC are on **Building type and emitters**.
 
-**5 · Hot water.** Tank volume, setpoint and minimum, daily consumption, and the
+**6 · Hot water.** Tank volume, setpoint and minimum, daily consumption, and the
 demand time frames — the periods when hot water must be available (`06:00-08:30,
 17:00-22:00` by default). Outside them the tank is *meant* to cool down; that is
 where most of the savings come from. The frames can name different days
@@ -405,7 +405,7 @@ around the clock. Anti-legionella is on by default at 60 °C every 7 days; that
 temperature applies only during a cycle, so the rest of the week the tank is
 never charged above the limit you set.
 
-**6 · Weather sensitivity.** How much wind and rain raise your heat loss.
+**7 · Weather sensitivity.** How much wind and rain raise your heat loss.
 The defaults (3 % per m/s of wind, 15 % while raining) are a reasonable
 starting point for a detached house.
 

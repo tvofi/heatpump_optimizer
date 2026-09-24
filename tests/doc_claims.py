@@ -309,11 +309,136 @@ def check_requirements_claim() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Arm 5 -- Quick start step numbering: distinct, and diagram agrees with
+# prose (D5-s1 / #1535, round 2)
+# ---------------------------------------------------------------------------
+
+# #1535 round 1 shifted four prose headings down by one to agree with the
+# diagram's own numbered nodes, without noticing that the diagram's *menu*
+# node (unnumbered by construction, since it has no matching prose-side
+# label the finder's harness compares against) collided with the shifted
+# "Temperatures" heading -- both read "3 ·" at that PR's head. The finder's
+# own harness (s1_stepnum.py) cannot see this: it only compares a label that
+# is numbered on BOTH sides, and "the finish menu" has no diagram-side
+# numbered counterpart to compare against by construction. This arm adds the
+# property that harness never checked: every prose heading number in the
+# Quick start section is used exactly once.
+_QS_DIAGRAM_NODE_RE = re.compile(r'[\[{]"(\d+)\s*\xb7\s*([^"<]+?)(?:<br/>|")')
+_QS_PROSE_HEADING_RE = re.compile(r'^\*\*(\d+)\s*\xb7\s*([^*]+?)\.?\*\*', re.M)
+
+
+def _qs_normalize(label: str) -> str:
+    label = label.strip().rstrip(".?").lower()
+    label = re.sub(r"[^a-z0-9 ]", "", label)
+    return " ".join(label.split()[:3])
+
+
+def _qs_extract(text: str) -> tuple[dict[str, int], dict[str, int], list[int]]:
+    """(diagram label->number, prose label->number, prose numbers in order).
+
+    The third element carries every prose heading's number, duplicates and
+    all -- the first two dicts collapse repeats under `setdefault`, which is
+    exactly the shape that hid #1535 round 1's duplicate "3 ·": two distinct
+    labels sharing a number look like one entry per dict, so uniqueness has
+    to be checked over the list, not the dicts.
+    """
+    section = text.split("## Quick start", 1)[1]
+    section = section.split("\n## ", 1)[0]
+    diagram: dict[str, int] = {}
+    for m in _QS_DIAGRAM_NODE_RE.finditer(section):
+        diagram.setdefault(_qs_normalize(m.group(2)), int(m.group(1)))
+    prose: dict[str, int] = {}
+    prose_numbers: list[int] = []
+    for m in _QS_PROSE_HEADING_RE.finditer(section):
+        num = int(m.group(1))
+        prose.setdefault(_qs_normalize(m.group(2)), num)
+        prose_numbers.append(num)
+    return diagram, prose, prose_numbers
+
+
+def _qs_duplicates(numbers: list[int]) -> list[int]:
+    seen: set[int] = set()
+    dupes: list[int] = []
+    for n in numbers:
+        if n in seen and n not in dupes:
+            dupes.append(n)
+        seen.add(n)
+    return dupes
+
+
+def check_quickstart_numbering() -> None:
+    R.section("Quick start step numbering is distinct and diagram-agreed (#1535)")
+    diagram, prose, prose_numbers = _qs_extract(README)
+    # Anchor: the section still exists and still has several numbered
+    # headings on both sides -- the absence of the claim's subject (an empty
+    # section, or a Quick start rewritten with no numbered steps at all)
+    # would otherwise read as a vacuous pass.
+    R.check(
+        "the Quick start section still has 5+ numbered prose headings and "
+        "5+ numbered diagram nodes (anchor)",
+        len(prose_numbers) >= 5 and len(diagram) >= 5,
+        f"prose={prose_numbers!r} diagram={diagram!r}",
+    )
+    mismatches = [
+        (label, dnum, prose[label])
+        for label, dnum in diagram.items()
+        if label in prose and prose[label] != dnum
+    ]
+    R.check(
+        "every label numbered in both the diagram and the prose agrees on "
+        "its number",
+        not mismatches,
+        repr(mismatches),
+    )
+    dupes = _qs_duplicates(prose_numbers)
+    R.check(
+        "every Quick start prose heading number is used exactly once (the "
+        "property #1535 round 1's own fix broke: two headings both read "
+        "'3 \xb7' at that PR's head)",
+        not dupes,
+        f"duplicated number(s) {dupes!r} in {prose_numbers!r}",
+    )
+    # Null control: the duplicate-check must actually fire on the shape it
+    # exists to catch, not just on the (already-fixed) real README. Rebuild
+    # round 1's own regression -- the untouched "finish menu" heading at 3,
+    # colliding with a "Temperatures" heading shifted down to 3 as well --
+    # as a synthetic section, and confirm the duplicate is detected there.
+    _bad_section = (
+        "## Quick start\n\n"
+        "**1 \xb7 Basics.** x\n\n"
+        "**2 \xb7 Optional sensors.** x\n\n"
+        "**3 \xb7 The finish menu: Quick setup, Continue setup or Finish "
+        "setup now.** x\n\n"
+        "**3 \xb7 Temperatures.** x\n\n"
+        "## Entities\n"
+    )
+    _bad_diagram, _bad_prose, _bad_numbers = _qs_extract(_bad_section)
+    R.check(
+        "the duplicate-number check fires on round 1's own regression "
+        "(null control)",
+        _qs_duplicates(_bad_numbers) == [3],
+        f"got {_qs_duplicates(_bad_numbers)!r} from {_bad_numbers!r}",
+    )
+    # And the same synthetic section is clean once renumbered the way this
+    # PR's round 2 fix renumbers the real README (menu keeps 3, the shifted
+    # heading moves to 4 instead of colliding) -- the check must not flag a
+    # section that is actually fine.
+    _good_section = _bad_section.replace("**3 \xb7 Temperatures.**", "**4 \xb7 Temperatures.**")
+    _, _, _good_numbers = _qs_extract(_good_section)
+    R.check(
+        "and does not fire on the corrected shape (null control, other arm)",
+        _qs_duplicates(_good_numbers) == [],
+        f"got {_qs_duplicates(_good_numbers)!r} from {_good_numbers!r}",
+    )
+
+
 def main() -> int:
     check_figures()
     check_ecl110_defaults()
     check_entity_prefix()
     check_requirements_claim()
+    check_quickstart_numbering()
     return R.close("checks")
 
 
