@@ -263,6 +263,24 @@ def collect(module, data=None, coordinator=None):
     return added
 
 
+def registry_default(entity) -> bool:
+    """What the registry reads at first registration, static or dynamic.
+
+    Upstream ``Entity.entity_registry_enabled_default`` returns the
+    ``_attr_`` value and a class may override it with a property (the
+    hot-water gate does); the stub has no such property, so read the
+    override where there is one. A census reading only ``_attr_`` misses
+    every dynamic default -- the reader deciding the fact on a second path.
+    """
+    return bool(
+        getattr(
+            entity,
+            "entity_registry_enabled_default",
+            getattr(entity, "_attr_entity_registry_enabled_default", True),
+        )
+    )
+
+
 # A representative published payload, covering every key the new entities read.
 DATA = {
     "energy_totals_counting_since": "2026-08-15",
@@ -3117,7 +3135,7 @@ def _d801_publications(config, cycles):
         added = []
         asyncio.run(module.async_setup_entry(hass, entry, added.extend))
         for entity in added:
-            if not getattr(entity, "_attr_entity_registry_enabled_default", True):
+            if not registry_default(entity):
                 continue
             if not entity.available:
                 continue
@@ -3612,9 +3630,9 @@ for _cls in (
         "the card plan and Energy-dashboard meters must stay on for hot-water installs",
     )
 R.check(
-    "the probe-gated temperature sensor stays off by default even with hot water",
+    "the probe-gated temperature sensor stays off with hot water but no tank probe",
     not sensor.DHWTemperatureSensor(_dhw_on_fake, ENTRY).entity_registry_enabled_default,
-    "it is gated on the optional tank probe, not on hot water",
+    "it is gated on the optional tank probe as well as on hot water (#1335)",
 )
 
 # The registry reads the default before the first refresh, when the payload is
@@ -3644,6 +3662,141 @@ R.check(
     issubclass(sensor.DHWSetpointAdvisorSensor, sensor._DHWEntityMixin),
     "the one hot-water sensor outside the gate ships enabled on a no-DHW install",
 )
+
+# #1527 / #1542, class P2 (one fact decided on one path and not its sibling):
+# whether the install has hot water, and a tank probe. #1237, #1302, #1398,
+# #1461 and these two were each that answer missing from one more reader --
+# here a boost switch on the switch platform that put hot-water power into the
+# live action on a plant with no tank, and two probe-gated sensors kept off by
+# default where the probe is configured. So the population is not a list: it
+# is every entity every platform in PLATFORM_LIST registers whose subject is
+# hot water, by its translation key or by the dhw_ config slot it reads
+# (``READING_SOURCES`` via ``_reading_key``). Each takes its availability and
+# registry default from ``DHWEntityMixin`` unless named below with its reason.
+from heatpump_optimizer import boost as _boost_mod
+from heatpump_optimizer.coordinator import READING_SOURCES as _READING_SOURCES
+from heatpump_optimizer.entity import DHWEntityMixin as _DHWGate
+
+#: Hot-water entities that keep a registry default of their own, and why.
+_DHW_GATE_EXCEPTIONS = {
+    # Evidence-gated, not config-gated (#1335): the learned draw quantiles
+    # need weeks of draws, so it ships off even on a hot-water install. Its
+    # availability is still pinned below at the no-hot-water end.
+    "DHWHeavyDaySensor",
+}
+
+
+def _dhw_subject(entity) -> bool:
+    key = getattr(entity, "_attr_translation_key", None) or ""
+    slot = _READING_SOURCES.get(getattr(entity, "_reading_key", ""), "")
+    return "dhw" in key or slot.startswith("dhw_")
+
+
+def _dhw_family(coordinator):
+    found = {}
+    for _p in integration.PLATFORM_LIST:
+        _mod = _importlib.import_module(f"heatpump_optimizer.{_p}")
+        for _e in collect(_mod, coordinator=coordinator):
+            if _dhw_subject(_e):
+                found[type(_e).__name__] = _e
+    return found
+
+
+_probe_slot = const.CONF_DHW_TEMP_ENTITY
+_fam_off = _dhw_family(FakeCoordinator(_no_dhw))
+_fam_on = _dhw_family(FakeCoordinator(DATA))
+_fam_probe = _dhw_family(FakeCoordinator(DATA, _config={_probe_slot: "sensor.tank"}))
+_fam_platforms = {type(_e).__module__.rsplit(".", 1)[-1] for _e in _fam_on.values()}
+R.check(
+    "the hot-water census reaches more than the sensor platform (#1527)",
+    {"sensor", "switch"} <= _fam_platforms and len(_fam_on) > 1,
+    f"{len(_fam_on)} entities on {sorted(_fam_platforms)}: an empty sweep pins nothing",
+)
+R.check(
+    "every named exception is a hot-water entity the census found",
+    _DHW_GATE_EXCEPTIONS <= set(_fam_on),
+    f"stale: {sorted(_DHW_GATE_EXCEPTIONS - set(_fam_on))}",
+)
+_outside = sorted(
+    n for n, e in _fam_on.items()
+    if n not in _DHW_GATE_EXCEPTIONS and not isinstance(e, _DHWGate)
+)
+R.check(
+    "every hot-water entity takes the one gate (#1461, #1527)",
+    not _outside,
+    f"outside DHWEntityMixin: {_outside}",
+)
+_static = sorted(
+    n for n, e in _fam_on.items()
+    if n not in _DHW_GATE_EXCEPTIONS
+    and any("_attr_entity_registry_enabled_default" in k.__dict__ for k in type(e).__mro__)
+)
+R.check(
+    "no gated hot-water entity carries a static default beside the gate (#1542)",
+    not _static,
+    f"a static default a census reads instead of the gate: {_static}",
+)
+_live_off = sorted(n for n, e in _fam_off.items() if e.available)
+R.check(
+    "no hot-water entity is available on a plant with no hot water",
+    not _live_off,
+    f"available with dhw_enabled False: {_live_off}",
+)
+_on_off = sorted(n for n, e in _fam_off.items() if registry_default(e))
+R.check(
+    "no hot-water entity is enabled by default on a plant with no hot water",
+    not _on_off,
+    f"enabled by default with dhw_enabled False: {_on_off}",
+)
+_hidden = sorted(
+    n for n, e in _fam_probe.items()
+    if n not in _DHW_GATE_EXCEPTIONS and not registry_default(e)
+)
+R.check(
+    "every gated hot-water entity is on by default with hot water and its probe (#1542)",
+    not _hidden,
+    f"disabled by default with the tank probe configured: {_hidden}",
+)
+_probe_off = sorted(
+    n for n, e in _fam_on.items()
+    if getattr(e, "_dhw_probe_slot", "") and registry_default(e)
+)
+R.check(
+    "a probe-keyed entity stays off by default until its probe is configured (#1335)",
+    not _probe_off and any(getattr(e, "_dhw_probe_slot", "") for e in _fam_on.values()),
+    f"on without the probe: {_probe_off}",
+)
+_slot_mismatch = sorted(
+    n for n, e in _fam_on.items()
+    if _READING_SOURCES.get(getattr(e, "_reading_key", ""), "").startswith("dhw_")
+    and getattr(e, "_dhw_probe_slot", "") != _READING_SOURCES[e._reading_key]
+)
+R.check(
+    "a hot-water entity reading a probe keys its default on that probe's slot",
+    not _slot_mismatch,
+    f"_dhw_probe_slot disagrees with READING_SOURCES: {_slot_mismatch}",
+)
+
+# The overlay end of #1527: an unavailable switch is not called by Home
+# Assistant, but a boost set before hot water was switched off, or restored
+# from the store, must still never reach the action. Both ends, on the real
+# coordinator: no hot water drops the channel, hot water keeps it.
+for _label, _coord, _want in (
+    ("drops", _no_dhw_coord, False),
+    ("keeps", _on_coord, True),
+):
+    _coord._current_action = {}
+    _boost_mod.held_for(_coord).set(_boost_mod.CHANNEL_DHW, True, dt_util.now())
+    _boost_mod.apply(_coord)
+    _got = float(_coord._current_action.get("dhw_power") or 0.0) > 0.0
+    R.check(
+        f"the boost overlay {_label} hot-water power where the plant "
+        f"{'has' if _want else 'has no'} hot water (#1527)",
+        _got is _want,
+        f"dhw_power={_coord._current_action.get('dhw_power')!r}",
+    )
+    _boost_mod._STATES.pop(_coord, None)
+    _coord._current_action = {}
 
 # D9-01 (#1462): series-shaped attributes and duplicated static documentation
 # ride into the recorder every cycle. The plan sensors already declare their
@@ -7962,7 +8115,7 @@ _expected_disabled = {
 _actually_disabled = {
     s._key
     for s in sensors
-    if getattr(s, "_attr_entity_registry_enabled_default", True) is False
+    if not registry_default(s)
 }
 R.check(
     "exactly the ordinary-install-dead sensors are disabled by default",
@@ -8288,7 +8441,7 @@ _ord_by_id = {e.entity_id: e for e in _ord_entities}
 
 
 def _ord_default_on(e) -> bool:
-    return getattr(type(e), "_attr_entity_registry_enabled_default", True) is not False
+    return registry_default(e)
 
 
 def _ord_waiting_for(e):

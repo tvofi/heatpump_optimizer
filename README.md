@@ -504,7 +504,7 @@ every sensor is created on every install regardless of which group it is in.
 | Floor Heating Return Temperature | °C | The return-water reading the slab estimate uses | Disabled by default; unavailable until the floor-return probe is configured |
 | Slab Temperature (Estimated) | °C | Modelled slab temperature | Disabled by default; unavailable until the floor-return probe feeds the model |
 | Buffer Tank Temperature (Model) | °C | Modelled buffer tank temperature | Disabled by default; unavailable until the buffer-tank probe is configured |
-| DHW Temperature | °C | Tank temperature, with the demand-window state and the learned cooling rate in attributes | Disabled by default; unavailable until the tank thermometer is configured |
+| DHW Temperature | °C | Tank temperature, with the demand-window state and the learned cooling rate in attributes | Disabled by default unless the tank thermometer is configured at setup; unavailable without it |
 
 #### Energy, power and efficiency
 
@@ -536,7 +536,7 @@ every sensor is created on every install regardless of which group it is in.
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
 | DHW Setpoint Advisor | °C | The cheapest hot-water setpoint that still covers your heavy days | Diagnostic; unavailable until there is a recommendation |
-| DHW Mixed Water | L | Litres of 40 °C water the tank holds now, with shower minutes alongside | Disabled by default; unavailable without the tank thermometer; renamed from Mixed Hot Water by #174 |
+| DHW Mixed Water | L | Litres of 40 °C water the tank holds now, with shower minutes alongside | Disabled by default unless the tank thermometer is configured at setup; unavailable without it; renamed from Mixed Hot Water by #174 |
 | DHW Heavy Day Demand | kWh | The learned 90th-percentile draw per demand window | Diagnostic; disabled by default; needs weeks of data |
 
 #### How well it is doing, and what it has learned
@@ -595,7 +595,9 @@ recovery heat in the cheapest hours before it. Both are also driven by the
 **DHW Boost** and **Boost Space Heating** each apply maximum heat on that
 channel for two hours: the planner's DHW ceiling, or nameplate space heat with
 the comfort ceiling and full curve displace. They expire on their own and do
-not switch the optimizer into the global boost mode.
+not switch the optimizer into the global boost mode. Without hot water
+configured, DHW Boost is unavailable and disabled by default, and applies no
+heat.
 
 The **climate entity** is a virtual thermostat with HVAC modes (off, heat, auto)
 and presets (auto, comfort, economy, boost). Its target temperature is *your*

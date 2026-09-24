@@ -29,6 +29,7 @@ from . import topology
 from .const import (
     CONF_CONTRACT_FIXED_PRICE,
     CONF_DHW_TANK_VOLUME,
+    CONF_DHW_TEMP_ENTITY,
     DEFAULT_DHW_MIN_TEMP,
     DEFAULT_DHW_SETPOINT,
     DEFAULT_DHW_TANK_VOLUME,
@@ -38,6 +39,7 @@ from .const import (
     OPTIMIZATION_MODE_STATES,
 )
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .entity import DHWEntityMixin as _DHWEntityMixin
 from .entity import HeatPumpOptimizerEntity
 
 if TYPE_CHECKING:
@@ -395,48 +397,6 @@ class _MeasuredTemperatureMixin(_SensorMixinBase):
     def available(self) -> bool:
         return bool(
             super().available and _reading_ok(self.coordinator, self._reading_key)
-        )
-
-
-class _DHWEntityMixin(_SensorMixinBase):
-    """A hot-water entity, gated on the install actually having hot water.
-
-    Six entities were offered unconditionally, hot water configured or not.
-    Two of them are Energy dashboard sources: with DHW disabled the optimizer
-    plans no hot water at all, so ``dhw_energy_kwh`` and ``dhw_cost`` stay at
-    0.0 forever, and a user who wires "DHW Energy (lifetime)" into the Energy
-    dashboard's water-heating slot gets a permanent flat zero that looks like
-    a working meter reporting a heat pump that never heats water.
-
-    One gate rather than six copies of the same condition, so a seventh hot
-    water entity inherits it by construction. The registry default follows
-    the same condition (#1398): a fresh install with no hot water must not
-    ship enabled entities that are unavailable on every refresh, but a fresh
-    install *with* hot water must not have the card's DHW plan or the Energy
-    dashboard's DHW meters hidden either. So the default is on exactly where
-    ``dhw_enabled`` is, and off where there is no hot water. The probe-gated
-    temperature sensor keeps its own static default-off.
-    """
-
-    @property
-    def entity_registry_enabled_default(self) -> bool:
-        """Enabled by default exactly where the install has hot water.
-
-        The registry reads this before the first refresh, so ``dhw_enabled``
-        is read from the config via ``_thermal_params``, not the runtime
-        payload; the test double exposes it on ``data`` instead.
-        """
-        if getattr(self, "_attr_entity_registry_enabled_default", True) is False:
-            return False
-        params = getattr(self.coordinator, "_thermal_params", None)
-        if params is not None:
-            return bool(params.dhw_enabled)
-        return bool((self.coordinator.data or {}).get("dhw_enabled", False))
-
-    @property
-    def available(self) -> bool:
-        return bool(
-            super().available and (self.coordinator.data or {}).get("dhw_enabled")
         )
 
 
@@ -1222,10 +1182,9 @@ class DHWTemperatureSensor(
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_suggested_display_precision = 1
     # Hot water is on from the tank volume alone, but the tank thermometer
-    # is an optional probe most installs never configure; unavailable
-    # without it, so disabled rather than shipped dead (#1335). Existing
-    # registry entries keep their state.
-    _attr_entity_registry_enabled_default = False
+    # is an optional probe most installs never configure: off by default
+    # without it (#1335), on once it is configured (#1542).
+    _dhw_probe_slot = CONF_DHW_TEMP_ENTITY
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(
@@ -2427,7 +2386,9 @@ class DHWSetpointAdvisorSensor(_DHWEntityMixin, HeatPumpOptimizerSensorBase):
         return dict((self.coordinator.data or {}).get("dhw_advisor", {}) or {})
 
 
-class MixedHotWaterSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
+class MixedHotWaterSensor(
+    _DHWEntityMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+):
     """The tank translated into shower terms (#28).
 
     ``V·(T_tank − T_inlet)/(40 − T_inlet)`` litres of 40 °C water. "212
@@ -2455,9 +2416,8 @@ class MixedHotWaterSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
     _attr_device_class = SensorDeviceClass.VOLUME_STORAGE
     _attr_suggested_display_precision = 0
     # The tank temperature in shower clothes, so the same gate and the same
-    # default as DHW Temperature above: the tank probe is optional and most
-    # installs never configure it (#1335). Existing entries keep their state.
-    _attr_entity_registry_enabled_default = False
+    # probe-keyed default as DHW Temperature above (#1335, #1542).
+    _dhw_probe_slot = CONF_DHW_TEMP_ENTITY
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         # Moved from mixed_hot_water in #174; see DHWEnergySensor.
