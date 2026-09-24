@@ -159,5 +159,5 @@ as `tvofi`. Equivalents for the named MCP tools:
 | `get_job_logs` (failed_only) | `gh run view <id> --log-failed` |
 
 **2. The worktree root is a parameter.** `/home/user/wt/` in the
-container; `/Users/timmalmstrom/wt/` on this Mac. A brief names the
+container; `~/wt/` on this Mac. A brief names the
 root; an agent never hard-codes the other.

@@ -11,7 +11,7 @@
    "claim": "On the 64 heating cells of the 8x5 price x weather grid (single- and two-zone, dhw off), extending the candidate list handed to optimizer:_multi_start_minimize with 8 structured bang-bang seeds and raising _MULTI_START_SOLVES so every candidate is refined lowers the objective the solve's own captured closure scores, by a median of 0.0615 % and a maximum of 11.1729 %, with comfort-floor parity.",
    "mechanism": "_multi_start_minimize scores every candidate at its RAW seed, sorts, and refines only scored[:_MULTI_START_SOLVES] (=4). A seed whose start score is poor but whose basin is cheaper is discarded before it is ever optimised, and _optimize_space_only's four structural seeds all anchor to the same total energy (or 0.35x it), so the basins between those anchors are unreachable from the refined set. Measured from the other side: appending 16 byte-copies of production's own candidates to the same seam made the shipped objective WORSE (100.0011 -> 100.4995 on two|flat|winter_cold) because the stable sort seats a duplicate beside its twin inside the top four and pushes a real basin out.",
    "evidence": {
-    "command": "cd /Users/timmalmstrom/audit-r6-D0 && PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D0/seed_race.py",
+    "command": "cd ~/audit-r6-D0 && PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D0/seed_race.py",
     "harness_path": "tools/audit/round6/D0/seed_race.py",
     "value": 0.0615,
     "unit": "% objective gap, median over 64 heating cells (max 11.1729 %)",
@@ -42,7 +42,7 @@
     "drop_most_favourable": 0.111729
    },
    "reproduction_steps": [
-    "cd /Users/timmalmstrom/audit-r6-D0",
+    "cd ~/audit-r6-D0",
     "PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D0/seed_race.py",
     "check RESULT production_replay_bitwise_cells=80/80 and RESULT null_control_bitwise_cells=80/80",
     "optional: CELLS=DEEP for the widest 16 cells"
@@ -60,7 +60,7 @@
    "claim": "coordinator:_warm_seeded sets _prev_shipped_plan on every production cycle, so optimizer:_multi_start_minimize is handed 5 candidates in 80 of 80 cells while _MULTI_START_SOLVES is 4, and one candidate is dropped after pre-scoring \u2014 though optimizer.py:251 states 'The candidates number four, so this is the whole list.'",
    "mechanism": "#1295 added the coordinator's previous shipped plan as a fifth candidate but the comment beside _MULTI_START_SOLVES was not updated; the pre-refinement cut then discards whichever candidate scores worst at its own start.",
    "evidence": {
-    "command": "cd /Users/timmalmstrom/audit-r6-D0 && CELLS=SPACE PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D0/discard.py",
+    "command": "cd ~/audit-r6-D0 && CELLS=SPACE PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D0/discard.py",
     "harness_path": "tools/audit/round6/D0/discard.py",
     "value": 80,
     "unit": "cells of 80 in which the seam is handed 5 candidates with _MULTI_START_SOLVES=4",
@@ -91,7 +91,7 @@
     "drop_most_favourable": 0.0
    },
    "reproduction_steps": [
-    "cd /Users/timmalmstrom/audit-r6-D0",
+    "cd ~/audit-r6-D0",
     "CELLS=SPACE PYTHONPATH=tests/hastub /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 tools/audit/round6/D0/discard.py",
     "read RESULT n_cells_with_n_cand_gt_4=80 and RESULT n_cells_gap_gt_0=0",
     "compare with the comment at custom_components/heatpump_optimizer/optimizer.py:251"

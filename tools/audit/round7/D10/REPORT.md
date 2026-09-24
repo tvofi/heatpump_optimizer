@@ -3,7 +3,7 @@
 **Dimension:** D10 — adherence to the Home Assistant integration platinum
 quality-scale requirements (54 rules).
 **Baseline:** `f9d6f78243fa65f6fa128d2357752a2ae7f60648` (round-6 fix wave fully
-merged), exported (no `.git`) at `/Users/timmalmstrom/audit-r7-baseline`.
+merged), exported (no `.git`) at `~/audit-r7-baseline`.
 **Machine:** darwin 25.6.0 arm64, 8-core Apple M1, 8 GB, Python 3.11.5, mypy
 2.3.1. **No wall/CPU/RSS figure is reported by either harness** — every number
 below is a count or a parse of deterministic output, so each is final under

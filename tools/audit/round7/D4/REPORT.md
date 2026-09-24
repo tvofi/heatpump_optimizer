@@ -1,14 +1,14 @@
 # D4 — UI/UX — round 7 finder report
 
 Baseline: `f9d6f78243fa65f6fa128d2357752a2ae7f60648` (round-6 fix wave merged).
-Workspace: `/Users/timmalmstrom/audit-r7-baseline` (export; no `.git`). No GitHub
+Workspace: `~/audit-r7-baseline` (export; no `.git`). No GitHub
 was read; `gh` was not run.
 
 Interpreter / driver (always from the export root):
 
 ```
 NODE_PATH=/tmp/pw-r5d4/node_modules PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/pw-browsers \
-  /Users/timmalmstrom/.nvm/versions/node/v20.10.0/bin/node <harness> [args]
+  ~/.nvm/versions/node/v20.10.0/bin/node <harness> [args]
 ```
 
 Chromium 1148 (Playwright 1.49.0), real headless browser, card loaded into a page
