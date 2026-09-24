@@ -24,9 +24,12 @@
 # `python3 tools/audit/round6/D11/fix/codeowners_gap.py`, which prints the
 # surface size and how many of its files an owner-carrying pattern matches:
 # against the pre-#1402 file that second count is zero, against this one it is
-# the surface size. A new check script is owned only once it is added below or
-# matched by one of these patterns — re-run the harness and extend this block
-# when the surface moves.
+# the surface size. A new check script is covered only once it is owned below,
+# or PINNED — restored from the base before every pull-request job that runs
+# it (decision 0013; the harness prints which) — re-run the harness and extend
+# this block when the surface moves. The pinned governance instruments leave
+# this block in the pull request after 0013's, once `main`'s harness counts
+# pins.
 #
 # Nothing in the test gate opens this file (tests/closure.py lists it INERT).
 

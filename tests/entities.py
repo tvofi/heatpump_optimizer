@@ -20027,26 +20027,35 @@ R.check(
 # Decision 0013: verdicts post as the approver App through app_comment.sh,
 # and app_approve.sh accepts only that App's verdicts. Both carry offline
 # self-tests pinning the allowlist, the identity read-back and the grammar;
-# what they cannot see is whether a required job still RUNS them. Pinned over
-# the job's non-comment lines, one step each, so dropping either -- or
-# leaving only its comment -- fails here. tools/audit/ is INERT, so this reads
-# the workflow and never the scripts.
-def _pc_runs_selftest(job: str, script: str) -> bool:
+# what they cannot see is whether CI still RUNS them. They run in
+# governance.yml's `instrument-self-tests`, the job that drives the pull
+# request's own copies and grades nothing, so no grading job runs pull-request
+# code ahead of its graders. Pinned over that job's non-comment lines, one step
+# each; tools/audit/ is INERT, so this reads the workflow, never the scripts.
+_IST_JOB = "\n".join(
+    _l for _l in _workflow_job(_DS_GOV, "instrument-self-tests").split("\n")
+    if not _l.lstrip().startswith("#"))
+
+
+def _runs_selftest(job: str, script: str) -> bool:
     return any(
         f"\n        run: bash tools/audit/{script} --self-test" in "\n" + _blk
         for _blk in job.split("\n      - name: ")[1:])
+
+
 R.check(
-    "the contract lane runs both App identity self-tests",
-    _pc_runs_selftest(_PC_BODY_STEP, "app_approve.sh")
-    and _pc_runs_selftest(_PC_BODY_STEP, "app_comment.sh"),
-    "pr-contract must run `bash tools/audit/app_approve.sh --self-test` and "
-    "`bash tools/audit/app_comment.sh --self-test` as steps; without them the "
-    "approver-only verdict allowlist and the poster's read-back are unpinned",
+    "the instrument self-test job runs both App identity self-tests",
+    _runs_selftest(_IST_JOB, "app_approve.sh")
+    and _runs_selftest(_IST_JOB, "app_comment.sh"),
+    "governance.yml's instrument-self-tests must run `bash tools/audit/"
+    "app_approve.sh --self-test` and `bash tools/audit/app_comment.sh "
+    "--self-test` as steps; without them the approver-only verdict allowlist "
+    "and the poster's read-back are unpinned",
 )
 R.check(
     "and a job with the poster's step removed is not (null control)",
-    not _pc_runs_selftest(
-        _PC_BODY_STEP.replace("run: bash tools/audit/app_comment.sh", "run: true", 1),
+    not _runs_selftest(
+        _IST_JOB.replace("run: bash tools/audit/app_comment.sh", "run: true", 1),
         "app_comment.sh"),
     "the predicate must read the step's run line, not the file name anywhere",
 )

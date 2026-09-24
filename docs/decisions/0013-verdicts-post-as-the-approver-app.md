@@ -1,4 +1,4 @@
-# 0013 — Fix-review verdicts post as the `hpo-approver` App; policy and budget files are the owner's
+# 0013 — Fix-review verdicts post as the `hpo-approver` App; policy and budget files are the owner's, and graders run from the base
 
 Status: recorded 2026-09-24 from the repository owner's ruling of that date,
 given by `tvofi` to the orchestrator and relayed in this record's dispatch.
@@ -48,19 +48,52 @@ association guard (OWNER, MEMBER or COLLABORATOR) would refuse every App
 verdict; `app_approve.sh` pins the login, the `Bot` type and the numeric id
 instead, which no user account can hold.
 
-## The enforcement surface: kept owned
+## The enforcement surface: pinned where a pin holds, owned where it cannot
 
-Part 2 read literally would drop `@tvofi` from the required-check
-enforcement surface (#1402, #1515, #1558): the workflows, the scripts they
-execute, the hooks. This record **keeps it owned** and asks the owner to rule
-on it separately, because dropping it re-opens #1515's hole with nothing in
-its place: a pull request editing `pr-contract.yml`, or a script it runs,
-grades itself, and the approving review on an un-owned path is the App's —
-issued on a verdict the orchestrator posts, from a seat the orchestrator
-dispatched. The restore-from-base step (#1403) covers only
-`.claude/workflows/*.mjs` and `*.py`, and a workflow edit can remove it.
-Measured over the 54 first-parent merges since 2026-09-20 whose base carried
-the surface block, 17 were owner-reviewed only because of it.
+Part 2 read literally drops `@tvofi` from the required-check enforcement
+surface (#1402, #1515, #1558). The owner's further words that day, relayed to
+this record's seat: "I want CI changes to be able to be done without human
+approval", beside the earlier "Don't reopen the 1558 CI trust holes." Owning
+the surface was #1558's barrier against a pull request grading itself, so a
+file leaves it only where a mechanical barrier replaces it:
+
+- **Pinned, so the owner can go** (in a second pull request; see below): the
+  governance instruments — `.claude/workflows/*.mjs`, `gh_comment.py`,
+  `vendor/`, `tools/audit/*.sh`, `tools/audit/record-predicate/` and
+  `codeowners_gap.py`. Every job a pull request reaches that grades with them
+  (`pr-contract`, `policy-docs`, `env-matrix`, `wave-script`, `briefs`)
+  restores the base commit's copies as its first step after checkout, and
+  runs no unowned program of the pull request's before its graders — a step
+  running the pull request's code can write `$GITHUB_ENV` (`BASH_ENV`,
+  `NODE_OPTIONS`) and so reach every later step of its job. The self-tests
+  that used to precede the restore moved to `instrument-self-tests`, a job
+  that grades nothing. `codeowners_gap.py --check` now counts a surface file
+  covered when it is owned or pinned in every such job, `.py` under
+  `python3 -I`.
+- **Kept owned, and why:**
+  - `.github/workflows/`. A `pull_request` run uses the pull request's own
+    workflow file, so an edit changes its own grading. `pull_request_target`
+    runs the base's file, but the test jobs execute the pull request's code,
+    which there shares the base's cache scope (the documented pwn-request
+    shape); and a pull request can add a workflow that reports a
+    required context's name, whose effect on the ruleset's verdict this
+    record's seat could not measure without a live write. A barrier that
+    could hold is a base-pinned guard whose context the ruleset requires
+    from one App's `integration_id` — a ruleset change and a secret, both
+    the owner's.
+  - The test harness (`tests/run.sh`, `harness.py`, `closure.py` and the rest
+    of the `tests/` block): the suite must run the pull request's code, so a
+    base checkout cannot apply (#1515's root cause).
+  - `web-fix-wave.js`, `audit-find.js`, `audit-verify.js`: graded artifacts
+    that a grader evaluates in its own process.
+  - `.claude/hooks/` and `.claude/settings.json`: no job grades them.
+
+**Bootstrapping.** `policy-docs` runs the base's `codeowners_gap.py --check`,
+which on this record's base still demands an owner for every surface file, so
+the owner lines leave in a second pull request once this one is on `main`.
+Measured over the 55 first-parent merges since 2026-09-20 whose base carried
+the surface block, 17 were owner-reviewed only because of it; under the
+second pull request's CODEOWNERS, 6 of those 17 would touch no owned path.
 
 ## Consequences
 
@@ -75,7 +108,10 @@ the surface block, 17 were owner-reviewed only because of it.
   not the App, so such a verdict is re-posted the same way before approval.
 - Owning the budget files puts the owner's review on every pull request that
   re-records one — including `tests/mutation_budgets.json`'s line pins after
-  a line shift. Measured over the 104 first-parent merges since 2026-09-20,
-  12 touched a budget file and no owned path.
+  a line shift. Measured over the 105 first-parent merges since 2026-09-20,
+  13 touched a budget file and no owned path.
+- An instrument's own self-test now fails a non-required job; `pr-contract`
+  still makes the body answer that red, so it is not silent, but it no
+  longer blocks a merge by itself.
 - `docs/decisions/` is `@tvofi`'s; this record needs the owner's approving
   review before it merges.

@@ -60,78 +60,31 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Show the pre-PR self-check refusing its own fixtures
-        run: bash tools/audit/prepr.sh --self-test
-
-      # The push script's own decisions, driven over the same fixtures. It runs
-      # here rather than in the gate because `tools/audit/` is INERT in
-      # tests/closure.py -- nothing under tests/ reads it -- and this job is
-      # never scoped, the same argument prepr.sh's line above rests on.
-      - name: Show the push script's decisions refusing their own fixtures
-        run: bash tools/audit/push.sh --self-test
-
-      # The App approval's refusals and token cleanup, over stubbed gh, curl
-      # and openssl: no network, no key. INERT for the same reason as push.sh.
-      - name: Show the App approval refusing its own fixtures
-        run: bash tools/audit/app_approve.sh --self-test
-
-      # The App verdict poster (decision 0013): its verdict grammar, head
-      # reads, identity read-back and token cleanup, over the same stubs.
-      - name: Show the App verdict poster refusing its own fixtures
-        run: bash tools/audit/app_comment.sh --self-test
-
-      # #679: `## Figures` asks for the command that printed each figure, and
-      # nothing looked at it. The section was a paste. #715 round seven is the
-      # defect: an enumerator passing `--arg` to `gh api`, which has no such
-      # flag, so it errored client-side and printed `0` for every possible state
-      # of the world. A fix reviewer found it by running it.
-      #
-      # This does NOT execute the body. #679 proposed re-executing an allowlist
-      # and comparing values; figure_lint.mjs's header records the reasons that
-      # is refused and which of them were withdrawn under measurement. The
-      # shortest surviving one WAS that this job checks out at depth 1 with no
-      # origin/main -- and #818 falsified it by setting fetch-depth: 0 above, so
-      # reason 4 in figure_lint.mjs's header is the one that still stands. Do NOT
-      # restate a quantity here: two of the original four
-      # reasons were counts, both were wrong, and this copy is where the wrong
-      # ones survived a sweep of the body, the header and both plan rows.
-      # What the check does is confirm that each command RESOLVES.
-      - name: Show the figure check refusing its own fixtures
-        if: always()
-        run: node .claude/workflows/figure_lint.mjs --self-test
-
-      # The enumerator behind the two quantities that header argues from. It is
-      # run here for its self-test only -- no `gh`, no network: an enumerator
-      # nobody executes rots into the false figure it exists to prevent, which
-      # is the #715 defect one level up.
-      - name: Show the figure census pinning its counting rule
-        if: always()
-        run: node .claude/workflows/figure_census.mjs --self-test
-
       # THE CHECK IS NOT EXECUTED FROM THE CHANGE IT IS CHECKING (#1515, the
-      # `policy-docs` step of #1403 applied to this job). Every step above
-      # drives a program the pull request carries, on purpose: a self-test's
-      # verdict is about that copy. Every step below grades the pull request's
-      # body and diff, so the program must be the base's -- one appended
-      # `process.exit(0)` to the unowned `counts.mjs` that `policy_lint.mjs`
-      # imports turned this job's refusal of an empty body into rc 0. The same
-      # pathspecs as `policy-docs`, plus the two `tools/audit/` scripts a step
-      # below grades with. `if: always()`, because the grading steps below are:
-      # a restore skipped by an earlier red would leave them running the pull
-      # request's copy. A file the base does not have cannot be restored, the
-      # limit `policy-docs` states.
+      # `policy-docs` step of #1403 applied to this job). Every step below
+      # grades the pull request's body and diff, so the program must be the
+      # base's -- one appended `process.exit(0)` to `counts.mjs`, which
+      # `policy_lint.mjs` imports, turned this job's refusal of an empty body
+      # into rc 0. The same pathspecs as `policy-docs`. FIRST, before any
+      # program the pull request carries (decision 0013): a step running the
+      # pull request's code can write $GITHUB_ENV and so reach every later step,
+      # so the self-tests this job used to run moved to governance.yml's
+      # `instrument-self-tests`, and this job runs no pull-request program at
+      # all. A file the base does not have cannot be restored, the limit
+      # `policy-docs` states.
       - name: Restore the check source from the base commit
-        if: always()
         env:
           PINNED: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
+          rm -rf .claude/workflows/vendor
           git checkout "$PINNED" -- \
             '.claude/workflows/*.mjs' \
             '.claude/workflows/*.py' \
             '.claude/workflows/vendor' \
-            'tools/audit/prepr.sh' \
-            'tools/audit/preflight.sh'
+            'tools/audit/*.sh' \
+            'tools/audit/record-predicate' \
+            'tools/audit/round6/D11/fix/codeowners_gap.py'
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs
 
