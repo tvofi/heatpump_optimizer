@@ -53,9 +53,9 @@ with *"these force the FULL suite when touched"*.
 
 Pull requests are authored by the `hpo-author` App via `tools/audit/app_push.sh`
 (never `push.sh`, never `tvofi`); `pr-contract` refuses any other author.
-`hpo-approver` approves non-code-owned PRs; only `@tvofi` reviews code-owned
-paths. `hpo-runs` approves held CI runs; stamps push over the deploy key
-(`stamp.py --push --push-key`). The retired `tvofi-seat-author` makes no write.
+`hpo-approver` posts verdicts, approves non-code-owned PRs; only `@tvofi`
+reviews code-owned paths. `hpo-runs` approves held CI runs; stamps push over the
+deploy key (`stamp.py --push --push-key`). Retired `tvofi-seat-author` never writes.
 
 ## Where the policy is — the whole set, and who each part binds
 

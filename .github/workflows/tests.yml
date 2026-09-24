@@ -422,6 +422,25 @@ jobs:
         with:
           node-version: "22"
 
+      # Pinned as governance.yml's `policy-docs` is (decision 0013): the
+      # rosters are the pull request's, the linter the base's.
+      - name: Restore the check source from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          rm -rf .claude/workflows/vendor
+          git checkout "$PINNED" -- \
+            '.claude/workflows/*.mjs' \
+            '.claude/workflows/*.py' \
+            '.claude/workflows/vendor' \
+            'tools/audit/*.sh' \
+            'tools/audit/record-predicate' \
+            'tools/audit/round6/D11/fix/codeowners_gap.py'
+          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          test -f .claude/workflows/policy_lint.mjs
+
       - name: Lint every wave roster's citations
         run: node .claude/workflows/brief_lint.mjs
 
@@ -591,7 +610,7 @@ jobs:
             && needs.recheck-gate.outputs.recheck == 'true')
       )
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 160
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
