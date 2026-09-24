@@ -45441,7 +45441,9 @@ _P3_ALLOWED: set[tuple[str, str, str]] = set()
 
 
 def _p3_seams(src: str, fname: str) -> list[tuple[str, str, str, int]]:
-    out = []
+    # Keyed by call position: a nested def's calls are walked from its parent
+    # too, and the breadth-first walk reaches the innermost def last.
+    out: dict[tuple[int, int], tuple[str, str, str, int]] = {}
     for fn in _p3_ast.walk(_p3_ast.parse(src)):
         if not isinstance(fn, (_p3_ast.FunctionDef, _p3_ast.AsyncFunctionDef)):
             continue
@@ -45467,8 +45469,8 @@ def _p3_seams(src: str, fname: str) -> list[tuple[str, str, str, int]]:
                 or len(c.args) > _P3_HUM_POS[callee]
             )
             if not passed and (fname, fn.name, callee) not in _P3_ALLOWED:
-                out.append((fname, fn.name, callee, c.lineno))
-    return out
+                out[(c.lineno, c.col_offset)] = (fname, fn.name, callee, c.lineno)
+    return sorted(out.values(), key=lambda s: s[3])
 
 
 _p3_open = [
