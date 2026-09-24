@@ -1740,6 +1740,7 @@
           "boost": "Maximum output",
           "comfort": "Comfort",
           "eco": "Low output",
+          "hot_water": "Heating hot water",
           "idle": "Idle",
           "normal": "Normal output",
           "off": "Off",

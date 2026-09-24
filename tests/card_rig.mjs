@@ -409,8 +409,8 @@ export function withActuals(states, { prefix = "heat_pump_optimizer" } = {}) {
       state: "comfort",
       attributes: {
         device_class: "enum",
-        options: ["boost", "comfort", "eco", "idle", "normal", "off",
-          "pre_heat", "system_identification", "unknown"],
+        options: ["boost", "comfort", "eco", "hot_water", "idle", "normal",
+          "off", "pre_heat", "system_identification", "unknown"],
         power_kw: 2.3 } },
   };
 }
