@@ -54,6 +54,11 @@
       "old": "        if unit:",
       "reason": "_wind_speed_scale_of's `if unit:` guards only a DEBUG log line for an unknown wind unit; both arms then return 1.0, so the value is identical and only a log record differs. Measured: tests/features.py rc=0 at 25497c4b with the mutant applied (R8-P8 round 3)."
     },
+    "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._deferred_energy_cost CLAMP_DROP 666b8bb1": {
+      "verdict": "equivalent",
+      "old": "        cop = max(self.model.compute_cop(out_mean, humidity=hum_mean), 1e-3)",
+      "reason": "R8-P3 re-anchored this line (it gained the humidity argument); it was unpinned at the merge base under its old text. `max(compute_cop(...), 1e-3)` -> `(compute_cop(...))` cannot select the second arm: `compute_cop` returns `_cop_law`, which returns `max(cop, 1.0)` (#928's resistive bound), so the COP is never below 1.0 and the 1e-3 floor never binds."
+    },
     "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._repair_dhw_floor CLAMP_DROP 21bb873a": {
       "verdict": "equivalent",
       "old": "                room_kw = float(room_c[j_local]) * c_dhw / max(dt * cop_room, 1e-6)",
@@ -421,6 +426,11 @@
       "old": "            return jointly_raised",
       "reason": "arrived with round 7 D0-01 (#1447)'s scope, drawn not introduced: a new module constant and a new guard reshuffle the seeded per-file sample over optimizer.py. NOT equivalent, and the round-5 verdict that said so is withdrawn -- its premise (the tank trajectory is non-decreasing in a slot's power) was measured at draw rates under 0.004 kW, three orders below production, and fails there: 1007 of 5760 single-slot raises lower the tank, worst by 8.29 K, because the coil carries part of the draw. Killed by tests/features.py's `the jointly-raised branch ships when the coil is not monotone (R7 D0-01)` block: a 48.19 L tank, a 13.65 kW peak draw, tank at 35.9 C and weak slots 67-70 -- the branch raises all four to run_power 0.6, the fall-through loop zeroes slot 69. Deleting the branch's return reddens that check: FAIL every weak slot is raised, none zeroed, in the branch-taken case [slots 67-70 -> [0.6, 0.6, 0.0, 0.6], run_power 0.6], 1 of 3105. Survival measured UNMARKED with 19 drivers in the recorded net before the pin existed."
     },
+    "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._dhw_coil_wood_forecast CLAMP_DROP b0026abf": {
+      "killed_by": "tests/features.py",
+      "old": "            out[i + 1] = max(inlet, out[i + 1] - drained)",
+      "reason": "R8-P3: the wood-coil forecast's carried drain. `(inlet)` pins every served step's wood at the inlet reference, so the coil is credited nothing. Measured in a git-less copy of 7c50f736 (null 1 of 3192): 4 of 3192 FAILED, among them `the DHW planner buys less electricity with a hot wood-tank coil` (7.082905 vs 7.082905 kWh), `a wood tank under the floor draws the coil's own heat, per step` and `the coil's drain on the wood forecast carries forward`. Deleting the line instead (the pre-fix drain) fails `and the credited plan still clears dhw_min_temp inside every demand window` (44.42) and the two drain checks."
+    },
     "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._optimize_space_only GUARD_OFF 6a3be0ea": {
       "killed_by": "tests/optimality.py",
       "old": "        if self.model.params.two_zone_enabled:",
@@ -435,6 +445,16 @@
       "killed_by": "tests/features.py",
       "old": "        if result.dhw_temp_trajectory and i < len(result.dhw_temp_trajectory):",
       "reason": "drawn by the round-7 D2-03 diff's per-file sample over optimizer.py, not introduced by it (CI's mutation job at 8e41434e reported it LIVES). `and` -> `or` indexes a non-empty DHW trajectory past its end when it is shorter than the schedule. Killed by tests/features.py's `a DHW trajectory shorter than the schedule is read only where it exists`: FAIL [step 8 of a one-entry trajectory: raised IndexError: list index out of range], 1 of 3141, measured at b5121ba3."
+    },
+    "custom_components/heatpump_optimizer/optimizer.py:_mean_humidity RETURN_DEL 0696c43c": {
+      "killed_by": "tests/features.py",
+      "old": "    return None if humidity is None else float(np.nanmean(humidity))",
+      "reason": "R8-P3 (#1520): the horizon-mean humidity the terminal, settlement and baseline valuations price at. `pass` returns None, the ambient fallback. Measured in a git-less copy of 7c50f736 (null 1 of 3192): 2 of 3192 FAILED, the new one `a finite humidity forecast plans the same DHW schedule and trajectory whatever the current humidity is (#1520)` (the space schedule moves with the ambient)."
+    },
+    "custom_components/heatpump_optimizer/optimizer.py:_step_humidity RETURN_DEL c560cbd8": {
+      "killed_by": "tests/features.py",
+      "old": "    return None if humidity is None else float(humidity[i])",
+      "reason": "R8-P3 (#1520): the per-step humidity every planning seam passes. `pass` hands every seam None, the ambient fallback. Measured in a git-less copy of 7c50f736 (null 1 of 3192): 2 of 3192 FAILED, the new one `a finite humidity forecast plans the same DHW schedule and trajectory whatever the current humidity is (#1520)` (dhw 4.700 vs 5.640 kWh)."
     },
     "custom_components/heatpump_optimizer/optimizer.py:stored_heat_survival GUARD_OFF 9afb8b62": {
       "killed_by": "tests/features.py",
@@ -550,6 +570,11 @@
       "killed_by": "tests/entities.py",
       "old": "        if measured_house_kw is not None and np.isfinite(measured_house_kw):",
       "reason": "The same guard deleted: the whole-house window then records readings the house meter never took, and the no-meter arm stops being empty. Measured: tests/entities.py rc=1, `and the whole-house window, from the whole-house meter's own reading (#1460) [got []]`."
+    },
+    "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.compute_cop_dhw GUARD_OFF ca964a78": {
+      "killed_by": "tests/features.py",
+      "old": "        if self.params.cop_flow_carnot:",
+      "reason": "R8-P3 (#1530): `compute_cop_dhw` prices the tank by the buffer's Carnot law behind a throttling valve. `if False:` restores the tank's own 0.008/K penalty. Measured in a git-less copy of 7c50f736 beside an unmutated copy (1 of 3192 FAILED there, the git-reading #363 check): 6 of 3192 FAILED, among them `cop_flow_carnot on: marginal_cop('dhw') == marginal_cop('buffer') at equal water temperature, every outdoor x flow cell (#1530)` (205 of 240 cells differ) and the wood-coil and baseline figures the law moves."
     },
     "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_dhw_step CLAMP_DROP 6d5b3ca5": {
       "killed_by": "tests/features.py",
