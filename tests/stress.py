@@ -1705,11 +1705,11 @@ def per_call_cost_rounds(probe: dict, rounds: int = KERNEL_ARM_ROUNDS):
 
     The injection spends each seam call's own CPU a second time, rather
     than repeating the call as the finder did: a repeat of an identical
-    call runs on warm caches and read a median 0.94x of the first over
-    eight contended solves, so "twice" delivered under 2x and its
-    seven-round median still missed the factor in 2 of 20 contended trials
-    (the PR that added this). Burning the measured CPU is 2x per call on
-    any machine, net of the clock reads the burn itself adds.
+    call runs on warm caches and costs less than the first under
+    contention (medians in the PR that added this), so "twice" delivered
+    a few percent under 2x of a margin that is only 11 %. Burning the
+    measured CPU is 2x per call on any machine, net of the clock reads
+    the burn itself adds.
     """
     saved_batch = SolverWork._batch_wrapped
     saved_step = SolverWork._step_wrapped
