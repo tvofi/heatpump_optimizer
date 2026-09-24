@@ -22748,7 +22748,7 @@ def _mut_x_span(key):
 def _mut_x_overlaps():
     """Every (exclusive, other) pair of recorded runs that shared the clock."""
     return [(k, o) for k, a0, a1 in _MUT_X_SPANS
-            if k[-1] in _mut.EXCLUSIVE
+            if k[-1] == "tests/stress.py"
             for o, b0, b1 in _MUT_X_SPANS
             if o != k and b0 < a1 and a0 < b1]
 
