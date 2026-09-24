@@ -1405,7 +1405,7 @@ def _forecast_in_model_units(state: Any, forecast: list[dict[str, Any]]) -> list
         value = temperature_c(entry.get("temperature"), unit) if to_c else None
         if value is not None:
             row["temperature"] = value
-        if wind != 1.0 and entry.get("wind_speed") is not None:
+        if wind != 1.0:  # every reader takes a missing wind as 0.0 anyway
             row["wind_speed"] = _as_float(entry.get("wind_speed"), 0.0) * wind
         rows.append(row)
     return rows
