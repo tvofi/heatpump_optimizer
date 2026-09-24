@@ -295,8 +295,9 @@ class SetbackRecord(dict[str, float]):
     """The originals ``apply_setback`` replaced; ``written`` is what it left.
 
     The unwind needs both (#1517): a field is restored only while it still
-    holds the envelope's own value, so a write that landed while the solve
-    was parked on its await is newer than the snapshot and survives it.
+    holds the very object the envelope left there, so a write that landed
+    while the solve was parked on its await survives it -- even one equal
+    to the set-back value, and a NaN target unwinds, as ``==`` could not.
     """
 
     written: dict[str, float]
@@ -349,10 +350,10 @@ def restore_setback(
     opt_config: _SetbackConfig,
     thermal_params: _SetbackThermal,
 ) -> None:
-    """Compare-and-restore: undo only the fields the envelope still holds."""
+    """Compare-and-restore, by identity: undo what the envelope still holds."""
     for obj, names in ((opt_config, _OPT_FIELDS), (thermal_params, _DHW_FIELDS)):
         for name in names:
-            if getattr(obj, name) == original.written[name]:
+            if getattr(obj, name) is original.written[name]:
                 setattr(obj, name, original[name])
 
 

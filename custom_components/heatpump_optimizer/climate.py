@@ -34,7 +34,7 @@ from .const import (
     DEFAULT_MAX_TEMP,
 )
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
-from .entity import HeatPumpOptimizerEntity
+from .entity import HeatPumpOptimizerEntity, commanded_power_kw
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -172,7 +172,9 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
 
             if mode == MODE_OFF:
                 return HVACAction.OFF
-            if power_norm > 0.1:
+            # The machine, not only the space band: a step below the band's
+            # first rung and a DHW-only step both run the pump (#1499).
+            if power_norm > 0.1 or action.get("heat_pump_on"):
                 return HVACAction.HEATING
             return HVACAction.IDLE
         return None
@@ -229,7 +231,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
             action = self.coordinator.data.get("current_action", {})
             attrs["optimizer_mode"] = action.get("mode", "unknown")
             attrs["optimizer_setpoint"] = action.get("setpoint")
-            attrs["recommended_power_kw"] = action.get("power")
+            attrs["recommended_power_kw"] = commanded_power_kw(action)
             attrs["current_price"] = self.coordinator.data.get("current_price")
             attrs["predicted_savings"] = self.coordinator.data.get("predicted_savings")
             attrs["savings_percentage"] = self.coordinator.data.get(
