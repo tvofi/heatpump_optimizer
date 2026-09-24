@@ -15129,6 +15129,44 @@ R.check(
     and not _closure.autofix_repair_failed("closures-autofix", _af3b_status),
     f"status={_af3b_status}: no repair was owed, so no human is waiting",
 )
+# The recordings are made on the pull request's MERGE tree (main + branch)
+# and `closures-autofix` checks out the branch HEAD, so a script that reads a
+# file main added and the branch has not merged names a path the autofix tree
+# does not have. `check` answered that NOT A FILE before it reached the
+# under-approximation comparison, printed no UNDER-SCOPED, and the job went
+# green on the quiet `skip-not-under-scoped` while the closures job had
+# printed UNDER-SCOPED for another script (#1569: tests/entities.py read
+# main's four replay files; tests/finite_boundary.py was under-scoped). A path
+# this tree lacks cannot belong in this tree's closure -- the recorder's own
+# existence rule (#1310) -- so it is dropped, and the repair happens. The null
+# control is the same run with no such path.
+_af6_absent = "tests/replay/only-on-main.json"
+_af6_status, _af6_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"],
+     "tests/entities.py": ["tests/entities.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 0,
+      "files": ["tests/open_meteo.py", "tests/harness.py"]},
+     {"script": "tests/entities.py", "rc": 0,
+      "files": ["tests/entities.py", _af6_absent]}],
+)
+_af6n_status, _af6n_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"],
+     "tests/entities.py": ["tests/entities.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 0,
+      "files": ["tests/open_meteo.py", "tests/harness.py"]},
+     {"script": "tests/entities.py", "rc": 0,
+      "files": ["tests/entities.py"]}],
+)
+R.check(
+    "a recording naming a path the autofix tree lacks still repairs the "
+    "under-scoped script (#1569)",
+    not (_closure.ROOT / _af6_absent).exists()
+    and _af6_status == "changed" and not _af6_kept
+    and _af6n_status == "changed" and not _af6n_kept,
+    f"with a path only main has: status={_af6_status}; without it (null "
+    f"control): status={_af6n_status} -- a quiet skip here is a repair "
+    "nobody makes and nothing reports",
+)
 with _tempfile.TemporaryDirectory() as _af4_td:
     _af4_root = Path(_af4_td)
     _af4_closures = _af4_root / "closures.json"
