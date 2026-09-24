@@ -4271,8 +4271,11 @@ function assertAcceptance(derived) {
       const bgt = { ...hugeBudget, files: { ...hugeBudget.files }, roles: { probe: { ...hugeBudget.roles.probe } } }
       set(bgt, v)
       if (v === undefined && cls !== 'file') delete bgt[cls === 'floor' ? 'always_loaded_tokens' : cls === 'corpus' ? 'corpus_tokens' : 'roles']
-      const hits = checkBudgets(policyFiles(), bgt).map(classOf)
-      if (!hits.includes(cls)) capSilent.push(`${cls}=${name}`)
+      const found = checkBudgets(policyFiles(), bgt).filter((f) => classOf(f) === cls)
+      if (!found.length) capSilent.push(`${cls}=${name}`)
+      // A non-finite cap is refused as one, not as a fraction: the seat reads
+      // the message to learn what to restore.
+      else if (typeof v === 'number' && !Number.isFinite(v) && !found.some((f) => /unlimited raise/.test(f.message))) capSilent.push(`${cls}=${name} (refused, but not named non-finite)`)
     }
   }
   if (capSilent.length) {
