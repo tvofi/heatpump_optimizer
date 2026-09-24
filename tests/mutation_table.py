@@ -901,10 +901,11 @@ def cap_problems(budgets: dict) -> list[str]:
     still prints PASSED. A cap has to be saturable to be a gate.
 
     Before that, each cap passes `cap_problem` (the verbatim copy above), the
-    barrier every ratchet shares: `rate > nan` and `len(unpinned) > nan` are both False, so
-    a NaN in either row was an unlimited raise this pre-pass let through
-    (#1583's review). `unpinned_sites` may be absent -- the bootstrap
-    `ratchet_refusal` documents -- but a present one is a non-negative count.
+    barrier every ratchet shares: `rate > nan` is False, so a NaN cap was an
+    unlimited raise this pre-pass let through, and `float()` turned a string
+    "nan" into one (#1583's review). The exact-count ratchet has no committed
+    number to guard: `base_unpinned` derives it from the base's ledger, and
+    `ledger_form_problems` refuses a committed `unpinned_sites`.
     """
     where = BUDGETS.name
     fractions = budgets.get("max_survivor_fraction")
@@ -917,10 +918,6 @@ def cap_problems(budgets: dict) -> list[str]:
             out.append(f"max_survivor_fraction[{scope}]={fractions[scope]} is "
                        f"unsatisfiable: a survivor rate in [0, 1] can never "
                        f"exceed it")
-    if "unpinned_sites" in budgets:
-        problem = cap_problem(where, budgets, "unpinned_sites", integer=True)
-        if problem:
-            out.append(problem)
     return out
 
 

@@ -22726,23 +22726,17 @@ R.check(
     f"missing: {_CAP_DRIFTED}",
 )
 
-_CAP_MB_OK = {"max_survivor_fraction": {"changed": 0.2, "full": 0.3},
-              "unpinned_sites": 3725}
+_CAP_MB_OK = {"max_survivor_fraction": {"changed": 0.2, "full": 0.3}}
 _CAP_M_FRAC = {
     n: _mut.cap_problems(_cap_set(_CAP_MB_OK, ("max_survivor_fraction", "changed"), v))
     for n, v in {**_CAP_BAD, "string": "0.2", "absent": _CAP_ABSENT}.items()
 }
-_CAP_M_UNPIN = {
-    n: _mut.cap_problems(_cap_set(_CAP_MB_OK, ("unpinned_sites",), v))
-    for n, v in {**_CAP_BAD, "float": 3725.5}.items()
-}
 R.check(
-    "the mutation table refuses a non-finite or malformed cap on either row",
-    all(_CAP_M_FRAC.values()) and all(_CAP_M_UNPIN.values())
+    "the mutation table refuses a non-finite or malformed survivor cap",
+    all(_CAP_M_FRAC.values())
     and _mut.cap_problems(_MB) == [] and _mut.cap_problems(_CAP_MB_OK) == [],
-    f"fraction accepted: {[n for n, p in _CAP_M_FRAC.items() if not p]}; "
-    f"unpinned_sites accepted: {[n for n, p in _CAP_M_UNPIN.items() if not p]}; "
-    f"committed table: {_mut.cap_problems(_MB)} (the null control)",
+    f"accepted: {[n for n, p in _CAP_M_FRAC.items() if not p]}; committed "
+    f"table: {_mut.cap_problems(_MB)} (the null control)",
 )
 
 _CAP_COV = getattr(_cov, "budget_problems", None)
