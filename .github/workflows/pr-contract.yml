@@ -9,8 +9,9 @@
 # `policy-docs`, `env-matrix` and `wave-script` as SKIPPED at an unchanged
 # head, the latest run of each context superseding the real verdict before
 # it. An event this file does not list starts no run of it, so nothing here
-# can be superseded that way. `tests/entities.py` pins the split: every
-# workflow that lists `edited` holds this one job and no other.
+# can be superseded that way. `tests/entities.py` pins the split: a workflow
+# that lists `edited` holds one unguarded job -- this one, or
+# `budget-raise-gate`, which reads the base a retarget moves.
 #
 # `tests.yml` must not carry `edited` either: it would re-run the whole
 # forty-minute gate every time a body is edited.

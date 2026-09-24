@@ -3,6 +3,8 @@
 Status: recorded 2026-09-24 from the repository owner's ruling of that date,
 given by `tvofi` to the orchestrator and relayed in this record's dispatch.
 Amends 0011's three-identity model in one role; 0011 stands otherwise.
+Amended the same day (last section): the budget files leave CODEOWNERS, and a
+required check refuses a budget raise the owner has not approved.
 
 ## Context
 
@@ -115,3 +117,34 @@ second pull request's CODEOWNERS, 6 of those 17 would touch no owned path.
   longer blocks a merge by itself.
 - `docs/decisions/` is `@tvofi`'s; this record needs the owner's approving
   review before it merges.
+
+## Amendment, 2026-09-24: a raise is the owner's, a budget file is not
+
+The owner's direction later that day, relayed in this amendment's dispatch:
+only policy changes and budget **raises** belong to the code owner `tvofi`;
+routine changes, CI included, run without human approval, and #1558's trust
+holes stay closed. Part 2 owned the six budget files by path, and a path
+cannot tell a raise from a ledger row re-pinned after a line shift. Measured
+over the 123 first-parent merges from 2026-09-20T00:00Z to `26f15eb0`: 22
+touched a budget file, and the check below calls 9 of them raises; 13 were
+routine.
+
+- **`.github/CODEOWNERS` owns no `*_budgets.json`.**
+- **The required context `budget-raise-gate`** (`.github/workflows/budget-raise-gate.yml`,
+  program `.claude/workflows/budget_raise_gate.py`) compares every tracked
+  budget file at the head with the merge base, each cap in its file's own
+  direction. A key it cannot classify, and a budget file it has no schema for,
+  count as a raise. With no raise it passes. With one, it passes only when
+  `tvofi`'s latest decisive review, read from the API at run time, is APPROVED
+  on the head SHA; it re-runs on `pull_request_review`.
+- **Pinned, not owned**, on the pattern above: its one job restores
+  `.claude/workflows/*.py` from the base before anything else runs, and runs
+  the program under `python3 -I`. Its workflow file stays owned with the rest
+  of `.github/workflows/`.
+- **Out of its reach:** a ledger disposition (`survivor_triage`, `killed_by`)
+  is a per-site record, not a cap; and a grader that stops reading its cap
+  file is the enforcement surface's concern, not this check's.
+- `CLAUDE.md` rule 2's order stands: a raise is still asked for before the
+  push. The check makes the owner's approval the condition of the merge.
+- Adding the context to `main-protect-checks` is a ruleset change, and the
+  owner's.
