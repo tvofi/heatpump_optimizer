@@ -72,21 +72,22 @@ schedule, and an instrument driven only by a `HPO_JOB_GRADES: nothing` job
 grades nothing -- is covered with nothing to restore; the run tags it
 `NO-PR-JOB` rather than `PINNED`, so the two are not read as one claim.
 
-A restore holds only in a job that has run no program of the pull
-request's before it (#1589 review, round 1: `coverage` ran the suite between
-the restore and the ratchet, and the suite could overwrite the ratchet). A
-line TAINTS its job when it installs packages (build code and `.pth` files
-the pull request's lock chooses), runs a stdin program (`python -`), executes
-a tracked file the restores so far do not cover -- through EXEC, or as a bare
-path at command position, which EXEC does not count as an invocation
-(`tools/audit/w5-partition/coverage_tree.sh fast`) -- or is a local
-`uses: ./` action. From then on, nothing that job executes counts as pinned:
-the program can rewrite the file, set `BASH_ENV` or `LD_PRELOAD` through
-`$GITHUB_ENV`, or use the runner's sudo. A restore therefore also has to come
-before the grader, in the same step or an earlier one.
+A restore holds only in a job whose every step before the grader is on an
+ALLOWLIST of what cannot run the pull request's code (#1589 review, rounds 1
+to 3; the list and its reasons are at ALLOWED_USES below). Round 1's
+`coverage` ran the suite between the restore and the ratchet; round 2's
+denylist of such programs let 18 of 23 one-step insertions through. Anything
+off the list -- including a line this reader cannot parse -- makes nothing
+later in that job count as pinned. `--self-test` drives the probe table
+(PROBES, every one must unpin) and its null controls (NULLS, every one must
+stay pinned).
 
-What a pin does not reach. A pinned grader still reads the pull request's
-tree and what its code produced (the coverage JSON), so a suite that
+What a pin does not reach. The test-side pinned graders' jobs
+(`coverage-ratchet`, `nightly-status`, `delivery-status`) are not required
+contexts, so a red from the base's copy there blocks nothing by itself:
+`pr-contract` makes the body answer it, and the fix review blocks an
+unanswered one. A pinned grader still reads the pull request's tree and what
+its code produced (the coverage JSON), so a suite that
 misreports is left to review. And the base is `pull_request.base.sha`, the
 base branch's tip when the event fired: a stricter grader that lands on
 `main` later reaches an open pull request only when it is re-run against the
@@ -110,7 +111,7 @@ ARMS.
 The matcher mirrors GitHub's CODEOWNERS semantics for the pattern forms this
 repository uses: a trailing-slash directory pattern, and an exact path.
 
-    python3 -I tools/audit/round6/D11/fix/codeowners_gap.py [--check]
+    python3 -I tools/audit/round6/D11/fix/codeowners_gap.py [--check | --self-test]
 
 `-I` in the gate, always: without it Python puts this file's directory first on
 sys.path, and a pull request that adds `subprocess.py` beside it runs its own
@@ -286,87 +287,280 @@ def pr_reachable(wf_text: str, job_text: str) -> bool:
     return any(ev == "pull_request" for op, ev in tests if op == "==") or any(op == "!=" for op, _ in tests)
 
 
-# A line that runs a program the pull request controls (round 2 of #1589's
-# review). Past one, the job is TAINTED: the program can overwrite a restored
-# file, write `$GITHUB_ENV` (`BASH_ENV`, `LD_PRELOAD`, `PATH`) for every later
-# step, or use the runner's passwordless sudo to replace `git` or `python3`, so
-# no later restore, however adjacent to its grader, can be trusted in that job.
-# Installs run build scripts and drop `.pth` files; a stdin program (`python -`)
-# is taken as importing the tree; a bare tracked path at command position is
-# an invocation even though EXEC, which needs an interpreter or `./`, misses it
-# (`tools/audit/w5-partition/coverage_tree.sh fast`).
-INSTALL = re.compile(r"\b(?:pip3?|npm|npx|pnpm|yarn|uv)\s+(?:install|ci|i|add|sync|pip\s+install)\b"
-                     r"|-m\s+pip\s+install\b|\bpython3?\s+-(?:\s|$)")
-TOKEN = re.compile(r"[A-Za-z0-9_.][A-Za-z0-9_./-]*")
+# WHAT MAY RUN BEFORE A PINNED GRADER IN ITS JOB -- an ALLOWLIST (#1589
+# review, round 3). Once a job has run one program the pull request can
+# steer, that program can rewrite a restored file, put a `python3` shim on
+# `$GITHUB_PATH`, set `BASH_ENV`/`LD_PRELOAD` through `$GITHUB_ENV`, or use the
+# runner's passwordless sudo, so nothing later in that job is the base's. A
+# denylist of such programs (round 2) caught 4 of 23 probes; this admits only:
+#   * `uses:` of the actions below, at these exact pinned revisions;
+#   * in `run:`, simple commands whose word is `set` (flags only), `git` with
+#     `cat-file|fetch|checkout|rev-parse|hash-object|show` (`checkout` only
+#     from "$PINNED"), `test`/`[`, `echo`/`printf` without command
+#     substitution, `cmp`, `mkdir`, `true`, and a PINNED GRADER: a file this
+#     job restored earlier, run by an interpreter or by path, `.py` under `-I`;
+#     `$(...)` only around an admitted command, redirection only into the
+#     runner's scratch (`$RUNNER_TEMP`, `/tmp`, `$GITHUB_OUTPUT`,
+#     `$GITHUB_STEP_SUMMARY`, `/dev/null`).
+# Anything else taints the job from that line on, and so does a line this
+# reader cannot parse: a heredoc, a backtick, a subshell, a control keyword, an
+# assignment, an operator it does not know, a write to `$GITHUB_ENV` or
+# `$GITHUB_PATH`, a step `shell:` or `working-directory:`, or a step `env:`
+# value naming a tracked path. A pinned grader itself runs base code over the
+# pull request's tree; a grader that EVALUATES a pull-request artifact
+# (`check-wave-script.mjs`) is why those artifacts stay owned.
+ALLOWED_USES = {
+    "actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+    "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
+    "actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
+    "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
+}
+GIT_OK = {"cat-file", "fetch", "checkout", "rev-parse", "hash-object", "show", "diff", "log", "merge-base", "commit"}
+PLAIN_OK = {"test", "[", "cmp", "mkdir", "true", "rm", "wc", "sort", "paste", "cat", "jq", "read"}
+# Shell grammar words: the commands between them are each checked.
+KEYWORDS = {"if", "then", "else", "elif", "fi", "while", "until", "do", "done", "for", "in", "!"}
+# A variable that makes a later program load code it names.
+CODE_VARS = re.compile(r"^(?:PATH|BASH_ENV|ENV|LD_\w+|NODE_\w+|PYTHON\w*|GIT_\w+|PERL5\w*|RUBY\w*)\+?=")
+INTERP = re.compile(r"^(?:[\w.-]+/)*(?:python3?|node|bash|sh)$")
+SCRATCH = ("$RUNNER_TEMP", "${RUNNER_TEMP}", "/tmp/", "$GITHUB_OUTPUT", "${GITHUB_OUTPUT}",
+           "$GITHUB_STEP_SUMMARY", "${GITHUB_STEP_SUMMARY}", "/dev/null")
+OPS = {";", "&&", "||", "|", "&", "|&"}
+REDIR = re.compile(r"^\d*(?:>>?|<|>&|&>)$")
 
 
-def taints(line: str, have: set[str], specs: list[str]) -> bool:
-    """True when `line` runs a program the pull request controls."""
-    body = line.strip()
-    if body.startswith("run:"):
-        body = body[4:].strip().lstrip("|>-").strip()
-    if not body:
+def _substitutions(text: str) -> "tuple[str, list[str]] | None":
+    """`text` with each top-level `$(...)` replaced by `SUBST`, and the inner
+    commands; None when it cannot be read (a backtick, an unbalanced one)."""
+    if "`" in text:
+        return None
+    out, inner, i = [], [], 0
+    while i < len(text):
+        if text.startswith("$(", i) and not text.startswith("$((", i):
+            depth, j = 1, i + 2
+            while j < len(text) and depth:
+                depth += {"(": 1, ")": -1}.get(text[j], 0)
+                j += 1
+            if depth:
+                return None
+            inner.append(text[i + 2:j - 1])
+            out.append("SUBST")
+            i = j
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out), inner
+
+
+def admitted(line: str, have: set[str], specs: list[str], _depth: int = 0) -> bool:
+    """True when every command on this logical `run:` line is on the allowlist."""
+    import shlex
+
+    if _depth > 3 or "<<" in line:
         return False
-    if INSTALL.search(body):
-        return True
-    for m in EXEC.finditer(body):
-        if m.group(1) in have and not any(spec_hit(sp, m.group(1)) for sp in specs):
-            return True
-    first = TOKEN.match(body.split("=", 1)[-1] if re.match(r"^[A-Z_]+=\S*\s", body) else body)
-    if first:
-        head = os.path.normpath(first.group(0))
-        if head in have and not any(spec_hit(sp, head) for sp in specs):
-            return True
+    sub = _substitutions(line)
+    if sub is None:
+        return False
+    flat, inner = sub
+    flat = re.sub(r"\b([A-Za-z_]\w*)(\+?=)\(([^()]*)\)", r"\1\2ARRAY", flat)
+    if not all(admitted(c, have, specs, _depth + 1) for c in inner):
+        return False
+    try:
+        lex = shlex.shlex(flat, posix=True, punctuation_chars=";&|<>()")
+        lex.whitespace_split = True
+        toks = list(lex)
+    except ValueError:
+        return False
+    cmds, cur = [], []
+    for t in toks:
+        if t in OPS:
+            cmds.append(cur)
+            cur = []
+        elif t in ("(", ")") or (set(t) <= set(";&|<>()") and not REDIR.match(t)):
+            return False
+        else:
+            cur.append(t)
+    cmds.append(cur)
+    for cmd in cmds:
+        if not cmd:
+            continue
+        words, k = [], 0
+        while k < len(cmd):
+            t = cmd[k]
+            if REDIR.match(t):
+                if k + 1 >= len(cmd):
+                    return False
+                tgt = cmd[k + 1]
+                if "GITHUB_ENV" in tgt or "GITHUB_PATH" in tgt:
+                    return False
+                if t.lstrip("0123456789") != "<" and not tgt.startswith(SCRATCH):
+                    if not (t.endswith("&") and tgt.isdigit()):
+                        return False
+                k += 2
+                continue
+            words.append(t)
+            k += 1
+        while words and words[0] in KEYWORDS:
+            words = words[1:]
+        while words and re.match(r"^[A-Za-z_]\w*\+?=", words[0]):
+            if CODE_VARS.match(words[0]):
+                return False  # PATH, BASH_ENV, LD_PRELOAD, NODE_OPTIONS, ...
+            words = words[1:]
+        if not words:
+            continue
+        w = words[0]
+        if w in ("export", "declare", "local", "readonly"):
+            return False
+        if w == "set":
+            if not all(a.startswith(("-", "+")) or a == "pipefail" for a in words[1:]):
+                return False
+        elif w == "git":
+            while len(words) > 2 and words[1] == "-c" and re.match(r"^user\.(?:name|email)=", words[2]):
+                words = [w] + words[3:]  # an identity, which runs nothing
+            if len(words) < 2 or words[1] not in GIT_OK:
+                return False
+            if words[1] == "checkout" and (len(words) < 4 or words[2] != "$PINNED" or words[3] != "--"):
+                return False
+        elif w in ("echo", "printf"):
+            pass  # a substitution in it was admitted above, command by command
+        elif w == "gh":
+            if len(words) < 2 or words[1] != "api":
+                return False
+        elif w in PLAIN_OK:
+            pass
+        else:
+            # A pinned grader, by interpreter or by its own path.
+            target, flags = None, []
+            if INTERP.match(w):
+                rest = words[1:]
+                while rest and rest[0].startswith("-"):
+                    flags.append(rest.pop(0))
+                target = rest[0] if rest else None
+            else:
+                target = w
+            if not target:
+                return False
+            target = os.path.normpath(target)
+            if target not in have or not any(spec_hit(sp, target) for sp in specs):
+                return False
+            if target.endswith(".py") and "-I" not in flags:
+                return False
+    return True
+
+
+def run_lines(step: str) -> "list[str] | None":
+    """The logical lines of a step's `run:` block, continuations joined."""
+    m = re.search(r"^        run:[ \t]*(.*)$", step, re.M)
+    if not m:
+        return []
+    head = m.group(1).strip()
+    if head and head[0] not in "|>":
+        body = [head]
+    else:
+        body = []
+        for ln in step[m.end():].splitlines()[1:]:
+            if ln.strip() and not ln.startswith("          "):
+                break
+            body.append(ln[10:])
+    import shlex
+
+    out, buf = [], ""
+    for ln in body:
+        if not buf and ln.lstrip().startswith("#"):
+            continue
+        if ln.rstrip().endswith("\\"):
+            buf += ln.rstrip()[:-1] + " "
+            continue
+        buf += ln
+        try:
+            shlex.split(buf)
+        except ValueError:
+            buf += "\n"  # a quoted string runs on
+            continue
+        out.append(buf)
+        buf = ""
+    if buf:
+        out.append(buf)
+    return [ln for ln in out if ln.strip()]
+
+
+def step_uses(step: str) -> str:
+    m = re.search(r"^ {6}(?:- | {2})uses:\s*(\S+)", step, re.M)
+    return m.group(1) if m else ""
+
+
+def _names_tracked(env_block: str, have: set[str]) -> bool:
+    """True when an `env:` value names a tracked file or directory."""
+    for val in re.findall(r":\s*(.*)$", env_block, re.M):
+        for tok in re.findall(r"[A-Za-z0-9_.][A-Za-z0-9_./-]*", val):
+            t = os.path.normpath(tok)
+            if "/" in t and (t in have or any(f.startswith(t + "/") for f in have)):
+                return True
     return False
+
+
+def job_executions(wf: str, job: str, jt: str, have: set[str]) -> list[tuple[str, str, str, bool, bool]]:
+    """(workflow, job, file, pinned, isolated) for every file the job runs or
+    loads; `pinned` needs a restore earlier in the job whose pathspec matches,
+    and nothing before it outside the allowlist."""
+    out = []
+    specs: list[str] = []
+    # A job-level `defaults:` can turn every `run:` into another program, and a
+    # job-level `env:` value naming a tracked path can load it into one.
+    tainted = bool(re.search(r"^    defaults:", jt, re.M))
+    jenv = re.search(r"^    env:\n((?:      .*\n?)*)", jt, re.M)
+    if jenv and _names_tracked(jenv.group(1), have):
+        tainted = True
+    for step in jt.split("\n      - ")[1:]:
+        step = "      - " + step
+        live = "\n".join(ln for ln in step.splitlines() if not ln.lstrip().startswith("#"))
+        uses = step_uses(live)
+        if uses and uses not in ALLOWED_USES:
+            tainted = True
+        if re.search(r"^        (?:shell|working-directory):", live, re.M):
+            tainted = True
+        envm = re.search(r"^        env:\n((?:          .*\n?)*)", live, re.M)
+        if envm and _names_tracked(envm.group(1), have):
+            tainted = True
+        lines = run_lines(live)
+        for line in lines:
+            r = RESTORE.search(line)
+            for m in EXEC.finditer(line):
+                entry = m.group(1)
+                if entry not in have:
+                    continue
+                iso = bool(re.search(r"python3?\s+(?:-[A-Za-z]+\s+)*-I\b", line))
+                seen, todo = set(), [entry]
+                while todo:
+                    f = todo.pop()
+                    if f in seen:
+                        continue
+                    seen.add(f)
+                    todo += sorted(loads(f, have) | named(f, have))
+                for f in sorted(seen):
+                    out.append((wf, job, f, not tainted and any(spec_hit(sp, f) for sp in specs), iso))
+            if r:
+                specs += re.findall(r"'([^']+)'", r.group(1))
+            if not admitted(line, have, specs):
+                tainted = True
+    return out
 
 
 def executions(have: set[str]) -> list[tuple[str, str, str, bool, bool]]:
     """Every (workflow, job, file, pinned, isolated) a PR-reachable grading job
-    executes or loads, in step order. `pinned` needs a restore EARLIER in the
-    job whose pathspec matches the file, and no program the pull request
-    controls anywhere before it in the job (`taints`)."""
+    executes or loads, in step order."""
     out = []
     workflows = sorted(f for f in have if f.startswith(WF_DIR + "/") and f.endswith(".yml"))
     for wf in workflows:
         text = (ROOT / wf).read_text()
+        head = text[: text.find("\njobs:\n")]
+        wenv = re.search(r"^env:\n((?:  .*\n?)*)", head, re.M)
+        whole_file = bool(re.search(r"^defaults:", head, re.M)) or bool(
+            wenv and _names_tracked(wenv.group(1), have))
         for job, jt in jobs_of(text):
             if not pr_reachable(text, jt) or SELF_TEST_ONLY.search(jt):
                 continue
-            specs: list[str] = []
-            tainted = False
-            for step in jt.split("\n      - ")[1:]:
-                if re.match(r"\s*uses:\s*\./", step):
-                    tainted = True
-                live = "\n".join(ln for ln in step.splitlines() if not ln.lstrip().startswith("#"))
-                r = RESTORE.search(live)
-                r_span = (r.start(), r.end()) if r else (-1, -1)
-                in_run, pos = False, 0
-                for line in live.splitlines(keepends=True):
-                    at, pos = pos, pos + len(line)
-                    line = line.rstrip("\n")
-                    if re.match(r"\s*run:", line):
-                        in_run = True
-                    if r and at < r_span[1] and r_span[0] < at + len(line) + 1:
-                        if at <= r_span[0] <= at + len(line):
-                            specs += re.findall(r"'([^']+)'", r.group(1))
-                        continue
-                    for m in EXEC.finditer(line):
-                        entry = m.group(1)
-                        if entry not in have:
-                            continue
-                        iso = bool(re.search(r"python3?\s+(?:-[A-Za-z]+\s+)*-I\b", line))
-                        seen, todo = set(), [entry]
-                        while todo:
-                            f = todo.pop()
-                            if f in seen:
-                                continue
-                            seen.add(f)
-                            todo += sorted(loads(f, have) | named(f, have))
-                        for f in sorted(seen):
-                            out.append((wf, job, f,
-                                        not tainted and any(spec_hit(sp, f) for sp in specs), iso))
-                    if in_run and taints(line, have, specs):
-                        tainted = True
+            out += [(w, j, f, p and not whole_file, i)
+                    for (w, j, f, p, i) in job_executions(wf, job, jt, have)]
     return out
 
 
@@ -480,7 +674,111 @@ def run(arm: str) -> int:
     return len(files) - len(cov) if files else -1
 
 
+# THE ALLOWLIST'S MUTATION TABLE (#1589 review, round 3). Each PROBE is one
+# step inserted above the grading step of a job shaped like `coverage-ratchet`;
+# every one must leave the grader NOT pinned. Round 2's denylist left 18 of
+# the reviewer's 23 insertions (and a github-script `require`) pinned. Each
+# NULL is a step the allowlist admits, and must leave the grader pinned, so a
+# rule that refuses everything fails here too.
+SELF_TEST_JOB = """  probe-job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+%s
+      - name: grade
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git checkout "$PINNED" -- \\
+            'tests/coverage_ratchet.py'
+          test "$(git hash-object tests/coverage_ratchet.py)" = "$(git rev-parse "$PINNED:tests/coverage_ratchet.py")"
+          python3 -I -S tests/coverage_ratchet.py --coverage "$RUNNER_TEMP/c.json"
+"""
+T = "tools/audit/w5-partition/coverage_tree.sh"
+
+
+def _run(cmd: str) -> str:
+    body = "\n".join("          " + ln for ln in cmd.splitlines())
+    return "\n      - name: probe\n        run: |\n" + body + "\n"
+
+
+PROBES = [
+    ("pip install", _run("pip install -r tests/requirements-ci.txt")),
+    ("npm ci", _run("npm ci")),
+    ("bare tracked path", _run(T + " fast || true")),
+    ("./ tracked path", _run("./tests/run.sh")),
+    ("echo && script", _run("echo ok && " + T)),
+    ("; script", _run("echo ok; " + T)),
+    ("timeout 60", _run("timeout 60 " + T)),
+    ("env A=1", _run("env A=1 " + T)),
+    ("sudo", _run("sudo " + T)),
+    ("cd x && ./y", _run("cd tools/audit/w5-partition && ./coverage_tree.sh fast")),
+    ("bash -c", _run("bash -c '" + T + " fast'")),
+    ("source", _run("source " + T)),
+    (". file", _run(". " + T)),
+    ("python3 -m tests.x", _run("python3 -m tests.harness")),
+    ("python3 -c import", _run("python3 -c 'import sys; sys.path.insert(0, \"tests\"); import harness'")),
+    ("exec", _run("exec " + T)),
+    ("pytest", _run("pytest tests")),
+    ("npm test", _run("npm test")),
+    ("node --test", _run("node --test tests/")),
+    ("npx", _run("npx some-tool")),
+    ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+    ("cat x | bash", _run("cat " + T + " | bash")),
+    ("python3 - heredoc", _run("python3 - <<'PY'\nimport runpy\nPY")),
+    ("$GITHUB_PATH shim", _run('mkdir -p "$RUNNER_TEMP/shim"\necho "$RUNNER_TEMP/shim" >> "$GITHUB_PATH"')),
+    ("$GITHUB_ENV BASH_ENV", _run('echo "BASH_ENV=$PWD/' + T + '" >> "$GITHUB_ENV"')),
+    ("PATH= assignment", _run('PATH="$PWD/tools:$PATH" python3 --version')),
+    ("echo $(script)", _run('echo "$(' + T + ')"')),
+    ("backtick", _run("echo `" + T + "`")),
+    ("github-script require", "\n      - uses: actions/github-script@v7\n        with:\n"
+     "          script: require('./tests/harness.js')\n"),
+    ("local action", "\n      - uses: ./.github/actions/setup\n"),
+    ("unpinned setup-python", "\n      - uses: actions/setup-python@v6\n"),
+    ("step shell:", "\n      - name: probe\n        shell: python {0}\n        run: print(1)\n"),
+    ("step env names a tracked file", "\n      - name: probe\n        env:\n"
+     "          NODE_OPTIONS: --require ./tests/harness.py\n        run: echo ok\n"),
+    ("git checkout HEAD -- grader", _run("git checkout HEAD -- tests/coverage_ratchet.py")),
+    ("redirect into the tree", _run("echo 'import sys' > tests/coverage_ratchet.py")),
+]
+NULLS = [
+    ("no inserted step", ""),
+    ("echo and printf", _run("echo ok\nprintf '%s\\n' done")),
+    ("git fetch, rev-parse, show", _run('git fetch -q --no-tags --depth=1 origin main\n'
+                                          'git rev-parse HEAD\ngit show HEAD --stat > /dev/null')),
+    ("set, test, mkdir, cmp", _run('set -eo pipefail\ntest -f README.md\nmkdir -p "$RUNNER_TEMP/x"\n'
+                                   'cmp README.md README.md')),
+    ("download-artifact at its pin", "\n      - uses: actions/download-artifact@"
+     "37930b1c2abaa49bbe596cd826c3c89aef350131 # v7\n        with:\n          name: x\n"),
+    ("a scratch write", _run('echo x > "$RUNNER_TEMP/x.txt"')),
+]
+
+
+def self_test() -> int:
+    have = tracked()
+    grader = "tests/coverage_ratchet.py"
+    bad = 0
+    for kind, rows, want in (("PROBE", PROBES, False), ("NULL", NULLS, True)):
+        for name, step in rows:
+            jt = SELF_TEST_JOB % step
+            ex = [e for e in job_executions("probe.yml", "probe-job", jt.split(":\n", 1)[1], have)
+                  if e[2] == grader]
+            got = bool(ex) and all(p for (_, _, _, p, _) in ex)
+            ok = got == want
+            bad += not ok
+            print(f"  {'ok  ' if ok else 'FAIL'} {kind:5} {name}: grader {'PINNED' if got else 'not pinned'}")
+    print(f"SELF-TEST: {len(PROBES)} probe(s), {len(NULLS)} null(s), {bad} wrong")
+    return 1 if bad else 0
+
+
 def main() -> int:
+    if sys.argv[1:] == ["--self-test"]:
+        return self_test()
     if sys.argv[1:] == ["--check"]:
         gap = run("none")
         bad = self_test_only_required(tracked())

@@ -267,6 +267,14 @@ jobs:
         if: always()
         run: node .claude/workflows/figure_census.mjs --self-test
 
+      # The pin rule's allowlist (#1589 review, round 3): every probe step --
+      # an install, `bash -c`, `sudo`, a `$GITHUB_PATH` shim, a github-script
+      # `require` and the rest -- must leave the grader not pinned, and every
+      # admitted step must leave it pinned.
+      - name: Show the pin rule refusing every probe and admitting its controls
+        if: always()
+        run: python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --self-test
+
   # THE LANES ABOVE RUN IN ONE ENVIRONMENT. Five separate assertions in this
   # repository were CORRECT and never RAN, because whether they run is decided
   # by a fact about the clone -- shallow or not, origin/main present or not,
@@ -676,12 +684,13 @@ jobs:
       # whose job is to notice that something went dark must not be breakable
       # by the dependency set, and it costs seconds beside a forty-minute gate.
       # PINNED (decision 0013): restored from the base, checked byte-identical
-      # to the base's object, and run under `-I -S`, all in this one step. No
-      # earlier step of this job runs a program the pull request carries: after
-      # one, the job is the pull request's (it can overwrite the file, set
-      # `BASH_ENV` or `LD_PRELOAD` through `$GITHUB_ENV`, or use the runner's
-      # sudo), and no restore after it can be trusted. `codeowners_gap.py
-      # --check` refuses a grader that runs after such a step. The pull
+      # to the base's object, and run under `-I -S`, all in this one step.
+      # Everything before it in this job is on `codeowners_gap.py`'s allowlist
+      # of what cannot run the pull request's code: after anything else, the
+      # job is the pull request's (it can overwrite the file, put a shim on
+      # `$GITHUB_PATH`, set `BASH_ENV` through `$GITHUB_ENV`, or use the
+      # runner's sudo), and `--check` then does not count the grader as
+      # pinned, so an unowned one fails it. The pull
       # request's own copy runs in `tests.yml`'s `graders-head-copy`, which is
       # not required.
       - name: Report what is pending and what is overdue a row

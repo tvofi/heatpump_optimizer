@@ -124,17 +124,26 @@ should stay code-owned: "I want fully autonomous". The bullet above that kept
 cannot hold. The rule is unchanged: a file leaves the owner only where a base
 restore replaces the owner as the barrier.
 
-**When a pin holds.** Only when no step of the job runs a program the pull
-request carries before the grader starts. After one, the job belongs to the
-pull request. That program can overwrite the restored file. It can set
+**When a pin holds.** Only when everything the job runs before the grader
+is on an allowlist of what cannot run the pull request's code. After anything
+else, the job belongs to the pull request. That program can overwrite the restored file. It can set
 `BASH_ENV`, `LD_PRELOAD` or `PATH` for every later step through
 `$GITHUB_ENV`. It can use the runner's passwordless sudo to replace `git` or
 `python3`. So no restore that comes after it can be trusted, however close it
 sits to the grader. An install counts as such a program: it runs build code
 that the pull request's lock chooses, and it drops `.pth` files. Round 1 of
 #1589's review showed the ordering break in `coverage`: the suite overwrote
-the restored ratchet before the ratchet ran. `codeowners_gap.py --check` now
-refuses any grader that runs after such a step, in the same job.
+the restored ratchet before the ratchet ran; round 2's denylist of such
+programs let 18 of the reviewer's 23 one-step insertions through.
+`codeowners_gap.py` now counts a file as pinned only when every `uses:` before
+it in its job is a listed action at its pinned revision, and every `run:` line
+before it holds only listed commands: `git` read and restore subcommands,
+`set`, `test`, `echo`, `printf`, `cmp`, `mkdir`, the text tools `wc`, `sort`,
+`paste`, `cat`, `jq` and `gh api`, and the job's other pinned graders. It also
+requires no write to `$GITHUB_ENV` or `$GITHUB_PATH`, no assignment to a
+code-loading variable, and no line it cannot parse. `--check` fails on an
+unowned surface file that is not pinned, and `--self-test` drives the probes
+and the admitted controls.
 
 - **Pinned, so the owner goes:**
   - `tests/coverage_ratchet.py` runs in `coverage-ratchet`, a job of its own
@@ -146,8 +155,9 @@ refuses any grader that runs after such a step, in the same job.
   restores it from the base, then checks it byte-identical to the base's
   object, then runs it under `-I -S`, so no `.pth` file and no sibling module
   loads. The pull request's own copy runs in `graders-head-copy`, which is
-  not required. It runs only when the diff touches that grader, and its red
-  still blocks the merge.
+  not required and runs only when the diff touches that grader. Its red
+  blocks nothing by itself: `pr-contract` makes the body answer it, and the
+  fix review blocks an unanswered one.
 - **No pull-request job runs them:** `tests/nightly_ha.py` and
   `tests/replay.py` run on the schedule only, so they grade no pull request
   and carry no owner. `codeowners_gap.py` tags them `NO-PR-JOB`.
@@ -165,6 +175,11 @@ refuses any grader that runs after such a step, in the same job.
     that pull request (`closure.py check`: "selectable script(s) with NO
     recording").
 - **What a pin does not reach:**
+  - None of the pinned graders' jobs is a required context: not
+    `coverage-ratchet`, not `nightly-status`, not `delivery-status`. So a red
+    from the base's grader blocks nothing by itself either. It is enforced
+    only by answering it in the body, which `pr-contract` requires, and by
+    the fix review's refusal of an unanswered red.
   - A pinned grader reads what the pull request's code produced: the
     coverage JSON, and the tree it reports on. A suite that misreports is
     left to review.

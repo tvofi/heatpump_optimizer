@@ -637,12 +637,13 @@ jobs:
           path: ${{ runner.temp }}/coverage
 
       # PINNED (decision 0013): restored from the base, checked byte-identical
-      # to the base's object, and run under `-I -S`, all in this one step. No
-      # earlier step of this job runs a program the pull request carries: after
-      # one, the job is the pull request's (it can overwrite the file, set
-      # `BASH_ENV` or `LD_PRELOAD` through `$GITHUB_ENV`, or use the runner's
-      # sudo), and no restore after it can be trusted. `codeowners_gap.py
-      # --check` refuses a grader that runs after such a step. The pull
+      # to the base's object, and run under `-I -S`, all in this one step.
+      # Everything before it in this job is on `codeowners_gap.py`'s allowlist
+      # of what cannot run the pull request's code: after anything else, the
+      # job is the pull request's (it can overwrite the file, put a shim on
+      # `$GITHUB_PATH`, set `BASH_ENV` through `$GITHUB_ENV`, or use the
+      # runner's sudo), and `--check` then does not count the grader as
+      # pinned, so an unowned one fails it. The pull
       # request's own copy runs in `graders-head-copy`, which is not required.
       - name: Ratchet the floor and the pragma count with the base's grader
         env:
@@ -988,12 +989,13 @@ jobs:
       # breakable by the same dependency set that darkened it -- which is
       # exactly how #533's lane went dark -- and it costs seconds this way.
       # PINNED (decision 0013): restored from the base, checked byte-identical
-      # to the base's object, and run under `-I -S`, all in this one step. No
-      # earlier step of this job runs a program the pull request carries: after
-      # one, the job is the pull request's (it can overwrite the file, set
-      # `BASH_ENV` or `LD_PRELOAD` through `$GITHUB_ENV`, or use the runner's
-      # sudo), and no restore after it can be trusted. `codeowners_gap.py
-      # --check` refuses a grader that runs after such a step. The pull
+      # to the base's object, and run under `-I -S`, all in this one step.
+      # Everything before it in this job is on `codeowners_gap.py`'s allowlist
+      # of what cannot run the pull request's code: after anything else, the
+      # job is the pull request's (it can overwrite the file, put a shim on
+      # `$GITHUB_PATH`, set `BASH_ENV` through `$GITHUB_ENV`, or use the
+      # runner's sudo), and `--check` then does not count the grader as
+      # pinned, so an unowned one fails it. The pull
       # request's own copy runs in `graders-head-copy`, which is not required.
       - name: Report the last scheduled run's conclusion
         env:
@@ -1013,9 +1015,11 @@ jobs:
   # that changes one is graded by the old copy there. This job runs the new
   # copy the way that job does, so a changed grader still shows red or green
   # on the pull request that changes it. It is not a required context, and
-  # `HPO_JOB_GRADES: nothing` tells `codeowners_gap.py` it grades nothing. A
-  # red here still blocks the merge, because the merge refuses any red check
-  # run. Each step runs only when the three-dot diff touches its grader.
+  # `HPO_JOB_GRADES: nothing` tells `codeowners_gap.py` it grades nothing. Its
+  # red blocks nothing by itself: `pr-contract` makes the body answer every
+  # red check run under `## Red checks`, and the fix review returns `blocked`
+  # on one the body left unanswered. Each step runs only when the three-dot
+  # diff touches its grader.
   # `nightly_status.py` is not here: it needs `actions: read`, and `fast`
   # already drives the pull request's copy through `tests/entities.py`.
   graders-head-copy:
