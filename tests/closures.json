@@ -26,8 +26,8 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 54.5,
-   "rc": 0
+   "seconds": 132.5,
+   "rc": 1
   },
   "tests/env_drift.py": {
    "seconds": 0.5,
@@ -433,6 +433,7 @@
    ".claude/workflows/brief_lint.mjs",
    ".claude/workflows/cfr_exclusions.json",
    ".claude/workflows/counts.mjs",
+   ".claude/workflows/fixtures/required-contexts.json",
    ".claude/workflows/policy_lint.mjs",
    ".claude/workflows/render_md.mjs",
    ".claude/workflows/vendor/markdown-it.LICENSE",
@@ -442,6 +443,7 @@
    ".github/workflows/codeql.yml",
    ".github/workflows/governance.yml",
    ".github/workflows/hassfest.yml",
+   ".github/workflows/pr-contract.yml",
    ".github/workflows/release.yml",
    ".github/workflows/tests.yml",
    ".github/workflows/validate.yml",
