@@ -712,7 +712,14 @@ def _git_or_none(*args: str) -> str | None:
 
 
 def base_unpinned(ref: str | None, sites: list[dict]) -> int | None:
-    """The unpinned count at `ref`: its ledger over its own inventory.
+    """The unpinned count at `ref`: its ledger over its own inventory."""
+    got = base_unpinned_sites(ref, sites)
+    return None if got is None else len(got)
+
+
+def base_unpinned_sites(ref: str | None,
+                        sites: list[dict]) -> list[dict] | None:
+    """The unpinned SITES at `ref`: its ledger over its own inventory.
 
     Only the production files whose blob differs from this tree's are
     re-enumerated; every other file's sites are this tree's own, line for
@@ -750,7 +757,95 @@ def base_unpinned(ref: str | None, sites: list[dict]) -> int | None:
             muts = [dict(m, file=rel) for m in candidates(path)]
             base_sites.extend(anchor_sites(src, muts))
     ledger, _ = normalize(json.loads(raw), base_sites)
-    return len(unpinned_sites(ledger, base_sites))
+    return unpinned_sites(ledger, base_sites)
+
+
+# ------------------------------------------------------------ --pin-killed
+#
+# The ratchet refuses a diff that adds a candidate site with no disposition,
+# and until this mode the only repair was a seat measuring each site by hand:
+# the mutation lane went red on "N unpinned against M at the ratchet base" on
+# pull requests and on pushes to main alike (the 2026-09-24 CI census in the
+# project's ci-autofix notes). Half of that repair is mechanical. A kill is a
+# MEASUREMENT -- the same `killed()` rule, baseline and null control the
+# sampled table uses -- so recording one under `killed_by` asserts nothing the
+# run did not see. A survivor is the other half and is never written: an
+# equivalence verdict is a judgement, and a gap is a finding, so a site no
+# driver kills stays unpinned and the ratchet stays red on it.
+
+
+def new_unpinned(unpinned: list[dict], base: list[dict]) -> list[dict]:
+    """The unpinned sites the diff added: unpinned here, not at the base.
+
+    Keyed by anchor, the ledger's own key, so a site the diff merely moved
+    (same scope, operator and text) is the base's and is not re-measured.
+    """
+    was = {s["anchor"] for s in base}
+    return [s for s in unpinned if s["anchor"] not in was]
+
+
+def pin_entry(site: dict, script: str, run: "ScriptRun",
+              baseline: "ScriptRun", ref: str) -> dict:
+    """The `killed_by` disposition one measured kill earns."""
+    return {
+        "killed_by": script,
+        "old": site["old"],
+        "reason": (f"Recorded by `mutation_table.py --pin-killed` against "
+                   f"{ref}: {site['kind']} (`{site['new'].strip()}`) took "
+                   f"{script} from rc={baseline.rc} failed={baseline.failed} "
+                   f"to rc={run.rc} failed={run.failed}."),
+    }
+
+
+def pin_results(results: list[tuple[dict, str]],
+                kill_runs: dict[tuple[int, str], "ScriptRun"],
+                baseline: dict[str, "ScriptRun"], sites: list[dict],
+                ref: str) -> tuple[dict, list[str], int]:
+    """The `killed_by` entries a `--pin-killed` drive earned, its report, its rc.
+
+    A disposition covers EVERY inventory site under its anchor, and an anchor
+    can hold more than one mutant: a clamp's `max(` and `min(` drops share a
+    line, a kind and so a digest (the #1594 review measured 46 such pairs, all
+    unpinned). Pinning the killed twin would pin its survivor with it. So an
+    anchor is pinned only when every site the inventory holds under it was
+    driven here and killed with its run kept; one survivor, skip or undriven
+    twin leaves the whole anchor unpinned. The rc is 1 while anything is left.
+    """
+    under: dict[str, int] = {}
+    for site in sites:
+        under[site["anchor"]] = under.get(site["anchor"], 0) + 1
+    by_anchor: dict[str, list[tuple[dict, str | None, "ScriptRun | None", str]]] = {}
+    for mut, verdict in sorted(results, key=lambda r: (r[0]["file"], r[0]["line"])):
+        script = verdict[len("killed by "):] if verdict.startswith("killed by ") else None
+        run = kill_runs.get((id(mut), script)) if script else None
+        by_anchor.setdefault(mut["anchor"], []).append((mut, script, run, verdict))
+    entries: dict[str, dict] = {}
+    report: list[str] = []
+    left = 0
+    for anchor, got in by_anchor.items():
+        whole = (len(got) == under.get(anchor, 0)
+                 and all(run is not None for _, _, run, _ in got))
+        for mut, script, run, verdict in got:
+            if whole:
+                report.append(f"  pinned   {triage_key(mut)} -- killed by {script}")
+            elif run is not None:
+                left += 1
+                report.append(f"  UNPINNED {triage_key(mut)} -- killed by {script}, "
+                              f"but its anchor also covers a site no run killed")
+            else:
+                left += 1
+                report.append(f"  UNPINNED {triage_key(mut)} -- {verdict.lower()}")
+        if whole:
+            mut, script, run, _ = got[0]
+            entries[anchor] = pin_entry(mut, script, run, baseline[script], ref)
+            if len(got) > 1:
+                entries[anchor]["reason"] += (
+                    f" Each of the {len(got)} sites under this anchor was killed.")
+    pinned = len(results) - left
+    report.append(f"\nPIN KILLED: {pinned} pinned, {left} left unpinned"
+                  + (" -- a survivor needs a killing check or a survivor_triage "
+                     "verdict, which no tool writes" if left else ""))
+    return entries, report, 1 if left else 0
 
 
 LEDGER_MAPS = ("survivor_triage", "killed_by")
@@ -1356,6 +1451,10 @@ def main() -> int:
     ap.add_argument("--reason", default="",
                     help="with --record: echoed for the commit message; the "
                          "budget file's `reason` is not rewritten")
+    ap.add_argument("--pin-killed", action="store_true",
+                    help="drive every candidate site this diff added without "
+                         "a disposition, record each one a driver kills "
+                         "under killed_by, and leave the survivors unpinned")
     ap.add_argument("--normalize", action="store_true",
                     help="rewrite the ledger into its canonical form -- "
                          "content-anchored keys, sorted maps, no committed "
@@ -1423,12 +1522,14 @@ def main() -> int:
               f"be read, so {len(unpinned)} unpinned site(s) have nothing to "
               f"be compared with; fetch the base (CI checks out fetch-depth 0)")
         return 1
-    if ratchet_refusal(base_count, unpinned) == 1:
+    if ratchet_refusal(base_count, unpinned) == 1 and not args.pin_killed:
         print(f"MUTATION TABLE REFUSED -- {len(unpinned)} unpinned site(s) "
               f"against {base_count} at the ratchet base {rbase}. A new guard, "
               f"clamp, removable return or doubled constant left the tree "
               f"without a recorded disposition; record it under killed_by or "
-              f"survivor_triage and the count falls back.")
+              f"survivor_triage and the count falls back. `python3 "
+              f"tests/mutation_table.py --pin-killed --base {args.base}` "
+              f"records every one a driver kills.")
         for s in sorted(unpinned, key=lambda m: (m["file"], m["line"]))[:20]:
             print(f"    {triage_key(s)}: {s['old'].strip()[:72]}")
         return 1
@@ -1451,32 +1552,48 @@ def main() -> int:
             if why_skip:
                 allow.remove(s)
                 print(f"  SKIP {s} ({why_skip})")
-    if not files:
+    if args.pin_killed:
+        base_sites = base_unpinned_sites(rbase, sites) or []
+        pool = []
+        for site in new_unpinned(unpinned, base_sites):
+            drivers = drivers_for(site["file"], closures, allow)
+            if drivers:
+                pool.append(dict(site, drivers=drivers))
+            else:
+                print(f"  no recorded closure reaches {site['file']}; "
+                      f"{triage_key(site)} stays unpinned")
+        print(f"PIN KILLED -- {len(pool)} new unpinned site(s) against "
+              f"{rbase} to drive")
+        if not pool:
+            print("\nPIN KILLED: nothing to pin")
+            return 0
+    elif not files:
         print("  no production file in scope; nothing to mutate")
         print("\nMUTATION TABLE PASSED (empty scope)")
         return 0
 
     rng = random.Random(args.seed)
-    pool: list[dict] = []
-    # A pull request draws only from the lines it wrote (`changed_lines`).
-    touched = changed_lines(args.base) if args.scope == "changed" else None
-    for path in files:
-        rel = str(path.relative_to(ROOT))
-        drivers = drivers_for(rel, closures, allow)
-        if not drivers:
-            print(f"  no recorded closure reaches {rel}; skipped")
-            continue
-        got = drawable(path, rel, touched)
-        rng.shuffle(got)
-        for mut in got[: args.per_file]:
-            mut["drivers"] = drivers
-            pool.append(mut)
-    rng.shuffle(pool)
-    pool = pool[: args.max]
-    if not pool:
-        print("  no mutant is both generatable and drivable")
-        print("\nMUTATION TABLE PASSED (empty pool)")
-        return 0
+    if not args.pin_killed:
+        pool = []
+        # A pull request draws only from the lines it wrote (`changed_lines`).
+        touched = changed_lines(args.base) if args.scope == "changed" else None
+        for path in files:
+            rel = str(path.relative_to(ROOT))
+            drivers = drivers_for(rel, closures, allow)
+            if not drivers:
+                print(f"  no recorded closure reaches {rel}; skipped")
+                continue
+            got = drawable(path, rel, touched)
+            rng.shuffle(got)
+            for mut in got[: args.per_file]:
+                mut["drivers"] = drivers
+                pool.append(mut)
+        rng.shuffle(pool)
+        pool = pool[: args.max]
+        if not pool:
+            print("  no mutant is both generatable and drivable")
+            print("\nMUTATION TABLE PASSED (empty pool)")
+            return 0
     needed = sorted({s for mut in pool for s in mut["drivers"]})
     print(f"  {len(pool)} mutant(s) over {len(files)} file(s); "
           f"drivers in play: {', '.join(needed)}")
@@ -1548,6 +1665,7 @@ def main() -> int:
 
         results: list[tuple[dict, str]] = []
         mutated: dict[int, str] = {}
+        kill_runs: dict[tuple[int, str], ScriptRun] = {}
         for mut in pool:
             lines = (trees[0] / mut["file"]).read_text().splitlines(True)
             i = mut["line"] - 1
@@ -1573,7 +1691,10 @@ def main() -> int:
                 extra_args, extra_env = drive_spec(s, ref)
                 run = run_script(s, trees[w], args.timeout, extra_args,
                                  extra_env)
-                return killed(s, run, baseline[s])
+                hit = killed(s, run, baseline[s])
+                if hit:
+                    kill_runs[(id(mut), s)] = run
+                return hit
             finally:
                 path.write_text(original)
 
@@ -1586,6 +1707,15 @@ def main() -> int:
         subprocess.run(["git", "worktree", "prune"], cwd=ROOT,
                        capture_output=True)
         shutil.rmtree(work, ignore_errors=True)
+
+    if args.pin_killed:
+        entries, report, pin_rc = pin_results(results, kill_runs, baseline,
+                                              sites, rbase)
+        print("\n".join(report))
+        budgets.setdefault("killed_by", {}).update(entries)
+        fixed, _ = normalize(budgets, sites)
+        BUDGETS.write_text(json.dumps(fixed, indent=2) + "\n")
+        return pin_rc
 
     survivors = []
     for mut, verdict in sorted(results, key=lambda r: (r[0]["file"], r[0]["line"])):
