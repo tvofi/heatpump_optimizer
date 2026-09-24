@@ -43,7 +43,7 @@
 //   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
-//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names] [--paths-file f] [--author login]
+//   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login]
 //   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
 //   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
 //   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
@@ -3776,6 +3776,32 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: a body whose \`## Red checks\` does not name the two earlier-head reds produced ${clearedRefusals.length} error(s), not 2; the derived names have to reach the refusal the --red path already drives`)
     rc = 1
   }
+  // A reporter that grades `main` is owed no answer while the diff touches none
+  // of its inputs; `typing` beside it is still owed one (the null control), and
+  // so is a name that only resembles a reporter's. Each voiding route then
+  // restores the obligation on its own: an existing row edited or deleted, a
+  // reporter's own script, no `existing` list (every row counts), no paths.
+  const unnamed = path.relative(ROOT, path.join(prepr, 'unnamed-red.md'))
+  const OWN_ROW = ['tests/x.py', 'docs/delivery/9999.md']
+  const REPORTER_CASES = [
+    ['exempt, own row added', ['nightly-status', 'delivery-status', 'typing', 'delivery-status-publish', 'Nightly-Status'],
+      OWN_ROW, ['tests/x.py'], ['typing', 'delivery-status-publish', 'Nightly-Status']],
+    ['a merged row deleted', ['delivery-status'],
+      ['docs/delivery/1570.md'], ['docs/delivery/1570.md'], ['delivery-status']],
+    ["the reporter's own script", ['nightly-status'],
+      ['tests/nightly_status.py'], ['tests/nightly_status.py'], ['nightly-status']],
+    ['no existing list', ['delivery-status'], OWN_ROW, null, ['delivery-status']],
+    ['no paths', ['nightly-status'], [], null, ['nightly-status']],
+  ]
+  for (const [label, redNames, paths, existing, owed] of REPORTER_CASES) {
+    pins += 1
+    const got = checkPrBody(unnamed, { head: ZERO, red: redNames, paths, existing })
+      .map((f) => /check `([^`]+)` is red/.exec(f.message)?.[1]).filter(Boolean)
+    if (got.join('|') !== owed.join('|')) {
+      console.log(`\nFIXTURE VACUOUS: MAIN_STATE_REPORTERS (${label}): red ${JSON.stringify(redNames)} over paths ${JSON.stringify(paths)} owed answers for ${JSON.stringify(got)}, not ${JSON.stringify(owed)}; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone`)
+      rc = 1
+    }
+  }
   // Both markers on SHAPE, for the reason `enumSkipLine`'s pin above gives: they
   // carry no finding, so no count can see them. The skip line is the only thing
   // between an unread history and a green that measured nothing, and the record
@@ -5343,6 +5369,37 @@ function autofixChain(head, names) {
 // `checkPrBody` itself does not change: `red` is still a list of names, and the
 // refusal it drives is the one #956 wired.
 const PR_CONTRACT_CHECK = 'pr-contract'
+// THE REPORTERS THAT GRADE `main`, NOT THIS HEAD. `nightly-status` reports
+// main's last scheduled run and `delivery-status` main's rowless merges; both
+// run on every pull request so a stopped lane or batch is seen. Owing a
+// `## Red checks` answer for them made every open pull request re-explain one
+// fact about `main` (the 2026-09-24 CI census: most "red and not named"
+// refusals were these two). Their tick stays red on the pull request; clearing
+// it is the orchestrator's, on `main` (defect-root-cause.md). The set is read
+// from the base's copy of this file, so a pull request cannot widen it.
+//
+// BUT BOTH RUN THE PULL REQUEST'S OWN CHECKOUT, so a diff that reaches what
+// they read can redden them itself: deleting a merged pull request's row turns
+// `delivery-status` OVERDUE, and nothing else refuses that before the merge
+// (the #1592 review). The exemption is therefore VOID when the diff touches a
+// reporter input: a path in REPORTER_INPUTS, or a delivery row that already
+// existed at the base. Adding the pull request's own row is not a touch, which
+// is why `existing` (the paths the base already had) is separate from `paths`;
+// without it every row counts, so a caller that cannot say which rows are new
+// loses the exemption rather than gaining it. No paths at all voids it too.
+const MAIN_STATE_REPORTERS = new Set(['nightly-status', 'delivery-status'])
+const REPORTER_INPUTS = new Set([
+  'tests/delivery_status.py', 'tests/nightly_status.py',
+  '.github/workflows/tests.yml', '.github/workflows/governance.yml',
+  'docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md',
+])
+const DELIVERY_ROW = /^docs\/delivery\/[^/]+\.md$/
+
+function reporterInputsTouched(paths, existing) {
+  if (!paths.length) return ['(no changed-path list, so none can be ruled out)']
+  const rows = (existing ?? paths).filter((p) => DELIVERY_ROW.test(p))
+  return [...new Set([...paths.filter((p) => REPORTER_INPUTS.has(p)), ...rows])].sort()
+}
 const RED_HISTORY_PAGE = 100
 const RED_HISTORY_MAX_PAGES = 10
 
@@ -5455,7 +5512,7 @@ function redHistorySkipLine(why) {
   return `  skip     red-history           ${why}; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here`
 }
 
-function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], notes = [], author = null } = {}) {
+function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null } = {}) {
   const out = []
   // The REST `/pulls/{n}` `.user.login` reports the App as `hpo-author[bot]`
   // while the GraphQL `author.login` reports `app/hpo-author`; accept both.
@@ -5553,10 +5610,14 @@ function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], no
   // ANALYSIS stays honour -- a script cannot judge whether an answer is good --
   // but naming it is mechanical, and naming it is what gets skipped.
   const redSec = (secs.get('Red checks') ?? '').trim()
+  const touched = reporterInputsTouched(paths, existing)
   for (const name of red) {
-    if (redSec.includes(name)) continue
+    if (redSec.includes(name) || (MAIN_STATE_REPORTERS.has(name) && !touched.length)) continue
+    const why = MAIN_STATE_REPORTERS.has(name)
+      ? ` It grades \`main\`, but this diff touches what it reads (${touched.join(', ')}), so the red may be this pull request's own.`
+      : ''
     out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
-      message: `check \`${name}\` is red and \`## Red checks\` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.` })
+      message: `check \`${name}\` is red and \`## Red checks\` does not name it.${why} Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.` })
   }
 
   return out
@@ -5598,6 +5659,20 @@ function cmdPrBody(args) {
     }
     paths = got.paths
   }
+  // The changed paths the base already had (`--diff-filter=a`), which may be
+  // empty: a pull request can add every file it touches. Absent, it stays null
+  // and `reporterInputsTouched` counts every delivery row; unreadable refuses,
+  // on `--paths-file`'s own argument.
+  const existingFile = val('--existing-file')
+  let existing = null
+  if (existingFile != null) {
+    try {
+      existing = fs.readFileSync(existingFile, 'utf8').split('\n').map((x) => x.trim()).filter(Boolean)
+    } catch {
+      console.log(`  ERROR   [pr-body] --existing-file ${existingFile}: unreadable. A list that cannot be read is not a diff that added everything.`)
+      return 1
+    }
+  }
   // THE `## Red checks` OBLIGATION IS OVER EVERY HEAD (#1144). CI derives `red`
   // from `commits/$PR_HEAD/check-runs`, so a red a later push cleared has no
   // check-run record at the head this runs on and silently drops out of the
@@ -5625,7 +5700,7 @@ function cmdPrBody(args) {
       redAll = [...new Set([...red, ...hist.reds])]
     }
   }
-  const findings = checkPrBody(bodyPath, { head, title: val('--title') ?? '', red: redAll, paths, notes, author })
+  const findings = checkPrBody(bodyPath, { head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author })
   for (const n of notes) console.log(n)
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)
