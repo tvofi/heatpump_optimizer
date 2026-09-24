@@ -220,13 +220,21 @@ def cap_problem(where: str, table: object, key: str, *, integer: bool = False,
         return (f"{where}: {key} is absent -- a ratchet with no recorded "
                 f"number compares against nothing")
     value = table[key]
-    label = f"{where}: {key}={value!r}"
+    label = f"{where}: {key}={value!r:.40}"
     if isinstance(value, bool):
         return (f"{label} is a boolean, which Python compares as "
                 f"{int(value)}; record the number")
     if not isinstance(value, (int, float)):
         return f"{label} is a {type(value).__name__}, not a number"
-    if not math.isfinite(value):
+    # An int before isfinite: json reads a 400-digit integer as an exact int,
+    # and math.isfinite (like every float() a ratchet then applies) raises
+    # OverflowError on one no float can hold.
+    if isinstance(value, int):
+        if abs(value) > 2 ** 53:
+            return (f"{label} is past the largest integer a float holds "
+                    f"exactly, so no comparison with a measurement means "
+                    f"anything")
+    elif not math.isfinite(value):
         return (f"{label} is not finite: every comparison against NaN is "
                 f"false and nothing exceeds Infinity, so this cap would be an "
                 f"unlimited raise")
@@ -763,7 +771,7 @@ def selftest(report: Report, budget: dict) -> None:
     # control -- is not.
     bad = {"nan": float("nan"), "inf": float("inf"), "-inf": float("-inf"),
            "null": None, "string": "0", "string-nan": "nan", "true": True,
-           "negative": -1, "float": 0.5}
+           "negative": -1, "float": 0.5, "huge-int": 10 ** 400}
     accepted = []
     for field in ("type_ignores", "census.errors", "census.by_code"):
         for name, value in [*bad.items(), ("absent", ...)]:

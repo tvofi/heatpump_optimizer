@@ -22649,7 +22649,7 @@ _CAP_ABSENT = object()
 _CAP_BAD = {
     "nan": float("nan"), "inf": float("inf"), "-inf": float("-inf"),
     "null": None, "string": "110", "string-nan": "nan", "true": True,
-    "negative": -1,
+    "negative": -1, "huge-int": 10 ** 400,
 }
 _CAP_BAD_COUNT = {**_CAP_BAD, "float": 110.5, "absent": _CAP_ABSENT}
 
