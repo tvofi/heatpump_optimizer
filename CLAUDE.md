@@ -118,8 +118,7 @@ Under `tools/audit/briefs/`. Each says what its role owes and what blocks it.
 **There is exactly one `COMMON.md`, and it is the finder's contract.** A running
 session may also hand its seats an out-of-tree shared block, named
 `SEAT-BLOCK.md`; that one is **not** policy but a convenience copy, renamed out
-of a shared basename rather than the ambiguity documented, because a collision a
-reader must resolve is a defect and not a note.
+of a shared basename because a collision a reader must resolve is a defect.
 
 ### Dimension briefs — the audit rounds
 One per dimension, under `tools/audit/briefs/`, in the owner's own words. Named
@@ -141,6 +140,7 @@ individually, because a range reads as complete while covering a fraction:
 | `D11.md` | governance mechanisms and policy |
 | `D12.md` | generalization |
 | `D13.md` | process yield and cost |
+| `D14.md` | recurring bug classes |
 
 ### The suite, the register, the handover
 
