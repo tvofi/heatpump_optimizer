@@ -107,6 +107,7 @@
           "boost": "mdi:rocket-launch",
           "comfort": "mdi:sofa",
           "eco": "mdi:leaf",
+          "hot_water": "mdi:water-boiler",
           "idle": "mdi:sleep",
           "normal": "mdi:radiator",
           "off": "mdi:radiator-off",

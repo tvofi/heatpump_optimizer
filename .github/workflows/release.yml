@@ -56,6 +56,9 @@ jobs:
       attestations: write
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # The ancestry step below walks main's history back to this commit.
+          fetch-depth: 0
 
       - name: Resolve the tag
         env:
@@ -97,6 +100,27 @@ jobs:
             exit 1
           fi
           echo "TAG=$TAG" >> "$GITHUB_ENV"
+
+      # AN ACCIDENTAL OFF-MAIN RELEASE STOPS HERE (#1516). Both ways in reach
+      # the release and the attestation below with whatever commit the caller
+      # names: a `v*` tag pushed at an unmerged branch commit, or a dispatch
+      # from a branch. So `main` is fetched at run time and the commit must be
+      # its ancestor. This is not the barrier against a deliberate one: a tag
+      # push and a dispatch run THIS FILE AS IT STANDS AT THAT COMMIT, so a
+      # commit that also deletes this step is released anyway. The barrier is
+      # the `v*` tag ruleset -- who may push such a tag at all -- a repository
+      # setting the owner holds. The stamp is not affected: it pushes its
+      # commit to main before the tag (tools/release/stamp.py). `is-ancestor`
+      # exits 1 for "not an ancestor" and 128 for an error, and both refuse.
+      - name: Refuse a commit that is not on main
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" refs/remotes/origin/main; then
+            echo "refusing to release ${TAG}: ${GITHUB_SHA} is not on main" >&2
+            exit 1
+          fi
+          echo "${GITHUB_SHA} is on main"
 
       - name: Extract the tag's section from RELEASE_NOTES.md
         run: |
