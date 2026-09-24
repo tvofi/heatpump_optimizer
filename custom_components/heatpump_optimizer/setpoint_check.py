@@ -18,6 +18,7 @@ from .const import (
     DOMAIN,
     MIXING_VALVE_WRITE_EPSILON,
 )
+from .inputs import state_unit, temperature_c, temperature_from_c
 
 # Manifest ``documentation`` — the URL every repair notice links to (#558 F2).
 DOCUMENTATION_URL = "https://github.com/tvofi/heatpump_optimizer"
@@ -65,14 +66,17 @@ def _dhw_floor(params: Any) -> float:
 
 def _dhw(hass: Any, config: dict[str, Any], params: Any) -> None:
     entity_id = config.get(CONF_DHW_SETPOINT_ENTITY)
-    pump = _read_setpoint(hass, entity_id) if entity_id else None
+    pump, unit = _read_setpoint(hass, entity_id) or (None, None)
     floor = _dhw_floor(params)
     active = (
         bool(entity_id)
         and pump is not None
         and pump < floor - MIXING_VALVE_WRITE_EPSILON
     )
-    data = {"entity_id": entity_id, "target": floor} if active else None
+    # ``target`` is degC for the notice's text; ``value`` is what Fix writes,
+    # in the entity's own unit (#1513).
+    value = round(temperature_from_c(floor, unit), 1)
+    data = {"entity_id": entity_id, "target": floor, "value": value} if active else None
     placeholders = {
         "pump": f"{pump:.1f}" if pump is not None else "",
         "target": f"{floor:.0f}",
@@ -97,25 +101,24 @@ def _space(hass: Any, config: dict[str, Any]) -> None:
     )
 
 
-def _read_setpoint(hass: Any, entity_id: str | None) -> float | None:
-    if not entity_id:
-        return None
-    state = hass.states.get(entity_id)
-    if state is None:
-        return None
+def _read_setpoint(hass: Any, entity_id: str | None) -> tuple[float, Any] | None:
+    """The set-point in degC and the unit its entity is written in (#1513).
+
+    A number entity declares its unit; a climate entity's state is its HVAC
+    mode and its target an attribute in the instance's unit system.
+    """
+    state = hass.states.get(entity_id) if entity_id else None
     raw = getattr(state, "state", None)
     if raw is None or str(raw).lower() in _INVALID:
         return None
-    try:
-        return float(raw)
-    except (TypeError, ValueError):
-        pass
-    attrs = getattr(state, "attributes", None) or {}
-    try:
-        attr_temp: Any = attrs.get("temperature")
-        return float(attr_temp)
-    except (TypeError, ValueError):
-        return None
+    unit = state_unit(state)
+    value = temperature_c(raw, unit)
+    if value is None:
+        units = getattr(getattr(hass, "config", None), "units", None)
+        unit = getattr(units, "temperature_unit", None)
+        attrs = getattr(state, "attributes", None) or {}
+        value = temperature_c(attrs.get("temperature"), unit)
+    return None if value is None else (value, unit)
 
 
 def _set_issue(

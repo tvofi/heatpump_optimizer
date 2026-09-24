@@ -43804,4 +43804,237 @@ R.check(
     "unanswered entry, and the entry's own answers on a configured one",
 )
 
+# ---------------------------------------------------------------------------
+R.section("P8 — a price or temperature entity's unit is read at the seam (#1513)")
+#
+# Every reader below is the production one. The discriminating arm of each is
+# a unit the old code read as SEK/kWh or degC; the SEK/kWh and degC arms are
+# the null control, and must come through bit-for-bit.
+import math as _p8_math  # noqa: E402
+from types import SimpleNamespace as _p8_ns  # noqa: E402
+
+from heatpump_optimizer import coordinator as _p8_coord  # noqa: E402
+from heatpump_optimizer import price_model as _p8_pm  # noqa: E402
+from heatpump_optimizer import setpoint_check as _p8_sp  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_GRID_FEE_ENTITY as _P8_FEE,
+    CONF_PV_EXPORT_PRICE_ENTITY as _P8_EXPORT,
+)
+
+_p8_norm = getattr(inputs_mod, "normalize_price_per_kwh", None)
+_P8_FACTORS = {
+    "SEK/kWh": 1.0,
+    "öre/kWh": 0.01,
+    "SEK/MWh": 0.001,
+    "EUR/MWh": 0.001,
+    "c/kWh": 0.01,
+    "€/kWh": 1.0,
+    "NOK/Wh": 1000.0,
+    None: 1.0,
+}
+R.check(
+    "normalize_price_per_kwh takes each unit to major currency per kWh",
+    _p8_norm is not None
+    and all(
+        _p8_math.isclose(_p8_norm(2.0, _u), 2.0 * _f)
+        for _u, _f in _P8_FACTORS.items()
+    ),
+    f"{[(u, _p8_norm(2.0, u)) for u in _P8_FACTORS] if _p8_norm else 'missing'}",
+)
+R.check(
+    "and a unit it cannot parse returns None rather than a guess",
+    _p8_norm is not None
+    and all(_p8_norm(2.0, _u) is None for _u in ("kWh", "SEK", "SEK/GJ", "bananas/kWh")),
+)
+
+_P8_SCALE = {"SEK/kWh": 1.0, "öre/kWh": 100.0, "SEK/MWh": 1000.0}
+
+
+def _p8_price_state(unit, scale):
+    rows = [
+        {
+            "start": f"2026-11-03T{h:02d}:00:00+01:00",
+            "value": (0.30 + 0.05 * h) * scale,
+        }
+        for h in range(24)
+    ]
+    return FakeState(str(rows[0]["value"]), unit=unit, attributes={"raw_today": rows})
+
+
+def _p8_totals(unit, scale):
+    rows = _p8_pm.prices_from_entity_state(_p8_price_state(unit, scale), 1.25, 0.10)
+    return [r["total"] for r in rows] if isinstance(rows, list) else rows
+
+
+_p8_truth = [(0.30 + 0.05 * h) * 1.25 + 0.10 for h in range(24)]
+R.check(
+    "the price entity's today/tomorrow rows are read in their unit",
+    all(
+        isinstance(_p8_totals(_u, _s), list)
+        and all(
+            _p8_math.isclose(a, b, rel_tol=1e-12)
+            for a, b in zip(_p8_totals(_u, _s), _p8_truth)
+        )
+        for _u, _s in _P8_SCALE.items()
+    ),
+    f"{ {u: _p8_totals(u, s)[:2] for u, s in _P8_SCALE.items()} }",
+)
+R.check(
+    "and an unparseable unit keeps the raw rows, as before",
+    _p8_totals("SEK/GJ", 1.0) == _p8_totals(None, 1.0)
+    and all(
+        _p8_math.isclose(a, b, rel_tol=1e-12)
+        for a, b in zip(_p8_totals("SEK/GJ", 1.0), _p8_truth)
+    ),
+)
+
+_P8_CFG = {
+    "tibber_token": "x",
+    "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor",
+    "outdoor_temp_entity": "sensor.outdoor",
+    "pv_enabled": True,
+}
+
+
+def _p8_export(unit, value):
+    coord = _Coord(
+        _FakeHass({"sensor.export": FakeState(str(value), unit=unit)}),
+        _FakeEntry(data={**_P8_CFG, _P8_EXPORT: "sensor.export"}),
+    )
+    return coord._pv_export_price()
+
+
+R.check(
+    "the export-price entity is read in its unit",
+    all(
+        _p8_math.isclose(_p8_export(_u, 0.45 * _s), 0.45, rel_tol=1e-12)
+        for _u, _s in _P8_SCALE.items()
+    ),
+    f"{ {u: _p8_export(u, 0.45 * s) for u, s in _P8_SCALE.items()} }",
+)
+
+
+def _p8_fee(unit, value):
+    return _p8_coord._grid_fee_entity_value(
+        _FakeHass({"sensor.fee": FakeState(str(value), unit=unit)}),
+        {_P8_FEE: "sensor.fee"},
+    )
+
+
+R.check(
+    "the grid-fee entity is read in its unit",
+    all(
+        _p8_fee(_u, 0.25 * _s) is not None
+        and _p8_math.isclose(_p8_fee(_u, 0.25 * _s), 0.25, rel_tol=1e-12)
+        for _u, _s in _P8_SCALE.items()
+    ),
+    f"{ {u: _p8_fee(u, 0.25 * s) for u, s in _P8_SCALE.items()} }",
+)
+
+
+def _p8_unit_issues(hass):
+    return [
+        i
+        for i in getattr(hass, "issues", [])
+        if i[2].get("translation_key") == "price_unit_unrecognised"
+    ]
+
+
+_p8_hass = _FakeHass(
+    {
+        "sensor.nordpool": _p8_price_state("SEK/GJ", 1.0),
+        "sensor.fee": FakeState("0.25", unit="SEK/kWh"),
+    }
+)
+_p8_hass.issues = []
+_p8_live = _Coord(
+    _p8_hass,
+    _FakeEntry(
+        data={
+            **_P8_CFG,
+            "price_source": "entity",
+            "price_entity": "sensor.nordpool",
+            _P8_FEE: "sensor.fee",
+        }
+    ),
+)
+_asyncio.run(_p8_live._fetch_tibber_prices())
+_p8_raised = _p8_unit_issues(_p8_hass)
+R.check(
+    "an unparseable price unit raises one repair notice naming the entity and unit",
+    len(_p8_raised) == 1
+    and _p8_raised[0][2].get("translation_placeholders")
+    == {"entity": "sensor.nordpool", "unit": "SEK/GJ"},
+    f"got {_p8_raised!r}",
+)
+_p8_hass.states.set("sensor.nordpool", _p8_price_state("SEK/kWh", 1.0))
+_asyncio.run(_p8_live._fetch_tibber_prices())
+R.check(
+    "and it clears once the unit is one the reader understands",
+    _p8_unit_issues(_p8_hass) == [],
+    f"got {_p8_unit_issues(_p8_hass)!r}",
+)
+
+_p8_inlet = getattr(_p8_coord, "_dhw_inlet_c", None)
+
+
+def _p8_inlet_at(value, unit):
+    hass = _FakeHass(
+        {"sensor.inlet": FakeState(str(value), unit=unit, last_updated=datetime.now(UTC))}
+    )
+    return _p8_inlet(hass, "sensor.inlet")
+
+
+R.check(
+    "the DHW inlet probe is read in its unit (50 degF is 10 degC)",
+    _p8_inlet is not None
+    and _p8_math.isclose(_p8_inlet_at(50.0, "°F"), 10.0)
+    and _p8_inlet_at(10.0, "°C") == 10.0
+    and _p8_inlet_at(10.0, None) == 10.0,
+    f"{[_p8_inlet_at(50.0, '°F'), _p8_inlet_at(10.0, '°C')] if _p8_inlet else 'missing'}",
+)
+
+
+def _p8_setpoint(state):
+    hass = _FakeHass({"number.dhw_sp": state})
+    hass.issues = []
+    params = _p8_ns(dhw_min_temp=55.0, dhw_legionella_enabled=False, dhw_legionella_temp=60.0)
+    _p8_sp._dhw(hass, {_SP_DHW_ENT: "number.dhw_sp"}, params)
+    return [i for i in hass.issues if i[1] == _SP_ISSUE_DHW]
+
+
+_p8_sp_f = _p8_setpoint(FakeState("122", unit="°F"))
+R.check(
+    "a degF DHW set-point is compared in degC (122 degF is below a 55 degC floor)",
+    len(_p8_sp_f) == 1
+    and _p8_sp_f[0][2].get("translation_placeholders", {}).get("pump") == "50.0",
+    f"got {_p8_sp_f!r}",
+)
+R.check(
+    "and its Fix writes the floor in the entity's own unit (131 degF)",
+    bool(_p8_sp_f)
+    and _p8_sp_f[0][2].get("data", {}).get("target") == 55.0
+    and _p8_sp_f[0][2].get("data", {}).get("value") == 131.0,
+    f"got {_p8_sp_f!r}",
+)
+_p8_sp_c = _p8_setpoint(FakeState("50", unit="°C"))
+R.check(
+    "null control: a degC set-point raises the same notice and writes 55",
+    len(_p8_sp_c) == 1
+    and _p8_sp_c[0][2].get("translation_placeholders", {}).get("pump") == "50.0"
+    and _p8_sp_c[0][2].get("data", {}).get("value") == 55.0,
+    f"got {_p8_sp_c!r}",
+)
+_p8_flow = _sp_repairs.DhwSetpointRepairFlow()
+_p8_flow.hass = _FakeHass({})
+_p8_flow.data = dict(_p8_sp_f[0][2].get("data", {})) if _p8_sp_f else {}
+_asyncio.run(_p8_flow.async_step_confirm({}))
+R.check(
+    "the repair flow writes the converted value, not the degC target",
+    _p8_flow.hass.services.calls
+    == [("number", "set_value", {"entity_id": "number.dhw_sp", "value": 131.0})],
+    f"got {_p8_flow.hass.services.calls!r}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

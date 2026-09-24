@@ -203,6 +203,16 @@ ENERGY_UNIT_TO_KWH: Final = {
     "MWh": 1000.0,
 }
 
+# Price units (#1513): the energy half of ``<money>/<energy>`` as the factor
+# taking a price per that energy to a price per kWh (the inverse of the
+# table above), and the money half's minor units, each a hundredth of the
+# major one. An ISO code or one of the symbols is the major unit itself.
+PRICE_ENERGY_TO_KWH: Final = {"kwh": 1.0, "mwh": 0.001, "wh": 1000.0}
+PRICE_MINOR_UNITS: Final = frozenset(
+    {"öre", "ore", "øre", "c", "ct", "cent", "cents", "snt", "p", "gr"}
+)
+PRICE_MAJOR_SYMBOLS: Final = frozenset({"kr", "€", "$", "£", "zł"})
+
 # Learned correction to the modelled COP, from measured electrical input
 # against modelled thermal output. 1.0 means the COP curve is taken at face
 # value. The bounds stop a mis-scaled power entity from destroying the model.

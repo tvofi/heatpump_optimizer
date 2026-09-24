@@ -314,8 +314,12 @@ from .inputs import (
     InputReader,
     age_of,
     normalize_power_kw,
+    normalize_price_per_kwh,
     parse_bool,
+    price_per_kwh,
     stale_summary,
+    state_unit,
+    temperature_c,
 )
 from .external_heat import (
     ExternalHeatConfig,
@@ -1306,18 +1310,60 @@ def _hub(name: str) -> property:
 
 
 def _grid_fee_entity_value(hass: HomeAssistant, config: dict[str, Any]) -> float | None:
-    """The live SEK/kWh fee entity's value, when one is configured."""
-    entity_id = config.get(CONF_GRID_FEE_ENTITY)
-    if not entity_id:
+    """The live fee entity's value per kWh, in its own unit (#1513)."""
+    return _entity_price(hass, config.get(CONF_GRID_FEE_ENTITY))
+
+
+def _entity_price(hass: HomeAssistant, entity_id: Any) -> float | None:
+    """A price entity's state in major currency per kWh, or ``None``."""
+    state = hass.states.get(entity_id) if entity_id else None
+    return None if state is None else price_per_kwh(state.state, state_unit(state))
+
+
+# The slots a price is read from, each with its own ``price_unit_*`` notice.
+_PRICE_ENTITY_SLOTS = (CONF_PRICE_ENTITY, CONF_PV_EXPORT_PRICE_ENTITY, CONF_GRID_FEE_ENTITY)
+
+
+def _audit_price_units(hass: HomeAssistant, config: dict[str, Any]) -> None:
+    """Name a price unit the reader cannot parse, once per slot (#1513).
+
+    The reader keeps that entity's raw number, as every install did before
+    the unit was read, so the plan is exactly as wrong as it always was --
+    but no longer silently. The notice clears when the unit parses, or the
+    slot is emptied.
+    """
+    for slot in _PRICE_ENTITY_SLOTS:
+        entity_id = config.get(slot)
+        state = hass.states.get(entity_id) if entity_id else None
+        unit = state_unit(state)
+        if state is None or normalize_price_per_kwh(1.0, unit) is not None:
+            ir.async_delete_issue(hass, DOMAIN, f"price_unit_{slot}")
+            continue
+        _create_issue(
+            hass,
+            DOMAIN,
+            f"price_unit_{slot}",
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="price_unit_unrecognised",
+            translation_placeholders={"entity": str(entity_id), "unit": str(unit)},
+        )
+
+
+def _dhw_inlet_c(hass: HomeAssistant, entity_id: Any) -> float | None:
+    """The live DHW inlet probe in degC, in its own unit (#1513), or ``None``.
+
+    An inlet probe is slow-moving, so a generous day-scale limit -- but a
+    probe frozen since last winter would otherwise pin the inlet at winter
+    cold forever. Stale or implausible degrades to the seasonal model, which
+    is the configured no-sensor behaviour.
+    """
+    state = hass.states.get(entity_id) if entity_id else None
+    age = age_of(state, dt_util.utcnow()) if state is not None else None
+    if age is None or age > timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES):
         return None
-    state = hass.states.get(entity_id)
-    if state is None:
-        return None
-    try:
-        value = float(state.state)
-    except (TypeError, ValueError):
-        return None
-    return value if np.isfinite(value) else None
+    value = temperature_c(state.state, state_unit(state))
+    return value if value is not None and -5.0 <= value <= 35.0 else None
 
 
 def _solve_anchor(now: datetime) -> datetime:
@@ -2429,24 +2475,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
         # The inlet: live sensor wins, then the seasonal model, whose
         # default amplitude of zero keeps it at the configured mean.
-        inlet: float | None = None
-        entity = ctx._config.get(CONF_DHW_INLET_ENTITY)
-        if entity:
-            state = self.hass.states.get(entity)
-            # An inlet probe is slow-moving, so a generous day-scale limit —
-            # but a probe frozen since last winter would otherwise pin the
-            # inlet at winter cold forever. Stale degrades to the seasonal
-            # model below, which is the configured no-sensor behaviour.
-            age = age_of(state, dt_util.utcnow()) if state is not None else None
-            if age is not None and age <= timedelta(
-                minutes=DHW_INLET_MAX_AGE_MINUTES
-            ):
-                try:
-                    value = float(state.state)
-                except (TypeError, ValueError):
-                    value = None
-                if value is not None and -5.0 <= value <= 35.0:
-                    inlet = value
+        inlet = _dhw_inlet_c(self.hass, ctx._config.get(CONF_DHW_INLET_ENTITY))
         if inlet is None:
             inlet = params.seasonal_inlet_temp(now.timetuple().tm_yday)
         params.dhw_inlet_current = inlet
@@ -5560,6 +5589,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         """
         cfg = getattr(self, "_ctx", self)._config
         hass = self.hass
+        _audit_price_units(hass, cfg)
         try:
             session = (
                 None
@@ -6291,7 +6321,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         A fee rate above ``IMPLAUSIBLE_FEE_SEK_PER_KWH`` is öre typed into a
         SEK field (25 for 0.25 — the 100× slip), whether it arrived through
         the rules text, the fixed component, a hand-edited store, or a
-        sensor publishing öre. The plan keeps running on exactly what was
+        sensor publishing öre with no unit saying so (#1513 reads one). The plan keeps running on exactly what was
         configured — mutating or suppressing the value here would make the
         planning prices silently diverge from what the user typed and from
         the settlement paths reading the same schedule — so the only output
@@ -8861,18 +8891,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _pv_export_price(self) -> float:
         """Export compensation, preferring a live entity over the static value."""
         ctx = getattr(self, "_ctx", self)
-        entity_id = ctx._config.get(CONF_PV_EXPORT_PRICE_ENTITY)
-        if entity_id:
-            state = self.hass.states.get(entity_id)
-            if state is not None and str(state.state).lower() not in (
-                "unknown",
-                "unavailable",
-                "",
-            ):
-                try:
-                    return float(state.state)
-                except (TypeError, ValueError):
-                    pass
+        live = _entity_price(self.hass, ctx._config.get(CONF_PV_EXPORT_PRICE_ENTITY))
+        if live is not None:
+            return live
         return _as_float(
             ctx._config.get(CONF_PV_EXPORT_PRICE), DEFAULT_PV_EXPORT_PRICE
         )
