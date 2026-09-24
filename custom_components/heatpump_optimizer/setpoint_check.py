@@ -66,7 +66,7 @@ def _dhw_floor(params: Any) -> float:
 
 def _dhw(hass: Any, config: dict[str, Any], params: Any) -> None:
     entity_id = config.get(CONF_DHW_SETPOINT_ENTITY)
-    pump, unit = _read_setpoint(hass, entity_id) or (None, None)
+    pump, unit = _setpoint_and_unit(hass, entity_id) or (None, None)
     floor = _dhw_floor(params)
     active = (
         bool(entity_id)
@@ -101,7 +101,13 @@ def _space(hass: Any, config: dict[str, Any]) -> None:
     )
 
 
-def _read_setpoint(hass: Any, entity_id: str | None) -> tuple[float, Any] | None:
+def _read_setpoint(hass: Any, entity_id: str | None) -> float | None:
+    """The set-point in degC, or ``None`` when it cannot be read."""
+    reading = _setpoint_and_unit(hass, entity_id)
+    return None if reading is None else reading[0]
+
+
+def _setpoint_and_unit(hass: Any, entity_id: str | None) -> tuple[float, Any] | None:
     """The set-point in degC and the unit its entity is written in (#1513).
 
     A number entity declares its unit; a climate entity's state is its HVAC
