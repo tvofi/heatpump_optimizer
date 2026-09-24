@@ -44254,6 +44254,17 @@ R.check(
     f"stale={_p8s_stale.stale} held={_p8s_stale.value!r} "
     f"value={_p8s_reader.value('indoor_temp_entity', -99.0)!r}",
 )
+_p8s_fresh = InputReader(
+    FakeHass({"sensor.indoor": FakeState("21.4", last_updated=_p8s_now - timedelta(minutes=5))}),
+    {"indoor_temp_entity": "sensor.indoor"},
+    now=lambda: _p8s_now,
+)
+_p8s_fresh.read("indoor_temp_entity")
+R.check(
+    "null control: value() returns a fresh reading's number",
+    _p8s_fresh.value("indoor_temp_entity", -99.0) == 21.4,
+    f"got {_p8s_fresh.value('indoor_temp_entity', -99.0)!r}",
+)
 
 # _track_curve_comfort folds YESTERDAY's worst margin when a new day starts.
 _p8s_cc = _Coord(_FakeHass(), _FakeEntry(data={**_P8_CFG, "curve_learning_enabled": True}))
