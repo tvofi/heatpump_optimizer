@@ -45,10 +45,13 @@ go red at random. Beside it sits the exact-count ratchet the sample could not
 carry: `unpinned_sites`, an exact count over a DETERMINISTIC inventory of every
 candidate site the six operators generate, which `tests/structure.py`'s ratchet
 could use only because it measures the whole tree. The inventory below is that
-whole tree, so an exact count over it is reproducible and "improved and not yet
-recorded" is a fair refusal. A site is unpinned until it carries a disposition
--- a `killed_by` driver or a `survivor_triage` verdict -- and a diff that adds a
-site without one raises the count and is refused. The ratchet is what stops a
+whole tree, so an exact count over it is reproducible. A site is unpinned until
+it carries a disposition -- a `killed_by` driver or a `survivor_triage` verdict,
+keyed by the site's content anchor rather than its line -- and a diff that adds
+a site without one raises the count above the same count at the ratchet base
+(the merge base; HEAD^1 on main) and is refused. The count is derived at both
+ends and committed nowhere: a committed record was a line every branch that
+recorded rewrote, and it went DIRTY on every merge. The ratchet is what stops a
 guard from leaving the tree unaccounted for; recording the sampled run's kills
 into the ledger (`killed_by`) is the nightly burn-in's follow-up, not this
 enforcement.
@@ -78,7 +81,9 @@ import ast
 import contextlib
 import io
 import json
+import math
 import os
+import hashlib
 import random
 import re
 import shutil
@@ -92,6 +97,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import NamedTuple
+
 
 ROOT = Path(__file__).resolve().parent.parent
 PKG = "custom_components/heatpump_optimizer/"
@@ -452,22 +458,100 @@ def drive_spec(script: str, ref: str | None) -> tuple[list[str], dict[str, str]]
 # EQUIVALENT to its original -- no input can tell the two apart -- cannot be
 # killed by any check, so counting it as a gap makes the recorded fraction
 # read worse than the suite is. The marks live in tests/mutation_budgets.json
-# under "survivor_triage", keyed like the recorded survivor table prints
-# ("FILE:LINE KIND") and pinned to the exact `old` line text the triage was
-# made on: an entry whose file:line, operator OR line text no longer matches
-# is not applied, because a mark must not outlive the line it explains.
+# under "survivor_triage", keyed by the site's content anchor (see
+# `anchor_sites` below) and pinned to the exact `old` line text the triage was
+# made on: an entry whose file, enclosing def, operator OR line text no longer
+# matches is not applied, because a mark must not outlive the line it explains.
 #
 # The fraction the cap reads counts only survivors no triage has called
 # equivalent. The default for an unmarked survivor is "a real gap": absence
 # of a triage is not a finding of equivalence, so a mark can only ever relax
 # the one-sided cap deliberately, with a reason, in a reviewed edit.
 TRIAGE_VERDICTS = ("equivalent", "gap")
-_TRIAGE_KEY = re.compile(rf"^{re.escape(PKG)}[^:\s]+:\d+ [A-Z_]+$")
+# The ledger's key: `FILE:SCOPE KIND DIGEST[#N]` -- SCOPE the dotted def/class
+# path around the line, DIGEST the first 8 hex of sha1(old), #N the ordinal of
+# an identical line inside the same scope (omitted for the first).
+_TRIAGE_KEY = re.compile(
+    rf"^{re.escape(PKG)}[^:\s]+:[\w.<>]+ [A-Z_]+ [0-9a-f]{{8}}(#\d+)?$")
+# The retired key, `FILE:LINE KIND`: refused, and rewritten by --normalize.
+_LINE_KEY = re.compile(r"^[^:\s]+:\d+ [A-Z_]+$")
 
 
 def triage_key(mut: dict) -> str:
-    """The recorded table's key for one survivor, as budgets prints it."""
+    """The survivor TABLE's display key, `FILE:LINE KIND` -- not the ledger's.
+
+    A run's table says where a mutant sat on the tree it ran on; the ledger
+    says which site a disposition belongs to, and that is `ledger_key`.
+    """
     return f"{mut['file']}:{mut['line']} {mut['kind']}"
+
+
+# ---------------------------------------------------------- ledger anchors
+#
+# A disposition is keyed by what the site IS -- its file, the def around it,
+# its operator and the exact line text -- never by its line number (RCA
+# fix/rca-ledger-anchors). A `FILE:LINE KIND` key moved whenever any edit above
+# the site shifted the file, so every merge that shifted a production file
+# re-keyed pins every other open branch had copied, and GitHub cannot merge a
+# JSON map whose keys both sides rewrote: 11 hand resolutions of this file in
+# the two days after #1412 landed. The anchor survives a shift; it changes
+# only when the pinned text does, which is exactly when the old pin went stale.
+
+
+def line_scopes(src: str) -> list[str]:
+    """The dotted def/class path enclosing each line; index 0 is unused."""
+    n = len(src.splitlines())
+    scope = ["<module>"] * (n + 2)
+
+    def visit(node: ast.AST, prefix: str) -> None:
+        for child in ast.iter_child_nodes(node):
+            name = prefix
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                  ast.ClassDef)):
+                name = f"{prefix}.{child.name}" if prefix else child.name
+                end = getattr(child, "end_lineno", None) or child.lineno
+                for ln in range(child.lineno, min(end, n) + 1):
+                    scope[ln] = name
+            visit(child, name)
+
+    visit(ast.parse(src), "")
+    return scope
+
+
+def anchor_sites(src: str, sites: list[dict]) -> list[dict]:
+    """Attach each site's content anchor, the ledger key, from its file text.
+
+    Two sites share an anchor only when they share file, scope, operator and
+    line text AND the ordinal of that text inside the scope -- i.e. exactly
+    when they share a line, which is what a `FILE:LINE KIND` key grouped
+    (#1412's carry: a line with two clamps is two CLAMP_DROP candidates under
+    one key), so a migrated ledger covers the same sites it covered before.
+    """
+    scope = line_scopes(src)
+    nth: dict[int, int] = {}
+    seen: dict[tuple[str, str], int] = {}
+    for ln, text in enumerate(src.splitlines(), 1):
+        seen[(scope[ln], text)] = seen.get((scope[ln], text), 0) + 1
+        nth[ln] = seen[(scope[ln], text)]
+    for s in sites:
+        digest = hashlib.sha1(s["old"].encode()).hexdigest()[:8]
+        k = nth.get(s["line"], 1)
+        s["anchor"] = (f"{s['file']}:{scope[s['line']]} {s['kind']} {digest}"
+                       + (f"#{k}" if k > 1 else ""))
+    return sites
+
+
+def ledger_key(mut: dict) -> str:
+    """The ledger key of one mutant: its anchor, derived from its file if absent.
+
+    The sampled pool is generated from checkout files by `candidates()`, which
+    carries no anchor; the file it names is unmutated in the checkout (workers
+    mutate copies), so its anchor is read off that file.
+    """
+    if "anchor" not in mut:
+        src = (ROOT / mut["file"]).read_text()
+        anchor_sites(src, [mut])
+    return mut["anchor"]
 
 
 def triaged_equivalent(triage: dict, mut: dict) -> bool:
@@ -477,7 +561,7 @@ def triaged_equivalent(triage: dict, mut: dict) -> bool:
     was generated from -- file:line coordinates survive edits that the text
     does not, and an equivalence claim is a claim about the text.
     """
-    entry = triage.get(triage_key(mut))
+    entry = triage.get(ledger_key(mut))
     return bool(
         entry
         and entry.get("verdict") == "equivalent"
@@ -508,7 +592,8 @@ def triage_problems(triage: dict) -> list[str]:
     out: list[str] = []
     for key, entry in sorted(triage.items()):
         if not _TRIAGE_KEY.match(key):
-            out.append(f"{key!r} is not 'FILE:LINE KIND' under {PKG}")
+            out.append(f"{key!r} is not 'FILE:SCOPE KIND DIGEST' under "
+                       f"{PKG}")
             continue
         if not isinstance(entry, dict):
             out.append(f"{key}: entry is not an object")
@@ -552,7 +637,7 @@ def inventory(files: list[Path] | None = None) -> list[dict]:
     files = files if files is not None else sorted(PRODUCTION.rglob("*.py"))
     out: list[dict] = []
     for path in files:
-        out.extend(candidates(path))
+        out.extend(anchor_sites(path.read_text(), list(candidates(path))))
     out.sort(key=lambda m: (m["file"], m["line"], m["kind"], m["old"]))
     return out
 
@@ -561,7 +646,8 @@ def dispositions(budgets: dict) -> dict[str, dict]:
     """Every recorded disposition, merged from the two ledger maps.
 
     `survivor_triage` holds verdicts (equivalent/gap); `killed_by` holds a
-    driver name. Both are keyed `file:line KIND` and pinned to the `old` text.
+    driver name. Both are keyed by the site's anchor and pinned to the `old`
+    text.
     """
     out: dict[str, dict] = {}
     for key, entry in budgets.get("survivor_triage", {}).items():
@@ -574,7 +660,7 @@ def dispositions(budgets: dict) -> dict[str, dict]:
 def disposition_matches(entry: object, site: dict) -> bool:
     """True when a recorded disposition covers THIS exact site.
 
-    The key is `file:line KIND` and the pin is the exact `old` line text -- a
+    The key is the site's anchor and the pin is the exact `old` line text -- a
     mark must not outlive the line it explains.
     """
     if not isinstance(entry, dict):
@@ -591,21 +677,243 @@ def unpinned_sites(budgets: dict, sites: list[dict]) -> list[dict]:
     """The candidate sites no recorded disposition covers."""
     disp = dispositions(budgets)
     return [s for s in sites
-            if not disposition_matches(disp.get(triage_key(s)), s)]
+            if not disposition_matches(disp.get(s["anchor"]), s)]
 
 
-def ratchet_refusal(budgets: dict, unpinned: list[dict]) -> int | None:
+def ratchet_refusal(base_count: int | None, unpinned: list[dict]) -> int | None:
     """The exact-count ratchet's verdict: 1 (refuse) or None (proceed).
 
-    `unpinned_sites` only moves down. A diff that adds a candidate site without
-    a disposition raises the count and is refused; a budget with no record yet
-    is not refused (there is nothing to ratchet against), and a count at or
-    below the record proceeds -- a count below is an improvement to record.
+    The count is compared with the SAME count at the ratchet base
+    (`base_unpinned`), not with a committed number: a diff that adds a
+    candidate site without a disposition raises it and is refused, and a count
+    at or below the base proceeds. A base that could not be read is refused --
+    a ratchet with nothing to compare against must not go green by skipping.
     """
-    record = budgets.get("unpinned_sites")
-    if record is None:
+    if base_count is None:
+        return 1
+    return 1 if len(unpinned) > base_count else None
+
+
+def ratchet_base(scope: str, base: str) -> str | None:
+    """The ref the ratchet compares against: the gate's, or HEAD^1 at HEAD.
+
+    `gate_ref` answers the merge base on a pull request and HEAD^1 on the
+    nightly; on a push to main the merge base IS HEAD, a comparison that cannot
+    fail, so the ratchet takes the parent there -- run.sh's push resolution.
+    """
+    ref = gate_ref(scope, base)
+    if ref and _rev(ROOT, ref) == _rev(ROOT, "HEAD"):
+        ref = "HEAD^1"
+    return ref
+
+
+def _git_or_none(*args: str) -> str | None:
+    out = subprocess.run(["git", *args], cwd=ROOT, capture_output=True,
+                         text=True)
+    return out.stdout if out.returncode == 0 else None
+
+
+def base_unpinned(ref: str | None, sites: list[dict]) -> int | None:
+    """The unpinned count at `ref`: its ledger over its own inventory."""
+    got = base_unpinned_sites(ref, sites)
+    return None if got is None else len(got)
+
+
+def base_unpinned_sites(ref: str | None,
+                        sites: list[dict]) -> list[dict] | None:
+    """The unpinned SITES at `ref`: its ledger over its own inventory.
+
+    Only the production files whose blob differs from this tree's are
+    re-enumerated; every other file's sites are this tree's own, line for
+    line. The base ledger goes through `normalize`, so a base written in the
+    retired `FILE:LINE KIND` form is counted exactly. None when the ref, its
+    ledger or its listing cannot be read.
+    """
+    if not ref:
         return None
-    return 1 if len(unpinned) > record else None
+    raw = _git_or_none("show", f"{ref}:{BUDGETS.relative_to(ROOT)}")
+    listing = _git_or_none("ls-tree", "-r", ref, "--", PKG)
+    if raw is None or listing is None:
+        return None
+    theirs = {}
+    for row in listing.splitlines():
+        meta, path = row.split("\t", 1)
+        if path.endswith(".py"):
+            theirs[path] = meta.split()[2]
+    here = sorted(str(p.relative_to(ROOT)) for p in PRODUCTION.rglob("*.py"))
+    blobs = (_git_or_none("hash-object", "--", *here) or "").split()
+    ours = dict(zip(here, blobs))
+    by_file: dict[str, list[dict]] = {}
+    for s in sites:
+        by_file.setdefault(s["file"], []).append(s)
+    base_sites: list[dict] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        for rel, blob in sorted(theirs.items()):
+            if ours.get(rel) == blob:
+                base_sites.extend(by_file.get(rel, []))
+                continue
+            src = _git_or_none("cat-file", "blob", blob) or ""
+            path = Path(tmp) / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(src)
+            muts = [dict(m, file=rel) for m in candidates(path)]
+            base_sites.extend(anchor_sites(src, muts))
+    ledger, _ = normalize(json.loads(raw), base_sites)
+    return unpinned_sites(ledger, base_sites)
+
+
+# ------------------------------------------------------------ --pin-killed
+#
+# The ratchet refuses a diff that adds a candidate site with no disposition,
+# and until this mode the only repair was a seat measuring each site by hand:
+# the mutation lane went red on "N unpinned against M at the ratchet base" on
+# pull requests and on pushes to main alike (the 2026-09-24 CI census in the
+# project's ci-autofix notes). Half of that repair is mechanical. A kill is a
+# MEASUREMENT -- the same `killed()` rule, baseline and null control the
+# sampled table uses -- so recording one under `killed_by` asserts nothing the
+# run did not see. A survivor is the other half and is never written: an
+# equivalence verdict is a judgement, and a gap is a finding, so a site no
+# driver kills stays unpinned and the ratchet stays red on it.
+
+
+def new_unpinned(unpinned: list[dict], base: list[dict]) -> list[dict]:
+    """The unpinned sites the diff added: unpinned here, not at the base.
+
+    Keyed by anchor, the ledger's own key, so a site the diff merely moved
+    (same scope, operator and text) is the base's and is not re-measured.
+    """
+    was = {s["anchor"] for s in base}
+    return [s for s in unpinned if s["anchor"] not in was]
+
+
+def pin_entry(site: dict, script: str, run: "ScriptRun",
+              baseline: "ScriptRun", ref: str) -> dict:
+    """The `killed_by` disposition one measured kill earns."""
+    return {
+        "killed_by": script,
+        "old": site["old"],
+        "reason": (f"Recorded by `mutation_table.py --pin-killed` against "
+                   f"{ref}: {site['kind']} (`{site['new'].strip()}`) took "
+                   f"{script} from rc={baseline.rc} failed={baseline.failed} "
+                   f"to rc={run.rc} failed={run.failed}."),
+    }
+
+
+def pin_results(results: list[tuple[dict, str]],
+                kill_runs: dict[tuple[int, str], "ScriptRun"],
+                baseline: dict[str, "ScriptRun"], sites: list[dict],
+                ref: str) -> tuple[dict, list[str], int]:
+    """The `killed_by` entries a `--pin-killed` drive earned, its report, its rc.
+
+    A disposition covers EVERY inventory site under its anchor, and an anchor
+    can hold more than one mutant: a clamp's `max(` and `min(` drops share a
+    line, a kind and so a digest (the #1594 review measured 46 such pairs, all
+    unpinned). Pinning the killed twin would pin its survivor with it. So an
+    anchor is pinned only when every site the inventory holds under it was
+    driven here and killed with its run kept; one survivor, skip or undriven
+    twin leaves the whole anchor unpinned. The rc is 1 while anything is left.
+    """
+    under: dict[str, int] = {}
+    for site in sites:
+        under[site["anchor"]] = under.get(site["anchor"], 0) + 1
+    by_anchor: dict[str, list[tuple[dict, str | None, "ScriptRun | None", str]]] = {}
+    for mut, verdict in sorted(results, key=lambda r: (r[0]["file"], r[0]["line"])):
+        script = verdict[len("killed by "):] if verdict.startswith("killed by ") else None
+        run = kill_runs.get((id(mut), script)) if script else None
+        by_anchor.setdefault(mut["anchor"], []).append((mut, script, run, verdict))
+    entries: dict[str, dict] = {}
+    report: list[str] = []
+    left = 0
+    for anchor, got in by_anchor.items():
+        whole = (len(got) == under.get(anchor, 0)
+                 and all(run is not None for _, _, run, _ in got))
+        for mut, script, run, verdict in got:
+            if whole:
+                report.append(f"  pinned   {triage_key(mut)} -- killed by {script}")
+            elif run is not None:
+                left += 1
+                report.append(f"  UNPINNED {triage_key(mut)} -- killed by {script}, "
+                              f"but its anchor also covers a site no run killed")
+            else:
+                left += 1
+                report.append(f"  UNPINNED {triage_key(mut)} -- {verdict.lower()}")
+        if whole:
+            mut, script, run, _ = got[0]
+            entries[anchor] = pin_entry(mut, script, run, baseline[script], ref)
+            if len(got) > 1:
+                entries[anchor]["reason"] += (
+                    f" Each of the {len(got)} sites under this anchor was killed.")
+    pinned = len(results) - left
+    report.append(f"\nPIN KILLED: {pinned} pinned, {left} left unpinned"
+                  + (" -- a survivor needs a killing check or a survivor_triage "
+                     "verdict, which no tool writes" if left else ""))
+    return entries, report, 1 if left else 0
+
+
+LEDGER_MAPS = ("survivor_triage", "killed_by")
+
+
+def ledger_form_problems(budgets: dict) -> list[str]:
+    """Every way the ledger departs from its merge-friendly canonical form.
+
+    Three shapes, each of which turned an unrelated pull request DIRTY: a key
+    carrying a line number (any shift above it rewrites the key), a map not in
+    key order (every branch appended at the same tail), and a committed
+    `unpinned_sites` (every branch that recorded rewrote the same line). The
+    fix for all three is `--normalize`.
+    """
+    out: list[str] = []
+    for m in LEDGER_MAPS:
+        keys = list(budgets.get(m, {}))
+        legacy = [k for k in keys if _LINE_KEY.match(k)]
+        if legacy:
+            out.append(f"{m}: {len(legacy)} key(s) carry a line number, e.g. "
+                       f"{legacy[0]!r} -- run --normalize")
+        bad = [k for k in keys if not _LINE_KEY.match(k)
+               and not _TRIAGE_KEY.match(k)]
+        if bad:
+            out.append(f"{m}: {len(bad)} key(s) are not 'FILE:SCOPE KIND "
+                       f"DIGEST', e.g. {bad[0]!r}")
+        if keys != sorted(keys):
+            out.append(f"{m}: keys are not in sorted order -- run --normalize")
+    if "unpinned_sites" in budgets:
+        out.append("a committed `unpinned_sites` count: the ratchet reads the "
+                   "count at its base, so a committed one is a line every "
+                   "branch rewrites -- run --normalize")
+    return out
+
+
+def normalize(budgets: dict, sites: list[dict]) -> tuple[dict, list[str]]:
+    """The ledger in canonical form, and every retired key it could not map.
+
+    A `FILE:LINE KIND` key is rewritten to the anchor of the site at that
+    file, line and operator whose text equals the entry's `old` pin -- the
+    same match the line key was checked by -- and both maps are sorted by key;
+    `unpinned_sites` is dropped. A retired key naming no site is kept as it is,
+    so `completeness_problems` still reports the stale mark.
+    """
+    at = {(s["file"], s["line"], s["kind"], s["old"]): s["anchor"]
+          for s in sites}
+    out = dict(budgets)
+    out.pop("unpinned_sites", None)
+    unmapped: list[str] = []
+    for m in LEDGER_MAPS:
+        fixed: dict[str, dict] = {}
+        for key, entry in budgets.get(m, {}).items():
+            new = key
+            if _LINE_KEY.match(key):
+                where, kind = key.split(" ", 1)
+                rel, ln = where.rsplit(":", 1)
+                old = entry.get("old") if isinstance(entry, dict) else None
+                new = at.get((rel, int(ln), kind, old), key)
+                if new == key:
+                    unmapped.append(f"{m}: {key}")
+            if new in fixed:
+                unmapped.append(f"{m}: {key} collides with {new}")
+                new = key
+            fixed[new] = entry
+        out[m] = dict(sorted(fixed.items()))
+    return out, unmapped
 
 
 def completeness_problems(budgets: dict, sites: list[dict]) -> list[str]:
@@ -621,32 +929,98 @@ def completeness_problems(budgets: dict, sites: list[dict]) -> list[str]:
         return ["0 candidate site(s) in scope -- an empty inventory is a "
                 "failed enumeration, not a passing one"]
     out: list[str] = []
+    named = {(s["anchor"], s["old"]) for s in sites}
     for key, entry in sorted(dispositions(budgets).items()):
         old = entry.get("old") if isinstance(entry, dict) else None
-        if not any(triage_key(s) == key and s["old"] == old for s in sites):
+        if (key, old) not in named:
             out.append(f"{key}: disposition names no site the inventory "
                        f"generates (old pin {old!r})")
     return out
 
 
+# A VERBATIM copy of tests/structure.py's cap_problem, the recorded-number
+# barrier every ratchet shares (#1583's review). This grader is a single
+# standard-library file on purpose -- a job may restore it from the base
+# and run it under `python3 -I`, where a sibling import neither resolves
+# nor stays the base's -- so it carries the copy, and tests/entities.py
+# refuses any copy that differs from the original by one character.
+def cap_problem(where: str, table: object, key: str, *, integer: bool = False,
+                low: float = 0.0, low_open: bool = False,
+                high: float | None = None) -> str | None:
+    """Why ``table[key]`` cannot be a ratchet's recorded number, or None.
+
+    The class this closes (#1583's review): Python's json reads ``NaN``,
+    ``Infinity``, ``-Infinity`` and ``1e999`` as floats without complaint, and
+    every comparison against NaN is False -- ``current > nan`` never fires and
+    ``raw < nan`` never fires -- so a cap edited to NaN was an unlimited raise
+    that this script printed as ``ok cut_views 110 <= nan``. Infinity passes
+    by arithmetic. The other spellings fail differently per script and none of
+    them says why: a string crashed one comparison and ``float()``-coerced in
+    another (``"nan"`` into NaN), and a bool is 0 or 1 to Python.
+
+    So every ratchet calls this on load and refuses before it compares. It
+    refuses: an absent key, a bool, anything not an int or float, a
+    non-finite number, a float where ``integer`` asks for a count, a value
+    below ``low`` (or equal to it when ``low_open``), and one above ``high``.
+    The message names the file, the key and the value, so the refusal is the
+    fix's instructions.
+    """
+    if not isinstance(table, dict) or key not in table:
+        return (f"{where}: {key} is absent -- a ratchet with no recorded "
+                f"number compares against nothing")
+    value = table[key]
+    label = f"{where}: {key}={value!r:.40}"
+    if isinstance(value, bool):
+        return (f"{label} is a boolean, which Python compares as "
+                f"{int(value)}; record the number")
+    if not isinstance(value, (int, float)):
+        return f"{label} is a {type(value).__name__}, not a number"
+    # An int before isfinite: json reads a 400-digit integer as an exact int,
+    # and math.isfinite (like every float() a ratchet then applies) raises
+    # OverflowError on one no float can hold.
+    if isinstance(value, int):
+        if abs(value) > 2 ** 53:
+            return (f"{label} is past the largest integer a float holds "
+                    f"exactly, so no comparison with a measurement means "
+                    f"anything")
+    elif not math.isfinite(value):
+        return (f"{label} is not finite: every comparison against NaN is "
+                f"false and nothing exceeds Infinity, so this cap would be an "
+                f"unlimited raise")
+    if integer and not isinstance(value, int):
+        return f"{label} is a float where a count is recorded"
+    if value < low or (low_open and value == low):
+        return f"{label} is {'at or ' if low_open else ''}below {low:g}"
+    if high is not None and value > high:
+        return f"{label} is above {high:g}"
+    return None
+
+
 def cap_problems(budgets: dict) -> list[str]:
-    """Every fraction cap that cannot refuse, one sentence each.
+    """Every recorded cap that cannot refuse, one sentence each.
 
     `rate = survivors/evaluated` is a fraction in [0, 1], so a cap of 1.0
     makes `if rate > cap` unreachable: a run in which every mutant survives
     still prints PASSED. A cap has to be saturable to be a gate.
+
+    Before that, each cap passes `cap_problem` (the verbatim copy above), the
+    barrier every ratchet shares: `rate > nan` is False, so a NaN cap was an
+    unlimited raise this pre-pass let through, and `float()` turned a string
+    "nan" into one (#1583's review). The exact-count ratchet has no committed
+    number to guard: `base_unpinned` derives it from the base's ledger, and
+    `ledger_form_problems` refuses a committed `unpinned_sites`.
     """
+    where = BUDGETS.name
+    fractions = budgets.get("max_survivor_fraction")
     out: list[str] = []
-    for scope, value in sorted(budgets.get("max_survivor_fraction", {}).items()):
-        try:
-            f = float(value)
-        except (TypeError, ValueError):
-            out.append(f"max_survivor_fraction[{scope}]={value!r} is not a "
-                       f"number")
-            continue
-        if f >= 1.0:
-            out.append(f"max_survivor_fraction[{scope}]={f} is unsatisfiable: "
-                       f"a survivor rate in [0, 1] can never exceed it")
+    for scope in ("changed", "full"):
+        problem = cap_problem(where, fractions, scope, high=1.0)
+        if problem:
+            out.append(problem.replace(f": {scope}", f": max_survivor_fraction[{scope}]", 1))
+        elif fractions[scope] >= 1.0:
+            out.append(f"max_survivor_fraction[{scope}]={fractions[scope]} is "
+                       f"unsatisfiable: a survivor rate in [0, 1] can never "
+                       f"exceed it")
     return out
 
 
@@ -1141,7 +1515,18 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=20260911)
     ap.add_argument("--timeout", type=int, default=1200)
     ap.add_argument("--record", action="store_true")
-    ap.add_argument("--reason", default="")
+    ap.add_argument("--reason", default="",
+                    help="with --record: echoed for the commit message; the "
+                         "budget file's `reason` is not rewritten")
+    ap.add_argument("--pin-killed", action="store_true",
+                    help="drive every candidate site this diff added without "
+                         "a disposition, record each one a driver kills "
+                         "under killed_by, and leave the survivors unpinned")
+    ap.add_argument("--normalize", action="store_true",
+                    help="rewrite the ledger into its canonical form -- "
+                         "content-anchored keys, sorted maps, no committed "
+                         "count -- and exit; the one command a hand merge of "
+                         "tests/mutation_budgets.json needs afterwards")
     args = ap.parse_args()
     # Line-buffered on purpose. A nightly whose whole table appears only when
     # the process exits shows NOTHING when its timeout kills it -- the one run
@@ -1149,6 +1534,15 @@ def main() -> int:
     sys.stdout.reconfigure(line_buffering=True)
 
     budgets = json.loads(BUDGETS.read_text())
+    if args.normalize:
+        fixed, unmapped = normalize(budgets, inventory())
+        BUDGETS.write_text(json.dumps(fixed, indent=2) + "\n")
+        print(f"NORMALIZED {BUDGETS.name}: "
+              f"{sum(len(fixed.get(m, {})) for m in LEDGER_MAPS)} disposition(s)"
+              f", {len(unmapped)} retired key(s) naming no site")
+        for u in unmapped:
+            print(f"    - {u}")
+        return 1 if unmapped else 0
     # A cap that cannot fail is not a gate (#1412). Refused before any
     # baseline cost, symmetric to the triage check below.
     cap_p = cap_problems(budgets)
@@ -1173,6 +1567,12 @@ def main() -> int:
     # no clone, no baseline, no solve, and it covers the WHOLE tree -- the
     # 3816 sites the sampled pool never draws. It runs before the sample
     # because the ratchet is over the whole tree, not over the diff's pool.
+    form = ledger_form_problems(budgets)
+    if form:
+        print("MUTATION TABLE REFUSED -- the ledger is not in canonical form:")
+        for p in form:
+            print(f"    - {p}")
+        return 1
     sites = inventory()
     comp = completeness_problems(budgets, sites)
     if comp:
@@ -1182,26 +1582,27 @@ def main() -> int:
             print(f"    - {p}")
         return 1
     unpinned = unpinned_sites(budgets, sites)
-    record = budgets.get("unpinned_sites")
-    if ratchet_refusal(budgets, unpinned) == 1:
+    rbase = ratchet_base(args.scope, args.base)
+    base_count = base_unpinned(rbase, sites)
+    if base_count is None:
+        print(f"MUTATION TABLE REFUSED -- the ratchet base {rbase!r} could not "
+              f"be read, so {len(unpinned)} unpinned site(s) have nothing to "
+              f"be compared with; fetch the base (CI checks out fetch-depth 0)")
+        return 1
+    if ratchet_refusal(base_count, unpinned) == 1 and not args.pin_killed:
         print(f"MUTATION TABLE REFUSED -- {len(unpinned)} unpinned site(s) "
-              f"against a recorded {record}. A new guard, clamp, removable "
-              f"return or doubled constant left the tree without a recorded "
-              f"disposition; record it under killed_by or survivor_triage and "
-              f"the count falls back.")
+              f"against {base_count} at the ratchet base {rbase}. A new guard, "
+              f"clamp, removable return or doubled constant left the tree "
+              f"without a recorded disposition; record it under killed_by or "
+              f"survivor_triage and the count falls back. `python3 "
+              f"tests/mutation_table.py --pin-killed --base {args.base}` "
+              f"records every one a driver kills.")
         for s in sorted(unpinned, key=lambda m: (m["file"], m["line"]))[:20]:
             print(f"    {triage_key(s)}: {s['old'].strip()[:72]}")
         return 1
-    if record is None:
-        print(f"  {len(unpinned)} candidate site(s) in the deterministic "
-              f"inventory; no `unpinned_sites` recorded yet -- run --record "
-              f"to set the ratchet")
-    elif len(unpinned) < record:
-        print(f"  {len(unpinned)} unpinned site(s) < recorded {record} -- "
-              f"re-record with --record to ratchet the count down")
-    else:
-        print(f"  {len(unpinned)} unpinned site(s) of {len(sites)} candidate "
-              f"sites; the ledger agrees with the deterministic inventory")
+    print(f"  {len(unpinned)} unpinned site(s) of {len(sites)} candidate "
+          f"sites, {base_count} at the ratchet base {rbase}; the ledger agrees "
+          f"with the deterministic inventory")
     files, why = scope_files(args.scope, args.base)
     allow = [s for s in args.scripts.split(",") if s]
     closures = load_closures()
@@ -1218,32 +1619,48 @@ def main() -> int:
             if why_skip:
                 allow.remove(s)
                 print(f"  SKIP {s} ({why_skip})")
-    if not files:
+    if args.pin_killed:
+        base_sites = base_unpinned_sites(rbase, sites) or []
+        pool = []
+        for site in new_unpinned(unpinned, base_sites):
+            drivers = drivers_for(site["file"], closures, allow)
+            if drivers:
+                pool.append(dict(site, drivers=drivers))
+            else:
+                print(f"  no recorded closure reaches {site['file']}; "
+                      f"{triage_key(site)} stays unpinned")
+        print(f"PIN KILLED -- {len(pool)} new unpinned site(s) against "
+              f"{rbase} to drive")
+        if not pool:
+            print("\nPIN KILLED: nothing to pin")
+            return 0
+    elif not files:
         print("  no production file in scope; nothing to mutate")
         print("\nMUTATION TABLE PASSED (empty scope)")
         return 0
 
     rng = random.Random(args.seed)
-    pool: list[dict] = []
-    # A pull request draws only from the lines it wrote (`changed_lines`).
-    touched = changed_lines(args.base) if args.scope == "changed" else None
-    for path in files:
-        rel = str(path.relative_to(ROOT))
-        drivers = drivers_for(rel, closures, allow)
-        if not drivers:
-            print(f"  no recorded closure reaches {rel}; skipped")
-            continue
-        got = drawable(path, rel, touched)
-        rng.shuffle(got)
-        for mut in got[: args.per_file]:
-            mut["drivers"] = drivers
-            pool.append(mut)
-    rng.shuffle(pool)
-    pool = pool[: args.max]
-    if not pool:
-        print("  no mutant is both generatable and drivable")
-        print("\nMUTATION TABLE PASSED (empty pool)")
-        return 0
+    if not args.pin_killed:
+        pool = []
+        # A pull request draws only from the lines it wrote (`changed_lines`).
+        touched = changed_lines(args.base) if args.scope == "changed" else None
+        for path in files:
+            rel = str(path.relative_to(ROOT))
+            drivers = drivers_for(rel, closures, allow)
+            if not drivers:
+                print(f"  no recorded closure reaches {rel}; skipped")
+                continue
+            got = drawable(path, rel, touched)
+            rng.shuffle(got)
+            for mut in got[: args.per_file]:
+                mut["drivers"] = drivers
+                pool.append(mut)
+        rng.shuffle(pool)
+        pool = pool[: args.max]
+        if not pool:
+            print("  no mutant is both generatable and drivable")
+            print("\nMUTATION TABLE PASSED (empty pool)")
+            return 0
     needed = sorted({s for mut in pool for s in mut["drivers"]})
     print(f"  {len(pool)} mutant(s) over {len(files)} file(s); "
           f"drivers in play: {', '.join(needed)}")
@@ -1315,6 +1732,7 @@ def main() -> int:
 
         results: list[tuple[dict, str]] = []
         mutated: dict[int, str] = {}
+        kill_runs: dict[tuple[int, str], ScriptRun] = {}
         for mut in pool:
             lines = (trees[0] / mut["file"]).read_text().splitlines(True)
             i = mut["line"] - 1
@@ -1340,7 +1758,10 @@ def main() -> int:
                 extra_args, extra_env = drive_spec(s, ref)
                 run = run_script(s, trees[w], args.timeout, extra_args,
                                  extra_env)
-                return killed(s, run, baseline[s])
+                hit = killed(s, run, baseline[s])
+                if hit:
+                    kill_runs[(id(mut), s)] = run
+                return hit
             finally:
                 path.write_text(original)
 
@@ -1353,6 +1774,15 @@ def main() -> int:
         subprocess.run(["git", "worktree", "prune"], cwd=ROOT,
                        capture_output=True)
         shutil.rmtree(work, ignore_errors=True)
+
+    if args.pin_killed:
+        entries, report, pin_rc = pin_results(results, kill_runs, baseline,
+                                              sites, rbase)
+        print("\n".join(report))
+        budgets.setdefault("killed_by", {}).update(entries)
+        fixed, _ = normalize(budgets, sites)
+        BUDGETS.write_text(json.dumps(fixed, indent=2) + "\n")
+        return pin_rc
 
     survivors = []
     for mut, verdict in sorted(results, key=lambda r: (r[0]["file"], r[0]["line"])):
@@ -1386,9 +1816,6 @@ def main() -> int:
                   "deliberate, argued edit.")
             return 1
         budgets["max_survivor_fraction"][args.scope] = round(rate, 4)
-        # The ratchet only moves down too: the pre-pass above already refused
-        # growth, so `unpinned` is at or below the recorded count here.
-        budgets["unpinned_sites"] = len(unpinned)
         budgets["last_measured"][args.scope] = {
             # `survivors` is the fraction's numerator -- survivors no triage
             # has called equivalent -- and `equivalent` the part of this run
@@ -1400,10 +1827,13 @@ def main() -> int:
             "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "survivor_lines": [triage_key(m) for m in survivors],
         }
-        if args.reason:
-            budgets["reason"] = args.reason
+        # The reason goes in the commit message, not the file: a top-level
+        # string every recording branch rewrote is the same one-line merge
+        # conflict the committed `unpinned_sites` was.
         BUDGETS.write_text(json.dumps(budgets, indent=2) + "\n")
         print(f"\nRECORDED max_survivor_fraction[{args.scope}]={rate:.4f}")
+        if args.reason:
+            print(f"  for the commit message: {args.reason}")
         return 0
     if evaluated == 0:
         print("\nMUTATION TABLE PASSED (nothing evaluated)")

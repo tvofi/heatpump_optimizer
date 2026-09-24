@@ -259,6 +259,18 @@ jobs:
       - name: Show the App verdict poster refusing its own fixtures
         run: bash tools/audit/app_comment.sh --self-test
 
+      # The budget-raise gate (0013 as amended): a raise and a routine edit
+      # per budget file, every tracked file's caps moved both ways, and the
+      # owner's approval -- current, stale, dismissed, the App's -- offline.
+      # The exit status alone is not trusted: a gate whose entry point always
+      # exits 0 would pass here, and it is pinned but not owned. The tally line
+      # must say 0 failed (#1583 review r2).
+      - name: Show the budget-raise gate refusing its own fixtures
+        run: |
+          set -o pipefail
+          python3 .claude/workflows/budget_raise_gate.py --self-test | tee "$RUNNER_TEMP/brg-self-test.txt"
+          grep -Eq '^budget_raise_gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/brg-self-test.txt"
+
       - name: Show the figure check refusing its own fixtures
         if: always()
         run: node .claude/workflows/figure_lint.mjs --self-test
@@ -266,6 +278,14 @@ jobs:
       - name: Show the figure census pinning its counting rule
         if: always()
         run: node .claude/workflows/figure_census.mjs --self-test
+
+      # The pin rule's allowlist (#1589 review, round 3): every probe step --
+      # an install, `bash -c`, `sudo`, a `$GITHUB_PATH` shim, a github-script
+      # `require` and the rest -- must leave the grader not pinned, and every
+      # admitted step must leave it pinned.
+      - name: Show the pin rule refusing every probe and admitting its controls
+        if: always()
+        run: python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --self-test
 
   # THE LANES ABOVE RUN IN ONE ENVIRONMENT. Five separate assertions in this
   # repository were CORRECT and never RAN, because whether they run is decided
@@ -675,10 +695,27 @@ jobs:
       # No `pip install`, the same reason `record-status` had none: a reporter
       # whose job is to notice that something went dark must not be breakable
       # by the dependency set, and it costs seconds beside a forty-minute gate.
+      # PINNED (decision 0013): restored from the base, checked byte-identical
+      # to the base's object, and run under `-I -S`, all in this one step.
+      # Nothing before it in this job runs the pull request's code: after
+      # anything that did, the job would be the pull request's (it could
+      # overwrite the file, put a shim on `$GITHUB_PATH`, set `BASH_ENV`
+      # through `$GITHUB_ENV`, or use the runner's sudo). This file is
+      # @tvofi's, so that review keeps it true; `codeowners_gap.py --check` is
+      # a lint that refuses the forms known to break it. The pull
+      # request's own copy runs in `tests.yml`'s `graders-head-copy`, which is
+      # not required.
       - name: Report what is pending and what is overdue a row
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
         run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          git checkout "$PINNED" -- \
+            'tests/delivery_status.py'
+          test "$(git hash-object tests/delivery_status.py)" = "$(git rev-parse "$PINNED:tests/delivery_status.py")"
           git fetch --no-tags --quiet origin main
-          python tests/delivery_status.py --check
+          python -I -S tests/delivery_status.py --check
 
   # #201's region, regenerated on every push to main. The ledger itself needs
   # no publishing to be findable WITHOUT credentials: `tests/delivery_status.py`

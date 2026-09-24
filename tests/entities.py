@@ -216,6 +216,7 @@ for name in ("binary_sensor", "button"):
 # on the coordinator, which commands one heat pump, and two of them racing
 # is two commands to one machine.
 from heatpump_optimizer import climate as _climate_platform
+from heatpump_optimizer import entity as _entity_base
 from heatpump_optimizer import datetime as datetime_mod
 from heatpump_optimizer import switch as _switch_platform
 
@@ -261,6 +262,24 @@ def collect(module, data=None, coordinator=None):
     ENTRY.runtime_data = coordinator
     asyncio.run(module.async_setup_entry(hass, ENTRY, add_entities))
     return added
+
+
+def registry_default(entity) -> bool:
+    """What the registry reads at first registration, static or dynamic.
+
+    Upstream ``Entity.entity_registry_enabled_default`` returns the
+    ``_attr_`` value and a class may override it with a property (the
+    hot-water gate does); the stub has no such property, so read the
+    override where there is one. A census reading only ``_attr_`` misses
+    every dynamic default -- the reader deciding the fact on a second path.
+    """
+    return bool(
+        getattr(
+            entity,
+            "entity_registry_enabled_default",
+            getattr(entity, "_attr_entity_registry_enabled_default", True),
+        )
+    )
 
 
 # A representative published payload, covering every key the new entities read.
@@ -2934,7 +2953,7 @@ _sensed_hass, _sensed_coord, _sensed = _honest_coordinator(
         "sensor.downstairs": FakeState("20.1"),
     },
 )
-_sensed_fake = FakeCoordinator(_sensed)
+_sensed_fake = FakeCoordinator(_sensed, _config=dict(_sensed_coord._config))
 for _cls, _expected in (
     (sensor.DHWTemperatureSensor, 48.2),
     (sensor.BufferTankTempSensor, 36.5),
@@ -3199,7 +3218,7 @@ def _d801_publications(config, cycles):
         added = []
         asyncio.run(module.async_setup_entry(hass, entry, added.extend))
         for entity in added:
-            if not getattr(entity, "_attr_entity_registry_enabled_default", True):
+            if not registry_default(entity):
                 continue
             if not entity.available:
                 continue
@@ -3694,9 +3713,9 @@ for _cls in (
         "the card plan and Energy-dashboard meters must stay on for hot-water installs",
     )
 R.check(
-    "the probe-gated temperature sensor stays off by default even with hot water",
+    "the probe-gated temperature sensor stays off with hot water but no tank probe",
     not sensor.DHWTemperatureSensor(_dhw_on_fake, ENTRY).entity_registry_enabled_default,
-    "it is gated on the optional tank probe, not on hot water",
+    "it is gated on the optional tank probe as well as on hot water (#1335)",
 )
 
 # The registry reads the default before the first refresh, when the payload is
@@ -3726,6 +3745,141 @@ R.check(
     issubclass(sensor.DHWSetpointAdvisorSensor, sensor._DHWEntityMixin),
     "the one hot-water sensor outside the gate ships enabled on a no-DHW install",
 )
+
+# #1527 / #1542, class P2 (one fact decided on one path and not its sibling):
+# whether the install has hot water, and a tank probe. #1237, #1302, #1398,
+# #1461 and these two were each that answer missing from one more reader --
+# here a boost switch on the switch platform that put hot-water power into the
+# live action on a plant with no tank, and two probe-gated sensors kept off by
+# default where the probe is configured. So the population is not a list: it
+# is every entity every platform in PLATFORM_LIST registers whose subject is
+# hot water, by its translation key or by the dhw_ config slot it reads
+# (``READING_SOURCES`` via ``_reading_key``). Each takes its availability and
+# registry default from ``DHWEntityMixin`` unless named below with its reason.
+from heatpump_optimizer import boost as _boost_mod
+from heatpump_optimizer.coordinator import READING_SOURCES as _READING_SOURCES
+from heatpump_optimizer.entity import DHWEntityMixin as _DHWGate
+
+#: Hot-water entities that keep a registry default of their own, and why.
+_DHW_GATE_EXCEPTIONS = {
+    # Evidence-gated, not config-gated (#1335): the learned draw quantiles
+    # need weeks of draws, so it ships off even on a hot-water install. Its
+    # availability is still pinned below at the no-hot-water end.
+    "DHWHeavyDaySensor",
+}
+
+
+def _dhw_subject(entity) -> bool:
+    key = getattr(entity, "_attr_translation_key", None) or ""
+    slot = _READING_SOURCES.get(getattr(entity, "_reading_key", ""), "")
+    return "dhw" in key or slot.startswith("dhw_")
+
+
+def _dhw_family(coordinator):
+    found = {}
+    for _p in integration.PLATFORM_LIST:
+        _mod = _importlib.import_module(f"heatpump_optimizer.{_p}")
+        for _e in collect(_mod, coordinator=coordinator):
+            if _dhw_subject(_e):
+                found[type(_e).__name__] = _e
+    return found
+
+
+_probe_slot = const.CONF_DHW_TEMP_ENTITY
+_fam_off = _dhw_family(FakeCoordinator(_no_dhw))
+_fam_on = _dhw_family(FakeCoordinator(DATA))
+_fam_probe = _dhw_family(FakeCoordinator(DATA, _config={_probe_slot: "sensor.tank"}))
+_fam_platforms = {type(_e).__module__.rsplit(".", 1)[-1] for _e in _fam_on.values()}
+R.check(
+    "the hot-water census reaches more than the sensor platform (#1527)",
+    {"sensor", "switch"} <= _fam_platforms and len(_fam_on) > 1,
+    f"{len(_fam_on)} entities on {sorted(_fam_platforms)}: an empty sweep pins nothing",
+)
+R.check(
+    "every named exception is a hot-water entity the census found",
+    _DHW_GATE_EXCEPTIONS <= set(_fam_on),
+    f"stale: {sorted(_DHW_GATE_EXCEPTIONS - set(_fam_on))}",
+)
+_outside = sorted(
+    n for n, e in _fam_on.items()
+    if n not in _DHW_GATE_EXCEPTIONS and not isinstance(e, _DHWGate)
+)
+R.check(
+    "every hot-water entity takes the one gate (#1461, #1527)",
+    not _outside,
+    f"outside DHWEntityMixin: {_outside}",
+)
+_static = sorted(
+    n for n, e in _fam_on.items()
+    if n not in _DHW_GATE_EXCEPTIONS
+    and any("_attr_entity_registry_enabled_default" in k.__dict__ for k in type(e).__mro__)
+)
+R.check(
+    "no gated hot-water entity carries a static default beside the gate (#1542)",
+    not _static,
+    f"a static default a census reads instead of the gate: {_static}",
+)
+_live_off = sorted(n for n, e in _fam_off.items() if e.available)
+R.check(
+    "no hot-water entity is available on a plant with no hot water",
+    not _live_off,
+    f"available with dhw_enabled False: {_live_off}",
+)
+_on_off = sorted(n for n, e in _fam_off.items() if registry_default(e))
+R.check(
+    "no hot-water entity is enabled by default on a plant with no hot water",
+    not _on_off,
+    f"enabled by default with dhw_enabled False: {_on_off}",
+)
+_hidden = sorted(
+    n for n, e in _fam_probe.items()
+    if n not in _DHW_GATE_EXCEPTIONS and not registry_default(e)
+)
+R.check(
+    "every gated hot-water entity is on by default with hot water and its probe (#1542)",
+    not _hidden,
+    f"disabled by default with the tank probe configured: {_hidden}",
+)
+_probe_off = sorted(
+    n for n, e in _fam_on.items()
+    if getattr(e, "_dhw_probe_slot", "") and registry_default(e)
+)
+R.check(
+    "a probe-keyed entity stays off by default until its probe is configured (#1335)",
+    not _probe_off and any(getattr(e, "_dhw_probe_slot", "") for e in _fam_on.values()),
+    f"on without the probe: {_probe_off}",
+)
+_slot_mismatch = sorted(
+    n for n, e in _fam_on.items()
+    if _READING_SOURCES.get(getattr(e, "_reading_key", ""), "").startswith("dhw_")
+    and getattr(e, "_dhw_probe_slot", "") != _READING_SOURCES[e._reading_key]
+)
+R.check(
+    "a hot-water entity reading a probe keys its default on that probe's slot",
+    not _slot_mismatch,
+    f"_dhw_probe_slot disagrees with READING_SOURCES: {_slot_mismatch}",
+)
+
+# The overlay end of #1527: an unavailable switch is not called by Home
+# Assistant, but a boost set before hot water was switched off, or restored
+# from the store, must still never reach the action. Both ends, on the real
+# coordinator: no hot water drops the channel, hot water keeps it.
+for _label, _coord, _want in (
+    ("drops", _no_dhw_coord, False),
+    ("keeps", _on_coord, True),
+):
+    _coord._current_action = {}
+    _boost_mod.held_for(_coord).set(_boost_mod.CHANNEL_DHW, True, dt_util.now())
+    _boost_mod.apply(_coord)
+    _got = float(_coord._current_action.get("dhw_power") or 0.0) > 0.0
+    R.check(
+        f"the boost overlay {_label} hot-water power where the plant "
+        f"{'has' if _want else 'has no'} hot water (#1527)",
+        _got is _want,
+        f"dhw_power={_coord._current_action.get('dhw_power')!r}",
+    )
+    _boost_mod._STATES.pop(_coord, None)
+    _coord._current_action = {}
 
 # D9-01 (#1462): series-shaped attributes and duplicated static documentation
 # ride into the recorder every cycle. The plan sensors already declare their
@@ -3825,8 +3979,20 @@ R.section("A failed refresh reaches every entity")
 # the second half can only be failing for the reason it claims. Without it,
 # deleting a `super().available and` would still pass: everything would be
 # unavailable for its own reasons and the sweep would never notice.
-_healthy = FakeCoordinator(DATA)
-_broken = FakeCoordinator(DATA)
+# Every optional input configured, too: an entity gated on a configured
+# input (#1542's class) is only healthy where its input exists.
+_EVERY_INPUT = {
+    _slot: f"sensor.{_slot}"
+    for _slot in (
+        const.CONF_DHW_TEMP_ENTITY,
+        const.CONF_BUFFER_TANK_TEMP_ENTITY,
+        const.CONF_FLOOR_RETURN_TEMP_ENTITY,
+        const.CONF_LOWER_FLOOR_TEMP_ENTITY,
+        *sensor.ECL110_TOPIC_SLOTS,
+    )
+}
+_healthy = FakeCoordinator(DATA, _config=_EVERY_INPUT)
+_broken = FakeCoordinator(DATA, _config=_EVERY_INPUT)
 _broken.last_update_success = False
 # Every platform is in the roster (#295). The two action buttons were once
 # held out of it on the theory that "run an optimization now" is exactly what
@@ -8178,7 +8344,7 @@ _expected_disabled = {
 _actually_disabled = {
     s._key
     for s in sensors
-    if getattr(s, "_attr_entity_registry_enabled_default", True) is False
+    if not registry_default(s)
 }
 R.check(
     "exactly the ordinary-install-dead sensors are disabled by default",
@@ -8293,10 +8459,10 @@ R.check(
 )
 # Round-5 D3-07 (#1315), the direct half: the assertions above all read the
 # scrub through a sensor, so they pin only what some sensor happens to
-# publish. This one calls _finite itself, pre-scrub, with the shape no
+# publish. This one calls _finite itself (entity.py since #1541), pre-scrub, with the shape no
 # sensor above carries -- a 2-D array whose non-finite members must come
 # back None, recursively, as plain Python.
-_arr_scrubbed = sensor._finite(_np.array([[1.5, _np.inf], [_np.nan, 2.0]]))
+_arr_scrubbed = _entity_base._finite(_np.array([[1.5, _np.inf], [_np.nan, 2.0]]))
 R.check(
     "the finite scrub converts an ndarray recursively, non-finite to None",
     type(_arr_scrubbed) is list
@@ -8504,7 +8670,7 @@ _ord_by_id = {e.entity_id: e for e in _ord_entities}
 
 
 def _ord_default_on(e) -> bool:
-    return getattr(type(e), "_attr_entity_registry_enabled_default", True) is not False
+    return registry_default(e)
 
 
 def _ord_waiting_for(e):
@@ -8531,35 +8697,23 @@ def _ord_state(e):
     return None
 
 
-# The ECL110 pair is the one disabled member that is NOT dead on the
-# ordinary install: it has no availability gate at all and publishes the
-# 0.0 placeholder, which is exactly why its default is off (its own
-# comment: "disabled, not a forever-unknown entity"). Every other disabled
-# entity must be unavailable or stateless there — that is the measured
-# cause its default is off, and a sensor flipped without one fails here.
-_ECL110_UNGATED = {"ecl110_displace", "ecl110_effective_displace"}
+# Every disabled-by-default entity must be unavailable or stateless on the
+# ordinary install -- that is the measured cause its default is off, and a
+# sensor flipped without one fails here. The ECL110 pair used to be the one
+# exception, available with no ECL110 topic stored and publishing a 0.0
+# placeholder; it now takes the configured-input gate, so it has none.
 _ord_dead = sorted(
     e._key
     for e in _ord_entities
     if not _ord_default_on(e)
-    and e._key not in _ECL110_UNGATED
     and e.available
     and _ord_state(e) is not None
 )
 R.check(
     "every disabled-by-default entity is dead on the ordinary install,"
-    " save the ungated ECL110 pair (#177, #1335)",
+    " the ECL110 pair included (#177, #1335)",
     not _ord_dead,
     f"alive while disabled: {_ord_dead}",
-)
-R.check(
-    "the ECL110 pair really is the ungated exception (#1335)",
-    all(
-        e.available
-        for e in _ord_entities
-        if getattr(e, "_key", None) in _ECL110_UNGATED
-    ),
-    "an ECL110 sensor grew an availability gate; re-cut the exception",
 )
 _ord_shipped_dead = sorted(
     e.entity_id
@@ -8572,6 +8726,112 @@ R.check(
     "no enabled entity ships dead on the ordinary install (#1335)",
     not _ord_shipped_dead,
     f"enabled, unavailable, no waiting_for marker: {_ord_shipped_dead}",
+)
+
+# #1542 / #1527 widened (R8-P2): the hot-water gate above is one instance of
+# a wider class -- an entity whose default and availability should follow an
+# input the user configures. The population is derived, not listed: every
+# entity the ordinary install ships disabled by default, plus every entity
+# whose ``_reading_key`` names a READING_SOURCES slot the ordinary install
+# leaves empty. Each takes ``ConfiguredInputMixin`` (or the hot-water gate),
+# or is named below with the reason its default stays its own.
+from heatpump_optimizer.entity import ConfiguredInputMixin as _InputGate
+
+_ord_config = _ord_coord._config
+_INPUT_GATE_EXCEPTIONS = {
+    # Evidence-gated: configured or not, these wait on weeks of draws, a
+    # billing month or a learned map before they have a value (#1335).
+    "DHWHeavyDaySensor": "evidence: learned per-window draw quantiles",
+    "ContractComparisonSensor": "evidence: a settled billing month",
+    "FrequencyAdvisorSensor": "evidence: the learned kW-per-Hz map",
+    "WoodBurnAdvisorSensor": "evidence: the wood fuel model's readiness",
+    # Feature opt-ins keyed on an options-page choice rather than an input
+    # entity slot; their default is #1335's static off, not yet ruled to
+    # follow the choice (R8-P2 hand-back).
+    "MonthlyPeakSensor": "opt-in: capacity tariff choice",
+    "PowerHeadroomSensor": "opt-in: capacity tariff or main fuse",
+    "PVSurplusSensor": "opt-in: PV enabled flag",
+    "ValveTargetRecommendationSensor": "opt-in: mixing-valve mode choice",
+    "WoodCheaperBinarySensor": "opt-in: wood furnace flag",
+    "MeasuredPowerSensor": "opt-in: measured power entity (#1335 roster)",
+    "CompressorStartsSensor": "opt-in: measured power entity (#1335 roster)",
+}
+_input_population = {}
+for _e in _ord_entities:
+    _slot = _READING_SOURCES.get(getattr(_e, "_reading_key", ""), "")
+    if not _ord_default_on(_e) or (_slot and not _ord_config.get(_slot)):
+        _input_population[type(_e).__name__] = _e
+R.check(
+    "the configured-input census finds the probe temperatures and ECL110",
+    {"SlabTempSensor", "LowerFloorTempSensor", "FloorReturnTempSensor",
+     "BufferTankTempSensor", "ECL110DisplaceSensor",
+     "ECL110EffectiveDisplaceSensor", "DHWTemperatureSensor"}
+    <= set(_input_population),
+    f"census: {sorted(_input_population)}",
+)
+_ungated = sorted(
+    n for n, e in _input_population.items()
+    if n not in _INPUT_GATE_EXCEPTIONS
+    and not isinstance(e, (_InputGate, _DHWGate))
+)
+R.check(
+    "every entity whose default should follow a configured input takes the gate",
+    not _ungated,
+    f"static or ungated: {_ungated}",
+)
+_stale_exc = sorted(
+    n for n in _INPUT_GATE_EXCEPTIONS
+    if n not in _input_population
+    or isinstance(_input_population[n], (_InputGate, _DHWGate))
+)
+R.check(
+    "every named input-gate exception is still in the census and still ungated",
+    not _stale_exc,
+    f"stale: {_stale_exc}",
+)
+_input_members = [e for e in _input_population.values() if isinstance(e, _InputGate)]
+_static_inputs = sorted(
+    type(e).__name__ for e in _input_members
+    if any("_attr_entity_registry_enabled_default" in k.__dict__ for k in type(e).__mro__)
+)
+R.check(
+    "no input-gated entity carries a static default beside the gate",
+    not _static_inputs,
+    f"static: {_static_inputs}",
+)
+_slot_bad = sorted(
+    type(e).__name__ for e in _input_members
+    if getattr(e, "_reading_key", "")
+    and _READING_SOURCES.get(e._reading_key) not in e._input_slots
+)
+R.check(
+    "an input-gated entity reading a probe is keyed on that probe's slot",
+    not _slot_bad,
+    f"_input_slots disagrees with READING_SOURCES: {_slot_bad}",
+)
+# Both ends per member: with none of its slots configured it is off and
+# unavailable (the null control -- a payload that satisfies every other
+# gate); with its first slot configured it is on and available.
+_off_wrong, _on_wrong = [], []
+for _e in _input_members:
+    _cls = type(_e)
+    _bare = _cls(FakeCoordinator(DATA, _config={}), ENTRY)
+    if _bare.entity_registry_enabled_default or _bare.available:
+        _off_wrong.append(_cls.__name__)
+    _lit = _cls(
+        FakeCoordinator(DATA, _config={_cls._input_slots[0]: "configured"}), ENTRY
+    )
+    if not (_lit.entity_registry_enabled_default and _lit.available):
+        _on_wrong.append(_cls.__name__)
+R.check(
+    "an input-gated entity is off and unavailable with its input unconfigured",
+    _input_members and not _off_wrong,
+    f"{len(_input_members)} members; lit anyway: {_off_wrong}",
+)
+R.check(
+    "and on and available once its input is configured (#1542)",
+    not _on_wrong,
+    f"still off or unavailable: {_on_wrong}",
 )
 
 _card_text = Path(
@@ -14863,6 +15123,8 @@ _NON_GATE_WORKFLOWS = [
     # #1514 split `pr-contract` out of governance.yml; this script reads it
     # for the contract pins below and for the `edited` barrier.
     ".github/workflows/pr-contract.yml",
+    # Decision 0013 as amended: the budget-raise gate, read for its wiring pins.
+    ".github/workflows/budget-raise-gate.yml",
 ]
 for _wf in _NON_GATE_WORKFLOWS:
     R.check(
@@ -15215,6 +15477,62 @@ R.check(
     _af3b_kept
     and not _closure.autofix_repair_failed("closures-autofix", _af3b_status),
     f"status={_af3b_status}: no repair was owed, so no human is waiting",
+)
+# The recordings are made on the pull request's MERGE tree (main + branch)
+# and `closures-autofix` checks out the branch HEAD, so a script that reads a
+# file main added and the branch has not merged names a path the autofix tree
+# does not have. `check` answered that NOT A FILE before it reached the
+# under-approximation comparison, printed no UNDER-SCOPED, and the job went
+# green on the quiet `skip-not-under-scoped` while the closures job had
+# printed UNDER-SCOPED for another script (#1569: tests/entities.py read
+# main's four replay files; tests/finite_boundary.py was under-scoped). A path
+# this tree lacks cannot belong in this tree's closure -- the recorder's own
+# existence rule (#1310) -- so it is dropped, and the repair happens. The null
+# control is the same run with no such path.
+_af6_absent = "tests/replay/only-on-main.json"
+_af6_status, _af6_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"],
+     "tests/entities.py": ["tests/entities.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 0,
+      "files": ["tests/open_meteo.py", "tests/harness.py"]},
+     {"script": "tests/entities.py", "rc": 0,
+      "files": ["tests/entities.py", _af6_absent]}],
+)
+_af6n_status, _af6n_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"],
+     "tests/entities.py": ["tests/entities.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 0,
+      "files": ["tests/open_meteo.py", "tests/harness.py"]},
+     {"script": "tests/entities.py", "rc": 0,
+      "files": ["tests/entities.py"]}],
+)
+R.check(
+    "a recording naming a path the autofix tree lacks still repairs the "
+    "under-scoped script (#1569)",
+    not (_closure.ROOT / _af6_absent).exists()
+    and _af6_status == "changed" and not _af6_kept
+    and _af6n_status == "changed" and not _af6n_kept,
+    f"with a path only main has: status={_af6_status}; without it (null "
+    f"control): status={_af6n_status} -- a quiet skip here is a repair "
+    "nobody makes and nothing reports",
+)
+# The other edge of that drop: only a path this tree LACKS goes. A path that
+# exists and is not a regular file -- a directory -- is kept, so NOT A FILE
+# still refuses it (#365) and nothing is merged. Keying the drop on "not a
+# regular file" instead would silently discard the directory and repair.
+_af7_dir = "tests/hastub"
+_af7_status, _af7_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 0,
+      "files": ["tests/open_meteo.py", "tests/harness.py", _af7_dir]}],
+)
+R.check(
+    "and a recorded directory is kept for NOT A FILE, not dropped (#365, #1569)",
+    (_closure.ROOT / _af7_dir).is_dir()
+    and _af7_status != "changed" and _af7_kept,
+    f"status={_af7_status}, closures unchanged={_af7_kept} -- a directory "
+    "carries no content a closure can be stale against, so the repair must "
+    "refuse rather than drop it",
 )
 with _tempfile.TemporaryDirectory() as _af4_td:
     _af4_root = Path(_af4_td)
@@ -19270,9 +19588,12 @@ R.check(
 )
 
 _NS_JOB = _workflow_job(_TESTS_YML, "nightly-status")
+# The invocation lines: since #1589 the reporter runs inside the step that
+# restores it from the base, so the line is a `run: |` body line, not `run:`.
 _NS_RUNS = [
     _l.strip() for _l in _NS_JOB.splitlines()
-    if "tests/nightly_status.py" in _l and _l.strip().startswith("run:")
+    if "tests/nightly_status.py" in _l
+    and re.match(r"(?:run:\s*)?python", _l.strip())
 ]
 R.check(
     "the nightly reporter is wired into a job that runs on pull requests",
@@ -19284,7 +19605,7 @@ R.check(
 # always-green check this repository keeps catching. CI must never pass it.
 R.check(
     "and passes it no argument that would pin its answer",
-    bool(_NS_RUNS) and _NS_RUNS[0] == "run: python tests/nightly_status.py",
+    bool(_NS_RUNS) and _NS_RUNS[0] == "python -I -S tests/nightly_status.py",
     f"the invocation is {_NS_RUNS[0] if _NS_RUNS else '(absent)'!r}",
 )
 # The permission widening, checked as a PROPERTY rather than as its instance:
@@ -20891,8 +21212,13 @@ for _wf in sorted(Path(".github/workflows").glob("*.y*ml")):
     if _lists:
         _EDITED_FILES[_wf.name] = sorted(_jobs)
 R.check(
-    "a body edit starts a run of the contract job, and of no other job",
-    _EDITED_FILES == {"pr-contract.yml": ["pr-contract"]},
+    "a body edit starts a run of the contract job and the budget gate, and of "
+    "no other job",
+    _EDITED_FILES == {"pr-contract.yml": ["pr-contract"],
+                      # A base retarget moves the merge base the gate reads;
+                      # its one job carries no `if:`, which `_brg_defects`
+                      # below pins, so an `edited` run is a full verdict.
+                      "budget-raise-gate.yml": ["budget-raise-gate"]},
     f"workflows listing `edited` and their jobs: {_EDITED_FILES} -- any other "
     "job in such a file writes a check run on every body edit, skipped or "
     "not, at the unchanged head: a skipped run of a required context "
@@ -20985,6 +21311,61 @@ R.check(
     f"#1484 guard -> {_RC_NULL}; the contract's own `if:` -> "
     f"{_RC_OWN}; an "
     "undecidable expression -> None, which the check above counts as skippable",
+)
+# --- decision 0013 as amended: the budget-raise gate's wiring. The budget
+# files carry no code owner, so this job is the only thing between a raise and
+# a merge on the approver App's review. Each property is a way the gate goes
+# green without grading: an `if:` (a skipped required context passes); a
+# second job in the file (a review event re-reports it); no review trigger (an
+# approval never turns it green); the gate run before the restore, without it
+# or without `-I` (the pull request grades itself); a write grant. The null
+# control drives the same predicate over a copy with the restore removed.
+def _brg_defects(text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    on = doc.get(True, doc.get("on")) or {}
+    jobs = doc.get("jobs") or {}
+    job = jobs.get("budget-raise-gate") or {}
+    runs = [str(s.get("run", "")) for s in job.get("steps") or []]
+    gate = [i for i, r in enumerate(runs)
+            if re.search(r"python3?\s+(?:-\w+\s+)*\S*budget_raise_gate\.py", r)]
+    restore = [i for i, r in enumerate(runs)
+               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+    out = []
+    if list(jobs) != ["budget-raise-gate"]:
+        out.append(f"jobs {list(jobs)}")
+    if "if" in job:
+        out.append("a job-level if:")
+    if sorted((on.get("pull_request_review") or {}).get("types", [])) != [
+            "dismissed", "edited", "submitted"]:
+        out.append("review trigger")
+    if "edited" not in ((on.get("pull_request") or {}).get("types") or []):
+        out.append("no `edited`: a base retarget would not re-run it")
+    if not gate or not restore or any(runs[:restore[0]]) or gate[0] < restore[0]:
+        out.append(f"restore at {restore}, gate at {gate}")
+    if not all(re.search(r"python3 -I \.claude/workflows/budget_raise_gate\.py", runs[i])
+               for i in gate):
+        out.append("gate not under python3 -I")
+    if doc.get("permissions") != {"contents": "read", "pull-requests": "read"} or any(
+            "permissions" in (j or {}) for j in jobs.values()):
+        out.append(f"permissions {doc.get('permissions')}")
+    return out
+
+
+_BRG_TEXT = Path(".github/workflows/budget-raise-gate.yml").read_text()
+_BRG_DEFECTS = _brg_defects(_BRG_TEXT)
+R.check(
+    "the budget-raise gate is one unguarded job that re-runs on a review and "
+    "grades with the base's copy of its program",
+    _BRG_DEFECTS == [],
+    f"defects: {_BRG_DEFECTS}",
+)
+_BRG_NULL = _brg_defects(re.sub(
+    r"git checkout \"\$PINNED\" -- \\\n\s*'\.claude/workflows/\*\.py'\n",
+    "true\n", _BRG_TEXT))
+R.check(
+    "and the same file with its restore removed is refused (null control)",
+    any(d.startswith("restore at") for d in _BRG_NULL),
+    f"defects on the unpinned copy: {_BRG_NULL}",
 )
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string
@@ -22357,7 +22738,9 @@ import mutation_table as _mut  # noqa: E402
 
 _MUT_JOB = _workflow_job(_TESTS_YML, "mutation")
 _MUTN_JOB = _workflow_job(_TESTS_YML, "mutation-nightly")
-_COV_JOB = _workflow_job(_TESTS_YML, "coverage")
+# The ratchet grades in its own job since #1589: `coverage` runs the pull
+# request's suite, and a grader after that in the same job is not the base's.
+_COV_JOB = _workflow_job(_TESTS_YML, "coverage-ratchet")
 
 R.check(
     "the coverage ratchet is wired into a job that runs on pull requests",
@@ -22575,6 +22958,197 @@ R.check(
     and not hasattr(_mut, "NON_VIOLATION_EXITS"),
     "rc 2 with no failing check reads the same from every driver; a FAIL "
     "line beside it is a kill whatever the status",
+)
+
+# The ratchet-finite class (#1583's review). Python's json reads NaN,
+# Infinity, -Infinity and 1e999 as floats, and every comparison against NaN is
+# false: `current > nan` never fires, so a cap edited to NaN was an unlimited
+# raise that tests/structure.py printed as `ok cut_views 110 <= nan`. Infinity
+# passes by arithmetic; a string crashed one script and float()-coerced in
+# another ("nan" into NaN); a bool is 0 or 1 to Python. The barrier is ONE
+# function, structure.cap_problem (copied verbatim into the three graders
+# that must stay single-file), and every ratchet calls it on load. Each is
+# driven below with every malformed spelling and must refuse, and with its own
+# committed table -- the null control -- must not. typing_ruler.py (not
+# imported here) drives its arms in its own selftest; policy_lint.mjs in its
+# fixture acceptance.
+_CAP_ABSENT = object()
+_CAP_BAD = {
+    "nan": float("nan"), "inf": float("inf"), "-inf": float("-inf"),
+    "null": None, "string": "110", "string-nan": "nan", "true": True,
+    "negative": -1, "huge-int": 10 ** 400,
+}
+_CAP_BAD_COUNT = {**_CAP_BAD, "float": 110.5, "absent": _CAP_ABSENT}
+
+
+def _cap_set(table: dict, path: tuple, value) -> dict:
+    """A deep copy of ``table`` with the leaf at ``path`` replaced or removed."""
+    out = json.loads(json.dumps(table))
+    node = out
+    for step in path[:-1]:
+        node = node[step]
+    if value is _CAP_ABSENT:
+        node.pop(path[-1], None)
+    else:
+        node[path[-1]] = value
+    return out
+
+
+def _cap_structure_run(value) -> tuple:
+    """The REAL structure ratchet over a scratch table with cut_views set."""
+    import contextlib as _cl
+    import io as _io
+    budgets = json.loads(_s5_structure.BUDGET_FILE.read_text())
+    metrics = {k: v for k, v in budgets.items() if k != "recorded_at"}
+    with _tempfile.TemporaryDirectory() as td:
+        table = Path(td) / "structure_budgets.json"
+        table.write_text(json.dumps(_cap_set(budgets, ("cut_views",), value)))
+        saved, _s5_structure.BUDGET_FILE = _s5_structure.BUDGET_FILE, table
+        buf = _io.StringIO()
+        try:
+            with _cl.redirect_stdout(buf):
+                rc = _s5_structure.ratchet(
+                    {"metrics": metrics, "tables": {"top_is_coordinator": True}})
+        except Exception as exc:  # a crash is not a refusal that says why
+            rc = f"raised {type(exc).__name__}"
+        finally:
+            _s5_structure.BUDGET_FILE = saved
+    return rc, buf.getvalue()
+
+
+_CAP_S = {name: _cap_structure_run(v) for name, v in _CAP_BAD_COUNT.items()}
+_CAP_S_REAL = _cap_structure_run(
+    json.loads(_s5_structure.BUDGET_FILE.read_text())["cut_views"])
+R.check(
+    "the structure ratchet refuses a non-finite or malformed cap by name",
+    all(rc == 1 and "FAIL cut_views" in out for rc, out in _CAP_S.values())
+    and _CAP_S_REAL[0] == 0,
+    "; ".join(f"{n}: rc={rc}" for n, (rc, _o) in _CAP_S.items())
+    + f"; real table rc={_CAP_S_REAL[0]} (the null control)",
+)
+
+# ONE barrier, three verbatim copies. mutation_table.py, coverage_ratchet.py
+# and typing_ruler.py are graders a job may restore from the base and run
+# under `python3 -I`, where importing tests/structure.py neither resolves nor
+# stays the base's; so each carries the function, and any copy that differs
+# from the original by one character is refused here.
+def _cap_source(rel: str) -> str:
+    _src = Path(rel).read_text()
+    for _node in ast.parse(_src).body:
+        if isinstance(_node, ast.FunctionDef) and _node.name == "cap_problem":
+            return ast.get_source_segment(_src, _node)
+    return ""
+
+
+_CAP_ORIGINAL = _cap_source("tests/structure.py")
+_CAP_DRIFTED = [
+    _rel for _rel in ("tests/mutation_table.py", "tests/coverage_ratchet.py",
+                      "tests/typing_ruler.py")
+    if _cap_source(_rel) != _CAP_ORIGINAL
+]
+R.check(
+    "every grader's copy of the barrier is the original, character for character",
+    bool(_CAP_ORIGINAL) and not _CAP_DRIFTED,
+    f"original found: {bool(_CAP_ORIGINAL)}; copies that differ or are "
+    f"missing: {_CAP_DRIFTED}",
+)
+
+_CAP_MB_OK = {"max_survivor_fraction": {"changed": 0.2, "full": 0.3}}
+_CAP_M_FRAC = {
+    n: _mut.cap_problems(_cap_set(_CAP_MB_OK, ("max_survivor_fraction", "changed"), v))
+    for n, v in {**_CAP_BAD, "string": "0.2", "absent": _CAP_ABSENT}.items()
+}
+R.check(
+    "the mutation table refuses a non-finite or malformed survivor cap",
+    all(_CAP_M_FRAC.values())
+    and _mut.cap_problems(_MB) == [] and _mut.cap_problems(_CAP_MB_OK) == [],
+    f"accepted: {[n for n, p in _CAP_M_FRAC.items() if not p]}; committed "
+    f"table: {_mut.cap_problems(_MB)} (the null control)",
+)
+
+_CAP_COV = getattr(_cov, "budget_problems", None)
+_CAP_C = {
+    (key, n): (_CAP_COV(_cap_set(_CB, (key,), v)) if _CAP_COV else [])
+    for key in ("package_percent_floor", "package_percent_ceiling",
+                "config_flow_percent_floor", "module_percent_floor")
+    for n, v in {**_CAP_BAD, "over-100": 100.5, "absent": _CAP_ABSENT}.items()
+}
+_CAP_C.update({
+    ("pragmas", n): (_CAP_COV(_cap_set(_CB, ("pragmas",), v)) if _CAP_COV else [])
+    for n, v in _CAP_BAD_COUNT.items()
+})
+R.check(
+    "the coverage ratchet refuses a non-finite or malformed floor or cap",
+    _CAP_COV is not None and all(_CAP_C.values()) and _CAP_COV(_CB) == [],
+    f"budget_problems={'present' if _CAP_COV else 'missing'}; accepted: "
+    f"{[k for k, p in _CAP_C.items() if not p]}; committed table: "
+    f"{_CAP_COV(_CB) if _CAP_COV else 'n/a'} (the null control)",
+)
+
+
+def _cap_cov_main(table: dict) -> int:
+    """coverage_ratchet.main() over a scratch table: is the barrier WIRED."""
+    import contextlib as _cl
+    import io as _io
+    with _tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "coverage_budgets.json"
+        path.write_text(json.dumps(table))
+        saved, _cov.BUDGETS = _cov.BUDGETS, path
+        saved_argv, sys.argv = sys.argv, ["coverage_ratchet.py"]
+        try:
+            with _cl.redirect_stdout(_io.StringIO()):
+                return _cov.main()
+        finally:
+            _cov.BUDGETS, sys.argv = saved, saved_argv
+
+
+R.check(
+    "and main() runs it before comparing anything",
+    _cap_cov_main(_cap_set(_CB, ("package_percent_floor",), float("nan"))) == 1
+    and _cap_cov_main(_CB) == 0,
+    "a NaN floor must refuse the run the pragma row alone would pass; the "
+    "committed table must still pass it (the null control)",
+)
+
+_CAP_ST = getattr(_stress_mod, "budget_table_problems", None)
+_CAP_ST_TABLE = json.loads(Path("tests/stress_budgets.json").read_text())
+_CAP_ST_ROW = sorted(k for k in _CAP_ST_TABLE if "/" in k)[0]
+_CAP_T = {
+    (field, n): (_CAP_ST(_cap_set(_CAP_ST_TABLE, (_CAP_ST_ROW, field), v))
+                 if _CAP_ST else [])
+    for field in ("ratio", "rss_attrib_mb", "rss_peak_mb", "traced_peak_mb")
+    for n, v in {**_CAP_BAD, "zero": 0.0}.items()
+}
+R.check(
+    "the stress budget table refuses a non-finite or malformed recorded cost",
+    _CAP_ST is not None and all(_CAP_T.values()) and _CAP_ST(_CAP_ST_TABLE) == [],
+    f"budget_table_problems={'present' if _CAP_ST else 'missing'}; accepted: "
+    f"{[k for k, p in _CAP_T.items() if not p]}; committed table: "
+    f"{_CAP_ST(_CAP_ST_TABLE) if _CAP_ST else 'n/a'} (the null control)",
+)
+
+
+def _cap_stress_load(table: dict):
+    """stress.load_budget_table() over a scratch file: refused, or the table."""
+    with _tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "stress_budgets.json"
+        path.write_text(json.dumps(table))
+        try:
+            return _stress_mod.load_budget_table(str(path))
+        except SystemExit as exc:
+            return f"refused: {exc}"
+        except TypeError as exc:  # the base has no path parameter
+            return f"raised {exc}"
+
+
+_CAP_ST_NAN = _cap_stress_load(
+    _cap_set(_CAP_ST_TABLE, (_CAP_ST_ROW, "ratio"), float("nan")))
+R.check(
+    "and load_budget_table refuses such a table instead of returning it",
+    isinstance(_CAP_ST_NAN, str) and _CAP_ST_NAN.startswith("refused")
+    and _cap_stress_load(_CAP_ST_TABLE) == _CAP_ST_TABLE,
+    f"NaN ratio -> {str(_CAP_ST_NAN)[:120]!r}; the committed table must load "
+    "unchanged (the null control)",
 )
 
 # #1521: env_drift.py refuses an inherited claim list BEFORE capturing
@@ -22867,6 +23441,13 @@ def decide(a, b, flag):
     return 0
 """
 _MUT_DIR = Path(_tempfile.mkdtemp(prefix="mutation-operators-"))
+
+
+def _mut_write(path: Path, text: str) -> Path:
+    path.write_text(text)
+    return path
+
+
 _MUT_FILE = _MUT_DIR / "sample.py"
 _MUT_FILE.write_text(_MUT_SRC)
 _MUT_GOT = list(_mut.candidates(_MUT_FILE))
@@ -22953,11 +23534,11 @@ R.check(
     f"from candidates()",
 )
 
-# The ledger + ratchet, driven over the synthetic candidates. A site is
+# The ledger + ratchet, driven over the synthetic inventory. A site is
 # unpinned until it carries a disposition (a verdict or a killed_by driver),
-# keyed `file:line KIND` and pinned to the `old` text.
-_MUT_FIRST = _MUT_GOT[0]
-_MUT_KEY = _mut.triage_key(_MUT_FIRST)
+# keyed by the site's content anchor and pinned to the `old` text.
+_MUT_FIRST = _MUT_INV[0] if _MUT_INV else _MUT_GOT[0]
+_MUT_KEY = _MUT_FIRST.get("anchor", _mut.triage_key(_MUT_FIRST))
 _MUT_EMPTY = {"survivor_triage": {}, "killed_by": {}}
 _MUT_DISP = {"survivor_triage": {
     _MUT_KEY: {"verdict": "equivalent", "old": _MUT_FIRST["old"],
@@ -22966,26 +23547,27 @@ _MUT_DISP = {"survivor_triage": {
 R.check(
     "unpinned_sites counts a site unpinned until it carries a disposition",
     _UNPIN is not None
-    and len(_UNPIN(_MUT_EMPTY, _MUT_GOT)) == len(_MUT_GOT)
-    and len(_UNPIN(_MUT_DISP, _MUT_GOT)) == len(_MUT_GOT) - 1,
-    f"empty ledger -> {len(_UNPIN(_MUT_EMPTY, _MUT_GOT)) if _UNPIN else 'n/a'}"
+    and len(_UNPIN(_MUT_EMPTY, _MUT_INV)) == len(_MUT_GOT)
+    and len(_UNPIN(_MUT_DISP, _MUT_INV)) == len(_MUT_GOT) - 1,
+    f"empty ledger -> {len(_UNPIN(_MUT_EMPTY, _MUT_INV)) if _UNPIN else 'n/a'}"
     f"/{len(_MUT_GOT)}; one disposition -> "
-    f"{len(_UNPIN(_MUT_DISP, _MUT_GOT)) if _UNPIN else 'n/a'}/{len(_MUT_GOT)}",
+    f"{len(_UNPIN(_MUT_DISP, _MUT_INV)) if _UNPIN else 'n/a'}/{len(_MUT_GOT)}",
 )
 
-# The ratchet verdict, driven: growth is refused, a bootstrap (no record) and
-# an at-or-below record are not.
+# The ratchet verdict, driven against the count at the ratchet base: growth is
+# refused, an at-or-below count is not, and an unreadable base is REFUSED --
+# a ratchet with nothing to compare against must not go green by skipping.
 _REFUSE = getattr(_mut, "ratchet_refusal", None)
+try:
+    _MUT_RATCHET = (
+        _REFUSE(None, _MUT_GOT), _REFUSE(0, _MUT_GOT),
+        _REFUSE(len(_MUT_GOT), _MUT_GOT), _REFUSE(len(_MUT_GOT) + 5, _MUT_GOT))
+except Exception as _mut_r_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _MUT_RATCHET = (f"{type(_mut_r_exc).__name__}: {_mut_r_exc}",)
 R.check(
-    "ratchet_refusal refuses growth and nothing else",
-    _REFUSE is not None
-    and _REFUSE({}, _MUT_GOT) is None
-    and _REFUSE({"unpinned_sites": 0}, _MUT_GOT) == 1
-    and _REFUSE({"unpinned_sites": len(_MUT_GOT)}, _MUT_GOT) is None
-    and _REFUSE({"unpinned_sites": len(_MUT_GOT) + 5}, _MUT_GOT) is None,
-    f"bootstrap -> {_REFUSE({}, _MUT_GOT) if _REFUSE else 'n/a'}; "
-    f"record 0 -> {_REFUSE({'unpinned_sites': 0}, _MUT_GOT) if _REFUSE else 'n/a'}"
-    f"; at/above record -> None",
+    "ratchet_refusal refuses growth over the base count, and an unreadable base",
+    _MUT_RATCHET == (1, 1, None, None),
+    f"(no base, base 0, base = count, base above) -> {_MUT_RATCHET}",
 )
 
 # The completeness check, both directions, plus the empty-inventory null
@@ -22998,23 +23580,206 @@ _MUT_STALE = {"survivor_triage": {}, "killed_by": {
 R.check(
     "completeness_problems refuses a stale mark and an empty inventory",
     _COMP is not None
-    and len(_COMP(_MUT_STALE, _MUT_GOT)) == 1
+    and len(_COMP(_MUT_STALE, _MUT_INV)) == 1
     and len(_COMP(_MUT_EMPTY, [])) == 1
-    and _COMP(_MUT_EMPTY, _MUT_GOT) == [],
-    f"stale -> {len(_COMP(_MUT_STALE, _MUT_GOT)) if _COMP else 'n/a'}; "
+    and _COMP(_MUT_EMPTY, _MUT_INV) == [],
+    f"stale -> {len(_COMP(_MUT_STALE, _MUT_INV)) if _COMP else 'n/a'}; "
     f"empty inventory -> {len(_COMP(_MUT_EMPTY, [])) if _COMP else 'n/a'}; "
-    f"consistent -> {_COMP(_MUT_EMPTY, _MUT_GOT) if _COMP else 'n/a'}",
+    f"consistent -> {_COMP(_MUT_EMPTY, _MUT_INV) if _COMP else 'n/a'}",
 )
 
-# The budget carries the ratchet record: a non-negative integer, not a
-# fraction the way max_survivor_fraction is.
+# A disposition belongs to the SITE, not to where the site sits (RCA
+# fix/rca-ledger-anchors). A `file:line KIND` key moved with every edit above
+# the site, so each merge that shifted a production file re-keyed pins that
+# every other open branch had copied, and those branches went DIRTY on the
+# ledger. Driven: a ledger disposing every synthetic site still covers every
+# one after three lines are inserted above them all; the null control edits
+# ONE pinned line's text, and exactly that disposition drops out.
+try:
+    _MUT_ALL = {"survivor_triage": {}, "killed_by": {
+        _s["anchor"]: {"killed_by": "tests/x.py", "old": _s["old"]}
+        for _s in _MUT_INV}}
+    _MUT_FILE.write_text("# a\n# b\n\n" + _MUT_SRC)
+    _MUT_SHIFTED = _INV([_MUT_FILE])
+    _MUT_FILE.write_text(_MUT_SRC.replace("    if flag:", "    if flag :"))
+    _MUT_EDITED = _INV([_MUT_FILE])
+    _MUT_SHIFT = (
+        all(_a["line"] == _b["line"] + 3
+            for _a, _b in zip(_MUT_SHIFTED, _MUT_INV)),
+        len(_UNPIN(_MUT_ALL, _MUT_SHIFTED)), _COMP(_MUT_ALL, _MUT_SHIFTED),
+        len(_UNPIN(_MUT_ALL, _MUT_EDITED)), len(_COMP(_MUT_ALL, _MUT_EDITED)))
+except Exception as _mut_s_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _MUT_SHIFT = (f"{type(_mut_s_exc).__name__}: {_mut_s_exc}",)
+finally:
+    _MUT_FILE.write_text(_MUT_SRC)
+R.check(
+    "a line shift keeps every disposition; an edit to the pinned text drops it",
+    _MUT_SHIFT == (True, 0, [], 1, 1),
+    f"(every site moved 3 lines, unpinned after shift, completeness after "
+    f"shift, unpinned after an edit, stale after an edit) -> {_MUT_SHIFT}",
+)
+
+# The canonical form, each refusal driven with its fixture: a retired
+# `file:line KIND` key, a map out of key order, and a committed count are the
+# three shapes that made unrelated branches conflict. `normalize` maps a
+# retired key to the anchor of the site at that line whose text is the pin,
+# sorts, drops the count, and reports (keeps) a retired key naming no site.
+_FORM = getattr(_mut, "ledger_form_problems", None)
+_NORM = getattr(_mut, "normalize", None)
+try:
+    # The synthetic sites re-homed under the package, as the real ledger's are.
+    _MUT_PKG_INV = _mut.anchor_sites(_MUT_SRC, [
+        dict(_m, file=_mut.PKG + "sample.py") for _m in _MUT_GOT])
+    _MUT_A, _MUT_B = _MUT_PKG_INV[0], _MUT_PKG_INV[-1]
+    _MUT_LEG = {"unpinned_sites": 7, "survivor_triage": {}, "killed_by": {
+        _mut.triage_key(_MUT_B): {"killed_by": "tests/x.py",
+                                  "old": _MUT_B["old"]},
+        _mut.triage_key(_MUT_A): {"killed_by": "tests/x.py",
+                                  "old": _MUT_A["old"]},
+        "custom_components/heatpump_optimizer/gone.py:1 GUARD_OFF": {
+            "killed_by": "tests/x.py", "old": "    if x:"}}}
+    _MUT_FIXED, _MUT_UNMAPPED = _NORM(_MUT_LEG, _MUT_PKG_INV)
+    _MUT_CANON = {"survivor_triage": {}, "killed_by": dict(sorted({
+        _MUT_A["anchor"]: {"killed_by": "tests/x.py", "old": _MUT_A["old"]},
+        _MUT_B["anchor"]: {"killed_by": "tests/x.py", "old": _MUT_B["old"]},
+    }.items()))}
+    _MUT_UNSORTED = {"survivor_triage": {}, "killed_by": dict(
+        reversed(list(_MUT_CANON["killed_by"].items())))}
+    _MUT_FORM = (
+        len(_FORM(_MUT_LEG)), len(_FORM(_MUT_UNSORTED)),
+        _FORM(_MUT_CANON), _FORM(_MB),
+        "unpinned_sites" in _MUT_FIXED,
+        list(_MUT_FIXED["killed_by"]) == sorted(_MUT_FIXED["killed_by"])
+        and set(_MUT_CANON["killed_by"]) <= set(_MUT_FIXED["killed_by"]),
+        len(_MUT_UNMAPPED))
+except Exception as _mut_f_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _MUT_FORM = (f"{type(_mut_f_exc).__name__}: {_mut_f_exc}",)
+R.check(
+    "the ledger's canonical form is enforced, and --normalize reaches it",
+    _MUT_FORM == (3, 1, [], [], False, True, 1),
+    f"(problems: retired keys + unsorted + committed count, unsorted alone, "
+    f"canonical, the recorded ledger; normalize keeps the count, maps both "
+    f"retired keys, reports the stale one) -> {_MUT_FORM}",
+)
+
+# The ordinal inside an anchor, driven: two identical guards in one def get
+# distinct anchors (the second carries #2), the same text in ANOTHER def starts
+# its own count, and an identical line added to that other def leaves the
+# first def's anchors exactly as they were.
+_MUT_ORD_SRC = (
+    "def f(a):\n    if a:\n        a = 1\n    if a:\n        a = 2\n"
+    "    return a\n\n\ndef g(a):\n    if a:\n        a = 3\n    return a\n")
+try:
+    _MUT_ORD_GOT = [dict(_m, file=_mut.PKG + "ord.py") for _m in _mut.candidates(
+        _mut_write(_MUT_DIR / "ord.py", _MUT_ORD_SRC))]
+    _MUT_ORD = {(_m["line"], _m["kind"]): _m["anchor"] for _m in
+                _mut.anchor_sites(_MUT_ORD_SRC, _MUT_ORD_GOT)}
+    _MUT_ORD_SRC2 = _MUT_ORD_SRC.replace(
+        "        a = 3\n", "        a = 3\n    if a:\n        a = 4\n")
+    _MUT_ORD2 = {(_m["line"], _m["kind"]): _m["anchor"] for _m in
+                 _mut.anchor_sites(_MUT_ORD_SRC2, [
+                     dict(_m, file=_mut.PKG + "ord.py") for _m in _mut.candidates(
+                         _mut_write(_MUT_DIR / "ord.py", _MUT_ORD_SRC2))])}
+    _MUT_ORD_F = [_MUT_ORD[(2, "GUARD_OFF")], _MUT_ORD[(4, "GUARD_OFF")]]
+    _MUT_ORD_OK = (
+        len(set(_MUT_ORD.values())) == len(_MUT_ORD)
+        and not _MUT_ORD_F[0].endswith("#2")
+        and _MUT_ORD_F[1] == _MUT_ORD_F[0] + "#2"
+        and ":g GUARD_OFF " in _MUT_ORD[(10, "GUARD_OFF")]
+        and "#" not in _MUT_ORD[(10, "GUARD_OFF")]
+        and _MUT_ORD2[(12, "GUARD_OFF")] == _MUT_ORD[(10, "GUARD_OFF")] + "#2"
+        and [_MUT_ORD2[(2, "GUARD_OFF")], _MUT_ORD2[(4, "GUARD_OFF")]]
+        == _MUT_ORD_F)
+    _mut_ord_detail = f"f -> {_MUT_ORD_F}; g -> {_MUT_ORD[(10, 'GUARD_OFF')]}"
+except Exception as _mut_o_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _MUT_ORD_OK, _mut_ord_detail = False, f"{type(_mut_o_exc).__name__}: {_mut_o_exc}"
+R.check(
+    "an anchor's ordinal counts identical lines within one def, and only there",
+    _MUT_ORD_OK,
+    _mut_ord_detail + " -- the second identical guard in f is #2, g's counts "
+    "from its own first, and a line added to g moves none of f's anchors",
+)
+
+# base_unpinned and ratchet_base, driven in a throwaway repository whose true
+# base count is known by construction. Commit A holds a.py (defs f and g),
+# b.py (def h) and gone.py (def k), each def one guard and one removable
+# return: 8 sites. Its ledger, in the RETIRED line-keyed form, disposes
+# a.py's `if x:`, so 7 are unpinned at A. Commit B changes only a README, so
+# A and B carry the same 7. The working tree then adds guards z and q to f
+# ABOVE x (every a.py line shifts), deletes gone.py and keeps b.py: 8 sites
+# here, so no count this tree produces equals the base's by accident. Each arm pins a different path: a changed file is
+# re-enumerated at the base (the shift), an unchanged one is reused (b.py),
+# a deleted one is still counted (gone.py), the retired key is normalized
+# (x stays disposed), and an unreadable ref is None, never a count.
+def _mut_git(root: Path, *args: str) -> str:
+    return _subprocess.run(["git", "-c", "user.name=t", "-c",
+                            "user.email=t@example.invalid", *args], cwd=root,
+                           capture_output=True, text=True, check=True).stdout.strip()
+
+
+_MUT_B_SAVED = (_mut.ROOT, _mut.PRODUCTION, _mut.BUDGETS,
+                _os.environ.pop("GOLDEN_REF", None))
+try:
+    _mb_root = Path(_tempfile.mkdtemp(prefix="mutation-base-"))
+    _mb_pkg = _mb_root / _mut.PKG
+    _mb_pkg.mkdir(parents=True)
+    (_mb_root / "tests").mkdir()
+    _MB_A = "def f(x):\n    if x:\n        x = 1\n    return x\n\n\ndef g(y):\n    if y:\n        y = 2\n    return y\n"
+    (_mb_pkg / "a.py").write_text(_MB_A)
+    (_mb_pkg / "b.py").write_text("def h(w):\n    if w:\n        w = 3\n    return w\n")
+    (_mb_pkg / "gone.py").write_text("def k(v):\n    if v:\n        v = 4\n    return v\n")
+    (_mb_root / "tests/mutation_budgets.json").write_text(json.dumps({
+        "unpinned_sites": 3, "survivor_triage": {}, "killed_by": {
+            _mut.PKG + "a.py:2 GUARD_OFF": {"killed_by": "tests/x.py",
+                                            "old": "    if x:"}}}))
+    _mut_git(_mb_root, "init", "-q")
+    _mut_git(_mb_root, "add", "-A")
+    _mut_git(_mb_root, "commit", "-qm", "A")
+    _MB_SHA_A = _mut_git(_mb_root, "rev-parse", "HEAD")
+    (_mb_root / "README").write_text("b\n")
+    _mut_git(_mb_root, "add", "-A")
+    _mut_git(_mb_root, "commit", "-qm", "B")
+    _MB_SHA_B = _mut_git(_mb_root, "rev-parse", "HEAD")
+    _mut.ROOT, _mut.PRODUCTION = _mb_root, _mb_pkg
+    _mut.BUDGETS = _mb_root / "tests/mutation_budgets.json"
+    (_mb_pkg / "a.py").write_text(_MB_A.replace(
+        "def f(x):\n",
+        "def f(x):\n    if z:\n        x = 0\n    if q:\n        x = 5\n"))
+    (_mb_pkg / "gone.py").unlink()
+    _mb_sites = _mut.inventory()
+    _MUT_BASE = (
+        _mut.base_unpinned("HEAD", _mb_sites),
+        _mut.base_unpinned(_MB_SHA_A, _mb_sites),
+        _mut.base_unpinned("no-such-ref", _mb_sites),
+        _mut.base_unpinned(None, _mb_sites),
+        _mut._rev(_mb_root, _mut.ratchet_base("changed", "HEAD")) == _MB_SHA_A,
+        _mut._rev(_mb_root, _mut.ratchet_base("changed", _MB_SHA_A)) == _MB_SHA_A,
+        _mut._rev(_mb_root, _mut.ratchet_base("full", "HEAD")) == _MB_SHA_A,
+        len(_mb_sites))
+except Exception as _mut_b_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _MUT_BASE = (f"{type(_mut_b_exc).__name__}: {_mut_b_exc}",)
+finally:
+    _mut.ROOT, _mut.PRODUCTION, _mut.BUDGETS = _MUT_B_SAVED[:3]
+    if _MUT_B_SAVED[3] is not None:
+        _os.environ["GOLDEN_REF"] = _MUT_B_SAVED[3]
+    _mut_shutil.rmtree(_mb_root, ignore_errors=True)
+R.check(
+    "base_unpinned counts the base exactly, and ratchet_base leaves HEAD for its parent",
+    _MUT_BASE == (7, 7, None, None, True, True, True, 8),
+    f"(at B, at A, unreadable ref, no ref, changed@HEAD -> A, changed@A -> A, "
+    f"full -> A, sites here) -> {_MUT_BASE}; the true base count is 7 by "
+    "construction: 8 sites at A, `if x:` disposed under a retired key",
+)
+
+# The ratchet's other end is the count at its base, derived there the same
+# way as here: a committed count is refused (above), and the driver reads the
+# base through `base_unpinned` rather than through the budget file.
 _MB_UNPIN = _MB.get("unpinned_sites")
 R.check(
-    "the mutation budget records an unpinned-site ratchet count",
-    isinstance(_MB_UNPIN, int) and not isinstance(_MB_UNPIN, bool)
-    and _MB_UNPIN >= 0,
-    f"unpinned_sites={_MB_UNPIN!r} -- the exact count the deterministic "
-    f"inventory ratchets against",
+    "the mutation budget commits no unpinned-site count; the base supplies it",
+    _MB_UNPIN is None and callable(getattr(_mut, "base_unpinned", None)),
+    f"unpinned_sites={_MB_UNPIN!r} -- a committed count is a line every "
+    f"branch that records rewrites, so the ratchet derives it at the base",
 )
 
 # The pre-pass is wired into the driver's main flow: defined-but-never-called
@@ -23026,13 +23791,96 @@ R.check(
     and "completeness_problems(budgets, sites)" in _MUT_BODY
     and "unpinned_sites(budgets, sites)" in _MUT_BODY
     and "cap_problems(budgets)" in _MUT_BODY
-    and "ratchet_refusal(budgets, unpinned)" in _MUT_BODY,
+    and "ledger_form_problems(budgets)" in _MUT_BODY
+    and 'budgets["reason"] =' not in _MUT_BODY
+    and "base_unpinned(rbase, sites)" in _MUT_BODY
+    and "ratchet_refusal(base_count, unpinned)" in _MUT_BODY,
     "the deterministic inventory, the completeness check, the unpinned count, "
     "the cap refusal and the ratchet verdict must all run before the sampled "
     "pool, or the ratchet is defined and never enforced",
 )
 
 _mut_shutil.rmtree(_MUT_DIR, ignore_errors=True)
+
+# --pin-killed (the mutation-ledger autofix): it drives only the sites the diff
+# ADDED unpinned, keyed by anchor, so a site the base already left unpinned is
+# not re-measured; and a kill is recorded with the driver and both runs, never
+# a survivor. The null control is a site unpinned at both ends.
+_PIN_NEW = getattr(_mut, "new_unpinned", None)
+_PIN_ENTRY = getattr(_mut, "pin_entry", None)
+_pin_a = {"anchor": "f.py:g GUARD_OFF aaaa", "old": "    if a:"}
+_pin_b = {"anchor": "f.py:g GUARD_OFF bbbb", "old": "    if b:"}
+try:
+    _PIN_GOT = (
+        [x["anchor"] for x in _PIN_NEW([_pin_a, _pin_b], [_pin_a])],
+        _PIN_NEW([_pin_a], [_pin_a]),
+        _PIN_ENTRY(dict(_pin_b, kind="GUARD_OFF", new="    if False:"),
+                   "tests/x.py", _mut.ScriptRun(1, 3, 1.0, ""),
+                   _mut.ScriptRun(0, 0, 1.0, ""), "abc123"),
+    )
+except Exception as _pin_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _PIN_GOT = (f"{type(_pin_exc).__name__}: {_pin_exc}",)
+R.check(
+    "--pin-killed drives only the sites the diff added and records the measured kill",
+    len(_PIN_GOT) == 3
+    and _PIN_GOT[0] == ["f.py:g GUARD_OFF bbbb"] and _PIN_GOT[1] == []
+    and _PIN_GOT[2].get("killed_by") == "tests/x.py"
+    and _PIN_GOT[2].get("old") == "    if b:"
+    and "rc=0 failed=0 to rc=1 failed=3" in _PIN_GOT[2].get("reason", "")
+    and "verdict" not in _PIN_GOT[2],
+    f"(new over base, unpinned at both ends, entry) -> {_PIN_GOT}",
+)
+R.check(
+    "--pin-killed is wired: new sites from the base's own unpinned list, "
+    "a pin only from a recorded kill run",
+    "new_unpinned(unpinned, base_sites)" in _MUT_BODY
+    and "base_unpinned_sites(rbase, sites)" in _MUT_BODY
+    and "pin_results(results, kill_runs, baseline,\n" in _MUT_BODY
+    and ".update(entries)" in _MUT_BODY and "return pin_rc" in _MUT_BODY,
+    "the mode must read the base's unpinned sites, write only what pin_results "
+    "earned from the kill runs, and exit with its rc",
+)
+
+# The pin loop itself, behaviourally (the #1594 review's S1/S2 survived the
+# wiring strings above). A disposition covers every site under its anchor, so
+# a clamp's `max(`/`min(` twins pin together or not at all: a killed twin
+# beside a living one pins NEITHER. Anything left is rc 1.
+_PR = getattr(_mut, "pin_results", None)
+_pr_base = {"tests/x.py": _mut.ScriptRun(0, 0, 1.0, "")}
+_pr_kill = _mut.ScriptRun(1, 2, 1.0, "")
+_pr_site = lambda anchor, line, new="    if False:": {  # noqa: E731
+    "anchor": anchor, "file": "f.py", "line": line, "kind": "CLAMP_DROP",
+    "old": f"    x{line} = 1", "new": new}
+_pr_k, _pr_l, _pr_s = (_pr_site("f.py:g CLAMP_DROP k", 1), _pr_site("f.py:g CLAMP_DROP l", 2),
+                       _pr_site("f.py:g CLAMP_DROP s", 3))
+_pr_m1, _pr_m2 = _pr_site("f.py:g CLAMP_DROP m", 4, "a"), _pr_site("f.py:g CLAMP_DROP m", 4, "b")
+_pr_b1, _pr_b2 = _pr_site("f.py:g CLAMP_DROP b", 5, "a"), _pr_site("f.py:g CLAMP_DROP b", 5, "b")
+_pr_u1 = _pr_site("f.py:g CLAMP_DROP u", 6, "a")
+_PR_SITES = [_pr_k, _pr_l, _pr_s, _pr_m1, _pr_m2, _pr_b1, _pr_b2, _pr_u1,
+             _pr_site("f.py:g CLAMP_DROP u", 6, "b")]
+_KB = "killed by tests/x.py"
+try:
+    _PR_ALL = _PR(
+        [(_pr_k, _KB), (_pr_l, "LIVES"), (_pr_s, "SKIP-MOVED"), (_pr_m1, _KB),
+         (_pr_m2, "LIVES"), (_pr_b1, _KB), (_pr_b2, _KB), (_pr_u1, _KB)],
+        {(id(m), "tests/x.py"): _pr_kill for m in (_pr_k, _pr_m1, _pr_b1, _pr_b2, _pr_u1)},
+        _pr_base, _PR_SITES, "abc123")
+    _PR_CLEAN = _PR([(_pr_k, _KB)], {(id(_pr_k), "tests/x.py"): _pr_kill},
+                    _pr_base, [_pr_k], "abc123")
+    # A verdict that claims a kill with no kept run is not a kill.
+    _PR_NORUN = _PR([(_pr_k, _KB)], {}, _pr_base, [_pr_k], "abc123")
+    _PR_GOT = (sorted(_PR_ALL[0]), _PR_ALL[2], sorted(_PR_CLEAN[0]), _PR_CLEAN[2],
+               sorted(_PR_NORUN[0]), _PR_NORUN[2],
+               _PR_ALL[0].get("f.py:g CLAMP_DROP k", {}).get("killed_by"))
+except Exception as _pr_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _PR_GOT = (f"{type(_pr_exc).__name__}: {_pr_exc}",)
+R.check(
+    "--pin-killed pins an anchor only when every site under it was killed, and exits 1 with any left",
+    _PR_GOT == (["f.py:g CLAMP_DROP b", "f.py:g CLAMP_DROP k"], 1,
+                ["f.py:g CLAMP_DROP k"], 0, [], 1, "tests/x.py"),
+    "(kill+lives+skip+mixed twin+both-killed twin+undriven twin: pinned, rc; "
+    f"kill alone: pinned, rc; kill with no run: pinned, rc; driver) -> {_PR_GOT}",
+)
 
 # Scope: a mutant is driven only by scripts whose MEASURED closure contains
 # its file. Driving one hand-picked script instead would let a mutant survive
@@ -23147,18 +23995,23 @@ _MUT_TRIAGE_PROBLEMS = getattr(_mut, "triage_problems",
                                lambda _t: ["no triage_problems"])
 # Two synthetic survivors shaped like the table's rows; the triage fixture
 # marks one of them, key and pin alike.
+_EQ_KEY = ("custom_components/heatpump_optimizer/pump_mode.py:resolve "
+           "GUARD_OFF 0a1b2c3d")
 _EQ_MUT = {"file": "custom_components/heatpump_optimizer/pump_mode.py",
-           "line": 242, "kind": "GUARD_OFF", "old": "    if raw is None:"}
+           "line": 242, "kind": "GUARD_OFF", "old": "    if raw is None:",
+           "anchor": _EQ_KEY}
 _GAP_MUT = {"file": "custom_components/heatpump_optimizer/frontend.py",
             "line": 110, "kind": "BOOLOP",
-            "old": '        if a and b:'}
-_EQ_KEY = "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF"
+            "old": '        if a and b:',
+            "anchor": ("custom_components/heatpump_optimizer/frontend.py:f "
+                       "BOOLOP 4e5f6a7b")}
 _TRIAGE_FIXTURE = {_EQ_KEY: {"verdict": "equivalent",
                              "old": "    if raw is None:",
                              "reason": "probe: no input can tell it apart"}}
 R.check(
     "a survivor triaged equivalent is off the fraction; an unmarked one stays (#1217)",
-    _MUT_TRIAGE_KEY(_EQ_MUT) == _EQ_KEY
+    _MUT_TRIAGE_KEY(_EQ_MUT)
+    == "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF"
     and _MUT_GAPS([_EQ_MUT, _GAP_MUT], _TRIAGE_FIXTURE)
     == ([_GAP_MUT], [_EQ_MUT]),
     f"key={_MUT_TRIAGE_KEY(_EQ_MUT)!r}, gaps -> "
@@ -23166,16 +24019,19 @@ R.check(
     "leaves the numerator; the unmarked survivor stays in it, because the "
     "default has to stay guilty until a reason moves it",
 )
-# The line pin is half the mark: file and line are where the mutant WAS, and
-# a production edit moves text under the same coordinates all the time. The
-# other half is the verdict: a "gap" triage records a real gap and must not
-# come off the fraction. The null controls drive all three arms through the
-# same predicate.
+# The line pin is half the mark: a production edit changes text under the
+# same key, and the mark must not follow it. The line NUMBER is not part of the
+# mark (the anchor is): the same site one line further down keeps it, and a
+# site under another anchor does not. The other half is the verdict: a "gap"
+# triage records a real gap and must not come off the fraction. The null
+# controls drive every arm through the same predicate.
 R.check(
     "and only an `equivalent` verdict applies, pinned line text and all (#1217)",
     _MUT_EQ(_TRIAGE_FIXTURE, _EQ_MUT) is True
     and _MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, old="    if raw:")) is False
-    and _MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, line=243)) is False
+    and _MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, line=243)) is True
+    and _MUT_EQ(_TRIAGE_FIXTURE,
+                dict(_EQ_MUT, anchor=_EQ_KEY.replace("resolve", "fold"))) is False
     and _MUT_EQ({_EQ_KEY: {"verdict": "gap", "old": _EQ_MUT["old"],
                            "reason": "a real gap, triaged"}}, _EQ_MUT) is False,
     f"same pin -> {_MUT_EQ(_TRIAGE_FIXTURE, _EQ_MUT)!r}, moved text -> "
@@ -23204,9 +24060,11 @@ R.check(
 # reason; the validator holds over the whole real table; and every mark
 # names a mutant THIS tree still generates -- same line, same operator,
 # same text -- so the pins are checked against the tree, not each other.
-_MUT_D3_07 = (
-    "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF",
-    "custom_components/heatpump_optimizer/__init__.py:340 BOOLOP",
+_MUT_D3_07 = (  # the two marks' ledger anchors: resolve()'s guard, and setup's
+    "custom_components/heatpump_optimizer/pump_mode.py:resolve GUARD_OFF "
+    "f7c55656",
+    "custom_components/heatpump_optimizer/__init__.py:async_setup_entry BOOLOP "
+    "47200394",
 )
 R.check(
     "the recorded triage marks both D3-07 equivalents, verdict and reason (#1217)",
@@ -23218,12 +24076,13 @@ R.check(
     "survivor table that does not say so charges the suite for them",
 )
 _MUT_TRIAGE_STALE = []
+_MUT_TRIAGE_SITES: dict[str, dict] = {}
+for _rel in sorted({_k.split(":", 1)[0] for _k in _MUT_TRIAGE}):
+    for _m in _mut.inventory([Path(_rel)]):
+        _MUT_TRIAGE_SITES.setdefault(_m.get("anchor"), _m)
 for _k, _ent in sorted(_MUT_TRIAGE.items()):
-    _rel, _rest = _k.split(":")
-    _ln, _kind = _rest.split(" ", 1)
-    _hit = [m for m in _mut.candidates(Path(_rel))
-            if m["line"] == int(_ln) and m["kind"] == _kind]
-    if len(_hit) != 1 or _hit[0]["old"] != _ent.get("old"):
+    _hit = _MUT_TRIAGE_SITES.get(_k)
+    if _hit is None or _hit["old"] != _ent.get("old"):
         _MUT_TRIAGE_STALE.append(_k)
 R.check(
     "and every mark still names a mutant this tree generates, pin and all (#1217)",
