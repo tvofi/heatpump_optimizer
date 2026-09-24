@@ -647,6 +647,7 @@
 # a fixture the gate has already exempted.
 # `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all <merge-base>`
 # prints NO UNCLAIMED DRIFT when this list is current.
+valve_storage_flat_prices # R7-D0-01 (#1447): the 0.20x anchor settles this valved flat-price plan lower
 # R7-D8-01 (#1460), branch fix/r7-coordinator: this diff claims the five
 # coordinator captures and NOTHING ELSE. The direction is ADD-ONLY.
 # `_build_data_dict` now publishes the three keys `SensorGapAdvisorSensor`

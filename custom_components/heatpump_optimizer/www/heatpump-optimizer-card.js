@@ -2844,8 +2844,13 @@ function setupSvgHtml(topo, ctx) {
         ? Math.max(hitBase, _targetMinPx() * unitsPerPx)
         : hitBase;
       const hitY = y - rowH + 5 - (hitH - hitBase) / 2;
+      // While the picker is open it covers the diagram, and it follows the
+      // svg in the markup: rows left in the Tab order would send focus down
+      // through the covered diagram and back up into the picker (#1522).
+      // -1, not `inert`: a click on another row still retargets the picker,
+      // and closing it restores focus to a row by script.
       rows.push(`<rect class="setup-hit" data-key="${esc(s.key)}"
-        tabindex="0" role="button" aria-label="${esc(full)}"
+        tabindex="${ctx.picking ? "-1" : "0"}" role="button" aria-label="${esc(full)}"
         x="${b.x + 4}" y="${hitY}" width="${colW - 8}"
         height="${hitH}" rx="3">
         <title>${esc(full)}</title></rect>`);
@@ -9362,6 +9367,7 @@ class SetupPage {
     return setupSvgHtml(topo, {
       editing,
       edit,
+      picking: this.openSlot() !== null,
       // Recorded as it is read, so `_refitCharts` can compare what this
       // render assumed against what the browser then did (D4-01).
       setupWidth: () => {
@@ -11080,7 +11086,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * a positioned ancestor.
    */
   _chartBlock(built, expanded) {
-    const { svg: chart, plot, geom, viewH } = renderChart(built, {
+    const { svg, plot, geom, viewH } = renderChart(built, {
       expanded,
       // Recorded as it is read, so `_refitCharts` can compare what
       // this render assumed against what the browser then did (D4-01).
@@ -11120,6 +11126,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // The controls overlay the chart rather than sitting under it: the expanded
     // dialog budgets its height from a fixed guess at how tall the chrome is
     // (item 26), and a new row of buttons would eat straight into that budget.
+    // They come BEFORE the svg in the markup although they paint over its top
+    // edge: the svg ends in the lane strip's focusable slot targets, and Tab
+    // follows the markup, so controls after it sent focus from the bottom of
+    // the chart back up to its top (#1522).
+    const chart = `${this.view.controlsHtml()}${svg}`;
     const pannable = this.view.adjustable() ? " pannable" : "";
     // `.chartwrap.big` sizes the chart from a fixed aspect ratio, so the
     // expanded editor's added lane band (D4-02) has to travel with it or the
@@ -11129,7 +11140,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
         ? ` style="aspect-ratio:${VIEW_W} / ${Number(viewH.toFixed(2))}"`
         : "";
     return `${this.plan.woodAlertHtml()}${this.histSource.noteHtml()}<div class="chartwrap${expanded ? " big" : ""}${pannable}"${ratio}>${chart}
-      ${this.view.controlsHtml()}
       <div class="tooltip" hidden></div></div>`;
   }
 

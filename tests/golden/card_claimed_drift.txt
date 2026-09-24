@@ -550,3 +550,56 @@
 # `editor_schema` is the 40th state and is NOT claimed: it renders the
 # config editor's schema, not the card, so it does not move.
 
+# R8-D4-01 (#1522): keyboard Tab order in the expanded dialog jumped from the
+# lane strip's slot targets, along the chart's bottom edge, back up to the
+# zoom controls overlaid on its top edge -- the `.viewctl` block followed the
+# svg in the markup. `_chartBlock` now emits it BEFORE the svg, inside the
+# same `.chartwrap`; it is absolutely positioned, so nothing it paints moves.
+#
+# Every state that renders a chart moves by exactly that: the `.viewctl` DIV
+# and its three buttons change place among `.chartwrap`'s children, nothing
+# else. `no_plan` and `no_plan_expanded` draw no chart and `editor_schema`
+# renders the editor's schema, so those three do not move and are not
+# claimed. `picker_open_filtered` moves once more: while the setup picker is
+# open it covers the diagram, so its rows drop out of the Tab order
+# (`tabindex="-1"`, still clickable); no other state renders an open picker.
+# The R7-D4-01/D4-02 list this replaces was the previous branch's;
+# two of its 39 entries (the no_plan pair) no longer move.
+
+plan_inline  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+plan_inline_sv  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+plan_short_window  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+custom_title_currency  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+hidden_series  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+score_open  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+expanded_plan  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+what_if_off  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+expanded_zoomed  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+draft_dirty_menu_open  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+draft_mid_drag  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+whatif_edited  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+whatif_weekly  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+override_active  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+shared_steps  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+shared_steps_hover  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+tooltip_hover  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+coarse_pointer  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+reduced_motion  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+setup_single_buffer  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+setup_two_tank  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+setup_coil  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+advisor_page  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+layout_editing_dragged  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+layout_editing_tidy  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+picker_open_filtered  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap; the covered setup rows take tabindex -1 while the picker is open
+wood_alert  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+wood_lane  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+wood_whatif  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+away_toggle  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+away_return  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+away_status  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+history_panned  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+history_deep_panned  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+history_no_power  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+history_unavailable  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
+history_pending  # R8-D4-01 (#1522): the chart zoom controls move ahead of the svg inside .chartwrap
