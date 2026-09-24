@@ -442,6 +442,10 @@ _create_issue = setpoint_check.create_issue
 
 # Forecast wind speed arrives in whatever unit the user's Home Assistant is
 # configured for, so it has to be converted explicitly rather than guessed.
+# Forecast precipitation likewise, per hour into the mm the model reads:
+# an inch entity's 0.1 in/h is 2.54 mm/h, not 0.1 (#1513 follow-up).
+_PRECIPITATION_UNIT_TO_MM: dict[Any, float] = {"mm": 1.0, "cm": 10.0, "in": 25.4}
+
 _WIND_UNIT_TO_MS = {
     UnitOfSpeed.METERS_PER_SECOND: 1.0,
     UnitOfSpeed.KILOMETERS_PER_HOUR: 1.0 / 3.6,
@@ -1366,38 +1370,46 @@ def _dhw_inlet_c(hass: HomeAssistant, entity_id: Any) -> float | None:
     return value if value is not None and -5.0 <= value <= 35.0 else None
 
 
-def _wind_speed_scale_of(state: Any) -> float:
-    """Factor converting a weather entity's wind unit into m/s.
+def _unit_scale_of(state: Any, attribute: str, table: dict[Any, float]) -> float:
+    """Factor converting a weather entity's ``attribute`` unit to the model's.
 
-    Home Assistant converts forecast wind speed into whichever unit the
-    user has configured, and reports that unit on the weather entity as
-    ``wind_speed_unit``. An unrecognised or absent unit falls back to 1.0
-    (m/s), which is the Home Assistant metric default.
+    Home Assistant converts a weather entity's forecast into whichever units
+    the user has configured and reports each on the entity (``wind_speed_unit``,
+    ``precipitation_unit``). An unrecognised or absent unit falls back to 1.0,
+    the Home Assistant metric default.
     """
-    unit: Any = (getattr(state, "attributes", None) or {}).get("wind_speed_unit")
-    scale = _WIND_UNIT_TO_MS.get(unit)
+    unit: Any = (getattr(state, "attributes", None) or {}).get(attribute)
+    scale = table.get(unit)
     if scale is None:
         if unit:
-            _LOGGER.debug("Unknown wind speed unit %r; assuming m/s", unit)
+            _LOGGER.debug("Unknown %s %r; assuming the metric default", attribute, unit)
         return 1.0
     return scale
 
 
+def _wind_speed_scale_of(state: Any) -> float:
+    """Factor converting a weather entity's wind unit into m/s."""
+    return _unit_scale_of(state, "wind_speed_unit", _WIND_UNIT_TO_MS)
+
+
 def _forecast_in_model_units(state: Any, forecast: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Forecast rows in degC and m/s, by the weather entity's own units (#1513).
+    """Forecast rows in degC, m/s and mm, by the weather entity's own units (#1513).
 
     Home Assistant hands a weather entity's forecast over in the entity's
-    display units -- degF and mph on a US-customary instance. Converting
+    display units -- degF, mph and inches on a US-customary instance. Converting
     once, where the rows are stored, gives every reader the model's units:
     the horizon arrays, ``forecast_outdoor_now`` and ``_current_weather``,
     whose wind the learners read and which used to see the display unit. A
-    degC and m/s entity returns the rows untouched, and a temperature that
-    will not parse is kept, so the consumers' own fallbacks still apply.
+    degC, m/s and mm entity returns the rows untouched, and a temperature
+    that will not parse is kept, so the consumers' own fallbacks still apply.
+    Humidity (%) and irradiance (W/m2) carry no unit attribute to honour, and
+    pressure, visibility and the other forecast fields are read by nothing.
     """
     unit = (getattr(state, "attributes", None) or {}).get("temperature_unit")
     to_c = TEMPERATURE_UNIT_TO_C.get(str(unit).strip(), (0.0, 1.0)) != (0.0, 1.0)
     wind = _wind_speed_scale_of(state)
-    if not to_c and wind == 1.0:
+    rain = _unit_scale_of(state, "precipitation_unit", _PRECIPITATION_UNIT_TO_MM)
+    if not to_c and wind == 1.0 and rain == 1.0:
         return forecast
     rows: list[dict[str, Any]] = []
     for entry in forecast:
@@ -1407,6 +1419,8 @@ def _forecast_in_model_units(state: Any, forecast: list[dict[str, Any]]) -> list
             row["temperature"] = value
         if wind != 1.0:  # every reader takes a missing wind as 0.0 anyway
             row["wind_speed"] = _as_float(entry.get("wind_speed"), 0.0) * wind
+        if rain != 1.0:  # and a missing precipitation as 0.0
+            row["precipitation"] = _as_float(entry.get("precipitation"), 0.0) * rain
         rows.append(row)
     return rows
 
