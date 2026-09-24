@@ -1,0 +1,19 @@
+
+=== Stress and economics ===
+RESULT flat.scenarios=51 count
+RESULT flat.kernel_steps_all=184307249 step-equivalents
+RESULT flat.kernel_steps_dropped_polish=14402304 step-equivalents
+RESULT flat.kernel_steps_unshipped_polish=35224224 step-equivalents
+RESULT flat.polishes=204 count
+RESULT flat.polishes_dropped=145 count
+RESULT flat.polishes_unshipped=191 count
+RESULT flat.polishes_abnormal_nit0=34 count
+RESULT flat.kernel_steps_abnormal_nit0=6649248 step-equivalents
+RESULT flat.dropped_polish_kernel_share=0.0781 ratio
+RESULT flat.unshipped_polish_kernel_share=0.1911 ratio
+RESULT flat.abn0_kernel_share=0.0361 ratio
+RESULT flat.per_scenario.min=0.0000 max=0.3759 median=0.1174 ratio
+RESULT flat.scenarios_with_zero_dropped=4 count
+RESULT thread_factor=1.000
+RESULT load1=7.38
+RESULT swapins=0

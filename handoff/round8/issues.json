@@ -1,0 +1,420 @@
+[
+ {
+  "id": "D2-s2-01",
+  "title": "[R8-D2-s2-01] PeakTracker averages the top-k metering windows, not the top-k days the capacity tariff bills",
+  "body": "tariff.PeakTracker keeps the k highest metering windows regardless of day while the tariffs bill three highest peaks on different days: a cold morning publishes billed_peak_kw 9.80 kW vs true 7.83 kW (+96.37 SEK/month) and threshold_kw 9.60 vs 6.50 kW, so a 9.0 kW hour on another day is priced free while billed 40.83 SEK; over 8 grid months the overbill is 1.42-34.40 SEK/month, mean 19.11, 16.93 with the best cell dropped.\n\nEvidence: tools/audit/round8/D2/s2_distinct_day_peaks.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s2_distinct_day_peaks.py` -> RESULT headline_overbill_sek=96.3667, grid_overbill_mean_sek=19.114, grid_overbill_mean_drop_max_sek=16.930, plan_overcharge_ratio=3.0; `--k1` -> 0 everywhere. tools/audit/round8/D2/v1_peak_days.py -> median 76.66 SEK/month (upper bound).\n\nFinal severity **high**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: custom_components/heatpump_optimizer/tariff.py; per-day maxima list behind a distinct-days flag. Seam rule: grep -n 'def _close_window\\|def billed_peak_kw\\|def threshold_kw\\|def peak_cost' custom_components/heatpump_optimizer/tariff.py\n\nRelated: #926 / #968 (the catalog records Ellevio's three peaks on three different days; PeakTracker never implemented the distinct-day rule), #1210 (solver soft top-k, different code). Distinct from #1499 part (b): that fix changes the kW fed to PeakTracker.observe on no-meter installs; this finding is the aggregation inside PeakTracker and holds with a real meter.\n\nFinding id: D2-s2-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:high",
+   "dim:D2",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D2-s2-02",
+  "title": "[R8-D2-s2-02] Entity price sources are read unit-blind: \u00f6re/kWh and SEK/MWh prices reach the plan at 83x and 829x",
+  "body": "price_model.prices_from_entity_state and Coordinator._pv_export_price never read the sensor's unit, so an \u00f6re/kWh or SEK/MWh sensor reaches _price_series at 83.01x / 828.60x the true SEK/kWh and the export price at 100x / 1000x, shrinking the fee share of the spread from 0.13228 to 0.00152 / 0.00015; the plan moves +5.4 kWh on a winter_mild day and published cost is 100x.\n\nEvidence: tools/audit/round8/D2/s2_price_unit.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s2_price_unit.py` -> RESULT ratio_SEK_per_kWh=1.0000 (null), ratio_ore_per_kWh=83.0147, ratio_SEK_per_MWh=828.6029. Production-side perturbation tools/audit/round8/D2/judge_price_unit_fix.py -> import 1.0000 for all units, export unchanged. tools/audit/round8/D2/v1_price_unit.py -> plan +5.43 kWh, cost 100x.\n\nFinal severity **high**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: custom_components/heatpump_optimizer/price_model.py and coordinator.py; one unit-conversion helper for prices, export and grid-fee reads.\n\nRelated: #961 / #919 (temperature inputs adopted as degC whatever the unit; price entities were not in scope).\n\nFinding id: D2-s2-02 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:high",
+   "dim:D2",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D11-s1-01",
+  "title": "[R8-D11-s1-01] A PR body edit re-creates policy-docs, env-matrix and wave-script as skipped check runs at the unchanged head",
+  "body": "governance.yml's edited guard makes every body edit create skipped runs for 3 of 16 required contexts at the unchanged head; 3 of 15 merged PRs and 6 of 19 heads carry a skip after a real verdict; 0 reds masked so far.\n\nEvidence: tools/audit/round8/D11/s1_skip_supersede.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D11/s1_skip_supersede.py --api --clone <full clone>` -> RESULT required_skippable_edited=3, superseded_merged_heads=3, masked_red_heads=0, null 0; `--perturb` -> 0. tools/audit/round8/D11/v1_latest_order.py -> skip latest by id in 18 of 24 pairs.\n\nFinal severity **high**, stop-rule class **bug** (judge-weakened from critical).\n\nProposed fix scope: .github/workflows/governance.yml; split pr-contract into its own workflow and drop edited from the rest.\n\nRegression introduced by the #1474 fix (#1484: github.event.action != 'edited' skips six jobs, and those skipped runs supersede the real verdicts at the same head).\n\nFinding id: D11-s1-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:high",
+   "dim:D11",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D11-s2-01",
+  "title": "[R8-D11-s2-01] Required checks run PR-editable code no CODEOWNERS pattern owns; a one-line edit turns pr-contract green",
+  "body": "Required jobs execute 8 unowned files from the PR checkout; a one-line append to any of the 3 policy_lint.mjs loads turns pr-contract's refusal rc 1 into 0, and 5 unowned files flip a required context in total.\n\nEvidence: tools/audit/round8/D11/s2_owner_closure.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D11/s2_owner_closure.py` -> RESULT unowned_required_closure=8, pr_contract_flips=3 of 3, null_control_unloaded_file_rc=1; --extra-owner x8 -> 0. tools/audit/round8/D11/v1_owner_flip.py -> 5. Merged: D11-s1-02 (tools/audit/round8/D11/s1_owner_surface.py, 14 of 51).\n\nFinal severity **high**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: .github/workflows (restore check source from base), .github/CODEOWNERS, codeowners_gap.py transitive walk.\n\nRegression of #1402 (closed via #1430) and #1403 (fixed by #1434); pr-contract still loads PR-checkout policy_lint.mjs code that no CODEOWNERS pattern owns. Merges D11-s1-02.\n\nFinding id: D11-s2-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:high",
+   "dim:D11",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D11-s2-02",
+  "title": "[R8-D11-s2-02] release.yml publishes and attests a v* tag or dispatch ref at a commit that is not on main",
+  "body": "release.yml reaches gh release create and the attestation for an unmerged commit in 2 of 2 event paths; the repo has 0 tag rulesets.\n\nEvidence: tools/audit/round8/D11/s2_release_gate.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D11/s2_release_gate.py` -> RESULT off_main_published=2 of 2, on_main 2 of 2; `--perturb` -> 0 of 2. tools/audit/round8/D11/v1_release_controls.py -> tag_rulesets=0.\n\nFinal severity **high**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: .github/workflows/release.yml ancestry check plus a v* tag ruleset.\n\nRelated: #960 / #918, closed by #1052 (SHA-pinned uses and tag-tree attestation; no ancestry check or tag ruleset was added).\n\nFinding id: D11-s2-02 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:high",
+   "dim:D11",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D1-s1-01",
+  "title": "[R8-D1-s1-01] set_thermal_parameters DHW minimums written during a solve are reverted by the away-setback unwind",
+  "body": "A set_thermal_parameters call carrying dhw_min_temperature and dhw_idle_min_temperature that lands while async_run_optimization awaits its solve is applied and acknowledged, then the unconditional away.restore_setback in that method's finally writes the pre-solve values back, with away mode inactive; 2 of 2 written fields are reverted in the live params and 2 of 2 in coordinator.data, and the reverted values feed the next solve.\n\nEvidence: tools/audit/round8/D1/s1_setback_race.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D1/s1_setback_race.py` -> RESULT race_reverted_live=2, race_reverted_published=2, control_reverted_live=0 (the same call after the cycle returns); perturbation `--perturb` -> 0/0. tools/audit/round8/D1/v1_setback_race.py -> race 2/2, control 0/0, late_next_solve_inputs_reverted=2. Counts only; window width provisional.\n\nFinal severity **medium**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: custom_components/heatpump_optimizer/coordinator.py and away.py; compare-and-restore only fields the setback changed, or apply the setback to the solve snapshot. Seam rule: grep -n 'apply_setback\\|restore_setback\\|away_original' custom_components/heatpump_optimizer/{coordinator,away}.py\n\nFinding id: D1-s1-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:medium",
+   "dim:D1",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D1-s2-01",
+  "title": "[R8-D1-s2-01] A non-numeric kwh/sek leaf in the persisted ledger passes MonthlyLedger.from_dict and fails every refresh cycle",
+  "body": "MonthlyLedger.from_dict validates structure but not lines[*].kwh/sek leaves, so a leaf such as sek='12,5' loads and _build_data_dict raises on every refresh: 3 of 3 cycles end with last_update_success False (4 ERROR logs), the setup first refresh raises ConfigEntryNotReady, actuation continues 3 of 3; 81 of 250 seeded mutants (0.324) escape the loader.\n\nEvidence: tools/audit/round8/D1/s2_ledger_fuzz.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D1/s2_ledger_fuzz.py` -> RESULT ledger_escape_rate=0.3240, sibling loaders 0.0000; tools/audit/round8/D1/v1_ledger_cycles.py -> corrupt_failed_cycles=3, null 0. Perturbation: leaf guard in from_dict (tools/audit/round8/D1/v1_s2_perturb_runner.py) -> 0.0000; v1_ledger_cycles.py --perturb -> 0. Trigger is a hand edit or storage corruption.\n\nFinal severity **medium**, stop-rule class **bug** (judge-weakened from critical).\n\nProposed fix scope: custom_components/heatpump_optimizer/ledger.py MonthlyLedger.from_dict; leaf try/except dropping the month, as accuracy.py/price_model.py/wear.py do.\n\nRelated: #1408 (non-finite store-load choke point; a non-numeric leaf is outside it), #238, #773.\n\nFinding id: D1-s2-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:medium",
+   "dim:D1",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D1-s3-01",
+  "title": "[R8-D1-s3-01] A wrong-shaped Open-Meteo hourly/minutely_15 member raises out of OpenMeteoSolar.async_refresh and fails the whole cycle",
+  "body": "OpenMeteoSolar.async_refresh documents that it never raises, but a valid-JSON body with a list/str/int hourly member or a dict with a non-list time raises out of _parse_block into _async_update_data's outer except: 4 of 5 hostile shapes raise, and at cycle level 5 of 6 malformed bodies end the cycle failed with no actuation.\n\nEvidence: tools/audit/round8/D1/s3_openmeteo_hostile.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D1/s3_openmeteo_hostile.py` -> RESULT cycles_crashed=4, control_crashed=0; tools/audit/round8/D1/v1_openmeteo_cycle.py -> failed=5, failed_actuated=0, control 0. Perturbation: isinstance guard (v1_s3_perturb_runner.py) -> 1; try/except fence -> 0.\n\nFinal severity **medium**, stop-rule class **bug** (judge-weakened from high).\n\nProposed fix scope: custom_components/heatpump_optimizer/open_meteo.py; type-check blocks and sequences in _parse_block and keep async_refresh's never-raises contract.\n\nRelated: #1298 (weather-entity fetch path, fixed by #1342; OpenMeteoSolar._parse_block is a different path), #251.\n\nFinding id: D1-s3-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:medium",
+   "dim:D1",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D2-s1-01",
+  "title": "[R8-D2-s1-01] The DHW planner prices COP at the current humidity, not the forecast; published DHW runs up to 4.4 K below the correct plan",
+  "body": "With a learned humid-bucket defrost derate and a forecast of 85-95 % RH against a current 55 %, the DHW planning seams evaluate COP with humidity=None: the optimizer's DHW schedule re-simulated deviates from the published dhw_temp_trajectory by up to 4.97 K (6 cells, dropped-best 4.89 K), and the published trajectory runs up to 4.41 K below the correctly planned one (dropped-best 3.78 K).\n\nEvidence: tools/audit/round8/D2/s1_dhw_humidity.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s1_dhw_humidity.py` -> RESULT gap_max=4.9717 K, nulls 0.0000; `--ambient-matches` -> 0.0000 in 6/6. tools/audit/round8/D2/v1_dhw_humidity.py -> shortfall_max=4.4088 K, reverse arm over-buys 0.7927 kWh, null 0.\n\nFinal severity **medium**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: custom_components/heatpump_optimizer/thermal_model.py and optimizer.py; pass per-step humidity at every DHW COP seam. Seam rule: grep -nE 'compute_cop(_dhw)?\\(|marginal_cop\\(' custom_components/heatpump_optimizer/optimizer.py custom_components/heatpump_optimizer/thermal_model.py | grep -v humidity\n\nFinding id: D2-s1-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:medium",
+   "dim:D2",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D3-s1-01",
+  "title": "[R8-D3-s1-01] mutation_table scores env_drift's INHERITED CLAIMS refusal as a kill: 17 of 17 production mutants, a comment-only edit included",
+  "body": "When the fork point carries a claim list the diff does not change, env_drift's claim-hygiene check refuses every production mutant before capture while the unmutated tree passes, and mutation_table.run_script scores that as 'killed by tests/env_drift.py': 17 of 17 seeded mutants, including a comment-only edit, are refused.\n\nEvidence: tools/audit/round8/D3/s1_claimkill.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D3/s1_claimkill.py --ref cdf82daabcfe3777d98b31489f36df5555ec9d82` -> RESULT refused_mutants=17, unmutated_rc=0; null at HEAD^1 -> 0; `--perturb` (claim list emptied) -> 0. tools/audit/round8/D3/v1_claimgate.py -> 16/16, null 0, perturb 0.\n\nFinal severity **medium**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: tests/mutation_table.py env_drift driver (apply the inherited-claims rewrite or judge only the drift section), a comment-only-edit check, and a D3.md note.\n\nRelated: #1453, fixed by #1506 after this baseline; its NON_VIOLATION_EXITS is keyed to tests/structure.py only, so an env_drift INHERITED CLAIMS refusal is still scored as a kill.\n\nFinding id: D3-s1-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:medium",
+   "dim:D3",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D4-01",
+  "title": "[R8-D4-01] Keyboard Tab order in the expanded what-if dialog jumps backward up the screen at all three required viewports",
+  "body": "In real Chromium with real Tab presses, consecutive focus stops in the expanded dialog jump backward 3 times at 375x812, once at 768x1024 and twice at 1280x800 because DOM order does not match wrapped visual order.\n\nEvidence: tools/audit/round8/D4/s1_tab_order.mjs, command `HPO_PLANDATA=<private>/plan.json HPO_VP_W=375 HPO_VP_H=812 node tools/audit/round8/D4/s1_tab_order.mjs` -> RESULT inversions=3 (768: 1, 1280: 2); perturbation `.whatif .wi-row { flex-wrap: nowrap }` -> 2/1/2.\n\nFinal severity **medium**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js WhatIfPanel markup order.\n\nFinding id: D4-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:medium",
+   "dim:D4",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D7-s1-01",
+  "title": "[R8-D7-s1-01] The active sysid experiment ignores the learning freeze and records external heat, defrost, open-window and stale-indoor nights",
+  "body": "coordinator._run_system_identification never consults _learning_frozen, so it ingests 4 of 4 contaminations where the heat-loss learner ingests 0; across a dose sweep the gate adopts 13 of 27 contaminated nights, worst UA error +21.44 % (+8.75 % with it dropped).\n\nEvidence: tools/audit/round8/D7/s1_learner_freeze.py, command `PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_learner_freeze.py` -> RESULT sysid_contaminated_ingest=4, clean 1, house_heat_loss 0; `--perturb` -> 0. tools/audit/round8/D7/v1_sysid_freeze.py -> 13/27, perturbed 0.\n\nFinal severity **medium**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: custom_components/heatpump_optimizer/coordinator.py _run_system_identification; abort with a named reason while frozen.\n\nRelated: #1332, #944, #279, #192 (learner-freeze class; sysid was never brought under _learning_frozen).\n\nFinding id: D7-s1-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:medium",
+   "dim:D7",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D7-s1-02",
+  "title": "[R8-D7-s1-02] The one-room sysid model cannot identify a two-zone house: 0 of 3 two-zone presets adopt and experiments overshoot the 0.8 K comfort allowance",
+  "body": "sysid sizes and fits with two_zone_enabled=False, so 0 of 3 two-zone presets adopt and experiments abort at 0.83, 0.96 and 1.29 K, past the 0.8 K allowance; the same presets single-zone adopt 2 of 3.\n\nEvidence: tools/audit/round8/D7/s1_sysid_twozone.py, command `PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_sysid_twozone.py` -> RESULT twozone_admitted=0, singlezone_admitted=2; `--perturb` -> 2. tools/audit/round8/D7/v1_sysid_twozone.py -> aborts 0.828/0.961/1.288 K.\n\nFinal severity **medium**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: custom_components/heatpump_optimizer/sysid.py and the arm call; refuse arm on two-zone or fit the two-zone model.\n\nRelated: #942 (one-state fit on the slab plant, owner decision), #244 / #943, #1329, #277. The two-zone plant is not covered by them.\n\nFinding id: D7-s1-02 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:medium",
+   "dim:D7",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D7-s1-03",
+  "title": "[R8-D7-s1-03] The sysid adoption gate refuses without a reason: a refused fit stays published as completed, reason ok, with its UA",
+  "body": "The first guard of _adopt_system_identification returns without a reason or log, so 10 of 19 finished experiments are refused while the learning view publishes completed=True, reason='ok' and the fitted UA (e.g. +72 % on an open-window night).\n\nEvidence: tools/audit/round8/D7/s1_gate_silent.py, command `PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_gate_silent.py` -> RESULT silent_refusals=10 of 19; `--perturb-fix` -> 0. tools/audit/round8/D7/v1_gate_silent.py -> 8 of 23.\n\nFinal severity **medium**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: custom_components/heatpump_optimizer/coordinator.py _adopt_system_identification; write a named refusal and log.\n\nRegression of the #942 owner decision (\"refusals carry a named per-cell reason instead of silent never-adoption\"); related #1410 / #1437.\n\nFinding id: D7-s1-03 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:medium",
+   "dim:D7",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D12-s1-01",
+  "title": "[R8-D12-s1-01] An input_boolean or climate heat-pump switch accepted by assign_entity is never actuated: _apply_action always calls switch.turn_on/turn_off",
+  "body": "assign_entity accepts input_boolean and climate for heat_pump_switch_entity, but _apply_action always calls switch.turn_*, so 2 of 6 surfaces never follow the plan.\n\nEvidence: tools/audit/round8/D12/s1_actuation.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D12/s1_actuation.py` -> RESULT unroutable_writes=2, null 0; `--fix-arm` -> 0. tools/audit/round8/D12/v1_switch_follow.py -> 2 of 6.\n\nFinal severity **medium**, stop-rule class **bug** (judge-weakened from high).\n\nProposed fix scope: custom_components/heatpump_optimizer/coordinator.py _apply_action (homeassistant.turn_*).\n\nFinding id: D12-s1-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:medium",
+   "dim:D12",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D12-s1-02",
+  "title": "[R8-D12-s1-02] On an install with no hot water, the always-created Hot water boost switch injects 4 kW of DHW into the live action and turns the pump on",
+  "body": "With no DHW, turning on BoostDhwSwitch puts 4.000 kW of dhw_power into the action in 8 of 8 cells, publishes dhw_heating_active, and flips the pump on in 6 of 6 peak-hour cells.\n\nEvidence: tools/audit/round8/D12/s1_phantom_boost.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D12/s1_phantom_boost.py` -> RESULT phantom_dhw_cells=8 of 8; `--fix-arm` -> 0. tools/audit/round8/D12/v1_boost_effects.py -> 6 of 6, null 0.\n\nFinal severity **medium**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: custom_components/heatpump_optimizer/boost.py and switch.py.\n\nRelated: #1237, #1398, #1302 (no-DHW class).\n\nFinding id: D12-s1-02 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:medium",
+   "dim:D12",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D13-s1-02",
+  "title": "[R8-D13-s1-02] Owner-approved merges skip the fix-review verdict: 8 of 22 carry none, against 0 of 66 app-approved",
+  "body": "8 of 88 window merges carry no Fix-review verdict, all on the owner-approval path (8 of 22 vs 0 of 66 app-approved).\n\nEvidence: tools/audit/round8/D13/s1_yield.mjs, command `node tools/audit/round8/D13/s1_yield.mjs --window <json>` -> RESULT no_verdict=8, owner 8/22, app 0/66; `--reshape 1493` -> 9. tools/audit/round8/D13/v1_coverage.py agrees.\n\nFinal severity **medium**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: policy, owner decides: require a verdict on the code-owned path or record an exemption.\n\nRelated: #1406 (same metric over automation-authored merges; this population is owner-approved merges).\n\nFinding id: D13-s1-02 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:medium",
+   "dim:D13",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D1-s1-02",
+  "title": "[R8-D1-s1-02] diagnose_interval service runs coordinator.diagnose_last_interval on the executor against live state",
+  "body": "services.py passes the bound method coord.diagnose_last_interval to hass.async_add_executor_job, so an executor thread reads the live _ctx params and _last_interval_record and writes _last_diagnosis, bypassing the snapshot the Diagnose button uses; 3 private coordinator attributes are touched off the loop on the service path, 0 on the button path.\n\nEvidence: tools/audit/round8/D1/s1_thread_reads.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D1/s1_thread_reads.py` -> RESULT service_offloop_attrs=3, button_offloop_attrs=0, cycle_offloop_attrs=0; `--perturb` -> 0. tools/audit/round8/D1/v1_diag_offloop.py -> service_offloop_live=1, service_torn=1 (forced), button 0/0.\n\nFinal severity **low**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: custom_components/heatpump_optimizer/services.py handle_diagnose_interval; await coord.async_diagnose_interval().\n\nFinding id: D1-s1-02 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D1",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D2-s1-02",
+  "title": "[R8-D2-s1-02] With cop_flow_carnot on, the DHW tank is priced up to 45 % more efficient than a buffer at the same water temperature",
+  "body": "With cop_flow_carnot enabled, marginal_cop(o,'dhw',T)/marginal_cop(o,'buffer',T) exceeds 1.01 in 102 of 105 cells, max 1.4548 at 70 C / 7 C, because compute_cop_dhw keeps its own lift penalty; it also grants a 1.12x boost below 35 C that the buffer law refuses.\n\nEvidence: tools/audit/round8/D2/s1_cop_laws.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D2/s1_cop_laws.py` -> RESULT ratio_max=1.4548, cells_ratio_gt_1_01=102, null_at_reference_flow=0; `--perturb` -> 1.0000, 0 cells. tools/audit/round8/D2/v1_cop_laws.py (364 cells) -> max 1.4548, 358 > 1.05.\n\nFinal severity **low**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: custom_components/heatpump_optimizer/thermal_model.py; derive the DHW penalty from flow_lift_factor behind cop_flow_carnot.\n\nFinding id: D2-s1-02 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D2",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D3-s1-02",
+  "title": "[R8-D3-s1-02] env_drift's cache key hashes HPO_* variables no capture reads, so every locked or HPO_PLANDATA-setting run re-captures",
+  "body": "tests/env_drift.py:cache_key includes every HPO_ variable, so environments differing only in HPO_PLANDATA or the gate-lock names give 4 distinct keys over 4 capture-equivalent environments while a capture reads 0 HPO_* names.\n\nEvidence: tools/audit/round8/D3/s1_cachekey.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D3/s1_cachekey.py` -> RESULT distinct_keys=4, null_equal=1, capture_reads=0; `--perturb` -> 1. tools/audit/round8/D3/v1_cachekey.py agrees. Miss cost provisional (169 s at load1 ~2).\n\nFinal severity **low**, stop-rule class **bug** (judge-weakened from medium).\n\nProposed fix scope: tests/env_drift.py; drop the blanket HPO_ prefix, pin with a check.\n\nFinding id: D3-s1-02 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D3",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D3-s2-01",
+  "title": "[R8-D3-s2-01] No test drives LegionellaGuard.hours_since with a future timestamp; removing its negative-elapsed clamp survives the whole closure",
+  "body": "Deleting the hours_since clamp moves a 2 h-future reading from 0.0 to -2.0 h and survives every script of legionella.py's closure (0 killers; positive control killed); the due instant is unchanged (0.0 h) and only due_in_hours (24 -> 26 h) and the plan deadline move during clock skew.\n\nEvidence: tools/audit/round8/D3/s2_finding01_hours_since.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D3/s2_finding01_hours_since.py` -> RESULT mutant_future_reading_h=-2.0, past unchanged; tools/audit/round8/D3/v1_suite_mutants.py -> m05_killers=0, --posctl 1; tools/audit/round8/D3/v1_legionella_due.py -> overdue_instant_delta=0.0.\n\nFinal severity **low**, stop-rule class **hygiene** (judge-weakened from medium).\n\nProposed fix scope: tests/features.py; one future-timestamp check.\n\nRelated: #252 (same class, age_minutes clamp).\n\nFinding id: D3-s2-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D3",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D3-s2-02",
+  "title": "[R8-D3-s2-02] The dhw minimum == ceiling deadband boundary is untested at both service call sites",
+  "body": "Both service handlers accept a DHW minimum equal to the deadband ceiling, and a > -> >= mutation at either site rejects that legal value while surviving services.py's whole closure (0 killers each).\n\nEvidence: tools/audit/round8/D3/s2_finding02_deadband_boundary.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D3/s2_finding02_deadband_boundary.py` -> baseline None, mutant ServiceValidationError at both sites, null holds; tools/audit/round8/D3/v1_deadband.py -> boundary_flips=2; tools/audit/round8/D3/v1_suite_mutants.py -> m11/m12 killers 0, posctl 1.\n\nFinal severity **low**, stop-rule class **hygiene** (judge-verified).\n\nProposed fix scope: tests/features.py; one boundary check per call site.\n\nFinding id: D3-s2-02 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D3",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D4-s2-01",
+  "title": "[R8-D4-s2-01] The ecl110_mqtt_qos options-flow label is untranslated in sv.json",
+  "body": "sv.json's ecl110_mqtt_qos label is byte-identical to en.json's while its sibling is translated; 1 of 8 identical en/sv strings is a genuine gap.\n\nEvidence: tools/audit/round8/D4/s2_translation_gap.py, command `python3 tools/audit/round8/D4/s2_translation_gap.py` -> RESULT untranslated_residual=1; `--perturb` -> 0.\n\nFinal severity **low**, stop-rule class **hygiene** (judge-verified).\n\nProposed fix scope: one string in custom_components/heatpump_optimizer/translations/sv.json.\n\nFinding id: D4-s2-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D4",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D5-s1-01",
+  "title": "[R8-D5-s1-01] README Quick-start diagram numbers screens 3-6 while the prose numbers the same screens 4-7",
+  "body": "README.md's Quick-start flowchart numbers Temperatures, building description, Hot water and Weather sensitivity 3-6 while the prose numbers them 4-7; the harness counts 3 mismatches and a hand read finds the 4th.\n\nEvidence: tools/audit/round8/D5/s1_stepnum.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D5/s1_stepnum.py` -> RESULT mismatched_labels=3; `--fix` -> 0.\n\nFinal severity **low**, stop-rule class **hygiene** (judge-verified).\n\nProposed fix scope: README.md Quick-start renumbering only.\n\nFinding id: D5-s1-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D5",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D5-s2-01",
+  "title": "[R8-D5-s2-01] Two production comments name MIN_POWER and min_power, bare forms with zero code occurrences",
+  "body": "const.py:80 writes MIN_POWER for CONF_HEAT_PUMP_MIN_POWER and optimizer.py:6518 writes min_power for min_electrical_power; both bare tokens occur nowhere in code (shorthand_missing=2 of 640 identifiers).\n\nEvidence: tools/audit/round8/D5/s2_comment_idents.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D5/s2_comment_idents.py` -> RESULT shorthand_missing=2; replacing both tokens -> 0, files restored.\n\nFinal severity **low**, stop-rule class **hygiene** (judge-verified).\n\nProposed fix scope: two comment edits in custom_components/heatpump_optimizer/const.py and optimizer.py.\n\nRelated: #1457, #836 (same class, different sites).\n\nFinding id: D5-s2-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D5",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D6-s1-01",
+  "title": "[R8-D6-s1-01] README Requirements names numpy and scipy but not threadpoolctl, the manifest's third requirement",
+  "body": "README's Requirements names numpy and scipy while manifest.json also pins threadpoolctl>=3.5.0, imported at runtime; 1 of 3 requirements is undocumented.\n\nEvidence: tools/audit/round8/D6/s1_requirements_claim.py, command `python3 tools/audit/round8/D6/s1_requirements_claim.py` -> RESULT undocumented_and_used_count=1; README naming it -> 0.\n\nFinal severity **low**, stop-rule class **hygiene** (judge-verified).\n\nProposed fix scope: one clause in README.md.\n\nFinding id: D6-s1-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D6",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D7-s2-01",
+  "title": "[R8-D7-s2-01] structure.py's name-based dead-code screen reports 0 while 12 top-level production symbols are unreachable",
+  "body": "dead_top_level_symbols decides liveness by bare name, so it reports 0 while 12 production symbols (grid_fee.is_valid_spec, presets.describe, ten unused _LOGGERs) are unreachable and never called at runtime.\n\nEvidence: tools/audit/round8/D7/s2_reach.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D7/s2_reach.py --perturb --gate-probe` -> RESULT unreachable_missed_by_gate=12, perturbed 11; tools/audit/round8/D7/s2_sentinel.py -> prod calls 0 vs controls 14/69/5324.\n\nFinal severity **low**, stop-rule class **hygiene** (judge-verified).\n\nProposed fix scope: delete the 12 symbols in custom_components/heatpump_optimizer/ and resolve names through imports in tests/structure.py.\n\nRelated: #364 (the name-based fix that now yields false negatives), #281, #226.\n\nFinding id: D7-s2-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D7",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D7-s2-02",
+  "title": "[R8-D7-s2-02] A pure method rename lowers the zero-headroom cross_seam_edges ratchet for 27 of 227 coordinator methods, by up to 7",
+  "body": "seam_metrics buckets coordinator methods by name regex, so a rename with no code change lowers cross_seam_edges (140 at budget 140) for 27 of 227 methods, by 1-7.\n\nEvidence: tools/audit/round8/D7/s2_rename.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D7/s2_rename.py` -> RESULT renames_that_lower_cross_seam_edges=27, max 7, null 0; `--perturb` -> 0.\n\nFinal severity **low**, stop-rule class **hygiene** (judge-verified).\n\nProposed fix scope: tests/structure.py; an explicit committed method-to-seam map.\n\nFinding id: D7-s2-02 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D7",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D7-s2-03",
+  "title": "[R8-D7-s2-03] Disabling the dhw_coil branch of topology.layout_edges drops the wood_tank->dhw_tank edge and no test notices",
+  "body": "Replacing `if dhw_coil:` with `if False:` in layout_edges removes the published wood_tank->dhw_tank edge (1 -> 0) and no driver in the closure changes its verdict.\n\nEvidence: tools/audit/round8/D7/s2_spot.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D7/s2_spot.py --only M3` -> RESULT killed[M3]=0; tools/audit/round8/D7/v1_coil_edge.py -> edge 1 -> 0, --perturb killed 1.\n\nFinal severity **low**, stop-rule class **hygiene** (judge-verified).\n\nProposed fix scope: tests/features.py; one edge check.\n\nFinding id: D7-s2-03 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D7",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D8-s1-01",
+  "title": "[R8-D8-s1-01] Only the sensor platform scrubs non-finite floats; climate, switch, binary_sensor and datetime publish raw NaN/Inf in-process",
+  "body": "Only sensor.py's base wraps published values in the _finite scrub; with current_price NaN/Inf, climate's attributes return the raw float while the sensor returns None (scrub calls 0 on four platforms vs 6); real orjson writes null, so the defect is the in-process value templates read.\n\nEvidence: tools/audit/round8/D8/s1_finite_boundary.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D8/s1_finite_boundary.py` -> RESULT climate/switch/binary_sensor/datetime finite_call_count=0, sensor 6, null ok; with real orjson on PYTHONPATH climate_leaks 0.\n\nFinal severity **low**, stop-rule class **bug** (judge-weakened from high).\n\nProposed fix scope: custom_components/heatpump_optimizer/entity.py; move the scrub to HeatPumpOptimizerEntity.\n\nRelated: #283 (same shape, latent under real orjson), #1315 (sensor._finite).\n\nFinding id: D8-s1-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D8",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D8-s2-02",
+  "title": "[R8-D8-s2-02] The tank temperature sensor stays disabled by default on installs that configure a tank thermometer, hiding the card's live probe point",
+  "body": "DHWTemperatureSensor's static default-off also applies where a tank thermometer is configured and reads OK, so the entity is live but disabled and the card drops its live tank point; count 1 with a probe, 0 without.\n\nEvidence: tools/audit/round8/D8/judge_probe_default.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D8/judge_probe_default.py` -> RESULT dhw_temperature_hidden_live=1, control 0; `--perturb` -> 0.\n\nFinal severity **low**, stop-rule class **bug** (judge-weakened from medium).\n\nProposed fix scope: custom_components/heatpump_optimizer/sensor.py; default follows whether dhw_temp_entity is configured.\n\nRelated: #1398, #1429, #1461 (the dynamic default cannot reach DHWTemperatureSensor outside the mixin).\n\nFinding id: D8-s2-02 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D8",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D9-s1-01",
+  "title": "[R8-D9-s1-01] The per-candidate L-BFGS-B polish spends 6.3 % of the sweep's gradient evaluations on results it discards, 2.6 % in polishes that end ABNORMAL at iteration 0",
+  "body": "Over 51 sweep solves, 149 of 206 polishes are discarded, using 1,200 of 18,967 gradient evaluations (0.0633); 24 end ABNORMAL at nit 0; 0.0783 at flat prices.\n\nEvidence: tools/audit/round8/D9/s1_polish.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D9/s1_polish.py` -> RESULT real.discarded_polish_share=0.0633; `--flat` 0.0783; `--maxls 5` 0.0406. tools/audit/round8/D9/v1_polish_kernel.py -> maxls5 worsens 9/51 objectives.\n\nFinal severity **low**, stop-rule class **hygiene** (judge-verified).\n\nProposed fix scope: custom_components/heatpump_optimizer/optimizer.py _lbfgsb_restart early exit.\n\nRelated: #1463, closed as a priced refusal in #1486 (keeping the polish cost needs the owner's ruling to change). This finding measures a different quantity (discarded and ABNORMAL polishes); the fix must be judged against that refusal, and the finder's own --maxls 5 arm worsens 9 of 51 objectives.\n\nFinding id: D9-s1-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D9",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D9-s2-01",
+  "title": "[R8-D9-s2-01] No CPU- or memory-budgeted gate script covers coordinator.py, sensor.py, process_worker.py, price_model.py or narrative.py",
+  "body": "tests/stress.py, the only budgeted gate script, has none of those five files in its measured closure, so no budgeted check measures the coordinator cycle; a doubled _build_data_dict changes 0 of 13 selected scripts.\n\nEvidence: tools/audit/round8/D9/s2_gate_blind.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D9/s2_gate_blind.py` -> RESULT budgeted_scripts_seeing_coordinator=0, optimizer=1; tools/audit/round8/D9/v1_suite_blind.sh -> 0 of 13.\n\nFinal severity **low**, stop-rule class **hygiene** (judge-weakened from medium).\n\nProposed fix scope: tests/ only; a budgeted cycle lane.\n\nRelated: #1411 (seam coverage of the solve only).\n\nFinding id: D9-s2-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D9",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D10-s1-01",
+  "title": "[R8-D10-s1-01] quality_scale.yaml states qs_entry_param_bare=0; 3 to 4 annotations use the bare ConfigEntry",
+  "body": "The strict-typing comment claims no bare ConfigEntry, but 3 annotations use it (diagnostics.py:119, two in config_flow.py), plus a 4th PEP 604 union at config_flow.py:2911.\n\nEvidence: tools/audit/round8/D10/s1_entry_param_bare.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D10/s1_entry_param_bare.py` -> RESULT qs_entry_param_bare=3, after_fix 2, after_regress 4; v1_entry_param_bare_regex.py -> 4.\n\nFinal severity **low**, stop-rule class **hygiene** (judge-verified).\n\nProposed fix scope: custom_components/heatpump_optimizer/diagnostics.py, config_flow.py and the quality_scale.yaml comment.\n\nRegression of #1466, closed by #1490 (\"type every entry parameter\").\n\nFinding id: D10-s1-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D10",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D10-s1-02",
+  "title": "[R8-D10-s1-02] 4 of 25 exception raise sites omit translation_domain/translation_key although quality_scale.yaml claims all carry them",
+  "body": "4 of 25 raise sites (coordinator.py 1211, 4581, 4631, 5601, all UpdateFailed) carry no translation_domain/translation_key.\n\nEvidence: tools/audit/round8/D10/s1_exception_translations.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D10/s1_exception_translations.py` -> RESULT qs_exception_raise_missing_translation=4 of 25; fix 3, regress 5.\n\nFinal severity **low**, stop-rule class **hygiene** (judge-verified).\n\nProposed fix scope: custom_components/heatpump_optimizer/coordinator.py raise sites plus strings/translations.\n\nRelated: #299, #217 (service and config-entry raise sites; the coordinator UpdateFailed sites were outside their scope).\n\nFinding id: D10-s1-02 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D10",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D11-s1-03",
+  "title": "[R8-D11-s1-03] stop-selfcheck.sh ends a turn on a red policy corpus when the policy change is only staged",
+  "body": "The Stop hook's CHANGED set ignores the index, so against a red linter it exits 0 in 2 of 4 policy-touching states.\n\nEvidence: tools/audit/round8/D11/s1_stop_hook_states.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D11/s1_stop_hook_states.py` -> RESULT blind_states=2 of 4, null 0; `--perturb` -> 0.\n\nFinal severity **low**, stop-rule class **bug** (judge-verified).\n\nProposed fix scope: .claude/hooks/stop-selfcheck.sh; add git diff --cached.\n\nFinding id: D11-s1-03 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D11",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D11-s2-03",
+  "title": "[R8-D11-s2-03] 12 CI install commands in tests.yml are version-pinned but not hash-pinned",
+  "body": "12 install commands in tests.yml are not hash-pinned; every uses: ref is SHA-pinned.\n\nEvidence: tools/audit/round8/D11/s2_scorecard.py, command `PYTHONPATH=tests/hastub python3 tools/audit/round8/D11/s2_scorecard.py` -> RESULT pinned_deps_unpinned=12; `--perturb` -> 11.\n\nFinal severity **low**, stop-rule class **hygiene** (judge-verified).\n\nProposed fix scope: hashed lock files and npm ci in .github/workflows/tests.yml.\n\nRelated: #960 (covered uses: refs, not install commands).\n\nFinding id: D11-s2-03 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D11",
+   "round-8"
+  ]
+ },
+ {
+  "id": "D13-s1-01",
+  "title": "[R8-D13-s1-01] statsHistogram reports first-verdict yield 0.963 while one-round yield is 0.8125; its head-moved row lumps 15 re-verifications with 3 repairs",
+  "body": "Of 20 extra verdicts over 80 verdict-bearing merges, 15 re-verified a moved head, 3 were repairs and 2 duplicates; first-pass yield 0.963 vs one-round yield 0.8125.\n\nEvidence: tools/audit/round8/D13/s1_window.py then tools/audit/round8/D13/s1_yield.mjs, command `python3 tools/audit/round8/D13/s1_window.py && node tools/audit/round8/D13/s1_yield.mjs --window <json>` -> RESULT reverify->merge 15, one_round_yield=0.8125; `--pin-head 1375` -> 14. tools/audit/round8/D13/v1_rework.py -> 14 of 15 changed diffs.\n\nFinal severity **low**, stop-rule class **hygiene** (judge-weakened from medium).\n\nProposed fix scope: .claude/workflows/policy_lint.mjs statsHistogram reporting.\n\nRelated: #1405, closed by #1442 as a docs-only carry.\n\nFinding id: D13-s1-01 (round 8, baseline cdf82daa).",
+  "labels": [
+   "audit",
+   "sev:low",
+   "dim:D13",
+   "round-8"
+  ]
+ }
+]
