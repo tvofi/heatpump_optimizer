@@ -21324,20 +21324,21 @@ R.check(
     "the stats histogram keys a rework round on a moved head as `head-moved`, "
     "the class the wave defines for it and the passing verdict hides (#1405)",
     _rework_cell("base").get("prs") == 7
-    and _rework_cell("base").get("entries") == 11,
+    and _rework_cell("base").get("entries") == 9,
     f"head-moved cell={_rework_cell('base')!r} -- 11 of the window's 74 "
-    "parseable verdicts are a second-or-later verdict naming a head other than "
-    "the merge's first, and until the histogram counted them the class the wave "
-    "defines for exactly that had zero verdicts",
+    "parseable verdicts are a second-or-later verdict, and 9 of them follow a "
+    "`merge` verdict at another head (the other two are a repair after a block "
+    "and a repeat of the previous head, #1549); until the histogram counted "
+    "them the class the wave defines for exactly that had zero verdicts",
 )
 R.check(
     "and the rework count tracks the window rather than a constant "
     "(null control; the finder's own perturbation)",
     _rework_cell("reshaped").get("prs") == 6
-    and _rework_cell("reshaped").get("entries") == 10,
+    and _rework_cell("reshaped").get("entries") == 8,
     f"head-moved cell={_rework_cell('reshaped')!r} -- the finder's `reshaped` "
     "fixture takes one rework verdict outside the grammar, so the same walk "
-    "must report 10 rounds over 6 merges, not the base's 11 over 7",
+    "must report 8 rounds over 6 merges, not the base's 9 over 7",
 )
 R.check(
     "and the passing row is left exactly as it was, so the rework key adds a "
@@ -21346,7 +21347,7 @@ R.check(
     and _rework_cell("mergeBase").get("entries") == 73,
     f"merge cell={_rework_cell('mergeBase')!r} -- the round is counted BESIDE "
     "the row the verdict already landed in, never instead of it: a rekey would "
-    "have emptied 11 entries out of this cell and moved a published figure, and "
+    "have emptied 9 entries out of this cell and moved a published figure, and "
     "an instrument that changes a number a reader already trusts has to say so",
 )
 R.check(
