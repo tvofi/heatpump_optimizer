@@ -3714,6 +3714,7 @@ function assertAcceptance(derived) {
       { name: 'pr-contract', status: 'completed', conclusion: 'failure' },
       { name: 'mutation', status: 'completed', conclusion: 'skipped' },
       { name: 'nightly-status', status: 'in_progress' },
+      { name: 'delivery-status', status: 'completed', conclusion: 'failure' },
       { name: 'fast (3.14)', status: 'completed', conclusion: 'failure' },
     ],
     c2: [
@@ -3738,6 +3739,15 @@ function assertAcceptance(derived) {
   const clearedRefusals = checkPrBody(path.relative(ROOT, path.join(prepr, 'unnamed-red.md')), { head: ZERO, red: redUnion.reds })
   if (clearedRefusals.length !== 2) {
     console.log(`\nFIXTURE VACUOUS: a body whose \`## Red checks\` does not name the two earlier-head reds produced ${clearedRefusals.length} error(s), not 2; the derived names have to reach the refusal the --red path already drives`)
+    rc = 1
+  }
+  // A reporter that grades `main` is owed no answer, on the head's own list as
+  // on the history's; `typing` beside it is still owed one (the null control).
+  pins += 1
+  const mainState = checkPrBody(path.relative(ROOT, path.join(prepr, 'unnamed-red.md')),
+    { head: ZERO, red: ['nightly-status', 'delivery-status', 'typing'] })
+  if (mainState.length !== 1 || !mainState[0].message.includes('`typing`')) {
+    console.log(`\nFIXTURE VACUOUS: red [nightly-status, delivery-status, typing] against a body naming none produced ${mainState.length} error(s), not the one for \`typing\`; MAIN_STATE_REPORTERS must excuse the two that grade main and nothing else`)
     rc = 1
   }
   // Both markers on SHAPE, for the reason `enumSkipLine`'s pin above gives: they
@@ -5262,6 +5272,16 @@ function autofixChain(head, names) {
 // `checkPrBody` itself does not change: `red` is still a list of names, and the
 // refusal it drives is the one #956 wired.
 const PR_CONTRACT_CHECK = 'pr-contract'
+// THE REPORTERS THAT GRADE `main`, NOT THIS HEAD. `nightly-status` reports
+// main's last scheduled run and `delivery-status` main's rowless merges; both
+// run on every pull request so a stopped lane or batch is seen, and neither
+// can change with this diff. Owing a `## Red checks` answer for them made every
+// open pull request re-explain one fact about `main` (the 2026-09-24 CI census:
+// most "red and not named" refusals were these two). Their tick stays red on
+// the pull request; clearing it is the orchestrator's, on `main`
+// (defect-root-cause.md). The set is read from the base's copy of this file,
+// so a pull request cannot widen its own exemption.
+const MAIN_STATE_REPORTERS = new Set(['nightly-status', 'delivery-status'])
 const RED_HISTORY_PAGE = 100
 const RED_HISTORY_MAX_PAGES = 10
 
@@ -5276,7 +5296,7 @@ function failingCheckNames(runs) {
   const names = new Set()
   for (const run of Array.isArray(runs) ? runs : []) {
     if (run?.status !== 'completed' || run?.conclusion !== 'failure') continue
-    if (run?.name === PR_CONTRACT_CHECK) continue
+    if (run?.name === PR_CONTRACT_CHECK || MAIN_STATE_REPORTERS.has(run?.name)) continue
     if (typeof run?.name === 'string' && run.name.trim()) names.add(run.name)
   }
   return [...names].sort()
@@ -5473,7 +5493,7 @@ function checkPrBody(bodyPath, { head = '', title = '', red = [], paths = [], no
   // but naming it is mechanical, and naming it is what gets skipped.
   const redSec = (secs.get('Red checks') ?? '').trim()
   for (const name of red) {
-    if (redSec.includes(name)) continue
+    if (redSec.includes(name) || MAIN_STATE_REPORTERS.has(name)) continue
     out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
       message: `check \`${name}\` is red and \`## Red checks\` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.` })
   }

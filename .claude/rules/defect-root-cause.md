@@ -131,13 +131,13 @@ The reviewer reads the PR's checks rather than the body's account of them. A red
 check the body does not answer is
 **`blocked: root-cause trigger unanswered for <check>`**.
 
-**`nightly-status` is answered with a proof, not a sentence.** It reports a lane
-no pull request can run for itself, so an explanation leaves it red until the
-cron fires. Fix the lane, dispatch the Tests workflow on the default branch —
-its own red report carries the invocation, and `web-fragments.md` maps it for a
-seat with no shell — and name that run id in the body: a concluded dispatch
-there is read as the nightly, so the check clears. A cause outside
-this repository is a legitimate answer, named with its owner.
+**`nightly-status` and `delivery-status` grade `main`, not the head**, so no
+body owes them an answer (the exemption in `.claude/workflows/policy_lint.mjs`,
+read from the base). Their red is the orchestrator's to clear on `main`: fix the
+nightly lane and dispatch the Tests workflow on the default branch — its own red
+report carries the invocation, and `web-fragments.md` maps it for a seat with no
+shell — or drain the overdue rows. A cause outside this repository is named with
+its owner.
 
 The first trigger — the defect reached a released version — has no moment
 cheaper than the issue itself, so it is carried by the **Root cause** section
