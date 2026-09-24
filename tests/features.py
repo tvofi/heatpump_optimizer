@@ -10282,6 +10282,51 @@ R.check(
     "refused heat stays on _step_dhw_refused for the step that booked it",
 )
 
+# The wood temperatures the DHW planner prices the coil at must be the ones the
+# published plan simulates. The planner re-derived the coil's drain step by step
+# beside the physics that already couples it (RCA coil-drain): it credited
+# later steps at a tank the coil had not cooled (+2.1 K on this fixture), then a
+# drain carried forward open-loop over-cooled it (-3.5 K), because a colder
+# tank also gives the buffer less. Read against the plan, not re-derived, and
+# the gap is the space power the plan re-solved after pricing (0.003 K).
+import heatpump_optimizer.optimizer as _wf_mod  # noqa: E402
+from golden import make as _wf_mk, START as _WF_START, SCENARIOS as _WF_SC  # noqa: E402
+
+_wf_real = _wf_mod.HeatPumpOptimizer._dhw_coil_wood_forecast
+_wf_seen: list = []
+
+
+def _wf_spy(self, h, space_power=None):
+    out = _wf_real(self, h, space_power)
+    _wf_seen.append((space_power is not None, out))
+    return out
+
+
+_wf_b = _wf_mk(**_WF_SC["wood_coil"])
+_wf_ext = np.zeros(len(_wf_b["prices"]))
+_wf_ext[:96] = 8.0 * (1.0 - np.arange(min(96, _wf_ext.size)) / 96.0)
+_wf_mod.HeatPumpOptimizer._dhw_coil_wood_forecast = _wf_spy
+try:
+    _wf_res = _wf_b["optimizer"].optimize(
+        _wf_b["state"], _wf_b["prices"], _wf_b["outdoor"], _wf_b["wind"],
+        _wf_b["rain"], _wf_b["solar"], _WF_START, external_heat_kw=_wf_ext,
+    )
+finally:
+    _wf_mod.HeatPumpOptimizer._dhw_coil_wood_forecast = _wf_real
+_wf_priced = [np.asarray(f, dtype=float) for s, f in _wf_seen if s and f is not None]
+_wf_pub = np.asarray(_wf_res.wood_temp_trajectory, dtype=float)
+_wf_m = min(len(_wf_priced[-1]), _wf_pub.size) if _wf_priced else 0
+_wf_gap = (
+    float(np.max(np.abs(_wf_priced[-1][:_wf_m] - _wf_pub[:_wf_m])))
+    if _wf_m else float("nan")
+)
+R.check(
+    "the wood temps the DHW planner prices the coil at are the published plan's",
+    _wf_m > 1 and _wf_gap <= 0.05,
+    f"max |priced - published| {_wf_gap:.4f} K over {_wf_m} steps "
+    f"({len(_wf_priced)} solved-space forecasts; none means the check ran on nothing)",
+)
+
 # #400: the planner must credit the coil, not only the reporting simulation.
 # optimize() is the witness — a re-implemented reduction would pin nothing.
 from golden import (
