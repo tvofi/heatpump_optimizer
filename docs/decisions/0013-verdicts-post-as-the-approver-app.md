@@ -125,8 +125,9 @@ only policy changes and budget **raises** belong to the code owner `tvofi`;
 routine changes, CI included, run without human approval, and #1558's trust
 holes stay closed. Part 2 owned the six budget files by path, and a path
 cannot tell a raise from a ledger row re-pinned after a line shift. Measured
-over the 108 first-parent merges from 2026-09-20 to `26f15eb0`: 20 touched a
-budget file, and the check below calls 7 of them raises; 13 were routine.
+over the 123 first-parent merges from 2026-09-20T00:00Z to `26f15eb0`: 22
+touched a budget file, and the check below calls 9 of them raises; 13 were
+routine.
 
 - **`.github/CODEOWNERS` owns no `*_budgets.json`.**
 - **The required context `budget-raise-gate`** (`.github/workflows/budget-raise-gate.yml`,
