@@ -1,0 +1,82 @@
+{
+  "dimension": "D1",
+  "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D1-01",
+      "title": "MonthlyLedger.from_dict skips leaf-level numeric validation; a type-confused kwh/sek crashes every cycle forever",
+      "severity": "critical",
+      "claim": "A type-confused numeric leaf (e.g. a list or non-numeric string in place of a float) inside a persisted ledger month's 'lines' entry passes MonthlyLedger.from_dict's structural validation, then makes HeatPumpOptimizerCoordinator._build_data_dict() raise an uncaught TypeError/ValueError on every subsequent refresh cycle for the life of the coordinator instance, with no log line and no self-repair.",
+      "mechanism": "MonthlyLedger.from_dict validates that months[key] is a dict with dict 'lines'/'meta' sub-keys, but copies each lines[*] entry (e.g. {'kwh':..., 'sek':...}) through unparsed; every sibling loader (accuracy.py, price_model.py, wear.py, ...) wraps each numeric leaf's float()/int() coercion in try/except (TypeError, ValueError, OverflowError), but ledger.py's from_dict never does, so a corrupted leaf only fails downstream, in MonthlyLedger.line()/month_summary()/savings_months(), which _build_data_dict() calls on every cycle with no guard around it.",
+      "evidence": {
+        "command": "cd /home/claude/audit-r8/seats/D1-s2 && PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D1/s2_ledger_fuzz.py",
+        "harness_path": "tools/audit/round8/D1/s2_ledger_fuzz.py",
+        "value": 0.324,
+        "unit": "ratio",
+        "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+        "machine": "shared 4-vCPU cloud container (see BASELINE.md); count/ratio metric, contention-immune",
+        "cpu_or_wall": "ratio",
+        "contention_note": "shared box, up to 13 other seats; this is a call-count/exception-count ratio, not timing, so it is final not provisional",
+        "tolerance": "+/-0.02 (measured 0.3240 over N=250, seed=20260923)",
+        "load1": 8.85,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.ledger:MonthlyLedger.from_dict / .savings_months / .line; heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_load_ledger / ._build_data_dict",
+      "perturbation": {
+        "change": "Wrap each lines[*] entry's kwh/sek (and meta[*]'s sum/count) coercion in MonthlyLedger.from_dict inside try/except (TypeError, ValueError, OverflowError), dropping the enclosing month on failure -- the same leaf guard every sibling loader already has.",
+        "expected_direction": "to_zero",
+        "observed_value": 0.0
+      },
+      "metric_definition": "escape_rate = (# of 250 seeded ledger mutants where _build_data_dict() raises uncaught after the real loader accepted it) / 250",
+      "phenomenon_property": "A QuarantiningStore loader's from_dict validates container shape (isinstance dict-of-dict checks) but not every numeric leaf inside a validated container via try/except (TypeError, ValueError, OverflowError), so a leaf type-confusion mutant is accepted by the loader and only fails on first production read.",
+      "seam_rule": "grep -n \"def from_dict\" custom_components/heatpump_optimizer/*.py, then per hit check whether every leaf under a validated container is coerced inside a narrow except; only ledger.py fails this check among the 11 stores checked this round.",
+      "null_control": {
+        "command": "same command as above; the harness also runs AccuracyTracker and PriceShapeModel loaders through the identical 250-mutant pool at analogous JSON paths",
+        "value": 0.0,
+        "note": "accuracy_escape_rate=0.0000 and price_model_escape_rate=0.0000 over the same N=250 mutants, ruling out the harness itself as the source of the escapes"
+      },
+      "reproduction_steps": [
+        "cd /home/claude/audit-r8/seats/D1-s2",
+        "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D1/s2_ledger_fuzz.py",
+        "Observe RESULT ledger_escape_rate=0.3240 and RESULT ledger_repeat_rate=1.0000"
+      ],
+      "proposed_fix_scope": "custom_components/heatpump_optimizer/ledger.py: MonthlyLedger.from_dict only -- add a leaf-level try/except around each lines[*] entry's kwh/sek coercion, mirroring the pattern already used in accuracy.py/price_model.py/wear.py.",
+      "files": [
+        "custom_components/heatpump_optimizer/ledger.py",
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "stop_rule_class": "bug"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "The other 10 QuarantiningStore loaders (accuracy, wear/StartCounter, price_model, dhw_draws, defrost, flow_lift, freq_control, snapshots, tariff, comfort_learning, curve_learning, manual_plan, legionella) leaf-guard every numeric coercion they perform.",
+      "command": "grep -n 'def from_dict' custom_components/heatpump_optimizer/*.py, then manual read of each body for a leaf-level try/except around float()/int() coercions",
+      "value": "10/10 have a leaf-level try/except (TypeError, ValueError, OverflowError) or an equivalent explicit isinstance guard around every numeric field they parse"
+    },
+    {
+      "claim": "The null-control stores (accuracy, price_model) show zero escapes over the same 250-mutant pool that finds the ledger gap.",
+      "command": "PYTHONPATH=tests/hastub ... python3 tools/audit/round8/D1/s2_ledger_fuzz.py",
+      "value": "RESULT accuracy_escape_rate=0.0000; RESULT price_model_escape_rate=0.0000 (N=250 each)"
+    },
+    {
+      "claim": "ManualOverride.from_dict's deliberate ManualPlanError raises never escape the coordinator's except (ManualPlanError, AttributeError, TypeError) clause, because parse_channel/_parse_dt re-wrap every ValueError as ManualPlanError before it can propagate.",
+      "command": "manual read of custom_components/heatpump_optimizer/manual_plan.py (parse_channel, _parse_dt) and coordinator.py:_async_load_manual_plan",
+      "value": "no exception type reaches _async_load_manual_plan outside the caught tuple"
+    },
+    {
+      "claim": "legionella.py's async_load wraps the whole load-and-parse (including _load_switch_record) in one outer try/except Exception, unlike ledger's loader which only wraps the async_load() call itself.",
+      "command": "manual read of custom_components/heatpump_optimizer/legionella.py:async_load",
+      "value": "outer try/except Exception covers all parsing in that loader"
+    },
+    {
+      "claim": "QuarantiningStore._sanitize (store.py) scrubs non-finite float leaves and non-finite-parseable strings before any loader sees them, so those particular mutants in the pool do not contribute to ledger_loader_raised or the escape count via that path -- the ledger escapes are all leaf TYPE confusion (list/dict/bare string), a distinct gap from the one store.py closes.",
+      "command": "read custom_components/heatpump_optimizer/store.py:_sanitize and cross-check against s2_ledger_fuzz.py's _CORRUPT_LEAVES pool",
+      "value": "RESULT ledger_loader_raised=0 (the loader itself never raises for any of the 250 mutants)"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round8/D1/s2_ledger_fuzz.py"
+  ]
+}

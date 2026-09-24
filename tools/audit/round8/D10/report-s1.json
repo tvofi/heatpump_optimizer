@@ -1,0 +1,102 @@
+{
+  "dimension": "D10",
+  "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+  "exposure": "Fetched two external URLs via WebFetch: HA developer docs quality-scale rule pages (strict-typing, exception-translations, checklist index) and the Discourse blueprint topic the register cites for docs-examples.",
+  "findings": [
+    {
+      "id": "D10-s1-01",
+      "title": "quality_scale.yaml claims qs_entry_param_bare=0; measured 3",
+      "severity": "low",
+      "claim": "The strict-typing row's comment in custom_components/heatpump_optimizer/quality_scale.yaml states every entry parameter is typed with the HeatPumpOptimizerConfigEntry alias (qs_entry_param_bare=0), but diagnostics.py:119 and two OptionsFlow-dispatch signatures in config_flow.py use the bare HA-core ConfigEntry generic instead.",
+      "mechanism": "diagnostics.py's async_get_config_entry_diagnostics annotates its entry parameter as ConfigEntry[HeatPumpOptimizerCoordinator] rather than importing and using HeatPumpOptimizerConfigEntry, the named alias every other module in the package uses; the strict-typing rule's fetched text requires the custom alias be 'used throughout'.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D10/s1_entry_param_bare.py",
+        "harness_path": "tools/audit/round8/D10/s1_entry_param_bare.py",
+        "value": 3,
+        "unit": "count",
+        "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+        "machine": "4-vCPU cloud container (audit-r8 seat box)",
+        "cpu_or_wall": "count",
+        "contention_note": "pure AST count over static source; contention-immune, final not provisional",
+        "tolerance": "exact",
+        "load1": 23.71,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components.heatpump_optimizer.diagnostics:async_get_config_entry_diagnostics",
+      "perturbation": {
+        "change": "diagnostics.py: entry: ConfigEntry[HeatPumpOptimizerCoordinator] -> entry: HeatPumpOptimizerConfigEntry",
+        "expected_direction": "down",
+        "observed_value": 2
+      },
+      "metric_definition": "qs_entry_param_bare = count of function/method parameter (or return) annotations across custom_components/heatpump_optimizer/*.py resolving via AST to the Name/Subscript `ConfigEntry` rather than `HeatPumpOptimizerConfigEntry`.",
+      "phenomenon_property": "A row's comment in quality_scale.yaml asserts a completeness count (X=0) that the named, re-runnable metric it cites does not actually measure as 0.",
+      "seam_rule": "tools/audit/round8/D10/s1_entry_param_bare.py (the AST walk over custom_components/heatpump_optimizer/*.py)",
+      "reproduction_steps": [
+        "cd repo root",
+        "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D10/s1_entry_param_bare.py",
+        "confirm RESULT qs_entry_param_bare=3, then RESULT qs_entry_param_bare_after_fix=2 after the harness's own in-place, reverted perturbation"
+      ],
+      "proposed_fix_scope": "One-line change in diagnostics.py: import HeatPumpOptimizerConfigEntry from .coordinator and use it in async_get_config_entry_diagnostics's signature; then correct the quality_scale.yaml comment's claimed count (and re-check the two config_flow.py OptionsFlow sites separately, since they may be a legitimate HA-forced-signature exemption).",
+      "files": [
+        "custom_components/heatpump_optimizer/diagnostics.py",
+        "custom_components/heatpump_optimizer/quality_scale.yaml"
+      ],
+      "stop_rule_class": "hygiene"
+    },
+    {
+      "id": "D10-s1-02",
+      "title": "4 of 25 exception raise sites lack translation_domain/translation_key",
+      "severity": "low",
+      "claim": "quality_scale.yaml's exception-translations row states every raise site carries translation_domain + translation_key; four raise UpdateFailed(...) sites in coordinator.py (the Tibber outage latch and two generic update-failure wrappers) carry neither.",
+      "mechanism": "coordinator.py's _tibber_fetch_failed, _async_update_data's generic-Exception wrapper and _async_first_refresh_light's generic-Exception wrapper all raise UpdateFailed(<f-string>) with no translation_domain/translation_key kwargs; UpdateFailed's message becomes the coordinator's last_exception, the string HA's UI shows as the integration's unavailable reason.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D10/s1_exception_translations.py",
+        "harness_path": "tools/audit/round8/D10/s1_exception_translations.py",
+        "value": 4,
+        "unit": "count",
+        "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+        "machine": "4-vCPU cloud container (audit-r8 seat box)",
+        "cpu_or_wall": "count",
+        "contention_note": "pure AST count over static source; contention-immune, final not provisional",
+        "tolerance": "exact",
+        "load1": 21.26,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:_tibber_fetch_failed",
+      "perturbation": {
+        "change": "coordinator.py: raise UpdateFailed(reason) -> raise UpdateFailed(reason, translation_domain=\"heatpump_optimizer\", translation_key=\"tibber_fetch_failed\") (first occurrence, in _tibber_fetch_failed)",
+        "expected_direction": "down",
+        "observed_value": 3
+      },
+      "metric_definition": "count of raise sites (5 HomeAssistantError-family exception classes) in the package whose call omits translation_domain or translation_key.",
+      "phenomenon_property": "A row's comment in quality_scale.yaml asserts a universal completeness claim ('every raise site') that a corpus-wide AST count of that exact class of raise site falsifies.",
+      "seam_rule": "tools/audit/round8/D10/s1_exception_translations.py (the AST walk over custom_components/heatpump_optimizer/*.py)",
+      "reproduction_steps": [
+        "cd repo root",
+        "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D10/s1_exception_translations.py",
+        "confirm RESULT qs_exception_raise_missing_translation=4, then =3 after fix perturbation, =5 after regress perturbation (both reverted by the harness's own finally block)"
+      ],
+      "proposed_fix_scope": "Add translation_domain=DOMAIN and a translation_key per site (4 raises in coordinator.py) plus matching entries under the exceptions section of strings.json/en.json/sv.json; correct the quality_scale.yaml comment's claimed completeness.",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/quality_scale.yaml"
+      ],
+      "stop_rule_class": "hygiene"
+    }
+  ],
+  "non_findings": [
+    {"claim": "parallel-updates: every platform module that declares entities sets PARALLEL_UPDATES", "command": "grep -n PARALLEL_UPDATES custom_components/heatpump_optimizer/*.py", "value": "6/6 platform modules set it (1 for 4 writers, 0 for 2 read-only sensor platforms)"},
+    {"claim": "inject-websession: every network call site uses the injected aiohttp session", "command": "grep -n 'ClientSession(' custom_components/heatpump_optimizer/*.py", "value": "0 direct ClientSession() constructions; all 3 callers use async_get_clientsession(hass)"},
+    {"claim": "async-dependency: no synchronous HTTP library is used", "command": "grep -rn '^import requests|urllib.request|http.client' custom_components/heatpump_optimizer/*.py", "value": "0 hits"},
+    {"claim": "docs-examples: the cited Discourse blueprint listing exists and its links match the in-tree blueprints", "command": "WebFetch https://community.home-assistant.io/t/heat-pump-optimizer-blueprints/1025351; ls blueprints/automation/", "value": "3/3 filenames match (charge_ev_from_grid_headroom.yaml, economy_mode_on_price_peak.yaml, notify_on_manual_plan.yaml)"},
+    {"claim": "reconfiguration-flow: async_step_reconfigure is implemented", "command": "grep -n async_step_reconfigure custom_components/heatpump_optimizer/config_flow.py", "value": "present"},
+    {"claim": "repair-issues: repairs.py raises through issue_registry", "command": "grep -n issue_registry custom_components/heatpump_optimizer/repairs.py", "value": "present"},
+    {"claim": "entity-category, entity-device-class, entity-disabled-by-default attributes are used", "command": "grep -n '_attr_entity_category|_attr_device_class|_attr_entity_registry_enabled_default' custom_components/heatpump_optimizer/*.py", "value": "all 3 attributes present across platform modules"},
+    {"claim": "translation/icon files exist and are non-empty", "command": "ls custom_components/heatpump_optimizer/translations/ custom_components/heatpump_optimizer/icons.json custom_components/heatpump_optimizer/strings.json", "value": "en.json, sv.json, icons.json, strings.json all present"},
+    {"claim": "discovery, discovery-update-info, dynamic-devices, stale-devices exemption bases hold (no discovery mechanism, single static device, no removal sites)", "command": "grep -rn 'zeroconf|dhcp|ssdp|async_step_zeroconf' custom_components/heatpump_optimizer/config_flow.py; grep -rn 'device_registry.async_remove_device' custom_components/heatpump_optimizer/*.py", "value": "0 hits each"}
+  ],
+  "harnesses": [
+    "tools/audit/round8/D10/s1_entry_param_bare.py",
+    "tools/audit/round8/D10/s1_exception_translations.py"
+  ]
+}
