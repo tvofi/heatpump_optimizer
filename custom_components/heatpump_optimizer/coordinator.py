@@ -1779,6 +1779,17 @@ def _power_windows(coord: Any) -> tuple[list[float], list[float]]:
     return pump, list(tracker.house_samples) if tracker is not None else []
 
 
+def _on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
+    """The ``(domain, service)`` that switches ``entity_id`` on or off (#1526).
+
+    Routed by the target's own domain: Home Assistant resolves
+    ``switch.turn_on`` only against ``switch.*`` entities, so the heat-pump
+    slot's ``input_boolean`` and ``climate`` targets, which ``assign_entity``
+    accepts, were never actuated when the call was hard-coded to ``switch``.
+    """
+    return entity_id.split(".", 1)[0], "turn_on" if on else "turn_off"
+
+
 def _space_pump_to_drive(coord: Any) -> str | None:
     """The space pump entity to command, or None when it must be left alone.
 
@@ -6701,8 +6712,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if switch_entity and not skip_off:
             try:
                 await self.hass.services.async_call(
-                    "switch",
-                    "turn_on" if heat_pump_on else "turn_off",
+                    *_on_off_service(switch_entity, heat_pump_on),
                     {"entity_id": switch_entity},
                     blocking=True,
                 )
