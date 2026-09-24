@@ -44,8 +44,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import d11lib as L  # noqa: E402
 
 # The rule this set is derived from (#1241, D13-04): every job defined in
-# .github/workflows/governance.yml, plus `briefs` (tests.yml), the one
-# governance job that lives outside that file. The set is carried here rather
+# .github/workflows/governance.yml, plus `briefs` (tests.yml) and the jobs of
+# `pr-contract.yml` and `budget-raise-gate.yml`, governance jobs held in their
+# own files for their triggers. The set is carried here rather
 # than parsed live because a harness is pinned, not self-modifying -- but
 # tests/entities.py pins it BOTH WAYS against the workflow files: a GOV member
 # that no workflow defines (the renamed `record-status`, which cost this
@@ -54,7 +55,7 @@ import d11lib as L  # noqa: E402
 # governance workflow grows is refused until this set names it.
 GOV = {"policy-docs", "env-matrix", "wave-script", "pr-contract", "record",
        "delivery-status", "delivery-status-publish", "briefs",
-       "instrument-self-tests"}
+       "instrument-self-tests", "budget-raise-gate"}
 W0 = os.environ.get("D11_WINDOW_START", "2026-09-09T09:37:08Z")
 W1 = os.environ.get("D11_WINDOW_END", L.BASELINE_UTC)
 
