@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import numpy as np
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
@@ -32,14 +33,8 @@ from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordina
 from .entity import HeatPumpOptimizerEntity
 from .const import (
     CONF_MOLD_FLOOR_BREACH_MARGIN,
-    CONF_MOLD_GUARD_ENABLED,
-    CONF_THERMAL_BRIDGE_FRSI,
     DEFAULT_MOLD_FLOOR_BREACH_MARGIN,
-    DEFAULT_MOLD_GUARD_ENABLED,
-    DEFAULT_THERMAL_BRIDGE_FRSI,
-    MOLD_SURFACE_RH_LIMIT,
 )
-from .thermal_model import mold_safe_room_floor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -166,7 +161,8 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
 
     The mold guard computes the lowest room temperature that keeps the worst
     thermal-bridge surface under the mold RH limit (~18 °C in cold/damp
-    weather), and the solve holds the plan's predicted room at that floor. In
+    weather), capped at the configured comfort target, and the solve holds the
+    plan's predicted room at that floor. In
     DHW-only / space-blocked mode the pump cannot deliver space heat, so the
     room free-cools below the floor while the dashboard card charts the plan's
     promise instead of the room. This fires when the measured room is that far
@@ -196,44 +192,27 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
     def _floor(self) -> tuple[float | None, float | None]:
         """``(floor_c, shortfall_c)`` against the measured room, or ``(None, None)``.
 
-        Recomputes ``thermal_model.mold_safe_room_floor`` against the measured
-        room rather than the forecast series the solve uses, because the
-        coordinator publishes neither the floor nor the indoor humidity and the
-        structure budget prices every coordinator line. The humidity read
-        reuses the coordinator's own age-checked reader, so the floor this
-        sensor compares against is the floor the solve was built from.
+        The floor is the one the solve enforces: the coordinator's own
+        ``_mold_floor_series`` evaluated at the measured outdoor temperature,
+        so the guard toggle, the humidity entity's age check and the cap at
+        the configured comfort target are the solve's, not a second copy.
         """
         data = self._data()
-        if not data:
+        ok = data.get("reading_ok") or {}
+        # Only live readings are measurements: without an indoor or outdoor
+        # thermometer the payload carries ThermalState's constructor seeds
+        # (21.0 / 5.0 °C), which must not be compared as if measured.
+        if not (ok.get("upper_floor_temperature") and ok.get("outdoor_temperature")):
             return None, None
-        if not bool(
-            self._config.get(CONF_MOLD_GUARD_ENABLED, DEFAULT_MOLD_GUARD_ENABLED)
-        ):
-            return None, None
-        # Only a live indoor reading is a measurement: without one the payload
-        # carries ThermalState's 21.0 °C constructor default, which is a seed,
-        # not the room. Same gate the temperature sensors' availability uses.
-        if not (data.get("reading_ok") or {}).get("upper_floor_temperature"):
+        floors = self.coordinator._mold_floor_series(
+            np.array([float(data["outdoor_temperature"])])
+        )
+        if floors is None:
             return None, None
         two_zone = bool(data.get("two_zone_enabled"))
-        room = data.get("upper_floor_temperature" if two_zone else "indoor_temperature")
-        outdoor = data.get("outdoor_temperature")
-        if room is None or outdoor is None:
-            return None, None
-        read_rh = getattr(self.coordinator, "_indoor_humidity_value", None)
-        rh = read_rh() if callable(read_rh) else None
-        if rh is None:
-            return None, None
-        try:
-            frsi = float(
-                self._config.get(CONF_THERMAL_BRIDGE_FRSI, DEFAULT_THERMAL_BRIDGE_FRSI)
-            )
-        except (TypeError, ValueError):
-            frsi = float(DEFAULT_THERMAL_BRIDGE_FRSI)
-        floor = mold_safe_room_floor(
-            float(room), rh, float(outdoor), frsi, MOLD_SURFACE_RH_LIMIT
-        )
-        return round(float(floor), 2), round(float(floor) - float(room), 2)
+        room = float(data["upper_floor_temperature" if two_zone else "indoor_temperature"])
+        floor = float(floors[0])
+        return round(floor, 2), round(floor - room, 2)
 
     @property
     def is_on(self) -> bool:
