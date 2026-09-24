@@ -29,7 +29,8 @@
 # it (decision 0013; the harness prints which) — re-run the harness and extend
 # this block when the surface moves. The governance instruments are pinned, so
 # they carry no owner here: `.claude/workflows/*.mjs`, `gh_comment.py`,
-# `vendor/`, `tools/audit/*.sh`, `record-predicate/` and `codeowners_gap.py`.
+# `vendor/`, `tools/audit/*.sh`, `record-predicate/` and `codeowners_gap.py`;
+# so are the test-side graders the `tests/` block below names.
 #
 # Nothing in the test gate opens this file (tests/closure.py lists it INERT).
 
@@ -54,6 +55,9 @@
 # 2026-09-24): a raise is the owner's, a routine edit is not, and a path pattern
 # cannot tell the two apart. The required context `budget-raise-gate` can: it
 # refuses any raise the owner has not approved at the head.
+# Its program stays owned though pinned: a forged exact tally line passes its
+# self-test, and only ownership stops that (#1583 review, the tally-forgery gap).
+/.claude/workflows/budget_raise_gate.py   @tvofi
 
 # --- The required-check enforcement surface (R6-D11-01, #1402). ---
 # The workflow files that hold the jobs whose status contexts the ruleset
@@ -76,21 +80,28 @@
 /.claude/workflows/audit-verify.js        @tvofi
 /.claude/workflows/web-fix-wave.js        @tvofi
 # The test scripts the gate's jobs execute directly -- by interpreter or by
-# their own `./` path -- and the modules those import (#1515).
+# their own `./` path -- and the modules those import (#1515), where no pin can
+# hold (decision 0013, amended 2026-09-24): the suite (`run.sh` and what `fast`
+# and `browser` load) must run the pull request's code, and `closure.py` and
+# `derive_closures.sh` carry the rosters a new test script or a newly read file
+# edits in the same pull request, so a base copy would refuse that pull request.
+# `mutation_table.py` and `typing_ruler.py` stay owned too: their jobs install
+# the pull request's requirement locks before the grader, and an install runs
+# build code that lock chooses, which owns the runner from then on (and
+# `mutation_table.py` runs the pull request's tests besides). The
+# graders no program of the pull request's precedes (`coverage_ratchet.py` in
+# its own job, `delivery_status.py`, `nightly_status.py`) are PINNED and carry
+# no owner; so are `nightly_ha.py` and `replay.py`, which no pull-request job
+# runs.
 /tests/card_browser.mjs                   @tvofi
 /tests/closure.py                         @tvofi
-/tests/coverage_ratchet.py                @tvofi
-/tests/delivery_status.py                 @tvofi
 /tests/derive_closures.sh                 @tvofi
 /tests/env_drift.py                       @tvofi
 /tests/golden.py                          @tvofi
 /tests/harness.py                         @tvofi
 /tests/mutation_table.py                  @tvofi
-/tests/nightly_ha.py                      @tvofi
-/tests/nightly_status.py                  @tvofi
 /tests/plan_view.py                       @tvofi
 /tests/profiles.py                        @tvofi
-/tests/replay.py                          @tvofi
 /tests/run.sh                             @tvofi
 /tests/stress.py                          @tvofi
 /tests/typing_ruler.py                    @tvofi

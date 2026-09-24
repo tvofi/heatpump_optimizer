@@ -143,6 +143,11 @@ jobs:
           # that removed a policy file. Measured both ways before wiring it.
           git diff --no-renames --name-only "$PR_BASE...$PR_HEAD" > /tmp/pr-files.txt
           wc -l < /tmp/pr-files.txt
+          # The same diff less its additions: what the base already had. A
+          # reporter that grades `main` is exempt from `## Red checks` only
+          # while the diff touches none of its inputs, and a delivery row the
+          # pull request ADDS (its own) is not one; a row it edits or deletes is.
+          git diff --no-renames --name-only --diff-filter=a "$PR_BASE...$PR_HEAD" > /tmp/pr-existing.txt
 
       # #956: the red-check trigger CLAUDE.md calls enforced, enforced. The
       # head's check runs are listed FIRST, the red names are handed to the
@@ -209,7 +214,8 @@ jobs:
           node .claude/workflows/policy_lint.mjs \
             --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \
             --author "$(cat /tmp/pr-author.txt)" \
-            --paths-file /tmp/pr-files.txt "${RED_ARGS[@]}"
+            --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \
+            "${RED_ARGS[@]}"
 
       - name: Every figure's command resolves at this head
         if: always()
