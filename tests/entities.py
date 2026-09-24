@@ -15167,6 +15167,24 @@ R.check(
     f"control): status={_af6n_status} -- a quiet skip here is a repair "
     "nobody makes and nothing reports",
 )
+# The other edge of that drop: only a path this tree LACKS goes. A path that
+# exists and is not a regular file -- a directory -- is kept, so NOT A FILE
+# still refuses it (#365) and nothing is merged. Keying the drop on "not a
+# regular file" instead would silently discard the directory and repair.
+_af7_dir = "tests/hastub"
+_af7_status, _af7_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 0,
+      "files": ["tests/open_meteo.py", "tests/harness.py", _af7_dir]}],
+)
+R.check(
+    "and a recorded directory is kept for NOT A FILE, not dropped (#365, #1569)",
+    (_closure.ROOT / _af7_dir).is_dir()
+    and _af7_status != "changed" and _af7_kept,
+    f"status={_af7_status}, closures unchanged={_af7_kept} -- a directory "
+    "carries no content a closure can be stale against, so the repair must "
+    "refuse rather than drop it",
+)
 with _tempfile.TemporaryDirectory() as _af4_td:
     _af4_root = Path(_af4_td)
     _af4_closures = _af4_root / "closures.json"
