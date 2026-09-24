@@ -44,6 +44,11 @@
       "old": "        if task is not None and hasattr(task, \"cancel\"):",
       "reason": "hass.async_create_task (homeassistant.core.HomeAssistant.async_create_task) returns an asyncio.Task, which always carries cancel; the OR form differs only for a non-None object without a cancel attribute, which that return cannot be -- round-5 D3-07."
     },
+    "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._capacity_caps CLAMP_DROP 15b0795c": {
+      "verdict": "equivalent",
+      "old": "            cop_i = max(self._thermal_model.compute_cop(float(outdoor), humidity=hum), 1e-6)",
+      "reason": "R8-P3 round 2 re-anchored this line (it gained the humidity argument); it was unpinned at the merge base under its old text. `max(compute_cop(...), 1e-6)` cannot select the second arm: `compute_cop` returns `_cop_law`, which returns `max(cop, 1.0)` (#928's resistive bound)."
+    },
     "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._file_lead_predictions CLAMP_DROP 38072755": {
       "verdict": "equivalent",
       "old": "        dt_h = max(ctx._opt_config.time_step_minutes, 1.0) / 60.0",
@@ -190,6 +195,11 @@
       "killed_by": "tests/features.py",
       "old": "        if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:",
       "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437): the fitted UA's own 95 % profile-likelihood interval supersedes the #942 residual-scatter precondition. `if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:` -> `if False:` adopts every completed experiment whatever its interval: the blend weight 1 - hw / bar goes negative for hw > bar, so `_t4_adopt(halfwidth=2*bar)` moves the learned scale to 0.0 against the recorded 1.0 and the sample floor to int(20 * -1) = -20. Measured: tests/features.py rc=0 failed=0 -> rc=1 failed=1. Measured at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._capacity_caps BOOLOP a5d8d969": {
+      "killed_by": "tests/features.py",
+      "old": "            has_hum = humidity is not None and i < len(humidity)",
+      "reason": "R8-P3 round 2 (fix review): the capacity envelope's per-step humidity. `and` -> `or` evaluates `len(None)` on every call without a forecast, so tests/features.py dies with `TypeError: object of type 'NoneType' has no len()` at the #17 envelope checks (`_capacity_caps(np.array([-10.0, -10.0, 15.0]))`), measured in a git-less copy of ef45f9ce's production. A crash, not a counted FAIL line: the kill is the uncaught error on the only path every install without a humidity forecast takes."
     },
     "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._observe_frequency BOOLOP b0c65a3c": {
       "killed_by": "tests/features.py",
@@ -465,6 +475,11 @@
       "killed_by": "tests/features.py",
       "old": "            return jointly_raised",
       "reason": "arrived with round 7 D0-01 (#1447)'s scope, drawn not introduced: a new module constant and a new guard reshuffle the seeded per-file sample over optimizer.py. NOT equivalent, and the round-5 verdict that said so is withdrawn -- its premise (the tank trajectory is non-decreasing in a slot's power) was measured at draw rates under 0.004 kW, three orders below production, and fails there: 1007 of 5760 single-slot raises lower the tank, worst by 8.29 K, because the coil carries part of the draw. Killed by tests/features.py's `the jointly-raised branch ships when the coil is not monotone (R7 D0-01)` block: a 48.19 L tank, a 13.65 kW peak draw, tank at 35.9 C and weak slots 67-70 -- the branch raises all four to run_power 0.6, the fall-through loop zeroes slot 69. Deleting the branch's return reddens that check: FAIL every weak slot is raised, none zeroed, in the branch-taken case [slots 67-70 -> [0.6, 0.6, 0.0, 0.6], run_power 0.6], 1 of 3105. Survival measured UNMARKED with 19 drivers in the recorded net before the pin existed."
+    },
+    "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._dhw_coil_wood_forecast RETURN_DEL 03208cd9": {
+      "killed_by": "tests/features.py",
+      "old": "        return np.array(wood, dtype=float, copy=True)",
+      "reason": "R8-P3 round 2: the coil forecast read from simulate_trajectory_with_dhw. `pass` returns None, so the planner credits no coil. Measured in a git-less copy (null: 1 FAIL, the git-reading #363 check): `the wood temps the DHW planner prices the coil at are the published plan's` (0 solved-space forecasts) and `the DHW planner buys less electricity with a hot wood-tank coil` (7.082905 vs 7.082905 kWh) go red; the run then dies unpacking the None."
     },
     "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._optimize_space_only GUARD_OFF 6a3be0ea": {
       "killed_by": "tests/optimality.py",
