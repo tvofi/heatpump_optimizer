@@ -3048,6 +3048,7 @@ class ThermalModel:
         external_heat_kw: np.ndarray | None = None,
         valve_targets: np.ndarray | None = None,
         humidity: np.ndarray | None = None,
+        coil_wood_read: np.ndarray | None = None,
     ) -> tuple[
         np.ndarray,
         np.ndarray,
@@ -3064,6 +3065,10 @@ class ThermalModel:
                 Passing it avoids re-deriving the hourly pattern on every call,
                 which matters because the optimizer evaluates this thousands of
                 times per solve.
+            coil_wood_read: Optional length-``n_steps`` array, filled with the
+                wood temperature each step's coil reduction reads: after that
+                step's space update, before the coil's drain -- a temperature
+                neither ``wood_temps[i]`` nor ``wood_temps[i + 1]`` is.
 
         Returns:
             Tuple of (room_temps, slab_temps, upper_temps, lower_temps,
@@ -3145,6 +3150,8 @@ class ThermalModel:
                 # temperature is the shared inlet reference — the same number
                 # the draw was computed from — so the coil's cold-side base
                 # and the wood tank's floor are one value, not two.
+                if coil_wood_read is not None:
+                    coil_wood_read[i] = state.wood_tank_temperature
                 draw_i, q_coil = dhw_coil_draw_reduction(
                     draw_i,
                     state.wood_tank_temperature,

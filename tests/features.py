@@ -10283,17 +10283,23 @@ R.check(
 )
 
 # The wood temperatures the DHW planner prices the coil at must be the ones the
-# published plan simulates. The planner re-derived the coil's drain step by step
-# beside the physics that already couples it (RCA coil-drain): it credited
+# published plan's coil reads. The planner re-derived the coil's drain step by
+# step beside the physics that already couples it (RCA coil-drain): it credited
 # later steps at a tank the coil had not cooled (+2.1 K on this fixture), then a
 # drain carried forward open-loop over-cooled it (-3.5 K), because a colder
-# tank also gives the buffer less. Read against the plan, not re-derived, and
-# the gap is the space power the plan re-solved after pricing (0.003 K).
+# tank also gives the buffer less. Read against the plan, not re-derived. The
+# read is mid-step -- after the space update, before the coil's drain -- so it
+# is compared against what the physics reads, not against the published
+# trajectory's step-start wood[i], which this check once took and so passed a
+# 0.67 K over-credit that breached the DHW floor at a low cop_scale.
 import heatpump_optimizer.optimizer as _wf_mod  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalModel as _WfModel  # noqa: E402
 from golden import make as _wf_mk, START as _WF_START, SCENARIOS as _WF_SC  # noqa: E402
 
 _wf_real = _wf_mod.HeatPumpOptimizer._dhw_coil_wood_forecast
+_wf_real_sim = _WfModel.simulate_trajectory_with_dhw
 _wf_seen: list = []
+_wf_reads: list = []
 
 
 def _wf_spy(self, h, space_power=None):
@@ -10302,10 +10308,20 @@ def _wf_spy(self, h, space_power=None):
     return out
 
 
+def _wf_sim_spy(self, *a, **k):
+    if k.get("coil_wood_read") is None:
+        n = len(k["space_power_schedule"] if "space_power_schedule" in k else a[1])
+        k["coil_wood_read"] = np.full(n, np.nan)
+    out = _wf_real_sim(self, *a, **k)
+    _wf_reads.append((np.array(out[4], dtype=float), k["coil_wood_read"]))
+    return out
+
+
 _wf_b = _wf_mk(**_WF_SC["wood_coil"])
 _wf_ext = np.zeros(len(_wf_b["prices"]))
 _wf_ext[:96] = 8.0 * (1.0 - np.arange(min(96, _wf_ext.size)) / 96.0)
 _wf_mod.HeatPumpOptimizer._dhw_coil_wood_forecast = _wf_spy
+_WfModel.simulate_trajectory_with_dhw = _wf_sim_spy
 try:
     _wf_res = _wf_b["optimizer"].optimize(
         _wf_b["state"], _wf_b["prices"], _wf_b["outdoor"], _wf_b["wind"],
@@ -10313,17 +10329,19 @@ try:
     )
 finally:
     _wf_mod.HeatPumpOptimizer._dhw_coil_wood_forecast = _wf_real
+    _WfModel.simulate_trajectory_with_dhw = _wf_real_sim
 _wf_priced = [np.asarray(f, dtype=float) for s, f in _wf_seen if s and f is not None]
-_wf_pub = np.asarray(_wf_res.wood_temp_trajectory, dtype=float)
-_wf_m = min(len(_wf_priced[-1]), _wf_pub.size) if _wf_priced else 0
+_wf_dhw = np.asarray(_wf_res.dhw_temp_trajectory, dtype=float)
+_wf_pub = [r for d, r in _wf_reads if d.shape == _wf_dhw.shape and np.array_equal(d, _wf_dhw)]
+_wf_m = min(len(_wf_priced[-1]), _wf_pub[-1].size) if _wf_priced and _wf_pub else 0
 _wf_gap = (
-    float(np.max(np.abs(_wf_priced[-1][:_wf_m] - _wf_pub[:_wf_m])))
+    float(np.max(np.abs(_wf_priced[-1][:_wf_m] - _wf_pub[-1][:_wf_m])))
     if _wf_m else float("nan")
 )
 R.check(
     "the wood temps the DHW planner prices the coil at are the published plan's",
     _wf_m > 1 and _wf_gap <= 0.05,
-    f"max |priced - published| {_wf_gap:.4f} K over {_wf_m} steps "
+    f"max |priced - published coil read| {_wf_gap:.4f} K over {_wf_m} steps "
     f"({len(_wf_priced)} solved-space forecasts; none means the check ran on nothing)",
 )
 

@@ -4485,6 +4485,9 @@ class HeatPumpOptimizer:
         physics the published plan runs: standby loss, ``wood_share``, the
         external-heat forecast and the coil's own drain, coupled step by step.
         A re-derived drain beside it drifted both ways (RCA coil-drain, R8-P3).
+        Step i is the temperature the coil reads mid-step, not the trajectory's
+        ``wood[i]``: pricing at the step's start over-credited the coil, and the
+        plan breached the window floor by 0.115 K at a low ``cop_scale``.
         """
         p = self.model.params
         if not p.dhw_coil_active or h.initial_state.wood_tank_temperature is None:
@@ -4497,6 +4500,7 @@ class HeatPumpOptimizer:
         )
         hours = np.asarray(h.step_hours, dtype=float) % 24.0
         raw = np.asarray(self.model.dhw_draw_rates(hours), dtype=float)
+        read = np.empty(n)
         *_, wood = self.model.simulate_trajectory_with_dhw(
             initial_state=h.initial_state,
             space_power_schedule=power,
@@ -4511,10 +4515,9 @@ class HeatPumpOptimizer:
             external_heat_kw=h.external_heat_kw,
             valve_targets=h.valve_targets,
             humidity=h.humidity,
+            coil_wood_read=read,
         )
-        if wood is None:
-            return None
-        return np.array(wood, dtype=float, copy=True)
+        return None if wood is None else read
 
     def _dhw_planner_draws(
         self,
