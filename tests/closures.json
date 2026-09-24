@@ -66,7 +66,7 @@
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 958.2,
+   "seconds": 442.5,
    "rc": 0
   },
   "tests/structure.py": {
@@ -591,8 +591,10 @@
    "tests/requirements-typing.txt",
    "tests/run.sh",
    "tests/stress.py",
+   "tests/stress_budgets.json",
    "tests/structure.py",
    "tests/structure_budgets.json",
+   "tests/typing_ruler.py",
    "tests/validate.py",
    "tools/audit/preflight.sh",
    "tools/audit/round4/D11/d11lib.py",
@@ -1346,7 +1348,8 @@
    "tests/hastub/homeassistant/util/dt.py",
    "tests/profiles.py",
    "tests/stress.py",
-   "tests/stress_budgets.json"
+   "tests/stress_budgets.json",
+   "tests/structure.py"
   ],
   "tests/structure.py": [
    "custom_components/heatpump_optimizer/__init__.py",

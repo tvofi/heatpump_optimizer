@@ -1499,16 +1499,47 @@ function sizes(files) {
 // seat pays one document at a time, the payment is small and local, and a band
 // there would buy silent growth in every one of 39 files at once.
 //
-// Absent or unparseable, the band is 0 and every comparison is what it was.
+// Absent or malformed, the band is 0 and every comparison is what it was. Not
+// `Number(_band)`: that coerced "1e12", " 1e12", [1e12] and "0x1000000" into a
+// band that lifted every aggregate cap with rc 0 (#1595's review). The band is
+// a cap like the rest, so it passes capProblem or it is 0 -- and checkBudgets
+// refuses a present, malformed one as a finding rather than reading it as 0.
 function bandOf(b) {
-  const n = Number(b && b._band)
-  return Number.isFinite(n) && n > 0 ? n : 0
+  const v = b ? b._band : undefined
+  return capProblem(v) === null && v > 0 ? v : 0
+}
+
+// The recorded-number barrier: the JS half of tests/structure.py's
+// cap_problem (#1583's review). JSON.parse refuses a NaN literal but reads
+// 1e999 as Infinity, and every comparison below coerces: `lines > 'abc'` is
+// `lines > NaN`, false, and so is `lines > {}`; `true` is 1; and an aggregate
+// that was null or absent was skipped by its `!= null` guard. Each was an
+// unlimited raise. A cap is a whole, finite, non-negative number or it is
+// refused, before anything is compared against it.
+function capProblem(value) {
+  if (value === undefined) return 'is absent, so the comparison it guards would be skipped'
+  if (typeof value !== 'number') return `is ${value === null ? 'null' : Array.isArray(value) ? 'an array' : `a ${typeof value}`} (${JSON.stringify(value)}), not a number`
+  if (!Number.isFinite(value)) return `is ${value}: nothing exceeds Infinity and every comparison against NaN is false, so this cap would be an unlimited raise`
+  if (!Number.isInteger(value)) return `is ${value}, not a whole number`
+  // Parity with cap_problem's 2**53 bound: past it a JSON integer is no longer
+  // the number written, so a comparison with a measurement means nothing.
+  if (!Number.isSafeInteger(value)) return `is ${value}, past the largest integer a double holds exactly`
+  if (value < 0) return `is ${value}, below zero`
+  return null
 }
 
 function checkBudgets(files, budget) {
   const b = budget !== undefined ? budget : policyBudgets()
   if (!b) return []
   const out = []
+  // Refuses a malformed cap as a finding at `where` and says whether it did,
+  // so the comparison it would have made is skipped rather than coerced.
+  const refused = (where, key, value) => {
+    const p = capProblem(value)
+    if (p) out.push({ severity: 'error', check: 'budgets', where, message: `${key} in ${BUDGET_FILE} ${p}. Restore the recorded value; a cap is refused rather than compared unless it is a whole, finite, non-negative number.` })
+    return !!p
+  }
+  if (b._band !== undefined) refused('(working band)', '_band', b._band)
   const band = bandOf(b)
   const ceiling = (cap) => cap + band
   // What the seat is told it exceeded: the ceiling it actually hit, and the two
@@ -1526,6 +1557,7 @@ function checkBudgets(files, budget) {
       })
       continue
     }
+    if (refused(r.file, `files["${r.file}"]`, cap)) continue
     if (r.lines > cap) {
       out.push({
         severity: 'error',
@@ -1536,7 +1568,7 @@ function checkBudgets(files, budget) {
     }
   }
   const alwaysTokens = rows.filter((r) => r.always).reduce((n, r) => n + Math.round(r.bytes / 4), 0)
-  if (b.always_loaded_tokens != null && alwaysTokens > ceiling(b.always_loaded_tokens)) {
+  if (!refused('(always-loaded set)', 'always_loaded_tokens', b.always_loaded_tokens) && alwaysTokens > ceiling(b.always_loaded_tokens)) {
     out.push({
       severity: 'error',
       check: 'budgets',
@@ -1555,7 +1587,7 @@ function checkBudgets(files, budget) {
   // the corpus, which a move does not change, and the per-role load, which is
   // what a seat that opens a file actually pays.
   const corpusTokens = rows.reduce((n, r) => n + Math.round(r.bytes / 4), 0)
-  if (b.corpus_tokens != null && corpusTokens > ceiling(b.corpus_tokens)) {
+  if (!refused('(whole corpus)', 'corpus_tokens', b.corpus_tokens) && corpusTokens > ceiling(b.corpus_tokens)) {
     out.push({
       severity: 'error',
       check: 'budgets',
@@ -1564,9 +1596,13 @@ function checkBudgets(files, budget) {
     })
   }
 
+  if (b.roles === null || typeof b.roles !== 'object' || !Object.keys(b.roles).length) {
+    out.push({ severity: 'error', check: 'budgets', where: '(role table)', message: `roles in ${BUDGET_FILE} is ${JSON.stringify(b.roles)}: with no role recorded, no per-role cap is compared at all.` })
+  }
   for (const [role, spec] of Object.entries(b.roles || {})) {
+    if (refused(`(role ${role})`, `roles.${role}.cap`, spec && spec.cap)) continue
     const t = roleTokens(rows, spec.opens)
-    if (spec.cap != null && t > ceiling(spec.cap)) {
+    if (t > ceiling(spec.cap)) {
       out.push({
         severity: 'error',
         check: 'budgets',
@@ -4246,6 +4282,51 @@ function assertAcceptance(derived) {
   pins += 1
   if (bandOf({}) !== 0 || bandOf({ _band: 'wide' }) !== 0 || bandOf({ _band: -1 }) !== 0) {
     console.log(`\nFIXTURE VACUOUS: an absent, unparseable or negative _band does not read as 0, so a budget file that never opted in would be compared against a ceiling nobody recorded.`)
+    return 1
+  }
+
+  // The recorded-number barrier (#1583's review). Every malformed spelling of
+  // each cap class, one at a time on the budget nothing can exceed: each must
+  // produce a finding where the generous budget produced none, which is the
+  // null control the OVER-FIRES pin above already holds. Before the barrier a
+  // NaN, Infinity, string or object cap compared false and a null or absent
+  // aggregate was skipped, so every arm here was silent.
+  // Every spelling Number() would have coerced into a number is here too: a
+  // string with an exponent, padding or a hex prefix, and a one-element array.
+  const CAP_BAD = { nan: NaN, infinity: Infinity, 'minus-infinity': -Infinity, null: null, absent: undefined, string: '1000000000', word: 'nan', exponent: '1e12', padded: ' 1e12', hex: '0x1000000', 'one-element-array': [1e12], bool: true, negative: -1, fraction: 0.5, unsafe: 1e300, object: {}, array: [] }
+  const capSlots = {
+    file: (bgt, v) => { bgt.files[policyFiles()[0]] = v },
+    floor: (bgt, v) => { bgt.always_loaded_tokens = v },
+    corpus: (bgt, v) => { bgt.corpus_tokens = v },
+    role: (bgt, v) => { bgt.roles.probe.cap = v },
+  }
+  pins += 1
+  const capSilent = []
+  for (const [cls, set] of Object.entries(capSlots)) {
+    for (const [name, v] of Object.entries(CAP_BAD)) {
+      const bgt = { ...hugeBudget, files: { ...hugeBudget.files }, roles: { probe: { ...hugeBudget.roles.probe } } }
+      set(bgt, v)
+      if (v === undefined && cls !== 'file') delete bgt[cls === 'floor' ? 'always_loaded_tokens' : cls === 'corpus' ? 'corpus_tokens' : 'roles']
+      const found = checkBudgets(policyFiles(), bgt).filter((f) => classOf(f) === cls)
+      if (!found.length) capSilent.push(`${cls}=${name}`)
+      // A non-finite cap is refused as one, not as a fraction: the seat reads
+      // the message to learn what to restore.
+      else if (typeof v === 'number' && !Number.isFinite(v) && !found.some((f) => /unlimited raise/.test(f.message))) capSilent.push(`${cls}=${name} (refused, but not named non-finite)`)
+    }
+  }
+  // The band, on caps one band below the measurement: a malformed band must
+  // be refused by name AND read as 0, so all three aggregates still fire.
+  // Before #1595's review, Number() read "1e12" as a band that silenced them.
+  for (const [name, v] of Object.entries(CAP_BAD)) {
+    if (v === undefined) continue // absent is the documented default of 0
+    const bgt = { ...banded(-BAND_PROBE), _band: v }
+    const found = checkBudgets(policyFiles(), bgt)
+    const classes = new Set(found.map(classOf))
+    const named = found.some((f) => f.where === '(working band)')
+    if (!named || !['floor', 'corpus', 'role'].every((c) => classes.has(c))) capSilent.push(`_band=${name}${named ? ' (refused, but lifted a cap)' : ''}`)
+  }
+  if (capSilent.length) {
+    console.log(`\nFIXTURE VACUOUS: the budget check compared a malformed cap as within budget: ${capSilent.join(', ')}. A cap that is not a whole, finite, non-negative number is an unlimited raise unless it is refused.`)
     return 1
   }
 

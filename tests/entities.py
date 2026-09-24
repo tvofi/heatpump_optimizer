@@ -22959,6 +22959,197 @@ R.check(
     "line beside it is a kill whatever the status",
 )
 
+# The ratchet-finite class (#1583's review). Python's json reads NaN,
+# Infinity, -Infinity and 1e999 as floats, and every comparison against NaN is
+# false: `current > nan` never fires, so a cap edited to NaN was an unlimited
+# raise that tests/structure.py printed as `ok cut_views 110 <= nan`. Infinity
+# passes by arithmetic; a string crashed one script and float()-coerced in
+# another ("nan" into NaN); a bool is 0 or 1 to Python. The barrier is ONE
+# function, structure.cap_problem (copied verbatim into the three graders
+# that must stay single-file), and every ratchet calls it on load. Each is
+# driven below with every malformed spelling and must refuse, and with its own
+# committed table -- the null control -- must not. typing_ruler.py (not
+# imported here) drives its arms in its own selftest; policy_lint.mjs in its
+# fixture acceptance.
+_CAP_ABSENT = object()
+_CAP_BAD = {
+    "nan": float("nan"), "inf": float("inf"), "-inf": float("-inf"),
+    "null": None, "string": "110", "string-nan": "nan", "true": True,
+    "negative": -1, "huge-int": 10 ** 400,
+}
+_CAP_BAD_COUNT = {**_CAP_BAD, "float": 110.5, "absent": _CAP_ABSENT}
+
+
+def _cap_set(table: dict, path: tuple, value) -> dict:
+    """A deep copy of ``table`` with the leaf at ``path`` replaced or removed."""
+    out = json.loads(json.dumps(table))
+    node = out
+    for step in path[:-1]:
+        node = node[step]
+    if value is _CAP_ABSENT:
+        node.pop(path[-1], None)
+    else:
+        node[path[-1]] = value
+    return out
+
+
+def _cap_structure_run(value) -> tuple:
+    """The REAL structure ratchet over a scratch table with cut_views set."""
+    import contextlib as _cl
+    import io as _io
+    budgets = json.loads(_s5_structure.BUDGET_FILE.read_text())
+    metrics = {k: v for k, v in budgets.items() if k != "recorded_at"}
+    with _tempfile.TemporaryDirectory() as td:
+        table = Path(td) / "structure_budgets.json"
+        table.write_text(json.dumps(_cap_set(budgets, ("cut_views",), value)))
+        saved, _s5_structure.BUDGET_FILE = _s5_structure.BUDGET_FILE, table
+        buf = _io.StringIO()
+        try:
+            with _cl.redirect_stdout(buf):
+                rc = _s5_structure.ratchet(
+                    {"metrics": metrics, "tables": {"top_is_coordinator": True}})
+        except Exception as exc:  # a crash is not a refusal that says why
+            rc = f"raised {type(exc).__name__}"
+        finally:
+            _s5_structure.BUDGET_FILE = saved
+    return rc, buf.getvalue()
+
+
+_CAP_S = {name: _cap_structure_run(v) for name, v in _CAP_BAD_COUNT.items()}
+_CAP_S_REAL = _cap_structure_run(
+    json.loads(_s5_structure.BUDGET_FILE.read_text())["cut_views"])
+R.check(
+    "the structure ratchet refuses a non-finite or malformed cap by name",
+    all(rc == 1 and "FAIL cut_views" in out for rc, out in _CAP_S.values())
+    and _CAP_S_REAL[0] == 0,
+    "; ".join(f"{n}: rc={rc}" for n, (rc, _o) in _CAP_S.items())
+    + f"; real table rc={_CAP_S_REAL[0]} (the null control)",
+)
+
+# ONE barrier, three verbatim copies. mutation_table.py, coverage_ratchet.py
+# and typing_ruler.py are graders a job may restore from the base and run
+# under `python3 -I`, where importing tests/structure.py neither resolves nor
+# stays the base's; so each carries the function, and any copy that differs
+# from the original by one character is refused here.
+def _cap_source(rel: str) -> str:
+    _src = Path(rel).read_text()
+    for _node in ast.parse(_src).body:
+        if isinstance(_node, ast.FunctionDef) and _node.name == "cap_problem":
+            return ast.get_source_segment(_src, _node)
+    return ""
+
+
+_CAP_ORIGINAL = _cap_source("tests/structure.py")
+_CAP_DRIFTED = [
+    _rel for _rel in ("tests/mutation_table.py", "tests/coverage_ratchet.py",
+                      "tests/typing_ruler.py")
+    if _cap_source(_rel) != _CAP_ORIGINAL
+]
+R.check(
+    "every grader's copy of the barrier is the original, character for character",
+    bool(_CAP_ORIGINAL) and not _CAP_DRIFTED,
+    f"original found: {bool(_CAP_ORIGINAL)}; copies that differ or are "
+    f"missing: {_CAP_DRIFTED}",
+)
+
+_CAP_MB_OK = {"max_survivor_fraction": {"changed": 0.2, "full": 0.3}}
+_CAP_M_FRAC = {
+    n: _mut.cap_problems(_cap_set(_CAP_MB_OK, ("max_survivor_fraction", "changed"), v))
+    for n, v in {**_CAP_BAD, "string": "0.2", "absent": _CAP_ABSENT}.items()
+}
+R.check(
+    "the mutation table refuses a non-finite or malformed survivor cap",
+    all(_CAP_M_FRAC.values())
+    and _mut.cap_problems(_MB) == [] and _mut.cap_problems(_CAP_MB_OK) == [],
+    f"accepted: {[n for n, p in _CAP_M_FRAC.items() if not p]}; committed "
+    f"table: {_mut.cap_problems(_MB)} (the null control)",
+)
+
+_CAP_COV = getattr(_cov, "budget_problems", None)
+_CAP_C = {
+    (key, n): (_CAP_COV(_cap_set(_CB, (key,), v)) if _CAP_COV else [])
+    for key in ("package_percent_floor", "package_percent_ceiling",
+                "config_flow_percent_floor", "module_percent_floor")
+    for n, v in {**_CAP_BAD, "over-100": 100.5, "absent": _CAP_ABSENT}.items()
+}
+_CAP_C.update({
+    ("pragmas", n): (_CAP_COV(_cap_set(_CB, ("pragmas",), v)) if _CAP_COV else [])
+    for n, v in _CAP_BAD_COUNT.items()
+})
+R.check(
+    "the coverage ratchet refuses a non-finite or malformed floor or cap",
+    _CAP_COV is not None and all(_CAP_C.values()) and _CAP_COV(_CB) == [],
+    f"budget_problems={'present' if _CAP_COV else 'missing'}; accepted: "
+    f"{[k for k, p in _CAP_C.items() if not p]}; committed table: "
+    f"{_CAP_COV(_CB) if _CAP_COV else 'n/a'} (the null control)",
+)
+
+
+def _cap_cov_main(table: dict) -> int:
+    """coverage_ratchet.main() over a scratch table: is the barrier WIRED."""
+    import contextlib as _cl
+    import io as _io
+    with _tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "coverage_budgets.json"
+        path.write_text(json.dumps(table))
+        saved, _cov.BUDGETS = _cov.BUDGETS, path
+        saved_argv, sys.argv = sys.argv, ["coverage_ratchet.py"]
+        try:
+            with _cl.redirect_stdout(_io.StringIO()):
+                return _cov.main()
+        finally:
+            _cov.BUDGETS, sys.argv = saved, saved_argv
+
+
+R.check(
+    "and main() runs it before comparing anything",
+    _cap_cov_main(_cap_set(_CB, ("package_percent_floor",), float("nan"))) == 1
+    and _cap_cov_main(_CB) == 0,
+    "a NaN floor must refuse the run the pragma row alone would pass; the "
+    "committed table must still pass it (the null control)",
+)
+
+_CAP_ST = getattr(_stress_mod, "budget_table_problems", None)
+_CAP_ST_TABLE = json.loads(Path("tests/stress_budgets.json").read_text())
+_CAP_ST_ROW = sorted(k for k in _CAP_ST_TABLE if "/" in k)[0]
+_CAP_T = {
+    (field, n): (_CAP_ST(_cap_set(_CAP_ST_TABLE, (_CAP_ST_ROW, field), v))
+                 if _CAP_ST else [])
+    for field in ("ratio", "rss_attrib_mb", "rss_peak_mb", "traced_peak_mb")
+    for n, v in {**_CAP_BAD, "zero": 0.0}.items()
+}
+R.check(
+    "the stress budget table refuses a non-finite or malformed recorded cost",
+    _CAP_ST is not None and all(_CAP_T.values()) and _CAP_ST(_CAP_ST_TABLE) == [],
+    f"budget_table_problems={'present' if _CAP_ST else 'missing'}; accepted: "
+    f"{[k for k, p in _CAP_T.items() if not p]}; committed table: "
+    f"{_CAP_ST(_CAP_ST_TABLE) if _CAP_ST else 'n/a'} (the null control)",
+)
+
+
+def _cap_stress_load(table: dict):
+    """stress.load_budget_table() over a scratch file: refused, or the table."""
+    with _tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "stress_budgets.json"
+        path.write_text(json.dumps(table))
+        try:
+            return _stress_mod.load_budget_table(str(path))
+        except SystemExit as exc:
+            return f"refused: {exc}"
+        except TypeError as exc:  # the base has no path parameter
+            return f"raised {exc}"
+
+
+_CAP_ST_NAN = _cap_stress_load(
+    _cap_set(_CAP_ST_TABLE, (_CAP_ST_ROW, "ratio"), float("nan")))
+R.check(
+    "and load_budget_table refuses such a table instead of returning it",
+    isinstance(_CAP_ST_NAN, str) and _CAP_ST_NAN.startswith("refused")
+    and _cap_stress_load(_CAP_ST_TABLE) == _CAP_ST_TABLE,
+    f"NaN ratio -> {str(_CAP_ST_NAN)[:120]!r}; the committed table must load "
+    "unchanged (the null control)",
+)
+
 # #1521: env_drift.py refuses an inherited claim list BEFORE capturing
 # anything, and a mutant is a production edit, so while the fork point carries
 # a claim list it refused every mutant -- a comment-only edit included -- and
