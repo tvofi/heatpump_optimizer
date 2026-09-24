@@ -18,9 +18,9 @@
 # THE REQUIRED-CHECK ENFORCEMENT SURFACE (R6-D11-01, #1402). The tracked files
 # that produce or implement the checks `main-protect-checks` requires carried no
 # owner, so `require_code_owner_review` could not demand the owner for a change
-# to the checks themselves. The surface is DERIVED, never carried: the six
-# `.github/workflows/*.yml`, the scripts their non-comment lines execute, the
-# hooks, and their wiring. Re-derive it with
+# to the checks themselves. The surface is DERIVED, never carried: the
+# `.github/workflows/*.yml`, the scripts their non-comment lines execute and
+# what those import (#1515), the hooks, and their wiring. Re-derive it with
 # `python3 tools/audit/round6/D11/fix/codeowners_gap.py`, which prints the
 # surface size and how many of its files an owner-carrying pattern matches:
 # against the pre-#1402 file that second count is zero, against this one it is
@@ -57,11 +57,15 @@
 # whole directory is the surface.
 /.claude/hooks/                           @tvofi
 /.claude/settings.json                    @tvofi
-# The governance scripts the required-check jobs execute. Enumerated, not
-# `/.claude/workflows/`: that directory is mostly fixtures, and owning it
-# wholesale would put a review on every fixture edit.
+# The governance scripts the required-check jobs execute, and what they
+# import (#1515: `counts.mjs`, `render_md.mjs` and the vendored parser run
+# inside `policy_lint.mjs`, and one line appended to any of them turned
+# `pr-contract` green). Enumerated, not `/.claude/workflows/`: that directory
+# is mostly fixtures, and owning it wholesale would put a review on every
+# fixture edit.
 /.claude/workflows/brief_lint.mjs         @tvofi
 /.claude/workflows/check-wave-script.mjs  @tvofi
+/.claude/workflows/counts.mjs             @tvofi
 /.claude/workflows/figure_census.mjs      @tvofi
 /.claude/workflows/figure_lint.mjs        @tvofi
 /.claude/workflows/fragments_sync.mjs     @tvofi
@@ -70,7 +74,9 @@
 /.claude/workflows/policy_lint.mjs        @tvofi
 /.claude/workflows/policy_lint_envmatrix.mjs  @tvofi
 /.claude/workflows/policy_lint_mutants.mjs    @tvofi
+/.claude/workflows/render_md.mjs          @tvofi
 /.claude/workflows/rules_sync.mjs         @tvofi
+/.claude/workflows/vendor/                @tvofi
 # The audit tooling a required-check job executes -- including the two that
 # approve and push, which decide whether a pull request may land at all.
 /tools/audit/app_approve.sh               @tvofi
@@ -78,14 +84,21 @@
 /tools/audit/prepr.sh                     @tvofi
 /tools/audit/push.sh                      @tvofi
 /tools/audit/record-predicate/            @tvofi
-# The test scripts the gate's jobs execute directly.
+/tools/audit/round6/D11/fix/codeowners_gap.py  @tvofi
+# The test scripts the gate's jobs execute directly -- by interpreter or by
+# their own `./` path -- and the modules those import (#1515).
 /tests/card_browser.mjs                   @tvofi
 /tests/closure.py                         @tvofi
 /tests/coverage_ratchet.py                @tvofi
 /tests/delivery_status.py                 @tvofi
+/tests/derive_closures.sh                 @tvofi
 /tests/env_drift.py                       @tvofi
+/tests/golden.py                          @tvofi
+/tests/harness.py                         @tvofi
 /tests/mutation_table.py                  @tvofi
 /tests/nightly_ha.py                      @tvofi
 /tests/nightly_status.py                  @tvofi
 /tests/plan_view.py                       @tvofi
+/tests/profiles.py                        @tvofi
+/tests/run.sh                             @tvofi
 /tests/typing_ruler.py                    @tvofi
