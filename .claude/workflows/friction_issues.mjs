@@ -396,6 +396,17 @@ export function planEntry(entry, since, { search, getNormalizedLookup, readBody 
   if (action === 'refuse') {
     return { refuse: true, why: `issue #${existing.number} exists but its body is unreadable, so the idempotence check cannot compare` }
   }
+  // The resolved row is the lowest-numbered closed one, which may be an older
+  // window's (#1128 beside #1494 under the fixer.md title). ANY closed
+  // exact-title row that disposed this window at no lower a count suffices.
+  if (action === 'create' && existing && existing.state !== 'OPEN') {
+    for (const r of searched.rows) {
+      if (r?.title !== title || r.number === existing.number || r.state === 'OPEN') continue
+      const read = readBody(r.number)
+      if (read.unknown) return { refuse: true, why: `closed issue #${r.number} carries the exact title but its body could not be read, so whether it disposed this window is unknown` }
+      if (decide({ existing: r, currentBody: read.body, body }) === 'no-op') return { refuse: false, action: 'no-op', existing: r, body, title }
+    }
+  }
   return { refuse: false, action, existing, body, title }
 }
 
