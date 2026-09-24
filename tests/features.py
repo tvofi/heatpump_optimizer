@@ -11422,29 +11422,34 @@ R.check(
 )
 
 # The tracker keeps max(2k, 6) days, not only the k it bills, so a mid-month
-# change of the averaged count still has the days it now needs. At k=1 a
-# 2k margin would keep two days; raising the count to 3 would then bill two
-# real days and the new one, not the month's three highest.
+# change of the averaged count still has the days it now needs. A month of
+# seven distinct days is kept at k=1, then billed at k=3 and at k=6 with one
+# more (low) day: every floor below six drops a day the k=6 bill needs, and
+# a 2k margin alone (two days at k=1) drops one the k=3 bill needs.
 _bo_k1 = CapacityTariff(enabled=True, price_per_kw=49.0, peaks_averaged=1)
-_bo_k3 = CapacityTariff(enabled=True, price_per_kw=49.0, peaks_averaged=3)
-_bo_kc = PeakTracker()
-_bo_kc_trace = []
-for _bo_d, _bo_kw in enumerate((9.0, 8.0, 7.0, 6.0, 5.0)):
-    _bo_when = datetime(2026, 10, 2 + _bo_d, 18, tzinfo=_BO_TZ)
-    _bo_kc.observe(_bo_when, _bo_kw, _bo_k1)
-    _bo_kc.observe(_bo_when + timedelta(hours=1), 0.0, _bo_k1)
-    _bo_kc_trace += [(_bo_when, _bo_kw), (_bo_when + timedelta(hours=1), 0.0)]
-_bo_kc.observe(datetime(2026, 10, 7, 18, tzinfo=_BO_TZ), 3.0, _bo_k3)
-_bo_kc_trace.append((datetime(2026, 10, 7, 18, tzinfo=_BO_TZ), 3.0))
-_bo_kc._close_window(_bo_k3)
-_bo_kc_want = _bo_oracle(_bo_k3, _bo_kc_trace, True)
+_bo_kc_bad = []
+for _bo_newk in (3, 6):
+    _bo_kn = CapacityTariff(enabled=True, price_per_kw=49.0, peaks_averaged=_bo_newk)
+    _bo_kc = PeakTracker()
+    _bo_kc_trace = []
+    for _bo_d, _bo_kw in enumerate((9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0)):
+        _bo_when = datetime(2026, 10, 2 + _bo_d, 18, tzinfo=_BO_TZ)
+        _bo_kc.observe(_bo_when, _bo_kw, _bo_k1)
+        _bo_kc.observe(_bo_when + timedelta(hours=1), 0.0, _bo_k1)
+        _bo_kc_trace += [(_bo_when, _bo_kw), (_bo_when + timedelta(hours=1), 0.0)]
+    _bo_last = datetime(2026, 10, 9, 18, tzinfo=_BO_TZ)
+    _bo_kc.observe(_bo_last, 1.0, _bo_kn)
+    _bo_kc_trace.append((_bo_last, 1.0))
+    _bo_kc._close_window(_bo_kn)
+    _bo_kc_want = _bo_oracle(_bo_kn, _bo_kc_trace, True)
+    _bo_kc_got = (_bo_kc.billed_peak_kw(_bo_kn), _bo_kc.threshold_kw(_bo_kn))
+    if not (abs(_bo_kc_got[0] - _bo_kc_want[0]) < 1e-9 and _bo_kc_got[1] == _bo_kc_want[1]):
+        _bo_kc_bad.append(f"k 1 -> {_bo_newk}: got {_bo_kc_got}, bill {_bo_kc_want}")
 R.check(
     "raising the averaged count mid-month bills the month's k highest days "
     "(the tracker keeps a margin of at least six days)",
-    abs(_bo_kc.billed_peak_kw(_bo_k3) - _bo_kc_want[0]) < 1e-9
-    and _bo_kc.threshold_kw(_bo_k3) == _bo_kc_want[1],
-    f"billed {_bo_kc.billed_peak_kw(_bo_k3)}, threshold "
-    f"{_bo_kc.threshold_kw(_bo_k3)}, bill {_bo_kc_want}",
+    not _bo_kc_bad,
+    f"{_bo_kc_bad}",
 )
 
 # --- #1512, the plan side: the solver's capacity term bills days too --------
