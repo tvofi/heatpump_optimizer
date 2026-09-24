@@ -22748,6 +22748,32 @@ R.check(
     "worker sweeping a survivor alone is a second full sweep of the net",
 )
 
+# The race that sharing opens: the owner finishes its last driver while a
+# helper is still running the costliest one. The barrier puts both in flight
+# together; the helper's driver then kills after the owner's has returned.
+_MUT_R_BAR = _mut_threading.Barrier(2)
+
+
+def _mut_r_drive(w, m, s):
+    """tests/a.py returns at once, green; tests/b.py kills 0.3 s later."""
+    _mut_barrier_run(_MUT_R_BAR, [], w, s)
+    if s == "tests/a.py":
+        return False
+    _time.sleep(0.3)
+    return True
+
+
+_MUT_R_OUT = (_mut_pool(
+    [dict(_MUT_P_SURV, drivers=["tests/a.py", "tests/b.py"])], 2,
+    {"tests/a.py": 1, "tests/b.py": 2}, _mut_r_drive)
+    if _mut_pool is not None else [])
+R.check(
+    "a mutant is not LIVES while a helper's driver is still running",
+    [v for _, v in _MUT_R_OUT] == ["killed by tests/b.py"],
+    f"verdicts={[v for _, v in _MUT_R_OUT]!r} -- the helper's kill landed "
+    "after the owner ran out of drivers, and it is the verdict",
+)
+
 # The verdicts are the serial sweep's: a mutant is killed iff SOME driver
 # kills it, and LIVES only once every one of its drivers ran -- the null
 # control, since a scheduler that dropped a driver would go green by
