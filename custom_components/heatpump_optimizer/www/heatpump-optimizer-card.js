@@ -1445,11 +1445,13 @@ const HISTORY_CHUNK_MS = 12 * 3600 * 1000;
 
 // The heat_pump_action modes in which the pump is executing heating (the
 // optimizer's own ladder: eco/normal/pre_heat/boost by commanded power,
-// comfort/boost from the manual modes, system_identification running its
-// experiment). off and idle are the pump NOT heating; unknown says
-// nothing. The actioned band draws the first set only.
+// hot_water when only the tank runs, comfort/boost from the manual modes,
+// system_identification running its experiment). off and idle are the pump
+// NOT heating; unknown says nothing. The actioned band draws the first set
+// only.
 const ACTION_HEATING_MODES = new Set([
-  "boost", "comfort", "eco", "normal", "pre_heat", "system_identification",
+  "boost", "comfort", "eco", "hot_water", "normal", "pre_heat",
+  "system_identification",
 ]);
 
 // The expanded dialog's chrome is sized from one font size, set from the

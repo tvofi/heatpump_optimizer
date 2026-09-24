@@ -119,6 +119,10 @@ def overlay(
         action["dhw_heating_active"] = True
         action["heat_pump_on"] = True
         action["boost_dhw"] = True
+        # The pump now runs for the tank, so a mode saying it does not would
+        # publish a false Heat Pump Action (#1499).
+        if action.get("mode") in (None, "off", "idle"):
+            action["mode"] = "hot_water"
 
 
 def apply(coord: _BoostCoord) -> None:
