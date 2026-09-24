@@ -17528,11 +17528,44 @@ R.check(
 # scenario and fail the run as stale.
 _md_declared, _md_claims = _env_drift._claimed(".")
 _md_entries = _env_drift._may_drift(".")
+
+
+def _md_uncovered(entries, claims, declared, version):
+    """Allowed names that are neither may-drift nor claimed for ``version``.
+
+    R8-P3 ruling (option (a), under tvofi's "go with the recommended
+    alternative" mandate, fix-wave thread 2026-09-24T20:51Z): a name may leave
+    the may-drift list only while THIS release claims it, because
+    env_drift.py refuses a name that is both, and a may-drift entry cannot
+    excuse a judged key (baseline_cost) a real change moves. A claim for
+    another VERSION expires with the stamp, so it covers nothing.
+    """
+    claimed = set(claims) if declared == version else set()
+    return sorted(set(_env_drift.MAY_DRIFT_ALLOWED) - set(entries) - claimed)
+
+
+_md_version = _env_drift._repo_version(".")
 R.check(
-    "this tree's may-drift entries parse, with reasons",
-    set(_md_entries) == set(_env_drift.MAY_DRIFT_ALLOWED)
+    "this tree's may-drift entries parse, with reasons, and every allowed name "
+    "is may-drift or claimed for this VERSION",
+    set(_md_entries) <= set(_env_drift.MAY_DRIFT_ALLOWED)
+    and not _md_uncovered(_md_entries, _md_claims, _md_declared, _md_version)
     and all(v and v != "no reason given" for v in _md_entries.values()),
-    f"{sorted(_md_entries)}",
+    f"{sorted(_md_entries)}; uncovered "
+    f"{_md_uncovered(_md_entries, _md_claims, _md_declared, _md_version)}",
+)
+_md_all = {n: "r" for n in _env_drift.MAY_DRIFT_ALLOWED}
+_md_less = {n: r for n, r in _md_all.items() if n != "wood_coil"}
+R.check(
+    "and the relaxed rule still refuses a sensitive fixture that is neither "
+    "may-drift nor claimed, or claimed only for another VERSION",
+    _md_uncovered(_md_less, {}, "9.9.9", "9.9.9") == ["wood_coil"]
+    and _md_uncovered(_md_less, {"wood_coil": ["r"]}, "9.9.8", "9.9.9")
+    == ["wood_coil"]
+    # The null control: the full list, or the one name claimed for this
+    # VERSION, covers everything.
+    and _md_uncovered(_md_all, {}, "9.9.9", "9.9.9") == []
+    and _md_uncovered(_md_less, {"wood_coil": ["r"]}, "9.9.9", "9.9.9") == [],
 )
 R.check(
     "and none of them leaks into the claim list",
