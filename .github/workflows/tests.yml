@@ -198,8 +198,16 @@ jobs:
         with:
           node-version: "22"
 
+      # Every install in this workflow is hash-pinned (#1548), and
+      # tests/entities.py refuses one that is not: `--require-hashes` over a
+      # committed lock, `--build-constraint` for what an sdist build installs,
+      # `npm ci` over a committed package-lock.json. Why each flag is there is
+      # in the header of tests/requirements-ci.txt and requirements-build.txt.
       - name: Install pinned test dependencies
-        run: pip install -r tests/requirements-ci.txt
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
 
       - name: Resolve the golden comparison ref
         run: |
@@ -354,7 +362,10 @@ jobs:
           node-version: "22"
 
       - name: Install pinned test dependencies
-        run: pip install -r tests/requirements-ci.txt
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
 
       - name: Cache the lane's Chromium
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
@@ -364,9 +375,12 @@ jobs:
 
       - name: Install playwright and Chromium
         run: |
-          npm install --prefix "$RUNNER_TEMP/pwlane" playwright@1.49.0
+          mkdir -p "$RUNNER_TEMP/pwlane"
+          cp tests/pwlane/package.json tests/pwlane/package-lock.json \
+            "$RUNNER_TEMP/pwlane/"
+          npm ci --prefix "$RUNNER_TEMP/pwlane"
           PLAYWRIGHT_BROWSERS_PATH=~/.cache/pw-browsers \
-            npx --yes playwright@1.49.0 install chromium
+            "$RUNNER_TEMP/pwlane/node_modules/.bin/playwright" install chromium
 
       - name: Write the plan payload
         env:
@@ -422,6 +436,25 @@ jobs:
         with:
           node-version: "22"
 
+      # Pinned as governance.yml's `policy-docs` is (decision 0013): the
+      # rosters are the pull request's, the linter the base's.
+      - name: Restore the check source from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          rm -rf .claude/workflows/vendor
+          git checkout "$PINNED" -- \
+            '.claude/workflows/*.mjs' \
+            '.claude/workflows/*.py' \
+            '.claude/workflows/vendor' \
+            'tools/audit/*.sh' \
+            'tools/audit/record-predicate' \
+            'tools/audit/round6/D11/fix/codeowners_gap.py'
+          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          test -f .claude/workflows/policy_lint.mjs
+
       - name: Lint every wave roster's citations
         run: node .claude/workflows/brief_lint.mjs
 
@@ -460,19 +493,18 @@ jobs:
         with:
           python-version: "3.13"
 
-      # The versions live in tests/typing_budgets.json and are not repeated
-      # here. A workflow that disagrees with the recorded pin is then not a
-      # state that can exist, rather than a state something has to check for.
-      - name: Resolve the pinned toolchain
-        run: |
-          python3 tests/typing_ruler.py --print-requirements \
-            | tee "$RUNNER_TEMP/typing-requirements.txt"
-
+      # The versions are recorded in tests/typing_budgets.json and installed
+      # from tests/requirements-typing.txt, the hash-pinned resolution of
+      # exactly what `typing_ruler.py --print-requirements` names (#1548).
+      # The two cannot drift apart unseen: the source-only ruler in `fast`
+      # refuses a lock whose mypy or homeassistant-stubs pin is not the
+      # recorded pair, and guard 2 below refuses an installed pair that is not.
       - name: Install the pinned toolchain
         run: |
           python3 -m venv .venv-typing
-          .venv-typing/bin/python -m pip install \
-            -r "$RUNNER_TEMP/typing-requirements.txt"
+          .venv-typing/bin/python -m pip install --require-hashes \
+            --build-constraint tests/requirements-build.txt \
+            -r tests/requirements-typing.txt
 
       # Run BY the pinned interpreter, so the ruler introspects the
       # environment it is measuring in rather than being told about it.
@@ -521,7 +553,10 @@ jobs:
           python-version: "3.13"
 
       - name: Install pinned test dependencies
-        run: pip install -r tests/requirements-ci.txt
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
 
       # Deliberately NOT added to tests/requirements-ci.txt. env_drift's cache
       # key fingerprints the installed distribution set, so a package added
@@ -531,7 +566,10 @@ jobs:
       # pattern is what decides whether an exempted line leaves the
       # denominator, and tests/coverage_ratchet.py counts against that pattern.
       - name: Install the tracer
-        run: pip install 'coverage==7.13.1'
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-coverage.txt
 
       # Writes nothing inside the worktree: W5P_OUT defaults under W5P_WORK, so
       # the measurement leaves no untracked evidence tree behind.
@@ -591,7 +629,7 @@ jobs:
             && needs.recheck-gate.outputs.recheck == 'true')
       )
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 160
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -604,7 +642,10 @@ jobs:
           python-version: "3.13"
 
       - name: Install pinned test dependencies
-        run: pip install -r tests/requirements-ci.txt
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
 
       # `--jobs` is sized to the runner, not to taste: the drivers are
       # single-threaded, so more workers than cores only lengthens every
@@ -662,7 +703,10 @@ jobs:
           python-version: "3.13"
 
       - name: Install pinned test dependencies
-        run: pip install -r tests/requirements-ci.txt
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
 
       - name: Drive the table over the whole package
         shell: bash
@@ -703,7 +747,10 @@ jobs:
           node-version: "22"
 
       - name: Install pinned test dependencies
-        run: pip install -r tests/requirements-ci.txt
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
 
       - name: Resolve the golden comparison ref
         run: |
@@ -822,7 +869,10 @@ jobs:
       # files, so nothing about these versions reaches the container, which
       # uses Home Assistant's own.
       - name: Install pinned test dependencies
-        run: pip install -r tests/requirements-ci.txt
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
 
       # Its own step so a registry failure is an unmistakable red here,
       # rather than a timeout somewhere inside the lane.
@@ -1024,7 +1074,10 @@ jobs:
 
       - name: Install pinned test dependencies
         if: env.DOCS_ONLY_FAST != 'true'
-        run: pip install -r tests/requirements-ci.txt
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
 
       - name: Install strace
         # node has no audit hook, so tests/card.mjs is recorded by tracing

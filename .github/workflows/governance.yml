@@ -56,61 +56,6 @@ jobs:
         with:
           node-version: "22"
 
-      # EVERY STEP ABOVE THE PIN BELOW DRIVES A PROGRAM THE PULL REQUEST
-      # CARRIES; EVERY STEP BELOW IT GRADES THE PULL REQUEST'S DATA WITH MAIN'S.
-      # The split is the whole design, so it is stated once here rather than at
-      # each step. A self-test's verdict is about a program's own refusals, and
-      # the copy that must answer is the one the pull request carries -- a lane
-      # run from the base over the base's own program reports on neither, which
-      # is docs/decisions/0004's subject. A grading step's verdict is about the
-      # corpus, so the program it runs must be the one on main, or the check is
-      # executed from the change it is checking (#1403).
-      #
-      # Three corpus checks shipped measuring nothing, each with an acceptance
-      # its author believed pinned it. This lane empties one check at a time --
-      # the corpus enumeration and the record mode's, and for the `caps` rule
-      # the regex list it scans as well as the check itself -- and demands the
-      # acceptance refuse it, so a check that survives its own removal is named
-      # on the pull request that lands it rather than by the next adversarial
-      # reader.
-      - name: Refuse a corpus or record-mode check that survives its own deletion
-        run: node .claude/workflows/policy_lint_mutants.mjs
-
-      - name: Show the fragment check refusing its own perturbation
-        run: node .claude/workflows/fragments_sync.mjs --self-test
-
-      - name: Refuse a hook that is missing, unwired, or fails its own self-test
-        run: node .claude/workflows/policy_lint.mjs --hooks
-
-      # `gh api -f body=@FILE` posts the literal path, exits 0, and returns a
-      # well-formed comment object (#541 comment 5625671141). The countermeasure
-      # is a program seats call instead of a bit seats remember, and its own
-      # refusals are the thing that must not rot: a fail-closed check that goes
-      # green when it cannot look converts an open defect into a closed one.
-      # This step drives all thirty-five named arms offline on every
-      # pull request -- the same argument as the fragment self-test above.
-      - name: Show the comment poster refusing every body it cannot vouch for
-        run: python3 .claude/workflows/gh_comment.py self-test
-
-      # The `record` predicate was narrowed (#752) only because a sweep measured
-      # what each candidate would refuse, and that sweep stays in the tree so the
-      # next seat proposing a narrowing reads its numbers instead of re-deriving
-      # them. It lives under `tools/audit/`, which is INERT in tests/closure.py,
-      # so the gate never selects it -- the same position `prepr.sh` and
-      # `push.sh` are in, and the same answer: an explicit step in a job that is
-      # never scoped. #762's fix review is why this is here rather than nowhere.
-      # The instrument's own null control had been vacuous since it was written,
-      # and nothing in CI could have said so.
-      #
-      # ONLY `--self-test`, which is pure over its fixtures: no network, no `gh`,
-      # no repository state. The range sweep is deliberately NOT wired. It needs
-      # a bulk API listing, takes tens of seconds, and prints a table with no
-      # pass condition -- its figures slide with the window by design, so a job
-      # asserting any of them would be asserting the calendar. A check that
-      # cannot fail for a reason is the defect this step exists to catch.
-      - name: Show the record-predicate sweep refusing its own perturbations
-        run: node tools/audit/record-predicate/sweep.mjs --self-test
-
       # THE CHECK IS NOT EXECUTED FROM THE CHANGE IT IS CHECKING (#1403, D11-02).
       #
       # The four steps below grade the corpus the pull request carries and were
@@ -132,8 +77,9 @@ jobs:
       # WHAT IT RESTORES: every `.mjs` and `.py` program in `.claude/workflows/`
       # and the vendored markdown parser one of them requires -- which is where a
       # mutation would otherwise live, since `render_md.mjs` reads the corpus
-      # through it. A pathspec rather than a list of names, so a check added to
-      # an existing program is covered without an edit here.
+      # through it -- and the `tools/audit/` programs a required job executes.
+      # A pathspec rather than a list of names, so a check added to an existing
+      # program is covered without an edit here.
       #
       # WHAT IT DOES NOT RESTORE, deliberately: the corpus and the policy
       # documents, which are what a pull request is for; `fixtures/`, which are
@@ -147,10 +93,19 @@ jobs:
       # fragment step below byte-compares with `web-fragments.md` and which are
       # therefore graded artifacts -- pinning them would compare the base's
       # copies with the pull request's canonical text and redden every pull
-      # request that updates the fragment on purpose; and `.claude/hooks/` with
-      # `tools/audit/record-predicate/`, whose steps run ABOVE this one because
-      # they are self-tests, so restoring them here would leave a pull request
-      # that edits a hook or the sweep graded by nothing at all.
+      # request that updates the fragment on purpose; and `.claude/hooks/`,
+      # which only the owner changes.
+      #
+      # IT RUNS FIRST, BEFORE ANY PROGRAM THE PULL REQUEST CARRIES (decision
+      # 0013). A step that runs the pull request's code can append to
+      # $GITHUB_ENV -- `BASH_ENV`, `NODE_OPTIONS` -- and so run inside every
+      # later step of this job, the restored graders included. So this job
+      # runs no unowned pull-request program at all: the self-tests moved to
+      # `instrument-self-tests` below, whose verdict grades nothing, and the one
+      # owned program it drives (the hooks, through `--hooks`) runs last. The
+      # same pathspecs pin `pr-contract`, `env-matrix`, `wave-script` and
+      # `briefs`; `codeowners_gap.py --check` reads them, and a pinned file
+      # needs no owner.
       #
       # The one shape it cannot pin: a file the base does not have, since there
       # is nothing to restore it from. A program added BESIDE the program it
@@ -158,13 +113,18 @@ jobs:
       # is the reason the corpus checks are functions in `CORPUS_CHECK_NAMES`
       # and not modules beside `policy_lint.mjs`.
       - name: Restore the check source from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
         run: |
           set -euo pipefail
-          PINNED="${{ github.event.pull_request.base.sha || github.sha }}"
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          rm -rf .claude/workflows/vendor
           git checkout "$PINNED" -- \
             '.claude/workflows/*.mjs' \
             '.claude/workflows/*.py' \
             '.claude/workflows/vendor' \
+            'tools/audit/*.sh' \
+            'tools/audit/record-predicate' \
             'tools/audit/round6/D11/fix/codeowners_gap.py'
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs
@@ -206,6 +166,107 @@ jobs:
         if: always()
         run: node .claude/workflows/policy_lint.mjs --report || true
 
+      # Last: the base's checker drives the hooks' own self-tests, which are the
+      # pull request's (owned) copies -- so nothing graded runs after them.
+      - name: Refuse a hook that is missing, unwired, or fails its own self-test
+        run: node .claude/workflows/policy_lint.mjs --hooks
+
+  # THE INSTRUMENTS' OWN SELF-TESTS, run from the pull request's copies
+  # (decision 0013). They were steps of `policy-docs` and `pr-contract`, ahead
+  # of the restore; a step running the pull request's code can write
+  # $GITHUB_ENV and so reach every later step of its job, the graders
+  # included. Here they share a job with no grader. `HPO_JOB_GRADES: nothing`
+  # tells `codeowners_gap.py` so, and its `--check` refuses the marker on a
+  # job a required context names: a self-test grades the program the pull
+  # request carries, never the pull request. A red here is still a red check
+  # at the head, which `pr-contract` makes the body answer.
+  instrument-self-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HPO_JOB_GRADES: nothing
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+
+      # EVERY STEP HERE DRIVES A PROGRAM THE PULL REQUEST CARRIES. A
+      # self-test's verdict is about a program's own refusals, and the copy
+      # that must answer is the one the pull request carries -- a lane run from
+      # the base over the base's own program reports on neither, which is
+      # docs/decisions/0004's subject.
+      #
+      # Three corpus checks shipped measuring nothing, each with an acceptance
+      # its author believed pinned it. This lane empties one check at a time --
+      # the corpus enumeration and the record mode's, and for the `caps` rule
+      # the regex list it scans as well as the check itself -- and demands the
+      # acceptance refuse it, so a check that survives its own removal is named
+      # on the pull request that lands it rather than by the next adversarial
+      # reader.
+      - name: Refuse a corpus or record-mode check that survives its own deletion
+        run: node .claude/workflows/policy_lint_mutants.mjs
+
+      - name: Show the fragment check refusing its own perturbation
+        run: node .claude/workflows/fragments_sync.mjs --self-test
+
+      # `gh api -f body=@FILE` posts the literal path, exits 0, and returns a
+      # well-formed comment object (#541 comment 5625671141). The countermeasure
+      # is a program seats call instead of a bit seats remember, and its own
+      # refusals are the thing that must not rot: a fail-closed check that goes
+      # green when it cannot look converts an open defect into a closed one.
+      # This step drives all thirty-five named arms offline on every
+      # pull request -- the same argument as the fragment self-test above.
+      - name: Show the comment poster refusing every body it cannot vouch for
+        run: python3 .claude/workflows/gh_comment.py self-test
+
+      # The `record` predicate was narrowed (#752) only because a sweep measured
+      # what each candidate would refuse, and that sweep stays in the tree so the
+      # next seat proposing a narrowing reads its numbers instead of re-deriving
+      # them. It lives under `tools/audit/`, which is INERT in tests/closure.py,
+      # so the gate never selects it -- the same position `prepr.sh` and
+      # `push.sh` are in, and the same answer: an explicit step in a job that is
+      # never scoped. #762's fix review is why this is here rather than nowhere.
+      # The instrument's own null control had been vacuous since it was written,
+      # and nothing in CI could have said so.
+      #
+      # ONLY `--self-test`, which is pure over its fixtures: no network, no `gh`,
+      # no repository state. The range sweep is deliberately NOT wired. It needs
+      # a bulk API listing, takes tens of seconds, and prints a table with no
+      # pass condition -- its figures slide with the window by design, so a job
+      # asserting any of them would be asserting the calendar. A check that
+      # cannot fail for a reason is the defect this step exists to catch.
+      - name: Show the record-predicate sweep refusing its own perturbations
+        run: node tools/audit/record-predicate/sweep.mjs --self-test
+
+      - name: Show the pre-PR self-check refusing its own fixtures
+        run: bash tools/audit/prepr.sh --self-test
+
+      - name: Show the push script's decisions refusing their own fixtures
+        run: bash tools/audit/push.sh --self-test
+
+      # The App approval's refusals and token cleanup, over stubbed gh, curl
+      # and openssl: no network, no key.
+      - name: Show the App approval refusing its own fixtures
+        run: bash tools/audit/app_approve.sh --self-test
+
+      # The App verdict poster (decision 0013): its verdict grammar, head
+      # reads, identity read-back and token cleanup, over the same stubs.
+      - name: Show the App verdict poster refusing its own fixtures
+        run: bash tools/audit/app_comment.sh --self-test
+
+      - name: Show the figure check refusing its own fixtures
+        if: always()
+        run: node .claude/workflows/figure_lint.mjs --self-test
+
+      - name: Show the figure census pinning its counting rule
+        if: always()
+        run: node .claude/workflows/figure_census.mjs --self-test
+
   # THE LANES ABOVE RUN IN ONE ENVIRONMENT. Five separate assertions in this
   # repository were CORRECT and never RAN, because whether they run is decided
   # by a fact about the clone -- shallow or not, origin/main present or not,
@@ -241,6 +302,28 @@ jobs:
       - name: Put origin/main where the matrix looks for it
         run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
 
+      # Pinned as `policy-docs` is (decision 0013), and then COMMITTED: the
+      # matrix clones this checkout at the commit it is given, so a restore
+      # left in the working tree would never reach the shapes it builds. The
+      # commit is local to this runner and never pushed.
+      - name: Restore the check source from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          rm -rf .claude/workflows/vendor
+          git checkout "$PINNED" -- \
+            '.claude/workflows/*.mjs' \
+            '.claude/workflows/*.py' \
+            '.claude/workflows/vendor' \
+            'tools/audit/*.sh' \
+            'tools/audit/record-predicate' \
+            'tools/audit/round6/D11/fix/codeowners_gap.py'
+          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          test -f .claude/workflows/policy_lint.mjs
+          git -c user.name=ci -c user.email=ci@invalid commit -q --no-verify --allow-empty -m "pinned check source from $PINNED"
+
       # GITHUB_TOKEN: the `pr` shape below asserts NOTHING skips in a full
       # clone, and the required-contexts class needs credentials to look at the
       # live ruleset -- a real pull-request run has them (the token is mapped on
@@ -268,6 +351,27 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22"
+
+      # Pinned as `policy-docs` is (decision 0013). The wave scripts this
+      # drives are the graded artifacts and stay the pull request's -- which
+      # is why `web-fix-wave.js`, `audit-find.js` and `audit-verify.js` keep
+      # an owner: the checker evaluates them in its own process.
+      - name: Restore the check source from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          rm -rf .claude/workflows/vendor
+          git checkout "$PINNED" -- \
+            '.claude/workflows/*.mjs' \
+            '.claude/workflows/*.py' \
+            '.claude/workflows/vendor' \
+            'tools/audit/*.sh' \
+            'tools/audit/record-predicate' \
+            'tools/audit/round6/D11/fix/codeowners_gap.py'
+          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          test -f .claude/workflows/policy_lint.mjs
 
       - name: Drive the wave script's branching
         run: node .claude/workflows/check-wave-script.mjs

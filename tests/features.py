@@ -15890,7 +15890,7 @@ R.check(
 _cd = _t2_coord()
 R.check(
     "no settled interval means no diagnosis, not a crash",
-    _cd.diagnose_last_interval() is None,
+    _asyncio.run(_cd.async_diagnose_interval()) is None,
 )
 _cd._last_interval_record = {
     "when": _T6.isoformat(),
@@ -15900,7 +15900,7 @@ _cd._last_interval_record = {
     "realised": {"outdoor_temp": -10.0},
     "actual": _dbase - 0.3,
 }
-_cd_report = _cd.diagnose_last_interval()
+_cd_report = _asyncio.run(_cd.async_diagnose_interval())
 R.check(
     "the coordinator's diagnosis runs the settled triple and publishes it",
     _cd_report is not None
@@ -16221,7 +16221,7 @@ def _spy_attribute(model, state, planned, realised, actual):
 
 _coord_mod.diagnosis.attribute = _spy_attribute
 try:
-    _cd10.diagnose_last_interval()
+    _coord_mod.diagnosis.diagnose_record(*_coord_mod._diagnose_payload(_cd10))
 finally:
     _coord_mod.diagnosis.attribute = _real_attribute
 R.check(
@@ -33987,18 +33987,40 @@ R.check(
 # survived a mutation that reads the whole-house pair, because the
 # simulation's own residual moves with the upper mass as well, so the two
 # runs stayed ordered the way the check expected.
-_t2_hl_light = _t2_house(two_zone=True, upper_floor_thermal_mass=3.0)
-_t2_drive(_t2_hl_light, "_async_learn_house_heat_loss")
-_t2_hl_heavy = _t2_house(two_zone=True, upper_floor_thermal_mass=9.0)
-_t2_drive(_t2_hl_heavy, "_async_learn_house_heat_loss")
-_t2_hl_rtm_small = _t2_house(two_zone=True)
-_t2_hl_rtm_small._thermal_params.room_thermal_mass = 10.0
-_t2_hl_rtm_small._thermal_params.heat_loss_coefficient = 0.15
-_t2_drive(_t2_hl_rtm_small, "_async_learn_house_heat_loss")
-_t2_hl_rtm_big = _t2_house(two_zone=True)
-_t2_hl_rtm_big._thermal_params.room_thermal_mass = 100.0
-_t2_hl_rtm_big._thermal_params.heat_loss_coefficient = 0.15
-_t2_drive(_t2_hl_rtm_big, "_async_learn_house_heat_loss")
+#
+# The equality below compares two SEPARATE replays, so it needs the same
+# `dt_hours` on both sides of the Newton step (#812's own root-cause note,
+# 2026-09-24): `_t2_house` stamps `_last_house_sample_time` from a live
+# `dt_util.now()` at construction, and `_async_learn_house_heat_loss` reads
+# `dt_util.now()` again, live, when driven. Unfrozen, the two replays pick up
+# whatever real wall-clock gap the scheduler happens to leave between
+# construction and drive -- normally sub-millisecond and lost in the 1e-8
+# guard, but stretched under machine load to a few milliseconds, which this
+# Newton step (residual and simulation both linear-ish in `dt_hours`) turns
+# into scale differences of 1e-8..1e-7 -- diffs of 1.08e-8 and 1.55e-8 were
+# both observed this way. `_t2_buffer` above already freezes the clock before
+# driving its own learner for exactly this reason; this block didn't.
+# Freezing both replays to one instant removes the wall-clock gap and
+# reproduces byte-for-byte: 20 runs forced with 5ms of injected jitter
+# between construction and drive, unfrozen, gave diffs up to 6.42e-8 (well
+# above the guard); the same 20 runs frozen gave exactly 0.0 every time.
+_t2_mass_now = dt_util.now()
+dt_util.freeze(_t2_mass_now)
+try:
+    _t2_hl_light = _t2_house(two_zone=True, upper_floor_thermal_mass=3.0)
+    _t2_drive(_t2_hl_light, "_async_learn_house_heat_loss")
+    _t2_hl_heavy = _t2_house(two_zone=True, upper_floor_thermal_mass=9.0)
+    _t2_drive(_t2_hl_heavy, "_async_learn_house_heat_loss")
+    _t2_hl_rtm_small = _t2_house(two_zone=True)
+    _t2_hl_rtm_small._thermal_params.room_thermal_mass = 10.0
+    _t2_hl_rtm_small._thermal_params.heat_loss_coefficient = 0.15
+    _t2_drive(_t2_hl_rtm_small, "_async_learn_house_heat_loss")
+    _t2_hl_rtm_big = _t2_house(two_zone=True)
+    _t2_hl_rtm_big._thermal_params.room_thermal_mass = 100.0
+    _t2_hl_rtm_big._thermal_params.heat_loss_coefficient = 0.15
+    _t2_drive(_t2_hl_rtm_big, "_async_learn_house_heat_loss")
+finally:
+    dt_util.freeze(None)
 R.check(
     "the two-zone fit moves with the upper zone's mass and not the house's",
     _t2_hl_light._house_heat_loss_samples == 1
@@ -38393,18 +38415,15 @@ R.check(
 )
 
 
-# -- `_wind_speed_scale`: the unit the weather entity actually reports ----
+# -- `_wind_speed_scale_of`: the unit the weather entity actually reports --
 def _t6_wind(unit=_T6_UNSET, *, entity=True):
     """The wind scale for a weather entity reporting `unit`."""
     if not entity:
-        return _t6_call(
-            HeatPumpOptimizerCoordinator(
-                FakeHass({}), FakeEntry(data={"tibber_token": "x"})
-            )._wind_speed_scale
-        )
+        return _t6_call(_t6_coord_module._wind_speed_scale_of, None)
     attrs = {} if unit is _T6_UNSET else {"wind_speed_unit": unit}
-    states = {"weather.home": FakeState("sunny", attributes=attrs)}
-    return _t6_call(_t6_coord(states)._wind_speed_scale)
+    return _t6_call(
+        _t6_coord_module._wind_speed_scale_of, FakeState("sunny", attributes=attrs)
+    )
 
 
 R.check(
@@ -38419,11 +38438,9 @@ R.check(
     "doubles the predicted heat loss",
 )
 R.check(
-    "no weather entity, and one missing from the bus, both read as m/s",
-    _t6_wind(entity=False) == 1.0
-    and _t6_call(_t6_coord({})._wind_speed_scale) == 1.0,
-    f"unconfigured -> {_t6_wind(entity=False)!r}, configured but absent -> "
-    f"{_t6_call(_t6_coord({})._wind_speed_scale)!r} -- 1.0 is Home "
+    "no weather entity state reads as m/s",
+    _t6_wind(entity=False) == 1.0,
+    f"no weather state -> {_t6_wind(entity=False)!r} -- 1.0 is Home "
     "Assistant's own metric default, so an install with no weather entity is "
     "not silently scaled",
 )
@@ -39321,6 +39338,134 @@ R.check(
     "the tell here: a configured 0.0 would take the default too, which is "
     "right for a temperature nobody sets to zero and worth pinning as the "
     "behaviour rather than the accident",
+)
+
+
+# -- #1517 (P12): the set-back unwind is compare-and-restore ---------------
+# The solve's `finally` restores the set-back. A service or climate write that
+# lands while the cycle is parked on its solve await is newer than the
+# snapshot, so an unconditional restore reverted it: the DHW minimums a
+# set_thermal_parameters call wrote came back at their pre-solve values, live
+# and published. A field is restored only while it still holds what the
+# envelope itself left there.
+def _g8_race(**state_kw):
+    opt, th = _G8Opt(), _G8Therm()
+    rec = _g8_away.apply_setback(_g8_away.AwayState(**state_kw), opt, th)
+    th.dhw_min_temp, th.dhw_idle_min_temp = 38.0, 31.0  # the mid-solve write
+    opt.target_temp = 19.5  # a climate set_temperature, same window
+    _g8_away.restore_setback(rec, opt, th)
+    return opt, th
+
+
+_g8_race_home = _g8_race(active=False)
+_g8_race_away = _g8_race(active=True, target_temperature=16.0,
+                         dhw_min_temperature=35.0)
+R.check(
+    "a write landing inside the set-back envelope survives its unwind (#1517)",
+    all(
+        (th.dhw_min_temp, th.dhw_idle_min_temp, opt.target_temp)
+        == (38.0, 31.0, 19.5)
+        for opt, th in (_g8_race_home, _g8_race_away)
+    )
+    and (_g8_race_away[0].min_temp, _g8_race_away[0].comfort_temp_day)
+    == (19.0, 21.0),
+    f"home {vars(_g8_race_home[1])} target {_g8_race_home[0].target_temp}; "
+    f"away {vars(_g8_race_away[1])} {vars(_g8_race_away[0])}. The fields "
+    "nobody else wrote still come back off; the ones a service wrote keep "
+    "the service's value",
+)
+# Round-1 review of #1563: two shapes a value compare gets wrong. A mid-solve
+# write EQUAL to what the set-back left is still a newer write (a service call
+# carries its own float, never the envelope's), and a NaN away target is never
+# == itself, so a value compare left both comfort numbers NaN after away ended.
+def _g8_equal_write():
+    opt, th = _G8Opt(), _G8Therm()
+    rec = _g8_away.apply_setback(
+        _g8_away.AwayState(active=True, target_temperature=16.0,
+                           dhw_min_temperature=35.0), opt, th)
+    th.dhw_min_temp, opt.target_temp = float("35.0"), float("16.0")
+    _g8_away.restore_setback(rec, opt, th)
+    return th.dhw_min_temp, opt.target_temp, th.dhw_idle_min_temp
+
+
+def _g8_nan_target():
+    opt, th = _G8Opt(), _G8Therm()
+    rec = _g8_away.apply_setback(
+        _g8_away.AwayState(active=True, target_temperature=float("nan")), opt, th)
+    _g8_away.restore_setback(rec, opt, th)
+    return opt.target_temp, opt.min_temp, opt.comfort_temp_day, opt.comfort_temp_night
+
+
+R.check(
+    "a mid-solve write equal to the set-back value still survives the unwind",
+    _g8_equal_write() == (35.0, 16.0, 42.0),
+    f"(dhw_min, target, dhw_idle untouched) {_g8_equal_write()}: the service "
+    "wrote 35.0 and 16.0 during the solve; comparing by value read them as "
+    "the envelope's own and put back 45.0 and 21.0",
+)
+R.check(
+    "a NaN away target still unwinds every comfort number",
+    _g8_nan_target() == (21.0, 19.0, 21.0, 19.5),
+    f"{_g8_nan_target()}: NaN != NaN, so a value compare never restored the "
+    "two comfort temperatures the set-back had written NaN into",
+)
+
+
+def _g8_widen(**state_kw):
+    opt, th = _G8Opt(), _G8Therm()
+    rec = _g8_away.apply_setback(_g8_away.AwayState(**state_kw), opt, th)
+    _g8_away.lower_floor(rec, opt, 1.5)
+    low = opt.min_temp
+    _g8_away.restore_setback(rec, opt, th)
+    return low, opt.min_temp
+
+
+_g8_env = {
+    "home": _g8_widen(active=False),
+    "away": _g8_widen(active=True, target_temperature=16.0),
+}
+R.check(
+    "the envelope's own floor widening is recorded, so it still unwinds",
+    _g8_env == {"home": (17.5, 19.0), "away": (15.0, 19.0)},
+    f"(widened, restored) {_g8_env}: economy and the open-window relax lower "
+    "min_temp inside the envelope, never below the absolute floor, and a "
+    "compare-and-restore that did not know about them would leak the "
+    "widening into every later solve",
+)
+
+# The same race through the production cycle: the writes are injected at the
+# solve await, where the event loop really can run a service call, and the
+# solve is then refused so no plan is needed. Economy mode is on, so the
+# cycle's own widening is inside the envelope the same run unwinds.
+_g8_cyc = _solve_coord()
+_g8_cyc._mode = MODE_ECONOMY
+_g8_cyc_floor = _g8_cyc._ctx._opt_config.min_temp
+_g8_cyc_real = _coord_mod._await_optimize
+
+
+async def _g8_cyc_mid_solve(*_args, **_kwargs):
+    await _g8_cyc.async_update_thermal_params(
+        {"dhw_min_temperature": 38.0, "dhw_idle_min_temperature": 31.0}
+    )
+    await _g8_cyc.async_set_target_temperature(19.5)
+    raise RuntimeError("the solve is not the point here")
+
+
+_coord_mod._await_optimize = _g8_cyc_mid_solve
+try:
+    for _ in range(2):
+        _asyncio.run(_g8_cyc.async_run_optimization())
+finally:
+    _coord_mod._await_optimize = _g8_cyc_real
+_g8_cyc_p, _g8_cyc_c = _g8_cyc._ctx._thermal_params, _g8_cyc._ctx._opt_config
+R.check(
+    "a service write during the production solve outlives the cycle (#1517)",
+    (_g8_cyc_p.dhw_min_temp, _g8_cyc_p.dhw_idle_min_temp,
+     _g8_cyc_c.target_temp) == (38.0, 31.0, 19.5)
+    and _g8_cyc_c.min_temp == _g8_cyc_floor,
+    f"after two economy cycles: DHW {_g8_cyc_p.dhw_min_temp!r}/"
+    f"{_g8_cyc_p.dhw_idle_min_temp!r}, target {_g8_cyc_c.target_temp!r}, "
+    f"floor {_g8_cyc_c.min_temp!r} against {_g8_cyc_floor!r} before",
 )
 
 
@@ -43866,6 +44011,463 @@ R.check(
     "unanswered entry, and the entry's own answers on a configured one",
 )
 
+# ---------------------------------------------------------------------------
+R.section("P8 — a price or temperature entity's unit is read at the seam (#1513)")
+#
+# Every reader below is the production one. The discriminating arm of each is
+# a unit the old code read as SEK/kWh or degC; the SEK/kWh and degC arms are
+# the null control, and must come through bit-for-bit.
+import math as _p8_math  # noqa: E402
+from types import SimpleNamespace as _p8_ns  # noqa: E402
+
+from heatpump_optimizer import coordinator as _p8_coord  # noqa: E402
+from heatpump_optimizer import price_model as _p8_pm  # noqa: E402
+from heatpump_optimizer import setpoint_check as _p8_sp  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_GRID_FEE_ENTITY as _P8_FEE,
+    CONF_PV_EXPORT_PRICE_ENTITY as _P8_EXPORT,
+    DEFAULT_PV_EXPORT_PRICE as _P8_EXPORT_DEFAULT,
+)
+
+_p8_norm = getattr(inputs_mod, "normalize_price_per_kwh", None)
+_P8_FACTORS = {
+    "SEK/kWh": 1.0,
+    "öre/kWh": 0.01,
+    "SEK/MWh": 0.001,
+    "EUR/MWh": 0.001,
+    "c/kWh": 0.01,
+    "€/kWh": 1.0,
+    "NOK/Wh": 1000.0,
+    None: 1.0,
+}
+R.check(
+    "normalize_price_per_kwh takes each unit to major currency per kWh",
+    _p8_norm is not None
+    and all(
+        _p8_math.isclose(_p8_norm(2.0, _u) or _p8_math.nan, 2.0 * _f)
+        for _u, _f in _P8_FACTORS.items()
+    ),
+    f"{[(u, _p8_norm(2.0, u)) for u in _P8_FACTORS] if _p8_norm else 'missing'}",
+)
+R.check(
+    "and a unit it cannot parse returns None rather than a guess",
+    _p8_norm is not None
+    and all(_p8_norm(2.0, _u) is None for _u in ("kWh", "SEK", "SEK/GJ", "bananas/kWh")),
+)
+
+_P8_SCALE = {"SEK/kWh": 1.0, "öre/kWh": 100.0, "SEK/MWh": 1000.0}
+
+
+def _p8_price_state(unit, scale):
+    rows = [
+        {
+            "start": f"2026-11-03T{h:02d}:00:00+01:00",
+            "value": (0.30 + 0.05 * h) * scale,
+        }
+        for h in range(24)
+    ]
+    return FakeState(str(rows[0]["value"]), unit=unit, attributes={"raw_today": rows})
+
+
+def _p8_totals(unit, scale):
+    rows = _p8_pm.prices_from_entity_state(_p8_price_state(unit, scale), 1.25, 0.10)
+    return [r["total"] for r in rows] if isinstance(rows, list) else rows
+
+
+_p8_truth = [(0.30 + 0.05 * h) * 1.25 + 0.10 for h in range(24)]
+R.check(
+    "the price entity's today/tomorrow rows are read in their unit",
+    all(
+        isinstance(_p8_totals(_u, _s), list)
+        and all(
+            _p8_math.isclose(a, b, rel_tol=1e-12)
+            for a, b in zip(_p8_totals(_u, _s), _p8_truth)
+        )
+        for _u, _s in _P8_SCALE.items()
+    ),
+    f"{ {u: _p8_totals(u, s)[:2] for u, s in _P8_SCALE.items()} }",
+)
+R.check(
+    "and an unparseable unit keeps the raw rows, as before",
+    _p8_totals("SEK/GJ", 1.0) == _p8_totals(None, 1.0)
+    and all(
+        _p8_math.isclose(a, b, rel_tol=1e-12)
+        for a, b in zip(_p8_totals("SEK/GJ", 1.0), _p8_truth)
+    ),
+)
+
+_P8_CFG = {
+    "tibber_token": "x",
+    "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor",
+    "outdoor_temp_entity": "sensor.outdoor",
+    "pv_enabled": True,
+}
+
+
+def _p8_export(unit, value):
+    coord = _Coord(
+        _FakeHass({"sensor.export": FakeState(str(value), unit=unit)}),
+        _FakeEntry(data={**_P8_CFG, _P8_EXPORT: "sensor.export"}),
+    )
+    return coord._pv_export_price()
+
+
+R.check(
+    "the export-price entity is read in its unit",
+    all(
+        _p8_math.isclose(_p8_export(_u, 0.45 * _s), 0.45, rel_tol=1e-12)
+        for _u, _s in _P8_SCALE.items()
+    ),
+    f"{ {u: _p8_export(u, 0.45 * s) for u, s in _P8_SCALE.items()} }",
+)
+
+
+def _p8_fee(unit, value):
+    return _p8_coord._grid_fee_entity_value(
+        _FakeHass({"sensor.fee": FakeState(str(value), unit=unit)}),
+        {_P8_FEE: "sensor.fee"},
+    )
+
+
+R.check(
+    "the grid-fee entity is read in its unit",
+    all(
+        _p8_fee(_u, 0.25 * _s) is not None
+        and _p8_math.isclose(_p8_fee(_u, 0.25 * _s), 0.25, rel_tol=1e-12)
+        for _u, _s in _P8_SCALE.items()
+    ),
+    f"{ {u: _p8_fee(u, 0.25 * s) for u, s in _P8_SCALE.items()} }",
+)
+
+
+def _p8_unit_issues(hass):
+    return [
+        i
+        for i in getattr(hass, "issues", [])
+        if i[2].get("translation_key") == "price_unit_unrecognised"
+    ]
+
+
+_p8_hass = _FakeHass(
+    {
+        "sensor.nordpool": _p8_price_state("SEK/GJ", 1.0),
+        "sensor.fee": FakeState("0.25", unit="SEK/kWh"),
+    }
+)
+_p8_hass.issues = []
+_p8_live = _Coord(
+    _p8_hass,
+    _FakeEntry(
+        data={
+            **_P8_CFG,
+            "price_source": "entity",
+            "price_entity": "sensor.nordpool",
+            _P8_FEE: "sensor.fee",
+        }
+    ),
+)
+_asyncio.run(_p8_live._fetch_tibber_prices())
+_p8_raised = _p8_unit_issues(_p8_hass)
+R.check(
+    "an unparseable price unit raises one repair notice naming the entity and unit",
+    len(_p8_raised) == 1
+    and _p8_raised[0][2].get("translation_placeholders")
+    == {"entity": "sensor.nordpool", "unit": "SEK/GJ"},
+    f"got {_p8_raised!r}",
+)
+_p8_hass.states.set("sensor.nordpool", _p8_price_state("SEK/kWh", 1.0))
+_asyncio.run(_p8_live._fetch_tibber_prices())
+R.check(
+    "and it clears once the unit is one the reader understands",
+    _p8_unit_issues(_p8_hass) == [],
+    f"got {_p8_unit_issues(_p8_hass)!r}",
+)
+
+_p8_inlet = getattr(_p8_coord, "_dhw_inlet_c", None)
+
+
+def _p8_inlet_at(value, unit):
+    hass = _FakeHass(
+        {"sensor.inlet": FakeState(str(value), unit=unit, last_updated=datetime.now(UTC))}
+    )
+    return _p8_inlet(hass, "sensor.inlet")
+
+
+R.check(
+    "the DHW inlet probe is read in its unit (50 degF is 10 degC)",
+    _p8_inlet is not None
+    and _p8_math.isclose(_p8_inlet_at(50.0, "°F") or 0.0, 10.0)
+    and _p8_inlet_at(10.0, "°C") == 10.0
+    and _p8_inlet_at(10.0, None) == 10.0,
+    f"{[_p8_inlet_at(50.0, '°F'), _p8_inlet_at(10.0, '°C')] if _p8_inlet else 'missing'}",
+)
+
+
+def _p8_setpoint(state):
+    hass = _FakeHass({"number.dhw_sp": state})
+    hass.issues = []
+    params = _p8_ns(dhw_min_temp=55.0, dhw_legionella_enabled=False, dhw_legionella_temp=60.0)
+    _p8_sp._dhw(hass, {_SP_DHW_ENT: "number.dhw_sp"}, params)
+    return [i for i in hass.issues if i[1] == _SP_ISSUE_DHW]
+
+
+_p8_sp_f = _p8_setpoint(FakeState("122", unit="°F"))
+R.check(
+    "a degF DHW set-point is compared in degC (122 degF is below a 55 degC floor)",
+    len(_p8_sp_f) == 1
+    and _p8_sp_f[0][2].get("translation_placeholders", {}).get("pump") == "50.0",
+    f"got {_p8_sp_f!r}",
+)
+R.check(
+    "and its Fix writes the floor in the entity's own unit (131 degF)",
+    bool(_p8_sp_f)
+    and _p8_sp_f[0][2].get("data", {}).get("target") == 55.0
+    and _p8_sp_f[0][2].get("data", {}).get("value") == 131.0,
+    f"got {_p8_sp_f!r}",
+)
+_p8_sp_c = _p8_setpoint(FakeState("50", unit="°C"))
+R.check(
+    "null control: a degC set-point raises the same notice and writes 55",
+    len(_p8_sp_c) == 1
+    and _p8_sp_c[0][2].get("translation_placeholders", {}).get("pump") == "50.0"
+    and _p8_sp_c[0][2].get("data", {}).get("value") == 55.0,
+    f"got {_p8_sp_c!r}",
+)
+_p8_flow = _sp_repairs.DhwSetpointRepairFlow()
+_p8_flow.hass = _FakeHass({})
+_p8_flow.data = dict(_p8_sp_f[0][2].get("data", {})) if _p8_sp_f else {}
+_asyncio.run(_p8_flow.async_step_confirm({}))
+R.check(
+    "the repair flow writes the converted value, not the degC target",
+    _p8_flow.hass.services.calls
+    == [("number", "set_value", {"entity_id": "number.dhw_sp", "value": 131.0})],
+    f"got {_p8_flow.hass.services.calls!r}",
+)
+
+_p8_stale = _FakeHass(
+    {"sensor.inlet": FakeState("10", unit="°C", last_updated=datetime.now(UTC) - timedelta(days=2))}
+)
+R.check(
+    "and a stale, implausible or non-numeric inlet reading is refused",
+    _p8_inlet is not None
+    and _p8_inlet(_p8_stale, "sensor.inlet") is None
+    and _p8_inlet_at(40.0, "°C") is None
+    and _p8_inlet_at("unknown", "°C") is None,
+    f"{[_p8_inlet(_p8_stale, 'sensor.inlet'), _p8_inlet_at(40.0, '°C')] if _p8_inlet else 'missing'}",
+)
+R.check(
+    "an unavailable export-price entity falls back to the configured price",
+    _p8_export("SEK/kWh", "unavailable") == _P8_EXPORT_DEFAULT
+    and _p8_export("öre/kWh", "unavailable") == _P8_EXPORT_DEFAULT,
+    f"got {_p8_export('SEK/kWh', 'unavailable')!r}",
+)
+R.check(
+    "an unavailable grid-fee entity reads as no fee entity at all",
+    _p8_fee("öre/kWh", "unavailable") is None,
+    f"got {_p8_fee('öre/kWh', 'unavailable')!r}",
+)
+_p8_noent = _sp_repairs.DhwSetpointRepairFlow()
+_p8_noent.hass = _FakeHass({})
+_p8_noent.data = {"target": 55.0, "value": 131.0}
+_asyncio.run(_p8_noent.async_step_confirm({}))
+R.check(
+    "a repair with no entity id writes nothing",
+    _p8_noent.hass.services.calls == [],
+    f"got {_p8_noent.hass.services.calls!r}",
+)
+
+# The weather sibling: get_forecasts rows arrive in the weather entity's own
+# temperature_unit, as its wind does in wind_speed_unit. 50 degF is 10 degC.
+from homeassistant.util import dt as _p8_dt  # noqa: E402
+
+_p8_fc_in_c = getattr(_p8_coord, "_forecast_in_model_units", None)
+
+
+def _p8_weather(unit, temp, *, fail=False, wind_unit="m/s", wind=3.6):
+    attrs = {"temperature": temp, "wind_speed": wind, "wind_speed_unit": wind_unit}
+    if unit is not None:
+        attrs["temperature_unit"] = unit
+    hass = _FakeHass({"weather.home": FakeState("cloudy", attributes=attrs)})
+    coord = _Coord(hass, _FakeEntry(data=dict(_P8_CFG)))
+    now = _p8_dt.now().replace(minute=0, second=0, microsecond=0)
+    rows = [
+        {"datetime": (now + timedelta(hours=h)).isoformat(), "temperature": temp,
+         "wind_speed": wind, "precipitation": 0.0}
+        for h in range(48)
+    ]
+
+    async def _call(domain, service, data=None, **kwargs):
+        if fail:
+            raise RuntimeError("weather integration down")
+        return {"weather.home": {"forecast": rows}}
+
+    hass.services.async_call = _call
+    _asyncio.run(coord._fetch_weather_forecast())
+    return coord, now
+
+
+def _p8_outdoor(unit, temp, **kw):
+    coord, now = _p8_weather(unit, temp, **kw)
+    series = coord._weather_series(4, now, 0)
+    return [round(v, 9) for v in series[0]], [round(v, 9) for v in series[1]]
+
+
+R.check(
+    "a degF weather entity's forecast is planned in degC (50 degF is 10 degC)",
+    _p8_fc_in_c is not None and _p8_outdoor("°F", 50.0)[0] == [10.0] * 4,
+    f"got {_p8_outdoor('°F', 50.0)[0]}",
+)
+R.check(
+    "null control: a degC or unit-less weather entity's forecast is untouched",
+    _p8_outdoor("°C", 10.0)[0] == [10.0] * 4 and _p8_outdoor(None, 10.0)[0] == [10.0] * 4,
+    f"got {_p8_outdoor('°C', 10.0)[0]}, {_p8_outdoor(None, 10.0)[0]}",
+)
+_P8_ROWS = [{"temperature": 10.0}]
+R.check(
+    "the rows are the same object when nothing converts (goldens cannot move)",
+    _p8_fc_in_c is not None
+    and _p8_fc_in_c(FakeState("x", attributes={"temperature_unit": "°C"}), _P8_ROWS) is _P8_ROWS
+    and _p8_fc_in_c(FakeState("x", attributes={}), _P8_ROWS) is _P8_ROWS,
+)
+R.check(
+    "a row whose temperature will not parse keeps it for the consumers' fallback",
+    _p8_fc_in_c is not None
+    and _p8_fc_in_c(
+        FakeState("x", attributes={"temperature_unit": "°F"}), [{"temperature": "n/a"}]
+    ) == [{"temperature": "n/a"}],
+)
+R.check(
+    "the fabricated trajectory of a failed first fetch is converted too",
+    _p8_outdoor("°F", 50.0, fail=True)[0] == [10.0] * 4,
+    f"got {_p8_outdoor('°F', 50.0, fail=True)[0]}",
+)
+R.check(
+    "and its wind is scaled once, not twice (3.6 km/h is 1 m/s)",
+    _p8_outdoor("°C", 10.0, fail=True, wind_unit="km/h")[1] == [1.0] * 4
+    and _p8_outdoor("°C", 10.0, wind_unit="km/h")[1] == [1.0] * 4,
+    f"fabricated {_p8_outdoor('°C', 10.0, fail=True, wind_unit='km/h')[1]}, "
+    f"fetched {_p8_outdoor('°C', 10.0, wind_unit='km/h')[1]}",
+)
+R.check(
+    "the current wind the learners read is m/s on both paths (3.6 km/h is 1 m/s)",
+    _p8_weather("°C", 10.0, wind_unit="km/h")[0]._current_weather()[0] == 1.0
+    and _p8_weather("°C", 10.0, fail=True, wind_unit="km/h")[0]._current_weather()[0] == 1.0,
+    f"fetched {_p8_weather('°C', 10.0, wind_unit='km/h')[0]._current_weather()}, "
+    f"fabricated {_p8_weather('°C', 10.0, fail=True, wind_unit='km/h')[0]._current_weather()}",
+)
+R.check(
+    "null control: an m/s entity's current wind is its own number on both paths",
+    _p8_weather("°C", 10.0, wind=1.0)[0]._current_weather()[0] == 1.0
+    and _p8_weather("°C", 10.0, fail=True, wind=1.0)[0]._current_weather()[0] == 1.0,
+)
+
+# ---------------------------------------------------------------------------
+R.section("R8-P8 round 3: mutation survivors on lines this diff's files carry")
+# CI's changed-scope mutation lane drew these pre-existing sites from the
+# files #1513 touches, and nothing killed them. Each check drives the
+# production symbol; the repairs.py survivor is triaged equivalent instead.
+import math as _p8s_math  # noqa: E402
+from types import SimpleNamespace as _p8s_ns  # noqa: E402
+
+from heatpump_optimizer import const as _p8s_const  # noqa: E402
+from heatpump_optimizer.freq_control import (  # noqa: E402
+    FREQ_MODE_CONTROL as _P8S_CONTROL,
+    FREQ_SOURCE_NUMBER as _P8S_NUMBER,
+)
+
+# const.buffer_tank_surface_area's floor: a zero or negative volume is a
+# tiny real tank, never 0.0 m2 (a zero clamp range) or a complex number.
+_p8s_areas = [_p8s_const.buffer_tank_surface_area(v) for v in (0.0, -50.0)]
+R.check(
+    "a zero or negative tank volume still has a real, positive surface area",
+    all(isinstance(a, float) and _p8s_math.isfinite(a) and a > 0.0 for a in _p8s_areas),
+    f"{_p8s_areas!r}",
+)
+
+# InputReader.value: a STALE reading keeps its number (read() leaves it for a
+# caller that explicitly wants the last value) but value() must not hand it
+# out -- the default path treats stale as absent.
+_p8s_now = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
+_p8s_reader = InputReader(
+    FakeHass({"sensor.indoor": FakeState("21.4", last_updated=_p8s_now - timedelta(days=3))}),
+    {"indoor_temp_entity": "sensor.indoor"},
+    now=lambda: _p8s_now,
+)
+_p8s_stale = _p8s_reader.read("indoor_temp_entity")
+R.check(
+    "value() returns the default for a stale reading that still holds a number",
+    _p8s_stale.stale
+    and _p8s_stale.value == 21.4
+    and _p8s_reader.value("indoor_temp_entity", -99.0) == -99.0
+    and _p8s_reader.value("outdoor_temp_entity", -99.0) == -99.0,
+    f"stale={_p8s_stale.stale} held={_p8s_stale.value!r} "
+    f"value={_p8s_reader.value('indoor_temp_entity', -99.0)!r}",
+)
+_p8s_fresh = InputReader(
+    FakeHass({"sensor.indoor": FakeState("21.4", last_updated=_p8s_now - timedelta(minutes=5))}),
+    {"indoor_temp_entity": "sensor.indoor"},
+    now=lambda: _p8s_now,
+)
+_p8s_fresh.read("indoor_temp_entity")
+R.check(
+    "null control: value() returns a fresh reading's number",
+    _p8s_fresh.value("indoor_temp_entity", -99.0) == 21.4,
+    f"got {_p8s_fresh.value('indoor_temp_entity', -99.0)!r}",
+)
+
+# _track_curve_comfort folds YESTERDAY's worst margin when a new day starts.
+_p8s_cc = _Coord(_FakeHass(), _FakeEntry(data={**_P8_CFG, "curve_learning_enabled": True}))
+_p8s_cc._learning_frozen = lambda key: None
+_p8s_days = []
+_p8s_cc._curve_learner = _p8s_ns(
+    bias=0.0,
+    record_day=lambda now, worst: _p8s_days.append((now.date().isoformat(), worst)),
+    record_miss=lambda now, margin: None,
+)
+_p8s_cc._current_state.room_temperature = 21.5
+_p8s_cc._track_curve_comfort(datetime(2026, 1, 15, 12, 0, tzinfo=UTC))
+_p8s_first = _p8s_cc._curve_day_worst
+_p8s_cc._track_curve_comfort(datetime(2026, 1, 16, 12, 0, tzinfo=UTC))
+R.check(
+    "a new day folds the previous day's worst margin into the curve learner once",
+    _p8s_first is not None and _p8s_days == [("2026-01-16", _p8s_first)],
+    f"folded {_p8s_days!r}, first day worst {_p8s_first!r}",
+)
+
+
+_P8_CFG_NOW = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
+
+
+# _observe_frequency: the watchdog counts a divergence only while the plan
+# asks for the compressor AND the pump reads in its running range.
+def _p8s_watch(commanded_kw, reported_hz):
+    coord = _Coord(
+        _FakeHass(),
+        _FakeEntry(data={**_P8_CFG, "freq_control_mode": _P8S_CONTROL,
+                         "compressor_freq_entity": "number.freq"}),
+    )
+    seen = []
+    coord._freq_entity_reading = lambda: (reported_hz, 20.0, 120.0, _P8S_NUMBER)
+    coord._commanded_power = lambda: commanded_kw
+    coord._freq_watchdog = _p8s_ns(
+        note_report=lambda reported, active: seen.append(active) or False
+    )
+    coord._observe_frequency(_P8_CFG_NOW)
+    return seen
+
+
+R.check(
+    "an idle plan or a pump below its running range is not watched",
+    _p8s_watch(0.0, 45.0) == [False] and _p8s_watch(2.0, 10.0) == [False],
+    f"idle at 45 Hz -> {_p8s_watch(0.0, 45.0)}, running at 10 Hz -> {_p8s_watch(2.0, 10.0)}",
+)
+R.check(
+    "null control: a running plan with the pump in range is watched",
+    _p8s_watch(2.0, 45.0) == [True],
+    f"got {_p8s_watch(2.0, 45.0)}",
+)
+
 # --- One store capacity, read raw wherever it is read (round 7, D2-03) -----
 #
 # The class D2-01 named and repaired in `thermal_model.py`: a store's capacity
@@ -44517,6 +45119,214 @@ R.check(
     and abs(_r7cool_ratio - 0.75) < 1e-9,
     f"rates {[round(r, 6) for r in _r7cool]}; successive-step ratio "
     f"{_r7cool_ratio!r}, expected 1 - 0.25",
+)
+
+
+# ===========================================================================
+# #1526 (class P6): every domain a written slot accepts has a route
+# ===========================================================================
+R.section("Actuation routing: every accepted domain reaches its consumer (#1526)")
+
+# `assign_entity` accepted input_boolean and climate for the heat-pump switch
+# while `_apply_action` always called `switch.turn_*`, which Home Assistant
+# resolves against `switch.*` entities only: those installs never followed the
+# plan. This census is the class barrier. It reads every slot's accepted
+# domains from both producers (the config and options flows' entity pickers,
+# and `topology.ASSIGNABLE_KEYS`, which `assign_entity` validates against),
+# drives the REAL consumer of every written slot once per accepted domain, and
+# refuses a recorded call the target's domain does not implement. A domain
+# added to an accept-list without a route fails here by construction.
+#
+# Design choices it encodes: `_P6_IMPLEMENTS` is Home Assistant's entity
+# services per domain, and a domain missing from it is refused, not assumed;
+# a slot that also accepts a `sensor` is a reading, since nothing commands a
+# sensor; and a consumer that issues NO call for an accepted domain fails
+# too, because a silent skip does the same harm as a misrouted call.
+import asyncio as _p6_aio  # noqa: E402
+
+from harness import FakeEntry as _P6Entry  # noqa: E402
+from heatpump_optimizer import config_flow as _p6_cf  # noqa: E402
+from heatpump_optimizer import repairs as _p6_repairs  # noqa: E402
+from heatpump_optimizer import topology as _p6_topo  # noqa: E402
+from heatpump_optimizer.disinfection import DisinfectionSwitch as _P6Dis  # noqa: E402
+
+_P6_IMPLEMENTS = {
+    "switch": {"turn_on", "turn_off", "toggle"},
+    "input_boolean": {"turn_on", "turn_off", "toggle"},
+    "climate": {"turn_on", "turn_off", "toggle", "set_temperature", "set_hvac_mode"},
+    "number": {"set_value"},
+    "input_number": {"set_value", "increment", "decrement"},
+}
+#: `homeassistant.<svc>` re-dispatches to `<entity domain>.<svc>`.
+_P6_GENERIC = {"turn_on", "turn_off", "toggle"}
+#: Domains nothing commands.
+_P6_READ_DOMAINS = {"sensor", "binary_sensor", "weather", "person",
+                    "device_tracker", "calendar"}
+#: Slots that accept a commandable domain yet are only read, with the reader.
+_P6_READ_ONLY = {
+    hp_const.CONF_SPACE_SETPOINT_ENTITY: "setpoint_check reads it; the space "
+    "repair is a confirm flow that writes nothing",
+}
+
+
+def _p6_accepts():
+    """{slot: accepted domains}, the union over both producers."""
+    acc: dict[str, set[str]] = {}
+
+    def picked(widget):
+        return [d for f in (getattr(widget, "config", None) or {}).get("filter", [])
+                for d in f.get("domain", [])]
+
+    for key, domains in _p6_topo.ASSIGNABLE_KEYS.items():
+        acc.setdefault(key, set()).update(domains)
+    fields = [(r.key, r.widget) for r in _p6_cf._OPTION_FIELDS]
+    fields += list(_p6_cf._user_sensors_fields(FakeHass()).items())
+    fields += list(_p6_cf._user_credentials_fields().items())
+    for key, widget in fields:
+        if isinstance(widget, _p6_cf.selector.EntitySelector):
+            acc.setdefault(str(getattr(key, "schema", key)), set()).update(
+                picked(widget)
+            )
+    return acc
+
+
+def _p6_coord(states, **cfg):
+    data = {"tibber_token": "x", "weather_entity": "weather.home",
+            "indoor_temp_entity": "sensor.indoor",
+            "outdoor_temp_entity": "sensor.outdoor", **cfg}
+    return Coord(FakeHass(states), _P6Entry(data=data))
+
+
+async def _p6_switch(eid):
+    coord = _p6_coord({}, **{hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY: eid})
+
+    async def _no_publish(**_kw):
+        return None
+
+    coord.async_publish_current_action = _no_publish
+    for on in (True, False):
+        coord._current_action = {"heat_pump_on": on}
+        await coord._apply_action()
+    return coord.hass.services.calls
+
+
+async def _p6_pump(eid):
+    coord = _p6_coord({})
+    await coord._async_set_pump(eid, True, "p6")
+    await coord._async_set_pump(eid, False, "p6")
+    return coord.hass.services.calls
+
+
+async def _p6_disinfect(eid):
+    hass = FakeHass({eid: FakeState("off")})
+    dis = _P6Dis({hp_const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: eid},
+                 hass.services.async_call, lambda _e: "off")
+    await dis._write(eid, "turn_on")
+    return hass.services.calls
+
+
+async def _p6_valve(eid):
+    coord = _p6_coord({}, mixing_valve_mode="smart_write",
+                      **{hp_const.CONF_MIXING_VALVE_WRITE_ENTITY: eid})
+    await coord._command_valve_target()
+    return coord.hass.services.calls
+
+
+async def _p6_freq(eid):
+    coord = _p6_coord(
+        {eid: FakeState("50", attributes={"min": 20, "max": 120})},
+        **{hp_const.CONF_COMPRESSOR_FREQ_ENTITY: eid,
+           hp_const.CONF_FREQ_CONTROL_MODE: "control"},
+    )
+    coord._freq_map.recommend = lambda *_a, **_k: 55.0
+    coord._freq_last_write = None  # construction starts the write interval
+    await coord._command_frequency()
+    return coord.hass.services.calls
+
+
+async def _p6_setpoint(eid):
+    hass = FakeHass({})
+    await _p6_repairs._write_setpoint(hass, eid, 55.0)
+    return hass.services.calls
+
+
+#: Every slot a consumer writes, and that consumer, driven for real.
+_P6_WRITERS = {
+    hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY: _p6_switch,
+    hp_const.CONF_SPACE_PUMP_ENTITY: _p6_pump,
+    hp_const.CONF_VVC_PUMP_ENTITY: _p6_pump,
+    hp_const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: _p6_disinfect,
+    hp_const.CONF_MIXING_VALVE_WRITE_ENTITY: _p6_valve,
+    hp_const.CONF_COMPRESSOR_FREQ_ENTITY: _p6_freq,
+    hp_const.CONF_DHW_SETPOINT_ENTITY: _p6_setpoint,
+}
+
+
+def _p6_routes(eid, calls):
+    """Refusals for one driven entity: unroutable calls, or none at all."""
+    domain = eid.split(".", 1)[0]
+    mine = [(d, s) for d, s, data in calls if (data or {}).get("entity_id") == eid]
+    if domain not in _P6_IMPLEMENTS:
+        return [f"{eid}: no service table for domain {domain!r}"]
+    if not mine:
+        return [f"{eid}: the consumer issued no call"]
+    return [
+        f"{eid}: {d}.{s}" for d, s in mine
+        if not ((d == domain and s in _P6_IMPLEMENTS[domain])
+                or (d == "homeassistant" and s in _P6_GENERIC
+                    and s in _P6_IMPLEMENTS[domain]))
+    ]
+
+
+def _p6_census(accepts):
+    """(unclassified slots, refusals, driven pairs) over one accept map."""
+    unclassified, refusals, driven = [], [], []
+    for key, domains in sorted(accepts.items()):
+        if key in _P6_READ_ONLY or "sensor" in domains:
+            continue
+        if not domains - _P6_READ_DOMAINS:
+            continue
+        driver = _P6_WRITERS.get(key)
+        if driver is None:
+            unclassified.append(key)
+            continue
+        for domain in sorted(domains):
+            eid = f"{domain}.p6_{key}"
+            refusals += _p6_routes(eid, _p6_aio.run(driver(eid)))
+            driven.append(eid)
+    return unclassified, refusals, driven
+
+
+_p6_acc = _p6_accepts()
+_p6_unclassified, _p6_refused, _p6_driven = _p6_census(_p6_acc)
+R.check(
+    "every slot accepting a commandable domain is a driven writer or a named "
+    "reading",
+    not _p6_unclassified and set(_P6_WRITERS) <= set(_p6_acc),
+    f"unclassified {_p6_unclassified}; writers no producer offers "
+    f"{sorted(set(_P6_WRITERS) - set(_p6_acc))}",
+)
+R.check(
+    "every domain a written slot accepts is commanded through a service that "
+    "domain implements (#1526)",
+    not _p6_refused
+    and {e.split(".p6_", 1)[1] for e in _p6_driven} == set(_P6_WRITERS),
+    f"{len(_p6_driven)} (slot, domain) pairs driven; refused {_p6_refused}",
+)
+# The census's own control: over the production map with an unrouted domain
+# added to two writers and one unclassified written slot, it must name all
+# three, so a green run above is not an empty walk.
+_p6_bad = {k: set(v) for k, v in _p6_acc.items()}
+_p6_bad[hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY].add("number")
+_p6_bad[hp_const.CONF_MIXING_VALVE_WRITE_ENTITY].add("switch")
+_p6_bad["p6_new_slot"] = {"switch"}
+_p6_bad_unc, _p6_bad_ref, _ = _p6_census(_p6_bad)
+R.check(
+    "and the census refuses an accepted domain with no route",
+    _p6_bad_unc == ["p6_new_slot"]
+    and any(r.startswith("number.p6_heat_pump_switch_entity") for r in _p6_bad_ref)
+    and any(r.startswith("switch.p6_mixing_valve_write_entity") for r in _p6_bad_ref),
+    f"unclassified {_p6_bad_unc}; refused {_p6_bad_ref}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

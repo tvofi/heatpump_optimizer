@@ -662,6 +662,75 @@ R.check(
     "those are entities, not fields on Away and holiday mode",
 )
 
+# #1535: the Quick start mermaid diagram numbers its screens, and the numbered
+# prose paragraphs below it must agree. Round 1 shifted the four already-
+# numbered screens down by one to match the diagram, but left the diagram's
+# menu node unnumbered -- so the shifted "Temperatures" (moved to 3) collided
+# with the untouched "The finish menu ..." prose heading (already 3), and
+# nothing caught it because the finder's harness (and the first version of
+# this check) only compares a label numbered on BOTH sides, and the menu had
+# no diagram-side number to compare against. Round 2 numbers the diagram's
+# menu node too (3 ·, matching the prose it was already carrying) and shifts
+# the diagram's other four nodes to 4-7 to match, so every one of the 7
+# Quick start concepts is numbered on both sides and every number is unique.
+_qs_section = readme.split("## Quick start", 1)[1].split("\n## ", 1)[0]
+_qs_diagram_re = re.compile(r'[\[{]"(\d+)\s*\xb7\s*([^"<]+?)(?:<br/>|")')
+_qs_prose_re = re.compile(r'^\*\*(\d+)\s*\xb7\s*([^*]+?)\.?\*\*', re.M)
+
+
+def _qs_normalize(label: str) -> str:
+    label = label.strip().rstrip(".?").lower()
+    label = re.sub(r"[^a-z0-9 ]", "", label)
+    return " ".join(label.split()[:3])
+
+
+_qs_diagram: dict[str, int] = {}
+for _m in _qs_diagram_re.finditer(_qs_section):
+    _qs_diagram.setdefault(_qs_normalize(_m.group(2)), int(_m.group(1)))
+_qs_prose: dict[str, int] = {}
+_qs_prose_numbers: list[int] = []
+for _m in _qs_prose_re.finditer(_qs_section):
+    _qs_num = int(_m.group(1))
+    _qs_prose.setdefault(_qs_normalize(_m.group(2)), _qs_num)
+    _qs_prose_numbers.append(_qs_num)
+_qs_mismatches = [
+    (label, dnum, _qs_prose[label])
+    for label, dnum in _qs_diagram.items()
+    if label in _qs_prose and _qs_prose[label] != dnum
+]
+R.check(
+    "the Quick start prose step numbers agree with the diagram's",
+    not _qs_mismatches,
+    repr(_qs_mismatches),
+)
+# The label-normalizing match above is silent if a screen's wording diverges
+# enough between diagram and prose that the two never pair up at all (#1535's
+# own case: the diagram's "How do you want to describe your building" vs the
+# prose's "How to describe your building" share no 3-word prefix). Check that
+# pairing directly rather than assume the fuzzy match above caught everything.
+R.check(
+    "the diagram's 'how do you want to' step pairs with the prose's "
+    "'how to describe' step (#1535 label-wording gap)",
+    _qs_diagram.get("how do you") == _qs_prose.get("how to describe") == 5,
+    f"diagram={_qs_diagram.get('how do you')!r} prose={_qs_prose.get('how to describe')!r}",
+)
+# Round 2's own regression: the number-agreement check above is silent on a
+# label with no diagram-side counterpart to compare against at all (the
+# label-collapsing dicts above also hide a same-number collision between two
+# DIFFERENT labels), which is exactly the shape that let round 1 ship a
+# duplicate "3 ·". Check uniqueness over the raw number list, not the dicts.
+_qs_seen: set[int] = set()
+_qs_dupes: list[int] = []
+for _qs_n in _qs_prose_numbers:
+    if _qs_n in _qs_seen and _qs_n not in _qs_dupes:
+        _qs_dupes.append(_qs_n)
+    _qs_seen.add(_qs_n)
+R.check(
+    "every Quick start prose heading number is used exactly once",
+    not _qs_dupes,
+    f"duplicated number(s) {_qs_dupes!r} in {_qs_prose_numbers!r}",
+)
+
 # #937: the README sends the reader to the reference with "Every field and its
 # range is documented in docs/configuration.md", and round 4 measured 15 of
 # the 200 shipped options fields whose label occurred nowhere in any reader
@@ -7132,6 +7201,17 @@ R.check(
     "English copied into sv.json passes the key check and fails the user",
 )
 
+# #1534: the ECL110 MQTT QoS label was byte-identical English left in sv.json
+# (the key-identity check above passes on an untranslated copy the same way
+# the tibber_token case above does -- this is that same class of gap, named
+# by its own field).
+R.check(
+    "the ECL110 MQTT QoS label is actually translated in Swedish",
+    files["sv"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"]
+    != files["en"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"],
+    "English copied into sv.json passes the key check and fails the user",
+)
+
 # The stored-value warning is rendered on a form the user merely opened, so
 # an untranslated one is especially visible. It has to exist for both flows —
 # the widening applies to initial setup as well — and be a real translation.
@@ -11403,7 +11483,7 @@ _svc_coord.async_apply_manual_plan = _svc_record("apply_manual", {"applied": Tru
 _svc_coord.async_clear_manual_plan = _svc_record("clear_manual")
 _svc_coord.async_restore_learned_snapshot = _svc_record("restore", True)
 _svc_coord.async_set_away = _svc_record("set_away")
-_svc_coord.diagnose_last_interval = lambda: {"residual": None}
+_svc_coord.async_diagnose_interval = _svc_record("diagnose", {"residual": None})
 
 
 def _svc_call(service, payload=None):
@@ -11690,6 +11770,13 @@ _diag = _svc_call(const.SERVICE_DIAGNOSE_INTERVAL)
 R.check(
     "diagnose_interval returns the per-entry report",
     _svc_entry.entry_id in _diag["diagnosis"],
+)
+R.check(
+    "diagnose_interval runs the button's snapshot path, not a thread (#1529)",
+    "diagnose" in _svc_log
+    and _diag["diagnosis"].get(_svc_entry.entry_id) == {"residual": None},
+    f"{_diag}: the service handed a bound coordinator method to the executor, "
+    "which read live parameters and the interval record off the loop",
 )
 
 _svc_registered = set(
@@ -18634,6 +18721,146 @@ def _callee_name(node):
             return node.func.id
     return None
 
+# --- P12 (#1529): no bound coordinator method crosses to a thread ----------
+# A bound coordinator method handed to an executor runs on a worker thread
+# against live coordinator state the event loop keeps writing: the
+# diagnose_interval service handed ``coord.diagnose_last_interval`` to
+# ``async_add_executor_job``, which read the live parameters and the last
+# interval record off the loop while the Diagnose button already went through
+# the snapshot path. Enumerated, not named: every call in the package whose
+# callable argument lands on a thread -- an executor hand-off, or an event
+# helper given a plain synchronous function, which Home Assistant dispatches
+# to its executor -- is resolved to the bound methods it carries (directly,
+# through ``functools.partial``, or called inside a lambda). A method of the
+# coordinator or its context is refused unless the allow-table below keys it
+# with a reason; for an event helper, ``@callback`` or ``async def`` is the
+# reason, because either keeps the call on the loop. The key is the method
+# NAME, which carries no receiver: a same-named method of another object is
+# refused too, and belongs in the table with its reason, never silently.
+_P12_THREAD_ARG = {
+    "async_add_executor_job": 0,
+    "async_add_import_executor_job": 0,
+    "run_in_executor": 1,
+    "to_thread": 0,
+    "submit": 0,
+    "_await_process": 1,
+    "_run_in_process": 0,
+}
+_P12_LOOP_ARG = {
+    "async_track_state_change_event": 2,
+    "async_track_time_interval": 1,
+    "async_track_time_change": 1,
+    "async_track_point_in_time": 1,
+    "async_track_point_in_utc_time": 1,
+    "async_call_later": 2,
+    "async_listen": 1,
+    "async_listen_once": 1,
+}
+_P12_ALLOWED: dict[tuple[str, str], str] = {}
+_P12_METHODS = {
+    _m.name: _m
+    for _c in ast.walk(_PKG_TREES["coordinator.py"])
+    if isinstance(_c, ast.ClassDef)
+    and _c.name in ("HeatPumpOptimizerCoordinator", "CoordinatorContext")
+    for _m in _c.body
+    if isinstance(_m, (ast.FunctionDef, ast.AsyncFunctionDef))
+}
+
+
+def _p12_bound(node, methods):
+    """Coordinator-method names a callable expression carries onto a thread."""
+    if isinstance(node, ast.Attribute):
+        return [node.attr] if node.attr in methods else []
+    if isinstance(node, ast.Call) and _callee_name(node) == "partial" and node.args:
+        return _p12_bound(node.args[0], methods)
+    if isinstance(node, ast.Lambda):
+        return [
+            _n.func.attr
+            for _n in ast.walk(node.body)
+            if isinstance(_n, ast.Call)
+            and isinstance(_n.func, ast.Attribute)
+            and _n.func.attr in methods
+        ]
+    return []
+
+
+def _p12_on_loop(method):
+    return isinstance(method, ast.AsyncFunctionDef) or any(
+        (_d.id if isinstance(_d, ast.Name) else getattr(_d, "attr", None))
+        == "callback"
+        for _d in method.decorator_list
+    )
+
+
+def _p12_handoffs(trees, methods):
+    """Every (file:line, kind, method) where a coordinator method goes to a thread."""
+    found = []
+    for _fname, _tree in trees.items():
+        for _node in ast.walk(_tree):
+            _name = _callee_name(_node)
+            for _kind, _table in (("executor", _P12_THREAD_ARG), ("event", _P12_LOOP_ARG)):
+                _i = _table.get(_name)
+                if _i is None or len(_node.args) <= _i:
+                    continue
+                for _meth in _p12_bound(_node.args[_i], methods):
+                    if _kind == "event" and _p12_on_loop(methods[_meth]):
+                        continue
+                    found.append((f"{_fname}:{_node.lineno}", _kind, _meth))
+    return found
+
+
+_p12_sites = _p12_handoffs(_PKG_TREES, _P12_METHODS)
+_p12_refused = [
+    _s for _s in _p12_sites if (_s[0].split(":")[0], _s[2]) not in _P12_ALLOWED
+]
+R.check(
+    "no bound coordinator method is handed to a thread (P12, #1529)",
+    _p12_refused == [],
+    f"{_p12_refused}: run it through a snapshot on the loop and hand the "
+    "executor a module function over copies (async_diagnose_interval's "
+    "shape), or key it in _P12_ALLOWED with the reason it is safe",
+)
+# The positive control is the pre-fix services.py call site, verbatim, with
+# the method it handed over (deleted by the fix) restored to the set; its
+# partial, lambda and event-helper spellings are refused too. The nulls are a
+# module function on the executor, and an event helper given an @callback
+# method and an async one, which all keep coordinator state on the loop.
+_p12_ctl_methods = dict(
+    _P12_METHODS,
+    diagnose_last_interval=ast.parse("def diagnose_last_interval(self): ...").body[0],
+)
+_p12_ctl = {
+    "services.py": ast.parse(
+        "async def handle_diagnose_interval(hass, call):\n"
+        "    for entry_id, coord in _manual_targets(hass, None):\n"
+        "        reports[entry_id] = await hass.async_add_executor_job(\n"
+        "            coord.diagnose_last_interval\n"
+        "        )\n"
+        "    await hass.async_add_executor_job(partial(coord.diagnose_last_interval))\n"
+        "    await hass.async_add_executor_job(lambda: coord.diagnose_last_interval())\n"
+        "    async_track_state_change_event(hass, [e], coord.diagnose_last_interval)\n"
+    ),
+    "null.py": ast.parse(
+        "async def ok(hass, coord):\n"
+        "    await hass.async_add_executor_job(diagnosis.diagnose_record, a, b)\n"
+        "    async_track_state_change_event(hass, [e], coord._on_power_event)\n"
+        "    async_track_state_change_event(hass, [e], coord.async_diagnose_interval)\n"
+    ),
+}
+_p12_ctl_found = _p12_handoffs(_p12_ctl, _p12_ctl_methods)
+R.check(
+    "the P12 barrier refuses the pre-fix diagnose hand-off and passes its nulls",
+    sorted((_s[0], _s[1]) for _s in _p12_ctl_found)
+    == [
+        ("services.py:3", "executor"),
+        ("services.py:6", "executor"),
+        ("services.py:7", "executor"),
+        ("services.py:8", "event"),
+    ],
+    f"found {_p12_ctl_found}; a barrier that misses its own positive "
+    "control, or refuses a module function, pins nothing",
+)
+
 
 _action_producers, _pending = set(), []
 for _tree in _PKG_TREES.values():
@@ -20023,6 +20250,41 @@ R.check(
     f"call={_PC_VE_CALL}, fetch={_PC_VE_FETCH}, always={bool(_PC_VE_STEP)}; "
     "before this step the check ran only on a seat's machine and a VERSION "
     "bump passed every required context",
+)
+# Decision 0013: verdicts post as the approver App through app_comment.sh,
+# and app_approve.sh accepts only that App's verdicts. Both carry offline
+# self-tests pinning the allowlist, the identity read-back and the grammar;
+# what they cannot see is whether CI still RUNS them. They run in
+# governance.yml's `instrument-self-tests`, the job that drives the pull
+# request's own copies and grades nothing, so no grading job runs pull-request
+# code ahead of its graders. Pinned over that job's non-comment lines, one step
+# each; tools/audit/ is INERT, so this reads the workflow, never the scripts.
+_IST_JOB = "\n".join(
+    _l for _l in _workflow_job(_DS_GOV, "instrument-self-tests").split("\n")
+    if not _l.lstrip().startswith("#"))
+
+
+def _runs_selftest(job: str, script: str) -> bool:
+    return any(
+        f"\n        run: bash tools/audit/{script} --self-test" in "\n" + _blk
+        for _blk in job.split("\n      - name: ")[1:])
+
+
+R.check(
+    "the instrument self-test job runs both App identity self-tests",
+    _runs_selftest(_IST_JOB, "app_approve.sh")
+    and _runs_selftest(_IST_JOB, "app_comment.sh"),
+    "governance.yml's instrument-self-tests must run `bash tools/audit/"
+    "app_approve.sh --self-test` and `bash tools/audit/app_comment.sh "
+    "--self-test` as steps; without them the approver-only verdict allowlist "
+    "and the poster's read-back are unpinned",
+)
+R.check(
+    "and a job with the poster's step removed is not (null control)",
+    not _runs_selftest(
+        _IST_JOB.replace("run: bash tools/audit/app_comment.sh", "run: true", 1),
+        "app_comment.sh"),
+    "the predicate must read the step's run line, not the file name anywhere",
 )
 # `## Friction` AND A DECLARATION THAT IS NOT THE WHOLE SECTION. `isNone` read a
 # section as `none` whenever the token stood at its START -- no end anchor, no
@@ -22990,14 +23252,10 @@ R.check(
 # baseline costs a reviewer round and carries no mutation information: the
 # table evaluated nothing. `mutation` is not a required context and `fast` is.
 #
-# The baseline's driver set is NOT the scoped gate's selection, and the
-# difference is the whole of what a pull request gives up: on a diff that
-# changes no production file, `scope_files` falls back to the closure of the
-# changed TEST scripts, which on this branch's own diff is 63 production files
-# and 19 drivers against the gate's 1 selected script. Re-derive that pair at
-# your merge base rather than carrying it; `baseline_refusal`'s docstring says
-# with what. The NIGHTLY keeps the refusal: nothing else reports that lane's
-# baseline per commit.
+# The baseline's drivers are those whose closure reaches a file the diff wrote
+# code in, a subset of the scoped gate's selection; `baseline_refusal`'s
+# docstring says how to re-derive that. The NIGHTLY keeps the refusal: nothing
+# else reports that lane's baseline per commit.
 #
 # Driven as a function rather than through `main()`, which clones the tree and
 # runs real scripts; the fixtures below carry the shape `run_script` returns.
@@ -23163,6 +23421,721 @@ R.check(
 )
 _mut_shutil.rmtree(_MUT_PROBE_DIR, ignore_errors=True)
 
+# The `mutation` job's schedule (the mutation-timeout root cause). A run with
+# one survivor cost two full sweeps of the driver net back to back -- the
+# baseline serial on one tree, then the survivor's every driver on the one
+# worker that drew it -- and on CI's slower runner class that passed the
+# 90-minute timeout with no verdict. Each check below drives the REAL
+# scheduler with a fake driver that waits on a barrier: it clears only when
+# `workers` runs are in flight AT ONCE, so a serial schedule breaks it rather
+# than passing slowly. The design choice is concurrency, not a figure: the
+# wall-clock model and its numbers are the pull request's.
+import threading as _mut_threading  # noqa: E402
+
+_mut_baselines = getattr(_mut, "drive_baselines", None)
+_mut_pool = getattr(_mut, "drive_pool", None)
+
+
+def _mut_barrier_run(barrier, seen, *key):
+    """A fake driver: records `key`, then waits until `barrier` fills."""
+    seen.append(key)
+    try:
+        barrier.wait(timeout=10)
+        return True
+    except _mut_threading.BrokenBarrierError:
+        return False
+
+
+_MUT_B_SEEN: list = []
+_MUT_B_BAR = _mut_threading.Barrier(3)
+_MUT_B_OUT = (_mut_baselines(
+    ["tests/a.py", "tests/b.py", "tests/c.py"], 3,
+    lambda w, s: _mut.ScriptRun(
+        0 if _mut_barrier_run(_MUT_B_BAR, _MUT_B_SEEN, w, s) else 1, 0, 0.0))
+    if _mut_baselines is not None else {})
+R.check(
+    "the baseline drives its drivers over every worker tree at once",
+    sorted(_MUT_B_OUT) == ["tests/a.py", "tests/b.py", "tests/c.py"]
+    and all(r.rc == 0 for r in _MUT_B_OUT.values())
+    and {w for w, _ in _MUT_B_SEEN} == {0, 1, 2},
+    f"drive_baselines={'absent' if _mut_baselines is None else 'present'}, "
+    f"runs={_MUT_B_SEEN!r} -- three drivers on three trees must be in flight "
+    "together; one tree at a time breaks the barrier",
+)
+_MUT_B_ORDER: list = []
+if _mut_baselines is not None:
+    _mut_baselines(["tests/a.py", "tests/env_drift.py", "tests/stress.py"], 1,
+                   lambda w, s: (_MUT_B_ORDER.append(s),
+                                 _mut.ScriptRun(0, 0, 0.0))[1])
+R.check(
+    "and the ref-driven shared drivers start first, stress.py last and alone",
+    _MUT_B_ORDER == ["tests/env_drift.py", "tests/a.py", "tests/stress.py"],
+    f"order={_MUT_B_ORDER!r} -- a long run started last sets the makespan, "
+    "and the driver that measures the machine waits until it has the runner",
+)
+
+# stress.py measures the machine (tests/stress_budgets.json): beside three
+# other drivers its baseline hit the 1200 s per-driver timeout on #1565's
+# first CI run, where alone it takes 674-960 s. Each fake run below records
+# its wall-clock interval; an EXCLUSIVE driver's interval must meet no other.
+_MUT_X_SPANS: list = []
+_MUT_X_LOCK = _mut_threading.Lock()
+
+
+def _mut_x_span(key):
+    """Run for 50 ms and record (key, start, end)."""
+    t0 = _time.monotonic()
+    _time.sleep(0.05)
+    with _MUT_X_LOCK:
+        _MUT_X_SPANS.append((key, t0, _time.monotonic()))
+
+
+def _mut_x_overlaps():
+    """Every (exclusive, other) pair of recorded runs that shared the clock."""
+    return [(k, o) for k, a0, a1 in _MUT_X_SPANS
+            if k[-1] == "tests/stress.py"
+            for o, b0, b1 in _MUT_X_SPANS
+            if o != k and b0 < a1 and a0 < b1]
+
+
+if _mut_baselines is not None:
+    _mut_baselines(["tests/a.py", "tests/b.py", "tests/c.py",
+                    "tests/stress.py"], 3,
+                   lambda w, s: (_mut_x_span(("base", s)),
+                                 _mut.ScriptRun(0, 0, 0.0))[1])
+_MUT_X_BASE = list(_MUT_X_SPANS)
+R.check(
+    "the stress.py baseline shares the runner with no other driver",
+    getattr(_mut, "EXCLUSIVE", ()) == ("tests/stress.py",)
+    and any(k == ("base", "tests/stress.py") for k, _, _ in _MUT_X_BASE)
+    and not _mut_x_overlaps(),
+    f"overlaps={_mut_x_overlaps()!r} runs={[k for k, _, _ in _MUT_X_BASE]!r}",
+)
+_MUT_X_SPANS.clear()
+_MUT_X_POOL = [{"file": f"x{i}.py", "line": i, "kind": "CONST",
+                "drivers": ["tests/a.py", "tests/b.py", "tests/stress.py"]}
+               for i in range(3)]
+_MUT_X_OUT = (_mut_pool(
+    _MUT_X_POOL, 3, {"tests/a.py": 1, "tests/b.py": 2, "tests/stress.py": 9},
+    lambda w, m, s: (_mut_x_span((m["line"], s)),
+                     m["line"] == 0 and s == "tests/a.py")[1])
+    if _mut_pool is not None else [])
+R.check(
+    "a mutant's stress.py run shares the runner with no other driver, and "
+    "only a mutant no shared driver killed pays for one",
+    [v for _, v in _MUT_X_OUT] == ["killed by tests/a.py", "LIVES", "LIVES"]
+    and sorted(k for k, _, _ in _MUT_X_SPANS if k[1] == "tests/stress.py")
+    == [(1, "tests/stress.py"), (2, "tests/stress.py")]
+    and not _mut_x_overlaps(),
+    f"verdicts={[v for _, v in _MUT_X_OUT]!r} overlaps={_mut_x_overlaps()!r} "
+    f"stress runs={[k for k, _, _ in _MUT_X_SPANS if k[1] == 'tests/stress.py']!r}",
+)
+
+# A survivor is the mutant that cannot stop early: every driver must run.
+# Alone in the pool, its three drivers must run on three workers at once.
+_MUT_P_SEEN: list = []
+_MUT_P_BAR = _mut_threading.Barrier(3)
+_MUT_P_SURV = {"file": "x.py", "line": 1, "kind": "GUARD_OFF",
+               "drivers": ["tests/a.py", "tests/b.py", "tests/c.py"]}
+_MUT_P_OUT = (_mut_pool(
+    [_MUT_P_SURV], 3, {"tests/a.py": 1, "tests/b.py": 2, "tests/c.py": 3},
+    lambda w, m, s: not _mut_barrier_run(_MUT_P_BAR, _MUT_P_SEEN, w, s))
+    if _mut_pool is not None else [])
+R.check(
+    "an idle worker helps drive a survivor's remaining drivers",
+    [v for _, v in _MUT_P_OUT] == ["LIVES"]
+    and {w for w, _ in _MUT_P_SEEN} == {0, 1, 2}
+    and sorted(s for _, s in _MUT_P_SEEN) == _MUT_P_SURV["drivers"],
+    f"drive_pool={'absent' if _mut_pool is None else 'present'}, "
+    f"verdicts={[v for _, v in _MUT_P_OUT]!r}, runs={_MUT_P_SEEN!r} -- one "
+    "worker sweeping a survivor alone is a second full sweep of the net",
+)
+
+# The race that sharing opens: the owner finishes its last driver while a
+# helper is still running the costliest one. The barrier puts both in flight
+# together; the helper's driver then kills after the owner's has returned.
+_MUT_R_BAR = _mut_threading.Barrier(2)
+
+
+def _mut_r_drive(w, m, s):
+    """tests/a.py returns at once, green; tests/b.py kills 0.3 s later."""
+    _mut_barrier_run(_MUT_R_BAR, [], w, s)
+    if s == "tests/a.py":
+        return False
+    _time.sleep(0.3)
+    return True
+
+
+_MUT_R_OUT = (_mut_pool(
+    [dict(_MUT_P_SURV, drivers=["tests/a.py", "tests/b.py"])], 2,
+    {"tests/a.py": 1, "tests/b.py": 2}, _mut_r_drive)
+    if _mut_pool is not None else [])
+R.check(
+    "a mutant is not LIVES while a helper's driver is still running",
+    [v for _, v in _MUT_R_OUT] == ["killed by tests/b.py"],
+    f"verdicts={[v for _, v in _MUT_R_OUT]!r} -- the helper's kill landed "
+    "after the owner ran out of drivers, and it is the verdict",
+)
+
+# The verdicts are the serial sweep's: a mutant is killed iff SOME driver
+# kills it, and LIVES only once every one of its drivers ran -- the null
+# control, since a scheduler that dropped a driver would go green by
+# skipping it. Twelve mutants, four workers, kills scattered over the net.
+_MUT_V_DRIVERS = [f"tests/d{i}.py" for i in range(6)]
+_MUT_V_POOL = [{"file": f"m{i}.py", "line": i, "kind": "CONST",
+                "drivers": _MUT_V_DRIVERS[: 2 + i % 5]} for i in range(12)]
+_MUT_V_KILLS = {(i, s) for i in range(12) for s in _MUT_V_DRIVERS
+                if (i * 7 + int(s[-4])) % 11 == 0}
+_MUT_V_RAN: list = []
+_MUT_V_LOCK = _mut_threading.Lock()
+
+
+def _mut_v_drive(w, m, s):
+    with _MUT_V_LOCK:
+        _MUT_V_RAN.append((m["line"], s))
+    # Longer for a costlier driver, so helpers and owners really overlap.
+    _time.sleep(0.01 * int(s[-4]))
+    return (m["line"], s) in _MUT_V_KILLS
+
+
+_MUT_V_OUT = (_mut_pool(_MUT_V_POOL, 4,
+                        {s: i for i, s in enumerate(_MUT_V_DRIVERS)},
+                        _mut_v_drive)
+              if _mut_pool is not None else [])
+_MUT_V_BAD = [
+    (m["line"], v) for m, v in _MUT_V_OUT
+    if (v == "LIVES") == any((m["line"], s) in _MUT_V_KILLS
+                             for s in m["drivers"])
+    or (v != "LIVES" and (m["line"], v.removeprefix("killed by "))
+        not in _MUT_V_KILLS)
+    or (v == "LIVES" and sorted(s for ln, s in _MUT_V_RAN if ln == m["line"])
+        != sorted(m["drivers"]))
+]
+R.check(
+    "every verdict is the serial sweep's: killed iff a driver kills it, "
+    "LIVES only after every driver ran once",
+    len(_MUT_V_OUT) == len(_MUT_V_POOL) and not _MUT_V_BAD
+    and any(v == "LIVES" for _, v in _MUT_V_OUT)
+    and any(v != "LIVES" for _, v in _MUT_V_OUT),
+    f"{len(_MUT_V_OUT)} verdict(s) of {len(_MUT_V_POOL)}; wrong: "
+    f"{_MUT_V_BAD!r}",
+)
+
+
+# `--scope changed` draws only from lines the diff adds or modifies (tvofi's
+# ruling on #1565: a survivor on a line the pull request never touched blocked
+# #1559, #1560 and #1562). Driven against a real throwaway repository, three
+# branches off one base: a code edit, a comment/whitespace-only edit, and a
+# docs/test-only edit. `drawable` is what main() draws the pool from.
+import subprocess as _mutl_sp  # noqa: E402
+
+_mut_lines = getattr(_mut, "changed_lines", None)
+_mut_draw = getattr(_mut, "drawable", None)
+_MUTL_DIR = Path(_tempfile.mkdtemp(prefix="mutation-lines-"))
+_MUTL_REL = _mut.PKG + "mod.py"
+_MUTL_SRC = (
+    "# a fixture module\n"
+    "LIMIT = 3\n\n\n"
+    "def f(x):\n"
+    "    if x > LIMIT:\n"
+    "        return min(x, 9)\n"
+    "    return x\n\n\n"
+    "def g(y):\n"
+    "    if y < 0:\n"
+    "        raise ValueError(y)\n"
+    "    return y\n"
+)
+
+
+def _mutl_git(*args):
+    return _mutl_sp.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid",
+         "-c", "commit.gpgsign=false", *args],
+        cwd=_MUTL_DIR, capture_output=True, text=True, check=True).stdout
+
+
+def _mutl_branch(name, edits):
+    """A branch off `base` whose one commit writes `edits` {rel: text}."""
+    _mutl_git("checkout", "-q", "-B", name, "base")
+    for rel, text in edits.items():
+        (_MUTL_DIR / rel).parent.mkdir(parents=True, exist_ok=True)
+        (_MUTL_DIR / rel).write_text(text)
+    _mutl_git("add", "-A")
+    _mutl_git("commit", "-q", "--no-verify", "-m", name)
+    return _mut_lines("base", root=_MUTL_DIR) if _mut_lines else None
+
+
+(_MUTL_DIR / _MUTL_REL).parent.mkdir(parents=True)
+(_MUTL_DIR / _MUTL_REL).write_text(_MUTL_SRC)
+_mutl_git("init", "-q")
+_mutl_git("add", "-A")
+_mutl_git("commit", "-q", "--no-verify", "-m", "base")
+_mutl_git("branch", "base")
+_MUTL_CODE = _mutl_branch("code", {
+    _MUTL_REL: _MUTL_SRC.replace("if y < 0:", "if y < -1:")})
+_MUTL_ALL = list(_mut.candidates(_MUTL_DIR / _MUTL_REL))
+_MUTL_DRAWN = (_mut_draw(_MUTL_DIR / _MUTL_REL, _MUTL_REL, _MUTL_CODE)
+               if _mut_draw and _MUTL_CODE is not None else _MUTL_ALL)
+R.check(
+    "a changed-scope pool draws only sites on lines the diff modified",
+    _MUTL_CODE == {_MUTL_REL: {12}}
+    and {m["line"] for m in _MUTL_DRAWN} == {12}
+    and {m["line"] for m in _MUTL_ALL} - {12},
+    f"touched={_MUTL_CODE!r} drawn={sorted({m['line'] for m in _MUTL_DRAWN})} "
+    f"of sites on {sorted({m['line'] for m in _MUTL_ALL})} -- the untouched "
+    "lines' sites are the null control: they exist, and are never drawn",
+)
+_MUTL_COMMENT = _mutl_branch("comment", {_MUTL_REL: _MUTL_SRC.replace(
+    "    if x > LIMIT:\n", "    # the limit is inclusive\n    if x > LIMIT:  # why\n"
+).replace("    return y\n", "    return  y\n")})
+_MUTL_DOCS = _mutl_branch("docs", {"README.md": "docs\n",
+                                   "tests/extra.py": "print(1)\n"})
+R.check(
+    "and a comment-, whitespace-, docs- or test-only diff draws nothing",
+    _MUTL_COMMENT == {} and _MUTL_DOCS == {},
+    f"comment={_MUTL_COMMENT!r} docs={_MUTL_DOCS!r} -- an empty map is an "
+    "empty pool, which main() passes before any clone or baseline",
+)
+_MUTL_FULL = (_mut_draw(_MUTL_DIR / _MUTL_REL, _MUTL_REL, None)
+              if _mut_draw else [])
+R.check(
+    "and --scope full still draws from every site",
+    len(_MUTL_FULL) == len(_MUTL_ALL) > 1,
+    f"{len(_MUTL_FULL)} of {len(_MUTL_ALL)} site(s)",
+)
+# #1561's null control on a line-scoped pool: it is the tool's own comment
+# edit, so it is read off a pool file directly, never through `drawable`
+# (which would filter out every comment line), and an empty pool has none.
+_mut_null_for = getattr(_mut, "null_for", None)
+_MUTL_NULL = _mut_null_for(_MUTL_DRAWN) if _mut_null_for else None
+R.check(
+    "the null control is drawn from a file of the line-scoped pool, on a line "
+    "the diff never touched",
+    _MUTL_NULL is not None and _MUTL_NULL["line"] == 1
+    and _MUTL_NULL["line"] not in {m["line"] for m in _MUTL_DRAWN}
+    and _mut_null_for([]) is None,
+    f"null={_MUTL_NULL and (_MUTL_NULL['file'][-6:], _MUTL_NULL['line'])} "
+    f"from a pool on lines {sorted({m['line'] for m in _MUTL_DRAWN})}",
+)
+_MUT_MAIN = pathlib.Path(_mut.__file__).read_text()
+_MUT_MAIN = _MUT_MAIN[_MUT_MAIN.index("def main("):]
+R.check(
+    "and an empty pool passes before a null control is sought",
+    "PASSED (empty pool)" in _MUT_MAIN and "null = null_for(pool)" in _MUT_MAIN
+    and _MUT_MAIN.index("PASSED (empty pool)")
+    < _MUT_MAIN.index("null = null_for(pool)"),
+    "main() must return on an empty pool before null_for, or a comment-only "
+    "diff would be refused for having no null control",
+)
+# A null control whose edit never reaches its tree is the baseline run again:
+# it "survives" every driver and measures nothing (found in #1565's review, a
+# hole since #1561). Inside `null_edit` the tree differs from the unmutated
+# file on exactly one line -- the null comment -- and after it, on none; and
+# main()'s null runs go through `null_edit`.
+_mut_null_edit = getattr(_mut, "null_edit", None)
+_MUTL_BEFORE = (_MUTL_DIR / _MUTL_REL).read_text().splitlines()
+_MUTL_DIFF: list = ["null_edit absent"]
+if _mut_null_edit is not None and _MUTL_NULL is not None:
+    _MUTL_EDIT = dict(_MUTL_NULL, file=_MUTL_REL)
+    with _mut_null_edit(_MUTL_DIR, _MUTL_EDIT):
+        _MUTL_DURING = (_MUTL_DIR / _MUTL_REL).read_text().splitlines()
+    _MUTL_AFTER = (_MUTL_DIR / _MUTL_REL).read_text().splitlines()
+    _MUTL_DIFF = [(_i + 1, _b, _d) for _i, (_b, _d)
+                  in enumerate(zip(_MUTL_BEFORE, _MUTL_DURING)) if _b != _d]
+    if len(_MUTL_BEFORE) != len(_MUTL_DURING) or _MUTL_AFTER != _MUTL_BEFORE:
+        _MUTL_DIFF.append("line count moved, or the tree was not restored")
+R.check(
+    "the null run's tree differs from the baseline tree on exactly the null "
+    "comment's line, and main() drives it through null_edit",
+    _MUTL_NULL is not None
+    and _MUTL_DIFF == [(_MUTL_NULL["line"], _MUTL_NULL["old"],
+                        _MUTL_NULL["new"])]
+    and "with null_edit(trees[w], null):" in _MUT_MAIN,
+    f"diff={_MUTL_DIFF!r} -- an empty diff is a null control that never ran",
+)
+_mut_shutil.rmtree(_MUTL_DIR, ignore_errors=True)
+
+# The null control's runs are baseline-phase tasks: every driver in play runs
+# under it (none stops at a kill -- drive_baselines judges nothing), on the
+# worker trees rather than as a process beside them, and its stress.py run is
+# alone like the baseline's.
+_MUT_X_SPANS.clear()
+_MUT_N_OUT: dict = {}
+if _mut_baselines is not None:
+    try:
+        _mut_baselines(
+            ["tests/a.py", "tests/b.py", "tests/stress.py"], 3,
+            lambda w, s: (_mut_x_span(("base", s)),
+                          _mut.ScriptRun(0, 0, 0.0))[1],
+            null_run=lambda w, s: (_mut_x_span(("null", s)),
+                                   _mut.ScriptRun(1, 1, 0.0))[1],
+            null_out=_MUT_N_OUT)
+    except TypeError:
+        pass
+R.check(
+    "the null control runs under every driver in the baseline phase, and its "
+    "stress.py run shares the runner with nothing",
+    sorted(_MUT_N_OUT) == ["tests/a.py", "tests/b.py", "tests/stress.py"]
+    and ("null", "tests/stress.py") in [k for k, _, _ in _MUT_X_SPANS]
+    and not _mut_x_overlaps()
+    and len(_MUT_X_SPANS) == 6,
+    f"null runs={sorted(_MUT_N_OUT)} overlaps={_mut_x_overlaps()!r} "
+    f"runs={sorted(k for k, _, _ in _MUT_X_SPANS)}",
+)
+
+
+# --- P8: every float() of an entity's state goes through a unit (#1513) -------
+#
+# The class: a number read off a Home Assistant State with its unit never
+# consulted, so an öre/kWh price reached the plan at 100x and a degF probe was
+# taken as degC. inputs.py holds the normalisers (price, temperature, power,
+# energy), so a read routed through one of them does its float() THERE and is
+# not a site here. The rule: in every package module but inputs.py, a call to
+# float() or _as_float() whose argument derives -- through local names -- from
+# a State's .state or .attributes, a State being hass.states.get(...), an
+# event's new_state/old_state, or a name bound to either. Every site it
+# returns is in the table below, keyed on (module, function, call text) and
+# matched exactly once, with the normaliser the function must also call (or
+# None) and the reason. Blind spot, stated: a value handed to ANOTHER function
+# before its float() -- the price arrays' _raw_value(item) -- is not followed;
+# that seam is closed in price_model and pinned by tests/features.py.
+_P8_ALLOWED = {
+    ("coordinator.py", "_on_power_event", "float(raw_state)"): (
+        "normalize_power_kw", "converted to kW by the entity's unit on the next line"),
+    ("coordinator.py", "_pv_measured_production", "float(state.state)"): (
+        "normalize_power_kw", "converted to kW by the entity's unit on the next line"),
+    ("coordinator.py", "_indoor_humidity_value", "float(state.state)"): (
+        None, "relative humidity is a dimensionless percent: there is no unit to resolve"),
+}
+
+
+def _p8_state_obj(n, objs):
+    if isinstance(n, ast.Name):
+        return n.id in objs
+    if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "get":
+        if isinstance(n.func.value, ast.Attribute) and n.func.value.attr == "states":
+            return True
+        return any(
+            isinstance(a, ast.Constant) and a.value in ("new_state", "old_state")
+            for a in n.args
+        )
+    return False
+
+
+def _p8_source(n, objs, vals):
+    if isinstance(n, ast.Name):
+        return n.id in vals
+    if isinstance(n, ast.Attribute) and n.attr in ("state", "attributes"):
+        return _p8_state_obj(n.value, objs)
+    return (
+        isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Name)
+        and n.func.id == "getattr"
+        and len(n.args) >= 2
+        and isinstance(n.args[1], ast.Constant)
+        and n.args[1].value in ("state", "attributes")
+        and _p8_state_obj(n.args[0], objs)
+    )
+
+
+def _p8_names(t):
+    if isinstance(t, ast.Name):
+        return [t.id]
+    if isinstance(t, (ast.Tuple, ast.List)):
+        return [x for e in t.elts for x in _p8_names(e)]
+    return _p8_names(t.value) if isinstance(t, ast.Starred) else []
+
+
+def _p8_float_sites(trees):
+    sites = []
+    for fname, tree in trees.items():
+        if fname == "inputs.py":
+            continue
+        for fn in ast.walk(tree):
+            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            binds = []
+            for n in ast.walk(fn):
+                if isinstance(n, (ast.Assign, ast.AnnAssign, ast.NamedExpr)) and n.value:
+                    tg = n.targets if isinstance(n, ast.Assign) else [n.target]
+                    binds.append((n.value, [x for t in tg for x in _p8_names(t)]))
+                elif isinstance(n, (ast.For, ast.AsyncFor, ast.comprehension)):
+                    binds.append((n.iter, _p8_names(n.target)))
+            objs = {a.arg for a in fn.args.args if a.arg in ("state", "new_state")}
+            vals = set()
+            for _ in range(4):
+                for value, names in binds:
+                    if _p8_state_obj(value, objs):
+                        objs.update(names)
+                    elif any(_p8_source(s, objs, vals) for s in ast.walk(value)):
+                        vals.update(names)
+            called = {
+                c.func.attr if isinstance(c.func, ast.Attribute) else c.func.id
+                for c in ast.walk(fn)
+                if isinstance(c, ast.Call) and isinstance(c.func, (ast.Attribute, ast.Name))
+            }
+            for n in ast.walk(fn):
+                if (
+                    isinstance(n, ast.Call)
+                    and isinstance(n.func, ast.Name)
+                    and n.func.id in ("float", "_as_float")
+                    and n.args
+                    and any(_p8_source(s, objs, vals) for s in ast.walk(n.args[0]))
+                ):
+                    sites.append(((fname, fn.name, ast.unparse(n)), called))
+    return sites
+
+
+def _p8_refusals(sites):
+    keys = [k for k, _ in sites]
+    bad = [f"{k} is not dispositioned" for k in keys if k not in _P8_ALLOWED]
+    bad += [f"{k} matches {keys.count(k)} sites" for k in set(keys) if keys.count(k) > 1]
+    bad += [f"{k} is dispositioned but no longer a site" for k in _P8_ALLOWED if k not in keys]
+    bad += [
+        f"{k} claims {_P8_ALLOWED[k][0]} but its function never calls it"
+        for k, called in sites
+        if k in _P8_ALLOWED and _P8_ALLOWED[k][0] and _P8_ALLOWED[k][0] not in called
+    ]
+    return sorted(set(bad))
+
+
+_p8_sites = _p8_float_sites(_PKG_TREES)
+for _p8_key, _ in _p8_sites:
+    print(f"  .. P8 site {_p8_key}: {_P8_ALLOWED.get(_p8_key, ('UNDISPOSITIONED',))[0]}")
+R.check(
+    "every float() of an entity's state outside inputs.py is normalised or dispositioned (#1513)",
+    _p8_sites and _p8_refusals(_p8_sites) == [],
+    f"{len(_p8_sites)} site(s); " + "; ".join(_p8_refusals(_p8_sites)),
+)
+_p8_probe = ast.parse(
+    "def _export(self):\n"
+    "    state = self.hass.states.get('sensor.x')\n"
+    "    raw = getattr(state, 'state', None)\n"
+    "    return float(raw)\n"
+    "def _humid(hass):\n"
+    "    return float(hass.states.get('sensor.h').state)\n"
+)
+R.check(
+    "null control: a bare read, direct or through a local, is refused",
+    len(_p8_refusals(_p8_sites + _p8_float_sites({"probe.py": _p8_probe}))) == 2,
+    f"{_p8_refusals(_p8_float_sites({'probe.py': _p8_probe}))}",
+)
+
+
+# #1536: a comment abbreviated a real identifier to a shorthand that occurs
+# nowhere in code (const.py's bare ``MIN_POWER``, optimizer.py's bare
+# ``min_power``) -- checked against the real, importable production symbols
+# so a rename of either symbol re-breaks this rather than a hand-typed
+# string silently going stale.
+_const_src = (ROOT / "const.py").read_text()
+_optimizer_src = (ROOT / "optimizer.py").read_text()
+R.check(
+    "const.py's power-entity comment names the real CONF_HEAT_PUMP_MIN_POWER, "
+    "not a bare MIN_POWER shorthand",
+    const.CONF_HEAT_PUMP_MIN_POWER == "heat_pump_min_power"
+    and "CONF_HEAT_PUMP_MIN_POWER" in _const_src
+    and not re.search(r"[^A-Za-z_]MIN_POWER[^A-Za-z_]", _const_src),
+    "a bare MIN_POWER in a comment names no real symbol",
+)
+R.check(
+    "optimizer.py names the real min_electrical_power attribute at all "
+    "(the symbol the comment should point readers at)",
+    "min_electrical_power" in _optimizer_src
+    and hasattr(optimizer_mod, "HeatPumpOptimizer"),
+    "the real attribute the comment should name",
+)
+R.check(
+    "and optimizer.py's baseline comment itself uses the real name",
+    "min_electrical_power * 24 h per day" in _optimizer_src
+    and not re.search(r"[^A-Za-z_.]min_power[^A-Za-z_]", _optimizer_src),
+    "a bare min_power in a comment names no real symbol",
+)
+
+
+# --- every CI install is hash-pinned (#1548, R8-D11-s2-03) -----------------
+# Every `uses:` ref is SHA-pinned (#960), but the installs those jobs ran were
+# pinned by version only: an index that served different bytes under the same
+# version was installed without complaint. The barrier is keyed on the
+# PROPERTY -- a dependency-install command in a `run:` step of ANY workflow --
+# not on the twelve commands the finder counted, so a new job, a new workflow
+# or a reworded install is read the same way.
+#
+# What passes, and the design choice in it, said out loud (fixer.md step 11):
+#   pip   `pip install` (bare, `python -m pip` or `uv pip`) with
+#         `--require-hashes`, `--build-constraint FILE` and one or more
+#         `-r FILE`, no positional package spec, and every FILE a committed
+#         path whose every requirement is `name==version` with a sha256.
+#         `--build-constraint` is required even of a lock with no sdist in it:
+#         `--require-hashes` does not reach the isolated environment that
+#         builds an sdist, so an sdist added to a lock later would otherwise
+#         fetch its build requirements unhashed with nothing here noticing.
+#         A file generated at run time (`$RUNNER_TEMP/...`) is refused: it is
+#         the shape the typing lane had, and no reviewer ever sees its hashes.
+#         An unknown pip flag is refused rather than guessed about.
+#   npm   `npm ci` only, over a committed package-lock.json whose every
+#         package carries an `integrity`; `npm install`/`i`/`add`/`exec`,
+#         `npx` and the other runners that fetch by name are refused.
+# NOT covered, deliberately: `apt-get install` (the distribution's signed
+# archive, which OpenSSF Scorecard's Pinned-Dependencies does not count), the
+# toolchains `setup-python`/`setup-node` fetch (their actions are SHA-pinned),
+# the Chromium build `playwright install` downloads (fixed by the now
+# hash-locked playwright-core, not hash-checked by it), and the container
+# image `tests/nightly_ha.py` runs by tag.
+import shlex as _pin_shlex  # noqa: E402
+
+_PIN_PIP = re.compile(r"\bpip3?\s+install\b")
+_PIN_FETCHERS = re.compile(
+    r"\bnpm\s+(?:install|i|add|exec|x|update|up)\b|\bnpx\b|\byarn\b|\bpnpm\b"
+    r"|\bbunx?\b|\bpipx\b|\buvx\b|\buv\s+tool\b|\bgo\s+install\b"
+    r"|\bgem\s+install\b|\bcargo\s+install\b"
+)
+_PIN_REQ = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*(\[[^\]]*\])?==[^\s;\\]+")
+_PIN_HASH = re.compile(r"--hash=sha256:[0-9a-f]{64}\b")
+
+
+def _pin_lock_problem(label: str, text: str) -> "str | None":
+    """Why a requirements file's text is not fully hash-pinned, or None."""
+    logical = re.sub(r"\\\n", " ", text)
+    reqs = [ln.strip() for ln in logical.splitlines()
+            if ln.strip() and not ln.lstrip().startswith("#")]
+    bad = [ln[:40] for ln in reqs
+           if not (_PIN_REQ.match(ln) and _PIN_HASH.search(ln))]
+    if not reqs or bad:
+        return f"{label}: unhashed or unpinned requirement(s) {bad[:3] or 'none at all'}"
+    return None
+
+
+def _pin_unhashed_lock(path: str) -> "str | None":
+    """Why the requirements file a workflow names is not a committed, hashed lock."""
+    if "$" in path or path.startswith("/") or not (_closure.ROOT / path).is_file():
+        return f"{path} is not a committed file"
+    return _pin_lock_problem(path, (_closure.ROOT / path).read_text())
+
+
+def _pin_pip_refusal(cmd: str) -> "str | None":
+    """Why one `pip install` command is not hash-pinned, or None."""
+    try:
+        toks = _pin_shlex.split(cmd[_PIN_PIP.search(cmd).end():])
+    except ValueError as exc:
+        return f"unparseable: {exc}"
+    flags, files, i = set(), [], 0
+    while i < len(toks):
+        tok = toks[i]
+        if tok in ("-r", "--requirement", "--build-constraint") and i + 1 < len(toks):
+            flags.add("-r" if tok != "--build-constraint" else tok)
+            files.append(toks[i + 1])
+            i += 2
+            continue
+        if tok in ("--require-hashes", "-q", "--quiet"):
+            flags.add(tok)
+        else:
+            return f"argument {tok!r} is a package spec or an unvetted flag"
+        i += 1
+    missing = {"--require-hashes", "--build-constraint", "-r"} - flags
+    if missing:
+        return f"missing {sorted(missing)}"
+    for f in files:
+        why = _pin_unhashed_lock(f)
+        if why:
+            return why
+    return None
+
+
+def _pin_unhashed_installs(label: str, text: str) -> "tuple[list[str], int]":
+    """(refusals, installs inspected) over one workflow's `run:` steps."""
+    doc = _yaml.safe_load(text) or {}
+    refusals, seen = [], 0
+    for job_name, job in (doc.get("jobs") or {}).items():
+        for step in (job or {}).get("steps") or []:
+            run = (step or {}).get("run") or ""
+            run = "\n".join(ln for ln in run.splitlines()
+                            if not ln.lstrip().startswith("#"))
+            run = re.sub(r"\\\n\s*", " ", run)
+            for seg in re.split(r"&&|\|\||[;|\n]", run):
+                seg = seg.strip()
+                where = f"{label}:{job_name}: {seg[:70]}"
+                if _PIN_FETCHERS.search(seg):
+                    seen += 1
+                    refusals.append(f"{where} -- fetches by name, not by lock")
+                elif _PIN_PIP.search(seg):
+                    seen += 1
+                    why = _pin_pip_refusal(seg)
+                    if why:
+                        refusals.append(f"{where} -- {why}")
+                elif re.search(r"\bnpm\s+ci\b", seg):
+                    seen += 1
+    return refusals, seen
+
+
+def _pin_lock_without_integrity(path: Path) -> "list[str]":
+    pkgs = json.loads(path.read_text()).get("packages") or {}
+    return [k for k, v in pkgs.items()
+            if k and not str(v.get("integrity", "")).startswith("sha512-")]
+
+
+_PIN_REFUSED, _PIN_SEEN = [], 0
+for _pin_wf in sorted((_closure.ROOT / ".github" / "workflows").glob("*.y*ml")):
+    _r, _n = _pin_unhashed_installs(_pin_wf.name, _pin_wf.read_text())
+    _PIN_REFUSED += _r
+    _PIN_SEEN += _n
+_PIN_NPM_LOCKS = [
+    f for f in _subprocess.run(
+        ["git", "ls-files", "*package-lock.json"], cwd=_closure.ROOT,
+        capture_output=True, text=True,
+    ).stdout.split()
+]
+for _pin_lock in _PIN_NPM_LOCKS:
+    _missing = _pin_lock_without_integrity(_closure.ROOT / _pin_lock)
+    if _missing:
+        _PIN_REFUSED.append(f"{_pin_lock}: no sha512 integrity for {_missing[:3]}")
+R.check(
+    "every dependency install in every workflow is hash-pinned (#1548)",
+    not _PIN_REFUSED and _PIN_SEEN > 0 and _PIN_NPM_LOCKS,
+    f"{len(_PIN_REFUSED)} refused of {_PIN_SEEN} install command(s), "
+    f"{len(_PIN_NPM_LOCKS)} npm lock(s): {_PIN_REFUSED[:4]}. Install from a "
+    "committed hashed lock (`uv pip compile --generate-hashes`; the header of "
+    "tests/requirements-ci.txt has the command) or `npm ci`",
+)
+
+# The barrier's own arms, driven through the same functions over synthetic
+# workflows, so a reader that stopped seeing installs cannot pass the check
+# above by finding nothing: each red arm must refuse and the green arm must not.
+_PIN_OK = ("pip install --require-hashes --build-constraint "
+           "tests/requirements-build.txt -r tests/requirements-ci.txt")
+_PIN_ARMS = {
+    "the finder's version-pinned install": ("pip install -r tests/requirements-ci.txt", 1),
+    "a bare package spec beside the flags": (_PIN_OK + " 'coverage==7.13.1'", 1),
+    "a lock generated at run time": (
+        _PIN_OK.replace("tests/requirements-ci.txt", '"$RUNNER_TEMP/typing-requirements.txt"'), 1),
+    "an install with no build constraint": (
+        "python -m pip install --require-hashes -r tests/requirements-ci.txt", 1),
+    "a continued npm install and npx": (
+        'npm install --prefix "$RUNNER_TEMP/pw" playwright@1.49.0\n'
+        "PW=1 \\\n  npx --yes playwright@1.49.0 install chromium", 2),
+    "the hashed installs this workflow uses": (_PIN_OK + "\nnpm ci --prefix x", 0),
+    "an install named only in a comment": ("# pip install -r x\necho ok", 0),
+}
+for _arm, (_run, _want) in _PIN_ARMS.items():
+    _wf = _yaml.safe_dump({"jobs": {"j": {"steps": [{"run": _run}]}}})
+    _r, _ = _pin_unhashed_installs("arm", _wf)
+    R.check(
+        f"hash-pin barrier arm: {_arm} -> {_want} refusal(s)",
+        len(_r) == _want,
+        f"got {len(_r)}: {_r}",
+    )
+# ... and a lock that loses its hashes on one requirement is refused, read
+# through the same reader the workflows' `-r` files are read through.
+_PIN_COV = _closure.ROOT / "tests" / "requirements-ci.txt"
+_PIN_STRIPPED = re.sub(r"(==\S+) \\\n(?:\s+--hash=\S+ \\\n)*\s+--hash=\S+", r"\1",
+                       _PIN_COV.read_text(), count=1)
+R.check(
+    "hash-pin barrier arm: a lock with one requirement stripped of its hashes is refused",
+    _PIN_STRIPPED != _PIN_COV.read_text()
+    and _pin_lock_problem("stripped", _PIN_STRIPPED) is not None
+    and _pin_unhashed_lock("tests/requirements-ci.txt") is None,
+    f"stripped={_pin_lock_problem('stripped', _PIN_STRIPPED)!r} "
+    f"committed={_pin_unhashed_lock('tests/requirements-ci.txt')!r}",
+)
 
 # --- the replay lane's cheap half, on every pull request (round 8, move 2) ---
 #
