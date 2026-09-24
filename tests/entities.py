@@ -2141,6 +2141,19 @@ R.check(
     sensor.SpaceHeatingPlanSensor(no_plan_coord, ENTRY).extra_state_attributes.get("currency")
     == no_plan_coord.currency,
 )
+# Its state separates "no solve yet" from "a plan with nothing in it"; the
+# empty plan is the null arm that keeps the first from passing by accident.
+_plan_states = (
+    sensor.SpaceHeatingPlanSensor(no_plan_coord, ENTRY).native_value,
+    sensor.SpaceHeatingPlanSensor(
+        FakeCoordinator({**DATA, "space_plan": {"slots": []}}), ENTRY
+    ).native_value,
+)
+R.check(
+    "a plan sensor reads 'no plan' before a plan exists, 'no heating planned' for an empty one",
+    _plan_states == ("no plan", "no heating planned"),
+    repr(_plan_states),
+)
 
 # The schedule editor edits the CONFIGURED hot-water windows, which are not
 # what `dhw_windows` carries (the plan's reading: learned windows when none
@@ -5783,6 +5796,33 @@ R.check(
     f"house={_series_bare_data.get('house_power_series')!r} "
     f"pump={_series_bare_data.get('heat_pump_power_series')!r}",
 )
+# #1499's class, "space power read as the whole machine": with no meter at
+# all the realised peak folds the plan's own draw, and a DHW-only step asks
+# the pump for its whole hot-water charge while the space allocation is 0.
+# The space-only step is the null arm: it folds 4.8 before and after.
+def _peak_fold(action):
+    coord = _NpCoord(
+        FakeHass(),
+        FakeEntry(data={"peak_tariff_enabled": True, "peak_tariff_price_per_kw": 90.0}),
+    )
+    coord._measured_power = None
+    coord._measured_house_power = None
+    coord._current_action = action
+    coord._track_realised_peak()
+    return coord._peak_tracker.window_snapshot(
+        dt_util.now(), coord._capacity_tariff()
+    )[1]
+
+
+_peak_folds = (
+    _peak_fold({"power": 0.0, "dhw_power": 4.8, "heat_pump_on": True}),
+    _peak_fold({"power": 4.8, "dhw_power": 0.0, "heat_pump_on": True}),
+)
+R.check(
+    "with no meter the realised peak folds the step's whole ask, DHW included (#1499)",
+    _peak_folds == (4.8, 4.8),
+    repr(_peak_folds),
+)
 _series_gap_sensor = sensor.SensorGapAdvisorSensor(_series_coord, ENTRY)
 _series_gaps = {
     row["key"]: row
@@ -7727,6 +7767,102 @@ R.check(
     "hvac_action reports IDLE while auto but the compressor is not running",
     _hvac_idle.hvac_action == climate_mod.HVACAction.IDLE,
     str(_hvac_idle.hvac_action),
+)
+# #1499: a space step at minimum modulation sits below the band's first rung
+# (power_normalized 0.0), and a DHW-only step below zero; both run the pump.
+_hvac_low = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(
+        {**DATA, "mode": const.MODE_AUTO,
+         "current_action": {"power": 1.0, "power_normalized": 0.0,
+                            "heat_pump_on": True}}
+    ),
+    clim._entry,
+)
+R.check(
+    "hvac_action reports HEATING for a space step at minimum modulation",
+    _hvac_low.hvac_action == climate_mod.HVACAction.HEATING,
+    str(_hvac_low.hvac_action),
+)
+_hvac_dhw = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(
+        {**DATA, "mode": const.MODE_AUTO,
+         "current_action": {"power": 0.0, "power_normalized": -0.25,
+                            "mode": "hot_water", "heat_pump_on": True}}
+    ),
+    clim._entry,
+)
+R.check(
+    "hvac_action reports HEATING while only the DHW tank is heating",
+    _hvac_dhw.hvac_action == climate_mod.HVACAction.HEATING,
+    str(_hvac_dhw.hvac_action),
+)
+# The system identification's override spreads the plan's action and
+# rewrites power, power_normalized, heat_pump_on and mode; a key it does not
+# rewrite rides over from the plan, so hvac_action may read only keys the
+# override rewrites. Its off phase over a running plan step reads IDLE.
+_hvac_sysid = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(
+        {**DATA, "mode": const.MODE_AUTO,
+         "current_action": {"power": 0.0, "power_normalized": 0.0,
+                            "heat_pump_on": False,
+                            "mode": "system_identification",
+                            "dhw_heating_active": True}}
+    ),
+    clim._entry,
+)
+R.check(
+    "hvac_action reports IDLE in a system-identification off phase over an eco step",
+    _hvac_sysid.hvac_action == climate_mod.HVACAction.IDLE,
+    str(_hvac_sysid.hvac_action),
+)
+# Heat Pump Action's power_kw is what the card's actioned series draws
+# against the plan's space and DHW slots together, so it is the pump's whole
+# commanded draw: a DHW-only step is not 0 kW (#1499).
+def _action_power_kw(action):
+    return sensor.HeatPumpActionSensor(
+        FakeCoordinator({**DATA, "current_action": action}), clim._entry
+    ).extra_state_attributes.get("power_kw")
+
+
+_pkw = [
+    _action_power_kw({"power": 0.0, "dhw_power": 4.8, "mode": "hot_water"}),
+    _action_power_kw({"power": 2.0, "dhw_power": 0.5, "mode": "normal"}),
+    _action_power_kw({"power": 2.0, "mode": "normal"}),
+    _action_power_kw({"mode": "idle"}),
+]
+R.check(
+    "Heat Pump Action power_kw is space plus DHW, and None with no power (#1499)",
+    _pkw == [4.8, 2.5, 2.0, None],
+    repr(_pkw),
+)
+# The same step's whole ask on the three other entities that publish it:
+# Recommended Power (README: "the electrical power the current plan step asks
+# for"), the climate's recommended_power_kw, and the recommended_power Measured
+# Power carries beside the pump's whole measured draw (#1499 review). The
+# space-only step is the null arm: it reads the same before and after.
+def _recommended_kw(action):
+    coord = FakeCoordinator(
+        {**DATA, "current_action": action, "measured_power_available": True}
+    )
+    return (
+        sensor.CurrentPowerSensor(coord, clim._entry).native_value,
+        climate_mod.HeatPumpOptimizerClimate(coord, clim._entry)
+        .extra_state_attributes.get("recommended_power_kw"),
+        sensor.MeasuredPowerSensor(coord, clim._entry)
+        .extra_state_attributes.get("recommended_power"),
+    )
+
+
+_rkw = [
+    _recommended_kw({"power": 0.0, "dhw_power": 4.8, "mode": "hot_water"}),
+    _recommended_kw({"power": 1.07, "mode": "eco"}),
+    _recommended_kw({"mode": "idle"}),
+]
+R.check(
+    "Recommended Power, climate recommended_power_kw and Measured Power's "
+    "recommended_power are the step's whole ask, space plus DHW (#1499)",
+    _rkw == [(4.8, 4.8, 4.8), (1.07, 1.07, 1.07), (None, None, None)],
+    repr(_rkw),
 )
 _hvac_off = climate_mod.HeatPumpOptimizerClimate(
     FakeCoordinator(
@@ -22785,5 +22921,28 @@ R.check(
     and not re.search(r"[^A-Za-z_.]min_power[^A-Za-z_]", _optimizer_src),
     "a bare min_power in a comment names no real symbol",
 )
+
+# --- the replay lane's cheap half, on every pull request (round 8, move 2) ---
+#
+# `tests/replay.py` replays recorded days nightly. What it would take a night to
+# notice -- an invariant that can no longer fire, a committed fixture carrying a
+# token or an exact coordinate, a synthetic fixture its generator no longer
+# writes, the step gone from the nightly job -- costs seconds, so it is judged
+# here, the #533 lesson `nightly_ha.py`'s pins above already apply.
+R.section("The replay lane: controls, sanitiser, fixture, wiring")
+import replay as _replay  # noqa: E402
+
+for _rp_name, _rp_ok, _rp_detail in (
+    _replay.controls()
+    + _replay.sanitiser_checks(sorted(_replay.FIXTURES.glob("*.json")))
+    + [_replay.synthetic_reproduces()]
+):
+    R.check(f"replay {_rp_name}", _rp_ok, _rp_detail)
+R.check(
+    "the nightly slow job runs the replay lane as its own step",
+    "run: python3 tests/replay.py" in _workflow_job(_tests_workflow, "slow"),
+    "tests.yml's `slow` job has no `python3 tests/replay.py` step",
+)
+
 
 sys.exit(R.close("ENTITY CHECKS"))

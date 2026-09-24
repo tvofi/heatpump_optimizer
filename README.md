@@ -458,7 +458,7 @@ every sensor is created on every install regardless of which group it is in.
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
 | Optimization Mode | — | Current mode: auto, comfort, economy, boost or off | |
-| Heat Pump Action | — | What the plan is doing now: `off`, `eco`, `normal`, `pre_heat` or `boost`, and `comfort` while comfort mode holds | |
+| Heat Pump Action | — | What the plan is doing now: `off` (neither circuit runs), `hot_water` (only the tank heats), `eco`, `normal`, `pre_heat` or `boost`, and `comfort` while comfort mode holds | |
 | Optimal Setpoint | °C | The setpoint the current plan step asks for | |
 | Recommended Power | kW | The electrical power the current plan step asks for | |
 | Cost Electricity Price (now) | CUR/kWh | The price the plan is being made against right now | |
