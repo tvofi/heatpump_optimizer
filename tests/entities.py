@@ -22640,6 +22640,13 @@ def decide(a, b, flag):
     return 0
 """
 _MUT_DIR = Path(_tempfile.mkdtemp(prefix="mutation-operators-"))
+
+
+def _mut_write(path: Path, text: str) -> Path:
+    path.write_text(text)
+    return path
+
+
 _MUT_FILE = _MUT_DIR / "sample.py"
 _MUT_FILE.write_text(_MUT_SRC)
 _MUT_GOT = list(_mut.candidates(_MUT_FILE))
@@ -22854,6 +22861,115 @@ R.check(
     f"retired keys, reports the stale one) -> {_MUT_FORM}",
 )
 
+# The ordinal inside an anchor, driven: two identical guards in one def get
+# distinct anchors (the second carries #2), the same text in ANOTHER def starts
+# its own count, and an identical line added to that other def leaves the
+# first def's anchors exactly as they were.
+_MUT_ORD_SRC = (
+    "def f(a):\n    if a:\n        a = 1\n    if a:\n        a = 2\n"
+    "    return a\n\n\ndef g(a):\n    if a:\n        a = 3\n    return a\n")
+try:
+    _MUT_ORD_GOT = [dict(_m, file=_mut.PKG + "ord.py") for _m in _mut.candidates(
+        _mut_write(_MUT_DIR / "ord.py", _MUT_ORD_SRC))]
+    _MUT_ORD = {(_m["line"], _m["kind"]): _m["anchor"] for _m in
+                _mut.anchor_sites(_MUT_ORD_SRC, _MUT_ORD_GOT)}
+    _MUT_ORD_SRC2 = _MUT_ORD_SRC.replace(
+        "        a = 3\n", "        a = 3\n    if a:\n        a = 4\n")
+    _MUT_ORD2 = {(_m["line"], _m["kind"]): _m["anchor"] for _m in
+                 _mut.anchor_sites(_MUT_ORD_SRC2, [
+                     dict(_m, file=_mut.PKG + "ord.py") for _m in _mut.candidates(
+                         _mut_write(_MUT_DIR / "ord.py", _MUT_ORD_SRC2))])}
+    _MUT_ORD_F = [_MUT_ORD[(2, "GUARD_OFF")], _MUT_ORD[(4, "GUARD_OFF")]]
+    _MUT_ORD_OK = (
+        len(set(_MUT_ORD.values())) == len(_MUT_ORD)
+        and not _MUT_ORD_F[0].endswith("#2")
+        and _MUT_ORD_F[1] == _MUT_ORD_F[0] + "#2"
+        and ":g GUARD_OFF " in _MUT_ORD[(10, "GUARD_OFF")]
+        and "#" not in _MUT_ORD[(10, "GUARD_OFF")]
+        and _MUT_ORD2[(12, "GUARD_OFF")] == _MUT_ORD[(10, "GUARD_OFF")] + "#2"
+        and [_MUT_ORD2[(2, "GUARD_OFF")], _MUT_ORD2[(4, "GUARD_OFF")]]
+        == _MUT_ORD_F)
+    _mut_ord_detail = f"f -> {_MUT_ORD_F}; g -> {_MUT_ORD[(10, 'GUARD_OFF')]}"
+except Exception as _mut_o_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _MUT_ORD_OK, _mut_ord_detail = False, f"{type(_mut_o_exc).__name__}: {_mut_o_exc}"
+R.check(
+    "an anchor's ordinal counts identical lines within one def, and only there",
+    _MUT_ORD_OK,
+    _mut_ord_detail + " -- the second identical guard in f is #2, g's counts "
+    "from its own first, and a line added to g moves none of f's anchors",
+)
+
+# base_unpinned and ratchet_base, driven in a throwaway repository whose true
+# base count is known by construction. Commit A holds a.py (defs f and g),
+# b.py (def h) and gone.py (def k), each def one guard and one removable
+# return: 8 sites. Its ledger, in the RETIRED line-keyed form, disposes
+# a.py's `if x:`, so 7 are unpinned at A. Commit B changes only a README, so
+# A and B carry the same 7. The working tree then adds guards z and q to f
+# ABOVE x (every a.py line shifts), deletes gone.py and keeps b.py: 8 sites
+# here, so no count this tree produces equals the base's by accident. Each arm pins a different path: a changed file is
+# re-enumerated at the base (the shift), an unchanged one is reused (b.py),
+# a deleted one is still counted (gone.py), the retired key is normalized
+# (x stays disposed), and an unreadable ref is None, never a count.
+def _mut_git(root: Path, *args: str) -> str:
+    return _subprocess.run(["git", "-c", "user.name=t", "-c",
+                            "user.email=t@example.invalid", *args], cwd=root,
+                           capture_output=True, text=True, check=True).stdout.strip()
+
+
+_MUT_B_SAVED = (_mut.ROOT, _mut.PRODUCTION, _mut.BUDGETS,
+                _os.environ.pop("GOLDEN_REF", None))
+try:
+    _mb_root = Path(_tempfile.mkdtemp(prefix="mutation-base-"))
+    _mb_pkg = _mb_root / _mut.PKG
+    _mb_pkg.mkdir(parents=True)
+    (_mb_root / "tests").mkdir()
+    _MB_A = "def f(x):\n    if x:\n        x = 1\n    return x\n\n\ndef g(y):\n    if y:\n        y = 2\n    return y\n"
+    (_mb_pkg / "a.py").write_text(_MB_A)
+    (_mb_pkg / "b.py").write_text("def h(w):\n    if w:\n        w = 3\n    return w\n")
+    (_mb_pkg / "gone.py").write_text("def k(v):\n    if v:\n        v = 4\n    return v\n")
+    (_mb_root / "tests/mutation_budgets.json").write_text(json.dumps({
+        "unpinned_sites": 3, "survivor_triage": {}, "killed_by": {
+            _mut.PKG + "a.py:2 GUARD_OFF": {"killed_by": "tests/x.py",
+                                            "old": "    if x:"}}}))
+    _mut_git(_mb_root, "init", "-q")
+    _mut_git(_mb_root, "add", "-A")
+    _mut_git(_mb_root, "commit", "-qm", "A")
+    _MB_SHA_A = _mut_git(_mb_root, "rev-parse", "HEAD")
+    (_mb_root / "README").write_text("b\n")
+    _mut_git(_mb_root, "add", "-A")
+    _mut_git(_mb_root, "commit", "-qm", "B")
+    _MB_SHA_B = _mut_git(_mb_root, "rev-parse", "HEAD")
+    _mut.ROOT, _mut.PRODUCTION = _mb_root, _mb_pkg
+    _mut.BUDGETS = _mb_root / "tests/mutation_budgets.json"
+    (_mb_pkg / "a.py").write_text(_MB_A.replace(
+        "def f(x):\n",
+        "def f(x):\n    if z:\n        x = 0\n    if q:\n        x = 5\n"))
+    (_mb_pkg / "gone.py").unlink()
+    _mb_sites = _mut.inventory()
+    _MUT_BASE = (
+        _mut.base_unpinned("HEAD", _mb_sites),
+        _mut.base_unpinned(_MB_SHA_A, _mb_sites),
+        _mut.base_unpinned("no-such-ref", _mb_sites),
+        _mut.base_unpinned(None, _mb_sites),
+        _mut._rev(_mb_root, _mut.ratchet_base("changed", "HEAD")) == _MB_SHA_A,
+        _mut._rev(_mb_root, _mut.ratchet_base("changed", _MB_SHA_A)) == _MB_SHA_A,
+        _mut._rev(_mb_root, _mut.ratchet_base("full", "HEAD")) == _MB_SHA_A,
+        len(_mb_sites))
+except Exception as _mut_b_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _MUT_BASE = (f"{type(_mut_b_exc).__name__}: {_mut_b_exc}",)
+finally:
+    _mut.ROOT, _mut.PRODUCTION, _mut.BUDGETS = _MUT_B_SAVED[:3]
+    if _MUT_B_SAVED[3] is not None:
+        _os.environ["GOLDEN_REF"] = _MUT_B_SAVED[3]
+    _mut_shutil.rmtree(_mb_root, ignore_errors=True)
+R.check(
+    "base_unpinned counts the base exactly, and ratchet_base leaves HEAD for its parent",
+    _MUT_BASE == (7, 7, None, None, True, True, True, 8),
+    f"(at B, at A, unreadable ref, no ref, changed@HEAD -> A, changed@A -> A, "
+    f"full -> A, sites here) -> {_MUT_BASE}; the true base count is 7 by "
+    "construction: 8 sites at A, `if x:` disposed under a retired key",
+)
+
 # The ratchet's other end is the count at its base, derived there the same
 # way as here: a committed count is refused (above), and the driver reads the
 # base through `base_unpinned` rather than through the budget file.
@@ -22875,6 +22991,7 @@ R.check(
     and "unpinned_sites(budgets, sites)" in _MUT_BODY
     and "cap_problems(budgets)" in _MUT_BODY
     and "ledger_form_problems(budgets)" in _MUT_BODY
+    and 'budgets["reason"] =' not in _MUT_BODY
     and "base_unpinned(rbase, sites)" in _MUT_BODY
     and "ratchet_refusal(base_count, unpinned)" in _MUT_BODY,
     "the deterministic inventory, the completeness check, the unpinned count, "

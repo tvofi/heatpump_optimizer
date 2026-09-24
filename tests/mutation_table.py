@@ -1353,7 +1353,9 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=20260911)
     ap.add_argument("--timeout", type=int, default=1200)
     ap.add_argument("--record", action="store_true")
-    ap.add_argument("--reason", default="")
+    ap.add_argument("--reason", default="",
+                    help="with --record: echoed for the commit message; the "
+                         "budget file's `reason` is not rewritten")
     ap.add_argument("--normalize", action="store_true",
                     help="rewrite the ledger into its canonical form -- "
                          "content-anchored keys, sorted maps, no committed "
@@ -1628,10 +1630,13 @@ def main() -> int:
             "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "survivor_lines": [triage_key(m) for m in survivors],
         }
-        if args.reason:
-            budgets["reason"] = args.reason
+        # The reason goes in the commit message, not the file: a top-level
+        # string every recording branch rewrote is the same one-line merge
+        # conflict the committed `unpinned_sites` was.
         BUDGETS.write_text(json.dumps(budgets, indent=2) + "\n")
         print(f"\nRECORDED max_survivor_fraction[{args.scope}]={rate:.4f}")
+        if args.reason:
+            print(f"  for the commit message: {args.reason}")
         return 0
     if evaluated == 0:
         print("\nMUTATION TABLE PASSED (nothing evaluated)")
