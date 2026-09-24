@@ -971,6 +971,16 @@ def _pin_is_free(pin: float) -> bool:
     return pin != pin
 
 
+def _step_humidity(humidity: np.ndarray | None, i: int) -> float | None:
+    """Step ``i``'s forecast humidity; None falls back to the ambient (#1520)."""
+    return None if humidity is None else float(humidity[i])
+
+
+def _mean_humidity(humidity: np.ndarray | None) -> float | None:
+    """The humidity a horizon-mean outdoor valuation prices at (#1520)."""
+    return None if humidity is None else float(np.nanmean(humidity))
+
+
 def _apply_pins_to_bounds(
     bounds: list[tuple[float, float]],
     pins: np.ndarray | None,
@@ -1997,6 +2007,7 @@ class HeatPumpOptimizer:
         prices: np.ndarray,
         outdoor_temps: np.ndarray,
         solar_gains: np.ndarray | None = None,
+        humidity: np.ndarray | None = None,
     ) -> tuple[Callable[..., float], Callable[[dict[str, np.ndarray]], np.ndarray]]:
         """Price the heat the plan leaves unstored at the end of the horizon.
 
@@ -2037,7 +2048,7 @@ class HeatPumpOptimizer:
         solver only stored when the price spread also covered a COP gap the
         physics never charged: systematic under-charging.
         """
-        caps = self._settlement_caps(outdoor_temps)
+        caps = self._settlement_caps(outdoor_temps, humidity=humidity)
         refill_price = (
             float(np.percentile(prices, 25)) * self.config.price_weight
         )
@@ -2051,12 +2062,13 @@ class HeatPumpOptimizer:
             outdoor_temps, solar_gains, caps.get("buffer")
         )
         out_mean = float(np.mean(outdoor_temps))
-        cop_end = self.model.compute_cop(out_mean)
+        hum_mean = _mean_humidity(humidity)
+        cop_end = self.model.compute_cop(out_mean, humidity=hum_mean)
         # Equal to `cop_end` bit for bit whenever no valve throttles (the
         # `cop_flow_carnot` gate) or the cap sits at the flow reference; the
         # branch below keeps those paths on the historical arithmetic.
         cop_buffer = self.model.marginal_cop(
-            out_mean, "buffer", store_temp=caps["buffer"]
+            out_mean, "buffer", store_temp=caps["buffer"], humidity=hum_mean
         )
         params = self.model.params
 
@@ -2359,6 +2371,7 @@ class HeatPumpOptimizer:
                 step_weekdays=h.step_weekdays,
                 holiday_flags=h.holiday_flags,
                 wood_temps=wood_temps,
+                humidity=h.humidity,
             ).schedule
             if np.allclose(replanned, dhw_power, atol=1e-4):
                 return space_power, dhw_power, status
@@ -3316,6 +3329,7 @@ class HeatPumpOptimizer:
         baseline_power: np.ndarray,
         optimal_space: np.ndarray,
         optimal_dhw: np.ndarray,
+        humidity: np.ndarray | None = None,
     ) -> tuple[np.ndarray, float, float, float]:
         """Always-hot DHW baseline, then the space/DHW cost split.
 
@@ -3329,7 +3343,10 @@ class HeatPumpOptimizer:
         # demand time frames exist to avoid.
         p = self.model.params
         cop_dhw = max(
-            self.model.compute_cop_dhw(float(np.mean(outdoor_temps)), dhw_setpoint),
+            self.model.compute_cop_dhw(
+                float(np.mean(outdoor_temps)), dhw_setpoint,
+                humidity=_mean_humidity(humidity),
+            ),
             1e-3,
         )
         standby_loss = p.dhw_tank_heat_loss_coefficient * max(
@@ -3589,6 +3606,7 @@ class HeatPumpOptimizer:
                 float(outdoor_temps[i]),
                 "buffer",
                 store_temp=self.model.params.buffer_max_temp,
+                humidity=_step_humidity(humidity, i),
             )
             allowed = float(schedule[i]) - float(refused[i]) / max(cop_i, 1e-6)
             # Slightly under, or float noise re-trips the same step and burns
@@ -3795,7 +3813,7 @@ class HeatPumpOptimizer:
         # a fixed quadratic penalty.
         comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
         terminal_cost, terminal_cost_batch = self._terminal_cost(
-            prices, outdoor_temps, solar_gains_per_step
+            prices, outdoor_temps, solar_gains_per_step, h.humidity
         )
         cycling, capacity, baseline_load, cycling_batch, capacity_batch = (
             self._grid_terms(n_steps, dt, h.start_time)
@@ -3937,7 +3955,7 @@ class HeatPumpOptimizer:
         baseline_power, baseline_end = self._compute_baseline_power(
             initial_state, outdoor_temps, wind_speeds, precipitation,
             solar_radiation, dt, comfort_targets,
-            external_heat_kw=h.external_heat_kw,
+            external_heat_kw=h.external_heat_kw, humidity=h.humidity,
         )
         baseline_energy = float(np.sum(baseline_power) * dt)
         starts = [
@@ -3998,11 +4016,12 @@ class HeatPumpOptimizer:
             initial_state, optimal_power, outdoor_temps, wind_speeds,
             precipitation, solar_radiation, dt,
             external_heat_kw=h.external_heat_kw,
-            valve_targets=h.valve_targets,
+            valve_targets=h.valve_targets, humidity=h.humidity,
         )
         deferred_cost = self._deferred_energy_cost(
             baseline_end, optimized_end, prices, outdoor_temps,
-            caps=self._settlement_caps(outdoor_temps),
+            caps=self._settlement_caps(outdoor_temps, humidity=h.humidity),
+            humidity=h.humidity,
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
@@ -4166,6 +4185,7 @@ class HeatPumpOptimizer:
         outdoor_temps: np.ndarray,
         p_dhw_run: float,
         dhw_prices: np.ndarray,
+        humidity: np.ndarray | None = None,
     ) -> tuple[bool, float | None, int | None]:
         """Whether the anti-legionella cycle is due, and which step it lands on.
 
@@ -4211,6 +4231,7 @@ class HeatPumpOptimizer:
                     outdoor_temps=outdoor_temps,
                     draw_rates=draw_rates,
                     dt_hours=dt,
+                    humidity=humidity,
                 )
             )
             hot = np.where(ramp[1:] >= params.dhw_legionella_temp - 1e-6)[0]
@@ -4307,6 +4328,7 @@ class HeatPumpOptimizer:
         legionella_due: bool,
         legionella_hour: float | None,
         legionella_step: int | None,
+        humidity: np.ndarray | None = None,
     ) -> _DhwLegionellaPlan:
         """The tank ceilings and run-up floor the cycle needs, verbatim.
 
@@ -4359,7 +4381,10 @@ class HeatPumpOptimizer:
                 # m+1 is step m+1's own weather and draw, not step m's.
                 nxt = m + 1
                 cop = max(
-                    self.model.compute_cop_dhw(float(outdoor_temps[nxt]), need),
+                    self.model.compute_cop_dhw(
+                        float(outdoor_temps[nxt]), need,
+                        humidity=_step_humidity(humidity, nxt),
+                    ),
                     0.5,
                 )
                 rise = p_dhw_run * cop * dt / c_dhw
@@ -4414,6 +4439,7 @@ class HeatPumpOptimizer:
         outdoor_temps: np.ndarray,
         p_dhw_run: float,
         dhw_prices: np.ndarray,
+        humidity: np.ndarray | None = None,
     ) -> "_DhwLegionellaPlan":
         """The anti-legionella stage: when the cycle runs, and its ceilings.
 
@@ -4431,6 +4457,7 @@ class HeatPumpOptimizer:
             outdoor_temps=outdoor_temps,
             p_dhw_run=p_dhw_run,
             dhw_prices=dhw_prices,
+            humidity=humidity,
         )
         return self._dhw_legionella_ceilings(
             params=params,
@@ -4444,6 +4471,7 @@ class HeatPumpOptimizer:
             legionella_due=legionella_due,
             legionella_hour=legionella_hour,
             legionella_step=legionella_step,
+            humidity=humidity,
         )
 
     def _dhw_coil_wood_forecast(
@@ -4673,6 +4701,7 @@ class HeatPumpOptimizer:
         step_weekdays: np.ndarray | None = None,
         wood_temps: np.ndarray | None = None,
         holiday_flags: np.ndarray | None = None,
+        humidity: np.ndarray | None = None,
     ) -> DhwPlan:
         """Build the DHW availability requirements and a cheapest-first plan.
 
@@ -4752,6 +4781,7 @@ class HeatPumpOptimizer:
             outdoor_temps=outdoor_temps,
             p_dhw_run=p_dhw_run,
             dhw_prices=dhw_prices,
+            humidity=humidity,
         )
 
         # How long stored heat actually survives in this tank. The learned
@@ -4809,6 +4839,7 @@ class HeatPumpOptimizer:
             space_demand=space_demand,
             p_total_max=p_max,
             forced_off=forced_off,
+            humidity=humidity,
         )
 
         schedule = self._plan_dhw_cheapest_first(
@@ -4826,6 +4857,7 @@ class HeatPumpOptimizer:
             max_temp=max_temp,
             initial_plan=seed,
             forced_off=forced_off,
+            humidity=humidity,
         )
 
         schedule = self._apply_dhw_min_run(
@@ -4837,6 +4869,7 @@ class HeatPumpOptimizer:
             p_dhw_max=p_dhw_run,
             min_run_power=min_run_power,
             max_temp=max_temp,
+            humidity=humidity,
         )
 
         # Rounding weak slots down leaves energy the tank was counting on
@@ -4857,6 +4890,7 @@ class HeatPumpOptimizer:
             max_temp=max_temp,
             initial_plan=schedule,
             forced_off=forced_off,
+            humidity=humidity,
         )
 
         # The tank's rating is physics, not preference, so it is enforced after
@@ -4871,6 +4905,7 @@ class HeatPumpOptimizer:
             draw_rates=draw_rates,
             dt=dt,
             max_temp=max_temp,
+            humidity=humidity,
         )
         schedule = np.where(schedule < min_run_power - 1e-9, 0.0, schedule)
 
@@ -4895,6 +4930,7 @@ class HeatPumpOptimizer:
             prices=prices,
             c_dhw=c_dhw,
             forced_off=forced_off,
+            humidity=humidity,
         )
         # Not re-clamped here, because the repair now carries the clamp
         # inside its own loop: every top-up it places is followed by one,
@@ -4927,6 +4963,7 @@ class HeatPumpOptimizer:
                 outdoor_temps=outdoor_temps,
                 draw_rates=draw_rates,
                 dt_hours=dt,
+                humidity=humidity,
             )
             # Only suppress while coasting still meets the requirement. Running
             # out of hot water because a fire was assumed to keep burning is
@@ -4960,6 +4997,7 @@ class HeatPumpOptimizer:
                 draw_rates=draw_rates,
                 dt=dt,
                 max_temp=max_temp,
+                humidity=humidity,
             )
             # Same hygiene as the automatic path: a step the rating truncated
             # below the pump's minimum cannot actually run, even a pinned one.
@@ -5004,6 +5042,7 @@ class HeatPumpOptimizer:
         self,
         outdoor_temps: np.ndarray,
         tank_temps: np.ndarray,
+        humidity: np.ndarray | None = None,
     ) -> np.ndarray:
         """Per-step DHW COP for a given assumed tank temperature trajectory."""
         return np.array(
@@ -5011,7 +5050,8 @@ class HeatPumpOptimizer:
                 max(
                     1.0,
                     self.model.compute_cop_dhw(
-                        float(outdoor_temps[i]), float(tank_temps[i])
+                        float(outdoor_temps[i]), float(tank_temps[i]),
+                        humidity=_step_humidity(humidity, i),
                     ),
                 )
                 for i in range(len(outdoor_temps))
@@ -5033,6 +5073,7 @@ class HeatPumpOptimizer:
         space_demand: np.ndarray | None = None,
         p_total_max: float | None = None,
         forced_off: np.ndarray | None = None,
+        humidity: np.ndarray | None = None,
     ) -> np.ndarray | None:
         """Minimum-cost DHW schedule over the whole horizon, as a linear program.
 
@@ -5107,7 +5148,7 @@ class HeatPumpOptimizer:
         # COP is temperature dependent; solve once against the requirement
         # level, then re-solve against the trajectory the first pass produced.
         cop = self._dhw_cop_profile(
-            outdoor_temps, np.maximum(requirement, params.dhw_min_temp)
+            outdoor_temps, np.maximum(requirement, params.dhw_min_temp), humidity
         )
 
         # --- Capacity contention with space heating -------------------------
@@ -5220,8 +5261,9 @@ class HeatPumpOptimizer:
                 outdoor_temps=outdoor_temps,
                 draw_rates=draw_rates,
                 dt_hours=dt,
+                humidity=humidity,
             )
-            refined = self._dhw_cop_profile(outdoor_temps, temps[:-1])
+            refined = self._dhw_cop_profile(outdoor_temps, temps[:-1], humidity)
             if np.allclose(refined, cop, rtol=0.02):
                 break
             cop = refined
@@ -5257,6 +5299,7 @@ class HeatPumpOptimizer:
         outdoor_temps: np.ndarray,
         draw_rates: np.ndarray,
         dt: float,
+        humidity: np.ndarray | None = None,
     ) -> np.ndarray:
         return np.asarray(
             self.model.simulate_dhw_only(
@@ -5265,6 +5308,7 @@ class HeatPumpOptimizer:
                 outdoor_temps=outdoor_temps,
                 draw_rates=draw_rates,
                 dt_hours=dt,
+                humidity=humidity,
             )
         )
 
@@ -5283,6 +5327,7 @@ class HeatPumpOptimizer:
         prices: np.ndarray,
         c_dhw: float,
         forced_off: np.ndarray | None = None,
+        humidity: np.ndarray | None = None,
     ) -> np.ndarray:
         """Top up the plan until the SIMULATED trajectory meets the floor.
 
@@ -5334,7 +5379,7 @@ class HeatPumpOptimizer:
         for _ in range(48):
             if temps is None:
                 temps = self._dhw_plan_temps(
-                    plan, initial_temp, outdoor_temps, draw_rates, dt
+                    plan, initial_temp, outdoor_temps, draw_rates, dt, humidity
                 )
             deficit = req - temps[1 : n + 1]
             breach = [
@@ -5393,7 +5438,8 @@ class HeatPumpOptimizer:
                 j = lo + j_local
                 cop_j = max(
                     self.model.marginal_cop(
-                        float(outdoor_temps[j]), "dhw", store_temp=float(temps[j])
+                        float(outdoor_temps[j]), "dhw", store_temp=float(temps[j]),
+                        humidity=_step_humidity(humidity, j),
                     ),
                     0.5,
                 )
@@ -5407,7 +5453,8 @@ class HeatPumpOptimizer:
                 cop_room = max(
                     cop_j,
                     self.model.compute_cop_dhw(
-                        float(outdoor_temps[j]), float(temps[j])
+                        float(outdoor_temps[j]), float(temps[j]),
+                        humidity=_step_humidity(humidity, j),
                     ),
                 )
                 room_kw = float(room_c[j_local]) * c_dhw / max(dt * cop_room, 1e-6)
@@ -5445,6 +5492,7 @@ class HeatPumpOptimizer:
                     draw_rates=draw_rates,
                     dt=dt,
                     max_temp=ceiling,
+                    humidity=humidity,
                 )
                 plan = np.where(plan < min_run_power - 1e-9, 0.0, plan)
                 if np.array_equal(plan, before):
@@ -5455,7 +5503,7 @@ class HeatPumpOptimizer:
                     unreachable.add(b)
                 else:
                     temps = self._dhw_plan_temps(
-                        plan, initial_temp, outdoor_temps, draw_rates, dt
+                        plan, initial_temp, outdoor_temps, draw_rates, dt, humidity
                     )
             else:
                 # Nothing ceiling-legal can fix this step; move on rather than
@@ -5471,6 +5519,7 @@ class HeatPumpOptimizer:
         draw_rates: np.ndarray,
         dt: float,
         max_temp: np.ndarray,
+        humidity: np.ndarray | None = None,
     ) -> np.ndarray:
         """Never deliver more heat than the tank has room for.
 
@@ -5510,7 +5559,11 @@ class HeatPumpOptimizer:
 
         for i in range(len(plan)):
             cop = max(
-                self.model.compute_cop_dhw(float(outdoor_temps[i]), temp), 0.1
+                self.model.compute_cop_dhw(
+                    float(outdoor_temps[i]), temp,
+                    humidity=_step_humidity(humidity, i),
+                ),
+                0.1,
             )
             # Headroom in kW electrical: how much may be delivered this step
             # before the tank passes its rating. Negative when the tank is
@@ -5573,6 +5626,7 @@ class HeatPumpOptimizer:
         p_dhw_max: float,
         min_run_power: float,
         max_temp: np.ndarray,
+        humidity: np.ndarray | None = None,
     ) -> np.ndarray:
         """Round sub-minimum runs up to a power the pump can actually deliver.
 
@@ -5620,6 +5674,7 @@ class HeatPumpOptimizer:
                     outdoor_temps=outdoor_temps,
                     draw_rates=draw_rates,
                     dt_hours=dt,
+                    humidity=humidity,
                 )
             )
 
@@ -5649,6 +5704,7 @@ class HeatPumpOptimizer:
             candidate = base.copy()
             self.model.extend_dhw_temps(
                 candidate, slot, plan, outdoor_temps, draw_rates, dt_hours=dt,
+                    humidity=humidity,
             )
             limit = np.maximum(
                 ceiling[slot + 1: candidate.size],
@@ -5664,6 +5720,7 @@ class HeatPumpOptimizer:
                 # reason as the check itself.
                 self.model.extend_dhw_temps(
                     base, slot, plan, outdoor_temps, draw_rates, dt_hours=dt,
+                    humidity=humidity,
                 )
         repaired: np.ndarray = np.clip(plan, 0.0, p_dhw_max)
         return repaired
@@ -5684,6 +5741,7 @@ class HeatPumpOptimizer:
         max_temp: np.ndarray,
         initial_plan: np.ndarray | None = None,
         forced_off: np.ndarray | None = None,
+        humidity: np.ndarray | None = None,
     ) -> np.ndarray:
         """Greedily top up a DHW plan in the cheapest feasible hours.
 
@@ -5737,7 +5795,7 @@ class HeatPumpOptimizer:
         for _ in range(400):
             if temps is None:
                 temps = self._dhw_plan_temps(
-                    plan, initial_temp, outdoor_temps, draw_rates, dt
+                    plan, initial_temp, outdoor_temps, draw_rates, dt, humidity
                 )
             gaps = requirement - temps[1:]
             violations = [
@@ -5790,7 +5848,8 @@ class HeatPumpOptimizer:
                 cop = max(
                     1.0,
                     self.model.compute_cop_dhw(
-                        float(outdoor_temps[j]), float(requirement[k])
+                        float(outdoor_temps[j]), float(requirement[k]),
+                        humidity=_step_humidity(humidity, j),
                     ),
                 )
                 spare_thermal_kwh = (p_dhw_max - plan[j]) * cop * dt
@@ -5828,6 +5887,7 @@ class HeatPumpOptimizer:
                     outdoor_temps,
                     draw_rates,
                     dt_hours=dt,
+                    humidity=humidity,
                 )
                 break
 
@@ -5862,9 +5922,7 @@ class HeatPumpOptimizer:
         dhw_min_temp = self.model.params.dhw_min_temp
         dhw_setpoint = self.model.params.dhw_setpoint
 
-        start_hour = (
-            start_time.hour + start_time.minute / 60.0
-        )
+        start_hour = start_time.hour + start_time.minute / 60.0
 
         anticipatory_weights = self._anticipatory_weights(
             n_steps, dt, solar_gains_per_step, forecast_heat_loss_factors
@@ -5896,6 +5954,7 @@ class HeatPumpOptimizer:
             step_weekdays=h.step_weekdays,
             holiday_flags=h.holiday_flags,
             wood_temps=self._dhw_coil_wood_forecast(h),
+            humidity=h.humidity,
         )
 
         dhw_floor_temps = dhw_plan.floor_temps
@@ -5928,7 +5987,7 @@ class HeatPumpOptimizer:
         # pull-to-target term.
         comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)
         terminal_cost, terminal_cost_batch = self._terminal_cost(
-            prices, outdoor_temps, solar_gains_per_step
+            prices, outdoor_temps, solar_gains_per_step, h.humidity
         )
         cycling, capacity, baseline_load, cycling_batch, capacity_batch = (
             self._grid_terms(n_steps, dt, start_time)
@@ -6111,12 +6170,12 @@ class HeatPumpOptimizer:
         baseline_power, baseline_end = self._compute_baseline_power(
             initial_state, outdoor_temps, wind_speeds, precipitation,
             solar_radiation, dt, comfort_targets,
-            external_heat_kw=h.external_heat_kw,
+            external_heat_kw=h.external_heat_kw, humidity=h.humidity,
         )
         baseline_dhw, baseline_cost, predicted_cost, dhw_cost = (
             self._baseline_dhw_economics(
                 initial_state, outdoor_temps, n_steps, dhw_setpoint,
-                energy_cost_of, baseline_power, optimal_space, optimal_dhw,
+                energy_cost_of, baseline_power, optimal_space, optimal_dhw, h.humidity,
             )
         )
 
@@ -6128,7 +6187,7 @@ class HeatPumpOptimizer:
             initial_state, optimal_space, outdoor_temps, wind_speeds,
             precipitation, solar_radiation, dt,
             external_heat_kw=h.external_heat_kw,
-            valve_targets=h.valve_targets,
+            valve_targets=h.valve_targets, humidity=h.humidity,
         )
         optimized_end.dhw_temperature = float(dhw_temps[-1])
         # The tank only has to satisfy the requirement in force at the end of
@@ -6137,8 +6196,9 @@ class HeatPumpOptimizer:
         deferred_cost = self._deferred_energy_cost(
             baseline_end, optimized_end, prices, outdoor_temps, include_dhw=True,
             caps=self._settlement_caps(
-                outdoor_temps, dhw_cap=float(dhw_floor_temps[-1])
+                outdoor_temps, dhw_cap=float(dhw_floor_temps[-1]), humidity=h.humidity
             ),
+            humidity=h.humidity,
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
@@ -6226,7 +6286,8 @@ class HeatPumpOptimizer:
         return result
 
     def _settlement_caps(
-        self, outdoor_temps: np.ndarray, dhw_cap: float | None = None
+        self, outdoor_temps: np.ndarray, dhw_cap: float | None = None,
+        humidity: np.ndarray | None = None,
     ) -> dict[str, float]:
         """Temperatures above which stored heat is worth nothing.
 
@@ -6266,7 +6327,7 @@ class HeatPumpOptimizer:
             # 70 °C charged every plan for failing to hold a temperature no
             # plan could reach, an asymmetry the room cap (the target, not
             # the comfort ceiling) never had.
-            ceiling = self._buffer_charge_ceiling(out_mean)
+            ceiling = self._buffer_charge_ceiling(out_mean, _mean_humidity(humidity))
             # Heat ALREADY in the tank above the charging ceiling is real:
             # it was paid for, and draining it displaces bought electricity
             # at the derated COP. Capping the value at the ceiling alone let
@@ -6302,7 +6363,9 @@ class HeatPumpOptimizer:
             caps["dhw"] = dhw_cap
         return caps
 
-    def _buffer_charge_ceiling(self, out_mean: float) -> float:
+    def _buffer_charge_ceiling(
+        self, out_mean: float, humidity: float | None = None
+    ) -> float:
         """The tank temperature the pump can still charge past, °C.
 
         The bound the solve actually operates under. The simulation's clamp
@@ -6340,7 +6403,9 @@ class HeatPumpOptimizer:
         p_max = p.max_electrical_power
 
         def net(temp: float) -> float:
-            cop = self.model.marginal_cop(out_mean, "buffer", store_temp=temp)
+            cop = self.model.marginal_cop(
+                out_mean, "buffer", store_temp=temp, humidity=humidity
+            )
             return p_max * cop - q_house - ua_tank * max(0.0, temp - 20.0)
 
         if net(hi) > 0.0:
@@ -6363,6 +6428,7 @@ class HeatPumpOptimizer:
         outdoor_temps: np.ndarray,
         include_dhw: bool = False,
         caps: dict[str, float] | None = None,
+        humidity: np.ndarray | None = None,
     ) -> float:
         """Cost of restoring the heat the optimized plan left unstored.
 
@@ -6399,7 +6465,8 @@ class HeatPumpOptimizer:
         ) - self._stored_thermal_energy(optimized_end, include_dhw, caps)
 
         out_mean = float(np.mean(outdoor_temps))
-        cop = max(self.model.compute_cop(out_mean), 1e-3)
+        hum_mean = _mean_humidity(humidity)
+        cop = max(self.model.compute_cop(out_mean, humidity=hum_mean), 1e-3)
         # Heat is topped up when it is cheap, so settle at a low percentile
         # rather than the mean; using the mean would over-charge the optimizer
         # for heat it would obviously buy back in a cheap hour. The same
@@ -6430,7 +6497,8 @@ class HeatPumpOptimizer:
         if p.two_zone_enabled:
             cop_buffer = max(
                 self.model.marginal_cop(
-                    out_mean, "buffer", store_temp=caps.get("buffer")
+                    out_mean, "buffer", store_temp=caps.get("buffer"),
+                    humidity=hum_mean,
                 ),
                 1e-3,
             )
@@ -6449,6 +6517,7 @@ class HeatPumpOptimizer:
                     store_temp=(
                         dhw_cap if dhw_cap is not None else p.dhw_setpoint
                     ),
+                    humidity=hum_mean,
                 ),
                 1e-3,
             )
@@ -6470,6 +6539,7 @@ class HeatPumpOptimizer:
         dt: float,
         comfort_targets: np.ndarray | None = None,
         external_heat_kw: np.ndarray | None = None,
+        humidity: np.ndarray | None = None,
     ) -> tuple[np.ndarray, ThermalState]:
         """Simulate a conventional thermostat following the comfort schedule.
 
@@ -6562,7 +6632,8 @@ class HeatPumpOptimizer:
                 required_thermal *= 1.0 - w_i
             required_thermal = max(0.0, required_thermal - ext_i)
 
-            cop = self.model.compute_cop(outdoor_temps[i])
+            hum_i = _step_humidity(humidity, i)
+            cop = self.model.compute_cop(outdoor_temps[i], humidity=hum_i)
             # No lower clamp to ``min_electrical_power``: a pump that cannot
             # modulate that low cycles on and off, and over a step the average
             # power is what determines energy use. Forcing the baseline up to
@@ -6577,7 +6648,7 @@ class HeatPumpOptimizer:
             state = self.model.simulate_step(
                 state, power, outdoor_temps[i],
                 wind_speeds[i], precipitation[i], solar_radiation[i], dt,
-                external_heat_kw=ext_i,
+                external_heat_kw=ext_i, humidity=hum_i,
             )
 
         return baseline_power, state
@@ -6756,6 +6827,7 @@ class HeatPumpOptimizer:
         dt: float,
         external_heat_kw: np.ndarray | None = None,
         valve_targets: np.ndarray | None = None,
+        humidity: np.ndarray | None = None,
     ) -> ThermalState:
         """Final state after running a power schedule through the model.
 
@@ -6779,6 +6851,7 @@ class HeatPumpOptimizer:
                     if valve_targets is not None
                     else None
                 ),
+                humidity=_step_humidity(humidity, i),
             )
         return state
 

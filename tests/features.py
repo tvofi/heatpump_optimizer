@@ -45329,4 +45329,172 @@ R.check(
     f"unclassified {_p6_bad_unc}; refused {_p6_bad_ref}",
 )
 
+# ===========================================================================
+# R8-P3: one COP law and one humidity at the DHW seams (#1520, #1530)
+# ===========================================================================
+R.section("R8-P3 — one COP law, one humidity, at every planning seam (#1520, #1530)")
+
+import ast as _p3_ast  # noqa: E402
+import inspect as _p3_inspect  # noqa: E402
+from pathlib import Path as _P3Path  # noqa: E402
+
+# #1530: with a throttling valve the buffer prices its lift by Carnot. The same
+# compressor lifting water to the same temperature has one COP, so the DHW tank
+# must price exactly what the buffer does, across the outdoor and flow grid.
+_P3_OUTS = (-20.0, -12.0, -5.0, 0.0, 3.0, 7.0, 12.0, 15.0)
+_P3_TEMPS = (20.0, 30.0, 35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0, 70.0)
+
+
+def _p3_law_cells(carnot: bool) -> list[tuple[float, float, float, float]]:
+    cells = []
+    for nominal in (2.8, 3.5, 4.5):
+        m = ThermalModel(ThermalParameters(cop_flow_carnot=carnot, cop_nominal=nominal))
+        for o in _P3_OUTS:
+            for t in _P3_TEMPS:
+                cells.append((nominal, o, m.marginal_cop(o, "dhw", t),
+                              m.marginal_cop(o, "buffer", t)))
+    return cells
+
+
+_p3_on = _p3_law_cells(True)
+_p3_on_bad = [c for c in _p3_on if c[2] != c[3]]
+R.check(
+    "cop_flow_carnot on: marginal_cop('dhw') == marginal_cop('buffer') at equal "
+    "water temperature, every outdoor x flow cell (#1530)",
+    not _p3_on_bad,
+    f"{len(_p3_on_bad)} of {len(_p3_on)} cells differ; first {_p3_on_bad[:2]}",
+)
+# The null arm: with the flag off the buffer is not lifted and the DHW law keeps
+# its own penalty, so the two laws must differ -- the equality above is a
+# property of the flag, not of a grid on which the laws happen to coincide.
+_p3_off = _p3_law_cells(False)
+R.check(
+    "and with the flag off the two laws differ (the null arm)",
+    sum(c[2] != c[3] for c in _p3_off) >= len(_p3_off) // 2,
+    f"{sum(c[2] != c[3] for c in _p3_off)} of {len(_p3_off)} cells differ",
+)
+
+# #1520: the DHW planner priced COP at the current humidity while the published
+# trajectory used the forecast, so with a learned humid-bucket derate the plan
+# under-bought hot water. With every seam passing the step's humidity, a fully
+# finite forecast leaves the current (ambient) humidity nothing to decide.
+
+
+def _p3_derate():
+    d = DefrostDerate()
+    for t in (-2.0, 1.0, 3.0):
+        for _ in range(20):
+            d.observe(t, 90.0, 0.6)
+    return d
+
+
+def _p3_solve(ambient, forecast):
+    sc = _mk_golden(dhw=True, weather_profile="winter_mild",
+                    param_overrides=dict(defrost_derate=_p3_derate(),
+                                         ambient_humidity=ambient))
+    n = len(sc["prices"])
+    outdoor = np.clip(np.asarray(sc["outdoor"], dtype=float), -1.0, 4.5)
+    res = sc["optimizer"].optimize(
+        sc["state"], sc["prices"], outdoor, sc["wind"], sc["rain"], sc["solar"],
+        _G_START, humidity=None if forecast is None else np.full(n, forecast),
+    )
+    return (np.asarray(res.dhw_power_schedule, dtype=float),
+            np.asarray(res.dhw_temp_trajectory, dtype=float),
+            np.asarray(res.power_schedule, dtype=float))
+
+
+_p3_dry = _p3_solve(55.0, 90.0)
+_p3_wet = _p3_solve(90.0, 90.0)
+R.check(
+    "a finite humidity forecast plans the same DHW schedule and trajectory "
+    "whatever the current humidity is (#1520)",
+    all(np.array_equal(a, b) for a, b in zip(_p3_dry, _p3_wet)),
+    f"dhw kWh {float(_p3_dry[0].sum()) * 0.25:.3f} vs "
+    f"{float(_p3_wet[0].sum()) * 0.25:.3f}; worst trajectory gap "
+    f"{float(np.max(np.abs(_p3_dry[1] - _p3_wet[1]))):.4f} K",
+)
+_p3_none_dry = _p3_solve(55.0, None)
+_p3_none_wet = _p3_solve(90.0, None)
+R.check(
+    "and without a forecast the ambient humidity does move the plan (the derate "
+    "is live: the equality above is not vacuous)",
+    not np.array_equal(_p3_none_dry[0], _p3_none_wet[0]),
+    f"dhw kWh {float(_p3_none_dry[0].sum()) * 0.25:.3f} vs "
+    f"{float(_p3_none_wet[0].sum()) * 0.25:.3f}",
+)
+
+# The seam rule, as a barrier: every call in the planner's two modules to a
+# ThermalModel method that takes ``humidity`` passes it, by keyword or by
+# position. The callee set is read from the methods' own signatures, so a new
+# humidity-aware method joins the rule without an edit here. A call through a
+# local alias (``f = self.compute_cop_dhw``) is resolved to its method.
+# Deliberately unexempted: no seam in these two modules prices at the current
+# humidity on purpose, so the allow-list below is empty. (The coordinator's
+# live-condition calls, which price the current humidity by design, are not
+# planning seams and are outside the rule's two files.)
+_P3_HUM_POS = {
+    name: [p for p in _p3_inspect.signature(fn).parameters if p != "self"].index("humidity")
+    for name, fn in vars(ThermalModel).items()
+    if callable(fn) and "humidity" in _p3_inspect.signature(fn).parameters
+}
+_P3_ALLOWED: set[tuple[str, str, str]] = set()
+
+
+def _p3_seams(src: str, fname: str) -> list[tuple[str, str, str, int]]:
+    out = []
+    for fn in _p3_ast.walk(_p3_ast.parse(src)):
+        if not isinstance(fn, (_p3_ast.FunctionDef, _p3_ast.AsyncFunctionDef)):
+            continue
+        alias = {
+            t.id: a.value.attr
+            for a in _p3_ast.walk(fn) if isinstance(a, _p3_ast.Assign)
+            and isinstance(a.value, _p3_ast.Attribute)
+            for t in a.targets if isinstance(t, _p3_ast.Name)
+        }
+        for c in _p3_ast.walk(fn):
+            if not isinstance(c, _p3_ast.Call):
+                continue
+            if isinstance(c.func, _p3_ast.Attribute):
+                callee = c.func.attr
+            elif isinstance(c.func, _p3_ast.Name):
+                callee = alias.get(c.func.id)
+            else:
+                continue
+            if callee not in _P3_HUM_POS:
+                continue
+            passed = (
+                any(k.arg in ("humidity", None) for k in c.keywords)
+                or len(c.args) > _P3_HUM_POS[callee]
+            )
+            if not passed and (fname, fn.name, callee) not in _P3_ALLOWED:
+                out.append((fname, fn.name, callee, c.lineno))
+    return out
+
+
+_p3_open = [
+    s for f in ("optimizer.py", "thermal_model.py")
+    for s in _p3_seams((_PKG_DIR / f).read_text(encoding="utf-8"), f)
+]
+R.check(
+    "every humidity-aware ThermalModel call in optimizer.py and thermal_model.py "
+    "passes the step's humidity (the seam rule, #1520)",
+    not _p3_open,
+    f"open seams: {_p3_open}",
+)
+# The rule's own control: the pre-fix shapes must be found -- a DHW COP call
+# without humidity, a buffer marginal_cop without it, and an aliased call inside
+# a loop -- so a green run above is not an empty walk.
+_p3_probe = (
+    "def a(self, o, t):\n    return self.model.compute_cop_dhw(o, t)\n"
+    "def b(self, o, t):\n    return self.model.marginal_cop(o, 'buffer', store_temp=t)\n"
+    "def c(self, o, t):\n    f = self.compute_cop_dhw\n    return f(o, t)\n"
+    "def d(self, o, t, h):\n    f = self.compute_cop_dhw\n    return f(o, t, h)\n"
+)
+R.check(
+    "and the rule finds the three pre-fix shapes and passes the positional one",
+    [(s[1], s[2]) for s in _p3_seams(_p3_probe, "probe")]
+    == [("a", "compute_cop_dhw"), ("b", "marginal_cop"), ("c", "compute_cop_dhw")],
+    f"{_p3_seams(_p3_probe, 'probe')}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

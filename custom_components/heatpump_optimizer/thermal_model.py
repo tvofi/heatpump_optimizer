@@ -1437,7 +1437,7 @@ class ThermalModel:
         terminal valuations, the efficiency learner's reference and the
         capacity caps -- inherits the lift from this one place rather than
         from a call site each. Hot water is not lifted twice:
-        :meth:`compute_cop_dhw` starts from :meth:`_cop_law` with no flow.
+        :meth:`compute_cop_dhw` starts from :meth:`_cop_law` with no curve flow.
         The lift is one-sided, applied only above the reference flow, which
         is the batch twin's semantics and is kept for its bitwise parity: a
         curve below 35 °C earns no boost.
@@ -1586,6 +1586,10 @@ class ThermalModel:
         heating), so COP is lower.  Rough model:
         COP_dhw ≈ COP_space * 0.7 (penalty for higher supply temp)
         """
+        if self.params.cop_flow_carnot:
+            # #1530: behind a valve the buffer prices its lift by Carnot, so the
+            # tank pays the same law at the same water temperature, not its own.
+            return self._cop_law(outdoor_temp, humidity, dhw_temp)
         # The law without any flow lift (#1067): the penalty below already
         # prices the tank's hotter water, so a curve lift would count it twice.
         base_cop = self._cop_law(outdoor_temp, humidity, None)
@@ -1910,10 +1914,12 @@ class ThermalModel:
         outdoor_temps: np.ndarray,
         draw_rates: np.ndarray,
         dt_hours: float = 0.25,
+        humidity: np.ndarray | None = None,
     ) -> np.ndarray:
         """Simulate the DHW tank alone (used for fast schedule planning).
 
         Returns an array of length ``n_steps + 1`` starting at ``initial_temp``.
+        ``humidity`` is the forecast series the published trajectory uses (#1520).
         """
         schedule = np.asarray(dhw_power_schedule, dtype=float)
         n_steps = schedule.size
@@ -1926,6 +1932,7 @@ class ThermalModel:
             outdoor_temps,
             draw_rates,
             dt_hours=dt_hours,
+            humidity=humidity,
         )
 
     def extend_dhw_temps(
@@ -1936,6 +1943,7 @@ class ThermalModel:
         outdoor_temps: np.ndarray,
         draw_rates: np.ndarray,
         dt_hours: float = 0.25,
+        humidity: np.ndarray | None = None,
     ) -> np.ndarray:
         """Refresh ``temps[from_step + 1:]`` after the schedule changed there."""
         schedule = np.asarray(dhw_power_schedule, dtype=float)
@@ -1945,7 +1953,9 @@ class ThermalModel:
         compute_cop = self.compute_cop_dhw
         simulate_step = self.simulate_dhw_step
         for i in range(from_step, schedule.size):
-            cop = compute_cop(outdoor[i], temp)
+            cop = compute_cop(
+                outdoor[i], temp, humidity=None if humidity is None else humidity[i]
+            )
             temp = simulate_step(
                 dhw_temp=temp,
                 dhw_power_thermal=cop * schedule[i],
