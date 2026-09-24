@@ -22083,18 +22083,26 @@ R.check(
 # The run's own null control: a comment-only edit that moves no line number,
 # no code token and no line count, so no driver can notice it by behaviour.
 _MUT_NULL_SRC = _tempfile.NamedTemporaryFile("w", suffix=".py", delete=False)
-_MUT_NULL_SRC.write('X = "# not a comment"\n    # an indented comment\n'
-                    "Y = 1  # trailing\n# a full-line comment\n")
+_MUT_NULL_SRC.write('X = "# not a comment"\nY = 1  # trailing\n'
+                    "    # an indented comment\n# a full-line comment\n")
 _MUT_NULL_SRC.close()
 _MUT_NULL = _mut.null_control(Path(_MUT_NULL_SRC.name))
 Path(_MUT_NULL_SRC.name).unlink()
 R.check(
     "the null control edits a whole-line comment and nothing else",
-    _MUT_NULL is not None and _MUT_NULL["line"] == 2
+    _MUT_NULL is not None and _MUT_NULL["line"] == 3
     and _MUT_NULL["new"].startswith(_MUT_NULL["old"])
     and _MUT_NULL["new"] != _MUT_NULL["old"] and "\n" not in _MUT_NULL["new"],
     f"picked={_MUT_NULL and (_MUT_NULL['line'], _MUT_NULL['new'])}: not the "
     "string that looks like one, not a trailing comment on a code line",
+)
+R.check(
+    "a run whose null control did not survive is refused",
+    _mut.null_control_refusal("f.py:3 NULL_COMMENT", "LIVES") is None
+    and all(_mut.null_control_refusal("f.py:3 NULL_COMMENT", _v)
+            for _v in ("killed by tests/env_drift.py (x)", "SKIP-MOVED",
+                       "not run")),
+    "a kill, a skip and a missing verdict each refuse; only LIVES proceeds",
 )
 
 # #1531 (R8-D3-s1-02): the drift cache key took every HPO_/HEATPUMP_/HASTUB_

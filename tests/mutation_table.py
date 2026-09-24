@@ -793,6 +793,21 @@ def null_control(path: Path) -> dict | None:
     return None
 
 
+def null_control_refusal(key: str, verdict: str) -> str | None:
+    """The run's refusal when its null control did not survive, else None.
+
+    Anything but LIVES refuses -- a kill, and equally a null control that was
+    skipped or never ran, because then nothing separates a kill from a driver
+    reacting to the diff itself.
+    """
+    if verdict == "LIVES":
+        return None
+    return (f"\nMUTATION TABLE REFUSED -- the null control {key} was "
+            f"{verdict}. A comment-only edit changes no behaviour, so a driver "
+            "that notices it is judging the diff rather than the code, and "
+            "none of this run's kills can be told apart from that.")
+
+
 def clone_tree(dest: Path) -> Path:
     """A real, independent checkout for one worker to mutate.
 
@@ -1108,12 +1123,9 @@ def main() -> int:
 
     null_verdict = next((v for m, v in results if m is null), "not run")
     results = [(m, v) for m, v in results if m is not null]
-    if null_verdict != "LIVES":
-        print(f"\nMUTATION TABLE REFUSED -- the null control "
-              f"{triage_key(null)} was {null_verdict}. A comment-only edit "
-              "changes no behaviour, so a driver that notices it is judging "
-              "the diff rather than the code, and none of this run's kills "
-              "can be told apart from that.")
+    refusal = null_control_refusal(triage_key(null), null_verdict)
+    if refusal:
+        print(refusal)
         return 1
     print(f"  null control {triage_key(null)} survived every driver")
 
