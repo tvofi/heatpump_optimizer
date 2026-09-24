@@ -45415,7 +45415,6 @@ R.check(
 R.section("R8-P3 — one COP law, one humidity, at every planning seam (#1520, #1530)")
 
 import ast as _p3_ast  # noqa: E402
-import inspect as _p3_inspect  # noqa: E402
 from pathlib import Path as _P3Path  # noqa: E402
 
 # #1530: with a throttling valve the buffer prices its lift by Carnot. The same
@@ -45476,15 +45475,21 @@ def _p3_solve(ambient, forecast):
     outdoor = np.clip(np.asarray(sc["outdoor"], dtype=float), -1.0, 4.5)
     res = sc["optimizer"].optimize(
         sc["state"], sc["prices"], outdoor, sc["wind"], sc["rain"], sc["solar"],
-        _G_START, humidity=None if forecast is None else np.full(n, forecast),
+        _G_START, humidity=None if forecast is None else forecast(n),
     )
     return (np.asarray(res.dhw_power_schedule, dtype=float),
             np.asarray(res.dhw_temp_trajectory, dtype=float),
             np.asarray(res.power_schedule, dtype=float))
 
 
-_p3_dry = _p3_solve(55.0, 90.0)
-_p3_wet = _p3_solve(90.0, 90.0)
+# A diurnal forecast, 55-95 %, so a seam that priced the horizon's mean or one
+# step's value where it should price each step's is not hidden by a flat series.
+def _p3_diurnal(n):
+    return 75.0 + 20.0 * np.cos(2.0 * np.pi * (np.arange(n) * 0.25 - 3.0) / 24.0)
+
+
+_p3_dry = _p3_solve(55.0, _p3_diurnal)
+_p3_wet = _p3_solve(90.0, _p3_diurnal)
 R.check(
     "a finite humidity forecast plans the same DHW schedule and trajectory "
     "whatever the current humidity is (#1520)",
@@ -45501,6 +45506,34 @@ R.check(
     not np.array_equal(_p3_none_dry[0], _p3_none_wet[0]),
     f"dhw kWh {float(_p3_none_dry[0].sum()) * 0.25:.3f} vs "
     f"{float(_p3_none_wet[0].sum()) * 0.25:.3f}",
+)
+
+# Per step, not per horizon: the step helper hands each seam its own step's
+# value, and the tank simulation the planners run moves with it -- the same
+# diurnal series and its flat mean give different trajectories. (Which seams
+# price per step and which at the horizon mean is the call site's choice, and
+# the static rule below pins only that each passes one.)
+from heatpump_optimizer.optimizer import _step_humidity as _p3_step_h  # noqa: E402
+
+_p3_series = _p3_diurnal(96)
+_p3_sim_m = ThermalModel(ThermalParameters(defrost_derate=_p3_derate(), ambient_humidity=55.0))
+_p3_sched = np.full(96, 1.5)
+
+
+def _p3_tank(hum):
+    return _p3_sim_m.simulate_dhw_only(
+        45.0, _p3_sched, np.full(96, 1.0), np.full(96, 0.3), 0.25, humidity=hum,
+    )
+
+
+R.check(
+    "the planner's step helper and its tank simulation read each step's own "
+    "forecast humidity, not the horizon's mean",
+    all(_p3_step_h(_p3_series, i) == float(_p3_series[i]) for i in range(96))
+    and float(np.max(np.abs(_p3_tank(_p3_series)
+                            - _p3_tank(np.full(96, float(np.mean(_p3_series))))))) > 1e-3,
+    f"per-step vs mean tank gap "
+    f"{float(np.max(np.abs(_p3_tank(_p3_series) - _p3_tank(np.full(96, float(np.mean(_p3_series))))))):.4f} K",
 )
 
 # The coordinator's capacity envelope (#17) turns each FORECAST step's learned
@@ -45538,80 +45571,161 @@ R.check(
     f"{_p3_cap_at(None):.4f}",
 )
 
-# The seam rule, as a barrier: every call in the planner's two modules to a
-# ThermalModel method that takes ``humidity`` passes it, by keyword or by
-# position. The callee set is read from the methods' own signatures, so a new
-# humidity-aware method joins the rule without an edit here. A call through a
-# local alias (``f = self.compute_cop_dhw``) is resolved to its method.
-# Deliberately unexempted: no seam in these two modules prices at the current
-# humidity on purpose, so the allow-list below is empty. (The coordinator's
-# live-condition calls, which price the current humidity by design, are not
-# planning seams and are outside the rule's two files.)
-_P3_HUM_POS = {
-    name: [p for p in _p3_inspect.signature(fn).parameters if p != "self"].index("humidity")
-    for name, fn in vars(ThermalModel).items()
-    if callable(fn) and "humidity" in _p3_inspect.signature(fn).parameters
+# The seam rule, as a barrier (R8-P3; widened in round 2 from the fix review).
+# Over the planner's modules and the coordinator, every call to a function that
+# takes ``humidity`` passes it -- by keyword or by position, and never as a
+# literal None -- and every function that takes ``humidity`` reads it. The
+# callee set is read from the parsed defs themselves (ThermalModel's methods,
+# the optimizer's helpers and pass-throughs, the coordinator's capacity caps),
+# so a new humidity-aware function joins the rule without an edit here, and a
+# helper that receives the series and drops it on the way down is an open seam
+# at the call that dropped it. A call through a local alias
+# (``f = self.compute_cop_dhw``) resolves to its method.
+#
+# The allow-list names the coordinator's LIVE-condition calls: each prices the
+# current outdoor temperature, where the current humidity (the ambient
+# fallback) is the right one. It is keyed on the function, the callee AND the
+# source text of the call's first argument (the outdoor temperature, or the
+# state a learner replays), so a forecast-step call added inside one of these
+# functions (``outdoor_temps[i]``) is not silenced by its entry.
+_P3_FUNCS = (_p3_ast.FunctionDef, _p3_ast.AsyncFunctionDef)
+_P3_FILES = ("optimizer.py", "thermal_model.py", "coordinator.py")
+_P3_ALLOWED = {
+    # (file, function, callee, first argument): why the current humidity
+    ("coordinator.py", "_dhw_setpoint_sweep", "compute_cop_dhw", "outdoor"):
+        "ranks setpoints at the current outdoor temperature",
+    ("coordinator.py", "_max_pump_rise", "compute_cop",
+     "ctx._current_state.outdoor_temperature"): "the pump's rise right now",
+    ("coordinator.py", "_cop_reference_curve", "compute_cop", "outdoor"):
+        "the reference the just-measured interval is judged against",
+    ("coordinator.py", "_cop_reference_curve", "compute_cop_dhw", "outdoor"):
+        "the same reference, for a hot-water interval",
+    ("coordinator.py", "_record_accuracy", "compute_cop_dhw", "sample.outdoor_temp"):
+        "the residual of the interval that just ended",
+    ("coordinator.py", "_record_accuracy", "compute_cop", "sample.outdoor_temp"):
+        "the same residual, for a space interval",
+    ("coordinator.py", "_run_system_identification", "compute_cop",
+     "state.outdoor_temperature"): "the experiment step running now",
+    ("coordinator.py", "_battery_view", "compute_cop",
+     "ctx._current_state.outdoor_temperature"): "the battery view of the tank now",
+    ("coordinator.py", "_async_learn_house_heat_loss", "simulate_step",
+     "previous_state"): "replays the interval that just ended, in today's weather",
+    ("coordinator.py", "_async_learn_lower_floor_loss", "simulate_step",
+     "previous_state"): "the same replay, for the lower floor",
 }
-_P3_ALLOWED: set[tuple[str, str, str]] = set()
 
 
-def _p3_seams(src: str, fname: str) -> list[tuple[str, str, str, int]]:
+def _p3_hum_pos(trees) -> dict[str, set]:
+    """Every def taking ``humidity`` -> where it sits (None: keyword-only)."""
+    pos: dict[str, set] = {}
+    for tree in trees:
+        for fn in _p3_ast.walk(tree):
+            if not isinstance(fn, _P3_FUNCS):
+                continue
+            names = [a.arg for a in fn.args.posonlyargs + fn.args.args if a.arg != "self"]
+            if "humidity" in names:
+                pos.setdefault(fn.name, set()).add(names.index("humidity"))
+            elif "humidity" in [a.arg for a in fn.args.kwonlyargs]:
+                pos.setdefault(fn.name, set()).add(None)
+    return pos
+
+
+def _p3_is_none(node) -> bool:
+    return isinstance(node, _p3_ast.Constant) and node.value is None
+
+
+def _p3_seams(sources: dict[str, str], allowed=None, hits=None) -> list[tuple]:
+    """Open seams over ``{file: source}``: dropped calls and unread parameters."""
+    allowed = _P3_ALLOWED if allowed is None else allowed
+    trees = {f: _p3_ast.parse(src) for f, src in sources.items()}
+    hum_pos = _p3_hum_pos(trees.values())
     # Keyed by call position: a nested def's calls are walked from its parent
     # too, and the breadth-first walk reaches the innermost def last.
-    out: dict[tuple[int, int], tuple[str, str, str, int]] = {}
-    for fn in _p3_ast.walk(_p3_ast.parse(src)):
-        if not isinstance(fn, (_p3_ast.FunctionDef, _p3_ast.AsyncFunctionDef)):
-            continue
-        alias = {
-            t.id: a.value.attr
-            for a in _p3_ast.walk(fn) if isinstance(a, _p3_ast.Assign)
-            and isinstance(a.value, _p3_ast.Attribute)
-            for t in a.targets if isinstance(t, _p3_ast.Name)
-        }
-        for c in _p3_ast.walk(fn):
-            if not isinstance(c, _p3_ast.Call):
+    out: dict[tuple, tuple] = {}
+    for fname, tree in trees.items():
+        for fn in _p3_ast.walk(tree):
+            if not isinstance(fn, _P3_FUNCS):
                 continue
-            if isinstance(c.func, _p3_ast.Attribute):
-                callee = c.func.attr
-            elif isinstance(c.func, _p3_ast.Name):
-                callee = alias.get(c.func.id)
-            else:
-                continue
-            if callee not in _P3_HUM_POS:
-                continue
-            passed = (
-                any(k.arg in ("humidity", None) for k in c.keywords)
-                or len(c.args) > _P3_HUM_POS[callee]
-            )
-            if not passed and (fname, fn.name, callee) not in _P3_ALLOWED:
-                out[(c.lineno, c.col_offset)] = (fname, fn.name, callee, c.lineno)
-    return sorted(out.values(), key=lambda s: s[3])
+            params = [a.arg for a in fn.args.posonlyargs + fn.args.args + fn.args.kwonlyargs]
+            if "humidity" in params and not any(
+                isinstance(n, _p3_ast.Name) and n.id == "humidity"
+                for stmt in fn.body for n in _p3_ast.walk(stmt)
+            ):
+                out[(fname, fn.lineno, -1)] = (fname, fn.name, "(unread)", fn.lineno)
+            alias = {
+                t.id: a.value.attr
+                for a in _p3_ast.walk(fn) if isinstance(a, _p3_ast.Assign)
+                and isinstance(a.value, _p3_ast.Attribute)
+                for t in a.targets if isinstance(t, _p3_ast.Name)
+            }
+            for c in _p3_ast.walk(fn):
+                if not isinstance(c, _p3_ast.Call):
+                    continue
+                if isinstance(c.func, _p3_ast.Attribute):
+                    callee = c.func.attr
+                elif isinstance(c.func, _p3_ast.Name):
+                    callee = alias.get(c.func.id, c.func.id)
+                else:
+                    continue
+                if callee not in hum_pos:
+                    continue
+                passed = any(
+                    k.arg is None or (k.arg == "humidity" and not _p3_is_none(k.value))
+                    for k in c.keywords
+                ) or any(
+                    i is not None and len(c.args) > i and not _p3_is_none(c.args[i])
+                    for i in hum_pos[callee]
+                )
+                first = _p3_ast.unparse(c.args[0]) if c.args else ""
+                if not passed and hits is not None and (fname, fn.name, callee, first) in allowed:
+                    hits.add((fname, fn.name, callee, first))
+                if not passed and (fname, fn.name, callee, first) not in allowed:
+                    out[(fname, c.lineno, c.col_offset)] = (fname, fn.name, callee, c.lineno)
+    return sorted(out.values(), key=lambda s: (s[0], s[3]))
 
 
-_p3_open = [
-    s for f in ("optimizer.py", "thermal_model.py")
-    for s in _p3_seams((_PKG_DIR / f).read_text(encoding="utf-8"), f)
-]
+_p3_sources = {f: (_PKG_DIR / f).read_text(encoding="utf-8") for f in _P3_FILES}
+_p3_used: set = set()
+_p3_open = _p3_seams(_p3_sources, hits=_p3_used)
 R.check(
-    "every humidity-aware ThermalModel call in optimizer.py and thermal_model.py "
-    "passes the step's humidity (the seam rule, #1520)",
+    "every humidity-aware call in optimizer.py, thermal_model.py and "
+    "coordinator.py passes a humidity, and every function taking one reads it "
+    "(the seam rule, #1520)",
     not _p3_open,
     f"open seams: {_p3_open}",
 )
-# The rule's own control: the pre-fix shapes must be found -- a DHW COP call
-# without humidity, a buffer marginal_cop without it, and an aliased call inside
-# a loop -- so a green run above is not an empty walk.
-_p3_probe = (
+R.check(
+    "and every allow-list entry still names a live call (none is stale)",
+    _p3_used == set(_P3_ALLOWED),
+    f"stale: {sorted(set(_P3_ALLOWED) - _p3_used)}",
+)
+# The rule's own control: each pre-fix shape must be found, and the legitimate
+# passes must not be, so a green run above is not an empty walk.
+_p3_probe = {"probe.py": (
     "def a(self, o, t):\n    return self.model.compute_cop_dhw(o, t)\n"
     "def b(self, o, t):\n    return self.model.marginal_cop(o, 'buffer', store_temp=t)\n"
     "def c(self, o, t):\n    f = self.compute_cop_dhw\n    return f(o, t)\n"
     "def d(self, o, t, h):\n    f = self.compute_cop_dhw\n    return f(o, t, h)\n"
-)
+    "def e(self, o, t):\n    return self.compute_cop_dhw(o, t, humidity=None)\n"
+    "def f(self, o, t):\n    return self.compute_cop_dhw(o, t, None)\n"
+    "def g(self, o, humidity=None):\n    return self.helper(o)\n"
+    "def h(self, o, humidity=None):\n    return self.helper(o, humidity=humidity)\n"
+    "def helper(self, o, humidity=None):\n    return humidity\n"
+    "def unread(self, o, humidity=None):\n    return o\n"
+    "def compute_cop_dhw(self, o, t, humidity=None):\n    return humidity\n"
+    "def marginal_cop(self, o, store, store_temp=None, humidity=None):\n    return humidity\n"
+)}
+_p3_probe_found = [(s[1], s[2]) for s in _p3_seams(_p3_probe, set())]
 R.check(
-    "and the rule finds the three pre-fix shapes and passes the positional one",
-    [(s[1], s[2]) for s in _p3_seams(_p3_probe, "probe")]
-    == [("a", "compute_cop_dhw"), ("b", "marginal_cop"), ("c", "compute_cop_dhw")],
-    f"{_p3_seams(_p3_probe, 'probe')}",
+    "and the rule finds every pre-fix shape -- no humidity, an alias, an "
+    "explicit None by keyword or position, a dropped pass-through, an unread "
+    "parameter -- and passes the positional and forwarded ones",
+    sorted(_p3_probe_found) == sorted([
+        ("a", "compute_cop_dhw"), ("b", "marginal_cop"), ("c", "compute_cop_dhw"),
+        ("e", "compute_cop_dhw"), ("f", "compute_cop_dhw"), ("g", "helper"),
+        ("g", "(unread)"), ("unread", "(unread)"),
+    ]),
+    f"{_p3_probe_found}",
 )
 
 
