@@ -32,6 +32,7 @@ from homeassistant.util import dt as dt_util
 
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity
+from .freq_control import _finite
 from .const import (
     CONF_MOLD_FLOOR_BREACH_MARGIN,
     DEFAULT_MOLD_FLOOR_BREACH_MARGIN,
@@ -221,8 +222,8 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
     def _plan_outdoor_now(data: dict[str, Any]) -> float | None:
         """The space plan's forecast outdoor for the step covering now.
 
-        ``None`` when the plan is stale or there is no step covering now: a
-        floor from yesterday's forecast is not the floor the solve holds.
+        ``None`` when the plan is stale, no step covers now, or its outdoor is
+        not a finite number: yesterday's forecast is not the solve's floor.
         """
         if data.get("plan_stale"):
             return None
@@ -235,7 +236,7 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
             if start is None or end is None:
                 continue
             if dt_util.as_utc(start) <= now < dt_util.as_utc(end):
-                return step.get("outdoor")
+                return _finite(step.get("outdoor"))
         return None
 
     @property

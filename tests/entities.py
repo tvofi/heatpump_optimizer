@@ -4599,6 +4599,37 @@ _unplanned_coord, _unplanned_entity = _breach_sensor(_breach_config, _breach_sta
 _unplanned_coord.data = {
     k: v for k, v in _unplanned_coord.data.items() if k != "space_plan"
 }
+# The step covering now, not the plan's first: now falls in the second step,
+# whose -3 °C forecast fires the cold damp room, while the first step's
+# +20 °C would leave it quiet. The expected floor is the solve's own series
+# at the second step's outdoor.
+_later_coord, _later_entity = _breach_sensor(_breach_config, _breach_states)
+_later_now = dt_util.utcnow()
+_later_coord.data["space_plan"]["forecast"] = [
+    {"t": (_later_now - timedelta(minutes=20)).isoformat(), "outdoor": 20.0},
+    {"t": (_later_now - timedelta(minutes=5)).isoformat(), "outdoor": -3.0},
+    {"t": (_later_now + timedelta(minutes=10)).isoformat(), "outdoor": 20.0},
+]
+_later_expected = _later_coord._mold_floor_series(_np_breach.array([-3.0]))
+_later_attrs = _later_entity.extra_state_attributes
+R.check(
+    "the floor is taken at the plan step covering now, not the plan's first step",
+    _later_expected is not None
+    and _later_attrs["floor_c"] == round(float(_later_expected[0]), 2)
+    and _later_entity.is_on,
+    f"floor={_later_attrs.get('floor_c')!r} "
+    f"expected={None if _later_expected is None else round(float(_later_expected[0]), 2)!r} "
+    f"is_on={_later_entity.is_on}",
+)
+# A covering step whose outdoor is not a finite number publishes no floor.
+_nan_coord, _nan_entity = _breach_sensor(
+    _breach_config, _breach_states, outdoor=float("nan")
+)
+R.check(
+    "a covering step with a non-finite outdoor publishes no floor",
+    _nan_entity.extra_state_attributes["floor_c"] is None and not _nan_entity.is_on,
+    f"floor={_nan_entity.extra_state_attributes.get('floor_c')!r}",
+)
 # A plan step whose label does not parse covers no instant: no floor, and no
 # crash (the entity sweeps' contract for a malformed payload).
 _unlabelled_coord, _unlabelled_entity = _breach_sensor(_breach_config, _breach_states)
