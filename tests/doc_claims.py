@@ -352,52 +352,70 @@ def _translated(call: ast.Call) -> bool:
     return {"translation_domain", "translation_key"} <= {kw.arg for kw in call.keywords}
 
 
-def translating_factories() -> dict[str, bool]:
-    """Module-level functions that build a family exception: name -> translated.
+def exception_helpers() -> dict[str, int]:
+    """Key-forwarding raise helpers: name -> the position of their key parameter.
 
-    A raise may route through a helper (#1546 routed the coordinator's
-    UpdateFailed raises through one), so the census resolves the helper
-    instead of losing the site: a factory counts as translated only when
-    every value it returns is a family call carrying both keywords.
+    #1546 routed the coordinator's UpdateFailed raises through one helper, so
+    the census counts each CALL of a helper as a site rather than losing it.
+    A helper is a module-level function in which every family exception it
+    builds is translated and takes ``translation_key`` from one of its own
+    parameters; any other function's family calls are counted where they are.
     """
-    out: dict[str, bool] = {}
+    out: dict[str, int] = {}
     for tree in _PKG_TREES.values():
         for node in tree.body:
-            if not isinstance(node, ast.FunctionDef):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
-            rets = [r.value for r in ast.walk(node) if isinstance(r, ast.Return)]
-            fam = [r for r in rets if _callee(r) in _EXC_FAMILY]
-            if fam:
-                out[node.name] = len(fam) == len(rets) and all(_translated(r) for r in fam)
+            params = [a.arg for a in node.args.posonlyargs + node.args.args]
+            built = [c for c in ast.walk(node) if _callee(c) in _EXC_FAMILY]
+            fwd = {
+                kw.value.id
+                for c in built
+                for kw in c.keywords
+                if kw.arg == "translation_key" and isinstance(kw.value, ast.Name)
+            }
+            if built and all(_translated(c) for c in built) and len(fwd) == 1 and fwd <= set(params):
+                out[node.name] = params.index(fwd.pop())
     return out
 
 
 def exception_raise_census() -> tuple[int, list[str], set[str]]:
-    """(raise sites, the untranslated ones, the translation keys they name)."""
-    factories = translating_factories()
+    """(exception sites, the untranslated ones, the translation keys they name).
+
+    A site is every construction of a family exception outside a helper,
+    every call of a helper, and every ``raise`` of a bare family class --
+    construction rather than ``raise``, so an error built into a variable
+    first, or returned by a factory, is still counted.
+    """
+    helpers = exception_helpers()
     total, missing, keys = 0, [], set()
     for name, tree in _PKG_TREES.items():
+        inside = {
+            id(n)
+            for f in tree.body
+            if isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef)) and f.name in helpers
+            for n in ast.walk(f)
+        }
         for node in ast.walk(tree):
-            if not isinstance(node, ast.Raise) or node.exc is None:
-                continue
-            exc, callee = node.exc, _callee(node.exc)
-            where = f"{name}:{node.lineno}"
-            if isinstance(exc, ast.Name) and exc.id in _EXC_FAMILY:
+            where = f"{name}:{getattr(node, 'lineno', 0)}"
+            callee = _callee(node)
+            key: ast.AST | None = None
+            if isinstance(node, ast.Raise) and isinstance(node.exc, ast.Name) and node.exc.id in _EXC_FAMILY:
                 total += 1
-                missing.append(f"{where} {exc.id} (no call)")
-            elif callee in _EXC_FAMILY:
+                missing.append(f"{where} {node.exc.id} (no call)")
+            elif callee in _EXC_FAMILY and id(node) not in inside:
                 total += 1
-                if not _translated(exc):
+                if not _translated(node):
                     missing.append(f"{where} {callee}")
-                for kw in exc.keywords:
-                    if kw.arg == "translation_key":
-                        keys.add(kw.value.value if isinstance(kw.value, ast.Constant) else f"<{where}>")
-            elif callee in factories:
+                key = next((kw.value for kw in node.keywords if kw.arg == "translation_key"), None)
+            elif callee in helpers:
                 total += 1
-                if not factories[callee]:
-                    missing.append(f"{where} {callee}()")
-                first = exc.args[0] if exc.args else None
-                keys.add(first.value if isinstance(first, ast.Constant) else f"<{where}>")
+                pos = helpers[callee]
+                key = node.args[pos] if len(node.args) > pos else None
+                if key is None:
+                    missing.append(f"{where} {callee}() names no key")
+            if key is not None:
+                keys.add(key.value if isinstance(key, ast.Constant) else f"<{where}>")
     return total, missing, keys
 
 
@@ -430,9 +448,9 @@ def check_quality_scale() -> None:
     done = re.match(r"\s*(?:status:\s*)?done\b", status) is not None
     R.check("quality_scale.yaml marks exception-translations done (anchor)", done, status[:80])
     total, missing, keys = exception_raise_census()
-    R.check("the raise census finds raise sites (anchor)", total > 0, f"{total} site(s)")
+    R.check("the census finds exception sites (anchor)", total > 0, f"{total} site(s)")
     R.check(
-        "every exception raise site carries translation_domain and translation_key",
+        "every exception site carries translation_domain and translation_key",
         not missing,
         f"{len(missing)} of {total}: {missing}",
     )

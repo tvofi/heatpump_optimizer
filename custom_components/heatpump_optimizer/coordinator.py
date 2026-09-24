@@ -28,7 +28,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
 
 import aiohttp
 import numpy as np
@@ -1188,21 +1188,6 @@ def _reset_worker_fallback_streak(hass: HomeAssistant) -> None:
         data.pop(_WORKER_FALLBACK_STREAK, None)
 
 
-def _update_failed(key: str, message: str, **placeholders: str) -> UpdateFailed:
-    """A failed update that the frontend can render translated (#1546).
-
-    ``message`` stays the English text the log and ``last_exception`` show;
-    ``key`` names the strings.json ``exceptions`` entry. Every coordinator
-    UpdateFailed routes through here so none can omit the translation, and
-    tests/doc_claims.py resolves this helper when it censuses raise sites.
-    """
-    return UpdateFailed(
-        message,
-        translation_domain=DOMAIN,
-        translation_key=key,
-        translation_placeholders=placeholders,
-    )
-
 async def _await_optimize(
     hass: HomeAssistant,
     optimizer: Any,
@@ -1227,12 +1212,10 @@ async def _await_optimize(
         _note_worker_fallback(hass, err)
         n = _bump_worker_fallback(hass)
         if n > WORKER_FALLBACK_CAP:
-            raise _update_failed(
-                "process_worker_unusable",
-                f"process-solve worker unusable for {n} consecutive cycles; "
-                "keeping the last plan rather than holding the GIL (#783)",
-                cycles=str(n),
-            ) from err
+            _raise_update_failed(
+                "process_worker_unusable", f"process-solve worker unusable for {n} consecutive cycles; "
+                "keeping the last plan rather than holding the GIL (#783)", err, cycles=str(n),
+            )
         return await hass.async_add_executor_job(
             optimize_in_process, optimizer, state, positional, keywords
         )
@@ -4701,7 +4684,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             _LOGGER.error(
                 "Error updating Heat Pump Optimizer: %s", err, exc_info=True
             )
-            raise _update_failed("update_failed", f"Error updating data: {err}", error=str(err)) from err
+            _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
         finally:
             self._refresh_task = None
     async def _async_first_refresh_light(self) -> dict[str, Any]:
@@ -4751,7 +4734,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             _LOGGER.error(
                 "Error updating Heat Pump Optimizer: %s", err, exc_info=True
             )
-            raise _update_failed("update_failed", f"Error updating data: {err}", error=str(err)) from err
+            _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
 
     def _solve_snapshot(self) -> tuple[ThermalState, HeatPumpOptimizer]:
         """Frozen copies for the process worker: the solve must never share
@@ -5720,7 +5703,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         else:
             _LOGGER.debug("Tibber still failing (%s)", reason)
         self._tibber_outage_cycles += 1
-        raise _update_failed("tibber_fetch_failed", reason, error=reason)
+        _raise_update_failed("tibber_fetch_failed", reason, None, error=reason)
 
     def _tibber_fetch_recovered(self) -> None:
         """Clear the outage latch after a successful fetch."""
@@ -10864,3 +10847,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 # the entry. Platforms and service handlers annotate with this and read the
 # coordinator from the entry, never from ``hass.data``.
 HeatPumpOptimizerConfigEntry = ConfigEntry[HeatPumpOptimizerCoordinator]
+
+
+def _raise_update_failed(
+    key: str, message: str, cause: BaseException | None, **placeholders: str
+) -> NoReturn:
+    """Fail the update with an error the frontend can render translated (#1546).
+
+    ``message`` stays the English text the log and ``last_exception`` show;
+    ``key`` names the strings.json ``exceptions`` entry. Every coordinator
+    UpdateFailed is raised here, outside the class, so none can omit the
+    translation; tests/doc_claims.py counts each call as a raise site.
+    ``cause`` is what the call site's ``raise ... from`` named. The Tibber
+    latch passes None, which hides the implicit context its bare ``raise``
+    kept; the base class logs an UpdateFailed without a traceback, so no
+    log line changes.
+    """
+    raise UpdateFailed(
+        message,
+        translation_domain=DOMAIN,
+        translation_key=key,
+        translation_placeholders=placeholders,
+    ) from cause
