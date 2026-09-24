@@ -45842,7 +45842,9 @@ R.check(
 # fitting on a one-room model overshot the 0.8 K allowance on every stress
 # preset and adopted 0 of 3. One production experiment per preset, in both
 # derivations, on a production ThermalModel of the declared house pre-settled
-# at its hold power; the single-zone arm is the null control, unchanged.
+# at its hold power and stepped at the house's own maximum power, as
+# coordinator._run_system_identification passes it; the single-zone arm is the
+# null control, unchanged.
 _z1524_night = datetime(2026, 1, 15, 23, 0, tzinfo=timezone.utc)
 
 
@@ -45882,7 +45884,8 @@ def _z1524_run(name, two_zone):
         override = sid.step(
             now=when, room_temp=reading, outdoor_temp=0.0, price=0.1,
             price_horizon=np.full(48, 1.0), learner_samples=0,
-            max_power_kw=3.5, cop=cop, plan_power_kw=hold,
+            max_power_kw=declared.max_electrical_power, cop=cop,
+            plan_power_kw=hold,
             house_ua=declared.heat_loss_coefficient
             * declared.house_heat_loss_scale,
             house_capacity=declared.room_thermal_mass,

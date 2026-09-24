@@ -65,60 +65,50 @@
       "old": "    if isinstance(value, tuple):",
       "reason": "arrived with origin/main, commit 8e5d1ace (\"Close the non-finite-into-live-state class at the store-load boundary\", #1425); a real gap: the tuple arm is untested and the payload TYPE admits it -- `_StorePayload` is bound to `Mapping | Sequence` (store.py:35), so a tuple leaf is type-admissible even though json.loads (the only value HA's Store hands back) never produces one; dropping the arm returns the tuple's children unscanned. What pins it is a unit-level assertion on `_sanitize` (a tuple carrying a non-finite leaf must come back scrubbed), which no recorded driver makes. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
     },
-    "custom_components/heatpump_optimizer/sysid.py:379 CONST": {
+    "custom_components/heatpump_optimizer/sysid.py:427 CONST": {
       "verdict": "gap",
       "old": "_PROFILE_CHI2_95 = 3.8414588",
       "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: `_PROFILE_CHI2_95 = 3.8414588` -> `7.682918` only widens the band of profiled costs that count as inside the 95 % interval, and tests/features.py's estimator-act-2 check (features.py:35344) compares each published half-width against UA_ADOPTION_HALFWIDTH_BAR rather than against the threshold -- the 0.02 C noisy window's intervals stay above the bar and the clean window's stay below it on either constant. A fit whose profiled cost at x_hat[0] +/- bar straddles the threshold would pin it; no recorded driver builds one. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
     },
-    "custom_components/heatpump_optimizer/sysid.py:384 CONST": {
+    "custom_components/heatpump_optimizer/sysid.py:432 CONST": {
       "verdict": "gap",
       "old": "_Z_975 = 1.959963984540054",
       "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: `_Z_975 = 1.959963984540054` -> `3.919928` doubles every Wald half-width the two-state fit publishes, and no recorded driver reads one back as a number: the estimator-act-2 check compares each half-width against the bar, and the noisy window's are already above it while the clean window's collapse to ~0, so the comparison holds under either constant. An assertion on a finite half-width's value would pin it. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
     },
-    "custom_components/heatpump_optimizer/sysid.py:598 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:655 GUARD_OFF": {
       "verdict": "gap",
       "old": "            if clip is not None:",
       "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: `_profiled_cost` passes `clip=(1, -5.0, 10.0)` (sysid.py:721), so `if clip is not None:` -> `if False:` removes the only projection of the profiled C_r iterate, and the loops' other two projections (the `if x.size >= 3:` band) are not this band. It is distinguishable exactly when the profiled iterate leaves [-5, 10], which no driven fit's does. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
     },
-    "custom_components/heatpump_optimizer/sysid.py:734 CLAMP_DROP": {
-      "verdict": "equivalent",
-      "old": "    sigma2 = cost_hat / max(int(rooms.size) - 3, 1)",
-      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); redundant clamp: `rooms` is built by `_slab_series` (sysid.py:607), which refuses fewer than five usable intervals (`len(dts) < 5`, and `dts` is one element shorter than the series), so every call reaching `_slab_ua_profile_halfwidth` passes rooms.size >= 6 and `max(int(rooms.size) - 3, 1)` equals `int(rooms.size) - 3` on both paths. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
-    },
-    "custom_components/heatpump_optimizer/sysid.py:737 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:819 GUARD_OFF": {
       "verdict": "gap",
       "old": "        if _profiled_cost(x_hat[0] + sign * UA_ADOPTION_HALFWIDTH_BAR) <= threshold:",
       "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: the refusal-by-name arm is untested. The mutant answers the Wald half-width where the ruling requires `inf` -- the case where the profiled cost at the bar is still inside the threshold, i.e. the interval extends past the bar. Every driven fit either has an interval far enough past the bar that the Wald width also exceeds it, or one inside it, so the driver's `hw > bar` comparison reads the same either way. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
     },
-    "custom_components/heatpump_optimizer/sysid.py:742 CLAMP_DROP": {
+    "custom_components/heatpump_optimizer/sysid.py:824 CLAMP_DROP": {
       "verdict": "gap",
       "old": "        step = 1e-6 * max(abs(float(x_hat[i])), 1.0)",
       "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: dropping `max(..., 1.0)` shrinks the finite-difference step to `1e-6 * |x_hat[i]|` for any `|x_hat[i]| < 1` (a fitted G below 1), which moves the Jacobian and the published interval in its low digits -- inside the driver's margin to the bar, which reads a comparison and never the number. An assertion on the half-width's value would pin it. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
     },
-    "custom_components/heatpump_optimizer/sysid.py:747 CLAMP_DROP": {
+    "custom_components/heatpump_optimizer/sysid.py:829 CLAMP_DROP": {
       "verdict": "equivalent",
       "old": "    se = float(np.sqrt(max(cov[0, 0], 0.0)))",
       "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); redundant clamp: `cov` is `np.linalg.inv(jac.T @ jac) * sigma2` with sigma2 >= 0, and the (0,0) diagonal of the inverse of a positive-definite Gram matrix is positive (a singular gram raises LinAlgError in both arms, since the mutant changes only the max), so `cov[0, 0] >= 0` for every input that reaches the line and `max(cov[0, 0], 0.0)` selects its first arm in both. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
     },
-    "custom_components/heatpump_optimizer/sysid.py:771 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:853 GUARD_OFF": {
       "verdict": "gap",
       "old": "    if beta2 <= 1e-12:",
       "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: the degenerate-capacity guard is untested. Without it a solution with beta2 <= 1e-12 falls through to `1.0 / beta2` and `-beta1 / beta2 ** 2` -- raising ZeroDivisionError at exactly 0.0 and answering a meaningless-but-finite interval just above it -- and no driven fit's fitted C is near-degenerate. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
     },
-    "custom_components/heatpump_optimizer/sysid.py:783 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:865 GUARD_OFF": {
       "verdict": "gap",
       "old": "    if not np.isfinite(var_ua) or var_ua < 0.0:",
       "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: the non-finite-variance guard is the only thing between a non-finite or negative delta-method variance and `np.sqrt`, which would answer nan where the original refuses by name; on every driven fit var_ua is finite and non-negative, so the arm never fires. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
     },
-    "custom_components/heatpump_optimizer/sysid.py:785 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/sysid.py:867 RETURN_DEL": {
       "verdict": "gap",
       "old": "    return _Z_975 * float(np.sqrt(var_ua) / abs(beta1 / beta2))",
       "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap, and the sharp one: deleting the return makes `_one_state_ua_halfwidth` fall off the end and answer None, which the coordinator's gate reads as 'no interval' and refuses adoption (`hw is None` at coordinator.py:10455) -- while tests/features.py's own collector (features.py:35239) SKIPS a result whose ua_profile_halfwidth is None, so the mutant removes the row the driver would have judged instead of failing it. The one-state interval's value is unpinned throughout. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
-    },
-    "custom_components/heatpump_optimizer/sysid.py:834 GUARD_OFF": {
-      "verdict": "gap",
-      "old": "            if not bool(np.all(np.isfinite(error))):",
-      "reason": "The round-7 D7-01 fix's shifted-prior re-solve keeps the two-state fit's own non-finite guard -- a divergent rollout reads as a large finite cost instead of poisoning the Jacobian (the R6 D7-03 shape at the fit's residual, #1396). `if not bool(np.all(np.isfinite(error))):` -> `if False:` leaves tests/features.py at rc=0 against a baseline of 0: nine further standalone scripts whose recorded closure reaches sysid.py were run on the same mutated tree: seven pass (typing_ruler, doc_claims, finite_boundary, config_flow_steps, deployment_shape, manual_plan, plan_view) and two (structure.py, entities.py) exit 1 on the UNMUTATED tree at that head too, for the coordinator comment block and the stale ledger dispositions this branch fixes -- so neither red carries signal about this mutant. The shifted re-solve starts at the converged fit and moves the intercept prior by one SLAB_INTERCEPT_PRIOR_SD_KW, which is what keeps it inside the finite range on every configuration measured. Recorded as a `gap` rather than equivalent: the two arms are distinguishable, they are simply not reached. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23."
     },
     "custom_components/heatpump_optimizer/optimizer.py:2778 GUARD_OFF": {
       "verdict": "equivalent",
@@ -144,6 +134,16 @@
       "verdict": "equivalent",
       "old": "    if issue_id == ISSUE_SPACE:",
       "reason": "async_create_fix_flow's ISSUE_SPACE arm returns ConfirmRepairFlow(), and with the guard off control falls through to the final `return ConfirmRepairFlow()` -- a fresh instance of the same class either way, so no caller can tell the two apart. Measured: tests/features.py rc=0 at 25497c4b with the mutant applied (R8-P8 round 3, a survivor CI's changed-scope lane drew at 1a8cbcce)."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:816 CLAMP_DROP": {
+      "verdict": "equivalent",
+      "old": "    sigma2 = cost_hat / max(samples - 3, 1)",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); redundant clamp: `rooms` is built by `_slab_series` (sysid.py:607), which refuses fewer than five usable intervals (`len(dts) < 5`, and `dts` is one element shorter than the series), so every call reaching `_slab_ua_profile_halfwidth` passes rooms.size >= 6 and `max(int(rooms.size) - 3, 1)` equals `int(rooms.size) - 3` on both paths. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass). Re-keyed by R8-P5b (#1524): the count now arrives as `samples`, which `_slab_outcome` passes as `int(rooms.size)` of the same `_slab_series` rooms, so the clamp is still redundant for the same reason."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:779 GUARD_OFF": {
+      "verdict": "gap",
+      "old": "        if not bool(np.all(np.isfinite(e))):",
+      "reason": "The round-7 D7-01 fix's shifted-prior re-solve keeps the two-state fit's own non-finite guard -- a divergent rollout reads as a large finite cost instead of poisoning the Jacobian (the R6 D7-03 shape at the fit's residual, #1396). `if not bool(np.all(np.isfinite(error))):` -> `if False:` leaves tests/features.py at rc=0 against a baseline of 0: nine further standalone scripts whose recorded closure reaches sysid.py were run on the same mutated tree: seven pass (typing_ruler, doc_claims, finite_boundary, config_flow_steps, deployment_shape, manual_plan, plan_view) and two (structure.py, entities.py) exit 1 on the UNMUTATED tree at that head too, for the coordinator comment block and the stale ledger dispositions this branch fixes -- so neither red carries signal about this mutant. The shifted re-solve starts at the converged fit and moves the intercept prior by one SLAB_INTERCEPT_PRIOR_SD_KW, which is what keeps it inside the finite range on every configuration measured. Recorded as a `gap` rather than equivalent: the two arms are distinguishable, they are simply not reached. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23."
     }
   },
   "killed_by": {
@@ -232,37 +232,37 @@
       "old": "    return value",
       "reason": "arrived with origin/main, the round-6 non-finite class fix (#1425, commit 8e5d1ace). Deleting the final `return value` makes `_sanitize` answer None for every value the five isinstance branches do not claim -- including the None payload itself and every int -- so a healthy payload is replaced by None at the boundary. Measured: tests/finite_boundary.py rc=0 failed=0 -> rc=1 failed=1. Measured at 467d3d9c, 2026-09-23."
     },
-    "custom_components/heatpump_optimizer/sysid.py:593 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:650 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "            if x.size >= 3:",
       "reason": "arrived with origin/main, the R6 D7-03 fix (#1396/#1397: the log parameters get a loose projection in the three-parameter full solve; blame resolves the line to the merge 97fe0b03). `if x.size >= 3:` -> `if False:` drops the projection of [log UA, log C_r] into SLAB_LOG_UA_*/SLAB_LOG_ROOM_CAP_*, so a drifting sensor can drive the candidate outside the band -- the failure the wave's own drift block (tests/features.py, 'sysid two-state fit survives a drifting room sensor') pins. Measured: tests/features.py rc=0 failed=0 -> rc=1 failed=1. Measured at 467d3d9c, 2026-09-23."
     },
-    "custom_components/heatpump_optimizer/sysid.py:731 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/sysid.py:813 RETURN_DEL": {
       "killed_by": "tests/features.py",
       "old": "        return _cost",
       "reason": "arrived with origin/main, commit 96374e62 (the #1410/#1437 adoption gate). `_profiled_cost` falls off the end and answers None, so `_profiled_cost(x_hat[0] + sign * UA_ADOPTION_HALFWIDTH_BAR) <= threshold` compares None against a float and raises. Measured: tests/features.py rc=0 failed=0 -> rc=1 failed=0 (it exits 1 without a FAILED line -- the mutant is the only difference from the baseline run). Measured at 467d3d9c, 2026-09-23."
     },
-    "custom_components/heatpump_optimizer/sysid.py:748 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/sysid.py:830 RETURN_DEL": {
       "killed_by": "tests/features.py",
       "old": "    return _Z_975 * se",
       "reason": "arrived with origin/main, commit 96374e62 (the #1410/#1437 adoption gate). `_slab_ua_profile_halfwidth` answers None where the Wald half-width belongs, so `_ridge_ua_halfwidths` (tests/features.py:35239) drops the clean window's rows and `_est2_hw_clean` is empty against `_est2_hw_clean and _est2_hw_noisy`'s requirement of a non-empty list. Measured: tests/features.py rc=0 failed=0 -> rc=1 failed=1 (\"1 of 3099 FEATURE CHECKS FAILED\"). Re-measured at 467d3d9c, 2026-09-23."
     },
-    "custom_components/heatpump_optimizer/sysid.py:844 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/sysid.py:906 RETURN_DEL": {
       "killed_by": "tests/features.py",
       "old": "        return abs(float(x[0]) - float(x_hat[0]))",
       "reason": "The round-7 D7-01 fix's local re-solve of the two-state fit at a shifted intercept prior. `return abs(float(x[0]) - float(x_hat[0]))` -> `pass` (the helper returns None, the combiner's max() raises, and the fit raises out of _finish) makes tests/features.py exit 1 against a baseline exit of 0, on `a gate-passing plant arms WITH its slab pair recorded for the two-state fit, and the fit that ran is the slab fit`. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23."
     },
-    "custom_components/heatpump_optimizer/sysid.py:872 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:934 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if profile_halfwidth is None:",
       "reason": "The round-7 D7-01 fix's gate combiner. `if profile_halfwidth is None:` -> `if False:` (an absent profile reaches np.hypot against None, which raises, instead of refusing the fit) makes tests/features.py exit 1 against a baseline exit of 0, on `round-7 D7-01 (#1459): the gate's combiner answers all four arms of its own contract`. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23."
     },
-    "custom_components/heatpump_optimizer/sysid.py:874 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:936 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if prior_halfwidth is None:",
       "reason": "The round-7 D7-01 fix's gate combiner; the arm every fabricated result in tests/features.py reaches (a harness result publishes no prior term). `if prior_halfwidth is None:` -> `if False:` (np.hypot against None raises) makes tests/features.py exit 1 against a baseline exit of 0, on `a pinned experiment is taken at full weight, not blended against the passive learner`. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23. Seven checks failed in total, all in the adoption block."
     },
-    "custom_components/heatpump_optimizer/sysid.py:876 RETURN_DEL": {
+    "custom_components/heatpump_optimizer/sysid.py:938 RETURN_DEL": {
       "killed_by": "tests/features.py",
       "old": "    return float(np.hypot(profile_halfwidth, prior_halfwidth))",
       "reason": "The round-7 D7-01 fix's gate combiner. `return float(np.hypot(profile_halfwidth, prior_halfwidth))` -> `pass` (no interval at all, so the gate refuses every fit) makes tests/features.py exit 1 against a baseline exit of 0, on `round-7 D7-01 (#1459): the gate does not hand the learner the whole intercept prior's bias`. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23."
@@ -567,32 +567,32 @@
       "old": "        if not decision.admit:",
       "reason": "R8-P5 (#1523/#1525) added this site. `if not decision.admit:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 2 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `#1525: no finished experiment stays published as completed or 'ok' -- adopted means applied, and each refusal publishes and logs its own reason`; `#1525: the admits are exactly the in-bar fits (a NaN width is refused, which 'hw > bar' let through)`."
     },
-    "custom_components/heatpump_optimizer/sysid.py:909 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:971 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if not result.completed:",
       "reason": "R8-P5 (#1523/#1525) added this site. `if not result.completed:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 2 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `#1525: the cases drive every return of adoption_decision (the barrier covers each path the gate has, including one added later)`; `#1525: the admits are exactly the in-bar fits (a NaN width is refused, which 'hw > bar' let through)`."
     },
-    "custom_components/heatpump_optimizer/sysid.py:914 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:976 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if hw is None:",
       "reason": "R8-P5 (#1523/#1525) added this site. `if hw is None:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 2 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `#1525: the cases drive every return of adoption_decision (the barrier covers each path the gate has, including one added later)`; `#1525: no finished experiment stays published as completed or 'ok' -- adopted means applied, and each refusal publishes and logs its own reason`."
     },
-    "custom_components/heatpump_optimizer/sysid.py:916 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:978 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if not hw <= UA_ADOPTION_HALFWIDTH_BAR:",
       "reason": "R8-P5 (#1523/#1525) added this site. `if not hw <= UA_ADOPTION_HALFWIDTH_BAR:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 4 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `a wide-interval fit, an unfinished run, a fit with no UA and a zero nameplate all adopt nothing`; `#1525: the cases drive every return of adoption_decision (the barrier covers each path the gate has, including one added later)`; `#1525: no finished experiment stays published as completed or 'ok' -- adopted means applied, and each refusal publishes and logs its own reason`; `#1525: the admits are exactly the in-bar fits (a NaN width is refused, which 'hw > bar' let through)`."
     },
-    "custom_components/heatpump_optimizer/sysid.py:924 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:986 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if not identifiable:",
       "reason": "R8-P5 (#1523/#1525) added this site. `if not identifiable:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 2 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `#1525: the cases drive every return of adoption_decision (the barrier covers each path the gate has, including one added later)`; `#1525: the admits are exactly the in-bar fits (a NaN width is refused, which 'hw > bar' let through)`."
     },
-    "custom_components/heatpump_optimizer/sysid.py:926 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:988 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if result.heat_loss_kw_per_c is None:",
       "reason": "R8-P5 (#1523/#1525) added this site. `if result.heat_loss_kw_per_c is None:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 3 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `a wide-interval fit, an unfinished run, a fit with no UA and a zero nameplate all adopt nothing`; `#1525: the cases drive every return of adoption_decision (the barrier covers each path the gate has, including one added later)`; `#1525: no finished experiment stays published as completed or 'ok' -- adopted means applied, and each refusal publishes and logs its own reason`."
     },
-    "custom_components/heatpump_optimizer/sysid.py:932 GUARD_OFF": {
+    "custom_components/heatpump_optimizer/sysid.py:994 GUARD_OFF": {
       "killed_by": "tests/features.py",
       "old": "    if not base_u > 1e-6:",
       "reason": "R8-P5 (#1523/#1525) added this site. `if not base_u > 1e-6:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 3 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `a wide-interval fit, an unfinished run, a fit with no UA and a zero nameplate all adopt nothing`; `#1525: the cases drive every return of adoption_decision (the barrier covers each path the gate has, including one added later)`; `#1525: no finished experiment stays published as completed or 'ok' -- adopted means applied, and each refusal publishes and logs its own reason`."
