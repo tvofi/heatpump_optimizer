@@ -1,0 +1,197 @@
+[
+  {
+    "id": "m01",
+    "file": "grid_fee.py",
+    "note": "negative-rate guard defanged",
+    "old": "if any(rule.rate < 0.0 for rule in rules):",
+    "new": "if any(rule.rate < -999.0 for rule in rules):",
+    "scripts": {
+      "tests/structure.py": {
+        "rc": 0,
+        "wall_s": 7.86
+      }
+    },
+    "killed_by": null,
+    "survivor": true
+  },
+  {
+    "id": "m02",
+    "file": "grid_fee.py",
+    "note": "implausible-fee bound defanged",
+    "old": "if any(rule.rate > IMPLAUSIBLE_FEE_SEK_PER_KWH for rule in rules):",
+    "new": "if any(rule.rate > IMPLAUSIBLE_FEE_SEK_PER_KWH * 1000 for rule in rules):",
+    "scripts": {
+      "tests/structure.py": {
+        "rc": 0,
+        "wall_s": 8.9
+      }
+    },
+    "killed_by": null,
+    "survivor": true
+  },
+  {
+    "id": "m03",
+    "file": "grid_fee.py",
+    "note": "min_component: < to <= (tie source attribution)",
+    "old": "if rule.rate < lowest:",
+    "new": "if rule.rate <= lowest:",
+    "scripts": {
+      "tests/structure.py": {
+        "rc": 0,
+        "wall_s": 7.97
+      }
+    },
+    "killed_by": null,
+    "survivor": true
+  },
+  {
+    "id": "m04",
+    "file": "legionella.py",
+    "note": "legionella debounce window defanged",
+    "old": "if previous is not None and (now - previous).total_seconds() < 3600:",
+    "new": "if previous is not None and (now - previous).total_seconds() < 0:",
+    "scripts": {
+      "tests/structure.py": {
+        "rc": 0,
+        "wall_s": 6.94
+      }
+    },
+    "killed_by": null,
+    "survivor": true
+  },
+  {
+    "id": "m05",
+    "file": "legionella.py",
+    "note": "hours-since clamp removed (can go negative on clock skew)",
+    "old": "return max(0.0, since.total_seconds() / 3600.0)",
+    "new": "return since.total_seconds() / 3600.0",
+    "scripts": {
+      "tests/structure.py": {
+        "rc": 0,
+        "wall_s": 6.07
+      }
+    },
+    "killed_by": null,
+    "survivor": true
+  },
+  {
+    "id": "m06",
+    "file": "tariff.py",
+    "note": "offpeak_factor clamp to [0,1] removed",
+    "old": "return float(min(1.0, max(0.0, self.offpeak_factor)))",
+    "new": "return float(self.offpeak_factor)",
+    "scripts": {
+      "tests/structure.py": {
+        "rc": 0,
+        "wall_s": 5.98
+      }
+    },
+    "killed_by": null,
+    "survivor": true
+  },
+  {
+    "id": "m07",
+    "file": "tariff.py",
+    "note": "negative house_power_kw no longer rejected",
+    "old": "if not np.isfinite(house_power_kw) or house_power_kw < 0:",
+    "new": "if not np.isfinite(house_power_kw):",
+    "scripts": {
+      "tests/structure.py": {
+        "rc": 0,
+        "wall_s": 7.28
+      }
+    },
+    "killed_by": null,
+    "survivor": true
+  },
+  {
+    "id": "m08",
+    "file": "tariff.py",
+    "note": "zero window factor no longer short-circuited",
+    "old": "if self._window_factor <= 0.0:",
+    "new": "if self._window_factor < 0.0:",
+    "scripts": {
+      "tests/structure.py": {
+        "rc": 0,
+        "wall_s": 5.93
+      }
+    },
+    "killed_by": null,
+    "survivor": true
+  },
+  {
+    "id": "m09",
+    "file": "ledger.py",
+    "note": "ledger near-zero baseline guard widened to allow 0..0.01",
+    "old": "if baseline_sek <= 0.01:",
+    "new": "if baseline_sek <= -0.01:",
+    "scripts": {
+      "tests/structure.py": {
+        "rc": 0,
+        "wall_s": 8.41
+      }
+    },
+    "killed_by": null,
+    "survivor": true
+  },
+  {
+    "id": "m10",
+    "file": "ledger.py",
+    "note": "retention trim: max(0,...) removed (negative slice wraps)",
+    "old": "extra = sorted(self.months)[: max(0, len(self.months) - KEEP_MONTHS)]",
+    "new": "extra = sorted(self.months)[: len(self.months) - KEEP_MONTHS]",
+    "scripts": {
+      "tests/structure.py": {
+        "rc": 0,
+        "wall_s": 7.64
+      }
+    },
+    "killed_by": null,
+    "survivor": true
+  },
+  {
+    "id": "m11",
+    "file": "services.py",
+    "note": "set_thermal_params dhw-min-deadband boundary tightened (> to >=)",
+    "old": "            if float(minimum) > ceiling:",
+    "new": "            if float(minimum) >= ceiling:",
+    "scripts": {
+      "tests/structure.py": {
+        "rc": 0,
+        "wall_s": 8.12
+      }
+    },
+    "killed_by": null,
+    "survivor": true
+  },
+  {
+    "id": "m12",
+    "file": "services.py",
+    "note": "apply_schedule dhw-min-deadband boundary tightened (duplicate guard, > to >=)",
+    "old": "            if wanted > ceiling:",
+    "new": "            if wanted >= ceiling:",
+    "scripts": {
+      "tests/structure.py": {
+        "rc": 0,
+        "wall_s": 9.58
+      }
+    },
+    "killed_by": null,
+    "survivor": true
+  },
+  {
+    "id": "m13",
+    "file": "__init__.py",
+    "note": "stale-handover staleness guard widened 1000x (reload could reuse an ancient plan)",
+    "old": "    if age_min > interval_minutes:\n        return None",
+    "new": "    if age_min > interval_minutes * 1000:\n        return None",
+    "scripts": {
+      "tests/structure.py": {
+        "rc": 0,
+        "wall_s": 7.13
+      }
+    },
+    "killed_by": null,
+    "survivor": true
+  }
+]
