@@ -175,7 +175,7 @@ and the admitted controls.
     that pull request (`closure.py check`: "selectable script(s) with NO
     recording").
 - **What a pin does not reach:**
-  - None of the pinned graders' jobs is a required context: not
+  - None of the three graders' jobs is a required context: not
     `coverage-ratchet`, not `nightly-status`, not `delivery-status`. So a red
     from the base's grader blocks nothing by itself either. It is enforced
     only by answering it in the body, which `pr-contract` requires, and by
