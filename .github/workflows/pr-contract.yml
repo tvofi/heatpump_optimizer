@@ -75,6 +75,11 @@ jobs:
       - name: Show the App approval refusing its own fixtures
         run: bash tools/audit/app_approve.sh --self-test
 
+      # The App verdict poster (decision 0013): its verdict grammar, head
+      # reads, identity read-back and token cleanup, over the same stubs.
+      - name: Show the App verdict poster refusing its own fixtures
+        run: bash tools/audit/app_comment.sh --self-test
+
       # #679: `## Figures` asks for the command that printed each figure, and
       # nothing looked at it. The section was a paste. #715 round seven is the
       # defect: an enumerator passing `--arg` to `gh api`, which has no such
