@@ -93,6 +93,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import NamedTuple
 
+# The recorded-number barrier every ratchet shares (#1583's review).
+from structure import cap_problem
+
 ROOT = Path(__file__).resolve().parent.parent
 PKG = "custom_components/heatpump_optimizer/"
 PRODUCTION = ROOT / PKG
@@ -630,23 +633,33 @@ def completeness_problems(budgets: dict, sites: list[dict]) -> list[str]:
 
 
 def cap_problems(budgets: dict) -> list[str]:
-    """Every fraction cap that cannot refuse, one sentence each.
+    """Every recorded cap that cannot refuse, one sentence each.
 
     `rate = survivors/evaluated` is a fraction in [0, 1], so a cap of 1.0
     makes `if rate > cap` unreachable: a run in which every mutant survives
     still prints PASSED. A cap has to be saturable to be a gate.
+
+    Before that, each cap passes `structure.cap_problem`, the barrier every
+    ratchet shares: `rate > nan` and `len(unpinned) > nan` are both False, so
+    a NaN in either row was an unlimited raise this pre-pass let through
+    (#1583's review). `unpinned_sites` may be absent -- the bootstrap
+    `ratchet_refusal` documents -- but a present one is a non-negative count.
     """
+    where = BUDGETS.name
+    fractions = budgets.get("max_survivor_fraction")
     out: list[str] = []
-    for scope, value in sorted(budgets.get("max_survivor_fraction", {}).items()):
-        try:
-            f = float(value)
-        except (TypeError, ValueError):
-            out.append(f"max_survivor_fraction[{scope}]={value!r} is not a "
-                       f"number")
-            continue
-        if f >= 1.0:
-            out.append(f"max_survivor_fraction[{scope}]={f} is unsatisfiable: "
-                       f"a survivor rate in [0, 1] can never exceed it")
+    for scope in ("changed", "full"):
+        problem = cap_problem(where, fractions, scope, high=1.0)
+        if problem:
+            out.append(problem.replace(f": {scope}", f": max_survivor_fraction[{scope}]", 1))
+        elif fractions[scope] >= 1.0:
+            out.append(f"max_survivor_fraction[{scope}]={fractions[scope]} is "
+                       f"unsatisfiable: a survivor rate in [0, 1] can never "
+                       f"exceed it")
+    if "unpinned_sites" in budgets:
+        problem = cap_problem(where, budgets, "unpinned_sites", integer=True)
+        if problem:
+            out.append(problem)
     return out
 
 

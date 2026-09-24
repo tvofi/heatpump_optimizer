@@ -112,6 +112,9 @@ import tempfile
 import tomllib
 from pathlib import Path
 
+# The recorded-number barrier every ratchet shares (#1583's review).
+from structure import cap_problem
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PACKAGE_REL = "custom_components/heatpump_optimizer"
 PACKAGE_DIR = REPO_ROOT / PACKAGE_REL
@@ -189,6 +192,42 @@ class Report:
 
 def budgets() -> dict:
     return json.loads(BUDGET_FILE.read_text())
+
+
+def budget_problems(budget: dict) -> list[str]:
+    """Every recorded count here that cannot serve as a cap.
+
+    Through `structure.cap_problem`, the barrier every ratchet shares: `ignores
+    > nan` is False, so a NaN `type_ignores` or census row was an unlimited
+    raise this ruler printed as "did not grow" (#1583's review). Every number
+    is a non-negative integer count. `census` may be null -- the documented
+    not-yet-recorded state the `typing` job refuses -- but a recorded one has
+    an `errors` count and a `by_code` table of counts.
+    """
+    where = BUDGET_FILE.name
+    out = [cap_problem(where, budget, "type_ignores", integer=True)]
+    census = budget.get("census")
+    if census is not None:
+        out.append(cap_problem(where, census, "errors", integer=True))
+        by_code = census.get("by_code") if isinstance(census, dict) else None
+        if not isinstance(by_code, dict):
+            out.append(f"{where}: census.by_code={by_code!r} is not a table of counts")
+        else:
+            out.extend(cap_problem(where, by_code, code, integer=True)
+                       for code in sorted(by_code))
+    return [p for p in out if p]
+
+
+def budget_refused(report: Report, budget: dict) -> bool:
+    """Refuse, as a failed check, a budget ``budget_problems`` rejects."""
+    problems = budget_problems(budget)
+    report.check(
+        "every recorded typing count is a finite non-negative integer",
+        not problems,
+        "; ".join(problems) + ". Restore the recorded value; no comparison "
+        "below can use it",
+    )
+    return bool(problems)
 
 
 def head_sha() -> str:
@@ -666,6 +705,40 @@ def selftest(report: Report, budget: dict) -> None:
         "not the census (#504)",
     )
 
+    # The barrier's arms (#1583's review): every malformed spelling of each
+    # recorded count is refused, and the committed budget -- the null
+    # control -- is not.
+    bad = {"nan": float("nan"), "inf": float("inf"), "-inf": float("-inf"),
+           "null": None, "string": "0", "string-nan": "nan", "true": True,
+           "negative": -1, "float": 0.5}
+    accepted = []
+    for field in ("type_ignores", "census.errors", "census.by_code"):
+        for name, value in [*bad.items(), ("absent", ...)]:
+            probe_budget = json.loads(json.dumps(budget))
+            if field == "census.by_code":
+                probe_budget.setdefault("census", {"errors": 0, "by_code": {}})
+                probe_budget["census"]["by_code"]["probe-code"] = value
+            else:
+                node = probe_budget
+                if field.startswith("census."):
+                    node = probe_budget.setdefault(
+                        "census", {"errors": 0, "by_code": {}})
+                key = field.rsplit(".", 1)[-1]
+                if value is ...:
+                    node.pop(key, None)
+                else:
+                    node[key] = value
+            if value is ... and field == "census.by_code":
+                continue
+            if not budget_problems(probe_budget):
+                accepted.append(f"{field}={name}")
+    report.check(
+        "the budget barrier refuses every non-finite or malformed count",
+        not accepted and budget_problems(budget) == [],
+        f"accepted: {accepted}; committed budget: {budget_problems(budget)} "
+        "(the null control)",
+    )
+
     # The lock check's null control: a budget no lock can agree with.
     report.check(
         "the lock check refuses a lock that disagrees with the budget",
@@ -685,6 +758,8 @@ def selftest(report: Report, budget: dict) -> None:
 
 
 def source_checks(report: Report, budget: dict) -> None:
+    if budget_refused(report, budget):
+        return
     ignores, where = count_suppressions()
     for line in where[:20]:
         report.note("suppression", line)
@@ -739,6 +814,8 @@ def source_checks(report: Report, budget: dict) -> None:
 
 
 def mypy_checks(report: Report, budget: dict, emit: str | None) -> None:
+    if budget_refused(report, budget):
+        return
     if not check_pins(report, budget):
         print()
         print("REFUSING to measure. A count from an unpinned tool is not the")

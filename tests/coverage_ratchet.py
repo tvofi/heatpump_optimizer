@@ -73,6 +73,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+# The recorded-number barrier every ratchet shares (#1583's review).
+from structure import cap_problem
+
 ROOT = Path(__file__).resolve().parent.parent
 BUDGETS = ROOT / "tests" / "coverage_budgets.json"
 PRODUCTION = ROOT / "custom_components" / "heatpump_optimizer"
@@ -184,6 +187,24 @@ def load_budgets() -> dict:
     return json.loads(BUDGETS.read_text())
 
 
+def budget_problems(budgets: dict) -> list[str]:
+    """Every recorded number here that cannot serve as a floor or cap.
+
+    Through `structure.cap_problem`, the barrier every ratchet shares: `raw <
+    nan` is False, so a NaN floor refused nothing, and the module floor's
+    `p < nan` left every module above it (#1583's review). The percentages are
+    finite numbers in [0, 100]; the pragma cap is a non-negative count. All
+    five rows are required: the two floors the register keys to already fail
+    when absent under `--coverage`, and without it they were never read.
+    """
+    where = BUDGETS.name
+    out = [cap_problem(where, budgets, key, high=100.0)
+           for key in ("package_percent_floor", "package_percent_ceiling",
+                       "config_flow_percent_floor", "module_percent_floor")]
+    out.append(cap_problem(where, budgets, "pragmas", integer=True))
+    return [p for p in out if p]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--coverage", default="", help="coverage.json from the instrument")
@@ -200,6 +221,12 @@ def main() -> int:
     args = ap.parse_args()
 
     budgets = load_budgets()
+    malformed = budget_problems(budgets)
+    if malformed:
+        print("COVERAGE RATCHET REFUSED -- a recorded number that cannot be compared:")
+        for problem in malformed:
+            print(f"  - {problem}")
+        return 1
     floor = float(budgets["package_percent_floor"])
     ceiling = float(budgets["package_percent_ceiling"])
     pragma_cap = int(budgets["pragmas"])

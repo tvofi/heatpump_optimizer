@@ -45,6 +45,8 @@ import tracemalloc
 from datetime import datetime, timedelta
 
 from harness import Results
+# The recorded-number barrier every ratchet shares (#1583's review).
+from structure import cap_problem
 
 # Pinned BEFORE numpy is imported, because OpenBLAS reads these once when
 # the library loads and ignores them afterwards. harness only imports
@@ -1452,14 +1454,62 @@ def dhw_shortfall(run: dict) -> float:
 # ===========================================================================
 # The per-scenario budget table (D9-03) and the memory pass (D9-04)
 # ===========================================================================
-def load_budget_table() -> dict:
-    """The committed per-scenario budgets, or {} when not yet recorded."""
+#: The recorded fields of one scenario's row. Each is a strictly positive
+#: finite number: a zero or negative one already reads as unrecorded (and
+#: fails), and a NaN or Infinity one compared as within budget.
+BUDGET_TABLE_FIELDS = ("ratio", "rss_attrib_mb", "rss_peak_mb", "traced_peak_mb")
+
+
+def budget_table_problems(table: dict) -> list[str]:
+    """Every recorded cost in the table that cannot serve as a budget.
+
+    Through `structure.cap_problem`, the barrier every ratchet shares (#1583's
+    review): `ratio > max(nan * factor, floor)` is False -- `max` returns its
+    NaN first argument -- so a NaN ratio passed any regression, and a NaN or
+    Infinity memory figure did the same for its threshold. A field that is
+    ABSENT is left to the check run, which already fails it as unrecorded;
+    `coverage_floor_override` is validated where it is read and falls back to
+    the stricter literal when malformed.
+    """
+    out: list[str] = []
+    for label, entry in sorted(table.items()):
+        if label == "coverage_floor_override":
+            continue
+        if not isinstance(entry, dict):
+            out.append(f"{BUDGET_TABLE_PATH}: {label}={entry!r} is not a "
+                       f"scenario row")
+            continue
+        for field in BUDGET_TABLE_FIELDS:
+            if field in entry:
+                problem = cap_problem(BUDGET_TABLE_PATH, entry, field,
+                                      low_open=True)
+                if problem:
+                    out.append(problem.replace(": ", f": {label} ", 1))
+    return out
+
+
+def load_budget_table(path: str = BUDGET_TABLE_PATH) -> dict:
+    """The committed per-scenario budgets, or {} when not yet recorded.
+
+    A table that parses but carries a cost no comparison can use is REFUSED
+    here, at the one place every consumer reads it through, rather than
+    returned to comparisons that would read it as within budget.
+    """
     try:
-        with open("tests/stress_budgets.json", encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             table = json.load(fh)
     except (OSError, ValueError):
         return {}
-    return table if isinstance(table, dict) else {}
+    if not isinstance(table, dict):
+        return {}
+    problems = budget_table_problems(table)
+    if problems:
+        raise SystemExit(
+            "stress budget table REFUSED -- a recorded cost that cannot be "
+            "compared:\n  - " + "\n  - ".join(problems)
+            + "\nRestore the recorded value, or re-record with "
+            "`stress.py --record-budgets`.")
+    return table
 
 
 def print_budget_table(table: dict) -> None:
