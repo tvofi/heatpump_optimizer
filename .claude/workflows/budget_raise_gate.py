@@ -29,7 +29,9 @@ in that file's SCHEMA whose key pattern matches it:
 
 A leaf no rule matches is `frozen`, and a budget file with no SCHEMA entry is
 entirely `frozen`: what the check cannot sign as routine counts as a raise.
-A file that does not parse at either end is a raise.
+A file that does not parse at either end is a raise, and so is a cap or floor
+whose head value is not a finite number (NaN, an infinity, a string): the
+ratchets compare against NaN and infinity as if they were caps, and pass.
 
 WHAT IT DOES WITH ONE. No raise: exit 0, and the API is never asked. A raise:
 exit 0 only when the owner's latest decisive review (APPROVED,
@@ -55,7 +57,10 @@ from __future__ import annotations
 
 import fnmatch
 import json
+import math
 import os
+import shutil
+import tempfile
 import subprocess
 import sys
 
@@ -129,6 +134,10 @@ def _num(v) -> bool:
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
+def _finite(v) -> bool:
+    return _num(v) and math.isfinite(v)
+
+
 def flatten(obj, prefix: tuple[str, ...] = ()) -> dict[tuple[str, ...], object]:
     """Leaves by key path. A dict recurses (an empty one has no leaves); a
     list or a scalar is one leaf."""
@@ -161,6 +170,10 @@ def _leaf_raise(kind: str, key: str, old, new, have_old: bool, have_new: bool,
     """Why this leaf's change is a raise, or None when it is not one."""
     if kind == FREE or (have_old and have_new and old == new):
         return None
+    # `json` reads NaN and Infinity, and the ratchets compare against them as
+    # caps: `x <= nan` and `x <= inf` never refuse, so either is no cap at all.
+    if kind in (MAX, MAX0, MIN, OVERRIDE, CAPFILE) and have_new and not _finite(new):
+        return f"{key}: {old!r} -> {new!r} (not a finite number, so no cap at all)"
     if kind == FROZEN:
         return f"{key}: {old!r} -> {new!r} (a pinned value the gate cannot sign as routine)"
     if kind == SUPERSET:
@@ -408,6 +421,28 @@ def self_test() -> int:
     check("policy: a cap dropped while its file stays is a raise",
           raised(P, p0, {**p0, "files": {"CLAUDE.md": 211}}), True)
 
+    # A non-finite head value is no cap at all: each ratchet compares against
+    # it and passes (`ok cut_views 110 <= nan`).
+    for label, bad in (("NaN", float("nan")), ("+inf", float("inf")), ("-inf", float("-inf")),
+                       ("a string", "110"), ("null", None), ("a bool", True)):
+        check(f"structure: a metric set to {label} is a raise", raised(S, s0, {**s0, "cut_views": bad}), True)
+        check(f"coverage: a floor set to {label} is a raise",
+              raised(C, c0, {**c0, "package_percent_floor": bad}), True)
+    check("structure: a new metric at NaN is a raise", raised(S, s0, {**s0, "new_metric": float("nan")}), True)
+    check("structure: a new metric as a string is a raise", raised(S, s0, {**s0, "new_metric": "5"}), True)
+    check("mutation: the survivor fraction at +inf is a raise",
+          raised(M, m0, {**m0, "max_survivor_fraction": {"changed": float("inf"), "full": 0.3}}), True)
+    check("stress: a ratio at NaN is a raise",
+          raised(T, t0, {**t0, "flat/1z/dhw": {**t0["flat/1z/dhw"], "ratio": float("nan")}}), True)
+    check("stress: the override floor at -inf is a raise",
+          raised(T, t0, {**t0, "coverage_floor_override": {"cites": "ruling", "floor": float("-inf")}}), True)
+    check("typing: a new error code at +inf is a raise",
+          raised(Y, y0, {**y0, "census": {**y0["census"], "by_code": {"x": float("inf")}}}), True)
+    check("policy: a per-file cap at NaN is a raise",
+          raised(P, p0, {**p0, "files": {"CLAUDE.md": float("nan"), "old.md": 10}}), True)
+    check("a NaN base lowered to a number is not a raise (null control)",
+          raised(S, {**s0, "cut_views": float("nan")}, s0), False)
+
     U = "tests/new_budgets.json"
     check("unknown file: a change with no schema is a raise", raised(U, {"x": 1}, {"x": 0}), True)
     check("unknown file: added is a raise", raised(U, None, {"x": 1}), True)
@@ -427,7 +462,10 @@ def self_test() -> int:
             if isinstance(reviews, Exception):
                 raise reviews
             return reviews
-        return decide(raises, fn, H)[0]
+        try:
+            return decide(raises, fn, H)[0]
+        except Exception as e:  # an escape is a verdict too, and never 0 or 1
+            return f"raised {type(e).__name__}"
 
     R = ["x: 1 -> 2 (a cap went up)"]
     check("no raise: passes with no review at all (null control)", rc([], []), 0)
@@ -492,8 +530,158 @@ def self_test() -> int:
         loose = file_raises(p, text, _j(moved(-1)))
         check(f"{p}: every cap moved the loose way is a raise", len(loose), len(caps))
 
+    for name, got, want in _end_to_end():
+        check(name, got, want)
+
     print(f"budget_raise_gate self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
+
+
+# --- the entry point, end to end ---------------------------------------------
+#
+# The checks above drive the pure functions. These run this file as CI runs it
+# -- `python3 -I <file> --base --head --pr`, its exit status read -- over a
+# throwaway repository with a fork point, a base that moved after it and a
+# head, and a stub `gh` first on PATH that serves a canned reviews listing and
+# logs every call. So `gate()`, `main()` and the `sys.exit` line are graded by
+# the status the required context would report.
+
+_STUB_GH = """#!/usr/bin/env python3
+import json, os, sys
+d = os.environ["BRG_STUB"]
+with open(os.path.join(d, "calls"), "a") as f:
+    f.write(json.dumps(sys.argv[1:]) + "\\n")
+spec = json.load(open(os.path.join(d, "reviews.json")))
+sys.stdout.write(json.dumps(spec["pages"]))
+sys.exit(spec["rc"])
+"""
+
+
+def _end_to_end() -> list[tuple[str, object, object]]:
+    out: list[tuple[str, object, object]] = []
+    me = os.path.abspath(__file__)
+    root = tempfile.mkdtemp(prefix="brg-e2e-")
+    try:
+        repo, stub = os.path.join(root, "repo"), os.path.join(root, "stub")
+        os.makedirs(repo)
+        os.makedirs(stub)
+        with open(os.path.join(stub, "gh"), "w") as f:
+            f.write(_STUB_GH)
+        os.chmod(os.path.join(stub, "gh"), 0o755)
+        env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "GH_", "GITHUB_"))}
+        env.update(PATH=stub + os.pathsep + os.environ.get("PATH", ""), BRG_STUB=stub,
+                   GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t",
+                   GIT_COMMITTER_EMAIL="t@t", GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+
+        def git(*a: str) -> str:
+            return subprocess.run(["git", *a], cwd=repo, env=env, capture_output=True,
+                                  text=True, check=True).stdout.strip()
+
+        def write(files: dict) -> None:
+            for rel, doc in files.items():
+                full = os.path.join(repo, rel)
+                if doc is None:
+                    if os.path.exists(full):
+                        os.remove(full)
+                    continue
+                os.makedirs(os.path.dirname(full), exist_ok=True)
+                with open(full, "w") as f:
+                    f.write(doc if isinstance(doc, str) else _j(doc))
+
+        def commit(files: dict, msg: str) -> str:
+            write(files)
+            git("add", "-A")
+            git("commit", "-q", "--allow-empty", "-m", msg)
+            return git("rev-parse", "HEAD")
+
+        S, P = "tests/structure_budgets.json", ".claude/workflows/policy_budgets.json"
+        s0 = {"coordinator_loc": 9062, "cut_views": 110, "recorded_at": "a"}
+        p0 = {"always_loaded_tokens": 3349, "files": {"A.md": 10, "gone.md": 5}}
+        git("init", "-q", "-b", "main")
+        fork = commit({S: s0, P: p0, "A.md": "a\n", "gone.md": "g\n",
+                       "tests/zz_budgets.json": {"x": 1}}, "fork")
+        # main moves on after the fork and TIGHTENS a cap: the head, which never
+        # touched it, is above the base tip but not above the fork point.
+        base = commit({S: {**s0, "coordinator_loc": 9000}}, "main tightens")
+
+        def branch(name: str, files: dict) -> str:
+            git("checkout", "-q", "-B", name, fork)
+            head = commit(files, name)
+            git("checkout", "-q", "main")
+            return head
+
+        routine = branch("routine", {S: {**s0, "cut_views": 100, "recorded_at": "b"},
+                                     P: {**p0, "files": {"A.md": 10}}, "gone.md": None})
+        raise_ = branch("raise", {S: {**s0, "cut_views": 111}})
+        nan = branch("nan", {S: '{"coordinator_loc": 9062, "cut_views": NaN, "recorded_at": "a"}'})
+        added = branch("added", {"tests/new_budgets.json": {"y": 1}})
+        deleted = branch("deleted", {"tests/zz_budgets.json": None})
+        kept = branch("kept-file", {P: {**p0, "files": {"A.md": 10}}})
+        own = {"login": OWNER_LOGIN, "id": OWNER_ID, "type": OWNER_TYPE}
+
+        def run(head: str, pages=None, rc=0, argv=None, repo_env=None):
+            with open(os.path.join(stub, "reviews.json"), "w") as f:
+                json.dump({"pages": pages if pages is not None else [[]], "rc": rc}, f)
+            open(os.path.join(stub, "calls"), "w").close()
+            e = dict(env)
+            if repo_env:
+                e["GITHUB_REPOSITORY"] = repo_env
+            r = subprocess.run([sys.executable, "-I", me, *(argv or ["--base", base, "--head", head, "--pr", "7"])],
+                               cwd=repo, env=e, capture_output=True, text=True)
+            calls = [json.loads(x) for x in open(os.path.join(stub, "calls")).read().splitlines()]
+            return r.returncode, r.stdout + r.stderr, calls
+
+        def approved(sha: str) -> dict:
+            return {"user": own, "state": "APPROVED", "commit_id": sha}
+
+        rc_, text, calls = run(routine)
+        out.append(("e2e: a routine edit exits 0 (null control)", rc_, 0))
+        out.append(("e2e: ... reads no reviews", calls, []))
+        out.append(("e2e: ... compares at the fork point, not the moved base",
+                    "budget_raises=0" in text and f"merge base {fork[:12]}" in text, True))
+        out.append(("e2e: ... and reports every budget file it read",
+                    "3 budget file(s)" in text, True))
+        rc_, text, calls = run(raise_)
+        out.append(("e2e: an unapproved raise exits 1", rc_, 1))
+        out.append(("e2e: ... names the raise", "cut_views: 110 -> 111" in text, True))
+        out.append(("e2e: ... after asking for this PR's reviews, every page",
+                    calls, [["api", "--paginate", "--slurp",
+                             "repos/tvofi/heatpump_optimizer/pulls/7/reviews?per_page=100"]]))
+        rc_, text, calls = run(raise_, pages=[[approved(fork)], [approved(raise_)]])
+        out.append(("e2e: a raise approved on the head, on the second page, exits 0", rc_, 0))
+        rc_, _, _ = run(raise_, pages=[[approved(raise_)], [approved(fork)]])
+        out.append(("e2e: a raise whose latest approval is stale exits 1", rc_, 1))
+        rc_, _, _ = run(raise_, pages=[[approved(raise_)]], rc=1)
+        out.append(("e2e: a reviews read that exits non-zero exits 1, whatever it printed", rc_, 1))
+        rc_, text, _ = run(nan, pages=[[]])
+        out.append(("e2e: a cap edited to NaN exits 1", rc_, 1))
+        rc_, text, _ = run(added)
+        out.append(("e2e: an added budget file with no schema exits 1",
+                    (rc_, "tests/new_budgets.json: y: None -> 1" in text), (1, True)))
+        rc_, text, _ = run(deleted)
+        out.append(("e2e: a deleted budget file exits 1",
+                    (rc_, "tests/zz_budgets.json: x: 1 -> None" in text), (1, True)))
+        rc_, text, _ = run(kept)
+        out.append(("e2e: a per-file cap dropped while the file stays exits 1",
+                    (rc_, "files.gone.md" in text), (1, True)))
+        rc_, _, calls = run(raise_, argv=["--base", base, "--head", raise_, "--pr", "9", "--repo", "o/r"])
+        out.append(("e2e: --repo is the repository asked",
+                    [c[-1] for c in calls], ["repos/o/r/pulls/9/reviews?per_page=100"]))
+        rc_, _, calls = run(raise_, repo_env="e/f")
+        out.append(("e2e: without --repo, GITHUB_REPOSITORY is",
+                    [c[-1] for c in calls], ["repos/e/f/pulls/7/reviews?per_page=100"]))
+        for label, argv in (("no --pr", ["--base", base, "--head", raise_]),
+                            ("an unknown flag", ["--base", base, "--head", raise_, "--pr", "7", "--x", "1"]),
+                            ("a trailing flag with no value", ["--base", base, "--head", raise_, "--pr", "7", "--repo"])):
+            rc_, _, calls = run(raise_, argv=argv)
+            out.append((f"e2e: {label} exits 2 and asks nothing", (rc_, calls), (2, [])))
+        rc_, _, _ = run(raise_, argv=["--base", "no-such-ref", "--head", raise_, "--pr", "7"])
+        out.append(("e2e: an unresolvable base fails closed", rc_ != 0, True))
+    except (OSError, subprocess.CalledProcessError) as e:
+        out.append((f"e2e: the throwaway repository could be built ({e})", False, True))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    return out
 
 
 def main(argv: list[str]) -> int:
