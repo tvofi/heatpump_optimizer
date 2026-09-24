@@ -22240,6 +22240,14 @@ R.check(
 # The null control's verdict names every driver that noticed a comment, and a
 # driver it never ran under is no survival.
 _MUT_NV_BASE = {"a": _MUT_OK, "b": _MUT_OK}
+
+
+def _mut_nv_missing() -> str:
+    """The verdict when driver `b` never ran under the null control."""
+    try:
+        return _mut.null_control_verdict({"a": _MUT_OK}, _MUT_NV_BASE)
+    except Exception as _e:  # noqa: BLE001 - a crash is this check's FAIL
+        return f"raised {type(_e).__name__}"
 R.check(
     "the null control is scored over every driver, never the first kill only",
     _mut.null_control_verdict({"a": _MUT_OK, "b": _MUT_OK},
@@ -22247,9 +22255,9 @@ R.check(
     and _mut.null_control_verdict(
         {"a": _MUT_CRASHES["StopIteration"], "b": _MUT_CRASHES["chained"]},
         _MUT_NV_BASE).count("(") == 2
-    and _mut.null_control_verdict({"a": _MUT_OK}, _MUT_NV_BASE)
-    .startswith("not run"),
-    "two drivers that notice it are both named; a missing driver refuses",
+    and _mut_nv_missing().startswith("not run"),
+    "two drivers that notice it are both named; a missing driver refuses "
+    f"(missing -> {_mut_nv_missing()!r})",
 )
 # The run's own null control: a comment-only edit that moves no line number,
 # no code token and no line count, so no driver can notice it by behaviour.
