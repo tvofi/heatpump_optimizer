@@ -11395,6 +11395,31 @@ R.check(
     "a wrong-shape 'meta' field is quarantined too",
     "2025-03" not in _bad_meta.months,
 )
+# #1518 (R8-D1-s2-01): structure is not enough. A decimal-comma hand edit
+# ("12,5") in one line's leaf loaded, and every refresh then raised in
+# line(). A month with any leaf that is not a finite number is quarantined
+# whole, as the accuracy, price and wear loaders drop their bad entry.
+for _leaf_name, _bad_leaf in (
+    ("decimal comma", "12,5"), ("list", [1.0]), ("NaN", float("nan")), ("bool", True),
+):
+    _leafy = _Ledger.from_dict(
+        {
+            "months": {
+                "2025-05": {"lines": {"spot": {"kwh": 1.0, "sek": _bad_leaf}}, "meta": {}},
+                "2025-06": {
+                    "lines": {"spot": {"kwh": 1.0, "sek": 2.0}},
+                    "meta": {"spot_price": {"sum": _bad_leaf, "count": 1}},
+                },
+                "2025-07": {"lines": {"spot": {"kwh": 3, "sek": "4.5"}}, "meta": {}},
+            }
+        }
+    )
+    R.check(
+        f"a {_leaf_name} line or meta leaf quarantines its month, the healthy month survives (#1518)",
+        sorted(_leafy.months) == ["2025-07"]
+        and _leafy.line("2025-07", "spot") == {"kwh": 3.0, "sek": 4.5},
+        f"months kept: {sorted(_leafy.months)}",
+    )
 # Even if a malformed month slipped through some other path,
 # month_summary() itself must degrade to empty rather than raise --
 # the crash site gets defensive handling too, per the fix's second half.

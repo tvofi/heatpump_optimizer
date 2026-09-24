@@ -724,6 +724,75 @@ check(
     f"result={throttle_result} calls={throttled_session.calls}",
 )
 
+print("\n== hostile response shapes, per member (#1519) ==")
+
+# Valid JSON of the wrong shape: a schema change, a proxy flattening objects,
+# a truncated body. ``async_refresh`` promises never to raise, and a raise
+# here failed the whole coordinator cycle. ``{"time": 5}`` is the shape the
+# finder's block-level isinstance guard alone still raised on.
+_HOSTILE_SHAPES = {
+    "list": [1, 2, 3],
+    "empty-list": [],
+    "string": "shortwave_radiation",
+    "int": 42,
+    "scalar-time": {"time": 5, "shortwave_radiation": [1.0, 2.0]},
+    "scalar-values": {"time": ["2026-08-21T00:00", "2026-08-21T01:00"], "shortwave_radiation": 7},
+    "string-values": {"time": ["2026-08-21T00:00", "2026-08-21T01:00"], "shortwave_radiation": "ab"},
+}
+for _shape, _value in _HOSTILE_SHAPES.items():
+    try:
+        _parsed = om._parse_block(_value, "shortwave_radiation")
+        _raised = ""
+    except Exception as exc:  # noqa: BLE001 - the raise is what is counted
+        _parsed, _raised = None, type(exc).__name__
+    check(
+        f"_parse_block returns no data for the {_shape} block shape rather than raising",
+        _parsed is not None and not _parsed,
+        _raised or repr(_parsed),
+    )
+    for _member, _forecast_body in (
+        ("hourly", {"hourly": _value}),
+        ("minutely_15", {"hourly": hourly_body, "minutely_15": _value}),
+    ):
+        _patch_session(
+            _FakeSession([_FakeResponse(200, _forecast_body), _FakeResponse(200, {"hourly": _value})])
+        )
+        _client = om.OpenMeteoSolar(hass=_StubHass(), latitude=60.061, longitude=16.995)
+        _client._observed = hourly_series
+        try:
+            _ok, _err = run(_client.async_refresh(now_refresh, force=True)), ""
+        except Exception as exc:  # noqa: BLE001
+            _ok, _err = None, type(exc).__name__
+        check(
+            f"the {_shape} shape in the {_member} member does not raise out of async_refresh",
+            _ok is True and _client._observed is hourly_series,
+            _err or f"available={_ok}",
+        )
+
+# The fence, pinned apart from the guards above: a parse that raises for a
+# reason no guard names is still a failed refresh, never an exception.
+_real_parse = om._parse_block
+
+
+def _raising_parse(*_a, **_k):
+    raise RuntimeError("a shape nobody guarded")
+
+
+om._parse_block = _raising_parse
+_patch_session(_FakeSession([_FakeResponse(200, good_body), _FakeResponse(200, good_body)]))
+_fenced = om.OpenMeteoSolar(hass=_StubHass(), latitude=60.061, longitude=16.995)
+try:
+    _fenced_ok, _fenced_err = run(_fenced.async_refresh(now_refresh, force=True)), ""
+except Exception as exc:  # noqa: BLE001
+    _fenced_ok, _fenced_err = None, type(exc).__name__
+finally:
+    om._parse_block = _real_parse
+check(
+    "a parse that raises is fenced into a counted failure, not an exception",
+    _fenced_ok is False and _fenced._failures == 1,
+    _fenced_err or f"available={_fenced_ok} failures={_fenced._failures}",
+)
+
 om.async_get_clientsession = _orig_get_session
 
 
