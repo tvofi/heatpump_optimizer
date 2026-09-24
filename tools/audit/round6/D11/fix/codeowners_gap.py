@@ -740,7 +740,7 @@ PROBES = [
      "          script: require('./tests/harness.js')\n"),
     ("local action", "\n      - uses: ./.github/actions/setup\n"),
     ("unpinned setup-python", "\n      - uses: actions/setup-python@v6\n"),
-    ("step shell:", "\n      - name: probe\n        shell: python {0}\n        run: print(1)\n"),
+    ("step shell:", "\n      - name: probe\n        shell: python {0}\n        run: echo ok\n"),
     ("step env names a tracked file", "\n      - name: probe\n        env:\n"
      "          NODE_OPTIONS: --require ./tests/harness.py\n        run: echo ok\n"),
     ("git checkout HEAD -- grader", _run("git checkout HEAD -- tests/coverage_ratchet.py")),
