@@ -19587,9 +19587,12 @@ R.check(
 )
 
 _NS_JOB = _workflow_job(_TESTS_YML, "nightly-status")
+# The invocation lines: since #1589 the reporter runs inside the step that
+# restores it from the base, so the line is a `run: |` body line, not `run:`.
 _NS_RUNS = [
     _l.strip() for _l in _NS_JOB.splitlines()
-    if "tests/nightly_status.py" in _l and _l.strip().startswith("run:")
+    if "tests/nightly_status.py" in _l
+    and re.match(r"(?:run:\s*)?python", _l.strip())
 ]
 R.check(
     "the nightly reporter is wired into a job that runs on pull requests",
@@ -19601,7 +19604,7 @@ R.check(
 # always-green check this repository keeps catching. CI must never pass it.
 R.check(
     "and passes it no argument that would pin its answer",
-    bool(_NS_RUNS) and _NS_RUNS[0] == "run: python tests/nightly_status.py",
+    bool(_NS_RUNS) and _NS_RUNS[0] == "python -I -S tests/nightly_status.py",
     f"the invocation is {_NS_RUNS[0] if _NS_RUNS else '(absent)'!r}",
 )
 # The permission widening, checked as a PROPERTY rather than as its instance:
@@ -22734,7 +22737,9 @@ import mutation_table as _mut  # noqa: E402
 
 _MUT_JOB = _workflow_job(_TESTS_YML, "mutation")
 _MUTN_JOB = _workflow_job(_TESTS_YML, "mutation-nightly")
-_COV_JOB = _workflow_job(_TESTS_YML, "coverage")
+# The ratchet grades in its own job since #1589: `coverage` runs the pull
+# request's suite, and a grader after that in the same job is not the base's.
+_COV_JOB = _workflow_job(_TESTS_YML, "coverage-ratchet")
 
 R.check(
     "the coverage ratchet is wired into a job that runs on pull requests",
