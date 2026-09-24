@@ -8447,6 +8447,22 @@ R.check(
     np.array_equal(np.asarray(_x_zeroed.power_schedule), _x_pb),
     "zeros must take the exact default path",
 )
+# A forecast shorter than the horizon is padded with no free heat, not
+# truncated into a horizon of its own length: the first six hours alone plan
+# exactly as the full forecast whose remainder is zero.
+try:
+    _x_short = np.asarray(_x_opt.optimize(
+        _x_st, _x_prices, _x_out, _x_zero, _x_zero, _x_zero,
+        datetime(2026, 1, 15), external_heat_kw=_x_fc[:24],
+    ).power_schedule)
+except Exception as _x_err:  # noqa: BLE001 - a raise is the failure measured
+    _x_short = repr(_x_err)
+R.check(
+    "a short burn forecast is padded with zeros: it plans exactly as the "
+    "full-length forecast",
+    isinstance(_x_short, np.ndarray) and np.array_equal(_x_short, _x_pa),
+    f"{_x_short if isinstance(_x_short, str) else 'plans differ'}",
+)
 
 
 R.section("Setup topology: one description for every picture (items 32/33)")
@@ -11533,6 +11549,25 @@ R.check(
     f"flat {_bo_s0!r}, probed {_bo_s1!r}",
 )
 
+# `_peak_excess`'s "no window above the threshold" answer is None, which every
+# charge reads as 0.0 before any per-day or top-k arithmetic. A plan whose
+# metering carries a non-finite window below the threshold is therefore
+# charged exactly nothing, on both rules, not NaN: without the guard the
+# NaN window flows into the per-day maxima and the top-k sum, and the
+# solver's objective and the published projected_peak_cost read NaN.
+_bo_nan = np.full(8, 1.0)
+_bo_nan[3] = np.nan
+_bo_nan_charges = [
+    fn(_bo_nan, np.zeros(8), 5.0, 20.0, 60, 0.25, 3, distinct_days=dd)
+    for fn in (peak_cost, peak_cost_smooth) for dd in (True, False)
+]
+R.check(
+    "a plan with nothing above the threshold is charged exactly 0.0, even "
+    "with a non-finite window in it, on both rules",
+    _bo_nan_charges == [0.0, 0.0, 0.0, 0.0],
+    f"charges {_bo_nan_charges!r}",
+)
+
 # The batch twin (#948) prices each row exactly as peak_cost_smooth does,
 # with the day labels, clockless and across midnight, bit for bit.
 from heatpump_optimizer.tariff import plan_window_days as _bo_days  # noqa: E402
@@ -11621,6 +11656,22 @@ R.check(
     "(null control: the pre-#1555 fallback bills a different month)",
     _bo_nm_sep == len(_gf.SWEDEN_CATALOG),
     f"{_bo_nm_sep} of {len(_gf.SWEDEN_CATALOG)} rows separate",
+)
+
+# --- the buffer-tank cooling prior shrinks monotonically to an empty tank -----
+# default_buffer_cooling_rate is surface over capacity, so a smaller tank
+# cools at least as fast as a larger one, all the way down: the capacity is
+# floored at a vanishing volume rather than dropping to zero, which would hand
+# an empty (or negative, mis-configured) tank the flat 6 C/h default -- slower
+# than a one-litre tank.
+from heatpump_optimizer.const import default_buffer_cooling_rate as _bcr  # noqa: E402
+
+_bcr_rates = [_bcr(v) for v in (300.0, 35.0, 1.0, 1e-3, 0.0, -5.0)]
+R.check(
+    "the buffer cooling prior never falls as the tank shrinks, down to an "
+    "empty tank",
+    all(a <= b for a, b in zip(_bcr_rates, _bcr_rates[1:])),
+    f"rates by shrinking volume {[round(r, 3) for r in _bcr_rates]}",
 )
 
 # --- #697 15-minute billed clock ---------------------------------------------
@@ -15987,6 +16038,24 @@ R.check(
     abs(_ce._scores_view()["envelope"] - 75.0) < 0.1,
     "tau = 10 / (0.25 x 0.5) = 80 h -> (80-20)/80 of the way to 100",
 )
+# The time constant needs both halves: a house with no thermal mass, or one
+# with no loss, has no envelope evidence -- None, never a grade of 0 and
+# never a division by zero.
+_ce0 = _t2_coord()
+_ce0._thermal_params.heat_loss_coefficient = 0.25
+_ce0._thermal_params.room_thermal_mass = 0.0
+_ce0_env = _ce0._scores_view()["envelope"]
+_ce0._thermal_params.room_thermal_mass = 10.0
+_ce0._thermal_params.heat_loss_coefficient = 0.0
+try:
+    _ce0_env_loss = _ce0._scores_view()["envelope"]
+except ZeroDivisionError as _ce0_err:
+    _ce0_env_loss = repr(_ce0_err)
+R.check(
+    "no thermal mass, or no loss, is no envelope evidence (None), not a grade",
+    _ce0_env is None and _ce0_env_loss is None,
+    f"massless {_ce0_env!r}, lossless {_ce0_env_loss!r}",
+)
 _cmach = _t2_coord()
 R.check(
     "no COP evidence means no machine grade, not a failing one",
@@ -17007,6 +17076,22 @@ R.check(
     "external heat still folds: the map is a compressor curve, not a house learner",
     bool(_cextf._freq_map.buckets),
     "#781: do not gate the fold on _learning_frozen wholesale",
+)
+# No reading is no evidence, in either stage: an unavailable frequency entity
+# neither teaches the map nor counts towards the control watchdog.
+_cnone = []
+for _cn_mode in (None, "control"):
+    _cn = _freq_coord(hz="unavailable", mode=_cn_mode)
+    try:
+        _cn._observe_frequency(_T6)
+        _cnone.append((bool(_cn._freq_map.buckets), _cn._freq_watchdog.strikes))
+    except Exception as _cn_err:  # noqa: BLE001 - a raise is the failure measured
+        _cnone.append(repr(_cn_err))
+R.check(
+    "an unavailable frequency reading teaches nothing and strikes nothing, "
+    "observing or controlling",
+    _cnone == [(False, 0), (False, 0)],
+    repr(_cnone),
 )
 R.check(
     "without the entity the stage is unconfigured and the view says so",
