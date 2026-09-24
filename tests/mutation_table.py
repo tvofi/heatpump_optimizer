@@ -839,6 +839,57 @@ def pin_entry(site: dict, script: str, run: "ScriptRun",
     }
 
 
+def pin_results(results: list[tuple[dict, str]],
+                kill_runs: dict[tuple[int, str], "ScriptRun"],
+                baseline: dict[str, "ScriptRun"], sites: list[dict],
+                ref: str) -> tuple[dict, list[str], int]:
+    """The `killed_by` entries a `--pin-killed` drive earned, its report, its rc.
+
+    A disposition covers EVERY inventory site under its anchor, and an anchor
+    can hold more than one mutant: a clamp's `max(` and `min(` drops share a
+    line, a kind and so a digest (the #1594 review measured 46 such pairs, all
+    unpinned). Pinning the killed twin would pin its survivor with it. So an
+    anchor is pinned only when every site the inventory holds under it was
+    driven here and killed with its run kept; one survivor, skip or undriven
+    twin leaves the whole anchor unpinned. The rc is 1 while anything is left.
+    """
+    under: dict[str, int] = {}
+    for site in sites:
+        under[site["anchor"]] = under.get(site["anchor"], 0) + 1
+    by_anchor: dict[str, list[tuple[dict, str | None, "ScriptRun | None", str]]] = {}
+    for mut, verdict in sorted(results, key=lambda r: (r[0]["file"], r[0]["line"])):
+        script = verdict[len("killed by "):] if verdict.startswith("killed by ") else None
+        run = kill_runs.get((id(mut), script)) if script else None
+        by_anchor.setdefault(mut["anchor"], []).append((mut, script, run, verdict))
+    entries: dict[str, dict] = {}
+    report: list[str] = []
+    left = 0
+    for anchor, got in by_anchor.items():
+        whole = (len(got) == under.get(anchor, 0)
+                 and all(run is not None for _, _, run, _ in got))
+        for mut, script, run, verdict in got:
+            if whole:
+                report.append(f"  pinned   {triage_key(mut)} -- killed by {script}")
+            elif run is not None:
+                left += 1
+                report.append(f"  UNPINNED {triage_key(mut)} -- killed by {script}, "
+                              f"but its anchor also covers a site no run killed")
+            else:
+                left += 1
+                report.append(f"  UNPINNED {triage_key(mut)} -- {verdict.lower()}")
+        if whole:
+            mut, script, run, _ = got[0]
+            entries[anchor] = pin_entry(mut, script, run, baseline[script], ref)
+            if len(got) > 1:
+                entries[anchor]["reason"] += (
+                    f" Each of the {len(got)} sites under this anchor was killed.")
+    pinned = len(results) - left
+    report.append(f"\nPIN KILLED: {pinned} pinned, {left} left unpinned"
+                  + (" -- a survivor needs a killing check or a survivor_triage "
+                     "verdict, which no tool writes" if left else ""))
+    return entries, report, 1 if left else 0
+
+
 LEDGER_MAPS = ("survivor_triage", "killed_by")
 
 
@@ -1700,24 +1751,13 @@ def main() -> int:
         shutil.rmtree(work, ignore_errors=True)
 
     if args.pin_killed:
-        pinned = 0
-        for mut, verdict in sorted(results, key=lambda r: (r[0]["file"], r[0]["line"])):
-            script = verdict[len("killed by "):] if verdict.startswith("killed by ") else None
-            run = kill_runs.get((id(mut), script)) if script else None
-            if run is None:
-                print(f"  UNPINNED {triage_key(mut)} -- {verdict.lower()}")
-                continue
-            budgets.setdefault("killed_by", {})[mut["anchor"]] = pin_entry(
-                mut, script, run, baseline[script], rbase)
-            pinned += 1
-            print(f"  pinned   {triage_key(mut)} -- killed by {script}")
+        entries, report, pin_rc = pin_results(results, kill_runs, baseline,
+                                              sites, rbase)
+        print("\n".join(report))
+        budgets.setdefault("killed_by", {}).update(entries)
         fixed, _ = normalize(budgets, sites)
         BUDGETS.write_text(json.dumps(fixed, indent=2) + "\n")
-        left = len(results) - pinned
-        print(f"\nPIN KILLED: {pinned} pinned, {left} left unpinned"
-              + (" -- a survivor needs a killing check or a survivor_triage "
-                 "verdict, which no tool writes" if left else ""))
-        return 1 if left else 0
+        return pin_rc
 
     survivors = []
     for mut, verdict in sorted(results, key=lambda r: (r[0]["file"], r[0]["line"])):
