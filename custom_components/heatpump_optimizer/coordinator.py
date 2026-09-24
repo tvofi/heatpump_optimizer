@@ -121,7 +121,6 @@ from .const import (
     DEFAULT_ECL110_DISPLACE_MAX,
     MODE_AUTO,
     MODE_COMFORT,
-    ECONOMY_ABSOLUTE_FLOOR,
     ECONOMY_MIN_TEMP_WIDENING,
     MODE_ECONOMY,
     MODE_LAST_GOOD_MAX_AGE_MINUTES,
@@ -1763,6 +1762,17 @@ def _power_windows(coord: Any) -> tuple[list[float], list[float]]:
         else []
     )
     return pump, list(tracker.house_samples) if tracker is not None else []
+
+
+def _on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
+    """The ``(domain, service)`` that switches ``entity_id`` on or off (#1526).
+
+    Routed by the target's own domain: Home Assistant resolves
+    ``switch.turn_on`` only against ``switch.*`` entities, so the heat-pump
+    slot's ``input_boolean`` and ``climate`` targets, which ``assign_entity``
+    accepts, were never actuated when the call was hard-coded to ``switch``.
+    """
+    return entity_id.split(".", 1)[0], "turn_on" if on else "turn_off"
 
 
 def _space_pump_to_drive(coord: Any) -> str | None:
@@ -4770,7 +4780,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # flag, and without a listener update the change is invisible until
         # the next scheduled refresh — after the solve is already over.
         self.async_update_listeners()
-        away_original: dict[str, float] | None = None
+        away_original: away_mode.SetbackRecord | None = None
         try:
             # One clock reading for the whole solve. The snapped anchor and
             # the forecast grid must derive from the same instant: two
@@ -4862,9 +4872,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # `_init_model()`, so a widening applied anywhere earlier would
             # persist into every later solve and outlive the mode itself.
             if self._mode == MODE_ECONOMY:
-                ctx._opt_config.min_temp = max(
-                    ECONOMY_ABSOLUTE_FLOOR,
-                    ctx._opt_config.min_temp - ECONOMY_MIN_TEMP_WIDENING,
+                away_mode.lower_floor(
+                    away_original, ctx._opt_config, ECONOMY_MIN_TEMP_WIDENING
                 )
 
             # #26 (gated): while a window is detected open, holding the
@@ -4877,9 +4886,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     DEFAULT_OPEN_WINDOW_RELAX_ENABLED,
                 )
             ):
-                ctx._opt_config.min_temp = max(
-                    ECONOMY_ABSOLUTE_FLOOR,
-                    ctx._opt_config.min_temp - OPEN_WINDOW_RELAX_C,
+                away_mode.lower_floor(
+                    away_original, ctx._opt_config, OPEN_WINDOW_RELAX_C
                 )
 
             # T4b (#36 #53, gated): the learned solar aperture and internal
@@ -6687,8 +6695,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         if switch_entity and not skip_off:
             try:
                 await self.hass.services.async_call(
-                    "switch",
-                    "turn_on" if heat_pump_on else "turn_off",
+                    *_on_off_service(switch_entity, heat_pump_on),
                     {"entity_id": switch_entity},
                     blocking=True,
                 )
@@ -10028,23 +10035,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "hour_of_day": now.hour + now.minute / 60.0,
             },
         }
-    def diagnose_last_interval(self) -> dict[str, Any] | None:
-        """#52: attribute the last settled interval's residual, input by input.
+    async def async_diagnose_interval(self) -> dict[str, Any] | None:
+        """Service/button entry for #52; publishes on the insight view.
 
-        Runs on the LAST SETTLED interval, not live state: attribution
-        needs a completed (planned, realised, actual) triple, and the
-        freshest one is the interval the accuracy sample just closed.
+        The last SETTLED interval, from a snapshot on the loop: the worker
+        gets copies, never this object (#1529).
         """
-        report = diagnosis.diagnose_record(
-            self._last_interval_record, getattr(self, "_ctx", self)._thermal_params
-        )
-        if report is not None:
-            self._last_diagnosis = report
-        return report
-
-    async def async_diagnose_interval(self) -> None:
-        """Service/button entry for #52; publishes on the insight view."""
-        report = await _await_process(
+        report: dict[str, Any] | None = await _await_process(
             self.hass,
             diagnosis.diagnose_record,
             *_diagnose_payload(self),
@@ -10056,6 +10053,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 "optimization interval must pass first"
             )
         await self.async_request_refresh()
+        return report
 
     def _price_tile_specs(self) -> list[tuple[str, dict[str, Any]]]:
         """#39's fixed perturbation set. Fixed on purpose: tiles answer the

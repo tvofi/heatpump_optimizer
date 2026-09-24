@@ -305,6 +305,10 @@ INERT = (
     # pull request regardless. It is a real test; it is simply not one of
     # THIS gate's scripts.
     "tests/card_browser.mjs",
+    # Its playwright manifest (#1548): the `browser` job copies it beside its
+    # package-lock.json for `npm ci`. The lock is NOT listed: tests/entities.py
+    # reads every tracked package-lock.json for its integrity fields.
+    "tests/pwlane/package.json",
     # The workflows that are not the gate were listed here, individually
     # rather than as a `.github/workflows/` prefix, because that prefix would
     # also swallow `tests.yml` and silently undo the forced-full rule that is
@@ -354,6 +358,11 @@ GATE_FILES = (
     "tests/closure.py",
     "tests/closures.json",
     "tests/requirements-ci.txt",
+    # The hashed constraints every CI `pip install` builds an sdist under
+    # (#1548). PyYAML, which every gate script's environment carries, is one
+    # such sdist, so a change here changes how the gate's own dependency is
+    # built -- the same argument as the requirements file above.
+    "tests/requirements-build.txt",
     # `tests.yml` ALONE, not the whole directory. This file defines the job
     # matrix, the interpreter versions, the installed dependencies and the
     # GATE_SCOPE the gate runs under, so a change to it can alter how every
@@ -1744,6 +1753,27 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
         records = [json.loads(p.read_text()) for p in sorted(in_dir.glob("*.json"))]
     except (json.JSONDecodeError, OSError):
         return "skip-merge-failed"
+    # The recordings were made on the pull request's MERGE tree; this job
+    # checks out the branch HEAD. A path main added and the branch has not
+    # merged is absent here, and `check` answered it NOT A FILE before the
+    # under-approximation comparison -- no UNDER-SCOPED, so the quiet
+    # `skip-not-under-scoped` while the closures job had printed UNDER-SCOPED
+    # (#1569). A path this tree lacks cannot be in this tree's closure (the
+    # recorder's existence rule, #1310), so it is dropped; a path that exists
+    # and is not a regular file is kept, and NOT A FILE still refuses it. The
+    # kept recordings go to a subdirectory, which the `*.json` glob of the
+    # input directory does not reach.
+    absent = sorted({f for r in records for f in r.get("files", ())
+                     if not os.path.lexists(ROOT / f)})
+    if absent:
+        print(f"closures-autofix: dropped {len(absent)} recorded path(s) this "
+              f"tree does not have: {', '.join(absent[:5])}", file=sys.stderr)
+        kept = in_dir / "present-in-this-tree"
+        kept.mkdir(exist_ok=True)
+        for i, r in enumerate(records):
+            r = dict(r, files=[f for f in r.get("files", ()) if f not in absent])
+            (kept / f"{i:04d}.json").write_text(json.dumps(r))
+        in_dir = kept
     out, err = io.StringIO(), io.StringIO()
     try:
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):

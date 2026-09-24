@@ -663,6 +663,75 @@ R.check(
     "those are entities, not fields on Away and holiday mode",
 )
 
+# #1535: the Quick start mermaid diagram numbers its screens, and the numbered
+# prose paragraphs below it must agree. Round 1 shifted the four already-
+# numbered screens down by one to match the diagram, but left the diagram's
+# menu node unnumbered -- so the shifted "Temperatures" (moved to 3) collided
+# with the untouched "The finish menu ..." prose heading (already 3), and
+# nothing caught it because the finder's harness (and the first version of
+# this check) only compares a label numbered on BOTH sides, and the menu had
+# no diagram-side number to compare against. Round 2 numbers the diagram's
+# menu node too (3 ·, matching the prose it was already carrying) and shifts
+# the diagram's other four nodes to 4-7 to match, so every one of the 7
+# Quick start concepts is numbered on both sides and every number is unique.
+_qs_section = readme.split("## Quick start", 1)[1].split("\n## ", 1)[0]
+_qs_diagram_re = re.compile(r'[\[{]"(\d+)\s*\xb7\s*([^"<]+?)(?:<br/>|")')
+_qs_prose_re = re.compile(r'^\*\*(\d+)\s*\xb7\s*([^*]+?)\.?\*\*', re.M)
+
+
+def _qs_normalize(label: str) -> str:
+    label = label.strip().rstrip(".?").lower()
+    label = re.sub(r"[^a-z0-9 ]", "", label)
+    return " ".join(label.split()[:3])
+
+
+_qs_diagram: dict[str, int] = {}
+for _m in _qs_diagram_re.finditer(_qs_section):
+    _qs_diagram.setdefault(_qs_normalize(_m.group(2)), int(_m.group(1)))
+_qs_prose: dict[str, int] = {}
+_qs_prose_numbers: list[int] = []
+for _m in _qs_prose_re.finditer(_qs_section):
+    _qs_num = int(_m.group(1))
+    _qs_prose.setdefault(_qs_normalize(_m.group(2)), _qs_num)
+    _qs_prose_numbers.append(_qs_num)
+_qs_mismatches = [
+    (label, dnum, _qs_prose[label])
+    for label, dnum in _qs_diagram.items()
+    if label in _qs_prose and _qs_prose[label] != dnum
+]
+R.check(
+    "the Quick start prose step numbers agree with the diagram's",
+    not _qs_mismatches,
+    repr(_qs_mismatches),
+)
+# The label-normalizing match above is silent if a screen's wording diverges
+# enough between diagram and prose that the two never pair up at all (#1535's
+# own case: the diagram's "How do you want to describe your building" vs the
+# prose's "How to describe your building" share no 3-word prefix). Check that
+# pairing directly rather than assume the fuzzy match above caught everything.
+R.check(
+    "the diagram's 'how do you want to' step pairs with the prose's "
+    "'how to describe' step (#1535 label-wording gap)",
+    _qs_diagram.get("how do you") == _qs_prose.get("how to describe") == 5,
+    f"diagram={_qs_diagram.get('how do you')!r} prose={_qs_prose.get('how to describe')!r}",
+)
+# Round 2's own regression: the number-agreement check above is silent on a
+# label with no diagram-side counterpart to compare against at all (the
+# label-collapsing dicts above also hide a same-number collision between two
+# DIFFERENT labels), which is exactly the shape that let round 1 ship a
+# duplicate "3 ·". Check uniqueness over the raw number list, not the dicts.
+_qs_seen: set[int] = set()
+_qs_dupes: list[int] = []
+for _qs_n in _qs_prose_numbers:
+    if _qs_n in _qs_seen and _qs_n not in _qs_dupes:
+        _qs_dupes.append(_qs_n)
+    _qs_seen.add(_qs_n)
+R.check(
+    "every Quick start prose heading number is used exactly once",
+    not _qs_dupes,
+    f"duplicated number(s) {_qs_dupes!r} in {_qs_prose_numbers!r}",
+)
+
 # #937: the README sends the reader to the reference with "Every field and its
 # range is documented in docs/configuration.md", and round 4 measured 15 of
 # the 200 shipped options fields whose label occurred nowhere in any reader
@@ -7133,6 +7202,17 @@ R.check(
     "English copied into sv.json passes the key check and fails the user",
 )
 
+# #1534: the ECL110 MQTT QoS label was byte-identical English left in sv.json
+# (the key-identity check above passes on an untranslated copy the same way
+# the tibber_token case above does -- this is that same class of gap, named
+# by its own field).
+R.check(
+    "the ECL110 MQTT QoS label is actually translated in Swedish",
+    files["sv"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"]
+    != files["en"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"],
+    "English copied into sv.json passes the key check and fails the user",
+)
+
 # The stored-value warning is rendered on a form the user merely opened, so
 # an untranslated one is especially visible. It has to exist for both flows —
 # the widening applies to initial setup as well — and be a real translation.
@@ -11404,7 +11484,7 @@ _svc_coord.async_apply_manual_plan = _svc_record("apply_manual", {"applied": Tru
 _svc_coord.async_clear_manual_plan = _svc_record("clear_manual")
 _svc_coord.async_restore_learned_snapshot = _svc_record("restore", True)
 _svc_coord.async_set_away = _svc_record("set_away")
-_svc_coord.diagnose_last_interval = lambda: {"residual": None}
+_svc_coord.async_diagnose_interval = _svc_record("diagnose", {"residual": None})
 
 
 def _svc_call(service, payload=None):
@@ -11691,6 +11771,13 @@ _diag = _svc_call(const.SERVICE_DIAGNOSE_INTERVAL)
 R.check(
     "diagnose_interval returns the per-entry report",
     _svc_entry.entry_id in _diag["diagnosis"],
+)
+R.check(
+    "diagnose_interval runs the button's snapshot path, not a thread (#1529)",
+    "diagnose" in _svc_log
+    and _diag["diagnosis"].get(_svc_entry.entry_id) == {"residual": None},
+    f"{_diag}: the service handed a bound coordinator method to the executor, "
+    "which read live parameters and the interval record off the loop",
 )
 
 _svc_registered = set(
@@ -15129,6 +15216,62 @@ R.check(
     _af3b_kept
     and not _closure.autofix_repair_failed("closures-autofix", _af3b_status),
     f"status={_af3b_status}: no repair was owed, so no human is waiting",
+)
+# The recordings are made on the pull request's MERGE tree (main + branch)
+# and `closures-autofix` checks out the branch HEAD, so a script that reads a
+# file main added and the branch has not merged names a path the autofix tree
+# does not have. `check` answered that NOT A FILE before it reached the
+# under-approximation comparison, printed no UNDER-SCOPED, and the job went
+# green on the quiet `skip-not-under-scoped` while the closures job had
+# printed UNDER-SCOPED for another script (#1569: tests/entities.py read
+# main's four replay files; tests/finite_boundary.py was under-scoped). A path
+# this tree lacks cannot belong in this tree's closure -- the recorder's own
+# existence rule (#1310) -- so it is dropped, and the repair happens. The null
+# control is the same run with no such path.
+_af6_absent = "tests/replay/only-on-main.json"
+_af6_status, _af6_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"],
+     "tests/entities.py": ["tests/entities.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 0,
+      "files": ["tests/open_meteo.py", "tests/harness.py"]},
+     {"script": "tests/entities.py", "rc": 0,
+      "files": ["tests/entities.py", _af6_absent]}],
+)
+_af6n_status, _af6n_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"],
+     "tests/entities.py": ["tests/entities.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 0,
+      "files": ["tests/open_meteo.py", "tests/harness.py"]},
+     {"script": "tests/entities.py", "rc": 0,
+      "files": ["tests/entities.py"]}],
+)
+R.check(
+    "a recording naming a path the autofix tree lacks still repairs the "
+    "under-scoped script (#1569)",
+    not (_closure.ROOT / _af6_absent).exists()
+    and _af6_status == "changed" and not _af6_kept
+    and _af6n_status == "changed" and not _af6n_kept,
+    f"with a path only main has: status={_af6_status}; without it (null "
+    f"control): status={_af6n_status} -- a quiet skip here is a repair "
+    "nobody makes and nothing reports",
+)
+# The other edge of that drop: only a path this tree LACKS goes. A path that
+# exists and is not a regular file -- a directory -- is kept, so NOT A FILE
+# still refuses it (#365) and nothing is merged. Keying the drop on "not a
+# regular file" instead would silently discard the directory and repair.
+_af7_dir = "tests/hastub"
+_af7_status, _af7_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 0,
+      "files": ["tests/open_meteo.py", "tests/harness.py", _af7_dir]}],
+)
+R.check(
+    "and a recorded directory is kept for NOT A FILE, not dropped (#365, #1569)",
+    (_closure.ROOT / _af7_dir).is_dir()
+    and _af7_status != "changed" and _af7_kept,
+    f"status={_af7_status}, closures unchanged={_af7_kept} -- a directory "
+    "carries no content a closure can be stale against, so the repair must "
+    "refuse rather than drop it",
 )
 with _tempfile.TemporaryDirectory() as _af4_td:
     _af4_root = Path(_af4_td)
@@ -18635,6 +18778,146 @@ def _callee_name(node):
             return node.func.id
     return None
 
+# --- P12 (#1529): no bound coordinator method crosses to a thread ----------
+# A bound coordinator method handed to an executor runs on a worker thread
+# against live coordinator state the event loop keeps writing: the
+# diagnose_interval service handed ``coord.diagnose_last_interval`` to
+# ``async_add_executor_job``, which read the live parameters and the last
+# interval record off the loop while the Diagnose button already went through
+# the snapshot path. Enumerated, not named: every call in the package whose
+# callable argument lands on a thread -- an executor hand-off, or an event
+# helper given a plain synchronous function, which Home Assistant dispatches
+# to its executor -- is resolved to the bound methods it carries (directly,
+# through ``functools.partial``, or called inside a lambda). A method of the
+# coordinator or its context is refused unless the allow-table below keys it
+# with a reason; for an event helper, ``@callback`` or ``async def`` is the
+# reason, because either keeps the call on the loop. The key is the method
+# NAME, which carries no receiver: a same-named method of another object is
+# refused too, and belongs in the table with its reason, never silently.
+_P12_THREAD_ARG = {
+    "async_add_executor_job": 0,
+    "async_add_import_executor_job": 0,
+    "run_in_executor": 1,
+    "to_thread": 0,
+    "submit": 0,
+    "_await_process": 1,
+    "_run_in_process": 0,
+}
+_P12_LOOP_ARG = {
+    "async_track_state_change_event": 2,
+    "async_track_time_interval": 1,
+    "async_track_time_change": 1,
+    "async_track_point_in_time": 1,
+    "async_track_point_in_utc_time": 1,
+    "async_call_later": 2,
+    "async_listen": 1,
+    "async_listen_once": 1,
+}
+_P12_ALLOWED: dict[tuple[str, str], str] = {}
+_P12_METHODS = {
+    _m.name: _m
+    for _c in ast.walk(_PKG_TREES["coordinator.py"])
+    if isinstance(_c, ast.ClassDef)
+    and _c.name in ("HeatPumpOptimizerCoordinator", "CoordinatorContext")
+    for _m in _c.body
+    if isinstance(_m, (ast.FunctionDef, ast.AsyncFunctionDef))
+}
+
+
+def _p12_bound(node, methods):
+    """Coordinator-method names a callable expression carries onto a thread."""
+    if isinstance(node, ast.Attribute):
+        return [node.attr] if node.attr in methods else []
+    if isinstance(node, ast.Call) and _callee_name(node) == "partial" and node.args:
+        return _p12_bound(node.args[0], methods)
+    if isinstance(node, ast.Lambda):
+        return [
+            _n.func.attr
+            for _n in ast.walk(node.body)
+            if isinstance(_n, ast.Call)
+            and isinstance(_n.func, ast.Attribute)
+            and _n.func.attr in methods
+        ]
+    return []
+
+
+def _p12_on_loop(method):
+    return isinstance(method, ast.AsyncFunctionDef) or any(
+        (_d.id if isinstance(_d, ast.Name) else getattr(_d, "attr", None))
+        == "callback"
+        for _d in method.decorator_list
+    )
+
+
+def _p12_handoffs(trees, methods):
+    """Every (file:line, kind, method) where a coordinator method goes to a thread."""
+    found = []
+    for _fname, _tree in trees.items():
+        for _node in ast.walk(_tree):
+            _name = _callee_name(_node)
+            for _kind, _table in (("executor", _P12_THREAD_ARG), ("event", _P12_LOOP_ARG)):
+                _i = _table.get(_name)
+                if _i is None or len(_node.args) <= _i:
+                    continue
+                for _meth in _p12_bound(_node.args[_i], methods):
+                    if _kind == "event" and _p12_on_loop(methods[_meth]):
+                        continue
+                    found.append((f"{_fname}:{_node.lineno}", _kind, _meth))
+    return found
+
+
+_p12_sites = _p12_handoffs(_PKG_TREES, _P12_METHODS)
+_p12_refused = [
+    _s for _s in _p12_sites if (_s[0].split(":")[0], _s[2]) not in _P12_ALLOWED
+]
+R.check(
+    "no bound coordinator method is handed to a thread (P12, #1529)",
+    _p12_refused == [],
+    f"{_p12_refused}: run it through a snapshot on the loop and hand the "
+    "executor a module function over copies (async_diagnose_interval's "
+    "shape), or key it in _P12_ALLOWED with the reason it is safe",
+)
+# The positive control is the pre-fix services.py call site, verbatim, with
+# the method it handed over (deleted by the fix) restored to the set; its
+# partial, lambda and event-helper spellings are refused too. The nulls are a
+# module function on the executor, and an event helper given an @callback
+# method and an async one, which all keep coordinator state on the loop.
+_p12_ctl_methods = dict(
+    _P12_METHODS,
+    diagnose_last_interval=ast.parse("def diagnose_last_interval(self): ...").body[0],
+)
+_p12_ctl = {
+    "services.py": ast.parse(
+        "async def handle_diagnose_interval(hass, call):\n"
+        "    for entry_id, coord in _manual_targets(hass, None):\n"
+        "        reports[entry_id] = await hass.async_add_executor_job(\n"
+        "            coord.diagnose_last_interval\n"
+        "        )\n"
+        "    await hass.async_add_executor_job(partial(coord.diagnose_last_interval))\n"
+        "    await hass.async_add_executor_job(lambda: coord.diagnose_last_interval())\n"
+        "    async_track_state_change_event(hass, [e], coord.diagnose_last_interval)\n"
+    ),
+    "null.py": ast.parse(
+        "async def ok(hass, coord):\n"
+        "    await hass.async_add_executor_job(diagnosis.diagnose_record, a, b)\n"
+        "    async_track_state_change_event(hass, [e], coord._on_power_event)\n"
+        "    async_track_state_change_event(hass, [e], coord.async_diagnose_interval)\n"
+    ),
+}
+_p12_ctl_found = _p12_handoffs(_p12_ctl, _p12_ctl_methods)
+R.check(
+    "the P12 barrier refuses the pre-fix diagnose hand-off and passes its nulls",
+    sorted((_s[0], _s[1]) for _s in _p12_ctl_found)
+    == [
+        ("services.py:3", "executor"),
+        ("services.py:6", "executor"),
+        ("services.py:7", "executor"),
+        ("services.py:8", "event"),
+    ],
+    f"found {_p12_ctl_found}; a barrier that misses its own positive "
+    "control, or refuses a module function, pins nothing",
+)
+
 
 _action_producers, _pending = set(), []
 for _tree in _PKG_TREES.values():
@@ -20024,6 +20307,41 @@ R.check(
     f"call={_PC_VE_CALL}, fetch={_PC_VE_FETCH}, always={bool(_PC_VE_STEP)}; "
     "before this step the check ran only on a seat's machine and a VERSION "
     "bump passed every required context",
+)
+# Decision 0013: verdicts post as the approver App through app_comment.sh,
+# and app_approve.sh accepts only that App's verdicts. Both carry offline
+# self-tests pinning the allowlist, the identity read-back and the grammar;
+# what they cannot see is whether CI still RUNS them. They run in
+# governance.yml's `instrument-self-tests`, the job that drives the pull
+# request's own copies and grades nothing, so no grading job runs pull-request
+# code ahead of its graders. Pinned over that job's non-comment lines, one step
+# each; tools/audit/ is INERT, so this reads the workflow, never the scripts.
+_IST_JOB = "\n".join(
+    _l for _l in _workflow_job(_DS_GOV, "instrument-self-tests").split("\n")
+    if not _l.lstrip().startswith("#"))
+
+
+def _runs_selftest(job: str, script: str) -> bool:
+    return any(
+        f"\n        run: bash tools/audit/{script} --self-test" in "\n" + _blk
+        for _blk in job.split("\n      - name: ")[1:])
+
+
+R.check(
+    "the instrument self-test job runs both App identity self-tests",
+    _runs_selftest(_IST_JOB, "app_approve.sh")
+    and _runs_selftest(_IST_JOB, "app_comment.sh"),
+    "governance.yml's instrument-self-tests must run `bash tools/audit/"
+    "app_approve.sh --self-test` and `bash tools/audit/app_comment.sh "
+    "--self-test` as steps; without them the approver-only verdict allowlist "
+    "and the poster's read-back are unpinned",
+)
+R.check(
+    "and a job with the poster's step removed is not (null control)",
+    not _runs_selftest(
+        _IST_JOB.replace("run: bash tools/audit/app_comment.sh", "run: true", 1),
+        "app_comment.sh"),
+    "the predicate must read the step's run line, not the file name anywhere",
 )
 # `## Friction` AND A DECLARATION THAT IS NOT THE WHOLE SECTION. `isNone` read a
 # section as `none` whenever the token stood at its START -- no end anchor, no
@@ -22606,6 +22924,13 @@ def decide(a, b, flag):
     return 0
 """
 _MUT_DIR = Path(_tempfile.mkdtemp(prefix="mutation-operators-"))
+
+
+def _mut_write(path: Path, text: str) -> Path:
+    path.write_text(text)
+    return path
+
+
 _MUT_FILE = _MUT_DIR / "sample.py"
 _MUT_FILE.write_text(_MUT_SRC)
 _MUT_GOT = list(_mut.candidates(_MUT_FILE))
@@ -22692,11 +23017,11 @@ R.check(
     f"from candidates()",
 )
 
-# The ledger + ratchet, driven over the synthetic candidates. A site is
+# The ledger + ratchet, driven over the synthetic inventory. A site is
 # unpinned until it carries a disposition (a verdict or a killed_by driver),
-# keyed `file:line KIND` and pinned to the `old` text.
-_MUT_FIRST = _MUT_GOT[0]
-_MUT_KEY = _mut.triage_key(_MUT_FIRST)
+# keyed by the site's content anchor and pinned to the `old` text.
+_MUT_FIRST = _MUT_INV[0] if _MUT_INV else _MUT_GOT[0]
+_MUT_KEY = _MUT_FIRST.get("anchor", _mut.triage_key(_MUT_FIRST))
 _MUT_EMPTY = {"survivor_triage": {}, "killed_by": {}}
 _MUT_DISP = {"survivor_triage": {
     _MUT_KEY: {"verdict": "equivalent", "old": _MUT_FIRST["old"],
@@ -22705,26 +23030,27 @@ _MUT_DISP = {"survivor_triage": {
 R.check(
     "unpinned_sites counts a site unpinned until it carries a disposition",
     _UNPIN is not None
-    and len(_UNPIN(_MUT_EMPTY, _MUT_GOT)) == len(_MUT_GOT)
-    and len(_UNPIN(_MUT_DISP, _MUT_GOT)) == len(_MUT_GOT) - 1,
-    f"empty ledger -> {len(_UNPIN(_MUT_EMPTY, _MUT_GOT)) if _UNPIN else 'n/a'}"
+    and len(_UNPIN(_MUT_EMPTY, _MUT_INV)) == len(_MUT_GOT)
+    and len(_UNPIN(_MUT_DISP, _MUT_INV)) == len(_MUT_GOT) - 1,
+    f"empty ledger -> {len(_UNPIN(_MUT_EMPTY, _MUT_INV)) if _UNPIN else 'n/a'}"
     f"/{len(_MUT_GOT)}; one disposition -> "
-    f"{len(_UNPIN(_MUT_DISP, _MUT_GOT)) if _UNPIN else 'n/a'}/{len(_MUT_GOT)}",
+    f"{len(_UNPIN(_MUT_DISP, _MUT_INV)) if _UNPIN else 'n/a'}/{len(_MUT_GOT)}",
 )
 
-# The ratchet verdict, driven: growth is refused, a bootstrap (no record) and
-# an at-or-below record are not.
+# The ratchet verdict, driven against the count at the ratchet base: growth is
+# refused, an at-or-below count is not, and an unreadable base is REFUSED --
+# a ratchet with nothing to compare against must not go green by skipping.
 _REFUSE = getattr(_mut, "ratchet_refusal", None)
+try:
+    _MUT_RATCHET = (
+        _REFUSE(None, _MUT_GOT), _REFUSE(0, _MUT_GOT),
+        _REFUSE(len(_MUT_GOT), _MUT_GOT), _REFUSE(len(_MUT_GOT) + 5, _MUT_GOT))
+except Exception as _mut_r_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _MUT_RATCHET = (f"{type(_mut_r_exc).__name__}: {_mut_r_exc}",)
 R.check(
-    "ratchet_refusal refuses growth and nothing else",
-    _REFUSE is not None
-    and _REFUSE({}, _MUT_GOT) is None
-    and _REFUSE({"unpinned_sites": 0}, _MUT_GOT) == 1
-    and _REFUSE({"unpinned_sites": len(_MUT_GOT)}, _MUT_GOT) is None
-    and _REFUSE({"unpinned_sites": len(_MUT_GOT) + 5}, _MUT_GOT) is None,
-    f"bootstrap -> {_REFUSE({}, _MUT_GOT) if _REFUSE else 'n/a'}; "
-    f"record 0 -> {_REFUSE({'unpinned_sites': 0}, _MUT_GOT) if _REFUSE else 'n/a'}"
-    f"; at/above record -> None",
+    "ratchet_refusal refuses growth over the base count, and an unreadable base",
+    _MUT_RATCHET == (1, 1, None, None),
+    f"(no base, base 0, base = count, base above) -> {_MUT_RATCHET}",
 )
 
 # The completeness check, both directions, plus the empty-inventory null
@@ -22737,23 +23063,206 @@ _MUT_STALE = {"survivor_triage": {}, "killed_by": {
 R.check(
     "completeness_problems refuses a stale mark and an empty inventory",
     _COMP is not None
-    and len(_COMP(_MUT_STALE, _MUT_GOT)) == 1
+    and len(_COMP(_MUT_STALE, _MUT_INV)) == 1
     and len(_COMP(_MUT_EMPTY, [])) == 1
-    and _COMP(_MUT_EMPTY, _MUT_GOT) == [],
-    f"stale -> {len(_COMP(_MUT_STALE, _MUT_GOT)) if _COMP else 'n/a'}; "
+    and _COMP(_MUT_EMPTY, _MUT_INV) == [],
+    f"stale -> {len(_COMP(_MUT_STALE, _MUT_INV)) if _COMP else 'n/a'}; "
     f"empty inventory -> {len(_COMP(_MUT_EMPTY, [])) if _COMP else 'n/a'}; "
-    f"consistent -> {_COMP(_MUT_EMPTY, _MUT_GOT) if _COMP else 'n/a'}",
+    f"consistent -> {_COMP(_MUT_EMPTY, _MUT_INV) if _COMP else 'n/a'}",
 )
 
-# The budget carries the ratchet record: a non-negative integer, not a
-# fraction the way max_survivor_fraction is.
+# A disposition belongs to the SITE, not to where the site sits (RCA
+# fix/rca-ledger-anchors). A `file:line KIND` key moved with every edit above
+# the site, so each merge that shifted a production file re-keyed pins that
+# every other open branch had copied, and those branches went DIRTY on the
+# ledger. Driven: a ledger disposing every synthetic site still covers every
+# one after three lines are inserted above them all; the null control edits
+# ONE pinned line's text, and exactly that disposition drops out.
+try:
+    _MUT_ALL = {"survivor_triage": {}, "killed_by": {
+        _s["anchor"]: {"killed_by": "tests/x.py", "old": _s["old"]}
+        for _s in _MUT_INV}}
+    _MUT_FILE.write_text("# a\n# b\n\n" + _MUT_SRC)
+    _MUT_SHIFTED = _INV([_MUT_FILE])
+    _MUT_FILE.write_text(_MUT_SRC.replace("    if flag:", "    if flag :"))
+    _MUT_EDITED = _INV([_MUT_FILE])
+    _MUT_SHIFT = (
+        all(_a["line"] == _b["line"] + 3
+            for _a, _b in zip(_MUT_SHIFTED, _MUT_INV)),
+        len(_UNPIN(_MUT_ALL, _MUT_SHIFTED)), _COMP(_MUT_ALL, _MUT_SHIFTED),
+        len(_UNPIN(_MUT_ALL, _MUT_EDITED)), len(_COMP(_MUT_ALL, _MUT_EDITED)))
+except Exception as _mut_s_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _MUT_SHIFT = (f"{type(_mut_s_exc).__name__}: {_mut_s_exc}",)
+finally:
+    _MUT_FILE.write_text(_MUT_SRC)
+R.check(
+    "a line shift keeps every disposition; an edit to the pinned text drops it",
+    _MUT_SHIFT == (True, 0, [], 1, 1),
+    f"(every site moved 3 lines, unpinned after shift, completeness after "
+    f"shift, unpinned after an edit, stale after an edit) -> {_MUT_SHIFT}",
+)
+
+# The canonical form, each refusal driven with its fixture: a retired
+# `file:line KIND` key, a map out of key order, and a committed count are the
+# three shapes that made unrelated branches conflict. `normalize` maps a
+# retired key to the anchor of the site at that line whose text is the pin,
+# sorts, drops the count, and reports (keeps) a retired key naming no site.
+_FORM = getattr(_mut, "ledger_form_problems", None)
+_NORM = getattr(_mut, "normalize", None)
+try:
+    # The synthetic sites re-homed under the package, as the real ledger's are.
+    _MUT_PKG_INV = _mut.anchor_sites(_MUT_SRC, [
+        dict(_m, file=_mut.PKG + "sample.py") for _m in _MUT_GOT])
+    _MUT_A, _MUT_B = _MUT_PKG_INV[0], _MUT_PKG_INV[-1]
+    _MUT_LEG = {"unpinned_sites": 7, "survivor_triage": {}, "killed_by": {
+        _mut.triage_key(_MUT_B): {"killed_by": "tests/x.py",
+                                  "old": _MUT_B["old"]},
+        _mut.triage_key(_MUT_A): {"killed_by": "tests/x.py",
+                                  "old": _MUT_A["old"]},
+        "custom_components/heatpump_optimizer/gone.py:1 GUARD_OFF": {
+            "killed_by": "tests/x.py", "old": "    if x:"}}}
+    _MUT_FIXED, _MUT_UNMAPPED = _NORM(_MUT_LEG, _MUT_PKG_INV)
+    _MUT_CANON = {"survivor_triage": {}, "killed_by": dict(sorted({
+        _MUT_A["anchor"]: {"killed_by": "tests/x.py", "old": _MUT_A["old"]},
+        _MUT_B["anchor"]: {"killed_by": "tests/x.py", "old": _MUT_B["old"]},
+    }.items()))}
+    _MUT_UNSORTED = {"survivor_triage": {}, "killed_by": dict(
+        reversed(list(_MUT_CANON["killed_by"].items())))}
+    _MUT_FORM = (
+        len(_FORM(_MUT_LEG)), len(_FORM(_MUT_UNSORTED)),
+        _FORM(_MUT_CANON), _FORM(_MB),
+        "unpinned_sites" in _MUT_FIXED,
+        list(_MUT_FIXED["killed_by"]) == sorted(_MUT_FIXED["killed_by"])
+        and set(_MUT_CANON["killed_by"]) <= set(_MUT_FIXED["killed_by"]),
+        len(_MUT_UNMAPPED))
+except Exception as _mut_f_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _MUT_FORM = (f"{type(_mut_f_exc).__name__}: {_mut_f_exc}",)
+R.check(
+    "the ledger's canonical form is enforced, and --normalize reaches it",
+    _MUT_FORM == (3, 1, [], [], False, True, 1),
+    f"(problems: retired keys + unsorted + committed count, unsorted alone, "
+    f"canonical, the recorded ledger; normalize keeps the count, maps both "
+    f"retired keys, reports the stale one) -> {_MUT_FORM}",
+)
+
+# The ordinal inside an anchor, driven: two identical guards in one def get
+# distinct anchors (the second carries #2), the same text in ANOTHER def starts
+# its own count, and an identical line added to that other def leaves the
+# first def's anchors exactly as they were.
+_MUT_ORD_SRC = (
+    "def f(a):\n    if a:\n        a = 1\n    if a:\n        a = 2\n"
+    "    return a\n\n\ndef g(a):\n    if a:\n        a = 3\n    return a\n")
+try:
+    _MUT_ORD_GOT = [dict(_m, file=_mut.PKG + "ord.py") for _m in _mut.candidates(
+        _mut_write(_MUT_DIR / "ord.py", _MUT_ORD_SRC))]
+    _MUT_ORD = {(_m["line"], _m["kind"]): _m["anchor"] for _m in
+                _mut.anchor_sites(_MUT_ORD_SRC, _MUT_ORD_GOT)}
+    _MUT_ORD_SRC2 = _MUT_ORD_SRC.replace(
+        "        a = 3\n", "        a = 3\n    if a:\n        a = 4\n")
+    _MUT_ORD2 = {(_m["line"], _m["kind"]): _m["anchor"] for _m in
+                 _mut.anchor_sites(_MUT_ORD_SRC2, [
+                     dict(_m, file=_mut.PKG + "ord.py") for _m in _mut.candidates(
+                         _mut_write(_MUT_DIR / "ord.py", _MUT_ORD_SRC2))])}
+    _MUT_ORD_F = [_MUT_ORD[(2, "GUARD_OFF")], _MUT_ORD[(4, "GUARD_OFF")]]
+    _MUT_ORD_OK = (
+        len(set(_MUT_ORD.values())) == len(_MUT_ORD)
+        and not _MUT_ORD_F[0].endswith("#2")
+        and _MUT_ORD_F[1] == _MUT_ORD_F[0] + "#2"
+        and ":g GUARD_OFF " in _MUT_ORD[(10, "GUARD_OFF")]
+        and "#" not in _MUT_ORD[(10, "GUARD_OFF")]
+        and _MUT_ORD2[(12, "GUARD_OFF")] == _MUT_ORD[(10, "GUARD_OFF")] + "#2"
+        and [_MUT_ORD2[(2, "GUARD_OFF")], _MUT_ORD2[(4, "GUARD_OFF")]]
+        == _MUT_ORD_F)
+    _mut_ord_detail = f"f -> {_MUT_ORD_F}; g -> {_MUT_ORD[(10, 'GUARD_OFF')]}"
+except Exception as _mut_o_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _MUT_ORD_OK, _mut_ord_detail = False, f"{type(_mut_o_exc).__name__}: {_mut_o_exc}"
+R.check(
+    "an anchor's ordinal counts identical lines within one def, and only there",
+    _MUT_ORD_OK,
+    _mut_ord_detail + " -- the second identical guard in f is #2, g's counts "
+    "from its own first, and a line added to g moves none of f's anchors",
+)
+
+# base_unpinned and ratchet_base, driven in a throwaway repository whose true
+# base count is known by construction. Commit A holds a.py (defs f and g),
+# b.py (def h) and gone.py (def k), each def one guard and one removable
+# return: 8 sites. Its ledger, in the RETIRED line-keyed form, disposes
+# a.py's `if x:`, so 7 are unpinned at A. Commit B changes only a README, so
+# A and B carry the same 7. The working tree then adds guards z and q to f
+# ABOVE x (every a.py line shifts), deletes gone.py and keeps b.py: 8 sites
+# here, so no count this tree produces equals the base's by accident. Each arm pins a different path: a changed file is
+# re-enumerated at the base (the shift), an unchanged one is reused (b.py),
+# a deleted one is still counted (gone.py), the retired key is normalized
+# (x stays disposed), and an unreadable ref is None, never a count.
+def _mut_git(root: Path, *args: str) -> str:
+    return _subprocess.run(["git", "-c", "user.name=t", "-c",
+                            "user.email=t@example.invalid", *args], cwd=root,
+                           capture_output=True, text=True, check=True).stdout.strip()
+
+
+_MUT_B_SAVED = (_mut.ROOT, _mut.PRODUCTION, _mut.BUDGETS,
+                _os.environ.pop("GOLDEN_REF", None))
+try:
+    _mb_root = Path(_tempfile.mkdtemp(prefix="mutation-base-"))
+    _mb_pkg = _mb_root / _mut.PKG
+    _mb_pkg.mkdir(parents=True)
+    (_mb_root / "tests").mkdir()
+    _MB_A = "def f(x):\n    if x:\n        x = 1\n    return x\n\n\ndef g(y):\n    if y:\n        y = 2\n    return y\n"
+    (_mb_pkg / "a.py").write_text(_MB_A)
+    (_mb_pkg / "b.py").write_text("def h(w):\n    if w:\n        w = 3\n    return w\n")
+    (_mb_pkg / "gone.py").write_text("def k(v):\n    if v:\n        v = 4\n    return v\n")
+    (_mb_root / "tests/mutation_budgets.json").write_text(json.dumps({
+        "unpinned_sites": 3, "survivor_triage": {}, "killed_by": {
+            _mut.PKG + "a.py:2 GUARD_OFF": {"killed_by": "tests/x.py",
+                                            "old": "    if x:"}}}))
+    _mut_git(_mb_root, "init", "-q")
+    _mut_git(_mb_root, "add", "-A")
+    _mut_git(_mb_root, "commit", "-qm", "A")
+    _MB_SHA_A = _mut_git(_mb_root, "rev-parse", "HEAD")
+    (_mb_root / "README").write_text("b\n")
+    _mut_git(_mb_root, "add", "-A")
+    _mut_git(_mb_root, "commit", "-qm", "B")
+    _MB_SHA_B = _mut_git(_mb_root, "rev-parse", "HEAD")
+    _mut.ROOT, _mut.PRODUCTION = _mb_root, _mb_pkg
+    _mut.BUDGETS = _mb_root / "tests/mutation_budgets.json"
+    (_mb_pkg / "a.py").write_text(_MB_A.replace(
+        "def f(x):\n",
+        "def f(x):\n    if z:\n        x = 0\n    if q:\n        x = 5\n"))
+    (_mb_pkg / "gone.py").unlink()
+    _mb_sites = _mut.inventory()
+    _MUT_BASE = (
+        _mut.base_unpinned("HEAD", _mb_sites),
+        _mut.base_unpinned(_MB_SHA_A, _mb_sites),
+        _mut.base_unpinned("no-such-ref", _mb_sites),
+        _mut.base_unpinned(None, _mb_sites),
+        _mut._rev(_mb_root, _mut.ratchet_base("changed", "HEAD")) == _MB_SHA_A,
+        _mut._rev(_mb_root, _mut.ratchet_base("changed", _MB_SHA_A)) == _MB_SHA_A,
+        _mut._rev(_mb_root, _mut.ratchet_base("full", "HEAD")) == _MB_SHA_A,
+        len(_mb_sites))
+except Exception as _mut_b_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _MUT_BASE = (f"{type(_mut_b_exc).__name__}: {_mut_b_exc}",)
+finally:
+    _mut.ROOT, _mut.PRODUCTION, _mut.BUDGETS = _MUT_B_SAVED[:3]
+    if _MUT_B_SAVED[3] is not None:
+        _os.environ["GOLDEN_REF"] = _MUT_B_SAVED[3]
+    _mut_shutil.rmtree(_mb_root, ignore_errors=True)
+R.check(
+    "base_unpinned counts the base exactly, and ratchet_base leaves HEAD for its parent",
+    _MUT_BASE == (7, 7, None, None, True, True, True, 8),
+    f"(at B, at A, unreadable ref, no ref, changed@HEAD -> A, changed@A -> A, "
+    f"full -> A, sites here) -> {_MUT_BASE}; the true base count is 7 by "
+    "construction: 8 sites at A, `if x:` disposed under a retired key",
+)
+
+# The ratchet's other end is the count at its base, derived there the same
+# way as here: a committed count is refused (above), and the driver reads the
+# base through `base_unpinned` rather than through the budget file.
 _MB_UNPIN = _MB.get("unpinned_sites")
 R.check(
-    "the mutation budget records an unpinned-site ratchet count",
-    isinstance(_MB_UNPIN, int) and not isinstance(_MB_UNPIN, bool)
-    and _MB_UNPIN >= 0,
-    f"unpinned_sites={_MB_UNPIN!r} -- the exact count the deterministic "
-    f"inventory ratchets against",
+    "the mutation budget commits no unpinned-site count; the base supplies it",
+    _MB_UNPIN is None and callable(getattr(_mut, "base_unpinned", None)),
+    f"unpinned_sites={_MB_UNPIN!r} -- a committed count is a line every "
+    f"branch that records rewrites, so the ratchet derives it at the base",
 )
 
 # The pre-pass is wired into the driver's main flow: defined-but-never-called
@@ -22765,7 +23274,10 @@ R.check(
     and "completeness_problems(budgets, sites)" in _MUT_BODY
     and "unpinned_sites(budgets, sites)" in _MUT_BODY
     and "cap_problems(budgets)" in _MUT_BODY
-    and "ratchet_refusal(budgets, unpinned)" in _MUT_BODY,
+    and "ledger_form_problems(budgets)" in _MUT_BODY
+    and 'budgets["reason"] =' not in _MUT_BODY
+    and "base_unpinned(rbase, sites)" in _MUT_BODY
+    and "ratchet_refusal(base_count, unpinned)" in _MUT_BODY,
     "the deterministic inventory, the completeness check, the unpinned count, "
     "the cap refusal and the ratchet verdict must all run before the sampled "
     "pool, or the ratchet is defined and never enforced",
@@ -22886,18 +23398,23 @@ _MUT_TRIAGE_PROBLEMS = getattr(_mut, "triage_problems",
                                lambda _t: ["no triage_problems"])
 # Two synthetic survivors shaped like the table's rows; the triage fixture
 # marks one of them, key and pin alike.
+_EQ_KEY = ("custom_components/heatpump_optimizer/pump_mode.py:resolve "
+           "GUARD_OFF 0a1b2c3d")
 _EQ_MUT = {"file": "custom_components/heatpump_optimizer/pump_mode.py",
-           "line": 242, "kind": "GUARD_OFF", "old": "    if raw is None:"}
+           "line": 242, "kind": "GUARD_OFF", "old": "    if raw is None:",
+           "anchor": _EQ_KEY}
 _GAP_MUT = {"file": "custom_components/heatpump_optimizer/frontend.py",
             "line": 110, "kind": "BOOLOP",
-            "old": '        if a and b:'}
-_EQ_KEY = "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF"
+            "old": '        if a and b:',
+            "anchor": ("custom_components/heatpump_optimizer/frontend.py:f "
+                       "BOOLOP 4e5f6a7b")}
 _TRIAGE_FIXTURE = {_EQ_KEY: {"verdict": "equivalent",
                              "old": "    if raw is None:",
                              "reason": "probe: no input can tell it apart"}}
 R.check(
     "a survivor triaged equivalent is off the fraction; an unmarked one stays (#1217)",
-    _MUT_TRIAGE_KEY(_EQ_MUT) == _EQ_KEY
+    _MUT_TRIAGE_KEY(_EQ_MUT)
+    == "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF"
     and _MUT_GAPS([_EQ_MUT, _GAP_MUT], _TRIAGE_FIXTURE)
     == ([_GAP_MUT], [_EQ_MUT]),
     f"key={_MUT_TRIAGE_KEY(_EQ_MUT)!r}, gaps -> "
@@ -22905,16 +23422,19 @@ R.check(
     "leaves the numerator; the unmarked survivor stays in it, because the "
     "default has to stay guilty until a reason moves it",
 )
-# The line pin is half the mark: file and line are where the mutant WAS, and
-# a production edit moves text under the same coordinates all the time. The
-# other half is the verdict: a "gap" triage records a real gap and must not
-# come off the fraction. The null controls drive all three arms through the
-# same predicate.
+# The line pin is half the mark: a production edit changes text under the
+# same key, and the mark must not follow it. The line NUMBER is not part of the
+# mark (the anchor is): the same site one line further down keeps it, and a
+# site under another anchor does not. The other half is the verdict: a "gap"
+# triage records a real gap and must not come off the fraction. The null
+# controls drive every arm through the same predicate.
 R.check(
     "and only an `equivalent` verdict applies, pinned line text and all (#1217)",
     _MUT_EQ(_TRIAGE_FIXTURE, _EQ_MUT) is True
     and _MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, old="    if raw:")) is False
-    and _MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, line=243)) is False
+    and _MUT_EQ(_TRIAGE_FIXTURE, dict(_EQ_MUT, line=243)) is True
+    and _MUT_EQ(_TRIAGE_FIXTURE,
+                dict(_EQ_MUT, anchor=_EQ_KEY.replace("resolve", "fold"))) is False
     and _MUT_EQ({_EQ_KEY: {"verdict": "gap", "old": _EQ_MUT["old"],
                            "reason": "a real gap, triaged"}}, _EQ_MUT) is False,
     f"same pin -> {_MUT_EQ(_TRIAGE_FIXTURE, _EQ_MUT)!r}, moved text -> "
@@ -22943,9 +23463,11 @@ R.check(
 # reason; the validator holds over the whole real table; and every mark
 # names a mutant THIS tree still generates -- same line, same operator,
 # same text -- so the pins are checked against the tree, not each other.
-_MUT_D3_07 = (
-    "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF",
-    "custom_components/heatpump_optimizer/__init__.py:340 BOOLOP",
+_MUT_D3_07 = (  # the two marks' ledger anchors: resolve()'s guard, and setup's
+    "custom_components/heatpump_optimizer/pump_mode.py:resolve GUARD_OFF "
+    "f7c55656",
+    "custom_components/heatpump_optimizer/__init__.py:async_setup_entry BOOLOP "
+    "47200394",
 )
 R.check(
     "the recorded triage marks both D3-07 equivalents, verdict and reason (#1217)",
@@ -22957,12 +23479,13 @@ R.check(
     "survivor table that does not say so charges the suite for them",
 )
 _MUT_TRIAGE_STALE = []
+_MUT_TRIAGE_SITES: dict[str, dict] = {}
+for _rel in sorted({_k.split(":", 1)[0] for _k in _MUT_TRIAGE}):
+    for _m in _mut.inventory([Path(_rel)]):
+        _MUT_TRIAGE_SITES.setdefault(_m.get("anchor"), _m)
 for _k, _ent in sorted(_MUT_TRIAGE.items()):
-    _rel, _rest = _k.split(":")
-    _ln, _kind = _rest.split(" ", 1)
-    _hit = [m for m in _mut.candidates(Path(_rel))
-            if m["line"] == int(_ln) and m["kind"] == _kind]
-    if len(_hit) != 1 or _hit[0]["old"] != _ent.get("old"):
+    _hit = _MUT_TRIAGE_SITES.get(_k)
+    if _hit is None or _hit["old"] != _ent.get("old"):
         _MUT_TRIAGE_STALE.append(_k)
 R.check(
     "and every mark still names a mutant this tree generates, pin and all (#1217)",
@@ -23660,6 +24183,221 @@ R.check(
     f"{_p8_refusals(_p8_float_sites({'probe.py': _p8_probe}))}",
 )
 
+
+# #1536: a comment abbreviated a real identifier to a shorthand that occurs
+# nowhere in code (const.py's bare ``MIN_POWER``, optimizer.py's bare
+# ``min_power``) -- checked against the real, importable production symbols
+# so a rename of either symbol re-breaks this rather than a hand-typed
+# string silently going stale.
+_const_src = (ROOT / "const.py").read_text()
+_optimizer_src = (ROOT / "optimizer.py").read_text()
+R.check(
+    "const.py's power-entity comment names the real CONF_HEAT_PUMP_MIN_POWER, "
+    "not a bare MIN_POWER shorthand",
+    const.CONF_HEAT_PUMP_MIN_POWER == "heat_pump_min_power"
+    and "CONF_HEAT_PUMP_MIN_POWER" in _const_src
+    and not re.search(r"[^A-Za-z_]MIN_POWER[^A-Za-z_]", _const_src),
+    "a bare MIN_POWER in a comment names no real symbol",
+)
+R.check(
+    "optimizer.py names the real min_electrical_power attribute at all "
+    "(the symbol the comment should point readers at)",
+    "min_electrical_power" in _optimizer_src
+    and hasattr(optimizer_mod, "HeatPumpOptimizer"),
+    "the real attribute the comment should name",
+)
+R.check(
+    "and optimizer.py's baseline comment itself uses the real name",
+    "min_electrical_power * 24 h per day" in _optimizer_src
+    and not re.search(r"[^A-Za-z_.]min_power[^A-Za-z_]", _optimizer_src),
+    "a bare min_power in a comment names no real symbol",
+)
+
+
+# --- every CI install is hash-pinned (#1548, R8-D11-s2-03) -----------------
+# Every `uses:` ref is SHA-pinned (#960), but the installs those jobs ran were
+# pinned by version only: an index that served different bytes under the same
+# version was installed without complaint. The barrier is keyed on the
+# PROPERTY -- a dependency-install command in a `run:` step of ANY workflow --
+# not on the twelve commands the finder counted, so a new job, a new workflow
+# or a reworded install is read the same way.
+#
+# What passes, and the design choice in it, said out loud (fixer.md step 11):
+#   pip   `pip install` (bare, `python -m pip` or `uv pip`) with
+#         `--require-hashes`, `--build-constraint FILE` and one or more
+#         `-r FILE`, no positional package spec, and every FILE a committed
+#         path whose every requirement is `name==version` with a sha256.
+#         `--build-constraint` is required even of a lock with no sdist in it:
+#         `--require-hashes` does not reach the isolated environment that
+#         builds an sdist, so an sdist added to a lock later would otherwise
+#         fetch its build requirements unhashed with nothing here noticing.
+#         A file generated at run time (`$RUNNER_TEMP/...`) is refused: it is
+#         the shape the typing lane had, and no reviewer ever sees its hashes.
+#         An unknown pip flag is refused rather than guessed about.
+#   npm   `npm ci` only, over a committed package-lock.json whose every
+#         package carries an `integrity`; `npm install`/`i`/`add`/`exec`,
+#         `npx` and the other runners that fetch by name are refused.
+# NOT covered, deliberately: `apt-get install` (the distribution's signed
+# archive, which OpenSSF Scorecard's Pinned-Dependencies does not count), the
+# toolchains `setup-python`/`setup-node` fetch (their actions are SHA-pinned),
+# the Chromium build `playwright install` downloads (fixed by the now
+# hash-locked playwright-core, not hash-checked by it), and the container
+# image `tests/nightly_ha.py` runs by tag.
+import shlex as _pin_shlex  # noqa: E402
+
+_PIN_PIP = re.compile(r"\bpip3?\s+install\b")
+_PIN_FETCHERS = re.compile(
+    r"\bnpm\s+(?:install|i|add|exec|x|update|up)\b|\bnpx\b|\byarn\b|\bpnpm\b"
+    r"|\bbunx?\b|\bpipx\b|\buvx\b|\buv\s+tool\b|\bgo\s+install\b"
+    r"|\bgem\s+install\b|\bcargo\s+install\b"
+)
+_PIN_REQ = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*(\[[^\]]*\])?==[^\s;\\]+")
+_PIN_HASH = re.compile(r"--hash=sha256:[0-9a-f]{64}\b")
+
+
+def _pin_lock_problem(label: str, text: str) -> "str | None":
+    """Why a requirements file's text is not fully hash-pinned, or None."""
+    logical = re.sub(r"\\\n", " ", text)
+    reqs = [ln.strip() for ln in logical.splitlines()
+            if ln.strip() and not ln.lstrip().startswith("#")]
+    bad = [ln[:40] for ln in reqs
+           if not (_PIN_REQ.match(ln) and _PIN_HASH.search(ln))]
+    if not reqs or bad:
+        return f"{label}: unhashed or unpinned requirement(s) {bad[:3] or 'none at all'}"
+    return None
+
+
+def _pin_unhashed_lock(path: str) -> "str | None":
+    """Why the requirements file a workflow names is not a committed, hashed lock."""
+    if "$" in path or path.startswith("/") or not (_closure.ROOT / path).is_file():
+        return f"{path} is not a committed file"
+    return _pin_lock_problem(path, (_closure.ROOT / path).read_text())
+
+
+def _pin_pip_refusal(cmd: str) -> "str | None":
+    """Why one `pip install` command is not hash-pinned, or None."""
+    try:
+        toks = _pin_shlex.split(cmd[_PIN_PIP.search(cmd).end():])
+    except ValueError as exc:
+        return f"unparseable: {exc}"
+    flags, files, i = set(), [], 0
+    while i < len(toks):
+        tok = toks[i]
+        if tok in ("-r", "--requirement", "--build-constraint") and i + 1 < len(toks):
+            flags.add("-r" if tok != "--build-constraint" else tok)
+            files.append(toks[i + 1])
+            i += 2
+            continue
+        if tok in ("--require-hashes", "-q", "--quiet"):
+            flags.add(tok)
+        else:
+            return f"argument {tok!r} is a package spec or an unvetted flag"
+        i += 1
+    missing = {"--require-hashes", "--build-constraint", "-r"} - flags
+    if missing:
+        return f"missing {sorted(missing)}"
+    for f in files:
+        why = _pin_unhashed_lock(f)
+        if why:
+            return why
+    return None
+
+
+def _pin_unhashed_installs(label: str, text: str) -> "tuple[list[str], int]":
+    """(refusals, installs inspected) over one workflow's `run:` steps."""
+    doc = _yaml.safe_load(text) or {}
+    refusals, seen = [], 0
+    for job_name, job in (doc.get("jobs") or {}).items():
+        for step in (job or {}).get("steps") or []:
+            run = (step or {}).get("run") or ""
+            run = "\n".join(ln for ln in run.splitlines()
+                            if not ln.lstrip().startswith("#"))
+            run = re.sub(r"\\\n\s*", " ", run)
+            for seg in re.split(r"&&|\|\||[;|\n]", run):
+                seg = seg.strip()
+                where = f"{label}:{job_name}: {seg[:70]}"
+                if _PIN_FETCHERS.search(seg):
+                    seen += 1
+                    refusals.append(f"{where} -- fetches by name, not by lock")
+                elif _PIN_PIP.search(seg):
+                    seen += 1
+                    why = _pin_pip_refusal(seg)
+                    if why:
+                        refusals.append(f"{where} -- {why}")
+                elif re.search(r"\bnpm\s+ci\b", seg):
+                    seen += 1
+    return refusals, seen
+
+
+def _pin_lock_without_integrity(path: Path) -> "list[str]":
+    pkgs = json.loads(path.read_text()).get("packages") or {}
+    return [k for k, v in pkgs.items()
+            if k and not str(v.get("integrity", "")).startswith("sha512-")]
+
+
+_PIN_REFUSED, _PIN_SEEN = [], 0
+for _pin_wf in sorted((_closure.ROOT / ".github" / "workflows").glob("*.y*ml")):
+    _r, _n = _pin_unhashed_installs(_pin_wf.name, _pin_wf.read_text())
+    _PIN_REFUSED += _r
+    _PIN_SEEN += _n
+_PIN_NPM_LOCKS = [
+    f for f in _subprocess.run(
+        ["git", "ls-files", "*package-lock.json"], cwd=_closure.ROOT,
+        capture_output=True, text=True,
+    ).stdout.split()
+]
+for _pin_lock in _PIN_NPM_LOCKS:
+    _missing = _pin_lock_without_integrity(_closure.ROOT / _pin_lock)
+    if _missing:
+        _PIN_REFUSED.append(f"{_pin_lock}: no sha512 integrity for {_missing[:3]}")
+R.check(
+    "every dependency install in every workflow is hash-pinned (#1548)",
+    not _PIN_REFUSED and _PIN_SEEN > 0 and _PIN_NPM_LOCKS,
+    f"{len(_PIN_REFUSED)} refused of {_PIN_SEEN} install command(s), "
+    f"{len(_PIN_NPM_LOCKS)} npm lock(s): {_PIN_REFUSED[:4]}. Install from a "
+    "committed hashed lock (`uv pip compile --generate-hashes`; the header of "
+    "tests/requirements-ci.txt has the command) or `npm ci`",
+)
+
+# The barrier's own arms, driven through the same functions over synthetic
+# workflows, so a reader that stopped seeing installs cannot pass the check
+# above by finding nothing: each red arm must refuse and the green arm must not.
+_PIN_OK = ("pip install --require-hashes --build-constraint "
+           "tests/requirements-build.txt -r tests/requirements-ci.txt")
+_PIN_ARMS = {
+    "the finder's version-pinned install": ("pip install -r tests/requirements-ci.txt", 1),
+    "a bare package spec beside the flags": (_PIN_OK + " 'coverage==7.13.1'", 1),
+    "a lock generated at run time": (
+        _PIN_OK.replace("tests/requirements-ci.txt", '"$RUNNER_TEMP/typing-requirements.txt"'), 1),
+    "an install with no build constraint": (
+        "python -m pip install --require-hashes -r tests/requirements-ci.txt", 1),
+    "a continued npm install and npx": (
+        'npm install --prefix "$RUNNER_TEMP/pw" playwright@1.49.0\n'
+        "PW=1 \\\n  npx --yes playwright@1.49.0 install chromium", 2),
+    "the hashed installs this workflow uses": (_PIN_OK + "\nnpm ci --prefix x", 0),
+    "an install named only in a comment": ("# pip install -r x\necho ok", 0),
+}
+for _arm, (_run, _want) in _PIN_ARMS.items():
+    _wf = _yaml.safe_dump({"jobs": {"j": {"steps": [{"run": _run}]}}})
+    _r, _ = _pin_unhashed_installs("arm", _wf)
+    R.check(
+        f"hash-pin barrier arm: {_arm} -> {_want} refusal(s)",
+        len(_r) == _want,
+        f"got {len(_r)}: {_r}",
+    )
+# ... and a lock that loses its hashes on one requirement is refused, read
+# through the same reader the workflows' `-r` files are read through.
+_PIN_COV = _closure.ROOT / "tests" / "requirements-ci.txt"
+_PIN_STRIPPED = re.sub(r"(==\S+) \\\n(?:\s+--hash=\S+ \\\n)*\s+--hash=\S+", r"\1",
+                       _PIN_COV.read_text(), count=1)
+R.check(
+    "hash-pin barrier arm: a lock with one requirement stripped of its hashes is refused",
+    _PIN_STRIPPED != _PIN_COV.read_text()
+    and _pin_lock_problem("stripped", _PIN_STRIPPED) is not None
+    and _pin_unhashed_lock("tests/requirements-ci.txt") is None,
+    f"stripped={_pin_lock_problem('stripped', _PIN_STRIPPED)!r} "
+    f"committed={_pin_unhashed_lock('tests/requirements-ci.txt')!r}",
+)
 
 # --- the replay lane's cheap half, on every pull request (round 8, move 2) ---
 #

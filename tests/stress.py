@@ -29,6 +29,7 @@ Three families of check:
 from __future__ import annotations
 
 import ast
+import contextlib
 import copy
 import inspect
 import itertools
@@ -1684,6 +1685,132 @@ def kernel_cost_over_verdict(
     return observed_ms > baseline_ms * vouched_ratio * SCENARIO_KERNEL_FACTOR
 
 
+#: Interleaved rounds the per-call-cost arm solves (round-5 D9-07). One
+#: plain solve against one doubled solve is a ratio of two single ~50 ms
+#: kernel readings, and under contention one reading moves by more than
+#: the 1.11x a 2x clears SCENARIO_KERNEL_FACTOR by, so the arm missed on
+#: runners (x1.51, x1.57). The median of each arm's rounds is its reading,
+#: and the rounds interleave so slow drift lands on every arm.
+KERNEL_ARM_ROUNDS = 7
+#: At most this many batches of KERNEL_ARM_ROUNDS when a median lands in the
+#: kernel doubt band (per_call_cost_rounds); an arm outside it pays one.
+KERNEL_ARM_BATCHES = 3
+#: The sweep's own kernel rule reads one solve per scenario per tree, so
+#: it rides the same razor: one reading of a real 2x went as low as x1.518
+#: under forced contention (the arm's single-pair shape, in the PR that
+#: added this), below the factor. A scenario whose single reading lands
+#: between this floor and SCENARIO_KERNEL_FACTOR is re-solved on both trees
+#: and judged on the median of KERNEL_DOUBT_ROUNDS interleaved readings.
+#: The floor sits under that lowest real-2x reading, and above the highest
+#: reading of an unchanged solve on the same load
+#: (tools/audit/harnesses/d907_kernel_band.py's clean arm), so a clean
+#: tree is not re-solved. It only decides what gets measured again; the
+#: factor alone decides what fails.
+KERNEL_DOUBT_FLOOR = 1.50
+KERNEL_DOUBT_ROUNDS = 3
+
+
+def cpu_scaler(factor: float = 2.0):
+    """A wrapper factory that makes each call of a seam cost ``factor``
+    times its CPU.
+
+    The wrapped seam runs once and then burns ``factor - 1`` times its own
+    measured CPU, net of the three clock reads the burn adds inside the
+    meter (its two own and the loop's last), which on ~8 us step calls
+    would otherwise read as a few percent over.
+    """
+    started = time.process_time()
+    for _ in range(1000):
+        time.process_time()
+    clock = (time.process_time() - started) / 1000.0
+
+    def doubled(seam):
+        def _twice(*args, **kwargs):
+            started = time.process_time()
+            res = seam(*args, **kwargs)
+            ended = time.process_time()
+            until = ended + (factor - 1.0) * (ended - started) - 3.0 * clock
+            while time.process_time() < until:
+                pass
+            return res
+        return _twice
+    return doubled
+
+
+def per_call_cost_rounds(
+    probe: dict, rounds: int = KERNEL_ARM_ROUNDS, solve=None
+):
+    """Solve ``probe`` plain, with every kernel seam call's CPU doubled, and
+    plain again, ``rounds`` times interleaved; return the three arms' median
+    kernel milliseconds and the last doubled and second-plain runs. While
+    either median sits in the kernel doubt band after a batch of ``rounds``,
+    another batch is solved and the medians are taken over all of them, up
+    to KERNEL_ARM_BATCHES batches; a median outside the band stops it.
+
+    The first plain arm is the baseline, the doubled arm the injection
+    (through the class attributes SolverWork hooks), and the second plain
+    arm an independent null solved beside them -- a null compared with its
+    own numbers cannot fire, so it pins nothing.
+
+    The injection spends each seam call's own CPU a second time, rather
+    than repeating the call as the finder did: a repeat of an identical
+    call runs on warm caches and costs less than the first under
+    contention (medians in the PR that added this), so "twice" delivered
+    a few percent under 2x of a margin that is only 11 %. Burning the
+    measured CPU is 2x per call on any machine, net of the clock reads
+    the burn itself adds.
+
+    ``solve(kind)`` returns one run dict for ``kind`` in "base", "slow" and
+    "null"; left None it is the real solve above. A stub is how the round
+    and batch decisions are pinned without a clock.
+    """
+    saved_batch = SolverWork._batch_wrapped
+    saved_step = SolverWork._step_wrapped
+    _cost_twice = cpu_scaler(2.0) if solve is None else None
+
+    def _real(kind: str) -> dict:
+        if kind != "slow":
+            return build_case(**probe)
+        SolverWork._batch_wrapped = _cost_twice(saved_batch)
+        SolverWork._step_wrapped = _cost_twice(saved_step)
+        try:
+            return build_case(**probe)
+        finally:
+            SolverWork._batch_wrapped = saved_batch
+            SolverWork._step_wrapped = saved_step
+            # build_case's own __exit__ re-published the wrappers onto the
+            # production seams, so restoring the class attributes alone
+            # would leave the doublers reachable from the module.
+            ThermalModel.simulate_trajectory_batch = saved_batch
+            ThermalModel.simulate_step = saved_step
+
+    solve = solve or _real
+    base_ms, slow_ms, null_ms = [], [], []
+    slower = null = None
+
+    def _in_doubt() -> bool:
+        # Either median inside the kernel doubt band: the same band the
+        # sweep re-solves (judge_work), for the same reason -- a 2x median
+        # read at x1.780 on an idle Linux runner at seven rounds.
+        base = float(np.median(base_ms))
+        return any(
+            base * KERNEL_DOUBT_FLOOR < float(np.median(arm))
+            <= base * SCENARIO_KERNEL_FACTOR
+            for arm in (slow_ms, null_ms)
+        )
+
+    for _ in range(rounds * KERNEL_ARM_BATCHES):
+        if len(base_ms) >= rounds and len(base_ms) % rounds == 0 and not _in_doubt():
+            break
+        base_ms.append(float(solve("base").get("solver_kernel_ms", 0.0)))
+        slower = solve("slow")
+        slow_ms.append(float(slower.get("solver_kernel_ms", 0.0)))
+        null = solve("null")
+        null_ms.append(float(null.get("solver_kernel_ms", 0.0)))
+    return (float(np.median(base_ms)), float(np.median(slow_ms)),
+            float(np.median(null_ms)), slower, null)
+
+
 def rss_attrib_fail_threshold(recorded_attrib: float) -> float:
     """The scenario-attributable RSS growth (MiB) a probe may show before
     the check fails.
@@ -1848,6 +1975,9 @@ def memory_stale_axes(
 WORK_PROBE_DRIVER = '''
 import json, os, sys, time
 root, out_path = sys.argv[1], sys.argv[2]
+# An optional JSON list of labels: the kernel doubt band's re-solve
+# (KERNEL_DOUBT_FLOOR) solves only the scenarios it names.
+only = set(json.loads(sys.argv[3])) if len(sys.argv) > 3 else None
 os.chdir(root)
 for part in ("custom_components", os.path.join("tests", "hastub"), "tests"):
     sys.path.insert(0, os.path.join(root, part))
@@ -1915,12 +2045,20 @@ def install():
 # bc5d62b baseline. Patch the class attributes too, so this meter sits
 # around the raw kernel whichever indirection the tree installs; a tree
 # without the hook leaves the module-level patch doing that job.
-if hasattr(stress.SolverWork, "_step_wrapped") and hasattr(
-    stress.SolverWork, "_batch_wrapped"
-):
+#
+# But NOT for a tree that already times the kernel itself: there this
+# wrapper would sit INSIDE the tree's own meter, and its call and clock
+# reads were charged to the baseline's kernel seconds and never to the
+# in-process sweep it is compared with, which pulled a real 2x toward the
+# factor (tools/audit/harnesses/d907_kernel_band.py prints both drivers'
+# readings side by side).
+_tree_meters_kernel = "kernel_ms" in vars(stress.SolverWork())
+if not _tree_meters_kernel and hasattr(
+    stress.SolverWork, "_step_wrapped"
+) and hasattr(stress.SolverWork, "_batch_wrapped"):
     stress.SolverWork._step_wrapped = counting_step
     stress.SolverWork._batch_wrapped = counting_batch
-if hasattr(stress.SolverWork, "_dhw_step_wrapped"):
+if not _tree_meters_kernel and hasattr(stress.SolverWork, "_dhw_step_wrapped"):
     stress.SolverWork._dhw_step_wrapped = counting_dhw_step
 
 _tree_meters_dhw = hasattr(stress.SolverWork, "_dhw_step_wrapped")
@@ -1929,6 +2067,8 @@ rows = {}
 for combo in stress.sweep_combinations():
     combo = dict(combo)
     label = combo.pop("label")
+    if only is not None and label not in only:
+        continue
     count = 0
     dhw_count = 0
     kernel_ms = 0.0
@@ -1989,7 +2129,9 @@ def git_commit(repo: str, rev: str) -> str | None:
     return proc.stdout.strip() or None
 
 
-def capture_work_rows(root: str, out_path: str) -> tuple[dict | None, str]:
+def capture_work_rows(
+    root: str, out_path: str, labels: list[str] | None = None
+) -> tuple[dict | None, str]:
     """Run one tree's sweep in a child process and read back its work rows.
 
     ``{label: {"evals": int, "simulate": int, "objective": float,
@@ -2011,7 +2153,8 @@ def capture_work_rows(root: str, out_path: str) -> tuple[dict | None, str]:
     env = dict(os.environ)
     env["PYTHONPATH"] = os.path.join(root, "tests", "hastub")
     proc = subprocess.run(
-        [sys.executable, "-c", WORK_PROBE_DRIVER, root, out_path],
+        [sys.executable, "-c", WORK_PROBE_DRIVER, root, out_path]
+        + ([] if labels is None else [json.dumps(sorted(labels))]),
         capture_output=True, text=True, env=env,
     )
     if proc.returncode != 0:
@@ -2027,7 +2170,62 @@ def capture_work_rows(root: str, out_path: str) -> tuple[dict | None, str]:
     return rows, f"{len(rows)} scenarios"
 
 
-def capture_baseline_work(repo: str, ref: str) -> tuple[dict | None, str]:
+@contextlib.contextmanager
+def baseline_worktree(repo: str, ref: str):
+    """A pristine detached worktree of ``ref`` for the capture driver.
+
+    Yields ``(worktree, tmp, note)``: ``worktree`` is None when there is
+    none to be had and ``note`` says why, else ``tmp`` is a private
+    directory beside it for the driver's output. Both are removed on exit
+    whatever happened inside, so a sweep that re-creates one for the kernel
+    doubt band (KERNEL_DOUBT_FLOOR) leaves nothing behind either.
+    """
+    ref_sha = git_commit(repo, ref)
+    head_sha = git_commit(repo, "HEAD")
+    if ref_sha is None:
+        yield None, None, (
+            f"{ref} does not resolve to a commit here. Set GOLDEN_REF to the "
+            "tree this one should be judged against (the merge base on a "
+            "branch, HEAD^1 on main)."
+        )
+        return
+    if ref_sha == head_sha:
+        yield None, None, (
+            f"{ref} IS this commit ({head_sha[:12]}). A tree compared against "
+            "itself reports no drift whatever it did, so there is nothing to "
+            "learn here; run with GOLDEN_REF=HEAD^1."
+        )
+        return
+    tmp = tempfile.mkdtemp(prefix="stress_work_")
+    worktree = os.path.join(tmp, "baseline")
+    # Checked out at the resolved SHA rather than at the ref NAME, for the
+    # reason env_drift.py records: a `git fetch` in another worktree
+    # sharing this .git can move origin/main between the two calls, and a
+    # baseline that is not the one it names is worse than none.
+    add = subprocess.run(
+        ["git", "worktree", "add", "--detach", worktree, ref_sha],
+        cwd=repo, capture_output=True, text=True,
+    )
+    try:
+        if add.returncode != 0:
+            yield None, None, (
+                f"git worktree add {ref_sha[:12]} failed: "
+                f"{add.stderr.strip()[-300:]}"
+            )
+        else:
+            yield worktree, tmp, f"{ref} ({ref_sha[:12]})"
+    finally:
+        if add.returncode == 0:
+            subprocess.run(
+                ["git", "worktree", "remove", "--force", worktree],
+                cwd=repo, capture_output=True,
+            )
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def capture_baseline_work(
+    repo: str, ref: str, labels: list[str] | None = None
+) -> tuple[dict | None, str]:
     """The baseline half of the comparison: ``ref``'s own solver work.
 
     Captured HERE, now, on this machine, in a pristine worktree of ``ref``
@@ -2045,49 +2243,15 @@ def capture_baseline_work(repo: str, ref: str) -> tuple[dict | None, str]:
     without a baseline FAILS the check rather than passing it, because a
     comparison that did not happen is not a comparison that agreed.
     """
-    ref_sha = git_commit(repo, ref)
-    head_sha = git_commit(repo, "HEAD")
-    if ref_sha is None:
-        return None, (
-            f"{ref} does not resolve to a commit here. Set GOLDEN_REF to the "
-            "tree this one should be judged against (the merge base on a "
-            "branch, HEAD^1 on main)."
-        )
-    if ref_sha == head_sha:
-        return None, (
-            f"{ref} IS this commit ({head_sha[:12]}). A tree compared against "
-            "itself reports no drift whatever it did, so there is nothing to "
-            "learn here; run with GOLDEN_REF=HEAD^1."
-        )
-    tmp = tempfile.mkdtemp(prefix="stress_work_")
-    worktree = os.path.join(tmp, "baseline")
-    # Checked out at the resolved SHA rather than at the ref NAME, for the
-    # reason env_drift.py records: a `git fetch` in another worktree
-    # sharing this .git can move origin/main between the two calls, and a
-    # baseline that is not the one it names is worse than none.
-    add = subprocess.run(
-        ["git", "worktree", "add", "--detach", worktree, ref_sha],
-        cwd=repo, capture_output=True, text=True,
-    )
-    if add.returncode != 0:
-        shutil.rmtree(tmp, ignore_errors=True)
-        return None, (
-            f"git worktree add {ref_sha[:12]} failed: "
-            f"{add.stderr.strip()[-300:]}"
-        )
-    try:
+    with baseline_worktree(repo, ref) as (worktree, tmp, where):
+        if worktree is None:
+            return None, where
         rows, note = capture_work_rows(
-            worktree, os.path.join(tmp, "baseline.json")
+            worktree, os.path.join(tmp, "baseline.json"), labels
         )
         if rows is None:
             return None, f"the baseline capture failed -- {note}"
-        return rows, f"{note} from {ref} ({ref_sha[:12]})"
-    finally:
-        subprocess.run(
-            ["git", "worktree", "remove", "--force", worktree],
-            cwd=repo, capture_output=True,
-        )
-        shutil.rmtree(tmp, ignore_errors=True)
+        return rows, f"{note} from {where}"
 
 
 class WorkDrift:
@@ -2109,7 +2273,7 @@ class WorkDrift:
     """
 
     __slots__ = ("covered", "replanned", "only_here", "only_baseline",
-                 "over", "stale", "sim_over", "cost_over")
+                 "over", "stale", "sim_over", "cost_over", "cost_doubt")
 
     def __init__(self) -> None:
         self.covered: list[str] = []
@@ -2120,6 +2284,11 @@ class WorkDrift:
         self.stale: list[str] = []
         self.sim_over: list[str] = []
         self.cost_over: list[str] = []
+        # Labels whose kernel reading sits in the doubt band, between
+        # KERNEL_DOUBT_FLOOR and SCENARIO_KERNEL_FACTOR: not over on one
+        # reading, but where a real 2x can land on one (judge_work
+        # re-solves them).
+        self.cost_doubt: list[str] = []
 
 
 def work_drift_compare(
@@ -2223,6 +2392,8 @@ def work_drift_compare(
                     f"counts vouch at {vouched:.2f}x, on an unchanged plan "
                     f"(objective {_fmt_objective(objective)})"
                 )
+            elif got_kernel > float(base_kernel) * vouched * KERNEL_DOUBT_FLOOR:
+                verdict.cost_doubt.append(label)
         if stale_cheap_verdict(got, base_evals):
             # REPORTED, NOT FAILED, and the asymmetry is the point (#387).
             # The stale rule exists because a RECORD can go stale-high and
@@ -2247,6 +2418,72 @@ def work_drift_compare(
         if label not in observed_evals:
             verdict.only_baseline.append(label)
     return verdict
+
+
+
+def judge_work(
+    observed_evals: dict[str, int],
+    observed_simulate: dict[str, int],
+    observed_objective: dict[str, float],
+    observed_kernel: dict[str, float],
+    baseline: dict[str, dict],
+    repo: str,
+    ref: str,
+    combos_by_label: dict[str, dict],
+    rounds: int = KERNEL_DOUBT_ROUNDS,
+) -> tuple[WorkDrift, bool, str]:
+    """work_drift_compare, with the kernel doubt band re-measured.
+
+    A scenario in ``cost_doubt`` is re-solved ``rounds`` times on both
+    trees, interleaved -- the baseline in a re-created pristine worktree of
+    ``ref`` through the same capture driver, this tree in this process --
+    and judged again on the two medians. Nothing else is re-solved, so a
+    tree with no scenario in the band pays nothing. Returns (drift, ok,
+    note); ``ok`` is False when the band held a scenario that could not be
+    re-measured, which the sweep fails rather than reading as agreement.
+    """
+    drift = work_drift_compare(
+        observed_evals, observed_simulate, observed_objective,
+        observed_kernel, baseline,
+    )
+    doubt = list(drift.cost_doubt)
+    if not doubt:
+        return drift, True, "no scenario in the kernel doubt band"
+    base_ms: dict[str, list[float]] = {label: [] for label in doubt}
+    here_ms: dict[str, list[float]] = {label: [] for label in doubt}
+    started = time.perf_counter()
+    with baseline_worktree(repo, ref) as (worktree, tmp, where):
+        if worktree is None:
+            return drift, False, f"no worktree to re-solve {doubt} in: {where}"
+        for turn in range(rounds):
+            rows, note = capture_work_rows(
+                worktree, os.path.join(tmp, f"doubt{turn}.json"), doubt
+            )
+            if rows is None or set(doubt) - set(rows):
+                return drift, False, f"re-solving {doubt} at {where} failed: {note}"
+            for label in doubt:
+                base_ms[label].append(float(rows[label].get("kernel_ms", 0.0)))
+                run = build_case(**dict(combos_by_label[label]))
+                here_ms[label].append(float(run.get("solver_kernel_ms", 0.0)))
+    kernel = dict(observed_kernel)
+    rebased = dict(baseline)
+    for label in doubt:
+        kernel[label] = float(np.median(here_ms[label]))
+        rebased[label] = dict(
+            baseline[label], kernel_ms=float(np.median(base_ms[label]))
+        )
+    judged = work_drift_compare(
+        observed_evals, observed_simulate, observed_objective, kernel, rebased,
+    )
+    return judged, True, (
+        f"kernel doubt band: re-solved {len(doubt)} scenario(s) "
+        f"{rounds}x on both trees in {time.perf_counter() - started:.1f} s; "
+        + "; ".join(
+            f"{label} median {kernel[label]:.0f} ms against "
+            f"{rebased[label]['kernel_ms']:.0f} ms"
+            for label in doubt
+        )
+    )
 
 
 def _fmt_objective(value) -> str:
@@ -2633,6 +2870,85 @@ if __name__ == "__main__":
         not _verdict(kernel=1.99, sim=1.99, only={_VICTIM}).cost_over,
         "kernel seconds at 1.99x moved by counted work fired the "
         "per-call channel",
+    )
+    # ...and the doubt band under the factor, where one reading of a real
+    # 2x can land: named for a re-solve, never failed on one reading, and
+    # empty for a clean tree, a reading under the floor, or one already
+    # over the factor.
+    _in_band = _verdict(kernel=1.60, only={_VICTIM})
+    R.check(
+        "a kernel reading between the doubt floor and the factor is sent "
+        "to the re-solve and fails nothing on its own (round-5 D9-07)",
+        _in_band.cost_doubt == [_VICTIM]
+        and not _in_band.cost_over
+        and not _verdict().cost_doubt
+        and not _verdict(kernel=1.40, only={_VICTIM}).cost_doubt
+        and not _kernel_2x.cost_doubt,
+        f"at 1.60x cost_doubt={_in_band.cost_doubt}, cost_over="
+        f"{_in_band.cost_over}; floor {KERNEL_DOUBT_FLOOR:.2f}, factor "
+        f"{SCENARIO_KERNEL_FACTOR:.2f}",
+    )
+
+    # (b4) the per-call-cost arm's round and batch decisions, on stubbed
+    # readings through the production per_call_cost_rounds -- no clock, no
+    # solve. Each case is (base, slow, null) kernel ms per round, a list
+    # read in order (the last value repeats), and the rounds and medians
+    # the arm must land on. The edges are the band's own: 1.50x is outside
+    # it (floor exclusive) and 1.80x inside (factor inclusive, since the
+    # factor fires only strictly above).
+    def _arm_stub(base, slow, null):
+        seq = {"base": base, "slow": slow, "null": null}
+        seen = {"base": 0, "slow": 0, "null": 0}
+
+        def _solve(kind):
+            vals = seq[kind]
+            v = vals[min(seen[kind], len(vals) - 1)]
+            seen[kind] += 1
+            return {"solver_kernel_ms": float(v)}
+
+        got = per_call_cost_rounds({}, solve=_solve)
+        return seen["base"], seen["slow"], seen["null"], got[:3]
+
+    _R = KERNEL_ARM_ROUNDS
+    _arm_cases = [
+        # clean 2x, both medians outside the band: one batch
+        ("out of band", [50], [100], [50], _R, (50.0, 100.0, 50.0)),
+        # the doubled median in the band all along: every batch
+        ("slow in band", [50], [85], [50], _R * KERNEL_ARM_BATCHES,
+         (50.0, 85.0, 50.0)),
+        # the null median in the band: every batch too
+        ("null in band", [50], [100], [80], _R * KERNEL_ARM_BATCHES,
+         (50.0, 100.0, 80.0)),
+        # exactly on the floor: outside
+        ("on the floor", [50], [75], [50], _R, (50.0, 75.0, 50.0)),
+        # exactly on the factor: inside
+        ("on the factor", [50], [90], [50], _R * KERNEL_ARM_BATCHES,
+         (50.0, 90.0, 50.0)),
+        # in band after batch 1 (median 85 of 4x85, 3x200), out after
+        # batch 2: stops on the batch boundary, not on the first round
+        # whose running median left the band
+        ("leaves at a boundary", [50], [85] * 4 + [200] * 3 + [200], [50],
+         _R * 2, (50.0, 200.0, 50.0)),
+        # batch 2 alone is out of band (100 = 2.0x) but the median over
+        # both batches (90 = 1.8x) is in: a third batch, and the reading is
+        # the median of all 21 (7x80, 7x100, 7x110), not of the last batch
+        ("median over all rounds", [50], [80] * 7 + [100] * 7 + [110],
+         [50], _R * KERNEL_ARM_BATCHES, (50.0, 100.0, 50.0)),
+    ]
+    _arm_bad = []
+    for _name, _b, _s, _n, _want_rounds, _want_med in _arm_cases:
+        _nb, _ns, _nn, _med = _arm_stub(_b, _s, _n)
+        if (_nb, _ns, _nn) != (_want_rounds,) * 3 or tuple(_med) != _want_med:
+            _arm_bad.append(
+                f"{_name}: {_nb}/{_ns}/{_nn} rounds, medians {_med}; want "
+                f"{_want_rounds} rounds, {_want_med}"
+            )
+    R.check(
+        "the per-call-cost arm solves one batch outside the kernel doubt "
+        "band and up to KERNEL_ARM_BATCHES inside it, on the medians of "
+        "every round (round-5 D9-07, stubbed readings)",
+        not _arm_bad,
+        "; ".join(_arm_bad),
     )
 
     # (c) THE #387 acceptance bar, and the reason the recorded fingerprint
@@ -3046,59 +3362,82 @@ if __name__ == "__main__":
         f"cost-only fired {_cost_only_rule.sim_over}",
     )
     # ...and the per-call-cost arm for the channel both counts are blind
-    # to (round-5 D9-07): both kernel seams run twice per call, through
-    # the same class attributes SolverWork hooks. The counts see one
-    # call each, the plan does not move, and only the kernel's own
-    # seconds double -- the finder's injection, which the whole solve's
-    # CPU carries at just 1.49-1.54x.
+    # to (round-5 D9-07): every call of both kernel seams costs twice its
+    # own CPU, through the same class attributes SolverWork hooks. The
+    # counts see one call each, the plan does not move, and only the
+    # kernel's own seconds double -- which the whole solve's CPU carries
+    # at just 1.49-1.54x. Medians over interleaved rounds, beside an
+    # independent plain null (per_call_cost_rounds says why both).
     _saved_seam_batch = SolverWork._batch_wrapped
     _saved_seam_step = SolverWork._step_wrapped
-
-    def _seam_twice(seam):
-        def _twice(*args, **kwargs):
-            seam(*args, **kwargs)
-            return seam(*args, **kwargs)
-        return _twice
-
-    SolverWork._batch_wrapped = _seam_twice(_saved_seam_batch)
-    SolverWork._step_wrapped = _seam_twice(_saved_seam_step)
-    try:
-        _slower = build_case(**_probe)
-    finally:
-        SolverWork._batch_wrapped = _saved_seam_batch
-        SolverWork._step_wrapped = _saved_seam_step
-        # build_case's own __exit__ re-published the wrappers onto the
-        # production seams, so restoring the class attributes alone would
-        # leave the twice-runners reachable from the module.
-        ThermalModel.simulate_trajectory_batch = _saved_seam_batch
-        ThermalModel.simulate_step = _saved_seam_step
-    _slower_kernel = float(_slower.get("solver_kernel_ms", 0.0))
-    _slower_rule = work_drift_compare(
-        {_probe_label: int(_slower["solver_evals"])},
-        {_probe_label: int(_slower.get("solver_simulate_steps", 0))},
-        {_probe_label: float(_slower["result"].objective_value)},
-        {_probe_label: _slower_kernel},
-        _real_base,
+    _kbase_ms, _kslow_ms, _knull_ms, _slower, _knull = per_call_cost_rounds(
+        _probe
     )
+    _kbase = {_probe_label: dict(_real_base[_probe_label], kernel_ms=_kbase_ms)}
+
+    def _kernel_rule(run, kernel_ms):
+        return work_drift_compare(
+            {_probe_label: int(run["solver_evals"])},
+            {_probe_label: int(run.get("solver_simulate_steps", 0))},
+            {_probe_label: float(run["result"].objective_value)},
+            {_probe_label: kernel_ms},
+            _kbase,
+        )
+
+    _slower_rule = _kernel_rule(_slower, _kslow_ms)
+    _knull_rule = _kernel_rule(_knull, _knull_ms)
     R.check(
         "the per-call-cost arm reaches the rule the sweep applies, with "
         "both count channels flat, and an unchanged solve does not "
         "(round-5 D9-07)",
-        not _real_null.cost_over
-        and _real_null.covered == [_probe_label]
+        not _knull_rule.cost_over
+        and _knull_rule.covered == [_probe_label]
         and [f.split()[0] for f in _slower_rule.cost_over] == [_probe_label]
         and not _slower_rule.over
         and not _slower_rule.sim_over,
-        f"{_probe_label}: {_plain_kernel:.0f} ms of kernel CPU plain, "
-        f"{_slower_kernel:.0f} ms with both seams run twice per call "
-        f"(x{_slower_kernel / max(_plain_kernel, 1e-9):.2f}); evaluations "
+        f"{_probe_label}, median of {KERNEL_ARM_ROUNDS} interleaved rounds: "
+        f"{_kbase_ms:.0f} ms of kernel CPU plain, {_knull_ms:.0f} ms plain "
+        f"again (x{_knull_ms / max(_kbase_ms, 1e-9):.2f}), {_kslow_ms:.0f} "
+        f"ms with every seam call's CPU doubled "
+        f"(x{_kslow_ms / max(_kbase_ms, 1e-9):.2f}); evaluations "
         f"{_plain['solver_evals']} vs {_slower['solver_evals']}, simulate "
-        f"{_plain_sim} vs {_slower.get('solver_simulate_steps', 0)}; solve "
-        f"CPU {float(_plain['solve_cpu_ms']):.0f} vs "
-        f"{float(_slower['solve_cpu_ms']):.0f} ms; factor "
+        f"{_plain_sim} vs {_slower.get('solver_simulate_steps', 0)}; factor "
         f"{SCENARIO_KERNEL_FACTOR:.2f}; null fired "
-        f"{_real_null.cost_over}, per-call-cost fired "
+        f"{_knull_rule.cost_over}, per-call-cost fired "
         f"{_slower_rule.cost_over}",
+    )
+    # ...and the sweep's doubt band end to end, through the function the
+    # sweep calls: a real per-call regression whose single reading landed
+    # in the band (1.6x, below the factor) is re-solved on both trees --
+    # the baseline in a re-created worktree of WORK_DRIFT_REF, this tree
+    # with every seam call's CPU tripled -- and confirmed on the medians.
+    # Tripled, not doubled: this pins the re-solve's WIRING, and a 2x
+    # rides the 1.11x margin whose miss rate under load is
+    # tools/audit/harnesses/d907_kernel_band.py's to measure, not a gate's.
+    _doubler = cpu_scaler(3.0)
+    SolverWork._batch_wrapped = _doubler(_saved_seam_batch)
+    SolverWork._step_wrapped = _doubler(_saved_seam_step)
+    try:
+        _band_drift, _band_ok, _band_note = judge_work(
+            {_probe_label: int(_slower["solver_evals"])},
+            {_probe_label: int(_slower.get("solver_simulate_steps", 0))},
+            {_probe_label: float(_slower["result"].objective_value)},
+            {_probe_label: _kbase_ms * 1.6},
+            _kbase, repository_root(), WORK_DRIFT_REF,
+            {_probe_label: _probe},
+        )
+    finally:
+        SolverWork._batch_wrapped = _saved_seam_batch
+        SolverWork._step_wrapped = _saved_seam_step
+        ThermalModel.simulate_trajectory_batch = _saved_seam_batch
+        ThermalModel.simulate_step = _saved_seam_step
+    R.check(
+        "a real per-call regression read once inside the kernel doubt band "
+        "is re-solved on both trees and confirmed by the rule the sweep "
+        "applies (round-5 D9-07)",
+        _band_ok
+        and [f.split()[0] for f in _band_drift.cost_over] == [_probe_label],
+        f"{_band_note}; per-call-cost fired {_band_drift.cost_over}",
     )
 
     # ===========================================================================
@@ -3437,9 +3776,17 @@ if __name__ == "__main__":
         # The exemption that remains is about the DIFF, not the machine: a
         # scenario whose plan this branch changed has no comparable work,
         # and is named rather than judged.
-        drift = work_drift_compare(
+        drift, _doubt_ok, _doubt_note = judge_work(
             observed_evals, observed_simulate, observed_objective,
-            observed_kernel, baseline_work,
+            observed_kernel, baseline_work, repository_root(),
+            WORK_DRIFT_REF, combos_by_label,
+        )
+        print(f"  {_doubt_note}")
+        R.check(
+            "every scenario in the kernel doubt band was re-measured on "
+            "both trees (round-5 D9-07)",
+            _doubt_ok,
+            _doubt_note,
         )
         _work_covered = len(drift.covered)
         print(
