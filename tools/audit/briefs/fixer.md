@@ -22,8 +22,9 @@ production lines. You work in your own worktree branched from `origin/main`.
    commit `21acaf8e`) and its register can merge after you — so run it from the
    baseline export and cite `$EXPORT/<path>` with its sha1, which `figure_lint`
    reports unverified, not refused. A harness measuring what the fix rightly
-   leaves alone reads flat at both ends: say so, and add a companion, cited by
-   sha1, applying the tree's own rule to the same inputs (#1506, #1561, #1571).
+   leaves alone reads flat at both ends: say so, and add a sha1-cited companion
+   applying the tree's own rule to the same inputs, reading the defect at the
+   baseline and not at the head (#1506, #1561, #1571).
    **Every quantified claim carries a null control, not only cost, gain and
    time**: a count, a percentage, an "every" or a "none" is a measurement,
    owed the command that produced it and
