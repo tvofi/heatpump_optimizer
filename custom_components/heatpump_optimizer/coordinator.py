@@ -1366,47 +1366,71 @@ def _dhw_inlet_c(hass: HomeAssistant, entity_id: Any) -> float | None:
     return value if value is not None and -5.0 <= value <= 35.0 else None
 
 
-def _forecast_in_c(state: Any, forecast: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Forecast rows with ``temperature`` in degC, by the weather entity's
-    ``temperature_unit`` (#1513).
+def _wind_speed_scale_of(state: Any) -> float:
+    """Factor converting a weather entity's wind unit into m/s.
+
+    Home Assistant converts forecast wind speed into whichever unit the
+    user has configured, and reports that unit on the weather entity as
+    ``wind_speed_unit``. An unrecognised or absent unit falls back to 1.0
+    (m/s), which is the Home Assistant metric default.
+    """
+    unit = (getattr(state, "attributes", None) or {}).get("wind_speed_unit")
+    scale = _WIND_UNIT_TO_MS.get(unit)
+    if scale is None:
+        if unit:
+            _LOGGER.debug("Unknown wind speed unit %r; assuming m/s", unit)
+        return 1.0
+    return scale
+
+
+def _forecast_in_model_units(state: Any, forecast: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Forecast rows in degC and m/s, by the weather entity's own units (#1513).
 
     Home Assistant hands a weather entity's forecast over in the entity's
-    display unit -- degF on a US-customary instance -- exactly as it does the
-    wind speed ``_wind_speed_scale`` converts. A degC or absent unit returns
-    the rows untouched, and a row whose value will not parse keeps it, so the
-    consumers' own fallbacks still apply.
+    display units -- degF and mph on a US-customary instance. Converting
+    once, where the rows are stored, gives every reader the model's units:
+    the horizon arrays, ``forecast_outdoor_now`` and ``_current_weather``,
+    whose wind the learners read and which used to see the display unit. A
+    degC and m/s entity returns the rows untouched, and a temperature that
+    will not parse is kept, so the consumers' own fallbacks still apply.
     """
     unit = (getattr(state, "attributes", None) or {}).get("temperature_unit")
-    if TEMPERATURE_UNIT_TO_C.get(str(unit).strip(), (0.0, 1.0)) == (0.0, 1.0):
+    to_c = TEMPERATURE_UNIT_TO_C.get(str(unit).strip(), (0.0, 1.0)) != (0.0, 1.0)
+    wind = _wind_speed_scale_of(state)
+    if not to_c and wind == 1.0:
         return forecast
     rows: list[dict[str, Any]] = []
     for entry in forecast:
-        value = temperature_c(entry.get("temperature"), unit)
-        rows.append(entry if value is None else {**entry, "temperature": value})
+        row = dict(entry)
+        value = temperature_c(entry.get("temperature"), unit) if to_c else None
+        if value is not None:
+            row["temperature"] = value
+        if wind != 1.0 and entry.get("wind_speed") is not None:
+            row["wind_speed"] = _as_float(entry.get("wind_speed"), 0.0) * wind
+        rows.append(row)
     return rows
 
 
 def _fabricated_forecast(state: Any) -> list[dict[str, Any]]:
     """48 constant hourly rows from a weather entity's current attributes.
 
-    What a failed first fetch plans on. The temperature is degC by the
-    entity's ``temperature_unit`` (#1513), 5.0 when it will not parse; the
-    wind stays in the entity's own unit, which ``_forecast_arrays`` scales
-    once -- it used to be scaled here as well, so a km/h entity was planned
-    at 1/3.6 of its wind.
+    What a failed first fetch plans on, converted like a fetched forecast
+    (#1513): the temperature in degC, 5.0 when it will not parse, and the
+    wind in m/s. The wind used to be scaled here and again in
+    ``_forecast_arrays``, so a km/h entity was planned at 1/3.6 of it.
     """
     attrs = getattr(state, "attributes", None) or {}
-    temp = temperature_c(attrs.get("temperature"), attrs.get("temperature_unit"))
     start = dt_util.now()
-    return [
+    rows = _forecast_in_model_units(state, [
         {
             "datetime": (start + timedelta(hours=i)).isoformat(),
-            "temperature": 5.0 if temp is None else temp,
+            "temperature": temperature_c(attrs.get("temperature"), None),
             "wind_speed": attrs.get("wind_speed"),
             "precipitation": 0.0,
         }
         for i in range(48)
-    ]
+    ])
+    return [r if r["temperature"] is not None else {**r, "temperature": 5.0} for r in rows]
 
 
 def _solve_anchor(now: datetime) -> datetime:
@@ -5745,7 +5769,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if result and weather_entity in result:
                 forecast_data = result[weather_entity].get("forecast", [])
                 if forecast_data:
-                    self._weather_forecast = _forecast_in_c(
+                    self._weather_forecast = _forecast_in_model_units(
                         self.hass.states.get(weather_entity), forecast_data)
 
                     # Extract solar radiation forecast if present in weather data
@@ -5904,31 +5928,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             )
         return points
 
-    def _wind_speed_scale(self) -> float:
-        """Factor converting the weather entity's wind unit into m/s.
-
-        Home Assistant converts forecast wind speed into whichever unit the
-        user has configured, and reports that unit on the weather entity as
-        ``wind_speed_unit``. An unrecognised unit falls back to 1.0 (m/s),
-        which is the Home Assistant metric default.
-        """
-        entity_id = getattr(self, "_ctx", self)._config.get(CONF_WEATHER_ENTITY)
-        if not entity_id:
-            return 1.0
-        state = self.hass.states.get(entity_id)
-        if state is None:
-            return 1.0
-        unit = state.attributes.get("wind_speed_unit")
-        scale = _WIND_UNIT_TO_MS.get(unit)
-        if scale is None:
-            if unit:
-                _LOGGER.debug(
-                    "Unknown wind speed unit %r on %s; assuming m/s",
-                    unit,
-                    entity_id,
-                )
-            return 1.0
-        return scale
 
     def _price_series(
         self, n_steps: int, midnight: datetime, step_offset: int
@@ -6045,10 +6044,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 [float("nan")] * n_steps,
             )
 
-        # Convert using the unit the weather entity actually reports in.
-        # Guessing from the magnitude misreads a moderate 20 km/h breeze as a
-        # 20 m/s storm and doubles the predicted heat loss.
-        wind_scale = self._wind_speed_scale()
+        # The rows are already in m/s (`_forecast_in_model_units`, #1513):
+        # guessing from the magnitude misreads a moderate 20 km/h breeze as
+        # a 20 m/s storm and doubles the predicted heat loss.
         step_starts = _utc_step_starts(midnight, n_steps, step_offset)
 
         parsed: list[
@@ -6056,7 +6054,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ] = []
         for idx, entry in enumerate(self._weather_forecast):
             temp = _as_float(entry.get("temperature"), 5.0)
-            gust = max(0.0, _as_float(entry.get("wind_speed"), 0.0) * wind_scale)
+            gust = max(0.0, _as_float(entry.get("wind_speed"), 0.0))
             rain = max(0.0, _as_float(entry.get("precipitation"), 0.0))
             # NaN, not a guess: the model reads NaN as "use the ambient
             # value", while any invented number would select a real

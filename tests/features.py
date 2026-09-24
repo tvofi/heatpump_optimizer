@@ -38393,18 +38393,15 @@ R.check(
 )
 
 
-# -- `_wind_speed_scale`: the unit the weather entity actually reports ----
+# -- `_wind_speed_scale_of`: the unit the weather entity actually reports --
 def _t6_wind(unit=_T6_UNSET, *, entity=True):
     """The wind scale for a weather entity reporting `unit`."""
     if not entity:
-        return _t6_call(
-            HeatPumpOptimizerCoordinator(
-                FakeHass({}), FakeEntry(data={"tibber_token": "x"})
-            )._wind_speed_scale
-        )
+        return _t6_call(_t6_coord_module._wind_speed_scale_of, None)
     attrs = {} if unit is _T6_UNSET else {"wind_speed_unit": unit}
-    states = {"weather.home": FakeState("sunny", attributes=attrs)}
-    return _t6_call(_t6_coord(states)._wind_speed_scale)
+    return _t6_call(
+        _t6_coord_module._wind_speed_scale_of, FakeState("sunny", attributes=attrs)
+    )
 
 
 R.check(
@@ -38419,11 +38416,9 @@ R.check(
     "doubles the predicted heat loss",
 )
 R.check(
-    "no weather entity, and one missing from the bus, both read as m/s",
-    _t6_wind(entity=False) == 1.0
-    and _t6_call(_t6_coord({})._wind_speed_scale) == 1.0,
-    f"unconfigured -> {_t6_wind(entity=False)!r}, configured but absent -> "
-    f"{_t6_call(_t6_coord({})._wind_speed_scale)!r} -- 1.0 is Home "
+    "no weather entity state reads as m/s",
+    _t6_wind(entity=False) == 1.0,
+    f"no weather state -> {_t6_wind(entity=False)!r} -- 1.0 is Home "
     "Assistant's own metric default, so an install with no weather entity is "
     "not silently scaled",
 )
@@ -44136,7 +44131,7 @@ R.check(
 # temperature_unit, as its wind does in wind_speed_unit. 50 degF is 10 degC.
 from homeassistant.util import dt as _p8_dt  # noqa: E402
 
-_p8_fc_in_c = getattr(_p8_coord, "_forecast_in_c", None)
+_p8_fc_in_c = getattr(_p8_coord, "_forecast_in_model_units", None)
 
 
 def _p8_weather(unit, temp, *, fail=False, wind_unit="m/s", wind=3.6):
@@ -44203,6 +44198,113 @@ R.check(
     and _p8_outdoor("°C", 10.0, wind_unit="km/h")[1] == [1.0] * 4,
     f"fabricated {_p8_outdoor('°C', 10.0, fail=True, wind_unit='km/h')[1]}, "
     f"fetched {_p8_outdoor('°C', 10.0, wind_unit='km/h')[1]}",
+)
+R.check(
+    "the current wind the learners read is m/s on both paths (3.6 km/h is 1 m/s)",
+    _p8_weather("°C", 10.0, wind_unit="km/h")[0]._current_weather()[0] == 1.0
+    and _p8_weather("°C", 10.0, fail=True, wind_unit="km/h")[0]._current_weather()[0] == 1.0,
+    f"fetched {_p8_weather('°C', 10.0, wind_unit='km/h')[0]._current_weather()}, "
+    f"fabricated {_p8_weather('°C', 10.0, fail=True, wind_unit='km/h')[0]._current_weather()}",
+)
+R.check(
+    "null control: an m/s entity's current wind is its own number on both paths",
+    _p8_weather("°C", 10.0, wind=1.0)[0]._current_weather()[0] == 1.0
+    and _p8_weather("°C", 10.0, fail=True, wind=1.0)[0]._current_weather()[0] == 1.0,
+)
+
+# ---------------------------------------------------------------------------
+R.section("R8-P8 round 3: mutation survivors on lines this diff's files carry")
+# CI's changed-scope mutation lane drew these pre-existing sites from the
+# files #1513 touches, and nothing killed them. Each check drives the
+# production symbol; the repairs.py survivor is triaged equivalent instead.
+import math as _p8s_math  # noqa: E402
+from types import SimpleNamespace as _p8s_ns  # noqa: E402
+
+from heatpump_optimizer import const as _p8s_const  # noqa: E402
+from heatpump_optimizer.freq_control import (  # noqa: E402
+    FREQ_MODE_CONTROL as _P8S_CONTROL,
+    FREQ_SOURCE_NUMBER as _P8S_NUMBER,
+)
+
+# const.buffer_tank_surface_area's floor: a zero or negative volume is a
+# tiny real tank, never 0.0 m2 (a zero clamp range) or a complex number.
+_p8s_areas = [_p8s_const.buffer_tank_surface_area(v) for v in (0.0, -50.0)]
+R.check(
+    "a zero or negative tank volume still has a real, positive surface area",
+    all(isinstance(a, float) and _p8s_math.isfinite(a) and a > 0.0 for a in _p8s_areas),
+    f"{_p8s_areas!r}",
+)
+
+# InputReader.value: a STALE reading keeps its number (read() leaves it for a
+# caller that explicitly wants the last value) but value() must not hand it
+# out -- the default path treats stale as absent.
+_p8s_now = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)
+_p8s_reader = InputReader(
+    FakeHass({"sensor.indoor": FakeState("21.4", last_updated=_p8s_now - timedelta(days=3))}),
+    {"indoor_temp_entity": "sensor.indoor"},
+    now=lambda: _p8s_now,
+)
+_p8s_stale = _p8s_reader.read("indoor_temp_entity")
+R.check(
+    "value() returns the default for a stale reading that still holds a number",
+    _p8s_stale.stale
+    and _p8s_stale.value == 21.4
+    and _p8s_reader.value("indoor_temp_entity", -99.0) == -99.0
+    and _p8s_reader.value("outdoor_temp_entity", -99.0) == -99.0,
+    f"stale={_p8s_stale.stale} held={_p8s_stale.value!r} "
+    f"value={_p8s_reader.value('indoor_temp_entity', -99.0)!r}",
+)
+
+# _track_curve_comfort folds YESTERDAY's worst margin when a new day starts.
+_p8s_cc = _Coord(_FakeHass(), _FakeEntry(data={**_P8_CFG, "curve_learning_enabled": True}))
+_p8s_cc._learning_frozen = lambda key: None
+_p8s_days = []
+_p8s_cc._curve_learner = _p8s_ns(
+    bias=0.0,
+    record_day=lambda now, worst: _p8s_days.append((now.date().isoformat(), worst)),
+    record_miss=lambda now, margin: None,
+)
+_p8s_cc._current_state.room_temperature = 21.5
+_p8s_cc._track_curve_comfort(datetime(2026, 1, 15, 12, 0, tzinfo=UTC))
+_p8s_first = _p8s_cc._curve_day_worst
+_p8s_cc._track_curve_comfort(datetime(2026, 1, 16, 12, 0, tzinfo=UTC))
+R.check(
+    "a new day folds the previous day's worst margin into the curve learner once",
+    _p8s_first is not None and _p8s_days == [("2026-01-16", _p8s_first)],
+    f"folded {_p8s_days!r}, first day worst {_p8s_first!r}",
+)
+
+
+_P8_CFG_NOW = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
+
+
+# _observe_frequency: the watchdog counts a divergence only while the plan
+# asks for the compressor AND the pump reads in its running range.
+def _p8s_watch(commanded_kw, reported_hz):
+    coord = _Coord(
+        _FakeHass(),
+        _FakeEntry(data={**_P8_CFG, "freq_control_mode": _P8S_CONTROL,
+                         "compressor_freq_entity": "number.freq"}),
+    )
+    seen = []
+    coord._freq_entity_reading = lambda: (reported_hz, 20.0, 120.0, _P8S_NUMBER)
+    coord._commanded_power = lambda: commanded_kw
+    coord._freq_watchdog = _p8s_ns(
+        note_report=lambda reported, active: seen.append(active) or False
+    )
+    coord._observe_frequency(_P8_CFG_NOW)
+    return seen
+
+
+R.check(
+    "an idle plan or a pump below its running range is not watched",
+    _p8s_watch(0.0, 45.0) == [False] and _p8s_watch(2.0, 10.0) == [False],
+    f"idle at 45 Hz -> {_p8s_watch(0.0, 45.0)}, running at 10 Hz -> {_p8s_watch(2.0, 10.0)}",
+)
+R.check(
+    "null control: a running plan with the pump in range is watched",
+    _p8s_watch(2.0, 45.0) == [True],
+    f"got {_p8s_watch(2.0, 45.0)}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
