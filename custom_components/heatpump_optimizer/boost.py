@@ -25,6 +25,7 @@ from homeassistant.util import dt as dt_util
 
 from . import away as away_mode
 from .const import DOMAIN
+from .entity import has_hot_water
 
 _LOGGER = logging.getLogger(__name__)
 BOOST_STORE_VERSION = 1
@@ -130,6 +131,10 @@ def apply(coord: _BoostCoord) -> None:
     now = dt_util.now()
     held = held_for(coord)
     held.expire(now)
+    if not has_hot_water(coord):
+        # No tank to heat: a DHW boost set or restored anyway is dropped here,
+        # the one place it could reach the action (#1527).
+        held.until.pop(CHANNEL_DHW, None)
     action = coord._current_action
     if not action:
         coord._current_action = {}
