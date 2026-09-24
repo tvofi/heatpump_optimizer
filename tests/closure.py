@@ -1668,6 +1668,13 @@ AUTOFIX_QUIET = {
     # the earlier three CI failures became unreadable.
     "claims-autofix": ("changed", "skip-not-allowed", "skip-not-inherited",
                        "skip-moves-nothing-claimable", "skip-cannot-compare"),
+    # `skip-not-unpinned` is every `mutation` failure that was not a ratchet
+    # refusal, and `skip-nothing-killed` a refusal whose every site survived:
+    # a survivor is a human's by design, so neither is a skipped repair.
+    # `skip-no-measurement`, `skip-no-base-program` and `skip-unchanged`
+    # (kills measured, none applied to the head) are, and redden.
+    "mutation-autofix": ("changed", "skip-not-allowed", "skip-not-unpinned",
+                         "skip-nothing-killed"),
 }
 
 # Keyed by status where the job-wide remedy would misdirect. A failed
@@ -1694,6 +1701,11 @@ _AUTOFIX_REMEDY = {
     "claims-autofix":
         "Rewrite tests/golden/claimed_drift.txt and card_claimed_drift.txt for\n"
         "THIS diff by hand, keeping `claims-for:` and any `# may-drift:` line.",
+    "mutation-autofix":
+        "Pin the new sites yourself and commit tests/mutation_budgets.json:\n"
+        "    python3 tests/mutation_table.py --pin-killed --base origin/main\n"
+        "A site no driver kills needs a killing check or a survivor_triage\n"
+        "verdict; no tool writes either.",
 }
 
 

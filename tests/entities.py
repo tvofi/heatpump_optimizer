@@ -15447,7 +15447,7 @@ _TESTS_YML = (pathlib.Path(__file__).resolve().parents[1]
               / ".github" / "workflows" / "tests.yml").read_text()
 
 
-for _job in ("closures-autofix", "claims-autofix"):
+for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
     _blk = _workflow_job(_TESTS_YML, _job)
     _steps = _blk.split("\n      - ")
     _rep = [s for s in _steps if "autofix-report" in s]
@@ -15499,7 +15499,7 @@ def _af_dispatches(step: str) -> set[str]:
     return set(re.findall(r"gh workflow run (\S+)", live))
 
 
-for _job in ("closures-autofix", "claims-autofix"):
+for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
     _steps = _workflow_job(_TESTS_YML, _job).split("\n      - ")
     _push = [s for s in _steps if re.match(r"name: Push\b", s)]
     _elsewhere = set().union(*(_af_dispatches(s) for s in _steps
@@ -19347,15 +19347,18 @@ R.check(
 # the whole set of jobs that override the workflow's `contents: read` floor.
 # A job-level block REPLACES the floor for that job and is inherited by none,
 # so the set IS the blast radius. The two autofix jobs have needed writes since
-# #523; a fourth override should have to be argued for.
+# #523, and `mutation-autofix` the same two since it was argued for as the
+# ledger half of the mutation ratchet; a fifth override should have to be
+# argued for too.
 _NS_OVERRIDES = sorted(
     _m.group(1) for _m in re.finditer(
         r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
         _TESTS_YML, re.M | re.S)
 )
 R.check(
-    "exactly three jobs override the workflow's read-only floor",
-    _NS_OVERRIDES == ["claims-autofix", "closures-autofix", "nightly-status"],
+    "exactly four jobs override the workflow's read-only floor",
+    _NS_OVERRIDES == ["claims-autofix", "closures-autofix", "mutation-autofix",
+                      "nightly-status"],
     f"jobs with a permissions block: {_NS_OVERRIDES}",
 )
 _NS_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _NS_JOB, re.M)
@@ -20706,7 +20709,8 @@ _AH_CONST = json.loads(subprocess.run(
 _AH_TESTS_YML = Path(".github/workflows/tests.yml").read_text()
 _AH_DRIFT = []
 for _job, _subject in (("closures-autofix", "ci: re-record closures"),
-                       ("claims-autofix", "ci: drop inherited claims")):
+                       ("claims-autofix", "ci: drop inherited claims"),
+                       ("mutation-autofix", "ci: pin killed mutants")):
     _jt = _workflow_job(_AH_TESTS_YML, _job)
     _added = re.search(r"^\s*git add (.+)$", _jt, re.M)
     _rule = (_AH_CONST or {}).get("messages", {}).get(_subject)
@@ -23321,6 +23325,45 @@ R.check(
     and "pin_entry(" in _MUT_BODY,
     "the mode must read the base's unpinned sites and pin only a mutant whose "
     "killing run it holds; a pin without a run is an assertion, not a kill",
+)
+
+# `mutation-autofix` applies what `mutation` measured on the MERGE ref, so an
+# entry lands only where THIS tree has the same anchor and `old` text and no
+# disposition yet; a second apply of the same pins changes nothing. Each arm
+# is a status `closure.AUTOFIX_QUIET` grades, so a wrong one is a wrong tick.
+_AP_DIR = Path(_tempfile.mkdtemp(prefix="hpo-apply-pins-"))
+_AP_SAVED = (_mut.BUDGETS, _mut.inventory)
+_ap_b = dict(_pin_b, kind="GUARD_OFF", new="    if False:", file="f.py", line=4)
+try:
+    (_AP_DIR / "ledger.json").write_text(_AP_SAVED[0].read_text())
+    _mut.BUDGETS = _AP_DIR / "ledger.json"
+    _mut.inventory = lambda *_a: [_ap_b]
+    _ap_pins = _AP_DIR / "pins"
+    _ap_pins.mkdir()
+    _AP_GOT = [_mut.apply_pins(str(_ap_pins))]
+    (_ap_pins / "status").write_text("skip-nothing-killed\n")
+    _AP_GOT.append(_mut.apply_pins(str(_ap_pins)))
+    (_ap_pins / "status").write_text("measured\n")
+    (_ap_pins / "pins.json").write_text(json.dumps({
+        _ap_b["anchor"]: {"killed_by": "tests/x.py", "old": "    if STALE:"},
+        "gone.py:h GUARD_OFF cccc": {"killed_by": "tests/x.py", "old": "x"}}))
+    _AP_GOT.append(_mut.apply_pins(str(_ap_pins)))
+    (_ap_pins / "pins.json").write_text(json.dumps({
+        _ap_b["anchor"]: {"killed_by": "tests/x.py", "old": "    if b:",
+                          "reason": "measured"}}))
+    _AP_GOT += [_mut.apply_pins(str(_ap_pins)), _mut.apply_pins(str(_ap_pins)),
+                json.loads(_mut.BUDGETS.read_text()).get("killed_by", {})
+                .get(_ap_b["anchor"], {}).get("killed_by")]
+except Exception as _ap_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _AP_GOT = [f"{type(_ap_exc).__name__}: {_ap_exc}"]
+finally:
+    _mut.BUDGETS, _mut.inventory = _AP_SAVED
+    _mut_shutil.rmtree(_AP_DIR, ignore_errors=True)
+R.check(
+    "mutation-autofix applies only a measured pin whose anchor and text this tree still has",
+    _AP_GOT == ["skip-no-measurement", "skip-nothing-killed", "skip-unchanged",
+                "changed", "skip-unchanged", "tests/x.py"],
+    f"(no status, passed-through status, stale+gone, fresh, again, written) -> {_AP_GOT}",
 )
 
 # Scope: a mutant is driven only by scripts whose MEASURED closure contains

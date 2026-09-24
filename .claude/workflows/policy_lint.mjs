@@ -5189,6 +5189,7 @@ const AUTOFIX_BOT_COMMITS = {
     'ci: re-record closures': { paths: ['tests/closures.json'], mayAdd: true },
     'ci: drop inherited claims': {
       paths: ['tests/golden/claimed_drift.txt', 'tests/golden/card_claimed_drift.txt'], mayAdd: false },
+    'ci: pin killed mutants': { paths: ['tests/mutation_budgets.json'], mayAdd: true },
   },
 }
 
