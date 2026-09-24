@@ -23,7 +23,7 @@ The tuya_heat_pump fork is unchanged.
 
 ## Head
 
-HEAD_SHA (merge base 26f15eb0cf256d49f3443e814b9da17288a6f9fc)
+f2117c0d8f931a4254cbc1a505eed346c54ec387 (merge base 26f15eb0cf256d49f3443e814b9da17288a6f9fc)
 
 ## Mutation proof
 
