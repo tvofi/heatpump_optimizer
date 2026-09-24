@@ -43837,7 +43837,7 @@ R.check(
     "normalize_price_per_kwh takes each unit to major currency per kWh",
     _p8_norm is not None
     and all(
-        _p8_math.isclose(_p8_norm(2.0, _u), 2.0 * _f)
+        _p8_math.isclose(_p8_norm(2.0, _u) or _p8_math.nan, 2.0 * _f)
         for _u, _f in _P8_FACTORS.items()
     ),
     f"{[(u, _p8_norm(2.0, u)) for u in _P8_FACTORS] if _p8_norm else 'missing'}",
