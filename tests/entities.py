@@ -2883,7 +2883,7 @@ _sensed_hass, _sensed_coord, _sensed = _honest_coordinator(
         "sensor.downstairs": FakeState("20.1"),
     },
 )
-_sensed_fake = FakeCoordinator(_sensed)
+_sensed_fake = FakeCoordinator(_sensed, _config=dict(_sensed_coord._config))
 for _cls, _expected in (
     (sensor.DHWTemperatureSensor, 48.2),
     (sensor.BufferTankTempSensor, 36.5),
@@ -3909,8 +3909,20 @@ R.section("A failed refresh reaches every entity")
 # the second half can only be failing for the reason it claims. Without it,
 # deleting a `super().available and` would still pass: everything would be
 # unavailable for its own reasons and the sweep would never notice.
-_healthy = FakeCoordinator(DATA)
-_broken = FakeCoordinator(DATA)
+# Every optional input configured, too: an entity gated on a configured
+# input (#1542's class) is only healthy where its input exists.
+_EVERY_INPUT = {
+    _slot: f"sensor.{_slot}"
+    for _slot in (
+        const.CONF_DHW_TEMP_ENTITY,
+        const.CONF_BUFFER_TANK_TEMP_ENTITY,
+        const.CONF_FLOOR_RETURN_TEMP_ENTITY,
+        const.CONF_LOWER_FLOOR_TEMP_ENTITY,
+        *sensor.ECL110_TOPIC_SLOTS,
+    )
+}
+_healthy = FakeCoordinator(DATA, _config=_EVERY_INPUT)
+_broken = FakeCoordinator(DATA, _config=_EVERY_INPUT)
 _broken.last_update_success = False
 # Every platform is in the roster (#295). The two action buttons were once
 # held out of it on the theory that "run an optimization now" is exactly what
@@ -8604,35 +8616,23 @@ def _ord_state(e):
     return None
 
 
-# The ECL110 pair is the one disabled member that is NOT dead on the
-# ordinary install: it has no availability gate at all and publishes the
-# 0.0 placeholder, which is exactly why its default is off (its own
-# comment: "disabled, not a forever-unknown entity"). Every other disabled
-# entity must be unavailable or stateless there — that is the measured
-# cause its default is off, and a sensor flipped without one fails here.
-_ECL110_UNGATED = {"ecl110_displace", "ecl110_effective_displace"}
+# Every disabled-by-default entity must be unavailable or stateless on the
+# ordinary install -- that is the measured cause its default is off, and a
+# sensor flipped without one fails here. The ECL110 pair used to be the one
+# exception, available with no ECL110 topic stored and publishing a 0.0
+# placeholder; it now takes the configured-input gate, so it has none.
 _ord_dead = sorted(
     e._key
     for e in _ord_entities
     if not _ord_default_on(e)
-    and e._key not in _ECL110_UNGATED
     and e.available
     and _ord_state(e) is not None
 )
 R.check(
     "every disabled-by-default entity is dead on the ordinary install,"
-    " save the ungated ECL110 pair (#177, #1335)",
+    " the ECL110 pair included (#177, #1335)",
     not _ord_dead,
     f"alive while disabled: {_ord_dead}",
-)
-R.check(
-    "the ECL110 pair really is the ungated exception (#1335)",
-    all(
-        e.available
-        for e in _ord_entities
-        if getattr(e, "_key", None) in _ECL110_UNGATED
-    ),
-    "an ECL110 sensor grew an availability gate; re-cut the exception",
 )
 _ord_shipped_dead = sorted(
     e.entity_id
@@ -8645,6 +8645,112 @@ R.check(
     "no enabled entity ships dead on the ordinary install (#1335)",
     not _ord_shipped_dead,
     f"enabled, unavailable, no waiting_for marker: {_ord_shipped_dead}",
+)
+
+# #1542 / #1527 widened (R8-P2): the hot-water gate above is one instance of
+# a wider class -- an entity whose default and availability should follow an
+# input the user configures. The population is derived, not listed: every
+# entity the ordinary install ships disabled by default, plus every entity
+# whose ``_reading_key`` names a READING_SOURCES slot the ordinary install
+# leaves empty. Each takes ``ConfiguredInputMixin`` (or the hot-water gate),
+# or is named below with the reason its default stays its own.
+from heatpump_optimizer.entity import ConfiguredInputMixin as _InputGate
+
+_ord_config = _ord_coord._config
+_INPUT_GATE_EXCEPTIONS = {
+    # Evidence-gated: configured or not, these wait on weeks of draws, a
+    # billing month or a learned map before they have a value (#1335).
+    "DHWHeavyDaySensor": "evidence: learned per-window draw quantiles",
+    "ContractComparisonSensor": "evidence: a settled billing month",
+    "FrequencyAdvisorSensor": "evidence: the learned kW-per-Hz map",
+    "WoodBurnAdvisorSensor": "evidence: the wood fuel model's readiness",
+    # Feature opt-ins keyed on an options-page choice rather than an input
+    # entity slot; their default is #1335's static off, not yet ruled to
+    # follow the choice (R8-P2 hand-back).
+    "MonthlyPeakSensor": "opt-in: capacity tariff choice",
+    "PowerHeadroomSensor": "opt-in: capacity tariff or main fuse",
+    "PVSurplusSensor": "opt-in: PV enabled flag",
+    "ValveTargetRecommendationSensor": "opt-in: mixing-valve mode choice",
+    "WoodCheaperBinarySensor": "opt-in: wood furnace flag",
+    "MeasuredPowerSensor": "opt-in: measured power entity (#1335 roster)",
+    "CompressorStartsSensor": "opt-in: measured power entity (#1335 roster)",
+}
+_input_population = {}
+for _e in _ord_entities:
+    _slot = _READING_SOURCES.get(getattr(_e, "_reading_key", ""), "")
+    if not _ord_default_on(_e) or (_slot and not _ord_config.get(_slot)):
+        _input_population[type(_e).__name__] = _e
+R.check(
+    "the configured-input census finds the probe temperatures and ECL110",
+    {"SlabTempSensor", "LowerFloorTempSensor", "FloorReturnTempSensor",
+     "BufferTankTempSensor", "ECL110DisplaceSensor",
+     "ECL110EffectiveDisplaceSensor", "DHWTemperatureSensor"}
+    <= set(_input_population),
+    f"census: {sorted(_input_population)}",
+)
+_ungated = sorted(
+    n for n, e in _input_population.items()
+    if n not in _INPUT_GATE_EXCEPTIONS
+    and not isinstance(e, (_InputGate, _DHWGate))
+)
+R.check(
+    "every entity whose default should follow a configured input takes the gate",
+    not _ungated,
+    f"static or ungated: {_ungated}",
+)
+_stale_exc = sorted(
+    n for n in _INPUT_GATE_EXCEPTIONS
+    if n not in _input_population
+    or isinstance(_input_population[n], (_InputGate, _DHWGate))
+)
+R.check(
+    "every named input-gate exception is still in the census and still ungated",
+    not _stale_exc,
+    f"stale: {_stale_exc}",
+)
+_input_members = [e for e in _input_population.values() if isinstance(e, _InputGate)]
+_static_inputs = sorted(
+    type(e).__name__ for e in _input_members
+    if any("_attr_entity_registry_enabled_default" in k.__dict__ for k in type(e).__mro__)
+)
+R.check(
+    "no input-gated entity carries a static default beside the gate",
+    not _static_inputs,
+    f"static: {_static_inputs}",
+)
+_slot_bad = sorted(
+    type(e).__name__ for e in _input_members
+    if getattr(e, "_reading_key", "")
+    and _READING_SOURCES.get(e._reading_key) not in e._input_slots
+)
+R.check(
+    "an input-gated entity reading a probe is keyed on that probe's slot",
+    not _slot_bad,
+    f"_input_slots disagrees with READING_SOURCES: {_slot_bad}",
+)
+# Both ends per member: with none of its slots configured it is off and
+# unavailable (the null control -- a payload that satisfies every other
+# gate); with its first slot configured it is on and available.
+_off_wrong, _on_wrong = [], []
+for _e in _input_members:
+    _cls = type(_e)
+    _bare = _cls(FakeCoordinator(DATA, _config={}), ENTRY)
+    if _bare.entity_registry_enabled_default or _bare.available:
+        _off_wrong.append(_cls.__name__)
+    _lit = _cls(
+        FakeCoordinator(DATA, _config={_cls._input_slots[0]: "configured"}), ENTRY
+    )
+    if not (_lit.entity_registry_enabled_default and _lit.available):
+        _on_wrong.append(_cls.__name__)
+R.check(
+    "an input-gated entity is off and unavailable with its input unconfigured",
+    _input_members and not _off_wrong,
+    f"{len(_input_members)} members; lit anyway: {_off_wrong}",
+)
+R.check(
+    "and on and available once its input is configured (#1542)",
+    not _on_wrong,
+    f"still off or unavailable: {_on_wrong}",
 )
 
 _card_text = Path(
