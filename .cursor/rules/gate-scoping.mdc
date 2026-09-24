@@ -14,8 +14,10 @@ GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) 
 
 `/tmp/hpo-gate.lock` serialises anything that runs `tests/stress.py`, which
 measures the machine while it solves and is wrong if something else is running.
-`run.sh` takes it, waiting, for a FULL or `stress.py` run. Hold it across
-commands with `tests/gate_lock.py` — not `mkdir` and a shell pid:
+`run.sh` takes it, waiting, for a FULL or `stress.py` run. The wait is bounded:
+while another label holds it, run `scope.run`'s other scripts unleased, and one
+lease period on, leave `stress.py` to CI and name it unrun in the body. `take` is
+not a queue. Hold it across commands with `tests/gate_lock.py`, not `mkdir`:
 
 ```
 python3 tests/gate_lock.py take --label <your-label>
@@ -28,10 +30,8 @@ python3 tests/gate_lock.py release --label <your-label>
 The owner file carries your label and an `expires_at` lease (30 minutes, above
 the longest observed gate). Every script under lock renews it; an expired lease
 or an abandoned hold (`holding` marker, no live flock) may be taken without
-forensics. `run.sh` holds `flock` for the gate run so a crash drops flock and
-a waiter can take immediately — the lease covers the window between commands
-when nothing holds flock (#404). Setting `HPO_GATE_LOCK_LABEL` without the
-`take` above fails at once: the label means *I hold it already*.
+forensics. Setting `HPO_GATE_LOCK_LABEL` without the `take` above fails at
+once: the label means *I hold it already*.
 
 **The mypy census runs here too, when you have the pins.** The typing lane is
 source-only, so #1091 and #1099 each pushed a census regression a local gate

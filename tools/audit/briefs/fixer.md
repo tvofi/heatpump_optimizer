@@ -62,8 +62,9 @@ production lines. You work in your own worktree branched from `origin/main`.
    and never prints. `fix-review.md`'s posting line is the reviewer's.
 
    **Take the gate lease only when `MODE: FULL` or `scope.run` names
-   `tests/stress.py`**, the one script the lock exists for; the commands, and
-   why `mkdir` and a shell pid is not a lease, are `gate-scoping.md`'s.
+   `tests/stress.py`**, the one script the lock exists for; the commands, the
+   wait bound after which CI runs it, and why `mkdir` is not a lease, are
+   `gate-scoping.md`'s.
 
    `GOLDEN_MODE=drift` against the merge base always: strict mode compares
    solver floats that do not reproduce across BLAS builds, so it is honest
