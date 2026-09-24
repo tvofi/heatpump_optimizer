@@ -43,16 +43,22 @@ decimals, the rule ``tests/nightly_ha.py``'s A10 checks apply to diagnostics.
 The export then searches its own output for every unsafe string it removed,
 and refuses to write if one survives.
 
-WHAT IT CANNOT REMOVE without removing the data the replay needs, so a person
-reads the file before it is committed:
+WHAT IT CANNOT REMOVE, because the rules above judge a string's shape and
+not its meaning, so a person reads the file before it is committed:
 
+* any text state, and any entry value under a key not naming an entity, of
+  up to 40 characters that starts with a letter and breaks none of the rules
+  above -- several words and short numbers included: a full name, a street
+  and house number ("Storgatan 12"), a bare hostname, a random-looking token;
+* the same for units (up to 16 characters) and for ``device_class``,
+  ``state_class`` and ``hvac_action`` (any ``[a-z_]`` word up to 32
+  characters, a snake-case name included) -- and a select's option labels
+  (no digits, otherwise the same);
 * entity ids, which the user named and which may embed a name, a street or a
   device's MAC (``sensor.anna_storgatan_power``);
-* numbers: a state or a numeric attribute is kept whatever it is, so a long
-  number, or a coordinate published as a sensor's state, survives -- only
-  keys named as coordinates are rounded;
-* short word labels that are a select's option or a state (a Wi-Fi name, a
-  person's name written as one word).
+* numbers: a state, a numeric attribute or a price or forecast value is kept
+  whatever it is, so a coordinate published as a sensor's state or a long
+  number survives -- only keys named as coordinates are rounded.
 
 ``--check FILE`` applies the same rules to a file already written and exits 1
 on any violation; ``tests/replay.py`` runs it on every committed fixture.
