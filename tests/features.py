@@ -44398,4 +44398,63 @@ for _name, _fn, _tol in _r7ua_rows:
         f"{float(np.max(np.abs(_slow - _fast))) if _slow is not None and _fast is not None else 'n/a'}",
     )
 
+# --- Two more sites the D2-03 diff's mutation sample draws (CI, round 2) --
+#
+# `get_current_action` reads the DHW temperature trajectory only while the
+# step index is inside it. A trajectory shorter than the schedule (a
+# truncated or restored result) must leave the late steps without a DHW
+# temperature, not raise. With the guard's `and` read as `or`, a non-empty
+# short trajectory is indexed past its end.
+_r7act_res = _dc_replace(_hold_r, dhw_temp_trajectory=[50.0])
+try:
+    _r7act_late = _ao.get_current_action(_r7act_res, _r7act_res.timestamps[8])
+    _r7act_err = None
+except Exception as _err:  # noqa: BLE001
+    _r7act_late, _r7act_err = None, f"{type(_err).__name__}: {_err}"
+_r7act_early = _ao.get_current_action(_r7act_res, _r7act_res.timestamps[0])
+R.check(
+    "a DHW trajectory shorter than the schedule is read only where it exists",
+    _r7act_late is not None
+    and "dhw_temperature" not in _r7act_late
+    and _r7act_early.get("dhw_temperature") == 50.0,
+    f"step 8 of a one-entry trajectory: raised {_r7act_err}, action "
+    f"dhw_temperature {None if _r7act_late is None else _r7act_late.get('dhw_temperature')!r}; "
+    f"step 0 reads {_r7act_early.get('dhw_temperature')!r}",
+)
+
+
+# `async_learn_cooling` folds a quieter observed cooling rate in as a lower
+# envelope: each repeat of the same quiet reading closes a fixed fraction of
+# the remaining gap, DHW_COOLING_ALPHA_DOWN. So the ratio of two successive
+# steps is 1 - alpha, whatever the observed rate, and this reads it from the
+# learner's own output. This check encodes a design choice (a quarter of the
+# gap per quiet reading). A deliberate retune changes the expected ratio here
+# with it.
+def _r7cool_steps():
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))
+    coord._thermal_params.dhw_enabled = True
+    learner = coord._dhw_learner
+    learner.apply_cooling_rate(2.0)
+    rates = [learner.cooling_rate]
+    for _ in range(2):
+        _aio.run(learner.async_learn_cooling(60.0, 59.0, 2.0))
+        rates.append(learner.cooling_rate)
+    return rates
+
+
+_r7cool = _r7cool_steps()
+_r7cool_ratio = (
+    (_r7cool[2] - _r7cool[1]) / (_r7cool[1] - _r7cool[0])
+    if _r7cool[1] != _r7cool[0] else float("nan")
+)
+R.check(
+    "a quieter cooling reading closes a quarter of the gap each time",
+    _r7cool[2] < _r7cool[1] < _r7cool[0]
+    and abs(_r7cool_ratio - 0.75) < 1e-9,
+    f"rates {[round(r, 6) for r in _r7cool]}; successive-step ratio "
+    f"{_r7cool_ratio!r}, expected 1 - 0.25",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
