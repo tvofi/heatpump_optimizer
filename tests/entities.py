@@ -5727,6 +5727,33 @@ R.check(
     f"house={_series_bare_data.get('house_power_series')!r} "
     f"pump={_series_bare_data.get('heat_pump_power_series')!r}",
 )
+# #1499's class, "space power read as the whole machine": with no meter at
+# all the realised peak folds the plan's own draw, and a DHW-only step asks
+# the pump for its whole hot-water charge while the space allocation is 0.
+# The space-only step is the null arm: it folds 4.8 before and after.
+def _peak_fold(action):
+    coord = _NpCoord(
+        FakeHass(),
+        FakeEntry(data={"peak_tariff_enabled": True, "peak_tariff_price_per_kw": 90.0}),
+    )
+    coord._measured_power = None
+    coord._measured_house_power = None
+    coord._current_action = action
+    coord._track_realised_peak()
+    return coord._peak_tracker.window_snapshot(
+        dt_util.now(), coord._capacity_tariff()
+    )[1]
+
+
+_peak_folds = (
+    _peak_fold({"power": 0.0, "dhw_power": 4.8, "heat_pump_on": True}),
+    _peak_fold({"power": 4.8, "dhw_power": 0.0, "heat_pump_on": True}),
+)
+R.check(
+    "with no meter the realised peak folds the step's whole ask, DHW included (#1499)",
+    _peak_folds == (4.8, 4.8),
+    repr(_peak_folds),
+)
 _series_gap_sensor = sensor.SensorGapAdvisorSensor(_series_coord, ENTRY)
 _series_gaps = {
     row["key"]: row
