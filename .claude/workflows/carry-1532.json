@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "Carry destination for issue #1532's fix stage (the round-8 fix group for #1532, #1533 and #1540 (untested production guards), R8-I1b in the round-8 fix plan, which re-runs mutants with tools/audit/round8/D3/v1_suite_mutants.py). No roster group in this tree claims #1532; the round-8 wave roster is not landed yet, so this file is that stage's brief until one does, and the roster that claims #1532 must absorb it (brief_lint refuses two destinations). Shape: .claude/rules/finding-propagation.md. "
+  ],
+  "issue": 1532,
+  "stage": "the round-8 fix group for #1532, #1533 and #1540 (untested production guards), R8-I1b in the round-8 fix plan, which re-runs mutants with tools/audit/round8/D3/v1_suite_mutants.py",
+  "carries": [
+    {
+      "from": "PR #1551, the round-8 audit register, carrying the round-8 judge's instrument notes (tools/audit/round8/JUDGE.json, instrument_notes; tools/audit/round8/JUDGE.md) at fix review round 2",
+      "effect": "removes",
+      "control": "The option removed: running the finder's D3 harness as committed. tools/audit/round8/D3/s1_claimkill.py line 54 sets TMP = /home/claude/audit-r8/tmp/D3-s1 and passes it as TMPDIR, and tools/audit/round8/D3/s1_cachekey.py's plandata arm sets HPO_PLANDATA=/home/claude/audit-r8/tmp/D3-s1/plandata; tools/audit/round8/D3/v1_suite_mutants.py line 33 sets /home/claude/audit-r8/tmp/D3-v1. Those roots existed only in the cloud audit container. On the Mac, mkdir /home/claude is refused (Operation not supported), measured by PR #1551's fix reviewer. The judge ran sed-rewritten copies with the root moved and reproduced the finder's numbers, so the root is incidental to the measurement: the null control is the same harness with only that constant changed.",
+      "remeasure": "Before trusting any number, point the root at a directory under your own TMPDIR (a sed of the one constant, or an env override), run the harness at your merge base and at your head, and diff the only-root-changed copy against the transport copy to show nothing else moved. Cite the transport path with its sha1 as fixer.md step 3 asks, and disclose the root edit as yours.",
+      "brief": "Precondition for using these harnesses: derive the temp root from TMPDIR, never the hard-coded /home/claude path. Harnesses are not in the tree: restore them from transport commit 6f58e33e as the round-8 register section 'What this commit does not carry' in docs/audit-2026-09.md says, so every tools/audit/round8/D3/... path below resolves."
+    },
+    {
+      "from": "PR #1551, the round-8 audit register, carrying the round-8 judge's instrument notes (tools/audit/round8/JUDGE.json, instrument_notes; tools/audit/round8/JUDGE.md) at fix review round 2",
+      "effect": "narrows",
+      "control": "Several finder perturbations edit production or test files on disk in the working tree: tools/audit/round8/D3/s1_claimkill.py rewrites the claim file and appends comment-only edits to source files (lines 85-116) and restores them afterwards; tools/audit/round8/D3/v1_suite_mutants.py writes each mutant into the file (lines 98-108). A concurrent run in the same tree then imports the edited file. The judge measured it: its first D2-s1-01 run overlapped its own D0 ftol edit, and that run was discarded; a clean re-run in an idle tree gave identical numbers, which is the null control separating the contamination from the result.",
+      "remeasure": "Run each on-disk harness in a worktree that nothing else runs in (not the shared checkout, not a tree another seat's gate is using), or hold the gate lease for the duration with python3 tests/gate_lock.py take --label <seat>. After each run, git status must show the tree clean before you measure anything else there.",
+      "brief": "Narrowed: an on-disk harness is legitimate only in an otherwise idle tree or under the gate lease, whatever fixer.md says about the lease being for MODE FULL and stress.py only. Prefer in-memory perturbation if your fix touches the harness. Harnesses are not in the tree: restore them from transport commit 6f58e33e as the round-8 register section 'What this commit does not carry' in docs/audit-2026-09.md says, so every tools/audit/round8/D3/... path below resolves."
+    }
+  ]
+}
