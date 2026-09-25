@@ -12703,8 +12703,8 @@ def _gl_lease_hardening() -> tuple[bool, str]:
             after = _gate_lock.take("successor", lock_dir=d, wait=False).label == "successor"
         except BlockingIOError:
             after = False
-        # run.sh must RE-EXECUTE under the lease: with it held elsewhere, a FULL
-        # run waits in auto-lease and starts no lane (a no-op exec would).
+        # run.sh leases stress.py alone: with the lease held elsewhere, a FULL
+        # run starts its lanes at once instead of waiting for it.
         d, out = Path(td) / "runsh", Path(td) / "runsh.log"
         _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
         renv = {k: v for k, v in _os.environ.items()
@@ -12714,7 +12714,7 @@ def _gl_lease_hardening() -> tuple[bool, str]:
             gate = _subprocess.Popen(["bash", "tests/run.sh"], cwd=str(_closure.ROOT), env=renv,
                                      stdout=log, stderr=_subprocess.STDOUT, start_new_session=True)
         for _ in range(100):
-            if "waiting for the lease held by other" in out.read_text() or gate.poll() is not None:
+            if "##########" in out.read_text() or gate.poll() is not None:
                 break
             _time.sleep(0.1)
         _time.sleep(1.0)
@@ -12724,23 +12724,25 @@ def _gl_lease_hardening() -> tuple[bool, str]:
         except ProcessLookupError:
             pass
         gate.wait()
-        execd = "waiting for the lease held by other" in text and "##########" not in text
+        execd = "waiting for the lease" not in text and "##########" in text
     ok = wins == [1] * 10 and stolen and not orphan and refused and after and execd
     return ok, (f"winners={wins} crash_stolen={stolen} grandchild_alive={orphan} "
-                f"holder_only_kill_refused={refused} taken_after_gate_dead={after} run_sh_execd={execd}")
+                f"holder_only_kill_refused={refused} taken_after_gate_dead={after} run_sh_unleased={execd}")
 
 
 _gl_ok, _gl_detail = _gl_auto_lease()
 _run_sh = (_closure.ROOT / "tests/run.sh").read_text()
-_gl_line = '[ "$("$PYTHON" tests/gate_lock.py needs-lease "$SCOPE_RUN" 2>&1)" != none ]'
+_gl_line = '[ "$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)" = none ]; then'
 R.check(
-    "run.sh leases a FULL or stress run itself, and a second one waits",
-    _gl_ok and -1 < _run_sh.find(_gl_line) < _run_sh.find("lane_units() {"),
-    _gl_detail + "; run.sh must lease on anything but an explicit 'none'",
+    "run.sh leases a FULL or stress run itself, for stress.py alone, and a second one waits",
+    _gl_ok and _run_sh.find(_gl_line) > -1 and _run_sh.count('leased "$@" ') == 2,
+    _gl_detail + "; run.sh must lease every run_always script but an explicit 'none'",
 )
+for _gl_name, _gl_ok, _gl_detail in _gate_lock._queue_cases(_gate_lock):
+    R.check(f"gate lease queue: {_gl_name}", _gl_ok, _gl_detail)
 _gl_ok, _gl_detail = _gl_lease_hardening()
 R.check(
-    "the lease has one winner, a dead gate is stolen, a live one is not, and run.sh re-executes",
+    "the lease has one winner, a dead gate is stolen, a live one is not, and run.sh runs unleased",
     _gl_ok,
     _gl_detail,
 )

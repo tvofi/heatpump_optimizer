@@ -1142,6 +1142,19 @@ def failed_checks(run: ScriptRun) -> list[str]:
     return tail[-1:]
 
 
+def _leased_if_exclusive(fn):
+    """An EXCLUSIVE driver's run holds the gate lease (tests/gate_lock.py) for
+    that run alone: taken, queueing, before it and released right after."""
+    def wrapped(script: str, *args, **kwargs):
+        if script not in EXCLUSIVE:
+            return fn(script, *args, **kwargs)
+        import gate_lock
+        with gate_lock.leased(f"mutation_table-{os.getpid()}"):
+            return fn(script, *args, **kwargs)
+    return wrapped
+
+
+@_leased_if_exclusive
 def run_script(script: str, cwd: Path, timeout: int,
                extra_args: list[str] | None = None,
                extra_env: dict[str, str] | None = None) -> ScriptRun:

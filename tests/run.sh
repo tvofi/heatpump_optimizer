@@ -82,18 +82,6 @@ set -u
 
 cd "$(dirname "$0")/.."
 
-# When an agent holds the gate lease, flock-wrap this run so a crash releases
-# immediately (#404). The lease itself is renewed before every script below.
-if [ -n "${HPO_GATE_LOCK_LABEL:-}" ] && [ "${HPO_GATE_FLOCK_CHILD:-}" != 1 ]; then
-  PYTHON_WRAP="${PYTHON:-}"
-  if [ -z "$PYTHON_WRAP" ]; then
-    if [ -x .venv/bin/python ]; then PYTHON_WRAP=.venv/bin/python; else PYTHON_WRAP=python3; fi
-  fi
-  export HPO_GATE_FLOCK_CHILD=1
-  exec "$PYTHON_WRAP" tests/gate_lock.py flock-wrap \
-    --label "$HPO_GATE_LOCK_LABEL" -- "$0" "$@"
-fi
-
 PYTHON="${PYTHON:-}"
 if [ -z "$PYTHON" ]; then
   if [ -x .venv/bin/python ]; then PYTHON=.venv/bin/python; else PYTHON=python3; fi
@@ -150,19 +138,7 @@ elif [ "$GATE_SCOPE" != "full" ]; then
 fi
 } > "$WORKDIR/scope.print"
 
-# The lease follows the mode derived above, not a seat's prediction of it: an
-# untracked file or a closures.json diff turns an expected SCOPED run FULL, and
-# three unleased FULL gates on 2026-09-16 overlapped leased stress runs. With
-# no label held, a FULL or stress-selecting run re-executes itself under a
-# lease it takes (waiting while another label holds it) and releases on exit.
-# Fail closed: anything but an explicit "none" (a crash included) leases.
-if [ -z "${HPO_GATE_LOCK_LABEL:-}" ] &&
-   [ "$("$PYTHON" tests/gate_lock.py needs-lease "$SCOPE_RUN" 2>&1)" != none ]; then
-  echo "  LEASE: this run needs the gate lease; tests/run.sh takes it as run.sh-$$"
-  rm -rf "$WORKDIR"
-  exec "$PYTHON" tests/gate_lock.py auto-lease --label "run.sh-$$" -- tests/run.sh "$@"
-fi
-cat "$WORKDIR/scope.print"   # after the re-exec, so the child alone prints it
+cat "$WORKDIR/scope.print"
 
 # The script a `run` line is actually running, for the scope lookup: the
 # first argument that names a file under tests/. Not the last argument --
@@ -207,9 +183,6 @@ scope_reason() {
 # incremented in there would never come back.
 run() {
   local scoped_out
-  if [ -n "${HPO_GATE_LOCK_LABEL:-}" ]; then
-    "$PYTHON" tests/gate_lock.py renew --label "$HPO_GATE_LOCK_LABEL"
-  fi
   if ! in_scope "$@"; then
     scoped_out=$(scope_script "$@")
     skip "$scoped_out" \
@@ -219,14 +192,33 @@ run() {
   run_always "$@"
 }
 
+# The gate lease guards only the scripts `gate_lock.py needs-lease` names
+# (stress.py, which measures the machine): taken for that one run, queueing
+# first come first served, and released right after it, so every other script
+# runs unleased. Fail closed: anything but an explicit "none" (a crash
+# included) leases. A seat's own HPO_GATE_LOCK_LABEL is renewed instead, or
+# re-queued when another label waits; auto-lease and flock-wrap both hold
+# flock for the run, so a crash releases at once (#404).
+leased() {
+  local s one
+  s=$(scope_script "$@")
+  one="$WORKDIR/lease.$LANE.$step"
+  printf '%s\n' "$s" > "$one"
+  if [ -z "$s" ] || [ "$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)" = none ]; then
+    "$@"
+  elif [ -n "${HPO_GATE_LOCK_LABEL:-}" ]; then
+    "$PYTHON" tests/gate_lock.py flock-wrap --label "$HPO_GATE_LOCK_LABEL" -- "$@"
+  else
+    echo "  LEASE: $s runs under the gate lease as run.sh-$$"
+    "$PYTHON" tests/gate_lock.py auto-lease --label "run.sh-$$" -- "$@"
+  fi
+}
+
 # Same as run, but GATE_SCOPE cannot skip it. Inherited claims and the
 # record-PR empty rule live here: #493's roster-only three-dot left claim
 # files unchanged, so in_scope skipped card_drift.mjs and env_drift.py, and
 # main went red after squash.
 run_always() {
-  if [ -n "${HPO_GATE_LOCK_LABEL:-}" ]; then
-    "$PYTHON" tests/gate_lock.py renew --label "$HPO_GATE_LOCK_LABEL"
-  fi
   step=$((step + 1))
   local id started finished rc=0
   id=$(printf '%s-%03d' "$LANE" "$step")
@@ -234,10 +226,10 @@ run_always() {
   if [ "$JOBS" -le 1 ]; then
     echo
     echo "########## $* ##########"
-    "$@" || rc=$?
+    leased "$@" || rc=$?
   else
     printf '  [%s] start  %s\n' "$(date +%H:%M:%S)" "$*"
-    "$@" > "$WORKDIR/$id.log" 2>&1 || rc=$?
+    leased "$@" > "$WORKDIR/$id.log" 2>&1 || rc=$?
     finished=$(date +%s)
     printf '  [%s] %-6s %s (%ss)\n' \
       "$(date +%H:%M:%S)" "$([ "$rc" -eq 0 ] && echo ok || echo FAILED)" \
