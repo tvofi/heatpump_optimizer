@@ -14,6 +14,7 @@ too, so it covers all six platforms rather than the sensor platform alone
 from __future__ import annotations
 
 import math
+from collections.abc import Awaitable
 from typing import Any, Callable
 
 import numpy as np
@@ -136,6 +137,32 @@ class HeatPumpOptimizerEntity(CoordinatorEntity):
         """Return device info."""
         info: DeviceInfo = self.coordinator.device_info
         return info
+
+
+def publish_then_refresh(
+    entity: Any, then: Callable[[], Awaitable[None]] | None = None
+) -> None:
+    """Publish an action's result, then ask for the refresh off the action.
+
+    The payload changes only when that refresh has run its solve, 30 to 70 s
+    on a Pi, and outside the debouncer's cooldown the refresh runs the solve
+    inline: awaited in the action, the state write -- and, under
+    PARALLEL_UPDATES, the next action -- waited for it, so a toggle fell back
+    to its old state in the frontend (v6.6.12). As an entry background task
+    the refresh starts at once and is cancelled at unload; ``then`` runs
+    after it, where the action used to run it. The coordinator logs a failed
+    refresh itself, and Home Assistant logs anything a task raises.
+    """
+    entity.async_write_ha_state()
+
+    async def _refresh() -> None:
+        await entity.coordinator.async_request_refresh()
+        if then is not None:
+            await then()
+
+    entity._entry.async_create_background_task(
+        entity.hass, _refresh(), name="heatpump_optimizer_action_refresh"
+    )
 
 
 def has_hot_water(coordinator: Any) -> bool:

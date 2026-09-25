@@ -35,6 +35,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from harness import (
+    EagerHass,
     FakeCoordinator,
     FakeEntry,
     FakeHass,
@@ -8446,6 +8447,7 @@ async def _raise_publish(reason=None):
 
 _pub_fails.async_publish_current_action = _raise_publish
 _pub_fails_clim = climate_mod.HeatPumpOptimizerClimate(_pub_fails, clim._entry)
+_pub_fails_clim.hass = EagerHass()  # runs the refresh, then the publish
 try:
     asyncio.run(_pub_fails_clim.async_turn_on())
     _publish_failure_raised = False
@@ -8461,6 +8463,7 @@ R.check(
 # mutation-critical assertion is which coordinator mode landed, not just that
 # the call did not raise.
 _hvac_set_auto = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+_hvac_set_auto.hass = EagerHass()  # runs the refresh, then the publish
 asyncio.run(_hvac_set_auto.async_set_hvac_mode(climate_mod.HVACMode.AUTO))
 R.check(
     "setting hvac AUTO reaches the coordinator as mode auto and publishes",
@@ -8469,6 +8472,7 @@ R.check(
     f"mode_calls={_hvac_set_auto.coordinator.mode_calls}, pressed={_hvac_set_auto.coordinator.pressed}",
 )
 _hvac_set_heat = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+_hvac_set_heat.hass = EagerHass()  # runs the refresh, then the publish
 asyncio.run(_hvac_set_heat.async_set_hvac_mode(climate_mod.HVACMode.HEAT))
 R.check(
     "setting hvac HEAT reaches the coordinator as mode comfort and publishes",
@@ -8480,6 +8484,7 @@ R.check(
 # async_turn_on / async_turn_off: the HA base-class convenience methods a
 # dashboard's power toggle calls, distinct from async_set_hvac_mode.
 _turn_on_clim = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+_turn_on_clim.hass = EagerHass()  # runs the refresh, then the publish
 asyncio.run(_turn_on_clim.async_turn_on())
 R.check(
     "async_turn_on selects auto and publishes",
@@ -8488,6 +8493,7 @@ R.check(
     f"mode_calls={_turn_on_clim.coordinator.mode_calls}",
 )
 _turn_off_clim = climate_mod.HeatPumpOptimizerClimate(FakeCoordinator(DATA), clim._entry)
+_turn_off_clim.hass = EagerHass()  # runs the refresh, then the publish
 asyncio.run(_turn_off_clim.async_turn_off())
 R.check(
     "async_turn_off selects off and publishes",
@@ -8592,10 +8598,13 @@ R.check(
 )
 
 # --- #195 tranche 2: switch.py's remaining branches -------------------------------
+# Before the first refresh the switch reads the coordinator's live mode, which
+# starts at the real coordinator's default (auto) or the restored mode -- not
+# "off", which only a fake whose default disagreed with production said.
 _no_data_switch = switch_mod.OptimizerEnableSwitch(FakeCoordinator(None), ENTRY)
 R.check(
-    "with no coordinator data at all the switch reads off, not crashes",
-    not _no_data_switch.is_on,
+    "with no coordinator data at all the switch reads the live mode, not crashes",
+    _no_data_switch.is_on is True,
 )
 R.check(
     "and its extra attributes degrade to empty rather than raising",
@@ -8651,35 +8660,108 @@ R.check(
 # Fix review of #1621: each setter ends in the refresh that runs the solve,
 # and outside the debouncer's 10 s cooldown the refresh awaits the solve
 # inline -- so a state write placed after the setter lands after the solve.
-# Each switch must publish first and ask for the refresh once, off the action.
-class _EagerHass:
-    """Upstream starts an entry's background task eagerly: it runs up to its
-    first suspension before the call returns (``eager_start=True``)."""
+# The sweep below records, when each action's refresh starts, what the entity
+# had already published: it must have published first, and asked once.
 
-    def async_create_task(self, coro):
-        try:
-            coro.send(None)
-        except StopIteration:
-            return None
-        coro.close()
-        raise AssertionError("a background refresh suspended under the fake")
-
-
-for _sw in _sw_live.values():
-    _sw.hass = _EagerHass()
-    _sw.coordinator.on_refresh = lambda _s=_sw: list(getattr(_s, "ha_state_writes", []))
-for _sw_on, _sw_label in ((False, "off"), (True, "on")):
-    for _sw in _sw_live.values():
-        _sw.__dict__.pop("ha_state_writes", None)
-        _sw.coordinator.refreshes.clear()
-        asyncio.run(_sw.async_turn_on() if _sw_on else _sw.async_turn_off())
-    R.check(
-        f"every switch turned {_sw_label} publishes before the refresh that "
-        "runs the solve starts, and asks for exactly one",
-        {n: _sw.coordinator.refreshes for n, _sw in _sw_live.items()}
-        == {n: [[_sw_on]] for n in _sw_live},
-        str({n: _sw.coordinator.refreshes for n, _sw in _sw_live.items()}),
-    )
+# The class the switches above were one instance of (v6.6.12 root cause):
+# an entity action must publish its own result at once, never wait for the
+# refresh it asks for. Every entity every platform adds is swept, through the
+# platform's real setup, and an action with no row here fails -- so a new
+# action, or a new platform, cannot sit the sweep out. The payload is asserted
+# unchanged after each action, so no pass can come from a refresh.
+_act_future = datetime.now(UTC).replace(microsecond=0) + timedelta(days=2)
+_ACT_ROWS = {
+    "async_turn_on": [((), "is_on", True)],
+    "async_turn_off": [((), "is_on", False)],
+    "async_set_value": [((_act_future,), "native_value", _act_future)],
+    "async_set_hvac_mode": [
+        ((_m,), "hvac_mode", _m)
+        for _m in (climate_mod.HVACMode.OFF, climate_mod.HVACMode.HEAT,
+                   climate_mod.HVACMode.AUTO)
+    ],
+    "async_set_preset_mode": [
+        ((_p,), "preset_mode", _p)
+        for _p in climate_mod.HeatPumpOptimizerClimate._attr_preset_modes
+    ],
+}
+# Climate's power pair reads hvac_mode, not is_on.
+_ACT_CLIMATE = {
+    "async_turn_off": [((), "hvac_mode", climate_mod.HVACMode.OFF)],
+    "async_turn_on": [((), "hvac_mode", climate_mod.HVACMode.AUTO)],
+}
+# Actions with no state of their own to publish, each with its reason.
+_ACT_EXEMPT = {
+    "async_press": "a button has no state",
+    "async_set_temperature": "persisting the option reloads the entry, "
+    "which rebuilds the entity",
+}
+_ACT_NAMES = set(_ACT_ROWS) | set(_ACT_EXEMPT) | {"async_toggle"}
+_act_platforms = {m.__name__.rsplit(".", 1)[-1] for m in (
+    sensor, binary_sensor, button, _climate_platform, _switch_platform, datetime_mod)}
+R.check(
+    "the action sweep reaches every platform the integration forwards",
+    _act_platforms == set(const.PLATFORMS),
+    f"swept={sorted(_act_platforms)} forwarded={sorted(const.PLATFORMS)}",
+)
+_act_lag, _act_unrowed, _act_ran = [], [], 0
+for _module in (sensor, binary_sensor, button, _climate_platform, _switch_platform, datetime_mod):
+    for _proto in collect(_module):
+        _cls = type(_proto)
+        _own = {
+            n for k in _cls.__mro__ if k.__module__.startswith("heatpump_optimizer")
+            for n, v in vars(k).items()
+            if callable(v) and (n.startswith("async_set_") or n in _ACT_NAMES)
+        }
+        _rows = {**_ACT_ROWS, **(_ACT_CLIMATE if "climate" in _cls.__module__ else {})}
+        for _name in sorted(_own):
+            if _name in _ACT_EXEMPT:
+                continue
+            if _name not in _rows:
+                _act_unrowed.append(f"{_cls.__name__}.{_name}")
+                continue
+            for _args, _prop, _want in _rows[_name]:
+                _data = {**DATA, "mode": const.MODE_ECONOMY}
+                _ent = collect(_module, coordinator=FakeCoordinator(dict(_data)))
+                _ent = next(e for e in _ent if type(e) is _cls)
+                if _name == "async_turn_off" and "async_turn_on" in _own:
+                    asyncio.run(_ent.async_turn_on())  # off must be a change
+                    _ent.__dict__.pop("ha_state_writes", None)
+                if _name == "async_turn_on" and "async_turn_off" in _own:
+                    asyncio.run(_ent.async_turn_off())  # and so must on
+                    _ent.__dict__.pop("ha_state_writes", None)
+                _ent.hass = EagerHass()
+                _ent.coordinator.refreshes.clear()
+                _ent.coordinator.on_refresh = lambda _e=_ent, _p=_prop: (
+                    bool(getattr(_e, "ha_state_writes", None)),
+                    getattr(_e, _p),
+                    len(_e.coordinator.pressed),
+                )
+                _pressed = len(_ent.coordinator.pressed)
+                asyncio.run(getattr(_ent, _name)(*_args))
+                _act_ran += 1
+                _got = getattr(_ent, _prop)
+                if not (_ent.coordinator.data == _data
+                        and getattr(_ent, "ha_state_writes", None)
+                        and _got == _want
+                        and _ent.coordinator.refreshes == [(True, _want, _pressed)]
+                        and len(_ent.coordinator.pressed)
+                        == _pressed + ("climate" in _cls.__module__)):
+                    _act_lag.append(
+                        f"{_cls.__name__}.{_name}{_args!r}: {_prop}={_got!r} "
+                        f"writes={getattr(_ent, 'ha_state_writes', None)} "
+                        f"refreshes={_ent.coordinator.refreshes}"
+                    )
+R.check(
+    "every entity action has a row or a stated exemption",
+    not _act_unrowed,
+    "; ".join(_act_unrowed),
+)
+R.check(
+    "every entity action publishes its own result at once, while the payload "
+    "still holds the old one, before the one refresh it asks for starts",
+    _act_ran >= 12 and not _act_lag,
+    f"ran={_act_ran}; " + "; ".join(_act_lag),
+)
 
 dt_entities = collect(datetime_mod)
 R.check("the datetime platform adds exactly one entity", len(dt_entities) == 1)

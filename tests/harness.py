@@ -127,6 +127,21 @@ class FakeBus:
         return [fn for kind, fn in self.listeners if kind == event_type]
 
 
+class EagerHass:
+    """A hass whose ``async_create_task`` starts the coroutine as upstream's
+    eager background task does (``eager_start=True``): it runs up to its
+    first suspension before the call returns. The fakes it drives never
+    suspend, so it completes there; one that suspends is refused."""
+
+    def async_create_task(self, coro):
+        try:
+            coro.send(None)
+        except StopIteration:
+            return None
+        coro.close()
+        raise AssertionError("a background task suspended under EagerHass")
+
+
 class FakeHass:
     """The slice of ``hass`` the integration actually touches in these tests."""
 
@@ -318,9 +333,11 @@ class FakeCoordinator:
         self.configured_windows = "weekdays 06:00-08:30, weekend 08:00-09:30"
         # The live mode and away override the real coordinator holds, which
         # change at once on a set call; ``data`` changes only on a refresh.
-        self.mode = (data or {}).get("mode", "off")
+        # With no payload the mode is the real coordinator's own default.
+        self.mode = (data or {}).get("mode", "auto")
         self._away_state = SimpleNamespace(
-            override_active=bool((data or {}).get("away_override_active"))
+            override_active=bool((data or {}).get("away_override_active")),
+            override_return_iso=(data or {}).get("away_override_return_time"),
         )
         self.mode_calls: list[str] = []
         # One entry per refresh requested: what ``on_refresh`` returned when
@@ -355,6 +372,10 @@ class FakeCoordinator:
         self.away_calls.append({"active": active, "return_time": return_time})
         if active is not None:
             self._away_state.override_active = bool(active)
+        if active is False:
+            self._away_state.override_return_iso = None
+        elif return_time is not None:
+            self._away_state.override_return_iso = return_time.isoformat()
         if refresh:
             await self.async_request_refresh()
 

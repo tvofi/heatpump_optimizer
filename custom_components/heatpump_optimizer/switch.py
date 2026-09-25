@@ -28,7 +28,7 @@ from . import boost
 from .const import MODE_AUTO, MODE_OFF
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import DHWEntityMixin
-from .entity import HeatPumpOptimizerEntity
+from .entity import HeatPumpOptimizerEntity, publish_then_refresh
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,23 +52,6 @@ async def async_setup_entry(
             BoostDhwSwitch(coordinator, entry),
             BoostSpaceSwitch(coordinator, entry),
         ]
-    )
-
-
-def _publish_then_refresh(switch: Any) -> None:
-    """Publish the switch's state, then ask for the refresh off the action.
-
-    Outside the debouncer's cooldown the refresh runs the solve inline, so
-    awaiting it here held the state write -- and, under PARALLEL_UPDATES, the
-    next toggle -- until the solve was done. As an entry background task it
-    starts at once, is cancelled at unload, and the coordinator logs its
-    failures exactly as when it was awaited.
-    """
-    switch.async_write_ha_state()
-    switch._entry.async_create_background_task(
-        switch.hass,
-        switch.coordinator.async_request_refresh(),
-        name="heatpump_optimizer_switch_refresh",
     )
 
 
@@ -115,12 +98,12 @@ class OptimizerEnableSwitch(HeatPumpOptimizerEntity, SwitchEntity):
             self.async_write_ha_state()
             return
         await self.coordinator.async_set_mode(MODE_AUTO, refresh=False)
-        _publish_then_refresh(self)
+        publish_then_refresh(self)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the optimizer."""
         await self.coordinator.async_set_mode(MODE_OFF, refresh=False)
-        _publish_then_refresh(self)
+        publish_then_refresh(self)
 
 
 class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
@@ -144,11 +127,11 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await self.coordinator.async_set_away(active=True, refresh=False)
-        _publish_then_refresh(self)
+        publish_then_refresh(self)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self.coordinator.async_set_away(active=False, refresh=False)
-        _publish_then_refresh(self)
+        publish_then_refresh(self)
 
 
 class BoostDhwSwitch(DHWEntityMixin, SwitchEntity):
@@ -176,11 +159,11 @@ class BoostDhwSwitch(DHWEntityMixin, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await boost.set_channel(self.coordinator, "dhw", True, refresh=False)
-        _publish_then_refresh(self)
+        publish_then_refresh(self)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await boost.set_channel(self.coordinator, "dhw", False, refresh=False)
-        _publish_then_refresh(self)
+        publish_then_refresh(self)
 
 
 class BoostSpaceSwitch(HeatPumpOptimizerEntity, SwitchEntity):
@@ -204,8 +187,8 @@ class BoostSpaceSwitch(HeatPumpOptimizerEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await boost.set_channel(self.coordinator, "space", True, refresh=False)
-        _publish_then_refresh(self)
+        publish_then_refresh(self)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await boost.set_channel(self.coordinator, "space", False, refresh=False)
-        _publish_then_refresh(self)
+        publish_then_refresh(self)
