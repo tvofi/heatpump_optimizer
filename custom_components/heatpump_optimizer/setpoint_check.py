@@ -8,7 +8,7 @@ gain (2.72). Space set-point is never recommended.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Callable
 
 from homeassistant.helpers import issue_registry as ir
 
@@ -27,6 +27,10 @@ _LOGGER = logging.getLogger(__name__)
 
 ISSUE_DHW = "dhw_setpoint_below_disinfection"
 ISSUE_SPACE = "space_setpoint_unreadable"
+#: ``(coord, reading degC) -> bool``: whether the reading is the pump-duty
+#: arbiter's own hot-water gate. ``pump_arbiter`` installs it at import; it
+#: cannot be imported here, because it imports this module.
+dhw_gated: Callable[[Any, float], bool] = lambda _coord, _reading: False
 _INVALID = ("unknown", "unavailable", "none", "")
 
 
@@ -53,7 +57,7 @@ def _evaluate(coord: Any) -> None:
     hass = coord.hass
     config = coord._config
     params = coord._thermal_params
-    _dhw(hass, config, params)
+    _dhw(hass, config, params, lambda pump: dhw_gated(coord, pump))
     _space(hass, config)
 
 
@@ -64,14 +68,17 @@ def _dhw_floor(params: Any) -> float:
     return floor
 
 
-def _dhw(hass: Any, config: dict[str, Any], params: Any) -> None:
+def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> None:
     entity_id = config.get(CONF_DHW_SETPOINT_ENTITY)
     pump, unit = _setpoint_and_unit(hass, entity_id) or (None, None)
     floor = _dhw_floor(params)
+    # The pump-duty arbiter's own space-only gate is a step decision, not
+    # a set-point below the disinfection floor (``pump_arbiter.dhw_gated``).
     active = (
         bool(entity_id)
         and pump is not None
         and pump < floor - MIXING_VALVE_WRITE_EPSILON
+        and not (gated and gated(pump))
     )
     # ``target`` is degC for the notice's text; ``value`` is what Fix writes,
     # in the entity's own unit (#1513).
