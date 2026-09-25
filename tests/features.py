@@ -47519,18 +47519,24 @@ R.check(
 # derivations, on a production ThermalModel of the declared house pre-settled
 # at its hold power and stepped at the house's own maximum power, as
 # coordinator._run_system_identification passes it; the single-zone arm is the
-# null control, unchanged.
+# null control, unchanged. The valve arm (R8-P5c) is the two-zone house behind
+# a throttling mixing valve, whose buffer tank is a hidden store the fit starts
+# at its steady state and whose flow temperature costs the pump COP.
 _z1524_night = datetime(2026, 1, 15, 23, 0, tzinfo=timezone.utc)
 from dataclasses import replace as _z1524_replace  # noqa: E402
 
 
-def _z1524_run(name, two_zone, true_ua=1.0, true_mass=1.0):
+def _z1524_run(
+    name, two_zone, true_ua=1.0, true_mass=1.0, valve=None, valve_target=0.0
+):
     """One experiment night on the declared preset; (decision, peak, fit reason).
 
     ``true_ua`` and ``true_mass`` scale the PLANT's heat loss and zone masses
     away from the declared house, which the experiment still arms on.
     """
     cfg = _grad_house(two_zone=two_zone, dhw=False)
+    cfg.update({_const922.CONF_MIXING_VALVE_MODE: valve} if valve else {})
+    cfg.update({_const922.CONF_MIXING_VALVE_TARGET: valve_target} if valve else {})
     derived = presets.derive(
         presets.BuildingPreset(**{**vars(_b942[name]), "two_zone": two_zone})
     )
@@ -47589,13 +47595,17 @@ def _z1524_run(name, two_zone, true_ua=1.0, true_mass=1.0):
 
 
 _z1524_bar = float(np.expm1(_SysIdModule.UA_ADOPTION_HALFWIDTH_BAR))
-_z1524_admitted = {True: 0, False: 0}
-for _z1524_zone in (False, True):
+_z1524_admitted = {True: 0, False: 0, "manual": 0}
+for _z1524_zone, _z1524_valve in ((False, None), (True, None), (True, "manual")):
     for _z1524_name in _b942:
-        _z1524_d, _z1524_peak, _z1524_why = _z1524_run(_z1524_name, _z1524_zone)
-        _z1524_admitted[_z1524_zone] += int(_z1524_d.admit)
+        _z1524_d, _z1524_peak, _z1524_why = _z1524_run(
+            _z1524_name, _z1524_zone, valve=_z1524_valve
+        )
+        _z1524_admitted[_z1524_valve or _z1524_zone] += int(_z1524_d.admit)
         R.check(
-            f"#1524: {_z1524_name} two_zone={_z1524_zone} finishes inside the "
+            f"#1524: {_z1524_name} two_zone={_z1524_zone}"
+            + (f" valve={_z1524_valve}" if _z1524_valve else "")
+            + " finishes inside the "
             "0.8 K allowance and adopts within the bar, or is refused by the "
             "interval gate by name",
             _z1524_peak <= 0.8
@@ -47613,6 +47623,54 @@ R.check(
     _z1524_admitted[True] >= _z1524_admitted[False] > 0,
     f"two-zone {_z1524_admitted[True]}, single-zone {_z1524_admitted[False]} "
     f"of {len(_b942)}",
+)
+R.check(
+    "R8-P5c: the two-zone derivation behind a throttling valve adopts on as "
+    "many presets as without one",
+    _z1524_admitted["manual"] >= _z1524_admitted[True] > 0,
+    f"valve {_z1524_admitted['manual']}, no valve {_z1524_admitted[True]} "
+    f"of {len(_b942)}",
+)
+# R8-P5c: a valve target at the held 21 C sits the valve at its curve, where
+# every tank charge above it reads alike and a step only charges the tank. The
+# fit raised a singular Jacobian there ("fit raised"); it is refused by name.
+for _z1524_name in _b942:
+    _z1524_d, _z1524_peak, _z1524_why = _z1524_run(
+        _z1524_name, True, valve="manual", valve_target=21.0
+    )
+    R.check(
+        f"R8-P5c: {_z1524_name} behind a valve regulating at the held "
+        "temperature is refused by name, inside the 0.8 K allowance",
+        _z1524_peak <= 0.8
+        and _z1524_d.reason == _SysIdModule.VALVE_REGULATES_REASON,
+        f"peak {_z1524_peak:.3f} K, decision '{_z1524_d.reason}'",
+    )
+# R8-P5c: the held state is the valve plant's own fixed point. The hidden
+# zones' and slab's derivatives do not read the hold's heat, so one short
+# unpowered plant step leaves them where _held_state put them -- on a plant
+# whose nameplate COP and emitter design lift sit under the model's 1.0 floors.
+_z1524_p = _z1524_replace(
+    ThermalParameters.from_config({
+        **_grad_house(two_zone=True, dhw=False),
+        _const922.CONF_MIXING_VALVE_MODE: "manual",
+    }),
+    cop_nominal=0.6, emitter_design_delta_t=0.5, wind_sensitivity=0.0,
+)
+_z1524_m = ThermalModel(_z1524_p)
+_z1524_h = _SysIdModule._held_state(_z1524_m, 21.0, 0.0)
+_z1524_s = _z1524_m.simulate_step(
+    _z1524_h, electrical_power=0.0, outdoor_temp=0.0, dt_hours=1e-3
+)
+_z1524_move = max(
+    abs(_z1524_s.upper_floor_temperature - 21.0),
+    abs(_z1524_s.lower_floor_temperature - _z1524_h.lower_floor_temperature),
+    abs(_z1524_s.slab_temperature - _z1524_h.slab_temperature),
+)
+R.check(
+    "R8-P5c: behind a valve the held state's zones and slab are the plant's "
+    "own fixed point, under the 1.0 floors on COP and emitter lift",
+    _z1524_move < 1e-6,
+    f"largest move {_z1524_move:.2e} K in a 3.6 s unpowered step",
 )
 
 # The same nights on a plant that is NOT the declared house: heat loss 15 %
@@ -47646,6 +47704,30 @@ R.check(
     "least as many presets as the single-zone one",
     _z1524_mis[True] >= _z1524_mis[False] > 0,
     f"two-zone {_z1524_mis[True]}, single-zone {_z1524_mis[False]} of {len(_b942)}",
+)
+for _z1524_name in _b942:
+    _z1524_d, _z1524_peak, _z1524_why = _z1524_run(
+        _z1524_name, True, true_ua=1.15, true_mass=1.5, valve="manual"
+    )
+    _z1524_mis["manual"] = _z1524_mis.get("manual", 0) + int(_z1524_d.admit)
+    R.check(
+        f"R8-P5c: {_z1524_name} behind a valve on the mismatched plant finishes "
+        "inside 0.8 K and adopts its heat loss within 1 %, or is refused by the "
+        "interval gate",
+        _z1524_peak <= 0.8
+        and (
+            abs(_z1524_d.scale / 1.15 - 1.0) <= 0.01
+            if _z1524_d.admit
+            else "adoption bar" in _z1524_d.reason
+        ),
+        f"peak {_z1524_peak:.3f} K, decision '{_z1524_d.reason}', scale "
+        f"{_z1524_d.scale:.4f} against 1.15",
+    )
+R.check(
+    "R8-P5c: on the mismatched plant the valve arm adopts on as many presets "
+    "as the unvalved two-zone arm",
+    _z1524_mis["manual"] >= _z1524_mis[True] > 0,
+    f"valve {_z1524_mis['manual']}, no valve {_z1524_mis[True]} of {len(_b942)}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
