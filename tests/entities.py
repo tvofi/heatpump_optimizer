@@ -24889,6 +24889,46 @@ R.check(
     f"stress runs={[k for k, _, _ in _MUT_X_SPANS if k[1] == 'tests/stress.py']!r}",
 )
 
+# A deferred stress.py baseline (`settle`) is paid only by a run in which a
+# mutant survives every shared driver, once, and before that mutant's run.
+_MUT_S_LOG: list = []
+_MUT_S_OUTS: list = [[], []]
+try:
+    _MUT_S_OUTS = [_mut_pool(
+        _MUT_X_POOL[:n], 3, {"tests/a.py": 1, "tests/b.py": 2},
+        lambda w, m, s, n=n: (_MUT_S_LOG.append((n, "drive", m["line"], s)),
+                              m["line"] == 0 and s == "tests/a.py")[1],
+        settle=lambda s, n=n: _MUT_S_LOG.append((n, "settle", s)))
+        for n in (1, 3)]
+except TypeError:
+    pass
+R.check(
+    "a deferred stress.py baseline runs only once a mutant survives every "
+    "shared driver, once, before that mutant's stress.py run",
+    [v for _, v in _MUT_S_OUTS[0]] == ["killed by tests/a.py"]
+    and not [e for e in _MUT_S_LOG if e[0] == 1 and e[1] == "settle"]
+    and [e[1:] for e in _MUT_S_LOG if e[0] == 3 and e[-1] == "tests/stress.py"]
+    == [("settle", "tests/stress.py"), ("drive", 1, "tests/stress.py"),
+        ("drive", 2, "tests/stress.py")],
+    f"log={_MUT_S_LOG!r}",
+)
+# The sweep order is the ledger's: tests/features.py, costly but holding the
+# ledger's kills, goes before a cheap driver that has killed nothing -- and
+# the order is a permutation, so no driver leaves the net.
+_mut_order = getattr(_mut, "driver_order", None)
+_MUT_O_NET = ["tests/a.py", "tests/features.py", "tests/b.py"]
+_MUT_O_OUT = (_mut_order(
+    "custom_components/heatpump_optimizer/x.py", _MUT_O_NET,
+    {"tests/a.py": 60, "tests/features.py": 400, "tests/b.py": 5},
+    {f"k{i}": {"killed_by": "tests/features.py"} for i in range(40)})
+    if _mut_order else [])
+R.check(
+    "a mutant's drivers sweep in the ledger's kill-rate order, every one kept",
+    _MUT_O_OUT[:2] == ["tests/b.py", "tests/features.py"]
+    and sorted(_MUT_O_OUT) == sorted(_MUT_O_NET),
+    f"order={_MUT_O_OUT!r}",
+)
+
 # A survivor is the mutant that cannot stop early: every driver must run.
 # Alone in the pool, its three drivers must run on three workers at once.
 _MUT_P_SEEN: list = []

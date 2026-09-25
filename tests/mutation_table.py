@@ -1432,6 +1432,37 @@ def _share(workers: int, work) -> None:
 EXCLUSIVE = ("tests/stress.py",)
 
 
+def driver_order(rel: str, drivers: list[str], seconds: dict[str, float],
+                 killed_by: dict) -> list[str]:
+    """`drivers` in the order that makes a mutant's expected sweep cheapest.
+
+    Smith's rule: ascending seconds over the chance the driver kills a mutant
+    in `rel`, that chance read off the ledger's measured kills (`killed_by`) --
+    the file's own, shrunk toward the whole ledger's so a file with none still
+    has one, and never zero. Cheapest-first alone drove every cheap driver
+    before tests/features.py, which holds 197 of the ledger's 232 kills.
+
+    Order cannot change a verdict: a mutant is killed iff SOME driver kills it
+    and LIVES only once every driver ran (`drive_pool`). Only which driver is
+    NAMED as the killer can differ, as it could under any order.
+    """
+    here: dict[str, int] = {}
+    everywhere: dict[str, int] = {}
+    for key, entry in killed_by.items():
+        script = entry.get("killed_by") if isinstance(entry, dict) else None
+        everywhere[script] = everywhere.get(script, 0) + 1
+        if key.split(":", 1)[0] == rel:
+            here[script] = here.get(script, 0) + 1
+    total = sum(everywhere.values()) + len(drivers)
+
+    def smith(s: str) -> float:
+        share = (everywhere.get(s, 0) + 1) / total
+        chance = (here.get(s, 0) + 2 * share) / (sum(here.values()) + 2)
+        return seconds.get(s, 0.0) / chance
+
+    return sorted(drivers, key=lambda s: (smith(s), s))
+
+
 def drive_baselines(needed: list[str], workers: int, run, *, null_run=None,
                     null_out: dict | None = None) -> dict[str, ScriptRun]:
     """Every driver's unmutated run, spread over `workers` trees.
@@ -1476,12 +1507,12 @@ def drive_baselines(needed: list[str], workers: int, run, *, null_run=None,
 
 
 def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
-               drive) -> list[tuple[dict, str]]:
+               drive, settle=None) -> list[tuple[dict, str]]:
     """Each mutant's verdict, its drivers shared over `workers` trees.
 
     `drive(worker, mut, script)` runs one driver on `mut` in that worker's tree
     and says whether it killed it. A worker sweeps the next unstarted mutant,
-    its shared drivers in the order given (cheapest first), stopping at the
+    its shared drivers in the order given (`driver_order`), stopping at the
     first kill. Once no mutant is left unstarted it helps instead: it takes the
     costliest not-yet-started shared driver of a mutant still undecided, since
     a survivor's sweep is the one that cannot stop early. Every EXCLUSIVE
@@ -1489,6 +1520,10 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
     mutant no shared driver killed -- so only those pay for it. A mutant is
     killed by the first driver to report a kill, and LIVES only once every one
     of its drivers has run and none did.
+
+    `settle(script)`, when given, runs once before an EXCLUSIVE driver's first
+    mutant, and only if one reaches it: main() defers that driver's baseline
+    and null control to it.
     """
     lock = threading.Lock()
     todo = [[s for s in m["drivers"] if s not in EXCLUSIVE] for m in pool]
@@ -1509,8 +1544,9 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
                          if verdict[j] is None and todo[j]]
                 if not open_:
                     return None
-                i = max(open_, key=lambda j: cost.get(todo[j][-1], 0.0))
-                script = todo[i].pop()
+                i, script = max(((j, s) for j in open_ for s in todo[j]),
+                                key=lambda js: cost.get(js[1], 0.0))
+                todo[i].remove(script)
             running[i] += 1
             return i, script
 
@@ -1524,11 +1560,23 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
                     verdict[i] = f"killed by {script}"
 
     _share(workers, work)
+    settled: set[str] = set()
     for i, mut in enumerate(pool):
         for script in (s for s in mut["drivers"] if s in EXCLUSIVE):
+            if verdict[i] is None and settle and script not in settled:
+                settled.add(script)
+                settle(script)
             if verdict[i] is None and drive(0, mut, script):
                 verdict[i] = f"killed by {script}"
     return [(m, v or "LIVES") for m, v in zip(pool, verdict)]
+
+
+class Deferred(Exception):
+    """A deferred driver's baseline or null control refused the run."""
+
+    def __init__(self, rc: int) -> None:
+        super().__init__(rc)
+        self.rc = rc
 
 
 def baseline_refusal(baseline: dict[str, ScriptRun], scope: str) -> int | None:
@@ -1790,8 +1838,20 @@ def main() -> int:
                 return run_script(s, trees[w], args.timeout, extra_args,
                                   extra_env)
 
+        # Under --scope changed an EXCLUSIVE driver's baseline and null run
+        # wait until a mutant survives every shared driver (`settle`): alone,
+        # they were a third of #1611's 100 minutes, spent for no mutant. Every
+        # mutant it drives still has both first; a run that never needs it
+        # exits as it would have (a red changed-scope baseline returns 0, and
+        # a LIVES needs it). The nightly keeps the eager refusal.
+        deferred = [s for s in needed
+                    if s in EXCLUSIVE and args.scope == "changed"]
+        for s in deferred:
+            print(f"  {s}: baseline and null control deferred until a mutant "
+                  f"survives every shared driver")
         null_runs: dict[str, ScriptRun] = {}
-        baseline = drive_baselines(needed, jobs, run_baseline,
+        baseline = drive_baselines([s for s in needed if s not in deferred],
+                                   jobs, run_baseline,
                                    null_run=run_null, null_out=null_runs)
         verdict = baseline_refusal(baseline, args.scope)
         if verdict is not None:
@@ -1802,10 +1862,25 @@ def main() -> int:
             print(refusal)
             return 1
         print(f"  null control {triage_key(null)} survived every driver")
-        # Cheapest first, measured here rather than carried: a kill then costs
-        # the cheapest driver that can see it.
+
+        def settle(s: str) -> None:
+            """A deferred driver's baseline and null run, alone on tree 0."""
+            base, nul = run_baseline(0, s), run_null(0, s)
+            stop = baseline_refusal({s: base}, args.scope)
+            if stop is None:
+                why = null_control_refusal(triage_key(null),
+                                           null_control_verdict({s: nul},
+                                                                {s: base}))
+                stop = 1 if why else None
+                print(why or f"  null control {triage_key(null)} survived {s}")
+            if stop is not None:
+                raise Deferred(stop)
+            baseline[s] = base
+
+        seconds = {s: r.seconds for s, r in baseline.items()}
         for mut in pool:
-            mut["drivers"].sort(key=lambda s: baseline[s].seconds)
+            mut["drivers"] = driver_order(mut["file"], mut["drivers"], seconds,
+                                          budgets.get("killed_by", {}))
 
         results: list[tuple[dict, str]] = []
         mutated: dict[int, str] = {}
@@ -1842,9 +1917,12 @@ def main() -> int:
             finally:
                 path.write_text(original)
 
-        results += drive_pool(
-            [m for m in pool if id(m) in mutated], jobs,
-            {s: r.seconds for s, r in baseline.items()}, drive)
+        try:
+            results += drive_pool(
+                [m for m in pool if id(m) in mutated], jobs, seconds, drive,
+                settle=lambda s: s in deferred and settle(s))
+        except Deferred as stop:
+            return stop.rc
     finally:
         for tree in made:
             drop_tree(tree)
