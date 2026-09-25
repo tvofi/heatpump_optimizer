@@ -67,6 +67,8 @@ the hand resolution once it is.
 """
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
 import re
@@ -711,6 +713,22 @@ def self_test() -> int:
         check("driver: a format refusal falls back to a clean text merge",
               rc == 0 and text_merged["k0"] == 100 and text_merged["k11"] == 100)
 
+    def fake_git(rc: int):
+        def git(*a):
+            if a[0] == "log":
+                return subprocess.CompletedProcess(a, 0, "h p1 p2 Merge main\n", "")
+            return subprocess.CompletedProcess(a, rc, f"t\n{next(iter(LEDGERS))}\n", "usage")
+        return git
+    printed = {}
+    for rc in (129, 1):
+        printed[rc] = io.StringIO()
+        with contextlib.redirect_stdout(printed[rc]), contextlib.redirect_stderr(io.StringIO()):
+            printed[rc] = (replay("x", git=fake_git(rc)), printed[rc])
+    check("replay: a merge-tree usage error (git < 2.40) is refused, not a zero",
+          printed[129][0] == 2 and "conflicts" not in printed[129][1].getvalue())
+    check("replay: a conflicted merge-tree (exit 1) is counted (null control)",
+          printed[1][0] == 0 and f"{next(iter(LEDGERS))}: 1 conflicts without the "
+          "driver, 1 with it" in printed[1][1].getvalue())
     check(".gitattributes routes all three ledgers to the driver",
           gitattributes_error() is None)
     check("a .gitattributes routing only one ledger is refused",
@@ -720,15 +738,17 @@ def self_test() -> int:
     return 0 if ok else 1
 
 
-def replay(since: str, repo: str = ROOT) -> int:
+def replay(since: str, repo: str = ROOT, git=None) -> int:
     """Re-merge every non-PR merge commit since ``since``; count ledger conflicts.
 
     Each merge runs under its first parent's ``.gitattributes`` and then under
     this tree's. The driver must be installed; without it the two columns are
-    equal.
+    equal. ``merge-tree`` exits 0 (clean) or 1 (conflicted); anything else --
+    129 for ``--attr-source`` on a git older than 2.40 -- is a refusal, never
+    a zero.
     """
-    def git(*a):
-        return subprocess.run(["git", *a], cwd=repo, capture_output=True, text=True)
+    git = git or (lambda *a: subprocess.run(["git", *a], cwd=repo,
+                                            capture_output=True, text=True))
     log = git("log", "--all", "--merges", f"--since={since}", "--format=%H %P %s").stdout
     merges = [l.split(" ", 3) for l in log.splitlines()
               if l.split(" ", 3)[3:] and not l.split(" ", 3)[3].startswith("Merge pull request")]
@@ -738,8 +758,14 @@ def replay(since: str, repo: str = ROOT) -> int:
         # Without: the attributes the merge had (its first parent's, which
         # route no ledger here). With: this tree's.
         for counts, pre in ((before, [f"--attr-source={p1}"]), (after, ["--attr-source=HEAD"])):
-            out = git(*pre, "merge-tree", "--write-tree", "--name-only",
-                      "--no-messages", p1, p2).stdout.splitlines()[1:]
+            r = git(*pre, "merge-tree", "--write-tree", "--name-only",
+                    "--no-messages", p1, p2)
+            if r.returncode not in (0, 1):
+                print(f"LEDGER-MERGE: refused --replay: `git merge-tree` exited "
+                      f"{r.returncode} on {h[:12]} ({r.stderr.strip()[:200]}); "
+                      f"--attr-source needs git 2.40 or later", file=sys.stderr)
+                return 2
+            out = r.stdout.splitlines()[1:]
             for f in LEDGERS:
                 counts[f] += f in out
     print(f"{len(merges)} branch-side merges since {since}")
