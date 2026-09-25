@@ -66,7 +66,7 @@
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 958.2,
+   "seconds": 442.5,
    "rc": 0
   },
   "tests/structure.py": {
@@ -106,7 +106,7 @@
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 7.5,
+   "seconds": 62.3,
    "rc": 0
   }
  },
@@ -601,8 +601,10 @@
    "tests/requirements-typing.txt",
    "tests/run.sh",
    "tests/stress.py",
+   "tests/stress_budgets.json",
    "tests/structure.py",
    "tests/structure_budgets.json",
+   "tests/typing_ruler.py",
    "tests/validate.py",
    "tools/audit/preflight.sh",
    "tools/audit/round4/D11/d11lib.py",
@@ -1371,7 +1373,8 @@
    "tests/hastub/homeassistant/util/dt.py",
    "tests/profiles.py",
    "tests/stress.py",
-   "tests/stress_budgets.json"
+   "tests/stress_budgets.json",
+   "tests/structure.py"
   ],
   "tests/structure.py": [
    "custom_components/heatpump_optimizer/__init__.py",
@@ -2165,8 +2168,14 @@
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
+   "tests/hastub/homeassistant/components/binary_sensor.py",
+   "tests/hastub/homeassistant/components/button.py",
+   "tests/hastub/homeassistant/components/climate.py",
+   "tests/hastub/homeassistant/components/datetime.py",
    "tests/hastub/homeassistant/components/mqtt.py",
    "tests/hastub/homeassistant/components/repairs.py",
+   "tests/hastub/homeassistant/components/sensor.py",
+   "tests/hastub/homeassistant/components/switch.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
@@ -2177,6 +2186,7 @@
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
+   "tests/hastub/homeassistant/helpers/entity_platform.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
    "tests/hastub/homeassistant/helpers/issue_registry.py",

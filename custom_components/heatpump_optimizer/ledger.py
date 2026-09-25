@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import calendar
 import logging
+import math
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -51,6 +52,43 @@ def savings_pct(baseline_sek: float, savings_sek: float) -> float | None:
     if baseline_sek <= 0.01:
         return None
     return float(np.clip(savings_sek / baseline_sek * 100.0, -100.0, 100.0))
+
+
+def _leaf(raw: Any) -> float:
+    """One persisted amount as a finite float; raises on anything else."""
+    if isinstance(raw, bool):
+        raise TypeError("a bool is not an amount")
+    value = float(raw)
+    if not math.isfinite(value):
+        raise ValueError("non-finite amount")
+    return value
+
+
+def _clean_month(value: Any) -> dict[str, Any] | None:
+    """One persisted month with every leaf a finite number, or None to drop it.
+
+    Structure alone let a hand-edited ``"12,5"`` load, and every refresh then
+    raised in ``line()`` (#1518). The month is dropped whole, as the accuracy,
+    price and wear loaders drop the entry a bad leaf sits in.
+    """
+    if not isinstance(value, dict):
+        return None
+    lines, meta = value.get("lines", {}), value.get("meta", {})
+    if not isinstance(lines, dict) or not isinstance(meta, dict):
+        return None
+    try:
+        return {
+            "lines": {
+                str(name): {"kwh": _leaf(e["kwh"]), "sek": _leaf(e["sek"])}
+                for name, e in lines.items()
+            },
+            "meta": {
+                str(name): {"sum": _leaf(e["sum"]), "count": int(_leaf(e["count"]))}
+                for name, e in meta.items()
+            },
+        }
+    except (TypeError, ValueError, KeyError, IndexError, OverflowError):
+        return None
 
 
 @dataclass
@@ -234,15 +272,9 @@ class MonthlyLedger:
             clean: dict[str, dict[str, Any]] = {}
             dropped = 0
             for key, value in months.items():
-                if (
-                    isinstance(value, dict)
-                    and isinstance(value.get("lines", {}), dict)
-                    and isinstance(value.get("meta", {}), dict)
-                ):
-                    clean[str(key)] = {
-                        "lines": value.get("lines", {}),
-                        "meta": value.get("meta", {}),
-                    }
+                month = _clean_month(value)
+                if month is not None:
+                    clean[str(key)] = month
                 else:
                     dropped += 1
             if dropped:
