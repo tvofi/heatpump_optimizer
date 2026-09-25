@@ -24393,6 +24393,70 @@ R.check(
     f"other head, untouched, fresh, again, written x2, sorted) -> {_AP_GOT}",
 )
 
+# The one-file-per-row ledger (design/ledger-layout), driven in a scratch
+# repository. Each arm is a way the layout's own code can be wrong while the
+# real ledger still reads right: the misplaced/non-canonical row guard, a
+# deleted row left on disk, a ref's row files dropped by the ratchet's read,
+# two ordinals (`#N`) sharing one path, and a clash `--carry-rows` lets through.
+_LL_DIR = Path(_tempfile.mkdtemp(prefix="hpo-ledger-layout-")).resolve()
+_LL_SAVED = (_mut.BUDGETS, _mut.ROOT)
+_ll_a, _ll_c = f"{_mut.PKG}a.py:f GUARD_OFF 0123abcd", f"{_mut.PKG}b.py:<module> CONST 89abcdef"
+_ll_row = {"killed_by": "tests/x.py", "old": "    if a:"}
+_ll_led = {"max_survivor_fraction": {}, "survivor_triage": {},
+           "killed_by": {_ll_a: _ll_row, _ll_a + "#2": _ll_row, _ll_c: _ll_row}}
+_LL_GOT: dict = {}
+try:
+    _ll_git = ["git", "-C", str(_LL_DIR), "-c", "user.name=t", "-c", "user.email=t@t",
+               "-c", "commit.gpgsign=false"]
+    subprocess.run(["git", "init", "-q", str(_LL_DIR)], check=True)
+    (_LL_DIR / "tests").mkdir()
+    _mut.ROOT, _mut.BUDGETS = _LL_DIR, _LL_DIR / "tests" / "mutation_budgets.json"
+    _mut.write_budgets(_ll_led)
+    _ll_d = _mut.ledger_dir()
+    _LL_GOT["ordinal"] = len(list(_ll_d.rglob("*.json")))
+    _LL_GOT["clean"] = _mut.layout_problems()
+    subprocess.run([*_ll_git, "add", "-A"], check=True)
+    subprocess.run([*_ll_git, "commit", "-qm", "rows"], check=True)
+    _LL_GOT["at_ref"] = _mut.load_budgets_at("HEAD")["killed_by"] == _ll_led["killed_by"]
+    _ll_gone = {_ll_a: _ll_row, _ll_c: _ll_row}
+    _mut.write_budgets(dict(_ll_led, killed_by=_ll_gone))
+    _LL_GOT["deleted"] = _mut.load_budgets()["killed_by"] == _ll_gone
+    _ll_p = _ll_d / "killed_by" / "a.py" / "f.GUARD_OFF.0123abcd.json"
+    _ll_q = _ll_p.with_name("g.GUARD_OFF.0123abcd.json")
+    _ll_p.rename(_ll_q)
+    _LL_GOT["misplaced"] = len(_mut.layout_problems())
+    _ll_q.rename(_ll_p)
+    _ll_p.write_text(_ll_p.read_text().replace("\n  ", "\n    "))
+    _LL_GOT["noncanonical"] = len(_mut.layout_problems())
+    _ll_y, _ll_z = dict(_ll_row, killed_by="tests/y.py"), dict(_ll_row, killed_by="tests/z.py")
+    _LL_GOT["clash"] = _mut.carry({"killed_by": {_ll_a: _ll_row}}, {"killed_by": {_ll_a: _ll_y}},
+                                  {"killed_by": {_ll_a: _ll_z}})[1]
+    _LL_GOT["carried"] = _mut.carry({"killed_by": {_ll_a: _ll_row}}, {"killed_by": {_ll_a: _ll_y}},
+                                    {"killed_by": {_ll_a: _ll_row}})
+except Exception as _ll_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _LL_GOT["error"] = f"{type(_ll_exc).__name__}: {_ll_exc}"
+finally:
+    _mut.BUDGETS, _mut.ROOT = _LL_SAVED
+    _mut_shutil.rmtree(_LL_DIR, ignore_errors=True)
+R.check(
+    "the row ledger: one path per anchor and ordinal, a clean layout passes, and a ref's rows are read",
+    _LL_GOT.get("ordinal") == 3 and _LL_GOT.get("clean") == [] and _LL_GOT.get("at_ref") is True,
+    f"{_LL_GOT}",
+)
+R.check(
+    "the row ledger: a deleted row leaves the disk, and a misplaced or non-canonical row is refused",
+    _LL_GOT.get("deleted") is True and _LL_GOT.get("misplaced") == 1
+    and _LL_GOT.get("noncanonical") == 1,
+    f"{_LL_GOT}",
+)
+R.check(
+    "the row ledger: --carry-rows refuses a row both sides changed differently, and carries one only the branch changed",
+    _LL_GOT.get("clash") == [f"killed_by/{_ll_a}"]
+    and _LL_GOT.get("carried", ({}, None))[1] == []
+    and _LL_GOT.get("carried", ({}, None))[0].get("killed_by") == {_ll_a: _ll_y},
+    f"{_LL_GOT}",
+)
+
 # The measure step's status is the BASE program's own summary line, never the
 # ledger diff alone: a red baseline prints INCONCLUSIVE with rc 0 and pins
 # nothing, which a diff reads as "every site survived" and grades green -- the
