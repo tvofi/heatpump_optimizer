@@ -196,8 +196,9 @@ run() {
 # (stress.py, which measures the machine): taken for that one run, queueing
 # first come first served, and released right after it, so every other script
 # runs unleased. Fail closed: anything but an explicit "none" (a crash
-# included) leases. A seat's own HPO_GATE_LOCK_LABEL is renewed instead, or
-# re-queued when another label waits; auto-lease and flock-wrap both hold
+# included) leases. A seat's own HPO_GATE_LOCK_LABEL is renewed instead,
+# re-queued when another label waits, and refused at once when the seat never
+# took it (flock-wrap would otherwise leave it held); auto-lease and flock-wrap both hold
 # flock for the run, so a crash releases at once (#404).
 leased() {
   local s one

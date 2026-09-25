@@ -402,14 +402,14 @@ def status(lock_dir: Path = DEFAULT_LOCK_DIR) -> dict[str, object]:
 def flock_wrap(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR) -> int:
     """Renew the lease, hold flock for ``argv``, release flock on exit.
 
-    A renew refused (another label waits), expired or never taken releases what
-    is ours and takes again, at the back of the queue."""
+    A renew refused because another label waits releases and takes again, at
+    the back of the queue. A label that holds no lease fails at once: it means
+    *I hold it already*, and taking one here would leave it held after the run."""
     try:
         renew(label, lock_dir=lock_dir)
-    except RuntimeError as exc:
-        print(f"gate_lock: {exc}; {label} takes the lease again", file=sys.stderr)
-        with contextlib.suppress(RuntimeError):
-            release(label, lock_dir=lock_dir)
+    except RenewRefused as exc:
+        print(f"gate_lock: {exc}; {label} re-queues", file=sys.stderr)
+        release(label, lock_dir=lock_dir)
         take(label, lock_dir=lock_dir)
     with flock_context(lock_dir, blocking=True) as fd:
         return run_group(argv, fd=fd)

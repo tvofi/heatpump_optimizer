@@ -12745,6 +12745,109 @@ R.check(
 )
 
 
+def _gl_stub_tree(td: Path) -> Path:
+    """A tree whose tests/stress.py and tests/other.py only drop a marker, with
+    the real gate_lock.py beside them: what runs under the lease is observable."""
+    (td / "tests").mkdir(parents=True)
+    (td / "tests/gate_lock.py").write_text((_closure.ROOT / "tests/gate_lock.py").read_text())
+    for name in ("stress", "other"):
+        (td / f"tests/{name}.py").write_text(
+            f"from pathlib import Path; Path('{td}/{name}.ran').write_text('1')\n")
+    return td
+
+
+def _gl_waits_then_runs(start, td: Path, lock: Path, marker: str) -> tuple[bool, bool]:
+    """(ran while `other` held the lease, ran once it was released)."""
+    _gate_lock.take("other", lock_dir=lock, lease_seconds=60, wait=False)
+    proc = start()
+    _time.sleep(1.5)
+    early = (td / marker).exists()
+    _gate_lock.release("other", lock_dir=lock)
+    for _ in range(120):
+        if (td / marker).exists():
+            break
+        _time.sleep(0.1)
+    proc.join(timeout=10) if hasattr(proc, "join") else proc.wait(timeout=10)
+    return early, (td / marker).exists()
+
+
+def _gl_run_sh_leases_stress() -> tuple[bool, str]:
+    """run.sh's own lane_stress/run/run_always/leased, sourced from run.sh and
+    driven: stress.py waits for the lease, other.py does not (the behavioural
+    pin the text match beside it cannot be: #1617 review, B3 R1)."""
+    text = (_closure.ROOT / "tests/run.sh").read_text()
+    fns = "".join(_re.findall(r"(?ms)^(?:scope_script|in_scope|run|run_always|leased|lane_stress)\(\) \{.*?^\}\n", text))
+    with _tempfile.TemporaryDirectory() as tds:
+        td = _gl_stub_tree(Path(tds) / "t")
+        lock = Path(tds) / "lock"
+        script = td / "drive.sh"
+        script.write_text("PYTHON=%s; WORKDIR=$(mktemp -d); SCOPE_RUN=; JOBS=${JOBS:-1}; LANE=x; step=0\n%s\n\"$@\"\n"
+                          % (sys.executable, fns))
+        env = {k: v for k, v in _os.environ.items() if not k.startswith("HPO_GATE")}
+        env["HPO_GATE_LOCK_DIR"] = str(lock)
+        drive = lambda jobs, *cmd: _subprocess.Popen(
+            ["bash", str(script), *cmd], cwd=td, env={**env, "JOBS": jobs},
+            stdout=_subprocess.DEVNULL, stderr=_subprocess.DEVNULL)
+        other = drive("1", "run", sys.executable, "tests/other.py")
+        other.wait(timeout=30)
+        other_ran = (td / "other.ran").exists()
+        seen = {}
+        for jobs in ("1", "3"):  # serial streams, lanes log to a file: two call sites
+            seen[jobs] = _gl_waits_then_runs(lambda: drive(jobs, "lane_stress"), td, lock, "stress.ran")
+            (td / "stress.ran").unlink(missing_ok=True)
+    ok = other_ran and all(v == (False, True) for v in seen.values())
+    return ok, f"other.py_ran_unleased={other_ran} stress (ran while held, after release) by JOBS={seen}"
+
+
+_gl_ok, _gl_detail = _gl_run_sh_leases_stress()
+R.check("run.sh's lane_stress waits for the lease and its other scripts do not", _gl_ok, _gl_detail)
+
+
+def _gl_flock_wrap_label() -> tuple[bool, str]:
+    """A seat's own label under run.sh: never taken fails at once and takes
+    nothing (#1617 round 2: a take here left the label held after the gate);
+    held while another label waits, the seat re-queues behind the waiter."""
+    import threading
+    with _tempfile.TemporaryDirectory() as tds:
+        d, order = Path(tds) / "lock", []
+        try:
+            _gate_lock.flock_wrap("never-taken", [sys.executable, "-c", "pass"], lock_dir=d)
+            unheld_refused = False
+        except RuntimeError:
+            unheld_refused = True
+        unheld_left = _gate_lock.read_owner(d)
+        _gate_lock.take("seat", lock_dir=d, lease_seconds=60, wait=False)
+        poll, _gate_lock.WAIT_POLL_SECS = _gate_lock.WAIT_POLL_SECS, 0.2
+
+        def waiter() -> None:
+            _gate_lock.take("w", lock_dir=d, lease_seconds=60)
+            order.append("w")
+            _time.sleep(0.3)
+            _gate_lock.release("w", lock_dir=d)
+        t = threading.Thread(target=waiter, daemon=True)
+        try:
+            t.start()
+            _time.sleep(0.5)
+            rc = _gate_lock.flock_wrap("seat", [sys.executable, "-c", "pass"], lock_dir=d)
+            order.append("seat")
+            t.join(10)
+        finally:
+            _gate_lock.WAIT_POLL_SECS = poll
+        holder = _gate_lock.read_owner(d)
+    ok = (unheld_refused and unheld_left is None and rc == 0 and order == ["w", "seat"]
+          and holder is not None and holder.label == "seat")
+    return ok, (f"unheld_refused={unheld_refused} unheld_left={unheld_left} "
+                f"order={order} holder_after={holder and holder.label}")
+
+
+try:
+    _gl_ok, _gl_detail = _gl_flock_wrap_label()
+except Exception as _gl_exc:  # a crash is this check's red, not the script's
+    _gl_ok, _gl_detail = False, f"raised {_gl_exc!r}"
+R.check("a seat label never taken fails at once; a held one re-queues behind a waiter",
+        _gl_ok, _gl_detail)
+
+
 def _gl_same_label_expired_take() -> bool:
     """Same-label take on an expired lease rewrites the owner (#479 residual)."""
     past = datetime.now(UTC) - timedelta(seconds=10)
@@ -24956,6 +25059,35 @@ import threading as _mut_threading  # noqa: E402
 _mut_baselines = getattr(_mut, "drive_baselines", None)
 _mut_pool = getattr(_mut, "drive_pool", None)
 
+
+def _mut_lease_arm(ci: str | None) -> tuple[bool, bool]:
+    """mutation_table.run_script on a stub stress.py with the lease held
+    elsewhere: (ran while held, ran after release). #1617 review, B3 T1."""
+    import threading
+    saved = {k: _os.environ.get(k) for k in ("GITHUB_ACTIONS", "HPO_GATE_LOCK_DIR")}
+    with _tempfile.TemporaryDirectory() as tds:
+        td = _gl_stub_tree(Path(tds) / "t")
+        lock = Path(tds) / "lock"
+        _os.environ["HPO_GATE_LOCK_DIR"] = str(lock)
+        _os.environ.pop("GITHUB_ACTIONS", None)
+        if ci:
+            _os.environ["GITHUB_ACTIONS"] = ci
+        try:
+            t = threading.Thread(target=_mut.run_script, args=("tests/stress.py", td, 60))
+            return _gl_waits_then_runs(lambda: (t.start(), t)[1], td, lock, "stress.ran")
+        finally:
+            for k, v in saved.items():
+                _os.environ.pop(k, None) if v is None else _os.environ.__setitem__(k, v)
+
+
+_MUT_L_LOCAL = _mut_lease_arm(None)
+_MUT_L_CI = _mut_lease_arm("true")
+R.check(
+    "off CI a mutant's stress.py run waits for the gate lease; on a CI runner "
+    "it runs at once (null control)",
+    _MUT_L_LOCAL == (False, True) and _MUT_L_CI == (True, True),
+    f"local (ran while held, after release)={_MUT_L_LOCAL} ci={_MUT_L_CI}",
+)
 
 def _mut_barrier_run(barrier, seen, *key):
     """A fake driver: records `key`, then waits until `barrier` fills."""

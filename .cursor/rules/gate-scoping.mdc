@@ -29,9 +29,9 @@ python3 tests/gate_lock.py release --label <your-label>
 
 The owner file carries your label and a 30-minute `expires_at` lease. `renew`
 exits 75 while another label waits: finish the current `stress.py` run,
-release, and take again behind it (`run.sh` under `HPO_GATE_LOCK_LABEL` does
-this itself). An expired lease or an abandoned hold (`holding` marker, no live
-flock) may be taken without forensics.
+release, and take again behind it; `run.sh` under your `HPO_GATE_LOCK_LABEL`
+does this itself, and fails at once on a label you did not take. An expired
+lease or an abandoned hold (`holding` marker, no live flock) is taken freely.
 
 **The mypy census runs here too, when you have the pins.** The typing lane is
 source-only, so #1091 and #1099 each pushed a census regression a local gate

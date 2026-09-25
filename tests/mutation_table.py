@@ -1394,14 +1394,17 @@ def failed_checks(run: ScriptRun) -> list[str]:
 
 
 def _leased_if_exclusive(fn):
-    """An EXCLUSIVE driver's run holds the gate lease (tests/gate_lock.py) for
-    that run alone: taken, queueing, before it and released right after."""
-    def wrapped(script: str, *args, **kwargs):
-        if script not in EXCLUSIVE:
-            return fn(script, *args, **kwargs)
-        import gate_lock
-        with gate_lock.leased(f"mutation_table-{os.getpid()}"):
-            return fn(script, *args, **kwargs)
+    """Off CI, an EXCLUSIVE driver runs under `tests/gate_lock.py auto-lease`,
+    the lease held for that run alone. A CI runner is the job's own machine,
+    and the scheduler already runs the driver alone there, so the lease buys
+    nothing and gate_lock.py stays out of the required job's code."""
+    def wrapped(script: str, cwd: Path, timeout: int, extra_args=None, extra_env=None):
+        if script not in EXCLUSIVE or os.environ.get("GITHUB_ACTIONS") == "true":
+            return fn(script, cwd, timeout, extra_args, extra_env)
+        lease = ["auto-lease", "--label", f"mutation_table-{os.getpid()}", "--",
+                 sys.executable, script, *(extra_args or ())]
+        run = fn("tests/gate_lock.py", cwd, timeout, lease, extra_env)
+        return run._replace(stderr=run.stderr.replace("tests/gate_lock.py", script))
     return wrapped
 
 
