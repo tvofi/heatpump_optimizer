@@ -12784,18 +12784,22 @@ def _gl_run_sh_leases_stress() -> tuple[bool, str]:
         td = _gl_stub_tree(Path(tds) / "t")
         lock = Path(tds) / "lock"
         script = td / "drive.sh"
-        script.write_text("PYTHON=%s; WORKDIR=$(mktemp -d); SCOPE_RUN=; JOBS=1; LANE=x; step=0\n%s\n\"$@\"\n"
+        script.write_text("PYTHON=%s; WORKDIR=$(mktemp -d); SCOPE_RUN=; JOBS=${JOBS:-1}; LANE=x; step=0\n%s\n\"$@\"\n"
                           % (sys.executable, fns))
         env = {k: v for k, v in _os.environ.items() if not k.startswith("HPO_GATE")}
         env["HPO_GATE_LOCK_DIR"] = str(lock)
-        drive = lambda *cmd: _subprocess.Popen(["bash", str(script), *cmd], cwd=td, env=env,
-                                                stdout=_subprocess.DEVNULL, stderr=_subprocess.DEVNULL)
-        other = drive("run", sys.executable, "tests/other.py")
+        drive = lambda jobs, *cmd: _subprocess.Popen(
+            ["bash", str(script), *cmd], cwd=td, env={**env, "JOBS": jobs},
+            stdout=_subprocess.DEVNULL, stderr=_subprocess.DEVNULL)
+        other = drive("1", "run", sys.executable, "tests/other.py")
         other.wait(timeout=30)
         other_ran = (td / "other.ran").exists()
-        early, late = _gl_waits_then_runs(lambda: drive("lane_stress"), td, lock, "stress.ran")
-    ok = other_ran and not early and late
-    return ok, f"other.py_ran_unleased={other_ran} stress_ran_while_held={early} stress_ran_after_release={late}"
+        seen = {}
+        for jobs in ("1", "3"):  # serial streams, lanes log to a file: two call sites
+            seen[jobs] = _gl_waits_then_runs(lambda: drive(jobs, "lane_stress"), td, lock, "stress.ran")
+            (td / "stress.ran").unlink(missing_ok=True)
+    ok = other_ran and all(v == (False, True) for v in seen.values())
+    return ok, f"other.py_ran_unleased={other_ran} stress (ran while held, after release) by JOBS={seen}"
 
 
 _gl_ok, _gl_detail = _gl_run_sh_leases_stress()
