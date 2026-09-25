@@ -34,7 +34,7 @@ flowchart LR
     end
 
     subgraph out["Outputs"]
-        ent["74 entities<br/>59 sensors, 5 binary sensors,<br/>4 buttons, 4 switches,<br/>1 climate, 1 datetime"]
+        ent["75 entities<br/>59 sensors, 6 binary sensors,<br/>4 buttons, 4 switches,<br/>1 climate, 1 datetime"]
         card["Dashboard card<br/>plan chart, editor, setup page"]
         ctl["Actuation<br/>heat pump switch,<br/>ECL110 displace,<br/>compressor frequency"]
     end
@@ -149,7 +149,8 @@ custom_components/heatpump_optimizer/
 ├── entity.py             # The shared entity base every platform builds on
 ├── sensor.py             # 59 sensors
 ├── binary_sensor.py      # Away Mode, External Heat Source, Input Problem,
-│                         #   Open Window Detected, Wood Cheaper Than Heat Pump
+│                         #   Mold Floor Breach, Open Window Detected,
+│                         #   Wood Cheaper Than Heat Pump
 ├── button.py             # Optimize now, run identification, reset comfort
 │                         #   weight, diagnose last interval
 ├── climate.py            # Virtual climate entity: modes, presets, DHW status

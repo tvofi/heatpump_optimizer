@@ -8638,5 +8638,34 @@ const STOCK_THEMES = {
       one.claims) === false);
 }
 
+// --- #1495: the space-blocked de-emphasis and the measured "now" reading ---
+// The plan sensor publishes `space_blocked` when the pump's mode cannot
+// deliver space heat; the card then dims the promised house/upper/lower
+// traces and labels them, instead of charting a promise the pump is not
+// executing. The unblocked stock card (Scenario 1's `dump`) is the control.
+const blockedStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+blockedStates[DEFAULT_SPACE].attributes.space_blocked = true;
+const blockedCard = build(blockedStates);
+const blockedDump = collect(blockedCard.shadowRoot).join("\n");
+check("a space-blocked plan shows the DHW-only banner",
+  /DHW only/.test(blockedDump));
+check("a space-blocked plan dims the promised house traces",
+  /<g opacity="0\.35">/.test(blockedDump));
+check("an unblocked plan shows no DHW-only banner and no dimming",
+  !/DHW only/.test(dump) && !/<g opacity="0\.35">/.test(dump));
+
+// The measured "now" temperature is read from the indoor sensor the same
+// derivation the history pan uses; a live reading renders the corner label,
+// an absent one renders nothing.
+const nowStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+nowStates["sensor.heat_pump_optimizer_indoor_temperature_optimizer"] = {
+  state: "16.8", attributes: { device_class: "temperature", unit_of_measurement: "°C" } };
+const nowCard = build(nowStates);
+const nowDump = collect(nowCard.shadowRoot).join("\n");
+check("a live indoor reading shows the corner now temperature",
+  /now 16\.8/.test(nowDump));
+check("without an indoor reading the corner now label is absent",
+  !/now-temp/.test(dump));
+
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
