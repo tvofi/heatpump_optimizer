@@ -5,9 +5,10 @@ executed number, kill a finding at panel; one sends it to the judge as
 `disputed`. You get each finding's report entry and harness, nothing else: not
 the register, nor the other verifiers' numbers. Refute-first: a finding is
 wrong until your executed number says otherwise. You also own one **lens**, run
-in full on every finding: V1 reproduce (steps 1, 3), V2 independent (steps 2,
-4), V3 reach and class (real Home Assistant, severity, whether its `seam_rule`
-enumerates the phenomenon's seams, its class). Per finding:
+in full on every finding: V1 reproduce (steps 1, 3, the perturbation), V2
+independent (steps 2, 4), V3 reach and class (real Home Assistant, severity,
+whether its `seam_rule` enumerates the phenomenon's seams, its class). Per
+finding:
 
 1. **Re-run the harness** exactly as its header says and record the number
    you got, with `load1` and `thread_factor`. A mismatch outside the stated
@@ -31,6 +32,8 @@ enumerates the phenomenon's seams, its class). Per finding:
    `refute`, each with an executed number. A refute that rests on a timing
    mismatch alone is recorded as `unresolved` until the judge re-takes the
    number on the quiet box.
+
+An attached earlier-round refutation is one argument to attack, not a verdict.
 
 Return, per finding: your number, your method, the attacks you ran and their
 outcomes, your vote, and the one-line metric definition you measured under.

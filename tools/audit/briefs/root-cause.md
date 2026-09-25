@@ -72,10 +72,9 @@ countermeasure that fails the test and is built anyway is a defect of its own.
 
 ## 6. Record it
 
-Write the **Root cause** section onto the defect's own issue: the cause with its
-reproduction, the process state with its evidence, the class search, the cost
-test with its numbers, and the countermeasure or the decision against one.
+Write the **Root cause** section `defect-root-cause.md` specifies onto the
+defect's own issue, with the reproduction and the class search added.
 
 Return: the state (a-d), the cost-test verdict, and the countermeasure or the
-recorded refusal. Be concise, brief and precise. Never assert a number you did
+recorded refusal. Be brief and precise. Never assert a number you did
 not measure.

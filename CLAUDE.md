@@ -164,9 +164,9 @@ largely false and that a mechanism another asked for was already in the tree,
 landed by a pull request listed in its own evidence table.
 
 **A recurring error is not a third issue.** At roughly the third instance it is
-`tools/audit/briefs/root-cause.md`, whose product is a named cause, a named
-process state, a cost test with numbers, and a countermeasure *or a recorded
-decision not to build one*.
+`tools/audit/briefs/root-cause.md`: a named cause and process state, a cost test
+with numbers, and a countermeasure *or a recorded decision not to build one*,
+which an audit class cannot record alone (`defect-root-cause.md`).
 
 **Out of scope is not a licence to file.** A real finding you must not touch
 goes to that stage's own brief, by `finding-propagation.md`; an issue is not
@@ -182,7 +182,7 @@ one is the rule** and the other is the bug.
 
 A qualifying defect owes its cause and the **process** that let the cause get
 that far, established in its own seat beside the fix and never inside it. The
-two triggers, the four process states, the cost test, why recording that no
+two triggers, the four process states, the cost test, when recording that no
 countermeasure is worth building is a legitimate result, and the demonstration a
 check-shaped countermeasure owes are in `defect-root-cause.md` and
 `root-cause.md`. Only the red-check trigger is enforced: the fixer names the

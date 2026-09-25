@@ -4,7 +4,7 @@ You run alone, serially, on the idle box, after the verifiers. You do not trust
 the finders or the verifiers; you re-measure. **Dedup first**, across
 dimensions: merge a finding into another only where that one's perturbation
 moves its harness too. Scripted re-runs of the headers' commands are your
-measurement; the verdicts are yours alone. Then, per survivor:
+measurement; the verdicts are yours. Then, per survivor:
 
 1. Re-run the harness command from its header. Record `reproduced` or
    `not reproduced (got X)` against the tolerance, quoting your real `load1`
