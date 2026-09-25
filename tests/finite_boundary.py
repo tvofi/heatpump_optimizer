@@ -212,6 +212,13 @@ def _healthy_payloads() -> dict[str, dict]:
         run(away.persist_override(coord))
     except Exception as exc:  # pragma: no cover - diagnostic only
         print("note: boost/away persist skipped: %r" % (exc,))
+    try:
+        from heatpump_optimizer import pump_arbiter
+        held = pump_arbiter.state_for(coord)
+        held.written["dhw_setpoint"] = (55.0, _dt.datetime(2026, 1, 1, 12, 0, 0))
+        run(pump_arbiter._persist(coord))
+    except Exception as exc:  # pragma: no cover - diagnostic only
+        print("note: pump_arbiter persist skipped: %r" % (exc,))
     disk = {k: json.loads(v) for k, v in _storage._DISK.items()}
     _storage._DISK.clear()
     _storage.SAVE_COUNTS.clear()
@@ -356,6 +363,7 @@ LOADERS = {
     "dhw_legionella": lambda c: c._legionella.async_load(),
     "boost": lambda c: __import__("heatpump_optimizer.boost", fromlist=["x"]).restore_session(c),
     "away": lambda c: __import__("heatpump_optimizer.away", fromlist=["x"]).restore_override(c),
+    "pump_duty": lambda c: __import__("heatpump_optimizer.pump_arbiter", fromlist=["x"])._load(c),
 }
 
 R.check(
