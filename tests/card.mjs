@@ -8636,6 +8636,74 @@ const STOCK_THEMES = {
         room.every((p) => p.v > ax.min && p.v < ax.max),
       ax ? `${ax.min}..${ax.max}` : "no temp axis");
   }
+  {
+    // K4 (fix-review on #1622, then re-review on #1624 at d2c658b2): the
+    // first pin here -- "some C segment right of now" -- still passed when
+    // only `pts.slice(0, held + 1)` was stepped as `steppedLine(pts)` (the
+    // WHOLE line), because `smoothLine(pts.slice(held))` is still appended
+    // after it and still emits C commands. What that mutant actually
+    // breaks is where the appended curve starts: back at pts[held].x,
+    // behind the x `steppedLine(pts)` already walked forward to -- the x
+    // coordinates of the drawn path run backward. Pin THAT instead: no
+    // drawn house_temp path's sampled x may go backward, under the same
+    // -10 h pan that keeps the live edge and the forecast past it on
+    // screen.
+    const { c } = mkCard(realisticHistory(FROZEN));
+    c.view.panBy(-10 * HOUR);
+    await flushHistory();
+    const xsOf = (d) => [...d.matchAll(
+      /[ML] ([-\d.]+) [-\d.]+|C [-\d.]+ [-\d.]+ [-\d.]+ [-\d.]+ ([-\d.]+) [-\d.]+/g
+    )].map((m) => Number(m[1] ?? m[2]));
+    const backtracking = pathsOf(c, "house_temp").filter((d) =>
+      xsOf(d).some((x, i, a) => i > 0 && x < a[i - 1] - 0.01));
+    check("no drawn house_temp path's x coordinates run backward under the held/forecast seam",
+      backtracking.length === 0, `${backtracking.length} path(s) with backtracking x`);
+  }
+  {
+    // K7 (fix-review on #1622, absorb's own comment: "an unavailable row is
+    // still the hole that ends a bar"). Splice one unavailable action row
+    // between two adjacent same-mode heating rows and check the drawn slot
+    // bar breaks there -- no single line's points straddle the hole.
+    const e0 = realisticHistory(FROZEN);
+    const { c: probe } = mkCard(e0);
+    probe.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const w0 = probe._plot.windowStart, w1 = probe._plot.windowEnd;
+    const actionRows = e0[HISTORY_IDS.action];
+    let pair = null;
+    for (let i = 0; i < actionRows.length - 1; i++) {
+      const r1 = actionRows[i], r2 = actionRows[i + 1];
+      if (
+        r1.state === r2.state && r1.state !== "off" && r1.state !== "hot_water" &&
+        r1.t >= w0 && r2.t <= w1
+      ) {
+        pair = [r1, r2];
+        break;
+      }
+    }
+    if (!pair) {
+      check("an unavailable action row ends the space slot bar, no bar spans across it",
+        false, "no adjacent same-mode heating pair found in the panned window");
+    } else {
+      const [r1, r2] = pair;
+      const gapT = Math.round((r1.t + r2.t) / 2);
+      const e = realisticHistory(FROZEN);
+      const rows = e[HISTORY_IDS.action];
+      rows.push({ t: gapT, stamp: haStamp(gapT), state: "unavailable" });
+      rows.sort((a, b) => a.t - b.t);
+      const { c } = mkCard(e);
+      c.view.panBy(-40 * HOUR);
+      await flushHistory();
+      const lines = (c._series.find((s) => s.key === "space_slots").lines || [])
+        .filter((l) => l.field === "space_power");
+      const spans = lines.some(
+        (l) => l.points.some((p) => p.t < gapT) && l.points.some((p) => p.t > gapT)
+      );
+      check("an unavailable action row ends the space slot bar, no bar spans across it",
+        lines.length > 0 && !spans,
+        `${lines.length} line(s); spans=${spans}`);
+    }
+  }
 }
 
 // --- The host stays small ---------------------------------------------------
