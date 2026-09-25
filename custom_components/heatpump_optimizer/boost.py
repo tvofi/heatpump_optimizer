@@ -210,6 +210,6 @@ async def set_channel(coord: Any, channel: str, active: bool) -> None:
     recorder = getattr(coord, "boost_calls", None)
     if recorder is not None:
         recorder.append({"channel": channel, "active": active})
-        return
-    await persist(coord)
+    else:
+        await persist(coord)
     await coord.async_request_refresh()

@@ -22,6 +22,9 @@ class Entity:
     declares the property, would have returned the value.
     """
 
+    # Upstream's class default until the platform adds the entity.
+    hass = None
+
     @property
     def entity_category(self) -> EntityCategory | None:
         """``helpers/entity.py`` Entity.entity_category.

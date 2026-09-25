@@ -8647,6 +8647,40 @@ R.check(
     str({n: getattr(_sw, "ha_state_writes", None) for n, _sw in _sw_live.items()}),
 )
 
+
+# Fix review of #1621: each setter ends in the refresh that runs the solve,
+# and outside the debouncer's 10 s cooldown the refresh awaits the solve
+# inline -- so a state write placed after the setter lands after the solve.
+# Each switch must publish first and ask for the refresh once, off the action.
+class _EagerHass:
+    """Upstream starts an entry's background task eagerly: it runs up to its
+    first suspension before the call returns (``eager_start=True``)."""
+
+    def async_create_task(self, coro):
+        try:
+            coro.send(None)
+        except StopIteration:
+            return None
+        coro.close()
+        raise AssertionError("a background refresh suspended under the fake")
+
+
+for _sw in _sw_live.values():
+    _sw.hass = _EagerHass()
+    _sw.coordinator.on_refresh = lambda _s=_sw: list(getattr(_s, "ha_state_writes", []))
+for _sw_on, _sw_label in ((False, "off"), (True, "on")):
+    for _sw in _sw_live.values():
+        _sw.__dict__.pop("ha_state_writes", None)
+        _sw.coordinator.refreshes.clear()
+        asyncio.run(_sw.async_turn_on() if _sw_on else _sw.async_turn_off())
+    R.check(
+        f"every switch turned {_sw_label} publishes before the refresh that "
+        "runs the solve starts, and asks for exactly one",
+        {n: _sw.coordinator.refreshes for n, _sw in _sw_live.items()}
+        == {n: [[_sw_on]] for n in _sw_live},
+        str({n: _sw.coordinator.refreshes for n, _sw in _sw_live.items()}),
+    )
+
 dt_entities = collect(datetime_mod)
 R.check("the datetime platform adds exactly one entity", len(dt_entities) == 1)
 away_dt = dt_entities[0]
