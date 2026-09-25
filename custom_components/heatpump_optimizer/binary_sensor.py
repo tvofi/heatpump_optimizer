@@ -17,7 +17,6 @@ reasonably want to automate on or be alerted about:
 """
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 import numpy as np
@@ -37,8 +36,6 @@ from .const import (
     CONF_MOLD_FLOOR_BREACH_MARGIN,
     DEFAULT_MOLD_FLOOR_BREACH_MARGIN,
 )
-
-_LOGGER = logging.getLogger(__name__)
 
 # Coordinator-fed and read-only: the coordinator serialises the one inbound
 # refresh, and no entity here calls out, so there is nothing to throttle

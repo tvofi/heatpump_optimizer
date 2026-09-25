@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.compute_cop_dhw GUARD_OFF ca964a78",
+  "killed_by": "tests/features.py",
+  "old": "        if self.params.cop_flow_carnot:",
+  "reason": "R8-P3 (#1530): `compute_cop_dhw` prices the tank by the buffer's Carnot law behind a throttling valve. `if False:` restores the tank's own 0.008/K penalty. Measured in a git-less copy of 7c50f736 beside an unmutated copy (1 of 3192 FAILED there, the git-reading #363 check): 6 of 3192 FAILED, among them `cop_flow_carnot on: marginal_cop('dhw') == marginal_cop('buffer') at equal water temperature, every outdoor x flow cell (#1530)` (205 of 240 cells differ) and the wood-coil and baseline figures the law moves."
+}

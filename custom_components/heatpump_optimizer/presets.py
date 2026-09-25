@@ -23,11 +23,8 @@ shipped as absolute numbers per archetype.
 """
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import Any
-
-_LOGGER = logging.getLogger(__name__)
 
 # --- Structure -------------------------------------------------------------
 #
@@ -306,24 +303,3 @@ def response_hours(preset: BuildingPreset) -> float:
     lower = _EMITTER_RESPONSE_HOURS[preset.lower_emitter]
     ratio = preset.upper_area_ratio
     return upper * ratio + lower * (1.0 - ratio)
-
-
-def describe(preset: BuildingPreset) -> dict[str, Any]:
-    """Preset plus derived values, for display and for the sensor attributes."""
-    preset = preset.validate()
-    derived = derive(preset)
-    return {
-        "structure": preset.structure,
-        "era": preset.era,
-        "foundation": preset.foundation,
-        "heated_area_m2": preset.heated_area_m2,
-        "upper_emitter": preset.upper_emitter,
-        "lower_emitter": preset.lower_emitter,
-        "derived": derived,
-        # Stated explicitly so nobody reads the numbers above as a measurement
-        # of their building.
-        "note": (
-            "Starting values only. The self-learning model refines these from "
-            "how the house actually behaves."
-        ),
-    }

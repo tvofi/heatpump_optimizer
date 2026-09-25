@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._dhw_coil_wood_forecast RETURN_DEL bcbdf658",
+  "killed_by": "tests/features.py",
+  "old": "        return None if wood is None else read",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 29402b6179c89cb4de6e6cca3be78762a51ca63c: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

@@ -220,15 +220,6 @@ def parse_rules(spec: str | None) -> list[FeeRule]:
     return rules
 
 
-def is_valid_spec(spec: str) -> bool:
-    """Whether a rule specification parses, for the config flow to check."""
-    try:
-        parse_rules(spec)
-    except GridFeeError:
-        return False
-    return True
-
-
 def spec_problem(spec: str) -> str | None:
     """The config flow's verdict on a rules text: an error key, or None.
 

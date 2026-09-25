@@ -282,9 +282,9 @@ TUNING_ANSWERS = {
 # lines above the ``.dhw_schedule`` one.
 #
 # The agreement is now pinned rather than assumed. Neither check keyed on
-# the answers below would notice the validator being repointed at
-# ``grid_fee.is_valid_spec``: this happy page carries the default empty
-# spec, and the error probe uses "garbage", which no grammar accepts. The
+# the answers below would notice the validator being repointed at the
+# grid-fee grammar (``grid_fee.spec_problem``): this happy page carries the
+# default empty spec, and the error probe uses "garbage", which no grammar accepts. The
 # documented-form check in ``options_error_branches`` is the one that dies,
 # and it is what #327's false report bought.
 GRID_ANSWERS = {
@@ -4846,7 +4846,7 @@ async def self_check():
     # submits the empty default and the error probe submits "garbage", and
     # both are verdict-identical under either grammar.
     real_hours = config_flow.is_valid_spec
-    config_flow.is_valid_spec = config_flow.grid_fee.is_valid_spec
+    config_flow.is_valid_spec = lambda spec: config_flow.grid_fee.spec_problem(spec) is None
     try:
         await seed_base_entry()
         flow, entry, _ = fresh_options()

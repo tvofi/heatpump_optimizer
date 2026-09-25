@@ -27,7 +27,6 @@ savings for nothing.
 """
 from __future__ import annotations
 
-import logging
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -37,8 +36,6 @@ import numpy as np
 
 from .accuracy import HISTORY_LENGTH
 from .dhw_schedule import Window, hour_in_windows
-
-_LOGGER = logging.getLogger(__name__)
 
 
 def _window_slot(when: datetime, window_minutes: int) -> datetime:

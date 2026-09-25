@@ -87,16 +87,16 @@ Metrics (definitions, one line each; the code is the authority):
                               ``.const``
   local_imports               Import/ImportFrom statements inside a function
                               scope, anywhere in the integration
-  dead_top_level_symbols      top-level defs/classes/assignments never
-                              referenced by name anywhere else in the
-                              integration (dunder, HA entry points, HA
-                              convention constants and ConfigFlow/OptionsFlow
-                              subclasses excluded -- Home Assistant finds
-                              those by convention, not by import). A reference
-                              is a name load, an attribute name, or BOTH halves
-                              of an aliased import (``module_references``); the
-                              four constants a runtime ``getattr`` assembles
-                              are exempted by name, with their proof re-checked
+  dead_top_level_symbols      top-level defs/classes/assignments no load in
+                              the integration resolves to (dunder, HA entry
+                              points, HA convention constants and
+                              ConfigFlow/OptionsFlow subclasses excluded --
+                              Home Assistant finds those by convention, not by
+                              import). A load resolves through the module's
+                              own bindings and its imports, not by bare name
+                              (``bound_references``, #1538); the four
+                              constants a runtime ``getattr`` assembles are
+                              exempted by name, with their proof re-checked
                               on every run (``DYNAMIC_REFERENCES``)
   dead_methods                the same screen one level in (#1395): class-body
                               functions whose NAME is never referenced
@@ -221,10 +221,16 @@ DUP_BLOCK_LINES = 10
 CC_LIMITS = (25, 15)
 CONST_FANOUT_LIMIT = 50
 
-# The seam partition of #193's plan of record: a method belongs to the FIRST
-# seam whose regex matches its name; everything else is core. Order matters
-# and is part of the metric definition -- a method named _fetch_dhw_prices is
-# a dhw method, not a fetch method.
+# The seam partition of #193's plan of record. A coordinator method's seam is
+# its entry in SEAM_MAP_FILE, never its name (#1539): bucketing by name let a
+# pure rename move cross_seam_edges. A method the map does not name is refused,
+# so a new or renamed method is assigned to a seam in a diff a reviewer sees.
+SEAM_LABELS = ("dhw", "learning", "fetch", "grid", "views")
+SEAM_MAP_FILE = REPO_ROOT / "tests" / "seam_map.json"
+
+# The SEED rule only (``--seed-seam-map``), no longer the measurement: a method
+# belongs to the FIRST seam whose regex matches its name, everything else is
+# core -- a method named _fetch_dhw_prices is a dhw method, not a fetch one.
 SEAM_REGEXES: list[tuple[str, re.Pattern[str]]] = [
     ("dhw", re.compile(r"dhw|hot_water|legionella|draw")),
     ("learning", re.compile(r"learn|reanchor|drift|curve|comfort|cop")),
@@ -397,7 +403,7 @@ def nested_spans(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> list[tuple[int, 
 
 
 def module_references(tree: ast.Module) -> set[str]:
-    """Every name this module references, for the dead-symbol screen.
+    """Every name this module references, for the dead-METHOD screen.
 
     Every name anyone reads, plus every name any import binds: an import is a
     reference even when the name is then used only as an attribute of the
@@ -448,10 +454,92 @@ def module_references(tree: ast.Module) -> set[str]:
     return referenced
 
 
+def top_level_names(tree: ast.Module) -> set[str]:
+    """The names a module's own top-level statements bind."""
+    names = set()
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names.add(node.name)
+        for target in getattr(node, "targets", [getattr(node, "target", None)]):
+            if isinstance(target, ast.Name):
+                names.add(target.id)
+    return names
+
+
+def bound_references(trees: list[tuple[Path, ast.Module]]) -> set[tuple[str, str]]:
+    """``(rel, name)`` of every top-level symbol a load resolves to (#1538).
+
+    The dead-symbol screen used to ask whether a symbol's NAME was read
+    anywhere (``module_references``), so ``grid_fee.is_valid_spec`` was live
+    because config_flow reads ``dhw_schedule``'s function of that name, and ten
+    module ``_LOGGER``s were live because other modules read theirs. A load now
+    resolves the way Python resolves it:
+
+    1. ``N`` in the defining module, outside ``N``'s own body (recursion);
+    2. ``A`` wherever ``from .m import N as A`` bound it, through re-exports;
+    3. ``m.N`` where ``m`` is bound to the defining module;
+    4. ``x.N`` where ``x`` is neither a module binding nor ``self``/``cls``
+       reaches every top-level ``N``: the AST cannot type it (the module
+       ``_async_lazy`` returns, say), and a live symbol reported dead would be
+       deleted. The one name-based arm left; a binding never takes it.
+    """
+    mods = {p.relative_to(PACKAGE_DIR).as_posix()[:-3].replace("/", "."): (p, t)
+            for p, t in trees}
+    tops = {(m, n) for m, (_p, t) in mods.items() for n in top_level_names(t)}
+    sym_bind: dict[tuple[str, str], tuple[str, str]] = {}
+    mod_bind: dict[tuple[str, str], str] = {}
+    for mod, (_p, tree) in mods.items():
+        package = mod.split(".")[:-1]
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom) or node.level == 0:
+                continue
+            base = package[:len(package) - node.level + 1]
+            src = ".".join(base + [node.module] if node.module else base)
+            for alias in node.names:
+                bound = alias.asname or alias.name
+                target = f"{src}.{alias.name}" if src else alias.name
+                if target in mods:
+                    mod_bind[(mod, bound)] = target
+                else:
+                    sym_bind[(mod, bound)] = (src or "__init__", alias.name)
+
+    def resolve(mod: str, name: str) -> tuple[str, str]:
+        seen = set()
+        while (mod, name) not in tops and (mod, name) in sym_bind and (mod, name) not in seen:
+            seen.add((mod, name))
+            mod, name = sym_bind[(mod, name)]
+        return mod, name
+
+    found: set[tuple[str, str]] = set()
+    untyped: set[str] = set()
+    for mod, (_p, tree) in mods.items():
+        own = {n.name: (n.lineno, n.end_lineno) for n in tree.body
+               if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+                span = own.get(node.id)
+                if not (span and span[0] <= node.lineno <= span[1]):
+                    found.add(resolve(mod, node.id))
+            elif isinstance(node, ast.Attribute):
+                base_name = node.value.id if isinstance(node.value, ast.Name) else None
+                if (mod, base_name) in mod_bind:
+                    found.add(resolve(mod_bind[(mod, base_name)], node.attr))
+                elif base_name not in ("self", "cls"):
+                    untyped.add(node.attr)
+    found |= {key for key in tops if key[1] in untyped}
+    return {(str(mods[m][0].relative_to(REPO_ROOT)), n) for m, n in found if m in mods}
+
+
+def is_dead_symbol(key: tuple[str, str], bound: set[tuple[str, str]],
+                   exempt: set[tuple[str, str]]) -> bool:
+    """No load resolves to ``(rel, name)``, and no convention or proof exempts it."""
+    return key[1] not in HA_CONVENTION_NAMES and key not in bound and key not in exempt
+
+
 def dynamic_reference_audit(
     trees: list[tuple[Path, ast.Module]],
     top_level_defs: dict[tuple[str, str], int],
-    referenced_names: set[str],
+    referenced: set[tuple[str, str]],
     entries: dict[tuple[str, str], tuple[str, str, str, str]] | None = None,
 ) -> tuple[set[tuple[str, str]], list[str]]:
     """Check every ``DYNAMIC_REFERENCES`` entry, and say which still hold.
@@ -502,7 +590,7 @@ def dynamic_reference_audit(
                 f"{where}: {name} is no longer a top-level symbol in {module};"
                 " delete the entry")
             continue
-        if name in referenced_names:
+        if (rel, name) in referenced:
             problems.append(
                 f"{where}: {name} is statically referenced now, so the entry"
                 " does nothing; delete it")
@@ -751,27 +839,69 @@ def state_root_bindings(fn: ast.AST) -> tuple[frozenset[str], frozenset[int]]:
     return frozenset(aliases), frozenset(hops)
 
 
-def seam_metrics(coord_class: ast.ClassDef) -> dict:
+class SeamMapError(ValueError):
+    """The seam map and the class it partitions disagree (#1539)."""
+
+
+def regex_seam(method_name: str) -> str:
+    """The seam ``SEAM_REGEXES`` gives a name: the seed rule, not the metric."""
+    for label, regex in SEAM_REGEXES:
+        if regex.search(method_name):
+            return label
+    return "core"
+
+
+def load_seam_map() -> dict[str, str]:
+    if not SEAM_MAP_FILE.exists():
+        raise SeamMapError(f"no {SEAM_MAP_FILE.name}: seed it with --seed-seam-map")
+    return json.loads(SEAM_MAP_FILE.read_text())["seams"]
+
+
+def seed_seam_map() -> int:
+    """Rewrite SEAM_MAP_FILE from ``regex_seam`` over every coordinator method.
+
+    The introduction's null control and the re-seed after a coordinator merge:
+    the result measures byte-identically to the retired name rule. Every later
+    change to the map is a hand edit, a seam decision a reviewer reads.
+    """
+    tree = ast.parse((PACKAGE_DIR / "coordinator.py").read_text())
+    cls = next(n for n in ast.walk(tree)
+               if isinstance(n, ast.ClassDef) and n.name == COORDINATOR_CLASS_NAME)
+    seams = {m.name: regex_seam(m.name) for m in cls.body
+             if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    SEAM_MAP_FILE.write_text(json.dumps(
+        {"_comment": "Each coordinator method's seam for tests/structure.py (#1539)."
+                     " Seeded by `python3 tests/structure.py --seed-seam-map`;"
+                     " a method missing here fails the ratchet.",
+         "seams": dict(sorted(seams.items()))}, indent=1, ensure_ascii=False) + "\n")
+    print(f"wrote {len(seams)} methods to {SEAM_MAP_FILE.relative_to(REPO_ROOT)}")
+    return 0
+
+
+def seam_metrics(coord_class: ast.ClassDef, seams: dict[str, str] | None = None) -> dict:
     """The coordinator's seam partition: cut costs, call edges, per-seam rows.
 
     Split out of ``measure`` so the counting rules can be pinned on sources of
     our own (``self_check``) rather than only on whatever ``coordinator.py``
     happens to hold. #510 was a counting rule that was wrong across four
-    merges with nothing in the suite able to fail on it.
+    merges with nothing in the suite able to fail on it. ``seams`` defaults to
+    SEAM_MAP_FILE, and must name exactly the class's methods.
     """
     methods = {
         m.name: m
         for m in coord_class.body
         if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
-
-    def seam_bucket(method_name: str) -> str:
-        for label, regex in SEAM_REGEXES:
-            if regex.search(method_name):
-                return label
-        return "core"
-
-    buckets = {name: seam_bucket(name) for name in methods}
+    seams = load_seam_map() if seams is None else seams
+    unmapped = sorted(set(methods) - set(seams))
+    stale = sorted(set(seams) - set(methods))
+    unknown = sorted(n for n, label in seams.items() if label not in (*SEAM_LABELS, "core"))
+    if unmapped or stale or unknown:
+        raise SeamMapError(
+            f"seam map disagrees with {coord_class.name}: unmapped {unmapped},"
+            f" stale {stale}, unknown seam {unknown}. Give each new or renamed"
+            f" method its seam in {SEAM_MAP_FILE.name} (#1539)")
+    buckets = {name: seams[name] for name in methods}
     attr_refs: dict[str, Counter] = defaultdict(Counter)  # attr -> bucket -> occurrences
     attr_owners: dict[str, set[str]] = defaultdict(set)   # attr -> buckets that store it
     call_edges = Counter()                                # (caller bucket, callee bucket) -> occurrences
@@ -806,7 +936,7 @@ def seam_metrics(coord_class: ast.ClassDef) -> dict:
 
     seam_rows = []
     cut_costs = {}
-    for label, _ in SEAM_REGEXES:
+    for label in SEAM_LABELS:
         owned = {attr for attr, owners in attr_owners.items() if label in owners}
         cross_attr_refs = 0
         for attr, counter in attr_refs.items():
@@ -847,7 +977,6 @@ def measure() -> dict:
     cc_scores = []         # (cc, file, line, name)
     const_fanout = {}      # file -> imported names from .const
     local_imports = []     # (file, line, statement)
-    dead_symbols = []      # (file, line, name)
     dead_methods = []      # (file, class, method, line)
     duplication = []       # (file, func_name, func_line, start-end, length)
 
@@ -956,17 +1085,12 @@ def measure() -> dict:
         duplication.extend(duplicate_runs(normalized_functions, DUP_BLOCK_LINES))
 
     # -- dead top-level symbols --------------------------------------------
+    bound = bound_references(trees)
     dynamic_exempt, dynamic_problems = dynamic_reference_audit(
-        trees, top_level_defs, referenced_names
+        trees, top_level_defs, bound
     )
-    for (rel, name), lineno in sorted(top_level_defs.items()):
-        if name in HA_CONVENTION_NAMES:
-            continue
-        if name in referenced_names:
-            continue
-        if (rel, name) in dynamic_exempt:
-            continue
-        dead_symbols.append((rel, lineno, name))
+    dead_symbols = [(rel, lineno, name) for (rel, name), lineno in sorted(top_level_defs.items())
+                    if is_dead_symbol((rel, name), bound, dynamic_exempt)]
 
     # -- dead methods (#1395) ----------------------------------------------
     # The same screen as ``dead_top_level_symbols``, one level in: a method
@@ -1638,10 +1762,19 @@ def seam_self_check() -> tuple[tuple[str, bool], ...]:
     charged for reaching state it owns itself.
     """
 
-    def cut(body: str) -> int:
-        tree = ast.parse(SEAM_SELF_CHECK_SOURCE % body)
+    seams = {"__init__": "core", "_fetch_prices": "fetch"}
+
+    def cut(body: str, rename: str = "_fetch_prices", seam_map=seams) -> int:
+        tree = ast.parse((SEAM_SELF_CHECK_SOURCE % body).replace("_fetch_prices", rename))
         cls = next(n for n in ast.walk(tree) if isinstance(n, ast.ClassDef))
-        return seam_metrics(cls)["cut_costs"]["cut_fetch"]
+        return seam_metrics(cls, seam_map)["cut_costs"]["cut_fetch"]
+
+    def refused(seam_map: dict[str, str]) -> bool:
+        try:
+            cut("        return 0", seam_map=seam_map)
+        except SeamMapError:
+            return True
+        return False
 
     base = cut("        return 0")
     crossing = [cut(t % {"attr": "_depth"}) for t in SEAM_SELF_CHECK_SPELLINGS]
@@ -1654,6 +1787,13 @@ def seam_self_check() -> tuple[tuple[str, bool], ...]:
          all(c == base for c in owned)),
         ("the state root is the binding, not the name it is bound to",
          all(c == base for c in foreign)),
+        ("a method's seam is its map entry, not its name (#1539)",
+         cut("        return self._depth", "_zz", {"__init__": "core", "_zz": "fetch"})
+         == crossing[0]),
+        ("a method the map does not name is refused",
+         refused({"__init__": "core"})),
+        ("a map entry naming no method, or no seam, is refused",
+         refused({**seams, "_gone": "core"}) and refused({**seams, "__init__": "nowhere"})),
     )
 
 
@@ -1680,7 +1820,7 @@ def audit_self_check() -> tuple[tuple[str, bool], ...]:
     """
     const_rel = str((PACKAGE_DIR / "const.py").relative_to(REPO_ROOT))
 
-    def audit(const_src: str | None, proof_src: str, referenced: set[str]):
+    def audit(const_src: str | None, proof_src: str, referenced: set[tuple[str, str]]):
         trees = [(PACKAGE_DIR / "thermal_model.py", ast.parse(proof_src))]
         defs: dict[tuple[str, str], int] = {}
         if const_src is not None:
@@ -1696,7 +1836,8 @@ def audit_self_check() -> tuple[tuple[str, bool], ...]:
     no_lookup = audit(AUDIT_SELF_CHECK_CONST, AUDIT_SELF_CHECK_PROOF.replace(
         'getattr(const, f"CONF_{TABLE[\'row\']}")', "const.CONF_OTHER"), set())
     no_symbol = audit(None, AUDIT_SELF_CHECK_PROOF, set())
-    now_static = audit(AUDIT_SELF_CHECK_CONST, AUDIT_SELF_CHECK_PROOF, {"CONF_PROVEN"})
+    now_static = audit(AUDIT_SELF_CHECK_CONST, AUDIT_SELF_CHECK_PROOF,
+                       {(const_rel, "CONF_PROVEN")})
 
     return (
         ("a proven dynamic reference exempts its symbol, with no complaint",
@@ -1709,6 +1850,36 @@ def audit_self_check() -> tuple[tuple[str, bool], ...]:
          not no_symbol[0] and len(no_symbol[1]) == 1),
         ("an entry the tree no longer needs is caught",
          not now_static[0] and len(now_static[1]) == 1),
+    )
+
+
+BOUND_SELF_CHECK_SOURCES = {
+    "a.py": "from . import b\nfrom .c import shared as alias\n_LOGGER = 1\n"
+            "def f(thing):\n    return alias() + b.g() + thing.untyped + self.own\n"
+            "def recurse(n):\n    return recurse(n - 1)\n",
+    "b.py": "_LOGGER = 2\ndef g():\n    return _LOGGER\ndef h(): pass\n"
+            "def untyped(): pass\ndef own(): pass\n",
+    "c.py": "def shared(): pass\n_LOGGER = 3\ndef g(): pass\n",
+}
+
+
+def bound_self_check() -> tuple[tuple[str, bool], ...]:
+    """Pin ``bound_references``' four arms on a three-module tree (#1538)."""
+    bound = bound_references(
+        [(PACKAGE_DIR / m, ast.parse(src)) for m, src in BOUND_SELF_CHECK_SOURCES.items()])
+    refs = {(Path(rel).name, name) for rel, name in bound}
+    c_logger = (str((PACKAGE_DIR / "c.py").relative_to(REPO_ROOT)), "_LOGGER")
+    return (
+        ("an aliased import resolves to the symbol it binds", ("c.py", "shared") in refs),
+        ("a same-named symbol read elsewhere is not a reference",
+         ("b.py", "_LOGGER") in refs and not {("a.py", "_LOGGER"), ("c.py", "_LOGGER")} & refs),
+        ("the screen reports a symbol whose name another module reads",
+         is_dead_symbol(c_logger, bound, set())),
+        ("m.N reaches N in m and nothing else",
+         ("b.py", "g") in refs and not {("b.py", "h"), ("c.py", "g")} & refs),
+        ("x.N on an untyped value reaches every top-level N", ("b.py", "untyped") in refs),
+        ("self.N is not a module reference", ("b.py", "own") not in refs),
+        ("a function calling itself is not bound-referenced", ("a.py", "recurse") not in refs),
     )
 
 
@@ -1728,23 +1899,21 @@ def self_check() -> int:
     other symbol's liveness is redefined on their account.
     """
     refs = module_references(ast.parse(SELF_CHECK_SOURCE))
-    failures = [
-        message
-        for message, ok in (
-            ("an aliased import records the ORIGINAL name", "max_abs_component" in refs),
-            ("an aliased import also records the alias", "gf_max" in refs),
-            ("an unaliased import still records its name", "min_component" in refs),
-            ("a dotted aliased import records both halves",
-             "submodule" in refs and "sub" in refs),
-            ("a function calling itself is recursion, not a reference",
-             "recurse" not in refs),
-            ('a getattr(x, f"CONF_{..}") name is NOT a static reference',
-             "CONF_WANTED" not in refs),
-            *audit_self_check(),
-            *seam_self_check(),
-        )
-        if not ok
-    ]
+    rules = (
+        ("an aliased import records the ORIGINAL name", "max_abs_component" in refs),
+        ("an aliased import also records the alias", "gf_max" in refs),
+        ("an unaliased import still records its name", "min_component" in refs),
+        ("a dotted aliased import records both halves",
+         "submodule" in refs and "sub" in refs),
+        ("a function calling itself is recursion, not a reference",
+         "recurse" not in refs),
+        ('a getattr(x, f"CONF_{..}") name is NOT a static reference',
+         "CONF_WANTED" not in refs),
+        *bound_self_check(),
+        *audit_self_check(),
+        *seam_self_check(),
+    )
+    failures = [message for message, ok in rules if not ok]
     print("########## counting-rule self-check ##########")
     for message in failures:
         print(f"FAIL  {message}")
@@ -1752,7 +1921,7 @@ def self_check() -> int:
         print(f"{len(failures)} COUNTING RULE(S) BROKEN -- "
               "dead_top_level_symbols and cut_<seam> cannot be trusted")
         return 1
-    print("  ok   14 counting rules hold")
+    print(f"  ok   {len(rules)} counting rules hold")
     return 0
 
 
@@ -1772,12 +1941,24 @@ def main() -> int:
              "a budget for a new production feature needs the repository "
              "owner's explicit confirmation before the branch is pushed",
     )
+    parser.add_argument(
+        "--seed-seam-map",
+        action="store_true",
+        help="rewrite tests/seam_map.json from SEAM_REGEXES over every "
+             "coordinator method (#1539), then measure",
+    )
     args = parser.parse_args()
 
+    if args.seed_seam_map:
+        seed_seam_map()
     if self_check():
         return 1
 
-    result = measure()
+    try:
+        result = measure()
+    except SeamMapError as err:
+        print(f"SEAM MAP REFUSED: {err}")
+        return 1
     print_report(result)
     problems = result["tables"]["dynamic_problems"]
     if problems:
