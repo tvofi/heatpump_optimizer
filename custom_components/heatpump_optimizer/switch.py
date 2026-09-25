@@ -1,11 +1,11 @@
 """Switch entities for Heat Pump Cost Optimizer.
 
 Four switches, all plain toggles over coordinator state. Each reads the live
-state rather than the published payload and writes its own state as soon as
-the action lands: the payload changes only when the refresh the action asks
-for has run its solve, 30 to 70 s on a Pi, and Home Assistant's toggle falls
-back to the old state after about two seconds without a state change -- so a
-switch turned off flipped back on in front of the user (v6.6.12).
+state rather than the published payload, and publishes it as soon as the
+action has changed it, before the refresh that runs the solve (30 to 70 s on
+a Pi): Home Assistant's toggle falls back to the old state after about two
+seconds without a state change, so a switch turned off flipped back on in
+front of the user (v6.6.12).
 
 * "Optimizer Active" — the master on/off switch for the optimizer. When off,
   the heat pump is left in its default state; when on, the optimizer actively
@@ -55,6 +55,23 @@ async def async_setup_entry(
     )
 
 
+def _publish_then_refresh(switch: Any) -> None:
+    """Publish the switch's state, then ask for the refresh off the action.
+
+    Outside the debouncer's cooldown the refresh runs the solve inline, so
+    awaiting it here held the state write -- and, under PARALLEL_UPDATES, the
+    next toggle -- until the solve was done. As an entry background task it
+    starts at once, is cancelled at unload, and the coordinator logs its
+    failures exactly as when it was awaited.
+    """
+    switch.async_write_ha_state()
+    switch._entry.async_create_background_task(
+        switch.hass,
+        switch.coordinator.async_request_refresh(),
+        name="heatpump_optimizer_switch_refresh",
+    )
+
+
 class OptimizerEnableSwitch(HeatPumpOptimizerEntity, SwitchEntity):
     """Switch to enable/disable the optimizer."""
 
@@ -94,14 +111,16 @@ class OptimizerEnableSwitch(HeatPumpOptimizerEntity, SwitchEntity):
         `auto`, which silently threw away a live economy or comfort selection --
         easy to trigger from a dashboard toggle or a scene.
         """
-        if self.coordinator.mode == MODE_OFF:
-            await self.coordinator.async_set_mode(MODE_AUTO)
-        self.async_write_ha_state()
+        if self.coordinator.mode != MODE_OFF:
+            self.async_write_ha_state()
+            return
+        await self.coordinator.async_set_mode(MODE_AUTO, refresh=False)
+        _publish_then_refresh(self)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the optimizer."""
-        await self.coordinator.async_set_mode(MODE_OFF)
-        self.async_write_ha_state()
+        await self.coordinator.async_set_mode(MODE_OFF, refresh=False)
+        _publish_then_refresh(self)
 
 
 class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
@@ -124,12 +143,12 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
         return bool(self.coordinator._away_state.override_active)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await self.coordinator.async_set_away(active=True)
-        self.async_write_ha_state()
+        await self.coordinator.async_set_away(active=True, refresh=False)
+        _publish_then_refresh(self)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await self.coordinator.async_set_away(active=False)
-        self.async_write_ha_state()
+        await self.coordinator.async_set_away(active=False, refresh=False)
+        _publish_then_refresh(self)
 
 
 class BoostDhwSwitch(DHWEntityMixin, SwitchEntity):
@@ -156,12 +175,12 @@ class BoostDhwSwitch(DHWEntityMixin, SwitchEntity):
         return boost.held_for(self.coordinator).active("dhw", dt_util.now())
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await boost.set_channel(self.coordinator, "dhw", True)
-        self.async_write_ha_state()
+        await boost.set_channel(self.coordinator, "dhw", True, refresh=False)
+        _publish_then_refresh(self)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await boost.set_channel(self.coordinator, "dhw", False)
-        self.async_write_ha_state()
+        await boost.set_channel(self.coordinator, "dhw", False, refresh=False)
+        _publish_then_refresh(self)
 
 
 class BoostSpaceSwitch(HeatPumpOptimizerEntity, SwitchEntity):
@@ -184,9 +203,9 @@ class BoostSpaceSwitch(HeatPumpOptimizerEntity, SwitchEntity):
         return boost.held_for(self.coordinator).active("space", dt_util.now())
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await boost.set_channel(self.coordinator, "space", True)
-        self.async_write_ha_state()
+        await boost.set_channel(self.coordinator, "space", True, refresh=False)
+        _publish_then_refresh(self)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await boost.set_channel(self.coordinator, "space", False)
-        self.async_write_ha_state()
+        await boost.set_channel(self.coordinator, "space", False, refresh=False)
+        _publish_then_refresh(self)

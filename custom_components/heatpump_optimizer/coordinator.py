@@ -5149,7 +5149,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             self._optimization_running = False
             self.async_update_listeners()
-    async def async_set_mode(self, mode: str) -> None:
+    async def async_set_mode(self, mode: str, *, refresh: bool = True) -> None:
         """Set the operation mode."""
         self._mode = mode
         if mode not in (MODE_AUTO, MODE_ECONOMY):
@@ -5161,7 +5161,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._accuracy.lead_pending.clear()
             self._dhw_accuracy.lead_pending.clear()
         _LOGGER.info("Operation mode set to: %s", mode)
-        await self.async_request_refresh()
+        if refresh:
+            await self.async_request_refresh()
 
     # Service parameter name -> thermal parameter attribute. Plain assignments
     # only; anything with a side effect is handled explicitly below.
@@ -9044,6 +9045,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self,
         active: bool | None = None,
         return_time: Any = away_mode.OMIT,
+        *, refresh: bool = True,
     ) -> None:
         """Persist the Plan-page override. The only writer of that store."""
         if active is False:
@@ -9053,13 +9055,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             if active is True:
                 self._away_state.override_active = True
             if return_time is not away_mode.OMIT:
-                raw = (
-                    return_time.isoformat()
-                    if hasattr(return_time, "isoformat")
-                    and not isinstance(return_time, str)
-                    else return_time
-                )
-                parsed = away_mode._parse_return_time(raw)
+                parsed = away_mode._parse_return_time(return_time)
                 self._away_state.override_return_iso = (
                     parsed.isoformat() if parsed else None
                 )
@@ -9070,7 +9066,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._away_state.override_active = on
         self._away_state.override_return_iso = ret.isoformat() if ret else None
         await away_mode.persist_override(self)
-        await self.async_request_refresh()
+        if refresh:
+            await self.async_request_refresh()
 
     # Closed-loop accuracy and the defrost derate (items 11, 14)
     def _current_humidity(self) -> float | None:

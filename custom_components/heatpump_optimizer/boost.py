@@ -205,11 +205,14 @@ async def restore_session(coord: Any) -> None:
     await restore(coord)
 
 
-async def set_channel(coord: Any, channel: str, active: bool) -> None:
+async def set_channel(
+    coord: Any, channel: str, active: bool, *, refresh: bool = True
+) -> None:
     held_for(coord).set(channel, active, dt_util.now())
     recorder = getattr(coord, "boost_calls", None)
     if recorder is not None:
         recorder.append({"channel": channel, "active": active})
     else:
         await persist(coord)
-    await coord.async_request_refresh()
+    if refresh:
+        await coord.async_request_refresh()
