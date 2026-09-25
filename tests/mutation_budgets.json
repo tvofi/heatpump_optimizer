@@ -516,6 +516,11 @@
       "old": "            return jointly_raised",
       "reason": "arrived with round 7 D0-01 (#1447)'s scope, drawn not introduced: a new module constant and a new guard reshuffle the seeded per-file sample over optimizer.py. NOT equivalent, and the round-5 verdict that said so is withdrawn -- its premise (the tank trajectory is non-decreasing in a slot's power) was measured at draw rates under 0.004 kW, three orders below production, and fails there: 1007 of 5760 single-slot raises lower the tank, worst by 8.29 K, because the coil carries part of the draw. Killed by tests/features.py's `the jointly-raised branch ships when the coil is not monotone (R7 D0-01)` block: a 48.19 L tank, a 13.65 kW peak draw, tank at 35.9 C and weak slots 67-70 -- the branch raises all four to run_power 0.6, the fall-through loop zeroes slot 69. Deleting the branch's return reddens that check: FAIL every weak slot is raised, none zeroed, in the branch-taken case [slots 67-70 -> [0.6, 0.6, 0.0, 0.6], run_power 0.6], 1 of 3105. Survival measured UNMARKED with 19 drivers in the recorded net before the pin existed."
     },
+    "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._dhw_coil_wood_forecast RETURN_DEL bcbdf658": {
+      "killed_by": "tests/features.py",
+      "old": "        return None if wood is None else read",
+      "reason": "Recorded by `mutation_table.py --pin-killed` against 29402b6179c89cb4de6e6cca3be78762a51ca63c: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+    },
     "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._optimize_space_only GUARD_OFF 6a3be0ea": {
       "killed_by": "tests/optimality.py",
       "old": "        if self.model.params.two_zone_enabled:",
@@ -650,6 +655,11 @@
       "killed_by": "tests/features.py",
       "old": "        floor = min(p.dhw_inlet_reference, ambient_temp)",
       "reason": "arrived with origin/main, commit 7eeea4d90 (D2-02: clamp the DHW inlet floor to the tank surroundings). Dropping the `min` clamp raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22, and re-pinned 1894 -> 1897 by PR #1488, whose D2-01 fix adds three comment lines above this site."
+    },
+    "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_with_dhw GUARD_OFF 1af881b9": {
+      "killed_by": "tests/features.py",
+      "old": "                if coil_wood_read is not None:",
+      "reason": "Recorded by `mutation_table.py --pin-killed` against 29402b6179c89cb4de6e6cca3be78762a51ca63c: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
     }
   },
   "reason": "The ratchet is the exact count of candidate sites with no disposition, derived at both ends and committed nowhere; a site leaves it only by carrying a disposition -- a `killed_by` driver, or a `survivor_triage` verdict (equivalent/gap) pinned to the exact `old` line. Keys moved from FILE:LINE KIND to a content anchor in fix/rca-ledger-anchors, re-derived on its merge of origin/main 4d31d55e on 2026-09-24: `--normalize` mapped all 103 dispositions (21 triage, 82 killed_by) with none unmapped, every entry's value unchanged, and the unpinned set identical under the old and the new code on that tree (3725 of 3828 candidates). The line-keyed re-derivation log main's `reason` had accumulated is superseded: it recorded re-keys this form no longer needs, and it stays in git history. The `last_measured` survivor_lines are a run's table and keep that run's FILE:LINE form. One property the triage entries share, stated here so no reason hides it: tests/entities.py's #1217 mark-staleness self-check reddens when any `survivor_triage`-marked line is mutated, because the mark's pin then names a mutant the tree no longer generates. That is a property of the RECORD, not a behavioural kill, so those sites are survivors here and not `killed_by` entries. The `gap` verdict records a MEASURED survivor and does NOT move the fraction: `survivor_gaps` counts every survivor no triage has called equivalent."
