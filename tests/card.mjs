@@ -8,7 +8,7 @@ import { makeCardContext, CLAIM_FILE, parseClaims, claimVersionError, frozenDate
          justifiesSolverClaim, justifiesCardClaim, movesClaimable,
          threeDotFiles, claimsAreThisBranchs, sameClaimMap,
          historyApi, historyFixture, HISTORY_IDS, flushHistory,
-         withActuals, realisticHistory, haStamp } from "./card_rig.mjs";
+         withActuals, realisticHistory, haStamp, HA_HISTORY_ROW_KEYS } from "./card_rig.mjs";
 
 // Plan payload written by tests/plan_view.py earlier in the run. The path is
 // argv[2], or HPO_PLANDATA, or a default derived from this checkout's tests/
@@ -8085,6 +8085,30 @@ const STOCK_THEMES = {
   check("a savings sensor that declares no unit still takes the card's currency",
     blind.headlineUnit === "EUR" && blind.units.slice(1, 4).every((u) => u === "EUR"),
     `headline names ${blind.headlineUnit}; units ${JSON.stringify(blind.units)}`);
+}
+
+// --- The rig answers with the rows a real install sends ---------------------
+// Bug 7 shipped because the recorder stub answered in a shape the card's
+// author chose (v6.6.12 root cause, class P11). The keys every row carries are
+// pinned to a real answer (HA_HISTORY_ROW_KEYS), so a card that reads a key
+// only some rows carry fails here, not on an install.
+{
+  const ids = [HISTORY_IDS[0]];
+  const t0 = FROZEN - 6 * 3600000;
+  const entries = { [ids[0]]: [0, 1, 2].map((k) => ({
+    t: t0 + k * 600000, state: String(20 + k), attributes: { k } })) };
+  const q = (lean) => `history/period/${new Date(t0 - 1).toISOString()}?` +
+    `filter_entity_id=${ids[0]}&end_time=${new Date(FROZEN).toISOString()}` +
+    (lean ? "&minimal_response&no_attributes" : "&significant_changes_only=0");
+  const keys = (row) => Object.keys(row).sort();
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const lean = (await historyApi(entries).callApi("GET", q(true)))[0];
+  const full = (await historyApi(entries).callApi("GET", q(false)))[0];
+  check("the history rig's rows carry the keys a real install's rows carry",
+    lean.length === 3 && same(keys(lean[0]), HA_HISTORY_ROW_KEYS.leanFirst)
+      && lean.slice(1).every((r) => same(keys(r), HA_HISTORY_ROW_KEYS.leanRest))
+      && full.every((r) => same(keys(r), HA_HISTORY_ROW_KEYS.full)),
+    JSON.stringify({ lean: lean.map(keys), full: full.map(keys) }));
 }
 
 // --- The history pan (owner request, part of #201) ---------------------------
