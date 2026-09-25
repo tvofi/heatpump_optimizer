@@ -34,6 +34,7 @@ from typing import Any, Callable
 import numpy as np
 
 from .const import DEFAULT_SLAB_HEAT_TRANSFER, DEFAULT_SLAB_THERMAL_MASS
+from .mixing_valve import is_throttling
 from .thermal_model import ThermalModel, ThermalParameters, ThermalState
 
 _LOGGER = logging.getLogger(__name__)
@@ -149,7 +150,10 @@ def _held_state(model: ThermalModel, observed: float, outdoor: float) -> Thermal
     the slab sits the hold's offset above the room. Two zones (#1524): the
     sensor is the upper zone, the hold's heat Q splits by
     ``radiator_power_fraction`` between it and the slab under the hidden
-    lower zone, and the two zones' balance is linear in (Q, T_lower).
+    lower zone, and the two zones' balance is linear in (Q, T_lower). Behind a
+    throttling valve (R8-P5c) the tank is a hidden store too: wide open, each
+    circuit draws its emitter UA times (tank - its zone), so the balance of the
+    two zones, the slab and the tank is linear in (Q, T_lower, T_slab, T_tank).
     """
     p = model.params
     k_slab = max(p.slab_heat_transfer, 1e-9)
@@ -165,20 +169,83 @@ def _held_state(model: ThermalModel, observed: float, outdoor: float) -> Thermal
     area, rad, k_i = p.upper_floor_area_ratio, p.radiator_power_fraction, p.inter_zone_transfer
     u_up = model.effective_heat_loss_coefficient(p.upper_floor_heat_loss)
     u_lo = model.effective_heat_loss_coefficient(p.lower_floor_heat_loss_learned)
-    (q_hold, lower), *_ = np.linalg.lstsq(
-        np.array([[rad, k_i], [1.0 - rad, -(u_lo + k_i)]]),
-        np.array([
-            u_up * (observed - outdoor) + k_i * observed - gains * area,
-            -u_lo * outdoor - k_i * observed - gains * (1.0 - area),
-        ]),
-        rcond=None,
-    )
+    up_rhs = u_up * (observed - outdoor) + k_i * observed - gains * area
+    lo_rhs = -u_lo * outdoor - k_i * observed - gains * (1.0 - area)
+    if not is_throttling(p.mixing_valve_mode):
+        (q_hold, lower), *_ = np.linalg.lstsq(
+            np.array([[rad, k_i], [1.0 - rad, -(u_lo + k_i)]]),
+            np.array([up_rhs, lo_rhs]), rcond=None,
+        )
+        slab = lower + (1.0 - rad) * q_hold / k_slab
+        tank = ThermalState.buffer_tank_temperature
+    else:
+        e = p.max_electrical_power * max(p.cop_nominal, 1.0) / max(p.emitter_design_delta_t, 1.0)
+        a_r, a_f, k_b = rad * e, (1.0 - rad) * e, p.buffer_tank_heat_loss_coefficient
+        (q_hold, lower, slab, tank), *_ = np.linalg.lstsq(
+            np.array([
+                [0.0, k_i, 0.0, a_r],
+                [0.0, -(u_lo + k_i + k_slab), k_slab, 0.0],
+                [0.0, k_slab, -(a_f + k_slab), a_f],
+                [1.0, 0.0, a_f, -(a_r + a_f + k_b)],
+            ]),
+            np.array([up_rhs + a_r * observed, lo_rhs, 0.0, -a_r * observed - 20.0 * k_b]),
+            rcond=None,
+        )
     return ThermalState(
         room_temperature=observed * area + lower * (1.0 - area),
-        slab_temperature=lower + (1.0 - rad) * q_hold / k_slab,
+        slab_temperature=float(slab),
         outdoor_temperature=outdoor,
         upper_floor_temperature=observed,
         lower_floor_temperature=float(lower),
+        buffer_tank_temperature=float(tank),
+    )
+
+
+#: The published refusal of a two-zone step behind a regulating valve (R8-P5c).
+VALVE_REGULATES_REASON = (
+    "the mixing valve holds the flow at its curve, so a step charges the "
+    "buffer tank and the room sensor cannot see it"
+)
+
+
+def _valve_regulates(
+    plant: ThermalParameters | None, observed: float, outdoor: float
+) -> bool:
+    """Whether a throttling valve sits at its curve at the held state.
+
+    Wide open, the tank is the flow and :func:`_held_state` solves it from the
+    sensor. At the curve the valve mixes the flow down to the set-point, so the
+    room reads the same at every tank charge above it (the v1 barrier drive's
+    heavy_old, valve target 21 C: tanks of 36.45 and 25.65 C read alike) and a
+    step only charges the tank: the solve lands on the curve to rounding.
+    """
+    if plant is None or not is_throttling(plant.mixing_valve_mode):
+        return False
+    model = ThermalModel(plant)
+    flow = model.flow_target_for_indoor(
+        plant.mixing_valve_target or plant.comfort_ceiling, outdoor
+    )
+    return _held_state(model, observed, outdoor).buffer_tank_temperature >= flow - 0.01
+
+
+def _drive(
+    model: ThermalModel, state: ThermalState, q: float, outdoor: float, dt: float
+) -> ThermalState:
+    """One step of recorded thermal power ``q`` into the candidate plant.
+
+    ``q`` is electrical power times the coordinator's ``compute_cop(outdoor)``.
+    Behind a throttling valve the pump charges the tank, whose temperature is
+    the flow and costs COP, so ``q`` is turned back into electrical power and
+    the plant prices the lift itself (#1524).
+    """
+    if not is_throttling(model.params.mixing_valve_mode):
+        return model.simulate_step(
+            state, electrical_power=0.0, outdoor_temp=outdoor, dt_hours=dt,
+            external_heat_kw=q,
+        )
+    return model.simulate_step(
+        state, electrical_power=q / model.compute_cop(outdoor),
+        outdoor_temp=outdoor, dt_hours=dt,
     )
 
 
@@ -211,30 +278,12 @@ def _predict_step_excursion_plant(
         )
     state = _held_state(model, baseline, outdoor)
     peak = 0.0
-    remaining = step_hours
-    while remaining > 1e-12:
-        dt = min(dt_hours, remaining)
-        state = model.simulate_step(
-            state,
-            electrical_power=0.0,
-            outdoor_temp=outdoor,
-            dt_hours=dt,
-            external_heat_kw=step_thermal_kw,
-        )
-        peak = max(peak, abs(state.upper_floor_temperature - baseline))
-        remaining -= dt
-    remaining = relax_hours
-    while remaining > 1e-12:
-        dt = min(dt_hours, remaining)
-        state = model.simulate_step(
-            state,
-            electrical_power=0.0,
-            outdoor_temp=outdoor,
-            dt_hours=dt,
-            external_heat_kw=0.0,
-        )
-        peak = max(peak, abs(state.upper_floor_temperature - baseline))
-        remaining -= dt
+    for q, remaining in ((step_thermal_kw, step_hours), (0.0, relax_hours)):
+        while remaining > 1e-12:
+            dt = min(dt_hours, remaining)
+            state = _drive(model, state, q, outdoor, dt)
+            peak = max(peak, abs(state.upper_floor_temperature - baseline))
+            remaining -= dt
     return peak, abs(state.upper_floor_temperature - baseline)
 
 
@@ -575,13 +624,7 @@ def _simulate_slab_path(
     state = _held_state(model, first_room_c, float(outdoor_c[0]))
     rooms = [state.upper_floor_temperature]
     for q, out, dt in zip(thermal_kw, outdoor_c, dt_hours):
-        state = model.simulate_step(
-            state,
-            electrical_power=0.0,
-            outdoor_temp=float(out),
-            dt_hours=float(dt),
-            external_heat_kw=float(q),
-        )
+        state = _drive(model, state, float(q), float(out), float(dt))
         rooms.append(state.upper_floor_temperature)
     return np.asarray(rooms)
 
@@ -1242,7 +1285,10 @@ class SystemIdentification:
             and house_capacity > 1e-6
             and self._baseline_temp is not None
         ):
-            sized = self._size_step_power(
+            why = _valve_regulates(
+                self._two_zone_plant, self._baseline_temp, outdoor_temp
+            )
+            sized = None if why else self._size_step_power(
                 max_power_kw,
                 cop,
                 self._baseline_temp,
@@ -1254,7 +1300,10 @@ class SystemIdentification:
                 house_slab_transfer,
             )
             if sized is None:
-                self.abort("no step fits within the comfort bound")
+                self.abort(
+                    VALVE_REGULATES_REASON if why
+                    else "no step fits within the comfort bound"
+                )
                 return False
             self._step_power = sized
         else:
