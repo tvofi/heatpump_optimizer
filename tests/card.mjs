@@ -1104,6 +1104,12 @@ check("an unmeasured dialog is left alone rather than sized from zero",
 // become a new arrangement. The stub reports the svg as 900px wide against a
 // 900-unit viewBox, so a client x and a viewBox x coincide here; the card is
 // still asked for the geometry it recorded rather than told what it should be.
+// null control (fix/card-history-pins): a comment-only edit to this test
+// file, unrelated to either K4 or K7, that must leave every card check
+// green. Kept off custom_components/.../heatpump-optimizer-card.js on
+// purpose -- touching CARD_PATH makes this branch own
+// tests/golden/card_claimed_drift.txt's inherited claims (card_drift.mjs,
+// justifiesCardClaim), which this PR does not move and is not here to fix.
 const HOUR = 3600000;
 
 // The captured plan is dated to the day it was recorded, so the clock has to
@@ -8611,6 +8617,77 @@ const STOCK_THEMES = {
       !!ax && room.length > 0 && ax.max - ax.min >= 2 - 1e-9 &&
         room.every((p) => p.v > ax.min && p.v < ax.max),
       ax ? `${ax.min}..${ax.max}` : "no temp axis");
+  }
+  {
+    // K4 (fix-review on #1622, PR body: "the forecast after it keeps its
+    // curve"): `seriesPath`'s held-step branch only steps the MEASURED run
+    // (`pts.slice(0, held + 1)`); the forecast beyond the seam still draws
+    // with `smoothLine`. Pan less far back than the other RC4b checks so
+    // the live edge -- and the forecast past it -- stays on screen, and
+    // read the "now" marker's own drawn x so the check does not recompute
+    // Date.now() a tick later than the card did.
+    const { c } = mkCard(realisticHistory(FROZEN));
+    c.view.panBy(-10 * HOUR);
+    await flushHistory();
+    const dump = collect(c.shadowRoot).join("\n");
+    const nowM = /class="now"[^>]*\sx1="([-\d.]+)"/.exec(dump);
+    const nowX = nowM ? Number(nowM[1]) : null;
+    const curveAfterNow = pathsOf(c, "house_temp").some((d) => {
+      const re = /C [-\d.]+ [-\d.]+ [-\d.]+ [-\d.]+ ([-\d.]+) [-\d.]+/g;
+      let mm;
+      while ((mm = re.exec(d))) {
+        if (Number(mm[1]) > nowX) return true;
+      }
+      return false;
+    });
+    check("in the history-panned state, the temperature path keeps a curve segment to the right of now",
+      nowX !== null && curveAfterNow,
+      nowX === null ? "no now marker drawn in this window" : "no C segment right of now");
+  }
+  {
+    // K7 (fix-review on #1622, absorb's own comment: "an unavailable row is
+    // still the hole that ends a bar"). Splice one unavailable action row
+    // between two adjacent same-mode heating rows and check the drawn slot
+    // bar breaks there -- no single line's points straddle the hole.
+    const e0 = realisticHistory(FROZEN);
+    const { c: probe } = mkCard(e0);
+    probe.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const w0 = probe._plot.windowStart, w1 = probe._plot.windowEnd;
+    const actionRows = e0[HISTORY_IDS.action];
+    let pair = null;
+    for (let i = 0; i < actionRows.length - 1; i++) {
+      const r1 = actionRows[i], r2 = actionRows[i + 1];
+      if (
+        r1.state === r2.state && r1.state !== "off" && r1.state !== "hot_water" &&
+        r1.t >= w0 && r2.t <= w1
+      ) {
+        pair = [r1, r2];
+        break;
+      }
+    }
+    if (!pair) {
+      check("an unavailable action row ends the space slot bar, no bar spans across it",
+        false, "no adjacent same-mode heating pair found in the panned window");
+    } else {
+      const [r1, r2] = pair;
+      const gapT = Math.round((r1.t + r2.t) / 2);
+      const e = realisticHistory(FROZEN);
+      const rows = e[HISTORY_IDS.action];
+      rows.push({ t: gapT, stamp: haStamp(gapT), state: "unavailable" });
+      rows.sort((a, b) => a.t - b.t);
+      const { c } = mkCard(e);
+      c.view.panBy(-40 * HOUR);
+      await flushHistory();
+      const lines = (c._series.find((s) => s.key === "space_slots").lines || [])
+        .filter((l) => l.field === "space_power");
+      const spans = lines.some(
+        (l) => l.points.some((p) => p.t < gapT) && l.points.some((p) => p.t > gapT)
+      );
+      check("an unavailable action row ends the space slot bar, no bar spans across it",
+        lines.length > 0 && !spans,
+        `${lines.length} line(s); spans=${spans}`);
+    }
   }
 }
 
