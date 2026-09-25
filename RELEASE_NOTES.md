@@ -1,5 +1,67 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.6.12
+
+the round-8 fix wave lands: the sysid learning-freeze and two-zone system
+identification groups, the hot-water gate, the heat-pump switch and DHW
+arbiter, away-mode compare-and-restore, and the I-class doc/comment/replay
+findings all merged. The DHW arbiter now follows the configured setpoint,
+pauses on a manual change, and warns and retries an ignored write. Alongside
+the fixes, the CI trust and merge-tooling seams that kept slowing the wave
+down closed: a key-by-key merge driver for the measured JSON ledgers, the
+mutation ledger's canonical form, mutation-autofix and --pin-killed, a bounded
+gate-lease wait, prepr's inherited-claims and under-scoped-closure refusals,
+and the delivery-status record trued up behind the wave.
+
+- #1497 — test(#1495): card space-blocked/now-temp tests and the golden claims
+- #1508 — replay lane: export a recorded day and replay it through the real coordinator (round-8 F5)
+- #1555 — Heat Pump Action: hot_water on DHW-only steps, eco at minimum power; climate Heating whenever the pump runs (#1499)
+- #1556 — optimizer: read the DHW store's capacity raw wherever the plan reads it (D2-03, #1487)
+- #1559 — R8-P8: forecast precipitation gated on wood availability
+- #1560 — fix: I5 doc/comment/string drift, round-8 group R8-I5b
+- #1561 — mutation_table: a kill is a failing check, every run carries a comment-only null control; env_drift's cache keys only variables the capture reads (round-8 R8-I1a, #1521, #1531)
+- #1562 — PeakTracker: bill the k highest peaks on k distinct days (round-8 R8-P11, #1512)
+- #1563 — away: compare-and-restore the set-back envelope; diagnose_interval reads a snapshot, not live state (round-8 R8-P12, #1517, #1529)
+- #1564 — friction_issues: a closed issue carrying this window is its one issue, not an absence (#1501, #1502)
+- #1565 — mutation_table: mutate only the lines a PR touches, run stress.py alone, and give the job 160 minutes (root cause of the timeouts)
+- #1566 — policy_lint --stats: head-moved counts only re-verifications; first-verdict and one-round yield each printed by its rule (#1549)
+- #1567 — requirements-typing: say why the lock is Linux-only (measured on macOS)
+- #1568 — scrub: name the owner as tvofi, and use fictional values in the replay leak probes
+- #1569 — R8-P1: guard the ledger leaves, fence Open-Meteo parsing, scrub non-finite values on every platform (#1518, #1519, #1541)
+- #1570 — tests: freeze the clock in the two-zone fit replays, so the check stops flaking under load
+- #1571 — replay: budget each coordinator cycle's CPU and memory peak (#1544)
+- #1572 — R8-P2: hot-water entities take one gate; probe and ECL110 entities follow their configured input (#1527, #1542)
+- #1573 — decision 0013: verdicts post as the approver App; graders run the base's instruments
+- #1575 — coordinator: forecast precipitation read in the weather entity's unit (part of #1513)
+- #1576 — R8-P6: actuate the heat-pump switch through its own domain's service (#1526)
+- #1577 — mutation ledger: re-point the moved marks after the D7-01 line shift (root cause of the ledger merge conflicts)
+- #1578 — closures-autofix: drop recorded paths its own tree lacks before checking, so it repairs instead of skipping quietly
+- #1579 — stress: the D9-07 per-call-cost arm judges interleaved medians, and the sweep re-solves scenarios in the doubt band
+- #1580 — CODEOWNERS: the 21 base-pinned governance instruments carry no owner (decision 0013, step two)
+- #1581 — R8-P5: sysid stands down on the learning freeze; every adoption refusal names its reason (#1523, #1525)
+- #1583 — fix/budget-raise-gate: a structure-budget raise merges only on the owner's approving review at its head
+- #1586 — record: the R8-I1b ledger and brief
+- #1588 — DHW arbiter: pump control follows the configured setpoint, pauses on manual change, warns and retries an ignored write (+2 structure raise)
+- #1589 — pin then de-own the check scripts (policy)
+- #1590 — features: the exceptions census lists the three #1546 keys
+- #1591 — prepr: refuse inherited claims and under-scoped closures before the push
+- #1592 — policy: a pull request owes no Red-checks answer for the reporters that grade main
+- #1593 — tools/merge: a key-by-key merge driver for the three measured JSON ledgers
+- #1594 — mutation: --pin-killed records every new unpinned site a driver kills
+- #1595 — mutation_table: the barrier guards the survivor cap only; main derives unpinned_sites from the base
+- #1597 — record: the required-contexts fixture carries budget-raise-gate
+- #1598 — R8-I1b: the fix-wave group for #1532, #1533, #1540
+- #1599 — mutation-autofix: a CI job that pins killed sites (candidate 2b)
+- #1601 — fixer.md: a route for a finder harness the correct fix leaves unmoved (#1585); #1584 recorded refusal
+- #1603 — gate-scoping.md: bound the gate-lease wait; stress.py goes to CI past one lease period (#1596)
+- #1604 — CODEOWNERS: re-own delivery_status.py and nightly_status.py
+- #1607 — fix(audit): refuse mid-word slashes in the evidence-gate token scan
+- #1608 — record: truth round-8 delivery rows and roster resume for merged PRs
+- #1610 — R8-P5b: sysid sizes and fits on the two-zone model, upper zone observed (#1524)
+- #1612 — mutation_budgets.json: the writer's canonical form (escaped non-ASCII)
+- #1615 — record: truth the remaining round-8 delivery rows (#1603, #1497 rowed; ten flipped from open to merged)
+- #1616 — fix: make prepr.sh --self-test hermetic to the outer checkout's branch name
+
 ## v6.6.11
 
 the round-7 fix wave lands and round 8 opens: the Heat Pump Action and wood-floor
