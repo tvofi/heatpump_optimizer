@@ -802,7 +802,7 @@ def _path_error(
             slab_pair[0], slab_pair[1], float(rooms[0]),
             outdoors[:-1], powers[:-1], dts, two_zone,
         )
-        return predicted[1:] - rooms[1:]
+        return np.asarray(predicted[1:] - rooms[1:])
 
     return error
 
