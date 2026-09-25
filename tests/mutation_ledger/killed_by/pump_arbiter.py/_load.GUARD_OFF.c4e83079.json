@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_load GUARD_OFF c4e83079",
+  "killed_by": "tests/features.py",
+  "old": "    if not isinstance(raw, dict):",
+  "reason": "pump-duty arbiter revision; `if not isinstance(raw, dict):` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:desired RETURN_DEL 259154b7",
+  "killed_by": "tests/features.py",
+  "old": "    return PumpCommand(both, dhw, gate)",
+  "reason": "pump-duty arbiter revision; `return PumpCommand(both, dhw, gate)` -> `pass` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_planned_duty RETURN_DEL 46c3b15b",
+  "killed_by": "tests/features.py",
+  "old": "    return step_duty(result, now, _on_kw(coord))",
+  "reason": "pump-duty arbiter revision; `return step_duty(result, now, _on_kw(coord))` -> `pass` fails 20 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

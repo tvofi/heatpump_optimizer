@@ -29,6 +29,7 @@ from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 
+from . import pump_arbiter
 from .const import CONF_TIBBER_TOKEN, DOMAIN
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 
@@ -112,6 +113,10 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
                 snap[name.lstrip("_")] = summary()
             except Exception:  # noqa: BLE001 -- diagnostics never breaks
                 snap[name.lstrip("_")] = "summary unavailable"
+    try:
+        snap["pump_duty"] = pump_arbiter.diagnostics_view(coord)
+    except Exception:  # noqa: BLE001 -- diagnostics never breaks
+        snap["pump_duty"] = "unavailable"
     return snap
 
 

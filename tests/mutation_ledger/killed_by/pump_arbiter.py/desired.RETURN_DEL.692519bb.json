@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:desired RETURN_DEL 692519bb",
+  "killed_by": "tests/features.py",
+  "old": "        return PumpCommand(both, _bounded(_slot_state(coord, \"dhw_setpoint\"), DHW_GATE_C), space)",
+  "reason": "pump-duty arbiter revision; `return PumpCommand(both, _bounded(_state(coord, \"dhw_setpoint\"), DHW_GATE_C), space)` -> `pass` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

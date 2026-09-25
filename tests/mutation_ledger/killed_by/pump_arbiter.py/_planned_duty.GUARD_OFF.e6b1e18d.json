@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_planned_duty GUARD_OFF e6b1e18d",
+  "killed_by": "tests/features.py",
+  "old": "    if coord._mode not in (MODE_AUTO, MODE_ECONOMY) or coord._plan_is_stale():",
+  "reason": "pump-duty arbiter revision; `if coord._mode not in (MODE_AUTO, MODE_ECONOMY) or coord._plan_is_stale():` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

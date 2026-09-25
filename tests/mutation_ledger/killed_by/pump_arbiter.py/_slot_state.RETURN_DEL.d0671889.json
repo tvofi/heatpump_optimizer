@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_slot_state RETURN_DEL d0671889",
+  "killed_by": "tests/features.py",
+  "old": "    return coord.hass.states.get(entity) if entity else None",
+  "reason": "pump-duty arbiter revision; `return coord.hass.states.get(entity) if entity else None` -> `pass` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

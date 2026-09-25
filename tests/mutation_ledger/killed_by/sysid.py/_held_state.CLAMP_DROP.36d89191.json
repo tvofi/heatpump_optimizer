@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_held_state CLAMP_DROP 36d89191",
+  "killed_by": "tests/features.py",
+  "old": "        e = p.max_electrical_power * max(p.cop_nominal, 1.0) / max(p.emitter_design_delta_t, 1.0)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 97207dd8fc42a65822c37894e11bc4b01b498042: CLAMP_DROP (`e = p.max_electrical_power * max(p.cop_nominal, 1.0) / (p.emitter_design_delta_t)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}

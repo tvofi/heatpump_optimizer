@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_leased RETURN_DEL 0e1f683b",
+  "killed_by": "tests/features.py",
+  "old": "    return None if now - held.dhw_since > timedelta(minutes=cap) else duty",
+  "reason": "pump-duty arbiter revision; `return None if now - held.dhw_since > timedelta(minutes=cap) else duty` -> `pass` fails 14 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

@@ -145,15 +145,12 @@ production lines. You work in your own worktree branched from `origin/main`.
     opinion rather than a defect. Prejudging is legitimate — saying so is what
     stops the next seat reading a legitimate tightening as a bug.
 
-12. **The seam a method belongs to is decided by its NAME, first match wins.**
-    `tests/structure.py`'s `seam_bucket` walks `SEAM_REGEXES` in order and
-    returns on the first regex that matches the method name; anything matching
-    none is `core`. So a method whose name happens to match an earlier seam's
-    pattern is priced against **that** seam, not the one it belongs to — and a
-    cut measured on the wrong bucket is measured against state the seam does not
-    own. Before pricing an extraction, run the candidate method names through
-    the bucketing yourself and say which seam each landed in. A name collision
-    is silent: nothing fails, the number is simply about a different thing.
+12. **The seam a method belongs to is its entry in `tests/seam_map.json`
+    (#1539, 548c818), not its name.** A new or renamed coordinator method is
+    refused by the ratchet until you add its entry by hand, in the same diff,
+    with the seam you chose. Never run `--seed-seam-map`: it re-derives every
+    entry from the retired name rule. Before pricing an extraction, say which
+    seam each candidate method carries in the map.
 
 13. **`tests/hastub` is not Home Assistant, and a green test may pin the stub.**
     `tests/ha_contract.py` records what each stub symbol is — faithful,

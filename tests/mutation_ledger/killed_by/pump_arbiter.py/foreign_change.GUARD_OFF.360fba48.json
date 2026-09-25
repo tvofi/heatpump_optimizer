@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:foreign_change GUARD_OFF 360fba48",
+  "killed_by": "tests/features.py",
+  "old": "        if not _differs(slot, observed, value):",
+  "reason": "pump-duty arbiter revision; `if not _differs(slot, observed, value):` -> `if False:` fails 8 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_planned_duty GUARD_OFF 27126c13",
+  "old": "    if result is None:",
+  "reason": "void mutant: with `result is None` let through, step_duty(None, ...) reads no timestamps, bisects an empty list to -1 and returns None -- the same baseline the guard returns. The guard is a shortcut, not a behaviour.",
+  "verdict": "equivalent"
+}

@@ -1,21 +1,26 @@
 {
-  "_comment": "Two caps for two different things. max_survivor_fraction is a one-sided cap on the SAMPLED run's survivor rate (saturable: below 1.0, because a rate in [0,1] can never exceed 1.0). The unpinned-site count is the exact-count ratchet over the DETERMINISTIC inventory -- every candidate site the six operators generate across the whole tree -- and it is DERIVED, not stored: tests/mutation_table.py counts it here and at the ratchet base (the merge base; HEAD^1 on main) and refuses growth. A site carries a disposition under survivor_triage (a verdict) or killed_by (a driver that kills it), keyed 'FILE:SCOPE KIND DIGEST[#N]' -- the def around the line and sha1 of its `old` text, never its line number -- each disposition its own file under tests/mutation_ledger/<map>/, at a path its anchor determines, so two branches that pin different sites touch different files and GitHub's merge has nothing to conflict on. This file keeps only the caps. After any hand edit of either, run `python3 tests/mutation_table.py --normalize`. See the header of tests/mutation_table.py.",
+  "_comment": "Two caps for two different things. max_survivor_fraction is a one-sided cap on the SAMPLED run's survivor rate (saturable: below 1.0, because a rate in [0,1] can never exceed 1.0). The unpinned-site count is the exact-count ratchet over the DETERMINISTIC inventory -- every candidate site the six operators generate across the whole tree -- and it is DERIVED, not stored: tests/mutation_table.py counts it here and at the ratchet base (the merge base; HEAD^1 on main) and refuses growth. A site carries a disposition under survivor_triage (a verdict) or killed_by (a driver that kills it), keyed 'FILE:SCOPE KIND DIGEST[#N]' -- the def around the line and sha1 of its `old` text, never its line number -- with both maps kept in key order. After a hand merge of this file, run `python3 tests/mutation_table.py --normalize`. See the header of tests/mutation_table.py.",
+  "max_survivor_fraction": {
+    "changed": 0.2,
+    "full": 0.3
+  },
   "last_measured": {
     "changed": {
-      "at": "2026-09-11T23:51:31Z",
+      "survivors": 2,
       "equivalent": 0,
       "evaluated": 10,
+      "at": "2026-09-11T23:51:31Z",
       "run": "34658441338",
       "survivor_lines": [
         "custom_components/heatpump_optimizer/battery.py:320 BOOLOP",
         "custom_components/heatpump_optimizer/defrost.py:154 CLAMP_DROP"
-      ],
-      "survivors": 2
+      ]
     },
     "full": {
-      "at": "2026-09-18T22:01:06Z",
+      "survivors": 12,
       "equivalent": 0,
       "evaluated": 40,
+      "at": "2026-09-18T22:01:06Z",
       "run": "35395283955",
       "survivor_lines": [
         "custom_components/heatpump_optimizer/climate.py:144 BOOLOP",
@@ -30,13 +35,8 @@
         "custom_components/heatpump_optimizer/legionella.py:169 GUARD_OFF",
         "custom_components/heatpump_optimizer/manual_plan.py:121 GUARD_OFF",
         "custom_components/heatpump_optimizer/thermal_model.py:2090 CLAMP_DROP"
-      ],
-      "survivors": 12
+      ]
     }
-  },
-  "max_survivor_fraction": {
-    "changed": 0.2,
-    "full": 0.3
   },
   "reason": "The ratchet is the exact count of candidate sites with no disposition, derived at both ends and committed nowhere; a site leaves it only by carrying a disposition -- a `killed_by` driver, or a `survivor_triage` verdict (equivalent/gap) pinned to the exact `old` line. Keys moved from FILE:LINE KIND to a content anchor in fix/rca-ledger-anchors, re-derived on its merge of origin/main 4d31d55e on 2026-09-24: `--normalize` mapped all 103 dispositions (21 triage, 82 killed_by) with none unmapped, every entry's value unchanged, and the unpinned set identical under the old and the new code on that tree (3725 of 3828 candidates). The line-keyed re-derivation log main's `reason` had accumulated is superseded: it recorded re-keys this form no longer needs, and it stays in git history. The `last_measured` survivor_lines are a run's table and keep that run's FILE:LINE form. One property the triage entries share, stated here so no reason hides it: tests/entities.py's #1217 mark-staleness self-check reddens when any `survivor_triage`-marked line is mutated, because the mark's pin then names a mutant the tree no longer generates. That is a property of the RECORD, not a behavioural kill, so those sites are survivors here and not `killed_by` entries. The `gap` verdict records a MEASURED survivor and does NOT move the fraction: `survivor_gaps` counts every survivor no triage has called equivalent."
 }

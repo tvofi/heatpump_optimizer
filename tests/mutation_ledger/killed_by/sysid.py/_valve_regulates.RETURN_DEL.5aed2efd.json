@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_valve_regulates RETURN_DEL 5aed2efd",
+  "killed_by": "tests/features.py",
+  "old": "    return _held_state(model, observed, outdoor).buffer_tank_temperature >= flow - 0.01",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 97207dd8fc42a65822c37894e11bc4b01b498042: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

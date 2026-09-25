@@ -75,7 +75,9 @@ against a document that is CORRECT.
                                          #1495's same mold-floor breach warning
                                          margin, whose 0-5 °C Range row is the
                                          only one this re-record adds)
-    RESULT arch_modules_on_disk=65       (64 until #1408's store.py; architecture.md said 45; 56 until
+    RESULT arch_modules_on_disk=66       (65 until #1588's pump_arbiter.py; 64
+                                         until #1408's store.py;
+                                         architecture.md said 45; 56 until
                                          #1067's learner half added
                                          flow_lift.py, 57 until its
                                          silent-mode half added silent_mode.py,
@@ -97,9 +99,14 @@ against a document that is CORRECT.
                                          bytes of, so nothing compared these
                                          numbers to a run between 2026-09-17
                                          and then)
-    RESULT arch_map_listed=65            (was 45; 11 were missing)
+    RESULT arch_map_listed=66            (was 45; 11 were missing; 66 with
+                                         #1588's pump_arbiter.py added to
+                                         architecture.md's module map)
     RESULT arch_map_missing=0            (was 11)
-    RESULT ha_module_level_importers=22  (was 21; #1299's defrost
+    RESULT ha_module_level_importers=23  (was 21; 22 until #1588's
+                                         pump_arbiter.py imports
+                                         homeassistant.helpers.event at
+                                         module level; #1299's defrost
                                          normalisation imports
                                          homeassistant.util.dt at module
                                          level, and architecture.md moved

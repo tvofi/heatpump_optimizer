@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:own GUARD_OFF 344cb87c",
+  "killed_by": "tests/features.py",
+  "old": "    if duty_mode(coord._config) != DUTY_CONTROL or written is None:",
+  "reason": "pump-duty arbiter revision; `if duty_mode(coord._config) != DUTY_CONTROL or written is None:` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

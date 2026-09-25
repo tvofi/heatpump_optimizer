@@ -54,9 +54,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.6.11
+# claims-for: 6.6.12
 #
-# v6.6.11: round-7 fix wave lands, round-8 opens. The stamp empties the list; the
+# v6.6.12: round-8 fix wave: DHW arbiter, two-zone sysid, and the CI trust/merge-tooling closeout. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -696,3 +696,6 @@
 # section gains the mold_floor_breach_margin option, so capture_config_flow's
 # schema carries two new leaves (both under comfort.mold.fields), each present
 # on one side only.
+# #1588 (DHW arbiter): this branch's own diff claims the config_flow
+# fixture and nothing else, ADD-ONLY -- the pump_duty_mode select grows both
+# flows' schema; no values move.

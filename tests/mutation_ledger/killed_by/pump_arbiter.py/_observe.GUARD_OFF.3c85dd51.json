@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_observe GUARD_OFF 3c85dd51",
+  "killed_by": "tests/features.py",
+  "old": "    if row is None or row[\"start\"] != start:",
+  "reason": "pump-duty arbiter revision; `if row is None or row[\"start\"] != start:` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}
