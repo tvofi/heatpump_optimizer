@@ -33560,6 +33560,29 @@ R.check(
     "-- away_mode.OMIT is the sentinel that distinguishes 'unchanged' from None",
 )
 
+# #1621: the switches publish before the solve and ask for the refresh off
+# the action, so each setter skips its own under refresh=False -- and every
+# other caller, which passes nothing, still gets it.
+_t1_rf = _t1_coord()
+_t1_rf_seen = {}
+for _t1_rf_name, _t1_rf_call in (
+    ("mode", lambda r: _t1_rf.async_set_mode("off", **r)),
+    ("away", lambda r: _t1_rf.async_set_away(True, **r)),
+    ("boost", lambda r: boost_mod.set_channel(_t1_rf, "dhw", True, **r)),
+):
+    for _t1_rf_kw in ({"refresh": False}, {}):
+        _t1_rf_before = _t1_rf.refresh_requests
+        _asyncio.run(_t1_rf_call(_t1_rf_kw))
+        _t1_rf_seen[(_t1_rf_name, bool(_t1_rf_kw))] = (
+            _t1_rf.refresh_requests - _t1_rf_before
+        )
+R.check(
+    "each setter skips its refresh under refresh=False and requests one by default",
+    _t1_rf_seen
+    == {(n, k): 0 if k else 1 for n in ("mode", "away", "boost") for k in (True, False)},
+    str(_t1_rf_seen),
+)
+
 # -- the accuracy store: a corrupt read must not unseat what is in memory --
 _t1_acc_raise = _t1_coord()
 
