@@ -41907,6 +41907,7 @@ class _G8DtEntry:
 def _g8_dt(data):
     ent = object.__new__(_g8_dtmod.AwayReturnDateTime)
     ent.coordinator = _G8DtCoord(data)
+    ent._entry = FakeEntry()  # schedules the refresh off the action (#1621)
     return ent
 
 
@@ -41931,7 +41932,7 @@ R.check(
 R.check(
     "and setting it goes to the away service rather than to the entity's own state",
     _g8_dt_write.coordinator.away_calls
-    == [{"return_time": datetime(2026, 7, 12, 18, tzinfo=UTC)}],
+    == [{"return_time": datetime(2026, 7, 12, 18, tzinfo=UTC), "refresh": False}],
     f"{_g8_dt_write.coordinator.away_calls!r} -- the entity holds no state of "
     "its own: the override lives on the coordinator and is persisted there, "
     "so a setter that stored locally would show the new time and plan the old",
