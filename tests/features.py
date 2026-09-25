@@ -46582,4 +46582,143 @@ R.check(
     f"unclassified {_p6_bad_unc}; refused {_p6_bad_ref}",
 )
 
+
+# -- #1524: the experiment identifies a TWO-ZONE house ------------------------
+# coordinator._update_current_state feeds the indoor reading to the upper zone,
+# so on a two-zone plant the experiment observes the upper zone while the heat
+# splits between the radiators and a slab under a hidden lower zone. Sizing and
+# fitting on a one-room model overshot the 0.8 K allowance on every stress
+# preset and adopted 0 of 3. One production experiment per preset, in both
+# derivations, on a production ThermalModel of the declared house pre-settled
+# at its hold power and stepped at the house's own maximum power, as
+# coordinator._run_system_identification passes it; the single-zone arm is the
+# null control, unchanged.
+_z1524_night = datetime(2026, 1, 15, 23, 0, tzinfo=timezone.utc)
+from dataclasses import replace as _z1524_replace  # noqa: E402
+
+
+def _z1524_run(name, two_zone, true_ua=1.0, true_mass=1.0):
+    """One experiment night on the declared preset; (decision, peak, fit reason).
+
+    ``true_ua`` and ``true_mass`` scale the PLANT's heat loss and zone masses
+    away from the declared house, which the experiment still arms on.
+    """
+    cfg = _grad_house(two_zone=two_zone, dhw=False)
+    derived = presets.derive(
+        presets.BuildingPreset(**{**vars(_b942[name]), "two_zone": two_zone})
+    )
+    derived.pop("heating_response_hours", None)
+    cfg.update(derived)
+    declared = ThermalParameters.from_config(cfg)
+    declared.wind_sensitivity = 0.0
+    plant = ThermalModel(
+        _z1524_replace(
+            declared,
+            house_heat_loss_scale=true_ua,
+            room_thermal_mass=declared.room_thermal_mass * true_mass,
+            upper_floor_thermal_mass=declared.upper_floor_thermal_mass * true_mass,
+            lower_floor_thermal_mass=declared.lower_floor_thermal_mass * true_mass,
+        )
+    )
+    cop = plant.compute_cop(0.0)
+    base_ua = (
+        declared.upper_floor_heat_loss + declared.lower_floor_heat_loss
+        if two_zone
+        else declared.heat_loss_coefficient
+    )
+    hold = max(base_ua * true_ua * 21.0 - declared.internal_gains, 0.1) / cop
+    st = ThermalState(
+        room_temperature=21.0, upper_floor_temperature=21.0,
+        lower_floor_temperature=21.0, slab_temperature=25.0,
+        outdoor_temperature=0.0, buffer_tank_temperature=35.0,
+    )
+    for _ in range(2400):
+        st = plant.simulate_step(st, electrical_power=hold, outdoor_temp=0.0)
+    sid = _SysIdModule.SystemIdentification(
+        _SysIdModule.SysIdConfig(enabled=True, min_days_between_runs=0.0)
+    )
+    sid.arm(_z1524_night, plant=declared)
+    when, base, peak = _z1524_night, st.upper_floor_temperature, 0.0
+    while sid.active:
+        reading = st.upper_floor_temperature
+        peak = max(peak, abs(reading - base))
+        override = sid.step(
+            now=when, room_temp=reading, outdoor_temp=0.0, price=0.1,
+            price_horizon=np.full(48, 1.0), learner_samples=0,
+            max_power_kw=declared.max_electrical_power, cop=cop,
+            plan_power_kw=hold,
+            house_ua=declared.heat_loss_coefficient
+            * declared.house_heat_loss_scale,
+            house_capacity=declared.room_thermal_mass,
+            house_gains=declared.internal_gains,
+            house_slab_mass=declared.slab_thermal_mass,
+            house_slab_transfer=declared.slab_heat_transfer,
+        )
+        el = hold if override is None else float(override)
+        st = plant.simulate_step(st, electrical_power=el, outdoor_temp=0.0)
+        when += timedelta(hours=0.25)
+    decision = _SysIdModule.adoption_decision(sid.result, declared, sid.config)
+    return decision, peak, sid.result.reason
+
+
+_z1524_bar = float(np.expm1(_SysIdModule.UA_ADOPTION_HALFWIDTH_BAR))
+_z1524_admitted = {True: 0, False: 0}
+for _z1524_zone in (False, True):
+    for _z1524_name in _b942:
+        _z1524_d, _z1524_peak, _z1524_why = _z1524_run(_z1524_name, _z1524_zone)
+        _z1524_admitted[_z1524_zone] += int(_z1524_d.admit)
+        R.check(
+            f"#1524: {_z1524_name} two_zone={_z1524_zone} finishes inside the "
+            "0.8 K allowance and adopts within the bar, or is refused by the "
+            "interval gate by name",
+            _z1524_peak <= 0.8
+            and (
+                abs(_z1524_d.scale - 1.0) <= _z1524_bar
+                if _z1524_d.admit
+                else "adoption bar" in _z1524_d.reason
+            ),
+            f"peak {_z1524_peak:.3f} K, fit '{_z1524_why}', decision "
+            f"'{_z1524_d.reason}', scale {_z1524_d.scale:.4f}",
+        )
+R.check(
+    "#1524: the two-zone derivation adopts on at least as many presets as the "
+    "single-zone one (the null-control arm)",
+    _z1524_admitted[True] >= _z1524_admitted[False] > 0,
+    f"two-zone {_z1524_admitted[True]}, single-zone {_z1524_admitted[False]} "
+    f"of {len(_b942)}",
+)
+
+# The same nights on a plant that is NOT the declared house: heat loss 15 %
+# over and zone masses 50 % over what the config says. With plant == config the
+# fit is seeded on the answer, so a candidate that mis-scales the zones' loss or
+# mass still lands on it; here it must move to the plant. The 1 % bound is this
+# check's design choice (measured worst 0.14 % across both arms), well inside the
+# 10 % adoption bar, so a fit that is merely admissible does not pass it.
+_z1524_mis = {True: 0, False: 0}
+for _z1524_zone in (False, True):
+    for _z1524_name in _b942:
+        _z1524_d, _z1524_peak, _z1524_why = _z1524_run(
+            _z1524_name, _z1524_zone, true_ua=1.15, true_mass=1.5
+        )
+        _z1524_mis[_z1524_zone] += int(_z1524_d.admit)
+        R.check(
+            f"#1524: {_z1524_name} two_zone={_z1524_zone} on a plant 15 % leakier "
+            "and 50 % heavier than declared finishes inside 0.8 K and adopts the "
+            "plant's own heat loss within 1 %, or is refused by the interval gate",
+            _z1524_peak <= 0.8
+            and (
+                abs(_z1524_d.scale / 1.15 - 1.0) <= 0.01
+                if _z1524_d.admit
+                else "adoption bar" in _z1524_d.reason
+            ),
+            f"peak {_z1524_peak:.3f} K, fit '{_z1524_why}', decision "
+            f"'{_z1524_d.reason}', scale {_z1524_d.scale:.4f} against 1.15",
+        )
+R.check(
+    "#1524: on the mismatched plant the two-zone derivation still adopts on at "
+    "least as many presets as the single-zone one",
+    _z1524_mis[True] >= _z1524_mis[False] > 0,
+    f"two-zone {_z1524_mis[True]}, single-zone {_z1524_mis[False]} of {len(_b942)}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
