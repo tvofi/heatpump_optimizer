@@ -1,7 +1,6 @@
 """Sensor entities for Heat Pump Cost Optimizer."""
 from __future__ import annotations
 
-import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Mapping
 
@@ -50,8 +49,6 @@ if TYPE_CHECKING:
     _SensorMixinBase = HeatPumpOptimizerEntity
 else:
     _SensorMixinBase = object
-
-_LOGGER = logging.getLogger(__name__)
 
 #: The ECL110 MQTT topics: any one stored means the hardware is in use, the
 #: arm-off rule `_ecl110_topic` states for the publish and subscribe seams.

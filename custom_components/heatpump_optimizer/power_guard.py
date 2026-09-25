@@ -27,13 +27,10 @@ its shape is a de-risking decision:
 """
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 
 import numpy as np
-
-_LOGGER = logging.getLogger(__name__)
 
 #: Consecutive agreeing projections needed to engage or release.
 HYSTERESIS_SAMPLES = 2

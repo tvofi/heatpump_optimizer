@@ -26,13 +26,10 @@ battery person expects it to mean.
 """
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import Any
 
 from .const import WOOD_TANK_MAX_TEMP
-
-_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass

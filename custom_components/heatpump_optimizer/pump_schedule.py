@@ -22,13 +22,10 @@ transitions, and only for entities the user explicitly configured.
 """
 from __future__ import annotations
 
-import logging
 from collections.abc import Sequence
 
 from .const import SPACE_PUMP_FLOOR_MARGIN_C
 from .dhw_schedule import Window, hour_in_windows, hours_until_next_window
-
-_LOGGER = logging.getLogger(__name__)
 
 #: Planned electrical power below this counts as "no heat commanded".
 _PLAN_ACTIVE_KW = 0.05
