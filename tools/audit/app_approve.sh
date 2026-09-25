@@ -144,16 +144,38 @@ else:
   # the body names must be a directory that exists here, is non-empty, and
   # holds a file naming the exact head sha. Fail closed on every miss; the
   # header says what this is not.
+  #
+  # A token only starts at a word boundary -- line start, whitespace, or an
+  # opening bracket or quote -- never mid-word. `grep -oE "/[^space]+"` used
+  # to start a token at ANY slash, so prose like "(review-1591/)." stripped
+  # down to a bare "/", an existing non-empty directory, and the follow-on
+  # `grep -rqF -- <sha> /` hung the orchestrator's merge queue for 86 minutes
+  # on #1591 until it was killed by hand. POSIX ERE (`grep -E`) has no
+  # lookbehind, so the boundary is enforced in Python instead. A second,
+  # independent guard below refuses the bare root and any token with fewer
+  # than two path components, so a boundary-regex mistake alone cannot
+  # reopen this.
   local evdir="" evwhy="the verdict names no absolute path at all" tok
   while read -r tok; do
-    tok=$(printf '%s' "$tok" | sed -e "s/^[(\`\"']*//" -e "s/[.,;:)\`\"']*$//")
+    tok=$(printf '%s' "$tok" | sed -e "s/^[(\`\"']*//" -e "s/[.,;:)\`\"']*\$//" -e 's:/*$::')
     [ -n "$tok" ] || continue
-    case "$tok" in /*) ;; *) continue ;; esac
+    case "$tok" in
+      /*/*) ;;   # at least two path components -- refuses the bare root too
+      *) evwhy="$tok has fewer than two path components"; continue ;;
+    esac
     if [ ! -d "$tok" ]; then evwhy="$tok is not a directory that exists"; continue; fi
     if [ -z "$(ls -A "$tok" 2>/dev/null)" ]; then evwhy="$tok is empty"; continue; fi
     if grep -rqF -- "$sha" "$tok" 2>/dev/null; then evdir=$tok; break; fi
     evwhy="no file under $tok names the head $sha"
-  done < <(printf '%s\n' "$vbody" | grep -oE "/[^[:space:]\`\"]+")
+  done < <(printf '%s\n' "$vbody" | python3 -c '
+import re, sys
+text = sys.stdin.read()
+# A path token starts only at line start, or right after whitespace or an
+# opening bracket/quote -- never mid-word (see the comment above this call).
+boundary = r"(?:(?<=[\s([{\x22\x27\x60])|^)"
+for m in re.finditer(boundary + r"(/[^\s\x60\x22]+)", text, re.MULTILINE):
+    print(m.group(1))
+')
   [ -n "$evdir" ] \
     || die "the verdict ($vurl) cites no qualifying evidence: $evwhy. An approval needs a directory the verdict names that exists on this machine, is non-empty, and holds a file naming the exact head $sha"
 
@@ -424,6 +446,26 @@ mkcase evnosha open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" 
 run evnosha o/r 7 "$SHA"; st $? 1 "REFUSE: the evidence directory holds no file naming the head"
 st "$(grep -c 'names the head' "$W/evnosha/err")" 1 "naming the exact-sha rule it failed"
 st "$(calls evnosha curl)" 0 "and nothing was minted or posted"
+
+# The #1591 hang: a mid-word slash must never start a token, and a token
+# that would collapse to the root, or to one path component, is refused
+# outright as a second, independent guard.
+st "$(printf '(review-1591/).\n' | grep -oE "/[^[:space:]\`\"]+" | sed -e "s/^[(\`\"']*//" -e "s/[.,;:)\`\"']*\$//")" "/" \
+   "(null control) the OLD extraction+strip really did turn that prose into a bare '/'"
+mkcase midword open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE '(review-1591/). see a/b/')]"
+run midword o/r 7 "$SHA"; st $? 1 "REFUSE: '(review-1591/).' and 'a/b/' start no token -- no mid-word slash"
+st "$(grep -c 'names no absolute path at all' "$W/midword/err")" 1 "read as citing no path at all, not as citing '/'"
+st "$(calls midword curl)" 0 "and nothing was minted or posted"
+mkcase bareroot open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'see / for the review')]"
+run bareroot o/r 7 "$SHA"; st $? 1 "REFUSE: a bare root surrounded by spaces starts no token either"
+st "$(calls bareroot curl)" 0 "and nothing was minted or posted"
+mkcase onecomponent open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /tmp')]"
+run onecomponent o/r 7 "$SHA"; st $? 1 "REFUSE: a single path component, even one that exists, is refused outright"
+st "$(grep -c 'fewer than two path components' "$W/onecomponent/err")" 1 "naming the component-count rule it failed"
+st "$(calls onecomponent curl)" 0 "and nothing was minted or posted"
+mkcase evtrail open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: $EV/")]"
+run evtrail o/r 7 "$SHA"; st $? 0 "a trailing slash on an otherwise-good evidence path is stripped, not refused"
+
 mkcase displace open false "$SHA" \
   "[$(comment 1 "Fix review: blocked $SHA other: bad" "$APPR"),$(comment 2 "Fix review: merge $SHA" mallory NONE)]"
 run displace o/r 7 "$SHA"; st $? 1 "REFUSE: an outsider's later merge does not displace an allowlisted blocked"
