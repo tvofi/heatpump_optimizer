@@ -3606,7 +3606,7 @@ class HeatPumpOptimizer:
                 float(outdoor_temps[i]),
                 "buffer",
                 store_temp=self.model.params.buffer_max_temp,
-                humidity=_step_humidity(humidity, i),
+                humidity=_step_humidity(humidity, int(i)),
             )
             allowed = float(schedule[i]) - float(refused[i]) / max(cop_i, 1e-6)
             # Slightly under, or float noise re-trips the same step and burns
