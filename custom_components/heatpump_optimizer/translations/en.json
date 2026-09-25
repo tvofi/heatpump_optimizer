@@ -626,11 +626,13 @@
             "data": {
               "indoor_humidity_entity": "Indoor humidity sensor (optional)",
               "mold_guard_enabled": "Keep cold surfaces below mold humidity",
+              "mold_floor_breach_margin": "Mold floor breach warning margin",
               "thermal_bridge_frsi": "Worst thermal bridge factor (fRsi)"
             },
             "data_description": {
               "indoor_humidity_entity": "A relative humidity sensor in the living space. Without one the mold guard stays off regardless of the switch.",
               "mold_guard_enabled": "The coldest spot in the house — a window reveal, a corner behind a wardrobe — sits well below room temperature, and mold starts growing where its surface humidity stays above 80%. With this on, the optimizer will not coast the house below the temperature that keeps that spot safe, computed from the measured indoor humidity and the outdoor forecast. Needs the humidity sensor below; it never heats past your comfort target — persistent high humidity is a ventilation problem, not a heating one.",
+              "mold_floor_breach_margin": "How far below the mold-safe floor the measured room may fall before the Mold Floor Breach binary sensor turns on. The warning exists because a hot-water-only mode (space heating off) cannot hold the floor, so the room can free-cool below it while the plan still promises the floor.",
               "thermal_bridge_frsi": "How cold your worst surface gets, as a fraction: surface = outdoor + fRsi × (room − outdoor). 0.75 is the Swedish building-code guidance; lower means a colder worst spot and a more cautious guard."
             }
           }
@@ -1909,6 +1911,9 @@
       },
       "open_window_detected": {
         "name": "Open Window Detected"
+      },
+      "mold_floor_breach": {
+        "name": "Mold Floor Breach"
       },
       "wood_cheaper": {
         "name": "Wood Cheaper Than Heat Pump"

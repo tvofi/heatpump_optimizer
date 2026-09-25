@@ -690,3 +690,10 @@
 # hand-made: the list ADDED a line beside the baseline's, which
 # `drop_inherited_claim_lines` treats as a rewrite and refuses to touch
 # (#1255), so `apply_inherited_claims` cannot lift this one.
+
+# #1495 (mold-floor breach warning): this branch's own diff claims the
+# config_flow fixture and nothing else, ADD-ONLY. The comfort page's mold
+# section gains the mold_floor_breach_margin option, so capture_config_flow's
+# schema carries two new leaves (both under comfort.mold.fields), each present
+# on one side only.
+config_flow  # #1495: the mold-guard page gains mold_floor_breach_margin (2 leaves, ADD-ONLY)
