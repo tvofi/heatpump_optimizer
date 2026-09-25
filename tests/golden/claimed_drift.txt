@@ -647,6 +647,23 @@
 # a fixture the gate has already exempted.
 # `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all <merge-base>`
 # prints NO UNCLAIMED DRIFT when this list is current.
+#
+# #1512 (R8-D2-s2-01, capacity peaks on distinct days): the grid page gains
+# the peak_tariff_distinct_days toggle, so config_flow's captured schema
+# gains that field in both rendered steps and the seeded entry's options.
+# ADD-ONLY: 13 inserted lines, 0 deleted.
+config_flow # #1512: the new peak_tariff_distinct_days field (add-only)
+# The plan side (fix-review round 1): peak_cost_smooth, the solver's
+# capacity term, now charges a plan day once under distinct days, so every
+# plan solved under a k=3 capacity tariff sees a weaker same-day charge and
+# settles elsewhere. Measured against 233a36bd (and 99231bc3, the same
+# figures) in one environment: the
+# published peak_cost stays 0.0 and projected_peak_kw stays 6.5 kW;
+# predicted_cost 29.146650 -> 32.416769, deferred_energy_cost
+# 32.764410 -> 30.681727, compressor_starts 7 -> 6. The three other
+# capacity fixtures that move (capacity_tariff_15min, everything_on,
+# tariff_plus_two_zone) are may-drift and move in plan keys only.
+capacity_tariff # #1512: the solver's capacity term bills a plan day once (plan moves; peak_cost 0.0 both)
 # R7-D8-01 (#1460), branch fix/r7-coordinator: this diff claims the five
 # coordinator captures and NOTHING ELSE. The direction is ADD-ONLY.
 # `_build_data_dict` now publishes the three keys `SensorGapAdvisorSensor`
