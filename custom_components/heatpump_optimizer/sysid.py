@@ -228,7 +228,7 @@ def _valve_regulates(
     return _held_state(model, observed, outdoor).buffer_tank_temperature >= flow - 0.01
 
 
-def _drive(
+def _valve_drive(
     model: ThermalModel, state: ThermalState, q: float, outdoor: float, dt: float
 ) -> ThermalState:
     """One step of recorded thermal power ``q`` into the candidate plant.
@@ -281,7 +281,7 @@ def _predict_step_excursion_plant(
     for q, remaining in ((step_thermal_kw, step_hours), (0.0, relax_hours)):
         while remaining > 1e-12:
             dt = min(dt_hours, remaining)
-            state = _drive(model, state, q, outdoor, dt)
+            state = _valve_drive(model, state, q, outdoor, dt)
             peak = max(peak, abs(state.upper_floor_temperature - baseline))
             remaining -= dt
     return peak, abs(state.upper_floor_temperature - baseline)
@@ -624,7 +624,7 @@ def _simulate_slab_path(
     state = _held_state(model, first_room_c, float(outdoor_c[0]))
     rooms = [state.upper_floor_temperature]
     for q, out, dt in zip(thermal_kw, outdoor_c, dt_hours):
-        state = _drive(model, state, float(q), float(out), float(dt))
+        state = _valve_drive(model, state, float(q), float(out), float(dt))
         rooms.append(state.upper_floor_temperature)
     return np.asarray(rooms)
 

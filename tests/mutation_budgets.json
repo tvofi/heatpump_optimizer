@@ -109,11 +109,6 @@
       "old": "            if best is not None:",
       "reason": "R8-P5b (#1524): the break that skips the grid restart once the first bisection found a fitting step. Switched off, the restart runs anyway: it takes the largest fitting grid point and bisects up to the band's upper edge, which the first bisection had already found to the same 0.01 kW-thermal resolution, so every driver in play passes (`python3 tests/mutation_table.py --pin-killed --base origin/fix/r8-p5`, at 9d6bf172, 2026-09-25). A gap rather than equivalent: the two arms can return steps that differ inside that resolution, and the mutant costs up to 32 extra sizing rollouts."
     },
-    "custom_components/heatpump_optimizer/sysid.py:_drive GUARD_OFF 5017bb6e": {
-      "verdict": "equivalent",
-      "old": "    if not is_throttling(model.params.mixing_valve_mode):",
-      "reason": "R8-P5c: as `if False:` every plant takes the valve route, electrical power q / compute_cop(outdoor) into simulate_step, which multiplies by the same compute_cop(outdoor) on an unvalved plant (no flow temperature is passed there, on one zone or two), so the step receives q to one rounding. Measured in a detached worktree at 1853d8d8: `s1_sysid_twozone.py` and `v1_sysid_twozone.py` (round-8 D7 export) print the same CELL and RESULT lines as the unmutated head; only a throttling plant tells the routes apart, and it takes the valve route either way."
-    },
     "custom_components/heatpump_optimizer/sysid.py:_lm_solve GUARD_OFF ad6ead99": {
       "verdict": "gap",
       "old": "            if clip is not None:",
@@ -163,6 +158,11 @@
       "verdict": "gap",
       "old": "        if _profiled_cost(x_hat[0] + sign * UA_ADOPTION_HALFWIDTH_BAR) <= threshold:",
       "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: the refusal-by-name arm is untested. The mutant answers the Wald half-width where the ruling requires `inf` -- the case where the profiled cost at the bar is still inside the threshold, i.e. the interval extends past the bar. Every driven fit either has an interval far enough past the bar that the Wald width also exceeds it, or one inside it, so the driver's `hw > bar` comparison reads the same either way. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:_valve_drive GUARD_OFF 5017bb6e": {
+      "verdict": "equivalent",
+      "old": "    if not is_throttling(model.params.mixing_valve_mode):",
+      "reason": "R8-P5c: as `if False:` every plant takes the valve route, electrical power q / compute_cop(outdoor) into simulate_step, which multiplies by the same compute_cop(outdoor) on an unvalved plant (no flow temperature is passed there, on one zone or two), so the step receives q to one rounding. Measured in a detached worktree at 1853d8d8: `s1_sysid_twozone.py` and `v1_sysid_twozone.py` (round-8 D7 export) print the same CELL and RESULT lines as the unmutated head; only a throttling plant tells the routes apart, and it takes the valve route either way."
     }
   },
   "killed_by": {
