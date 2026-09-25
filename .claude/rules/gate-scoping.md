@@ -13,26 +13,26 @@ is the scoped gate against your merge base:
 GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh
 ```
 
-`/tmp/hpo-gate.lock` serialises anything that runs `tests/stress.py`, which
-measures the machine while it solves and is wrong if something else is running.
-`run.sh` takes it, waiting, for a FULL or `stress.py` run. The wait is bounded:
-while another label holds it, run `scope.run`'s other scripts unleased, and one
-lease period on, leave `stress.py` to CI and name it unrun in the body. `take` is
-not a queue. Hold it across commands with `tests/gate_lock.py`, not `mkdir`:
+`/tmp/hpo-gate.lock` serialises `tests/stress.py`, which measures the machine
+while it solves. `run.sh` takes the lease for each `stress.py` run alone and
+releases it after, so every other script runs unleased; `mutation_table.py`
+does the same per exclusive `stress.py` run. It is first come, first served:
+a waiter holds a ticket, a free lease goes to the oldest live one, and a ticket
+whose process died or expired is skipped. A seat that waited one lease period
+may leave `stress.py` to CI and name it unrun in the body. Hold it by hand only
+to measure across commands, with `tests/gate_lock.py`, never `mkdir`:
 
 ```
 python3 tests/gate_lock.py take --label <your-label>
-HPO_GATE_LOCK_LABEL=<your-label> GATE_SCOPE=auto GOLDEN_MODE=drift \
-  GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh
 python3 tests/gate_lock.py renew --label <your-label>   # between commands
 python3 tests/gate_lock.py release --label <your-label>
 ```
 
-The owner file carries your label and an `expires_at` lease (30 minutes, above
-the longest observed gate). Every script under lock renews it; an expired lease
-or an abandoned hold (`holding` marker, no live flock) may be taken without
-forensics. Setting `HPO_GATE_LOCK_LABEL` without the `take` above fails at
-once: the label means *I hold it already*.
+The owner file carries your label and a 30-minute `expires_at` lease. `renew`
+exits 75 while another label waits: finish the current `stress.py` run,
+release, and take again behind it (`run.sh` under `HPO_GATE_LOCK_LABEL` does
+this itself). An expired lease or an abandoned hold (`holding` marker, no live
+flock) may be taken without forensics.
 
 **The mypy census runs here too, when you have the pins.** The typing lane is
 source-only, so #1091 and #1099 each pushed a census regression a local gate

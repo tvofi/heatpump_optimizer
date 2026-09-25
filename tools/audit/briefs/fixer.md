@@ -63,10 +63,10 @@ production lines. You work in your own worktree branched from `origin/main`.
    `hpo-author` App, whose key files (`~/.zcode/hpo-author.*`) it alone holds
    and never prints. `fix-review.md`'s posting line is the reviewer's.
 
-   **Take the gate lease only when `MODE: FULL` or `scope.run` names
-   `tests/stress.py`**, the one script the lock exists for; the commands, the
-   wait bound after which CI runs it, and why `mkdir` is not a lease, are
-   `gate-scoping.md`'s.
+   **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
+   the queue, the wait bound and holding it by hand are `gate-scoping.md`'s.
+   A mutation proof leaves `stress.py` to CI's required mutation check: never
+   run it locally per mutant.
 
    `GOLDEN_MODE=drift` against the merge base always: strict mode compares
    solver floats that do not reproduce across BLAS builds, so it is honest
