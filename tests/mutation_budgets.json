@@ -44,6 +44,11 @@
       "old": "        if task is not None and hasattr(task, \"cancel\"):",
       "reason": "hass.async_create_task (homeassistant.core.HomeAssistant.async_create_task) returns an asyncio.Task, which always carries cancel; the OR form differs only for a non-None object without a cancel attribute, which that return cannot be -- round-5 D3-07."
     },
+    "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._plan_outdoor_now RETURN_DEL d7923b87": {
+      "verdict": "equivalent",
+      "old": "        return None",
+      "reason": "MoldFloorBreachBinarySensor._plan_outdoor_now's trailing `return None` is the function's last statement, so deleting it (`pass`) falls off the end and returns the same None. Measured: the mutant leaves tests/entities.py at rc=0 failed=0, the same as the unmutated tree, at c4e68cac (#1497), 2026-09-24."
+    },
     "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._file_lead_predictions CLAMP_DROP 38072755": {
       "verdict": "equivalent",
       "old": "        dt_h = max(ctx._opt_config.time_step_minutes, 1.0) / 60.0",
@@ -185,6 +190,51 @@
       "killed_by": "tests/features.py",
       "old": "    if params.dhw_enabled:",
       "reason": "arrived with origin/main, commit d62195ade (fix(D12): guard the battery buffer/DHW stores on the config signal). `if params.dhw_enabled:` -> `if False:` raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22."
+    },
+    "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._floor GUARD_OFF 13df4520": {
+      "killed_by": "tests/entities.py",
+      "old": "        if floors is None:",
+      "reason": "the #1495 breach sensor's no-floor guard. `if floors is None:` -> `if False:` subscripts the None the coordinator's _mold_floor_series returns with the guard off or no live humidity: rc=0 -> rc=1 (TypeError: 'NoneType' object is not subscriptable). Measured at c4e68cac (#1497, fix/r7-mold-warning, merged with origin/main ca8204f4), 2026-09-24, by driving the mutant through tests/entities.py in a separate worktree against a baseline of rc=0 failed=0."
+    },
+    "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._floor GUARD_OFF ab83f766": {
+      "killed_by": "tests/entities.py",
+      "old": "        if not ok.get(\"upper_floor_temperature\"):",
+      "reason": "the #1495 mold-floor breach sensor's seed-room gate. `if False:` compares ThermalState's 21.0 degC constructor seed as if measured: the arm `a seeded (not measured) room publishes no floor` fails with floor=21.0 reading_ok=False room=21.0. rc=0 failed=0 -> rc=1 failed=1. Measured at c4e68cac (#1497, fix/r7-mold-warning, merged with origin/main ca8204f4), 2026-09-24, by driving the mutant through tests/entities.py in a separate worktree against a baseline of rc=0 failed=0."
+    },
+    "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._floor GUARD_OFF f78a3e2d": {
+      "killed_by": "tests/entities.py",
+      "old": "        if outdoor is None:",
+      "reason": "the #1495 breach sensor's no-forecast guard. `if outdoor is None:` -> `if False:` reaches float(None) on a payload with no plan step covering now: rc=0 -> rc=1 (TypeError: float() argument must be a string or a real number, not 'NoneType'). Measured at c4e68cac (#1497, fix/r7-mold-warning, merged with origin/main ca8204f4), 2026-09-24, by driving the mutant through tests/entities.py in a separate worktree against a baseline of rc=0 failed=0."
+    },
+    "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._floor RETURN_DEL 62a0a453": {
+      "killed_by": "tests/entities.py",
+      "old": "        return round(floor, 2), round(floor - room, 2)",
+      "reason": "the #1495 breach sensor's `_floor` return. Deleting it returns None, which the callers unpack: rc=0 -> rc=1 (TypeError: cannot unpack non-iterable NoneType object). Measured at c4e68cac (#1497, fix/r7-mold-warning, merged with origin/main ca8204f4), 2026-09-24, by driving the mutant through tests/entities.py in a separate worktree against a baseline of rc=0 failed=0."
+    },
+    "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._plan_outdoor_now GUARD_OFF 0e9335b9": {
+      "killed_by": "tests/entities.py",
+      "old": "            if start is None or end is None:",
+      "reason": "the #1495 breach sensor's step-label guard. `if start is None or end is None:` -> `if False:` hands an unparsed label to dt_util.as_utc on the arm `a plan step with no parseable label publishes no floor`: rc=0 -> rc=1 (AttributeError: 'NoneType' object has no attribute 'tzinfo'). Measured at c4e68cac (#1497, fix/r7-mold-warning, merged with origin/main ca8204f4), 2026-09-24, by driving the mutant through tests/entities.py in a separate worktree against a baseline of rc=0 failed=0."
+    },
+    "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._plan_outdoor_now GUARD_OFF 206d5d0b": {
+      "killed_by": "tests/entities.py",
+      "old": "        if data.get(\"plan_stale\"):",
+      "reason": "the #1495 breach sensor's stale-plan gate. `if data.get(\"plan_stale\"):` -> `if False:` evaluates the floor from a stale plan: the arm `a stale plan, or no plan yet, publishes no floor for the cold damp room` fails with stale floor=19.57. rc=0 failed=0 -> rc=1 failed=1. Measured at c4e68cac (#1497, fix/r7-mold-warning, merged with origin/main ca8204f4), 2026-09-24, by driving the mutant through tests/entities.py in a separate worktree against a baseline of rc=0 failed=0."
+    },
+    "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._plan_outdoor_now GUARD_OFF 689fc3e1": {
+      "killed_by": "tests/entities.py",
+      "old": "            if dt_util.as_utc(start) <= now < dt_util.as_utc(end):",
+      "reason": "the #1495 breach sensor's covering-step test. `if dt_util.as_utc(start) <= now < dt_util.as_utc(end):` -> `if False:` finds no step covering now, so no floor: the arms `a cold damp room below its floor fires the breach` (is_on=False shortfall=None) and `the breach carries the computed floor and the shortfall` (floor=None) fail, with a third. rc=0 failed=0 -> rc=1 failed=3. Measured at c4e68cac (#1497, fix/r7-mold-warning, merged with origin/main ca8204f4), 2026-09-24, by driving the mutant through tests/entities.py in a separate worktree against a baseline of rc=0 failed=0."
+    },
+    "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor.is_on BOOLOP 2837b3da": {
+      "killed_by": "tests/entities.py",
+      "old": "        return bool(shortfall is not None and shortfall >= self._margin_c())",
+      "reason": "the #1495 breach sensor's is_on predicate. `and` -> `or` compares None against the margin when no floor exists: rc=0 -> rc=1 (TypeError: '>=' not supported between instances of 'NoneType' and 'float'). Measured at c4e68cac (#1497, fix/r7-mold-warning, merged with origin/main ca8204f4), 2026-09-24, by driving the mutant through tests/entities.py in a separate worktree against a baseline of rc=0 failed=0."
+    },
+    "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor.is_on RETURN_DEL 2837b3da": {
+      "killed_by": "tests/entities.py",
+      "old": "        return bool(shortfall is not None and shortfall >= self._margin_c())",
+      "reason": "the #1495 breach sensor's is_on return. Deleting it makes is_on None: the arms `a cold damp room below its floor fires the breach` (is_on=None shortfall=3.57), `the floor is taken at the plan step covering now, not the plan's first step` (is_on=None) and `the breach floor is the solve's own floor at the forecast step covering now` (is_on=None) fail. rc=0 failed=0 -> rc=1 failed=3. Measured at c4e68cac (#1497, fix/r7-mold-warning, merged with origin/main ca8204f4), 2026-09-24, by driving the mutant through tests/entities.py in a separate worktree against a baseline of rc=0 failed=0."
     },
     "custom_components/heatpump_optimizer/boost.py:apply GUARD_OFF 4793d79b": {
       "killed_by": "tests/entities.py",

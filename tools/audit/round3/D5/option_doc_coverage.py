@@ -71,14 +71,17 @@ EXPECTED on this tree (ae36eff printed option_fields_rendered=174 and
     nothing to this count on an unconfigured render. #1512 moved them once
     more, 195 -> 196 and 228 -> 229: the peaks-on-different-days toggle on
     the grid peak tariff page, with its row in docs/configuration.md's Grid
-    peak tariff table in the same commit. This block is an
+    peak tariff table in the same commit. #1495 moved them once more,
+    196 -> 197 and 229 -> 230: the mold-floor breach warning margin, on the
+    comfort page's mold group, with its row in docs/configuration.md's
+    Comfort and temperatures table in the same commit. This block is an
     ASSERTION `tests/harness_headers.py` executes the script against, and it
     is reached by a shell-out the closure recorder cannot see, so it does not
     go red on a pull request: it is re-measured in the commit that changes
     what the script prints, or main's forced-full run finds it):
-    RESULT option_fields_rendered=196 count
+    RESULT option_fields_rendered=197 count
     RESULT option_fields_undocumented=0 count
-    RESULT option_schema_keys_rendered=229 count
+    RESULT option_schema_keys_rendered=230 count
     RESULT wood_economics_fields_rendered=4 count
     RESULT wood_economics_doc_lines=6 count      (tolerance: exact)
 MACHINE: 8-core Apple M1, 8 GB, python3 3.11.5.
