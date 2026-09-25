@@ -254,7 +254,7 @@
     "custom_components/heatpump_optimizer/coordinator.py:_entity_price RETURN_DEL 075a9dd1": {
       "killed_by": "tests/features.py",
       "old": "    return None if state is None else price_per_kwh(state.state, state_unit(state))",
-      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 7 failed, among them `a fee sensor publishing öre trips the same issue, attributed to it`; `a fee sensor publishing a negative value trips the same notice, attributed to it`. Measured at d6d79847, 2026-09-24."
+      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 7 failed, among them `a fee sensor publishing \u00f6re trips the same issue, attributed to it`; `a fee sensor publishing a negative value trips the same notice, attributed to it`. Measured at d6d79847, 2026-09-24."
     },
     "custom_components/heatpump_optimizer/coordinator.py:_fabricated_forecast RETURN_DEL c0753d3b": {
       "killed_by": "tests/features.py",
@@ -284,7 +284,7 @@
     "custom_components/heatpump_optimizer/coordinator.py:_grid_fee_entity_value RETURN_DEL c7b0bf3e": {
       "killed_by": "tests/features.py",
       "old": "    return _entity_price(hass, config.get(CONF_GRID_FEE_ENTITY))",
-      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 5 failed, among them `a fee sensor publishing öre trips the same issue, attributed to it`; `a fee sensor publishing a negative value trips the same notice, attributed to it`. Measured at d6d79847, 2026-09-24."
+      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 5 failed, among them `a fee sensor publishing \u00f6re trips the same issue, attributed to it`; `a fee sensor publishing a negative value trips the same notice, attributed to it`. Measured at d6d79847, 2026-09-24."
     },
     "custom_components/heatpump_optimizer/coordinator.py:_on_off_service RETURN_DEL dac85d34": {
       "killed_by": "tests/features.py",
@@ -414,7 +414,7 @@
     "custom_components/heatpump_optimizer/inputs.py:_finite RETURN_DEL b06b372f": {
       "killed_by": "tests/features.py",
       "old": "    return value if math.isfinite(value) else None",
-      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 21 failed, among them `a live inlet probe still wins`; `a fee sensor publishing öre trips the same issue, attributed to it`. Measured at d6d79847, 2026-09-24."
+      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 21 failed, among them `a live inlet probe still wins`; `a fee sensor publishing \u00f6re trips the same issue, attributed to it`. Measured at d6d79847, 2026-09-24."
     },
     "custom_components/heatpump_optimizer/inputs.py:normalize_price_per_kwh GUARD_OFF 0f0ca7ac": {
       "killed_by": "tests/features.py",
@@ -444,7 +444,7 @@
     "custom_components/heatpump_optimizer/inputs.py:price_per_kwh RETURN_DEL b78847cf": {
       "killed_by": "tests/features.py",
       "old": "    return value if converted is None else converted",
-      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 7 failed, among them `a fee sensor publishing öre trips the same issue, attributed to it`; `a fee sensor publishing a negative value trips the same notice, attributed to it`. Measured at d6d79847, 2026-09-24."
+      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 7 failed, among them `a fee sensor publishing \u00f6re trips the same issue, attributed to it`; `a fee sensor publishing a negative value trips the same notice, attributed to it`. Measured at d6d79847, 2026-09-24."
     },
     "custom_components/heatpump_optimizer/inputs.py:state_unit RETURN_DEL 59ab90b3": {
       "killed_by": "tests/features.py",
