@@ -712,7 +712,19 @@ if [ "${1:-}" = "--self-test" ]; then
   # the same read by a recording that exited 3 refuses as a failed recording.
   CLM=$(mktemp -d)
   G="git -c user.name=prepr -c user.email=prepr@selftest -c commit.gpgsign=false"
-  (git clone -q --shared . "$CLM/r" && cd "$CLM/r" && $G checkout -q -b fork \
+  # `git clone` of a local, non-bare repository checks out a branch with the
+  # SAME NAME the source has checked out -- so on a push to `main` (where
+  # this self-test's own checkout IS `main`) the clone starts on a branch
+  # already named `main`, and the synthetic `$G checkout -q -b main fork`
+  # below collides with it ("a branch named 'main' already exists"),
+  # aborting this whole `&&` chain before `inh` is ever created. Detach and
+  # delete whatever the clone started on first, so the fixture is hermetic
+  # to the outer checkout's branch name -- `main` included.
+  (git clone -q --shared . "$CLM/r" && cd "$CLM/r" \
+    && startbr=$($G symbolic-ref --quiet --short HEAD) \
+    && $G checkout -q --detach \
+    && { [ -z "$startbr" ] || $G branch -q -D "$startbr"; } \
+    && $G checkout -q -b fork \
     && $G checkout -q -b rec && mkdir -p docs/delivery && echo row > docs/delivery/9999.md \
     && $G add -A && $G commit -qm rec \
     && $G checkout -q -b own fork && echo "# own" >> custom_components/heatpump_optimizer/away.py \
