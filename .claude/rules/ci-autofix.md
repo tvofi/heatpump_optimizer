@@ -1,10 +1,11 @@
 ---
-description: CI already autofixes UNDER-SCOPED closures, inherited claims and killed mutants — do not duplicate
+description: CI autofixes UNDER-SCOPED closures, inherited claims and killed mutants — do not duplicate
 paths:
   - "tests/closures.json"
   - "tests/golden/claimed_drift.txt"
   - "tests/golden/card_claimed_drift.txt"
   - "tests/mutation_budgets.json"
+  - "tests/mutation_ledger/**"
   - ".github/workflows/**"
 ---
 # Mechanical CI autofix (do not re-implement)
