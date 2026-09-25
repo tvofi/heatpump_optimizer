@@ -46056,5 +46056,29 @@ R.check(
     _z1524_mis[True] >= _z1524_mis[False] > 0,
     f"two-zone {_z1524_mis[True]}, single-zone {_z1524_mis[False]} of {len(_b942)}",
 )
+for _z1524_name in _b942:
+    _z1524_d, _z1524_peak, _z1524_why = _z1524_run(
+        _z1524_name, True, true_ua=1.15, true_mass=1.5, valve="manual"
+    )
+    _z1524_mis["manual"] = _z1524_mis.get("manual", 0) + int(_z1524_d.admit)
+    R.check(
+        f"R8-P5c: {_z1524_name} behind a valve on the mismatched plant finishes "
+        "inside 0.8 K and adopts its heat loss within 1 %, or is refused by the "
+        "interval gate",
+        _z1524_peak <= 0.8
+        and (
+            abs(_z1524_d.scale / 1.15 - 1.0) <= 0.01
+            if _z1524_d.admit
+            else "adoption bar" in _z1524_d.reason
+        ),
+        f"peak {_z1524_peak:.3f} K, decision '{_z1524_d.reason}', scale "
+        f"{_z1524_d.scale:.4f} against 1.15",
+    )
+R.check(
+    "R8-P5c: on the mismatched plant the valve arm adopts on as many presets "
+    "as the unvalved two-zone arm",
+    _z1524_mis["manual"] >= _z1524_mis[True] > 0,
+    f"valve {_z1524_mis['manual']}, no valve {_z1524_mis[True]} of {len(_b942)}",
+)
 
 sys.exit(R.close("FEATURE CHECKS"))
