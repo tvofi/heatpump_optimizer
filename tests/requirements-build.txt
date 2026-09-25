@@ -2,12 +2,12 @@
 # `--build-constraint`. `--require-hashes` checks what pip installs, not what
 # it installs into the isolated environment that builds an sdist, so without
 # this file each sdist build fetched setuptools, wheel and Cython unpinned.
-# Three pinned packages publish no wheel for the runners' interpreters and
-# build from source: PyYAML 6.0.1 (tests/requirements-ci.txt) and lru-dict
-# 1.3.0 and PyRIC 0.1.6.3 (tests/requirements-typing.txt). Their declared
-# build requirements are the input: PyYAML's `setuptools`, `wheel`,
-# `Cython<3.0`; lru-dict's `setuptools>=61`, `wheel`; PyRIC declares none, so
-# pip's default `setuptools>=40.8.0` applies.
+# Two pinned packages publish no wheel for the runners' interpreters and
+# build from source: PyYAML 6.0.1 (tests/requirements-ci.txt) and PyRIC
+# 0.1.6.3 (tests/requirements-typing.txt). Their declared build requirements
+# are the input: PyYAML's `setuptools`, `wheel`, `Cython<3.0`; PyRIC declares
+# none, so pip's default `setuptools>=40.8.0` applies. `setuptools>=61` is
+# lru-dict 1.3.0's, kept although lru-dict 1.4.1 now installs from a wheel.
 #
 # A pinned build requirement NOT listed here fails the build closed, with
 # "all requirements must have their versions pinned", rather than resolving it
