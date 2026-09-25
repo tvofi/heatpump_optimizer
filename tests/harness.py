@@ -318,9 +318,11 @@ class FakeCoordinator:
         self.configured_windows = "weekdays 06:00-08:30, weekend 08:00-09:30"
         # The live mode and away override the real coordinator holds, which
         # change at once on a set call; ``data`` changes only on a refresh.
-        self.mode = (data or {}).get("mode", "off")
+        # With no payload the mode is the real coordinator's own default.
+        self.mode = (data or {}).get("mode", "auto")
         self._away_state = SimpleNamespace(
-            override_active=bool((data or {}).get("away_override_active"))
+            override_active=bool((data or {}).get("away_override_active")),
+            override_return_iso=(data or {}).get("away_override_return_time"),
         )
         self.mode_calls: list[str] = []
         self.away_calls: list[dict] = []
@@ -344,6 +346,10 @@ class FakeCoordinator:
         self.away_calls.append({"active": active, "return_time": return_time})
         if active is not None:
             self._away_state.override_active = bool(active)
+        if active is False:
+            self._away_state.override_return_iso = None
+        elif return_time is not None:
+            self._away_state.override_return_iso = return_time.isoformat()
 
     async def async_set_boost(self, channel, active):
         self.boost_calls.append({"channel": channel, "active": active})

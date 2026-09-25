@@ -40,8 +40,10 @@ class AwayReturnDateTime(HeatPumpOptimizerEntity, DateTimeEntity):
 
     @property
     def native_value(self) -> datetime | None:
-        raw = (self.coordinator.data or {}).get("away_override_return_time")
-        return _parse_return_time(raw)
+        # The live override, not the payload's copy, which changes only after
+        # the refresh the set call asks for has run its solve (v6.6.12).
+        return _parse_return_time(self.coordinator._away_state.override_return_iso)
 
     async def async_set_value(self, value: datetime) -> None:
         await self.coordinator.async_set_away(return_time=value)
+        self.async_write_ha_state()

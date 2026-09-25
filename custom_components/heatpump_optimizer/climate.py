@@ -158,10 +158,9 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
 
     @property
     def hvac_mode(self) -> HVACMode:
-        if self.coordinator.data:
-            mode = self.coordinator.data.get("mode", MODE_AUTO)
-            return MODE_TO_HVAC.get(mode, HVACMode.AUTO)
-        return HVACMode.AUTO
+        # The live mode, not the payload's copy: the payload changes only when
+        # the refresh a mode change asks for has run its solve (v6.6.12).
+        return MODE_TO_HVAC.get(self.coordinator.mode, HVACMode.AUTO)
 
     @property
     def hvac_action(self) -> HVACAction | None:
@@ -183,10 +182,8 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
     def preset_mode(self) -> str | None:
         # "off" is a mode but not a preset, and reporting a preset outside
         # _attr_preset_modes leaves the frontend selector in an invalid state.
-        if self.coordinator.data:
-            mode = self.coordinator.data.get("mode", MODE_AUTO)
-            return mode if mode in self._attr_preset_modes else None
-        return PRESET_AUTO
+        mode = self.coordinator.mode
+        return mode if mode in self._attr_preset_modes else None
 
     def _measured(self, key: str) -> Any:
         """A published temperature, or ``None`` where nothing measured it.
@@ -318,6 +315,8 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         elif hvac_mode == HVACMode.HEAT:
             await self.coordinator.async_set_mode(MODE_COMFORT)
             await self._async_publish_displace_from_current_action("manual_hvac_mode")
+        # Shown at once: the payload changes only after the solve (v6.6.12).
+        self.async_write_ha_state()
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         temp = kwargs.get(ATTR_TEMPERATURE)
@@ -348,11 +347,14 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         mode = mode_map.get(preset_mode, MODE_AUTO)
         await self.coordinator.async_set_mode(mode)
         await self._async_publish_displace_from_current_action("manual_preset")
+        self.async_write_ha_state()
 
     async def async_turn_on(self) -> None:
         await self.coordinator.async_set_mode(MODE_AUTO)
         await self._async_publish_displace_from_current_action("manual_turn_on")
+        self.async_write_ha_state()
 
     async def async_turn_off(self) -> None:
         await self.coordinator.async_set_mode(MODE_OFF)
         await self._async_publish_displace_from_current_action("manual_turn_off")
+        self.async_write_ha_state()
