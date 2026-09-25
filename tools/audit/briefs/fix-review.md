@@ -13,7 +13,9 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
    the test is vacuous and the PR is blocked.
 2. Measure with the **finder's** harness, not the fixer's: at the baseline
    SHA and at the PR head, printing your own `RESULT` lines. A fixer who
-   measures with a harness they wrote is measuring themselves.
+   measures with a harness they wrote is measuring themselves. One flat by
+   design (`fixer.md` step 3): confirm it flat, not regressed, at both ends,
+   and run the companion yourself at both ends.
 3. Re-run the null control and the both-ends check where the PR claims one.
 4. Compare the claim files with the actual drift: run `env_drift.py --all`
    (and `card_drift.mjs` for card changes) against the merge base; every
@@ -28,12 +30,11 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
    seam and names no rule is `blocked <sha> harness: class-rule-missing`. A body whose rule
    returns nothing is a body whose class is one seam — say so rather than treating the absence as compliance.
 7. Confirm the head SHA in the PR body is the head you measured.
-8. **A quoted number you cannot re-derive is not verified — say so.** Three
-   agents counting "the same" published-attribute census (#373) got three
-   different absolute counts because each used a different rule; a later
-   judge built sixteen definitions and found the residual non-zero at the
-   merge base and zero at head under all of them, so the conclusion held
-   despite every headline number in the bodies disagreeing. Re-derive
+8. **A quoted number you cannot re-derive is not verified — say so.** #373's
+   census got three counts under three rules; a later judge built sixteen
+   definitions and found the residual non-zero at the merge base and zero at
+   head under all of them, so the conclusion held despite every headline
+   number in the bodies disagreeing. Re-derive
    under the PR's stated rule before trusting its count; if you cannot, or
    if you had to build your own definition to check it, write that in the verdict rather than reporting a number as confirmed.
 9. **When the finding has no committed harness, that is itself a finding.**

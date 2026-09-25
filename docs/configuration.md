@@ -378,6 +378,7 @@ are on their own advanced pages.
 | Peak hours | empty | e.g. `07:00-19:00` | Empty means every hour counts in full. Outside these hours a peak counts at the factor below. |
 | Weekends are off-peak | off | on/off | Many tariffs only bill weekday peaks. |
 | What off-peak hours count at | 1.0 | 0.0–1.0, 0.05 steps | 1.0 treats every hour alike. 0.5 is the common half-rate night; 0 makes off-peak peaks free. |
+| Peaks on different days | on | on/off | Most Swedish tariffs count the highest hour of each of three different days, so a cold morning with three high hours is one peak, not three. Turn off only if your invoice averages the highest hours regardless of day. |
 
 ### Away and holiday mode
 

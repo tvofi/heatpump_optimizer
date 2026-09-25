@@ -1556,8 +1556,10 @@ R.check(
 
 tracker = PeakTracker()
 base = datetime(2026, 3, 1, 0, 0)
-for hour, load in enumerate([2.0, 5.0, 9.0, 4.0, 7.0, 3.0]):
-    tracker.observe(base + timedelta(hours=hour), load, tariff)
+# One peak a day: the billed peaks fall on different days (#1512), and this
+# block pins the averaging, not the day rule (the #1512 oracle pins that).
+for day, load in enumerate([2.0, 5.0, 9.0, 4.0, 7.0, 3.0]):
+    tracker.observe(base + timedelta(days=day), load, tariff)
 tracker._close_window(tariff)
 R.check(
     "the billed peak averages the highest hours",
@@ -1592,12 +1594,16 @@ R.check(
     ) == 0.0,
 )
 
+# These checks pin the WINDOW-level top-k arithmetic (#232, #925, #1210) --
+# the tariff with the distinct-days rule off, and the across-days top-k the
+# rule still applies -- so each passes distinct_days=False. The day rule
+# itself is pinned by the #1512 bill oracle (R8-D2-s2-01's section).
 # The bill is full_price x mean(top-k peaks), which rearranges exactly to
 # marginal_price x sum(top-k excesses). Charging only the single largest, as
 # this originally did, under-states a plan with several high hours -- the very
 # plan a capacity tariff exists to discourage.
 hourly = np.array([8.0, 7.9, 7.8, 5.5, 5.1] + [3.0] * 19)
-charged = peak_cost(hourly, np.zeros(24), 6.0, 20.0, 60, 1.0, 3)
+charged = peak_cost(hourly, np.zeros(24), 6.0, 20.0, 60, 1.0, 3, distinct_days=False)
 top3 = np.sort(np.maximum(0.0, hourly - 6.0))[-3:]
 R.check(
     "the peak charge equals the bill it models",
@@ -1606,8 +1612,8 @@ R.check(
 )
 R.check(
     "several high hours cost more than one",
-    peak_cost(np.array([8.0] * 3 + [3.0] * 21), np.zeros(24), 6.0, 20.0, 60, 1.0, 3)
-    > peak_cost(np.array([8.0] + [3.0] * 23), np.zeros(24), 6.0, 20.0, 60, 1.0, 3),
+    peak_cost(np.array([8.0] * 3 + [3.0] * 21), np.zeros(24), 6.0, 20.0, 60, 1.0, 3, distinct_days=False)
+    > peak_cost(np.array([8.0] + [3.0] * 23), np.zeros(24), 6.0, 20.0, 60, 1.0, 3, distinct_days=False),
 )
 
 # The solver reaches this through numerical gradients, so a term that is flat
@@ -1618,13 +1624,13 @@ R.check(
 # probe breaks the tie in its own favour) but not at bound-pinned plateaus,
 # which is #232's blindness and the surrogate's reason to exist.
 flat = np.full(96, 3.0)
-base_cost = peak_cost_smooth(flat, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3)
+base_cost = peak_cost_smooth(flat, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3, distinct_days=False)
 gradients = []
 for index in (5, 50, 90, 95):
     probe = flat.copy()
     probe[index] += 1e-4
     gradients.append(
-        (peak_cost_smooth(probe, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3)
+        (peak_cost_smooth(probe, np.full(96, 1.5), 3.0, 20.0, 60, 0.25, 3, distinct_days=False)
          - base_cost) / 1e-4
     )
 R.check(
@@ -1641,7 +1647,7 @@ R.check(
     not np.isfinite(fresh.threshold_kw(tariff))
     and peak_cost(
         np.full(96, 6.0), np.zeros(96),
-        fresh.threshold_kw(tariff), 20.0, 60, 0.25, 3,
+        fresh.threshold_kw(tariff), 20.0, 60, 0.25, 3, distinct_days=False
     )
     == 0.0,
     "otherwise a normal day is charged ~9x its own energy cost",
@@ -1660,11 +1666,11 @@ R.check(
     "a 15-minute burst is averaged over the metering window",
     peak_cost(
         burst, np.zeros(8), 1.0,
-        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25,
+        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25, distinct_days=False
     )
     < peak_cost(
         np.full(8, 8.0), np.zeros(8), 1.0,
-        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25,
+        tariff.marginal_price_per_kw, tariff.window_minutes, 0.25, distinct_days=False
     ),
     "penalising the instantaneous step would give away real savings",
 )
@@ -1679,7 +1685,7 @@ R.check(
         peak_cost(
             _distinct, np.zeros(8), 5.0,
             tariff.marginal_price_per_kw, tariff.window_minutes, 1.0,
-            tariff.peaks_averaged,
+            tariff.peaks_averaged, distinct_days=False
         )
         - tariff.peaks_averaged * 2.0 * tariff.marginal_price_per_kw
     )
@@ -1750,9 +1756,9 @@ R.check(
 _d201_flat = np.full(96, 12.0)
 R.check(
     "a flat plan is charged its billed top-k, not a multiple of it",
-    abs(peak_cost(_d201_flat, np.zeros(96), 0.0, 20.0, 15, 0.25, 3) - 720.0)
+    abs(peak_cost(_d201_flat, np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False) - 720.0)
     < 7.2,
-    f"charged {peak_cost(_d201_flat, np.zeros(96), 0.0, 20.0, 15, 0.25, 3):.2f}"
+    f"charged {peak_cost(_d201_flat, np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False):.2f}"
     " SEK, bill 720.00 (1% of 3 x 12 kW at 20/kW)",
 )
 R.check(
@@ -1762,7 +1768,7 @@ R.check(
 )
 # The same defect at hourly metering: reachable on a 24 h horizon, where
 # the break point is ~10.3 kW (fewer windows, smaller ln((n-k)/k)).
-_d201_hourly = peak_cost(np.full(96, 14.0), np.zeros(96), 0.0, 20.0, 60, 0.25, 3)
+_d201_hourly = peak_cost(np.full(96, 14.0), np.zeros(96), 0.0, 20.0, 60, 0.25, 3, distinct_days=False)
 R.check(
     "hourly metering keeps the flat-plateau charge at the bill",
     abs(_d201_hourly - 840.0) < 8.4,
@@ -1773,7 +1779,7 @@ R.check(
 # top-k sum. And a plan with at most k windows at the peak never enters the
 # smooth branch at all, whatever the excess.
 _d201_null_flat = peak_cost(
-    np.full(96, 5.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3
+    np.full(96, 5.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False
 )
 R.check(
     "below the tie-band break point the charge stays exact",
@@ -1784,7 +1790,7 @@ _d201_spiky = np.full(96, 1.0)
 _d201_spiky[:3] = 12.0
 R.check(
     "at most k windows at the peak stay on the exact hard sum",
-    peak_cost(_d201_spiky, np.zeros(96), 0.0, 20.0, 15, 0.25, 3) == 720.0,
+    peak_cost(_d201_spiky, np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False) == 720.0,
     "hard top-k path: 3 x 12 kW at 20/kW = 720 exactly",
 )
 
@@ -1797,7 +1803,7 @@ R.check(
 # surrogate's whole reason to exist (#232), so the pin reads the surface
 # that owes the property.
 _tied_base = peak_cost_smooth(
-    np.full(24, 7.0), np.zeros(24), 6.0, 20.0, 60, 1.0, 3,
+    np.full(24, 7.0), np.zeros(24), 6.0, 20.0, 60, 1.0, 3, distinct_days=False
 )
 _tied_fd = [
     (
@@ -1808,7 +1814,7 @@ _tied_fd = [
             20.0,
             60,
             1.0,
-            3,
+            3, distinct_days=False
         )
         - _tied_base
     )
@@ -1844,9 +1850,9 @@ _d1201_exact = 20.0 * 3 * 5.0                # price x k x tie-level excess
 R.check(
     "a mixed plateau is charged the exact billed top-k, not the leaked "
     "soft sum (#1210: no under-charge)",
-    peak_cost(_d1201_mixed, np.zeros(96), 3.0, 20.0, 15, 0.25, 3)
+    peak_cost(_d1201_mixed, np.zeros(96), 3.0, 20.0, 15, 0.25, 3, distinct_days=False)
     == _d1201_exact,
-    f"charged {peak_cost(_d1201_mixed, np.zeros(96), 3.0, 20.0, 15, 0.25, 3):.6f}"
+    f"charged {peak_cost(_d1201_mixed, np.zeros(96), 3.0, 20.0, 15, 0.25, 3, distinct_days=False):.6f}"
     f" against the bill {_d1201_exact:.6f} (3 x 5 kW excess at 20/kW)",
 )
 # Null controls: the shapes that were already exact stay exact -- the pure
@@ -1854,13 +1860,13 @@ R.check(
 # branch both before and after).
 R.check(
     "the pure plateau stays at the exact billed top-k",
-    peak_cost(np.full(96, 12.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3)
+    peak_cost(np.full(96, 12.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False)
     == 720.0,
-    f"charged {peak_cost(np.full(96, 12.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3):.6f}",
+    f"charged {peak_cost(np.full(96, 12.0), np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False):.6f}",
 )
 R.check(
     "at most k windows at the peak stay on the exact hard sum",
-    peak_cost(_d201_spiky, np.zeros(96), 0.0, 20.0, 15, 0.25, 3) == 720.0,
+    peak_cost(_d201_spiky, np.zeros(96), 0.0, 20.0, 15, 0.25, 3, distinct_days=False) == 720.0,
     "hard top-k path: 3 x 12 kW at 20/kW = 720 exactly",
 )
 # The solver's surrogate on the same mixed cell: still smooth (that is its
@@ -1868,7 +1874,7 @@ R.check(
 # finding states (weights sum to k, so soft <= hard) -- with the deficit
 # bounded by the measured worst case (-3.45% on the round-5 grid).
 _smooth_mixed = peak_cost_smooth(
-    _d1201_mixed, np.zeros(96), 3.0, 20.0, 15, 0.25, 3
+    _d1201_mixed, np.zeros(96), 3.0, 20.0, 15, 0.25, 3, distinct_days=False
 )
 R.check(
     "the solver's surrogate stays on the smooth arm and under the exact "
@@ -8441,6 +8447,22 @@ R.check(
     np.array_equal(np.asarray(_x_zeroed.power_schedule), _x_pb),
     "zeros must take the exact default path",
 )
+# A forecast shorter than the horizon is padded with no free heat, not
+# truncated into a horizon of its own length: the first six hours alone plan
+# exactly as the full forecast whose remainder is zero.
+try:
+    _x_short = np.asarray(_x_opt.optimize(
+        _x_st, _x_prices, _x_out, _x_zero, _x_zero, _x_zero,
+        datetime(2026, 1, 15), external_heat_kw=_x_fc[:24],
+    ).power_schedule)
+except Exception as _x_err:  # noqa: BLE001 - a raise is the failure measured
+    _x_short = repr(_x_err)
+R.check(
+    "a short burn forecast is padded with zeros: it plans exactly as the "
+    "full-length forecast",
+    isinstance(_x_short, np.ndarray) and np.array_equal(_x_short, _x_pa),
+    f"{_x_short if isinstance(_x_short, str) else 'plans differ'}",
+)
 
 
 R.section("Setup topology: one description for every picture (items 32/33)")
@@ -11159,6 +11181,528 @@ R.check(
     and _gf.apply_catalog("vattenfall_eldistribution_effekt_2026") is None
     and _gf.apply_catalog("eon_energidistribution_effekt_2026") is None,
     f"choices {_gf.catalog_choices()!r}",
+)
+
+# --- #1512 / R8-D2-s2-01: the capacity bill from each tariff's stated rule ---
+# PeakTracker kept the k highest metering WINDOWS of the month, while both
+# catalog DSOs bill the k highest peaks "fördelat på tre olika dygn": one cold
+# morning with three high hours published three peaks, billed_peak_kw read
+# high, and threshold_kw priced a later day's real peak as free. The oracle
+# below computes the month's bill straight from a CapacityTariff's stated
+# terms -- peaks_averaged, distinct_days, window_minutes, months, peak_hours,
+# weekdays_only, offpeak_factor -- over seeded month traces (DST months
+# included), independently of PeakTracker's arithmetic, and holds the
+# tracker's billed_peak_kw and threshold_kw to it. Every SWEDEN_CATALOG row is
+# driven through the coordinator's own config parse (``_catalog_tariff``), so
+# a row added to the catalog is driven by construction. The design choice it
+# encodes: threshold_kw is the k-th highest DAY maximum (lowest seen before k
+# days), never raised to today's own maximum -- tariff.threshold_kw's
+# docstring says why.
+R.section("R8-D2-s2-01 — the capacity bill from each tariff's stated rule (#1512)")
+
+import json as _bo_json  # noqa: E402
+from zoneinfo import ZoneInfo as _BoZone  # noqa: E402
+
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_PEAK_TARIFF_DISTINCT_DAYS as _BO_DISTINCT,
+)
+
+_BO_TZ = _BoZone("Europe/Stockholm")
+
+
+def _bo_factor(ct, start):
+    """What a window starting at ``start`` counts at, from the stated masks."""
+    if ct.months and start.month not in ct.months:
+        return 0.0
+    hour = start.hour + start.minute / 60.0
+    off = (ct.weekdays_only and start.weekday() >= 5) or (
+        bool(ct.peak_hours)
+        and not any(a <= hour < b or (b >= 24.0 and hour >= a) for a, b in ct.peak_hours)
+    )
+    return min(1.0, max(0.0, ct.offpeak_factor)) if off else 1.0
+
+
+def _bo_trace(year, month, window, seed):
+    """(local window start, kW) for every real metering window of a month.
+
+    Walked in UTC, so the spring gap's missing hour is absent and the autumn
+    fold's repeated hour is metered twice, as the meter does. Morning and
+    evening bumps every day; on ~20% of days a multi-hour cold-snap plateau,
+    the shape that stacks several near-equal windows on one morning.
+    """
+    rng = np.random.default_rng(seed)
+    start = datetime(year, month, 1, tzinfo=_BO_TZ).astimezone(timezone.utc)
+    nxt = datetime(year + month // 12, month % 12 + 1, 1, tzinfo=_BO_TZ)
+    end = nxt.astimezone(timezone.utc)
+    level, snap, out, day = 0.0, 0.0, [], None
+    t = start
+    while t < end:
+        local = t.astimezone(_BO_TZ)
+        if local.date() != day:
+            day = local.date()
+            level = rng.uniform(4.0, 7.0)
+            snap = rng.uniform(7.5, 10.0) if rng.random() < 0.2 else 0.0
+        kw = 2.5 + rng.uniform(0.0, 0.5)
+        if local.hour in (7, 18):
+            kw = level * rng.uniform(0.85, 1.05)
+        if snap and 5 <= local.hour <= 8:
+            kw = snap * rng.uniform(0.95, 1.0)
+        out.append((local, kw))
+        t += timedelta(minutes=window)
+    return out
+
+
+def _bo_oracle(ct, trace, distinct):
+    """(billed kW, threshold kW) the stated rule gives for a trace."""
+    windows = [(s.date(), kw * _bo_factor(ct, s)) for s, kw in trace if _bo_factor(ct, s) > 0.0]
+    if distinct:
+        best = {}
+        for day, kw in windows:
+            best[day] = max(best.get(day, 0.0), kw)
+        ranked = sorted(best.values(), reverse=True)
+    else:
+        ranked = sorted((kw for _, kw in windows), reverse=True)
+    k = max(1, ct.peaks_averaged)
+    if not ranked:
+        return 0.0, float("inf")
+    top = ranked[:k]
+    return sum(top) / len(top), ranked[k - 1] if len(ranked) >= k else ranked[-1]
+
+
+def _bo_drive(ct, trace):
+    """Feed a trace through PeakTracker.observe, two samples per window,
+    through a JSON store round trip mid-month (the persisted shape)."""
+    tracker = PeakTracker()
+    half = timedelta(minutes=ct.window_minutes / 2.0)
+    for index, (start, kw) in enumerate(trace):
+        if index == len(trace) // 2:
+            tracker = PeakTracker.from_dict(_bo_json.loads(_bo_json.dumps(tracker.as_dict())))
+        tracker.observe(start, kw * 0.9, ct)
+        tracker.observe((start.astimezone(timezone.utc) + half).astimezone(_BO_TZ), kw * 1.1, ct)
+    tracker._close_window(ct)
+    return tracker
+
+
+def _bo_catalog(product_id, **overrides):
+    applied = _gf.apply_catalog(product_id)
+    coord = _Coord(_FakeHass({}), _FakeEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home", **applied, **overrides,
+    }))
+    return coord._capacity_tariff()
+
+
+_bo_rules = {f"catalog:{pid}": _bo_catalog(pid) for pid in _gf.SWEDEN_CATALOG}
+_bo_rules["catalog:goteborg, distinct days switched off in the config"] = _bo_catalog(
+    "goteborg_energi_effekt_2026", **{_BO_DISTINCT: False}
+)
+_bo_rules["one peak averaged (the rule is inert)"] = CapacityTariff(
+    enabled=True, price_per_kw=49.0, peaks_averaged=1
+)
+_bo_rules["five peaks, Nov-Mar only, weekdays 07-20, off-peak free, 15 min"] = CapacityTariff(
+    enabled=True, price_per_kw=135.0, peaks_averaged=5, window_minutes=15,
+    months=frozenset({11, 12, 1, 2, 3}), peak_hours=((7.0, 20.0),),
+    weekdays_only=True, offpeak_factor=0.0,
+)
+_bo_months = ((2026, 1), (2026, 3), (2026, 7), (2026, 10))  # DST: 29 Mar, 25 Oct
+_bo_bad, _bo_cells, _bo_separating = [], 0, 0
+for _bo_label, _bo_ct in _bo_rules.items():
+    for _bo_seed, (_bo_y, _bo_m) in enumerate(_bo_months):
+        _bo_tr = _bo_trace(_bo_y, _bo_m, _bo_ct.window_minutes, 1512 + _bo_seed)
+        _bo_want = _bo_oracle(_bo_ct, _bo_tr, _bo_ct.distinct_days)
+        _bo_other = _bo_oracle(_bo_ct, _bo_tr, not _bo_ct.distinct_days)
+        _bo_t = _bo_drive(_bo_ct, _bo_tr)
+        _bo_got = (_bo_t.billed_peak_kw(_bo_ct), _bo_t.threshold_kw(_bo_ct))
+        _bo_cells += 1
+        _bo_separating += int(abs(_bo_want[0] - _bo_other[0]) > 1e-6)
+        # 5e-4: as_dict records a peak to 3 decimals, and every cell crosses
+        # one store round trip. The two rules differ by whole kW.
+        if not all(g == w or abs(g - w) <= 5e-4 + 1e-12 for g, w in zip(_bo_got, _bo_want)):
+            _bo_bad.append(f"{_bo_label} {_bo_y}-{_bo_m:02d}: got {_bo_got}, bill {_bo_want}")
+R.check(
+    "billed_peak_kw and threshold_kw equal the bill each tariff's stated "
+    "rule gives, every catalog row and rule shape, DST months included",
+    not _bo_bad and _bo_cells == len(_bo_rules) * len(_bo_months),
+    f"{len(_bo_bad)} of {_bo_cells} cells differ: {_bo_bad[:3]}",
+)
+print(f"RESULT bill_oracle_cells={_bo_cells} separating={_bo_separating} count")
+R.check(
+    "the oracle separates the two rules: in some cell the per-day and the "
+    "per-window bill differ (null control -- a trace with one peak per day "
+    "would pass either implementation)",
+    _bo_separating > 0,
+    f"{_bo_separating} of {_bo_cells} cells separate the rules",
+)
+R.check(
+    "every catalog row states the distinct-days rule its source quotes",
+    all(
+        _bo_rules[f"catalog:{pid}"].distinct_days
+        and _gf.apply_catalog(pid).get(_BO_DISTINCT) is True
+        for pid in _gf.SWEDEN_CATALOG
+    )
+    and not _bo_rules["catalog:goteborg, distinct days switched off in the config"].distinct_days,
+    "both sourced rows bill three peaks on three different days (#926/#968)",
+)
+R.check(
+    "billing_summary publishes the tariff's own stated terms",
+    all(
+        ct.billing_summary() == {
+            "price_per_kw": ct.price_per_kw,
+            "window_minutes": ct.window_minutes,
+            "peaks_averaged": ct.peaks_averaged,
+        }
+        for ct in _bo_rules.values()
+    ),
+)
+
+# The finder's headline, exact: Göteborg, k=3, a cold morning of 10/9.8/9.6
+# kW on one day and single evening peaks of 7 and 6.5 on two others. The bill
+# is (10+7+6.5)/3; the per-window tracker published (10+9.8+9.6)/3 and a
+# 9.6 kW threshold under which a 9.0 kW hour on a new day read as free.
+_bo_ge = _bo_rules["catalog:goteborg_energi_effekt_2026"]
+_bo_head = PeakTracker()
+for _bo_d, _bo_hours in ((1, {6: 10.0, 7: 9.8, 8: 9.6}), (2, {18: 7.0}), (3, {18: 6.5})):
+    for _bo_h in range(24):
+        _bo_head.observe(datetime(2026, 10, _bo_d, _bo_h, tzinfo=_BO_TZ), _bo_hours.get(_bo_h, 3.0), _bo_ge)
+_bo_head._close_window(_bo_ge)
+R.check(
+    "one cold morning is one peak: billed (10+7+6.5)/3 kW, threshold 6.5 kW",
+    abs(_bo_head.billed_peak_kw(_bo_ge) - 23.5 / 3) < 1e-9
+    and _bo_head.threshold_kw(_bo_ge) == 6.5,
+    f"billed {_bo_head.billed_peak_kw(_bo_ge)}, threshold {_bo_head.threshold_kw(_bo_ge)}",
+)
+
+# The persisted shape (#1512): a store written before peak_days loads every
+# peak undated, which bills exactly as the per-window tracker did until the
+# month rolls over -- never merged into a day it cannot name. A malformed
+# label list loads the same way per entry, and never raises.
+_bo_legacy = PeakTracker.from_dict({"month": "2026-10", "peaks": [10.0, 9.8, 9.6, 7.0]})
+_bo_mixed = PeakTracker.from_dict({
+    "month": "2026-10", "peaks": [10.0, float("nan"), 9.8, 9.6],
+    "peak_days": ["2026-10-01", "2026-10-02", 7],
+})
+_bo_scalar = PeakTracker.from_dict({"month": "2026-10", "peaks": [9.0], "peak_days": "2026-10-01"})
+
+
+def _bo_load(payload):
+    """PeakTracker.from_dict's peaks, or the name of what it raised."""
+    try:
+        return PeakTracker.from_dict(payload).peaks
+    except Exception as exc:  # noqa: BLE001 - a raise is the failure measured
+        return type(exc).__name__
+
+
+_bo_nolist = [_bo_load({"month": "2026-10", "peaks": bad}) for bad in (9.0, None, "9.0")]
+R.check(
+    "an old store's peaks load undated and bill as they were billed",
+    _bo_legacy.peak_days == ["", "", "", ""]
+    and abs(_bo_legacy.billed_peak_kw(_bo_ge) - 29.4 / 3) < 1e-9,
+    f"days {_bo_legacy.peak_days}, billed {_bo_legacy.billed_peak_kw(_bo_ge)}",
+)
+R.check(
+    "a malformed store loads per entry: the non-finite peak goes with its "
+    "label, a non-string label and a missing one load undated, and a peak "
+    "list that is not a list loads empty",
+    _bo_mixed.peaks == [10.0, 9.8, 9.6]
+    and _bo_mixed.peak_days == ["2026-10-01", "", ""]
+    and _bo_scalar.peak_days == [""]
+    and _bo_nolist == [[], [], []],
+    f"peaks {_bo_mixed.peaks}, days {_bo_mixed.peak_days}, scalar {_bo_scalar.peak_days}, "
+    f"non-list peaks {_bo_nolist}",
+)
+_bo_legacy.observe(datetime(2026, 10, 5, 12, tzinfo=_BO_TZ), 11.0, _bo_ge)
+_bo_legacy.observe(datetime(2026, 10, 5, 13, tzinfo=_BO_TZ), 3.0, _bo_ge)
+_bo_legacy.observe(datetime(2026, 10, 5, 14, tzinfo=_BO_TZ), 3.0, _bo_ge)
+R.check(
+    "after an upgrade, new windows are dated and merged by day beside the "
+    "undated legacy peaks",
+    _bo_legacy.peaks[:2] == [11.0, 10.0]
+    and _bo_legacy.peak_days[0] == "2026-10-05"
+    and _bo_legacy.peak_days.count("2026-10-05") == 1,
+    f"peaks {_bo_legacy.peaks}, days {_bo_legacy.peak_days}",
+)
+
+# The tracker keeps max(2k, 6) days, not only the k it bills, so a mid-month
+# change of the averaged count still has the days it now needs. A month of
+# seven distinct days is kept at k=1, then billed at k=3 and at k=6 with one
+# more (low) day: every floor below six drops a day the k=6 bill needs, and
+# a 2k margin alone (two days at k=1) drops one the k=3 bill needs.
+_bo_k1 = CapacityTariff(enabled=True, price_per_kw=49.0, peaks_averaged=1)
+_bo_kc_bad = []
+for _bo_newk in (3, 6):
+    _bo_kn = CapacityTariff(enabled=True, price_per_kw=49.0, peaks_averaged=_bo_newk)
+    _bo_kc = PeakTracker()
+    _bo_kc_trace = []
+    for _bo_d, _bo_kw in enumerate((9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0)):
+        _bo_when = datetime(2026, 10, 2 + _bo_d, 18, tzinfo=_BO_TZ)
+        _bo_kc.observe(_bo_when, _bo_kw, _bo_k1)
+        _bo_kc.observe(_bo_when + timedelta(hours=1), 0.0, _bo_k1)
+        _bo_kc_trace += [(_bo_when, _bo_kw), (_bo_when + timedelta(hours=1), 0.0)]
+    _bo_last = datetime(2026, 10, 9, 18, tzinfo=_BO_TZ)
+    _bo_kc.observe(_bo_last, 1.0, _bo_kn)
+    _bo_kc_trace.append((_bo_last, 1.0))
+    _bo_kc._close_window(_bo_kn)
+    _bo_kc_want = _bo_oracle(_bo_kn, _bo_kc_trace, True)
+    _bo_kc_got = (_bo_kc.billed_peak_kw(_bo_kn), _bo_kc.threshold_kw(_bo_kn))
+    if not (abs(_bo_kc_got[0] - _bo_kc_want[0]) < 1e-9 and _bo_kc_got[1] == _bo_kc_want[1]):
+        _bo_kc_bad.append(f"k 1 -> {_bo_newk}: got {_bo_kc_got}, bill {_bo_kc_want}")
+R.check(
+    "raising the averaged count mid-month bills the month's k highest days "
+    "(the tracker keeps a margin of at least six days)",
+    not _bo_kc_bad,
+    f"{_bo_kc_bad}",
+)
+
+# --- #1512, the plan side: the solver's capacity term bills days too --------
+# PeakTracker bills the k highest DAYS; the plan-side term (peak_cost, the
+# solver's peak_cost_smooth and its batch twin) ranked the plan's WINDOWS, so
+# k high windows on one morning were charged k times -- the finder's plan arm,
+# 3x at k=3. The oracle below prices a plan straight from the stated rule:
+# label every metering window by the local date its real start falls on
+# (walked in UTC, as the meter does), take each day's highest billed-equivalent
+# excess over the threshold, and charge the marginal price on the k highest
+# days. The production path is HeatPumpOptimizer._grid_report, whose
+# peak_cost is the published projected_peak_cost, driven with the tariff's own terms.
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _BoOpt  # noqa: E402
+from heatpump_optimizer.optimizer import OptimizationConfig as _BoOptCfg  # noqa: E402
+from heatpump_optimizer.tariff import peak_cost_batch as _bo_pcb  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalModel as _BoModel  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalParameters as _BoParams  # noqa: E402
+
+
+def _bo_plan_oracle(ct, start, house, dt, threshold, distinct):
+    """What the stated rule charges a plan: price/k x the k largest excesses,
+    one per day under distinct days. Windows are the DSO's grid from local
+    midnight, labelled by their real start, the first one partial."""
+    window = int(ct.window_minutes)
+    per = max(1, int(round(window / (dt * 60.0))))
+    t0 = start.astimezone(timezone.utc)
+    local = start
+    phase = (local.hour * 60 + local.minute) % window
+    head = 0 if phase == 0 else int(round((window - phase) / (dt * 60.0)))
+    edges = ([0, head] if head else [0]) + list(range(head + per, len(house), per))
+    edges = sorted(set(e for e in edges if e < len(house))) + [len(house)]
+    excess = []
+    for a, b in zip(edges, edges[1:]):
+        wstart = (t0 + timedelta(hours=a * dt)).astimezone(_BO_TZ)
+        slot_min = ((wstart.hour * 60 + wstart.minute) // window) * window
+        slot = wstart.replace(hour=slot_min // 60, minute=slot_min % 60)
+        kw = float(np.mean(house[a:b])) * _bo_factor(ct, slot)
+        excess.append((slot.date(), max(0.0, kw - threshold)))
+    if distinct:
+        best = {}
+        for day, e in excess:
+            best[day] = max(best.get(day, 0.0), e)
+        values = list(best.values())
+    else:
+        values = [e for _, e in excess]
+    values = sorted(values, reverse=True)[: max(1, ct.peaks_averaged)]
+    return ct.marginal_price_per_kw * sum(values)
+
+
+def _bo_opt(ct):
+    return _BoOpt(_BoModel(_BoParams()), _BoOptCfg(
+        peak_price_per_kw=ct.marginal_price_per_kw, peak_threshold_kw=6.0,
+        peak_window_minutes=ct.window_minutes, peak_count=ct.peaks_averaged,
+        peak_months=ct.months, peak_hours=ct.peak_hours,
+        peak_weekdays_only=ct.weekdays_only, peak_offpeak_factor=ct.offpeak_factor,
+        peak_distinct_days=ct.distinct_days,
+    ))
+
+
+_bo_plan_bad, _bo_plan_cells, _bo_plan_sep = [], 0, 0
+for _bo_label, _bo_ct in _bo_rules.items():
+    for _bo_i, _bo_start in enumerate((
+        datetime(2026, 1, 14, 0, 0, tzinfo=_BO_TZ),     # a whole day
+        datetime(2026, 1, 14, 12, 30, tzinfo=_BO_TZ),   # across midnight
+        datetime(2026, 3, 28, 13, 15, tzinfo=_BO_TZ),   # into the spring gap
+        datetime(2026, 10, 24, 18, 0, tzinfo=_BO_TZ),   # into the autumn fold
+    )):
+        _bo_rng = np.random.default_rng(2512 + _bo_i)
+        _bo_pow = _bo_rng.uniform(0.5, 4.0, size=96)
+        # Two cold spells of three hours each, a day's worth of steps apart.
+        _bo_pow[24:36] = _bo_rng.uniform(6.5, 8.0, size=12)
+        _bo_pow[72:84] = _bo_rng.uniform(6.5, 8.0, size=12)
+        _bo_base = np.full(96, 2.0)
+        _bo_want = _bo_plan_oracle(_bo_ct, _bo_start, _bo_pow + _bo_base, 0.25, 6.0, _bo_ct.distinct_days)
+        _bo_other = _bo_plan_oracle(_bo_ct, _bo_start, _bo_pow + _bo_base, 0.25, 6.0, not _bo_ct.distinct_days)
+        _bo_got = _bo_opt(_bo_ct)._grid_report(
+            _bo_pow, _bo_base, 0.25, _bo_start
+        )["peak_cost"]
+        _bo_plan_cells += 1
+        _bo_plan_sep += int(abs(_bo_want - _bo_other) > 1e-3)
+        if abs(_bo_got - _bo_want) > 5e-4 + 1e-12:
+            _bo_plan_bad.append(f"{_bo_label} {_bo_start.isoformat()}: got {_bo_got}, bill {_bo_want:.4f}")
+print(f"RESULT bill_oracle_plan_cells={_bo_plan_cells} separating={_bo_plan_sep} count")
+R.check(
+    "the plan's projected peak cost equals what the stated rule bills it, "
+    "every catalog row and rule shape, across midnight and both DST days",
+    not _bo_plan_bad and _bo_plan_cells == len(_bo_rules) * 4,
+    f"{len(_bo_plan_bad)} of {_bo_plan_cells} plans differ: {_bo_plan_bad[:3]}",
+)
+R.check(
+    "the plan oracle separates the two rules somewhere (null control)",
+    _bo_plan_sep > 0,
+    f"{_bo_plan_sep} of {_bo_plan_cells} plans separate the rules",
+)
+
+# The finder's plan arm, exact: a clockless 24 h plan at 15-minute steps,
+# threshold 6 kW, three consecutive hourly windows 1 kW above it on one
+# morning. A clockless plan starts at local midnight on the metering grid --
+# the anchor metering_windows' offset_steps=0 already assumes -- so all three
+# windows are one day: billed once, at price/k. Per window it was k times.
+_bo_morning = np.full(96, 1.0)
+_bo_morning[28:40] = 5.0
+_bo_one_day = peak_cost(_bo_morning, np.full(96, 2.0), 6.0, 49.0 / 3, 60, 0.25, 3)
+_bo_windows = peak_cost(_bo_morning, np.full(96, 2.0), 6.0, 49.0 / 3, 60, 0.25, 3,
+                        distinct_days=False)
+_bo_k1 = peak_cost(_bo_morning, np.full(96, 2.0), 6.0, 49.0, 60, 0.25, 1)
+R.check(
+    "one cold morning in a plan is charged once: 49/3 SEK, not 49 "
+    "(per-window with distinct days off; k=1 unchanged)",
+    abs(_bo_one_day - 49.0 / 3) < 1e-9 and abs(_bo_windows - 49.0) < 1e-9
+    and abs(_bo_k1 - 49.0) < 1e-9,
+    f"one day {_bo_one_day}, per window {_bo_windows}, k=1 {_bo_k1}",
+)
+
+# The solver still sees a gradient on a same-day plateau (#232): four tied
+# windows on one morning, one probed down, must lower the smooth term; a
+# hard per-day max would read flat (the other three stay at the peak).
+_bo_flat = np.full(96, 1.0)
+_bo_flat[28:44] = 5.0
+_bo_probe = _bo_flat.copy()
+_bo_probe[28:32] -= 1e-4
+_bo_s0 = peak_cost_smooth(_bo_flat, np.full(96, 2.0), 6.0, 20.0, 60, 0.25, 3)
+_bo_s1 = peak_cost_smooth(_bo_probe, np.full(96, 2.0), 6.0, 20.0, 60, 0.25, 3)
+R.check(
+    "a same-day plateau keeps the solver's gradient: probing one tied "
+    "window down lowers peak_cost_smooth",
+    _bo_s1 < _bo_s0,
+    f"flat {_bo_s0!r}, probed {_bo_s1!r}",
+)
+
+# `_peak_excess`'s "no window above the threshold" answer is None, which every
+# charge reads as 0.0 before any per-day or top-k arithmetic. A plan whose
+# metering carries a non-finite window below the threshold is therefore
+# charged exactly nothing, on both rules, not NaN: without the guard the
+# NaN window flows into the per-day maxima and the top-k sum, and the
+# solver's objective and the published projected_peak_cost read NaN.
+_bo_nan = np.full(8, 1.0)
+_bo_nan[3] = np.nan
+_bo_nan_charges = [
+    fn(_bo_nan, np.zeros(8), 5.0, 20.0, 60, 0.25, 3, distinct_days=dd)
+    for fn in (peak_cost, peak_cost_smooth) for dd in (True, False)
+]
+R.check(
+    "a plan with nothing above the threshold is charged exactly 0.0, even "
+    "with a non-finite window in it, on both rules",
+    _bo_nan_charges == [0.0, 0.0, 0.0, 0.0],
+    f"charges {_bo_nan_charges!r}",
+)
+
+# The batch twin (#948) prices each row exactly as peak_cost_smooth does,
+# with the day labels, clockless and across midnight, bit for bit.
+from heatpump_optimizer.tariff import plan_window_days as _bo_days  # noqa: E402
+
+_bo_rows = np.vstack([_bo_flat, _bo_morning, _bo_pow, np.full(96, 1.0)])
+_bo_twin_bad = []
+for _bo_lab in (None, _bo_days(24, 60, datetime(2026, 1, 14, 12, 0, tzinfo=_BO_TZ)),
+                _bo_days(96, 15, datetime(2026, 10, 24, 18, 0, tzinfo=_BO_TZ))):
+    for _bo_w in (60, 15):
+        if _bo_lab is not None and _bo_lab.size != 96 // (_bo_w // 15):
+            continue  # labels are per window of one length
+        for _bo_dd in (True, False):
+            _bo_got = _bo_pcb(_bo_rows, np.full(96, 2.0), 6.0, 20.0, _bo_w, 0.25, 3,
+                              window_days=_bo_lab, distinct_days=_bo_dd)
+            for _bo_r in range(_bo_rows.shape[0]):
+                _bo_one = peak_cost_smooth(_bo_rows[_bo_r], np.full(96, 2.0), 6.0, 20.0,
+                                           _bo_w, 0.25, 3, window_days=_bo_lab,
+                                           distinct_days=_bo_dd)
+                if _bo_got[_bo_r] != _bo_one:
+                    _bo_twin_bad.append(f"w={_bo_w} dd={_bo_dd} row={_bo_r}")
+R.check(
+    "peak_cost_batch equals peak_cost_smooth row for row with day labels, "
+    "bit for bit",
+    not _bo_twin_bad,
+    f"divergent: {_bo_twin_bad[:3]}",
+)
+
+# --- #1512 x #1499: the no-meter arm ----------------------------------------
+# With neither a whole-house meter nor a pump meter, the realised peak is the
+# plan's own ask: coordinator._track_realised_peak folds _commanded_power()
+# (#1499's fix, #1555), space plus DHW. A month of DHW-only cold mornings --
+# the same-day stacking #1512 fixed -- is driven through that production
+# method on each cycle's clock, and the tracker must bill what the stated
+# rule bills on the commanded kW. The space-only reading (what the fallback
+# folded before #1555) bills a different month: the separation check says
+# the arm would see that regression.
+from homeassistant.util import dt as _bo_dt  # noqa: E402
+
+
+def _bo_nometer_month(ct_product):
+    applied = _gf.apply_catalog(ct_product)
+    coord = _Coord(_FakeHass({}), _FakeEntry(data={
+        "tibber_token": "x", "weather_entity": "weather.home", **applied,
+    }))
+    coord._measured_power = None
+    coord._measured_house_power = None
+    ct = coord._capacity_tariff()
+    rng = np.random.default_rng(1499)
+    trace, space_only = [], []
+    start = datetime(2026, 1, 1, tzinfo=_BO_TZ).astimezone(timezone.utc)
+    try:
+        for hour in range(31 * 24):
+            when = (start + timedelta(hours=hour)).astimezone(_BO_TZ)
+            if 5 <= when.hour <= 7:          # a DHW-only morning charge
+                action = {"power": 0.0, "dhw_power": rng.uniform(6.0, 9.5), "heat_pump_on": True}
+            else:
+                action = {"power": rng.uniform(1.0, 4.5), "dhw_power": 0.0, "heat_pump_on": True}
+            coord._current_action = action
+            for minute in (0, 30):
+                _bo_dt.freeze(when + timedelta(minutes=minute))
+                coord._track_realised_peak()
+            trace.append((when, action["power"] + action["dhw_power"]))
+            space_only.append((when, action["power"]))
+    finally:
+        _bo_dt.freeze(None)
+    coord._peak_tracker._close_window(ct)
+    tracker = coord._peak_tracker
+    return ct, trace, space_only, (tracker.billed_peak_kw(ct), tracker.threshold_kw(ct))
+
+
+_bo_nm_bad, _bo_nm_sep = [], 0
+for _bo_pid in _gf.SWEDEN_CATALOG:
+    _bo_nm_ct, _bo_nm_tr, _bo_nm_space, _bo_nm_got = _bo_nometer_month(_bo_pid)
+    _bo_nm_want = _bo_oracle(_bo_nm_ct, _bo_nm_tr, _bo_nm_ct.distinct_days)
+    _bo_nm_sep += int(abs(_bo_nm_want[0] - _bo_oracle(_bo_nm_ct, _bo_nm_space, True)[0]) > 1e-6)
+    if not all(abs(g - w) <= 1e-9 for g, w in zip(_bo_nm_got, _bo_nm_want)):
+        _bo_nm_bad.append(f"{_bo_pid}: got {_bo_nm_got}, bill {_bo_nm_want}")
+R.check(
+    "with no meter, a month of DHW-only mornings bills what the stated rule "
+    "bills on the commanded kW, every catalog row",
+    not _bo_nm_bad,
+    f"{_bo_nm_bad[:2]}",
+)
+R.check(
+    "the no-meter arm separates the whole ask from the space-only reading "
+    "(null control: the pre-#1555 fallback bills a different month)",
+    _bo_nm_sep == len(_gf.SWEDEN_CATALOG),
+    f"{_bo_nm_sep} of {len(_gf.SWEDEN_CATALOG)} rows separate",
+)
+
+# --- the buffer-tank cooling prior shrinks monotonically to an empty tank -----
+# default_buffer_cooling_rate is surface over capacity, so a smaller tank
+# cools at least as fast as a larger one, all the way down: the capacity is
+# floored at a vanishing volume rather than dropping to zero, which would hand
+# an empty (or negative, mis-configured) tank the flat 6 C/h default -- slower
+# than a one-litre tank.
+from heatpump_optimizer.const import default_buffer_cooling_rate as _bcr  # noqa: E402
+
+_bcr_rates = [_bcr(v) for v in (300.0, 35.0, 1.0, 1e-3, 0.0, -5.0)]
+R.check(
+    "the buffer cooling prior never falls as the tank shrinks, down to an "
+    "empty tank",
+    all(a <= b for a, b in zip(_bcr_rates, _bcr_rates[1:])),
+    f"rates by shrinking volume {[round(r, 3) for r in _bcr_rates]}",
 )
 
 # --- #697 15-minute billed clock ---------------------------------------------
@@ -15551,6 +16095,24 @@ R.check(
     abs(_ce._scores_view()["envelope"] - 75.0) < 0.1,
     "tau = 10 / (0.25 x 0.5) = 80 h -> (80-20)/80 of the way to 100",
 )
+# The time constant needs both halves: a house with no thermal mass, or one
+# with no loss, has no envelope evidence -- None, never a grade of 0 and
+# never a division by zero.
+_ce0 = _t2_coord()
+_ce0._thermal_params.heat_loss_coefficient = 0.25
+_ce0._thermal_params.room_thermal_mass = 0.0
+_ce0_env = _ce0._scores_view()["envelope"]
+_ce0._thermal_params.room_thermal_mass = 10.0
+_ce0._thermal_params.heat_loss_coefficient = 0.0
+try:
+    _ce0_env_loss = _ce0._scores_view()["envelope"]
+except ZeroDivisionError as _ce0_err:
+    _ce0_env_loss = repr(_ce0_err)
+R.check(
+    "no thermal mass, or no loss, is no envelope evidence (None), not a grade",
+    _ce0_env is None and _ce0_env_loss is None,
+    f"massless {_ce0_env!r}, lossless {_ce0_env_loss!r}",
+)
 _cmach = _t2_coord()
 R.check(
     "no COP evidence means no machine grade, not a failing one",
@@ -16572,6 +17134,22 @@ R.check(
     bool(_cextf._freq_map.buckets),
     "#781: do not gate the fold on _learning_frozen wholesale",
 )
+# No reading is no evidence, in either stage: an unavailable frequency entity
+# neither teaches the map nor counts towards the control watchdog.
+_cnone = []
+for _cn_mode in (None, "control"):
+    _cn = _freq_coord(hz="unavailable", mode=_cn_mode)
+    try:
+        _cn._observe_frequency(_T6)
+        _cnone.append((bool(_cn._freq_map.buckets), _cn._freq_watchdog.strikes))
+    except Exception as _cn_err:  # noqa: BLE001 - a raise is the failure measured
+        _cnone.append(repr(_cn_err))
+R.check(
+    "an unavailable frequency reading teaches nothing and strikes nothing, "
+    "observing or controlling",
+    _cnone == [(False, 0), (False, 0)],
+    repr(_cnone),
+)
 R.check(
     "without the entity the stage is unconfigured and the view says so",
     _t2_coord()._freq_view()["mode"] == "unconfigured"
@@ -17434,6 +18012,35 @@ R.check(
     "the coordinator reports the solve crash as a reason, not an exception",
     _asyncio.run(_svc_crash_coord.async_run_optimization()) == "solve_failed",
     "async_run_optimization did not report solve_failed",
+)
+
+# #1512: the coordinator hands the tariff's distinct-days rule to the solver
+# with the rest of the peak settings. Stopped right after that block (the
+# next read raises), so no solve runs: the config's False must be on the
+# optimizer config, and the default install's True likewise.
+def _dd_pushed(overrides):
+    hass = FakeHass()
+    _seed_prices(hass)  # #924
+    entry = FakeEntry(data={**_LC_DATA, "peak_tariff_enabled": True, **overrides},
+                      entry_id=f"dd_push_{len(overrides)}")
+    _asyncio.run(_ha_setup_entry(_integ, hass, entry))
+    coord = entry.runtime_data
+    coord._prices = list(_svc_crash_coord._prices)
+
+    def _stop(_n):
+        raise RuntimeError("stop after the peak settings")
+
+    coord._baseline_house_load = _stop
+    coord._opt_config.peak_distinct_days = None
+    _asyncio.run(coord.async_run_optimization())
+    return coord._opt_config.peak_distinct_days
+
+
+_dd_off, _dd_default = _dd_pushed({"peak_tariff_distinct_days": False}), _dd_pushed({})
+R.check(
+    "the solver gets the tariff's distinct-days rule from the config (#1512)",
+    _dd_off is False and _dd_default is True,
+    f"config False -> {_dd_off!r}, default -> {_dd_default!r}",
 )
 
 _svc_sim_hass = FakeHass()
@@ -19862,6 +20469,35 @@ R.check(
     f"solve calls: {_fr_calls}",
 )
 
+
+# #1546: both refresh wrappers turn an unexpected error into an UpdateFailed
+# that carries its translation, so the frontend can render it in the user's
+# language; tests/doc_claims.py pins the key's strings.json entry.
+async def _fr_fetch_raises() -> None:
+    raise RuntimeError("boom")
+
+
+_fr_coord._fetch_tibber_prices = _fr_fetch_raises
+_fr_wrapped = []
+for _fr_skip in (False, True):
+    _fr_coord._skip_solve_once = _fr_skip
+    try:
+        _asyncio.run(_fr_coord._async_update_data())
+        _fr_wrapped.append(None)
+    except Exception as err:  # noqa: BLE001 - the carried key is the assertion
+        _fr_wrapped.append(err)
+R.check(
+    "both refresh wrappers raise a translated UpdateFailed (update_failed)",
+    all(
+        type(e).__name__ == "UpdateFailed"
+        and (e.translation_domain, e.translation_key) == ("heatpump_optimizer", "update_failed")
+        and e.translation_placeholders == {"error": "boom"}
+        and str(e) == "Error updating data: boom"
+        for e in _fr_wrapped
+    ),
+    repr([(type(e).__name__, getattr(e, "translation_key", None)) for e in _fr_wrapped]),
+)
+
 # --- D10-06 / D10-07 / D10-09: unload lifecycle and Tibber failure --------
 R.section("Unload lifecycle and Tibber failure semantics (D10-06/07/09)")
 
@@ -19889,6 +20525,13 @@ R.check(
     "a failed Tibber fetch raises UpdateFailed, failing the update cycle",
     type(_tib_raised).__name__ == "UpdateFailed",
     f"raised {type(_tib_raised).__name__}: {_tib_raised}",
+)
+R.check(
+    "the outage latch's UpdateFailed carries its translation (#1546)",
+    getattr(_tib_raised, "translation_key", None) == "tibber_fetch_failed"
+    and getattr(_tib_raised, "translation_domain", None) == "heatpump_optimizer"
+    and getattr(_tib_raised, "translation_placeholders", None) == {"error": str(_tib_raised)},
+    f"{getattr(_tib_raised, 'translation_key', None)!r}",
 )
 
 # D10-09: the outage latches. The first failure logs ERROR; the second must
@@ -28168,6 +28811,10 @@ _ET_KEYS = {
     "restore_learned_snapshot_no_snapshot": {"entry_ids"},
     "set_thermal_params_invalid_dhw_windows": {"error", "windows"},
     "set_temperature_comfort_band_violation": {"violations"},
+    # #1546: the coordinator's UpdateFailed raises, through _raise_update_failed.
+    "process_worker_unusable": {"cycles"},
+    "update_failed": {"error"},
+    "tibber_fetch_failed": {"error"},
 }
 
 
@@ -30423,6 +31070,13 @@ R.check(
         for p, e in zip(_g783_plans[:_g783_cap], _g783_errs[:_g783_cap], strict=True)
     ),
     f"plans={_g783_plans[:_g783_cap]!r} errs={[type(e).__name__ for e in _g783_errs[:_g783_cap]]!r}",
+)
+R.check(
+    "the cap's UpdateFailed carries its translation and cycle count (#1546)",
+    getattr(_g783_errs[_g783_cap], "translation_key", None) == "process_worker_unusable"
+    and getattr(_g783_errs[_g783_cap], "translation_placeholders", None)
+    == {"cycles": str(_g783_cap + 1)},
+    f"{_g783_errs[_g783_cap]!r}",
 )
 R.check(
     "the next fallback raises UpdateFailed and skips the GIL solve",

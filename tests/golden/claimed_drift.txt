@@ -60,16 +60,6 @@
 # next branch restates its own footprint, claims included.
 #
 
-# #1495 (mold-floor breach warning): this branch claims the config_flow
-# fixture and nothing else, ADD-ONLY. The comfort page's mold section gains
-# the mold_floor_breach_margin option, so capture_config_flow's schema
-# carries two new leaves (both under comfort.mold.fields), each present on
-# one side only. config_flow is float-free (carries_floats is False), so
-# env_drift compares it exactly and the committed fixture is re-recorded
-# alongside. No solver input, output or intermediate changes -- the plan
-# fixtures and the coordinator captures are untouched, so neither is claimed.
-config_flow  # #1495: the mold-guard page gains mold_floor_breach_margin (2 leaves, ADD-ONLY)
-
 # The sysid-estimator wave (#942 options 2+3, fitted arm): this branch
 # claims the five coordinator captures and NOTHING ELSE; the direction is
 # ADD-ONLY. SysIdResult.as_dict() publishes the re-derived slab-mode tau
@@ -657,6 +647,13 @@ config_flow  # #1495: the mold-guard page gains mold_floor_breach_margin (2 leav
 # a fixture the gate has already exempted.
 # `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all <merge-base>`
 # prints NO UNCLAIMED DRIFT when this list is current.
+#
+# #1512 (R8-D2-s2-01, capacity peaks on distinct days): the grid page gains
+# the peak_tariff_distinct_days toggle, so config_flow's captured schema
+# gains that field in both rendered steps and the seeded entry's options.
+# ADD-ONLY: 13 inserted lines, 0 deleted.
+config_flow # #1512: the new peak_tariff_distinct_days field (add-only)
+# R7 (#1495) merge of origin/main (f5d4743b): main's own #1512 note above describes #1512's diff relative to ITS OWN former base, not this branch's diff relative to origin/main. This branch never touches capacity_tariff, so on this merged tree the fixture is byte-identical to origin/main -- env_drift.py --all f5d4743b reports it STALE. Per the claimnotes driver's own refusal rule (claim-files.md: a claim describes exactly one diff and never carries forward), it does not carry forward here. Removed; config_flow (both the #1512 and #1495 notes) stays, since this branch's own field genuinely makes config_flow drift.
 # R7-D8-01 (#1460), branch fix/r7-coordinator: this diff claims the five
 # coordinator captures and NOTHING ELSE. The direction is ADD-ONLY.
 # `_build_data_dict` now publishes the three keys `SensorGapAdvisorSensor`
@@ -685,11 +682,13 @@ config_flow  # #1495: the mold-guard page gains mold_floor_breach_margin (2 leav
 # hand-made: the list ADDED a line beside the baseline's, which
 # `drop_inherited_claim_lines` treats as a rewrite and refuses to touch
 # (#1255), so `apply_inherited_claims` cannot lift this one.
-#
-# R7 (#1495) merge of origin/main (d413ba84) into fix/r7-mold-warning: the
-# one claim this file inherited from that merge base, valve_storage_flat_prices
-# (R7-D0-01 / #1447's note above), comes OUT for the same reason. It was
-# main's own, written for #1486's diff, and this branch touches no solver
-# input, so on this merged tree that fixture is byte-identical to d413ba84 and
-# `env_drift.py --all d413ba84` would report it STALE. This branch's bare list
-# is config_flow alone, the fixture THIS diff moves (its note is near the top).
+
+# #1495 (mold-floor breach warning): this branch claims the config_flow
+# fixture and nothing else, ADD-ONLY. The comfort page's mold section gains
+# the mold_floor_breach_margin option, so capture_config_flow's schema
+# carries two new leaves (both under comfort.mold.fields), each present on
+# one side only. config_flow is float-free (carries_floats is False), so
+# env_drift compares it exactly and the committed fixture is re-recorded
+# alongside. No solver input, output or intermediate changes -- the plan
+# fixtures and the coordinator captures are untouched, so neither is claimed.
+config_flow  # #1495: the mold-guard page gains mold_floor_breach_margin (2 leaves, ADD-ONLY)

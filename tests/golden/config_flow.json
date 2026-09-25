@@ -1070,6 +1070,7 @@
   "outage_recovery_enabled": true,
   "outdoor_temp_entity": "sensor.seed_outdoor_temp_entity",
   "peak_guard_enabled": true,
+  "peak_tariff_distinct_days": true,
   "peak_tariff_enabled": true,
   "peak_tariff_weekdays_only": true,
   "precip_type_enabled": true,
@@ -2255,6 +2256,12 @@
     "default": "'menu'",
     "required": "Optional",
     "selector": "SelectSelector"
+   },
+   "peak_tariff_distinct_days": {
+    "config": null,
+    "default": "True",
+    "required": "Optional",
+    "selector": "type"
    },
    "peak_tariff_enabled": {
     "config": null,
@@ -4771,6 +4778,12 @@
    "default": "'menu'",
    "required": "Optional",
    "selector": "SelectSelector"
+  },
+  "peak_tariff_distinct_days": {
+   "config": null,
+   "default": "True",
+   "required": "Optional",
+   "selector": "type"
   },
   "peak_tariff_enabled": {
    "config": null,

@@ -19,7 +19,7 @@ the 2025.2.0 floor it warns and continues, so skipping it changes nothing).
 
 import asyncio
 
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 
 REQUEST_REFRESH_DEFAULT_COOLDOWN = 10
 
@@ -264,8 +264,14 @@ class DataUpdateCoordinator:
             update_callback()
 
 
-class UpdateFailed(Exception):
-    pass
+class UpdateFailed(HomeAssistantError):
+    """Raised when an update has failed.
+
+    Upstream (2025.2.0, the manifest floor) subclasses HomeAssistantError, so
+    a raise may carry the three translation kwargs (#1546). A bare
+    ``Exception`` here refused them with a TypeError the real class never
+    raises.
+    """
 
 
 class CoordinatorEntity:

@@ -437,6 +437,15 @@
     },
     "set_thermal_params_invalid_dhw_windows": {
       "message": "Ogiltiga varmvattentider \"{windows}\": {error}"
+    },
+    "process_worker_unusable": {
+      "message": "Optimeringsprocessen misslyckades {cycles} cykler i rad; den senaste planen gäller fortfarande"
+    },
+    "update_failed": {
+      "message": "Fel vid uppdatering av data: {error}"
+    },
+    "tibber_fetch_failed": {
+      "message": "Elpriserna kunde inte hämtas: {error}"
     }
   },
   "options": {
@@ -961,6 +970,7 @@
           "peak_tariff_hours": "Höglasttimmar",
           "peak_tariff_weekdays_only": "Helger är låglast",
           "peak_tariff_offpeak_factor": "Vad låglasttimmar räknas som",
+          "peak_tariff_distinct_days": "Toppar på olika dygn",
           "after_save": "Efter sparande"
         },
         "data_description": {
@@ -972,6 +982,7 @@
           "peak_tariff_hours": "Till exempel \"07:00-19:00\". Tomt betyder att varje timme räknas fullt ut. Utanför dessa timmar räknas en topp enligt låglastfaktorn nedan.",
           "peak_tariff_weekdays_only": "Många svenska tariffer fakturerar bara vardagstoppar. Med detta på räknas lördag och söndag enligt låglastfaktorn.",
           "peak_tariff_offpeak_factor": "1,0 behandlar varje timme lika, som det fungerade tidigare. 0,5 är den vanliga halvtaxan för natt-toppar; 0 gör låglasttimmar gratis — nattlig stapling kostar då ingenting i effekt, vilket är precis den billiga-timmar-koncentration integrationen finns för att hitta.",
+          "peak_tariff_distinct_days": "De flesta svenska tariffer räknar den högsta timmen på vart och ett av tre olika dygn, så en kall morgon med tre höga timmar är en topp, inte tre. Stäng av bara om din faktura tar medel av de högsta timmarna oavsett dygn.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
