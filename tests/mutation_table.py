@@ -1571,6 +1571,20 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
     return [(m, v or "LIVES") for m, v in zip(pool, verdict)]
 
 
+def deferred_drivers(needed: list[str], scope: str) -> list[str]:
+    """The EXCLUSIVE drivers whose baseline and null run wait for `settle`.
+
+    Under --scope changed they wait until a mutant survives every shared
+    driver: alone, they were a third of #1611's 100 minutes, spent for no
+    mutant. Every mutant such a driver drives still has both first, so no
+    kill or LIVES verdict moves. What can move is the table's headline: a red
+    or timed-out baseline no mutant reaches made the table INCONCLUSIVE and
+    now leaves it PASSED, with a line naming the driver as never run (both
+    exit 0). The nightly (--scope full) keeps the eager refusal.
+    """
+    return [s for s in needed if s in EXCLUSIVE and scope == "changed"]
+
+
 class Deferred(Exception):
     """A deferred driver's baseline or null control refused the run."""
 
@@ -1838,14 +1852,7 @@ def main() -> int:
                 return run_script(s, trees[w], args.timeout, extra_args,
                                   extra_env)
 
-        # Under --scope changed an EXCLUSIVE driver's baseline and null run
-        # wait until a mutant survives every shared driver (`settle`): alone,
-        # they were a third of #1611's 100 minutes, spent for no mutant. Every
-        # mutant it drives still has both first; a run that never needs it
-        # exits as it would have (a red changed-scope baseline returns 0, and
-        # a LIVES needs it). The nightly keeps the eager refusal.
-        deferred = [s for s in needed
-                    if s in EXCLUSIVE and args.scope == "changed"]
+        deferred = deferred_drivers(needed, args.scope)
         for s in deferred:
             print(f"  {s}: baseline and null control deferred until a mutant "
                   f"survives every shared driver")
@@ -1923,6 +1930,10 @@ def main() -> int:
                 settle=lambda s: s in deferred and settle(s))
         except Deferred as stop:
             return stop.rc
+        for s in (s for s in deferred if s not in baseline):
+            print(f"  {s}: DEFERRED AND NEVER RUN -- no mutant survived every "
+                  f"shared driver, so its baseline was never checked here; a "
+                  f"red one would have made this table INCONCLUSIVE")
     finally:
         for tree in made:
             drop_tree(tree)

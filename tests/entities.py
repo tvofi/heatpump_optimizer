@@ -24912,6 +24912,21 @@ R.check(
         ("drive", 2, "tests/stress.py")],
     f"log={_MUT_S_LOG!r}",
 )
+_MUT_MAIN_DEFER = pathlib.Path(_mut.__file__).read_text()
+_MUT_MAIN_DEFER = _MUT_MAIN_DEFER[_MUT_MAIN_DEFER.index("def main("):]
+# main() defers exactly the EXCLUSIVE drivers, and only under --scope changed.
+_mut_defer = getattr(_mut, "deferred_drivers", None)
+_MUT_D_NET = ["tests/a.py", "tests/stress.py"]
+_MUT_D_OUT = ((_mut_defer(_MUT_D_NET, "changed"), _mut_defer(_MUT_D_NET, "full"))
+              if _mut_defer else None)
+R.check(
+    "a changed-scope run defers stress.py's baseline, the nightly never does, "
+    "and main() takes its deferral from that rule",
+    _MUT_D_OUT == (["tests/stress.py"], [])
+    and "deferred = deferred_drivers(needed, args.scope)" in _MUT_MAIN_DEFER
+    and "DEFERRED AND NEVER RUN" in _MUT_MAIN_DEFER,
+    f"deferred={_MUT_D_OUT!r}",
+)
 # The sweep order is the ledger's: tests/features.py, costly but holding the
 # ledger's kills, goes before a cheap driver that has killed nothing -- and
 # the order is a permutation, so no driver leaves the net.
