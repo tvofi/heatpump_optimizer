@@ -66,7 +66,7 @@
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 958.2,
+   "seconds": 442.5,
    "rc": 0
   },
   "tests/structure.py": {
@@ -102,11 +102,11 @@
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 2.1,
+   "seconds": 2.2,
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 4.2,
+   "seconds": 62.3,
    "rc": 0
   }
  },
@@ -591,8 +591,10 @@
    "tests/requirements-typing.txt",
    "tests/run.sh",
    "tests/stress.py",
+   "tests/stress_budgets.json",
    "tests/structure.py",
    "tests/structure_budgets.json",
+   "tests/typing_ruler.py",
    "tests/validate.py",
    "tools/audit/preflight.sh",
    "tools/audit/round4/D11/d11lib.py",
@@ -609,6 +611,7 @@
    "tools/audit/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
    "tools/audit/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
    "tools/audit/round5/D13/seat-a/fixtures/window_merges.json",
+   "tools/merge/ledger_merge.py",
    "tools/release/stamp.py",
    "tools/replay/export.py",
    "tools/replay/synthesize.py"
@@ -1346,7 +1349,8 @@
    "tests/hastub/homeassistant/util/dt.py",
    "tests/profiles.py",
    "tests/stress.py",
-   "tests/stress_budgets.json"
+   "tests/stress_budgets.json",
+   "tests/structure.py"
   ],
   "tests/structure.py": [
    "custom_components/heatpump_optimizer/__init__.py",
@@ -2015,6 +2019,7 @@
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/quality_scale.yaml",
    "custom_components/heatpump_optimizer/quick_setup.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/sensor.py",
@@ -2023,11 +2028,14 @@
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
+   "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/en.json",
+   "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "docs/architecture.md",
@@ -2131,7 +2139,13 @@
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
+   "tests/hastub/homeassistant/components/binary_sensor.py",
+   "tests/hastub/homeassistant/components/button.py",
+   "tests/hastub/homeassistant/components/climate.py",
+   "tests/hastub/homeassistant/components/datetime.py",
    "tests/hastub/homeassistant/components/mqtt.py",
+   "tests/hastub/homeassistant/components/sensor.py",
+   "tests/hastub/homeassistant/components/switch.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
@@ -2141,6 +2155,7 @@
    "tests/hastub/homeassistant/helpers/config_validation.py",
    "tests/hastub/homeassistant/helpers/device_registry.py",
    "tests/hastub/homeassistant/helpers/entity.py",
+   "tests/hastub/homeassistant/helpers/entity_platform.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
    "tests/hastub/homeassistant/helpers/event.py",
    "tests/hastub/homeassistant/helpers/issue_registry.py",

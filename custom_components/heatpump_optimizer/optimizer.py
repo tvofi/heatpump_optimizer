@@ -99,6 +99,7 @@ from .tariff import (
     peak_cost,
     peak_cost_batch,
     peak_cost_smooth,
+    plan_window_days,
     realised_peak,
     window_factors,
 )
@@ -1214,6 +1215,9 @@ class OptimizationConfig:
     peak_window_minutes: int = 60
     #: How many of the month's highest peaks the DSO averages for the bill.
     peak_count: int = 3
+    #: The averaged peaks fall on different days (#1512): a plan day
+    #: contributes its highest window only.
+    peak_distinct_days: bool = True
     #: Whole-house load excluding the heat pump, per step, in kW.
     baseline_load_kw: Any = None
 
@@ -2491,6 +2495,7 @@ class HeatPumpOptimizer:
         baseline = cfg.baseline_load_array(n_steps)
         offset_steps = self._window_offset_steps(start_time, dt)
         factors = self._peak_window_factors(n_steps, dt, start_time, offset_steps)
+        day_kwargs = self._peak_day_kwargs(n_steps, dt, start_time, offset_steps)
 
         def cycling(power: np.ndarray) -> float:
             return cycling_penalty(power, cfg.cycling_cost, p_max)
@@ -2521,12 +2526,13 @@ class HeatPumpOptimizer:
 
         def capacity(total_power: np.ndarray) -> float:
             return peak_cost_smooth(
-                total_power, *peak_args, window_factors=factors
+                total_power, *peak_args, window_factors=factors, **day_kwargs
             )
 
         def capacity_batch(total_power_matrix: np.ndarray) -> np.ndarray:
             return peak_cost_batch(
-                total_power_matrix, *peak_args, window_factors=factors
+                total_power_matrix, *peak_args, window_factors=factors,
+                **day_kwargs,
             )
 
         return cycling, capacity, baseline, cycling_batch, capacity_batch
@@ -2560,6 +2566,32 @@ class HeatPumpOptimizer:
             np.zeros(n_steps), cfg.peak_window_minutes, dt, offset_steps
         ).size
         return window_factors(mask, start_time, n_windows, dt)
+
+    def _peak_day_kwargs(
+        self,
+        n_steps: int,
+        dt: float,
+        start_time: datetime | None,
+        offset_steps: int,
+    ) -> dict[str, Any]:
+        """The distinct-days rule and each plan window's day, for peak_cost.
+
+        Dated by ``plan_window_days``, which walks the windows exactly as
+        ``window_factors`` does, so a window's day and its billing factor
+        are read at the same real instant (#1512).
+        """
+        cfg = self.config
+        n_windows = metering_windows(
+            np.zeros(n_steps), cfg.peak_window_minutes, dt, offset_steps
+        ).size
+        days = (
+            None if start_time is None
+            else plan_window_days(n_windows, cfg.peak_window_minutes, start_time)
+        )
+        return {
+            "window_days": days,
+            "distinct_days": bool(cfg.peak_distinct_days),
+        }
 
     # ------------------------------------------------------------------
     # Predictive weather analysis
@@ -4087,6 +4119,7 @@ class HeatPumpOptimizer:
                         len(np.asarray(total_power)), dt, start_time,
                         offset_steps,
                     ),
+                    **self._peak_day_kwargs(n, dt, start_time, offset_steps),
                 ),
                 3,
             ),

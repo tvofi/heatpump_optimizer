@@ -75,10 +75,16 @@ ROOT = Path(__file__).resolve().parents[1]
 PKG = ROOT / "custom_components" / "heatpump_optimizer"
 ENTRY_ID = "test_entry"
 
-SUBSTITUTES = [
+NONFINITE = [
     float("nan"), float("inf"), float("-inf"),
     "NaN", "Infinity", "-Infinity", 1e309, -1e309, 1e308,
 ]
+#: Round 8 (#1518): a leaf that is not a number at all. The boundary above
+#: passes it through by design (it is not non-finite), so the loader behind
+#: it owns the refusal; ``"12,5"`` is the decimal-comma hand edit that took
+#: every refresh down through ``MonthlyLedger.line``.
+WRONG_TYPE = ["not_a_number", "12,5", [1.0, 2.0], {"k": 1.0}]
+SUBSTITUTES = NONFINITE + WRONG_TYPE
 
 
 # ---------------------------------------------------------------------------
@@ -167,8 +173,24 @@ def _healthy_payloads() -> dict[str, dict]:
     _storage.SAVE_COUNTS.clear()
     coord = _build_coord()
     run = asyncio.run
+    # A fresh coordinator persists an EMPTY ledger month map and draw
+    # reservoir, so the sweep had no leaf to corrupt there and #1518's month
+    # leaves went undriven. Book one line, one month mean and one draw
+    # through the real writers, so those leaves exist to substitute.
+    _when = _dt.datetime(2026, 1, 15, 12, 0, 0)
+    coord._ledger.add(_when, "savings_baseline", kwh=2.0, sek=3.0)
+    coord._ledger.observe_meta_mean(_when, "spot_price", 1.25)
+    coord._dhw_learner.draw_stats.reservoirs["morning"] = [1.5, 2.5]
     run(coord._async_save_thermal_learning())
     run(coord._async_save_price_model())
+    # #1512: the peak tracker persists its dated peaks in the accuracy store.
+    # Seed three closed windows on two days so the sweep corrupts real peak
+    # leaves and the shape arm below has labels to break.
+    _tariff = coord._capacity_tariff()
+    for _hour, _kw in ((6, 9.0), (7, 8.0), (30, 7.0), (31, 3.0)):
+        coord._peak_tracker.observe(
+            _dt.datetime(2026, 1, 1) + _dt.timedelta(hours=_hour), _kw, _tariff
+        )
     run(coord._async_save_accuracy())
     run(coord._async_save_energy_totals())
     run(coord._async_save_manual_plan())
@@ -220,9 +242,20 @@ _SKIP_TYPES = (str, bytes, bool, int, float, type(None))
 _SEEN: set = set()
 
 
-def _walk_nonfinite(obj, label, depth=0, out=None):
+def _kind(obj) -> str:
+    """``number`` for a real number, else the container or scalar kind."""
+    if isinstance(obj, bool) or obj is None:
+        return "other"
+    if isinstance(obj, (int, float, np.integer, np.floating)):
+        return "number"
+    return "text" if isinstance(obj, str) else type(obj).__name__
+
+
+def _walk_nonfinite(obj, label, depth=0, out=None, kinds=None):
     if out is None:
         out = []
+    if kinds is not None:
+        kinds[label] = _kind(obj)
     if depth > 5 or id(obj) in _SEEN:
         return out
     _SEEN.add(id(obj))
@@ -247,15 +280,15 @@ def _walk_nonfinite(obj, label, depth=0, out=None):
         return out
     if isinstance(obj, dict):
         for k, v in list(obj.items())[:80]:
-            _walk_nonfinite(v, f"{label}[{k}]", depth + 1, out)
+            _walk_nonfinite(v, f"{label}[{k}]", depth + 1, out, kinds)
         return out
     if isinstance(obj, (list, tuple)):
         for i, v in enumerate(obj[:80]):
-            _walk_nonfinite(v, f"{label}[{i}]", depth + 1, out)
+            _walk_nonfinite(v, f"{label}[{i}]", depth + 1, out, kinds)
         return out
     if dataclasses.is_dataclass(obj):
         for f in dataclasses.fields(obj):
-            _walk_nonfinite(getattr(obj, f.name, None), f"{label}.{f.name}", depth + 1, out)
+            _walk_nonfinite(getattr(obj, f.name, None), f"{label}.{f.name}", depth + 1, out, kinds)
         return out
     if hasattr(obj, "__dict__") and not callable(obj):
         mod = type(obj).__module__
@@ -264,25 +297,44 @@ def _walk_nonfinite(obj, label, depth=0, out=None):
         for k, v in list(vars(obj).items())[:120]:
             if k.startswith("__"):
                 continue
-            _walk_nonfinite(v, f"{label}.{k}", depth + 1, out)
+            _walk_nonfinite(v, f"{label}.{k}", depth + 1, out, kinds)
     return out
 
 
-def _scan_model(coord):
+def _scan_model(coord, kinds=None):
     global _SEEN
     _SEEN = set()
     _SEEN.add(id(coord))
     _SEEN.add(id(coord.hass))
     _SEEN.add(id(coord.entry))
     _SEEN.add(id(getattr(coord, "_ctx", None)))
-    return _walk_nonfinite(coord._thermal_params, "params")
+    return _walk_nonfinite(coord._thermal_params, "params", kinds=kinds)
+
+
+def _type_drift(healthy_kinds, mutant_kinds):
+    """Labels a healthy load held as a number and the mutant load holds as
+    text or a container -- a wrong-type leaf the loader installed live."""
+    return sorted(
+        label for label, kind in mutant_kinds.items()
+        if healthy_kinds.get(label) == "number" and kind not in ("number", "other")
+    )
+
+
+R.check(
+    "the type-drift reader flags a number that loaded as text (its own control)",
+    _type_drift({"p.x": "number", "p.y": "number"}, {"p.x": "text", "p.y": "number"}) == ["p.x"],
+    "the reader under the reach arm's type check returned the wrong labels",
+)
+
+
+_RAISED = "<build_data_dict raised>"
 
 
 def _scan_published(coord):
     try:
         pub = coord._build_data_dict()
-    except Exception as exc:  # pragma: no cover - diagnostic only
-        return ["<build_data_dict raised %s>" % type(exc).__name__]
+    except Exception:
+        return [_RAISED]
     global _SEEN
     _SEEN = set()
     return _walk_nonfinite(pub, "data")
@@ -313,6 +365,133 @@ R.check(
 )
 
 
+# ---------------------------------------------------------------------------
+# Arm 3 -- the publish sweep (#1541): every entity of every platform
+# ---------------------------------------------------------------------------
+
+def _published(ent) -> dict:
+    """Every public property the integration defines on the entity's class
+    chain, read the way Home Assistant's state write reads them. The stub
+    ``Entity`` has no ``state_attributes``, so the rule is the package's own
+    properties -- which is where a coordinator value enters a state write."""
+    out: dict = {}
+    for cls in type(ent).__mro__:
+        if not cls.__module__.startswith("heatpump_optimizer"):
+            continue
+        for name, member in vars(cls).items():
+            if isinstance(member, property) and not name.startswith("_") and name not in out:
+                try:
+                    out[name] = getattr(ent, name)
+                except Exception as exc:  # a raise is a failed state write
+                    out[name] = (_RAISED, type(exc).__name__)
+    return out
+
+
+def _numbers(value) -> list[float]:
+    if isinstance(value, bool):
+        return []
+    if isinstance(value, (float, np.floating)):
+        return [float(value)]
+    if isinstance(value, dict):
+        return [x for v in value.values() for x in _numbers(v)]
+    if isinstance(value, (list, tuple)):
+        return [x for v in value for x in _numbers(v)]
+    return []
+
+
+def _poisoned(value, bad):
+    """``value`` with every float leaf replaced by ``bad``; flags stay on."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (float, np.floating)):
+        return bad
+    if isinstance(value, dict):
+        return {k: _poisoned(v, bad) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_poisoned(v, bad) for v in value]
+    return value
+
+
+def _publish_arm() -> None:
+    """Every float the coordinator publishes set non-finite; every entity of
+    every registered platform must still publish finite values in process.
+
+    The platform set is ``PLATFORM_LIST``, the list the integration forwards
+    to Home Assistant, so a platform added there is swept without an edit
+    here. ``reading_ok`` flags are all set, so the gated temperatures reach
+    their entities, and the comfort target is poisoned too, because the
+    thermostat's ``target_temperature`` reads it rather than the data dict.
+    """
+    import importlib
+    import heatpump_optimizer as integration
+
+    start = _dt.datetime(2026, 1, 15, 0, 0, tzinfo=_dt.timezone.utc)
+    coord = _build_coord()
+    coord._prices = [
+        {"total": 0.7, "starts_at": (start + _dt.timedelta(hours=h)).isoformat(), "level": "NORMAL"}
+        for h in range(48)
+    ]
+    coord._weather_forecast = [
+        {"datetime": (start + _dt.timedelta(hours=h)).isoformat(), "temperature": 2.0,
+         "wind_speed": 3.0, "precipitation": 0.0, "humidity": 80.0}
+        for h in range(48)
+    ]
+    coord._solar_radiation_forecast = [0.0] * 48
+    coord._forecast_arrays()
+    healthy = coord._build_data_dict()
+    healthy["reading_ok"] = {k: True for k in healthy.get("reading_ok") or {}}
+    coord.entry.runtime_data = coord
+    opt = getattr(coord, "_ctx", coord)._opt_config
+    target = opt.target_temp
+    for platform in integration.PLATFORM_LIST:
+        module = importlib.import_module(f"heatpump_optimizer.{platform}")
+        entities: list = []
+        coord.data = healthy
+        asyncio.run(module.async_setup_entry(coord.hass, coord.entry, entities.extend))
+        before = {id(e): _published(e) for e in entities}
+        leaks: list[str] = []
+        reach = 0
+        for bad in (float("nan"), float("inf"), float("-inf")):
+            coord.data, opt.target_temp = _poisoned(healthy, bad), bad
+            for ent in entities:
+                after = _published(ent)
+                reach += after != before[id(ent)]
+                leaks += [
+                    f"{type(ent).__name__}.{name}" for name, v in after.items()
+                    if (isinstance(v, tuple) and v[:1] == (_RAISED,))
+                    or any(not math.isfinite(x) for x in _numbers(v))
+                ]
+            opt.target_temp = target
+        R.check(
+            f"every {platform} entity publishes finite values from non-finite input (#1541)",
+            not leaks,
+            f"entities={len(entities)} leaks={sorted(set(leaks))}",
+        )
+        if any(_numbers(v) for pub in before.values() for v in pub.values()):
+            R.check(
+                f"the poisoned input reaches a published {platform} value (the arm is not vacuous)",
+                reach > 0,
+                "no published value moved when every float input went non-finite",
+            )
+        print(f"RESULT publish_{platform}_entities={len(entities)} count")
+        print(f"RESULT publish_{platform}_leaks={len(leaks)} count")
+
+
+def _no_rewrap_check() -> None:
+    """The base wraps a published property once. A subclass that re-exports an
+    inherited, already-scrubbed property in its own namespace must reuse that
+    wrapper, not stack a second one per level (``_finite_scrubbed``)."""
+    from heatpump_optimizer import sensor
+
+    parent = sensor.CurrentPriceSensor
+    alias = type("_AliasedPrice", (parent,), {"native_value": parent.native_value})
+    R.check(
+        "an inherited scrubbed property re-exported by a subclass is not wrapped twice",
+        alias.native_value.fget is parent.native_value.fget,
+        "the subclass's native_value was re-wrapped around the parent's wrapper",
+    )
+
+
 def _main() -> int:
     disk = _healthy_payloads()
     by_name = {}
@@ -322,7 +501,19 @@ def _main() -> int:
     model_poison = 0
     published_poison = 0
     loader_escape = 0
+    type_drift = 0
+    refresh_escape = 0
     stores_swept = 0
+
+    _ledger_leaves = [
+        p for p, _v in _leaf_paths(by_name.get("ledger", ("", {}))[1])
+        if p[:2] == ("ledger", "months")
+    ]
+    R.check(
+        "the ledger payload carries month line and meta leaves to corrupt (#1518)",
+        any("lines" in p for p in _ledger_leaves) and any("meta" in p for p in _ledger_leaves),
+        f"ledger month leaves={_ledger_leaves}",
+    )
 
     for name, loader in LOADERS.items():
         if name not in by_name:
@@ -331,6 +522,12 @@ def _main() -> int:
         key, healthy = by_name[name]
         leaves = _leaf_paths(healthy)
         stores_swept += 1
+        _storage._DISK[key] = json.dumps(healthy)
+        coord = _build_coord()
+        asyncio.run(loader(coord))
+        healthy_kinds: dict = {}
+        _scan_model(coord, healthy_kinds)
+        _storage._DISK.clear()
         for path, val in leaves:
             if not isinstance(val, (int, float)) or isinstance(val, bool):
                 continue
@@ -350,11 +547,16 @@ def _main() -> int:
                     loader_escape += 1
                     _storage._DISK.clear()
                     continue
-                bad = _scan_model(coord)
+                kinds: dict = {}
+                bad = _scan_model(coord, kinds)
                 pbad = _scan_published(coord)
+                if _type_drift(healthy_kinds, kinds):
+                    type_drift += 1
                 if bad:
                     model_poison += 1
-                if pbad:
+                if pbad[:1] == [_RAISED]:
+                    refresh_escape += 1
+                elif pbad:
                     published_poison += 1
                 _storage._DISK.clear()
 
@@ -369,9 +571,64 @@ def _main() -> int:
         f"published_poison_total={published_poison}",
     )
     R.check(
+        "no corrupt leaf makes the next refresh's publication raise (#1518)",
+        refresh_escape == 0,
+        f"refresh_escape_total={refresh_escape}",
+    )
+    R.check(
+        "no wrong-type leaf is installed where the live model holds a number",
+        type_drift == 0,
+        f"type_drift_total={type_drift}",
+    )
+    R.check(
         "no loader raised on a quarantined payload",
         loader_escape == 0,
         f"loader_escape_total={loader_escape}",
+    )
+
+    # #1512 shape arm: the accuracy store's peak list in the shape a store
+    # written before ``peak_days`` has (no labels), and malformed label lists,
+    # through the real loader. Each must load without raising, keep only
+    # finite peaks, and give every peak exactly one string label.
+    shape_bad = []
+    acc_key, acc_healthy = by_name["accuracy"]
+    shapes = {
+        "pre-#1512 store, no labels": None,
+        "labels not a list": "2026-01-01",
+        "labels of the wrong type": [1, None, ["x"]],
+        "fewer labels than peaks": ["2026-01-01"],
+    }
+    for label, days in shapes.items():
+        mutant = json.loads(json.dumps(acc_healthy))
+        peaks = mutant["peaks"]
+        peaks["peaks"] = list(peaks["peaks"]) + [float("nan")]
+        if days is None:
+            peaks.pop("peak_days", None)
+        else:
+            peaks["peak_days"] = days
+        _storage._DISK[acc_key] = json.dumps(mutant)
+        _storage.SAVE_COUNTS.clear()
+        coord = _build_coord()
+        try:
+            asyncio.run(LOADERS["accuracy"](coord))
+        except Exception as exc:
+            shape_bad.append(f"{label}: raised {type(exc).__name__}")
+            _storage._DISK.clear()
+            continue
+        tracker = coord._peak_tracker
+        if not (
+            len(tracker.peaks) == len(acc_healthy["peaks"]["peaks"])
+            and len(tracker.peak_days) == len(tracker.peaks)
+            and all(isinstance(d, str) for d in tracker.peak_days)
+            and all(math.isfinite(p) for p in tracker.peaks)
+        ):
+            shape_bad.append(f"{label}: {tracker.peaks} {tracker.peak_days}")
+        _storage._DISK.clear()
+    R.check(
+        "the peak store loads its pre-#1512 and malformed label shapes: "
+        "finite peaks only, one string label each, no raise",
+        not shape_bad and len(acc_healthy["peaks"]["peaks"]) == 2,
+        f"{shape_bad} healthy peaks {acc_healthy['peaks']}",
     )
 
     # Null control: the healthy payloads reach nothing non-finite either — the
@@ -397,6 +654,10 @@ def _main() -> int:
     print(f"RESULT model_poison_total={model_poison} count")
     print(f"RESULT published_poison_total={published_poison} count")
     print(f"RESULT loader_escape_total={loader_escape} count")
+    print(f"RESULT type_drift_total={type_drift} count")
+    print(f"RESULT refresh_escape_total={refresh_escape} count")
+    _publish_arm()
+    _no_rewrap_check()
     return R.close("FINITE BOUNDARY CHECKS")
 
 
