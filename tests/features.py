@@ -45562,6 +45562,61 @@ R.check(
     f"{float(np.max(np.abs(_p3_tank(_p3_series) - _p3_tank(np.full(96, float(np.mean(_p3_series))))))):.4f} K",
 )
 
+# The step-versus-mean choice, pinned per kind of seam (R8-P3 round 2, from the
+# fix review). `_mean_humidity` is the NaN-skipping mean and None stays None. A
+# per-step planner seam (`_dhw_cop_profile`) prices each step at ITS humidity;
+# a mean-outdoor valuation (`_baseline_dhw_economics`) prices at the horizon's
+# mean, so it equals the same call on the flat mean series and differs from the
+# ambient-priced one (the null arm: the derate is live on this cell).
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _P3Opt,
+    OptimizationConfig as _P3Cfg,
+    _mean_humidity as _p3_mean_h,
+)
+
+_p3_nan_series = np.array([40.0, np.nan, 90.0, 80.0])
+_p3_opt = _P3Opt(ThermalModel(ThermalParameters(
+    defrost_derate=_p3_derate(), ambient_humidity=55.0, dhw_enabled=True,
+)), _P3Cfg(horizon_hours=1))
+_p3_h4 = np.array([95.0, 60.0, 90.0, 55.0])
+_p3_out4 = np.full(4, 1.0)
+_p3_tank4 = np.array([45.0, 50.0, 55.0, 60.0])
+_p3_prof = _p3_opt._dhw_cop_profile(_p3_out4, _p3_tank4, _p3_h4)
+_p3_prof_exp = [
+    max(1.0, _p3_opt.model.compute_cop_dhw(1.0, float(t), humidity=float(h)))
+    for t, h in zip(_p3_tank4, _p3_h4)
+]
+_p3_prof_mean = _p3_opt._dhw_cop_profile(
+    _p3_out4, _p3_tank4, np.full(4, float(np.mean(_p3_h4)))
+)
+
+
+def _p3_econ(hum):
+    return _p3_opt._baseline_dhw_economics(
+        ThermalState(), _p3_out4, 4, 55.0, lambda p: float(np.sum(p)),
+        np.ones(4), np.ones(4), np.ones(4), hum,
+    )[0]
+
+
+R.check(
+    "_mean_humidity is the NaN-skipping mean, and no series stays no series",
+    _p3_mean_h(_p3_nan_series) == 70.0 and _p3_mean_h(None) is None,
+    f"{_p3_mean_h(_p3_nan_series)!r}",
+)
+R.check(
+    "a per-step planner seam prices each step at its own humidity, not the mean",
+    list(_p3_prof) == _p3_prof_exp and list(_p3_prof) != list(_p3_prof_mean),
+    f"{list(_p3_prof)} vs expected {_p3_prof_exp}; mean-priced {list(_p3_prof_mean)}",
+)
+R.check(
+    "a mean-outdoor valuation prices the horizon's mean humidity, not a step's "
+    "and not the ambient",
+    np.array_equal(_p3_econ(_p3_h4), _p3_econ(np.full(4, float(np.mean(_p3_h4)))))
+    and not np.array_equal(_p3_econ(_p3_h4), _p3_econ(np.full(4, 95.0)))
+    and not np.array_equal(_p3_econ(_p3_h4), _p3_econ(None)),
+    f"series {_p3_econ(_p3_h4).tolist()} vs ambient {_p3_econ(None).tolist()}",
+)
+
 # The coordinator's capacity envelope (#17) turns each FORECAST step's learned
 # thermal ceiling into an electrical cap at that step's COP, so it is a planning
 # seam like the optimizer's: it must price the step's forecast humidity, not the
