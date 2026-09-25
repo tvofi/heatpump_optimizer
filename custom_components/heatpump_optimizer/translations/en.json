@@ -959,6 +959,7 @@
           "peak_tariff_hours": "Peak hours",
           "peak_tariff_weekdays_only": "Weekends are off-peak",
           "peak_tariff_offpeak_factor": "What off-peak hours count at",
+          "peak_tariff_distinct_days": "Peaks on different days",
           "after_save": "After saving"
         },
         "data_description": {
@@ -970,6 +971,7 @@
           "peak_tariff_hours": "For example \"07:00-19:00\". Empty means every hour counts in full. Outside these hours a peak counts at the off-peak factor below.",
           "peak_tariff_weekdays_only": "Many Swedish tariffs only bill weekday peaks. With this on, Saturday and Sunday count at the off-peak factor.",
           "peak_tariff_offpeak_factor": "1.0 treats every hour the same, which is how it worked before. 0.5 is the common half-rate night peak; 0 makes off-peak hours free — night-time stacking then costs nothing in capacity, which is exactly the cheap-hour concentration this integration exists to find.",
+          "peak_tariff_distinct_days": "Most Swedish tariffs count the highest hour of each of three different days, so a cold morning with three high hours is one peak, not three. Turn off only if your invoice averages the highest hours regardless of day.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },

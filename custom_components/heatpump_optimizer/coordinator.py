@@ -181,6 +181,8 @@ from .const import (
     DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
     CONF_PEAK_TARIFF_OFFPEAK_FACTOR,
     DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
+    CONF_PEAK_TARIFF_DISTINCT_DAYS,
+    DEFAULT_PEAK_TARIFF_DISTINCT_DAYS,
     CONF_PRICE_RISK_LAMBDA,
     DEFAULT_PRICE_RISK_LAMBDA,
     CONF_CONTRACT_FIXED_PRICE,
@@ -4818,9 +4820,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # on the next run rather than on the next restart.
             tariff = self._capacity_tariff()
             ctx._opt_config.peak_price_per_kw = tariff.marginal_price_per_kw
-            ctx._opt_config.peak_threshold_kw = self._peak_tracker.threshold_kw(
-                tariff
-            )
+            tracker = self._peak_tracker
+            ctx._opt_config.peak_threshold_kw = tracker.threshold_kw(tariff)
             # Post-outage recovery (#22): every neighbour restarts at once,
             # so the fresh-month "no reference yet" free pass is exactly
             # wrong now. Force the peak term active by pricing from zero
@@ -4831,6 +4832,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 ctx._opt_config.peak_threshold_kw = 0.0
             ctx._opt_config.peak_window_minutes = tariff.window_minutes
             ctx._opt_config.peak_count = tariff.peaks_averaged
+            ctx._opt_config.peak_distinct_days = tariff.distinct_days
             ctx._opt_config.peak_months = tariff.months
             ctx._opt_config.peak_hours = tariff.peak_hours
             ctx._opt_config.peak_weekdays_only = tariff.weekdays_only
@@ -7571,11 +7573,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     def _capacity_tariff(self) -> CapacityTariff:
         ctx = getattr(self, "_ctx", self)
+        cfg = ctx._config
         return CapacityTariff(
             enabled=bool(
-                ctx._config.get(
-                    CONF_PEAK_TARIFF_ENABLED, DEFAULT_PEAK_TARIFF_ENABLED
-                )
+                cfg.get(CONF_PEAK_TARIFF_ENABLED, DEFAULT_PEAK_TARIFF_ENABLED)
             ),
             price_per_kw=_as_float(
                 ctx._config.get(CONF_PEAK_TARIFF_PRICE),
@@ -7601,6 +7602,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
                 )
             ),
+            distinct_days=bool(cfg.get(CONF_PEAK_TARIFF_DISTINCT_DAYS, DEFAULT_PEAK_TARIFF_DISTINCT_DAYS)),
             offpeak_factor=_as_float(
                 ctx._config.get(CONF_PEAK_TARIFF_OFFPEAK_FACTOR),
                 DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,

@@ -181,6 +181,11 @@
       "old": "        volume_m3 = max(float(volume_litres), 1e-6) / 1000.0",
       "reason": "#1513 (R8-P8) round 3, a survivor CI's changed-scope mutation lane drew at 1a8cbcce. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `a zero or negative tank volume still has a real, positive surface area`. Measured at 25497c4b, 2026-09-24."
     },
+    "custom_components/heatpump_optimizer/const.py:default_buffer_cooling_rate CLAMP_DROP 0ce0b9e4": {
+      "killed_by": "tests/features.py",
+      "old": "    capacity = max(float(volume_litres), 1e-6) * WATER_SPECIFIC_HEAT",
+      "reason": "#1562 round-3 CI survivor: dropping the capacity floor in default_buffer_cooling_rate hands an empty or negative tank the flat 6 C/h default, slower than a one-litre tank; tests/features.py prints 1 of 3167 FEATURE CHECKS FAILED against a 0 baseline: `the buffer cooling prior never falls as the tank shrinks, down to an empty tank`. Measured on the #1562 round-3 branch after merging origin/main 266d795b, 2026-09-24, in a detached worktree per mutant; the unmutated tree prints ALL 3167 FEATURE CHECKS PASSED."
+    },
     "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._adopt_system_identification GUARD_OFF cc676544": {
       "killed_by": "tests/features.py",
       "old": "        if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:",
@@ -191,6 +196,11 @@
       "old": "                self._commanded_power() > 0.05 and reported >= hz_min",
       "reason": "#1513 (R8-P8) round 3, a survivor CI's changed-scope mutation lane drew at 1a8cbcce. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `an idle plan or a pump below its running range is not watched`. Measured at 25497c4b, 2026-09-24."
     },
+    "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._observe_frequency GUARD_OFF 76257caa": {
+      "killed_by": "tests/features.py",
+      "old": "        if reported is None:",
+      "reason": "#1562 round-3 CI survivor: with `if reported is None:` off, _observe_frequency feeds None into the watchdog and the map and raises TypeError; tests/features.py prints 1 of 3167 FEATURE CHECKS FAILED against a 0 baseline: `an unavailable frequency reading teaches nothing and strikes nothing, observing or controlling`. Measured on the #1562 round-3 branch after merging origin/main 266d795b, 2026-09-24, in a detached worktree per mutant; the unmutated tree prints ALL 3167 FEATURE CHECKS PASSED."
+    },
     "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._pv_export_price GUARD_OFF 95eb2ef4": {
       "killed_by": "tests/features.py",
       "old": "        if live is not None:",
@@ -200,6 +210,11 @@
       "killed_by": "tests/features.py",
       "old": "        return _as_float(ctx._config.get(CONF_PV_EXPORT_PRICE), DEFAULT_PV_EXPORT_PRICE)",
       "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 3 failed, among them `with no entity the configured export price is used`; `the three non-values, a non-numeric state and a missing entity all fall back`. Measured at d6d79847, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._scores_view BOOLOP 4902d2e0": {
+      "killed_by": "tests/features.py",
+      "old": "        if loss > 1e-6 and ctx._thermal_params.room_thermal_mass > 0:",
+      "reason": "#1562 round-3 CI survivor: `and` -> `or` in _scores_view grades a massless house 0 and divides by a zero loss; tests/features.py prints 1 of 3167 FEATURE CHECKS FAILED against a 0 baseline: `no thermal mass, or no loss, is no envelope evidence (None), not a grade`. Measured on the #1562 round-3 branch after merging origin/main 266d795b, 2026-09-24, in a detached worktree per mutant; the unmutated tree prints ALL 3167 FEATURE CHECKS PASSED."
     },
     "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._track_curve_comfort BOOLOP 183f229b": {
       "killed_by": "tests/features.py",
@@ -516,6 +531,11 @@
       "old": "        if result.dhw_temp_trajectory and i < len(result.dhw_temp_trajectory):",
       "reason": "drawn by the round-7 D2-03 diff's per-file sample over optimizer.py, not introduced by it (CI's mutation job at 8e41434e reported it LIVES). `and` -> `or` indexes a non-empty DHW trajectory past its end when it is shorter than the schedule. Killed by tests/features.py's `a DHW trajectory shorter than the schedule is read only where it exists`: FAIL [step 8 of a one-entry trajectory: raised IndexError: list index out of range], 1 of 3141, measured at b5121ba3."
     },
+    "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize GUARD_OFF 5e746713": {
+      "killed_by": "tests/features.py",
+      "old": "            if ext.size < n_steps:",
+      "reason": "#1562 round-3 CI survivor: without the zero pad a short external-heat forecast truncates the horizon and the solve raises IndexError; tests/features.py prints 1 of 3167 FEATURE CHECKS FAILED against a 0 baseline: `a short burn forecast is padded with zeros: it plans exactly as the full-length forecast`. Measured on the #1562 round-3 branch after merging origin/main 266d795b, 2026-09-24, in a detached worktree per mutant; the unmutated tree prints ALL 3167 FEATURE CHECKS PASSED."
+    },
     "custom_components/heatpump_optimizer/optimizer.py:stored_heat_survival GUARD_OFF 9afb8b62": {
       "killed_by": "tests/features.py",
       "old": "    if ua <= 0.0:",
@@ -606,6 +626,16 @@
       "old": "    return float(np.hypot(profile_halfwidth, prior_halfwidth))",
       "reason": "The round-7 D7-01 fix's gate combiner. `return float(np.hypot(profile_halfwidth, prior_halfwidth))` -> `pass` (no interval at all, so the gate refuses every fit) makes tests/features.py exit 1 against a baseline exit of 0, on `round-7 D7-01 (#1459): the gate does not hand the learner the whole intercept prior's bias`. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23."
     },
+    "custom_components/heatpump_optimizer/tariff.py:PeakTracker._close_window CLAMP_DROP 36acc124": {
+      "killed_by": "tests/features.py",
+      "old": "        del ranked[max(tariff.peaks_averaged * 2, 6):]",
+      "reason": "#1512: dropping the max(..., 6) floor keeps only 2k days, so raising peaks_averaged mid-month from 1 to 3 bills two real days and the new one instead of the month's three highest; tests/features.py prints 1 of 3168 FEATURE CHECKS FAILED against a 0 baseline: `raising the averaged count mid-month bills the month's k highest days (the tracker keeps a margin of at least six days)` (billed 6.667 against the bill 8.0). It survived both drivers at 86b3e0de (ALL 3167 FEATURE CHECKS PASSED with the mutant). Measured 2026-09-24 in a detached worktree."
+    },
+    "custom_components/heatpump_optimizer/tariff.py:PeakTracker._close_window GUARD_OFF b2570371": {
+      "killed_by": "tests/features.py",
+      "old": "        if tariff.distinct_days:",
+      "reason": "#1512 (R8-D2-s2-01): `if tariff.distinct_days:` -> `if False:` bills the top-k windows regardless of day, and tests/features.py prints 3 of 3129 FEATURE CHECKS FAILED against a 0 baseline, the bill-oracle equality among them; tests/finite_boundary.py also goes red on the peak store's shape arm. Measured at the #1512 branch head, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3129 FEATURE CHECKS PASSED."
+    },
     "custom_components/heatpump_optimizer/tariff.py:PeakTracker.observe BOOLOP 03a62eb7": {
       "killed_by": "tests/entities.py",
       "old": "        if measured_house_kw is not None and np.isfinite(measured_house_kw):",
@@ -615,6 +645,46 @@
       "killed_by": "tests/entities.py",
       "old": "        if measured_house_kw is not None and np.isfinite(measured_house_kw):",
       "reason": "The same guard deleted: the whole-house window then records readings the house meter never took, and the no-meter arm stops being empty. Measured: tests/entities.py rc=1, `and the whole-house window, from the whole-house meter's own reading (#1460) [got []]`."
+    },
+    "custom_components/heatpump_optimizer/tariff.py:_one_per_day RETURN_DEL 3ff4c986": {
+      "killed_by": "tests/features.py",
+      "old": "    return undated + list(best.values())",
+      "reason": "#1512: `_one_per_day` returning None makes `PeakTracker._close_window` raise AttributeError on the first closed window, so tests/features.py exits 1 against a baseline exit of 0. Measured at the #1512 branch head, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3129 FEATURE CHECKS PASSED."
+    },
+    "custom_components/heatpump_optimizer/tariff.py:_peak_charge GUARD_OFF 1036eefd": {
+      "killed_by": "tests/features.py",
+      "old": "    if distinct_days:",
+      "reason": "#1512 plan side: `_peak_charge`'s `if distinct_days:` -> `if False:` charges a plan's windows, not its days; tests/features.py prints 8 of 3142 FEATURE CHECKS FAILED against a 0 baseline, the plan-side bill oracle and the batch-twin parity among them. Measured at the #1512 round-2 branch head 4d1f3ea1, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3142 FEATURE CHECKS PASSED."
+    },
+    "custom_components/heatpump_optimizer/tariff.py:_peak_excess GUARD_OFF c3fdf6fc": {
+      "killed_by": "tests/features.py",
+      "old": "    if not np.any(excess > 0):",
+      "reason": "#1562 round-3 CI survivor: with _peak_excess's nothing-chargeable guard off, a non-finite window below the threshold flows into the per-day maxima and the top-k sum; tests/features.py prints 1 of 3167 FEATURE CHECKS FAILED against a 0 baseline: `a plan with nothing above the threshold is charged exactly 0.0, even with a non-finite window in it, on both rules` (charges NaN). Measured on the #1562 round-3 branch after merging origin/main 266d795b, 2026-09-24, in a detached worktree per mutant; the unmutated tree prints ALL 3167 FEATURE CHECKS PASSED."
+    },
+    "custom_components/heatpump_optimizer/tariff.py:_plateau_aware_day_max GUARD_OFF 82e36c62": {
+      "killed_by": "tests/features.py",
+      "old": "    if int(np.sum(run >= peak - _PEAK_TIE_BAND)) > 1:",
+      "reason": "#1512 plan side: with the tie guard off a same-day plateau takes the hard max, which a one-window probe cannot move (#232 one level down); tests/features.py prints 1 of 3142 FEATURE CHECKS FAILED against a 0 baseline: `a same-day plateau keeps the solver's gradient`. Measured at the #1512 round-2 branch head 4d1f3ea1, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3142 FEATURE CHECKS PASSED."
+    },
+    "custom_components/heatpump_optimizer/tariff.py:_plateau_aware_day_max RETURN_DEL 22554106": {
+      "killed_by": "tests/features.py",
+      "old": "    return peak",
+      "reason": "#1512 plan side: `_plateau_aware_day_max` returning None on the untied branch makes the day's excess NaN; tests/features.py prints 6 of 3142 FEATURE CHECKS FAILED against a 0 baseline, the #948 row parity among them. Measured at the #1512 round-2 branch head 4d1f3ea1, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3142 FEATURE CHECKS PASSED."
+    },
+    "custom_components/heatpump_optimizer/tariff.py:_stored_peaks GUARD_OFF 4258fd41": {
+      "killed_by": "tests/features.py",
+      "old": "    if not isinstance(peaks, list):",
+      "reason": "#1512: with the guard off, `_stored_peaks` enumerates a non-list persisted `peaks` and raises TypeError; the #1512 section's malformed-store check drives 9.0, None and a string through `PeakTracker.from_dict` and prints 1 of 3129 FEATURE CHECKS FAILED against a 0 baseline. Measured at the #1512 branch head, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3129 FEATURE CHECKS PASSED."
+    },
+    "custom_components/heatpump_optimizer/tariff.py:_stored_peaks RETURN_DEL d0d73124": {
+      "killed_by": "tests/features.py",
+      "old": "    return ranked",
+      "reason": "#1512: `_stored_peaks` returning None makes every `PeakTracker.from_dict` with a dict payload raise TypeError, so tests/features.py exits 1 against a baseline exit of 0 (tests/finite_boundary.py also goes red, loader_escape_total above 0). Measured at the #1512 branch head, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3129 FEATURE CHECKS PASSED."
+    },
+    "custom_components/heatpump_optimizer/tariff.py:peak_cost_batch GUARD_OFF bd307cf2": {
+      "killed_by": "tests/features.py",
+      "old": "        if distinct_days:",
+      "reason": "#1512 plan side: `peak_cost_batch`'s `if distinct_days:` -> `if False:` leaves the twin ranking windows while its scalar ranks days; tests/features.py prints 6 of 3142 FEATURE CHECKS FAILED against a 0 baseline, the #948 bit-for-bit row parity among them. Measured at the #1512 round-2 branch head 4d1f3ea1, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3142 FEATURE CHECKS PASSED."
     },
     "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_dhw_step CLAMP_DROP 6d5b3ca5": {
       "killed_by": "tests/features.py",
