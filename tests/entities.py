@@ -15946,7 +15946,7 @@ R.check(
         loop_subject="ci: drop inherited claims"),
     "the two repairs have separate loop guards",
 )
-# Both autofix jobs push only on `changed`, and every other status fell
+# Every autofix job pushes only on `changed`, and every other status fell
 # through to job success -- so a job that repaired nothing was indistinguishable
 # from one that did, and `.cursor/rules/ci-autofix.mdc`'s "wait for the bot
 # commit" waited for a commit no step would push (#523).
@@ -16036,7 +16036,7 @@ _TESTS_YML = (pathlib.Path(__file__).resolve().parents[1]
               / ".github" / "workflows" / "tests.yml").read_text()
 
 
-for _job in ("closures-autofix", "claims-autofix"):
+for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
     _blk = _workflow_job(_TESTS_YML, _job)
     _steps = _blk.split("\n      - ")
     _rep = [s for s in _steps if "autofix-report" in s]
@@ -16088,7 +16088,7 @@ def _af_dispatches(step: str) -> set[str]:
     return set(re.findall(r"gh workflow run (\S+)", live))
 
 
-for _job in ("closures-autofix", "claims-autofix"):
+for _job in ("closures-autofix", "claims-autofix", "mutation-autofix"):
     _steps = _workflow_job(_TESTS_YML, _job).split("\n      - ")
     _push = [s for s in _steps if re.match(r"name: Push\b", s)]
     _elsewhere = set().union(*(_af_dispatches(s) for s in _steps
@@ -16124,7 +16124,7 @@ R.check(
 # WIRING, not the general class: it says that the one job whose driver imports
 # production on the host installs the dependency set that makes that possible,
 # and it would not notice a DIFFERENT job acquiring the same shape. `typing`,
-# `closure-scope` and both autofix jobs run Python here and install nothing,
+# `closure-scope` and every autofix job run Python here and install nothing,
 # legitimately, because the scripts they run import neither the package nor the
 # stub -- which is why the derived form of this check ("every job that runs a
 # tests/ script installs the requirements") was measured, over-fired on four
@@ -19963,15 +19963,18 @@ R.check(
 # the whole set of jobs that override the workflow's `contents: read` floor.
 # A job-level block REPLACES the floor for that job and is inherited by none,
 # so the set IS the blast radius. The two autofix jobs have needed writes since
-# #523; a fourth override should have to be argued for.
+# #523, and `mutation-autofix` the same two since it was argued for as the
+# ledger half of the mutation ratchet; a fifth override should have to be
+# argued for too.
 _NS_OVERRIDES = sorted(
     _m.group(1) for _m in re.finditer(
         r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
         _TESTS_YML, re.M | re.S)
 )
 R.check(
-    "exactly three jobs override the workflow's read-only floor",
-    _NS_OVERRIDES == ["claims-autofix", "closures-autofix", "nightly-status"],
+    "exactly four jobs override the workflow's read-only floor",
+    _NS_OVERRIDES == ["claims-autofix", "closures-autofix", "mutation-autofix",
+                      "nightly-status"],
     f"jobs with a permissions block: {_NS_OVERRIDES}",
 )
 _NS_PERMS = re.search(r"^    permissions:\n((?:^      .*\n)+)", _NS_JOB, re.M)
@@ -21322,12 +21325,14 @@ _AH_CONST = json.loads(subprocess.run(
 _AH_TESTS_YML = Path(".github/workflows/tests.yml").read_text()
 _AH_DRIFT = []
 for _job, _subject in (("closures-autofix", "ci: re-record closures"),
-                       ("claims-autofix", "ci: drop inherited claims")):
+                       ("claims-autofix", "ci: drop inherited claims"),
+                       ("mutation-autofix", "ci: pin killed mutants")):
     _jt = _workflow_job(_AH_TESTS_YML, _job)
     _added = re.search(r"^\s*git add (.+)$", _jt, re.M)
     _rule = (_AH_CONST or {}).get("messages", {}).get(_subject)
     if not (_rule and f'git commit -m "{_subject}"' in _jt and _added
             and sorted(_added.group(1).split()) == sorted(_rule["paths"])
+            and _rule.get("mayAdd") is (_job != "claims-autofix")
             and f'git config user.name "{_AH_CONST["name"]}"' in _jt
             and f'git config user.email "{_AH_CONST["email"]}"' in _jt):
         _AH_DRIFT.append(_job)
@@ -24231,6 +24236,149 @@ R.check(
                 ["f.py:g CLAMP_DROP k"], 0, [], 1, "tests/x.py"),
     "(kill+lives+skip+mixed twin+both-killed twin+undriven twin: pinned, rc; "
     f"kill alone: pinned, rc; kill with no run: pinned, rc; driver) -> {_PR_GOT}",
+)
+
+# `mutation-autofix` applies what `mutation` measured on the MERGE ref, so an
+# entry lands only where THIS tree has the same anchor and `old` text and no
+# disposition yet; a second apply of the same pins changes nothing, and a
+# measurement of another head is refused. Each arm is a status
+# `closure.AUTOFIX_QUIET` grades, so a wrong one is a wrong tick.
+_AP_DIR = Path(_tempfile.mkdtemp(prefix="hpo-apply-pins-"))
+_AP_SAVED = (_mut.BUDGETS, _mut.inventory)
+_ap_b = dict(_pin_b, kind="GUARD_OFF", new="    if False:", file="f.py", line=4)
+_ap_c = dict(_ap_b, anchor="a.py:g GUARD_OFF cccc", old="    if c:", file="a.py", line=9)
+try:
+    (_AP_DIR / "ledger.json").write_text(_AP_SAVED[0].read_text())
+    _mut.BUDGETS = _AP_DIR / "ledger.json"
+    _mut.inventory = lambda *_a: [_ap_b, _ap_c]
+    _ap_pins = _AP_DIR / "pins"
+    _ap_pins.mkdir()
+    _AP_GOT = [_mut.apply_pins(str(_ap_pins), "H1")]
+    for _ap_status in ("skip-nothing-killed", "skip-no-base-program"):
+        (_ap_pins / "status").write_text(_ap_status + "\n")
+        _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H1"))
+    (_ap_pins / "status").write_text("measured\n")
+    (_ap_pins / "pins.json").write_text("{not json")
+    (_ap_pins / "head").write_text("H1\n")
+    _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H1"))
+    (_ap_pins / "pins.json").write_text(json.dumps({
+        _ap_b["anchor"]: {"killed_by": "tests/x.py", "old": "    if STALE:"},
+        _ap_c["anchor"]: {"old": "    if c:", "reason": "no killed_by"},
+        "gone.py:h GUARD_OFF cccc": {"killed_by": "tests/x.py", "old": "x"}}))
+    _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H1"))
+    # `a.py` sorts before every ledger key, so only `normalize` puts it in order.
+    (_ap_pins / "pins.json").write_text(json.dumps({
+        _ap_c["anchor"]: {"killed_by": "tests/y.py", "old": "    if c:",
+                          "reason": "measured"},
+        _ap_b["anchor"]: {"killed_by": "tests/x.py", "old": "    if b:",
+                          "reason": "measured"}}))
+    _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H2"))
+    _ap_before = _mut.BUDGETS.read_text()
+    _AP_GOT += [_mut.BUDGETS.read_text() == _ap_before,
+                _mut.apply_pins(str(_ap_pins), "H1"), _mut.apply_pins(str(_ap_pins), "H1")]
+    _ap_kb = json.loads(_mut.BUDGETS.read_text()).get("killed_by", {})
+    _AP_GOT += [_ap_kb.get(_ap_b["anchor"], {}).get("killed_by"),
+                _ap_kb.get(_ap_c["anchor"], {}).get("killed_by"),
+                list(_ap_kb) == sorted(_ap_kb)]
+except Exception as _ap_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _AP_GOT = [f"{type(_ap_exc).__name__}: {_ap_exc}"]
+finally:
+    _mut.BUDGETS, _mut.inventory = _AP_SAVED
+    _mut_shutil.rmtree(_AP_DIR, ignore_errors=True)
+R.check(
+    "mutation-autofix applies only a measured pin whose anchor, text and head this tree still has",
+    _AP_GOT == ["skip-no-measurement", "skip-nothing-killed", "skip-no-base-program",
+                "skip-no-measurement", "skip-unchanged", "skip-head-moved", True,
+                "changed", "skip-unchanged", "tests/x.py", "tests/y.py", True],
+    "(no status, two passed-through statuses, unreadable pins, stale+no killed_by+gone, "
+    f"other head, untouched, fresh, again, written x2, sorted) -> {_AP_GOT}",
+)
+
+# The measure step's status is the BASE program's own summary line, never the
+# ledger diff alone: a red baseline prints INCONCLUSIVE with rc 0 and pins
+# nothing, which a diff reads as "every site survived" and grades green -- the
+# #523 class, measured on this job by the #1599 review.
+_MS_REF = "MUTATION TABLE REFUSED -- 2 unpinned site(s) against abc at the ratchet base\n"
+_MS_KB = {"a": {"killed_by": "tests/x.py", "old": "o"}}
+_MS_GOT = [
+    _mut.measurement("MUTATION TABLE REFUSED -- 1 mutant(s) survived\n", "", {}, {}),
+    _mut.measurement(_MS_REF, None, {}, {}),
+    _mut.measurement(_MS_REF, "PIN KILLED: nothing to pin\n", {}, {}),
+    _mut.measurement(_MS_REF, "INCONCLUSIVE: baseline red\n", {}, {}),
+    _mut.measurement(_MS_REF, "PIN KILLED: 0 pinned, 2 left unpinned\n", {}, {}),
+    _mut.measurement(_MS_REF, "PIN KILLED: 1 pinned, 1 left unpinned\n", {},
+                     {"killed_by": _MS_KB}),
+    _mut.measurement(_MS_REF, "PIN KILLED: 1 pinned, 1 left unpinned\n",
+                     {"killed_by": _MS_KB}, {"killed_by": _MS_KB}),
+    _mut.measurement(_MS_REF, "PIN KILLED: 0 pinned, 2 left unpinned\n", {},
+                     {"killed_by": _MS_KB}),
+]
+R.check(
+    "mutation's measure step grades a run by its own summary, not by the ledger diff",
+    _MS_GOT == [("skip-not-unpinned", {}), ("skip-no-base-program", {}),
+                ("skip-nothing-drivable", {}), ("skip-measure-failed", {}),
+                ("skip-nothing-killed", {}), ("measured", _MS_KB),
+                ("skip-measure-failed", {}), ("skip-measure-failed", {})],
+    "(other refusal, no base program, nothing to pin, INCONCLUSIVE, 0 pinned, "
+    f"1 pinned+diff, 1 pinned+no diff, 0 pinned+diff) -> {_MS_GOT}",
+)
+_MA = "mutation-autofix"
+R.check(
+    "mutation-autofix stays quiet exactly on a repair made or none owed",
+    _closure.AUTOFIX_QUIET[_MA] == ("changed", "skip-not-allowed", "skip-not-unpinned",
+                                    "skip-nothing-killed", "skip-head-moved")
+    and all(_closure.autofix_repair_failed(_MA, s) for s in (
+        "skip-measure-failed", "skip-nothing-drivable", "skip-no-measurement",
+        "skip-no-base-program", "skip-unchanged", "")),
+    f"quiet={_closure.AUTOFIX_QUIET[_MA]}",
+)
+_ma_returns = (_returned_statuses(_mut.measurement)
+               | _returned_statuses(_mut.apply_pins))
+R.check(
+    "every status mutation-autofix's two functions return is classified",
+    _ma_returns == {"measured", "skip-not-unpinned", "skip-no-base-program",
+                    "skip-nothing-drivable", "skip-measure-failed",
+                    "skip-nothing-killed", "skip-no-measurement",
+                    "skip-head-moved", "skip-unchanged", "changed"},
+    f"returned={sorted(_ma_returns)}",
+)
+# A correct `measurement` the workflow does not call is the green check the
+# review found, so the wiring is asserted against the YAML itself: the BASE's
+# copy of the tool, hidden from the worker overlay, measured only on a
+# same-repo ratchet failure, graded by `measurement`, and a push grant only
+# in the job that runs no pull-request driver.
+_ma_mut = _workflow_job(_TESTS_YML, "mutation")
+_ma_fix = _workflow_job(_TESTS_YML, _MA)
+_ma_meas = [s for s in _ma_mut.split("\n      - ") if "mutation-pins" in s
+            and "measurement(" in s]
+_MA_WIRING = [w for w in (
+    "git show origin/main:tests/mutation_table.py > tests/_mutation_table_base.py",
+    "tests/_mutation_table_base.py --pin-killed",
+    "_mutation_table_base.py >> .git/info/exclude",
+    "mutation_table.measurement(",
+    '(out / "status").write_text(status',
+    "github.event.pull_request.head.repo.full_name == github.repository",
+    # The PULL REQUEST's head, not the merge ref's: `git rev-parse HEAD` or
+    # `github.sha` here makes every apply a quiet skip-head-moved.
+    "PR_HEAD: ${{ github.event.pull_request.head.sha }}",
+    "printf '%s\\n' \"$PR_HEAD\" > \"$out/head\"",
+    "if grep -qE '^MUTATION TABLE REFUSED -- [0-9]+ unpinned site\\(s\\) against'",
+) if not _ma_meas or w not in _ma_meas[0]]
+R.check(
+    "mutation's measure step runs the base's tool, hidden, and grades by measurement()",
+    len(_ma_meas) == 1 and not _MA_WIRING
+    and "failure()" in _ma_meas[0]
+    and "contents: write" not in _ma_mut,
+    f"measure steps={len(_ma_meas)} missing={_MA_WIRING}",
+)
+R.check(
+    "mutation-autofix runs only after a failed mutation lane on a same-repo pull request",
+    "needs.mutation.result == 'failure'" in _ma_fix
+    and "github.event.pull_request.head.repo.full_name == github.repository" in _ma_fix
+    and "contents: write" in _ma_fix
+    and 'head = subprocess.run(["git", "rev-parse", "HEAD"]' in _ma_fix
+    and 'mutation_table.apply_pins(os.environ["PINS"], head)' in _ma_fix,
+    "the job's if:, its push grant, and the head it hands apply_pins",
 )
 
 # Scope: a mutant is driven only by scripts whose MEASURED closure contains
