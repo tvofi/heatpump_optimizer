@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._file_lead_predictions CLAMP_DROP 38072755",
+  "old": "        dt_h = max(ctx._opt_config.time_step_minutes, 1.0) / 60.0",
+  "reason": "drawn by the round-7 D2-03 diff's per-file sample over coordinator.py. `max(time_step_minutes, 1.0)` -> `(time_step_minutes)` cannot select its second arm: `OptimizationConfig.time_step_minutes` is the dataclass default 15.0, `OptimizationConfig.from_mapping` does not set it, and nothing in the package assigns it (`grep -rn 'time_step_minutes' custom_components/` lists only the default and reads). No production input tells the two apart.",
+  "verdict": "equivalent"
+}

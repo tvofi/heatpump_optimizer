@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._optimize_space_only GUARD_OFF 6a3be0ea",
+  "killed_by": "tests/optimality.py",
+  "old": "        if self.model.params.two_zone_enabled:",
+  "reason": "arrived with round 7 D0-01 (#1447): the gate that scopes the deep low-energy anchor to the two-zone path, so every single-zone plan stays byte-identical to origin/main and the certificate's three claims keep their calibration. Killed by tests/optimality.py -- `if self.model.params.two_zone_enabled:` -> `if False:` never appends the anchor, which is the same tree as deleting it: FAIL two|winter_typical|winter_cold: no unclaimed gap above the bar [ladder 0.4374%, bar 0.4000%], 1 of 84, measured on this branch."
+}

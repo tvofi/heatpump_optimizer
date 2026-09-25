@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_update_thermal_params GUARD_OFF 90266f49",
+  "killed_by": "tests/features.py",
+  "old": "        if \"house_heat_loss_coefficient\" in params or CONF_BUFFER_COOLING_RATE in params:",
+  "reason": "R8-P5 (#1581, the edge payment) added this site. `if \"house_heat_loss_coefficient\" in params or CONF_BUFFER_COOLING_RATE in params:` -> `if False:`, applied by the table's own operator in a detached worktree at 53d94ced, turns tests/features.py red: 2 of 3197 FEATURE CHECKS FAILED (control at the same SHA: ALL 3197 FEATURE CHECKS PASSED). Failing: `an explicit buffer cooling rate replaces the learned one AND resets its samples`; `a service write resetting both learners saves once, with both resets in it; either alone still saves once, and neither saves nothing`."
+}

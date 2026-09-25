@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:_sanitize RETURN_DEL 78577f77",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "        return value if math.isfinite(parsed) else None",
+  "reason": "arrived with origin/main, the round-6 non-finite class fix (#1425, commit 8e5d1ace). Removing the scrubbing return leaves the parsed-string branch to fall through to the function's final `return value`, so the ORIGINAL string (`\"NaN\"`) is handed back instead of the loaders' absent-data None. Measured: tests/finite_boundary.py rc=0 failed=0 -> rc=1 failed=5 (\"5 of 25 FINITE BOUNDARY CHECKS FAILED\"). Re-measured at 467d3d9c, 2026-09-23."
+}

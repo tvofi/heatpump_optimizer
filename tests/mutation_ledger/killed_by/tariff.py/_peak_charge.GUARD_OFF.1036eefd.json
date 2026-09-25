@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_peak_charge GUARD_OFF 1036eefd",
+  "killed_by": "tests/features.py",
+  "old": "    if distinct_days:",
+  "reason": "#1512 plan side: `_peak_charge`'s `if distinct_days:` -> `if False:` charges a plan's windows, not its days; tests/features.py prints 8 of 3142 FEATURE CHECKS FAILED against a 0 baseline, the plan-side bill oracle and the batch-twin parity among them. Measured at the #1512 round-2 branch head 4d1f3ea1, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3142 FEATURE CHECKS PASSED."
+}

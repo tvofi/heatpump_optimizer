@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:peak_cost_batch GUARD_OFF bd307cf2",
+  "killed_by": "tests/features.py",
+  "old": "        if distinct_days:",
+  "reason": "#1512 plan side: `peak_cost_batch`'s `if distinct_days:` -> `if False:` leaves the twin ranking windows while its scalar ranks days; tests/features.py prints 6 of 3142 FEATURE CHECKS FAILED against a 0 baseline, the #948 bit-for-bit row parity among them. Measured at the #1512 round-2 branch head 4d1f3ea1, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3142 FEATURE CHECKS PASSED."
+}

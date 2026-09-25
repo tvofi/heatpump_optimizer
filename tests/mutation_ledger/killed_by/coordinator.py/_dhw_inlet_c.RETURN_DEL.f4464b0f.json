@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_dhw_inlet_c RETURN_DEL f4464b0f",
+  "killed_by": "tests/features.py",
+  "old": "    return value if value is not None and -5.0 <= value <= 35.0 else None",
+  "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 2 failed, among them `a live inlet probe still wins`; `the DHW inlet probe is read in its unit (50 degF is 10 degC)`. Measured at d6d79847, 2026-09-24."
+}

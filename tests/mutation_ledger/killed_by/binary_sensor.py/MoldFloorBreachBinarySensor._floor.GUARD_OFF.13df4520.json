@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._floor GUARD_OFF 13df4520",
+  "killed_by": "tests/entities.py",
+  "old": "        if floors is None:",
+  "reason": "the #1495 breach sensor's no-floor guard. `if floors is None:` -> `if False:` subscripts the None the coordinator's _mold_floor_series returns with the guard off or no live humidity: rc=0 -> rc=1 (TypeError: 'NoneType' object is not subscriptable). Measured at c4e68cac (#1497, fix/r7-mold-warning, merged with origin/main ca8204f4), 2026-09-24, by driving the mutant through tests/entities.py in a separate worktree against a baseline of rc=0 failed=0."
+}

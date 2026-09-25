@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:_sanitize GUARD_OFF eac30b4c",
+  "old": "    if isinstance(value, bool):",
+  "reason": "arrived with origin/main, commit 8e5d1ace (\"Close the non-finite-into-live-state class at the store-load boundary\", #1425); void mutant: the guard's body is `return value` and the fall-through end of `_sanitize` is the same `return value`, and a bool is not a float/str/dict/list/tuple -- so `if isinstance(value, bool):` -> `if False:` answers identically for EVERY input, not merely for bools. No check can kill it. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass).",
+  "verdict": "equivalent"
+}

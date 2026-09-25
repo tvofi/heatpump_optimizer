@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_on_off_service RETURN_DEL dac85d34",
+  "killed_by": "tests/features.py",
+  "old": "    return entity_id.split(\".\", 1)[0], \"turn_on\" if on else \"turn_off\"",
+  "reason": "#1526 (R8-P6): RETURN_DEL on _on_off_service, the heat-pump switch route this diff added. Applied in a detached worktree at 2a451021, the full tests/features.py goes to 7 of 3180 FAILED against a 0 baseline, including the P6 census ('the consumer issued no call' for every heat-pump target) five existing _apply_action switch-off/on checks and a cycle null control. Measured 2026-09-24."
+}

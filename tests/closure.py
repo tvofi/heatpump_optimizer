@@ -339,6 +339,16 @@ INERT = (
     # any of them, and each of these three runs on `pull_request`.
     # A manual QA render (writes ../setup-qa/). No gate script reads it.
     "tests/setup_qa_render.mjs",
+    # The mutation ledger's rows, one file per disposition
+    # (design/ledger-layout). Only tests/mutation_table.py opens them, and it
+    # runs as the `mutation` job on every pull request whatever this gate
+    # selects -- `tests/card_browser.mjs`'s argument. The caps file,
+    # tests/mutation_budgets.json, stays in tests/entities.py's closure. A
+    # prefix, because a list of row files is one every pinning branch would
+    # edit, which is the conflict the layout removes; and checked, because
+    # `merge` refuses an INERT path inside a recorded closure the day a gate
+    # script starts reading a row.
+    "tests/mutation_ledger/",
     # tests/nightly_ha.py was here, on the argument that a lane needing Docker
     # is one "no gate script reads and none ever will". The first half held and
     # still does -- it stays on NOT_A_TEST above, and nothing in this gate runs
@@ -1704,7 +1714,7 @@ _AUTOFIX_REMEDY = {
         "Rewrite tests/golden/claimed_drift.txt and card_claimed_drift.txt for\n"
         "THIS diff by hand, keeping `claims-for:` and any `# may-drift:` line.",
     "mutation-autofix":
-        "Pin the new sites yourself and commit tests/mutation_budgets.json:\n"
+        "Pin the new sites yourself and commit tests/mutation_ledger/:\n"
         "    python3 tests/mutation_table.py --pin-killed --base origin/main\n"
         "A site no driver kills needs a killing check or a survivor_triage\n"
         "verdict; no tool writes either.",

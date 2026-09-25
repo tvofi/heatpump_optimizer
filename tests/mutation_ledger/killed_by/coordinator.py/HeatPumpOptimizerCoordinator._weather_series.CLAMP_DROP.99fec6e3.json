@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._weather_series CLAMP_DROP 99fec6e3",
+  "killed_by": "tests/features.py",
+  "old": "            gust = max(0.0, _as_float(entry.get(\"wind_speed\"), 0.0))",
+  "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `and its wind is scaled once, not twice (3.6 km/h is 1 m/s)`. Measured at 25497c4b, 2026-09-24."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/entity.py:DHWEntityMixin.entity_registry_enabled_default RETURN_DEL 1b5963d0",
+  "killed_by": "tests/entities.py",
+  "old": "        return input_configured(self.coordinator, self._dhw_probe_slot)",
+  "reason": "added by R8-P2 (#1542), now through `input_configured()`. Removing the probe-slot return makes a probe-keyed hot-water entity answer None with its probe configured: tests/entities.py fails `every gated hot-water entity is on by default with hot water and its probe (#1542)`, 12 -> 13 failed. Measured at 3568643c on 2026-09-24, each mutant in its own copy of the tree against an unmutated copy (12 git-dependent checks fail in both, since a copy has no .git)."
+}

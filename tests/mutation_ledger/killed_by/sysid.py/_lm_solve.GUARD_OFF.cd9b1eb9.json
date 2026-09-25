@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_lm_solve GUARD_OFF cd9b1eb9",
+  "killed_by": "tests/features.py",
+  "old": "            if x.size >= 3:",
+  "reason": "arrived with origin/main, the R6 D7-03 fix (#1396/#1397: the log parameters get a loose projection in the three-parameter full solve; blame resolves the line to the merge 97fe0b03). `if x.size >= 3:` -> `if False:` drops the projection of [log UA, log C_r] into SLAB_LOG_UA_*/SLAB_LOG_ROOM_CAP_*, so a drifting sensor can drive the candidate outside the band -- the failure the wave's own drift block (tests/features.py, 'sysid two-state fit survives a drifting room sensor') pins. Measured: tests/features.py rc=0 failed=0 -> rc=1 failed=1. Measured at 467d3d9c, 2026-09-23."
+}

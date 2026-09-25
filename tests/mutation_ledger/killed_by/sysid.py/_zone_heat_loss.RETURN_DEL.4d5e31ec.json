@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_zone_heat_loss RETURN_DEL 4d5e31ec",
+  "killed_by": "tests/features.py",
+  "old": "    return float(plant.upper_floor_heat_loss + plant.lower_floor_heat_loss)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 5003d56f9d9f7617d5e4dc1372e49dbdbacd39bd: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

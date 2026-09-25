@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/away.py:restore_setback GUARD_OFF 6c71bebf",
+  "killed_by": "tests/features.py",
+  "old": "            if getattr(obj, name) is original.written[name]:",
+  "reason": "R8-P12 (#1517): `away.restore_setback`'s compare-and-restore, by identity since the #1563 round-1 review. `if False:` restores nothing, so the away set-back and the economy widening outlive the solve. Measured on a worktree of the round-2 merge: tests/features.py rc=0 -> rc=1, 7 of 3131 FAILED, among them `a write landing inside the set-back envelope survives its unwind (#1517)`, `a NaN away target still unwinds every comfort number` and `a service write during the production solve outlives the cycle (#1517)`."
+}

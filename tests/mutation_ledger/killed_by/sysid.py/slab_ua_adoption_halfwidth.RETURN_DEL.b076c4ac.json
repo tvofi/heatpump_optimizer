@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:slab_ua_adoption_halfwidth RETURN_DEL b076c4ac",
+  "killed_by": "tests/features.py",
+  "old": "    return float(np.hypot(profile_halfwidth, prior_halfwidth))",
+  "reason": "The round-7 D7-01 fix's gate combiner. `return float(np.hypot(profile_halfwidth, prior_halfwidth))` -> `pass` (no interval at all, so the gate refuses every fit) makes tests/features.py exit 1 against a baseline exit of 0, on `round-7 D7-01 (#1459): the gate does not hand the learner the whole intercept prior's bias`. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23."
+}

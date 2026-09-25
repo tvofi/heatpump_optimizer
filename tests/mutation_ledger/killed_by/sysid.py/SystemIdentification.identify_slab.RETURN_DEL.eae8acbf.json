@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify_slab RETURN_DEL eae8acbf",
+  "killed_by": "tests/structure.py",
+  "old": "        return self._slab_outcome(best_x, rooms, error, slab_mass, slab_transfer)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 5003d56f9d9f7617d5e4dc1372e49dbdbacd39bd: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

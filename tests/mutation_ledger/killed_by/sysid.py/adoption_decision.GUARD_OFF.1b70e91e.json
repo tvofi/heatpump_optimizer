@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:adoption_decision GUARD_OFF 1b70e91e",
+  "killed_by": "tests/features.py",
+  "old": "    if not base_u > 1e-6:",
+  "reason": "R8-P5 (#1523/#1525) added this site. `if not base_u > 1e-6:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 3 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `a wide-interval fit, an unfinished run, a fit with no UA and a zero nameplate all adopt nothing`; `#1525: the cases drive every return of adoption_decision (the barrier covers each path the gate has, including one added later)`; `#1525: no finished experiment stays published as completed or 'ok' -- adopted means applied, and each refusal publishes and logs its own reason`."
+}

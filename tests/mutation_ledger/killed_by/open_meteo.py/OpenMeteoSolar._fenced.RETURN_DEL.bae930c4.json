@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/open_meteo.py:OpenMeteoSolar._fenced RETURN_DEL bae930c4",
+  "killed_by": "tests/open_meteo.py",
+  "old": "            return _EMPTY",
+  "reason": "R8-P1 (#1519): removing the fence's return hands back None for a raising fetch; async_refresh reads None as no data, so only the check that the fence returns the empty series itself fails; tests/open_meteo.py goes from rc=0 to rc=1. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
+}

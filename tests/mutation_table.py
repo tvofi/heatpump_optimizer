@@ -731,9 +731,9 @@ def base_unpinned_sites(ref: str | None,
     """
     if not ref:
         return None
-    raw = _git_or_none("show", f"{ref}:{BUDGETS.relative_to(ROOT)}")
+    base_ledger = load_budgets_at(ref)
     listing = _git_or_none("ls-tree", "-r", ref, "--", PKG)
-    if raw is None or listing is None:
+    if base_ledger is None or listing is None:
         return None
     theirs = {}
     for row in listing.splitlines():
@@ -758,7 +758,7 @@ def base_unpinned_sites(ref: str | None,
             path.write_text(src)
             muts = [dict(m, file=rel) for m in candidates(path)]
             base_sites.extend(anchor_sites(src, muts))
-    ledger, _ = normalize(json.loads(raw), base_sites)
+    ledger, _ = normalize(base_ledger, base_sites)
     return unpinned_sites(ledger, base_sites)
 
 
@@ -841,7 +841,7 @@ def apply_pins(pins_dir: str, head: str) -> str:
         return "skip-no-measurement"
     if measured_at != head:
         return "skip-head-moved"
-    budgets = json.loads(BUDGETS.read_text())
+    budgets = load_budgets()
     sites = inventory()
     by_anchor = {s["anchor"]: s for s in sites}
     disp = dispositions(budgets)
@@ -859,7 +859,7 @@ def apply_pins(pins_dir: str, head: str) -> str:
     if not added:
         return "skip-unchanged"
     fixed, _ = normalize(budgets, sites)
-    BUDGETS.write_text(json.dumps(fixed, indent=2) + "\n")
+    write_budgets(fixed)
     return "changed"
 
 
@@ -957,6 +957,217 @@ def ledger_form_problems(budgets: dict) -> list[str]:
         out.append("a committed `unpinned_sites` count: the ratchet reads the "
                    "count at its base, so a committed one is a line every "
                    "branch rewrites -- run --normalize")
+    return out
+
+
+# ------------------------------------------------------ the ledger on disk
+#
+# One file per disposition (design/ledger-layout). The caps -- the survivor
+# fractions and what was last measured against them -- stay in
+# tests/mutation_budgets.json, the file `budget-raise-gate` grades; every row
+# of `survivor_triage` and `killed_by` is its own file under
+# tests/mutation_ledger/, at a path derived from its anchor. Two branches that
+# record different sites therefore touch different paths, and GitHub's own
+# merge -- which never runs `tools/merge/ledger_merge.py` -- has nothing to
+# conflict on. Two branches that write the SAME site still conflict, and a
+# branch that deletes a row the other side edited is a modify/delete
+# conflict: git refuses both, which is the refusal the driver made by hand.
+#
+# `load_budgets()` returns the one dict every caller already reads, so the
+# checks below are unchanged; a row still sitting in the caps file (a writer
+# older than this layout) is read, and `layout_problems()` refuses it until
+# `--normalize` moves it out.
+
+LEDGER_DIRNAME = "mutation_ledger"
+
+
+def ledger_dir() -> Path:
+    """The row directory beside whatever BUDGETS currently points at."""
+    return BUDGETS.parent / LEDGER_DIRNAME
+
+
+def ledger_relpath(m: str, anchor: str) -> str | None:
+    """`<map>/<module path>/<scope>.<KIND>.<digest>[~N].json`, or None.
+
+    Injective over anchors `_TRIAGE_KEY` accepts: the package prefix is
+    dropped, `<module>` -- the one scope that is not an identifier path --
+    becomes `@module`, and the ordinal `#N` becomes `~N`. A key the regex
+    refuses (a retired line key) has no path and stays in the caps file.
+    """
+    if not _TRIAGE_KEY.match(anchor):
+        return None
+    file, rest = anchor.split(":", 1)
+    scope, kind, digest = rest.split(" ")
+    digest, _, nth = digest.partition("#")
+    scope = scope.replace("<module>", "@module")
+    return (f"{m}/{file[len(PKG):]}/{scope}.{kind}.{digest}"
+            + (f"~{nth}" if nth else "") + ".json")
+
+
+def row_text(anchor: str, entry: dict) -> str:
+    """One row's canonical bytes: the entry plus its own anchor, sorted."""
+    return json.dumps({**entry, "anchor": anchor}, indent=2,
+                      sort_keys=True) + "\n"
+
+
+def _row_entry(text: str) -> tuple[str, dict]:
+    try:
+        row = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"does not parse: {exc}") from None
+    if not isinstance(row, dict) or not isinstance(row.get("anchor"), str):
+        raise ValueError("not an object carrying its anchor")
+    entry = {k: v for k, v in row.items() if k != "anchor"}
+    return row["anchor"], entry
+
+
+def _merge_rows(budgets: dict, rows: dict[str, dict]) -> dict:
+    out = dict(budgets)
+    for m in LEDGER_MAPS:
+        merged = dict(budgets.get(m, {}))
+        merged.update(rows.get(m, {}))
+        out[m] = dict(sorted(merged.items()))
+    return out
+
+
+def read_rows(d: Path | None = None) -> dict[str, dict]:
+    """{map: {anchor: entry}} from the row directory (unparseable rows skipped;
+    `layout_problems` names them)."""
+    d = d or ledger_dir()
+    rows: dict[str, dict] = {m: {} for m in LEDGER_MAPS}
+    for m in LEDGER_MAPS:
+        for p in sorted((d / m).rglob("*.json")) if (d / m).is_dir() else ():
+            try:
+                anchor, entry = _row_entry(p.read_text())
+            except ValueError:
+                continue
+            rows[m][anchor] = entry
+    return rows
+
+
+def load_budgets() -> dict:
+    """The whole ledger as one dict: the caps file plus every row file."""
+    return _merge_rows(json.loads(BUDGETS.read_text()), read_rows())
+
+
+def load_budgets_at(ref: str) -> dict | None:
+    """`load_budgets()` at a commit; None when its caps file cannot be read.
+
+    A ref from before the split has no row directory and its rows are in the
+    caps file, which `_merge_rows` reads as they are -- so the ratchet base of
+    the pull request that performs the split is counted exactly.
+    """
+    rel_b = str(BUDGETS.relative_to(ROOT))
+    rel_d = str(ledger_dir().relative_to(ROOT))
+    raw = _git_or_none("show", f"{ref}:{rel_b}")
+    if raw is None:
+        return None
+    listing = _git_or_none("ls-tree", "-r", ref, "--", rel_d) or ""
+    rows: dict[str, dict] = {m: {} for m in LEDGER_MAPS}
+    blobs = []
+    for line in listing.splitlines():
+        meta, path = line.split("\t", 1)
+        m = path[len(rel_d) + 1:].split("/", 1)[0]
+        if m in rows and path.endswith(".json"):
+            blobs.append((m, meta.split()[2]))
+    if blobs:
+        out = subprocess.run(["git", "cat-file", "--batch"], cwd=ROOT,
+                             input="".join(b + "\n" for _, b in blobs).encode(),
+                             capture_output=True).stdout
+        pos = 0
+        for m, _ in blobs:
+            header_end = out.index(b"\n", pos)
+            size = int(out[pos:header_end].split()[2])
+            body = out[header_end + 1:header_end + 1 + size].decode()
+            pos = header_end + 1 + size + 1
+            try:
+                anchor, entry = _row_entry(body)
+            except ValueError:
+                continue
+            rows[m][anchor] = entry
+    return _merge_rows(json.loads(raw), rows)
+
+
+def write_budgets(budgets: dict) -> None:
+    """Split `budgets` back onto disk: caps file, then one file per row.
+
+    Only files whose bytes change are written and only rows that left the
+    ledger are removed, so a writer touches exactly the paths its rows
+    changed -- the property the layout exists for. A row whose key has no
+    path (a retired line key `normalize` could not map) stays in the caps
+    file, where `layout_problems` keeps refusing it.
+    """
+    d = ledger_dir()
+    caps = {k: v for k, v in budgets.items() if k not in LEDGER_MAPS}
+    want: dict[str, str] = {}
+    for m in LEDGER_MAPS:
+        stay = {}
+        for key, entry in sorted(budgets.get(m, {}).items()):
+            rel = ledger_relpath(m, key)
+            if rel is None:
+                stay[key] = entry
+            else:
+                want[rel] = row_text(key, entry)
+        if stay:
+            caps[m] = stay
+    BUDGETS.write_text(json.dumps(caps, indent=2) + "\n")
+    have = ({p.relative_to(d).as_posix() for p in d.rglob("*") if p.is_file()}
+            if d.is_dir() else set())
+    for rel in sorted(have - set(want)):
+        (d / rel).unlink()
+    for rel, text in want.items():
+        p = d / rel
+        if not p.is_file() or p.read_text() != text:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(text)
+    if d.is_dir():
+        for sub in sorted((p for p in d.rglob("*") if p.is_dir()),
+                          key=lambda p: -len(p.parts)):
+            if not any(sub.iterdir()):
+                sub.rmdir()
+
+
+def layout_problems() -> list[str]:
+    """Every way the ledger on disk departs from its one-file-per-row form.
+
+    A row left in the caps file, a file outside the two map directories, a
+    file that does not parse, one whose path is not its anchor's, one whose
+    bytes are not `row_text`'s (#1612's lesson: a non-canonical byte is where
+    the next merge refuses), and an anchor recorded in both maps. The fix
+    for every one is `--normalize`.
+    """
+    out: list[str] = []
+    caps = json.loads(BUDGETS.read_text())
+    for m in LEDGER_MAPS:
+        if caps.get(m):
+            out.append(f"{BUDGETS.name}: {len(caps[m])} {m} row(s) still in "
+                       f"the caps file -- run --normalize")
+    d = ledger_dir()
+    seen: dict[str, str] = {}
+    for p in sorted(d.rglob("*")) if d.is_dir() else ():
+        if not p.is_file():
+            continue
+        rel = p.relative_to(d).as_posix()
+        m = rel.split("/", 1)[0]
+        if m not in LEDGER_MAPS or not rel.endswith(".json"):
+            out.append(f"{LEDGER_DIRNAME}/{rel}: not a row of "
+                       f"{' or '.join(LEDGER_MAPS)}")
+            continue
+        text = p.read_text()
+        try:
+            anchor, entry = _row_entry(text)
+        except ValueError as exc:
+            out.append(f"{LEDGER_DIRNAME}/{rel}: {exc}")
+            continue
+        if ledger_relpath(m, anchor) != rel:
+            out.append(f"{LEDGER_DIRNAME}/{rel}: its anchor {anchor!r} "
+                       f"belongs at {ledger_relpath(m, anchor)!r}")
+        elif text != row_text(anchor, entry):
+            out.append(f"{LEDGER_DIRNAME}/{rel}: not in canonical form -- "
+                       f"run --normalize")
+        if anchor in seen and seen[anchor] != m:
+            out.append(f"{anchor}: recorded under both {seen[anchor]} and {m}")
+        seen[anchor] = m
     return out
 
 
@@ -1610,11 +1821,11 @@ def main() -> int:
     # whose partial table is worth most.
     sys.stdout.reconfigure(line_buffering=True)
 
-    budgets = json.loads(BUDGETS.read_text())
+    budgets = load_budgets()
     if args.normalize:
         fixed, unmapped = normalize(budgets, inventory())
-        BUDGETS.write_text(json.dumps(fixed, indent=2) + "\n")
-        print(f"NORMALIZED {BUDGETS.name}: "
+        write_budgets(fixed)
+        print(f"NORMALIZED {BUDGETS.name} and {LEDGER_DIRNAME}/: "
               f"{sum(len(fixed.get(m, {})) for m in LEDGER_MAPS)} disposition(s)"
               f", {len(unmapped)} retired key(s) naming no site")
         for u in unmapped:
@@ -1644,7 +1855,7 @@ def main() -> int:
     # no clone, no baseline, no solve, and it covers the WHOLE tree -- the
     # 3816 sites the sampled pool never draws. It runs before the sample
     # because the ratchet is over the whole tree, not over the diff's pool.
-    form = ledger_form_problems(budgets)
+    form = ledger_form_problems(budgets) + layout_problems()
     if form:
         print("MUTATION TABLE REFUSED -- the ledger is not in canonical form:")
         for p in form:
@@ -1858,7 +2069,7 @@ def main() -> int:
         print("\n".join(report))
         budgets.setdefault("killed_by", {}).update(entries)
         fixed, _ = normalize(budgets, sites)
-        BUDGETS.write_text(json.dumps(fixed, indent=2) + "\n")
+        write_budgets(fixed)
         return pin_rc
 
     survivors = []
@@ -1907,7 +2118,7 @@ def main() -> int:
         # The reason goes in the commit message, not the file: a top-level
         # string every recording branch rewrote is the same one-line merge
         # conflict the committed `unpinned_sites` was.
-        BUDGETS.write_text(json.dumps(budgets, indent=2) + "\n")
+        write_budgets(budgets)
         print(f"\nRECORDED max_survivor_fraction[{args.scope}]={rate:.4f}")
         if args.reason:
             print(f"  for the commit message: {args.reason}")

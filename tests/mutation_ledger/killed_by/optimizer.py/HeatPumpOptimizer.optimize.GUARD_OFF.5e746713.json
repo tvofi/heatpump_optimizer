@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize GUARD_OFF 5e746713",
+  "killed_by": "tests/features.py",
+  "old": "            if ext.size < n_steps:",
+  "reason": "#1562 round-3 CI survivor: without the zero pad a short external-heat forecast truncates the horizon and the solve raises IndexError; tests/features.py prints 1 of 3167 FEATURE CHECKS FAILED against a 0 baseline: `a short burn forecast is padded with zeros: it plans exactly as the full-length forecast`. Measured on the #1562 round-3 branch after merging origin/main 266d795b, 2026-09-24, in a detached worktree per mutant; the unmutated tree prints ALL 3167 FEATURE CHECKS PASSED."
+}

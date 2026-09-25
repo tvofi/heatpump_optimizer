@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/setpoint_check.py:_setpoint_and_unit GUARD_OFF 5cd1f888",
+  "killed_by": "tests/features.py",
+  "old": "    if value is None:",
+  "reason": "#1513 (R8-P8): GUARD_OFF on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 2 failed, among them `a climate entity's target temperature is the pump set-point`; `a set-point reads through the state, then the attribute, then gives up`. Measured at d6d79847, 2026-09-24."
+}

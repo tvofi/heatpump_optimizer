@@ -24273,10 +24273,10 @@ try:
         _ap_b["anchor"]: {"killed_by": "tests/x.py", "old": "    if b:",
                           "reason": "measured"}}))
     _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H2"))
-    _ap_before = _mut.BUDGETS.read_text()
-    _AP_GOT += [_mut.BUDGETS.read_text() == _ap_before,
+    _ap_before = json.dumps(_mut.load_budgets())
+    _AP_GOT += [json.dumps(_mut.load_budgets()) == _ap_before,
                 _mut.apply_pins(str(_ap_pins), "H1"), _mut.apply_pins(str(_ap_pins), "H1")]
-    _ap_kb = json.loads(_mut.BUDGETS.read_text()).get("killed_by", {})
+    _ap_kb = _mut.load_budgets().get("killed_by", {})
     _AP_GOT += [_ap_kb.get(_ap_b["anchor"], {}).get("killed_by"),
                 _ap_kb.get(_ap_c["anchor"], {}).get("killed_by"),
                 list(_ap_kb) == sorted(_ap_kb)]
