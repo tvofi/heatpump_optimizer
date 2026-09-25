@@ -40,9 +40,9 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
 9. **When the finding has no committed harness, that is itself a finding.**
    Twice none existed: #373's
    instrument was a shell `grep` in the issue's own body, nothing at tag
-   `audit-round2-evidence`; #258's proximity probe only inside a judge comment. A fixer who builds their own instrument must
+   `audit-round2-evidence`; #258's probe only in a judge comment. A fixer who builds their own instrument must
    disclose it as their own, not the finder's -- so do you, if you built one.
-   Read the finding's judge ruling first: #290's brief prescribes a harness its judge refused.
+   Read the judge ruling first: #290's brief prescribes a refused harness.
    A feature's harness is its judge's design: a requirement or on-device measurement it names and neither tests nor tvofi waived is `blocked <sha> harness: design-trace-missing <item>` (#1588).
 
 10. **Check the forward-carry before you return `merge`.** The PR body names
