@@ -10294,6 +10294,7 @@ R.check(
 # 0.67 K over-credit that breached the DHW floor at a low cop_scale.
 import heatpump_optimizer.optimizer as _wf_mod  # noqa: E402
 from heatpump_optimizer.thermal_model import ThermalModel as _WfModel  # noqa: E402
+import heatpump_optimizer.thermal_model as _wf_tm  # noqa: E402
 from golden import make as _wf_mk, START as _WF_START, SCENARIOS as _WF_SC  # noqa: E402
 
 _wf_real = _wf_mod.HeatPumpOptimizer._dhw_coil_wood_forecast
@@ -10312,8 +10313,40 @@ def _wf_sim_spy(self, *a, **k):
     if k.get("coil_wood_read") is None:
         n = len(k["space_power_schedule"] if "space_power_schedule" in k else a[1])
         k["coil_wood_read"] = np.full(n, np.nan)
+    _wf_applied.clear()
     out = _wf_real_sim(self, *a, **k)
-    _wf_reads.append((np.array(out[4], dtype=float), k["coil_wood_read"]))
+    _wf_reads.append(
+        (np.array(out[4], dtype=float), k["coil_wood_read"], list(_wf_applied))
+    )
+    return out
+
+
+# The draw the physics' coil leaves the tank to cover, per step, spied where the
+# physics calls it -- not re-read through coil_wood_read, the channel the check
+# above verifies, so a read taken at the wrong instant cannot agree with itself.
+_wf_real_red = _wf_tm.dhw_coil_draw_reduction
+_wf_real_pd = _wf_mod.HeatPumpOptimizer._dhw_planner_draws
+_wf_real_build = _wf_mod.HeatPumpOptimizer._build_dhw_requirements
+_wf_applied: list = []
+_wf_credited: list = []
+_wf_builds: list = []
+
+
+def _wf_red_spy(*a, **k):
+    out = _wf_real_red(*a, **k)
+    _wf_applied.append(out[0])
+    return out
+
+
+def _wf_pd_spy(self, raw, wood):
+    out = _wf_real_pd(self, raw, wood)
+    _wf_credited.append(np.array(out, dtype=float, copy=True))
+    return out
+
+
+def _wf_build_spy(self, *a, **k):
+    out = _wf_real_build(self, *a, **k)
+    _wf_builds.append((np.asarray(out.schedule, dtype=float), _wf_credited[-1]))
     return out
 
 
@@ -10322,6 +10355,9 @@ _wf_ext = np.zeros(len(_wf_b["prices"]))
 _wf_ext[:96] = 8.0 * (1.0 - np.arange(min(96, _wf_ext.size)) / 96.0)
 _wf_mod.HeatPumpOptimizer._dhw_coil_wood_forecast = _wf_spy
 _WfModel.simulate_trajectory_with_dhw = _wf_sim_spy
+_wf_tm.dhw_coil_draw_reduction = _wf_red_spy
+_wf_mod.HeatPumpOptimizer._dhw_planner_draws = _wf_pd_spy
+_wf_mod.HeatPumpOptimizer._build_dhw_requirements = _wf_build_spy
 try:
     _wf_res = _wf_b["optimizer"].optimize(
         _wf_b["state"], _wf_b["prices"], _wf_b["outdoor"], _wf_b["wind"],
@@ -10330,9 +10366,16 @@ try:
 finally:
     _wf_mod.HeatPumpOptimizer._dhw_coil_wood_forecast = _wf_real
     _WfModel.simulate_trajectory_with_dhw = _wf_real_sim
+    _wf_tm.dhw_coil_draw_reduction = _wf_real_red
+    _wf_mod.HeatPumpOptimizer._dhw_planner_draws = _wf_real_pd
+    _wf_mod.HeatPumpOptimizer._build_dhw_requirements = _wf_real_build
 _wf_priced = [np.asarray(f, dtype=float) for s, f in _wf_seen if s and f is not None]
 _wf_dhw = np.asarray(_wf_res.dhw_temp_trajectory, dtype=float)
-_wf_pub = [r for d, r in _wf_reads if d.shape == _wf_dhw.shape and np.array_equal(d, _wf_dhw)]
+_wf_pubrun = [
+    (r, ap) for d, r, ap in _wf_reads
+    if d.shape == _wf_dhw.shape and np.array_equal(d, _wf_dhw)
+]
+_wf_pub = [r for r, _ in _wf_pubrun]
 _wf_m = min(len(_wf_priced[-1]), _wf_pub[-1].size) if _wf_priced and _wf_pub else 0
 _wf_gap = (
     float(np.max(np.abs(_wf_priced[-1][:_wf_m] - _wf_pub[-1][:_wf_m])))
@@ -10343,6 +10386,20 @@ R.check(
     _wf_m > 1 and _wf_gap <= 0.05,
     f"max |priced - published coil read| {_wf_gap:.4f} K over {_wf_m} steps "
     f"({len(_wf_priced)} solved-space forecasts; none means the check ran on nothing)",
+)
+_wf_sched = np.asarray(_wf_res.dhw_power_schedule, dtype=float)
+_wf_cred = [c for sch, c in _wf_builds if sch.shape == _wf_sched.shape and np.array_equal(sch, _wf_sched)]
+_wf_app = np.asarray(_wf_pubrun[-1][1] if _wf_pubrun else [], dtype=float)
+_wf_dm = min(len(_wf_cred[-1]), _wf_app.size) if _wf_cred else 0
+_wf_dgap = (
+    float(np.max(np.abs(_wf_cred[-1][:_wf_dm] - _wf_app[:_wf_dm])))
+    if _wf_dm else float("nan")
+)
+R.check(
+    "and the draws it credits are the draws the published plan's coil applies, step by step",
+    _wf_dm > 1 and _wf_app.size == _wf_sched.size and _wf_dgap <= 2e-4,
+    f"max |credited - applied| {_wf_dgap:.6f} kW over {_wf_dm} steps "
+    f"({len(_wf_cred)} matching builds, {_wf_app.size} coil calls)",
 )
 
 # #400: the planner must credit the coil, not only the reporting simulation.
