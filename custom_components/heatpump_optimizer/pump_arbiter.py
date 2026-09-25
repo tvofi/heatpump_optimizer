@@ -41,48 +41,32 @@ gate is the other duty's set-point, lowered to the entity's own minimum
 (never below :data:`FLOW_GATE_C` / :data:`DHW_GATE_C`). Which one applies
 is read off the select's ``options``, not configured.
 
-**It never overrides a person.** Every value it writes is recorded, with
-the reading just before the write. Readings inside :data:`ECHO_GRACE_S`
-of the write prove nothing either way -- the fork shows a sent value for a
-few seconds whether or not the device took it, and in v6.6.12 that echo
-counted as a landing, so the device's own value coming back read as a
-person's change. A state that differs from the record, read after the
-grace, is one of two things:
+**While active, it holds what it wrote** (tvofi, 2026-09-25). Every value
+it writes is recorded. A reading that differs from the record after
+:data:`ECHO_GRACE_S` -- a person, an automation or the pump's own reset --
+is written again at once: while "Optimizer active" is on the optimizer is
+the pump's one writer, and turning it off is how a person takes the pump
+back (the baseline row is written once, then nothing). A value the pump
+still does not hold after that rewrite raises a warning repair and is sent
+again every :data:`RETRY_MINUTES`; the first reading that holds it clears
+the repair. Readings inside the grace prove nothing either way: the fork
+shows a sent value for a few seconds whether or not the device took it.
+While the configured power switch reads off, nothing is compared or
+written.
 
-* **An ignored write** -- the reading never showed our value and still
-  equals the one from before the write. The device (or its cloud) dropped
-  it. A warning repair is raised, the slot is retried every
-  :data:`RETRY_MINUTES`, the optimizer stays on, and the first write that
-  lands clears the repair.
-* **A manual change** -- anything else: a value that is neither ours nor
-  the prior one, or any change after ours had been seen to land. The
-  arbiter stops writing, turns the "optimizer active" switch off and raises
-  a repair. Turning the switch back on hands control back and clears it.
-
-The heuristic's limits: a person who sets the value back to exactly what
-it was before our write, before a reading of ours was ever seen, is read as
-an ignored write, and is overwritten once, five minutes later (then it lands
-and any later change is manual). A write that lands and is reverted by the
-device between two readings (the tick is a minute, plus every state event)
-reads as ignored too. The record -- what was written, the reading before
-it, which writes were seen to land and which wait for a retry -- is
-persisted, so the same reading means the same thing after a restart (a
-v6.6.12 reboot read an ignored write as a manual change and turned the
-optimizer off). A record from before that, with no prior readings, is not
-evidence either way: its values are written again once.
+The v6.6.12 design stood down on any change it could not explain as an
+ignored write, turning the optimizer off. On tvofi's install the fork's
+echo, a set-point the device refused, a restart that lost the record's
+evidence and the pump's own reset to 25 degC when switched off all read as
+a person, so the optimizer kept switching itself off.
 
 **Its own writes are not evidence.** A mode the arbiter wrote must not reach
 the next solve as "the pump cannot heat" (:func:`own`), or a DHW-only step
 would block space heat for the whole horizon and nothing would ever write
 Heating + DHW back. Under control that holds for any of its three modes,
 not only the last one written: a pump that has not yet shown the next
-write, a write that landed after it was read as ignored, or the first solve
-after a restart all read the pump before the record agrees (v6.6.12).
-
-**A pump switched off is not judged.** While the configured power switch
-reads off, nothing is compared or written, and on the first pass after it
-is on again a slot that differs from the record is the device's own reset
-(:func:`_powered`), written again rather than read as a manual change.
+write, one it is about to rewrite, or the first solve after a restart all
+read the pump before the record agrees (v6.6.12).
 
 **Rails.** Hot-water-only is leased: at most :data:`LEASE_MINUTES`, and
 :data:`COLD_LEASE_MINUTES` below :data:`COLD_RAIL_C` outdoors, while the
@@ -164,6 +148,7 @@ FLOW_GATE_C = 25.0
 #: The floor of the hot-water gate on a transport with no heating-only mode.
 DHW_GATE_C = 30.0
 SETPOINT_TOLERANCE = 0.3
+#: The v6.6.12 stand-down repair, cleared wherever a record from then loads.
 ISSUE_MANUAL = "pump_manual_change"
 ISSUE_IGNORED = "pump_write_ignored"
 #: How long an ignored write waits before it is sent again.
@@ -185,19 +170,14 @@ class PumpCommand:
 
 @dataclass
 class ArbiterState:
-    """Per-coordinator record: what was written, when, and why it stopped."""
+    """Per-coordinator record: what was written, and what did not hold."""
 
-    #: slot -> (value written, when); the ownership record.
+    #: slot -> (value written, when); the ownership record, persisted.
     written: dict[str, tuple[Any, datetime]] = field(default_factory=dict)
-    manual: str | None = None
-    #: slot -> the reading just before our write; slots seen to land;
-    #: slot -> when an ignored write is sent again. All persisted.
-    prior: dict[str, Any] = field(default_factory=dict)
-    landed: set[str] = field(default_factory=set)
+    #: slot -> differing readings in a row; slot -> when a value the pump
+    #: did not hold is sent again.
+    misses: dict[str, int] = field(default_factory=dict)
     retry: dict[str, datetime] = field(default_factory=dict)
-    dirty: bool = False
-    #: The pump's power switch read off since the last pass that judged.
-    was_off: bool = False
     step: dict[str, Any] | None = None
     log: deque[dict[str, Any]] = field(default_factory=lambda: deque(maxlen=LOG_STEPS))
     dhw_since: datetime | None = None
@@ -258,10 +238,9 @@ def own(coord: Any, signals: Any) -> Any:
 
     Under control, whichever of its three modes the pump reads is the
     arbiter's step decision: its own last write, one it wrote before the
-    pump showed the next, one that landed after it was read as ignored, or
-    one from before a restart. A person's change stands the arbiter down
-    within a tick and turns the optimizer off, and from then on the reading
-    blocks again.
+    pump showed the next, or one from before a restart; anything else is
+    rewritten within a tick. With the optimizer off the reading blocks
+    again, since the pump is the person's then.
     """
     if duty_mode(coord._config) != DUTY_CONTROL or coord._mode == MODE_OFF:
         return signals
@@ -416,41 +395,33 @@ def _observed(coord: Any, slot: str) -> Any:
     return setpoint_check._read_setpoint(coord.hass, entity)
 
 
-def _key(slot: str, observed: Any) -> Any:
-    return pump_mode.resolve(observed) if slot == "mode" else observed
+def hold(coord: Any, now: datetime) -> None:
+    """Drop the record of every slot the pump does not hold, so it is rewritten.
 
-
-def foreign_change(coord: Any, now: datetime) -> str | None:
-    """The first slot a person changed; an ignored write is retried instead."""
+    The first differing reading is rewritten at once; one that still differs
+    after that rewrite is warned about and retried every few minutes.
+    """
     held = state_for(coord)
     for slot, (value, at) in list(held.written.items()):
         observed = _observed(coord, slot)
-        if observed is None:
-            continue
-        if (now - at).total_seconds() < ECHO_GRACE_S:
-            # The fork shows a sent value for a few seconds whether or not
-            # the device took it: an echo is not a landing (v6.6.12).
+        if observed is None or (now - at).total_seconds() < ECHO_GRACE_S:
             continue
         if not _differs(slot, observed, value):
-            held.dirty = held.dirty or slot not in held.landed
-            held.landed.add(slot)
+            held.misses.pop(slot, None)
             if held.retry.pop(slot, None) is not None and not held.retry:
                 _clear(coord, ISSUE_IGNORED)
             continue
-        entity = _entities(coord._config)[slot]
-        detail = f"{entity}: {observed} (set by the optimizer: {value})"
-        prior = held.prior.get(slot)
-        if slot in held.landed or prior is None or _differs(slot, observed, prior):
-            return detail
-        _ignored(coord, held, slot, detail, now)
-    return None
+        del held.written[slot]
+        held.misses[slot] = held.misses.get(slot, 0) + 1
+        if held.misses[slot] > 1:
+            entity = _entities(coord._config)[slot]
+            _not_held(coord, held, slot, f"{entity}: {observed} (set by the optimizer: {value})", now)
 
 
-def _ignored(coord: Any, held: ArbiterState, slot: str, detail: str, now: datetime) -> None:
-    """The write never took: warn, and send it again in a few minutes."""
-    del held.written[slot]
+def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datetime) -> None:
+    """A rewrite did not hold either: warn, and send it again in a few minutes."""
     held.retry[slot] = now + timedelta(minutes=RETRY_MINUTES)
-    _LOGGER.warning("Pump duty: the pump ignored a write, %s; retrying", detail)
+    _LOGGER.warning("Pump duty: the pump does not hold a write, %s; retrying", detail)
     setpoint_check.create_issue(
         coord.hass,
         DOMAIN,
@@ -470,7 +441,7 @@ def _clear(coord: Any, issue: str) -> None:
 
 
 def _forget(held: ArbiterState) -> None:
-    held.written, held.prior, held.landed, held.retry = {}, {}, set(), {}
+    held.written, held.misses, held.retry = {}, {}, {}
 
 
 async def _write(coord: Any, slot: str, value: Any, now: datetime) -> None:
@@ -481,7 +452,6 @@ async def _write(coord: Any, slot: str, value: Any, now: datetime) -> None:
         return
     if slot in held.retry and now < held.retry[slot]:
         return
-    prior = _key(slot, _observed(coord, slot))
     try:
         if slot == "mode":
             await coord.hass.services.async_call(
@@ -496,41 +466,12 @@ async def _write(coord: Any, slot: str, value: Any, now: datetime) -> None:
         _LOGGER.warning("Pump duty: writing %s to %s failed: %s", value, entity, err)
         return
     held.written[slot] = (value, now)
-    held.prior[slot] = prior
-    held.landed.discard(slot)
     await _persist(coord)
 
 
 async def _command(coord: Any, command: PumpCommand, now: datetime) -> None:
     for slot in _SLOTS:
         await _write(coord, slot, getattr(command, slot), now)
-
-
-async def _stand_down(coord: Any, detail: str) -> None:
-    held = state_for(coord)
-    held.manual = detail
-    _forget(held)
-    _clear(coord, ISSUE_IGNORED)
-    await _persist(coord)
-    _LOGGER.warning("Pump duty: manual change on %s; handing control back", detail)
-    setpoint_check.create_issue(
-        coord.hass,
-        DOMAIN,
-        ISSUE_MANUAL,
-        is_fixable=False,
-        severity=ir.IssueSeverity.WARNING,
-        translation_key=ISSUE_MANUAL,
-        translation_placeholders={"detail": detail},
-    )
-    await coord.async_set_mode(MODE_OFF)
-
-
-async def _resume(coord: Any) -> None:
-    held = state_for(coord)
-    held.manual = None
-    _forget(held)
-    await _persist(coord)
-    _clear(coord, ISSUE_MANUAL)
 
 
 def _observe(coord: Any, held: ArbiterState, duty: str | None, now: datetime) -> None:
@@ -589,7 +530,7 @@ async def apply(coord: Any, now: datetime | None = None) -> None:
 
 async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -> None:
     if coord._mode == MODE_OFF or mode != DUTY_CONTROL:
-        if held.written and held.manual is None and mode == DUTY_CONTROL:
+        if held.written and mode == DUTY_CONTROL:
             await _command(coord, desired(coord, None, now), now)
         if held.written or held.retry:
             # A pending retry dies with control, and so does its warning.
@@ -598,51 +539,31 @@ async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -
             await _persist(coord)
         if coord._mode == MODE_OFF:
             return
-    if held.manual is not None:
-        await _resume(coord)
     duty = _leased(coord, held, _planned_duty(coord, now), now)
     _observe(coord, held, duty, now)
-    if mode != DUTY_CONTROL or not _powered(coord, held):
+    if mode != DUTY_CONTROL or _pump_off(coord):
         return
-    detail = foreign_change(coord, now)
-    if detail is not None:
-        await _stand_down(coord, detail)
-        return
-    if held.dirty:
-        await _persist(coord)
+    hold(coord, now)
     await _command(coord, desired(coord, duty, now), now)
 
 
-def _powered(coord: Any, held: ArbiterState) -> bool:
-    """Whether the pump is on; its own resets while it was off are not a person.
+def _pump_off(coord: Any) -> bool:
+    """Whether the configured power switch reads off.
 
     Switched off, the pump reports set-points of its own (tvofi's reads 25
-    degC), so nothing is judged or written until it is on again. Then a slot
-    that still differs from the record is the device's reset: its record is
-    dropped and the plan's value written again, never a manual change.
+    degC), so nothing is compared or written until it is on again; then a
+    reset that is still there is rewritten like any other difference.
     """
     entity = coord._config.get(CONF_HEAT_PUMP_SWITCH_ENTITY)
     power = coord.hass.states.get(entity) if entity else None
-    if getattr(power, "state", None) == "off":
-        held.was_off = True
-        return False
-    if held.was_off:
-        held.was_off = False
-        for slot, (value, _at) in list(held.written.items()):
-            observed = _observed(coord, slot)
-            if observed is not None and _differs(slot, observed, value):
-                del held.written[slot]
-                held.prior.pop(slot, None)
-                held.landed.discard(slot)
-                held.dirty = True
-    return True
+    return bool(getattr(power, "state", None) == "off")
 
 
 async def release(coord: Any) -> None:
     """Unload: write the baseline over anything still owned, then let go."""
     release_listeners(coord)
     held = state_for(coord)
-    if held.written and held.manual is None and duty_mode(coord._config) == DUTY_CONTROL:
+    if held.written and duty_mode(coord._config) == DUTY_CONTROL:
         await _command(coord, desired(coord, None, dt_util.now()), dt_util.now())
 
 
@@ -679,13 +600,8 @@ def _store(coord: Any) -> QuarantiningStore[dict[str, Any]]:
 
 async def _persist(coord: Any) -> None:
     held = state_for(coord)
-    held.dirty = False
     payload = {
-        "manual": held.manual,
         "written": {k: [v, at.isoformat()] for k, (v, at) in held.written.items()},
-        "prior": dict(held.prior),
-        "landed": sorted(held.landed),
-        "retry": {k: at.isoformat() for k, at in held.retry.items()},
     }
     try:
         await _store(coord).async_save(payload)
@@ -706,28 +622,12 @@ async def _load(coord: Any) -> None:
         raw = None
     if not isinstance(raw, dict):
         return
-    held.manual = raw.get("manual") or None
+    if raw.get("manual"):
+        _clear(coord, ISSUE_MANUAL)
     for slot, pair in (raw.get("written") or {}).items():
         try:
             held.written[slot] = (pair[0], datetime.fromisoformat(pair[1]))
         except (TypeError, ValueError, IndexError):
-            continue
-    _restore_evidence(held, raw)
-
-
-def _restore_evidence(held: ArbiterState, raw: dict[str, Any]) -> None:
-    """The prior readings, landings and retries beside a restored record."""
-    if "prior" not in raw:
-        # A v6.6.12 record: no prior readings, so a differing reading could
-        # not be told apart from an ignored write. Write the values again.
-        held.written = {}
-        return
-    held.prior = {k: v for k, v in (raw.get("prior") or {}).items() if k in held.written}
-    held.landed = {k for k in raw.get("landed") or () if k in held.written}
-    for slot, at in (raw.get("retry") or {}).items():
-        try:
-            held.retry[slot] = datetime.fromisoformat(at)
-        except (TypeError, ValueError):
             continue
 
 
@@ -737,7 +637,7 @@ def diagnostics_view(coord: Any) -> dict[str, Any]:
     return {
         "duty_mode": duty_mode(coord._config),
         "last_duty": held.last_duty,
-        "manual_change": held.manual,
+        "misses": dict(held.misses),
         "retrying": sorted(held.retry),
         "written": {k: v for k, (v, _at) in held.written.items()},
         "ledger": {

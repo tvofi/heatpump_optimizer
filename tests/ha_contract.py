@@ -530,8 +530,10 @@ INVENTORY: dict[str, Entry] = {
     ),
     "homeassistant.helpers.event.async_track_state_change_event": U(
         "returns an unsubscribe that actually removes the registration, so a "
-        "listener leak is visible. Upstream needs hass.bus and an event loop, "
-        "so what is pinned is the stub's own wiring"
+        "listener leak is visible, and refuses a plain function that is not "
+        "@callback, which upstream would run in an executor thread (v6.6.12). "
+        "Upstream needs hass.bus and an event loop, so what is pinned is the "
+        "stub's own wiring"
     ),
     # -- helpers.issue_registry ---------------------------------------------
     "homeassistant.helpers.issue_registry.IssueSeverity": H("string constants, probed"),
@@ -1765,12 +1767,33 @@ def _state_change_unsub():
     class _Hass:
         pass
 
+    from homeassistant.core import callback
+
     hass = _Hass()
-    unsub = async_track_state_change_event(hass, ["sensor.x"], lambda event: None)
+    unsub = async_track_state_change_event(hass, ["sensor.x"], callback(lambda event: None))
     assert len(hass.state_listeners) == 1
     unsub()
     assert hass.state_listeners == []
     unsub()
+
+
+@contract(
+    "homeassistant.helpers.event.async_track_state_change_event",
+    "a plain function that is neither @callback nor a coroutine is refused",
+    cite="helpers/event.py -- upstream runs such a job in an executor thread",
+    expect="stub",
+)
+def _state_change_refuses_executor_job():
+    from homeassistant.helpers.event import async_track_state_change_event
+
+    class _Hass:
+        pass
+
+    try:
+        async_track_state_change_event(_Hass(), ["sensor.x"], lambda event: None)
+    except TypeError:
+        return
+    raise AssertionError("an untagged plain listener was accepted")
 
 
 # -- helpers.issue_registry --------------------------------------------------
