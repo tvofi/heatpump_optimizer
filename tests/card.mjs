@@ -1104,12 +1104,6 @@ check("an unmeasured dialog is left alone rather than sized from zero",
 // become a new arrangement. The stub reports the svg as 900px wide against a
 // 900-unit viewBox, so a client x and a viewBox x coincide here; the card is
 // still asked for the geometry it recorded rather than told what it should be.
-// null control (fix/card-history-pins): a comment-only edit to this test
-// file, unrelated to either K4 or K7, that must leave every card check
-// green. Kept off custom_components/.../heatpump-optimizer-card.js on
-// purpose -- touching CARD_PATH makes this branch own
-// tests/golden/card_claimed_drift.txt's inherited claims (card_drift.mjs,
-// justifiesCardClaim), which this PR does not move and is not here to fix.
 const HOUR = 3600000;
 
 // The captured plan is dated to the day it was recorded, so the clock has to
@@ -8619,30 +8613,27 @@ const STOCK_THEMES = {
       ax ? `${ax.min}..${ax.max}` : "no temp axis");
   }
   {
-    // K4 (fix-review on #1622, PR body: "the forecast after it keeps its
-    // curve"): `seriesPath`'s held-step branch only steps the MEASURED run
-    // (`pts.slice(0, held + 1)`); the forecast beyond the seam still draws
-    // with `smoothLine`. Pan less far back than the other RC4b checks so
-    // the live edge -- and the forecast past it -- stays on screen, and
-    // read the "now" marker's own drawn x so the check does not recompute
-    // Date.now() a tick later than the card did.
+    // K4 (fix-review on #1622, then re-review on #1624 at d2c658b2): the
+    // first pin here -- "some C segment right of now" -- still passed when
+    // only `pts.slice(0, held + 1)` was stepped as `steppedLine(pts)` (the
+    // WHOLE line), because `smoothLine(pts.slice(held))` is still appended
+    // after it and still emits C commands. What that mutant actually
+    // breaks is where the appended curve starts: back at pts[held].x,
+    // behind the x `steppedLine(pts)` already walked forward to -- the x
+    // coordinates of the drawn path run backward. Pin THAT instead: no
+    // drawn house_temp path's sampled x may go backward, under the same
+    // -10 h pan that keeps the live edge and the forecast past it on
+    // screen.
     const { c } = mkCard(realisticHistory(FROZEN));
     c.view.panBy(-10 * HOUR);
     await flushHistory();
-    const dump = collect(c.shadowRoot).join("\n");
-    const nowM = /class="now"[^>]*\sx1="([-\d.]+)"/.exec(dump);
-    const nowX = nowM ? Number(nowM[1]) : null;
-    const curveAfterNow = pathsOf(c, "house_temp").some((d) => {
-      const re = /C [-\d.]+ [-\d.]+ [-\d.]+ [-\d.]+ ([-\d.]+) [-\d.]+/g;
-      let mm;
-      while ((mm = re.exec(d))) {
-        if (Number(mm[1]) > nowX) return true;
-      }
-      return false;
-    });
-    check("in the history-panned state, the temperature path keeps a curve segment to the right of now",
-      nowX !== null && curveAfterNow,
-      nowX === null ? "no now marker drawn in this window" : "no C segment right of now");
+    const xsOf = (d) => [...d.matchAll(
+      /[ML] ([-\d.]+) [-\d.]+|C [-\d.]+ [-\d.]+ [-\d.]+ [-\d.]+ ([-\d.]+) [-\d.]+/g
+    )].map((m) => Number(m[1] ?? m[2]));
+    const backtracking = pathsOf(c, "house_temp").filter((d) =>
+      xsOf(d).some((x, i, a) => i > 0 && x < a[i - 1] - 0.01));
+    check("no drawn house_temp path's x coordinates run backward under the held/forecast seam",
+      backtracking.length === 0, `${backtracking.length} path(s) with backtracking x`);
   }
   {
     // K7 (fix-review on #1622, absorb's own comment: "an unavailable row is
