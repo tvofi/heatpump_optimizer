@@ -45981,5 +45981,32 @@ for _z1524_name in _b942:
         and _z1524_d.reason == _SysIdModule.VALVE_REGULATES_REASON,
         f"peak {_z1524_peak:.3f} K, decision '{_z1524_d.reason}'",
     )
+# R8-P5c: the held state is the valve plant's own fixed point. The hidden
+# zones' and slab's derivatives do not read the hold's heat, so one short
+# unpowered plant step leaves them where _held_state put them -- on a plant
+# whose nameplate COP and emitter design lift sit under the model's 1.0 floors.
+_z1524_p = replace(
+    ThermalParameters.from_config({
+        **_grad_house(two_zone=True, dhw=False),
+        _const922.CONF_MIXING_VALVE_MODE: "manual",
+    }),
+    cop_nominal=0.6, emitter_design_delta_t=0.5, wind_sensitivity=0.0,
+)
+_z1524_m = ThermalModel(_z1524_p)
+_z1524_h = _SysIdModule._held_state(_z1524_m, 21.0, 0.0)
+_z1524_s = _z1524_m.simulate_step(
+    _z1524_h, electrical_power=0.0, outdoor_temp=0.0, dt_hours=1e-3
+)
+_z1524_move = max(
+    abs(_z1524_s.upper_floor_temperature - 21.0),
+    abs(_z1524_s.lower_floor_temperature - _z1524_h.lower_floor_temperature),
+    abs(_z1524_s.slab_temperature - _z1524_h.slab_temperature),
+)
+R.check(
+    "R8-P5c: behind a valve the held state's zones and slab are the plant's "
+    "own fixed point, under the 1.0 floors on COP and emitter lift",
+    _z1524_move < 1e-6,
+    f"largest move {_z1524_move:.2e} K in a 3.6 s unpowered step",
+)
 
 sys.exit(R.close("FEATURE CHECKS"))
