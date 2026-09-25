@@ -373,7 +373,7 @@ def _leased(coord: Any, held: ArbiterState, duty: str | None, now: datetime) -> 
         return duty
     room = getattr(coord._current_state, "room_temperature", None)
     planned = _planned_room(getattr(coord, "_optimization_result", None), now)
-    warm = None not in (room, planned) and float(room) >= float(planned)
+    warm = room is not None and planned is not None and float(room) >= float(planned)
     return duty if warm else None
 
 

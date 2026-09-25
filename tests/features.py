@@ -46423,6 +46423,27 @@ R.check(
     and _pa.diagnostics_view(_pa_two)["retrying"] == [],
     f"{_pa_two_kept=} {_pa_two.set_modes=} {_pa.diagnostics_view(_pa_two)['retrying']=}",
 )
+# Two slots retry on different clocks: the mode's rewrite lands while the
+# DHW set-point is still stuck, so the warning must survive the mode's own
+# clear check -- it is not the last slot outstanding.
+_pa_multi = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_multi, 0)
+_pa_multi.device("select.pump_mode", "Heating")
+_pa_run(_pa_multi, 1)
+_pa_run(_pa_multi, 2)
+_pa_multi.device("number.dhw_set", "40")
+_pa_run(_pa_multi, 3)
+_pa_run(_pa_multi, 4)
+_pa_multi.device("select.pump_mode", "DHW (Hot Water)")
+_pa_run(_pa_multi, 7)
+_pa_run(_pa_multi, 8)
+_pa_multi_diag = _pa.diagnostics_view(_pa_multi)
+R.check(
+    "the warning stays while a second slot is still retrying, even once the mode's own rewrite holds",
+    bool([i for i in getattr(_pa_multi.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED])
+    and _pa_multi_diag["retrying"] == ["dhw_setpoint"],
+    f"{_pa_multi_diag=}",
+)
 _pa_unav = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_unav, 0)
 _pa_unav.device("select.pump_mode", "unavailable")
