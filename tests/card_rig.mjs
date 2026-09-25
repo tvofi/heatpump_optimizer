@@ -197,8 +197,20 @@ export function planStates(plan, { spaceId = DEFAULT_SPACE, dhwId = DEFAULT_DHW,
 // inclusive does: the same state then arrives in two neighbouring chunks,
 // the boundary join the card has to survive.
 //
-// opts.fail throws on every call (the network/refusal arm);
-// opts.empty answers an empty array per entity (the recorder-off arm).
+// Two more of HA's own semantics are served, because the card got both
+// wrong while a kinder stub stayed green (bug 7; homeassistant/components/
+// history/__init__.py and recorder/history/, the /history/period view):
+//   - an entity with ZERO rows in the window is FILTERED OUT of the answer
+//     ("Filter out the empty lists if some states had 0 results"), so the
+//     answer is not positional; the first row of every list carries its
+//     `entity_id` even under minimal_response, and that is the key;
+//   - `significant_changes_only` defaults to "1", under which a sensor's
+//     row is served only where its STATE changed (last_changed ==
+//     last_updated): an attribute-only update (power_kw moving under an
+//     unchanged mode) is dropped unless the query sends
+//     `significant_changes_only=0`. The first row in the window is served.
+//
+// opts.fail throws on every call (the network/refusal arm).
 export function historyApi(entries, opts = {}) {
   const api = {
     calls: [],
@@ -214,17 +226,31 @@ export function historyApi(entries, opts = {}) {
       const end = Date.parse(q.get("end_time"));
       const ids = (q.get("filter_entity_id") || "").split(",").filter(Boolean);
       const lean = q.has("no_attributes");
-      return ids.map((id) =>
-        (entries[id] || [])
+      const significantOnly = q.get("significant_changes_only") !== "0";
+      return ids.map((id) => {
+        let prev = null;
+        return (entries[id] || [])
           .filter((s) => {
             const t = s.t;
             return t >= start && (t < end || (opts.inclusiveEnd && t === end));
           })
-          .map((s) => ({
+          .filter((s, i) => {
+            // A fixture row that repeats its predecessor's state is an
+            // attribute-only update when it CARRIES attributes; a bare
+            // repeat (the grid fixture's own sample) is served as written,
+            // since the recorder would not have written it at all.
+            const keep = !significantOnly || i === 0 || !s.attributes ||
+              String(s.state) !== prev;
+            prev = String(s.state);
+            return keep;
+          })
+          .map((s, i) => ({
+            ...(i === 0 || !lean ? { entity_id: id } : {}),
             state: String(s.state),
             last_updated: s.stamp || new Date(s.t).toISOString(),
             ...(lean ? {} : { attributes: s.attributes || {} }),
-          })));
+          }));
+      }).filter((rows) => rows.length);
     },
   };
   return api;
@@ -325,6 +351,8 @@ export const flushHistory = async () => {
  *   - every stamp in HA's own shape (see `haStamp`), crossing a
  *     spring-forward transition mid-window (+01:00 -> +02:00).
  */
+const MODE_CYCLE = ["off", "eco", "hot_water", "pre_heat", "normal"];
+const MODE_KW = { eco: 1.4, hot_water: 2.8, pre_heat: 3.4, normal: 2.4 };
 export function realisticHistory(endMs, { power = true, spanMs = 48 * HOUR } = {}) {
   const entries = {
     [HISTORY_IDS.indoor]: [],
@@ -361,11 +389,14 @@ export function realisticHistory(endMs, { power = true, spanMs = 48 * HOUR } = {
       state: String(Math.max(0, Math.round(300 * Math.sin((hourOfDay - 6) / 12 * Math.PI)))),
     });
     if (phase % 17 === 0) {
-      mode = mode === "off" ? "pre_heat" : mode === "pre_heat" ? "comfort" : "off";
+      // The optimizer's own ladder (optimizer.py's mode ladder), hot_water
+      // among it: a step heating only the tank.
+      mode = MODE_CYCLE[(MODE_CYCLE.indexOf(mode) + 1) % MODE_CYCLE.length];
     }
     if (power) {
-      // Attribute-only updates: state unchanged, power_kw republished.
-      const kw = mode === "off" ? 0 : mode === "pre_heat" ? 4.0 : 2.2;
+      // Attribute-only updates: state unchanged, power_kw republished --
+      // and MOVING, as the commanded draw does from one solve to the next.
+      const kw = mode === "off" ? 0 : MODE_KW[mode] + 0.1 * (phase % 4);
       entries[HISTORY_IDS.action].push({
         t, stamp, state: mode,
         attributes: { power_kw: kw, heat_pump_on: mode !== "off" } });
