@@ -45,6 +45,7 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
    it as `harnesses/j5_gil.py`. A fixer who builds their own instrument must
    disclose it as their own, not the finder's -- so do you, if you built one.
    Read the finding's own judge ruling first — #290's brief still prescribes a harness its judge already refused.
+   A feature has no finder: its judge's design is the harness, and a requirement or on-device measurement it names that is neither tested nor waived by tvofi is `blocked: design trace missing: <item>` (#1588's P4 and M5 reached v6.6.12 so).
 
 10. **Check the forward-carry before you return `merge`.** The PR body names
     where a finding that changes a later stage was written; open that

@@ -150,5 +150,15 @@
     "detector_idea": "The claims table, link-graph walker and backticked-symbol resolver run per docs-touching PR",
     "barrier": null,
     "status": "open"
+  },
+  "P11": {
+    "kind": "production",
+    "mechanism": "The only oracle for an external counterpart (Home Assistant core, its state machine, its recorder REST API, a device behind an integration) is a test double the implementer wrote from what the code needed, so the tests agree with a wrong implementation",
+    "rounds": [],
+    "instances": ["v6.6.12 bug 1", "v6.6.12 bug 3", "v6.6.12 bug 4", "v6.6.12 bug 5", "v6.6.12 bug 6", "v6.6.12 bug 7", "v6.6.12 arbiter listener without @callback", "v4.0.0 _on_power_event without @callback", "#1290 card history repair", "#511 stub import shape"],
+    "detector": null,
+    "detector_idea": "Per seam, an enumerating sweep that drives every production call site through a double whose behaviour is cited to upstream source or measured on the device; tests/entities.py's entity-action sweep (handoff/v6612-root-cause) is the first",
+    "barrier": null,
+    "status": "open"
   }
 }
