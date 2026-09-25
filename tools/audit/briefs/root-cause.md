@@ -53,9 +53,9 @@ closed `bug` issues. Where the programme has already classified a defect's
 class, use that frequency and cite where it was measured. Otherwise state your
 estimate and its basis.
 
-**Recommending nothing is a legitimate result.** Say so plainly and give the
-number that says so. A countermeasure that fails the test and is built anyway is
-a defect of its own.
+**Recommending nothing is legitimate** — plainly, with the number — except for an
+audit class `defect-root-cause.md` says owes a barrier: there, ask the owner. A
+countermeasure that fails the test and is built anyway is a defect of its own.
 
 ## 5. If you propose a countermeasure
 
