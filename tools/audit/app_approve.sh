@@ -172,6 +172,18 @@ else:
   # which contains the sha it is searching for -- so it always "finds" it.
   # `/proc`, `/dev` and `/sys` are refused outright after resolution,
   # whether or not this machine even has them.
+  #
+  # `pwd -P` KEEPS EXACTLY TWO LEADING SLASHES: POSIX carves out `//foo` as
+  # implementation-defined (unlike three or more, which always collapse to
+  # one), and this shell's `pwd -P` exercises that carve-out -- a token
+  # like `//tmp/..` or `//usr/../` resolves to `//`, not `/`. Left alone,
+  # `//` still passes the "at least two path components" glob (`/*/*`
+  # matches it -- both `*`s match empty) and `//proc/self` /  `//dev/fd`
+  # don't match a `/proc/*` / `/dev/*` pattern at all, since that pattern
+  # requires a SINGLE leading slash. So the leading run of slashes is
+  # collapsed to exactly one right after resolution, before any guard reads
+  # it -- one normalisation point instead of teaching every guard about
+  # `//`.
   local evdir="" evwhy="the verdict names no absolute path at all" tok
   while read -r tok; do
     tok=$(printf '%s' "$tok" | sed -e "s/^[([{\`\"']*//" -e "s/[]).,;:}\`\"']*\$//" -e 's:/*$::')
@@ -184,8 +196,9 @@ else:
     if ! resolved=$(cd "$tok" 2>/dev/null && pwd -P); then
       evwhy="$tok is not a directory that exists"; continue
     fi
+    resolved=$(printf '%s' "$resolved" | sed -E 's#^/+#/#')
     case "$resolved" in
-      /*/*) ;;   # authoritative: the RESOLVED path, after `..`/`.`/symlinks
+      /*/*) ;;   # authoritative: the RESOLVED, SLASH-COLLAPSED path
       *) evwhy="$tok resolves to $resolved, fewer than two path components"; continue ;;
     esac
     case "$resolved" in
@@ -383,10 +396,35 @@ mkcase() { # name state merged head comments-json
   pr_json "$2" "$3" "$4" > "$d/pr.json"; printf '%s' "$5" > "$d/c1.json"
   files_json tools/audit/app_approve.sh docs/delivery/7.md > "$d/files.json"
 }
+# A reverted evidence-gate guard doesn't just refuse wrongly -- it can hang
+# on `grep -rqF` over the root or a huge real directory (#1591, and twice
+# more in this file's own review history). `timeout(1)` isn't guaranteed
+# present (this shell's macOS has no `timeout` on PATH by default), so the
+# deadline is enforced in Python: it kills the WHOLE process group on
+# expiry, not just the direct child, since the hang is in a grandchild
+# `grep`, not in `bash` itself.
+RUN_TIMEOUT_S="${RUN_TIMEOUT_S:-10}"
+RUN_TIMEOUT_PY='import os, signal, subprocess, sys
+argv, outf, errf, secs = sys.argv[1:-3], sys.argv[-3], sys.argv[-2], float(sys.argv[-1])
+with open(outf, "wb") as o, open(errf, "wb") as e:
+    p = subprocess.Popen(argv, stdout=o, stderr=e, start_new_session=True)
+    try:
+        rc = p.wait(timeout=secs)
+    except subprocess.TimeoutExpired:
+        try: os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+        except ProcessLookupError: pass
+        p.wait()
+        e.write(("\napp_approve self-test: TIMEOUT after %gs -- killed, a revert probably reintroduced a hang\n" % secs).encode())
+        rc = 124
+sys.exit(rc)'
 run() { # name args... -> rc; out/err captured. BASHX=1 runs the tool under bash -x
   local d="$W/$1"; shift
   ( export STUB="$d" PATH="$W/bin:$PATH" TMPDIR="$d/tmp" HPO_IDENTITY_DIR="${IDDIR:-$W/id}"
-    if [ "${BASHX:-}" = 1 ]; then bash -x "$SELF" "$@"; else bash "$SELF" "$@"; fi > "$d/out" 2> "$d/err" )
+    if [ "${BASHX:-}" = 1 ]; then
+      python3 -c "$RUN_TIMEOUT_PY" bash -x "$SELF" "$@" "$d/out" "$d/err" "$RUN_TIMEOUT_S"
+    else
+      python3 -c "$RUN_TIMEOUT_PY" bash "$SELF" "$@" "$d/out" "$d/err" "$RUN_TIMEOUT_S"
+    fi )
 }
 calls() { grep -c "^$2" "$W/$1/log"; }
 leftover() { find "$W/$1/tmp" -mindepth 1 | wc -l | tr -d ' '; }
@@ -510,6 +548,15 @@ st "$(grep -cF "$EVGONE is not a directory that exists" "$W/evtrailmissing/err")
 st "$(grep -cF "$EVGONE/ is not a directory that exists" "$W/evtrailmissing/err")" 0 \
    "(null control) that same message never carries a trailing slash either"
 
+# Kill: the opening-paren word-boundary specifically (M3: dropping "(" from
+# the boundary class). A source pin backs this up, since a behavioral test
+# alone can't distinguish "'(' was removed" from "some other boundary char
+# also covers this case by accident".
+st "$(sed -n '1,300p' "$SELF" | grep -cF 'boundary = r"(?:(?<=[\s([{')" 1 \
+   "pin M3: the boundary class still includes '(' -- the common '(evidence: ...)' citation shape needs it"
+mkcase parenboundary open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "proof(${EV}) end")]"
+run parenboundary o/r 7 "$SHA"; st $? 0 "(kills the paren-boundary mutant, M3) '(' starts a token, ')' is stripped off it"
+
 # Kill: the opening-bracket word-boundary. "[" immediately before "/" must
 # start a token (and the matching "]" strips off the end), same as "(" .
 mkcase brboundary open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "proof[${EV}] end")]"
@@ -553,6 +600,35 @@ rm -rf "$DOTX"
 mkcase doubleslash open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /tmp//../')]"
 run doubleslash o/r 7 "$SHA"; st $? 1 "REFUSE: a doubled slash alongside a dot-segment still resolves to the root"
 st "$(calls doubleslash curl)" 0 "and nothing was minted or posted"
+
+# pin M18: dropping "-P" from the resolution's `pwd -P`. A behavioral test
+# is not reliable here (plain `pwd`'s logical name and `pwd -P`'s physical
+# one coincide for most inputs -- only a bare symlink citation with no dot
+# segment tells them apart, and that's not otherwise part of this suite),
+# so this is a straight source pin, same technique as the VERDICT_AUTHORS
+# pin above.
+st "$(sed -n '1,300p' "$SELF" | grep -cF 'cd "$tok" 2>/dev/null && pwd -P')" 1 \
+   "pin M18: resolution reads the PHYSICAL directory; \`pwd\` alone can report a symlink's logical name instead"
+
+# `pwd -P` on this shell keeps EXACTLY TWO leading slashes: POSIX carves
+# `//foo` out as implementation-defined (unlike three-or-more, which always
+# collapse to one), and this shell's `pwd -P` exercises that carve-out --
+# `//tmp/../` resolves to `//`, not `/`. Left alone, `//` still passes the
+# "at least two path components" glob (`/*/*` matches it, since both `*`s
+# can match empty), and `//proc/self` / `//dev/fd` don't match a
+# `/proc/*` / `/dev/*` pattern that requires a single leading slash. The
+# leading-slash collapse closes all three.
+mkcase doubleslashroot open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: //tmp/../')]"
+run doubleslashroot o/r 7 "$SHA"; st $? 1 "REFUSE: //tmp/../ resolves to // (not /), and still must be refused"
+st "$(calls doubleslashroot curl)" 0 "and nothing was minted or posted"
+mkcase doubleslashdev open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: //dev/fd')]"
+run doubleslashdev o/r 7 "$SHA"; st $? 1 "REFUSE: //dev/fd must not slip past the /dev refusal and reopen the forgery hole"
+st "$(grep -c 'proc, /dev or /sys' "$W/doubleslashdev/err")" 1 "naming the devfs refusal specifically, not just a missing directory"
+if [ -d /proc/self ]; then
+  mkcase doubleslashproc open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: //proc/self')]"
+  run doubleslashproc o/r 7 "$SHA"; st $? 1 "REFUSE: //proc/self must not slip past the /proc refusal either"
+  st "$(grep -c 'proc, /dev or /sys' "$W/doubleslashproc/err")" 1 "naming the procfs refusal specifically, where /proc exists"
+fi
 
 # procfs/devfs/sysfs: a real, non-empty, two-component directory that
 # `grep -r` cannot honestly search, because the grep PROCESS'S OWN open
