@@ -184,7 +184,7 @@ export function planStates(plan, { spaceId = DEFAULT_SPACE, dhwId = DEFAULT_DHW,
 // recorder through `hass.callApi("GET", "history/period/...")`. The rig has
 // no hass.connection, so this builds the callApi a Lovelace hass carries,
 // answering from a compact fixture: HA's shape is one array per entity, in
-// filter_entity_id order, of {state, last_updated, attributes?}. The stub
+// filter_entity_id order, of rows keyed as HA_HISTORY_ROW_KEYS says. The stub
 // PARSES the path the card built -- start out of the path, end_time and
 // filter_entity_id out of the query, minimal_response/no_attributes honored
 // -- so a test that fetches the wrong ids, the wrong window or a needlessly
@@ -211,6 +211,15 @@ export function planStates(plan, { spaceId = DEFAULT_SPACE, dhwId = DEFAULT_DHW,
 //     `significant_changes_only=0`. The first row in the window is served.
 //
 // opts.fail throws on every call (the network/refusal arm).
+//
+// The keys each row carries, from a real answer (tvofi's capture of a v6.6.12
+// install's /api/history/period, 2026-09-25; keys only, no values kept).
+export const HA_HISTORY_ROW_KEYS = {
+  leanFirst: ["attributes", "entity_id", "last_changed", "last_updated", "state"],
+  leanRest: ["last_changed", "state"],
+  full: ["attributes", "entity_id", "last_changed", "last_updated", "state"],
+};
+
 export function historyApi(entries, opts = {}) {
   const api = {
     calls: [],
@@ -229,6 +238,7 @@ export function historyApi(entries, opts = {}) {
       const significantOnly = q.get("significant_changes_only") !== "0";
       return ids.map((id) => {
         let prev = null;
+        let changed = null;
         return (entries[id] || [])
           .filter((s) => {
             const t = s.t;
@@ -244,12 +254,27 @@ export function historyApi(entries, opts = {}) {
             prev = String(s.state);
             return keep;
           })
-          .map((s, i) => ({
-            ...(i === 0 || !lean ? { entity_id: id } : {}),
-            state: String(s.state),
-            last_updated: s.stamp || new Date(s.t).toISOString(),
-            ...(lean ? {} : { attributes: s.attributes || {} }),
-          }));
+          .map((s, i, rows) => {
+            // Row keys as a real v6.6.12 install answered (tvofi's capture,
+            // 2026-09-25): a lean list's first row carries entity_id, empty
+            // attributes and both stamps, every later lean row only state and
+            // last_changed; a full row carries all five, with last_changed
+            // held at the last STATE change under an attribute-only update.
+            const stamp = s.stamp || new Date(s.t).toISOString();
+            // A bare repeat (a fixture sample the recorder would not have
+            // written) keeps its own time; only an attribute update holds.
+            const attrOnly = i > 0 && s.attributes &&
+              String(s.state) === String(rows[i - 1].state);
+            if (!attrOnly) changed = stamp;
+            if (lean && i > 0) return { state: String(s.state), last_changed: changed };
+            return {
+              entity_id: id,
+              state: String(s.state),
+              attributes: lean ? {} : s.attributes || {},
+              last_changed: changed,
+              last_updated: stamp,
+            };
+          });
       }).filter((rows) => rows.length);
     },
   };
