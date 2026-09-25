@@ -1171,6 +1171,46 @@ def layout_problems() -> list[str]:
     return out
 
 
+def carry_rows(base_ref: str, head_ref: str) -> tuple[dict, list[str]]:
+    """This checkout's ledger with the rows `head_ref` changed since `base_ref`.
+
+    The migration's one hand step, and the general "re-apply my rows onto
+    main's ledger". Both refs are read by `load_budgets_at`, which reads
+    either layout, so a branch cut before the split carries its rows onto the
+    split main exactly: every row it added, changed or deleted relative to
+    its base is applied to the ledger on disk, and nothing else moves. Why
+    not simply split the branch and merge: a split of a pre-split branch
+    ADDS every row, so a row main deleted since the branch base comes back
+    as the branch's addition (the demo's migration arm measures it). A row
+    both sides changed differently is not chosen: it is returned, and the
+    caller refuses.
+    """
+    base, head = load_budgets_at(base_ref), load_budgets_at(head_ref)
+    if base is None or head is None:
+        raise SystemExit(f"cannot read the ledger at {base_ref if base is None else head_ref}")
+    return carry(base, head, load_budgets())
+
+
+def carry(base: dict, head: dict, here: dict) -> tuple[dict, list[str]]:
+    """`carry_rows` over three loaded ledgers: `here` plus head's delta."""
+    here = json.loads(json.dumps(here))
+    clash: list[str] = []
+    for m in LEDGER_MAPS:
+        bm, hm, cur = base.get(m, {}), head.get(m, {}), here.setdefault(m, {})
+        for k in sorted(set(bm) | set(hm)):
+            if bm.get(k) == hm.get(k):
+                continue
+            if cur.get(k) not in (bm.get(k), hm.get(k)):
+                clash.append(f"{m}/{k}")
+                continue
+            if k in hm:
+                cur[k] = hm[k]
+            else:
+                cur.pop(k, None)
+        here[m] = dict(sorted(cur.items()))
+    return here, clash
+
+
 def normalize(budgets: dict, sites: list[dict]) -> tuple[dict, list[str]]:
     """The ledger in canonical form, and every retired key it could not map.
 
@@ -1815,7 +1855,26 @@ def main() -> int:
                          "content-anchored keys, sorted maps, no committed "
                          "count -- and exit; the one command a hand merge of "
                          "tests/mutation_budgets.json needs afterwards")
+    ap.add_argument("--carry-rows", nargs=2, metavar=("BASE", "HEAD"),
+                    help="apply the dispositions HEAD changed since BASE to "
+                         "the ledger on disk and exit: after `git merge "
+                         "origin/main` conflicts in the ledger, check out "
+                         "main's ledger and carry the branch's own rows onto "
+                         "it (BASE = the old merge base, HEAD = the branch "
+                         "before the merge); refuses a row both changed")
     args = ap.parse_args()
+    if args.carry_rows:
+        carried, clash = carry_rows(*args.carry_rows)
+        if clash:
+            print("CARRY REFUSED -- both sides changed these rows differently; "
+                  "resolve them by hand:")
+            for c in clash:
+                print(f"    {c}")
+            return 1
+        write_budgets(carried)
+        print(f"CARRIED the rows {args.carry_rows[1]} changed since "
+              f"{args.carry_rows[0]} into {LEDGER_DIRNAME}/")
+        return 0
     # Line-buffered on purpose. A nightly whose whole table appears only when
     # the process exits shows NOTHING when its timeout kills it -- the one run
     # whose partial table is worth most.
