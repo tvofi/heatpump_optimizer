@@ -141,7 +141,7 @@ MAX_AGE_NIGHTS = 2
 
 # Conclusions that are not this repository saying no. `skipped` matters: a
 # scheduled run of this workflow skips `fast`, `browser`, `typing`,
-# `closure-scope` and both autofix jobs by design, so treating a skip as a
+# `closure-scope` and every autofix job by design, so treating a skip as a
 # failure would report red every single night.
 OK_CONCLUSIONS = frozenset({"success", "skipped", "neutral"})
 

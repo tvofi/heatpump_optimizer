@@ -198,10 +198,10 @@ success or skipped" is a correct merge rule, because some jobs legitimately
 never run, and it is also how a clean-looking verification can be zero
 re-derivation work.
 
-Two CI jobs repair mechanical failures of this gate on same-repo pull requests:
-`closures-autofix` for `UNDER-SCOPED`, `claims-autofix` for `INHERITED CLAIMS`.
-**Do not open a second PR, run Darwin `--single`, or hand-empty a claim file
-for either** — wait for the bot commit and the dispatched recheck, and key on
+Three CI jobs repair mechanical failures on same-repo pull requests:
+`closures-autofix` for `UNDER-SCOPED`, `claims-autofix` for `INHERITED CLAIMS`,
+`mutation-autofix` for killed unpinned mutants. **Do not open a second PR, run
+Darwin `--single`, hand-empty a claim file or pin by hand for any of them** — wait for the bot commit and the dispatched recheck, and key on
 the job's summary line rather than its conclusion, because green covers both
 "repaired and pushed" and "nothing was owed". `.cursor/rules/ci-autofix.mdc` is
 the policy: which statuses mean a commit is coming, which mean none is, and

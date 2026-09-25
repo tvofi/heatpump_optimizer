@@ -1643,7 +1643,7 @@ def retrigger_needed(*, pushed: bool, used_pat: bool) -> bool:
     return pushed and not used_pat
 
 
-# Both autofix jobs push only on `changed`, and every other status used to fall
+# Every autofix job pushes only on `changed`, and every other status used to fall
 # through to job success -- so a job that repaired nothing looked exactly like
 # one that did, and `.cursor/rules/ci-autofix.mdc`'s "wait for the bot commit"
 # waited for a commit no step would push (#523). These are the statuses that
@@ -1668,6 +1668,15 @@ AUTOFIX_QUIET = {
     # the earlier three CI failures became unreadable.
     "claims-autofix": ("changed", "skip-not-allowed", "skip-not-inherited",
                        "skip-moves-nothing-claimable", "skip-cannot-compare"),
+    # `skip-not-unpinned` is every `mutation` failure that was not a ratchet
+    # refusal, `skip-nothing-killed` a measurement whose own summary pinned
+    # nothing (every site survived), and `skip-head-moved` a measurement of a
+    # head a newer push replaced, which the newer run measures: none is a
+    # skipped repair. `skip-measure-failed` (no summary: a red baseline, a
+    # refusal, a crash), `skip-nothing-drivable`, `skip-no-measurement`,
+    # `skip-no-base-program` and `skip-unchanged` are, and redden.
+    "mutation-autofix": ("changed", "skip-not-allowed", "skip-not-unpinned",
+                         "skip-nothing-killed", "skip-head-moved"),
 }
 
 # Keyed by status where the job-wide remedy would misdirect. A failed
@@ -1694,6 +1703,11 @@ _AUTOFIX_REMEDY = {
     "claims-autofix":
         "Rewrite tests/golden/claimed_drift.txt and card_claimed_drift.txt for\n"
         "THIS diff by hand, keeping `claims-for:` and any `# may-drift:` line.",
+    "mutation-autofix":
+        "Pin the new sites yourself and commit tests/mutation_budgets.json:\n"
+        "    python3 tests/mutation_table.py --pin-killed --base origin/main\n"
+        "A site no driver kills needs a killing check or a survivor_triage\n"
+        "verdict; no tool writes either.",
 }
 
 

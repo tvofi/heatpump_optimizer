@@ -596,11 +596,13 @@
             "data": {
               "indoor_humidity_entity": "Inomhusfuktsensor (valfri)",
               "mold_guard_enabled": "Håll kalla ytor under mögelfuktighet",
+              "mold_floor_breach_margin": "Varningsmarginal för mögelgolv",
               "thermal_bridge_frsi": "Sämsta köldbryggans faktor (fRsi)"
             },
             "data_description": {
               "indoor_humidity_entity": "En relativ fuktsensor i bostadsutrymmet. Utan en förblir mögelvakten av oavsett omkopplaren.",
               "mold_guard_enabled": "Husets kallaste punkt — en fönstersmyg, ett hörn bakom en garderob — ligger långt under rumstemperaturen, och mögel börjar växa där ytans fuktighet stannar över 80 %. Med detta på låter optimeraren inte huset svalna under den temperatur som håller den punkten säker, beräknad ur uppmätt inomhusfukt och utomhusprognosen. Kräver fuktsensorn nedan; den värmer aldrig förbi ditt komfortmål — ihållande hög fukt är ett ventilationsproblem, inte ett värmeproblem.",
+              "mold_floor_breach_margin": "Hur långt under mögelgolvet det uppmätta rummet får sjunka innan binärsensor Mögelgolv underskridet slår till. Varningen finns för att ett läge med enbart varmvatten (rumsuppvärmning av) inte kan hålla golvet, så rummet kan svalna under det medan planen fortfarande lovar golvet.",
               "thermal_bridge_frsi": "Hur kall din sämsta yta blir, som andel: yta = ute + fRsi × (rum − ute). 0,75 är svenska byggreglernas riktvärde; lägre betyder en kallare värsta punkt och en försiktigare vakt."
             }
           },
@@ -1909,6 +1911,9 @@
       },
       "open_window_detected": {
         "name": "Öppet fönster upptäckt"
+      },
+      "mold_floor_breach": {
+        "name": "Mögelgolv underskridet"
       },
       "wood_cheaper": {
         "name": "Ved billigare än värmepump"

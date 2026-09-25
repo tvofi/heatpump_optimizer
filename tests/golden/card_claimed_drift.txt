@@ -566,3 +566,18 @@
 # The R7-D4-01/D4-02 list this replaces was the previous branch's;
 # two of its 39 entries (the no_plan pair) no longer move.
 
+# #1495 (mold-floor breach): the plan figure gains a measured "now"
+# temperature in the corner, and the promised house/upper/lower traces are
+# dimmed under a "DHW only — no space heating" banner while space heating is
+# blocked. Only the five history-pan states move: they are the ones whose
+# hass carries a live indoor reading (`withActuals` publishes 21.1 °C), so
+# the corner "now 21.1 °C" label renders where the comparison ref has none.
+# Every other state either has no indoor sensor in `hass.states` or does not
+# render the plan figure, and the space-blocked dim/banner moves no state
+# because no fixture this gate drives publishes `space_blocked`.
+
+# This merge of origin/main into fix/r8-p3: the five #1495 history-pan claims
+# above come OUT. They were main's own -- written for #1495's diff -- and
+# this branch's own diff touches no card state, so the bare list keeps only
+# what THIS diff moves (nothing). Same rule as the R7-D0-01 coordinator note
+# above: a claim describes exactly ONE diff and never carries forward.

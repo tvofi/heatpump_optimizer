@@ -653,7 +653,6 @@
 # the peak_tariff_distinct_days toggle, so config_flow's captured schema
 # gains that field in both rendered steps and the seeded entry's options.
 # ADD-ONLY: 13 inserted lines, 0 deleted.
-config_flow # #1512: the new peak_tariff_distinct_days field (add-only)
 # The plan side (fix-review round 1): peak_cost_smooth, the solver's
 # capacity term, now charges a plan day once under distinct days, so every
 # plan solved under a k=3 capacity tariff sees a weaker same-day charge and
@@ -664,7 +663,6 @@ config_flow # #1512: the new peak_tariff_distinct_days field (add-only)
 # 32.764410 -> 30.681727, compressor_starts 7 -> 6. The three other
 # capacity fixtures that move (capacity_tariff_15min, everything_on,
 # tariff_plus_two_zone) are may-drift and move in plan keys only.
-capacity_tariff # #1512: the solver's capacity term bills a plan day once (plan moves; peak_cost 0.0 both)
 # R7-D8-01 (#1460), branch fix/r7-coordinator: this diff claims the five
 # coordinator captures and NOTHING ELSE. The direction is ADD-ONLY.
 # `_build_data_dict` now publishes the three keys `SensorGapAdvisorSensor`
@@ -708,3 +706,9 @@ capacity_tariff # #1512: the solver's capacity term bills a plan day once (plan 
 # hot-water electricity, same direction. The humidity half moves nothing here:
 # no fixture learns a derate.
 wood_coil # R8-P3 (#1530 + the coil forecast read from physics): DHW kWh, dhw_heating_cost, predicted_cost and baseline_cost up
+
+# #1495 (mold-floor breach warning): this branch's own diff claims the
+# config_flow fixture and nothing else, ADD-ONLY. The comfort page's mold
+# section gains the mold_floor_breach_margin option, so capture_config_flow's
+# schema carries two new leaves (both under comfort.mold.fields), each present
+# on one side only.
