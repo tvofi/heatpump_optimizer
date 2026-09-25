@@ -8614,6 +8614,39 @@ R.check(
     str(away_sw.coordinator.away_calls),
 )
 
+# v6.6.12 (tvofi): switches turned off flipped back on. The payload they read
+# changes only when the refresh the action requests has run its solve (33-73 s
+# in the field log), and Home Assistant's toggle falls back to the published
+# state after about two seconds without a change. Each switch now reads the
+# live state and writes it as soon as the action lands.
+_sw_live_data = {**DATA, "mode": const.MODE_AUTO, "away_override_active": True}
+_sw_live = {
+    cls.__name__: cls(FakeCoordinator(dict(_sw_live_data)), ENTRY)
+    for cls in (switch_mod.OptimizerEnableSwitch, switch_mod.AwaySwitch,
+                switch_mod.BoostDhwSwitch, switch_mod.BoostSpaceSwitch)
+}
+for _sw_name in ("BoostDhwSwitch", "BoostSpaceSwitch"):
+    asyncio.run(_sw_live[_sw_name].async_turn_on())
+for _sw in _sw_live.values():
+    _sw.__dict__.pop("ha_state_writes", None)
+    asyncio.run(_sw.async_turn_off())
+R.check(
+    "every switch turned off shows off at once, while the published payload still says on",
+    all(_sw.coordinator.data == _sw_live_data for _sw in _sw_live.values())
+    and {n: getattr(_sw, "ha_state_writes", None) for n, _sw in _sw_live.items()}
+    == {n: [False] for n in _sw_live},
+    str({n: getattr(_sw, "ha_state_writes", None) for n, _sw in _sw_live.items()}),
+)
+for _sw in _sw_live.values():
+    _sw.__dict__.pop("ha_state_writes", None)
+    asyncio.run(_sw.async_turn_on())
+R.check(
+    "and every switch turned back on shows on at once",
+    {n: getattr(_sw, "ha_state_writes", None) for n, _sw in _sw_live.items()}
+    == {n: [True] for n in _sw_live},
+    str({n: getattr(_sw, "ha_state_writes", None) for n, _sw in _sw_live.items()}),
+)
+
 dt_entities = collect(datetime_mod)
 R.check("the datetime platform adds exactly one entity", len(dt_entities) == 1)
 away_dt = dt_entities[0]

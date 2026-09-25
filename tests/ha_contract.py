@@ -483,7 +483,8 @@ INVENTORY: dict[str, Entry] = {
         "made every platform's public read vacuously None (#947: six of D8 "
         "round 4's instrument check classes read zero for a reason that had "
         "nothing to do with the code under test). The real base's "
-        "name/available/state machinery stays unmodelled",
+        "name/available/state machinery stays unmodelled; async_write_ha_state "
+        "records the is_on each write would publish instead of publishing it",
         absent=("available", "name", "unique_id"),
     ),
     # -- helpers.entity_platform --------------------------------------------

@@ -36,3 +36,10 @@ class Entity:
         if hasattr(self, "_attr_entity_category"):
             return self._attr_entity_category
         return None
+
+    def async_write_ha_state(self) -> None:
+        """Upstream writes the entity's state to the state machine; the stub
+        records each write with the ``is_on`` it would publish, where the
+        entity has one, so a test can read what the user would see."""
+        writes = self.__dict__.setdefault("ha_state_writes", [])
+        writes.append(getattr(self, "is_on", None))

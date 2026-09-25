@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 import sys
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
 sys.path.insert(0, "tests")
 sys.path.insert(0, "custom_components")
@@ -315,6 +316,12 @@ class FakeCoordinator:
         # configured, in the spec grammar (a weekly one here, so a test can
         # tell it from the flat `dhw_windows` the plan carries).
         self.configured_windows = "weekdays 06:00-08:30, weekend 08:00-09:30"
+        # The live mode and away override the real coordinator holds, which
+        # change at once on a set call; ``data`` changes only on a refresh.
+        self.mode = (data or {}).get("mode", "off")
+        self._away_state = SimpleNamespace(
+            override_active=bool((data or {}).get("away_override_active"))
+        )
         self.mode_calls: list[str] = []
         self.away_calls: list[dict] = []
         self.boost_calls: list[dict] = []
@@ -331,9 +338,12 @@ class FakeCoordinator:
 
     async def async_set_mode(self, mode):
         self.mode_calls.append(mode)
+        self.mode = mode
 
     async def async_set_away(self, active=None, return_time=None):
         self.away_calls.append({"active": active, "return_time": return_time})
+        if active is not None:
+            self._away_state.override_active = bool(active)
 
     async def async_set_boost(self, channel, active):
         self.boost_calls.append({"channel": channel, "active": active})
