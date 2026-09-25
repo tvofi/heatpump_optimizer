@@ -151,22 +151,51 @@ else:
   # down to a bare "/", an existing non-empty directory, and the follow-on
   # `grep -rqF -- <sha> /` hung the orchestrator's merge queue for 86 minutes
   # on #1591 until it was killed by hand. POSIX ERE (`grep -E`) has no
-  # lookbehind, so the boundary is enforced in Python instead. A second,
-  # independent guard below refuses the bare root and any token with fewer
-  # than two path components, so a boundary-regex mistake alone cannot
-  # reopen this.
+  # lookbehind, so the boundary is enforced in Python instead. A closing
+  # bracket right after the path (`[$dir]`) is stripped the same way a
+  # closing paren already was, so a bracketed citation round-trips.
+  #
+  # A COMPONENT-COUNT GUARD ON THE RAW TOKEN IS NOT ENOUGH: dot segments and
+  # a double slash let a token with two or more slashes IN TEXT still
+  # resolve to the root, or near it, once the filesystem interprets `..`
+  # and `.` -- `/tmp/../`, `<dir>/../../` and `/tmp//../` all read as
+  # multi-component strings but chdir(2) collapses them to one component or
+  # fewer. So every candidate is canonicalised with `cd ... && pwd -P`
+  # before it is judged: that requires the directory to already exist
+  # (folding the existence check in), and resolves `..`, `.`, symlinks and
+  # doubled slashes the same way the kernel would. The component-count
+  # guard then re-runs on the RESOLVED path, which is the one that can
+  # actually collapse to the root. The same resolution closes an unrelated
+  # hole: a verdict citing `/proc/self` (or `/dev/fd`) is two components and
+  # a real, non-empty directory, but `grep -rqF -- <sha> /proc/self`
+  # inspects the grep PROCESS'S OWN open files -- including its own argv,
+  # which contains the sha it is searching for -- so it always "finds" it.
+  # `/proc`, `/dev` and `/sys` are refused outright after resolution,
+  # whether or not this machine even has them.
   local evdir="" evwhy="the verdict names no absolute path at all" tok
   while read -r tok; do
-    tok=$(printf '%s' "$tok" | sed -e "s/^[(\`\"']*//" -e "s/[.,;:)\`\"']*\$//" -e 's:/*$::')
+    tok=$(printf '%s' "$tok" | sed -e "s/^[([{\`\"']*//" -e "s/[]).,;:}\`\"']*\$//" -e 's:/*$::')
     [ -n "$tok" ] || continue
     case "$tok" in
       /*/*) ;;   # at least two path components -- refuses the bare root too
       *) evwhy="$tok has fewer than two path components"; continue ;;
     esac
-    if [ ! -d "$tok" ]; then evwhy="$tok is not a directory that exists"; continue; fi
-    if [ -z "$(ls -A "$tok" 2>/dev/null)" ]; then evwhy="$tok is empty"; continue; fi
-    if grep -rqF -- "$sha" "$tok" 2>/dev/null; then evdir=$tok; break; fi
-    evwhy="no file under $tok names the head $sha"
+    local resolved
+    if ! resolved=$(cd "$tok" 2>/dev/null && pwd -P); then
+      evwhy="$tok is not a directory that exists"; continue
+    fi
+    case "$resolved" in
+      /*/*) ;;   # authoritative: the RESOLVED path, after `..`/`.`/symlinks
+      *) evwhy="$tok resolves to $resolved, fewer than two path components"; continue ;;
+    esac
+    case "$resolved" in
+      /proc|/proc/*|/dev|/dev/*|/sys|/sys/*)
+        evwhy="$tok resolves to $resolved, under /proc, /dev or /sys -- refused as evidence"
+        continue ;;
+    esac
+    if [ -z "$(ls -A "$resolved" 2>/dev/null)" ]; then evwhy="$tok ($resolved) is empty"; continue; fi
+    if grep -rqF -- "$sha" "$resolved" 2>/dev/null; then evdir=$resolved; break; fi
+    evwhy="no file under $tok ($resolved) names the head $sha"
   done < <(printf '%s\n' "$vbody" | python3 -c '
 import re, sys
 text = sys.stdin.read()
@@ -449,9 +478,12 @@ st "$(calls evnosha curl)" 0 "and nothing was minted or posted"
 
 # The #1591 hang: a mid-word slash must never start a token, and a token
 # that would collapse to the root, or to one path component, is refused
-# outright as a second, independent guard.
-st "$(printf '(review-1591/).\n' | grep -oE "/[^[:space:]\`\"]+" | sed -e "s/^[(\`\"']*//" -e "s/[.,;:)\`\"']*\$//")" "/" \
-   "(null control) the OLD extraction+strip really did turn that prose into a bare '/'"
+# outright as a second, independent guard. The mutation-proof for this
+# whole block is done by REVERTING the fix and re-running this very
+# --self-test (see the pull request's Mutation proof / Null control): every
+# assertion below runs the real `approve()` codepath through the script
+# itself, so it goes red on the revert rather than on a hand-copied
+# pipeline that can't.
 mkcase midword open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE '(review-1591/). see a/b/')]"
 run midword o/r 7 "$SHA"; st $? 1 "REFUSE: '(review-1591/).' and 'a/b/' start no token -- no mid-word slash"
 st "$(grep -c 'names no absolute path at all' "$W/midword/err")" 1 "read as citing no path at all, not as citing '/'"
@@ -465,6 +497,79 @@ st "$(grep -c 'fewer than two path components' "$W/onecomponent/err")" 1 "naming
 st "$(calls onecomponent curl)" 0 "and nothing was minted or posted"
 mkcase evtrail open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: $EV/")]"
 run evtrail o/r 7 "$SHA"; st $? 0 "a trailing slash on an otherwise-good evidence path is stripped, not refused"
+
+# Kill: the trailing-slash strip specifically (`s:/*$::`), by checking the
+# exact text of the "not a directory" message on a MISSING directory --
+# canonicalisation never runs (cd fails first), so this is the one place a
+# missing strip is externally visible.
+EVGONE="$W/no-such-evtrail-dir"
+mkcase evtrailmissing open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: $EVGONE/")]"
+run evtrailmissing o/r 7 "$SHA"; st $? 1 "REFUSE: a missing directory cited with a trailing slash"
+st "$(grep -cF "$EVGONE is not a directory that exists" "$W/evtrailmissing/err")" 1 \
+   "(kills the trailing-slash-strip mutant) the cited path in the message has no trailing slash"
+st "$(grep -cF "$EVGONE/ is not a directory that exists" "$W/evtrailmissing/err")" 0 \
+   "(null control) that same message never carries a trailing slash either"
+
+# Kill: the opening-bracket word-boundary. "[" immediately before "/" must
+# start a token (and the matching "]" strips off the end), same as "(" .
+mkcase brboundary open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "proof[${EV}] end")]"
+run brboundary o/r 7 "$SHA"; st $? 0 "(kills the bracket-boundary mutant) '[' starts a token, ']' is stripped off it"
+
+# Kill: the opening-backtick word-boundary AND the character class that
+# excludes backtick from a token's body (so it also terminates one).
+BT='`'
+mkcase btboundary open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "cite ${BT}${EV}${BT} now")]"
+run btboundary o/r 7 "$SHA"; st $? 0 "(kills the backtick-boundary mutant) a backtick starts a token, and ends it"
+
+# Kill: the character class in isolation -- a backtick stuck directly onto
+# the end of a real path, no whitespace, must still terminate the token
+# there rather than swallow what follows.
+mkcase charclass open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: ${EV}${BT}bogus${BT}")]"
+run charclass o/r 7 "$SHA"; st $? 0 "(kills the token-character-class mutant) the token stops at the backtick, not after it"
+
+# Kill: the opening-quote word-boundary (a single quote is the "quote"
+# case; the trailing one is cleaned up the same way a trailing ')' is).
+mkcase qtboundary open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "cite '${EV}' now")]"
+run qtboundary o/r 7 "$SHA"; st $? 0 "(kills the quote-boundary mutant) a single quote starts a token too"
+
+# Dot segments and a doubled slash: a token can carry two or more slashes
+# IN TEXT and still resolve to the root, or to one component, once `..`,
+# `.` and symlinks are interpreted -- the raw-token component count alone
+# cannot see that. All three are refused, and none may reach `grep -r`.
+# All three raw strings below have two or more "/" characters -- enough to
+# pass a component count taken on the TEXT -- but chdir(2) collapses every
+# one of them to the filesystem root on a real machine (verified directly,
+# not just asserted: `bash -c "cd '<tok>' && pwd -P"` prints `/` for each,
+# independent of this self-test). A component-count guard that runs before
+# resolution cannot see that; the one in the fix runs after.
+mkcase dotparent open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /tmp/../')]"
+run dotparent o/r 7 "$SHA"; st $? 1 "REFUSE: /tmp/../ resolves to the root, however many slashes it typed"
+st "$(calls dotparent curl)" 0 "and nothing was minted or posted"
+DOTX=$(mktemp -d /tmp/hpo-dotseg.XXXXXX) || exit 2
+mkcase dotcomponent open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: $DOTX/../../")]"
+run dotcomponent o/r 7 "$SHA"; st $? 1 "REFUSE: <a real component>/../../ collapses to the root too"
+st "$(calls dotcomponent curl)" 0 "and nothing was minted or posted"
+rm -rf "$DOTX"
+mkcase doubleslash open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /tmp//../')]"
+run doubleslash o/r 7 "$SHA"; st $? 1 "REFUSE: a doubled slash alongside a dot-segment still resolves to the root"
+st "$(calls doubleslash curl)" 0 "and nothing was minted or posted"
+
+# procfs/devfs/sysfs: a real, non-empty, two-component directory that
+# `grep -r` cannot honestly search, because the grep PROCESS'S OWN open
+# files (including its argv) live there and always "contain" the sha.
+mkcase procfs open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /proc/self')]"
+run procfs o/r 7 "$SHA"; st $? 1 "REFUSE: /proc/self is never qualifying evidence"
+if [ -d /proc/self ]; then
+  st "$(grep -c 'proc, /dev or /sys' "$W/procfs/err")" 1 "naming the procfs refusal specifically, where /proc exists"
+fi
+mkcase devfs open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /dev/fd')]"
+run devfs o/r 7 "$SHA"; st $? 1 "REFUSE: /dev/fd is the same hole under devfs"
+st "$(grep -c 'proc, /dev or /sys' "$W/devfs/err")" 1 "naming the devfs refusal specifically"
+if [ -d /sys/kernel ]; then
+  mkcase sysfs open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /sys/kernel')]"
+  run sysfs o/r 7 "$SHA"; st $? 1 "REFUSE: /sys/kernel is the same hole under sysfs"
+  st "$(grep -c 'proc, /dev or /sys' "$W/sysfs/err")" 1 "naming the sysfs refusal specifically"
+fi
 
 mkcase displace open false "$SHA" \
   "[$(comment 1 "Fix review: blocked $SHA other: bad" "$APPR"),$(comment 2 "Fix review: merge $SHA" mallory NONE)]"
