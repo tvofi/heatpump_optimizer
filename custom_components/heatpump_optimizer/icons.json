@@ -10,6 +10,9 @@
       "input_problem": {
         "default": "mdi:alert-decagram-outline"
       },
+      "mold_floor_breach": {
+        "default": "mdi:water-alert"
+      },
       "open_window_detected": {
         "default": "mdi:window-open-variant"
       },

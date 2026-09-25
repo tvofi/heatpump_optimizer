@@ -183,6 +183,7 @@
 # module constant, not the schema): this branch claims NOTHING. tests/features.py
 # only -- no production file, no fixture input and no solver parameter is
 # touched, so every scenario is byte-identical by construction.
+config_flow  # #1588: grows by the pump_duty_mode select (off/observe/control) in both flows; no values move
 
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
@@ -691,7 +692,11 @@
 # `drop_inherited_claim_lines` treats as a rewrite and refuses to touch
 # (#1255), so `apply_inherited_claims` cannot lift this one.
 
+# #1495 (mold-floor breach warning): this branch's own diff claims the
+# config_flow fixture and nothing else, ADD-ONLY. The comfort page's mold
+# section gains the mold_floor_breach_margin option, so capture_config_flow's
+# schema carries two new leaves (both under comfort.mold.fields), each present
+# on one side only.
 # #1588 (DHW arbiter): this branch's own diff claims the config_flow
 # fixture and nothing else, ADD-ONLY -- the pump_duty_mode select grows both
 # flows' schema; no values move.
-config_flow  # #1588: grows by the pump_duty_mode select (off/observe/control) in both flows; no values move

@@ -1502,6 +1502,7 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
         )
         return {
             "plan_kind": self._plan_kind,
+            "space_blocked": bool(data.get("heat_pump_signals", {}).get("space_blocked")),
             "forecast": plan.get("forecast", []),
             "slots": slots,
             "slot_count": len(slots),

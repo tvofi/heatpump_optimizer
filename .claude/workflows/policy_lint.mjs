@@ -5265,13 +5265,13 @@ function pathsFromFile(pathsFile) {
 // which does not contain this file, nor .github/workflows/ -- is a policy
 // question and the owner's, and is named in the body rather than taken here.
 // AN AUTOFIX COMMIT MOVES THE HEAD WITHOUT MOVING THE EVIDENCE. `closures-autofix`
-// and `claims-autofix` (tests.yml) push onto a pull request after its body was
+// `claims-autofix` and `mutation-autofix` (tests.yml) push onto a pull request after its body was
 // written, so `## Head` names the seat's commit while CI runs on the bot's, and
 // the body had to be edited and the run waited out again (#1107, run
 // 35220336323 at b1afbcf). A chain of such commits directly on top of a commit
 // the section names is accepted when EVERY commit in it has:
 //   - author and committer both the bot identity the jobs configure;
-//   - a whole message that is exactly one of the two autofix messages;
+//   - a whole message that is exactly one of the three autofix messages;
 //   - exactly one parent;
 //   - a diff against that parent that only MODIFIES the files that message's
 //     job stages -- and, for the claims job, which only empties lists, adds no
@@ -5283,7 +5283,9 @@ function pathsFromFile(pathsFile) {
 // the weight. A forged closures commit is a GATE_FILES change, so the `closures`
 // job re-derives every closure at that head and refuses an under-scoped one; a
 // forged claims commit can only delete claims, which `fast`'s golden drift check
-// then refuses if a fixture really drifts. Accepting the head asserts nothing
+// then refuses if a fixture really drifts. A forged pin commit is not re-checked:
+// it can add a `killed_by` entry no run measured, exactly as a seat's own ledger
+// edit can, and no check re-drives a pinned site at that head. Accepting the head asserts nothing
 // about either file -- every other required context still runs at the real head.
 //
 // The constants are held here rather than read from tests.yml because this
@@ -5296,6 +5298,7 @@ const AUTOFIX_BOT_COMMITS = {
     'ci: re-record closures': { paths: ['tests/closures.json'], mayAdd: true },
     'ci: drop inherited claims': {
       paths: ['tests/golden/claimed_drift.txt', 'tests/golden/card_claimed_drift.txt'], mayAdd: false },
+    'ci: pin killed mutants': { paths: ['tests/mutation_budgets.json'], mayAdd: true },
   },
 }
 

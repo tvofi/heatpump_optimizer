@@ -47,7 +47,7 @@ against a document that is CORRECT.
     RESULT claims_false=0
     RESULT claims_stale=0
     RESULT claims_unverifiable=2    (1 with --links; the checker runs the default)
-    RESULT config_defaults_compared=88   (76 until #937's rows landed; 82
+    RESULT config_defaults_compared=89   (76 until #937's rows landed; 82
                                          until #1067's solver half documented
                                          the flow-curve lift option's default;
                                          83 until #1067's silent-mode half
@@ -63,12 +63,18 @@ against a document that is CORRECT.
                                          adds; 88 with #1260's "Customize by
                                          weekday" toggle -- an on/off Default
                                          row whose seven hidden per-day
-                                         fields document no defaults)
-    RESULT config_ranges_compared=89     (76 until #937's rows landed; 86
+                                         fields document no defaults; 89 with
+                                         #1495's mold-floor breach warning
+                                         margin, a NumberSelector Default row
+                                         on the Comfort and temperatures table)
+    RESULT config_ranges_compared=90     (76 until #937's rows landed; 86
                                          until #1067's silent-mode half
                                          documented the derate's range; 87
                                          until its frequency half documented
-                                         the two compressor Hz bounds)
+                                         the two compressor Hz bounds; 90 with
+                                         #1495's same mold-floor breach warning
+                                         margin, whose 0-5 °C Range row is the
+                                         only one this re-record adds)
     RESULT arch_modules_on_disk=66       (65 until #1588's pump_arbiter.py; 64
                                          until #1408's store.py;
                                          architecture.md said 45; 56 until
@@ -291,18 +297,18 @@ BY_NAME = {display(p, e): (p, e) for p, es in CENSUS.items() for e in es}
 CMD = "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py"
 
 # --- C1..C9  entity census -------------------------------------------------
-eq("C1", "README.md:Entities", "All 74 entities are created on every install",
+eq("C1", "README.md:Entities", "All 75 entities are created on every install",
    CMD, int(re.search(r"All (\d+) entities", README).group(1)), TOTAL)
 eq("C2", "README.md:### Sensors", "Sensors (59 total)", CMD,
    int(re.search(r"### Sensors \((\d+) total\)", README).group(1)), COUNTS["sensor"])
-eq("C3", "README.md:### Binary Sensors", "Binary Sensors (5 total)", CMD,
+eq("C3", "README.md:### Binary Sensors", "Binary Sensors (6 total)", CMD,
    int(re.search(r"### Binary Sensors \((\d+) total\)", README).group(1)),
    COUNTS["binary_sensor"])
 eq("C4", "README.md:### Buttons", "Buttons (4 total)", CMD,
    int(re.search(r"### Buttons \((\d+) total\)", README).group(1)), COUNTS["button"])
-eq("C5", "docs/architecture.md:mermaid", "74 entities / 59 sensors / 5 binary sensors / "
+eq("C5", "docs/architecture.md:mermaid", "75 entities / 59 sensors / 6 binary sensors / "
    "4 buttons / 4 switches / 1 climate / 1 datetime", CMD,
-   (74, 59, 5, 4, 4, 1, 1),
+   (75, 59, 6, 4, 4, 1, 1),
    (TOTAL, COUNTS["sensor"], COUNTS["binary_sensor"], COUNTS["button"],
     COUNTS["switch"], COUNTS["climate"], COUNTS["datetime"]))
 

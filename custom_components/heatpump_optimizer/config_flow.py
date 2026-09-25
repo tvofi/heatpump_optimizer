@@ -359,6 +359,8 @@ from .const import (
     CONF_INDOOR_HUMIDITY_ENTITY,
     CONF_THERMAL_BRIDGE_FRSI,
     DEFAULT_THERMAL_BRIDGE_FRSI,
+    CONF_MOLD_FLOOR_BREACH_MARGIN,
+    DEFAULT_MOLD_FLOOR_BREACH_MARGIN,
     CONF_PV_ENABLED,
     CONF_PV_PEAK_KW,
     CONF_PV_EFFICIENCY,
@@ -1579,6 +1581,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("comfort", CONF_MOLD_GUARD_ENABLED, DEFAULT_MOLD_GUARD_ENABLED, bool, group="mold"),
     _F("comfort", CONF_INDOOR_HUMIDITY_ENTITY, _STORED, _entity_of('sensor', 'humidity'), group="mold"),
     _F("comfort", CONF_THERMAL_BRIDGE_FRSI, DEFAULT_THERMAL_BRIDGE_FRSI, _number(0.3, 0.98, 0.01), group="mold"),
+    _F("comfort", CONF_MOLD_FLOOR_BREACH_MARGIN, DEFAULT_MOLD_FLOOR_BREACH_MARGIN, _number(0.0, 5.0, 0.1, '°C'), group="mold"),
     # -- hot_water
     _F("hot_water", CONF_DHW_SCHEDULE_ENABLED, DEFAULT_DHW_SCHEDULE_ENABLED, selector.BooleanSelector(), group="schedule"),
     _F("hot_water", CONF_DHW_WINDOWS, DEFAULT_DHW_WINDOWS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)), group="schedule"),

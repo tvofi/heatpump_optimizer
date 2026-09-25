@@ -267,13 +267,14 @@ holidays simply follow the weekday plan.
 | Holiday day starts at | weekday start (07) | 00–23 | Hour the holiday daytime temperature takes over. |
 | Holiday day ends at | weekday end (22) | 01–24 | Hour the holiday night temperature takes over. |
 
-Three mold-guard fields complete the page:
+Four mold-guard fields complete the page:
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
 | Keep cold surfaces below mold humidity | off | on/off | The coldest spot in the house sits well below room temperature, and mold starts where its surface humidity stays above 80 %. With this on, the plan will not coast below the temperature that keeps that spot safe. It never heats past your comfort target. |
 | Indoor humidity sensor | none | a `humidity` sensor | Required for the guard: without a live reading it stays off regardless of the switch. |
 | Worst thermal bridge factor (fRsi) | 0.75 | 0.3–0.98, 0.01 steps | How cold your worst surface gets: surface = outdoor + fRsi × (room − outdoor). 0.75 is the Swedish building-code guidance; lower means a colder spot and a more cautious guard. |
+| Mold floor breach warning margin | 0.5 °C | 0–5 °C, 0.1 steps | How far below the mold floor the measured room may fall before the Mold Floor Breach binary sensor turns on. The warning exists because a hot-water-only mode cannot hold the floor, so the room can free-cool below it while the plan still promises the floor. |
 
 ### Hot water
 

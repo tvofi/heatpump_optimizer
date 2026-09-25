@@ -138,6 +138,10 @@ const STRINGS = {
 
     // chart / plan annotations
     "plan.now": "now",
+    "plan.now_temp": "now {temp} °C",
+    "plan.space_blocked":
+      "DHW only — no space heating: the house trace is the plan's promise, " +
+      "not what the pump is executing.",
     "plan.estimated_prices": "estimated prices",
     "plan.zoom_out": "Zoom out",
     "plan.zoom_in": "Zoom in",
@@ -590,6 +594,10 @@ const STRINGS = {
       "Visas först när det finns tillräckligt med historik.",
 
     "plan.now": "nu",
+    "plan.now_temp": "nu {temp} °C",
+    "plan.space_blocked":
+      "Endast varmvatten — ingen rumsuppvärmning: hustemperaturen är planens " +
+      "löfte, inte vad pumpen utför.",
     "plan.estimated_prices": "uppskattade priser",
     "plan.zoom_out": "Zooma ut",
     "plan.zoom_in": "Zooma in",
@@ -1204,6 +1212,9 @@ const CLOSE_ICON =
   '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">' +
   '<path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>';
 const MARGIN = { top: 16, right: 62, bottom: 34, left: 92 };
+// #1495: how far the house/upper/lower traces are dimmed while space heating
+// is blocked, so a promise the pump cannot execute reads as a hint, not a plan.
+const SPACE_BLOCKED_OPACITY = 0.35;
 // When the irradiance series is on, the right margin has to make room for a
 // second axis inside the price one.
 const SOLAR_AXIS_INSET = 46;
@@ -5469,7 +5480,7 @@ function renderChart(frame, opts) {
   const { windowStart, windowEnd, series } = frame;
   const {
     expanded, measuredWidth, priceUnit, estimatedFrom, editing, title, now,
-    overlay, nextPatternId, laneCount, overlayLabels,
+    overlay, nextPatternId, laneCount, overlayLabels, spaceBlocked, nowTemp,
   } = opts;
   const visible = series.filter((s) => s.visible && s.hasData);
   // D4-01: BOTH charts floor their rendered font (see chartFontUnits), each
@@ -5647,6 +5658,20 @@ function renderChart(frame, opts) {
     );
   }
 
+  // Measured now value (#1495): the plan's predicted trace is held at the
+  // mold floor, so a DHW-only install sees ~18 °C while the room free-cools
+  // to 16-17 °C. A corner reading of the measured indoor temperature makes
+  // that gap visible without a second series. Drawn only while a temperature
+  // series is on, and only from a live reading (`_chartBlock` passes null
+  // for an unknown/unavailable sensor).
+  if (typeof nowTemp === "number" && Number.isFinite(nowTemp) && axes.temp) {
+    parts.push(
+      `<text class="now-temp" x="${plotL + 6}" y="${plotT + font}" font-size="${font}" fill="var(--primary-text-color,#212121)">${esc(
+        L("plan.now_temp", { temp: nowTemp.toFixed(1) })
+      )}</text>`
+    );
+  }
+
   // Shade the stretch of the horizon whose prices are the learned diurnal
   // prior rather than published market data. A plan that looks identical
   // whether or not it rests on real prices cannot be audited.
@@ -5797,7 +5822,16 @@ function renderChart(frame, opts) {
   for (const st of order) {
     for (const s of visible) {
       if (s.style !== st) continue;
-      parts.push(seriesPath(s, scaleX, scaleY, plotB));
+      const path = seriesPath(s, scaleX, scaleY, plotB);
+      // #1495: with space heating blocked the house/upper/lower traces are a
+      // promise the pump is not executing, so they are de-emphasized rather
+      // than charted as a forecast. The group opacity covers the primary room
+      // trace and its upper/lower extras in one stroke.
+      parts.push(
+        spaceBlocked && s.key === "house_temp"
+          ? `<g opacity="${SPACE_BLOCKED_OPACITY}">${path}</g>`
+          : path
+      );
     }
   }
 
@@ -11086,8 +11120,26 @@ class HeatpumpOptimizerCard extends HTMLElement {
    * a positioned ancestor.
    */
   _chartBlock(built, expanded) {
+    // #1495: read once and passed in, so both the dimmed traces and the label
+    // agree on the same value rather than each re-reading the plan sensor.
+    const spaceBlocked = !!this.plan.attrRaw("space_blocked", false);
+    // The measured indoor temperature for the corner "now" reading, or null
+    // while the sensor has no live value. The indoor sensor is the upper floor
+    // in two-zone mode and the room otherwise (both written from one read), so
+    // a single reading is the measured counterpart to the house/upper traces.
+    let nowTemp = null;
+    const indoorId = this.histSource.entityIds().indoor;
+    if (indoorId && this._hass && this._hass.states) {
+      const st = this._hass.states[indoorId];
+      if (st && st.state !== "unavailable" && st.state !== "unknown") {
+        const n = Number(st.state);
+        if (Number.isFinite(n)) nowTemp = n;
+      }
+    }
     const { svg, plot, geom, viewH } = renderChart(built, {
       expanded,
+      spaceBlocked,
+      nowTemp,
       // Recorded as it is read, so `_refitCharts` can compare what
       // this render assumed against what the browser then did (D4-01).
       measuredWidth: () => {
@@ -11139,7 +11191,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
       expanded && viewH && viewH !== VIEW_H
         ? ` style="aspect-ratio:${VIEW_W} / ${Number(viewH.toFixed(2))}"`
         : "";
-    return `${this.plan.woodAlertHtml()}${this.histSource.noteHtml()}<div class="chartwrap${expanded ? " big" : ""}${pannable}"${ratio}>${chart}
+    // The space-blocked banner sits beside the wood alert, above the chart,
+    // so the dimmed traces carry their reason without crowding the plot.
+    const spaceBlockedHtml = spaceBlocked
+      ? `<div class="space-blocked-alert" role="status" style="margin:0 0 .6em;padding:.45em .7em;border-left:3px solid var(--warning-color,#d98e00);background:var(--secondary-background-color,rgba(0,0,0,.06));font-size:.9em;color:var(--primary-text-color)">${esc(
+          L("plan.space_blocked")
+        )}</div>`
+      : "";
+    return `${this.plan.woodAlertHtml()}${spaceBlockedHtml}${this.histSource.noteHtml()}<div class="chartwrap${expanded ? " big" : ""}${pannable}"${ratio}>${chart}
       <div class="tooltip" hidden></div></div>`;
   }
 
