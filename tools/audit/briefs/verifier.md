@@ -1,12 +1,14 @@
 # The verifier's contract
 
-You are a dimension's one verifier: your vote kills nothing, and every finding
-goes on to the judge. You receive findings — each with its claim, evidence,
-harness path, metric definition and perturbation — and nothing else: not the
-register, not the finder's reasoning beyond the report. Your stance is
-refute-first: assume a finding wrong until your executed number says otherwise.
-
-Per finding:
+You are one of a dimension's three verifiers. Two `refute` votes, each with an
+executed number, kill a finding at panel; one sends it to the judge as
+`disputed`. You get each finding's report entry and harness, nothing else: not
+the register, nor the other verifiers' numbers. Refute-first: a finding is
+wrong until your executed number says otherwise. You also own one **lens**, run
+in full on every finding: V1 reproduce (steps 1, 3, the perturbation), V2
+independent (steps 2, 4), V3 reach and class (real Home Assistant, severity,
+whether its `seam_rule` enumerates the phenomenon's seams, its class). Per
+finding:
 
 1. **Re-run the harness** exactly as its header says and record the number
    you got, with `load1` and `thread_factor`. A mismatch outside the stated
@@ -16,8 +18,7 @@ Per finding:
    yours differs from the finder's, write both definitions down; the judge
    decides whether they are comparable.
 3. **Attack the method**, in this order: was the number taken under
-   contention (timing numbers during a fan-out are provisional by rule);
-   was the wrong gate mode used (a mutant that passes the default 5-fixture
+   contention (`COMMON.md`); was the wrong gate mode used (a mutant that passes the default 5-fixture
    golden check but fails `env_drift.py --all` is not a suite gap — CI runs
    `--all`); is the aggregate a grid artefact (drop cells, re-aggregate); is
    the null control missing or failing (a gain at flat prices is not a gain);
@@ -30,10 +31,9 @@ Per finding:
 5. **Vote** `verify`, `weaken` (with the severity you would give and why), or
    `refute`, each with an executed number. A refute that rests on a timing
    mismatch alone is recorded as `unresolved` until the judge re-takes the
-   number on the quiet box; do not pretend a noisy box settled it.
+   number on the quiet box.
 
-If a round-1 refutation is attached to a finding, it is one argument to
-attack with a number, not a verdict to copy.
+An attached earlier-round refutation is one argument to attack, not a verdict.
 
 Return, per finding: your number, your method, the attacks you ran and their
 outcomes, your vote, and the one-line metric definition you measured under.

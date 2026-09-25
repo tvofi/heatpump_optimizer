@@ -112,7 +112,7 @@ Under `tools/audit/briefs/`. Each says what its role owes and what blocks it.
 | `fix-review.md` | reviews one fix adversarially, from a detached worktree at the head SHA, with the **finder's** harness and never the fixer's; a head that moved under the review is a blocked verdict |
 | `root-cause.md` | runs beside a fix and never inside it; owes a named cause, a process state, a cost test and a countermeasure or a refusal |
 | `judge.md` | decides; a finding whose harness does not move under its own perturbation is **void**, whatever the votes said |
-| `verifier.md` | the one verifier per dimension, receiving findings with claim, evidence, harness, metric and perturbation |
+| `verifier.md` | one of three verifiers per dimension, receiving findings with claim, evidence, harness, metric and perturbation |
 | `COMMON.md` | **the finder's contract** — every audit dimension: what a finding is, what a non-finding is, and the report shape |
 
 **There is exactly one `COMMON.md`, and it is the finder's contract.** A running
@@ -164,9 +164,9 @@ largely false and that a mechanism another asked for was already in the tree,
 landed by a pull request listed in its own evidence table.
 
 **A recurring error is not a third issue.** At roughly the third instance it is
-`tools/audit/briefs/root-cause.md`, whose product is a named cause, a named
-process state, a cost test with numbers, and a countermeasure *or a recorded
-decision not to build one*.
+`tools/audit/briefs/root-cause.md`: a named cause and process state, a cost test
+with numbers, and a countermeasure *or a recorded decision not to build one*,
+which an audit class cannot record alone (`defect-root-cause.md`).
 
 **Out of scope is not a licence to file.** A real finding you must not touch
 goes to that stage's own brief, by `finding-propagation.md`; an issue is not
@@ -182,7 +182,7 @@ one is the rule** and the other is the bug.
 
 A qualifying defect owes its cause and the **process** that let the cause get
 that far, established in its own seat beside the fix and never inside it. The
-two triggers, the four process states, the cost test, why recording that no
+two triggers, the four process states, the cost test, when recording that no
 countermeasure is worth building is a legitimate result, and the demonstration a
 check-shaped countermeasure owes are in `defect-root-cause.md` and
 `root-cause.md`. Only the red-check trigger is enforced: the fixer names the

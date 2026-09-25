@@ -85,9 +85,11 @@ cycle**. State the numbers, do not assert the conclusion.
 
 **"No countermeasure" is a legitimate, recordable outcome.** Some defects are
 irreducible: the cheapest detector that would have caught them is the gate that
-did. Record that finding and stop. A doctrine that mandates a countermeasure for
-every defect manufactures ceremony and, worse, invites weakening the checks that
-already work.
+did. Record that finding and stop. **Except an audit class**: three or more
+instances in one round (judged findings plus sweep-confirmed ones), or any
+instance of a `barriered` class, owes a class-eliminating barrier (tvofi,
+2026-09-25); the cost test picks its form, and a seat finding none within the
+bound asks the owner.
 
 ## The bound
 
@@ -127,9 +129,8 @@ cost, or the recorded finding that none exists. Both answers are legitimate —
 the worked examples above are one of each — so the cost of a check that does not
 qualify is one line, which is what keeps the obligation from being argued away.
 
-The reviewer reads the PR's checks rather than the body's account of them. A red
-check the body does not answer is
-**`blocked: root-cause trigger unanswered for <check>`**.
+The reviewer reads the PR's checks, not the body's account; a red check the body
+does not answer is **`blocked: root-cause trigger unanswered for <check>`**.
 
 **`nightly-status` and `delivery-status` grade `main`**, so a body owes them no
 answer **unless its diff touches what they read**: their scripts, `tests.yml`,
@@ -141,6 +142,5 @@ drain the overdue rows. A cause outside this repository is named with its owner.
 
 The first trigger — the defect reached a released version — has no moment
 cheaper than the issue itself, so it is carried by the **Root cause** section
-above and no verdict enforces it. That asymmetry is deliberate: a rule that
-claims an enforcement it does not have is worse than one that says where it
-stops.
+above and no verdict enforces it, deliberately: a rule claiming an enforcement
+it does not have is worse than one that says where it stops.
