@@ -162,7 +162,9 @@ rules:
     status: done
     comment: >-
       #217 (round 2, D10-17) landed: exceptions section present in
-      strings.json / en / sv with an entry for every raise site.
+      strings.json / en / sv with an entry for every raise site. #1546 routed
+      the coordinator's UpdateFailed raises through _raise_update_failed, and
+      tests/doc_claims.py censuses every raise site and its key.
   icon-translations:
     status: done
     comment: >-
@@ -193,8 +195,10 @@ rules:
       Both halves of the rule hold. The marker file: "you need to add a
       py.typed file to your library", "There are no exceptions to this rule" —
       py.typed is shipped (qs_py_typed_files=1). The warning: the custom typed
-      config entry "must be used throughout" — every entry parameter is typed
-      with HeatPumpOptimizerConfigEntry, none bare (qs_entry_param_bare=0). The
+      config entry "must be used throughout" — every entry parameter, return
+      and attribute annotation is typed with HeatPumpOptimizerConfigEntry, none
+      bare (qs_entry_param_bare=0; tests/doc_claims.py derives the census from
+      the code and reads this number, #1545). The
       note this replaces — that the marker-file half "does not apply to a
       custom integration" — is not in the rule text, so it was not the basis.
       #1465, #1466 (round 7 D10-01/D10-02). #303 paid the pinned-ruler census.

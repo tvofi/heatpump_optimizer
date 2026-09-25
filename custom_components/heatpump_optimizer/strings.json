@@ -437,6 +437,15 @@
     },
     "set_thermal_params_invalid_dhw_windows": {
       "message": "Invalid hot water windows \"{windows}\": {error}"
+    },
+    "process_worker_unusable": {
+      "message": "The optimization worker failed for {cycles} consecutive cycles; the last plan stays in effect"
+    },
+    "update_failed": {
+      "message": "Error updating data: {error}"
+    },
+    "tibber_fetch_failed": {
+      "message": "Electricity prices could not be fetched: {error}"
     }
   },
   "options": {

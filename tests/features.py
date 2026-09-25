@@ -20469,6 +20469,35 @@ R.check(
     f"solve calls: {_fr_calls}",
 )
 
+
+# #1546: both refresh wrappers turn an unexpected error into an UpdateFailed
+# that carries its translation, so the frontend can render it in the user's
+# language; tests/doc_claims.py pins the key's strings.json entry.
+async def _fr_fetch_raises() -> None:
+    raise RuntimeError("boom")
+
+
+_fr_coord._fetch_tibber_prices = _fr_fetch_raises
+_fr_wrapped = []
+for _fr_skip in (False, True):
+    _fr_coord._skip_solve_once = _fr_skip
+    try:
+        _asyncio.run(_fr_coord._async_update_data())
+        _fr_wrapped.append(None)
+    except Exception as err:  # noqa: BLE001 - the carried key is the assertion
+        _fr_wrapped.append(err)
+R.check(
+    "both refresh wrappers raise a translated UpdateFailed (update_failed)",
+    all(
+        type(e).__name__ == "UpdateFailed"
+        and (e.translation_domain, e.translation_key) == ("heatpump_optimizer", "update_failed")
+        and e.translation_placeholders == {"error": "boom"}
+        and str(e) == "Error updating data: boom"
+        for e in _fr_wrapped
+    ),
+    repr([(type(e).__name__, getattr(e, "translation_key", None)) for e in _fr_wrapped]),
+)
+
 # --- D10-06 / D10-07 / D10-09: unload lifecycle and Tibber failure --------
 R.section("Unload lifecycle and Tibber failure semantics (D10-06/07/09)")
 
@@ -20496,6 +20525,13 @@ R.check(
     "a failed Tibber fetch raises UpdateFailed, failing the update cycle",
     type(_tib_raised).__name__ == "UpdateFailed",
     f"raised {type(_tib_raised).__name__}: {_tib_raised}",
+)
+R.check(
+    "the outage latch's UpdateFailed carries its translation (#1546)",
+    getattr(_tib_raised, "translation_key", None) == "tibber_fetch_failed"
+    and getattr(_tib_raised, "translation_domain", None) == "heatpump_optimizer"
+    and getattr(_tib_raised, "translation_placeholders", None) == {"error": str(_tib_raised)},
+    f"{getattr(_tib_raised, 'translation_key', None)!r}",
 )
 
 # D10-09: the outage latches. The first failure logs ERROR; the second must
@@ -28775,6 +28811,10 @@ _ET_KEYS = {
     "restore_learned_snapshot_no_snapshot": {"entry_ids"},
     "set_thermal_params_invalid_dhw_windows": {"error", "windows"},
     "set_temperature_comfort_band_violation": {"violations"},
+    # #1546: the coordinator's UpdateFailed raises, through _raise_update_failed.
+    "process_worker_unusable": {"cycles"},
+    "update_failed": {"error"},
+    "tibber_fetch_failed": {"error"},
 }
 
 
@@ -31030,6 +31070,13 @@ R.check(
         for p, e in zip(_g783_plans[:_g783_cap], _g783_errs[:_g783_cap], strict=True)
     ),
     f"plans={_g783_plans[:_g783_cap]!r} errs={[type(e).__name__ for e in _g783_errs[:_g783_cap]]!r}",
+)
+R.check(
+    "the cap's UpdateFailed carries its translation and cycle count (#1546)",
+    getattr(_g783_errs[_g783_cap], "translation_key", None) == "process_worker_unusable"
+    and getattr(_g783_errs[_g783_cap], "translation_placeholders", None)
+    == {"cycles": str(_g783_cap + 1)},
+    f"{_g783_errs[_g783_cap]!r}",
 )
 R.check(
     "the next fallback raises UpdateFailed and skips the GIL solve",

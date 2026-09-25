@@ -437,6 +437,15 @@
     },
     "set_thermal_params_invalid_dhw_windows": {
       "message": "Ogiltiga varmvattentider \"{windows}\": {error}"
+    },
+    "process_worker_unusable": {
+      "message": "Optimeringsprocessen misslyckades {cycles} cykler i rad; den senaste planen gäller fortfarande"
+    },
+    "update_failed": {
+      "message": "Fel vid uppdatering av data: {error}"
+    },
+    "tibber_fetch_failed": {
+      "message": "Elpriserna kunde inte hämtas: {error}"
     }
   },
   "options": {

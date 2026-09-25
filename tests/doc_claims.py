@@ -5,7 +5,7 @@ The round-6 stale-prose class (CONDENSED.md section 6): a reader doc asserts a
 fact about shipped code that the code no longer makes, and the only
 doc-vs-code machinery is keyed to claims someone hand-enumerated -- so a newly
 written sentence escapes until a later round names it. This check derives BOTH
-sides for three claim shapes, and fails closed on a contradiction:
+sides for seven claim shapes, and fails closed on a contradiction:
 
   * generated-figure freshness    -- D5-01 #1389 (marginal-cop.svg predates the
     #928 resistive clamp)
@@ -13,9 +13,18 @@ sides for three claim shapes, and fails closed on a contradiction:
     topics that ship empty)
   * entity object-id prefix       -- D6-03 #1393 (docs say the prefix follows
     the entry name; the code pins a hard-coded literal)
+  * README requirements vs manifest.json -- D6-s1 #1537
+  * Quick start step numbering    -- D5-s1 #1535
+  * quality_scale strict-typing census -- R8-D10-s1-01 #1545 (the yaml states
+    qs_entry_param_bare=0 while annotations still name the bare ConfigEntry)
+  * quality_scale exception-translation census -- R8-D10-s1-02 #1546 (the
+    yaml marks every raise site translated while four UpdateFailed raises
+    carried no translation_domain / translation_key)
 
 The fact set is derived by importing and executing production code; the claim
 set is derived by scanning the reader documents and the shipped blueprints.
+For the two quality_scale arms the "document" is quality_scale.yaml, which
+hassfest never reads for a custom integration, so nothing else checks it.
 Neither side is a hand-maintained enumeration: a new sentence of the same shape
 enters the check the moment it lands.
 
@@ -27,7 +36,9 @@ RUN (from the repository root, never elsewhere):
 """
 from __future__ import annotations
 
+import ast
 import importlib.util
+import json
 import os
 import pathlib
 import re
@@ -433,12 +444,303 @@ def check_quickstart_numbering() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Arms 6 and 7 -- quality_scale.yaml censuses (#1545, #1546)
+# ---------------------------------------------------------------------------
+
+QUALITY_SCALE = (PKG / "quality_scale.yaml").read_text()
+_PKG_TREES = {p.name: ast.parse(p.read_text(), str(p)) for p in sorted(PKG.glob("*.py"))}
+
+
+def _rule_block(rule: str) -> str:
+    """The yaml text of one quality-scale rule, through the next rule's key."""
+    m = re.search(rf"^  {re.escape(rule)}:(.*?)(?=^  [a-z-]+:|\Z)", QUALITY_SCALE, re.M | re.S)
+    return m.group(0) if m else ""
+
+
+def _names_bare_entry(node: ast.AST | None) -> bool:
+    """Whether an annotation mentions ``ConfigEntry`` rather than the typed alias.
+
+    Walks the whole expression, so a union, an Optional and a subscript are
+    seen as well as the bare name; a string annotation is parsed first.
+    """
+    if node is None:
+        return False
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        try:
+            node = ast.parse(node.value, mode="eval")
+        except SyntaxError:
+            return False
+    return any(
+        (isinstance(n, ast.Name) and n.id == "ConfigEntry")
+        or (isinstance(n, ast.Attribute) and n.attr == "ConfigEntry")
+        for n in ast.walk(node)
+    )
+
+
+def bare_entry_annotations(trees: dict[str, ast.Module] | None = None) -> list[str]:
+    """Every parameter, return and variable annotation naming the bare ConfigEntry."""
+    hits: list[str] = []
+    for name, tree in (_PKG_TREES if trees is None else trees).items():
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                a = node.args
+                for arg in a.posonlyargs + a.args + a.kwonlyargs + [a.vararg, a.kwarg]:
+                    if arg is not None and _names_bare_entry(arg.annotation):
+                        hits.append(f"{name}:{node.lineno} {node.name}({arg.arg})")
+                if _names_bare_entry(node.returns):
+                    hits.append(f"{name}:{node.lineno} {node.name} -> return")
+            elif isinstance(node, ast.AnnAssign) and _names_bare_entry(node.annotation):
+                hits.append(f"{name}:{node.lineno} {ast.unparse(node.target)}")
+    return hits
+
+
+_EXC_FAMILY = {
+    "HomeAssistantError", "ServiceValidationError", "IntegrationError",
+    "ConfigEntryError", "ConfigEntryNotReady", "ConfigEntryAuthFailed",
+    "UpdateFailed",
+}
+
+
+def _callee(call: ast.AST) -> str | None:
+    if not isinstance(call, ast.Call):
+        return None
+    f = call.func
+    return f.id if isinstance(f, ast.Name) else f.attr if isinstance(f, ast.Attribute) else None
+
+
+def _translated(call: ast.Call) -> bool:
+    return {"translation_domain", "translation_key"} <= {kw.arg for kw in call.keywords}
+
+
+def exception_helpers(trees: dict[str, ast.Module] | None = None) -> dict[str, int]:
+    """Key-forwarding raise helpers: name -> the position of their key parameter.
+
+    #1546 routed the coordinator's UpdateFailed raises through one helper, so
+    the census counts each CALL of a helper as a site rather than losing it.
+    A helper is a module-level function in which every family exception it
+    builds is translated and takes ``translation_key`` from one of its own
+    parameters; any other function's family calls are counted where they are.
+    """
+    out: dict[str, int] = {}
+    for tree in (_PKG_TREES if trees is None else trees).values():
+        for node in tree.body:
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            params = [a.arg for a in node.args.posonlyargs + node.args.args]
+            built = [c for c in ast.walk(node) if _callee(c) in _EXC_FAMILY]
+            fwd = {
+                kw.value.id
+                for c in built
+                for kw in c.keywords
+                if kw.arg == "translation_key" and isinstance(kw.value, ast.Name)
+            }
+            if built and all(_translated(c) for c in built) and len(fwd) == 1 and fwd <= set(params):
+                out[node.name] = params.index(fwd.pop())
+    return out
+
+
+def exception_raise_census(
+    trees: dict[str, ast.Module] | None = None,
+) -> tuple[int, list[str], set[str]]:
+    """(exception sites, the untranslated ones, the translation keys they name).
+
+    A site is every construction of a family exception outside a helper,
+    every call of a helper, and every ``raise`` of a bare family class --
+    construction rather than ``raise``, so an error built into a variable
+    first, or returned by a factory, is still counted.
+    """
+    trees = _PKG_TREES if trees is None else trees
+    helpers = exception_helpers(trees)
+    total, missing, keys = 0, [], set()
+    for name, tree in trees.items():
+        inside = {
+            id(n)
+            for f in tree.body
+            if isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef)) and f.name in helpers
+            for n in ast.walk(f)
+        }
+        for node in ast.walk(tree):
+            where = f"{name}:{getattr(node, 'lineno', 0)}"
+            callee = _callee(node)
+            key: ast.AST | None = None
+            if isinstance(node, ast.Raise) and isinstance(node.exc, ast.Name) and node.exc.id in _EXC_FAMILY:
+                total += 1
+                missing.append(f"{where} {node.exc.id} (no call)")
+            elif callee in _EXC_FAMILY and id(node) not in inside:
+                total += 1
+                if not _translated(node):
+                    missing.append(f"{where} {callee}")
+                key = next((kw.value for kw in node.keywords if kw.arg == "translation_key"), None)
+            elif callee in helpers:
+                total += 1
+                pos = helpers[callee]
+                key = node.args[pos] if len(node.args) > pos else None
+                if key is None:
+                    missing.append(f"{where} {callee}() names no key")
+            if key is not None:
+                keys.add(key.value if isinstance(key, ast.Constant) else f"<{where}>")
+    return total, missing, keys
+
+
+# Self-test fixtures: synthetic modules with every defect shape the censuses
+# must see, and a clean module they must pass. A census that matched nothing,
+# or read every raise as translated, would leave the real tree's arms green
+# (the #1590 review measured both), so each census is held to exact results
+# on these every run. _RAISE_BAD's two extra helpers pin the helper rule: a
+# key-forwarding helper that omits the domain is not a helper (its own raise
+# is refused), and a helper's key may be any positional parameter.
+_TYPING_BAD = """
+from homeassistant import config_entries
+from homeassistant.config_entries import ConfigEntry
+def name_param(entry: ConfigEntry) -> None: ...
+def attr_param(entry: config_entries.ConfigEntry) -> None: ...
+def posonly(entry: ConfigEntry, /) -> None: ...
+def kwonly(*, entry: ConfigEntry[X]) -> None: ...
+def star(*entries: ConfigEntry, **named: ConfigEntry) -> None: ...
+def union_return(n: int) -> config_entries.ConfigEntry | None: ...
+def stringly(entry: "ConfigEntry") -> None: ...
+async def coroutine(entry: ConfigEntry) -> None: ...
+class Flow:
+    def __init__(self) -> None:
+        self.entry: config_entries.ConfigEntry | None = None
+"""
+_TYPING_BAD_HITS = [
+    "m.py:4 name_param(entry)",
+    "m.py:5 attr_param(entry)",
+    "m.py:6 posonly(entry)",
+    "m.py:7 kwonly(entry)",
+    "m.py:8 star(entries)",
+    "m.py:8 star(named)",
+    "m.py:9 union_return -> return",
+    "m.py:10 stringly(entry)",
+    "m.py:11 coroutine(entry)",
+    "m.py:14 self.entry",
+]
+_TYPING_CLEAN = """
+def ok(entry: HeatPumpOptimizerConfigEntry, n: int, /, *a: str, k: ConfigEntryX = None) -> HeatPumpOptimizerConfigEntry: ...
+x: "HeatPumpOptimizerConfigEntry | None" = None
+"""
+_RAISE_BAD = """
+def _raise_helper(key, message, cause=None, **ph):
+    raise UpdateFailed(message, translation_domain=DOMAIN, translation_key=key) from cause
+def _literal_key(message):
+    return HomeAssistantError(message, translation_domain=DOMAIN, translation_key="lit")
+def _untranslated_factory(message):
+    return UpdateFailed(message)
+def _half_helper(key, message):
+    raise UpdateFailed(message, translation_key=key)
+def _second_key(message, key):
+    raise HomeAssistantError(message, translation_domain=DOMAIN, translation_key=key)
+def sites():
+    raise UpdateFailed("x")
+    raise ServiceValidationError(translation_domain=DOMAIN)
+    raise ServiceValidationError(translation_key="k1")
+    raise exceptions.HomeAssistantError("y", translation_domain=DOMAIN, translation_key="k2")
+    raise ConfigEntryNotReady
+    _raise_helper("k3", "m")
+    _raise_helper(key="k4", message="m")
+    _half_helper("k5", "m")
+    _second_key("m", "k6")
+    raise ValueError("not in the family")
+"""
+_RAISE_BAD_RESULT = (
+    11,
+    [
+        "m.py:7 UpdateFailed",
+        "m.py:9 UpdateFailed",
+        "m.py:13 UpdateFailed",
+        "m.py:14 ServiceValidationError",
+        "m.py:15 ServiceValidationError",
+        "m.py:17 ConfigEntryNotReady (no call)",
+        "m.py:19 _raise_helper() names no key",
+    ],
+    {"lit", "<m.py:9>", "k1", "k2", "k3", "k6"},
+)
+_RAISE_CLEAN = """
+def _raise_helper(key, message):
+    raise UpdateFailed(message, translation_domain=DOMAIN, translation_key=key)
+def sites():
+    raise ServiceValidationError(translation_domain=DOMAIN, translation_key="a")
+    raise exceptions.UpdateFailed(translation_domain=DOMAIN, translation_key="b")
+    _raise_helper("c", "m")
+    raise ValueError("not in the family")
+"""
+
+
+def _fixture(src: str) -> dict[str, ast.Module]:
+    return {"m.py": ast.parse(src)}
+
+
+def check_census_self_test() -> None:
+    """Hold both censuses to exact results on the synthetic fixtures above."""
+    R.section("quality_scale census self-test (#1545, #1546)")
+    hits = bare_entry_annotations(_fixture(_TYPING_BAD))
+    R.check(
+        "the typing census finds every bare ConfigEntry shape, and only those",
+        hits == _TYPING_BAD_HITS,
+        f"got {hits}",
+    )
+    clean = bare_entry_annotations(_fixture(_TYPING_CLEAN))
+    R.check("the typing census passes the alias and look-alike names (null control)", clean == [], repr(clean))
+    total, missing, keys = exception_raise_census(_fixture(_RAISE_BAD))
+    R.check(
+        "the exception census counts every site, refuses each untranslated one, and reads each key",
+        (total, sorted(missing), keys) == (_RAISE_BAD_RESULT[0], sorted(_RAISE_BAD_RESULT[1]), _RAISE_BAD_RESULT[2]),
+        f"got {(total, sorted(missing), sorted(keys))}",
+    )
+    R.check(
+        "the exception census passes a translated module (null control)",
+        exception_raise_census(_fixture(_RAISE_CLEAN)) == (3, [], {"a", "b", "c"}),
+        repr(exception_raise_census(_fixture(_RAISE_CLEAN))),
+    )
+
+
+def _exception_keys(path: pathlib.Path) -> set[str]:
+    return set(json.loads(path.read_text()).get("exceptions", {}))
+
+
+def check_quality_scale() -> None:
+    R.section("quality_scale.yaml censuses (#1545, #1546)")
+    typing_rule = _rule_block("strict-typing")
+    claimed = re.search(r"qs_entry_param_bare=(\d+)", typing_rule)
+    # Anchor: the claim is where the check reads it; a reworded comment is red.
+    R.check("strict-typing states qs_entry_param_bare (anchor)", claimed is not None, typing_rule[:200])
+    bare = bare_entry_annotations()
+    R.check(
+        "qs_entry_param_bare in quality_scale.yaml equals the annotation census",
+        claimed is not None and int(claimed.group(1)) == len(bare),
+        f"claimed {claimed.group(1) if claimed else None}, census {len(bare)}: {bare}",
+    )
+    # The census itself is held to exact results by check_census_self_test.
+
+    status = _rule_block("exception-translations").split(":", 1)[1]
+    done = re.match(r"\s*(?:status:\s*)?done\b", status) is not None
+    R.check("quality_scale.yaml marks exception-translations done (anchor)", done, status[:80])
+    total, missing, keys = exception_raise_census()
+    R.check("the census finds exception sites (anchor)", total > 0, f"{total} site(s)")
+    R.check(
+        "every exception site carries translation_domain and translation_key",
+        not missing,
+        f"{len(missing)} of {total}: {missing}",
+    )
+    for label, path in (
+        ("strings.json", PKG / "strings.json"),
+        ("translations/en.json", PKG / "translations" / "en.json"),
+        ("translations/sv.json", PKG / "translations" / "sv.json"),
+    ):
+        absent = sorted(keys - _exception_keys(path))
+        R.check(f"{label} has an exceptions entry for every raised key", not absent, repr(absent))
+
+
 def main() -> int:
     check_figures()
     check_ecl110_defaults()
     check_entity_prefix()
     check_requirements_claim()
     check_quickstart_numbering()
+    check_census_self_test()
+    check_quality_scale()
     return R.close("checks")
 
 
