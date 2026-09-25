@@ -45870,13 +45870,16 @@ R.check(
 # derivations, on a production ThermalModel of the declared house pre-settled
 # at its hold power and stepped at the house's own maximum power, as
 # coordinator._run_system_identification passes it; the single-zone arm is the
-# null control, unchanged.
+# null control, unchanged. The valve arm (R8-P5c) is the two-zone house behind
+# a throttling mixing valve, whose buffer tank is a hidden store the fit starts
+# at its steady state and whose flow temperature costs the pump COP.
 _z1524_night = datetime(2026, 1, 15, 23, 0, tzinfo=timezone.utc)
 
 
-def _z1524_run(name, two_zone):
+def _z1524_run(name, two_zone, valve=None):
     """One experiment night on the declared preset; (decision, peak excursion)."""
     cfg = _grad_house(two_zone=two_zone, dhw=False)
+    cfg.update({_const922.CONF_MIXING_VALVE_MODE: valve} if valve else {})
     derived = presets.derive(
         presets.BuildingPreset(**{**vars(_b942[name]), "two_zone": two_zone})
     )
@@ -45927,13 +45930,17 @@ def _z1524_run(name, two_zone):
 
 
 _z1524_bar = float(np.expm1(_SysIdModule.UA_ADOPTION_HALFWIDTH_BAR))
-_z1524_admitted = {True: 0, False: 0}
-for _z1524_zone in (False, True):
+_z1524_admitted = {True: 0, False: 0, "manual": 0}
+for _z1524_zone, _z1524_valve in ((False, None), (True, None), (True, "manual")):
     for _z1524_name in _b942:
-        _z1524_d, _z1524_peak, _z1524_why = _z1524_run(_z1524_name, _z1524_zone)
-        _z1524_admitted[_z1524_zone] += int(_z1524_d.admit)
+        _z1524_d, _z1524_peak, _z1524_why = _z1524_run(
+            _z1524_name, _z1524_zone, _z1524_valve
+        )
+        _z1524_admitted[_z1524_valve or _z1524_zone] += int(_z1524_d.admit)
         R.check(
-            f"#1524: {_z1524_name} two_zone={_z1524_zone} finishes inside the "
+            f"#1524: {_z1524_name} two_zone={_z1524_zone}"
+            + (f" valve={_z1524_valve}" if _z1524_valve else "")
+            + " finishes inside the "
             "0.8 K allowance and adopts within the bar, or is refused by the "
             "interval gate by name",
             _z1524_peak <= 0.8
@@ -45950,6 +45957,13 @@ R.check(
     "single-zone one (the null-control arm)",
     _z1524_admitted[True] >= _z1524_admitted[False] > 0,
     f"two-zone {_z1524_admitted[True]}, single-zone {_z1524_admitted[False]} "
+    f"of {len(_b942)}",
+)
+R.check(
+    "R8-P5c: the two-zone derivation behind a throttling valve adopts on as "
+    "many presets as without one",
+    _z1524_admitted["manual"] >= _z1524_admitted[True] > 0,
+    f"valve {_z1524_admitted['manual']}, no valve {_z1524_admitted[True]} "
     f"of {len(_b942)}",
 )
 
