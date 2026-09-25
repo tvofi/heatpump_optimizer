@@ -1577,10 +1577,10 @@ def deferred_drivers(needed: list[str], scope: str) -> list[str]:
     Under --scope changed they wait until a mutant survives every shared
     driver: alone, they were a third of #1611's 100 minutes, spent for no
     mutant. Every mutant such a driver drives still has both first, so no
-    kill or LIVES verdict moves. What can move is the table's headline: a red
-    or timed-out baseline no mutant reaches made the table INCONCLUSIVE and
-    now leaves it PASSED, with a line naming the driver as never run (both
-    exit 0). The nightly (--scope full) keeps the eager refusal.
+    kill or LIVES verdict moves. What can move is the headline: when no mutant
+    reaches it, a red or timed-out baseline (INCONCLUSIVE, exit 0) or a killed
+    null control (REFUSED, exit 1) now leaves the table PASSED (exit 0), with a
+    line naming the driver as never run. --scope full keeps the eager refusal.
     """
     return [s for s in needed if s in EXCLUSIVE and scope == "changed"]
 
@@ -1933,7 +1933,7 @@ def main() -> int:
         for s in (s for s in deferred if s not in baseline):
             print(f"  {s}: DEFERRED AND NEVER RUN -- no mutant survived every "
                   f"shared driver, so its baseline was never checked here; a "
-                  f"red one would have made this table INCONCLUSIVE")
+                  f"red one would have made it INCONCLUSIVE, a killed null REFUSED")
     finally:
         for tree in made:
             drop_tree(tree)
