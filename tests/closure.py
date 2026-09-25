@@ -1643,7 +1643,7 @@ def retrigger_needed(*, pushed: bool, used_pat: bool) -> bool:
     return pushed and not used_pat
 
 
-# Both autofix jobs push only on `changed`, and every other status used to fall
+# Every autofix job pushes only on `changed`, and every other status used to fall
 # through to job success -- so a job that repaired nothing looked exactly like
 # one that did, and `.cursor/rules/ci-autofix.mdc`'s "wait for the bot commit"
 # waited for a commit no step would push (#523). These are the statuses that

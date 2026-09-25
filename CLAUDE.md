@@ -80,7 +80,7 @@ and `policy_budgets.json` caps it.
 | rule | what it binds |
 |---|---|
 | `brief-citations.md` | wave-brief citations must be resolvable by `brief_lint.mjs`; a literal metric or a stated count the tree answers is an error; extending the plan format extends the linter in the same pull request |
-| `ci-autofix.md` | `closures-autofix`, `claims-autofix` and `mutation-autofix` already repair `UNDER-SCOPED`, `INHERITED CLAIMS` and killed unpinned mutants — wait for the bot commit, do not duplicate; read the summary line, not the tick; never automate survivor triage |
+| `ci-autofix.md` | three jobs already repair `UNDER-SCOPED`, `INHERITED CLAIMS` and killed unpinned mutants — wait for the bot commit, do not duplicate; read the summary line, not the tick; never automate survivor triage |
 | `claim-files.md` | the `claimnotes` merge driver and its refusal; a branch that claims nothing leaves both claim files byte-identical; a `DIRTY` pull request does not go red, it cannot run |
 | `comment-readback.md` | post an issue or pull-request comment by running `gh_comment.py`, and read back what landed — a read-back leaves an artifact another seat reads, which a warning about the flag does not |
 | `defect-root-cause.md` | a defect that reached a release, or turned a PR red on a check a cheaper detector could have run, owes a cause, a process state and a countermeasure or a recorded refusal |

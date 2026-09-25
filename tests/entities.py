@@ -15619,7 +15619,7 @@ R.check(
         loop_subject="ci: drop inherited claims"),
     "the two repairs have separate loop guards",
 )
-# Both autofix jobs push only on `changed`, and every other status fell
+# Every autofix job pushes only on `changed`, and every other status fell
 # through to job success -- so a job that repaired nothing was indistinguishable
 # from one that did, and `.cursor/rules/ci-autofix.mdc`'s "wait for the bot
 # commit" waited for a commit no step would push (#523).
@@ -15797,7 +15797,7 @@ R.check(
 # WIRING, not the general class: it says that the one job whose driver imports
 # production on the host installs the dependency set that makes that possible,
 # and it would not notice a DIFFERENT job acquiring the same shape. `typing`,
-# `closure-scope` and both autofix jobs run Python here and install nothing,
+# `closure-scope` and every autofix job run Python here and install nothing,
 # legitimately, because the scripts they run import neither the package nor the
 # stub -- which is why the derived form of this check ("every job that runs a
 # tests/ script installs the requirements") was measured, over-fired on four
@@ -21005,6 +21005,7 @@ for _job, _subject in (("closures-autofix", "ci: re-record closures"),
     _rule = (_AH_CONST or {}).get("messages", {}).get(_subject)
     if not (_rule and f'git commit -m "{_subject}"' in _jt and _added
             and sorted(_added.group(1).split()) == sorted(_rule["paths"])
+            and _rule.get("mayAdd") is (_job != "claims-autofix")
             and f'git config user.name "{_AH_CONST["name"]}"' in _jt
             and f'git config user.email "{_AH_CONST["email"]}"' in _jt):
         _AH_DRIFT.append(_job)
@@ -24030,6 +24031,11 @@ _MA_WIRING = [w for w in (
     "mutation_table.measurement(",
     '(out / "status").write_text(status',
     "github.event.pull_request.head.repo.full_name == github.repository",
+    # The PULL REQUEST's head, not the merge ref's: `git rev-parse HEAD` or
+    # `github.sha` here makes every apply a quiet skip-head-moved.
+    "PR_HEAD: ${{ github.event.pull_request.head.sha }}",
+    "printf '%s\\n' \"$PR_HEAD\" > \"$out/head\"",
+    "if grep -qE '^MUTATION TABLE REFUSED -- [0-9]+ unpinned site\\(s\\) against'",
 ) if not _ma_meas or w not in _ma_meas[0]]
 R.check(
     "mutation's measure step runs the base's tool, hidden, and grades by measurement()",
@@ -24043,7 +24049,8 @@ R.check(
     "needs.mutation.result == 'failure'" in _ma_fix
     and "github.event.pull_request.head.repo.full_name == github.repository" in _ma_fix
     and "contents: write" in _ma_fix
-    and "apply_pins(" in _ma_fix and '"rev-parse", "HEAD"' in _ma_fix,
+    and 'head = subprocess.run(["git", "rev-parse", "HEAD"]' in _ma_fix
+    and 'mutation_table.apply_pins(os.environ["PINS"], head)' in _ma_fix,
     "the job's if:, its push grant, and the head it hands apply_pins",
 )
 

@@ -90,9 +90,9 @@ name: Tests
 #   was red on both arms for two nights and nothing said so. This is the
 #   telling. It is deliberately NOT a required context either.
 #
-# * closures-autofix / claims-autofix — same-repo PRs only. Merge
-#   UNDER-SCOPED recordings, or empty an inherited claim list, then
-#   retrigger Tests. Do not re-implement; see .cursor/rules/ci-autofix.mdc.
+# * closures-autofix / claims-autofix / mutation-autofix — same-repo PRs
+#   only. Merge UNDER-SCOPED recordings, empty an inherited claim list, or
+#   pin measured kills, then retrigger Tests. Do not re-implement; see .cursor/rules/ci-autofix.mdc.
 
 on:
   push:
@@ -116,7 +116,7 @@ permissions:
 jobs:
   # workflow_dispatch inputs exist only on the default branch. An autofix
   # push from this PR must retrigger before that lands, so recheck is also
-  # true when HEAD's subject is `ci: …` (the two autofix commit messages).
+  # true when HEAD's subject is `ci: …` (the autofix commit messages).
   recheck-gate:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -974,7 +974,7 @@ jobs:
       # at all. It did, on both matrix arms, on two consecutive nights.
       # The same pinned set `fast`, `slow`, `browser` and `closures` install --
       # four of the eleven jobs here, not all of them; `typing`, `closure-scope`
-      # and the two autofix jobs run Python and install nothing, because what
+      # and the three autofix jobs run Python and install nothing, because what
       # they run imports neither the package nor the stub. The host only stages
       # files, so nothing about these versions reaches the container, which
       # uses Home Assistant's own.
@@ -1032,9 +1032,9 @@ jobs:
     # REPLACES the workflow default for this job alone and is inherited by no
     # other job, so every other job in this file still runs on `contents: read`.
     # `tests/entities.py` pins the whole set of jobs that override the floor --
-    # this one and the two autofix jobs, which push a commit and retrigger this
+    # this one and the three autofix jobs, which push a commit and retrigger this
     # workflow and so carry `contents: write` and `actions: write` -- and that
-    # this one's block carries no `write` at all. A fourth override then has to
+    # this one's block carries no `write` at all. A fifth override then has to
     # be argued for rather than land.
     permissions:
       contents: read

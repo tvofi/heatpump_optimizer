@@ -18,7 +18,7 @@ leaves you waiting on a run that will never start.
 IF `fast` fails with `INHERITED CLAIMS`, `closures` prints `UNDER-SCOPED`, or
 `mutation` refuses unpinned sites, THEN wait for the autofix job's commit and push nothing.
 
-All three repairs already exist as jobs. A branch that touches no fixture inherits
+The repairs already exist as jobs. A branch that touches no fixture inherits
 the baseline's claim list through the merge, and the repair is to empty it —
 which the bot does, and which you must not do by hand.
 
