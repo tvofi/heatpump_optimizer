@@ -41858,6 +41858,12 @@ class _G8DtCoord:
         self.data = data
         self.away_calls = []
         self.hass = FakeHass({})
+        # The live override the real coordinator holds, which the payload's
+        # key copies at each refresh; the entity reads this one (v6.6.12).
+        self._away_state = type("_G8Away", (), {})()
+        self._away_state.override_return_iso = (data or {}).get(
+            "away_override_return_time"
+        )
 
     async def async_set_away(self, **kw):
         self.away_calls.append(kw)
@@ -41895,9 +41901,9 @@ R.check(
     and _g8_dt_junk.native_value is None,
     f"stored -> {_g8_dt_set.native_value!r}; no coordinator data -> "
     f"{_g8_dt_none.native_value!r}; no key -> {_g8_dt_blank.native_value!r}; "
-    f"'unknown' -> {_g8_dt_junk.native_value!r}. The `or {{}}` on the "
-    "coordinator's data is what keeps this readable during the first refresh, "
-    "when `data` is still None and every entity is being asked for its value",
+    f"'unknown' -> {_g8_dt_junk.native_value!r}. The value is the live "
+    "override, so it reads during the first refresh too, when `data` is still "
+    "None and every entity is being asked for its value",
 )
 R.check(
     "and setting it goes to the away service rather than to the entity's own state",
