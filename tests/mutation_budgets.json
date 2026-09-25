@@ -531,6 +531,16 @@
       "old": "    return value",
       "reason": "R8-P1 (#1518): removing the return makes every amount None, and the #1518 check's healthy month raises TypeError in line(); tests/features.py goes from rc=0 to rc=1. Measured on fix/r8-p1 at d6facdb4 (merge base 407e9ade), 2026-09-24, with tests/mutation_table.py's clone_tree, run_script and killed(); baseline rc=0 failed=0."
     },
+    "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard.hours_since CLAMP_DROP c87bfc45": {
+      "killed_by": "tests/features.py",
+      "old": "        return max(0.0, since.total_seconds() / 3600.0)",
+      "reason": "R8-I1b (#1532): hours_since's clamp. `max(0.0, x)` -> `(0.0)` reads every elapsed age as 0 h. Measured at 8627feee on a detached worktree with this mutant alone: tests/features.py rc=0 failed=0 -> rc=1, among them `legionella hours_since reads true elapsed across the fold [published 0.0 h]` (tests/dst_checks.py, driven by features.py) and `the premise: the cycle really is overdue [due in 168.0 h]`, then a traceback in the mode-block section. Pre-existing checks kill it; the #1532 future-timestamp check pins the other direction, the finder's clamp removal, which no operator here generates."
+    },
+    "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard.hours_since RETURN_DEL c87bfc45": {
+      "killed_by": "tests/features.py",
+      "old": "        return max(0.0, since.total_seconds() / 3600.0)",
+      "reason": "R8-I1b (#1532): hours_since's return. `pass` returns None for every known history. Measured at 8627feee on a detached worktree with this mutant alone: tests/features.py rc=0 failed=0 -> rc=1, among them `legionella hours_since reads true elapsed across the fold [published None h]`, then a TypeError traceback at `the premise: the cycle really is overdue`."
+    },
     "custom_components/heatpump_optimizer/open_meteo.py:OpenMeteoSolar._fenced RETURN_DEL bae930c4": {
       "killed_by": "tests/open_meteo.py",
       "old": "            return _EMPTY",
@@ -585,6 +595,16 @@
       "killed_by": "tests/features.py",
       "old": "        if entity_id and value is not None:",
       "reason": "#1513 (R8-P8): GUARD_OFF on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 5 failed, among them `Fix writes the configured disinfection temperature to the number entity`; `Fix commands a climate entity through set_temperature`. Measured at d6d79847, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/services.py:handle_apply_schedule GUARD_OFF af7cfbb5": {
+      "killed_by": "tests/features.py",
+      "old": "            if wanted > ceiling:",
+      "reason": "R8-I1b (#1533): apply_schedule's deadband refusal. `if False:` accepts a minimum with no deadband. Measured at 8627feee on a detached worktree with this and the set_thermal_parameters twin off: tests/features.py rc=0 failed=0 -> rc=1, 4 of 3189 FAILED, the two naming this handler being `apply_schedule with a deadband-less hot water minimum raises a translatable error` and `apply_schedule accepts a hot water minimum exactly at the deadband ceiling and refuses one 0.01 past it (#1533)`."
+    },
+    "custom_components/heatpump_optimizer/services.py:handle_set_thermal_params GUARD_OFF f27d318e": {
+      "killed_by": "tests/features.py",
+      "old": "            if float(minimum) > ceiling:",
+      "reason": "R8-I1b (#1533): set_thermal_parameters' deadband refusal. `if False:` accepts a minimum with no deadband. Measured at 8627feee on a detached worktree with this and the apply_schedule twin off: tests/features.py rc=0 failed=0 -> rc=1, 4 of 3189 FAILED, the two naming this handler being `set_thermal_parameters with a deadband-less hot water minimum raises a translatable error` and `set_thermal_parameters accepts a hot water minimum exactly at the deadband ceiling and refuses one 0.01 past it (#1533)`."
     },
     "custom_components/heatpump_optimizer/setpoint_check.py:_read_setpoint RETURN_DEL 85c60179": {
       "killed_by": "tests/features.py",
@@ -845,6 +865,11 @@
       "killed_by": "tests/features.py",
       "old": "        floor = min(p.dhw_inlet_reference, ambient_temp)",
       "reason": "arrived with origin/main, commit 7eeea4d90 (D2-02: clamp the DHW inlet floor to the tank surroundings). Dropping the `min` clamp raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22, and re-pinned 1894 -> 1897 by PR #1488, whose D2-01 fix adds three comment lines above this site."
+    },
+    "custom_components/heatpump_optimizer/topology.py:layout_edges GUARD_OFF 08afb4ef": {
+      "killed_by": "tests/features.py",
+      "old": "        if dhw_coil:",
+      "reason": "R8-I1b (#1540): the refill-coil edge of two_tank_4way. `if False:` drops the published wood_tank->dhw_tank edge. Measured at 8627feee on a detached worktree with this mutant (and the three #1532/#1533 finder mutants in other modules): tests/features.py rc=0 failed=0 -> rc=1, 4 of 3189 FAILED, the one reading topology being `a wood coil in the hot water tank draws wood_tank->dhw_tank, and only with the coil (#1540)`. At the merge base 87cf56a3 the same four mutants left tests/features.py green (ALL 3185 FEATURE CHECKS PASSED)."
     }
   },
   "reason": "The ratchet is the exact count of candidate sites with no disposition, derived at both ends and committed nowhere; a site leaves it only by carrying a disposition -- a `killed_by` driver, or a `survivor_triage` verdict (equivalent/gap) pinned to the exact `old` line. Keys moved from FILE:LINE KIND to a content anchor in fix/rca-ledger-anchors, re-derived on its merge of origin/main 4d31d55e on 2026-09-24: `--normalize` mapped all 103 dispositions (21 triage, 82 killed_by) with none unmapped, every entry's value unchanged, and the unpinned set identical under the old and the new code on that tree (3725 of 3828 candidates). The line-keyed re-derivation log main's `reason` had accumulated is superseded: it recorded re-keys this form no longer needs, and it stays in git history. The `last_measured` survivor_lines are a run's table and keep that run's FILE:LINE form. One property the triage entries share, stated here so no reason hides it: tests/entities.py's #1217 mark-staleness self-check reddens when any `survivor_triage`-marked line is mutated, because the mark's pin then names a mutant the tree no longer generates. That is a property of the RECORD, not a behavioural kill, so those sites are survivors here and not `killed_by` entries. The `gap` verdict records a MEASURED survivor and does NOT move the fraction: `survivor_gaps` counts every survivor no triage has called equivalent."
