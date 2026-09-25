@@ -42,8 +42,12 @@ gate is the other duty's set-point, lowered to the entity's own minimum
 is read off the select's ``options``, not configured.
 
 **It never overrides a person.** Every value it writes is recorded, with
-the reading just before the write. A state that differs from the record,
-read more than :data:`ECHO_GRACE_S` after the write, is one of two things:
+the reading just before the write. Readings inside :data:`ECHO_GRACE_S`
+of the write prove nothing either way -- the fork shows a sent value for a
+few seconds whether or not the device took it, and in v6.6.12 that echo
+counted as a landing, so the device's own value coming back read as a
+person's change. A state that differs from the record, read after the
+grace, is one of two things:
 
 * **An ignored write** -- the reading never showed our value and still
   equals the one from before the write. The device (or its cloud) dropped
@@ -60,16 +64,26 @@ it was before our write, before a reading of ours was ever seen, is read as
 an ignored write, and is overwritten once, five minutes later (then it lands
 and any later change is manual). A write that lands and is reverted by the
 device between two readings (the tick is a minute, plus every state event)
-reads as ignored too. After a restart the prior readings are gone, so a
-differing reading is manual, as before.
+reads as ignored too. The record -- what was written, the reading before
+it, which writes were seen to land and which wait for a retry -- is
+persisted, so the same reading means the same thing after a restart (a
+v6.6.12 reboot read an ignored write as a manual change and turned the
+optimizer off). A record from before that, with no prior readings, is not
+evidence either way: its values are written again once.
 
 **Its own writes are not evidence.** A mode the arbiter wrote must not reach
 the next solve as "the pump cannot heat" (:func:`own`), or a DHW-only step
 would block space heat for the whole horizon and nothing would ever write
-Heating + DHW back.
+Heating + DHW back. Under control that holds for any of its three modes,
+not only the last one written: a pump that has not yet shown the next
+write, a write that landed after it was read as ignored, or the first solve
+after a restart all read the pump before the record agrees (v6.6.12).
 
 **Rails.** Hot-water-only is leased: at most :data:`LEASE_MINUTES`, and
-:data:`COLD_LEASE_MINUTES` below :data:`COLD_RAIL_C` outdoors. A stale or
+:data:`COLD_LEASE_MINUTES` below :data:`COLD_RAIL_C` outdoors, while the
+house is below the plan's room temperature for the step. A house at or
+above it needs no space heat, so the lease does not hand the pump's own
+space thermostat a warm house (tvofi, v6.6.12). A stale or
 missing plan, a fixed-rule mode, an experiment, a boost and the end of the
 lease all get the baseline row above. Unloading writes the baseline too.
 
@@ -101,6 +115,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from weakref import WeakKeyDictionary
 
+from homeassistant.core import callback
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.event import (
     async_track_state_change_event,
@@ -170,10 +185,11 @@ class ArbiterState:
     written: dict[str, tuple[Any, datetime]] = field(default_factory=dict)
     manual: str | None = None
     #: slot -> the reading just before our write; slots seen to land;
-    #: slot -> when an ignored write is sent again. Not persisted.
+    #: slot -> when an ignored write is sent again. All persisted.
     prior: dict[str, Any] = field(default_factory=dict)
     landed: set[str] = field(default_factory=set)
     retry: dict[str, datetime] = field(default_factory=dict)
+    dirty: bool = False
     step: dict[str, Any] | None = None
     log: deque[dict[str, Any]] = field(default_factory=lambda: deque(maxlen=LOG_STEPS))
     dhw_since: datetime | None = None
@@ -184,6 +200,7 @@ class ArbiterState:
 
 
 _STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()
+_OWN_MODES = frozenset((pump_mode.MODE_HEAT, pump_mode.MODE_DHW, pump_mode.MODE_HEAT_DHW))
 _SLOTS = ("mode", "dhw_setpoint", "space_setpoint")
 
 
@@ -229,11 +246,18 @@ def step_duty(result: Any, now: datetime, on_kw: float) -> str | None:
 
 
 def own(coord: Any, signals: Any) -> Any:
-    """``signals`` with the arbiter's own mode marked as not a block."""
-    written = state_for(coord).written.get("mode")
-    if duty_mode(coord._config) != DUTY_CONTROL or written is None:
+    """``signals`` with a heating mode marked as the arbiter's, not a block.
+
+    Under control, whichever of its three modes the pump reads is the
+    arbiter's step decision: its own last write, one it wrote before the
+    pump showed the next, one that landed after it was read as ignored, or
+    one from before a restart. A person's change stands the arbiter down
+    within a tick and turns the optimizer off, and from then on the reading
+    blocks again.
+    """
+    if duty_mode(coord._config) != DUTY_CONTROL or coord._mode == MODE_OFF:
         return signals
-    if signals.mode.key != written[0]:
+    if signals.mode.key not in _OWN_MODES:
         return signals
     return replace(signals, mode_owned=True)
 
@@ -261,16 +285,21 @@ def _bounded(state: Any, value: float | None, floor: float = -1e9) -> float | No
     return round(value * 2.0) / 2.0
 
 
+def _planned_room(result: Any, now: datetime) -> float | None:
+    """The plan's room temperature for the step covering ``now``."""
+    stamps = list(getattr(result, "timestamps", None) or [])
+    i = bisect.bisect_right(stamps, now) - 1
+    points = list(getattr(result, "optimal_setpoints", None) or [])
+    return points[i] if 0 <= i < len(points) else None
+
+
 def _space_target(coord: Any, result: Any, now: datetime) -> float | None:
     """The plan's own space set-point: the curve supply, or the room target."""
     state = _slot_state(coord, "space_setpoint")
     if _flow_unit(coord._config):
         outdoor = float(coord._current_state.outdoor_temperature)
         return _bounded(state, coord._thermal_model.curve_flow_temp(outdoor), FLOW_GATE_C)
-    stamps = list(getattr(result, "timestamps", None) or [])
-    i = bisect.bisect_right(stamps, now) - 1
-    points = list(getattr(result, "optimal_setpoints", None) or [])
-    return _bounded(state, points[i] if 0 <= i < len(points) else None)
+    return _bounded(state, _planned_room(result, now))
 
 
 def desired(coord: Any, duty: str | None, now: datetime) -> PumpCommand:
@@ -353,7 +382,12 @@ def _leased(coord: Any, held: ArbiterState, duty: str | None, now: datetime) -> 
     held.dhw_since = held.dhw_since or now
     cold = float(coord._current_state.outdoor_temperature) < COLD_RAIL_C
     cap = COLD_LEASE_MINUTES if cold else LEASE_MINUTES
-    return None if now - held.dhw_since > timedelta(minutes=cap) else duty
+    if now - held.dhw_since <= timedelta(minutes=cap):
+        return duty
+    room = getattr(coord._current_state, "room_temperature", None)
+    planned = _planned_room(getattr(coord, "_optimization_result", None), now)
+    warm = None not in (room, planned) and float(room) >= float(planned)
+    return duty if warm else None
 
 
 def _differs(slot: str, observed: Any, value: Any) -> bool:
@@ -385,12 +419,15 @@ def foreign_change(coord: Any, now: datetime) -> str | None:
         observed = _observed(coord, slot)
         if observed is None:
             continue
+        if (now - at).total_seconds() < ECHO_GRACE_S:
+            # The fork shows a sent value for a few seconds whether or not
+            # the device took it: an echo is not a landing (v6.6.12).
+            continue
         if not _differs(slot, observed, value):
+            held.dirty = held.dirty or slot not in held.landed
             held.landed.add(slot)
             if held.retry.pop(slot, None) is not None and not held.retry:
                 _clear(coord, ISSUE_IGNORED)
-            continue
-        if (now - at).total_seconds() < ECHO_GRACE_S:
             continue
         entity = _entities(coord._config)[slot]
         detail = f"{entity}: {observed} (set by the optimizer: {value})"
@@ -563,6 +600,8 @@ async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -
     if detail is not None:
         await _stand_down(coord, detail)
         return
+    if held.dirty:
+        await _persist(coord)
     await _command(coord, desired(coord, duty, now), now)
 
 
@@ -589,6 +628,7 @@ def _listen(coord: Any) -> None:
     async def _tick(_now: Any = None) -> None:
         await apply(coord)
 
+    @callback
     def _changed(_event: Any) -> None:
         hass.async_create_task(apply(coord))
 
@@ -606,9 +646,13 @@ def _store(coord: Any) -> QuarantiningStore[dict[str, Any]]:
 
 async def _persist(coord: Any) -> None:
     held = state_for(coord)
+    held.dirty = False
     payload = {
         "manual": held.manual,
         "written": {k: [v, at.isoformat()] for k, (v, at) in held.written.items()},
+        "prior": dict(held.prior),
+        "landed": sorted(held.landed),
+        "retry": {k: at.isoformat() for k, at in held.retry.items()},
     }
     try:
         await _store(coord).async_save(payload)
@@ -634,6 +678,23 @@ async def _load(coord: Any) -> None:
         try:
             held.written[slot] = (pair[0], datetime.fromisoformat(pair[1]))
         except (TypeError, ValueError, IndexError):
+            continue
+    _restore_evidence(held, raw)
+
+
+def _restore_evidence(held: ArbiterState, raw: dict[str, Any]) -> None:
+    """The prior readings, landings and retries beside a restored record."""
+    if "prior" not in raw:
+        # A v6.6.12 record: no prior readings, so a differing reading could
+        # not be told apart from an ignored write. Write the values again.
+        held.written = {}
+        return
+    held.prior = {k: v for k, v in (raw.get("prior") or {}).items() if k in held.written}
+    held.landed = {k for k in raw.get("landed") or () if k in held.written}
+    for slot, at in (raw.get("retry") or {}).items():
+        try:
+            held.retry[slot] = datetime.fromisoformat(at)
+        except (TypeError, ValueError):
             continue
 
 

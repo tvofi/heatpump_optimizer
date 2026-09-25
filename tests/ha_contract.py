@@ -361,11 +361,10 @@ INVENTORY: dict[str, Entry] = {
         absent=("data", "domain", "service"),
     ),
     "homeassistant.core.SupportsResponse": H("string constants, probed"),
-    "homeassistant.core.callback": D(
-        "the identity. Upstream tags the decorated function with _hass_callback, "
-        "which is how the event loop decides to run it inline instead of in an "
-        "executor -- invisible to any lane here, none of which has an event loop",
-        issue="#577",
+    "homeassistant.core.callback": F(
+        "tags the decorated function with _hass_callback, as upstream does; the "
+        "stub's async_track_state_change_event refuses an untagged plain function, "
+        "which upstream would run in an executor thread (v6.6.12)"
     ),
     # -- data_entry_flow ----------------------------------------------------
     "homeassistant.data_entry_flow.FlowResult": S(
@@ -1946,7 +1945,6 @@ def _dt_as_local():
     "homeassistant.core.callback",
     "the decorated function is tagged so the event loop runs it inline",
     cite="core.py -- callback sets `_hass_callback` on the function and returns it",
-    expect="real",
 )
 def _callback_tags():
     from homeassistant.core import callback

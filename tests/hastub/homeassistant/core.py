@@ -16,4 +16,6 @@ class SupportsResponse:
 
 
 def callback(f):
+    """Tag ``f`` as a loop callback, as upstream does (``_hass_callback``)."""
+    setattr(f, "_hass_callback", True)
     return f

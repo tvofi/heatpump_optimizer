@@ -1,3 +1,6 @@
+import inspect
+
+
 def async_track_time_interval(*a, **k): return lambda: None
 
 
@@ -13,6 +16,16 @@ def async_track_state_change_event(hass, entity_ids, action):
     one by calling the action with an object shaped like an HA Event
     (``event.data["new_state"]`` etc.).
     """
+    # Upstream runs a plain function that is not ``@callback`` in an executor
+    # thread, where the ``hass.async_*`` calls every listener here makes are
+    # refused (v6.6.12: the pump arbiter's ``_changed`` raised on every pump
+    # state event). The stub refuses the registration instead, so a lane sees
+    # it: stricter than upstream, which accepts it and fails at dispatch.
+    if not (
+        getattr(action, "_hass_callback", False)
+        or inspect.iscoroutinefunction(action)
+    ):
+        raise TypeError(f"{action!r} is neither @callback nor a coroutine function")
     listeners = getattr(hass, "state_listeners", None)
     if listeners is None:
         listeners = []
