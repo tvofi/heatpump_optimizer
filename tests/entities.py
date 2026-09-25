@@ -12843,7 +12843,10 @@ def _gl_flock_wrap_label() -> tuple[bool, str]:
                 f"order={order} holder_after={holder and holder.label}")
 
 
-_gl_ok, _gl_detail = _gl_flock_wrap_label()
+try:
+    _gl_ok, _gl_detail = _gl_flock_wrap_label()
+except Exception as _gl_exc:  # a crash is this check's red, not the script's
+    _gl_ok, _gl_detail = False, f"raised {_gl_exc!r}"
 R.check("a seat label never taken fails at once; a held one re-queues behind a waiter",
         _gl_ok, _gl_detail)
 
