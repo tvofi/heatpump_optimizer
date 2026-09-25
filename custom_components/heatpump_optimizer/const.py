@@ -457,6 +457,11 @@ CONF_PEAK_TARIFF_WEEKDAYS_ONLY: Final = "peak_tariff_weekdays_only"
 DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY: Final = False
 CONF_PEAK_TARIFF_OFFPEAK_FACTOR: Final = "peak_tariff_offpeak_factor"
 DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR: Final = 1.0
+# The k billed peaks fall on k different days (#1512). On by default: the
+# Swedish tariffs this models bill that way, and at one peak averaged the
+# rule changes nothing.
+CONF_PEAK_TARIFF_DISTINCT_DAYS: Final = "peak_tariff_distinct_days"
+DEFAULT_PEAK_TARIFF_DISTINCT_DAYS: Final = True
 
 # Risk-adjusted pricing on the unpublished horizon (#34). λ = 0 keeps the
 # prior's mean pricing; the sigma vector still rides along for display.
@@ -846,6 +851,13 @@ CONF_SPACE_PUMP_ENTITY: Final = "space_circulation_pump_entity"
 CONF_DHW_DISINFECTION_SWITCH_ENTITY: Final = "dhw_disinfection_switch_entity"
 CONF_DHW_DISINFECTION_MODE: Final = "dhw_disinfection_mode"
 DEFAULT_DHW_DISINFECTION_MODE: Final = "observe"
+#: The pump-duty arbiter (pump_arbiter.py): off (the default) writes and
+#: reads nothing; observe classifies what the pump did on each planned step;
+#: control writes the pump's mode and set-points per step, retries a write
+#: the pump ignored and stands down to off on any other change it did not make.
+CONF_PUMP_DUTY_MODE: Final = "pump_duty_mode"
+DEFAULT_PUMP_DUTY_MODE: Final = "off"
+PUMP_DUTY_MODES: Final = ("off", "observe", "control")
 #: How long a switch the optimizer turned on may stay unreadable before its
 #: record is dropped with a repair, when it is no longer the configured
 #: switch or has no state at all (renamed or deleted). Not immediate: at
@@ -981,6 +993,11 @@ CONF_THERMAL_BRIDGE_FRSI: Final = "thermal_bridge_frsi"
 DEFAULT_THERMAL_BRIDGE_FRSI: Final = 0.75
 #: Mold growth needs sustained surface RH above roughly this fraction.
 MOLD_SURFACE_RH_LIMIT: Final = 0.8
+#: #1495 — the mold-floor breach warning: fire when the measured room sits
+#: this far (°C) below the computed mold-safe floor, so a DHW-only / blocked
+#: install free-cooling past its promise is visible instead of silent.
+CONF_MOLD_FLOOR_BREACH_MARGIN: Final = "mold_floor_breach_margin"
+DEFAULT_MOLD_FLOOR_BREACH_MARGIN: Final = 0.5
 
 # T6 — insight (#29 #52 #55 #65 #39 #40). Everything here reads the system;
 # the only plan-affecting piece is the wear autotune, gated off by default.

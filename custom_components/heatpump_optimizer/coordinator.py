@@ -28,7 +28,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn
 
 import aiohttp
 import numpy as np
@@ -181,6 +181,8 @@ from .const import (
     DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
     CONF_PEAK_TARIFF_OFFPEAK_FACTOR,
     DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
+    CONF_PEAK_TARIFF_DISTINCT_DAYS,
+    DEFAULT_PEAK_TARIFF_DISTINCT_DAYS,
     CONF_PRICE_RISK_LAMBDA,
     DEFAULT_PRICE_RISK_LAMBDA,
     CONF_CONTRACT_FIXED_PRICE,
@@ -342,7 +344,7 @@ from .accuracy import (
 )
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
-from . import pump_signals
+from . import pump_arbiter, pump_signals
 from . import setpoint_check
 from . import silent_mode
 from .pump_mode import ModeCapability
@@ -362,7 +364,7 @@ from .price_model import (
     pull_prices,
     quarters_from_entries,
 )
-from .sysid import SysIdConfig, SystemIdentification, UA_ADOPTION_HALFWIDTH_BAR, slab_mode_identifiability, slab_ua_adoption_halfwidth
+from .sysid import SysIdConfig, SystemIdentification, adoption_decision
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -441,6 +443,10 @@ _create_issue = setpoint_check.create_issue
 
 # Forecast wind speed arrives in whatever unit the user's Home Assistant is
 # configured for, so it has to be converted explicitly rather than guessed.
+# Forecast precipitation likewise, per hour into the mm the model reads:
+# an inch entity's 0.1 in/h is 2.54 mm/h, not 0.1 (#1513 follow-up).
+_PRECIPITATION_UNIT_TO_MM: dict[Any, float] = {"mm": 1.0, "cm": 10.0, "in": 25.4}
+
 _WIND_UNIT_TO_MS = {
     UnitOfSpeed.METERS_PER_SECOND: 1.0,
     UnitOfSpeed.KILOMETERS_PER_HOUR: 1.0 / 3.6,
@@ -1212,10 +1218,10 @@ async def _await_optimize(
         _note_worker_fallback(hass, err)
         n = _bump_worker_fallback(hass)
         if n > WORKER_FALLBACK_CAP:
-            raise UpdateFailed(
-                f"process-solve worker unusable for {n} consecutive cycles; "
-                "keeping the last plan rather than holding the GIL (#783)"
-            ) from err
+            _raise_update_failed(
+                "process_worker_unusable", f"process-solve worker unusable for {n} consecutive cycles; "
+                "keeping the last plan rather than holding the GIL (#783)", err, cycles=str(n),
+            )
         return await hass.async_add_executor_job(
             optimize_in_process, optimizer, state, positional, keywords
         )
@@ -1365,38 +1371,46 @@ def _dhw_inlet_c(hass: HomeAssistant, entity_id: Any) -> float | None:
     return value if value is not None and -5.0 <= value <= 35.0 else None
 
 
-def _wind_speed_scale_of(state: Any) -> float:
-    """Factor converting a weather entity's wind unit into m/s.
+def _unit_scale_of(state: Any, attribute: str, table: dict[Any, float]) -> float:
+    """Factor converting a weather entity's ``attribute`` unit to the model's.
 
-    Home Assistant converts forecast wind speed into whichever unit the
-    user has configured, and reports that unit on the weather entity as
-    ``wind_speed_unit``. An unrecognised or absent unit falls back to 1.0
-    (m/s), which is the Home Assistant metric default.
+    Home Assistant converts a weather entity's forecast into whichever units
+    the user has configured and reports each on the entity (``wind_speed_unit``,
+    ``precipitation_unit``). An unrecognised or absent unit falls back to 1.0,
+    the Home Assistant metric default.
     """
-    unit: Any = (getattr(state, "attributes", None) or {}).get("wind_speed_unit")
-    scale = _WIND_UNIT_TO_MS.get(unit)
+    unit: Any = (getattr(state, "attributes", None) or {}).get(attribute)
+    scale = table.get(unit)
     if scale is None:
         if unit:
-            _LOGGER.debug("Unknown wind speed unit %r; assuming m/s", unit)
+            _LOGGER.debug("Unknown %s %r; assuming the metric default", attribute, unit)
         return 1.0
     return scale
 
 
+def _wind_speed_scale_of(state: Any) -> float:
+    """Factor converting a weather entity's wind unit into m/s."""
+    return _unit_scale_of(state, "wind_speed_unit", _WIND_UNIT_TO_MS)
+
+
 def _forecast_in_model_units(state: Any, forecast: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Forecast rows in degC and m/s, by the weather entity's own units (#1513).
+    """Forecast rows in degC, m/s and mm, by the weather entity's own units (#1513).
 
     Home Assistant hands a weather entity's forecast over in the entity's
-    display units -- degF and mph on a US-customary instance. Converting
+    display units -- degF, mph and inches on a US-customary instance. Converting
     once, where the rows are stored, gives every reader the model's units:
     the horizon arrays, ``forecast_outdoor_now`` and ``_current_weather``,
     whose wind the learners read and which used to see the display unit. A
-    degC and m/s entity returns the rows untouched, and a temperature that
-    will not parse is kept, so the consumers' own fallbacks still apply.
+    degC, m/s and mm entity returns the rows untouched, and a temperature
+    that will not parse is kept, so the consumers' own fallbacks still apply.
+    Humidity (%) and irradiance (W/m2) carry no unit attribute to honour, and
+    pressure, visibility and the other forecast fields are read by nothing.
     """
     unit = (getattr(state, "attributes", None) or {}).get("temperature_unit")
     to_c = TEMPERATURE_UNIT_TO_C.get(str(unit).strip(), (0.0, 1.0)) != (0.0, 1.0)
     wind = _wind_speed_scale_of(state)
-    if not to_c and wind == 1.0:
+    rain = _unit_scale_of(state, "precipitation_unit", _PRECIPITATION_UNIT_TO_MM)
+    if not to_c and wind == 1.0 and rain == 1.0:
         return forecast
     rows: list[dict[str, Any]] = []
     for entry in forecast:
@@ -1406,6 +1420,8 @@ def _forecast_in_model_units(state: Any, forecast: list[dict[str, Any]]) -> list
             row["temperature"] = value
         if wind != 1.0:  # every reader takes a missing wind as 0.0 anyway
             row["wind_speed"] = _as_float(entry.get("wind_speed"), 0.0) * wind
+        if rain != 1.0:  # and a missing precipitation as 0.0
+            row["precipitation"] = _as_float(entry.get("precipitation"), 0.0) * rain
         rows.append(row)
     return rows
 
@@ -4684,7 +4700,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             _LOGGER.error(
                 "Error updating Heat Pump Optimizer: %s", err, exc_info=True
             )
-            raise UpdateFailed(f"Error updating data: {err}") from err
+            _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
         finally:
             self._refresh_task = None
     async def _async_first_refresh_light(self) -> dict[str, Any]:
@@ -4734,7 +4750,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             _LOGGER.error(
                 "Error updating Heat Pump Optimizer: %s", err, exc_info=True
             )
-            raise UpdateFailed(f"Error updating data: {err}") from err
+            _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
 
     def _solve_snapshot(self) -> tuple[ThermalState, HeatPumpOptimizer]:
         """Frozen copies for the process worker: the solve must never share
@@ -4818,9 +4834,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # on the next run rather than on the next restart.
             tariff = self._capacity_tariff()
             ctx._opt_config.peak_price_per_kw = tariff.marginal_price_per_kw
-            ctx._opt_config.peak_threshold_kw = self._peak_tracker.threshold_kw(
-                tariff
-            )
+            tracker = self._peak_tracker
+            ctx._opt_config.peak_threshold_kw = tracker.threshold_kw(tariff)
             # Post-outage recovery (#22): every neighbour restarts at once,
             # so the fresh-month "no reference yet" free pass is exactly
             # wrong now. Force the peak term active by pricing from zero
@@ -4831,6 +4846,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 ctx._opt_config.peak_threshold_kw = 0.0
             ctx._opt_config.peak_window_minutes = tariff.window_minutes
             ctx._opt_config.peak_count = tariff.peaks_averaged
+            ctx._opt_config.peak_distinct_days = tariff.distinct_days
             ctx._opt_config.peak_months = tariff.months
             ctx._opt_config.peak_hours = tariff.peak_hours
             ctx._opt_config.peak_weekdays_only = tariff.weekdays_only
@@ -5194,11 +5210,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # only coefficient change, leaving the next start 0.80x wrong).
             self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
             self._house_heat_loss_samples = 0
-            await self._async_save_thermal_learning()
 
         if CONF_BUFFER_COOLING_RATE in params:
             self._apply_buffer_cooling_rate(float(params[CONF_BUFFER_COOLING_RATE]))
             self._buffer_cooling_samples = 0
+
+        # One write for either reset: a call carrying both used to save the
+        # whole store twice, the first time with only half the reset in it.
+        if "house_heat_loss_coefficient" in params or CONF_BUFFER_COOLING_RATE in params:
             await self._async_save_thermal_learning()
 
         if CONF_DHW_COOLING_RATE in params:
@@ -5235,22 +5254,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             except DHWWindowError as err:
                 _LOGGER.warning("Ignoring invalid DHW demand windows: %s", err)
-        if CONF_DHW_IDLE_MIN_TEMP in params:
-            ctx._thermal_params.dhw_idle_min_temp = float(
-                params[CONF_DHW_IDLE_MIN_TEMP]
-            )
-        if CONF_DHW_LEGIONELLA_ENABLED in params:
-            ctx._thermal_params.dhw_legionella_enabled = bool(
-                params[CONF_DHW_LEGIONELLA_ENABLED]
-            )
-        if CONF_DHW_LEGIONELLA_TEMP in params:
-            ctx._thermal_params.dhw_legionella_temp = float(
-                params[CONF_DHW_LEGIONELLA_TEMP]
-            )
-        if CONF_DHW_LEGIONELLA_INTERVAL_DAYS in params:
-            ctx._thermal_params.dhw_legionella_interval_days = float(
-                params[CONF_DHW_LEGIONELLA_INTERVAL_DAYS]
-            )
+        for key, attribute, convert in (
+            (CONF_DHW_IDLE_MIN_TEMP, "dhw_idle_min_temp", float),
+            (CONF_DHW_LEGIONELLA_ENABLED, "dhw_legionella_enabled", bool),
+            (CONF_DHW_LEGIONELLA_TEMP, "dhw_legionella_temp", float),
+            (CONF_DHW_LEGIONELLA_INTERVAL_DAYS, "dhw_legionella_interval_days", float),
+        ):
+            if key in params:
+                setattr(ctx._thermal_params, attribute, convert(params[key]))
 
         # Attribute writes bypass __post_init__, so the thermal-mass divisor
         # floor is re-enforced here — the one chokepoint for service writes.
@@ -5288,6 +5299,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._unsub_timer = None
         self._release_registrations()
         await self._legionella.async_release_switch()
+        await pump_arbiter.release(self)
         pending = [t for t in self._background_tasks if not t.done()]
         if pending:
             _LOGGER.debug(
@@ -5478,12 +5490,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         # ``previous``: this attribute still holds last cycle's result
         # until the assignment lands, which is all the rising edge needs.
-        self._pump_signals = pump_signals.read(
+        self._pump_signals = pump_arbiter.own(self, pump_signals.read(
             reader,
             last_good=self._pump_mode_last_good,
             last_good_age_minutes=_last_good_age,
             previous=self._pump_signals,
-        )
+        ))
         if self._pump_signals.mode_source == pump_signals.MODE_SOURCE_LIVE:
             self._pump_mode_last_good = self._pump_signals.mode
             self._pump_mode_last_good_at = _mode_now
@@ -5703,7 +5715,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         else:
             _LOGGER.debug("Tibber still failing (%s)", reason)
         self._tibber_outage_cycles += 1
-        raise UpdateFailed(reason)
+        _raise_update_failed("tibber_fetch_failed", reason, None, error=reason)
 
     def _tibber_fetch_recovered(self) -> None:
         """Clear the outage latch after a successful fetch."""
@@ -6660,6 +6672,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     async def _apply_action(self) -> None:
         """Apply current action as (heat_pump_on, displace_value)."""
+        await pump_arbiter.apply(self)
         if not self._current_action:
             return
         if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():
@@ -7571,11 +7584,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 
     def _capacity_tariff(self) -> CapacityTariff:
         ctx = getattr(self, "_ctx", self)
+        cfg = ctx._config
         return CapacityTariff(
             enabled=bool(
-                ctx._config.get(
-                    CONF_PEAK_TARIFF_ENABLED, DEFAULT_PEAK_TARIFF_ENABLED
-                )
+                cfg.get(CONF_PEAK_TARIFF_ENABLED, DEFAULT_PEAK_TARIFF_ENABLED)
             ),
             price_per_kw=_as_float(
                 ctx._config.get(CONF_PEAK_TARIFF_PRICE),
@@ -7601,6 +7613,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
                 )
             ),
+            distinct_days=bool(cfg.get(CONF_PEAK_TARIFF_DISTINCT_DAYS, DEFAULT_PEAK_TARIFF_DISTINCT_DAYS)),
             offpeak_factor=_as_float(
                 ctx._config.get(CONF_PEAK_TARIFF_OFFPEAK_FACTOR),
                 DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
@@ -10477,7 +10490,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _run_system_identification(self, prices: np.ndarray) -> None:
         """Advance sysid and override the plan when the experiment commands heat.
 
-        Subject to the mode gate and pump freeze like every other power path.
+        Subject to the mode gate and the learners' freeze (#1523).
         Writes ``_current_action["power"]`` after the solve — the one route
         that bypasses mode bounds — so a response measured while cooling,
         faulted or offline seeds wrong parameters via ``_adopt_system_identification``.
@@ -10485,14 +10498,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ctx = getattr(self, "_ctx", self)
         if not self._sysid.active:
             return
-        if self._pump_signals.space_blocked:
-            self._sysid.abort(
-                f"heat pump mode {self._pump_signals.mode.label} cannot heat "
-                "the house"
-            )
-            return
-        if self._pump_signals.freeze_reason is not None:
-            self._sysid.abort(self._pump_signals.freeze_reason)
+        # #1523: the experiment is a heat-loss learner, so it stands down on
+        # the house learner's own freeze (external heat, a defrost, an open
+        # window, an unusable room or outdoor reading, the pump's freezes,
+        # which ``_learning_frozen`` ranks first) and on a mode that cannot heat.
+        why = (
+            f"heat pump mode {self._pump_signals.mode.label} cannot heat the house"
+            if self._pump_signals.space_blocked
+            else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)
+        )
+        if why is not None:
+            self._sysid.abort(why)
             return
         params = ctx._thermal_params
         state = ctx._current_state
@@ -10531,39 +10547,26 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "dhw_reason": None,
         }
     def _adopt_system_identification(self) -> None:
-        """Seed the passive learners from a completed experiment."""
+        """Seed the passive learners from a completed experiment.
+
+        :func:`sysid.adoption_decision` rules, and its reason is published
+        on every path (#1525): a refusal no longer leaves the fit's "ok".
+        """
         result = self._sysid.result
-        # #1410: adoption is decided by the fitted UA's own 95 % profile-
-        # likelihood interval (superseding the #942 residual-scatter gate):
-        # a fit whose UA is not pinned within +-10 % is refused, however
-        # plausible its residual looks. D7-01 (#1459) added its other source.
-        hw = slab_ua_adoption_halfwidth(result.ua_profile_halfwidth, result.ua_prior_halfwidth)
-        if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:
+        if not result.completed:
             return
         params = getattr(self, "_ctx", self)._thermal_params
-        # #942: adoption is decided by identifiability -- a one-state fit of
-        # a slow-slab two-state plant is refused by name, not silently.
-        identifiable, why = slab_mode_identifiability(params, self._sysid.config)
-        if not identifiable:
-            self._sysid.result = replace(result, completed=False, reason=why)
-            _LOGGER.info("System identification not adopted: %s", why)
+        decision = adoption_decision(result, params, self._sysid.config)
+        self._sysid.result = replace(result, completed=False, reason=decision.reason)
+        if not decision.admit:
+            _LOGGER.info("System identification not adopted: %s", decision.reason)
             return
-        if params.two_zone_enabled:
-            base_u = params.upper_floor_heat_loss + params.lower_floor_heat_loss
-        else:
-            base_u = params.heat_loss_coefficient
-        if base_u <= 1e-6 or result.heat_loss_kw_per_c is None:
-            return
-        scale = result.heat_loss_kw_per_c / base_u
-        # The blend weight comes from the same interval as the gate: a fit at
-        # the bar adopts mildly, a pinned one at full weight.
-        weight = 1.0 - hw / UA_ADOPTION_HALFWIDTH_BAR
-        blended = (1.0 - weight) * self._house_heat_loss_scale + weight * scale
+        weight = decision.weight
+        blended = (1.0 - weight) * self._house_heat_loss_scale + weight * decision.scale
         self._apply_house_heat_loss_scale(blended)
         self._house_heat_loss_samples = max(
             self._house_heat_loss_samples, int(20 * weight)
         )
-        self._sysid.result = replace(result, completed=False, reason="adopted")
         # Persist immediately: the whole point of an experiment is a result
         # good enough to outlive a restart, and the passive learner's periodic
         # save may be many samples away.
@@ -10847,3 +10850,25 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
 # the entry. Platforms and service handlers annotate with this and read the
 # coordinator from the entry, never from ``hass.data``.
 HeatPumpOptimizerConfigEntry = ConfigEntry[HeatPumpOptimizerCoordinator]
+
+
+def _raise_update_failed(
+    key: str, message: str, cause: BaseException | None, **placeholders: str
+) -> NoReturn:
+    """Fail the update with an error the frontend can render translated (#1546).
+
+    ``message`` stays the English text the log and ``last_exception`` show;
+    ``key`` names the strings.json ``exceptions`` entry. Every coordinator
+    UpdateFailed is raised here, outside the class, so none can omit the
+    translation; tests/doc_claims.py counts each call as a raise site.
+    ``cause`` is what the call site's ``raise ... from`` named. The Tibber
+    latch passes None, which hides the implicit context its bare ``raise``
+    kept; the base class logs an UpdateFailed without a traceback, so no
+    log line changes.
+    """
+    raise UpdateFailed(
+        message,
+        translation_domain=DOMAIN,
+        translation_key=key,
+        translation_placeholders=placeholders,
+    ) from cause

@@ -2,9 +2,9 @@
  {
   "id": "C1",
   "source": "README.md:Entities",
-  "claim": "All 74 entities are created on every install",
+  "claim": "All 75 entities are created on every install",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=74 measured=74",
+  "result": "documented=75 measured=75",
   "verdict": "true",
   "truth": ""
  },
@@ -20,9 +20,9 @@
  {
   "id": "C3",
   "source": "README.md:### Binary Sensors",
-  "claim": "Binary Sensors (5 total)",
+  "claim": "Binary Sensors (6 total)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=5 measured=5",
+  "result": "documented=6 measured=6",
   "verdict": "true",
   "truth": ""
  },
@@ -38,9 +38,9 @@
  {
   "id": "C5",
   "source": "docs/architecture.md:mermaid",
-  "claim": "74 entities / 59 sensors / 5 binary sensors / 4 buttons / 4 switches / 1 climate / 1 datetime",
+  "claim": "75 entities / 59 sensors / 6 binary sensors / 4 buttons / 4 switches / 1 climate / 1 datetime",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=(74, 59, 5, 4, 4, 1, 1) measured=(74, 59, 5, 4, 4, 1, 1)",
+  "result": "documented=(75, 59, 6, 4, 4, 1, 1) measured=(75, 59, 6, 4, 4, 1, 1)",
   "verdict": "true",
   "truth": ""
  },
@@ -103,7 +103,7 @@
   "source": "README.md:### Binary Sensors",
   "claim": "the binary-sensor table names exactly the binary sensors the platform constructs",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=['Away Mode', 'External Heat Source', 'Input Problem', 'Open Window Detected', 'Wood Cheaper Than Heat Pump'] measured=['Away Mode', 'External Heat Source', 'Input Problem', 'Open Window Detected', 'Wood Cheaper Than Heat Pump']",
+  "result": "documented=['Away Mode', 'External Heat Source', 'Input Problem', 'Mold Floor Breach', 'Open Window Detected', 'Wood Cheaper Than Heat Pump'] measured=['Away Mode', 'External Heat Source', 'Input Problem', 'Mold Floor Breach', 'Open Window Detected', 'Wood Cheaper Than Heat Pump']",
   "verdict": "true",
   "truth": ""
  },
@@ -263,18 +263,18 @@
  {
   "id": "C30",
   "source": "docs/configuration.md",
-  "claim": "every documented Default (88 rows) is the default the rendered options page actually carries",
+  "claim": "every documented Default (89 rows) is the default the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "88 compared, mismatches=[]",
+  "result": "89 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C31",
   "source": "docs/configuration.md",
-  "claim": "every documented Range (89 rows) is the NumberSelector min/max the rendered options page actually carries",
+  "claim": "every documented Range (90 rows) is the NumberSelector min/max the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "89 compared, mismatches=[]",
+  "result": "90 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -283,7 +283,7 @@
   "source": "docs/architecture.md",
   "claim": "45 modules",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=65 measured=65",
+  "result": "documented=66 measured=66",
   "verdict": "true",
   "truth": ""
  },
@@ -292,7 +292,7 @@
   "source": "docs/architecture.md",
   "claim": "the module map is the package's module list",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "on disk=65, listed=65, missing=[], phantom=[]",
+  "result": "on disk=66, listed=66, missing=[], phantom=[]",
   "verdict": "true",
   "truth": "0 modules are absent from the map: "
  },
@@ -301,7 +301,7 @@
   "source": "docs/architecture.md:The Home Assistant boundary",
   "claim": "the boundary sentence's count of modules importing `homeassistant` at module level",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=22 measured=22",
+  "result": "documented=23 measured=23",
   "verdict": "true",
   "truth": ""
  },
@@ -310,7 +310,7 @@
   "source": "docs/architecture.md:The Home Assistant boundary",
   "claim": "the named modules are the complete set of module-level importers",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "named=['__init__.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'defrost.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'open_meteo.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'store.py', 'switch.py'], measured=['__init__.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'defrost.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'open_meteo.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'store.py', 'switch.py'], unnamed=[]",
+  "result": "named=['__init__.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'defrost.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'open_meteo.py', 'pump_arbiter.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'store.py', 'switch.py'], measured=['__init__.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'defrost.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'open_meteo.py', 'pump_arbiter.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'store.py', 'switch.py'], unnamed=[]",
   "verdict": "true",
   "truth": "unnamed module-level importers: "
  },
@@ -364,7 +364,7 @@
   "source": "docs/architecture.md:module map",
   "claim": "binary_sensor.py -- the comment names every binary sensor the platform constructs",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=['Away Mode', 'External Heat Source', 'Input Problem', 'Open Window Detected', 'Wood Cheaper Than Heat Pump'], the platform constructs ['Away Mode', 'External Heat Source', 'Input Problem', 'Open Window Detected', 'Wood Cheaper Than Heat Pump']",
+  "result": "documented=['Away Mode', 'External Heat Source', 'Input Problem', 'Mold Floor Breach', 'Open Window Detected', 'Wood Cheaper Than Heat Pump'], the platform constructs ['Away Mode', 'External Heat Source', 'Input Problem', 'Mold Floor Breach', 'Open Window Detected', 'Wood Cheaper Than Heat Pump']",
   "verdict": "true",
   "truth": ""
  },
@@ -1030,7 +1030,7 @@
   "source": "README.md",
   "claim": "the Swedish translation actually differs from the English entity names",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "0 of 73 entity names identical in sv and en",
+  "result": "0 of 74 entity names identical in sv and en",
   "verdict": "true",
   "truth": ""
  },
@@ -1118,9 +1118,9 @@
  {
   "id": "C125",
   "source": "strings.json:selector",
-  "claim": "every SelectSelector option on every options page has a translated label (43 selects)",
+  "claim": "every SelectSelector option on every options page has a translated label (44 selects)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "43 selects, untranslated=[]",
+  "result": "44 selects, untranslated=[]",
   "verdict": "true",
   "truth": ""
  }

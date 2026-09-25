@@ -1,6 +1,6 @@
 """Binary sensors for Heat Pump Cost Optimizer.
 
-Five states are worth surfacing as their own entities rather than as
+Six states are worth surfacing as their own entities rather than as
 attributes buried on another sensor, because each one is something a user may
 reasonably want to automate on or be alerted about:
 
@@ -10,6 +10,8 @@ reasonably want to automate on or be alerted about:
 * "Away Mode" — whether the house is unoccupied and the deep setback applies,
 * "Open Window Detected" — whether the house is losing heat like a window is
   open,
+* "Mold Floor Breach" — whether the measured room sits below the mold-safe
+  floor the optimizer promises, typically because space heating is blocked,
 * "Wood Cheaper Than Heat Pump" — whether burning wood costs less per kWh
   than running the heat pump.
 """
@@ -18,6 +20,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import numpy as np
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
@@ -25,9 +28,15 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity
+from .freq_control import _finite
+from .const import (
+    CONF_MOLD_FLOOR_BREACH_MARGIN,
+    DEFAULT_MOLD_FLOOR_BREACH_MARGIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,6 +59,7 @@ async def async_setup_entry(
             ExternalHeatBinarySensor(coordinator, entry),
             AwayModeBinarySensor(coordinator, entry),
             VentilationBinarySensor(coordinator, entry),
+            MoldFloorBreachBinarySensor(coordinator, entry),
             WoodCheaperBinarySensor(coordinator, entry),
         ]
     )
@@ -145,6 +155,105 @@ class VentilationBinarySensor(_OptimizerBinarySensorBase):
     def extra_state_attributes(self) -> dict[str, Any]:
         return {
             "evidence": self._data().get("ventilation_evidence", []),
+        }
+
+
+class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
+    """On while the measured room sits below the mold-safe floor (#1495).
+
+    The mold guard computes the lowest room temperature that keeps the worst
+    thermal-bridge surface under the mold RH limit (~18 °C in cold/damp
+    weather), capped at the configured comfort target, and the solve holds the
+    plan's predicted room at that floor. In
+    DHW-only / space-blocked mode the pump cannot deliver space heat, so the
+    room free-cools below the floor while the dashboard card charts the plan's
+    promise instead of the room. This fires when the measured room is that far
+    below the floor, and carries the floor, the shortfall and whether space
+    heating is blocked so a breach and its cause are one glance apart.
+    """
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
+    ) -> None:
+        super().__init__(coordinator, entry, "mold_floor_breach", "mold_floor_breach")
+        self._config = {**entry.data, **entry.options}
+
+    def _margin_c(self) -> float:
+        """The breach margin, °C: a noisily jittering reading must not fire."""
+        raw = self._config.get(
+            CONF_MOLD_FLOOR_BREACH_MARGIN, DEFAULT_MOLD_FLOOR_BREACH_MARGIN
+        )
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return float(DEFAULT_MOLD_FLOOR_BREACH_MARGIN)
+
+    def _floor(self) -> tuple[float | None, float | None]:
+        """``(floor_c, shortfall_c)`` against the measured room, or ``(None, None)``.
+
+        The floor is the one the solve enforces: the coordinator's own
+        ``_mold_floor_series`` evaluated at the outdoor forecast of the plan
+        step covering now -- the same ``outdoor_temps[i]`` the solve passed
+        it -- so the guard toggle, the humidity entity's age check and the cap
+        at the configured comfort target are the solve's, not a second copy.
+        A stale plan, or none, publishes no floor.
+        """
+        data = self._data()
+        ok = data.get("reading_ok") or {}
+        # Only a live room reading is a measurement: without one the payload
+        # carries ThermalState's 21.0 °C constructor seed.
+        if not ok.get("upper_floor_temperature"):
+            return None, None
+        outdoor = self._plan_outdoor_now(data)
+        if outdoor is None:
+            return None, None
+        floors = self.coordinator._mold_floor_series(np.array([float(outdoor)]))
+        if floors is None:
+            return None, None
+        two_zone = bool(data.get("two_zone_enabled"))
+        room = float(data["upper_floor_temperature" if two_zone else "indoor_temperature"])
+        floor = float(floors[0])
+        return round(floor, 2), round(floor - room, 2)
+
+    @staticmethod
+    def _plan_outdoor_now(data: dict[str, Any]) -> float | None:
+        """The space plan's forecast outdoor for the step covering now.
+
+        ``None`` when the plan is stale, no step covers now, or its outdoor is
+        not a finite number: yesterday's forecast is not the solve's floor.
+        """
+        if data.get("plan_stale"):
+            return None
+        forecast = (data.get("space_plan") or {}).get("forecast") or []
+        now = dt_util.utcnow()
+        for step, following in zip(forecast, forecast[1:]):
+            start = dt_util.parse_datetime(str(step.get("t")))
+            end = dt_util.parse_datetime(str(following.get("t")))
+            # A naive label is local wall time, as HA reads one (as_utc).
+            if start is None or end is None:
+                continue
+            if dt_util.as_utc(start) <= now < dt_util.as_utc(end):
+                return _finite(step.get("outdoor"))
+        return None
+
+    @property
+    def is_on(self) -> bool:
+        _floor, shortfall = self._floor()
+        return bool(shortfall is not None and shortfall >= self._margin_c())
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        floor, shortfall = self._floor()
+        data = self._data()
+        return {
+            "floor_c": floor,
+            "shortfall_c": shortfall,
+            "space_blocked": bool(
+                (data.get("heat_pump_signals") or {}).get("space_blocked")
+            ),
         }
 
 

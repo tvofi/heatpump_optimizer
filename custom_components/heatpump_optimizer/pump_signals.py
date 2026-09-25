@@ -227,6 +227,13 @@ class PumpSignals:
     #: :data:`MODE_SOURCE_LIVE`, :data:`MODE_SOURCE_LAST_GOOD` or
     #: :data:`MODE_SOURCE_ABSENT`, for the diagnostics.
     mode_source: str = MODE_SOURCE_ABSENT
+    #: Whether :attr:`mode` is one the pump-duty arbiter wrote itself
+    #: (``pump_arbiter.own``). An owned mode is a step decision, not a limit
+    #: of the pump, so it blocks nothing: read as a block, a hot-water-only
+    #: step would zero space heat for the whole next horizon, and nothing
+    #: would ever write the combined mode back. Capability and learners still
+    #: read the observed mode.
+    mode_owned: bool = False
     #: The raw state string the mode came from, for the diagnostics. The
     #: reference integration publishes the select's *label* ("Heating + DHW"),
     #: not the device enum, so seeing the literal word matters when a mode is
@@ -265,12 +272,12 @@ class PumpSignals:
         unknown-mode fallback can never suppress: ``FULL_CAPABILITY`` already
         says the pump can do everything, and this is the belt to that braces.
         """
-        return self.mode_observed and not self.mode.space_heat
+        return self.mode_observed and not self.mode_owned and not self.mode.space_heat
 
     @property
     def dhw_blocked(self) -> bool:
         """Whether the plan must not promise hot water."""
-        return self.mode_observed and not self.mode.dhw
+        return self.mode_observed and not self.mode_owned and not self.mode.dhw
 
     def as_dict(self) -> dict[str, Any]:
         """The diagnostics view."""

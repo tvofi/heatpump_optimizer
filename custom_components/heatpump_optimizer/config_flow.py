@@ -20,6 +20,8 @@ from homeassistant.helpers.translation import async_get_translations
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigFlowResult
 
+    from .coordinator import HeatPumpOptimizerConfigEntry
+
 
 class _ShowFormParent(Protocol):
     def async_show_form(
@@ -288,6 +290,8 @@ from .const import (
     DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
     CONF_PEAK_TARIFF_OFFPEAK_FACTOR,
     DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
+    CONF_PEAK_TARIFF_DISTINCT_DAYS,
+    DEFAULT_PEAK_TARIFF_DISTINCT_DAYS,
     CONF_PRICE_RISK_LAMBDA,
     DEFAULT_PRICE_RISK_LAMBDA,
     CONF_CONTRACT_FIXED_PRICE,
@@ -347,11 +351,16 @@ from .const import (
     DEFAULT_COMPRESSOR_FREQ_MAX_HZ,
     CONF_FREQ_CONTROL_MODE,
     DEFAULT_FREQ_CONTROL_MODE,
+    CONF_PUMP_DUTY_MODE,
+    DEFAULT_PUMP_DUTY_MODE,
+    PUMP_DUTY_MODES,
     CONF_MOLD_GUARD_ENABLED,
     DEFAULT_MOLD_GUARD_ENABLED,
     CONF_INDOOR_HUMIDITY_ENTITY,
     CONF_THERMAL_BRIDGE_FRSI,
     DEFAULT_THERMAL_BRIDGE_FRSI,
+    CONF_MOLD_FLOOR_BREACH_MARGIN,
+    DEFAULT_MOLD_FLOOR_BREACH_MARGIN,
     CONF_PV_ENABLED,
     CONF_PV_PEAK_KW,
     CONF_PV_EFFICIENCY,
@@ -1532,6 +1541,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities_metering", CONF_COMPRESSOR_FREQ_MAX_HZ, DEFAULT_COMPRESSOR_FREQ_MAX_HZ, _number(1, 250, 1, 'Hz'), group="compressor"),
     # -- entities_pump
     _F("entities_pump", CONF_HEAT_PUMP_MODE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY]))),
+    _F("entities_pump", CONF_PUMP_DUTY_MODE, DEFAULT_PUMP_DUTY_MODE, _select(list(PUMP_DUTY_MODES), 'pump_duty_mode')),
     _F("entities_pump", CONF_HEAT_PUMP_DEFROST_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_ONLINE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_FAULT_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY]))),
@@ -1571,6 +1581,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("comfort", CONF_MOLD_GUARD_ENABLED, DEFAULT_MOLD_GUARD_ENABLED, bool, group="mold"),
     _F("comfort", CONF_INDOOR_HUMIDITY_ENTITY, _STORED, _entity_of('sensor', 'humidity'), group="mold"),
     _F("comfort", CONF_THERMAL_BRIDGE_FRSI, DEFAULT_THERMAL_BRIDGE_FRSI, _number(0.3, 0.98, 0.01), group="mold"),
+    _F("comfort", CONF_MOLD_FLOOR_BREACH_MARGIN, DEFAULT_MOLD_FLOOR_BREACH_MARGIN, _number(0.0, 5.0, 0.1, '°C'), group="mold"),
     # -- hot_water
     _F("hot_water", CONF_DHW_SCHEDULE_ENABLED, DEFAULT_DHW_SCHEDULE_ENABLED, selector.BooleanSelector(), group="schedule"),
     _F("hot_water", CONF_DHW_WINDOWS, DEFAULT_DHW_WINDOWS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)), group="schedule"),
@@ -1694,6 +1705,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("grid", CONF_PEAK_TARIFF_HOURS, DEFAULT_PEAK_TARIFF_HOURS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT))),
     _F("grid", CONF_PEAK_TARIFF_WEEKDAYS_ONLY, DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY, bool),
     _F("grid", CONF_PEAK_TARIFF_OFFPEAK_FACTOR, DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR, _number(0.0, 1.0, 0.05, slider=True)),
+    _F("grid", CONF_PEAK_TARIFF_DISTINCT_DAYS, DEFAULT_PEAK_TARIFF_DISTINCT_DAYS, bool),
     # -- grid_connection
     _F("grid_connection", CONF_MAIN_FUSE_A, DEFAULT_MAIN_FUSE_A, _number(0, 125, 1, 'A')),
     _F("grid_connection", CONF_MAIN_FUSE_PHASES, DEFAULT_MAIN_FUSE_PHASES, _number(1, 3, 1, slider=True)),
@@ -2211,8 +2223,8 @@ class HeatPumpOptimizerConfigFlow(
         self._data: dict[str, Any] = {}
         # Set by async_step_reconfigure (D10-14): the entry being
         # reconfigured, or None while this is a plain setup flow.
-        self._reconfigure_entry: config_entries.ConfigEntry | None = None
-        self._reauth_entry: config_entries.ConfigEntry | None = None
+        self._reconfigure_entry: HeatPumpOptimizerConfigEntry | None = None
+        self._reauth_entry: HeatPumpOptimizerConfigEntry | None = None
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
@@ -2889,7 +2901,7 @@ class HeatPumpOptimizerConfigFlow(
     @staticmethod
     @callback
     def async_get_options_flow(
-        config_entry: config_entries.ConfigEntry,
+        config_entry: HeatPumpOptimizerConfigEntry,
     ) -> HeatPumpOptimizerOptionsFlow:
         """Get the options flow for this handler."""
         return HeatPumpOptimizerOptionsFlow(config_entry)
@@ -2908,7 +2920,7 @@ class HeatPumpOptimizerConfigFlow(
         self._reauth_entry = getter() if getter else self._entry_from_context()
         return await self.async_step_reauth_confirm()
 
-    def _entry_from_context(self) -> config_entries.ConfigEntry | None:
+    def _entry_from_context(self) -> HeatPumpOptimizerConfigEntry | None:
         """The entry a sourced flow (reauth, reconfigure) is here to change.
 
         The manager stamps the entry's id into the flow's context; this
@@ -2991,7 +3003,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     _ADVANCED_LABEL = "Advanced settings"
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+    def __init__(self, config_entry: HeatPumpOptimizerConfigEntry) -> None:
         """Initialize options flow."""
         # Assigning to ``self.config_entry`` goes through a property setter that
         # Home Assistant deprecated in 2024.11 and removed in 2025.12, which makes

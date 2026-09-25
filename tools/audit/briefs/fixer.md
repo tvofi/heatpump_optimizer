@@ -7,10 +7,8 @@ production lines. You work in your own worktree branched from `origin/main`.
    heading.** Versions are assigned by `tools/release/stamp.py` after the
    merge. The rule is keyed on the manifest's `version` field, not the file:
    an edit leaving it unchanged is allowed; the command is `prepr.sh` step 5's.
-   Compare three-dot, never two-dot: a two-dot `git diff origin/main <branch>`
-   during a PR #399 pre-merge check reported `tests/closures.json` as changed
-   by the branch, when the difference was `main`'s own newer commits the
-   branch had not merged.
+   Compare three-dot, never two-dot, which reports `main`'s own newer commits
+   as the branch's (#399, `tests/closures.json`).
 2. **Failing test first**, importing the production symbol (a test that
    re-implements a formula pins nothing; `tests/README.md`). Record the
    mutation proof in the PR body: delete the fix's production line(s), run
@@ -23,9 +21,13 @@ production lines. You work in your own worktree branched from `origin/main`.
    `D*/*.py` harnesses stay out of the tree (a Linux-only closure re-derivation;
    commit `21acaf8e`) and its register can merge after you — so run it from the
    baseline export and cite `$EXPORT/<path>` with its sha1, which `figure_lint`
-   reports unverified, not refused. **Every quantified claim carries a
-   null control, not only cost, gain and time**: a count, a percentage, an
-   "every" or a "none" is a measurement, owed the command that produced it and
+   reports unverified, not refused. A harness measuring what the fix rightly
+   leaves alone reads flat at both ends: say so, and add a sha1-cited companion
+   applying the tree's own rule to the same inputs, reading the defect at the
+   baseline and not at the head (#1506, #1561, #1571).
+   **Every quantified claim carries a null control, not only cost, gain and
+   time**: a count, a percentage, an "every" or a "none" is a measurement,
+   owed the command that produced it and
    the result that would have appeared had it been false. **Never print a
    conclusion beside a command** — `diff a b && echo IDENTICAL`, never
    `diff a b; echo "(empty means identical)"`, which prints either way. A figure
@@ -62,8 +64,9 @@ production lines. You work in your own worktree branched from `origin/main`.
    and never prints. `fix-review.md`'s posting line is the reviewer's.
 
    **Take the gate lease only when `MODE: FULL` or `scope.run` names
-   `tests/stress.py`**, the one script the lock exists for; the commands, and
-   why `mkdir` and a shell pid is not a lease, are `gate-scoping.md`'s.
+   `tests/stress.py`**, the one script the lock exists for; the commands, the
+   wait bound after which CI runs it, and why `mkdir` is not a lease, are
+   `gate-scoping.md`'s.
 
    `GOLDEN_MODE=drift` against the merge base always: strict mode compares
    solver floats that do not reproduce across BLAS builds, so it is honest
