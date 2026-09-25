@@ -35,7 +35,7 @@ entities.py drives the exact CLI a seat runs. Exit 0 below the threshold,
 cannot be read.
 
 Why a hand-run script and not a CI post (the claims-autofix pattern):
-`ci-autofix.md` caps that family at the two jobs it already has, a CI job
+`ci-autofix.md` capped that family at two jobs when this was written, a CI job
 with write permissions is a larger standing surface than the repo needs,
 and an automated post has nothing honest to add -- an instance is real
 only once a seat has verified BOTH captures' numbers, which is the seat's

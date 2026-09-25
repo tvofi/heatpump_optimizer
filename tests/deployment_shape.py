@@ -37,7 +37,7 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 77
+records every read, so this lane's recorded closure is the package: all 78
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
 alike -- the only closure in ``tests/closures.json`` that reaches every
 production file. A diff touching any production file therefore selects this

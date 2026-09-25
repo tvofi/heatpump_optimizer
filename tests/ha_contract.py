@@ -650,7 +650,10 @@ INVENTORY: dict[str, Entry] = {
         "background arm are not modelled",
         absent=("async_schedule_call",),
     ),
-    "homeassistant.helpers.update_coordinator.UpdateFailed": H("a bare exception, as upstream"),
+    "homeassistant.helpers.update_coordinator.UpdateFailed": F(
+        "subclasses HomeAssistantError, as upstream, so the translation kwargs "
+        "land on the instance (#1546)"
+    ),
     "homeassistant.helpers.update_coordinator.CoordinatorEntity": F(
         "available returns the coordinator's last_update_success, which is what "
         "an entity overriding available has to AND its own condition with"
@@ -1198,6 +1201,22 @@ def _refresh_runs_update():
     assert calls == 1, f"the refresh ran {calls} update cycles"
     assert data == {"v": 1}
     assert ok is True
+
+
+@contract(
+    "homeassistant.helpers.update_coordinator.UpdateFailed",
+    "subclasses HomeAssistantError and keeps the translation kwargs",
+    cite="helpers/update_coordinator.py -- `class UpdateFailed(HomeAssistantError)`",
+)
+def _update_failed_translated():
+    from homeassistant.exceptions import HomeAssistantError
+    from homeassistant.helpers.update_coordinator import UpdateFailed
+
+    assert issubclass(UpdateFailed, HomeAssistantError)
+    err = UpdateFailed("down", translation_domain="heatpump_optimizer", translation_key="k")
+    assert (str(err), err.translation_domain, err.translation_key) == (
+        "down", "heatpump_optimizer", "k"
+    )
 
 
 @contract(

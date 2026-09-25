@@ -223,7 +223,7 @@
           "lower_floor_temp_entity": "Optional, two-zone only. A real thermometer in the lower zone. Without one the lower floor is planned and plotted at whatever the main room sensor reads, so a downstairs that runs warmer or cooler than upstairs is invisible.",
           "dhw_temp_entity": "Optional but recommended. The real tank temperature. Also lets a manual hot water boost reset the anti-legionella timer.",
           "buffer_tank_temp_entity": "Optional. When set, the integration learns how fast the buffer tank loses heat instead of relying on the configured estimate.",
-          "heat_pump_mode_entity": "Optional. The pump's own mode selector - cooling, heating, hot water, or a combination of two. Read only: the optimizer never changes it. A pump in a cooling or hot-water-only mode cannot heat the house, and one in a heating-only mode cannot make hot water, so without this the plan can promise heat the pump is not currently able to deliver. Left empty, the optimizer assumes the pump can do everything, exactly as before.",
+          "heat_pump_mode_entity": "Optional. The pump's own mode selector - cooling, heating, hot water, or a combination of two. Read only, unless Pump duty control is set to Control. A pump in a cooling or hot-water-only mode cannot heat the house, and one in a heating-only mode cannot make hot water, so without this the plan can promise heat the pump is not currently able to deliver. Left empty, the optimizer assumes the pump can do everything, exactly as before.",
           "heat_pump_defrost_entity": "Optional. On while the pump reverses to melt frost off the outdoor coil. The electricity bought during a defrost goes into the coil rather than into the house. Note that many pumps are only polled every few minutes, so short defrosts are missed entirely: this is a sample of defrost activity, not a stopwatch.",
           "heat_pump_online_entity": "Optional, and strongly recommended for a cloud-connected pump. On while the pump is actually reachable. A cloud integration can keep republishing its last known readings while the pump itself has dropped off the network, which leaves every other sensor looking perfectly fresh; this is the one signal that says otherwise. On a local (LAN) connection the sensors go unavailable by themselves and this adds little.",
           "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself."
@@ -272,7 +272,7 @@
               "floor_return_temp_entity": "Optional. Water temperature coming back from the floor loops, used to gauge how much heat the slab is holding.",
               "heat_pump_defrost_entity": "Optional. On while the pump reverses to melt frost off the outdoor coil. The electricity bought during a defrost goes into the coil rather than into the house. Note that many pumps are only polled every few minutes, so short defrosts are missed entirely: this is a sample of defrost activity, not a stopwatch.",
               "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself.",
-              "heat_pump_mode_entity": "Optional. The pump's own mode selector - cooling, heating, hot water, or a combination of two. Read only: the optimizer never changes it. A pump in a cooling or hot-water-only mode cannot heat the house, and one in a heating-only mode cannot make hot water, so without this the plan can promise heat the pump is not currently able to deliver. Left empty, the optimizer assumes the pump can do everything, exactly as before.",
+              "heat_pump_mode_entity": "Optional. The pump's own mode selector - cooling, heating, hot water, or a combination of two. Read only, unless Pump duty control is set to Control. A pump in a cooling or hot-water-only mode cannot heat the house, and one in a heating-only mode cannot make hot water, so without this the plan can promise heat the pump is not currently able to deliver. Left empty, the optimizer assumes the pump can do everything, exactly as before.",
               "heat_pump_online_entity": "Optional, and strongly recommended for a cloud-connected pump. On while the pump is actually reachable. A cloud integration can keep republishing its last known readings while the pump itself has dropped off the network, which leaves every other sensor looking perfectly fresh; this is the one signal that says otherwise. On a local (LAN) connection the sensors go unavailable by themselves and this adds little.",
               "heat_pump_switch_entity": "Optional. A switch used to turn the heat pump off during expensive hours.",
               "lower_floor_temp_entity": "Optional, two-zone only. A real thermometer in the lower zone. Without one the lower floor is planned and plotted at whatever the main room sensor reads, so a downstairs that runs warmer or cooler than upstairs is invisible."
@@ -437,6 +437,15 @@
     },
     "set_thermal_params_invalid_dhw_windows": {
       "message": "Invalid hot water windows \"{windows}\": {error}"
+    },
+    "process_worker_unusable": {
+      "message": "The optimization worker failed for {cycles} consecutive cycles; the last plan stays in effect"
+    },
+    "update_failed": {
+      "message": "Error updating data: {error}"
+    },
+    "tibber_fetch_failed": {
+      "message": "Electricity prices could not be fetched: {error}"
     }
   },
   "options": {
@@ -617,11 +626,13 @@
             "data": {
               "indoor_humidity_entity": "Indoor humidity sensor (optional)",
               "mold_guard_enabled": "Keep cold surfaces below mold humidity",
+              "mold_floor_breach_margin": "Mold floor breach warning margin",
               "thermal_bridge_frsi": "Worst thermal bridge factor (fRsi)"
             },
             "data_description": {
               "indoor_humidity_entity": "A relative humidity sensor in the living space. Without one the mold guard stays off regardless of the switch.",
               "mold_guard_enabled": "The coldest spot in the house — a window reveal, a corner behind a wardrobe — sits well below room temperature, and mold starts growing where its surface humidity stays above 80%. With this on, the optimizer will not coast the house below the temperature that keeps that spot safe, computed from the measured indoor humidity and the outdoor forecast. Needs the humidity sensor below; it never heats past your comfort target — persistent high humidity is a ventilation problem, not a heating one.",
+              "mold_floor_breach_margin": "How far below the mold-safe floor the measured room may fall before the Mold Floor Breach binary sensor turns on. The warning exists because a hot-water-only mode (space heating off) cannot hold the floor, so the room can free-cool below it while the plan still promises the floor.",
               "thermal_bridge_frsi": "How cold your worst surface gets, as a fraction: surface = outdoor + fRsi × (room − outdoor). 0.75 is the Swedish building-code guidance; lower means a colder worst spot and a more cautious guard."
             }
           }
@@ -959,6 +970,7 @@
           "peak_tariff_hours": "Peak hours",
           "peak_tariff_weekdays_only": "Weekends are off-peak",
           "peak_tariff_offpeak_factor": "What off-peak hours count at",
+          "peak_tariff_distinct_days": "Peaks on different days",
           "after_save": "After saving"
         },
         "data_description": {
@@ -970,6 +982,7 @@
           "peak_tariff_hours": "For example \"07:00-19:00\". Empty means every hour counts in full. Outside these hours a peak counts at the off-peak factor below.",
           "peak_tariff_weekdays_only": "Many Swedish tariffs only bill weekday peaks. With this on, Saturday and Sunday count at the off-peak factor.",
           "peak_tariff_offpeak_factor": "1.0 treats every hour the same, which is how it worked before. 0.5 is the common half-rate night peak; 0 makes off-peak hours free — night-time stacking then costs nothing in capacity, which is exactly the cheap-hour concentration this integration exists to find.",
+          "peak_tariff_distinct_days": "Most Swedish tariffs count the highest hour of each of three different days, so a cold morning with three high hours is one peak, not three. Turn off only if your invoice averages the highest hours regardless of day.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },
@@ -1129,6 +1142,7 @@
         "description": "What the heat pump reports about itself.",
         "data": {
           "heat_pump_mode_entity": "Heat pump operating mode",
+          "pump_duty_mode": "Pump duty control",
           "heat_pump_defrost_entity": "Defrosting",
           "heat_pump_online_entity": "Pump online",
           "heat_pump_fault_entity": "Fault alarm",
@@ -1140,7 +1154,8 @@
           "after_save": "After saving"
         },
         "data_description": {
-          "heat_pump_mode_entity": "Optional. The pump's own mode selector - cooling, heating, hot water, or a combination of two. Read only: the optimizer never changes it. A pump in a cooling or hot-water-only mode cannot heat the house, and one in a heating-only mode cannot make hot water, so without this the plan can promise heat the pump is not currently able to deliver. Left empty, the optimizer assumes the pump can do everything, exactly as before.",
+          "heat_pump_mode_entity": "Optional. The pump's own mode selector - cooling, heating, hot water, or a combination of two. Read only, unless Pump duty control is set to Control. A pump in a cooling or hot-water-only mode cannot heat the house, and one in a heating-only mode cannot make hot water, so without this the plan can promise heat the pump is not currently able to deliver. Left empty, the optimizer assumes the pump can do everything, exactly as before.",
+          "pump_duty_mode": "Off (the default) never writes the pump. Observe writes nothing and keeps a 24-hour ledger, in the diagnostics, of the duty each plan step asked for against what the pump did (from the power entity, the mode and the tank temperature). Control writes the operating mode above (hot water only on hot-water-only steps, heating only on space-heating-only steps, Heating + DHW when both are planned or a disinfection cycle is on, unchanged on idle steps), the hot water set-point entity (the hot water set-point configured on the hot water page) and the space set-point entity (the weather-curve supply for a flow set-point, the planned room temperature for an indoor one). Where the mode offers no single-duty option, as on the GCHV Modbus package, the other duty's set-point is lowered to its minimum instead. A hot-water-only stretch is capped at 90 minutes (30 below -10 °C outdoors). A write the pump ignores raises a warning and is retried every 5 minutes; any other change to those entities the optimizer did not make turns Optimizer active off and raises a repair notice, and nothing is written until you turn it back on.",
           "heat_pump_defrost_entity": "Optional. On while the pump reverses to melt frost off the outdoor coil. The electricity bought during a defrost goes into the coil rather than into the house. Note that many pumps are only polled every few minutes, so short defrosts are missed entirely: this is a sample of defrost activity, not a stopwatch.",
           "heat_pump_online_entity": "Optional, and strongly recommended for a cloud-connected pump. On while the pump is actually reachable. A cloud integration can keep republishing its last known readings while the pump itself has dropped off the network, which leaves every other sensor looking perfectly fresh; this is the one signal that says otherwise. On a local (LAN) connection the sensors go unavailable by themselves and this adds little.",
           "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself.",
@@ -1578,6 +1593,13 @@
         "indoor": "Indoor temperature",
         "flow": "Flow temperature"
       }
+    },
+    "pump_duty_mode": {
+      "options": {
+        "off": "Off",
+        "observe": "Observe (log only)",
+        "control": "Control (write mode and set-points)"
+      }
     }
   },
   "issues": {
@@ -1668,6 +1690,14 @@
     "space_setpoint_unreadable": {
       "title": "The space-heating set-point entity is not reporting",
       "description": "The entity you chose as the space-heating set-point ({entity}) is missing or unreadable, so nothing can be said about the pump's current target. The space-heating set-point is never recommended; this notice only reports that the entity cannot be read. Check that it still exists and is available, or clear the slot. This notice clears as soon as the entity reports a temperature."
+    },
+    "pump_manual_change": {
+      "title": "A heat pump setting was changed by hand",
+      "description": "The optimizer found {detail}, which it did not set. It has stopped writing to the heat pump and turned Optimizer active off, so your change stays as it is. Turn Optimizer active back on to hand control of the pump's mode and set-points back to the optimizer."
+    },
+    "pump_write_ignored": {
+      "title": "The heat pump ignored a setting the optimizer wrote",
+      "description": "The optimizer wrote a value to the heat pump, but it still reads as before: {detail}. The optimizer stays on and sends the value again every five minutes. This notice clears as soon as a write takes. If it keeps coming back, check that the pump's entity accepts writes (cloud connection, local key, write permissions)."
     }
   },
   "entity": {
@@ -1898,6 +1928,9 @@
       },
       "open_window_detected": {
         "name": "Open Window Detected"
+      },
+      "mold_floor_breach": {
+        "name": "Mold Floor Breach"
       },
       "wood_cheaper": {
         "name": "Wood Cheaper Than Heat Pump"

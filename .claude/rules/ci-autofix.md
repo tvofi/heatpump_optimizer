@@ -1,26 +1,26 @@
 ---
-description: CI already autofixes UNDER-SCOPED closures and inherited claims — do not duplicate
+description: CI already autofixes UNDER-SCOPED closures, inherited claims and killed mutants — do not duplicate
 paths:
   - "tests/closures.json"
   - "tests/golden/claimed_drift.txt"
   - "tests/golden/card_claimed_drift.txt"
+  - "tests/mutation_budgets.json"
   - ".github/workflows/**"
 ---
 # Mechanical CI autofix (do not re-implement)
 
-Same-repo PRs already have two jobs in `.github/workflows/tests.yml`. If
-`closures` is `UNDER-SCOPED` or `fast` fails `INHERITED CLAIMS`, **wait**.
-Do not open a parallel PR, do not Darwin `--single` an under-scope CI
-already recorded (Linux `strace` recordings are the ones to merge), and
-do not hand-empty claim files that match `origin/main`. Darwin can
-`--single` a **new** node script, or grow a node closure; it cannot
+Same-repo PRs already have three jobs in `.github/workflows/tests.yml`. If `closures` is
+`UNDER-SCOPED`, `fast` fails `INHERITED CLAIMS` or `mutation` refuses unpinned sites, **wait**.
+Do not open a parallel PR, do not Darwin `--single` an under-scope CI already recorded (Linux
+`strace` recordings are the ones to merge), and do not hand-empty claim files that match
+`origin/main`. Darwin can `--single` a **new** node script, or grow a node closure; it cannot
 replace a Linux node recording.
 
 **That wait is conditional: it holds only while the job reports that it is
 repairing.** Each job pushes on `changed` alone, and every other status used
 to fall through to job success, so a skipped repair was indistinguishable
-from a completed one and the wait never ended (#523). Both jobs now end by
-printing their status to the job summary, and `closures-autofix` goes red on
+from a completed one and the wait never ended (#523). Each job now prints
+its status to the job summary, and `closures-autofix` goes red on
 `skip-failed-recording`, `skip-merge-failed`, `skip-still-fails` and
 `skip-unchanged` — UNDER-SCOPED was printed, a repair was owed, and it did
 not happen. **A red autofix job means there will be no bot commit.** The
@@ -35,8 +35,7 @@ same truncation.
 **What green means, exactly — read the summary line, not the tick.** Green is
 `changed` (repaired and pushed), `skip-clean` or `skip-not-under-scoped` (no
 repair was owed *to the bot*), or `skip-not-allowed` (the job declined to
-classify at all). The conclusion cannot tell "repaired" from "nothing was
-owed"; the summary line can. `claims-autofix` reddens on nothing it can return
+classify at all). `claims-autofix` reddens on nothing it can return
 today — `apply_inherited_claims` has no failure status, and its
 `skip-not-inherited` is the ordinary answer for every unrelated `fast`
 failure — so its summary line is its only signal.
@@ -65,32 +64,28 @@ failure — so its summary line is its only signal.
   script that failed normally reddens `fast` in the same run; one that fails
   *only* under recording would not.
 
-  A failed recording's file list is **not** simply a subset of what a clean run
-  would touch: an error path can read files the clean path never does (a
-  traceback pulls source through `linecache`). So an UNDER-SCOPED reached with
-  a failed recording present may be genuine or an artefact of the failure — and
-  the remedy does not branch: fix the failing script, and the next push
-  re-records. That is why `skip-failed-recording` does **not** say re-derive.
+  A failed recording can also read files a clean run never does (a traceback
+  pulls source through `linecache`), so an UNDER-SCOPED beside one may be an
+  artefact; either way, fix the script and the next push re-records.
 
 | Failure | Job | Commit subject | Code |
 |---|---|---|---|
 | `UNDER-SCOPED` | `closures-autofix` | `ci: re-record closures` | `closure.apply_under_scoped_recordings` |
 | `INHERITED CLAIMS` | `claims-autofix` | `ci: drop inherited claims` | `env_drift.apply_inherited_claims` |
+| unpinned sites | `mutation-autofix` | `ci: pin killed mutants` | `mutation_table.apply_pins` |
 
 Those subjects are loop guards. A `GITHUB_TOKEN` push's `pull_request` runs wait `action_required` for a
 human; the job dispatches Tests/Hassfest/Validate and CodeQL, which run at once. Governance's contexts come
-from the held run once approved (#1514). `recheck-gate` treats `ci:` as PR-like (not `slow`). Both
-jobs also approve those held runs as a dedicated Actions-only App, fail-soft while its secrets are absent.
+from the held run once approved (#1514). `recheck-gate` treats `ci:` as PR-like (not `slow`). All
+three approve those held runs as a dedicated Actions-only App, fail-soft while its secrets are absent.
 
-Do not automate golden drift, structure budgets, `no-copies`, orphan →
-`INERT`, or briefs lint. A new selectable script with **no** recording is
-not UNDER-SCOPED — add it to a derive lane or `--single` it; autofix cannot
-invent a trace.
+When `mutation-autofix` goes red, run `--pin-killed` yourself. Do not automate survivor triage, golden drift, structure budgets,
+`no-copies`, orphan → `INERT`, or briefs lint. A new selectable script with **no** recording is
+not UNDER-SCOPED — add it to a derive lane or `--single` it; autofix cannot invent a trace.
 
 ## The claim-file conflict is prevented, not autofixed
 
-A conflict in the two claim files is **not** a third autofix case: CI never
-runs on a `DIRTY` pull request, so no job is red and there is no failure to
-key on, and the repair would push to branches frozen for review.
-`claim-files.md` carries the refusal — do not replace it with `merge=union`,
-or add a job that pushes resolutions.
+A conflict in the two claim files is **not** an autofix case: CI never runs on a `DIRTY` pull
+request, so no job is red and there is no failure to key on, and the repair would push to
+branches frozen for review. `claim-files.md` carries the refusal — do not replace it with
+`merge=union`, or add a job that pushes resolutions.

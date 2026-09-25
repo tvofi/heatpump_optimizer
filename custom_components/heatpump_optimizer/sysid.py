@@ -27,13 +27,14 @@ handled here rather than left to the caller.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Any, Callable
 
 import numpy as np
 
 from .const import DEFAULT_SLAB_HEAT_TRANSFER, DEFAULT_SLAB_THERMAL_MASS
+from .mixing_valve import is_throttling
 from .thermal_model import ThermalModel, ThermalParameters, ThermalState
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,6 +59,13 @@ PHASE_ABORTED = "aborted"
 #: 8). Against a fixed reference the factor is monotone in the excursion the
 #: room actually made, which is what identifiability depends on.
 DEFAULT_MAX_EXCURSION_C = 0.8
+
+#: How far under the allowance a two-zone step is sized (#1524). The sensor
+#: is the light, radiator-fed upper zone and the sizer starts the hidden lower
+#: zone and slab at their steady state, so a house a hair off it moves the
+#: sensor past a step sized to the bound's edge: a v1 harness night on
+#: typical_slab, settled 600 h, peaked 0.8001 K against 0.7999 K predicted.
+TWO_ZONE_SIZING_HEADROOM_C = 0.05
 
 
 def _predict_step_excursion(
@@ -129,6 +137,118 @@ def _sizing_model(
     )
 
 
+def _zone_heat_loss(plant: ThermalParameters) -> float:
+    """The two zones' configured heat loss, the base a two-zone scale multiplies."""
+    return float(plant.upper_floor_heat_loss + plant.lower_floor_heat_loss)
+
+
+def _held_state(model: ThermalModel, observed: float, outdoor: float) -> ThermalState:
+    """The candidate's steady state under constant heat, its sensor at ``observed``.
+
+    The house held its temperature before the experiment, so the hidden
+    stores start where the candidate's own heat balance puts them. One zone:
+    the slab sits the hold's offset above the room. Two zones (#1524): the
+    sensor is the upper zone, the hold's heat Q splits by
+    ``radiator_power_fraction`` between it and the slab under the hidden
+    lower zone, and the two zones' balance is linear in (Q, T_lower). Behind a
+    throttling valve (R8-P5c) the tank is a hidden store too: wide open, each
+    circuit draws its emitter UA times (tank - its zone), so the balance of the
+    two zones, the slab and the tank is linear in (Q, T_lower, T_slab, T_tank).
+    """
+    p = model.params
+    k_slab = max(p.slab_heat_transfer, 1e-9)
+    gains = p.internal_gains
+    if not p.two_zone_enabled:
+        ua = p.heat_loss_coefficient * p.house_heat_loss_scale
+        return ThermalState(
+            room_temperature=observed,
+            slab_temperature=observed + (ua * (observed - outdoor) - gains) / k_slab,
+            outdoor_temperature=outdoor,
+            upper_floor_temperature=observed,
+        )
+    area, rad, k_i = p.upper_floor_area_ratio, p.radiator_power_fraction, p.inter_zone_transfer
+    u_up = model.effective_heat_loss_coefficient(p.upper_floor_heat_loss)
+    u_lo = model.effective_heat_loss_coefficient(p.lower_floor_heat_loss_learned)
+    up_rhs = u_up * (observed - outdoor) + k_i * observed - gains * area
+    lo_rhs = -u_lo * outdoor - k_i * observed - gains * (1.0 - area)
+    if not is_throttling(p.mixing_valve_mode):
+        (q_hold, lower), *_ = np.linalg.lstsq(
+            np.array([[rad, k_i], [1.0 - rad, -(u_lo + k_i)]]),
+            np.array([up_rhs, lo_rhs]), rcond=None,
+        )
+        slab = lower + (1.0 - rad) * q_hold / k_slab
+        tank = ThermalState.buffer_tank_temperature
+    else:
+        e = p.max_electrical_power * max(p.cop_nominal, 1.0) / max(p.emitter_design_delta_t, 1.0)
+        a_r, a_f, k_b = rad * e, (1.0 - rad) * e, p.buffer_tank_heat_loss_coefficient
+        (q_hold, lower, slab, tank), *_ = np.linalg.lstsq(
+            np.array([
+                [0.0, k_i, 0.0, a_r],
+                [0.0, -(u_lo + k_i + k_slab), k_slab, 0.0],
+                [0.0, k_slab, -(a_f + k_slab), a_f],
+                [1.0, 0.0, a_f, -(a_r + a_f + k_b)],
+            ]),
+            np.array([up_rhs + a_r * observed, lo_rhs, 0.0, -a_r * observed - 20.0 * k_b]),
+            rcond=None,
+        )
+    return ThermalState(
+        room_temperature=observed * area + lower * (1.0 - area),
+        slab_temperature=float(slab),
+        outdoor_temperature=outdoor,
+        upper_floor_temperature=observed,
+        lower_floor_temperature=float(lower),
+        buffer_tank_temperature=float(tank),
+    )
+
+
+#: The published refusal of a two-zone step behind a regulating valve (R8-P5c).
+VALVE_REGULATES_REASON = (
+    "the mixing valve holds the flow at its curve, so a step charges the "
+    "buffer tank and the room sensor cannot see it"
+)
+
+
+def _valve_regulates(
+    plant: ThermalParameters | None, observed: float, outdoor: float
+) -> bool:
+    """Whether a throttling valve sits at its curve at the held state.
+
+    Wide open, the tank is the flow and :func:`_held_state` solves it from the
+    sensor. At the curve the valve mixes the flow down to the set-point, so the
+    room reads the same at every tank charge above it (the v1 barrier drive's
+    heavy_old, valve target 21 C: tanks of 36.45 and 25.65 C read alike) and a
+    step only charges the tank: the solve lands on the curve to rounding.
+    """
+    if plant is None or not is_throttling(plant.mixing_valve_mode):
+        return False
+    model = ThermalModel(plant)
+    flow = model.flow_target_for_indoor(
+        plant.mixing_valve_target or plant.comfort_ceiling, outdoor
+    )
+    return _held_state(model, observed, outdoor).buffer_tank_temperature >= flow - 0.01
+
+
+def _valve_drive(
+    model: ThermalModel, state: ThermalState, q: float, outdoor: float, dt: float
+) -> ThermalState:
+    """One step of recorded thermal power ``q`` into the candidate plant.
+
+    ``q`` is electrical power times the coordinator's ``compute_cop(outdoor)``.
+    Behind a throttling valve the pump charges the tank, whose temperature is
+    the flow and costs COP, so ``q`` is turned back into electrical power and
+    the plant prices the lift itself (#1524).
+    """
+    if not is_throttling(model.params.mixing_valve_mode):
+        return model.simulate_step(
+            state, electrical_power=0.0, outdoor_temp=outdoor, dt_hours=dt,
+            external_heat_kw=q,
+        )
+    return model.simulate_step(
+        state, electrical_power=q / model.compute_cop(outdoor),
+        outdoor_temp=outdoor, dt_hours=dt,
+    )
+
+
 def _predict_step_excursion_plant(
     ua: float,
     capacity: float,
@@ -147,7 +267,8 @@ def _predict_step_excursion_plant(
 
     Heat enters the slab. The room moves only through ``slab_heat_transfer``.
     The one-state exponential treats the same Q as landing in the room, so
-    it cannot size this experiment (#779).
+    it cannot size this experiment (#779). The excursion is the sensor's,
+    ``upper_floor_temperature``, which is the room on one zone (#1524).
     """
     if ua <= 1e-9 or capacity <= 1e-9:
         return float("inf"), float("inf")
@@ -155,39 +276,15 @@ def _predict_step_excursion_plant(
         model = _sizing_model(
             ua, capacity, gains, slab_thermal_mass, slab_heat_transfer
         )
-    k_slab = max(model.params.slab_heat_transfer, 1e-9)
-    q_hold = ua * (baseline - outdoor) - gains
-    state = ThermalState(
-        room_temperature=baseline,
-        slab_temperature=baseline + q_hold / k_slab,
-        outdoor_temperature=outdoor,
-    )
+    state = _held_state(model, baseline, outdoor)
     peak = 0.0
-    remaining = step_hours
-    while remaining > 1e-12:
-        dt = min(dt_hours, remaining)
-        state = model.simulate_step(
-            state,
-            electrical_power=0.0,
-            outdoor_temp=outdoor,
-            dt_hours=dt,
-            external_heat_kw=step_thermal_kw,
-        )
-        peak = max(peak, abs(state.room_temperature - baseline))
-        remaining -= dt
-    remaining = relax_hours
-    while remaining > 1e-12:
-        dt = min(dt_hours, remaining)
-        state = model.simulate_step(
-            state,
-            electrical_power=0.0,
-            outdoor_temp=outdoor,
-            dt_hours=dt,
-            external_heat_kw=0.0,
-        )
-        peak = max(peak, abs(state.room_temperature - baseline))
-        remaining -= dt
-    return peak, abs(state.room_temperature - baseline)
+    for q, remaining in ((step_thermal_kw, step_hours), (0.0, relax_hours)):
+        while remaining > 1e-12:
+            dt = min(dt_hours, remaining)
+            state = _valve_drive(model, state, q, outdoor, dt)
+            peak = max(peak, abs(state.upper_floor_temperature - baseline))
+            remaining -= dt
+    return peak, abs(state.upper_floor_temperature - baseline)
 
 
 @dataclass
@@ -486,19 +583,25 @@ def _simulate_slab_path(
     outdoor_c: np.ndarray,
     thermal_kw: np.ndarray,
     dt_hours: np.ndarray,
+    two_zone: ThermalParameters | None = None,
 ) -> np.ndarray:
     """Roll a candidate two-state plant over the recorded thermal power.
 
     The candidate is the production ``ThermalModel`` itself — the same
     object the optimizer simulates — with UA, room capacity and free heat
-    free and the slab pair trusted from configuration. The slab's initial
-    temperature is its steady offset under the candidate's own heat
-    balance (the house held temperature before the experiment), and the
-    room starts at the first recorded reading. Returns the predicted room
-    series, one entry per recorded sample.
+    free and the slab pair trusted from configuration. The hidden stores
+    start at the candidate's own steady state (:func:`_held_state`: the
+    house held temperature before the experiment), and the sensor starts at
+    the first recorded reading. Returns the predicted sensor series, one
+    entry per recorded sample.
+
+    ``two_zone`` is the declared two-zone plant (#1524): the candidate is
+    then that plant with its zones' heat loss scaled to total ``ua`` and
+    their masses to total ``room_cap``, observed through the upper zone the
+    coordinator's indoor reading is, with the lower zone hidden.
     """
-    model = ThermalModel(
-        ThermalParameters(
+    if two_zone is None:
+        params = ThermalParameters(
             heat_loss_coefficient=ua,
             house_heat_loss_scale=1.0,
             room_thermal_mass=room_cap,
@@ -508,24 +611,21 @@ def _simulate_slab_path(
             two_zone_enabled=False,
             wind_sensitivity=0.0,
         )
-    )
-    k_slab = max(slab_transfer, 1e-9)
-    state = ThermalState(
-        room_temperature=first_room_c,
-        slab_temperature=first_room_c
-        + (ua * (first_room_c - float(outdoor_c[0])) - gains) / k_slab,
-        outdoor_temperature=float(outdoor_c[0]),
-    )
-    rooms = [state.room_temperature]
-    for q, out, dt in zip(thermal_kw, outdoor_c, dt_hours):
-        state = model.simulate_step(
-            state,
-            electrical_power=0.0,
-            outdoor_temp=float(out),
-            dt_hours=float(dt),
-            external_heat_kw=float(q),
+    else:
+        zones = two_zone.upper_floor_thermal_mass + two_zone.lower_floor_thermal_mass
+        params = replace(
+            two_zone,
+            house_heat_loss_scale=ua / _zone_heat_loss(two_zone),
+            upper_floor_thermal_mass=two_zone.upper_floor_thermal_mass * room_cap / zones,
+            lower_floor_thermal_mass=two_zone.lower_floor_thermal_mass * room_cap / zones,
+            internal_gains=gains,
         )
-        rooms.append(state.room_temperature)
+    model = ThermalModel(params)
+    state = _held_state(model, first_room_c, float(outdoor_c[0]))
+    rooms = [state.upper_floor_temperature]
+    for q, out, dt in zip(thermal_kw, outdoor_c, dt_hours):
+        state = _valve_drive(model, state, float(q), float(out), float(dt))
+        rooms.append(state.upper_floor_temperature)
     return np.asarray(rooms)
 
 
@@ -680,15 +780,54 @@ def _slab_confidence(rooms: np.ndarray, error: np.ndarray) -> float:
     return confidence * float(np.clip((snr - 1.0) / 3.0, 0.0, 1.0))
 
 
-def _slab_ua_profile_halfwidth(
-    x_hat: np.ndarray,
+_PathError = Callable[[np.ndarray], np.ndarray]
+
+
+def _path_error(
     rooms: np.ndarray,
     outdoors: np.ndarray,
     powers: np.ndarray,
     dts: np.ndarray,
-    slab_mass: float,
-    slab_transfer: float,
-    prior_g: float,
+    slab_pair: tuple[float, float],
+    two_zone: ThermalParameters | None,
+) -> _PathError:
+    """A candidate ``[log UA, log C_r, G]``'s rollout error on the recorded series.
+
+    The one plant the fit and both interval terms read (#1524).
+    """
+
+    def error(x: np.ndarray) -> np.ndarray:
+        predicted = _simulate_slab_path(
+            float(np.exp(x[0])), float(np.exp(x[1])), float(x[2]),
+            slab_pair[0], slab_pair[1], float(rooms[0]),
+            outdoors[:-1], powers[:-1], dts, two_zone,
+        )
+        return np.asarray(predicted[1:] - rooms[1:])
+
+    return error
+
+
+def _ridged(error: _PathError, prior_g: float) -> _PathError:
+    """The fit's residual: the rollout error plus the D2-01 intercept ridge.
+
+    A candidate whose rollout left the finite range reads as a huge finite
+    cost instead of poisoning the Jacobian with a NaN, or raising out of the
+    fit (R6 D7-03 #1396/#1397). The ridge is ONE pseudo-observation on G,
+    weighed against the whole room series through its width; deleting the
+    append is the mutation the ensemble test flips on.
+    """
+
+    def residual(x: np.ndarray) -> np.ndarray:
+        e = error(x)
+        if not bool(np.all(np.isfinite(e))):
+            return np.full(e.size + 1, 1e12, dtype=float)
+        return np.append(e, (float(x[2]) - prior_g) / SLAB_INTERCEPT_PRIOR_SD_KW)
+
+    return residual
+
+
+def _slab_ua_profile_halfwidth(
+    x_hat: np.ndarray, error: _PathError, samples: int, prior_g: float
 ) -> float:
     """The two-state fit's UA half-width, as the adoption gate reads it.
 
@@ -703,27 +842,13 @@ def _slab_ua_profile_halfwidth(
     """
 
     def _residual(x: np.ndarray) -> np.ndarray:
-        predicted = _simulate_slab_path(
-            float(np.exp(x[0])), float(np.exp(x[1])), float(x[2]),
-            slab_mass, slab_transfer, float(rooms[0]),
-            outdoors[:-1], powers[:-1], dts,
-        )
         return np.append(
-            predicted[1:] - rooms[1:],
-            (float(x[2]) - prior_g) / SLAB_INTERCEPT_PRIOR_SD_KW,
+            error(x), (float(x[2]) - prior_g) / SLAB_INTERCEPT_PRIOR_SD_KW
         )
 
     def _profiled_cost(t: float) -> float:
         def _inner(y: np.ndarray) -> np.ndarray:
-            predicted = _simulate_slab_path(
-                float(np.exp(t)), float(np.exp(y[0])), float(y[1]),
-                slab_mass, slab_transfer, float(rooms[0]),
-                outdoors[:-1], powers[:-1], dts,
-            )
-            return np.append(
-                predicted[1:] - rooms[1:],
-                (float(y[1]) - prior_g) / SLAB_INTERCEPT_PRIOR_SD_KW,
-            )
+            return _residual(np.array([t, y[0], y[1]]))
         _y, _cost = _lm_solve(
             _inner, np.array([x_hat[1], x_hat[2]]), max_iter=40,
             clip=(1, -5.0, 10.0),
@@ -731,7 +856,7 @@ def _slab_ua_profile_halfwidth(
         return _cost
 
     cost_hat = float(_residual(x_hat) @ _residual(x_hat))
-    sigma2 = cost_hat / max(int(rooms.size) - 3, 1)
+    sigma2 = cost_hat / max(samples - 3, 1)
     threshold = cost_hat + _PROFILE_CHI2_95 * sigma2
     for sign in (1.0, -1.0):
         if _profiled_cost(x_hat[0] + sign * UA_ADOPTION_HALFWIDTH_BAR) <= threshold:
@@ -786,14 +911,7 @@ def _one_state_ua_halfwidth(
 
 
 def _slab_ua_prior_halfwidth(
-    x_hat: np.ndarray,
-    rooms: np.ndarray,
-    outdoors: np.ndarray,
-    powers: np.ndarray,
-    dts: np.ndarray,
-    slab_mass: float,
-    slab_transfer: float,
-    prior_g: float,
+    x_hat: np.ndarray, error: _PathError, prior_g: float
 ) -> float:
     """The UA interval the intercept prior ITSELF contributes (D7-01).
 
@@ -824,22 +942,9 @@ def _slab_ua_prior_halfwidth(
     """
 
     def _shifted(shifted_prior: float) -> float:
-        def _residual(x: np.ndarray) -> np.ndarray:
-            predicted = _simulate_slab_path(
-                float(np.exp(x[0])), float(np.exp(x[1])), float(x[2]),
-                slab_mass, slab_transfer, float(rooms[0]),
-                outdoors[:-1], powers[:-1], dts,
-            )
-            error = predicted[1:] - rooms[1:]
-            if not bool(np.all(np.isfinite(error))):
-                return np.full(error.size + 1, 1e12, dtype=float)
-            return np.append(
-                error,
-                (float(x[2]) - shifted_prior) / SLAB_INTERCEPT_PRIOR_SD_KW,
-            )
-
         x, _cost = _lm_solve(
-            _residual, np.array([float(x_hat[0]), float(x_hat[1]), shifted_prior])
+            _ridged(error, shifted_prior),
+            np.array([float(x_hat[0]), float(x_hat[1]), shifted_prior]),
         )
         return abs(float(x[0]) - float(x_hat[0]))
 
@@ -876,6 +981,71 @@ def slab_ua_adoption_halfwidth(
     return float(np.hypot(profile_halfwidth, prior_halfwidth))
 
 
+@dataclass(frozen=True)
+class AdoptionDecision:
+    """What :func:`adoption_decision` rules for one finished experiment."""
+
+    admit: bool
+    #: The blend weight the adopted scale enters with; 0.0 on a refusal.
+    weight: float
+    #: The fitted UA over the configured base UA; 0.0 on a refusal, whose
+    #: weight is 0.0 too.
+    scale: float
+    #: Published as the result's reason: "adopted", or why not (#942, #1525).
+    reason: str
+
+
+def adoption_decision(
+    result: SysIdResult, params: ThermalParameters, config: SysIdConfig
+) -> AdoptionDecision:
+    """Whether a finished experiment seeds the heat-loss learner, and why.
+
+    The one place the adoption gate lives (#1525): every path returns a
+    reason, so a refused fit is published by name instead of staying
+    completed with the fit's own "ok" beside a scale that never moved. The
+    interval gate is #1410's (with D7-01's prior term), then #942's
+    identifiability, then the blend arithmetic's own preconditions.
+    ``not hw <= bar`` refuses a NaN width, which ``hw > bar`` admitted.
+    """
+
+    def refuse(why: str) -> AdoptionDecision:
+        return AdoptionDecision(False, 0.0, 0.0, why)
+
+    if not result.completed:
+        return refuse(result.reason)
+    hw = slab_ua_adoption_halfwidth(
+        result.ua_profile_halfwidth, result.ua_prior_halfwidth
+    )
+    if hw is None:
+        return refuse("the fit placed no interval on the heat-loss coefficient")
+    if not hw <= UA_ADOPTION_HALFWIDTH_BAR:
+        bar_pct = np.expm1(UA_ADOPTION_HALFWIDTH_BAR) * 100
+        width = f"+-{np.expm1(hw) * 100:.0f} %" if np.isfinite(hw) else "unbounded"
+        return refuse(
+            f"heat-loss interval ({width}) is wider than the "
+            f"+-{bar_pct:.0f} % adoption bar"
+        )
+    identifiable, why = slab_mode_identifiability(params, config)
+    if not identifiable:
+        return refuse(why)
+    if result.heat_loss_kw_per_c is None:
+        return refuse("the fit returned no heat-loss coefficient")
+    if params.two_zone_enabled:
+        base_u = params.upper_floor_heat_loss + params.lower_floor_heat_loss
+    else:
+        base_u = params.heat_loss_coefficient
+    if not base_u > 1e-6:
+        return refuse("no configured heat-loss coefficient to scale")
+    # The blend weight comes from the same interval as the gate: a fit at
+    # the bar adopts mildly, a pinned one at full weight.
+    return AdoptionDecision(
+        True,
+        1.0 - hw / UA_ADOPTION_HALFWIDTH_BAR,
+        result.heat_loss_kw_per_c / base_u,
+        "adopted",
+    )
+
+
 class SystemIdentification:
     """State machine driving a step-response experiment."""
 
@@ -899,6 +1069,9 @@ class SystemIdentification:
         #: Whether the finished experiment's result came from
         #: :meth:`identify_slab` — the routing pin the wave's test reads.
         self._slab_fit_used: bool = False
+        #: The declared plant when it is two-zone (#1524): the sizer and the
+        #: slab fit then model the upper zone the sensor reads, lower hidden.
+        self._two_zone_plant: ThermalParameters | None = None
 
     # -- control ------------------------------------------------------------
 
@@ -925,6 +1098,7 @@ class SystemIdentification:
         self._slab_pair = None
         self._slab_prior = None
         self._slab_fit_used = False
+        self._two_zone_plant = None
         if plant is not None:
             identifiable, why = slab_mode_identifiability(plant, self.config)
             if not identifiable:
@@ -942,6 +1116,12 @@ class SystemIdentification:
                 * float(plant.house_heat_loss_scale),
                 float(plant.room_thermal_mass),
             )
+            if plant.two_zone_enabled:
+                self._two_zone_plant = replace(plant)
+                self._slab_prior = (
+                    _zone_heat_loss(plant) * float(plant.house_heat_loss_scale),
+                    float(plant.upper_floor_thermal_mass + plant.lower_floor_thermal_mass),
+                )
         if self.last_run is not None:
             days = (now - self.last_run).total_seconds() / 86400.0
             if days < self.config.min_days_between_runs:
@@ -1019,38 +1199,43 @@ class SystemIdentification:
         lo = 0.0
         hi = q_max
         best: float | None = None
-        plant = _sizing_model(ua, capacity, gains, slab_thermal_mass, slab_heat_transfer)
-        peak_max, final_max = _predict_step_excursion_plant(
-            ua,
-            capacity,
-            gains,
-            baseline,
-            outdoor_temp,
-            q_max,
-            cfg.step_hours,
-            cfg.relax_hours,
-            model=plant,
+        plant = (
+            _sizing_model(ua, capacity, gains, slab_thermal_mass, slab_heat_transfer)
+            if self._two_zone_plant is None
+            else ThermalModel(self._two_zone_plant)
         )
-        if peak_max <= cfg.max_excursion_c and final_max <= cfg.max_excursion_c:
-            return max_power_kw
-        while hi - lo > 0.01:
-            q = (lo + hi) / 2.0
+
+        bound = cfg.max_excursion_c - (
+            0.0 if self._two_zone_plant is None else TWO_ZONE_SIZING_HEADROOM_C
+        )
+
+        def fits(q: float) -> bool:
             peak, final = _predict_step_excursion_plant(
-                ua,
-                capacity,
-                gains,
-                baseline,
-                outdoor_temp,
-                q,
-                cfg.step_hours,
-                cfg.relax_hours,
-                model=plant,
+                ua, capacity, gains, baseline, outdoor_temp, q,
+                cfg.step_hours, cfg.relax_hours, model=plant,
             )
-            if peak <= cfg.max_excursion_c and final <= cfg.max_excursion_c:
-                best = q / cop
-                lo = q
-            else:
-                hi = q
+            return peak <= bound and final <= bound
+
+        if fits(q_max):
+            return max_power_kw
+        for _restart in range(2):
+            while hi - lo > 0.01:
+                q = (lo + hi) / 2.0
+                if fits(q):
+                    best = q / cop
+                    lo = q
+                else:
+                    hi = q
+            if best is not None:
+                break
+            # #1524: the fitting steps are a BAND around the hold power (too
+            # little heat cools the room past the bound too), so a bisection
+            # that stepped under the band read "too cold" as "too big". The
+            # restart bisects up from the largest fitting point of a grid.
+            grid = [q for q in np.linspace(0.0, q_max, 33)[1:] if fits(q)]
+            if not grid:
+                break
+            lo, hi, best = grid[-1], grid[-1] + q_max / 32.0, grid[-1] / cop
         if best is not None:
             one_peak, _ = _predict_step_excursion(
                 baseline,
@@ -1100,7 +1285,10 @@ class SystemIdentification:
             and house_capacity > 1e-6
             and self._baseline_temp is not None
         ):
-            sized = self._size_step_power(
+            why = _valve_regulates(
+                self._two_zone_plant, self._baseline_temp, outdoor_temp
+            )
+            sized = None if why else self._size_step_power(
                 max_power_kw,
                 cop,
                 self._baseline_temp,
@@ -1112,7 +1300,10 @@ class SystemIdentification:
                 house_slab_transfer,
             )
             if sized is None:
-                self.abort("no step fits within the comfort bound")
+                self.abort(
+                    VALVE_REGULATES_REASON if why
+                    else "no step fits within the comfort bound"
+                )
                 return False
             self._step_power = sized
         else:
@@ -1766,33 +1957,12 @@ class SystemIdentification:
                     "was armed for"
                 ),
             )
+        error = _path_error(
+            rooms, outdoors, powers, dts, (slab_mass, slab_transfer),
+            self._two_zone_plant,
+        )
+        residual = _ridged(error, self.config.gains_prior_kw)
         prior_g = self.config.gains_prior_kw
-
-        def residual(x: np.ndarray) -> np.ndarray:
-            predicted = _simulate_slab_path(
-                float(np.exp(x[0])),
-                float(np.exp(x[1])),
-                float(x[2]),
-                slab_mass,
-                slab_transfer,
-                float(rooms[0]),
-                outdoors[:-1],
-                powers[:-1],
-                dts,
-            )
-            error = predicted[1:] - rooms[1:]
-            if not bool(np.all(np.isfinite(error))):
-                # A candidate whose rollout left the finite range reads as a
-                # huge finite cost instead of poisoning the Jacobian with a
-                # NaN, or raising out of the fit (R6 D7-03 #1396/#1397).
-                return np.full(error.size + 1, 1e12, dtype=float)
-            # The ported ridge itself: one pseudo-observation on G, weighed
-            # against the whole room series through its width. Deleting
-            # this append is the mutation the ensemble test flips on.
-            return np.append(
-                error,
-                (float(x[2]) - prior_g) / SLAB_INTERCEPT_PRIOR_SD_KW,
-            )
 
         # Multi-start over the room-capacity decade: the cost surface has a
         # competing local minimum along C_r (measured while porting: a 3x
@@ -1813,17 +1983,13 @@ class SystemIdentification:
                 best_x, best_cost = x, cost
         if best_x is None or not bool(np.all(np.isfinite(best_x))):
             return SysIdResult(completed=False, reason="fit failed")
-        return self._slab_outcome(
-            best_x, rooms, outdoors, powers, dts, slab_mass, slab_transfer
-        )
+        return self._slab_outcome(best_x, rooms, error, slab_mass, slab_transfer)
 
     def _slab_outcome(
         self,
         best_x: np.ndarray,
         rooms: np.ndarray,
-        outdoors: np.ndarray,
-        powers: np.ndarray,
-        dts: np.ndarray,
+        path_error: _PathError,
         slab_mass: float,
         slab_transfer: float,
     ) -> SysIdResult:
@@ -1842,18 +2008,7 @@ class SystemIdentification:
             return refusal
         gains_kw = float(np.clip(gains_kw, 0.0, 2.0))
         capacity = room_cap + slab_mass
-        predicted = _simulate_slab_path(
-            ua,
-            room_cap,
-            gains_kw,
-            slab_mass,
-            slab_transfer,
-            float(rooms[0]),
-            outdoors[:-1],
-            powers[:-1],
-            dts,
-        )
-        error = predicted[1:] - rooms[1:]
+        error = path_error(np.array([best_x[0], best_x[1], gains_kw]))
         # The adopted parameter's own uncertainty (#1410): the 95 %
         # profile-likelihood interval on UA is computed here and published
         # on the result, and the coordinator refuses adoption on it. A
@@ -1861,8 +2016,7 @@ class SystemIdentification:
         # looks like, so the interval — not the residual scatter — is the
         # quantity the gate bounds.
         profile_halfwidth = _slab_ua_profile_halfwidth(
-            best_x, rooms, outdoors, powers, dts, slab_mass, slab_transfer,
-            self.config.gains_prior_kw,
+            best_x, path_error, int(rooms.size), self.config.gains_prior_kw
         )
         # ... and the interval the intercept prior itself contributes (round-7
         # D7-01, #1459): the profile term above holds prior_g FIXED, so on the
@@ -1870,8 +2024,7 @@ class SystemIdentification:
         # one prior-width moves UA by ~2.3 %, and only the pair of them is
         # what the adoption gate may read.
         prior_halfwidth = _slab_ua_prior_halfwidth(
-            best_x, rooms, outdoors, powers, dts, slab_mass, slab_transfer,
-            self.config.gains_prior_kw,
+            best_x, path_error, self.config.gains_prior_kw
         )
         # tau_fast re-derives from the fit. The split itself is never
         # adopted — see SysIdResult.slab_mode_tau_hours and the #996

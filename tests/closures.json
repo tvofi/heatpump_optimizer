@@ -6,15 +6,15 @@
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 6.2,
+   "seconds": 10.3,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 2.6,
+   "seconds": 4.6,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 11.7,
+   "seconds": 15.1,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 304.7,
+   "seconds": 72.0,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -46,7 +46,7 @@
    "rc": 0
   },
   "tests/manual_plan.py": {
-   "seconds": 4.7,
+   "seconds": 6.4,
    "rc": 0
   },
   "tests/open_meteo.py": {
@@ -58,11 +58,11 @@
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 0.6,
+   "seconds": 1.0,
    "rc": 0
   },
   "tests/solar_alignment.py": {
-   "seconds": 0.4,
+   "seconds": 0.6,
    "rc": 0
   },
   "tests/stress.py": {
@@ -70,7 +70,7 @@
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 1.4,
+   "seconds": 1.8,
    "rc": 0
   },
   "tests/validate.py": {
@@ -86,7 +86,7 @@
    "rc": 0
   },
   "tests/typing_ruler.py": {
-   "seconds": 1.1,
+   "seconds": 0.1,
    "rc": 0
   },
   "tests/guard_pins.py": {
@@ -94,7 +94,7 @@
    "rc": 0
   },
   "tests/wood_advisor.py": {
-   "seconds": 0.4,
+   "seconds": 0.6,
    "rc": 0
   },
   "tests/harness_headers.py": {
@@ -102,7 +102,7 @@
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 2.1,
+   "seconds": 2.2,
    "rc": 0
   },
   "tests/finite_boundary.py": {
@@ -173,10 +173,12 @@
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/power_guard.py",
    "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/snapshots.py",
@@ -195,9 +197,11 @@
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/components/mqtt.py",
+   "tests/hastub/homeassistant/components/repairs.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
+   "tests/hastub/homeassistant/data_entry_flow.py",
    "tests/hastub/homeassistant/exceptions.py",
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
@@ -252,10 +256,12 @@
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/power_guard.py",
    "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/snapshots.py",
@@ -275,9 +281,11 @@
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/components/mqtt.py",
+   "tests/hastub/homeassistant/components/repairs.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
+   "tests/hastub/homeassistant/data_entry_flow.py",
    "tests/hastub/homeassistant/exceptions.py",
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
@@ -343,6 +351,7 @@
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/process_worker.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
@@ -501,6 +510,7 @@
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/process_worker.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
@@ -612,6 +622,7 @@
    "tools/audit/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
    "tools/audit/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
    "tools/audit/round5/D13/seat-a/fixtures/window_merges.json",
+   "tools/merge/ledger_merge.py",
    "tools/release/stamp.py",
    "tools/replay/export.py",
    "tools/replay/synthesize.py"
@@ -668,6 +679,7 @@
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/process_worker.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
@@ -829,6 +841,7 @@
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/process_worker.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
@@ -956,6 +969,7 @@
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/process_worker.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
@@ -1109,10 +1123,12 @@
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/power_guard.py",
    "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
@@ -1128,9 +1144,11 @@
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/components/mqtt.py",
+   "tests/hastub/homeassistant/components/repairs.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
+   "tests/hastub/homeassistant/data_entry_flow.py",
    "tests/hastub/homeassistant/exceptions.py",
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
@@ -1214,10 +1232,12 @@
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/power_guard.py",
    "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/snapshots.py",
@@ -1231,9 +1251,11 @@
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/components/mqtt.py",
+   "tests/hastub/homeassistant/components/repairs.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
+   "tests/hastub/homeassistant/data_entry_flow.py",
    "tests/hastub/homeassistant/exceptions.py",
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
@@ -1285,10 +1307,12 @@
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/power_guard.py",
    "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/snapshots.py",
@@ -1303,9 +1327,11 @@
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/components/mqtt.py",
+   "tests/hastub/homeassistant/components/repairs.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
+   "tests/hastub/homeassistant/data_entry_flow.py",
    "tests/hastub/homeassistant/exceptions.py",
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
@@ -1399,6 +1425,7 @@
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/process_worker.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
@@ -1500,6 +1527,7 @@
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/process_worker.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
@@ -1610,6 +1638,7 @@
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/process_worker.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
@@ -1704,10 +1733,12 @@
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/power_guard.py",
    "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
@@ -1723,10 +1754,12 @@
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/components/mqtt.py",
+   "tests/hastub/homeassistant/components/repairs.py",
    "tests/hastub/homeassistant/components/sensor.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
+   "tests/hastub/homeassistant/data_entry_flow.py",
    "tests/hastub/homeassistant/exceptions.py",
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",
@@ -2016,10 +2049,12 @@
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/process_worker.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/quality_scale.yaml",
    "custom_components/heatpump_optimizer/quick_setup.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/sensor.py",
@@ -2028,11 +2063,14 @@
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
+   "custom_components/heatpump_optimizer/strings.json",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/en.json",
+   "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "docs/architecture.md",
@@ -2113,6 +2151,7 @@
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/process_worker.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
    "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
@@ -2141,11 +2180,13 @@
    "tests/hastub/homeassistant/components/climate.py",
    "tests/hastub/homeassistant/components/datetime.py",
    "tests/hastub/homeassistant/components/mqtt.py",
+   "tests/hastub/homeassistant/components/repairs.py",
    "tests/hastub/homeassistant/components/sensor.py",
    "tests/hastub/homeassistant/components/switch.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
+   "tests/hastub/homeassistant/data_entry_flow.py",
    "tests/hastub/homeassistant/exceptions.py",
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/aiohttp_client.py",

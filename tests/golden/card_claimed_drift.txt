@@ -566,3 +566,18 @@
 # The R7-D4-01/D4-02 list this replaces was the previous branch's;
 # two of its 39 entries (the no_plan pair) no longer move.
 
+# #1495 (mold-floor breach): the plan figure gains a measured "now"
+# temperature in the corner, and the promised house/upper/lower traces are
+# dimmed under a "DHW only — no space heating" banner while space heating is
+# blocked. Only the five history-pan states move: they are the ones whose
+# hass carries a live indoor reading (`withActuals` publishes 21.1 °C), so
+# the corner "now 21.1 °C" label renders where the comparison ref has none.
+# Every other state either has no indoor sensor in `hass.states` or does not
+# render the plan figure, and the space-blocked dim/banner moves no state
+# because no fixture this gate drives publishes `space_blocked`.
+#
+history_panned  # #1495: the corner "now 21.1 °C" measured-temperature label appears on the plan figure
+history_deep_panned  # #1495: the corner "now 21.1 °C" measured-temperature label appears on the plan figure
+history_no_power  # #1495: the corner "now 21.1 °C" measured-temperature label appears on the plan figure
+history_unavailable  # #1495: the corner "now 21.1 °C" measured-temperature label appears on the plan figure
+history_pending  # #1495: the corner "now 21.1 °C" measured-temperature label appears on the plan figure

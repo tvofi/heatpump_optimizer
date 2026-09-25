@@ -183,6 +183,14 @@ def _healthy_payloads() -> dict[str, dict]:
     coord._dhw_learner.draw_stats.reservoirs["morning"] = [1.5, 2.5]
     run(coord._async_save_thermal_learning())
     run(coord._async_save_price_model())
+    # #1512: the peak tracker persists its dated peaks in the accuracy store.
+    # Seed three closed windows on two days so the sweep corrupts real peak
+    # leaves and the shape arm below has labels to break.
+    _tariff = coord._capacity_tariff()
+    for _hour, _kw in ((6, 9.0), (7, 8.0), (30, 7.0), (31, 3.0)):
+        coord._peak_tracker.observe(
+            _dt.datetime(2026, 1, 1) + _dt.timedelta(hours=_hour), _kw, _tariff
+        )
     run(coord._async_save_accuracy())
     run(coord._async_save_energy_totals())
     run(coord._async_save_manual_plan())
@@ -204,6 +212,13 @@ def _healthy_payloads() -> dict[str, dict]:
         run(away.persist_override(coord))
     except Exception as exc:  # pragma: no cover - diagnostic only
         print("note: boost/away persist skipped: %r" % (exc,))
+    try:
+        from heatpump_optimizer import pump_arbiter
+        held = pump_arbiter.state_for(coord)
+        held.written["dhw_setpoint"] = (55.0, _dt.datetime(2026, 1, 1, 12, 0, 0))
+        run(pump_arbiter._persist(coord))
+    except Exception as exc:  # pragma: no cover - diagnostic only
+        print("note: pump_arbiter persist skipped: %r" % (exc,))
     disk = {k: json.loads(v) for k, v in _storage._DISK.items()}
     _storage._DISK.clear()
     _storage.SAVE_COUNTS.clear()
@@ -348,6 +363,7 @@ LOADERS = {
     "dhw_legionella": lambda c: c._legionella.async_load(),
     "boost": lambda c: __import__("heatpump_optimizer.boost", fromlist=["x"]).restore_session(c),
     "away": lambda c: __import__("heatpump_optimizer.away", fromlist=["x"]).restore_override(c),
+    "pump_duty": lambda c: __import__("heatpump_optimizer.pump_arbiter", fromlist=["x"])._load(c),
 }
 
 R.check(
@@ -576,6 +592,51 @@ def _main() -> int:
         "no loader raised on a quarantined payload",
         loader_escape == 0,
         f"loader_escape_total={loader_escape}",
+    )
+
+    # #1512 shape arm: the accuracy store's peak list in the shape a store
+    # written before ``peak_days`` has (no labels), and malformed label lists,
+    # through the real loader. Each must load without raising, keep only
+    # finite peaks, and give every peak exactly one string label.
+    shape_bad = []
+    acc_key, acc_healthy = by_name["accuracy"]
+    shapes = {
+        "pre-#1512 store, no labels": None,
+        "labels not a list": "2026-01-01",
+        "labels of the wrong type": [1, None, ["x"]],
+        "fewer labels than peaks": ["2026-01-01"],
+    }
+    for label, days in shapes.items():
+        mutant = json.loads(json.dumps(acc_healthy))
+        peaks = mutant["peaks"]
+        peaks["peaks"] = list(peaks["peaks"]) + [float("nan")]
+        if days is None:
+            peaks.pop("peak_days", None)
+        else:
+            peaks["peak_days"] = days
+        _storage._DISK[acc_key] = json.dumps(mutant)
+        _storage.SAVE_COUNTS.clear()
+        coord = _build_coord()
+        try:
+            asyncio.run(LOADERS["accuracy"](coord))
+        except Exception as exc:
+            shape_bad.append(f"{label}: raised {type(exc).__name__}")
+            _storage._DISK.clear()
+            continue
+        tracker = coord._peak_tracker
+        if not (
+            len(tracker.peaks) == len(acc_healthy["peaks"]["peaks"])
+            and len(tracker.peak_days) == len(tracker.peaks)
+            and all(isinstance(d, str) for d in tracker.peak_days)
+            and all(math.isfinite(p) for p in tracker.peaks)
+        ):
+            shape_bad.append(f"{label}: {tracker.peaks} {tracker.peak_days}")
+        _storage._DISK.clear()
+    R.check(
+        "the peak store loads its pre-#1512 and malformed label shapes: "
+        "finite peaks only, one string label each, no raise",
+        not shape_bad and len(acc_healthy["peaks"]["peaks"]) == 2,
+        f"{shape_bad} healthy peaks {acc_healthy['peaks']}",
     )
 
     # Null control: the healthy payloads reach nothing non-finite either — the
