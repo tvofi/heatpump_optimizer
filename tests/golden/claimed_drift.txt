@@ -714,4 +714,3 @@
 # #1588 (DHW arbiter): this branch's own diff claims the config_flow
 # fixture and nothing else, ADD-ONLY -- the pump_duty_mode select grows both
 # flows' schema; no values move.
-wood_coil # the coil priced at the wood temp the physics reads mid-step (stacks on R8-P3, which moved it first): DHW kWh, dhw_heating_cost and predicted_cost up over R8-P3, baseline_cost flat over it
