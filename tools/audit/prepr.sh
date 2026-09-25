@@ -721,7 +721,7 @@ if [ "${1:-}" = "--self-test" ]; then
   # delete whatever the clone started on first, so the fixture is hermetic
   # to the outer checkout's branch name -- `main` included.
   (git clone -q --shared . "$CLM/r" && cd "$CLM/r" \
-    && startbr=$($G symbolic-ref --quiet --short HEAD) \
+    && startbr=$($G symbolic-ref --quiet --short HEAD || :) \
     && $G checkout -q --detach \
     && { [ -z "$startbr" ] || $G branch -q -D "$startbr"; } \
     && $G checkout -q -b fork \
