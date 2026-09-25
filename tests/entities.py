@@ -24899,6 +24899,35 @@ _mut_baselines = getattr(_mut, "drive_baselines", None)
 _mut_pool = getattr(_mut, "drive_pool", None)
 
 
+def _mut_lease_arm(ci: str | None) -> tuple[bool, bool]:
+    """mutation_table.run_script on a stub stress.py with the lease held
+    elsewhere: (ran while held, ran after release). #1617 review, B3 T1."""
+    import threading
+    saved = {k: _os.environ.get(k) for k in ("GITHUB_ACTIONS", "HPO_GATE_LOCK_DIR")}
+    with _tempfile.TemporaryDirectory() as tds:
+        td = _gl_stub_tree(Path(tds) / "t")
+        lock = Path(tds) / "lock"
+        _os.environ["HPO_GATE_LOCK_DIR"] = str(lock)
+        _os.environ.pop("GITHUB_ACTIONS", None)
+        if ci:
+            _os.environ["GITHUB_ACTIONS"] = ci
+        try:
+            t = threading.Thread(target=_mut.run_script, args=("tests/stress.py", td, 60))
+            return _gl_waits_then_runs(lambda: (t.start(), t)[1], td, lock, "stress.ran")
+        finally:
+            for k, v in saved.items():
+                _os.environ.pop(k, None) if v is None else _os.environ.__setitem__(k, v)
+
+
+_MUT_L_LOCAL = _mut_lease_arm(None)
+_MUT_L_CI = _mut_lease_arm("true")
+R.check(
+    "off CI a mutant's stress.py run waits for the gate lease; on a CI runner "
+    "it runs at once (null control)",
+    _MUT_L_LOCAL == (False, True) and _MUT_L_CI == (True, True),
+    f"local (ran while held, after release)={_MUT_L_LOCAL} ci={_MUT_L_CI}",
+)
+
 def _mut_barrier_run(barrier, seen, *key):
     """A fake driver: records `key`, then waits until `barrier` fills."""
     seen.append(key)
@@ -24992,35 +25021,6 @@ R.check(
     and not _mut_x_overlaps(),
     f"verdicts={[v for _, v in _MUT_X_OUT]!r} overlaps={_mut_x_overlaps()!r} "
     f"stress runs={[k for k, _, _ in _MUT_X_SPANS if k[1] == 'tests/stress.py']!r}",
-)
-
-def _mut_lease_arm(ci: str | None) -> tuple[bool, bool]:
-    """mutation_table.run_script on a stub stress.py with the lease held
-    elsewhere: (ran while held, ran after release). #1617 review, B3 T1."""
-    import threading
-    saved = {k: _os.environ.get(k) for k in ("GITHUB_ACTIONS", "HPO_GATE_LOCK_DIR")}
-    with _tempfile.TemporaryDirectory() as tds:
-        td = _gl_stub_tree(Path(tds) / "t")
-        lock = Path(tds) / "lock"
-        _os.environ["HPO_GATE_LOCK_DIR"] = str(lock)
-        _os.environ.pop("GITHUB_ACTIONS", None)
-        if ci:
-            _os.environ["GITHUB_ACTIONS"] = ci
-        try:
-            t = threading.Thread(target=_mut.run_script, args=("tests/stress.py", td, 60))
-            return _gl_waits_then_runs(lambda: (t.start(), t)[1], td, lock, "stress.ran")
-        finally:
-            for k, v in saved.items():
-                _os.environ.pop(k, None) if v is None else _os.environ.__setitem__(k, v)
-
-
-_MUT_L_LOCAL = _mut_lease_arm(None)
-_MUT_L_CI = _mut_lease_arm("true")
-R.check(
-    "off CI a mutant's stress.py run waits for the gate lease; on a CI runner "
-    "it runs at once (null control)",
-    _MUT_L_LOCAL == (False, True) and _MUT_L_CI == (True, True),
-    f"local (ran while held, after release)={_MUT_L_LOCAL} ci={_MUT_L_CI}",
 )
 
 # A survivor is the mutant that cannot stop early: every driver must run.
