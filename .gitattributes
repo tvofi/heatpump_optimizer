@@ -12,3 +12,13 @@
 # two lines cannot make a fresh clone behave worse than it does today.
 tests/golden/claimed_drift.txt merge=claimnotes
 tests/golden/card_claimed_drift.txt merge=claimnotes
+
+# The three measured JSON ledgers every fix branch re-records. Without a driver
+# two branches that recorded different keys conflict in a line merge; this one
+# merges them key by key and refuses what it cannot choose. Install it once per
+# clone (the session-start hook does it for you):
+#
+#     python3 tools/merge/ledger_merge.py --install
+tests/mutation_budgets.json merge=ledgermerge
+tests/structure_budgets.json merge=ledgermerge
+tests/closures.json merge=ledgermerge
