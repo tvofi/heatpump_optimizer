@@ -46492,6 +46492,33 @@ R.check(
         for _ids, action in getattr(_pa_cb.hass, "state_listeners", []))
     and len(getattr(_pa_cb.hass, "state_listeners", [])) == 1,
 )
+_pa_pw = _PaCoord(_PA_TUYA, duties="ss")
+_pa_pw._config["heat_pump_switch_entity"] = "switch.hp"
+_pa_pw.hass.states.set("switch.hp", FakeState("on"))
+_pa_settled(_pa_pw, 0)
+_pa_pw.hass.states.set("switch.hp", FakeState("off"))
+_pa_pw.device("number.water_set", "25")
+_pa_run(_pa_pw, 2)
+_pa_pw_off = list(_pa_pw.writes())
+_pa_pw.hass.states.set("switch.hp", FakeState("on"))
+_pa_run(_pa_pw, 3)
+R.check(
+    "a set-point the pump resets while switched off is not a manual change, and is written again once it is on",
+    _pa_pw.set_modes == [] and _pa_pw_off == []
+    and _pa_pw.writes() == [("number", "set_value", 34.0)],
+    f"{_pa_pw.set_modes=} {_pa_pw_off=} {_pa_pw.writes()=}",
+)
+_pa_pwn = _PaCoord(_PA_TUYA, duties="ss")
+_pa_pwn._config["heat_pump_switch_entity"] = "switch.hp"
+_pa_pwn.hass.states.set("switch.hp", FakeState("on"))
+_pa_settled(_pa_pwn, 0)
+_pa_pwn.device("number.water_set", "25")
+_pa_run(_pa_pwn, 2)
+R.check(
+    "null control: the same reading with the pump on throughout is a manual change",
+    _pa_pwn.set_modes == [_PA_OFF],
+    f"{_pa_pwn.set_modes=}",
+)
 _pa_ro = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_ro, 0)
 _pa_run(_pa_ro, 1)

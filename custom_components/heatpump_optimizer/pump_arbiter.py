@@ -79,6 +79,11 @@ not only the last one written: a pump that has not yet shown the next
 write, a write that landed after it was read as ignored, or the first solve
 after a restart all read the pump before the record agrees (v6.6.12).
 
+**A pump switched off is not judged.** While the configured power switch
+reads off, nothing is compared or written, and on the first pass after it
+is on again a slot that differs from the record is the device's own reset
+(:func:`_powered`), written again rather than read as a manual change.
+
 **Rails.** Hot-water-only is leased: at most :data:`LEASE_MINUTES`, and
 :data:`COLD_LEASE_MINUTES` below :data:`COLD_RAIL_C` outdoors, while the
 house is below the plan's room temperature for the step. A house at or
@@ -127,6 +132,7 @@ from . import boost, pump_mode, setpoint_check
 from .const import (
     CONF_DHW_SETPOINT_ENTITY,
     CONF_HEAT_PUMP_MODE_ENTITY,
+    CONF_HEAT_PUMP_SWITCH_ENTITY,
     CONF_PUMP_DUTY_MODE,
     CONF_SPACE_SETPOINT_ENTITY,
     CONF_SPACE_SETPOINT_UNIT,
@@ -190,6 +196,8 @@ class ArbiterState:
     landed: set[str] = field(default_factory=set)
     retry: dict[str, datetime] = field(default_factory=dict)
     dirty: bool = False
+    #: The pump's power switch read off since the last pass that judged.
+    was_off: bool = False
     step: dict[str, Any] | None = None
     log: deque[dict[str, Any]] = field(default_factory=lambda: deque(maxlen=LOG_STEPS))
     dhw_since: datetime | None = None
@@ -594,7 +602,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -
         await _resume(coord)
     duty = _leased(coord, held, _planned_duty(coord, now), now)
     _observe(coord, held, duty, now)
-    if mode != DUTY_CONTROL:
+    if mode != DUTY_CONTROL or not _powered(coord, held):
         return
     detail = foreign_change(coord, now)
     if detail is not None:
@@ -603,6 +611,31 @@ async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -
     if held.dirty:
         await _persist(coord)
     await _command(coord, desired(coord, duty, now), now)
+
+
+def _powered(coord: Any, held: ArbiterState) -> bool:
+    """Whether the pump is on; its own resets while it was off are not a person.
+
+    Switched off, the pump reports set-points of its own (tvofi's reads 25
+    degC), so nothing is judged or written until it is on again. Then a slot
+    that still differs from the record is the device's reset: its record is
+    dropped and the plan's value written again, never a manual change.
+    """
+    entity = coord._config.get(CONF_HEAT_PUMP_SWITCH_ENTITY)
+    power = coord.hass.states.get(entity) if entity else None
+    if getattr(power, "state", None) == "off":
+        held.was_off = True
+        return False
+    if held.was_off:
+        held.was_off = False
+        for slot, (value, _at) in list(held.written.items()):
+            observed = _observed(coord, slot)
+            if observed is not None and _differs(slot, observed, value):
+                del held.written[slot]
+                held.prior.pop(slot, None)
+                held.landed.discard(slot)
+                held.dirty = True
+    return True
 
 
 async def release(coord: Any) -> None:
