@@ -26,13 +26,12 @@ from collections.abc import Mapping
 from typing import Any
 
 from homeassistant.components.diagnostics import REDACTED, async_redact_data
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 
 from . import pump_arbiter
 from .const import CONF_TIBBER_TOKEN, DOMAIN
-from .coordinator import HeatPumpOptimizerCoordinator
+from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 
 #: Keys whose values never leave the instance, at any depth: the Tibber
 #: credential, and the entry name, which is free text the user typed and
@@ -122,7 +121,7 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry[HeatPumpOptimizerCoordinator]
+    hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     coord = entry.runtime_data if hasattr(entry, "runtime_data") else None

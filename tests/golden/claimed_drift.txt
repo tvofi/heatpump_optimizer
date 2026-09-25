@@ -647,6 +647,13 @@
 # a fixture the gate has already exempted.
 # `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all <merge-base>`
 # prints NO UNCLAIMED DRIFT when this list is current.
+#
+# #1512 (R8-D2-s2-01, capacity peaks on distinct days): the grid page gains
+# the peak_tariff_distinct_days toggle, so config_flow's captured schema
+# gains that field in both rendered steps and the seeded entry's options.
+# ADD-ONLY: 13 inserted lines, 0 deleted.
+config_flow # #1512: the new peak_tariff_distinct_days field (add-only)
+# R7-D8-01 merge of claude/project-thread-5shjl8 into itself, origin/main f5d4743b: this branch's own diff never touches capacity_tariff, and on this merged tree the fixture is byte-identical to origin/main -- env_drift.py --all f5d4743b reports it STALE. Main's own #1512 note above described main's diff relative to ITS OWN previous state, not this branch's diff relative to origin/main, so it does not carry forward here (claim-files.md: a claim describes exactly one diff). Removed.
 # R7-D8-01 (#1460), branch fix/r7-coordinator: this diff claims the five
 # coordinator captures and NOTHING ELSE. The direction is ADD-ONLY.
 # `_build_data_dict` now publishes the three keys `SensorGapAdvisorSensor`

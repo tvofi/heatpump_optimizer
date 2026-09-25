@@ -20,6 +20,8 @@ from homeassistant.helpers.translation import async_get_translations
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigFlowResult
 
+    from .coordinator import HeatPumpOptimizerConfigEntry
+
 
 class _ShowFormParent(Protocol):
     def async_show_form(
@@ -288,6 +290,8 @@ from .const import (
     DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY,
     CONF_PEAK_TARIFF_OFFPEAK_FACTOR,
     DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR,
+    CONF_PEAK_TARIFF_DISTINCT_DAYS,
+    DEFAULT_PEAK_TARIFF_DISTINCT_DAYS,
     CONF_PRICE_RISK_LAMBDA,
     DEFAULT_PRICE_RISK_LAMBDA,
     CONF_CONTRACT_FIXED_PRICE,
@@ -1698,6 +1702,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("grid", CONF_PEAK_TARIFF_HOURS, DEFAULT_PEAK_TARIFF_HOURS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT))),
     _F("grid", CONF_PEAK_TARIFF_WEEKDAYS_ONLY, DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY, bool),
     _F("grid", CONF_PEAK_TARIFF_OFFPEAK_FACTOR, DEFAULT_PEAK_TARIFF_OFFPEAK_FACTOR, _number(0.0, 1.0, 0.05, slider=True)),
+    _F("grid", CONF_PEAK_TARIFF_DISTINCT_DAYS, DEFAULT_PEAK_TARIFF_DISTINCT_DAYS, bool),
     # -- grid_connection
     _F("grid_connection", CONF_MAIN_FUSE_A, DEFAULT_MAIN_FUSE_A, _number(0, 125, 1, 'A')),
     _F("grid_connection", CONF_MAIN_FUSE_PHASES, DEFAULT_MAIN_FUSE_PHASES, _number(1, 3, 1, slider=True)),
@@ -2215,8 +2220,8 @@ class HeatPumpOptimizerConfigFlow(
         self._data: dict[str, Any] = {}
         # Set by async_step_reconfigure (D10-14): the entry being
         # reconfigured, or None while this is a plain setup flow.
-        self._reconfigure_entry: config_entries.ConfigEntry | None = None
-        self._reauth_entry: config_entries.ConfigEntry | None = None
+        self._reconfigure_entry: HeatPumpOptimizerConfigEntry | None = None
+        self._reauth_entry: HeatPumpOptimizerConfigEntry | None = None
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
@@ -2893,7 +2898,7 @@ class HeatPumpOptimizerConfigFlow(
     @staticmethod
     @callback
     def async_get_options_flow(
-        config_entry: config_entries.ConfigEntry,
+        config_entry: HeatPumpOptimizerConfigEntry,
     ) -> HeatPumpOptimizerOptionsFlow:
         """Get the options flow for this handler."""
         return HeatPumpOptimizerOptionsFlow(config_entry)
@@ -2912,7 +2917,7 @@ class HeatPumpOptimizerConfigFlow(
         self._reauth_entry = getter() if getter else self._entry_from_context()
         return await self.async_step_reauth_confirm()
 
-    def _entry_from_context(self) -> config_entries.ConfigEntry | None:
+    def _entry_from_context(self) -> HeatPumpOptimizerConfigEntry | None:
         """The entry a sourced flow (reauth, reconfigure) is here to change.
 
         The manager stamps the entry's id into the flow's context; this
@@ -2995,7 +3000,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
     _ADVANCED_LABEL = "Advanced settings"
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+    def __init__(self, config_entry: HeatPumpOptimizerConfigEntry) -> None:
         """Initialize options flow."""
         # Assigning to ``self.config_entry`` goes through a property setter that
         # Home Assistant deprecated in 2024.11 and removed in 2025.12, which makes
