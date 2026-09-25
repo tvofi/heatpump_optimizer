@@ -1071,9 +1071,10 @@ const SERIES_DEFS = [
   },
   {
     // The pump's own record of what it actually ran, left of "now" (the
-    // history pan): heat_pump_action's power_kw, stepped, on the same
-    // power axis as the plan's slot bars so planned and actioned power can
-    // be read against each other across the seam. Teal rather than another
+    // history pan): heat_pump_action's MODE, drawn as the band along the
+    // plot base (renderChart, `actionRuns`). Its recorded power_kw draws
+    // on the space/DHW slot series themselves since bug 7, so this series
+    // carries no points of its own and its chip toggles the band. Teal rather than another
     // blue or red: measured, not the same dE 20 the palette demands of any
     // two series sharing this draw style (#558 C1; 37.8 from space_slots,
     // 60.6 from dhw_slots simulated deuteranope).
@@ -1453,6 +1454,10 @@ const VIEW_ZOOM_STEP = 1.4;
 // peek back costs one 12 h window, never the whole span.
 const HISTORY_SPAN_MS = 48 * 3600 * 1000;
 const HISTORY_CHUNK_MS = 12 * 3600 * 1000;
+
+// The temperature axis never spans less than this many kelvin, so the
+// recorder's 0.1 K steps read as the small moves they are.
+const TEMP_AXIS_MIN_SPAN = 2;
 
 // The heat_pump_action modes in which the pump is executing heating (the
 // optimizer's own ladder: eco/normal/pre_heat/boost by commanded power,
@@ -3911,9 +3916,9 @@ function defaultWindow(spFc, dhwFc, hours, now) {
 /** Every series definition, cut to the window. `hidden` is the legend's
  * toggle state (a hidden series is still built, so its chip knows whether
  * there is data behind it); `zoomed` rides along for the view controls.
- * `actionFc` is the pump's own action history (HistorySource), empty when
- * none has been loaded. */
-function buildSeries({ spFc, dhwFc, solarFc, actionFc, windowStart, windowEnd, hidden, zoomed }) {
+ * The actioned series carries no points: it is the mode band renderChart
+ * draws from `actionRuns`, and the recorded power rides the slot series. */
+function buildSeries({ spFc, dhwFc, solarFc, windowStart, windowEnd, hidden, zoomed }) {
   const parse = parseStamp;
 
   const pick = (sensor) =>
@@ -3922,7 +3927,7 @@ function buildSeries({ spFc, dhwFc, solarFc, actionFc, windowStart, windowEnd, h
       : sensor === "solar"
       ? solarFc
       : sensor === "action"
-      ? actionFc || []
+      ? []
       : spFc;
   const either = (field) => {
     // prefer space forecast, fall back to dhw
@@ -3972,6 +3977,9 @@ function buildSeries({ spFc, dhwFc, solarFc, actionFc, windowStart, windowEnd, h
           // tooltip can explain a slot without a second lookup.
           reason: p.reason,
           priceKnown: p.price_known,
+          // A recorded sample (only the history merge makes partial
+          // points): seriesPath draws it as a held step, not a curve.
+          measured: !!p.partial,
         });
       }
       raw.sort((a, b) => a.t - b.t);
@@ -4687,14 +4695,14 @@ class HistorySource {
     // forecast-shaped but `partial`: each speaks only for the fields it
     // carries (see buildSeries).
     this.space = [];
+    this.dhw = [];
     this.solar = [];
-    this.action = [];
     // The actioned record, STATE-first (the owner's correction on #1286):
     // one log entry per recorded row of heat_pump_action, mode from the
     // state and power_kw from the attributes when that attribute exists
-    // at all. The mode band and the tooltip key on this; the power bars
-    // are an overlay that installs without a power entity must be able to
-    // live without.
+    // at all. The mode band and the tooltip key on this; the past slot
+    // bars (power_kw split by mode, `absorb`) are what installs without
+    // the power attribute must be able to live without.
     this.actionLog = [];
     // The live edge the newest chunk was fetched through, so a
     // long-lived dashboard can notice the seam going stale.
@@ -4832,14 +4840,24 @@ class HistorySource {
           "GET",
           historyPath(start, end, numeric.map(([, id]) => id), true)
         );
-        numeric.forEach(([key], i) => {
-          per[key] = (res && res[i]) || [];
-        });
+        // Keyed by entity_id, never by position: HA drops an entity with
+        // no rows in the window from the list, so the i-th list is the
+        // i-th entity only while every entity recorded something (bug 7:
+        // the indoor trace drew the outdoor sensor). The first row of each
+        // list carries its entity_id even under minimal_response.
+        const byId = new Map(
+          (res || []).map((rows) => [((rows || [])[0] || {}).entity_id, rows])
+        );
+        for (const [key, id] of numeric) per[key] = byId.get(id) || [];
       }
       if (ids.action) {
         // The action entity is the exception: its power lives in an
         // ATTRIBUTE (power_kw), so this one call carries attributes and is
         // kept apart from the lean numeric call rather than fattening it.
+        // historyPath opts it out of HA's significant_changes_only default,
+        // under which a row whose mode did not change -- power_kw moving
+        // alone -- is never served and the drawn power froze at the last
+        // mode change (bug 7).
         const res = await callApi(
           "GET",
           historyPath(start, end, [ids.action], false)
@@ -4905,8 +4923,25 @@ class HistorySource {
       price_known: true,
     });
     emit("solar", "ghi", per.solar, (r) => num(r.state));
-    emit("action", "action_power", per.action, (r) =>
-      num((r.attributes || {}).power_kw));
+    // The recorded past's slot bars, split the way the plan's are (bug 7:
+    // "heating slots still not shown"): hot_water is the tank's run, every
+    // other heating mode the house's, each at the row's power_kw; a mode
+    // that is not heating draws zero on both. power_kw is the whole
+    // commanded draw, so a step that ran both circuits under a space mode
+    // lands on the space series entire. A row without the attribute draws
+    // nothing -- an install that records no power has no height to show,
+    // and a zero there would be invented -- while an unavailable row is
+    // still the hole that ends a bar.
+    const powered = (per.action || []).filter(
+      (r) =>
+        r.state === "unavailable" || r.state === "unknown" ||
+        (r.attributes || {}).power_kw !== undefined
+    );
+    const kwIf = (r, on) => (on ? num((r.attributes || {}).power_kw) : 0);
+    emit("space", "space_power", powered, (r) =>
+      kwIf(r, ACTION_HEATING_MODES.has(r.state) && r.state !== "hot_water"));
+    emit("dhw", "dhw_power", powered, (r) =>
+      kwIf(r, r.state === "hot_water"));
     // STATE-first: the mode log is the actioned record proper, and it does
     // not care whether the power attribute exists. The recorder writes one
     // row per state OR attribute change, so the same mode arrives many
@@ -4971,8 +5006,8 @@ class HistorySource {
     const byT = (a, b) => Date.parse(a.t) - Date.parse(b.t);
     return {
       space: [...this.space].sort(byT),
+      dhw: [...this.dhw].sort(byT),
       solar: [...this.solar].sort(byT),
-      action: [...this.action].sort(byT),
     };
   }
 
@@ -5011,13 +5046,16 @@ function isoOf(ms) {
 
 /** One history/period query. `lean` adds minimal_response&no_attributes,
  * which is right for every entity whose value is the state and wrong for
- * the action entity, whose power is an attribute. */
+ * the action entity, whose power is an attribute -- and whose attribute
+ * updates HA's significant_changes_only default would drop, so the
+ * attribute-carrying query opts out of it. */
 function historyPath(startMs, endMs, ids, lean) {
   const q = [
     `filter_entity_id=${ids.join(",")}`,
     `end_time=${encodeURIComponent(isoOf(endMs))}`,
   ];
   if (lean) q.push("minimal_response", "no_attributes");
+  else q.push("significant_changes_only=0");
   return `history/period/${encodeURIComponent(isoOf(startMs))}?${q.join("&")}`;
 }
 
@@ -5510,15 +5548,18 @@ function renderChart(frame, opts) {
       for (const p of line.points) groups[s.axis].push(p.v);
     }
   }
-  const axisRange = (vals, forceZero) => {
+  const axisRange = (vals, forceZero, minSpan = 0) => {
     if (!vals.length) return null;
     let lo = Math.min(...vals);
     let hi = Math.max(...vals);
     if (forceZero) lo = Math.min(0, lo);
-    return niceAxis(lo, hi, 6);
+    // A minimum span, centred on the data: a fitted axis spreads a 0.1 K
+    // recorder flicker over the whole plot height (bug 7).
+    const pad = Math.max(0, minSpan - (hi - lo)) / 2;
+    return niceAxis(lo - pad, hi + pad, 6);
   };
   const axes = {
-    temp: axisRange(groups.temp, false),
+    temp: axisRange(groups.temp, false, TEMP_AXIS_MIN_SPAN),
     power: axisRange(groups.power, true),
     price: axisRange(groups.price, true),
     solar: axisRange(groups.solar, true),
@@ -6153,7 +6194,17 @@ function seriesPath(s, scaleX, scaleY, plotB) {
         `<path class="series" data-key="${s.key}" pointer-events="none" d="${stepD}" fill="none" stroke="${s.color}" stroke-width="1.5"${seriesDash}/>`
       );
     } else {
-      const d = smoothLine(pts);
+      // The recorded past is drawn as held steps up to the forecast's
+      // first point: a recorder state holds until the next one, and a
+      // curve through 0.1 K recorder steps invents slopes no sensor
+      // reported (bug 7). The forecast after the seam keeps its curve.
+      const held = line.points.filter((p) => p.measured).length;
+      const d = !held
+        ? smoothLine(pts)
+        : steppedLine(pts.slice(0, held + 1)) +
+          (pts.length > held + 1
+            ? smoothLine(pts.slice(held)).replace(/^M/, " L")
+            : "");
       const dash = line.primary
         ? ""
         : ` stroke-dasharray="3 3" stroke-opacity="0.7"`;
@@ -11512,9 +11563,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     };
     const built = buildSeries({
       spFc: hist ? [...hist.space, ...cut(spFc)] : spFc,
-      dhwFc: cut(dhwFc),
+      dhwFc: hist ? [...hist.dhw, ...cut(dhwFc)] : dhwFc,
       solarFc: hist ? [...hist.solar, ...cut(solarFc)] : solarFc,
-      actionFc: hist ? hist.action : [],
       windowStart: view.start,
       windowEnd: view.end,
       hidden: this.legend.hidden,

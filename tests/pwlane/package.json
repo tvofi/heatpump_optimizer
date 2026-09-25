@@ -3,6 +3,6 @@
   "private": true,
   "description": "The browser CI job's playwright, installed by `npm ci` from package-lock.json so every tarball is integrity-checked (#1548). Not a test; tests/card_browser.mjs is.",
   "dependencies": {
-    "playwright": "1.49.0"
+    "playwright": "1.56.1"
   }
 }
