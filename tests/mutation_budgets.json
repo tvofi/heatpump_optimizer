@@ -1,5 +1,185 @@
 {
   "_comment": "Two caps for two different things. max_survivor_fraction is a one-sided cap on the SAMPLED run's survivor rate (saturable: below 1.0, because a rate in [0,1] can never exceed 1.0). The unpinned-site count is the exact-count ratchet over the DETERMINISTIC inventory -- every candidate site the six operators generate across the whole tree -- and it is DERIVED, not stored: tests/mutation_table.py counts it here and at the ratchet base (the merge base; HEAD^1 on main) and refuses growth. A site carries a disposition under survivor_triage (a verdict) or killed_by (a driver that kills it), keyed 'FILE:SCOPE KIND DIGEST[#N]' -- the def around the line and sha1 of its `old` text, never its line number -- with both maps kept in key order. After a hand merge of this file, run `python3 tests/mutation_table.py --normalize`. See the header of tests/mutation_table.py.",
+  "max_survivor_fraction": {
+    "changed": 0.2,
+    "full": 0.3
+  },
+  "last_measured": {
+    "changed": {
+      "survivors": 2,
+      "equivalent": 0,
+      "evaluated": 10,
+      "at": "2026-09-11T23:51:31Z",
+      "run": "34658441338",
+      "survivor_lines": [
+        "custom_components/heatpump_optimizer/battery.py:320 BOOLOP",
+        "custom_components/heatpump_optimizer/defrost.py:154 CLAMP_DROP"
+      ]
+    },
+    "full": {
+      "survivors": 12,
+      "equivalent": 0,
+      "evaluated": 40,
+      "at": "2026-09-18T22:01:06Z",
+      "run": "35395283955",
+      "survivor_lines": [
+        "custom_components/heatpump_optimizer/climate.py:144 BOOLOP",
+        "custom_components/heatpump_optimizer/comfort_learning.py:48 CONST",
+        "custom_components/heatpump_optimizer/const.py:1157 GUARD_OFF",
+        "custom_components/heatpump_optimizer/const.py:1177 GUARD_OFF",
+        "custom_components/heatpump_optimizer/coordinator.py:10330 GUARD_OFF",
+        "custom_components/heatpump_optimizer/external_heat.py:222 RETURN_DEL",
+        "custom_components/heatpump_optimizer/frontend.py:110 BOOLOP",
+        "custom_components/heatpump_optimizer/inputs.py:650 RETURN_DEL",
+        "custom_components/heatpump_optimizer/ledger.py:79 BOOLOP",
+        "custom_components/heatpump_optimizer/legionella.py:169 GUARD_OFF",
+        "custom_components/heatpump_optimizer/manual_plan.py:121 GUARD_OFF",
+        "custom_components/heatpump_optimizer/thermal_model.py:2090 CLAMP_DROP"
+      ]
+    }
+  },
+  "survivor_triage": {
+    "custom_components/heatpump_optimizer/__init__.py:async_setup_entry BOOLOP 47200394": {
+      "verdict": "equivalent",
+      "old": "        if task is not None and hasattr(task, \"cancel\"):",
+      "reason": "hass.async_create_task (homeassistant.core.HomeAssistant.async_create_task) returns an asyncio.Task, which always carries cancel; the OR form differs only for a non-None object without a cancel attribute, which that return cannot be -- round-5 D3-07."
+    },
+    "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._plan_outdoor_now RETURN_DEL d7923b87": {
+      "verdict": "equivalent",
+      "old": "        return None",
+      "reason": "MoldFloorBreachBinarySensor._plan_outdoor_now's trailing `return None` is the function's last statement, so deleting it (`pass`) falls off the end and returns the same None. Measured: the mutant leaves tests/entities.py at rc=0 failed=0, the same as the unmutated tree, at c4e68cac (#1497), 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._file_lead_predictions CLAMP_DROP 38072755": {
+      "verdict": "equivalent",
+      "old": "        dt_h = max(ctx._opt_config.time_step_minutes, 1.0) / 60.0",
+      "reason": "drawn by the round-7 D2-03 diff's per-file sample over coordinator.py. `max(time_step_minutes, 1.0)` -> `(time_step_minutes)` cannot select its second arm: `OptimizationConfig.time_step_minutes` is the dataclass default 15.0, `OptimizationConfig.from_mapping` does not set it, and nothing in the package assigns it (`grep -rn 'time_step_minutes' custom_components/` lists only the default and reads). No production input tells the two apart."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:_unit_scale_of GUARD_OFF 428a98f5": {
+      "verdict": "equivalent",
+      "old": "        if unit:",
+      "reason": "_unit_scale_of's `if unit:` guards only a DEBUG log line for an unknown unit; both arms then return 1.0, so the value is identical and only a log record differs. Measured: tests/features.py rc=0 at 64fc5f1f with the mutant applied. Main pinned this mutant as `_wind_speed_scale_of GUARD_OFF 428a98f5` before the wind scale became the shared `_unit_scale_of`; the text and the mutant are unchanged."
+    },
+    "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._repair_dhw_floor CLAMP_DROP 21bb873a": {
+      "verdict": "equivalent",
+      "old": "                room_kw = float(room_c[j_local]) * c_dhw / max(dt * cop_room, 1e-6)",
+      "reason": "drawn by the round-7 D2-03 diff's per-file sample over optimizer.py. In `_repair_dhw_floor`, `cop_room = max(cop_j, compute_cop_dhw(...))` and `cop_j = max(marginal_cop(...), 0.5)`, so `dt * cop_room >= 0.5 * dt`, which exceeds 1e-6 for any step longer than 2e-6 h. The planner's step is `time_step_minutes / 60` = 0.25 h. The max cannot select its second arm."
+    },
+    "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._tighten_buffer_caps GUARD_OFF a268c40b": {
+      "verdict": "equivalent",
+      "old": "        if changed:",
+      "reason": "void mutant, round-6 D3-03 (#1385): the guard fences only a `_LOGGER.debug(...)` call; the function's `return changed` sits OUTSIDE the if, so `if changed:` -> `if True:` differs only in whether a debug line logs, which no check reads. No honest test should fail on this mutant."
+    },
+    "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize GUARD_OFF 9ffd35ef": {
+      "verdict": "equivalent",
+      "old": "            if not np.any(external_heat_kw > 0.0):",
+      "reason": "An all-zero free-heat forecast plans exactly as none: the guard only normalises zeros to None, and every downstream use adds the per-step value. Measured with the #1499 branch's probe (optimize() on the winter_cold / winter_typical profile, 12 h, space-only and with DHW): with the guard switched off, external_heat_kw=zeros and external_heat_kw=None give byte-identical power, DHW and room-temperature schedules and objective (sha1 prefixes 7a584e785045f9d5 and 31317c75945a2724 in both arms), while a 1 kW forecast moves both (c5b5e420dec7c4a8, 0204b401a95de984) -- the probe's null control that it can see free heat at all. Measured at 6c86f6ae, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST 816df3d3": {
+      "verdict": "equivalent",
+      "old": "_STORE_VERSION = 1",
+      "reason": "void under this driver and in production today: the store version is only compared against a stored payload's own version on load, and no migration exists for either value, so 1 -> 2 changes the key HA's Store stamps and nothing the arbiter reads."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_differs GUARD_OFF 20bf5425": {
+      "verdict": "equivalent",
+      "old": "    if observed is None or value is None:",
+      "reason": "void mutant: every caller of _differs passes non-None values -- foreign_change skips a None observation and tests `prior is None` before comparing against it, dhw_gated returns early on a None reading or record, and _write compares two written values, which are never None; so the guard's `return False` is unreachable."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_planned_duty GUARD_OFF 27126c13": {
+      "verdict": "equivalent",
+      "old": "    if result is None:",
+      "reason": "void mutant: with `result is None` let through, step_duty(None, ...) reads no timestamps, bisects an empty list to -1 and returns None -- the same baseline the guard returns. The guard is a shortcut, not a behaviour."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:foreign_change RETURN_DEL da9e8e97": {
+      "verdict": "equivalent",
+      "old": "    return None",
+      "reason": "void mutant: `return None` is the last statement of foreign_change; deleting it falls off the end, which returns None too."
+    },
+    "custom_components/heatpump_optimizer/pump_mode.py:resolve GUARD_OFF f7c55656": {
+      "verdict": "equivalent",
+      "old": "    if raw is None:",
+      "reason": "resolve()'s `raw is None` guard is redundant: _fold(None) is 'none', no alias key folds to 'none', and 'none' is in neither _ALIASES nor _STATUS_AMBIGUOUS, so _ALIASES.get('none') returns None on both paths -- measured on this tree (round-5 D3-07; the probe is tools/audit/round5/D3/equiv_probe.py)."
+    },
+    "custom_components/heatpump_optimizer/repairs.py:async_create_fix_flow GUARD_OFF 18acf7e6": {
+      "verdict": "equivalent",
+      "old": "    if issue_id == ISSUE_SPACE:",
+      "reason": "async_create_fix_flow's ISSUE_SPACE arm returns ConfirmRepairFlow(), and with the guard off control falls through to the final `return ConfirmRepairFlow()` -- a fresh instance of the same class either way, so no caller can tell the two apart. Measured: tests/features.py rc=0 at 25497c4b with the mutant applied (R8-P8 round 3, a survivor CI's changed-scope lane drew at 1a8cbcce)."
+    },
+    "custom_components/heatpump_optimizer/store.py:_sanitize GUARD_OFF da029f63": {
+      "verdict": "gap",
+      "old": "    if isinstance(value, tuple):",
+      "reason": "arrived with origin/main, commit 8e5d1ace (\"Close the non-finite-into-live-state class at the store-load boundary\", #1425); a real gap: the tuple arm is untested and the payload TYPE admits it -- `_StorePayload` is bound to `Mapping | Sequence` (store.py:35), so a tuple leaf is type-admissible even though json.loads (the only value HA's Store hands back) never produces one; dropping the arm returns the tuple's children unscanned. What pins it is a unit-level assertion on `_sanitize` (a tuple carrying a non-finite leaf must come back scrubbed), which no recorded driver makes. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
+    },
+    "custom_components/heatpump_optimizer/store.py:_sanitize GUARD_OFF eac30b4c": {
+      "verdict": "equivalent",
+      "old": "    if isinstance(value, bool):",
+      "reason": "arrived with origin/main, commit 8e5d1ace (\"Close the non-finite-into-live-state class at the store-load boundary\", #1425); void mutant: the guard's body is `return value` and the fall-through end of `_sanitize` is the same `return value`, and a bool is not a float/str/dict/list/tuple -- so `if isinstance(value, bool):` -> `if False:` answers identically for EVERY input, not merely for bools. No check can kill it. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:<module> CONST 29f6dada": {
+      "verdict": "gap",
+      "old": "_Z_975 = 1.959963984540054",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: `_Z_975 = 1.959963984540054` -> `3.919928` doubles every Wald half-width the two-state fit publishes, and no recorded driver reads one back as a number: the estimator-act-2 check compares each half-width against the bar, and the noisy window's are already above it while the clean window's collapse to ~0, so the comparison holds under either constant. An assertion on a finite half-width's value would pin it. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:<module> CONST 4f28d695": {
+      "verdict": "gap",
+      "old": "TWO_ZONE_SIZING_HEADROOM_C = 0.05",
+      "reason": "R8-P5b (#1524): the two-zone sizing headroom, doubled to 0.1 K by the CONST operator, survives every driver in play (`python3 tests/mutation_table.py --pin-killed --base origin/fix/r8-p5`, at 9d6bf172, 2026-09-25): a smaller step still keeps every stress preset inside the allowance and the two adopting presets inside the bar. The LOWER side is pinned: at 0.0 the #1524 barrier in tests/features.py fails 2 checks (typical_slab two-zone aborts at 0.800 K; two-zone adopts 1 of 3 against single-zone 2), measured on the barrier block alone. Recorded as a gap, not equivalent: a larger headroom shrinks the step and widens the fitted interval, which no check bounds."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:<module> CONST 867ffbf6": {
+      "verdict": "gap",
+      "old": "_PROFILE_CHI2_95 = 3.8414588",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: `_PROFILE_CHI2_95 = 3.8414588` -> `7.682918` only widens the band of profiled costs that count as inside the 95 % interval, and tests/features.py's estimator-act-2 check (features.py:35344) compares each published half-width against UA_ADOPTION_HALFWIDTH_BAR rather than against the threshold -- the 0.02 C noisy window's intervals stay above the bar and the clean window's stay below it on either constant. A fit whose profiled cost at x_hat[0] +/- bar straddles the threshold would pin it; no recorded driver builds one. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:SystemIdentification._size_step_power GUARD_OFF c03bdbab": {
+      "verdict": "gap",
+      "old": "            if best is not None:",
+      "reason": "R8-P5b (#1524): the break that skips the grid restart once the first bisection found a fitting step. Switched off, the restart runs anyway: it takes the largest fitting grid point and bisects up to the band's upper edge, which the first bisection had already found to the same 0.01 kW-thermal resolution, so every driver in play passes (`python3 tests/mutation_table.py --pin-killed --base origin/fix/r8-p5`, at 9d6bf172, 2026-09-25). A gap rather than equivalent: the two arms can return steps that differ inside that resolution, and the mutant costs up to 32 extra sizing rollouts."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:_lm_solve GUARD_OFF ad6ead99": {
+      "verdict": "gap",
+      "old": "            if clip is not None:",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: `_profiled_cost` passes `clip=(1, -5.0, 10.0)` (sysid.py:721), so `if clip is not None:` -> `if False:` removes the only projection of the profiled C_r iterate, and the loops' other two projections (the `if x.size >= 3:` band) are not this band. It is distinguishable exactly when the profiled iterate leaves [-5, 10], which no driven fit's does. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:_one_state_ua_halfwidth GUARD_OFF 7e1c5191": {
+      "verdict": "gap",
+      "old": "    if not np.isfinite(var_ua) or var_ua < 0.0:",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: the non-finite-variance guard is the only thing between a non-finite or negative delta-method variance and `np.sqrt`, which would answer nan where the original refuses by name; on every driven fit var_ua is finite and non-negative, so the arm never fires. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:_one_state_ua_halfwidth GUARD_OFF a19e1b35": {
+      "verdict": "gap",
+      "old": "    if beta2 <= 1e-12:",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: the degenerate-capacity guard is untested. Without it a solution with beta2 <= 1e-12 falls through to `1.0 / beta2` and `-beta1 / beta2 ** 2` -- raising ZeroDivisionError at exactly 0.0 and answering a meaningless-but-finite interval just above it -- and no driven fit's fitted C is near-degenerate. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:_one_state_ua_halfwidth RETURN_DEL 15861625": {
+      "verdict": "gap",
+      "old": "    return _Z_975 * float(np.sqrt(var_ua) / abs(beta1 / beta2))",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap, and the sharp one: deleting the return makes `_one_state_ua_halfwidth` fall off the end and answer None, which the coordinator's gate reads as 'no interval' and refuses adoption (`hw is None` at coordinator.py:10455) -- while tests/features.py's own collector (features.py:35239) SKIPS a result whose ua_profile_halfwidth is None, so the mutant removes the row the driver would have judged instead of failing it. The one-state interval's value is unpinned throughout. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:_ridged.residual GUARD_OFF 3e1589bf": {
+      "verdict": "gap",
+      "old": "        if not bool(np.all(np.isfinite(e))):",
+      "reason": "The round-7 D7-01 fix's shifted-prior re-solve keeps the two-state fit's own non-finite guard -- a divergent rollout reads as a large finite cost instead of poisoning the Jacobian (the R6 D7-03 shape at the fit's residual, #1396). `if not bool(np.all(np.isfinite(error))):` -> `if False:` leaves tests/features.py at rc=0 against a baseline of 0: nine further standalone scripts whose recorded closure reaches sysid.py were run on the same mutated tree: seven pass (typing_ruler, doc_claims, finite_boundary, config_flow_steps, deployment_shape, manual_plan, plan_view) and two (structure.py, entities.py) exit 1 on the UNMUTATED tree at that head too, for the coordinator comment block and the stale ledger dispositions this branch fixes -- so neither red carries signal about this mutant. The shifted re-solve starts at the converged fit and moves the intercept prior by one SLAB_INTERCEPT_PRIOR_SD_KW, which is what keeps it inside the finite range on every configuration measured. Recorded as a `gap` rather than equivalent: the two arms are distinguishable, they are simply not reached. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23. Re-anchored by R8-P5b (#1524): the guard now lives once in `_ridged`, which both the shifted re-solve and identify_slab's own residual use, so this site also stands for identify_slab's former copy (unpinned at the base). `if False:` there leaves tests/features.py at rc=0, ALL 3208 FEATURE CHECKS PASSED, the same as its comment-only control, applied in a detached worktree at 97c2b32f, 2026-09-25."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:_slab_ua_profile_halfwidth CLAMP_DROP 56eb75db": {
+      "verdict": "equivalent",
+      "old": "    sigma2 = cost_hat / max(samples - 3, 1)",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); redundant clamp: `rooms` is built by `_slab_series` (sysid.py:607), which refuses fewer than five usable intervals (`len(dts) < 5`, and `dts` is one element shorter than the series), so every call reaching `_slab_ua_profile_halfwidth` passes rooms.size >= 6 and `max(int(rooms.size) - 3, 1)` equals `int(rooms.size) - 3` on both paths. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass). Re-anchored by R8-P5b (#1524): the count now arrives as `samples`, which `_slab_outcome` passes as `int(rooms.size)` of the same `_slab_series` rooms, so the clamp is still redundant for the same reason."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:_slab_ua_profile_halfwidth CLAMP_DROP 58c1d724": {
+      "verdict": "equivalent",
+      "old": "    se = float(np.sqrt(max(cov[0, 0], 0.0)))",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); redundant clamp: `cov` is `np.linalg.inv(jac.T @ jac) * sigma2` with sigma2 >= 0, and the (0,0) diagonal of the inverse of a positive-definite Gram matrix is positive (a singular gram raises LinAlgError in both arms, since the mutant changes only the max), so `cov[0, 0] >= 0` for every input that reaches the line and `max(cov[0, 0], 0.0)` selects its first arm in both. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:_slab_ua_profile_halfwidth CLAMP_DROP dffcdea0": {
+      "verdict": "gap",
+      "old": "        step = 1e-6 * max(abs(float(x_hat[i])), 1.0)",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: dropping `max(..., 1.0)` shrinks the finite-difference step to `1e-6 * |x_hat[i]|` for any `|x_hat[i]| < 1` (a fitted G below 1), which moves the Jacobian and the published interval in its low digits -- inside the driver's margin to the bar, which reads a comparison and never the number. An assertion on the half-width's value would pin it. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:_slab_ua_profile_halfwidth GUARD_OFF 870ea3aa": {
+      "verdict": "gap",
+      "old": "        if _profiled_cost(x_hat[0] + sign * UA_ADOPTION_HALFWIDTH_BAR) <= threshold:",
+      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: the refusal-by-name arm is untested. The mutant answers the Wald half-width where the ruling requires `inf` -- the case where the profiled cost at the bar is still inside the threshold, i.e. the interval extends past the bar. Every driven fit either has an interval far enough past the bar that the Wald width also exceeds it, or one inside it, so the driver's `hw > bar` comparison reads the same either way. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
+    }
+  },
   "killed_by": {
     "custom_components/heatpump_optimizer/away.py:lower_floor CLAMP_DROP 21cb2c89": {
       "killed_by": "tests/features.py",
@@ -471,6 +651,416 @@
       "old": "    if ua <= 0.0:",
       "reason": "stored_heat_survival's lossless-tank guard. `if ua <= 0.0:` -> `if False:` sends a UA-0 tank with no demand down the zero-demand branch, which returns 0.0 (every stored kWh leaks away) where a tank that loses nothing keeps 1.0: tests/features.py 0 -> 1 of 3126 FAILED (`a tank that loses nothing keeps its whole credit, even with no demand`). Added in #1499's round 2: this site was the changed-scope sample's one survivor, and a surviving optimizer.py mutant runs tests/stress.py and tests/env_drift.py, about 25 of CI's 90 minutes. Measured at 4b106fe6, 2026-09-24."
     },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST 23a40954": {
+      "killed_by": "tests/features.py",
+      "old": "FLOW_GATE_C = 25.0",
+      "reason": "pump-duty arbiter revision; `FLOW_GATE_C = 25.0` -> `FLOW_GATE_C = 50.0` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST 4fed562a": {
+      "killed_by": "tests/features.py",
+      "old": "LOG_STEPS = 96",
+      "reason": "pump-duty arbiter revision; `LOG_STEPS = 96` -> `LOG_STEPS = 192` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST 557cfac3": {
+      "killed_by": "tests/features.py",
+      "old": "DHW_GATE_C = 30.0",
+      "reason": "pump-duty arbiter revision; `DHW_GATE_C = 30.0` -> `DHW_GATE_C = 60.0` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST 59084052": {
+      "killed_by": "tests/features.py",
+      "old": "ECHO_GRACE_S = 20.0",
+      "reason": "pump-duty arbiter revision; `ECHO_GRACE_S = 20.0` -> `ECHO_GRACE_S = 40.0` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST 647a1d0a": {
+      "killed_by": "tests/features.py",
+      "old": "TANK_RISE_C = 0.5",
+      "reason": "pump-duty arbiter revision; `TANK_RISE_C = 0.5` -> `TANK_RISE_C = 1.0` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST 6bde54aa": {
+      "killed_by": "tests/features.py",
+      "old": "SETPOINT_TOLERANCE = 0.3",
+      "reason": "pump-duty arbiter revision; `SETPOINT_TOLERANCE = 0.3` -> `SETPOINT_TOLERANCE = 0.6` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST 8fcb8952": {
+      "killed_by": "tests/features.py",
+      "old": "RETRY_MINUTES = 5.0",
+      "reason": "pump-duty arbiter revision; `RETRY_MINUTES = 5.0` -> `RETRY_MINUTES = 10.0` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST 9cc69a4d": {
+      "killed_by": "tests/features.py",
+      "old": "COLD_LEASE_MINUTES = 30.0",
+      "reason": "pump-duty arbiter revision; `COLD_LEASE_MINUTES = 30.0` -> `COLD_LEASE_MINUTES = 60.0` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST f9b2244f": {
+      "killed_by": "tests/features.py",
+      "old": "LEASE_MINUTES = 90.0",
+      "reason": "pump-duty arbiter revision; `LEASE_MINUTES = 90.0` -> `LEASE_MINUTES = 180.0` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_arbitrate GUARD_OFF 674947c5": {
+      "killed_by": "tests/features.py",
+      "old": "    if mode != DUTY_CONTROL:",
+      "reason": "pump-duty arbiter revision; `if mode != DUTY_CONTROL:` -> `if False:` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_arbitrate GUARD_OFF 9ebcdb76": {
+      "killed_by": "tests/features.py",
+      "old": "    if coord._mode == MODE_OFF or mode != DUTY_CONTROL:",
+      "reason": "pump-duty arbiter revision; `if coord._mode == MODE_OFF or mode != DUTY_CONTROL:` -> `if False:` fails 3 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_arbitrate GUARD_OFF b8d3ac48": {
+      "killed_by": "tests/features.py",
+      "old": "    if detail is not None:",
+      "reason": "pump-duty arbiter revision; `if detail is not None:` -> `if False:` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_arbitrate GUARD_OFF cac4451e": {
+      "killed_by": "tests/features.py",
+      "old": "        if held.written or held.retry:",
+      "reason": "pump-duty arbiter revision; `if held.written or held.retry:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_arbitrate GUARD_OFF d9e563c0": {
+      "killed_by": "tests/features.py",
+      "old": "    if held.manual is not None:",
+      "reason": "pump-duty arbiter revision; `if held.manual is not None:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_arbitrate GUARD_OFF de5792bc": {
+      "killed_by": "tests/features.py",
+      "old": "        if coord._mode == MODE_OFF:",
+      "reason": "pump-duty arbiter revision; `if coord._mode == MODE_OFF:` -> `if False:` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_arbitrate GUARD_OFF f00cc0b5": {
+      "killed_by": "tests/features.py",
+      "old": "        if held.written and held.manual is None and mode == DUTY_CONTROL:",
+      "reason": "pump-duty arbiter revision; `if held.written and held.manual is None and mode == DUTY_CONTROL:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_bounded CLAMP_DROP 2609ebb9": {
+      "killed_by": "tests/features.py",
+      "old": "    value = min(value, high) if high is not None else value",
+      "reason": "pump-duty arbiter revision; `value = min(value, high) if high is not None else value` -> `value = (value) if high is not None else value` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_bounded GUARD_OFF 8313bec9": {
+      "killed_by": "tests/features.py",
+      "old": "    if value is None or state is None:",
+      "reason": "pump-duty arbiter revision; `if value is None or state is None:` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_bounded RETURN_DEL 138085e7": {
+      "killed_by": "tests/features.py",
+      "old": "    return round(value * 2.0) / 2.0",
+      "reason": "pump-duty arbiter revision; `return round(value * 2.0) / 2.0` -> `pass` fails 12 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_differs GUARD_OFF 7f522a98": {
+      "killed_by": "tests/features.py",
+      "old": "    if slot == \"mode\":",
+      "reason": "pump-duty arbiter revision; `if slot == \"mode\":` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_differs RETURN_DEL a7850068": {
+      "killed_by": "tests/features.py",
+      "old": "    return bool(abs(observed - value) > SETPOINT_TOLERANCE)",
+      "reason": "pump-duty arbiter revision; `return bool(abs(observed - value) > SETPOINT_TOLERANCE)` -> `pass` fails 4 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_disinfecting RETURN_DEL f9b38415": {
+      "killed_by": "tests/features.py",
+      "old": "    return getattr(switch, \"memo\", None) is True",
+      "reason": "pump-duty arbiter revision; `return getattr(switch, \"memo\", None) is True` -> `pass` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_leased BOOLOP 90364fcf": {
+      "killed_by": "tests/features.py",
+      "old": "    if duty != \"dhw\" and (duty != \"idle\" or held.dhw_since is None):",
+      "reason": "pump-duty arbiter revision; `if duty != \"dhw\" and (duty != \"idle\" or held.dhw_since is None):` -> `if duty != \"dhw\" or (duty != \"idle\" or held.dhw_since is None):` fails 3 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_leased GUARD_OFF 90364fcf": {
+      "killed_by": "tests/features.py",
+      "old": "    if duty != \"dhw\" and (duty != \"idle\" or held.dhw_since is None):",
+      "reason": "pump-duty arbiter revision; `if duty != \"dhw\" and (duty != \"idle\" or held.dhw_since is None):` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_leased RETURN_DEL 009357c0": {
+      "killed_by": "tests/features.py",
+      "old": "        return duty",
+      "reason": "pump-duty arbiter revision; `return duty` -> `pass` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_leased RETURN_DEL 0e1f683b": {
+      "killed_by": "tests/features.py",
+      "old": "    return None if now - held.dhw_since > timedelta(minutes=cap) else duty",
+      "reason": "pump-duty arbiter revision; `return None if now - held.dhw_since > timedelta(minutes=cap) else duty` -> `pass` fails 14 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_listen GUARD_OFF 333cc09e": {
+      "killed_by": "tests/features.py",
+      "old": "    if entities:",
+      "reason": "pump-duty arbiter revision; `if entities:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_listen GUARD_OFF 362c5f48": {
+      "killed_by": "tests/features.py",
+      "old": "    if held.unsubs:",
+      "reason": "pump-duty arbiter revision; `if held.unsubs:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_load GUARD_OFF c4e83079": {
+      "killed_by": "tests/features.py",
+      "old": "    if not isinstance(raw, dict):",
+      "reason": "pump-duty arbiter revision; `if not isinstance(raw, dict):` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_load GUARD_OFF ce8acfd6": {
+      "killed_by": "tests/features.py",
+      "old": "    if held.loaded:",
+      "reason": "pump-duty arbiter revision; `if held.loaded:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_observe GUARD_OFF 3c85dd51": {
+      "killed_by": "tests/features.py",
+      "old": "    if row is None or row[\"start\"] != start:",
+      "reason": "pump-duty arbiter revision; `if row is None or row[\"start\"] != start:` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_observe GUARD_OFF 57f875bd": {
+      "killed_by": "tests/features.py",
+      "old": "        if row is not None:",
+      "reason": "pump-duty arbiter revision; `if row is not None:` -> `if False:` fails 3 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_observe GUARD_OFF c1a392c4": {
+      "killed_by": "tests/features.py",
+      "old": "    if power is not None:",
+      "reason": "pump-duty arbiter revision; `if power is not None:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_observed GUARD_OFF 7f522a98": {
+      "killed_by": "tests/features.py",
+      "old": "    if slot == \"mode\":",
+      "reason": "pump-duty arbiter revision; `if slot == \"mode\":` -> `if False:` fails 4 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_observed RETURN_DEL 5d5128a6": {
+      "killed_by": "tests/features.py",
+      "old": "        return raw if pump_mode.resolve(raw) is not None else None",
+      "reason": "pump-duty arbiter revision; `return raw if pump_mode.resolve(raw) is not None else None` -> `pass` fails 4 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_observed RETURN_DEL be954828": {
+      "killed_by": "tests/features.py",
+      "old": "    return setpoint_check._read_setpoint(coord.hass, entity)",
+      "reason": "pump-duty arbiter revision; `return setpoint_check._read_setpoint(coord.hass, entity)` -> `pass` fails 4 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_on_kw CLAMP_DROP 159d5a81": {
+      "killed_by": "tests/features.py",
+      "old": "    return max(0.1, float(coord._thermal_model.params.min_electrical_power) * 0.5)",
+      "reason": "pump-duty arbiter revision; `return max(0.1, float(coord._thermal_model.params.min_electrical_power) * 0.5)` -> `return (0.1)` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_option_for RETURN_DEL 7e29a636": {
+      "killed_by": "tests/features.py",
+      "old": "    return next((o for o in options if pump_mode.resolve(o) == key), None)",
+      "reason": "pump-duty arbiter revision; `return next((o for o in options if pump_mode.resolve(o) == key), None)` -> `pass` fails 16 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_planned_duty GUARD_OFF 5950b2a5": {
+      "killed_by": "tests/features.py",
+      "old": "    if boost.held_for(coord).until:",
+      "reason": "pump-duty arbiter revision; `if boost.held_for(coord).until:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_planned_duty GUARD_OFF c56718c2": {
+      "killed_by": "tests/features.py",
+      "old": "    if (coord._current_action or {}).get(\"mode\") == \"system_identification\":",
+      "reason": "pump-duty arbiter revision; `if (coord._current_action or {}).get(\"mode\") == \"system_identification\":` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_planned_duty GUARD_OFF e6b1e18d": {
+      "killed_by": "tests/features.py",
+      "old": "    if coord._mode not in (MODE_AUTO, MODE_ECONOMY) or coord._plan_is_stale():",
+      "reason": "pump-duty arbiter revision; `if coord._mode not in (MODE_AUTO, MODE_ECONOMY) or coord._plan_is_stale():` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_planned_duty RETURN_DEL 46c3b15b": {
+      "killed_by": "tests/features.py",
+      "old": "    return step_duty(result, now, _on_kw(coord))",
+      "reason": "pump-duty arbiter revision; `return step_duty(result, now, _on_kw(coord))` -> `pass` fails 20 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_slot_state RETURN_DEL d0671889": {
+      "killed_by": "tests/features.py",
+      "old": "    return coord.hass.states.get(entity) if entity else None",
+      "reason": "pump-duty arbiter revision; `return coord.hass.states.get(entity) if entity else None` -> `pass` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_space_target GUARD_OFF 198f3294": {
+      "killed_by": "tests/features.py",
+      "old": "    if _flow_unit(coord._config):",
+      "reason": "pump-duty arbiter revision; `if _flow(coord._config):` -> `if False:` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_space_target RETURN_DEL ad99b32d": {
+      "killed_by": "tests/features.py",
+      "old": "    return _bounded(state, points[i] if 0 <= i < len(points) else None)",
+      "reason": "pump-duty arbiter revision; `return _bounded(state, points[i] if 0 <= i < len(points) else None)` -> `pass` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_space_target RETURN_DEL d9aede3e": {
+      "killed_by": "tests/features.py",
+      "old": "        return _bounded(state, coord._thermal_model.curve_flow_temp(outdoor), FLOW_GATE_C)",
+      "reason": "pump-duty arbiter revision; `return _bounded(state, coord._thermal_model.curve_flow_temp(outdoor), FLOW_GATE_C)` -> `pass` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_verdict BOOLOP 2bdf9629": {
+      "killed_by": "tests/features.py",
+      "old": "    elif actual == planned or (planned == \"both\" and actual != \"idle\"):",
+      "reason": "pump-duty arbiter revision; `elif actual == planned or (planned == \"both\" and actual != \"idle\"):` -> `elif actual == planned or (planned == \"both\" or actual != \"idle\"):` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_verdict BOOLOP af494230": {
+      "killed_by": "tests/features.py",
+      "old": "    rose = None not in (tank, row[\"tank\"]) and float(tank) - float(row[\"tank\"]) >= TANK_RISE_C",
+      "reason": "pump-duty arbiter revision; `rose = None not in (tank, row[\"tank\"]) and float(tank) - float(row[\"tank\"]) >= TANK_RISE_C` -> `rose = None not in (tank, row[\"tank\"]) or float(tank) - float(row[\"tank\"]) >= TANK_RISE_C` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_write BOOLOP 1597404c": {
+      "killed_by": "tests/features.py",
+      "old": "    if slot in held.retry and now < held.retry[slot]:",
+      "reason": "pump-duty arbiter revision; `if slot in held.retry and now < held.retry[slot]:` -> `if slot in held.retry or now < held.retry[slot]:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_write BOOLOP 1e35c9df": {
+      "killed_by": "tests/features.py",
+      "old": "    if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):",
+      "reason": "pump-duty arbiter revision; `if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):` -> `if value is None or state is None or (recorded or not _differs(slot, recorded[0], value)):` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_write GUARD_OFF 1597404c": {
+      "killed_by": "tests/features.py",
+      "old": "    if slot in held.retry and now < held.retry[slot]:",
+      "reason": "pump-duty arbiter revision; `if slot in held.retry and now < held.retry[slot]:` -> `if False:` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:_write GUARD_OFF 1e35c9df": {
+      "killed_by": "tests/features.py",
+      "old": "    if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):",
+      "reason": "pump-duty arbiter revision; `if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):` -> `if False:` fails 10 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:apply GUARD_OFF 868af983": {
+      "killed_by": "tests/features.py",
+      "old": "    if mode == DUTY_OFF:",
+      "reason": "pump-duty arbiter revision; `if mode == DUTY_OFF:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:desired BOOLOP c8d68a92": {
+      "killed_by": "tests/features.py",
+      "old": "    if duty == \"space\" and _disinfecting(coord):",
+      "reason": "pump-duty arbiter revision; `if duty == \"space\" and _disinfecting(coord):` -> `if duty == \"space\" or _disinfecting(coord):` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:desired GUARD_OFF 1e936f72": {
+      "killed_by": "tests/features.py",
+      "old": "    if duty == \"space\":",
+      "reason": "pump-duty arbiter revision; `if duty == \"space\":` -> `if False:` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:desired GUARD_OFF 48dd8bdd": {
+      "killed_by": "tests/features.py",
+      "old": "    if pump_mode.capability(getattr(mode_state, \"state\", None)).cooling:",
+      "reason": "pump-duty arbiter revision; `if pump_mode.capability(getattr(mode_state, \"state\", None)).cooling:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:desired GUARD_OFF 4db4510b": {
+      "killed_by": "tests/features.py",
+      "old": "    if duty != \"dhw\":",
+      "reason": "pump-duty arbiter revision; `if duty != \"dhw\":` -> `if False:` fails 8 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:desired GUARD_OFF 5287f93a": {
+      "killed_by": "tests/features.py",
+      "old": "        if _option_for(mode_state, pump_mode.MODE_HEAT):",
+      "reason": "pump-duty arbiter revision; `if _option_for(mode_state, pump_mode.MODE_HEAT):` -> `if False:` fails 4 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:desired GUARD_OFF 95cfeede": {
+      "killed_by": "tests/features.py",
+      "old": "    if _option_for(mode_state, pump_mode.MODE_DHW):",
+      "reason": "pump-duty arbiter revision; `if _option_for(mode_state, pump_mode.MODE_DHW):` -> `if False:` fails 11 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:desired GUARD_OFF acbc3657": {
+      "killed_by": "tests/features.py",
+      "old": "    if duty == \"idle\":",
+      "reason": "pump-duty arbiter revision; `if duty == \"idle\":` -> `if False:` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:desired GUARD_OFF c8d68a92": {
+      "killed_by": "tests/features.py",
+      "old": "    if duty == \"space\" and _disinfecting(coord):",
+      "reason": "pump-duty arbiter revision; `if duty == \"space\" and _disinfecting(coord):` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:desired RETURN_DEL 259154b7": {
+      "killed_by": "tests/features.py",
+      "old": "    return PumpCommand(both, dhw, gate)",
+      "reason": "pump-duty arbiter revision; `return PumpCommand(both, dhw, gate)` -> `pass` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:desired RETURN_DEL 692519bb": {
+      "killed_by": "tests/features.py",
+      "old": "        return PumpCommand(both, _bounded(_slot_state(coord, \"dhw_setpoint\"), DHW_GATE_C), space)",
+      "reason": "pump-duty arbiter revision; `return PumpCommand(both, _bounded(_state(coord, \"dhw_setpoint\"), DHW_GATE_C), space)` -> `pass` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:dhw_gated GUARD_OFF be4c416f": {
+      "killed_by": "tests/features.py",
+      "old": "    if reading is None or written is None or _differs(\"dhw_setpoint\", reading, written[0]):",
+      "reason": "pump-duty arbiter revision; `if reading is None or written is None or _differs(\"dhw_setpoint\", reading, written[0]):` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:dhw_gated RETURN_DEL 3325b0e3": {
+      "killed_by": "tests/features.py",
+      "old": "    return bool(written[0] < configured - SETPOINT_TOLERANCE)",
+      "reason": "pump-duty arbiter revision; `return bool(written[0] < configured - SETPOINT_TOLERANCE)` -> `pass` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:duty_mode RETURN_DEL 1966339d": {
+      "killed_by": "tests/features.py",
+      "old": "    return mode if mode in PUMP_DUTY_MODES else DUTY_OFF",
+      "reason": "pump-duty arbiter revision; `return mode if mode in PUMP_DUTY_MODES else DUTY_OFF` -> `pass` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:foreign_change BOOLOP 68348907": {
+      "killed_by": "tests/features.py",
+      "old": "            if held.retry.pop(slot, None) is not None and not held.retry:",
+      "reason": "pump-duty arbiter revision; `and` -> `or` fails \"the warning stays while any ignored write is still pending, and leaving control clears it\" (test tightened after the first drive), against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:foreign_change GUARD_OFF 360fba48": {
+      "killed_by": "tests/features.py",
+      "old": "        if not _differs(slot, observed, value):",
+      "reason": "pump-duty arbiter revision; `if not _differs(slot, observed, value):` -> `if False:` fails 8 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:foreign_change GUARD_OFF 68348907": {
+      "killed_by": "tests/features.py",
+      "old": "            if held.retry.pop(slot, None) is not None and not held.retry:",
+      "reason": "pump-duty arbiter revision; `if held.retry.pop(slot, None) is not None and not held.retry:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:foreign_change GUARD_OFF 77519771": {
+      "killed_by": "tests/features.py",
+      "old": "        if observed is None:",
+      "reason": "pump-duty arbiter revision; `if observed is None:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:foreign_change GUARD_OFF b815beb6": {
+      "killed_by": "tests/features.py",
+      "old": "        if slot in held.landed or prior is None or _differs(slot, observed, prior):",
+      "reason": "pump-duty arbiter revision; `if slot in held.landed or prior is None or _differs(slot, observed, prior):` -> `if False:` fails 5 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:foreign_change GUARD_OFF e38aa191": {
+      "killed_by": "tests/features.py",
+      "old": "        if (now - at).total_seconds() < ECHO_GRACE_S:",
+      "reason": "pump-duty arbiter revision; `if (now - at).total_seconds() < ECHO_GRACE_S:` -> `if False:` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:own GUARD_OFF 344cb87c": {
+      "killed_by": "tests/features.py",
+      "old": "    if duty_mode(coord._config) != DUTY_CONTROL or written is None:",
+      "reason": "pump-duty arbiter revision; `if duty_mode(coord._config) != DUTY_CONTROL or written is None:` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:own GUARD_OFF ac2dee5a": {
+      "killed_by": "tests/features.py",
+      "old": "    if signals.mode.key != written[0]:",
+      "reason": "pump-duty arbiter revision; `if signals.mode.key != written[0]:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:own RETURN_DEL 05683de7": {
+      "killed_by": "tests/features.py",
+      "old": "    return replace(signals, mode_owned=True)",
+      "reason": "pump-duty arbiter revision; `return replace(signals, mode_owned=True)` -> `pass` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:release GUARD_OFF 3df00086": {
+      "killed_by": "tests/features.py",
+      "old": "    if held.written and held.manual is None and duty_mode(coord._config) == DUTY_CONTROL:",
+      "reason": "pump-duty arbiter revision; `if held.written and held.manual is None and duty_mode(coord._config) == DUTY_CONTROL:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:state_for GUARD_OFF 8d0816ed": {
+      "killed_by": "tests/features.py",
+      "old": "    if held is None:",
+      "reason": "pump-duty arbiter revision; `if held is None:` -> `if False:` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:state_for RETURN_DEL 7cb5653d": {
+      "killed_by": "tests/features.py",
+      "old": "    return held",
+      "reason": "pump-duty arbiter revision; `return held` -> `pass` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:step_duty BOOLOP 0d0efb52": {
+      "killed_by": "tests/features.py",
+      "old": "    if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):",
+      "reason": "pump-duty arbiter revision; `if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):` -> `if i < 0 or (i == len(stamps) - 1 or now - stamps[i] > timedelta(minutes=15)):` fails 5 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:step_duty BOOLOP 17ca3f91": {
+      "killed_by": "tests/features.py",
+      "old": "    d_on = i < len(dhw) and dhw[i] > 0.1",
+      "reason": "pump-duty arbiter revision; `d_on = i < len(dhw) and dhw[i] > 0.1` -> `d_on = i < len(dhw) or dhw[i] > 0.1` fails 8 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:step_duty BOOLOP b6dd3d98": {
+      "killed_by": "tests/features.py",
+      "old": "    s_on = i < len(space) and space[i] >= on_kw",
+      "reason": "pump-duty arbiter revision; `s_on = i < len(space) and space[i] >= on_kw` -> `s_on = i < len(space) or space[i] >= on_kw` fails 15 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
+    "custom_components/heatpump_optimizer/pump_arbiter.py:step_duty GUARD_OFF 0d0efb52": {
+      "killed_by": "tests/features.py",
+      "old": "    if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):",
+      "reason": "pump-duty arbiter revision; `if i < 0 or (i == len(stamps) - 1 and now - stamps[i] > timedelta(minutes=15)):` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+    },
     "custom_components/heatpump_optimizer/repairs.py:DhwSetpointRepairFlow.async_step_confirm GUARD_OFF e2b4d39d": {
       "killed_by": "tests/features.py",
       "old": "        if entity_id and value is not None:",
@@ -742,165 +1332,5 @@
       "reason": "R8-I1b (#1540): the refill-coil edge of two_tank_4way. `if False:` drops the published wood_tank->dhw_tank edge. Measured at 8627feee on a detached worktree with this mutant (and the three #1532/#1533 finder mutants in other modules): tests/features.py rc=0 failed=0 -> rc=1, 4 of 3189 FAILED, the one reading topology being `a wood coil in the hot water tank draws wood_tank->dhw_tank, and only with the coil (#1540)`. At the merge base 87cf56a3 the same four mutants left tests/features.py green (ALL 3185 FEATURE CHECKS PASSED)."
     }
   },
-  "last_measured": {
-    "changed": {
-      "at": "2026-09-11T23:51:31Z",
-      "equivalent": 0,
-      "evaluated": 10,
-      "run": "34658441338",
-      "survivor_lines": [
-        "custom_components/heatpump_optimizer/battery.py:320 BOOLOP",
-        "custom_components/heatpump_optimizer/defrost.py:154 CLAMP_DROP"
-      ],
-      "survivors": 2
-    },
-    "full": {
-      "at": "2026-09-18T22:01:06Z",
-      "equivalent": 0,
-      "evaluated": 40,
-      "run": "35395283955",
-      "survivor_lines": [
-        "custom_components/heatpump_optimizer/climate.py:144 BOOLOP",
-        "custom_components/heatpump_optimizer/comfort_learning.py:48 CONST",
-        "custom_components/heatpump_optimizer/const.py:1157 GUARD_OFF",
-        "custom_components/heatpump_optimizer/const.py:1177 GUARD_OFF",
-        "custom_components/heatpump_optimizer/coordinator.py:10330 GUARD_OFF",
-        "custom_components/heatpump_optimizer/external_heat.py:222 RETURN_DEL",
-        "custom_components/heatpump_optimizer/frontend.py:110 BOOLOP",
-        "custom_components/heatpump_optimizer/inputs.py:650 RETURN_DEL",
-        "custom_components/heatpump_optimizer/ledger.py:79 BOOLOP",
-        "custom_components/heatpump_optimizer/legionella.py:169 GUARD_OFF",
-        "custom_components/heatpump_optimizer/manual_plan.py:121 GUARD_OFF",
-        "custom_components/heatpump_optimizer/thermal_model.py:2090 CLAMP_DROP"
-      ],
-      "survivors": 12
-    }
-  },
-  "max_survivor_fraction": {
-    "changed": 0.2,
-    "full": 0.3
-  },
-  "reason": "The ratchet is the exact count of candidate sites with no disposition, derived at both ends and committed nowhere; a site leaves it only by carrying a disposition -- a `killed_by` driver, or a `survivor_triage` verdict (equivalent/gap) pinned to the exact `old` line. Keys moved from FILE:LINE KIND to a content anchor in fix/rca-ledger-anchors, re-derived on its merge of origin/main 4d31d55e on 2026-09-24: `--normalize` mapped all 103 dispositions (21 triage, 82 killed_by) with none unmapped, every entry's value unchanged, and the unpinned set identical under the old and the new code on that tree (3725 of 3828 candidates). The line-keyed re-derivation log main's `reason` had accumulated is superseded: it recorded re-keys this form no longer needs, and it stays in git history. The `last_measured` survivor_lines are a run's table and keep that run's FILE:LINE form. One property the triage entries share, stated here so no reason hides it: tests/entities.py's #1217 mark-staleness self-check reddens when any `survivor_triage`-marked line is mutated, because the mark's pin then names a mutant the tree no longer generates. That is a property of the RECORD, not a behavioural kill, so those sites are survivors here and not `killed_by` entries. The `gap` verdict records a MEASURED survivor and does NOT move the fraction: `survivor_gaps` counts every survivor no triage has called equivalent.",
-  "survivor_triage": {
-    "custom_components/heatpump_optimizer/__init__.py:async_setup_entry BOOLOP 47200394": {
-      "old": "        if task is not None and hasattr(task, \"cancel\"):",
-      "reason": "hass.async_create_task (homeassistant.core.HomeAssistant.async_create_task) returns an asyncio.Task, which always carries cancel; the OR form differs only for a non-None object without a cancel attribute, which that return cannot be -- round-5 D3-07.",
-      "verdict": "equivalent"
-    },
-    "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor._plan_outdoor_now RETURN_DEL d7923b87": {
-      "verdict": "equivalent",
-      "old": "        return None",
-      "reason": "MoldFloorBreachBinarySensor._plan_outdoor_now's trailing `return None` is the function's last statement, so deleting it (`pass`) falls off the end and returns the same None. Measured: the mutant leaves tests/entities.py at rc=0 failed=0, the same as the unmutated tree, at c4e68cac (#1497), 2026-09-24."
-    },
-    "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._file_lead_predictions CLAMP_DROP 38072755": {
-      "old": "        dt_h = max(ctx._opt_config.time_step_minutes, 1.0) / 60.0",
-      "reason": "drawn by the round-7 D2-03 diff's per-file sample over coordinator.py. `max(time_step_minutes, 1.0)` -> `(time_step_minutes)` cannot select its second arm: `OptimizationConfig.time_step_minutes` is the dataclass default 15.0, `OptimizationConfig.from_mapping` does not set it, and nothing in the package assigns it (`grep -rn 'time_step_minutes' custom_components/` lists only the default and reads). No production input tells the two apart.",
-      "verdict": "equivalent"
-    },
-    "custom_components/heatpump_optimizer/coordinator.py:_unit_scale_of GUARD_OFF 428a98f5": {
-      "verdict": "equivalent",
-      "old": "        if unit:",
-      "reason": "_unit_scale_of's `if unit:` guards only a DEBUG log line for an unknown unit; both arms then return 1.0, so the value is identical and only a log record differs. Measured: tests/features.py rc=0 at 64fc5f1f with the mutant applied. Main pinned this mutant as `_wind_speed_scale_of GUARD_OFF 428a98f5` before the wind scale became the shared `_unit_scale_of`; the text and the mutant are unchanged."
-    },
-    "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._repair_dhw_floor CLAMP_DROP 21bb873a": {
-      "old": "                room_kw = float(room_c[j_local]) * c_dhw / max(dt * cop_room, 1e-6)",
-      "reason": "drawn by the round-7 D2-03 diff's per-file sample over optimizer.py. In `_repair_dhw_floor`, `cop_room = max(cop_j, compute_cop_dhw(...))` and `cop_j = max(marginal_cop(...), 0.5)`, so `dt * cop_room >= 0.5 * dt`, which exceeds 1e-6 for any step longer than 2e-6 h. The planner's step is `time_step_minutes / 60` = 0.25 h. The max cannot select its second arm.",
-      "verdict": "equivalent"
-    },
-    "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._tighten_buffer_caps GUARD_OFF a268c40b": {
-      "old": "        if changed:",
-      "reason": "void mutant, round-6 D3-03 (#1385): the guard fences only a `_LOGGER.debug(...)` call; the function's `return changed` sits OUTSIDE the if, so `if changed:` -> `if True:` differs only in whether a debug line logs, which no check reads. No honest test should fail on this mutant.",
-      "verdict": "equivalent"
-    },
-    "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize GUARD_OFF 9ffd35ef": {
-      "old": "            if not np.any(external_heat_kw > 0.0):",
-      "reason": "An all-zero free-heat forecast plans exactly as none: the guard only normalises zeros to None, and every downstream use adds the per-step value. Measured with the #1499 branch's probe (optimize() on the winter_cold / winter_typical profile, 12 h, space-only and with DHW): with the guard switched off, external_heat_kw=zeros and external_heat_kw=None give byte-identical power, DHW and room-temperature schedules and objective (sha1 prefixes 7a584e785045f9d5 and 31317c75945a2724 in both arms), while a 1 kW forecast moves both (c5b5e420dec7c4a8, 0204b401a95de984) -- the probe's null control that it can see free heat at all. Measured at 6c86f6ae, 2026-09-24.",
-      "verdict": "equivalent"
-    },
-    "custom_components/heatpump_optimizer/pump_mode.py:resolve GUARD_OFF f7c55656": {
-      "old": "    if raw is None:",
-      "reason": "resolve()'s `raw is None` guard is redundant: _fold(None) is 'none', no alias key folds to 'none', and 'none' is in neither _ALIASES nor _STATUS_AMBIGUOUS, so _ALIASES.get('none') returns None on both paths -- measured on this tree (round-5 D3-07; the probe is tools/audit/round5/D3/equiv_probe.py).",
-      "verdict": "equivalent"
-    },
-    "custom_components/heatpump_optimizer/repairs.py:async_create_fix_flow GUARD_OFF 18acf7e6": {
-      "old": "    if issue_id == ISSUE_SPACE:",
-      "reason": "async_create_fix_flow's ISSUE_SPACE arm returns ConfirmRepairFlow(), and with the guard off control falls through to the final `return ConfirmRepairFlow()` -- a fresh instance of the same class either way, so no caller can tell the two apart. Measured: tests/features.py rc=0 at 25497c4b with the mutant applied (R8-P8 round 3, a survivor CI's changed-scope lane drew at 1a8cbcce).",
-      "verdict": "equivalent"
-    },
-    "custom_components/heatpump_optimizer/store.py:_sanitize GUARD_OFF da029f63": {
-      "old": "    if isinstance(value, tuple):",
-      "reason": "arrived with origin/main, commit 8e5d1ace (\"Close the non-finite-into-live-state class at the store-load boundary\", #1425); a real gap: the tuple arm is untested and the payload TYPE admits it -- `_StorePayload` is bound to `Mapping | Sequence` (store.py:35), so a tuple leaf is type-admissible even though json.loads (the only value HA's Store hands back) never produces one; dropping the arm returns the tuple's children unscanned. What pins it is a unit-level assertion on `_sanitize` (a tuple carrying a non-finite leaf must come back scrubbed), which no recorded driver makes. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass).",
-      "verdict": "gap"
-    },
-    "custom_components/heatpump_optimizer/store.py:_sanitize GUARD_OFF eac30b4c": {
-      "old": "    if isinstance(value, bool):",
-      "reason": "arrived with origin/main, commit 8e5d1ace (\"Close the non-finite-into-live-state class at the store-load boundary\", #1425); void mutant: the guard's body is `return value` and the fall-through end of `_sanitize` is the same `return value`, and a bool is not a float/str/dict/list/tuple -- so `if isinstance(value, bool):` -> `if False:` answers identically for EVERY input, not merely for bools. No check can kill it. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass).",
-      "verdict": "equivalent"
-    },
-    "custom_components/heatpump_optimizer/sysid.py:<module> CONST 29f6dada": {
-      "old": "_Z_975 = 1.959963984540054",
-      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: `_Z_975 = 1.959963984540054` -> `3.919928` doubles every Wald half-width the two-state fit publishes, and no recorded driver reads one back as a number: the estimator-act-2 check compares each half-width against the bar, and the noisy window's are already above it while the clean window's collapse to ~0, so the comparison holds under either constant. An assertion on a finite half-width's value would pin it. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass).",
-      "verdict": "gap"
-    },
-    "custom_components/heatpump_optimizer/sysid.py:<module> CONST 4f28d695": {
-      "verdict": "gap",
-      "old": "TWO_ZONE_SIZING_HEADROOM_C = 0.05",
-      "reason": "R8-P5b (#1524): the two-zone sizing headroom, doubled to 0.1 K by the CONST operator, survives every driver in play (`python3 tests/mutation_table.py --pin-killed --base origin/fix/r8-p5`, at 9d6bf172, 2026-09-25): a smaller step still keeps every stress preset inside the allowance and the two adopting presets inside the bar. The LOWER side is pinned: at 0.0 the #1524 barrier in tests/features.py fails 2 checks (typical_slab two-zone aborts at 0.800 K; two-zone adopts 1 of 3 against single-zone 2), measured on the barrier block alone. Recorded as a gap, not equivalent: a larger headroom shrinks the step and widens the fitted interval, which no check bounds."
-    },
-    "custom_components/heatpump_optimizer/sysid.py:<module> CONST 867ffbf6": {
-      "old": "_PROFILE_CHI2_95 = 3.8414588",
-      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: `_PROFILE_CHI2_95 = 3.8414588` -> `7.682918` only widens the band of profiled costs that count as inside the 95 % interval, and tests/features.py's estimator-act-2 check (features.py:35344) compares each published half-width against UA_ADOPTION_HALFWIDTH_BAR rather than against the threshold -- the 0.02 C noisy window's intervals stay above the bar and the clean window's stay below it on either constant. A fit whose profiled cost at x_hat[0] +/- bar straddles the threshold would pin it; no recorded driver builds one. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass).",
-      "verdict": "gap"
-    },
-    "custom_components/heatpump_optimizer/sysid.py:SystemIdentification._size_step_power GUARD_OFF c03bdbab": {
-      "verdict": "gap",
-      "old": "            if best is not None:",
-      "reason": "R8-P5b (#1524): the break that skips the grid restart once the first bisection found a fitting step. Switched off, the restart runs anyway: it takes the largest fitting grid point and bisects up to the band's upper edge, which the first bisection had already found to the same 0.01 kW-thermal resolution, so every driver in play passes (`python3 tests/mutation_table.py --pin-killed --base origin/fix/r8-p5`, at 9d6bf172, 2026-09-25). A gap rather than equivalent: the two arms can return steps that differ inside that resolution, and the mutant costs up to 32 extra sizing rollouts."
-    },
-    "custom_components/heatpump_optimizer/sysid.py:_lm_solve GUARD_OFF ad6ead99": {
-      "old": "            if clip is not None:",
-      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: `_profiled_cost` passes `clip=(1, -5.0, 10.0)` (sysid.py:721), so `if clip is not None:` -> `if False:` removes the only projection of the profiled C_r iterate, and the loops' other two projections (the `if x.size >= 3:` band) are not this band. It is distinguishable exactly when the profiled iterate leaves [-5, 10], which no driven fit's does. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass).",
-      "verdict": "gap"
-    },
-    "custom_components/heatpump_optimizer/sysid.py:_one_state_ua_halfwidth GUARD_OFF 7e1c5191": {
-      "old": "    if not np.isfinite(var_ua) or var_ua < 0.0:",
-      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: the non-finite-variance guard is the only thing between a non-finite or negative delta-method variance and `np.sqrt`, which would answer nan where the original refuses by name; on every driven fit var_ua is finite and non-negative, so the arm never fires. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass).",
-      "verdict": "gap"
-    },
-    "custom_components/heatpump_optimizer/sysid.py:_one_state_ua_halfwidth GUARD_OFF a19e1b35": {
-      "old": "    if beta2 <= 1e-12:",
-      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: the degenerate-capacity guard is untested. Without it a solution with beta2 <= 1e-12 falls through to `1.0 / beta2` and `-beta1 / beta2 ** 2` -- raising ZeroDivisionError at exactly 0.0 and answering a meaningless-but-finite interval just above it -- and no driven fit's fitted C is near-degenerate. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass).",
-      "verdict": "gap"
-    },
-    "custom_components/heatpump_optimizer/sysid.py:_one_state_ua_halfwidth RETURN_DEL 15861625": {
-      "old": "    return _Z_975 * float(np.sqrt(var_ua) / abs(beta1 / beta2))",
-      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap, and the sharp one: deleting the return makes `_one_state_ua_halfwidth` fall off the end and answer None, which the coordinator's gate reads as 'no interval' and refuses adoption (`hw is None` at coordinator.py:10455) -- while tests/features.py's own collector (features.py:35239) SKIPS a result whose ua_profile_halfwidth is None, so the mutant removes the row the driver would have judged instead of failing it. The one-state interval's value is unpinned throughout. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass).",
-      "verdict": "gap"
-    },
-    "custom_components/heatpump_optimizer/sysid.py:_ridged.residual GUARD_OFF 3e1589bf": {
-      "verdict": "gap",
-      "old": "        if not bool(np.all(np.isfinite(e))):",
-      "reason": "The round-7 D7-01 fix's shifted-prior re-solve keeps the two-state fit's own non-finite guard -- a divergent rollout reads as a large finite cost instead of poisoning the Jacobian (the R6 D7-03 shape at the fit's residual, #1396). `if not bool(np.all(np.isfinite(error))):` -> `if False:` leaves tests/features.py at rc=0 against a baseline of 0: nine further standalone scripts whose recorded closure reaches sysid.py were run on the same mutated tree: seven pass (typing_ruler, doc_claims, finite_boundary, config_flow_steps, deployment_shape, manual_plan, plan_view) and two (structure.py, entities.py) exit 1 on the UNMUTATED tree at that head too, for the coordinator comment block and the stale ledger dispositions this branch fixes -- so neither red carries signal about this mutant. The shifted re-solve starts at the converged fit and moves the intercept prior by one SLAB_INTERCEPT_PRIOR_SD_KW, which is what keeps it inside the finite range on every configuration measured. Recorded as a `gap` rather than equivalent: the two arms are distinguishable, they are simply not reached. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23. Re-anchored by R8-P5b (#1524): the guard now lives once in `_ridged`, which both the shifted re-solve and identify_slab's own residual use, so this site also stands for identify_slab's former copy (unpinned at the base). `if False:` there leaves tests/features.py at rc=0, ALL 3208 FEATURE CHECKS PASSED, the same as its comment-only control, applied in a detached worktree at 97c2b32f, 2026-09-25."
-    },
-    "custom_components/heatpump_optimizer/sysid.py:_slab_ua_profile_halfwidth CLAMP_DROP 56eb75db": {
-      "verdict": "equivalent",
-      "old": "    sigma2 = cost_hat / max(samples - 3, 1)",
-      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); redundant clamp: `rooms` is built by `_slab_series` (sysid.py:607), which refuses fewer than five usable intervals (`len(dts) < 5`, and `dts` is one element shorter than the series), so every call reaching `_slab_ua_profile_halfwidth` passes rooms.size >= 6 and `max(int(rooms.size) - 3, 1)` equals `int(rooms.size) - 3` on both paths. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass). Re-anchored by R8-P5b (#1524): the count now arrives as `samples`, which `_slab_outcome` passes as `int(rooms.size)` of the same `_slab_series` rooms, so the clamp is still redundant for the same reason."
-    },
-    "custom_components/heatpump_optimizer/sysid.py:_slab_ua_profile_halfwidth CLAMP_DROP 58c1d724": {
-      "old": "    se = float(np.sqrt(max(cov[0, 0], 0.0)))",
-      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); redundant clamp: `cov` is `np.linalg.inv(jac.T @ jac) * sigma2` with sigma2 >= 0, and the (0,0) diagonal of the inverse of a positive-definite Gram matrix is positive (a singular gram raises LinAlgError in both arms, since the mutant changes only the max), so `cov[0, 0] >= 0` for every input that reaches the line and `max(cov[0, 0], 0.0)` selects its first arm in both. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass).",
-      "verdict": "equivalent"
-    },
-    "custom_components/heatpump_optimizer/sysid.py:_slab_ua_profile_halfwidth CLAMP_DROP dffcdea0": {
-      "old": "        step = 1e-6 * max(abs(float(x_hat[i])), 1.0)",
-      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: dropping `max(..., 1.0)` shrinks the finite-difference step to `1e-6 * |x_hat[i]|` for any `|x_hat[i]| < 1` (a fitted G below 1), which moves the Jacobian and the published interval in its low digits -- inside the driver's margin to the bar, which reads a comparison and never the number. An assertion on the half-width's value would pin it. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass).",
-      "verdict": "gap"
-    },
-    "custom_components/heatpump_optimizer/sysid.py:_slab_ua_profile_halfwidth GUARD_OFF 870ea3aa": {
-      "old": "        if _profiled_cost(x_hat[0] + sign * UA_ADOPTION_HALFWIDTH_BAR) <= threshold:",
-      "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap: the refusal-by-name arm is untested. The mutant answers the Wald half-width where the ruling requires `inf` -- the case where the profiled cost at the bar is still inside the threshold, i.e. the interval extends past the bar. Every driven fit either has an interval far enough past the bar that the Wald width also exceeds it, or one inside it, so the driver's `hw > bar` comparison reads the same either way. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass).",
-      "verdict": "gap"
-    }
-  }
+  "reason": "The ratchet is the exact count of candidate sites with no disposition, derived at both ends and committed nowhere; a site leaves it only by carrying a disposition -- a `killed_by` driver, or a `survivor_triage` verdict (equivalent/gap) pinned to the exact `old` line. Keys moved from FILE:LINE KIND to a content anchor in fix/rca-ledger-anchors, re-derived on its merge of origin/main 4d31d55e on 2026-09-24: `--normalize` mapped all 103 dispositions (21 triage, 82 killed_by) with none unmapped, every entry's value unchanged, and the unpinned set identical under the old and the new code on that tree (3725 of 3828 candidates). The line-keyed re-derivation log main's `reason` had accumulated is superseded: it recorded re-keys this form no longer needs, and it stays in git history. The `last_measured` survivor_lines are a run's table and keep that run's FILE:LINE form. One property the triage entries share, stated here so no reason hides it: tests/entities.py's #1217 mark-staleness self-check reddens when any `survivor_triage`-marked line is mutated, because the mark's pin then names a mutant the tree no longer generates. That is a property of the RECORD, not a behavioural kill, so those sites are survivors here and not `killed_by` entries. The `gap` verdict records a MEASURED survivor and does NOT move the fraction: `survivor_gaps` counts every survivor no triage has called equivalent."
 }

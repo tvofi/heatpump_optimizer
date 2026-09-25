@@ -6,11 +6,11 @@ in the planner, the comfort floors the plan is allowed to promise, and a
 future path that *writes* the mode — reads its answer from here, so there is
 exactly one place where "DHW means no space heating" is written down.
 
-**Read only, in this release.** The optimizer never writes the mode. The
-table nevertheless carries what a writer would need (``key``, the device's
-own enum value, and ``options``, the strings a Home Assistant ``select``
-actually offers) because the alternative is to encode the vocabulary twice
-and have the two halves disagree the first time a mode is renamed.
+**Written only by ``pump_arbiter``, per plan step, when opted in.** It uses
+``key`` (the device's enum) and ``options`` (what the ``select`` offers), so
+the vocabulary is encoded once. A mode it wrote is marked owned on the
+signals and blocks nothing (``PumpSignals.mode_owned``); anything else
+writing the mode is a person, and is read exactly as before.
 
 **The state is the label, not the enum.** This matters and is easy to get
 wrong. The reference integration builds its ``select`` from a mapping of
