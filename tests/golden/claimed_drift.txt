@@ -690,4 +690,4 @@
 # steps are credited against the wood tank the coil actually cooled: again more
 # hot-water electricity, same direction. The humidity half moves nothing here:
 # no fixture learns a derate.
-wood_coil # R8-P3 (#1530 + the coil forecast read from physics): DHW kWh, dhw_heating_cost, predicted_cost and baseline_cost up
+wood_coil # the coil priced at the wood temp the physics reads mid-step (stacks on R8-P3, which moved it first): DHW kWh, dhw_heating_cost and predicted_cost up over R8-P3, baseline_cost flat over it
