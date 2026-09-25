@@ -696,4 +696,3 @@
 # section gains the mold_floor_breach_margin option, so capture_config_flow's
 # schema carries two new leaves (both under comfort.mold.fields), each present
 # on one side only.
-config_flow  # #1495: the mold-guard page gains mold_floor_breach_margin (2 leaves, ADD-ONLY)
