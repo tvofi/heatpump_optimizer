@@ -58,6 +58,12 @@ report() {
     driver=$(git config --get merge.claimnotes.driver 2>/dev/null)
     [ -n "$driver" ] && driver="$driver (installed just now)"
   fi
+  # The ledger driver is the same per-clone config, for the three measured
+  # JSON ledgers (tools/merge/ledger_merge.py). Installed silently: its
+  # absence only restores the plain text merge.
+  if [ -z "$(git config --get merge.ledgermerge.driver 2>/dev/null)" ]; then
+    python3 tools/merge/ledger_merge.py --install >/dev/null 2>&1
+  fi
   base=$(git merge-base origin/main HEAD 2>/dev/null)
   behind=$(git rev-list --count HEAD..origin/main 2>/dev/null)
   merges=$(git rev-list --count --first-parent HEAD..origin/main 2>/dev/null)
