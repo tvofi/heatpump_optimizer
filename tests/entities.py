@@ -12806,6 +12806,48 @@ _gl_ok, _gl_detail = _gl_run_sh_leases_stress()
 R.check("run.sh's lane_stress waits for the lease and its other scripts do not", _gl_ok, _gl_detail)
 
 
+def _gl_flock_wrap_label() -> tuple[bool, str]:
+    """A seat's own label under run.sh: never taken fails at once and takes
+    nothing (#1617 round 2: a take here left the label held after the gate);
+    held while another label waits, the seat re-queues behind the waiter."""
+    import threading
+    with _tempfile.TemporaryDirectory() as tds:
+        d, order = Path(tds) / "lock", []
+        try:
+            _gate_lock.flock_wrap("never-taken", [sys.executable, "-c", "pass"], lock_dir=d)
+            unheld_refused = False
+        except RuntimeError:
+            unheld_refused = True
+        unheld_left = _gate_lock.read_owner(d)
+        _gate_lock.take("seat", lock_dir=d, lease_seconds=60, wait=False)
+        poll, _gate_lock.WAIT_POLL_SECS = _gate_lock.WAIT_POLL_SECS, 0.2
+
+        def waiter() -> None:
+            _gate_lock.take("w", lock_dir=d, lease_seconds=60)
+            order.append("w")
+            _time.sleep(0.3)
+            _gate_lock.release("w", lock_dir=d)
+        t = threading.Thread(target=waiter, daemon=True)
+        try:
+            t.start()
+            _time.sleep(0.5)
+            rc = _gate_lock.flock_wrap("seat", [sys.executable, "-c", "pass"], lock_dir=d)
+            order.append("seat")
+            t.join(10)
+        finally:
+            _gate_lock.WAIT_POLL_SECS = poll
+        holder = _gate_lock.read_owner(d)
+    ok = (unheld_refused and unheld_left is None and rc == 0 and order == ["w", "seat"]
+          and holder is not None and holder.label == "seat")
+    return ok, (f"unheld_refused={unheld_refused} unheld_left={unheld_left} "
+                f"order={order} holder_after={holder and holder.label}")
+
+
+_gl_ok, _gl_detail = _gl_flock_wrap_label()
+R.check("a seat label never taken fails at once; a held one re-queues behind a waiter",
+        _gl_ok, _gl_detail)
+
+
 def _gl_same_label_expired_take() -> bool:
     """Same-label take on an expired lease rewrites the owner (#479 residual)."""
     past = datetime.now(UTC) - timedelta(seconds=10)
