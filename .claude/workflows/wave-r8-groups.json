@@ -142,7 +142,7 @@
     "R8-P8"
    ],
    "resume": {
-    "stage": "in review",
+    "stage": "in-review",
     "pr": 1581,
     "note": "PR #1581 open, in review. Owner ruled on #1524 on 2026-09-24T04:19Z (two-zone model), which moved it to R8-P5b; this group carries #1523 and #1525. Likeliest structure-budget raise of the round; ask before the push."
    },
@@ -345,7 +345,7 @@
     "R8-I1a"
    ],
    "resume": {
-    "stage": "in review",
+    "stage": "in-review",
     "pr": 1598,
     "note": "PR #1598 open, in review."
    },
