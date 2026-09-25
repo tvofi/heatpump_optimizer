@@ -12748,6 +12748,60 @@ R.check(
 )
 
 
+def _gl_stub_tree(td: Path) -> Path:
+    """A tree whose tests/stress.py and tests/other.py only drop a marker, with
+    the real gate_lock.py beside them: what runs under the lease is observable."""
+    (td / "tests").mkdir(parents=True)
+    (td / "tests/gate_lock.py").write_text((_closure.ROOT / "tests/gate_lock.py").read_text())
+    for name in ("stress", "other"):
+        (td / f"tests/{name}.py").write_text(
+            f"from pathlib import Path; Path('{td}/{name}.ran').write_text('1')\n")
+    return td
+
+
+def _gl_waits_then_runs(start, td: Path, lock: Path, marker: str) -> tuple[bool, bool]:
+    """(ran while `other` held the lease, ran once it was released)."""
+    _gate_lock.take("other", lock_dir=lock, lease_seconds=60, wait=False)
+    proc = start()
+    _time.sleep(1.5)
+    early = (td / marker).exists()
+    _gate_lock.release("other", lock_dir=lock)
+    for _ in range(120):
+        if (td / marker).exists():
+            break
+        _time.sleep(0.1)
+    proc.join(timeout=10) if hasattr(proc, "join") else proc.wait(timeout=10)
+    return early, (td / marker).exists()
+
+
+def _gl_run_sh_leases_stress() -> tuple[bool, str]:
+    """run.sh's own lane_stress/run/run_always/leased, sourced from run.sh and
+    driven: stress.py waits for the lease, other.py does not (the behavioural
+    pin the text match beside it cannot be: #1617 review, B3 R1)."""
+    text = (_closure.ROOT / "tests/run.sh").read_text()
+    fns = "".join(_re.findall(r"(?ms)^(?:scope_script|in_scope|run|run_always|leased|lane_stress)\(\) \{.*?^\}\n", text))
+    with _tempfile.TemporaryDirectory() as tds:
+        td = _gl_stub_tree(Path(tds) / "t")
+        lock = Path(tds) / "lock"
+        script = td / "drive.sh"
+        script.write_text("PYTHON=%s; WORKDIR=$(mktemp -d); SCOPE_RUN=; JOBS=1; LANE=x; step=0\n%s\n\"$@\"\n"
+                          % (sys.executable, fns))
+        env = {k: v for k, v in _os.environ.items() if not k.startswith("HPO_GATE")}
+        env["HPO_GATE_LOCK_DIR"] = str(lock)
+        drive = lambda *cmd: _subprocess.Popen(["bash", str(script), *cmd], cwd=td, env=env,
+                                                stdout=_subprocess.DEVNULL, stderr=_subprocess.DEVNULL)
+        other = drive("run", sys.executable, "tests/other.py")
+        other.wait(timeout=30)
+        other_ran = (td / "other.ran").exists()
+        early, late = _gl_waits_then_runs(lambda: drive("lane_stress"), td, lock, "stress.ran")
+    ok = other_ran and not early and late
+    return ok, f"other.py_ran_unleased={other_ran} stress_ran_while_held={early} stress_ran_after_release={late}"
+
+
+_gl_ok, _gl_detail = _gl_run_sh_leases_stress()
+R.check("run.sh's lane_stress waits for the lease and its other scripts do not", _gl_ok, _gl_detail)
+
+
 def _gl_same_label_expired_take() -> bool:
     """Same-label take on an expired lease rewrites the owner (#479 residual)."""
     past = datetime.now(UTC) - timedelta(seconds=10)
@@ -24889,6 +24943,35 @@ R.check(
     and not _mut_x_overlaps(),
     f"verdicts={[v for _, v in _MUT_X_OUT]!r} overlaps={_mut_x_overlaps()!r} "
     f"stress runs={[k for k, _, _ in _MUT_X_SPANS if k[1] == 'tests/stress.py']!r}",
+)
+
+def _mut_lease_arm(ci: str | None) -> tuple[bool, bool]:
+    """mutation_table.run_script on a stub stress.py with the lease held
+    elsewhere: (ran while held, ran after release). #1617 review, B3 T1."""
+    import threading
+    saved = {k: _os.environ.get(k) for k in ("GITHUB_ACTIONS", "HPO_GATE_LOCK_DIR")}
+    with _tempfile.TemporaryDirectory() as tds:
+        td = _gl_stub_tree(Path(tds) / "t")
+        lock = Path(tds) / "lock"
+        _os.environ["HPO_GATE_LOCK_DIR"] = str(lock)
+        _os.environ.pop("GITHUB_ACTIONS", None)
+        if ci:
+            _os.environ["GITHUB_ACTIONS"] = ci
+        try:
+            t = threading.Thread(target=_mut.run_script, args=("tests/stress.py", td, 60))
+            return _gl_waits_then_runs(lambda: (t.start(), t)[1], td, lock, "stress.ran")
+        finally:
+            for k, v in saved.items():
+                _os.environ.pop(k, None) if v is None else _os.environ.__setitem__(k, v)
+
+
+_MUT_L_LOCAL = _mut_lease_arm(None)
+_MUT_L_CI = _mut_lease_arm("true")
+R.check(
+    "off CI a mutant's stress.py run waits for the gate lease; on a CI runner "
+    "it runs at once (null control)",
+    _MUT_L_LOCAL == (False, True) and _MUT_L_CI == (True, True),
+    f"local (ran while held, after release)={_MUT_L_LOCAL} ci={_MUT_L_CI}",
 )
 
 # A survivor is the mutant that cannot stop early: every driver must run.
