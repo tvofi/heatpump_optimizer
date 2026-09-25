@@ -876,6 +876,71 @@ def slab_ua_adoption_halfwidth(
     return float(np.hypot(profile_halfwidth, prior_halfwidth))
 
 
+@dataclass(frozen=True)
+class AdoptionDecision:
+    """What :func:`adoption_decision` rules for one finished experiment."""
+
+    admit: bool
+    #: The blend weight the adopted scale enters with; 0.0 on a refusal.
+    weight: float
+    #: The fitted UA over the configured base UA; 0.0 on a refusal, whose
+    #: weight is 0.0 too.
+    scale: float
+    #: Published as the result's reason: "adopted", or why not (#942, #1525).
+    reason: str
+
+
+def adoption_decision(
+    result: SysIdResult, params: ThermalParameters, config: SysIdConfig
+) -> AdoptionDecision:
+    """Whether a finished experiment seeds the heat-loss learner, and why.
+
+    The one place the adoption gate lives (#1525): every path returns a
+    reason, so a refused fit is published by name instead of staying
+    completed with the fit's own "ok" beside a scale that never moved. The
+    interval gate is #1410's (with D7-01's prior term), then #942's
+    identifiability, then the blend arithmetic's own preconditions.
+    ``not hw <= bar`` refuses a NaN width, which ``hw > bar`` admitted.
+    """
+
+    def refuse(why: str) -> AdoptionDecision:
+        return AdoptionDecision(False, 0.0, 0.0, why)
+
+    if not result.completed:
+        return refuse(result.reason)
+    hw = slab_ua_adoption_halfwidth(
+        result.ua_profile_halfwidth, result.ua_prior_halfwidth
+    )
+    if hw is None:
+        return refuse("the fit placed no interval on the heat-loss coefficient")
+    if not hw <= UA_ADOPTION_HALFWIDTH_BAR:
+        bar_pct = np.expm1(UA_ADOPTION_HALFWIDTH_BAR) * 100
+        width = f"+-{np.expm1(hw) * 100:.0f} %" if np.isfinite(hw) else "unbounded"
+        return refuse(
+            f"heat-loss interval ({width}) is wider than the "
+            f"+-{bar_pct:.0f} % adoption bar"
+        )
+    identifiable, why = slab_mode_identifiability(params, config)
+    if not identifiable:
+        return refuse(why)
+    if result.heat_loss_kw_per_c is None:
+        return refuse("the fit returned no heat-loss coefficient")
+    if params.two_zone_enabled:
+        base_u = params.upper_floor_heat_loss + params.lower_floor_heat_loss
+    else:
+        base_u = params.heat_loss_coefficient
+    if not base_u > 1e-6:
+        return refuse("no configured heat-loss coefficient to scale")
+    # The blend weight comes from the same interval as the gate: a fit at
+    # the bar adopts mildly, a pinned one at full weight.
+    return AdoptionDecision(
+        True,
+        1.0 - hw / UA_ADOPTION_HALFWIDTH_BAR,
+        result.heat_loss_kw_per_c / base_u,
+        "adopted",
+    )
+
+
 class SystemIdentification:
     """State machine driving a step-response experiment."""
 

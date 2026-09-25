@@ -364,7 +364,7 @@ from .price_model import (
     pull_prices,
     quarters_from_entries,
 )
-from .sysid import SysIdConfig, SystemIdentification, UA_ADOPTION_HALFWIDTH_BAR, slab_mode_identifiability, slab_ua_adoption_halfwidth
+from .sysid import SysIdConfig, SystemIdentification, adoption_decision
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -5196,11 +5196,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # only coefficient change, leaving the next start 0.80x wrong).
             self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
             self._house_heat_loss_samples = 0
-            await self._async_save_thermal_learning()
 
         if CONF_BUFFER_COOLING_RATE in params:
             self._apply_buffer_cooling_rate(float(params[CONF_BUFFER_COOLING_RATE]))
             self._buffer_cooling_samples = 0
+
+        # One write for either reset: a call carrying both used to save the
+        # whole store twice, the first time with only half the reset in it.
+        if "house_heat_loss_coefficient" in params or CONF_BUFFER_COOLING_RATE in params:
             await self._async_save_thermal_learning()
 
         if CONF_DHW_COOLING_RATE in params:
@@ -5237,22 +5240,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                 )
             except DHWWindowError as err:
                 _LOGGER.warning("Ignoring invalid DHW demand windows: %s", err)
-        if CONF_DHW_IDLE_MIN_TEMP in params:
-            ctx._thermal_params.dhw_idle_min_temp = float(
-                params[CONF_DHW_IDLE_MIN_TEMP]
-            )
-        if CONF_DHW_LEGIONELLA_ENABLED in params:
-            ctx._thermal_params.dhw_legionella_enabled = bool(
-                params[CONF_DHW_LEGIONELLA_ENABLED]
-            )
-        if CONF_DHW_LEGIONELLA_TEMP in params:
-            ctx._thermal_params.dhw_legionella_temp = float(
-                params[CONF_DHW_LEGIONELLA_TEMP]
-            )
-        if CONF_DHW_LEGIONELLA_INTERVAL_DAYS in params:
-            ctx._thermal_params.dhw_legionella_interval_days = float(
-                params[CONF_DHW_LEGIONELLA_INTERVAL_DAYS]
-            )
+        for key, attribute, convert in (
+            (CONF_DHW_IDLE_MIN_TEMP, "dhw_idle_min_temp", float),
+            (CONF_DHW_LEGIONELLA_ENABLED, "dhw_legionella_enabled", bool),
+            (CONF_DHW_LEGIONELLA_TEMP, "dhw_legionella_temp", float),
+            (CONF_DHW_LEGIONELLA_INTERVAL_DAYS, "dhw_legionella_interval_days", float),
+        ):
+            if key in params:
+                setattr(ctx._thermal_params, attribute, convert(params[key]))
 
         # Attribute writes bypass __post_init__, so the thermal-mass divisor
         # floor is re-enforced here — the one chokepoint for service writes.
@@ -10481,7 +10476,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
     def _run_system_identification(self, prices: np.ndarray) -> None:
         """Advance sysid and override the plan when the experiment commands heat.
 
-        Subject to the mode gate and pump freeze like every other power path.
+        Subject to the mode gate and the learners' freeze (#1523).
         Writes ``_current_action["power"]`` after the solve — the one route
         that bypasses mode bounds — so a response measured while cooling,
         faulted or offline seeds wrong parameters via ``_adopt_system_identification``.
@@ -10489,14 +10484,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         ctx = getattr(self, "_ctx", self)
         if not self._sysid.active:
             return
-        if self._pump_signals.space_blocked:
-            self._sysid.abort(
-                f"heat pump mode {self._pump_signals.mode.label} cannot heat "
-                "the house"
-            )
-            return
-        if self._pump_signals.freeze_reason is not None:
-            self._sysid.abort(self._pump_signals.freeze_reason)
+        # #1523: the experiment is a heat-loss learner, so it stands down on
+        # the house learner's own freeze (external heat, a defrost, an open
+        # window, an unusable room or outdoor reading, the pump's freezes,
+        # which ``_learning_frozen`` ranks first) and on a mode that cannot heat.
+        why = (
+            f"heat pump mode {self._pump_signals.mode.label} cannot heat the house"
+            if self._pump_signals.space_blocked
+            else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)
+        )
+        if why is not None:
+            self._sysid.abort(why)
             return
         params = ctx._thermal_params
         state = ctx._current_state
@@ -10535,39 +10533,26 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             "dhw_reason": None,
         }
     def _adopt_system_identification(self) -> None:
-        """Seed the passive learners from a completed experiment."""
+        """Seed the passive learners from a completed experiment.
+
+        :func:`sysid.adoption_decision` rules, and its reason is published
+        on every path (#1525): a refusal no longer leaves the fit's "ok".
+        """
         result = self._sysid.result
-        # #1410: adoption is decided by the fitted UA's own 95 % profile-
-        # likelihood interval (superseding the #942 residual-scatter gate):
-        # a fit whose UA is not pinned within +-10 % is refused, however
-        # plausible its residual looks. D7-01 (#1459) added its other source.
-        hw = slab_ua_adoption_halfwidth(result.ua_profile_halfwidth, result.ua_prior_halfwidth)
-        if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR:
+        if not result.completed:
             return
         params = getattr(self, "_ctx", self)._thermal_params
-        # #942: adoption is decided by identifiability -- a one-state fit of
-        # a slow-slab two-state plant is refused by name, not silently.
-        identifiable, why = slab_mode_identifiability(params, self._sysid.config)
-        if not identifiable:
-            self._sysid.result = replace(result, completed=False, reason=why)
-            _LOGGER.info("System identification not adopted: %s", why)
+        decision = adoption_decision(result, params, self._sysid.config)
+        self._sysid.result = replace(result, completed=False, reason=decision.reason)
+        if not decision.admit:
+            _LOGGER.info("System identification not adopted: %s", decision.reason)
             return
-        if params.two_zone_enabled:
-            base_u = params.upper_floor_heat_loss + params.lower_floor_heat_loss
-        else:
-            base_u = params.heat_loss_coefficient
-        if base_u <= 1e-6 or result.heat_loss_kw_per_c is None:
-            return
-        scale = result.heat_loss_kw_per_c / base_u
-        # The blend weight comes from the same interval as the gate: a fit at
-        # the bar adopts mildly, a pinned one at full weight.
-        weight = 1.0 - hw / UA_ADOPTION_HALFWIDTH_BAR
-        blended = (1.0 - weight) * self._house_heat_loss_scale + weight * scale
+        weight = decision.weight
+        blended = (1.0 - weight) * self._house_heat_loss_scale + weight * decision.scale
         self._apply_house_heat_loss_scale(blended)
         self._house_heat_loss_samples = max(
             self._house_heat_loss_samples, int(20 * weight)
         )
-        self._sysid.result = replace(result, completed=False, reason="adopted")
         # Persist immediately: the whole point of an experiment is a result
         # good enough to outlive a restart, and the passive learner's periodic
         # save may be many samples away.

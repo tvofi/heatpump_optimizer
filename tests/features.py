@@ -10568,6 +10568,20 @@ R.check(
     )["edges"],
     "the DHW tank floated unconnected in every drawing (#40 item 2)",
 )
+# #1540 (R8-D7-s2-03): the refill coil is the one two_tank_4way edge drawn
+# only under a flag, and nothing drove the flag on -- `if dhw_coil:` ->
+# `if False:` in layout_edges dropped the published wood_tank->dhw_tank edge
+# with every check green. The coil-off config above is the null control.
+_coil_edges = _topo.describe_setup(
+    {**_u_cfg, "dhw_wood_coil_enabled": True}
+)["edges"]
+R.check(
+    "a wood coil in the hot water tank draws wood_tank->dhw_tank, and only "
+    "with the coil (#1540)",
+    ["wood_tank", "dhw_tank"] in _coil_edges
+    and ["wood_tank", "dhw_tank"] not in _u["edges"],
+    f"coil on {_coil_edges}; coil off {_u['edges']}",
+)
 R.check(
     "and no hot-water pipe is drawn for a house without hot water",
     ["heat_pump", "dhw_tank"]
@@ -26051,9 +26065,15 @@ _PKG_DIR = _Path("custom_components/heatpump_optimizer")
 
 class _SysIdHost:
     _run_system_identification = Coord._run_system_identification
+    # #1523: the experiment consults the production freeze predicate, which
+    # reads these three besides the pump signals; all clear here.
+    _learning_frozen = Coord._learning_frozen
 
     def __init__(self, signals) -> None:
         self._pump_signals = signals
+        self._external_heat_active = False
+        self._input_health = None
+        self._vent_cusum = type("_Vent", (), {"tripped": False})()
         self._sysid = _SysIdModule.SystemIdentification(
             _SysIdModule.SysIdConfig(enabled=True)
         )
@@ -26445,6 +26465,23 @@ _lg_unknown._legionella.check_mode_block(True)
 R.check(
     "an unknown history is not evidence of an overdue cycle",
     not _lg_issues(_lg_unknown),
+)
+# #1532 (R8-D3-s2-01): a last cycle stamped in the FUTURE -- a clock stepped
+# back, an NTP correction, a stamp restored from a backup -- is 0 h ago, not a
+# negative age. Deleting hours_since's clamp moved a 2 h-future reading to
+# -2.0 h, and the countdown past the interval, with every check green. The
+# 2 h-past reading is the null control: the clamp bites only below zero.
+_lg_skew = _lg_coord()
+_lg_skew._legionella.last_cycle = dt_util.now() + timedelta(hours=2)
+_lg_skew_future = _lg_skew._legionella.hours_since()
+_lg_skew._legionella.last_cycle = dt_util.now() - timedelta(hours=2)
+_lg_skew_past = _lg_skew._legionella.hours_since()
+R.check(
+    "a last cycle stamped in the future is 0 h ago, not a negative age (#1532)",
+    _lg_skew_future == 0.0
+    and _lg_skew_past is not None
+    and abs(_lg_skew_past - 2.0) < 1e-3,
+    f"future {_lg_skew_future!r} h, past {_lg_skew_past!r} h",
 )
 for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json"):
     _lg_doc = _json.loads(
@@ -28952,6 +28989,43 @@ _et_check(
     ),
     "manual_plan_invalid_slots",
 )
+
+# #1533 (R8-D3-s2-02): a minimum exactly AT the ceiling (setpoint less
+# DHW_MIN_TEMP_SETPOINT_MARGIN) is a legal zero-width deadband, and both
+# handlers accept it. A `>` -> `>=` flip at either rejected that legal value
+# with every check green. The null control is the same call 0.01 degrees
+# past the ceiling, which each handler must refuse, so the accepted value is
+# the boundary and not merely somewhere below it. A fresh entry, so the
+# accepted writes land nowhere another check reads.
+from heatpump_optimizer.const import (  # noqa: E402
+    DHW_MIN_TEMP_SETPOINT_MARGIN as _DHW_MIN_MARGIN,
+)
+
+_et_bnd_hass = FakeHass()
+_seed_prices(_et_bnd_hass)
+_et_bnd_entry = FakeEntry(data=_LC_DATA)
+_asyncio.run(_ha_setup_entry(_integ, _et_bnd_hass, _et_bnd_entry))
+_et_bnd_ceiling = (
+    _et_bnd_entry.runtime_data._thermal_params.dhw_setpoint - _DHW_MIN_MARGIN
+)
+for _et_bnd_svc, _et_bnd_key in (
+    ("set_thermal_parameters", "set_thermal_params_dhw_min_no_deadband"),
+    ("apply_schedule", "apply_schedule_dhw_min_no_deadband"),
+):
+    _et_bnd_past = _et_call(
+        _et_bnd_hass, _et_bnd_svc,
+        {"dhw_min_temperature": _et_bnd_ceiling + 0.01},
+    )
+    _et_bnd_at = _et_call(
+        _et_bnd_hass, _et_bnd_svc, {"dhw_min_temperature": _et_bnd_ceiling}
+    )
+    R.check(
+        f"{_et_bnd_svc} accepts a hot water minimum exactly at the deadband "
+        "ceiling and refuses one 0.01 past it (#1533)",
+        _et_bnd_at is None and not _et_why(_et_bnd_past, _et_bnd_key),
+        f"at {_et_bnd_ceiling:g}: {_et_bnd_at!r}; "
+        f"past: {_et_why(_et_bnd_past, _et_bnd_key) or 'refused'}",
+    )
 
 # The thirteenth site is the coordinator's, reached the way a user reaches
 # it: the thermostat's set_temperature (climate.py:281), which refuses a
@@ -46681,6 +46755,504 @@ R.check(
     [(r["planned"], r["verdict"]) for r in _pa.state_for(_pa_lg).log]
     == [("dhw", "delivered"), ("space", "delivered"), ("both", "delivered"), (None, "baseline")],
     f"{list(_pa.state_for(_pa_lg).log)}",
+)
+
+# ---------------------------------------------------------------------------
+R.section("P5 — sysid stands down on the learner freeze, and names every refusal (#1523, #1525)")
+# #1523: the active experiment is a heat-loss learner that never consulted
+# ``_learning_frozen``, so it recorded -- and adopted -- nights the house
+# learner refuses. Driven through the production state machine into its step
+# phase, then contaminated the way production flags each condition.
+import ast as _p5_ast  # noqa: E402
+import inspect as _p5_inspect  # noqa: E402
+import logging as _p5_logging  # noqa: E402
+import sys as _p5_sys  # noqa: E402
+from datetime import datetime as _p5_datetime  # noqa: E402
+
+from homeassistant.util import dt as _p5_dt  # noqa: E402
+from heatpump_optimizer import coordinator as _p5_coord_mod  # noqa: E402
+from heatpump_optimizer import pump_mode as _p5_pump_mode  # noqa: E402
+from heatpump_optimizer.inputs import InputHealth as _P5Health  # noqa: E402
+from heatpump_optimizer.inputs import InputReading as _P5Reading  # noqa: E402
+
+_P5_T0 = _p5_datetime(2026, 1, 15, 23, 30, 0)
+_P5_DATA = {
+    "indoor_temp_entity": "sensor.indoor",
+    "outdoor_temp_entity": "sensor.outdoor",
+    "heat_pump_power_entity": "sensor.hp_power",
+    "system_identification_enabled": True,
+}
+
+
+def _p5_contaminate(c, how):
+    s = c._pump_signals
+    if how == "external_heat":
+        c._external_heat_active = True
+    elif how == "defrosting":
+        c._pump_signals = _dc_replace(s, defrosting=True)
+    elif how == "pump_fault":
+        c._pump_signals = _dc_replace(
+            s, fault=True, freeze_reason=pump_signals.FREEZE_FAULT
+        )
+    elif how == "ventilation":
+        c._vent_cusum.tripped = True
+    elif how in ("indoor_stale", "outdoor_stale"):
+        key = "indoor_temp_entity" if how == "indoor_stale" else "outdoor_temp_entity"
+        c._input_health.record(
+            _P5Reading(key=key, entity_id=f"sensor.{how.split('_')[0]}",
+                       value=21.0, problem="stale")
+        )
+    elif how == "cool_mode":
+        c._pump_signals = _dc_replace(
+            s, mode=_p5_pump_mode.capability("cool"), mode_observed=True
+        )
+
+
+def _p5_night(how):
+    """One experiment driven into its step phase, then one contaminated tick."""
+    _p5_dt.freeze(_P5_T0)
+    try:
+        c = _t4_coord(**_P5_DATA)
+        c._current_state = _dc_replace(
+            c._current_state, room_temperature=21.0, outdoor_temperature=2.0
+        )
+        health = _P5Health()
+        for key, ent, val in (("indoor_temp_entity", "sensor.indoor", 21.0),
+                              ("outdoor_temp_entity", "sensor.outdoor", 2.0)):
+            health.record(_P5Reading(key=key, entity_id=ent, value=val))
+        c._input_health = health
+        c._sysid.config.enabled = True
+        c._sysid.config.min_days_between_runs = 0.0
+        c._sysid.arm(_P5_T0, plant=c._thermal_params)
+        prices = np.full(48, 1.0)
+        for k in range(6):
+            _p5_dt.freeze(_P5_T0 + timedelta(minutes=15 * k))
+            c._run_system_identification(prices)
+            if c._sysid.phase == _SysIdModule.PHASE_STEP:
+                break
+        entered = c._sysid.phase == _SysIdModule.PHASE_STEP
+        _p5_dt.freeze(_P5_T0 + timedelta(minutes=15 * (k + 1)))
+        _p5_contaminate(c, how)
+        before = len(c._sysid.samples)
+        c._run_system_identification(prices)
+        return {
+            "entered_step": entered,
+            "recorded": len(c._sysid.samples) - before,
+            "phase": c._sysid.phase,
+            "reason": c._sysid.result.reason,
+        }
+    finally:
+        _p5_dt.freeze(None)
+
+
+_p5_expect = {
+    "external_heat": "external_heat_source",
+    "defrosting": "defrosting",
+    "pump_fault": pump_signals.FREEZE_FAULT,
+    "ventilation": "ventilation",
+    "indoor_stale": "stale:indoor_temp_entity",
+    "outdoor_stale": "stale:outdoor_temp_entity",
+}
+_p5_clean = _p5_night("clean")
+_p5_nights = {how: _p5_night(how) for how in _p5_expect}
+R.check(
+    "#1523 null control: a clean night reaches the step phase and records its tick",
+    _p5_clean["entered_step"] and _p5_clean["recorded"] == 1
+    and _p5_clean["phase"] == _SysIdModule.PHASE_STEP,
+    f"{_p5_clean!r} -- without this, every abort below could be an experiment "
+    "that never ran",
+)
+R.check(
+    "#1523: every condition the house learner freezes on aborts the experiment "
+    "by that freeze's own name, and records nothing",
+    all(
+        r["entered_step"] and r["recorded"] == 0
+        and r["phase"] == _SysIdModule.PHASE_ABORTED
+        and r["reason"] == _p5_expect[how]
+        for how, r in _p5_nights.items()
+    ),
+    f"{_p5_nights!r} -- the experiment fits UA from these very samples, so a "
+    "tick of wood-stove heat, a defrost's missing heat, an open window or a "
+    "pinned room reading is what a +21 % adopted UA was made of",
+)
+_p5_cool = _p5_night("cool_mode")
+R.check(
+    "#1523: a mode that cannot heat still aborts by its own name (the mode gate "
+    "moved into the same predicate)",
+    _p5_cool["phase"] == _SysIdModule.PHASE_ABORTED
+    and "cannot heat the house" in _p5_cool["reason"]
+    and _p5_cool["recorded"] == 0,
+    f"{_p5_cool!r}",
+)
+
+# #1525: the adoption gate lives in one pure function, and every path it has
+# is driven through the production ``_adopt_system_identification``. The
+# invariant is read on the published learning view: a fit that was not
+# adopted is never still published as completed with the fit's own "ok" --
+# the silent first guard left 10 of 19 finished experiments that way at the
+# finder's baseline (cdf82daa, s1_gate_silent.py).
+_p5_bar = _SysIdModule.UA_ADOPTION_HALFWIDTH_BAR
+
+
+class _P5Log(_p5_logging.Handler):
+    def __init__(self):
+        super().__init__(_p5_logging.INFO)
+        self.lines = []
+
+    def emit(self, record):
+        self.lines.append(record.getMessage())
+
+
+def _p5_adopt(*, halfwidth=0.0, prior=None, heat_loss=0.30, ua=0.15,
+              slab_ks=None, two_zone=False, zones=None):
+    c = _t4_coord(**(_T4_TWO_ZONE if two_zone else {}))
+    c._thermal_params.heat_loss_coefficient = ua
+    if slab_ks is not None:
+        c._thermal_params.slab_heat_transfer = slab_ks
+    if zones is not None:
+        c._thermal_params.upper_floor_heat_loss = zones[0]
+        c._thermal_params.lower_floor_heat_loss = zones[1]
+    c._sysid.result = _dc_replace(
+        c._sysid.result, completed=True, reason="ok",
+        ua_profile_halfwidth=halfwidth, ua_prior_halfwidth=prior,
+        heat_loss_kw_per_c=heat_loss,
+    )
+    applied = []
+    real_apply = c._apply_house_heat_loss_scale
+    c._apply_house_heat_loss_scale = lambda v: (applied.append(v), real_apply(v))
+    log = _P5Log()
+    _p5_coord_mod._LOGGER.addHandler(log)
+    level = _p5_coord_mod._LOGGER.level
+    _p5_coord_mod._LOGGER.setLevel(_p5_logging.INFO)
+    try:
+        escaped = _t4_call(c._adopt_system_identification)
+    finally:
+        _p5_coord_mod._LOGGER.removeHandler(log)
+        _p5_coord_mod._LOGGER.setLevel(level)
+    pub = c._learning_view()["system_identification"]["result"]
+    return {"applied": bool(applied), "completed": pub["completed"],
+            "reason": pub["reason"], "log": log.lines,
+            "escaped": escaped if isinstance(escaped, Exception) else None}
+
+
+_p5_cases = {
+    "pinned": dict(),
+    "half_bar": dict(halfwidth=_p5_bar / 2.0),
+    "at_bar": dict(halfwidth=_p5_bar),
+    "no_interval": dict(halfwidth=None),
+    "wide": dict(halfwidth=2.0 * _p5_bar),
+    "infinite": dict(halfwidth=float("inf")),
+    "nan_width": dict(halfwidth=float("nan")),
+    "prior_widens_past_bar": dict(halfwidth=0.8 * _p5_bar, prior=0.8 * _p5_bar),
+    "unseeded_slab": dict(slab_ks=0.0),
+    "no_fitted_ua": dict(heat_loss=None),
+    "zero_nameplate": dict(ua=0.0),
+    "two_zone_zero_zones": dict(two_zone=True, zones=(0.0, 0.0)),
+}
+_p5_lines = set()
+_p5_code = _SysIdModule.adoption_decision.__code__
+
+
+def _p5_tracer(frame, event, arg):
+    if frame.f_code is _p5_code:
+        def _local(f, ev, a):
+            if ev == "line":
+                _p5_lines.add(f.f_lineno)
+            return _local
+        return _local
+    return None
+
+
+_p5_prev_trace = _p5_sys.gettrace()
+_p5_sys.settrace(_p5_tracer)
+try:
+    _p5_runs = {name: _p5_adopt(**kw) for name, kw in _p5_cases.items()}
+    # The one path the coordinator never offers (it returns first on an
+    # unfinished result), driven on the function itself for totality.
+    _p5_unfinished = _SysIdModule.adoption_decision(
+        _SysIdModule.SysIdResult(completed=False, reason="fit failed"),
+        ThermalParameters(), _SysIdModule.SysIdConfig(),
+    )
+finally:
+    _p5_sys.settrace(_p5_prev_trace)
+_p5_src, _p5_first = _p5_inspect.getsourcelines(_SysIdModule.adoption_decision)
+_p5_returns = set()
+_p5_stack = list(_p5_ast.parse("".join(_p5_src)).body[0].body)
+while _p5_stack:
+    _p5_node = _p5_stack.pop()
+    if isinstance(_p5_node, (_p5_ast.FunctionDef, _p5_ast.Lambda)):
+        continue  # the nested ``refuse`` helper's own return is not a path
+    if isinstance(_p5_node, _p5_ast.Return):
+        _p5_returns.add(_p5_first - 1 + _p5_node.lineno)
+    _p5_stack.extend(_p5_ast.iter_child_nodes(_p5_node))
+R.check(
+    "#1525: the cases drive every return of adoption_decision (the barrier "
+    "covers each path the gate has, including one added later)",
+    len(_p5_returns) >= 2 and _p5_returns <= _p5_lines,
+    f"returns at lines {sorted(_p5_returns)}, executed {sorted(_p5_lines & _p5_returns)}; "
+    f"not driven: {sorted(_p5_returns - _p5_lines)}",
+)
+_p5_bad = {
+    name: r for name, r in _p5_runs.items()
+    if r["escaped"] is not None
+    or r["completed"] is not False
+    or (r["applied"] != (r["reason"] == "adopted"))
+    or (not r["applied"] and (
+        r["reason"] in ("", "ok")
+        or not any("not adopted: " + r["reason"] in ln for ln in r["log"])
+    ))
+}
+R.check(
+    "#1525: no finished experiment stays published as completed or 'ok' -- "
+    "adopted means applied, and each refusal publishes and logs its own reason",
+    not _p5_bad,
+    f"violations {_p5_bad!r}; all runs "
+    f"{ {n: (r['applied'], r['reason']) for n, r in _p5_runs.items()} }",
+)
+R.check(
+    "#1525: an interval the fit could not bound is published as unbounded, "
+    "never as a '+-inf %' width",
+    "unbounded" in _p5_runs["infinite"]["reason"]
+    and "inf" not in _p5_runs["infinite"]["reason"]
+    and "+-21 %" in _p5_runs["wide"]["reason"],
+    f"infinite {_p5_runs['infinite']['reason']!r}; wide {_p5_runs['wide']['reason']!r}",
+)
+R.check(
+    "#1525: the admits are exactly the in-bar fits (a NaN width is refused, "
+    "which 'hw > bar' let through)",
+    {n for n, r in _p5_runs.items() if r["applied"]} == {"pinned", "half_bar", "at_bar"}
+    and not _p5_unfinished.admit and _p5_unfinished.reason == "fit failed",
+    f"{ {n for n, r in _p5_runs.items() if r['applied']} } unfinished {_p5_unfinished!r}",
+)
+
+# The coordinator offers the gate the result on EVERY cycle, and an unfinished
+# one (an abort, a refusal already published) must pass through untouched:
+# re-deciding it would log a refusal per cycle and re-stamp the published one.
+_p5_idle = _t4_coord()
+_p5_idle._sysid.result = _SysIdModule.SysIdResult(completed=False, reason="ventilation")
+_p5_idle_before = _p5_idle._sysid.result
+_p5_idle_log = _P5Log()
+_p5_coord_mod._LOGGER.addHandler(_p5_idle_log)
+_p5_idle_level = _p5_coord_mod._LOGGER.level
+_p5_coord_mod._LOGGER.setLevel(_p5_logging.INFO)
+try:
+    _p5_idle_escaped = _t4_call(_p5_idle._adopt_system_identification)
+finally:
+    _p5_coord_mod._LOGGER.removeHandler(_p5_idle_log)
+    _p5_coord_mod._LOGGER.setLevel(_p5_idle_level)
+R.check(
+    "#1525: an unfinished result offered on a later cycle is left as it is "
+    "and logs nothing",
+    _p5_idle._sysid.result is _p5_idle_before and not _p5_idle_log.lines
+    and not isinstance(_p5_idle_escaped, Exception),
+    f"result {_p5_idle._sysid.result!r} log {_p5_idle_log.lines!r}",
+)
+
+# #1525 root cause: the gate that went silent was not in a decision function.
+# #1410 put it in the wrapper's own first guard, where a walk of
+# adoption_decision cannot see it. So the wrapper's returns are paths too, and
+# the same cases, plus the unfinished result, must drive each one. A return
+# added here on a condition no case reaches fails this check. Without it, such
+# a return passes the rest of the suite.
+import textwrap as _p5w_textwrap  # noqa: E402
+
+_p5w_fn = _p5_coord_mod.HeatPumpOptimizerCoordinator._adopt_system_identification
+_p5w_lines = set()
+
+
+def _p5w_tracer(frame, event, arg):
+    if frame.f_code is _p5w_fn.__code__:
+        def _local(f, ev, a):
+            if ev == "line":
+                _p5w_lines.add(f.f_lineno)
+            return _local
+        return _local
+    return None
+
+
+_p5w_prev = _p5_sys.gettrace()
+_p5_sys.settrace(_p5w_tracer)
+try:
+    for _p5w_kw in _p5_cases.values():
+        _p5_adopt(**_p5w_kw)
+    _p5w_idle = _t4_coord()
+    _p5w_idle._sysid.result = _SysIdModule.SysIdResult(completed=False, reason="ventilation")
+    _t4_call(_p5w_idle._adopt_system_identification)
+finally:
+    _p5_sys.settrace(_p5w_prev)
+_p5w_src, _p5w_first = _p5_inspect.getsourcelines(_p5w_fn)
+_p5w_returns = {
+    _p5w_first - 1 + n.lineno
+    for n in _p5_ast.walk(_p5_ast.parse(_p5w_textwrap.dedent("".join(_p5w_src))))
+    if isinstance(n, _p5_ast.Return)
+}
+R.check(
+    "#1525: the cases drive every return of _adopt_system_identification too "
+    "(a guard added in the wrapper, where #1410 put the silent one, is a path)",
+    len(_p5w_returns) >= 2 and _p5w_returns <= _p5w_lines,
+    f"returns at lines {sorted(_p5w_returns)}, executed "
+    f"{sorted(_p5w_lines & _p5w_returns)}; not driven: {sorted(_p5w_returns - _p5w_lines)}",
+)
+
+# The service write that resets the learned heat loss and the buffer cooling
+# rate persists once, and that one write carries both resets. It used to save
+# the whole store twice, the first time with only the heat-loss half applied.
+def _p5_service_saves(params):
+    c = _t4_coord()
+    c._house_heat_loss_samples, c._buffer_cooling_samples = 9, 7
+    c._p5_payloads = []
+    inner = c._async_save_thermal_learning
+
+    async def counted():
+        c._p5_payloads.append(c._thermal_learning_payload())
+        return await inner()
+
+    c._async_save_thermal_learning = counted
+    _t4_drive(c, "async_update_thermal_params", params)
+    return c._p5_payloads
+
+
+_p5_both = _p5_service_saves(
+    {"house_heat_loss_coefficient": 0.2, "buffer_cooling_rate": 1.5}
+)
+_p5_one = {k: _p5_service_saves({k: v}) for k, v in (
+    ("house_heat_loss_coefficient", 0.2), ("buffer_cooling_rate", 1.5),
+    ("dhw_idle_min_temperature", 33))}
+R.check(
+    "a service write resetting both learners saves once, with both resets in it; "
+    "either alone still saves once, and neither saves nothing",
+    len(_p5_both) == 1
+    and _p5_both[0]["house_heat_loss_samples"] == 0
+    and _p5_both[0]["buffer_cooling_samples"] == 0
+    and _p5_both[0]["buffer_cooling_rate"] == 1.5
+    and len(_p5_one["house_heat_loss_coefficient"]) == 1
+    and len(_p5_one["buffer_cooling_rate"]) == 1
+    and _p5_one["dhw_idle_min_temperature"] == [],
+    f"both {[(p['house_heat_loss_samples'], p['buffer_cooling_samples']) for p in _p5_both]}; "
+    f"alone { {k: len(v) for k, v in _p5_one.items()} }",
+)
+
+# P2 class check for #1523: every function in coordinator.py that feeds a
+# learner consults ``_learning_frozen`` or is dispositioned. RULE (the class's
+# seams): a learner is an attribute ``_thermal_learning_payload`` persists, or
+# the experiment's ``_sysid.step``; a function feeds one when it stores to
+# that attribute or calls a method on it other than a read. It consults when
+# it calls ``_learning_frozen`` itself or through a module-level helper (the
+# ``_freq_fold_blocked`` idiom), or when every caller consults directly. A
+# DESIGN CHOICE, stated: the consult's presence is checked, not that it
+# dominates the write -- the per-learner behaviour checks own that.
+_P5_READS = {"as_dict", "summary", "recommend", "evidence_exhausted",
+             "get", "items", "values", "isoformat"}
+_P5_DISPOSED = {
+    "_adopt_system_identification": "consumes the result of the experiment "
+    "_run_system_identification gated; it records no evidence",
+    "_apply_buffer_cooling_rate": "clamp setter; its evidence caller is a feeder",
+    "_apply_cop_scale": "clamp setter; its evidence caller is a feeder",
+    "_apply_house_heat_loss_scale": "clamp setter; its evidence callers are feeders",
+    "_apply_lower_floor_loss_ratio": "clamp setter; its evidence caller is a feeder",
+    "_apply_learner_payloads": "restores a stored snapshot (drift rollback)",
+    "_async_load_thermal_learning": "restore from the store",
+    "_load_t4b_learners": "restore from the store",
+    "_reanchor_house_heat_loss_scale": "re-expresses a restored scale (#86)",
+    "_init_frequency": "construction",
+    "_init_insurance": "construction",
+    "_init_measurements": "construction",
+    "_init_thermal_learning": "construction",
+    "async_update_thermal_params": "the user's service write resets counters",
+    "_async_watch_learning_drift": "releases a starved ventilation latch; "
+    "no evidence enters",
+    "_detect_immersion": "an event log of the element's draw, not house evidence",
+    "_update_current_state": "stores the supply reading _fold_flow_lift folds; "
+    "the fold consults",
+    "_update_snow_memory": "forecast weather memory, not house evidence",
+}
+
+
+def _p5_feeders(tree):
+    cls = next(n for n in tree.body if isinstance(n, _p5_ast.ClassDef)
+               and n.name == "HeatPumpOptimizerCoordinator")
+    payload = next(n for n in cls.body
+                   if getattr(n, "name", "") == "_thermal_learning_payload")
+    sinks = {x.attr for x in _p5_ast.walk(payload)
+             if isinstance(x, _p5_ast.Attribute)
+             and isinstance(x.value, _p5_ast.Name) and x.value.id == "self"}
+    fdefs = (_p5_ast.FunctionDef, _p5_ast.AsyncFunctionDef)
+    modfns = {n.name: n for n in tree.body if isinstance(n, fdefs)}
+    fns = dict(modfns)
+    fns.update({n.name: n for n in cls.body if isinstance(n, fdefs)})
+
+    def callees(f):
+        out = set()
+        for x in _p5_ast.walk(f):
+            if isinstance(x, _p5_ast.Call):
+                if isinstance(x.func, _p5_ast.Name):
+                    out.add(x.func.id)
+                elif (isinstance(x.func, _p5_ast.Attribute)
+                      and isinstance(x.func.value, _p5_ast.Name)
+                      and x.func.value.id in ("self", "coord")):
+                    out.add(x.func.attr)
+        return out
+
+    def consults(name, seen=()):
+        cs = callees(fns[name])
+        if "_learning_frozen" in cs:
+            return True
+        return any(consults(c, seen + (name,)) for c in cs
+                   if c in modfns and c not in seen)
+
+    callers = {}
+    for name, f in fns.items():
+        for c in callees(f) & set(fns):
+            callers.setdefault(c, set()).add(name)
+    feeders = {}
+    for name, f in fns.items():
+        hit = set()
+        for x in _p5_ast.walk(f):
+            targets = (x.targets if isinstance(x, _p5_ast.Assign)
+                       else [x.target] if isinstance(x, (_p5_ast.AugAssign, _p5_ast.AnnAssign))
+                       else [])
+            for g in targets:
+                hit |= {y.attr for y in _p5_ast.walk(g)
+                        if isinstance(y, _p5_ast.Attribute) and y.attr in sinks
+                        and isinstance(y.ctx, _p5_ast.Store)}
+            if (isinstance(x, _p5_ast.Call) and isinstance(x.func, _p5_ast.Attribute)
+                    and isinstance(x.func.value, _p5_ast.Attribute)):
+                owner, meth = x.func.value.attr, x.func.attr
+                if (owner in sinks and meth not in _P5_READS) or (
+                        owner == "_sysid" and meth == "step"):
+                    hit.add(f"{owner}.{meth}")
+        if hit and name != "_learning_frozen":
+            feeders[name] = hit
+    open_seams = {
+        name for name in feeders
+        if not consults(name)
+        and not (callers.get(name) and all(
+            "_learning_frozen" in callees(fns[c]) for c in callers[name]))
+    }
+    return feeders, open_seams
+
+
+_p5_tree = _p5_ast.parse(_p5_inspect.getsource(_p5_coord_mod))
+_p5_feeds, _p5_open = _p5_feeders(_p5_tree)
+R.check(
+    "#1523 class check: every learner feeder in coordinator.py consults the "
+    "freeze or carries a disposition, and no disposition is stale",
+    "_run_system_identification" in _p5_feeds
+    and _p5_open == set(_P5_DISPOSED),
+    f"undispositioned {sorted(_p5_open - set(_P5_DISPOSED))}; stale "
+    f"{sorted(set(_P5_DISPOSED) - _p5_open)}; feeders {len(_p5_feeds)}",
+)
+# The class check's own null control: the same rule over a copy of the module
+# with the experiment's freeze consult removed finds #1523's seam.
+_P5_CONSULT = "else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)"
+_p5_src_now = _p5_inspect.getsource(_p5_coord_mod)
+_p5_mut = _p5_ast.parse(_p5_src_now.replace(_P5_CONSULT, "else None"))
+R.check(
+    "#1523 class check null control: dropping the experiment's consult "
+    "re-opens exactly its seam",
+    _p5_src_now.count(_P5_CONSULT) == 1
+    and _p5_feeders(_p5_mut)[1] - set(_P5_DISPOSED) == {"_run_system_identification"},
+    f"{sorted(_p5_feeders(_p5_mut)[1] - set(_P5_DISPOSED))}",
 )
 
 
