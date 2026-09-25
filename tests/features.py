@@ -45876,10 +45876,11 @@ R.check(
 _z1524_night = datetime(2026, 1, 15, 23, 0, tzinfo=timezone.utc)
 
 
-def _z1524_run(name, two_zone, valve=None):
+def _z1524_run(name, two_zone, valve=None, valve_target=0.0):
     """One experiment night on the declared preset; (decision, peak excursion)."""
     cfg = _grad_house(two_zone=two_zone, dhw=False)
     cfg.update({_const922.CONF_MIXING_VALVE_MODE: valve} if valve else {})
+    cfg.update({_const922.CONF_MIXING_VALVE_TARGET: valve_target} if valve else {})
     derived = presets.derive(
         presets.BuildingPreset(**{**vars(_b942[name]), "two_zone": two_zone})
     )
@@ -45966,5 +45967,19 @@ R.check(
     f"valve {_z1524_admitted['manual']}, no valve {_z1524_admitted[True]} "
     f"of {len(_b942)}",
 )
+# R8-P5c: a valve target at the held 21 C sits the valve at its curve, where
+# every tank charge above it reads alike and a step only charges the tank. The
+# fit raised a singular Jacobian there ("fit raised"); it is refused by name.
+for _z1524_name in _b942:
+    _z1524_d, _z1524_peak, _z1524_why = _z1524_run(
+        _z1524_name, True, "manual", 21.0
+    )
+    R.check(
+        f"R8-P5c: {_z1524_name} behind a valve regulating at the held "
+        "temperature is refused by name, inside the 0.8 K allowance",
+        _z1524_peak <= 0.8
+        and _z1524_d.reason == _SysIdModule.VALVE_REGULATES_REASON,
+        f"peak {_z1524_peak:.3f} K, decision '{_z1524_d.reason}'",
+    )
 
 sys.exit(R.close("FEATURE CHECKS"))
