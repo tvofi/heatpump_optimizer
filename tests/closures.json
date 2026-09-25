@@ -578,6 +578,7 @@
    "tests/hastub/homeassistant/util/dt.py",
    "tests/issue996_count.py",
    "tests/mutation_budgets.json",
+   "tests/mutation_ledger/",
    "tests/mutation_table.py",
    "tests/nightly_ha.py",
    "tests/nightly_status.py",

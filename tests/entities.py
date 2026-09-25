@@ -24481,12 +24481,12 @@ R.check(
 # mutants -- pump_mode.py:242 GUARD_OFF and __init__.py:340 BOOLOP, each
 # measured against its own guarded input -- which no check could ever kill,
 # so a survivor count that mixes them with real gaps reads worse than the
-# suite is. The triage marks live in tests/mutation_budgets.json under
-# "survivor_triage", keyed exactly like the recorded survivor table and
+# suite is. The triage marks live under tests/mutation_ledger/survivor_triage/,
+# one file per mark, keyed exactly like the recorded survivor table and
 # PINNED to the line text they were triaged on; the fraction the cap reads
 # counts only survivors no triage has called equivalent. Absence of a triage
 # is not a finding of equivalence -- an unmarked survivor stays a gap.
-_MUT_TRIAGE = _MB.get("survivor_triage", {})
+_MUT_TRIAGE = _mut.load_budgets().get("survivor_triage", {})
 _MUT_TRIAGE_KEY = getattr(_mut, "triage_key", lambda _m: None)
 _MUT_EQ = getattr(_mut, "triaged_equivalent", lambda _t, _m: None)
 _MUT_GAPS = getattr(_mut, "survivor_gaps", lambda _s, _t: None)
