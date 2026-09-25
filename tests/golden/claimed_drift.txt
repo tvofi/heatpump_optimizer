@@ -652,8 +652,16 @@
 # the peak_tariff_distinct_days toggle, so config_flow's captured schema
 # gains that field in both rendered steps and the seeded entry's options.
 # ADD-ONLY: 13 inserted lines, 0 deleted.
-config_flow # #1512: the new peak_tariff_distinct_days field (add-only)
-# R7 (#1495) merge of origin/main (f5d4743b): main's own #1512 note above describes #1512's diff relative to ITS OWN former base, not this branch's diff relative to origin/main. This branch never touches capacity_tariff, so on this merged tree the fixture is byte-identical to origin/main -- env_drift.py --all f5d4743b reports it STALE. Per the claimnotes driver's own refusal rule (claim-files.md: a claim describes exactly one diff and never carries forward), it does not carry forward here. Removed; config_flow (both the #1512 and #1495 notes) stays, since this branch's own field genuinely makes config_flow drift.
+# The plan side (fix-review round 1): peak_cost_smooth, the solver's
+# capacity term, now charges a plan day once under distinct days, so every
+# plan solved under a k=3 capacity tariff sees a weaker same-day charge and
+# settles elsewhere. Measured against 233a36bd (and 99231bc3, the same
+# figures) in one environment: the
+# published peak_cost stays 0.0 and projected_peak_kw stays 6.5 kW;
+# predicted_cost 29.146650 -> 32.416769, deferred_energy_cost
+# 32.764410 -> 30.681727, compressor_starts 7 -> 6. The three other
+# capacity fixtures that move (capacity_tariff_15min, everything_on,
+# tariff_plus_two_zone) are may-drift and move in plan keys only.
 # R7-D8-01 (#1460), branch fix/r7-coordinator: this diff claims the five
 # coordinator captures and NOTHING ELSE. The direction is ADD-ONLY.
 # `_build_data_dict` now publishes the three keys `SensorGapAdvisorSensor`
@@ -683,12 +691,9 @@ config_flow # #1512: the new peak_tariff_distinct_days field (add-only)
 # `drop_inherited_claim_lines` treats as a rewrite and refuses to touch
 # (#1255), so `apply_inherited_claims` cannot lift this one.
 
-# #1495 (mold-floor breach warning): this branch claims the config_flow
-# fixture and nothing else, ADD-ONLY. The comfort page's mold section gains
-# the mold_floor_breach_margin option, so capture_config_flow's schema
-# carries two new leaves (both under comfort.mold.fields), each present on
-# one side only. config_flow is float-free (carries_floats is False), so
-# env_drift compares it exactly and the committed fixture is re-recorded
-# alongside. No solver input, output or intermediate changes -- the plan
-# fixtures and the coordinator captures are untouched, so neither is claimed.
+# #1495 (mold-floor breach warning): this branch's own diff claims the
+# config_flow fixture and nothing else, ADD-ONLY. The comfort page's mold
+# section gains the mold_floor_breach_margin option, so capture_config_flow's
+# schema carries two new leaves (both under comfort.mold.fields), each present
+# on one side only.
 config_flow  # #1495: the mold-guard page gains mold_floor_breach_margin (2 leaves, ADD-ONLY)
