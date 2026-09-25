@@ -21723,6 +21723,73 @@ R.check(
     any(d.startswith("restore at") for d in _BRG_NULL),
     f"defects on the unpinned copy: {_BRG_NULL}",
 )
+# The stale verdict's re-run (budget-raise-gate-rerun.yml). It holds the only
+# write grant near the gate, so each property is a way it could do more than
+# ask GitHub to re-grade: a trigger that runs the pull request's copy of the
+# file (`pull_request*`), a grant beyond `actions: write` and the checkout's
+# `contents: read`, a checkout of anything but the default branch's commit, a
+# string the pull request controls reaching the job, a program run before the
+# restore or without `-I`, a job that fires on anything but a PASSING REVIEW
+# run -- the guard that also stops a re-run's own completion from starting
+# another -- and a `workflows:` name that no longer names the gate, which
+# would disable it silently. The null control re-points the checkout at the
+# pull request's head.
+def _brr_defects(text: str, gate_text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    on = doc.get(True, doc.get("on")) or {}
+    jobs = doc.get("jobs") or {}
+    job = jobs.get("rerun-stale-verdict") or {}
+    steps = job.get("steps") or []
+    runs = [str(s.get("run", "")) for s in steps]
+    gate = [i for i, r in enumerate(runs)
+            if re.search(r"python3?\s+(?:-\w+\s+)*\S*budget_raise_gate\.py", r)]
+    restore = [i for i, r in enumerate(runs)
+               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+    gate_name = (_yaml.safe_load(gate_text) or {}).get("name")
+    out = []
+    if set(on) != {"workflow_run"}:
+        out.append(f"triggers {sorted(map(str, on))}")
+    wr = on.get("workflow_run") or {}
+    if wr.get("workflows") != [gate_name] or wr.get("types") != ["completed"]:
+        out.append(f"workflow_run {wr} does not name the gate {gate_name!r}")
+    if list(jobs) != ["rerun-stale-verdict"]:
+        out.append(f"jobs {list(jobs)}")
+    if doc.get("permissions") != {} or job.get("permissions") != {
+            "actions": "write", "contents": "read"}:
+        out.append(f"permissions {doc.get('permissions')} / {job.get('permissions')}")
+    cond = str(job.get("if", ""))
+    if not ("github.event.workflow_run.event == 'pull_request_review'" in cond
+            and "github.event.workflow_run.conclusion == 'success'" in cond
+            and "||" not in cond):
+        out.append(f"if: {cond!r}")
+    co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
+    if len(co) != 1 or (co[0].get("with") or {}).get("ref") != "${{ github.sha }}" \
+            or (co[0].get("with") or {}).get("persist-credentials") is not False:
+        out.append(f"checkout {[s.get('with') for s in co]}")
+    if re.search(r"head_branch|head_repository|pull_requests|display_title|head_commit", text.split("\njobs:", 1)[-1]):
+        out.append("a pull-request-controlled string reaches the job")
+    if not gate or not restore or gate[0] < restore[0] or not all(
+            re.search(r"python3 -I \.claude/workflows/budget_raise_gate\.py --rerun-stale", runs[i])
+            for i in gate):
+        out.append(f"restore at {restore}, program at {gate}")
+    return out
+
+
+_BRR_TEXT = Path(".github/workflows/budget-raise-gate-rerun.yml").read_text()
+_BRR_DEFECTS = _brr_defects(_BRR_TEXT, _BRG_TEXT)
+R.check(
+    "the gate's stale-verdict re-run fires on a passing review run only, holds "
+    "`actions: write` and nothing it does not use, and runs the default branch's program",
+    _BRR_DEFECTS == [],
+    f"defects: {_BRR_DEFECTS}",
+)
+_BRR_NULL = _brr_defects(_BRR_TEXT.replace(
+    "ref: ${{ github.sha }}", "ref: ${{ github.event.workflow_run.head_sha }}"), _BRG_TEXT)
+R.check(
+    "and the same file checking out the pull request's head is refused (null control)",
+    any(d.startswith("checkout") for d in _BRR_NULL),
+    f"defects on the re-pointed copy: {_BRR_NULL}",
+)
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string
 # literals, and the block classes from VERDICT_CLASSES -- instead of printing
