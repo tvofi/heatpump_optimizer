@@ -45875,6 +45875,52 @@ R.check(
     f"{_r7cool_ratio!r}, expected 1 - 0.25",
 )
 
+# ---------------------------------------------------------------------------
+R.section("#1513 follow-up: a forecast's precipitation_unit is honoured")
+# The forecast's rain arrives in the weather entity's precipitation_unit, as
+# its wind does in wind_speed_unit: 0.1 in/h is 2.54 mm/h. Both readers of the
+# stored rows are driven unstubbed: the horizon arrays and _current_weather.
+from homeassistant.util import dt as _p8r_dt  # noqa: E402
+
+
+def _p8r_rain(unit, rain):
+    attrs = {"temperature": 10.0, "wind_speed": 1.0, "wind_speed_unit": "m/s"}
+    if unit is not None:
+        attrs["precipitation_unit"] = unit
+    hass = _FakeHass({"weather.home": FakeState("rainy", attributes=attrs)})
+    coord = _Coord(hass, _FakeEntry(data=dict(_P8_CFG)))
+    now = _p8r_dt.now().replace(minute=0, second=0, microsecond=0)
+    rows = [
+        {"datetime": (now + timedelta(hours=h)).isoformat(), "temperature": 10.0,
+         "wind_speed": 1.0, "precipitation": rain}
+        for h in range(48)
+    ]
+
+    async def _call(domain, service, data=None, **kwargs):
+        return {"weather.home": {"forecast": rows}}
+
+    hass.services.async_call = _call
+    _asyncio.run(coord._fetch_weather_forecast())
+    planned = [round(v, 9) for v in coord._weather_series(4, now, 0)[2]]
+    return planned, round(coord._current_weather()[1], 9)
+
+
+R.check(
+    "an inch entity's 0.1 in/h is planned and read as 2.54 mm/h",
+    _p8r_rain("in", 0.1) == ([2.54] * 4, 2.54),
+    f"got {_p8r_rain('in', 0.1)!r}",
+)
+R.check(
+    "a cm entity's 0.1 cm/h is planned and read as 1.0 mm/h",
+    _p8r_rain("cm", 0.1) == ([1.0] * 4, 1.0),
+    f"got {_p8r_rain('cm', 0.1)!r}",
+)
+R.check(
+    "null control: a mm or unit-less entity's rain is its own number",
+    _p8r_rain("mm", 0.1) == ([0.1] * 4, 0.1) and _p8r_rain(None, 0.1) == ([0.1] * 4, 0.1),
+    f"mm {_p8r_rain('mm', 0.1)!r}, none {_p8r_rain(None, 0.1)!r}",
+)
+
 
 # ---------------------------------------------------------------------------
 R.section("P5 — sysid stands down on the learner freeze, and names every refusal (#1523, #1525)")

@@ -54,10 +54,10 @@
       "old": "        dt_h = max(ctx._opt_config.time_step_minutes, 1.0) / 60.0",
       "reason": "drawn by the round-7 D2-03 diff's per-file sample over coordinator.py. `max(time_step_minutes, 1.0)` -> `(time_step_minutes)` cannot select its second arm: `OptimizationConfig.time_step_minutes` is the dataclass default 15.0, `OptimizationConfig.from_mapping` does not set it, and nothing in the package assigns it (`grep -rn 'time_step_minutes' custom_components/` lists only the default and reads). No production input tells the two apart."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:_wind_speed_scale_of GUARD_OFF 428a98f5": {
+    "custom_components/heatpump_optimizer/coordinator.py:_unit_scale_of GUARD_OFF 428a98f5": {
       "verdict": "equivalent",
       "old": "        if unit:",
-      "reason": "_wind_speed_scale_of's `if unit:` guards only a DEBUG log line for an unknown wind unit; both arms then return 1.0, so the value is identical and only a log record differs. Measured: tests/features.py rc=0 at 25497c4b with the mutant applied (R8-P8 round 3)."
+      "reason": "_unit_scale_of's `if unit:` guards only a DEBUG log line for an unknown unit; both arms then return 1.0, so the value is identical and only a log record differs. Measured: tests/features.py rc=0 at 64fc5f1f with the mutant applied. Main pinned this mutant as `_wind_speed_scale_of GUARD_OFF 428a98f5` before the wind scale became the shared `_unit_scale_of`; the text and the mutant are unchanged."
     },
     "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._repair_dhw_floor CLAMP_DROP 21bb873a": {
       "verdict": "equivalent",
@@ -351,20 +351,15 @@
       "old": "    return [r if r[\"temperature\"] is not None else {**r, \"temperature\": 5.0} for r in rows]",
       "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 with no FAIL line: the mutant raises `TypeError: object of type 'NoneType' has no len()`. Measured at 25497c4b, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:_forecast_in_model_units BOOLOP b17351ce": {
-      "killed_by": "tests/features.py",
-      "old": "    if not to_c and wind == 1.0:",
-      "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 4 failed, among them `a degF weather entity's forecast is planned in degC (50 degF is 10 degC)`; `the fabricated trajectory of a failed first fetch is converted too`. Measured at 25497c4b, 2026-09-24."
-    },
     "custom_components/heatpump_optimizer/coordinator.py:_forecast_in_model_units GUARD_OFF 4ab30306": {
       "killed_by": "tests/features.py",
       "old": "        if value is not None:",
       "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 2 failed, among them `a degF weather entity's forecast is planned in degC (50 degF is 10 degC)`; `the fabricated trajectory of a failed first fetch is converted too`. Measured at 25497c4b, 2026-09-24."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:_forecast_in_model_units GUARD_OFF b17351ce": {
+    "custom_components/heatpump_optimizer/coordinator.py:_forecast_in_model_units GUARD_OFF 915a3c9a": {
       "killed_by": "tests/features.py",
-      "old": "    if not to_c and wind == 1.0:",
-      "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `the rows are the same object when nothing converts (goldens cannot move)`. Measured at 25497c4b, 2026-09-24."
+      "old": "    if not to_c and wind == 1.0 and rain == 1.0:",
+      "reason": "#1513 follow-up (precipitation_unit): GUARD_OFF on the forecast unit conversion. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `the rows are the same object when nothing converts (goldens cannot move)`. Measured at 26a6fef9, 2026-09-24."
     },
     "custom_components/heatpump_optimizer/coordinator.py:_forecast_in_model_units RETURN_DEL 23640190": {
       "killed_by": "tests/features.py",
@@ -401,20 +396,25 @@
       "old": "    return str(entity) if entity else None",
       "reason": "`_space_pump_to_drive`'s entity return (#1449): deleting it leaves the guard above intact, so the rule still reports this seam gated, while the space pump is never commanded, fresh plan included. Measured: tests/features.py rc=1, `each configured pump is commanded on its own, by entity id [vvc alone -> [...]; space alone -> []]` among the failures."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:_wind_speed_scale_of GUARD_OFF 7fa0e793": {
+    "custom_components/heatpump_optimizer/coordinator.py:_unit_scale_of GUARD_OFF 7fa0e793": {
       "killed_by": "tests/features.py",
       "old": "    if scale is None:",
-      "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 8 failed, among them `the fabricated fallback forecast exists and is stale from birth`; `a successful fetch clears the outage and the staleness`. Measured at 25497c4b, 2026-09-24."
+      "reason": "#1513 follow-up (precipitation_unit): GUARD_OFF on the shared forecast unit scale. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 (the run stops early), among its FAIL lines `the fabricated fallback forecast exists and is stale from birth`; `a successful fetch clears the outage and the staleness`. Measured at 64fc5f1f, 2026-09-25. Main pinned this mutant as `_wind_speed_scale_of GUARD_OFF 7fa0e793` before the wind scale became the shared `_unit_scale_of`; the text and the mutant are unchanged."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:_wind_speed_scale_of RETURN_DEL b1670298": {
+    "custom_components/heatpump_optimizer/coordinator.py:_unit_scale_of RETURN_DEL b1670298": {
       "killed_by": "tests/features.py",
       "old": "    return scale",
-      "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 with no FAIL line: the mutant raises `TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'`. Measured at 25497c4b, 2026-09-24."
+      "reason": "#1513 follow-up (precipitation_unit): RETURN_DEL on the shared forecast unit scale. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 with no FAIL line: the mutant raises `TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'`. Measured at 64fc5f1f, 2026-09-25. Main pinned this mutant as `_wind_speed_scale_of RETURN_DEL b1670298` before the wind scale became the shared `_unit_scale_of`; the text and the mutant are unchanged."
     },
-    "custom_components/heatpump_optimizer/coordinator.py:_wind_speed_scale_of RETURN_DEL fb5404f0": {
+    "custom_components/heatpump_optimizer/coordinator.py:_unit_scale_of RETURN_DEL fb5404f0": {
       "killed_by": "tests/features.py",
       "old": "        return 1.0",
-      "reason": "#1513 (R8-P8) round 3, a site the round-3 forecast conversion added or moved. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 8 failed, among them `the fabricated fallback forecast exists and is stale from birth`; `a successful fetch clears the outage and the staleness`. Measured at 25497c4b, 2026-09-24."
+      "reason": "#1513 follow-up (precipitation_unit): RETURN_DEL on the shared forecast unit scale. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 (the run stops early), among its FAIL lines `the fabricated fallback forecast exists and is stale from birth`; `a successful fetch clears the outage and the staleness`. Measured at 64fc5f1f, 2026-09-25. Main pinned this mutant as `_wind_speed_scale_of RETURN_DEL fb5404f0` before the wind scale became the shared `_unit_scale_of`; the text and the mutant are unchanged."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:_wind_speed_scale_of RETURN_DEL c84f2612": {
+      "killed_by": "tests/features.py",
+      "old": "    return _unit_scale_of(state, \"wind_speed_unit\", _WIND_UNIT_TO_MS)",
+      "reason": "#1513 follow-up (precipitation_unit): RETURN_DEL on the shared forecast unit scale. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 (the run stops early), among its FAIL lines `the fabricated fallback forecast exists and is stale from birth`; `a successful fetch clears the outage and the staleness`. Measured at 64fc5f1f, 2026-09-25."
     },
     "custom_components/heatpump_optimizer/defrost.py:_interp_position GUARD_OFF 21c73b80": {
       "killed_by": "tests/features.py",
