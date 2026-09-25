@@ -109,6 +109,11 @@
       "old": "            if best is not None:",
       "reason": "R8-P5b (#1524): the break that skips the grid restart once the first bisection found a fitting step. Switched off, the restart runs anyway: it takes the largest fitting grid point and bisects up to the band's upper edge, which the first bisection had already found to the same 0.01 kW-thermal resolution, so every driver in play passes (`python3 tests/mutation_table.py --pin-killed --base origin/fix/r8-p5`, at 9d6bf172, 2026-09-25). A gap rather than equivalent: the two arms can return steps that differ inside that resolution, and the mutant costs up to 32 extra sizing rollouts."
     },
+    "custom_components/heatpump_optimizer/sysid.py:_drive GUARD_OFF 5017bb6e": {
+      "verdict": "equivalent",
+      "old": "    if not is_throttling(model.params.mixing_valve_mode):",
+      "reason": "R8-P5c: as `if False:` every plant takes the valve route, electrical power q / compute_cop(outdoor) into simulate_step, which multiplies by the same compute_cop(outdoor) on an unvalved plant (no flow temperature is passed there, on one zone or two), so the step receives q to one rounding. Measured in a detached worktree at 1853d8d8: `s1_sysid_twozone.py` and `v1_sysid_twozone.py` (round-8 D7 export) print the same CELL and RESULT lines as the unmutated head; only a throttling plant tells the routes apart, and it takes the valve route either way."
+    },
     "custom_components/heatpump_optimizer/sysid.py:_lm_solve GUARD_OFF ad6ead99": {
       "verdict": "gap",
       "old": "            if clip is not None:",
@@ -128,6 +133,11 @@
       "verdict": "gap",
       "old": "    return _Z_975 * float(np.sqrt(var_ua) / abs(beta1 / beta2))",
       "reason": "arrived with origin/main, commit 96374e62 (\"gate sysid adoption on the fitted UA's profile-likelihood interval\", #1410/#1437); a real gap, and the sharp one: deleting the return makes `_one_state_ua_halfwidth` fall off the end and answer None, which the coordinator's gate reads as 'no interval' and refuses adoption (`hw is None` at coordinator.py:10455) -- while tests/features.py's own collector (features.py:35239) SKIPS a result whose ua_profile_halfwidth is None, so the mutant removes the row the driver would have judged instead of failing it. The one-state interval's value is unpinned throughout. Survival measured UNMARKED at 467d3d9c on 2026-09-23: no driver in the recorded net (13 drivers) detects the mutant behaviourally. The one driver that reddens it is tests/entities.py's #1217 mark-staleness self-check, which fires solely because THIS entry exists -- a property of the record, not of the mutant, and one it shares with the instrument's own D3-07 `equivalent` marks (pump_mode.py:242, __init__.py:340), which redden identically. It is not a behavioural kill and is not recorded under `killed_by`: moving the mark there removes the mechanism (measured -- entities.py rc=0, ALL 1707 pass)."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:_predict_step_excursion_plant CLAMP_DROP e8d1fe1f": {
+      "verdict": "gap",
+      "old": "            dt = min(dt_hours, remaining)",
+      "reason": "R8-P5c: the base's two copies of this line (the step and relax loops, merged into one here) carried no disposition either. Dropping the clamp overshoots a phase only when its length is not a multiple of the 0.25 h rollout step; SysIdConfig's step_hours and relax_hours default to 2.0 and no driver configures another, so nothing reads the overshoot. A sizer check at a 2.1 h phase would pin it."
     },
     "custom_components/heatpump_optimizer/sysid.py:_ridged.residual GUARD_OFF 3e1589bf": {
       "verdict": "gap",
@@ -269,7 +279,7 @@
     "custom_components/heatpump_optimizer/coordinator.py:_entity_price RETURN_DEL 075a9dd1": {
       "killed_by": "tests/features.py",
       "old": "    return None if state is None else price_per_kwh(state.state, state_unit(state))",
-      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 7 failed, among them `a fee sensor publishing öre trips the same issue, attributed to it`; `a fee sensor publishing a negative value trips the same notice, attributed to it`. Measured at d6d79847, 2026-09-24."
+      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 7 failed, among them `a fee sensor publishing \u00f6re trips the same issue, attributed to it`; `a fee sensor publishing a negative value trips the same notice, attributed to it`. Measured at d6d79847, 2026-09-24."
     },
     "custom_components/heatpump_optimizer/coordinator.py:_fabricated_forecast RETURN_DEL c0753d3b": {
       "killed_by": "tests/features.py",
@@ -299,7 +309,7 @@
     "custom_components/heatpump_optimizer/coordinator.py:_grid_fee_entity_value RETURN_DEL c7b0bf3e": {
       "killed_by": "tests/features.py",
       "old": "    return _entity_price(hass, config.get(CONF_GRID_FEE_ENTITY))",
-      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 5 failed, among them `a fee sensor publishing öre trips the same issue, attributed to it`; `a fee sensor publishing a negative value trips the same notice, attributed to it`. Measured at d6d79847, 2026-09-24."
+      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 5 failed, among them `a fee sensor publishing \u00f6re trips the same issue, attributed to it`; `a fee sensor publishing a negative value trips the same notice, attributed to it`. Measured at d6d79847, 2026-09-24."
     },
     "custom_components/heatpump_optimizer/coordinator.py:_on_off_service RETURN_DEL dac85d34": {
       "killed_by": "tests/features.py",
@@ -429,7 +439,7 @@
     "custom_components/heatpump_optimizer/inputs.py:_finite RETURN_DEL b06b372f": {
       "killed_by": "tests/features.py",
       "old": "    return value if math.isfinite(value) else None",
-      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 21 failed, among them `a live inlet probe still wins`; `a fee sensor publishing öre trips the same issue, attributed to it`. Measured at d6d79847, 2026-09-24."
+      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 21 failed, among them `a live inlet probe still wins`; `a fee sensor publishing \u00f6re trips the same issue, attributed to it`. Measured at d6d79847, 2026-09-24."
     },
     "custom_components/heatpump_optimizer/inputs.py:normalize_price_per_kwh GUARD_OFF 0f0ca7ac": {
       "killed_by": "tests/features.py",
@@ -459,7 +469,7 @@
     "custom_components/heatpump_optimizer/inputs.py:price_per_kwh RETURN_DEL b78847cf": {
       "killed_by": "tests/features.py",
       "old": "    return value if converted is None else converted",
-      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 7 failed, among them `a fee sensor publishing öre trips the same issue, attributed to it`; `a fee sensor publishing a negative value trips the same notice, attributed to it`. Measured at d6d79847, 2026-09-24."
+      "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 7 failed, among them `a fee sensor publishing \u00f6re trips the same issue, attributed to it`; `a fee sensor publishing a negative value trips the same notice, attributed to it`. Measured at d6d79847, 2026-09-24."
     },
     "custom_components/heatpump_optimizer/inputs.py:state_unit RETURN_DEL 59ab90b3": {
       "killed_by": "tests/features.py",
@@ -631,6 +641,11 @@
       "old": "        return self._slab_outcome(best_x, rooms, error, slab_mass, slab_transfer)",
       "reason": "Recorded by `mutation_table.py --pin-killed` against 5003d56f9d9f7617d5e4dc1372e49dbdbacd39bd: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
     },
+    "custom_components/heatpump_optimizer/sysid.py:_held_state CLAMP_DROP 36d89191": {
+      "killed_by": "tests/features.py",
+      "old": "        e = p.max_electrical_power * max(p.cop_nominal, 1.0) / max(p.emitter_design_delta_t, 1.0)",
+      "reason": "Recorded by `mutation_table.py --pin-killed` against 97207dd8fc42a65822c37894e11bc4b01b498042: CLAMP_DROP (`e = p.max_electrical_power * max(p.cop_nominal, 1.0) / (p.emitter_design_delta_t)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+    },
     "custom_components/heatpump_optimizer/sysid.py:_held_state GUARD_OFF d85c286a": {
       "killed_by": "tests/features.py",
       "old": "    if not p.two_zone_enabled:",
@@ -651,15 +666,10 @@
       "old": "        return predicted[1:] - rooms[1:]",
       "reason": "Recorded by `mutation_table.py --pin-killed` against 5003d56f9d9f7617d5e4dc1372e49dbdbacd39bd: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
     },
-    "custom_components/heatpump_optimizer/sysid.py:_predict_step_excursion_plant CLAMP_DROP 7f4b54db": {
+    "custom_components/heatpump_optimizer/sysid.py:_predict_step_excursion_plant CLAMP_DROP 168f75ce": {
       "killed_by": "tests/features.py",
-      "old": "        peak = max(peak, abs(state.upper_floor_temperature - baseline))",
-      "reason": "Recorded by `mutation_table.py --pin-killed` against 5003d56f9d9f7617d5e4dc1372e49dbdbacd39bd: CLAMP_DROP (`peak = (peak)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
-    },
-    "custom_components/heatpump_optimizer/sysid.py:_predict_step_excursion_plant CLAMP_DROP 7f4b54db#2": {
-      "killed_by": "tests/features.py",
-      "old": "        peak = max(peak, abs(state.upper_floor_temperature - baseline))",
-      "reason": "Recorded by `mutation_table.py --pin-killed` against 5003d56f9d9f7617d5e4dc1372e49dbdbacd39bd: CLAMP_DROP (`peak = (peak)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+      "old": "            peak = max(peak, abs(state.upper_floor_temperature - baseline))",
+      "reason": "Recorded by `mutation_table.py --pin-killed` against 97207dd8fc42a65822c37894e11bc4b01b498042: CLAMP_DROP (`peak = (peak)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=13."
     },
     "custom_components/heatpump_optimizer/sysid.py:_predict_step_excursion_plant RETURN_DEL a7fba5b1": {
       "killed_by": "tests/features.py",
@@ -690,6 +700,16 @@
       "killed_by": "tests/features.py",
       "old": "        return _cost",
       "reason": "arrived with origin/main, commit 96374e62 (the #1410/#1437 adoption gate). `_profiled_cost` falls off the end and answers None, so `_profiled_cost(x_hat[0] + sign * UA_ADOPTION_HALFWIDTH_BAR) <= threshold` compares None against a float and raises. Measured: tests/features.py rc=0 failed=0 -> rc=1 failed=0 (it exits 1 without a FAILED line -- the mutant is the only difference from the baseline run). Measured at 467d3d9c, 2026-09-23."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:_valve_regulates GUARD_OFF a85b4a7b": {
+      "killed_by": "tests/features.py",
+      "old": "    if plant is None or not is_throttling(plant.mixing_valve_mode):",
+      "reason": "Recorded by `mutation_table.py --pin-killed` against 97207dd8fc42a65822c37894e11bc4b01b498042: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+    },
+    "custom_components/heatpump_optimizer/sysid.py:_valve_regulates RETURN_DEL 5aed2efd": {
+      "killed_by": "tests/features.py",
+      "old": "    return _held_state(model, observed, outdoor).buffer_tank_temperature >= flow - 0.01",
+      "reason": "Recorded by `mutation_table.py --pin-killed` against 97207dd8fc42a65822c37894e11bc4b01b498042: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
     },
     "custom_components/heatpump_optimizer/sysid.py:_zone_heat_loss RETURN_DEL 4d5e31ec": {
       "killed_by": "tests/features.py",
