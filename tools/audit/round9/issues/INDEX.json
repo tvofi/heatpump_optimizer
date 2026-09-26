@@ -94,7 +94,7 @@
     "slug": "p1",
     "title": "[R9-P1] A non-finite or malformed value crosses a persisted-store boundary with no guard",
     "severity": "medium",
-    "N": 11,
+    "N": 9,
     "rca": true,
     "finding_ids": [
       "D1-s1-01",
@@ -181,7 +181,7 @@
     "slug": "p9",
     "title": "[R9-P9] Card UI: a clipping ancestor, missing colour token or unfloored hit target",
     "severity": "medium",
-    "N": 5,
+    "N": 8,
     "rca": true,
     "finding_ids": [
       "D4-s1-01",
@@ -196,7 +196,7 @@
     "slug": "avoidable-interpreter-bound-recomputation",
     "title": "[R9-AVOIDABLE-INTERPRETER-BOUND-RECOMPUTATION] avoidable interpreter-bound recomputation in the solve",
     "severity": "medium",
-    "N": 5,
+    "N": 7,
     "rca": true,
     "finding_ids": [
       "D9-s1-01",
@@ -225,7 +225,7 @@
     "slug": "p5",
     "title": "[R9-P5] A sysid/adoption gate keyed on a quantity other than the bias it gates",
     "severity": "medium",
-    "N": 3,
+    "N": 4,
     "rca": true,
     "finding_ids": [
       "D2-s4-01",
@@ -292,7 +292,7 @@
     "slug": "persisted-future-instant-trusted-without-bound",
     "title": "[R9-PERSISTED-FUTURE-INSTANT-TRUSTED-WITHOUT-BOUND] persisted future instant trusted without bound",
     "severity": "low",
-    "N": 7,
+    "N": 8,
     "rca": true,
     "finding_ids": [
       "D1-s1-04",
