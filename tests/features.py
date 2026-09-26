@@ -48599,12 +48599,16 @@ from dataclasses import replace as _z1524_replace  # noqa: E402
 
 
 def _z1524_run(
-    name, two_zone, true_ua=1.0, true_mass=1.0, valve=None, valve_target=0.0
+    name, two_zone, true_ua=1.0, true_mass=1.0, valve=None, valve_target=0.0,
+    true_gains=0.0, true_slab_mass=1.0, true_slab_transfer=1.0, drift=0.0,
 ):
     """One experiment night on the declared preset; (decision, peak, fit reason).
 
     ``true_ua`` and ``true_mass`` scale the PLANT's heat loss and zone masses
-    away from the declared house, which the experiment still arms on.
+    away from the declared house, which the experiment still arms on. R9-P5:
+    ``true_gains`` adds free heat (kW) the declaration does not carry,
+    ``true_slab_*`` scale the slab the experiment is told about, and ``drift``
+    ramps the room reading (K/h) while the house does not move.
     """
     cfg = _grad_house(two_zone=two_zone, dhw=False)
     cfg.update({_const922.CONF_MIXING_VALVE_MODE: valve} if valve else {})
@@ -48623,6 +48627,9 @@ def _z1524_run(
             room_thermal_mass=declared.room_thermal_mass * true_mass,
             upper_floor_thermal_mass=declared.upper_floor_thermal_mass * true_mass,
             lower_floor_thermal_mass=declared.lower_floor_thermal_mass * true_mass,
+            internal_gains=declared.internal_gains + true_gains,
+            slab_thermal_mass=declared.slab_thermal_mass * true_slab_mass,
+            slab_heat_transfer=declared.slab_heat_transfer * true_slab_transfer,
         )
     )
     cop = plant.compute_cop(0.0)
@@ -48631,7 +48638,9 @@ def _z1524_run(
         if two_zone
         else declared.heat_loss_coefficient
     )
-    hold = max(base_ua * true_ua * 21.0 - declared.internal_gains, 0.1) / cop
+    hold = max(
+        base_ua * true_ua * 21.0 - declared.internal_gains - true_gains, 0.1
+    ) / cop
     st = ThermalState(
         room_temperature=21.0, upper_floor_temperature=21.0,
         lower_floor_temperature=21.0, slab_temperature=25.0,
@@ -48645,7 +48654,9 @@ def _z1524_run(
     sid.arm(_z1524_night, plant=declared)
     when, base, peak = _z1524_night, st.upper_floor_temperature, 0.0
     while sid.active:
-        reading = st.upper_floor_temperature
+        reading = st.upper_floor_temperature + drift * (
+            (when - _z1524_night).total_seconds() / 3600.0
+        )
         peak = max(peak, abs(reading - base))
         override = sid.step(
             now=when, room_temp=reading, outdoor_temp=0.0, price=0.1,
@@ -48800,6 +48811,70 @@ R.check(
     "as the unvalved two-zone arm",
     _z1524_mis["manual"] >= _z1524_mis[True] > 0,
     f"valve {_z1524_mis['manual']}, no valve {_z1524_mis[True]} of {len(_b942)}",
+)
+
+# -- R9-P5: the gate refuses the bias it exists to refuse ----------------------
+# Class P5 (a sysid adoption gate keyed on a quantity other than the bias it
+# gates) recurred in every audit round. The mismatch arms above perturb what the
+# fit ESTIMATES (UA, zone mass); the round-9 instances live in what it is TOLD:
+# free heat the declaration lacks, and the slab it is handed. The interval the
+# gate bounds is the fit's own precision, which does not see such a bias, so the
+# property is asserted against the plant's truth, not the interval. The
+# enumerator arm keeps the axis set complete: every declared quantity
+# SystemIdentification.step is handed (its house_* keywords) names a runner
+# axis, and a new one without an axis is refused. Liveness is the #1524
+# null-control check above (the unperturbed nights still adopt).
+import inspect as _r9p5_inspect  # noqa: E402
+
+_R9P5_AXES = {
+    "house_ua": ("true_ua", (1.15,)),
+    "house_capacity": ("true_mass", (1.5,)),
+    "house_gains": ("true_gains", (-0.2, 0.4, 0.8)),
+    "house_slab_mass": ("true_slab_mass", (0.5, 2.0)),
+    "house_slab_transfer": ("true_slab_transfer", (0.5, 2.0)),
+}
+_R9P5_MEASURED = {"drift": (0.1,)}  # a reading bias, not a declared quantity
+_r9p5_told = {
+    k for k in _r9p5_inspect.signature(
+        _SysIdModule.SystemIdentification.step
+    ).parameters
+    if k.startswith("house_")
+}
+_r9p5_kw = set(_r9p5_inspect.signature(_z1524_run).parameters)
+R.check(
+    "R9-P5: every declared quantity the experiment is handed has a bias axis "
+    "in the adoption sweep",
+    _r9p5_told == set(_R9P5_AXES)
+    and {a for a, _ in _R9P5_AXES.values()} | set(_R9P5_MEASURED) <= _r9p5_kw
+    and all(m for _, m in [*_R9P5_AXES.values(), *_R9P5_MEASURED.items()]),
+    f"handed {sorted(_r9p5_told)}, axes {sorted(_R9P5_AXES)}",
+)
+_r9p5_over, _r9p5_nights = [], 0
+for _r9p5_zone in (False, True):
+    for _r9p5_name in _b942:
+        for _r9p5_axis, _r9p5_mags in [
+            *_R9P5_AXES.values(), *_R9P5_MEASURED.items()
+        ]:
+            for _r9p5_mag in _r9p5_mags:
+                _r9p5_d, _, _ = _z1524_run(
+                    _r9p5_name, _r9p5_zone, **{_r9p5_axis: _r9p5_mag}
+                )
+                _r9p5_nights += 1
+                _r9p5_ua = _r9p5_mag if _r9p5_axis == "true_ua" else 1.0
+                if _r9p5_d.admit and abs(_r9p5_d.scale / _r9p5_ua - 1.0) > _z1524_bar:
+                    _r9p5_over.append(
+                        f"{_r9p5_name} two_zone={_r9p5_zone} {_r9p5_axis}="
+                        f"{_r9p5_mag}: scale {_r9p5_d.scale:.4f}"
+                    )
+R.check(
+    "R9-P5: a night whose plant differs from the declaration in what the fit "
+    "is told either adopts within the bar of the plant's own heat loss or is "
+    "refused",
+    not _r9p5_over
+    and _r9p5_nights == 2 * len(_b942) * sum(
+        len(m) for _, m in [*_R9P5_AXES.values(), *_R9P5_MEASURED.items()]
+    ),
+    f"{_r9p5_nights} nights; " + "; ".join(_r9p5_over),
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
