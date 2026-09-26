@@ -30,8 +30,8 @@ thermal model gets its starting values:
 flowchart TD
     A["1 · Basics<br/>name, price source (token or entity),<br/>weather entity"] --> B["Optional sensors<br/>indoor/outdoor temperature, on/off switch,<br/>solar, hot water, buffer, pump signals"]
     B --> M{"Menu: Quick setup (recommended) ·<br/>Continue setup · Finish setup now"}
-    M -- "Quick setup (recommended)" --> Q["Five house questions,<br/>then entity pre-fill"]
-    Q --> R
+    M -- "Quick setup (recommended)" --> Q["Five house toggles, the building<br/>questionnaire, then entity pre-fill"]
+    Q --> M
     M -- "Finish setup now" --> R["Review &amp; confirm<br/>(read-only summary)"]
     M -- "Continue setup" --> C2["2 · Temperatures<br/>target, minimum, maximum,<br/>day and night comfort, day hours"]
     C2 --> C{"3 · How do you want to<br/>describe your building?"}
@@ -46,12 +46,16 @@ flowchart TD
     R --> J(["Confirming creates the entry —<br/>the first plan is solved within one optimization interval"])
 ```
 
-The menu's **Quick setup (recommended)** answers five house questions and then
-offers to read the heat pump's own entities off a detected device (see
-[setup.md](setup.md)); **Finish setup now** skips straight to the review with
-shipped defaults for everything past the two required screens; **Continue
-setup** walks the numbered screens below. All three paths end on the same
-read-only review screen, which is what actually creates the entry.
+The menu's **Quick setup (recommended)** answers five house toggles plus the
+same building questionnaire as *Continue setup* below, then offers to read the
+heat pump's own entities off a detected device (see [setup.md](setup.md)), and
+returns to this same menu; **Finish setup now** moves straight to the review
+with shipped defaults for everything past the two required screens;
+**Continue setup** walks the numbered screens below. (A device is also
+offered automatically, without going through Quick setup, right after the
+optional-sensors screen when one is detected in the registry — the menu still
+follows it either way.) Every route ends on the same read-only review screen,
+and confirming there is what actually creates the entry.
 
 ### 1 · Basics
 
@@ -63,7 +67,7 @@ reported as a connection problem rather than as a bad token.
 |---|---|---|
 | Name for this integration | Heat Pump Optimizer | Shown in front of every entity this integration creates. |
 | Price source | Tibber | Where hourly electricity prices come from: Tibber (needs the token below) or a price sensor entity you already have. |
-| Tibber API token | — (**required with the Tibber source**) | Reads your hourly electricity prices. Create one at developer.tibber.com. Not asked for, and not needed, when the price source is a price entity. |
+| Tibber API token | — (**required with the Tibber source**) | Reads your hourly electricity prices. Create one at developer.tibber.com. The field still shows when the price source is a price entity — not needed then, so leave it empty. |
 | Price entity | — (**required with the price-entity source**) | A `sensor` publishing the current electricity price, read instead of Tibber. |
 | Weather forecast | — (**required**) | A `weather` entity supplying outdoor temperature, wind and rain for the next 24 hours. The optimizer plans ahead, so a forecast is not optional. |
 | Indoor temperature sensor | none | The real room temperature. Without it the optimizer trusts its own model, which drifts over time — this is the sensor worth finding first. |
