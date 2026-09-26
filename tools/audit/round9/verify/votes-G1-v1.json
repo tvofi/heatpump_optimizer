@@ -80,6 +80,19 @@
     "class": null,
     "seam_rule_enumerates": null
    }
+  ],
+  "D3": [
+   {
+    "id": "D3-s1-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "suite_inputs_differing=0 count (boundary_inputs_differing=2, null 0/0); behaviour.py C0043 behaviour_delta=1 (null 0); recorded prescreen killed_by=0/15 (not re-run, tvofi rule)",
+    "metric_definition": "suite_inputs_differing = number of inlet readings the test suite feeds _dhw_inlet_c on which mutant C0043 returns a different value than baseline",
+    "method": "Confirmed coordinator.py:1371. Re-ran behaviour.py C0043 and --null. Own in-memory harness tools/audit/round9/D3/verify-v1/inlet_probe_domain.py over every suite-fed inlet input plus boundary probes. Kill count taken from the seat's recorded prescreen logs (null 0, C0043 0, C0023 control 1); prescreen, pool and full gate not re-run, and quiet window not run (tvofi rule).",
+    "attacks": "contention: n/a, counts (load1 about 3, thread_factor 1.000); gate mode: recorded run used env_drift --all with rc=0, and goldens configure no live inlet entity; other reach: entities.py static only, config_flow_steps config only; equivalent mutant: refuted, delta 1 and 2; mutation_ledger: other ops on the line killed, no CMP_BOUND recorded, no survivor_triage entry; step 4: mutation is in production coordinator.py:1371; severity: exact-bound edge case that falls back to the seasonal model, so low",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
   ]
  }
 }
