@@ -1,0 +1,346 @@
+{
+ "box": "G3-V1",
+ "lens": 1,
+ "votes": {
+  "D14": [
+   {
+    "id": "D14-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "11 escaping mutants / 7 seams / 2 wedged 3/3 / barrier-driven 0/7; own: hours_since raises 1 of 1 on each mixed-awareness arm (stub and HA naive-as-local as_utc), 0 on both_aware and both_naive",
+    "metric_definition": "Single-leaf store mutants whose exception escapes a real loader or consumer; own: LegionellaGuard.hours_since() raises after async_load of a dhw_legionella store with the named awareness mix",
+    "method": "re-ran p1_store.py --barrier, --perturb snapguard, --perturb sanitize; own arm v1_indep.py --arm p1",
+    "attacks": [
+     "perturb snapguard -> 11->13 escapes, 7->8 seams (up, as stated)",
+     "perturb sanitize -> escapes 11->18, poison 0->388 (up)",
+     "null: clean_fixture_escapes 0, wedge_null_control 0/3",
+     "real-HA reachability: the wedge is the aware-vs-naive `attempt > last` compare in legionella.hours_since; it raises TypeError under both the stub's and HA's naive-as-local as_utc; both-naive does not raise, so it needs one naive leaf beside one aware leaf",
+     "severity: needs a malformed stored timestamp; a wedge of every refresh justifies medium"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D14-s1-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "2 unproduced reads, 1 undefined getattr; own: horizon_hours in 0/5 coordinator-scenario payloads; boost_calls on real coordinator 0, on FakeCoordinator 1",
+    "metric_definition": "Distinct (consumer file:line, key) reads of the _build_data_dict payload absent in all cells and written by no producer; own: scenarios whose payload holds 'horizon_hours'",
+    "method": "re-ran p6_keys.py, --perturb, --self-test; own arm v1_indep.py --arm p6; grep confirms no assignment of horizon_hours besides the dataclass default",
+    "attacks": [
+     "perturb (drop _power_windows line) -> 2->5 (up)",
+     "self-test: clean 0, planted 1",
+     "consequence: published value equals the default by coincidence; hygiene, low stands"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D14-s2-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "derive_preset_disagree 20/40, prefill 20/40, wood 2/21; own grid: 5/12 derive disagreements (every mode arm >=1), wood 2/4",
+    "metric_definition": "Boundary configs on which a seam's delivered output disagrees with the canonical predicate on the saved config",
+    "method": "re-ran p2_facts.py, --selftest, --seams; own 4-mode x 3-presence grid calling config_flow._derive_preset and topology.describe_setup directly",
+    "attacks": [
+     "perturbation (proxy -> canonical) 20->0, 20->0, 2->0 (to_zero)",
+     "null control 0/20",
+     "grid artefact: 20/40 is grid-shaped, but my own 12-cell grid gives 5 with every mode arm >=1 (off+upper, on+none, on+lower, None/auto+lower) and wood 2/4 (valve_outlet only shown/not modelled; dhw_wood_coil only modelled/not shown)",
+     "house_mass ratio 0.267..3.750 reproduced"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D14-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "A_unflagged_mismatch 8/12; B off-instance[EUR]=1; card off-install 3 (4 pre-R7-D4-03); own: EUR/kWh feed on SEK instance -> normalize returns 0.10 unchanged, _audit_price_units raises 0 issues, CurrentPriceSensor unit 'SEK/kWh' (1)",
+    "metric_definition": "Money surfaces whose delivered currency token differs from the currency the figure is denominated in, with no repair issue",
+    "method": "re-ran p8_currency.py (incl. node card arms); own arm v1_indep.py --arm p8 through inputs.normalize_price_per_kwh, coordinator._audit_price_units, sensor.CurrentPriceSensor",
+    "attacks": [
+     "perturb A (resolve_currency -> feed code) 8->0; B SEK 0; card perturbed 1 token, 0 off-install",
+     "null: feed==instance 0; SEK feed label ok 1",
+     "config_flow.py:1645 hard-codes 'SEK/m\u00b3' (read)"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D14-s2-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": "intake_admits_schema_refuses 11/22; ledger_ids_no_d14_seat 1 (P11); own cases: 4/6 admitted by intake, refused by schema; P11 absent from D14 axis and every seat",
+    "metric_definition": "(reader, boundary case) verdicts differing from the ledger+schema verdict, plus ledger ids held by no D14 seat",
+    "method": "re-ran i4_roster.py; own arm v1_indep.py --arm i4 (regex extracted from audit-find.js, schema definitions/finding id pattern + class_guess enum)",
+    "attacks": [
+     "perturb (a) check_scopes D14 ok True->False; (b) 11->0",
+     "null 0/17",
+     "consequence: audit-find.js:356 has the intake agent validate every accepted finding against finding.schema.json, so the mechanical miss has an agent backstop; P11 unowned stands unmitigated; low stands"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D14-s3-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "22 seam groups (6 raw-divisor, 1 capacity); own spot: dhw_tank_thermal_mass floored only at optimizer.py:5578 (1e-6), raw at 10 other sites",
+    "metric_definition": "Canonical quantities read both inside max(Q, c>0) and raw as a * or / operand, or through two different floors",
+    "method": "re-ran p3_floors.py, --fixture, --reintroduce; grep of dhw_tank_thermal_mass reads",
+    "attacks": [
+     "--reintroduce 22->23 (up), buffer seam 0->1",
+     "fixture 0",
+     "reachability: the finder states every floor is at or below the schema minimum, so it is unreachable from the UI; hygiene/low is right"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D14-s3-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "p4_tol_misses 12/30, p4_bracket_misses 12/30, max tgap 0.5224 %, max gap 0.8915 %, flat misses 3; own LOO over profiles: tgap misses 7/24 (drop shoulder) .. 12/26",
+    "metric_definition": "Per seam call (production score - own candidates re-solved at ftol 1e-12)/|score|; a miss is >0.1 %",
+    "method": "re-ran p4_seeds.py --cells full (516 s wall, load1 2.51, thread_factor 1.000, provisional wall only); --perturb no_deep --no-tight --cells quick vs the same quick grid unperturbed; own re-aggregation v1_indep.py --arm p4",
+    "attacks": [
+     "perturb no_deep: bracket misses 2->3, two|nodhw|winter_typical gap 0.3888->0.5937 % (up; R7 D0-01 value 77.884228 re-found). It moves the bracket metric, not the tgap arm, which --no-tight skips",
+     "null: flat arm still misses 3/4. The claim itself says this, so no price gain is claimed",
+     "LOO: the minimum after dropping any one profile is 7/24; not one cell's artefact",
+     "judge: a 0.1 % gap versus a tighter stop is close to the definition of a finite tolerance; the stop-rule class (bug vs tuning) is for the judge"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D14-s3-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "p5_admitted_over_bar 3 (worst -21.43 %), blended shift 7.97 %; own re-count 3; LOO by preset 1..3 (drop typical_slab -> 1); within gains series hw moves 0.0531->0.0685 while |err| 0->21 %, bar ln1.1=0.0953",
+    "metric_definition": "Sweep cells adoption_decision admits while |ln(UA_fit/UA_true)| > ln 1.10",
+    "method": "re-ran p5_gate.py, --perturb prior_true, --perturb bar_tight; own re-aggregation of the P5_JSON rows (v1_indep.py --arm p5)",
+    "attacks": [
+     "prior_true 3->0 (to_zero)",
+     "bar_tight 3->0, but only by refusing all 39 admissions; it discriminates nothing",
+     "null magnitude-0: 0",
+     "LOO: 2 of 3 in typical_slab; 1 survives dropping it",
+     "realism: 0.4-0.8 kW of undeclared free heat (sun, occupants, appliances) is plausible"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D14-s4-01",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "wrong_sites 9 (8 instances + tariff n/a); grid skew 42/48 cycles, 60 min on every transition day 2025-2027; own: first step label from _forecast_arrays' own (midnight, step_offset) is 60 min off on 42/48 instants on both 2026 transition days, 0/48 on plain",
+    "metric_definition": "Distinct production sites where datetime - or +timedelta on the real cycle differs from UTC truth on a DST day; own: |step0 label - 15-min floor(now)| per half-hour instant",
+    "method": "re-ran p7_dst_seams.py (all days), --fix-grid, --reintroduce, --day plain,plain_autumn; own arm v1_indep.py --arm p7 calling HeatPumpOptimizerCoordinator._forecast_arrays on a namespace self and coordinator._utc_step_starts",
+    "attacks": [
+     "--fix-grid 9->8 sites, skew 42/48->0/48 (down/to_zero)",
+     "--reintroduce 9->10 (up)",
+     "null plain days 0 sites, 0/48",
+     "real-HA reachability: HA's dt_util.now() and now.replace(...) share one ZoneInfo, so now - midnight is wall-clock in CPython; reachable outside the stub",
+     "severity: prices and weather are misaligned by 1 h for about 21 h, but only on 2 days a year; the effect is bounded and recurs, so medium rather than high"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D14-s4-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "replay_wrong_sites 0 (default) vs 10 (--zone-clock); plain 0 both; own: replay._ts tzinfo is datetime.timezone (fixed); across the spring transition wall - UTC = 0 s fixed vs 3600 s ZoneInfo",
+    "metric_definition": "Distinct production sites returning a datetime difference != UTC truth while run_fixture replays the DST days",
+    "method": "re-ran p7_replay_clock.py and --zone-clock; own arm v1_indep.py --arm rp",
+    "attacks": [
+     "perturbation 0->10 (up)",
+     "null plain day 0 under both clocks",
+     "instrument finding: I could make the lane's blindness fire (fixed clock, 0 s error) independently"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D14-s5-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "seams 31 (doc_claims 9, deployment_shape 22); red_and_skipped 1; own: select([hastub update_coordinator.py]) is scoped with 13 scripts and skips deployment_shape.py (1); its closure holds 0 tests/hastub files",
+    "metric_definition": "(S,F) where F is read by S or a child of S, is absent from closures[S], and select([F]) is scoped with S skipped",
+    "method": "re-ran closure_divergence.py (default, union, drop, null scripts), stub_scope_probe.py (default, union); own arm v1_indep.py --arm s5",
+    "attacks": [
+     "union 31->0 (to_zero); drop 31->32 (up)",
+     "null guard_pins/structure/typing_ruler 0",
+     "probe: control green, edited red, select skips -> 1; union -> 0",
+     "mitigation: a push to main forces FULL (CLAUDE.md rule 1), so the miss reaches main as red one merge later; medium stands",
+     "heavy 883-seam set not re-run (about 10 min provisional); vote rests on the default set"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D14-s5-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "uncovered 528/2313 (EXIT 52, CLAMP 246, TERN 230); ratchet delta invisible guard 0 vs visible 1; own: 169 of 184 np.clip/minimum/maximum call lines carry no candidates() site",
+    "metric_definition": "AST guard seams with no candidates() site of the covering kind on that line; own: numpy clamp call lines with no candidates() site",
+    "method": "re-ran guard_inventory.py --history --list, --fixture, --perturb widen; own arm v1_indep.py --arm s5g over mutation_table.candidates",
+    "attacks": [
+     "widen: 528->476, EXIT 52->0 (down)",
+     "fixture clean 0, re-introduced 1",
+     "the ratchet chain (inventory -> unpinned_sites -> ratchet_refusal) refuses the visible guard and not the invisible one",
+     "D3 rule: AST inventory only; no mutant pool run"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ],
+  "D2": [
+   {
+    "id": "D2-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "69 of 3936 grid configs leave the envelope, 50 diverge past 100 K, 52 have radius > 1; worst radius 1.3958; named examples 2 of 2 diverge (radius 1.5252, excess 2.843e35 K); under --perturb=ratio1 all go to 0 (worst radius 1.0000); defaults and 3360 presets: 0",
+    "metric_definition": "Configs whose zero-input 24 h trajectory (outdoor 0, stores 21, slab 25) leaves [0,25] degC by more than 1e-6 K; plus max |eig| of the finite-difference per-substep Jacobian",
+    "method": "Re-ran m1_stability.py verbatim and with --perturb=ratio1; checked the grid bounds against config_flow RANGE_* constants",
+    "attacks": [
+     "contention -> none: counts are deterministic",
+     "reach -> grid endpoints are config_flow.py:558-579 RANGE_* values the options schema uses; no presets.derive house reaches the region (0/3360), so it needs typed values",
+     "grid artefact -> 1-zone 6/864 and 2-zone 63/3072 are both non-zero",
+     "perturbation -> 69 to 0, 50 to 0",
+     "null -> defaults 0, presets 0"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D2-s1-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "Residual non-zero in 28 of 28 cells below 40 C; max 0.405991 kWh per step, min 0.003407, drop-max 0.362492; 0.054010 kWh at DHW 35 / wood 70; null (40 C or above) 3.275e-15; --perturb=mixuse gives 0/28, max 0.000000",
+    "metric_definition": "Per 15-min step: C_w*(wood_no_coil - wood_coil) - DHW heat spared (C_dhw*(dhw_coil - dhw_no_coil) less booked floor injection), kWh; 0 is conservation",
+    "method": "Re-ran m1_coil.py and --perturb=mixuse; read thermal_model.py:1275-1312 (the coil split) and 1857-1863 (draw scale applied to the reduced draw only)",
+    "attacks": [
+     "physics premise -> same tap outflow, so the DHW tank loss with the coil is scale*draw - coil and the model books scale*draw - scale*coil; (1-scale)*coil vanishes, and the finder's identity holds",
+     "LOO -> 0.003407..0.405991, drop-max 0.362492",
+     "perturbation -> 28 to 0",
+     "null -> 3.3e-15 at 40 C or above"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D2-s2-01",
+    "vote": "verify",
+    "severity": "high",
+    "value": "Max drift 1.4400 K/h, cap_gap max 13.500 K, unseen slab heat 67.500 kWh, hold_ratio 0.3043..5.0000; --perturb gives all 0; null at s=1: drift 0, gap 1.34e-12. slab_cap_plan.py 2.0: savings delta -0.393..-13.427 over 6 scenarios, end slab +0.015..+4.598 K; slab_cap_plan.py 1.0: all 0.000",
+    "metric_definition": "(room after one 1-min simulate_step, pump off, room at target, slab at slab_settlement_cap) - target, per hour, over scale {0.3..3} x out {-15,-5,0,5} x {1-zone, 2-zone}",
+    "method": "Re-ran slab_cap_scale.py (plain and --perturb) and slab_cap_plan.py 2.0 and 1.0; read optimizer.py:1494-1530 and 1588-1633 (no house_heat_loss_scale) against thermal_model.py:1616-1618 (scale applied)",
+    "attacks": [
+     "reach -> scale is learned and clamped to [0.3, 3.0] (const.py:1247-1248, coordinator.py:3990), which is exactly the swept range; the caller _settlement_caps passes raw self.model.params",
+     "LOO -> 12.127 with the worst scenario dropped",
+     "flat-price arm -> flat_prices savings shift 18.300 to 6.172; this is a valuation error, not a price-shift gain, and the s=1 arm is the null",
+     "perturbation -> all to 0"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D2-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "Finder harness: fixed50 0.3683, fixed45 0.2282 (mean 0.1056), fixed40 0.0836; curve max 27.921 C; clamp-bound cells 142/142 per arm; null 0.0; --perturb 0.0169 with 0 clamp-bound cells. Own reach harness: 1232 of 1440 presets.derive houses have curve max + 15 K below 45 C (336 below 40 C); curve max across presets 21.55..49.85 C; --perturb gives 0",
+    "metric_definition": "max over outdoor -25..10 C of compute_cop[flow_curve_cop on, bias learned by FlowCurveBias from a plant at SUPPLY_C] / _cop_law(out, None, SUPPLY_C) - 1",
+    "method": "Re-ran flow_bias_clamp.py plain and --perturb; wrote verify-v1/curve_reach.py sweeping presets.derive",
+    "attacks": [
+     "reach beyond default houses -> 'tops out at 27.9 C' holds for the default houses only (some presets reach 49.85 C), but 1232/1440 presets still cannot price a 45 C plant; emitter type does not change the curve",
+     "default-off flag -> flow_curve_cop_enabled defaults off, which bounds severity at medium",
+     "LOO -> 0.0836..0.3683, drop-max 0.2282",
+     "perturbation -> 0.3683 to 0.0169 (down)",
+     "null -> 0.0"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D2-s2-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": "end_mismatch 6 (wood_coil only, max 0.419558 K), savings overstated by 0.4816 (0.306% of baseline); 49 of 50 other scenarios 0; cost_err and savings_err 0; finder --perturb gives 0; own coil-off arm gives 0",
+    "metric_definition": "Count of stores where the ThermalState _deferred_energy_cost settles differs by more than 1e-6 K from OptimizationResult.*_trajectory[-1], over 50 golden scenarios",
+    "method": "Re-ran objective_identities.py plain and --perturb; wrote verify-v1/coil_off_settle.py, which runs the finder's harness on wood_coil with dhw_coil_draw_reduction replaced by (draw, 0) in both namespaces",
+    "attacks": [
+     "tautological perturbation (the finder's --perturb copies the published trajectory end into the replay) -> replaced by an independent mechanism perturbation: coil heat set to 0 takes 6 to 0 and 0.4816 to 0.0000",
+     "null -> 49 non-coil scenarios 0",
+     "severity -> 0.31% of baseline, so low holds"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D2-s3-01",
+    "vote": "verify",
+    "severity": "high",
+    "value": "Ramp arm 28..42 of 96 quarters mispriced; step arm 12..18; MAE 0.04187..0.58438 per kWh, mean 0.18494, leave-max-out 0.10505; hourly-entry and flat nulls 0; --perturb (15-min span) takes the quarter arms to 0 and the hourly null to 273",
+    "metric_definition": "Per profile, count of the 96 quarters (clock 7 min into each) where _current_spot_price() differs from the price of the entry whose [start, start+15 min) contains now",
+    "method": "Re-ran current_quarter_price.py plain and --perturb; read coordinator.py:6320-6338 and price_model.py:776-792",
+    "attacks": [
+     "reach -> the Tibber pull sends TIBBER_PRICE_QUERY_QUARTER first and falls back to hourly only on a parse failure; the seam feeds current_price (coordinator.py:6318), spot_price (9332) and a relative price (10392)",
+     "LOO -> MAE 0.185 to 0.105 with the max cell dropped, still non-zero",
+     "perturbation -> quarter arms 0 and hourly null 273, as the header states (the span is the mechanism)",
+     "null -> hourly entries 0, flat 0"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D2-s3-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "16 of 96 breach steps (summer_negative, export 0.0); 16 at export 0.30; summer_typical at 0.30: 20; signed error range at 0.30: -5.04..0, mean -1.14, LOO -0.36; solve predicted_cost -0.608961 against identity 0; surplus 5.0747 kWh in negative steps; blended_block breaches 16; --perturb gives 0 in all cells, identity gap 0.000000 and surplus 2.2733 kWh",
+    "metric_definition": "Per (profile, export) cell, count of the 96 steps where _energy_cost_fn's price of a 3 kW draw differs by more than 1e-9 from export*min(P,s)+import*max(P-s,0)*dt",
+    "method": "Re-ran pv_piecewise.py plain and --perturb; read pv.py:92-125",
+    "attacks": [
+     "curtailment defence -> at import < 0 with export 0 the floored price equals 'curtail PV and import', but the integration commands no curtailment, so a net meter bills export*min(P,s); in the export 0.30 > import > 0 cells no action makes the floored price achievable, so the breach holds without the curtailment argument",
+     "null -> non-negative-margin profiles 0, no surplus 0",
+     "perturbation -> all cells 0",
+     "LOO -> -1.14 to -0.36"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D2-s4-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "Admitted miss rate 0.636 (14/22), bias mean +7.26% (21/22 positive, max +18.64%); adopted scale error mean +2.71%, max +8.95%; per-cell 0.286..1.000, LOO 0.611; sigma0 0/12; anchor 0.439 (18/41). Own --seeds 80 run: 0.627 (42/67), bias +8.24% (66/67 positive), adopted error max +14.35%, per-cell min 0.421",
+    "metric_definition": "Among fits adoption_decision admits, the share with |log(UA_fit/UA_true)| > slab_ua_adoption_halfwidth(profile, prior); a calibrated 95% interval gives about 0.05",
+    "method": "Re-ran coverage.py --seeds 40 with none, sigma0 and anchor; re-ran with --seeds 80 as a seed-set robustness check",
+    "attacks": [
+     "small n -> 14/22 against nominal 0.05 is far outside binomial range, and 80 seeds give 0.627 over 67 admitted",
+     "LOO -> 0.611 with the worst cell dropped; minimum cell 0.286",
+     "consequence -> adopted scale error is +2.7% mean and up to +14% after blending, a bounded cost, so medium holds",
+     "perturbation -> sigma0 to 0, anchor down to 0.439"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D2-s4-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "100 of 294 runs aborted; light_new 81 of 96 noisy runs (47 of 48 at 0.5 h); noisy-cell abort mean 0.344, LOO 0.305, range 0..1; sigma0 at 0.25 h: 0 aborts (1 at light_new 0.5 h); --perturb margin: 3 of 294",
+    "metric_definition": "Count of seeded production experiments ending with 'room temperature drifted beyond the allowed excursion', over preset x sigma x cadence at plant max power",
+    "method": "Re-ran sizer_margin.py --seeds 16 with none and margin; read sysid.py:1208-1217 (the sizing bound) and 1258-1263 (the abort bound)",
+    "attacks": [
+     "mechanism -> _size_step_power sizes to peak <= max_excursion_c, with headroom only on two-zone plants, and _over_excursion aborts at the same bound",
+     "LOO -> dropping every light_new cell still leaves 19 aborts (typical_slab)",
+     "perturbation -> 100 to 3",
+     "null -> sigma 0 at 0.25 h gives 0"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ]
+ }
+}
