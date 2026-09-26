@@ -1,0 +1,63 @@
+{
+ "box": "G1-V3",
+ "lens": 3,
+ "votes": {
+  "D13": [
+   {
+    "id": "D13-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "201 of 253 merges enumerated (gap 52, gap_marked 0); --record over the same window: 201 vs 253 enumerated, and 9 undispositioned merges (#1157-#1165) that it never reports",
+    "metric_definition": "N of the production `--record` line `TOTAL: e error(s) over N merged pull request(s)` and its `no disposition ... #N` set. Two stub arms replay the finder's live-API snapshot: as-is ([] rows) and restore (subject #N). Hidden = errors that appear only in the restore arm.",
+    "method": "Re-ran enum_gap.mjs in a shared clone with origin/main pinned to 1936d5ca (all three arms). Own harness verify-v3/D13-s1-01_reach.mjs drives the second consumer, --record, through its own stub curl, and checks the dropped PR numbers against docs/delivery/.",
+    "attacks": [
+     "re-run in the worktree as committed: 0/256, gap_marked 1. origin/main is now db878b29, 18 commits past baseline, so the stub 404s the new shas and the CLI falls back. This is a harness defect: it reads origin/main, not the baseline",
+     "re-run with origin/main pinned: 201/253/52/0 exact; drop arm 200/53/0; restore arm 253/0",
+     "phantom-PR attack: 43 of the 52 dropped numbers have docs/delivery/<N>.md and all are in RELEASE_NOTES.md, so they are real PRs of this repository",
+     "consequence: --record hides 9 undispositioned merges; RECORD_ENUM prints `api` with no UNCHECKED marker (unchecked_marker_asis 0)",
+     "range correction: the dropped set is #1097-#1165, not #1098-#1165",
+     "live-process reach: the [] answers rest on the finder's API snapshot only (no GitHub access here); git-side counts were confirmed independently"
+    ],
+    "class": "I4",
+    "seam_rule_enumerates": "all: the grep lists all four consumers of mergedPRsFromWindow (--record, --stats, --sunset, --record-known-bad). The harness demonstrates only --stats; --record was driven and shows the same drop"
+   },
+   {
+    "id": "D13-s1-02",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "0 of 22 reverify rounds blocked (reproduced). The branch's own patch-id was unchanged in only 3 of 22 rounds (9 of 22 with -U0 and the claim files and closures.json excluded); P(0 blocks | 16/188 first-verdict block rate) over the 19 changed rounds = 0.185",
+    "metric_definition": "Reverify round = a verdict following a `merge` verdict on a different head. Identical = git patch-id --stable of diff merge-base(H, M^1)..H is the same at the previous and the new head, with M the PR's merge commit on main.",
+    "method": "Re-ran yield_rounds.mjs (baseline and block_one_reverify arms). Own harness verify-v3/D13-s1-02_diffeq.mjs parses verdicts from the snapshot independently and compares each round's branch diff at both heads, cross-tabulates the finder's move classes and computes a binomial null against the first-verdict block rate.",
+    "attacks": [
+     "re-run: reverify 22, blocked 0, merges-only 11, ci-only 1, content 10, exact; perturbation 0 -> 1",
+     "diff-equivalence: 8 of 10 merges-only moves changed the branch patch (claimnotes-merged claim files, closures.json, conflict resolutions), so the proposed byte-identical carry would fire on 2-6 of 22 rounds, not 12",
+     "null control: first-verdict block rate 16/188 = 8.5%; 0 blocks in 19 content-changed rounds has p = 0.185, which does not show those rounds cannot catch",
+     "severity: process cost with no user-visible defect, a bounded cost (COMMON.md item 7), so medium not high",
+     "recurrence: round 8 D13-s1 recorded the same shape (15 of 15 reverify rounds merge)",
+     "live-process reach: verdict data from the snapshot; all 44 heads resolved in local git"
+    ],
+    "class": "new: an approval bound to an exact head is re-bought as a full review round on a move that leaves the branch's own diff unchanged (second instance after round 8 D13-s1)",
+    "seam_rule_enumerates": "partial: it enumerates every reverify round in the window but classes a move by commit type, not by the property (branch diff unchanged). 8 of its 10 merges-only moves fail the property"
+   },
+   {
+    "id": "D13-s1-03",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "8 body-answer blocked verdicts of 21 (reproduced) on 6 PRs; 7 of 8 fall on 2026-09-24 in #1559-#1563; 3 of 8 also carry an engineering block, so 5 have it as the sole reason. The mechanical check the fix asks for already exists at baseline",
+    "metric_definition": "Blocked verdicts `Fix review: blocked <sha> <word>:` in the snapshot (deduplicated per PR, head and word), counted by word both as verdicts and as distinct PRs; plus completion order of the pr-contract check-run against the typing and mutation runs at each PR's final head.",
+    "method": "Re-ran yield_rounds.mjs (baseline and rca_to_harness arms). Own harness verify-v3/D13-s1-03_blocks.mjs does an independent class count and prints each body-answer verdict. Read pr-contract.yml and policy_lint.mjs checkPrBody/redHistoryForHead at 1936d5ca and dated them with git log -S.",
+    "attacks": [
+     "re-run: 21 blocked, body-answer 8, max engineering class 1, record-and-body 12, engineering 7, exact; perturbation 7/11/8 as stated",
+     "mechanism refuted: the finder says the check is enforced only by the fix reviewer. pr-contract (#956) lists failure check-runs and checkPrBody refuses a `## Red checks` that does not name one; since a07dd57d (2026-09-19, #1144) over every branch head, which predates all 8 blocks (2026-09-22 and 2026-09-24)",
+     "residual measured instead: at the final heads of all 6 PRs typing completed after the last pr-contract run (6/6), mutation at 5/6; window-wide 346 of 738 mutation/typing runs completed after their head's last pr-contract. All 8 blocked reds are typing, mutation or fast",
+     "grid attack: 7 of 8 verdicts come from one day and one wave (#1559-#1563); drop it and 1 remains",
+     "multi-reason attack: #1559 (x2) and #1561 also carry harness or regression blocks; counting every reason, engineering is 10 against record-and-body 12",
+     "severity: process cost, bounded, so medium",
+     "live-process reach: verdict text and runs_head from the snapshot; check-run order visible only at final heads"
+    ],
+    "class": "I3",
+    "seam_rule_enumerates": "demonstrated-only: it counts verdict classes but does not enumerate the check's own seams (check-run completion order against the pr-contract run at each branch head), which is where the phenomenon lives"
+   }
+  ]
+ }
+}
