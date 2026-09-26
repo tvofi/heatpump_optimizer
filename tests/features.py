@@ -47460,6 +47460,24 @@ R.check(
     ("number", "set_value", 41.0) in _pa_rcold.writes(),
     f"{_pa_rcold.writes()}",
 )
+_pa_rhot = _PaCoord(_PA_TUYA, duties="ss")
+_pa_rhot._thermal_model.curve_flow_temp = lambda _o: 70.0
+_pa_rhot.stale = True
+_pa_run(_pa_rhot, 1)
+R.check(
+    "the baseline never holds above the heating flow, however hot the curve",
+    ("number", "set_value", _pa.FLOW_HEAT_C) in _pa_rhot.writes(),
+    f"{_pa_rhot.writes()}",
+)
+_pa_mbflow = _PaCoord(_PA_MODBUS, duties="d")
+_pa_mbflow.hass.states.get("number.water_set").attributes = {"min": 10, "max": 63}
+_pa_run(_pa_mbflow, 1)
+R.check(
+    "with no DHW-only mode a flow gate stays at 25 degC where the entity accepts 10",
+    ("number", "set_value", 25.0) in _pa_mbflow.writes()
+    and ("number", "set_value", 10.0) not in _pa_mbflow.writes(),
+    f"{_pa_mbflow.writes()}",
+)
 _pa_mism = _PaCoord(_PA_TUYA, duties="ss", flow=False)
 _pa_run(_pa_mism, 1)
 _pa_mism_d = _PaCoord(_PA_MODBUS, duties="d", flow=False)
