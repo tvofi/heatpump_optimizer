@@ -1,0 +1,99 @@
+== prefill_config_strings
+RESULT unlabelled_fields_en=3 count
+RESULT no_help_fields_en=3 count
+RESULT untranslated_errors_en=1 count
+RESULT unlabelled_fields_sv=3 count
+RESULT no_help_fields_sv=3 count
+RESULT untranslated_errors_sv=1 count
+RESULT options_twin_unlabelled=0 count
+RESULT options_twin_untranslated_errors=0 count
+RESULT preview_fields=5 count
+RESULT thread_factor=0.999
+RESULT load1=2.60
+RESULT swapins=0
+== currency_units
+RESULT money_fields=4 count
+RESULT foreign_currency_units=1 count
+RESULT static_fixed_currency_texts=2 count
+RESULT thread_factor=1.000
+RESULT load1=2.60
+RESULT swapins=0
+== escaped_text
+RESULT escaped_error_texts_reached=4 count
+RESULT garbled_chars_en=1 count
+RESULT garbled_chars_sv=9 count
+RESULT escaped_other_error_texts=0 count
+RESULT escaped_texts_all_files=6 count
+RESULT thread_factor=1.000
+RESULT load1=2.63
+RESULT swapins=0
+== zones_default
+RESULT two_zone_expert_defaults=1 count
+RESULT two_zone_describe_defaults=0 count
+RESULT thread_factor=1.000
+RESULT load1=2.63
+RESULT swapins=0
+== step_grid
+RESULT off_grid_defaults=8 count
+RESULT off_grid_derived=4 count
+RESULT off_grid_slider_fields=0 count
+RESULT out_of_range_values=0 count
+RESULT thread_factor=1.000
+RESULT load1=2.63
+RESULT swapins=0
+== preset_warning
+RESULT derived_fields_rendered=10 count
+RESULT unwarned_derived_fields_en=6 count
+RESULT warned_derived_fields_en=4 count
+RESULT unwarned_derived_fields_sv=6 count
+RESULT warned_derived_fields_sv=4 count
+RESULT thread_factor=1.000
+RESULT load1=2.63
+RESULT swapins=0
+== quick_menu
+RESULT repeated_completed_options=1 count
+RESULT menu_identical_after_quick=1 count
+RESULT null_repeated_options=0 count
+RESULT thread_factor=1.000
+RESULT load1=2.63
+RESULT swapins=0
+== service_icons
+RESULT services_registered=12 count
+RESULT services_without_icon=12 count
+RESULT entity_keys_without_icon=0 count
+RESULT service_fields_checked=134 count
+RESULT service_names_or_fields_untranslated=0 count
+RESULT thread_factor=1.000
+RESULT load1=2.63
+RESULT swapins=0
+== unit_typography
+RESULT selector_units_degC=31 count
+RESULT selector_units_bareC=0 count
+RESULT selector_units_m2_superscript=6 count
+RESULT bare_unit_help_texts_en=8 count
+RESULT bare_unit_help_texts_sv=8 count
+RESULT thread_factor=1.000
+RESULT load1=2.63
+RESULT swapins=0
+== prefill_after_save
+RESULT after_save_rendered=1 count
+RESULT config_distinct_destinations=1 count
+RESULT after_save_leaks_into_entry=1 count
+RESULT options_distinct_destinations=2 count
+RESULT thread_factor=1.000
+RESULT load1=2.63
+RESULT swapins=0
+== flow_rubric
+RESULT pages=39 count
+RESULT max_fields_on_a_page=24 count
+RESULT flat_pages_over_10_fields=5 count
+RESULT missing_label_total=0 count
+RESULT missing_help_total=0 count
+RESULT sv_labels_identical_to_en=0 count
+RESULT unsupplied_placeholders=0 count []
+RESULT screens_finish_now=4 count
+RESULT screens_quick=7 count
+RESULT screens_expert=10 count
+RESULT thread_factor=1.000
+RESULT load1=2.63
+RESULT swapins=0
