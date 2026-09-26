@@ -581,6 +581,41 @@
         "class": null,
         "seam_rule_enumerates": null
       }
+    ],
+    "leads": [
+      {
+        "id": "D8-s3-61",
+        "vote": "verify",
+        "severity": "low",
+        "value": "value_but_default_off=5 of 5 manual-mode cells (finder's arm), reproduced exact; my own harness (4 modes x 5 topologies): value_but_default_off=15 of 15 throttling cells (manual/smart_read/smart_write), 0 of 5 no-valve cells; perturbation (--perturb valve, gating default on mixing_valve.is_throttling) drove finder's count 5->0 and mine's cells to enabled_default=True for all throttling modes observed",
+        "metric_definition": "topologies (of the 5 golden coordinator scenarios) x mixing_valve modes where native_value is not None while entity_registry_enabled_default (read off the class, never a payload key) is False",
+        "method": "tools/audit/round9/D8/verify-v2-leads/v2_valve_default.py; re-ran finder's tools/audit/round9/D8/leads/l2_d8_leads.py --only D (baseline 5, --perturb valve 0, exact match)",
+        "attacks": "contention: load1 1.61-2.20, thread_factor 1.000, not gated per README; gate mode: n/a (no golden/env_drift path); grid artefact: n/a, not an aggregate mean; null control: none stated by the finder (claim is about a static default, not cost/gain/time, so COMMON.md's null-control requirement does not bind); real-HA reachability: entity_registry_enabled_default and native_value are read the ordinary HA entity-setup way (async_setup_entry, no FakeHass-only shortcut) -- reachable; severity: kept at the finder's 'low' (a diagnostic entity's opt-in default, not wrong money/comfort) despite my wider 15-cell count, since the consequence for the user (an extra step in the entity list to enable a diagnostic sensor) is unchanged by the wider footprint",
+        "class": null,
+        "seam_rule_enumerates": null
+      },
+      {
+        "id": "D4-s2-81",
+        "vote": "verify",
+        "severity": "medium",
+        "value": "en_identical_total=41 (22 page lines + 16 slot labels + 3 advisor labels), reproduced exact; --perturb -> 0, reproduced exact; my own instrument: no_lang_param=4 of 4 (describe_setup, render_text_summary, rank_sensor_advisor, _setup_overview_form carry no language parameter and read no hass.config.language), narrative.render (control) carries one; return-object identity check: 3 of 3 (slots/summary/advisor labels) are literally identical objects/values across en and sv calls",
+        "metric_definition": "published setup strings byte-identical between en and sv installs (finder); count of the four instrumented functions whose signature/body carries a language (mine, a structural rather than string-diff metric)",
+        "method": "tools/audit/round9/D4/verify-v2-leads/v2_setup_labels.py; re-ran finder's tools/audit/round9/D4/leads/l4_setup_labels.py [--perturb] (both exact)",
+        "attacks": "contention: load1 0.36-0.87, thread_factor 1.000; wrong gate mode: n/a; grid artefact: n/a, not an aggregate; null control: finder's narrative.render control (0 of 1 identical) reproduced, and I independently confirmed narrative.render's signature DOES carry language while the four accused functions do not -- rules out the alternative explanation that sv.json itself is untranslated: read sv.json directly and its own setup_overview template text is genuinely Swedish, only the {setup_summary} placeholder these functions fill stays English; also found a working same-file precedent (config_flow._building_preset_warning, reads hass.config.language) the accused function does not use, which rules out 'HA gives no language at this call site' as a defense; real-HA reachability: description_placeholders and the card's verbatim setup_topology attribute are genuine production paths, not stub-only; severity: kept at finder's medium (user-visible wrong-language text, workaround is none -- the field always misreports)",
+        "class": null,
+        "seam_rule_enumerates": null
+      },
+      {
+        "id": "D12-s3-81",
+        "vote": "verify",
+        "severity": "medium",
+        "value": "blocked_verdicts=8, blocked_currencies=4 of 12 (HUF,ISK,JPY,KRW), reproduced exact; --perturb -> 4, reproduced exact; my own harness at a different fee (0.04 EUR/kWh vs finder's 0.05) and an independently-rounded FX table over 8 currencies: blocked_currencies=4 of 8 (HUF,ISK,JPY,KRW), null_blocked=0 of 4 (SEK,EUR,NOK,DKK); leave-one-out over that grid: loo_min=3, loo_max=4 (dropping HUF or KRW still leaves >=3 blocked, i.e. JPY/ISK alone still trip the currency-agnostic selector max)",
+        "metric_definition": "seam verdicts (rules refusal, fixed-selector cap, repair raised) blocking or capping an ordinary distribution fee expressed in each instance currency (finder); same, at a different fee/FX assumption plus leave-one-out over the currency grid (mine)",
+        "method": "tools/audit/round9/D12/verify-v2-leads/v2_fee_bound.py; re-ran finder's tools/audit/round9/D12/leads/l4_fee_bound.py [--perturb] (both exact)",
+        "attacks": "contention: load1 0.12-0.36, thread_factor 1.000; wrong gate mode: n/a; grid artefact: leave-one-out run (finder's harness doesn't do this; mine does) -- min 3 of 8 held with any single currency dropped, not a single-cell artefact; null control: finder's null_blocked=0 of 4 reproduced exact, and mine independently gets 0 of 4 at a different fee/FX table; real-HA reachability: NumberSelector max and the repair-issue creation are genuine HA mechanisms (frontend enforces the selector max; _create_issue is the real repair-issue path), not stub-only; confirmed at source: grid_fee.py:70/:240 compares a currency-typed rate against a bare SEK constant with no conversion, and config_flow.py:1720's _number(0, 5, ...) selector bound is likewise currency-agnostic under a currency-following unit label -- both read directly, not inferred; severity: kept at finder's medium (a real fee becomes unenterable/misjudged in 4 of 12 currencies, workaround is manual unit-juggling by the installer)",
+        "class": null,
+        "seam_rule_enumerates": null
+      }
     ]
   }
 }
