@@ -32,6 +32,8 @@ from typing import Any
 
 import numpy as np
 
+from .drift import stored_instant
+
 _LOGGER = logging.getLogger(__name__)
 
 #: The bias can only cool an over-hot curve, never heat. Kelvin.
@@ -106,13 +108,10 @@ class CurveLearner:
     def _step_down(self, now: datetime) -> None:
         # The weekly rate cap holds even if the caller's day counting is
         # generous: at most MAX_DOWN_PER_WEEK of movement per 7 days.
-        if self._last_step_at:
-            try:
-                last = datetime.fromisoformat(self._last_step_at)
-                days = (now - last).total_seconds() / 86400.0
-                max_now = MAX_DOWN_PER_WEEK * max(days, 0.0) / 7.0
-            except ValueError:
-                max_now = STEP_K
+        last = stored_instant(self._last_step_at)
+        if last is not None:
+            days = (now - last).total_seconds() / 86400.0
+            max_now = MAX_DOWN_PER_WEEK * max(days, 0.0) / 7.0
         else:
             max_now = STEP_K
         step = min(STEP_K, max_now)
@@ -162,5 +161,6 @@ class CurveLearner:
         except (TypeError, ValueError, OverflowError):
             learner.resets = 0
         learner._last_day = str(data.get("last_day", ""))
-        learner._last_step_at = str(data.get("last_step_at", ""))
+        last_step = stored_instant(data.get("last_step_at"))
+        learner._last_step_at = last_step.isoformat() if last_step else ""
         return learner

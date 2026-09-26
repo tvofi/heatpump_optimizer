@@ -17,7 +17,7 @@ pattern: evidence strings, explicit release, nothing actuates from here.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timezone, tzinfo
 from typing import Any
 
 import numpy as np
@@ -27,6 +27,30 @@ import numpy as np
 #: release lag grows with how long the condition lasted — an 8-hour open
 #: window would freeze learning for two extra days after it closed.
 STAT_CAP_FACTOR = 1.5
+
+
+def stored_instant(
+    raw: Any, naive_zone: tzinfo | None = timezone.utc
+) -> datetime | None:
+    """The stored-instant rule: a persisted instant loads aware, or not at all.
+
+    Every consumer diffs a loaded instant against an aware ``now``, so a naive
+    one raised ``TypeError`` on every cycle until something rewrote the leaf
+    (round 9, D1-s1-01, D1-s3-01). A naive instant is read in ``naive_zone``:
+    UTC for a stamp this integration wrote, the user's own zone for a time the
+    user typed. Anything that does not parse is ``None``. The zone is all this
+    decides; how far ahead a stored instant may lie is the store boundary's.
+    """
+    if isinstance(raw, datetime):
+        when = raw
+    elif isinstance(raw, str) and raw.strip():
+        try:
+            when = datetime.fromisoformat(raw.strip())
+        except ValueError:
+            return None
+    else:
+        return None
+    return when if when.tzinfo is not None else when.replace(tzinfo=naive_zone)
 
 
 @dataclass
@@ -144,12 +168,4 @@ class Cusum:
             self.evidence = [str(e) for e in raw[-6:]]
         raw_fed = data.get("last_fed")
         if isinstance(raw_fed, str):
-            try:
-                self.last_fed = datetime.fromisoformat(raw_fed)
-            except ValueError:
-                self.last_fed = None
-            # A legacy payload may carry a naive timestamp; the callers'
-            # `now` is aware, and the subtraction in `release_if_starved`
-            # raises TypeError on the mix. Naive stored times were UTC.
-            if self.last_fed is not None and self.last_fed.tzinfo is None:
-                self.last_fed = self.last_fed.replace(tzinfo=timezone.utc)
+            self.last_fed = stored_instant(raw_fed)

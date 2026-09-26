@@ -34,6 +34,7 @@ from .const import (
     DOMAIN,
 )
 from .dhw_learning import DHW_PROFILE_STORE_VERSION
+from .drift import stored_instant
 from .disinfection import DisinfectionSwitch
 from .optimizer import REASON_LEGIONELLA
 from .setpoint_check import create_issue
@@ -118,16 +119,12 @@ class LegionellaGuard:
         try:
             stored = await self.store.async_load()
             raw = (stored or {}).get("last_cycle")
-            parsed = dt_util.parse_datetime(raw) if isinstance(raw, str) else None
+            parsed = stored_instant(raw)
             # A cycle that ran but fell short is remembered separately, so a
             # restart cannot turn a failed attempt back into an overdue timer
             # that pins a boost on every plan.
             attempt_raw = (stored or {}).get("last_attempt")
-            attempt = (
-                dt_util.parse_datetime(attempt_raw)
-                if isinstance(attempt_raw, str)
-                else None
-            )
+            attempt = stored_instant(attempt_raw)
             self._load_switch_record(stored or {})
             if attempt is not None:
                 self.attempt = attempt

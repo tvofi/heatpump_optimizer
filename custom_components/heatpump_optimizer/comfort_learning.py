@@ -31,6 +31,8 @@ from typing import Any
 
 import numpy as np
 
+from .drift import stored_instant
+
 _LOGGER = logging.getLogger(__name__)
 
 # Bounds on the learned value. Outside these the optimizer either ignores price
@@ -250,12 +252,7 @@ class ComfortLearner:
             return cls(
                 configured_weight=configured_weight, learned_weight=configured_weight
             )
-        raw_time = data.get("last_update")
-        if isinstance(raw_time, str):
-            try:
-                learner.last_update = datetime.fromisoformat(raw_time)
-            except ValueError:
-                learner.last_update = None
+        learner.last_update = stored_instant(data.get("last_update"))
         history = data.get("history")
         if isinstance(history, list):
             learner.history = [h for h in history if isinstance(h, dict)][-40:]

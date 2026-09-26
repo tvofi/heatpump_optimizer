@@ -29,11 +29,14 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
 import numpy as np
+
+from .drift import stored_instant
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -70,9 +73,8 @@ class SnapshotRing:
     def due(self, now: datetime) -> bool:
         if not self.snapshots:
             return True
-        try:
-            last = datetime.fromisoformat(self.snapshots[-1]["taken_at"])
-        except (KeyError, TypeError, ValueError):
+        last = stored_instant(self.snapshots[-1].get("taken_at"))
+        if last is None:
             return True
         return (now - last).total_seconds() >= SNAPSHOT_INTERVAL_DAYS * 86400.0
 
@@ -192,10 +194,15 @@ class SnapshotRing:
                     )
                 continue
             bias = accuracy.get("temperature_bias")
-            if bias is not None and (
-                not np.isfinite(bias) or abs(float(bias)) > BIAS_BAND_C
-            ):
-                continue
+            if bias is not None:
+                # A stored leaf: "0.3", a list, a dict all reached np.isfinite
+                # and raised, from the method that must never raise (D1-s1-02).
+                try:
+                    bias = float(bias)
+                except (TypeError, ValueError, OverflowError):
+                    continue
+                if not math.isfinite(bias) or abs(bias) > BIAS_BAND_C:
+                    continue
             return snap
         return None
 
@@ -218,7 +225,11 @@ class SnapshotRing:
             return ring
         raw = data.get("snapshots")
         if isinstance(raw, list):
-            clean = [s for s in raw if isinstance(s, dict)]
+            clean = [dict(s) for s in raw if isinstance(s, dict)]
+            for snap in clean:  # the stored-instant rule: taken_at loads aware
+                when = stored_instant(snap.get("taken_at"))
+                if when is not None:
+                    snap["taken_at"] = when.isoformat()
             dropped = len(raw) - len(clean)
             if dropped:
                 _LOGGER.warning(

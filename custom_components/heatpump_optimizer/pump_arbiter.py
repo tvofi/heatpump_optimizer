@@ -130,6 +130,7 @@ from .const import (
 )
 from .inputs import state_unit, temperature_c, temperature_from_c
 from .repairs import _write_setpoint
+from .drift import stored_instant
 from .store import QuarantiningStore
 
 _LOGGER = logging.getLogger(__name__)
@@ -626,9 +627,11 @@ async def _load(coord: Any) -> None:
         _clear(coord, ISSUE_MANUAL)
     for slot, pair in (raw.get("written") or {}).items():
         try:
-            held.written[slot] = (pair[0], datetime.fromisoformat(pair[1]))
-        except (TypeError, ValueError, IndexError):
+            at = stored_instant(pair[1])
+        except (TypeError, KeyError, IndexError):
             continue
+        if at is not None:
+            held.written[slot] = (pair[0], at)
 
 
 def diagnostics_view(coord: Any) -> dict[str, Any]:

@@ -25,11 +25,13 @@ from homeassistant.util import dt as dt_util
 
 from . import away as away_mode
 from .const import DOMAIN
+from .drift import stored_instant
 from .entity import has_hot_water
 
 _LOGGER = logging.getLogger(__name__)
 BOOST_STORE_VERSION = 1
 BOOST_HOURS = 2
+_MAX_LEAD = timedelta(hours=BOOST_HOURS)
 CHANNEL_DHW = "dhw"
 CHANNEL_SPACE = "space"
 CHANNELS = (CHANNEL_DHW, CHANNEL_SPACE)
@@ -65,12 +67,17 @@ class BoostState:
         for channel, end in list(self.until.items()):
             if end <= now:
                 self.until.pop(channel, None)
+            elif end > now + _MAX_LEAD:
+                # The clock stepped back since the boost was set: the two-hour
+                # maximum is a duration, not an instant (D1-s3-05), so it is
+                # held to two hours from now rather than for the step as well.
+                self.until[channel] = now + _MAX_LEAD
 
     def set(self, channel: str, active: bool, now: datetime) -> None:
         if channel not in CHANNELS:
             raise ValueError(channel)
         if active:
-            self.until[channel] = now + timedelta(hours=BOOST_HOURS)
+            self.until[channel] = now + _MAX_LEAD
         else:
             self.until.pop(channel, None)
 
@@ -154,19 +161,12 @@ def _store(coord: _BoostCoord) -> QuarantiningStore[dict[str, Any]]:
         coord.hass,
         BOOST_STORE_VERSION,
         f"{DOMAIN}_{coord.entry.entry_id}_boost",
-        lead=timedelta(hours=BOOST_HOURS),
+        lead=_MAX_LEAD,
     )
 
 
 def _parse_until(raw: Any) -> datetime | None:
-    if isinstance(raw, datetime):
-        return raw
-    if not raw:
-        return None
-    try:
-        return datetime.fromisoformat(str(raw).strip())
-    except ValueError:
-        return None
+    return stored_instant(raw)
 
 
 async def persist(coord: _BoostCoord) -> None:
