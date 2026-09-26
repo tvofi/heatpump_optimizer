@@ -1,0 +1,97 @@
+| id | README line | claim | check | result | verdict |
+|---|---|---|---|---|---|
+| C01 | README.md:417 | All 75 entities appear | sum over PLATFORM_LIST of real async_setup_entry | 75 | true |
+| C02 | README.md:448 | Sensors (59 total) | len(collect(sensor)) | 59 | true |
+| C03 | README.md:567 | Binary Sensors (6 total) | len(collect(binary_sensor)) | 6 | true |
+| C04 | README.md:578 | Buttons (4 total) | len(collect(button)) | 4 | true |
+| C05 | README.md:130 | switches: Optimizer Active, Away, DHW Boost, Boost Space Heating | switch.async_setup_entry names | ['Away', 'Boost Space Heating', 'DHW Boost', 'Optimizer Active'] | true |
+| C06 | README.md | a datetime entity Expected Return | datetime.async_setup_entry | ['Expected Return'] | true |
+| C07 | README.md | one climate entity | climate.async_setup_entry | 1 | true |
+| C08 | README.md:438 | Nineteen entities (eighteen sensors and the wood binary sensor) disabled by default | registry default, hot-water install without probes | 19 (18 sensors) | true |
+| C09 | README.md | the 'Disabled by default:' list names exactly those | set compare vs census (hot water on) | listed-not-disabled=[] disabled-not-listed=[] | true |
+| C10 | README.md | …because the ordinary install cannot light them (the list is every such entity) | registry default on a Finish-setup-now entry (token+weather only) | 26 disabled; undocumented: ['DHW Cost (lifetime)', 'DHW Energy (lifetime)', 'DHW Heating Cost (next 24 h)', 'DHW Heating Schedule', 'DHW Setpoint Advisor', 'Plan DHW Heating (next 24 h)'] -- TRUE STATEMENT: on an install without hot water (Finish setup now, or Quick setup without a tank) 26 entities are disabled by default; the hot-water gate also disables ['DHW Cost (lifetime)', 'DHW Energy (lifetime)', 'DHW Heating Cost (next 24 h)', 'DHW Heating Schedule', 'DHW Setpoint Advisor', 'Plan DHW Heating (next 24 h)'] | false |
+| C11 | README.md | every sensor row's Unit column | native_unit_of_measurement (CUR=SEK on a stub instance) | 65 rows; mismatches [] | true |
+| C12 | README.md | every row marked 'Diagnostic' is diagnostic and vice versa | _attr_entity_category | mismatches [] | true |
+| C13 | README.md | every row saying 'Disabled by default' is disabled | entity_registry_enabled_default (hot water on) | mismatches [] | true |
+| C14 | README.md | Optimization Schedule / DHW Heating Schedule / plan forecasts 'not recorded' | _unrecorded_attributes non-empty | without exclusions: [] | true |
+| C15 | README.md:461 | Heat Pump Action: off, hot_water, eco, normal, pre_heat or boost, and comfort | HeatPumpActionSensor._attr_options (+ HeatPumpOptimizer._idle_action executed) | publishable ['boost', 'comfort', 'eco', 'hot_water', 'normal', 'off', 'pre_heat']; README omits [] | true |
+| C16 | README.md:460 | Optimization Mode: auto, comfort, economy, boost or off | OptimizationModeSensor._attr_options | ['auto', 'boost', 'comfort', 'economy', 'off'] | true |
+| C17 | README.md | climate HVAC modes (off, heat, auto) and presets (auto, comfort, economy, boost) | climate entity _attr_hvac_modes/_attr_preset_modes | ['off', 'heat', 'auto'] ['auto', 'comfort', 'economy', 'boost'] | true |
+| C18 | README.md | Without hot water configured, DHW Boost is unavailable and disabled by default | DHW Boost default+available on Finish-now entry | default=False available=False | true |
+| C19 | README.md:582 | Optimize Now: unavailable while one is in flight | button.available with optimization_running=True | False | true |
+| C20 | README.md:646 | 12 services are registered under heatpump_optimizer | services.async_register_services recorder | 12 | true |
+| C21 | README.md | the services table names every registered service | set compare | doc-only=[] code-only=[] | true |
+| C22 | README.md | the Returns column | supports_response passed to async_register | all match | true |
+| C23 | README.md | all 28 fields of set_thermal_parameters | len(SERVICE_SCHEMA_SET_THERMAL_PARAMS.schema) | 28 | true |
+| C24 | README.md:656 | set_mode: auto, comfort, economy, boost or off | SERVICE_SCHEMA_SET_MODE vol.In container | ['auto', 'boost', 'comfort', 'economy', 'off'] | true |
+| C25 | README.md:673 | `dhw_slots: []` is accepted as an explicit empty list | SERVICE_SCHEMA_APPLY_MANUAL_PLAN | {'dhw_slots': []} | true |
+| C26 | README.md:145 | apply_manual_plan: pin exact run slots for up to 20 hours | services.handle_apply_manual_plan(expires_at=now+48h, space_slots=[]) -> channel_pins over 96x15 min | 24.0 h of the 24 h horizon pinned (off) -- TRUE STATEMENT: 20 hours is only the default expiry; an explicit expires_at is accepted unbounded, and one past the horizon pins every step | false |
+| C27 | README.md | target 21 °C | import const/module constant | 21.0 | true |
+| C28 | README.md | comfort day 21 °C | import const/module constant | 21.0 | true |
+| C29 | README.md | comfort night 19.5 °C | import const/module constant | 19.5 | true |
+| C30 | README.md | day runs 07:00-22:00 | import const/module constant | (7, 22) | true |
+| C31 | README.md | DHW frames `06:00-08:30, 17:00-22:00` by default | import const/module constant | 06:00-08:30, 17:00-22:00 | true |
+| C32 | README.md | anti-legionella on by default | import const/module constant | True | true |
+| C33 | README.md | legionella 60 °C every 7 days | import const/module constant | (60.0, 7.0) | true |
+| C34 | README.md | wind 3 % per m/s | import const/module constant | 0.03 | true |
+| C35 | README.md | rain 15 % | import const/module constant | 1.15 | true |
+| C36 | README.md | optimization interval 30 minutes by default | import const/module constant | 30 | true |
+| C37 | README.md | comfort_weight default 5 | import const/module constant | 5.0 | true |
+| C38 | README.md | mold breach margin default 0.5 °C | import const/module constant | 0.5 | true |
+| C39 | README.md | weekly snapshots, last eight kept | import const/module constant | (8, 7.0) | true |
+| C40 | README.md:44 | cool-only heat-curve correction at most 0.5 K per week | import const/module constant | 0.5 | true |
+| C41 | README.md:89 | frequency: at most one write per five minutes | import const/module constant | 300.0 | true |
+| C42 | README.md | frequency watchdog: three active ticks | import const/module constant | 3 | true |
+| C43 | README.md | boosts last two hours | import const/module constant | 2 | true |
+| C44 | README.md:52 | peak guard: 2 agree to engage, 2 to clear | import const/module constant | 2 | true |
+| C45 | README.md | Observe is the default frequency mode | import const/module constant | observe | true |
+| C46 | README.md:540 | Mixed Water: litres of 40 °C water | import const/module constant | 40.0 | true |
+| C47 | README.md:440 | capacity tariff: mean of the three highest peaks | import const/module constant | 3 | true |
+| C48 | README.md | system identification off on a fresh install | import const/module constant | False | true |
+| C49 | README.md | ECL110 MQTT topics ship empty | _OPTION_FIELDS heat_curve topic defaults | {'ecl110_displace_set_topic': '', 'ecl110_command_topic': '', 'ecl110_state_topic': ''} | true |
+| C50 | README.md | Since v4.1.0 ECL110 settings live only on the options page, not initial setup | strings.json config.step field keys | none | true |
+| C51 | README.md | a menu of 23 pages — 22 you can edit plus a read-only overview | len(_OPTION_PAGES); setup_overview has no _F rows | 23 pages, 22 editable | true |
+| C52 | README.md:392 | masses, losses, the two-zone split and power limits are on Thermal model (expert); buffer volume on Heating system; window area, orientation factor and SHGC on Building type and emitters; comfort_weight on Savings vs comfort | _OPTION_FIELDS step of each named field | ["inter_zone_heat_transfer: README 'Thermal model (expert)', code 'Two-zone model'", "radiator_power_fraction: README 'Thermal model (expert)', code 'Two-zone model'", "solar_orientation_factor: README 'Building type and emitters', code 'Two-zone model'"] -- TRUE STATEMENT: the two-zone split (inter-zone transfer, radiator fraction, per-floor masses/losses) and the orientation factor are on Advanced settings -> Two-zone model | false |
+| C53 | README.md | comfort_weight is labelled 'How strictly to hold the temperature' | strings.json tuning label | How strictly to hold the temperature | true |
+| C54 | README.md | menu 'Finish setup now?' with Quick setup (recommended), Continue setup, Finish setup now | strings.json config.step.finish_setup | 'Finish setup now?' ['Quick setup (recommended)', 'Continue setup', 'Finish setup now'] | true |
+| C55 | README.md | twelve store files under .storage, named | Store keys the coordinator constructs | 12; diff [] | true |
+| C56 | README.md | card resource /heatpump_optimizer_static/heatpump-optimizer-card.js | frontend.URL_BASE/CARD_FILENAME | /heatpump_optimizer_static/heatpump-optimizer-card.js | true |
+| C57 | README.md:157 | Home Assistant 2025.2.0 or newer (README text and badge) | hacs.json homeassistant | 2025.2.0 | true |
+| C58 | README.md | numpy, scipy and threadpoolctl installed from the manifest | manifest.json requirements | ['numpy', 'scipy', 'threadpoolctl'] | true |
+| C59 | README.md | entity names translated (English and Swedish) | translations/*.json | ['en', 'sv'] | true |
+| C60 | README.md | Quick setup arrived in v6.6.5 | RELEASE_NOTES v6.6.5 section names the quick-setup path | #1251 present | true |
+| C61 | README.md | every v6.0.0 or later release has its detail in RELEASE_NOTES.md | headings vs VERSION | 6.7.1 | true |
+| C62 | README.md | three blueprints, one per automations.md example | blueprints/automation/*.yaml | ['charge_ev_from_grid_headroom.yaml', 'economy_mode_on_price_peak.yaml', 'notify_on_manual_plan.yaml'] | true |
+| C63 | README.md | Python 3.13+ badge / 'Python 3.13 or newer' | tests/requirements-ci or pyproject python floor | badge 3.13; HA 2025.2.0 floor | unverifiable |
+| C64 | README.md | 22 relative links resolve | Path.exists (+ git cat-file at the baseline for stripped pages) | missing=[] resolved-in-git=[] | true |
+| C65 | README.md | 6 in-page anchors resolve | GitHub slug of every heading | all resolve | true |
+| L01 | README.md | link https://developer.tibber.com | HTTP HEAD | skipped | unverifiable |
+| L02 | README.md | link https://github.com/strutsfarm/ecl110 | HTTP HEAD | skipped | unverifiable |
+| L03 | README.md | link https://github.com/strutsfarm/heatpump_optimizer | HTTP HEAD | skipped | unverifiable |
+| L04 | README.md | link https://hacs.xyz | HTTP HEAD | skipped | unverifiable |
+| L05 | README.md | link https://img.shields.io/badge/HACS-custom-41BDF5.svg | HTTP HEAD | skipped | unverifiable |
+| L06 | README.md | link https://img.shields.io/badge/Home%20Assistant-2025.2.0%2B-41BDF5.svg | HTTP HEAD | skipped | unverifiable |
+| L07 | README.md | link https://img.shields.io/badge/License-MIT-green.svg | HTTP HEAD | skipped | unverifiable |
+| L08 | README.md | link https://img.shields.io/badge/Python-3.13%2B-3776AB.svg | HTTP HEAD | skipped | unverifiable |
+| L09 | README.md | link https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/charge_ev_from_grid_headroom.yaml | HTTP HEAD | skipped | unverifiable |
+| L10 | README.md | link https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/economy_mode_on_price_peak.yaml | HTTP HEAD | skipped | unverifiable |
+| L11 | README.md | link https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notify_on_manual_plan.yaml | HTTP HEAD | skipped | unverifiable |
+| L12 | README.md | link https://www.home-assistant.io | HTTP HEAD | skipped | unverifiable |
+| L13 | README.md | link https://www.python.org | HTTP HEAD | skipped | unverifiable |
+| U01 | README.md | closed loop: +35 % loss converges in three simulated days, a correct model left alone within ±12 % | SLOW rolling run / external fact -- not executed this round | - | unverifiable |
+| U02 | README.md | sysid two-state gate: residual noise under ~0.02 °C, five-hour window | SLOW rolling run / external fact -- not executed this round | - | unverifiable |
+| U03 | README.md | capacity tariff typically 30–90 SEK/kW | SLOW rolling run / external fact -- not executed this round | - | unverifiable |
+| U04 | README.md | HA 2025.2.0 is the first release whose requires-python is >=3.13.0 | SLOW rolling run / external fact -- not executed this round | - | unverifiable |
+RESULT claims_checked=82 count
+RESULT claims_true=61 count
+RESULT claims_false=3 count
+RESULT claims_stale=0 count
+RESULT claims_unverifiable=18 count
+RESULT action_states_undocumented=0 count
+RESULT option_page_misplaced=3 count
+RESULT no_dhw_disabled_undocumented=6 count
+RESULT manual_pin_hours_beyond_20=4.0 h
+RESULT perturbation=action_states
+RESULT thread_factor=1.000
+RESULT load1=0.41
+RESULT swapins=0

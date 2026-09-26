@@ -1,0 +1,5 @@
+RESULT pr_jobs_with_write_running_pr_code=0 count
+RESULT of_which_token_persisted_on_disk=0 count
+RESULT thread_factor=1.000
+RESULT load1=2.04
+RESULT swapins=0

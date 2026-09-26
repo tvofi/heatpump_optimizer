@@ -1,0 +1,20 @@
+
+=== Stress and economics ===
+RESULT space_solve_start_candidates=4 count
+RESULT space_solve_minimize_calls=8 count  (tests/stress.py:SolverWork.calls, single-zone no-DHW solve)
+true  docs/how-it-works.md:48      24-hour horizon on a 15-minute grid -- 96 steps x 15.0 min = 24.0 h
+true  docs/how-it-works.md:47      interval defaults to 30 minutes -- 30
+FALSE docs/how-it-works.md:108     the space solve runs from two starting points -- candidates refined per multi-start call [4, 4, 1]; minimize calls in the single-zone solve 8
+true  docs/how-it-works.md:289     two-zone and single-zone defaults -- (3.0, 8.0, 0.08, 0.07, 0.5, 0.4, 35.0, 10.0, 0.15)
+true  docs/how-it-works.md:293     hot water activates on tank volume alone -- 
+true  docs/how-it-works.md:293     hot water activates on tank sensor alone -- 
+true  docs/how-it-works.md:293     hot water activates on windows alone -- 
+true  docs/how-it-works.md:293     hot water stays off with none of them -- 
+true  docs/how-it-works.md:1147    COP scale bound [0.5, 1.6] -- constant read
+true  docs/how-it-works.md:1149    capacity keeps >= 60 % of nameplate -- constant read
+true  docs/how-it-works.md:1150    aperture clamped [0.3, 2.0] -- constant read
+RESULT howitworks_claims=11 count
+RESULT howitworks_claims_false=1 count
+RESULT thread_factor=1.001
+RESULT load1=1.21
+RESULT swapins=0

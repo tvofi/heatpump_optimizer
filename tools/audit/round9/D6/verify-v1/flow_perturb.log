@@ -1,0 +1,31 @@
+# weather_sensitivity submit -> type=create_entry step_id=None
+RESULT weather_submit_creates_entry=1 count
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+# path: user -> form:user_sensors -> menu:finish_setup -> form:temperature -> menu:building -> form:building_describe -> form:building_extras -> form:dhw -> form:weather_sensitivity -> create_entry:None
+RESULT wizard_steps=10 count
+# entry data keys: 41
+RESULT entities_total=75 count
+RESULT entities_enabled_default=56 count
+# by domain: {'sensor': 59, 'binary_sensor': 6, 'button': 4, 'climate': 1, 'switch': 4, 'datetime': 1}
+# count OK    docs/architecture.md:37 '75 entities' vs census 75
+# count OK    docs/architecture.md:37 '59 sensors' vs census 59
+# count OK    docs/architecture.md:37 '6 binary sensors' vs census 6
+# count OK    docs/architecture.md:37 '4 buttons' vs census 4
+# count OK    docs/architecture.md:37 '4 switches' vs census 4
+# count OK    docs/architecture.md:37 '1 climate' vs census 1
+# count OK    docs/architecture.md:37 '1 datetime' vs census 1
+# count OK    docs/architecture.md:152 '59 sensors' vs census 59
+# count WRONG docs/configuration.md:196 '74 entities' vs census 75
+RESULT doc_entity_counts_wrong=1 count
+RESULT configuration_md_count_delta=1 count
+# doc id OK      sensor.heat_pump_optimizer_cost_current_electricity_price  (docs/automations.md:62, docs/automations.md:73, docs/automations.md:77)
+# doc id OK      sensor.heat_pump_optimizer_cost_power_headroom  (docs/automations.md:9, docs/automations.md:14, docs/automations.md:35, docs/automations.md:38, docs/automations.md:44)
+# doc id OK      sensor.heat_pump_optimizer_dhw_mixed_water  (docs/configuration.md:713)
+# doc id OK      sensor.heat_pump_optimizer_plan_dhw_heating  (docs/dashboard-card.md:627, docs/dashboard-card.md:662)
+# doc id OK      sensor.heat_pump_optimizer_plan_space_heating  (docs/automations.md:115, docs/automations.md:125, docs/dashboard-card.md:626, docs/dashboard-card.md:661)
+# doc id OK      sensor.heat_pump_optimizer_solar_irradiance  (docs/dashboard-card.md:628)
+RESULT doc_entity_ids=6 count
+RESULT doc_entity_ids_missing=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.89
+RESULT swapins=0

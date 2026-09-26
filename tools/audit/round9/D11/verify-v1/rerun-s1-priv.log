@@ -1,0 +1,8 @@
+# tests.yml:closures-autofix writes=['actions', 'contents'] if="always() && github.event_name == 'pull_request' && needs.closures.result == 'fai" checkout_persists_token=True secret_token_to_checkout=True executes_pr_files=['tests/closure.py']
+# tests.yml:claims-autofix writes=['actions', 'contents'] if="always() && github.event_name == 'pull_request' && needs.fast.result == 'failure" checkout_persists_token=True secret_token_to_checkout=True executes_pr_files=['tests/closure.py', 'tests/env_drift.py']
+# tests.yml:mutation-autofix writes=['actions', 'contents'] if="always() && github.event_name == 'pull_request' && needs.mutation.result == 'fai" checkout_persists_token=True secret_token_to_checkout=True executes_pr_files=['tests/closure.py']
+RESULT pr_jobs_with_write_running_pr_code=3 count
+RESULT of_which_token_persisted_on_disk=3 count
+RESULT thread_factor=1.000
+RESULT load1=2.04
+RESULT swapins=0

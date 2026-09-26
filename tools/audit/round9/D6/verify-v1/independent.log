@@ -1,0 +1,29 @@
+
+=== Stress and economics ===
+RESULT s1_04_default20_hours_pinned=20.00 beyond20=0.00
+RESULT s1_04_plus24_hours_pinned=24.00 beyond20=4.00
+RESULT s1_04_plus48_hours_pinned=24.00 beyond20=4.00
+RESULT s1_04_clamped48_hours_pinned=20.00 beyond20=0.00
+# s2_03 margin=0.5 start=2026-01-01 max7day=0.600 avg_per_week=0.400
+# s2_03 margin=0.5 start=2026-03-07 max7day=0.600 avg_per_week=0.400
+# s2_03 margin=0.5 start=2026-10-20 max7day=0.600 avg_per_week=0.400
+# s2_03 margin=1.0 start=2026-01-01 max7day=0.600 avg_per_week=0.400
+# s2_03 margin=1.0 start=2026-03-07 max7day=0.600 avg_per_week=0.400
+# s2_03 margin=1.0 start=2026-10-20 max7day=0.600 avg_per_week=0.400
+# s2_03 margin=3.0 start=2026-01-01 max7day=0.600 avg_per_week=0.400
+# s2_03 margin=3.0 start=2026-03-07 max7day=0.600 avg_per_week=0.400
+# s2_03 margin=3.0 start=2026-10-20 max7day=0.600 avg_per_week=0.400
+RESULT s2_03_max_7day_drop_k=0.600
+# s2_04 winter two_zone=False candidates per call [4]
+# s2_04 winter two_zone=True candidates per call [5]
+# s2_04 shoulder two_zone=False candidates per call [4]
+# s2_04 shoulder two_zone=True candidates per call [5]
+RESULT s2_04_first_call_candidates_min=4 max=5 cells=4
+# s2_04 leave-out ('winter', False): min=4 max=5
+# s2_04 leave-out ('winter', True): min=4 max=5
+# s2_04 leave-out ('shoulder', False): min=4 max=5
+# s2_04 leave-out ('shoulder', True): min=4 max=5
+# s2_05 schema=['comfort_temp_day', 'comfort_temp_night', 'comfort_weight', 'day_end_hour', 'day_start_hour', 'dhw_min_temperature', 'dhw_setpoint', 'dhw_windows', 'max_temp', 'min_temp', 'target_temp', 'wood_furnace_efficiency', 'wood_packing', 'wood_price_sek_m3', 'wood_slots', 'wood_type'] listed=['comfort_temp_day', 'comfort_temp_night', 'comfort_weight', 'day_end_hour', 'day_start_hour', 'dhw_min_temperature', 'dhw_setpoint', 'dhw_windows', 'max_temp', 'min_temp', 'target_temp']
+RESULT s2_05_missing=5 ['wood_furnace_efficiency', 'wood_packing', 'wood_price_sek_m3', 'wood_slots', 'wood_type']
+RESULT s2_05_perturb_drop_wood_missing=0
+RESULT s2_01_configuration_md_stated=74 readme_stated=['75']

@@ -1,0 +1,377 @@
+{
+ "box": "G4-V1",
+ "lens": 1,
+ "votes": {
+  "D5": [
+   {
+    "id": "D5-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "stale_facts=4 (finder 4); perturb 1; independent: finish_setup labels 0 of 3 in section, tibber-without-token refused (token conditional)",
+    "metric_definition": "Finish-menu entries the real flow returns that the Initial setup section never names, plus 1 if the flow accepts a tokenless first screen while the doc calls the token required",
+    "method": "Re-ran setup_section.py and --perturb; entity_counts.py (75/1; perturb 74/2); own indep.py drove async_step_user",
+    "attacks": "Count, contention-immune; flow return dicts pure (stub-independent); doc self-contradicts at :468; leave-one-out 3",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s1-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "unhonoured_promises=2 (finder 2); perturb 0; null 0; independent: buffer_is_store true for 3 of 4 valve modes, false only for 'none' which derive leaves",
+    "metric_definition": "Of setup.md's two Quick setup storage promises, how many ThermalParameters built from derive(all toggles yes + both wood probes) fails to honour",
+    "method": "Re-ran quick_setup_promise.py and --perturb; own enumeration of mixing_valve modes over derive(buffer yes)",
+    "attacks": "Gating is real code; setup.md never names the valve; caveat: single scenario, an options-flow entry that already has a valve honours both",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s1-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": "share=1.00 (finder 1); perturb 0.00; independent: 8 of 8 stamped releases 6.6.7..6.7.1 have CARD_VERSION == VERSION",
+    "metric_definition": "Share of 5 simulated successive stamps after which CARD_VERSION equals the new integration version",
+    "method": "Re-ran card_version_doc.py and --perturb; git history over 8 stamps; stamp.py:1466",
+    "attacks": "Real history confirms without simulation; hygiene, low",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s1-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": "misrendered_lines=9 (finder 9); perturb 0; marked@14 independent renderer: 9 (same lines)",
+    "metric_definition": "Source lines rendered in the wrong block across README.md and the 7 user docs",
+    "method": "markdown-it@14.1.0 md_tables.mjs with/without --perturb; own verify-v1/md_tables_marked.mjs",
+    "attacks": "Renderer artefact ruled out by a second GFM tokenizer",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s1-05",
+    "vote": "verify",
+    "severity": "low",
+    "value": "unfindable_field_refs=5 (finder 5); perturb 4; en.json grep: 0 hits for two labels, other two only as entity name / description prose",
+    "metric_definition": "Doc field references whose name is not on the named options page or matches no en.json label",
+    "method": "Re-ran field_labels.py and --perturb; own grep against en.json",
+    "attacks": "Near-matches are not form labels; leave-one-out 4; null 24 pages resolved",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s1-06",
+    "vote": "verify",
+    "severity": "low",
+    "value": "undocumented_fields=5 (finder 5); perturb 0; grep: 0 doc hits for each wood_* key; table says 16, prose lists 11",
+    "metric_definition": "Fields a registered service schema accepts that configuration.md's Services section never names",
+    "method": "Re-ran service_fields.py and --perturb; own grep over docs, services.yaml, en.json",
+    "attacks": "Mitigation: services.yaml/en.json describe all 5 (HA UI shows them); stays low hygiene",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s2-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "12 names / 17 mentions (finder 12/17); perturb 5/6; grep: comment-only, no production definition",
+    "metric_definition": "Distinct _name identifiers in card comments that are neither a live card member/binding nor a token of card or backend code",
+    "method": "Re-ran card_comment_names.mjs with/without --perturb (private HPO_PLANDATA); own grep -w",
+    "attacks": "Test-comment occurrences are not definitions; low",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s2-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "mismatches=3 (finder 3); perturb 0; hold controls 0/5 failed; leave-one-out without the '15 minutes' row: 2",
+    "metric_definition": "Claim rows where a comment's number differs from the value measured by driving the named production symbol",
+    "method": "Re-ran comment_numbers.py and --perturb; read DERATE_MIN, DEFAULT_OPTIMIZATION_INTERVAL, both selectors",
+    "attacks": "'15 minutes' row weakest (user-selectable); vote stands at 2 or 3",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D5-s2-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": "46 of 47 (finder 46/47); perturb 0/47; independent: cold end 10.00 C at defaults (= constant), 6.00 C with live inlet 6.0",
+    "metric_definition": "Inlet selector settings at which dhw_draw_power's cold end differs from DHW_COLD_WATER_TEMP",
+    "method": "Re-ran comment_numbers.py and --perturb; own recovery of the cold end; 3 call sites pass p.dhw_inlet_reference",
+    "attacks": "Grid artefact: 46/47 overstates reach, at defaults they agree; but the named coupling does not exist in code; leave-one-out 46/46",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ],
+  "D6": [
+   {
+    "id": "D6-s1-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "action_states_undocumented=2 (finder 2); perturb action_states -> 0",
+    "metric_definition": "Count of HeatPumpActionSensor ENUM options (less 'unknown') not backticked in README's Heat Pump Action row",
+    "method": "Re-ran claims.py --no-net baseline and --perturb=action_states; read const.HEAT_PUMP_ACTION_STATES and producers (optimizer.py:6972, coordinator.py:10538)",
+    "attacks": "Both states reachable in real HA; count, contention-immune; low holds",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s1-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "option_page_misplaced=3 (finder 3); perturb orientation -> 2",
+    "metric_definition": "README field-to-page statements whose page differs from the _OPTION_FIELDS step column",
+    "method": "Re-ran claims.py baseline and --perturb=orientation; read config_flow.py:1662-1665 vs README.md:392-395",
+    "attacks": "Count conservative (per-floor masses/losses also on zones page); leave-one-out 2",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s1-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": "no_dhw_disabled_undocumented=6 (finder 6); null/perturb dhw_config -> 0",
+    "metric_definition": "Entities with delivered entity_registry_enabled_default False on a token+weather-only entry that README does not document as disabled",
+    "method": "Re-ran claims.py baseline and --perturb=dhw_config; six DHWEntityMixin classes vs README rows",
+    "attacks": "Finish-setup-now path without hot water is documented, so the gap is on a documented path; leave-one-out 5",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s1-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": "manual_pin_hours_beyond_20=4.0 h (finder 4.0); clamp_expiry -> 0.0; own build_override: +24h/+48h -> 24 h pinned, default -> 20 h",
+    "metric_definition": "Hours of non-NaN channel_pins over 96x15-min steps, less 20 h, for space_slots=[] and an explicit expires_at",
+    "method": "Re-ran claims.py baseline and --perturb=clamp_expiry; own harness on manual_plan.build_override/channel_pins",
+    "attacks": "No downstream clamp (services.py:867-884, coordinator.py:7457); bounded by 24 h horizon; null default arm 20 h",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s2-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "delta=1, entities_total=75 (finder 1/75); perturb-count -> 0 (74)",
+    "metric_definition": "Entities created by the six platforms' async_setup_entry for the wizard-path entry, minus the count at configuration.md:196",
+    "method": "Re-ran flow_census.py baseline and --perturb-count",
+    "attacks": "Perturbation flips configuration.md OK and architecture.md WRONG as header predicts",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s2-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "weather_submit_creates_entry=0, wizard_steps=11 (finder 0/11); perturb -> 1/10",
+    "metric_definition": "1 if submitting the weather-sensitivity page with defaults returns create_entry, else 0",
+    "method": "Re-ran flow_census.py baseline and --perturb; config_flow.py:2883 -> setup_overview, entry at :2507",
+    "attacks": "Real flow class; stub does not decide",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s2-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": "0.600 K (finder 0.600); null perturb-curve -> 0.457; own 9 cells all 0.600",
+    "metric_definition": "max over d of bias(d-7) - bias(d) while CurveLearner.record_day is fed one comfortable day per calendar day for 70 days",
+    "method": "Re-ran behaviour_claims.py baseline and --perturb-curve; own 9-cell drive",
+    "attacks": "Long-run average 0.467 K/week holds, but doc and code comment state a 7-day window cap, which is broken; leave-one-out 0.600; class for judge (lean bug)",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s2-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": "candidates=4, minimize_calls=8 (finder 4/8); perturb-starts -> 2/4; own 4 cells: single-zone 4, two-zone 5",
+    "metric_definition": "len(candidates) passed to optimizer._multi_start_minimize on the first space solve of stress.build_case",
+    "method": "Re-ran howitworks_claims.py baseline and --perturb-starts; own spy on 4 cells",
+    "attacks": "Leave-one-out min 4 max 5; doc 'two' wrong in every cell; 2.2%/0.2% figures not re-measured",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s2-05",
+    "vote": "verify",
+    "severity": "low",
+    "value": "5 missing (finder 5); recorded --perturb leaves this metric at 5 (moves services_claims_false 1->5 instead); replacement perturbation (drop wood_* keys) -> 0",
+    "metric_definition": "Registered SERVICE_SCHEMA_SIMULATE_PLAN keys absent from the backticked names after 'Fields, all optional:' at configuration.md:951",
+    "method": "Re-ran services_claims.py baseline and --perturb; own schema-vs-doc parse",
+    "attacks": "Method defect: recorded perturbation targets other services and does not move this metric; strict reading voids as recorded; judge should adopt the executed replacement perturbation; claim correct",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ],
+  "D11": [
+   {
+    "id": "D11-s1-01",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "owned_change_after_owner_approval=2 (finder 2: #1621 tests/harness.py, #1623 tests/mutation_table.py); perturb commit-clause -> 0; null app_approval_not_at_merged_head=0/128",
+    "metric_definition": "Merges since 2026-09-17T04:58Z whose owner's last APPROVED review is not on the merged head and whose branch changed a CODEOWNERS-owned file after that review",
+    "method": "Re-ran approvals_at_head.py (read-only API GETs via env GH_TOKEN, private cache) and --perturb commit-clause/reattribute; git-history check of both seams; live ruleset dismiss_stale_reviews_on_push=false vs decision 0008 3(d) true",
+    "attacks": "Count, load1 2.50 tf 1.000; leave-one-out 1; 52 merges 404 so lower bound; severity: no end-user consequence, 2/201, seat commits to test/check files, one-setting fix -> medium",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s1-02",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "nonstamp_direct_reported=0 of 2 (finder 0); perturb parents-ge-1 -> 2; two-parent control 1; history_nonstamp_direct=0 of 16",
+    "metric_definition": "Injected single-parent non-stamp rows whose sha appears in stamp.py:rule4_problem's refusal for a window that also holds one correctly-noted PR merge",
+    "method": "Re-ran direct_push_detectors.py and --perturb; live ruleset DeployKey bypass confirmed; read blind_merges and enumeration_went_blind",
+    "attacks": "Reproduced; zero incidence and deploy-key precondition (stamp path only): capability, not incident -> medium",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s1-03",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "3 jobs, token persisted 3 (finder 3); perturb restore -> 0; 7 of 9 workflows trigger on pull_request",
+    "metric_definition": "Jobs on pull_request with a write permission that execute a repo script not restored from the base earlier in the same job",
+    "method": "Re-ran privileged_pr_code.py and --perturb restore; inline count of triggers and write jobs",
+    "attacks": "On pull_request GitHub runs the PR's own YAML, so a same-repo PR already controls permissions/secret references; forks get read-only tokens and no secrets; no added privilege; proposed restore fix zeroes metric while stated property stays violated",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s1-04",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "gate accepts 27/27, agent_declared 29/90, empty 46/90 (finder same); perturb reattribute -> 2/27; stricter regex 25/90, 'orchestrator' 27/90",
+    "metric_definition": "PRs with an owner APPROVED review at merged head whose body declares the orchestrator gave it, for which approval(reviews, head) returns True",
+    "method": "approvals_at_head.py re-run and --perturb reattribute; numeric re-count of classifier over cached reviews (no bodies printed)",
+    "attacks": "Reviews self-declare, so the record distinguishes 25-29 of 90; delegation is the owner's; residue is an unrecorded mandate; duplicate of D11-s2-03",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s2-01",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "7 of 7 joined accepted, newline refused 7, perturbed refused 7, null 0 (finder same); own bound: joined append accepted to 600 B (CLAUDE.md) / 800 B (two rules) before an aggregate refusal",
+    "metric_definition": "Of 7 zero-line-headroom capped policy files, how many accept +600 bytes appended to an existing line with no budgets error",
+    "method": "Re-ran caps_unit.py; own verify-v1/caps_bound.py in a private worktree, 200 B steps",
+    "attacks": "Per-file cap is a line cap by design; missed growth bounded by aggregate headroom (~150-200 tokens corpus-wide); rule text overclaims; low",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s2-02",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "0 of 4 refused (finder 0); control 1; perturbed 4; own: matcher Read/Edit/Bash|Read rc=0, PreToolUse deleted rc=1",
+    "metric_definition": "Of settings.json variants whose PreToolUse matcher matches no (or not every) editing tool, how many make policy_lint.mjs --hooks exit non-zero",
+    "method": "Re-ran hooks_matcher.py; 4 extra variants via policy_lint.mjs --hooks",
+    "attacks": "pre-edit.sh fails open and CI re-runs every check it stands in for: loses an early detector, not enforcement; low",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s2-03",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "6/6 seat-given, human 0, perturbed 0/0 (finder same, committed snapshot); live superset 27/27",
+    "metric_definition": "Of sampled merged PRs where approval(reviews, merged_head) is True, the count whose counted review body declares it was given by the orchestrator seat",
+    "method": "Re-ran owner_review.py on reviews_snapshot.json and its in-memory reattribution; cross-checked with s1-04 live re-run",
+    "attacks": "Perturbation near-tautological (relabels exactly the counted set) but shows login-only key; duplicate of D11-s1-04; same severity argument",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s2-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": "claims_holding=0 of 2 (finder 0); perturbed 1",
+    "metric_definition": "Count of CLAUDE.md rule 1's two mode-line claims true of closure.print_plan's output for a 0-run scoped plan and a full plan",
+    "method": "Re-ran mode_line.py; read tests/run.sh:578-616 and workflows for any other printed zero",
+    "attacks": "No other zero printed in FULL mode anywhere; null 'MODE: FULL' substring present; hygiene low",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ],
+  "leads": [
+   {
+    "id": "D5-s2-51",
+    "vote": "verify",
+    "severity": "low",
+    "value": "handed_offset_steps=0 (elapsed_steps=2), model_sequence_writes=0 (finder same); --shift --plant -> 2 / 1",
+    "metric_definition": "(a) index offset between the handed _prev_shipped_plan and the previous plan re-aligned to the new solve's clock after one 30-min re-plan; (b) sequence-valued ThermalModel attribute writes during one valved solve",
+    "method": "Re-ran dataflow_comments.py baseline and --shift --plant (the harness's perturbation/control arm); grep confirmed optimizer.py:3100 and :1088 comments live",
+    "attacks": "Counts, contention-immune (load1 0.95-1.11, tf 1.000); single scenario, no aggregate; production path",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s3-51",
+    "vote": "verify",
+    "severity": "low",
+    "value": "swallowed=2 of 2, control_swallowed=0 of 2, syntax_warnings=1 (finder same); --fixed -> 0 / 0",
+    "metric_definition": "Of 2 arms (CancelledError, KeyboardInterrupt from the first refresh, recovery refresh raising), arms where _async_check_a4 returns instead of propagating; plus SyntaxWarnings on compile",
+    "method": "Re-ran nightly_finally_return.py baseline and --fixed (on Python 3.11.15, not 3.14; number identical); read tests/nightly_ha.py:1266-1281",
+    "attacks": "Null control (recovery succeeds) 0 of 2; mechanism confirmed by reading; nightly-lane code, rare window -> low",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s1-71",
+    "vote": "verify",
+    "severity": "low",
+    "value": "divergent_cells=2 of 6 (finder same); --perturb eol -> 1 of 6; null wellformed 0 of 3; live rules 0 of 10",
+    "metric_definition": "Probe rule frontmatters on which rules_sync parse().paths and policy_lint rulePaths() return different lists (JSON-compared)",
+    "method": "Re-ran l3_frontmatter_parsers.mjs baseline and --perturb eol (node 22)",
+    "attacks": "Divergent cells are the two named shapes; zero live incidence, capability only -> low",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s1-72",
+    "vote": "verify",
+    "severity": "low",
+    "value": "escaping_cells=3 of 3, positive control 1 of 1, live_gov_missing=1 (rerun-stale-verdict) (finder same); --perturb all-files -> 0 of 3 (and baseline pin then fails on the live job)",
+    "metric_definition": "Probe cells (one new job appended to a workflow file GOV's derivation counts as governance) in which entities.py's GOV pin still passes",
+    "method": "Re-ran l3_gov_pin.py baseline and --perturb all-files",
+    "attacks": "Positive control (job added to governance.yml) fails the pin, so the pin is not vacuous; count, contention-immune",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s1-71",
+    "vote": "verify",
+    "severity": "low",
+    "value": "sites_not_following=3 of 5 (finder same); --no-move 0 of 5; --perturb literal -> 1 of 5",
+    "metric_definition": "Of 5 production sites resolving a cold-water inlet default, those whose delivered value does not move when const.DEFAULT_DHW_INLET_TEMP is moved 10.0 -> 12.5",
+    "method": "Re-ran l3_cold_water_default.py in all three modes",
+    "attacks": "Per-site values show three spellings of the default; null shows no live divergence today -> hygiene low",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s3-72",
+    "vote": "verify",
+    "severity": "low",
+    "value": "write_only_members=4 of 5 (finder same); live control _step_buffer_refused 97344 consumer reads; --perturb reader -> 3 of 5",
+    "metric_definition": "ThermalModel _step_* members with >=1 production write and 0 reads from production functions that never write that member, over four golden solves",
+    "method": "Re-ran l3_write_only_scratch.py baseline and --perturb reader over the four golden scenarios",
+    "attacks": "Live control proves the read instrumentation detects real consumers; 4 scenarios (<5, leave-one-out not owed), each with large write counts",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s1-81",
+    "vote": "verify",
+    "severity": "low",
+    "value": "fallback_reached=0 of 2 (HA 2025.2.0 and 2026.2.3 both default 'EUR') (finder same); --perturb -> 2 of 2; null stub_resolves_to=SEK",
+    "metric_definition": "HA core versions for which resolve_currency on core's own Config.currency default returns FALLBACK_CURRENCY",
+    "method": "pip download of both wheels to a mktemp dir, then l4_currency_fallback.py --wheels baseline and --perturb; spot-checked both wheels' core_config.py hardcode 'EUR'; README.md:450 claim live",
+    "attacks": "Null isolates SEK to FakeHass; doc-claim mismatch, money still labelled correctly -> low",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ]
+ }
+}

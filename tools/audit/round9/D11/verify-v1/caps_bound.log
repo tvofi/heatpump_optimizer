@@ -1,0 +1,15 @@
+# baseline [budgets] lines: 0
+CELL CLAUDE.md arm=joined: first refusal at +800 bytes :: ERROR   [budgets] (role policy): about 9928 tokens exceeds the cap of 9914 (the recorded 9414 plus the working band of 500). This is what th
+CELL CLAUDE.md arm=newlines: first refusal at +200 bytes :: ERROR   [budgets] CLAUDE.md: 214 lines exceeds its cap of 211. Cut, or state the case for a higher cap in the pull request body.
+RESULT CLAUDE.md_joined_max_accepted=600 bytes
+RESULT CLAUDE.md_newlines_max_accepted=0 bytes
+CELL .claude/rules/delivery-status-tracking.md arm=joined: first refusal at +1000 bytes :: ERROR   [budgets] (whole corpus): about 55938 tokens exceeds the cap of 55933 (the recorded 55433 plus the working band of 500). Moving pros
+CELL .claude/rules/delivery-status-tracking.md arm=newlines: first refusal at +200 bytes :: ERROR   [budgets] .claude/rules/delivery-status-tracking.md: 28 lines exceeds its cap of 26. Cut, or state the case for a higher cap in the 
+RESULT delivery-status-tracking.md_joined_max_accepted=800 bytes
+RESULT delivery-status-tracking.md_newlines_max_accepted=0 bytes
+CELL .claude/rules/gate-scoping.md arm=joined: first refusal at +1000 bytes :: ERROR   [budgets] (whole corpus): about 55938 tokens exceeds the cap of 55933 (the recorded 55433 plus the working band of 500). Moving pros
+CELL .claude/rules/gate-scoping.md arm=newlines: first refusal at +200 bytes :: ERROR   [budgets] .claude/rules/gate-scoping.md: 64 lines exceeds its cap of 61. Cut, or state the case for a higher cap in the pull request
+RESULT gate-scoping.md_joined_max_accepted=800 bytes
+RESULT gate-scoping.md_newlines_max_accepted=0 bytes
+RESULT thread_factor=1.000
+RESULT load1=3.71

@@ -1,0 +1,18 @@
+# d1 'feat: arbitrary change pushed over the deploy key': rule4 -> None
+# d2 'v9.9.9: stamp arbitrary content': rule4 -> None
+# control d3 "Merge branch 'x' into main": rule4 -> 'merged into main since v9.9.8 with no pull request in the subject, and not named by sha in the v9.9.9 notes: d3 "Merge branch \'x\' into main"'
+# history: 16 single-parent first-parent commits since v6.5.0; outside STAMP_WRITES: []
+# ruleset 23698884 main-protect-checks: rules=['required_status_checks', 'pull_request'] bypass=[{'actor_id': None, 'actor_type': 'DeployKey', 'bypass_mode': 'always'}]
+RESULT ruleset_23698884_deploykey_always_bypass=1 count
+# ruleset 23937752 release-tags-protect: rules=['creation', 'update', 'deletion', 'non_fast_forward'] bypass=[{'actor_id': None, 'actor_type': 'DeployKey', 'bypass_mode': 'always'}]
+RESULT ruleset_23937752_deploykey_always_bypass=1 count
+# ruleset 22628467 main-protect: rules=['deletion', 'non_fast_forward'] bypass=[]
+RESULT ruleset_22628467_deploykey_always_bypass=0 count
+RESULT nonstamp_direct_injected=2 count
+RESULT nonstamp_direct_reported=0 count
+RESULT two_parent_control_reported=1 count
+RESULT history_single_parent=16 count
+RESULT history_nonstamp_direct=0 count
+RESULT thread_factor=1.000
+RESULT load1=1.95
+RESULT swapins=0

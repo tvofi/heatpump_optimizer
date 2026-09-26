@@ -1,0 +1,33 @@
+# null (tracked settings): rc=0 HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+# matcher='Read': rc=0 HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+# matcher='Bash': rc=0 HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+# matcher='Glob': rc=0 HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+# matcher='NoSuchTool': rc=0 HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+# control (script renamed): rc=1 HOOKS REFUSED: 2 of 4 hook(s) checked is not wired, missing, unreadable, or fails its own --self-test
+Note: switching to '6f51db2c53376adf4206d065651f44031bdb5497'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+# perturbed, tracked settings: rc=0 HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+RESULT variants=4 count
+RESULT null_rc=0
+RESULT variants_refused=0 count
+RESULT control_refused=1 count
+RESULT perturbed_null_rc=0
+RESULT perturbed_refused=4 count
+RESULT thread_factor=1.000
+RESULT load1=2.30
+RESULT swapins=0

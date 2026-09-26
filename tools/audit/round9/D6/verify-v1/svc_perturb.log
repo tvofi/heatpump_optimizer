@@ -1,0 +1,64 @@
+true  docs/configuration.md:878   12 services registered -- registered 12
+true  docs/configuration.md:879   seven services accept entry_id -- with entry_id: ['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'diagnose_interval', 'restore_learned_snapshot']
+true  docs/configuration.md:884   five services without entry_id -- ['run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']
+true  docs/configuration.md:893   table run_optimization: fields 'none' -- fields []
+true  docs/configuration.md:893   table run_optimization: returns '—' -- supports_response=None
+true  docs/configuration.md:894   table set_away: fields '`active`, `return_time` (at least one required)' -- schema ['active', 'return_time']
+true  docs/configuration.md:894   table set_away: returns '—' -- supports_response=None
+true  docs/configuration.md:895   table set_mode: fields '`mode` (required)' -- schema ['mode']
+true  docs/configuration.md:895   table set_mode: returns '—' -- supports_response=None
+FALSE docs/configuration.md:896   table set_thermal_parameters: fields '28 optional model fields' -- 29 optional non-entry_id fields; entry_id absent
+true  docs/configuration.md:896   table set_thermal_parameters: returns '—' -- supports_response=None
+true  docs/configuration.md:897   table simulate_plan: fields '16 optional comfort and wood fields' -- 16 optional non-entry_id fields; entry_id absent
+true  docs/configuration.md:897   table simulate_plan: returns 'always' -- supports_response=only
+true  docs/configuration.md:898   table apply_schedule: fields '5 optional schedule fields + `entry_id`' -- 5 optional non-entry_id fields; entry_id present
+true  docs/configuration.md:898   table apply_schedule: returns 'optional' -- supports_response=optional
+true  docs/configuration.md:899   table assign_entity: fields '`key`, `entity_id` (both required) + `manual_setpoint`, `entry_id`' -- schema ['entity_id', 'entry_id', 'key', 'manual_setpoint']
+true  docs/configuration.md:899   table assign_entity: returns 'optional' -- supports_response=optional
+true  docs/configuration.md:900   table apply_topology: fields '`layout` (required), `positions`, `dhw`, `wood`, `entry_id`' -- schema ['dhw', 'entry_id', 'layout', 'positions', 'wood']
+true  docs/configuration.md:900   table apply_topology: returns 'optional' -- supports_response=optional
+true  docs/configuration.md:901   table apply_manual_plan: fields '`space_slots`, `dhw_slots`, `expires_at`, `entry_id`' -- schema ['dhw_slots', 'entry_id', 'expires_at', 'space_slots']
+true  docs/configuration.md:901   table apply_manual_plan: returns 'optional' -- supports_response=optional
+true  docs/configuration.md:902   table clear_manual_plan: fields '`entry_id`' -- schema ['entry_id']
+true  docs/configuration.md:902   table clear_manual_plan: returns 'optional' -- supports_response=optional
+true  docs/configuration.md:903   table restore_learned_snapshot: fields '`entry_id`' -- schema ['entry_id']
+true  docs/configuration.md:903   table restore_learned_snapshot: returns 'optional' -- supports_response=optional
+true  docs/configuration.md:904   table diagnose_interval: fields '`entry_id`' -- schema ['entry_id']
+true  docs/configuration.md:904   table diagnose_interval: returns 'optional' -- supports_response=optional
+FALSE docs/configuration.md:924   set_thermal_parameters: all 28 fields optional -- 29 fields
+true  docs/configuration.md:932   set_thermal_parameters.house_heat_loss_coefficient range 0.01–10 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.slab_heat_transfer range 0.01–50 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.heat_pump_cop_nominal range 1.0–8.0 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.upper_floor_thermal_mass range 0.01–200 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.lower_floor_thermal_mass range 0.01–200 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.inter_zone_heat_transfer range 0.01–50 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.radiator_power_fraction range 0–1 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.window_area range 0.01–500 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.solar_heat_gain_coefficient range 0–1 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.dhw_tank_volume range 0.01–2000 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.dhw_setpoint range 30–75 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.dhw_min_temperature range 10–70 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.dhw_daily_consumption range 0.01–2000 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.dhw_cooling_rate range 0.01–5 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.buffer_cooling_rate range 0.01–50 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.dhw_idle_min_temperature range 5–60 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.dhw_legionella_temperature range 55–75 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.dhw_legionella_interval_days range 0.01–60 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.wind_sensitivity_factor range 0–1 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.rain_heat_loss_multiplier range 1–2 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.ecl110_pid_time_constant_hours range 0.01–24 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.ecl110_displace_min range −30–0 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+true  docs/configuration.md:932   set_thermal_parameters.ecl110_displace_max range 0–30 -- lo ok/below refused/hi ok/above refused = (True, True, True, True)
+FALSE docs/configuration.md:932   set_thermal_parameters bullets name every schema field -- unlisted ['d6_probe_field']
+FALSE docs/configuration.md:951   simulate_plan: prose 'Fields, all optional' lists the schema -- schema-only ['wood_furnace_efficiency', 'wood_packing', 'wood_price_sek_m3', 'wood_slots', 'wood_type']
+true  docs/configuration.md:951   simulate_plan.day_start_hour range 0–23 -- (True, True, True, True)
+true  docs/configuration.md:951   simulate_plan.day_end_hour range 0–24 -- (True, True, True, True)
+FALSE docs/configuration.md:919   set_mode values ['auto', 'boost', 'comfort', 'economy', 'off'] -- accepted ['auto', 'comfort', 'economy', 'off']
+true  docs/configuration.md:971   assign_entity: 21 keys, listed -- accepted 21; doc-only []; schema-only []
+true  docs/configuration.md:985   apply_topology: four selectable layouts -- accepted ['no_valve', 'single_tank_valve', 'two_tank_4way', 'valve_upper_direct_slab']
+true  docs/configuration.md:964   apply_schedule: prose lists its fields -- schema ['comfort_temp_day', 'day_end_hour', 'day_start_hour', 'dhw_min_temperature', 'dhw_windows']
+RESULT services_claims=59 count
+RESULT services_claims_false=5 count
+RESULT thread_factor=1.000
+RESULT load1=1.91
+RESULT swapins=0
