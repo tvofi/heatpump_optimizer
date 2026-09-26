@@ -30,17 +30,19 @@ SKIP = {"thread_factor", "load1", "swapins", "concurrent_stress_procs"}
 # replaced named three files, and a fourth harness drifted on main for a day
 # behind that limit (#987's review of the claims.py header): a header nobody
 # executes is a header nobody re-records. Discovery is dynamic so a harness
-# with a RESULT header joins the check the moment it lands. Populated after
-# expected_from below. #951's qs_rules.py joins via its live-header marker;
+# with a RESULT header joins the check the moment it lands. Discovered in
+# main() below. #951's qs_rules.py joins via its live-header marker;
 # its declared_mismatch line is the quality-scale register's drift alarm, and
 # its two coverage-bearing rows are pinned by tests/entities.py against
 # tests/coverage_budgets.json instead (they need a coverage payload).
 
 
-def expected_from(path: Path) -> dict[str, str]:
+def header_lines(path: Path) -> list[str]:
+    """The harness header: every line before the first import / from that is
+    not inside the opening docstring or comment block. The one reader of the
+    header's extent; ``tools/audit/judge_batch.py`` takes its JUDGE-* lines
+    from it rather than parsing the header a second way."""
     text = path.read_text()
-    # Header only: stop at the first import / from that is not inside the
-    # opening docstring or comment block.
     head = []
     in_doc = False
     for line in text.splitlines():
@@ -56,8 +58,12 @@ def expected_from(path: Path) -> dict[str, str]:
         if line.startswith("import ") or line.startswith("from "):
             break
         head.append(line)
+    return head
+
+
+def expected_from(path: Path) -> dict[str, str]:
     found = {}
-    for line in head:
+    for line in header_lines(path):
         for m in RESULT.finditer(line):
             if m.group(1) not in SKIP:
                 found[m.group(1)] = m.group(2)
@@ -106,8 +112,6 @@ def _discover() -> tuple[str, ...]:
     )
     return tuple(sorted(live)) + marked
 
-
-EXECUTE = _discover()
 
 # The directories the executed harnesses WRITE into. A generator whose output
 # disagrees with what is committed is a stale register BY CONSTRUCTION, and this
@@ -199,6 +203,10 @@ def run_harness(rel: str) -> str:
 
 
 def main() -> int:
+    # Discovered here, not at import: tools/audit/judge_batch.py imports this
+    # module for header_lines/expected_from, and a discovery at import would
+    # put the whole harness corpus in every importer's measured closure.
+    EXECUTE = _discover()
     declared = declared_live()
     R.check(
         "every harness declaring live-header anywhere in its file is executed",
