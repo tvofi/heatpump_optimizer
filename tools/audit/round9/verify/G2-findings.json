@@ -1,0 +1,1572 @@
+{
+ "group": "G2",
+ "dims": [
+  "D4",
+  "D8",
+  "D10",
+  "D12"
+ ],
+ "units": [
+  {
+   "dim": "D4",
+   "tag": "D4",
+   "ids": [
+    "D4-s1-01",
+    "D4-s1-02",
+    "D4-s1-03",
+    "D4-s1-04",
+    "D4-s1-05",
+    "D4-s2-01",
+    "D4-s2-02",
+    "D4-s2-03",
+    "D4-s2-04",
+    "D4-s2-05",
+    "D4-s2-06",
+    "D4-s2-07",
+    "D4-s2-08",
+    "D4-s2-09"
+   ]
+  },
+  {
+   "dim": "D8",
+   "tag": "D8",
+   "ids": [
+    "D8-s1-01",
+    "D8-s1-02",
+    "D8-s1-03",
+    "D8-s2-01",
+    "D8-s2-02",
+    "D8-s2-03",
+    "D8-s3-01",
+    "D8-s3-02",
+    "D8-s3-03"
+   ]
+  },
+  {
+   "dim": "D10",
+   "tag": "D10",
+   "ids": [
+    "D10-s1-01",
+    "D10-s1-02",
+    "D10-s1-03",
+    "D10-s2-01"
+   ]
+  },
+  {
+   "dim": "D12",
+   "tag": "D12",
+   "ids": [
+    "D12-s1-01",
+    "D12-s1-02",
+    "D12-s2-01",
+    "D12-s2-02",
+    "D12-s2-03",
+    "D12-s3-01"
+   ]
+  }
+ ],
+ "findings": [
+  {
+   "id": "D4-s1-01",
+   "scope": "D4-s1",
+   "step": "D4.M3",
+   "title": "Status text coloured by HA's --success/--error/--warning-color fails WCAG AA on the default themes",
+   "severity": "medium",
+   "claim": "On HA's default light theme every card text run coloured by a status token is below 4.5:1 (warning 1.96:1, success 3.30:1, error 4.29:1, white on the armed Save button's error fill 4.29:1), and error text is 3.97:1 on the dark theme.",
+   "mechanism": "The what-if/today's-slots result lines (.cheaper/.dearer, .wi-result.*), the clamped-DHW warning (.wi-hint.wi-warn) and the armed confirm buttons (.wi-save.confirm, .sp-save.confirm) take their colour straight from HA's status tokens, which are not text colours: #43a047, #db4437 and #ffa600 on #fff. The accent colour was given a readable variant (ACCENT_READABLE, text on --primary-text-color); the status tokens were not.",
+   "evidence": {
+    "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --no-keys --modes normal --states x_pin_ok,x_pin_fail,x_save_ok,x_save_fail,x_dhw_clamped,x_save_confirm,draft_dirty_menu_open,x_menu_right_edge,x_menu_right_edge_dhw,picker_open_filtered,x_live_default,x_live_default_expanded",
+    "harness_path": "tools/audit/round9/D4/s1/sweep.mjs",
+    "value": 90,
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B10: 4-core Linux container (kernel 6.18), Node v22.22.2, Playwright 1.56.1, Chromium 141.0.7390.37, font Liberation Sans",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out; B10 runs only this Chromium seat; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 1.36,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump-optimizer-card.js:HeatpumpOptimizerCard (rendered shadow root; WhatIfPanel.onSaveSchedule, ManualPlan.slotResult/deltaHtml, WhatIfPanel.html)",
+   "perturbation": {
+    "change": "sweep.mjs --perturb status_text_token: the .cheaper/.dearer/.wi-warn colour rules read var(--primary-text-color) instead of the status tokens",
+    "expected_direction": "down",
+    "observed_value": 12
+   },
+   "metric_definition": "contrast_instances: visible enabled text runs whose composited fg/bg ratio is below 4.5:1 (3:1 if >=24px or bold >=18.66px), summed over the 144 targeted cells",
+   "phenomenon_property": "Every card text run whose colour, or whose backing fill, resolves from --error-color, --success-color or --warning-color clears 4.5:1 against the card background on HA's default light (#fff) and dark (#1c1c1c) themes.",
+   "seam_rule": "grep -nE \"(color|background): var\\(--(error|success|warning)-color\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "leave_one_out": {
+    "cells": 7,
+    "min": 1.96,
+    "max": 4.29,
+    "drop_most_favourable": 4.29
+   },
+   "reproduction_steps": [
+    "Run the command; read RESULT contrast_instances (90) and the '== contrast below AA' block.",
+    "Re-run with --perturb status_text_token; contrast_instances falls to 12 (the white-on-error confirm buttons)."
+   ],
+   "proposed_fix_scope": "Card CSS only: status text on a readable token (e.g. --primary-text-color with a status glyph/border, or a theme-aware readable variant), confirm buttons on a fill that clears 4.5:1 with its label on both themes; extend tests/card_browser.mjs's contrast lane with the x_* status states.",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P9",
+   "seat": "D4-s1"
+  },
+  {
+   "id": "D4-s1-02",
+   "scope": "D4-s1",
+   "step": "D4.M1",
+   "title": "Lane slot menu is placed at the tap point unclamped; near the right edge it spills past its chart and the viewport",
+   "severity": "medium",
+   "claim": "A slot menu opened at 97% of the window spills 44.2 px past its chart and 9.7 px past a 375 px viewport in Swedish (label cut to 'L\u00e4gg till ett varmvattenpa'), and in English is squeezed to a 64 px column, in 6 of the targeted cells.",
+   "mechanism": "LaneEditor.openMenu sets menu.style.left = clientX - rect.left with no clamp against the chart wrapper, for all three openers (tap release, right-click, keyboard); the sibling pop-up, the hover tooltip in _onPointerMove, clamps to [0, rightLimit].",
+   "evidence": {
+    "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --no-keys --modes normal --states x_pin_ok,x_pin_fail,x_save_ok,x_save_fail,x_dhw_clamped,x_save_confirm,draft_dirty_menu_open,x_menu_right_edge,x_menu_right_edge_dhw,picker_open_filtered,x_live_default,x_live_default_expanded",
+    "harness_path": "tools/audit/round9/D4/s1/sweep.mjs",
+    "value": 6,
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B10: 4-core Linux container (kernel 6.18), Node v22.22.2, Playwright 1.56.1, Chromium 141.0.7390.37, font Liberation Sans",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out; B10 runs only this Chromium seat; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 1.36,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump-optimizer-card.js:LaneEditor.openMenu",
+   "perturbation": {
+    "change": "sweep.mjs --perturb menu_clamp: one line after host.appendChild(menu) clamps menu.style.left to [0, host.clientWidth - menu.offsetWidth]",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "popup_out_cells: cells where a visible .slot-menu/.tooltip box extends >0.5 px beyond the viewport or beyond its .chartwrap horizontally",
+   "phenomenon_property": "Every pop-up the card anchors to a pointer or keyboard position lies wholly inside the chart wrapper it belongs to (and so inside the viewport), whatever the anchor point and language.",
+   "seam_rule": "grep -nE \"style\\.(left|top) = \" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "null_control": {
+    "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --no-keys --modes normal --states x_pin_ok,x_pin_fail,x_save_ok,x_save_fail,x_dhw_clamped,x_save_confirm,draft_dirty_menu_open,x_menu_right_edge,x_menu_right_edge_dhw,picker_open_filtered,x_live_default,x_live_default_expanded",
+    "value": "0 at 1280 px en and for every mid-chart opening (draft_dirty_menu_open)",
+    "note": "the spill needs a narrow chart and a long label"
+   },
+   "reproduction_steps": [
+    "Run the command; read RESULT popup_out_cells=6 and max_popup_viewport_out_px=9.7.",
+    "shots/x_menu_right_edge_dhw__375__light__sv-SE.png shows the cut label."
+   ],
+   "proposed_fix_scope": "LaneEditor.openMenu: clamp left/top against the wrapper after layout (the tooltip's own clamp is the model).",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "seat": "D4-s1"
+  },
+  {
+   "id": "D4-s1-03",
+   "scope": "D4-s1",
+   "step": "D4.M1",
+   "title": "Setup picker: two identically named sensors render as identical options at 375 and 768 px",
+   "severity": "medium",
+   "claim": "In the setup picker the options 'Vedpanna temperatur \u2014 sensor.vedpanna_temperatur_temperature' and '..._2' show the same visible prefix at 375 px (190 px box) and 768 px (322 px box), in 8 of 8 non-1280 cells.",
+   "mechanism": "SetupPage.pickerModel appends the entity id to every option so colliding friendly names can be told apart, but the <select size=8> lives in a pop-up capped at max-width 90%, and a Chromium listbox option neither wraps nor scrolls sideways, so the distinguishing suffix is clipped.",
+   "evidence": {
+    "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --no-keys --modes normal --states x_pin_ok,x_pin_fail,x_save_ok,x_save_fail,x_dhw_clamped,x_save_confirm,draft_dirty_menu_open,x_menu_right_edge,x_menu_right_edge_dhw,picker_open_filtered,x_live_default,x_live_default_expanded",
+    "harness_path": "tools/audit/round9/D4/s1/sweep.mjs",
+    "value": 8,
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B10: 4-core Linux container (kernel 6.18), Node v22.22.2, Playwright 1.56.1, Chromium 141.0.7390.37, font Liberation Sans",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out; B10 runs only this Chromium seat; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 1.36,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump-optimizer-card.js:SetupPage.pickerModel / pickerHtml (rendered .sp-select options)",
+   "perturbation": {
+    "change": "sweep.mjs --perturb picker_wrap: add '.sp-select option { white-space: normal; overflow-wrap: anywhere; }'",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "option_indistinct_pairs: pairs of options in a visible <select> whose full texts differ but whose visible prefix (measureText-fitted to the option content width) is identical",
+   "phenomenon_property": "No two options of a card <select> that differ in text render identically at any supported viewport; the part of a label that distinguishes it is always visible.",
+   "seam_rule": "grep -nE \"<select|<option\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "null_control": {
+    "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --no-keys --modes normal --states x_pin_ok,x_pin_fail,x_save_ok,x_save_fail,x_dhw_clamped,x_save_confirm,draft_dirty_menu_open,x_menu_right_edge,x_menu_right_edge_dhw,picker_open_filtered,x_live_default,x_live_default_expanded",
+    "value": "0 at 1280 px (box wide enough)",
+    "note": "the same options, fully visible"
+   },
+   "reproduction_steps": [
+    "Run the command; read the '== listbox options cut / indistinct' block and RESULT option_indistinct_pairs=8.",
+    "shots/picker_open_filtered__375__light__en.png"
+   ],
+   "proposed_fix_scope": "Card CSS/markup of the setup picker: let options wrap (overflow-wrap anywhere) or put the distinguishing id where it survives truncation.",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "seat": "D4-s1"
+  },
+  {
+   "id": "D4-s1-04",
+   "scope": "D4-s1",
+   "step": "D4.M1",
+   "title": "Setup layout editor: removing a pipe, drawing a pipe and moving a box have no keyboard route",
+   "severity": "medium",
+   "claim": "With the layout editor open, 0 of 12 pipes (3 viewports) can be removed from the keyboard and 0 of 18 boxes moved, while 12 of 12 pipes are removable by mouse click.",
+   "mechanism": "LayoutEditor.attach wires only pointerdown/move/up and click on .setup-canvas; the pipe markup (<path class=setup-pipe data-edge>) has no tabindex, role or name, and ports/boxes have no focusable element, so Save/Undo/Tidy are the only Tab stops in the editor. The pipe's hit area is its 3.5-unit stroke (6.6-38 px tall under a coarse pointer).",
+   "evidence": {
+    "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/layout_kbd.mjs",
+    "harness_path": "tools/audit/round9/D4/s1/layout_kbd.mjs",
+    "value": 0,
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B10: 4-core Linux container (kernel 6.18), Node v22.22.2, Playwright 1.56.1, Chromium 141.0.7390.37, font Liberation Sans",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out; B10 runs only this Chromium seat; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 1.16,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump-optimizer-card.js:LayoutEditor (attach, onClick, removeEdge; edit.edges/positions)",
+   "perturbation": {
+    "change": "layout_kbd.mjs --perturb kbd: tabindex=\"0\" on the pipe path markup and a canvas keydown forwarding Enter/Delete to onClick",
+    "expected_direction": "up",
+    "observed_value": 12
+   },
+   "metric_definition": "pipes_keyboard: pipes whose edge disappears from LayoutEditor.edit.edges after reaching the pipe by Tab and pressing Enter, Delete or Space",
+   "phenomenon_property": "Every edit the layout editor offers by pointer (remove a pipe, add a pipe, move a box) has a keyboard-operable equivalent reachable by Tab.",
+   "seam_rule": "grep -nE 'canvas.addEventListener\\(\"(pointerdown|click)\"|data-edge=\"\\$\\{edge\\}\"' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "null_control": {
+    "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/layout_kbd.mjs",
+    "value": "pipes_click=12",
+    "note": "the same removal by real mouse click succeeds for every pipe"
+   },
+   "reproduction_steps": [
+    "Run the command; RESULT pipes=12 pipes_click=12 pipes_keyboard=0 boxes_keyboard=0.",
+    "Re-run with --perturb kbd; pipes_keyboard=12."
+   ],
+   "proposed_fix_scope": "LayoutEditor: focusable, named pipe/box elements with key handlers (Delete removes a pipe; arrows move a box; a port-to-port connect command).",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "seat": "D4-s1"
+  },
+  {
+   "id": "D4-s1-05",
+   "scope": "D4-s1",
+   "step": "D4.M1",
+   "title": "Now-marker label prints over the measured-now reading on the live default view",
+   "severity": "high",
+   "claim": "On an install that publishes its measured indoor temperature, the chart's 'now' label and the 'now 21.1 \u00b0C' reading overlap (13.8x8.6 px glyph boxes at 375 px, ink visibly merged) in the default view, inline and expanded, in 24 of 24 cells.",
+   "mechanism": "renderChart places text.now-label at (nx+3, plotT+font+1) and text.now-temp at (plotL+6, plotT+font) independently; the default window starts at now so nx ~ plotL. The test rig's planStates omits the measured sensor (withActuals), so no STATES default view draws now-temp. Same property, second seam: the .viewctl reset button over now-label when panned (history_panned, 10 cells of the full grid).",
+   "evidence": {
+    "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --no-keys --modes normal --states x_pin_ok,x_pin_fail,x_save_ok,x_save_fail,x_dhw_clamped,x_save_confirm,draft_dirty_menu_open,x_menu_right_edge,x_menu_right_edge_dhw,picker_open_filtered,x_live_default,x_live_default_expanded",
+    "harness_path": "tools/audit/round9/D4/s1/sweep.mjs",
+    "value": 24,
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B10: 4-core Linux container (kernel 6.18), Node v22.22.2, Playwright 1.56.1, Chromium 141.0.7390.37, font Liberation Sans",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out; B10 runs only this Chromium seat; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 1.36,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump-optimizer-card.js:renderChart (now-label / now-temp placement) via HeatpumpOptimizerCard._render",
+   "perturbation": {
+    "change": "sweep.mjs --perturb now_temp_below: now-temp y = plotT + 2*font + 4",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "now_marker_collisions: pairs (text.now-label, text.now-temp) whose boxes intersect by >3 px in both axes, over the 144 targeted cells",
+   "phenomenon_property": "No two labels the chart draws at the plot's top edge (now label, measured-now reading, estimated-prices label, view controls) overlap, wherever now falls in the window.",
+   "seam_rule": "grep -nE '<text class=\"now-|y=\"\\$\\{plotT \\+ font|class=\"viewctl' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "null_control": {
+    "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --no-keys --modes normal --states expanded_plan,plan_inline",
+    "value": 0,
+    "note": "the same default views without the measured sensor: now_marker_collisions=0"
+   },
+   "reproduction_steps": [
+    "Run the command; RESULT now_marker_collisions=24.",
+    "evidence_now_collision_375.png (crop_now.mjs) shows the merged ink."
+   ],
+   "proposed_fix_scope": "renderChart: one placement for the top-edge labels (stack or offset now-temp when the now line is near plotL); add withActuals to a default-view state in tests/card_drift.mjs / card_browser.mjs.",
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "seat": "D4-s1"
+  },
+  {
+   "id": "D4-s2-01",
+   "scope": "D4-s2",
+   "step": "D4.M2",
+   "title": "Setup wizard's device pre-fill page shows raw keys: 3 unlabelled fields and 1 untranslated error",
+   "severity": "medium",
+   "claim": "On the config flow's device_prefill page, a name-matched pump yields 3 rendered fields (compressor_freq_sensor, dhw_min_temperature, dhw_legionella_temperature) with no label or help in config.step.device_prefill, and the page's own refusal key prefill_device_unreadable has no text in config.error, in both en and sv; the options twin page resolves all of them.",
+   "mechanism": "async_step_device_prefill renders modbus_prefill.infer keys through _prefill_schema/_prefill_row (the options registry) and returns {'base':'prefill_device_unreadable'}, but only the options namespace (options.step.modbus_prefill, options.error) carries the texts; config.step.device_prefill.data has 8 keys, the options twin 19. name_match.ROLE_FILTERS reaches compressor_freq_sensor, r405 and r406 by name, which the config page never labelled. The same reuse renders the options-only after_save control on the wizard page, where both of its choices lead to the same finish_setup menu and the choice is stored into the created entry (prefill_after_save.py: config_distinct_destinations=1, after_save_leaks_into_entry=1; options null control 2).",
+   "evidence": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/prefill_config_strings.py",
+    "harness_path": "tools/audit/round9/D4/s2/prefill_config_strings.py",
+    "value": "3 unlabelled + 1 untranslated error per language (en, sv)",
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B9 cloud container, 4 cores, Linux 6.18, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: two other seats on the box; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.6,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerConfigFlow.async_step_device_prefill",
+   "perturbation": {
+    "change": "--perturb: copy options.step.modbus_prefill data/data_description and options.error texts into config.step.device_prefill / config.error (the translation fix), in memory",
+    "expected_direction": "to_zero",
+    "observed_value": "0 unlabelled, 0 no-help, 0 untranslated errors in en and sv"
+   },
+   "metric_definition": "Rendered field keys of the config device_prefill preview without config.step.device_prefill.data label, plus returned error keys without config.error text, per language file.",
+   "phenomenon_property": "Every field key the config flow's device_prefill step renders, and every error key it returns, resolves in the config namespace (config.step.device_prefill.data/data_description, config.error) of every shipped language, and every control on it acts in the config flow.",
+   "seam_rule": "tools/audit/round9/D4/s2/prefill_config_strings.py (enumerates the rendered/returned keys of the page) together with tools/audit/round9/D4/s2/prefill_after_save.py; the key universe is modbus_prefill.infer's output keys (options.step.modbus_prefill.data less the page's own controls)",
+   "null_control": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/prefill_config_strings.py",
+    "value": "options_twin_unlabelled=0, options_twin_untranslated_errors=0",
+    "note": "the same keys resolve in the options namespace the options flow reads"
+   },
+   "reproduction_steps": [
+    "Run prefill_config_strings.py: the offer fires from user_sensors (offered: True), the preview renders 5 fields, 3 have no config label.",
+    "Run with --perturb: all counts 0.",
+    "Run prefill_after_save.py: after_save rendered, both choices -> menu/finish_setup, 'close' stored into the entry; options flow null control routes to 2 destinations."
+   ],
+   "proposed_fix_scope": "strings.json + translations/en.json, sv.json: add the modbus_prefill-reachable keys (at least compressor_freq_sensor, dhw_min_temperature, dhw_legionella_temperature, and every key infer can return) and prefill_device_unreadable (and the _prefill_errors keys flow_target_needs_two_zone, silent_mode_window_too_short, dhw_windows_day_selector if reachable) to the config namespace; drop CONF_AFTER_SAVE from the config-flow preview schema; add a test that walks the config preview with a name-matched device and resolves every rendered key in config.*",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P6",
+   "seat": "D4-s2"
+  },
+  {
+   "id": "D4-s2-02",
+   "scope": "D4-s2",
+   "step": "D4.M2",
+   "title": "Wood price field shows 'SEK/m\u00b3' to a non-SEK install while its sibling money fields follow the instance currency",
+   "severity": "medium",
+   "claim": "With Home Assistant's currency set to EUR, 1 of the 4 money fields the options flow renders (building.wood_price_sek_m3) displays the unit SEK/m\u00b3, while compressor_replacement_cost, grid_fee_fixed and contract_fixed_price display EUR.",
+   "mechanism": "The wood-price row is built at import with the literal _number(0, 10000, 10, 'SEK/m\u00b3'), whereas its siblings are _ByHass(lambda hass: _number(..., resolve_currency(hass))). wood_fuel compares the entered figure against the electricity price in the instance currency, so the label asks for a different currency than the arithmetic uses. The static services.yaml selector unit (simulate_plan.wood_price_sek_m3: SEK/m\u00b3) and the service field's description ('in SEK') carry the same fixed currency (static_fixed_currency_texts=2).",
+   "evidence": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/currency_units.py",
+    "harness_path": "tools/audit/round9/D4/s2/currency_units.py",
+    "value": "1 of 4 money fields",
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B9 cloud container, 4 cores, Linux 6.18, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: two other seats on the box; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.6,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_building (row _OPTION_FIELDS[wood_price_sek_m3]) against currency:resolve_currency",
+   "perturbation": {
+    "change": "--perturb: the wood-price row's widget becomes _ByHass(lambda hass: _number(0, 10000, 10, f'{resolve_currency(hass)}/m\u00b3')) in memory",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Rendered options-flow NumberSelectors whose unit_of_measurement names a currency code other than resolve_currency(hass), hass currency EUR.",
+   "phenomenon_property": "Every money unit the flows and service descriptions show is the instance currency from resolve_currency(hass), or names no currency at all.",
+   "seam_rule": "tools/audit/round9/D4/s2/currency_units.py (enumerates every rendered money unit across all option pages, plus the static services.yaml/translation texts naming a currency code)",
+   "null_control": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/currency_units.py --currency SEK",
+    "value": 0,
+    "note": "at the currency the literal happens to fit, the count vanishes"
+   },
+   "proposed_fix_scope": "config_flow.py wood-price row via _ByHass/resolve_currency; services.yaml unit and the simulate_plan field description without a fixed currency",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/services.yaml",
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P8",
+   "seat": "D4-s2"
+  },
+  {
+   "id": "D4-s2-03",
+   "scope": "D4-s2",
+   "step": "D4.M3",
+   "title": "The hot-water minimum error text shows literal '\\u00b0C' (en) and 9 escaped letters (sv)",
+   "severity": "medium",
+   "claim": "The dhw_min_too_close error both flows return is stored double-escaped, so after JSON parsing the shown text contains 1 literal '\\u00b0' sequence in en and 9 literal '\\u00XX' sequences in sv, in config.error and options.error alike (4 texts reached, 6 leaves across strings.json/en.json/sv.json).",
+   "mechanism": "strings.json and translations/*.json hold \"\\\\u00b0C\" (an escaped backslash) instead of the character; json.loads yields a backslash-u sequence, and the frontend's ICU MessageFormat does not treat a backslash as an escape, so it is printed verbatim (inference: no HA frontend here).",
+   "evidence": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/escaped_text.py",
+    "harness_path": "tools/audit/round9/D4/s2/escaped_text.py",
+    "value": "4 error texts reached (config+options x en+sv); 1 garbled char en, 9 sv",
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B9 cloud container, 4 cores, Linux 6.18, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: two other seats on the box; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.63,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerConfigFlow.async_step_dhw and HeatPumpOptimizerOptionsFlow.async_step_hot_water (errors returned for min 53 / setpoint 55)",
+   "perturbation": {
+    "change": "--perturb: decode the literal escapes in the loaded translation texts (write the characters), in memory",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Error texts the flows return for the DHW minimum/setpoint pair whose displayed string (after json.loads) matches \\\\u[0-9a-fA-F]{4}, per flow and language.",
+   "phenomenon_property": "No shipped translation leaf contains a literal backslash-u escape after JSON parsing.",
+   "seam_rule": "tools/audit/round9/D4/s2/escaped_text.py (RESULT escaped_texts_all_files enumerates every leaf of strings.json and translations/*.json)",
+   "null_control": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/escaped_text.py",
+    "value": "escaped_other_error_texts=0",
+    "note": "every other error text of both flows is clean"
+   },
+   "proposed_fix_scope": "strings.json, translations/en.json, translations/sv.json: the two dhw_min_too_close leaves each; a lint in the translation checks for \\\\u sequences",
+   "files": [
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "seat": "D4-s2"
+  },
+  {
+   "id": "D4-s2-04",
+   "scope": "D4-s2",
+   "step": "D4.M2",
+   "title": "Expert setup: the zones page says 'leave defaults if you don't need two-zone' and leaving them turns two-zone on",
+   "severity": "high",
+   "claim": "Walking the initial flow's 'Enter thermal values directly' path and submitting every page as pre-filled creates an entry that ThermalParameters.from_config reads as two_zone_enabled=True (1), while the describe path at the same defaults reads False (0).",
+   "mechanism": "async_step_zones declares the zone fields vol.Optional(..., default=DEFAULT_...), so the frontend posts them and voluptuous refills them even when cleared; the step stores them with self._data.update(user_input). ThermalParameters.from_config's 'auto' two_zone_mode infers two-zone from the presence of any of those keys, and the initial flow never writes two_zone_mode. quick_setup.derive guards the same fact explicitly (writes two_zone_mode on/off, its comment: adding zone keys 'is what silently flips a house to 2-zone'); the zones page, its sibling seam, does not. The page description promises the opposite. The overview then says 'House: two zones' for a single-zone house; the only way back is the options flow's two_zone_mode, which the page never mentions.",
+   "evidence": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/zones_default.py",
+    "harness_path": "tools/audit/round9/D4/s2/zones_default.py",
+    "value": 1,
+    "unit": "count (two_zone_enabled of the created entry)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B9 cloud container, 4 cores, Linux 6.18, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: two other seats on the box; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.63,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerConfigFlow.async_step_zones, read through thermal_model:ThermalParameters.from_config",
+   "perturbation": {
+    "change": "--perturb: in async_step_zones, store only zone values that differ from the page's own defaults (one-line edit applied to the module source in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "two_zone_enabled (0/1) of the entry created when every page of the expert path is submitted exactly as pre-filled.",
+   "phenomenon_property": "No first-run path turns the two-zone model on unless the user answers that the house has two zones; submitting any page unchanged leaves a single-zone install single-zone.",
+   "seam_rule": "tools/audit/round9/D4/s2/zones_default.py (walks each first-run path at its pre-filled answers and reads the delivered two_zone_enabled; extend its path list for new branches)",
+   "null_control": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/zones_default.py",
+    "value": "two_zone_describe_defaults=0",
+    "note": "the path without the zones page stays single-zone at the same defaults"
+   },
+   "reproduction_steps": [
+    "Run zones_default.py: expert path overview says 'House: two zones', two_zone_expert_defaults=1.",
+    "Run with --perturb: 0, overview 'House: one zone'."
+   ],
+   "proposed_fix_scope": "config_flow.async_step_zones: ask whether the house has two zones (or write two_zone_mode explicitly as quick_setup does) and make the zone fields suggested rather than defaulted; correct the zones description in strings/translations",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "seat": "D4-s2"
+  },
+  {
+   "id": "D4-s2-05",
+   "scope": "D4-s2",
+   "step": "D4.M1",
+   "title": "12 number fields start off their own step grid: native validity flags them, one spinner click gives 5.1 not 5.5",
+   "severity": "low",
+   "claim": "Chromium reports validity.stepMismatch for 8 number fields at their shipped defaults (e.g. slab_thermal_mass 5 with min 0.1 step 0.5 -> spinner gives 5.1; upper_floor_heat_loss 0.08 with min 0.001 step 0.01 -> 0.081) and for 4 more once the questionnaire's derived values are stored; slider fields show 0.",
+   "mechanism": "_number passes min/max/step through; HTML number inputs take min as the step base, and these ranges put min off the grid the step implies (RANGE_* minima 0.1, 0.02, 0.25, 0.001, POSITIVE_PARAM_FLOOR 0.01) or store derived values of arbitrary precision. Inference boundary: that HA's box-mode number selector forwards min/max/step to a native number input is not measured here.",
+   "evidence": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/step_grid.py",
+    "harness_path": "tools/audit/round9/D4/s2/step_grid.py",
+    "value": "8 defaults + 4 derived",
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B9 cloud container, 4 cores, Linux 6.18, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: two other seats on the box; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.63,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/config_flow.py:_number (as rendered by async_step_thermal, async_step_zones, options async_step_thermal_model, async_step_building_preset)",
+   "perturbation": {
+    "change": "--perturb: in _number, '\"step\": step,' -> '\"step\": step if slider else \"any\",' applied to the module source in memory",
+    "expected_direction": "to_zero",
+    "observed_value": "0 and 0"
+   },
+   "metric_definition": "Distinct rendered NumberSelector fields whose rendered value Chromium's <input type=number min max step> reports as stepMismatch.",
+   "phenomenon_property": "Every value a number field renders (default, suggested or stored) lies on that field's step grid as the browser computes it, or the field declares step 'any'.",
+   "seam_rule": "tools/audit/round9/D4/s2/step_grid.py (enumerates every rendered NumberSelector of both flows, defaults and derived arm)",
+   "null_control": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/step_grid.py",
+    "value": "off_grid_slider_fields=0",
+    "note": "the 42 slider fields, whose minimum is on their grid, report none"
+   },
+   "proposed_fix_scope": "config_flow._number and the RANGE_* constants (step 'any' for box fields, or minima on the step grid)",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "seat": "D4-s2"
+  },
+  {
+   "id": "D4-s2-06",
+   "scope": "D4-s2",
+   "step": "D4.M2",
+   "title": "The zones page computes the derivation-overwrite warning but never shows it for its 6 derived fields",
+   "severity": "low",
+   "claim": "With the building questionnaire armed on a two-zone install, 6 of the 10 derived fields the options flow renders sit on thermal_model_zones, whose en and sv descriptions do not contain {preset_warning}, so the warning the step returns is never shown there; thermal_model shows it for its 4.",
+   "mechanism": "async_step_thermal_model_zones passes description_placeholders={'preset_warning': ...} but options.step.thermal_model_zones.description is 'Zone split, inter-floor transfer and solar orientation.' An edit there silently turns the derivation off (_disarm_preset_on_derived_edit), and the warning that explains it lives only on the sibling page, where it still says the two-zone values are 'below'.",
+   "evidence": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/preset_warning.py",
+    "harness_path": "tools/audit/round9/D4/s2/preset_warning.py",
+    "value": "6 unwarned derived fields per language",
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B9 cloud container, 4 cores, Linux 6.18, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: two other seats on the box; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.63,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow.async_step_thermal_model_zones",
+   "perturbation": {
+    "change": "--perturb: append '\\n\\n{preset_warning}' to options.step.thermal_model_zones.description in en and sv, in memory",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "DERIVED_THERMAL_KEYS fields rendered on an options page whose displayed description (placeholders substituted) lacks PRESET_WARNING[lang], preset armed.",
+   "phenomenon_property": "Every page that renders a questionnaire-derived field shows the overwrite warning while the derivation is armed.",
+   "seam_rule": "tools/audit/round9/D4/s2/preset_warning.py (every options page rendering a DERIVED_THERMAL_KEYS field; add a page to its step tuple when a derived key moves)",
+   "null_control": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/preset_warning.py --disarmed",
+    "value": "warned_derived_fields=0",
+    "note": "disarmed, the warning is empty everywhere"
+   },
+   "proposed_fix_scope": "strings.json/translations: add {preset_warning} to thermal_model_zones' description; reword PRESET_WARNING's 'below'",
+   "files": [
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json",
+    "custom_components/heatpump_optimizer/config_flow.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "seat": "D4-s2"
+  },
+  {
+   "id": "D4-s2-07",
+   "scope": "D4-s2",
+   "step": "D4.M2",
+   "title": "After 'Quick setup (recommended)' the wizard returns to the identical menu, offering quick setup again",
+   "severity": "low",
+   "claim": "After quick_setup and the device pre-fill, async_step_finish_setup returns a menu option-for-option identical to the one the user chose from (menu_identical_after_quick=1), with 'Quick setup (recommended)' still first, and a description that still says the user can 'start with shipped defaults'.",
+   "mechanism": "async_step_finish_setup builds a fixed three-option menu with no reference to what _data already holds; quick_setup and device_prefill both hand back to it. The quick path takes 7 screens to an entry against 4 for finish_now, and its last decision is a repeat of its first.",
+   "evidence": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/quick_menu.py",
+    "harness_path": "tools/audit/round9/D4/s2/quick_menu.py",
+    "value": 1,
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B9 cloud container, 4 cores, Linux 6.18, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: two other seats on the box; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.63,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerConfigFlow.async_step_finish_setup",
+   "perturbation": {
+    "change": "--perturb: the quick_setup entry is offered only while CONF_BUILDING_STRUCTURE is absent from self._data (one-line edit on the module source, in memory)",
+    "expected_direction": "to_zero",
+    "observed_value": "0 and 0"
+   },
+   "metric_definition": "Options on the menu reached after the quick path that re-offer the completed quick_setup path.",
+   "phenomenon_property": "A menu reached after a path completes offers neither that path again as the recommended next step nor text that describes the pre-path state.",
+   "seam_rule": "tools/audit/round9/D4/s2/quick_menu.py (every hand-back to finish_setup; flow_rubric.py prints each first-run path's screen sequence)",
+   "null_control": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/quick_menu.py",
+    "value": "null_repeated_options=0",
+    "note": "the first menu, before any path, re-offers nothing completed"
+   },
+   "proposed_fix_scope": "config_flow.async_step_finish_setup (state-aware options or a quick-path-specific finish), strings description",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "seat": "D4-s2"
+  },
+  {
+   "id": "D4-s2-08",
+   "scope": "D4-s2",
+   "step": "D4.M3",
+   "title": "None of the 12 registered services has an icon in icons.json",
+   "severity": "low",
+   "claim": "Of the 12 services services.async_register_services registers, 12 have no entry under icons.json 'services', while every entity translation key has an icon (0 missing).",
+   "mechanism": "icons.json carries only an 'entity' block; Home Assistant reads service-action icons from icons.json 'services', so the action picker shows the generic icon for all 12.",
+   "evidence": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/service_icons.py",
+    "harness_path": "tools/audit/round9/D4/s2/service_icons.py",
+    "value": "12 of 12",
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B9 cloud container, 4 cores, Linux 6.18, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: two other seats on the box; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.63,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/services.py:async_register_services (registered names) against icons.json",
+   "perturbation": {
+    "change": "--perturb: an in-memory icons.json 'services' block with one mdi icon per registered service",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Registered domain services with no icons.json services.<name> entry.",
+   "phenomenon_property": "Every registered service has an icon in icons.json.",
+   "seam_rule": "tools/audit/round9/D4/s2/service_icons.py (enumerates the services the production registration delivers)",
+   "null_control": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/service_icons.py",
+    "value": "entity_keys_without_icon=0",
+    "note": "the same file's entity section is complete"
+   },
+   "proposed_fix_scope": "icons.json: add a services block",
+   "files": [
+    "custom_components/heatpump_optimizer/icons.json"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "seat": "D4-s2"
+  },
+  {
+   "id": "D4-s2-09",
+   "scope": "D4-s2",
+   "step": "D4.M3",
+   "title": "8 help texts per language write '45 C' / 'W/m2' beside selectors that say \u00b0C and m\u00b2",
+   "severity": "low",
+   "claim": "8 rendered field help texts per language (en and sv) write temperatures as '<n> C' or areas as 'm2' (dhw_min_temperature, dhw_legionella_temperature, dhw_cooling_rate, solar_radiation_entity, on config and options pages), while the flows' 31 temperature selectors use '\u00b0C' and none uses a bare 'C'.",
+   "mechanism": "Hand-typed unit spellings in strings.json/translations drifted from the house style the selectors set.",
+   "evidence": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/unit_typography.py",
+    "harness_path": "tools/audit/round9/D4/s2/unit_typography.py",
+    "value": "8 per language",
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B9 cloud container, 4 cores, Linux 6.18, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: two other seats on the box; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 2.63,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerConfigFlow.async_step_dhw / async_step_user_sensors and options async_step_hot_water / async_step_hot_water_tank / async_step_entities_metering (rendered field keys)",
+   "perturbation": {
+    "change": "--perturb: '<n> C' -> '<n> \u00b0C' and 'm2' -> 'm\u00b2' in the loaded translations, in memory",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Rendered fields whose data_description matches (\\d) C\\b or \\bm2\\b, per language.",
+   "phenomenon_property": "Help texts spell units as the selectors do (\u00b0C, m\u00b2).",
+   "seam_rule": "tools/audit/round9/D4/s2/unit_typography.py (every rendered field's help text in both flows)",
+   "null_control": {
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/unit_typography.py",
+    "value": "selector_units_bareC=0",
+    "note": "the selectors themselves never use the bare spelling"
+   },
+   "proposed_fix_scope": "strings.json and translations/*.json text edits",
+   "files": [
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "seat": "D4-s2"
+  },
+  {
+   "id": "D8-s1-01",
+   "scope": "D8-s1",
+   "step": "D8.M2",
+   "title": "Current Electricity Price publishes an earlier quarter's price when prices are quarter-hourly",
+   "severity": "high",
+   "claim": "With 15-minute price entries, sensor.heat_pump_optimizer_cost_current_electricity_price publishes the price of the earliest quarter within the last hour instead of the quarter covering now at 95 of 96 quarter instants of a day.",
+   "mechanism": "CurrentPriceSensor.native_value reads data['current_price'] = coordinator._get_current_price() -> _current_spot_price(), which returns the first entry with starts_at <= now < starts_at + 1 h. That test assumes hourly entries. The coordinator ingests 15-minute days (quarters_from_entries, #19), and there the first match is up to 45 min old. get_current_action picks the step covering now, so Heat Pump Action's price attribute and the price sensor disagree.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D8/s1/price15.py",
+    "harness_path": "tools/audit/round9/D8/s1/price15.py",
+    "value": 95,
+    "unit": "wrong quarter instants of 96",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B6 cloud container, 4 CPU, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "other D8/finder seats running on the box; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 6.21,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:CurrentPriceSensor.native_value (over coordinator:HeatPumpOptimizerCoordinator._current_spot_price via _build_data_dict)",
+   "perturbation": {
+    "change": "price15.py --fix: _current_spot_price treats an entry as covering [its start, the next entry's start)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Of 96 instants (7 min into each quarter of 2026-01-15, Europe/Stockholm), count where the sensor's native_value differs from the price entry whose quarter covers now.",
+   "phenomenon_property": "Every published or booked 'price of now' equals the price entry whose interval [start, next start) contains now, at any price resolution.",
+   "seam_rule": "grep -n 'timedelta(hours=1)' custom_components/heatpump_optimizer/coordinator.py  (every price-covering-now search with a fixed 1 h window)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D8/s1/price15.py --hourly",
+    "value": 0,
+    "note": "same day at hourly resolution: 0 wrong, so the effect is the resolution assumption"
+   },
+   "reproduction_steps": [
+    "price15.py -> RESULT wrong_quarters=95, worst_abs_error=0.3000",
+    "price15.py --hourly -> 0",
+    "price15.py --fix -> 0",
+    "price15.py --cycle -> after a real cycle at 06:40 sensor 1.00 vs current_action.price 0.92 (RESULT cycle_sensor_minus_plan=0.0800)"
+   ],
+   "proposed_fix_scope": "coordinator._current_spot_price: cover [start, next start) (fall back to +1 h only for the last entry); the settlement and comfort learner share _get_current_price, so they are fixed together.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "seat": "D8-s1"
+  },
+  {
+   "id": "D8-s1-02",
+   "scope": "D8-s1",
+   "step": "D8.M2",
+   "title": "DHW Heating Schedule counts 15-minute steps as 'heating periods', disagreeing with DHW Heating Plan's slot count",
+   "severity": "low",
+   "claim": "In every DHW-enabled matrix cycle (92 of 92), sensor.heat_pump_optimizer_dhw_heating_schedule publishes a 'heating periods' count different from the DHW Heating Plan's slot_count for the same schedule.",
+   "mechanism": "DHWScheduleSensor.native_value counts dhw_schedule steps with dhw_power > 0.1 and labels them periods. _plan_slots merges consecutive steps above 0.05 into slots. A multi-step slot is counted once by the plan and once per step by the schedule sensor.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D8/s1/matrix.py",
+    "harness_path": "tools/audit/round9/D8/s1/matrix.py",
+    "value": 92,
+    "unit": "cycles (of 92 DHW cycles)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B6 cloud container, 4 CPU, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "other seats running; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 4.17,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:DHWScheduleSensor.native_value (against sensor:DHWHeatingPlanSensor.extra_state_attributes['slot_count'])",
+   "perturbation": {
+    "change": "matrix.py --perturb-dhw-runs: native_value counts contiguous runs of dhw_power > 0.05 (run on --only +dhw, 6 cells, baseline 12)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Count of (cell, cycle) where the integer leading DHW Heating Schedule's state differs from DHW Heating Plan's slot_count, both available.",
+   "phenomenon_property": "Two entities summarising one plan state the same count of heating periods: a period is a contiguous run at the plan's own threshold.",
+   "seam_rule": "grep -n 'dhw_power\", 0) >\\|threshold: float = 0.05' custom_components/heatpump_optimizer/sensor.py custom_components/heatpump_optimizer/coordinator.py",
+   "leave_one_out": {
+    "cells": 46,
+    "min": 2,
+    "max": 2,
+    "drop_most_favourable": 90
+   },
+   "proposed_fix_scope": "DHWScheduleSensor.native_value counts contiguous runs at the _plan_slots threshold (or reads dhw_plan slot_count).",
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "seat": "D8-s1"
+  },
+  {
+   "id": "D8-s1-03",
+   "scope": "D8-s1",
+   "step": "D8.M2",
+   "title": "Recommended Power publishes a sub-threshold draw at steps Heat Pump Action reports 'off'",
+   "severity": "low",
+   "claim": "At plan steps whose space power lies between 0.05 kW and the on-threshold max(0.1, 0.5*min_power), Recommended Power (and Heat Pump Action power_kw) publish that power while the same action has heat_pump_on=False and Heat Pump Action reads 'off'.",
+   "mechanism": "entity.commanded_power_kw returns power + dhw_power and never reads heat_pump_on. get_current_action classifies such a step as off (below on-threshold) but keeps the continuous power.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D8/s1/minpower.py",
+    "harness_path": "tools/audit/round9/D8/s1/minpower.py",
+    "value": 4,
+    "unit": "horizon steps (5 topologies x 96 steps at min_power 1.0 kW); worst 0.41 kW",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B6 cloud container, 4 CPU, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "other seats running; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 5.78,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:CurrentPowerSensor.native_value and sensor:HeatPumpActionSensor.native_value, each step made current via optimizer:HeatPumpOptimizer.get_current_action + coordinator._build_data_dict",
+   "perturbation": {
+    "change": "minpower.py --perturb: commanded_power_kw returns 0.0 when the action's heat_pump_on is False",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Count of horizon steps at which Recommended Power > 0.05 kW while Heat Pump Action's state is 'off'.",
+   "phenomenon_property": "No entity attributes a power draw to the pump at a step the same action declares off (heat_pump_on False).",
+   "seam_rule": "grep -rn 'commanded_power_kw(' custom_components/heatpump_optimizer/",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D8/s1/minpower.py (min_power 0.2 arm)",
+    "value": 0,
+    "note": "on-threshold 0.1: no sub-threshold band, so 0; matrix.py independently shows 2 of 180 real cycles (coord_all_features+valve#1 0.36 kW, +grid_fee#0 0.29 kW)"
+   },
+   "leave_one_out": {
+    "cells": 5,
+    "min": 0,
+    "max": 4,
+    "drop_most_favourable": 0
+   },
+   "proposed_fix_scope": "entity.commanded_power_kw gates on heat_pump_on (shared with climate's recommended_power_kw), or get_current_action zeroes power below the on-threshold.",
+   "files": [
+    "custom_components/heatpump_optimizer/entity.py",
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "seat": "D8-s1"
+  },
+  {
+   "id": "D8-s2-01",
+   "scope": "D8-s2",
+   "step": "D8.M2",
+   "title": "Climate entity is permanently unavailable on an install without an indoor thermometer, taking the thermostat control with it",
+   "severity": "high",
+   "claim": "HeatPumpOptimizerClimate.available is False in every cell whose indoor thermometer has not read, even though the coordinator holds a fresh payload. Its hvac_mode, target, presets and 22 payload-backed attributes are therefore never published, and HA's service calls skip the entity, while current_temperature already returns None without a reading.",
+   "mechanism": "climate.py available ANDs in coordinator.data['reading_ok']['upper_floor_temperature']. That flag is False for an unconfigured indoor entity (coordinator._reading_ok), and the README (line 168) and the config_flow (vol.Optional) both make that entity optional. The A3(e) aim, not publishing the 21.0 constructor default, is already met by current_temperature returning None. The whole-entity gate is redundant for that aim and removes the control surface: HA's entity_service_call skips unavailable entities, so set_temperature, set_hvac_mode and turn_off on the thermostat do nothing. tests/entities.py:3345-3383 pins this as the A3(e) decision.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+    "harness_path": "tools/audit/round9/D8/s2/matrix.py",
+    "value": 5,
+    "unit": "cells of 10 (RESULT climate_unavailable_with_payload; climate_attrs_hidden=112)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "audit box B7, linux container, /home/claude/venv314",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 4.93,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.available",
+   "perturbation": {
+    "change": "--perturb-available: available returns CoordinatorEntity.available alone, dropping the reading_ok term (a one-line edit in memory)",
+    "expected_direction": "climate_unavailable_with_payload 5 -> 0 and climate_attrs_hidden 112 -> 0 (measured)"
+   },
+   "metric_definition": "Number of matrix cells in which the coordinator has a payload and last_update_success is True, yet HeatPumpOptimizerClimate.available is False.",
+   "phenomenon_property": "An entity that carries a control surface (setpoint, mode, presets) gates its whole availability on a measurement it could publish as None instead.",
+   "seam_rule": "grep -n \"def available\" -A8 custom_components/heatpump_optimizer/climate.py custom_components/heatpump_optimizer/switch.py custom_components/heatpump_optimizer/button.py | grep reading_ok",
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/climate.py",
+    "tests/entities.py"
+   ],
+   "proposed_fix_scope": "Drop the reading_ok term from HeatPumpOptimizerClimate.available and keep current_temperature's None gate. This overturns the A3(e) pin at tests/entities.py:3345-3383, so it needs the owner's decision.",
+   "provisional": false,
+   "seat": "D8-s2"
+  },
+  {
+   "id": "D8-s2-02",
+   "scope": "D8-s2",
+   "step": "D8.M2",
+   "title": "Climate hvac_action publishes off while an active boost runs the pump in optimizer mode off",
+   "severity": "high",
+   "claim": "With mode off and a live space or DHW boost, the actuated action has heat_pump_on=True and draws 5.0 kW space or 4.0 kW DHW, while the climate publishes hvac_action=off. This happens in all 14 such arms; the same boosts at mode auto give 0.",
+   "mechanism": "climate.py hvac_action returns HVACAction.OFF whenever the payload mode is off, before it reads the action. boost.apply (coordinator.py:4652) overlays live boost channels in every mode, including off, and _apply_action then switches the pump on. The pump runs while the thermostat says off.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+    "harness_path": "tools/audit/round9/D8/s2/matrix.py",
+    "value": 14,
+    "unit": "arms (RESULT hvac_action_vs_plan; 10 space-boost + 4 DHW-boost at mode off; null arm at mode auto = 0; per-step plan oracle hvac_action_steps_vs_plan=0 of 96)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "audit box B7, linux container, /home/claude/venv314",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 4.93,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.hvac_action",
+   "perturbation": {
+    "change": "--perturb-hvac-action: hvac_action returns HEATING when current_action.heat_pump_on or power_normalized > 0.1, before the mode-off check",
+    "expected_direction": "hvac_action_vs_plan 14 -> 0 (measured)"
+   },
+   "metric_definition": "Number of (cell, boost channel, mode) arms in which the cycle's actuated current_action has heat_pump_on True with power+dhw_power >= 0.1 kW but HeatPumpOptimizerClimate.hvac_action is OFF or IDLE.",
+   "phenomenon_property": "An operating-state property derives from the mode label rather than from the action the cycle actuated.",
+   "seam_rule": "grep -n 'MODE_OFF\\|\"mode\"' custom_components/heatpump_optimizer/climate.py",
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/climate.py"
+   ],
+   "proposed_fix_scope": "In hvac_action, test current_action.heat_pump_on (and the draw) before returning OFF for the mode, or return OFF only when the action says the pump is off.",
+   "provisional": false,
+   "seat": "D8-s2"
+  },
+  {
+   "id": "D8-s2-03",
+   "scope": "D8-s2",
+   "step": "D8.M2",
+   "title": "Mode actions publish a state that mixes the live mode with the stale payload mode",
+   "severity": "medium",
+   "claim": "The state write a mode action makes at once carries hvac_mode=off with hvac_action=heating on the climate, and is_on=false with attribute mode='auto' on the Optimizer Active switch. This holds until the refresh has solved, 30 to 70 s on a Pi.",
+   "mechanism": "publish_then_refresh writes state before the refresh rebuilds coordinator.data. hvac_mode and switch.is_on read the live coordinator.mode (v6.6.12), while climate.hvac_action and OptimizerEnableSwitch.extra_state_attributes['mode'] read data['mode'], the payload copy.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+    "harness_path": "tools/audit/round9/D8/s2/matrix.py",
+    "value": 2,
+    "unit": "state writes (RESULT mode_split_after_action)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "audit box B7, linux container, /home/claude/venv314",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 4.93,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.hvac_action; custom_components/heatpump_optimizer/switch.py:OptimizerEnableSwitch.extra_state_attributes",
+   "perturbation": {
+    "change": "--perturb-live-mode: both payload-mode readers read coordinator.mode instead of data['mode']",
+    "expected_direction": "mode_split_after_action 2 -> 0 (measured)"
+   },
+   "metric_definition": "Number of immediate state writes made by climate.async_set_hvac_mode or OptimizerEnableSwitch.async_turn_off in which the live-mode field (hvac_mode or is_on) disagrees with a payload-mode field in the same write (hvac_action OFF-ness or the switch attribute mode).",
+   "phenomenon_property": "One entity state write reads the operating mode from two sources, the live coordinator.mode and the payload copy data['mode'].",
+   "seam_rule": "grep -n 'data.get(\"mode\"' custom_components/heatpump_optimizer/climate.py custom_components/heatpump_optimizer/switch.py",
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/climate.py",
+    "custom_components/heatpump_optimizer/switch.py"
+   ],
+   "proposed_fix_scope": "Read coordinator.mode in climate.hvac_action's off test and in OptimizerEnableSwitch's mode attribute.",
+   "provisional": false,
+   "seat": "D8-s2"
+  },
+  {
+   "id": "D8-s3-01",
+   "scope": "D8-s3",
+   "step": "D8.M3",
+   "title": "Accuracy and Energy-dashboard meter families split in both English and Swedish name sort",
+   "severity": "low",
+   "claim": "In the name-sorted six-platform roster, the accuracy family (Prediction Accuracy + Diagnose Last Interval) and the energy-meter family (_AccumulatingSensor, DHW members aside) each occupy more than one contiguous run, in English and in Swedish.",
+   "mechanism": "The Diagnose Last Interval button publishes onto Prediction Accuracy but carries no lead token of it (unlike the #1227 Learning buttons); of the three lifetime cost meters only the total is Cost-led, and Thermal Battery sorts between Space Heating and Total Energy.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m3_families.py",
+    "harness_path": "tools/audit/round9/D8/s3/m3_families.py",
+    "value": "families_split_unexplained_name_en=2, name_sv=2, entity_id=1",
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container B4 (linux), venv-r9 python 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 2.45,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.button:DiagnoseIntervalButton / heatpump_optimizer.sensor:PredictionAccuracySensor / heatpump_optimizer.sensor:_AccumulatingSensor via each platform's async_setup_entry",
+   "perturbation": {
+    "change": "--perturb: in memory, the button's en/sv names take the sensor's lead ('Prediction Accuracy Diagnose Last Interval' / 'Prognosnoggrannhet diagnostisera senaste intervallet')",
+    "expected_direction": "down",
+    "observed_value": "name_en 2->1, name_sv 2->1"
+   },
+   "metric_definition": "Production-defined families whose members (less those in a second family) occupy >1 contiguous run of the roster sorted by en/sv name (entity_id: runs beyond one per domain).",
+   "phenomenon_property": "Every production-defined entity family occupies one contiguous run of the name-sorted roster in each shipped language, once members homed in another family are set aside.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m3_families.py  (SPLIT_UNEXPLAINED lines)",
+   "null_control": {
+    "command": "same harness",
+    "value": "ecl110/tariff/learning/card_headline runs=1 in every ordering",
+    "note": "families whose members share a lead read whole"
+   },
+   "leave_one_out": {
+    "cells": 8,
+    "min": 0,
+    "max": 3,
+    "drop_most_favourable": 1
+   },
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/button.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json"
+   ],
+   "proposed_fix_scope": "Names only (new-install entity ids optional, unique ids untouched as in #1227/#1333): lead the diagnose button with the accuracy token; give the lifetime meters one parallel template in en and sv.",
+   "seat": "D8-s3"
+  },
+  {
+   "id": "D8-s3-02",
+   "scope": "D8-s3",
+   "step": "D8.M3",
+   "title": "Swedish name of Sensor-Gap Advisor reads 'sensor gap in the currency' and drops the advisor role",
+   "severity": "low",
+   "claim": "sv.json names sensor_gap_advisor 'Sensorlucka i valutan', which carries none of the English name's role (Advisor/r\u00e5dgivare) and a currency qualifier the English name no longer has.",
+   "mechanism": "The English name was renamed (the unit moved to coordinator.currency) while the Swedish string kept the old qualifier form.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m3_translation.py",
+    "harness_path": "tools/audit/round9/D8/s3/m3_translation.py",
+    "value": 1,
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container B4 (linux), venv-r9 python 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 1.75,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:SensorGapAdvisorSensor (translation_key sensor_gap_advisor) via heatpump_optimizer.sensor:async_setup_entry",
+   "perturbation": {
+    "change": "--perturb: in memory, sv sensor.sensor_gap_advisor name -> 'Sensorlucka, r\u00e5dgivare'",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Entities whose English name carries a concept token of the harness's CONCEPTS map while the Swedish name carries none of its Swedish counterparts.",
+   "phenomenon_property": "Every entity's Swedish name carries the same role and qualifier concepts as its English name.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m3_translation.py  (MISMATCH lines)",
+   "null_control": {
+    "command": "same harness",
+    "value": "concept_mismatch_other_tokens=0 over 74 names",
+    "note": "the mapping does not generate misses"
+   },
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "custom_components/heatpump_optimizer/translations/sv.json"
+   ],
+   "proposed_fix_scope": "One string in translations/sv.json (e.g. 'Sensorlucka, r\u00e5dgivare').",
+   "seat": "D8-s3"
+  },
+  {
+   "id": "D8-s3-03",
+   "scope": "D8-s3",
+   "step": "D8.M4",
+   "title": "Upper Floor Temperature, a byte duplicate of Indoor Temperature, is enabled by default on every install",
+   "severity": "low",
+   "claim": "On all 5 golden topologies across 3 input cycles, the enabled-by-default Upper Floor Temperature publishes exactly the Indoor Temperature (Optimizer) value, including single-zone installs that have no upper floor.",
+   "mechanism": "UpperFloorTempSensor reads upper_floor_temperature, which the coordinator sets to the indoor reading (its own docstring); it keeps the class default enabled while its disabled-by-default siblings follow configured inputs.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m4_duplicates.py",
+    "harness_path": "tools/audit/round9/D8/s3/m4_duplicates.py",
+    "value": 1,
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container B4 (linux), venv-r9 python 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 0.99,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:UpperFloorTempSensor.native_value / heatpump_optimizer.sensor:IndoorTempSensor.native_value via heatpump_optimizer.sensor:async_setup_entry",
+   "perturbation": {
+    "change": "--perturb: in memory, UpperFloorTempSensor._attr_entity_registry_enabled_default = False",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Unordered pairs of enabled-by-default numeric sensors, same unit, equal native_value in every cycle of every topology while the value changes across cycles.",
+   "phenomenon_property": "No two enabled-by-default entities publish the same value from the same source.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m4_duplicates.py  (DUPLICATE_ENABLED lines)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m4_duplicates.py --perturb",
+    "value": "duplicate_pairs_any_default=1 while duplicate_enabled_pairs=0",
+    "note": "the move is the registry default, not the value"
+   },
+   "leave_one_out": {
+    "cells": 5,
+    "min": 1,
+    "max": 1,
+    "drop_most_favourable": 1
+   },
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "proposed_fix_scope": "UpperFloorTempSensor disabled by default on new installs (existing registry entries keep their state, as #1335); README's Upper Floor row notes it.",
+   "seat": "D8-s3"
+  },
+  {
+   "id": "D10-s1-01",
+   "scope": "D10-s1",
+   "step": "D10.M1",
+   "title": "Entry unique id is not re-derived after reauth or an options edit, so the same plant can be set up twice",
+   "severity": "medium",
+   "claim": "A fresh setup that submits an entry's current identity answers is accepted as a new entry in 3 of 5 arms. The 3 arms are after reauth, after an options-page token change, and after an options-page indoor-sensor change. In the same 3 arms, a setup with the original answers (which no entry now holds) is refused as already_configured.",
+   "mechanism": "config_flow.entry_identity hashes the Tibber token and 13 entity slots into the unique id. _async_save_reconfigure re-stamps unique_id. async_step_reauth_confirm and the options 'entities' page (_save_or_menu/_save) write the same identity keys but never update entry.unique_id, so the duplicate guard compares against a stale id.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s1/unique_id_drift.py",
+    "harness_path": "tools/audit/round9/D10/s1/unique_id_drift.py",
+    "value": 3,
+    "unit": "arms (dup_accepted; stale_refused also 3)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "audit box B1 (Linux container)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared fan-out box; the metric is a count and immune to contention",
+    "tolerance": "exact",
+    "load1": 1.05,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerConfigFlow.async_step_user_sensors (duplicate guard), driven after config_flow:HeatPumpOptimizerConfigFlow.async_step_reauth_confirm and config_flow:HeatPumpOptimizerOptionsFlow.async_step_entities",
+   "perturbation": {
+    "change": "--fix: wrap hass.config_entries.async_update_entry so every write re-stamps entry.unique_id = config_flow.entry_identity({**data, **options}). This is the one-line fix at each write seam.",
+    "expected_direction": "to_zero",
+    "observed_value": "dup_accepted 3 -> 0, stale_refused 3 -> 0; control_none and reconfigure arms 0 in both runs"
+   },
+   "metric_definition": "Arms out of 5 in which a fresh config flow submitting the entry's current effective identity answers is not aborted as already_configured.",
+   "phenomenon_property": "Every flow that writes an identity key (token, price entity or an _IDENTITY_ENTITY_KEYS slot) leaves entry.unique_id equal to the identity of the entry's effective config. Better: the id is keyed on an account or home identity that does not rotate with the credential (for example Tibber viewer.userId or home id), which would also let reauth refuse a different account (wrong_account).",
+   "seam_rule": "grep -n \"async_update_entry\\|_save(\\|async_create_entry\" custom_components/heatpump_optimizer/config_flow.py, keeping each write that can change CONF_TIBBER_TOKEN, CONF_PRICE_ENTITY or a key in _IDENTITY_ENTITY_KEYS",
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py"
+   ],
+   "proposed_fix_scope": "config_flow.py only: re-derive unique_id in async_step_reauth_confirm and in the options save path (or key the identity on a non-credential account id from validate_tibber_token), plus tests/config_flow_steps.py arms for reauth and options.",
+   "seat": "D10-s1"
+  },
+  {
+   "id": "D10-s1-02",
+   "scope": "D10-s1",
+   "step": "D10.M1",
+   "title": "Optimize-now button press returns normally when the solve did not run; the run_optimization action raises",
+   "severity": "medium",
+   "claim": "On the same coordinator state, handle_run_optimization raises HomeAssistantError but ForceOptimizationButton.async_press returns normally, in 2 of 3 input arms (stale prices / no_prices, price feed down). The prices-OK control arm counts 0.",
+   "mechanism": "async_press awaits coordinator.async_force_optimization, which awaits async_request_refresh. _async_update_data ignores async_run_optimization's reason code, and the coordinator refresh swallows UpdateFailed. So the #294 refusal that the service implements never reaches a platform action, which the action-exceptions rule covers explicitly.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s1/press_vs_service.py",
+    "harness_path": "tools/audit/round9/D10/s1/press_vs_service.py",
+    "value": 2,
+    "unit": "arms (silent_presses)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "audit box B1 (Linux container)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared fan-out box; the metric is a count and immune to contention",
+    "tolerance": "exact",
+    "load1": 1.16,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer.button:ForceOptimizationButton.async_press vs heatpump_optimizer.services:handle_run_optimization; solve outcome observed via coordinator:HeatPumpOptimizerCoordinator.async_run_optimization",
+   "perturbation": {
+    "change": "--fix: replace ForceOptimizationButton.async_press in memory with 'reason = await self.coordinator.async_run_optimization(); raise HomeAssistantError if reason is not None'.",
+    "expected_direction": "to_zero",
+    "observed_value": "silent_presses 2 -> 0; prices_ok control 0 in both runs"
+   },
+   "metric_definition": "Input arms in which the run_optimization service raises HomeAssistantError on a coordinator state while the Optimize-now button press on the same state returns without an exception.",
+   "phenomenon_property": "Every platform action whose purpose is to cause a solve (or an analysis) surfaces a not-run outcome as HomeAssistantError or ServiceValidationError, exactly as the equivalent service action does.",
+   "seam_rule": "grep -n \"async_press\\|async_turn_on\\|async_turn_off\\|async_set_\" custom_components/heatpump_optimizer/{button,switch,climate,datetime}.py, keeping entries whose only effect is to request a solve or analysis (named candidate, not counted: DiagnoseIntervalButton.async_press)",
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "files": [
+    "custom_components/heatpump_optimizer/button.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "proposed_fix_scope": "button.py ForceOptimizationButton.async_press, and optionally coordinator.async_force_optimization returning the reason code; plus the strings.json exceptions key (already present: run_optimization_no_prices / run_optimization_solve_failed).",
+   "seat": "D10-s1"
+  },
+  {
+   "id": "D10-s1-03",
+   "scope": "D10-s1",
+   "step": "D10.M1",
+   "title": "Tibber auth refusal reaches HA as ConfigEntryNotReady/UpdateFailed, never ConfigEntryAuthFailed",
+   "severity": "low",
+   "claim": "In 3 of 3 auth-refusal arms (setup 401, setup 403, steady-cycle 401), the exception the integration delivers is transient-class (ConfigEntryNotReady or UpdateFailed), not ConfigEntryAuthFailed. The integration has 0 ConfigEntryAuthFailed raise sites. The HTTP 500 and connection-error controls are correctly transient (2/2).",
+   "mechanism": "_fetch_tibber_prices calls _tibber_start_reauth on a 'reauth' verdict, then _tibber_fetch_failed raises UpdateFailed. The first refresh converts that to ConfigEntryNotReady, so HA retries setup and keeps polling Tibber with a token it knows is revoked, instead of stopping and marking the entry for reauthentication as test-before-setup requires. The stub has no ConfigEntryAuthFailed class and no auth arm in DataUpdateCoordinator._async_refresh, so no test can express the correct behaviour (P11).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s1/auth_failed.py",
+    "harness_path": "tools/audit/round9/D10/s1/auth_failed.py",
+    "value": 3,
+    "unit": "arms (auth_as_transient)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "audit box B1 (Linux container)",
+    "cpu_or_wall": "count",
+    "contention_note": "shared fan-out box; the metric is a count and immune to contention",
+    "tolerance": "exact",
+    "load1": 1.16,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer:async_setup_entry and heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fetch_tibber_prices",
+   "perturbation": {
+    "change": "--fix: wrap _fetch_tibber_prices to raise ConfigEntryAuthFailed (defined locally as an IntegrationError subclass, because the stub lacks it) when the fetch fails after _tibber_start_reauth fired, and let the first refresh pass it through the update wrappers as upstream's async_config_entry_first_refresh does.",
+    "expected_direction": "to_zero",
+    "observed_value": "auth_as_transient 3 -> 0; transient_ok stays 2"
+   },
+   "metric_definition": "Auth-refusal arms (HTTP 401/403) in which the exception escaping async_setup_entry or _fetch_tibber_prices is not ConfigEntryAuthFailed.",
+   "phenomenon_property": "An authentication refusal from any credentialed fetch reaches Home Assistant as ConfigEntryAuthFailed, at setup and on steady cycles, and the update wrappers never re-wrap it as UpdateFailed. The test stub models ConfigEntryAuthFailed and upstream's auth arm.",
+   "seam_rule": "grep -n '\"reauth\"\\|_tibber_start_reauth\\|except Exception' custom_components/heatpump_optimizer/coordinator.py (the fetch, _async_update_data and _async_first_refresh_light), plus grep -n 'ConfigEntryAuthFailed' tests/hastub/homeassistant/exceptions.py tests/hastub/homeassistant/helpers/update_coordinator.py",
+   "stop_rule_class": "bug",
+   "class_guess": "P11",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "tests/hastub/homeassistant/exceptions.py",
+    "tests/hastub/homeassistant/helpers/update_coordinator.py"
+   ],
+   "proposed_fix_scope": "coordinator.py: raise ConfigEntryAuthFailed on the reauth verdict and pass it through the two update wrappers. tests/hastub: add the exception and the upstream auth arm in _async_refresh and the first refresh.",
+   "seat": "D10-s1"
+  },
+  {
+   "id": "D10-s2-01",
+   "scope": "D10-s2",
+   "step": "D10.M1",
+   "title": "Climate presets auto and economy are non-standard and have no translation or icon in any language",
+   "severity": "medium",
+   "claim": "The climate entity publishes preset_modes [auto, comfort, economy, boost]; auto and economy are not Home Assistant standard presets and the entity has no translation_key, so 2 of its 4 presets are untranslated in en and sv and have no icon.",
+   "mechanism": "HA's climate component translates/icons only PRESET_* (none, eco, away, boost, comfort, home, sleep, activity); a custom preset needs entity.climate.<translation_key>.state_attributes.preset_mode.state in strings/translations and icons.json, and HeatPumpOptimizerClimate (main-feature entity, _attr_name None) sets no translation_key and no entity.climate section exists.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/climate_presets.py",
+    "harness_path": "tools/audit/round9/D10/s2/climate_presets.py",
+    "value": 2,
+    "unit": "presets untranslated (en; sv and icons also 2)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "4-CPU Linux cloud container (shared audit box B2), Python 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "other finder seats running (load1 4.2-4.4); count is contention-immune",
+    "tolerance": "exact",
+    "load1": 4.21,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.climate:HeatPumpOptimizerClimate",
+   "perturbation": {
+    "change": "--perturb translate: in-memory translation_key plus preset_mode state/icon tables for auto and economy (also --perturb eco: rename economy to HA-standard eco -> 1)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Count of the climate entity's preset_modes that are neither HA-standard presets nor present in entity.climate.<translation_key>.state_attributes.preset_mode.state of translations/en.json.",
+   "phenomenon_property": "Every enumerated value the integration publishes into a climate state attribute HA translates (preset_mode, hvac/fan/swing modes) is either an HA-standard constant or translated in every shipped language and iconed under the entity's translation_key.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/climate_presets.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/climate_presets.py --perturb translate",
+    "value": 0,
+    "note": "the same measurement with the translation tables present reads 0, so the count is the missing tables, not the harness"
+   },
+   "reproduction_steps": [
+    "cd export root",
+    "run the command",
+    "read RESULT untranslated_presets_en / _sv / uniconed_presets"
+   ],
+   "proposed_fix_scope": "Give HeatPumpOptimizerClimate a translation_key (keeping _attr_name None) and add entity.climate.<key>.state_attributes.preset_mode.state for auto/economy (or all four) in strings.json, translations/en.json, translations/sv.json and icons.json; or map economy to HA's eco. Update quality_scale.yaml rows entity-translations/icon-translations accordingly.",
+   "files": [
+    "custom_components/heatpump_optimizer/climate.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json",
+    "custom_components/heatpump_optimizer/icons.json",
+    "custom_components/heatpump_optimizer/quality_scale.yaml"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I5",
+   "seat": "D10-s2"
+  },
+  {
+   "id": "D12-s1-01",
+   "scope": "D12-s1",
+   "step": "D12.M2",
+   "title": "Hot water without a tank probe: every solve starts from the 55 C ThermalState default, never advanced",
+   "severity": "high",
+   "claim": "With hot water configured and dhw_temp_entity omitted (the config flow's default install), the coordinator hands the solver dhw_temperature = 55.0 C on every cycle. In a 24-cycle closed loop, 23 of 24 solves start more than 1 K away from the tank the integration's own model says it left, and the model-truth tank spends 6.25 h of the demand windows below dhw_min_temperature, against 0 h with the probe mapped.",
+   "mechanism": "coordinator._update_current_state writes _current_state.dhw_temperature only from an ok reading of CONF_DHW_TEMP_ENTITY (coordinator.py ~5431), and no other producer advances it. So _solve_snapshot deep-copies the ThermalState dataclass default of 55.0 into every solve, and the optimizer uses initial_state.dhw_temperature as the tank's initial temperature. The plan therefore always believes the tank was just charged, schedules little DHW, and the next cycle resets to 55 again. _dhw_probe_temperature already fences this constant away from the display and the learners, but the solver is not fenced. slab_temperature is the same seam when floor_return_temp_entity is omitted: it is seeded once to room+1 K and never advanced (1 distinct solver-initial value in 24 solves, against 23-24 with the probe).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s1/state_seed.py --hours 24",
+    "harness_path": "tools/audit/round9/D12/s1/state_seed.py",
+    "value": 23,
+    "unit": "solves (of 24) whose initial DHW temperature differs >1 K from the integration's own tank",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B6 cloud container, 4 CPU, 15 GiB, CPython 3.14.0rc2, numpy 2.4.6/OpenBLAS",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: two other D-seat harnesses and my own matrix.py running, load1 4-6; counts are contention-immune under the frozen clock",
+    "tolerance": "exact (\u00b11 cycle)",
+    "load1": 4.21,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._solve_snapshot",
+   "perturbation": {
+    "change": "map dhw_temp_entity (arm B of the same harness, the probe reporting the model-truth tank)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Count of hourly solves whose _solve_snapshot state.dhw_temperature differs >1 K from the model-truth tank advanced by simulate_dhw_step with each plan's executed first hour.",
+   "phenomenon_property": "A plant-state field whose probe is omitted must not be handed to the solver as a never-advanced constant (a dataclass default or a one-time seed). It must be propagated from the integration's own model between cycles, or marked unknown.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s1/state_seed.py  (reports distinct_init_values and mismatch per ThermalState field in FIELDS; add a field to FIELDS to enumerate more)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s1/state_seed.py --hours 24 --flat",
+    "value": "flat prices: A 23 mismatches, 6.5 window-h below min, 0.3 kWh executed; B 0, 0.0 h, 3.65 kWh",
+    "note": "The effect survives flat prices, so it is not a price artefact. The mapped-probe arm B is the null control in every run: 0 mismatches and 0 window-hours below min (time-varying prices: A 1.64 kWh, truth min 31.64 C; B 3.89 kWh, truth min 43.11 C)."
+   },
+   "leave_one_out": {
+    "cells": 5,
+    "min": 6.25,
+    "max": 6.75,
+    "drop_most_favourable": 6.5
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s1/state_seed.py --hours 24",
+    "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s1/state_seed.py --hours 24 --flat",
+    "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s1/state_seed.py --grid  (5 cells of tank litres x daily litres; A-B window-hours excess 6.25..6.75 h)"
+   ],
+   "proposed_fix_scope": "coordinator.py: when dhw_temp_entity (and likewise floor_return_temp_entity for slab_temperature) gives no ok reading, seed the next solve's state from the previous plan's trajectory at the elapsed step (open-loop propagation), instead of leaving the ThermalState default or the one-time seed in place.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "expected_golden_drift": [
+    "coordinator fixtures with DHW and no tank probe (coord_dhw, coord_all_features) if the published DHW plan changes"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P6",
+   "seat": "D12-s1"
+  },
+  {
+   "id": "D12-s1-02",
+   "scope": "D12-s1",
+   "step": "D12.M2",
+   "title": "Untouched Hot water / Hot water tank options page turns hot-water planning on for an install with no tank",
+   "severity": "high",
+   "claim": "On an entry without hot water (the one 'Finish setup now' creates), posting the Hot water page (top menu) or the Hot water tank page (advanced menu) back untouched stores dhw_windows or dhw_tank_volume. The DHW presence rule then enables DHW, and the next solve plans 9 DHW steps (3.16 kWh) for a tank the user never configured.",
+   "mechanism": "_ABSENT_IS_NOT_DEFAULT (config_flow.py ~2102) exempts CONF_DHW_WINDOWS and CONF_DHW_TANK_VOLUME from _omit_unstored_defaults, so an untouched post of their form defaults is stored. thermal_model._dhw_enabled_from_config treats either key's mere presence as 'hot water configured'. Whether hot water is configured is thus decided by two predicates: the flow's no-op-save rule and the model's presence rule. Visiting and saving an untouched page, the documented back-out path (async_update_options docstring), flips the plant.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s1/phantom_dhw.py",
+    "harness_path": "tools/audit/round9/D12/s1/phantom_dhw.py",
+    "value": 2,
+    "unit": "options pages whose untouched submit yields a plan with DHW power on a no-DHW install",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B6 cloud container, 4 CPU, 15 GiB, CPython 3.14.0rc2, numpy 2.4.6/OpenBLAS",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: other seats' harnesses running, load1 ~5; count is contention-immune",
+    "tolerance": "exact",
+    "load1": 5.33,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerOptionsFlow._save_or_menu (via _omit_unstored_defaults), measured on coordinator._optimization_result.dhw_power_schedule",
+   "perturbation": {
+    "change": "--fallback-dhw: put CONF_DHW_WINDOWS and CONF_DHW_TANK_VOLUME into config_flow._ABSENT_FALLBACKS at their form defaults (DEFAULT_DHW_WINDOWS, DEFAULT_DHW_TANK_VOLUME), so an untouched post counts as unchanged",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Count of option pages whose untouched submit over a no-DHW entry leads to a published plan with any dhw_power_schedule step > 0 after setup plus one coordinator cycle.",
+   "phenomenon_property": "An untouched submit of any configuration page must not change which plant components (DHW tank, zones, wood tank, valve layout, PV) the model runs. A page's own defaults posted back over an unconfigured component must leave that component unconfigured.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s1/flow_pages.py  (posts every one of the 21 option pages untouched over a no-plant entry and lists each derived plant flag the save moves; baseline: exactly hot_water and hot_water_tank, dhw False->True)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s1/phantom_dhw.py",
+    "value": "control_no_save: 0 DHW steps, 0 kWh",
+    "note": "The same install with no page submitted plans no DHW. Among the other 19 option pages (flow_pages.py), none changes any derived plant flag."
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s1/phantom_dhw.py",
+    "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s1/phantom_dhw.py --fallback-dhw",
+    "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s1/flow_pages.py"
+   ],
+   "proposed_fix_scope": "config_flow.py (and/or thermal_model._dhw_enabled_from_config): an untouched default post of dhw_windows/dhw_tank_volume over an entry without hot water must not be stored as presence, or DHW presence must be an explicit dhw_enabled answer written by the page. The wizard's dhw step (lead to D4-s2) has the same shape.",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "expected_golden_drift": [],
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "seat": "D12-s1"
+  },
+  {
+   "id": "D12-s2-01",
+   "scope": "D12-s2",
+   "step": "D12.M3",
+   "title": "On an on/off pump, the switch path switches off steps whose planned heat the plan books as delivered",
+   "severity": "medium",
+   "claim": "The solver treats a step below the modulation floor as duty cycling within the step (bounds [0,P_max], optimizer.py ~:3962). The switch path instead commands ON only at max(0.1, min_electrical_power*0.5) (HeatPumpOptimizer._power_to_heat_pump_schedule and get_current_action; pump_arbiter._on_kw uses the same threshold). On an on/off pump (min==max==6 kW, which config_flow._power_errors accepts) the threshold is 3 kW, so the plan's 1.0-1.4 kW trickle is switched OFF while the trajectory, cost and savings count that heat as delivered. On/off arm: 4/9 cells withhold more than 10% of planned energy. Shoulder withholds 0.671 (8.30 of 12.38 kWh over 30 steps), producing 30 end-to-end switch.turn_off calls on steps with planned heat. Modulating null arm: 0/9 cells (max 0.014) and 0 such calls. Shoulder open-loop consequence: min room 20.64 C planned vs 19.89 C actuated, 17.2 K*h below the plan's own trajectory, 0 K*h below min_temperature.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/onoff_switch.py",
+    "harness_path": "tools/audit/round9/D12/s2/onoff_switch.py",
+    "value": "onoff_failing_cells=4 (LOO 3) of 9; modulating_failing_cells=0; onoff_e2e_turn_off_with_planned_heat=30; shoulder withheld_frac=0.671",
+    "unit": "cells / steps / ratio",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B7 cloud container, Linux 6.18, 4 vCPU, numpy/OpenBLAS",
+    "cpu_or_wall": "neither (counts and ratios)",
+    "contention_note": "contention-immune counts; deterministic solves",
+    "tolerance": "failing cells +-1, e2e steps +-3, withheld_frac +-0.05",
+    "load1": "1.38",
+    "thread_factor": "1.000"
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer._power_to_heat_pump_schedule (with get_current_action and coordinator:HeatPumpOptimizerCoordinator._apply_action)",
+   "perturbation": {
+    "change": "--perturb: patch HeatPumpOptimizer._power_to_heat_pump_schedule in memory to a 0.1 kW on-threshold (its own floor) instead of min_electrical_power*0.5. Alternatively --min 1.0 (a modulating floor) on the on/off arm.",
+    "expected_direction": "down: onoff_failing_cells 4 -> 0, e2e turn_off-with-planned-heat 30 -> 0 (both measured)"
+   },
+   "metric_definition": "withheld_frac = planned space+DHW kWh in steps whose production heat_pump_on_schedule is False, divided by the plan's total planned kWh; a cell fails above 0.10; e2e counts switch.turn_off calls from _apply_action on steps with planned power > 0.1 kW",
+   "phenomenon_property": "Every seam that decides whether the pump runs a plan step must agree with the solver's reading of a sub-floor step as duty cycling. A step with planned heat must not be actuated OFF.",
+   "seam_rule": "grep -rn \"min_electrical_power.*\\* 0\\.5\\|_on_kw(\" custom_components/heatpump_optimizer/*.py  (optimizer.py:6962, :7024; pump_arbiter.py:354, :357, :491)",
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "proposed_fix_scope": "Make the on/off decision consistent with the plan for sub-floor steps. Either the threshold stops withholding planned heat (ON when a step carries planned heat, letting the pump's own thermostat duty-cycle), or the solver is constrained to bang-bang or the floor when min==max. The seams listed by the rule change together.",
+   "provisional": false,
+   "seat": "D12-s2"
+  },
+  {
+   "id": "D12-s2-02",
+   "scope": "D12-s2",
+   "step": "D12.M3",
+   "title": "The pump-duty arbiter writes the operating mode with select.select_option whatever domain the mode slot holds",
+   "severity": "medium",
+   "claim": "topology.ASSIGNABLE_KEYS['heat_pump_mode_entity'] accepts select, sensor and input_select, and config_flow has no check tying pump_duty_mode=control to a writable domain. pump_arbiter._write still hard-codes ('select','select_option'), the defect #1526 fixed for the switch slot via coordinator._on_off_service. Under control with an input_select mode slot, 5 of 5 mode writes are routed to a domain with no such entity. The mode is wrong on all 9 arbitration ticks, and the pump_write_ignored repair tells the user the pump does not hold a write that never reached it, retried every 5 min. A sensor (enum) slot fails the same way. Null control, a select slot: 0 misrouted, 0 wrong ticks, no repair.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/mode_domain.py",
+    "harness_path": "tools/audit/round9/D12/s2/mode_domain.py",
+    "value": "input_select_misrouted_mode_writes=5, input_select_ticks_mode_wrong=9, input_select_repair_raised=1; select: 0/0/0; sensor: 5/9/1; failing_mode_domains=2",
+    "unit": "calls / ticks / flag / cells",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B7 cloud container, Linux 6.18, 4 vCPU",
+    "cpu_or_wall": "neither (counts)",
+    "contention_note": "contention-immune counts",
+    "tolerance": "misrouted +-1; ticks exact",
+    "load1": "1.14",
+    "thread_factor": "1.000"
+   },
+   "instrumented_symbol": "heatpump_optimizer.pump_arbiter:_write (driven by pump_arbiter.apply on a real HeatPumpOptimizerCoordinator)",
+   "perturbation": {
+    "change": "--perturb: a one-line in-memory edit of pump_arbiter._write so the service domain literal \"select\" becomes entity.split(\".\", 1)[0], routing by the target's own domain.",
+    "expected_direction": "down: input_select misrouted 5 -> 0, ticks_mode_wrong 9 -> 0, repair 1 -> 0 (measured). The sensor cell keeps 9 wrong ticks, which is the read-only half of the property."
+   },
+   "metric_definition": "misrouted_mode_writes = mode-slot service calls from pump_arbiter.apply whose service domain differs from the target entity's domain, over 9 ticks 7 min apart on a space/space/DHW/space plan, with HA entity-service routing modelled explicitly (select.select_option acts only on select.*, input_select.select_option only on input_select.*, and there is no sensor.select_option)",
+   "phenomenon_property": "Every write to a user-assignable slot routes by the assigned entity's own domain. A slot assigned a read-only domain is never written under control; it is refused or declared unavailable rather than retried with a repair.",
+   "seam_rule": "grep -n 'async_call(' -A2 custom_components/heatpump_optimizer/{pump_arbiter,coordinator,repairs}.py, cross-checked against topology.ASSIGNABLE_KEYS and the config_flow _entity_of([...]) domains of each written slot",
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/topology.py",
+    "custom_components/heatpump_optimizer/config_flow.py"
+   ],
+   "proposed_fix_scope": "pump_arbiter._write routes select_option by the target's domain (select or input_select). Control does not write a sensor mode slot: it skips it or the config flow refuses control with a read-only slot.",
+   "provisional": false,
+   "seat": "D12-s2"
+  },
+  {
+   "id": "D12-s2-03",
+   "scope": "D12-s2",
+   "step": "D12.M3",
+   "title": "On an on/off pump every full-power step publishes as 'eco' and power_normalized runs to -60",
+   "severity": "medium",
+   "claim": "get_current_action computes p_norm = (P - min)/max(max - min, 0.1). When min==max the 0.1 kW divisor floor turns a degenerate range into a x10 scale. A full-power 6 kW step gets p_norm 0, so HeatPumpActionSensor.native_value is 'eco' rather than 'boost', and idle steps publish power_normalized = -60. On/off arm: 149 full-power steps mislabelled across 7/9 cells (range 0-31, LOO 118); power_normalized minimum -60.0. Modulating null arm: 0 mislabelled; minimum -0.2, which is the same formula on every install and goes as a lead. The climate hvac_action is unaffected because it also reads heat_pump_on.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/onoff_label.py",
+    "harness_path": "tools/audit/round9/D12/s2/onoff_label.py",
+    "value": "onoff_full_power_mislabelled=149 (LOO 118, 7/9 cells); modulating_full_power_mislabelled=0; onoff_power_normalized_min=-60.0",
+    "unit": "steps / ratio",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B7 cloud container, Linux 6.18, 4 vCPU, numpy/OpenBLAS",
+    "cpu_or_wall": "neither (counts)",
+    "contention_note": "contention-immune counts; deterministic solves",
+    "tolerance": "+-10% on the step count",
+    "load1": "1.30",
+    "thread_factor": "1.000"
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action (read through heatpump_optimizer.sensor:HeatPumpActionSensor.native_value / extra_state_attributes)",
+   "perturbation": {
+    "change": "--min 5.0: the on/off arm's min_electrical_power becomes 5.0 kW (a 1 kW modulation range). One-line production alternative: guard p_range==0 in get_current_action instead of max(p_range, 0.1).",
+    "expected_direction": "down: onoff_full_power_mislabelled 149 -> 0 and power_normalized minimum -60 -> -5 (measured)"
+   },
+   "metric_definition": "full_power_mislabelled = plan steps with planned space power >= 0.99*max_electrical_power whose published HeatPumpActionSensor state is not 'boost', summed over 9 golden cells",
+   "phenomenon_property": "The published action band and power_normalized stay in [0,1] and rank a full-power step at the top on every compressor kind, including min==max.",
+   "seam_rule": "grep -n \"p_range\\|p_norm\" custom_components/heatpump_optimizer/optimizer.py",
+   "stop_rule_class": "bug",
+   "class_guess": "P3",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "proposed_fix_scope": "get_current_action handles a zero modulation range (an on/off pump is either off or at 1.0) and clamps power_normalized to [0,1].",
+   "provisional": false,
+   "seat": "D12-s2"
+  },
+  {
+   "id": "D12-s3-01",
+   "scope": "D12-s3",
+   "step": "D12.M4",
+   "title": "Full config-flow wizard invents a DHW tank and a second zone the user never affirmed",
+   "severity": "medium",
+   "claim": "Of the 6 completion paths of the shipping initial config flow, submitted untouched, the 2 full-wizard ('Continue setup') paths create entries whose first coordinator cycle models a 200 L DHW tank. The 'Enter thermal values directly' path also runs the two-zone model. No answer on either path said the house has hot water or two zones; the quick-setup paths answered 'no' produce neither.",
+   "mechanism": "The presence rules thermal_model._dhw_enabled_from_config (tank volume, thermometer or windows present) and the two-zone 'auto' rule in ThermalParameters.from_config (any zone key present) meet forms that always submit those keys. async_step_dhw offers no 'no hot water' answer and pre-fills dhw_tank_volume=200 and dhw_windows. async_step_zones, whose docstring calls it an 'optional step', pre-fills four zone keys. Only quick_setup.derive writes the explicit dhw_enabled / two_zone_mode flags. On the thermal path the plan covers 26.45 kWh against 22.24 kWh for the stated plant, with predicted_cost 19.289 against 11.796, in the same cycle.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/flow_paths.py",
+    "harness_path": "tools/audit/round9/D12/s3/flow_paths.py",
+    "value": 2,
+    "unit": "flow completion paths publishing unaffirmed plant (of 6)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B7, linux cloud container",
+    "cpu_or_wall": "count",
+    "contention_note": "up to 4 usable.py grid shards ran on the box during some re-runs; the count is deterministic",
+    "tolerance": "exact",
+    "load1": 2.7,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerConfigFlow (async_step_dhw, async_step_zones); heatpump_optimizer.thermal_model:_dhw_enabled_from_config and ThermalParameters.from_config; heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data",
+   "perturbation": {
+    "change": "--perturb explicit_presence: _dhw_enabled_from_config honours only an explicit dhw_enabled, and from_config defaults two_zone_mode to off (the one-line shape of the fix for both rules)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Initial-flow completion paths (DFS over menus, forms untouched, quick-setup plant answers 'no') whose entry's first _async_update_data publishes dhw_enabled with a dhw_plan tank trajectory, or two_zone_enabled, with no affirming answer.",
+   "phenomenon_property": "A plant (DHW tank, second zone) is modelled only when an answer on the user's own setup path affirmed it. No form default and no key presence alone may turn one on.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/flow_paths.py --answers no (enumerates every menu-completion path of the initial flow; each path is a seam)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/flow_paths.py",
+    "value": 0,
+    "note": "The 4 quick-setup paths through the same pages (including the same dhw and zones steps after quick setup) invent 0, because the explicit flags win. With --answers shipped (DHW 'yes') the 2 wizard paths are still counted."
+   },
+   "reproduction_steps": [
+    "cd /home/claude/audit-r9-baseline",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/flow_paths.py  -> invented_paths=2",
+    "... --perturb explicit_presence -> invented_paths=0"
+   ],
+   "proposed_fix_scope": "config_flow.py async_step_dhw and async_step_zones: ask 'has DHW' and 'two zones', or write explicit dhw_enabled / two_zone_mode from the answers the way quick_setup.derive does, so that untouched defaults no longer act as presence. Update tests/entities.py's pinned 'turns hot water on anyway' check.",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/quick_setup.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "provisional": false,
+   "seat": "D12-s3"
+  }
+ ]
+}
