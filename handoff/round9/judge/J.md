@@ -13,8 +13,8 @@ Read CLAUDE.md, every file in .claude/rules/, tools/audit/briefs/judge.md (your 
 - Model routing: the mechanical re-runs belong to the two haiku runner threads (R1, R2), not to you. Re-run by hand only what is disputed, void, by-hand or out of tolerance.
 
 ## Inputs (all on GitHub, repo tvofi/heatpump_optimizer)
-- Findings and evidence are on `handoff/audit-r9-evidence` (baseline 1936d5ca, v6.7.1), at `tools/audit/round9/`. Group files are at `verify/G<n>-findings.json`, `G<n>-leads.json` and `G1-catchup.json`.
-- The register is `handoff/audit-r9-register`, in the Round 9 section of `docs/audit-2026-09.md`. It holds 149 findings, of which 20 were "format normalised at intake" by tvofi's decision at 13:02Z. The normalised bodies are at /mnt/project-files/audit-r9/intake/normalised.json.
+- Findings and evidence are on `handoff/audit-r9-evidence` (baseline 1936d5ca, v6.7.1), at `tools/audit/round9/`. Group files are at `verify/G<n>-findings.json`, `G<n>-leads.json`, `G1-catchup.json` and `G1-lc.json` (the 2 LC findings, @79aa98ec).
+- The register is `handoff/audit-r9-register`, in the Round 9 section of `docs/audit-2026-09.md`. It holds 156 findings from 42 seats (at @089d3470). 22 of them were "format normalised at intake" by tvofi's decision at 13:02Z: the 20 re-admitted, plus the 2 LC titles. The normalised bodies are at /mnt/project-files/audit-r9/intake/normalised.json.
 - Panel is at /mnt/project-files/audit-r9/judge/PANEL.json. The orchestrator computes it from the 12 votes files using audit-verify.js's panel rules. It lists `killed` (two or more refutes, each with an executed number), `disputed` (one refute) and `survived`, with every vote's severity and class suggestion.
 - The verifier reports are on the branches `handoff/audit-r9-verify-g<1-4>-v<1-3>`, at `tools/audit/round9/<dim>/verify-v<k>*.md`.
 - The pre-dedup candidates are at /mnt/project-files/audit-r9/intake/predup.json and predup.md. They are candidates, not merges.
