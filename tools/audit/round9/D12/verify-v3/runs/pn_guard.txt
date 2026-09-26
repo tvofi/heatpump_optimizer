@@ -1,0 +1,13 @@
+ARM modulating min=1.0 max=6.0
+  full-power step: {'get_current_action': 1.0, '_action_label': None, '_power_to_setpoints': 1.0, '_power_to_displace_schedule_raw': 3.3, '_zone_setpoints': 1.0}
+  idle step:       {'get_current_action': -0.2, '_action_label': None, '_power_to_setpoints': 0.0, '_power_to_displace_schedule_raw': -3.3, '_zone_setpoints': 0.0}
+RESULT modulating_full_power_bottomed=0 seams
+RESULT modulating_idle_power_normalized=-0.2 ratio
+ARM onoff min=5.0 max=6.0
+  full-power step: {'get_current_action': 1.0, '_action_label': None, '_power_to_setpoints': 1.0, '_power_to_displace_schedule_raw': 3.3, '_zone_setpoints': 1.0}
+  idle step:       {'get_current_action': -5.0, '_action_label': None, '_power_to_setpoints': 0.0, '_power_to_displace_schedule_raw': -3.3, '_zone_setpoints': 0.0}
+RESULT onoff_full_power_bottomed=0 seams
+RESULT onoff_idle_power_normalized=-5.0 ratio
+RESULT thread_factor=1.001
+RESULT load1=1.77
+RESULT swapins=0

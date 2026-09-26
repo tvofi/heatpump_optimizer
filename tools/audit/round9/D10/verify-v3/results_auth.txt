@@ -1,0 +1,29 @@
+# D10 verify-v3 recorded runs (G2-V3 box, HA core 2026.2.3, CPython 3.14.0rc2), 2026-09-26
+## realha_auth.py (baseline)
+arm=setup_401         state_after_setup=SETUP_RETRY retry_armed=True state_after_40s=SETUP_RETRY reason='Tibber refused the token (HTTP 401); reauthentication started' reauth_flows=1 tibber_posts_first=1 tibber_posts_40s=4
+arm=setup_403         state_after_setup=SETUP_RETRY retry_armed=True state_after_40s=SETUP_RETRY reason='Tibber refused the token (HTTP 403); reauthentication started' reauth_flows=1 tibber_posts_first=1 tibber_posts_40s=4
+arm=setup_500         state_after_setup=SETUP_RETRY retry_armed=True state_after_40s=SETUP_RETRY reason='Tibber API error: 500' reauth_flows=0 tibber_posts_first=1 tibber_posts_40s=4
+arm=setup_conn_error  state_after_setup=SETUP_RETRY retry_armed=True state_after_40s=SETUP_RETRY reason='Unexpected error fetching prices: unreachable' reauth_flows=0 tibber_posts_first=1 tibber_posts_40s=4
+arm=steady_401        last_update_success=False next_poll_scheduled=True listeners=True reauth_flows=1 last_exception=UpdateFailed
+MODE baseline  ha_version=2026.2.3
+RESULT auth_as_transient=3 arms
+RESULT transient_ok=2 arms
+RESULT revoked_posts=8 posts (2 setup-auth arms, 40 s window each)
+RESULT arms=5 count
+RESULT thread_factor=1.069
+RESULT load1=1.19
+RESULT swapins=0
+## realha_auth.py --fix
+arm=setup_401         state_after_setup=SETUP_ERROR retry_armed=False state_after_40s=SETUP_ERROR reason='Tibber refused the token (HTTP 401); reauthentication started' reauth_flows=1 tibber_posts_first=1 tibber_posts_40s=1
+arm=setup_403         state_after_setup=SETUP_ERROR retry_armed=False state_after_40s=SETUP_ERROR reason='Tibber refused the token (HTTP 403); reauthentication started' reauth_flows=1 tibber_posts_first=1 tibber_posts_40s=1
+arm=setup_500         state_after_setup=SETUP_RETRY retry_armed=True state_after_40s=SETUP_RETRY reason='Tibber API error: 500' reauth_flows=0 tibber_posts_first=1 tibber_posts_40s=4
+arm=setup_conn_error  state_after_setup=SETUP_RETRY retry_armed=True state_after_40s=SETUP_RETRY reason='Unexpected error fetching prices: unreachable' reauth_flows=0 tibber_posts_first=1 tibber_posts_40s=4
+arm=steady_401        last_update_success=False next_poll_scheduled=False listeners=True reauth_flows=1 last_exception=ConfigEntryAuthFailed
+MODE fix  ha_version=2026.2.3
+RESULT auth_as_transient=0 arms
+RESULT transient_ok=2 arms
+RESULT revoked_posts=2 posts (2 setup-auth arms, 40 s window each)
+RESULT arms=5 count
+RESULT thread_factor=1.059
+RESULT load1=0.84
+RESULT swapins=0

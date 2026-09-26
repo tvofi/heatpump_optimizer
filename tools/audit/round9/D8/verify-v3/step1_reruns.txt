@@ -1,0 +1,180 @@
+# step-1 re-runs of the finders' harnesses, G2-V3 box, baseline 1936d5ca (+ evidence 6f51db2c)
+## s1/matrix.py (full, 19m33s wall)
+RESULT cycle_raises=0 count
+RESULT property_raises=0 count
+RESULT not_serialisable=0 count
+RESULT nonfinite=0 count
+RESULT measurement_nonnumeric=0 count
+RESULT timestamp_not_aware=0 count
+RESULT enum_not_option=0 count
+RESULT unit_vs_device_class=0 count
+RESULT available_unknown=156 count
+RESULT action_off_while_on=0 count
+RESULT action_running_while_off=0 count
+RESULT power_disagrees=0 count
+RESULT power_while_off=2 count
+RESULT dhw_periods_vs_slots=92 count
+RESULT thread_factor=1.000
+RESULT load1=1.87
+RESULT swapins=0
+## s2/matrix.py
+RESULT climate_unavailable_with_payload=5 count
+RESULT climate_attrs_hidden=112 count
+RESULT hvac_action_vs_plan=14 count
+RESULT mode_split_after_action=2 count
+RESULT orjson_or_nonfinite=0 count
+RESULT enum_out_of_list=0 count
+RESULT stale_attr=0 count
+RESULT button_unavailable_idle=0 count
+RESULT switch_is_on_not_bool=0 count
+RESULT cells=10 count
+RESULT hvac_action_steps_vs_plan=0 count
+RESULT plan_steps_checked=96 count
+RESULT plan_steps_dhw_only=6 count
+RESULT thread_factor=1.000
+RESULT load1=3.38
+RESULT swapins=0
+## s2/matrix.py perturbations
+[available] RESULT climate_unavailable_with_payload=0 count
+[available] RESULT climate_attrs_hidden=0 count
+[available] RESULT hvac_action_vs_plan=14 count
+[available] RESULT mode_split_after_action=2 count
+[available] RESULT thread_factor=1.000
+[available] RESULT load1=1.17
+[hvac-action] RESULT climate_unavailable_with_payload=5 count
+[hvac-action] RESULT climate_attrs_hidden=112 count
+[hvac-action] RESULT hvac_action_vs_plan=0 count
+[hvac-action] RESULT mode_split_after_action=2 count
+[hvac-action] RESULT thread_factor=1.000
+[hvac-action] RESULT load1=1.46
+[live-mode] RESULT climate_unavailable_with_payload=5 count
+[live-mode] RESULT climate_attrs_hidden=112 count
+[live-mode] RESULT hvac_action_vs_plan=14 count
+[live-mode] RESULT mode_split_after_action=0 count
+[live-mode] RESULT thread_factor=1.000
+[live-mode] RESULT load1=1.29
+## s1/price15.py 
+RESULT wrong_quarters=95 count (of 96)
+RESULT worst_abs_error=0.3000 SEK/kWh
+RESULT thread_factor=1.000
+RESULT load1=0.75
+RESULT swapins=0
+## s1/price15.py --hourly
+RESULT wrong_quarters=0 count (of 96)
+RESULT worst_abs_error=0.0000 SEK/kWh
+RESULT thread_factor=1.000
+RESULT load1=0.85
+RESULT swapins=0
+## s1/price15.py --fix
+RESULT wrong_quarters=0 count (of 96)
+RESULT worst_abs_error=0.0000 SEK/kWh
+RESULT thread_factor=1.000
+RESULT load1=0.85
+RESULT swapins=0
+## s1/price15.py --cycle
+RESULT wrong_quarters=95 count (of 96)
+RESULT worst_abs_error=0.3000 SEK/kWh
+RESULT cycle_sensor_minus_plan=0.0800 SEK/kWh
+RESULT thread_factor=1.000
+RESULT load1=0.85
+RESULT swapins=0
+## s1/minpower.py 
+RESULT power_while_off_min0_2=0 count (steps, 5 cells)
+RESULT power_while_off_min1_0=4 count (steps, 5 cells)
+RESULT worst_published_kw_while_off=0.41 kW
+RESULT thread_factor=1.000
+RESULT load1=1.25
+## s1/minpower.py --perturb
+RESULT power_while_off_min0_2=0 count (steps, 5 cells)
+RESULT power_while_off_min1_0=0 count (steps, 5 cells)
+RESULT worst_published_kw_while_off=0.00 kW
+RESULT thread_factor=1.000
+RESULT load1=1.16
+## s1/matrix.py --only +dhw [--perturb-dhw-runs]: 12 -> 0 (load1 0.73/0.86, thread_factor 1.000)
+## s3/m3_families.py 
+RESULT families_split_entity_id=2 count
+RESULT families_split_unexplained_entity_id=1 count
+RESULT families_split_name_en=3 count
+RESULT families_split_unexplained_name_en=2 count
+RESULT families_split_name_sv=3 count
+RESULT families_split_unexplained_name_sv=2 count
+RESULT thread_factor=1.000
+RESULT load1=1.16
+## s3/m3_families.py --perturb
+RESULT families_split_entity_id=2 count
+RESULT families_split_unexplained_entity_id=1 count
+RESULT families_split_name_en=2 count
+RESULT families_split_unexplained_name_en=1 count
+RESULT families_split_name_sv=2 count
+RESULT families_split_unexplained_name_sv=1 count
+RESULT thread_factor=1.000
+RESULT load1=1.16
+## s3/m3_translation.py 
+RESULT names_checked=74 count
+RESULT concept_mismatch=1 count
+RESULT concept_mismatch_other_tokens=0 count
+RESULT thread_factor=1.000
+RESULT load1=1.16
+## s3/m3_translation.py --perturb
+RESULT names_checked=74 count
+RESULT concept_mismatch=0 count
+RESULT concept_mismatch_other_tokens=0 count
+RESULT thread_factor=1.000
+RESULT load1=1.16
+## s3/m4_duplicates.py 
+RESULT duplicate_enabled_pairs=1 count
+RESULT duplicate_pairs_any_default=1 count
+RESULT thread_factor=1.000
+RESULT load1=1.23
+## s3/m4_duplicates.py --perturb
+RESULT duplicate_enabled_pairs=0 count
+RESULT duplicate_pairs_any_default=1 count
+RESULT thread_factor=1.000
+RESULT load1=1.23
+## own harnesses
+[real_ha_probe] INFO homeassistant 2026.2.3 from /home/claude/havenv/lib/python3.14/site-packages/homeassistant
+[real_ha_probe] INFO entity rows parsed=96 (15-minute rows kept, not resampled)
+[real_ha_probe] INFO tibber quarter query asks QUARTER_HOURLY: True
+[real_ha_probe] RESULT s1_01_wrong_quarters=95 count (of 96)
+[real_ha_probe] INFO s2-03 climate.set_hvac_mode{'hvac_mode': 'off'}: immediate write ('off', <HVACAction.HEATING: 'heating'>) split=True; consistent after 1.01 s
+[real_ha_probe] INFO s2-03 climate.set_hvac_mode{'hvac_mode': 'auto'}: immediate write ('auto', <HVACAction.OFF: 'off'>) split=True; consistent after 10.92 s
+[real_ha_probe] INFO s2-03 switch.turn_off{}: immediate write ('off', 'auto') split=True; consistent after 10.88 s
+[real_ha_probe] INFO s2-03 switch.turn_on{}: immediate write ('on', 'off') split=True; consistent after 10.92 s
+[real_ha_probe] RESULT s2_01_state=unavailable state
+[real_ha_probe] RESULT s2_01_attr_count=6 count
+[real_ha_probe] RESULT s2_01_calls_reaching=0 count (of 3)
+[real_ha_probe] RESULT s2_02_hvac_action=off state (climate state off)
+[real_ha_probe] RESULT s2_03_split_writes=4 count (of 4)
+[real_ha_probe] RESULT s2_03_windows=[1.01, 10.92, 10.88, 10.92] s (fake refresh delay 1.0 s)
+[real_ha_probe] RESULT thread_factor=1.013
+[real_ha_probe] RESULT load1=1.41
+[real_ha_probe] RESULT swapins=0
+[real_ha_probe --perturb] RESULT s1_01_wrong_quarters=0 count (of 96)
+[real_ha_probe --perturb] RESULT s2_01_state=auto state
+[real_ha_probe --perturb] RESULT s2_01_attr_count=34 count
+[real_ha_probe --perturb] RESULT s2_01_calls_reaching=3 count (of 3)
+[real_ha_probe --perturb] RESULT s2_02_hvac_action=heating state (climate state off)
+[real_ha_probe --perturb] RESULT s2_03_split_writes=0 count (of 4)
+[real_ha_probe --perturb] RESULT s2_03_windows=[0.0, 0.0, 0.0, 0.0] s (fake refresh delay 1.0 s)
+[real_ha_probe --perturb] RESULT thread_factor=1.075
+[real_ha_probe --perturb] RESULT load1=1.46
+[real_ha_probe --perturb] RESULT swapins=0
+[own_stub] INFO s1-02 coord_dhw: schedule='9 heating periods' slot_count=5
+[own_stub] INFO s1-02 coord_all_features: schedule='9 heating periods' slot_count=5
+[own_stub] RESULT s1_02_cells_differ=2 count (of 2 DHW cells)
+[own_stub] RESULT s1_02_worst_ratio=1.8 ratio (published periods / slots)
+[own_stub] RESULT s1_03_entity_steps=23 count (of 480 steps)
+[own_stub] RESULT s1_03_internal_steps=23 count (of 480 steps)
+[own_stub] RESULT s1_03_worst_kw=0.46 kW
+[own_stub] RESULT s3_03_dup_enabled=5 count (of 5 topologies)
+[own_stub] RESULT s2_03_refresh_cpu_off=0.005 s (x86 container, not a Pi)
+[own_stub] RESULT s2_03_refresh_cpu_auto=0.008 s (x86 container, not a Pi)
+[own_stub] INFO s3-01 en accuracy: members in buckets ['control', 'diagnostic'] -- never adjacent on the device page
+[own_stub] INFO s3-01 sv accuracy: members in buckets ['control', 'diagnostic'] -- never adjacent on the device page
+[own_stub] RESULT s3_01_device_page_split=2 count (families x 2 languages)
+[own_stub] RESULT s3_01_cross_bucket=2 count (families x 2 languages)
+[own_stub] INFO s3-02 sensor.sensor_gap_advisor: en='Sensor-Gap Advisor' sv='Sensorlucka i valutan'
+[own_stub] RESULT s3_02_currency_asym=1 count
+[own_stub] RESULT thread_factor=1.000
+[own_stub] RESULT load1=1.67
+[own_stub] RESULT swapins=0

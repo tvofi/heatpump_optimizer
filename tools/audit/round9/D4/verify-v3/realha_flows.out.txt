@@ -1,0 +1,67 @@
+# homeassistant 2026.2.3 from /home/claude/havenv/lib/python3.14/site-packages/homeassistant/__init__.py
+We found a custom integration heatpump_optimizer which has not been tested by Home Assistant. This component might cause stability problems, be sure to disable it if you experience issues with Home Assistant
+# after user_sensors: menu/finish_setup menu={'quick_setup': 'Quick setup (recommended)', 'temperature': 'Continue setup', 'finish_now': 'Finish setup now'}
+# quick_setup submit -> form/device_prefill
+RESULT quick_path_reaches_device_prefill_real=1 count
+# device pick page fields=['prefill_device']
+# preview form/device_prefill fields=['dhw_legionella_temperature', 'dhw_min_temperature', 'outdoor_temp_entity', 'compressor_freq_sensor', 'after_save'] errors={}
+#   en real-loader unlabelled: ['dhw_legionella_temperature', 'dhw_min_temperature', 'compressor_freq_sensor']
+RESULT prefill_unlabelled_real_en=3 count
+#   sv real-loader unlabelled: ['dhw_legionella_temperature', 'dhw_min_temperature', 'compressor_freq_sensor']
+RESULT prefill_unlabelled_real_sv=3 count
+# after preview submit: menu/finish_setup menu={'quick_setup': 'Quick setup (recommended)', 'temperature': 'Continue setup', 'finish_now': 'Finish setup now'}
+RESULT menu_identical_after_quick_real=1 count
+# unreadable device -> device_prefill errors={'base': 'prefill_device_unreadable'}
+RESULT prefill_error_untranslated_real_en=1 count
+RESULT prefill_error_untranslated_real_sv=1 count
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+# thermal: temperature -> building -> thermal -> zones -> dhw -> weather_sensitivity -> setup_overview -> create_entry
+RESULT two_zone_expert_real=1 count
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+# building_describe: temperature -> building -> building_describe -> building_extras -> dhw -> weather_sensitivity -> setup_overview -> create_entry
+RESULT two_zone_describe_real=0 count
+RESULT two_zone_quick_setup_real=0 count
+RESULT two_zone_finish_now_real=0 count
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+RESULT two_zone_expert_cleared_fields_real=1 count
+RESULT escaped_seq_config_en_real=1 count
+RESULT escaped_seq_config_sv_real=9 count
+RESULT escaped_seq_options_en_real=1 count
+RESULT escaped_seq_options_sv_real=9 count
+RESULT escaped_leaves_all_real_loader=4 count
+# real icon loader services=None entity-block-present=True
+RESULT services_yaml_names=12 count
+RESULT services_without_icon_real=12 count
+RESULT zones_desc_has_placeholder_real_en=0 count
+RESULT thermal_model_desc_has_placeholder_real_en=1 count
+RESULT bare_unit_data_descriptions_real_en=9 count
+RESULT zones_desc_has_placeholder_real_sv=0 count
+RESULT thermal_model_desc_has_placeholder_real_sv=1 count
+RESULT bare_unit_data_descriptions_real_sv=9 count
+#   money tuning.compressor_replacement_cost: EUR
+#   money building.wood_price_sek_m3: SEK/m³  <-- foreign
+#   money grid_fees.grid_fee_fixed: EUR/kWh
+#   money grid_fees.contract_fixed_price: EUR/kWh
+RESULT options_money_fields_real=4 count
+RESULT options_foreign_currency_units_real=1 count
+#   en thermal_model: derived=4 placeholder_returned=True shown=True
+RESULT derived_warned_thermal_model_real_en=4 count
+#   en thermal_model_zones: derived=6 placeholder_returned=True shown=False
+RESULT derived_unwarned_thermal_model_zones_real_en=6 count
+#   sv thermal_model: derived=4 placeholder_returned=True shown=True
+RESULT derived_warned_thermal_model_real_sv=4 count
+#   sv thermal_model_zones: derived=6 placeholder_returned=True shown=False
+RESULT derived_unwarned_thermal_model_zones_real_sv=6 count
+#   off-grid on the wire: thermal.slab_thermal_mass mode=box default=5.0 min=0.1 step=0.5
+#   off-grid on the wire: thermal.slab_heat_transfer mode=box default=0.8 min=0.02 step=0.1
+#   off-grid on the wire: zones.upper_floor_thermal_mass mode=box default=3.0 min=0.25 step=0.5
+#   off-grid on the wire: zones.lower_floor_thermal_mass mode=box default=8.0 min=0.25 step=0.5
+#   off-grid on the wire: zones.upper_floor_heat_loss mode=box default=0.08 min=0.001 step=0.01
+#   off-grid on the wire: zones.lower_floor_heat_loss mode=box default=0.07 min=0.001 step=0.01
+#   off-grid on the wire: zones.inter_zone_heat_transfer mode=box default=0.5 min=0.01 step=0.1
+#   off-grid on the wire: zones.window_area mode=box default=10.0 min=0.01 step=0.5
+RESULT wire_offgrid_defaults_config_thermal_zones=8 count
+RESULT wire_offgrid_defaults_box_mode=8 count
+RESULT thread_factor=1.077
+RESULT load1=1.35
+RESULT swapins=0

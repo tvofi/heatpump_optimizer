@@ -1,0 +1,307 @@
+### state_seed --hours 24
+ARM A_omitted {'solves': 24, 'mismatch': {'dhw': 23, 'slab': 5}, 'distinct_init': {'dhw': 1, 'slab': 1}, 'window_hours_below_min': 6.25, 'dhw_kwh': 1.64, 'truth_min': 31.64}
+RESULT A_omitted_solves=24 count
+RESULT A_omitted_dhw_init_mismatch_gt1K=23 count
+RESULT A_omitted_dhw_distinct_init_values=1 count
+RESULT A_omitted_slab_init_mismatch_gt1K=5 count
+RESULT A_omitted_slab_distinct_init_values=1 count
+RESULT A_omitted_dhw_window_hours_below_min=6.25 h
+RESULT A_omitted_dhw_kwh_executed=1.64 kWh
+RESULT A_omitted_dhw_truth_min=31.64 C
+ARM B_mapped {'solves': 24, 'mismatch': {'dhw': 0, 'slab': 0}, 'distinct_init': {'dhw': 23, 'slab': 23}, 'window_hours_below_min': 0.0, 'dhw_kwh': 3.89, 'truth_min': 43.11}
+RESULT B_mapped_solves=24 count
+RESULT B_mapped_dhw_init_mismatch_gt1K=0 count
+RESULT B_mapped_dhw_distinct_init_values=23 count
+RESULT B_mapped_slab_init_mismatch_gt1K=0 count
+RESULT B_mapped_slab_distinct_init_values=23 count
+RESULT B_mapped_dhw_window_hours_below_min=0.0 h
+RESULT B_mapped_dhw_kwh_executed=3.89 kWh
+RESULT B_mapped_dhw_truth_min=43.11 C
+RESULT thread_factor=1.000
+RESULT load1=2.89
+RESULT swapins=0
+### state_seed --hours 24 --flat
+ARM A_omitted {'solves': 24, 'mismatch': {'dhw': 23, 'slab': 0}, 'distinct_init': {'dhw': 1, 'slab': 1}, 'window_hours_below_min': 6.5, 'dhw_kwh': 0.3, 'truth_min': 22.52}
+RESULT A_omitted_solves=24 count
+RESULT A_omitted_dhw_init_mismatch_gt1K=23 count
+RESULT A_omitted_dhw_distinct_init_values=1 count
+RESULT A_omitted_slab_init_mismatch_gt1K=0 count
+RESULT A_omitted_slab_distinct_init_values=1 count
+RESULT A_omitted_dhw_window_hours_below_min=6.5 h
+RESULT A_omitted_dhw_kwh_executed=0.3 kWh
+RESULT A_omitted_dhw_truth_min=22.52 C
+ARM B_mapped {'solves': 24, 'mismatch': {'dhw': 0, 'slab': 0}, 'distinct_init': {'dhw': 24, 'slab': 24}, 'window_hours_below_min': 0.0, 'dhw_kwh': 3.65, 'truth_min': 41.98}
+RESULT B_mapped_solves=24 count
+RESULT B_mapped_dhw_init_mismatch_gt1K=0 count
+RESULT B_mapped_dhw_distinct_init_values=24 count
+RESULT B_mapped_slab_init_mismatch_gt1K=0 count
+RESULT B_mapped_slab_distinct_init_values=24 count
+RESULT B_mapped_dhw_window_hours_below_min=0.0 h
+RESULT B_mapped_dhw_kwh_executed=3.65 kWh
+RESULT B_mapped_dhw_truth_min=41.98 C
+RESULT thread_factor=1.000
+RESULT load1=3.00
+RESULT swapins=0
+### phantom_dhw
+SEAM control_no_save: stored+=[] dhw_enabled=False dhw_steps=0 dhw_kwh=0
+RESULT control_no_save_dhw_plan_steps=0 count
+RESULT control_no_save_dhw_plan_kwh=0 kWh
+SEAM options_hot_water: stored+=['dhw_windows'] dhw_enabled=True dhw_steps=9 dhw_kwh=3.16
+RESULT options_hot_water_dhw_plan_steps=9 count
+RESULT options_hot_water_dhw_plan_kwh=3.16 kWh
+SEAM options_hot_water_tank: stored+=['dhw_tank_volume'] dhw_enabled=True dhw_steps=9 dhw_kwh=3.16
+RESULT options_hot_water_tank_dhw_plan_steps=9 count
+RESULT options_hot_water_tank_dhw_plan_kwh=3.16 kWh
+SEAM wizard_dhw_step: stored+=['dhw_cooling_rate', 'dhw_daily_consumption', 'dhw_idle_min_temperature', 'dhw_legionella_enabled', 'dhw_legionella_interval_days', 'dhw_legionella_temperature', 'dhw_min_temperature', 'dhw_schedule_enabled', 'dhw_setpoint', 'dhw_tank_volume', 'dhw_windows'] dhw_enabled=True dhw_steps=9 dhw_kwh=3.16
+RESULT wizard_dhw_step_dhw_plan_steps=9 count
+RESULT wizard_dhw_step_dhw_plan_kwh=3.16 kWh
+RESULT options_pages_inventing_dhw_plan=2 count
+RESULT thread_factor=1.000
+RESULT load1=0.79
+RESULT swapins=0
+### phantom_dhw --fallback-dhw
+SEAM control_no_save: stored+=[] dhw_enabled=False dhw_steps=0 dhw_kwh=0
+RESULT control_no_save_dhw_plan_steps=0 count
+RESULT control_no_save_dhw_plan_kwh=0 kWh
+SEAM options_hot_water: stored+=[] dhw_enabled=False dhw_steps=0 dhw_kwh=0
+RESULT options_hot_water_dhw_plan_steps=0 count
+RESULT options_hot_water_dhw_plan_kwh=0 kWh
+SEAM options_hot_water_tank: stored+=[] dhw_enabled=False dhw_steps=0 dhw_kwh=0
+RESULT options_hot_water_tank_dhw_plan_steps=0 count
+RESULT options_hot_water_tank_dhw_plan_kwh=0 kWh
+SEAM wizard_dhw_step: stored+=['dhw_cooling_rate', 'dhw_daily_consumption', 'dhw_idle_min_temperature', 'dhw_legionella_enabled', 'dhw_legionella_interval_days', 'dhw_legionella_temperature', 'dhw_min_temperature', 'dhw_schedule_enabled', 'dhw_setpoint', 'dhw_tank_volume', 'dhw_windows'] dhw_enabled=True dhw_steps=9 dhw_kwh=3.16
+RESULT wizard_dhw_step_dhw_plan_steps=9 count
+RESULT wizard_dhw_step_dhw_plan_kwh=3.16 kWh
+RESULT options_pages_inventing_dhw_plan=0 count
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0
+### flow_pages
+INVENTS hot_water: {'dhw': (False, True)}
+INVENTS hot_water_tank: {'dhw': (False, True)}
+RESULT option_pages=21 count
+RESULT pages_skipped=0 count
+RESULT pages_inventing_plant=2 count
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0
+### onoff_switch
+CELL arm=modulating cell=winter_single_dhw planned_kwh=41.17 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=modulating cell=winter_single_no_dhw planned_kwh=36.00 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=modulating cell=winter_two_zone_dhw planned_kwh=74.78 withheld_kwh=0.01 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=modulating cell=winter_two_zone_no_dhw planned_kwh=66.99 withheld_kwh=0.09 withheld_frac=0.001 off_steps_with_heat=2
+CELL arm=modulating cell=shoulder planned_kwh=12.37 withheld_kwh=0.01 withheld_frac=0.001 off_steps_with_heat=0
+CELL arm=modulating cell=shoulder_two_zone planned_kwh=14.39 withheld_kwh=0.21 withheld_frac=0.014 off_steps_with_heat=2
+CELL arm=modulating cell=summer_dhw_only planned_kwh=3.31 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=modulating cell=flat_prices planned_kwh=60.96 withheld_kwh=0.12 withheld_frac=0.002 off_steps_with_heat=1
+CELL arm=modulating cell=mild_windy_rain planned_kwh=31.71 withheld_kwh=0.10 withheld_frac=0.003 off_steps_with_heat=1
+RESULT modulating_failing_cells=0 cells
+RESULT modulating_cells=9 cells
+RESULT modulating_withheld_frac_mean=0.002 ratio
+RESULT modulating_withheld_frac_range=0.000..0.014 ratio
+RESULT modulating_withheld_frac_mean_loo=0.001 ratio
+RESULT modulating_failing_cells_loo=0 cells
+CELL arm=onoff cell=winter_single_dhw planned_kwh=42.20 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=onoff cell=winter_single_no_dhw planned_kwh=36.00 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=onoff cell=winter_two_zone_dhw planned_kwh=75.24 withheld_kwh=9.18 withheld_frac=0.122 off_steps_with_heat=22
+CELL arm=onoff cell=winter_two_zone_no_dhw planned_kwh=66.99 withheld_kwh=6.99 withheld_frac=0.104 off_steps_with_heat=21
+CELL arm=onoff cell=shoulder planned_kwh=12.38 withheld_kwh=8.30 withheld_frac=0.671 off_steps_with_heat=30
+CELL arm=onoff cell=shoulder_two_zone planned_kwh=14.55 withheld_kwh=4.31 withheld_frac=0.296 off_steps_with_heat=19
+CELL arm=onoff cell=summer_dhw_only planned_kwh=2.72 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=onoff cell=flat_prices planned_kwh=64.46 withheld_kwh=1.88 withheld_frac=0.029 off_steps_with_heat=7
+CELL arm=onoff cell=mild_windy_rain planned_kwh=31.86 withheld_kwh=0.01 withheld_frac=0.000 off_steps_with_heat=0
+RESULT onoff_failing_cells=4 cells
+RESULT onoff_cells=9 cells
+RESULT onoff_withheld_frac_mean=0.136 ratio
+RESULT onoff_withheld_frac_range=0.000..0.671 ratio
+RESULT onoff_withheld_frac_mean_loo=0.069 ratio
+RESULT onoff_failing_cells_loo=3 cells
+RESULT modulating_shoulder_min_room_planned=20.65 degC
+RESULT modulating_shoulder_min_room_actuated=20.65 degC
+RESULT modulating_shoulder_Kh_below_min_actuated=0.00 Kh
+RESULT modulating_shoulder_Kh_below_plan_actuated=0.01 Kh
+RESULT modulating_e2e_turn_off_with_planned_heat=0 steps
+RESULT modulating_e2e_turn_off_calls=58 calls
+RESULT onoff_shoulder_min_room_planned=20.64 degC
+RESULT onoff_shoulder_min_room_actuated=19.89 degC
+RESULT onoff_shoulder_Kh_below_min_actuated=0.00 Kh
+RESULT onoff_shoulder_Kh_below_plan_actuated=17.23 Kh
+RESULT onoff_e2e_turn_off_with_planned_heat=30 steps
+RESULT onoff_e2e_turn_off_calls=92 calls
+RESULT thread_factor=1.000
+RESULT load1=3.56
+RESULT swapins=0
+### onoff_switch --perturb
+CELL arm=modulating cell=winter_single_dhw planned_kwh=41.17 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=modulating cell=winter_single_no_dhw planned_kwh=36.00 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=modulating cell=winter_two_zone_dhw planned_kwh=74.78 withheld_kwh=0.01 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=modulating cell=winter_two_zone_no_dhw planned_kwh=66.99 withheld_kwh=0.02 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=modulating cell=shoulder planned_kwh=12.37 withheld_kwh=0.01 withheld_frac=0.001 off_steps_with_heat=0
+CELL arm=modulating cell=shoulder_two_zone planned_kwh=14.39 withheld_kwh=0.02 withheld_frac=0.002 off_steps_with_heat=0
+CELL arm=modulating cell=summer_dhw_only planned_kwh=3.31 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=modulating cell=flat_prices planned_kwh=60.96 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=modulating cell=mild_windy_rain planned_kwh=31.71 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+RESULT modulating_failing_cells=0 cells
+RESULT modulating_cells=9 cells
+RESULT modulating_withheld_frac_mean=0.000 ratio
+RESULT modulating_withheld_frac_range=0.000..0.002 ratio
+RESULT modulating_withheld_frac_mean_loo=0.000 ratio
+RESULT modulating_failing_cells_loo=0 cells
+CELL arm=onoff cell=winter_single_dhw planned_kwh=42.20 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=onoff cell=winter_single_no_dhw planned_kwh=36.00 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=onoff cell=winter_two_zone_dhw planned_kwh=75.24 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=onoff cell=winter_two_zone_no_dhw planned_kwh=66.99 withheld_kwh=0.02 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=onoff cell=shoulder planned_kwh=12.38 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=onoff cell=shoulder_two_zone planned_kwh=14.55 withheld_kwh=0.01 withheld_frac=0.001 off_steps_with_heat=0
+CELL arm=onoff cell=summer_dhw_only planned_kwh=2.72 withheld_kwh=0.00 withheld_frac=0.000 off_steps_with_heat=0
+CELL arm=onoff cell=flat_prices planned_kwh=64.46 withheld_kwh=0.04 withheld_frac=0.001 off_steps_with_heat=0
+CELL arm=onoff cell=mild_windy_rain planned_kwh=31.86 withheld_kwh=0.01 withheld_frac=0.000 off_steps_with_heat=0
+RESULT onoff_failing_cells=0 cells
+RESULT onoff_cells=9 cells
+RESULT onoff_withheld_frac_mean=0.000 ratio
+RESULT onoff_withheld_frac_range=0.000..0.001 ratio
+RESULT onoff_withheld_frac_mean_loo=0.000 ratio
+RESULT onoff_failing_cells_loo=0 cells
+RESULT modulating_shoulder_min_room_planned=20.65 degC
+RESULT modulating_shoulder_min_room_actuated=20.65 degC
+RESULT modulating_shoulder_Kh_below_min_actuated=0.00 Kh
+RESULT modulating_shoulder_Kh_below_plan_actuated=0.01 Kh
+RESULT modulating_e2e_turn_off_with_planned_heat=0 steps
+RESULT modulating_e2e_turn_off_calls=58 calls
+RESULT onoff_shoulder_min_room_planned=20.64 degC
+RESULT onoff_shoulder_min_room_actuated=20.64 degC
+RESULT onoff_shoulder_Kh_below_min_actuated=0.00 Kh
+RESULT onoff_shoulder_Kh_below_plan_actuated=0.00 Kh
+RESULT onoff_e2e_turn_off_with_planned_heat=0 steps
+RESULT onoff_e2e_turn_off_calls=62 calls
+RESULT thread_factor=1.000
+RESULT load1=3.56
+RESULT swapins=0
+### mode_domain
+RESULT select_misrouted_mode_writes=0 calls
+RESULT select_ticks_mode_wrong=0 ticks
+RESULT select_repair_raised=0 flag
+RESULT input_select_misrouted_mode_writes=5 calls
+RESULT input_select_ticks_mode_wrong=9 ticks
+RESULT input_select_repair_raised=1 flag
+RESULT sensor_misrouted_mode_writes=5 calls
+RESULT sensor_ticks_mode_wrong=9 ticks
+RESULT sensor_repair_raised=1 flag
+RESULT failing_mode_domains=2 cells
+RESULT thread_factor=1.000
+RESULT load1=0.51
+RESULT swapins=0
+### mode_domain --perturb
+RESULT select_misrouted_mode_writes=0 calls
+RESULT select_ticks_mode_wrong=0 ticks
+RESULT select_repair_raised=0 flag
+RESULT input_select_misrouted_mode_writes=0 calls
+RESULT input_select_ticks_mode_wrong=0 ticks
+RESULT input_select_repair_raised=0 flag
+RESULT sensor_misrouted_mode_writes=0 calls
+RESULT sensor_ticks_mode_wrong=9 ticks
+RESULT sensor_repair_raised=0 flag
+RESULT failing_mode_domains=1 cells
+RESULT thread_factor=1.000
+RESULT load1=0.51
+RESULT swapins=0
+### onoff_label
+CELL arm=modulating cell=winter_single_dhw full_power_mislabelled=0 norm_out_of_range=72 norm_min=-0.2 norm_max=1.0
+CELL arm=modulating cell=winter_single_no_dhw full_power_mislabelled=0 norm_out_of_range=72 norm_min=-0.2 norm_max=1.0
+CELL arm=modulating cell=winter_two_zone_dhw full_power_mislabelled=0 norm_out_of_range=32 norm_min=-0.2 norm_max=1.0
+CELL arm=modulating cell=winter_two_zone_no_dhw full_power_mislabelled=0 norm_out_of_range=37 norm_min=-0.2 norm_max=1.0
+CELL arm=modulating cell=shoulder full_power_mislabelled=0 norm_out_of_range=78 norm_min=-0.2 norm_max=0.43
+CELL arm=modulating cell=shoulder_two_zone full_power_mislabelled=0 norm_out_of_range=82 norm_min=-0.2 norm_max=0.84
+CELL arm=modulating cell=summer_dhw_only full_power_mislabelled=0 norm_out_of_range=96 norm_min=-0.2 norm_max=-0.2
+CELL arm=modulating cell=flat_prices full_power_mislabelled=0 norm_out_of_range=41 norm_min=-0.2 norm_max=1.0
+CELL arm=modulating cell=mild_windy_rain full_power_mislabelled=0 norm_out_of_range=75 norm_min=-0.2 norm_max=1.0
+RESULT modulating_full_power_mislabelled=0 steps
+RESULT modulating_cells_with_mislabel=0 cells
+RESULT modulating_mislabel_range=0..0 steps
+RESULT modulating_full_power_mislabelled_loo=0 steps
+RESULT modulating_norm_out_of_range=585 steps
+RESULT modulating_power_normalized_min=-0.2 ratio
+RESULT modulating_power_normalized_max=1.0 ratio
+CELL arm=onoff cell=winter_single_dhw full_power_mislabelled=23 norm_out_of_range=73 norm_min=-60.0 norm_max=0.0
+CELL arm=onoff cell=winter_single_no_dhw full_power_mislabelled=24 norm_out_of_range=72 norm_min=-60.0 norm_max=0.0
+CELL arm=onoff cell=winter_two_zone_dhw full_power_mislabelled=25 norm_out_of_range=73 norm_min=-60.0 norm_max=0.0
+CELL arm=onoff cell=winter_two_zone_no_dhw full_power_mislabelled=28 norm_out_of_range=68 norm_min=-60.0 norm_max=0.0
+CELL arm=onoff cell=shoulder full_power_mislabelled=0 norm_out_of_range=96 norm_min=-60.0 norm_max=-45.37
+CELL arm=onoff cell=shoulder_two_zone full_power_mislabelled=1 norm_out_of_range=95 norm_min=-60.0 norm_max=0.0
+CELL arm=onoff cell=summer_dhw_only full_power_mislabelled=0 norm_out_of_range=96 norm_min=-60.0 norm_max=-60.0
+CELL arm=onoff cell=flat_prices full_power_mislabelled=31 norm_out_of_range=67 norm_min=-60.0 norm_max=0.0
+CELL arm=onoff cell=mild_windy_rain full_power_mislabelled=17 norm_out_of_range=79 norm_min=-60.0 norm_max=0.0
+RESULT onoff_full_power_mislabelled=149 steps
+RESULT onoff_cells_with_mislabel=7 cells
+RESULT onoff_mislabel_range=0..31 steps
+RESULT onoff_full_power_mislabelled_loo=118 steps
+RESULT onoff_norm_out_of_range=719 steps
+RESULT onoff_power_normalized_min=-60.0 ratio
+RESULT onoff_power_normalized_max=0.0 ratio
+RESULT thread_factor=1.000
+RESULT load1=3.43
+RESULT swapins=0
+### onoff_label --min 5.0
+CELL arm=modulating cell=winter_single_dhw full_power_mislabelled=0 norm_out_of_range=72 norm_min=-0.2 norm_max=1.0
+CELL arm=modulating cell=winter_single_no_dhw full_power_mislabelled=0 norm_out_of_range=72 norm_min=-0.2 norm_max=1.0
+CELL arm=modulating cell=winter_two_zone_dhw full_power_mislabelled=0 norm_out_of_range=32 norm_min=-0.2 norm_max=1.0
+CELL arm=modulating cell=winter_two_zone_no_dhw full_power_mislabelled=0 norm_out_of_range=37 norm_min=-0.2 norm_max=1.0
+CELL arm=modulating cell=shoulder full_power_mislabelled=0 norm_out_of_range=78 norm_min=-0.2 norm_max=0.43
+CELL arm=modulating cell=shoulder_two_zone full_power_mislabelled=0 norm_out_of_range=82 norm_min=-0.2 norm_max=0.84
+CELL arm=modulating cell=summer_dhw_only full_power_mislabelled=0 norm_out_of_range=96 norm_min=-0.2 norm_max=-0.2
+CELL arm=modulating cell=flat_prices full_power_mislabelled=0 norm_out_of_range=41 norm_min=-0.2 norm_max=1.0
+CELL arm=modulating cell=mild_windy_rain full_power_mislabelled=0 norm_out_of_range=75 norm_min=-0.2 norm_max=1.0
+RESULT modulating_full_power_mislabelled=0 steps
+RESULT modulating_cells_with_mislabel=0 cells
+RESULT modulating_mislabel_range=0..0 steps
+RESULT modulating_full_power_mislabelled_loo=0 steps
+RESULT modulating_norm_out_of_range=585 steps
+RESULT modulating_power_normalized_min=-0.2 ratio
+RESULT modulating_power_normalized_max=1.0 ratio
+CELL arm=onoff cell=winter_single_dhw full_power_mislabelled=0 norm_out_of_range=73 norm_min=-5.0 norm_max=1.0
+CELL arm=onoff cell=winter_single_no_dhw full_power_mislabelled=0 norm_out_of_range=72 norm_min=-5.0 norm_max=1.0
+CELL arm=onoff cell=winter_two_zone_dhw full_power_mislabelled=0 norm_out_of_range=66 norm_min=-5.0 norm_max=1.0
+CELL arm=onoff cell=winter_two_zone_no_dhw full_power_mislabelled=0 norm_out_of_range=64 norm_min=-5.0 norm_max=1.0
+CELL arm=onoff cell=shoulder full_power_mislabelled=0 norm_out_of_range=96 norm_min=-5.0 norm_max=-1.91
+CELL arm=onoff cell=shoulder_two_zone full_power_mislabelled=0 norm_out_of_range=94 norm_min=-5.0 norm_max=1.0
+CELL arm=onoff cell=summer_dhw_only full_power_mislabelled=0 norm_out_of_range=96 norm_min=-5.0 norm_max=-5.0
+CELL arm=onoff cell=flat_prices full_power_mislabelled=0 norm_out_of_range=61 norm_min=-5.0 norm_max=1.0
+CELL arm=onoff cell=mild_windy_rain full_power_mislabelled=0 norm_out_of_range=81 norm_min=-5.0 norm_max=1.0
+RESULT onoff_full_power_mislabelled=0 steps
+RESULT onoff_cells_with_mislabel=0 cells
+RESULT onoff_mislabel_range=0..0 steps
+RESULT onoff_full_power_mislabelled_loo=0 steps
+RESULT onoff_norm_out_of_range=703 steps
+RESULT onoff_power_normalized_min=-5.0 ratio
+RESULT onoff_power_normalized_max=1.0 ratio
+RESULT thread_factor=1.000
+RESULT load1=2.80
+RESULT swapins=0
+### flow_paths
+PATH user > user_sensors > finish_now > setup_overview | asked_plant=False | invented: -
+PATH user > user_sensors > quick_setup > quick_setup > device_prefill > finish_now > setup_overview | asked_plant=True | invented: -
+PATH user > user_sensors > quick_setup > quick_setup > device_prefill > temperature > temperature > building_describe > building_describe > building_extras > dhw > weather_sensitivity > setup_overview | asked_plant=True | invented: -
+PATH user > user_sensors > quick_setup > quick_setup > device_prefill > temperature > temperature > thermal > thermal > zones > dhw > weather_sensitivity > setup_overview | asked_plant=True | invented: -
+PATH user > user_sensors > temperature > temperature > building_describe > building_describe > building_extras > dhw > weather_sensitivity > setup_overview | asked_plant=False | invented: ['dhw(tank modelled over 96 steps, planned 0.00 kWh)', 'plan vs the stated plant: planned 11.13 vs 10.39 kWh, predicted_cost 8.344 vs 6.068']
+PATH user > user_sensors > temperature > temperature > thermal > thermal > zones > dhw > weather_sensitivity > setup_overview | asked_plant=False | invented: ['dhw(tank modelled over 96 steps, planned 0.00 kWh)', 'two_zone', 'plan vs the stated plant: planned 26.36 vs 21.32 kWh, predicted_cost 19.831 vs 11.421']
+RESULT paths=6 count
+RESULT invented_paths=2 count
+RESULT invented_dhw_paths=2 count
+RESULT invented_two_zone_paths=1 count
+RESULT thread_factor=1.000
+RESULT load1=1.43
+RESULT swapins=0
+### flow_paths --perturb explicit_presence
+PATH user > user_sensors > finish_now > setup_overview | asked_plant=False | invented: -
+PATH user > user_sensors > quick_setup > quick_setup > device_prefill > finish_now > setup_overview | asked_plant=True | invented: -
+PATH user > user_sensors > quick_setup > quick_setup > device_prefill > temperature > temperature > building_describe > building_describe > building_extras > dhw > weather_sensitivity > setup_overview | asked_plant=True | invented: -
+PATH user > user_sensors > quick_setup > quick_setup > device_prefill > temperature > temperature > thermal > thermal > zones > dhw > weather_sensitivity > setup_overview | asked_plant=True | invented: -
+PATH user > user_sensors > temperature > temperature > building_describe > building_describe > building_extras > dhw > weather_sensitivity > setup_overview | asked_plant=False | invented: -
+PATH user > user_sensors > temperature > temperature > thermal > thermal > zones > dhw > weather_sensitivity > setup_overview | asked_plant=False | invented: -
+RESULT paths=6 count
+RESULT invented_paths=0 count
+RESULT invented_dhw_paths=0 count
+RESULT invented_two_zone_paths=0 count
+RESULT thread_factor=1.000
+RESULT load1=2.46
+RESULT swapins=0

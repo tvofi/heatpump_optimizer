@@ -1,0 +1,17 @@
+SEAM cfg_wizard_thermal: trail=user > user_sensors > temperature > temperature > thermal > thermal > zones > dhw > weather_sensitivity > setup_overview dhw_enabled=False two_zone=True stored_plant_keys=['dhw_cooling_rate', 'dhw_daily_consumption', 'dhw_idle_min_temperature', 'dhw_legionella_enabled', 'dhw_legionella_interval_days', 'dhw_legionella_temperature', 'dhw_min_temperature', 'dhw_schedule_enabled', 'dhw_setpoint', 'dhw_tank_volume', 'dhw_windows', 'inter_zone_heat_transfer'] invents=['two_zone']
+RESULT cfg_wizard_thermal_invents=1 flag
+SEAM cfg_wizard_describe: trail=user > user_sensors > temperature > temperature > building_describe > building_describe > building_extras > dhw > weather_sensitivity > setup_overview dhw_enabled=False two_zone=False stored_plant_keys=['dhw_cooling_rate', 'dhw_daily_consumption', 'dhw_idle_min_temperature', 'dhw_legionella_enabled', 'dhw_legionella_interval_days', 'dhw_legionella_temperature', 'dhw_min_temperature', 'dhw_schedule_enabled', 'dhw_setpoint', 'dhw_tank_volume', 'dhw_windows'] invents=-
+RESULT cfg_wizard_describe_invents=0 flag
+SEAM cfg_finish_now: trail=user > user_sensors > finish_now > setup_overview dhw_enabled=False two_zone=False stored_plant_keys=[] invents=-
+RESULT cfg_finish_now_invents=0 flag
+SEAM opt_comfort: trail=comfort dhw_enabled=False two_zone=False stored_plant_keys=[] invents=-
+RESULT opt_comfort_invents=0 flag
+SEAM opt_hot_water: trail=hot_water dhw_enabled=False two_zone=False stored_plant_keys=['dhw_windows'] invents=-
+RESULT opt_hot_water_invents=0 flag
+SEAM opt_hot_water_tank: trail=advanced > hot_water_tank dhw_enabled=False two_zone=False stored_plant_keys=['dhw_tank_volume'] invents=-
+RESULT opt_hot_water_tank_invents=0 flag
+RESULT ha_version=2026.2.3
+RESULT seams_inventing=1 count
+RESULT thread_factor=1.389
+RESULT load1=1.44
+RESULT swapins=0

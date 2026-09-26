@@ -1,0 +1,89 @@
+# seam :3594 border(non-text) --error-color light 4.29:1
+# seam :3594 border(non-text) --error-color dark 3.97:1
+# seam :3595 fill+white label --error-color light 4.29:1
+# seam :3595 fill+white label --error-color dark 4.29:1
+# seam :3774 text --warning-color light 1.96:1
+# seam :3774 text --warning-color dark 8.69:1
+# seam :3799 text --error-color light 4.29:1
+# seam :3799 text --error-color dark 3.97:1
+# seam :3813 border(non-text) --error-color light 4.29:1
+# seam :3813 border(non-text) --error-color dark 3.97:1
+# seam :3814 fill+white label --error-color light 4.29:1
+# seam :3814 fill+white label --error-color dark 4.29:1
+# seam :3846 text --success-color light 3.30:1
+# seam :3846 text --success-color dark 5.16:1
+# seam :3849 text --error-color light 4.29:1
+# seam :3849 text --error-color dark 3.97:1
+RESULT status_seam_lines=8 count
+RESULT status_rules_below_aa_light=6 count
+RESULT status_rules_below_aa_dark=4 count
+# menu edge 375/light/en: tap x=212 menu ..340.5 wrap ..340.5 spill 0.0
+# menu edge 375/light/en: tap x=182 menu ..338.9 wrap ..340.5 spill -1.6
+# menu zoom 375/light/en: tap x=276 menu ..340.5 wrap ..340.5 spill 0.0
+# menu zoom 375/light/en/dhw: 97% is not an editable lane after zoom
+# picker 375/light/en: indistinct pairs=1
+# menu edge 375/light/sv-SE: tap x=212 menu ..340.5 wrap ..340.5 spill 0.0
+# menu edge 375/light/sv-SE: tap x=182 menu ..340.5 wrap ..340.5 spill 0.0
+# menu zoom 375/light/sv-SE: tap x=276 menu ..358.7 wrap ..340.5 spill 18.2
+# menu zoom 375/light/sv-SE/dhw: 97% is not an editable lane after zoom
+# picker 375/light/sv-SE: indistinct pairs=1
+# menu edge 375/dark/en: tap x=212 menu ..340.5 wrap ..340.5 spill 0.0
+# menu edge 375/dark/en: tap x=182 menu ..338.9 wrap ..340.5 spill -1.6
+# menu zoom 375/dark/en: tap x=276 menu ..340.5 wrap ..340.5 spill 0.0
+# menu zoom 375/dark/en/dhw: 97% is not an editable lane after zoom
+# picker 375/dark/en: indistinct pairs=1
+# menu edge 375/dark/sv-SE: tap x=212 menu ..340.5 wrap ..340.5 spill 0.0
+# menu edge 375/dark/sv-SE: tap x=182 menu ..340.5 wrap ..340.5 spill 0.0
+# menu zoom 375/dark/sv-SE: tap x=276 menu ..358.7 wrap ..340.5 spill 18.2
+# menu zoom 375/dark/sv-SE/dhw: 97% is not an editable lane after zoom
+# picker 375/dark/sv-SE: indistinct pairs=1
+# menu edge 768/light/en: tap x=480 menu ..626.8 wrap ..721.6 spill -94.9
+# menu edge 768/light/en: tap x=504 menu ..660.8 wrap ..721.6 spill -60.9
+# menu zoom 768/light/en: tap x=623 menu ..721.6 wrap ..721.6 spill 0.0
+# menu zoom 768/light/en/dhw: 97% is not an editable lane after zoom
+# picker 768/light/en: indistinct pairs=1
+# menu edge 768/light/sv-SE: tap x=480 menu ..644.1 wrap ..721.6 spill -77.5
+# menu edge 768/light/sv-SE: tap x=504 menu ..694.1 wrap ..721.6 spill -27.5
+# menu zoom 768/light/sv-SE: tap x=623 menu ..721.6 wrap ..721.6 spill 0.0
+# menu zoom 768/light/sv-SE/dhw: 97% is not an editable lane after zoom
+# picker 768/light/sv-SE: indistinct pairs=1
+# menu edge 768/dark/en: tap x=480 menu ..626.8 wrap ..721.6 spill -94.9
+# menu edge 768/dark/en: tap x=504 menu ..660.8 wrap ..721.6 spill -60.9
+# menu zoom 768/dark/en: tap x=623 menu ..721.6 wrap ..721.6 spill 0.0
+# menu zoom 768/dark/en/dhw: 97% is not an editable lane after zoom
+# picker 768/dark/en: indistinct pairs=1
+# menu edge 768/dark/sv-SE: tap x=480 menu ..644.1 wrap ..721.6 spill -77.5
+# menu edge 768/dark/sv-SE: tap x=504 menu ..694.1 wrap ..721.6 spill -27.5
+# menu zoom 768/dark/sv-SE: tap x=623 menu ..721.6 wrap ..721.6 spill 0.0
+# menu zoom 768/dark/sv-SE/dhw: 97% is not an editable lane after zoom
+# picker 768/dark/sv-SE: indistinct pairs=1
+# menu edge 1280/light/en: tap x=813 menu ..970.3 wrap ..1223.4 spill -253.0
+# menu edge 1280/light/en: tap x=851 menu ..1019.1 wrap ..1223.4 spill -204.3
+# menu zoom 1280/light/en: tap x=1054 menu ..1211.8 wrap ..1223.4 spill -11.6
+# menu zoom 1280/light/en/dhw: 97% is not an editable lane after zoom
+# picker 1280/light/en: indistinct pairs=0
+# menu edge 1280/light/sv-SE: tap x=813 menu ..988.9 wrap ..1223.4 spill -234.5
+# menu edge 1280/light/sv-SE: tap x=851 menu ..1054.9 wrap ..1223.4 spill -168.5
+# menu zoom 1280/light/sv-SE: tap x=1054 menu ..1223.4 wrap ..1223.4 spill 0.0
+# menu zoom 1280/light/sv-SE/dhw: 97% is not an editable lane after zoom
+# picker 1280/light/sv-SE: indistinct pairs=0
+# menu edge 1280/dark/en: tap x=813 menu ..970.3 wrap ..1223.4 spill -253.0
+# menu edge 1280/dark/en: tap x=851 menu ..1019.1 wrap ..1223.4 spill -204.3
+# menu zoom 1280/dark/en: tap x=1054 menu ..1211.8 wrap ..1223.4 spill -11.6
+# menu zoom 1280/dark/en/dhw: 97% is not an editable lane after zoom
+# menu edge 1280/dark/sv-SE: tap x=813 menu ..988.9 wrap ..1223.4 spill -234.5
+# menu edge 1280/dark/sv-SE: tap x=851 menu ..1054.9 wrap ..1223.4 spill -168.5
+# menu zoom 1280/dark/sv-SE: tap x=1054 menu ..1223.4 wrap ..1223.4 spill 0.0
+# menu zoom 1280/dark/sv-SE/dhw: 97% is not an editable lane after zoom
+RESULT now_overlap_cells=12 count (of 12)
+RESULT menu_spill_openings=2 count (of 36 real-tap openings)
+RESULT menu_spill_edge_unzoomed=0 count
+RESULT menu_spill_zoomed_97pct=2 count
+RESULT max_menu_viewport_out_px=0.0 px
+RESULT picker_twin_cells=8 count (of 10)
+# armed save colours: rgb(255, 255, 255) on rgb(219, 68, 55)
+RESULT confirm_contrast_real_light=4.29 ratio
+RESULT confirm_armed_by_real_click=12 count
+RESULT thread_factor=1.00
+RESULT load1=1.99
+RESULT swapins=0

@@ -1,0 +1,7 @@
+RESULT two_zone_expert_real=0 count
+RESULT two_zone_describe_real=0 count
+RESULT two_zone_quick_setup_real=0 count
+RESULT two_zone_finish_now_real=0 count
+RESULT two_zone_expert_cleared_fields_real=0 count
+RESULT thread_factor=1.072
+RESULT load1=1.35

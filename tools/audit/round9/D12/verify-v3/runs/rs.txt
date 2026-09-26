@@ -1,0 +1,18 @@
+CELL select.pump_mode: before='Heating + DHW' after='DHW only' applied=True arbiter_recorded_write=True raised=None
+RESULT select_applied=1 flag
+CELL input_select.pump_mode: before='Heating + DHW' after='Heating + DHW' applied=False arbiter_recorded_write=True raised=None
+RESULT input_select_applied=0 flag
+CELL sensor.pump_mode: before='Heating + DHW' after='Heating + DHW' applied=False arbiter_recorded_write=True raised=None
+RESULT sensor_applied=0 flag
+RESULT mode_writes_not_applied=2 count
+RESULT service_select_select_option_exists=1 flag
+RESULT service_input_select_select_option_exists=1 flag
+RESULT service_sensor_select_option_exists=0 flag
+CELL onoff: errors={} saved_min=6.0 saved_max=6.0 next=menu
+RESULT onoff_min_eq_max_accepted=1 flag
+CELL onoff schedule for [1.2, 6.0, 0.0] kW: [False, True, False]
+RESULT onoff_1p2kW_step_on=0 flag
+RESULT ha_version=2026.2.3
+RESULT thread_factor=1.047
+RESULT load1=1.94
+RESULT swapins=0

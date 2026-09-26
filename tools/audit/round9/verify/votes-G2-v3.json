@@ -1,0 +1,412 @@
+{
+ "box": "G2-V3",
+ "lens": 3,
+ "votes": {
+  "D4": [
+   {
+    "id": "D4-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "step1 contrast_instances=90; own: 6/6 text-bearing status seam lines <4.5 light, 4/6 dark (error 4.29/3.97, success 3.30, warning 1.96, white-on-error 4.29); armed confirm by real click 12/12 at 4.29",
+    "metric_definition": "distinct seam_rule lines whose status token (real frontend 20260128.6 value) vs real card background (text) or white label vs token fill is <4.5:1, per theme",
+    "method": "card_probe.mjs static half + real-click arm of .wi-save; tokens from real HA frontend bundle",
+    "attacks": "contention n/a (counts); grid: 90 = 13 distinct runs, 36 one delta, LOO 54, per-rule count stands; null control ok; reach real (tokens verified, service response shape real); severity by consequence ok",
+    "class": "P9",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D4-s1-02",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "step1 popup_out_cells=6 (9.7 px off viewport) reproduced; by real taps 2/36 openings spill (sv-SE 375 px after zoom, 18.2 px past chart, 0.0 px past viewport); finder's 97% default-window anchor is rect.lane-past, opens no menu",
+    "metric_definition": ".slot-menu openings by real mouse tap extending >0.5 px past .chartwrap or viewport",
+    "method": "card_probe.mjs: rightmost editable-lane tap unzoomed + 97% tap after 3 real zoom-in clicks, 12 cells",
+    "attacks": "reach: finder state produced by direct openMenu call; real tap/contextmenu at that x hit a non-editable rect; phenomenon (unclamped/squeezed menu) reachable at smaller magnitude; severity: operable, on-screen",
+    "class": "P2",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D4-s1-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "step1 option_indistinct_pairs=8; own 8/10 cells (0 at 1280 px) via real click + typed filter",
+    "metric_definition": "cells where two differing <option> texts have identical visible prefix (canvas measureText vs select content width)",
+    "method": "card_probe.mjs real input on setup page",
+    "attacks": "reach real (HA _2 twin naming, same friendly_name); null 1280=0 holds; severity: possible wrong sensor assignment",
+    "class": "P9",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D4-s1-04",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "step1 pipes_keyboard=0 boxes_keyboard=0 (click 12); own kbd_stops_on_editor_items=0 of 8 pipes/12 boxes over 80 Tabs; --perturb 8",
+    "metric_definition": "distinct pipe/box/port elements receiving focus in 80 real Tab presses with the layout editor open",
+    "method": "layout_focus.mjs real clicks + Tab",
+    "attacks": "reach real; only out-of-card route is apply_topology service; severity WCAG 2.1.1 on topology edits",
+    "class": "new: pointer-only editing affordance with no keyboard equivalent",
+    "seam_rule_enumerates": "partial: canvas pointer delegation + pipe markup cover the editor, but it also matches the lane slot-handle by accident and misses the card's other pointer-only affordances the sweep counts (204)"
+   },
+   {
+    "id": "D4-s1-05",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "step1 now_marker_collisions=24; own now_overlap_cells=12/12 with real entity id payload",
+    "metric_definition": "cells where text.now-label and text.now-temp client rects intersect (>0 px both axes)",
+    "method": "card_probe.mjs inline default view with withActuals states",
+    "attacks": "reach real (sensor.py:304 fixes the entity_id the card derives); severity: overlap is the word now doubled 3x1 px apart, reading 21.1 C legible - cosmetic, high not earned",
+    "class": "P9",
+    "seam_rule_enumerates": "partial: matches the four named top-edge labels, misses axis-unit titles placed at plotT - 5.2*... (:6085)"
+   },
+   {
+    "id": "D4-s2-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "step1 3 unlabelled + 1 untranslated per lang; real HA: quick path reaches device_prefill=1, unlabelled 3 en/3 sv, untranslated error 1 en/1 sv",
+    "metric_definition": "rendered device_prefill field keys lacking component.<d>.config.step.device_prefill.data.<k> and returned errors lacking config.error in the real translation loader",
+    "method": "realha_flows.py real FlowManager + real translation loader",
+    "attacks": "reach stronger than claimed: recommended quick path enters device_prefill with no opt-in",
+    "class": "P6",
+    "seam_rule_enumerates": "partial: iterates one fixture device (3 of 9 option-only content keys, 1 of 3 missing config.error keys); the stated universe is not iterated"
+   },
+   {
+    "id": "D4-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "step1 1 of 4; real HA EUR: options_money_fields_real=4, foreign 1 (wood_price_sek_m3 SEK/m3)",
+    "metric_definition": "real-serialized option NumberSelector units naming a currency other than hass.config.currency",
+    "method": "realha_flows.py real options manager + voluptuous_serialize",
+    "attacks": "reach real; null SEK=0 holds; severity: label vs arithmetic currency mismatch",
+    "class": "P8",
+    "seam_rule_enumerates": "partial: static scan reads en.json only; misses sv.json simulate_plan description 'i SEK'"
+   },
+   {
+    "id": "D4-s2-03",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "step1 1 en / 9 sv; real loader escaped_seq 1 en / 9 sv in config and options; escaped leaves loaded at runtime 4",
+    "metric_definition": "\\uXXXX sequences in dhw_min_too_close texts as returned by the real translation loader",
+    "method": "realha_flows.py helpers.translation",
+    "attacks": "reach real to the loader; frontend ICU display is an inference; severity: validation-only error text, en still readable",
+    "class": "new: translation leaf double-escaped so parsing yields a literal escape",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D4-s2-04",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "step1 expert 1 describe 0; real HA expert 1, expert with all zone fields cleared 1, describe/quick/finish_now 0; --perturb-zones all 0",
+    "metric_definition": "two_zone_enabled of the entry the real FlowManager creates with frontend-emulated pre-filled posts",
+    "method": "realha_flows.py real FlowManager with schema validation",
+    "attacks": "reach real and unavoidable (voluptuous refills cleared defaults); severity: no measured plan/cost consequence, overview shows 'two zones', non-recommended branch",
+    "class": "P2",
+    "seam_rule_enumerates": "partial: walks 2 of 4 first-run paths; my walk of the other 2 finds no further instance"
+   },
+   {
+    "id": "D4-s2-05",
+    "vote": "verify",
+    "severity": "low",
+    "value": "step1 8 defaults + 4 derived; real wire format 8 box-mode defaults off-grid",
+    "metric_definition": "real-serialized box-mode number selectors whose default is not min + k*step",
+    "method": "realha_flows.py serializer + real frontend ha-selector-number source (type=number .min .max .step autoValidate)",
+    "attacks": "finder's inference boundary closed by the real frontend source; severity low (no submit block)",
+    "class": "new: selector minimum off its own step grid",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D4-s2-06",
+    "vote": "verify",
+    "severity": "low",
+    "value": "step1 6 per lang; real options manager: zones 6 unwarned en/sv (placeholder returned, not shown), thermal_model 4 warned",
+    "metric_definition": "derived fields on a page whose real-loader description, placeholders substituted, lacks the returned preset_warning",
+    "method": "realha_flows.py options manager + translation loader",
+    "attacks": "reach real",
+    "class": "P2",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D4-s2-07",
+    "vote": "verify",
+    "severity": "low",
+    "value": "step1 1; real HA accept hand-back menu_identical_after_quick_real=1",
+    "metric_definition": "finish_setup menu after quick path identical to the first menu (real FlowManager)",
+    "method": "realha_flows.py",
+    "attacks": "reach real",
+    "class": "new: state-blind menu re-offers a completed path",
+    "seam_rule_enumerates": "partial: walks decline hand-back :2392 and first menu :2313, not accept hand-back :2444 (which my walk shows also repeats)"
+   },
+   {
+    "id": "D4-s2-08",
+    "vote": "verify",
+    "severity": "low",
+    "value": "step1 12/12; real icon loader services block None, 12 without icon",
+    "metric_definition": "services.yaml services without an icon in helpers.icon.async_get_icons(hass,'services')",
+    "method": "realha_flows.py real icon loader",
+    "attacks": "reach real (frontend requests service icons)",
+    "class": "new: missing icons.json services block",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D4-s2-09",
+    "vote": "verify",
+    "severity": "low",
+    "value": "step1 8 per lang; real loader 9 data_description leaves per lang (solar_radiation_entity flat + sectioned)",
+    "metric_definition": "real-loader data_description texts matching (\\d) C\\b or \\bm2\\b",
+    "method": "realha_flows.py translation loader",
+    "attacks": "reach real",
+    "class": "new: hand-typed unit spelling drift in help texts",
+    "seam_rule_enumerates": "all"
+   }
+  ],
+  "D8": [
+   {
+    "id": "D8-s1-01",
+    "vote": "verify",
+    "severity": "high",
+    "value": 95,
+    "metric_definition": "Of 96 instants (7 min into each quarter, Europe/Stockholm, real homeassistant.util.dt), count where production _current_spot_price returns a price other than the entry whose [start, next start) holds now; rows from production prices_from_entity_state over a 96-row Nord Pool raw_today",
+    "method": "step1 price15.py 95/0/0/95 (load1 0.38-0.51, tf 1.000); own real_ha_probe.py under HA 2026.2.3: 95, perturbed 0",
+    "attacks": "contention n/a (count); grid: whole day; null hourly=0 holds; reach REAL (Tibber asks QUARTER_HOURLY first, entity source keeps 96 rows); severity earned (settlement pending price, published price, comfort learner)",
+    "class": "P2",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D8-s1-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": 92,
+    "metric_definition": "DHW cells after two real cycles where the integer of DHW Heating Schedule differs from DHW Heating Plan slot_count",
+    "method": "step1 matrix.py 92 (full, load1 1.87), --only +dhw 12 -> perturb 0; own own_stub.py 2 of 2 DHW cells, '9 heating periods' vs slot_count 5 (ratio 1.8)",
+    "attacks": "count, no contention; LOO min 2; reach real (pure payload logic); tests/entities.py #284 pins the step-count semantics; severity low (label only)",
+    "class": "P2",
+    "seam_rule_enumerates": "partial: greps 2 thresholds; the same DHW-activity fact is also decided at optimizer.py:6231/6281/6287/7105 (>0.1) vs coordinator.py:3389 active_now (>0.05)"
+   },
+   {
+    "id": "D8-s1-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": 23,
+    "metric_definition": "Horizon steps (5 topologies x 96, default min power 1.0) where get_current_action says heat_pump_on False and commanded_power_kw > 0.05 kW; same steps checked for coordinator._commanded_power() > 0.05",
+    "method": "step1 minpower.py 4 (perturb 0), matrix power_while_off=2; own own_stub.py 23/480 entity, 23/480 internal, worst 0.46 kW",
+    "attacks": "count; reach real (default min power 1.0 -> on-threshold 0.5); severity low for entities; internal consumers (settlement power, COP fold, frequency, external heat) take the same phantom input, downstream effect unmeasured",
+    "class": "P2",
+    "seam_rule_enumerates": "partial: misses _commanded_power()/_commanded_split() (~12 coordinator call sites) that sum the same ungated power"
+   },
+   {
+    "id": "D8-s2-01",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": 0,
+    "metric_definition": "Of 3 real climate service calls (set_hvac_mode off, set_temperature 22, turn_off) dispatched by real HA 2026.2.3 hass.services.async_call with reading_ok False, how many reach the entity (plus the real state string)",
+    "method": "step1 matrix.py 5 cells/112 attrs, --perturb-available 0/0; own real_ha_probe.py: state unavailable, 0 of 3 calls reach; perturbed 3 of 3, state auto, 34 attrs",
+    "attacks": "reach REAL (helpers/service.py skips unavailable entities silently); README makes the indoor thermometer optional; severity: switch, set_mode service and options flow still control the optimizer and nothing is actuated wrongly, but the main entity, thermostat card and climate-targeted automations are dead -> medium; pinned A3(e) decision, owner call",
+    "class": "new: a whole entity's availability is gated on an optional input's reading where a per-field None already meets the aim",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D8-s2-02",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "off",
+    "metric_definition": "Real HA state-machine hvac_action while the payload mode is off and the boosted action has heat_pump_on True at 5 kW",
+    "method": "step1 matrix.py 14 arms (auto null 0), --perturb-hvac-action 0; own real_ha_probe.py: hvac_action=off under HA 2026.2.3, action-first emulation -> heating",
+    "attacks": "reach real (boost.apply in every mode, README: boost does not change mode); a genuine misreport for up to the 2 h boost, and Heat Pump Action says boost/hot_water for the same step; no wrong actuation, only hvac_action history/automations under-report -> medium",
+    "class": "P2",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D8-s2-03",
+    "vote": "weaken",
+    "severity": "low",
+    "value": 4,
+    "metric_definition": "Of 4 mode transitions (climate off, climate auto, switch off, switch on) dispatched as real HA services, how many leave a state-machine state whose live mode field disagrees with a payload-mode field before the refresh lands",
+    "method": "step1 matrix.py 2, --perturb-live-mode 0; own real_ha_probe.py 4/4 (windows 1.0 s, then 10.9 s from HA's 10 s refresh debouncer), perturbed 0",
+    "attacks": "the off direction runs no solve (MODE_OFF branch), so the window is fetch time plus up to 10 s, not 30-70 s; the climate writes match HA semantics (hvac_action = the pump's actual state until the refresh actuates: 0 of 2 misreport it); the proposed live-mode fix would reintroduce D8-s2-02's misreport; only the switch's mode attribute is a stale label -> low; auto-direction solve window not bounded (stub ran no solve)",
+    "class": "P2",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D8-s3-01",
+    "vote": "weaken",
+    "severity": "low",
+    "value": 2,
+    "metric_definition": "Families whose members, placed as HA frontend 20260128.6's device page places them (bucket by entity_category, else sensor-like domain -> Sensors, else Controls; name-sorted within a bucket), occupy >1 run inside a shared bucket (en+sv); families spread across buckets counted separately (cross_bucket=2)",
+    "method": "step1 m3_families.py 2/2/1, perturb 1/1; own own_stub.py device_page_split=2 (energy meters, 3 runs en and sv), cross_bucket=2 (accuracy: button in Controls, sensor in Diagnostic)",
+    "attacks": "reach partial: on the real device page the accuracy split is decided by category, not name, and the rename perturbation does not move it; the energy-meter split is real; flat entities-table sort unverified",
+    "class": "new: an entity family whose names do not lead with a shared token splits under the frontend's name sort",
+    "seam_rule_enumerates": "partial: 8 hand-listed families, and a flat six-platform ordering instead of the device page's category buckets"
+   },
+   {
+    "id": "D8-s3-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": 1,
+    "metric_definition": "Entity names whose sv string carries a currency word (valuta/kronor/kr/SEK) while the en string carries none, or vice versa",
+    "method": "step1 m3_translation.py 1 of 74, perturb 0; own own_stub.py currency-asymmetry scan 1 (sensor_gap_advisor: 'Sensor-Gap Advisor' vs 'Sensorlucka i valutan')",
+    "attacks": "reach real (HA resolves component.heatpump_optimizer.entity.sensor.sensor_gap_advisor.name from translations/sv.json); severity low",
+    "class": "I5",
+    "seam_rule_enumerates": "partial: a hand-built concept-token map; my independent currency scan agrees"
+   },
+   {
+    "id": "D8-s3-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": 5,
+    "metric_definition": "Topologies where UpperFloorTempSensor and IndoorTempSensor are both enabled by default and publish an equal non-None native_value",
+    "method": "step1 m4_duplicates.py 1 pair, perturb 0 (any-default stays 1); own own_stub.py 5 of 5; real HA: no registry-default override in the integration MRO, so HA's entity_registry_enabled_default returns True",
+    "attacks": "reach real (entity_platform sets disabled_by only on first registration, so a new-install-only fix is feasible); coordinator.py:5343/5345 is the only writer of both fields; docstring records a deliberate keep that the proposed fix does not conflict with; severity low",
+    "class": "new: an entity kept for compatibility duplicates another's value with the registry default still enabled",
+    "seam_rule_enumerates": "partial: pairwise scan of numeric same-unit sensors only"
+   }
+  ],
+  "D10": [
+   {
+    "id": "D10-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": 3,
+    "metric_definition": "Arms of 5 (control, reconfigure, reauth, options_token, options_indoor) in which a fresh user flow through the real HA 2026.2.3 FlowManager submitting the entry's current effective identity answers is not aborted already_configured",
+    "method": "Finder harness re-run (3/3, --fix 0/0, load1 1.17-1.23, tf 1.000); own real-HA harness tools/audit/round9/D10/verify-v3/realha_uid.py: real flows, real async_start_reauth, real OptionsFlowManager; dup_accepted=3 stale_refused=3 entries_after_dup_max=2 (load1 1.46), --fix via real async_update_entry(unique_id=...) 0/0/1 (load1 1.32); extra seam realha_uid_service.py (real assign_entity service on a LOADED entry): dup_accepted 1 -> 0 under --fix",
+    "attacks": "contention: count, immune; gate mode: n/a; grid: each arm a distinct seam; null control: control_none and reconfigure 0 in both modes; reach: real HA, two entries for one plant; severity: two optimizers actuating one pump, medium earned",
+    "class": "P2",
+    "seam_rule_enumerates": "partial: scoped to config_flow.py (reauth :2950, _save :3021, _save_or_menu :3055 found) but misses services.py:629 handle_assign_entity, which writes 12 of the 13 identity slots and reproduces in real HA (1 -> 0 under the same fix)"
+   },
+   {
+    "id": "D10-s1-02",
+    "vote": "weaken",
+    "severity": "low",
+    "value": 2,
+    "metric_definition": "Arms of 3 in which the real button.press service call on Optimize now returns without exception while no solve completed with reason None during the press (entry fully set up in real HA 2026.2.3, Debouncer cooldown waited out)",
+    "method": "Finder harness re-run (2, --fix 0, load1 1.23/1.99, tf 1.000); own real-HA harness realha_press.py: silent_presses=2 (stale_prices, feed_down), prices_ok 0; finder_metric=1 (feed_down service succeeds on cached prices in real HA); debounced_presses=3; --fix 0 (by solving on cached prices), --fix-fetch 0 (by raising); load1 0.51-1.20",
+    "attacks": "contention: count, immune; gate mode: n/a; grid: feed_down's service-raises pairing is a finder harness-state artefact (no cached prices), the phenomenon holds 2/3; null control: prices_ok 0; reach: real HA via real ButtonEntity and ServiceRegistry, plus the debounced-press path; severity: feedback-only (no wrong actuation, entities go unavailable in feed_down), so low",
+    "class": "P2",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D10-s1-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": 3,
+    "metric_definition": "Auth-refusal arms (setup 401, setup 403, steady 401) in which real HA 2026.2.3 ends in the transient branch: entry SETUP_RETRY with retry armed, or the coordinator's next poll scheduled",
+    "method": "Finder harness re-run (3/2, --fix 0/2, load1 1.23/1.99, tf 1.000); own real-HA harness realha_auth.py: auth_as_transient=3 transient_ok=2 revoked_posts=8 in 2x40 s (load1 1.19, tf 1.069); --fix (re-raise as the real ConfigEntryAuthFailed at _async_update_data) gives 0/2/2, SETUP_ERROR, steady polling stops (load1 0.84); recorded in results_auth.txt",
+    "attacks": "contention: count (post count +-1 per window); gate mode: n/a; grid: setup vs steady separate seams, both hold; null control: 500 and connection error stay SETUP_RETRY 2/2; reach: real HA, reauth flow already started by the integration, so the harm is wrong state plus indefinite revoked-token polling (about 45/h at setup backoff cap); severity: low earned",
+    "class": "P11",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D10-s2-01",
+    "vote": "weaken",
+    "severity": "low",
+    "value": 2,
+    "metric_definition": "Presets in the real state machine's preset_modes with neither an entity (translation_key) nor a climate entity_component translation in the translations real HA 2026.2.3 serves, for en (sv also 2)",
+    "method": "Finder harness re-run (2/2/2/2, translate 0, eco 1; load1 1.23/1.99, tf 1.000); own real-HA harness realha_presets.py: entry set up, attributes from hass.states, resolved via async_get_translations and async_get_icons: untranslated_en=2 untranslated_sv=2 no_specific_icon=2 hvac_untranslated=0 (load1 0.85, tf 1.042); --perturb eco gives 1/1/1/0",
+    "attacks": "contention: count; gate mode: n/a; grid: none; null control: translate gives 0; reach: real HA frontend display path; correction: the two presets are not icon-less, they get the climate default mdi:circle-medium; severity: cosmetic (two raw lowercase labels), so low",
+    "class": "P6",
+    "seam_rule_enumerates": "all"
+   }
+  ],
+  "D12": [
+   {
+    "id": "D12-s1-01",
+    "vote": "verify",
+    "severity": "high",
+    "value": "rerun: A dhw mismatch 23/24, 6.25 window-h below min, B 0/0.0 h (flat: 23, 6.5 h vs 0); own: sentinel 47.3 C held in 12/12 solves, omitted frozen_fields=1 (dhw), mapped 0, --advance 0",
+    "metric_definition": "frozen_F = 1 when every _solve_snapshot input for plant field F is one value across N hourly solves while the previous plan's +1 h prediction is >1 K away in >= half the cycles (sentinel-overwrite origin test)",
+    "method": "re-ran state_seed.py (24 h, --flat); own frozen_state.py over dhw/slab/buffer/lower with sentinel overwrite and open-loop --advance perturbation; real-HA initial flow (realha_flows.py cfg_wizard_describe) shows DHW-enabled entry with no dhw_temp_entity is created by the real FlowManager",
+    "attacks": "contention: counts, immune; gate mode: n/a; grid: finder LOO 6.25-6.75 h, sentinel test grid-free; null control: mapped arm 0 and flat prices hold; reachability: real (real-HA flow creates the config, the rest is coordinator code); severity: switch path and pump-duty control both keep the pump's tank thermostat from covering, model tank below dhw_min 6.25 h in windows -> high holds",
+    "class": "P6",
+    "seam_rule_enumerates": "partial: FIELDS is a hand list (dhw, slab) not derived from ThermalState; on a 4-field sweep (dhw, slab, buffer, lower) it happens to cover every frozen field found"
+   },
+   {
+    "id": "D12-s1-02",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "rerun: options pages inventing 2 (9 DHW steps, 3.16 kWh each), --fallback-dhw 0, flow_pages 21 pages / 2 inventing; own real-HA: opt_hot_water and opt_hot_water_tank store dhw_windows / dhw_tank_volume -> DHW on (2/2), opt_comfort control 0, --perturb 0",
+    "metric_definition": "per options seam, whether the effective config after an untouched (frontend computeInitialHaFormData) submit through the real OptionsFlowManager makes _dhw_enabled_from_config True on a no-DHW entry created by the real flow's finish_now",
+    "method": "re-ran phantom_dhw.py (+--fallback-dhw) and flow_pages.py; own realha_flows.py against Home Assistant core 2026.2.3 (real FlowManager/OptionsFlowManager, voluptuous_serialize + cv.custom_serializer)",
+    "attacks": "contention: none; grid: n/a; null control: no-save, comfort and the other 19 pages hold; reachability: real (real OptionsFlowManager stores the posted defaults); refute angle (deliberate _ABSENT_IS_NOT_DEFAULT design) fails because no page offers a no-hot-water answer and submit is the documented back-out; severity: bounded 3.16 kWh/day phantom plan with a workaround (options Quick setup writes dhw_enabled, honoured first at thermal_model.py:1057) -> medium, the same consequence as D12-s3-01",
+    "class": "P2",
+    "seam_rule_enumerates": "partial: every one of the 21 options pages, but not the initial config-flow pages (wizard dhw/zones, D12-s3-01's seams)"
+   },
+   {
+    "id": "D12-s2-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "rerun: onoff failing cells 4 (LOO 3), shoulder withheld 0.671, e2e turn_off with planned heat 30, modulating 0, --perturb 0; own: shoulder sub_floor_heat_frac 0.671, Kh below plan 17.23 (plan-power) / 16.85 (rated-power), 0 Kh below min in both; real HA accepts min==max=6.0 and schedules a 1.2 kW step OFF",
+    "metric_definition": "sub_floor_heat_frac = planned kWh in >0.1 kW steps that _power_to_heat_pump_schedule marks off / total planned kWh; room re-simulated with ON = planned power and ON = 6 kW rated",
+    "method": "re-ran onoff_switch.py (+--perturb); own onoff_delivery.py over 4 golden cells with two actuation models (+--threshold01); realha_select.py saves thermal_model page min==max through the real OptionsFlowManager",
+    "attacks": "contention: counts; grid: 4/9 cells, LOO 3, concentrated in shoulder/two-zone; winter cells balance under the rated-power reading (0.10-0.61 Kh below plan); null control: modulating arm 0; reachability: real (min==max accepted by the real options flow); severity: comfort stays >= min_temperature under the rated reading, published trajectory/savings wrong -> medium holds; note: the 0.1 kW fix over-heats 34-69 Kh above plan under the rated reading, so the solver-side bang-bang fix is the safe one",
+    "class": "P2",
+    "seam_rule_enumerates": "partial: spelling-bound grep (6 lines) lists every actuation seam but misses coordinator.py:9736 `0.5 * min_electrical_power`, the compressor-start counter's copy of the same convention"
+   },
+   {
+    "id": "D12-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "rerun: input_select 5 misrouted / 9 ticks wrong / repair 1, sensor 5/9/1, select 0/0/0, failing 2; --perturb failing 1; own real HA: 2 of 3 accepted mode domains unapplied (input_select, sensor), arbiter records both writes as done, --perturb 1",
+    "metric_definition": "mode_writes_not_applied = accepted mode-slot domains (select, input_select, sensor) on which production pump_arbiter._write, against real select/input_select integrations, leaves the entity state unchanged",
+    "method": "re-ran mode_domain.py (+--perturb); own realha_select.py with Home Assistant core 2026.2.3 entity services and a real SelectEntity",
+    "attacks": "contention: none; null control: select applies; reachability: real (select.select_option silently no-ops on an input_select or sensor target, no exception, so the write is recorded and the not-held repair follows); severity: control is opt-in (pump_duty_mode default off), wrong mode plus a misleading repair -> medium holds",
+    "class": "P2",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D12-s2-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "rerun: onoff mislabelled 149 (LOO 118, 7/9 cells), power_normalized min -60.0, modulating 0; --min 5.0 -> 0 / -5.0; own: 4 of 4 p_norm seams bottom out a full-power step on min==max (incl. ECL110 displace -3.3 vs +3.3 modulating), idle power_normalized -60.0, --guard (min 5.0) 0",
+    "metric_definition": "full_power_bottomed = production p_norm seams (get_current_action, _power_to_setpoints, _power_to_displace_schedule, _zone_setpoints) that map a P = max_electrical_power step to the bottom of their range",
+    "method": "re-ran onoff_label.py (+--min 5.0); own pnorm_seams.py calling each production method on full-power and idle steps per compressor kind; real-HA options flow accepts min==max (realha_select.py)",
+    "attacks": "contention: counts; grid: 7/9 cells, LOO 118; null control: modulating arm 0; reachability: real (min==max saved by the real options flow, the sensor publishes what get_current_action returns); severity: medium for the published label; the unstated ECL110 displace seam (actuation, d_min on full power) is left to the judge",
+    "class": "P3",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D12-s3-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "rerun: 6 paths, invented 2 (dhw 2, two_zone 1), --perturb 0; own real HA: cfg_wizard_thermal dhw+two_zone, cfg_wizard_describe dhw, finish_now none (2 paths invent), --perturb DHW 0",
+    "metric_definition": "initial-flow completion paths, driven through the real FlowManager with frontend-rule untouched submits, whose created entry makes _dhw_enabled_from_config or ThermalParameters.from_config(...).two_zone_enabled True with no affirming answer",
+    "method": "re-ran flow_paths.py (+--perturb explicit_presence); own realha_flows.py on Home Assistant core 2026.2.3",
+    "attacks": "contention: none; null control: quick-setup paths and finish_now invent nothing; reachability: real (the real dhw step stores tank volume and windows defaults, with no no-hot-water answer); the consequence kWh/cost drift between runs (26.36 vs 26.45 kWh; the harness appears not to freeze the clock) while the count is exact; harness header 'paths=5, invented_paths=3' is stale; severity: bounded wrong plan with the options Quick setup as a workaround -> medium holds",
+    "class": "P2",
+    "seam_rule_enumerates": "partial: every initial-flow menu path, not the options pages (D12-s1-02's seams); the two rules together cover the property"
+   }
+  ],
+  "leads": [
+   {
+    "id": "D8-s3-61",
+    "vote": "verify",
+    "severity": "low",
+    "value": "stub: 5 of 5 topologies (exact re-run); real HA: registry disabled_by=integration and no state ever written by default (real_state_written_valve_manual=0), value delivered (23.0) only once the user enables the entity or the config's default is made to follow mixing_valve.is_throttling()",
+    "metric_definition": "topologies where native_value is not None while entity_registry_enabled_default is False (finder's); real-HA refinement: whether hass.states holds a state at all under the real EntityPlatform registration path",
+    "method": "re-ran finder's tests/hastub harness exactly (exact match); wrote realha_valve.py driving real HA 2026.2.3's EntityPlatform.async_add_entities + entity_registry, with a ConfiguredInputMixin sibling (BufferTankTempSensor) as comparator; ran baseline and the finder's proposed-fix perturbation",
+    "attacks": "contention: not applicable (exact counts, low load1 0.55-0.71); gate mode: n/a; grid artefact: none (5/5 golden topologies both engines); null control: present, 0/5 no-valve topologies correctly unknown+available; reachability: confirmed and refined (real HA hides the entity entirely by default; the class-attribute mismatch itself is fully reachable and is what real HA's disabled_by logic reads); severity: confirmed low by consequence",
+    "class": "P2",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D4-s2-81",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "stub: 41 of 41 (exact re-run: 22+16+3, null 0 of 1); real HA: real_rendered_lines_sv=21, real_identical_lines_sv_en=20, real_slot_labels_identical_to_en=14 of 14, real_template_is_swedish=1",
+    "metric_definition": "published setup strings byte-identical between an en and sv install, measured through the real OptionsFlowManager and the real helpers.translation loader",
+    "method": "re-ran finder's tests/hastub harness exactly (exact match); wrote realha_setup_overview.py driving the real options flow to setup_overview with hass.config.language=sv and the real translation catalogue; ran baseline and the finder's own localisation-stand-in perturbation applied around the real flow",
+    "attacks": "contention: not applicable (exact counts, low load1 0.57-0.86); gate mode: n/a; grid artefact: none, single config both engines agree; null control: present (narrative.render, 0 of 1 identical); reachability: confirmed real, and the real translation loader rules out an untranslated sv catalogue as an alternative explanation; severity: confirmed medium (visible, persistent UX defect, no functional/data harm)",
+    "class": "new: a text-producing function (describe_setup/render_text_summary/rank_sensor_advisor) takes no language parameter while its sibling narrative.render does",
+    "seam_rule_enumerates": "partial: enumerates every call site of the three named functions exactly, but not other topology.py literals with the same missing-language-parameter shape outside those three functions"
+   },
+   {
+    "id": "D12-s3-81",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "stub: blocked_verdicts=8, blocked_currencies=4 of 12 (exact re-run); real HA: real_rules_refused=2 of 8, real_fixed_selector_invalid=4 of 8 (genuine vol.Invalid from FlowManager.async_configure), real_null_blocked=0 of 4; --perturb: real_rules_refused->0 of 8, real_fixed_selector_invalid unchanged at 4 of 8",
+    "metric_definition": "seam verdicts (rules refusal / fixed-fee selector schema validation / repair raised) refusing a 0.05 EUR/kWh-equivalent fee per currency, driven through the real OptionsFlowManager's actual vol.Schema application, not a bare comparison",
+    "method": "re-ran finder's tests/hastub harness exactly (exact match); wrote realha_fee_currency.py driving the real options flow (init>advanced>grid_fees) per currency with hass.config.currency set, submitting through FlowManager.async_configure so the real NumberSelector/vol.Schema validates; ran baseline and the finder's constant-patch perturbation",
+    "attacks": "contention: not applicable (exact counts, low load1 0.75-0.86); gate mode: n/a; grid artefact: none, 12/8-currency sweep is additive and individually checked; null control: present, 0/4 both engines; reachability: confirmed and strengthened -- the fixed-fee refusal is a genuine vol.Invalid a real user hits, not a config comparison; severity: confirmed medium by consequence (hard configuration block in 4 of 12 modelled currencies)",
+    "class": "P8",
+    "seam_rule_enumerates": "partial: misses contract_fixed_price's identical unconverted _number(0, 10, 0.01, ...) selector, a sibling money field with the same SEK-sized bound the grep's literal '5' does not match"
+   }
+  ]
+ }
+}

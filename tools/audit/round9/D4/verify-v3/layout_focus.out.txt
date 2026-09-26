@@ -1,0 +1,8 @@
+# 375px pipes=4 boxes=6 editing=true editor-item stops=0; distinct stops=8: button.dlg-tab active, button.dlg-tab, button.close, button.layout-edit-toggle on, button.layout-tidy, button., rect.setup-hit, body.
+# 1280px pipes=4 boxes=6 editing=true editor-item stops=0; distinct stops=8: button.dlg-tab active, button.dlg-tab, button.close, button.layout-edit-toggle on, button.layout-tidy, button., rect.setup-hit, body.
+RESULT pipes_drawn=8 count
+RESULT boxes_drawn=12 count
+RESULT kbd_stops_on_editor_items=0 count
+RESULT thread_factor=1.00
+RESULT load1=1.91
+RESULT swapins=0

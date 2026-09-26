@@ -1,0 +1,18 @@
+# Real Home Assistant frontend evidence for D4 verify-v3 (reach lens).
+# Source: home-assistant-frontend==20260128.6 (pinned by homeassistant 2026.2.3 package_constraints.txt),
+#   wheel from files.pythonhosted.org, unzipped hass_frontend/frontend_latest/*.js.
+# Reproduce: curl the wheel (PyPI JSON: /pypi/home-assistant-frontend/20260128.6/json) into a mktemp -d, unzip, then:
+#   grep -oh -- '--\(error\|success\|warning\)-color: *[^;"]*' *.js | sort | uniq -c
+== status tokens (every definition in the bundle)
+      4 --error-color:#db4437
+      4 --success-color:#43a047
+      4 --warning-color:#ffa600
+== card backgrounds
+      1 --card-background-color:#1c1c1c
+      1 --card-background-color:#ffffff
+== ha-selector-number render (94891.22e11acdf656d02f.js)
+render(){const t="box"===this.selector.number?.mode||void 0===this.selector.number?.min||void 0===this.selector.number?.max;let e;if(!t&&(e=this.selector.number.step??1,"any"===e)){e=1;const t=(this.selector.number.max-this.selector.number.min)/100;for(;e>t;)e/=10}const i=this.selector.number?.translation_key;let r=this.selector.number?.unit_of_measurement;return t&&r&&this.localizeValue&&i&&(r=this.localizeValue(`${i}.unit_of_measurement.${r}`)||r),a.qy` ${this.label&&!t?a.qy`${this.label}${this.required?"*":""}`:a.s6} <div class="input"> ${t?a.s6:a.qy` <ha-slider labeled .min="${this.selector.number.min}" .max="${this.selector.number.max}" .value="${this.value}" .step="${e}" .disabled="${this.disabled}" .required="${this.required}" @change="${this._handleSliderChange}" .withMarkers="${this.selector.number?.slider_ticks||!1}"> </ha-slider> `} <ha-textfield .inputMode="${"any"===this.selector.number?.step||(this.selector.number?.step??1)%1!=0?"decimal":"numeric"}" .label="${t?this.label:void 0}" .placeholder="${this.placeholder}" class="${(0,s.H)({single:t})}" .min="${this.selector.number?.min}" .max="${this.selector.number?.max}" .value="${this._valueStr??""}" .step="${this.selector.number?.step??1}" helperPersistent .helper="${t?this.helper:void 0}" .disabled="${this.disabled}" .required="${this.required}" .suffix="${r}" type="number" autoValidate ?no-spinner="${!t}" @input="${this._handleInputChange}"> </ha-textfield> </div> ${!t&&this.helper?a.qy`<ha-input-helper-text .disabled="${this.disabled}">${this.helper}</ha-input-helper-text>`:a.s6} `}
+== ha-card :host (1856.2e951df81d152c06.js)
+:host{background:var(--ha-card-background,var(--card-background-color,#fff));-webkit-backdrop-filter:var(--ha-card-backdrop-filter,none);backdrop-filter:var(--ha-card-backdrop-filter,none);box-shadow:var(--ha-card-box-shadow,none);box-sizing:border-box;border-radius:var(--ha-card-border-radius,var(--ha-border-radius-lg));border-width:var(--ha-card-border-width,1px);border-style:solid;border-color:var(--ha-card-border-color,var(--divider-color,#e0e0e0));color:var(--primary-text-color);display:block;transition:all .3s ease-out;position:relative}
+== frontend icon cache has a services category (app bundle)
+e_word:g,weather:j,zone:O},Q={entity:{},entity_component:{},services:{domains:{}},triggers:{domains:{}},conditions:{domains:{}}},X=async(t,e,i)=>t.callWS({type:"

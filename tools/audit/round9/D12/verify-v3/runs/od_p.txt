@@ -1,0 +1,31 @@
+CELL shoulder: {'planned_kwh': 12.38, 'sub_floor_heat_frac': 0.0, 'plan_power_space_kwh': 8.38, 'plan_power_Kh_below_plan': 0.0, 'plan_power_Kh_above_plan': 0.0, 'plan_power_Kh_below_min': 0.0, 'plan_power_min_room': 20.64, 'rated_power_space_kwh': 46.5, 'rated_power_Kh_below_plan': 0.0, 'rated_power_Kh_above_plan': 68.64, 'rated_power_Kh_below_min': 0.0, 'rated_power_min_room': 20.88, 'planned_space_kwh': 8.38, 'planned_min_room': 20.64}
+RESULT shoulder_sub_floor_heat_frac=0.0
+RESULT shoulder_plan_power_Kh_below_plan=0.0
+RESULT shoulder_rated_power_Kh_below_plan=0.0
+RESULT shoulder_rated_power_Kh_above_plan=68.64
+RESULT shoulder_plan_power_Kh_below_min=0.0
+RESULT shoulder_rated_power_Kh_below_min=0.0
+CELL shoulder_two_zone: {'planned_kwh': 14.55, 'sub_floor_heat_frac': 0.0, 'plan_power_space_kwh': 10.55, 'plan_power_Kh_below_plan': 0.0, 'plan_power_Kh_above_plan': 0.0, 'plan_power_Kh_below_min': 0.0, 'plan_power_min_room': 20.32, 'rated_power_space_kwh': 37.5, 'rated_power_Kh_below_plan': 0.0, 'rated_power_Kh_above_plan': 45.54, 'rated_power_Kh_below_min': 0.0, 'rated_power_min_room': 20.43, 'planned_space_kwh': 10.55, 'planned_min_room': 20.32}
+RESULT shoulder_two_zone_sub_floor_heat_frac=0.0
+RESULT shoulder_two_zone_plan_power_Kh_below_plan=0.0
+RESULT shoulder_two_zone_rated_power_Kh_below_plan=0.0
+RESULT shoulder_two_zone_rated_power_Kh_above_plan=45.54
+RESULT shoulder_two_zone_plan_power_Kh_below_min=0.0
+RESULT shoulder_two_zone_rated_power_Kh_below_min=0.0
+CELL winter_two_zone_dhw: {'planned_kwh': 75.24, 'sub_floor_heat_frac': 0.0, 'plan_power_space_kwh': 68.04, 'plan_power_Kh_below_plan': 0.0, 'plan_power_Kh_above_plan': 0.0, 'plan_power_Kh_below_min': 0.0, 'plan_power_min_room': 17.64, 'rated_power_space_kwh': 102.0, 'rated_power_Kh_below_plan': 0.0, 'rated_power_Kh_above_plan': 34.78, 'rated_power_Kh_below_min': 0.0, 'rated_power_min_room': 19.89, 'planned_space_kwh': 68.04, 'planned_min_room': 17.64}
+RESULT winter_two_zone_dhw_sub_floor_heat_frac=0.0
+RESULT winter_two_zone_dhw_plan_power_Kh_below_plan=0.0
+RESULT winter_two_zone_dhw_rated_power_Kh_below_plan=0.0
+RESULT winter_two_zone_dhw_rated_power_Kh_above_plan=34.78
+RESULT winter_two_zone_dhw_plan_power_Kh_below_min=0.0
+RESULT winter_two_zone_dhw_rated_power_Kh_below_min=0.0
+CELL flat_prices: {'planned_kwh': 64.46, 'sub_floor_heat_frac': 0.0, 'plan_power_space_kwh': 57.34, 'plan_power_Kh_below_plan': 0.01, 'plan_power_Kh_above_plan': 0.0, 'plan_power_Kh_below_min': 0.0, 'plan_power_min_room': 17.54, 'rated_power_space_kwh': 73.5, 'rated_power_Kh_below_plan': 0.0, 'rated_power_Kh_above_plan': 14.38, 'rated_power_Kh_below_min': 0.0, 'rated_power_min_room': 18.21, 'planned_space_kwh': 57.39, 'planned_min_room': 17.54}
+RESULT flat_prices_sub_floor_heat_frac=0.0
+RESULT flat_prices_plan_power_Kh_below_plan=0.01
+RESULT flat_prices_rated_power_Kh_below_plan=0.0
+RESULT flat_prices_rated_power_Kh_above_plan=14.38
+RESULT flat_prices_plan_power_Kh_below_min=0.0
+RESULT flat_prices_rated_power_Kh_below_min=0.0
+RESULT thread_factor=1.001
+RESULT load1=2.20
+RESULT swapins=0
