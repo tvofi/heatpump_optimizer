@@ -86,7 +86,12 @@ EXPECTED on this tree (ae36eff printed option_fields_rendered=174 and
     RESULT option_fields_undocumented=0 count
     RESULT option_schema_keys_rendered=231 count
     RESULT wood_economics_fields_rendered=4 count
-    RESULT wood_economics_doc_lines=6 count      (tolerance: exact)
+    RESULT wood_economics_doc_lines=8 count      (tolerance: exact;
+    moved 6 -> 8 by #1645/F8.1: the Services section's `simulate_plan`
+    field list did not document any wood field before that fix, so adding
+    `wood_type`, `wood_packing`, `wood_price_sek_m3`,
+    `wood_furnace_efficiency` and `wood_slots` to it put 2 more lines in
+    the wood-economics scan's match set)
 MACHINE: 8-core Apple M1, 8 GB, python3 3.11.5.
 INSTRUMENTED SYMBOL: heatpump_optimizer.config_flow:_page_schema — the field
     list is produced by rendering every option page, not by reading a table.
