@@ -1,0 +1,126 @@
+diff --git a/.claude/workflows/audit-find.js b/.claude/workflows/audit-find.js
+index 62bf9a7e..dc51bdd3 100644
+--- a/.claude/workflows/audit-find.js
++++ b/.claude/workflows/audit-find.js
+@@ -268,7 +268,7 @@ const REPORTED = SEATS.map((s) => s.id).filter((id) => reports[id])
+ // agent's: a finding must carry its own seat as scope, an id under that seat,
+ // and a class_guess the schema admits. A failure is rejected at intake with the
+ // reason, never repaired.
+-const CLASS_GUESS = /^([PI][0-9]+|new)$/
++const CLASS_GUESS = /^(P1|P2|P3|P4|P5|P6|P7|P8|P9|P10|I1|I2|I3|I4|I5|P11|new)$/
+ const rejected = []
+ const accepted = []
+ for (const id of REPORTED) {
+diff --git a/.claude/workflows/policy_lint.mjs b/.claude/workflows/policy_lint.mjs
+index 54d7cbb7..39341076 100644
+--- a/.claude/workflows/policy_lint.mjs
++++ b/.claude/workflows/policy_lint.mjs
+@@ -72,6 +72,7 @@ import {
+   METRIC_LITERAL_RE,
+   NEGATION_RE,
+ } from './brief_lint.mjs'
++import { frontmatterPaths } from './rule_frontmatter.mjs'
+ import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift } from './counts.mjs'
+ import { inspectRender } from './render_md.mjs'
+ 
+@@ -1631,19 +1632,7 @@ function globToRe(g) {
+ }
+ 
+ function rulePaths(rel) {
+-  const raw = read(rel)
+-  if (raw == null) return null
+-  const fm = /^---\n([\s\S]*?)\n---/.exec(raw)
+-  if (!fm) return null
+-  // The frontmatter capture stops BEFORE the closing `\n---`, so the last
+-  // `paths:` entry has no trailing newline. A block pattern that requires one
+-  // per line therefore drops it, and a rule with a single path matched zero
+-  // lines and read as unscoped -- silently, because the run still printed a
+-  // number. Restore the newline before matching.
+-  const fmBody = fm[1] + '\n'
+-  const block = /^paths:\n((?:[ \t]*-[ \t]*.*\n)+)/m.exec(fmBody)
+-  if (!block) return null
+-  return [...block[1].matchAll(/-\s*"([^"]+)"/g)].map((m) => m[1])
++  return frontmatterPaths(read(rel))
+ }
+ 
+ function roleTokens(rows, opens) {
+@@ -1785,7 +1774,7 @@ function checkDuplicates(files) {
+ // wrong here, where every number extracted is then asserted to carry a
+ // disposition: it would demand a plan row for an issue that was merely cited in
+ // a Conventional-Commit scope. Anchored to end of subject instead.
+-const MERGE_SUBJECT_RE = /\(#(\d+)\)\s*$/
++const MERGE_SUBJECT_RE = /^Merge pull request #(\d+)\b|\(#(\d+)\)\s*$/
+ 
+ // Where a disposition may live. CLAUDE.md's programme-tracking section names
+ // exactly these two: the Delivery-status table in the plan of record, and the
+@@ -1861,9 +1850,10 @@ function mergedPRs(subjects) {
+   const rows = []
+   for (const s of subjects) {
+     const m = s.match(MERGE_SUBJECT_RE)
+-    if (!m || seen.has(m[1])) continue
+-    seen.add(m[1])
+-    rows.push({ pr: m[1], subject: s })
++    const n = m && (m[1] || m[2])
++    if (!n || seen.has(n)) continue
++    seen.add(n)
++    rows.push({ pr: n, subject: s })
+   }
+   return rows
+ }
+diff --git a/.claude/workflows/rule_frontmatter.mjs b/.claude/workflows/rule_frontmatter.mjs
+new file mode 100644
+index 00000000..dbd2801a
+--- /dev/null
++++ b/.claude/workflows/rule_frontmatter.mjs
+@@ -0,0 +1,11 @@
++// The ONE reader of a rule's `paths:` frontmatter (I4 fix demo). policy_lint.mjs
++// and rules_sync.mjs both import it; the algorithm is policy_lint's rulePaths.
++export function frontmatterPaths(raw) {
++  if (raw == null) return null
++  const fm = /^---\n([\s\S]*?)\n---/.exec(raw)
++  if (!fm) return null
++  const fmBody = fm[1] + '\n'
++  const block = /^paths:\n((?:[ \t]*-[ \t]*.*\n)+)/m.exec(fmBody)
++  if (!block) return null
++  return [...block[1].matchAll(/-\s*"([^"]+)"/g)].map((m) => m[1])
++}
+diff --git a/.claude/workflows/rules_sync.mjs b/.claude/workflows/rules_sync.mjs
+index b176d69a..89ce0098 100644
+--- a/.claude/workflows/rules_sync.mjs
++++ b/.claude/workflows/rules_sync.mjs
+@@ -25,19 +25,20 @@
+ import fs from 'node:fs'
+ import path from 'node:path'
+ import { fileURLToPath } from 'node:url'
++import { frontmatterPaths } from './rule_frontmatter.mjs'
+ 
+ const HERE = path.dirname(fileURLToPath(import.meta.url))
+ const ROOT = path.resolve(HERE, '..', '..')
+ const SRC = path.join(ROOT, '.claude', 'rules')
+ const OUT = path.join(ROOT, '.cursor', 'rules')
+ 
+-function parse(text, rel) {
++export function parse(text, rel) {
+   const m = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(text)
+   if (!m) throw new Error(`${rel}: no frontmatter`)
+   const [, fm, body] = m
+   const desc = /^description:\s*(.+)$/m.exec(fm)
+   if (!desc) throw new Error(`${rel}: no description`)
+-  const paths = [...fm.matchAll(/^\s*-\s*"([^"]+)"\s*$/gm)].map((x) => x[1])
++  const paths = frontmatterPaths(text) || []
+   return { description: desc[1].trim(), paths, body }
+ }
+ 
+@@ -59,6 +60,7 @@ function sources() {
+     .map((f) => ({ stem: f.replace(/\.md$/, ''), rel: `.claude/rules/${f}` }))
+ }
+ 
++if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+ const check = process.argv.includes('--check')
+ let drift = 0
+ let wrote = 0
+@@ -99,3 +101,4 @@ if (check) {
+   process.exit(drift ? 1 : 0)
+ }
+ console.log(`\nRULES-SYNC: ${wrote} file(s) written, ${sources().length} source(s)`)
++}

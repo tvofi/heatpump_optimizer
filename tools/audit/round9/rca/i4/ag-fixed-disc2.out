@@ -1,0 +1,23 @@
+  discovery: 87 governance code files, 929 distinct grammars, 22 shared by two or more files
+  UNREGISTERED  "wave-.*-groups\\.json" in .claude/workflows/brief_lint.mjs, .claude/workflows/check-wave-script.mjs, .claude/workflows/policy_lint_envmatrix.mjs
+  UNREGISTERED  "const VERDICT_CLASSES = \\[([^\\]]*)\\]" in .claude/workflows/check-wave-script.mjs, .claude/workflows/policy_lint.mjs, tests/entities.py
+  UNREGISTERED  "const VERDICT_RE = new RegExp\\(\\n([\\s\\S]*?)\\n\\)" in .claude/workflows/check-wave-script.mjs, .claude/workflows/policy_lint.mjs
+  UNREGISTERED  "'([a-z][a-z0-9-]*)'" in .claude/workflows/check-wave-script.mjs, .claude/workflows/policy_lint.mjs, tests/entities.py
+  UNREGISTERED  "(?:\\||-\\[#\\d+\\])" in .claude/workflows/counts.mjs, .claude/workflows/policy_lint.mjs
+  UNREGISTERED  "\\.{0,2}\\/?[\\w.@-]+(\\/[\\w.@-]+)+\\.(sh|py|mjs|js)" in .claude/workflows/figure_census.mjs, .claude/workflows/figure_lint.mjs
+  UNREGISTERED  "[A-Za-z_][A-Za-z0-9_]*=" in .claude/workflows/figure_census.mjs, .claude/workflows/figure_lint.mjs
+  UNREGISTERED  "##\\s+(.*?)" in .claude/workflows/policy_lint.mjs, tools/audit/record-predicate/sweep.mjs
+  UNREGISTERED  "\\|[\\s|:-]+\\|" in .claude/workflows/policy_lint.mjs, tests/entities.py, tools/audit/record-predicate/row_files_replay.py
+  UNREGISTERED  "[-*]\\s+\\[#(\\d+)\\]\\((?:[^()\\s]*\\/pull\\/)(\\d+)\\)" in .claude/workflows/policy_lint.mjs, tools/audit/record-predicate/sweep.mjs
+  UNREGISTERED  "refuse\\s+since-ref\\b" in .claude/workflows/policy_lint.mjs, .claude/workflows/policy_lint_envmatrix.mjs
+  UNREGISTERED  "<svg class=\"setup-svg[\\s\\S]*?<\\/svg>" in tests/card.mjs, tests/setup_qa_render.mjs
+  UNREGISTERED  "\\d+\\.\\d+\\.\\d+" in tests/card_rig.mjs, tests/entities.py
+  UNREGISTERED  "[\\[{]\"(\\d+)\\xb7([^\"<]+?)(?:<br/>|\")" in tests/doc_claims.py, tests/entities.py
+  UNREGISTERED  "\\*\\*(\\d+)\\xb7([^*]+?)\\.?\\*\\*" in tests/doc_claims.py, tests/entities.py
+  UNREGISTERED  "[^a-z0-9 ]" in tests/doc_claims.py, tests/entities.py
+  UNREGISTERED  "[^a-z0-9]+" in tests/entities.py, tools/gen_device_fixtures.py
+  UNREGISTERED  "\\{(\\w+)\\}" in tests/entities.py, tests/features.py, tools/gen_device_fixtures.py
+  UNREGISTERED  "[^:\\s]+:\\d+ [A-Z_]+" in tests/mutation_table.py, tools/merge/ledger_merge.py
+  UNREGISTERED  "\"version\": \"[^\"]*\"" in tools/audit/ci-version-edit/pr_contract_shapes.py, tools/audit/ci-version-edit/recheck_stamp_forgery.py
+RESULT divergent=0 unregistered=20 dead=0 refused=0 seconds=0.1
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered

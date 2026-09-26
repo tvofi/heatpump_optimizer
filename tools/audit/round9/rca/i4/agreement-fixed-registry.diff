@@ -1,0 +1,9 @@
+93c93,96
+<       const parse = fnFromSource('.claude/workflows/rules_sync.mjs', 'parse')
+---
+>       const rsSrc = rd('.claude/workflows/rules_sync.mjs')
+>       const parse = /\nexport function parse\(/.test(rsSrc) && /import\.meta\.url\)\) \{/.test(rsSrc)
+>         ? (await import(pathToFileURL(path.join(HERE, 'rules_sync.mjs')).href)).parse
+>         : fnFromSource('.claude/workflows/rules_sync.mjs', 'parse')
+159d161
+<   '-"([^"]+)"': 'pair:rule-frontmatter-paths',
