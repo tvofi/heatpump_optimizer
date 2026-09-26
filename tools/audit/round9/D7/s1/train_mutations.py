@@ -137,8 +137,14 @@ _PIN_TEXT = (
 
 
 def copy_tree(dst: Path) -> None:
-    shutil.copytree(ROOT, dst, ignore=shutil.ignore_patterns(
-        "__pycache__", "round[0-9]*", ".git", "node_modules"))
+    def ignore(d: str, names: list[str]) -> set[str]:
+        # Keep the earlier-round fixtures entities.py reads (round3..7-fix);
+        # skip only this round's in-flight seat directories.
+        skip = {n for n in names if n in ("__pycache__", ".git", "node_modules")}
+        if Path(d).name == "round9":
+            skip |= {n for n in names if n.startswith("D")}
+        return skip
+    shutil.copytree(ROOT, dst, ignore=ignore)
     if PIN:
         ent = dst / "tests/entities.py"
         tail = 'sys.exit(R.close("ENTITY CHECKS"))'

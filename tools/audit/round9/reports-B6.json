@@ -1,8 +1,6 @@
 {
   "box": "B6",
-  "missing": [
-    "D7-s1"
-  ],
+  "missing": [],
   "reports": {
     "D2-s4": {
       "dimension": "D2",
@@ -615,6 +613,203 @@
           "what": "The stub round-trips through stdlib json, which writes and reads NaN; Home Assistant's Store serialises with orjson, which writes NaN as null. A NaN learner cell therefore survives a save/load in the stub but becomes null in production (for DefrostDerate that voids the whole duty grid on the next load, D1-s4-03's path). P11-shaped."
         }
       ]
+    },
+    "D7-s1": {
+      "dimension": "D7",
+      "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+      "report_path": "tools/audit/round9/D7/s1/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D7.M1",
+          "depth": "deep",
+          "evidence": "tests/structure.py run: 25 rows ok, equal to structure_budgets.json; helper_escape.py measures the state references the seam metrics cannot see (11 helpers, 30 refs, 8 method calls) and the ratchet's response to inlining each of 10 helpers via production structure.measure()."
+        },
+        {
+          "step": "D7.M5",
+          "depth": "deep",
+          "evidence": "train_mutations.py: 14 train mutants + null control + 2 controls driven through runnable recorded drivers with mutation_table.killed, plus env_drift --capture comparison for production survivors; train_docs.py doc/owner counts. 12 of 14 items resolved; batch open. An early run's entities.py verdicts were void (copy lacked round3..7-fix fixtures entities.py opens; crash at :16606) and were re-run; no earlier-round evidence file was read."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D7.M5",
+          "what": "batched-gradient mutant (can_batch=False): survived guard_pins, doc_claims, finite_boundary, config_flow_steps, entities; its features.py run (scalar-FD path, >45 min) and the env_drift capture were not finished. stress.py/env_drift.py/golden.py/deployment_shape.py could not be driven as mutation drivers (the export has no .git)."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D7-s1-01",
+          "scope": "D7-s1",
+          "step": "D7.M1",
+          "title": "Structural ratchet does not price coordinator state reached via module-level _helper(self, ...), rewarding the refused move",
+          "severity": "low",
+          "claim": "tests/structure.py's seam metrics count no coordinator-state reference made through a module-level function the coordinator calls with self, so moving _fold_flow_lift back into the class with identical behaviour raises four zero-headroom rows (cut/edge delta 8) and fails the ratchet.",
+          "mechanism": "seam_metrics/state_root_bindings recognise only self, self._ctx, getattr(self,'_ctx',self) and locals bound to them; a parameter named coord is not a state root, so 30 state references and 8 coordinator-method calls in 11 helpers are free. HANDOVER records _helper(self, ...) as refused; _fold_flow_lift's docstring cites avoiding coordinator_methods and a seam edge as its reason for being module-level.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/helper_escape.py",
+            "harness_path": "tools/audit/round9/D7/s1/helper_escape.py",
+            "value": 8,
+            "unit": "count (sum of cut_* and cross_seam_edges movement on inlining _fold_flow_lift)",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "cloud container linux x86_64, box B6 (shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "other finders running; counts are load-immune",
+            "tolerance": "exact",
+            "load1": 2.37,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tests/structure.py:measure (via seam_metrics)",
+          "perturbation": {
+            "change": "--helper _warm_seeded (inline a helper whose one state reference does not cross a seam)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Sum over cut_* and cross_seam_edges of structure.measure() on the tree with one f(self,...) helper inlined as a method, minus the same on the untouched tree.",
+          "phenomenon_property": "Every coordinator-state reference and coordinator-method call a seam extraction would have to make explicit is priced by the ratchet, whatever syntactic root (self, _ctx, or a parameter the coordinator passes self into) reaches it.",
+          "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/helper_escape.py  (prints every module-level function called with self and its uncounted refs; --all runs the leave-one-out)",
+          "leave_one_out": {
+            "cells": 10,
+            "min": 0,
+            "max": 12,
+            "drop_most_favourable": 24
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/helper_escape.py",
+            "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/helper_escape.py --all",
+            "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/helper_escape.py --helper _warm_seeded"
+          ],
+          "proposed_fix_scope": "tests/structure.py seam_metrics/state_root_bindings: treat the parameter a coordinator call passes self into as a state root and charge the call as an edge; pin it in self_check; re-record the budgets with the reason in the commit message.",
+          "files": [
+            "tests/structure.py",
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/wood_fuel.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D7-s1-02",
+          "scope": "D7-s1",
+          "step": "D7.M5",
+          "title": "Drift-gate comparison and stress per-scenario budget verdict are deletable with every runnable check green",
+          "severity": "medium",
+          "claim": "Deleting env_drift.main's per-scenario _diff_leaves call, or stress.py's `if ratio > allowed` over-budget branch, is killed by no runnable driver (entities.py, features.py), while the same comparison deleted one frame down in _diff_leaves is killed by entities.py.",
+          "mechanism": "Both verdicts are written inline in a script's main, which only a git-backed gate run executes; a mutant in the gate makes that gate's own run on an unchanged production tree green, so it cannot kill itself either. The helper-level functions (_diff_leaves, scenario_budget) are pinned; the call sites that turn them into a red gate are not.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only drift_leaf,drift,stress",
+            "harness_path": "tools/audit/round9/D7/s1/train_mutations.py",
+            "value": 2,
+            "unit": "surviving mutants (drift, stress)",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "cloud container linux x86_64, box B6 (shared)",
+            "cpu_or_wall": "count",
+            "contention_note": "other finders running; verdicts are counts of failing checks",
+            "tolerance": "exact",
+            "load1": 1.98,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "tests/mutation_table.py:killed over tests/env_drift.py:main and tests/stress.py sweep verdict",
+          "perturbation": {
+            "change": "move the same deletion into env_drift._diff_leaves (mutant drift_leaf, elif a != b -> elif False)",
+            "expected_direction": "down",
+            "observed_value": "drift_leaf killed by entities.py: 0 survivors of 1, against 1 of 1 for the call-site deletion"
+          },
+          "metric_definition": "Count of gate-verdict deletion mutants no runnable recorded driver kills under mutation_table.killed (fresh failing check name required for a driver red at baseline).",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only null",
+            "value": "survived all 15 drivers",
+            "note": "comment-only edit to optimizer.py"
+          },
+          "phenomenon_property": "Every branch that turns a gate's comparison into a red result is reachable from a check that fails when the branch is deleted.",
+          "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only drift_leaf,drift,stress,drift_ctl",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only drift_leaf,drift,stress",
+            "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only drift_ctl"
+          ],
+          "proposed_fix_scope": "Lift env_drift.main's per-scenario comparison loop and stress.py's per-scenario budget verdict into functions and pin each in tests/entities.py with a moved-leaf / over-budget input.",
+          "files": [
+            "tests/env_drift.py",
+            "tests/stress.py",
+            "tests/entities.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "I1"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "tests/structure.py reproduces every budget row at baseline",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tests/structure.py",
+          "value": "25 rows ok, STRUCTURE RATCHET PASSED"
+        },
+        {
+          "claim": "Null control: a comment-only production edit is killed by no driver",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only null",
+          "value": "survived 15 of 15 drivers"
+        },
+        {
+          "claim": "Bounds gate deletion is pinned",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only bounds",
+          "value": "killed by features.py"
+        },
+        {
+          "claim": "Scoped gate (closure.select) deletion is pinned",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only scoped",
+          "value": "killed by entities.py"
+        },
+        {
+          "claim": "Card collaborator (HistorySource.leftBound) deletion is pinned",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only card",
+          "value": "killed by card.mjs (30 checks)"
+        },
+        {
+          "claim": "Weekly windows deletion is pinned",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only weekly",
+          "value": "killed by features.py"
+        },
+        {
+          "claim": "Topology catalogue: slab_shunt selectable=False deletion moves behaviour",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only topology --golden",
+          "value": "survived 11 drivers; env_drift capture moved 5 coord scenarios (the CI drift gate would catch it)"
+        },
+        {
+          "claim": "Wood valve law deletion is pinned",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only wood",
+          "value": "killed by features.py"
+        },
+        {
+          "claim": "Coil variant deletion is pinned",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only coil",
+          "value": "killed by guard_pins.py"
+        },
+        {
+          "claim": "DHW confidence band deletion is pinned",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only dhwconf",
+          "value": "killed by doc_claims.py"
+        },
+        {
+          "claim": "Tuya prefill source deletion is pinned",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only tuya",
+          "value": "killed by config_flow_steps.py"
+        },
+        {
+          "claim": "Re-anchor law deletion is pinned",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only reanchor",
+          "value": "killed by features.py"
+        },
+        {
+          "claim": "Each train item has one owning module; zero user-facing doc paragraphs only for internal mechanisms (batched gradient, bounds gate, re-anchor law, card collaborators)",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_docs.py",
+          "value": "doc files 0/0/4/3/5/4/1/1/0/0; owner modules 1-2 each"
+        }
+      ],
+      "harnesses": [
+        "tools/audit/round9/D7/s1/helper_escape.py",
+        "tools/audit/round9/D7/s1/train_mutations.py",
+        "tools/audit/round9/D7/s1/train_docs.py"
+      ],
+      "leads": []
     },
     "D8-s1": {
       "dimension": "D8",
