@@ -70,6 +70,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T13:25Z: register @b6eaffbb: 20 re-admitted (tvofi 13:02Z), 149 registered / 0 rejected. Normalised bodies /mnt/project-files/audit-r9/intake/normalised.json; log normalise_log.md (flag: D12-s2-01/02/03 cpu_or_wall 'neither' mapped to 'count'). Still owed on the register: D3-s3 rows (5) and LC's rows; CORPUS_EXCLUDED fix for entities.py.
 
+- 2026-09-26T13:35Z: LC done @00e3fad9: 2 findings (D1-s2-91 medium, D3-s1-91 medium, both titles normalised), 4 leads closed (routes: two deferred-entry D3-s3 leads left to the fixer). Evidence @79aa98ec verify/G1-lc.json; sent as unit 'lc' to G1-V1/V2/V3. Register seat adding D3-s3 + LC rows (sonnet). All intake now in: 156 findings.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
