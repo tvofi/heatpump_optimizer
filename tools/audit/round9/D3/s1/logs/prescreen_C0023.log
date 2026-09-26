@@ -1,0 +1,75 @@
+MUTANT {"op": "GUARD_DROP", "line": 796, "func": "_watch_lift", "old": "dhw_curve or not ctx._thermal_params.flow_curve_cop", "new": "False", "weight": 3, "consequence_weight": 1, "note": "", "id": "C0023"}
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index d714bba6..138b41c5 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -793,7 +793,7 @@ def _watch_lift(coord: Any, dhw_curve: bool) -> tuple[float, bool | str] | None:
+     normalised baseline could compare against.
+     """
+     ctx = getattr(coord, "_ctx", coord)
+-    if dhw_curve or not ctx._thermal_params.flow_curve_cop:
++    if False:
+         return 1.0, bool(dhw_curve)
+     if not ctx._config.get(CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY):
+         return 1.0, False
+
+CLOSURE tests/typing_ruler.py tests/solar_alignment.py tests/wood_advisor.py tests/plan_view.py tests/card.mjs tests/deployment_shape.py tests/structure.py tests/doc_claims.py tests/card_drift.mjs tests/manual_plan.py tests/config_flow_steps.py tests/finite_boundary.py tests/entities.py tests/features.py tests/env_drift.py
+SCRIPT tests/typing_ruler.py rc=0 wall=0.2s cpu=0.2s
+SCRIPT tests/solar_alignment.py rc=0 wall=0.9s cpu=0.9s
+SCRIPT tests/wood_advisor.py rc=0 wall=0.6s cpu=0.6s
+SCRIPT tests/plan_view.py rc=0 wall=1.0s cpu=0.9s
+SCRIPT tests/card.mjs rc=0 wall=11.0s cpu=12.2s
+SCRIPT tests/deployment_shape.py rc=0 wall=1.8s cpu=1.8s
+SCRIPT tests/structure.py rc=0 wall=2.3s cpu=2.3s
+SCRIPT tests/doc_claims.py rc=0 wall=2.3s cpu=2.2s
+SCRIPT tests/card_drift.mjs rc=0 wall=4.7s cpu=5.2s
+SCRIPT tests/manual_plan.py rc=0 wall=7.8s cpu=6.2s
+SCRIPT tests/config_flow_steps.py rc=0 wall=12.2s cpu=12.0s
+SCRIPT tests/finite_boundary.py rc=0 wall=11.1s cpu=11.0s
+SCRIPT tests/entities.py rc=0 wall=97.1s cpu=65.6s
+SCRIPT tests/features.py rc=1 wall=289.6s cpu=274.8s
+   |   FAIL the control: option off, a healthy 45 -> 55 degC move reads as a shortfall  [baseline 3.5874999999999995, judged 3.587499999999999 (None: the sample was skipped)]
+   |   FAIL no supply slot configured, or a hot-water sample: raw, into the baseline it always used  [the option off is the pre-#1067 key exactly]
+   |   FAIL switching the option off starts a raw baseline and leaves the normalised one untouched  [{(2, 'lift'): [3.5874999999999995, 50]}, tripped=False]
+   |   FAIL the normalised baseline persists under its own key and loads back to it  [saved {'2:lift': [3.5875, 50]}, loaded {(2, 'lift'): [3.5875, 50]}]
+   |   FAIL a healthy pump alternating space and hot water raises NO fault report  [tripped at interval 13 — before the fix the 50/50 shape of the committed shoulder fixture raised cop_degradation inside a day, sending an own
+   |   FAIL and it writes back under the SAME keys, with the DHW curve alongside  [{'1': [3.1904, 41], '2': [3.5, 25]} — additive, so a downgrade still reads what it wrote]
+   |   ok   a pump command that FAILED is not remembered as done
+   | 6 of 3369 FEATURE CHECKS FAILED
+SCRIPT tests/env_drift.py rc=0 wall=218.5s cpu=214.6s
+RESULT wall_typing_ruler_py=0.2 s
+RESULT cpu_typing_ruler_py=0.2 s
+RESULT wall_solar_alignment_py=0.9 s
+RESULT cpu_solar_alignment_py=0.9 s
+RESULT wall_wood_advisor_py=0.6 s
+RESULT cpu_wood_advisor_py=0.6 s
+RESULT wall_plan_view_py=1.0 s
+RESULT cpu_plan_view_py=0.9 s
+RESULT wall_card_mjs=11.0 s
+RESULT cpu_card_mjs=12.2 s
+RESULT wall_deployment_shape_py=1.8 s
+RESULT cpu_deployment_shape_py=1.8 s
+RESULT wall_structure_py=2.3 s
+RESULT cpu_structure_py=2.3 s
+RESULT wall_doc_claims_py=2.3 s
+RESULT cpu_doc_claims_py=2.2 s
+RESULT wall_card_drift_mjs=4.7 s
+RESULT cpu_card_drift_mjs=5.2 s
+RESULT wall_manual_plan_py=7.8 s
+RESULT cpu_manual_plan_py=6.2 s
+RESULT wall_config_flow_steps_py=12.2 s
+RESULT cpu_config_flow_steps_py=12.0 s
+RESULT wall_finite_boundary_py=11.1 s
+RESULT cpu_finite_boundary_py=11.0 s
+RESULT wall_entities_py=97.1 s
+RESULT cpu_entities_py=65.6 s
+RESULT wall_features_py=289.6 s
+RESULT cpu_features_py=274.8 s
+RESULT wall_env_drift_py=218.5 s
+RESULT cpu_env_drift_py=214.6 s
+RESULT scripts_run=15 count
+RESULT killed_by=1 count
+KILLERS tests/features.py
+RESULT thread_factor=1.000
+RESULT load1=1.46
+RESULT swapins=0

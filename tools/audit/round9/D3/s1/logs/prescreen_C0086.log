@@ -1,0 +1,75 @@
+MUTANT {"op": "MINMAX_SWAP", "line": 2728, "func": "HeatPumpOptimizerCoordinator._dhw_setpoint_sweep", "old": "max(", "new": "min(", "weight": 6, "consequence_weight": 3, "note": "max(t - params.dhw_min_temp, 0.0)", "id": "C0086"}
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index d714bba6..8a98aa66 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -2725,7 +2725,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
+             cost_day = (standby_kwh + draw_day_kwh) / cop * mean_price
+             # Can a tank at this setpoint cover the heaviest window from
+             # its usable band at all?
+-            usable_kwh = c_dhw * max(t - params.dhw_min_temp, 0.0)
++            usable_kwh = c_dhw * min(t - params.dhw_min_temp, 0.0)
+             meets = usable_kwh >= heaviest
+             entry = {
+                 "setpoint": setpoint,
+
+CLOSURE tests/typing_ruler.py tests/solar_alignment.py tests/wood_advisor.py tests/plan_view.py tests/card.mjs tests/deployment_shape.py tests/structure.py tests/doc_claims.py tests/card_drift.mjs tests/manual_plan.py tests/config_flow_steps.py tests/finite_boundary.py tests/entities.py tests/features.py tests/env_drift.py
+SCRIPT tests/typing_ruler.py rc=0 wall=0.2s cpu=0.2s
+SCRIPT tests/solar_alignment.py rc=0 wall=0.9s cpu=0.9s
+SCRIPT tests/wood_advisor.py rc=0 wall=0.8s cpu=0.7s
+SCRIPT tests/plan_view.py rc=0 wall=1.1s cpu=1.0s
+SCRIPT tests/card.mjs rc=0 wall=10.2s cpu=12.9s
+SCRIPT tests/deployment_shape.py rc=0 wall=1.9s cpu=1.8s
+SCRIPT tests/structure.py rc=0 wall=2.3s cpu=2.3s
+SCRIPT tests/doc_claims.py rc=0 wall=2.8s cpu=2.8s
+SCRIPT tests/card_drift.mjs rc=0 wall=4.4s cpu=5.4s
+SCRIPT tests/manual_plan.py rc=0 wall=6.7s cpu=6.1s
+SCRIPT tests/config_flow_steps.py rc=0 wall=12.5s cpu=12.3s
+SCRIPT tests/finite_boundary.py rc=0 wall=10.9s cpu=10.7s
+SCRIPT tests/entities.py rc=0 wall=88.3s cpu=67.9s
+SCRIPT tests/features.py rc=1 wall=286.7s cpu=273.3s
+   |   FAIL the recommendation actually covers the heaviest window
+   |   FAIL a heavy learned window pushes the recommendation up  [got 60 vs 60 after 8 kWh heavy days on a 1500 L tank]
+   |   FAIL and recommends what the mirrored positive day recommends  [got 60 at -1.0/kWh vs 60 at +1.0/kWh on the same 1500 L tank]
+   |   ok   a pump command that FAILED is not remembered as done
+   |   FAIL a tank under the floor cannot be said to cover a window it cannot hold  [a 5 L tank (its own capacity 0.0058 kWh/K) reads covers_heaviest_window=False at a 60 °C recommendation, and the 200 L control reads covers_
+   | 4 of 3369 FEATURE CHECKS FAILED
+   | Traceback (most recent call last):
+   | Traceback (most recent call last):
+SCRIPT tests/env_drift.py rc=0 wall=212.5s cpu=209.6s
+RESULT wall_typing_ruler_py=0.2 s
+RESULT cpu_typing_ruler_py=0.2 s
+RESULT wall_solar_alignment_py=0.9 s
+RESULT cpu_solar_alignment_py=0.9 s
+RESULT wall_wood_advisor_py=0.8 s
+RESULT cpu_wood_advisor_py=0.7 s
+RESULT wall_plan_view_py=1.1 s
+RESULT cpu_plan_view_py=1.0 s
+RESULT wall_card_mjs=10.2 s
+RESULT cpu_card_mjs=12.9 s
+RESULT wall_deployment_shape_py=1.9 s
+RESULT cpu_deployment_shape_py=1.8 s
+RESULT wall_structure_py=2.3 s
+RESULT cpu_structure_py=2.3 s
+RESULT wall_doc_claims_py=2.8 s
+RESULT cpu_doc_claims_py=2.8 s
+RESULT wall_card_drift_mjs=4.4 s
+RESULT cpu_card_drift_mjs=5.4 s
+RESULT wall_manual_plan_py=6.7 s
+RESULT cpu_manual_plan_py=6.1 s
+RESULT wall_config_flow_steps_py=12.5 s
+RESULT cpu_config_flow_steps_py=12.3 s
+RESULT wall_finite_boundary_py=10.9 s
+RESULT cpu_finite_boundary_py=10.7 s
+RESULT wall_entities_py=88.3 s
+RESULT cpu_entities_py=67.9 s
+RESULT wall_features_py=286.7 s
+RESULT cpu_features_py=273.3 s
+RESULT wall_env_drift_py=212.5 s
+RESULT cpu_env_drift_py=209.6 s
+RESULT scripts_run=15 count
+RESULT killed_by=1 count
+KILLERS tests/features.py
+RESULT thread_factor=1.000
+RESULT load1=1.01
+RESULT swapins=0
