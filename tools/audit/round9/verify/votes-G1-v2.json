@@ -295,6 +295,41 @@
     "class": null,
     "seam_rule_enumerates": null
    }
+  ],
+  "D13": [
+   {
+    "id": "D13-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "step1 (pinned clone, origin/main=1936d5ca): stats_window_merges=201 subject_merges=253 gap=52 gap_marked=0; drop 200/53/0; restore 253/0. step2 v2_enum.mjs: dropped=52 (PRs #1097..#1165, all two-parent), api_enumerated=201, silent_skip_lines=0, subject_mode_count=0, api_with_subject_fill=253",
+    "metric_definition": "PR-number set delivered by production policy_lint.mjs:enumerateMerges (source cut and evaluated) in API mode over the recorded /commits/<sha>/pulls rows vs N of first-parent `Merge pull request #N` subjects in v6.6.0..1936d5ca (explicit SHA)",
+    "method": "Re-ran enum_gap.mjs (3 arms) in a --shared clone with origin/main pinned to 1936d5ca (in the evidence worktree origin/main=db878b29 and the harness prints 0/256/gap_marked=1: harness depends on origin/main). Own harness tools/audit/round9/D13/verify-v2/v2_enum.mjs; perturbation V2_PERTURB=body (subject fallback in place of `continue`) -> dropped 0. Vote rests on recorded snapshot + git; the live 404 of the 52 PR records was not re-read (no GitHub).",
+    "attacks": "contention: n/a (counts, load1 1.3-3.6, thread_factor 1); gate mode: n/a; grid: single set difference; null control: subject-fill -> 253, gap is exactly the empty-row commits; reach: cmdStats population via CLI; severity: D13 rule medium (instrument cannot compute its own metric). Minor: range starts #1097, not #1098. Finder harness reproducibility defect: requires origin/main == 1936d5ca.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D13-s1-02",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "step1: reverify_rounds=22 reverify_blocked=0 (11 merges-only, 1 ci-only, 10 content); perturb 1. step2 v2_reverify.mjs: reverify_blocked=0/22; net diff unchanged at both heads: 3 (patch-id --stable), 4 (-U0 +/- key); of the finder's 12 merges/ci-only rounds only 3 keep the diff; changed_rounds_later_blocked=0",
+    "metric_definition": "Re-verification round = production waveVerdictRe verdict following a `merge` verdict on a different head; diff-unchanged = git diff $(merge-base head M^1) head (M = PR merge commit) keyed by patch-id --stable and by sha1 of -U0 file headers and +/- lines, equal at old and new head",
+    "method": "Re-ran yield_rounds.mjs (baseline, block_one_reverify). Own harness tools/audit/round9/D13/verify-v2/v2_reverify.mjs measuring the finding's own phenomenon property (diff against merge base unchanged); perturbation V2_PERTURB=flip -> reverify_blocked 1.",
+    "attacks": "contention n/a (counts); grid: 0/22 single count, 95% upper bound ~13.6%; null control holds (repair 21, first verdicts blocked 16/188); the 0-catch cost stands, but the '12 heads moved only by merges or ci:' proxy fails its own property: 9 of the 12 change the net diff (ledger merge resolutions, e.g. #1349 claimed_drift.txt, #1610 mutation_budgets.json, #1282 a claim line), so the stated diff-equivalence fix carries 3-4 of 22 rounds (of 237 parsable verdicts). Severity weakened to medium: recoverable cost the proposed fix reaches is 3-4 rounds over the window.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D13-s1-03",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "step1: m3_body_answer_blocks=8, m3_max_engineering_class=1, buckets 12/7/2; rca_to_harness 7/2, 11/8. step2 v2_blocks.mjs (all class tokens per verdict): body_answer_any=8, body_answer_only=5, with engineering class=3, eng_class_max=4 (class-open), verdicts naming any engineering class=10; pr-contract already reads red (prcontract_reads_red=1); typing/fast (3.14)/mutation completed after the head's first pr-contract run in 200/201, 201/201, 195/201 final heads",
+    "metric_definition": "Blocked verdicts (production waveVerdictRe) counted by every `<word>:` class token on the first line, not only the first; body-answer = root-cause-unanswered or red-check; plus ordering of red-check candidates' completion vs the pr-contract run at recorded final heads",
+    "method": "Re-ran yield_rounds.mjs (baseline, rca_to_harness). Own harness tools/audit/round9/D13/verify-v2/v2_blocks.mjs; perturbation V2_PERTURB=strip -> body_answer_any 7. Read pr-contract.yml red-list step and policy_lint.mjs checkPrBody/redHistoryForHead; git log -S dates (cccf37fb 2026-09-15 #956 CI wiring; a07dd57d 2026-09-19 red history).",
+    "attacks": "mechanism false at baseline: the proposed pre-review check (pr-contract lists failing check runs, refuses a body not naming them) exists since #956/cccf37fb; the gap is ordering - pr-contract runs on push/edit ~15 s in and the named reds finish minutes later, with no re-trigger on check completion. First-word counting hides engineering classes: max class 4 not 1; 3 of 8 body-answer blocks also carry an engineering block, so 5 rounds removable vs 4. Grid: 7 of 8 body-answer blocks on one day (2026-09-24, #1559-#1563; 19 of 23 blocked lines that day); dropping that day leaves 1 vs <=1. Contention n/a (counts). Severity weakened to medium: comparison survives only narrowly on one wave, and stated mechanism/fix scope is wrong.",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
   ]
  }
 }
