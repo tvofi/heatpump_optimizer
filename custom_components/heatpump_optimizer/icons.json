@@ -268,5 +268,43 @@
         "default": "mdi:calendar-end"
       }
     }
+  },
+  "services": {
+    "apply_manual_plan": {
+      "service": "mdi:calendar-edit"
+    },
+    "apply_schedule": {
+      "service": "mdi:calendar-check"
+    },
+    "apply_topology": {
+      "service": "mdi:sitemap"
+    },
+    "assign_entity": {
+      "service": "mdi:link-variant"
+    },
+    "clear_manual_plan": {
+      "service": "mdi:calendar-remove"
+    },
+    "diagnose_interval": {
+      "service": "mdi:stethoscope"
+    },
+    "restore_learned_snapshot": {
+      "service": "mdi:backup-restore"
+    },
+    "run_optimization": {
+      "service": "mdi:play-circle-outline"
+    },
+    "set_away": {
+      "service": "mdi:home-export-outline"
+    },
+    "set_mode": {
+      "service": "mdi:tune"
+    },
+    "set_thermal_parameters": {
+      "service": "mdi:thermometer-lines"
+    },
+    "simulate_plan": {
+      "service": "mdi:chart-timeline-variant"
+    }
   }
 }
