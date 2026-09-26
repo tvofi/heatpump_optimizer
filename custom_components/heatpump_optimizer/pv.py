@@ -94,11 +94,14 @@ def import_margin(
 ) -> np.ndarray:
     """What a self-consumed kWh saves over an imported one, per step.
 
-    Floored at zero: exporting can never be worth more than importing costs,
-    or the house would be better off never consuming anything — the floor
-    guards against a mis-configured export price inverting the objective.
+    Signed. Where the export compensation exceeds the import price (a
+    negative-price hour, a generous feed-in tariff) a self-consumed kWh
+    forgoes more than an imported one costs, and the margin is negative: the
+    piecewise cost export*min(P, s) + import*max(P - s, 0) holds only on the
+    signed margin. Floored at zero it priced surplus-covered energy at the
+    import price there (R9 D2-s3-02).
     """
-    return np.clip(np.asarray(import_prices, dtype=float) - float(export_price), 0.0, None)
+    return np.asarray(import_prices, dtype=float) - float(export_price)
 
 
 def blended_block_prices(

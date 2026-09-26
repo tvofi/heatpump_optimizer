@@ -1925,17 +1925,18 @@ R.check("surplus is net of the rest of the house", list(surplus) == [0.0, 2.0, 5
 # The piecewise cost of a draw (surplus-covered energy at the export price,
 # the rest at the import price) is charged INLINE by the optimizer's
 # `_energy_cost_fn` -- the old `pv.piecewise_cost` delegation target was
-# dead and is gone (#226). The import margin's zero floor -- an export
-# price above the import price can never pay the house to consume -- is
-# pinned on the live `pv.import_margin` here; the objective checks below
-# pin the draw-side piecewise cases on the live inline.
+# dead and is gone (#226). The import margin is signed: an export price
+# above the import price makes a self-consumed kWh cost more than an imported
+# one, and flooring it at zero broke the piecewise identity there (R9
+# D2-s3-02; the R9-F2.1 block pins both seams on it). The objective checks
+# below pin the draw-side piecewise cases on the live inline.
 _pw_prices = np.array([1.5, 1.5, 1.5])
 _pw_surplus = np.array([0.0, 2.0, 5.0])
 _pw_margin = pv.import_margin(_pw_prices, 0.3)
 R.check(
-    "the import margin floors at zero, never paying the house to consume",
+    "the import margin is import minus export, signed",
     list(_pw_margin) == [1.2, 1.2, 1.2]
-    and list(pv.import_margin(np.array([0.2]), 0.9)) == [0.0],
+    and abs(float(pv.import_margin(np.array([0.2]), 0.9)[0]) + 0.7) < 1e-12,
 )
 _blend = pv.blended_block_prices(_pw_prices, _pw_surplus, 0.3, 4.0)
 R.check(
