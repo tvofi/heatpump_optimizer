@@ -1,0 +1,39 @@
+CELL arm=modulating cell=winter_single_dhw full_power_mislabelled=0 norm_out_of_range=72 norm_min=-0.2 norm_max=1.0
+CELL arm=modulating cell=winter_single_no_dhw full_power_mislabelled=0 norm_out_of_range=72 norm_min=-0.2 norm_max=1.0
+CELL arm=modulating cell=winter_two_zone_dhw full_power_mislabelled=0 norm_out_of_range=32 norm_min=-0.2 norm_max=1.0
+CELL arm=modulating cell=winter_two_zone_no_dhw full_power_mislabelled=0 norm_out_of_range=37 norm_min=-0.2 norm_max=1.0
+CELL arm=modulating cell=shoulder full_power_mislabelled=0 norm_out_of_range=78 norm_min=-0.2 norm_max=0.43
+CELL arm=modulating cell=shoulder_two_zone full_power_mislabelled=0 norm_out_of_range=82 norm_min=-0.2 norm_max=0.84
+CELL arm=modulating cell=summer_dhw_only full_power_mislabelled=0 norm_out_of_range=96 norm_min=-0.2 norm_max=-0.2
+CELL arm=modulating cell=flat_prices full_power_mislabelled=0 norm_out_of_range=41 norm_min=-0.2 norm_max=1.0
+CELL arm=modulating cell=mild_windy_rain full_power_mislabelled=0 norm_out_of_range=75 norm_min=-0.2 norm_max=1.0
+RESULT modulating_full_power_mislabelled=0 steps
+RESULT modulating_cells_with_mislabel=0 cells
+RESULT modulating_mislabel_range=0..0 steps
+RESULT modulating_full_power_mislabelled_loo=0 steps
+RESULT modulating_norm_out_of_range=585 steps
+RESULT modulating_power_normalized_min=-0.2 ratio
+RESULT modulating_power_normalized_max=1.0 ratio
+CELL arm=onoff cell=winter_single_dhw full_power_mislabelled=23 norm_out_of_range=73 norm_min=-60.0 norm_max=0.0
+CELL arm=onoff cell=winter_single_no_dhw full_power_mislabelled=24 norm_out_of_range=72 norm_min=-60.0 norm_max=0.0
+CELL arm=onoff cell=winter_two_zone_dhw full_power_mislabelled=25 norm_out_of_range=73 norm_min=-60.0 norm_max=0.0
+CELL arm=onoff cell=winter_two_zone_no_dhw full_power_mislabelled=28 norm_out_of_range=68 norm_min=-60.0 norm_max=0.0
+CELL arm=onoff cell=shoulder full_power_mislabelled=0 norm_out_of_range=96 norm_min=-60.0 norm_max=-45.37
+CELL arm=onoff cell=shoulder_two_zone full_power_mislabelled=1 norm_out_of_range=95 norm_min=-60.0 norm_max=0.0
+CELL arm=onoff cell=summer_dhw_only full_power_mislabelled=0 norm_out_of_range=96 norm_min=-60.0 norm_max=-60.0
+CELL arm=onoff cell=flat_prices full_power_mislabelled=31 norm_out_of_range=67 norm_min=-60.0 norm_max=0.0
+CELL arm=onoff cell=mild_windy_rain full_power_mislabelled=17 norm_out_of_range=79 norm_min=-60.0 norm_max=0.0
+RESULT onoff_full_power_mislabelled=149 steps
+RESULT onoff_cells_with_mislabel=7 cells
+RESULT onoff_mislabel_range=0..31 steps
+RESULT onoff_full_power_mislabelled_loo=118 steps
+RESULT onoff_norm_out_of_range=719 steps
+RESULT onoff_power_normalized_min=-60.0 ratio
+RESULT onoff_power_normalized_max=0.0 ratio
+RESULT thread_factor=1.000
+RESULT load1=0.68
+RESULT swapins=0
+
+real	0m38.380s
+user	0m37.113s
+sys	0m0.159s

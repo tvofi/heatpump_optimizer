@@ -1,0 +1,12 @@
+custom_components/heatpump_optimizer/pv.py:68:    irradiance = np.clip(np.asarray(irradiance_w_m2, dtype=float), 0.0, None)
+custom_components/heatpump_optimizer/pv.py:92:def import_margin(
+custom_components/heatpump_optimizer/pv.py:101:    return np.clip(np.asarray(import_prices, dtype=float) - float(export_price), 0.0, None)
+custom_components/heatpump_optimizer/pv.py:123:        prices - import_margin(prices, export_price) * covered_fraction
+custom_components/heatpump_optimizer/optimizer.py:2428:        margin = pv.import_margin(prices, self.config.pv_export_price)
+custom_components/heatpump_optimizer/optimizer.py:2465:            surplus = np.clip(surplus - space_demand[: len(prices)], 0.0, None)
+custom_components/heatpump_optimizer/optimizer.py:2819:            ext = np.clip(np.asarray(external_heat_kw, dtype=float), 0.0, None)
+custom_components/heatpump_optimizer/optimizer.py:3160:            sig = np.clip(np.asarray(price_sigma, dtype=float), 0.0, None)
+custom_components/heatpump_optimizer/optimizer.py:3205:                m = np.clip(np.asarray(min_temp_margins, dtype=float), 0.0, None)
+custom_components/heatpump_optimizer/optimizer.py:3350:                        np.max(np.clip(req[:steps] - planned[:steps], 0.0, None))
+custom_components/heatpump_optimizer/optimizer.py:5186:            demand = np.clip(np.asarray(space_demand, dtype=float), 0.0, None)
+custom_components/heatpump_optimizer/optimizer.py:5187:            headroom = np.clip(p_total_max - demand, 0.0, None)

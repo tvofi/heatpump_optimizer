@@ -1,0 +1,35 @@
+
+=== Stress and economics ===
+RESULT spring_cycles=50 count
+RESULT spring_cycle_failures=0 count
+RESULT spring_replay_wrong_sites=9 count
+#   spring: accuracy.py:182
+#   spring: coordinator.py:4684
+#   spring: coordinator.py:6207
+#   spring: coordinator.py:9205
+#   spring: coordinator.py:9405
+#   spring: coordinator.py:9445
+#   spring: dhw_learning.py:347
+#   spring: external_heat.py:206
+#   spring: tariff.py:58
+RESULT autumn_cycles=46 count
+RESULT autumn_cycle_failures=0 count
+RESULT autumn_replay_wrong_sites=9 count
+#   autumn: accuracy.py:182
+#   autumn: coordinator.py:4684
+#   autumn: coordinator.py:6207
+#   autumn: coordinator.py:9205
+#   autumn: coordinator.py:9405
+#   autumn: coordinator.py:9445
+#   autumn: dhw_learning.py:347
+#   autumn: external_heat.py:206
+#   autumn: tariff.py:58
+RESULT plain_cycles=48 count
+RESULT plain_cycle_failures=0 count
+RESULT plain_replay_wrong_sites=0 count
+RESULT zone_clock=1
+RESULT replay_wrong_sites=9 count
+RESULT wall_s=40.4 s provisional
+RESULT thread_factor=0.994
+RESULT load1=2.86
+RESULT swapins=0

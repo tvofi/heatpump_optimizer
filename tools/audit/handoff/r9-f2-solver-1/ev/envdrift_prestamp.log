@@ -1,0 +1,229 @@
+==========================================================================
+DRIFT BASELINE CACHE HIT -- the baseline was REUSED, not recomputed
+  key       bbb9450dc744c5ce5c754ae1ae1d141e097211c1abf55c293f19bdbf5e3f1b46
+  entry     /root/.cache/heatpump_optimizer/drift-baseline/bbb9450dc744c5ce5c754ae1ae1d141e097211c1abf55c293f19bdbf5e3f1b46.json
+  ref       db878b29fa301d44231ccec55a85a80d610e9b1e -> db878b29fa301d44231ccec55a85a80d610e9b1e
+  tree      7a33f8eaaa237f6ed9b7a6b60dab36dcd5f78d02
+  mode      all
+  captured  8 min ago
+  key covers:
+    baseline_commit  c72dbad9a33d
+    baseline_tree    9453b9405f56
+    cache_format     391552c099c1
+    driver_sha256    fcf1fab278c8
+    environment      054bbe233bdc
+    interpreter      d14ab4b0536b
+    mode             5cf7504d9781
+    numeric_probe    cacff2cda4b5
+    numpy_build      6411f37f1299
+    packages         284bce1e279d
+    platform         489d0b7c4371
+    sensitive        541346c5f2b4
+  bypass    DRIFT_NO_CACHE=1 to capture the baseline from scratch
+==========================================================================
+  captured 56 scenarios from branch
+  reused   56 scenarios for baseline from cache key bbb9450dc744c5ce (see the banner above)
+
+########## committed fixtures: staleness (#347) ##########
+  56 fixture(s) compared against this tree's capture; 1 of them float-free and compared exactly.
+
+  values (reported, never failed): 34 fixture(s), 15999 leaf/leaves differ from the committed files in value alone.
+  A float-bearing fixture can only be re-recorded honestly in the environment
+  that records them all; a dev box would poison it. Nothing here is failed on.
+  no committed fixture is stale
+  ok    away_setback is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    building_preset is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    capacity_curve is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    capacity_tariff is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  may-drift capacity_tariff_15min: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  ok    confidence_margins is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    config_flow is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    cool_rainy_summer is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    coord_all_features is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    coord_dhw is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    coord_grid_fee is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    coord_minimal is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    coord_two_zone is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    cop_scale_learned is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  may-drift cycling_cost: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  ok    dhw_cold_tank is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    dhw_large_tank is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    dhw_learned_windows is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    dhw_schedule_off is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  may-drift direct_flow_carnot: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened)
+  MAY-DRIFT everything_on: 759 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), owner)
+         everything_on.compressor_starts: 4 vs 5
+         everything_on.deferred_energy_cost: 11.07933 vs 10.127553
+         everything_on.displace_schedule[0]: -1.2 vs -1.9
+         everything_on.displace_schedule[1]: -2.6 vs -3.8
+         everything_on.displace_schedule[2]: 0.8 vs -0.1
+         everything_on.displace_schedule[3]: 3.7 vs 3.3
+         everything_on.displace_schedule[4]: 6.4 vs 5.5
+         everything_on.displace_schedule[5]: 8.6 vs 7.8
+         everything_on.displace_schedule[6]: 10.4 vs 9.8
+         everything_on.displace_schedule[7]: 11.8 vs 11.5
+  ok    external_heat_active is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    extreme_prices is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  may-drift flat_prices: did not move here (#1208 polish-every-candidate, owner ruling #1208 comment 208bed25)
+  may-drift fuse_guard: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+  ok    horizon_48h is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    horizon_6h is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    legionella_due is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    legionella_due_low_setpoint is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    legionella_off is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    mild_windy_rain is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  may-drift narrow_band: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  ok    negative_prices is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    peak_masked is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  may-drift precip_snow: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+  ok    price_risk is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  may-drift shoulder: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  may-drift shoulder_two_zone: did not move here (#1208 polish-every-candidate, third name)
+  ok    start_above_band is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    start_below_band is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    summer_dhw_only is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  MAY-DRIFT tariff_plus_two_zone: 758 leaves moved (#1207 keep-gate (2e-2 -> 2e-5),)
+         tariff_plus_two_zone.compressor_starts: 4 vs 5
+         tariff_plus_two_zone.deferred_energy_cost: 14.750007 vs 12.179906
+         tariff_plus_two_zone.displace_schedule[0]: -2.1 vs -2.4
+         tariff_plus_two_zone.displace_schedule[1]: 0.0 vs -0.2
+         tariff_plus_two_zone.displace_schedule[2]: 1.8 vs 1.7
+         tariff_plus_two_zone.displace_schedule[3]: 3.3 vs 3.4
+         tariff_plus_two_zone.displace_schedule[4]: 3.7 vs 5.1
+         tariff_plus_two_zone.displace_schedule[5]: 4.0 vs 6.4
+         tariff_plus_two_zone.displace_schedule[6]: 4.3 vs 7.4
+         tariff_plus_two_zone.displace_schedule[7]: 4.7 vs 7.4
+  MAY-DRIFT valve_storage: 601 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), widened to)
+         valve_storage.buffer_temp_trajectory[1]: 33.00064 vs 32.841793
+         valve_storage.buffer_temp_trajectory[2]: 33.998908 vs 33.583846
+         valve_storage.buffer_temp_trajectory[3]: 34.998013 vs 34.206498
+         valve_storage.buffer_temp_trajectory[4]: 34.660267 vs 34.725153
+         valve_storage.buffer_temp_trajectory[5]: 35.650497 vs 35.584244
+         valve_storage.buffer_temp_trajectory[6]: 36.574534 vs 36.389688
+         valve_storage.buffer_temp_trajectory[7]: 37.436486 vs 37.152311
+         valve_storage.buffer_temp_trajectory[8]: 38.227311 vs 37.911705
+         valve_storage.buffer_temp_trajectory[9]: 38.950847 vs 38.627209
+         valve_storage.buffer_temp_trajectory[10]: 39.610724 vs 39.293671
+  DRIFT valve_storage_flat_prices: 798 leaves moved vs db878b29fa301d44231ccec55a85a80d610e9b1e
+         valve_storage_flat_prices.buffer_temp_trajectory[1]: 32.832149 vs 32.952723
+         valve_storage_flat_prices.buffer_temp_trajectory[2]: 33.560206 vs 33.947763
+         valve_storage_flat_prices.buffer_temp_trajectory[3]: 34.130953 vs 34.938074
+         valve_storage_flat_prices.buffer_temp_trajectory[4]: 34.58543 vs 35.652263
+         valve_storage_flat_prices.buffer_temp_trajectory[5]: 34.893184 vs 36.019514
+  DRIFT valve_storage_low_target: 608 leaves moved vs db878b29fa301d44231ccec55a85a80d610e9b1e
+         valve_storage_low_target.buffer_temp_trajectory[1]: 33.752517 vs 33.370537
+         valve_storage_low_target.buffer_temp_trajectory[2]: 35.387352 vs 34.581684
+         valve_storage_low_target.buffer_temp_trajectory[3]: 35.875313 vs 35.626703
+         valve_storage_low_target.buffer_temp_trajectory[4]: 36.182122 vs 36.742717
+         valve_storage_low_target.buffer_temp_trajectory[5]: 37.741046 vs 37.793798
+  DRIFT valve_storage_small_tank: 750 leaves moved vs db878b29fa301d44231ccec55a85a80d610e9b1e
+         valve_storage_small_tank.buffer_temp_trajectory[1]: 32.904532 vs 33.024334
+         valve_storage_small_tank.buffer_temp_trajectory[2]: 33.699327 vs 33.993669
+         valve_storage_small_tank.buffer_temp_trajectory[3]: 34.293188 vs 34.759187
+         valve_storage_small_tank.buffer_temp_trajectory[4]: 34.575915 vs 35.188651
+         valve_storage_small_tank.buffer_temp_trajectory[5]: 34.521064 vs 35.192726
+  MAY-DRIFT valve_storage_smart_write: 658 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+         valve_storage_smart_write.buffer_temp_trajectory[1]: 32.46097 vs 32.841793
+         valve_storage_smart_write.buffer_temp_trajectory[2]: 33.375541 vs 33.583846
+         valve_storage_smart_write.buffer_temp_trajectory[3]: 33.92882 vs 34.206498
+         valve_storage_smart_write.buffer_temp_trajectory[4]: 33.512897 vs 34.725153
+         valve_storage_smart_write.buffer_temp_trajectory[5]: 33.379536 vs 35.584244
+         valve_storage_smart_write.buffer_temp_trajectory[6]: 33.574878 vs 36.389688
+         valve_storage_smart_write.buffer_temp_trajectory[7]: 34.011856 vs 37.152311
+         valve_storage_smart_write.buffer_temp_trajectory[8]: 34.62416 vs 37.911705
+         valve_storage_smart_write.buffer_temp_trajectory[9]: 35.441369 vs 38.627209
+         valve_storage_smart_write.buffer_temp_trajectory[10]: 36.286073 vs 39.293671
+  MAY-DRIFT valve_upper_direct_slab: 697 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+         valve_upper_direct_slab.buffer_temp_trajectory[15]: 32.803319 vs 32.799723
+         valve_upper_direct_slab.buffer_temp_trajectory[16]: 32.799017 vs 32.796294
+         valve_upper_direct_slab.buffer_temp_trajectory[17]: 32.78767 vs 32.761897
+         valve_upper_direct_slab.buffer_temp_trajectory[18]: 32.770454 vs 32.695718
+         valve_upper_direct_slab.buffer_temp_trajectory[19]: 32.74854 vs 32.601922
+         valve_upper_direct_slab.buffer_temp_trajectory[20]: 32.720926 vs 32.482152
+         valve_upper_direct_slab.buffer_temp_trajectory[21]: 32.509332 vs 30.318266
+         valve_upper_direct_slab.buffer_temp_trajectory[22]: 31.32096 vs 28.671061
+         valve_upper_direct_slab.buffer_temp_trajectory[23]: 28.947769 vs 27.390143
+         valve_upper_direct_slab.buffer_temp_trajectory[24]: 27.153606 vs 26.573233
+  ok    wide_band is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    winter_single_dhw is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  ok    winter_single_no_dhw is byte-identical to db878b29fa301d44231ccec55a85a80d610e9b1e here
+  MAY-DRIFT winter_two_zone_dhw: 780 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), owner)
+         winter_two_zone_dhw.compressor_starts: 5 vs 4
+         winter_two_zone_dhw.deferred_energy_cost: 13.275491 vs 11.816193
+         winter_two_zone_dhw.dhw_heating_cost: 8.002513 vs 8.206833
+         winter_two_zone_dhw.dhw_power_schedule[7]: 0.0 vs 0.644997
+         winter_two_zone_dhw.dhw_power_schedule[15]: 0.6 vs 0.812969
+         winter_two_zone_dhw.dhw_power_schedule[16]: 1.014713 vs 0.0
+         winter_two_zone_dhw.dhw_power_schedule[21]: 0.0 vs 0.65492
+         winter_two_zone_dhw.dhw_power_schedule[22]: 0.66102 vs 0.0
+         winter_two_zone_dhw.dhw_power_schedule[24]: 0.6 vs 0.0
+         winter_two_zone_dhw.dhw_power_schedule[27]: 0.829825 vs 1.341526
+  MAY-DRIFT winter_two_zone_no_dhw: 525 leaves moved (#1208 polish-every-candidate, owner)
+         winter_two_zone_no_dhw.deferred_energy_cost: 13.255164 vs 12.460729
+         winter_two_zone_no_dhw.displace_schedule[20]: 16.8 vs 16.6
+         winter_two_zone_no_dhw.displace_schedule[21]: 14.5 vs 14.2
+         winter_two_zone_no_dhw.displace_schedule[22]: 12.5 vs 12.3
+         winter_two_zone_no_dhw.displace_schedule[24]: 9.2 vs 9.5
+         winter_two_zone_no_dhw.displace_schedule[25]: 7.9 vs 8.5
+         winter_two_zone_no_dhw.displace_schedule[26]: 6.9 vs 7.8
+         winter_two_zone_no_dhw.displace_schedule[27]: 6.2 vs 7.4
+         winter_two_zone_no_dhw.displace_schedule[28]: 2.1 vs 3.0
+         winter_two_zone_no_dhw.displace_schedule[29]: -1.4 vs -0.6
+  MAY-DRIFT wood_coil: 617 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+         wood_coil.buffer_temp_trajectory[1]: 32.864067 vs 32.862283
+         wood_coil.buffer_temp_trajectory[2]: 36.280731 vs 36.278178
+         wood_coil.buffer_temp_trajectory[3]: 39.577182 vs 39.574278
+         wood_coil.buffer_temp_trajectory[4]: 42.650754 vs 42.647264
+         wood_coil.buffer_temp_trajectory[5]: 45.539145 vs 45.534579
+         wood_coil.buffer_temp_trajectory[6]: 48.269957 vs 48.263916
+         wood_coil.buffer_temp_trajectory[7]: 50.593291 vs 50.585898
+         wood_coil.buffer_temp_trajectory[8]: 53.076526 vs 53.067013
+         wood_coil.buffer_temp_trajectory[9]: 55.45168 vs 55.439798
+         wood_coil.buffer_temp_trajectory[10]: 57.729748 vs 57.715278
+  MAY-DRIFT wood_two_tank: 601 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+         wood_two_tank.buffer_temp_trajectory[1]: 35.452724 vs 35.452697
+         wood_two_tank.buffer_temp_trajectory[2]: 38.836657 vs 38.836632
+         wood_two_tank.buffer_temp_trajectory[3]: 41.98338 vs 41.983338
+         wood_two_tank.buffer_temp_trajectory[4]: 44.931683 vs 44.934624
+         wood_two_tank.buffer_temp_trajectory[5]: 47.694318 vs 47.696679
+         wood_two_tank.buffer_temp_trajectory[6]: 50.307753 vs 50.293631
+         wood_two_tank.buffer_temp_trajectory[7]: 52.807011 vs 52.746152
+         wood_two_tank.buffer_temp_trajectory[8]: 55.216956 vs 55.024289
+         wood_two_tank.buffer_temp_trajectory[9]: 57.526927 vs 57.145581
+         wood_two_tank.buffer_temp_trajectory[10]: 59.640253 vs 59.092426
+  MAY-DRIFT wood_two_tank_smart_write: 482 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+         wood_two_tank_smart_write.buffer_temp_trajectory[11]: 61.674781 vs 61.65435
+         wood_two_tank_smart_write.buffer_temp_trajectory[12]: 62.258667 vs 62.323302
+         wood_two_tank_smart_write.buffer_temp_trajectory[13]: 62.752418 vs 62.904946
+         wood_two_tank_smart_write.buffer_temp_trajectory[14]: 62.153397 vs 62.369684
+         wood_two_tank_smart_write.buffer_temp_trajectory[15]: 61.009258 vs 61.293964
+         wood_two_tank_smart_write.buffer_temp_trajectory[16]: 59.645271 vs 60.018953
+         wood_two_tank_smart_write.buffer_temp_trajectory[17]: 58.251458 vs 58.691576
+         wood_two_tank_smart_write.buffer_temp_trajectory[18]: 56.917126 vs 57.383974
+         wood_two_tank_smart_write.buffer_temp_trajectory[19]: 55.697439 vs 56.188075
+         wood_two_tank_smart_write.buffer_temp_trajectory[20]: 54.630321 vs 55.153489
+
+10 MAY-DRIFT SCENARIO(S) MOVED, plan only
+These fixtures are non-reproducible across BLAS builds; only
+diffs outside MAY_DRIFT_JUDGED_KEYS are exempt. Plan drift
+is printed rather than judged:
+  everything_on: #1207 keep-gate (2e-2 -> 2e-5), owner
+  tariff_plus_two_zone: #1207 keep-gate (2e-2 -> 2e-5),
+  valve_storage: #1207 keep-gate (2e-2 -> 2e-5), widened to
+  valve_storage_smart_write: machine-sensitive; the DHW plan can reach it, per local optimum
+  valve_upper_direct_slab: machine-sensitive; the DHW plan can reach it, per local optimum
+  winter_two_zone_dhw: #1207 keep-gate (2e-2 -> 2e-5), owner
+  winter_two_zone_no_dhw: #1208 polish-every-candidate, owner
+  wood_coil: machine-sensitive; the DHW plan can reach it, per local optimum
+  wood_two_tank: machine-sensitive; the DHW plan can reach it, per local optimum
+  wood_two_tank_smart_write: machine-sensitive; the DHW plan can reach it, per local optimum
+Read the leaf diffs above. Never re-record them on a
+machine where golden.py already reports them as DIFF.
+
+3 UNCLAIMED DRIFT(S) vs db878b29fa301d44231ccec55a85a80d610e9b1e
+This branch moved scenarios the baseline does not move in
+this environment: a regression, or a change that must be
+claimed in tests/golden/claimed_drift.txt and justified in
+the PR. Never re-record the five sensitive fixtures on a
+machine where golden.py already reports them as DIFF.
+rc=1

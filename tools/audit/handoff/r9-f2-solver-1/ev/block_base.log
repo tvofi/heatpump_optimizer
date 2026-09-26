@@ -1,0 +1,13 @@
+
+=== F2.1 block ===
+  FAIL R9-F2.1 P7 (spring): a clock 30 min before a 15-min plan is beyond one step, so the action idles  [got mode eco, power 2.0]
+  FAIL R9-F2.1 P7 (autumn): the step covering now is the one whose instant precedes it, not the one whose wall clock does  [got power 4.5, price 0.8 (want step 3: power 2.5, price 0.4)]
+  FAIL R9-F2.1 P3: an on/off pump at full power publishes 'boost' at 1.0, and off publishes 0.0 -- never outside [0, 1]  [full eco 0.0, off -60.0, half -30.0]
+  FAIL R9-F2.1 P3: a modulating pump's published fraction is clipped to [0, 1] outside its band  [[-0.25, 1.25]]
+  FAIL R9-F2.1 P3: every site that normalises planned power puts an on/off pump's full-power step at the top of its range and off at the bottom  [setpoints [19.0, 19.0], upper [19.0, 19.0], displace tail -20.0 against 20.0]
+  FAIL R9-F2.1 P3: one zone-kelvin under min_temp is priced at the single-zone room's linear floor price (scalar)  [slope two-zone 20.000010, single-zone 40.000020]
+  FAIL R9-F2.1 P3: one zone-kelvin under min_temp is priced at the single-zone room's linear floor price (batch)  [slope two-zone 20.000010, single-zone 40.000020]
+  FAIL R9-F2.1 N-sign-floor: the objective charges surplus-covered energy at the export price whatever the sign of import - export  [(import, cost, identity): [(-0.5, -1.5, 0.9), (0.1, 0.3, 0.9)]]
+  FAIL R9-F2.1 N-sign-floor: a hot-water block's blended price is the same identity at every sign of the margin  [[-0.5, 0.1, 0.9] against [-0.1, 0.2, 0.9]]
+
+9 of 14 F2.1 BLOCK FAILED

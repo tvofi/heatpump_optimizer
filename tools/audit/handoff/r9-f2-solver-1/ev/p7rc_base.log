@@ -1,0 +1,17 @@
+
+=== Stress and economics ===
+RESULT spring_cycles=48 count
+RESULT spring_cycle_failures=0 count
+RESULT spring_replay_wrong_sites=0 count
+RESULT autumn_cycles=48 count
+RESULT autumn_cycle_failures=0 count
+RESULT autumn_replay_wrong_sites=0 count
+RESULT plain_cycles=48 count
+RESULT plain_cycle_failures=0 count
+RESULT plain_replay_wrong_sites=0 count
+RESULT zone_clock=0
+RESULT replay_wrong_sites=0 count
+RESULT wall_s=46.5 s provisional
+RESULT thread_factor=0.995
+RESULT load1=4.71
+RESULT swapins=0
