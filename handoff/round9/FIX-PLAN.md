@@ -22,7 +22,7 @@ Companion files, all generated from one data file so they cannot disagree:
 ## 1. The numbers
 
 - **47 PRs in 11 lanes**, covering all 145 surviving findings (148 canonical less 3 refuted; the 7 merged
-  ids travel with their canonical), all 14 counted instances beyond them (the sweeps' and the RCA
+  ids travel with their canonical), all 17 counted instances beyond them (the sweeps' and the RCA
   fold's, sections 9 and 10) and 2 latent seams an RCA placed. tvofi (17:44Z): the PR count does
   not matter; the reasons for each PR are below.
 - **Why not fewer.** `fixer.md` caps a PR at five findings and about 400 production lines, and PLAN
@@ -176,7 +176,7 @@ code-owned or policy, and its line estimate.
 | P11 | 6 | 6 | 6 | (c); the currency and Tibber routes (a) | F10.1 | `handoff/r9-rca-p11@82e645c3` | not code-owned (no CODEOWNERS entry for tests/ha_contract.py or tests/hastub); no policy file | 0 production; +168/-5 test in tests/ha_contract.py, plus about 10 in the stub fixes and the now-contract rewrite |
 | I4 | 5 | 5 | 5 | (a) | F11.4 | `handoff/r9-rca-i4@06bae072` | audit-find.js and the governance.yml step are code-owned; no policy file | 235 for the barrier plus about 20 registry lines for classifying the shared grammars; instance fixes about +24/-20 |
 | P6 | 5 | 5 | 5 | (c) | F1.11 | `handoff/r9-rca-p6@aa2026b7` | not code-owned; no policy file | 0 production; about 510 test lines (423 without comments and blank lines); may delete the hand-written six-code error check arm E subsumes |
-| P9 | 4 | 5 | 8 | (c) | F6.3 | `handoff/r9-rca-p9@4f3b9d4f` | code-owned (tests/card_browser.mjs); no policy file | 0 production; +572 test, some of which the fixer may pay back by deleting per-instance witnesses the grid subsumes |
+| P9 | 4 | 5 | 11 | (c) | F6.3 | `handoff/r9-rca-p9@4f3b9d4f` | code-owned (tests/card_browser.mjs); no policy file | 0 production; +572 test, some of which the fixer may pay back by deleting per-instance witnesses the grid subsumes |
 | N-solve-recompute | 4 | 5 | 7 | (c) | F10.2 | `handoff/r9-rca-avoidable-interpreter-bound-recomputation@ab04e39b` | code-owned (tests/stress.py); no policy file | 0 production; about 200 test lines in tests/stress.py after trimming (+287 as prototyped); the allowance constant re-derived at F10.2's merge base with the RCA's history evaluator |
 | P3 | 3 | 3 | 3 | (c) | F1.10 | `handoff/r9-rca-p3@2ca057ae` | not code-owned; no policy file | about +60/-35 production (every floor moved into a ThermalParameters property; +63/-36 on the RCA's fixed tree, which included F2.1's instance fixes); about 210 test lines |
 | P5 | 3 | 3 | 4 | (c) | F4.2 | `handoff/r9-rca-p5@d4cf63d9` | not code-owned; no policy file | 0 production (the fix is F4.2's); +79/-4 test |
@@ -219,11 +219,11 @@ read; the generator refuses the plan otherwise and prints the residuals.
 | Judge/verifier notes carried to the fixer: D2-s2-01's missed coordinator seams (F1.7); D2-s2-03's baseline_end sibling (F2.3); refuted D0-s1-01's two-zone deep-anchor asymmetry as hygiene for the P4 fixer (F2.4); D8-s2-03's finder fix would reintroduce D8-s2-02 (F7.1); G1-V2's `boost.restore` naive-until observation (F3.1); every weakened or narrowed claim (in the finding's fix notes) | as listed |
 | L2 extra seams for existing findings (en.json → D5-s1-02; strings.json and README → D6-s2-03; README → D8-s3-03; climate.py → D8-s1-03; config_flow `async_step_dhw` → D12-s1-02; the card's datetime-local handler → D1-s3-01; the price-unit fields → D4-s2-02) | F5.1, F8.3, F7.2, F2.4, F1.2, F3.1, F1.8 respectively |
 | Owed round-9 driver fixes (Prepare rounds interpolation, earlier-rounds strip, env_drift warm step, Chromium path, the batch patch's defer and judge-flag arguments) and `tools/audit/README.md` naming `scopes.json`/`check_scopes.py` | optional fold into **F11.4**, tvofi's call |
-| The RCA seats' carries (31, `finding-propagation.md`), each delivered into its destination's roster brief and lane brief | section 10 |
+| The RCA seats' carries (34, `finding-propagation.md`), each delivered into its destination's roster brief and lane brief | section 10 |
 
 ## 7. Findings I could not place
 
-None. Every one of the 145 survivors is placed in a PR or refused by tvofi, and every one of the 14 counted instances and the 2 latent seams maps to a PR (tables below). FI-sw3 (F1.9) ends in tvofi's decision (card C13: treated as an outage). Refused by tvofi, with no PR:
+None. Every one of the 145 survivors is placed in a PR or refused by tvofi, and every one of the 17 counted instances and the 2 latent seams maps to a PR (tables below). FI-sw3 (F1.9) ends in tvofi's decision (card C13: treated as an outage). Refused by tvofi, with no PR:
 
 | finding | class | disposition |
 |---|---|---|
@@ -335,7 +335,7 @@ P5 3 → 4 (the half slab mass); P9 5 → 8 (P9-sw1 out; three new and one candi
 class 5 → 7 (`peak_cost_batch`, the terminal closure); the future-instant class 7 → 8 (legionella).
 Latent seams (P1-rca1, P1-rca2) fill F1.6's freed slots and are not counted.
 
-**Carries** (31), delivered into each destination's roster brief (`carry`) and lane brief:
+**Carries** (34), delivered into each destination's roster brief (`carry`) and lane brief:
 
 | to PR | from RCA | carry |
 |---|---|---|
@@ -343,10 +343,13 @@ Latent seams (P1-rca1, P1-rca2) fill F1.6's freed slots and are not counted.
 | F1.6 | P1 | Take each NaN-arm failing test from Arm 4 or a store-path probe, never a direct from_dict call: through QuarantiningStore a NaN leaf becomes None first, so a direct call measures a seam no store can reach. This applies to D14-s1-01's attempt_peak arm here. |
 | F3.3 | P1 | tvofi commissioned a declared-domain barrier for this PR's residue (card C1; it lands in F9.3, after F1.6): fix each seam here as planned, and record in the body each stored field you bound and the domain its own update path enforces, which F9.3's table declares. D1-s4-01's duty and D1-s5-02's residual variance NaN probes call from_dict directly and bypass QuarantiningStore, which turns the NaN leaf into None; take the failing tests from a store-path probe or the P1 barrier's Arm 4 (prototype 0ade2456). The finite out-of-range cells are the reachable part and stay in scope. |
 | F3.1 | P1 | The stored-instant rule must make every stored instant aware, or drop it, at load, including AccuracySample.from_dict, the immersion events and the snapshot's taken_at; F1.6 applies it at the two F1-owned seams (P1-rca1, P1-rca2). The P1 barrier's Arm 4 refuses a naive instant held live even where no consumer diffs it yet. Which zone a naive value is read in is this PR's decision (the P1 demo used UTC). |
+| F1.6 | P1 | F3.1 landed the store's stored-instant helper (raw value, zone argument): a loader that can see Home Assistant passes dt_util.DEFAULT_TIME_ZONE and a pure loader with no clock reads a naive instant as UTC (Cusum's pre-existing rule); apply the same call at AccuracySample.from_dict and the immersion events. Control: under the stub's default naive clock (HASTUB_TZ unset, DEFAULT_TIME_ZONE None) a loader that attaches UTC turns every naive-clock round trip into a TypeError -- F3.1's first cut did that at boost.restore and features.py and finite_boundary.py both died on it; passing DEFAULT_TIME_ZONE keeps the value naive in the stub and aware in Home Assistant. Arm 4 must drive an aware clock (HASTUB_TZ, or freeze an aware instant), or it refuses the stub's own naive stamps. Re-measure at your merge base. (Forward-carry from F3.1, #1647.) |
 | F3.1 | N-future-instant | Cherry-pick 8795c4c2: QuarantiningStore gains the lead argument and rewrites an instant leaf later than now plus the lead to that bound, in the leaf's own zone form, with one WARNING; boost's lead is BOOST_HOURS, accuracy's the longest lead bucket, away and the manual plan opt out with a listed reason until F1.4 bounds the plan's expiry. Arm 5 in tests/finite_boundary.py feeds every loader instants 400 days ahead and holds the opt-out list equal in both directions. The coordinator edit joins two argument lists, so coordinator_loc falls: re-record it down with the reason in the commit message. |
 | F3.1 | N-future-instant | Re-read tests/features.py's #1532 check and its comment, which call a future last cycle 0 h ago: they stay valid only for an in-process clock step back, which the boundary does not touch. The age of a stamp ahead of the reading clock is unknowable, not 0 (#775). |
 | F1.4 | N-future-instant | Once D1-s2-54 bounds the manual plan's expiry, set the manual-plan store's lead in its coordinator construction and remove manual_plan from the boundary arm's opt-out list in tests/finite_boundary.py (borrowed from F9); the arm refuses a list that disagrees with the stores in either direction. |
 | F1.9 | N-future-instant | The RCA's three corrections to S7: a use-time clamp inside a parse is a no-op at the parse-at-use seams (snapshots due, the curve learner's step down, the immersion margin), FI-sw3 owes a decision rather than a bound, and FI-sw1 is month-bounded. S7's probes are not the failing tests for FI-sw1 or FI-sw3; the RCA's real-loader reproduction is the shape. |
+| F1.9 | N-future-instant | The store boundary does not see an in-process clock step back. For boost alone F3.1 closed that half too: BoostState.expire holds an end more than BOOST_HOURS ahead of now to now + BOOST_HOURS (D1-s3-05; boost_unbounded.py jump1/6/24 read 2.00 h at F3.1's head against 3/8/26 h at db878b29, jump0 2.00 h at both as the null control). FI regression tests owe no in-process arm for boost; any other expiry's in-process step is not closed by F3.1. (Forward-carry from F3.1, #1660.) |
+| F3.2 | N-future-instant | pump_arbiter._load now parses each written instant with the store's stored-instant helper (pair[1], the default time zone) and skips an unparseable one; keep that call if F3.2 reworks _load (features.py pin 'boost, the pump-duty arbiter and legionella read a naive stored stamp in Home Assistant's zone' fails if it reverts to fromisoformat). FI-sw5's echo-grace instant is bounded at load by the store (lead 0). (Forward-carry from F3.1, #1660.) |
 | F2.4 | P2 | D12-s2-01 has a fourth copy of the on threshold, `_observe_compressor_start` in coordinator.py (baseline line 9736, operands reversed, so the sweep's grep missed it). This PR cannot edit it (F1 owns coordinator.py): create the owner, and F1.10 routes that copy through it before F1.11 registers the owner in the P2 registry. |
 | F2.1 | P3 | D12-s2-03: send all four normalised-power sites (`_zone_setpoints`, `_power_to_setpoints`, `_power_to_displace_schedule`, `get_current_action`) through one helper that owns the floor, better the clipped fraction; otherwise F1.10's floor arm re-opens them. D2-s2-81: give each zone the full linear floor price; the P3 per-pair arm pins only the linear term and leaves how the quadratics combine the zones to you. |
 | F4.2 | P5 | A fix that feeds the learned free-heat profile into the prior needs coordinator.py (the gains prior is built there from the configured internal gains); hand that part back to F1 as this brief already says. The barrier's check deliberately omits the #1524 check's peak clause: aborted free-heat nights peak at 0.846 and 0.880 K, which is D2-s4-02's abort-at-sample seam (now F4.1's) and not this class's. |
@@ -529,14 +532,14 @@ orchestrator's recommendation it is applied as given:
 | F10.1 | F10 (Gate, stub and ratchet infrastructure) | opus | `handoff/r9-f10-gate-infra-1` | `handoff/round9/fix/F10.md` | - |
 | F11.1 | F11 (Governance tooling and policy) | sonnet | `handoff/r9-f11-governance-1` | `handoff/round9/fix/F11.md` | - |
 
-Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1), F9 (first PR F9.1, after F3.1).
+Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1, F7.1), F9 (first PR F9.1, after F3.1).
 
 ---
 ## PR table (merge order within each lane; `after` gives the cross-lane edges)
 
 | PR | lane | wave | findings | classes | sev | model | tvofi | RCA seat beside | barrier here | after |
 |---|---|---|---|---|---|---|---|---|---|---|
-| F1.1 | F1 | 2 | D14-s4-01*, D14-s4-02, D3-s1-91, D3-s3-01 | P7, P11, I1 | high | opus | - | - | - | F2.1, F10.1, F3.1 |
+| F1.1 | F1 | 2 | D14-s4-01*, D14-s4-02, D3-s1-91, D3-s3-01, D1-s3-04* | P7, P11, I1, N-shared-config | high | opus | - | - | - | F2.1, F10.1, F3.1, F7.1 |
 | F1.2 | F1 | 3 | D12-s1-01, D12-s3-01, D14-s2-01 | P6, P2 | high | opus | - | P6 | - | F1.1 |
 | F1.3 | F1 | 4 | D2-s3-01, D1-s2-51, D1-s2-91, D1-s4-02, D10-s1-02 | P2 | high | opus | - | - | - | F1.2 |
 | F1.4 | F1 | 5 | D1-s2-52, D1-s2-53, D1-s2-54, D1-s2-03 | N-restart, N-service-clamp, P1 | medium | opus | - | N-restart | N-restart | F1.3, F9.1 |
@@ -560,7 +563,7 @@ Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1), F9 (fir
 | F5.1 | F5 | 1 | D4-s2-03, D4-s2-08, D4-s2-09, D8-s3-02, D8-s3-01, D5-s1-02*, D6-s2-03* | N-escape, N-service-icons, I5, N-name-sort | medium | sonnet | - | - | - | - |
 | F5.2 | F5 | 4 | D4-s2-01, D4-s2-05, D4-s2-06, D4-s2-07, D10-s2-01 | P6, N-step-grid, P2, N-menu | medium | sonnet | - | - | - | F5.1, F1.2, F7.1 |
 | F6.1 (cap exception) | F6 | 1 | D4-s1-01, D4-s1-02, D4-s1-03, D4-s1-05, +P9-rca1, +P9-rca2, +P9-rca3, +P9-rca4 | P9 | medium | sonnet | - | P9 | - | - |
-| F6.2 | F6 | 2 | D4-s1-04, D5-s2-01 | N-keyboard, I5 | medium | sonnet | - | - | - | F6.1 |
+| F6.2 | F6 | 2 | D4-s1-04, D5-s2-01, +P9-f61a, +P9-f61b, +P9-f61c | N-keyboard, I5, P9 | medium | sonnet | - | - | - | F6.1 |
 | F6.3 | F6 | 3 | (class barrier) | - | barrier | opus | **yes** | - | P9 | F6.2 |
 | F6.4 | F6 | 11 | D4-s2-81 | N-language | medium | sonnet | - | - | - | F6.3, F1.8 |
 | F7.1 | F7 | 1 | D8-s2-02, D8-s2-03, D1-s3-04 | P2, N-shared-config | high | sonnet | - | - | - | - |
@@ -590,7 +593,7 @@ Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1), F9 (fir
 
 | PR | edits (owned by its lane) | borrows (file from lane) | tvofi because |
 |---|---|---|---|
-| F1.1 | coordinator.py, accuracy.py, dhw_learning.py, external_heat.py, tests/dst_checks.py, tests/open_meteo.py | tests/replay.py from F10 | - |
+| F1.1 | coordinator.py, accuracy.py, dhw_learning.py, external_heat.py, tests/dst_checks.py, tests/open_meteo.py | tests/replay.py from F10, climate.py from F7 | - |
 | F1.2 | coordinator.py | config_flow.py from F5, modbus_prefill.py from F5, topology.py from F5 | - |
 | F1.3 | coordinator.py, button.py | - | - |
 | F1.4 | coordinator.py, store.py, services.py, manual_plan.py | tests/finite_boundary.py from F9 | - |
@@ -663,7 +666,7 @@ Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1), F9 (fir
 | D1-s3-01 | high | P2 | F3.1 | A tz-less return_time (card datetime-local) or a naive stored datetime wedges every cycle with TypeError |
 | D1-s3-02 | medium | P2 | F3.2 | Pump-duty arbiter re-registers its timer and state listener on an unloaded coordinator and keeps writing the pump |
 | D1-s3-03 | medium | P1 | F3.2 | pump_arbiter._load installs non-numeric set-point values that raise TypeError on every apply |
-| D1-s3-04 | low | N-shared-config | F7.1 | Climate entity publishes the away setback as the user's target while the solve is in the executor |
+| D1-s3-04 | low | N-shared-config | F1.1 (moved from F7.1 (orchestrator, 2026-09-26): the coordinator-side seam near coordinator.py line 2495, plus the climate.py read near line 157), F7.1 | Climate entity publishes the away setback as the user's target while the solve is in the executor |
 | D1-s3-05 | low | N-future-instant | F3.1 | Boost 'two-hour maximum' is an absolute instant: a clock step back or a far-future store extends it without bound |
 | D1-s3-06 | medium | P1 | F3.2 | FrequencyMap.from_dict admits an unbounded ratio or out-of-range decile that pins recommend() at hz_min for days |
 | D1-s4-01 | low | P1 | F3.3 | DefrostDerate.from_dict admits non-finite/out-of-range duty; the bucket pins at DERATE_MIN and never recovers |
@@ -801,6 +804,9 @@ Line numbers are at baseline `1936d5ca`. A sweep instance's probe is under its s
 | P9-rca2 | P9 | RCA (p9) | instance | F6.1 | - | www/heatpump-optimizer-card.js: the 'estimated prices' label on the estimated price band (every price estimated, a price source down) | 3.94:1 contrast, under 4.5, en and sv, 6 cells | the P9 barrier's grid (handoff/r9-rca-p9@4f3b9d4f), contrast rule |
 | P9-rca3 | P9 | RCA (p9) | instance | F6.1 | - | www/heatpump-optimizer-card.js: the now label against the 'estimated prices' label | 17 to 153 px of shared glyph ink at 375, 768 and 1280 px, en and sv, 7 cells: D4-s1-05's mechanism at a second seam, contradicting the card's own comment that the two never meet | the P9 barrier's grid (handoff/r9-rca-p9@4f3b9d4f), shared-ink rule |
 | P9-rca4 | P9 | RCA (p9) | instance | F6.1 | - | www/heatpump-optimizer-card.js: the candidate slot tap target (rect.slot-hit, 17.4 by 24.5 px in the shared-steps state at 375 px) | candidate, counted: overlapped 2.3 and 7.3 px by its neighbours' grown targets, so it fails the 2.5.8 spacing exception; the card grows each target against its neighbours' ink, not their grown targets. It needs a fix design: one attempt (half-gap growth) made 53 targets worse | the P9 barrier's grid (handoff/r9-rca-p9@4f3b9d4f), target rule |
+| P9-f61a | P9 | S5 @ `51a2e98a86` | instance | F6.2 | - | www/heatpump-optimizer-card.js: a new overlapping label found while fixing F6.1's four instances | F6.1 found this while re-measuring the grid on its own fix; not one of the RCA's four, so it lands one PR later, ahead of the F6.3 barrier | the P9 barrier's grid (handoff/r9-rca-p9@4f3b9d4f), shared-ink rule |
+| P9-f61b | P9 | S5 @ `51a2e98a86` | instance | F6.2 | - | www/heatpump-optimizer-card.js: pointer-only hit targets found while fixing F6.1's four instances | found by F6.1 alongside the overlapping label; unlike the S5 keyboard-route lead (LEADS, unverified), these are counted P9 hits | the P9 barrier's grid (handoff/r9-rca-p9@4f3b9d4f), target rule |
+| P9-f61c | P9 | S5 @ `51a2e98a86` | instance | F6.2 | - | www/heatpump-optimizer-card.js: a deferred tap-target candidate found while fixing F6.1's four instances | a candidate like P9-rca4 that needs a fix design, deferred by F6.1 to this PR | the P9 barrier's grid (handoff/r9-rca-p9@4f3b9d4f), target rule |
 | RC-sw1 | N-solve-recompute | S5 @ `51a2e98a86` | instance | F2.2 | - | optimizer.py: cycling_penalty_batch | the same per-row Python loop as D9-s1-01's, in an independent function called once per iterate | tools/audit/round9/D14/sweep/avoidable-interpreter-bound-recomputation/enumerate.py |
 | RC-rca1 | N-solve-recompute | RCA (avoidable-interpreter-bound-recomputation) | instance | F2.5 | - | tariff.py: tariff.peak_cost_batch's per-row loop (metering windows, day peaks, plateau-aware day max and the smooth top-k sum re-entered per row) | 62 percent of a winter two-zone DHW capacity-tariff solve and 47 percent of the gate's dearest scenario; no round-9 finding, sweep, issue or brief named it (S5 scanned optimizer.py and ThermalParameters only) | the recompute RCA's share harness in its evidence folder, and the production-call channel (handoff/r9-rca-avoidable-interpreter-bound-recomputation@ab04e39b) |
 | RC-rca2 | N-solve-recompute | RCA (avoidable-interpreter-bound-recomputation) | instance | F2.5 | - | optimizer.py: the per-row loop inside the closure _terminal_cost_batch returns (entered about 382 times per solve) | 2.2 to 3.1 percent of the solve; S5 keyed the loop to the outer builder, which runs once, and disposed it not applicable, a blind spot for every per-row twin #985 built as a closure | the recompute RCA's share harness in its evidence folder |
@@ -827,7 +833,7 @@ Seams are the sweep's own dispositions (`instance`, `guarded`, `not applicable`)
 | P11 | #1649 | F1.7 | 6 | 6 | 6 | yes | S4 @ `b2e3560671` | 6 instance, 2 not applicable | F10.1, F8.3, F1.7, F1.1 | F10.1 |
 | I4 | #1650 | F11.4 | 5 | 5 | 5 | yes | S4 @ `b2e3560671` | 2 guarded, 8 instance | F10.4, F11.1, F11.4 | F11.4 |
 | P6 | #1651 | F1.11 | 5 | 5 | 5 | yes | S4 @ `b2e3560671` | 1 guarded, 12 instance | F1.5, F5.2, F1.2, F1.11 | F1.11 |
-| P9 | #1652 | F6.3 | 4 | 5 | 8 | yes | S5 @ `51a2e98a86` | 5 instance, 1 not applicable | F6.1 | F6.3 |
+| P9 | #1652 | F6.3 | 4 | 5 | 11 | yes | S5 @ `51a2e98a86` | 5 instance, 1 not applicable | F6.1, F6.2 | F6.3 |
 | N-solve-recompute | #1653 | F10.2 | 4 | 5 | 7 | yes | S5 @ `51a2e98a86` | 7 instance, 1 not applicable | F2.2, F2.5 | F10.2 |
 | P3 | #1654 | F1.10 | 3 | 3 | 3 | yes | S5 @ `51a2e98a86` | 1 guarded, 3 instance | F2.1, F1.10 | F1.10 |
 | P5 | #1655 | F4.2 | 3 | 3 | 4 | yes | S5 @ `51a2e98a86` | 3 instance, 1 not applicable | F4.2 | F4.2 |
@@ -858,7 +864,7 @@ Seams are the sweep's own dispositions (`instance`, `guarded`, `not applicable`)
 | N-min-gap | #1680 | F3.3 | 1 | 1 | 1 | no | S6 @ `6b65c9c4a8` | 1 instance, 1 not applicable | F3.3 | - (N below 3, not barriered) |
 | N-service-clamp | #1681 | F1.4 | 1 | 1 | 1 | no | S7 @ `1152a74346` | 1 guarded, 1 instance, 1 not applicable | F1.4 | - (N below 3, not barriered) |
 | N-reap-lock | #1682 | F1.5 | 1 | 1 | 1 | no | S6 @ `6b65c9c4a8` | 1 instance | F1.5 | - (N below 3, not barriered) |
-| N-shared-config | #1683 | F7.1 | 1 | 1 | 1 | no | S7 @ `1152a74346` | 1 instance | F7.1 | - (N below 3, not barriered) |
+| N-shared-config | #1683 | F1.1 | 1 | 1 | 1 | no | S7 @ `1152a74346` | 1 instance | F1.1, F7.1 | - (N below 3, not barriered) |
 | N-staleness | #1684 | F4.1 | 1 | 1 | 1 | no | S6 @ `6b65c9c4a8` | 1 guarded, 2 instance, 2 not applicable | F4.1 | - (N below 3, not barriered) |
 | N-menu | #1685 | F5.2 | 1 | 1 | 1 | no | S7 @ `1152a74346` | 1 guarded, 1 instance | F5.2 | - (N below 3, not barriered) |
 | N-structure-blind | #1686 | F10.4 | 1 | 1 | 1 | no | S6 @ `6b65c9c4a8` | 1 guarded, 6 instance, 1 not applicable | F10.4 | - (N below 3, not barriered) |
