@@ -107,11 +107,12 @@ class CurveLearner:
 
     def _step_down(self, now: datetime) -> None:
         # The weekly rate cap holds even if the caller's day counting is
-        # generous: at most MAX_DOWN_PER_WEEK of movement per 7 days.
+        # generous: at most MAX_DOWN_PER_WEEK of movement per 7 days. A last
+        # step in the future makes the cap negative, and `step <= 0` holds.
         last = stored_instant(self._last_step_at)
         if last is not None:
             days = (now - last).total_seconds() / 86400.0
-            max_now = MAX_DOWN_PER_WEEK * max(days, 0.0) / 7.0
+            max_now = MAX_DOWN_PER_WEEK * days / 7.0
         else:
             max_now = STEP_K
         step = min(STEP_K, max_now)
