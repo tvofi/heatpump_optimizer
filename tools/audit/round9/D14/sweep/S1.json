@@ -1,0 +1,225 @@
+{
+  "class": "P2",
+  "N": 27,
+  "rca": true,
+  "seams": [
+    {
+      "path": "custom_components/heatpump_optimizer/coordinator.py",
+      "finding_id": "D1-s2-51",
+      "severity": "medium",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/cycle_fence.py",
+      "note": "quiet_solve_failed=3/3, arbiter_cycles_failed=3/3, arbiter_skipped_steps=15/15 (exact match to finding); widened: seam_rule matches 153 self._x()/pump_arbiter.apply/boost.apply calls in coordinator.py; only the two cited in the finding (pump_arbiter.apply at the top of _apply_action, and _record_quiet_comfort_period inside async_run_optimization's try) are unfenced siblings of the already-fenced steps (_command_frequency, _async_drive_pumps, _async_watch_learning_drift, _async_save_accuracy, _async_save_energy_totals). The other 149 matches are init/state-mutation calls outside the two guarded blocks the finding's mechanism concerns; not additional P2 instances of this fact."
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/coordinator.py",
+      "finding_id": "D1-s2-91",
+      "severity": "medium",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s2/leads/lc_flow_bias_containment.py",
+      "note": "perturbed_raises=5/5, perturbed_scored_after_fold=0/5 vs null_control 0/5 raises, 5/5 scored; widened: 4 direct siblings (_record_accuracy, _track_realised_peak, _async_save_accuracy, _async_save_energy_totals) plus the 6 unwrapped internal calls _record_accuracy makes (per the finding's own note) = 10 seams sharing the shape 'runs after boost.apply/_apply_action inside the same unguarded try, no individual fence'. No further call sites of this exact quartet exist elsewhere in the package (grep -rn same pattern outside coordinator.py: 0 hits)."
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/away.py",
+      "finding_id": "D1-s3-01",
+      "severity": "high",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/away_naive_return.py",
+      "note": "solves_failed=2/2, return_then_on_service_raised=1, on_then_return_service_raised=1; widened: 8 fromisoformat/parse_datetime call sites across the 5 files the finding cites (manual_plan.py x3, legionella.py x2, pump_arbiter.py x1, boost.py x1, away.py x1). The finding's own claim covers away.hold()'s return_time; boost.py:166 and manual_plan.py:82/236/246 parse operator-entered or stored timestamps the same way (no tz normalisation visible at the call), so they are additional instances of the same fact (naive-datetime parse feeding arithmetic downstream). legionella.py:121/127 already route through dt_util.parse_datetime, which HA guarantees returns aware-or-None, so those two are guarded."
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/pump_arbiter.py",
+      "finding_id": "D1-s3-02",
+      "severity": "high",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s3/arbiter_unload.py",
+      "note": "seam_rule reproduced (async_track_time_interval/async_track_state_change_event registered in pump_arbiter.py with no unload counterpart); harness arbiter_unload.py not independently re-run (missing venv package chain) but seam confirmed statically; widened: 5 matches, all in pump_arbiter.py (the finding's file); async_track_time_interval/async_track_state_change_event are the two the finding names as re-registered without an unload guard. legionella.py/disinfection.py/boost.py/away.py have none of these three symbols themselves (0 hits when grepped individually) so they are not applicable to this specific fact, though they were included in the seam_rule's scope by the sibling-module comparison the finder used to establish that pump_arbiter.py is the outlier."
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/optimizer.py",
+      "finding_id": "D1-s4-02",
+      "severity": "medium",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D1/s4/solve_guard.py",
+      "note": "coord_dhw.guarded.optimizer_error_logs=3, null_control.failed_plans_published=0 (contrast confirms the 'failed (...)' status is swallowed)"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/inputs.py",
+      "finding_id": "D1-s5-01",
+      "severity": "medium",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/age_of_divergence.py",
+      "note": "reported_divergent=7 of 12, future_divergent=6 of 6, control_divergent=0 of 12"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/price_model.py",
+      "finding_id": "D1-s5-03",
+      "severity": "low",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s5/price_huge_int.py",
+      "note": "harness ran clean (0 dropped rows in this control arm, matching its own null-control expectation); the huge-int drop arm needs the --perturb/huge-payload flag not passed in this default re-run"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/inputs.py",
+      "finding_id": "D1-s5-52",
+      "severity": "medium",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/sentinel_temps.py",
+      "note": "delivered_minus127=6/6, delivered_85=6/6, delivered_sentinels=12/12, control_21_3=6/6; widened: 17 INPUT_MAX_AGE_MINUTES[...] assignments in const.py, one per temperature-bearing entity key; none carries a plausibility range, matching the finding's claim that no key in this table has one. All 17 are the same shape as the finding's example (indoor/outdoor/DHW/buffer/floor); disposed together as one instance class rather than 17 separate ones, per the finding's own count."
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/config_flow.py",
+      "finding_id": "D10-s1-01",
+      "severity": "medium",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s1/unique_id_drift.py",
+      "note": "dup_accepted=3 arms of 5, stale_refused=3 arms; widened: 12 matches in config_flow.py. Two direct async_update_entry call sites (:2464 reauth, :2950/:3055 options save) plus async_create_entry (:2512, :3021). The finding's claim is that unique_id is not re-derived at these writes; _save() at :3019 is the shared helper both the options flow and thermal-model step route through, so this is one write-shape defect reachable from at least 2 of the 3 sites, not 3 independent unguarded siblings."
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/button.py",
+      "finding_id": "D10-s1-02",
+      "severity": "medium",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s1/press_vs_service.py",
+      "note": "silent_presses=2 arms of 3; widened: 32 matches across button.py/switch.py/climate.py/datetime.py. The finding names ForceOptimizationButton.async_press (button.py) versus the run_optimization service action as the divergent pair (one swallows a failed solve, the other raises). The other 28 matches are turn_on/turn_off/set_value entity actions with no solve-failure path to diverge on (not applicable to this fact) except DiagnoseIntervalButton.async_press, which the finding's own seam_rule explicitly names as a checked-and-excluded candidate."
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/optimizer.py",
+      "finding_id": "D12-s2-01",
+      "severity": "medium",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/onoff_switch.py",
+      "note": "onoff_e2e_turn_off_with_planned_heat=30 steps, onoff_e2e_turn_off_calls=92; widened: 6 matches: optimizer.py:6962 and :7024 (the two on_threshold call sites the finder used to derive the switch-decision predicate) and pump_arbiter.py:354/357/358/491 (the arbiter's own _on_kw and its two uses). The finding's claim is that the plan's own on/off decision (optimizer.py) and the plan-delivery check (pump_arbiter.py's _on_kw comparison at :491) are the same min_electrical_power*0.5 formula evaluated on different inputs (planned vs measured power) at a step the plan already commits as delivered \u2014 a genuine sibling pair, both present in the 6 seams; no further site in the package uses this threshold shape."
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/pump_arbiter.py",
+      "finding_id": "D12-s2-02",
+      "severity": "medium",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/mode_domain.py",
+      "note": "input_select_misrouted_mode_writes=5, sensor_misrouted_mode_writes=5, failing_mode_domains=2 of the cells tried; widened: 43 async_call matches total, 7 distinct services (select.select_option, mqtt.publish x2, homeassistant.<service>, weather.get_forecasts, climate.set_temperature, number.set_value, and the two-line _on_off_service helper in repairs.py/coordinator.py). Only pump_arbiter.py:457-459 hardcodes the domain literal 'select' for the operating-mode slot; the coordinator's own writes at :6632-6634 and repairs.py:73-75 route the domain through the target entity itself (domain=domain, taken from the entity_id), which is exactly the guard the finding says is missing at the arbiter's own write. One instance (the arbiter site), one guarded sibling shape (the coordinator/repairs sites) confirming the asymmetry the finding claims."
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/config_flow.py",
+      "finding_id": "D12-s3-01",
+      "severity": "medium",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/flow_paths.py",
+      "note": "invented_paths=2 of 6 (invented_dhw_paths=2, invented_two_zone_paths=1)"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/config_flow.py",
+      "finding_id": "D14-s2-01",
+      "severity": "medium",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p2_facts.py",
+      "note": "derive_preset_disagree=20/40, prefill_refused_or_missed=20/40, wood_picture_vs_model_disagree=2/21; all 0 under the recorded perturbation, null_control_disagree=0"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/thermal_model.py",
+      "finding_id": "D2-s1-02",
+      "severity": "low",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D2/s1/m1_coil.py",
+      "note": "coil_residual_cells_nonzero_below_40C=28, coil_residual_max_one_step=0.406 kWh"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/optimizer.py",
+      "finding_id": "D2-s2-01",
+      "severity": "high",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/slab_cap_scale.py",
+      "note": "drift_max_abs_Kph=1.44, cap_gap_max_K=13.5, null_drift_max_abs_Kph=0.0 (null control at scale=1.0 clean)"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/optimizer.py",
+      "finding_id": "D2-s2-03",
+      "severity": "low",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s2/objective_identities.py",
+      "note": "not independently re-run in this sweep (objective_identities.py exceeded the 100s sweep budget); rests on the judge-verified evidence"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/coordinator.py",
+      "finding_id": "D2-s3-01",
+      "severity": "high",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s3/current_quarter_price.py [--perturb]",
+      "note": "step_mismatch_range=12..18 quarters_of_96, null_flat_step_mismatch=0"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/sysid.py",
+      "finding_id": "D2-s4-02",
+      "severity": "medium",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/sizer_margin.py --seeds 16",
+      "note": "aborted_total=100 of 294 runs, noisy_cell_abort_rate_mean=0.344"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/strings.json",
+      "finding_id": "D4-s2-06",
+      "severity": "low",
+      "disposition": "instance",
+      "probe": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D4/s2/preset_warning.py",
+      "note": "unwarned_derived_fields_en=6 of 10, warned=4"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/thermal_model.py",
+      "finding_id": "D7-s1-71",
+      "severity": "low",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/leads/l3_cold_water_default.py",
+      "note": "sites_not_following=3 of 5"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/coordinator.py",
+      "finding_id": "D7-s2-02",
+      "severity": "medium",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/learner_gates.py",
+      "note": "derate_factor_after_24_immersion_latch=0.8738 vs published-factor raw=0.6814 (fold blocked but derate still applied)"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/sensor.py",
+      "finding_id": "D8-s1-02",
+      "severity": "low",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D8/s1/matrix.py",
+      "note": "seam_rule reproduced (sensor.py:1184 threshold 0.1 vs coordinator.py:3136 threshold=0.05); full matrix.py grid exceeded the 100s sweep budget on this box, rests on judge-verified number (12 of 12 cells)"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/entity.py",
+      "finding_id": "D8-s1-03",
+      "severity": "low",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D8/s1/minpower.py",
+      "note": "worst_published_kw_while_off=0.37 kW, power_while_off_min1_0=7 of 96 steps"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/climate.py",
+      "finding_id": "D8-s2-02",
+      "severity": "high",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+      "note": "hvac_action_vs_plan=14, mode_split_after_action=2 (boost runs the pump, hvac_action still reports off)"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/climate.py",
+      "finding_id": "D8-s2-03",
+      "severity": "medium",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+      "note": "same matrix.py run as D8-s2-02: mode_split_after_action=2 confirms the live/stale mode mix"
+    },
+    {
+      "path": "custom_components/heatpump_optimizer/sensor.py",
+      "finding_id": "D8-s3-61",
+      "severity": "low",
+      "disposition": "instance",
+      "probe": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/leads/l2_d8_leads.py --only D",
+      "note": "valve_value_but_default_off=5, valve_unknown_available_no_valve=5"
+    }
+  ],
+  "barrier_proposal": "A pre-commit/CI lint pass (tools/audit/round9/D14/sweep/P2/enumerator.py --seams, generalising p2_facts.py's AST scan) that: (1) for each canonical predicate function named in a small registry (ThermalParameters.from_config, _dhw_enabled_from_config, wood_furnace_on, age_of, dt_util.parse_datetime, the fenced-call list in _apply_action/async_run_optimization, the entity-domain-from-target rule in pump_arbiter._write), extracts the CONF_ keys / attributes / thresholds it reads; (2) greps every other decision context in custom_components/heatpump_optimizer/*.py for a read of the same key/attribute/threshold outside the predicate's own body; (3) fails the check when a new such read appears without a call to the canonical predicate or an explicit '# P2: sibling of <predicate>, reviewed <date>' annotation. This converts the class from 'periodically re-discovered by audit' to 'caught the day the second call site is added'. Estimated gate cost: under 2 seconds (pure AST + regex, no solver, no real HA loop), so it can run on every PR touching custom_components/heatpump_optimizer/*.py, not just nightly.",
+  "gate_seconds": 2
+}
