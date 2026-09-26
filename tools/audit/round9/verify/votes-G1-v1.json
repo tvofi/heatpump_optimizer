@@ -260,6 +260,41 @@
     "class": null,
     "seam_rule_enumerates": null
    }
+  ],
+  "D13": [
+   {
+    "id": "D13-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "201 merges enumerated vs 253 subject merges (gap 52, gap_marked 0); drop arm 200; restore 253; own git-derived stub: 253/252/243/201 for 0/1/10/52 emptied, 0 of dropped numbers mentioned, no marker; --record 253 -> 201",
+    "metric_definition": "N in `STATS: N merged pull request(s)` (production --stats, API mode) vs first-parent `Merge pull request #N` subjects in v6.6.0..1936d5ca; key = PR-number set",
+    "method": "Re-ran enum_gap.mjs (all 3 arms) in a private clone with origin/main pinned to 1936d5ca (shared origin/main is 18 commits ahead and gives STATS 0/256); own harness verify-v1/seam_dose.mjs drives the production CLI at baseline with a stub built from git subjects only, dose-response over emptied sets, plus the --record arm",
+    "attacks": "Contention: n/a (counts). Snapshot fidelity: the 52 are [] rows not null failures, api_failures 0; cannot re-check live API (GitHub not read). All 253 subject merges have 2 parents; 0 subject/API number mismatches. Null control (restore / E empty) 253. Dose response exact. Reach: the same seam drops the 52 from --record too. Correction: the dropped range starts at #1097, not #1098. Finder's harness is not reproducible at the current origin/main (prints 0).",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D13-s1-02",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "reverify_blocked 0 of 22 (reproduced; perturbation 0->1); diff-identical re-verify rounds 2 of 22 (-U3 patch-id) / 3 of 22 (-U0); P(0 blocks in 22 | 16/188 block rate) = 0.141",
+    "metric_definition": "Among verdicts following a `merge` verdict on a different head, the count that are `blocked`; plus rounds whose branch diff vs its main base is patch-id-identical to the reviewed one",
+    "method": "Re-ran yield_rounds.mjs baseline and block_one_reverify; own harness verify-v1/rounds_indep.mjs re-parses verdicts independently (22 rounds, 0 blocked) and measures the phenomenon property via git diff base(H)..H patch-id equality",
+    "attacks": "Perturbation moves up as stated. Null control repair 21 / repeat 6 reproduced. Chance: 0/22 has p=0.141 at the first-verdict block rate, so it is not evidence of zero yield. Proxy: of the 12 'merges or ci only' heads only 3 left the branch diff unchanged; 9 changed it (conflict resolution, merged content, bot re-record), so the proposed diff-equivalence carry saves 3 rounds, not 12. High severity not earned.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D13-s1-03",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "body-answer blocks 8 (reproduced) vs max engineering class 1 raw / 2 with synonyms applied on both sides / 4 counting every stated reason; sole-reason body-answer 5; 7 of 8 in PRs #1559-#1563 on 2026-09-24; outside that wave 1 vs 2",
+    "metric_definition": "Blocked verdicts whose class word is root-cause-unanswered or red-check vs the largest engineering-bucket class; mine adds consistent synonym merging and secondary reasons in the same verdict",
+    "method": "Re-ran yield_rounds.mjs baseline, rca_to_harness (8->7, eng 7->8) and reshape_one; own harness verify-v1/rounds_indep.mjs recounts classes with its own regex, applies the finder's SYN map to both sides, counts secondary reasons, leave-one-PR-out and leave-wave-out",
+    "attacks": "Perturbation moves down as stated. Asymmetric bucketing: synonyms merged on the body-answer side only; merged consistently, the engineering max is 2, so 'no engineering class above 1' is false. Multi-reason verdicts: 3 of 8 body-answer blocks also name an engineering defect, which a pre-review check would not remove. Leave-one-PR-out min 6 (survives); leave-one-wave-out (#1559-1563, one day) 1 vs 2 (reverses). The red-checks policy changed the same evening (ed488dda, 126a3f66). Count reproduced; steady-state high severity not supported.",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
   ]
  }
 }
