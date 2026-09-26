@@ -23,9 +23,11 @@ baseline       Heating + DHW        configured       suitable
 =============  ==================  ================  ===============
 
 *Configured* is the hot-water set-point from the config flow
-(``dhw_setpoint``), never a literal. *Suitable* is the plan's own number:
-the weather-curve supply temperature for a flow set-point, or the step's
-planned room temperature for an indoor one. A space-only step is heating
+(``dhw_setpoint``), never a literal. *Suitable* is the plan's own number.
+For an indoor set-point it is the step's planned room temperature. For a
+flow set-point it is :data:`FLOW_HEAT_C` on a step that heats the house,
+the gate on one that does not, and on the baseline :data:`FLOW_HOLD_C` or
+the weather curve where that is higher (:func:`_flow_target`). A space-only step is heating
 only (tvofi, 2026-09-24): the cheapest hours for the house need not be the
 ones that keep the tank ready for its next hot-water window, so the pump's
 own tank thermostat must not spend them. A disinfection cycle the
@@ -147,6 +149,14 @@ COLD_RAIL_C = -10.0
 FLOW_GATE_C = 25.0
 #: The floor of the hot-water gate on a transport with no heating-only mode.
 DHW_GATE_C = 30.0
+#: A flow set-point on a step the plan heats (tvofi, 2026-09-26): the design
+#: flow of a heat-pump radiator system, so the pump's own water thermostat
+#: never cuts a planned heating step short. The supply itself settles where
+#: the emitters take the pump's output, below this in all but the coldest
+#: weather.
+FLOW_HEAT_C = 55.0
+#: The fallback's flow set-point: the W35 point the nameplate COP is rated at.
+FLOW_HOLD_C = 35.0
 SETPOINT_TOLERANCE = 0.3
 #: The v6.6.12 stand-down repair, cleared wherever a record from then loads.
 ISSUE_MANUAL = "pump_manual_change"
@@ -280,13 +290,47 @@ def _planned_room(result: Any, now: datetime) -> float | None:
     return points[i] if 0 <= i < len(points) else None
 
 
-def _space_target(coord: Any, result: Any, now: datetime) -> float | None:
-    """The plan's own space set-point: the curve supply, or the room target."""
+def _space_target(coord: Any, result: Any, now: datetime, duty: str | None) -> float | None:
+    """The plan's own space set-point for ``duty``; see :func:`_flow_target`."""
     state = _slot_state(coord, "space_setpoint")
     if _flow_unit(coord._config):
-        outdoor = float(coord._current_state.outdoor_temperature)
-        return _bounded(state, coord._thermal_model.curve_flow_temp(outdoor), FLOW_GATE_C)
-    return _bounded(state, _planned_room(result, now))
+        return _flow_target(coord, state, duty)
+    room = _planned_room(result, now)
+    low = temperature_c((getattr(state, "attributes", None) or {}).get("min"), state_unit(state))
+    if room is not None and low is not None and low > room + SETPOINT_TOLERANCE:
+        # An "indoor" entity that cannot hold the room target is a flow
+        # set-point declared as indoor: clamping 21 degC up to its minimum
+        # is the 25 degC this module must never write to a flow entity.
+        _LOGGER.warning(
+            "Pump duty: %s is declared an indoor set-point but its minimum is "
+            "%.1f degC; set its unit to Flow temperature. Not writing it.",
+            _entities(coord._config)["space_setpoint"], low,
+        )
+        return None
+    return _bounded(state, room)
+
+
+def _flow_target(coord: Any, state: Any, duty: str | None) -> float | None:
+    """A flow set-point per duty: heat, gate, or the fallback's hold.
+
+    The model's weather curve is a pricing curve, not a set-point: it sizes
+    the emitters to the pump's full output at ``emitter_design_delta_t``, so
+    it runs 22-26 degC and a pump told to hold it barely heats (tvofi,
+    2026-09-26). So a step that heats writes :data:`FLOW_HEAT_C`: the pump's
+    own water thermostat does not cut it short, the supply settles where the
+    emitters take the heat, and when to heat stays the plan's (mode, power
+    switch and this gate). A step that does not heat writes the gate. The
+    fallback leaves the pump on its own, so it holds the rated
+    :data:`FLOW_HOLD_C`, or the curve where that is higher.
+    """
+    if duty in ("space", "both"):
+        return _bounded(state, FLOW_HEAT_C, FLOW_GATE_C)
+    if duty is not None:
+        return _bounded(state, FLOW_GATE_C, FLOW_GATE_C)
+    outdoor = float(coord._current_state.outdoor_temperature)
+    curve = coord._thermal_model.curve_flow_temp(outdoor)
+    hold = FLOW_HOLD_C if curve is None else min(max(curve, FLOW_HOLD_C), FLOW_HEAT_C)
+    return _bounded(state, hold, FLOW_GATE_C)
 
 
 def desired(coord: Any, duty: str | None, now: datetime) -> PumpCommand:
@@ -295,13 +339,13 @@ def desired(coord: Any, duty: str | None, now: datetime) -> PumpCommand:
     mode_state = _slot_state(coord, "mode")
     space_state = _slot_state(coord, "space_setpoint")
     dhw = _bounded(_slot_state(coord, "dhw_setpoint"), float(coord._thermal_params.dhw_setpoint))
-    space = _space_target(coord, result, now)
     if pump_mode.capability(getattr(mode_state, "state", None)).cooling:
         # Cooling is the user's season, not a duty the plan chose: hands off.
         return PumpCommand(None, None, None)
     both = pump_mode.MODE_HEAT_DHW if _option_for(mode_state, pump_mode.MODE_HEAT_DHW) else None
     if duty == "space" and _disinfecting(coord):
         duty = "both"
+    space = _space_target(coord, result, now, duty)
     if duty == "idle":
         # No mode write. The mode last written served the duty that just
         # finished, whose thermostat the plan has just satisfied, so it is
@@ -318,8 +362,9 @@ def desired(coord: Any, duty: str | None, now: datetime) -> PumpCommand:
         return PumpCommand(both, dhw, space)
     if _option_for(mode_state, pump_mode.MODE_DHW):
         return PumpCommand(pump_mode.MODE_DHW, dhw, space)
-    gate = _bounded(space_state, FLOW_GATE_C if _flow_unit(coord._config) else 5.0)
-    return PumpCommand(both, dhw, gate)
+    if _flow_unit(coord._config):
+        return PumpCommand(both, dhw, space)
+    return PumpCommand(both, dhw, None if space is None else _bounded(space_state, 5.0))
 
 
 def _disinfecting(coord: Any) -> bool:

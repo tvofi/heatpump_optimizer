@@ -46541,22 +46541,22 @@ R.check(
 _pa_tuya = _PaCoord(_PA_TUYA)
 _pa_run(_pa_tuya, 1)
 R.check(
-    "a hot-water-only step writes DHW only, the configured hot-water set-point and the curve supply",
+    "a hot-water-only step writes DHW only, the configured hot-water set-point and the space gate",
     _pa_tuya.writes() == [
         ("select", "select_option", "DHW (Hot Water)"),
         ("number", "set_value", 48.0),
-        ("number", "set_value", 34.0),
+        ("number", "set_value", 25.0),
     ],
     f"{_pa_tuya.writes()}",
 )
 _pa_tuya.device("select.pump_mode", "DHW (Hot Water)")
 _pa_tuya.device("number.dhw_set", "48")
-_pa_tuya.device("number.water_set", "34")
+_pa_tuya.device("number.water_set", "25")
 _pa_tuya.hass.services.calls.clear()
 _pa_run(_pa_tuya, 31)
 R.check(
-    "the space step at the next boundary writes heating only, and nothing else",
-    _pa_tuya.writes() == [("select", "select_option", "Heating")],
+    "the space step at the next boundary writes heating only and the heating flow, and nothing else",
+    _pa_tuya.writes() == [("select", "select_option", "Heating"), ("number", "set_value", 55.0)],
     f"{_pa_tuya.writes()}",
 )
 
@@ -46574,7 +46574,7 @@ R.check(
 _pa_man = _PaCoord(_PA_TUYA)
 _pa_run(_pa_man, 0)
 _pa_man.device("number.dhw_set", "48")
-_pa_man.device("number.water_set", "34")
+_pa_man.device("number.water_set", "25")
 _pa_man.device("select.pump_mode", "Heating")
 _pa_man.hass.services.calls.clear()
 _pa_aio.run(_pa.apply(_pa_man, _PA_T0 + timedelta(seconds=5)))
@@ -46616,7 +46616,8 @@ _pa_man.hass.services.calls.clear()
 _pa_run(_pa_man, 6)
 R.check(
     "switching the optimizer off writes the baseline once, then nothing over a person's setting",
-    _pa_man_base == [("select", "select_option", "Heating + DHW")] and _pa_man.writes() == [],
+    _pa_man_base == [("select", "select_option", "Heating + DHW"), ("number", "set_value", 35.0)]
+    and _pa_man.writes() == [],
     f"{_pa_man_base=} {_pa_man.writes()=}",
 )
 
@@ -46625,14 +46626,14 @@ _pa_lease = _PaCoord(_PA_TUYA, duties="d" * 12)
 _pa_run(_pa_lease, 0)
 _pa_lease.device("select.pump_mode", "DHW (Hot Water)")
 _pa_lease.device("number.dhw_set", "48")
-_pa_lease.device("number.water_set", "34")
+_pa_lease.device("number.water_set", "25")
 _pa_run(_pa_lease, 89)
 _pa_before = list(_pa_lease.writes())
 _pa_run(_pa_lease, 91)
 R.check(
     "a hot-water-only stretch is released to Heating + DHW past the 90-minute lease",
     ("select", "select_option", "Heating + DHW") not in _pa_before
-    and _pa_lease.writes()[-1] == ("select", "select_option", "Heating + DHW"),
+    and _pa_lease.writes()[-2] == ("select", "select_option", "Heating + DHW"),
     f"{_pa_lease.writes()}",
 )
 _pa_cold = _PaCoord(_PA_TUYA, duties="d" * 12)
@@ -46640,11 +46641,11 @@ _pa_cold._current_state.outdoor_temperature = -15.0
 _pa_run(_pa_cold, 0)
 _pa_cold.device("select.pump_mode", "DHW (Hot Water)")
 _pa_cold.device("number.dhw_set", "48")
-_pa_cold.device("number.water_set", "34")
+_pa_cold.device("number.water_set", "25")
 _pa_run(_pa_cold, 31)
 R.check(
     "below the cold rail the lease is 30 minutes",
-    _pa_cold.writes()[-1] == ("select", "select_option", "Heating + DHW"),
+    _pa_cold.writes()[-2] == ("select", "select_option", "Heating + DHW"),
     f"{_pa_cold.writes()}",
 )
 _pa_stale = _PaCoord(_PA_TUYA)
@@ -46730,11 +46731,11 @@ R.check(
     f"{_pa_room.writes()} / {_pa_noset.writes()}",
 )
 _pa_hot = _PaCoord(_PA_TUYA, duties="ss")
-_pa_hot._thermal_model.curve_flow_temp = lambda _o: 70.0
+_pa_hot.hass.states.get("number.water_set").attributes = {"min": 25, "max": 50}
 _pa_run(_pa_hot, 1)
 R.check(
-    "a curve supply above the entity's maximum is clamped to it",
-    ("number", "set_value", 63.0) in _pa_hot.writes(),
+    "a heating flow above the entity's maximum is clamped to it",
+    ("number", "set_value", 50.0) in _pa_hot.writes(),
     f"{_pa_hot.writes()}",
 )
 _pa_sysid = _PaCoord(_PA_TUYA)
@@ -46786,7 +46787,7 @@ _pa_sp.device("number.water_set", "40")
 _pa_run(_pa_sp, 2)
 R.check(
     "a changed space set-point is written back too",
-    _pa_sp.set_modes == [] and _pa_sp.writes() == [("number", "set_value", 34.0)],
+    _pa_sp.set_modes == [] and _pa_sp.writes() == [("number", "set_value", 25.0)],
     f"{_pa_sp.set_modes=} {_pa_sp.writes()=}",
 )
 _pa_user = _PaCoord(_PA_TUYA)
@@ -46870,8 +46871,8 @@ _pa_idle = _PaCoord(_PA_TUYA, duties="s--")
 _pa_settled(_pa_idle, 1)
 _pa_run(_pa_idle, 16)
 R.check(
-    "an idle step writes no mode: the pump keeps the duty it just finished",
-    _pa_idle.writes() == [] and _pa_idle.hass.states.get("select.pump_mode").state == "Heating",
+    "an idle step writes no mode, and a flow set-point drops to the gate",
+    _pa_idle.writes() == [("number", "set_value", 25.0)] and _pa_idle.hass.states.get("select.pump_mode").state == "Heating",
     f"{_pa_idle.writes()}",
 )
 _pa_idle_d = _PaCoord(_PA_TUYA, duties="d" + "-" * 11)
@@ -46881,7 +46882,7 @@ _pa_settled(_pa_idle_d, 89)
 _pa_run(_pa_idle_d, 91)
 R.check(
     "below the plan's room temperature the hot-water-only lease keeps counting across idle steps",
-    _pa_idle_d.writes() == [("select", "select_option", "Heating + DHW")],
+    _pa_idle_d.writes() == [("select", "select_option", "Heating + DHW"), ("number", "set_value", 35.0)],
     f"{_pa_idle_d.writes()}",
 )
 
@@ -47010,7 +47011,7 @@ _pa_echo = _PaCoord(_PA_TUYA)
 _pa_run(_pa_echo, 0)
 _pa_echo.device("select.pump_mode", "DHW (Hot Water)")
 _pa_echo.device("number.dhw_set", "48")
-_pa_echo.device("number.water_set", "34")
+_pa_echo.device("number.water_set", "25")
 _pa_aio.run(_pa.apply(_pa_echo, _PA_T0 + timedelta(seconds=5)))
 _pa_echo.device("number.water_set", "53")
 _pa_aio.run(_pa.apply(_pa_echo, _PA_T0 + timedelta(seconds=60)))
@@ -47055,7 +47056,7 @@ _pa_run(_pa_pw, 3)
 R.check(
     "a set-point the pump resets while switched off is not a manual change, and is written again once it is on",
     _pa_pw.set_modes == [] and _pa_pw_off == []
-    and _pa_pw.writes() == [("number", "set_value", 34.0)],
+    and _pa_pw.writes() == [("number", "set_value", 55.0)],
     f"{_pa_pw.set_modes=} {_pa_pw_off=} {_pa_pw.writes()=}",
 )
 _pa_pwn = _PaCoord(_PA_TUYA, duties="ss")
@@ -47066,7 +47067,7 @@ _pa_pwn.device("number.water_set", "25")
 _pa_run(_pa_pwn, 2)
 R.check(
     "null control: the same reading with the pump on throughout is written back at once",
-    _pa_pwn.set_modes == [] and _pa_pwn.writes() == [("number", "set_value", 34.0)],
+    _pa_pwn.set_modes == [] and _pa_pwn.writes() == [("number", "set_value", 55.0)],
     f"{_pa_pwn.set_modes=} {_pa_pwn.writes()=}",
 )
 _pa_ro = _PaCoord(_PA_TUYA)
@@ -47348,7 +47349,7 @@ R.check(
     f"{_pa.state_for(_pa_keep_again).written=}",
 )
 _pa_keep_again.device("select.pump_mode", "DHW (Hot Water)")
-_pa_keep_again.device("number.water_set", "34")
+_pa_keep_again.device("number.water_set", "25")
 _pa_keep_again.device("number.dhw_set", "55")
 _pa_run(_pa_keep_again, 2)
 R.check(
@@ -47415,8 +47416,62 @@ R.check(
     f"{_pa_tol.set_modes=}",
 )
 
+# A flow set-point on the model's own curve (tvofi, 2026-09-26): with the
+# real ThermalModel, not a stub, that curve is 22-26 degC and a pump told to
+# hold it barely heats. Every stub above hands the arbiter 34.2 degC.
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _PaTM, ThermalParameters as _PaTP,
+)
+
+_pa_real = _PaTM(_PaTP())
+_pa_real.params.min_electrical_power = 0.4
+_pa_rheat = _PaCoord(_PA_TUYA, duties="ss")
+_pa_rheat._thermal_model = _pa_real
+_pa_rheat._current_state.outdoor_temperature = 5.0
+_pa_run(_pa_rheat, 1)
+_pa_rbase = _PaCoord(_PA_TUYA, duties="ss")
+_pa_rbase._thermal_model = _pa_real
+_pa_rbase._current_state.outdoor_temperature = 5.0
+_pa_rbase.stale = True
+_pa_run(_pa_rbase, 1)
+R.check(
+    "null control: the model's real curve at 5 degC outdoors is below the 25 degC flow floor",
+    _pa_real.curve_flow_temp(5.0) < _pa.FLOW_GATE_C,
+    f"{_pa_real.curve_flow_temp(5.0)=}",
+)
+R.check(
+    "on the real curve a space-heating step writes the heating flow, not the 25 degC floor",
+    ("number", "set_value", _pa.FLOW_HEAT_C) in _pa_rheat.writes()
+    and _pa.FLOW_HEAT_C >= 45.0,
+    f"{_pa_rheat.writes()}",
+)
+R.check(
+    "on the real curve the baseline holds the rated 35 degC flow, not the 25 degC floor",
+    ("number", "set_value", _pa.FLOW_HOLD_C) in _pa_rbase.writes()
+    and _pa.FLOW_HOLD_C == 35.0,
+    f"{_pa_rbase.writes()}",
+)
+_pa_rcold = _PaCoord(_PA_TUYA, duties="ss")
+_pa_rcold._thermal_model.curve_flow_temp = lambda _o: 41.0
+_pa_rcold.stale = True
+_pa_run(_pa_rcold, 1)
+R.check(
+    "the baseline follows the curve where it is above 35 degC",
+    ("number", "set_value", 41.0) in _pa_rcold.writes(),
+    f"{_pa_rcold.writes()}",
+)
+_pa_mism = _PaCoord(_PA_TUYA, duties="ss", flow=False)
+_pa_run(_pa_mism, 1)
+_pa_mism_d = _PaCoord(_PA_MODBUS, duties="d", flow=False)
+_pa_run(_pa_mism_d, 1)
+R.check(
+    "an indoor-declared entity that cannot hold the room target (min 25) is not written",
+    [w for w in _pa_mism.writes() + _pa_mism_d.writes() if w[2] not in (48.0, "Heating", "Heat + DHW")] == [],
+    f"{_pa_mism.writes()} / {_pa_mism_d.writes()}",
+)
+
 # The gate floors: an entity whose own minimum is below them.
-_pa_lowflow = _PaCoord(_PA_TUYA, duties="s")
+_pa_lowflow = _PaCoord(_PA_TUYA, duties="d")
 _pa_lowflow.hass.states.get("number.water_set").attributes = {"min": 10, "max": 63}
 _pa_lowflow._thermal_model.curve_flow_temp = lambda _o: 20.0
 _pa_run(_pa_lowflow, 1)
