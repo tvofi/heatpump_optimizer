@@ -1,0 +1,58 @@
+  HIST 6f58d5ee base=4141 head=4132 delta=-9 count_rule_refuses=0 added=2
+      + thermal_model.py:1791 GUARD_OFF if cold <= 0.0 or ua <= 0.0:
+      + thermal_model.py:1824 GUARD_OFF if C_dhw <= 0.0:
+  HIST 233a36bd base=4129 head=4127 delta=-2 count_rule_refuses=0 added=4
+      + climate.py:177 GUARD_OFF if power_norm > 0.1 or action.get("heat_pump_on"):
+      + optimizer.py:6942 GUARD_OFF if not heat_pump_on:
+      + optimizer.py:6923 CLAMP_DROP on_threshold = max(0.1, self.model.params.min_electrical_pow
+      + optimizer.py:6944 GUARD_OFF elif not space_on:
+  HIST 266d795b base=4127 head=4110 delta=-17 count_rule_refuses=0 added=6
+      + optimizer.py:5081 GUARD_OFF if n_steps == 0 or c_dhw <= 0.0:
+      + optimizer.py:5312 GUARD_OFF if n == 0 or requirement is None or c_dhw <= 0.0:
+      + optimizer.py:5718 GUARD_OFF if n_steps == 0 or c_dhw <= 0.0:
+      + optimizer.py:5323 CLAMP_DROP decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
+      + optimizer.py:4329 CLAMP_DROP decay = float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0))
+      + optimizer.py:5105 CLAMP_DROP influence = np.where(lag >= 0, np.power(decay, np.maximum(la
+  HIST c59672bc base=4110 head=4088 delta=-22 count_rule_refuses=0 added=3
+      + coordinator.py:1408 GUARD_OFF if wind != 1.0:  # every reader takes a missing wind as 0.0 
+      + inputs.py:288 GUARD_OFF if spec is None:
+      + repairs.py:52 BOOLOP if entity_id and value is not None:
+  HIST 97dc04f2 base=4088 head=4087 delta=-1 count_rule_refuses=0 added=0
+  HIST e0b83bbd base=4086 head=4087 delta=+1 count_rule_refuses=1 added=10
+      + entity.py:75 GUARD_OFF if isinstance(value, np.ndarray):
+      + entity.py:77 GUARD_OFF if isinstance(value, np.generic):
+      + entity.py:79 GUARD_OFF if isinstance(value, float):
+      + entity.py:81 GUARD_OFF if isinstance(value, dict):
+      + entity.py:83 GUARD_OFF if isinstance(value, list):
+      + entity.py:85 GUARD_OFF if isinstance(value, tuple):
+      + entity.py:87 RETURN_DEL return value
+      + entity.py:118 GUARD_OFF if not isinstance(prop, property) or prop.fget is None:
+      + entity.py:120 GUARD_OFF if getattr(prop.fget, "_finite_scrubbed", False):
+      + ledger.py:276 GUARD_OFF if month is not None:
+  HIST ae3bb36a base=4087 head=4083 delta=-4 count_rule_refuses=0 added=3
+      + tariff.py:630 GUARD_OFF if window_days is None:
+      + tariff.py:433 GUARD_OFF if not day:
+      + tariff.py:435 GUARD_OFF elif day not in best or kw > best[day][0]:
+  HIST 10bb8bb4 base=4061 head=4065 delta=+4 count_rule_refuses=1 added=8
+      + pump_arbiter.py:514 GUARD_OFF if row["measured"]:
+      + pump_arbiter.py:519 GUARD_OFF if planned is None:
+      + pump_arbiter.py:259 CLAMP_DROP value = max(value, floor, low if low is not None else floor)
+      + pump_arbiter.py:441 GUARD_OFF if slot == "mode":
+      + pump_arbiter.py:521 GUARD_OFF elif actual is None:
+      + pump_arbiter.py:523 GUARD_OFF elif actual == planned or (planned == "both" and actual != "
+      + pump_signals.py:275 RETURN_DEL return self.mode_observed and not self.mode_owned and not se
+      + pump_signals.py:280 RETURN_DEL return self.mode_observed and not self.mode_owned and not se
+  HIST 66301a98 base=4067 head=4060 delta=-7 count_rule_refuses=0 added=3
+      + sysid.py:554 GUARD_OFF if two_zone is None:
+      + sysid.py:155 CLAMP_DROP k_slab = max(p.slab_heat_transfer, 1e-9)
+      + sysid.py:1181 GUARD_OFF if fits(q):
+  HIST c182e1cb base=4056 head=4051 delta=-5 count_rule_refuses=0 added=6
+      + boost.py:217 GUARD_OFF if refresh:
+      + coordinator.py:5164 GUARD_OFF if refresh:
+      + coordinator.py:9069 GUARD_OFF if refresh:
+      + entity.py:160 GUARD_OFF if then is not None:
+      + switch.py:75 RETURN_DEL return bool(self.coordinator.mode != MODE_OFF)
+      + switch.py:94 GUARD_OFF if self.coordinator.mode != MODE_OFF:
+RESULT history_count_rule_refused=2 count
+RESULT history_per_site_refused=9 count
+RESULT cpu_seconds=623.82

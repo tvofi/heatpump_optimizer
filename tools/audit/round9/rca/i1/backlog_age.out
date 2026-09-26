@@ -1,0 +1,40 @@
+RESULT inventory=3951 unpinned=3677 inventory_seconds=22.58
+RESULT unpinned_born_after_ratchet= 36
+RESULT unpinned_born_before_ratchet= 3641
+{(False, 'RETURN_DEL'): 877, (False, 'GUARD_OFF'): 1940, (False, 'BOOLOP'): 303, (False, 'CONST'): 131, (False, 'CLAMP_DROP'): 389, (True, 'GUARD_OFF'): 24, (True, 'CLAMP_DROP'): 5, (True, 'RETURN_DEL'): 6, (True, 'BOOLOP'): 1, (False, 'RAISE_DEL'): 1}
+  POST custom_components/heatpump_optimizer/away.py 321 GUARD_OFF 53d9c69d if not state.active or state.recovery_active:
+  POST custom_components/heatpump_optimizer/away.py 324 CLAMP_DROP 53d9c69d opt_config.target_temp = min(original["target_temp"], target)
+  POST custom_components/heatpump_optimizer/away.py 325 CLAMP_DROP 53d9c69d opt_config.min_temp = min(original["min_temp"], target)
+  POST custom_components/heatpump_optimizer/away.py 329 CLAMP_DROP 53d9c69d thermal_params.dhw_min_temp = min(original["dhw_min_temp"], dhw_floor)
+  POST custom_components/heatpump_optimizer/boost.py 217 GUARD_OFF 38b8a69e if refresh:
+  POST custom_components/heatpump_optimizer/climate.py 177 GUARD_OFF 0c4584ac if power_norm > 0.1 or action.get("heat_pump_on"):
+  POST custom_components/heatpump_optimizer/climate.py 187 RETURN_DEL 8f7abb96 return mode if mode in self._attr_preset_modes else None
+  POST custom_components/heatpump_optimizer/coordinator.py 5164 GUARD_OFF 38b8a69e if refresh:
+  POST custom_components/heatpump_optimizer/coordinator.py 9069 GUARD_OFF 38b8a69e if refresh:
+  POST custom_components/heatpump_optimizer/coordinator.py 10066 RETURN_DEL 189dde74 return report
+  POST custom_components/heatpump_optimizer/entity.py 76 GUARD_OFF 93e3af05 if isinstance(value, np.ndarray):
+  POST custom_components/heatpump_optimizer/entity.py 78 GUARD_OFF 93e3af05 if isinstance(value, np.generic):
+  POST custom_components/heatpump_optimizer/entity.py 80 GUARD_OFF 93e3af05 if isinstance(value, float):
+  POST custom_components/heatpump_optimizer/entity.py 82 GUARD_OFF 93e3af05 if isinstance(value, dict):
+  POST custom_components/heatpump_optimizer/entity.py 84 GUARD_OFF 93e3af05 if isinstance(value, list):
+  POST custom_components/heatpump_optimizer/entity.py 86 GUARD_OFF 93e3af05 if isinstance(value, tuple):
+  POST custom_components/heatpump_optimizer/entity.py 88 RETURN_DEL 93e3af05 return value
+  POST custom_components/heatpump_optimizer/entity.py 119 GUARD_OFF 93e3af05 if not isinstance(prop, property) or prop.fget is None:
+  POST custom_components/heatpump_optimizer/entity.py 121 GUARD_OFF 93e3af05 if getattr(prop.fget, "_finite_scrubbed", False):
+  POST custom_components/heatpump_optimizer/entity.py 160 GUARD_OFF 6ce591a5 if then is not None:
+  POST custom_components/heatpump_optimizer/inputs.py 288 GUARD_OFF 56cb0027 if spec is None:
+  POST custom_components/heatpump_optimizer/optimizer.py 5146 GUARD_OFF d164ad4e if n_steps == 0 or c_dhw <= 0.0:
+  POST custom_components/heatpump_optimizer/optimizer.py 5381 GUARD_OFF d164ad4e if n == 0 or requirement is None or c_dhw <= 0.0:
+  POST custom_components/heatpump_optimizer/optimizer.py 5800 GUARD_OFF d164ad4e if n_steps == 0 or c_dhw <= 0.0:
+  POST custom_components/heatpump_optimizer/optimizer.py 7024 CLAMP_DROP 553fb6d7 on_threshold = max(0.1, self.model.params.min_electrical_power * 0.5)
+  POST custom_components/heatpump_optimizer/pump_signals.py 275 RETURN_DEL 3b320405 return self.mode_observed and not self.mode_owned and not self.mode.sp
+  POST custom_components/heatpump_optimizer/pump_signals.py 280 RETURN_DEL 3b320405 return self.mode_observed and not self.mode_owned and not self.mode.dh
+  POST custom_components/heatpump_optimizer/repairs.py 52 BOOLOP 56cb0027 if entity_id and value is not None:
+  POST custom_components/heatpump_optimizer/switch.py 75 RETURN_DEL ecb7af8e return bool(self.coordinator.mode != MODE_OFF)
+  POST custom_components/heatpump_optimizer/switch.py 94 GUARD_OFF 38b8a69e if self.coordinator.mode != MODE_OFF:
+  POST custom_components/heatpump_optimizer/sysid.py 159 CLAMP_DROP eab44720 k_slab = max(p.slab_heat_transfer, 1e-9)
+  POST custom_components/heatpump_optimizer/tariff.py 452 GUARD_OFF 0377f5ce if not isinstance(p, (int, float)):
+  POST custom_components/heatpump_optimizer/tariff.py 458 GUARD_OFF 0377f5ce if not math.isfinite(value):
+  POST custom_components/heatpump_optimizer/tariff.py 627 GUARD_OFF f19eac90 if window_days is None:
+  POST custom_components/heatpump_optimizer/thermal_model.py 1795 GUARD_OFF aaa01a10 if cold <= 0.0 or ua <= 0.0:
+  POST custom_components/heatpump_optimizer/thermal_model.py 1828 GUARD_OFF ab71960d if C_dhw <= 0.0:

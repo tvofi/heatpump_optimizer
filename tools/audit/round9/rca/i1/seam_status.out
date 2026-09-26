@@ -1,0 +1,13 @@
+D3-s1-01  coordinator.py:1371  inventoried=BOOLOP,RETURN_DEL      pinned=BOOLOP,RETURN_DEL born=56cb0027 2026-09-24 after_ratchet=1
+D3-s1-91  coordinator.py:8112  inventoried=BOOLOP,GUARD_OFF       pinned=-          born=f2d7a502 2026-08-25 after_ratchet=0
+D3-s1-91  coordinator.py:8384  inventoried=BOOLOP,GUARD_OFF       pinned=-          born=a63b576c 2026-08-26 after_ratchet=0
+D3-s2-01  flow_lift.py:210   inventoried=GUARD_OFF              pinned=-          born=9f525ccc 2026-09-16 after_ratchet=0
+D3-s2-01  tariff.py:402   inventoried=GUARD_OFF              pinned=-          born=e46c912c 2026-09-21 after_ratchet=0
+D3-s2-01  price_model.py:324   inventoried=GUARD_OFF              pinned=-          born=dfa77f68 2026-09-13 after_ratchet=0
+D3-s2-01  price_model.py:349   inventoried=GUARD_OFF              pinned=-          born=dfa77f68 2026-09-13 after_ratchet=0
+D3-s2-02  price_model.py:368   inventoried=CLAMP_DROP             pinned=-          born=3e9b1491 2026-09-04 after_ratchet=0
+D3-s3-01  open_meteo.py:209   inventoried=GUARD_OFF              pinned=-          born=6232ea63 2026-08-21 after_ratchet=0
+D3-s3-02  dhw_draws.py:136   inventoried=CLAMP_DROP             pinned=-          born=9ac2d02c 2026-08-25 after_ratchet=0
+D3-s3-03  ledger.py:117   inventoried=BOOLOP,GUARD_OFF       pinned=-          born=a2afe933 2026-08-25 after_ratchet=0
+D3-s3-04  dhw_learning.py:379   inventoried=GUARD_OFF              pinned=-          born=69781076 2026-09-10 after_ratchet=0
+D3-s3-05  legionella.py:453   inventoried=GUARD_OFF              pinned=-          born=ef9f1173 2026-09-17 after_ratchet=0

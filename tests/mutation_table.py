@@ -165,6 +165,21 @@ def _one_line(node, lines) -> bool:
     return end is not None and end == node.lineno
 
 
+# The clamp spellings CLAMP_DROP reduces to their first argument: the builtins,
+# and the numpy/math forms R9 D14-s5-02 found were never inventoried (#1316's
+# `np.clip` was one of them).
+_CLAMP_ATTRS = {("np", "clip"), ("np", "minimum"), ("np", "maximum"),
+                ("np", "fmin"), ("np", "fmax"), ("numpy", "clip"),
+                ("math", "fmin"), ("math", "fmax")}
+
+
+def _clamp_call(func) -> bool:
+    if isinstance(func, ast.Name):
+        return func.id in ("min", "max")
+    return (isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name)
+            and (func.value.id, func.attr) in _CLAMP_ATTRS)
+
+
 def _indent(s: str) -> str:
     return s[: len(s) - len(s.lstrip())]
 
@@ -203,19 +218,29 @@ def candidates(path: Path):
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             continue
-        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-                and node.func.id in ("min", "max") and len(node.args) == 2
-                and _one_line(node, lines)):
-            seg = ast.get_source_segment(src, node)
-            arg0 = ast.get_source_segment(src, node.args[0])
+        if (isinstance(node, ast.Call) and _one_line(node, lines)
+                and len(node.args) >= 2 and _clamp_call(node.func)):
+            # The node is on one line, so its segment is a slice of that line
+            # (offsets are UTF-8 bytes). ast.get_source_segment re-splits the
+            # whole file per call: 94 of 98 profiled inventory seconds.
+            raw = line.encode()
+            seg = raw[node.col_offset:node.end_col_offset].decode()
+            a0 = node.args[0]
+            arg0 = (raw[a0.col_offset:a0.end_col_offset].decode()
+                    if a0.lineno == ln and a0.end_lineno == ln else None)
             if seg and arg0 and seg in line and line.count(seg) == 1:
                 yield dict(kind="CLAMP_DROP", file=rel, line=ln, old=line,
                            new=line.replace(seg, f"({arg0})"))
+        # Any one-line `if`/`elif` test, whatever follows it (an `else`, a
+        # comment after the colon): the test is replaced in place, so the
+        # header's own tail survives. R9 D14-s5-02 measured the narrower rule
+        # leaving guards of those shapes out of the inventory entirely.
+        kw = stripped.split(" ", 1)[0]
         if (isinstance(node, ast.If) and _one_line(node.test, lines)
-                and not node.orelse and stripped.startswith("if ")
-                and stripped.endswith(":")):
+                and node.test.lineno == ln and kw in ("if", "elif")):
             yield dict(kind="GUARD_OFF", file=rel, line=ln, old=line,
-                       new=_indent(line) + "if False:")
+                       new=_indent(line) + kw + " False"
+                       + line[node.test.end_col_offset:])
         if isinstance(node, (ast.Raise, ast.Return)) and _one_line(node, lines):
             if ln in sole:
                 continue
@@ -774,6 +799,32 @@ def base_unpinned_sites(ref: str | None,
 # run did not see. A survivor is the other half and is never written: an
 # equivalence verdict is a judgement, and a gap is a finding, so a site no
 # driver kills stays unpinned and the ratchet stays red on it.
+
+
+def added_unpinned(unpinned: list[dict], base: list[dict]) -> list[dict]:
+    """The unpinned sites this tree has and the base did not, by CONTENT.
+
+    The count ratchet compares two totals, so a diff that adds an unpinned
+    guard and pins or deletes any other unpinned site nets to zero and passes:
+    R9 RCA I1 measured 28 content-new unpinned sites entering across ten
+    post-#1426 merges with no refusal. This is the per-site half. Identity is
+    (file, operator, stripped line text) as a multiset, so a site that only
+    moved, was re-indented, or had its enclosing def renamed is the base's,
+    and an edited or new guard is not.
+    """
+    def ident(s: dict) -> tuple[str, str, str]:
+        return (s["file"], s["kind"], s["old"].strip())
+    left: dict[tuple[str, str, str], int] = {}
+    for s in base:
+        left[ident(s)] = left.get(ident(s), 0) + 1
+    out = []
+    for s in unpinned:
+        k = ident(s)
+        if left.get(k, 0):
+            left[k] -= 1
+        else:
+            out.append(s)
+    return out
 
 
 def new_unpinned(unpinned: list[dict], base: list[dict]) -> list[dict]:
@@ -2014,9 +2065,14 @@ def main() -> int:
               f"be read, so {len(unpinned)} unpinned site(s) have nothing to "
               f"be compared with; fetch the base (CI checks out fetch-depth 0)")
         return 1
-    if ratchet_refusal(base_count, unpinned) == 1 and not args.pin_killed:
+    added = added_unpinned(unpinned, base_unpinned_sites(rbase, sites) or [])
+    if ((ratchet_refusal(base_count, unpinned) == 1 or added)
+            and not args.pin_killed):
+        for s in added:
+            print(f"    ADDED UNPINNED {triage_key(s)}: {s['old'].strip()[:72]}")
         print(f"MUTATION TABLE REFUSED -- {len(unpinned)} unpinned site(s) "
-              f"against {base_count} at the ratchet base {rbase}. A new guard, "
+              f"against {base_count} at the ratchet base {rbase}, {len(added)} "
+              f"of them added by this diff. A new guard, "
               f"clamp, removable return or doubled constant left the tree "
               f"without a recorded disposition; record it under killed_by or "
               f"survivor_triage and the count falls back. `python3 "

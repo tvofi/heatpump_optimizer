@@ -1,0 +1,20 @@
+  D3-s1-91  coordinator.py:8112  main[traded]=0 main[untraded]=1 | proto delta=-5 count_rule_refuses=0 per_site_refuses=1 added=2 | pinned: refuses=0 added=0 | null: refuses=0 added=0
+  D3-s1-91  coordinator.py:8384  main[traded]=0 main[untraded]=1 | proto delta=-5 count_rule_refuses=0 per_site_refuses=1 added=2 | pinned: refuses=0 added=0 | null: refuses=0 added=0
+  D3-s2-01  flow_lift.py:210   main[traded]=0 main[untraded]=1 | proto delta=+0 count_rule_refuses=0 per_site_refuses=1 added=1 | pinned: refuses=0 added=0 | null: refuses=0 added=0
+  D3-s2-01  tariff.py:402   main[traded]=0 main[untraded]=1 | proto delta=-2 count_rule_refuses=0 per_site_refuses=1 added=1 | pinned: refuses=0 added=0 | null: refuses=0 added=0
+  D3-s2-01  price_model.py:324   main[traded]=0 main[untraded]=1 | proto delta=-3 count_rule_refuses=0 per_site_refuses=1 added=1 | pinned: refuses=0 added=0 | null: refuses=0 added=0
+  D3-s2-02  price_model.py:368   main[traded]=0 main[untraded]=1 | proto delta=-3 count_rule_refuses=0 per_site_refuses=1 added=1 | pinned: refuses=0 added=0 | null: refuses=0 added=0
+  D3-s3-01  open_meteo.py:209   main[traded]=0 main[untraded]=1 | proto delta=-2 count_rule_refuses=0 per_site_refuses=1 added=1 | pinned: refuses=0 added=0 | null: refuses=0 added=0
+  D3-s3-02  dhw_draws.py:136   main[traded]=0 main[untraded]=1 | proto delta=-2 count_rule_refuses=0 per_site_refuses=1 added=1 | pinned: refuses=0 added=0 | null: refuses=0 added=0
+  D3-s3-03  ledger.py:117   main[traded]=0 main[untraded]=1 | proto delta=-1 count_rule_refuses=0 per_site_refuses=1 added=2 | pinned: refuses=0 added=0 | null: refuses=0 added=0
+  D3-s3-04  dhw_learning.py:379   main[traded]=0 main[untraded]=1 | proto delta=-1 count_rule_refuses=0 per_site_refuses=1 added=1 | pinned: refuses=0 added=0 | null: refuses=0 added=0
+  D3-s3-05  legionella.py:453   main[traded]=0 main[untraded]=1 | proto delta=-1 count_rule_refuses=0 per_site_refuses=1 added=1 | pinned: refuses=0 added=0 | null: refuses=0 added=0
+  D14-s5-02 curve_learning.py:121   main[traded]=0 main[untraded]=0 | proto delta=+0 count_rule_refuses=0 per_site_refuses=1 added=1 | pinned: refuses=0 added=0 | null: refuses=0 added=0
+RESULT seams=12 count
+RESULT main_refused_traded=0 count
+RESULT main_refused_untraded=11 count
+RESULT count_rule_refused=0 count
+RESULT per_site_refused=12 count
+RESULT per_site_refused_after_pin=0 count
+RESULT per_site_refused_null=0 count
+RESULT cpu_seconds=67.44

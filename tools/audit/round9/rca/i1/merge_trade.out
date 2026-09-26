@@ -1,0 +1,28 @@
+fatal: path 'tests/mutation_ledger' exists on disk, but not in '10bb8bb4^1'
+fatal: path 'tests/mutation_ledger' exists on disk, but not in '10bb8bb4'
+10bb8bb4 base=3694 head=3692 delta=-2 new_unpinned=2 removed_unpinned=4 refused_vs_base=0 record_at_head=None refused_vs_record=0
+fatal: path 'tests/mutation_ledger' exists on disk, but not in '233a36bd^1'
+fatal: path 'tests/mutation_ledger' exists on disk, but not in '233a36bd'
+233a36bd base=3769 head=3766 delta=-3 new_unpinned=2 removed_unpinned=5 refused_vs_base=0 record_at_head=3766 refused_vs_record=0
+fatal: path 'tests/mutation_ledger' exists on disk, but not in '266d795b^1'
+fatal: path 'tests/mutation_ledger' exists on disk, but not in '266d795b'
+266d795b base=3766 head=3749 delta=-17 new_unpinned=3 removed_unpinned=20 refused_vs_base=0 record_at_head=3749 refused_vs_record=0
+fatal: path 'tests/mutation_ledger' exists on disk, but not in '66301a98^1'
+fatal: path 'tests/mutation_ledger' exists on disk, but not in '66301a98'
+66301a98 base=3702 head=3694 delta=-8 new_unpinned=1 removed_unpinned=9 refused_vs_base=0 record_at_head=None refused_vs_record=0
+fatal: path 'tests/mutation_ledger' exists on disk, but not in '6f58d5ee^1'
+fatal: path 'tests/mutation_ledger' exists on disk, but not in '6f58d5ee'
+6f58d5ee base=3781 head=3772 delta=-9 new_unpinned=2 removed_unpinned=11 refused_vs_base=0 record_at_head=3781 refused_vs_record=0
+fatal: path 'tests/mutation_ledger' exists on disk, but not in '97dc04f2^1'
+fatal: path 'tests/mutation_ledger' exists on disk, but not in '97dc04f2'
+97dc04f2 base=3726 head=3725 delta=-1 new_unpinned=0 removed_unpinned=1 refused_vs_base=0 record_at_head=3725 refused_vs_record=0
+fatal: path 'tests/mutation_ledger' exists on disk, but not in 'ae3bb36a^1'
+fatal: path 'tests/mutation_ledger' exists on disk, but not in 'ae3bb36a'
+ae3bb36a base=3724 head=3718 delta=-6 new_unpinned=1 removed_unpinned=7 refused_vs_base=0 record_at_head=None refused_vs_record=0
+c182e1cb base=3682 head=3677 delta=-5 new_unpinned=6 removed_unpinned=11 refused_vs_base=0 record_at_head=None refused_vs_record=0
+fatal: path 'tests/mutation_ledger' exists on disk, but not in 'c59672bc^1'
+fatal: path 'tests/mutation_ledger' exists on disk, but not in 'c59672bc'
+c59672bc base=3749 head=3726 delta=-23 new_unpinned=2 removed_unpinned=25 refused_vs_base=0 record_at_head=3726 refused_vs_record=0
+fatal: path 'tests/mutation_ledger' exists on disk, but not in 'e0b83bbd^1'
+fatal: path 'tests/mutation_ledger' exists on disk, but not in 'e0b83bbd'
+e0b83bbd base=3724 head=3724 delta=0 new_unpinned=9 removed_unpinned=9 refused_vs_base=0 record_at_head=None refused_vs_record=0
