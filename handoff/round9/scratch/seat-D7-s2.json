@@ -1,0 +1,175 @@
+{
+ "dimension": "D7",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D7/s2/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D7.M2",
+   "depth": "deep",
+   "evidence": "sysid_plant.py drives SystemIdentification arm/step/_finish->identify_slab + adoption_decision on light_new/heavy_old/typical_slab, truth ThermalModel == declared at 1/2/6/30 substeps; one-state identify and a free two-exponential fit on the same samples; perturbation --substep-rollout. continuous_presets_bias_gt5pct=3, adopted=0, adopted_biased=0."
+  },
+  {
+   "step": "D7.M3",
+   "depth": "deep",
+   "evidence": "learner_table.py: 8 learners x 9 contaminations (clean, external heat, defrost, offline, fault, cooling, ventilation, away, immersion), 6 through their ingest counters, 2 at their gate; learner_gates.py isolates the derate-vs-_cop_fold_blocked divergence (derate_ingests_distorted=3 -> 0 under --gate-derate)."
+  },
+  {
+   "step": "D7.M4",
+   "depth": "deep",
+   "evidence": "objective_order.py captures the real space-stage objective via _scoped_minimize (two-zone, smart_read valve, 200 L store, tank 68 C): objective/terminal/refused order maxdiff all 0.0 over 26 schedules forward, reversed and interleaved; positive control --sticky-scratch moves refused_order_maxdiff to 2.873 kW."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D7.M2",
+   "what": "Noise-bearing arms (sensor noise, true gains != prior) on top of the discretization result, and two-zone presets, were not run."
+  },
+  {
+   "step": "D7.M3",
+   "what": "Lower-floor loss learner (two-zone + lower sensor), flow-lift bias #1067, buffer cooling and comfort learner not driven; freq map and DHW dynamics measured at their gate, not their counter."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D7-s2-01",
+   "scope": "D7-s2",
+   "step": "D7.M2",
+   "title": "sysid two-state fit rolls the candidate with one Euler step per 30-min sample: UA 17-25% low on an exact continuous plant, 0/3 presets adopt",
+   "severity": "medium",
+   "claim": "On a noise-free truth plant with exactly the declared preset parameters integrated finely (30 substeps per 30-min sample), the production identify_slab fit returns UA -16.8% (light_new) and -25.5% (heavy_old) and refuses typical_slab, so 3 of 3 presets are biased >5% or refused and 0 of 3 are adopted; with the truth integrated at the fit's own 0.5 h Euler step the bias is 0.0 and 2 of 3 adopt.",
+   "mechanism": "_simulate_slab_path -> _valve_drive -> ThermalModel.simulate_step(dt_hours=sample interval) is one explicit-Euler step of 0.5 h per sample; the fit identifies the parameters of the 0.5 h Euler map, not of the continuous house (and not of the optimizer's own 0.25 h step: truth at 2 substeps gives -8.9/-10.9/-23.3%). The biased fit's residual flattens the profile, so the #1410 gate refuses it as 'interval unbounded' and the published heat_loss_kw_per_c carries the biased value.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/sysid_plant.py",
+    "harness_path": "tools/audit/round9/D7/s2/sysid_plant.py",
+    "value": 3,
+    "unit": "count (presets of 3 with |UA bias|>5% or refused, 30-substep truth)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container B7, linux, venv314",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out, up to 3 finders on the box; deterministic noise-free count, contention-immune",
+    "tolerance": "exact (bias values +-1e-4)",
+    "load1": 1.49,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify_slab (via _valve_drive, adoption_decision)",
+   "perturbation": {
+    "change": "--substep-rollout: sysid._valve_drive replaced in memory by the same call split into 6 equal sub-steps (one-line production edit)",
+    "expected_direction": "to_zero",
+    "observed_value": "continuous_presets_bias_gt5pct 3 -> 0; continuous_presets_adopted 0 -> 2 (heavy_old -0.0085 w=0.572, typical_slab -0.0187 w=0.165)"
+   },
+   "metric_definition": "Presets (of 3) whose production sysid UA, on a noise-free truth == declared params integrated at 30 substeps per 30-min sample, has |UA/UA_true-1|>5% or no completed fit.",
+   "phenomenon_property": "Every parameter fit that rolls a candidate ThermalModel over recorded samples must integrate the candidate at a resolution whose discretization error is small against the adoption bar, independent of the coordinator's sample cadence.",
+   "seam_rule": "grep -n \"_valve_drive(\\|simulate_step(\" custom_components/heatpump_optimizer/sysid.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/sysid_plant.py (rows *_sub1)",
+    "value": "truth at the fit's own 0.5 h Euler step: heavy_old +0.00000 adopted, typical_slab +0.00000 adopted",
+    "note": "the bias vanishes when truth and candidate share the discretization; a free two-state fit with a 1-min rollout recovers UA to 1e-5 on all three presets"
+   },
+   "reproduction_steps": [
+    "Run the command; read RESULT slab_bias_*_sub30 and continuous_presets_*",
+    "Re-run with --substep-rollout"
+   ],
+   "proposed_fix_scope": "sysid.py: sub-step the candidate rollout in _simulate_slab_path/_valve_drive (and the sizer's _predict_step_excursion_plant) to a fixed fine dt independent of the sample interval; re-measure the interval gate on the presets.",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D7-s2-02",
+   "scope": "D7-s2",
+   "step": "D7.M3",
+   "title": "Defrost derate fallback folds meter ratios that _cop_fold_blocked refuses to the COP learner (immersion, backup heater, capacity cap)",
+   "severity": "medium",
+   "claim": "On a flag-less install with a power meter in the frost band, _record_accuracy -> _settle_defrost -> DefrostDerate.observe folds the commanded/measured ratio on 3 of 3 draw-distorting contaminations for which _cop_fold_blocked is True and _learn_measured_cop refuses, walking the published derate to 0.874 after 12 h of backup-heater running.",
+   "mechanism": "_record_accuracy gates _settle_defrost only on _learning_frozen(power) in (None, 'defrosting'); the immersion latch and PumpElectricHeat.compressor_draw_distorted are not freeze reasons, and _settle_defrost does not consult _cop_fold_blocked, although the derate fallback reads the same meter ratio the COP learner does.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/learner_gates.py",
+    "harness_path": "tools/audit/round9/D7/s2/learner_gates.py",
+    "value": 3,
+    "unit": "count (distorting arms of 3 the derate folds)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container B7, linux, venv314",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out, up to 3 finders on the box; deterministic count, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.02,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._record_accuracy (-> _settle_defrost -> defrost:DefrostDerate.observe); comparator coordinator:_cop_fold_blocked / _learn_measured_cop",
+   "perturbation": {
+    "change": "--gate-derate: HeatPumpOptimizerCoordinator._settle_defrost wrapped in memory to return when coordinator._cop_fold_blocked(self)",
+    "expected_direction": "to_zero",
+    "observed_value": "derate_ingests_distorted 3 -> 0; contaminated-arm factor stays 1.0000; clean control still folds"
+   },
+   "metric_definition": "Number of the 3 draw-distorting arms (immersion latch, backup heater, capacity limited) on which one settled interval increments DefrostDerate.counts while _cop_fold_blocked is True.",
+   "phenomenon_property": "Every learner that folds the heat pump meter's commanded/measured ratio must refuse the intervals _cop_fold_blocked marks as not describing the compressor.",
+   "seam_rule": "grep -n \"_measured_power\\|actual_power_kw\" custom_components/heatpump_optimizer/coordinator.py",
+   "reproduction_steps": [
+    "Run the command; read RESULT derate_ingest_* and derate_factor_after_24_*",
+    "Re-run with --gate-derate"
+   ],
+   "proposed_fix_scope": "coordinator.py _record_accuracy/_settle_defrost: skip the fallback observe (the inferred path) when _cop_fold_blocked(self); the measured-duty path is unaffected.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/defrost.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "M2: the adoption gate admits no biased sysid fit on any preset or truth resolution (bias>5%)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/sysid_plant.py",
+   "value": "continuous_presets_adopted_biased=0; every biased arm refused (interval unbounded or plausibility)"
+  },
+  {
+   "claim": "M2: the one-state identify() cannot complete on any preset's continuous step response, so it cannot adopt a biased fit",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/sysid_plant.py",
+   "value": "one_state_bias_light_new/heavy_old/typical_slab = nan (refused: outside plausible bounds / implausible signs)"
+  },
+  {
+   "claim": "M2: the 5 h window carries the information; a free two-exponential (4-parameter two-state) fit with a fine rollout recovers UA",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/sysid_plant.py",
+   "value": "twoexp_bias_* = +0.00000 on all three presets"
+  },
+  {
+   "claim": "M3: external heat, defrost, pump offline/fault/cooling and ventilation freeze every heat-balance learner (house loss, #53 gains, measured COP, sysid, curve tracker, DHW gate)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/learner_table.py",
+   "value": "all 0 in those columns except defrost_derate_fallback under defrost (by design, #944) and the freq map gate"
+  },
+  {
+   "claim": "M3: away freezes only the curve tracker; no away contamination of the heat balance established (recorded, not claimed)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/learner_table.py (--away-freezes as control)",
+   "value": "away_ingesting_learners=3 -> 0 under --away-freezes"
+  },
+  {
+   "claim": "M4: the last_buffer_trajectory stash is gone; the objective, the terminal-cost closure and the refused-heat scratch are call-order independent",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/objective_order.py",
+   "value": "objective_order_maxdiff=0.000e+00, terminal_order_maxdiff=0.000e+00, refused_order_maxdiff=0.000e+00 kW over 26 schedules; positive control --sticky-scratch -> refused_order_maxdiff=2.873 kW"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D7/s2/sysid_plant.py",
+  "tools/audit/round9/D7/s2/learner_gates.py",
+  "tools/audit/round9/D7/s2/learner_table.py",
+  "tools/audit/round9/D7/s2/objective_order.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D5-s2",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "OptimizationResult.buffer_temp_trajectory",
+   "what": "Comment says 'the model stashes the series on itself for the terminal-cost term'; no such stash exists at this baseline (_terminal_cost takes buffer_temps as an argument)."
+  },
+  {
+   "owner_seat": "D7-s3",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalModel._step_dhw_refused/_step_dhw_floor_injected/_step_dhw_draw_kw/_step_wood_refused",
+   "what": "Per-step scratch written by production step functions and read only by tests/features.py; no production reader (only _step_buffer_refused is read, by simulate_trajectory)."
+  }
+ ]
+}

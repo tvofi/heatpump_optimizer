@@ -1,0 +1,145 @@
+{
+"_note": "tvofi 19:16Z (cmsg_01EL5jLi4rokGBbkaevYXSJV6CQVMDN96YfVMTcN5QGSx2): answer all cards, then file the issues and start fixing. Superseded card: cmsg_01EL5jLi4rokGBbkaevYXSJVJ2dpNicWumFP91ncYqNNqz (ignore).",
+"cards": {
+"cmsg_01EL5jLi4rokGBbkaevYXSJV4ikQ1SRT574DCLeCBLAmDT": [
+"A1",
+"Approve"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVTwq4eyvmahmTXVayR65x92": [
+"A2",
+"F11.5"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVXYTmHYSyg1bFHaRnwqzXng": [
+"A3",
+"Approve"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVUpJv89y6CKjM9kNbUCZCng": [
+"A4",
+"Approve"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVYAs7RfxLW6dcoscqMFEDBM": [
+"A5",
+"Approve"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVVL6WPZ5kb4DrAgQVR3yDE5": [
+"A6",
+"Approve"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJV2H1MQrFCSVrzTP4xTZsHBf": [
+"A7",
+"Approve"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVT82cWLF6677T3YAMkJc1bf": [
+"A8",
+"Approve"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVXsijNLpDQVpFp96zQzv296": [
+"A9",
+"Approve (overrode Skip)"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVP4Wc9sVcBrwWv2ng6E7bcm": [
+"B1",
+"Allow"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJV5abXUwm9tYDVSmcBoHPgTi": [
+"B2",
+"Allow"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJV1YFogEjbTZzHLuEQznLmJE": [
+"B3",
+"Allow"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVVywdYaqLosWchfKhTdcQW7": [
+"B4",
+"Allow"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVG53fL5E9FGCjNZdQki6xnJ": [
+"B5",
+"Allow"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVVXhePMyoUc3pPdRop8HcF7": [
+"C1",
+"Domain table (overrode Per seam): new declared-domain barrier PR"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJV9WKhBboD8wpb6K86j9saqS": [
+"C2",
+"Per pair"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVV42AX1wSBrgthYQtcuYAZq": [
+"C3",
+"Per PR"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVRPPjq98RiLL6A1Wx3ufepJ": [
+"C4",
+"Per case"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVKz4c3Uv4wxAESnyYKwn8zS": [
+"C5",
+"Build (overrode Not now): nightly mutation-kill ledger writer, new identity under 0011"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVA5vdGfkcvpCAdPKYbqzHmg": [
+"C6",
+"Commission (overrode No): comparison-bound mutation operator, own PR"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJV2qWadk7uqGzKVpn9xs2jcf": [
+"C7",
+"Not now"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVWjJo2HYWnqvxhiNQrUwMJh": [
+"C8",
+"Subset"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJV2T2vQzRzHFqyJynUj9xTn4": [
+"C9",
+"Cheaper (overrode Sample): sample cheaper valve-axis members; B2 rows only for those"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVRgFei78G7gFRS46fC8Wv8y": [
+"C10",
+"Derive (overrode Registration): derive governance-check set from CHECKS/CODEOWNERS/stamp rules"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJV8FhCX1di3H5eDemLXSwSNK": [
+"C11",
+"Accept"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVPFww7Bwv5xKH96BASQ7ebh": [
+"C12",
+"Extend checks"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVHS9Tz1wcyspjWJhosPggfJ": [
+"C13",
+"Outage"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJV6ZxrK3iKgGM7KGGKpZRhYo": [
+"C14",
+"Fold in"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVAkqktP4mjxo5JEYMQUD7Uu": [
+"C15",
+"Keep (A3(e) stands; D8-s2-01 refused; F7.3 dropped)"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVJwW4gJaJ8i35S9yrhrH3dc": [
+"C16",
+"Leave"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVMMwonNSMUDhJ2Hzc5tPcXt": [
+"C17",
+"Refusal"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVDxWrZvQCUnNr94c4mrQd4B": [
+"C18",
+"Build"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVDqUyXgpZpHQ1Gc9caHysYe": [
+"D1",
+"Card diffs only"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJVVeftpSQbxtudLTGkdZE6Ds": [
+"D2",
+"Enlarge F6.1"
+],
+"cmsg_01EL5jLi4rokGBbkaevYXSJV7gLYYDp953i9jWVUP2TM4x": [
+"D3",
+"Ungated"
+]
+}
+}

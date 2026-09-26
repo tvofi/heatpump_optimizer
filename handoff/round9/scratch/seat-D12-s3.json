@@ -1,0 +1,127 @@
+{
+ "dimension": "D12",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D12/s3/REPORT.md (NOT WRITTEN: the session harness refused the write because subagents may not write report files. The full report content is in this JSON: method in coverage, findings, non_findings, unfinished and leads.)",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D12.M4",
+   "depth": "deep",
+   "evidence": "usable.py runs the full product grid: layout {single, two_zone+thermometer, two_zone without thermometer, mixing valve smart_write} x DHW {none, tank, tank+sensor} x wood {none, furnace+probes} x PV {none, forecast, forecast+meter} x buffer {none, 300 L+probe} x surface {none, switch, climate on/off, number setpoint, ECL110 MQTT, freq-modulating control} = 864 cells. Each cell runs the real ha_setup_entry, one full _async_update_data cycle, and every platform's async_setup_entry, then reads every entity property. Result: 0 failing cells. flow_paths.py traces the plant one step earlier, through all 6 completion paths of the initial config flow: 2 paths invent plant (finding D12-s3-01). A probe of mapped optional entities without their plant (14 configs) found no invention outside the documented DHW presence trio."
+  },
+  {
+   "step": "D12.M5",
+   "depth": "deep",
+   "evidence": "usable.py --grid ref on the fully-mapped reference plant (all axes at their richest value, 10 extra metering/temperature slots, coord_all_features flags): 2 cells, failing_cells=0. flow_paths.py control: the 4 quick-setup paths through the same flow pages invent 0."
+  },
+  {
+   "step": "D12.M6",
+   "depth": "deep",
+   "evidence": "usable.py --grid loo drops each of the 20 optional *_entity slots in turn from the reference plant: 21 cells, failing_cells=0. Instrument check: --perturb force_dhw_power fails 24/24 dhw=none cells while the reference stays at 0. flow_paths.py --perturb explicit_presence takes invented_paths from 2 to 0. With the quick-setup DHW question answered 'yes' (--answers shipped), the 2 wizard paths are still counted."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D12.M4",
+   "what": "The multi-day cost of finding 01's DHW half was not measured. In the first cycle the invented tank sits at the ThermalState default of 55 °C, so 0 kWh is planned. What is left is a closed-loop run (tests/rolling.py) counting legionella and window reheats of a tank that does not exist, which switch the heat pump on. REPORT.md was not written because the session harness refused report files."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D12-s3-01",
+   "scope": "D12-s3",
+   "step": "D12.M4",
+   "title": "Full config-flow wizard invents a DHW tank and a second zone the user never affirmed",
+   "severity": "medium",
+   "claim": "Of the 6 completion paths of the shipping initial config flow, submitted untouched, the 2 full-wizard ('Continue setup') paths create entries whose first coordinator cycle models a 200 L DHW tank. The 'Enter thermal values directly' path also runs the two-zone model. No answer on either path said the house has hot water or two zones; the quick-setup paths answered 'no' produce neither.",
+   "mechanism": "The presence rules thermal_model._dhw_enabled_from_config (tank volume, thermometer or windows present) and the two-zone 'auto' rule in ThermalParameters.from_config (any zone key present) meet forms that always submit those keys. async_step_dhw offers no 'no hot water' answer and pre-fills dhw_tank_volume=200 and dhw_windows. async_step_zones, whose docstring calls it an 'optional step', pre-fills four zone keys. Only quick_setup.derive writes the explicit dhw_enabled / two_zone_mode flags. On the thermal path the plan covers 26.45 kWh against 22.24 kWh for the stated plant, with predicted_cost 19.289 against 11.796, in the same cycle.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/flow_paths.py",
+    "harness_path": "tools/audit/round9/D12/s3/flow_paths.py",
+    "value": 2,
+    "unit": "flow completion paths publishing unaffirmed plant (of 6)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B7, linux cloud container",
+    "cpu_or_wall": "count",
+    "contention_note": "up to 4 usable.py grid shards ran on the box during some re-runs; the count is deterministic",
+    "tolerance": "exact",
+    "load1": 2.7,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerConfigFlow (async_step_dhw, async_step_zones); heatpump_optimizer.thermal_model:_dhw_enabled_from_config and ThermalParameters.from_config; heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data",
+   "perturbation": {
+    "change": "--perturb explicit_presence: _dhw_enabled_from_config honours only an explicit dhw_enabled, and from_config defaults two_zone_mode to off (the one-line shape of the fix for both rules)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Initial-flow completion paths (DFS over menus, forms untouched, quick-setup plant answers 'no') whose entry's first _async_update_data publishes dhw_enabled with a dhw_plan tank trajectory, or two_zone_enabled, with no affirming answer.",
+   "phenomenon_property": "A plant (DHW tank, second zone) is modelled only when an answer on the user's own setup path affirmed it. No form default and no key presence alone may turn one on.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/flow_paths.py --answers no (enumerates every menu-completion path of the initial flow; each path is a seam)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/flow_paths.py",
+    "value": 0,
+    "note": "The 4 quick-setup paths through the same pages (including the same dhw and zones steps after quick setup) invent 0, because the explicit flags win. With --answers shipped (DHW 'yes') the 2 wizard paths are still counted."
+   },
+   "reproduction_steps": [
+    "cd /home/claude/audit-r9-baseline",
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/flow_paths.py  -> invented_paths=2",
+    "... --perturb explicit_presence -> invented_paths=0"
+   ],
+   "proposed_fix_scope": "config_flow.py async_step_dhw and async_step_zones: ask 'has DHW' and 'two zones', or write explicit dhw_enabled / two_zone_mode from the answers the way quick_setup.derive does, so that untouched defaults no longer act as presence. Update tests/entities.py's pinned 'turns hot water on anyway' check.",
+   "files": [
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/quick_setup.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "provisional": false
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "All 864 installation x heat-pump cells pass the D12.M4 bar. Setup completes, the cycle does not raise, an optimal plan is published, no entity property raises, the entities of each omitted plant stay unavailable, no DHW, PV or wood plan is invented, and no service call targets an unconfigured entity.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/sum_shards.py --n 4",
+   "value": "cells=864, failing_cells=0 (4 shards x 216)"
+  },
+  {
+   "claim": "M5 null control: the fully-mapped reference plant passes.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/usable.py --grid ref",
+   "value": "cells=2, failing_cells=0"
+  },
+  {
+   "claim": "M6: dropping any one of the 20 optional *_entity slots from the reference plant leaves setup, plan and entities usable.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/usable.py --grid loo",
+   "value": "cells=21, failing_cells=0"
+  },
+  {
+   "claim": "The grid instrument moves: forcing DHW power into the published plan fails every dhw=none cell and leaves the reference plant untouched.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/usable.py --grid full --limit 24 --perturb force_dhw_power",
+   "value": "failing_cells=24/24 (invented_dhw_plan); --grid ref under the same perturbation: 0"
+  },
+  {
+   "claim": "Frequency control mode with an empty kW-Hz map writes no frequency, so it invents no compressor command.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/usable.py --grid full --shard 0/4",
+   "value": "0 invented_actuation across the freq_modulating cells; only switch.hp turn_on and the valve write were issued"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D12/s3/usable.py",
+  "tools/audit/round9/D12/s3/sum_shards.py",
+  "tools/audit/round9/D12/s3/flow_paths.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._build_data_dict",
+   "what": "On an install with no tank, buffer or slab sensor, the data dict publishes dhw_temperature 55.0, buffer_tank_temperature 40.0 and slab_temperature 22.0, which are the ThermalState constructor defaults. The entities stay unavailable, but any card or diagnostics reader of coordinator.data would show fabricated temperatures (D4/D8)."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "tests/entities.py",
+   "symbol": "_walk_flow_untouched / check 'and turns hot water on anyway, with the 200 L tank the page pre-fills'",
+   "what": "The suite pins the untouched full wizard enabling DHW as a passing check, so the gate defends the DHW half of D12-s3-01 instead of catching it (D3)."
+  }
+ ]
+}

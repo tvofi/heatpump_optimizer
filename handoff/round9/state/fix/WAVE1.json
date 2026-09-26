@@ -1,0 +1,65 @@
+[
+ {
+  "pr": "F2.1",
+  "lane": "F2",
+  "model": "opus",
+  "branch": "handoff/r9-f2-solver-1",
+  "brief_path": "handoff/round9/fix/F2.md"
+ },
+ {
+  "pr": "F3.1",
+  "lane": "F3",
+  "model": "opus",
+  "branch": "handoff/r9-f3-stores-1",
+  "brief_path": "handoff/round9/fix/F3.md"
+ },
+ {
+  "pr": "F4.1",
+  "lane": "F4",
+  "model": "opus",
+  "branch": "handoff/r9-f4-inputs-sysid-1",
+  "brief_path": "handoff/round9/fix/F4.md"
+ },
+ {
+  "pr": "F5.1",
+  "lane": "F5",
+  "model": "sonnet",
+  "branch": "handoff/r9-f5-config-text-1",
+  "brief_path": "handoff/round9/fix/F5.md"
+ },
+ {
+  "pr": "F6.1",
+  "lane": "F6",
+  "model": "sonnet",
+  "branch": "handoff/r9-f6-card-1",
+  "brief_path": "handoff/round9/fix/F6.md"
+ },
+ {
+  "pr": "F7.1",
+  "lane": "F7",
+  "model": "sonnet",
+  "branch": "handoff/r9-f7-entities-1",
+  "brief_path": "handoff/round9/fix/F7.md"
+ },
+ {
+  "pr": "F8.1",
+  "lane": "F8",
+  "model": "sonnet",
+  "branch": "handoff/r9-f8-docs-1",
+  "brief_path": "handoff/round9/fix/F8.md"
+ },
+ {
+  "pr": "F10.1",
+  "lane": "F10",
+  "model": "opus",
+  "branch": "handoff/r9-f10-gate-infra-1",
+  "brief_path": "handoff/round9/fix/F10.md"
+ },
+ {
+  "pr": "F11.1",
+  "lane": "F11",
+  "model": "sonnet",
+  "branch": "handoff/r9-f11-governance-1",
+  "brief_path": "handoff/round9/fix/F11.md"
+ }
+]

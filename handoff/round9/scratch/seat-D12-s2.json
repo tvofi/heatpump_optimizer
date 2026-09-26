@@ -1,0 +1,189 @@
+{
+ "dimension": "D12",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D12/s2/REPORT.md",
+ "exposure": "Not written: the subagent harness refused the Write to tools/audit/round9/D12/s2/REPORT.md (\"Subagents should return findings as text\"), so the report's content is carried in this JSON. Reads outside the code: README.md §Supported heat pumps and controls / Known limitations, and strings.json, only to confirm which cells the tree claims. No docs/, no GitHub, no earlier-round material. Cells derived: compressor kind {modulating 1/6 kW, on/off min==max 6/6 kW; config_flow._power_errors accepts min==max}. Control surfaces: switch slot {switch, input_boolean, climate}; ECL110 {absent, present}; compressor frequency {none, sensor, number, both} x {observe, control}; pump_arbiter mode slot {select, input_select, sensor}; set-point slots via repairs._write_setpoint.",
+ "coverage": [
+  {
+   "step": "D12.M3",
+   "depth": "deep",
+   "evidence": "On/off vs modulating over 9 golden SCENARIOS cells x 2 arms, taken through optimizer, get_current_action, _apply_action and HeatPumpActionSensor (onoff_switch.py, onoff_label.py). 13 control-surface cells through real coordinator seams (surfaces.py). 3 mode-slot domains through pump_arbiter.apply under control with explicit HA routing (mode_domain.py). Every harness was run with its perturbation and moved."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D12.M3",
+   "what": "Freq control combined with the on/off threshold: _command_frequency writes a frequency for a commanded kW below the switch's on-threshold while _apply_action switches the pump off. Read in the code, not measured."
+  },
+  {
+   "step": "D12.M3",
+   "what": "pump_arbiter.desired writes the configured dhw_setpoint to a mapped DHW set-point entity when dhw_enabled is False (control mode). Read in the code, not measured."
+  },
+  {
+   "step": "D12.M3",
+   "what": "REPORT.md was not written to disk: the subagent Write was refused. The content is in this JSON."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D12-s2-01",
+   "scope": "D12-s2",
+   "step": "D12.M3",
+   "title": "On an on/off pump, the switch path switches off steps whose planned heat the plan books as delivered",
+   "severity": "medium",
+   "claim": "The solver treats a step below the modulation floor as duty cycling within the step (bounds [0,P_max], optimizer.py ~:3962). The switch path instead commands ON only at max(0.1, min_electrical_power*0.5) (HeatPumpOptimizer._power_to_heat_pump_schedule and get_current_action; pump_arbiter._on_kw uses the same threshold). On an on/off pump (min==max==6 kW, which config_flow._power_errors accepts) the threshold is 3 kW, so the plan's 1.0-1.4 kW trickle is switched OFF while the trajectory, cost and savings count that heat as delivered. On/off arm: 4/9 cells withhold more than 10% of planned energy. Shoulder withholds 0.671 (8.30 of 12.38 kWh over 30 steps), producing 30 end-to-end switch.turn_off calls on steps with planned heat. Modulating null arm: 0/9 cells (max 0.014) and 0 such calls. Shoulder open-loop consequence: min room 20.64 C planned vs 19.89 C actuated, 17.2 K*h below the plan's own trajectory, 0 K*h below min_temperature.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/onoff_switch.py",
+    "harness_path": "tools/audit/round9/D12/s2/onoff_switch.py",
+    "value": "onoff_failing_cells=4 (LOO 3) of 9; modulating_failing_cells=0; onoff_e2e_turn_off_with_planned_heat=30; shoulder withheld_frac=0.671",
+    "unit": "cells / steps / ratio",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B7 cloud container, Linux 6.18, 4 vCPU, numpy/OpenBLAS",
+    "cpu_or_wall": "neither (counts and ratios)",
+    "contention_note": "contention-immune counts; deterministic solves",
+    "tolerance": "failing cells +-1, e2e steps +-3, withheld_frac +-0.05",
+    "load1": "1.38",
+    "thread_factor": "1.000"
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer._power_to_heat_pump_schedule (with get_current_action and coordinator:HeatPumpOptimizerCoordinator._apply_action)",
+   "perturbation": {
+    "change": "--perturb: patch HeatPumpOptimizer._power_to_heat_pump_schedule in memory to a 0.1 kW on-threshold (its own floor) instead of min_electrical_power*0.5. Alternatively --min 1.0 (a modulating floor) on the on/off arm.",
+    "expected_direction": "down: onoff_failing_cells 4 -> 0, e2e turn_off-with-planned-heat 30 -> 0 (both measured)"
+   },
+   "metric_definition": "withheld_frac = planned space+DHW kWh in steps whose production heat_pump_on_schedule is False, divided by the plan's total planned kWh; a cell fails above 0.10; e2e counts switch.turn_off calls from _apply_action on steps with planned power > 0.1 kW",
+   "phenomenon_property": "Every seam that decides whether the pump runs a plan step must agree with the solver's reading of a sub-floor step as duty cycling. A step with planned heat must not be actuated OFF.",
+   "seam_rule": "grep -rn \"min_electrical_power.*\\* 0\\.5\\|_on_kw(\" custom_components/heatpump_optimizer/*.py  (optimizer.py:6962, :7024; pump_arbiter.py:354, :357, :491)",
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "proposed_fix_scope": "Make the on/off decision consistent with the plan for sub-floor steps. Either the threshold stops withholding planned heat (ON when a step carries planned heat, letting the pump's own thermostat duty-cycle), or the solver is constrained to bang-bang or the floor when min==max. The seams listed by the rule change together.",
+   "provisional": false
+  },
+  {
+   "id": "D12-s2-02",
+   "scope": "D12-s2",
+   "step": "D12.M3",
+   "title": "The pump-duty arbiter writes the operating mode with select.select_option whatever domain the mode slot holds",
+   "severity": "medium",
+   "claim": "topology.ASSIGNABLE_KEYS['heat_pump_mode_entity'] accepts select, sensor and input_select, and config_flow has no check tying pump_duty_mode=control to a writable domain. pump_arbiter._write still hard-codes ('select','select_option'), the defect #1526 fixed for the switch slot via coordinator._on_off_service. Under control with an input_select mode slot, 5 of 5 mode writes are routed to a domain with no such entity. The mode is wrong on all 9 arbitration ticks, and the pump_write_ignored repair tells the user the pump does not hold a write that never reached it, retried every 5 min. A sensor (enum) slot fails the same way. Null control, a select slot: 0 misrouted, 0 wrong ticks, no repair.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/mode_domain.py",
+    "harness_path": "tools/audit/round9/D12/s2/mode_domain.py",
+    "value": "input_select_misrouted_mode_writes=5, input_select_ticks_mode_wrong=9, input_select_repair_raised=1; select: 0/0/0; sensor: 5/9/1; failing_mode_domains=2",
+    "unit": "calls / ticks / flag / cells",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B7 cloud container, Linux 6.18, 4 vCPU",
+    "cpu_or_wall": "neither (counts)",
+    "contention_note": "contention-immune counts",
+    "tolerance": "misrouted +-1; ticks exact",
+    "load1": "1.14",
+    "thread_factor": "1.000"
+   },
+   "instrumented_symbol": "heatpump_optimizer.pump_arbiter:_write (driven by pump_arbiter.apply on a real HeatPumpOptimizerCoordinator)",
+   "perturbation": {
+    "change": "--perturb: a one-line in-memory edit of pump_arbiter._write so the service domain literal \"select\" becomes entity.split(\".\", 1)[0], routing by the target's own domain.",
+    "expected_direction": "down: input_select misrouted 5 -> 0, ticks_mode_wrong 9 -> 0, repair 1 -> 0 (measured). The sensor cell keeps 9 wrong ticks, which is the read-only half of the property."
+   },
+   "metric_definition": "misrouted_mode_writes = mode-slot service calls from pump_arbiter.apply whose service domain differs from the target entity's domain, over 9 ticks 7 min apart on a space/space/DHW/space plan, with HA entity-service routing modelled explicitly (select.select_option acts only on select.*, input_select.select_option only on input_select.*, and there is no sensor.select_option)",
+   "phenomenon_property": "Every write to a user-assignable slot routes by the assigned entity's own domain. A slot assigned a read-only domain is never written under control; it is refused or declared unavailable rather than retried with a repair.",
+   "seam_rule": "grep -n 'async_call(' -A2 custom_components/heatpump_optimizer/{pump_arbiter,coordinator,repairs}.py, cross-checked against topology.ASSIGNABLE_KEYS and the config_flow _entity_of([...]) domains of each written slot",
+   "stop_rule_class": "bug",
+   "class_guess": "P2",
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/topology.py",
+    "custom_components/heatpump_optimizer/config_flow.py"
+   ],
+   "proposed_fix_scope": "pump_arbiter._write routes select_option by the target's domain (select or input_select). Control does not write a sensor mode slot: it skips it or the config flow refuses control with a read-only slot.",
+   "provisional": false
+  },
+  {
+   "id": "D12-s2-03",
+   "scope": "D12-s2",
+   "step": "D12.M3",
+   "title": "On an on/off pump every full-power step publishes as 'eco' and power_normalized runs to -60",
+   "severity": "medium",
+   "claim": "get_current_action computes p_norm = (P - min)/max(max - min, 0.1). When min==max the 0.1 kW divisor floor turns a degenerate range into a x10 scale. A full-power 6 kW step gets p_norm 0, so HeatPumpActionSensor.native_value is 'eco' rather than 'boost', and idle steps publish power_normalized = -60. On/off arm: 149 full-power steps mislabelled across 7/9 cells (range 0-31, LOO 118); power_normalized minimum -60.0. Modulating null arm: 0 mislabelled; minimum -0.2, which is the same formula on every install and goes as a lead. The climate hvac_action is unaffected because it also reads heat_pump_on.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/onoff_label.py",
+    "harness_path": "tools/audit/round9/D12/s2/onoff_label.py",
+    "value": "onoff_full_power_mislabelled=149 (LOO 118, 7/9 cells); modulating_full_power_mislabelled=0; onoff_power_normalized_min=-60.0",
+    "unit": "steps / ratio",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B7 cloud container, Linux 6.18, 4 vCPU, numpy/OpenBLAS",
+    "cpu_or_wall": "neither (counts)",
+    "contention_note": "contention-immune counts; deterministic solves",
+    "tolerance": "+-10% on the step count",
+    "load1": "1.30",
+    "thread_factor": "1.000"
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action (read through heatpump_optimizer.sensor:HeatPumpActionSensor.native_value / extra_state_attributes)",
+   "perturbation": {
+    "change": "--min 5.0: the on/off arm's min_electrical_power becomes 5.0 kW (a 1 kW modulation range). One-line production alternative: guard p_range==0 in get_current_action instead of max(p_range, 0.1).",
+    "expected_direction": "down: onoff_full_power_mislabelled 149 -> 0 and power_normalized minimum -60 -> -5 (measured)"
+   },
+   "metric_definition": "full_power_mislabelled = plan steps with planned space power >= 0.99*max_electrical_power whose published HeatPumpActionSensor state is not 'boost', summed over 9 golden cells",
+   "phenomenon_property": "The published action band and power_normalized stay in [0,1] and rank a full-power step at the top on every compressor kind, including min==max.",
+   "seam_rule": "grep -n \"p_range\\|p_norm\" custom_components/heatpump_optimizer/optimizer.py",
+   "stop_rule_class": "bug",
+   "class_guess": "P3",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "proposed_fix_scope": "get_current_action handles a zero modulation range (an on/off pump is either off or at 1.0) and clamps power_normalized to [0,1].",
+   "provisional": false
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "The switch slot routes on/off by its own domain for switch, input_boolean and climate. The sweep was shown able to detect a misroute: --perturb restores the hard-coded 'switch' and gives 2 failing cells.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/surfaces.py [--perturb]",
+   "value": "0 misrouted in 3/3 switch-slot cells; --perturb gives failing_surface_cells=2"
+  },
+  {
+   "claim": "With ECL110 topics absent there are no MQTT publishes; configured topics publish.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/surfaces.py",
+   "value": "mqtt_calls 0 unconfigured / 2 configured"
+  },
+  {
+   "claim": "The frequency surface writes only when a number entity is configured and control is opted in. A sensor alone stays in observe; with neither, the mode is unconfigured.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/surfaces.py",
+   "value": "8 freq cells: writes=1 only in number+control and both+control; failing_surface_cells=0 of 13"
+  },
+  {
+   "claim": "A modulating pump on the switch path withholds no material planned heat.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/onoff_switch.py",
+   "value": "modulating withheld_frac max 0.014, 0/9 failing, 0 turn_off calls with planned heat"
+  },
+  {
+   "claim": "The on/off winter single-zone and summer DHW-only cells hold: the solver plans at P_max or 0 there.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/onoff_switch.py",
+   "value": "withheld_frac 0.000 in winter_single_dhw, winter_single_no_dhw, summer_dhw_only"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D12/s2/onoff_switch.py",
+  "tools/audit/round9/D12/s2/mode_domain.py",
+  "tools/audit/round9/D12/s2/onoff_label.py",
+  "tools/audit/round9/D12/s2/surfaces.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer.get_current_action",
+   "what": "On every install (modulating 1/6 kW), idle and sub-floor steps publish power_normalized = -min/range = -0.2 on the Heat Pump Action sensor attribute and the climate attribute: 585 of 864 steps in onoff_label.py's modulating arm. A wrong published value outside [0,1] (D2/D8)."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer._idle_action",
+   "what": "The empty-plan and pre-horizon action carries power=min_electrical_power with heat_pump_on=False, so coordinator._commanded_power reports min kW commanded while the pump is off. The external-heat, COP and frequency consumers read it (D1/D2)."
+  }
+ ]
+}

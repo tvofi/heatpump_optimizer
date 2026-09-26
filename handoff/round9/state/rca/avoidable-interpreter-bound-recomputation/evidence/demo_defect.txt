@@ -1,0 +1,12 @@
+
+=== Stress and economics ===
+  shoulder/1z/dhw                calls 1.0777x  evals 554/554  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False
+  summer/1z/space                calls 1.0822x  evals 34/34  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False
+  winter/1z/dhw                  calls 1.0233x  evals 52/52  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False
+  winter/2z/space                calls 1.1256x  evals 906/906  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False
+  winter/tariff                  calls 1.0567x  evals 764/764  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False
+  OVER shoulder/1z/dhw: 2201206 production calls against the baseline's 2042485 = 1.078x on work the counts vouch at 1.000x, over the 1.05x allowance (optimizer.py +158721)
+  OVER summer/1z/space: 128236 production calls against the baseline's 118495 = 1.082x on work the counts vouch at 1.000x, over the 1.05x allowance (optimizer.py +9741)
+  OVER winter/2z/space: 4641470 production calls against the baseline's 4123691 = 1.126x on work the counts vouch at 1.000x, over the 1.05x allowance (optimizer.py +517779)
+  OVER winter/tariff: 8133048 production calls against the baseline's 7696422 = 1.057x on work the counts vouch at 1.000x, over the 1.05x allowance (optimizer.py +436626)
+RESULT arm=defect here=1936d5ca base=45492d88 scenarios=5 covered=5 replanned=0 unmetered=0 calls_over=4 shipped_count_over=0 capture_wall_s=135.0

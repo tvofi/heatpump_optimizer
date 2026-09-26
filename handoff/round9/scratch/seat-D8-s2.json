@@ -1,0 +1,193 @@
+{
+ "dimension": "D8",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D8/s2/REPORT.md (NOT WRITTEN: the session refused a report-file write; the full report content is this JSON)",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D8.M1",
+   "depth": "deep",
+   "evidence": "matrix.py builds a real HeatPumpOptimizerCoordinator for each of the 5 coordinator_scenarios(), each in two arms: no thermometers and indoor+outdoor thermometers, 10 cells in all. Prices, forecast and irradiance are injected; only the four fetchers are stubbed. Each cell runs two cycles through the production _async_update_data: the light path, then a solve with changed inputs. Every climate, switch and button entity is built through the real async_setup_entry. Not covered: ECL110, Tuya, valve storage, two-tank, coil and wood toggles (see unfinished)."
+  },
+  {
+   "step": "D8.M2",
+   "depth": "deep",
+   "evidence": "Per entity per cell the harness checks availability, orjson and finiteness of the attributes, hvac and preset enum membership, float temperatures, and six payload-restating attributes plus current_temperature following cycle 2. The operating-state oracle compares hvac_action with the actuated action (heat_pump_on and power+dhw_power) in mode off with space and DHW boosts, with the same boosts at mode auto as the null arm. A per-step oracle covers 96 solved plan steps, 6 of them DHW-only, including minimum modulation. The harness also captures the immediate state write after climate set_hvac_mode and switch turn_off."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D8.M1",
+   "what": "The matrix covers only the 5 scenario configurations × thermometer axis. The ECL110, Tuya-signal (including the DHW-only Tuya overlay with space heating blocked), valve-storage, two-tank, coil and wood toggles were not added as cells. The DHW-only oracle was instead exercised through the DHW boost at mode off and through the 6 DHW-only plan steps."
+  },
+  {
+   "step": "D8.M2",
+   "what": "REPORT.md at tools/audit/round9/D8/s2/REPORT.md could not be written because the session refused report-file writes, so the report content is carried in this JSON only. Not examined: whether SystemIdentificationButton stays available after it is armed but before the experiment is active."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D8-s2-01",
+   "scope": "D8-s2",
+   "step": "D8.M2",
+   "title": "Climate entity is permanently unavailable on an install without an indoor thermometer, taking the thermostat control with it",
+   "severity": "high",
+   "claim": "HeatPumpOptimizerClimate.available is False in every cell whose indoor thermometer has not read, even though the coordinator holds a fresh payload. Its hvac_mode, target, presets and 22 payload-backed attributes are therefore never published, and HA's service calls skip the entity, while current_temperature already returns None without a reading.",
+   "mechanism": "climate.py available ANDs in coordinator.data['reading_ok']['upper_floor_temperature']. That flag is False for an unconfigured indoor entity (coordinator._reading_ok), and the README (line 168) and the config_flow (vol.Optional) both make that entity optional. The A3(e) aim, not publishing the 21.0 constructor default, is already met by current_temperature returning None. The whole-entity gate is redundant for that aim and removes the control surface: HA's entity_service_call skips unavailable entities, so set_temperature, set_hvac_mode and turn_off on the thermostat do nothing. tests/entities.py:3345-3383 pins this as the A3(e) decision.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+    "harness_path": "tools/audit/round9/D8/s2/matrix.py",
+    "value": 5,
+    "unit": "cells of 10 (RESULT climate_unavailable_with_payload; climate_attrs_hidden=112)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "audit box B7, linux container, /home/claude/venv314",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 4.93,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.available",
+   "perturbation": {
+    "change": "--perturb-available: available returns CoordinatorEntity.available alone, dropping the reading_ok term (a one-line edit in memory)",
+    "expected_direction": "climate_unavailable_with_payload 5 -> 0 and climate_attrs_hidden 112 -> 0 (measured)"
+   },
+   "metric_definition": "Number of matrix cells in which the coordinator has a payload and last_update_success is True, yet HeatPumpOptimizerClimate.available is False.",
+   "phenomenon_property": "An entity that carries a control surface (setpoint, mode, presets) gates its whole availability on a measurement it could publish as None instead.",
+   "seam_rule": "grep -n \"def available\" -A8 custom_components/heatpump_optimizer/climate.py custom_components/heatpump_optimizer/switch.py custom_components/heatpump_optimizer/button.py | grep reading_ok",
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/climate.py",
+    "tests/entities.py"
+   ],
+   "proposed_fix_scope": "Drop the reading_ok term from HeatPumpOptimizerClimate.available and keep current_temperature's None gate. This overturns the A3(e) pin at tests/entities.py:3345-3383, so it needs the owner's decision.",
+   "provisional": false
+  },
+  {
+   "id": "D8-s2-02",
+   "scope": "D8-s2",
+   "step": "D8.M2",
+   "title": "Climate hvac_action publishes off while an active boost runs the pump in optimizer mode off",
+   "severity": "high",
+   "claim": "With mode off and a live space or DHW boost, the actuated action has heat_pump_on=True and draws 5.0 kW space or 4.0 kW DHW, while the climate publishes hvac_action=off. This happens in all 14 such arms; the same boosts at mode auto give 0.",
+   "mechanism": "climate.py hvac_action returns HVACAction.OFF whenever the payload mode is off, before it reads the action. boost.apply (coordinator.py:4652) overlays live boost channels in every mode, including off, and _apply_action then switches the pump on. The pump runs while the thermostat says off.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+    "harness_path": "tools/audit/round9/D8/s2/matrix.py",
+    "value": 14,
+    "unit": "arms (RESULT hvac_action_vs_plan; 10 space-boost + 4 DHW-boost at mode off; null arm at mode auto = 0; per-step plan oracle hvac_action_steps_vs_plan=0 of 96)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "audit box B7, linux container, /home/claude/venv314",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 4.93,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.hvac_action",
+   "perturbation": {
+    "change": "--perturb-hvac-action: hvac_action returns HEATING when current_action.heat_pump_on or power_normalized > 0.1, before the mode-off check",
+    "expected_direction": "hvac_action_vs_plan 14 -> 0 (measured)"
+   },
+   "metric_definition": "Number of (cell, boost channel, mode) arms in which the cycle's actuated current_action has heat_pump_on True with power+dhw_power >= 0.1 kW but HeatPumpOptimizerClimate.hvac_action is OFF or IDLE.",
+   "phenomenon_property": "An operating-state property derives from the mode label rather than from the action the cycle actuated.",
+   "seam_rule": "grep -n 'MODE_OFF\\|\"mode\"' custom_components/heatpump_optimizer/climate.py",
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/climate.py"
+   ],
+   "proposed_fix_scope": "In hvac_action, test current_action.heat_pump_on (and the draw) before returning OFF for the mode, or return OFF only when the action says the pump is off.",
+   "provisional": false
+  },
+  {
+   "id": "D8-s2-03",
+   "scope": "D8-s2",
+   "step": "D8.M2",
+   "title": "Mode actions publish a state that mixes the live mode with the stale payload mode",
+   "severity": "medium",
+   "claim": "The state write a mode action makes at once carries hvac_mode=off with hvac_action=heating on the climate, and is_on=false with attribute mode='auto' on the Optimizer Active switch. This holds until the refresh has solved, 30 to 70 s on a Pi.",
+   "mechanism": "publish_then_refresh writes state before the refresh rebuilds coordinator.data. hvac_mode and switch.is_on read the live coordinator.mode (v6.6.12), while climate.hvac_action and OptimizerEnableSwitch.extra_state_attributes['mode'] read data['mode'], the payload copy.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+    "harness_path": "tools/audit/round9/D8/s2/matrix.py",
+    "value": 2,
+    "unit": "state writes (RESULT mode_split_after_action)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "audit box B7, linux container, /home/claude/venv314",
+    "cpu_or_wall": "count",
+    "contention_note": "shared box during fan-out; count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 4.93,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.hvac_action; custom_components/heatpump_optimizer/switch.py:OptimizerEnableSwitch.extra_state_attributes",
+   "perturbation": {
+    "change": "--perturb-live-mode: both payload-mode readers read coordinator.mode instead of data['mode']",
+    "expected_direction": "mode_split_after_action 2 -> 0 (measured)"
+   },
+   "metric_definition": "Number of immediate state writes made by climate.async_set_hvac_mode or OptimizerEnableSwitch.async_turn_off in which the live-mode field (hvac_mode or is_on) disagrees with a payload-mode field in the same write (hvac_action OFF-ness or the switch attribute mode).",
+   "phenomenon_property": "One entity state write reads the operating mode from two sources, the live coordinator.mode and the payload copy data['mode'].",
+   "seam_rule": "grep -n 'data.get(\"mode\"' custom_components/heatpump_optimizer/climate.py custom_components/heatpump_optimizer/switch.py",
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/climate.py",
+    "custom_components/heatpump_optimizer/switch.py"
+   ],
+   "proposed_fix_scope": "Read coordinator.mode in climate.hvac_action's off test and in OptimizerEnableSwitch's mode attribute.",
+   "provisional": false
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Every attribute of every climate, switch and button entity is orjson-serialisable and finite in all 10 cells",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+   "value": "orjson_or_nonfinite=0"
+  },
+  {
+   "claim": "The climate hvac_mode and preset_mode are always members of their listed options, and current_temperature and target_temperature are floats or None",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+   "value": "enum_out_of_list=0"
+  },
+  {
+   "claim": "Six payload-restating climate attributes (current_price, predicted_savings, savings_percentage, optimization_status, solar_heat_gain_kw, dhw_setpoint) follow cycle 2's payload, and current_temperature follows the thermometer from 21.4 to 20.1",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+   "value": "stale_attr=0"
+  },
+  {
+   "claim": "Across all 96 steps of a real solved plan, climate hvac_action agrees with the plan's own heat_pump_on and draw, including 6 DHW-only steps and the minimum-modulation steps",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+   "value": "hvac_action_steps_vs_plan=0 of plan_steps_checked=96 (plan_steps_dhw_only=6)"
+  },
+  {
+   "claim": "The Optimize Now button is available while no optimization is running, and every switch's is_on is a bool",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+   "value": "button_unavailable_idle=0, switch_is_on_not_bool=0"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D8/s2/matrix.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "Optimizer._idle_action",
+   "what": "The idle fallback action publishes power=min_electrical_power with heat_pump_on=False and no dhw_power. commanded_power_kw therefore reports a non-zero recommended power (climate recommended_power_kw, Recommended Power) while the pump is commanded off."
+  },
+  {
+   "owner_seat": "D8-s1",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "IndoorTempSensor.available",
+   "what": "It gates on reading_ok['upper_floor_temperature'] like the climate, for the same A3(e) reason. Check whether any sensor carrying a non-measured value (plan or money) is hidden along with the measurement, as D8-s2-01 found on the climate."
+  },
+  {
+   "owner_seat": "D8-s1",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "Heat Pump Action / operating-state sensors",
+   "what": "Run the D8-s2-02 arm on the sensor side: mode off with a live space or DHW boost, where boost.apply still actuates the pump. Check whether sensors publishing an operating state or pump power read the mode label or the actuated action."
+  }
+ ]
+}

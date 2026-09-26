@@ -1,0 +1,66 @@
+[
+ {
+  "dim": "D1",
+  "panel": "unanimous",
+  "merged": [],
+  "judge_expected": 0.928,
+  "judge_notes": "Null control (stop_latency_idle_s) is a DIFFERENT RESULT name than stop_latency_ratio; it is printed in the SAME invocation as the main run (idle vs in-flight both measured in one script run), so no separate command is actually needed -- listed for completeness. Wall-clock/ratio harness; reps=5 real coordinator solves make this slower than the count-only harnesses.",
+  "finding": {
+   "id": "D1-s2-05",
+   "scope": "D1-s2",
+   "step": "D1.M1",
+   "severity": "medium",
+   "title": "Home Assistant stop waits out an in-flight solve before reaping the solve worker",
+   "claim": "The EVENT_HOMEASSISTANT_STOP listener from async_register_worker_shutdown, fired 0.1 s into a real solve, returns only when the solve does (0.93 of the solve's duration), against 0.008 s with no solve in flight.",
+   "mechanism": "_shutdown_process_pool takes the module-global _PROCESS_LOCK, which _run_in_process holds for the whole transport round trip (pickle.dump .. pickle.load, i.e. the entire solve). The reap therefore queues behind the solve instead of terminating the child; on a Pi (30-70 s solves, or the D1-s2-02 runaway) that is how long a restart stalls.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s2/worker_stop.py --reps 5",
+    "harness_path": "tools/audit/round9/D1/s2/worker_stop.py",
+    "value": 0.928,
+    "unit": "stop latency / solve duration (median of 5; min 0.843, max 1.017)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B4 cloud container (Linux 6.18, x86_64), CPython 3.14.0rc2, numpy 2.4.6",
+    "cpu_or_wall": "ratio",
+    "contention_note": "shared B4 during fan-out, 0 concurrent stress.py; ratio metric, absolutes provisional",
+    "tolerance": "\u00b10.1",
+    "load1": 2.13,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:async_register_worker_shutdown (listener -> _shutdown_process_pool, contending with _run_in_process)",
+   "perturbation": {
+    "change": "--perturb unlocked_reap: coordinator._PROCESS_LOCK rebound to a fresh Lock for the stop call only (a reap that does not queue behind the transport lock)",
+    "expected_direction": "down",
+    "observed_value": 0.01
+   },
+   "metric_definition": "Wall time for the stop listener to return when fired 0.1 s into a real coordinator solve, divided by that solve's own duration measured in the same session.",
+   "phenomenon_property": "Reaping the solve worker at stop never waits for a solve in flight: the stop reap completes in bounded time independent of solve duration.",
+   "seam_rule": "grep -n '_PROCESS_LOCK' custom_components/heatpump_optimizer/coordinator.py (3 sites: definition, _shutdown_process_pool, _run_in_process)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s2/worker_stop.py --reps 5",
+    "value": "stop_latency_idle_s=0.008",
+    "note": "same listener, same session, no solve in flight"
+   },
+   "reproduction_steps": [
+    "Set up an entry on a real loop with a ThreadPoolExecutor",
+    "Start async_run_optimization, wait 0.1 s",
+    "Await the registered EVENT_HOMEASSISTANT_STOP listener: it returns when the solve finishes"
+   ],
+   "proposed_fix_scope": "coordinator._shutdown_process_pool: grab the worker handle without waiting on the transport lock (or kill the child first so the in-flight pickle.load fails fast), keeping the lock only for the handle swap.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "seat": "D1-s2",
+   "judge_batch": {
+    "run": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s2/worker_stop.py --reps 5",
+    "perturb": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s2/worker_stop.py --perturb unlocked_reap --reps 5",
+    "null": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D1/s2/worker_stop.py --reps 5",
+    "metric": "stop_latency_ratio",
+    "tolerance": "\u00b10.1"
+   }
+  },
+  "batch": "A",
+  "batch_reason": "provisional CPU/timing (J.md: runner quiet-box re-take)"
+ }
+]

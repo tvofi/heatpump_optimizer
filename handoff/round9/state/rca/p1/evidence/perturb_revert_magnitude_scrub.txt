@@ -1,0 +1,202 @@
+
+=== finite store-load boundary ===
+  ok   no raw Store() is constructed outside the quarantine boundary
+  ok   the boundary set is non-empty (a rename erasing it must fail)
+  ok   the boundary quarantines nan at every depth
+  ok   the boundary quarantines inf at every depth
+  ok   the boundary quarantines -inf at every depth
+  ok   the boundary quarantines str-nan at every depth
+  ok   the boundary quarantines str-inf at every depth
+  ok   the boundary quarantines str--inf at every depth
+  ok   a finite payload round-trips unchanged (no over-refusal)
+  FAIL the boundary quarantines an absurd magnitude as it does a non-finite (class P1)  [scrubbed={'f': 1e+300, 'i': 18446744073709551616, 'j': 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000, 's': '1e300', '1000000000000000': 1.0, 'k': [-1000000000000000.0]}]
+  ok   the type-drift reader flags a number that loaded as text (its own control)
+  ok   every derived boundary is wired to a loader in the reach sweep
+  ok   the class oracle flags a planted naive, magnitude, non-finite and number-turned-text label, and nothing on the healthy set (its own control)
+  ok   the ledger payload carries month line and meta leaves to corrupt (#1518)
+  ok   no non-finite value reaches the live thermal model
+  ok   no non-finite value reaches the published payload
+  ok   no corrupt leaf makes the next refresh's publication raise (#1518)
+  ok   no wrong-type leaf is installed where the live model holds a number
+  ok   no loader raised on a quarantined payload
+  ok   the peak store loads its pre-#1512 and malformed label shapes: finite peaks only, one string label each, no raise
+  ok   healthy payload 'heatpump_optimizer_test_entry_thermal_learning' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_price_model' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_accuracy' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_energy' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_manual_plan' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_snapshots' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_ledger' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_dhw_profile' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_dhw_draws' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_dhw_legionella' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_boost' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_away' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_pump_duty' leaves the model finite (null control)
+RESULT store_boundaries=13 count
+RESULT raw_store_calls=0 count
+RESULT stores_swept=13 count
+RESULT model_poison_total=0 count
+RESULT published_poison_total=0 count
+RESULT loader_escape_total=0 count
+RESULT type_drift_total=0 count
+RESULT refresh_escape_total=0 count
+  ok   every sensor entity publishes finite values from non-finite input (#1541)
+  ok   the poisoned input reaches a published sensor value (the arm is not vacuous)
+RESULT publish_sensor_entities=59 count
+RESULT publish_sensor_leaks=0 count
+  ok   every binary_sensor entity publishes finite values from non-finite input (#1541)
+  ok   the poisoned input reaches a published binary_sensor value (the arm is not vacuous)
+RESULT publish_binary_sensor_entities=6 count
+RESULT publish_binary_sensor_leaks=0 count
+  ok   every button entity publishes finite values from non-finite input (#1541)
+RESULT publish_button_entities=4 count
+RESULT publish_button_leaks=0 count
+  ok   every climate entity publishes finite values from non-finite input (#1541)
+  ok   the poisoned input reaches a published climate value (the arm is not vacuous)
+RESULT publish_climate_entities=1 count
+RESULT publish_climate_leaks=0 count
+  ok   every switch entity publishes finite values from non-finite input (#1541)
+RESULT publish_switch_entities=4 count
+RESULT publish_switch_leaks=0 count
+  ok   every datetime entity publishes finite values from non-finite input (#1541)
+RESULT publish_datetime_entities=1 count
+RESULT publish_datetime_leaks=0 count
+  ok   an inherited scrubbed property re-exported by a subclass is not wrapped twice
+  SEAM accuracy:accuracy/samples/#/actual_cost magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:accuracy/samples/#/actual_power_kw magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:accuracy/samples/#/actual_temp magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:accuracy/samples/#/cop_residual magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:accuracy/samples/#/humidity magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:accuracy/samples/#/outdoor_temp magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:accuracy/samples/#/predicted_cost magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:accuracy/samples/#/predicted_power_kw magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:accuracy/samples/#/predicted_temp magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:comfort/evidence magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:comfort/learned_weight magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:comfort/overrides magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:defrost/counts/#/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:defrost/duty/#/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:defrost/duty_counts/#/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:defrost/duty_events/#/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:dhw_accuracy/samples/#/actual_cost magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:dhw_accuracy/samples/#/actual_power_kw magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:dhw_accuracy/samples/#/actual_temp magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:dhw_accuracy/samples/#/cop_residual magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:dhw_accuracy/samples/#/humidity magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:dhw_accuracy/samples/#/outdoor_temp magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:dhw_accuracy/samples/#/predicted_cost magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:dhw_accuracy/samples/#/predicted_power_kw magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:dhw_accuracy/samples/#/predicted_temp magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:peaks/peaks/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:peaks/window_factor magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:peaks/window_samples magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:peaks/window_sum magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:peaks/window_weight magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM accuracy:peaks/window_wsum magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM dhw_draws:open_kwh magnitude subs=['18446744073709551616', '1e+300']
+  SEAM dhw_draws:reservoirs/morning/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM dhw_legionella:last_attempt_peak magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM dhw_profile:cooling_samples magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM dhw_profile:profile_weekday_samples magnitude subs=['18446744073709551616', '1e+300']
+  SEAM dhw_profile:profile_weekend_samples magnitude subs=['18446744073709551616', '1e+300']
+  SEAM energy:dhw_cost magnitude subs=['18446744073709551616', '1e+300']
+  SEAM energy:dhw_energy_kwh magnitude subs=['18446744073709551616', '1e+300']
+  SEAM energy:space_cost magnitude subs=['18446744073709551616', '1e+300']
+  SEAM energy:space_energy_kwh magnitude subs=['18446744073709551616', '1e+300']
+  SEAM energy:total_cost magnitude subs=['18446744073709551616', '1e+300']
+  SEAM energy:total_energy_kwh magnitude subs=['18446744073709551616', '1e+300']
+  SEAM ledger:ledger/months/2026-01/lines/savings_baseline/kwh magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM ledger:ledger/months/2026-01/lines/savings_baseline/sek magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM ledger:ledger/months/2026-01/meta/spot_price/count magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM ledger:ledger/months/2026-01/meta/spot_price/sum magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM ledger:starts/lifetime magnitude subs=['18446744073709551616', '1e+300']
+  SEAM price_model:model/days/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM price_model:model/quarter_days/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM price_model:model/quarter_factors/#/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM price_model:model/residual_var/#/# magnitude subs=['18446744073709551616', '1e+300']
+  SEAM price_model:model/shapes/#/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM pump_duty:written/dhw_setpoint/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:<key>/snapshots/#/learners/thermal_learning/capacity_envelope/-1 magnitude subs=['key->1e15']
+  SEAM snapshots:<key>/snapshots/#/learners/thermal_learning/freq_map/3 magnitude subs=['key->1e15']
+  SEAM snapshots:bias_days magnitude subs=['18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/accuracy/temperature_bias best_restore:TypeError,restore_service:TypeError subs=['18446744073709551616']
+  SEAM snapshots:snapshots/#/learners/comfort/evidence magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/comfort/learned_weight magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/comfort/overrides magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/defrost/counts/#/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/defrost/duty/#/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/defrost/duty_counts/#/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/defrost/duty_events/#/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/dhw_draws/open_kwh magnitude subs=['18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/dhw_draws/reservoirs/morning/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/dhw_profile/profile_weekday_samples magnitude subs=['18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/dhw_profile/profile_weekend_samples magnitude subs=['18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/price_model/days/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/price_model/quarter_days/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/price_model/quarter_factors/#/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/price_model/residual_var/#/# magnitude subs=['18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/price_model/shapes/#/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/thermal_learning/capacity_envelope/-1/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/thermal_learning/capacity_envelope/-1/# magnitude,publish:TypeError subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/thermal_learning/curve_learner/comfortable_days magnitude subs=['18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/thermal_learning/curve_learner/resets magnitude subs=['18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/thermal_learning/flow_bias/samples magnitude subs=['18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/thermal_learning/freq_map/3/# magnitude subs=['18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/thermal_learning/solar_aperture/cov magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/thermal_learning/solar_aperture/mx magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/thermal_learning/solar_aperture/my magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/thermal_learning/solar_aperture/n magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM snapshots:snapshots/#/learners/thermal_learning/solar_aperture/var magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM thermal_learning:<key>/capacity_envelope/-1 magnitude subs=['key->1e15']
+  SEAM thermal_learning:<key>/freq_map/3 magnitude subs=['key->1e15']
+  SEAM thermal_learning:buffer_cooling_samples magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM thermal_learning:capacity_envelope/-1/# magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM thermal_learning:capacity_envelope/-1/# magnitude,publish:TypeError subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM thermal_learning:cop_health_cusum/stat magnitude subs=['18446744073709551616', '1e+300']
+  SEAM thermal_learning:cop_samples magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM thermal_learning:curve_learner/comfortable_days magnitude subs=['18446744073709551616', '1e+300']
+  SEAM thermal_learning:curve_learner/resets magnitude subs=['18446744073709551616', '1e+300']
+  SEAM thermal_learning:flow_bias/samples magnitude subs=['18446744073709551616', '1e+300']
+  SEAM thermal_learning:freq_map/3/# magnitude subs=['18446744073709551616', '1e+300']
+  SEAM thermal_learning:house_heat_loss_samples magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM thermal_learning:lower_floor_loss_samples magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM thermal_learning:snow_accum_cm magnitude subs=['18446744073709551616', '1e+300']
+  SEAM thermal_learning:solar_aperture/cov magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM thermal_learning:solar_aperture/mx magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM thermal_learning:solar_aperture/my magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM thermal_learning:solar_aperture/n magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM thermal_learning:solar_aperture/var magnitude subs=['-1e+300', '18446744073709551616', '1e+300']
+  SEAM thermal_learning:vent_cusum/stat magnitude subs=['18446744073709551616', '1e+300']
+RESULT class_mutants=4706 count
+RESULT class_seams=105 count
+RESULT class_unseeded_sections=23 count
+  UNSEEDED accuracy:accuracy/lead_counts
+  UNSEEDED accuracy:accuracy/lead_pending
+  UNSEEDED accuracy:accuracy/lead_sigma
+  UNSEEDED accuracy:comfort/history
+  UNSEEDED accuracy:dhw_accuracy/lead_counts
+  UNSEEDED accuracy:dhw_accuracy/lead_pending
+  UNSEEDED accuracy:dhw_accuracy/lead_sigma
+  UNSEEDED ledger:month_reports
+  UNSEEDED ledger:score_day
+  UNSEEDED ledger:starts/months
+  UNSEEDED price_model:days_seen
+  UNSEEDED price_model:quarter_days_seen
+  UNSEEDED snapshots:snapshots/0/accuracy/lead_sigma
+  UNSEEDED snapshots:snapshots/0/learners/accuracy/lead_counts
+  UNSEEDED snapshots:snapshots/0/learners/accuracy/lead_pending
+  UNSEEDED snapshots:snapshots/0/learners/accuracy/lead_sigma
+  UNSEEDED snapshots:snapshots/0/learners/comfort/history
+  UNSEEDED snapshots:snapshots/0/learners/thermal_learning/cop_baseline
+  UNSEEDED snapshots:snapshots/0/learners/thermal_learning/cop_health_cusum/evidence
+  UNSEEDED snapshots:snapshots/0/learners/thermal_learning/vent_cusum/evidence
+  UNSEEDED thermal_learning:cop_baseline
+  UNSEEDED thermal_learning:cop_health_cusum/evidence
+  UNSEEDED thermal_learning:vent_cusum/evidence
+RESULT class_arm_seconds=34.0
+  ok   the class sweep drove every seeded store (it cannot go green by skipping)
+  ok   the healthy populated stores load clean through every loader and consumer (null control)
+  FAIL no single-leaf malformation of a store raises, or installs a non-finite, naive, absurd-magnitude or wrong-type value anywhere the coordinator owns (class P1)  [seams=105]
+
+2 of 46 FINITE BOUNDARY CHECKS FAILED

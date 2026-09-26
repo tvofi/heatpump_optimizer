@@ -1,0 +1,383 @@
+{
+ "dimension": "D5",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D5/s1/REPORT.md",
+ "exposure": "Read in full: README.md and docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md. By accident: a grep over docs/*.md printed rows of docs/plan-2026-09-open-issues.md and one line of docs/HANDOVER.md (issue/PR numbers). Also read two passages of RELEASE_NOTES.md (#265 CARD_VERSION, the version-pinning note). RELEASE_NOTES.md is present in this export, so release-history claims could be checked. Production comments and README cite earlier issue ids (#265, #1227, #1335, #942). None of it was used as a list of things to re-find.",
+ "coverage": [
+  {
+   "step": "D5.M1",
+   "depth": "deep",
+   "evidence": "Walked three readers. HACS to first plan: 3 dead ends. Feature configuration (two-tank, ECL110, capacity tariff): 4 dead ends. Developer running tests: 0 inside these cells; the path hands off to tests/README.md, which is out of cell. Contradictions were measured against the production seam that decides each fact: setup_section.py (real ConfigFlow), entity_counts.py (platform async_setup_entry), field_labels.py (en.json options forms), service_fields.py (registered service schemas)."
+  },
+  {
+   "step": "D5.M2",
+   "depth": "deep",
+   "evidence": "Headings: md_headings.py, 174 headings, 0 defects. Tables: md_tables.mjs (markdown-it GFM token stream), 9 misrendered lines. Links: md_links.mjs, 119 relative links, 38 anchored, 0 broken. Duplication: md_dupes.mjs, 677 blocks, 0 exact duplicates. Orphans: grep, 0 docs and 0 images. Stale versions: card_version_doc.py plus grep; one stale literal (v6.6.8)."
+  },
+  {
+   "step": "D5.M3",
+   "depth": "deep",
+   "evidence": "doc_symbols.py resolved 282 code-span identifiers against the package AST; 1 unresolved, a true negative mention. Mechanism spot-checks: quick setup (quick_setup_promise.py), card version and stamp (card_version_doc.py), setup flow, services, module map and HA boundary counts (grep). how-it-works.md from line 700 on was covered only by the automated checks (see unfinished)."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D5.M3",
+   "what": "docs/how-it-works.md lines 700-1317 (prices and tariffs, wood, away, learning loops, 'What the tests actually prove') got only the identifier, link, table and heading checks. No paragraph in that range was spot-checked against its code path."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D5-s1-01",
+   "scope": "D5-s1",
+   "step": "D5.M1",
+   "title": "configuration.md 'Initial setup' documents the pre-v6.6.5 flow: no finish menu, Tibber token required, 74 entities",
+   "severity": "medium",
+   "claim": "The '## Initial setup' section of docs/configuration.md names none of the 3 finish_setup menu entries the real ConfigFlow shows after the two required screens. It says a Tibber token is required although the first screen completes with price_source=entity and no token. It says 74 entities appear although the platforms construct 75.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/setup_section.py",
+    "harness_path": "tools/audit/round9/D5/s1/setup_section.py",
+    "value": 4,
+    "unit": "stale_facts (count)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B1 linux container, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "count metric, contention-immune; other finder seats were running on the box",
+    "tolerance": "exact",
+    "load1": 1.09,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerConfigFlow.async_step_user / async_step_user_sensors / async_step_finish_setup (supplementary: sensor/binary_sensor/button/switch/climate/datetime.async_setup_entry via entity_counts.py)",
+   "perturbation": {
+    "change": "In memory, HeatPumpOptimizerConfigFlow.async_step_finish_setup = async_step_temperature, which restores the straight-line wizard the section draws (--perturb)",
+    "expected_direction": "down",
+    "observed_value": 1
+   },
+   "metric_definition": "Finish-menu entries the real flow returns that the section never names, plus 1 if the flow accepts a tokenless first screen while the section calls the token required",
+   "phenomenon_property": "The initial-setup reference in configuration.md must describe the flow ConfigFlow actually runs: every menu entry and every required field it enforces, plus the entity count the platforms construct.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/setup_section.py && PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/entity_counts.py",
+   "stop_rule_class": "bug",
+   "class_guess": "I5",
+   "files": [
+    "docs/configuration.md",
+    "custom_components/heatpump_optimizer/config_flow.py"
+   ],
+   "proposed_fix_scope": "Rewrite configuration.md's Initial setup intro, flowchart and step 1 table to match setup.md: price source choice (Tibber or price entity), the finish_setup menu with its three entries, and 75 entities. Alternatively, defer the journey to setup.md and keep only field tables here.",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/entity_counts.py",
+    "value": "constructed_entities=75; README.md:417 and architecture.md:37 say 75 (agree); configuration.md:196 says 74 (disagrees): disagreeing_claims=1; perturb (drop one sensor) -> 2",
+    "note": "The same count checked against the claims that are current shows the harness separates a true doc from a stale one"
+   },
+   "reproduction_steps": [
+    "Run setup_section.py: menu_entries=3, named_in_section=0, first_screen_accepted_without_token=1, doc_claims_token_required=1, stale_facts=4",
+    "Run with --perturb: menu_entries=0, stale_facts=1"
+   ]
+  },
+  {
+   "id": "D5-s1-02",
+   "scope": "D5-s1",
+   "step": "D5.M3",
+   "title": "setup.md Quick setup promises buffer storage and two-tank physics that the quick-setup answers cannot produce",
+   "severity": "medium",
+   "claim": "docs/setup.md says a Buffer tank 'yes' stores cheap heat and that the wood-tank probes switch the two-tank physics on. With every Quick setup toggle on and both probes set, quick_setup.derive produces a config whose ThermalParameters has buffer_is_store False and two_tank_modelled False. Both need a throttling mixing valve, which Quick setup never asks for and setup.md never mentions.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/quick_setup_promise.py",
+    "harness_path": "tools/audit/round9/D5/s1/quick_setup_promise.py",
+    "value": 2,
+    "unit": "unhonoured_promises (count)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B1 linux container, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.11,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer.quick_setup:derive -> heatpump_optimizer.thermal_model:ThermalParameters.from_config (.buffer_is_store, .two_tank_modelled)",
+   "perturbation": {
+    "change": "Wrap quick_setup.derive in memory to also return mixing_valve_mode='manual' (a throttling mode), the one answer the page never asks (--perturb)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Of setup.md's two Quick setup storage promises, how many the ThermalParameters built from derive(all toggles yes + both wood probes) fails to honour",
+   "phenomenon_property": "Every behaviour setup.md attributes to a Quick setup answer must hold for the config quick_setup.derive writes from that answer, or the doc must name the extra setting it depends on.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/quick_setup_promise.py",
+   "stop_rule_class": "bug",
+   "class_guess": "I5",
+   "files": [
+    "docs/setup.md",
+    "custom_components/heatpump_optimizer/quick_setup.py",
+    "custom_components/heatpump_optimizer/thermal_model.py"
+   ],
+   "proposed_fix_scope": "Doc: in setup.md's five-questions table and wood-probe paragraph, state that storage and two-tank physics also need a throttling mixing valve (Heating system and heat storage), and point to the hydronic layout catalog. Code alternative (D4-owned): have Quick setup ask about the valve. The matching en.json data_description is a D4-s2 lead.",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/quick_setup_promise.py",
+    "value": "null_arm_unhonoured=0",
+    "note": "The same answers plus a valve set on the Heating system page honour both promises, so the count keys on the missing valve and not on the harness"
+   },
+   "reproduction_steps": [
+    "Run: buffer_tank_volume=500.0 mixing_valve_mode=none two_zone=True wood_tank_configured=True layout=no_valve; unhonoured_promises=2",
+    "Run --perturb: unhonoured_promises=0"
+   ]
+  },
+  {
+   "id": "D5-s1-03",
+   "scope": "D5-s1",
+   "step": "D5.M3",
+   "title": "dashboard-card.md upgrade troubleshooting says the card version lags the integration; the stamp makes them equal on every release",
+   "severity": "low",
+   "claim": "docs/dashboard-card.md says the console banner's card version moves only when the card file changes, is often lower than the integration version, and should be compared against a card version in the release notes. The example banner is v6.6.8. But stamp.py:main calls rewrite_card_version on every stamp, CARD_VERSION equals VERSION (6.7.1) at baseline, and it tracks the integration on 5 of 5 simulated stamps.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/card_version_doc.py",
+    "harness_path": "tools/audit/round9/D5/s1/card_version_doc.py",
+    "value": 1,
+    "unit": "card_tracks_integration_share (ratio)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B1 linux container, CPython 3.14.0rc2",
+    "cpu_or_wall": "ratio",
+    "contention_note": "deterministic ratio, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.05,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "tools/release/stamp.py:rewrite_card_version (called unconditionally by stamp.py:main at line 1466)",
+   "perturbation": {
+    "change": "Replace stamp.rewrite_card_version in memory with the behaviour the doc describes (leave CARD_VERSION alone when the card bytes are otherwise unchanged) (--perturb)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Share of 5 simulated successive stamps, card otherwise untouched, after which the card's CARD_VERSION equals the new integration version",
+   "phenomenon_property": "User-doc statements about which version the card banner shows must follow what the release stamp writes.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/card_version_doc.py",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "docs/dashboard-card.md",
+    "tools/release/stamp.py"
+   ],
+   "proposed_fix_scope": "Rewrite the 'If an upgrade seems to change nothing' paragraph: the banner shows the integration version, so compare it with the installed integration version. Drop the stale v6.6.8 and v5.0.0/4.3.0 example, or state that the equality holds since #265.",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/card_version_doc.py",
+    "value": "baseline_card_equals_version=1 (card 6.7.1, VERSION 6.7.1); doc_banner_example=6.6.8",
+    "note": "The live tree already shows equality, without any simulated stamp"
+   }
+  },
+  {
+   "id": "D5-s1-04",
+   "scope": "D5-s1",
+   "step": "D5.M2",
+   "title": "configuration.md has 9 lines that a GFM renderer puts in the wrong block: 3 table rows as raw-pipe text, 6 prose lines as table rows",
+   "severity": "low",
+   "claim": "markdown-it 14.1.0 (GFM tables) renders configuration.md:185-187, the anti-legionella rows of the setup Hot water table, as paragraph text with raw pipes, because a paragraph was inserted at 181-184 between them and their header. It renders configuration.md:633-638 (prose with no blank line after the Heating system table) as six table rows. The other 7 in-scope files render cleanly.",
+   "evidence": {
+    "command": "T=$(mktemp -d); npm install --prefix \"$T\" markdown-it@14.1.0 >/dev/null 2>&1; NODE_PATH=$T/node_modules node tools/audit/round9/D5/s1/md_tables.mjs",
+    "harness_path": "tools/audit/round9/D5/s1/md_tables.mjs",
+    "value": 9,
+    "unit": "misrendered_lines (count)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B1 linux container, node v22.22.2",
+    "cpu_or_wall": "count",
+    "contention_note": "count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.08,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "docs/configuration.md tables under '### 4 · Hot water' (initial setup) and '### Heating system and heat storage', as tokenised by markdown-it 14.1.0 (tr_open / paragraph .map)",
+   "perturbation": {
+    "change": "--perturb applies the minimal repair in memory: a blank line before each swallowed line, and the interposed paragraph moved below its orphaned rows",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Source lines rendered in the wrong block: prose rendered as table rows plus pipe rows rendered outside any table, across README.md and the 7 user docs",
+   "phenomenon_property": "Every pipe row in the user docs must render inside its table, and no prose line may render as a table row.",
+   "seam_rule": "T=$(mktemp -d); npm install --prefix \"$T\" markdown-it@14.1.0 >/dev/null 2>&1; NODE_PATH=$T/node_modules node tools/audit/round9/D5/s1/md_tables.mjs",
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "docs/configuration.md"
+   ],
+   "proposed_fix_scope": "Move the 'Per-weekday windows…' paragraph (181-184) below the anti-legionella rows. Insert a blank line before 'The four fuel-price fields…' (633).",
+   "null_control": {
+    "command": "T=$(mktemp -d); npm install --prefix \"$T\" markdown-it@14.1.0 >/dev/null 2>&1; NODE_PATH=$T/node_modules node tools/audit/round9/D5/s1/md_tables.mjs --perturb",
+    "value": "misrendered_lines=0",
+    "note": "The same renderer over the repaired text finds nothing, so the count keys on the two defects and not on the tokenizer"
+   }
+  },
+  {
+   "id": "D5-s1-05",
+   "scope": "D5-s1",
+   "step": "D5.M1",
+   "title": "Docs name 5 option fields by labels the options forms do not show",
+   "severity": "low",
+   "claim": "configuration.md's Two-zone model table lists 'Inter-zone transfer' and 'Radiator power fraction'; the page shows 'Inter-zone heat transfer (kW/°C)' and 'Share of heat going to radiators'. configuration.md:511 and :514 say '*Floor return temperature*' (the UI says 'Floor heating return temperature sensor'), and how-it-works.md:673 says '*Solar forecast source*' (the UI says 'Solar irradiance source'). A reader configuring the feature looks for a name that is not on the form.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/field_labels.py",
+    "harness_path": "tools/audit/round9/D5/s1/field_labels.py",
+    "value": 5,
+    "unit": "unfindable_field_refs (count)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B1 linux container, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.05,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/translations/en.json options.step.<id>.data / .sections.*.data, with <id> resolved through options.step.init/advanced.menu_options (the strings HA renders on the form)",
+   "perturbation": {
+    "change": "Relabel in memory thermal_model_zones.sections.split.data.radiator_power_fraction to 'Radiator power fraction' (--perturb)",
+    "expected_direction": "down",
+    "observed_value": 4
+   },
+   "metric_definition": "Table rows under an options-page heading whose field name is not on that page, plus italic label-shaped names matching no en.json string, across README and the 7 docs",
+   "phenomenon_property": "Every field a user doc tells the reader to find must be named as the form labels it (parentheticals aside), on the page the doc places it.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/field_labels.py",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "docs/configuration.md",
+    "docs/how-it-works.md"
+   ],
+   "proposed_fix_scope": "Rename the five references to the en.json labels.",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/field_labels.py",
+    "value": "24 menu pages resolved; all other Setting rows under page headings (about 150) resolve on their own page",
+    "note": "The rule passes the overwhelming majority of rows, so the 5 are specific drift and not a rule artefact"
+   }
+  },
+  {
+   "id": "D5-s1-06",
+   "scope": "D5-s1",
+   "step": "D5.M1",
+   "title": "simulate_plan accepts 5 wood fields that no doc names; configuration.md's table says 16 fields and its prose lists 11",
+   "severity": "low",
+   "claim": "The registered SERVICE_SCHEMA_SIMULATE_PLAN accepts wood_slots, wood_type, wood_packing, wood_price_sek_m3 and wood_furnace_efficiency. README sends the reader to configuration.md for field-level detail, and configuration.md's Services section never names any of the five. Its simulate_plan paragraph lists 11 'Fields, all optional' against the table's 16.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/service_fields.py",
+    "harness_path": "tools/audit/round9/D5/s1/service_fields.py",
+    "value": 5,
+    "unit": "undocumented_fields (count)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B1 linux container, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "count metric, contention-immune",
+    "tolerance": "exact",
+    "load1": 1.8,
+    "thread_factor": 1
+   },
+   "instrumented_symbol": "heatpump_optimizer.services:async_register_services (SERVICE_SCHEMA_SIMULATE_PLAN keys, read back from FakeServices._schemas)",
+   "perturbation": {
+    "change": "Strip every wood_* key from SERVICE_SCHEMA_SIMULATE_PLAN in memory before registration (--perturb)",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Fields (entry_id aside) a registered service schema accepts that configuration.md's Services section never names in that service's row or paragraph",
+   "phenomenon_property": "Every field a registered service schema accepts must be named in configuration.md's Services section, which README designates as the field-level reference.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/service_fields.py",
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "docs/configuration.md",
+    "custom_components/heatpump_optimizer/services.py"
+   ],
+   "proposed_fix_scope": "Add the five wood what-if fields, with meaning and range, to the simulate_plan paragraph in configuration.md.",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/service_fields.py",
+    "value": "12 services, 62 accepted fields, 57 named",
+    "note": "The other 11 services are fully named, so the rule is not over-strict"
+   }
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "No broken internal link or anchor in README.md or the 7 user docs",
+   "command": "T=$(mktemp -d); npm install --prefix \"$T\" markdown-it@14.1.0 >/dev/null 2>&1; NODE_PATH=$T/node_modules node tools/audit/round9/D5/s1/md_links.mjs",
+   "value": "relative_links=119, anchored_links=38, broken_links=0; 4 targets stripped by the export not judged; 20 external links not fetched; --perturb -> broken_links=2"
+  },
+  {
+   "claim": "README and the docs do not duplicate paragraphs",
+   "command": "T=$(mktemp -d); npm install --prefix \"$T\" markdown-it@14.1.0 >/dev/null 2>&1; NODE_PATH=$T/node_modules node tools/audit/round9/D5/s1/md_dupes.mjs",
+   "value": "677 blocks hashed, duplicate_groups=0, near_duplicate_fences=0 (line-Jaccard>=0.6); --perturb -> extra_copies=1. A separate 4-gram pass found only README vs architecture.md mermaid flowchart at 0.65, which is deliberate"
+  },
+  {
+   "claim": "Heading structure is sound: no level skips, no duplicate headings in one file, one H1 per file",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/md_headings.py",
+   "value": "headings=174, heading_defects=0; --perturb -> 1"
+  },
+  {
+   "claim": "Identifiers the docs name in code spans exist in the shipped code",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/doc_symbols.py",
+   "value": "identifiers_checked=282, missing=1 (direct_radiation, named as what the code deliberately does not request: a true negative); --perturb -> 3"
+  },
+  {
+   "claim": "README and architecture.md state the entity total the platforms construct",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/entity_counts.py",
+   "value": "constructed=75 (59/6/4/4/1/1); README.md:417 and architecture.md:37 say 75; only configuration.md:196 disagrees (inside D5-s1-01)"
+  },
+  {
+   "claim": "No orphaned doc or image",
+   "command": "for f in docs/img/* docs/setup/*; do grep -l $(basename $f) README.md docs/*.md; done; for d in architecture automations configuration dashboard-card ecl110 how-it-works setup; do grep -l $d.md README.md docs/*.md; done",
+   "value": "every image referenced at least once; every in-scope doc has 2-6 inbound links"
+  },
+  {
+   "claim": "architecture.md's module map is complete and its Home Assistant boundary counts hold",
+   "command": "ls custom_components/heatpump_optimizer/*.py | wc -l; grep -l '^from homeassistant\\|^import homeassistant' custom_components/heatpump_optimizer/*.py | wc -l",
+   "value": "66 modules, all 66 in the map; 23 import homeassistant at module level, as stated"
+  },
+  {
+   "claim": "The options page names in README and configuration.md match the UI, and every options field label is documented",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/field_labels.py",
+   "value": "pages_resolved=24 (23 pages plus the Advanced menu entry); all table rows outside the 2 in D5-s1-05 resolve on their own page"
+  },
+  {
+   "claim": "The only stale version literal in scope is the dashboard-card banner example",
+   "command": "grep -rnoE '\\bv?[0-9]+\\.[0-9]+\\.[0-9]+\\b' README.md docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
+   "value": "VERSION = manifest = CARD_VERSION = 6.7.1; the rest are 'since vX' history or HA/Python floors; v6.6.8 is in D5-s1-03"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D5/s1/setup_section.py",
+  "tools/audit/round9/D5/s1/entity_counts.py",
+  "tools/audit/round9/D5/s1/quick_setup_promise.py",
+  "tools/audit/round9/D5/s1/card_version_doc.py",
+  "tools/audit/round9/D5/s1/md_tables.mjs",
+  "tools/audit/round9/D5/s1/field_labels.py",
+  "tools/audit/round9/D5/s1/service_fields.py",
+  "tools/audit/round9/D5/s1/md_links.mjs",
+  "tools/audit/round9/D5/s1/md_dupes.mjs",
+  "tools/audit/round9/D5/s1/md_headings.py",
+  "tools/audit/round9/D5/s1/doc_symbols.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D4-s2",
+   "file": "custom_components/heatpump_optimizer/translations/en.json",
+   "symbol": "config.step.quick_setup.data_description.buffer_tank / wood_buffer_tank",
+   "what": "The Quick setup form itself promises 'On stores cheap heat' and two-tank physics once a probe is assigned. quick_setup.derive never sets a throttling mixing valve, so neither buffer_is_store nor two_tank_modelled comes on (see D5-s1-02's harness)."
+  },
+  {
+   "owner_seat": "D6-s1",
+   "file": "README.md",
+   "symbol": "Entities: 'Nineteen entities (eighteen sensors and the wood binary sensor) are disabled by default'",
+   "what": "README:600 says DHW Boost is also disabled by default without hot water. The disabled-by-default list sits under Sensors but names a binary sensor. Verify the 19 against registry_default."
+  },
+  {
+   "owner_seat": "D6-s2",
+   "file": "docs/setup.md",
+   "symbol": "'the original eleven-page wizard'; 'Quick setup arrived in v6.6.5'",
+   "what": "Page count and release version are unverified against config_flow steps and RELEASE_NOTES.md."
+  },
+  {
+   "owner_seat": "D6-s2",
+   "file": "docs/ecl110.md",
+   "symbol": "## Sensors: 'on an install whose topics were configured at setup they are enabled'",
+   "what": "Setup has not offered the ECL110 topics since v4.1.0 (the same doc says so). The enable condition as written can only describe legacy entries. README:549-550 carries the same wording (D6-s1)."
+  },
+  {
+   "owner_seat": "D6-s2",
+   "file": "docs/configuration.md",
+   "symbol": "Services table: simulate_plan '16 optional comfort and wood fields'",
+   "what": "The count is right, but the paragraph lists 11. The claim-level half of D5-s1-06."
+  }
+ ]
+}

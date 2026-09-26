@@ -1,0 +1,8 @@
+
+=== Stress and economics ===
+  shoulder/1z/dhw                calls 0.9279x  evals 554/554  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False  identical_calls=False  top_file_growth=(0, 'wood_fuel.py')
+  summer/1z/space                calls 0.9240x  evals 34/34  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False  identical_calls=False  top_file_growth=(0, 'wood_fuel.py')
+  winter/1z/dhw                  calls 0.9773x  evals 52/52  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False  identical_calls=False  top_file_growth=(0, 'wood_fuel.py')
+  winter/2z/space                calls 0.8884x  evals 906/906  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False  identical_calls=False  top_file_growth=(0, 'wood_fuel.py')
+  winter/tariff                  calls 0.9463x  evals 764/764  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False  identical_calls=False  top_file_growth=(0, 'wood_fuel.py')
+RESULT arm=fixed here=45492d88 base=1936d5ca scenarios=5 covered=5 replanned=0 unmetered=0 calls_over=0 shipped_count_over=0 capture_wall_s=138.2

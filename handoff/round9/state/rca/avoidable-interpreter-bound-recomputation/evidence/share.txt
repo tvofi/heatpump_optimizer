@@ -1,0 +1,9 @@
+# share.py at 1936d5ca (this box, provisional CPU; process_time wrapper timing). Verbatim outputs.
+{"spec": {"season": "winter", "two_zone": true, "dhw": true, "tariff": true, "hours": 24}, "double": null, "solve_cpu_s": 11.656, "objective": 154.1725854364868, "shares": {"comfort_terms_batch": 0.1148, "cycling_penalty_batch": 0.0002, "peak_cost_batch": 0.6237, "simulate_dhw_step": 0.0038, "simulate_step": 0.0444, "simulate_trajectory_batch": 0.144, "terminal_row_cost_build": 0.0}}
+{"spec": {"season": "shoulder", "dhw": true}, "double": null, "solve_cpu_s": 1.886, "objective": 9.059220543357672, "shares": {"comfort_terms_batch": 0.2711, "cycling_penalty_batch": 0.0009, "peak_cost_batch": 0.0008, "simulate_dhw_step": 0.0187, "simulate_step": 0.1325, "simulate_trajectory_batch": 0.3317, "terminal_row_cost_build": 0.0}}
+{"spec": {"season": "winter", "two_zone": true, "dhw": true, "tariff": true, "hours": 24}, "double": "peak_cost_batch", "solve_cpu_s": 18.812, "objective": 154.1725854364868, "shares": {"comfort_terms_batch": 0.072, "cycling_penalty_batch": 0.0001, "peak_cost_batch": 0.7639, "simulate_dhw_step": 0.0022, "simulate_step": 0.0274, "simulate_trajectory_batch": 0.0916, "terminal_row_cost_build": 0.0}}
+{"spec": {"season": "shoulder", "tariff": true, "pv": true, "cycling": 0.5}, "double": null, "solve_cpu_s": 16.49, "objective": 8.436531366945175, "shares": {"comfort_terms_batch": 0.1226, "cycling_penalty_batch": 0.0426, "peak_cost_batch": 0.4727, "simulate_dhw_step": 0.0027, "simulate_step": 0.0626, "simulate_trajectory_batch": 0.1574, "terminal_row_cost_build": 0.0}}
+# term.py (terminal per-row closure):
+{"label": "winter/2z/dhw", "double": false, "solve_cpu_s": 5.8, "terminal_batch_share": 0.0218}
+{"label": "shoulder/1z/dhw", "double": false, "solve_cpu_s": 2.0, "terminal_batch_share": 0.0309}
+{"label": "winter/2z/dhw", "double": true, "solve_cpu_s": 5.876, "terminal_batch_share": 0.0373}

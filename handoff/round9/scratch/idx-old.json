@@ -1,0 +1,653 @@
+[
+  {
+    "class": "P2",
+    "slug": "p2",
+    "title": "[R9-P2] One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling",
+    "severity": "high",
+    "N": 27,
+    "rca": true,
+    "finding_ids": [
+      "D1-s2-51",
+      "D1-s2-91",
+      "D1-s3-01",
+      "D1-s3-02",
+      "D1-s4-02",
+      "D1-s5-01",
+      "D1-s5-03",
+      "D1-s5-52",
+      "D2-s1-02",
+      "D2-s2-01",
+      "D2-s2-03",
+      "D2-s3-01",
+      "D2-s4-02",
+      "D4-s2-06",
+      "D7-s1-71",
+      "D7-s2-02",
+      "D8-s1-02",
+      "D8-s1-03",
+      "D8-s2-02",
+      "D8-s2-03",
+      "D8-s3-61",
+      "D10-s1-01",
+      "D10-s1-02",
+      "D12-s2-01",
+      "D12-s2-02",
+      "D12-s3-01",
+      "D14-s2-01"
+    ],
+    "file": "p2.md"
+  },
+  {
+    "class": "I5",
+    "slug": "i5",
+    "title": "[R9-I5] Docs, comments or a compliance checklist drift stale against the code",
+    "severity": "medium",
+    "N": 19,
+    "rca": true,
+    "finding_ids": [
+      "D4-s2-09",
+      "D5-s1-01",
+      "D5-s1-02",
+      "D5-s1-03",
+      "D5-s1-05",
+      "D5-s2-01",
+      "D5-s2-02",
+      "D5-s2-03",
+      "D5-s2-51",
+      "D6-s1-01",
+      "D6-s1-02",
+      "D6-s1-03",
+      "D6-s2-01",
+      "D6-s2-02",
+      "D6-s2-03",
+      "D6-s2-04",
+      "D6-s2-05",
+      "D8-s3-02",
+      "D11-s2-04"
+    ],
+    "file": "i5.md"
+  },
+  {
+    "class": "I1",
+    "slug": "i1",
+    "title": "[R9-I1] A mutation kill miscounted, or a guard whose deletion leaves the gate green",
+    "severity": "medium",
+    "N": 11,
+    "rca": true,
+    "finding_ids": [
+      "D3-s1-01",
+      "D3-s1-91",
+      "D3-s2-01",
+      "D3-s2-02",
+      "D3-s3-01",
+      "D3-s3-02",
+      "D3-s3-03",
+      "D3-s3-04",
+      "D3-s3-05",
+      "D7-s1-02",
+      "D14-s5-02"
+    ],
+    "file": "i1.md"
+  },
+  {
+    "class": "P1",
+    "slug": "p1",
+    "title": "[R9-P1] A non-finite or malformed value crosses a persisted-store boundary with no guard",
+    "severity": "medium",
+    "N": 11,
+    "rca": true,
+    "finding_ids": [
+      "D1-s1-01",
+      "D1-s1-02",
+      "D1-s2-03",
+      "D1-s3-03",
+      "D1-s3-06",
+      "D1-s4-01",
+      "D1-s4-03",
+      "D1-s5-02",
+      "D14-s1-01"
+    ],
+    "file": "p1.md"
+  },
+  {
+    "class": "I3",
+    "slug": "i3",
+    "title": "[R9-I3] A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary",
+    "severity": "medium",
+    "N": 7,
+    "rca": true,
+    "finding_ids": [
+      "D11-s1-01",
+      "D11-s1-02",
+      "D11-s1-03",
+      "D11-s1-04",
+      "D11-s2-01",
+      "D11-s2-02",
+      "D13-s1-03"
+    ],
+    "file": "i3.md"
+  },
+  {
+    "class": "P11",
+    "slug": "p11",
+    "title": "[R9-P11] The only oracle for an external counterpart (Home Assistant core, its state machine, its recorder REST API, a device behind an integration) is a test double the implementer wrote from what the code needed, so the tests agree with a wrong implementation",
+    "severity": "low",
+    "N": 6,
+    "rca": true,
+    "finding_ids": [
+      "D1-s1-51",
+      "D1-s1-52",
+      "D1-s2-71",
+      "D6-s1-81",
+      "D10-s1-03",
+      "D14-s4-02"
+    ],
+    "file": "p11.md"
+  },
+  {
+    "class": "I4",
+    "slug": "i4",
+    "title": "[R9-I4] Two independent parsers or definitions of one concept disagree",
+    "severity": "medium",
+    "N": 5,
+    "rca": true,
+    "finding_ids": [
+      "D7-s3-02",
+      "D11-s1-71",
+      "D11-s1-72",
+      "D13-s1-01",
+      "D14-s2-03"
+    ],
+    "file": "i4.md"
+  },
+  {
+    "class": "P6",
+    "slug": "p6",
+    "title": "[R9-P6] A consumer reads a key or field no producer writes, with a silent fallback",
+    "severity": "high",
+    "N": 5,
+    "rca": true,
+    "finding_ids": [
+      "D2-s1-51",
+      "D4-s2-01",
+      "D10-s2-01",
+      "D12-s1-01",
+      "D14-s1-02"
+    ],
+    "file": "p6.md"
+  },
+  {
+    "class": "P9",
+    "slug": "p9",
+    "title": "[R9-P9] Card UI: a clipping ancestor, missing colour token or unfloored hit target",
+    "severity": "medium",
+    "N": 5,
+    "rca": true,
+    "finding_ids": [
+      "D4-s1-01",
+      "D4-s1-02",
+      "D4-s1-03",
+      "D4-s1-05"
+    ],
+    "file": "p9.md"
+  },
+  {
+    "class": "avoidable interpreter-bound recomputation in the solve",
+    "slug": "avoidable-interpreter-bound-recomputation",
+    "title": "[R9-AVOIDABLE-INTERPRETER-BOUND-RECOMPUTATION] avoidable interpreter-bound recomputation in the solve",
+    "severity": "medium",
+    "N": 5,
+    "rca": true,
+    "finding_ids": [
+      "D9-s1-01",
+      "D9-s1-02",
+      "D9-s1-04",
+      "D9-s1-71"
+    ],
+    "file": "avoidable-interpreter-bound-recomputation.md"
+  },
+  {
+    "class": "P3",
+    "slug": "p3",
+    "title": "[R9-P3] A capacity floor or divisor applied inconsistently across sibling formulas",
+    "severity": "medium",
+    "N": 3,
+    "rca": true,
+    "finding_ids": [
+      "D2-s2-81",
+      "D12-s2-03",
+      "D14-s3-01"
+    ],
+    "file": "p3.md"
+  },
+  {
+    "class": "P5",
+    "slug": "p5",
+    "title": "[R9-P5] A sysid/adoption gate keyed on a quantity other than the bias it gates",
+    "severity": "medium",
+    "N": 3,
+    "rca": true,
+    "finding_ids": [
+      "D2-s4-01",
+      "D2-s4-81",
+      "D14-s3-03"
+    ],
+    "file": "p5.md"
+  },
+  {
+    "class": "CPU gate blind to a regression outside its sampled work",
+    "slug": "cpu-gate-blind",
+    "title": "[R9-CPU-GATE-BLIND] CPU gate blind to a regression outside its sampled work",
+    "severity": "medium",
+    "N": 3,
+    "rca": true,
+    "finding_ids": [
+      "D9-s2-02",
+      "D9-s2-03",
+      "D9-s2-71"
+    ],
+    "file": "cpu-gate-blind.md"
+  },
+  {
+    "class": "P8",
+    "slug": "p8",
+    "title": "[R9-P8] A currency or unit resolved by divergent precedence on different surfaces",
+    "severity": "medium",
+    "N": 2,
+    "rca": false,
+    "finding_ids": [
+      "D12-s3-81",
+      "D14-s2-02"
+    ],
+    "file": "p8.md"
+  },
+  {
+    "class": "CPU work inline on the event loop",
+    "slug": "cpu-work-inline-on-the-event-loop",
+    "title": "[R9-CPU-WORK-INLINE-ON-THE-EVENT-LOOP] CPU work inline on the event loop",
+    "severity": "low",
+    "N": 2,
+    "rca": false,
+    "finding_ids": [
+      "D9-s1-03",
+      "D9-s2-01"
+    ],
+    "file": "cpu-work-inline-on-the-event-loop.md"
+  },
+  {
+    "class": "live input with no physical-plausibility bound",
+    "slug": "live-input-no-plausibility-bound",
+    "title": "[R9-LIVE-INPUT-NO-PLAUSIBILITY-BOUND] live input with no physical-plausibility bound",
+    "severity": "medium",
+    "N": 2,
+    "rca": false,
+    "finding_ids": [
+      "D1-s1-03",
+      "D1-s2-02"
+    ],
+    "file": "live-input-no-plausibility-bound.md"
+  },
+  {
+    "class": "persisted future instant trusted without bound",
+    "slug": "persisted-future-instant-trusted-without-bound",
+    "title": "[R9-PERSISTED-FUTURE-INSTANT-TRUSTED-WITHOUT-BOUND] persisted future instant trusted without bound",
+    "severity": "low",
+    "N": 7,
+    "rca": true,
+    "finding_ids": [
+      "D1-s1-04",
+      "D1-s3-05"
+    ],
+    "file": "persisted-future-instant-trusted-without-bound.md"
+  },
+  {
+    "class": "production member reached by no production code",
+    "slug": "production-member-no-caller",
+    "title": "[R9-PRODUCTION-MEMBER-NO-CALLER] production member reached by no production code",
+    "severity": "low",
+    "N": 2,
+    "rca": false,
+    "finding_ids": [
+      "D7-s3-01",
+      "D7-s3-72"
+    ],
+    "file": "production-member-no-caller.md"
+  },
+  {
+    "class": "user state not surviving restart",
+    "slug": "user-state-not-surviving-restart",
+    "title": "[R9-USER-STATE-NOT-SURVIVING-RESTART] user state not surviving restart",
+    "severity": "medium",
+    "N": 2,
+    "rca": true,
+    "finding_ids": [
+      "D1-s2-52",
+      "D1-s2-53"
+    ],
+    "file": "user-state-not-surviving-restart.md"
+  },
+  {
+    "class": "I2",
+    "slug": "i2",
+    "title": "[R9-I2] A measured closure or scope diverges from the real dependency graph",
+    "severity": "medium",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D14-s5-01"
+    ],
+    "file": "i2.md"
+  },
+  {
+    "class": "P4",
+    "slug": "p4",
+    "title": "[R9-P4] The optimizer seed set or stop tolerance does not bracket the optimum",
+    "severity": "low",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D0-s2-02"
+    ],
+    "file": "p4.md"
+  },
+  {
+    "class": "P7",
+    "slug": "p7",
+    "title": "[R9-P7] Naive wall-clock datetime arithmetic across a DST transition",
+    "severity": "high",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D14-s4-01"
+    ],
+    "file": "p7.md"
+  },
+  {
+    "class": "a sign floor on a price margin breaks the stated piecewise identity",
+    "slug": "sign-floor-price-margin",
+    "title": "[R9-SIGN-FLOOR-PRICE-MARGIN] a sign floor on a price margin breaks the stated piecewise identity",
+    "severity": "low",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D2-s3-02"
+    ],
+    "file": "sign-floor-price-margin.md"
+  },
+  {
+    "class": "an approval bound to an exact head is re-bought on a diff-identical move",
+    "slug": "an-approval-bound-to-an-exact-head-is-re-bought-on-a-diff-identical-move",
+    "title": "[R9-AN-APPROVAL-BOUND-TO-AN-EXACT-HEAD-IS-RE-BOUGHT-ON-A-DIFF-IDENTICAL-MOVE] an approval bound to an exact head is re-bought on a diff-identical move",
+    "severity": "medium",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D13-s1-02"
+    ],
+    "file": "an-approval-bound-to-an-exact-head-is-re-bought-on-a-diff-identical-move.md"
+  },
+  {
+    "class": "an entity family whose names do not lead with a shared token splits under the name sort",
+    "slug": "entity-family-name-sort-split",
+    "title": "[R9-ENTITY-FAMILY-NAME-SORT-SPLIT] an entity family whose names do not lead with a shared token splits under the name sort",
+    "severity": "low",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D8-s3-01"
+    ],
+    "file": "entity-family-name-sort-split.md"
+  },
+  {
+    "class": "compatibility duplicate entity enabled by default",
+    "slug": "compatibility-duplicate-entity-enabled-by-default",
+    "title": "[R9-COMPATIBILITY-DUPLICATE-ENTITY-ENABLED-BY-DEFAULT] compatibility duplicate entity enabled by default",
+    "severity": "low",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D8-s3-03"
+    ],
+    "file": "compatibility-duplicate-entity-enabled-by-default.md"
+  },
+  {
+    "class": "error-translating try opened after the call it should cover",
+    "slug": "error-translating-try-after-call",
+    "title": "[R9-ERROR-TRANSLATING-TRY-AFTER-CALL] error-translating try opened after the call it should cover",
+    "severity": "medium",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D1-s2-55"
+    ],
+    "file": "error-translating-try-after-call.md"
+  },
+  {
+    "class": "explicit-Euler stability judged per store instead of on the coupled step matrix",
+    "slug": "explicit-euler-stability-judged-per-store-instead-of-on-the-coupled-step-matrix",
+    "title": "[R9-EXPLICIT-EULER-STABILITY-JUDGED-PER-STORE-INSTEAD-OF-ON-THE-COUPLED-STEP-MATRIX] explicit-Euler stability judged per store instead of on the coupled step matrix",
+    "severity": "medium",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D2-s1-01"
+    ],
+    "file": "explicit-euler-stability-judged-per-store-instead-of-on-the-coupled-step-matrix.md"
+  },
+  {
+    "class": "fit integrator differs from the simulated plant",
+    "slug": "fit-integrator-differs-from-plant",
+    "title": "[R9-FIT-INTEGRATOR-DIFFERS-FROM-PLANT] fit integrator differs from the simulated plant",
+    "severity": "medium",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D7-s2-01"
+    ],
+    "file": "fit-integrator-differs-from-plant.md"
+  },
+  {
+    "class": "learned-correction clamp sized against an assumed range, not the model's curve",
+    "slug": "learned-correction-clamp-sized-against-an-assumed-range-not-the-model-s-curve",
+    "title": "[R9-LEARNED-CORRECTION-CLAMP-SIZED-AGAINST-AN-ASSUMED-RANGE-NOT-THE-MODEL-S-CURVE] learned-correction clamp sized against an assumed range, not the model's curve",
+    "severity": "medium",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D2-s2-02"
+    ],
+    "file": "learned-correction-clamp-sized-against-an-assumed-range-not-the-model-s-curve.md"
+  },
+  {
+    "class": "markdown the renderer misplaces",
+    "slug": "markdown-renderer-misplaces",
+    "title": "[R9-MARKDOWN-RENDERER-MISPLACES] markdown the renderer misplaces",
+    "severity": "low",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D5-s1-04"
+    ],
+    "file": "markdown-renderer-misplaces.md"
+  },
+  {
+    "class": "missing icons.json services block",
+    "slug": "missing-icons-json-services-block",
+    "title": "[R9-MISSING-ICONS-JSON-SERVICES-BLOCK] missing icons.json services block",
+    "severity": "low",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D4-s2-08"
+    ],
+    "file": "missing-icons-json-services-block.md"
+  },
+  {
+    "class": "persistent failure swallowed at DEBUG",
+    "slug": "persistent-failure-debug-swallow",
+    "title": "[R9-PERSISTENT-FAILURE-DEBUG-SWALLOW] persistent failure swallowed at DEBUG",
+    "severity": "medium",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D1-s2-04"
+    ],
+    "file": "persistent-failure-debug-swallow.md"
+  },
+  {
+    "class": "pointer-only editing with no keyboard route",
+    "slug": "pointer-only-editing-with-no-keyboard-route",
+    "title": "[R9-POINTER-ONLY-EDITING-WITH-NO-KEYBOARD-ROUTE] pointer-only editing with no keyboard route",
+    "severity": "medium",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D4-s1-04"
+    ],
+    "file": "pointer-only-editing-with-no-keyboard-route.md"
+  },
+  {
+    "class": "return inside finally",
+    "slug": "return-inside-finally",
+    "title": "[R9-RETURN-INSIDE-FINALLY] return inside finally",
+    "severity": "low",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D7-s3-51"
+    ],
+    "file": "return-inside-finally.md"
+  },
+  {
+    "class": "selector minimum off its own step grid",
+    "slug": "selector-minimum-off-its-own-step-grid",
+    "title": "[R9-SELECTOR-MINIMUM-OFF-ITS-OWN-STEP-GRID] selector minimum off its own step grid",
+    "severity": "low",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D4-s2-05"
+    ],
+    "file": "selector-minimum-off-its-own-step-grid.md"
+  },
+  {
+    "class": "series resolution inferred from the minimum gap",
+    "slug": "series-resolution-min-gap",
+    "title": "[R9-SERIES-RESOLUTION-MIN-GAP] series resolution inferred from the minimum gap",
+    "severity": "low",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D1-s5-04"
+    ],
+    "file": "series-resolution-min-gap.md"
+  },
+  {
+    "class": "service input without an upper-bound clamp",
+    "slug": "service-input-without-an-upper-bound-clamp",
+    "title": "[R9-SERVICE-INPUT-WITHOUT-AN-UPPER-BOUND-CLAMP] service input without an upper-bound clamp",
+    "severity": "low",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D1-s2-54"
+    ],
+    "file": "service-input-without-an-upper-bound-clamp.md"
+  },
+  {
+    "class": "shutdown reap waits on the lock a solve holds",
+    "slug": "shutdown-reap-lock-held",
+    "title": "[R9-SHUTDOWN-REAP-LOCK-HELD] shutdown reap waits on the lock a solve holds",
+    "severity": "medium",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D1-s2-05"
+    ],
+    "file": "shutdown-reap-lock-held.md"
+  },
+  {
+    "class": "solve-scoped mutation of shared live config seen by a concurrent reader",
+    "slug": "solve-scoped-mutation-of-shared-live-config-seen-by-a-concurrent-reader",
+    "title": "[R9-SOLVE-SCOPED-MUTATION-OF-SHARED-LIVE-CONFIG-SEEN-BY-A-CONCURRENT-READER] solve-scoped mutation of shared live config seen by a concurrent reader",
+    "severity": "low",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D1-s3-04"
+    ],
+    "file": "solve-scoped-mutation-of-shared-live-config-seen-by-a-concurrent-reader.md"
+  },
+  {
+    "class": "staleness limit shorter than a report-on-change sensor's quiet interval",
+    "slug": "staleness-limit-shorter-than-quiet-interval",
+    "title": "[R9-STALENESS-LIMIT-SHORTER-THAN-QUIET-INTERVAL] staleness limit shorter than a report-on-change sensor's quiet interval",
+    "severity": "medium",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D1-s5-51"
+    ],
+    "file": "staleness-limit-shorter-than-quiet-interval.md"
+  },
+  {
+    "class": "state-blind menu re-offers a completed path",
+    "slug": "state-blind-menu-re-offers-a-completed-path",
+    "title": "[R9-STATE-BLIND-MENU-RE-OFFERS-A-COMPLETED-PATH] state-blind menu re-offers a completed path",
+    "severity": "low",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D4-s2-07"
+    ],
+    "file": "state-blind-menu-re-offers-a-completed-path.md"
+  },
+  {
+    "class": "structure metric blind to a code shape",
+    "slug": "structure-metric-blind-to-shape",
+    "title": "[R9-STRUCTURE-METRIC-BLIND-TO-SHAPE] structure metric blind to a code shape",
+    "severity": "low",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D7-s1-01"
+    ],
+    "file": "structure-metric-blind-to-shape.md"
+  },
+  {
+    "class": "text producer takes no language parameter",
+    "slug": "text-producer-takes-no-language-parameter",
+    "title": "[R9-TEXT-PRODUCER-TAKES-NO-LANGUAGE-PARAMETER] text producer takes no language parameter",
+    "severity": "medium",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D4-s2-81"
+    ],
+    "file": "text-producer-takes-no-language-parameter.md"
+  },
+  {
+    "class": "translation leaf double-escaped",
+    "slug": "translation-leaf-double-escaped",
+    "title": "[R9-TRANSLATION-LEAF-DOUBLE-ESCAPED] translation leaf double-escaped",
+    "severity": "medium",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D4-s2-03"
+    ],
+    "file": "translation-leaf-double-escaped.md"
+  },
+  {
+    "class": "whole-entity availability gated on an optional input",
+    "slug": "whole-entity-availability-gated-on-an-optional-input",
+    "title": "[R9-WHOLE-ENTITY-AVAILABILITY-GATED-ON-AN-OPTIONAL-INPUT] whole-entity availability gated on an optional input",
+    "severity": "medium",
+    "N": 1,
+    "rca": false,
+    "finding_ids": [
+      "D8-s2-01"
+    ],
+    "file": "whole-entity-availability-gated-on-an-optional-input.md"
+  }
+]

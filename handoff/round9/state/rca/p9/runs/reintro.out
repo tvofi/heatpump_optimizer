@@ -1,0 +1,58 @@
+=== reintroduce status_text_token
+P9 grid: 217 cells, 11763 text runs, 421 box-intersecting pairs inked, 73 colour rules, 162.7 s
+  ok    P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
+  FAIL  P9 grid: every visible text run clears WCAG AA against what is under it
+        53: span.delta.dearer "+0.51 SEK" 4.29:1<4.5 | span.cheaper "Pinned until 11:00 AM. These s" 3.30:1<4.5 | span.dearer "Could not apply: Service call " 4.29:1<4.5 | div.wi-result.cheaper "Saved. The optimizer is reload" 3.30:1<4.5 | div.wi-result.dearer "Could not save: Service call f" 4.29:1<4.5 | div.wi-hint.wi-warn "Your saved minimum of 55 °C is" 1.96:1<4.5; unparsed colours 0
+  FAIL  P9 grid: every target clears 24 px or the 2.5.8 spacing exception
+        3: rect.slot-hit 17.4x24.5
+wall 163.2 s; load1 10.53; 2 FAIL
+=== reintroduce confirm_fill
+P9 grid: 217 cells, 11763 text runs, 421 box-intersecting pairs inked, 73 colour rules, 155.2 s
+  ok    P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
+  FAIL  P9 grid: every visible text run clears WCAG AA against what is under it
+        14: button.wi-save.confirm "Confirm: overwrite my schedule" 4.29:1<4.5 | button.sp-save.confirm "Confirm: clear this sensor" 4.29:1<4.5 | button.wi-save.confirm "Bekräfta: skriv över mitt sche" 4.29:1<4.5 | button.sp-save.confirm "Bekräfta: rensa sensorn" 4.29:1<4.5; unparsed colours 0
+  FAIL  P9 grid: every target clears 24 px or the 2.5.8 spacing exception
+        3: rect.slot-hit 17.4x24.5
+wall 155.5 s; load1 8.22; 2 FAIL
+=== reintroduce menu_clamp
+P9 grid: 217 cells, 11763 text runs, 421 box-intersecting pairs inked, 73 colour rules, 150.4 s
+  ok    P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
+  FAIL  P9 grid: no pop-up leaves the viewport or its chart
+        3: div.slot-menu 18.2px outside | div.slot-menu 44.2px outside | div.slot-menu 9.3px outside
+  FAIL  P9 grid: every target clears 24 px or the 2.5.8 spacing exception
+        3: rect.slot-hit 17.4x24.5
+wall 150.6 s; load1 8.83; 2 FAIL
+=== reintroduce picker_wrap
+P9 grid: 217 cells, 11763 text runs, 421 box-intersecting pairs inked, 73 colour rules, 150.9 s
+  ok    P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
+  FAIL  P9 grid: every listbox option reads differently from its siblings as shown
+        5: select.sp-select "Vedpanna temperatur — sensor.v" | select.sp-select "Vedpanna temperatur — sensor.vedpanna_temperatur_te"
+  FAIL  P9 grid: every target clears 24 px or the 2.5.8 spacing exception
+        3: rect.slot-hit 17.4x24.5
+wall 151.2 s; load1 8.49; 2 FAIL
+=== reintroduce now_temp_below
+P9 grid: 217 cells, 11763 text runs, 435 box-intersecting pairs inked, 73 colour rules, 148.0 s
+  ok    P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
+  FAIL  P9 grid: no two text runs share ink
+        14: text.now-label "now" x text.now-temp "now 21.1 °C" 20 px of shared ink | text.now-label "now" x text.now-temp "now 21.1 °C" 16 px of shared ink | text.now-label "nu" x text.now-temp "nu 21.1 °C" 3 px of shared ink | text.now-label "now" x text.now-temp "now 21.1 °C" 30 px of shared ink | text.now-label "now" x text.now-temp "now 21.1 °C" 52 px of shared ink | text.now-label "nu" x text.now-temp "nu 21.1 °C" 17 px of shared ink
+  FAIL  P9 grid: every target clears 24 px or the 2.5.8 spacing exception
+        3: rect.slot-hit 17.4x24.5
+wall 148.2 s; load1 6.62; 2 FAIL
+=== reintroduce estimated_label
+P9 grid: 217 cells, 11763 text runs, 428 box-intersecting pairs inked, 73 colour rules, 146.5 s
+  ok    P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
+  FAIL  P9 grid: every visible text run clears WCAG AA against what is under it
+        6: text "estimated prices" 3.94:1<4.5 | text "uppskattade priser" 3.94:1<4.5; unparsed colours 0
+  FAIL  P9 grid: no two text runs share ink
+        7: text.now-label "now" x text "estimated prices" 24 px of shared ink | text.now-label "nu" x text "uppskattade priser" 24 px of shared ink | text.now-label "now" x text "estimated prices" 46 px of shared ink | text.now-label "nu" x text "uppskattade priser" 17 px of shared ink | text.now-label "now" x text "estimated prices" 153 px of shared ink | text.now-label "nu" x text "uppskattade priser" 48 px of shared ink
+  FAIL  P9 grid: every target clears 24 px or the 2.5.8 spacing exception
+        3: rect.slot-hit 17.4x24.5
+wall 146.7 s; load1 4.88; 3 FAIL
+=== null: drop the status states from the catalogue
+P9 grid: 168 cells, 8430 text runs, 295 box-intersecting pairs inked, 73 colour rules, 103.3 s
+  ok    P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
+  FAIL  P9 grid: every card rule that sets a colour is rendered in some cell (no unmeasured colour)
+        9 unreached: .sp-save.confirm | .whatif .wi-hint.wi-warn | .whatif .wi-win-days | .whatif .wi-remove | .whatif .wi-remove:hover | .whatif .wi-save.confirm | .whatif .wi-result.cheaper | .whatif .cheaper | .whatif .wi-result.dearer
+  FAIL  P9 grid: every target clears 24 px or the 2.5.8 spacing exception
+        3: rect.slot-hit 17.4x24.5
+wall 103.5 s; load1 4.79; 2 FAIL

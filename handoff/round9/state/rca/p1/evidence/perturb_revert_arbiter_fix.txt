@@ -1,0 +1,101 @@
+
+=== finite store-load boundary ===
+  ok   no raw Store() is constructed outside the quarantine boundary
+  ok   the boundary set is non-empty (a rename erasing it must fail)
+  ok   the boundary quarantines nan at every depth
+  ok   the boundary quarantines inf at every depth
+  ok   the boundary quarantines -inf at every depth
+  ok   the boundary quarantines str-nan at every depth
+  ok   the boundary quarantines str-inf at every depth
+  ok   the boundary quarantines str--inf at every depth
+  ok   a finite payload round-trips unchanged (no over-refusal)
+  ok   the boundary quarantines an absurd magnitude as it does a non-finite (class P1)
+  ok   the type-drift reader flags a number that loaded as text (its own control)
+  ok   every derived boundary is wired to a loader in the reach sweep
+  ok   the class oracle flags a planted naive, magnitude, non-finite and number-turned-text label, and nothing on the healthy set (its own control)
+  ok   the ledger payload carries month line and meta leaves to corrupt (#1518)
+  ok   no non-finite value reaches the live thermal model
+  ok   no non-finite value reaches the published payload
+  ok   no corrupt leaf makes the next refresh's publication raise (#1518)
+  ok   no wrong-type leaf is installed where the live model holds a number
+  ok   no loader raised on a quarantined payload
+  ok   the peak store loads its pre-#1512 and malformed label shapes: finite peaks only, one string label each, no raise
+  ok   healthy payload 'heatpump_optimizer_test_entry_thermal_learning' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_price_model' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_accuracy' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_energy' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_manual_plan' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_snapshots' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_ledger' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_dhw_profile' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_dhw_draws' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_dhw_legionella' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_boost' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_away' leaves the model finite (null control)
+  ok   healthy payload 'heatpump_optimizer_test_entry_pump_duty' leaves the model finite (null control)
+RESULT store_boundaries=13 count
+RESULT raw_store_calls=0 count
+RESULT stores_swept=13 count
+RESULT model_poison_total=0 count
+RESULT published_poison_total=0 count
+RESULT loader_escape_total=0 count
+RESULT type_drift_total=0 count
+RESULT refresh_escape_total=0 count
+  ok   every sensor entity publishes finite values from non-finite input (#1541)
+  ok   the poisoned input reaches a published sensor value (the arm is not vacuous)
+RESULT publish_sensor_entities=59 count
+RESULT publish_sensor_leaks=0 count
+  ok   every binary_sensor entity publishes finite values from non-finite input (#1541)
+  ok   the poisoned input reaches a published binary_sensor value (the arm is not vacuous)
+RESULT publish_binary_sensor_entities=6 count
+RESULT publish_binary_sensor_leaks=0 count
+  ok   every button entity publishes finite values from non-finite input (#1541)
+RESULT publish_button_entities=4 count
+RESULT publish_button_leaks=0 count
+  ok   every climate entity publishes finite values from non-finite input (#1541)
+  ok   the poisoned input reaches a published climate value (the arm is not vacuous)
+RESULT publish_climate_entities=1 count
+RESULT publish_climate_leaks=0 count
+  ok   every switch entity publishes finite values from non-finite input (#1541)
+RESULT publish_switch_entities=4 count
+RESULT publish_switch_leaks=0 count
+  ok   every datetime entity publishes finite values from non-finite input (#1541)
+RESULT publish_datetime_entities=1 count
+RESULT publish_datetime_leaks=0 count
+  ok   an inherited scrubbed property re-exported by a subclass is not wrapped twice
+  SEAM pump_duty:written loader:AttributeError subs=['3.0', 'x']
+  SEAM pump_duty:written/dhw_setpoint loader:KeyError subs=['{}']
+  SEAM pump_duty:written/dhw_setpoint/# naive subs=['2026-01-14T12:00:00']
+  SEAM pump_duty:written/dhw_setpoint/# type subs=['12,5', '[]', 'garbage']
+RESULT class_mutants=4706 count
+RESULT class_seams=4 count
+RESULT class_unseeded_sections=23 count
+  UNSEEDED accuracy:accuracy/lead_counts
+  UNSEEDED accuracy:accuracy/lead_pending
+  UNSEEDED accuracy:accuracy/lead_sigma
+  UNSEEDED accuracy:comfort/history
+  UNSEEDED accuracy:dhw_accuracy/lead_counts
+  UNSEEDED accuracy:dhw_accuracy/lead_pending
+  UNSEEDED accuracy:dhw_accuracy/lead_sigma
+  UNSEEDED ledger:month_reports
+  UNSEEDED ledger:score_day
+  UNSEEDED ledger:starts/months
+  UNSEEDED price_model:days_seen
+  UNSEEDED price_model:quarter_days_seen
+  UNSEEDED snapshots:snapshots/0/accuracy/lead_sigma
+  UNSEEDED snapshots:snapshots/0/learners/accuracy/lead_counts
+  UNSEEDED snapshots:snapshots/0/learners/accuracy/lead_pending
+  UNSEEDED snapshots:snapshots/0/learners/accuracy/lead_sigma
+  UNSEEDED snapshots:snapshots/0/learners/comfort/history
+  UNSEEDED snapshots:snapshots/0/learners/thermal_learning/cop_baseline
+  UNSEEDED snapshots:snapshots/0/learners/thermal_learning/cop_health_cusum/evidence
+  UNSEEDED snapshots:snapshots/0/learners/thermal_learning/vent_cusum/evidence
+  UNSEEDED thermal_learning:cop_baseline
+  UNSEEDED thermal_learning:cop_health_cusum/evidence
+  UNSEEDED thermal_learning:vent_cusum/evidence
+RESULT class_arm_seconds=31.1
+  ok   the class sweep drove every seeded store (it cannot go green by skipping)
+  ok   the healthy populated stores load clean through every loader and consumer (null control)
+  FAIL no single-leaf malformation of a store raises, or installs a non-finite, naive, absurd-magnitude or wrong-type value anywhere the coordinator owns (class P1)  [seams=4]
+
+1 of 46 FINITE BOUNDARY CHECKS FAILED

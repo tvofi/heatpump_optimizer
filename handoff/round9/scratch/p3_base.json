@@ -1,0 +1,388 @@
+{
+ "away:estimate_recovery_hours:step_hours": {
+  "floored_at": [
+   "away:232 estimate_recovery_hours max(.,0.001)"
+  ],
+  "floors": [
+   "0.001"
+  ],
+  "raw_at": [
+   "away:235 estimate_recovery_hours factor"
+  ],
+  "raw_divisor": false
+ },
+ "coordinator:HeatPumpOptimizerCoordinator._learn_measured_cop:commanded": {
+  "floored_at": [
+   "coordinator:3853 HeatPumpOptimizerCoordinator._learn_measured_cop max(.,1e-06)"
+  ],
+  "floors": [
+   "1e-06"
+  ],
+  "raw_at": [
+   "coordinator:3886 HeatPumpOptimizerCoordinator._learn_measured_cop factor",
+   "coordinator:3902 HeatPumpOptimizerCoordinator._learn_measured_cop factor"
+  ],
+  "raw_divisor": false
+ },
+ "coordinator:HeatPumpOptimizerCoordinator._learn_measured_cop:ewma": {
+  "floored_at": [
+   "coordinator:3861 HeatPumpOptimizerCoordinator._learn_measured_cop max(.,1e-06)"
+  ],
+  "floors": [
+   "1e-06"
+  ],
+  "raw_at": [
+   "coordinator:3860 HeatPumpOptimizerCoordinator._learn_measured_cop factor"
+  ],
+  "raw_divisor": false
+ },
+ "cop_nominal": {
+  "floored_at": [
+   "optimizer:6641 HeatPumpOptimizer._compute_baseline_power max(.,1.0)",
+   "sysid:182 _held_state max(.,1.0)",
+   "thermal_model:1643 ThermalModel.flow_target_for_indoor max(.,1.0)",
+   "thermal_model:2132 ThermalModel._simulate_step_two_zone max(.,1.0)",
+   "thermal_model:2479 ThermalModel._stability_substeps max(.,1.0)",
+   "thermal_model:2769 ThermalModel.simulate_trajectory_batch max(.,1.0)"
+  ],
+  "floors": [
+   "1.0"
+  ],
+  "raw_at": [
+   "thermal_model:1473 ThermalModel._cop_law factor",
+   "thermal_model:2640 ThermalModel._batch_cop factor"
+  ],
+  "raw_divisor": false
+ },
+ "dhw_tank_thermal_mass": {
+  "floored_at": [
+   "optimizer:5578 HeatPumpOptimizer._clamp_dhw_to_capacity max(.,1e-06)"
+  ],
+  "floors": [
+   "1e-06"
+  ],
+  "raw_at": [
+   "coordinator:2728 HeatPumpOptimizerCoordinator._dhw_setpoint_sweep factor",
+   "dhw_learning:390 DhwProfileLearner.async_fold_draw_stats factor",
+   "optimizer:4688 HeatPumpOptimizer._dhw_window_floors divisor",
+   "optimizer:6549 HeatPumpOptimizer._deferred_energy_cost factor",
+   "optimizer:6840 HeatPumpOptimizer._stored_thermal_energy factor",
+   "thermal_model:648 ThermalParameters.dhw_tank_heat_loss_coefficient factor",
+   "thermal_model:1798 ThermalModel.dhw_coast_hours factor",
+   "thermal_model:1871 ThermalModel.simulate_dhw_step divisor",
+   "thermal_model:1887 ThermalModel.simulate_dhw_step factor",
+   "thermal_model:1904 ThermalModel.simulate_dhw_step factor"
+  ],
+  "raw_divisor": true
+ },
+ "dt_hours": {
+  "floored_at": [
+   "coordinator:2792 HeatPumpOptimizerCoordinator._async_drive_pumps max(.,1e-06)"
+  ],
+  "floors": [
+   "1e-06"
+  ],
+  "raw_at": [
+   "coordinator:3368 HeatPumpOptimizerCoordinator._build_plan_views factor",
+   "coordinator:3370 HeatPumpOptimizerCoordinator._build_plan_views factor",
+   "coordinator:3385 HeatPumpOptimizerCoordinator._build_plan_views factor",
+   "coordinator:3387 HeatPumpOptimizerCoordinator._build_plan_views factor",
+   "coordinator:7430 HeatPumpOptimizerCoordinator._horizon_step_starts factor",
+   "coordinator:10437 HeatPumpOptimizerCoordinator._record_quiet_comfort_period factor",
+   "optimizer:6945 HeatPumpOptimizer._power_to_displace_schedule factor",
+   "optimizer:6935 HeatPumpOptimizer._power_to_displace_schedule divisor"
+  ],
+  "raw_divisor": true
+ },
+ "heat_loss_coefficient": {
+  "floored_at": [
+   "optimizer:2873 HeatPumpOptimizer.optimize max(.,0.001)"
+  ],
+  "floors": [
+   "0.001"
+  ],
+  "raw_at": [
+   "battery:272 build factor",
+   "coordinator:9939 HeatPumpOptimizerCoordinator._scores_view factor",
+   "coordinator:10523 HeatPumpOptimizerCoordinator._run_system_identification factor",
+   "optimizer:1629 slab_settlement_cap factor",
+   "optimizer:2659 HeatPumpOptimizer._analyze_forecast_trajectory factor",
+   "sysid:162 _held_state factor"
+  ],
+  "raw_divisor": false
+ },
+ "horizon_hours": {
+  "floored_at": [
+   "coordinator:10790 HeatPumpOptimizerCoordinator.async_simulate max(.,1.0)"
+  ],
+  "floors": [
+   "1.0"
+  ],
+  "raw_at": [
+   "optimizer:1258 OptimizationConfig.n_steps factor"
+  ],
+  "raw_divisor": false
+ },
+ "house_heat_loss_scale": {
+  "floored_at": [
+   "coordinator:9940 HeatPumpOptimizerCoordinator._scores_view max(.,0.1)"
+  ],
+  "floors": [
+   "0.1"
+  ],
+  "raw_at": [
+   "battery:249 build factor",
+   "battery:260 build factor",
+   "battery:272 build factor",
+   "coordinator:10523 HeatPumpOptimizerCoordinator._run_system_identification factor",
+   "sysid:162 _held_state factor",
+   "thermal_model:1618 ThermalModel.effective_heat_loss_coefficient factor"
+  ],
+  "raw_divisor": false
+ },
+ "max_electrical_power": {
+  "floored_at": [
+   "coordinator:10535 HeatPumpOptimizerCoordinator._run_system_identification max(.,0.1)"
+  ],
+  "floors": [
+   "0.1"
+  ],
+  "raw_at": [
+   "coordinator:744 _fold_flow_lift factor",
+   "coordinator:3564 HeatPumpOptimizerCoordinator._max_pump_rise factor",
+   "coordinator:3811 HeatPumpOptimizerCoordinator._learn_measured_cop factor",
+   "coordinator:4618 HeatPumpOptimizerCoordinator._async_update_data factor",
+   "coordinator:10088 HeatPumpOptimizerCoordinator._price_tile_specs factor",
+   "optimizer:3560 HeatPumpOptimizer._derive_hold_schedule factor",
+   "optimizer:3954 HeatPumpOptimizer._optimize_space_only factor",
+   "optimizer:6127 HeatPumpOptimizer._optimize_with_dhw factor",
+   "optimizer:6130 HeatPumpOptimizer._optimize_with_dhw factor",
+   "optimizer:6433 HeatPumpOptimizer._buffer_charge_ceiling factor",
+   "optimizer:6641 HeatPumpOptimizer._compute_baseline_power factor",
+   "sysid:182 _held_state factor",
+   "thermal_model:1643 ThermalModel.flow_target_for_indoor factor",
+   "thermal_model:2132 ThermalModel._simulate_step_two_zone factor",
+   "thermal_model:2479 ThermalModel._stability_substeps factor",
+   "thermal_model:2769 ThermalModel.simulate_trajectory_batch factor",
+   "topology:920 rank_sensor_advisor factor"
+  ],
+  "raw_divisor": false
+ },
+ "optimizer:HeatPumpOptimizer._build_dhw_requirements:dt": {
+  "floored_at": [
+   "optimizer:4996 HeatPumpOptimizer._build_dhw_requirements max(.,1e-06)"
+  ],
+  "floors": [
+   "1e-06"
+  ],
+  "raw_at": [
+   "optimizer:4846 HeatPumpOptimizer._build_dhw_requirements divisor"
+  ],
+  "raw_divisor": true
+ },
+ "optimizer:HeatPumpOptimizer._dhw_legionella_ceilings:decay": {
+  "floored_at": [
+   "optimizer:4425 HeatPumpOptimizer._dhw_legionella_ceilings max(.,1e-06)"
+  ],
+  "floors": [
+   "1e-06"
+  ],
+  "raw_at": [
+   "optimizer:4448 HeatPumpOptimizer._dhw_legionella_ceilings factor"
+  ],
+  "raw_divisor": false
+ },
+ "optimizer:HeatPumpOptimizer._plan_dhw_min_cost:dt": {
+  "floored_at": [
+   "optimizer:5194 HeatPumpOptimizer._plan_dhw_min_cost max(.,1e-06)"
+  ],
+  "floors": [
+   "1e-06"
+  ],
+  "raw_at": [
+   "optimizer:5157 HeatPumpOptimizer._plan_dhw_min_cost factor",
+   "optimizer:5213 HeatPumpOptimizer._plan_dhw_min_cost factor",
+   "optimizer:5278 HeatPumpOptimizer._plan_dhw_min_cost factor",
+   "optimizer:5156 HeatPumpOptimizer._plan_dhw_min_cost factor",
+   "optimizer:5164 HeatPumpOptimizer._plan_dhw_min_cost factor",
+   "optimizer:5221 HeatPumpOptimizer._plan_dhw_min_cost factor",
+   "optimizer:5236 HeatPumpOptimizer._plan_dhw_min_cost factor"
+  ],
+  "raw_divisor": false
+ },
+ "peaks_averaged": {
+  "floored_at": [
+   "tariff:323 PeakTracker.billed_peak_kw max(.,1.0)",
+   "tariff:359 PeakTracker.threshold_kw max(.,1.0)"
+  ],
+  "floors": [
+   "1.0"
+  ],
+  "raw_at": [
+   "tariff:313 PeakTracker._close_window factor"
+  ],
+  "raw_divisor": false
+ },
+ "slab_heat_transfer": {
+  "floored_at": [
+   "optimizer:1631 slab_settlement_cap max(.,1e-06)",
+   "optimizer:6692 HeatPumpOptimizer._baseline_thermal_demand_single max(.,1e-06)",
+   "optimizer:6736 HeatPumpOptimizer._baseline_thermal_demand_two_zone max(.,1e-06)",
+   "sysid:159 _held_state max(.,1e-09)"
+  ],
+  "floors": [
+   "1e-06",
+   "1e-09"
+  ],
+  "raw_at": [
+   "thermal_model:1997 ThermalModel._simulate_step_single factor",
+   "thermal_model:2300 ThermalModel._simulate_step_two_zone factor",
+   "thermal_model:2462 ThermalModel._stability_substeps factor",
+   "thermal_model:2470 ThermalModel._stability_substeps factor",
+   "thermal_model:2954 ThermalModel.simulate_trajectory_batch factor",
+   "thermal_model:3000 ThermalModel.simulate_trajectory_batch factor"
+  ],
+  "raw_divisor": false
+ },
+ "sysid:SystemIdentification._size_step_power:cop": {
+  "floored_at": [
+   "sysid:1195 SystemIdentification._size_step_power max(.,0.1)"
+  ],
+  "floors": [
+   "0.1"
+  ],
+  "raw_at": [
+   "sysid:1196 SystemIdentification._size_step_power factor",
+   "sysid:1238 SystemIdentification._size_step_power divisor",
+   "sysid:1246 SystemIdentification._size_step_power factor",
+   "sysid:1225 SystemIdentification._size_step_power divisor"
+  ],
+  "raw_divisor": true
+ },
+ "sysid:SystemIdentification.identify:s_noise": {
+  "floored_at": [
+   "sysid:1817 SystemIdentification.identify max(.,1e-09)"
+  ],
+  "floors": [
+   "1e-09"
+  ],
+  "raw_at": [
+   "sysid:1670 SystemIdentification.identify factor",
+   "sysid:1682 SystemIdentification.identify factor"
+  ],
+  "raw_divisor": false
+ },
+ "thermal_model:ThermalModel._simulate_step_two_zone:dt_hours": {
+  "floored_at": [
+   "thermal_model:2275 ThermalModel._simulate_step_two_zone max(.,1e-06)",
+   "thermal_model:2294 ThermalModel._simulate_step_two_zone max(.,1e-06)",
+   "thermal_model:2213 ThermalModel._simulate_step_two_zone max(.,1e-06)",
+   "thermal_model:2216 ThermalModel._simulate_step_two_zone max(.,1e-06)",
+   "thermal_model:2233 ThermalModel._simulate_step_two_zone max(.,1e-06)"
+  ],
+  "floors": [
+   "1e-06"
+  ],
+  "raw_at": [
+   "thermal_model:2319 ThermalModel._simulate_step_two_zone factor",
+   "thermal_model:2320 ThermalModel._simulate_step_two_zone factor",
+   "thermal_model:2321 ThermalModel._simulate_step_two_zone factor",
+   "thermal_model:2322 ThermalModel._simulate_step_two_zone factor",
+   "thermal_model:2281 ThermalModel._simulate_step_two_zone factor"
+  ],
+  "raw_divisor": false
+ },
+ "thermal_model:ThermalModel.simulate_dhw_step:dt_hours": {
+  "floored_at": [
+   "thermal_model:1885 ThermalModel.simulate_dhw_step max(.,1e-06)",
+   "thermal_model:1904 ThermalModel.simulate_dhw_step max(.,1e-06)"
+  ],
+  "floors": [
+   "1e-06"
+  ],
+  "raw_at": [
+   "thermal_model:1889 ThermalModel.simulate_dhw_step factor"
+  ],
+  "raw_divisor": false
+ },
+ "thermal_model:ThermalModel.simulate_trajectory_batch:dt": {
+  "floored_at": [
+   "thermal_model:2933 ThermalModel.simulate_trajectory_batch max(.,1e-06)",
+   "thermal_model:2945 ThermalModel.simulate_trajectory_batch max(.,1e-06)",
+   "thermal_model:2875 ThermalModel.simulate_trajectory_batch max(.,1e-06)",
+   "thermal_model:2881 ThermalModel.simulate_trajectory_batch max(.,1e-06)",
+   "thermal_model:2896 ThermalModel.simulate_trajectory_batch max(.,1e-06)"
+  ],
+  "floors": [
+   "1e-06"
+  ],
+  "raw_at": [
+   "thermal_model:2971 ThermalModel.simulate_trajectory_batch factor",
+   "thermal_model:2972 ThermalModel.simulate_trajectory_batch factor",
+   "thermal_model:2973 ThermalModel.simulate_trajectory_batch factor",
+   "thermal_model:2974 ThermalModel.simulate_trajectory_batch factor",
+   "thermal_model:3018 ThermalModel.simulate_trajectory_batch factor",
+   "thermal_model:3019 ThermalModel.simulate_trajectory_batch factor",
+   "thermal_model:2934 ThermalModel.simulate_trajectory_batch factor"
+  ],
+  "raw_divisor": false
+ },
+ "thermal_model:mold_safe_room_floor:frsi": {
+  "floored_at": [
+   "thermal_model:1160 mold_safe_room_floor max(.,0.3)"
+  ],
+  "floors": [
+   "0.3"
+  ],
+  "raw_at": [
+   "thermal_model:1166 mold_safe_room_floor divisor"
+  ],
+  "raw_divisor": true
+ },
+ "time_step_minutes": {
+  "floored_at": [
+   "coordinator:8218 HeatPumpOptimizerCoordinator._confidence_margins max(.,1.0)",
+   "coordinator:9429 HeatPumpOptimizerCoordinator._file_lead_predictions max(.,1.0)",
+   "coordinator:9471 HeatPumpOptimizerCoordinator._predicted_next_room_temp max(.,1.0)",
+   "coordinator:9985 HeatPumpOptimizerCoordinator._narrative_view max(.,1.0)"
+  ],
+  "floors": [
+   "1.0"
+  ],
+  "raw_at": [
+   "coordinator:3715 HeatPumpOptimizerCoordinator._external_heat_forecast factor",
+   "optimizer:1258 OptimizationConfig.n_steps divisor",
+   "optimizer:1263 OptimizationConfig.dt_hours factor"
+  ],
+  "raw_divisor": true
+ }
+}
+SEAM away:estimate_recovery_hours:step_hours floors=['0.001'] n_floored=1 n_raw=1 raw_divisor=False
+SEAM coordinator:HeatPumpOptimizerCoordinator._learn_measured_cop:commanded floors=['1e-06'] n_floored=1 n_raw=2 raw_divisor=False
+SEAM coordinator:HeatPumpOptimizerCoordinator._learn_measured_cop:ewma floors=['1e-06'] n_floored=1 n_raw=1 raw_divisor=False
+SEAM cop_nominal floors=['1.0'] n_floored=6 n_raw=2 raw_divisor=False
+SEAM dhw_tank_thermal_mass floors=['1e-06'] n_floored=1 n_raw=10 raw_divisor=True
+SEAM dt_hours floors=['1e-06'] n_floored=1 n_raw=8 raw_divisor=True
+SEAM heat_loss_coefficient floors=['0.001'] n_floored=1 n_raw=6 raw_divisor=False
+SEAM horizon_hours floors=['1.0'] n_floored=1 n_raw=1 raw_divisor=False
+SEAM house_heat_loss_scale floors=['0.1'] n_floored=1 n_raw=6 raw_divisor=False
+SEAM max_electrical_power floors=['0.1'] n_floored=1 n_raw=17 raw_divisor=False
+SEAM optimizer:HeatPumpOptimizer._build_dhw_requirements:dt floors=['1e-06'] n_floored=1 n_raw=1 raw_divisor=True
+SEAM optimizer:HeatPumpOptimizer._dhw_legionella_ceilings:decay floors=['1e-06'] n_floored=1 n_raw=1 raw_divisor=False
+SEAM optimizer:HeatPumpOptimizer._plan_dhw_min_cost:dt floors=['1e-06'] n_floored=1 n_raw=7 raw_divisor=False
+SEAM peaks_averaged floors=['1.0'] n_floored=2 n_raw=1 raw_divisor=False
+SEAM slab_heat_transfer floors=['1e-06', '1e-09'] n_floored=4 n_raw=6 raw_divisor=False
+SEAM sysid:SystemIdentification._size_step_power:cop floors=['0.1'] n_floored=1 n_raw=4 raw_divisor=True
+SEAM sysid:SystemIdentification.identify:s_noise floors=['1e-09'] n_floored=1 n_raw=2 raw_divisor=False
+SEAM thermal_model:ThermalModel._simulate_step_two_zone:dt_hours floors=['1e-06'] n_floored=5 n_raw=5 raw_divisor=False
+SEAM thermal_model:ThermalModel.simulate_dhw_step:dt_hours floors=['1e-06'] n_floored=2 n_raw=1 raw_divisor=False
+SEAM thermal_model:ThermalModel.simulate_trajectory_batch:dt floors=['1e-06'] n_floored=5 n_raw=7 raw_divisor=False
+SEAM thermal_model:mold_safe_room_floor:frsi floors=['0.3'] n_floored=1 n_raw=1 raw_divisor=True
+SEAM time_step_minutes floors=['1.0'] n_floored=4 n_raw=3 raw_divisor=True
+RESULT p3_seam_groups=22 count
+RESULT p3_raw_divisor_groups=6 count
+RESULT p3_capacity_groups=1 count
+RESULT buffer_tank_thermal_mass_seam=0 count
+RESULT thread_factor=1.000
+RESULT load1=5.21
+RESULT swapins=0

@@ -1,0 +1,97 @@
+
+=== Replay: recorded days through the real coordinator ===
+  ok   at least one fixture
+
+-- controls: each invariant fires on bad data and not on good
+  ok   control:finite
+  ok   control:unit
+  ok   control:no_default
+  ok   control:agreement:attribute
+  ok   control:agreement:plan
+  ok   control:agreement:power
+  ok   control:agreement:climate
+  ok   control:not_frozen
+  ok   control:cycle_cost:cpu
+  ok   control:cycle_cost:memory
+  ok   control:cycle_cost:loose_budget
+  ok   control:cycle_cost:unrecorded
+  ok   control:cycle_cost:loop_thread
+  ok   control:cycle_cost:coverage
+
+-- sanitising: the export's rules and nightly_ha's A10 rule
+/tmp/claude-0/-home-claude/1da41f8a-eb29-5a61-aca6-50a7738462b9/scratchpad/rca-perf-gate/tests/nightly_ha.py:1274: SyntaxWarning: 'return' in a 'finally' block
+  return
+  ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+  ok   sanitised:synthetic-dhw-only.json
+  ok   a10_location:synthetic-dhw-only.json
+  ok   control:sanitiser_refuses
+  ok   control:sanitise_clears
+  ok   leak_probe:capital_Latitude:export_drops
+  ok   leak_probe:capital_Latitude:check_refuses
+  ok   leak_probe:lat_lon_short:export_drops
+  ok   leak_probe:lat_lon_short:check_refuses
+  ok   leak_probe:coord_list:export_drops
+  ok   leak_probe:coord_list:check_refuses
+  ok   leak_probe:coord_string:export_drops
+  ok   leak_probe:coord_string:check_refuses
+  ok   leak_probe:basic_auth_url:export_drops
+  ok   leak_probe:basic_auth_url:check_refuses
+  ok   leak_probe:apikey_query:export_drops
+  ok   leak_probe:apikey_query:check_refuses
+  ok   leak_probe:pin_code:export_drops
+  ok   leak_probe:pin_code:check_refuses
+  ok   leak_probe:psk:export_drops
+  ok   leak_probe:psk:check_refuses
+  ok   leak_probe:email:export_drops
+  ok   leak_probe:email:check_refuses
+  ok   leak_probe:serial_mac:export_drops
+  ok   leak_probe:serial_mac:check_refuses
+  ok   leak_probe:entry_address:export_drops
+  ok   leak_probe:entry_address:check_refuses
+  ok   leak_probe:entry_url_in_allowed_key:export_drops
+  ok   leak_probe:entry_url_in_allowed_key:check_refuses
+  ok   leak_probe:state_address:export_drops
+  ok   leak_probe:state_address:check_refuses
+  ok   leak_probe:n1_options_dict:export_drops
+  ok   leak_probe:n1_options_dict:check_refuses
+  ok   leak_probe:n2_currency_name:export_drops
+  ok   leak_probe:n2_currency_name:check_refuses
+  ok   leak_probe:n3_options_address:export_drops
+  ok   leak_probe:n3_options_address:check_refuses
+  ok   leak_probe:n4_token_in_series:export_drops
+  ok   leak_probe:n4_token_in_series:check_refuses
+  ok   leak_probe:state_n10_host_path:export_drops
+  ok   leak_probe:state_n10_host_path:check_refuses
+  ok   leak_probe:n11_host_path_unit:export_drops
+  ok   leak_probe:n11_host_path_unit:check_refuses
+  ok   leak_probe:entry_n13_text_in_entity_key:export_drops
+  ok   leak_probe:entry_n13_text_in_entity_key:check_refuses
+  ok   leak_probe:n14_mac_no_colons:export_drops
+  ok   leak_probe:n14_mac_no_colons:check_refuses
+  ok   the synthetic fixture is what synthesize.py + export.py write
+
+-- replay synthetic-dhw-only.json
+  ok   synthetic-dhw-only.json: the replay ran to the end
+  48 cycles over 75 entities in 20.5 s; cost {'cpu_ratio': 2.631, 'peak_kib': 1907.0, 'loop_cpu_ratio': 0.4006, 'timed': 23, 'traced': 24, 'ref_ms': 42.741752999999605}
+  record: synthetic-dhw-only.json cpu_ratio=3.721 peak_kib=2697 loop_cpu_ratio=0.5665
+  ok   synthetic-dhw-only.json: at least one cycle and one entity
+  ok   synthetic-dhw-only.json: finite
+  ok   synthetic-dhw-only.json: unit
+  ok   synthetic-dhw-only.json: no_default
+  ok   synthetic-dhw-only.json: agreement
+  ok   synthetic-dhw-only.json: cycle
+  ok   synthetic-dhw-only.json: not_frozen
+  ok   synthetic-dhw-only.json: cycle_cost
+  ok   synthetic-dhw-only.json: the replay ran to the end (cpu doubled)
+  cpu doubled at _async_update_data: cost {'cpu_ratio': 4.8814, 'peak_kib': 1908.0, 'loop_cpu_ratio': 2.7458, 'timed': 23, 'traced': 24, 'ref_ms': 43.96369699999991}
+  ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle cpu
+  ok   synthetic-dhw-only.json: the replay ran to the end (memory doubled)
+  memory doubled at _async_update_data: cost {'cpu_ratio': 2.1632, 'peak_kib': 3816.8, 'loop_cpu_ratio': 0.3281, 'timed': 23, 'traced': 24, 'ref_ms': 52.03893500000056}
+  ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle memory
+  ok   synthetic-dhw-only.json: the replay ran to the end (loop doubled)
+  loop doubled at _async_update_data: cost {'cpu_ratio': 2.743, 'peak_kib': 1907.0, 'loop_cpu_ratio': 0.7404, 'timed': 23, 'traced': 24, 'ref_ms': 46.02310800000009}
+  ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle loop
+
+replay lane wall time 125.6 s
+
+ALL 77 replay checks PASSED

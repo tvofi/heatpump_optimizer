@@ -1,0 +1,177 @@
+[
+  {
+    "id": "D2-s3-01",
+    "seat": "D2-s3",
+    "source": "accepted",
+    "errors": [
+      "metric_definition: 'Per profile, the count of the 96 quarters (clock frozen 7 minutes into each) where _current_spot_price() differs from the price of the entry whose [start, start+15 min) contains now; keyed on the value the seam returns.' is too long",
+      "perturbation/expected_direction: \"The quarter-entry arms fall to 0 mismatches and the hourly-entries null control rises from 0 to 273. The span is the mechanism; an honest fix takes each entry's end from the next entry's start, as _known_prices_for does, and must read 0 on all three arms.\" is not one of ['up', 'down', 'to_zero', 'sign_flip']"
+    ]
+  },
+  {
+    "id": "D2-s3-02",
+    "seat": "D2-s3",
+    "source": "accepted",
+    "errors": [
+      "metric_definition: \"Per (price profile, export price) cell, the count of the 96 steps where the production cost closure's price of a 3 kW single-step draw differs by more than 1e-9 from export\u00b7min(P,s)+import\u00b7max(P\u2212s,0)\u00b7dt with a clear-sky 6 kWp surplus; keyed on the closure's returned value.\" is too long",
+      "perturbation/expected_direction: \"Breach steps fall to 0 in every cell, the solve's predicted_cost \u2212 identity goes from \u22120.609 to 0.000, and surplus kWh in negative-price steps goes from 5.07 to 2.27.\" is not one of ['up', 'down', 'to_zero', 'sign_flip']"
+    ]
+  },
+  {
+    "id": "D5-s1-03",
+    "seat": "D5-s1",
+    "source": "accepted",
+    "errors": [
+      "title: 'dashboard-card.md upgrade troubleshooting says the card version lags the integration; the stamp makes them equal on every release' is too long"
+    ]
+  },
+  {
+    "id": "D5-s1-04",
+    "seat": "D5-s1",
+    "source": "accepted",
+    "errors": [
+      "title: 'configuration.md has 9 lines that a GFM renderer puts in the wrong block: 3 table rows as raw-pipe text, 6 prose lines as table rows' is too long"
+    ]
+  },
+  {
+    "id": "D7-s1-01",
+    "seat": "D7-s1",
+    "source": "accepted",
+    "errors": [
+      "title: 'Structural ratchet does not price coordinator state reached via module-level _helper(self, ...), rewarding the refused move' is too long"
+    ]
+  },
+  {
+    "id": "D7-s2-01",
+    "seat": "D7-s2",
+    "source": "accepted",
+    "errors": [
+      "title: 'sysid two-state fit rolls the candidate with one Euler step per 30-min sample: UA 17-25% low on an exact continuous plant, 0/3 presets adopt' is too long"
+    ]
+  },
+  {
+    "id": "D7-s2-02",
+    "seat": "D7-s2",
+    "source": "accepted",
+    "errors": [
+      "title: 'Defrost derate fallback folds meter ratios that _cop_fold_blocked refuses to the COP learner (immersion, backup heater, capacity cap)' is too long"
+    ]
+  },
+  {
+    "id": "D7-s3-02",
+    "seat": "D7-s3",
+    "source": "accepted",
+    "errors": [
+      "title: 'structure.py dead_methods reads 0 while 9 members are dead: properties are skipped and bare-name loads count as references' is too long"
+    ]
+  },
+  {
+    "id": "D8-s2-01",
+    "seat": "D8-s2",
+    "source": "accepted",
+    "errors": [
+      "perturbation/expected_direction: 'climate_unavailable_with_payload 5 -> 0 and climate_attrs_hidden 112 -> 0 (measured)' is not one of ['up', 'down', 'to_zero', 'sign_flip']",
+      "title: 'Climate entity is permanently unavailable on an install without an indoor thermometer, taking the thermostat control with it' is too long"
+    ]
+  },
+  {
+    "id": "D8-s2-02",
+    "seat": "D8-s2",
+    "source": "accepted",
+    "errors": [
+      "perturbation/expected_direction: 'hvac_action_vs_plan 14 -> 0 (measured)' is not one of ['up', 'down', 'to_zero', 'sign_flip']"
+    ]
+  },
+  {
+    "id": "D8-s2-03",
+    "seat": "D8-s2",
+    "source": "accepted",
+    "errors": [
+      "metric_definition: 'Number of immediate state writes made by climate.async_set_hvac_mode or OptimizerEnableSwitch.async_turn_off in which the live-mode field (hvac_mode or is_on) disagrees with a payload-mode field in the same write (hvac_action OFF-ness or the switch attribute mode).' is too long",
+      "perturbation/expected_direction: 'mode_split_after_action 2 -> 0 (measured)' is not one of ['up', 'down', 'to_zero', 'sign_flip']"
+    ]
+  },
+  {
+    "id": "D9-s2-01",
+    "seat": "D9-s2",
+    "source": "accepted",
+    "errors": [
+      "title: 'sensor_advisor ranking re-simulated on the event loop at every plan-sensor state write: 1152 simulate steps, ~32% of loop CPU per cycle' is too long"
+    ]
+  },
+  {
+    "id": "D9-s2-02",
+    "seat": "D9-s2",
+    "source": "accepted",
+    "errors": [
+      "title: \"No budgeted check can see a 2x of the coordinator's loop-thread work; nightly replay needs ~x5, stress.py reaches none of it\" is too long"
+    ]
+  },
+  {
+    "id": "D12-s2-01",
+    "seat": "D12-s2",
+    "source": "accepted",
+    "errors": [
+      "evidence/cpu_or_wall: 'neither (counts and ratios)' is not one of ['cpu', 'wall', 'count', 'bytes', 'ratio', 'n/a']",
+      "evidence/load1: '1.38' is not of type 'number'",
+      "evidence/thread_factor: '1.000' is not of type 'number'",
+      "metric_definition: \"withheld_frac = planned space+DHW kWh in steps whose production heat_pump_on_schedule is False, divided by the plan's total planned kWh; a cell fails above 0.10; e2e counts switch.turn_off calls from _apply_action on steps with planned power > 0.1 kW\" is too long",
+      "perturbation/expected_direction: 'down: onoff_failing_cells 4 -> 0, e2e turn_off-with-planned-heat 30 -> 0 (both measured)' is not one of ['up', 'down', 'to_zero', 'sign_flip']"
+    ]
+  },
+  {
+    "id": "D12-s2-02",
+    "seat": "D12-s2",
+    "source": "accepted",
+    "errors": [
+      "evidence/cpu_or_wall: 'neither (counts)' is not one of ['cpu', 'wall', 'count', 'bytes', 'ratio', 'n/a']",
+      "evidence/load1: '1.14' is not of type 'number'",
+      "evidence/thread_factor: '1.000' is not of type 'number'",
+      "metric_definition: \"misrouted_mode_writes = mode-slot service calls from pump_arbiter.apply whose service domain differs from the target entity's domain, over 9 ticks 7 min apart on a space/space/DHW/space plan, with HA entity-service routing modelled explicitly (select.select_option acts only on select.*, input_select.select_option only on input_select.*, and there is no sensor.select_option)\" is too long",
+      "perturbation/expected_direction: 'down: input_select misrouted 5 -> 0, ticks_mode_wrong 9 -> 0, repair 1 -> 0 (measured). The sensor cell keeps 9 wrong ticks, which is the read-only half of the property.' is not one of ['up', 'down', 'to_zero', 'sign_flip']"
+    ]
+  },
+  {
+    "id": "D12-s2-03",
+    "seat": "D12-s2",
+    "source": "accepted",
+    "errors": [
+      "evidence/cpu_or_wall: 'neither (counts)' is not one of ['cpu', 'wall', 'count', 'bytes', 'ratio', 'n/a']",
+      "evidence/load1: '1.30' is not of type 'number'",
+      "evidence/thread_factor: '1.000' is not of type 'number'",
+      "perturbation/expected_direction: 'down: onoff_full_power_mislabelled 149 -> 0 and power_normalized minimum -60 -> -5 (measured)' is not one of ['up', 'down', 'to_zero', 'sign_flip']"
+    ]
+  },
+  {
+    "id": "D12-s3-01",
+    "seat": "D12-s3",
+    "source": "accepted",
+    "errors": [
+      "metric_definition: \"Initial-flow completion paths (DFS over menus, forms untouched, quick-setup plant answers 'no') whose entry's first _async_update_data publishes dhw_enabled with a dhw_plan tank trajectory, or two_zone_enabled, with no affirming answer.\" is too long"
+    ]
+  },
+  {
+    "id": "D1-s2-54",
+    "seat": "D1-s2",
+    "source": "lead_findings",
+    "errors": [
+      "title: 'apply_manual_plan accepts expires_at past the horizon: the override owns all 96 steps, the invariant it states is unenforced' is too long"
+    ]
+  },
+  {
+    "id": "D1-s5-51",
+    "seat": "D1-s5",
+    "source": "lead_findings",
+    "errors": [
+      "title: 'A report-on-change indoor thermometer silent over 60 min turns Indoor Temperature unavailable while HA holds its valid reading' is too long"
+    ]
+  },
+  {
+    "id": "D1-s5-52",
+    "seat": "D1-s5",
+    "source": "lead_findings",
+    "errors": [
+      "title: 'InputReader has no plausibility window: -127 and 85 degC sensor sentinels are delivered as ok on 6 of 6 temperature inputs' is too long"
+    ]
+  }
+]

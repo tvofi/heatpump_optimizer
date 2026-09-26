@@ -1,0 +1,9 @@
+
+=== Stress and economics ===
+  shoulder/1z/dhw                calls 1.0005x  evals 554/554  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False  identical_calls=False  top_file_growth=(831, 'tariff.py')
+  summer/1z/space                calls 1.0005x  evals 34/34  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False  identical_calls=False  top_file_growth=(51, 'tariff.py')
+  winter/1z/dhw                  calls 1.0002x  evals 52/52  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False  identical_calls=False  top_file_growth=(78, 'tariff.py')
+  winter/2z/space                calls 1.0004x  evals 906/906  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False  identical_calls=False  top_file_growth=(1359, 'tariff.py')
+  winter/tariff                  calls 1.4823x  evals 764/764  simulate 1.0000x  shipped_evals_over=False shipped_sim_over=False  identical_calls=False  top_file_growth=(3921969, 'tariff.py')
+  OVER winter/tariff: 12055399 production calls against the baseline's 8133048 = 1.482x on work the counts vouch at 1.000x, over the 1.05x allowance (tariff.py +3921969, optimizer.py +382)
+RESULT arm=tariff2x here=939ea6f9 base=1936d5ca scenarios=5 covered=5 replanned=0 unmetered=0 calls_over=1 shipped_count_over=0 capture_wall_s=146.5

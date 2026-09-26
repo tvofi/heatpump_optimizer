@@ -1,0 +1,2327 @@
+{
+ "_note": "Final, not draft: all 148 verdicts are settled at 2f97b0a (shard 2 has landed), so no class membership will change. Refuted findings (D0-s1-01, D0-s2-01, D14-s3-02) are excluded. Ledger = tools/audit/bugclasses.json; every ledger class has status open (no detector/barrier). The only barriered class is 'user state not surviving restart' (RC2 barrier, merged), which is not in the ledger yet.",
+ "judge_commit": "2f97b0a",
+ "classes": [
+  {
+   "id": "P2",
+   "name": "One fact decided twice by divergent predicates: a guard at one seam, missing at its sibling",
+   "ledger": "in ledger",
+   "ledger_status": "open",
+   "barriered": false,
+   "n": 27,
+   "rca": true,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D1-s2-51",
+     "merged": [],
+     "verdict": "weakened(medium)",
+     "severity": "medium",
+     "seam_rule": "grep -nE '^\\s+(await )?self\\._[a-z_]+\\(|pump_arbiter\\.apply|boost\\.apply' custom_components/heatpump_optimizer/coordinator.py restricted to the try-bodies of _async_update_data (:4595-4700) and async_run_optimization (:4773-5120), keeping calls not inside their own try; harness: tools/audit/round9/D1/leads/cycle_fence.py",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "A learner or arbiter raise on the cycle path fails the solve or the whole cycle and skips actuation and saves"
+    },
+    {
+     "id": "D1-s2-91",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n 'self\\._record_accuracy()\\|self\\._track_realised_peak()\\|self\\._async_save_accuracy()\\|self\\._async_save_energy_totals()' custom_components/heatpump_optimizer/coordinator.py; each of the calls _record_accuracy makes internally (_fold_flow_lift, _observe_compressor_start, _observe_frequency, defrost_window.close, score_lead_predictions, dhw score_lead_predictions) is an unwrapped seam of the same shape",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py",
+      "custom_components/heatpump_optimizer/flow_lift.py"
+     ],
+     "title": "FlowCurveBias.observe raise aborts the cycle's accuracy pipeline and fails the whole update"
+    },
+    {
+     "id": "D1-s3-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "high",
+     "seam_rule": "rg -n \"fromisoformat|parse_datetime\\(\" custom_components/heatpump_optimizer/{away,boost,pump_arbiter,legionella,manual_plan}.py",
+     "files": [
+      "custom_components/heatpump_optimizer/away.py",
+      "custom_components/heatpump_optimizer/legionella.py",
+      "custom_components/heatpump_optimizer/pump_arbiter.py",
+      "custom_components/heatpump_optimizer/boost.py"
+     ],
+     "title": "A tz-less return_time (card datetime-local) or a naive stored datetime wedges every cycle with TypeError"
+    },
+    {
+     "id": "D1-s3-02",
+     "merged": [],
+     "verdict": "weakened(medium)",
+     "severity": "medium",
+     "seam_rule": "rg -n \"async_track_time_interval|async_track_state_change_event|async_create_task\" custom_components/heatpump_optimizer/{pump_arbiter,legionella,disinfection,boost,away}.py",
+     "files": [
+      "custom_components/heatpump_optimizer/pump_arbiter.py"
+     ],
+     "title": "Pump-duty arbiter re-registers its timer and state listener on an unloaded coordinator and keeps writing the pump"
+    },
+    {
+     "id": "D1-s4-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n 'f\"failed (' custom_components/heatpump_optimizer/optimizer.py",
+     "files": [
+      "custom_components/heatpump_optimizer/optimizer.py",
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "A failed solve is returned as a plan with status 'failed (...)', so the coordinator counts it a success"
+    },
+    {
+     "id": "D1-s5-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n \"age_of(\\|last_updated\\|last_changed\" custom_components/heatpump_optimizer/*.py",
+     "files": [
+      "custom_components/heatpump_optimizer/inputs.py",
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "inputs.age_of ignores last_reported and accepts future stamps, diverging from InputReader's freshness rule"
+    },
+    {
+     "id": "D1-s5-03",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "grep -n -A3 \"float(raw\\|float(raw_v\\|float(total\" custom_components/heatpump_optimizer/price_model.py custom_components/heatpump_optimizer/open_meteo.py",
+     "files": [
+      "custom_components/heatpump_optimizer/price_model.py",
+      "custom_components/heatpump_optimizer/open_meteo.py"
+     ],
+     "title": "One huge JSON integer drops a whole price fetch (entity and Tibber) or Open-Meteo refresh instead of one row"
+    },
+    {
+     "id": "D1-s5-52",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "high",
+     "seam_rule": "grep -n 'INPUT_MAX_AGE_MINUTES\\[\\|CONF_.*TEMP.*_ENTITY: ' custom_components/heatpump_optimizer/const.py (every temperature key InputReader reads); harness: tools/audit/round9/D1/leads/sentinel_temps.py",
+     "files": [
+      "custom_components/heatpump_optimizer/inputs.py",
+      "custom_components/heatpump_optimizer/const.py"
+     ],
+     "title": "InputReader has no plausibility window: -127 and 85 degC sentinels deliver as ok readings"
+    },
+    {
+     "id": "D2-s1-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D2/s1/m1_coil.py",
+     "files": [
+      "custom_components/heatpump_optimizer/thermal_model.py",
+      "custom_components/heatpump_optimizer/optimizer.py"
+     ],
+     "title": "DHW refill coil debits the wood tank the full coil heat but spares the DHW tank only its scaled share"
+    },
+    {
+     "id": "D2-s2-01",
+     "merged": [],
+     "verdict": "weakened(medium)",
+     "severity": "medium",
+     "seam_rule": "grep -n \"heat_loss_coefficient\\b\\|\\.upper_floor_heat_loss\\b\\|lower_floor_heat_loss_learned\" custom_components/heatpump_optimizer/optimizer.py | grep -v \"effective_heat_loss_coefficient\\|house_heat_loss_scale\"",
+     "files": [
+      "custom_components/heatpump_optimizer/optimizer.py"
+     ],
+     "title": "Settlement caps (slab_settlement_cap, hold_demand_kw) ignore the learned house_heat_loss_scale the dynamics apply"
+    },
+    {
+     "id": "D2-s2-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -n \"_replay_end_state(\" custom_components/heatpump_optimizer/optimizer.py",
+     "files": [
+      "custom_components/heatpump_optimizer/optimizer.py"
+     ],
+     "title": "DHW-path savings settle-up replays space schedule without the DHW coil: end state differs from published trajectory"
+    },
+    {
+     "id": "D2-s3-01",
+     "merged": [
+      "D8-s1-01"
+     ],
+     "verdict": "verified",
+     "severity": "high",
+     "seam_rule": "grep -n \"timedelta(hours=1)\" custom_components/heatpump_optimizer/coordinator.py custom_components/heatpump_optimizer/*.py | grep -i -e price -e starts",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "_current_spot_price reads a quarter up to 45 min stale under 15-minute price entries"
+    },
+    {
+     "id": "D2-s4-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/sizer_margin.py --seeds 16",
+     "files": [
+      "custom_components/heatpump_optimizer/sysid.py"
+     ],
+     "title": "sysid step sized to exactly the abort bound: sensor noise aborts 100 of 294 experiments, light_new 81 of 96"
+    },
+    {
+     "id": "D4-s2-06",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "tools/audit/round9/D4/s2/preset_warning.py (every options page rendering a DERIVED_THERMAL_KEYS field; add a page to its step tuple when a derived key moves)",
+     "files": [
+      "custom_components/heatpump_optimizer/strings.json",
+      "custom_components/heatpump_optimizer/translations/en.json",
+      "custom_components/heatpump_optimizer/translations/sv.json",
+      "custom_components/heatpump_optimizer/config_flow.py"
+     ],
+     "title": "The zones page computes the derivation-overwrite warning but never shows it for its 6 derived fields"
+    },
+    {
+     "id": "D7-s1-71",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/leads/l3_cold_water_default.py  (sites = grep -n 'DEFAULT_DHW_INLET_TEMP\\|DHW_COLD_WATER_TEMP\\|dhw_inlet_temp: float' custom_components/heatpump_optimizer/*.py)",
+     "files": [
+      "custom_components/heatpump_optimizer/thermal_model.py",
+      "custom_components/heatpump_optimizer/const.py"
+     ],
+     "title": "Cold-water inlet default held three times: 3 of 5 sites ignore DEFAULT_DHW_INLET_TEMP when it moves"
+    },
+    {
+     "id": "D7-s2-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n \"_measured_power\\|actual_power_kw\" custom_components/heatpump_optimizer/coordinator.py",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py",
+      "custom_components/heatpump_optimizer/defrost.py"
+     ],
+     "title": "Defrost derate fallback folds meter ratios _cop_fold_blocked refuses to the COP learner"
+    },
+    {
+     "id": "D8-s1-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -n 'dhw_power\", 0) >\\|threshold: float = 0.05' custom_components/heatpump_optimizer/sensor.py custom_components/heatpump_optimizer/coordinator.py",
+     "files": [
+      "custom_components/heatpump_optimizer/sensor.py"
+     ],
+     "title": "DHW Heating Schedule counts 15-minute steps as 'heating periods', disagreeing with DHW Heating Plan's slot count"
+    },
+    {
+     "id": "D8-s1-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -rn 'commanded_power_kw(' custom_components/heatpump_optimizer/",
+     "files": [
+      "custom_components/heatpump_optimizer/entity.py",
+      "custom_components/heatpump_optimizer/sensor.py"
+     ],
+     "title": "Recommended Power publishes a sub-threshold draw at steps Heat Pump Action reports 'off'"
+    },
+    {
+     "id": "D8-s2-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "high",
+     "seam_rule": "grep -n 'MODE_OFF\\|\"mode\"' custom_components/heatpump_optimizer/climate.py",
+     "files": [
+      "custom_components/heatpump_optimizer/climate.py"
+     ],
+     "title": "Climate hvac_action publishes off while an active boost runs the pump in optimizer mode off"
+    },
+    {
+     "id": "D8-s2-03",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "grep -n 'data.get(\"mode\"' custom_components/heatpump_optimizer/climate.py custom_components/heatpump_optimizer/switch.py",
+     "files": [
+      "custom_components/heatpump_optimizer/climate.py",
+      "custom_components/heatpump_optimizer/switch.py"
+     ],
+     "title": "Mode actions publish a state that mixes the live mode with the stale payload mode"
+    },
+    {
+     "id": "D8-s3-61",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -n '_attr_entity_registry_enabled_default = False' custom_components/heatpump_optimizer/sensor.py custom_components/heatpump_optimizer/binary_sensor.py  (each hit checked against the payload gate its value needs)",
+     "files": [
+      "custom_components/heatpump_optimizer/sensor.py",
+      "README.md"
+     ],
+     "title": "Valve Target Recommendation ships disabled where a mixing valve is set, and available-but-unknown where none is"
+    },
+    {
+     "id": "D10-s1-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n \"async_update_entry\\|_save(\\|async_create_entry\" custom_components/heatpump_optimizer/config_flow.py, keeping each write that can change CONF_TIBBER_TOKEN, CONF_PRICE_ENTITY or a key in _IDENTITY_ENTITY_KEYS",
+     "files": [
+      "custom_components/heatpump_optimizer/config_flow.py"
+     ],
+     "title": "Entry unique id is not re-derived after reauth or an options edit, so the same plant can be set up twice"
+    },
+    {
+     "id": "D10-s1-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n \"async_press\\|async_turn_on\\|async_turn_off\\|async_set_\" custom_components/heatpump_optimizer/{button,switch,climate,datetime}.py, keeping entries whose only effect is to request a solve or analysis (named candidate, not counted: DiagnoseIntervalButton.async_press)",
+     "files": [
+      "custom_components/heatpump_optimizer/button.py",
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "Optimize-now button press returns normally when the solve did not run; the run_optimization action raises"
+    },
+    {
+     "id": "D12-s2-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -rn \"min_electrical_power.*\\* 0\\.5\\|_on_kw(\" custom_components/heatpump_optimizer/*.py  (optimizer.py:6962, :7024; pump_arbiter.py:354, :357, :491)",
+     "files": [
+      "custom_components/heatpump_optimizer/optimizer.py",
+      "custom_components/heatpump_optimizer/pump_arbiter.py",
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "On an on/off pump, the switch path switches off steps whose planned heat the plan books as delivered"
+    },
+    {
+     "id": "D12-s2-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n 'async_call(' -A2 custom_components/heatpump_optimizer/{pump_arbiter,coordinator,repairs}.py, cross-checked against topology.ASSIGNABLE_KEYS and the config_flow _entity_of([...]) domains of each written slot",
+     "files": [
+      "custom_components/heatpump_optimizer/pump_arbiter.py",
+      "custom_components/heatpump_optimizer/topology.py",
+      "custom_components/heatpump_optimizer/config_flow.py"
+     ],
+     "title": "The pump-duty arbiter writes the operating mode with select.select_option whatever domain the mode slot holds"
+    },
+    {
+     "id": "D12-s3-01",
+     "merged": [
+      "D4-s2-04",
+      "D12-s1-02"
+     ],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/flow_paths.py --answers no (enumerates every menu-completion path of the initial flow; each path is a seam)",
+     "files": [
+      "custom_components/heatpump_optimizer/config_flow.py",
+      "custom_components/heatpump_optimizer/thermal_model.py",
+      "custom_components/heatpump_optimizer/quick_setup.py"
+     ],
+     "title": "Full config-flow wizard invents a DHW tank and a second zone the user never affirmed"
+    },
+    {
+     "id": "D14-s2-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p2_facts.py --seams   (AST: proxy keys extracted from the canonical predicates; lists every decision-context read of them outside the predicate; --ref <sha> runs it at any commit)",
+     "files": [
+      "custom_components/heatpump_optimizer/config_flow.py",
+      "custom_components/heatpump_optimizer/modbus_prefill.py",
+      "custom_components/heatpump_optimizer/topology.py"
+     ],
+     "title": "P2: the two-zone and wood-furnace facts are re-derived from a proxy key at three seams beside their canonical predicate"
+    }
+   ]
+  },
+  {
+   "id": "I5",
+   "name": "Docs, comments or a compliance checklist drift stale against the code",
+   "ledger": "in ledger",
+   "ledger_status": "open",
+   "barriered": false,
+   "n": 19,
+   "rca": true,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D4-s2-09",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "tools/audit/round9/D4/s2/unit_typography.py (every rendered field's help text in both flows)",
+     "files": [
+      "custom_components/heatpump_optimizer/strings.json",
+      "custom_components/heatpump_optimizer/translations/en.json",
+      "custom_components/heatpump_optimizer/translations/sv.json"
+     ],
+     "title": "8 help texts per language write '45 C' / 'W/m2' beside selectors that say \u00b0C and m\u00b2"
+    },
+    {
+     "id": "D5-s1-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/setup_section.py && PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/entity_counts.py",
+     "files": [
+      "docs/configuration.md",
+      "custom_components/heatpump_optimizer/config_flow.py"
+     ],
+     "title": "configuration.md 'Initial setup' documents the pre-v6.6.5 flow: no finish menu, Tibber token required, 74 entities"
+    },
+    {
+     "id": "D5-s1-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/quick_setup_promise.py",
+     "files": [
+      "docs/setup.md",
+      "custom_components/heatpump_optimizer/quick_setup.py",
+      "custom_components/heatpump_optimizer/thermal_model.py"
+     ],
+     "title": "setup.md Quick setup promises buffer storage and two-tank physics that the quick-setup answers cannot produce"
+    },
+    {
+     "id": "D5-s1-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/card_version_doc.py",
+     "files": [
+      "docs/dashboard-card.md",
+      "tools/release/stamp.py"
+     ],
+     "title": "dashboard-card.md says the card version lags the integration; the stamp keeps them equal every release"
+    },
+    {
+     "id": "D5-s1-05",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s1/field_labels.py",
+     "files": [
+      "docs/configuration.md",
+      "docs/how-it-works.md"
+     ],
+     "title": "Docs name 5 option fields by labels the options forms do not show"
+    },
+    {
+     "id": "D5-s2-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "HPO_PLANDATA=$(mktemp -d) /opt/node22/bin/node tools/audit/round9/D5/s2/card_comment_names.mjs  (prints one STALE row per name with its comment lines)",
+     "files": [
+      "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+     ],
+     "title": "Card comments cite 12 private members the card no longer has (17 mentions)"
+    },
+    {
+     "id": "D5-s2-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s2/comment_numbers.py  (one ROW line per claim; probe rows are the seams, hold rows the control)",
+     "files": [
+      "custom_components/heatpump_optimizer/defrost.py",
+      "custom_components/heatpump_optimizer/const.py",
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "Three comments cite a number the code beside them does not deliver"
+    },
+    {
+     "id": "D5-s2-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D5/s2/comment_numbers.py  (RESULT draw_cold_end_off_constant)",
+     "files": [
+      "custom_components/heatpump_optimizer/const.py"
+     ],
+     "title": "DHW_COLD_WATER_TEMP comment claims the draw model heats from it; the draw reads the configured inlet"
+    },
+    {
+     "id": "D5-s2-51",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -n 'one step later\\|stashes the series' custom_components/heatpump_optimizer/optimizer.py; harness: tools/audit/round9/D5/leads/dataflow_comments.py",
+     "files": [
+      "custom_components/heatpump_optimizer/optimizer.py"
+     ],
+     "title": "Two optimizer comments describe a data flow the code does not have (warm-start alignment, buffer-series stash)"
+    },
+    {
+     "id": "D6-s1-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s1/claims.py --no-net | grep -E '^\\| C1[56] '",
+     "files": [
+      "README.md",
+      "custom_components/heatpump_optimizer/const.py",
+      "custom_components/heatpump_optimizer/sensor.py"
+     ],
+     "title": "README's Heat Pump Action state list omits idle and system_identification, which the sensor publishes"
+    },
+    {
+     "id": "D6-s1-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s1/claims.py --no-net | grep -E '^\\| C5[23] '",
+     "files": [
+      "README.md",
+      "custom_components/heatpump_optimizer/config_flow.py"
+     ],
+     "title": "README puts the two-zone split and the orientation factor on the wrong options pages"
+    },
+    {
+     "id": "D6-s1-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D6/s1/claims.py --no-net | grep -E '^\\| C(08|09|10|13|18) '",
+     "files": [
+      "README.md",
+      "custom_components/heatpump_optimizer/entity.py",
+      "custom_components/heatpump_optimizer/sensor.py"
+     ],
+     "title": "README's disabled-by-default census omits six hot-water sensors that the no-hot-water install disables"
+    },
+    {
+     "id": "D6-s2-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -nE '\\b[0-9]+ entities\\b|[0-9]+ (sensors|binary sensors|buttons|switches|climate|datetime)\\b' docs/*.md README.md  (checked by tools/audit/round9/D6/s2/flow_census.py)",
+     "files": [
+      "docs/configuration.md"
+     ],
+     "title": "configuration.md says 'All 74 entities'; the six platforms create 75"
+    },
+    {
+     "id": "D6-s2-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub python tools/audit/round9/D6/s2/flow_census.py  (prints the driven path; compare with the flowchart at docs/configuration.md:24-38 and the sentence at :196)",
+     "files": [
+      "docs/configuration.md"
+     ],
+     "title": "configuration.md: the weather page does not create the entry; the setup flowchart omits the menu and overview"
+    },
+    {
+     "id": "D6-s2-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -rnE '0\\.5 K per week|half a degree per week|\u22640\\.5 K per week' docs README.md custom_components/heatpump_optimizer/strings.json custom_components/heatpump_optimizer/translations",
+     "files": [
+      "docs/ecl110.md",
+      "docs/configuration.md",
+      "docs/how-it-works.md",
+      "custom_components/heatpump_optimizer/curve_learning.py"
+     ],
+     "title": "Curve-bias 'at most 0.5 K per week' is false: 0.6 K in a 7-day window"
+    },
+    {
+     "id": "D6-s2-04",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -rnE 'starting point|initial guess|third start|multi-start' docs README.md",
+     "files": [
+      "docs/how-it-works.md"
+     ],
+     "title": "how-it-works.md: space solve 'from two starting points'; it runs four, each refined and polished"
+    },
+    {
+     "id": "D6-s2-05",
+     "merged": [
+      "D5-s1-06"
+     ],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub python tools/audit/round9/D6/s2/services_claims.py  (every table row and prose field list of the Services section)",
+     "files": [
+      "docs/configuration.md"
+     ],
+     "title": "configuration.md simulate_plan field list omits the five wood fields"
+    },
+    {
+     "id": "D8-s3-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m3_translation.py  (MISMATCH lines)",
+     "files": [
+      "custom_components/heatpump_optimizer/translations/sv.json"
+     ],
+     "title": "Swedish name of Sensor-Gap Advisor reads 'sensor gap in the currency' and drops the advisor role"
+    },
+    {
+     "id": "D11-s2-04",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "grep -no '`[A-Z][A-Z -]*: [^`]*`' CLAUDE.md .claude/rules/*.md .claude/skills/steward/SKILL.md",
+     "files": [
+      "CLAUDE.md",
+      "tests/closure.py"
+     ],
+     "title": "CLAUDE.md rule 1 quotes a mode line the gate does not print, and says FULL prints a zero it does not"
+    }
+   ]
+  },
+  {
+   "id": "I1",
+   "name": "A mutation kill miscounted, or a guard whose deletion leaves the gate green",
+   "ledger": "in ledger",
+   "ledger_status": "open",
+   "barriered": false,
+   "n": 11,
+   "rca": true,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D3-s1-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/mutants.py --list | grep '\"func\": \"_dhw_inlet_c\"'  (seams C0041-C0045; each runs through tools/audit/round9/D3/s1/prescreen.py <CID>)",
+     "files": [
+      "tests/features.py",
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "No closure script fails when _dhw_inlet_c's lower plausibility bound moves (-5.0 <= value -> -5.0 < value)"
+    },
+    {
+     "id": "D3-s1-91",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -nE 'tzinfo is None|\\.astimezone\\(|fromtimestamp\\(' custom_components/heatpump_optimizer/coordinator.py; grep -n HASTUB_TZ tests/*.py to see which drivers ever exercise an aware dt_util.now()",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py",
+      "tests/dst_checks.py"
+     ],
+     "title": "coordinator.py tzinfo guards (:8112, :8384) are dead under the gate's naive clock; unblinded they crash"
+    },
+    {
+     "id": "D3-s2-01",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/storeguards.py",
+     "files": [
+      "custom_components/heatpump_optimizer/flow_lift.py",
+      "custom_components/heatpump_optimizer/tariff.py",
+      "custom_components/heatpump_optimizer/price_model.py",
+      "tests/features.py"
+     ],
+     "title": "Store-parser non-finite guards in flow_lift, tariff, price_model survive deletion: no gate driver notices"
+    },
+    {
+     "id": "D3-s2-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/storeguards.py",
+     "files": [
+      "custom_components/heatpump_optimizer/price_model.py",
+      "tests/features.py"
+     ],
+     "title": "PriceShapeModel residual_var restore can discard every stored variance with the gate green"
+    },
+    {
+     "id": "D3-s3-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "tools/audit/round9/D3/s3/distinguish.py M02 --tz=Europe/Stockholm  (demonstrated seam); enumerate the class with: grep -nE 'tzinfo is None|\\.astimezone\\(|fromtimestamp\\(' custom_components/heatpump_optimizer/*.py",
+     "files": [
+      "custom_components/heatpump_optimizer/open_meteo.py",
+      "tests/open_meteo.py",
+      "tests/run.sh"
+     ],
+     "title": "Every gate driver runs with process local time = UTC, so open_meteo's naive-stamp UTC guard is deletable"
+    },
+    {
+     "id": "D3-s3-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "tools/audit/round9/D3/s3/distinguish.py M19",
+     "files": [
+      "custom_components/heatpump_optimizer/dhw_draws.py",
+      "tests/features.py"
+     ],
+     "title": "DrawStats.from_dict can zero the open draw occurrence and no gate check notices"
+    },
+    {
+     "id": "D3-s3-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "tools/audit/round9/D3/s3/distinguish.py M21",
+     "files": [
+      "custom_components/heatpump_optimizer/ledger.py",
+      "tests/finite_boundary.py"
+     ],
+     "title": "MonthlyLedger.add's non-finite guard is unpinned; one NaN amount loses the month on reload"
+    },
+    {
+     "id": "D3-s3-04",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "tools/audit/round9/D3/s3/probe.py M24 tests/features.py tests/finite_boundary.py tests/entities.py tests/env_drift.py --new '        if True:'",
+     "files": [
+      "custom_components/heatpump_optimizer/dhw_learning.py",
+      "tests/features.py"
+     ],
+     "title": "No gate check observes a positive draw folded by DhwProfileLearner.async_fold_draw_stats"
+    },
+    {
+     "id": "D3-s3-05",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "tools/audit/round9/D3/s3/distinguish.py M20",
+     "files": [
+      "custom_components/heatpump_optimizer/legionella.py",
+      "tests/features.py"
+     ],
+     "title": "The disinfection write-failed notice memo is unpinned"
+    },
+    {
+     "id": "D7-s1-02",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/train_mutations.py --only drift_leaf,drift,stress,drift_ctl",
+     "files": [
+      "tests/env_drift.py",
+      "tests/stress.py",
+      "tests/entities.py"
+     ],
+     "title": "Drift-gate comparison and stress per-scenario budget verdict are deletable with every runnable check green"
+    },
+    {
+     "id": "D14-s5-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "tools/audit/round9/D14/s5/guard_inventory.py --list",
+     "files": [
+      "tests/mutation_table.py",
+      "tests/mutation_budgets.json"
+     ],
+     "title": "Mutation ratchet inventory cannot see 528 of 2313 production guard seams; a new guard of those shapes raises it by 0"
+    }
+   ]
+  },
+  {
+   "id": "P1",
+   "name": "A non-finite or malformed value crosses a persisted-store boundary with no guard",
+   "ledger": "in ledger",
+   "ledger_status": "open",
+   "barriered": false,
+   "n": 9,
+   "rca": true,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D1-s1-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n \"fromisoformat\" custom_components/heatpump_optimizer/{snapshots,curve_learning,comfort_learning,accuracy,drift,wear,ledger,dhw_learning}.py",
+     "files": [
+      "custom_components/heatpump_optimizer/snapshots.py",
+      "custom_components/heatpump_optimizer/curve_learning.py",
+      "custom_components/heatpump_optimizer/comfort_learning.py"
+     ],
+     "title": "A tz-naive persisted timestamp raises on every cycle at three sibling loader seams (snapshots, curve, comfort)"
+    },
+    {
+     "id": "D1-s1-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n \"snap.get\\|snapshots\\[-1\\]\\[\" custom_components/heatpump_optimizer/snapshots.py",
+     "files": [
+      "custom_components/heatpump_optimizer/snapshots.py"
+     ],
+     "title": "A non-numeric snapshot temperature_bias makes best_restore raise and suppresses the accuracy_drift issue for good"
+    },
+    {
+     "id": "D1-s2-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "tools/audit/round9/D1/s2/store_fuzz.py --sweep-huge (every numeric leaf of every coordinator store)",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "A sample count past 2**64 in the thermal-learning store fails every cycle, across restarts"
+    },
+    {
+     "id": "D1-s3-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "rg -n \"held.written\\[\" custom_components/heatpump_optimizer/pump_arbiter.py",
+     "files": [
+      "custom_components/heatpump_optimizer/pump_arbiter.py"
+     ],
+     "title": "pump_arbiter._load installs non-numeric set-point values that raise TypeError on every apply"
+    },
+    {
+     "id": "D1-s3-06",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "rg -n \"def from_dict\" custom_components/heatpump_optimizer/freq_control.py",
+     "files": [
+      "custom_components/heatpump_optimizer/freq_control.py"
+     ],
+     "title": "FrequencyMap.from_dict admits an unbounded ratio or out-of-range decile that pins recommend() at hz_min for days"
+    },
+    {
+     "id": "D1-s4-01",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "grep -n '_grid_of(\"' custom_components/heatpump_optimizer/defrost.py",
+     "files": [
+      "custom_components/heatpump_optimizer/defrost.py"
+     ],
+     "title": "DefrostDerate.from_dict admits non-finite/out-of-range duty; the bucket pins at DERATE_MIN and never recovers"
+    },
+    {
+     "id": "D1-s4-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -n 'migrated' custom_components/heatpump_optimizer/defrost.py",
+     "files": [
+      "custom_components/heatpump_optimizer/defrost.py"
+     ],
+     "title": "One unreadable cell in a v2 defrost store voids all 12 measured buckets and is labelled a pre-v5.3.0 upgrade"
+    },
+    {
+     "id": "D1-s5-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n \"def from_dict\\|def apply_payload\\|def _stored_peaks\" custom_components/heatpump_optimizer/*.py",
+     "files": [
+      "custom_components/heatpump_optimizer/price_model.py",
+      "custom_components/heatpump_optimizer/tariff.py"
+     ],
+     "title": "Learner-store loaders check finiteness but not the domain their own update path enforces (price shape, peak tracker)"
+    },
+    {
+     "id": "D14-s1-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "PYTHONPATH=tests/hastub python tools/audit/round9/D14/s1/p1_store.py  (SEAM escape / WEDGE lines)",
+     "files": [
+      "custom_components/heatpump_optimizer/legionella.py",
+      "custom_components/heatpump_optimizer/boost.py",
+      "custom_components/heatpump_optimizer/pump_arbiter.py",
+      "custom_components/heatpump_optimizer/snapshots.py",
+      "custom_components/heatpump_optimizer/coordinator.py",
+      "tests/finite_boundary.py"
+     ],
+     "title": "P1: a malformed store leaf raises out of a loader or consumer; a naive legionella timestamp wedges every refresh"
+    }
+   ]
+  },
+  {
+   "id": "I3",
+   "name": "A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary",
+   "ledger": "in ledger",
+   "ledger_status": "open",
+   "barriered": false,
+   "n": 7,
+   "rca": true,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D11-s1-01",
+     "merged": [],
+     "verdict": "weakened(medium)",
+     "severity": "medium",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/s1/approvals_at_head.py  (every first-parent PR merge since the rule landed; seams = merges printed under 'code-owned change after the owner's last approval')",
+     "files": [
+      ".github/CODEOWNERS",
+      ".claude/workflows/budget_raise_gate.py",
+      "docs/decisions/0008-a-seat-identity-distinct-from-the-owner.md"
+     ],
+     "title": "A code-owned change pushed after the owner approval merges on that stale approval (dismiss_stale_reviews=false)"
+    },
+    {
+     "id": "D11-s1-02",
+     "merged": [],
+     "verdict": "weakened(medium)",
+     "severity": "medium",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/s1/direct_push_detectors.py  (rows d1,d2 + control d3; history line lists every single-parent first-parent commit since v6.5.0)",
+     "files": [
+      "tools/release/stamp.py",
+      ".claude/workflows/policy_lint.mjs"
+     ],
+     "title": "A non-stamp direct push to main over the DeployKey bypass is reported by no enumerator"
+    },
+    {
+     "id": "D11-s1-03",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/s1/privileged_pr_code.py",
+     "files": [
+      ".github/workflows/tests.yml"
+     ],
+     "title": "Three pull_request jobs execute the PR's own code-owned scripts while holding contents:write + actions:write"
+    },
+    {
+     "id": "D11-s1-04",
+     "merged": [
+      "D11-s2-03"
+     ],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/s1/approvals_at_head.py  (owner_agent_declared, owner_approval_empty_body, owner_gate_accepts_agent_declared)",
+     "files": [
+      ".github/CODEOWNERS",
+      ".claude/workflows/budget_raise_gate.py"
+     ],
+     "title": "Owner approvals given by the orchestrator are indistinguishable from the owner's in GitHub's record"
+    },
+    {
+     "id": "D11-s2-01",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "grep -n 'r.lines > cap' .claude/workflows/policy_lint.mjs; python3 -c \"import json;print(len(json.load(open('.claude/workflows/policy_budgets.json'))['files']))\"  (every entry of files{} is a seam)",
+     "files": [
+      ".claude/workflows/policy_lint.mjs",
+      ".claude/workflows/policy_budgets.json",
+      ".claude/rules/ratchet-budgets.md"
+     ],
+     "title": "Per-file policy caps count lines, so a capped rule file grows in prose with its per-file budget check green"
+    },
+    {
+     "id": "D11-s2-02",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "python3 -c \"import json;s=json.load(open('.claude/settings.json'));print([(e,g.get('matcher')) for e,gs in s['hooks'].items() for g in gs])\"",
+     "files": [
+      ".claude/settings.json",
+      ".claude/workflows/policy_lint.mjs"
+     ],
+     "title": "policy_lint --hooks never reads a hook's matcher: a PreToolUse matcher naming no edit tool passes as wired"
+    },
+    {
+     "id": "D13-s1-03",
+     "merged": [],
+     "verdict": "weakened(medium)",
+     "severity": "medium",
+     "seam_rule": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs  (m3 class rows; each class whose predicate needs only check runs + body)",
+     "files": [
+      ".claude/workflows/policy_lint.mjs",
+      ".github/workflows/pr-contract.yml",
+      ".claude/rules/defect-root-cause.md"
+     ],
+     "title": "Body-answer blocks (8) exceed every engineering block class (max 1); record-and-body 12 vs engineering 7"
+    }
+   ]
+  },
+  {
+   "id": "P11",
+   "name": "The only oracle for an external counterpart (Home Assistant core, its state machine, its recorder REST API, a device behind an integration) is a test double the implementer wrote from what the code needed, so the tests agree with a wrong implementation",
+   "ledger": "in ledger",
+   "ledger_status": "open",
+   "barriered": false,
+   "n": 6,
+   "rca": true,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D1-s1-51",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -n 'json\\.' tests/hastub/homeassistant/helpers/storage.py; harness: tools/audit/round9/D1/leads/stub_store_codec.py",
+     "files": [
+      "tests/hastub/homeassistant/helpers/storage.py"
+     ],
+     "title": "hastub Store decodes with stdlib json: 6 of 6 hostile number tokens load where HA's orjson Store drops the file"
+    },
+    {
+     "id": "D1-s1-52",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -n 'def now\\|def utcnow\\|datetime.now()' tests/hastub/homeassistant/util/dt.py; harness: tools/audit/round9/D1/leads/stub_naive_clock.py",
+     "files": [
+      "tests/hastub/homeassistant/util/dt.py"
+     ],
+     "title": "hastub dt_util.now() is naive by default: the naive-vs-aware verdict of 6 of 6 stored-timestamp cells is inverted"
+    },
+    {
+     "id": "D1-s2-71",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/leads/l3_update_interval.py  (cells = configured intervals; extend to every keyword the integration passes to DataUpdateCoordinator.__init__)",
+     "files": [
+      "tests/hastub/homeassistant/helpers/update_coordinator.py",
+      "tests/ha_contract.py"
+     ],
+     "title": "hastub DataUpdateCoordinator drops update_interval: the coordinator's cadence is unreadable in 4 of 4 cells"
+    },
+    {
+     "id": "D6-s1-81",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -n \"FALLBACK_CURRENCY\\|SEK when the instance\" README.md custom_components/heatpump_optimizer/currency.py tests/harness.py",
+     "files": [
+      "README.md",
+      "custom_components/heatpump_optimizer/currency.py"
+     ],
+     "title": "README's SEK currency fallback is unreachable under Home Assistant core, which defaults Config.currency to EUR"
+    },
+    {
+     "id": "D10-s1-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -n '\"reauth\"\\|_tibber_start_reauth\\|except Exception' custom_components/heatpump_optimizer/coordinator.py (the fetch, _async_update_data and _async_first_refresh_light), plus grep -n 'ConfigEntryAuthFailed' tests/hastub/homeassistant/exceptions.py tests/hastub/homeassistant/helpers/update_coordinator.py",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py",
+      "tests/hastub/homeassistant/exceptions.py",
+      "tests/hastub/homeassistant/helpers/update_coordinator.py"
+     ],
+     "title": "Tibber auth refusal reaches HA as ConfigEntryNotReady/UpdateFailed, never ConfigEntryAuthFailed"
+    },
+    {
+     "id": "D14-s4-02",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "tools/audit/round9/D14/s4/p7_replay_clock.py (arms: default, --zone-clock); every dt_util.freeze(...) call site under tests/ is a seam: grep -n 'dt_util.freeze(' tests/*.py",
+     "files": [
+      "tests/replay.py"
+     ],
+     "title": "The replay lane freezes a fixed-offset clock, so a DST-day replay reports zero P7 seams"
+    }
+   ]
+  },
+  {
+   "id": "I4",
+   "name": "Two independent parsers or definitions of one concept disagree",
+   "ledger": "in ledger",
+   "ledger_status": "open",
+   "barriered": false,
+   "n": 5,
+   "rca": true,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D7-s3-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "tools/audit/round9/D7/s3/screen.py --no-property-exclusion --attribute-only",
+     "files": [
+      "tests/structure.py",
+      "tests/structure_budgets.json"
+     ],
+     "title": "structure.py dead_methods reads 0 while 9 members are dead: properties skipped, bare-name loads count"
+    },
+    {
+     "id": "D11-s1-71",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "node tools/audit/round9/D11/leads/l3_frontmatter_parsers.mjs  (cells = frontmatter shapes; seams = every reader of a rule's paths: key: grep -n 'paths' .claude/workflows/*.mjs)",
+     "files": [
+      ".claude/workflows/rules_sync.mjs",
+      ".claude/workflows/policy_lint.mjs"
+     ],
+     "title": "Two parsers of a rule's paths: frontmatter disagree on 2 of 6 legal shapes (rules_sync vs policy_lint)"
+    },
+    {
+     "id": "D11-s1-72",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/leads/l3_gov_pin.py  (cells = workflow files named by GOV's derivation comment plus workflow_run followers of them)",
+     "files": [
+      "tests/entities.py",
+      "tools/audit/round4/D11/governance_cost.py",
+      ".github/workflows/budget-raise-gate-rerun.yml"
+     ],
+     "title": "entities.py GOV pin reads governance.yml only: a new governance job in 3 of 3 other workflow files passes"
+    },
+    {
+     "id": "D13-s1-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/enum_gap.mjs  (gap and gap_marked); every caller of enumerateMerges/mergedPRsFromWindow: grep -n 'mergedPRsFromWindow\\|enumerateMerges(' .claude/workflows/policy_lint.mjs",
+     "files": [
+      ".claude/workflows/policy_lint.mjs"
+     ],
+     "title": "--stats API-mode enumerator silently drops 52 of 253 window merges whose /commits/<sha>/pulls answers []"
+    },
+    {
+     "id": "D14-s2-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/i4_roster.py --seams   (every class_guess/CLASS_GUESS/bugclasses.json/axis reader under tools/audit and .claude/workflows); PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/i4_roster.py --dims <ref>... for the dimension roster",
+     "files": [
+      "tools/audit/scopes.json",
+      "tools/audit/check_scopes.py",
+      ".claude/workflows/audit-find.js",
+      ".claude/workflows/check-wave-script.mjs"
+     ],
+     "title": "I4: class roster and finding grammar have disagreeing readers (P11 on no D14 seat; intake admits schema-refused ids)"
+    }
+   ]
+  },
+  {
+   "id": "P6",
+   "name": "A consumer reads a key or field no producer writes, with a silent fallback",
+   "ledger": "in ledger",
+   "ledger_status": "open",
+   "barriered": false,
+   "n": 5,
+   "rca": true,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D2-s1-51",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -n '_current_state.outdoor_temperature\\|state.outdoor_temperature' custom_components/heatpump_optimizer/*.py; harness: tools/audit/round9/D2/leads/dhw_sweep_outdoor.py",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "DHW setpoint advisor prices candidates at the 5.0 degC ThermalState default when no outdoor thermometer is mapped"
+    },
+    {
+     "id": "D4-s2-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "tools/audit/round9/D4/s2/prefill_config_strings.py (enumerates the rendered/returned keys of the page) together with tools/audit/round9/D4/s2/prefill_after_save.py; the key universe is modbus_prefill.infer's output keys (options.step.modbus_prefill.data less the page's own controls)",
+     "files": [
+      "custom_components/heatpump_optimizer/config_flow.py",
+      "custom_components/heatpump_optimizer/strings.json",
+      "custom_components/heatpump_optimizer/translations/en.json",
+      "custom_components/heatpump_optimizer/translations/sv.json"
+     ],
+     "title": "Setup wizard's device pre-fill page shows raw keys: 3 unlabelled fields and 1 untranslated error"
+    },
+    {
+     "id": "D10-s2-01",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D10/s2/climate_presets.py",
+     "files": [
+      "custom_components/heatpump_optimizer/climate.py",
+      "custom_components/heatpump_optimizer/strings.json",
+      "custom_components/heatpump_optimizer/translations/en.json",
+      "custom_components/heatpump_optimizer/translations/sv.json",
+      "custom_components/heatpump_optimizer/icons.json",
+      "custom_components/heatpump_optimizer/quality_scale.yaml"
+     ],
+     "title": "Climate presets auto and economy are non-standard and have no translation or icon in any language"
+    },
+    {
+     "id": "D12-s1-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "high",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D12/s1/state_seed.py  (reports distinct_init_values and mismatch per ThermalState field in FIELDS; add a field to FIELDS to enumerate more)",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py",
+      "custom_components/heatpump_optimizer/thermal_model.py"
+     ],
+     "title": "Hot water without a tank probe: every solve starts from the 55 C ThermalState default, never advanced"
+    },
+    {
+     "id": "D14-s1-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub python tools/audit/round9/D14/s1/p6_keys.py  (SEAM A-unproduced / SEAM B / SEAM C lines)",
+     "files": [
+      "custom_components/heatpump_optimizer/sensor.py",
+      "custom_components/heatpump_optimizer/coordinator.py",
+      "custom_components/heatpump_optimizer/boost.py",
+      "tests/harness.py"
+     ],
+     "title": "P6: horizon_hours read from coordinator.data but never written; boost probes a field only a test double defines"
+    }
+   ]
+  },
+  {
+   "id": "P9",
+   "name": "Card UI: a clipping ancestor, missing colour token or unfloored hit target",
+   "ledger": "in ledger",
+   "ledger_status": "open",
+   "barriered": false,
+   "n": 4,
+   "rca": true,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D4-s1-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -nE \"(color|background): var\\(--(error|success|warning)-color\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+     "files": [
+      "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+     ],
+     "title": "Status text coloured by HA's --success/--error/--warning-color fails WCAG AA on the default themes"
+    },
+    {
+     "id": "D4-s1-02",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "grep -nE \"style\\.(left|top) = \" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+     "files": [
+      "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+     ],
+     "title": "Lane slot menu is placed at the tap point unclamped; near the right edge it spills past its chart and the viewport"
+    },
+    {
+     "id": "D4-s1-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -nE \"<select|<option\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+     "files": [
+      "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+     ],
+     "title": "Setup picker: two identically named sensors render as identical options at 375 and 768 px"
+    },
+    {
+     "id": "D4-s1-05",
+     "merged": [],
+     "verdict": "weakened(medium)",
+     "severity": "medium",
+     "seam_rule": "grep -nE '<text class=\"now-|y=\"\\$\\{plotT \\+ font|class=\"viewctl' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+     "files": [
+      "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+     ],
+     "title": "Now-marker label prints over the measured-now reading on the live default view"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "avoidable interpreter-bound recomputation in the solve",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 4,
+   "rca": true,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D9-s1-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n 'for b in range(n_rows)' custom_components/heatpump_optimizer/optimizer.py",
+     "files": [
+      "custom_components/heatpump_optimizer/optimizer.py"
+     ],
+     "title": "Per-row Python loop in _comfort_terms_batch costs 13-32% of every solve; a row-vectorized twin is bit-identical here"
+    },
+    {
+     "id": "D9-s1-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n '_scoped_minimize(' custom_components/heatpump_optimizer/optimizer.py",
+     "files": [
+      "custom_components/heatpump_optimizer/optimizer.py"
+     ],
+     "title": "L-BFGS-B asks the scalar objective for f(x) every iterate at ~19-26x a batched row: 9-19% of the solve"
+    },
+    {
+     "id": "D9-s1-04",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -n 'extend_dhw_temps(' custom_components/heatpump_optimizer/optimizer.py",
+     "files": [
+      "custom_components/heatpump_optimizer/optimizer.py"
+     ],
+     "title": "DHW min-run repair: a full-suffix re-simulation per refused weak slot, 12-23% of a single-zone DHW solve"
+    },
+    {
+     "id": "D9-s1-71",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_dhw_helpers.py  (seams = ThermalParameters properties/methods called from simulate_dhw_step and the DHW planners; count calls per solve)",
+     "files": [
+      "custom_components/heatpump_optimizer/thermal_model.py"
+     ],
+     "title": "Constant DHW parameter helpers recomputed ~15-45k times per solve; a per-solve cache saves 3-17 % of CPU"
+    }
+   ]
+  },
+  {
+   "id": "P3",
+   "name": "A capacity floor or divisor applied inconsistently across sibling formulas",
+   "ledger": "in ledger",
+   "ledger_status": "open",
+   "barriered": false,
+   "n": 3,
+   "rca": true,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D2-s2-81",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n \"0.5 \\* weight\\|_COMFORT_FLOOR_L1\" custom_components/heatpump_optimizer/optimizer.py",
+     "files": [
+      "custom_components/heatpump_optimizer/optimizer.py"
+     ],
+     "title": "Two-zone comfort penalty halves each zone's floor price; shipped plans sit up to 0.46 K below min_temp"
+    },
+    {
+     "id": "D12-s2-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n \"p_range\\|p_norm\" custom_components/heatpump_optimizer/optimizer.py",
+     "files": [
+      "custom_components/heatpump_optimizer/optimizer.py",
+      "custom_components/heatpump_optimizer/sensor.py"
+     ],
+     "title": "On an on/off pump every full-power step publishes as 'eco' and power_normalized runs to -60"
+    },
+    {
+     "id": "D14-s3-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "tools/audit/round9/D14/s3/p3_floors.py --json",
+     "files": [
+      "custom_components/heatpump_optimizer/optimizer.py",
+      "custom_components/heatpump_optimizer/thermal_model.py",
+      "custom_components/heatpump_optimizer/coordinator.py",
+      "custom_components/heatpump_optimizer/sysid.py",
+      "custom_components/heatpump_optimizer/tariff.py",
+      "custom_components/heatpump_optimizer/away.py"
+     ],
+     "title": "P3: 22 quantities are read through a positive floor at one seam and raw at a sibling; no check enumerates them"
+    }
+   ]
+  },
+  {
+   "id": "P5",
+   "name": "A sysid/adoption gate keyed on a quantity other than the bias it gates",
+   "ledger": "in ledger",
+   "ledger_status": "open",
+   "barriered": false,
+   "n": 3,
+   "rca": true,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D2-s4-01",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/coverage.py --seeds 40 && PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D2/s4/gate_bias.py --seeds 16 --cells gains-02,gains+04,white001,white002,white005",
+     "files": [
+      "custom_components/heatpump_optimizer/sysid.py"
+     ],
+     "title": "sysid adoption interval misses the true UA on 14 of 22 fits it admits; admitted fits biased high"
+    },
+    {
+     "id": "D2-s4-81",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n \"UA_ADOPTION_HALFWIDTH_BAR\\|plausible bounds\\|def adoption_decision\" custom_components/heatpump_optimizer/sysid.py",
+     "files": [
+      "custom_components/heatpump_optimizer/sysid.py"
+     ],
+     "title": "sysid cannot adopt its own exact noise-free fit on 43 of 80 preset houses, yet arms on all 80"
+    },
+    {
+     "id": "D14-s3-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "tools/audit/round9/D14/s3/p5_gate.py --seams",
+     "files": [
+      "custom_components/heatpump_optimizer/sysid.py",
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "P5: sysid adoption gate keys on the UA half-width, which barely moves while unmodelled free heat biases UA to -21 %"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "CPU gate blind to a regression outside its sampled work",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 3,
+   "rca": true,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D9-s2-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/s2/m2_loop_blind.py  (loop2x.offenders must be >= 1; stress_cycle_functions names what the per-PR gate reaches)",
+     "files": [
+      "tests/replay.py",
+      "tests/stress.py",
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "No budgeted check sees a 2x of the coordinator's loop-thread work; stress.py reaches none of it"
+    },
+    {
+     "id": "D9-s2-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tests/gate_lock.py auto-lease --label d9s2 -- /home/claude/venv314/bin/python tools/audit/round9/D9/s2/m2_nonkernel_2x.py --arms plain,solvecpu2x_set  (every victim must be caught; add victims with --victims)",
+     "files": [
+      "tests/stress.py"
+     ],
+     "title": "stress.py misses a 2x solve regression in one scenario when the extra work is outside the simulate seams"
+    },
+    {
+     "id": "D9-s2-71",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/leads/l3_valve_solve.py  (topology axes = const TOPOLOGY_* and mixing_valve modes; count sweep cases per axis value)",
+     "files": [
+      "tests/stress.py",
+      "tests/stress_budgets.json"
+     ],
+     "title": "stress.py samples 0 of 51 throttling-valve plants; a valve adds 1.3-2.7x solve CPU the gate never sees"
+    }
+   ]
+  },
+  {
+   "id": "P8",
+   "name": "A currency or unit resolved by divergent precedence on different surfaces",
+   "ledger": "in ledger",
+   "ledger_status": "open",
+   "barriered": false,
+   "n": 2,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D12-s3-81",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n \"IMPLAUSIBLE_FEE_SEK_PER_KWH\\|_number(0, 5, 0.01\" custom_components/heatpump_optimizer/*.py",
+     "files": [
+      "custom_components/heatpump_optimizer/grid_fee.py",
+      "custom_components/heatpump_optimizer/config_flow.py",
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "Grid-fee bounds are SEK numbers: a 0.05 EUR/kWh fee is unenterable in HUF, ISK, JPY and KRW"
+    },
+    {
+     "id": "D14-s2-02",
+     "merged": [
+      "D4-s2-02"
+     ],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/p8_currency.py --seams   (every resolve_currency call, every .currency read, every price-unit parse that drops the money code, every literal currency unit and untemplated currency word in strings/translations, every card currency resolver)",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py",
+      "custom_components/heatpump_optimizer/inputs.py",
+      "custom_components/heatpump_optimizer/currency.py",
+      "custom_components/heatpump_optimizer/config_flow.py",
+      "custom_components/heatpump_optimizer/strings.json",
+      "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+     ],
+     "title": "P8: a money figure's currency comes from the label source, never from the price feed that denominates it"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "CPU work inline on the event loop",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 2,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D9-s1-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -n '_sysid\\.\\(step\\|arm\\|identify\\)' custom_components/heatpump_optimizer/coordinator.py",
+     "files": [
+      "custom_components/heatpump_optimizer/sysid.py",
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "The sysid two-state fit runs inside one event-loop callback: 43-228 ms here (1.1-6x a reference solve)"
+    },
+    {
+     "id": "D9-s2-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D9/s2/loop_work.py  (RESULT loop_simulate_steps_per_read must be 0; the hook counts every simulate_step on the loop thread during entity reads, whichever property makes it)",
+     "files": [
+      "custom_components/heatpump_optimizer/sensor.py",
+      "custom_components/heatpump_optimizer/topology.py",
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "sensor_advisor ranking re-simulated on the event loop at every plan-sensor write: ~32% of loop CPU"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "live input with no physical-plausibility bound",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 2,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D1-s1-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n \"temp_drop\\|energy_kwh\" custom_components/heatpump_optimizer/dhw_learning.py",
+     "files": [
+      "custom_components/heatpump_optimizer/dhw_learning.py"
+     ],
+     "title": "One out-of-range DHW thermometer sample is booked as a physically impossible draw and inflates the published p90"
+    },
+    {
+     "id": "D1-s2-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "tools/audit/round9/D1/s2/parsers.py --n 200 (weather.poisoned_series counts the series the solve receives out of range: 8 of 200)",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py",
+      "custom_components/heatpump_optimizer/thermal_model.py"
+     ],
+     "title": "Finite-but-absurd weather forecast values reach the solve unbounded: failed plans and a runaway solve"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "persisted future instant trusted without bound",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 2,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D1-s1-04",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -n \"fromisoformat\" custom_components/heatpump_optimizer/{drift,snapshots,curve_learning,comfort_learning}.py",
+     "files": [
+      "custom_components/heatpump_optimizer/drift.py",
+      "custom_components/heatpump_optimizer/snapshots.py",
+      "custom_components/heatpump_optimizer/curve_learning.py"
+     ],
+     "title": "A timestamp stored while the clock ran ahead is trusted verbatim and stretches stale timeouts by the clock error"
+    },
+    {
+     "id": "D1-s3-05",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "rg -n \"until\" custom_components/heatpump_optimizer/boost.py",
+     "files": [
+      "custom_components/heatpump_optimizer/boost.py"
+     ],
+     "title": "Boost 'two-hour maximum' is an absolute instant: a clock step back or a far-future store extends it without bound"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "production member reached by no production code",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 2,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D7-s3-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "tools/audit/round9/D7/s3/reach.py --list (lists 9 of the 10; DefrostDerate.samples is kept alive in every name-based view by the AccuracyTracker.samples field collision, and only sentinel.py shows it dead)",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py",
+      "custom_components/heatpump_optimizer/defrost.py",
+      "custom_components/heatpump_optimizer/inputs.py",
+      "custom_components/heatpump_optimizer/open_meteo.py",
+      "custom_components/heatpump_optimizer/optimizer.py",
+      "tests/features.py",
+      "tests/open_meteo.py"
+     ],
+     "title": "10 class members are reached by no production code; 9 are kept only by tests that pin them"
+    },
+    {
+     "id": "D7-s3-72",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/leads/l3_write_only_scratch.py  (members = ThermalModel class attributes named _step_*; extend to any attribute with production stores and no production loads)",
+     "files": [
+      "custom_components/heatpump_optimizer/thermal_model.py",
+      "tests/features.py"
+     ],
+     "title": "4 of 5 ThermalModel per-step scratch members are written every step and read by no production consumer"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "user state not surviving restart",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": true,
+   "n": 2,
+   "rca": true,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D1-s2-52",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -nE 'async_save\\(|_async_save_if_changed\\(' custom_components/heatpump_optimizer/coordinator.py (every writer of a store whose loader is in the __init__ _spawn(load()) tuple, coordinator.py:1862-1876); harness: tools/audit/round9/D1/leads/startup_clobber.py",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py",
+      "custom_components/heatpump_optimizer/store.py"
+     ],
+     "title": "Five store writers do not wait for the startup read: a save in that window replaces persisted learned state"
+    },
+    {
+     "id": "D1-s2-53",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n '_THERMAL_PARAM_FIELDS\\|async def async_update_thermal_params' custom_components/heatpump_optimizer/coordinator.py plus services.py SERVICE_SCHEMA_SET_THERMAL_PARAMS keys; harness: tools/audit/round9/D1/leads/runtime_params_restart.py",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py",
+      "custom_components/heatpump_optimizer/services.py"
+     ],
+     "title": "set_thermal_parameters changes are silently lost at the next restart (24 of 26 fields)"
+    }
+   ]
+  },
+  {
+   "id": "I2",
+   "name": "A measured closure or scope diverges from the real dependency graph",
+   "ledger": "in ledger",
+   "ledger_status": "open",
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D14-s5-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "tools/audit/round9/D14/s5/closure_divergence.py --scripts <every selectable Python script>",
+     "files": [
+      "tests/closure.py",
+      "tests/closures.json",
+      "tests/derive_closures.sh",
+      "tests/deployment_shape.py",
+      "tests/doc_claims.py"
+     ],
+     "title": "Python closures miss every file a spawned child process reads; select() skips the script on a change to it"
+    }
+   ]
+  },
+  {
+   "id": "P4",
+   "name": "The optimizer seed set or stop tolerance does not bracket the optimum",
+   "ledger": "in ledger",
+   "ledger_status": "open",
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D0-s2-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "tools/audit/round9/D0/s2/race.py --horizon 24 --cells shoulder,flat",
+     "files": [
+      "custom_components/heatpump_optimizer/optimizer.py"
+     ],
+     "title": "Multi-start seed set misses lower basins on shoulder prices, above the flat-price null"
+    }
+   ]
+  },
+  {
+   "id": "P7",
+   "name": "Naive wall-clock datetime arithmetic across a DST transition",
+   "ledger": "in ledger",
+   "ledger_status": "open",
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D14-s4-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "high",
+     "seam_rule": "PYTHONPATH=tests/hastub python tools/audit/round9/D14/s4/p7_dst_seams.py (reached seams, with the not-applicable list {tariff.py _window_slot}); tools/audit/round9/D14/s4/p7_static_sites.py lists the 74 static candidates",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py",
+      "custom_components/heatpump_optimizer/accuracy.py",
+      "custom_components/heatpump_optimizer/dhw_learning.py",
+      "custom_components/heatpump_optimizer/external_heat.py",
+      "custom_components/heatpump_optimizer/optimizer.py"
+     ],
+     "title": "Eight production seams still do wall-clock datetime arithmetic across DST; the forecast grid lands 60 min off"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "a sign floor on a price margin breaks the stated piecewise identity",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D2-s3-02",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "grep -n \"import_margin\" custom_components/heatpump_optimizer/*.py",
+     "files": [
+      "custom_components/heatpump_optimizer/pv.py",
+      "custom_components/heatpump_optimizer/optimizer.py"
+     ],
+     "title": "PV piecewise cost clipped by import_margin's zero floor wherever import price < export price"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "an approval bound to an exact head is re-bought on a diff-identical move",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D13-s1-02",
+     "merged": [],
+     "verdict": "weakened(medium)",
+     "severity": "medium",
+     "seam_rule": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs  (reverify_* RESULTs)",
+     "files": [
+      "tools/audit/briefs/fix-review.md",
+      ".claude/workflows/web-fix-wave.js",
+      "tools/audit/app_approve.sh"
+     ],
+     "title": "22 re-verification rounds after a moved head caught 0 defects; 12 heads moved only by merges or ci: commits"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "an entity family whose names do not lead with a shared token splits under the name sort",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D8-s3-01",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m3_families.py  (SPLIT_UNEXPLAINED lines)",
+     "files": [
+      "custom_components/heatpump_optimizer/button.py",
+      "custom_components/heatpump_optimizer/sensor.py",
+      "custom_components/heatpump_optimizer/strings.json",
+      "custom_components/heatpump_optimizer/translations/en.json",
+      "custom_components/heatpump_optimizer/translations/sv.json"
+     ],
+     "title": "Accuracy and Energy-dashboard meter families split in both English and Swedish name sort"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "compatibility duplicate entity enabled by default",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D8-s3-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m4_duplicates.py  (DUPLICATE_ENABLED lines)",
+     "files": [
+      "custom_components/heatpump_optimizer/sensor.py"
+     ],
+     "title": "Upper Floor Temperature, a byte duplicate of Indoor Temperature, is enabled by default on every install"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "error-translating try opened after the call it should cover",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D1-s2-55",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n '_ensure_worker()\\|raise ProcessWorkerUnavailable\\|except ProcessWorkerUnavailable' custom_components/heatpump_optimizer/coordinator.py; harness: tools/audit/round9/D1/leads/worker_spawn.py",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "A solve worker that cannot start (Popen OSError) skips the in-process fallback: no plan, no fallback notice"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "explicit-Euler stability judged per store instead of on the coupled step matrix",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D2-s1-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D2/s1/m1_stability.py",
+     "files": [
+      "custom_components/heatpump_optimizer/thermal_model.py"
+     ],
+     "title": "Euler sub-step guard judges each store's diagonal ratio only, so coupled stores in accepted configs diverge"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "fit integrator differs from the simulated plant",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D7-s2-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n \"_valve_drive(\\|simulate_step(\" custom_components/heatpump_optimizer/sysid.py",
+     "files": [
+      "custom_components/heatpump_optimizer/sysid.py"
+     ],
+     "title": "sysid two-state fit rolls the candidate one Euler step per sample: UA 17-25% low, 0/3 presets adopt"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "learned-correction clamp sized against an assumed range, not the model's curve",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D2-s2-02",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n \"FLOW_BIAS_CLAMP_K\\|curve_supply_temp(\\|emitter_design_delta_t\" custom_components/heatpump_optimizer/*.py",
+     "files": [
+      "custom_components/heatpump_optimizer/flow_lift.py",
+      "custom_components/heatpump_optimizer/thermal_model.py"
+     ],
+     "title": "#1067 flow-lift bias clamp (15 K) cannot reach real supply: model curve tops out at 27.9 C, COP overstated up to 37%"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "markdown the renderer misplaces",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D5-s1-04",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "T=$(mktemp -d); npm install --prefix \"$T\" markdown-it@14.1.0 >/dev/null 2>&1; NODE_PATH=$T/node_modules node tools/audit/round9/D5/s1/md_tables.mjs",
+     "files": [
+      "docs/configuration.md"
+     ],
+     "title": "configuration.md has 9 lines a GFM renderer misplaces: 3 table rows as pipe text, 6 prose lines as rows"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "missing icons.json services block",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D4-s2-08",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "tools/audit/round9/D4/s2/service_icons.py (enumerates the services the production registration delivers)",
+     "files": [
+      "custom_components/heatpump_optimizer/icons.json"
+     ],
+     "title": "None of the 12 registered services has an icon in icons.json"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "persistent failure swallowed at DEBUG",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D1-s2-04",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n -A2 'except Exception' custom_components/heatpump_optimizer/coordinator.py | grep _LOGGER.debug (24 guards); harness tools/audit/round9/D1/s2/guards.py drives the 5 on the cycle path",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "Five cycle-path guards swallow a persistent failure at DEBUG, including pump and frequency actuation"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "pointer-only editing with no keyboard route",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D4-s1-04",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -nE 'canvas.addEventListener\\(\"(pointerdown|click)\"|data-edge=\"\\$\\{edge\\}\"' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+     "files": [
+      "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+     ],
+     "title": "Setup layout editor: removing a pipe, drawing a pipe and moving a box have no keyboard route"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "return inside finally",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D7-s3-51",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "python3 -W error::SyntaxWarning -c \"import py_compile,glob; [py_compile.compile(f, doraise=True) for f in glob.glob('tests/*.py')]\" (each failure is a seam); harness: tools/audit/round9/D7/leads/nightly_finally_return.py",
+     "files": [
+      "tests/nightly_ha.py"
+     ],
+     "title": "nightly_ha._async_check_a4 returns inside finally: an in-flight CancelledError or KeyboardInterrupt is swallowed"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "selector minimum off its own step grid",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D4-s2-05",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "tools/audit/round9/D4/s2/step_grid.py (enumerates every rendered NumberSelector of both flows, defaults and derived arm)",
+     "files": [
+      "custom_components/heatpump_optimizer/config_flow.py"
+     ],
+     "title": "12 number fields start off their own step grid: native validity flags them, one spinner click gives 5.1 not 5.5"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "series resolution inferred from the minimum gap",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D1-s5-04",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -n \"resolution = \\|min(gaps)\" custom_components/heatpump_optimizer/open_meteo.py",
+     "files": [
+      "custom_components/heatpump_optimizer/open_meteo.py"
+     ],
+     "title": "One off-grid timestamp collapses Open-Meteo's inferred resolution and erases the whole solar horizon"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "service input without an upper-bound clamp",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D1-s2-54",
+     "merged": [
+      "D6-s1-04"
+     ],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "grep -n 'expires_at' custom_components/heatpump_optimizer/services.py custom_components/heatpump_optimizer/manual_plan.py; harness: tools/audit/round9/D1/leads/manual_plan_expiry.py",
+     "files": [
+      "custom_components/heatpump_optimizer/services.py"
+     ],
+     "title": "apply_manual_plan accepts expires_at past the horizon: the override owns all 96 steps unenforced"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "shutdown reap waits on the lock a solve holds",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D1-s2-05",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n '_PROCESS_LOCK' custom_components/heatpump_optimizer/coordinator.py (3 sites: definition, _shutdown_process_pool, _run_in_process)",
+     "files": [
+      "custom_components/heatpump_optimizer/coordinator.py"
+     ],
+     "title": "Home Assistant stop waits out an in-flight solve before reaping the solve worker"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "solve-scoped mutation of shared live config seen by a concurrent reader",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D1-s3-04",
+     "merged": [],
+     "verdict": "weakened(low)",
+     "severity": "low",
+     "seam_rule": "rg -n \"_opt_config\\.|target_temperature\" custom_components/heatpump_optimizer/{climate,sensor,binary_sensor,entity}.py",
+     "files": [
+      "custom_components/heatpump_optimizer/climate.py",
+      "custom_components/heatpump_optimizer/away.py"
+     ],
+     "title": "Climate entity publishes the away setback as the user's target while the solve is in the executor"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "staleness limit shorter than a report-on-change sensor's quiet interval",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D1-s5-51",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n 'INPUT_MAX_AGE_MINUTES' custom_components/heatpump_optimizer/const.py (every keyed limit) plus grep -n '_reading_key' custom_components/heatpump_optimizer/sensor.py (every entity whose availability follows one); harness: tools/audit/round9/D1/leads/indoor_silence.py",
+     "files": [
+      "custom_components/heatpump_optimizer/inputs.py",
+      "custom_components/heatpump_optimizer/const.py",
+      "custom_components/heatpump_optimizer/sensor.py"
+     ],
+     "title": "A report-on-change indoor thermometer silent over 60 min turns Indoor Temperature unavailable"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "state-blind menu re-offers a completed path",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D4-s2-07",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "tools/audit/round9/D4/s2/quick_menu.py (every hand-back to finish_setup; flow_rubric.py prints each first-run path's screen sequence)",
+     "files": [
+      "custom_components/heatpump_optimizer/config_flow.py",
+      "custom_components/heatpump_optimizer/strings.json",
+      "custom_components/heatpump_optimizer/translations/en.json",
+      "custom_components/heatpump_optimizer/translations/sv.json"
+     ],
+     "title": "After 'Quick setup (recommended)' the wizard returns to the identical menu, offering quick setup again"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "structure metric blind to a code shape",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D7-s1-01",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "low",
+     "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D7/s1/helper_escape.py  (prints every module-level function called with self and its uncounted refs; --all runs the leave-one-out)",
+     "files": [
+      "tests/structure.py",
+      "custom_components/heatpump_optimizer/coordinator.py",
+      "custom_components/heatpump_optimizer/wood_fuel.py"
+     ],
+     "title": "Structural ratchet does not price coordinator state reached via module-level _helper(self, ...)"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "text producer takes no language parameter",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D4-s2-81",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "grep -n \"describe_setup\\|render_text_summary\\|rank_sensor_advisor\" custom_components/heatpump_optimizer/*.py",
+     "files": [
+      "custom_components/heatpump_optimizer/topology.py",
+      "custom_components/heatpump_optimizer/config_flow.py",
+      "custom_components/heatpump_optimizer/sensor.py",
+      "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+     ],
+     "title": "Setup overview page and setup diagram publish English slot text on a Swedish install"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "translation leaf double-escaped",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D4-s2-03",
+     "merged": [],
+     "verdict": "verified",
+     "severity": "medium",
+     "seam_rule": "tools/audit/round9/D4/s2/escaped_text.py (RESULT escaped_texts_all_files enumerates every leaf of strings.json and translations/*.json)",
+     "files": [
+      "custom_components/heatpump_optimizer/strings.json",
+      "custom_components/heatpump_optimizer/translations/en.json",
+      "custom_components/heatpump_optimizer/translations/sv.json"
+     ],
+     "title": "The hot-water minimum error text shows literal '\\u00b0C' (en) and 9 escaped letters (sv)"
+    }
+   ]
+  },
+  {
+   "id": null,
+   "name": "whole-entity availability gated on an optional input",
+   "ledger": "new",
+   "ledger_status": null,
+   "barriered": false,
+   "n": 1,
+   "rca": false,
+   "membership_may_change": false,
+   "findings": [
+    {
+     "id": "D8-s2-01",
+     "merged": [],
+     "verdict": "weakened(medium)",
+     "severity": "medium",
+     "seam_rule": "grep -n \"def available\" -A8 custom_components/heatpump_optimizer/climate.py custom_components/heatpump_optimizer/switch.py custom_components/heatpump_optimizer/button.py | grep reading_ok",
+     "files": [
+      "custom_components/heatpump_optimizer/climate.py",
+      "tests/entities.py"
+     ],
+     "title": "Climate entity is unavailable with no indoor thermometer, taking the thermostat control with it"
+    }
+   ]
+  }
+ ]
+}

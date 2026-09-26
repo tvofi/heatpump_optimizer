@@ -1,0 +1,320 @@
+Binary files rca-p3/custom_components/heatpump_optimizer/__pycache__/__init__.cpython-314.pyc and p3fixed/heatpump_optimizer/__pycache__/__init__.cpython-314.pyc differ
+Binary files rca-p3/custom_components/heatpump_optimizer/__pycache__/accuracy.cpython-314.pyc and p3fixed/heatpump_optimizer/__pycache__/accuracy.cpython-314.pyc differ
+Binary files rca-p3/custom_components/heatpump_optimizer/__pycache__/const.cpython-314.pyc and p3fixed/heatpump_optimizer/__pycache__/const.cpython-314.pyc differ
+Binary files rca-p3/custom_components/heatpump_optimizer/__pycache__/dhw_draws.cpython-314.pyc and p3fixed/heatpump_optimizer/__pycache__/dhw_draws.cpython-314.pyc differ
+Binary files rca-p3/custom_components/heatpump_optimizer/__pycache__/dhw_schedule.cpython-314.pyc and p3fixed/heatpump_optimizer/__pycache__/dhw_schedule.cpython-314.pyc differ
+Binary files rca-p3/custom_components/heatpump_optimizer/__pycache__/flow_lift.cpython-314.pyc and p3fixed/heatpump_optimizer/__pycache__/flow_lift.cpython-314.pyc differ
+Binary files rca-p3/custom_components/heatpump_optimizer/__pycache__/mixing_valve.cpython-314.pyc and p3fixed/heatpump_optimizer/__pycache__/mixing_valve.cpython-314.pyc differ
+Binary files rca-p3/custom_components/heatpump_optimizer/__pycache__/optimizer.cpython-314.pyc and p3fixed/heatpump_optimizer/__pycache__/optimizer.cpython-314.pyc differ
+Binary files rca-p3/custom_components/heatpump_optimizer/__pycache__/presets.cpython-314.pyc and p3fixed/heatpump_optimizer/__pycache__/presets.cpython-314.pyc differ
+Binary files rca-p3/custom_components/heatpump_optimizer/__pycache__/pv.cpython-314.pyc and p3fixed/heatpump_optimizer/__pycache__/pv.cpython-314.pyc differ
+Binary files rca-p3/custom_components/heatpump_optimizer/__pycache__/tariff.cpython-314.pyc and p3fixed/heatpump_optimizer/__pycache__/tariff.cpython-314.pyc differ
+Binary files rca-p3/custom_components/heatpump_optimizer/__pycache__/thermal_model.cpython-314.pyc and p3fixed/heatpump_optimizer/__pycache__/thermal_model.cpython-314.pyc differ
+Binary files rca-p3/custom_components/heatpump_optimizer/__pycache__/wood_fuel.cpython-314.pyc and p3fixed/heatpump_optimizer/__pycache__/wood_fuel.cpython-314.pyc differ
+diff -ru rca-p3/custom_components/heatpump_optimizer/coordinator.py p3fixed/heatpump_optimizer/coordinator.py
+--- rca-p3/custom_components/heatpump_optimizer/coordinator.py	2026-09-26 18:12:01.244940775 +0000
++++ p3fixed/heatpump_optimizer/coordinator.py	2026-09-26 18:06:41.634752503 +0000
+@@ -741,7 +741,7 @@
+         return
+     params = ctx._thermal_params
+     commanded = coord._commanded_power()
+-    if commanded < max(0.3 * params.max_electrical_power, 0.2):
++    if commanded < params.flow_lift_floor_kw:
+         return
+     if coord._learning_frozen(CONF_OUTDOOR_TEMP_ENTITY) is not None:
+         return
+@@ -3808,7 +3808,7 @@
+         params = ctx._thermal_params
+         # Below a third of nameplate the reading is mostly auxiliaries and the
+         # ratio says little about compressor efficiency.
+-        floor = max(0.3 * params.max_electrical_power, 0.2)
++        floor = params.flow_lift_floor_kw
+         if commanded < floor or self._measured_power < floor:
+             return
+ 
+diff -ru rca-p3/custom_components/heatpump_optimizer/optimizer.py p3fixed/heatpump_optimizer/optimizer.py
+--- rca-p3/custom_components/heatpump_optimizer/optimizer.py	2026-09-26 18:12:01.244940775 +0000
++++ p3fixed/heatpump_optimizer/optimizer.py	2026-09-26 18:06:41.648862790 +0000
+@@ -1628,7 +1628,7 @@
+         u_eff = params.heat_loss_coefficient
+         q_demand = max(0.0, u_eff * (target - out_mean) - params.internal_gains)
+     return min(
+-        target + q_demand / max(params.slab_heat_transfer, 1e-6),
++        target + q_demand / params.slab_heat_transfer_floored,
+         params.buffer_max_temp,
+     )
+ 
+@@ -1822,8 +1822,7 @@
+                 + np.sum(overshoot_u ** 2) * 5.0
+                 + np.sum(undershoot_l ** 2) * 10.0
+                 + np.sum(overshoot_l ** 2) * 5.0
+-                + (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
+-            )
++            ) + weight * (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
+ 
+             comfort_dev_u = upper_t - comfort_targets
+             comfort_dev_l = lower_t - comfort_targets
+@@ -1900,9 +1899,7 @@
+                     + np.sum(overshoot_u ** 2) * 5.0
+                     + np.sum(undershoot_l ** 2) * 10.0
+                     + np.sum(overshoot_l ** 2) * 5.0
+-                    + (np.sum(undershoot_u) + np.sum(undershoot_l))
+-                    * _COMFORT_FLOOR_L1
+-                )
++                ) + weight * (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
+ 
+                 comfort_dev_u = upper_t - comfort_targets
+                 comfort_dev_l = lower_t - comfort_targets
+@@ -2186,7 +2183,7 @@
+         upper: list[float] = []
+         lower: list[float] = []
+         for value in power:
+-            p_norm = np.clip((value - p_min) / max(p_max - p_min, 0.1), 0, 1)
++            p_norm = np.clip((value - p_min) / self.model.params.power_range_floored, 0, 1)
+             upper.append(round(float(self.config.min_temp + p_norm * span), 1))
+             lower.append(
+                 round(float(self.config.min_temp + p_norm * (span + 1.0)), 1)
+@@ -5575,10 +5572,10 @@
+ 
+         ceiling = np.asarray(max_temp, dtype=float)
+         params = self.model.params
+-        capacity = max(params.dhw_tank_thermal_mass, 1e-6)
++        capacity = params.dhw_tank_thermal_mass
+         ua = params.dhw_tank_heat_loss_coefficient
+         inlet = params.dhw_inlet_reference
+-        span = max(DHW_MIXED_USE_TEMP - inlet, 1e-6)
++        span = params.dhw_mixed_span
+         temp = float(initial_temp)
+ 
+         for i in range(len(plan)):
+@@ -6638,12 +6635,12 @@
+                     p.lower_floor_heat_loss_learned,
+                     wind_speeds[i] * 0.5, precipitation[i] * 0.5,
+                 )
+-                design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
++                design_power = p.max_electrical_power * p.cop_nominal_floored
+                 flow_set = mixing_valve.flow_setpoint(
+                     target_temp=p.mixing_valve_target or p.comfort_ceiling,
+                     outdoor_temp=float(outdoor_temps[i]),
+                     heat_loss_coefficient=u_up + u_lo,
+-                    emitter_ua=design_power / max(p.emitter_design_delta_t, 1.0),
++                    emitter_ua=design_power / p.emitter_design_delta_t_floored,
+                 )
+                 w_i = wood_share(
+                     state.wood_tank_temperature,
+@@ -6689,7 +6686,7 @@
+     ) -> float:
+         """Thermal power a thermostat needs this step in the single-zone model."""
+         p = self.model.params
+-        k_slab = max(p.slab_heat_transfer, 1e-6)
++        k_slab = p.slab_heat_transfer_floored
+ 
+         u_eff = self.model.effective_heat_loss_coefficient(
+             p.heat_loss_coefficient, wind_speed, precipitation
+@@ -6733,7 +6730,7 @@
+         mixing valve would.
+         """
+         p = self.model.params
+-        k_slab = max(p.slab_heat_transfer, 1e-6)
++        k_slab = p.slab_heat_transfer_floored
+ 
+         u_upper = self.model.effective_heat_loss_coefficient(
+             p.upper_floor_heat_loss, wind_speed, precipitation
+@@ -6895,7 +6892,7 @@
+         for power, _room_t in zip(power_schedule, room_temps):
+             p_norm = (
+                 power - self.model.params.min_electrical_power
+-            ) / max(p_range, 0.1)
++            ) / self.model.params.power_range_floored
+             p_norm = np.clip(p_norm, 0, 1)
+             displacement = p_norm * (self.config.max_temp - self.config.min_temp)
+             setpoint = self.config.min_temp + displacement
+@@ -6928,7 +6925,7 @@
+ 
+         raw_displace: list[float] = []
+         for i, power in enumerate(power_schedule):
+-            p_norm = (power - p_min) / max(p_max - p_min, 0.1)
++            p_norm = (power - p_min) / self.model.params.power_range_floored
+             p_norm = float(np.clip(p_norm, 0.0, 1.0))
+             displace = d_min + p_norm * (d_max - d_min)
+ 
+@@ -6941,7 +6938,7 @@
+ 
+             raw_displace.append(float(np.clip(displace, d_min, d_max)))
+ 
+-        tau = max(0.1, p.ecl110_pid_time_constant_hours)
++        tau = p.ecl110_pid_tau_floored
+         alpha = float(np.clip(self.config.dt_hours / tau, 0.0, 1.0))
+         effective = 0.0
+         filtered: list[float] = []
+@@ -6959,7 +6956,7 @@
+         """ON/OFF supply-enable decisions: ON when either circuit clears the
+         activation threshold."""
+         p = self.model.params
+-        on_threshold = max(0.1, p.min_electrical_power * 0.5)
++        on_threshold = p.on_threshold_kw
+         space = np.asarray(space_power_schedule, dtype=float)
+         dhw = (
+             np.zeros_like(space)
+@@ -7021,7 +7018,7 @@
+             if result.displace_schedule and i < len(result.displace_schedule)
+             else 0.0
+         )
+-        on_threshold = max(0.1, self.model.params.min_electrical_power * 0.5)
++        on_threshold = self.model.params.on_threshold_kw
+         heat_pump_on = (
+             result.heat_pump_on_schedule[i]
+             if result.heat_pump_on_schedule and i < len(result.heat_pump_on_schedule)
+@@ -7032,9 +7029,9 @@
+             self.model.params.max_electrical_power
+             - self.model.params.min_electrical_power
+         )
+-        p_norm = (
++        p_norm = float(np.clip((
+             power - self.model.params.min_electrical_power
+-        ) / max(p_range, 0.1)
++        ) / self.model.params.power_range_floored, 0.0, 1.0))
+ 
+         # The band is the SPACE circuit's, but "off" means the pump is off
+         # (#1499): a space step below the band's first rung still runs, and
+diff -ru rca-p3/custom_components/heatpump_optimizer/pump_arbiter.py p3fixed/heatpump_optimizer/pump_arbiter.py
+--- rca-p3/custom_components/heatpump_optimizer/pump_arbiter.py	2026-09-26 18:12:01.244940775 +0000
++++ p3fixed/heatpump_optimizer/pump_arbiter.py	2026-09-26 18:06:41.626752196 +0000
+@@ -355,7 +355,7 @@
+ 
+ 
+ def _on_kw(coord: Any) -> float:
+-    return max(0.1, float(coord._thermal_model.params.min_electrical_power) * 0.5)
++    return coord._thermal_model.params.on_threshold_kw
+ 
+ 
+ def _leased(coord: Any, held: ArbiterState, duty: str | None, now: datetime) -> str | None:
+diff -ru rca-p3/custom_components/heatpump_optimizer/sysid.py p3fixed/heatpump_optimizer/sysid.py
+--- rca-p3/custom_components/heatpump_optimizer/sysid.py	2026-09-26 18:12:01.256940776 +0000
++++ p3fixed/heatpump_optimizer/sysid.py	2026-09-26 18:06:41.617524512 +0000
+@@ -156,7 +156,7 @@
+     two zones, the slab and the tank is linear in (Q, T_lower, T_slab, T_tank).
+     """
+     p = model.params
+-    k_slab = max(p.slab_heat_transfer, 1e-9)
++    k_slab = p.slab_heat_transfer_floored
+     gains = p.internal_gains
+     if not p.two_zone_enabled:
+         ua = p.heat_loss_coefficient * p.house_heat_loss_scale
+@@ -179,7 +179,7 @@
+         slab = lower + (1.0 - rad) * q_hold / k_slab
+         tank = ThermalState.buffer_tank_temperature
+     else:
+-        e = p.max_electrical_power * max(p.cop_nominal, 1.0) / max(p.emitter_design_delta_t, 1.0)
++        e = p.max_electrical_power * p.cop_nominal_floored / p.emitter_design_delta_t_floored
+         a_r, a_f, k_b = rad * e, (1.0 - rad) * e, p.buffer_tank_heat_loss_coefficient
+         (q_hold, lower, slab, tank), *_ = np.linalg.lstsq(
+             np.array([
+diff -ru rca-p3/custom_components/heatpump_optimizer/thermal_model.py p3fixed/heatpump_optimizer/thermal_model.py
+--- rca-p3/custom_components/heatpump_optimizer/thermal_model.py	2026-09-26 18:12:01.256940776 +0000
++++ p3fixed/heatpump_optimizer/thermal_model.py	2026-09-26 18:11:50.488940418 +0000
+@@ -624,6 +624,38 @@
+         return value
+ 
+     @property
++    def cop_nominal_floored(self) -> float:
++        return self.cop_nominal_floored
++
++    @property
++    def emitter_design_delta_t_floored(self) -> float:
++        return self.emitter_design_delta_t_floored
++
++    @property
++    def ecl110_pid_tau_floored(self) -> float:
++        return self.ecl110_pid_tau_floored
++
++    @property
++    def slab_heat_transfer_floored(self) -> float:
++        return max(self.slab_heat_transfer, 1e-9)
++
++    @property
++    def power_range_floored(self) -> float:
++        return max(self.max_electrical_power - self.min_electrical_power, 0.1)
++
++    @property
++    def on_threshold_kw(self) -> float:
++        return max(0.1, self.min_electrical_power * 0.5)
++
++    @property
++    def flow_lift_floor_kw(self) -> float:
++        return max(0.3 * self.max_electrical_power, 0.2)
++
++    @property
++    def dhw_mixed_span(self) -> float:
++        return max(DHW_MIXED_USE_TEMP - self.dhw_inlet_reference, 1e-6)
++
++    @property
+     def dhw_tank_thermal_mass(self) -> float:
+         """Thermal mass of DHW tank in kWh/°C."""
+         return self.dhw_tank_volume * WATER_SPECIFIC_HEAT
+@@ -1640,12 +1672,12 @@
+         heat_loss = self.effective_heat_loss_coefficient(
+             p.upper_floor_heat_loss
+         ) + self.effective_heat_loss_coefficient(p.lower_floor_heat_loss_learned)
+-        design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
++        design_power = p.max_electrical_power * p.cop_nominal_floored
+         return mixing_valve.flow_setpoint(
+             target_temp=indoor_target,
+             outdoor_temp=outdoor_temp,
+             heat_loss_coefficient=heat_loss,
+-            emitter_ua=design_power / max(p.emitter_design_delta_t, 1.0),
++            emitter_ua=design_power / p.emitter_design_delta_t_floored,
+         )
+ 
+     def compute_solar_gain(self, solar_radiation: float) -> float:
+@@ -1710,7 +1742,7 @@
+         """
+         p = self.params
+         cmd = float(np.clip(displace_command, p.ecl110_displace_min, p.ecl110_displace_max))
+-        tau = max(0.1, p.ecl110_pid_time_constant_hours)
++        tau = p.ecl110_pid_tau_floored
+         alpha = float(np.clip(dt_hours / tau, 0.0, 1.0))
+ 
+         effective = state.ecl110_effective_displace + alpha * (
+@@ -1857,7 +1889,7 @@
+         q_draw = (
+             self.dhw_draw_rate(hour_of_day) if draw_power is None else draw_power
+         )
+-        span = max(DHW_MIXED_USE_TEMP - p.dhw_inlet_reference, 1e-6)
++        span = p.dhw_mixed_span
+         q_draw = q_draw * min(
+             1.0,
+             max(0.0, dhw_temp - p.dhw_inlet_reference) / span,
+@@ -2129,8 +2161,8 @@
+             # (tank at or below the curve) this reproduces the delivery the
+             # unthrottled branch would give at the design point rather than
+             # inventing a new balance.
+-            design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
+-            design_dt = max(p.emitter_design_delta_t, 1.0)
++            design_power = p.max_electrical_power * p.cop_nominal_floored
++            design_dt = p.emitter_design_delta_t_floored
+             ua_rad = rad_fraction * design_power / design_dt
+             ua_floor = (1.0 - rad_fraction) * design_power / design_dt
+ 
+@@ -2476,9 +2508,7 @@
+             # backed out of the nameplate output at `emitter_design_delta_t`,
+             # and the step's own C_buf fallback is mirrored so the count
+             # matches the stiffness the step actually integrates.
+-            ua_buf = p.max_electrical_power * max(p.cop_nominal, 1.0) / max(
+-                p.emitter_design_delta_t, 1.0
+-            )
++            ua_buf = p.max_electrical_power * p.cop_nominal_floored / p.emitter_design_delta_t_floored
+             c_buf = p.buffer_tank_thermal_mass
+             if c_buf < 1e-6:
+                 c_buf = 0.04  # the step's own fallback, so the count matches it
+@@ -2766,8 +2796,8 @@
+         q_internal_upper_base = None
+         # Two-zone valve geometry: uniform per batch.
+         if p.two_zone_enabled and throttled:
+-            design_power = p.max_electrical_power * max(p.cop_nominal, 1.0)
+-            design_dt = max(p.emitter_design_delta_t, 1.0)
++            design_power = p.max_electrical_power * p.cop_nominal_floored
++            design_dt = p.emitter_design_delta_t_floored
+             ua_rad = rad_fraction * design_power / design_dt
+             ua_floor = (1.0 - rad_fraction) * design_power / design_dt
+         if two_tank:

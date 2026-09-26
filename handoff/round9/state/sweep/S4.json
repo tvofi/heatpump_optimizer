@@ -1,0 +1,114 @@
+{
+  "_meta": {
+    "thread": "S4",
+    "round": 9,
+    "phase": "D",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "measured_on": "handoff/audit-r9-evidence (baseline + round-9 harness tree only; see SWEEP.md files for the three unrelated production diffs checked non-interfering)",
+    "classes_judge_source": "CLASSES-DRAFT.json @2f97b0a",
+    "model": "sonnet"
+  },
+  "classes": [
+    {
+      "class": "I3",
+      "name": "A required governance/CI check is skipped, runs a stale ref, or has a bypassable boundary",
+      "N": 7,
+      "rca": true,
+      "gate_seconds": 0.8,
+      "barrier_proposal": "(1) policy_lint.mjs --hooks reads each hook group's `matcher` against a fixed required-tool table per event, refusing a wired PreToolUse hook whose matcher cannot fire on Edit/Write/MultiEdit/NotebookEdit. (2) A per-file byte/token cap alongside the existing per-file line cap (sizes() already computes bytes and discards it for this comparison), or `_band: 0` on the pooled corpus/role aggregates so any capped file's growth is attributed and refused at the PR that caused it.",
+      "seams": [
+        {"path": ".claude/settings.json:hooks.PreToolUse", "disposition": "instance", "probe": "policy_lint.mjs --hooks with matcher set to 'Bash' still reports HOOKS ok", "note": "matcher field never read by the checker"},
+        {"path": ".claude/settings.json:hooks.SessionStart", "disposition": "not applicable", "note": "event has no matcher field to game"},
+        {"path": ".claude/settings.json:hooks.Stop", "disposition": "not applicable", "note": "event has no matcher field to game"},
+        {"path": ".claude/workflows/fixtures/policy-rot/budgets.md", "disposition": "not applicable", "note": "policy_lint's own self-test fixture"},
+        {"path": "CLAUDE.md", "disposition": "guarded", "note": "in the always_loaded_tokens aggregate (cap 3349+500)"},
+        {"path": ".claude/rules/brief-citations.md", "disposition": "instance", "note": "pooled corpus/role aggregates only; no per-file byte/token check"},
+        {"path": ".claude/rules/ci-autofix.md", "disposition": "instance", "note": "pooled corpus/role aggregates only"},
+        {"path": ".claude/rules/claim-files.md", "disposition": "instance", "note": "pooled corpus/role aggregates only"},
+        {"path": ".claude/rules/comment-readback.md", "disposition": "instance", "note": "pooled corpus/role aggregates only"},
+        {"path": ".claude/rules/defect-root-cause.md", "disposition": "instance", "note": "pooled corpus/role aggregates only"},
+        {"path": ".claude/rules/delivery-status-tracking.md", "disposition": "instance", "note": "pooled corpus/role aggregates only"},
+        {"path": ".claude/rules/finding-propagation.md", "disposition": "instance", "note": "pooled corpus/role aggregates only"},
+        {"path": ".claude/rules/gate-scoping.md", "disposition": "instance", "note": "probe: widening its body (frontmatter intact) moves role fixer 6029->9773 tokens against cap+band 6352, while its own per-file line cap (61, unchanged) stays green"},
+        {"path": ".claude/rules/ratchet-budgets.md", "disposition": "instance", "note": "pooled corpus/role aggregates only"},
+        {"path": ".claude/rules/writing-for-agents.md", "disposition": "instance", "note": "pooled corpus/role aggregates only"},
+        {"path": ".claude/skills/steward/SKILL.md", "disposition": "instance", "note": "not RULE_FILE-shaped; only pooled corpus_tokens can ever catch growth"},
+        {"path": ".claude/workflows/web-fragments.md", "disposition": "instance", "note": "only pooled corpus_tokens"},
+        {"path": ".github/PULL_REQUEST_TEMPLATE.md", "disposition": "instance", "note": "only pooled corpus_tokens"},
+        {"path": "AGENTS.md", "disposition": "instance", "note": "only pooled corpus_tokens"},
+        {"path": "tests/README.md", "disposition": "instance", "note": "only pooled corpus_tokens"},
+        {"path": "tools/audit/README.md", "disposition": "instance", "note": "only pooled corpus_tokens"},
+        {"path": "tools/audit/briefs/*.md (21 files: COMMON, D0-D14, fix-review, fixer, judge, orchestrator, root-cause, verifier)", "disposition": "instance", "note": "only pooled corpus_tokens; enumerated individually in SWEEP.md"},
+        {"path": "tools/audit/harnesses/README.md", "disposition": "instance", "note": "only pooled corpus_tokens"},
+        {"path": "tests.yml:closures-autofix", "disposition": "instance", "note": "pull_request + contents:write/actions:write, executes tests/closure.py from PR checkout, token persisted to disk, no restore step"},
+        {"path": "tests.yml:claims-autofix", "disposition": "instance", "note": "same shape; executes tests/closure.py + tests/env_drift.py"},
+        {"path": "tests.yml:mutation-autofix", "disposition": "instance", "note": "same shape; executes tests/closure.py"},
+        {"path": "direct-push detector (rule4)", "disposition": "instance", "note": "2 of 2 injected non-stamp direct pushes go unreported by every rule; the two-parent control push IS reported"},
+        {"path": "approvals_at_head.py: #1621, #1623 (code-owned change after owner approval, dismiss_stale_reviews_on_push=false)", "disposition": "instance", "note": "cited from tools/audit/round9/D11/s1/REPORT.md; not re-run (needs live GITHUB_TOKEN + 253 REST GETs)"},
+        {"path": "approvals_at_head.py: owner_gate_accepts_agent_declared", "disposition": "instance", "note": "cited from tools/audit/round9/D11/s1/REPORT.md; not re-run"},
+        {"path": "policy_lint.mjs block-class bucketing (defect-root-cause.md trigger)", "disposition": "instance", "note": "reproduced exactly: m3_body_answer_blocks=8 vs m3_max_engineering_class=1"}
+      ]
+    },
+    {
+      "class": "P11",
+      "name": "The only oracle for an external counterpart is a test double the implementer wrote from what the code needed",
+      "N": 6,
+      "rca": true,
+      "gate_seconds": 0,
+      "barrier_proposal": "Extend tests/ha_contract.py's contract-test approach (already exists, cited by D1-s2-71) to run the same assertions against the real homeassistant package, nightly, for storage.py, dt.py, and the two new probes (currency, Tibber reauth); not on the PR-blocking gate.",
+      "seams": [
+        {"path": "tests/hastub/homeassistant/helpers/storage.py (Store decode)", "disposition": "instance", "note": "reproduced exactly: 6 of 6 hostile number tokens divergent from HA's orjson Store"},
+        {"path": "tests/hastub/homeassistant/util/dt.py (dt_util.now() naive default)", "disposition": "instance", "note": "reproduced exactly: 6 of 6 aware/naive cells invert"},
+        {"path": "tests/hastub/homeassistant/helpers/update_coordinator.py (DataUpdateCoordinator drops update_interval)", "disposition": "instance", "note": "reproduced exactly: 4 of 4 cells unreadable"},
+        {"path": "custom_components/heatpump_optimizer/currency.py:resolve_currency", "disposition": "instance", "note": "probe: under HA-core-shaped Config.currency='EUR' returns EUR, never the README's claimed SEK fallback; SEK only reachable via the hastub double's currency=None"},
+        {"path": "custom_components/heatpump_optimizer/coordinator.py:_fetch_tibber_prices (verdict=='reauth' branch)", "disposition": "instance", "note": "probe: falls through to UpdateFailed unconditionally; ConfigEntryAuthFailed referenced nowhere in the package"},
+        {"path": "tests/replay.py:774 (dt_util.freeze fixed-offset clock)", "disposition": "instance", "note": "reproduced exactly: 0 wrong sites under the plain arm, 9-10 under --zone-clock"},
+        {"path": "tests/dst_checks.py (29 freeze() sites)", "disposition": "not applicable", "note": "the DST test suite itself: each freeze pins an explicit fold/gap instant to exercise a transition, not a fixed-offset simulation clock"},
+        {"path": "tests/features.py, tests/entities.py, tests/golden.py, tests/rolling.py, tests/guard_pins.py (96 freeze() sites total)", "disposition": "not applicable", "note": "single-instant unit-test fixtures, not a multi-cycle replay loop"}
+      ]
+    },
+    {
+      "class": "I4",
+      "name": "Two independent parsers or definitions of one concept disagree",
+      "N": 5,
+      "rca": true,
+      "gate_seconds": 0.3,
+      "barrier_proposal": "One shared frontmatter-paths parser imported by both rules_sync.mjs and policy_lint.mjs; the GOV pin (tests/entities.py) derives its watched-file list from governance.yml's own workflow_run dependents instead of a hardcoded name; a single tools/audit/class_ids.mjs module for the 31 class-id readers.",
+      "seams": [
+        {"path": "tests/structure.py:measure (dead_methods census, 11 members)", "disposition": "instance", "note": "reproduced exactly: dead_methods=11 with --no-property-exclusion --attribute-only; properties skipped and bare-name loads counted as references in the unflagged baseline"},
+        {"path": ".claude/workflows/rules_sync.mjs vs policy_lint.mjs: trailing_comment shape", "disposition": "instance", "note": "reproduced exactly: divergent"},
+        {"path": ".claude/workflows/rules_sync.mjs vs policy_lint.mjs: list_under_other_key shape", "disposition": "instance", "note": "reproduced exactly: divergent"},
+        {"path": ".claude/workflows/rules_sync.mjs vs policy_lint.mjs: single_quoted/unquoted/flow_style/tab_indent shapes", "disposition": "guarded", "note": "agree today (divergent=0); null control over the 10 live rules is clean (live_rules_divergent=0 of 10), but the two parsers are still independent code and could diverge on a future rule"},
+        {"path": ".github/workflows/pr-contract.yml (new job)", "disposition": "instance", "note": "reproduced exactly: escapes tests/entities.py's GOV pin"},
+        {"path": ".github/workflows/budget-raise-gate.yml (new job)", "disposition": "instance", "note": "reproduced exactly: escapes the GOV pin"},
+        {"path": ".github/workflows/budget-raise-gate-rerun.yml (new job)", "disposition": "instance", "note": "reproduced exactly: escapes the GOV pin"},
+        {"path": ".github/workflows/governance.yml (new job, control cell)", "disposition": "guarded", "note": "correctly caught by the GOV pin (pin_passes=False) -- confirms the pin works for the one file it reads"},
+        {"path": "policy_lint.mjs:enumerateMerges / fetchPullsBySha (API-mode gap)", "disposition": "instance", "note": "cited from tools/audit/round9/D13/s1/REPORT.md: stats_window_merges=201 subject_merges=253 gap=52 gap_marked=0; not re-run (mainRef() resolves to the live origin/main tip, desyncing the cached snapshot)"},
+        {"path": "31 class-id / class_guess readers under tools/audit and .claude/workflows (full list in tools/audit/round9/D14/s2/i4_roster.py --seams output)", "disposition": "instance", "note": "reproduced exactly: i4_reader_sites=31"}
+      ]
+    },
+    {
+      "class": "P6",
+      "name": "A consumer reads a key or field no producer writes, with a silent fallback",
+      "N": 5,
+      "rca": true,
+      "gate_seconds": 0.5,
+      "barrier_proposal": "One generated key-producer/consumer manifest (extend tests/entities.py's existing strings/translations walk to also cover ThermalState field defaults and coordinator.data key writes, promoting p6_keys.py's census from tools/audit/round9/ into tests/).",
+      "seams": [
+        {"path": "coordinator.py: DHW setpoint advisor reads outdoor_temperature with no mapped thermometer", "disposition": "instance", "note": "reproduced exactly: off_total_cold=14 of 14, worst_rel_err up to 0.527"},
+        {"path": "config_flow.py device pre-fill page: dhw_legionella_temperature (unlabelled)", "disposition": "instance", "note": "reproduced"},
+        {"path": "config_flow.py device pre-fill page: dhw_min_temperature (unlabelled)", "disposition": "instance", "note": "reproduced"},
+        {"path": "config_flow.py device pre-fill page: compressor_freq_sensor (unlabelled)", "disposition": "instance", "note": "reproduced"},
+        {"path": "config_flow.py device pre-fill page: prefill_device_unreadable (untranslated error, en+sv)", "disposition": "instance", "note": "reproduced"},
+        {"path": "climate.py preset_modes: auto (untranslated, uniconed)", "disposition": "instance", "note": "reproduced"},
+        {"path": "climate.py preset_modes: economy (untranslated, uniconed)", "disposition": "instance", "note": "reproduced"},
+        {"path": "thermal_model.py ThermalState DHW field default (55C, no tank probe)", "disposition": "instance", "note": "reproduced exactly: 1 distinct init value (omitted) vs 23 (mapped)"},
+        {"path": "thermal_model.py ThermalState slab field default (no tank probe)", "disposition": "instance", "note": "reproduced exactly: same pattern"},
+        {"path": "sensor.py:1482 horizon_hours (read from coordinator.data, never written)", "disposition": "instance", "note": "reproduced exactly (SEAM A-unproduced)"},
+        {"path": "sensor.py:1515 horizon_hours (second read site)", "disposition": "instance", "note": "reproduced exactly (SEAM A-unproduced)"},
+        {"path": "boost.py:212 boost_calls (getattr/hasattr on a test-double-only name)", "disposition": "instance", "note": "reproduced exactly (SEAM C)"},
+        {"path": "8 A-conditional sites (manual_plan x2, predictive_info.dhw_windows_resolved, valve_target_recommendation x2, contract_comparison.load_profile_value_per_kwh x2, wood_fuel.night_advice)", "disposition": "guarded", "note": "a producer literal exists in the driven cells' reachable paths; not confirmed absent, only undriven by this cell grid -- needs a wider cell grid to disposition further"}
+      ]
+    }
+  ]
+}
