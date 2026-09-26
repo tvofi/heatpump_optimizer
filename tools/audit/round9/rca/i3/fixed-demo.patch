@@ -1,0 +1,272 @@
+diff --git a/.claude/workflows/counts.mjs b/.claude/workflows/counts.mjs
+index c73acc20..62f16a6c 100644
+--- a/.claude/workflows/counts.mjs
++++ b/.claude/workflows/counts.mjs
+@@ -235,8 +235,10 @@ export function liveRequiredContexts() {
+     // next such change visible, whether or not anything compares it yet.
+     const viaRulesets = new Set()
+     const shapes = []
++    const objects = {}
+     for (const id of ids) {
+       const rs = JSON.parse(execFileSync('gh', ['api', `${base}/rulesets/${id}`], { encoding: 'utf8' }))
++      objects[id] = rs
+       shapes.push({ id, rules: (rs.rules || []).map((r) => r.type),
+                     bypass: (rs.bypass_actors || []).map((a) => a.bypass_mode) })
+       for (const rule of rs.rules || []) {
+@@ -251,7 +253,7 @@ export function liveRequiredContexts() {
+       return null
+     }
+     _liveRequiredContextsWhy = ''
+-    return { contexts: a, count: a.length, rulesets: [...ids].sort((x, y) => x - y), shapes }
++    return { contexts: a, count: a.length, rulesets: [...ids].sort((x, y) => x - y), shapes, objects }
+   } catch (e) {
+     _liveRequiredContextsWhy = `the fixture or the API failed: ${String((e && e.status) || (e && e.message) || e).split('\n')[0].slice(0, 100)}`
+     return null
+@@ -315,9 +317,40 @@ export function checkRequiredContexts(rel, text, live) {
+ //
+ // Red here means re-record the fixture BY HAND from the API (both surfaces, as
+ // above) and re-read every assertion site against the new list.
++// Field coverage (I3): every leaf of each ruleset object is compared with the
++// recorded shape, except these, which GitHub rewrites with no boundary change.
++// ONE definition: field_coverage.mjs imports it.
++export const RULESET_VOLATILE = ['node_id', 'created_at', 'updated_at', '_links', 'current_user_can_bypass', 'source', 'source_type', 'name']
++export function rulesetLeaves(o) {
++  const out = {}
++  const walk = (v, p) => {
++    if (Array.isArray(v)) {
++      const xs = v.map((x) => JSON.stringify(x)).sort().map((x) => JSON.parse(x))
++      if (!xs.length) out[p] = '[]'
++      xs.forEach((x, i) => walk(x, `${p}[${i}]`))
++    } else if (v && typeof v === 'object') {
++      const ks = Object.keys(v).filter((k) => !(p === '' && RULESET_VOLATILE.includes(k)))
++      if (!ks.length) out[p] = '{}'
++      for (const k of ks) walk(v[k], p ? `${p}.${k}` : k)
++    } else out[p] = JSON.stringify(v)
++  }
++  walk(o, '')
++  return out
++}
+ export function requiredContextsDrift(fixtureRel, fixture, live) {
+   if (fixture == null || live == null) return []
+   const out = []
++  const recObjs = fixture.ruleset_objects || null
++  if (!recObjs) out.push({ severity: 'error', check: 'required-contexts', where: fixtureRel, message: 'records no `ruleset_objects`, so no ruleset field beyond the context names is compared.' })
++  for (const [id, obj] of Object.entries((live && live.objects) || {})) {
++    const want = recObjs && recObjs[id] ? rulesetLeaves(recObjs[id]) : null
++    if (!want) continue
++    const got = rulesetLeaves(obj)
++    for (const k of new Set([...Object.keys(want), ...Object.keys(got)])) {
++      if (want[k] === got[k]) continue
++      out.push({ severity: 'error', check: 'required-contexts', where: fixtureRel, message: `ruleset ${id} field \`${k}\` is ${got[k] ?? '(absent)'} live, ${want[k] ?? '(absent)'} recorded. The boundary changed or the record is wrong: re-read every assertion site against it.` })
++    }
++  }
+   const recorded = new Set(fixture.contexts || [])
+   for (const c of live.contexts) {
+     if (recorded.has(c)) continue
+diff --git a/.claude/workflows/fixtures/required-contexts.json b/.claude/workflows/fixtures/required-contexts.json
+index 5e89db0d..d4e090f6 100644
+--- a/.claude/workflows/fixtures/required-contexts.json
++++ b/.claude/workflows/fixtures/required-contexts.json
+@@ -46,5 +46,108 @@
+     "typing",
+     "validate-hacs",
+     "wave-script"
+-  ]
++  ],
++  "ruleset_objects": {
++    "23698884": {
++      "id": 23698884,
++      "target": "branch",
++      "enforcement": "active",
++      "conditions": {
++        "ref_name": {
++          "exclude": [],
++          "include": [
++            "~DEFAULT_BRANCH"
++          ]
++        }
++      },
++      "rules": [
++        {
++          "type": "required_status_checks",
++          "parameters": {
++            "strict_required_status_checks_policy": false,
++            "do_not_enforce_on_create": false,
++            "required_status_checks": [
++              {
++                "context": "fast (3.14)"
++              },
++              {
++                "context": "browser"
++              },
++              {
++                "context": "briefs"
++              },
++              {
++                "context": "closure-scope"
++              },
++              {
++                "context": "closures"
++              },
++              {
++                "context": "typing"
++              },
++              {
++                "context": "hassfest"
++              },
++              {
++                "context": "validate-hacs"
++              },
++              {
++                "context": "policy-docs"
++              },
++              {
++                "context": "wave-script"
++              },
++              {
++                "context": "pr-contract"
++              },
++              {
++                "context": "env-matrix"
++              },
++              {
++                "context": "Analyze (actions)"
++              },
++              {
++                "context": "Analyze (javascript-typescript)"
++              },
++              {
++                "context": "Analyze (python)"
++              },
++              {
++                "context": "mutation"
++              },
++              {
++                "context": "budget-raise-gate",
++                "integration_id": 15368
++              }
++            ]
++          }
++        },
++        {
++          "type": "pull_request",
++          "parameters": {
++            "required_approving_review_count": 1,
++            "dismiss_stale_reviews_on_push": true,
++            "required_reviewers": [],
++            "require_code_owner_review": true,
++            "require_last_push_approval": false,
++            "required_review_thread_resolution": false,
++            "require_extra_approval_for_unattributed_changes": true,
++            "allowed_merge_methods": [
++              "merge",
++              "squash",
++              "rebase"
++            ]
++          }
++        }
++      ],
++      "bypass_actors": [
++        {
++          "actor_id": null,
++          "actor_type": "DeployKey",
++          "bypass_mode": "always"
++        }
++      ]
++    }
++  },
++  "_ruleset_objects": "Recorded as the policy ASSERTS the boundary: decision 0008 step 3(d) sets dismiss_stale_reviews_on_push true. Prototype (handoff/r9-rca-i3); F11.2 records the owner's decision here."
+ }
+diff --git a/.claude/workflows/policy_budgets.json b/.claude/workflows/policy_budgets.json
+index f12e532f..d4ad4fed 100644
+--- a/.claude/workflows/policy_budgets.json
++++ b/.claude/workflows/policy_budgets.json
+@@ -76,5 +76,48 @@
+     "tools/audit/harnesses/README.md": 60
+   },
+   "_acceptance": "fixtures/policy-rot/budgets.md is capped at 1 line on purpose: it is how the budgets check is shown refusing. The rest of that directory is deliberately uncapped, which is the check's other half.",
+-  "_generated": "`.cursor/rules/*.mdc` carries no cap: it is generated from `.claude/rules/` and byte-compared by rules_sync --check, so its size is its source's."
++  "_generated": "`.cursor/rules/*.mdc` carries no cap: it is generated from `.claude/rules/` and byte-compared by rules_sync --check, so its size is its source's.",
++  "files_tokens": {
++    ".claude/rules/brief-citations.md": 893,
++    ".claude/rules/ci-autofix.md": 1428,
++    ".claude/rules/claim-files.md": 681,
++    ".claude/rules/comment-readback.md": 883,
++    ".claude/rules/defect-root-cause.md": 1774,
++    ".claude/rules/delivery-status-tracking.md": 606,
++    ".claude/rules/finding-propagation.md": 1336,
++    ".claude/rules/gate-scoping.md": 794,
++    ".claude/rules/ratchet-budgets.md": 1648,
++    ".claude/rules/writing-for-agents.md": 836,
++    ".claude/skills/steward/SKILL.md": 1533,
++    ".claude/workflows/fixtures/policy-rot/budgets.md": 84,
++    ".claude/workflows/web-fragments.md": 2427,
++    ".github/PULL_REQUEST_TEMPLATE.md": 305,
++    "AGENTS.md": 183,
++    "CLAUDE.md": 3461,
++    "tests/README.md": 6686,
++    "tools/audit/README.md": 3604,
++    "tools/audit/briefs/COMMON.md": 1598,
++    "tools/audit/briefs/D0.md": 926,
++    "tools/audit/briefs/D1.md": 784,
++    "tools/audit/briefs/D10.md": 574,
++    "tools/audit/briefs/D11.md": 1499,
++    "tools/audit/briefs/D12.md": 916,
++    "tools/audit/briefs/D13.md": 1149,
++    "tools/audit/briefs/D14.md": 428,
++    "tools/audit/briefs/D2.md": 644,
++    "tools/audit/briefs/D3.md": 607,
++    "tools/audit/briefs/D4.md": 586,
++    "tools/audit/briefs/D5.md": 514,
++    "tools/audit/briefs/D6.md": 388,
++    "tools/audit/briefs/D7.md": 575,
++    "tools/audit/briefs/D8.md": 789,
++    "tools/audit/briefs/D9.md": 857,
++    "tools/audit/briefs/fix-review.md": 2393,
++    "tools/audit/briefs/fixer.md": 4585,
++    "tools/audit/briefs/judge.md": 415,
++    "tools/audit/briefs/orchestrator.md": 4096,
++    "tools/audit/briefs/root-cause.md": 951,
++    "tools/audit/briefs/verifier.md": 612,
++    "tools/audit/harnesses/README.md": 724
++  }
+ }
+diff --git a/.claude/workflows/policy_lint.mjs b/.claude/workflows/policy_lint.mjs
+index 54d7cbb7..f8cf6fff 100644
+--- a/.claude/workflows/policy_lint.mjs
++++ b/.claude/workflows/policy_lint.mjs
+@@ -1558,6 +1558,10 @@ function checkBudgets(files, budget) {
+       continue
+     }
+     if (refused(r.file, `files["${r.file}"]`, cap)) continue
++    const tcap = b.files_tokens ? b.files_tokens[r.file] : undefined
++    if (b.files_tokens && !refused(r.file, `files_tokens["${r.file}"]`, tcap) && Math.round(r.bytes / 4) > tcap) {
++      out.push({ severity: 'error', check: 'budgets', where: r.file, message: `about ${Math.round(r.bytes / 4)} tokens exceeds its per-file token cap of ${tcap}. Cut, or state the case for a higher cap in the pull request body.` })
++    }
+     if (r.lines > cap) {
+       out.push({
+         severity: 'error',
+@@ -5813,6 +5817,11 @@ function cmdBudgets(files) {
+ // existence alone would have passed the first draft of `pre-edit.sh`, whose
+ // python read its own heredoc as the payload and fell open on every path it was
+ // written to refuse. Nine ALLOW controls passed. Only the refusals caught it.
++const EDIT_TOOLS = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit']
++function matcherFires(m, tool) {
++  if (m == null || m === '' || m === '*') return true
++  try { return new RegExp(`^(?:${m})$`).test(tool) } catch { return false }
++}
+ function cmdHooks(settingsPath) {
+   const rel = settingsPath || '.claude/settings.json'
+   const abs = path.join(ROOT, rel)
+@@ -5827,6 +5836,11 @@ function cmdHooks(settingsPath) {
+   for (const [event, groups] of Object.entries(parsed.hooks || {})) {
+     for (const g of groups || []) {
+       for (const h of g.hooks || []) {
++        // Field coverage (I3): the harness runs a hook only when its type is
++        // `command`, and a PreToolUse group only for tools its matcher matches.
++        if (h.type !== 'command') { rows.push({ event, script: h.command || '(none)', verdict: 'NOT A COMMAND', why: `type ${JSON.stringify(h.type)}: the harness runs only a "command" hook as a script` }); continue }
++        const cannot = event === 'PreToolUse' ? EDIT_TOOLS.filter((t) => !matcherFires(g.matcher, t)) : []
++        if (cannot.length) { rows.push({ event, script: h.command || '(none)', verdict: 'CANNOT FIRE', why: `matcher ${JSON.stringify(g.matcher)} matches no call to ${cannot.join(', ')}` }); continue }
+         // The command is a shell line with $CLAUDE_PROJECT_DIR and quoting in
+         // it. The SCRIPT is what this checks, so pull the one repository path
+         // out of the line rather than trying to run the line.

@@ -1,0 +1,67 @@
+  read     hooks hooks.SessionStart[0].hooks[0].command
+  read     hooks hooks.PreToolUse[0].hooks[0].command
+  read     hooks hooks.Stop[0].hooks[0].command
+  read     ruleset id
+  read     ruleset rules[0].type
+  read     ruleset rules[0].parameters.required_status_checks[0].context
+  read     ruleset rules[0].parameters.required_status_checks[1].context
+  read     ruleset rules[0].parameters.required_status_checks[2].context
+  read     ruleset rules[0].parameters.required_status_checks[3].context
+  read     ruleset rules[0].parameters.required_status_checks[4].context
+  read     ruleset rules[0].parameters.required_status_checks[5].context
+  read     ruleset rules[0].parameters.required_status_checks[6].context
+  read     ruleset rules[0].parameters.required_status_checks[7].context
+  read     ruleset rules[0].parameters.required_status_checks[8].context
+  read     ruleset rules[0].parameters.required_status_checks[9].context
+  read     ruleset rules[0].parameters.required_status_checks[10].context
+  read     ruleset rules[0].parameters.required_status_checks[11].context
+  read     ruleset rules[0].parameters.required_status_checks[12].context
+  read     ruleset rules[0].parameters.required_status_checks[13].context
+  read     ruleset rules[0].parameters.required_status_checks[14].context
+  read     ruleset rules[0].parameters.required_status_checks[15].context
+  read     ruleset rules[0].parameters.required_status_checks[16].context
+  read     budgets lines: 40 of 40 capped files reddened
+  ignored  hooks permissions.allow[0]
+  ignored  hooks permissions.allow[1]
+  ignored  hooks permissions.allow[2]
+  ignored  hooks permissions.allow[3]
+  ignored  hooks permissions.allow[4]
+  ignored  ruleset name
+  ignored  ruleset source_type
+  ignored  ruleset source
+  ignored  ruleset node_id
+  ignored  ruleset created_at
+  ignored  ruleset updated_at
+  ignored  ruleset current_user_can_bypass
+  ignored  ruleset _links.self.href
+  ignored  ruleset _links.html.href
+  ignored  budgets file: the row key itself, not a measurement
+  ignored  budgets always: load class: the always_loaded_tokens aggregate reads it; a per-file cap is load-class-blind by design
+  BLIND    hooks `hooks.SessionStart[0].hooks[0].type` = "command": perturbed, policy_lint.mjs --hooks stays green
+  BLIND    hooks `hooks.PreToolUse[0].matcher` = "Edit|Write|MultiEdit|NotebookEdit": perturbed, policy_lint.mjs --hooks stays green
+  BLIND    hooks `hooks.PreToolUse[0].hooks[0].type` = "command": perturbed, policy_lint.mjs --hooks stays green
+  BLIND    hooks `hooks.Stop[0].hooks[0].type` = "command": perturbed, policy_lint.mjs --hooks stays green
+  BLIND    ruleset `target` = "branch": perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `enforcement` = "active": perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `conditions.ref_name.exclude` = []: perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `conditions.ref_name.include[0]` = "~DEFAULT_BRANCH": perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `rules[0].parameters.strict_required_status_checks_policy` = false: perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `rules[0].parameters.do_not_enforce_on_create` = false: perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `rules[0].parameters.required_status_checks[16].integration_id` = 15368: perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `rules[1].type` = "pull_request": perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `rules[1].parameters.required_approving_review_count` = 1: perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `rules[1].parameters.dismiss_stale_reviews_on_push` = false: perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `rules[1].parameters.required_reviewers` = []: perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `rules[1].parameters.require_code_owner_review` = true: perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `rules[1].parameters.require_last_push_approval` = false: perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `rules[1].parameters.required_review_thread_resolution` = false: perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `rules[1].parameters.require_extra_approval_for_unattributed_changes` = true: perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `rules[1].parameters.allowed_merge_methods[0]` = "merge": perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `rules[1].parameters.allowed_merge_methods[1]` = "squash": perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `rules[1].parameters.allowed_merge_methods[2]` = "rebase": perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `bypass_actors[0].actor_id` = null: perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `bypass_actors[0].actor_type` = "DeployKey": perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    ruleset `bypass_actors[0].bypass_mode` = "always": perturbed, counts.mjs liveRequiredContexts + requiredContextsDrift (policy-docs: required-contexts) stays green
+  BLIND    budgets row key `bytes`: 40 of 40 capped files grow in bytes with the per-file check green
+RESULT read=23 ignored=16 blind=26 dead=0 refused=0 runs=129 seconds=42.2
+FIELD COVERAGE REFUSED: a field of a governance check's input is read by no check and ignored by no reason

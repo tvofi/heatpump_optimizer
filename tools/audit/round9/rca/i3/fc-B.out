@@ -1,0 +1,19 @@
+  read     hooks hooks.SessionStart[0].hooks[0].type
+  read     hooks hooks.SessionStart[0].hooks[0].command
+  read     hooks hooks.PreToolUse[0].matcher
+  read     hooks hooks.PreToolUse[0].hooks[0].type
+  read     hooks hooks.PreToolUse[0].hooks[0].command
+  read     hooks hooks.Stop[0].hooks[0].type
+  read     hooks hooks.Stop[0].hooks[0].command
+  read     budgets lines: 40 of 40 capped files reddened
+  read     budgets bytes: 40 of 40 capped files reddened
+  ignored  hooks permissions.allow[0]
+  ignored  hooks permissions.allow[1]
+  ignored  hooks permissions.allow[2]
+  ignored  hooks permissions.allow[3]
+  ignored  hooks permissions.allow[4]
+  ignored  budgets file: the row key itself, not a measurement
+  ignored  budgets always: load class: the always_loaded_tokens aggregate reads it; a per-file cap is load-class-blind by design
+  REFUSED  ruleset: the unperturbed the live main-protect-checks ruleset object is red, so nothing is measured
+RESULT read=9 ignored=7 blind=0 dead=0 refused=1 runs=88 seconds=22.9
+FIELD COVERAGE REFUSED: a field of a governance check's input is read by no check and ignored by no reason
