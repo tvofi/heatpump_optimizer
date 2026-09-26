@@ -411,6 +411,64 @@
     "class": "P1",
     "seam_rule_enumerates": "partial: the single from_dict covers the loader-scoped property, but the phenomenon also enters live through FrequencyMap.observe (measured 32 folds)"
    }
+  ],
+  "D0": [
+   {
+    "id": "D0-s1-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "finder re-run 0.2507 % (exact). Own measurement: 0.2482 % max, mean 0.0455 %, 2 of 8 winter cells over 0.1 %. Flat null 0.0302 % max. Single-zone control 0.0000 %. Real-HA venv identical.",
+    "metric_definition": "(objective_value shipped by production - objective_value shipped with a 0.20x anchor keyed on _solve_space's own init_base energy added to its cold-start candidates) / |shipped|, two-zone DHW-on, 24 h, HeatPumpOptimizer.optimize(...).objective_value",
+    "method": "Re-ran seeds_ab.py --perturb deep_anchor_dhw --jobs 2. Wrote D0-s1-01_reach.py: independent anchor keying (init_base energy, not baseline thermostat energy), end to end, with flat and single-zone controls, an MPC warm-start arm, SEK/day, and a run in the real-HA venv.",
+    "attacks": [
+     "contention: objective values, immune",
+     "keying: the gap moves between cells but not in size (finder's baseline keying 0.2507 % on winter_narrow|winter_cold; mine 0.2482 % on winter_extreme|winter_cold and 0 on winter_narrow|winter_cold)",
+     "null: flat 0.0302 % max; single-zone 0.0000 %",
+     "MPC: production's #1295 warm re-solve on identical inputs closes winter_narrow|winter_cold (0.2141 %) but leaves winter_extreme|winter_cold open (0.0049 % of 0.2482 %)",
+     "money: winter_extreme|winter_cold saves 0.42 SEK/day; winter_narrow|winter_mild spends 2.82 SEK/day more; finder's 40-cell energy_sek_drop_sum -1.58 SEK",
+     "real HA: solver imports no HA symbol and runs in process_worker; real-HA venv gives identical numbers; reached only with two-zone set (default False) and DHW on (default True)"
+    ],
+    "class": "P4",
+    "seam_rule_enumerates": "all: the grep lists both cold-start _multi_start_minimize call sites (optimizer.py:3484 _solve_space, :4019 _optimize_space_only) and every _price_ranked_start use, including _cap_tighten_starts :711 (a repair re-solve, not a cold start)"
+   },
+   {
+    "id": "D0-s2-01",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "finder re-run at 48 h 0.6507 % (exact); ftol_tight arm 0.0000 %. Seam rule at 24 h: 0.8523 % max, 2 of 64 cells over 0.1 %, flat 0.0070 %. Own measurement at 24 h: gap max 7.5928 % (objective 0.306), min -0.3754 %, 10 of 32 cells over 0.1 %; flat max 0.2430 %. Real-HA venv identical.",
+    "metric_definition": "(objective_value shipped by production - objective_value shipped with every _scoped_minimize at ftol=1e-12) / |shipped|, end to end, at the production 24 h horizon",
+    "method": "Re-ran polish.py at 48 h (headline cell and its perturbation) and the seam rule's 24 h grid (64 cells). Wrote D0-s2-01_reach.py: end-to-end tight stop rule, with a flat control, an MPC warm arm, SEK/day, and the real-HA venv.",
+    "attacks": [
+     "reach: OptimizationConfig.horizon_hours is never set from config (default 24.0), and n_steps = min(len(prices), 96), so the 48 h headline is not a shipped horizon",
+     "at 24 h the polish residue is 0.8523 % on one|nodhw|shoulder|winter_cold, which is the recorded #1293 claim cell in tests/optimality.py _CERT_CLAIMS",
+     "money: the tight stop rule spends 3.65 SEK/day more summed over 32 cells and saves money on only 10 of them (max 0.34 SEK/day); one|nodhw|shoulder|winter_cold +1.80 SEK/day. This matches #1293 being refused on money",
+     "sign: the tight stop rule is worse on 4 of 32 cells (-0.3754 % two|dhw|shoulder|winter_cold)",
+     "MPC: the warm re-solve from the shipped plan gains at most 0.0076 %, so the stall repeats every cycle and does not self-heal",
+     "null: flat end-to-end max 0.2430 % against 7.59 % / 1.84 % / 0.73 % at price shapes",
+     "real HA: same solver path; real-HA venv identical"
+    ],
+    "class": "P4",
+    "seam_rule_enumerates": "partial: the hook on _scoped_minimize covers both ftol sites (optimizer.py:501, :642, the only minimize calls), but the command enumerates cells, half of them at a non-production 48 h horizon, and omits winter prices, where 0.3815 % was measured (two|nodhw|winter_typical|winter_cold)"
+   },
+   {
+    "id": "D0-s2-02",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "finder re-run shoulder max 1.2012 % (exact), mean 0.3927 %; flat max 0.3247 %. Own measurement: shoulder max 1.2012 %, mean 0.3275 %, 8 of 16 over 0.1 %, min -0.1544 %; flat max 0.3247 %, mean 0.0915 %. Money: 4 of 16 shoulder cells save, sum -3.81 SEK/day.",
+    "metric_definition": "(objective_value shipped by production - objective_value shipped when every _multi_start_minimize call also gets 13 bang-bang seeds at fractions of the bounds' max energy) / |shipped|, end to end, 24 h, no polish arm",
+    "method": "Re-ran race.py --cells shoulder,flat --weather winter_cold,winter_mild,summer_cool,shoulder --first-only (32 cells). Wrote D0-s2-02_reach.py: ladder on every seam call, end to end, with a flat control, an MPC warm arm and SEK/day.",
+    "attacks": [
+     "null: the flat twin carries up to 0.3247 %; the excess over flat is 0.88 pp on the headline cell and 1.17 pp on one|dhw|shoulder|shoulder",
+     "overlap: on one|nodhw|shoulder|winter_cold the ladder gap (0.8915 %) is mostly D0-s2-01's polish residue (0.8523 %)",
+     "sign: ladder end to end is worse on two|dhw|shoulder|winter_cold (-0.1544 %)",
+     "money: headline cell one|nodhw|shoulder|shoulder spends +1.00 SEK/day for its 1.20 % objective gain; 16-cell sum -3.81 SEK/day; max saving 0.10 SEK/day",
+     "precedent: a re-find of #1294 (production ladder refused on cost); tests/optimality.py _CERT_CLAIMS already names 'one|summer_negative|shoulder' and 'one|winter_narrow|shoulder' as the same basin miss",
+     "MPC: warm re-solve at most 0.0014 %; the gap does not self-heal",
+     "real HA: same solver path, reached by default (single zone, 24 h)"
+    ],
+    "class": "P4",
+    "seam_rule_enumerates": "demonstrated-only: the command enumerates the shoulder and flat price shapes only, while the stated property covers every price shape; the tree's own claims show the same miss at summer_negative and winter_narrow"
+   }
   ]
  }
 }
