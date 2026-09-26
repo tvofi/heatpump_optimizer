@@ -40,7 +40,8 @@ from the table and check the handoff branch on origin first). Scratch: /tmp/clau
 |---|---|---|
 | R1a checker | handoff/r9-r1a-find-checker | PR #1633; FIXED after block: code c6ca4132, body 2bb0f8e6 (was a897272a); re-review by Cloud reviewer 2; not code-owned; review brief reviews/R1a.md → Cloud reviewer 2; Mac relayed to push; merges before R1 |
 | R1 driver | handoff/r9-r1-find-driver | HANDED OFF: code 173061d3 (stacked on c6ca4132), body 7ca1ba6e; push only after R1a merges + main merged in; audit-find.js @tvofi-owned; review brief reviews/R1.md |
-| R3 fixer | handoff/r9-r3-verify-driver | running (04:50Z) |
+| R3a checker | handoff/r9-r3a-verify-checker | HANDED OFF: code 9fd82c91 (stacked on R1a c6ca4132), body 518c333a; not code-owned; brief reviews/R3a.md; push after #1633 merges |
+| R3 driver | handoff/r9-r3-verify-driver | HANDED OFF: code 241a480f (stacked on R3a), body e9459bbe; code-owned (audit-verify.js, tests/closure.py); MODE FULL; brief reviews/R3.md; push after R3a merges |
 | R4 fixer | handoff/r9-r4-instruments | MERGED #1632 at cb78e997 (05:10Z). Was: PR #1632 open at f493fec1 (2bf7faaf + delivery row); in review by Cloud compute helper; review brief reviews/R4.md → Cloud compute helper; Mac asked to push. Policy → tvofi approval (mandate 3) |
 | R4b fixer | handoff/r9-r4b-web-fragments | HANDED OFF: code 26b51272, body e3872880; policy (@tvofi); review brief reviews/R4b.md; sent to coordinator ~05:10Z |
 | R6 fixer | handoff/r9-r6-reboot-toggles | running (04:50Z); RCA seat owed once cause named |
@@ -67,6 +68,13 @@ scratchpad/plan-wt (branch r9-plan-transport). Verdicts come back as text via th
 audit-find.js with args.box runs one box's seats and pushes to handoff/audit-r9-find-<box>; args.from:"intake"
 gathers all boxes, then runs the leads seat, the D3 confirmation and intake. Box briefs B1..B10 must tell each
 box thread to run it with args.box=<Bn> (round 9, baseline, repo, rotation, scopes).
+
+## Phase A briefs
+Generator: boxgen/gen.py <baseline> <outdir> (with boxgen/pre.md) writes B1..B10.md. At baseline cut: run it into /mnt/project-files/audit-r9/briefs/ AND handoff/round9/briefs/ on handoff/audit-r9-plan, push, then ask the coordinator to start one thread per box with context_message_ids=[cmsg_01EL5jLi4rokGBbkaevYXSJVTfeni8YJN5HdH97LdRCudt] (tvofi's words authorising the round, and so the Workflow run).
+
+## Phase B note
+The verify driver cannot place a triple's three verifiers on different containers (PLAN §5): orchestrator dispatches each triple's verifiers to three different box threads.
+JUDGE-* header lines are optional; where absent the dedup judge writes judge_batch overrides.
 
 ## Owed (not blocking the baseline)
 - RC1 root-cause thread STARTED: "Round 9 root cause seat" (cse_01BUrtj7jMHAoX2hsiwBfXwL), requested 05:20Z (brief rca/RC1-base-graded-checker.md @ f1876c82): #1589 class recurred on R1a (check red only on main: policy-docs grades with base .mjs; codeowners_gap.py --check ~0.8 s in no local path, prepr.sh never calls it). Brief together with R6's RCA.
