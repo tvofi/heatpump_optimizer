@@ -26,19 +26,16 @@ resets between calls: pin cd in every command. PYTHONPATH=tests/hastub for
 direct script runs; python3 tests/structure.py before every push; the five
 BLAS thread variables pinned to 1.
 
-THE LOCK IS FOR tests/stress.py, SO ASK WHETHER YOUR CHANGE RUNS IT.
+THE LOCK IS FOR tests/stress.py, AND run.sh TAKES IT ITSELF.
 /tmp/hpo-gate.lock exists because stress.py's solve-time guard measures this
 machine while it solves, and three concurrent stress runs at load 6.5 once
-destroyed the very budget table they were recording. Nothing else in the
-suite is timing-sensitive, so a change that does not select stress.py does
-not need the lock -- and taking it anyway serialises every other agent for
-no measurement reason. Decide it, do not assume it:
+destroyed the very budget table they were recording. Measure the scope:
 
     D=$(mktemp -d) && python3 tests/closure.py select \
       --diff $(git merge-base origin/main HEAD) --workdir "$D"
 
   * that command FAILS, or "$D/scope.txt" contains "MODE: FULL", or you are
-    deliberately running GATE_SCOPE=full  ->  TAKE THE LOCK. MODE: FULL is
+    deliberately running GATE_SCOPE=full  ->  run.sh as below. MODE: FULL is
     how the gate reports a change it cannot reason about -- a gate file, or
     a file in no recorded closure -- and it then runs every script including
     stress.py. It prints ZERO selected scripts while meaning the opposite of
@@ -46,21 +43,16 @@ no measurement reason. Decide it, do not assume it:
     on a branch; a push to main forces GATE_SCOPE=full through the job
     environment, which skips the code that prints a mode line at all -- the
     only evidence in that log is the env line GATE_SCOPE: full.
-  * "$D/scope.run" names tests/stress.py  ->  TAKE THE LOCK.
-  * otherwise  ->  NO LOCK. Run the scripts scope.run names, directly.
+  * "$D/scope.run" names tests/stress.py  ->  run.sh as below.
+  * otherwise  ->  Run the scripts scope.run names, directly.
 
-Taking the lock: python3 tests/gate_lock.py take --label <your-label>.
-If the lock exists, the lease has not expired, and the hold is not abandoned
-(holding marker, no live flock), wait and retry -- never remove a lock you did
-not create. An expired lease or abandoned hold may be taken without forensics;
-a live agent between commands keeps the lock by renewing. Under it
-run HPO_GATE_LOCK_LABEL=<your-label> GATE_SCOPE=auto GOLDEN_MODE=drift
-GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh (run.sh holds
-flock for the gate run and renews the lease before every script). Renew between
-commands with python3 tests/gate_lock.py renew --label <your-label>; release
-with python3 tests/gate_lock.py release --label <your-label>. Status:
-python3 tests/gate_lock.py status. Print the concurrent process count beside
-every timing RESULT.
+run.sh is GATE_SCOPE=auto (or full) GOLDEN_MODE=drift
+GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh: it leases each
+stress.py run alone and releases it after, so every other script runs
+unleased. The queue, the wait bound and holding the lease by hand across
+commands (tests/gate_lock.py, HPO_GATE_LOCK_LABEL) are
+.claude/rules/gate-scoping.md's; never remove a lock you did not create.
+Print the concurrent process count beside every timing RESULT.
 
 CI IS THE AUTHORITY EITHER WAY. Its fast, closures and browser jobs run the
 same run.sh in the same drift mode against the same merge base, on a runner

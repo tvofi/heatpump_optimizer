@@ -24,6 +24,19 @@ git rev-parse --verify --quiet "${SHA}^{commit}" >/dev/null || { echo "refusing:
 FULL=$(git rev-parse "${SHA}^{commit}")
 PYTHON="${PYTHON:-$PARENT/tvofi-claude/.venv/bin/python}"
 [ -x "$PYTHON" ] || { echo "refusing: no interpreter at $PYTHON (set PYTHON)"; exit 2; }
+# orjson is Home Assistant's serializer and optional to the gate, so a box without
+# it measured nothing about the real boundary and said nothing: round 8's
+# s1_finite_boundary.py fell back to a stub on one box only (judge note 1). The
+# pin is Home Assistant's own, read from the hash-pinned typing lock, not carried.
+ORJSON_PIN=$(sed -n 's/^orjson==\([^ ]*\) .*/\1/p' tests/requirements-typing.txt)
+ORJSON_HAVE=$("$PYTHON" -c 'import orjson; print(orjson.__version__)' 2>/dev/null || echo none)
+if [ -z "$ORJSON_PIN" ] || [ "$ORJSON_HAVE" != "$ORJSON_PIN" ]; then
+  REQ=$(mktemp -d "${TMPDIR:-/tmp}/hpo-orjson.XXXXXX")/orjson.txt
+  sed -n '/^orjson==/,/[^\\]$/p' tests/requirements-typing.txt > "$REQ"
+  echo "refusing: $PYTHON has orjson $ORJSON_HAVE, tests/requirements-typing.txt pins ${ORJSON_PIN:-nothing}"
+  echo "  install it hash-pinned, outside the cwd: \"$PYTHON\" -m pip install --require-hashes -r $REQ"
+  exit 2
+fi
 
 mkdir -p "$EXPORT"
 git archive "$FULL" | tar -x -C "$EXPORT"
@@ -152,7 +165,7 @@ for dir in "$EXPORT" $(for dim in $ISOLATED_DIMS; do echo "$PARENT/audit-r${ROUN
 done
 
 NODE=$(command -v node || true)
-CHROMIUM=$(ls -d "$HOME"/.cache/pw-browsers/chromium-* 2>/dev/null | head -1 || true)
+CHROMIUM=$(ls -d "$HOME"/.cache/pw-browsers/chromium-* 2>/dev/null | tr '\n' ' ' || true)
 ISOLATED_DIRS=""; for dim in $ISOLATED_DIMS; do ISOLATED_DIRS="$ISOLATED_DIRS $PARENT/audit-r${ROUND}-${dim}"; done
 for dir in "$EXPORT" $ISOLATED_DIRS; do
   cat > "$dir/tools/audit/round${ROUND}/BASELINE.md" <<MD
@@ -162,20 +175,21 @@ for dir in "$EXPORT" $ISOLATED_DIRS; do
 - export (read-only finders): ${EXPORT}
 - worktrees (isolated finders): $(for d in $ISOLATED_DIMS; do printf '%s %s/audit-r%s-%s, ' "$d" "$PARENT" "$ROUND" "$d"; done | sed 's/, $//')
 - python: ${PYTHON} (run from the directory root with PYTHONPATH=tests/hastub)
+- orjson: ${ORJSON_HAVE} in that interpreter (the typing lock's pin). The stub's
+  json_bytes takes orjson whenever it imports and CI's gate job has none, so a
+  gate check on that path may read differently here than on CI.
+- temp root: derive every scratch path from \$TMPDIR (mktemp -d, tempfile.mkdtemp),
+  pip download -d / install --target included -- never a literal seat path, never
+  the cwd (tools/audit/README.md, the harness contract).
 - node: ${NODE:-not found}
 - chromium: ${CHROMIUM:-not found} (PLAYWRIGHT_BROWSERS_PATH=\$HOME/.cache/pw-browsers)
-- playwright module: install into a scratch prefix, e.g. \`npm i --prefix /tmp/pw playwright@1.49.0\`, then NODE_PATH=/tmp/pw/node_modules
-- gate lock: take it only when tests/closure.py select reports MODE: FULL or names
-  tests/stress.py -- that one script is what the lock exists for. Use
-  tests/gate_lock.py, never mkdir and a shell pid (#404 replaced that: no lease, so
-  tests/run.sh cannot renew it, and no flock, so a crashed holder holds it forever).
-
-      python3 tests/gate_lock.py take --label <your-label>
-      HPO_GATE_LOCK_LABEL=<your-label> GATE_SCOPE=auto GOLDEN_MODE=drift \\
-        GOLDEN_REF=<a ref that is not HEAD> ./tests/run.sh
-      python3 tests/gate_lock.py renew --label <your-label>   # between commands
-      python3 tests/gate_lock.py release --label <your-label>
-
+- playwright module: the browser lane's own lock, integrity-checked:
+  P=\$(mktemp -d); cp tests/pwlane/package.json tests/pwlane/package-lock.json "\$P/";
+  npm ci --prefix "\$P"; "\$P/node_modules/.bin/playwright" install chromium (under the
+  PLAYWRIGHT_BROWSERS_PATH above); NODE_PATH=\$P/node_modules
+- gate lease: .claude/rules/gate-scoping.md. tests/run.sh takes it around each
+  tests/stress.py run itself; stress.py run directly takes nothing, so wrap it:
+  python3 tests/gate_lock.py auto-lease --label <your-label> -- python3 tests/stress.py
 - thread pin: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
 MD
 done
