@@ -51,11 +51,14 @@ same building questionnaire as *Continue setup* below, then offers to read the
 heat pump's own entities off a detected device (see [setup.md](setup.md)), and
 returns to this same menu; **Finish setup now** moves straight to the review
 with shipped defaults for everything past the two required screens;
-**Continue setup** walks the numbered screens below. (A device is also
-offered automatically, without going through Quick setup, right after the
-optional-sensors screen when one is detected in the registry — the menu still
-follows it either way.) Every route ends on the same read-only review screen,
-and confirming there is what actually creates the entry.
+**Continue setup** walks the numbered screens below. (The same pre-fill page
+can also appear right after the optional-sensors screen, before this menu,
+when the pre-fill offer is switched on in an existing entry's options (off by
+default) and a heat-pump device resolves — see
+[Pre-fill from a heat pump device](#pre-fill-from-a-heat-pump-device); a fresh
+install with no entry yet has it off, so this never fires on first setup.)
+Every route ends on the same read-only review screen, and confirming there is
+what actually creates the entry.
 
 ### 1 · Basics
 
