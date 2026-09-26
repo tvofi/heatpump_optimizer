@@ -949,13 +949,20 @@ await block('the finder report schema', async () => {
   t('a report must carry its leads, each {owner_seat, file, symbol, what}',
     (S.required ?? []).includes('leads') && J([...(S.properties?.leads?.items?.required ?? [])].sort()) === J(['file', 'owner_seat', 'symbol', 'what']), J(S.properties?.leads))
   const re = (k) => new RegExp(F.properties?.[k]?.pattern ?? '$^')
-  const idRe = re('id'), scopeRe = re('scope'), classRe = re('class_guess')
+  const idRe = re('id'), scopeRe = re('scope')
+  const ownerRe = new RegExp(S.properties?.leads?.items?.properties?.owner_seat?.pattern ?? '$^')
   t('scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no)', scopeRe.test('D1-s3') && scopeRe.test('D14-s5') && !scopeRe.test('D1') && !scopeRe.test('D15-s1'), String(scopeRe))
   t('a finding numbered under its seat is an id the schema admits (D13-s1-01, D1-s3-51)', idRe.test('D13-s1-01') && idRe.test('D1-s3-51'), String(idRe))
-  t('class_guess admits every tools/audit/bugclasses.json id and "new", and refuses anything else (null control)', (() => {
+  t("a lead's owner_seat admits a seat id or unknown, and refuses a bare dimension, a file, or anything else (null control)",
+    ownerRe.test('D1-s3') && ownerRe.test('D14-s5') && ownerRe.test('unknown') && !ownerRe.test('D1') && !ownerRe.test('D15-s1') && !ownerRe.test('boost.py') && !ownerRe.test('') && !ownerRe.test('D1-s3 '), String(ownerRe))
+  // A design choice, said so: the guess is refused unless it is a class the
+  // ledger HAS, so a class the judge adds is added to bugclasses.json and to
+  // this enum in one pull request -- this check fails until both carry it.
+  const classEnum = F.properties?.class_guess?.enum ?? []
+  t('class_guess is exactly the tools/audit/bugclasses.json ids plus "new": a well-formed id the ledger lacks (P99) is refused', (() => {
     const ids = Object.keys(JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'bugclasses.json'), 'utf8'))).filter((k) => !k.startsWith('_'))
-    return ids.length > 0 && ids.every((k) => classRe.test(k)) && classRe.test('new') && !classRe.test('X1') && !classRe.test('P1 ') && !classRe.test('')
-  })(), String(classRe))
+    return ids.length > 0 && J([...classEnum].sort()) === J([...ids, 'new'].sort()) && !classEnum.includes('P99') && !classEnum.includes('')
+  })(), J(classEnum))
 })
 
 console.log('-- The scopes: every seat a finder is dispatched to, held to the briefs')
@@ -1156,7 +1163,10 @@ if (SCOPED_DRIVER) await block('the scoped round driver', async () => {
     r9.labels.filter((l) => l === 'quiet').length === 1 && r9.labels.indexOf('quiet') < r9.labels.indexOf('intake') && /GATE_SCOPE=full/.test(qp) && /gate_lock\.py take/.test(qp) && /survived the full gate/.test(ip), J(r9.labels.slice(-4)))
   t('...and never inside a box, which has not seen the other boxes (null control)', !b8.labels.includes('quiet'), J(b8.labels))
   t('no lead, no leads seat (null control)', !r9.labels.includes('leads'), J(r9.labels))
-  const withLead = await drive(base, { report: (l) => (l === 'D7-s1' ? { leads: [{ owner_seat: 'D1-s3', file: 'custom_components/heatpump_optimizer/boost.py', symbol: 'boost:x', what: 'w' }] } : {}) })
+  // The lead's file is not a production path on purpose: codeowners_gap.py
+  // reads a path quoted in a file that calls new Function as one a workflow
+  // executes, so a production path here un-owns it (#1589's class).
+  const withLead = await drive(base, { report: (l) => (l === 'D7-s1' ? { leads: [{ owner_seat: 'D1-s3', file: 'pkg/lead_fixture.py', symbol: 'lead_fixture:x', what: 'w' }] } : {}) })
   const lp = withLead.calls.find((c) => c.label === 'leads')?.prompt ?? ''
   t('a raised lead reaches the one leads seat, keyed by its owner seat, and is counted in the ledger',
     withLead.labels.filter((l) => l === 'leads').length === 1 && /"D1-s3":\[\{"owner_seat":"D1-s3"/.test(lp) && withLead.out?.rotation_round?.D7?.leads?.raised === 1, J(withLead.out?.rotation_round?.D7))
