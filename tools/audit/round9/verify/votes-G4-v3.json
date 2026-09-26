@@ -1,0 +1,445 @@
+{
+ "box": "G4-V3",
+ "lens": 3,
+ "votes": {
+  "D5": [
+   {
+    "id": "D5-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": 3,
+    "metric_definition": "en.json labels of finish_setup menu entries on the tokenless entity-price path (input validated through _user_credentials_fields()) that configuration.md's Initial setup never names; plus entity count across 5 golden configs",
+    "method": "v3_s1_01_setup.py: tokenless_schema_valid=1, finish_menu_unnamed=3 (perturb 0), building_menu_unnamed=0 control, first_screen_fields_unnamed=2, entities 75..75; finder re-run stale_facts=4 (perturb 1), disagreeing_claims=1 (perturb 2)",
+    "attacks": "Schema-validated input still admits the tokenless screen; Tibber arm without token errors, so 'required' holds only there. ConfigFlow FAITHFUL; en.json labels equal fallback. Entity count invariant across configs. Medium: workaround is the form's own price-source choice. Seam rule misses 2 unnamed first-screen labels.",
+    "class": "I5",
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D5-s1-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": 2,
+    "metric_definition": "Of setup.md's 2 Quick-setup storage promises, how many the coordinator's _ctx._thermal_params fails, built from the entry the real flow creates (quick_setup all yes + probes, prefill declined, finish_now)",
+    "method": "v3_s1_02_quick.py: entry_created=1, buffer_is_store=0, two_tank_modelled=0, unhonoured=2, perturb 0; hold two_zone=1; finder re-run 2, perturb 0",
+    "attacks": "End-to-end real flow + coordinator; no divergent stub symbol on path; prefill/overview steps add no valve key. Silent bounded savings loss with workaround: medium. Rule covers 2 of 5 answers' promises.",
+    "class": "I5",
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D5-s1-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": 30,
+    "metric_definition": "Consecutive newest VERSION commits at which shipped CARD_VERSION equals VERSION (git show)",
+    "method": "v3_s1_03_cardver.py: 30 of last 40 equal, all 30 newest consecutive (6.3.13..6.7.1), last mismatch 6.3.12/5.4.20; stamp arm 1, perturb 0; finder re-run 1.00, perturb 0.00",
+    "attacks": "Real history confirms drift since 6.3.13. Banner is real browser console. Low. Rule keys on one literal sentence; grep of 8 user docs finds no second site (0 missed).",
+    "class": "I5",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D5-s1-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": 9,
+    "metric_definition": "Lines of README + 7 user docs that micromark 4 + gfm-table 2 places in the wrong block",
+    "method": "v3_s1_04_tables.mjs: orphaned 3 (config.md:185-187), swallowed 6 (:633-638), 9 total, perturb 0; finder re-run (markdown-it) 9, perturb 0",
+    "attacks": "Two independent GFM parsers agree. GitHub render only, no HA path. Low hygiene. No bugclasses.json class fits (I5 is drift vs code; this is markup vs renderer).",
+    "class": null,
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D5-s1-05",
+    "vote": "verify",
+    "severity": "low",
+    "value": 5,
+    "metric_definition": "Of the finder's 5 doc field names, how many are a substring of no en.json config/options label (parenthetical stripped)",
+    "method": "v3_s1_05_labels.py: finder_sites_unfound=5, perturb 0; broader rule 12 unfound, 8 entity/option names, 4 residual with no new form-label miss; finder re-run 5, perturb 4",
+    "attacks": "Frontend renders en.json labels; stub translation loader not on path. None of the 5 is a near-substring. Low. Rule omits bold spans; my bold probe found 0 further misses.",
+    "class": "I5",
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D5-s1-06",
+    "vote": "verify",
+    "severity": "low",
+    "value": 5,
+    "metric_definition": "services.yaml (service, field) pairs the configuration.md Services section never names in backticks, entry_id aside",
+    "method": "v3_s1_06_services.py: 12 services, 67 schema keys, schema_not_in_yaml=0, undocumented=5 (simulate_plan.wood_*), perturb 0; finder re-run 5, perturb 0",
+    "attacks": "HA Actions UI lists all 16 fields with en.json names, so consequence bounded: low. Rule walks every registered schema key.",
+    "class": "I5",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D5-s2-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": 12,
+    "metric_definition": "Distinct _name identifiers in card comment lines matching no code token in the card (strings kept as code) or production .py",
+    "method": "v3_s2_01_cardnames.py: 12 names / 17 mentions, same set as finder, perturb 5/6; finder re-run 12/17, perturb 5/6",
+    "attacks": "Lexer keeping strings can only hide names; count matches. Comments, no runtime. Rule covers _names only; 60 underscoreless backticked names give 2 unresolved, both external APIs (0 missed).",
+    "class": "I5",
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D5-s2-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": 2,
+    "metric_definition": "Comment numbers outside the value set the production symbol can deliver (derate floor at bucket centre; update_interval over every admitted optimization_interval)",
+    "method": "v3_s2_02_03_numbers.py: floor 0.550 vs 0.5, default 30, admitted 10..120 step 5, unreachable=2, perturb 0; finder re-run 3, holds 0/5 failed, perturb 0",
+    "attacks": "Valve-write '15 minutes' is a selectable cadence, so it holds under reachable-set def (2) but not under finder's default def (3). Stub DataUpdateCoordinator drops update_interval (SIMPLIFIED); captured at production call. Rule hand-lists rows.",
+    "class": "I5",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D5-s2-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": 0,
+    "metric_definition": "dhw_coil_draw_reduction calls under simulate_trajectory_with_dhw (coil forced active, inlet 15 C) that use the DHW_COLD_WATER_TEMP default",
+    "method": "v3_s2_02_03_numbers.py: coil_calls=8, on constant 0, all inlet_temp=15.0; draw cold end 15.000 C; finder re-run 46 of 47, perturb 0 of 47",
+    "attacks": "Holds at the shipped 10.0 inlet; drifts on a configured inlet (selector 2..25, reachable); claimed coupling absent at every call. Comment only: low. One hand-picked coupling, no enumeration.",
+    "class": "I5",
+    "seam_rule_enumerates": false
+   }
+  ],
+  "D6": [
+   {
+    "id": "D6-s1-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": 2,
+    "metric_definition": "States in HeatPumpActionSensor._attr_options that production writes as current_action['mode'] (AST over optimizer/coordinator/boost/pump_arbiter; idle executed via get_current_action on an empty result), less 'unknown', absent from README's Heat Pump Action row.",
+    "method": "Finder harness re-run 2 (perturb->0); own v3_checks.py s1_01_states_undocumented=2, --perturb->0.",
+    "attacks": "Real-HA reachable: idle from get_current_action empty/pre-horizon branches, system_identification from _run_system_identification after the button with the option on; upstream ENUM validation accepts both (in options), 0/10 options untranslated. Severity low (automation triggers miss two states, no wrong value). Seam rule C1[56] covers both README ENUM state lists; no docs/ copy exists; it is a fixed row filter. Class I5.",
+    "class": "I5",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D6-s1-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": 3,
+    "metric_definition": "README field->page statements whose strings.json menu label resolves to a step different from the field's _OPTION_FIELDS step.",
+    "method": "Finder 3 (orientation perturb->2); own 3 of 9 statements, --perturb->0.",
+    "attacks": "Labels are what real HA renders; no stub on path. Low. Seam rule partial: C52/C53 cover README:391-395 only, not the Advanced-page table README:790-806 nor page statements at :421/:583/:637/:809/:815/:898 (3 checked, 0 false). Class I5.",
+    "class": "I5",
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D6-s1-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": 6,
+    "metric_definition": "Registry-default-off entities (upstream semantics) on the entry the real Finish-now flow creates, not documented as disabled in README list, row, or prose.",
+    "method": "Finder 6 (dhw_config->0); own drove real flow to create_entry: 26 disabled (19 full wizard), 6 undocumented, --perturb->0.",
+    "attacks": "Real HA reads the default at first registration and no code re-enables (0 hits), so adding a tank later leaves six disabled with no README pointer; low. Stub trap: hastub Entity lacks entity_registry_enabled_default; a True-default read gives 15/8; the finder's _attr_ fallback matches upstream. Seam rule covers both topologies and the single has_hot_water gate; Quick setup defaults give the C08 set of 19. Class I5.",
+    "class": "I5",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D6-s1-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": 4.0,
+    "metric_definition": "ON-pinned hours the real coordinator.async_apply_manual_plan reports on its 96-step horizon for expires_at=now+48h, less 20 h.",
+    "method": "Finder 4.0 h (clamp->0); own via handle_apply_manual_plan into a real coordinator: 20.25/24/24/24 h for +20/+24/+48/+168 h; a 168 h override is live at +100 h; clamp->0.25 h (quarter-grid overlap).",
+    "attacks": "No downstream clamp; cv.string divergence irrelevant to ISO strings, so identical in real HA. 4.0 h is a horizon-bounded lower bound; wall-clock duration is unbounded. Low for the doc claim; the code side breaks const.py:1306-1315's invariant (P2-shaped lead). Seam rule partial: checks README:660 only; the false bound is also at how-it-works.md:76 and strings.json/en.json:2266 (the real HA service UI). Class I5.",
+    "class": "I5",
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D6-s2-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": 1,
+    "metric_definition": "Entity census for the real-flow-created entry minus configuration.md:196's N.",
+    "method": "Finder delta 1 (drop datetime->0); own 75 on full-wizard and Finish-now entries, delta 1, --perturb->0.",
+    "attacks": "Same 75 in real HA (platform code). Low. Grep enumerates every numeric docs/*.md count; misses spelled/'(N total)' forms, which are README-only and pinned by tests/entities.py. Class I5.",
+    "class": "I5",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D6-s2-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": 0,
+    "metric_definition": "1 if the real weather_sensitivity submit returns create_entry, else 0.",
+    "method": "Finder 0/11 (perturb 1/10); own 0, trail ...weather_sensitivity->setup_overview->create_entry with menu:finish_setup before temperature; --perturb 1.",
+    "attacks": "Production flow; stub FlowResult dict does not alter the sequence. Low. Seam rule partial: drives only the Describe branch, by-eye compare; the flowchart's thermal-values branch is undriven. Class I5.",
+    "class": "I5",
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D6-s2-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": 0.6,
+    "metric_definition": "Max bias drop over any 168 h window, CurveLearner.record_day fed hourly with margin 1.0 K for 365 days.",
+    "method": "Finder 0.600 (0.3 cap->0.457); own 0.6 K, 5.0% of windows > 0.5 K; cap 0.4->0.543 K.",
+    "attacks": "Both perturbed arms still exceed their caps (per-previous-step cap, uncapped first step), so the finder's arm is a direction control, not a null. Reachable in real HA via coordinator.py:8352 (opt-in). Low. Seam grep finds 6 copies; misses translations/sv.json:1333 and curve_learning.py:15/40/107-108. Class I5 (the code comment asserts the same invariant; no P-class fits).",
+    "class": "I5",
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D6-s2-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": 5,
+    "metric_definition": "Max len(candidates) passed to optimizer._multi_start_minimize over five golden SCENARIOS.",
+    "method": "Finder 4 (truncate->2); own spy: [4],[4,1],[4],[5],[4]; every space solve >=4.",
+    "attacks": "Pure solver path, no stub. Warm-start candidate not measured. Low. Seam grep finds the only stated count (how-it-works.md:108-111). Class I5.",
+    "class": "I5",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D6-s2-05",
+    "vote": "verify",
+    "severity": "low",
+    "value": 5,
+    "metric_definition": "SERVICE_SCHEMA_SIMULATE_PLAN keys absent from configuration.md's 'Fields, all optional:' list.",
+    "method": "Finder row: 5 schema-only; own 5 of 16; s2_05_own_perturb.py (wood_* dropped from the schema) -> 0.",
+    "attacks": "The finder's --perturb moves services_claims_false 1->5 through other schemas, while the cited row stays at 5: the finding's own number does not move under its perturbation, so the judge should use s2_05_own_perturb.py. services.yaml lists all 16, so real HA's UI shows the wood fields. Low. Seam rule partial: 3 more unnamed schema keys in other paragraphs (assign_entity.manual_setpoint, apply_topology.dhw/.wood) go unflagged. Class I5.",
+    "class": "I5",
+    "seam_rule_enumerates": "partial"
+   }
+  ],
+  "D11": [
+   {
+    "id": "D11-s1-01",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "1 (PR #1621, committed snapshot) + 1 (PR #1623, finder-supplied approval commit 0a1424cc, git-confirmed) = 2; perturbed (commit-clause) 0",
+    "metric_definition": "Of snapshot PRs whose tvofi last APPROVED review is not on the merged head, the count whose branch-own commits after that review (git rev-list <approved>..<head> --not <merge^1>) touch a CODEOWNERS @tvofi path, with no APPROVED review from anyone at head.",
+    "method": "v3_owner_approvals.py: committed reviews_snapshot.json (12 PRs) + local git only; production budget_raise_gate.approval; finder harness not re-run (reads the GitHub API, which this seat's brief forbids).",
+    "attacks": "Reach: real GitHub, not HA; #1621's only review is tvofi APPROVED at ecb7af8e (state APPROVED, not DISMISSED) and it merged at 99fcc3f2 after 084c6a27/0d679a28/8f7abb96 changed code-owned tests/harness.py (62 lines), which is only possible with stale approvals kept, so the ruleset's dismiss_stale=false is confirmed indirectly with no API read. Decision 0008 3(d) specifies dismiss_stale_reviews_on_push=true; 0009's landed note lists only count=1 and code-owner review, so the 'recorded as enforced' half rests on 0008 alone. Severity: instances changed test harness files, not production or policy, and no wrong value shipped; bounded -> medium, not high. Seam rule enumerates the 201 API-readable of 253 first-parent merges since the rule landed; the 52 that answer 404 are not enumerated -> partial.",
+    "class": "I3",
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D11-s1-02",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "0 of 2 production enumerators name a real non-stamp single-parent commit injected into the real v6.7.0..v6.7.1^ window; 2 of 2 name it with 2 parents; perturbed 2 of 2",
+    "metric_definition": "Of stamp.py:rule4_problem and delivery_status.py:collect, how many name commit 084c6a27 injected as a 1-parent first-parent row on the real v6.7.1 window with the real v6.7.1 notes.",
+    "method": "Finder harness re-run --offline: nonstamp_direct_reported=0, control=1, history 16/16 single-parent commits within STAMP_WRITES; perturbed 2. Own: v3_direct_push.py on real window (8 rows, null rule4 None, collect unattributed 0).",
+    "attacks": "Reach: real GitHub, a DeployKey 'always' bypass (ruleset read not taken, GitHub forbidden to this seat; bypass taken from decision 0009's landed note). Incidence 0 of 16 direct pushes since v6.5.0; the push requires the deploy key held only by the stamp seat, and a push to main forces the FULL gate, so a functional break goes red; what escapes is provenance. Capability-only and key-gated -> medium. Seam rule drives rule4_problem alone; my harness adds delivery_status.collect (also blind); policy_lint's enumerateMerges is unexported and skips any first-parent with no PR by its own comment -> partial.",
+    "class": "I3",
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D11-s1-03",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "finder metric 3 (re-run), restore-fix 0; own: after the finder's restore fix plus one PR-side edit of tests.yml, 3 of 3 autofix jobs again run PR-controlled code with contents:write+actions:write and 3 secrets",
+    "metric_definition": "Of the 3 autofix jobs, how many execute a PR-controlled file with a write token after every executed path is restored from base AND the same PR adds one step to tests.yml; plus PR-startable jobs holding write or a repository secret.",
+    "method": "Finder harness re-run (3; perturbed 0); own v3_pr_privilege.py over parsed .github/workflows/*.yml: 5 PR-startable privileged jobs, 3 reading CLOSURES_PUSH_TOKEN/HPO_RUNS_APPID/HPO_RUNS_PEM.",
+    "attacks": "Reach: real GitHub Actions; a same-repo pull_request run executes the PR's own workflow file (budget-raise-gate.yml's header states this), so a branch pusher who can edit tests/closure.py can equally edit tests.yml's run: lines of the same jobs; the proposed fix moves 3 -> 0 on the harness and 0 -> 3 under one workflow edit. The marginal privilege the three scripts add over what any branch pusher already holds is 0 jobs; the real seam is the pull_request trigger itself. Consequence bounded to secrets a branch pusher can already reach -> low. Seam rule enumerates jobs in the current YAML, not the workflow-file seam -> partial.",
+    "class": "I3",
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D11-s1-04",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "6 of 6 snapshot PRs the production approval() accepts carry an owner review at head whose body names the orchestrator/mandate; 0 undeclared; perturbed (commit-clause) accepts 2 more, both undeclared stale",
+    "metric_definition": "Of snapshot PRs where budget_raise_gate.approval(reviews, head) is True, the count whose tvofi review at head declares the orchestrator gave it.",
+    "method": "v3_owner_approvals.py on the committed 12-PR snapshot; the finder's 27/27 over 90 approvals needs the GitHub API, not re-run.",
+    "attacks": "Reach: real GitHub; the reviews are under user id 70032254 type User, so approval() and the code-owner rule cannot separate them (no in-tree consumer other than budget_raise_gate.approval keys on the owner identity: git grep for 70032254/OWNER_LOGIN finds 1 file). The delegation is the owner's choice; the defect is attribution, bounded -> medium kept. Same phenomenon as D11-s2-03 (same predicate, same bodies); one finding per mechanism, the judge should merge them. Seam rule counts PRs over the readable window (52 of 253 unreadable), not the identity consumers -> partial. Class: the code-owner review is a required governance check whose boundary (a human) any holder of the owner's credential crosses -> I3, not new.",
+    "class": "I3",
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D11-s2-01",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "finder 7/7 re-run; own: 41 of 41 per-file caps report 0 per-file errors on +600 B joined (40 measured by POLICY_GLOBS, 1 fixture unmeasured); CLAUDE.md silent joined growth bisected at 736 B (~184 tokens), first refusal the role-policy aggregate; perturbed: 1 of 41 (the unmeasured fixture), 0 B",
+    "metric_definition": "Per capped file, per-file budgets errors from a default policy_lint run after +600 B appended to the last non-empty line; and the largest such append to CLAUDE.md with 0 budgets errors of any kind.",
+    "method": "Finder caps_unit.py re-run (joined_unrefused=7, newline_refused=7, perturbed_refused=7); own v3_caps_bound.py in a clone of HEAD.",
+    "attacks": "Reach: repository CI (governance.yml runs policy_lint), not HA. The seam is every per-file cap, not only the 7 zero-headroom ones: 41/41. The growth is bounded by the aggregate bands, 184 tokens on CLAUDE.md at this tree before role policy refuses, so the consequence is at most a few hundred tokens of prose per band -> hygiene, low. Seam rule prints the files{} count and the comparison line -> enumerates.",
+    "class": "I3",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D11-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "finder 0 of 4 refused (re-run), perturbed 4; own: 0 of 5 refused on the tree; under the finder's own perturbation 2 of 5 refused; 'Edit', 'Write|Edit' and SessionStart 'compact' still pass",
+    "metric_definition": "Of 5 settings.json variants whose required hook no longer fires on every targeted event, how many make policy_lint.mjs --hooks exit non-zero, on the tree and under the finder's perturbation.",
+    "method": "Finder hooks_matcher.py re-run; own v3_hooks_matcher.py with partial-coverage and SessionStart variants, tree and throwaway clone.",
+    "attacks": "Reach: real Claude Code honours PreToolUse and SessionStart matchers, so an unwired pre-edit.sh is reachable outside any stub. Consequence: pre-edit.sh fails open by design and CI re-checks its rules, so a missed refusal costs one CI round; the misconfiguration needs a code-owned settings.json edit -> bounded, medium kept. Seam rule prints every (event, matcher) pair, but the property, perturbation and fix cover PreToolUse vs 'Edit' only: 3 of my 5 variants pass the finder's perturbation -> partial.",
+    "class": "I3",
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D11-s2-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "finder 6 of 6 re-run (perturbed 0); own 6 of 6 accepted approvals delegate-declared, 0 undeclared at head",
+    "metric_definition": "Of snapshot PRs where approval(reviews, head) is True, the count whose counted tvofi review body declares the orchestrator/mandate.",
+    "method": "Finder owner_review.py re-run on the committed snapshot; own v3_owner_approvals.py (different body regex: orchestrator|mandate).",
+    "attacks": "Reach: real GitHub record, same as D11-s1-04; git grep finds the mandate in no decision record (only 0009's step-6 note, a different mandate). Duplicate of D11-s1-04's phenomenon; the judge should keep one. Sample is the last 12 merges, drawn by rule (git log --merges --first-parent -12), not hand-picked. Seam rule greps the 3 in-tree identity consumers; git grep for 70032254/OWNER_LOGIN finds budget_raise_gate.py as the only code consumer -> enumerates in-tree; the ruleset is external.",
+    "class": "I3",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D11-s2-04",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "claim (a): 0 (CLAUDE.md literal absent from production closure.py select output 'MODE: SCOPED -- 0 script(s) run, 26 scoped out.'), perturbed 1; claim (b) holds under the exit-status reading -> 1 of 2, 0 of 2 under the finder's; corpus: 1 of 9 quoted output literals absent from every code file",
+    "metric_definition": "Whether CLAUDE.md's backticked MODE: SCOPED literal is a substring of the scope.txt the real closure.py select writes; and of 9 backticked UPPER: literals across the policy corpus, how many occur in no tracked code file (whitespace-normalised, cut at a placeholder).",
+    "method": "Finder mode_line.py re-run (0 of 2, perturbed 1); own v3_mode_line.py drives the production select path, not a synthetic plan dict.",
+    "attacks": "Reach: seats grepping gate logs, not HA. Claim (a) confirmed on the real select output. Claim (b): 'both print zero' has an exit-status reading under which a 0-run scoped gate and a passing full gate both exit 0, so (b) is not shown false; the defect is (a) alone. Seam rule covers CLAUDE.md, .claude/rules and SKILL.md (3 literals) but not tools/audit/briefs or tests/README.md (6 more); the only absent literal is CLAUDE.md's -> partial. Class I5 confirmed.",
+    "class": "I5",
+    "seam_rule_enumerates": "partial"
+   }
+  ],
+  "D7": [
+   {
+    "id": "D7-s1-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "finder: inline__fold_flow_lift_cut_delta=8 (rows_up=4, zero headroom), _warm_seeded 0; own outline_reward.py: 83 of 108 methods rewarded, total fall 513, 24 neutral, 1 rose",
+    "metric_definition": "Over sync undecorated coordinator methods called only as self.<name>(, count whose outlining to _name(coord,...) lowers sum(cut_*)+cross_seam_edges of structure.measure(), and the summed fall.",
+    "method": "re-ran helper_escape.py both arms; own reverse-direction harness on temp copies; AST census of coord-param module functions",
+    "attacks": "Instrument-only, no HA/hastub path. The ratchet rewards the HANDOVER:33-refused move. Severity low. Seam rule partial: 11 helpers/30 refs vs package-wide 52 coord-first functions/92 loads; misses module.attr(self) callees (boost.apply, boost.restore_session, pump_arbiter.apply/own/release, setpoint_check.evaluate, away.persist_override) and transitive callees. No bugclasses class fits (I2 is gate closures).",
+    "class": null,
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D7-s1-02",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "finder: survivors=2 (drift, stress), drift_leaf killed by entities.py; own verdict_reach.py: verdict lines hit 0 under entities.py and features.py, _diff_leaves control 1622, self-probe 0->1",
+    "metric_definition": "Number of the two gate verdict lines (env_drift.main _diff_leaves call, stress.py `if ratio > allowed:`) executed at least once by a runnable driver, via sys.monitoring LINE events.",
+    "method": "re-ran train_mutations.py --only drift_leaf,drift,stress; own line tracer over entities.py and features.py",
+    "attacks": "Instrument-only; verdicts sit in __main__/main(), unreachable by import. Correction: scenario_budget is executed 0 times under both drivers, contrary to 'pinned'. Weakened to low: no wrong value at baseline; the surviving edit is a call-site deletion in two files code-owned by @tvofi; the likelier comparator regression (drift_leaf) is killed. Seam rule is a fixed 4-mutant list; census: 130 verdict calls in main/__main__ across 19 tests scripts (stress.py 89).",
+    "class": "I1",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D7-s2-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "finder: bias_gt5pct=3, adopted=0; substep 3->0, adopted 0->2; own sysid_cadence.py (1-min truth): biased-or-refused per cadence 10/15/30/60/120 = 0/0/3/3/3 (9 of 15), adopted 2/0/0/0/0; perturbed 4 of 15, 7 adopted",
+    "metric_definition": "Per allowed coordinator cadence, presets (of 3) whose production identify_slab UA on a 1-minute-integrated noise-free truth has |bias|>5% or no fit, and presets adoption_decision admits.",
+    "method": "re-ran sysid_plant.py both arms; own cadence sweep reusing the production step driver",
+    "attacks": "Default cadence 30 min (const.py:1321), range 10-120: default and longer cadences all hit 3/3. Continuous house = realistic truth. No divergent stub symbol on the path. Opt-in feature, armed by button. adopted_biased=0, so the consequence is an inert experiment plus a biased published heat_loss_kw_per_c: medium. Seam rule partial: misses the passive house-loss learner's one-step simulate_step at dt_h<=1.5 h (coordinator.py:4271,:4451), bias unmeasured. Not P5 (gate refuses the biased fit).",
+    "class": null,
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D7-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "finder: 3 of 3 ingested, factor 0.8738 after 24, gate 3->0; own derate_cycle.py (full update cycles, entity states only): 25/25 blocked folds, published factor 1.0->0.9422 after 26 cycles; real immersion latch also fires (24 blocked folds, flag off); gated 0",
+    "metric_definition": "Over N coordinator._async_update_data cycles with contamination only as entity states, cycles where DefrostDerate.counts rises while _cop_fold_blocked is True, and the published factor after.",
+    "method": "re-ran learner_gates.py both arms; own full-cycle FakeHass drive with no internal attribute set",
+    "attacks": "Reached through pump_signals.read_electric_heat and the coordinator's own immersion detector, not only harness pokes. No executor/timing or divergent stub symbol. Bounded wrong learned derate: medium. Seam rule reaches every ratio learner via coordinator._measured_power; the readers outside it (pump_arbiter.py:488, accuracy.py:275) fold no learner. P2: guard present on the COP learner, missing on its sibling _settle_defrost.",
+    "class": "P2",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D7-s3-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "finder: reach 9 dead, sentinel 0 of 10 production-called; own member_trace.py: entities.py 0/10 production, 0 test; features.py 0/10 production, 7/10 test; perturb next_optimization 0->8 production calls",
+    "metric_definition": "Per member, calls to its own code object split by the calling frame's file (custom_components vs other) over one full driver run; headline = members with >=1 production caller.",
+    "method": "re-ran reach.py --list and sentinel.py; own sys.monitoring caller trace over entities.py and features.py with perturbation",
+    "attacks": "None of the 10 names is on HA's read surface; the production strings are coordinator.data keys; the dynamic getattr sites use other literals, so real HA reaches them no more than hastub. Hygiene, low. Seam rule reach.py --list finds 9 of 10 (samples collision). No class covers dead code.",
+    "class": null,
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D7-s3-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "finder: dead_methods 0 / 5 / 1 / 11 across screen arms; own runtime trace: 0 production callers for all 6 hidden members",
+    "metric_definition": "structure.measure() dead_methods under the two in-memory screen changes, against the runtime production-caller count of the same members.",
+    "method": "re-ran screen.py four arms; cross-checked against member_trace.py; read structure.py docstrings",
+    "attacks": "Exclusion documented as deliberate (structure.py:303-311, :405-414), so the rules act as written; the finding stands on consequence (no metric screens unread properties; budget 0 beside 6 dead). Seam rule lists 11 = 9 dead + 2 false positives (hvac_mode, preset_mode: read by real HA, never by the hastub holder ClimateEntity) and misses DefrostDerate.samples. I4 is the nearest class.",
+    "class": "I4",
+    "seam_rule_enumerates": "partial"
+   }
+  ],
+  "leads": [
+   {
+    "id": "D5-s2-51",
+    "vote": "verify",
+    "severity": "low",
+    "value": "handed_offset_steps=0 vs elapsed_steps=2; model_sequence_writes=0 (perturbed: 2; 1)",
+    "metric_definition": "(a) shift aligning the handed plan to the previous plan after one 30-min re-plan; (b) sequence-valued ThermalModel attribute writes during one valved solve.",
+    "method": "Re-ran tools/audit/round9/D5/leads/dataflow_comments.py baseline and --shift --plant; independently re-read optimizer.py:3100 and :1084-1089 and coordinator.py:_warm_seeded verbatim via tools/audit/round9/D5/verify-v3-leads/v3_dataflow_comments_recheck.py.",
+    "attacks": "Reachability: both cited sites are production code (coordinator._warm_seeded runs every MPC re-plan; ThermalModel.__setattr__ during optimize runs every solve), not test-only -- confirmed by grep showing _warm_seeded's only caller is coordinator.py:4772's real solve path. Gate mode: not applicable (no golden/mutation claim). Grid/aggregate: not applicable, exact counts. Null control: both counters move together only when the described flow is planted (2/1), and stay at (0/0) otherwise -- control holds. Severity: a comment inaccuracy with no behavioural effect (D0-s3 and D7-s2's cited non-findings already established the code is correct); hygiene/low is earned, not inflated.",
+    "class": "I5",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D7-s3-51",
+    "vote": "verify",
+    "severity": "low",
+    "value": "swallowed=2 of 2; syntax_warnings=1 (fixed: 0/0); recursive tree-wide scan (tests/+custom_components/+tools/, CPython 3.14's own PEP 765 warning): 1 site total",
+    "metric_definition": "Of 2 arms (CancelledError, KeyboardInterrupt from the first refresh, recovery refresh then raising), arms where _async_check_a4 returns instead of propagating; plus SyntaxWarnings on compile.",
+    "method": "Re-ran tools/audit/round9/D7/leads/nightly_finally_return.py baseline and --fixed. Independently re-swept the whole tree (not just the finder's non-recursive tests/*.py glob) with tools/audit/round9/D7/verify-v3-leads/v3_finally_return_seam_sweep.py, using CPython 3.14's own compile()-time SyntaxWarning rather than a hand-rolled AST walk (a naive AST walk over-counts: tests/gate_lock.py:433/435 have a break/continue scoped to their own nested for-loop inside the finally, which the compiler correctly does not warn on since it does not escape the finally -- confirmed with `python3 -W error::SyntaxWarning -c \"py_compile.compile('tests/gate_lock.py', doraise=True)\"` returning ok).",
+    "attacks": "Reachability: tests/nightly_ha.py is not production custom_components code, but per ha_contract.py's own docstring this exact file is executed unmodified against real, container-installed Home Assistant in the nightly lane -- so the swallow is reachable in real HA, just in the audit's own instrument rather than the integration. Per tools/audit/README.md's 'a defect in an instrument is a finding' rule this is a legitimate finding of D7, not void for being test-tooling. Gate mode: N/A. Contention: load1 1.15-2.10 across re-takes, thread_factor 1.000 throughout, count metric so contention-immune. Consequence: a genuinely interrupted nightly run is recorded as an ordinary A4 failure instead of aborting, which can send a later seat chasing a phantom regression -- bounded to the nightly informational lane (not a merge gate), so low/bug stands rather than medium.",
+    "class": "new",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D11-s1-71",
+    "vote": "verify",
+    "severity": "low",
+    "value": "divergent_cells=2 of 6 (eol perturb: 1); null_control_wellformed_divergent=0 of 3; live_rules_divergent=0 of 10",
+    "metric_definition": "Probe rule frontmatters on which rules_sync parse().paths and policy_lint rulePaths() return different lists (JSON-compared).",
+    "method": "Re-ran tools/audit/round9/D11/leads/l3_frontmatter_parsers.mjs baseline and --perturb eol. Independently re-derived the reader set with tools/audit/round9/D11/verify-v3-leads/v3_frontmatter_seam_recheck.mjs: narrowed .claude/workflows/*.mjs to the 4 files that read .claude/rules at all, then read each by hand -- brief_lint.mjs discusses citation 'paths' in prose only, friction_issues.mjs only quotes rule filenames as strings, neither builds a paths/scope list from a frontmatter.",
+    "attacks": "Seam enumeration: the finding's own seam_rule (grep 'paths' .claude/workflows/*.mjs) is imprecise (a literal-text grep both misses rules_sync.mjs, whose parse() never spells the word 'paths:', and would false-hit unrelated keys like harness_paths: elsewhere), but the underlying claim -- exactly 2 real readers -- is independently confirmed by reading the 4 candidate files by hand; no third reader exists. Severity: 0 of 10 live rules diverge today (a capability, not an incident), so low/hygiene-adjacent bug is earned. Gate/aggregate/null-control: not applicable to this count-based, non-timing finding; a leave-one-out is not meaningful over 6 hand-built probe shapes rather than a grid.",
+    "class": "I4",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D11-s1-72",
+    "vote": "verify",
+    "severity": "low",
+    "value": "escaping_cells=3 of 3 (perturb all-files: 0 of 3); live_gov_missing=1 (rerun-stale-verdict) -- already true at baseline, before any perturbation",
+    "metric_definition": "Probe cells (one new job appended to a workflow file GOV's rule or D13's re-derivation counts as governance) in which entities.py's GOV pin still passes.",
+    "method": "Re-ran tools/audit/round9/D11/leads/l3_gov_pin.py baseline and --perturb all-files. Independently re-read tests/entities.py's pin and governance_cost.py's derivation comment directly with tools/audit/round9/D11/verify-v3-leads/v3_gov_pin_source_recheck.py, bypassing the finder's own re-derivation code.",
+    "attacks": "Independent read confirms the mechanism exactly: the pin's second arm is `_workflow_job_ids(Path('.github/workflows/governance.yml').read_text()) <= GOV` (1 file), while governance_cost.py's own comment derives GOV from governance.yml plus 3 more files (tests.yml for `briefs`, pr-contract.yml, budget-raise-gate.yml) -- and budget-raise-gate-rerun.yml is not even named by that derivation comment, yet `rerun-stale-verdict:` is a real job there (grep-confirmed) and is absent from GOV. This is not a hypothetical escaping cell: the pin is already blind to a live job today, independent of the injected perturbation. Consequence is bounded to D13's cost-accounting split (a governance job's seconds counted as non-governance overhead), not a security or merge-gate bypass, so low stands rather than escalating to medium/high; flagging the already-live status for the judge's attention rather than unilaterally raising severity.",
+    "class": "I4",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D7-s1-71",
+    "vote": "verify",
+    "severity": "low",
+    "value": "sites_not_following=3 of 5 (perturb literal: 1 of 5; no-move control: 0 of 5); independent recheck: coil_callers=3, coil_callers_passing_inlet=3, coil_callers_omitting=0",
+    "metric_definition": "Of 5 production sites resolving a cold-water inlet default, those whose delivered value does not move when const.DEFAULT_DHW_INLET_TEMP is moved 10.0 -> 12.5.",
+    "method": "Re-ran tools/audit/round9/D7/leads/l3_cold_water_default.py baseline, --perturb literal and --no-move. Independently re-derived the 3-spellings claim and every dhw_coil_draw_reduction call site's arguments with tools/audit/round9/D7/verify-v3-leads/v3_cold_water_default_recheck.py.",
+    "attacks": "Reachability: bare ThermalParameters() is reached through sysid.py's _sizing_model (2 production call sites, sysid.py:276/1203) -- a real production identification path, not test-only. The third site, dhw_coil_draw_reduction's own inlet_temp=DHW_COLD_WATER_TEMP default argument, is confirmed (independently, by reading all 3 of its production call sites) never actually reached today: optimizer.py:3397/4571 and thermal_model.py:3155 all pass inlet_temp explicitly. This matches the finder's own null control ('no user-visible divergence today') exactly -- the finding is honestly scoped as a capability/hygiene issue, not an inflated live-divergence claim, so low/hygiene is the right severity and the vote is verify rather than weaken.",
+    "class": "new",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D7-s3-72",
+    "vote": "verify",
+    "severity": "low",
+    "value": "write_only_members=4 of 5 (perturb reader: 3 of 5); live_control_buffer_consumer_reads=97344; independent static recheck: external_refs=0 for all 4 named members across custom_components/",
+    "metric_definition": "ThermalModel _step_* members with >=1 production write and 0 reads from production functions that never write that member, over four golden solves.",
+    "method": "Re-ran tools/audit/round9/D7/leads/l3_write_only_scratch.py baseline and --perturb reader. Independently re-checked with a static, tree-wide grep (tools/audit/round9/D7/verify-v3-leads/v3_write_only_scratch_static_recheck.py) rather than the finder's dynamic 4-golden-solve trace.",
+    "attacks": "Reachability: all four members are written inside ThermalModel.simulate_dhw_step / _simulate_step_two_zone, which run on every real solve (production, not test-only). Static recheck confirms 0 references from any file outside thermal_model.py for all 4 members, matching the finder's dynamic '0 consumer reads' exactly. One nuance the dynamic trace could not see: thermal_model.py:2399 (`wood_refused += self._step_wood_refused`, inside simulate_step's own multi-substep averaging) IS a source-level self-read of _step_wood_refused, but it fires only when a stability substep split (n_sub>1) triggers, which none of the 4 traced golden solves hit -- so the finder's self_reads=0 is an accurate count of the traced scenarios, not a static absence, and this self-read is by a method the harness itself already lists as a writer (so it stays a 'self_read', never a 'consumer_read', under the finder's own taxonomy) and does not change the write-only-to-external-consumers verdict. Severity: dead bookkeeping with a bounded cost (CPU only, no wrong output), hygiene/low is earned.",
+    "class": "new",
+    "seam_rule_enumerates": "partial"
+   },
+   {
+    "id": "D6-s1-81",
+    "vote": "verify",
+    "severity": "low",
+    "value": "fallback_reached=0 of 2 (perturb: 2 of 2); independent wheel recheck: self.currency: str = \"EUR\" on both 2025.2.0 and 2026.2.3",
+    "metric_definition": "HA core versions for which resolve_currency on core's own Config.currency default returns FALLBACK_CURRENCY.",
+    "method": "Downloaded both wheels myself (venv314 has no pip module; system pip3 is CPython 3.11, which PyPI refuses for these >=3.13-only specs, so used `python3 -m pip download --python-version 3.14 --only-binary=:all:`) and re-ran tools/audit/round9/D6/leads/l4_currency_fallback.py --wheels against them, plus tools/audit/round9/D6/verify-v3-leads/v3_currency_wheel_recheck.py, a line-scan of homeassistant/core_config.py independent of the finder's AST walk.",
+    "attacks": "Reachability: maximally direct -- this is exactly the real-HA-vs-stub axis the V3 lens exists for, and it comes out the opposite way the README claims: real HA core (both the hacs.json floor 2025.2.0 and current 2026.2.3) always initializes Config.currency to 'EUR', so the SEK fallback in currency.py is live only against tests/harness.py's FakeHass, never against real Home Assistant. Consequence: no wrong money or wrong behavior (real HA never leaves currency unset, so the fallback is simply unreachable dead code, not a live misfire) -- hygiene/low is correct, not inflated. Null control confirms the stub is the only source of the SEK label.",
+    "class": "P11",
+    "seam_rule_enumerates": true
+   }
+  ]
+ }
+}
