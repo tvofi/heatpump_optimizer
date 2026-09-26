@@ -117,26 +117,38 @@ pr_head_ref() { # branch name ('' or '-' when detached), remote ('' or '-' -> or
 # does not know is refused as unclassified, and a script named on a pinned
 # job's run line with no interpreter on that logical line is refused as
 # unparsed. A reader that only matched what it expected passed nine of
-# thirteen one-job perturbations of governance.yml silently.
+# thirteen one-job perturbations of governance.yml silently; the second
+# review found two more, a YAML-equal file indented four spaces and PINNED
+# renamed, so jobs are found at the file's own indent and any checkout from a
+# ref counts as naming a pin.
 PIN_AWK=$(cat <<'AWK'
 function flush_job(   p) {
-  if (job == "") return
-  if (mentions && pinstyle != "both" && pinstyle != "pr")
-    problems = problems "unclassified " FILENAME ":" job " -- it names PINNED but has no `PINNED: ${{ github.event.pull_request.base.sha[ || github.sha] }}` line with a `git checkout \"$PINNED\" --` after it\n"
-  if (pinstyle == "both") {
+  if (job == "" && mentions)
+    problems = problems "unclassified " jfile ": outside any job the reader found -- it names a pin or a checkout from one\n"
+  if (job != "" && mentions && pinstyle != "both" && pinstyle != "pr")
+    problems = problems "unclassified " jfile ":" job " -- it names a pin or a checkout from one, but has no `PINNED: ${{ github.event.pull_request.base.sha[ || github.sha] }}` line with a `git checkout \"$PINNED\" --` after it\n"
+  if (job != "" && pinstyle == "both") {
     for (p in mentioned) if (!(p in invoked))
-      problems = problems "unparsed " FILENAME ":" job " " p " -- named on a run line where no interpreter is read\n"
+      problems = problems "unparsed " jfile ":" job " " p " -- named on a run line where no interpreter is read\n"
     for (p in invoked) graders[p] = 1
   }
   split("", mentioned); split("", invoked)
   job = ""; mentions = 0; pinstyle = ""; expr = ""; inpin = 0; buf = ""
 }
-FNR == 1 { flush_job() }
-/^  [A-Za-z0-9_-]+:[[:space:]]*(#.*)?$/ { flush_job(); job = $1; sub(/:$/, "", job); next }
-/^[^ ]/ { flush_job(); next }
+FNR == 1 { flush_job(); injobs = 0; jind = ""; jfile = FILENAME }
+# A job header is a key at the indent of the first key under `jobs:`, which
+# YAML leaves to the file: two spaces here, four in an equal file.
+injobs && /^ +[A-Za-z0-9_-]+:[[:space:]]*(#.*)?$/ {
+  ind = $0; sub(/[^ ].*$/, "", ind)
+  if (jind == "") jind = ind
+  if (ind == jind) { flush_job(); job = $1; sub(/:$/, "", job); next }
+}
+/^[^ ]/ { flush_job(); injobs = ($0 ~ /^jobs:[[:space:]]*(#.*)?$/); jind = ""; next }
 /^[[:space:]]*#/ { next }
 {
-  if ($0 ~ /PINNED/) mentions = 1
+  # A pin under another name is still a pin: a checkout that restores paths
+  # from a ref counts as naming one, so a renamed PINNED is unclassified.
+  if ($0 ~ /PINNED/ || $0 ~ /git (checkout|restore) [^#]*--/) mentions = 1
   if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
   else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha \}\}[[:space:]]*$/) expr = "pr"
   if ($0 ~ /git checkout "\$PINNED" --/) { if (expr != "") pinstyle = expr; inpin = 1; next }
@@ -918,7 +930,7 @@ PY
   awk -v c="python3 -I $OWN --check" '/^rc=0$/ { print c } { print }' "$WF/deleted.sh" > "$WF/above.sh"
   [ "$(pinned_unrun "$WF/above.sh" .github/workflows/*.yml)" = "$OWN" ]
   st $? 0 "a pinned grader called only above rc=0 is named"
-  for pert in unquoted braced no-pinned-line env-indirect x-flag bare-python uv-run continuation; do
+  for pert in unquoted braced no-pinned-line env-indirect x-flag bare-python uv-run continuation indent4 renamed; do
     rm -f "${WF:?}/wf/"*.yml; cp .github/workflows/*.yml "$WF/wf/"
     PERT=$pert python3 - "$WF/wf/governance.yml" <<'PY'
 import os, sys
@@ -931,13 +943,32 @@ elif k == "env-indirect": t = s.replace("PINNED: ${{ github.event.pull_request.b
 elif k == "x-flag": t = s.replace(own, own.replace("-I ", "-I -X utf8 "), 1)
 elif k == "bare-python": t = s.replace(own, own.replace("python3 ", "python "), 1)
 elif k == "uv-run": t = s.replace(own, "uv run " + own.replace("python3 ", "python "), 1)
+elif k == "indent4":  # YAML-equal: every line under `jobs:` two spaces deeper
+    head, _, body = s.partition("\njobs:\n")
+    t = head + "\njobs:\n" + "".join("  " + l if l.strip() else l for l in body.splitlines(True))
+elif k == "renamed": t = s.replace("PINNED", "PIN")
 else: t = s.replace("run: " + own, "run: |\n          python3 -I \\\n            tools/audit/round6/D11/fix/codeowners_gap.py --check", 1)
 assert t != s, k
 open(p, "w").write(t)
 PY
     pinned_verdict "$WF/deleted.sh" "$WF/wf/"*.yml >/dev/null
     st $? 1 "governance.yml perturbed ($pert), with step 3e's run deleted, is refused"
+    # The reader reads a shape it knows rather than refusing it: with 3e's run
+    # present, each of these passes (null control).
+    case $pert in x-flag|bare-python|uv-run|continuation|indent4)
+      pinned_verdict tools/audit/prepr.sh "$WF/wf/"*.yml >/dev/null
+      st $? 0 "governance.yml perturbed ($pert), with step 3e's run present, passes (null control)" ;;
+    esac
   done
+  # The last job of a file is flushed when the next file starts: its problem
+  # must name its own file. A pin named outside every job is refused too.
+  printf 'jobs:\n  last:\n    steps:\n      - run: git checkout "$PIN" -- %s\n' "'x.mjs'" > "$WF/a.yml"
+  printf 'jobs:\n  other:\n    steps: []\n' > "$WF/b.yml"
+  grep -q "^unclassified $WF/a.yml:last " <<<"$(pin_read problems "$WF/a.yml" "$WF/b.yml")"
+  st $? 0 "a problem names the file its job is in, not the file read next"
+  printf 'env:\n  PINNED: ${{ github.sha }}\njobs:\n  a:\n    steps: []\n' > "$WF/c.yml"
+  grep -q "^unclassified $WF/c.yml: outside any job" <<<"$(pin_read problems "$WF/c.yml")"
+  st $? 0 "a pin named outside every job is refused"
   printf '%s\n' .claude/workflows/check-wave-script.mjs > "$WF/changed"
   pinned_touched "$WF/changed" "$(pinned_paths .github/workflows/*.yml)"
   st $? 0 "a change to a pinned .mjs touches a pin"
