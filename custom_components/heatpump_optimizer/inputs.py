@@ -46,6 +46,7 @@ from typing import Any
 from .const import (
     ENERGY_UNIT_TO_KWH,
     INPUT_MAX_AGE_MINUTES,
+    INPUT_PLAUSIBLE_RANGE_C,
     POWER_UNIT_TO_KW,
     PRICE_ENERGY_TO_KWH,
     PRICE_MAJOR_SYMBOLS,
@@ -196,6 +197,52 @@ class InputHealth:
     def problem_messages(self) -> list[str]:
         """One short line per failing input, in :meth:`details` order."""
         return [describe_problem(entry) for entry in self.details()]
+
+
+def state_stamp(state: Any) -> datetime | None:
+    """When Home Assistant last heard from the entity behind ``state``.
+
+    The one stamp chain every freshness decision reads (D1-s5-01).
+    ``last_reported`` first: ``last_updated`` only moves when the state
+    *object* changes, so a live sensor re-reporting an unchanged value -- a
+    stable tank overnight -- read as silent while a genuinely dead sensor
+    looked no different. A dead sensor stops reporting too, so the
+    fail-closed intent is preserved. The #775 fix taught the reader this and
+    left ``age_of`` on the old chain; one owner is what stops that recurring.
+    """
+    stamp = (
+        getattr(state, "last_reported", None)
+        or getattr(state, "last_updated", None)
+        or getattr(state, "last_changed", None)
+    )
+    return stamp if isinstance(stamp, datetime) else None
+
+
+def state_age(state: Any, now: datetime) -> timedelta | None:
+    """``now`` minus :func:`state_stamp`, signed, or ``None`` if unknowable.
+
+    Negative for a stamp ahead of ``now``, which every caller must refuse
+    rather than read as fresh (#775). ``None`` with no comparable pair:
+    mixing naive and aware datetimes raises, and an unknown age is not the
+    same as "fresh".
+    """
+    stamp = state_stamp(state)
+    if stamp is None or stamp.tzinfo is None or now.tzinfo is None:
+        return None
+    return now - stamp
+
+
+def plausible_c(key: str, value_c: float) -> bool:
+    """Whether ``value_c`` lies in the physical window of what ``key`` measures.
+
+    ``True`` for a key with no window. The boundary D1-s5-52 found missing:
+    a DS18B20 reports -127 degC for a lost bus and 85 degC for a power-on
+    reset, both finite numbers in the right unit, and ``read`` delivered
+    them as measurements to every consumer. See
+    :data:`~.const.INPUT_PLAUSIBLE_RANGE_C` for the windows.
+    """
+    window = INPUT_PLAUSIBLE_RANGE_C.get(key)
+    return window is None or window[0] <= value_c <= window[1]
 
 
 def max_age_for(key: str, scale: float = 1.0) -> float | None:
@@ -521,25 +568,14 @@ class InputReader:
         sensor re-reporting an unchanged value — a stable tank overnight — was
         flagged stale while a genuinely dead sensor looked no different. A dead
         sensor stops reporting too, so the fail-closed intent is preserved.
+        The chain and the comparison are :func:`state_age`'s.
         """
-        stamp = (
-            getattr(state, "last_reported", None)
-            or getattr(state, "last_updated", None)
-            or getattr(state, "last_changed", None)
-        )
-        if not isinstance(stamp, datetime):
-            return None
-        now = self._utcnow()
-        if stamp.tzinfo is None or now.tzinfo is None:
-            # Mixing naive and aware datetimes raises; without a comparable
-            # pair the age is unknown, which is not the same as "fresh".
-            return None
-        age = (now - stamp).total_seconds() / 60.0
+        age = state_age(state, self._utcnow())
         # A stamp ahead of now is not freshness. Clamping to 0.0 made a
         # backward host-clock step report every input as brand new (#775).
-        if age < 0.0:
+        if age is None or age < timedelta(0):
             return None
-        return age
+        return age.total_seconds() / 60.0
 
     def _begin(
         self,
@@ -593,22 +629,13 @@ class InputReader:
 
     def _age_gate(self, reading: InputReading, state: Any) -> None:
         """Record the reading's age and flag it stale when over the limit."""
-        age = self._age_minutes(state)
+        signed = state_age(state, self._utcnow())
+        # `signed is None` is fresh only when there is no comparable stamp
+        # (untimestamped stubs). A future stamp is the #775 fail-open.
+        future = signed is not None and signed < timedelta(0)
+        age = None if signed is None or future else signed.total_seconds() / 60.0
         reading.age_minutes = age
         limit = reading.max_age_minutes
-        # `age is None` is fresh only when there is no comparable stamp
-        # (untimestamped stubs). A future stamp is the #775 fail-open.
-        stamp = (
-            getattr(state, "last_reported", None)
-            or getattr(state, "last_updated", None)
-            or getattr(state, "last_changed", None)
-        )
-        future = (
-            isinstance(stamp, datetime)
-            and stamp.tzinfo is not None
-            and self._utcnow().tzinfo is not None
-            and age is None
-        )
         if self.enabled and limit is not None and future:
             reading.problem = "stale"
             _LOGGER.warning(
@@ -659,6 +686,18 @@ class InputReader:
 
         reading.value = value
         self._age_gate(reading, state)
+        if not plausible_c(key, value):
+            # A sensor fault code is not a measurement at any age: withheld
+            # outright, where a stale value stays readable (D1-s5-52).
+            reading.value = None
+            reading.problem = "implausible"
+            _LOGGER.debug(
+                "Input %s (%s) reads %.1f, outside %s; treating as missing",
+                key,
+                reading.entity_id,
+                value,
+                INPUT_PLAUSIBLE_RANGE_C[key],
+            )
         return self.health.record(reading)
 
     def read_state(
@@ -805,6 +844,7 @@ def stale_summary(health: InputHealth) -> str:
 #: which sensor to go and fix is owed words. A token not yet in this table
 #: renders as itself, so a future failure class cannot publish nothing.
 PROBLEM_WORDS: dict[str, str] = {
+    "implausible": "outside its plausible range",
     "missing_entity": "entity not found",
     "not_boolean": "not a yes/no flag",
     "not_numeric": "not a number",
@@ -831,12 +871,10 @@ def describe_problem(entry: dict[str, Any]) -> str:
 
 
 def age_of(state: Any, now: datetime) -> timedelta | None:
-    """Age of a Home Assistant state object, for callers outside the reader."""
-    stamp = getattr(state, "last_updated", None) or getattr(
-        state, "last_changed", None
-    )
-    if not isinstance(stamp, datetime):
-        return None
-    if stamp.tzinfo is None or now.tzinfo is None:
-        return None
-    return now - stamp
+    """Age of a Home Assistant state object, for callers outside the reader.
+
+    The reader's rule exactly (D1-s5-01): :func:`state_age`'s stamp chain,
+    and ``None`` for a stamp ahead of ``now``, which every caller refuses.
+    """
+    age = state_age(state, now)
+    return None if age is None or age < timedelta(0) else age
