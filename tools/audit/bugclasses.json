@@ -154,11 +154,11 @@
   "P11": {
     "kind": "production",
     "mechanism": "The only oracle for an external counterpart (Home Assistant core, its state machine, its recorder REST API, a device behind an integration) is a test double the implementer wrote from what the code needed, so the tests agree with a wrong implementation",
-    "rounds": [],
-    "instances": ["v6.6.12 bug 1", "v6.6.12 bug 3", "v6.6.12 bug 4", "v6.6.12 bug 5", "v6.6.12 bug 6", "v6.6.12 bug 7", "v6.6.12 arbiter listener without @callback", "v4.0.0 _on_power_event without @callback", "#1290 card history repair", "#511 stub import shape"],
-    "detector": null,
+    "rounds": [9],
+    "instances": ["v6.6.12 bug 1", "v6.6.12 bug 3", "v6.6.12 bug 4", "v6.6.12 bug 5", "v6.6.12 bug 6", "v6.6.12 bug 7", "v6.6.12 arbiter listener without @callback", "v4.0.0 _on_power_event without @callback", "#1290 card history repair", "#511 stub import shape", "D1-s1-51", "D1-s1-52", "D1-s2-71", "D6-s1-81", "D10-s1-03", "D14-s4-02"],
+    "detector": "PYTHONPATH=tests/hastub python3 tests/ha_contract.py",
     "detector_idea": "Per seam, an enumerating sweep that drives every production call site through a double whose behaviour is cited to upstream source or measured on the device; tests/entities.py's entity-action sweep (handoff/v6612-root-cause) is the first",
-    "barrier": null,
-    "status": "open"
+    "barrier": "tests/ha_contract.py on the PR gate (F10.1, #1649): a contract that reached none of its asserts fails; every expect=both contract of a symbol a test hook feeds (HOOKS: dt_util.freeze) re-runs in each hook state; every parameter a stub accepts and never reads must be declared in DROPPED. Reaches the vacuous-contract, hook and dropped-parameter routes (D1-s1-52, D14-s4-02, D1-s2-71). Not reached: behaviour inside a method (D1-s1-51, covered per instance by the Store decode contract and probe), an upstream symbol the stub does not model (D10-s1-03), and doubles outside tests/hastub (D6-s1-81); the RCA (round 9, P11) leaves the last to tvofi",
+    "status": "barriered"
   }
 }

@@ -47,6 +47,8 @@ worse than none:
   public names of every module the stub touches so it is at least visible.
 * **Anything needing a running ``hass``** -- the issue registry, the store,
   entity registration. Contracts here construct nothing bigger than an object.
+  The store's decode is the exception: the probe ``_p_store_decode`` reads
+  upstream's decoder, so ``--compare`` measures the stub's against it.
 * **Timing.** The real half is nightly and needs Docker, so a contract that is
   wrong about upstream is caught within a day, not on the pull request.
 """
@@ -605,8 +607,9 @@ INVENTORY: dict[str, Entry] = {
         "an honest in-memory round trip -- keyed by storage key across "
         "instances so a simulated restart loads what an earlier one saved, and "
         "serialised eagerly so a payload the real Store could not write raises "
-        "here too. Upstream's delayed write, migration and atomic replace are "
-        "not modelled",
+        "here too; a load decodes with orjson's number rules and moves a "
+        "refused document aside, loading None. Upstream's delayed write, "
+        "migration and atomic replace are not modelled",
         absent=("async_delay_save", "_async_migrate_func"),
     ),
     # -- helpers.translation ------------------------------------------------
@@ -671,9 +674,13 @@ INVENTORY: dict[str, Entry] = {
         "recorded against the identity as_local below",
         issue="#577",
     ),
-    "homeassistant.util.dt.freeze": H("a test-facing clock pin with no upstream counterpart"),
+    "homeassistant.util.dt.freeze": H(
+        "a test-facing clock pin with no upstream counterpart; the clocks "
+        "normalise what it pins, and HOOKS re-runs their contracts under it"
+    ),
     "homeassistant.util.dt.now": F(
-        "returns an aware datetime in DEFAULT_TIME_ZONE when one is configured"
+        "returns an aware datetime in DEFAULT_TIME_ZONE, UTC when none is "
+        "configured, as upstream's default zone is"
     ),
     "homeassistant.util.dt.utcnow": F("returns an aware datetime in UTC, as upstream"),
     "homeassistant.util.dt.parse_datetime": F(
