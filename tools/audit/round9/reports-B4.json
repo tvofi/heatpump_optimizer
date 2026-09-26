@@ -824,6 +824,18 @@
           "file": "tests/hastub/homeassistant/helpers/storage.py",
           "symbol": "Store.async_save/async_load",
           "what": "The stub codec is stdlib json: it decodes 10**400 as an exact int and 1e400 as inf, and it writes NaN tokens. Real HA's orjson refuses or converts these, so store-fuzz results over-report loader raises (19 of 250 accuracy mutants were stub-only)."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/",
+          "symbol": "set_thermal_parameters",
+          "what": "[carried by the orchestrator from RC2] the runtime fields it sets are not persisted and are lost at restart (user state that does not survive a restart; class of v2.4.1, v3.13.0, #1249, bug 5)"
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/",
+          "symbol": "async_reset_comfort_weight and the cycle-end save",
+          "what": "[carried by the orchestrator from R6 round 2] a save during startup, before the store's first read completes, can overwrite persisted learner state with defaults (the startup-clobber R6 fixed only in async_set_mode via async_wait_for_read)"
         }
       ]
     },
