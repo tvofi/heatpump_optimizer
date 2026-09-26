@@ -94,6 +94,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T14:15Z: tvofi asked (13:38Z, cmsg_01EL5jLi4rokGBbkaevYXSJVABGk2mn7WZhY7U617CYiHJ) whether every finding must be re-run. Decision card posted (cmsg_01EL5jLi4rokGBbkaevYXSJVBnS9hGj6i8cnZt2Wt8v8Qs), recommending 'Contested only' (~55). Judge told to split the input: JUDGE-INPUT.json = batch A (split, disputed, flagged, provisional CPU), runs first; JUDGE-INPUT-B.json = remaining unanimous, run only if tvofi picks 'All survivors'. judge.md says every survivor, so a contested-only answer is recorded as a round-9 exception in JUDGE.md.
 
+- 2026-09-26T14:17Z: tvofi chose 'Contested only' (card, 13:39Z). Runners run batch A only; unanimous rest judged on verifier reproductions, recorded in JUDGE.md as a round-9 exception. Judge told.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
