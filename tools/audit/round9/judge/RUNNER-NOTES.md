@@ -33,3 +33,10 @@ Long rows: D14-s3-02 (~10 min), D9-s2-03 (stress sweep arms, 10-20 min), D0-s2-0
 
 Judge smoke test before push (this box, load1 ~1): D2-s2-03 end_mismatch 6 -> 0 moved;
 D6-s2-05 simulate_plan_schema_only 5 -> 0 moved; D1-s1-51 divergent=6 once orjson is installed.
+
+## Scope change (tvofi, 2026-09-26T13:39Z: "Contested only")
+JUDGE-INPUT.json is now **batch A only: 46 findings** (the 3 disputed and 40 split findings less
+D3-s2-01, plus D6-s2-05 and D9-s2-02 whose verifiers flagged the metric or perturbation, plus the
+provisional CPU/timing findings D1-s2-05, D9-s1-01..04). Run it whole, sharded 1/2 and 2/2 as before.
+JUDGE-INPUT-B.json (102 unanimous findings, plus the 8 D3 mutation findings the judge sanity-checks
+by hand under tvofi's 13:41Z rule) is a record only: runners do not run it.
