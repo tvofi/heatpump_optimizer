@@ -82,6 +82,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T13:50Z: register complete @089d3470: 156 accepted from 42 seats, 0 rejected; LC leads rows added. Only the CORPUS_EXCLUDED fix remains before the register can become a PR (Mac).
 
+- 2026-09-26T13:52Z: G1-V2 lc @2be2c155: both verify medium (D3-s1-91 :8112 now executed too). Only G1-V2 leads (12 findings) outstanding.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
