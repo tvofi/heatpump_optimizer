@@ -41,15 +41,18 @@ from the table and check the handoff branch on origin first). Scratch: /tmp/clau
 | R1a checker | handoff/r9-r1a-find-checker | MERGED #1633 at c9453921 (05:28Z). PR #1633; FIXED after block: code c6ca4132, body 2bb0f8e6 (was a897272a); re-review by Cloud reviewer 2; not code-owned; review brief reviews/R1a.md → Cloud reviewer 2; Mac relayed to push; merges before R1 |
 | R1 driver | handoff/r9-r1-find-driver | FIXED after vacuous-pins block: code 2b1ddd10 (merges main c9453921), body c55db14e; sent to Mac 05:32Z; was 173061d3; push only after R1a merges + main merged in; audit-find.js @tvofi-owned; review brief reviews/R1.md |
 | R3a checker | handoff/r9-r3a-verify-checker | HANDED OFF: code 9fd82c91 (stacked on R1a c6ca4132), body 518c333a; not code-owned; brief reviews/R3a.md; push after #1633 merges |
-| R3 driver | handoff/r9-r3-verify-driver | HANDED OFF: code 241a480f (stacked on R3a), body e9459bbe; code-owned (audit-verify.js, tests/closure.py); MODE FULL; brief reviews/R3.md; push after R3a merges |
+| R3 driver | handoff/r9-r3-verify-driver | FIXED + PUSHED 05:45Z: code 7934e6ce, body f317e45f (all review items); Mac merges main in after #1635, pushes; code-owned (audit-verify.js, tests/closure.py); MODE FULL; brief reviews/R3.md; push after R3a merges |
 | R4 fixer | handoff/r9-r4-instruments | MERGED #1632 at cb78e997 (05:10Z). Was: PR #1632 open at f493fec1 (2bf7faaf + delivery row); in review by Cloud compute helper; review brief reviews/R4.md → Cloud compute helper; Mac asked to push. Policy → tvofi approval (mandate 3) |
 | R4b fixer | handoff/r9-r4b-web-fragments | MERGED #1634 at 16d811f1 (05:27Z). Was: code 26b51272, body e3872880; policy (@tvofi); review brief reviews/R4b.md; sent to coordinator ~05:10Z |
-| R6 fixer | handoff/r9-r6-reboot-toggles | running (04:50Z); RCA seat owed once cause named |
+| RC1 countermeasure | handoff/r9-rc1-pinned-local | PR #1637 @8c7c1339 in review (compute helper); #1633 Root cause comment posted+read back (gh_comment.py, owner account). Was: code de347318, body a7ea0387; prepr.sh 3e/3f/3g; state (c); #1589-class claim refuted; review brief reviews/RC1.md; #1633 Root cause section at rca/RC1-root-cause-section.md for Mac to post; merge after R1 |
+| R6 fixer | handoff/r9-r6-reboot-toggles | HANDED OFF 05:50Z: code df50ab42, body 16ed158f; (b) fixed, (a) unexplained beyond Optimizer active; not code-owned; brief reviews/R6.md; RC2 brief rca/RC2-bug5-reboot.md → root-cause seat |
 Coordinator asked (04:50Z) to: warn the Mac seat; line up Cloud compute helper / Cloud reviewer 2 as reviewers;
 start 10 box threads for phase A from /mnt/project-files/audit-r9/briefs/B<n>.md when the baseline is cut.
 Coordinator ack 04:32Z: Mac warned; reviews R1+R4 -> Cloud compute helper, R3+R6 -> Cloud reviewer 2; send head SHAs and review briefs to the coordinator.
 
 ## Verdicts received
+- #1636 (R1) @5f7ca60d: MERGE (Cloud compute helper, 05:33Z), relayed to Mac for tvofi approval (mandate) + merge.
+- R3 full list (Cloud reviewer 2, 05:33Z): B1 tree restore; M1 to_zero, M2 tolerance, M3 _shard, M4 THREAD_FACTOR_MAX pins; N1 nested flock; N2 non-dict field. R3 seat resumed to add M1-M4, N2 on dd72e18a and push.
 - #1635 (R3a) @9534f5ec: MERGE (Cloud reviewer 2, 05:32Z). R1 2b1ddd10 pre-check clean (Cloud compute helper); merge verdict at PR head pending.
 - Pre-review (Cloud compute helper, 05:26Z): R1 173061d3 BLOCKED vacuous-pins (3 refusals unpinned in check-wave-script.mjs; test-only fix + 6 non-blocking pins + rotation.json text + leads-seat branch paths). R1 seat resumed.
 - Pre-review (Cloud reviewer 2, 05:23Z): R3a 9fd82c91 clean so far; R3 241a480f BLOCKING — judge_batch runs all commands in one tree without snapshot/restore (a perturbation leaks into the next finding's row). R3 seat resumed on the fix + nested-lease note; full list to follow.
