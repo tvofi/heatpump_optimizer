@@ -8359,12 +8359,13 @@ R.check(
 _hvac_off = climate_mod.HeatPumpOptimizerClimate(
     FakeCoordinator(
         {**DATA, "mode": const.MODE_OFF,
-         "current_action": {"power": 4.0, "power_normalized": 0.85}}
+         "current_action": {"power": 0.0, "power_normalized": 0.0,
+                             "heat_pump_on": False}}
     ),
     clim._entry,
 )
 R.check(
-    "hvac_action reports OFF for the off mode even with a nonzero action",
+    "hvac_action reports OFF for the off mode with a zeroed action",
     _hvac_off.hvac_action == climate_mod.HVACAction.OFF,
     str(_hvac_off.hvac_action),
 )
@@ -8374,6 +8375,49 @@ _hvac_none = climate_mod.HeatPumpOptimizerClimate(
 R.check(
     "hvac_action is None with no coordinator data at all",
     _hvac_none.hvac_action is None,
+)
+
+# D8-s2-02/D8-s2-03, class P2 (#1683): boost.overlay() sets heat_pump_on and
+# power_normalized on the action independently of self._mode (boost.py's own
+# docstring: the channels "do not stomp comfort or economy the way selecting
+# the global boost mode does"), so a space boost run while the optimizer mode
+# is "off" used to still report hvac_action=OFF, hiding a running pump from
+# the thermostat card. The running action is now checked before the mode.
+_hvac_boost_over_off = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(
+        {**DATA, "mode": const.MODE_OFF,
+         "current_action": {"power": 6.0, "power_normalized": 1.0,
+                             "mode": "boost", "heat_pump_on": True,
+                             "boost_space": True}}
+    ),
+    clim._entry,
+)
+R.check(
+    "hvac_action reports HEATING for a space boost overlay while mode is off (#1683)",
+    _hvac_boost_over_off.hvac_action == climate_mod.HVACAction.HEATING,
+    str(_hvac_boost_over_off.hvac_action),
+)
+# hvac_mode (above) reads the live coordinator.mode, which flips at once on a
+# mode change; hvac_action used to gate on coordinator.data["mode"], the
+# payload's copy, which only catches up once the refresh that mode change
+# asked for has run its solve. Constructing the fake with a live mode that
+# disagrees with the stale payload's mode reproduces that window directly:
+# before the fix, this read OFF (the stale payload's mode); after, it follows
+# the live mode like hvac_mode does.
+_hvac_live_vs_stale = climate_mod.HeatPumpOptimizerClimate(
+    FakeCoordinator(
+        {**DATA, "mode": const.MODE_OFF,
+         "current_action": {"power": 0.0, "power_normalized": 0.0,
+                             "heat_pump_on": False}},
+        mode=const.MODE_AUTO,
+    ),
+    clim._entry,
+)
+R.check(
+    "hvac_action follows the live mode, not the stale payload's, while a "
+    "refresh is still in flight (#1683)",
+    _hvac_live_vs_stale.hvac_action == climate_mod.HVACAction.IDLE,
+    str(_hvac_live_vs_stale.hvac_action),
 )
 
 # hvac_mode: every mode MODE_TO_HVAC maps, plus the no-data fallback a
@@ -8546,6 +8590,23 @@ asyncio.run(off_switch.async_turn_on())
 R.check(
     "turning on from off selects auto",
     off_switch.coordinator.mode_calls == [const.MODE_AUTO],
+)
+
+# D8-s2-03, class P2 (#1683): ``is_on`` reads the live ``coordinator.mode``,
+# which flips at once on a mode change; the switch's own ``mode`` attribute
+# used to read ``coordinator.data["mode"]``, the payload's copy, which only
+# catches up once the refresh that mode change asked for has run its solve —
+# so the switch's state and its own attribute disagreed for that window.
+# Both now read the live mode.
+_stale_attr_switch = switch_mod.OptimizerEnableSwitch(
+    FakeCoordinator({**DATA, "mode": const.MODE_OFF}, mode=const.MODE_AUTO),
+    ENTRY,
+)
+R.check(
+    "the switch's mode attribute follows the live mode, not the stale "
+    "payload's, while a refresh is still in flight (#1683)",
+    _stale_attr_switch.extra_state_attributes["mode"] == const.MODE_AUTO,
+    str(_stale_attr_switch.extra_state_attributes),
 )
 
 away_sw = next(
