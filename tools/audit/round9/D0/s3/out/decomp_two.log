@@ -1,0 +1,33 @@
+two|winter_typical|winter_cold  J   87.1957 ->   87.1957 gap   0.0000%  dE   0.000 SEK viol 0.002/0.002 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|winter_typical|shoulder     J   14.0247 ->   14.0247 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|winter_typical|summer_warm  J 10602.6286 -> 10602.6286 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|winter_extreme|winter_cold  J  129.3401 ->  129.3401 gap   0.0000%  dE   0.000 SEK viol 0.044/0.044 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|winter_extreme|shoulder     J   22.2166 ->   22.2166 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|winter_extreme|summer_warm  J 10606.8203 -> 10606.8203 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|winter_narrow|winter_cold  J  135.4432 ->  135.4432 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|winter_narrow|shoulder     J   21.4316 ->   21.4316 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|winter_narrow|summer_warm  J 10603.4118 -> 10603.4118 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|winter_moderate|winter_cold  J  105.0009 ->  105.0009 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|winter_moderate|shoulder     J   16.6265 ->   16.6265 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|winter_moderate|summer_warm  J 10602.4779 -> 10602.4779 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|summer_typical|winter_cold  J   28.1152 ->   28.1152 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['reject']] k5 [['reject']]
+two|summer_typical|shoulder     J    5.1371 ->    5.1371 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|summer_typical|summer_warm  J 10599.5217 -> 10599.5217 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|summer_negative|winter_cold  J   19.4412 ->   19.4412 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['adopt']] k5 [['adopt', 'notrigger']]
+two|summer_negative|shoulder     J    1.1086 ->    1.1086 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|summer_negative|summer_warm  J 10598.8460 -> 10598.8460 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|shoulder|winter_cold  J   65.1612 ->   65.1612 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['adopt']] k5 [['adopt', 'notrigger']]
+two|shoulder|shoulder     J   10.3612 ->   10.3612 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|shoulder|summer_warm  J 10600.9576 -> 10600.9576 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|flat|winter_cold  J  107.8866 ->  107.8866 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|flat|shoulder     J   17.3658 ->   17.3658 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+two|flat|summer_warm  J 10602.0998 -> 10602.0998 gap   0.0000%  dE   0.000 SEK viol 0.000/0.000 step0 0.000  prod [['notrigger']] k5 [['notrigger']]
+RESULT cells=24
+RESULT extra_rounds_adopted=0
+RESULT gap_mean_priced=0.0000 %
+RESULT gap_max_priced=0.0000 %
+RESULT gap_min_priced=0.0000 %
+RESULT gap_mean_priced_drop_best=0.0000 %
+RESULT gap_mean_flat=0.0000 %
+RESULT thread_factor=1.000
+RESULT load1=5.72
