@@ -315,6 +315,63 @@
     "class": "I1",
     "seam_rule_enumerates": true
    }
+  ],
+  "leads": [
+   {
+    "id": "D2-s1-51",
+    "vote": "verify",
+    "severity": "low",
+    "value": "14 of 14 candidates off by >5% (worst_rel_err 0.527 at F-15, 0.265 at F-5); perturbation drives all to 0",
+    "metric_definition": "Candidates of the DHW setpoint sweep whose published cost_per_day differs by more than 5% from the same sweep priced at forecast_outdoor_now.",
+    "method": "Re-ran tools/audit/round9/D2/leads/dhw_sweep_outdoor.py baseline and --forecast arms; exact bitwise match to the finder's numbers.",
+    "attacks": "Contention N/A (exact count). Null control F+5=0/7 reproduced. Reachability confirmed: coordinator.py:5318 _update_current_state and :6835 _dhw_setpoint_sweep are plain production code, no HA-stub-only symbol involved (checked against ha_contract.py's HOLDER/DIVERGENT tables; FakeHass's serialised executor only changes which thread runs the call, not the arithmetic). Severity by consequence: recommended setpoint unchanged in every cell (same_recommendation=1), so this is a displayed-number bug, not a decision bug -- low confirmed.",
+    "class": "P6",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D9-s1-71",
+    "vote": "weaken",
+    "severity": "low",
+    "value": 0.058,
+    "metric_definition": "1 - (thread CPU of golden.capture with the three DHW ThermalParameters helpers memoised per instance / plain), interleaved, per DHW cell; cross-checked via a per-call microbenchmark x recorded calls-per-solve.",
+    "method": "Re-ran tools/audit/round9/D9/leads/l3_dhw_helpers.py memo and --null arms across all 5 cells; wrote and ran an independent microbenchmark (tools/audit/round9/D9/verify-v3-leads/v3_dhw_helpers_microbench.py) timing the three helpers directly x recorded call counts.",
+    "attacks": "load1 0.44-0.88 (lighter than the finder's 1.79), thread_factor=1.000 throughout. My mean saved share (0.058) is below the finder's (0.094); 2 of 5 cells (winter_two_zone_dhw 0.0035, summer_dhw_only -0.0324) fall inside my own null-arm noise band (-0.0724..+0.0524), while 3 of 5 (esp. winter_single_dhw 0.2071, corroborated by the microbenchmark's independent 0.1597 upper bound) clear it. Call counts (contention-immune) match the finder's ranges exactly. Reachable in real HA: yes, pure numeric ThermalParameters properties with no HA API surface. Severity: low, unchanged from the finder.",
+    "class": "new",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D9-s2-71",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "0 of 51 exact; CPU ratio 1.30x-2.93x on re-run (finder: 1.30x-2.70x)",
+    "metric_definition": "Count of tests/stress.py sweep_combinations() cases whose built ThermalParameters throttle (mixing_valve.is_throttling), of 51; plus per golden valve-plant optimize() thread CPU with the valve vs mixing_valve_mode='none' on the same plant.",
+    "method": "Re-ran tools/audit/round9/D9/leads/l3_valve_solve.py baseline and --perturb novalve arms.",
+    "attacks": "Coverage count (0 of 51) is exact and contention-immune, reproduced identically both runs. My per-cell valve/no-valve CPU ratios (1.30x-2.93x) bracket the finder's claim closely under similar-order load (load1 0.68-0.72 mine vs 1.83 theirs). Null controls moved only ~1-2% under the same perturbation (step_equivalents exactly unchanged: 4219488, 3507029 both arms). Reachability confirmed: mixing_valve_mode is a real config_flow field (config_flow.py:1625) driving production ThermalParameters, not test-only; no HA API surface involved so no stub/real divergence applies. Severity by consequence: a real, user-reachable, 1.3-2.9x-CPU production code path is unsampled by the only per-PR CPU gate on a stated Raspberry-Pi-class target -- medium, a latent gate-blindness risk rather than a shipped regression today.",
+    "class": "new: sweep coverage gap (a config axis absent from a combinatorial CI sweep, not a guard or a mutation)",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D2-s2-81",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "2.4672 degree-steps (2 of 12 cells breach, max 1.3144); perturbation -> 0.8574; single-zone null 0.1471",
+    "metric_definition": "Sum over steps and zones of max(0, min_temp - T_zone) of the shipped two-zone trajectory, over 6 price profiles x DHW on/off at winter_cold, 24h, stock two-zone house.",
+    "method": "Re-ran tools/audit/round9/D2/leads/l4_zone_floor.py baseline and --perturb arms across the full 12-cell grid; bitwise exact match to the finder's numbers (2.4672 / 0.1471 / 0.8574).",
+    "attacks": "This is a deterministic solver output, not a timing number; contention N/A. Grid artefact ruled out: 10 of 12 (flat-price/uncontested) cells are exactly 0, confirming the breach is price-driven not grid-wide. Null control (single-zone, same house) is 0.1471, an order of magnitude below 2.4672. Reachable in real HA: optimizer.py HeatPumpOptimizer.optimize/_comfort_terms is the coordinator's real solve path, pure arithmetic, no HA API surface. Severity by consequence: shipped plans breach a stated user guarantee (min_temp) by up to ~0.46K on price-incentivized cold cells -- medium confirmed.",
+    "class": "P3",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D2-s4-81",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "19 of 80 refused, 37 of 80 admitted, 24 of 80 aborted at zero bias/noise; perturbation -> 2 refused",
+    "metric_definition": "Preset cells (4 structures x 5 eras x 2 emitters x 2 pump sizes = 80) whose exact-plant, noise-free sysid drive completes and adoption_decision refuses.",
+    "method": "Re-ran tools/audit/round9/D2/leads/l4_sysid_null_refusal.py baseline and --perturb arms across all 80 cells; exact match to the finder's 19/37/24/80 and the perturbed 2.",
+    "attacks": "Deterministic classification, contention N/A. Grid artefact ruled out: refusals are spread across 3 of 4 structures (timber_crawlspace 8, timber_slab 4, concrete_slab 5, masonry 2), not one bad cell; dropping the worst structure still leaves 11 refused. Null control: the identical drive admits 37 of 80 cells, confirming the mechanism can admit and the 19 refusals are not a broken drive. Reachable in real HA: coordinator.py:10478/10512/10556 wire self._sysid.arm/step and adoption_decision into the real update cycle, no test-only path; pure numeric fitting/gating code with no HA API surface. Severity by consequence: 43 of 80 (54%) of the preset matrix the tree ships can never adopt learning even in the best (zero-noise, zero-bias) case, while the coordinator arms all 80 -- a systemic feature gap across the advertised preset matrix; medium is defensible without a measurement of real-install distribution across these cells.",
+    "class": "P5",
+    "seam_rule_enumerates": true
+   }
   ]
  }
 }
