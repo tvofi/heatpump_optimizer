@@ -58,6 +58,120 @@
     "class": "I3",
     "seam_rule_enumerates": "demonstrated-only: it counts verdict classes but does not enumerate the check's own seams (check-run completion order against the pr-contract run at each branch head), which is where the phenomenon lives"
    }
+  ],
+  "D1-2": [
+   {
+    "id": "D1-s4-01",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "30 of 250 duty-targeted mutants stuck (23 pinned at 0.55) when routed through production store._sanitize (the finder's 53/42 without it). On real HA: 6 of 13 on-disk spellings stuck, 3 pinned (1e300, \"1e308\", 2^70); 0 of 4 non-finite spellings stuck.",
+    "metric_definition": "Of the finder's seeded duty-targeted mutants (and 13 on-disk cell spellings on real HA), the count whose loaded duty grid still holds a cell outside [0,1] or non-finite after 24 (real HA: 200) healthy zero-duty folds, after the payload has passed the QuarantiningStore boundary.",
+    "method": "Finder's store_fuzz.py re-run (53/42/226, perturb 0). Replayed the same mutant stream through production store._sanitize. Wrote files to disk and read them with the genuine HA Store plus QuarantiningStore, then ran from_dict and 200 folds.",
+    "attacks": [
+     "re-run: exact (53, 42, 0.5500; perturb 0)",
+     "boundary bypass: the finder's harness calls from_dict directly; QuarantiningStore turns the \"nan\"/\"inf\"/\"NaN\" strings into None, so 23 of the 53 are unreachable",
+     "real HA: a literal NaN makes the whole store load return None (2 warnings); non-finite strings void the grid instead of pinning it",
+     "residual reach: finite huge or out-of-range cells survive, but observe_duty never writes them, so only a hand-edited or corrupted file carries them",
+     "severity: one pessimistic bucket, and only after file corruption"
+    ],
+    "class": "P1",
+    "seam_rule_enumerates": "all: lists all 5 _grid_of casts of DefrostDerate.from_dict (the stated property's scope). The same domain gap in other loaders is D1-s5-02's"
+   },
+   {
+    "id": "D1-s4-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "solve_failures=0, issues=0, failed_plans_published=3 per config (null control 3/1/0; perturb 3/1/0). A non-finite input at the coordinator's own seams: 0 of 36 cells reach the failed-status guard (36 of 36 optimal).",
+    "metric_definition": "The coordinator's _solve_failures and solve_failures issue count after 3 cycles in which every L-BFGS-B run raises. Own measurement: of 36 coordinator-level cells (one price, weather or solar hour set to nan/inf/-inf, two configs), how many publish a failed-status plan with no failure counted.",
+    "method": "Finder's solve_guard.py re-run. Own harness injects non-finite values into coord._prices, _weather_forecast and _solar_radiation_forecast with no injected fault, and checks that the arrays reaching optimize() are all finite.",
+    "attacks": [
+     "re-run: exact (0/0/3 vs null 3/1/0; nonfinite_input 9 failed / 2 raised)",
+     "reach of the claim's second trigger: 0/36, because the coordinator scrubs non-finite inputs before optimize(); that clause of the claim holds only at optimizer level",
+     "remaining trigger: a genuine exception inside _multi_start_minimize (pure numpy/scipy path, identical under real HA)",
+     "severity: a heuristic fallback plan is published, an ERROR is logged every cycle and the repair notice is lost; bounded cost, so medium"
+    ],
+    "class": "P2",
+    "seam_rule_enumerates": "all: both f\"failed ({e})\" writers (optimizer.py:3500, 4028). The other except sites (co-opt pass, DHW LP) are designed fallbacks, not failure statuses"
+   },
+   {
+    "id": "D1-s4-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": "226 of 250 flagged migrated, 2712 buckets discarded (perturb-label 0). On real HA 5 of 13 spellings flagged migrated. Through the boundary, 185 of 250 duty-targeted mutants flagged migrated (162 without it).",
+    "metric_definition": "Of 250 v2 payloads with one malformed duty or duty_counts cell, the count loaded with migrated=True. On real HA: the count of on-disk spellings loaded with migrated=True.",
+    "method": "Finder's store_fuzz.py re-run. Real-HA store round trip (D1-s4-01_realha_store.py). Boundary replay.",
+    "attacks": [
+     "re-run: exact",
+     "real HA widens the reach: QuarantiningStore turns every non-finite spelling into None, which voids the whole measured grid and labels a v2 store as a pre-v5.3.0 upgrade",
+     "the log line is INFO, not WARNING",
+     "trigger is still a hand-edited or corrupted file, because the integration never writes a bad cell; low stands"
+    ],
+    "class": "P1",
+    "seam_rule_enumerates": "partial: grep migrated finds only the label (defrost.py:489). The whole-grid void (_grid_of returning None on one bad cell) is not listed"
+   },
+   {
+    "id": "D1-s5-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "On real HA: reported 4/6, future 4/4, control 0/4 divergent; perturb 0/0/0. Finder's harness: 7/12, 6/6, 0/12.",
+    "metric_definition": "Cells where the value delivered through age_of (_dhw_inlet_c, _indoor_humidity_value) disagrees with InputReader._age_minutes on the identical State produced by the genuine HA StateMachine at the same instant and limit.",
+    "method": "Real HomeAssistant StateMachine.async_set with timestamp=: the same value re-written at now-1 min, a future stamp, and a changed value as control. The State is fed to the production consumers and to the reader.",
+    "attacks": [
+     "re-run: exact",
+     "real HA confirms the premise: re-setting the same value moves last_reported and leaves last_updated",
+     "sensors that only send on change have last_reported == last_updated and do not diverge (the control arm shows 0); polling and periodic re-reporters do diverge",
+     "future stamp: accepted as fresh on real HA in 4 of 4 cells",
+     "severity: humidity mold floor dropped, or DHW inlet falls back to the seasonal model; bounded"
+    ],
+    "class": "P2",
+    "seam_rule_enumerates": "all: 10 lines, i.e. both age_of consumers, age_of itself and both reader stamp reads. No other freshness site in the tree reads a HA stamp"
+   },
+   {
+    "id": "D1-s5-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "On real HA with a disk round trip: price_model 11 (still invalid next cycle 9), peak_tracker 8 (2), controls 0. Identical to the finder's run. Perturb gives 0/0.",
+    "metric_definition": "The finder's silent_invalid (N=300, seed 9) with every mutant written by the genuine HA Store and read back through production QuarantiningStore before from_dict.",
+    "method": "Imported the finder's __main__-guarded module and wrapped both from_dict with a real HA Store.async_save followed by QuarantiningStore.async_load. The event loop runs on its own thread, so thread_factor is 2.6 by construction; the metric is a count.",
+    "attacks": [
+     "re-run: exact",
+     "boundary: all 19 are finite out-of-domain values, so quarantine leaves them untouched (81 payloads were changed by the boundary, 8 loaded as None)",
+     "HA refuses to write ints above 64 bits; the finite ones persist",
+     "trigger is a hand-edited or corrupted file only; the consequence (tail prices of 0, a negative published peak) justifies medium"
+    ],
+    "class": "P1",
+    "seam_rule_enumerates": "partial: 16 def-sites in 14 files. It misses the inline coordinator loaders (thermal_learning_store at coordinator.py:2847, the energy store) and legionella, apply_draws and apply_cooling_rate"
+   },
+   {
+    "id": "D1-s5-03",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "Real HA over real HTTP: tibber_huge_int 0 rows (JSONDecodeError) and open_meteo_huge_int 0, both baseline and with the fix. entity_huge_int 0 goes to 24 with the fix. Controls 24/72/24.",
+    "metric_definition": "Rows or points delivered for 24 (72) valid rows plus one 10**400 row, with the payload delivered as each source really delivers it: HTTP JSON text through HA's async_get_clientsession, or a state attribute on the genuine StateMachine.",
+    "method": "Local aiohttp server. Production pull_prices (tibber) and OpenMeteoSolar.async_refresh fetch through the real HA session. Production pull_prices (entity) reads a real HA State.",
+    "attacks": [
+     "re-run: exact (0/0/0; perturb 24/24/72)",
+     "real-HA decoder: HassClientResponse.json uses orjson, which rejects 10**400 (and turns ints of 65 bits or more into float) before the parser runs, so the parser's OverflowError is unreachable on the Tibber and Open-Meteo seams and the fix changes nothing there",
+     "entity seam: reachable only if another integration sets a Python int over 1e308 as an attribute"
+    ],
+    "class": "P2",
+    "seam_rule_enumerates": "demonstrated-only: 3 float() sites in 2 files, while 46 `except (TypeError, ValueError)` sites exist across 18 files. apply_price_adjustments is named in the fix scope but is not in the rule"
+   },
+   {
+    "id": "D1-s5-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": "Real-HA venv: hourly_only_stray irradiance 192/192 and humidity 192/192. With a full 15-minute block present: irradiance 0/192, humidity 192/192. Stray in the 15-minute block: irradiance 192/192. Healthy 0/0. Perturb: all 0.",
+    "metric_definition": "Of 192 quarter-hour steps, those for which production irradiance_for / humidity_for deliver None after one refresh containing one sample stamped 1 min off the grid, per block arrangement.",
+    "method": "Production OpenMeteoSolar.async_refresh with _get_json patched to the payload, under the real HA package; the parse is pure Python.",
+    "attacks": [
+     "re-run: exact (192/192/94, healthy 0; perturb 0)",
+     "block attack: where the API serves a 15-minute block, an hourly stray no longer erases irradiance but still erases humidity and snowfall; a stray in the 15-minute block erases irradiance",
+     "reach: timezone=UTC is requested, so there is no DST off-grid; it needs a malformed upstream response, so low"
+    ],
+    "class": "new: a series resolution inferred as the minimum gap between external timestamps, so one off-grid sample shrinks every sample's span and erases the whole series",
+    "seam_rule_enumerates": "all: the single inference site (open_meteo.py:231) feeds every _parse_block series (irradiance hourly and 15-minute, humidity, snowfall, observed)"
+   }
   ]
  }
 }
