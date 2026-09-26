@@ -330,6 +330,208 @@
     "class": null,
     "seam_rule_enumerates": null
    }
+  ],
+  "catchup": [
+   {
+    "id": "D3-s3-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "differ_tz=5/5 timestamps under TZ=Europe/Stockholm; differ_utc=0/5 (null control); step1 re-run of finder's distinguish.py: M02_differs=1",
+    "metric_definition": "Count of fixture blocks (own set, built like tests/open_meteo.py:block()) on which real vs. in-memory-mutated _parse_block disagree on the first returned UTC instant, under a given process TZ.",
+    "method": "step1: re-ran tools/audit/round9/D3/s3/distinguish.py M02 (2.8s, load1=0.44, thread_factor=1.00) -> M02_differs=1, matches finder. step2: tools/audit/round9/D3/verify-v2/catchup_m02.py builds a second in-memory copy of open_meteo.py with mutant M02's old->new text substitution and calls _parse_block on both under TZ=Europe/Stockholm (differ_tz=5/5) and TZ=UTC (differ_utc=0/5, own null control), load1=1.22, thread_factor=1.00.",
+    "attacks": [
+     {
+      "attack": "contention",
+      "outcome": "not applicable: the metric is a count/value comparison, not a timing, so contention cannot move it short of a 3600s timeout, none hit (runtime <3s); load1 0.44-1.22 quoted, not gated."
+     },
+     {
+      "attack": "wrong gate mode",
+      "outcome": "not applicable: this path never calls golden.py or env_drift.py, so there is no default-vs-`--all` distinction to get wrong."
+     },
+     {
+      "attack": "grid artefact",
+      "outcome": "not applicable: single fixed scenario per side on both the finder's and my own harness, not an aggregate over a grid; no cell to drop."
+     },
+     {
+      "attack": "null control",
+      "outcome": "present and passing on both sides: finder's identity edit under the same TZ gives kills=0 and distinguish.py --tz=UTC gives differs=0; my own harness independently reproduces the same null (differ_utc=0/5)."
+     },
+     {
+      "attack": "HA reachability",
+      "outcome": "reachable in real Home Assistant, not a test-stub artifact: a container whose process TZ is the user's local zone (not UTC) is an ordinary HA deployment; HASTUB_TZ only sets the stub's DEFAULT_TIME_ZONE, never the process TZ that this seam actually reads."
+     },
+     {
+      "attack": "severity earned",
+      "outcome": "medium is earned: every solar sample is silently shifted by the UTC offset, a wrong-but-not-crashing published value, not a data loss or host-down case."
+     },
+     {
+      "attack": "suite-blindness (no gate check kills the mutant)",
+      "outcome": "rests on the seat's recorded pre-screen evidence (tools/audit/round9/D3/s3/prescreen.json / pool.json: M02, value=0 of 14 closure drivers under the gate's UTC environment) -- cited, not re-run, per tvofi's no-heavy-D3-re-runs rule."
+     }
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D3-s3-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "differ=2/6 open_kwh inputs (1.5 and 1e9 differ; 0.0/-3.0/nan/inf agree at 0.0 on both sides); step1: M19_differs=1",
+    "metric_definition": "Count of open_kwh values in {0.0, 1.5, 1e9, -3.0, nan, inf} on which real vs. in-memory-mutated DrawStats.from_dict disagree on the restored _open_kwh.",
+    "method": "step1: re-ran distinguish.py M19 (baseline [1.5], mutant [0.0]) -> M19_differs=1. step2: catchup_m19.py builds a second in-memory copy of dhw_draws.py with M19's old->new substitution and calls DrawStats.from_dict directly on both for 6 open_kwh values; differ=2/6, load1=0.58, thread_factor=1.00.",
+    "attacks": [
+     {
+      "attack": "contention",
+      "outcome": "not applicable: count/value metric over fixed inputs, not a timing; load1 0.58 quoted, not gated; runtime under 1s."
+     },
+     {
+      "attack": "wrong gate mode",
+      "outcome": "not applicable: from_dict() is plain dataclass logic, no golden.py/env_drift.py call on this path."
+     },
+     {
+      "attack": "grid artefact",
+      "outcome": "not applicable: 6 fixed input values, not a grid aggregate; each input's result is reported individually, not averaged."
+     },
+     {
+      "attack": "null control",
+      "outcome": "present: the 4/6 agreeing inputs (0.0, -3.0, nan, inf) are the null -- both real and mutant already clamp to 0.0 there via the same max()/isfinite check, so the mutant is indistinguishable on the non-positive/non-finite cases and the claimed gap is isolated to the positive-finite ones."
+     },
+     {
+      "attack": "HA reachability",
+      "outcome": "reachable in real Home Assistant: DrawStats.from_dict runs on every store reload after a real restart, not only inside FakeHass or a test stub."
+     },
+     {
+      "attack": "severity earned",
+      "outcome": "medium is earned: an in-progress shower's occurrence energy silently resets to 0 on a restart mid-shower -- a real but bounded, single-occurrence data loss, not silently wrong money and not a host-down case."
+     },
+     {
+      "attack": "suite-blindness (no gate check kills the mutant)",
+      "outcome": "rests on the seat's recorded pre-screen evidence (prescreen.json: M19, value=0 of 16 closure drivers) -- cited, not re-run, per tvofi's no-heavy-D3-re-runs rule."
+     }
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D3-s3-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "differ_months_after_reload=1/1 (real: months_after=1, kwh_after=10.0; mutant: months_after=0, kwh_after=None); step1: M21_differs=1",
+    "metric_definition": "Whether real vs. in-memory-mutated MonthlyLedger agree on months_after and kwh_after following one finite add() and one non-finite add() on the same month, then an as_dict()/from_dict() round trip.",
+    "method": "step1: re-ran distinguish.py M21 (baseline [1,1,{'kwh':10.0,'sek':20.0}], mutant [1,0,{'kwh':nan,'sek':21.0}]) -> M21_differs=1. step2: catchup_m21.py builds a second in-memory copy of ledger.py with M21's old->new substitution, runs add(kwh=10.0) then add(kwh=nan) on both, round-trips through as_dict/from_dict; real keeps the month (kwh=10.0), mutant drops it (kwh_after=None); load1=0.52, thread_factor=1.00.",
+    "attacks": [
+     {
+      "attack": "contention",
+      "outcome": "not applicable: count/value metric on a fixed two-call scenario, not a timing; load1 0.52 quoted, not gated; runtime under 1s."
+     },
+     {
+      "attack": "wrong gate mode",
+      "outcome": "not applicable: MonthlyLedger.add/from_dict is dataclass logic with a np.isfinite scalar check, no golden.py/env_drift.py call."
+     },
+     {
+      "attack": "grid artefact",
+      "outcome": "not applicable: one fixed two-write scenario, not an aggregate over a grid."
+     },
+     {
+      "attack": "null control",
+      "outcome": "the real-side result is itself the null: the finite write alone (kwh=10.0) survives the round trip on both real and mutant when no non-finite write follows it; the divergence appears only once a non-finite write is added afterward, isolating the guard's own effect."
+     },
+     {
+      "attack": "HA reachability",
+      "outcome": "reachable in real Home Assistant: MonthlyLedger.add runs on every settled tick, and the module's own R5-D1 comment names a non-finite amount as a real upstream possibility the guard exists to catch, not a stub-only input."
+     },
+     {
+      "attack": "severity earned",
+      "outcome": "medium is earned: an entire month's cost-ledger line is silently dropped on reload -- a wrong-money defect, bounded to one month and recoverable by the next write, short of critical (no ongoing silent corruption)."
+     },
+     {
+      "attack": "suite-blindness (no gate check kills the mutant)",
+      "outcome": "rests on the seat's recorded pre-screen evidence (prescreen.json: M21, value=0 of 13 closure drivers, finite_boundary.py included) -- cited, not re-run, per tvofi's no-heavy-D3-re-runs rule."
+     }
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D3-s3-04",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "differ_fold=0/1 (no-wood-burn arm, both 0.81664, own null control); differ_fold_woodburn=1/1 (real=0.0, mutant=0.81664 with _external_heat_active forced True); step1: M24_differs=1 (baseline 0.0, mutant 0.4396)",
+    "metric_definition": "Whether a real DhwProfileLearner.async_fold_draw_stats (built through a real coordinator/FakeHass/FakeEntry) folds a non-zero open_kwh for one beyond-standby interval, real vs. in-memory-mutated M24, with and without _external_heat_active forced True.",
+    "method": "step1: re-ran distinguish.py M24 (baseline 0.0, mutant 0.4396) -> M24_differs=1. step2: catchup_m24.py builds a second in-memory copy of dhw_learning.py with M24's old->new substitution, calls async_fold_draw_stats on a real learner instance from each module copy; no-wood-burn arm agrees (0.81664==0.81664, own null control), wood-burn-forced arm disagrees (real 0.0 vs mutant 0.81664). load1=0.64, thread_factor=1.00. The suite-blindness half of the claim (an if True: mutant also survives ten drivers) is cited from the finder's recorded perturb_M24_all.out per the no-heavy-D3-re-runs rule, not re-run.",
+    "attacks": [
+     {
+      "attack": "contention",
+      "outcome": "not applicable: count/value comparison on a fixed scenario, not a timing; load1 0.64 quoted, not gated; runtime under 1s."
+     },
+     {
+      "attack": "wrong gate mode",
+      "outcome": "not applicable: async_fold_draw_stats is coordinator/learner arithmetic, no golden.py/env_drift.py call on this path."
+     },
+     {
+      "attack": "grid artefact",
+      "outcome": "not applicable: two fixed arms (no-wood-burn, wood-burn-forced), each a single scenario, not a grid aggregate."
+     },
+     {
+      "attack": "null control",
+      "outcome": "present and is the no-wood-burn arm itself: with the guard reading False on both sides there is nothing for it to skip, and real/mutant agree exactly (0.81664==0.81664), isolating the divergence to the wood-burn-forced arm where the guard actually does something."
+     },
+     {
+      "attack": "HA reachability",
+      "outcome": "reachable in real Home Assistant: _external_heat_active() reads a real auxiliary/wood-heat signal, not a FakeHass-only or test-stub-only path."
+     },
+     {
+      "attack": "severity earned",
+      "outcome": "medium is earned: a wood-burn interval's non-DHW heat gets folded into the learned draw profile, biasing it upward -- a wrong, slow-forming learned value, not a crash or an immediately wrong published number."
+     },
+     {
+      "attack": "suite-blindness (no gate check kills the mutant)",
+      "outcome": "rests on the seat's recorded pre-screen evidence for the seeded mutant M24 (prescreen.json: value=0 of 14 closure drivers) and on the finder's own recorded perturb_M24_all.out for the stronger `if True:` mutant (kills=0 over features/finite_boundary/entities/plan_view/wood_advisor/guard_pins/manual_plan/config_flow_steps/solar_alignment/env_drift) -- both cited, neither re-run, per tvofi's no-heavy-D3-re-runs rule."
+     }
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D3-s3-05",
+    "vote": "verify",
+    "severity": "low",
+    "value": "real_calls=0/5, mutant_calls=5/5, differ=1; step1: M20_differs=1 (baseline 0, mutant 5)",
+    "metric_definition": "Count of ir.async_delete_issue/create_issue calls naming dhw_disinfection_write_failed over five LegionellaGuard._drive_switch(False) cycles with an unchanged, never-failed switch, real vs. in-memory-mutated M20.",
+    "method": "step1: re-ran distinguish.py M20 (baseline 0, mutant 5) -> M20_differs=1. step2: catchup_m20.py builds a second in-memory copy of legionella.py with M20's old->new substitution, builds a real LegionellaGuard/DisinfectionSwitch (tests/harness.py FakeHass, same pattern as tests/guard_pins.py), runs five cycles counting stubbed registry calls: real=0/5, mutant=5/5. load1=0.43, thread_factor=1.00. Agree with the finder's own hygiene/low classification: the extra calls are idempotent no-ops in real Home Assistant, not a wrong value or action.",
+    "attacks": [
+     {
+      "attack": "contention",
+      "outcome": "not applicable: count metric over five fixed cycles, not a timing; load1 0.43 quoted, not gated; runtime under 1s."
+     },
+     {
+      "attack": "wrong gate mode",
+      "outcome": "not applicable: _drive_switch is coordinator/guard logic with stubbed issue-registry calls, no golden.py/env_drift.py call."
+     },
+     {
+      "attack": "grid artefact",
+      "outcome": "not applicable: one fixed five-cycle scenario, not an aggregate over a grid."
+     },
+     {
+      "attack": "null control",
+      "outcome": "the real side is itself the null: with switch.failed never changing, the guard's own intended behaviour (0 redundant registry calls) is exactly what real production shows, matching the memo's purpose; the mutant's 5/5 isolates the guard's own effect."
+     },
+     {
+      "attack": "HA reachability",
+      "outcome": "reachable in real Home Assistant: _drive_switch runs on every coordinator cycle in observe mode, and ir.async_delete_issue on an issue not currently raised is a harmless, idempotent no-op there too -- not a test-stub-only artifact."
+     },
+     {
+      "attack": "severity earned",
+      "outcome": "low/hygiene is earned, agreeing with the finder: the consequence is five redundant, idempotent registry calls per five cycles, not a wrong value, wrong money, or wrong action -- correctly not inflated to medium."
+     },
+     {
+      "attack": "suite-blindness (no gate check kills the mutant)",
+      "outcome": "rests on the seat's recorded pre-screen evidence (prescreen.json: M20, value=0 of 14 closure drivers) -- cited, not re-run, per tvofi's no-heavy-D3-re-runs rule."
+     }
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   }
   ]
  }
 }
