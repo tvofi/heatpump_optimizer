@@ -3,9 +3,10 @@
 # branch handoff/audit-r9-plan, so any local or cloud session can resume from git.
 # Usage: sync_state.sh [message]. Run after every milestone.
 set -euo pipefail
-S=/tmp/claude-0/-home-claude/1da41f8a-eb29-5a61-aca6-50a7738462b9/scratchpad
+S=${S:-/tmp/claude-0/-home-claude/1da41f8a-eb29-5a61-aca6-50a7738462b9/scratchpad}
 WT=${WT:-$S/plan-wt}
 MSG=${1:-"round9: sync state"}
+if [ ! -d "$WT/.git" ] && [ ! -f "$WT/.git" ]; then git clone -q --branch handoff/audit-r9-plan --single-branch https://github.com/tvofi/heatpump_optimizer "$WT"; fi
 cd "$WT"
 git fetch -q origin handoff/audit-r9-plan
 git checkout -q -B plan-mirror origin/handoff/audit-r9-plan
