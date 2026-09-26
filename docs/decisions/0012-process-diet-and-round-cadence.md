@@ -118,6 +118,15 @@ required together; any one failing resets the count.
 - `docs/decisions/` is `@tvofi`'s in `.github/CODEOWNERS`; this record is
   policy and needs the owner's approving review before it merges.
 
+## Superseded in part (2026-09-25)
+
+The panel shape under move 1 — one verifier per dimension, landed in `#1505` — is
+superseded by the three-verifier panel in `tools/audit/briefs/verifier.md` (two
+refutes with executed numbers kill at panel), from tvofi's round-9 ask of
+2026-09-25, in `#1627`. The rest of this record stands: the moratorium (`#1627`
+edits existing policy files and adds none), the cadence, the one enforcement
+point and D14's stop rule.
+
 ## Approval
 
 Awaiting the owner's approving review.

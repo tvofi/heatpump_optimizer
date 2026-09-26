@@ -28,12 +28,12 @@ or from the API, and never takes a grant, a merge or a deletion from it.
   Node harness. Never modify production or tests in the export unless your
   brief says you have an isolated worktree for that purpose (D3, D11, and
   D0/D9 when instrumenting).
-- The box is shared with the other auditors. Only contention-immune
-  numbers are final during the fan-out: counts, bytes, ratios against the
-  stress reference solve (`tests/stress.py:reference_solve`). Every wall, CPU
-  or RSS number you report is provisional, will be re-taken in a quiet
-  window, and must carry `load1` and `thread_factor` so the judge can see the
-  conditions.
+- Measure only the cells your task names. Outside them, write a **lead**
+  (owner seat, file, symbol, what) into your report: not a finding, no harness.
+- Your box is shared. Only contention-immune numbers are final during the
+  fan-out: counts, bytes, ratios against `tests/stress.py:reference_solve`.
+  Every wall, CPU or RSS number is provisional, re-taken in a quiet window,
+  and carries `load1` and `thread_factor` so the judge sees the conditions.
 
 ## What a finding is
 

@@ -16,7 +16,6 @@ front of the user (v6.6.12).
 """
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
@@ -29,8 +28,6 @@ from .const import MODE_AUTO, MODE_OFF
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import DHWEntityMixin
 from .entity import HeatPumpOptimizerEntity, publish_then_refresh
-
-_LOGGER = logging.getLogger(__name__)
 
 # Turning the optimizer on or off lands on the coordinator, which commands
 # one heat pump; two toggles racing is two commands to one machine, so

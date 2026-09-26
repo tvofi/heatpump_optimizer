@@ -49,6 +49,11 @@
       "old": "        return None",
       "reason": "MoldFloorBreachBinarySensor._plan_outdoor_now's trailing `return None` is the function's last statement, so deleting it (`pass`) falls off the end and returns the same None. Measured: the mutant leaves tests/entities.py at rc=0 failed=0, the same as the unmutated tree, at c4e68cac (#1497), 2026-09-24."
     },
+    "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._capacity_caps CLAMP_DROP 15b0795c": {
+      "verdict": "equivalent",
+      "old": "            cop_i = max(self._thermal_model.compute_cop(float(outdoor), humidity=hum), 1e-6)",
+      "reason": "R8-P3 round 2 re-anchored this line (it gained the humidity argument); it was unpinned at the merge base under its old text. `max(compute_cop(...), 1e-6)` cannot select the second arm: `compute_cop` returns `_cop_law`, which returns `max(cop, 1.0)` (#928's resistive bound)."
+    },
     "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._file_lead_predictions CLAMP_DROP 38072755": {
       "verdict": "equivalent",
       "old": "        dt_h = max(ctx._opt_config.time_step_minutes, 1.0) / 60.0",
@@ -58,6 +63,11 @@
       "verdict": "equivalent",
       "old": "        if unit:",
       "reason": "_unit_scale_of's `if unit:` guards only a DEBUG log line for an unknown unit; both arms then return 1.0, so the value is identical and only a log record differs. Measured: tests/features.py rc=0 at 64fc5f1f with the mutant applied. Main pinned this mutant as `_wind_speed_scale_of GUARD_OFF 428a98f5` before the wind scale became the shared `_unit_scale_of`; the text and the mutant are unchanged."
+    },
+    "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._deferred_energy_cost CLAMP_DROP 666b8bb1": {
+      "verdict": "equivalent",
+      "old": "        cop = max(self.model.compute_cop(out_mean, humidity=hum_mean), 1e-3)",
+      "reason": "R8-P3 re-anchored this line (it gained the humidity argument); it was unpinned at the merge base under its old text. `max(compute_cop(...), 1e-3)` -> `(compute_cop(...))` cannot select the second arm: `compute_cop` returns `_cop_law`, which returns `max(cop, 1.0)` (#928's resistive bound), so the COP is never below 1.0 and the 1e-3 floor never binds."
     },
     "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._repair_dhw_floor CLAMP_DROP 21bb873a": {
       "verdict": "equivalent",
@@ -285,6 +295,11 @@
       "killed_by": "tests/features.py",
       "old": "        if not result.completed:",
       "reason": "R8-P5 (#1523/#1525) added this site. `if not result.completed:` -> `if False:`, applied by the table's own operator in a detached worktree at 8a37e4a7, turns tests/features.py red: 1 of 3186 FEATURE CHECKS FAILED (control at the same SHA: ALL 3186 FEATURE CHECKS PASSED). Failing: `#1525: an unfinished result offered on a later cycle is left as it is and logs nothing`."
+    },
+    "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._capacity_caps BOOLOP a5d8d969": {
+      "killed_by": "tests/features.py",
+      "old": "            has_hum = humidity is not None and i < len(humidity)",
+      "reason": "R8-P3 round 2 (fix review): the capacity envelope's per-step humidity. `and` -> `or` evaluates `len(None)` on every call without a forecast, so tests/features.py dies with `TypeError: object of type 'NoneType' has no len()` at the #17 envelope checks (`_capacity_caps(np.array([-10.0, -10.0, 15.0]))`), measured in a git-less copy of ef45f9ce's production. A crash, not a counted FAIL line: the kill is the uncaught error on the only path every install without a humidity forecast takes."
     },
     "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._observe_frequency BOOLOP b0c65a3c": {
       "killed_by": "tests/features.py",
@@ -636,6 +651,11 @@
       "old": "            return jointly_raised",
       "reason": "arrived with round 7 D0-01 (#1447)'s scope, drawn not introduced: a new module constant and a new guard reshuffle the seeded per-file sample over optimizer.py. NOT equivalent, and the round-5 verdict that said so is withdrawn -- its premise (the tank trajectory is non-decreasing in a slot's power) was measured at draw rates under 0.004 kW, three orders below production, and fails there: 1007 of 5760 single-slot raises lower the tank, worst by 8.29 K, because the coil carries part of the draw. Killed by tests/features.py's `the jointly-raised branch ships when the coil is not monotone (R7 D0-01)` block: a 48.19 L tank, a 13.65 kW peak draw, tank at 35.9 C and weak slots 67-70 -- the branch raises all four to run_power 0.6, the fall-through loop zeroes slot 69. Deleting the branch's return reddens that check: FAIL every weak slot is raised, none zeroed, in the branch-taken case [slots 67-70 -> [0.6, 0.6, 0.0, 0.6], run_power 0.6], 1 of 3105. Survival measured UNMARKED with 19 drivers in the recorded net before the pin existed."
     },
+    "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._dhw_coil_wood_forecast RETURN_DEL bcbdf658": {
+      "killed_by": "tests/features.py",
+      "old": "        return None if wood is None else read",
+      "reason": "Recorded by `mutation_table.py --pin-killed` against 29402b6179c89cb4de6e6cca3be78762a51ca63c: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+    },
     "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._optimize_space_only GUARD_OFF 6a3be0ea": {
       "killed_by": "tests/optimality.py",
       "old": "        if self.model.params.two_zone_enabled:",
@@ -655,6 +675,16 @@
       "killed_by": "tests/features.py",
       "old": "            if ext.size < n_steps:",
       "reason": "#1562 round-3 CI survivor: without the zero pad a short external-heat forecast truncates the horizon and the solve raises IndexError; tests/features.py prints 1 of 3167 FEATURE CHECKS FAILED against a 0 baseline: `a short burn forecast is padded with zeros: it plans exactly as the full-length forecast`. Measured on the #1562 round-3 branch after merging origin/main 266d795b, 2026-09-24, in a detached worktree per mutant; the unmutated tree prints ALL 3167 FEATURE CHECKS PASSED."
+    },
+    "custom_components/heatpump_optimizer/optimizer.py:_mean_humidity RETURN_DEL 0696c43c": {
+      "killed_by": "tests/features.py",
+      "old": "    return None if humidity is None else float(np.nanmean(humidity))",
+      "reason": "R8-P3 (#1520): the horizon-mean humidity the terminal, settlement and baseline valuations price at. `pass` returns None, the ambient fallback. Measured in a git-less copy of 7c50f736 (null 1 of 3192): 2 of 3192 FAILED, the new one `a finite humidity forecast plans the same DHW schedule and trajectory whatever the current humidity is (#1520)` (the space schedule moves with the ambient)."
+    },
+    "custom_components/heatpump_optimizer/optimizer.py:_step_humidity RETURN_DEL c560cbd8": {
+      "killed_by": "tests/features.py",
+      "old": "    return None if humidity is None else float(humidity[i])",
+      "reason": "R8-P3 (#1520): the per-step humidity every planning seam passes. `pass` hands every seam None, the ambient fallback. Measured in a git-less copy of 7c50f736 (null 1 of 3192): 2 of 3192 FAILED, the new one `a finite humidity forecast plans the same DHW schedule and trajectory whatever the current humidity is (#1520)` (dhw 4.700 vs 5.640 kWh)."
     },
     "custom_components/heatpump_optimizer/optimizer.py:stored_heat_survival GUARD_OFF 9afb8b62": {
       "killed_by": "tests/features.py",
@@ -1341,10 +1371,20 @@
       "old": "        if distinct_days:",
       "reason": "#1512 plan side: `peak_cost_batch`'s `if distinct_days:` -> `if False:` leaves the twin ranking windows while its scalar ranks days; tests/features.py prints 6 of 3142 FEATURE CHECKS FAILED against a 0 baseline, the #948 bit-for-bit row parity among them. Measured at the #1512 round-2 branch head 4d1f3ea1, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3142 FEATURE CHECKS PASSED."
     },
+    "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.compute_cop_dhw GUARD_OFF ca964a78": {
+      "killed_by": "tests/features.py",
+      "old": "        if self.params.cop_flow_carnot:",
+      "reason": "R8-P3 (#1530): `compute_cop_dhw` prices the tank by the buffer's Carnot law behind a throttling valve. `if False:` restores the tank's own 0.008/K penalty. Measured in a git-less copy of 7c50f736 beside an unmutated copy (1 of 3192 FAILED there, the git-reading #363 check): 6 of 3192 FAILED, among them `cop_flow_carnot on: marginal_cop('dhw') == marginal_cop('buffer') at equal water temperature, every outdoor x flow cell (#1530)` (205 of 240 cells differ) and the wood-coil and baseline figures the law moves."
+    },
     "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_dhw_step CLAMP_DROP 6d5b3ca5": {
       "killed_by": "tests/features.py",
       "old": "        floor = min(p.dhw_inlet_reference, ambient_temp)",
       "reason": "arrived with origin/main, commit 7eeea4d90 (D2-02: clamp the DHW inlet floor to the tank surroundings). Dropping the `min` clamp raises the driver's `FAILED` count to 2 against a 0 baseline. Measured at the post-main head, 2026-09-22, and re-pinned 1894 -> 1897 by PR #1488, whose D2-01 fix adds three comment lines above this site."
+    },
+    "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_with_dhw GUARD_OFF 1af881b9": {
+      "killed_by": "tests/features.py",
+      "old": "                if coil_wood_read is not None:",
+      "reason": "Recorded by `mutation_table.py --pin-killed` against 29402b6179c89cb4de6e6cca3be78762a51ca63c: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
     },
     "custom_components/heatpump_optimizer/topology.py:layout_edges GUARD_OFF 08afb4ef": {
       "killed_by": "tests/features.py",

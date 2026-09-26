@@ -691,6 +691,20 @@
 # `drop_inherited_claim_lines` treats as a rewrite and refuses to touch
 # (#1255), so `apply_inherited_claims` cannot lift this one.
 
+# R8-P3 (#1530, #1520): this branch claims wood_coil and nothing else. It is the
+# one fixture with a throttling valve AND hot water, so the only one where
+# compute_cop_dhw now prices the tank at the buffer's Carnot lift instead of its
+# own penalty. Direction, measured base vs branch in one environment: the tank
+# COP falls, so the plan buys MORE hot-water electricity (dhw_heating_cost and
+# predicted_cost up) and the always-hot baseline's DHW costs more too
+# (baseline_cost up). baseline_cost is a MAY_DRIFT_JUDGED_KEY, which a may-drift
+# entry cannot excuse and a name cannot be both, so the entry is suspended
+# above. The wood-coil forecast now reads the published physics instead of a
+# re-derived drain (found by this group, with the RCA coil-drain seat), so later
+# steps are credited against the wood tank the coil actually cooled: again more
+# hot-water electricity, same direction. The humidity half moves nothing here:
+# no fixture learns a derate.
+
 # #1495 (mold-floor breach warning): this branch's own diff claims the
 # config_flow fixture and nothing else, ADD-ONLY. The comfort page's mold
 # section gains the mold_floor_breach_margin option, so capture_config_flow's

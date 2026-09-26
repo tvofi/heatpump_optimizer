@@ -38,13 +38,12 @@ Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"
    under the PR's stated rule before trusting its count; if you cannot, or
    if you had to build your own definition to check it, write that in the verdict rather than reporting a number as confirmed.
 9. **When the finding has no committed harness, that is itself a finding.**
-   Step 2 assumes one exists to measure with; twice it has not. #373's
+   Twice none existed: #373's
    instrument was a shell `grep` in the issue's own body, nothing at tag
-   `audit-round2-evidence`; #258's proximity probe exists only inside a judge
-   comment and must be recreated from there. #290's is committed: W3-G3 landed
-   it as `harnesses/j5_gil.py`. A fixer who builds their own instrument must
+   `audit-round2-evidence`; #258's probe only in a judge comment. A fixer who builds their own instrument must
    disclose it as their own, not the finder's -- so do you, if you built one.
-   Read the finding's own judge ruling first — #290's brief still prescribes a harness its judge already refused.
+   Read the judge ruling first: #290's brief prescribes a refused harness.
+   A feature's harness is its judge's design: a requirement or on-device measurement it names and neither tests nor tvofi waived is `blocked <sha> harness: design-trace-missing <item>` (#1588).
 
 10. **Check the forward-carry before you return `merge`.** The PR body names
     where a finding that changes a later stage was written; open that

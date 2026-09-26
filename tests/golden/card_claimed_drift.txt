@@ -25,6 +25,21 @@
 # next branch restates its own footprint, claims included.
 #
 
+# Bug 7 (v6612-card-history, the card's history view). Exactly the three
+# states that render recorded rows move; card_drift reports the other 37
+# identical, history_unavailable and history_pending included (no rows).
+# In each moved state the measured stretch of the indoor/outdoor paths is
+# drawn as held steps (M/L) instead of C curves -- in history_panned, whose
+# window holds the seam, the forecast after it keeps its curve. In the two
+# power-carrying states the teal `actioned` power bars are gone (the mode
+# band stays) and the space_slots and dhw_slots paths extend into the
+# past from heat_pump_action (hot_water on DHW, every other heating mode on
+# space, height power_kw); history_deep_panned, all past, gains them.
+# history_no_power gains no slot path: its rows carry no power_kw.
+history_panned  # bug 7: slot paths extend into the past; measured stretch stepped
+history_deep_panned  # bug 7: past slot paths added; measured temps as steps
+history_no_power  # bug 7: measured temps as steps only
+
 # R6-D4-01 (#1388) and R6 (#1416), one claim list because both changes move the
 # same rendered tree.
 #

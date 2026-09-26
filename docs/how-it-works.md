@@ -191,8 +191,17 @@ by the trajectory simulation and by every terminal and deferred valuation:
 - the **buffer tank** charges at the flow-derated COP of the tank's own
   temperature;
 - the **DHW tank** charges at `compute_cop_dhw` at the tank's temperature.
+  Behind a throttling valve (the `cop_flow_carnot` gate) that is the buffer's
+  own flow-derated law, so the two tanks cost the same per kWh at the same
+  water temperature; without one, the tank keeps its own lift penalty.
 
-![Two plots of marginal COP against outdoor temperature: with the throttling-valve gate off the buffer-tank curve lies exactly on the building-mass curve and only the hot water tank sits lower, and with the gate on the buffer tank is derated below the building-mass curve](img/marginal-cop.svg)
+Each is priced at the forecast humidity: the step's own where the plan buys
+heat, and the horizon's mean where a valuation prices at the mean outdoor
+temperature. The planner and the published trajectory therefore read the same
+humidity, so the defrost derate cannot plan hot water at one humidity and
+deliver it at another.
+
+![Two plots of marginal COP against outdoor temperature: with the throttling-valve gate off the buffer-tank curve lies exactly on the building-mass curve and only the hot water tank sits lower, and with the gate on the buffer tank is derated below the building-mass curve and the hot water tank, at the same temperature, lies on it](img/marginal-cop.svg)
 
 Both panels are `marginal_cop` asked directly over the same outdoor range. With
 the gate off, the buffer and building-mass curves are not merely close — the

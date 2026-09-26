@@ -8,7 +8,7 @@ import { makeCardContext, CLAIM_FILE, parseClaims, claimVersionError, frozenDate
          justifiesSolverClaim, justifiesCardClaim, movesClaimable,
          threeDotFiles, claimsAreThisBranchs, sameClaimMap,
          historyApi, historyFixture, HISTORY_IDS, flushHistory,
-         withActuals, realisticHistory, haStamp } from "./card_rig.mjs";
+         withActuals, realisticHistory, haStamp, HA_HISTORY_ROW_KEYS } from "./card_rig.mjs";
 
 // Plan payload written by tests/plan_view.py earlier in the run. The path is
 // argv[2], or HPO_PLANDATA, or a default derived from this checkout's tests/
@@ -8087,6 +8087,30 @@ const STOCK_THEMES = {
     `headline names ${blind.headlineUnit}; units ${JSON.stringify(blind.units)}`);
 }
 
+// --- The rig answers with the rows a real install sends ---------------------
+// Bug 7 shipped because the recorder stub answered in a shape the card's
+// author chose (v6.6.12 root cause, class P11). The keys every row carries are
+// pinned to a real answer (HA_HISTORY_ROW_KEYS), so a card that reads a key
+// only some rows carry fails here, not on an install.
+{
+  const ids = [HISTORY_IDS[0]];
+  const t0 = FROZEN - 6 * 3600000;
+  const entries = { [ids[0]]: [0, 1, 2].map((k) => ({
+    t: t0 + k * 600000, state: String(20 + k), attributes: { k } })) };
+  const q = (lean) => `history/period/${new Date(t0 - 1).toISOString()}?` +
+    `filter_entity_id=${ids[0]}&end_time=${new Date(FROZEN).toISOString()}` +
+    (lean ? "&minimal_response&no_attributes" : "&significant_changes_only=0");
+  const keys = (row) => Object.keys(row).sort();
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const lean = (await historyApi(entries).callApi("GET", q(true)))[0];
+  const full = (await historyApi(entries).callApi("GET", q(false)))[0];
+  check("the history rig's rows carry the keys a real install's rows carry",
+    lean.length === 3 && same(keys(lean[0]), HA_HISTORY_ROW_KEYS.leanFirst)
+      && lean.slice(1).every((r) => same(keys(r), HA_HISTORY_ROW_KEYS.leanRest))
+      && full.every((r) => same(keys(r), HA_HISTORY_ROW_KEYS.full)),
+    JSON.stringify({ lean: lean.map(keys), full: full.map(keys) }));
+}
+
 // --- The history pan (owner request, part of #201) ---------------------------
 // The plan chart pans BACK through Home Assistant's recorded history, up to
 // 48 h: left of "now" the measured temperatures, the spot price, the
@@ -8155,13 +8179,14 @@ const STOCK_THEMES = {
   // fixture plants it 24 h back, so it is asked about from the deep window.
   const segsOf = (s, field) => s.lines.filter((l) => l.field === field).length;
 
-  // The action record is its own series: the pump's commanded power, from
-  // the heat_pump_action sensor's own history, on the same power axis as
-  // the plan's slot bars.
+  // The action record draws the past's slot bars: the pump's commanded
+  // power, from the heat_pump_action sensor's own history, on the plan's
+  // own slot series (bug 7); the actioned series is its mode band.
   const actioned = seriesOf(idle.c, "actioned");
-  check("the pump's own action record renders as a power series",
+  check("the pump's own action record renders as past slot bars",
     !!actioned && actioned.hasData &&
-      fieldPointsOf(actioned, "action_power").some((p) => p.t <= beforeForecast));
+      fieldPointsOf(seriesOf(idle.c, "space_slots"), "space_power")
+        .some((p) => p.t <= beforeForecast && p.v > 0));
   const actionDump = collect(idle.c.shadowRoot).join("\n");
   check("the actioned series has a legend chip",
     /data-key="actioned"/.test(actionDump));
@@ -8333,8 +8358,10 @@ const STOCK_THEMES = {
     c.view.panBy(-40 * HOUR);
     await flushHistory();
     const ds = pathsOf(c, "house_temp");
+    // Since bug 7 the measured past draws as held steps (L only), so the
+    // path asked about need not be a curve -- it must have segments.
     check("the realistic fixture produces a path worth asking about",
-      ds.some((d) => /C /.test(d)), `${ds.length} path(s)`);
+      ds.some((d) => /[LC] /.test(d)), `${ds.length} path(s)`);
     const back = backwardSteps(ds);
     check("the drawn temperature path never runs backward in time",
       back === 0, `${back} sampled x steps went back`);
@@ -8361,15 +8388,24 @@ const STOCK_THEMES = {
     const act = c._series.find((s) => s.key === "actioned");
     check("the actioned chip reads as having data without power",
       act && act.hasData === true);
+    // Null control for the past slot bars: with no power attribute there
+    // is no height to draw, and none is invented -- not even a zero, which
+    // on an otherwise empty power axis sits mid-plot.
+    const kw = ["space_slots", "dhw_slots"].flatMap((k) =>
+      fieldPointsOf(c._series.find((s) => s.key === k), k === "dhw_slots" ? "dhw_power" : "space_power"))
+      .filter((p) => p.t < Date.parse(plan.space_plan.forecast[0].t));
+    check("without a power attribute no past slot bar is drawn",
+      kw.length === 0, `${kw.length} pts`);
   }
   {
-    // The overlay arm: with power_kw present the bars ride the band.
+    // The power arm: with power_kw present the past slot bars ride the band.
     const { c } = mkCard(realisticHistory(FROZEN, { power: true }));
     c.view.panBy(-40 * HOUR);
     await flushHistory();
-    const pts = fieldPointsOf(c._series.find((s) => s.key === "actioned"), "action_power");
-    check("power_kw, where the attribute exists, still draws the overlay",
-      pts.some((p) => p.t <= Date.parse(plan.space_plan.forecast[0].t)),
+    const pts = ["space_slots", "dhw_slots"].flatMap((k) =>
+      fieldPointsOf(c._series.find((s) => s.key === k), k === "dhw_slots" ? "dhw_power" : "space_power"));
+    check("power_kw, where the attribute exists, draws the past slot bars",
+      pts.some((p) => p.t <= Date.parse(plan.space_plan.forecast[0].t) && p.v > 0),
       `${pts.length} pts`);
     const dump = collect(c.shadowRoot).join("\n");
     check("and the mode band draws beside it",
@@ -8479,6 +8515,194 @@ const STOCK_THEMES = {
       .filter((p) => Date.parse(p.t) > FROZEN && Date.parse(p.t) < b).length;
     check("a stale live-edge chunk is fetched again, filling the seam hole",
       before === 0 && after > 0, `${before} -> ${after} points in the seam stretch`);
+  }
+
+  // ---- bug 7: the history view against HA's own /history/period answer ----
+  // The owner: "not correct historical data", temperature trends that
+  // "swing erratically", "heating slots still not shown". Every check below
+  // reads what the card DREW against the fixture rows it was served, under
+  // the rig's HA-faithful stub (empty lists dropped, significant changes
+  // only unless the query opts out).
+  const pastOf = (card, key, field) =>
+    fieldPointsOf(card._series.find((s) => s.key === key), field);
+  const valuesOf = (rows) => new Map(rows.map((r) => [r.t, Number(r.state)]));
+  {
+    // RC1: HA leaves an entity with no rows in the window out of its list,
+    // so a positional reading hands every later entity's rows to the one
+    // before it -- the indoor trace drew the outdoor sensor.
+    const e = realisticHistory(FROZEN);
+    e[HISTORY_IDS.indoor] = [];
+    const { c } = mkCard(e);
+    c.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const room = pastOf(c, "house_temp", "room");
+    check("an indoor sensor with no recorded rows draws no measured indoor trace",
+      room.length === 0, `${room.length} point(s), first ${room.slice(0, 3).map((p) => p.v)}`);
+    for (const [key, field, id] of [
+      ["outdoor", "outdoor", HISTORY_IDS.outdoor],
+      ["price", "price", HISTORY_IDS.price],
+    ]) {
+      const truth = valuesOf(e[id]);
+      const pts = pastOf(c, key, field);
+      const wrong = pts.filter((p) => truth.get(p.t) !== p.v);
+      check(`the ${key} trace carries its own sensor's rows when another entity is dropped`,
+        pts.length > 0 && wrong.length === 0, `${wrong.length}/${pts.length} point(s) not the sensor's own`);
+    }
+  }
+  // The action rows the drawn window holds, and what each must draw: the
+  // tank's run on the DHW slot series, every other heating mode on the
+  // space slot series, at the recorded power_kw; off draws zero on both.
+  const slotTruth = (card, rows) => {
+    const w0 = card._plot.windowStart, w1 = card._plot.windowEnd;
+    return rows.filter((r) => r.t >= w0 && r.t <= w1).map((r) => {
+      const kw = (r.attributes || {}).power_kw;
+      return {
+        t: r.t, mode: r.state,
+        space: r.state === "hot_water" || r.state === "off" ? 0 : kw,
+        dhw: r.state === "hot_water" ? kw : 0,
+      };
+    });
+  };
+  const slotMisses = (card, want) => {
+    const sp = new Map(pastOf(card, "space_slots", "space_power").map((p) => [p.t, p.v]));
+    const dh = new Map(pastOf(card, "dhw_slots", "dhw_power").map((p) => [p.t, p.v]));
+    return want.filter((w) => sp.get(w.t) !== w.space || dh.get(w.t) !== w.dhw);
+  };
+  {
+    // RC3: the recorded past drew no slot bars at all -- only one total
+    // "actioned" power series. The action record splits: hot_water is the
+    // tank's slot, eco/normal/pre_heat/boost the house's. Asked at the
+    // MODE-CHANGE rows only, which any query serves.
+    const e = realisticHistory(FROZEN);
+    const { c } = mkCard(e);
+    c.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const rows = e[HISTORY_IDS.action];
+    const changes = rows.filter((r, i) => i === 0 || rows[i - 1].state !== r.state);
+    const want = slotTruth(c, changes);
+    const miss = slotMisses(c, want);
+    check("the recorded past draws its space and DHW slots from the action record",
+      want.some((w) => w.dhw > 0) && want.some((w) => w.space > 0) && miss.length === 0,
+      `${miss.length}/${want.length} mode change(s) not drawn: ${miss.slice(0, 3).map((m) => m.mode).join(",")}`);
+  }
+  {
+    // RC2: under HA's default significant_changes_only the power_kw updates
+    // under an unchanged mode are never served, so the bars froze at the
+    // power of the last mode change. Every recorded row must draw.
+    const e = realisticHistory(FROZEN);
+    const { c } = mkCard(e);
+    c.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const want = slotTruth(c, e[HISTORY_IDS.action]);
+    const miss = slotMisses(c, want);
+    check("every recorded power_kw update draws its own past slot step",
+      want.length > 0 && miss.length === 0, `${miss.length}/${want.length} row(s) not drawn`);
+  }
+  {
+    // RC4b: a recorded state HOLDS until the next one -- that is the
+    // recorder's semantics -- so the measured past is drawn as steps. A
+    // fitted curve through 0.1 K recorder steps invents slopes between
+    // samples that no sensor reported.
+    const { c } = mkCard(realisticHistory(FROZEN));
+    c.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const diag = [];
+    for (const key of ["house_temp", "outdoor"]) {
+      for (const d of pathsOf(c, key)) {
+        if (/C /.test(d)) diag.push(`${key}: curve`);
+        const v = [...d.matchAll(/[ML] ([-\d.]+) ([-\d.]+)/g)].map((m) => [Number(m[1]), Number(m[2])]);
+        for (let i = 1; i < v.length; i++) {
+          if (v[i][0] !== v[i - 1][0] && v[i][1] !== v[i - 1][1]) { diag.push(`${key}: slope`); break; }
+        }
+      }
+    }
+    check("the measured temperatures are drawn as held steps, not a fitted curve",
+      pathsOf(c, "house_temp").length > 0 && diag.length === 0, diag.slice(0, 3).join("; "));
+  }
+  {
+    // RC4b: a temperature axis fitted to the data alone spreads a 0.1 K
+    // flicker over the whole plot height. The axis keeps a 2 K minimum
+    // span around the data.
+    const e = realisticHistory(FROZEN);
+    e[HISTORY_IDS.indoor] = e[HISTORY_IDS.indoor].map((r, i) => ({ ...r, state: i % 2 ? "21.1" : "21.0" }));
+    const { c } = mkCard(e);
+    c.legend.hidden = { outdoor: true, dhw_temp: true };
+    c.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const ax = c._plot.axes.temp;
+    const room = pastOf(c, "house_temp", "room");
+    check("a flat measured temperature keeps a temperature axis of at least 2 K",
+      !!ax && room.length > 0 && ax.max - ax.min >= 2 - 1e-9 &&
+        room.every((p) => p.v > ax.min && p.v < ax.max),
+      ax ? `${ax.min}..${ax.max}` : "no temp axis");
+  }
+  {
+    // K4 (fix-review on #1622, then re-review on #1624 at d2c658b2): the
+    // first pin here -- "some C segment right of now" -- still passed when
+    // only `pts.slice(0, held + 1)` was stepped as `steppedLine(pts)` (the
+    // WHOLE line), because `smoothLine(pts.slice(held))` is still appended
+    // after it and still emits C commands. What that mutant actually
+    // breaks is where the appended curve starts: back at pts[held].x,
+    // behind the x `steppedLine(pts)` already walked forward to -- the x
+    // coordinates of the drawn path run backward. Pin THAT instead: no
+    // drawn house_temp path's sampled x may go backward, under the same
+    // -10 h pan that keeps the live edge and the forecast past it on
+    // screen.
+    const { c } = mkCard(realisticHistory(FROZEN));
+    c.view.panBy(-10 * HOUR);
+    await flushHistory();
+    const xsOf = (d) => [...d.matchAll(
+      /[ML] ([-\d.]+) [-\d.]+|C [-\d.]+ [-\d.]+ [-\d.]+ [-\d.]+ ([-\d.]+) [-\d.]+/g
+    )].map((m) => Number(m[1] ?? m[2]));
+    const backtracking = pathsOf(c, "house_temp").filter((d) =>
+      xsOf(d).some((x, i, a) => i > 0 && x < a[i - 1] - 0.01));
+    check("no drawn house_temp path's x coordinates run backward under the held/forecast seam",
+      backtracking.length === 0, `${backtracking.length} path(s) with backtracking x`);
+  }
+  {
+    // K7 (fix-review on #1622, absorb's own comment: "an unavailable row is
+    // still the hole that ends a bar"). Splice one unavailable action row
+    // between two adjacent same-mode heating rows and check the drawn slot
+    // bar breaks there -- no single line's points straddle the hole.
+    const e0 = realisticHistory(FROZEN);
+    const { c: probe } = mkCard(e0);
+    probe.view.panBy(-40 * HOUR);
+    await flushHistory();
+    const w0 = probe._plot.windowStart, w1 = probe._plot.windowEnd;
+    const actionRows = e0[HISTORY_IDS.action];
+    let pair = null;
+    for (let i = 0; i < actionRows.length - 1; i++) {
+      const r1 = actionRows[i], r2 = actionRows[i + 1];
+      if (
+        r1.state === r2.state && r1.state !== "off" && r1.state !== "hot_water" &&
+        r1.t >= w0 && r2.t <= w1
+      ) {
+        pair = [r1, r2];
+        break;
+      }
+    }
+    if (!pair) {
+      check("an unavailable action row ends the space slot bar, no bar spans across it",
+        false, "no adjacent same-mode heating pair found in the panned window");
+    } else {
+      const [r1, r2] = pair;
+      const gapT = Math.round((r1.t + r2.t) / 2);
+      const e = realisticHistory(FROZEN);
+      const rows = e[HISTORY_IDS.action];
+      rows.push({ t: gapT, stamp: haStamp(gapT), state: "unavailable" });
+      rows.sort((a, b) => a.t - b.t);
+      const { c } = mkCard(e);
+      c.view.panBy(-40 * HOUR);
+      await flushHistory();
+      const lines = (c._series.find((s) => s.key === "space_slots").lines || [])
+        .filter((l) => l.field === "space_power");
+      const spans = lines.some(
+        (l) => l.points.some((p) => p.t < gapT) && l.points.some((p) => p.t > gapT)
+      );
+      check("an unavailable action row ends the space slot bar, no bar spans across it",
+        lines.length > 0 && !spans,
+        `${lines.length} line(s); spans=${spans}`);
+    }
   }
 }
 

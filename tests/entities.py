@@ -2633,22 +2633,19 @@ R.check(
 )
 
 # S5 of #193: the self-learned house and buffer state is initialised OUTSIDE
-# the dhw seam. structure.py buckets a coordinator method by its NAME, so
-# while `_init_dhw_learning` assigned these, dhw *owned* them and every
-# learner read of them was priced against hot water -- 88 of cut_dhw for
+# the dhw seam. structure.py buckets a coordinator method by its seam-map
+# entry, so while `_init_dhw_learning` assigned these, dhw *owned* them and
+# every learner read of them was priced against hot water -- 88 of cut_dhw for
 # state no dhw method ever reads. Merging the block back would give that
 # back with nothing else failing, which is what these checks exist to stop.
-# The seam list is imported from the metric rather than restated here, so a
-# change to SEAM_REGEXES moves this test with it.
+# The seam is read from the metric's own map (#1539) rather than restated
+# here, so a change to tests/seam_map.json moves this test with it.
 R.section("S5 thermal-learning state outside the dhw seam (#193)")
 import structure as _s5_structure
 
 
 def _s5_seam(_name: str) -> str:
-    for _label, _rx in _s5_structure.SEAM_REGEXES:
-        if _rx.search(_name):
-            return _label
-    return "core"
+    return _s5_structure.load_seam_map().get(_name, "unmapped")
 
 
 # The names come from the initialiser itself, not from a list kept here: a
@@ -2711,8 +2708,8 @@ R.check(
 # `_observe_frequency` / `_command_frequency` read was priced against the grid
 # seam: 28 of cut_grid for state no grid method reads. Merging the block back
 # is the regression these checks exist to stop; nothing else in the suite could
-# fail on it. `_s5_seam` is reused deliberately -- it buckets by structure.py's
-# own SEAM_REGEXES, so a change to the metric moves this test with it.
+# fail on it. `_s5_seam` is reused deliberately -- it reads structure.py's
+# own seam map, so a change to the metric moves this test with it.
 R.section("S6 inverter-frequency state outside the grid seam (#193)")
 _s6_init = next(
     (
@@ -18035,11 +18032,44 @@ R.check(
 # scenario and fail the run as stale.
 _md_declared, _md_claims = _env_drift._claimed(".")
 _md_entries = _env_drift._may_drift(".")
+
+
+def _md_uncovered(entries, claims, declared, version):
+    """Allowed names that are neither may-drift nor claimed for ``version``.
+
+    R8-P3 ruling (option (a), under tvofi's "go with the recommended
+    alternative" mandate, fix-wave thread 2026-09-24T20:51Z): a name may leave
+    the may-drift list only while THIS release claims it, because
+    env_drift.py refuses a name that is both, and a may-drift entry cannot
+    excuse a judged key (baseline_cost) a real change moves. A claim for
+    another VERSION expires with the stamp, so it covers nothing.
+    """
+    claimed = set(claims) if declared == version else set()
+    return sorted(set(_env_drift.MAY_DRIFT_ALLOWED) - set(entries) - claimed)
+
+
+_md_version = _env_drift._repo_version(".")
 R.check(
-    "this tree's may-drift entries parse, with reasons",
-    set(_md_entries) == set(_env_drift.MAY_DRIFT_ALLOWED)
+    "this tree's may-drift entries parse, with reasons, and every allowed name "
+    "is may-drift or claimed for this VERSION",
+    set(_md_entries) <= set(_env_drift.MAY_DRIFT_ALLOWED)
+    and not _md_uncovered(_md_entries, _md_claims, _md_declared, _md_version)
     and all(v and v != "no reason given" for v in _md_entries.values()),
-    f"{sorted(_md_entries)}",
+    f"{sorted(_md_entries)}; uncovered "
+    f"{_md_uncovered(_md_entries, _md_claims, _md_declared, _md_version)}",
+)
+_md_all = {n: "r" for n in _env_drift.MAY_DRIFT_ALLOWED}
+_md_less = {n: r for n, r in _md_all.items() if n != "wood_coil"}
+R.check(
+    "and the relaxed rule still refuses a sensitive fixture that is neither "
+    "may-drift nor claimed, or claimed only for another VERSION",
+    _md_uncovered(_md_less, {}, "9.9.9", "9.9.9") == ["wood_coil"]
+    and _md_uncovered(_md_less, {"wood_coil": ["r"]}, "9.9.8", "9.9.9")
+    == ["wood_coil"]
+    # The null control: the full list, or the one name claimed for this
+    # VERSION, covers everything.
+    and _md_uncovered(_md_all, {}, "9.9.9", "9.9.9") == []
+    and _md_uncovered(_md_less, {"wood_coil": ["r"]}, "9.9.9", "9.9.9") == [],
 )
 R.check(
     "and none of them leaks into the claim list",
@@ -25042,6 +25072,61 @@ R.check(
     and not _mut_x_overlaps(),
     f"verdicts={[v for _, v in _MUT_X_OUT]!r} overlaps={_mut_x_overlaps()!r} "
     f"stress runs={[k for k, _, _ in _MUT_X_SPANS if k[1] == 'tests/stress.py']!r}",
+)
+
+# A deferred stress.py baseline (`settle`) is paid only by a run in which a
+# mutant survives every shared driver, once, and before that mutant's run.
+_MUT_S_LOG: list = []
+_MUT_S_OUTS: list = [[], []]
+try:
+    _MUT_S_OUTS = [_mut_pool(
+        _MUT_X_POOL[:n], 3, {"tests/a.py": 1, "tests/b.py": 2},
+        lambda w, m, s, n=n: (_MUT_S_LOG.append((n, "drive", m["line"], s)),
+                              m["line"] == 0 and s == "tests/a.py")[1],
+        settle=lambda s, n=n: _MUT_S_LOG.append((n, "settle", s)))
+        for n in (1, 3)]
+except TypeError:
+    pass
+R.check(
+    "a deferred stress.py baseline runs only once a mutant survives every "
+    "shared driver, once, before that mutant's stress.py run",
+    [v for _, v in _MUT_S_OUTS[0]] == ["killed by tests/a.py"]
+    and not [e for e in _MUT_S_LOG if e[0] == 1 and e[1] == "settle"]
+    and [e[1:] for e in _MUT_S_LOG if e[0] == 3 and e[-1] == "tests/stress.py"]
+    == [("settle", "tests/stress.py"), ("drive", 1, "tests/stress.py"),
+        ("drive", 2, "tests/stress.py")],
+    f"log={_MUT_S_LOG!r}",
+)
+_MUT_MAIN_DEFER = pathlib.Path(_mut.__file__).read_text()
+_MUT_MAIN_DEFER = _MUT_MAIN_DEFER[_MUT_MAIN_DEFER.index("def main("):]
+# main() defers exactly the EXCLUSIVE drivers, and only under --scope changed.
+_mut_defer = getattr(_mut, "deferred_drivers", None)
+_MUT_D_NET = ["tests/a.py", "tests/stress.py"]
+_MUT_D_OUT = ((_mut_defer(_MUT_D_NET, "changed"), _mut_defer(_MUT_D_NET, "full"))
+              if _mut_defer else None)
+R.check(
+    "a changed-scope run defers stress.py's baseline, the nightly never does, "
+    "and main() takes its deferral from that rule",
+    _MUT_D_OUT == (["tests/stress.py"], [])
+    and "deferred = deferred_drivers(needed, args.scope)" in _MUT_MAIN_DEFER
+    and "DEFERRED AND NEVER RUN" in _MUT_MAIN_DEFER,
+    f"deferred={_MUT_D_OUT!r}",
+)
+# The sweep order is the ledger's: tests/features.py, costly but holding the
+# ledger's kills, goes before a cheap driver that has killed nothing -- and
+# the order is a permutation, so no driver leaves the net.
+_mut_order = getattr(_mut, "driver_order", None)
+_MUT_O_NET = ["tests/a.py", "tests/features.py", "tests/b.py"]
+_MUT_O_OUT = (_mut_order(
+    "custom_components/heatpump_optimizer/x.py", _MUT_O_NET,
+    {"tests/a.py": 60, "tests/features.py": 400, "tests/b.py": 5},
+    {f"k{i}": {"killed_by": "tests/features.py"} for i in range(40)})
+    if _mut_order else [])
+R.check(
+    "a mutant's drivers sweep in the ledger's kill-rate order, every one kept",
+    _MUT_O_OUT[:2] == ["tests/b.py", "tests/features.py"]
+    and sorted(_MUT_O_OUT) == sorted(_MUT_O_NET),
+    f"order={_MUT_O_OUT!r}",
 )
 
 # A survivor is the mutant that cannot stop early: every driver must run.

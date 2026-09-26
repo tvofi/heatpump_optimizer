@@ -199,18 +199,15 @@ passing the model explicitly per call.
 
 ## Resource rules on the audit box
 
-8-core Apple M1, 8 GB, numpy on OpenBLAS. Timing is not measurable while
-the finders share the box, so during a fan-out only contention-immune
-evidence counts: call counts, bytes, and CPU-time ratios against the stress
-reference solve. Every wall, CPU or RSS number is re-taken in the quiet
-window before it enters the register. One local full gate at a time, through
-`tests/gate_lock.py`; `stress.py` alone is not alone across worktrees.
+8-core Apple M1, 8 GB, numpy on OpenBLAS; what counts during a fan-out is
+`COMMON.md`'s. One local full gate at a time, through `tests/gate_lock.py`;
+`stress.py` alone is not alone across worktrees.
 
 **Fan-out concurrency is a judgement, not a measured capacity.** At most
-three compute-heavy finders share the box, and the Chromium finder (D4)
-does not sit beside them. The basis is the 8-core / 8 GB box and the
-stress-lock incident on 2026-09-03, not a measured exclusivity proof
-beyond that lock. `.claude/workflows/audit-find.js` schedules from this
+three compute-heavy finders share a box (each cloud container is its own
+box), and the Chromium finder (D4) does not sit beside them. The basis is the
+8-core / 8 GB box and the stress-lock incident on 2026-09-03, not a measured
+exclusivity proof beyond that lock. `.claude/workflows/audit-find.js` schedules from this
 paragraph.
 
 ## A harness at the evidence tag may measure the tag, not your tree

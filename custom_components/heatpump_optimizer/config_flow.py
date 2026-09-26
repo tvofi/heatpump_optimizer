@@ -983,7 +983,7 @@ def _entity_of(
     resolve a single helper domain, and submits the creation without a name —
     which surfaces to the user as "required key not provided @ data['name']".
     """
-    entity_filter: selector.EntityFilterSelectorConfig = {
+    entity_filter: selector.EntityWithDeviceFilterSelectorConfig = {
         "domain": [domain] if isinstance(domain, str) else list(domain)
     }
     if device_class is not None:

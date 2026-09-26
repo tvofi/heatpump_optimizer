@@ -4968,7 +4968,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             # #17 (gated): the learned capacity envelope composes through
             # the SAME channel as the fuse guard — elementwise minimum,
             # never a second cap mechanism.
-            env_caps = self._capacity_caps(horizon.outdoor_temps)
+            env_caps = self._capacity_caps(horizon.outdoor_temps, horizon.humidity)
             if env_caps is not None:
                 caps_extra = (
                     env_caps
@@ -8427,9 +8427,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             return
         entry[0] = max(thermal_kw, float(entry[0]) * CAPACITY_FORGET)
         entry[1] = int(entry[1]) + 1
-    def _capacity_caps(self, outdoor_temps: np.ndarray) -> np.ndarray | None:
+    def _capacity_caps(self, outdoor_temps: np.ndarray, humidity: Any = None) -> np.ndarray | None:
         """#17's per-step electrical ceiling from the learned envelope.
 
+        Each step's COP is priced at its forecast ``humidity`` (R8-P3).
         Composes through T2's ``power_caps_extra`` channel — never a new
         one. Floored at ``CAPACITY_FLOOR_FRACTION`` of nameplate: a starved
         house at −15 °C is this program's worst failure mode, so the cap
@@ -8438,11 +8439,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         bucket caps anything.
         """
         ctx = getattr(self, "_ctx", self)
-        if not bool(
-            ctx._config.get(
-                CONF_CAPACITY_CURVE_ENABLED, DEFAULT_CAPACITY_CURVE_ENABLED
-            )
-        ):
+        if not bool(ctx._config.get(
+                CONF_CAPACITY_CURVE_ENABLED, DEFAULT_CAPACITY_CURVE_ENABLED)):
             return None
         p_max = float(ctx._thermal_params.max_electrical_power)
         if p_max <= 0.1:
@@ -8454,7 +8452,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             entry = self._capacity_envelope.get(int(np.floor(outdoor / 3.0)))
             if entry is None or int(entry[1]) < CAPACITY_MIN_SAMPLES:
                 continue
-            cop_i = max(self._thermal_model.compute_cop(float(outdoor)), 1e-6)
+            has_hum = humidity is not None and i < len(humidity)
+            hum = float(humidity[i]) if has_hum else None
+            cop_i = max(self._thermal_model.compute_cop(float(outdoor), humidity=hum), 1e-6)
             cap_i = float(np.clip(float(entry[0]) / cop_i, floor, p_max))
             if cap_i < p_max - 1e-9:
                 caps[i] = cap_i
