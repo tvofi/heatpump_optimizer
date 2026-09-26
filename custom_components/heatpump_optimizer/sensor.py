@@ -824,6 +824,9 @@ class HeatPumpActionSensor(HeatPumpOptimizerSensorBase):
                 # The whole commanded draw: the card's actioned series reads
                 # it against both plan slots (#1499).
                 "power_kw": commanded_power_kw(action),
+                # The tank's share of it, so the card's recorded past splits
+                # a step the tank shares with the house the way the plan does.
+                "dhw_power_kw": _as_float(action.get("dhw_power")),
                 "setpoint": action.get("setpoint"),
                 "price": action.get("price"),
                 "power_normalized": action.get("power_normalized"),

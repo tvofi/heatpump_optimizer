@@ -25,6 +25,22 @@
 # next branch restates its own footprint, claims included.
 #
 
+# fix/card-plan-history (tvofi 2026-09-26: "the history should look as
+# similar to the future plan as possible"). Exactly the three states that
+# render recorded rows move; card_drift reports the other 37 identical. In
+# each, the recorded past is drawn on the plan's 15-minute step grid in the
+# forecast's own style: the indoor/outdoor paths lose their held steps (M/L)
+# for the plan's C curve and start at the window's left edge instead of at
+# the first in-window recorder row; the price and solar step areas and the
+# space/DHW slot bars step once per plan step, each slot step the
+# time-weighted mean of the power_kw rows across it (history_no_power draws
+# no slot bars: its rows carry no power_kw). No new element, chip
+# or series appears: the fixtures' states carry no tank or lower-floor
+# probe, so those two past traces do not render here (card.mjs pins them).
+history_panned  # recorded past on the plan's step grid, drawn in the forecast's style
+history_deep_panned  # recorded past on the plan's step grid, drawn in the forecast's style
+history_no_power  # recorded past on the plan's step grid, drawn in the forecast's style
+
 # Bug 7 (v6612-card-history, the card's history view). Exactly the three
 # states that render recorded rows move; card_drift reports the other 37
 # identical, history_unavailable and history_pending included (no rows).

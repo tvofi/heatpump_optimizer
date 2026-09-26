@@ -1382,12 +1382,15 @@ const HEADLINE_SUFFIXES = [
 // legacy one after, on the derivation path and in the global scan alike
 // (the legacy suffix also ends-matches the new id, so an install that
 // somehow carries both resolves to the family-prefixed one, which sorts
-// first). Suffixes not listed here — `_plan_narrative` — never moved.
+// first). Suffixes not listed here — `_plan_narrative` — never moved. The
+// price sensor is no headline stat, but the history pan derives it the same
+// way and #1227 renamed it too.
 const LEGACY_STAT_SUFFIXES = {
   "_plan_predicted_savings": "_predicted_savings",
   "_plan_savings_percentage": "_savings_percentage",
   "_plan_optimization_score": "_optimization_score",
   "_plan_monthly_savings": "_monthly_savings",
+  "_cost_current_electricity_price": "_current_electricity_price",
 };
 // #1333 renamed the two plan sensors' suggested object ids for new installs
 // only (`space_heating_plan` -> `plan_space_heating`, `dhw_heating_plan` ->
@@ -3977,9 +3980,6 @@ function buildSeries({ spFc, dhwFc, solarFc, windowStart, windowEnd, hidden, zoo
           // tooltip can explain a slot without a second lookup.
           reason: p.reason,
           priceKnown: p.price_known,
-          // A recorded sample (only the history merge makes partial
-          // points): seriesPath draws it as a held step, not a curve.
-          measured: !!p.partial,
         });
       }
       raw.sort((a, b) => a.t - b.t);
@@ -4669,6 +4669,14 @@ class PlanSource {
 // forecast-shaped overlays the chart's own series machinery then draws, and
 // the degradation when the recorder answers nothing.
 //
+// The past is drawn to look like the plan (tvofi, 2026-09-26): every
+// recorded field is put on the plan's own step grid, so it takes the same
+// series, style and scale as the forecast beside it. A recorded state holds
+// until the next one -- the recorder writes only on CHANGE -- so a stable
+// stretch is a held value, not a gap; a power step is the time-weighted mean
+// of what was recorded across it, the energy a plan bar means; and a step is
+// a hole only when its sensor was unavailable for the whole of it.
+//
 // Uses `host.plan` (entity resolution), `host.hass` (callApi) and the host
 // contract `renderForced()`. The VIEW is not consulted: the host hands
 // `leftBound()` to `view.apply` and calls `ensure()` with the window it got
@@ -4680,6 +4688,9 @@ class HistorySource {
     // fetched at most once per session; "loading" is what dedups the render
     // storm a mid-drag pan would otherwise cause.
     this.chunks = new Map();
+    // Every chunk that has ever landed: the grid is drawn over these only,
+    // and a live-edge refetch in flight does not blank the one it replaces.
+    this.covered = new Set();
     // Set when a fetched window came back with no states for ANY entity, or
     // the API refused: there is no recorded past to show, and no point
     // asking again. The view's left bound returns to the live edge, which
@@ -4690,23 +4701,23 @@ class HistorySource {
     // Bumped by `disconnect`; a fetch that lands after it belongs to a
     // card that is gone and must not render.
     this.generation = 0;
-    // The absorbed samples, keyed per field bucket so entities with
-    // different timestamps never overwrite each other. Points are
-    // forecast-shaped but `partial`: each speaks only for the fields it
-    // carries (see buildSeries).
-    this.space = [];
-    this.dhw = [];
-    this.solar = [];
+    // The recorded samples per plan field (HISTORY_FIELDS), time-sorted
+    // {t, v}, v null where the sensor was unavailable. Bumping `version`
+    // invalidates the memoized grid.
+    this.log = {};
+    this.version = 0;
+    this.memo = null;
     // The actioned record, STATE-first (the owner's correction on #1286):
     // one log entry per recorded row of heat_pump_action, mode from the
     // state and power_kw from the attributes when that attribute exists
     // at all. The mode band and the tooltip key on this; the past slot
-    // bars (power_kw split by mode, `absorb`) are what installs without
-    // the power attribute must be able to live without.
+    // bars (the power fields, `absorb`) are what installs without the
+    // power attribute must be able to live without.
     this.actionLog = [];
     // The live edge the newest chunk was fetched through, so a
     // long-lived dashboard can notice the seam going stale.
     this.fetchedThrough = null;
+    this.askedThrough = 0;
     this.seen = new Set();
     this.loadedAny = false;
   }
@@ -4732,7 +4743,10 @@ class HistorySource {
    * under any device name, with the pre-#1333 suffixes as the legacy
    * fallback), then fall back to a sorted scan for hand-renamed entities. The
    * solar entity is the one the plan source already resolves -- config,
-   * plan_kind marker, then suffix. */
+   * plan_kind marker, then suffix. Each suffix is tried in its current form
+   * and then its pre-#1227 one (LEGACY_STAT_SUFFIXES): the price sensor's
+   * rename reached new installs only, so an older install's price was never
+   * asked for and the past had no price at all. */
   entityIds() {
     const plan = this.host.plan;
     const states = (this.host.hass && this.host.hass.states) || {};
@@ -4744,12 +4758,13 @@ class HistorySource {
     // also look like OUR sensor in the live state's own shape (the
     // device_class / options / unit sensor.py publishes); the prefix
     // derivation needs no such check, because it is keyed on OUR resolved
-    // plan sensor and renames travel with the device.
+    // plan sensor and renames travel with the device. The two optional
+    // probes have no shape a foreign thermometer lacks, so they are never
+    // scanned for.
+    const temp = (a) => !!a && a.device_class === "temperature";
     const shapes = {
-      _indoor_temperature_optimizer: (a) =>
-        !!a && a.device_class === "temperature",
-      _outdoor_temperature_optimizer: (a) =>
-        !!a && a.device_class === "temperature",
+      _indoor_temperature_optimizer: temp,
+      _outdoor_temperature_optimizer: temp,
       _cost_current_electricity_price: (a) =>
         !!a && typeof a.unit_of_measurement === "string" &&
         a.unit_of_measurement.endsWith("/kWh"),
@@ -4757,18 +4772,24 @@ class HistorySource {
         !!a && Array.isArray(a.options) && a.options.includes("pre_heat"),
     };
     const derive = (suffix) => {
-      for (const kind of ["space", "dhw"]) {
-        const planId = plan.resolveEntity(kind);
-        if (!planId) continue;
-        for (const planSuffix of PLAN_ID_DERIVE[kind]) {
-          if (!planId.endsWith(planSuffix)) continue;
-          const candidate = planId.slice(0, -planSuffix.length) + suffix;
-          if (states[candidate]) return candidate;
+      const forms = [suffix].concat(LEGACY_STAT_SUFFIXES[suffix] || []);
+      for (const form of forms) {
+        for (const kind of ["space", "dhw"]) {
+          const planId = plan.resolveEntity(kind);
+          if (!planId) continue;
+          for (const planSuffix of PLAN_ID_DERIVE[kind]) {
+            if (!planId.endsWith(planSuffix)) continue;
+            const candidate = planId.slice(0, -planSuffix.length) + form;
+            if (states[candidate]) return candidate;
+          }
         }
       }
-      for (const id of Object.keys(states).sort()) {
-        if (!id.startsWith("sensor.") || !id.endsWith(suffix)) continue;
-        if (shapes[suffix](((states[id] || {}).attributes) || {})) return id;
+      if (!shapes[suffix]) return null;
+      for (const form of forms) {
+        for (const id of Object.keys(states).sort()) {
+          if (!id.startsWith("sensor.") || !id.endsWith(form)) continue;
+          if (shapes[suffix](((states[id] || {}).attributes) || {})) return id;
+        }
       }
       return null;
     };
@@ -4776,6 +4797,8 @@ class HistorySource {
     ids.outdoor = derive("_outdoor_temperature_optimizer");
     ids.price = derive("_cost_current_electricity_price");
     ids.action = derive("_heat_pump_action");
+    ids.tank = derive("_dhw_temperature");
+    ids.lower = derive("_lower_floor_temperature");
     return ids;
   }
 
@@ -4787,16 +4810,15 @@ class HistorySource {
     if (!(viewStart < liveEdge)) return;
     // The live edge moves, and the chunk that contains it was fetched
     // THROUGH the live edge of that moment. A card left open on a wall
-    // dashboard would otherwise show a seam between history and forecast
-    // that widens forever, so once that chunk is a whole chunk behind the
-    // clock, it may be fetched again (the sample dedup makes the refetch
-    // additive, never duplicating).
-    if (
-      this.fetchedThrough !== null &&
-      liveEdge - this.fetchedThrough > HISTORY_CHUNK_MS
-    ) {
-      this.chunks.delete(Math.floor((this.fetchedThrough - 1) / HISTORY_CHUNK_MS));
-      this.fetchedThrough = null;
+    // dashboard would otherwise hold the last recorded value across a seam
+    // that widens until the next chunk, so once that chunk is a plan step
+    // behind the clock it is fetched again (the sample dedup makes the
+    // refetch additive, never duplicating).
+    // Keyed on the edge the live chunk was ASKED through, not on what has
+    // landed: an older chunk landing first must not read as a stale one.
+    if (this.askedThrough && liveEdge - this.askedThrough >= PLAN_STEP_MS) {
+      const stale = Math.floor((this.askedThrough - 1) / HISTORY_CHUNK_MS);
+      if (this.chunks.get(stale) === "loaded") this.chunks.delete(stale);
     }
     const lo = Math.max(viewStart, liveEdge - HISTORY_SPAN_MS);
     const first = Math.floor(lo / HISTORY_CHUNK_MS);
@@ -4804,6 +4826,7 @@ class HistorySource {
     for (let chunk = first; chunk <= last; chunk++) {
       if (this.chunks.has(chunk)) continue;
       this.chunks.set(chunk, "loading");
+      if (chunk === last) this.askedThrough = liveEdge;
       this.fetchChunk(chunk, liveEdge);
     }
   }
@@ -4823,13 +4846,10 @@ class HistorySource {
     };
     try {
       const ids = this.entityIds();
-      const per = { indoor: [], outdoor: [], price: [], solar: [], action: [] };
-      const numeric = [
-        ["indoor", ids.indoor],
-        ["outdoor", ids.outdoor],
-        ["price", ids.price],
-        ["solar", ids.solar],
-      ].filter(([, id]) => !!id);
+      const per = { action: [] };
+      const numeric = ["indoor", "outdoor", "price", "solar", "tank", "lower"]
+        .filter((key) => !!ids[key]);
+      for (const key of numeric) per[key] = [];
       if (numeric.length) {
         // States, not statistics: the plan chart plots point series, and a
         // mean/min/max bucket is a different claim. The numeric entities
@@ -4838,7 +4858,7 @@ class HistorySource {
         // recorder writes on every state.
         const res = await callApi(
           "GET",
-          historyPath(start, end, numeric.map(([, id]) => id), true)
+          historyPath(start, end, numeric.map((key) => ids[key]), true)
         );
         // Keyed by entity_id, never by position: HA drops an entity with
         // no rows in the window from the list, so the i-th list is the
@@ -4848,7 +4868,7 @@ class HistorySource {
         const byId = new Map(
           (res || []).map((rows) => [((rows || [])[0] || {}).entity_id, rows])
         );
-        for (const [key, id] of numeric) per[key] = byId.get(id) || [];
+        for (const key of numeric) per[key] = byId.get(ids[key]) || [];
       }
       if (ids.action) {
         // The action entity is the exception: its power lives in an
@@ -4876,6 +4896,7 @@ class HistorySource {
       }
       this.absorb(per);
       this.chunks.set(chunk, "loaded");
+      this.covered.add(chunk);
       this.loadedAny = true;
       this.fetchedThrough = Math.max(this.fetchedThrough || 0, end);
     } catch (e) {
@@ -4885,63 +4906,59 @@ class HistorySource {
     finish();
   }
 
-  /** Turn HA history rows into forecast-shaped partial points. One emitter
-   * per (array, field): the entities sample at their own timestamps, so
-   * their points must not be merged onto a shared timebase -- holding a
-   * temperature forward until the next sample of a DIFFERENT sensor would
-   * fabricate evidence. `partial` is what tells buildSeries a point speaks
-   * only for the fields it carries. */
+  /** Log HA history rows per plan field (HISTORY_FIELDS). Each entity
+   * samples at its own timestamps and is held only against itself -- a
+   * temperature is never held forward to the next sample of a DIFFERENT
+   * sensor. An unavailable/unknown state is logged as a hole (null), never
+   * dropped and never read as zero -- the v5.2.0 rule. */
   absorb(per) {
     const num = (v) => {
       if (v === null || v === undefined || v === "") return null;
       const n = Number(v);
       return Number.isFinite(n) ? n : null;
     };
-    const emit = (arrayName, field, rows, valueOf, extra) => {
+    const missing = (row) =>
+      row.state === "unavailable" || row.state === "unknown";
+    const add = (field, rows, valueOf) => {
+      const log = this.log[field] || (this.log[field] = []);
       for (const row of rows || []) {
         const t = Date.parse(row.last_updated || row.last_changed);
         if (Number.isNaN(t)) continue;
         const key = `${field}:${t}`;
         if (this.seen.has(key)) continue;
         this.seen.add(key);
-        // An unavailable/unknown state is kept as a HOLE (the field carried
-        // as null), never dropped and never read as zero -- the v5.2.0 rule.
-        const missing =
-          row.state === "unavailable" || row.state === "unknown";
-        const v = missing ? null : valueOf(row);
-        this[arrayName].push({
-          t: isoOf(t),
-          partial: true,
-          [field]: v,
-          ...(extra || {}),
-        });
+        log.push({ t, v: missing(row) ? null : valueOf(row) });
       }
+      log.sort((a, b) => a.t - b.t);
     };
-    emit("space", "room", per.indoor, (r) => num(r.state));
-    emit("space", "outdoor", per.outdoor, (r) => num(r.state));
-    emit("space", "price", per.price, (r) => num(r.state), {
-      price_known: true,
-    });
-    emit("solar", "ghi", per.solar, (r) => num(r.state));
-    // The recorded past's slot bars, split the way the plan's are (bug 7:
-    // "heating slots still not shown"): hot_water is the tank's run, every
-    // other heating mode the house's, each at the row's power_kw; a mode
-    // that is not heating draws zero on both. power_kw is the whole
-    // commanded draw, so a step that ran both circuits under a space mode
-    // lands on the space series entire. A row without the attribute draws
-    // nothing -- an install that records no power has no height to show,
-    // and a zero there would be invented -- while an unavailable row is
-    // still the hole that ends a bar.
+    for (const [field, , source] of HISTORY_FIELDS) {
+      if (source) add(field, per[source], (r) => num(r.state));
+    }
+    // The recorded past's slot bars, split the way the plan's are: a
+    // heating row's power_kw is the whole commanded draw, of which
+    // dhw_power_kw is the tank's share where the sensor records it (a step
+    // the tank shares with the house). Without that attribute the mode
+    // decides: hot_water is the tank's run, every other heating mode the
+    // house's. A mode that is not heating draws zero on both. A row
+    // without power_kw draws nothing -- an install that records no power
+    // has no height to show, and a zero there would be invented -- while
+    // an unavailable row is still the hole that ends a bar.
     const powered = (per.action || []).filter(
-      (r) =>
-        r.state === "unavailable" || r.state === "unknown" ||
-        (r.attributes || {}).power_kw !== undefined
+      (r) => missing(r) || (r.attributes || {}).power_kw !== undefined
     );
-    const kwIf = (r, on) => (on ? num((r.attributes || {}).power_kw) : 0);
-    emit("space", "space_power", powered, (r) =>
-      kwIf(r, ACTION_HEATING_MODES.has(r.state) && r.state !== "hot_water"));
-    emit("dhw", "dhw_power", powered, (r) =>
-      kwIf(r, r.state === "hot_water"));
+    const dhwKw = (r) => {
+      if (!ACTION_HEATING_MODES.has(r.state)) return 0;
+      const a = r.attributes || {};
+      if (a.dhw_power_kw !== undefined) return num(a.dhw_power_kw);
+      return r.state === "hot_water" ? num(a.power_kw) : 0;
+    };
+    add("dhw_power", powered, dhwKw);
+    add("space_power", powered, (r) => {
+      if (!ACTION_HEATING_MODES.has(r.state)) return 0;
+      const kw = num(r.attributes.power_kw);
+      const dhw = dhwKw(r);
+      return kw === null || dhw === null ? null : kw - dhw;
+    });
     // STATE-first: the mode log is the actioned record proper, and it does
     // not care whether the power attribute exists. The recorder writes one
     // row per state OR attribute change, so the same mode arrives many
@@ -4953,14 +4970,13 @@ class HistorySource {
       const key = `mode:${t}`;
       if (this.seen.has(key)) continue;
       this.seen.add(key);
-      const missing =
-        row.state === "unavailable" || row.state === "unknown";
       this.actionLog.push({
         t,
-        mode: missing ? null : row.state,
+        mode: missing(row) ? null : row.state,
         power: num((row.attributes || {}).power_kw),
       });
     }
+    this.version += 1;
   }
 
   /** The actioned runs: the pump's mode, forward-filled between state
@@ -5000,15 +5016,32 @@ class HistorySource {
   }
 
   /** The overlays `_buildSeries` merges into its inputs, or null while no
-   * chunk has landed. */
+   * chunk has landed: one forecast-shaped point per plan step of every
+   * covered chunk, up to the live edge fetched through, carrying the fields
+   * whose sensors speak for that step (`partial`: a field the point lacks
+   * is not evidence of a hole, see buildSeries). Memoized per absorb. */
   overlays() {
     if (!this.loadedAny) return null;
-    const byT = (a, b) => Date.parse(a.t) - Date.parse(b.t);
-    return {
-      space: [...this.space].sort(byT),
-      dhw: [...this.dhw].sort(byT),
-      solar: [...this.solar].sort(byT),
-    };
+    const key = `${this.version}:${this.fetchedThrough}`;
+    if (this.memo && this.memo.key === key) return this.memo.value;
+    const out = { space: [], dhw: [], solar: [] };
+    for (const chunk of [...this.covered].sort((a, b) => a - b)) {
+      const stop = Math.min((chunk + 1) * HISTORY_CHUNK_MS, this.fetchedThrough);
+      for (let t = chunk * HISTORY_CHUNK_MS; t < stop; t += PLAN_STEP_MS) {
+        const at = { space: {}, dhw: {}, solar: {} };
+        for (const [field, array, source] of HISTORY_FIELDS) {
+          const v = stepValue(this.log[field] || [], t,
+            Math.min(t + PLAN_STEP_MS, stop), !source);
+          if (v !== undefined) at[array][field] = v;
+        }
+        for (const array of Object.keys(out)) {
+          if (!Object.keys(at[array]).length) continue;
+          out[array].push({ t: isoOf(t), partial: true, price_known: true, ...at[array] });
+        }
+      }
+    }
+    this.memo = { key, value: out };
+    return out;
   }
 
   /** The status line over the chart: unavailable, or loading. Inline-styled
@@ -5037,6 +5070,55 @@ class HistorySource {
     this.generation += 1;
     this.loading = 0;
   }
+}
+
+// The plan fields the recorded past fills: [field, overlay array, the
+// entityIds() key whose state it is]. `upper` is the indoor thermometer
+// itself (UpperFloorTempSensor), so its past is the room's. The power fields
+// have no source here: `absorb` derives them from the action rows, and
+// `stepValue` means them over the step rather than holding them.
+const HISTORY_FIELDS = [
+  ["room", "space", "indoor"],
+  ["upper", "space", "indoor"],
+  ["lower", "space", "lower"],
+  ["outdoor", "space", "outdoor"],
+  ["price", "space", "price"],
+  ["space_power", "space", null],
+  ["dhw_temp", "dhw", "tank"],
+  ["dhw_power", "dhw", null],
+  ["ghi", "solar", "solar"],
+];
+
+/** One plan step [t, end) of a time-sorted {t, v} log. `undefined` when no
+ * sample speaks for the step (before the sensor's first row); null -- a
+ * hole -- when every sample that does was unavailable; otherwise the value
+ * held at t (the first known one inside the step if t itself was a hole),
+ * or with `mean` the time-weighted mean over the step's known stretch. */
+function stepValue(log, t, end, mean) {
+  let lo = 0;
+  let hi = log.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (log[mid].t <= t) lo = mid + 1;
+    else hi = mid;
+  }
+  let k = Math.max(0, lo - 1);
+  if (k >= log.length || log[k].t >= end) return undefined;
+  let first = null;
+  let area = 0;
+  let span = 0;
+  for (; k < log.length && log[k].t < end; k++) {
+    const v = log[k].v;
+    if (v === null) continue;
+    if (first === null) first = v;
+    if (!mean) break;
+    const a = Math.max(log[k].t, t);
+    const b = k + 1 < log.length ? Math.min(log[k + 1].t, end) : end;
+    area += v * (b - a);
+    span += b - a;
+  }
+  if (first === null) return null;
+  return mean && span > 0 ? area / span : first;
 }
 
 /** The ISO string the history API's path and end_time want. */
@@ -6194,17 +6276,12 @@ function seriesPath(s, scaleX, scaleY, plotB) {
         `<path class="series" data-key="${s.key}" pointer-events="none" d="${stepD}" fill="none" stroke="${s.color}" stroke-width="1.5"${seriesDash}/>`
       );
     } else {
-      // The recorded past is drawn as held steps up to the forecast's
-      // first point: a recorder state holds until the next one, and a
-      // curve through 0.1 K recorder steps invents slopes no sensor
-      // reported (bug 7). The forecast after the seam keeps its curve.
-      const held = line.points.filter((p) => p.measured).length;
-      const d = !held
-        ? smoothLine(pts)
-        : steppedLine(pts.slice(0, held + 1)) +
-          (pts.length > held + 1
-            ? smoothLine(pts.slice(held)).replace(/^M/, " L")
-            : "");
+      // The recorded past is drawn as the forecast is: HistorySource puts
+      // it on the plan's own step grid, where the curve through its held
+      // values is the plan's curve (tvofi, 2026-09-26). Bug 7's held steps
+      // answered a curve through irregular recorder stamps; on the grid
+      // there are none.
+      const d = smoothLine(pts);
       const dash = line.primary
         ? ""
         : ` stroke-dasharray="3 3" stroke-opacity="0.7"`;
