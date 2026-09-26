@@ -1,64 +1,1012 @@
 {
-  "_rule": "One entry per tools/audit/briefs/D<k>.md. steps are its numbered method steps in order: a line opening `<n>. ` is step M<n>, and the id is D<k>.M<n>. rounds[<round>] holds seats (each seat's step list, deep focus first), coverage (step -> deep|spot|none), unfinished ([{step, what}]), returned (seat key -> findings accepted at intake), leads ({raised, converted}) and yield (step -> judge-surviving findings). audit-find.js writes each round's entry (from round 9 its seats come from tools/audit/scopes.json, not from this ledger); .claude/workflows/check-wave-script.mjs refuses a dimension or step the briefs and this file disagree on.",
-  "_seeded": "Round 8's seat focuses and reports were not reachable from the local tree (they live in the cloud thread's project files), so every rounds map starts empty. Round 9 dispatches from tools/audit/scopes.json, not from this ledger.",
   "D0": {
-    "steps": ["M1", "M2", "M3", "M4", "M5", "M6", "M7"],
-    "rounds": {}
+    "rounds": {
+      "9": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep",
+          "M5": "deep",
+          "M6": "deep",
+          "M7": "deep"
+        },
+        "leads": {
+          "converted": 2,
+          "raised": 11
+        },
+        "returned": {
+          "s1": 1,
+          "s2": 2,
+          "s3": 0
+        },
+        "seats": [
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4"
+          ],
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4"
+          ],
+          [
+            "M5",
+            "M6",
+            "M7"
+          ]
+        ],
+        "unfinished": [
+          {
+            "step": "M2",
+            "what": "No global outer bound was run (scipy differential_evolution, or a DP on a coarsened grid). The best challenger is the best of 13 energy anchors, every production candidate refined alone, and tight polishes."
+          },
+          {
+            "step": "M4",
+            "what": "The valve-storage and wood topologies were not swept, and horizons 6 h and 48 h ran on a 6-cell subset only. 48 h is not user-reachable: OptimizationConfig.from_mapping never reads a horizon, so it stays at the 24.0 default."
+          },
+          {
+            "step": "M4",
+            "what": "Not run: valve-storage and wood-tank topologies, the coordinator captures (golden.py:_capture_coordinator), and 48 h cells with winter_mild and summer_cool weather."
+          },
+          {
+            "step": "M2",
+            "what": "No global outer bound (differential_evolution or a coarsened dynamic program) was run on the recorded objective; the gaps reported are lower bounds."
+          },
+          {
+            "step": "M6",
+            "what": "Closed loop not run on two-zone, DHW-on, or weathers other than winter_cold (a two-zone loop costs ~7 s x 48 solves x 4 days per arm on the loaded box). The flat-price arm shows the 30-min loop +1.53 % on the settled objective (+5.75 SEK over 4 days at near-equal comfort) on ONE cell; before it can be judged it needs the flat arm over >=5 cells: mpc.py --prices flat --arms prod,open --seam 0 --days 4 across weathers and topologies."
+          },
+          {
+            "step": "M7",
+            "what": "terminal.py not run on two-zone cells, and decomp.py --arm free not run on two-zone."
+          }
+        ]
+      }
+    },
+    "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6",
+      "M7"
+    ]
   },
   "D1": {
-    "steps": ["M1", "M2", "M3", "M4", "M5", "M6"],
-    "rounds": {}
-  },
-  "D2": {
-    "steps": ["M1", "M2", "M3", "M4", "M5"],
-    "rounds": {}
-  },
-  "D3": {
-    "steps": ["M1", "M2", "M3", "M4", "M5"],
-    "rounds": {}
-  },
-  "D4": {
-    "steps": ["M1", "M2", "M3"],
-    "rounds": {}
-  },
-  "D5": {
-    "steps": ["M1", "M2", "M3", "M4"],
-    "rounds": {}
-  },
-  "D6": {
-    "steps": ["M1", "M2", "M3"],
-    "rounds": {}
-  },
-  "D7": {
-    "steps": ["M1", "M2", "M3", "M4", "M5", "M6"],
-    "rounds": {}
-  },
-  "D8": {
-    "steps": ["M1", "M2", "M3", "M4", "M5"],
-    "rounds": {}
-  },
-  "D9": {
-    "steps": ["M1", "M2"],
-    "rounds": {}
+    "rounds": {
+      "9": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep",
+          "M5": "deep",
+          "M6": "deep"
+        },
+        "leads": {
+          "converted": 10,
+          "raised": 25
+        },
+        "returned": {
+          "s1": 4,
+          "s2": 5,
+          "s3": 6,
+          "s4": 3,
+          "s5": 4
+        },
+        "seats": [
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5",
+            "M6"
+          ],
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5",
+            "M6"
+          ],
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5",
+            "M6"
+          ],
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5",
+            "M6"
+          ],
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5",
+            "M6"
+          ]
+        ],
+        "unfinished": [
+          {
+            "step": "M3",
+            "what": "Not measured: accuracy lead scoring under clock jumps, ComfortLearner._decay with a future last_update, wear/ledger month keys under a jump to 1970 or a year ahead, sysid sample dt filtering (read only)"
+          },
+          {
+            "step": "M5",
+            "what": "dhw_learning.async_load_profile swallows at DEBUG and a later save may overwrite an undecodable store (needs real HA corrupt-file semantics); diagnostics._coordinator_snapshot calls weather_stale_hours unguarded; sysid guards not executed"
+          },
+          {
+            "step": "M1",
+            "what": "sysid and diagnostics have no lifecycle surface measured; the coordinator setup/reload/unload cycle is left to D1-s2"
+          },
+          {
+            "step": "M1",
+            "what": "Two config entries sharing the process-worker lock (reload of one while the other solves) not driven."
+          },
+          {
+            "step": "M5",
+            "what": "19 of the 24 debug-only except-Exception guards in coordinator.py enumerated but not injected; services.py/frontend.py/diagnosis.py/repairs.py guards (1+3+3+1) not injected."
+          },
+          {
+            "step": "M6",
+            "what": "ECL110 finite-but-absurd displace (1e308 lands on state) not driven through an ECL-configured cycle to see whether it reaches a command or the plan."
+          },
+          {
+            "step": "M3",
+            "what": "__init__._take_fresh_handover under a backward clock jump (a future stamp is accepted as fresh) read but not measured."
+          },
+          {
+            "step": "M3",
+            "what": "DST transitions were not driven for dhw_schedule, pump_schedule or dhw_draws windows. The pump_arbiter ECHO_GRACE_S and retry deadline arithmetic under a backward clock step (hold() goes blind for J hours) was not measured. Price-list-stops-updating and an empty weather forecast were not driven for the entity files in scope."
+          },
+          {
+            "step": "M5",
+            "what": "There was no per-except exception-injection sweep (log-once / last_update_success / recovery) of the best-effort ir.async_delete_issue guards in legionella.py, pump_arbiter.py and setpoint_check.py, or of disinfection._write. Only the store-driven escapes were executed."
+          },
+          {
+            "step": "M1",
+            "what": "Only the pump-duty arbiter's reload/unload race was driven. A full setup -> first refresh -> reload mid-solve -> unload mid-solve -> setup cycle through the entity platforms (sensor/switch/button/climate/binary_sensor) with gc.get_referrers was not run."
+          },
+          {
+            "step": "M1",
+            "what": "The real-loop setup -> reload mid-solve -> unload mid-solve cycle is coordinator/__init__ territory (D1-s2); from this seat only the worker's own framing was driven. Left: whether HA stop's _shutdown_process_pool can reap a worker whose solve is in flight (it takes _PROCESS_LOCK, which _run_in_process holds for the whole solve) -- recorded as a lead."
+          },
+          {
+            "step": "M5",
+            "what": "Inject exceptions into config_flow's except-Exception guards (config_flow.py:458, 641, 1206, 2085) and check that each logs once and recovers."
+          },
+          {
+            "step": "M6",
+            "what": "Hostile-payload drive of the state parsing in wood_fuel.py, external_heat.py and battery.py."
+          },
+          {
+            "step": "M1",
+            "what": "No real-loop lifecycle harness: these files hold no lifecycle code. The config_flow reload path is only checked by reading it."
+          },
+          {
+            "step": "M2",
+            "what": "REPORT.md was not written: the harness refused the Write of tools/audit/round9/D1/s5/REPORT.md ('subagents return findings as text'), so this JSON is the report. report_path names where it belongs."
+          }
+        ]
+      }
+    },
+    "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6"
+    ]
   },
   "D10": {
-    "steps": ["M1", "M2", "M3"],
-    "rounds": {}
+    "rounds": {
+      "9": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 5
+        },
+        "returned": {
+          "s1": 3,
+          "s2": 1
+        },
+        "seats": [
+          [
+            "M1",
+            "M2"
+          ],
+          [
+            "M1",
+            "M2",
+            "M3"
+          ]
+        ],
+        "unfinished": [
+          {
+            "step": "M1",
+            "what": "The REPORT.md file could not be written: the harness tool refused a report .md write from this subagent. Its full content (method, tier table, findings, non-findings) is carried in this JSON. The orchestrator should write it at tools/audit/round9/D10/s1/REPORT.md if the file is required. Also left: the DiagnoseIntervalButton.async_press seam of D10-s1-02 is named but not counted. On a coordinator with no settled interval it logs INFO and returns normally."
+          },
+          {
+            "step": "M2",
+            "what": "The rows for config-flow-test-coverage and test-coverage are carried from the in-tree register without measurement. They wait on D10-s2's M3 per-module coverage number."
+          },
+          {
+            "step": "M1",
+            "what": "docs-examples: Blueprints Exchange listing not fetchable (proxy 403 on community.home-assistant.io); only the in-tree half verified"
+          },
+          {
+            "step": "M3",
+            "what": "coverage perturbation (--drop config_flow_steps) not executed; the M3 result is a non-finding"
+          }
+        ]
+      }
+    },
+    "steps": [
+      "M1",
+      "M2",
+      "M3"
+    ]
   },
   "D11": {
-    "steps": ["M1", "M2", "M3", "M4"],
-    "rounds": {}
+    "rounds": {
+      "9": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "spot",
+          "M3": "deep",
+          "M4": "deep"
+        },
+        "leads": {
+          "converted": 1,
+          "raised": 7
+        },
+        "returned": {
+          "s1": 4,
+          "s2": 4
+        },
+        "seats": [
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4"
+          ],
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4"
+          ]
+        ],
+        "unfinished": [
+          {
+            "step": "M2",
+            "what": "SLSA/NIST AI 100-1 and 600-1/OWASP LLM/ISO 42001/Best-Practices text not fetched (proxy refused); Scorecard binary not run (absent)."
+          },
+          {
+            "step": "M3",
+            "what": "Conformance excludes the 52 merges whose PR the API 404s; docs/decisions and HANDOVER staleness is outside this seat's cells (leads). Lines added per line deleted across the corpus over the window not measured."
+          },
+          {
+            "step": "M1",
+            "what": "prepr.sh, brief_lint.mjs and tests/structure.py rows not given their own positive control here (covered by required contexts briefs/fast)."
+          },
+          {
+            "step": "M2",
+            "what": "standards' current text not fetched (WebFetch prompt unanswerable); Scorecard tool not run; per-criterion wording of OpenSSF Scorecard, OWASP LLM Top 10 2025, NIST AI 600-1 and ISO/IEC 42001 10.1 remains to be quoted against the scorecard rows"
+          },
+          {
+            "step": "M3",
+            "what": "conformance obligations 'first pr-contract run at head green' and 'red required check answered under ## Red checks' not sampled (needs per-head check-runs listing for 12 PRs); root-cause seat beside #1640 not checked"
+          }
+        ]
+      }
+    },
+    "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+    ]
   },
   "D12": {
-    "steps": ["M1", "M2", "M3", "M4", "M5", "M6"],
-    "rounds": {}
+    "rounds": {
+      "9": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep",
+          "M5": "deep",
+          "M6": "deep"
+        },
+        "leads": {
+          "converted": 1,
+          "raised": 7
+        },
+        "returned": {
+          "s1": 2,
+          "s2": 3,
+          "s3": 1
+        },
+        "seats": [
+          [
+            "M1",
+            "M2"
+          ],
+          [
+            "M3"
+          ],
+          [
+            "M4",
+            "M5",
+            "M6"
+          ]
+        ],
+        "unfinished": [
+          {
+            "step": "M3",
+            "what": "Freq control combined with the on/off threshold: _command_frequency writes a frequency for a commanded kW below the switch's on-threshold while _apply_action switches the pump off. Read in the code, not measured."
+          },
+          {
+            "step": "M3",
+            "what": "pump_arbiter.desired writes the configured dhw_setpoint to a mapped DHW set-point entity when dhw_enabled is False (control mode). Read in the code, not measured."
+          },
+          {
+            "step": "M3",
+            "what": "REPORT.md was not written to disk: the subagent Write was refused. The content is in this JSON."
+          },
+          {
+            "step": "M4",
+            "what": "The multi-day cost of finding 01's DHW half was not measured. In the first cycle the invented tank sits at the ThermalState default of 55 \u00b0C, so 0 kWh is planned. What is left is a closed-loop run (tests/rolling.py) counting legionella and window reheats of a tank that does not exist, which switch the heat pump on. REPORT.md was not written because the session harness refused report files."
+          }
+        ]
+      }
+    },
+    "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6"
+    ]
   },
   "D13": {
-    "steps": ["M1", "M2", "M3", "M4", "M5", "M6"],
-    "rounds": {}
+    "rounds": {
+      "9": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep",
+          "M5": "deep",
+          "M6": "deep"
+        },
+        "leads": {
+          "converted": 1,
+          "raised": 3
+        },
+        "returned": {
+          "s1": 3
+        },
+        "seats": [
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5",
+            "M6"
+          ]
+        ],
+        "unfinished": []
+      }
+    },
+    "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6"
+    ]
   },
   "D14": {
-    "steps": ["M1", "M2", "M3", "M4", "M5"],
-    "rounds": {}
-  }
+    "rounds": {
+      "9": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep",
+          "M5": "deep"
+        },
+        "leads": {
+          "converted": 5,
+          "raised": 8
+        },
+        "returned": {
+          "s1": 2,
+          "s2": 3,
+          "s3": 3,
+          "s4": 2,
+          "s5": 2
+        },
+        "seats": [
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5"
+          ],
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5"
+          ],
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5"
+          ],
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5"
+          ],
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5"
+          ]
+        ],
+        "unfinished": [
+          {
+            "step": "M3",
+            "what": "P6 card arm: the attributes the card JS (www/heatpump-optimizer-card.js) reads against the attributes entities publish, e.g. via a Proxy over card_rig states. Not built."
+          },
+          {
+            "step": "M3",
+            "what": "P1 type-drift arm: a malformed bool or str leaf that loads as a wrong value without raising, e.g. away.restore_override's bool(raw.get('active')) takes the string 'false' as True. Not measured."
+          },
+          {
+            "step": "M5",
+            "what": "The barrier is proposed and costed but not implemented in tests/, and its wall cost needs a quiet-window re-take."
+          },
+          {
+            "step": "M3",
+            "what": "Each detector re-finds one ledger instance at a pre-fix commit, not every one: P2's rule covers presence-inferred config facts only (R6-D12-01's proxy was a ThermalState field, outside it; the other 26 P2 instances were not replayed); P8's currency rule does not replay the unit instances (R4/R5 D12-01, R4 D2-04), which #1513's tests/entities.py float() barrier guards; I4's rule covers identifier rosters and the finding grammar, not the verdict-grammar readers of R5/R6 D13."
+          },
+          {
+            "step": "M5",
+            "what": "Barriers are proposed and costed from detector wall time only; their gate-seconds inside tests/entities.py (shared AST parse) are not measured, and none is demonstrated failing/passing as a check, which the after-judge sweep owes."
+          },
+          {
+            "step": "M3",
+            "what": "P3/P4/P5 ledger instances that are not the detector's shape were not re-found. P3: R2 D2-05 and R4 D2-03 (wood_share discontinuity), R4 D2-01 (smooth top-k bracket), R6 D2-02 (DHW inlet floor), R6 D7-03 (OverflowError), R4 D7-02 (sizing defaults), R2 D0-03, and R5's rows (not in the register file). P4: pre-fix runs for R1-R6 instances. P5: pre-#1410 instances (no ua_profile_halfwidth API). P5's dynamic sweep covers the sysid seam only: the passive-learner seams it lists (_async_learn_house_heat_loss, _async_learn_lower_floor_loss, _async_learn_buffer_cooling, _learn_measured_cop) were enumerated but not swept."
+          },
+          {
+            "step": "M3",
+            "what": "P4 grid is winter_cold weather only; flat-price arm run once per topology (4 cells)"
+          },
+          {
+            "step": "M3",
+            "what": "P7: 65 of 74 static candidate sites (p7_static_sites.py) unreached by the DHW-only January replay day -- drivers owed for legionella, away, wood_fuel, sysid, pump_arbiter, services, open_meteo; #1299's weather_stale_hours / LegionellaGuard.hours_since / _take_fresh_handover / plan-step-index seams not re-found by the cycle driver at 8454c07d^; R2 D2-03 and R3 D1-03 not mapped to commits; plain-plain arithmetic on fromisoformat-built datetimes is untraced."
+          },
+          {
+            "step": "M3",
+            "what": "P10: driver covers _async_update_data + entity reads only (no service handlers, pump_arbiter tick, buttons, weekly jobs); rich-config run (6.8 ms max loop unit) was taken before sampler-CPU subtraction (thread_factor 1.640) and should be re-taken in the quiet window."
+          },
+          {
+            "step": "M3",
+            "what": "P9: contrast composites ancestor backgrounds only (SVG shapes under text ignored); wood-alert / advisor-content states not rendered; R1/R2 instances not re-found."
+          },
+          {
+            "step": "M4",
+            "what": "REPORT.md could not be written: this seat's file tool refused a .md report file. The full report text is in this JSON (per-finding fields) and in the hand-back message; the orchestrator should commit it as tools/audit/round9/D14/s4/REPORT.md."
+          },
+          {
+            "step": "M3",
+            "what": "I2: not traced under strace were tests/stress.py (it needs the gate lease and measures the machine), optimality.py, backtest.py, edge.py and validate.py (minutes each on a shared box). golden.py and env_drift.py are widened by rule to the whole integration and stub. The listed I2 instances (#1309 warm __pycache__, #1310 phantom entries, R2 D3-09, R3 D3-FLAKE, R5-INST-01, R7-INSTR-01) are other sub-mechanisms, and the detector was not run at their pre-fix commits. Also unmeasured: the node lane's _record_node_strace parses the openat ARGUMENT path, which is relative when a child runs in a scratch cwd. This detector uses strace -y's absolute return path instead."
+          },
+          {
+            "step": "M3",
+            "what": "I3 not picked: the detector needs the live ruleset from the GitHub API."
+          },
+          {
+            "step": "M5",
+            "what": "Barrier gate-second costs are fan-out estimates (load1 0.7-2.2). A quiet-window re-take of the strace re-record overhead against the audit-hook record is owed."
+          }
+        ]
+      }
+    },
+    "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+    ]
+  },
+  "D2": {
+    "rounds": {
+      "9": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep",
+          "M5": "deep"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 3
+        },
+        "returned": {
+          "s1": 2,
+          "s2": 3,
+          "s3": 2,
+          "s4": 2
+        },
+        "seats": [
+          [
+            "M1"
+          ],
+          [
+            "M2",
+            "M3"
+          ],
+          [
+            "M4"
+          ],
+          [
+            "M5"
+          ]
+        ],
+        "unfinished": [
+          {
+            "step": "M1",
+            "what": "The valved emitter conductances (ua_rad on the upper row, ua_floor on the slab row) missing from _stability_substeps' row sums were not measured on their own grid; D2-s1-01's property covers them but its evidence is unvalved. REPORT.md was not written: this session's harness refuses report .md files from a subagent, so this JSON (report.json) carries the report in full."
+          },
+          {
+            "step": "M2",
+            "what": "'Capacity envelope never below demand-at-derate without a reason code': capacity_reason.py shows that none of the 13 optimizer.REASON_* codes names capacity. In one of 12 cells (two-zone, winter_cold, ceiling 0.6 x nameplate), 29 steps have cap*COP below the demand at the comfort minimum; they are labelled cheap_price 11, comfort_floor 8, scheduled 6, idle 4. The other 11 cells show 0, so leave-one-out drops the count to 0. Removing the ceiling (--perturb) gives 0. There are not enough cells to carry a finding; a colder-weather or outdoor-offset sweep is still needed. The brief's 'Carnot fraction within the stated band' has no band stated anywhere in the tree; I measured the flow_lift_factor range instead (0.44-1.0)."
+          },
+          {
+            "step": "M4",
+            "what": "Capacity tariff at a month boundary is not measured: plan windows after midnight on the 1st are priced against the previous month's threshold_kw and top-k in one pool, while the tracker would return inf for the new month."
+          },
+          {
+            "step": "M4",
+            "what": "Currency conversion is not measured: price_model.apply_price_adjustments adds the configured SEK/kWh surcharge to entity series in any currency after unit scaling."
+          },
+          {
+            "step": "M4",
+            "what": "The live PV export-price entity against the static value under negative spot is not measured."
+          },
+          {
+            "step": "M5",
+            "what": "COP learner (_learn_measured_cop EWMA gate, +-5 % step and [0.5,1.6] clamps) not measured; needs a coordinator drive with a noisy power meter. Two-zone declared-plant and throttling-valve sysid fits not driven. identify() one-state regression not measured (harness-only per #1395)."
+          }
+        ]
+      }
+    },
+    "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+    ]
+  },
+  "D3": {
+    "rounds": {
+      "9": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep",
+          "M5": "deep"
+        },
+        "leads": {
+          "converted": 0,
+          "raised": 2
+        },
+        "returned": {
+          "s1": 1,
+          "s2": 0,
+          "s3": 0
+        },
+        "seats": [
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5"
+          ],
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5"
+          ],
+          [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5"
+          ]
+        ],
+        "unfinished": [
+          {
+            "step": "M1",
+            "what": "The 4-per-module cap binds on a one-module cell, so 572 of the 576 candidates are unscreened. The seed and weights are recorded, so the next draw can exclude C0043/C0023/C0054/C0086. The 281 lines no closure script reaches in-process (reach.py; most in async_run_optimization and _record_accuracy) should raise the M1 weights next round."
+          },
+          {
+            "step": "M3",
+            "what": "The quiet-window GATE_SCOPE=full GOLDEN_MODE=drift gate with C0043 applied has not been run."
+          },
+          {
+            "step": "M5",
+            "what": "Wall and CPU per script were measured at load1 of about 4 on a shared box and need a quiet re-take (prescreen.py null) before they are compared with closures.json's recorded seconds."
+          }
+        ]
+      }
+    },
+    "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+    ]
+  },
+  "D4": {
+    "rounds": {
+      "9": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep"
+        },
+        "leads": {
+          "converted": 1,
+          "raised": 6
+        },
+        "returned": {
+          "s1": 5,
+          "s2": 9
+        },
+        "seats": [
+          [
+            "M1",
+            "M2",
+            "M3"
+          ],
+          [
+            "M1",
+            "M2",
+            "M3"
+          ]
+        ],
+        "unfinished": [
+          {
+            "step": "M1",
+            "what": "keyboard / screen-reader access to the chart's per-time values (hover tooltip) not measured; the chart svg is a pointer-only target in 1374 cells"
+          },
+          {
+            "step": "M3",
+            "what": "no metric for typographic scale or headline-number alignment; observed only: dialog help text 9.1-10.2 px at 768/1280 beside 19.7 px axis ticks"
+          },
+          {
+            "step": "M1",
+            "what": "For this seat's cells only the native number-input check applies; whether HA's ha-textfield forwards min/step and shows the invalid state was not measured (no HA frontend). The card-state/viewport/theme matrix is D4-s1's."
+          },
+          {
+            "step": "M2",
+            "what": "A written per-page rubric score beyond the counts in flow_rubric.py (one theme per page, jargon) was judged by reading, not scored numerically; the config 'zones' page mixes two-zone, buffer-tank and solar fields (11 flat fields) -- recorded, not made a finding."
+          }
+        ]
+      }
+    },
+    "steps": [
+      "M1",
+      "M2",
+      "M3"
+    ]
+  },
+  "D5": {
+    "rounds": {
+      "9": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep"
+        },
+        "leads": {
+          "converted": 2,
+          "raised": 7
+        },
+        "returned": {
+          "s1": 6,
+          "s2": 3
+        },
+        "seats": [
+          [
+            "M1",
+            "M2",
+            "M3"
+          ],
+          [
+            "M4"
+          ]
+        ],
+        "unfinished": [
+          {
+            "step": "M3",
+            "what": "docs/how-it-works.md lines 700-1317 (prices and tariffs, wood, away, learning loops, 'What the tests actually prove') got only the identifier, link, table and heading checks. No paragraph in that range was spot-checked against its code path."
+          },
+          {
+            "step": "M4",
+            "what": "Hand judgement of concision/precision and 'explains what the next line does' comments was sampled (~60 of 669 >3-line blocks, weighted to const.py, defrost, drift, topology, sysid, thermal_model, boost, card header) rather than read exhaustively; the card's 2215 comment ranges were checked mechanically for names only, not read for numeric claims. No harnessed finding came from the qualitative pass; examples of 'what' comments (thermal_model.py:684-689) are listed in REPORT.md without a finding."
+          }
+        ]
+      }
+    },
+    "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+    ]
+  },
+  "D6": {
+    "rounds": {
+      "9": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep"
+        },
+        "leads": {
+          "converted": 1,
+          "raised": 5
+        },
+        "returned": {
+          "s1": 4,
+          "s2": 5
+        },
+        "seats": [
+          [
+            "M1",
+            "M2",
+            "M3"
+          ],
+          [
+            "M1",
+            "M2",
+            "M3"
+          ]
+        ],
+        "unfinished": [
+          {
+            "step": "M2",
+            "what": "Not executed: 10 external links, where the egress proxy refused CONNECT (developer.tibber.com, github.com/strutsfarm x2, hacs.xyz, 4 shields.io badges, home-assistant.io, python.org); a quiet re-run with network would settle them. Also not executed: U01 (closed-loop +35 % loss converging in 3 days, and a correct model left alone within \u00b112 %), which needs a SLOW tests/rolling.py run; U02 (the sysid two-state gate's ~0.02 \u00b0C noise and 5 h window); U03 (30-90 SEK/kW typical, an external fact); U04 and C63 (HA 2025.2.0 being the first release with requires-python >=3.13, and the Python 3.13 floor), both external. REPORT.md itself was not written because the harness refused the write; this JSON is the report."
+          },
+          {
+            "step": "M1",
+            "what": "how-it-works.md: only 11 of ~92 numeric/behaviour lines extracted (thermal model, hot water, tariffs, wood, away, learning-loop sections left); dashboard-card.md: chart, headline, savings, advisor, setup page, keyboard and installation prose not extracted"
+          },
+          {
+            "step": "M2",
+            "what": "ecl110.md fixed-mode displaces (+4/max/min), peak-guard -2 C nudge and the ECL110 sensors' enabled/disabled defaults were read in code, not executed; the PNG renders' content was not compared with the forms"
+          }
+        ]
+      }
+    },
+    "steps": [
+      "M1",
+      "M2",
+      "M3"
+    ]
+  },
+  "D7": {
+    "rounds": {
+      "9": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep",
+          "M5": "deep",
+          "M6": "deep"
+        },
+        "leads": {
+          "converted": 3,
+          "raised": 3
+        },
+        "returned": {
+          "s1": 2,
+          "s2": 2,
+          "s3": 2
+        },
+        "seats": [
+          [
+            "M1",
+            "M5"
+          ],
+          [
+            "M2",
+            "M3",
+            "M4"
+          ],
+          [
+            "M6"
+          ]
+        ],
+        "unfinished": [
+          {
+            "step": "M5",
+            "what": "batched-gradient mutant (can_batch=False): survived guard_pins, doc_claims, finite_boundary, config_flow_steps, entities; its features.py run (scalar-FD path, >45 min) and the env_drift capture were not finished. stress.py/env_drift.py/golden.py/deployment_shape.py could not be driven as mutation drivers (the export has no .git)."
+          },
+          {
+            "step": "M2",
+            "what": "Noise-bearing arms (sensor noise, true gains != prior) on top of the discretization result, and two-zone presets, were not run."
+          },
+          {
+            "step": "M3",
+            "what": "Lower-floor loss learner (two-zone + lower sensor), flow-lift bias #1067, buffer cooling and comfort learner not driven; freq map and DHW dynamics measured at their gate, not their counter."
+          }
+        ]
+      }
+    },
+    "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6"
+    ]
+  },
+  "D8": {
+    "rounds": {
+      "9": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep",
+          "M3": "deep",
+          "M4": "deep",
+          "M5": "deep"
+        },
+        "leads": {
+          "converted": 2,
+          "raised": 10
+        },
+        "returned": {
+          "s1": 3,
+          "s2": 3,
+          "s3": 3
+        },
+        "seats": [
+          [
+            "M1",
+            "M2"
+          ],
+          [
+            "M1",
+            "M2"
+          ],
+          [
+            "M3",
+            "M4",
+            "M5"
+          ]
+        ],
+        "unfinished": [
+          {
+            "step": "M1",
+            "what": "The matrix covers only the 5 scenario configurations \u00d7 thermometer axis. The ECL110, Tuya-signal (including the DHW-only Tuya overlay with space heating blocked), valve-storage, two-tank, coil and wood toggles were not added as cells. The DHW-only oracle was instead exercised through the DHW boost at mode off and through the 6 DHW-only plan steps."
+          },
+          {
+            "step": "M2",
+            "what": "REPORT.md at tools/audit/round9/D8/s2/REPORT.md could not be written because the session refused report-file writes, so the report content is carried in this JSON only. Not examined: whether SystemIdentificationButton stays available after it is armed but before the experiment is active."
+          }
+        ]
+      }
+    },
+    "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+    ]
+  },
+  "D9": {
+    "rounds": {
+      "9": {
+        "coverage": {
+          "M1": "deep",
+          "M2": "deep"
+        },
+        "leads": {
+          "converted": 1,
+          "raised": 7
+        },
+        "returned": {
+          "s1": 4,
+          "s2": 3
+        },
+        "seats": [
+          [
+            "M1"
+          ],
+          [
+            "M1",
+            "M2"
+          ]
+        ],
+        "unfinished": [
+          {
+            "step": "M1",
+            "what": "Not measured in my cells: the per-row loop in _terminal_cost_batch.cost_batch (profile-only estimate ~3% of a two-zone solve, no harness); thermal_model's scalar simulate_step dataclasses.replace per step (subsumed by D9-s1-02's fix path, not separately harnessed); the two-zone plant variant of the sysid fit; all wall/CPU/RSS numbers are fan-out provisional and need the quiet-window re-take."
+          },
+          {
+            "step": "M1",
+            "what": "Longest contiguous event-loop stretch per cycle on a real asyncio loop was not measured: replay's FakeHass runs executor jobs inline, so only the loop-thread CPU total per cycle is reported (loop_work.py). Measuring the stretch needs a real loop plus ThreadPoolExecutor rig driving _async_update_data. Only one recorded fixture exists (DHW-only, single zone), so the loop share and advisor share are from one topology. A two-zone or space-heating replay would need a new fixture."
+          },
+          {
+            "step": "M1",
+            "what": "REPORT.md was not written: this session's harness refuses report-file writes from a subagent. The report content is this JSON; the harness headers carry method, command, perturbation and expected values."
+          },
+          {
+            "step": "M2",
+            "what": "The wall/CPU-ratio numbers were taken during the fan-out and are provisional. The quiet window should re-take m2_nonkernel_2x.py (plain,nonkernel2x_one@2.19,nonkernel2x_one@4 --victim winter/2z/dhw; plain,solvecpu2x_set) and m2_loop_blind.py. Counts of tripped rules were stable across all runs. On this Xeon box the plain sweep ratio already sits at 119-122 against the 134.32 budget (0.89-0.91). That was not pursued as a finding (portable-budget variance, recorded as a non-finding)."
+          }
+        ]
+      }
+    },
+    "steps": [
+      "M1",
+      "M2"
+    ]
+  },
+  "_rule": "One entry per tools/audit/briefs/D<k>.md. steps are its numbered method steps in order: a line opening `<n>. ` is step M<n>, and the id is D<k>.M<n>. rounds[<round>] holds seats (each seat's step list, deep focus first), coverage (step -> deep|spot|none), unfinished ([{step, what}]), returned (seat key -> findings accepted at intake), leads ({raised, converted}) and yield (step -> judge-surviving findings). audit-find.js writes each round's entry (from round 9 its seats come from tools/audit/scopes.json, not from this ledger); .claude/workflows/check-wave-script.mjs refuses a dimension or step the briefs and this file disagree on.",
+  "_seeded": "Round 8's seat focuses and reports were not reachable from the local tree (they live in the cloud thread's project files), so every rounds map starts empty. Round 9 dispatches from tools/audit/scopes.json, not from this ledger."
 }

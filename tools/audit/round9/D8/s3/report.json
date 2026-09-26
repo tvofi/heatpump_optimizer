@@ -1,0 +1,222 @@
+{
+ "dimension": "D8",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D8/s3/REPORT.md",
+ "exposure": "",
+ "coverage": [
+  {
+   "step": "D8.M3",
+   "depth": "deep",
+   "evidence": "m3_families.py: 8 production-defined families x 3 orderings over the 75-entity roster (families_split_unexplained en=2 sv=2 entity_id=1); m3_translation.py: 74 names, 18 concept tokens, key-set parity strings/en/sv=0. No earlier-round evidence (round3..round8) was read."
+  },
+  {
+   "step": "D8.M4",
+   "depth": "deep",
+   "evidence": "m4_setup_inputs.py: 16 setup-writable slots swept, lit_but_off=0; m4_duplicates.py: 5 topologies x 3 cycles, duplicate_enabled_pairs=1; README disabled list vs production default in 5 topologies (0 diff on DHW installs); first-hour entities all on."
+  },
+  {
+   "step": "D8.M5",
+   "depth": "deep",
+   "evidence": "m5_matrix.py: one RESULT per violation class, two runs per harness, nondeterministic_results=0, network_connects=0 (socket.connect refused and counted)."
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D8-s3-01",
+   "scope": "D8-s3",
+   "step": "D8.M3",
+   "title": "Accuracy and Energy-dashboard meter families split in both English and Swedish name sort",
+   "severity": "low",
+   "claim": "In the name-sorted six-platform roster, the accuracy family (Prediction Accuracy + Diagnose Last Interval) and the energy-meter family (_AccumulatingSensor, DHW members aside) each occupy more than one contiguous run, in English and in Swedish.",
+   "mechanism": "The Diagnose Last Interval button publishes onto Prediction Accuracy but carries no lead token of it (unlike the #1227 Learning buttons); of the three lifetime cost meters only the total is Cost-led, and Thermal Battery sorts between Space Heating and Total Energy.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m3_families.py",
+    "harness_path": "tools/audit/round9/D8/s3/m3_families.py",
+    "value": "families_split_unexplained_name_en=2, name_sv=2, entity_id=1",
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container B4 (linux), venv-r9 python 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 2.45,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.button:DiagnoseIntervalButton / heatpump_optimizer.sensor:PredictionAccuracySensor / heatpump_optimizer.sensor:_AccumulatingSensor via each platform's async_setup_entry",
+   "perturbation": {
+    "change": "--perturb: in memory, the button's en/sv names take the sensor's lead ('Prediction Accuracy Diagnose Last Interval' / 'Prognosnoggrannhet diagnostisera senaste intervallet')",
+    "expected_direction": "down",
+    "observed_value": "name_en 2->1, name_sv 2->1"
+   },
+   "metric_definition": "Production-defined families whose members (less those in a second family) occupy >1 contiguous run of the roster sorted by en/sv name (entity_id: runs beyond one per domain).",
+   "phenomenon_property": "Every production-defined entity family occupies one contiguous run of the name-sorted roster in each shipped language, once members homed in another family are set aside.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m3_families.py  (SPLIT_UNEXPLAINED lines)",
+   "null_control": {
+    "command": "same harness",
+    "value": "ecl110/tariff/learning/card_headline runs=1 in every ordering",
+    "note": "families whose members share a lead read whole"
+   },
+   "leave_one_out": {
+    "cells": 8,
+    "min": 0,
+    "max": 3,
+    "drop_most_favourable": 1
+   },
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/button.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json"
+   ],
+   "proposed_fix_scope": "Names only (new-install entity ids optional, unique ids untouched as in #1227/#1333): lead the diagnose button with the accuracy token; give the lifetime meters one parallel template in en and sv."
+  },
+  {
+   "id": "D8-s3-02",
+   "scope": "D8-s3",
+   "step": "D8.M3",
+   "title": "Swedish name of Sensor-Gap Advisor reads 'sensor gap in the currency' and drops the advisor role",
+   "severity": "low",
+   "claim": "sv.json names sensor_gap_advisor 'Sensorlucka i valutan', which carries none of the English name's role (Advisor/rådgivare) and a currency qualifier the English name no longer has.",
+   "mechanism": "The English name was renamed (the unit moved to coordinator.currency) while the Swedish string kept the old qualifier form.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m3_translation.py",
+    "harness_path": "tools/audit/round9/D8/s3/m3_translation.py",
+    "value": 1,
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container B4 (linux), venv-r9 python 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 1.75,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:SensorGapAdvisorSensor (translation_key sensor_gap_advisor) via heatpump_optimizer.sensor:async_setup_entry",
+   "perturbation": {
+    "change": "--perturb: in memory, sv sensor.sensor_gap_advisor name -> 'Sensorlucka, rådgivare'",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Entities whose English name carries a concept token of the harness's CONCEPTS map while the Swedish name carries none of its Swedish counterparts.",
+   "phenomenon_property": "Every entity's Swedish name carries the same role and qualifier concepts as its English name.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m3_translation.py  (MISMATCH lines)",
+   "null_control": {
+    "command": "same harness",
+    "value": "concept_mismatch_other_tokens=0 over 74 names",
+    "note": "the mapping does not generate misses"
+   },
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "custom_components/heatpump_optimizer/translations/sv.json"
+   ],
+   "proposed_fix_scope": "One string in translations/sv.json (e.g. 'Sensorlucka, rådgivare')."
+  },
+  {
+   "id": "D8-s3-03",
+   "scope": "D8-s3",
+   "step": "D8.M4",
+   "title": "Upper Floor Temperature, a byte duplicate of Indoor Temperature, is enabled by default on every install",
+   "severity": "low",
+   "claim": "On all 5 golden topologies across 3 input cycles, the enabled-by-default Upper Floor Temperature publishes exactly the Indoor Temperature (Optimizer) value, including single-zone installs that have no upper floor.",
+   "mechanism": "UpperFloorTempSensor reads upper_floor_temperature, which the coordinator sets to the indoor reading (its own docstring); it keeps the class default enabled while its disabled-by-default siblings follow configured inputs.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m4_duplicates.py",
+    "harness_path": "tools/audit/round9/D8/s3/m4_duplicates.py",
+    "value": 1,
+    "unit": "count",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "cloud container B4 (linux), venv-r9 python 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 0.99,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.sensor:UpperFloorTempSensor.native_value / heatpump_optimizer.sensor:IndoorTempSensor.native_value via heatpump_optimizer.sensor:async_setup_entry",
+   "perturbation": {
+    "change": "--perturb: in memory, UpperFloorTempSensor._attr_entity_registry_enabled_default = False",
+    "expected_direction": "to_zero",
+    "observed_value": 0
+   },
+   "metric_definition": "Unordered pairs of enabled-by-default numeric sensors, same unit, equal native_value in every cycle of every topology while the value changes across cycles.",
+   "phenomenon_property": "No two enabled-by-default entities publish the same value from the same source.",
+   "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m4_duplicates.py  (DUPLICATE_ENABLED lines)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m4_duplicates.py --perturb",
+    "value": "duplicate_pairs_any_default=1 while duplicate_enabled_pairs=0",
+    "note": "the move is the registry default, not the value"
+   },
+   "leave_one_out": {
+    "cells": 5,
+    "min": 1,
+    "max": 1,
+    "drop_most_favourable": 1
+   },
+   "stop_rule_class": "hygiene",
+   "class_guess": "new",
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py"
+   ],
+   "proposed_fix_scope": "UpperFloorTempSensor disabled by default on new installs (existing registry entries keep their state, as #1335); README's Upper Floor row notes it."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "No entity lit by a setup-time input slot is left disabled by default (16 slots: user_sensors fields + device pre-fill _NAMED); instrument fires under a static-off DHW Temperature",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m4_setup_inputs.py [--perturb]",
+   "value": "lit_but_off=0, lit_and_on=6; --perturb lit_but_off=1"
+  },
+  {
+   "claim": "Compressor Frequency Advisor's static off is honest: its setup-writable slot (compressor_freq_sensor via pre-fill) does not light it without measured power",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m4_setup_inputs.py",
+   "value": "not in lit_and_on or lit_but_off"
+  },
+  {
+   "claim": "README's 19-name disabled-by-default list equals the production disabled set on DHW installs; on no-DHW installs the 7 extras are the DHW-gated entities",
+   "command": "roster.build_honest over golden.coordinator_scenarios() (REPORT.md M4)",
+   "value": "coord_dhw 19/0 diff, coord_all_features 19/0 diff, others 26 = 19 + 7 DHW"
+  },
+  {
+   "claim": "ECL110, tariff, learning, card-headline families are whole in every ordering",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m3_families.py",
+   "value": "runs=1 each (entity_id: per domain)"
+  },
+  {
+   "claim": "Translation key sets strings/en/sv agree; no duplicate display name in either language",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m3_translation.py",
+   "value": "key_set_differences=0; 74/74/74 keys"
+  },
+  {
+   "claim": "The matrix is deterministic and makes no network connection",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv-r9/bin/python tools/audit/round9/D8/s3/m5_matrix.py",
+   "value": "nondeterministic_results=0, network_connects=0"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D8/s3/roster.py",
+  "tools/audit/round9/D8/s3/m3_families.py",
+  "tools/audit/round9/D8/s3/m3_translation.py",
+  "tools/audit/round9/D8/s3/m4_setup_inputs.py",
+  "tools/audit/round9/D8/s3/m4_duplicates.py",
+  "tools/audit/round9/D8/s3/m5_matrix.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D8-s1",
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "DHWHeavyDaySensor",
+   "what": "A hot-water-subject sensor (dhw_ key, DHW name) outside DHWEntityMixin; check its availability/default gate on a no-DHW install against the mixin's, or that tests/entities.py names it as an exception."
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "README.md",
+   "symbol": "Entities > temperatures table, Upper Floor Temperature row",
+   "what": "README describes Upper Floor Temperature as 'The radiator zone' while it publishes the indoor reading on every install (UpperFloorTempSensor docstring)."
+  }
+ ]
+}

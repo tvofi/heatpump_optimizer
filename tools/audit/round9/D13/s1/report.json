@@ -1,0 +1,244 @@
+{
+ "dimension": "D13",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D13/s1/REPORT.md",
+ "exposure": "main's git history and the GitHub REST API (commits->pulls, pulls, issue comments, reviews, check runs) over v6.6.0..1936d5ca, verdict/friction text read as population only; headers of tools/audit/round4/D11/{dora_keys,governance_cost,d11lib}.py and .claude/workflows/cfr_exclusions.json (brief-named bases, whose comments cite earlier D13 ids -- none cited as evidence); directory names only under tools/audit/round5..8/D13 (no file read); one mcp__github__pull_request_read confirming #1165 is 404.",
+ "coverage": [
+  {
+   "step": "D13.M1",
+   "depth": "deep",
+   "evidence": "yield_rounds.mjs + enum_gap.mjs over all 201 API-enumerated merges (and the 52 it drops): first-verdict yield 172/188=0.915, rounds mean 1.271 max 4, production CLI replayed offline"
+  },
+  {
+   "step": "D13.M2",
+   "depth": "deep",
+   "evidence": "yield_rounds.mjs m2_* rows: 13/201 no-verdict merges by 5 title/author classes, all 13 owner-APPROVED, no exempting rule; reshape_one perturbation 188->187"
+  },
+  {
+   "step": "D13.M3",
+   "depth": "deep",
+   "evidence": "yield_rounds.mjs m3_*: 21 blocked verdicts by class (10 untaught words on own rows), buckets eng 7 / record-and-body 12 / orchestration 2"
+  },
+  {
+   "step": "D13.M4",
+   "depth": "deep",
+   "evidence": "dora_by_job.py hooking dora_keys.py: CFR per check-run name at merge and head, exclusion list, revert arm (0), DF 1.53/d, lead median 8.59 h, TTR per name; exclusion perturbation moves 13/201 exactly"
+  },
+  {
+   "step": "D13.M5",
+   "depth": "deep",
+   "evidence": "gov_cost.py hooking governance_cost.py: GOV re-derived from workflow files adds rerun-stale-verdict (64 s); governance share 0.0474 at head"
+  },
+  {
+   "step": "D13.M6",
+   "depth": "deep",
+   "evidence": "friction_keys.mjs: 126 entries, share naming one --budgets file 0.619, per-file spelling counts, 5 disagreements with production frictionKey; README.md / unbackticked perturbations as briefed"
+  }
+ ],
+ "unfinished": [],
+ "findings": [
+  {
+   "id": "D13-s1-01",
+   "scope": "D13-s1",
+   "step": "D13.M1",
+   "title": "--stats API-mode enumerator silently drops 52 of 253 window merges whose /commits/<sha>/pulls answers []",
+   "severity": "medium",
+   "claim": "policy_lint.mjs --stats --since v6.6.0 at 1936d5ca reports 201 merged pull requests while main's first-parent history holds 253 `Merge pull request #N` merges, and prints no line naming the 52 it dropped.",
+   "mechanism": "fetchPullsBySha maps a sha only when /commits/<sha>/pulls returns rows; enumerateMerges (API mode) then skips every unmapped first-parent commit as a stamp. PRs #1098-#1165 return [] (their PR records 404), so their merges vanish from the population and from STATS COVERAGE's denominator without an unfetched/UNCHECKED marker.",
+   "evidence": {
+    "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/enum_gap.mjs",
+    "harness_path": "tools/audit/round9/D13/s1/enum_gap.mjs",
+    "value": 201,
+    "unit": "merges enumerated (vs 253 subject merges; gap 52, gap_marked 0)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B3 container, 4 CPU, 15 GiB, node v22.22.2, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "GitHub-reported/git counts over a snapshotted closed window; contention-immune; box shared with 4 other seats",
+    "tolerance": "exact",
+    "load1": 6.36,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/workflows/policy_lint.mjs:enumerateMerges (via the --stats CLI, fetchPullsBySha over a stub curl replaying the live API)",
+   "perturbation": {
+    "change": "D13_PERTURB=drop:8cca77bcd64b8615338eb8986189ae92b871b05d (stub answers [] for one more merge) -> 200, gap 53, still unmarked; D13_PERTURB=restore (stub answers the 52 with their subject number) -> 253",
+    "expected_direction": "down",
+    "observed_value": "200 (drop); 253 (restore)"
+   },
+   "metric_definition": "N in the CLI line `STATS: N merged pull request(s)` against first-parent `Merge pull request #N` subjects in v6.6.0..origin/main; key = PR-number set the seam delivers.",
+   "phenomenon_property": "Every first-parent merge commit of a pull request in the window is in the --stats population, or is counted and printed as unfetched; none leaves the denominator silently.",
+   "seam_rule": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/enum_gap.mjs  (gap and gap_marked); every caller of enumerateMerges/mergedPRsFromWindow: grep -n 'mergedPRsFromWindow\\|enumerateMerges(' .claude/workflows/policy_lint.mjs",
+   "null_control": {
+    "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/enum_gap.mjs",
+    "value": "restore arm: 253 = subject_merges, gap 0",
+    "note": "the gap is exactly the empty-row commits; stub replay reproduced the live CLI's 201 / 188-of-201 lines"
+   },
+   "reproduction_steps": [
+    "cd export root",
+    "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/enum_gap.mjs",
+    "compare RESULT stats_window_merges with subject_merges"
+   ],
+   "proposed_fix_scope": "In API mode treat a first-parent commit whose subject is `Merge pull request #N` and whose /pulls rows are empty as merge #N with unfetchable data: count it, list it on the unfetched line; fetchWindow must record rather than abort on its 404.",
+   "files": [
+    ".claude/workflows/policy_lint.mjs"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I4"
+  },
+  {
+   "id": "D13-s1-02",
+   "scope": "D13-s1",
+   "step": "D13.M1",
+   "title": "22 re-verification rounds after a moved head caught 0 defects; 12 heads moved only by merges or ci: commits",
+   "severity": "high",
+   "claim": "Over v6.6.0..1936d5ca every one of the 22 parsable verdicts re-verifying a head that moved after a `merge` verdict was again `merge` (0 blocked), and 12 of those heads differed from the reviewed one only by merge commits or `ci:` bot commits.",
+   "mechanism": "An approving verdict binds an exact head, so any move -- including merging main to clear DIRTY or a bot re-record -- costs a full fix-review round; nothing distinguishes a move that changes the branch's diff from one that does not.",
+   "evidence": {
+    "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs",
+    "harness_path": "tools/audit/round9/D13/s1/yield_rounds.mjs",
+    "value": 0,
+    "unit": "reverify rounds blocked (of 22; 11 merges-only, 1 ci-bot-only, 10 branch content)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B3 container, 4 CPU, 15 GiB, node v22.22.2, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "GitHub-reported/git counts over a snapshotted closed window; contention-immune; box shared with 4 other seats",
+    "tolerance": "exact",
+    "load1": 4.51,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/workflows/policy_lint.mjs:statsHistogram (rounds.reverify, 22) and policy_lint.mjs:waveVerdictRe",
+   "perturbation": {
+    "change": "D13_PERTURB=block_one_reverify: one reverify round's verdict re-worded `Fix review: blocked <same head> harness: perturbed` in memory",
+    "expected_direction": "up",
+    "observed_value": 1
+   },
+   "metric_definition": "Among verdicts following a `merge` verdict on a different head (statsHistogram reverify), the count whose verdict is `blocked`; plus git first-parent classification of prev..head.",
+   "phenomenon_property": "A review round is spent only where it can catch something: a head move that leaves the branch's diff against its merge base unchanged does not cost a fix-review round.",
+   "seam_rule": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs  (reverify_* RESULTs)",
+   "null_control": {
+    "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs",
+    "value": "repair rounds after a blocked verdict: 21 (where all catches happen); prod_repeat_entries 6",
+    "note": "the rework that does catch is the repair arm, not the reverify arm"
+   },
+   "proposed_fix_scope": "A mechanical diff-equivalence check (branch diff vs new merge base byte-identical to the reviewed diff, bot ci: commits excluded) that carries the verdict across a merges-only move; full fix review only when it fails. Policy change: owner approval needed.",
+   "files": [
+    "tools/audit/briefs/fix-review.md",
+    ".claude/workflows/web-fix-wave.js",
+    "tools/audit/app_approve.sh"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  },
+  {
+   "id": "D13-s1-03",
+   "scope": "D13-s1",
+   "step": "D13.M3",
+   "title": "Body-answer blocks (8) exceed every engineering block class (max 1); record-and-body 12 vs engineering 7",
+   "severity": "high",
+   "claim": "Of the window's 21 blocked verdicts, 8 block because the PR body did not answer a red check (root-cause-unanswered 6, untaught red-check 2) while no engineering class has more than 1, and the record-and-body bucket (12) exceeds engineering (7).",
+   "mechanism": "The root-cause trigger (a check went red on a branch commit and the body does not name it) is a mechanical predicate over the check-runs listing and the body, yet it is enforced only by the fix reviewer, so each miss costs a full review round.",
+   "evidence": {
+    "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs",
+    "harness_path": "tools/audit/round9/D13/s1/yield_rounds.mjs",
+    "value": 8,
+    "unit": "body-answer blocked verdicts (max engineering class 1)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B3 container, 4 CPU, 15 GiB, node v22.22.2, CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "GitHub-reported/git counts over a snapshotted closed window; contention-immune; box shared with 4 other seats",
+    "tolerance": "exact",
+    "load1": 4.51,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/workflows/policy_lint.mjs:waveVerdictRe and policy_lint.mjs:blockClasses (web-fix-wave.js VERDICT_RE / VERDICT_CLASSES)",
+   "perturbation": {
+    "change": "D13_PERTURB=rca_to_harness: one root-cause-unanswered verdict re-worded as `harness:` in memory",
+    "expected_direction": "down",
+    "observed_value": "m3_body_answer_blocks 7, record-and-body 11, engineering 8"
+   },
+   "metric_definition": "Blocked verdicts (wave VERDICT_RE, both endpoints) whose class word is root-cause-unanswered or red-check, vs the largest engineering-bucket class count.",
+   "phenomenon_property": "A block whose predicate is mechanical from the API (red check on a branch commit, unnamed in the body) is refused by a check before review, not discovered by a review round.",
+   "seam_rule": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs  (m3 class rows; each class whose predicate needs only check runs + body)",
+   "null_control": {
+    "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs",
+    "value": "engineering bucket 7 across 7 distinct classes, each 1",
+    "note": "body-answer is the only class above 1 besides none"
+   },
+   "leave_one_out": {
+    "cells": 7,
+    "min": 1,
+    "max": 6,
+    "drop_most_favourable": 2
+   },
+   "proposed_fix_scope": "A pre-review check (pr-contract lane) that lists check runs concluded failure on the branch's commits and refuses a body that names none of them under the root-cause section; review keeps only the judgement of the answer.",
+   "files": [
+    ".claude/workflows/policy_lint.mjs",
+    ".github/workflows/pr-contract.yml",
+    ".claude/rules/defect-root-cause.md"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "M1 yield by the brief's rule equals production's first-verdict yield; 0 multi-row /pulls answers; 0 review-endpoint verdicts; 2 wave-refused lines reported on own rows",
+   "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs",
+   "value": "0.915 (172/188); rounds mean 1.271 max 4; one-round 0.819"
+  },
+  {
+   "claim": "M2: every no-verdict merge carries an owner APPROVED review; no tree rule exempts a class",
+   "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/yield_rounds.mjs",
+   "value": "13/201 (fix/feature 2/57, record/chore 6/36, other 3/89, bot 1/2, untitled 1/17)"
+  },
+  {
+   "claim": "M4: no merge reverted in window; dora_keys.py lacks a revert arm but it is immaterial here; exclusion perturbation moves CFR by exactly the sole-failure count",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D13/s1/dora_by_job.py",
+   "value": "cfr_merge_keyed 0.174 (0.109 with instrument-self-tests excluded, 13/201); head 0.065; DF 1.53/d; lead median 8.59 h p90 21.22 h; 35 merge-surface-only failures"
+  },
+  {
+   "claim": "M5: governance is under 5% of CI seconds; the re-derived set misses only rerun-stale-verdict, 64 s over the window",
+   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round9/D13/s1/gov_cost.py",
+   "value": "head share 0.0474 (246.2 vs 4950.8 s/merge mean); merge share 0.0409 -> 0.041 re-derived"
+  },
+  {
+   "claim": "M6: friction keys resolve to one --budgets file for 62% of entries; production frictionKey differs from the brief rule on 5 entries by documented design",
+   "command": "HPO_PLANDATA=$(mktemp -d) node tools/audit/round9/D13/s1/friction_keys.mjs",
+   "value": "78/126 = 0.619 one-file, 0 ambiguous, 48 unresolved (decision-0013 x6)"
+  },
+  {
+   "claim": "fetchWindow's unpaginated per_page=100 comment read loses nothing in window",
+   "command": "python snapshot inspection (max comments per PR)",
+   "value": "max 5 comments, 8 reviews per PR"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D13/s1/fetch_window.py",
+  "tools/audit/round9/D13/s1/r9lib.py",
+  "tools/audit/round9/D13/s1/yield_rounds.mjs",
+  "tools/audit/round9/D13/s1/enum_gap.mjs",
+  "tools/audit/round9/D13/s1/dora_by_job.py",
+  "tools/audit/round9/D13/s1/gov_cost.py",
+  "tools/audit/round9/D13/s1/friction_keys.mjs",
+  "tools/audit/round9/D13/s1/window.json.gz"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D11-s1",
+   "file": ".github/workflows/governance.yml",
+   "symbol": "instrument-self-tests",
+   "what": "fails at 18 of 201 main merge commits (one 11.69 h red episode, 2026-09-25) while succeeding or absent at every PR head; a merge-surface-only red the PR gate never sees"
+  },
+  {
+   "owner_seat": "D11-s1",
+   "file": ".claude/workflows/web-fix-wave.js",
+   "symbol": "verdict poster identity",
+   "what": "166 of 239 `Fix review:` lines in window posted under the owner account tvofi, 73 by hpo-approver[bot]; decision 0011 says hpo-approver posts verdicts"
+  },
+  {
+   "owner_seat": "D11-s1",
+   "file": "tools/audit/round4/D11/governance_cost.py",
+   "symbol": "GOV",
+   "what": "misses rerun-stale-verdict (budget-raise-gate-rerun.yml); tests/entities.py pins GOV only against governance.yml jobs, so a governance job in another file escapes (64 s in window)"
+  }
+ ]
+}
