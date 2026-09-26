@@ -1,0 +1,32 @@
+
+=== Stress and economics ===
+RESULT scenarios=51 count
+RESULT sweep_ratio=116.648 ratio
+RESULT sweep_budget=134.32 ratio
+RESULT k_over_2_count=50 of 51 (scenarios whose lone 2x CPU trips no CPU rule)
+RESULT k_min=1.805 x
+RESULT k_min_label=winter_mild/2z/space
+RESULT k_median=3.131 x
+RESULT k_max=4.137 x
+RESULT k_min_drop_lowest=2.048 x (leave-one-out)
+RESULT sweep_rule_k_min=2.128 x
+RESULT victim[winter/2z/dhw].repeat=4 x _comfort_terms_batch
+RESULT victim[winter/2z/dhw].cpu_x=1.946 ratio (provisional)
+RESULT victim[winter/2z/dhw].k=2.603 x
+RESULT victim[winter/2z/dhw].cpu_rule_trips=0 bool
+RESULT victim[winter/2z/dhw].evals_x=1 ratio
+RESULT victim[winter/2z/dhw].sim_x=1 ratio
+RESULT victim[winter/2z/dhw].kernel_x=0.988 ratio
+RESULT victim[winter/2z/dhw].work_rules_tripped=0 count
+RESULT victim[winter/2z/dhw].plan_sha_equal=1 bool
+RESULT two_zone_scenarios=29 count
+RESULT two_zone_share_of_sweep_cpu=0.912 ratio
+RESULT all_two_zone_scaled.sweep_ratio=217.307 ratio
+RESULT all_two_zone_scaled.sweep_trips=1 bool
+RESULT all_two_zone_scaled.per_scenario_trips=1 count
+RESULT clean_vs_clean_spread=0.0088 ratio
+RESULT thread_factor=1
+RESULT load1=1
+RESULT swapins=0
+RESULT concurrent_stress_procs=0
+# machine: x86_64 4cpu Linux py3.14.0rc2

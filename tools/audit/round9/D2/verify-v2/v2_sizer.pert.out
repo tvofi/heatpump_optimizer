@@ -1,0 +1,47 @@
+
+=== Stress and economics ===
+RESULT light_new_step_kw=0.874 (plant max 6.00, at_max=False)
+RESULT light_new_noiseless_headroom=0.1988 K
+RESULT light_new_cad0.5_s0_abort_prob=0.0000
+RESULT light_new_cad0.5_s0.01_abort_prob=0.0000
+RESULT light_new_cad0.5_s0.02_abort_prob=0.0000
+RESULT light_new_cad0.5_s0.05_abort_prob=0.0010
+RESULT light_new_cad0.5_quant0.1_abort_prob=0.0000
+RESULT light_new_cad0.25_s0_abort_prob=0.0000
+RESULT light_new_cad0.25_s0.01_abort_prob=0.0000
+RESULT light_new_cad0.25_s0.02_abort_prob=0.0000
+RESULT light_new_cad0.25_s0.05_abort_prob=0.0015
+RESULT light_new_cad0.25_quant0.1_abort_prob=0.0000
+RESULT heavy_old_step_kw=5.100 (plant max 6.00, at_max=False)
+RESULT heavy_old_noiseless_headroom=0.5924 K
+RESULT heavy_old_cad0.5_s0_abort_prob=0.0000
+RESULT heavy_old_cad0.5_s0.01_abort_prob=0.0000
+RESULT heavy_old_cad0.5_s0.02_abort_prob=0.0000
+RESULT heavy_old_cad0.5_s0.05_abort_prob=0.0000
+RESULT heavy_old_cad0.5_quant0.1_abort_prob=0.0000
+RESULT heavy_old_cad0.25_s0_abort_prob=0.0000
+RESULT heavy_old_cad0.25_s0.01_abort_prob=0.0000
+RESULT heavy_old_cad0.25_s0.02_abort_prob=0.0000
+RESULT heavy_old_cad0.25_s0.05_abort_prob=0.0000
+RESULT heavy_old_cad0.25_quant0.1_abort_prob=0.0000
+RESULT typical_slab_step_kw=5.100 (plant max 6.00, at_max=False)
+RESULT typical_slab_noiseless_headroom=0.1737 K
+RESULT typical_slab_cad0.5_s0_abort_prob=0.0000
+RESULT typical_slab_cad0.5_s0.01_abort_prob=0.0000
+RESULT typical_slab_cad0.5_s0.02_abort_prob=0.0000
+RESULT typical_slab_cad0.5_s0.05_abort_prob=0.0070
+RESULT typical_slab_cad0.5_quant0.1_abort_prob=0.0000
+RESULT typical_slab_cad0.25_s0_abort_prob=0.0000
+RESULT typical_slab_cad0.25_s0.01_abort_prob=0.0000
+RESULT typical_slab_cad0.25_s0.02_abort_prob=0.0000
+RESULT typical_slab_cad0.25_s0.05_abort_prob=0.0095
+RESULT typical_slab_cad0.25_quant0.1_abort_prob=0.0000
+RESULT all_s0_abort_prob_mean=0.0000 (cells 6, max 0.0000)
+RESULT all_s0.01_abort_prob_mean=0.0000 (cells 6, max 0.0000)
+RESULT all_s0.02_abort_prob_mean=0.0000 (cells 6, max 0.0000)
+RESULT all_s0.05_abort_prob_mean=0.0032 (cells 6, max 0.0095)
+RESULT all_quant0.1_abort_prob_mean=0.0000 (cells 6, max 0.0000)
+RESULT worst_noiseless_headroom=0.1737 K
+RESULT thread_factor=1.0000
+RESULT load1=2.56
+RESULT swapins=0

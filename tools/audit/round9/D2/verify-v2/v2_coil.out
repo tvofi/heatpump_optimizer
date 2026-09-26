@@ -1,0 +1,14 @@
+RESULT sweep_cells=21 count (peak pattern draw 0.847 kW)
+RESULT sweep_cells_vanishing=12 count
+RESULT sweep_vanished_max=0.121176 kWh_per_step
+RESULT sweep_closed_form_abs_err_max=1.73e-17 kWh
+RESULT golden_wood_coil_published_steps=96 count
+RESULT golden_wood_coil_dhw_min=43.330 degC
+RESULT golden_wood_coil_trajectory_matched=1
+RESULT golden_wood_coil_coil_steps=32 count
+RESULT golden_wood_coil_coil_steps_below_40C=0 count
+RESULT golden_wood_coil_vanished_total=0.000000 kWh
+RESULT golden_wood_coil_coil_heat_total=1.094762 kWh
+RESULT thread_factor=1.0013
+RESULT load1=2.65
+RESULT swapins=0

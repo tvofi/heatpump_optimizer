@@ -1,0 +1,45 @@
+# 1z s=0.3 out=-10.0 cap_gap=+4.0688 K hold_ratio=3.9726
+# 1z s=0.3 out=0.0 cap_gap=+2.7563 K hold_ratio=4.4186
+# 1z s=0.3 out=8.0 cap_gap=+1.7063 K hold_ratio=5.7895
+# 1z s=0.6 out=-10.0 cap_gap=+2.3250 K hold_ratio=1.7470
+# 1z s=0.6 out=0.0 cap_gap=+1.5750 K hold_ratio=1.7925
+# 1z s=0.6 out=8.0 cap_gap=+0.9750 K hold_ratio=1.8966
+# 1z s=1.0 out=-10.0 cap_gap=+0.0000 K hold_ratio=1.0000
+# 1z s=1.0 out=0.0 cap_gap=+0.0000 K hold_ratio=1.0000
+# 1z s=1.0 out=8.0 cap_gap=+0.0000 K hold_ratio=1.0000
+# 1z s=1.5 out=-10.0 cap_gap=-2.9062 K hold_ratio=0.6517
+# 1z s=1.5 out=0.0 cap_gap=-1.9687 K hold_ratio=0.6441
+# 1z s=1.5 out=8.0 cap_gap=-1.2187 K hold_ratio=0.6286
+# 1z s=2.0 out=-10.0 cap_gap=-5.8125 K hold_ratio=0.4833
+# 1z s=2.0 out=0.0 cap_gap=-3.9375 K hold_ratio=0.4750
+# 1z s=2.0 out=8.0 cap_gap=-2.4375 K hold_ratio=0.4583
+# 1z s=3.0 out=-10.0 cap_gap=-11.6250 K hold_ratio=0.3187
+# 1z s=3.0 out=0.0 cap_gap=-7.8750 K hold_ratio=0.3115
+# 1z s=3.0 out=8.0 cap_gap=-4.8750 K hold_ratio=0.2973
+# 2z s=0.3 out=-10.0 cap_gap=+1.8988 K hold_ratio=3.9726
+# 2z s=0.3 out=0.0 cap_gap=+1.2863 K hold_ratio=4.4186
+# 2z s=0.3 out=8.0 cap_gap=+0.7963 K hold_ratio=5.7895
+# 2z s=0.6 out=-10.0 cap_gap=+1.0850 K hold_ratio=1.7470
+# 2z s=0.6 out=0.0 cap_gap=+0.7350 K hold_ratio=1.7925
+# 2z s=0.6 out=8.0 cap_gap=+0.4550 K hold_ratio=1.8966
+# 2z s=1.0 out=-10.0 cap_gap=+0.0000 K hold_ratio=1.0000
+# 2z s=1.0 out=0.0 cap_gap=+0.0000 K hold_ratio=1.0000
+# 2z s=1.0 out=8.0 cap_gap=+0.0000 K hold_ratio=1.0000
+# 2z s=1.5 out=-10.0 cap_gap=-1.3562 K hold_ratio=0.6517
+# 2z s=1.5 out=0.0 cap_gap=-0.9187 K hold_ratio=0.6441
+# 2z s=1.5 out=8.0 cap_gap=-0.5687 K hold_ratio=0.6286
+# 2z s=2.0 out=-10.0 cap_gap=-2.7125 K hold_ratio=0.4833
+# 2z s=2.0 out=0.0 cap_gap=-1.8375 K hold_ratio=0.4750
+# 2z s=2.0 out=8.0 cap_gap=-1.1375 K hold_ratio=0.4583
+# 2z s=3.0 out=-10.0 cap_gap=-5.4250 K hold_ratio=0.3187
+# 2z s=3.0 out=0.0 cap_gap=-3.6750 K hold_ratio=0.3115
+# 2z s=3.0 out=8.0 cap_gap=-2.2750 K hold_ratio=0.2973
+RESULT cells=36 count
+RESULT cap_gap_abs_max=11.6250 K
+RESULT cap_gap_at_scale_max_min=-11.6250..-2.2750 K
+RESULT cap_gap_at_scale_2_out0_1z=-3.9375 K
+RESULT null_cap_gap_abs_max=2.22e-10 K
+RESULT hold_ratio_range=0.2973..5.7895
+RESULT thread_factor=1.0000
+RESULT load1=1.91
+RESULT swapins=0

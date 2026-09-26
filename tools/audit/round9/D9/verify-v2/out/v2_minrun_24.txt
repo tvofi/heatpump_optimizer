@@ -1,0 +1,42 @@
+
+=== Stress and economics ===
+RESULT single_zone_dhw_winter_h24.weak_slots=52 count
+RESULT single_zone_dhw_winter_h24.refused=42 count
+RESULT single_zone_dhw_winter_h24.extend_steps_in_min_run=7374 steps
+RESULT single_zone_dhw_winter_h24.post_verdict_steps=3272 steps
+RESULT single_zone_dhw_winter_h24.post_verdict_fraction=0.4437 ratio (exact)
+RESULT single_zone_dhw_winter_h24.min_run_dhw_step_calls=7758 count
+RESULT single_zone_dhw_winter_h24.min_run_share_of_solve_dhw_step_calls=0.7012 ratio (exact)
+RESULT single_zone_dhw_summer_h24.weak_slots=37 count
+RESULT single_zone_dhw_summer_h24.refused=24 count
+RESULT single_zone_dhw_summer_h24.extend_steps_in_min_run=4183 steps
+RESULT single_zone_dhw_summer_h24.post_verdict_steps=1890 steps
+RESULT single_zone_dhw_summer_h24.post_verdict_fraction=0.4518 ratio (exact)
+RESULT single_zone_dhw_summer_h24.min_run_dhw_step_calls=4375 count
+RESULT single_zone_dhw_summer_h24.min_run_share_of_solve_dhw_step_calls=0.7554 ratio (exact)
+RESULT single_zone_dhw_shoulder_h24.weak_slots=31 count
+RESULT single_zone_dhw_shoulder_h24.refused=19 count
+RESULT single_zone_dhw_shoulder_h24.extend_steps_in_min_run=3334 steps
+RESULT single_zone_dhw_shoulder_h24.post_verdict_steps=945 steps
+RESULT single_zone_dhw_shoulder_h24.post_verdict_fraction=0.2834 ratio (exact)
+RESULT single_zone_dhw_shoulder_h24.min_run_dhw_step_calls=3526 count
+RESULT single_zone_dhw_shoulder_h24.min_run_share_of_solve_dhw_step_calls=0.7266 ratio (exact)
+RESULT two_zone_dhw_winter_h24.weak_slots=39 count
+RESULT two_zone_dhw_winter_h24.refused=31 count
+RESULT two_zone_dhw_winter_h24.extend_steps_in_min_run=5370 steps
+RESULT two_zone_dhw_winter_h24.post_verdict_steps=2384 steps
+RESULT two_zone_dhw_winter_h24.post_verdict_fraction=0.4439 ratio (exact)
+RESULT two_zone_dhw_winter_h24.min_run_dhw_step_calls=5754 count
+RESULT two_zone_dhw_winter_h24.min_run_share_of_solve_dhw_step_calls=0.6551 ratio (exact)
+RESULT single_zone_dhw_flat_h24.weak_slots=52 count
+RESULT single_zone_dhw_flat_h24.refused=44 count
+RESULT single_zone_dhw_flat_h24.extend_steps_in_min_run=7570 steps
+RESULT single_zone_dhw_flat_h24.post_verdict_steps=2780 steps
+RESULT single_zone_dhw_flat_h24.post_verdict_fraction=0.3672 ratio (exact)
+RESULT single_zone_dhw_flat_h24.min_run_dhw_step_calls=7954 count
+RESULT single_zone_dhw_flat_h24.min_run_share_of_solve_dhw_step_calls=0.6766 ratio (exact)
+RESULT thread_factor=1.001
+RESULT load1=1.91
+RESULT swapins=0
+RESULT concurrent_stress_procs=0
+# machine: x86_64 4cpu Linux py3.14.0rc2

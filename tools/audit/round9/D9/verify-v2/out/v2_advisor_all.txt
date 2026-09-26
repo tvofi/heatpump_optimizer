@@ -1,0 +1,18 @@
+
+=== Stress and economics ===
+RESULT all_configured.plan_sensors=2 count
+RESULT all_configured.simulate_steps_per_attr_eval=0 count (exact)
+RESULT all_configured.rank_calls_per_attr_eval=1 count (exact)
+RESULT all_configured.rankings_all_equal=1 bool
+RESULT all_configured.memo_simulate_steps_per_attr_eval=0 count (exact)
+RESULT all_configured.memo_output_equal=1 bool
+RESULT all_configured.attr_eval_cpu_ms_prod=0.168 ms (provisional)
+RESULT all_configured.attr_eval_cpu_ms_memo=0.163 ms (provisional)
+RESULT all_configured.saved_fraction_of_attr_eval=0.0293 ratio
+RESULT all_configured.advisor_cpu_per_eval_over_reference=0.0001 x reference_solve
+RESULT reference_solve_cpu_ms=32.99 ms (provisional)
+RESULT thread_factor=1
+RESULT load1=1.64
+RESULT swapins=0
+RESULT concurrent_stress_procs=0
+# machine: x86_64 4cpu Linux py3.14.0rc2

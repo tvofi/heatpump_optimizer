@@ -1,0 +1,9 @@
+RESULT quarter_distinct_minutes_mispriced=1425 of 1440
+RESULT quarter_distinct_mean_abs_err=0.1829 currency_per_kWh
+RESULT quarter_hourly_constant_minutes_mispriced=1035 of 1440
+RESULT quarter_hourly_constant_mean_abs_err=0.1726 currency_per_kWh
+RESULT null_hourly_entries_minutes_mispriced=0 of 1440
+RESULT null_hourly_entries_mean_abs_err=0.0000 currency_per_kWh
+RESULT thread_factor=1.0000
+RESULT load1=1.59
+RESULT swapins=0

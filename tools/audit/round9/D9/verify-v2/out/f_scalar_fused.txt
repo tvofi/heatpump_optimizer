@@ -1,0 +1,22 @@
+
+=== Stress and economics ===
+RESULT two_zone_dhw_winter_fused.fused_calls=501 count
+RESULT two_zone_dhw_winter_fused.fused_row0_mismatches=0 calls (exact)
+RESULT two_zone_dhw_winter_fused.scalar_objective_calls=16 count
+RESULT two_zone_dhw_winter_fused.batch_rows=48597 rows
+RESULT two_zone_dhw_winter_fused.scalar_objective_share_of_solve=0.0053 ratio
+RESULT two_zone_dhw_winter_fused.batch_share_of_solve=0.9087 ratio
+RESULT two_zone_dhw_winter_fused.ms_per_scalar_call=1.037 ms (provisional)
+RESULT two_zone_dhw_winter_fused.ms_per_batch_row=0.0587 ms (provisional)
+RESULT two_zone_dhw_winter_fused.scalar_call_over_batch_row=17.7 ratio
+RESULT two_zone_dhw_winter_fused.parity_mismatches=0 calls (exact)
+RESULT two_zone_dhw_winter_fused.plan_sha=e55e6b6677dbfdc9
+RESULT two_zone_dhw_winter_fused.solve_thread_ms_ex_parity=3141.8 ms (provisional)
+RESULT two_zone_dhw_winter_fused.solve_over_reference=95.5 x reference_solve
+RESULT two_zone_dhw_winter_fused.thread_factor=1.002
+RESULT reference_solve_cpu_ms=32.9 ms (provisional)
+RESULT thread_factor=1.002
+RESULT load1=1.14
+RESULT swapins=0
+RESULT concurrent_stress_procs=0
+# machine: x86_64 4cpu Linux py3.14.0rc2

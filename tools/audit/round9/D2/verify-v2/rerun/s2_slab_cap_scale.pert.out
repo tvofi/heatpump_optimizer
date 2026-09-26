@@ -1,0 +1,62 @@
+# two_zone=False scale=0.30 out= -15.0 cap= 22.650 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=0.30 out=  -5.0 cap= 22.087 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=0.30 out=   0.0 cap= 21.806 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=0.30 out=   5.0 cap= 21.525 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=0.50 out= -15.0 cap= 24.000 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=0.50 out=  -5.0 cap= 23.062 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=0.50 out=   0.0 cap= 22.594 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=0.50 out=   5.0 cap= 22.125 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=0.75 out= -15.0 cap= 25.688 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=0.75 out=  -5.0 cap= 24.281 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=0.75 out=   0.0 cap= 23.578 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=0.75 out=   5.0 cap= 22.875 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=1.50 out= -15.0 cap= 30.750 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=1.50 out=  -5.0 cap= 27.938 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=1.50 out=   0.0 cap= 26.531 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=1.50 out=   5.0 cap= 25.125 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=2.00 out= -15.0 cap= 34.125 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=2.00 out=  -5.0 cap= 30.375 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=2.00 out=   0.0 cap= 28.500 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=2.00 out=   5.0 cap= 26.625 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=3.00 out= -15.0 cap= 40.875 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=3.00 out=  -5.0 cap= 35.250 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=3.00 out=   0.0 cap= 32.438 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=False scale=3.00 out=   5.0 cap= 29.625 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=0.30 out= -15.0 cap= 22.027 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=0.30 out=  -5.0 cap= 21.690 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=0.30 out=   0.0 cap= 21.521 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=0.30 out=   5.0 cap= 21.352 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=0.50 out= -15.0 cap= 22.837 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=0.50 out=  -5.0 cap= 22.275 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=0.50 out=   0.0 cap= 21.994 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=0.50 out=   5.0 cap= 21.712 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=0.75 out= -15.0 cap= 23.850 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=0.75 out=  -5.0 cap= 23.006 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=0.75 out=   0.0 cap= 22.584 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=0.75 out=   5.0 cap= 22.163 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=1.50 out= -15.0 cap= 26.887 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=1.50 out=  -5.0 cap= 25.200 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=1.50 out=   0.0 cap= 24.356 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=1.50 out=   5.0 cap= 23.512 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=2.00 out= -15.0 cap= 28.912 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=2.00 out=  -5.0 cap= 26.662 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=2.00 out=   0.0 cap= 25.538 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=2.00 out=   5.0 cap= 24.413 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=3.00 out= -15.0 cap= 32.962 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=3.00 out=  -5.0 cap= 29.587 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=3.00 out=   0.0 cap= 27.900 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+# two_zone=True  scale=3.00 out=   5.0 cap= 26.212 drift= +0.0000 K/h cap_gap= -0.000 K slab_kwh_unseen= -0.000
+RESULT cells=48 count
+RESULT drift_max_abs_Kph=0.0000
+RESULT cap_gap_max_K=-0.000
+RESULT cap_gap_min_K=-0.000
+RESULT slab_kwh_unseen_max=-0.000
+RESULT cap_gap_max_drop_worst_K=-0.000
+RESULT null_drift_max_abs_Kph=0.00e+00
+RESULT null_cap_gap_max_abs_K=1.34e-12
+RESULT hold_ratio_min=1.0000
+RESULT hold_ratio_max=1.0000
+RESULT perturbed=1
+RESULT thread_factor=1.000
+RESULT load1=0.93
+RESULT swapins=0

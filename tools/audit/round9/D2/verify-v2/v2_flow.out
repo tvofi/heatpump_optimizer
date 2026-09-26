@@ -1,0 +1,13 @@
+
+=== Stress and economics ===
+# light_new: curve_max=24.32 C bias=14.63 K unpriced_max=13.05 K over_on=0.2157 over_off=0.3057 null_on=0.00e+00
+# heavy_old: curve_max=24.32 C bias=14.63 K unpriced_max=13.05 K over_on=0.2157 over_off=0.3057 null_on=0.00e+00
+# typical_slab: curve_max=24.32 C bias=14.63 K unpriced_max=13.05 K over_on=0.2157 over_off=0.3057 null_on=0.00e+00
+RESULT presets=3 count
+RESULT unpriced_lift_max=13.045 K
+RESULT cop_overstatement_flag_on_max=0.2157 ratio
+RESULT cop_overstatement_flag_off_max=0.3057 ratio
+RESULT null_curve_plus5_overstatement_max=0.00e+00 ratio
+RESULT thread_factor=1.0000
+RESULT load1=2.03
+RESULT swapins=0

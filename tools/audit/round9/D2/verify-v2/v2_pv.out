@@ -1,0 +1,15 @@
+RESULT closure_vs_law_max_abs_summer_negative_export0.00=1.239773 currency
+RESULT closure_vs_law_max_abs_summer_typical_export0.30=1.532158 currency
+RESULT closure_vs_law_max_abs_winter_typical_export0.00=0.000000 currency
+RESULT summer_negative_export0.00_published_minus_true_floored=-0.086553 currency
+RESULT summer_negative_export0.00_published_minus_true_unfloored=-0.000000 currency
+RESULT summer_negative_export0.00_true_cost_floored_minus_unfloored=-0.034513 currency
+RESULT summer_typical_export0.30_published_minus_true_floored=0.000000 currency
+RESULT summer_typical_export0.30_published_minus_true_unfloored=0.000000 currency
+RESULT summer_typical_export0.30_true_cost_floored_minus_unfloored=0.000000 currency
+RESULT winter_typical_export0.00_published_minus_true_floored=-0.000000 currency
+RESULT winter_typical_export0.00_published_minus_true_unfloored=-0.000000 currency
+RESULT winter_typical_export0.00_true_cost_floored_minus_unfloored=0.000000 currency
+RESULT thread_factor=1.0000
+RESULT load1=1.69
+RESULT swapins=0

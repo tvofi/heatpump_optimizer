@@ -1,0 +1,18 @@
+# wood_coil wood0=40.0 dhw0=45.0: space_kwh=+0.7148 wood_kwh=+0.2445
+# wood_coil wood0=40.0 dhw0=55.0: space_kwh=+0.7547 wood_kwh=+0.1913
+# wood_coil wood0=55.0 dhw0=45.0: space_kwh=+0.7132 wood_kwh=+0.2353
+# wood_coil wood0=55.0 dhw0=55.0: space_kwh=+0.7052 wood_kwh=+0.2417
+# wood_coil wood0=70.0 dhw0=45.0: space_kwh=+0.7853 wood_kwh=+0.1778
+# wood_coil wood0=70.0 dhw0=55.0: space_kwh=+0.8636 wood_kwh=+0.1228
+# wood_coil wood0=85.0 dhw0=45.0: space_kwh=+0.6881 wood_kwh=+0.2811
+# wood_coil wood0=85.0 dhw0=55.0: space_kwh=+0.9014 wood_kwh=+0.0964
+RESULT coil_cells=8 count
+RESULT coil_cells_mismatched=8 count
+RESULT coil_space_kwh_max=0.9014 kWh
+RESULT coil_wood_kwh_max=0.2811 kWh
+RESULT null_wood_two_tank_abs_kwh=none
+RESULT null_coil_disabled_abs_kwh=0.00e+00
+RESULT coil_wood_start12_not_null_abs_kwh=9.45e-01  (relabelled after run: loop reheats wood, coil fires)
+RESULT thread_factor=1.0001
+RESULT load1=1.49
+RESULT swapins=0

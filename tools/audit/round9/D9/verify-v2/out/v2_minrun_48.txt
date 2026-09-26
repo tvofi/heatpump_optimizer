@@ -1,0 +1,42 @@
+
+=== Stress and economics ===
+RESULT single_zone_dhw_winter_h48.weak_slots=106 count
+RESULT single_zone_dhw_winter_h48.refused=87 count
+RESULT single_zone_dhw_winter_h48.extend_steps_in_min_run=24545 steps
+RESULT single_zone_dhw_winter_h48.post_verdict_steps=8048 steps
+RESULT single_zone_dhw_winter_h48.post_verdict_fraction=0.3279 ratio (exact)
+RESULT single_zone_dhw_winter_h48.min_run_dhw_step_calls=25313 count
+RESULT single_zone_dhw_winter_h48.min_run_share_of_solve_dhw_step_calls=0.731 ratio (exact)
+RESULT single_zone_dhw_summer_h48.weak_slots=74 count
+RESULT single_zone_dhw_summer_h48.refused=56 count
+RESULT single_zone_dhw_summer_h48.extend_steps_in_min_run=15172 steps
+RESULT single_zone_dhw_summer_h48.post_verdict_steps=3627 steps
+RESULT single_zone_dhw_summer_h48.post_verdict_fraction=0.2391 ratio (exact)
+RESULT single_zone_dhw_summer_h48.min_run_dhw_step_calls=15556 count
+RESULT single_zone_dhw_summer_h48.min_run_share_of_solve_dhw_step_calls=0.8136 ratio (exact)
+RESULT single_zone_dhw_shoulder_h48.weak_slots=63 count
+RESULT single_zone_dhw_shoulder_h48.refused=41 count
+RESULT single_zone_dhw_shoulder_h48.extend_steps_in_min_run=11805 steps
+RESULT single_zone_dhw_shoulder_h48.post_verdict_steps=4541 steps
+RESULT single_zone_dhw_shoulder_h48.post_verdict_fraction=0.3847 ratio (exact)
+RESULT single_zone_dhw_shoulder_h48.min_run_dhw_step_calls=12189 count
+RESULT single_zone_dhw_shoulder_h48.min_run_share_of_solve_dhw_step_calls=0.7223 ratio (exact)
+RESULT two_zone_dhw_winter_h48.weak_slots=106 count
+RESULT two_zone_dhw_winter_h48.refused=87 count
+RESULT two_zone_dhw_winter_h48.extend_steps_in_min_run=24545 steps
+RESULT two_zone_dhw_winter_h48.post_verdict_steps=8048 steps
+RESULT two_zone_dhw_winter_h48.post_verdict_fraction=0.3279 ratio (exact)
+RESULT two_zone_dhw_winter_h48.min_run_dhw_step_calls=25313 count
+RESULT two_zone_dhw_winter_h48.min_run_share_of_solve_dhw_step_calls=0.731 ratio (exact)
+RESULT single_zone_dhw_flat_h48.weak_slots=126 count
+RESULT single_zone_dhw_flat_h48.refused=102 count
+RESULT single_zone_dhw_flat_h48.extend_steps_in_min_run=28120 steps
+RESULT single_zone_dhw_flat_h48.post_verdict_steps=8146 steps
+RESULT single_zone_dhw_flat_h48.post_verdict_fraction=0.2897 ratio (exact)
+RESULT single_zone_dhw_flat_h48.min_run_dhw_step_calls=28888 count
+RESULT single_zone_dhw_flat_h48.min_run_share_of_solve_dhw_step_calls=0.7048 ratio (exact)
+RESULT thread_factor=1.0002
+RESULT load1=2.03
+RESULT swapins=0
+RESULT concurrent_stress_procs=0
+# machine: x86_64 4cpu Linux py3.14.0rc2

@@ -1,0 +1,19 @@
+
+=== Stress and economics ===
+RESULT typical_slab_s0.02_cad0.5_admitted=0 missed=0
+RESULT typical_slab_s0.02_cad0.25_admitted=0 missed=0
+RESULT typical_slab_s0.05_cad0.5_admitted=0 missed=0
+RESULT typical_slab_s0.05_cad0.25_admitted=0 missed=0
+RESULT heavy_old_s0.02_cad0.5_admitted=2 missed=2
+RESULT heavy_old_s0.02_cad0.25_admitted=1 missed=1
+RESULT heavy_old_s0.05_cad0.5_admitted=1 missed=1
+RESULT heavy_old_s0.05_cad0.25_admitted=0 missed=0
+RESULT admitted_total=4 count
+RESULT admitted_miss_share=1.000 ratio (miss 4)
+RESULT admitted_z_median=3.124
+RESULT admitted_bias_mean=+18.92 %
+RESULT admitted_bias_positive=4 of 4
+RESULT miss_share_drop_worst_cell=1.000 ratio
+RESULT thread_factor=1.0000
+RESULT load1=1.87
+RESULT swapins=0

@@ -1,0 +1,13 @@
+0.93 0.65 0.27 2/151 1404
+RESULT coil_residual_null_max_at_or_above_40C=3.275e-15 kWh
+RESULT coil_residual_cells_below_40C=28 count
+RESULT coil_residual_cells_nonzero_below_40C=28 count
+RESULT coil_residual_max_one_step=0.405991 kWh
+# worst at dhw0=12.0 wood0=90.0 (coil took 0.434990 kWh)
+RESULT coil_residual_min_one_step=0.003407 kWh
+RESULT coil_residual_drop_most_favourable=0.362492 kWh
+RESULT coil_residual_dhw35_wood70=0.054010 kWh (coil took 0.324060 kWh)
+RESULT thread_factor=1.0004
+RESULT load1=0.93
+RESULT swapins=0
+0.93 0.65 0.27 2/151 1441

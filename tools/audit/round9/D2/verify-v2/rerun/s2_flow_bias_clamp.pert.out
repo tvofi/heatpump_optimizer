@@ -1,0 +1,30 @@
+# arm=fixed45            two_zone=False learned_bias=22.340 K
+# arm=fixed45            two_zone=True learned_bias=21.897 K
+# arm=fixed40            two_zone=False learned_bias=17.340 K
+# arm=fixed40            two_zone=True learned_bias=16.897 K
+# arm=fixed50            two_zone=False learned_bias=27.340 K
+# arm=fixed50            two_zone=True learned_bias=26.897 K
+# arm=null_curve_plus10  two_zone=False learned_bias=10.000 K
+# arm=null_curve_plus10  two_zone=True learned_bias=10.000 K
+RESULT curve_flow_max_C=27.921
+RESULT fixed45_cop_overstatement_max=0.0144
+RESULT fixed45_cop_overstatement_mean=-0.0146
+RESULT fixed45_clamp_bound_cells=0
+RESULT fixed45_cells=142
+RESULT fixed40_cop_overstatement_max=0.0169
+RESULT fixed40_cop_overstatement_mean=-0.0172
+RESULT fixed40_clamp_bound_cells=0
+RESULT fixed40_cells=142
+RESULT fixed50_cop_overstatement_max=0.0125
+RESULT fixed50_cop_overstatement_mean=-0.0125
+RESULT fixed50_clamp_bound_cells=0
+RESULT fixed50_cells=142
+RESULT null_curve_plus10_cop_overstatement_max=0.0
+RESULT null_curve_plus10_cop_overstatement_mean=0.0
+RESULT null_curve_plus10_clamp_bound_cells=0
+RESULT null_curve_plus10_cells=142
+RESULT cop_overstatement_max=0.0169
+RESULT clamp_K=40.0
+RESULT thread_factor=1.000
+RESULT load1=0.93
+RESULT swapins=0

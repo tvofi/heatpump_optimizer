@@ -1,0 +1,40 @@
+
+=== Stress and economics ===
+RESULT cad15_nofit.single_zone_default.seed0.phase_final=done
+RESULT cad15_nofit.single_zone_default.seed0.samples=21 count
+RESULT cad15_nofit.single_zone_default.seed0.max_step_call_ms=0.27 ms (provisional; phase after call=settling)
+RESULT cad15_nofit.single_zone_default.seed0.completed=False
+RESULT cad15_nofit.single_zone_default.seed0.reason=stub
+RESULT cad15_nofit.single_zone_default.seed0.median_step_call_ms=0.002 ms (provisional)
+RESULT cad15_nofit.single_zone_default.seed1.phase_final=done
+RESULT cad15_nofit.single_zone_default.seed1.samples=21 count
+RESULT cad15_nofit.single_zone_default.seed1.max_step_call_ms=0.13 ms (provisional; phase after call=step)
+RESULT cad15_nofit.single_zone_default.seed1.completed=False
+RESULT cad15_nofit.single_zone_default.seed1.reason=stub
+RESULT cad15_nofit.single_zone_default.seed1.median_step_call_ms=0.002 ms (provisional)
+RESULT cad15_nofit.single_zone_default.seed2.phase_final=done
+RESULT cad15_nofit.single_zone_default.seed2.samples=21 count
+RESULT cad15_nofit.single_zone_default.seed2.max_step_call_ms=0.11 ms (provisional; phase after call=step)
+RESULT cad15_nofit.single_zone_default.seed2.completed=False
+RESULT cad15_nofit.single_zone_default.seed2.reason=stub
+RESULT cad15_nofit.single_zone_default.seed2.median_step_call_ms=0.002 ms (provisional)
+RESULT cad15_nofit.single_zone_default.seed3.phase_final=done
+RESULT cad15_nofit.single_zone_default.seed3.samples=21 count
+RESULT cad15_nofit.single_zone_default.seed3.max_step_call_ms=0.13 ms (provisional; phase after call=step)
+RESULT cad15_nofit.single_zone_default.seed3.completed=False
+RESULT cad15_nofit.single_zone_default.seed3.reason=stub
+RESULT cad15_nofit.single_zone_default.seed3.median_step_call_ms=0.002 ms (provisional)
+RESULT cad15_nofit.single_zone_default.seed4.phase_final=done
+RESULT cad15_nofit.single_zone_default.seed4.samples=21 count
+RESULT cad15_nofit.single_zone_default.seed4.max_step_call_ms=0.11 ms (provisional; phase after call=step)
+RESULT cad15_nofit.single_zone_default.seed4.completed=False
+RESULT cad15_nofit.single_zone_default.seed4.reason=stub
+RESULT cad15_nofit.single_zone_default.seed4.median_step_call_ms=0.002 ms (provisional)
+RESULT cad15_nofit.max_step_call_ms_median_over_seeds=0.13 ms (provisional)
+RESULT cad15_nofit.max_step_call_over_reference=0.0 x reference_solve (ratio)
+RESULT reference_solve_cpu_ms=31.48 ms (provisional)
+RESULT thread_factor=1.003
+RESULT load1=1.14
+RESULT swapins=0
+RESULT concurrent_stress_procs=0
+# machine: x86_64 4cpu Linux py3.14.0rc2

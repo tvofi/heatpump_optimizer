@@ -1,0 +1,26 @@
+
+=== Stress and economics ===
+RESULT cad30_nofit.seed0.phase=done
+RESULT cad30_nofit.seed0.completed=False
+RESULT cad30_nofit.seed0.max_heartbeat_gap_ms=1.52 ms wall (provisional)
+RESULT cad30_nofit.seed1.phase=done
+RESULT cad30_nofit.seed1.completed=False
+RESULT cad30_nofit.seed1.max_heartbeat_gap_ms=1.5 ms wall (provisional)
+RESULT cad30_nofit.seed2.phase=done
+RESULT cad30_nofit.seed2.completed=False
+RESULT cad30_nofit.seed2.max_heartbeat_gap_ms=1.46 ms wall (provisional)
+RESULT cad30_nofit.seed3.phase=done
+RESULT cad30_nofit.seed3.completed=False
+RESULT cad30_nofit.seed3.max_heartbeat_gap_ms=6.14 ms wall (provisional)
+RESULT cad30_nofit.seed4.phase=done
+RESULT cad30_nofit.seed4.completed=False
+RESULT cad30_nofit.seed4.max_heartbeat_gap_ms=1.5 ms wall (provisional)
+RESULT cad30_nofit.max_gap_median_over_seeds_ms=1.5 ms wall (provisional)
+RESULT cad30_nofit.p99_gap_median_ms=1.42 ms wall (provisional)
+RESULT cad30_nofit.max_gap_over_reference_solve_wall=0.052 ratio
+RESULT reference_solve_wall_ms=29.15 ms (provisional)
+RESULT thread_factor=1
+RESULT load1=2.76
+RESULT swapins=0
+RESULT concurrent_stress_procs=0
+# machine: x86_64 4cpu Linux py3.14.0rc2

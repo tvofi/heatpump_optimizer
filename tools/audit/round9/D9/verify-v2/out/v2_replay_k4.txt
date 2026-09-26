@@ -1,0 +1,16 @@
+RESULT plain.cpu_ratio=2.5819 ref_solves
+RESULT plain.offenders=0 count
+RESULT k4.cpu_ratio=2.6155 ref_solves
+RESULT k4.offenders=0 count (exact)
+RESULT cpu_ratio_budget=3.576 ref_solves
+RESULT plain.loop_thread_ms_per_cycle=11.48 ms (provisional)
+RESULT k4.loop_thread_ms_per_cycle=16.691 ms (provisional)
+RESULT k4.loop_thread_x=1.454 ratio
+RESULT plain.ref_ms=30.7526 ms (provisional)
+RESULT k4.ref_ms=32.5504 ms (provisional)
+RESULT k4.cycle_cpu_ratio_x=1.013 ratio
+RESULT thread_factor=0.9999
+RESULT load1=1.3
+RESULT swapins=0
+RESULT concurrent_stress_procs=0
+# machine: x86_64 4cpu Linux py3.14.0rc2
