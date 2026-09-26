@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "Carry destination for class I3 (#1648) from round-9 F11.2, the pull",
+    "request that closes three required-check boundaries (D11-s1-04,",
+    "D11-s1-03, D13-s1-03). The stage that receives it, F11.3 (the I3",
+    "barrier and its policy text), has no roster group in this tree, so this",
+    "file is its brief. Shape and required fields:",
+    ".claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1648,
+  "stage": "round-9 F11.3, the I3 class barrier (field coverage of every registered governance check's input) and its policy text",
+  "carries": [
+    {
+      "from": "round-9 F11.2, which makes the budget-raise gate's owner-approval predicate read each review's body and refuse one that declares an agent gave it (card C17, tvofi's refusal)",
+      "effect": "invalidates",
+      "control": "Established by measurement with its null control. The finder's harness approvals_at_head.py (evidence commit 79aa98ec) reads owner_gate_accepts_agent_declared=27/27 at the F11.2 merge base and 2/27 at its head, the value its own reattribute perturbation predicted; the two left each carry an empty-body owner approval at the merged head after the declared one. The gate's self-test fails 8 checks with the body filter removed and passes with it.",
+      "remeasure": "Run python3 .claude/workflows/budget_raise_gate.py --self-test at your merge base; the agent-declared checks are the ones naming an agent-declared review. Re-run approvals_at_head.py from the 79aa98ec export with GITHUB_TOKEN set for the live figure.",
+      "brief": "The approval predicate in .claude/workflows/budget_raise_gate.py now reads a review's body as well as its user login, id and type, so the field-coverage barrier's input registry for that check must list the body leaf as read, not blind: perturb it to the orchestrator's mandate wording and the check must go red. The refusal has a residual no in-tree check can close: an agent approving under the owner's account without declaring itself (an empty body) is not separable from the owner on GitHub's record, and 46 of 90 owner approvals in the finder's window had an empty body. The policy text this stage writes, if it states the identity rule, says that an agent never approves under the owner's account, and that a declared one is refused by the gate; the wording is tvofi's to approve."
+    },
+    {
+      "from": "round-9 F11.2, which adds a tests/entities.py pin refusing any pull_request job with a write grant that persists its checkout token, runs a repository program it did not restore from the base, or runs Python without -I, and the pr-contract-rerun.yml follower",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control. privileged_pr_code.py (79aa98ec) reads pr_jobs_with_write_running_pr_code=3 at the F11.2 merge base and 0 at its head; the entities pin refuses all three autofix jobs on a copy of tests.yml with the restores and token hygiene undone, and passes on the head. The finder's reader missed tests/mutation_table.py, imported as `import subprocess, mutation_table`; the pin reads both names.",
+      "remeasure": "PYTHONPATH=tests/hastub python3 tests/entities.py and read the D11-s1-03 and D13-s1-03 checks; both print their defect lists when red.",
+      "brief": "The pin decides reachability from a job's `if:` by the finder's rule (a job whose condition names another event and not pull_request is skipped); the barrier's field-coverage run over workflow inputs should perturb a write-grant job's `if:`, its checkout's persist-credentials and its restore step, and see this pin go red on each. The residual the judge named stays open and belongs to no in-tree check: a same-repository pull_request run executes the pull request's own copy of the workflow file, so an edit to a job's grant or steps reaches the runner before review; the pin makes that edit a red check and code ownership makes it a named review. The follower pr-contract-rerun.yml watches every workflow that runs on a pull request but the contract, a list tests/entities.py derives from the workflow files; a new pull-request workflow must be added to its watched list or that pin goes red."
+    }
+  ]
+}
