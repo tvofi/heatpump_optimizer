@@ -4618,7 +4618,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "power": self._thermal_model.params.max_electrical_power * 0.7,
                     "setpoint": ctx._opt_config.target_temp,
                     "mode": "comfort",
-                    "price": self._get_current_price(),
                     "power_normalized": 0.7,
                     "heat_pump_on": True,
                     "displace_value": min(4.0, self._ecl110_displace_max),
@@ -4628,7 +4627,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "power": self._thermal_model.params.max_electrical_power,
                     "setpoint": ctx._opt_config.max_temp,
                     "mode": "boost",
-                    "price": self._get_current_price(),
                     "power_normalized": 1.0,
                     "heat_pump_on": True,
                     "displace_value": self._ecl110_displace_max,
@@ -4638,11 +4636,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
                     "power": 0.0,
                     "setpoint": ctx._opt_config.min_temp,
                     "mode": "off",
-                    "price": self._get_current_price(),
                     "power_normalized": 0.0,
                     "heat_pump_on": False,
                     "displace_value": self._ecl110_displace_min,
                 }
+            if self._mode in (MODE_COMFORT, MODE_BOOST, MODE_OFF):
+                self._current_action["price"] = self._get_current_price()
 
             # #237: everything below writes to the world, and a plan cut
             # before a reload must not land on the instance that replaced us.
@@ -5150,17 +5149,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
             self._optimization_running = False
             self.async_update_listeners()
     async def async_set_mode(self, mode: str, *, refresh: bool = True) -> None:
-        """Set the operation mode."""
+        """Set the operation mode, once a startup load has landed (R6)."""
+        await self._accuracy_store.async_wait_for_read()
         self._mode = mode
         if mode not in (MODE_AUTO, MODE_ECONOMY):
             # The plan stops being what runs, so its unmatured promises
             # (T5 #16) are void: scoring them against a room now driven by
             # fixed-rule comfort/boost/off would charge the model with
-            # errors it never made. The tank's promises are void for the
-            # same reason: comfort/boost/off charge it on their own rules.
+            # errors it never made. The tank's promises are void likewise.
             self._accuracy.lead_pending.clear()
             self._dhw_accuracy.lead_pending.clear()
         _LOGGER.info("Operation mode set to: %s", mode)
+        await self._async_save_accuracy()
         if refresh:
             await self.async_request_refresh()
 

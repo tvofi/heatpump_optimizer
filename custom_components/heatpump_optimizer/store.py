@@ -24,6 +24,7 @@ constructions outside it) and drives a non-finite leaf through each boundary.
 """
 from __future__ import annotations
 
+import asyncio
 import math
 from collections.abc import Mapping, Sequence
 from typing import Any, TypeVar, cast
@@ -76,5 +77,24 @@ class QuarantiningStore(Store[_StorePayload]):
     store, field or class the poison arrived in.
     """
 
+    #: The read in flight, kept until the next one.
+    _reading: asyncio.Future[None] | None = None
+
     async def async_load(self) -> _StorePayload | None:
-        return cast(_StorePayload | None, _sanitize(await super().async_load()))
+        self._reading = reading = asyncio.get_running_loop().create_future()
+        try:
+            return cast(_StorePayload | None, _sanitize(await super().async_load()))
+        finally:
+            reading.set_result(None)
+
+    async def async_wait_for_read(self) -> None:
+        """Return once the read in flight, if any, has landed.
+
+        A writer that saves its whole payload from memory waits here first: a
+        write before a startup read lands replaces the stored state with the
+        fresh defaults that read is about to overwrite (R6, round 9: a mode set
+        during startup zeroed the comfort learner). Shielded, so a cancelled
+        writer does not cancel the future another writer awaits.
+        """
+        if self._reading is not None:
+            await asyncio.shield(self._reading)
