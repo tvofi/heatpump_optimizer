@@ -1,0 +1,44 @@
+See tools/audit/round9/D4/s1/sweep.mjs (copied here as enumerate.mjs) for the full geometry sweep
+over the card's rendered DOM. This run's canonical-grid seam instances (12 states x 375/768/1280
+viewports x light/dark x en/sv-SE, --modes normal, --no-keys), reproduced this session:
+
+overlap (160 instances, 60 cells):
+  div.dlg-body > ... > svg > text "60" x text "°C"                (draft_dirty_menu_open + others)
+  div.dlg-body > ... > svg > text "6" x text "kW"
+  div.dlg-body > ... > svg > text "400" x text "W/m²"
+  ha-card.clickable > ... text.now-label "now" x text.now-temp "now 21.1 °C"   (D4-s1-05 / D14-s3? no -- P9)
+  ha-card.clickable > ... text.now-label "nu" x text.now-temp "nu 21.1 °C"     (sv-SE)
+  div.dlg-body > ... text.now-label x text.now-temp  (expanded dialog, en and sv-SE)
+  ha-card.clickable > ... svg > text "60"/"6"/"3"/"400" x their unit labels (1280x800 live default)
+
+contrast below AA (90 instances, 13 distinct, 72 cells):
+  span.delta.dearer "+0.51 SEK"                         4.29:1 need 4.5   (D4-s1-01 shape)
+  span.dearer "Could not apply: Service call failed"    4.29:1 need 4.5
+  span.dearer "Kunde inte tillämpa: ..."                4.29:1 need 4.5
+  button.wi-save.confirm "Confirm: overwrite my schedule" 4.29:1 need 4.5
+  button.wi-save.confirm "Bekräfta: ..."                4.29:1 need 4.5
+  div.wi-result.dearer "Could not save: Service call failed" 4.29:1 need 4.5
+  div.wi-result.dearer "Kunde inte spara: ..."          4.29:1 need 4.5
+  span.cheaper "Pinned until 11:00 AM. ..."             3.3:1 need 4.5
+  span.cheaper "Låst till 11:00. ..."                   3.3:1 need 4.5
+  div.wi-result.cheaper "Saved. The optimizer is reloading ..."  3.3:1 need 4.5
+  div.wi-result.cheaper "Sparat. Optimeraren laddar om ..."      3.3:1 need 4.5
+  div.wi-hint.wi-warn "Your saved minimum of 55 °C is above ..." 1.96:1 need 4.5
+  div.wi-hint.wi-warn "Ditt sparade minimum på 55 °C ligger ..." 1.96:1 need 4.5
+
+pointer-only targets (204 instances, 8 distinct, 144 cells):
+  dialog.expanded > ... > svg (the expanded chart pan surface)                 [120 cells]
+  ha-card.clickable > ... > svg (the collapsed chart pan surface)              [12 cells]
+  div.setup-canvas > svg.setup-svg > g > rect.setup-hit[outdoor_temp_entity]   [12 cells]
+  ... same shape for heat_pump_switch_entity, wood_tank_top_entity,
+      buffer_tank_temp_entity, indoor_temp_entity, lower_floor_temp_entity
+
+listbox options cut/indistinct (8 pairs, 8 cells):
+  div.setup-picker > select.sp-select  n=3 cut=2 indistinct=1  (two entities share a 32-char
+  prefix that the <option> text does not disambiguate before the cut, D4-s1-03 shape)
+
+pop-ups outside viewport/chart box (6 cells):
+  div.slot-menu at x_menu_right_edge / x_menu_right_edge_dhw, sv-SE, 375x812 and 768x1024
+  (D4-s1-02 shape: the menu is placed at the tap point unclamped)
+
+now-marker collisions (24, subset of the overlap seams above): D4-s1-05.

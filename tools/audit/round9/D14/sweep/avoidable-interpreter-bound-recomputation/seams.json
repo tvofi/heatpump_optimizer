@@ -1,0 +1,443 @@
+[
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:819",
+  "qualname": "cycling_penalty_batch",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 453,
+  "disposition": "instance",
+  "note": "called 453x in the profiled solve; interpreter-bound per-row/step loop"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:880",
+  "qualname": "classify_space_steps",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:919",
+  "qualname": "classify_dhw_steps",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:1003",
+  "qualname": "_apply_pins_to_bounds",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:1045",
+  "qualname": "_mark_manual_reasons",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 2,
+  "disposition": "not applicable",
+  "note": "called 2x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:1768",
+  "qualname": "HeatPumpOptimizer._anticipatory_weights",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:1915",
+  "qualname": "HeatPumpOptimizer._comfort_terms_batch",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 453,
+  "disposition": "instance",
+  "note": "called 453x in the profiled solve; interpreter-bound per-row/step loop"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:1889",
+  "qualname": "HeatPumpOptimizer._comfort_terms_batch",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 453,
+  "disposition": "instance",
+  "note": "called 453x in the profiled solve; interpreter-bound per-row/step loop"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:2164",
+  "qualname": "HeatPumpOptimizer._terminal_cost_batch",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:2966",
+  "qualname": "HeatPumpOptimizer.optimize",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:3010",
+  "qualname": "HeatPumpOptimizer.optimize",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:3566",
+  "qualname": "HeatPumpOptimizer._derive_hold_schedule",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 0,
+  "disposition": "not applicable",
+  "note": "called 0x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:3676",
+  "qualname": "HeatPumpOptimizer._repair_throttled_buffer_caps",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 0,
+  "disposition": "not applicable",
+  "note": "called 0x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:3742",
+  "qualname": "HeatPumpOptimizer._safety_release_steps",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 0,
+  "disposition": "not applicable",
+  "note": "called 0x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:3769",
+  "qualname": "HeatPumpOptimizer._safety_release_steps",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 0,
+  "disposition": "not applicable",
+  "note": "called 0x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:3813",
+  "qualname": "HeatPumpOptimizer._seed_pinned_guess",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:3957",
+  "qualname": "HeatPumpOptimizer._optimize_space_only",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 0,
+  "disposition": "not applicable",
+  "note": "called 0x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:4412",
+  "qualname": "HeatPumpOptimizer._dhw_legionella_ceilings",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:4447",
+  "qualname": "HeatPumpOptimizer._dhw_legionella_ceilings",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:5162",
+  "qualname": "HeatPumpOptimizer._plan_dhw_min_cost",
+  "kind": "python_loop",
+  "once_per_solve_boundary": true,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:5212",
+  "qualname": "HeatPumpOptimizer._plan_dhw_min_cost",
+  "kind": "python_loop",
+  "once_per_solve_boundary": true,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:5196",
+  "qualname": "HeatPumpOptimizer._plan_dhw_min_cost",
+  "kind": "python_loop",
+  "once_per_solve_boundary": true,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:5309",
+  "qualname": "HeatPumpOptimizer._apply_dhw_pins",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 0,
+  "disposition": "not applicable",
+  "note": "called 0x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:5403",
+  "qualname": "HeatPumpOptimizer._repair_dhw_floor",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:5584",
+  "qualname": "HeatPumpOptimizer._clamp_dhw_to_capacity",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 5,
+  "disposition": "instance",
+  "note": "called 5x in the profiled solve; interpreter-bound per-row/step loop"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:5819",
+  "qualname": "HeatPumpOptimizer._plan_dhw_cheapest_first",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 2,
+  "disposition": "not applicable",
+  "note": "called 2x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:6128",
+  "qualname": "HeatPumpOptimizer._optimize_with_dhw",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:6439",
+  "qualname": "HeatPumpOptimizer._buffer_charge_ceiling",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 0,
+  "disposition": "not applicable",
+  "note": "called 0x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:6597",
+  "qualname": "HeatPumpOptimizer._compute_baseline_power",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/optimizer.py:6864",
+  "qualname": "HeatPumpOptimizer._replay_end_state",
+  "kind": "python_loop",
+  "once_per_solve_boundary": false,
+  "ncalls_per_solve": 1,
+  "disposition": "not applicable",
+  "note": "called 1x in the profiled solve; once-per-solve, not per-iterate"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:231",
+  "qualname": "ThermalParameters.__post_init__",
+  "kind": "method_recompute",
+  "ncalls_per_solve": 1,
+  "cached": false,
+  "disposition": "not applicable",
+  "note": "called at most once per simulated step, not re-derived"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:238",
+  "qualname": "ThermalParameters.clamp",
+  "kind": "method_recompute",
+  "ncalls_per_solve": 1,
+  "cached": false,
+  "disposition": "not applicable",
+  "note": "called at most once per simulated step, not re-derived"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:278",
+  "qualname": "ThermalParameters.buffer_is_store",
+  "kind": "property_recompute",
+  "ncalls_per_solve": 5,
+  "cached": false,
+  "disposition": "not applicable",
+  "note": "called at most once per simulated step, not re-derived"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:309",
+  "qualname": "ThermalParameters.dhw_coil_active",
+  "kind": "property_recompute",
+  "ncalls_per_solve": 4,
+  "cached": false,
+  "disposition": "not applicable",
+  "note": "called at most once per simulated step, not re-derived"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:335",
+  "qualname": "ThermalParameters.topology_layout",
+  "kind": "property_recompute",
+  "ncalls_per_solve": 100,
+  "cached": false,
+  "disposition": "instance",
+  "note": "called 100x per solve (>96 steps), no cache"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:374",
+  "qualname": "ThermalParameters.two_tank_modelled",
+  "kind": "property_recompute",
+  "ncalls_per_solve": 100,
+  "cached": false,
+  "disposition": "instance",
+  "note": "called 100x per solve (>96 steps), no cache"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:546",
+  "qualname": "ThermalParameters.lower_floor_heat_loss_learned",
+  "kind": "property_recompute",
+  "ncalls_per_solve": 176354,
+  "cached": false,
+  "disposition": "instance",
+  "note": "called 176354x per solve (>96 steps), no cache"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:563",
+  "qualname": "ThermalParameters.buffer_tank_thermal_mass",
+  "kind": "property_recompute",
+  "ncalls_per_solve": 45096,
+  "cached": false,
+  "disposition": "instance",
+  "note": "called 45096x per solve (>96 steps), no cache"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:568",
+  "qualname": "ThermalParameters.buffer_tank_heat_loss_coefficient",
+  "kind": "property_recompute",
+  "ncalls_per_solve": 88224,
+  "cached": false,
+  "disposition": "instance",
+  "note": "called 88224x per solve (>96 steps), no cache"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:627",
+  "qualname": "ThermalParameters.dhw_tank_thermal_mass",
+  "kind": "property_recompute",
+  "ncalls_per_solve": 11185,
+  "cached": false,
+  "disposition": "instance",
+  "note": "called 11185x per solve (>96 steps), no cache"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:632",
+  "qualname": "ThermalParameters.dhw_tank_heat_loss_coefficient",
+  "kind": "property_recompute",
+  "ncalls_per_solve": 5594,
+  "cached": false,
+  "disposition": "instance",
+  "note": "called 5594x per solve (>96 steps), no cache"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:651",
+  "qualname": "ThermalParameters.dhw_inlet_reference",
+  "kind": "property_recompute",
+  "ncalls_per_solve": 16747,
+  "cached": false,
+  "disposition": "instance",
+  "note": "called 16747x per solve (>96 steps), no cache"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:677",
+  "qualname": "ThermalParameters.dhw_draw_power",
+  "kind": "property_recompute",
+  "ncalls_per_solve": 2,
+  "cached": false,
+  "disposition": "not applicable",
+  "note": "called at most once per simulated step, not re-derived"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:696",
+  "qualname": "ThermalParameters.dhw_windows_active",
+  "kind": "property_recompute",
+  "ncalls_per_solve": 98,
+  "cached": false,
+  "disposition": "instance",
+  "note": "called 98x per solve (>96 steps), no cache"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:712",
+  "qualname": "ThermalParameters.dhw_max_temp",
+  "kind": "property_recompute",
+  "ncalls_per_solve": 4,
+  "cached": false,
+  "disposition": "not applicable",
+  "note": "called at most once per simulated step, not re-derived"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:733",
+  "qualname": "ThermalParameters.dhw_hard_max_temp",
+  "kind": "property_recompute",
+  "ncalls_per_solve": 5581,
+  "cached": false,
+  "disposition": "instance",
+  "note": "called 5581x per solve (>96 steps), no cache"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:748",
+  "qualname": "ThermalParameters.effective_dhw_draw_pattern",
+  "kind": "method_recompute",
+  "ncalls_per_solve": 97,
+  "cached": false,
+  "disposition": "instance",
+  "note": "called 97x per solve (>96 steps), no cache"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:772",
+  "qualname": "ThermalParameters._tabled_values",
+  "kind": "method_recompute",
+  "ncalls_per_solve": 1,
+  "cached": false,
+  "disposition": "not applicable",
+  "note": "called at most once per simulated step, not re-derived"
+ },
+ {
+  "path": "custom_components/heatpump_optimizer/thermal_model.py:916",
+  "qualname": "ThermalParameters.from_config",
+  "kind": "method_recompute",
+  "ncalls_per_solve": 1,
+  "cached": false,
+  "disposition": "not applicable",
+  "note": "called at most once per simulated step, not re-derived"
+ }
+]
