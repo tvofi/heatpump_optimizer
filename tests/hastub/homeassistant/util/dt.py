@@ -1,6 +1,8 @@
 """Minimal stand-in for ``homeassistant.util.dt``.
 
-``now``/``utcnow`` are overridable so tests can freeze the clock. The golden
+``now``/``utcnow`` are overridable so tests can freeze the clock. Both are
+aware, as upstream's are: ``now`` in ``DEFAULT_TIME_ZONE`` (UTC when none is
+configured, upstream's own default), ``utcnow`` in UTC. The golden
 harness needs that: the coordinator publishes time-derived values such as
 "hours until the next hot water window", and without a fixed clock every
 recorded fixture would differ from every replay by however long the two runs
@@ -27,26 +29,34 @@ DEFAULT_TIME_ZONE = (
 
 
 def freeze(when: datetime | None) -> None:
-    """Pin the clock, or pass ``None`` to release it."""
+    """Pin the clock, or pass ``None`` to release it.
+
+    The pinned value is normalised on the way out, not stored normalised, so
+    a zone set after the freeze still applies: ``now`` returns it in the
+    configured zone and ``utcnow`` in UTC, whatever tzinfo it was frozen with
+    (round-9 D14-s4-02: a fixed-offset freeze made both clocks return a
+    ``+01:00`` datetime upstream never hands out).
+    """
     global _FROZEN
     _FROZEN = when
 
 
 def now():
+    # Aware always, as upstream: ``datetime.now(time_zone or
+    # DEFAULT_TIME_ZONE)``, whose default zone is UTC (round-9 D1-s1-52: a
+    # naive default inverted every naive-vs-aware verdict). A naive freeze is
+    # read as wall time in the zone, the way ``as_local`` reads one.
+    zone = DEFAULT_TIME_ZONE or timezone.utc
     if _FROZEN is not None:
-        return _FROZEN
-    if DEFAULT_TIME_ZONE is not None:
-        return datetime.now(DEFAULT_TIME_ZONE)
-    return datetime.now()
+        if _FROZEN.tzinfo is None:
+            return _FROZEN.replace(tzinfo=zone)
+        return _FROZEN.astimezone(zone)
+    return datetime.now(zone)
 
 
 def utcnow():
     if _FROZEN is not None:
-        return (
-            _FROZEN
-            if _FROZEN.tzinfo is not None
-            else _FROZEN.replace(tzinfo=timezone.utc)
-        )
+        return now().astimezone(timezone.utc)
     return datetime.now(timezone.utc)
 
 
