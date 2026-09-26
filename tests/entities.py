@@ -25901,7 +25901,9 @@ def _pin_pip_refusal(cmd: str) -> "str | None":
             files.append(toks[i + 1])
             i += 2
             continue
-        if tok in ("--require-hashes", "-q", "--quiet"):
+        # --no-deps only narrows the install to the lock's own lines; the
+        # typing lock needs it to override a pin homeassistant carries.
+        if tok in ("--require-hashes", "--no-deps", "-q", "--quiet"):
             flags.add(tok)
         else:
             return f"argument {tok!r} is a package spec or an unvetted flag"
@@ -25988,6 +25990,7 @@ _PIN_ARMS = {
         'npm install --prefix "$RUNNER_TEMP/pw" playwright@1.49.0\n'
         "PW=1 \\\n  npx --yes playwright@1.49.0 install chromium", 2),
     "the hashed installs this workflow uses": (_PIN_OK + "\nnpm ci --prefix x", 0),
+    "a hashed install narrowed by --no-deps": (_PIN_OK + " --no-deps", 0),
     "an install named only in a comment": ("# pip install -r x\necho ok", 0),
 }
 for _arm, (_run, _want) in _PIN_ARMS.items():
