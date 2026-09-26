@@ -1433,6 +1433,9 @@ jobs:
             || git fetch --no-tags --depth=1 origin "$PINNED"
           git checkout "$PINNED" -- tests/closure.py
           git reset -q -- tests/closure.py
+          # The report runs after `pull --rebase --autostash`, which can leave
+          # the pull request's copy in the tree; it runs this copy instead.
+          install -D -m 0444 tests/closure.py "$RUNNER_TEMP/pinned/closure.py"
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -1659,7 +1662,7 @@ jobs:
       - name: Report whether the repair happened
         if: always()
         run: |
-          python3 -I tests/closure.py autofix-report --job closures-autofix \
+          python3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job closures-autofix \
             --status "${{ steps.autofix.outputs.status }}"
 
   # Same-repo PR only. fast fails INHERITED CLAIMS when a branch copies
@@ -1700,6 +1703,9 @@ jobs:
             || git fetch --no-tags --depth=1 origin "$PINNED"
           git checkout "$PINNED" -- tests/closure.py tests/env_drift.py
           git reset -q -- tests/closure.py tests/env_drift.py
+          # The report runs after `pull --rebase --autostash`, which can leave
+          # the pull request's copy in the tree; it runs this copy instead.
+          install -D -m 0444 tests/closure.py "$RUNNER_TEMP/pinned/closure.py"
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -1912,7 +1918,7 @@ jobs:
       - name: Report whether the repair happened
         if: always()
         run: |
-          python3 -I tests/closure.py autofix-report --job claims-autofix \
+          python3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job claims-autofix \
             --status "${{ steps.autofix.outputs.status }}"
 
   # The ledger half of the mutation ratchet. `mutation` refuses a diff that
@@ -1956,6 +1962,9 @@ jobs:
             || git fetch --no-tags --depth=1 origin "$PINNED"
           git checkout "$PINNED" -- tests/closure.py tests/mutation_table.py
           git reset -q -- tests/closure.py tests/mutation_table.py
+          # The report runs after `pull --rebase --autostash`, which can leave
+          # the pull request's copy in the tree; it runs this copy instead.
+          install -D -m 0444 tests/closure.py "$RUNNER_TEMP/pinned/closure.py"
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -2177,5 +2186,5 @@ jobs:
       - name: Report whether the repair happened
         if: always()
         run: |
-          python3 -I tests/closure.py autofix-report --job mutation-autofix \
+          python3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job mutation-autofix \
             --status "${{ steps.autofix.outputs.status }}"
