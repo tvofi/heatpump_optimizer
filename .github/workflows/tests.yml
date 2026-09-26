@@ -499,10 +499,12 @@ jobs:
       # The two cannot drift apart unseen: the source-only ruler in `fast`
       # refuses a lock whose mypy or homeassistant-stubs pin is not the
       # recorded pair, and guard 2 below refuses an installed pair that is not.
+      # --no-deps: the lock overrides homeassistant's cryptography pin (see
+      # its header), and it is already the complete resolution.
       - name: Install the pinned toolchain
         run: |
           python3 -m venv .venv-typing
-          .venv-typing/bin/python -m pip install --require-hashes \
+          .venv-typing/bin/python -m pip install --require-hashes --no-deps \
             --build-constraint tests/requirements-build.txt \
             -r tests/requirements-typing.txt
 
