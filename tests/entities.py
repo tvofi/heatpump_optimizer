@@ -7654,6 +7654,37 @@ for name, data in files.items():
         ", ".join(sorted(diff)[:6]),
     )
 
+# D4-s2-03 (N-escape): a translation leaf written with two backslashes before
+# a \u escape (\\u00b0 in the JSON source) survives json.loads as the six
+# literal characters "°" in the Python string, not the degree sign the
+# source file intended -- dhw_min_too_close showed '°C' and 9 escaped
+# Swedish letters. A leaf is source text, never something the frontend or
+# this suite writes with an escape itself, so no leaf may contain a literal
+# backslash immediately followed by a 4-hex-digit escape shape.
+_DOUBLE_ESCAPE = re.compile(r"\\u[0-9a-fA-F]{4}")
+
+
+def _escaped_leaves(data, prefix=""):
+    found = []
+    if isinstance(data, dict):
+        for key, value in data.items():
+            found.extend(_escaped_leaves(value, f"{prefix}.{key}" if prefix else key))
+    elif isinstance(data, str):
+        if _DOUBLE_ESCAPE.search(data):
+            found.append(prefix)
+    return found
+
+
+for _lang, _texts in (("strings.json", strings), *(
+    (f"{name}.json", data) for name, data in files.items()
+)):
+    _escaped = _escaped_leaves(_texts)
+    R.check(
+        f"{_lang}: no translation leaf carries a double-escaped \\u sequence",
+        not _escaped,
+        ", ".join(_escaped[:6]),
+    )
+
 # #828: the key-identity check only compares the three files to each
 # other, so a field missing a data_description from all three — which
 # renders with a label and no pointer — passed. reauth_confirm.tibber_token
@@ -10783,6 +10814,37 @@ R.check(
     "every icons.json entry is the hassfest shape with a valid mdi slug",
     not _icon_shape_errors,
     "; ".join(_icon_shape_errors[:6]),
+)
+
+# Service icons (D4-s2-08, N-service-icons): the 12 registered services had
+# no icons.json["services"] entry at all, so every service in the picker fell
+# back to the domain's generic icon. The registered set is services.yaml's
+# own keys, the same set "#558 D5 service translations" checks against the
+# text catalogues -- so a service added there and forgotten here is caught
+# the same way a service added without a name already is.
+_svc_icons = _icons.get("services")
+_svc_icon_errors = []
+if not isinstance(_svc_icons, dict):
+    _svc_icon_errors.append("icons.json has no services section")
+    _svc_icons = {}
+_svc_icon_diff = set(_svc_icons) ^ set(services)
+if _svc_icon_diff:
+    _svc_icon_errors.append(f"services keys mismatch {sorted(_svc_icon_diff)}")
+for _svc, _spec in sorted(_svc_icons.items()):
+    _where = f"services.{_svc}"
+    if not isinstance(_spec, dict):
+        _svc_icon_errors.append(f"{_where} is not an object")
+        continue
+    _extra = set(_spec) - {"service"}
+    if _extra:
+        _svc_icon_errors.append(f"{_where} has unexpected keys {sorted(_extra)}")
+    _svc_icon = _spec.get("service")
+    if not isinstance(_svc_icon, str) or not _MDI_SLUG.match(_svc_icon):
+        _svc_icon_errors.append(f"{_where}.service is not an mdi slug: {_svc_icon!r}")
+R.check(
+    "every registered service has an icons.json services entry with a valid mdi slug",
+    not _svc_icon_errors,
+    "; ".join(_svc_icon_errors[:6]),
 )
 
 # No entity class pins _attr_icon any more, on any of the four platforms. A
