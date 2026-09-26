@@ -193,6 +193,224 @@
     "class": "I1",
     "seam_rule_enumerates": "partial: the seam rule is a listing, not a kill check. It lists 5 operator seams of _dhw_inlet_c (C0041-C0045). It has no CONST_SHIFT on -5.0 and no drop of the lower conjunct alone, so the 'lower bound pinned by no check' property is only partly enumerated. Running each seam through prescreen.py is the forbidden heavy D3 run, so only the listing was executed."
    }
+  ],
+  "D1-1": [
+   {
+    "id": "D1-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "real HA: consumer_raises=63/63 (naive leaf), 0/63 (--aware); naive_written=0/3 by production producers",
+    "metric_definition": "raising calls of SnapshotRing.due/CurveLearner._step_down/ComfortLearner._decay over 21 real-clock days after loading a naive leaf through the real Store; plus naive stamps the 3 producers write under real dt_util.now()",
+    "method": "finder naive_ts.py re-run (21/0/19/21/21, --aware 0, --fix 0; load1 0.59, tf 1.000); own real-HA harness D1-s1-01_realha.py",
+    "attacks": [
+     "real-HA reach: real Store keeps a naive ISO leaf unchanged (store_keeps_naive=1); consumers raise 63/63 under real aware now",
+     "producer attack: 0/3 production producers write naive under real HA -> reach is hand-edited/corrupt store only",
+     "seam attack: coordinator._update_snow_memory with naive snow_accum_last raises 21/21, a seam outside the seam_rule"
+    ],
+    "class": "P1",
+    "seam_rule_enumerates": "partial: the rule greps 8 modules (5 fromisoformat hits); it misses coordinator.py snow_accum_last/last_heavy_snow (measured 21/21 raises) and fuse_advisor_at, plus away/boost/pump_arbiter/legionella"
+   },
+   {
+    "id": "D1-s1-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "real HA: restore_raises=4/4 (control 0/1); producer_nonnumeric=0",
+    "metric_definition": "of 4 non-numeric temperature_bias leaves saved and loaded through the production QuarantiningStore (real Store/orjson), count where best_restore raises",
+    "method": "finder snap_restore.py re-run (4/4, control 0, --fix 0; load1 0.70); own D1-s1-02_realha.py",
+    "attacks": [
+     "real-HA reach: QuarantiningStore passes str/list/dict leaves; best_restore raises 4/4",
+     "producer attack: AccuracyTracker.summary emits float|None only -> corrupt store only"
+    ],
+    "class": "P1",
+    "seam_rule_enumerates": "partial: 5 hits in snapshots.py; misses the bias read itself (snapshots.py:194 accuracy.get) and the coordinator's snap.get('learners') consumers (coordinator.py:8840, 8881)"
+   },
+   {
+    "id": "D1-s1-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "real HA: reader_ok_for_glitch=1, window p90 25.760 kWh vs control 1.073 kWh (85 C: 5.677)",
+    "metric_definition": "window p90 (DrawStats.quantile 0.9) after a -127 C sample delivered by a real HA State through inputs.InputReader.read feeds DhwProfileLearner.async_learn_dynamics",
+    "method": "finder dhw_glitch.py --day 4 re-run (25.760/1.073, --guard 1.073; load1 0.70); own D1-s1-03_realha.py",
+    "attacks": [
+     "real-HA reach: InputReader has no range bound; -127 delivered ok=1",
+     "severity: p90 reaches the plan only with DHW quantile targets on (default False) but always feeds the dhw_advisor sweep (coordinator.py:2694) and the published dhw_draw_stats",
+     "perturbation: a reader-side [0,100] guard returns p90 to 1.073"
+    ],
+    "class": "new: a live sensor sample with no physical-plausibility bound is folded into a persisted learner (same mechanism as D1-s2-02)",
+    "seam_rule_enumerates": "partial: 12 temp_drop/energy_kwh lines in dhw_learning.py; misses async_learn_cooling's drop path, the unbounded reader (inputs.py read) and legionella.async_track, which credits a cycle on one >=59 C sample (default instant credit)"
+   },
+   {
+    "id": "D1-s1-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": "real HA, stamps written by the production producers 30 days ahead then Store round trip: first action day 31/37/31 vs 1/7/2 at 0 days ahead (365: 366/372/366)",
+    "metric_definition": "first day index at which Cusum.release_if_starved / SnapshotRing.due / CurveLearner._step_down act after a clock-ahead episode is corrected",
+    "method": "finder clock_jump.py re-run (33/37/31, 0 ahead 4/8/2, --clamp 4/8/2); own D1-s1-04_realha.py using production VENT_CUSUM_STARVE_HOURS",
+    "attacks": [
+     "constant attack: the finder's harness uses max_gap 72 h; production VENT_CUSUM_STARVE_HOURS is 6 h, so the designed release is day 1, not 4; the stretch equals the clock error (30 d) either way",
+     "real-HA reach: producers write aware dt_util.now(); nothing clamps a future stamp"
+    ],
+    "class": "new: a persisted absolute instant later than now is trusted without bound (same mechanism as D1-s3-05)",
+    "seam_rule_enumerates": "partial: 4 fromisoformat hits in drift/snapshots/curve_learning/comfort_learning; misses boost until (D1-s3-05), legionella last_cycle, pump_arbiter written-at, coordinator snow stamps"
+   },
+   {
+    "id": "D1-s2-01",
+    "vote": "refute",
+    "severity": "low",
+    "value": "real HA: wedged=0/200 (ha_service_raised=34, malformed_responses=0); same payloads bypassing HA's service: wedged=35/200",
+    "metric_definition": "of the finder's 200 seeded hostile payloads (seed 9) returned as a real WeatherEntity's native forecast, count whose response, stored by the real coordinator's _fetch_weather_forecast, makes _current_humidity raise",
+    "method": "finder parsers.py re-run (35, row_filter 0; load1 0.90); own D1-s2-01_realha.py with the generator copied verbatim",
+    "attacks": [
+     "real-HA reach: weather.async_get_forecasts_service builds {'forecast': [dict(row) ...]}; a non-dict row raises in HA itself (34) -> the coordinator records a failed fetch and stores nothing; forecast is always a list of dicts (0/200 malformed)",
+     "control: serving the raw payload, as the stub does, reproduces 35 -> the defect exists only where something replaces weather.get_forecasts"
+    ],
+    "class": "new: an external service response stored before validation and read ahead of the next fetch",
+    "seam_rule_enumerates": "all: 11 self._weather_forecast sites, all in coordinator.py"
+   },
+   {
+    "id": "D1-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "real HA: reaches_solve_arrays=2/2 (temp -1e308, wind 1e12 m/s via km/h round trip), --clip 0/2; finder solve re-run: 3/10 cases capped at 60 s (healthy 2.54 s), clip 0/10",
+    "metric_definition": "absurd finite forecast values from a real WeatherEntity present in coordinator._weather_series (the solve's weather arrays) after real HA's _convert_forecast and the real coordinator fetch",
+    "method": "finder solve_poison.py --cap 60 re-run (load1 2.33, tf 1.000; wall provisional); own D1-s2-02_realha.py",
+    "attacks": [
+     "real-HA reach: HA converts and rounds but does not range-bound; both values reach the arrays",
+     "consequence: production _await_optimize has no timeout, so a runaway solve holds the worker and _PROCESS_LOCK",
+     "null: healthy forecast optimal in 2.54 s"
+    ],
+    "class": "new: an external input value with no physical-plausibility bound reaches the solve (same mechanism as D1-s1-03)",
+    "seam_rule_enumerates": "partial: parsers.py counts only the weather-entity parser (8/200); the same harness's ecl110 arm shows 55/200 non-finite or absurd, and price/open_meteo series are not counted"
+   },
+   {
+    "id": "D1-s2-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "real HA: view_raises=3/3 at leaf 1e20 (0/3 at 1e18); file_still_corrupt=1 (real Store logs ERROR 'Bad data at $.data.cop_baseline.4[1]' and leaves the file)",
+    "metric_definition": "raising _learning_view calls after the real coordinator loads a thermal_learning file with cop_baseline count 1e20 via QuarantiningStore/orjson; whether the save overwrites the corrupt leaf",
+    "method": "finder store_fuzz.py --sweep-huge re-run (6, perturb 0; load1 1.57); own D1-s2-03_realha.py",
+    "attacks": [
+     "real-HA reach: orjson loads 1e20 as float, int() makes a >int64 int, np.isfinite raises",
+     "persistence: the real Store refuses the save with an ERROR, so the corrupt file survives restarts (a pre-v5.7 store without house_heat_loss_anchor is instead rewritten by the loader's anchor save)",
+     "producer: counts increment by 1 per fold -> corrupt store only"
+    ],
+    "class": "P1",
+    "seam_rule_enumerates": "partial: sweeps the 7 coordinator stores; misses the 6 module-owned QuarantiningStore sites (away, boost, dhw_learning x2, legionella, pump_arbiter)"
+   },
+   {
+    "id": "D1-s2-04",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "real HA: silent_sites=5/5 (emitted=0, system_log=0, cycles_ok 3/3 each; debug_enabled=0); --debug-to-warning 0/5",
+    "metric_definition": "records of an injected persistent callee failure that pass the integration logger's effective level, plus system_log entries, over 3 real async_refresh cycles on a real hass with HA's own logging bootstrap and empty logger/system_log config",
+    "method": "finder guards.py re-run (5/5, perturb 0; load1 1.80); own D1-s2-04_realha.py (bootstrap.async_enable_logging, logger, system_log)",
+    "attacks": [
+     "real-HA default: root INFO, integration DEBUG disabled -> 0 records reach home-assistant.log or Settings > Logs",
+     "null/perturb: routed to WARNING, 3 records and 1 system_log entry per site"
+    ],
+    "class": "new: a per-cycle except-Exception guard logs a persistent failure only at DEBUG, with no escalation",
+    "seam_rule_enumerates": "partial: 24 guards in coordinator.py; the same pattern totals 52 package-wide (legionella 7, dhw_learning 4, pump_arbiter 3, away 2, boost 2, ...)"
+   },
+   {
+    "id": "D1-s2-05",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "real HA: stop_over_hold=0.917 (5.501 s of a 6 s job started 0.5 s earlier; idle 0.002 s; --unlocked-reap 0.003 s)",
+    "metric_definition": "wall of a real hass.async_stop() (all stages plus executor shutdown) over the in-flight job length, with async_register_worker_shutdown registered and a real process-worker job holding _PROCESS_LOCK",
+    "method": "finder worker_stop.py re-run (0.937, unlocked 0.006; load1 2.32, tf 1.000, 0 concurrent stress.py); own D1-s2-05_realha.py; walls provisional (load1 3.24), ratio is the claim",
+    "attacks": [
+     "real-HA reach: real stop awaits the listener; the reap queues behind the transport lock",
+     "bound: real HA caps the stop stage at STOP_STAGE_SHUTDOWN_TIMEOUT=100 s, so a Pi solve (30-70 s) stalls stop for its remaining length; the D1-s2-02 runaway would stall it 100 s"
+    ],
+    "class": "new: the shutdown reap takes the same lock the transport holds for a whole solve",
+    "seam_rule_enumerates": "all: 3 _PROCESS_LOCK sites (definition, _shutdown_process_pool, _run_in_process)"
+   },
+   {
+    "id": "D1-s3-01",
+    "vote": "verify",
+    "severity": "high",
+    "value": "real HA: naive_service_raised=2/2, naive_resolve_raises=12/12 (control with offset 0/6; --perturb 0)",
+    "metric_definition": "for the card's datetime-local value and the services.yaml example shape, validated by the production SERVICE_SCHEMA_SET_AWAY on real cv: whether async_set_away raises, and raising _resolve_away calls of 6 on the real coordinator with the real aware clock",
+    "method": "finder away_naive_return.py re-run (6/6, 2/2 failed solves; --aware-input 0, --perturb 0; load1 2.87); own D1-s3-01_realha.py",
+    "attacks": [
+     "real-HA reach: real cv.string accepts '2026-09-27T14:44'; the card (heatpump-optimizer-card.js:4331) sends ret.value from input type=datetime-local, so the primary UI path triggers it",
+     "stub divergence: the stub's naive default clock hides it (finder's --naive-clock arm)"
+    ],
+    "class": "P2",
+    "seam_rule_enumerates": "partial: 8 hits in away/boost/pump_arbiter/legionella/manual_plan; the property also covers coordinator.py snow stamps and the snapshots/curve/comfort loaders (D1-s1-01)"
+   },
+   {
+    "id": "D1-s3-02",
+    "vote": "verify",
+    "severity": "high",
+    "value": "real HA: live_registrations_after_unload=2, writes_after_unload=1 when the unload lands during an arbitration pass (after its first pump write lands); 0/0 for the finder's literal sequence (event, then unload, lock free) and for null",
+    "metric_definition": "live arbiter registrations from real async_track_* helpers after the real coordinator's async_shutdown, plus pump service writes when each leaked tick fires once (clock +2 min, as the finder does)",
+    "method": "finder arbiter_unload.py re-run (2/2, null 0, perturb 0; load1 2.80); own D1-s3-02_realha.py, arms default/lock-held/slow-device/null",
+    "attacks": [
+     "real-HA interleaving: real hass.async_create_task is eager and the state_changed dispatch is deferred, so the finder's order gives 0 (apply's _listen runs before release; no dispatch reaches the released listener)",
+     "realistic window: pump services take 0.3 s and the unload lands 0.45 s into a writing pass -> 2 registrations and 1 write after unload; the leak needs an unload mid-pass",
+     "class attack: the coordinator already latches on _entry_released (#236) in _async_setup_peak_guard; pump_arbiter.apply lacks that sibling guard"
+    ],
+    "class": "P2",
+    "seam_rule_enumerates": "partial: 5 hits, all in pump_arbiter.py (legionella/disinfection/boost/away have none); omits coordinator.py registrations (7703, 7752) and async_create_task (1904)"
+   },
+   {
+    "id": "D1-s3-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "real HA: apply_raises=9/9 (3 non-numeric leaves x 3 passes), file_still_corrupt=3/3; control 0/3",
+    "metric_definition": "raising pump_arbiter.apply passes on the real coordinator after a pump_duty file with a str/list/dict dhw_setpoint is loaded by the real QuarantiningStore",
+    "method": "finder store_fuzz.py --naive-clock re-run (pump_duty_repeat_fail=8, perturb 0; load1 2.82); own D1-s3-03_realha.py",
+    "attacks": [
+     "real-HA reach: corrupt store only; the production writer stores the float it wrote",
+     "persistence: the raise precedes _write, so the corrupt record is never overwritten (3/3 still on disk)"
+    ],
+    "class": "P1",
+    "seam_rule_enumerates": "all: the single install seam (pump_arbiter.py:629) is enumerated; the other 2 hits are the writer and the delete"
+   },
+   {
+    "id": "D1-s3-04",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "real HA: 5.00 C only via the peak-guard path (peak guard on, 3 meter events 10.2 s apart inside a 25 s-held solve; --null 0, --perturb 0); 0.00 C via a concurrent refresh (real refreshes serialise: solves=2, 0 mid-solve writes)",
+    "metric_definition": "max |HeatPumpOptimizerClimate.target_temperature - configured| read at every async_update_listeners while a real solve is awaited, away active",
+    "method": "finder climate_midsolve.py re-run (5.00, null 0, perturb 0; load1 2.67), whose write is synthesised at the await; own D1-s3-04_realha.py",
+    "attacks": [
+     "real-HA reach: DataUpdateCoordinator.async_refresh holds _debounced_refresh.async_lock (the stub's does not), so a second refresh cannot write mid-solve",
+     "remaining writers in the window: _async_peak_guard_transition (needs DEFAULT_PEAK_GUARD_ENABLED=False turned on, consecutive over-fuse readings 10 s apart, and a solve >=20 s) and async_restore_learned_snapshot",
+     "severity: the wrong value lasts only until the refresh-end write, <= the rest of the solve, and needs away plus a peak-guard transition in the window -> low"
+    ],
+    "class": "new: solve-scoped mutation of shared live config observed by a concurrent entity reader",
+    "seam_rule_enumerates": "all: 7 hits in climate/sensor/binary_sensor/entity; climate.target_temperature is the only live reader of the mutated target_temp/min_temp"
+   },
+   {
+    "id": "D1-s3-05",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "real HA: live hours jump0 2.0, jump1 3.0, jump6 8.0, jump24 26.0, restore_2099 72.0 (cap); --perturb 0.0",
+    "metric_definition": "hours a space boost stays live in production boost.apply on the real coordinator after a J-hour backward clock step, or after boost.restore loads until=2099 from a real .storage file",
+    "method": "finder boost_unbounded.py re-run (2/3/8/26/72, perturb 2/0/0/0/0; load1 2.64); own D1-s3-05_realha.py, simulated clock via boost.dt_util.now swap",
+    "attacks": [
+     "real-HA reach: producers write aware now+BOOST_HOURS; a backward clock step (NTP correction, VM restore) is rare but real; 2099 needs a corrupt store",
+     "severity: nameplate-power boost running J extra hours is wrong money bounded by the clock error -> medium holds"
+    ],
+    "class": "new: a persisted absolute instant later than now is trusted without bound (same mechanism as D1-s1-04)",
+    "seam_rule_enumerates": "all: 18 'until' lines in boost.py cover the boost-scoped property"
+   },
+   {
+    "id": "D1-s3-06",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "real HA: store_stuck=2/2 (ratio 1e308; decile key -2) after 96 truthful folds; healthy 0; live seam: one 500 kW reading via a real State/InputReader at 22 Hz leaves the map under 50 % of target for 32 folds",
+    "metric_definition": "whether recommend() still delivers <50 % of a 3 kW target after 96 truthful folds, for a map loaded through the real QuarantiningStore; folds to recover after one live glitch",
+    "method": "finder freq_map_store.py re-run (10/200, perturb 0; load1 2.64); own D1-s3-06_realha.py",
+    "attacks": [
+     "real-HA reach (store): corruption only; the producer clips the decile into [0, FREQ_DECILES)",
+     "live-seam attack: FrequencyMap.observe bounds neither kW nor kW/Hz and InputReader bounds no power value -> a meter spike reproduces the pin without a store (32 folds)"
+    ],
+    "class": "P1",
+    "seam_rule_enumerates": "partial: the single from_dict covers the loader-scoped property, but the phenomenon also enters live through FrequencyMap.observe (measured 32 folds)"
+   }
   ]
  }
 }
