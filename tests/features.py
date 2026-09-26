@@ -47793,9 +47793,10 @@ R.check(
 )
 
 # The store bounds a naive instant in the zone its loader reads it in: Home
-# Assistant's, for the arbiter and legionella. Read as UTC, a zone west of
-# Greenwich let a naive future stamp through by its offset, and one east of
-# it pulled an honest past stamp back by its offset.
+# Assistant's, for the arbiter, legionella and boost. Read as UTC, a zone
+# west of Greenwich let a naive future stamp through by its offset, and one
+# east of it pulled an honest stamp back by its offset (a boost with an hour
+# left came back ended).
 _f32_zone = {}
 _f32_zone0 = dt_util.DEFAULT_TIME_ZONE
 for _f32_tz in ("Europe/Stockholm", "America/Los_Angeles"):
@@ -47811,19 +47812,27 @@ for _f32_tz in ("Europe/Stockholm", "America/Los_Angeles"):
         _si_storage._DISK[_f32_c._legionella.store._key] = _si_json.dumps(
             {"last_cycle": "2026-06-01T11:00:00", "last_attempt": "2026-06-01T18:00:00"})
         _si_aio.run(_f32_c._legionella.async_load())
+        _si_storage._DISK[f"heatpump_optimizer_{_f32_c.entry.entry_id}_boost"] = (
+            _si_json.dumps({"space": {"until": "2026-06-01T13:00:00"},
+                            "dhw": {"until": "2026-06-01T18:00:00"}}))
+        _si_aio.run(boost_mod.restore(_f32_c))
+        _f32_b = boost_mod.held_for(_f32_c).until
         _f32_zone[_f32_tz] = (
             _f32_w["mode"][1] == _f32_now - timedelta(hours=1)
             and _f32_w["dhw_setpoint"][1] == _f32_now
             and _f32_c._legionella.last_cycle == _f32_now - timedelta(hours=1)
-            and _f32_c._legionella.attempt == _f32_now,
-            _f32_w["mode"][1].isoformat(), _f32_w["dhw_setpoint"][1].isoformat())
+            and _f32_c._legionella.attempt == _f32_now
+            and _f32_b.get("space") == _f32_now + timedelta(hours=1)
+            and _f32_b.get("dhw") == _f32_now + timedelta(hours=boost_mod.BOOST_HOURS),
+            _f32_w["mode"][1].isoformat(), _f32_w["dhw_setpoint"][1].isoformat(),
+            {k: v.isoformat() for k, v in _f32_b.items()})
     finally:
         dt_util.DEFAULT_TIME_ZONE = _f32_zone0
         dt_util.freeze(None)
         _si_storage._DISK.clear()
 R.check(
-    "the store bounds a naive stored instant in its loader's zone: a past one "
-    "is kept and a future one lands on now, in Stockholm and Los Angeles",
+    "the store bounds a naive stored instant in its loader's zone: an honest "
+    "one is kept and one beyond the lead lands on it, in Stockholm and Los Angeles",
     all(v[0] for v in _f32_zone.values()) and len(_f32_zone) == 2,
     f"{_f32_zone}",
 )
