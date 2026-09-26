@@ -15,6 +15,18 @@ updated: 2026-09-26T06:10Z by orchestrator thread "Round 9 audit orchestrator"
 5. When all 10 boxes are DONE: intake (audit-find.js from:"intake", patched per r9-prepare-patch.sh), then Phase B per PLAN.md; judge flags below travel with the findings.
 6. Every box/seat/verifier brief carries: read CLAUDE.md + .claude/rules + role contract first; never "Tim", call the owner tvofi; keep the orchestrator informed so this doc stays current.
 
+## ROUND STEP E2: FIX PLAN (tvofi 2026-09-26T10:22Z, cmsg_01EL5jLi4rokGBbkaevYXSJVG8wVG3f8L7MNCCeShEbsR9) -- after Phase E, before ANY Phase F fixing
+Trigger: every curated class issue is filed (Mac, file_issues.py) and wave-r9-groups.json passes brief_lint.mjs. No fix group starts before this plan is written and linked to tvofi.
+Deliverable: /mnt/project-files/audit-r9/FIX-PLAN.md (+ mirror handoff/round9/FIX-PLAN.md), built on PLAN.md §8.2-8.4 and §9.2-9.4:
+1. Inventory table: class id | issue # | severity (highest) | N instances (findings + sweep) | RCA flag | files touched (from sweep) | fits fixer.md cap (<=5 findings, ~400 prod lines) or split.
+2. Ordering: severity first (high before medium before low), then user-visible/safety impact, then cheapest-to-eliminate; `after` dependencies explicit.
+3. Parallel lanes: conflict graph on sweep file sets; disjoint groups run in parallel; shared-file groups serialised; hot files (tests/features.py, entities.py, budgets, closures) handled per §9.4 (class-named sorted blocks, merge drivers, re-record once at handoff).
+4. Per group: fixer seat, RCA seat if N>=3 or barriered class, barrier form (structure > zero-seam enumerator), instance/barrier PR split when over cap, reviewer (a different cloud session from the fixer, never the same PR for both reviewers).
+5. Owner asks surfaced up front: any budget raise (CLAUDE.md rule 2), any policy/code-owned file, any RCA "no barrier passes the bound" ruling -- listed so tvofi can answer in one pass.
+6. Merge queue order (one at a time, merge main only when next) and the stamp point(s).
+7. Capacity: seats per lane vs ~10 cloud containers; expected wall clock per lane (stated as inferred).
+Then: report "fix plan ready" to tvofi with the link, update this RESUME, and start the first lane.
+
 ## Mandate
 tvofi mandate 3 (msg cmsg_01EL5jLi4rokGBbkaevYXSJVTfeni8YJN5HdH97LdRCudt) expires 2026-09-26T09:35Z:
 until then the Mac seat may approve code-owned/policy files as tvofi (needs a cloud reviewer's
