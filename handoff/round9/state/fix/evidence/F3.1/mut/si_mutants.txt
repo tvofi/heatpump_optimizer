@@ -1,0 +1,26 @@
+### unmutated
+ALL 6 SI PINS PASSED
+### mutant M1-naive-kept (drift.py)
+  FAIL the stored-instant rule reads a naive stamp as UTC, keeps an aware one, drops garbage, and honours the zone it is given  [datetime.datetime(2026, 6, 1, 12, 0)]
+  FAIL a naive persisted stamp no longer raises in the snapshot, curve or comfort consumer against an aware clock (D1-s1-01)  [{'snapshot due': 'TypeError', 'curve step': 'TypeError', 'comfort decay': 'TypeError'}; taken_at='2026-
+  FAIL a tz-less set_away return_time is read in the user's zone and expires against an aware clock without raising (D1-s3-01)  [datetime.datetime(2026, 10, 5, 8, 0)]
+  FAIL boost, the pump-duty arbiter and legionella read a naive stored stamp in Home Assistant's zone, aware (D1-s3-01)  [boost=datetime.datetime(2026, 6, 1, 12, 0) arbiter=('heat', datetime.datetime(2026, 6, 1, 12, 0)) legionella
+4 of 6 SI PINS FAILED
+### mutant M2-bias-unguarded (snapshots.py)
+  FAIL best_restore skips a non-numeric or out-of-band stored bias instead of raising, and still restores an in-band numeric one (D1-s1-02)  [{"'0.3'": 'TypeError', "'garbage'": 'TypeError', '[0.3]': 'TypeError', "{'v': 0.3}": 'Ty
+1 of 6 SI PINS FAILED
+### mutant M3-boost-no-clamp (boost.py)
+  FAIL a boost outlives a backward clock step by no more than its two hours (D1-s3-05); unstepped it still runs the full two  [hours left after the step: {0: 2.0, 1: 3.0, 24: 26.0}]
+1 of 6 SI PINS FAILED
+### mutant M4-away-utc (away.py)
+  FAIL a tz-less set_away return_time is read in the user's zone and expires against an aware clock without raising (D1-s3-01)  [datetime.datetime(2026, 10, 5, 8, 0, tzinfo=datetime.timezone.utc)]
+1 of 6 SI PINS FAILED
+### mutant M5-arbiter-fromiso (pump_arbiter.py)
+  FAIL boost, the pump-duty arbiter and legionella read a naive stored stamp in Home Assistant's zone, aware (D1-s3-01)  [boost=datetime.datetime(2026, 6, 1, 12, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/Stockholm')) arbiter=('heat'
+1 of 6 SI PINS FAILED
+### mutant M6-legionella-parse (legionella.py)
+  FAIL boost, the pump-duty arbiter and legionella read a naive stored stamp in Home Assistant's zone, aware (D1-s3-01)  [boost=datetime.datetime(2026, 6, 1, 12, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/Stockholm')) arbiter=('heat'
+1 of 6 SI PINS FAILED
+### mutant M8-boost-until-utc (boost.py)
+  FAIL boost, the pump-duty arbiter and legionella read a naive stored stamp in Home Assistant's zone, aware (D1-s3-01)  [boost=datetime.datetime(2026, 6, 1, 12, 0, tzinfo=datetime.timezone.utc) arbiter=('heat', datetime.datetime(
+1 of 6 SI PINS FAILED

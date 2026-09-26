@@ -1,0 +1,10 @@
+arm=default return_time='2026-10-05T08:00'
+RESULT solves_failed=2 count_of_2
+RESULT solve_failure_streak=2 count
+RESULT return_then_on_service_raised=1 count
+RESULT return_then_on_failed_cycles=6 count_of_6
+RESULT on_then_return_service_raised=1 count
+RESULT on_then_return_failed_cycles=6 count_of_6
+RESULT thread_factor=1.000
+RESULT load1=0.19
+RESULT swapins=0

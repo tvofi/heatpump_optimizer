@@ -1,0 +1,19 @@
+RESULT fixture_clean_unguarded=0 count
+RESULT fixture_reintro_unguarded=1 count
+RESULT numfield_seams=27 count
+RESULT numfield_unguarded=12 count
+RESULT dtnaive_seams=4 count
+RESULT dtnaive_instance=1 count
+  SEAM NUMFIELD custom_components/heatpump_optimizer/comfort_learning.py:240 ComfortLearner.from_dict key=None var=stored_configured
+  SEAM NUMFIELD custom_components/heatpump_optimizer/comfort_learning.py:248 ComfortLearner.from_dict key=None var=learned_weight
+  SEAM NUMFIELD custom_components/heatpump_optimizer/comfort_learning.py:249 ComfortLearner.from_dict key=None var=evidence
+  SEAM NUMFIELD custom_components/heatpump_optimizer/comfort_learning.py:250 ComfortLearner.from_dict key=None var=overrides
+  SEAM NUMFIELD custom_components/heatpump_optimizer/curve_learning.py:156 CurveLearner.from_dict key=None var=comfortable_days
+  SEAM NUMFIELD custom_components/heatpump_optimizer/curve_learning.py:160 CurveLearner.from_dict key=None var=resets
+  SEAM NUMFIELD custom_components/heatpump_optimizer/dhw_learning.py:192 DhwProfileLearner.async_load_profile key=None var=cooling_samples
+  SEAM NUMFIELD custom_components/heatpump_optimizer/flow_lift.py:220 FlowCurveBias.from_dict key=None var=bias_k
+  SEAM NUMFIELD custom_components/heatpump_optimizer/legionella.py:133 LegionellaGuard.async_load key=None var=attempt_peak
+  SEAM NUMFIELD custom_components/heatpump_optimizer/snapshots.py:242 SnapshotRing.from_dict key=None var=_bias_days
+  SEAM NUMFIELD custom_components/heatpump_optimizer/tariff.py:389 PeakTracker.from_dict key=None var=_window_samples
+  SEAM NUMFIELD custom_components/heatpump_optimizer/wear.py:106 StartCounter.from_dict key=None var=lifetime
+  SEAM DTNAIVE custom_components/heatpump_optimizer/accuracy.py:78 AccuracySample.from_dict guard=no_combine_seen

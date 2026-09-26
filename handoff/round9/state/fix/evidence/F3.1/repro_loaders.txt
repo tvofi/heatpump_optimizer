@@ -1,0 +1,18 @@
+## /home/claude/heatpump_optimizer
+RESULT legionella_due_in_h_at_d30 null=-1032.0 skewed=168.0
+RESULT boost_active_at_d30 null=False skewed=True
+RESULT boost_legit_1h_active_at_T0+30min null=True skewed=True
+RESULT echo_grace_open_at_d30 null=False skewed=True
+RESULT snow_damped_at_d30 null=False skewed=True
+RESULT immersion_margin_at_d30 null=0.0 skewed=2.0
+RESULT outage_flagged_after_6h_cut null=True skewed=False
+RESULT fuse_gated_at_d10_same_month null=False skewed=True
+## /tmp/claude-0/s/r9-f3-stores/wt
+RESULT legionella_due_in_h_at_d30 null=-1032.0 skewed=-552.0
+RESULT boost_active_at_d30 null=False skewed=False
+RESULT boost_legit_1h_active_at_T0+30min null=True skewed=True
+RESULT echo_grace_open_at_d30 null=False skewed=False
+RESULT snow_damped_at_d30 null=False skewed=False
+RESULT immersion_margin_at_d30 null=0.0 skewed=0.0
+RESULT outage_flagged_after_6h_cut null=True skewed=False
+RESULT fuse_gated_at_d10_same_month null=False skewed=False

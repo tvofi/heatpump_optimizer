@@ -1,0 +1,25 @@
+RESULT candidate_fromisoformat_sites=24
+  widen custom_components/heatpump_optimizer/accuracy.py:406
+  widen custom_components/heatpump_optimizer/accuracy.py:78
+  widen custom_components/heatpump_optimizer/away.py:590
+  KNOWN custom_components/heatpump_optimizer/boost.py:166
+  KNOWN custom_components/heatpump_optimizer/comfort_learning.py:256
+  widen custom_components/heatpump_optimizer/coordinator.py:2953
+  widen custom_components/heatpump_optimizer/coordinator.py:2962
+  widen custom_components/heatpump_optimizer/coordinator.py:583
+  widen custom_components/heatpump_optimizer/coordinator.py:6330
+  widen custom_components/heatpump_optimizer/coordinator.py:7554
+  widen custom_components/heatpump_optimizer/coordinator.py:7566
+  widen custom_components/heatpump_optimizer/coordinator.py:8007
+  widen custom_components/heatpump_optimizer/coordinator.py:8108
+  widen custom_components/heatpump_optimizer/coordinator.py:8381
+  KNOWN custom_components/heatpump_optimizer/curve_learning.py:111
+  KNOWN custom_components/heatpump_optimizer/drift.py:148
+  widen custom_components/heatpump_optimizer/manual_plan.py:236
+  widen custom_components/heatpump_optimizer/manual_plan.py:246
+  widen custom_components/heatpump_optimizer/manual_plan.py:82
+  widen custom_components/heatpump_optimizer/open_meteo.py:206
+  widen custom_components/heatpump_optimizer/price_model.py:487
+  widen custom_components/heatpump_optimizer/pump_arbiter.py:629
+  KNOWN custom_components/heatpump_optimizer/snapshots.py:74
+  widen custom_components/heatpump_optimizer/wood_fuel.py:246

@@ -1,0 +1,9 @@
+arm=default
+RESULT jump0_live_hours=2.00 h
+RESULT jump1_live_hours=3.00 h
+RESULT jump6_live_hours=8.00 h
+RESULT jump24_live_hours=26.00 h
+RESULT restore_2099_live_hours=72.00 h
+RESULT thread_factor=1.000
+RESULT load1=0.25
+RESULT swapins=0

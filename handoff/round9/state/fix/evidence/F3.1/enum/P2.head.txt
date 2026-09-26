@@ -1,0 +1,37 @@
+CELL ({'upper_floor_thermal_mass': 0.0}, True, True, False, False, False, True)
+CELL ({'lower_floor_thermal_mass': 8.0}, True, True, False, False, False, True)
+CELL ({'inter_zone_heat_transfer': 0.3}, True, True, False, False, False, True)
+CELL ({'radiator_power_fraction': 0.5}, True, True, False, False, False, True)
+CELL ({'two_zone_mode': 'auto', 'upper_floor_thermal_mass': 0.0}, True, True, False, False, False, True)
+CELL ({'two_zone_mode': 'auto', 'lower_floor_thermal_mass': 8.0}, True, True, False, False, False, True)
+CELL ({'two_zone_mode': 'auto', 'inter_zone_heat_transfer': 0.3}, True, True, False, False, False, True)
+CELL ({'two_zone_mode': 'auto', 'radiator_power_fraction': 0.5}, True, True, False, False, False, True)
+CELL ({'two_zone_mode': 'on'}, True, True, False, False, False, True)
+CELL ({'two_zone_mode': 'on', 'upper_floor_thermal_mass': 0.0}, True, True, False, False, False, True)
+CELL ({'two_zone_mode': 'on', 'lower_floor_thermal_mass': 8.0}, True, True, False, False, False, True)
+CELL ({'two_zone_mode': 'on', 'inter_zone_heat_transfer': 0.3}, True, True, False, False, False, True)
+CELL ({'two_zone_mode': 'on', 'radiator_power_fraction': 0.5}, True, True, False, False, False, True)
+CELL ({'two_zone_mode': 'off', 'upper_floor_thermal_mass': 4.0}, False, False, True, True, True, False)
+CELL ({'two_zone_mode': 'off', 'upper_floor_thermal_mass': 4.0, 'lower_floor_thermal_mass': 8.0}, False, False, True, True, True, False)
+CELL ({'two_zone_mode': 'off', 'upper_floor_thermal_mass': 4.0, 'lower_floor_thermal_mass': 8.0, 'inter_zone_heat_transfer': 0.3, 'radiator_power_fraction': 0.5}, False, False, True, True, True, False)
+CELL ({'two_zone_mode': 'bogus', 'upper_floor_thermal_mass': 0.0}, True, True, False, False, False, True)
+CELL ({'two_zone_mode': 'bogus', 'lower_floor_thermal_mass': 8.0}, True, True, False, False, False, True)
+CELL ({'two_zone_mode': 'bogus', 'inter_zone_heat_transfer': 0.3}, True, True, False, False, False, True)
+CELL ({'two_zone_mode': 'bogus', 'radiator_power_fraction': 0.5}, True, True, False, False, False, True)
+RESULT cells=40 count
+RESULT derive_preset_disagree=20 count
+RESULT prefill_refused_or_missed=20 count
+RESULT null_control_cells=20 count
+RESULT null_control_disagree=0 count
+RESULT house_mass_ratio_min=0.267 ratio
+RESULT house_mass_ratio_max=3.750 ratio
+RESULT derive_preset_disagree[perturbed]=0 count
+RESULT prefill_refused_or_missed[perturbed]=0 count
+WOODCELL ({'dhw_wood_coil_enabled': True}, False, True)
+WOODCELL ({'valve_outlet_temp_entity': 'sensor.x'}, True, False)
+RESULT wood_cells=21 count
+RESULT wood_picture_vs_model_disagree=2 count
+RESULT wood_picture_vs_model_disagree[perturbed]=0 count
+RESULT thread_factor=1.000
+RESULT load1=0.60
+RESULT swapins=0
