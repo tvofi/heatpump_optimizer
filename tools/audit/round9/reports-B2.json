@@ -1,8 +1,6 @@
 {
   "box": "B2",
-  "missing": [
-    "D3-s2"
-  ],
+  "missing": [],
   "reports": {
     "D0-s2": {
       "dimension": "D0",
@@ -950,6 +948,226 @@
           "file": "custom_components/heatpump_optimizer/icons.json",
           "symbol": "services section",
           "what": "No service icons for the 12 services in services.yaml (hassfest requires them for core integrations only; not a quality-scale rule for a custom one)."
+        }
+      ]
+    },
+    "D3-s2": {
+      "dimension": "D3",
+      "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+      "report_path": "tools/audit/round9/D3/s2/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D3.M1",
+          "depth": "deep",
+          "evidence": "pool.py: 1283-site inventory over the 8 modules (mutation_table.candidates + NP_CLIP/EXCEPT_RAISE), weights module x kind recorded in pool.json; seed 90302, 4/module = 32 mutants; tranche 2 seed 90303, 1/module = 8 (pool2.json)"
+        },
+        {
+          "step": "D3.M2",
+          "depth": "deep",
+          "evidence": "prescreen.py: 40 drawn mutants + 11 store-guard census sites against their measured closures (15-17 drivers incl. env_drift.py --all HEAD^1), killed() rule of tests/mutation_table.py; 17-driver baseline green; comment-only null control LIVES in all three runs; results*.jsonl"
+        },
+        {
+          "step": "D3.M3",
+          "depth": "deep",
+          "evidence": "prescreened candidate list with mutant patch, closure, scripts run and killer per mutant in results.jsonl / results2.jsonl / results_store.jsonl and the REPORT.md table; 12 survivors (8 drawn, 4 census)"
+        },
+        {
+          "step": "D3.M4",
+          "depth": "deep",
+          "evidence": "witness.py loads each survivor's module twice (mutload.pair) and counts divergence on in-domain and out-of-domain probes: 7 drawn survivors equivalent over the reachable domain (M01,M02,M03,M04,M08,M19,M24); M31,S05,S17,S18,S19 diverge in the store-payload domain; the check that should fail named per finding"
+        },
+        {
+          "step": "D3.M5",
+          "depth": "deep",
+          "evidence": "resources.py: per-driver checks, solves (optimize-call hook), child CPU vs closures.json seconds, kills per driver over 51 mutants; wall/CPU provisional"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D3.M3",
+          "what": "quiet-window GATE_SCOPE=full GOLDEN_MODE=drift gate on the top survivors M31(=S34), S17, S18, S05, S19"
+        },
+        {
+          "step": "D3.M2",
+          "what": "27 of 38 store-parser sites in storeguards.json (isinstance/return/except) not pre-screened"
+        },
+        {
+          "step": "D3.M5",
+          "what": "quiet-window re-take of wall/CPU; heavy-driver duplicated coverage needs an --all-drivers run (early stop skips heavy drivers after a kill)"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D3-s2-01",
+          "scope": "D3-s2",
+          "step": "D3.M2",
+          "title": "Store-parser non-finite guards in flow_lift, tariff, price_model survive deletion: no gate driver notices",
+          "severity": "medium",
+          "claim": "Deleting any of four isfinite guards in persisted-state parsers (flow_lift.py:210, tariff.py:402, price_model.py:324, price_model.py:349) leaves every driver of the file's measured closure, env_drift --all included, green, although each mutant restores corrupt stored values as live state.",
+          "mechanism": "The corrupt-payload checks in tests/features.py feed only unparseable strings, None or over-range finite values; none feeds a string float() accepts as non-finite ('nan','inf') or a negative sample count, which are exactly the inputs these guards exist for.",
+          "evidence": {
+            "command": "D3S2_ORDER=measured D3S2_POOL=storeguards.json PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/prescreen.py --jobs 2 --results results_store.jsonl --only S05,S17,S18,S34",
+            "harness_path": "tools/audit/round9/D3/s2/prescreen.py",
+            "value": 4,
+            "unit": "surviving isfinite store-parser guards of 6 enumerated (S05,S17,S18 in results_store.jsonl; flow_lift.py:210 as M31 in results.jsonl, the identical mutant S34)",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "box B2: 4-CPU Linux container, 15 GB, shared with two compute seats",
+            "cpu_or_wall": "count",
+            "contention_note": "two other compute seats on the box, load1 1-5 during the run; a count, not a timing. The printed thread_factor is the orchestrator's own idle-main-thread ratio (its work runs in pool threads and child processes), not a BLAS signal",
+            "tolerance": "exact",
+            "load1": 0.96,
+            "thread_factor": 7.719
+          },
+          "instrumented_symbol": "flow_lift:FlowCurveBias.from_dict, tariff:PeakTracker.from_dict, price_model:PriceShapeModel.from_dict (via tests/mutation_table.py:killed over each closure driver)",
+          "perturbation": {
+            "change": "Add {'bias_k':'nan','samples':4}, {'bias_k':1.0,'samples':-1}, a 'nan' price-shape bin, a 'nan' quarter factor and window_factor 'inf' to tests/features.py's corrupt-stored-state checks (each asserting the inert/flat restore); or remove the mutant (witness.py orig arm): divergence goes to 0",
+            "expected_direction": "down",
+            "observed_value": "witness orig-vs-orig divergence 0; mutant arm: M31 6/6 non-inert restores, S17 12/288 and S18 3/288 guessed steps priced 0.0, S05 1/3 inf billed peak"
+          },
+          "metric_definition": "Count of isfinite guards in the eight modules' persisted-state parsers (storeguards.py) whose GUARD_OFF mutant no closure driver kills (killed(): red and more failing checks than baseline).",
+          "phenomenon_property": "Every non-finite/negative-count guard at a persisted-state parser boundary of the solver-side modules is pinned: deleting it turns at least one gate driver red.",
+          "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/storeguards.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/prescreen.py (NULL row)",
+            "value": "LIVES",
+            "note": "comment-only edit of optimizer.py survives all 17 drivers in each of the three runs; unmutated baseline green on all 17"
+          },
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/storeguards.py",
+            "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/witness.py M31 S05 S17 S18",
+            "D3S2_ORDER=measured D3S2_POOL=storeguards.json PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/prescreen.py --jobs 2 --results results_store.jsonl --only S05,S17,S18,S34"
+          ],
+          "proposed_fix_scope": "tests only: extend the corrupt-payload checks in tests/features.py (FlowCurveBias, PeakTracker window_factor, PriceShapeModel shapes and quarter_factors) with float()-parseable non-finite strings and a negative sample count, each asserting the inert restore; re-run prescreen --only on the four sites to show the kill.",
+          "files": [
+            "custom_components/heatpump_optimizer/flow_lift.py",
+            "custom_components/heatpump_optimizer/tariff.py",
+            "custom_components/heatpump_optimizer/price_model.py",
+            "tests/features.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "I1"
+        },
+        {
+          "id": "D3-s2-02",
+          "scope": "D3-s2",
+          "step": "D3.M2",
+          "title": "PriceShapeModel residual_var restore can discard every stored variance with the gate green",
+          "severity": "low",
+          "claim": "Replacing price_model.py:368's max(0.0, float(v)) with 0.0 zeroes every restored residual variance, and all 15 closure drivers (env_drift --all included) stay green.",
+          "mechanism": "The only residual_var load check (tests/features.py:41446) feeds a corrupt 'x' payload and compares to a fresh (all-zero) model, which the mutant also satisfies; no positive-control round trip (learned -> as_dict -> from_dict) asserts a variance survives a restart.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/witness.py S19",
+            "harness_path": "tools/audit/round9/D3/s2/witness.py",
+            "value": "96/96 -> 0/96",
+            "unit": "guessed steps with non-zero price sigma after a restart round trip (original -> mutant)",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "box B2: 4-CPU Linux container, 15 GB, shared with two compute seats",
+            "cpu_or_wall": "count",
+            "contention_note": "counts; load1 0.83 at measurement; suite survival from prescreen.py results_store.jsonl S19 (15 drivers, all green)",
+            "tolerance": "exact",
+            "load1": 0.83,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "price_model:PriceShapeModel.from_dict (via price_model:extend_price_series sigma)",
+          "perturbation": {
+            "change": "Remove the mutant (witness orig arm) or add a round-trip check to tests/features.py asserting a learned residual_var survives as_dict/from_dict: the survivor becomes a kill",
+            "expected_direction": "down",
+            "observed_value": "orig arm 96/96 non-zero sigma; mutant 0/96; in-domain divergence 10/10"
+          },
+          "metric_definition": "Guessed steps (of 96) with sigma > 0 from extend_price_series after a learned PriceShapeModel is round-tripped through as_dict/from_dict.",
+          "phenomenon_property": "Every learned field a persisted-state parser restores is pinned by a round-trip check that fails when the restore discards it.",
+          "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/storeguards.py",
+          "reproduction_steps": [
+            "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/witness.py S19",
+            "D3S2_ORDER=measured D3S2_POOL=storeguards.json PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/prescreen.py --jobs 1 --results results_store.jsonl --only S19"
+          ],
+          "proposed_fix_scope": "tests only: a residual_var (and quarter_factors) round-trip positive control in tests/features.py.",
+          "files": [
+            "custom_components/heatpump_optimizer/price_model.py",
+            "tests/features.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "I1"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "M01 optimizer.py:877 GUARD_OFF is equivalent (classify_space_steps loops range(n_steps); percentile guarded)",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/witness.py M01",
+          "value": "0/50 probes diverge"
+        },
+        {
+          "claim": "M02 optimizer.py:6410 guard unreachable: config flow bounds buffer_max_temperature 40..90 > fixed 35 C flow reference",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/witness.py M02",
+          "value": "0/44 in domain; 2/8 at 25-30 C"
+        },
+        {
+          "claim": "M03 optimizer.py:3739 BOOLOP equivalent: single-zone upper trajectory equals room from index 1 (thermal_model.py:2025); loop reads i+1",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/witness.py M03",
+          "value": "0/60 diverge, 26/60 releasing"
+        },
+        {
+          "claim": "M04 optimizer.py:816 guard equivalent within config bounds (cost 0..10, rating 1..20 kW)",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/witness.py M04",
+          "value": "0/45 in domain; 3/3 out"
+        },
+        {
+          "claim": "M08 thermal_model.py:1904 max(dt,1e-6) equivalent for planner steps >= 5 min",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/witness.py M08",
+          "value": "0/40 (20 floor hits); 1/1 at dt=0"
+        },
+        {
+          "claim": "M19 price_model.py:415 guard equivalent (empty fall-through loop)",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/witness.py M19",
+          "value": "0/80"
+        },
+        {
+          "claim": "M24 sysid.py:1563 floor equivalent over RANGE_HOUSE_THERMAL_MASS (0.5, 80)",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/witness.py M24",
+          "value": "0/42 (31 fits completed); 2/2 below 0.1"
+        },
+        {
+          "claim": "33 of 40 drawn mutants are killed by their closure (features 25, finite_boundary 6, env_drift 5 among all screened)",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/prescreen.py --jobs 3 ; D3S2_POOL=pool2.json ... --results results2.jsonl",
+          "value": "32 drawn: 8 survivors; tranche 2: 0/8 survivors"
+        },
+        {
+          "claim": "Store-parser finite/range guards tariff.py:393, :458, defrost.py:506 clamp, flow_lift.py:221 clip, plus 4 more parser sites are killed",
+          "command": "D3S2_ORDER=measured D3S2_POOL=storeguards.json PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/prescreen.py --results results_store.jsonl",
+          "value": "7/11 census sites killed"
+        },
+        {
+          "claim": "Null control and baseline: comment-only edit survives all drivers; unmutated closure drivers all green",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/prescreen.py",
+          "value": "null_control=LIVES x3; baseline_red_drivers=0 of 17"
+        },
+        {
+          "claim": "M5: no closure over-approximation worth a finding; nine zero-kill cheap drivers cost < 25 s total per run (static source readers); entities.py in all eight closures makes 0 solves and killed 1/38",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s2/resources.py",
+          "value": "features 3420 checks/126 solves (27.1 per solve), optimality 84/23 (3.65), manual_plan 85/21 (4.0); CPU provisional"
+        }
+      ],
+      "harnesses": [
+        "tools/audit/round9/D3/s2/pool.py",
+        "tools/audit/round9/D3/s2/prescreen.py",
+        "tools/audit/round9/D3/s2/witness.py",
+        "tools/audit/round9/D3/s2/mutload.py",
+        "tools/audit/round9/D3/s2/storeguards.py",
+        "tools/audit/round9/D3/s2/resources.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "tests/mutation_table.py",
+          "symbol": "candidates (CLAMP_DROP)",
+          "what": "CLAMP_DROP keeps args[0], so max(0.0, float(v)) becomes (0.0): the operator replaces the value with the bound instead of dropping the clamp whenever the constant is the first argument (price_model.py:368 is one such site); the operator's docstring says 'a clamp dropped'"
+        },
+        {
+          "owner_seat": "D1-s2",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "flow-bias fold calling FlowCurveBias.observe (around :761)",
+          "what": "whether a raise from observe (reachable only if flow_lift.py:210's guard regresses: samples=-1 gives ZeroDivisionError) is contained per cycle or fails the update"
         }
       ]
     }
