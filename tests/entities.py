@@ -24740,24 +24740,25 @@ R.check(
     f"{_MUT_TRIAGE_PROBLEMS(_MUT_TRIAGE_BAD)!r} -- an unargued equivalence "
     "claim is the one shape that could quietly relax the fraction",
 )
-# The recorded table itself: both D3-07 equivalents marked, each with a
-# reason; the validator holds over the whole real table; and every mark
-# names a mutant THIS tree still generates -- same line, same operator,
-# same text -- so the pins are checked against the tree, not each other.
-_MUT_D3_07 = (  # the two marks' ledger anchors: resolve()'s guard, and setup's
+# The recorded table itself: the D3-07 equivalent marked, with a reason;
+# the validator holds over the whole real table; and every mark names a
+# mutant THIS tree still generates -- same line, same operator, same text --
+# so the pins are checked against the tree, not each other. D3-07's second
+# equivalent, setup's `task is not None and hasattr(task, "cancel")`, left
+# the tree with the first solve's hass-task fallback (#1621), so its mark
+# went with it and the staleness check below would refuse it.
+_MUT_D3_07 = (  # the mark's ledger anchor: resolve()'s guard
     "custom_components/heatpump_optimizer/pump_mode.py:resolve GUARD_OFF "
     "f7c55656",
-    "custom_components/heatpump_optimizer/__init__.py:async_setup_entry BOOLOP "
-    "47200394",
 )
 R.check(
-    "the recorded triage marks both D3-07 equivalents, verdict and reason (#1217)",
+    "the recorded triage marks the D3-07 equivalent, verdict and reason (#1217)",
     all(_MUT_TRIAGE.get(k, {}).get("verdict") == "equivalent"
         and str(_MUT_TRIAGE.get(k, {}).get("reason", "")).strip()
         for k in _MUT_D3_07),
-    f"marked: {sorted(_MUT_TRIAGE)} -- the audit measured resolve(None) and "
-    "the async_create_task return as indistinguishable both ways, and a "
-    "survivor table that does not say so charges the suite for them",
+    f"marked: {sorted(_MUT_TRIAGE)} -- the audit measured resolve(None) as "
+    "indistinguishable both ways, and a survivor table that does not say so "
+    "charges the suite for it",
 )
 _MUT_TRIAGE_STALE = []
 _MUT_TRIAGE_SITES: dict[str, dict] = {}
