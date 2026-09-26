@@ -762,6 +762,31 @@ def _savings_percentage(savings: float, baseline_cost: float) -> float:
 # ---------------------------------------------------------------------------
 
 
+# Below this a pump's modulation band is too narrow to grade a step by: a
+# fixed-speed pump (min == max power) is either off or at its one power.
+_MIN_MODULATION_BAND_KW = 0.1
+
+
+def _power_fraction(power: float, params: ThermalParameters) -> float:
+    """Where a planned power sits in the pump's modulation band, in [0, 1].
+
+    The one normalisation the setpoint, displace and action sites share. Four
+    inline copies floored a zero band at 0.1 kW, which on a fixed-speed pump
+    read a full-power step as 0 and an idle one as -60, and the published one
+    did not clip (R9 D12-s2-03). With no band to grade, a step is graded
+    against the pump's one running power instead.
+    """
+    p_min = params.min_electrical_power
+    p_max = params.max_electrical_power
+    if p_max - p_min >= _MIN_MODULATION_BAND_KW:
+        low, band = p_min, p_max - p_min
+    elif p_max > 0:
+        low, band = 0.0, p_max
+    else:
+        return 0.0
+    return float(min(1.0, max(0.0, (power - low) / band)))
+
+
 def count_compressor_starts(power: np.ndarray, threshold: float = 0.1) -> int:
     """Number of off→on transitions in a schedule.
 
@@ -1084,9 +1109,7 @@ class OptimizationResult:
     # The planned buffer-tank temperature, one entry per step boundary. Empty
     # without a mixing valve, where the tank is a hydraulic separator and its
     # temperature is not a decision. It is the only view anyone -- a sensor, the
-    # card, a test -- has of whether the plan intends to store anything: the
-    # model stashes the series on itself for the terminal-cost term and nothing
-    # else could reach it.
+    # card, a test -- has of whether the plan intends to store anything.
     buffer_temp_trajectory: list[float] = field(default_factory=list)
     # The valve target the plan wants at each step, fully resolved. Non-empty
     # only in smart_write mode when a hold schedule beat the fixed target on
@@ -1793,10 +1816,14 @@ class HeatPumpOptimizer:
         is the price of breaching the user's bounds, the second is a mild
         preference for sitting near the target inside them.
 
-        Two-zone penalties are *averaged* over the zones rather than summed.
-        Summing made a two-zone house behave as if ``comfort_weight`` were set
-        twice as high as configured, so it hugged the setpoint and gave up most
-        of the available savings.
+        Two-zone overshoot and pull are *averaged* over the zones rather than
+        summed. Summing made a two-zone house behave as if ``comfort_weight``
+        were set twice as high as configured, so it hugged the setpoint and gave
+        up most of the available savings. The floor is not averaged: each
+        zone's undershoot, quadratic and ``_COMFORT_FLOOR_L1`` alike, costs
+        what a single-zone room's does. Averaged, each zone's kelvin under
+        ``min_temp`` cost half, and the solver bought the breach back where
+        prices paid for it (R9 D2-s2-81).
 
         **The pull is deliberately weak.** The user states a *band*, and the
         band is what the plan owes them; the target is a preference inside it.
@@ -1817,12 +1844,12 @@ class HeatPumpOptimizer:
             undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
             overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
 
-            penalty = 0.5 * weight * (
+            penalty = weight * (
                 np.sum(undershoot_u ** 2) * 10.0
-                + np.sum(overshoot_u ** 2) * 5.0
                 + np.sum(undershoot_l ** 2) * 10.0
-                + np.sum(overshoot_l ** 2) * 5.0
                 + (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
+            ) + 0.5 * weight * (
+                np.sum(overshoot_u ** 2) * 5.0 + np.sum(overshoot_l ** 2) * 5.0
             )
 
             comfort_dev_u = upper_t - comfort_targets
@@ -1895,13 +1922,14 @@ class HeatPumpOptimizer:
                 undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
                 overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
 
-                penalty[b] = 0.5 * weight * (
+                penalty[b] = weight * (
                     np.sum(undershoot_u ** 2) * 10.0
-                    + np.sum(overshoot_u ** 2) * 5.0
                     + np.sum(undershoot_l ** 2) * 10.0
-                    + np.sum(overshoot_l ** 2) * 5.0
                     + (np.sum(undershoot_u) + np.sum(undershoot_l))
                     * _COMFORT_FLOOR_L1
+                ) + 0.5 * weight * (
+                    np.sum(overshoot_u ** 2) * 5.0
+                    + np.sum(overshoot_l ** 2) * 5.0
                 )
 
                 comfort_dev_u = upper_t - comfort_targets
@@ -2179,14 +2207,12 @@ class HeatPumpOptimizer:
         if not self.model.params.two_zone_enabled:
             return [], []
 
-        p_min = self.model.params.min_electrical_power
-        p_max = self.model.params.max_electrical_power
         span = self.config.max_temp - self.config.min_temp
 
         upper: list[float] = []
         lower: list[float] = []
         for value in power:
-            p_norm = np.clip((value - p_min) / max(p_max - p_min, 0.1), 0, 1)
+            p_norm = _power_fraction(value, self.model.params)
             upper.append(round(float(self.config.min_temp + p_norm * span), 1))
             lower.append(
                 round(float(self.config.min_temp + p_norm * (span + 1.0)), 1)
@@ -3097,8 +3123,9 @@ class HeatPumpOptimizer:
         plan -- in production ``coordinator._warm_seeded``, which rebuilds this
         optimizer every solve and so is the only seat that can carry the plan
         across an MPC cycle. L-BFGS-B is then restarted from that point, a lead
-        no structural seed reproduces: the same problem one step later, already
-        comfort-feasible by construction. It is a *candidate*, not a warm start
+        no structural seed reproduces. It is the previous plan on its own
+        clock: the caller hands it at offset 0, not shifted by the steps
+        elapsed since it was made. It is a *candidate*, not a warm start
         that bypasses the multi-start -- ``_multi_start_minimize`` scores it
         against every structural seed and keeps the cheapest, so a stale or
         wrong-shaped plan can lose, never win.
@@ -6887,16 +6914,8 @@ class HeatPumpOptimizer:
     ) -> list[float]:
         """Convert power schedule to equivalent temperature setpoints."""
         setpoints: list[float] = []
-        p_range = (
-            self.model.params.max_electrical_power
-            - self.model.params.min_electrical_power
-        )
-
         for power, _room_t in zip(power_schedule, room_temps):
-            p_norm = (
-                power - self.model.params.min_electrical_power
-            ) / max(p_range, 0.1)
-            p_norm = np.clip(p_norm, 0, 1)
+            p_norm = _power_fraction(power, self.model.params)
             displacement = p_norm * (self.config.max_temp - self.config.min_temp)
             setpoint = self.config.min_temp + displacement
             setpoints.append(round(float(setpoint), 1))
@@ -6911,8 +6930,6 @@ class HeatPumpOptimizer:
     ) -> list[float]:
         """Map optimized power to ECL110 displace values with PID-aware smoothing."""
         p = self.model.params
-        p_min = p.min_electrical_power
-        p_max = p.max_electrical_power
         d_min = p.ecl110_displace_min
         d_max = p.ecl110_displace_max
 
@@ -6928,8 +6945,7 @@ class HeatPumpOptimizer:
 
         raw_displace: list[float] = []
         for i, power in enumerate(power_schedule):
-            p_norm = (power - p_min) / max(p_max - p_min, 0.1)
-            p_norm = float(np.clip(p_norm, 0.0, 1.0))
+            p_norm = _power_fraction(power, p)
             displace = d_min + p_norm * (d_max - d_min)
 
             if i < int(max(1, 8 / self.config.dt_hours)):
@@ -6990,24 +7006,27 @@ class HeatPumpOptimizer:
         if not result.timestamps:
             return self._idle_action()
 
-        if current_time < result.timestamps[0]:
+        # Instants, not wall clocks (R9 D14-s4-01): Home Assistant hands every
+        # datetime in one ZoneInfo, and CPython subtracts and compares two that
+        # share a tzinfo as naive wall time, so across a DST transition a
+        # 15-minute step read as 75 and the autumn fold matched the wrong step.
+        now_s = current_time.timestamp()
+        starts = [ts.timestamp() for ts in result.timestamps]
+        if now_s < starts[0]:
             # A pre-horizon clock (NTP step back, restored stale plan) would
             # fall through the loop below to the LAST step — the 24h-ahead
             # slot where terminal-value charging lives. Clamp to step 0 only
             # while the gap is within one step length; beyond that the plan
             # says nothing about now, so idle like the empty-plan branch.
-            if len(result.timestamps) > 1:
-                step = result.timestamps[1] - result.timestamps[0]
-            else:
-                step = timedelta(minutes=15)
-            if result.timestamps[0] - current_time > step:
+            step_s = starts[1] - starts[0] if len(starts) > 1 else 900.0
+            if starts[0] - now_s > step_s:
                 return self._idle_action()
             i = 0
         else:
             # Find the current time step
-            for i, ts in enumerate(result.timestamps):
-                if i + 1 < len(result.timestamps):
-                    if ts <= current_time < result.timestamps[i + 1]:
+            for i, start_s in enumerate(starts):
+                if i + 1 < len(starts):
+                    if start_s <= now_s < starts[i + 1]:
                         break
                 else:
                     i = len(result.timestamps) - 1
@@ -7028,13 +7047,7 @@ class HeatPumpOptimizer:
             else power > on_threshold
         )
 
-        p_range = (
-            self.model.params.max_electrical_power
-            - self.model.params.min_electrical_power
-        )
-        p_norm = (
-            power - self.model.params.min_electrical_power
-        ) / max(p_range, 0.1)
+        p_norm = _power_fraction(power, self.model.params)
 
         # The band is the SPACE circuit's, but "off" means the pump is off
         # (#1499): a space step below the band's first rung still runs, and
