@@ -36,11 +36,25 @@ Direction is the finding's `perturbation.expected_direction`: `up`, `down`,
 printed no `load1` gets the batch's own 1-minute load, flagged, and one that
 printed no `thread_factor` is flagged, as is a factor over 1.05 (re-take).
 
-The lease is `tests/gate_lock.py`'s: taken once, renewed before each command
-(a refused renew releases and queues again behind the waiter, as
-`gate-scoping.md` says), each command run with flock held, released on exit.
-Commands run from `--repo` through `bash -c`, one at a time; the child sees
-`HPO_GATE_LOCK_DIR` and `HPO_GATE_LOCK_LABEL`.
+The lease is `tests/gate_lock.py`'s: taken once, with this process as its
+owner pid and a lease longer than one command's timeout, renewed before each
+command (a refused renew releases and queues again behind the waiter, as
+`gate-scoping.md` says), released on exit. Commands run from `--repo` through
+`bash -c`, one at a time, with the LEASE held and flock NOT held: the child sees
+`HPO_GATE_LOCK_DIR` and `HPO_GATE_LOCK_LABEL`, so a harness that goes through
+`tests/run.sh` onto `stress.py`, or through `gate_lock.py flock-wrap`, renews
+this label and takes flock itself -- the route `run.sh` already has for a seat's
+own label. Holding flock here instead would make that nested take wait out the
+command's whole timeout.
+
+Every command runs against a snapshot of the tree (`git status --porcelain`,
+untracked included, plus the bytes of every path already dirty): a command that
+leaves the tree different -- a perturbation that edits production on disk, or a
+harness killed at the timeout before its own restore ran -- is flagged
+`tree edited by <arm>` on its row and the tree is put back before the next
+command (tracked paths from the snapshot or `git checkout`, new files removed),
+so one finding's perturbation cannot move the next finding's number. A `--repo`
+that is not a git worktree is flagged `tree unchecked` on every row.
 """
 from __future__ import annotations
 
@@ -150,13 +164,17 @@ def moved(base: str | None, perturbed: str | None, direction: str | None) -> str
 
 
 class Lease:
-    """The gate lease held across the batch, flock held per command."""
+    """The gate lease held across the batch; flock is the child's to take."""
 
-    def __init__(self, label: str, lock_dir: Path) -> None:
-        self.label, self.lock_dir = label, lock_dir
+    def __init__(self, label: str, lock_dir: Path, seconds: int = gate_lock.LEASE_SECONDS) -> None:
+        self.label, self.lock_dir, self.seconds = label, lock_dir, seconds
+
+    def _take(self) -> None:
+        gate_lock.take(self.label, lock_dir=self.lock_dir, lease_seconds=self.seconds,
+                       owner_pid=os.getpid())
 
     def __enter__(self) -> Lease:
-        gate_lock.take(self.label, lock_dir=self.lock_dir, owner_pid=os.getpid())
+        self._take()
         return self
 
     def __exit__(self, *exc: object) -> None:
@@ -165,33 +183,77 @@ class Lease:
 
     def renew(self) -> None:
         try:
-            gate_lock.renew(self.label, lock_dir=self.lock_dir, owner_pid=os.getpid())
+            gate_lock.renew(self.label, lock_dir=self.lock_dir, lease_seconds=self.seconds,
+                            owner_pid=os.getpid())
         except gate_lock.RenewRefused as exc:
             print(f"judge_batch: {exc}; re-queueing", file=sys.stderr)
             gate_lock.release(self.label, lock_dir=self.lock_dir)
-            gate_lock.take(self.label, lock_dir=self.lock_dir, owner_pid=os.getpid())
+            self._take()
         except RuntimeError:  # expired, or stolen after expiry: queue again
-            gate_lock.take(self.label, lock_dir=self.lock_dir, owner_pid=os.getpid())
+            self._take()
 
 
-def run(cmd: str, *, repo: Path, lease: Lease, timeout: int) -> dict:
+def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", *args], cwd=repo, capture_output=True)
+
+
+def snapshot(repo: Path) -> dict[str, bytes | None] | None:
+    """Every dirty or untracked path with its bytes (None: absent); None off git."""
+    p = _git(repo, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--no-renames")
+    if p.returncode != 0:
+        return None
+    snap: dict[str, bytes | None] = {}
+    for entry in p.stdout.decode("utf-8", "surrogateescape").split("\0"):
+        if len(entry) > 3:
+            path = entry[3:]
+            f = repo / path
+            snap[path] = f.read_bytes() if f.is_file() else None
+    return snap
+
+
+def restore(repo: Path, before: dict[str, bytes | None]) -> list[str]:
+    """Put the tree back to ``before``; return the paths that had moved."""
+    after = snapshot(repo) or {}
+    moved = sorted(p for p in set(before) | set(after) if before.get(p, b"") != after.get(p, b""))
+    for path in moved:
+        f = repo / path
+        if path in before:
+            if before[path] is None:
+                f.unlink(missing_ok=True)
+            else:
+                f.parent.mkdir(parents=True, exist_ok=True)
+                f.write_bytes(before[path])
+        elif _git(repo, "ls-files", "--error-unmatch", "--", path).returncode == 0:
+            _git(repo, "checkout", "--", path)
+        else:
+            f.unlink(missing_ok=True)
+    return moved
+
+
+def run(cmd: str, *, repo: Path, lease: Lease, timeout: int, arm: str = "run") -> dict:
     lease.renew()
     env = {**os.environ, "HPO_GATE_LOCK_DIR": str(lease.lock_dir),
            "HPO_GATE_LOCK_LABEL": lease.label}
+    before = snapshot(repo)
     start = time.monotonic()
-    with gate_lock.flock_context(lease.lock_dir, blocking=True):
-        proc = subprocess.Popen(["bash", "-c", cmd], cwd=repo, env=env, text=True,
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                start_new_session=True)
-        try:
-            out, err = proc.communicate(timeout=timeout)
-            rc = proc.returncode
-        except subprocess.TimeoutExpired:
-            with contextlib.suppress(ProcessLookupError, PermissionError):
-                os.killpg(proc.pid, signal.SIGKILL)
-            out, err = proc.communicate()
-            rc = "timeout"
-    return {"rc": rc, "results": results(out), "stderr": err[-400:],
+    proc = subprocess.Popen(["bash", "-c", cmd], cwd=repo, env=env, text=True,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            start_new_session=True)
+    try:
+        out, err = proc.communicate(timeout=timeout)
+        rc = proc.returncode
+    except subprocess.TimeoutExpired:
+        with contextlib.suppress(ProcessLookupError, PermissionError):
+            os.killpg(proc.pid, signal.SIGKILL)
+        out, err = proc.communicate()
+        rc = "timeout"
+    flags = []
+    if before is None:
+        flags.append("tree unchecked")
+    elif moved := restore(repo, before):
+        flags.append(f"tree edited by {arm}: {', '.join(moved[:5])}"
+                     + (f" (+{len(moved) - 5})" if len(moved) > 5 else "") + "; restored")
+    return {"rc": rc, "results": results(out), "stderr": err[-400:], "flags": flags,
             "seconds": round(time.monotonic() - start, 1)}
 
 
@@ -214,6 +276,8 @@ def measure(entry: dict, *, repo: Path, lease: Lease, timeout: int) -> dict:
     expected = harness_headers.expected_from(harness)
     cmd = d.get("run") or ev.get("command")
     main = run(cmd, repo=repo, lease=lease, timeout=timeout) if cmd else None
+    if main:
+        row["flags"] += main["flags"]
     printed = main["results"] if main else {}
     metric = d.get("metric") or next(iter(expected), None) or next(
         (k for k in printed if k not in harness_headers.SKIP), None)
@@ -242,7 +306,8 @@ def measure(entry: dict, *, repo: Path, lease: Lease, timeout: int) -> dict:
     direction = (f.get("perturbation") or {}).get("expected_direction")
     row["direction"] = direction
     if d.get("perturb") and metric:
-        pert = run(d["perturb"], repo=repo, lease=lease, timeout=timeout)
+        pert = run(d["perturb"], repo=repo, lease=lease, timeout=timeout, arm="perturb")
+        row["flags"] += [f for f in pert["flags"] if f != "tree unchecked"]
         row["perturbed"] = pert["results"].get(metric)
         row["perturbation"] = moved(got, row["perturbed"], direction)
         if pert["rc"] != 0:
@@ -254,7 +319,8 @@ def measure(entry: dict, *, repo: Path, lease: Lease, timeout: int) -> dict:
     if direction not in DIRECTIONS:
         row["flags"].append(f"direction {direction!r} not machine-checkable")
     if d.get("null") and metric:
-        null = run(d["null"], repo=repo, lease=lease, timeout=timeout)
+        null = run(d["null"], repo=repo, lease=lease, timeout=timeout, arm="null")
+        row["flags"] += [f for f in null["flags"] if f != "tree unchecked"]
         row["null_value"] = null["results"].get(metric)
         if null["rc"] != 0:
             row["flags"].append(f"null rc={null['rc']}")
@@ -267,7 +333,9 @@ def run_batch(entries: list, *, repo: Path, lock_dir: Path = gate_lock.DEFAULT_L
               label: str, timeout: int = 1800) -> list[dict]:
     """Every finding measured serially under one lease, in input order."""
     rows = []
-    with Lease(label, lock_dir) as lease:
+    # A lease longer than one command, so a harness that holds the box for its
+    # whole timeout is not stolen from mid-run.
+    with Lease(label, lock_dir, max(gate_lock.LEASE_SECONDS, timeout + 300)) as lease:
         for entry in entries:
             rows.append(measure(entry, repo=Path(repo), lease=lease, timeout=timeout))
     return rows

@@ -26054,7 +26054,7 @@ _JB_HARNESS = """\
 Metric: count of widgets.
 Expected at baseline:
   RESULT count={base}
-JUDGE-RUN: {py} tools/audit/round9/D1/{name}.py
+JUDGE-RUN: {run}
 {perturb}JUDGE-NULL: {py} tools/audit/round9/D1/{name}.py --null
 \"\"\"
 import os
@@ -26067,6 +26067,7 @@ held = int(lock.is_file() and f"label={{label}}" in lock.read_text())
 n = {got}
 if "--perturb" in sys.argv:
     n = {perturbed}
+    {side_effect}
 if "--null" in sys.argv:
     n = 0
 print(f"RESULT count={{n}}")
@@ -26077,7 +26078,15 @@ print("RESULT thread_factor=1.00")
 
 
 def _jb_run() -> dict:
-    """Five fixture harnesses through ``judge_batch.run_batch``, one lease."""
+    """Eight fixture harnesses through ``judge_batch.run_batch``, one lease.
+
+    ``edits`` perturbs by writing a tracked file on disk and never restores it;
+    ``reads`` counts that file, so it reads 3 alone and 9 after ``edits`` unless
+    the batch puts the tree back. ``nested`` runs through ``gate_lock.py
+    flock-wrap`` under the batch's own label, the route ``run.sh`` takes onto
+    ``stress.py``: it must finish, not wait out the timeout on a flock the
+    batch holds.
+    """
     spec = _importlib_util.spec_from_file_location(
         "judge_batch", _closure.ROOT / "tools" / "audit" / "judge_batch.py")
     judge_batch = _importlib_util.module_from_spec(spec)
@@ -26087,6 +26096,12 @@ def _jb_run() -> dict:
         hdir = repo / "tools" / "audit" / "round9" / "D1"
         hdir.mkdir(parents=True)
         lock_dir = Path(td) / "lock"
+        (repo / "pkg").mkdir()
+        (repo / "pkg" / "prod.txt").write_text("3\n")
+        reads = 'int(Path("pkg/prod.txt").read_text())'
+        edit = 'Path("pkg/prod.txt").write_text("9\\n")'
+        gl = _closure.ROOT / "tests" / "gate_lock.py"
+        wrap = (f'{sys.executable} {gl} flock-wrap --label "$HPO_GATE_LOCK_LABEL" -- ')
         cases = {
             # name: (header base, printed base, printed under perturb, direction, perturb line?)
             "moves": (3, 3, 0, "to_zero", True),
@@ -26094,25 +26109,37 @@ def _jb_run() -> dict:
             "wrongway": (3, 3, 7, "down", True),
             "handonly": (3, 3, 0, "to_zero", False),
             "drifted": (3, 5, 0, "to_zero", True),
+            "edits": (3, 3, 0, "to_zero", True),
+            "reads": (3, reads, 0, "to_zero", True),
+            "nested": (3, 3, 0, "to_zero", True),
         }
         findings = []
         for name, (base, got, pert, direction, has_p) in cases.items():
             perturb = (f"JUDGE-PERTURB: {sys.executable} tools/audit/round9/D1/{name}.py --perturb\n"
                        if has_p else "")
+            run = f"{sys.executable} tools/audit/round9/D1/{name}.py"
             (hdir / f"{name}.py").write_text(_JB_HARNESS.format(
                 base=base, got=got, perturbed=pert, perturb=perturb,
-                py=sys.executable, name=name))
+                py=sys.executable, name=name,
+                run=(wrap + run) if name == "nested" else run,
+                side_effect=edit if name == "edits" else "pass"))
             findings.append({
                 "id": f"D1-s1-{name}",
                 "evidence": {"harness_path": f"tools/audit/round9/D1/{name}.py",
                              "command": "false", "tolerance": "exact"},
                 "perturbation": {"change": "--perturb", "expected_direction": direction},
             })
+        git = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-C", str(repo)]
+        for cmd in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "fixture"]):
+            _subprocess.run(git + cmd, check=True, capture_output=True)
         rows = judge_batch.run_batch(findings, repo=repo, lock_dir=lock_dir,
-                                      label="entities-jb", timeout=60)
+                                      label="entities-jb", timeout=30)
         after = _gate_lock.read_owner(lock_dir)
         md = judge_batch.render_table(rows)
-    return {"rows": {r["id"].rsplit("-", 1)[1]: r for r in rows}, "after": after, "md": md}
+        dirty = _subprocess.run(git + ["status", "--porcelain"], capture_output=True,
+                                text=True).stdout.strip()
+    return {"rows": {r["id"].rsplit("-", 1)[1]: r for r in rows}, "after": after, "md": md,
+            "dirty": dirty}
 
 
 try:
@@ -26151,12 +26178,33 @@ R.check(
 R.check(
     "judge_batch: every row carries the harness's load1 and thread_factor, one "
     "table row per finding, and the lease is released after the batch",
-    len(_jbr) == 5
+    len(_jbr) == 8
     and all(r.get("load1") == "0.25" and r.get("thread_factor") == "1.00"
             for r in _jbr.values())
-    and _JB["md"].count("\n| D1-s1-") == 5
+    and _JB["md"].count("\n| D1-s1-") == 8
     and _JB["after"] is None,
     f"rows={len(_jbr)} after={_JB['after']!r}",
+)
+R.check(
+    "judge_batch: a perturbation that edits a tracked file is flagged on its row "
+    "and put back, so the next finding reads the tree it would read alone, and "
+    "the tree is clean after the batch",
+    any("tree edited by perturb: pkg/prod.txt" in f for f in _jbr.get("edits", {}).get("flags", []))
+    and _jbr.get("reads", {}).get("got") == "3"
+    and _jbr.get("reads", {}).get("reproduced") == "yes"
+    and not any("tree" in f for f in _jbr.get("reads", {}).get("flags", []))
+    and _JB.get("dirty") == "",
+    f"edits={_jbr.get('edits')!r} reads={_jbr.get('reads')!r} dirty={_JB.get('dirty')!r}",
+)
+R.check(
+    "judge_batch: a harness that takes flock itself under the batch's label "
+    "(gate_lock.py flock-wrap, run.sh's route onto stress.py) runs, and does "
+    "not wait out the timeout",
+    _jbr.get("nested", {}).get("rc") == 0
+    and _jbr.get("nested", {}).get("got") == "3"
+    and _jbr.get("nested", {}).get("held") == "1"
+    and (_jbr.get("nested", {}).get("seconds") or 99) < 25,
+    f"nested={_jbr.get('nested')!r}",
 )
 
 
