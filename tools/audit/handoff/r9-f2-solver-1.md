@@ -56,13 +56,14 @@ All runs: CPython 3.14.0rc2, 4-core Linux cloud container, OMP/OpenBLAS pinned t
   - `null_no_surplus_abs_err`: 0 → 0, the null arm.
 - D2-s2-81, `$EXPORT/tools/audit/round9/D2/leads/l4_zone_floor.py` (sha1 2a9ddfdc):
   - `two_zone_floor_deg_steps_sum`: 2.4672 → 0.8562. That equals the value the finder's own `--perturb` printed (L1 doubled).
+  - Caveat on both ends: the harness counts against `config.min_temp` at every step (its line 41). The solver's floor outside the comfort window is `min_temp − 0.5` (`get_temp_bounds`, optimizer.py:1380), so part of either figure may be permitted night setback, not breach. The direction is the finder's own perturbation; the magnitude is not a priced-breach figure.
   - `single_zone_floor_deg_steps_sum`: 0.1471 → 0.1471, the null arm.
   - The rejected form, quadratic and linear both at full price, read 1.6225 on the same harness.
 - D2-s2-81, the form choice, on 14 two-zone golden scenarios.
-  - Instrument: a script calling `golden.capture` per scenario and summing max(0, min_temp − T) over both zone trajectories.
+  - Instrument: a script calling `golden.capture` per scenario and summing max(0, min_temp − T) over both zone trajectories. It shares the caveat above: it counts `config.min_temp` at every step, including the night-setback window where the solver's floor is `min_temp − 0.5`.
   - Summed degree-steps: 15.68 at base, 14.46 with the full-price form, 10.55 with the shipped linear-only form.
   - Per scenario, base → head, degree-steps then predicted_cost:
-    - everything_on 0.276 → 0.896, 59.07 → 59.49 (the one clear regression: a different basin, see Friction).
+    - everything_on 0.276 → 0.896, 59.07 → 59.49. Not a regression. The head's sub-17.0 steps (88–92, lowest 16.62) all fall in the night-setback window, where the floor is 16.5. Against the solver's own bounds the priced breach falls 0.00194 → 0. The fix reviewer measured the head plan as the better optimum under both objectives: J_head 76.819 vs 76.984 for the base plan, J_base 76.819 vs 76.974. The extra 1.28 kWh buys terminal value.
     - tariff_plus_two_zone 0.497 → 0, 71.28 → 73.81.
     - valve_storage 2.108 → 1.251, 42.53 → 42.72.
     - valve_storage_smart_write 1.201 → 1.251, 41.67 → 42.72.
@@ -131,4 +132,4 @@ Do not move it into a floored ThermalParameters property. A `max(band, 0.1)` flo
 ## Friction
 
 - fixer.md#5: cost: the handoff branch's resume note is a tracked file no closure mentions, so `closure.py select` on the handoff head prints `MODE: FULL`. The scope was derived on a scratch commit without the handoff files.
-- D2-s2-81: unclear: the finder's metric is non-monotone in the floor price. Raising the quadratic price as well moved several two-zone fixtures to basins with more breach, and everything_on breaches more under either form. That is the solver's multi-start basin sensitivity, class P4 (F2.4's D0-s2-02), not something this PR can price away.
+- D2-s2-81: unclear: the finder's metric (l4_zone_floor.py:41) and this PR's golden instrument both count breach against `config.min_temp` at every step, while `get_temp_bounds` permits `min_temp − 0.5` outside the comfort window (optimizer.py:1380). A first draft of this body read everything_on's permitted setback (0.276 → 0.896 degree-steps, steps 88–92) as a basin regression. Against the solver's bounds the priced breach falls 0.00194 → 0, and the head plan is the better optimum under both objectives (fix review of 3ddb2eb).
