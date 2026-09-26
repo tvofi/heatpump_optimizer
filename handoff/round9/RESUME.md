@@ -320,3 +320,4 @@ JUDGE-* header lines are optional; where absent the dedup judge writes judge_bat
 - 2026-09-26T19:48Z F4.1 (cloud fixer, thread Round 9 fix F4.1 inputs): branch cut handoff/r9-f4-inputs-sysid-1@37e360dc from main db878b29; all five findings reproduce at the merge base (sentinel 12/12, silence 4/7, age_of 7/12+6/6, flow clamp 0.3683, sizer 100/294). Next: failing tests.
 - 2026-09-26T19:52Z F10.1: failing contracts pushed, handoff/r9-f10-gate-infra-1@af34a5d0 (tests/ha_contract.py: 7 of 85 fail on the merge-base stub); next: stub fixes.
 - 2026-09-26T19:53Z F2.1 (cloud fixer): branch cut from origin/main db878b29 and failing tests pushed, handoff/r9-f2-solver-1@4473712b (9 of 13 new R9-F2.1 checks fail at the base); next: the fix.
+- 2026-09-26T19:53:37Z F3.1 (cloud fixer, thread 'Round 9 fix F3.1 stores'): branch cut from main db878b29, barrier 8795c4c2 cherry-picked, stored-instant rule + failing pins pushed to handoff/r9-f3-stores-1@c50223c2
