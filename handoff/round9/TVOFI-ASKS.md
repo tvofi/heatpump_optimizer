@@ -55,3 +55,26 @@ No budget raise is needed by P1, P2, P3, P5, P6, P9, P11, I1, I4 or I5.
 3. **D3 (P6)** F1.10 (P3 barrier) and F1.11 (P2 and P6 barriers) are not owner-gated: neither touches a code-owned or policy file (the P2 policy draft is A1, in F11.5). OK?
 
 Counts: (a) 9, (b) 5, (c) 18, (d) 3; 35 in all.
+
+## Orchestrator's recommendation for every item (reply "all recommended" to take them all)
+
+- **(a)** Approve A1–A8. Skip A9 (optional; its RCA says no policy is needed).
+- **(b)** Allow B1–B5, each at its measured value on the canonical runner.
+- **(c)**
+  - C1 yes; C2 per-pair; C3 per PR.
+  - C4 accept, since the refactor would move every SEK golden fixture for three instances.
+  - C5 not now: the per-site ratchet already stops the stock growing, and the drain needs an identity change and about 91 nights.
+  - C6 no, because its cost is unmeasured.
+  - C7 no for now.
+  - C8 subset.
+  - C9 sample, since the RCA shows it passes the cost test.
+  - C10 accept.
+  - C11 accept.
+  - C12 option 3, about 60 test lines.
+  - C13 outage, following #775's rule.
+  - C14 yes.
+  - C15 keep A3(e).
+  - C16 change to dismiss stale approvals on push, as decision 0008 records.
+  - C17 refusal, which is cheaper than a new identity.
+  - C18 no, since the judge weakened the saving.
+- **(d)** Keep D1–D3.
