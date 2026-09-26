@@ -464,6 +464,63 @@
     "class": null,
     "seam_rule_enumerates": null
    }
+  ],
+  "catchup": [
+   {
+    "id": "D3-s3-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "0/14 drivers killed under gate env (reproduced); TZ=Europe/Stockholm probe: open_meteo_py_killed=1, failed=14 (reproduced, load1=0.13, thread_factor=1.00)",
+    "metric_definition": "count of M02's closure drivers whose run is red (more failing checks than baseline) under the gate's own environment vs under TZ=Europe/Stockholm",
+    "method": "re-ran distinguish.py M02 (+--identity, +--tz=UTC) and probe.py M02 tests/open_meteo.py (+--env TZ=Europe/Stockholm); prescreen, pool and quiet window not run (tvofi rule)",
+    "attacks": "contention: none (load1 0.08-0.13, idle); wrong gate mode: n/a, effect is TZ-conditional by design; null control: reproduced directly at differs=0; reachability: real HA installs commonly run a non-UTC TZ, so the guard is reachable and consequential there; severity: medium earned by the real timestamp-shift consequence",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D3-s3-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "distinguish.py M19: differs=1, baseline [1.5] vs mutant [0.0] (mine, 2.3 s, load1=0.08); seat's recorded perturb_M19.out: features_py_killed=1, failed=3 (cited, not re-executed - heavy)",
+    "metric_definition": "count of M19's closure drivers going red; distinguish.py's deterministic open_kwh value after a store round trip",
+    "method": "ran distinguish.py M19 (+--identity); attempted the seat's probe.py M19 tests/features.py stronger-mutant perturbation, killed after 120 s (features.py drives 3369 checks) and cited the seat's recorded perturb_M19.out instead (tvofi rule)",
+    "attacks": "contention: none on my number; wrong gate mode: full 16-driver closure already run at prescreen time; null control: reproduced directly at differs=0; reachability: from_dict runs on real HA config-entry restore, not stub-only; severity: medium earned, real data loss on a restart mid-shower",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D3-s3-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "distinguish.py M21: differs=1, baseline [1,1,{kwh:10.0}] vs mutant [1,0,{kwh:nan}] (mine, load1=0.08); seat's recorded perturb_M21.out: finite_boundary_py_killed=1 (failed=1), features_py_killed=1 (failed=2), kills=2 (cited, not re-executed)",
+    "metric_definition": "count of M21's closure drivers going red; distinguish.py's deterministic month-survives-reload value",
+    "method": "ran distinguish.py M21 (+--identity); cited the seat's recorded perturb_M21.out for the stronger-mutant perturbation rather than re-running features.py/finite_boundary.py (tvofi rule)",
+    "attacks": "contention: none on my number; wrong gate mode: 13-driver closure incl. finite_boundary.py already run; null control: reproduced directly at differs=0; reachability: MonthlyLedger.add is on the live store-write path; severity: medium earned, silent whole-month loss on reload",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D3-s3-04",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "distinguish.py M24: differs=1, baseline 0.0 vs mutant 0.4396 kWh (mine, load1=0.08); seat's recorded perturb_M24.out: features_py_killed=0 (whole closure green on seeded mutant); perturb_M24_all.out: kills=0 across 10 named drivers on the if-True mutant (cited, not re-executed)",
+    "metric_definition": "distinguish.py's deterministic folded-energy value for an external-heat interval; closure-driver kill count on both the seeded and stronger mutant",
+    "method": "ran distinguish.py M24 (+--identity); cited the seat's recorded perturb_M24.out/perturb_M24_all.out for the closure-wide kill counts (tvofi rule)",
+    "attacks": "contention: none on my number; wrong gate mode: stronger if-True mutant run against 10 named drivers, not a default-fixture artefact; null control: reproduced directly at differs=0; reachability: async_fold_draw_stats is on the live coordinator update path; severity: medium earned, silent learner degradation with no red check",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D3-s3-05",
+    "vote": "verify",
+    "severity": "low",
+    "value": "distinguish.py M20: differs=1, baseline 0 vs mutant 5 deletes over 5 cycles (mine, load1=0.08); seat's recorded perturb_M20.out: features_py_killed=1, failed=3 (cited, not re-executed)",
+    "metric_definition": "count of registry-delete calls over 5 healthy observe cycles; closure-driver kill count on the stronger mutant",
+    "method": "ran distinguish.py M20 (+--identity); cited the seat's recorded perturb_M20.out for the stronger-mutant perturbation (tvofi rule)",
+    "attacks": "contention: none on my number; wrong gate mode: 14-driver closure already run; null control: reproduced directly at differs=0; reachability: _drive_switch is on the live disinfection-cycle observe path; severity: low/hygiene earned, repeated deletes are redundant but harmless (idempotent registry op)",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
   ]
  }
 }
