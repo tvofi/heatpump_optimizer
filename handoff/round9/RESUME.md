@@ -77,6 +77,7 @@ RC2: not code-owned (diff tests/features.py only); Mac resolving features.py con
 Strip status: B1 stripped 09:17Z (export+D0-s1+D3-s1: 498 removed/235 kept; D0-s1,D3-s1 were running before strip -> EXPOSED window; D5/D6/D10-s1 started after). B5 and B7 were already stripped before seats started (0 removed). Others pending.
 Box env facts (B5): venv CPython 3.14.0rc2, numpy 2.4.6, scipy 1.17.1, orjson 3.11.9.
 Box returns (verified by reading reports-Bn.json on the branch):
+- B10 DONE 09:48Z: handoff/audit-r9-find-B10 @784e531b. D4-s1 5f/4l (one HIGH: now label overlaps measured-now reading, 24 cells). Unfinished M1 tooltip a11y, M3 spot. Hand-run; strip mid-run; no round[0-8] reads. Box writes BASELINE-B10.md (name collision avoidance). Leads seat waits for my intake run.
 - B4 DONE 09:38Z: handoff/audit-r9-find-B4 @41748c49 (evidence 243d3ed4 + carried-leads commit). missing=[]. D9-s1 4f/4l, D2-s1 2f/2l (report.json, no REPORT.md), D1-s1 4f/8l (incl. 2 carried), D1-s2 5f/6l (one HIGH: malformed forecast wedges cycles), D8-s3 3f/2l = 18 findings, 22 leads. Hand-run driver; strip at ~12 min into fan-out; no seat read/cited round[0-8]. Unfinished: D1.M5 spot; D1-s2 19/24 guards not injected; D9 ratios need re-take. Drift cache not warmed.
 PHASE A: waiting for box threads to report (each sends branch handoff/audit-r9-find-Bn, commit, per-seat status). When all 10 have pushed: run Workflow audit-find.js with from:"intake" (leads seat on B10 role), then Phase B.
 MANDATE 3 expires 09:35Z: after that, policy/code-owned approvals go to tvofi.
