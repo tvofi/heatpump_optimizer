@@ -7,6 +7,13 @@ Mirror: branch handoff/audit-r9-plan, handoff/round9/RESUME.md (when /mnt/projec
 updated: 2026-09-26T06:10Z by orchestrator thread "Round 9 audit orchestrator"
 (thread cmsg_01EL5jLi4rokGBbkaevYXSJV2mBkzeKerzo5hWb5CAh44d, session cse_01WgT4h2uvK9kbxQbWc5MJis)
 
+## MODEL ROUTING (tvofi 2026-09-26T12:21Z, cmsg_01EL5jLi4rokGBbkaevYXSJVDC1kJ5S9ThJsYejnAXbvVc)
+Run a task on sonnet or haiku wherever that is enough, throughout the project.
+- haiku: mechanical re-runs, the judge's runner threads (judge_batch.py), gathering and digests, report rendering from JSON, simple lookups and relays.
+- sonnet: verifier V1 (reproduce), class-sweep enumeration runs, fixer seats for small or doc-only groups, delivery-row and record writing.
+- strongest model: judging, verifiers V2 and V3, root-cause seats, hard or cross-file fixes, fix reviews.
+Every judge, runner, sweep and fixer brief names its model, so the coordinator can start the thread on it. Pass this rule on in every brief. Apply it to the orchestrator's own sub-agents too.
+
 ## NO HEAVY D3 RE-RUNS (tvofi 2026-09-26T11:37Z, cmsg_01EL5jLi4rokGBbkaevYXSJVAcgmVbDja4PyMPNFq1iWdx)
 No phase re-runs the heavy D3 scripts (mutation pre-screens, mutant pools, the full-gate quiet-window confirmer): not verifiers, not the judge, not class sweeps, not fixers. Reuse the evidence the D3 seats produced. Pass this rule in every later brief. Consequence: the driver's D3 quiet window is SKIPPED; D3 findings are registered on the seats' own pre-screen evidence, marked "quiet window not run (tvofi rule)", and the judge decides on that evidence.
 
