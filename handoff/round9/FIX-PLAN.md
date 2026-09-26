@@ -74,7 +74,7 @@ own PRs.
    like P2 spans all of them, so one class PR would collide with every other lane. Instead **each file
    is owned by exactly one lane**, and each lane's PRs group that lane's findings by class where they
    can. This is what makes Phase F's "parallel groups have disjoint file sets" true.
-3. **Borrowing, not sharing.** 18 PRs must edit a file another lane owns (a fix-together sibling
+3. **Borrowing, not sharing.** 19 PRs must edit a file another lane owns (a fix-together sibling
    pair across hubs, a cross-cutting finding, a barrier that reads every instance). Each lists the file
    under **Borrows** and carries an `after` edge on the owning lane's last PR on that file. The generator
    checks every pair of PRs that could be open at the same time and refuses the plan if any two touch the
@@ -455,20 +455,20 @@ failing test and a mutation proof that need judgement):
 | F8.2 | sonnet | documentation lane |
 | F1.2 | opus | presence inference and the solve seed change what the solver sees; needs design judgement |
 | F3.3 | opus | five learner-store and feed-parser findings across four files |
-| F8.3 | sonnet | documentation lane |
 | F9.2 | sonnet | test-pin lane |
 | F11.3 | opus | a class barrier carrying an RCA prototype (I3) plus policy text |
 | F6.3 | opus | a class barrier carrying an RCA prototype (P9, +572 lines of browser harness) |
 | F1.3 | opus | cycle fencing and failure reporting are ordering and concurrency judgements |
 | F5.2 | sonnet | translated text and config UX, small and mechanical |
 | F11.6 | opus | a verdict carry decides when a review stops being re-run; a wrong equivalence silently approves a changed tree |
-| F7.2 | sonnet | small entity-attribute fixes |
 | F2.5 | opus | vectorising peak_cost_batch and its terminal twin with golden drift |
 | F1.4 | opus | a class barrier carrying an RCA prototype (N-restart) plus restart durability |
 | F2.3 | opus | plant-model physics with golden drift |
+| F8.3 | sonnet | documentation lane |
 | F10.2 | opus | a class barrier carrying an RCA prototype (solve-recompute and cpu-gate-blind) in code-owned gate scripts |
 | F1.5 | opus | error-path restructuring inside the cycle; a moved try changes which failures surface |
 | F10.3 | opus | a class barrier carrying an RCA prototype (I1) in code-owned gate scripts |
+| F7.2 | sonnet | small entity-attribute fixes |
 | F1.6 | opus | a class barrier carrying an RCA prototype (P1) plus two latent seams |
 | F2.4 | opus | on/off threshold semantics and multi-start seeds with golden drift |
 | F9.3 | opus | a class barrier tvofi commissioned (P1 declared domain, card C1) with no prototype: the domain table's design is open |
@@ -567,10 +567,10 @@ Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1, F7.1), F
 | F6.3 | F6 | 3 | (class barrier) | - | barrier | opus | **yes** | - | P9 | F6.2 |
 | F6.4 | F6 | 11 | D4-s2-81 | N-language | medium | sonnet | - | - | - | F6.3, F1.8 |
 | F7.1 | F7 | 1 | D8-s2-02, D8-s2-03, D1-s3-04 | P2, N-shared-config | high | sonnet | - | - | - | - |
-| F7.2 | F7 | 4 | D8-s1-02, D8-s3-03, D8-s3-61 | P2, N-dup-entity | low | sonnet | - | - | - | F7.1, F8.3 |
+| F7.2 | F7 | 6 | D8-s1-02, D8-s3-03, D8-s3-61 | P2, N-dup-entity | low | sonnet | - | - | - | F7.1, F8.3 |
 | F8.1 | F8 | 1 | D5-s1-01, D6-s2-01, D6-s2-02, D5-s1-04, D6-s2-05 | I5, N-markdown | medium | sonnet | - | I5 | - | - |
 | F8.2 | F8 | 2 | D5-s1-05, D6-s1-02, D6-s2-04, D6-s1-01, D6-s1-03 | I5 | low | sonnet | - | - | - | F8.1 |
-| F8.3 | F8 | 3 | D5-s1-02*, D6-s2-03*, D6-s1-81, D5-s1-03, D6-s2-05* | I5, P11 | medium | sonnet | - | - | - | F8.2, F5.1 |
+| F8.3 | F8 | 5 | D5-s1-02*, D6-s2-03*, D6-s1-81, D5-s1-03, D6-s2-05*, D8-s3-01* | I5, P11, N-name-sort | medium | sonnet | - | - | - | F8.2, F5.1, F5.2 |
 | F9.1 | F9 | 2 | D3-s1-01, D3-s2-01, D3-s2-02, D3-s3-02, D3-s3-03 | I1 | medium | sonnet | - | I1 | - | F3.1 |
 | F9.2 | F9 | 3 | D3-s3-04, D3-s3-05, D7-s3-51 | I1, N-finally-return | medium | sonnet | - | - | - | F9.1 |
 | F9.3 | F9 | 8 | (barrier; covers D1-s3-06, D1-s4-01, D1-s5-02, D1-s4-03) | P1 | barrier | opus | - | - | - | F9.2, F1.6 |
@@ -624,7 +624,7 @@ Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1, F7.1), F
 | F7.2 | sensor.py, binary_sensor.py | README.md from F8 | - |
 | F8.1 | docs/configuration.md | - | - |
 | F8.2 | docs/configuration.md, docs/how-it-works.md, README.md | - | - |
-| F8.3 | docs/setup.md, docs/ecl110.md, docs/configuration.md, docs/how-it-works.md, README.md, docs/dashboard-card.md | - | - |
+| F8.3 | docs/setup.md, docs/ecl110.md, docs/configuration.md, docs/how-it-works.md, README.md, docs/dashboard-card.md | strings.json from F5, translations/en.json from F5, translations/sv.json from F5 | - |
 | F9.1 | tests/finite_boundary.py | - | - |
 | F9.2 | tests/nightly_ha.py | - | - |
 | F9.3 | tests/finite_boundary.py | store.py from F1 | - |
@@ -744,7 +744,7 @@ Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1, F7.1), F
 | D8-s2-01 | medium | N-availability | **refused** (card C15, 'Keep') | Climate entity is unavailable with no indoor thermometer, taking the thermostat control with it |
 | D8-s2-02 | high | P2 | F7.1 | Climate hvac_action publishes off while an active boost runs the pump in optimizer mode off |
 | D8-s2-03 | low | P2 | F7.1 | Mode actions publish a state that mixes the live mode with the stale payload mode |
-| D8-s3-01 | low | N-name-sort | F5.1 | Accuracy and Energy-dashboard meter families split in both English and Swedish name sort |
+| D8-s3-01 | low | N-name-sort | F5.1, F8.3 (#1668, the rest of the entity-family-name-sort-split: F5.2 is full, so the rename lands here (orchestrator, 2026-09-26)) | Accuracy and Energy-dashboard meter families split in both English and Swedish name sort |
 | D8-s3-02 | low | I5 | F5.1 | Swedish name of Sensor-Gap Advisor reads 'sensor gap in the currency' and drops the advisor role |
 | D8-s3-03 | low | N-dup-entity | F7.2 | Upper Floor Temperature, a byte duplicate of Indoor Temperature, is enabled by default on every install |
 | D8-s3-61 | low | P2 | F7.2 | Valve Target Recommendation ships disabled where a mixing valve is set, and available-but-unknown where none is |
@@ -849,7 +849,7 @@ Seams are the sweep's own dispositions (`instance`, `guarded`, `not applicable`)
 | P7 | #1665 | F1.1 | 1 | 1 | 1 | no | S7 @ `1152a74346` | 1 guarded, 8 instance, 1 not applicable | F1.1, F2.1 | - (N below 3, not barriered) |
 | N-sign-floor | #1666 | F2.1 | 1 | 1 | 1 | no | S6 @ `6b65c9c4a8` | 3 instance, 1 not applicable | F2.1 | - (N below 3, not barriered) |
 | N-approval-rebuy | #1667 | F11.6 | 1 | 1 | 1 | no | S7 @ `1152a74346` | 1 instance | F11.6 | - (N below 3, not barriered) |
-| N-name-sort | #1668 | F5.1 | 1 | 1 | 1 | no | S6 @ `6b65c9c4a8` | 1 guarded, 2 instance | F5.1 | - (N below 3, not barriered) |
+| N-name-sort | #1668 | F8.3 | 1 | 1 | 1 | no | S6 @ `6b65c9c4a8` | 1 guarded, 2 instance | F5.1, F8.3 | - (N below 3, not barriered) |
 | N-dup-entity | #1669 | F7.2 | 1 | 1 | 1 | no | S7 @ `1152a74346` | 1 instance, 2 not applicable | F7.2 | - (N below 3, not barriered) |
 | N-late-try | #1670 | F1.5 | 1 | 1 | 1 | no | S6 @ `6b65c9c4a8` | 1 instance | F1.5 | - (N below 3, not barriered) |
 | N-euler-coupled | #1671 | F2.3 | 1 | 1 | 1 | no | S7 @ `1152a74346` | 1 instance | F2.3 | - (N below 3, not barriered) |
@@ -911,20 +911,20 @@ Ordered by dependency depth, then severity, then non-owner-gated first. The orch
 17. F8.2 (low) - Labels, pages and solver description
 18. F1.2 (high) - Presence inferred from untouched defaults; DHW start state
 19. F3.3 (medium) - Learner stores and feed parsers
-20. F8.3 (medium) - Setup promises, curve-bias figure, currency fallback, card version
-21. F9.2 (medium) - Pins for deletable guards (I1), part 2; return inside finally
-22. F11.3 (low, tvofi) - Policy text: per-file caps, CLAUDE.md rule 1, verdict carry on merges-only moves; I3 barrier
-23. F6.3 (barrier, tvofi) - P9 class barrier in the browser lane
-24. F1.3 (high, fixture) - Cycle outcome: stale spot price, unfenced cycle calls, failures reported as success
-25. F5.2 (medium) - Setup wizard and options UX
-26. F11.6 (medium, tvofi) - Verdict carry across diff-equivalent moves from main (D13-s1-02)
-27. F7.2 (low) - Sensors: schedule count, duplicate entity, valve recommendation
-28. F2.5 (barrier, fixture) - Recomputation the sweep missed: peak_cost_batch's row loop and the terminal-cost closure
-29. F1.4 (medium) - Restart durability (barriered class) and store bounds
-30. F2.3 (medium, fixture) - Plant-model physics and the thrice-held inlet default
-31. F10.2 (medium, tvofi) - CPU gate blind spots; per-solve CPU budget
-32. F1.5 (medium) - Cycle failures: swallowed errors, late try, reap, P6 defaults, defrost fold
-33. F10.3 (medium, tvofi) - Owned gate scripts: verdict pins, mutation inventory, child-process closures; I1 and P11 barriers
+20. F9.2 (medium) - Pins for deletable guards (I1), part 2; return inside finally
+21. F11.3 (low, tvofi) - Policy text: per-file caps, CLAUDE.md rule 1, verdict carry on merges-only moves; I3 barrier
+22. F6.3 (barrier, tvofi) - P9 class barrier in the browser lane
+23. F1.3 (high, fixture) - Cycle outcome: stale spot price, unfenced cycle calls, failures reported as success
+24. F5.2 (medium) - Setup wizard and options UX
+25. F11.6 (medium, tvofi) - Verdict carry across diff-equivalent moves from main (D13-s1-02)
+26. F2.5 (barrier, fixture) - Recomputation the sweep missed: peak_cost_batch's row loop and the terminal-cost closure
+27. F1.4 (medium) - Restart durability (barriered class) and store bounds
+28. F2.3 (medium, fixture) - Plant-model physics and the thrice-held inlet default
+29. F8.3 (medium) - Setup promises, curve-bias figure, currency fallback, card version
+30. F10.2 (medium, tvofi) - CPU gate blind spots; per-solve CPU budget
+31. F1.5 (medium) - Cycle failures: swallowed errors, late try, reap, P6 defaults, defrost fold
+32. F10.3 (medium, tvofi) - Owned gate scripts: verdict pins, mutation inventory, child-process closures; I1 and P11 barriers
+33. F7.2 (low) - Sensors: schedule count, duplicate entity, valve recommendation
 34. F1.6 (medium) - Plausibility bounds and the P1 load-layer barrier
 35. F2.4 (medium, fixture) - On/off pump threshold at both seams; multi-start seeds
 36. F9.3 (barrier) - P1 declared-domain barrier: stored fields held to their writers' domains
