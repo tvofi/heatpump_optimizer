@@ -114,6 +114,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T16:02Z: status check. R2 still running judge_batch shard 2/2 (started ~13:45Z, on Python 3.11). Judge: all 148 verdicts drafted; R1 rows read (18 reproduce as claimed); R1's empty/void rows re-run by hand on 3.14 all reproduce; D0 optimizer rows re-running on 3.14. Waiting on R2 rows, then JUDGE.md/json.
 
+- 2026-09-26T16:05Z: judge draft verdicts 119 verified / 27 weakened / 2 refuted (final after R2). R1 21/23 ruled; D2-s4-01 not void (judge's directive swapped arms); D0-s1-01 stays refuted; D4-s1-05 rests on V1/V2 (no Playwright lane). R2 also on Python 3.11: judge re-runs suspect solver rows on 3.14.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
