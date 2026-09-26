@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/binary_sensor.py:MoldFloorBreachBinarySensor.is_on RETURN_DEL 2837b3da",
+  "killed_by": "tests/entities.py",
+  "old": "        return bool(shortfall is not None and shortfall >= self._margin_c())",
+  "reason": "the #1495 breach sensor's is_on return. Deleting it makes is_on None: the arms `a cold damp room below its floor fires the breach` (is_on=None shortfall=3.57), `the floor is taken at the plan step covering now, not the plan's first step` (is_on=None) and `the breach floor is the solve's own floor at the forecast step covering now` (is_on=None) fail. rc=0 failed=0 -> rc=1 failed=3. Measured at c4e68cac (#1497, fix/r7-mold-warning, merged with origin/main ca8204f4), 2026-09-24, by driving the mutant through tests/entities.py in a separate worktree against a baseline of rc=0 failed=0."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:release BOOLOP e4cb27ca",
+  "killed_by": "tests/features.py",
+  "old": "    if held.written and duty_mode(coord._config) == DUTY_CONTROL:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 67a0cb9816565113447bb54415989090706435b4: BOOLOP (`if held.written or duty_mode(coord._config) == DUTY_CONTROL:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

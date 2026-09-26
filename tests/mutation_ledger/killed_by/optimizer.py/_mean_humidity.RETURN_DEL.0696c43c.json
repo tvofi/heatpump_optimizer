@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_mean_humidity RETURN_DEL 0696c43c",
+  "killed_by": "tests/features.py",
+  "old": "    return None if humidity is None else float(np.nanmean(humidity))",
+  "reason": "R8-P3 (#1520): the horizon-mean humidity the terminal, settlement and baseline valuations price at. `pass` returns None, the ambient fallback. Measured in a git-less copy of 7c50f736 (null 1 of 3192): 2 of 3192 FAILED, the new one `a finite humidity forecast plans the same DHW schedule and trajectory whatever the current humidity is (#1520)` (the space schedule moves with the ambient)."
+}

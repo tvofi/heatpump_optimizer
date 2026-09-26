@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:DhwProfileLearner.async_fold_draw_stats CLAMP_DROP b2adf695",
+  "killed_by": "tests/features.py",
+  "old": "            * max(0.0, previous_temp - DHW_AMBIENT_TEMP)",
+  "reason": "drawn by the round-7 D2-03 diff's per-file sample over dhw_learning.py, not introduced by it. `max(0.0, previous_temp - DHW_AMBIENT_TEMP)` -> `(0.0)` zeroes the standby rate, so a drop that is all standby loss books as a draw. Killed by tests/features.py's `a drop that is all standby loss books no draw`: FAIL [a 0.4800 K/h standby drop at 60 C booked 0.11136 kWh], 1 of 3133, measured at bc1903f8."
+}

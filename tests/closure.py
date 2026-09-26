@@ -351,6 +351,28 @@ INERT = (
     # ever true here.
 )
 
+# Directories whose files are ONE dependency (design/ledger-layout). A ledger
+# kept one file per row exists so that two branches recording different rows
+# touch different paths; listing each row in a closure would put every such
+# branch back on one shared line of this table. So a recorded open of any
+# file under one of these is recorded as the directory, `select` maps a
+# changed file under it to the directory, and the directory counts as real
+# for every "is it a file" rule below while it exists. A changed row selects
+# exactly the scripts that read any row -- the same scoping a single-file
+# ledger had.
+UNIT_DIRS = (
+    "tests/mutation_ledger/",
+)
+
+
+def unit_of(rel: str) -> str:
+    """The closure entry a path is recorded and selected as."""
+    for unit in UNIT_DIRS:
+        if rel.startswith(unit):
+            return unit
+    return rel
+
+
 # Changing the gate itself, or how the closures are derived, invalidates every
 # closure at once: run everything.
 GATE_FILES = (
@@ -616,6 +638,7 @@ def orphan_files() -> list[str]:
         f
         for f in tracked
         if f not in covered
+        and unit_of(f) not in covered
         and f not in selectable
         and f not in slow
         and not is_inert(f)
@@ -767,7 +790,7 @@ def _rel(path: str) -> str | None:
             return None
     except OSError:
         return None
-    return s
+    return unit_of(s)
 
 
 def _exec_record(script: str, out_path: str, extra_args: list[str]) -> int:
@@ -879,7 +902,7 @@ def _record_node_strace(script: str, out_path: str, env: dict) -> int:
         m = _STRACE_OPEN.search(line)
         if m:
             r = _rel(m.group(1))
-            if r and (ROOT / r).is_file():
+            if r and _is_real_file(r):
                 files.add(r)
     trace.unlink(missing_ok=True)
     return _write_node_record(script, out_path, proc, files, "strace", started)
@@ -897,7 +920,7 @@ def _record_node_preload(script: str, out_path: str, env: dict) -> int:
     files = set()
     if sink.exists():
         try:
-            files = {f for f in json.loads(sink.read_text()) if (ROOT / f).is_file()}
+            files = {unit_of(f) for f in json.loads(sink.read_text()) if (ROOT / f).is_file()}
         except json.JSONDecodeError:
             files = set()
         sink.unlink(missing_ok=True)
@@ -1001,6 +1024,8 @@ def _is_real_file(rel: str) -> bool:
     `golden`) and paths a run probed and did not find; neither is something a
     change can be made to, and a directory in a closure would match nothing."""
     p = ROOT / rel
+    if rel in UNIT_DIRS:
+        return p.is_dir()
     return p.is_file()
 
 
@@ -1526,7 +1551,7 @@ def check(in_dir: Path, partial: bool = False) -> int:
         (script, name)
         for script, files in committed.items()
         for name in files
-        if not (ROOT / name).is_file()
+        if not _is_real_file(name)
     )
     if phantoms:
         print("PHANTOM: a committed closure lists a file that does not exist;")
@@ -1554,7 +1579,7 @@ def check(in_dir: Path, partial: bool = False) -> int:
         (script, name)
         for script, rec in records.items()
         for name in rec.get("files", ())
-        if not (ROOT / name).is_file()
+        if not _is_real_file(name)
     )
     if non_files:
         print("NOT A FILE: a closure recorded something that is not a regular file;")
@@ -1704,7 +1729,7 @@ _AUTOFIX_REMEDY = {
         "Rewrite tests/golden/claimed_drift.txt and card_claimed_drift.txt for\n"
         "THIS diff by hand, keeping `claims-for:` and any `# may-drift:` line.",
     "mutation-autofix":
-        "Pin the new sites yourself and commit tests/mutation_budgets.json:\n"
+        "Pin the new sites yourself and commit tests/mutation_ledger/:\n"
         "    python3 tests/mutation_table.py --pin-killed --base origin/main\n"
         "A site no driver kills needs a killing check or a survivor_triage\n"
         "verdict; no tool writes either.",
@@ -1915,7 +1940,7 @@ def select(files: list[str]) -> dict:
                     "run": scripts, "skip": {}, "changed": files}
 
     known = {f for files_ in closures.values() for f in files_}
-    unmapped = [f for f in files if f not in known and not is_inert(f)]
+    unmapped = [f for f in files if unit_of(f) not in known and not is_inert(f)]
     if unmapped:
         return {"mode": "full",
                 "reason": ("no recorded closure mentions "
@@ -1937,7 +1962,7 @@ def select(files: list[str]) -> dict:
 
     run, skip = [], {}
     for s in scripts:
-        hits = sorted(set(files) & set(closures[s]))
+        hits = sorted({unit_of(f) for f in files} & set(closures[s]))
         if hits:
             run.append(s)
             continue
@@ -2108,7 +2133,7 @@ def affected(files: list[str]) -> dict:
                      f"re-derivation folds its reads in")
 
     known = {f for files_ in closures.values() for f in files_}
-    unmapped = [f for f in files if f not in known and not is_inert(f)]
+    unmapped = [f for f in files if unit_of(f) not in known and not is_inert(f)]
     if unmapped:
         return _full("no recorded closure mentions "
                      + ", ".join(unmapped[:6])
@@ -2118,7 +2143,7 @@ def affected(files: list[str]) -> dict:
 
     why: dict[str, dict] = {}
     for s in scripts:
-        hits = sorted(set(files) & set(closures[s]))
+        hits = sorted({unit_of(f) for f in files} & set(closures[s]))
         if hits:
             why[s] = {"changed": hits, "via": "closure"}
     # A recording is a real run: card.mjs reads the payload plan_view.py

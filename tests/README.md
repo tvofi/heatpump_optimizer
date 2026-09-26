@@ -51,27 +51,26 @@ name.
 ### The gate lock on a shared box
 
 `tests/stress.py` measures this machine while it solves, so only one agent on
-a box may run it (or a full gate that includes it) at a time. Use
-`tests/gate_lock.py` — not `mkdir /tmp/hpo-gate.lock` and a shell pid:
+a box may run it at a time. `run.sh` takes the lease for each `stress.py` run
+alone and releases it after; every other script runs unleased. By hand, to
+measure across commands, use `tests/gate_lock.py` — not `mkdir /tmp/hpo-gate.lock`
+and a shell pid:
 
 ```bash
 python3 tests/gate_lock.py take --label <your-label>
-HPO_GATE_LOCK_LABEL=<your-label> GATE_SCOPE=auto GOLDEN_MODE=drift \
-  GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh
 python3 tests/gate_lock.py renew --label <your-label>   # between commands
 python3 tests/gate_lock.py release --label <your-label>
 python3 tests/gate_lock.py status
 ```
 
 The owner file at `/tmp/hpo-gate.lock/owner` carries your label and an
-`expires_at` lease (30 minutes — above the longest observed full gate and
-stress lane). Every script `run.sh` runs under lock renews it. An expired
-lease, or an abandoned hold (`holding` marker, no live flock), may be taken
-without forensics — the script decides that, you do not. `run.sh` holds `flock`
-on `/tmp/hpo-gate.lock/flock` for the gate run so a crash drops flock and a
-waiter can take immediately; the lease covers the window between commands when
-nothing holds flock (#404). Without a label, `run.sh` takes the lease itself
-when its derived mode is `FULL` or names `tests/stress.py`, and waits for it.
+`expires_at` lease (30 minutes, above the longest observed stress run). Waiters
+queue first come, first served (`ticket-<n>`; a dead or expired ticket is
+skipped), and `renew` exits 75 while one waits. An expired lease, or an
+abandoned hold (`holding` marker, no live flock), may be taken without
+forensics. Whoever runs `stress.py` under the lease holds `flock` on
+`/tmp/hpo-gate.lock/flock`, so a crash drops it and the next waiter takes at
+once (#404).
 
 ### How a closure is derived
 

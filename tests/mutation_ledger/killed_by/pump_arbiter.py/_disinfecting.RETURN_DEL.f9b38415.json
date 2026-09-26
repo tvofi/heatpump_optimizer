@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_disinfecting RETURN_DEL f9b38415",
+  "killed_by": "tests/features.py",
+  "old": "    return getattr(switch, \"memo\", None) is True",
+  "reason": "pump-duty arbiter revision; `return getattr(switch, \"memo\", None) is True` -> `pass` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

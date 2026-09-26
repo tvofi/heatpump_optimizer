@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/setpoint_check.py:_setpoint_and_unit RETURN_DEL 7ae5d788",
+  "killed_by": "tests/features.py",
+  "old": "    return None if value is None else (value, unit)",
+  "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 12 failed, among them `raised on a pump set-point below the configured disinfection temperature`; `and that set-point notice carries a documentation link`. Measured at d6d79847, 2026-09-24."
+}

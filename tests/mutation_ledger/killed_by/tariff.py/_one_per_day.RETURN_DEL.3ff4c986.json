@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_one_per_day RETURN_DEL 3ff4c986",
+  "killed_by": "tests/features.py",
+  "old": "    return undated + list(best.values())",
+  "reason": "#1512: `_one_per_day` returning None makes `PeakTracker._close_window` raise AttributeError on the first closed window, so tests/features.py exits 1 against a baseline exit of 0. Measured at the #1512 branch head, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3129 FEATURE CHECKS PASSED."
+}

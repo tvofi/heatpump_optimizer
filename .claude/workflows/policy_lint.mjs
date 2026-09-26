@@ -5298,7 +5298,9 @@ const AUTOFIX_BOT_COMMITS = {
     'ci: re-record closures': { paths: ['tests/closures.json'], mayAdd: true },
     'ci: drop inherited claims': {
       paths: ['tests/golden/claimed_drift.txt', 'tests/golden/card_claimed_drift.txt'], mayAdd: false },
-    'ci: pin killed mutants': { paths: ['tests/mutation_budgets.json'], mayAdd: true },
+    // A path ending in `/` is a directory the commit may add files under
+    // (mayAdd only): the mutation ledger keeps one file per pinned site.
+    'ci: pin killed mutants': { paths: ['tests/mutation_budgets.json', 'tests/mutation_ledger/'], mayAdd: true },
   },
 }
 
@@ -5323,9 +5325,10 @@ function autofixCommit(sha) {
   const numstat = git(['diff', '--no-renames', '--numstat', ps[0], sha], { allowFail: true, quiet: true })
     .split('\n').filter(Boolean).map((l) => l.split('\t'))
   if (!status.length) return { why: `${short} changes no file` }
-  const outside = status.map(([, p]) => p).filter((p) => !rule.paths.includes(p))
+  const underDir = (p) => rule.paths.some((r) => r.endsWith('/') && p.startsWith(r))
+  const outside = status.map(([, p]) => p).filter((p) => !rule.paths.includes(p) && !underDir(p))
   if (outside.length) return { why: `${short} changes ${outside.join(', ')}, outside what "${message}" stages` }
-  if (status.some(([s]) => s !== 'M')) return { why: `${short} does not only modify its files` }
+  if (status.some(([s, p]) => s !== 'M' && !(s === 'A' && rule.mayAdd && underDir(p)))) return { why: `${short} does not only modify its files` }
   if (!rule.mayAdd && numstat.some(([added]) => added !== '0')) return { why: `${short} adds lines, and "${message}" only removes them` }
   return { parent: ps[0], message }
 }

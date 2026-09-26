@@ -12855,8 +12855,8 @@ def _gl_lease_hardening() -> tuple[bool, str]:
             after = _gate_lock.take("successor", lock_dir=d, wait=False).label == "successor"
         except BlockingIOError:
             after = False
-        # run.sh must RE-EXECUTE under the lease: with it held elsewhere, a FULL
-        # run waits in auto-lease and starts no lane (a no-op exec would).
+        # run.sh leases stress.py alone: with the lease held elsewhere, a FULL
+        # run starts its lanes at once instead of waiting for it.
         d, out = Path(td) / "runsh", Path(td) / "runsh.log"
         _gate_lock.take("other", lock_dir=d, lease_seconds=60, wait=False)
         renv = {k: v for k, v in _os.environ.items()
@@ -12866,7 +12866,7 @@ def _gl_lease_hardening() -> tuple[bool, str]:
             gate = _subprocess.Popen(["bash", "tests/run.sh"], cwd=str(_closure.ROOT), env=renv,
                                      stdout=log, stderr=_subprocess.STDOUT, start_new_session=True)
         for _ in range(100):
-            if "waiting for the lease held by other" in out.read_text() or gate.poll() is not None:
+            if "##########" in out.read_text() or gate.poll() is not None:
                 break
             _time.sleep(0.1)
         _time.sleep(1.0)
@@ -12876,26 +12876,142 @@ def _gl_lease_hardening() -> tuple[bool, str]:
         except ProcessLookupError:
             pass
         gate.wait()
-        execd = "waiting for the lease held by other" in text and "##########" not in text
+        execd = "waiting for the lease" not in text and "##########" in text
     ok = wins == [1] * 10 and stolen and not orphan and refused and after and execd
     return ok, (f"winners={wins} crash_stolen={stolen} grandchild_alive={orphan} "
-                f"holder_only_kill_refused={refused} taken_after_gate_dead={after} run_sh_execd={execd}")
+                f"holder_only_kill_refused={refused} taken_after_gate_dead={after} run_sh_unleased={execd}")
 
 
 _gl_ok, _gl_detail = _gl_auto_lease()
 _run_sh = (_closure.ROOT / "tests/run.sh").read_text()
-_gl_line = '[ "$("$PYTHON" tests/gate_lock.py needs-lease "$SCOPE_RUN" 2>&1)" != none ]'
+_gl_line = '[ "$("$PYTHON" tests/gate_lock.py needs-lease "$one" 2>&1)" = none ]; then'
 R.check(
-    "run.sh leases a FULL or stress run itself, and a second one waits",
-    _gl_ok and -1 < _run_sh.find(_gl_line) < _run_sh.find("lane_units() {"),
-    _gl_detail + "; run.sh must lease on anything but an explicit 'none'",
+    "run.sh leases a FULL or stress run itself, for stress.py alone, and a second one waits",
+    _gl_ok and _run_sh.find(_gl_line) > -1 and _run_sh.count('leased "$@" ') == 2,
+    _gl_detail + "; run.sh must lease every run_always script but an explicit 'none'",
 )
+for _gl_name, _gl_ok, _gl_detail in _gate_lock._queue_cases(_gate_lock):
+    R.check(f"gate lease queue: {_gl_name}", _gl_ok, _gl_detail)
 _gl_ok, _gl_detail = _gl_lease_hardening()
 R.check(
-    "the lease has one winner, a dead gate is stolen, a live one is not, and run.sh re-executes",
+    "the lease has one winner, a dead gate is stolen, a live one is not, and run.sh runs unleased",
     _gl_ok,
     _gl_detail,
 )
+
+
+def _gl_stub_tree(td: Path) -> Path:
+    """A tree whose tests/stress.py and tests/other.py only drop a marker, with
+    the real gate_lock.py beside them: what runs under the lease is observable."""
+    (td / "tests").mkdir(parents=True)
+    (td / "tests/gate_lock.py").write_text((_closure.ROOT / "tests/gate_lock.py").read_text())
+    for name in ("stress", "other"):
+        (td / f"tests/{name}.py").write_text(
+            f"from pathlib import Path; Path('{td}/{name}.ran').write_text('1')\n")
+    return td
+
+
+def _gl_waits_then_runs(start, td: Path, lock: Path, marker: str) -> tuple[bool, bool]:
+    """(ran while `other` held the lease, ran once it was released)."""
+    _gate_lock.take("other", lock_dir=lock, lease_seconds=60, wait=False)
+    proc = start()
+    _time.sleep(1.5)
+    early = (td / marker).exists()
+    _gate_lock.release("other", lock_dir=lock)
+    for _ in range(120):
+        if (td / marker).exists():
+            break
+        _time.sleep(0.1)
+    proc.join(timeout=10) if hasattr(proc, "join") else proc.wait(timeout=10)
+    return early, (td / marker).exists()
+
+
+def _gl_run_sh_leases_stress() -> tuple[bool, str]:
+    """run.sh's own lane_stress/run/run_always/leased, sourced from run.sh and
+    driven: stress.py waits for the lease, other.py does not (the behavioural
+    pin the text match beside it cannot be: #1617 review, B3 R1)."""
+    text = (_closure.ROOT / "tests/run.sh").read_text()
+    fns = "".join(_re.findall(r"(?ms)^(?:scope_script|in_scope|run|run_always|leased|lane_stress)\(\) \{.*?^\}\n", text))
+    with _tempfile.TemporaryDirectory() as tds:
+        td = _gl_stub_tree(Path(tds) / "t")
+        lock = Path(tds) / "lock"
+        script = td / "drive.sh"
+        script.write_text("PYTHON=%s; WORKDIR=$(mktemp -d); SCOPE_RUN=; JOBS=${JOBS:-1}; LANE=x; step=0\n%s\n\"$@\"\n"
+                          % (sys.executable, fns))
+        env = {k: v for k, v in _os.environ.items() if not k.startswith("HPO_GATE")}
+        env["HPO_GATE_LOCK_DIR"] = str(lock)
+        drive = lambda jobs, *cmd: _subprocess.Popen(
+            ["bash", str(script), *cmd], cwd=td, env={**env, "JOBS": jobs},
+            stdout=_subprocess.DEVNULL, stderr=_subprocess.DEVNULL)
+        other = drive("1", "run", sys.executable, "tests/other.py")
+        other.wait(timeout=30)
+        other_ran = (td / "other.ran").exists()
+        seen = {}
+        for jobs in ("1", "3"):  # serial streams, lanes log to a file: two call sites
+            seen[jobs] = _gl_waits_then_runs(lambda: drive(jobs, "lane_stress"), td, lock, "stress.ran")
+            (td / "stress.ran").unlink(missing_ok=True)
+        # The seat-label branch (#1617 round 3, R3): a label the seat never
+        # took, with another label holding the lease, refuses in one line and
+        # runs nothing -- it must not fall through to a bare run.
+        _gate_lock.take("other", lock_dir=lock, lease_seconds=60, wait=False)
+        seat = _subprocess.run(["bash", str(script), "lane_stress"], cwd=td, timeout=60,
+                               env={**env, "JOBS": "1", "HPO_GATE_LOCK_LABEL": "never-taken"},
+                               capture_output=True, text=True)
+        _gate_lock.release("other", lock_dir=lock)
+        refused = ("flock-wrap refused" in seat.stderr and "Traceback" not in seat.stderr
+                   and not (td / "stress.ran").exists())
+    ok = other_ran and all(v == (False, True) for v in seen.values()) and refused
+    return ok, (f"other.py_ran_unleased={other_ran} stress (ran while held, after release) "
+                f"by JOBS={seen} never-taken label refused cleanly={refused}")
+
+
+_gl_ok, _gl_detail = _gl_run_sh_leases_stress()
+R.check("run.sh's lane_stress waits for the lease and its other scripts do not", _gl_ok, _gl_detail)
+
+
+def _gl_flock_wrap_label() -> tuple[bool, str]:
+    """A seat's own label under run.sh: never taken fails at once and takes
+    nothing (#1617 round 2: a take here left the label held after the gate);
+    held while another label waits, the seat re-queues behind the waiter."""
+    import threading
+    with _tempfile.TemporaryDirectory() as tds:
+        d, order = Path(tds) / "lock", []
+        try:
+            _gate_lock.flock_wrap("never-taken", [sys.executable, "-c", "pass"], lock_dir=d)
+            unheld_refused = False
+        except RuntimeError:
+            unheld_refused = True
+        unheld_left = _gate_lock.read_owner(d)
+        _gate_lock.take("seat", lock_dir=d, lease_seconds=60, wait=False)
+        poll, _gate_lock.WAIT_POLL_SECS = _gate_lock.WAIT_POLL_SECS, 0.2
+
+        def waiter() -> None:
+            _gate_lock.take("w", lock_dir=d, lease_seconds=60)
+            order.append("w")
+            _time.sleep(0.3)
+            _gate_lock.release("w", lock_dir=d)
+        t = threading.Thread(target=waiter, daemon=True)
+        try:
+            t.start()
+            _time.sleep(0.5)
+            rc = _gate_lock.flock_wrap("seat", [sys.executable, "-c", "pass"], lock_dir=d)
+            order.append("seat")
+            t.join(10)
+        finally:
+            _gate_lock.WAIT_POLL_SECS = poll
+        holder = _gate_lock.read_owner(d)
+    ok = (unheld_refused and unheld_left is None and rc == 0 and order == ["w", "seat"]
+          and holder is not None and holder.label == "seat")
+    return ok, (f"unheld_refused={unheld_refused} unheld_left={unheld_left} "
+                f"order={order} holder_after={holder and holder.label}")
+
+
+try:
+    _gl_ok, _gl_detail = _gl_flock_wrap_label()
+except Exception as _gl_exc:  # a crash is this check's red, not the script's
+    _gl_ok, _gl_detail = False, f"raised {_gl_exc!r}"
+R.check("a seat label never taken fails at once; a held one re-queues behind a waiter",
+        _gl_ok, _gl_detail)
 
 
 def _gl_same_label_expired_take() -> bool:
@@ -21908,6 +22024,73 @@ R.check(
     any(d.startswith("restore at") for d in _BRG_NULL),
     f"defects on the unpinned copy: {_BRG_NULL}",
 )
+# The stale verdict's re-run (budget-raise-gate-rerun.yml). It holds the only
+# write grant near the gate, so each property is a way it could do more than
+# ask GitHub to re-grade: a trigger that runs the pull request's copy of the
+# file (`pull_request*`), a grant beyond `actions: write` and the checkout's
+# `contents: read`, a checkout of anything but the default branch's commit, a
+# string the pull request controls reaching the job, a program run before the
+# restore or without `-I`, a job that fires on anything but a PASSING REVIEW
+# run -- the guard that also stops a re-run's own completion from starting
+# another -- and a `workflows:` name that no longer names the gate, which
+# would disable it silently. The null control re-points the checkout at the
+# pull request's head.
+def _brr_defects(text: str, gate_text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    on = doc.get(True, doc.get("on")) or {}
+    jobs = doc.get("jobs") or {}
+    job = jobs.get("rerun-stale-verdict") or {}
+    steps = job.get("steps") or []
+    runs = [str(s.get("run", "")) for s in steps]
+    gate = [i for i, r in enumerate(runs)
+            if re.search(r"python3?\s+(?:-\w+\s+)*\S*budget_raise_gate\.py", r)]
+    restore = [i for i, r in enumerate(runs)
+               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+    gate_name = (_yaml.safe_load(gate_text) or {}).get("name")
+    out = []
+    if set(on) != {"workflow_run"}:
+        out.append(f"triggers {sorted(map(str, on))}")
+    wr = on.get("workflow_run") or {}
+    if wr.get("workflows") != [gate_name] or wr.get("types") != ["completed"]:
+        out.append(f"workflow_run {wr} does not name the gate {gate_name!r}")
+    if list(jobs) != ["rerun-stale-verdict"]:
+        out.append(f"jobs {list(jobs)}")
+    if doc.get("permissions") != {} or job.get("permissions") != {
+            "actions": "write", "contents": "read"}:
+        out.append(f"permissions {doc.get('permissions')} / {job.get('permissions')}")
+    cond = str(job.get("if", ""))
+    if not ("github.event.workflow_run.event == 'pull_request_review'" in cond
+            and "github.event.workflow_run.conclusion == 'success'" in cond
+            and "||" not in cond):
+        out.append(f"if: {cond!r}")
+    co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
+    if len(co) != 1 or (co[0].get("with") or {}).get("ref") != "${{ github.sha }}" \
+            or (co[0].get("with") or {}).get("persist-credentials") is not False:
+        out.append(f"checkout {[s.get('with') for s in co]}")
+    if re.search(r"head_branch|head_repository|pull_requests|display_title|head_commit", text.split("\njobs:", 1)[-1]):
+        out.append("a pull-request-controlled string reaches the job")
+    if not gate or not restore or gate[0] < restore[0] or not all(
+            re.search(r"python3 -I \.claude/workflows/budget_raise_gate\.py --rerun-stale", runs[i])
+            for i in gate):
+        out.append(f"restore at {restore}, program at {gate}")
+    return out
+
+
+_BRR_TEXT = Path(".github/workflows/budget-raise-gate-rerun.yml").read_text()
+_BRR_DEFECTS = _brr_defects(_BRR_TEXT, _BRG_TEXT)
+R.check(
+    "the gate's stale-verdict re-run fires on a passing review run only, holds "
+    "`actions: write` and nothing it does not use, and runs the default branch's program",
+    _BRR_DEFECTS == [],
+    f"defects: {_BRR_DEFECTS}",
+)
+_BRR_NULL = _brr_defects(_BRR_TEXT.replace(
+    "ref: ${{ github.sha }}", "ref: ${{ github.event.workflow_run.head_sha }}"), _BRG_TEXT)
+R.check(
+    "and the same file checking out the pull request's head is refused (null control)",
+    any(d.startswith("checkout") for d in _BRR_NULL),
+    f"defects on the re-pointed copy: {_BRR_NULL}",
+)
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string
 # literals, and the block classes from VERDICT_CLASSES -- instead of printing
@@ -24458,10 +24641,10 @@ try:
         _ap_b["anchor"]: {"killed_by": "tests/x.py", "old": "    if b:",
                           "reason": "measured"}}))
     _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H2"))
-    _ap_before = _mut.BUDGETS.read_text()
-    _AP_GOT += [_mut.BUDGETS.read_text() == _ap_before,
+    _ap_before = json.dumps(_mut.load_budgets())
+    _AP_GOT += [json.dumps(_mut.load_budgets()) == _ap_before,
                 _mut.apply_pins(str(_ap_pins), "H1"), _mut.apply_pins(str(_ap_pins), "H1")]
-    _ap_kb = json.loads(_mut.BUDGETS.read_text()).get("killed_by", {})
+    _ap_kb = _mut.load_budgets().get("killed_by", {})
     _AP_GOT += [_ap_kb.get(_ap_b["anchor"], {}).get("killed_by"),
                 _ap_kb.get(_ap_c["anchor"], {}).get("killed_by"),
                 list(_ap_kb) == sorted(_ap_kb)]
@@ -24477,6 +24660,70 @@ R.check(
                 "changed", "skip-unchanged", "tests/x.py", "tests/y.py", True],
     "(no status, two passed-through statuses, unreadable pins, stale+no killed_by+gone, "
     f"other head, untouched, fresh, again, written x2, sorted) -> {_AP_GOT}",
+)
+
+# The one-file-per-row ledger (design/ledger-layout), driven in a scratch
+# repository. Each arm is a way the layout's own code can be wrong while the
+# real ledger still reads right: the misplaced/non-canonical row guard, a
+# deleted row left on disk, a ref's row files dropped by the ratchet's read,
+# two ordinals (`#N`) sharing one path, and a clash `--carry-rows` lets through.
+_LL_DIR = Path(_tempfile.mkdtemp(prefix="hpo-ledger-layout-")).resolve()
+_LL_SAVED = (_mut.BUDGETS, _mut.ROOT)
+_ll_a, _ll_c = f"{_mut.PKG}a.py:f GUARD_OFF 0123abcd", f"{_mut.PKG}b.py:<module> CONST 89abcdef"
+_ll_row = {"killed_by": "tests/x.py", "old": "    if a:"}
+_ll_led = {"max_survivor_fraction": {}, "survivor_triage": {},
+           "killed_by": {_ll_a: _ll_row, _ll_a + "#2": _ll_row, _ll_c: _ll_row}}
+_LL_GOT: dict = {}
+try:
+    _ll_git = ["git", "-C", str(_LL_DIR), "-c", "user.name=t", "-c", "user.email=t@t",
+               "-c", "commit.gpgsign=false"]
+    subprocess.run(["git", "init", "-q", str(_LL_DIR)], check=True)
+    (_LL_DIR / "tests").mkdir()
+    _mut.ROOT, _mut.BUDGETS = _LL_DIR, _LL_DIR / "tests" / "mutation_budgets.json"
+    _mut.write_budgets(_ll_led)
+    _ll_d = _mut.ledger_dir()
+    _LL_GOT["ordinal"] = len(list(_ll_d.rglob("*.json")))
+    _LL_GOT["clean"] = _mut.layout_problems()
+    subprocess.run([*_ll_git, "add", "-A"], check=True)
+    subprocess.run([*_ll_git, "commit", "-qm", "rows"], check=True)
+    _LL_GOT["at_ref"] = _mut.load_budgets_at("HEAD")["killed_by"] == _ll_led["killed_by"]
+    _ll_gone = {_ll_a: _ll_row, _ll_c: _ll_row}
+    _mut.write_budgets(dict(_ll_led, killed_by=_ll_gone))
+    _LL_GOT["deleted"] = _mut.load_budgets()["killed_by"] == _ll_gone
+    _ll_p = _ll_d / "killed_by" / "a.py" / "f.GUARD_OFF.0123abcd.json"
+    _ll_q = _ll_p.with_name("g.GUARD_OFF.0123abcd.json")
+    _ll_p.rename(_ll_q)
+    _LL_GOT["misplaced"] = len(_mut.layout_problems())
+    _ll_q.rename(_ll_p)
+    _ll_p.write_text(_ll_p.read_text().replace("\n  ", "\n    "))
+    _LL_GOT["noncanonical"] = len(_mut.layout_problems())
+    _ll_y, _ll_z = dict(_ll_row, killed_by="tests/y.py"), dict(_ll_row, killed_by="tests/z.py")
+    _LL_GOT["clash"] = _mut.carry({"killed_by": {_ll_a: _ll_row}}, {"killed_by": {_ll_a: _ll_y}},
+                                  {"killed_by": {_ll_a: _ll_z}})[1]
+    _LL_GOT["carried"] = _mut.carry({"killed_by": {_ll_a: _ll_row}}, {"killed_by": {_ll_a: _ll_y}},
+                                    {"killed_by": {_ll_a: _ll_row}})
+except Exception as _ll_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _LL_GOT["error"] = f"{type(_ll_exc).__name__}: {_ll_exc}"
+finally:
+    _mut.BUDGETS, _mut.ROOT = _LL_SAVED
+    _mut_shutil.rmtree(_LL_DIR, ignore_errors=True)
+R.check(
+    "the row ledger: one path per anchor and ordinal, a clean layout passes, and a ref's rows are read",
+    _LL_GOT.get("ordinal") == 3 and _LL_GOT.get("clean") == [] and _LL_GOT.get("at_ref") is True,
+    f"{_LL_GOT}",
+)
+R.check(
+    "the row ledger: a deleted row leaves the disk, and a misplaced or non-canonical row is refused",
+    _LL_GOT.get("deleted") is True and _LL_GOT.get("misplaced") == 1
+    and _LL_GOT.get("noncanonical") == 1,
+    f"{_LL_GOT}",
+)
+R.check(
+    "the row ledger: --carry-rows refuses a row both sides changed differently, and carries one only the branch changed",
+    _LL_GOT.get("clash") == [f"killed_by/{_ll_a}"]
+    and _LL_GOT.get("carried", ({}, None))[1] == []
+    and _LL_GOT.get("carried", ({}, None))[0].get("killed_by") == {_ll_a: _ll_y},
+    f"{_LL_GOT}",
 )
 
 # The measure step's status is the BASE program's own summary line, never the
@@ -24666,12 +24913,12 @@ R.check(
 # mutants -- pump_mode.py:242 GUARD_OFF and __init__.py:340 BOOLOP, each
 # measured against its own guarded input -- which no check could ever kill,
 # so a survivor count that mixes them with real gaps reads worse than the
-# suite is. The triage marks live in tests/mutation_budgets.json under
-# "survivor_triage", keyed exactly like the recorded survivor table and
+# suite is. The triage marks live under tests/mutation_ledger/survivor_triage/,
+# one file per mark, keyed exactly like the recorded survivor table and
 # PINNED to the line text they were triaged on; the fraction the cap reads
 # counts only survivors no triage has called equivalent. Absence of a triage
 # is not a finding of equivalence -- an unmarked survivor stays a gap.
-_MUT_TRIAGE = _MB.get("survivor_triage", {})
+_MUT_TRIAGE = _mut.load_budgets().get("survivor_triage", {})
 _MUT_TRIAGE_KEY = getattr(_mut, "triage_key", lambda _m: None)
 _MUT_EQ = getattr(_mut, "triaged_equivalent", lambda _t, _m: None)
 _MUT_GAPS = getattr(_mut, "survivor_gaps", lambda _s, _t: None)
@@ -24979,6 +25226,35 @@ import threading as _mut_threading  # noqa: E402
 _mut_baselines = getattr(_mut, "drive_baselines", None)
 _mut_pool = getattr(_mut, "drive_pool", None)
 
+
+def _mut_lease_arm(ci: str | None) -> tuple[bool, bool]:
+    """mutation_table.run_script on a stub stress.py with the lease held
+    elsewhere: (ran while held, ran after release). #1617 review, B3 T1."""
+    import threading
+    saved = {k: _os.environ.get(k) for k in ("GITHUB_ACTIONS", "HPO_GATE_LOCK_DIR")}
+    with _tempfile.TemporaryDirectory() as tds:
+        td = _gl_stub_tree(Path(tds) / "t")
+        lock = Path(tds) / "lock"
+        _os.environ["HPO_GATE_LOCK_DIR"] = str(lock)
+        _os.environ.pop("GITHUB_ACTIONS", None)
+        if ci:
+            _os.environ["GITHUB_ACTIONS"] = ci
+        try:
+            t = threading.Thread(target=_mut.run_script, args=("tests/stress.py", td, 60))
+            return _gl_waits_then_runs(lambda: (t.start(), t)[1], td, lock, "stress.ran")
+        finally:
+            for k, v in saved.items():
+                _os.environ.pop(k, None) if v is None else _os.environ.__setitem__(k, v)
+
+
+_MUT_L_LOCAL = _mut_lease_arm(None)
+_MUT_L_CI = _mut_lease_arm("true")
+R.check(
+    "off CI a mutant's stress.py run waits for the gate lease; on a CI runner "
+    "it runs at once (null control)",
+    _MUT_L_LOCAL == (False, True) and _MUT_L_CI == (True, True),
+    f"local (ran while held, after release)={_MUT_L_LOCAL} ci={_MUT_L_CI}",
+)
 
 def _mut_barrier_run(barrier, seen, *key):
     """A fake driver: records `key`, then waits until `barrier` fills."""

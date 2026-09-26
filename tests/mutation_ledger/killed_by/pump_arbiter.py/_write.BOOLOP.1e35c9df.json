@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_write BOOLOP 1e35c9df",
+  "killed_by": "tests/features.py",
+  "old": "    if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):",
+  "reason": "pump-duty arbiter revision; `if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):` -> `if value is None or state is None or (recorded or not _differs(slot, recorded[0], value)):` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

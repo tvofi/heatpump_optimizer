@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:_sanitize RETURN_DEL d4c9e2a6",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "    return value",
+  "reason": "arrived with origin/main, the round-6 non-finite class fix (#1425, commit 8e5d1ace). Deleting the final `return value` makes `_sanitize` answer None for every value the five isinstance branches do not claim -- including the None payload itself and every int -- so a healthy payload is replaced by None at the boundary. Measured: tests/finite_boundary.py rc=0 failed=0 -> rc=1 failed=1. Measured at 467d3d9c, 2026-09-23."
+}

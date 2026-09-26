@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._plan_dhw_min_cost GUARD_OFF 544c45f0",
+  "killed_by": "tests/features.py",
+  "old": "            if headroom is not None:",
+  "reason": "drawn by the round-7 D2-03 diff's per-file sample over optimizer.py, not introduced by it. `if False:` drops the space-heating headroom rows from `_plan_dhw_min_cost` while the displacement columns are still built for them, so the LP raises. Killed by tests/features.py's `the DHW cost program plans under space-heating contention`: FAIL [plan None; raised ValueError: could not broadcast input array from shape (8,8) into shape (0,8)], 1 of 3133, measured at bc1903f8."
+}

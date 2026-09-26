@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:<module> CONST 4f28d695",
+  "old": "TWO_ZONE_SIZING_HEADROOM_C = 0.05",
+  "reason": "R8-P5b (#1524): the two-zone sizing headroom, doubled to 0.1 K by the CONST operator, survives every driver in play (`python3 tests/mutation_table.py --pin-killed --base origin/fix/r8-p5`, at 9d6bf172, 2026-09-25): a smaller step still keeps every stress preset inside the allowance and the two adopting presets inside the bar. The LOWER side is pinned: at 0.0 the #1524 barrier in tests/features.py fails 2 checks (typical_slab two-zone aborts at 0.800 K; two-zone adopts 1 of 3 against single-zone 2), measured on the barrier block alone. Recorded as a gap, not equivalent: a larger headroom shrinks the step and widens the fitted interval, which no check bounds.",
+  "verdict": "gap"
+}

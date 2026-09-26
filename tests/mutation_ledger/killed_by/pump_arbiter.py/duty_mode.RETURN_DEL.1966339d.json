@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:duty_mode RETURN_DEL 1966339d",
+  "killed_by": "tests/features.py",
+  "old": "    return mode if mode in PUMP_DUTY_MODES else DUTY_OFF",
+  "reason": "pump-duty arbiter revision; `return mode if mode in PUMP_DUTY_MODES else DUTY_OFF` -> `pass` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

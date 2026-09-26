@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:price_per_kwh RETURN_DEL b78847cf",
+  "killed_by": "tests/features.py",
+  "old": "    return value if converted is None else converted",
+  "reason": "#1513 (R8-P8): RETURN_DEL on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 7 failed, among them `a fee sensor publishing \u00f6re trips the same issue, attributed to it`; `a fee sensor publishing a negative value trips the same notice, attributed to it`. Measured at d6d79847, 2026-09-24."
+}

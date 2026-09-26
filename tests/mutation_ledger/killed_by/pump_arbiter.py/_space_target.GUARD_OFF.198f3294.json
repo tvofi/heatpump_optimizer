@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_space_target GUARD_OFF 198f3294",
+  "killed_by": "tests/features.py",
+  "old": "    if _flow_unit(coord._config):",
+  "reason": "pump-duty arbiter revision; `if _flow(coord._config):` -> `if False:` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

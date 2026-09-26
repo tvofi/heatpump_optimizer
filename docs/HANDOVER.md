@@ -276,11 +276,10 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
 - **`tests/mutation_budgets.json`'s stated reason is stale.** It says the cap
   waits on a full-package run that "cannot happen until mutation-nightly is on
   main"; the `mutation-nightly` job is in `.github/workflows/tests.yml` and
-  `last_measured.full` is still `null`. **`mutation` is not a required check** —
+  `last_measured.full` is still `null`. **`mutation` is a required check** —
   read the contexts from the `main-protect-checks` ruleset endpoint, never a
   count from here; `coverage`, `mutation-nightly`, `slow` and `nightly-status`
-  are absent
-  from it too, and `/branches/main/protection` answers 404, so the ruleset
+  are absent from it, and `/branches/main/protection` answers 404, so the ruleset
   endpoint is the only reader. With `max_survivor_fraction` at 1.0 in both
   scopes and the refusal written `if rate > cap`, the lane cannot fail on a
   survivor: every red it carried in the retained window was its baseline guard
