@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.6.12
+# claims-for: 6.7.0
 #
-# v6.6.12: round-8 fix wave: DHW arbiter, two-zone sysid, and the CI trust/merge-tooling closeout. The stamp empties the list; the
+# v6.7.0: v6.6.12 bug fixes, mutation-ledger rows, FIFO gate lease, round-9 audit shape. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -36,9 +36,6 @@
 # past from heat_pump_action (hot_water on DHW, every other heating mode on
 # space, height power_kw); history_deep_panned, all past, gains them.
 # history_no_power gains no slot path: its rows carry no power_kw.
-history_panned  # bug 7: slot paths extend into the past; measured stretch stepped
-history_deep_panned  # bug 7: past slot paths added; measured temps as steps
-history_no_power  # bug 7: measured temps as steps only
 
 # R6-D4-01 (#1388) and R6 (#1416), one claim list because both changes move the
 # same rendered tree.

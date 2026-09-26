@@ -54,9 +54,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.6.12
+# claims-for: 6.7.0
 #
-# v6.6.12: round-8 fix wave: DHW arbiter, two-zone sysid, and the CI trust/merge-tooling closeout. The stamp empties the list; the
+# v6.7.0: v6.6.12 bug fixes, mutation-ledger rows, FIFO gate lease, round-9 audit shape. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 

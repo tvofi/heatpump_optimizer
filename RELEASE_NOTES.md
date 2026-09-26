@@ -1,5 +1,42 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.0
+
+the v6.6.12 bug report closes out: the pump-duty arbiter becomes the pump's
+one writer while the optimizer is active (bugs 1-4, 6, and the pump-duty half
+of 5), switches and the thermostat publish state before their refresh instead
+of after it (the rest of bug 5, minus the still-unexplained "all on after
+reboot" half), and the dashboard card's history view reads Home Assistant's
+own answer by entity id instead of by position (bug 7), with two survived
+mutants against that fix pinned and a real `/api/history/period` capture
+driving the card-rig fixture going forward. Alongside the fixes: the mutation
+ledger splits into one file per row so parallel branches stop colliding, a
+`stress.py`-only FIFO gate lease replaces the whole-gate lease, the mutation
+lane defers `stress.py`'s baseline until a mutant survives every shared driver
+and sweeps drivers cheapest-first, fix-review gains a design-trace step for
+features with no finder harness, round-9's audit shape moves to three
+verifiers and a judge dedup step with class elimination, and the typing and
+browser CI lanes move off their advisory-carrying pins.
+
+- #1602 — R8-P3: DHW planning seams price COP with per-step humidity; the DHW tank's Carnot lift penalty matches a buffer at the same water temperature
+- #1605 — R8-I4: structure.py dead-symbol screen resolves imports; committed method-to-seam map
+- #1609 — fixer.md step 12: seams are read from tests/seam_map.json
+- #1611 — DHW planner credits the coil at the tank temperature the physics reads
+- #1613 — R8-P5c: two-zone sysid behind a throttling mixing valve; buffer tank solved as a hidden state
+- #1617 — post-wave: one file per mutation-ledger row, budget-gate re-run, and a stress.py-only FIFO gate lease
+- #1618 — record: close out the round-8 wave — delivery rows and roster resume
+- #1619 — Pump duty: while active, hold what the arbiter wrote; its own writes and resets are not a person (bugs 1-4, 6, pump side of 5)
+- #1621 — Switches: show a toggle at once instead of after the next solve
+- #1622 — card: history view reads HA's own answer, draws past slots (bug 7)
+- #1623 — test: defer the stress.py baseline and sweep drivers in kill-rate order
+- #1624 — test(card): pin K4/K7, the two mutants #1622's fix review found
+- #1625 — fix-review: spell the design-trace verdict in the form the parser reads
+- #1626 — card rig: history rows keyed as a real install answers, pinned by a check
+- #1627 — policy: round-9 audit shape (three verifiers, judge dedup, class elimination)
+- #1628 — ci(typing): move the typing lane to homeassistant-stubs 2026.9.3 on Python 3.14; restore wood_coil's may-drift entry
+- #1629 — ci(browser): bump the browser lane's playwright to 1.56.1
+- #1631 — record: delivery rows for the merges ahead of the v6.7.0 stamp
+
 ## v6.6.12
 
 the round-8 fix wave lands: the sysid learning-freeze and two-zone system
