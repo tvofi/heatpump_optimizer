@@ -521,6 +521,30 @@
     "class": null,
     "seam_rule_enumerates": null
    }
+  ],
+  "lc": [
+   {
+    "id": "D1-s2-91",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "perturbed 5/5 ZeroDivisionError, 0/5 scored_after_fold; null_control 0/5 raises, 5/5 scored_after_fold",
+    "metric_definition": "count, of 5 real coord._record_accuracy() calls (_flow_bias.samples forced to -1, all _fold_flow_lift gates satisfied), that raise ZeroDivisionError uncaught and that still run post-fold accuracy scoring that cycle, vs a null control at samples=0",
+    "method": "re-ran tools/audit/round9/D1/s2/leads/lc_flow_bias_containment.py verbatim; confirmed flow_lift.py:210 from_dict guard and coordinator.py:4671/:9149-9175/:4698 unwrapped call site and outer except Exception by direct source read",
+    "attacks": "contention: count metric, load1 2.21-2.27 immaterial; gate mode: n/a; leave-one-out: deterministic scenario, any single drop preserves the ratios; reach: _record_accuracy is a plain sync call, not executor-routed, so not a FakeHass artefact; trigger needs corruption or a regression past the from_dict guard; severity: medium confirmed",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D3-s1-91",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "HASTUB_TZ unset: differs=0 (guard_on=0.0, guard_off=0.0); HASTUB_TZ=Europe/Stockholm: differs=1 (guard_off raises TypeError naive vs aware)",
+    "metric_definition": "whether GUARD_ON and GUARD_OFF variants of _immersion_dhw_margin agree on one fixed 3-naive-event scenario, under two HASTUB_TZ settings",
+    "method": "re-ran tools/audit/round9/D3/s1/leads/lc_tz_probe_coordinator.py verbatim (0.65 s); no pre-screen, pool, full gate or quiet window (tvofi rule); grep confirmed tests/dst_checks.py is the only HASTUB_TZ lane and never calls _immersion_dhw_margin or _detect_outage",
+    "attacks": "gate mode: the only aware-clock lane does not reach either guarded method; reach: real HA's dt_util.now() is always aware, so the guard runs on every real cycle while the gate never exercises it, which supports the test-gap claim; limit: the executed number covers the :8384 site only, and :8112 rests on the grep; severity: medium confirmed",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
   ]
  }
 }
