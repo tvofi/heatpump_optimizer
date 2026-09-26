@@ -26073,12 +26073,12 @@ if "--null" in sys.argv:
 print(f"RESULT count={{n}}")
 print(f"RESULT held={{held}}")
 print("RESULT load1=0.25")
-print("RESULT thread_factor=1.00")
+print("RESULT thread_factor={tf}")
 """
 
 
 def _jb_run() -> dict:
-    """Eight fixture harnesses through ``judge_batch.run_batch``, one lease.
+    """Eleven fixture harnesses through ``judge_batch.run_batch``, one lease.
 
     ``edits`` perturbs by writing a tracked file on disk and never restores it;
     ``reads`` counts that file, so it reads 3 alone and 9 after ``edits`` unless
@@ -26112,6 +26112,10 @@ def _jb_run() -> dict:
             "edits": (3, 3, 0, "to_zero", True),
             "reads": (3, reads, 0, "to_zero", True),
             "nested": (3, 3, 0, "to_zero", True),
+            # to_zero means reaching zero: 3 -> 1 moved, but not to zero.
+            "shrinks": (3, 3, 1, "to_zero", True),
+            "hot": (3, 3, 0, "to_zero", True),
+            "badjb": (3, 3, 0, "to_zero", True),
         }
         findings = []
         for name, (base, got, pert, direction, has_p) in cases.items():
@@ -26122,12 +26126,14 @@ def _jb_run() -> dict:
                 base=base, got=got, perturbed=pert, perturb=perturb,
                 py=sys.executable, name=name,
                 run=(wrap + run) if name == "nested" else run,
-                side_effect=edit if name == "edits" else "pass"))
+                side_effect=edit if name == "edits" else "pass",
+                tf="1.20" if name == "hot" else "1.00"))
             findings.append({
                 "id": f"D1-s1-{name}",
                 "evidence": {"harness_path": f"tools/audit/round9/D1/{name}.py",
                              "command": "false", "tolerance": "exact"},
                 "perturbation": {"change": "--perturb", "expected_direction": direction},
+                **({"judge_batch": "not an object"} if name == "badjb" else {}),
             })
         git = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-C", str(repo)]
         for cmd in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "fixture"]):
@@ -26138,8 +26144,14 @@ def _jb_run() -> dict:
         md = judge_batch.render_table(rows)
         dirty = _subprocess.run(git + ["status", "--porcelain"], capture_output=True,
                                 text=True).stdout.strip()
+    shards = {n: [judge_batch._shard(findings, f"{k}/{n}") for k in range(1, n + 1)]
+              for n in (2, 3)}
     return {"rows": {r["id"].rsplit("-", 1)[1]: r for r in rows}, "after": after, "md": md,
-            "dirty": dirty}
+            "dirty": dirty, "ids": sorted(f["id"] for f in findings),
+            "shards": {n: [sorted(f["id"] for f in sh) for sh in v] for n, v in shards.items()},
+            "within": [judge_batch.within(e, g, t) for e, g, t in (
+                ("10", "10.4", "±0.5"), ("10", "10.6", "±0.5"),
+                ("200", "209", "±5 %"), ("200", "211", "+-5%"))]}
 
 
 try:
@@ -26178,12 +26190,42 @@ R.check(
 R.check(
     "judge_batch: every row carries the harness's load1 and thread_factor, one "
     "table row per finding, and the lease is released after the batch",
-    len(_jbr) == 8
-    and all(r.get("load1") == "0.25" and r.get("thread_factor") == "1.00"
-            for r in _jbr.values())
-    and _JB["md"].count("\n| D1-s1-") == 8
+    len(_jbr) == 11
+    and all(r.get("load1") == "0.25" and r.get("thread_factor") == ("1.20" if k == "hot" else "1.00")
+            for k, r in _jbr.items())
+    and _JB["md"].count("\n| D1-s1-") == 11
     and _JB["after"] is None,
     f"rows={len(_jbr)} after={_JB['after']!r}",
+)
+R.check(
+    "judge_batch: to_zero means reaching zero -- 3 -> 1 moves the wrong way and "
+    "is void; a thread_factor over 1.05 is flagged for a re-take, 1.00 is not",
+    _jbr.get("shrinks", {}).get("perturbation") == "wrong-direction"
+    and _jbr.get("shrinks", {}).get("void") is True
+    and "re-take: thread_factor > 1.05" in _jbr.get("hot", {}).get("flags", [])
+    and "re-take: thread_factor > 1.05" not in _jbr.get("moves", {}).get("flags", []),
+    f"shrinks={_jbr.get('shrinks')!r} hot={_jbr.get('hot', {}).get('flags')!r}",
+)
+R.check(
+    "judge_batch: a judge_batch override that is not an object is ignored and "
+    "flagged on its own row, and the batch goes on",
+    "judge_batch override is not an object; ignored" in _jbr.get("badjb", {}).get("flags", [])
+    and _jbr.get("badjb", {}).get("perturbation") == "moved",
+    f"badjb={_jbr.get('badjb')!r}",
+)
+R.check(
+    "judge_batch: absolute and relative tolerances hold inside the bound and "
+    "fail outside it (±0.5: 10.4 yes, 10.6 no; ±5 %: 209 yes, 211 no)",
+    _JB.get("within") == ["yes", "no", "yes", "no"],
+    f"within={_JB.get('within')!r}",
+)
+R.check(
+    "judge_batch: --shard k/n for n = 2 and 3 splits the input into disjoint "
+    "shards whose union is the input",
+    all(sorted(sum(_JB.get("shards", {}).get(n, []), [])) == _JB.get("ids")
+        and all(sh for sh in _JB.get("shards", {}).get(n, []))
+        for n in (2, 3)) and bool(_JB.get("ids")),
+    f"shards={_JB.get('shards')!r}",
 )
 R.check(
     "judge_batch: a perturbation that edits a tracked file is flagged on its row "

@@ -272,7 +272,11 @@ def measure(entry: dict, *, repo: Path, lease: Lease, timeout: int) -> dict:
         row["flags"].append("harness not found")
         return row
     d = directives(harness)
-    d.update({k: v for k, v in (f.get("judge_batch") or {}).items() if v})
+    override = f.get("judge_batch")
+    if override is not None and not isinstance(override, dict):
+        row["flags"].append("judge_batch override is not an object; ignored")
+        override = None
+    d.update({k: v for k, v in (override or {}).items() if v})
     expected = harness_headers.expected_from(harness)
     cmd = d.get("run") or ev.get("command")
     main = run(cmd, repo=repo, lease=lease, timeout=timeout) if cmd else None
