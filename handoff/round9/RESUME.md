@@ -96,6 +96,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T14:17Z: tvofi chose 'Contested only' (card, 13:39Z). Runners run batch A only; unanimous rest judged on verifier reproductions, recorded in JUDGE.md as a round-9 exception. Judge told.
 
+- 2026-09-26T14:20Z: tvofi (13:41Z, cmsg_01EL5jLi4rokGBbkaevYXSJV4Qsf9nvFHH6miHbNgdzjG5): minimise heavy D3 re-runs; for significant findings only a sanity check. Judge told: D3 medium+ gets one in-memory mutant check against the production symbol; low D3 rests on the evidence. Applies to Phase D sweeps and fixers too.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
