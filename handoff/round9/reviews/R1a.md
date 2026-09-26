@@ -1,0 +1,13 @@
+# Review brief: round-9 readiness R1a (find checker, scopes in-tree, schema)
+
+Before doing any work, read `CLAUDE.md` in the repository and all related rules files (`.claude/rules/`, and the role contract for your seat under `tools/audit/briefs/`), and follow them. Pass this rule on in every sub-agent brief you write.
+
+Never refer to the project owner as "Tim" anywhere, especially on the public repository (PR bodies, commits, comments, issues, delivery notes). Call them "tvofi". A PR body's attribution line is `_Requested by **tvofi**_` and carries no claude.ai project link. Pass this rule on in every sub-agent brief you write.
+
+Role: adversarial fix reviewer, `tools/audit/briefs/fix-review.md`. Cloud seat: no GitHub writes. Verdict back as text in fix-review.md's form (`merge <sha>` / `blocked <sha> <reason>`) via the coordinator; the Mac posts it as hpo-approver. Review the PR head the coordinator names if a PR is open (Mac adds only a docs/delivery row; state whether the authored diff is byte-identical to the code head below).
+
+- Branch `handoff/r9-r1a-find-checker`. Code head `a897272a`; last commit `14b9f803` adds the PR body `tools/audit/handoff/r9-r1a-find-checker.md` (stripped before push). Base 81f2c18c.
+- Spec: /mnt/project-files/audit-r9/PLAN.md (mirror: this branch's handoff/round9/PLAN.md) §3 row R1 and §4. R1 was split in two because the required `wave-script` context restores `check-wave-script.mjs` from the PR's BASE before grading (governance.yml, decision 0013): R1a teaches the checker the new shape first; R1 (the driver) follows and is graded by R1a's checker. Verify that claim yourself.
+- Content: `tools/audit/scopes.json` (claimed byte-identical to the plan copy), `tools/audit/check_scopes.py` (+ `--seat D<k>-s<n>`; default output claimed identical to the plan copy at 81f2c18c), `tools/audit/finding.schema.json` (finding requires `scope`, `class_guess` = bugclasses id or `new`; report requires `leads` {owner_seat,file,symbol,what}), `check-wave-script.mjs` (schema and scopes-vs-briefs checks; scoped-driver check dormant until audit-find.js has its dispatch block; old planSeats checks kept).
+- Re-run at both ends: `node .claude/workflows/check-wave-script.mjs` (claimed 116 passed at head), `check_scopes.py --ref HEAD` and `--self-test`, `structure.py`, `policy_lint.mjs`, `prepr.sh`, `closure.py select` mode line, `tests/closure.py` orphan check (new files under the INERT tools/audit/ prefix). Test the dormant check: does it genuinely switch on when the dispatch block appears, and can a driver dodge it by naming the block differently? Mutate the schema checks (3 claimed killed).
+- Not code-owned (claimed); verify against CODEOWNERS.
