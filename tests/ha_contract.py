@@ -714,6 +714,69 @@ UNMODELLED = {
 }
 
 
+# Parameters a stub accepts and never reads, by inventory key (P11). A stub
+# that takes an argument and drops it answers every caller as if the argument
+# had not been passed -- the shape that let `update_interval` vanish with every
+# contract green (round-9 D1-s2-71). Each drop is declared here, and a declared
+# drop the stub has started reading fails too, as ``absent`` does.
+DROPPED: dict[str, tuple] = {
+    "homeassistant.components.mqtt.async_publish": ("a", "k"),
+    "homeassistant.components.mqtt.async_subscribe": ("a", "k"),
+    "homeassistant.config_entries.ConfigFlow": ("raise_on_progress", "reload_on_update"),
+    "homeassistant.helpers.aiohttp_client.async_get_clientsession": ("hass", "verify_ssl"),
+    "homeassistant.helpers.config_validation.config_entry_only_config_schema": ("domain",),
+    "homeassistant.helpers.entity_registry.async_entries_for_device": ("include_disabled_entities",),
+    "homeassistant.helpers.event.async_track_time_interval": ("a", "k"),
+    "homeassistant.helpers.storage.Store": ("hass", "version", "kwargs"),
+    "homeassistant.helpers.translation.async_get_translations": (
+        "hass", "language", "category", "integrations",
+    ),
+    "homeassistant.helpers.update_coordinator.DataUpdateCoordinator": ("_ignored",),
+    "homeassistant.helpers.update_coordinator.CoordinatorEntity": ("context",),
+    "homeassistant.loader.async_get_integration": ("a", "k"),
+}
+
+# Test-facing hooks that change what a FAITHFUL symbol returns (P11). Every
+# expect="both" contract of a fed symbol is re-run with the hook in each state
+# the suite puts it in: a hook upstream does not have must not make the symbol
+# return a value upstream never returns. round-9 D14-s4-02: the replay lane
+# froze a fixed-offset clock where Home Assistant hands out its ZoneInfo.
+def _freeze_at(value):
+    def enter():
+        from homeassistant.util import dt as dt_util
+
+        dt_util.freeze(value)
+
+    return enter
+
+
+def _thaw():
+    from homeassistant.util import dt as dt_util
+
+    dt_util.freeze(None)
+
+
+def _hook_states():
+    from datetime import datetime, timedelta, timezone
+
+    return [
+        ("frozen naive", _freeze_at(datetime(2026, 7, 1, 12)), _thaw),
+        (
+            "frozen at a fixed offset",
+            _freeze_at(datetime(2026, 7, 1, 12, tzinfo=timezone(timedelta(hours=1)))),
+            _thaw,
+        ),
+    ]
+
+
+HOOKS = {
+    "homeassistant.util.dt.freeze": (
+        ("homeassistant.util.dt.now", "homeassistant.util.dt.utcnow"),
+        _hook_states,
+    ),
+}
+
+
 # ---------------------------------------------------------------------------
 # contracts
 # ---------------------------------------------------------------------------
@@ -2402,6 +2465,63 @@ def provider_name() -> str:
     return "real" if hasattr(const, "__version__") else "stub"
 
 
+def _assert_lines(fn) -> set[int]:
+    import inspect
+    import textwrap
+
+    lines, first = inspect.getsourcelines(fn)
+    tree = ast.parse(textwrap.dedent("".join(lines)))
+    return {n.lineno + first - 1 for n in ast.walk(tree) if isinstance(n, ast.Assert)}
+
+
+def _run_one(fn) -> tuple[bool, str]:
+    """Run one contract; a pass that reached none of its asserts is a failure.
+
+    A contract whose assertions sit behind a condition the provider does not
+    meet passes by asserting nothing (P11): round-9 D1-s1-52's ``now`` contract
+    asserted only when a zone was configured, and the stub configures none.
+    """
+    wanted, reached = _assert_lines(fn), set()
+    filename = fn.__code__.co_filename
+
+    def tracer(frame, event, _arg):
+        if frame.f_code.co_filename != filename:
+            return None
+        if event == "line" and frame.f_lineno in wanted:
+            reached.add(frame.f_lineno)
+        return tracer
+
+    previous = sys.gettrace()
+    sys.settrace(tracer)
+    try:
+        fn()
+    except Exception as err:  # noqa: BLE001 - any failure is a failure
+        return False, f"{type(err).__name__}: {err}"
+    finally:
+        sys.settrace(previous)
+    if wanted and not reached:
+        return False, f"vacuous: reached none of its {len(wanted)} assertions"
+    return True, ""
+
+
+def _run_hooked(report: Report) -> None:
+    report.section("contracts re-run under the stub's own test hooks")
+    ran = 0
+    for hook, (fed, states) in HOOKS.items():
+        for state, enter, leave in states():
+            for symbol, name, _cite, expect, fn in CONTRACTS:
+                if symbol not in fed or expect != "both":
+                    continue
+                enter()
+                try:
+                    passed, detail = _run_one(fn)
+                finally:
+                    leave()
+                ran += 1
+                report.check(f"{symbol.split('homeassistant.')[-1]}: {name}  ({state})", passed, detail)
+    report.check("the hook re-runs ran", ran > 0, "no contract of a fed symbol was found")
+
+
 def _run_contracts(report: Report, provider: str) -> None:
     version = upstream_version()
     newer = provider == "real" and version is not None and version != UPSTREAM
@@ -2411,11 +2531,7 @@ def _run_contracts(report: Report, provider: str) -> None:
     )
     for symbol, name, _cite, expect, fn in CONTRACTS:
         label = f"{symbol.split('homeassistant.')[-1]}: {name}"
-        try:
-            fn()
-            passed, detail = True, ""
-        except Exception as err:  # noqa: BLE001 - any failure is a failure
-            passed, detail = False, f"{type(err).__name__}: {err}"
+        passed, detail = _run_one(fn)
         if expect == "stub":
             # Pins the stub's own behaviour where upstream's equivalent needs a
             # running hass. Nothing to say against the real provider, and
@@ -2560,6 +2676,51 @@ def _check_inventory(report: Report) -> None:
     )
     unissued = sorted(k for k, e in INVENTORY.items() if e.disposition == DIVERGENT and not e.issue)
     report.check("every DIVERGENT symbol names the issue tracking it", not unissued, f"{unissued}")
+
+
+def stub_dropped() -> dict[str, set[str]]:
+    """Parameters each stub function accepts and never reads, by inventory key."""
+    root = stub_root()
+    found: dict[str, set[str]] = {}
+    for path in sorted(root.rglob("*.py")):
+        rel = path.relative_to(root.parent).with_suffix("")
+        parts = [p for p in rel.parts if p != "__init__"]
+        tree = ast.parse(path.read_text())
+        owners = [(n.name, n) for n in tree.body if isinstance(n, ast.ClassDef)]
+        owners += [(None, tree)]
+        for owner, scope in owners:
+            nodes = ast.walk(scope) if owner else tree.body
+            for fn in nodes:
+                if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                a = fn.args
+                params = [x.arg for x in a.posonlyargs + a.args + a.kwonlyargs]
+                params += [x.arg for x in (a.vararg, a.kwarg) if x]
+                read = {n.id for st in fn.body for n in ast.walk(st) if isinstance(n, ast.Name)}
+                unread = {x for x in params if x not in ("self", "cls") and x not in read}
+                if unread:
+                    key = ".".join(parts + [owner or fn.name])
+                    found.setdefault(key, set()).update(unread)
+    return found
+
+
+def _check_dropped(report: Report) -> None:
+    report.section("parameters the stub accepts and drops")
+    measured = stub_dropped()
+    undeclared = sorted(
+        f"{k}({x})" for k, xs in measured.items() for x in xs if x not in DROPPED.get(k, ())
+    )
+    report.check(
+        "every parameter the stub drops is declared",
+        not undeclared,
+        f"{undeclared}: a caller passing it is answered as if it had not. "
+        "Model it, or declare the drop in DROPPED",
+    )
+    stale = sorted(
+        f"{k}({x})" for k, xs in DROPPED.items() for x in xs if x not in measured.get(k, set())
+    )
+    report.check("every declared drop is still dropped", not stale, f"{stale}")
+    report.check("the drop scan read the stub", bool(measured), "no stub function scanned")
 
 
 def _check_declared_absences(report: Report) -> None:
@@ -2872,6 +3033,8 @@ def main(argv: list[str] | None = None) -> int:
     if not args.contracts_only and provider == "stub":
         _check_inventory(report)
         _check_declared_absences(report)
+        _check_dropped(report)
+        _run_hooked(report)
         _print_inventory()
     elif not args.contracts_only:
         report.check(
