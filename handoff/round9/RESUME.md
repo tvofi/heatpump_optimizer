@@ -72,6 +72,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T13:35Z: LC done @00e3fad9: 2 findings (D1-s2-91 medium, D3-s1-91 medium, both titles normalised), 4 leads closed (routes: two deferred-entry D3-s3 leads left to the fixer). Evidence @79aa98ec verify/G1-lc.json; sent as unit 'lc' to G1-V1/V2/V3. Register seat adding D3-s3 + LC rows (sonnet). All intake now in: 156 findings.
 
+- 2026-09-26T13:38Z: G3-V2 complete @e62fb888 (leads 5/0/0/0; D9-s1-71 CPU share inside null band; D2-s4-81 independent subgrid excluded timber_crawlspace). Complete 11/12 main; open: G1-V2 leads, and 'lc' unit on G1-V1/V2/V3.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
