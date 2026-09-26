@@ -7,6 +7,14 @@ Mirror: branch handoff/audit-r9-plan, handoff/round9/RESUME.md (when /mnt/projec
 updated: 2026-09-26T06:10Z by orchestrator thread "Round 9 audit orchestrator"
 (thread cmsg_01EL5jLi4rokGBbkaevYXSJV2mBkzeKerzo5hWb5CAh44d, session cse_01WgT4h2uvK9kbxQbWc5MJis)
 
+## RESTART FROM COLD (standing rule, tvofi 2026-09-26T10:19Z: keep this doc current after every milestone)
+1. Read this file top to bottom; the mirror is handoff/round9/RESUME.md on branch handoff/audit-r9-plan (git fetch origin handoff/audit-r9-plan).
+2. Orchestrator = session_01WgT4h2uvK9kbxQbWc5MJis (thread cmsg_01EL5jLi4rokGBbkaevYXSJV2mBkzeKerzo5hWb5CAh44d). Coordinator (latest relay) = session_017qoFptNzSHonTu1SeV4qVa; if inactive, hearthbot get_channel_session_id.
+3. Baseline 1936d5ca (v6.7.1). Box state: see "Box returns"; a box is DONE only when origin/handoff/audit-r9-find-Bn holds tools/audit/round9/reports-Bn.json with missing=[] (verify with git show).
+4. A crashed box: ask the coordinator to restart that box's thread with handoff/round9/briefs/Bn.md plus r9-strip-rounds.sh (and r9-prepare-patch.sh if it uses the Workflow tool).
+5. When all 10 boxes are DONE: intake (audit-find.js from:"intake", patched per r9-prepare-patch.sh), then Phase B per PLAN.md; judge flags below travel with the findings.
+6. Every box/seat/verifier brief carries: read CLAUDE.md + .claude/rules + role contract first; never "Tim", call the owner tvofi; keep the orchestrator informed so this doc stays current.
+
 ## Mandate
 tvofi mandate 3 (msg cmsg_01EL5jLi4rokGBbkaevYXSJVTfeni8YJN5HdH97LdRCudt) expires 2026-09-26T09:35Z:
 until then the Mac seat may approve code-owned/policy files as tvofi (needs a cloud reviewer's
