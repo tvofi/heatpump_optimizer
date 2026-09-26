@@ -24,7 +24,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
-from .entity import HeatPumpOptimizerEntity
+from .entity import HeatPumpOptimizerEntity, off_the_action
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ class ForceOptimizationButton(_OptimizerButtonBase):
     async def async_press(self) -> None:
         """Force an optimization run."""
         _LOGGER.info("Optimization run requested from the dashboard")
-        await self.coordinator.async_force_optimization()
+        off_the_action(self, self.coordinator.async_force_optimization())
 
 
 class SystemIdentificationButton(_OptimizerButtonBase):
@@ -115,7 +115,7 @@ class SystemIdentificationButton(_OptimizerButtonBase):
         )
 
     async def async_press(self) -> None:
-        await self.coordinator.async_arm_system_identification()
+        off_the_action(self, self.coordinator.async_arm_system_identification())
 
 
 class ResetComfortWeightButton(_OptimizerButtonBase):
@@ -134,6 +134,7 @@ class ResetComfortWeightButton(_OptimizerButtonBase):
 
     async def async_press(self) -> None:
         await self.coordinator.async_reset_comfort_weight()
+        off_the_action(self, self.coordinator.async_request_refresh())
 
 
 class DiagnoseIntervalButton(_OptimizerButtonBase):
@@ -158,4 +159,4 @@ class DiagnoseIntervalButton(_OptimizerButtonBase):
         )
 
     async def async_press(self) -> None:
-        await self.coordinator.async_diagnose_interval()
+        off_the_action(self, self.coordinator.async_diagnose_interval())

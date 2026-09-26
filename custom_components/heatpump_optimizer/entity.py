@@ -14,7 +14,7 @@ too, so it covers all six platforms rather than the sensor platform alone
 from __future__ import annotations
 
 import math
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Coroutine
 from typing import Any, Callable
 
 import numpy as np
@@ -160,8 +160,19 @@ def publish_then_refresh(
         if then is not None:
             await then()
 
+    off_the_action(entity, _refresh())
+
+
+def off_the_action(entity: Any, work: Coroutine[Any, Any, Any]) -> None:
+    """Run an action's slow part as an entry background task, so it returns.
+
+    A button has published already (upstream writes the press time before
+    ``async_press``), but under the button platform's PARALLEL_UPDATES a press
+    awaiting a solve held the slot, and a reset pressed behind it was cancelled
+    at a restart before its setter ran (RC2, round 9).
+    """
     entity._entry.async_create_background_task(
-        entity.hass, _refresh(), name="heatpump_optimizer_action_refresh"
+        entity.hass, work, name="heatpump_optimizer_action_refresh"
     )
 
 
