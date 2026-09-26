@@ -68,6 +68,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T13:22Z: G1-V3 complete @95cbe2bf. Judge notes: D1-s2-52 raise to high (5/5 stores lost, real restart race); D1-s5-52 raise to high (-127.0 published as available), same mechanism as D1-s1-03 and D1-s2-02 (no plausibility bound) -> dedup candidate; D1-s2-51/52, D1-s5-52 to P2. Complete 10/12; open: G1-V2 leads, G3-V2 leads.
 
+- 2026-09-26T13:25Z: register @b6eaffbb: 20 re-admitted (tvofi 13:02Z), 149 registered / 0 rejected. Normalised bodies /mnt/project-files/audit-r9/intake/normalised.json; log normalise_log.md (flag: D12-s2-01/02/03 cpu_or_wall 'neither' mapped to 'count'). Still owed on the register: D3-s3 rows (5) and LC's rows; CORPUS_EXCLUDED fix for entities.py.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
