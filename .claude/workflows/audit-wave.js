@@ -79,7 +79,7 @@ const runGroup = async (g) => {
   return { group: g.group, pr: fix.pr, head_sha: fix.head_sha, verdict: review.verdict }
 }
 
-// Round-based scheduling, like audit-find.js's WAVES: each round takes every
+// Round-based scheduling: each round takes every
 // group whose `after` list is fully satisfied (its dependencies produced a
 // PR), runs at most three of them concurrently through parallel(), then
 // re-evaluates. A round with nothing ready means every remaining group is
