@@ -354,3 +354,4 @@ JUDGE-* header lines are optional; where absent the dedup judge writes judge_bat
 - 2026-09-26T20:42Z (orchestrator): F7.1 = draft PR #1690 (merge verdict). Mac opening F3.1, F8.1, F6.1, F5.1, F11.1 next.
 - 2026-09-26T20:43Z (orchestrator): the Mac writes docs/delivery/<N>.md itself when it opens each PR; fixers never owe a delivery row. This rule is going into the lane briefs.
 - 2026-09-26T20:50Z (orchestrator): roster follow-up @cd2f6028: #1668 -> F8.3 (after F5.2); F11.1 carries -> F11.4 (asymmetry), F11.5 (stamp.py); unshallow + no-delivery-row rules in all lane briefs. WAVE2 unchanged. Wave-2 fixers must use briefs @cd2f6028.
+2026-09-26T20:56Z F2.1 handed off: handoff/r9-f2-solver-1 @0fd48ef5, code head 3ddb2eb486aa733ec3e81df5c6aed6d1d77206a3, body tools/audit/handoff/r9-f2-solver-1.md; scoped gate green (21/22, stress.py to CI), env_drift NO UNCLAIMED DRIFT (3 claimed), prepr body 0 errors. Awaiting the Mac draft PR, CI and review.
