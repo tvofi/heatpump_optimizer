@@ -26078,7 +26078,7 @@ print("RESULT thread_factor={tf}")
 
 
 def _jb_run() -> dict:
-    """Eleven fixture harnesses through ``judge_batch.run_batch``, one lease.
+    """Thirteen fixture harnesses through ``judge_batch.run_batch``, one lease.
 
     ``edits`` perturbs by writing a tracked file on disk and never restores it;
     ``reads`` counts that file, so it reads 3 alone and 9 after ``edits`` unless
@@ -26098,8 +26098,16 @@ def _jb_run() -> dict:
         lock_dir = Path(td) / "lock"
         (repo / "pkg").mkdir()
         (repo / "pkg" / "prod.txt").write_text("3\n")
+        (repo / "pkg" / "staged.txt").write_text("3\n")
         reads = 'int(Path("pkg/prod.txt").read_text())'
         edit = 'Path("pkg/prod.txt").write_text("9\\n")'
+        effects = {
+            "edits": edit,
+            # an edit the command stages, and a new EMPTY file in a new directory
+            "stages": ('Path("pkg/staged.txt").write_text("5\\n"); '
+                       '__import__("subprocess").run(["git", "add", "pkg/staged.txt"])'),
+            "empties": 'Path("pkg/d").mkdir(); Path("pkg/d/new_empty.txt").touch()',
+        }
         gl = _closure.ROOT / "tests" / "gate_lock.py"
         wrap = (f'{sys.executable} {gl} flock-wrap --label "$HPO_GATE_LOCK_LABEL" -- ')
         cases = {
@@ -26116,6 +26124,8 @@ def _jb_run() -> dict:
             "shrinks": (3, 3, 1, "to_zero", True),
             "hot": (3, 3, 0, "to_zero", True),
             "badjb": (3, 3, 0, "to_zero", True),
+            "stages": (3, 3, 0, "to_zero", True),
+            "empties": (3, 3, 0, "to_zero", True),
         }
         findings = []
         for name, (base, got, pert, direction, has_p) in cases.items():
@@ -26126,7 +26136,7 @@ def _jb_run() -> dict:
                 base=base, got=got, perturbed=pert, perturb=perturb,
                 py=sys.executable, name=name,
                 run=(wrap + run) if name == "nested" else run,
-                side_effect=edit if name == "edits" else "pass",
+                side_effect=effects.get(name, "pass"),
                 tf="1.20" if name == "hot" else "1.00"))
             findings.append({
                 "id": f"D1-s1-{name}",
@@ -26142,12 +26152,25 @@ def _jb_run() -> dict:
                                       label="entities-jb", timeout=30)
         after = _gate_lock.read_owner(lock_dir)
         md = judge_batch.render_table(rows)
-        dirty = _subprocess.run(git + ["status", "--porcelain"], capture_output=True,
-                                text=True).stdout.strip()
+        dirty = _subprocess.run(git + ["status", "--porcelain", "--untracked-files=all"],
+                                capture_output=True, text=True).stdout.strip()
+        left_dir = (repo / "pkg" / "d").exists()
+        # The re-snapshot's own arm: with restore() a no-op, the edit stays and
+        # the row must say so rather than "restored".
+        real_restore = judge_batch.restore
+        judge_batch.restore = lambda repo, before: judge_batch.differ(
+            before, judge_batch.snapshot(repo) or {})
+        try:
+            with judge_batch.Lease("entities-jb", lock_dir) as lease:
+                failed = judge_batch.run('echo 7 > pkg/prod.txt', repo=repo, lease=lease,
+                                         timeout=30, arm="perturb")["flags"]
+        finally:
+            judge_batch.restore = real_restore
+            _subprocess.run(git + ["checkout", "HEAD", "--", "pkg/prod.txt"], capture_output=True)
     shards = {n: [judge_batch._shard(findings, f"{k}/{n}") for k in range(1, n + 1)]
               for n in (2, 3)}
     return {"rows": {r["id"].rsplit("-", 1)[1]: r for r in rows}, "after": after, "md": md,
-            "dirty": dirty, "ids": sorted(f["id"] for f in findings),
+            "dirty": dirty, "left_dir": left_dir, "failed": failed, "ids": sorted(f["id"] for f in findings),
             "shards": {n: [sorted(f["id"] for f in sh) for sh in v] for n, v in shards.items()},
             "within": [judge_batch.within(e, g, t) for e, g, t in (
                 ("10", "10.4", "±0.5"), ("10", "10.6", "±0.5"),
@@ -26190,10 +26213,10 @@ R.check(
 R.check(
     "judge_batch: every row carries the harness's load1 and thread_factor, one "
     "table row per finding, and the lease is released after the batch",
-    len(_jbr) == 11
+    len(_jbr) == 13
     and all(r.get("load1") == "0.25" and r.get("thread_factor") == ("1.20" if k == "hot" else "1.00")
             for k, r in _jbr.items())
-    and _JB["md"].count("\n| D1-s1-") == 11
+    and _JB["md"].count("\n| D1-s1-") == 13
     and _JB["after"] is None,
     f"rows={len(_jbr)} after={_JB['after']!r}",
 )
@@ -26237,6 +26260,19 @@ R.check(
     and not any("tree" in f for f in _jbr.get("reads", {}).get("flags", []))
     and _JB.get("dirty") == "",
     f"edits={_jbr.get('edits')!r} reads={_jbr.get('reads')!r} dirty={_JB.get('dirty')!r}",
+)
+R.check(
+    "judge_batch: an edit the command STAGED is restored from HEAD, not from the "
+    "index it staged, and a new EMPTY file (and its new directory) is noticed "
+    "and removed; the row says restored only when the re-snapshot agrees",
+    any(f.startswith("tree edited by perturb: pkg/staged.txt") and f.endswith("; restored")
+        for f in _jbr.get("stages", {}).get("flags", []))
+    and any(f.startswith("tree edited by perturb: pkg/d/new_empty.txt") and f.endswith("; restored")
+            for f in _jbr.get("empties", {}).get("flags", []))
+    and _JB.get("dirty") == "" and _JB.get("left_dir") is False
+    and any("restore FAILED: pkg/prod.txt" in f for f in _JB.get("failed", [])),
+    f"stages={_jbr.get('stages', {}).get('flags')!r} empties={_jbr.get('empties', {}).get('flags')!r} "
+    f"dirty={_JB.get('dirty')!r} left_dir={_JB.get('left_dir')!r} failed={_JB.get('failed')!r}",
 )
 R.check(
     "judge_batch: a harness that takes flock itself under the batch's label "

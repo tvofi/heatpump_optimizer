@@ -197,36 +197,58 @@ def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run(["git", *args], cwd=repo, capture_output=True)
 
 
-def snapshot(repo: Path) -> dict[str, bytes | None] | None:
-    """Every dirty or untracked path with its bytes (None: absent); None off git."""
+# A path's state: its porcelain XY code (index and worktree against HEAD) and
+# its bytes, None when the file is absent. A path the snapshot does not list is
+# CLEAN -- never "empty", so a new empty file is a change and not a match.
+CLEAN = ("  ", "clean")
+
+
+def snapshot(repo: Path) -> dict[str, tuple[str, bytes | None]] | None:
+    """Every dirty or untracked path with its state; None off git."""
     p = _git(repo, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--no-renames")
     if p.returncode != 0:
         return None
-    snap: dict[str, bytes | None] = {}
+    snap: dict[str, tuple[str, bytes | None]] = {}
     for entry in p.stdout.decode("utf-8", "surrogateescape").split("\0"):
         if len(entry) > 3:
             path = entry[3:]
             f = repo / path
-            snap[path] = f.read_bytes() if f.is_file() else None
+            snap[path] = (entry[:2], f.read_bytes() if f.is_file() else None)
     return snap
 
 
-def restore(repo: Path, before: dict[str, bytes | None]) -> list[str]:
-    """Put the tree back to ``before``; return the paths that had moved."""
-    after = snapshot(repo) or {}
-    moved = sorted(p for p in set(before) | set(after) if before.get(p, b"") != after.get(p, b""))
+def differ(before: dict, after: dict) -> list[str]:
+    """The paths whose state (index, worktree, bytes) is not what ``before`` had."""
+    return sorted(p for p in set(before) | set(after)
+                  if before.get(p, CLEAN) != after.get(p, CLEAN))
+
+
+def restore(repo: Path, before: dict) -> list[str]:
+    """Put the tree back to ``before``; return the paths that had moved.
+
+    A path clean before goes back to HEAD in the index AND the worktree -- a
+    command that staged its edit would otherwise be "restored" from its own
+    index. A path dirty before gets its bytes back; its index is left as the
+    command left it, which the caller's re-snapshot reports if it differs.
+    """
+    moved = differ(before, snapshot(repo) or {})
     for path in moved:
         f = repo / path
         if path in before:
-            if before[path] is None:
+            if before[path][1] is None:
                 f.unlink(missing_ok=True)
             else:
                 f.parent.mkdir(parents=True, exist_ok=True)
-                f.write_bytes(before[path])
-        elif _git(repo, "ls-files", "--error-unmatch", "--", path).returncode == 0:
-            _git(repo, "checkout", "--", path)
+                f.write_bytes(before[path][1])
+        elif _git(repo, "cat-file", "-e", f"HEAD:{path}").returncode == 0:
+            _git(repo, "checkout", "HEAD", "--", path)
         else:
+            _git(repo, "rm", "-q", "--cached", "--ignore-unmatch", "--", path)
             f.unlink(missing_ok=True)
+            for d in f.parents:  # the empty directories the command left
+                if d == repo or not d.is_relative_to(repo) or any(d.iterdir()):
+                    break
+                d.rmdir()
     return moved
 
 
@@ -251,8 +273,10 @@ def run(cmd: str, *, repo: Path, lease: Lease, timeout: int, arm: str = "run") -
     if before is None:
         flags.append("tree unchecked")
     elif moved := restore(repo, before):
+        left = differ(before, snapshot(repo) or {})
         flags.append(f"tree edited by {arm}: {', '.join(moved[:5])}"
-                     + (f" (+{len(moved) - 5})" if len(moved) > 5 else "") + "; restored")
+                     + (f" (+{len(moved) - 5})" if len(moved) > 5 else "")
+                     + (f"; restore FAILED: {', '.join(left[:5])}" if left else "; restored"))
     return {"rc": rc, "results": results(out), "stderr": err[-400:], "flags": flags,
             "seconds": round(time.monotonic() - start, 1)}
 
