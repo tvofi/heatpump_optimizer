@@ -126,6 +126,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T17:08Z: coordinator is now session_01SM74NL5DhnznPZf1kK3REu (old 017qoF… inactive). Sweep threads started on sonnet: S1 session_01G5fqVeE2ECrdR2pB74m4kD, S2 session_01KS56ytnTCESpB9SjDMxCgw, S3 session_012vMzvm26Gi7oVXFwymzeCo, S4 session_01Y9R3TcoGD184yx9vSWgRZu, S5 session_01RgQ9vDA7g9wGTm65HHCC5t, S6 session_01DqB9ZJQTvQA97uuXCSg3n6, S7 session_015PoNcbaJ7vd5FE2oN5PZ5J. Next: the E issue drafts and the E2 FIX-PLAN draft from CLASSES-DRAFT.json while the sweeps run.
 
+- 2026-09-26T17:12Z: sweeps: S2 I5 done @38f1230 (N=19, no new); S1 P2 done @c44e7bcd (N=27, all instance, no new independent; barrier proposal: ~2 s AST lint from p2_facts.py with a canonical-predicate registry). Pending S3–S7.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
@@ -269,3 +271,4 @@ JUDGE-* header lines are optional; where absent the dedup judge writes judge_bat
 - tools/audit/README.md toolkit list doesn't name scopes.json / check_scopes.py (policy).
 - .claude/workflows/web-fragments.md + synced web-*.js still describe the pre-v6.7.0 lease → dispatched as R4b fixer (handoff/r9-r4b-web-fragments), policy.
 - tests/card_browser.mjs coarse-pointer comment and carry-1320.json control measured on Playwright 1.49 Chromium; unmeasured on 1.56.1 (lead for D4-s1).
+- 2026-09-26T17:12Z: S2 sweep (class I5, thread session_01KS56ytnTCESpB9SjDMxCgw) DONE. Commit 38f1230 on handoff/audit-r9-sweep-s2 (cut from handoff/audit-r9-judge): tools/audit/round9/D14/sweep/I5/{enumerator.py,null_and_perturb.py,SWEEP.md} + tools/audit/round9/D14/sweep/S2.json; copies at /mnt/project-files/audit-r9/sweep/S2.json and S2-I5-SWEEP.md. N=19, rca=true, no guarded seams, 4 widening siblings (architecture_claims, setup_claims, scan_const_numbers, scan_qualified_refs) found no new instance. All 19 unchanged on origin/main (db878b2) vs baseline 1936d5ca. Null control + perturbation demonstrated on entity_counts.py. send_message to the round-9 orchestrator (session_01WgT4h2uvK9kbxQbWc5MJis) and to coordinator session_01SM74NL5DhnznPZf1kK3REu both returned unreachable at report time — recorded here directly; please relay/ack when next active.
