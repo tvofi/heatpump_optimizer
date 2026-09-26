@@ -49,6 +49,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T13:05Z: pre-dedup done (intake/predup.json, .md in /mnt/project-files/audit-r9/intake/): 6 clusters over 154 findings (high: D11-s1-04+D11-s2-03, D5-s1-06+D6-s2-05; medium: D8-s1-03+D12-s2-01, D12-s1-01+D12-s1-02; low checks: D1-s5-01+D1-s5-51, D8-s2-02+D8-s2-03), 1 judge conflict (D6-s1 non-finding vs D6-s2-03). Goes to the Phase C judge. 20 format-rejected findings: normalising on the recommended option (sonnet seat, register branch), tvofi card pending.
 
+- 2026-09-26T13:08Z: verifier returns: G2-V3 complete @990663e1 (judge notes: D8-s2-03 fix conflicts with D8-s2-02's; D10-s1-01 seam misses services.py:629 assign_entity; D8-s3-01 sort and D8-s2-03 window not measured). G3-V1 complete @ad73e2d1 (judge notes: D9-s2-02 paired harness 1.149x/0 offenders; D9-s1-01 fix loses parity on Fortran-order batches; D2-s2-03 finder perturbation tautological, replaced by coil-off arm). G1-V3 catchup @8afed0b1, leads still running. Complete so far: G1-V1, G2-V1, G2-V2, G2-V3, G3-V1, G4-V1, G4-V2.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
