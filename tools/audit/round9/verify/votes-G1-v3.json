@@ -172,6 +172,27 @@
     "class": "new: a series resolution inferred as the minimum gap between external timestamps, so one off-grid sample shrinks every sample's span and erases the whole series",
     "seam_rule_enumerates": "all: the single inference site (open_meteo.py:231) feeds every _parse_block series (irradiance hourly and 15-minute, humidity, snowfall, observed)"
    }
+  ],
+  "D3": [
+   {
+    "id": "D3-s1-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "reach_delta=2 of 7 genuine-HA State readings (-5.0 degC and 23 degF move -5.0 -> None under C0043; null 0). load1=2.59, thread_factor=0.994. Finder's recorded killed_by=0 of 15 scripts is cited, not re-run.",
+    "metric_definition": "reach_delta = number of probe readings on which _dhw_inlet_c, given a real homeassistant.core.State (HA 2026.2.3, no hastub), returns a different repr with mutant C0043 patched in than with the baseline function",
+    "method": "Cited the seat's recorded mutant C0043 (coordinator.py:1371 `-5.0 <= value` -> `-5.0 < value`) and its prescreen log (logs/prescreen_C0043.log: scripts_run=15, killed_by=0, KILLERS -, env_drift --all). Re-ran the finder's cheap behaviour.py C0043 and --null. Wrote a reach harness on real HA 2026.2.3. Checked closure membership and test text with grep. Quiet window not run (tvofi rule); prescreen.py not re-run (about 11 min, a heavy D3 mutation run).",
+    "attacks": [
+     "behaviour.py C0043 re-run: behaviour_delta=1 (-5.0 -> None), --null 0 (load1 2.08/2.15, thread_factor 1.000); matches the finder exactly",
+     "gate mode: the finder's prescreen ran env_drift.py --all, not the 5-fixture default; its log shows killed_by=0. Holds.",
+     "closure completeness: tests/closures.json lists 16 scripts that include coordinator.py; with golden.py replaced by env_drift --all that is the finder's 15. stress/edge/backtest are not in that closure and contain 0 'inlet' references, so excluding them hides no kill.",
+     "test text: tests/features.py inlet checks (_p8_inlet_at) probe only 50 degF, 10 degC, 40.0 degC, stale and 'unknown'; no arm at -5.0, below it, or at 35.0. The gap stands.",
+     "real-HA reach: D3-s1-01_reach.py on /root/venvha (HA 2026.2.3, genuine State, no hastub): baseline returns -5.0 at -5.0 degC and at 23 degF; C0043 returns None for both; reach_delta=2, null 0. Reachable via coordinator.py:2571 whenever CONF_DHW_INLET_ENTITY is configured. Environment shim only: typing.ByteString for mashumaro on CPython 3.14.0rc2.",
+     "severity by consequence: one measure-zero point (-5.0 degC inlet, implausible for liquid mains water) falls back to seasonal_inlet_temp (coordinator.py:2572-2573), not a wrong value; low earned",
+     "full-gate mutant confirmation: quiet window not run (tvofi rule)"
+    ],
+    "class": "I1",
+    "seam_rule_enumerates": "partial: the seam rule is a listing, not a kill check. It lists 5 operator seams of _dhw_inlet_c (C0041-C0045). It has no CONST_SHIFT on -5.0 and no drop of the lower conjunct alone, so the 'lower bound pinned by no check' property is only partly enumerated. Running each seam through prescreen.py is the forbidden heavy D3 run, so only the listing was executed."
+   }
   ]
  }
 }
