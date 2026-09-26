@@ -78,6 +78,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T13:45Z: G1-V1 lc @9e0a60f1: D1-s2-91 verify medium, D3-s1-91 verify medium (:8112 rests on grep only). Waiting: G1-V2 leads+lc, G1-V3 lc.
 
+- 2026-09-26T13:47Z: G1-V3 lc @3b449903: both verify medium; D1-s2-91 -> P2, same phenomenon as D1-s2-51 (dedup candidate for the judge); D3-s1-91 I1, seam rule partial. Waiting only on G1-V2 (leads + lc).
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
