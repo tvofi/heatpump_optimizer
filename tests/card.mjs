@@ -8551,7 +8551,9 @@ const STOCK_THEMES = {
     ]) {
       const pts = pastOf(c, key, field)
         .filter((p) => p.t < Date.parse(plan.space_plan.forecast[0].t));
-      const wrong = pts.filter((p) => heldAt(e[id], p.t) !== p.v);
+      // Held at the step's middle: a row a minute into the step is that
+      // step's value.
+      const wrong = pts.filter((p) => heldAt(e[id], p.t + 7.5 * 60000) !== p.v);
       check(`the ${key} trace carries its own sensor's rows when another entity is dropped`,
         pts.length > 0 && wrong.length === 0, `${wrong.length}/${pts.length} point(s) not the sensor's own`);
     }
@@ -8685,6 +8687,7 @@ const STOCK_THEMES = {
   const past = (c, key, field) =>
     fieldPointsOf(c._series.find((s) => s.key === key), field).filter((p) => p.t < firstFc);
   // What the recorder says the value was at t: the last row at or before t.
+  // A drawn point is asked about the step's middle (stepValue).
   const heldAt = (rows, t) => {
     let v;
     for (const r of rows) { if (r.t <= t) v = r.state; else break; }
@@ -8711,7 +8714,7 @@ const STOCK_THEMES = {
       api.calls.some((p) => p.includes(LEGACY)), api.calls.join(" | ").slice(0, 200));
     const pts = past(c, "price", "price");
     check("and its recorded price draws the past half of the price series",
-      pts.length > 0 && pts.every((p) => p.v === heldAt(e[LEGACY], p.t)),
+      pts.length > 0 && pts.every((p) => p.v === heldAt(e[LEGACY], p.t + STEP / 2)),
       `${pts.length} past price point(s)`);
     // Null control: with no price sensor under either id, no price is drawn
     // in the past -- nothing is invented to fill the series.
@@ -8763,9 +8766,9 @@ const STOCK_THEMES = {
         api.calls.some((p) => p.includes(HISTORY_IDS.lower)));
     const wrong = [];
     for (const [key, field, id] of series) {
-      if (!id) continue;
+      if (!id || field === "ghi") continue; // irradiance is a step mean, like power
       const pts = past(c, key, field);
-      const miss = pts.filter((p) => p.v !== heldAt(e[id], p.t));
+      const miss = pts.filter((p) => p.v !== heldAt(e[id], p.t + STEP / 2));
       if (!pts.length || miss.length) wrong.push(`${field}: ${miss.length}/${pts.length}`);
     }
     check("each past point is the value its own sensor held at that step",
@@ -8838,6 +8841,46 @@ const STOCK_THEMES = {
     const spans = (t) => lines.some((l) => l.points.some((p) => p.t < t) && l.points.some((p) => p.t > t));
     check("an outage spanning whole steps breaks the past trace, a one-minute blip does not",
       !spans(long + 1.5 * STEP) && spans(blipT), `${lines.length} line(s)`);
+  }
+  {
+    // tvofi's live screenshots (2026-09-26): the past drew kW 0-30 and
+    // 10-25 degC with no price axis while the plan beside it drew kW 0-10,
+    // 0-80 degC and a price axis. Panned into the past, the axes span the
+    // live window's plan as well, so the past reads on the plan's scales.
+    const live = mk(e);
+    live.c._buildSeries();
+    live.c._onCardClick({});
+    const la = live.c._plot.axes;
+    const pa = c._plot.axes;
+    const short = ["temp", "power", "price"].filter((k) =>
+      !la[k] || !pa[k] || pa[k].min > la[k].min || pa[k].max < la[k].max);
+    check("panned into the past, the axes span the live plan's scales",
+      short.length === 0,
+      short.map((k) => `${k}: past ${JSON.stringify(pa[k])} live ${JSON.stringify(la[k])}`).join("; "));
+    // Null control: an unpanned card carries no second scale source, so the
+    // plan's own view is scaled exactly as before.
+    check("and an unpanned card keeps the scales the plan alone gives it",
+      live.c._buildSeries().scaleWith === undefined &&
+        c._buildSeries().scaleWith !== undefined);
+  }
+  {
+    // The lanes: the plan's slots are solid blocks in the Hot water and
+    // Heating lanes; the past drew an empty grey wash. It now draws what
+    // the pump ran there, from the recorded mode runs, and only left of
+    // the editable window.
+    const { c: lc } = await deep(realisticHistory(FROZEN, { power: false }), undefined, -20);
+    lc._onCardClick({});
+    const dump = collect(lc.shadowRoot).join("\n");
+    const rects = [...dump.matchAll(/class="slot-past"[^>]*x="([-\d.]+)"[^>]*width="([-\d.]+)"[^>]*fill="(#[0-9a-f]+)"/g)]
+      .map((m) => ({ x2: Number(m[1]) + Number(m[2]), color: m[3] }));
+    const nowX = lc._plot.scaleX(FROZEN);
+    check("the lanes draw the recorded runs, hot water red and heating blue, left of now",
+      rects.some((r) => r.color === "#e0544e") && rects.some((r) => r.color === "#4a90e2") &&
+        rects.every((r) => r.x2 <= nowX + 0.5),
+      `${rects.length} past slot(s), rightmost ${Math.max(...rects.map((r) => r.x2)).toFixed(1)} vs now ${nowX.toFixed(1)}`);
+    const plainDump = collect(build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), {}).shadowRoot).join("\n");
+    check("and a card with no recorded history draws none",
+      !/slot-past/.test(plainDump));
   }
   {
     // The live edge refreshes: a card left open keeps its past up to now,

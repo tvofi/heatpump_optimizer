@@ -34,7 +34,10 @@
 # the first in-window recorder row; the price and solar step areas and the
 # space/DHW slot bars step once per plan step, each slot step the
 # time-weighted mean of the power_kw rows across it (history_no_power draws
-# no slot bars: its rows carry no power_kw). No new element, chip
+# no slot bars: its rows carry no power_kw); the irradiance is a step mean
+# too. The axes also span the live window's plan, so tick labels and every
+# y coordinate move; and the lanes gain `slot-past` rects for the recorded
+# mode runs left of the editable window. No new chip
 # or series appears: the fixtures' states carry no tank or lower-floor
 # probe, so those two past traces do not render here (card.mjs pins them).
 history_panned  # recorded past on the plan's step grid, drawn in the forecast's style

@@ -248,7 +248,10 @@ continuous line rather than a gap; the line breaks only where a sensor was
 unavailable for at least a whole step. The heating slots draw from the action
 sensor's `power_kw`, each step the average of what was commanded across it:
 on the hot-water series while the pump was in hot-water mode, on the
-space-heating series in every other heating mode. The **Actioned power** series is a band along the base of the plot
+space-heating series in every other heating mode. The Hot water and Heating
+lanes show the runs the pump actually made there, drawn like the plan's own
+slots, and while the view reaches into the past the axes also span the plan's
+live window, so the past is read on the same scales as the plan beside it. The **Actioned power** series is a band along the base of the plot
 for the hours the pump was executing heating, drawn from the action sensor's
 own state history (the mode is the state, so every install has it) — the
 power bars are an overlay, never a prerequisite. Hovering the past names the

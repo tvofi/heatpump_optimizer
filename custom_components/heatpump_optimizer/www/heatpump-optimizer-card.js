@@ -5019,9 +5019,9 @@ class HistorySource {
       const stop = Math.min((chunk + 1) * HISTORY_CHUNK_MS, this.fetchedThrough);
       for (let t = chunk * HISTORY_CHUNK_MS; t < stop; t += PLAN_STEP_MS) {
         const at = { space: {}, dhw: {}, solar: {} };
-        for (const [field, array, source] of HISTORY_FIELDS) {
+        for (const [field, array, , mean] of HISTORY_FIELDS) {
           const v = stepValue(this.log[field] || [], t,
-            Math.min(t + PLAN_STEP_MS, stop), !source);
+            Math.min(t + PLAN_STEP_MS, stop), mean);
           if (v !== undefined) at[array][field] = v;
         }
         for (const array of Object.keys(out)) {
@@ -5063,37 +5063,48 @@ class HistorySource {
 }
 
 // The plan fields the recorded past fills: [field, overlay array, the
-// entityIds() key whose state it is]. `upper` is the indoor thermometer
-// itself (UpperFloorTempSensor), so its past is the room's. The power fields
-// have no source here: `absorb` derives them from the action rows, and
-// `stepValue` means them over the step rather than holding them.
+// entityIds() key whose state it is, whether a step MEANS it]. `upper` is the
+// indoor thermometer itself (UpperFloorTempSensor), so its past is the room's.
+// The power fields have no source here: `absorb` derives them from the action
+// rows. Power and irradiance are means over the step, as the plan's are -- a
+// seconds-long 25 kW row is a sliver of a step's energy, not a bar, and a
+// restart's momentary 0 W/m² is not the step's sunshine.
 const HISTORY_FIELDS = [
-  ["room", "space", "indoor"],
-  ["upper", "space", "indoor"],
-  ["lower", "space", "lower"],
-  ["outdoor", "space", "outdoor"],
-  ["price", "space", "price"],
-  ["space_power", "space", null],
-  ["dhw_temp", "dhw", "tank"],
-  ["dhw_power", "dhw", null],
-  ["ghi", "solar", "solar"],
+  ["room", "space", "indoor", false],
+  ["upper", "space", "indoor", false],
+  ["lower", "space", "lower", false],
+  ["outdoor", "space", "outdoor", false],
+  ["price", "space", "price", false],
+  ["space_power", "space", null, true],
+  ["dhw_temp", "dhw", "tank", false],
+  ["dhw_power", "dhw", null, true],
+  ["ghi", "solar", "solar", true],
 ];
 
 /** One plan step [t, end) of a time-sorted {t, v} log. `undefined` when no
  * sample speaks for the step (before the sensor's first row); null -- a
- * hole -- when every sample that does was unavailable; otherwise the value
- * held at t (the first known one inside the step if t itself was a hole),
- * or with `mean` the time-weighted mean over the step's known stretch. */
+ * hole -- when every sample that does was unavailable; otherwise, with
+ * `mean`, the time-weighted mean over the step's known stretch, and
+ * without it the value held at the step's middle (a price that steps a
+ * minute after the hour is that hour's price), or the first known one
+ * inside the step when the middle was a hole. */
 function stepValue(log, t, end, mean) {
-  let lo = 0;
-  let hi = log.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (log[mid].t <= t) lo = mid + 1;
-    else hi = mid;
-  }
-  let k = Math.max(0, lo - 1);
+  const heldAt = (x) => {
+    let lo = 0;
+    let hi = log.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (log[mid].t <= x) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo - 1;
+  };
+  let k = Math.max(0, heldAt(t));
   if (k >= log.length || log[k].t >= end) return undefined;
+  if (!mean) {
+    const m = heldAt((t + end) / 2);
+    if (m >= 0 && log[m].v !== null) return log[m].v;
+  }
   let first = null;
   let area = 0;
   let span = 0;
@@ -5613,9 +5624,12 @@ function renderChart(frame, opts) {
     (expanded ? FONT_EXPANDED : FONT_BASE) * LANE_LABEL_EM
   );
 
-  // Axis domains from visible series grouped by axis.
+  // Axis domains from visible series grouped by axis -- and, while the view
+  // is panned into the recorded past, from the live window's plan too
+  // (`frame.scaleWith`), so the past is read on the plan's own scales.
   const groups = { temp: [], power: [], price: [], solar: [] };
-  for (const s of visible) {
+  const scaled = (frame.scaleWith || []).filter((s) => s.visible && s.hasData);
+  for (const s of visible.concat(scaled)) {
     for (const line of s.lines) {
       for (const p of line.points) groups[s.axis].push(p.v);
     }
@@ -7803,6 +7817,25 @@ class LaneEditor {
           `<rect class="lane-past" x="${plotL}" y="${y}" width="${
             floorX - plotL
           }" height="${laneH}" fill="var(--secondary-text-color,#888)" fill-opacity="0.12"/>`
+        );
+      }
+      // What the pump actually ran before the editable window, drawn in
+      // the lane the way the plan's own slots are (tvofi, 2026-09-26: the
+      // past should look like the plan): heat_pump_action's mode runs,
+      // hot_water in the hot water lane, every other heating mode in the
+      // heating lane. Locked-looking, and never a target: the past is not
+      // editable.
+      const hist = this.host.histSource;
+      for (const run of hist && hist.overlays() ? hist.actionRuns() : []) {
+        if (!ACTION_HEATING_MODES.has(run.mode)) continue;
+        if ((run.mode === "hot_water") !== (spec.channel === "dhw")) continue;
+        const stop = Math.min(run.end, lo);
+        if (stop <= windowStart || run.start >= Math.min(windowEnd, stop)) continue;
+        const x1 = clampX(run.start);
+        out.push(
+          `<rect class="slot-past" pointer-events="none" x="${x1}" y="${y}" width="${Math.max(
+            1, clampX(stop) - x1
+          )}" height="${laneH}" rx="2" fill="${spec.color}" fill-opacity="0.35"/>`
         );
       }
       const ceilX = clampX(hi);
@@ -11637,6 +11670,16 @@ class HeatpumpOptimizerCard extends HTMLElement {
       hidden: this.legend.hidden,
       zoomed: this.view.zoomed,
     });
+    // Panned into the recorded past, the axes also span the live window's
+    // plan (renderChart): one scale across the pan, so the past reads on
+    // the scales the plan beside it uses (tvofi, 2026-09-26).
+    if (hist && view.start < dw.start) {
+      built.scaleWith = buildSeries({
+        spFc: cut(spFc), dhwFc: cut(dhwFc), solarFc: cut(solarFc),
+        windowStart: dw.start, windowEnd: dw.end,
+        hidden: this.legend.hidden, zoomed: this.view.zoomed,
+      }).series;
+    }
     if (displayWindows(windowsSpec).length) {
       const s = built.series.find((x) => x.key === "dhw_temp");
       if (s) s.dhwBandFloored = true;
