@@ -1,5 +1,13 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.2
+
+the card's plan history now looks like the plan: past prices (under either price sensor id), 15-minute steps, the plan's own scales and lanes, and no breaks from one-minute sensor blips. Button presses now return before the solve, so a restart no longer cancels a queued reset. The typing toolchain lock also moves to cryptography 50.0.1 for three Dependabot advisories.
+
+- #1641 — fix: user state is durable across restarts, and button presses return before the solve (round-9 RC2)
+- #1642 — typing lock: cryptography 50.0.1 for Dependabot alerts 66, 69, 70
+- #1643 — card: the plan history looks like the plan (prices, no gaps, same scales and lanes)
+
 ## v6.7.1
 
 the round-9 audit baseline: the find and verify drivers and their checkers, instrument and lease-doc fixes, prepr running the pinned local checks a red CI would have caught, and the bug-5 remainder -- a mode change is now saved before the refresh, after the startup read has landed, so a restart keeps it without losing stored state.
