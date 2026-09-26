@@ -51,6 +51,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T13:08Z: verifier returns: G2-V3 complete @990663e1 (judge notes: D8-s2-03 fix conflicts with D8-s2-02's; D10-s1-01 seam misses services.py:629 assign_entity; D8-s3-01 sort and D8-s2-03 window not measured). G3-V1 complete @ad73e2d1 (judge notes: D9-s2-02 paired harness 1.149x/0 offenders; D9-s1-01 fix loses parity on Fortran-order batches; D2-s2-03 finder perturbation tautological, replaced by coil-off arm). G1-V3 catchup @8afed0b1, leads still running. Complete so far: G1-V1, G2-V1, G2-V2, G2-V3, G3-V1, G4-V1, G4-V2.
 
+- 2026-09-26T13:10Z: G3-V2 batch 1 @d2ce9437 (leads still running). Judge notes: D14-s4-02 fix must also step run_fixture in UTC (8/96 left otherwise); D9-s1-04 1z shoulder share 0.023; D9-s2-02 x5 did not turn red here; D2-s1-01, D2-s3-02 to low.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
