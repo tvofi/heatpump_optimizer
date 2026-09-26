@@ -590,7 +590,7 @@ if [ "${1:-}" = "--self-test" ]; then
   # `empty` and `broken` matter most: a settings file with no hooks, and one
   # that does not parse, both read exactly like a working one to anybody who
   # only looks at whether the file is there.
-  for f in missing empty unreadable broken self-test-fails; do
+  for f in missing empty unreadable broken self-test-fails bad-matcher bad-type; do
     node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1
     st $? 1 "a settings file whose hook is $f is refused"
   done

@@ -25,20 +25,21 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseRuleFrontmatter } from './policy_lint.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
 const SRC = path.join(ROOT, '.claude', 'rules')
 const OUT = path.join(ROOT, '.cursor', 'rules')
 
+// D11-s1-71: this used to run its own `/^\s*-\s*"([^"]+)"\s*$/gm` over the
+// whole frontmatter block, which disagreed with `policy_lint.mjs`'s reader on
+// two of six shapes the sweep drove -- a trailing comment on a path line (the
+// line-end anchor rejected it) and a list item under a key other than `paths:`
+// (the whole-block scan collected it as if it were one). Import the one
+// reader both files now use rather than keep a second copy of it.
 function parse(text, rel) {
-  const m = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(text)
-  if (!m) throw new Error(`${rel}: no frontmatter`)
-  const [, fm, body] = m
-  const desc = /^description:\s*(.+)$/m.exec(fm)
-  if (!desc) throw new Error(`${rel}: no description`)
-  const paths = [...fm.matchAll(/^\s*-\s*"([^"]+)"\s*$/gm)].map((x) => x[1])
-  return { description: desc[1].trim(), paths, body }
+  return parseRuleFrontmatter(text, rel)
 }
 
 // The generated form. `globs` is comma-joined without spaces, which is how the
@@ -59,43 +60,56 @@ function sources() {
     .map((f) => ({ stem: f.replace(/\.md$/, ''), rel: `.claude/rules/${f}` }))
 }
 
-const check = process.argv.includes('--check')
-let drift = 0
-let wrote = 0
-const expected = new Set()
+// I4 carry-in (RCA, 2026-09-26): this ran unconditionally at module scope, so
+// merely IMPORTING this file for its parser (as F11.4's agreement lane, and
+// this PR's own `parse`, need to) wrote `.cursor/rules/*.mdc` as a side
+// effect of being read. Guarded behind `main()` like `policy_lint.mjs` is, so
+// a seat can import `parse`/`render`/`sources` without triggering a write.
+function main() {
+  const check = process.argv.includes('--check')
+  let drift = 0
+  let wrote = 0
+  const expected = new Set()
 
-for (const { stem, rel } of sources()) {
-  const want = render(parse(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel))
-  const outRel = `.cursor/rules/${stem}.mdc`
-  expected.add(`${stem}.mdc`)
-  const outAbs = path.join(ROOT, outRel)
-  const have = fs.existsSync(outAbs) ? fs.readFileSync(outAbs, 'utf8') : null
-  if (have === want) continue
+  for (const { stem, rel } of sources()) {
+    const want = render(parse(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel))
+    const outRel = `.cursor/rules/${stem}.mdc`
+    expected.add(`${stem}.mdc`)
+    const outAbs = path.join(ROOT, outRel)
+    const have = fs.existsSync(outAbs) ? fs.readFileSync(outAbs, 'utf8') : null
+    if (have === want) continue
+    if (check) {
+      console.log(`DRIFT ${outRel}: ${have === null ? 'missing' : 'differs from'} the generated form of ${rel}`)
+      drift++
+    } else {
+      fs.mkdirSync(path.dirname(outAbs), { recursive: true })
+      fs.writeFileSync(outAbs, want)
+      console.log(`wrote ${outRel}`)
+      wrote++
+    }
+  }
+
+  // A `.mdc` with no source is a hand-written rule that survived the conversion,
+  // or a rule whose source was deleted without its output. Either way a seat is
+  // reading something nothing generates, which is the state this script exists to
+  // end.
+  if (fs.existsSync(OUT)) {
+    for (const f of fs.readdirSync(OUT).filter((x) => x.endsWith('.mdc')).sort()) {
+      if (expected.has(f)) continue
+      console.log(`ORPHAN .cursor/rules/${f}: no .claude/rules/ source generates it`)
+      drift++
+    }
+  }
+
   if (check) {
-    console.log(`DRIFT ${outRel}: ${have === null ? 'missing' : 'differs from'} the generated form of ${rel}`)
-    drift++
-  } else {
-    fs.mkdirSync(path.dirname(outAbs), { recursive: true })
-    fs.writeFileSync(outAbs, want)
-    console.log(`wrote ${outRel}`)
-    wrote++
+    console.log(drift ? `\nRULES-SYNC: ${drift} file(s) out of date. Run without --check.` : '\nRULES-SYNC ok: every .cursor rule is the generated form of its source')
+    process.exit(drift ? 1 : 0)
   }
+  console.log(`\nRULES-SYNC: ${wrote} file(s) written, ${sources().length} source(s)`)
 }
 
-// A `.mdc` with no source is a hand-written rule that survived the conversion,
-// or a rule whose source was deleted without its output. Either way a seat is
-// reading something nothing generates, which is the state this script exists to
-// end.
-if (fs.existsSync(OUT)) {
-  for (const f of fs.readdirSync(OUT).filter((x) => x.endsWith('.mdc')).sort()) {
-    if (expected.has(f)) continue
-    console.log(`ORPHAN .cursor/rules/${f}: no .claude/rules/ source generates it`)
-    drift++
-  }
-}
+export { parse, render, sources }
 
-if (check) {
-  console.log(drift ? `\nRULES-SYNC: ${drift} file(s) out of date. Run without --check.` : '\nRULES-SYNC ok: every .cursor rule is the generated form of its source')
-  process.exit(drift ? 1 : 0)
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main()
 }
-console.log(`\nRULES-SYNC: ${wrote} file(s) written, ${sources().length} source(s)`)

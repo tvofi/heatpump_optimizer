@@ -45,17 +45,22 @@ import d11lib as L  # noqa: E402
 
 # The rule this set is derived from (#1241, D13-04): every job defined in
 # .github/workflows/governance.yml, plus `briefs` (tests.yml) and the jobs of
-# `pr-contract.yml` and `budget-raise-gate.yml`, governance jobs held in their
-# own files for their triggers. The set is carried here rather
-# than parsed live because a harness is pinned, not self-modifying -- but
-# tests/entities.py pins it BOTH WAYS against the workflow files: a GOV member
-# that no workflow defines (the renamed `record-status`, which cost this
-# instrument a window of delivery-status seconds counted as gate) and a
-# governance.yml job missing from GOV both redden there, so the next job the
-# governance workflow grows is refused until this set names it.
+# `pr-contract.yml`, `budget-raise-gate.yml` and `budget-raise-gate-rerun.yml`,
+# governance jobs held in their own files for their triggers. The set is
+# carried here rather than parsed live because a harness is pinned, not
+# self-modifying -- but tests/entities.py pins it BOTH WAYS against the
+# workflow files: a GOV member that no workflow defines (the renamed
+# `record-status`, which cost this instrument a window of delivery-status
+# seconds counted as gate) and a job of one of those governance workflow
+# files missing from GOV both redden there (D11-s1-72: before this PR the
+# pin only enforced the second direction for governance.yml itself, so a new
+# job added to pr-contract.yml, budget-raise-gate.yml or
+# budget-raise-gate-rerun.yml -- as `rerun-stale-verdict` was -- passed
+# uncounted), so the next job any of the four grows is refused until this
+# set names it.
 GOV = {"policy-docs", "env-matrix", "wave-script", "pr-contract", "record",
        "delivery-status", "delivery-status-publish", "briefs",
-       "instrument-self-tests", "budget-raise-gate"}
+       "instrument-self-tests", "budget-raise-gate", "rerun-stale-verdict"}
 W0 = os.environ.get("D11_WINDOW_START", "2026-09-09T09:37:08Z")
 W1 = os.environ.get("D11_WINDOW_END", L.BASELINE_UTC)
 

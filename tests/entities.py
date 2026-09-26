@@ -15727,6 +15727,13 @@ _NON_GATE_WORKFLOWS = [
     ".github/workflows/pr-contract.yml",
     # Decision 0013 as amended: the budget-raise gate, read for its wiring pins.
     ".github/workflows/budget-raise-gate.yml",
+    # D11-s1-72: this file was already in tests/closures.json's recorded
+    # closure for this script (its `workflow_run` trigger reads live from the
+    # default branch, so nothing here forces FULL), but carried no check of
+    # its own and its one job was absent from governance_cost.py's GOV set --
+    # the sweep's "escapes the GOV pin" instance. Classified here on the same
+    # terms as its two siblings above.
+    ".github/workflows/budget-raise-gate-rerun.yml",
 ]
 for _wf in _NON_GATE_WORKFLOWS:
     R.check(
@@ -21827,18 +21834,34 @@ _GOV_MOD = _load_governance_cost()
 _ALL_JOB_IDS: "set[str]" = set()
 for _wf in sorted(Path(".github/workflows").glob("*.y*ml")):
     _ALL_JOB_IDS |= _workflow_job_ids(_wf.read_text())
-_GOV_JOBS = _workflow_job_ids(_DS_GOV)
+# D11-s1-72: this used to check only `_GOV_WF` (governance.yml) against GOV,
+# so a governance job added to pr-contract.yml, budget-raise-gate.yml or
+# budget-raise-gate-rerun.yml -- held in its own file for its own trigger, per
+# governance_cost.py's own derivation comment, exactly like `briefs` in
+# tests.yml -- escaped the pin (the sweep's 3-of-3 instance). `briefs` stays
+# out of this union: it is the one governance job the null control below
+# requires to live OUTSIDE its own workflow file, so a set-membership pin over
+# tests.yml itself would fight that control on every other job tests.yml
+# defines (`fast`, `browser`, `closures`).
+_GOV_FILES = [_GOV_WF, ".github/workflows/pr-contract.yml",
+              ".github/workflows/budget-raise-gate.yml",
+              ".github/workflows/budget-raise-gate-rerun.yml"]
+_GOV_FILE_JOBS: "set[str]" = set()
+for _f in _GOV_FILES:
+    _GOV_FILE_JOBS |= _workflow_job_ids(Path(_f).read_text())
 R.check(
     "the governance-cost GOV set names only jobs the workflow files define, "
-    "and every governance.yml job",
+    "and every job of every governance workflow file",
     _ALL_JOB_IDS
-    and _GOV_JOBS
+    and _GOV_FILE_JOBS
     and _GOV_MOD.GOV <= _ALL_JOB_IDS
-    and _GOV_JOBS <= _GOV_MOD.GOV,
+    and _GOV_FILE_JOBS <= _GOV_MOD.GOV,
     f"GOV={sorted(_GOV_MOD.GOV)}; defined jobs={sorted(_ALL_JOB_IDS)}; "
-    f"governance.yml jobs={sorted(_GOV_JOBS)} -- a GOV member with no job "
-    "measures nothing (the renamed `record-status`), and a governance job "
-    "outside GOV is counted as gate seconds (#1241)",
+    f"governance workflow jobs={sorted(_GOV_FILE_JOBS)} (from {_GOV_FILES}) -- "
+    "a GOV member with no job measures nothing (the renamed `record-status`), "
+    "and a job of one of these files outside GOV is counted as gate seconds "
+    "(#1241; D11-s1-72 widened this from governance.yml alone to every "
+    "governance workflow file after `rerun-stale-verdict` escaped it)",
 )
 R.check(
     "and the split survives: the code gate's own jobs are not governance "
