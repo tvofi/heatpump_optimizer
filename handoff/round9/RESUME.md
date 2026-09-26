@@ -7,6 +7,13 @@ Mirror: branch handoff/audit-r9-plan, handoff/round9/RESUME.md (when /mnt/projec
 updated: 2026-09-26T06:10Z by orchestrator thread "Round 9 audit orchestrator"
 (thread cmsg_01EL5jLi4rokGBbkaevYXSJV2mBkzeKerzo5hWb5CAh44d, session cse_01WgT4h2uvK9kbxQbWc5MJis)
 
+## DEDUP OF THE WHOLE SET (tvofi 2026-09-26T12:52Z, cmsg_01EL5jLi4rokGBbkaevYXSJVF866zVhPkDfpYJRB3zsvPZ)
+Every round-9 finding is deduplicated once, before the class sweeps and issue filing, so no duplicate is swept, filed or fixed twice. The set covers batch 1 (122), leads (25), catch-up D3-s2 (2) and D3-s3 (5), plus any catch-up lead findings, across all dimensions and groups.
+Two steps:
+(1) A sonnet PRE-DEDUP seat, which runs now while verification finishes. It reads the records only, runs nothing and decides nothing, and writes candidate clusters with a proposed test per pair to scratchpad/intake/predup.json.
+(2) The JUDGE's dedup step (judge.md step 1, PLAN section 6.1). It proves or refutes each candidate merge with a number, using the canonical finding's perturbation on the other's harness, and runs its own search for anything the pre-dedup missed. Only then come verdicts, sweeps and filing.
+Findings killed at panel (for example D1-s2-01, 3 refutes) are excluded before dedup.
+
 ## MODEL ROUTING (tvofi 2026-09-26T12:21Z, cmsg_01EL5jLi4rokGBbkaevYXSJVDC1kJ5S9ThJsYejnAXbvVc)
 Run a task on sonnet or haiku wherever that is enough, throughout the project.
 - haiku: mechanical re-runs, the judge's runner threads (judge_batch.py), gathering and digests, report rendering from JSON, simple lookups and relays.
