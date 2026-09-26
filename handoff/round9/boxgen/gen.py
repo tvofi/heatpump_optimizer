@@ -16,6 +16,12 @@ for b, (h, l) in BOXES.items():
         extra = "\n- D11 and D13 read `main`'s history and the GitHub API (their briefs); use the GitHub MCP tools, read-only.\n"
     if b == 'B8':
         extra = "\n- All three seats are D14, which mutates production to prove detectors move: each isolated seat gets its OWN worktree (the driver does this). Per tools/audit/README.md since #1632: perturb in memory, or make on-disk edits only in the seat's own worktree.\n"
+    if b == 'B4':
+        extra = ("\n- Carried leads (finding-propagation, from R6 #1638 and the RC2 root-cause seat; they are leads, not findings, and the finders are NOT told of them, to keep them blind). "
+                 "After your collector has pushed, add these two entries to the `leads` array of D1-s1's report in `tools/audit/round9/reports-B4.json` on your evidence branch, as one extra commit (message: `carried leads from R6/RC2 (orchestrator)`), then push. The intake leads seat measures or closes them. Each is `{owner_seat: \"unknown\", file, symbol, what}`:\n"
+                 "  1. file `custom_components/heatpump_optimizer/` (the service handler), symbol `set_thermal_parameters`, what: `[carried by the orchestrator from RC2] the runtime fields it sets are not persisted and are lost at restart (user state that does not survive a restart; class of v2.4.1, v3.13.0, #1249, bug 5)`\n"
+                 "  2. file `custom_components/heatpump_optimizer/` (comfort learner / its store), symbol `async_reset_comfort_weight` and the cycle-end save, what: `[carried by the orchestrator from R6 round 2] a save during startup, before the store's first read completes, can overwrite persisted learner state with defaults (the startup-clobber R6 fixed only in async_set_mode via async_wait_for_read)`\n"
+                 "  If D1-s1 did not report, attach them to the first D1 seat on this box that did. Say in your message to the orchestrator that you added them.\n")
     txt = f"""# Round 9, phase A — box {b}
 
 {PRE}

@@ -70,7 +70,8 @@ Coordinator ack 04:32Z: Mac warned; reviews R1+R4 -> Cloud compute helper, R3+R6
 06:27Z Cloud reviewer 2 BLOCKED #1638 R6 @325c59a5 on the RC2 startup-save regression (fix: await accuracy load handle in async_set_mode); rest sound. Mac fixing. RC2 review -> Cloud compute helper after RC1 re-review.
 06:33Z #1639 R3 MERGED at 2d248e8c (mandate approval after merge verdict + green CI). Baseline waits only on R6 fix. #1637 RC1 awaiting re-review.
 07:24Z #1637 RC1 MERGED at b6234f2c (verdict e3d0d634, green CI, mandate 3). Only R6 #1638 remains before v6.7.1; RC2 after R6.
-FORWARD-CARRY (finding-propagation): set_thermal_parameters runtime fields lost at restart -> lead for D1 seats; add to B4/B5/B6 box briefs when generating.
+08:06Z R6 round 2 at ba172336 (store-level async_wait_for_read awaited in async_set_mode), re-review with Cloud reviewer 2.
+FORWARD-CARRY (finding-propagation), DONE in boxgen/gen.py: B4's brief tells the box, after its collector pushes, to append 2 leads (owner_seat unknown) to D1-s1's report in reports-B4.json so the intake leads seat measures/closes them; finders stay blind. Leads: (1) set_thermal_parameters runtime fields lost at restart (RC2); (2) startup clobber in async_reset_comfort_weight + cycle-end save (R6 left out: cut_learning zero-headroom budget).
 BASELINE: after #1639 (R3) and #1638 (R6, with the RC2-found fix) merge, Mac stamps v6.7.1 (stamp.py); baseline = that stamp SHA (PLAN §1.3). Then check_scopes.py --ref <sha>, generate box briefs, start 10 box threads.
 (older:) Dispatch R1, R3, R4, R6 fixers; reviewers via coordinator (Cloud compute helper / Cloud reviewer 2);
 Mac seat pushes as hpo-author from handoff/<topic>, approves, merges one at a time. Then cut baseline.
