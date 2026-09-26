@@ -532,10 +532,10 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 **The return slot is the pump loop's return, not necessarily the floor's.**
 If the pump feeds your floor loops directly, with no buffer tank and no mixing
 valve in between, the two are the same water and the same sensor may go in both
-this field and *Floor return temperature* on the sensors page. Behind a buffer
+this field and *Floor heating return temperature sensor* on the sensors page. Behind a buffer
 tank or a mixing valve they are **different water**: the pump's return comes
 back from the tank, the floor's from the slab, and they can differ by ten
-degrees or more. *Floor return temperature* is what the optimizer estimates
+degrees or more. *Floor heating return temperature sensor* is what the optimizer estimates
 your slab temperature from, so filling it with the pump's return on such a
 system tells it the slab is far hotter or colder than it is, and it will
 under- or over-heat the lower floor accordingly.
@@ -710,8 +710,8 @@ warning; every other field keeps its normal limits.
 | Two-zone model | Automatic | Automatic · On · Off | *Automatic* means two-zone as soon as any zone value has ever been saved — which can only ever turn it on. **Off is the only way back to single-zone**, because values written during setup live where the options flow cannot erase them. *On* forces two-zone using the values below or their defaults. |
 | Upper / lower floor thermal mass | 3.0 / 8.0 kWh/°C | 0.25–60 | Heat stored in each zone. |
 | Upper / lower floor heat loss | 0.08 / 0.07 kW/°C | 0.001–1.0 | Each zone's own loss coefficient. |
-| Inter-zone transfer | see setup | kW/°C | How fast heat moves between the two floors. |
-| Radiator power fraction | see setup | 0–1 | Share of heat delivered through radiators rather than the slab. |
+| Inter-zone heat transfer (kW/°C) | see setup | kW/°C | How fast heat moves between the two floors. |
+| Share of heat going to radiators | see setup | 0–1 | Share of heat delivered through radiators rather than the slab. |
 | Upper floor area ratio | see setup | 0.1–0.9 | Used to split solar gain. |
 | Solar orientation factor | 0.7 | 0.0–1.0 | How well the glazing faces the sun over a day. |
 

@@ -108,6 +108,10 @@
   "tests/finite_boundary.py": {
    "seconds": 62.3,
    "rc": 0
+  },
+  "tests/md_tables.mjs": {
+   "seconds": 0.2,
+   "rc": 0
   }
  },
  "closures": {
@@ -2220,6 +2224,18 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py"
+  ],
+  "tests/md_tables.mjs": [
+   ".claude/workflows/vendor/markdown-it.min.js",
+   "README.md",
+   "docs/architecture.md",
+   "docs/automations.md",
+   "docs/configuration.md",
+   "docs/dashboard-card.md",
+   "docs/ecl110.md",
+   "docs/how-it-works.md",
+   "docs/setup.md",
+   "tests/md_tables.mjs"
   ]
  }
 }

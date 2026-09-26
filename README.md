@@ -389,10 +389,12 @@ one keeps the house near the setpoint.
   fraction, buffer tank volume, window area, orientation factor and SHGC.
 
 Both paths land on the same model, and every value either one sets can be edited
-afterwards — though not all on one page. The masses, losses, the two-zone split
-and the power limits are on **Advanced settings → Thermal model (expert)**;
-buffer tank volume is on **Heating system and heat storage**; window area,
-orientation factor and SHGC are on **Building type and emitters**.
+afterwards — though not all on one page. The single-zone masses, losses and the
+power limits are on **Advanced settings → Thermal model (expert)**; the
+two-zone split — per-floor masses and losses, inter-zone transfer, the
+radiator power fraction and the orientation factor — is on **Advanced settings
+→ Two-zone model**; buffer tank volume is on **Heating system and heat
+storage**; window area and SHGC are on **Building type and emitters**.
 
 **6 · Hot water.** Tank volume, setpoint and minimum, daily consumption, and the
 demand time frames — the periods when hot water must be available (`06:00-08:30,
@@ -458,7 +460,7 @@ every sensor is created on every install regardless of which group it is in.
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
 | Optimization Mode | — | Current mode: auto, comfort, economy, boost or off | |
-| Heat Pump Action | — | What the plan is doing now: `off` (neither circuit runs), `hot_water` (only the tank heats), `eco`, `normal`, `pre_heat` or `boost`, and `comfort` while comfort mode holds | |
+| Heat Pump Action | — | What the plan is doing now: `off` (neither circuit runs), `hot_water` (only the tank heats), `eco`, `normal`, `pre_heat` or `boost`, `comfort` while comfort mode holds, `idle` before there is a plan to run or once it is empty, and `system_identification` while the step-response experiment drives the pump | |
 | Optimal Setpoint | °C | The setpoint the current plan step asks for | |
 | Recommended Power | kW | The electrical power the current plan step asks for | |
 | Cost Electricity Price (now) | CUR/kWh | The price the plan is being made against right now | |
@@ -563,6 +565,11 @@ Wood Cheaper Than Heat Pump.
 Since #1335 that list is every entity the ordinary install cannot light — the
 machinery advisories, the optional probes and meters, the capacity tariff, PV
 and the wood furnace — not only the six niche-hardware sensors it used to be.
+That list assumes hot water itself is configured. Without a hot water tank
+(Finish setup now, or Quick setup with no tank) six more are disabled by
+default too, there being no hot-water plan, cost or schedule to report: DHW
+Cost (lifetime), DHW Energy (lifetime), DHW Heating Cost (next 24 h), DHW
+Heating Schedule, DHW Setpoint Advisor and Plan DHW Heating (next 24 h).
 
 ### Binary Sensors (6 total)
 

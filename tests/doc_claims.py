@@ -602,6 +602,337 @@ def check_simulate_plan_fields() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Round 9 F8.2 (#1645, class I5) -- field labels the options forms do not
+# show, the two-zone split's options-page placement, the Heat Pump Action
+# state list, and the disabled-by-default census on a no-hot-water install.
+# D5-s1-05 / D6-s1-02: configuration.md and README.md named fields by labels
+# the options forms do not use, and put the two-zone split and the solar
+# orientation factor on the wrong options page. D6-s1-01: the Heat Pump
+# Action sensor also publishes idle and system_identification, which
+# README's state list omitted. D6-s1-03: README's disabled-by-default census
+# assumed hot water is configured, and omitted the six DHW entities a
+# no-hot-water install also disables.
+# ---------------------------------------------------------------------------
+
+_EN_STRINGS = json.loads((PKG / "translations" / "en.json").read_text())
+
+
+def check_two_zone_field_labels_and_placement() -> None:
+    R.section(
+        "Two-zone field labels and options-page placement "
+        "(#1645 D5-s1-05, D6-s1-02)"
+    )
+    zones_sections = _EN_STRINGS["options"]["step"]["thermal_model_zones"]["sections"]
+    inter_zone_label = zones_sections["zones"]["data"]["inter_zone_heat_transfer"]
+    radiator_label = zones_sections["split"]["data"]["radiator_power_fraction"]
+    floor_return_label = (
+        _EN_STRINGS["options"]["step"]["entities"]["sections"]["plant"]["data"][
+            "floor_return_temp_entity"
+        ]
+    )
+    solar_source_label = (
+        _EN_STRINGS["options"]["step"]["entities_metering"]["sections"]["solar"][
+            "data"
+        ]["solar_forecast_source"]
+    )
+    # Anchor: the labels this check pins still exist and are non-empty.
+    R.check(
+        "the four labels this check pins are still non-empty strings "
+        "(anchor)",
+        all(
+            isinstance(s, str) and s
+            for s in (inter_zone_label, radiator_label, floor_return_label, solar_source_label)
+        ),
+        repr((inter_zone_label, radiator_label, floor_return_label, solar_source_label)),
+    )
+    config_text = DOCS["configuration.md"]
+    howitworks_text = DOCS["how-it-works.md"]
+    zones_section = config_text.split("### Two-zone model", 1)[1].split("\n### ", 1)[0]
+    R.check(
+        "configuration.md's Two-zone model table names the inter-zone "
+        "transfer field by its actual options-form label, not a paraphrase "
+        "(D5-s1-05)",
+        f"| {inter_zone_label} |" in zones_section,
+        zones_section[:400],
+    )
+    R.check(
+        "...and the radiator-power-fraction field likewise (D5-s1-05)",
+        f"| {radiator_label} |" in zones_section,
+        zones_section[:400],
+    )
+    R.check(
+        "configuration.md's mixing-valve note cites the floor-return probe "
+        "by its actual options-form label (D5-s1-05)",
+        f"*{floor_return_label}*" in config_text,
+        "not found" if f"*{floor_return_label}*" not in config_text else "ok",
+    )
+    R.check(
+        "how-it-works.md's weather section cites the solar-source field by "
+        "its actual options-form label (D5-s1-05)",
+        f"*{solar_source_label}*" in howitworks_text,
+        "not found" if f"*{solar_source_label}*" not in howitworks_text else "ok",
+    )
+
+    # Page placement (D6-s1-02): derive each field's real options step from
+    # config_flow._OPTION_FIELDS, the same artifact the finder's claims.py
+    # reads, and check README's placement paragraph names that step for the
+    # two-zone split and the orientation factor rather than Thermal model
+    # (expert) or Building type and emitters.
+    from heatpump_optimizer import config_flow, const
+
+    step_title = {
+        name: step.get("title")
+        for name, step in _EN_STRINGS["options"]["step"].items()
+    }
+    fields_by_key = {row.key: row.step for row in config_flow._OPTION_FIELDS}
+    two_zone_page = step_title[fields_by_key[const.CONF_INTER_ZONE_TRANSFER]]
+    radiator_page = step_title[fields_by_key[const.CONF_RADIATOR_POWER_FRACTION]]
+    orientation_page = step_title[fields_by_key[const.CONF_SOLAR_ORIENTATION_FACTOR]]
+    thermal_expert_page = step_title["thermal_model"]
+    R.check(
+        "the two-zone split and the orientation factor are in fact one "
+        "options page (anchor)",
+        two_zone_page == radiator_page == orientation_page,
+        repr((two_zone_page, radiator_page, orientation_page)),
+    )
+    readme_para = README.split("Both paths land on the same model", 1)[1].split("\n\n", 1)[0]
+    R.check(
+        "README's page-placement paragraph names the two-zone split's real "
+        "options page (D6-s1-02)",
+        two_zone_page in readme_para,
+        readme_para,
+    )
+    R.check(
+        "...and does not claim the two-zone split lives on Thermal model "
+        "(expert), which holds only the single-zone fields (D6-s1-02)",
+        f"two-zone split\nand the power limits are on **Advanced settings → {thermal_expert_page}**" not in readme_para
+        and not re.search(
+            r"two-zone split[^.]*\*\*[^*]*" + re.escape(thermal_expert_page), readme_para
+        ),
+        readme_para,
+    )
+    # Null control: the historical (wrong) claim -- masses, losses, the
+    # two-zone split and the power limits all on Thermal model (expert) --
+    # is exactly what D6-s1-02 measured at baseline; confirm both checks
+    # above fire against it.
+    _bad_para = (
+        " and every value either one sets can be edited afterwards. The "
+        "masses, losses, the two-zone split and the power limits are on "
+        f"**Advanced settings → {thermal_expert_page}**; buffer tank volume "
+        "is on **Heating system and heat storage**."
+    )
+    R.check(
+        "the placement checks fire on the baseline (wrong) claim (null "
+        "control)",
+        two_zone_page not in _bad_para
+        and re.search(r"two-zone split[^.]*\*\*[^*]*" + re.escape(thermal_expert_page), _bad_para),
+        _bad_para,
+    )
+
+
+def check_heat_pump_action_states() -> None:
+    R.section("Heat Pump Action state list matches the sensor (#1645 D6-s1-01)")
+    from heatpump_optimizer import const
+
+    states = const.HEAT_PUMP_ACTION_STATES
+    R.check(
+        "HEAT_PUMP_ACTION_STATES still has 'unknown' as its no-data "
+        "fallback and at least eight real states (anchor)",
+        "unknown" in states and len(states) >= 9,
+        repr(states),
+    )
+    row = next(
+        line for line in README.splitlines() if line.startswith("| Heat Pump Action |")
+    )
+    named = {s for s in states if s != "unknown" and f"`{s}`" in row}
+    missing = sorted(set(states) - {"unknown"} - named)
+    R.check(
+        "README's Heat Pump Action row names every state "
+        "HEAT_PUMP_ACTION_STATES lists except the no-data fallback "
+        "'unknown' (D6-s1-01: idle and system_identification were "
+        "omitted)",
+        not missing,
+        f"row={row!r} missing={missing}",
+    )
+    # Null control: the pre-fix row (idle and system_identification absent)
+    # is exactly the D6-s1-01 baseline shape.
+    _bad_row = (
+        "| Heat Pump Action | — | What the plan is doing now: `off` "
+        "(neither circuit runs), `hot_water` (only the tank heats), "
+        "`eco`, `normal`, `pre_heat` or `boost`, and `comfort` while "
+        "comfort mode holds | |"
+    )
+    _bad_missing = sorted(
+        s for s in states if s != "unknown" and f"`{s}`" not in _bad_row
+    )
+    R.check(
+        "the row check fires on the pre-fix row (null control)",
+        set(_bad_missing) == {"idle", "system_identification"},
+        repr(_bad_missing),
+    )
+
+
+def check_disabled_by_default_without_hot_water() -> None:
+    R.section(
+        "Disabled-by-default census covers a no-hot-water install too "
+        "(#1645 D6-s1-03)"
+    )
+    import asyncio
+
+    from harness import FakeEntry, FakeHass
+    from heatpump_optimizer import const
+    import heatpump_optimizer as integ
+    from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+
+    def census(extra):
+        hass, entry = FakeHass(), FakeEntry(
+            data={const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home", **extra}
+        )
+        coord = HeatPumpOptimizerCoordinator(hass, entry)
+        entry.runtime_data = coord
+        out = []
+        for platform in integ.PLATFORM_LIST:
+            mod = importlib.import_module(f"heatpump_optimizer.{platform}")
+            added: list = []
+            asyncio.run(
+                mod.async_setup_entry(hass, entry, lambda e, *a, **k: added.extend(e))
+            )
+            for e in added:
+                key = getattr(e, "_attr_translation_key", None)
+                default = getattr(
+                    e,
+                    "entity_registry_enabled_default",
+                    getattr(e, "_attr_entity_registry_enabled_default", True),
+                )
+                out.append((str(platform), key, bool(default)))
+        return out
+
+    no_hot_water = census({})
+    R.check(
+        "a Finish-setup-now install (no hot water) still constructs "
+        "entities to census (anchor)",
+        bool(no_hot_water),
+        f"{len(no_hot_water)} entities",
+    )
+    disabled_keys = {key for _plat, key, default in no_hot_water if not default and key}
+    # The six DHW entities gated on has_hot_water() alone (no separate
+    # probe), per entity.DHWEntityMixin and F8.2's carry note.
+    dhw_only_keys = {
+        "dhw_cost", "dhw_energy", "dhw_heating_cost",
+        "dhw_heating_schedule", "dhw_setpoint_advisor", "plan_dhw_heating",
+    }
+    present = {k for k in dhw_only_keys if k in {key for _p, key, _d in no_hot_water}}
+    R.check(
+        "the six hot-water-gated translation keys this check names are "
+        "still real entities (anchor)",
+        present == dhw_only_keys,
+        f"missing from the census entirely: {sorted(dhw_only_keys - present)}",
+    )
+    still_enabled = sorted(dhw_only_keys - disabled_keys)
+    R.check(
+        "every one of the six is disabled by default on a no-hot-water "
+        "install (the property D6-s1-03 measured; a translation-key "
+        "rename would fail the anchor above instead of silently passing "
+        "here)",
+        not still_enabled,
+        f"unexpectedly enabled: {still_enabled}",
+    )
+    # README text: the paragraph documenting them must say so, by name.
+    six_names = [
+        "DHW Cost (lifetime)", "DHW Energy (lifetime)",
+        "DHW Heating Cost (next 24 h)", "DHW Heating Schedule",
+        "DHW Setpoint Advisor", "Plan DHW Heating (next 24 h)",
+    ]
+    prose = " ".join(ln for ln in README.splitlines() if not ln.startswith("|"))
+    missing_in_prose = [
+        name for name in six_names
+        if not any(
+            name in sent and "disabled by default" in sent
+            for sent in re.split(r"(?<=\.)\s", prose)
+        )
+    ]
+    R.check(
+        "README documents all six as disabled by default, in one sentence "
+        "naming each (D6-s1-03)",
+        not missing_in_prose,
+        f"undocumented: {missing_in_prose}",
+    )
+    # Null control: none of the six were named anywhere near "disabled by
+    # default" before this PR (the paragraph did not exist).
+    _bad_prose = (
+        "Since #1335 that list is every entity the ordinary install cannot "
+        "light. "
+    )
+    _bad_missing = [
+        name for name in six_names
+        if not any(
+            name in sent and "disabled by default" in sent
+            for sent in re.split(r"(?<=\.)\s", _bad_prose)
+        )
+    ]
+    R.check(
+        "the prose check fires when the six are undocumented (null "
+        "control)",
+        _bad_missing == six_names,
+        repr(_bad_missing),
+    )
+
+
+def check_multistart_starting_points() -> None:
+    R.section(
+        "how-it-works.md's multi-start count matches the optimizer "
+        "(#1645 D6-s2-04)"
+    )
+    from unittest import mock
+
+    from heatpump_optimizer import optimizer as optmod
+    import stress
+
+    starts_seen: list[int] = []
+    orig = optmod._multi_start_minimize
+
+    def spy(objective, candidates, *a, **k):
+        starts_seen.append(len(candidates))
+        return orig(objective, candidates, *a, **k)
+
+    with mock.patch.object(optmod, "_multi_start_minimize", spy):
+        stress.build_case(season="winter", two_zone=False, dhw=False)
+    R.check(
+        "the space solve was exercised at least once (anchor)",
+        bool(starts_seen),
+        repr(starts_seen),
+    )
+    n = starts_seen[0]
+    text = DOCS["how-it-works.md"]
+    R.check(
+        "how-it-works.md no longer claims a fixed count of two starting "
+        "points now that the optimizer scores more (D6-s2-04: measured "
+        f"{n})",
+        "two starting points" not in text.lower() and "two candidate" not in text.lower(),
+        "still present" if "two starting points" in text.lower() else "ok",
+    )
+    m = re.search(r"scores (\w+) candidate", text)
+    _NUMBER_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6}
+    R.check(
+        "...and the number it does state matches what the optimizer runs "
+        "(anchor + D6-s2-04)",
+        m is not None and _NUMBER_WORDS.get(m.group(1)) == n,
+        f"doc states {m.group(1) if m else None!r}, measured {n}",
+    )
+    # Null control: the exact pre-fix sentence is what this check exists to
+    # catch.
+    _bad_text = (
+        "**Two starting points, not one.** The space solve runs from two "
+        "candidate initial guesses and keeps the better result."
+    )
+    R.check(
+        "the claim check fires on the pre-fix sentence (null control)",
+        "two starting points" in _bad_text.lower(),
+        _bad_text,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Arms 6 and 7 -- quality_scale.yaml censuses (#1545, #1546)
 # ---------------------------------------------------------------------------
 
@@ -898,6 +1229,10 @@ def main() -> int:
     check_quickstart_numbering()
     check_initial_setup_menu()
     check_simulate_plan_fields()
+    check_two_zone_field_labels_and_placement()
+    check_heat_pump_action_states()
+    check_disabled_by_default_without_hot_water()
+    check_multistart_starting_points()
     check_census_self_test()
     check_quality_scale()
     return R.close("checks")
