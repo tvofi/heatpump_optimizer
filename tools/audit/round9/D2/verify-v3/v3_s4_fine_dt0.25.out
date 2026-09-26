@@ -1,0 +1,44 @@
+
+=== Stress and economics ===
+RESULT light_new_sigma0_runs=1 count
+RESULT light_new_sigma0_aborted=0 count
+RESULT light_new_sigma0_admitted=0 count
+RESULT light_new_sigma0_admitted_missed=0 count
+RESULT light_new_white002_runs=12 count
+RESULT light_new_white002_aborted=3 count
+RESULT light_new_white002_admitted=0 count
+RESULT light_new_white002_admitted_missed=0 count
+RESULT light_new_q01_runs=12 count
+RESULT light_new_q01_aborted=12 count
+RESULT light_new_q01_admitted=0 count
+RESULT light_new_q01_admitted_missed=0 count
+RESULT typical_slab_sigma0_runs=1 count
+RESULT typical_slab_sigma0_aborted=0 count
+RESULT typical_slab_sigma0_admitted=0 count
+RESULT typical_slab_sigma0_admitted_missed=0 count
+RESULT typical_slab_white002_runs=12 count
+RESULT typical_slab_white002_aborted=1 count
+RESULT typical_slab_white002_admitted=0 count
+RESULT typical_slab_white002_admitted_missed=0 count
+RESULT typical_slab_q01_runs=12 count
+RESULT typical_slab_q01_aborted=8 count
+RESULT typical_slab_q01_admitted=0 count
+RESULT typical_slab_q01_admitted_missed=0 count
+RESULT heavy_old_sigma0_runs=1 count
+RESULT heavy_old_sigma0_aborted=0 count
+RESULT heavy_old_sigma0_admitted=0 count
+RESULT heavy_old_sigma0_admitted_missed=0 count
+RESULT heavy_old_white002_runs=12 count
+RESULT heavy_old_white002_aborted=0 count
+RESULT heavy_old_white002_admitted=0 count
+RESULT heavy_old_white002_admitted_missed=0 count
+RESULT heavy_old_q01_runs=12 count
+RESULT heavy_old_q01_aborted=0 count
+RESULT heavy_old_q01_admitted=0 count
+RESULT heavy_old_q01_admitted_missed=0 count
+RESULT noisy_aborted_total=24 of 72
+RESULT noisy_admitted_missed_total=0 of 0
+RESULT perturbed=none dt=0.25 sub=15
+RESULT thread_factor=1.0000
+RESULT load1=2.79
+RESULT swapins=0

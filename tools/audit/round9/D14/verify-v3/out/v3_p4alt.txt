@@ -1,0 +1,39 @@
+CELL one|nodhw|winter_typical           flat=0 _optimize_space_only   cold n=4 prod=60.104278 dense=60.104278 gap=0.0000% tight=60.104278 tgap=0.0000% E=36.00/36.00
+CELL one|nodhw|winter_typical           flat=1 _optimize_space_only   cold n=4 prod=82.463314 dense=82.485009 gap=-0.0263% tight=82.461537 tgap=0.0022% E=57.49/56.41
+CELL one|nodhw|winter_extreme           flat=0 _optimize_space_only   cold n=4 prod=80.740556 dense=80.740556 gap=0.0000% tight=80.740556 tgap=0.0000% E=42.00/42.00
+CELL one|dhw|winter_typical             flat=0 _solve_space           cold n=4 prod=68.819570 dense=68.819570 gap=0.0000% tight=68.819570 tgap=0.0000% E=34.64/34.64
+CELL one|dhw|winter_typical             flat=1 _solve_space           cold n=4 prod=91.011866 dense=90.370328 gap=0.7049% tight=90.394111 tgap=0.6788% E=54.61/55.46
+CELL one|dhw|winter_extreme             flat=0 _solve_space           cold n=4 prod=95.784387 dense=95.784387 gap=0.0000% tight=95.784387 tgap=0.0000% E=40.61/40.61
+CELL two|nodhw|winter_typical           flat=0 _optimize_space_only   cold n=5 prod=77.723993 dense=77.421824 gap=0.3888% tight=77.427490 tgap=0.3815% E=66.99/66.84
+CELL two|nodhw|winter_typical           flat=1 _optimize_space_only   cold n=5 prod=99.671176 dense=99.455797 gap=0.2161% tight=99.472372 tgap=0.1995% E=75.54/75.35
+CELL two|nodhw|winter_extreme           flat=0 _optimize_space_only   cold n=5 prod=111.486171 dense=111.497783 gap=-0.0104% tight=111.486171 tgap=0.0000% E=71.48/71.43
+CELL two|dhw|winter_typical             flat=0 _solve_space           cold n=4 prod=87.039909 dense=86.928511 gap=0.1280% tight=86.585186 tgap=0.5224% E=68.88/68.17
+CELL two|dhw|winter_typical             flat=0 _solve_space           warm n=1 prod=86.779860 dense=86.829897 gap=-0.0577% tight=86.779860 tgap=0.0000% E=68.37/67.63
+CELL two|dhw|winter_typical             flat=1 _solve_space           cold n=4 prod=107.868910 dense=107.379962 gap=0.4533% tight=107.326887 tgap=0.5025% E=75.09/75.59
+CELL two|dhw|winter_extreme             flat=0 _solve_space           cold n=4 prod=128.345550 dense=128.368277 gap=-0.0177% tight=128.345550 tgap=0.0000% E=72.25/72.06
+RESULT p4_seam_calls=9 count
+RESULT p4_bracket_misses=2 count
+RESULT p4_bracket_misses_flat=3 count
+RESULT p4_tol_misses=2 count
+RESULT p4_tol_misses_flat=3 count
+RESULT p4_max_tgap_pct=0.5224 %
+RESULT p4_max_tgap_flat_pct=0.6788 %
+RESULT p4_max_gap_pct=0.3888 %
+RESULT p4_max_gap_flat_pct=0.7049 %
+RESULT p4_misses_optimize_space_only_cold=1/4 count
+RESULT p4_misses_optimize_space_only_warm=0/0 count
+RESULT p4_misses_solve_space_cold=1/4 count
+RESULT p4_misses_solve_space_warm=0/1 count
+RESULT p4_cells=8 count
+RESULT p4_cell_gap_min_pct=-0.0177 %
+RESULT p4_cell_gap_max_pct=0.3888 %
+RESULT p4_cell_gap_mean_drop_best_pct=0.0143 %
+RESULT p4_cells_missing=2 count
+RESULT p4_cells_missing_drop_best=1 count
+RESULT wall_s=198.1 s provisional
+RESULT thread_factor=1.000
+RESULT load1=2.41
+RESULT swapins=0
+RESULT thread_factor=1.000
+RESULT load1=2.41
+RESULT swapins=0

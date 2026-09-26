@@ -1,0 +1,32 @@
+SEAM tools/audit/finding.schema.json:69:      "required": ["id", "scope", "step", "title", "severity", "claim", "evidence", "instrumented_symbol", "perturbation", "m
+SEAM tools/audit/finding.schema.json:95:        "class_guess": {"enum": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "I1", "I2", "I3", "I4", "I5", "
+SEAM tools/audit/scopes.json:729:   "class": [
+SEAM .claude/workflows/check-wave-script.mjs:709:console.log('-- The finder report: scope, class_guess and leads (the round-9 scope wall)')
+SEAM .claude/workflows/check-wave-script.mjs:719:  const need = ['scope', 'class_guess']
+SEAM .claude/workflows/check-wave-script.mjs:731:  // ledger HAS, so a class the judge adds is added to bugclasses.json and to
+SEAM .claude/workflows/check-wave-script.mjs:733:  const classEnum = F.properties?.class_guess?.enum ?? []
+SEAM .claude/workflows/check-wave-script.mjs:734:  t('class_guess is exactly the tools/audit/bugclasses.json ids plus "new": a well-formed id the ledger lacks (P99) 
+SEAM .claude/workflows/check-wave-script.mjs:735:    const ids = Object.keys(JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'bugclasses.json'), 'utf8')
+SEAM .claude/workflows/check-wave-script.mjs:941:  t("the finder's return schema requires every field finding.schema.json requires (scope, class_guess and leads amon
+SEAM .claude/workflows/check-wave-script.mjs:947:  const F = (id, scope, cg = 'P3') => ({ id, scope, class_guess: cg, step: 'D1.M1', severity: 'low', title: id })
+SEAM .claude/workflows/check-wave-script.mjs:957:  t('class_guess is anchored at both ends (P3x and xP3 rejected)', rej.includes('D1-s2-04') && rej.includes('D1-s2-0
+SEAM .claude/workflows/check-wave-script.mjs:974:  const LF = (id, scope) => ({ id, scope, class_guess: 'new', step: 'D1.M1', severity: 'low', title: id })
+SEAM .claude/workflows/check-wave-script.mjs:1119:  const F = (id, dimension) => ({ id, dimension, scope: id.replace(/-\d+$/, ''), step: `${dimension}.M1`, severity:
+SEAM .claude/workflows/audit-verify.js:58:  { k: 3, name: 'reach and class', steps: '3 (reachability, severity)', owns: "whether the path is reachable in real Home A
+SEAM .claude/workflows/audit-verify.js:103:  `In ${repo}, check out ${branch}. Read the Round ${round} findings register in docs/audit-2026-09.md and every tools/aud
+SEAM .claude/workflows/audit-verify.js:125:Findings (reports and harnesses under tools/audit/round${round}/${u.dim}/): ${JSON.stringify(u.findings.map((f) => ({ id: 
+SEAM .claude/workflows/audit-verify.js:159:This call is judge.md's first step only: DEDUP, across all dimensions, before any verdict. Cluster the findings below by i
+SEAM .claude/workflows/audit-verify.js:177:The scripted re-runs are in ${JSON.stringify(runnerRows.map((r) => r?.table ?? null))} (one row per canonical finding, wit
+SEAM .claude/workflows/audit-verify.js:206:  `You are the class-sweep seat for class ${cls} of audit round ${round} (PLAN phase D). Fresh worktree from ${repo}: git 
+SEAM .claude/workflows/audit-find.js:67:// it reads tools/audit/bugclasses.json and, in its worktree's .git, the history of
+SEAM .claude/workflows/audit-find.js:170:        required: ['id', 'scope', 'step', 'title', 'severity', 'claim', 'evidence', 'instrumented_symbol', 'perturbation', '
+SEAM .claude/workflows/audit-find.js:182:          class_guess: { type: 'string' },
+SEAM .claude/workflows/audit-find.js:218:  `You are finder seat ${seat.id} of audit round ${round}, dimension ${dim}, on box ${b} (${BOXES[b].heavy.includes(seat.id)
+SEAM .claude/workflows/audit-find.js:222:Return the JSON report described by tools/audit/finding.schema.json (fields: dimension, baseline_sha, report_path, exposure,
+SEAM .claude/workflows/audit-find.js:269:// and a class_guess the schema admits. A failure is rejected at intake with the
+SEAM .claude/workflows/audit-find.js:271:const CLASS_GUESS = /^([PI][0-9]+|new)$/
+SEAM .claude/workflows/audit-find.js:279:      !CLASS_GUESS.test(String(f.class_guess ?? '')) && `class_guess ${JSON.stringify(f.class_guess)} is neither a ledger id
+SEAM .claude/workflows/audit-find.js:304:    if (!seatById[owner] || !(typeof f.id === 'string' && f.id.startsWith(`${owner}-`)) || !CLASS_GUESS.test(String(f.class_
+SEAM .claude/workflows/audit-find.js:357:2. Write the Round ${round} "Findings register" section of docs/audit-2026-09.md in ${repo}, on a branch handoff/audit-r${ro
+SEAM .claude/workflows/audit-find.js:359:The accepted findings: ${JSON.stringify(accepted.map((f) => ({ id: f.id, seat: f.seat, scope: f.scope, step: f.step, severit
+RESULT i4_reader_sites=31 count

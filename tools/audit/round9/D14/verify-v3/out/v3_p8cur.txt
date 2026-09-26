@@ -1,0 +1,7 @@
+RESULT p8cur_value_after_normalize=0.1 (feed 0.10 EUR/kWh)
+RESULT p8cur_label=SEK mismatch=1
+RESULT p8cur_repair_issues_raised=0
+RESULT p8cur_literal_SEK_units_in_config_flow=1
+RESULT thread_factor=1.000
+RESULT load1=3.27
+RESULT swapins=0

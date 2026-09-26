@@ -1,0 +1,69 @@
+RESULT spring_grid_skewed_cycles=42_of_48 count
+RESULT spring_grid_skew_max_min=60 minutes
+RESULT spring_cycles=48 count
+RESULT spring_cycle_errors=0 count
+RESULT spring_wrong_sites=8 count
+RESULT autumn_grid_skewed_cycles=42_of_48 count
+RESULT autumn_grid_skew_max_min=60 minutes
+RESULT autumn_cycles=48 count
+RESULT autumn_cycle_errors=0 count
+RESULT autumn_wrong_sites=9 count
+RESULT plain_grid_skewed_cycles=0_of_48 count
+RESULT plain_grid_skew_max_min=0 minutes
+RESULT plain_cycles=48 count
+RESULT plain_cycle_errors=0 count
+RESULT plain_wrong_sites=0 count
+RESULT spring2025_grid_skewed_cycles=42_of_48 count
+RESULT spring2025_grid_skew_max_min=60 minutes
+RESULT spring2025_cycles=48 count
+RESULT spring2025_cycle_errors=0 count
+RESULT spring2025_wrong_sites=8 count
+RESULT autumn2025_grid_skewed_cycles=42_of_48 count
+RESULT autumn2025_grid_skew_max_min=60 minutes
+RESULT autumn2025_cycles=48 count
+RESULT autumn2025_cycle_errors=0 count
+RESULT autumn2025_wrong_sites=9 count
+RESULT spring2027_grid_skewed_cycles=42_of_48 count
+RESULT spring2027_grid_skew_max_min=60 minutes
+RESULT spring2027_cycles=48 count
+RESULT spring2027_cycle_errors=0 count
+RESULT spring2027_wrong_sites=8 count
+RESULT autumn2027_grid_skewed_cycles=42_of_48 count
+RESULT autumn2027_grid_skew_max_min=60 minutes
+RESULT autumn2027_cycles=48 count
+RESULT autumn2027_cycle_errors=0 count
+RESULT autumn2027_wrong_sites=9 count
+RESULT plain_autumn_grid_skewed_cycles=0_of_48 count
+RESULT plain_autumn_grid_skew_max_min=0 minutes
+RESULT plain_autumn_cycles=48 count
+RESULT plain_autumn_cycle_errors=0 count
+RESULT plain_autumn_wrong_sites=0 count
+# every arithmetic site reached (file:line func kind hits crossing wrong max_err_s):
+#  accuracy.py:182 score_lead_predictions aware-shared-zone hits=49332 crossing=774 wrong=774 max_err_s=3600 WRONG
+#  coordinator.py:3169 close add-shared-zone hits=67 crossing=0 wrong=0 max_err_s=0 
+#  coordinator.py:4684 _async_update_data add-shared-zone hits=384 crossing=6 wrong=6 max_err_s=3600 WRONG
+#  coordinator.py:6207 _forecast_arrays aware-shared-zone hits=384 crossing=252 wrong=252 max_err_s=3600 WRONG
+#  coordinator.py:9205 _record_accuracy aware-shared-zone hits=376 crossing=6 wrong=6 max_err_s=3600 WRONG
+#  coordinator.py:9405 _file_dhw_lead_predictions add-shared-zone hits=1920 crossing=126 wrong=126 max_err_s=3600 WRONG
+#  coordinator.py:9445 _file_lead_predictions add-shared-zone hits=1920 crossing=126 wrong=126 max_err_s=3600 WRONG
+#  dhw_learning.py:347 async_learn_dynamics aware-shared-zone hits=376 crossing=6 wrong=6 max_err_s=3600 WRONG
+#  external_heat.py:206 _rate aware-shared-zone hits=752 crossing=12 wrong=12 max_err_s=3600 WRONG
+#  tariff.py:58 _window_slot add-shared-zone hits=768 crossing=492 wrong=492 max_err_s=3600 WRONG
+RESULT clock=zoneinfo
+RESULT arm=base
+RESULT reintroduce=0
+RESULT sites_reached=10 count
+RESULT wrong_sites=9 count
+RESULT wrong_sites_aware-shared-zone=5 count
+RESULT wrong_sites_naive=0 count
+RESULT wrong_sites_add-shared-zone=4 count
+RESULT wrong_sites_add-naive=0 count
+RESULT untraced_note=plain-plain_arithmetic_on_production_built_datetimes_not_seen
+RESULT wall_s=45.5 s provisional
+RESULT thread_factor=0.997
+RESULT load1=2.77
+RESULT swapins=0
+
+real	0m45.808s
+user	0m35.082s
+sys	0m0.429s

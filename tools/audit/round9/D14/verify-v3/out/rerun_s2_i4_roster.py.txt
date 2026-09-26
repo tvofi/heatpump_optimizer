@@ -1,0 +1,28 @@
+LEDGER ['I1', 'I2', 'I3', 'I4', 'I5', 'P1', 'P10', 'P11', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9']
+D14_AXIS ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'I1', 'I2', 'I3', 'I4', 'I5']
+RESULT ledger_ids_not_on_d14_axis=1 count (P11)
+RESULT ledger_ids_no_d14_seat=1 count (P11)
+RESULT schema_enum_equals_ledger=True
+RESULT check_scopes_D14_ok=True
+RESULT check_scopes_D14_ok[perturbed:axis=ledger]=False
+RESULT check_scopes_unowned_lines[perturbed]=5 count
+RESULT boundary_cases=22 count
+DISAGREE[baseline] intake admits, schema refuses: id='D14-s2-14' class_guess='P0'
+DISAGREE[baseline] intake admits, schema refuses: id='D14-s2-15' class_guess='P12'
+DISAGREE[baseline] intake admits, schema refuses: id='D14-s2-16' class_guess='P99'
+DISAGREE[baseline] intake admits, schema refuses: id='D14-s2-17' class_guess='I0'
+DISAGREE[baseline] intake admits, schema refuses: id='D14-s2-18' class_guess='I6'
+DISAGREE[baseline] intake admits, schema refuses: id='D14-s2-19' class_guess='P011'
+DISAGREE[baseline] intake admits, schema refuses: id='D14-s2-1' class_guess='P2'
+DISAGREE[baseline] intake admits, schema refuses: id='D14-s2-001' class_guess='P2'
+DISAGREE[baseline] intake admits, schema refuses: id='D14-s2-xx' class_guess='P2'
+DISAGREE[baseline] intake admits, schema refuses: id='D14-s2-' class_guess='P2'
+DISAGREE[baseline] intake admits, schema refuses: id='D14-s2-01a' class_guess='P2'
+RESULT intake_admits_schema_refuses[baseline]=11 count
+RESULT schema_admits_intake_refuses[baseline]=0 count
+RESULT intake_admits_schema_refuses[perturbed]=0 count
+RESULT schema_admits_intake_refuses[perturbed]=0 count
+RESULT null_control_disagree=0 count (of 17)
+RESULT thread_factor=1.000
+RESULT load1=0.76
+RESULT swapins=0

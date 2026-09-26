@@ -1,0 +1,15 @@
+RESULT random_configs=20000 count
+RESULT analytic_rho_gt_1=41 configs
+RESULT analytic_rho_gt_1_share=0.00205 ratio
+RESULT analytic_worst_rho=1.8846 ratio
+RESULT traj_crosscheck_agree=437/440 configs
+RESULT solve_n_sub=2 count
+RESULT solve_room_finite=1 bool
+RESULT solve_room_max_abs=1.017e+27 degC
+RESULT solve_room_range=-1.017e+27..30.07 degC
+RESULT solve_predicted_cost=208.26641626456754 currency
+RESULT solve_power_sum_kwh=140.9 kWh
+RESULT perturbed=0
+RESULT thread_factor=1.0000
+RESULT load1=3.10
+RESULT swapins=0

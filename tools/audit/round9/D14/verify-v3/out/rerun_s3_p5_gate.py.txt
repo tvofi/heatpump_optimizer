@@ -1,0 +1,91 @@
+
+=== Stress and economics ===
+CELL light_new    gains mag=0.0   armed=1 done=1 slab=1 admit=0 err=   -0.00% hw=0.1446 why=heat-loss interval (+-16 %) is wider than the +-10 % adoption bar
+CELL light_new    gains mag=0.1   armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL light_new    gains mag=0.2   armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL light_new    gains mag=0.4   armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL light_new    gains mag=0.8   armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL light_new    gains_neg mag=0.0   armed=1 done=1 slab=1 admit=0 err=   -0.00% hw=0.1446 why=heat-loss interval (+-16 %) is wider than the +-10 % adoption bar
+CELL light_new    gains_neg mag=-0.1  armed=1 done=1 slab=1 admit=0 err=   +7.11% hw=0.1346 why=heat-loss interval (+-14 %) is wider than the +-10 % adoption bar
+CELL light_new    gains_neg mag=-0.2  armed=1 done=1 slab=1 admit=0 err=  +14.22% hw=0.1259 why=heat-loss interval (+-13 %) is wider than the +-10 % adoption bar
+CELL light_new    gains_neg mag=-0.3  armed=1 done=1 slab=1 admit=0 err=  +21.33% hw=0.1183 why=heat-loss interval (+-13 %) is wider than the +-10 % adoption bar
+CELL light_new    drift mag=0.0   armed=1 done=1 slab=1 admit=0 err=   -0.00% hw=0.1446 why=heat-loss interval (+-16 %) is wider than the +-10 % adoption bar
+CELL light_new    drift mag=0.05  armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL light_new    drift mag=0.1   armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL light_new    drift mag=0.2   armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL light_new    drift mag=0.3   armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL light_new    ks    mag=1.0   armed=1 done=1 slab=1 admit=0 err=   -0.00% hw=0.1446 why=heat-loss interval (+-16 %) is wider than the +-10 % adoption bar
+CELL light_new    ks    mag=1.25  armed=1 done=1 slab=1 admit=0 err=   -5.28% hw=0.1617 why=heat-loss interval (+-18 %) is wider than the +-10 % adoption bar
+CELL light_new    ks    mag=1.5   armed=1 done=1 slab=1 admit=0 err=  -10.64% hw=inf why=heat-loss interval (unbounded) is wider than the +-10 % adoption bar
+CELL light_new    ks    mag=2.0   armed=1 done=1 slab=1 admit=0 err=  -20.46% hw=inf why=heat-loss interval (unbounded) is wider than the +-10 % adoption bar
+CELL light_new    ks    mag=3.0   armed=1 done=1 slab=1 admit=0 err=  -35.06% hw=inf why=heat-loss interval (unbounded) is wider than the +-10 % adoption bar
+CELL light_new    cap   mag=1.0   armed=1 done=1 slab=1 admit=0 err=   -0.00% hw=0.1446 why=heat-loss interval (+-16 %) is wider than the +-10 % adoption bar
+CELL light_new    cap   mag=1.25  armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL light_new    cap   mag=1.5   armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL light_new    cap   mag=2.0   armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL light_new    cap   mag=3.0   armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL heavy_old    gains mag=0.0   armed=1 done=1 slab=1 admit=1 err=   +0.00% hw=0.0300 why=adopted
+CELL heavy_old    gains mag=0.1   armed=1 done=1 slab=1 admit=1 err=   -1.52% hw=0.0305 why=adopted
+CELL heavy_old    gains mag=0.2   armed=1 done=1 slab=1 admit=1 err=   -3.04% hw=0.0310 why=adopted
+CELL heavy_old    gains mag=0.4   armed=1 done=1 slab=1 admit=1 err=   -6.08% hw=0.0320 why=adopted
+CELL heavy_old    gains mag=0.8   armed=1 done=1 slab=1 admit=1 err=  -12.15% hw=0.0342 why=adopted
+CELL heavy_old    gains_neg mag=0.0   armed=1 done=1 slab=1 admit=1 err=   +0.00% hw=0.0300 why=adopted
+CELL heavy_old    gains_neg mag=-0.1  armed=1 done=1 slab=1 admit=1 err=   +1.52% hw=0.0296 why=adopted
+CELL heavy_old    gains_neg mag=-0.2  armed=1 done=1 slab=1 admit=1 err=   +3.04% hw=0.0292 why=adopted
+CELL heavy_old    gains_neg mag=-0.3  armed=1 done=1 slab=1 admit=1 err=   +4.57% hw=0.0287 why=adopted
+CELL heavy_old    drift mag=0.0   armed=1 done=1 slab=1 admit=1 err=   +0.00% hw=0.0300 why=adopted
+CELL heavy_old    drift mag=0.05  armed=1 done=1 slab=1 admit=0 err=  -31.43% hw=inf why=heat-loss interval (unbounded) is wider than the +-10 % adoption bar
+CELL heavy_old    drift mag=0.1   armed=1 done=1 slab=1 admit=0 err=  -48.95% hw=inf why=heat-loss interval (unbounded) is wider than the +-10 % adoption bar
+CELL heavy_old    drift mag=0.2   armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL heavy_old    drift mag=0.3   armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL heavy_old    ks    mag=1.0   armed=1 done=1 slab=1 admit=1 err=   +0.00% hw=0.0300 why=adopted
+CELL heavy_old    ks    mag=1.25  armed=1 done=1 slab=1 admit=1 err=   -0.51% hw=0.0303 why=adopted
+CELL heavy_old    ks    mag=1.5   armed=1 done=1 slab=1 admit=1 err=   -1.08% hw=0.0307 why=adopted
+CELL heavy_old    ks    mag=2.0   armed=1 done=1 slab=1 admit=1 err=   -2.37% hw=0.0323 why=adopted
+CELL heavy_old    ks    mag=3.0   armed=1 done=1 slab=1 admit=1 err=   -5.26% hw=0.0395 why=adopted
+CELL heavy_old    cap   mag=1.0   armed=1 done=1 slab=1 admit=1 err=   +0.00% hw=0.0300 why=adopted
+CELL heavy_old    cap   mag=1.25  armed=1 done=1 slab=1 admit=1 err=   -0.00% hw=0.0300 why=adopted
+CELL heavy_old    cap   mag=1.5   armed=1 done=1 slab=1 admit=1 err=   -0.00% hw=0.0300 why=adopted
+CELL heavy_old    cap   mag=2.0   armed=1 done=1 slab=1 admit=1 err=   +0.00% hw=0.0300 why=adopted
+CELL heavy_old    cap   mag=3.0   armed=1 done=1 slab=1 admit=1 err=   +0.00% hw=0.0300 why=adopted
+CELL typical_slab gains mag=0.0   armed=1 done=1 slab=1 admit=1 err=   +0.00% hw=0.0531 why=adopted
+CELL typical_slab gains mag=0.1   armed=1 done=1 slab=1 admit=1 err=   -2.67% hw=0.0546 why=adopted
+CELL typical_slab gains mag=0.2   armed=1 done=1 slab=1 admit=1 err=   -5.35% hw=0.0562 why=adopted
+CELL typical_slab gains mag=0.4   armed=1 done=1 slab=1 admit=1 err=  -10.70% hw=0.0597 why=adopted
+CELL typical_slab gains mag=0.8   armed=1 done=1 slab=1 admit=1 err=  -21.43% hw=0.0685 why=adopted
+CELL typical_slab gains_neg mag=0.0   armed=1 done=1 slab=1 admit=1 err=   +0.00% hw=0.0531 why=adopted
+CELL typical_slab gains_neg mag=-0.1  armed=1 done=1 slab=1 admit=1 err=   +2.67% hw=0.0517 why=adopted
+CELL typical_slab gains_neg mag=-0.2  armed=1 done=1 slab=1 admit=1 err=   +5.35% hw=0.0504 why=adopted
+CELL typical_slab gains_neg mag=-0.3  armed=1 done=1 slab=1 admit=1 err=   +8.02% hw=0.0491 why=adopted
+CELL typical_slab drift mag=0.0   armed=1 done=1 slab=1 admit=1 err=   +0.00% hw=0.0531 why=adopted
+CELL typical_slab drift mag=0.05  armed=1 done=0 slab=1 admit=0 err=       na hw=na why=fitted parameters outside plausible bounds
+CELL typical_slab drift mag=0.1   armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL typical_slab drift mag=0.2   armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL typical_slab drift mag=0.3   armed=1 done=0 slab=0 admit=0 err=       na hw=na why=room temperature drifted beyond the allowed excursion
+CELL typical_slab ks    mag=1.0   armed=1 done=1 slab=1 admit=1 err=   +0.00% hw=0.0531 why=adopted
+CELL typical_slab ks    mag=1.25  armed=1 done=1 slab=1 admit=1 err=   -1.34% hw=0.0550 why=adopted
+CELL typical_slab ks    mag=1.5   armed=1 done=1 slab=1 admit=1 err=   -2.83% hw=0.0592 why=adopted
+CELL typical_slab ks    mag=2.0   armed=1 done=1 slab=1 admit=1 err=   -6.08% hw=0.0770 why=adopted
+CELL typical_slab ks    mag=3.0   armed=1 done=0 slab=1 admit=0 err=       na hw=na why=fitted parameters outside plausible bounds
+CELL typical_slab cap   mag=1.0   armed=1 done=1 slab=1 admit=1 err=   +0.00% hw=0.0531 why=adopted
+CELL typical_slab cap   mag=1.25  armed=1 done=1 slab=1 admit=1 err=   +0.00% hw=0.0531 why=adopted
+CELL typical_slab cap   mag=1.5   armed=1 done=1 slab=1 admit=1 err=   +0.00% hw=0.0531 why=adopted
+CELL typical_slab cap   mag=2.0   armed=1 done=1 slab=1 admit=1 err=   -0.00% hw=0.0531 why=adopted
+CELL typical_slab cap   mag=3.0   armed=1 done=1 slab=1 admit=1 err=   +0.00% hw=0.0531 why=adopted
+RESULT p5_cells=72 count
+RESULT p5_admitted=39 count
+RESULT p5_admitted_over_bar=3 count
+RESULT p5_admitted_over_bar_null=0 count
+RESULT p5_worst_blended_shift_pct=7.970 %
+RESULT p5_worst_admitted_err_pct=21.431 %
+RESULT p5_admitted_over_bar_gains=3 count
+RESULT p5_admitted_over_bar_gains_neg=0 count
+RESULT p5_admitted_over_bar_drift=0 count
+RESULT p5_admitted_over_bar_ks=0 count
+RESULT p5_admitted_over_bar_cap=0 count
+RESULT p5_admitted_over_bar_drop_worst=2 count
+RESULT p5_monotone_breaks=0/15 count
+RESULT wall_s=2.2 s provisional
+RESULT thread_factor=1.000
+RESULT load1=1.40
+RESULT swapins=0

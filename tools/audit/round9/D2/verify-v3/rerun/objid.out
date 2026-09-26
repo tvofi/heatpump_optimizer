@@ -1,0 +1,23 @@
+2.31 0.81 0.31 4/169 2226
+# mismatch wood_coil                        room    end_state - trajectory_end = +0.066243 K
+# mismatch wood_coil                        slab    end_state - trajectory_end = +0.037299 K
+# mismatch wood_coil                        upper   end_state - trajectory_end = +0.085751 K
+# mismatch wood_coil                        lower   end_state - trajectory_end = +0.046736 K
+# mismatch wood_coil                        buffer  end_state - trajectory_end = +0.056958 K
+# mismatch wood_coil                        wood    end_state - trajectory_end = +0.419558 K
+# worst cost scenario ('', 0.0)
+# wood_coil: savings with trajectory-end settlement - published = -0.4816 (published savings 90.9049, baseline 157.1901)
+RESULT savings_overstatement_max=0.4816 currency
+RESULT savings_overstatement_pct_of_baseline=0.306 pct
+RESULT scenarios=50 count
+RESULT cost_err=0.000e+00 currency
+RESULT savings_err=0.000e+00 currency
+RESULT end_mismatch=6 count
+RESULT end_mismatch_scenarios=1 count
+RESULT end_mismatch_max_abs=0.419558 K
+RESULT perturbed=0
+RESULT thread_factor=1.000
+RESULT load1=3.86
+RESULT swapins=0
+exit=0
+3.86 2.40 1.05 3/158 3121

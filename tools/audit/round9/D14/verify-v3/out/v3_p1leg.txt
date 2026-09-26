@@ -1,0 +1,10 @@
+# dt_util.now() aware under HASTUB_TZ: True
+RESULT p1leg[control_all_aware]=0 raising_calls 
+RESULT p1leg[naive_last_cycle+aware_attempt]=3 raising_calls hours_since:TypeError@legionella.py:626 due_in_hours:TypeError@legionella.py:626 _build_data_dict:TypeError@legionella.py:626
+RESULT p1leg[aware_last_cycle+naive_attempt]=3 raising_calls hours_since:TypeError@legionella.py:626 due_in_hours:TypeError@legionella.py:626 _build_data_dict:TypeError@legionella.py:626
+RESULT p1leg[naive_last_cycle_only]=0 raising_calls 
+RESULT p1leg[naive_both]=0 raising_calls 
+RESULT p1leg_raising_cases=2_of_4
+RESULT thread_factor=1.000
+RESULT load1=2.89
+RESULT swapins=0

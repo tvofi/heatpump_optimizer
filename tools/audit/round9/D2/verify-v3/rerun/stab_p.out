@@ -1,0 +1,48 @@
+0.76 0.33 0.13 4/161 1830
+RESULT default_configs=2 count
+RESULT default_envelope_violations=0 configs
+RESULT default_rho_gt_1=0 configs
+RESULT default_diverged_100K=0 configs
+RESULT default_worst_rho=0.9978 ratio
+RESULT default_worst_excess=0 K
+# default worst radius at default2z (n_sub=1)
+RESULT presets_configs=3360 count
+RESULT presets_envelope_violations=0 configs
+RESULT presets_rho_gt_1=0 configs
+RESULT presets_diverged_100K=0 configs
+RESULT presets_worst_rho=0.9995 ratio
+RESULT presets_worst_excess=0 K
+# presets worst radius at preset:masonry/low_energy/heated_basement/floor/floor/2z/1000 (n_sub=1)
+RESULT examples_configs=2 count
+RESULT examples_envelope_violations=0 configs
+RESULT examples_rho_gt_1=0 configs
+RESULT examples_diverged_100K=0 configs
+RESULT examples_worst_rho=0.9876 ratio
+RESULT examples_worst_excess=0 K
+# examples worst radius at ex1z:C=1.0/u=0.2/Cs=1.0/k=5.0 (n_sub=2)
+RESULT grid_configs=3936 count
+RESULT grid_envelope_violations=0 configs
+RESULT grid_rho_gt_1=0 configs
+RESULT grid_diverged_100K=0 configs
+RESULT grid_worst_rho=1.0000 ratio
+RESULT grid_worst_excess=0 K
+# grid worst radius at grid2z:Cu=60/Cl=60/uu=0.001/ul=0.001/Cs=0.1/k=5/iz=0.01 (n_sub=13)
+RESULT grid1z_configs=864 count
+RESULT grid1z_envelope_violations=0 configs
+RESULT grid1z_rho_gt_1=0 configs
+RESULT grid1z_diverged_100K=0 configs
+RESULT grid1z_worst_rho=1.0000 ratio
+RESULT grid1z_worst_excess=0 K
+# grid1z worst radius at grid1z:C=80/u=0.01/Cs=0.1/k=5 (n_sub=13)
+RESULT grid2z_configs=3072 count
+RESULT grid2z_envelope_violations=0 configs
+RESULT grid2z_rho_gt_1=0 configs
+RESULT grid2z_diverged_100K=0 configs
+RESULT grid2z_worst_rho=1.0000 ratio
+RESULT grid2z_worst_excess=0 K
+# grid2z worst radius at grid2z:Cu=60/Cl=60/uu=0.001/ul=0.001/Cs=0.1/k=5/iz=0.01 (n_sub=13)
+RESULT thread_factor=1.0000
+RESULT load1=1.40
+RESULT swapins=0
+exit=0
+1.40 0.51 0.19 3/160 1985

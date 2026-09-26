@@ -1,0 +1,27 @@
+RESULT p7grid[zoneinfo][spring2025]=84_of_92 instants skew_max=60 min
+RESULT p7grid[zoneinfo][autumn2025]=88_of_100 instants skew_max=60 min
+RESULT p7grid[zoneinfo][spring2026]=84_of_92 instants skew_max=60 min
+RESULT p7grid[zoneinfo][autumn2026]=88_of_100 instants skew_max=60 min
+RESULT p7grid[zoneinfo][spring2027]=84_of_92 instants skew_max=60 min
+RESULT p7grid[zoneinfo][autumn2027]=88_of_100 instants skew_max=60 min
+RESULT p7grid[zoneinfo][plain]=0_of_96 instants skew_max=0 min
+RESULT p7grid_total[zoneinfo]=516_of_672 instants
+RESULT p7grid[utc][spring2025]=0_of_96 instants skew_max=0 min
+RESULT p7grid[utc][autumn2025]=0_of_96 instants skew_max=0 min
+RESULT p7grid[utc][spring2026]=0_of_96 instants skew_max=0 min
+RESULT p7grid[utc][autumn2026]=0_of_96 instants skew_max=0 min
+RESULT p7grid[utc][spring2027]=0_of_96 instants skew_max=0 min
+RESULT p7grid[utc][autumn2027]=0_of_96 instants skew_max=0 min
+RESULT p7grid[utc][plain]=0_of_96 instants skew_max=0 min
+RESULT p7grid_total[utc]=0_of_672 instants
+RESULT p7grid[fixed+01][spring2025]=0_of_96 instants skew_max=0 min
+RESULT p7grid[fixed+01][autumn2025]=0_of_96 instants skew_max=0 min
+RESULT p7grid[fixed+01][spring2026]=0_of_96 instants skew_max=0 min
+RESULT p7grid[fixed+01][autumn2026]=0_of_96 instants skew_max=0 min
+RESULT p7grid[fixed+01][spring2027]=0_of_96 instants skew_max=0 min
+RESULT p7grid[fixed+01][autumn2027]=0_of_96 instants skew_max=0 min
+RESULT p7grid[fixed+01][plain]=0_of_96 instants skew_max=0 min
+RESULT p7grid_total[fixed+01]=0_of_672 instants
+RESULT thread_factor=1.000
+RESULT load1=3.30
+RESULT swapins=0

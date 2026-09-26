@@ -1,0 +1,32 @@
+RESULT recorded_scenarios=51 count
+RESULT recorded_mean_ratio=130.02 x ref
+RESULT sweep_budget_ratio=134.32
+RESULT solve_ceiling_ratio=1630.2
+RESULT scenario_budget_factor=3.0
+RESULT confined_2x_scenarios_tripping_any_cpu_rule=9 of 51 (exact)
+RESULT min_confined_multiple_to_trip=1.21 x (shoulder/tariff+pv+cycle)
+RESULT confined_multiple_to_trip.winter/2z/dhw=3.0 x
+RESULT confined_multiple_to_trip.winter/1z/dhw=3.01 x
+RESULT thread_factor=1.0
+RESULT load1=1.76
+RESULT swapins=0
+# machine: x86_64 4cpu Linux py3.14.0rc2
+RESULT scale1.6_recorded_scenarios=51 count
+RESULT scale1.6_recorded_mean_ratio=130.02 x ref
+RESULT scale1.6_sweep_budget_ratio=134.32
+RESULT scale1.6_solve_ceiling_ratio=1630.2
+RESULT scale1.6_scenario_budget_factor=3.0
+RESULT scale1.6_confined_2x_scenarios_tripping_any_cpu_rule=51 of 51 (exact)
+RESULT scale1.6_min_confined_multiple_to_trip=1.0 x (flat/1z/dhw)
+RESULT scale1.6_confined_multiple_to_trip.winter/2z/dhw=1.0 x
+RESULT scale1.6_confined_multiple_to_trip.winter/1z/dhw=1.0 x
+RESULT thread_factor=1.0
+RESULT load1=1.76
+RESULT swapins=0
+# machine: x86_64 4cpu Linux py3.14.0rc2
+RESULT scale1.02_confined_2x_scenarios_tripping_any_cpu_rule=21 of 51 (exact)
+RESULT scale1.02_min_confined_multiple_to_trip=1.08 x (shoulder/tariff+pv+cycle)
+RESULT scale1.02_confined_multiple_to_trip.winter/2z/dhw=1.78 x
+RESULT scale1.02_confined_multiple_to_trip.winter/1z/dhw=2.95 x
+RESULT thread_factor=1.0
+RESULT load1=0.09

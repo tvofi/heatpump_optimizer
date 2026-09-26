@@ -1,0 +1,35 @@
+FACT dhw_enabled: canonical ['_dhw_enabled_from_config'] proxies ['CONF_DHW_ENABLED', 'CONF_DHW_TANK_VOLUME', 'CONF_DHW_TEMP_ENTITY', 'CONF_DHW_WINDOWS']
+FACT two_zone_enabled: canonical ['from_config'] proxies ['CONF_INTER_ZONE_TRANSFER', 'CONF_LOWER_FLOOR_THERMAL_MASS', 'CONF_RADIATOR_POWER_FRACTION', 'CONF_TWO_ZONE_MODE', 'CONF_UPPER_FLOOR_THERMAL_MASS']
+FACT wood_furnace_on: canonical ['wood_fuel_ready', 'wood_furnace_inferred', 'wood_furnace_on'] proxies ['CONF_DHW_WOOD_COIL_ENABLED', 'CONF_EXTERNAL_HEAT_ENABLED', 'CONF_EXTERNAL_HEAT_ENTITY', 'CONF_WOOD_FURNACE_ENABLED', 'CONF_WOOD_TANK_BOTTOM_ENTITY', 'CONF_WOOD_TANK_TOP_ENTITY']
+SEAM two_zone_enabled custom_components/heatpump_optimizer/config_flow.py:1125 in _derive_preset reads CONF_UPPER_FLOOR_THERMAL_MASS
+SEAM wood_furnace_on custom_components/heatpump_optimizer/config_flow.py:3451 in async_step_building reads CONF_WOOD_FURNACE_ENABLED
+SEAM wood_furnace_on custom_components/heatpump_optimizer/config_flow.py:3453 in async_step_building reads CONF_WOOD_FURNACE_ENABLED
+SEAM dhw_enabled custom_components/heatpump_optimizer/coordinator.py:5245 in async_update_thermal_params reads CONF_DHW_WINDOWS
+SEAM dhw_enabled custom_components/heatpump_optimizer/coordinator.py:9370 in _dhw_probe_temperature reads CONF_DHW_TEMP_ENTITY
+SEAM wood_furnace_on custom_components/heatpump_optimizer/coordinator.py:3526 in _external_heat_config reads CONF_EXTERNAL_HEAT_ENABLED
+SEAM dhw_enabled custom_components/heatpump_optimizer/legionella.py:351 in async_track_cycle reads CONF_DHW_TEMP_ENTITY
+SEAM two_zone_enabled custom_components/heatpump_optimizer/modbus_prefill.py:212 in _plant reads CONF_UPPER_FLOOR_THERMAL_MASS
+SEAM dhw_enabled custom_components/heatpump_optimizer/quick_setup.py:142 in stored_answers reads CONF_DHW_ENABLED
+SEAM wood_furnace_on custom_components/heatpump_optimizer/quick_setup.py:144 in stored_answers reads CONF_WOOD_FURNACE_ENABLED
+SEAM wood_furnace_on custom_components/heatpump_optimizer/quick_setup.py:147 in stored_answers reads CONF_WOOD_TANK_TOP_ENTITY
+SEAM wood_furnace_on custom_components/heatpump_optimizer/quick_setup.py:148 in stored_answers reads CONF_WOOD_TANK_BOTTOM_ENTITY
+SEAM dhw_enabled custom_components/heatpump_optimizer/quick_setup.py:143 in stored_answers reads CONF_DHW_ENABLED
+SEAM wood_furnace_on custom_components/heatpump_optimizer/quick_setup.py:145 in stored_answers reads CONF_WOOD_FURNACE_ENABLED
+SEAM dhw_enabled custom_components/heatpump_optimizer/sensor.py:2726 in _gap_probe_terms reads CONF_DHW_TANK_VOLUME
+SEAM dhw_enabled custom_components/heatpump_optimizer/services.py:450 in handle_set_thermal_params reads CONF_DHW_WINDOWS
+SEAM dhw_enabled custom_components/heatpump_optimizer/services.py:730 in handle_apply_schedule reads CONF_DHW_WINDOWS
+SEAM dhw_enabled custom_components/heatpump_optimizer/services.py:686 in handle_apply_topology reads CONF_DHW_TANK_VOLUME
+SEAM dhw_enabled custom_components/heatpump_optimizer/services.py:688 in handle_apply_topology reads CONF_DHW_TANK_VOLUME
+SEAM wood_furnace_on custom_components/heatpump_optimizer/thermal_model.py:976 in from_config reads CONF_DHW_WOOD_COIL_ENABLED
+SEAM wood_furnace_on custom_components/heatpump_optimizer/thermal_model.py:968 in from_config reads CONF_WOOD_TANK_TOP_ENTITY
+SEAM wood_furnace_on custom_components/heatpump_optimizer/thermal_model.py:969 in from_config reads CONF_WOOD_TANK_BOTTOM_ENTITY
+SEAM wood_furnace_on custom_components/heatpump_optimizer/topology.py:378 in _wood_tank_shown reads CONF_WOOD_FURNACE_ENABLED
+SEAM wood_furnace_on custom_components/heatpump_optimizer/topology.py:379 in _wood_tank_shown reads CONF_WOOD_FURNACE_ENABLED
+SEAM wood_furnace_on custom_components/heatpump_optimizer/topology.py:381 in _wood_tank_shown reads CONF_EXTERNAL_HEAT_ENABLED
+SEAM wood_furnace_on custom_components/heatpump_optimizer/topology.py:382 in _wood_tank_shown reads CONF_WOOD_TANK_TOP_ENTITY
+SEAM wood_furnace_on custom_components/heatpump_optimizer/topology.py:383 in _wood_tank_shown reads CONF_WOOD_TANK_BOTTOM_ENTITY
+SEAM wood_furnace_on custom_components/heatpump_optimizer/topology.py:385 in _wood_tank_shown reads CONF_EXTERNAL_HEAT_ENTITY
+SEAM dhw_enabled custom_components/heatpump_optimizer/topology.py:714 in rank_sensor_gaps reads CONF_DHW_TEMP_ENTITY
+RESULT seams[dhw_enabled@worktree]=11 count
+RESULT seams[two_zone_enabled@worktree]=2 count
+RESULT seams[wood_furnace_on@worktree]=16 count

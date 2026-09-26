@@ -1,0 +1,10 @@
+RESULT quarter_rows=96 count
+RESULT quarter_minutes_wrong=1425 of 1440
+RESULT quarter_ledger_abs_err_1kW=8.1694 currency_per_day (day energy 24 kWh, mean price 1.449)
+RESULT hourly_null_rows=24 count
+RESULT hourly_null_minutes_wrong=0 of 1440
+RESULT hourly_null_ledger_abs_err_1kW=0.0000 currency_per_day (day energy 24 kWh, mean price 1.460)
+RESULT perturbed=0
+RESULT thread_factor=1.0000
+RESULT load1=2.60
+RESULT swapins=0

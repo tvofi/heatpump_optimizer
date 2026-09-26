@@ -1,0 +1,43 @@
+SEAM custom_components/heatpump_optimizer/config_flow.py:1645  literal 'SEK/m³'
+SEAM custom_components/heatpump_optimizer/config_flow.py:1673  resolve_currency(hass) [instance config]
+SEAM custom_components/heatpump_optimizer/config_flow.py:3595  resolve_currency(hass) [instance config]
+SEAM custom_components/heatpump_optimizer/config_flow.py:3654  resolve_currency(hass) [instance config]
+SEAM custom_components/heatpump_optimizer/config_flow.py:1720  resolve_currency(hass) [instance config]
+SEAM custom_components/heatpump_optimizer/config_flow.py:1723  resolve_currency(hass) [instance config]
+SEAM custom_components/heatpump_optimizer/coordinator.py:1326  price unit parsed; money code discarded
+SEAM custom_components/heatpump_optimizer/coordinator.py:1824  resolve_currency(hass) [instance config]
+SEAM custom_components/heatpump_optimizer/coordinator.py:7141  self.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/coordinator.py:8648  self.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/coordinator.py:1344  price unit parsed; money code discarded
+SEAM custom_components/heatpump_optimizer/coordinator.py:10009  resolve_currency(hass) [instance config]
+SEAM custom_components/heatpump_optimizer/coordinator.py:8663  self.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/coordinator.py:6403  self.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/coordinator.py:6430  self.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/inputs.py:328  price unit parsed; money code discarded
+SEAM custom_components/heatpump_optimizer/price_model.py:700  price unit parsed; money code discarded
+SEAM custom_components/heatpump_optimizer/sensor.py:437  coordinator.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/sensor.py:460  coordinator.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/sensor.py:523  coordinator.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/sensor.py:539  coordinator.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/sensor.py:1221  coordinator.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/sensor.py:1825  coordinator.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/sensor.py:2750  coordinator.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/sensor.py:1578  self.coordinator.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/sensor.py:558  coordinator.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/sensor.py:1473  self.coordinator.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/sensor.py:2198  coordinator.currency [frozen at setup]
+SEAM custom_components/heatpump_optimizer/strings.json:0  literal currency in .services.simulate_plan.fields.wood_price_sek_m3.description: 'What-if firewood price in SEK per billed cubic metre.'
+SEAM custom_components/heatpump_optimizer/translations/en.json:0  literal currency in .services.simulate_plan.fields.wood_price_sek_m3.description: 'What-if firewood price in SEK per billed cubic metre.'
+SEAM custom_components/heatpump_optimizer/translations/sv.json:0  literal currency in .services.simulate_plan.fields.wood_price_sek_m3.description: 'Tänk om-värde för vedpriset i SEK per debiterad kubikmeter.'
+SEAM custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:4481  currency() {
+SEAM custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:4484  this.config.currency ||
+SEAM custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:4488  this.attrRaw("currency", null) ||
+SEAM custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:4489  (hass.config && hass.config.currency) ||
+SEAM custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:4496  return `${this.currency()}/kWh`;
+SEAM custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:6763  function savingsUnit(plan, statKey) {
+SEAM custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:6766  return declared || plan.currency();
+SEAM custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:6786  const unit = savingsUnit(plan, "_plan_predicted_savings");
+SEAM custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:7358  const cur = this.host.plan.currency();
+SEAM custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:10934  this.plan.currency(),
+SEAM custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:11280  const cur = savingsUnit(this.plan, "_plan_monthly_savings");
+RESULT p8_currency_sites=42 count

@@ -1,0 +1,320 @@
+{
+ "box": "G3-V3",
+ "lens": 3,
+ "votes": {
+  "D14": [
+   {
+    "id": "D14-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "re-run 11 escaping mutants / 7 seams / 2 wedged (exact); own: 2 of 4 naive legionella payloads wedge (mixed naive/aware only), control 0",
+    "metric_definition": "Raising calls (hours_since, due_in_hours, _build_data_dict), on the real-HA clock shape, per single-leaf naive legionella store payload",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D14/verify-v3/v3_arms.py p1leg (HASTUB_TZ=Europe/Stockholm, real coordinator on golden coord_dhw)",
+    "attacks": "contention: counts, immune (load1 2.37-2.89). Null: all-aware 0. Reach: Store is an honest round trip (ha_contract S) and upstream now() is always aware; production writers never write naive under the upstream clock, so the field precondition is a corrupted or foreign leaf (P1's premise); the TypeError at legionella.py:626 needs a MIXED naive/aware pair; naive-both and naive-last_cycle-only give 0. Severity: every cycle fails until the store is deleted: medium.",
+    "class": "P1",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D14-s1-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "re-run 2 unproduced + 1 undefined getattr (exact); own: 0 production writes of horizon_hours",
+    "metric_definition": "Production writes of the horizon_hours key or attribute (AST)",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D14/verify-v3/v3_arms.py p6",
+    "attacks": "Reach: OptimizationConfig.horizon_hours is never assigned (default 24.0, optimizer.py:1195), so the sensor fallback publishes the true value today; the defect is latent. boost_calls exists only on tests/harness.py FakeCoordinator: in real HA persist() always runs, and only the suite skips it (a P11 test-double seam, not P6). seam_rule covers only platform and diagnostics readers over 10 cells, not hass.data or card attribute reads.",
+    "class": "P6 (the boost_calls seam is P11)",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D14-s2-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "re-run 20/40, 20/40, 2/21, null 0 (exact); own: 3 of 3 reachable shapes disagree",
+    "metric_definition": "Reachable current-config shapes on which production _derive_preset output differs from the same function using ThermalParameters.from_config(...).two_zone_enabled",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D14/verify-v3/v3_arms.py p2preset",
+    "attacks": "Controls agree (0 differing keys). On default answers house_thermal_mass is equal (1.000) but slab_thermal_mass is 10.85 vs 14.0, slab_heat_transfer 0.7 vs 1.4, and 6 zone keys differ, so the finder's 0.267x/3.75x depends on the answers while the disagreement does not. Reach: the options-flow building_preset page uses {**entry.data, **options}; thermal_model.py:997-1000 documents that zone keys survive in entry.data, so mode=off plus an upper key is a designed real state. Pure config-flow code, no stub symbol.",
+    "class": "P2",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D14-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "re-run A 8/12 unflagged, B 1/4, card 3 (exact); own: EUR/kWh feed on SEK instance -> number unchanged, label SEK, 0 repair issues, 1 literal SEK/m3",
+    "metric_definition": "Money label vs feed money code, with the repair issues raised, for an EUR/kWh price entity on a SEK instance",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D14/verify-v3/v3_arms.py p8cur",
+    "attacks": "Reach: hass.config.currency is upstream core config; ha_contract has no currency contract and the harness pins SEK, so the suite never runs a mismatch. Any ISO-coded feed unit that differs from the instance currency takes this path. Severity: a wrong unit label with a consistent number and a config workaround: medium.",
+    "class": "P8",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D14-s2-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": "re-run intake 11/22, P11 unowned, check_scopes ok=True (exact); own: 1 ledger id (P11) absent from scopes.json D14",
+    "metric_definition": "Ledger class ids absent from scopes.json's D14 subtree",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D14/verify-v3/v3_arms.py i4",
+    "attacks": "Instrument in the audit workflow, reached on every intake; no HA path. Bounded process cost: low. seam_rule greps class tokens only; finding-id grammar readers are listed only where they share a line with class tokens (audit-find.js:304).",
+    "class": "I4",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D14-s3-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "re-run 22 groups / 6 raw-divisor / 1 capacity (exact); own: 173 builtin max floors, 15 numpy floors the rule does not scan",
+    "metric_definition": "Positive-constant floor sites by call form (builtin max(Q,c) vs np.maximum/np.clip)",
+    "method": "independent AST count over custom_components/heatpump_optimizer (recorded in the report)",
+    "attacks": "Reach: no floor sits above its schema minimum (the finder's spot-check; nothing contradicts it), so no seam is reachable from the UI: hygiene. seam_rule matches only a builtin two-argument max (p3_floors.py:121), so np.maximum (11) and np.clip (4) floors are outside it.",
+    "class": "P3",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D14-s3-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "re-run 12/30 tol misses, max tgap 0.5224 % (exact, 584.5 s); own: tight arm at ftol 1e-9 gives the same 0.5224 % max tgap, 2/9 misses on the quick grid",
+    "metric_definition": "Seam calls whose production score exceeds the same candidates re-solved at ftol 1e-9/gtol 1e-7 by more than 0.1 % of the objective",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D14/verify-v3/v3_arms.py p4alt (finder's quick grid, moderate tight stop)",
+    "attacks": "Contention: objective values (load1 2.20-2.41, thread_factor 1.000). Null: flat prices still miss 3/4, so this is not a price gain and no money is claimed (the finder says so). The non-stationarity is not an artefact of ftol 1e-12. Reach: pure solver, the same code in the HA worker. Every scipy minimize runs under the two hooked _multi_start_minimize callers.",
+    "class": "P4",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D14-s3-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "re-run 3 admitted over bar, worst -21.43 % (exact); own: first over-bar admission at 0.5 kW undeclared (typical_slab) and 0.6 kW (heavy_old); hw never above 0.0805 vs bar 0.0953 up to 1.2 kW",
+    "metric_definition": "Smallest undeclared free heat (kW) at which sysid.adoption_decision admits |ln(UA_fit/UA_true)| > ln 1.10",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D14/verify-v3/v3_arms.py p5grid (magnitudes 0.3/0.5/0.6/1.0/1.2 kW through the finder's plant driver)",
+    "attacks": "Reach: production wires gains_prior_kw from the declared internal_gains (coordinator.py:2365); pure-Python fit with no stub symbol; a few hundred watts of undeclared night-time free heat is ordinary. The --seams list has 19 sites but only the UA seam is driven.",
+    "class": "P5",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D14-s4-01",
+    "vote": "verify",
+    "severity": "high",
+    "value": "re-run 9 wrong sites, grid 42/48 per transition day (exact); own: 516 of 672 real-ZoneInfo DST-day instants skewed (max 60 min), 0/672 under UTC and fixed +01:00, 0/96 plain day",
+    "metric_definition": "15-min instants on DST days where step 0 of production _forecast_arrays' grid differs from now floored to 15 min in UTC",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D14/verify-v3/v3_arms.py p7grid (production _forecast_arrays called with real zoneinfo now; _price_series captured)",
+    "attacks": "Reach: stronger in real HA than in the suite. ha_contract marks DEFAULT_TIME_ZONE and as_local as D (#577), so the default lanes run a naive clock, while upstream always hands the shared ZoneInfo. Perturbation: a fixed-offset or UTC tzinfo gives 0. Severity: a wrong published value (grid 60 min off about 21 h, next_optimization 1 h off) on 2 days/yr: high, not critical. seam_rule: the dynamic rule lists only driven sites; the static heuristic missed 1 reached site and holds undriven shape-identical candidates (pump_arbiter.py:372, snapshots.py:77).",
+    "class": "P7",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D14-s4-02",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "re-run 0 under run_fixture, 10 with --zone-clock (exact); own: tests/replay/ holds 1 fixture (synthetic-dhw-only.json), no DST day; the freeze grep misses 3 aliased freeze calls in features.py",
+    "metric_definition": "DST-day fixtures in the replay lane, plus freeze call sites the grep seam rule misses",
+    "method": "ls tests/replay/; grep -n 'dt_util.freeze(' tests/*.py (56 calls, 7 files) against the aliased _bo_dt.freeze / _dt5.freeze in tests/features.py",
+    "attacks": "The defect is real (replay._ts is a fixed-offset fromisoformat), but with no DST fixture in the lane the blindness has no present consequence; it bites only once a DST export lands, which the fix scope itself proposes. Weaken medium -> low. Class: the defect is a test-double clock whose tzinfo identity differs from HA's (P11); P7 is the class it hides.",
+    "class": "P11",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D14-s5-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "re-run seams 31, red_and_skipped 1 (exact); own: 32 of 32 tracked hastub .py files select scoped with deployment_shape.py skipped, 0 after the in-memory union",
+    "metric_definition": "Tracked tests/hastub .py files whose single-file change closure.select() returns scoped with tests/deployment_shape.py skipped",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D14/verify-v3/v3_arms.py closure",
+    "attacks": "This is the real CI PR path (GATE_SCOPE=auto). The cost is bounded by main forcing full (CLAUDE.md rule 1), so main goes red within one merge: medium. The probe edits only a mkdtemp copy.",
+    "class": "I2",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D14-s5-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "re-run 528 of 2313 uncovered (exact); own: 46 of 46 multi-line exit-ifs lack GUARD_OFF (43 with no candidate on any body line), 93 of 98 np.clip lack CLAMP_DROP",
+    "metric_definition": "Multi-line-test exit-ifs and np.clip calls with no covering tests/mutation_table.py:candidates() site on their line",
+    "method": "PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D14/verify-v3/v3_arms.py guards; plus a body-line candidate check (recorded in the report)",
+    "attacks": "Attack: does another operator reach the guard through its body? Only 3 of 46 have any candidate on a body line, so the gap stands. I ran no mutation pool (tvofi 2026-09-26T11:37Z) and relied on the finder's --history for #1312 and #1316. Instrument only; bounded: medium.",
+    "class": "I1",
+    "seam_rule_enumerates": true
+   }
+  ],
+  "D2": [
+   {
+    "id": "D2-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "finder harness reproduced exactly (69/3936, 50 diverged, worst 1.3958; ratio1 -> 0); own: 41/20000 random accepted-range configs with analytic Euler radius > 1, worst 1.8846 (ratio1 -> 0/20000, 1.0000); real solve at the named point publishes room trajectory min -1.017e27 C, 140.9 kWh bought vs 82.8 under the fix",
+    "metric_definition": "count of config-flow-accepted configs whose per-substep Euler matrix I + h*A (h = 0.25 h / production n_sub) has spectral radius > 1, cross-checked against simulate_trajectory leaving [0,25] C",
+    "method": "tools/audit/round9/D2/verify-v3/v3_s1_01_radius.py [--perturb]; rerun/stab*.out",
+    "attacks": "grid artefact: finder grid under-reports worst radius (1.3958 vs 1.8846), phenomenon boolean holds; null control passes (0/3360 presets); real-HA reach: named point inside RANGE_* enforced by NumberSelector, which ha_contract marks faithful; consequence through a real optimize: published trajectory -1e27 C (finite, escapes the non-finite scrub), cost 208.27 vs 108.97; seam rule is the harness: covers scalar steps only, not the batch integrator's n_sub (thermal_model.py:2808) or the throttled-valve row",
+    "class": "new: explicit-Euler stability bound judged per store (diagonal) instead of on the coupled step matrix",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D2-s1-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "finder harness exact (28/28, max 0.405991 kWh; mixuse -> 0); own on a solved wood_coil plan: 0 kWh when the day starts at 00:00, 0.0116-0.0963 kWh/day over 1-2 steps when DHW starts at 30-38 C inside a draw hour; perturbation -> 0",
+    "metric_definition": "sum over the published plan's replay of q_coil*(1 - min(1,(T_dhw - inlet)/(40 - inlet)))*dt, kWh, q_coil as production dhw_coil_draw_reduction returned",
+    "method": "tools/audit/round9/D2/verify-v3/v3_s1_02_coil_reach.py [--perturb]; rerun/coil*.out",
+    "attacks": "one-step 2 kW figure vs solved plan: the planner restores the tank above 40 C within 1-2 steps, so <=0.1 kWh/day; reachable in real HA (wood coil + cold DHW reading in a draw hour), no stub symbol; null control passes; seam rule (harness) drives thermal_model only, misses optimizer.py mirrors (:3397 baseline, :4571 planner draws, :5581 scale)",
+    "class": "P2 (corrected from new): the draw's effective size decided twice, scaled at the DHW seam, unscaled at the sibling wood-tank debit",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D2-s2-01",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "finder harnesses exact (1.44 K/h, 13.5 K, 67.5 kWh; plan S=2 savings delta -13.427..-0.393); own at moderate learned scales: max |savings delta| 1.11 % (s=0.7), 1.54 % (s=1.3), 5.35 % (s=2.0) of baseline; end slab <= 0.08/0.84/2.81 K; sign not uniform; null s=1 all 0",
+    "metric_definition": "predicted_savings(production) - predicted_savings(slab_settlement_cap and hold_demand_kw fed losses x s), share of |baseline_cost|, 3 golden scenarios x s in {0.7,1.3,2.0}",
+    "method": "tools/audit/round9/D2/verify-v3/v3_s2_01_scale_plan.py; rerun/slab*.out, rerun/plan2.out",
+    "attacks": "real-HA reach: scale learned online into ctx._thermal_params, shared by the coordinator's optimizer (coordinator.py:3991, 5273-5274), so reachable on every learned install; severity: headline figures need s=3/0.3; at 0.7-1.3 savings error <=1.5 % and direction varies (s=1.3 winter_single production savings 0.55 lower than fix) -> medium not high; seam rule confined to optimizer.py, misses coordinator.py:3647-3656 _space_demand_kw (raw losses, raw lower_floor_heat_loss) and the battery-view consumer coordinator.py:10601; prints false positives 6414/6416 (scaled at :6421)",
+    "class": "P2",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D2-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "finder harness exact (fixed50 0.3683, fixed45 0.2282, fixed40 0.0836, curve max 27.921 C, 142/142 clamp-bound; clamp 40 -> 0.0169); own weighted overstatement fixed45 on 0.112 / off 0.201 / clamp-40 -0.022, fixed50 0.198 / 0.294 / -0.019; heating-curve plants k=0.8-1.2: 0.13-0.25 with bias 7-11 K never at the clamp, on = off for k <= 1.0",
+    "metric_definition": "heat-demand-weighted mean over outdoor -20..12 C of compute_cop (flow_curve_cop on, bias learned by FlowCurveBias) / _cop_law at the plant's real supply - 1; arms on / flag off / clamp 40",
+    "method": "tools/audit/round9/D2/verify-v3/v3_s2_02_sloped_plant.py; rerun/flow*.out",
+    "attacks": "null control passes; opt-in flag (default off, refused behind a throttling valve) fed by real supply readings, no stub symbol; mechanism scope: clamp binds only for fixed-setpoint plants; for heating-curve plants curve+bias stays under cop_flow_reference_temp where flow_lift_factor is 1 (one-sided), so the clamp fix leaves 0.225 of 0.247; flag-on never worse than flag-off; seam rule greps clamp/curve/emitter dT but not flow_lift_factor's one-sided floor",
+    "class": "new: a learned correction's clamp sized against an assumed range of the quantity, not the model's own curve",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D2-s2-03",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "finder harness exact (end_mismatch 6, max 0.419558 K, savings overstatement 0.4816; perturb -> 0); own: one-sided fix +0.4816/+0.4813/+0.4924 at wood 55/70/85 C, draining baseline_end by the baseline's own coil too gives -2.0964/-2.6023/-2.6336; null (winter_single_dhw) 0/0",
+    "metric_definition": "_deferred_energy_cost(X) - _deferred_energy_cost(production args) on the DHW path, X = optimized_end from the published simulate_trajectory_with_dhw end (one-sided) and additionally baseline_end wood drained by the baseline coil (two-sided), currency",
+    "method": "tools/audit/round9/D2/verify-v3/v3_s2_03_symmetric_settle.py; rerun/objid*.out",
+    "attacks": "identity breach exact; the 'overstated by 0.48' consequence rests on fixing only optimized_end while baseline_end (_compute_baseline_power) is also a coil-free replay; two-sided accounting flips the sign to a 2.1-2.6 understatement, so direction and size are counterfactual-dependent; reachable in real HA, no stub symbol; seam rule misses the baseline_end sibling (:3987/:6194)",
+    "class": "P2",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D2-s3-01",
+    "vote": "verify",
+    "severity": "high",
+    "value": "finder harness exact (ramp 28..42, step 18 of 96; perturb -> 0); own Tibber QUARTER_HOURLY payload through prices_from_tibber_payload: 1425/1440 minutes stale (always the entry 45 min old), 1 kW ledger error 8.17 currency/day at mean price 1.449; hourly null 0/1440; fix arm 0/1440",
+    "metric_definition": "minutes of a day where _current_spot_price() differs from the total of the Tibber quarter entry covering that minute (clock aware, Europe/Stockholm), and sum |error|/60 for a constant 1 kW draw",
+    "method": "tools/audit/round9/D2/verify-v3/v3_s3_01_tibber_minutes.py [--perturb]; rerun/cqp*.out",
+    "attacks": "finder count is a floor set by hour-shaped profiles; per-quarter-varying prices give ~95/96; default Tibber query is QUARTER_HOURLY (price_model.py:577) so every Tibber install reaches it; stub divergence dt.DEFAULT_TIME_ZONE: unfrozen stub now() is naive and would swallow a TypeError and return _prices[0], but real HA now() is aware, which is the path both harnesses exercise; consumers: current_price, settlement ledger price/spot_price, comfort learner, sysid; seam rule prints only :6034 and misses the demonstrated :6333 (line has neither 'price' nor 'starts')",
+    "class": "P2",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D2-s3-02",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "finder harness exact (16/16/20 breaches, solve -0.608961, 5.0747 vs 2.2733 kWh; perturb -> 0); own: tariff-scored cost of floored minus unfloored plan -0.0773..+0.0518 currency/day (null 0); published predicted_cost minus its tariff score -0.0985..-0.6101 in summer cells (null 0)",
+    "metric_definition": "tariff score sum dt*(E*min(P,s)+I*max(P-s,0)) of the production plan minus that of a plan solved with pv.import_margin unfloored, and the production plan's published predicted_cost minus its own tariff score",
+    "method": "tools/audit/round9/D2/verify-v3/v3_s3_02_realized_cost.py; rerun/pv*.out",
+    "attacks": "identity breach exact; money consequence of the floor on what the plan pays is <=0.08/day either sign (comfort not equalised, recorded); published cost understated up to 0.61/day; reachable in real HA via PV surplus and export price/entity (coordinator.py:8940), no stub symbol; floor is a documented convexity choice whose rationale is wrong for export > import",
+    "class": "new: a sign floor on a price margin, applied consistently at both seams, breaks the stated piecewise identity on the clipped region",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D2-s4-01",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "finder harness exact (14/22 = 0.636, bias +7.26 %, adopted scale err +2.71 %; sigma0 -> 0/12); own with a 1-minute-substep plant: 0 admitted of 72 noisy runs at 0.5 h and 0 of 72 at 0.25 h; noise-free fits refused (UA -16.8 %, -27.7 %, unbounded interval; typical_slab outside plausible bounds); same-step plant (--sub 1) reproduces exact admitted fits; margin-perturbed 0.25 h: 1 of 2 admitted missed, bias +10.0 %",
+    "metric_definition": "among fits adoption_decision admits against a plant integrated in 1-minute substeps (readings 0.5 h / 0.25 h, white 0.02 C or 0.1 C quantisation), the share with |log(UA_fit/UA_true)| > slab_ua_adoption_halfwidth",
+    "method": "tools/audit/round9/D2/verify-v3/v3_s4_sysid_fineplant.py --dt {0.5,0.25} [--sub 1] [--perturb margin]; rerun/cov*.out",
+    "attacks": "inverse crime: finder plant = sysid's rollout model at the same Euler step (_simulate_slab_path, sysid.py:623-628); against a near-continuous plant the gate admits nothing in 144 noisy runs, so 14/22 is not reached in real HA for these presets; property not shown to hold either (1/1 perturbed admission missed); lead for the judge, not filed: fine-plant noise-free fits miss UA by 17-28 % from the rollout step alone; seam rule uses the same-step plant and enumerates anchor/prior seams only",
+    "class": "P5",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D2-s4-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "finder harness exact (100/294; margin -> 3); own 1-minute-substep plant: 14/72 noisy aborts at the default 0.5 h cadence (light_new q0.1 12/12, white 0.02 2/12), 24/72 at 0.25 h; noise-free null 0 in every cell; margin perturbation 0/72 at both cadences",
+    "metric_definition": "runs ending 'room temperature drifted beyond the allowed excursion' per preset x noise (white 0.02, 0.1 C quantisation + 0.005 white), plant integrated in 1-minute substeps, readings every 0.5 h and 0.25 h",
+    "method": "tools/audit/round9/D2/verify-v3/v3_s4_sysid_fineplant.py --dt {0.5,0.25} [--perturb margin]; rerun/sizer*.out",
+    "attacks": "finder's light_new 0.5 h white cells (47/48) inflated by its plant's Euler step (its own sigma-0 null aborts there, mine does not); with real-sensor quantisation the abort stays 12/12 on light_new at the default cadence; reachable in real HA (armed by async_arm_system_identification, stepped every 30-min cycle, baseline = one reading sysid.py:1364); consequence: experiment never completes on light houses, nothing wrong adopted; seam rule single-zone only, misses the two-zone headroom path and the one-reading baseline",
+    "class": "P2 (corrected from new): the excursion bound decided twice, sizer on a noiseless prediction with headroom only for two-zone, abort on the noisy reading vs a one-reading baseline",
+    "seam_rule_enumerates": false
+   }
+  ],
+  "D9": [
+   {
+    "id": "D9-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": 0.3196,
+    "metric_definition": "1 - median solve thread CPU with an independent axis=1 twin of _comfort_terms_batch / median with production, ABAB in one process, stress.build_case two_zone_dhw_winter",
+    "method": "tools/audit/round9/D9/verify-v3/v3_s1_01_comfort.py (plus the finder's comfort_rowloop.py re-run: 0.3218, vec 0.0369)",
+    "attacks": "contention: ratio plus same-session null (--twin-off -0.042 at load1 4.0) -> holds; grid: 0.15 single-zone, 0.32 two-zone, 0.32 flat -> structural; bit parity: 0 mismatches over 501/26/358 calls and 0/72,762 in a synthetic alignment sweep (n 20..200, B 1/7/96/97) on this x86_64, so the docstring's CI hazard is not reproduced but not excluded -> the fix scope's CI proof is required; reach: worker-process solve, pure numpy, no stub -> real HA, off loop; severity: bounded CPU (~1.4 s/solve here) -> medium; seam_rule misses optimizer.py:819, 2422, 2442, tariff.py:957",
+    "class": "new: avoidable interpreter-bound recomputation in the solve",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D9-s1-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": 0.1475,
+    "metric_definition": "CPU of memo-missing scalar objective evaluations issued inside _scoped_minimize whose x equals the next _batch_fd_gradient x0, / optimize() thread CPU (two_zone_dhw_winter); net after one extra batch row each: 0.1393",
+    "method": "tools/audit/round9/D9/verify-v3/v3_s1_02_scalar.py (plus finder scalar_objective.py: 0.1504 base, 0.0053 fused, plan sha equal)",
+    "attacks": "mechanism: 495 of 507 scalar evaluations precede a gradient at the same x; perturbation maxiter x0.02 -> 127 (count follows iterates); flat 0.1505 -> structural; single-zone 0.076 -> grid range consistent with the finder's 0.087 minimum; contention: ratio, load1 3.4; parity: fusing needs batch row 0 bit-equal to the scalar, 0 mismatches on this arch only; reach: worker process, real HA, off loop; seam_rule covers both _scoped_minimize sites, and only those two minimize entries exist",
+    "class": "new: avoidable interpreter-bound recomputation in the solve",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D9-s1-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": 1.33,
+    "metric_definition": "thread CPU of the finishing SystemIdentification.step() call / tests/stress.py reference_solve, median of 5 seeds, cadence 30 min (default), with a real asyncio 1 ms heartbeat: max gap 44.7 ms; 10 min (config minimum): 3.61x, 120 ms; 15 min: 2.41x; no-fit null 0.0x, 1.44 ms",
+    "method": "tools/audit/round9/D9/verify-v3/v3_s1_03_sysid_loop.py (real asyncio loop, not FakeHass); finder sysid_loop.py re-run at 15 min: 2.08x (finder 2.46x, within +-25%)",
+    "attacks": "reach: coordinator.py:5079 calls _run_system_identification synchronously in _async_update_data on the real loop, but only when sysid is enabled (default False), armed by the user and a night qualifies, at most once per 30 days; correction: the 5-min arm is unreachable (interval 10..120 min, config_flow.py:1669), so the worst case is 10 min at ~120 ms here; contention: gap tracks CPU within 5%, null at the tick floor; seam_rule lists sysid entries only, not the other learners the property names; class P10 corrected: work on the loop thread, not a GIL-holding executor thread",
+    "class": "new: CPU work run inline on the event-loop thread (nearest existing: P10)",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D9-s1-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": 3272,
+    "metric_definition": "simulate_dhw_step steps each refused candidate in _apply_dhw_min_run simulates past its first ceiling breach (production's own verdict rule), single_zone_dhw_winter 24 h; = 0.42 of the repair's 7758 (exact) and 8240 at 48 h",
+    "method": "tools/audit/round9/D9/verify-v3/v3_s1_04_minrun.py; finder dhw_min_run.py re-run: 7758 -> 4780 early-exit (exact), plan sha unchanged",
+    "attacks": "counts contention-immune; the two instruments agree (2978 saved by the 8-step chunk + ~7 x 42 overshoot = 3272); early exit bit-identical by construction; correction: the solve-CPU share is 0.17-0.24 on winter/winter_extreme/summer but 0.0255 on single-zone shoulder, 0.062 flat, 0.011 two-zone, so 'four single-zone cells 0.17-0.23' does not hold; reach: worker process with DHW on, no stub; seam_rule over-includes 5907 (cheapest-first needs the full trajectory) and misses simulate_dhw_only sites (the legionella ramp at optimizer.py:4261 uses hot[0]; _repair_dhw_floor re-simulates per round for breach[0])",
+    "class": "new: avoidable interpreter-bound recomputation in the solve",
+    "seam_rule_enumerates": false
+   },
+   {
+    "id": "D9-s2-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": 192,
+    "metric_definition": "ThermalModel.simulate_step calls per topology.rank_sensor_advisor call with indoor+outdoor configured (288 on the golden base config, 0 with all configured); x 2 plan sensors x 3 writes per cycle = 6.9-10.2 ms loop CPU per cycle, 0.21-0.32x reference_solve",
+    "method": "tools/audit/round9/D9/verify-v3/v3_s2_01_advisor.py; finder loop_work.py re-run: 384 steps/read, 2 calls/read, 3 writes/cycle (exact), advisor share 0.342",
+    "attacks": "reach: both plan sensors are enabled by default; upstream async_write_ha_state evaluates extra_state_attributes on the loop at every write, while the stub does not (ha_contract: helpers.entity.Entity stubbed), so both harnesses call it directly; 3 writes = coordinator.py:4797 + 5150 + the refresh's own (always_update default True); perturbation: steps 48 -> 1 cuts 48x exactly; null: all configured -> 0; seam_rule hooks simulate_step across every entity read (not the demonstrated sensor only), limited to simulate_step and one fixture; no other platform simulates today",
+    "class": "new: CPU work run inline on the event-loop thread",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D9-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": 0,
+    "metric_definition": "tests/replay.py cost_offenders when only the cycle's loop-thread CPU is doubled (finder rig re-run: 0 offenders at cycle_cpu_ratio 3.011 vs budget 3.576); own: smallest loop multiple replay's own cost_offenders flags = 3.36x (whole cycle 1.378x); stress.build_case enters 0 functions of coordinator/sensor/topology",
+    "method": "tools/audit/round9/D9/verify-v3/v3_s2_02_reach.py (setprofile reach + replay's own cost_offenders/COST_BUDGETS); finder m2_loop_blind.py re-run",
+    "attacks": "positive control cpu.offenders=1 and null none.offenders=0 reproduced; offender counts exact; ratios within +-10% at load1 4.1; replay runs only in nightly slow (run.sh:303, tests.yml:918); test-gap file: the regressions live in coordinator.py/sensor.py and the check in tests/replay.py, so the gap does not measure itself; the injection is the D9 brief's M2 method; class corrected new -> I1 (earlier D9 gate-blindness findings are I1)",
+    "class": "I1",
+    "seam_rule_enumerates": true
+   },
+   {
+    "id": "D9-s2-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": 0,
+    "metric_definition": "stress.py rules tripped (gate's own functions, 51-scenario sweep) with winter/2z/dhw non-kernel CPU injected to 1.91x solve (finder re-run; @4 = 2.71x trips 1); own: at recorded ratios 42 of 51 scenarios cannot trip any CPU rule on a confined 2x; a one-line production mutation (optimizer.py:1889 row loop x4) makes the default solve 1.996x with identical counts and plan",
+    "method": "tools/audit/round9/D9/verify-v3/v3_s2_03_budget.py (gate table/constants) and v3_s2_03_lineclass.py (single-line production mutation, victim only, no sweep); finder m2_nonkernel_2x.py re-run under the gate lease",
+    "attacks": "contention: rule counts exact, victim_cpu_x 1.914 vs 2.014 inside +-10%; grid: 9 of 51 (dear tariff/pv/cycle, r_i>219) are seen via the sweep rule at record, the other 42 including the default config are blind; step 4: a production mutation in optimizer.py, counts 10/1002/4,675,248 both arms, headroom 2.76x, sweep 123.5 < 134.32 -> unseen (computed from the reproduced plain sweep, not re-swept); wording corrected: the SCENARIO_WORK_FACTOR comment claims detection on the COUNT channels, and stress.py:437-441 deliberately refuses solve-wide CPU (#346), so this is a documented trade rather than a contradiction, though the gap stands; class corrected new -> I1; machine dependence: the sweep rule's record headroom is 3.3% (mean 130.02 vs 134.32), and at --machine-scale 1.02, 21 of 51 trip and winter/2z/dhw trips at 1.78x, so on a runner reading >=2% over record the default-victim 2x would be seen; on this box (live sweep 121.2) and the finder's it is not; the per-scenario 3.0x rule is blind below ~3x regardless",
+    "class": "I1",
+    "seam_rule_enumerates": true
+   }
+  ]
+ }
+}

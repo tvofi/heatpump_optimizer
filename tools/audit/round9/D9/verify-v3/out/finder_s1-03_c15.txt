@@ -1,0 +1,40 @@
+
+=== Stress and economics ===
+RESULT cad15.single_zone_default.seed0.phase_final=done
+RESULT cad15.single_zone_default.seed0.samples=21 count
+RESULT cad15.single_zone_default.seed0.max_step_call_ms=77.1 ms (provisional; phase after call=done)
+RESULT cad15.single_zone_default.seed0.completed=True
+RESULT cad15.single_zone_default.seed0.reason=ok
+RESULT cad15.single_zone_default.seed0.median_step_call_ms=0.003 ms (provisional)
+RESULT cad15.single_zone_default.seed1.phase_final=done
+RESULT cad15.single_zone_default.seed1.samples=21 count
+RESULT cad15.single_zone_default.seed1.max_step_call_ms=76.6 ms (provisional; phase after call=done)
+RESULT cad15.single_zone_default.seed1.completed=True
+RESULT cad15.single_zone_default.seed1.reason=ok
+RESULT cad15.single_zone_default.seed1.median_step_call_ms=0.003 ms (provisional)
+RESULT cad15.single_zone_default.seed2.phase_final=done
+RESULT cad15.single_zone_default.seed2.samples=21 count
+RESULT cad15.single_zone_default.seed2.max_step_call_ms=72.89 ms (provisional; phase after call=done)
+RESULT cad15.single_zone_default.seed2.completed=True
+RESULT cad15.single_zone_default.seed2.reason=ok
+RESULT cad15.single_zone_default.seed2.median_step_call_ms=0.002 ms (provisional)
+RESULT cad15.single_zone_default.seed3.phase_final=done
+RESULT cad15.single_zone_default.seed3.samples=21 count
+RESULT cad15.single_zone_default.seed3.max_step_call_ms=82.2 ms (provisional; phase after call=done)
+RESULT cad15.single_zone_default.seed3.completed=True
+RESULT cad15.single_zone_default.seed3.reason=ok
+RESULT cad15.single_zone_default.seed3.median_step_call_ms=0.002 ms (provisional)
+RESULT cad15.single_zone_default.seed4.phase_final=done
+RESULT cad15.single_zone_default.seed4.samples=21 count
+RESULT cad15.single_zone_default.seed4.max_step_call_ms=64.74 ms (provisional; phase after call=done)
+RESULT cad15.single_zone_default.seed4.completed=True
+RESULT cad15.single_zone_default.seed4.reason=ok
+RESULT cad15.single_zone_default.seed4.median_step_call_ms=0.002 ms (provisional)
+RESULT cad15.max_step_call_ms_median_over_seeds=76.6 ms (provisional)
+RESULT cad15.max_step_call_over_reference=2.08 x reference_solve (ratio)
+RESULT reference_solve_cpu_ms=36.84 ms (provisional)
+RESULT thread_factor=1.0
+RESULT load1=2.62
+RESULT swapins=0
+RESULT concurrent_stress_procs=0
+# machine: x86_64 4cpu Linux py3.14.0rc2

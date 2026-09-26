@@ -1,0 +1,16 @@
+3.86 2.40 1.05 4/159 3123
+# worst cost scenario ('', 0.0)
+RESULT savings_overstatement_max=0.0000 currency
+RESULT savings_overstatement_pct_of_baseline=0.000 pct
+RESULT scenarios=50 count
+RESULT cost_err=0.000e+00 currency
+RESULT savings_err=0.000e+00 currency
+RESULT end_mismatch=0 count
+RESULT end_mismatch_scenarios=0 count
+RESULT end_mismatch_max_abs=0.000000 K
+RESULT perturbed=1
+RESULT thread_factor=1.000
+RESULT load1=2.92
+RESULT swapins=0
+exit=0
+2.92 2.68 1.44 3/159 3965

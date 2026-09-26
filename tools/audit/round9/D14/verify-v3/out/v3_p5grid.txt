@@ -1,0 +1,17 @@
+
+=== Stress and economics ===
+CELL typical_slab gains mag=0.3 admit=1 err=-8.03% hw=0.057916566845889854 why=adopted
+CELL typical_slab gains mag=0.5 admit=1 err=-13.38% hw=0.06167847621623695 why=adopted
+CELL typical_slab gains mag=0.6 admit=1 err=-16.06% hw=0.06377085098766186 why=adopted
+CELL typical_slab gains mag=1.0 admit=1 err=-26.81% hw=0.07397312147939661 why=adopted
+CELL typical_slab gains mag=1.2 admit=1 err=-32.20% hw=0.08052278169571217 why=adopted
+RESULT p5grid_first_undeclared_kW_admitted_over_bar[typical_slab]=0.5
+CELL heavy_old gains mag=0.3 admit=1 err=-4.56% hw=0.03146439411688611 why=adopted
+CELL heavy_old gains mag=0.5 admit=1 err=-7.60% hw=0.032493959048002334 why=adopted
+CELL heavy_old gains mag=0.6 admit=1 err=-9.11% hw=0.03303614896300991 why=adopted
+CELL heavy_old gains mag=1.0 admit=1 err=-15.18% hw=0.035415608469284036 why=adopted
+CELL heavy_old gains mag=1.2 admit=1 err=-18.21% hw=0.03675193361541034 why=adopted
+RESULT p5grid_first_undeclared_kW_admitted_over_bar[heavy_old]=0.6
+RESULT thread_factor=1.000
+RESULT load1=2.89
+RESULT swapins=0

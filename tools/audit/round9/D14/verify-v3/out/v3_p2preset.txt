@@ -1,0 +1,9 @@
+RESULT p2preset[mode_off+upper_key(entry.data survivor)] house_mass_ratio=1.000 keys_differing=8 ['lower_floor_heat_loss', 'lower_floor_thermal_mass', 'radiator_power_fraction', 'slab_heat_transfer']
+RESULT p2preset[mode_on+no_upper_key] house_mass_ratio=1.000 keys_differing=8 ['lower_floor_heat_loss', 'lower_floor_thermal_mass', 'radiator_power_fraction', 'slab_heat_transfer']
+RESULT p2preset[auto+lower_key_only] house_mass_ratio=1.000 keys_differing=8 ['lower_floor_heat_loss', 'lower_floor_thermal_mass', 'radiator_power_fraction', 'slab_heat_transfer']
+RESULT p2preset[control_auto+upper_key] house_mass_ratio=1.000 keys_differing=0 []
+RESULT p2preset[control_auto+no_keys] house_mass_ratio=1.000 keys_differing=0 []
+RESULT p2preset_disagree=3_of_3 reachable shapes
+RESULT thread_factor=1.000
+RESULT load1=3.27
+RESULT swapins=0

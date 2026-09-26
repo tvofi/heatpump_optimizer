@@ -1,0 +1,18 @@
+2.92 2.68 1.44 3/160 3967
+# winter_single_no_dhw     S=2.0 end_slab 25.500->25.515  savings 60.175->49.376  deferred 15.982->26.193  cost 125.815->126.403 min_room_last4h 16.702->16.704
+# winter_two_zone_no_dhw   S=2.0 end_slab 25.967->26.139  savings 1.502->0.446  deferred 1.051->1.536  cost 207.627->208.197 min_room_last4h 16.745->16.745
+# shoulder                 S=2.0 end_slab 23.437->26.058  savings 22.239->21.846  deferred -0.260->-2.927  cost 10.084->13.144 min_room_last4h 20.996->20.993
+# flat_prices              S=2.0 end_slab 26.718->31.316  savings 18.300->6.172  deferred 11.784->3.108  cost 145.225->166.029 min_room_last4h 17.246->17.808
+# extreme_prices           S=2.0 end_slab 26.812->26.935  savings 162.369->148.942  deferred 16.455->29.624  cost 252.184->252.442 min_room_last4h 16.762->16.761
+# winter_single_dhw        S=2.0 end_slab 24.738->25.316  savings 56.490->46.260  deferred 18.594->26.873  cost 140.078->142.029 min_room_last4h 16.555->16.666
+RESULT scale=2.0
+RESULT cells=6 count
+RESULT end_slab_delta_max_K=4.598
+RESULT end_slab_delta_min_K=0.015
+RESULT savings_delta_min=-13.427 currency
+RESULT savings_delta_max=-0.393 currency
+RESULT thread_factor=1.000
+RESULT load1=2.96
+RESULT swapins=0
+exit=0
+2.96 2.71 1.49 3/158 4123

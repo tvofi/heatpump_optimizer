@@ -1,0 +1,44 @@
+A ('SEK', 'SEK/kWh', 'SEK', 'SEK/kWh', 0.1, [])
+A ('SEK', 'EUR/kWh', 'EUR', 'SEK/kWh', 0.1, [])
+A ('SEK', 'NOK/kWh', 'NOK', 'SEK/kWh', 0.1, [])
+A ('SEK', 'DKK/kWh', 'DKK', 'SEK/kWh', 0.1, [])
+A ('SEK', 'EUR/MWh', 'EUR', 'SEK/kWh', 0.0001, [])
+A ('SEK', '€/kWh', 'EUR', 'SEK/kWh', 0.1, [])
+A ('EUR', 'SEK/kWh', 'SEK', 'EUR/kWh', 0.1, [])
+A ('EUR', 'EUR/kWh', 'EUR', 'EUR/kWh', 0.1, [])
+A ('EUR', 'NOK/kWh', 'NOK', 'EUR/kWh', 0.1, [])
+A ('EUR', 'DKK/kWh', 'DKK', 'EUR/kWh', 0.1, [])
+A ('EUR', 'EUR/MWh', 'EUR', 'EUR/kWh', 0.0001, [])
+A ('EUR', '€/kWh', 'EUR', 'EUR/kWh', 0.1, [])
+RESULT A_cells=12 count
+RESULT A_mismatch=8 count
+RESULT A_flagged_by_repair_issue=0 count
+RESULT A_unflagged_mismatch=8 count
+RESULT A_unflagged_mismatch[perturbed:resolve_currency->feed code]=0 count
+B EUR ('building', 'wood_price_sek_m3', 'SEK/m³', True)
+RESULT B_money_widgets[EUR]=4 count
+RESULT B_money_widgets_off_instance[EUR]=1 count
+RESULT B_money_widgets[SEK]=4 count
+RESULT B_money_widgets_off_instance[SEK]=0 count
+B NOK ('building', 'wood_price_sek_m3', 'SEK/m³', True)
+RESULT B_money_widgets[NOK]=4 count
+RESULT B_money_widgets_off_instance[NOK]=1 count
+[baseline] SURFACES {"headline_savings":"SEK","price_axis":"EUR","price_axis_drawn":"EUR","whatif_delta":"EUR","savings_table":"SEK"}
+[baseline] RESULT card_distinct_currency_tokens[card_cfg_EUR]=2 count
+[baseline] RESULT card_tokens[card_cfg_EUR]=EUR|SEK
+[baseline] RESULT card_surfaces_not_install_currency[card_cfg_EUR]=3 count (price_axis,price_axis_drawn,whatif_delta)
+[baseline] SURFACES {"headline_savings":"SEK","price_axis":"SEK","price_axis_drawn":"SEK","whatif_delta":"SEK","savings_table":"SEK"}
+[baseline] RESULT card_distinct_currency_tokens[no_cfg]=1 count
+[baseline] RESULT card_tokens[no_cfg]=SEK
+[baseline] RESULT card_surfaces_not_install_currency[no_cfg]=0 count ()
+[baseline] SURFACES {"headline_savings":"SEK","price_axis":"SEK","price_axis_drawn":"SEK","whatif_delta":"SEK","savings_table":"SEK"}
+[baseline] RESULT card_distinct_currency_tokens[perturb_drop_cfg_lead]=1 count
+[baseline] RESULT card_tokens[perturb_drop_cfg_lead]=SEK
+[baseline] RESULT card_surfaces_not_install_currency[perturb_drop_cfg_lead]=0 count ()
+[pre_R7_D4_03] SURFACES {"headline_savings":"SEK","price_axis":"EUR","price_axis_drawn":"EUR","whatif_delta":"EUR","savings_table":"EUR"}
+[pre_R7_D4_03] RESULT card_distinct_currency_tokens[card_cfg_EUR]=2 count
+[pre_R7_D4_03] RESULT card_tokens[card_cfg_EUR]=EUR|SEK
+[pre_R7_D4_03] RESULT card_surfaces_not_install_currency[card_cfg_EUR]=4 count (price_axis,price_axis_drawn,whatif_delta,savings_table)
+RESULT thread_factor=1.000
+RESULT load1=1.40
+RESULT swapins=0

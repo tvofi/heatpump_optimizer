@@ -1,0 +1,19 @@
+== stab: tools/audit/round9/D2/s1/m1_stability.py
+== stab_p: tools/audit/round9/D2/s1/m1_stability.py --perturb=ratio1
+== coil: tools/audit/round9/D2/s1/m1_coil.py
+== coil_p: tools/audit/round9/D2/s1/m1_coil.py --perturb=mixuse
+== slab: tools/audit/round9/D2/s2/slab_cap_scale.py
+== slab_p: tools/audit/round9/D2/s2/slab_cap_scale.py --perturb
+== flow: tools/audit/round9/D2/s2/flow_bias_clamp.py
+== flow_p: tools/audit/round9/D2/s2/flow_bias_clamp.py --perturb
+== cqp: tools/audit/round9/D2/s3/current_quarter_price.py
+== cqp_p: tools/audit/round9/D2/s3/current_quarter_price.py --perturb
+== pv: tools/audit/round9/D2/s3/pv_piecewise.py
+== pv_p: tools/audit/round9/D2/s3/pv_piecewise.py --perturb
+== sizer: tools/audit/round9/D2/s4/sizer_margin.py --seeds 16
+== sizer_p: tools/audit/round9/D2/s4/sizer_margin.py --seeds 16 --perturb margin
+== objid: tools/audit/round9/D2/s2/objective_identities.py
+== objid_p: tools/audit/round9/D2/s2/objective_identities.py --perturb
+== plan2: tools/audit/round9/D2/s2/slab_cap_plan.py 2.0
+== cov: tools/audit/round9/D2/s4/coverage.py --seeds 40
+== cov_s0: tools/audit/round9/D2/s4/coverage.py --seeds 40 --perturb sigma0

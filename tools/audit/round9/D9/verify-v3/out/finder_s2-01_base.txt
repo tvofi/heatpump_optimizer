@@ -1,0 +1,22 @@
+
+=== Stress and economics ===
+cycles=48 timed=23 replay_counts={'finite': 0, 'unit': 0, 'no_default': 0, 'agreement': 0, 'cycle': 0, 'not_frozen': 0, 'cycle_cost': 0} ref_ms=34.52
+RESULT cycles=48 count
+RESULT loop_update_simulate_steps_per_cycle=0.00 count
+RESULT loop_simulate_steps_per_read=384.00 count
+RESULT advisor_calls_per_read=2.00 count
+RESULT advisor_simulate_steps_per_read=384.00 count
+RESULT entity_writes_per_cycle=3.00 count (listener updates inside the update + the refresh's own one)
+RESULT ref_solve_ms=34.525 ms_cpu
+RESULT loop_update_cpu_ms=7.898 ms_cpu
+RESULT entity_read_cpu_ms=5.629 ms_cpu
+RESULT advisor_cpu_per_read_ms=2.825 ms_cpu
+RESULT executor_cpu_ms=76.748 ms_cpu
+RESULT loop_cpu_per_real_cycle_ms=24.784 ms_cpu (update loop part + writes x one read of every entity)
+RESULT loop_cpu_per_real_cycle_ratio=0.7179 ref_solves
+RESULT advisor_share_of_loop=0.3420 ratio
+RESULT advisor_share_of_entity_read=0.5019 ratio
+RESULT loop_share_of_cycle=0.2441 ratio
+RESULT thread_factor=1.0005
+RESULT load1=3.54
+RESULT swapins=0

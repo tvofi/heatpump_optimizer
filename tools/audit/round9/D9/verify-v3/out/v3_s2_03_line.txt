@@ -1,0 +1,20 @@
+RESULT passes4.solve_cpu_ratio_mutant_over_plain=1.996 ratio (provisional)
+RESULT passes4.plan_sha_equal=True
+RESULT passes4.work_plain={'solver_calls':10,'solver_evals':1002,'solver_simulate_steps':4675248}
+RESULT passes4.work_mutant={'solver_calls':10,'solver_evals':1002,'solver_simulate_steps':4675248}
+RESULT passes4.victim_live_ratio=119.37 x reference_solve
+RESULT passes4.per_scenario_headroom=2.758 x (budget / live)
+RESULT thread_factor=1.0002
+RESULT load1=0.8
+RESULT swapins=0
+# machine: x86_64 4cpu Linux py3.14.0rc2
+RESULT passes1.solve_cpu_ratio_mutant_over_plain=0.972 ratio (provisional)
+RESULT passes1.plan_sha_equal=True
+RESULT passes1.work_plain={'solver_calls':10,'solver_evals':1002,'solver_simulate_steps':4675248}
+RESULT passes1.work_mutant={'solver_calls':10,'solver_evals':1002,'solver_simulate_steps':4675248}
+RESULT passes1.victim_live_ratio=114.65 x reference_solve
+RESULT passes1.per_scenario_headroom=2.872 x (budget / live)
+RESULT thread_factor=1.0004
+RESULT load1=0.92
+RESULT swapins=0
+# machine: x86_64 4cpu Linux py3.14.0rc2

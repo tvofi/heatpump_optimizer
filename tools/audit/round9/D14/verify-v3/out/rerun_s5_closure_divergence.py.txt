@@ -1,0 +1,62 @@
+traced tests/doc_claims.py: rc=0 reads=114 wall=2.7s
+traced tests/deployment_shape.py: rc=0 reads=101 wall=2.5s
+traced tests/typing_ruler.py: rc=0 reads=69 wall=0.4s
+traced tests/structure.py: rc=0 reads=69 wall=2.1s
+traced tests/guard_pins.py: rc=0 reads=35 wall=0.8s
+RESULT seams[tests/doc_claims.py]=9 count
+RESULT seams[tests/deployment_shape.py]=22 count
+RESULT seams[tests/typing_ruler.py]=0 count
+RESULT seams[tests/structure.py]=0 count
+RESULT seams[tests/guard_pins.py]=0 count
+  SEAM tests/doc_claims.py reads tests/hastub/homeassistant/components/__init__.py via python /home/claude/ev/tests/plan_view.py
+  SEAM tests/doc_claims.py reads tests/hastub/homeassistant/components/mqtt.py via python /home/claude/ev/tests/plan_view.py
+  SEAM tests/doc_claims.py reads tests/hastub/homeassistant/components/repairs.py via python /home/claude/ev/tests/plan_view.py
+  SEAM tests/doc_claims.py reads tests/hastub/homeassistant/exceptions.py via python /home/claude/ev/tests/plan_view.py
+  SEAM tests/doc_claims.py reads tests/hastub/homeassistant/helpers/entity.py via python /home/claude/ev/tests/plan_view.py
+  SEAM tests/doc_claims.py reads tests/hastub/homeassistant/helpers/event.py via python /home/claude/ev/tests/plan_view.py
+  SEAM tests/doc_claims.py reads tests/hastub/homeassistant/helpers/issue_registry.py via python /home/claude/ev/tests/plan_view.py
+  SEAM tests/doc_claims.py reads tests/hastub/homeassistant/helpers/storage.py via python /home/claude/ev/tests/plan_view.py
+  SEAM tests/doc_claims.py reads tests/hastub/homeassistant/helpers/update_coordinator.py via python /home/claude/ev/tests/plan_view.py
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/__init__.py via python -P, python -u
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/components/__init__.py via python -P
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/components/mqtt.py via python -P
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/components/repairs.py via python -P
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/config_entries.py via python -P, python -u
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/const.py via python -P, python -u
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/core.py via python -P, python -u
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/data_entry_flow.py via python -P
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/exceptions.py via python -P
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/helpers/__init__.py via python -P, python -u
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/helpers/aiohttp_client.py via python -P
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/helpers/config_validation.py via python -P, python -u
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/helpers/device_registry.py via python -P
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/helpers/entity.py via python -P
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/helpers/entity_registry.py via python -P, python -u
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/helpers/event.py via python -P
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/helpers/issue_registry.py via python -P
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/helpers/storage.py via python -P
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/helpers/update_coordinator.py via python -P
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/loader.py via python -P, python -u
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/util/__init__.py via python -P, python -u
+  SEAM tests/deployment_shape.py reads tests/hastub/homeassistant/util/dt.py via python -P, python -u
+RESULT seams=31 count
+RESULT seams_child_process=31 count
+RESULT seams_by_reader[in-process]=0 count
+RESULT seams_by_reader_measured_file[in-process]=0 count
+RESULT seams_by_reader[python-child]=31 count
+RESULT seams_by_reader_measured_file[python-child]=31 count
+RESULT seams_by_reader[node-child]=0 count
+RESULT seams_by_reader_measured_file[node-child]=0 count
+RESULT seams_by_reader[git]=0 count
+RESULT seams_by_reader_measured_file[git]=0 count
+RESULT seams_by_reader[other-child]=0 count
+RESULT seams_by_reader_measured_file[other-child]=0 count
+RESULT seams_on_INERT_files=0 count
+RESULT seams_on_measured_files=31 count
+RESULT thread_factor=1.000
+RESULT load1=3.41
+RESULT swapins=0
+
+real	0m8.838s
+user	0m6.809s
+sys	0m1.625s

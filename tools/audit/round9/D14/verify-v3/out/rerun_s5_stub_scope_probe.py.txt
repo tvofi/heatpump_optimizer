@@ -1,0 +1,14 @@
+control: tests/deployment_shape.py rc=0
+edited:  tests/deployment_shape.py rc=1 FAIL lines=1
+    FAIL the driver reported its measurements  [rc=1, no marker in stdout: '']
+select([tests/hastub/homeassistant/helpers/update_coordinator.py]) mode=scoped runs 13 scripts; tests/deployment_shape.py SKIPPED
+RESULT control_green=1 count
+RESULT edited_red=1 count
+RESULT red_and_skipped=1 count
+RESULT thread_factor=1.000
+RESULT load1=3.46
+RESULT swapins=n/a
+
+real	0m5.823s
+user	0m3.813s
+sys	0m1.908s

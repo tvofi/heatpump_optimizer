@@ -1,0 +1,28 @@
+# arm A: reads absent in every driven cell
+SEAM A-unproduced sensor.py:1482 horizon_hours cells=5
+SEAM A-unproduced sensor.py:1515 horizon_hours cells=5
+SEAM A-conditional sensor.py:1449 manual_plan cells=5 (a producer literal exists; not driven)
+SEAM A-conditional sensor.py:1497 predictive_info.dhw_windows_resolved cells=5 (a producer literal exists; not driven)
+SEAM A-conditional sensor.py:1563 manual_plan cells=5 (a producer literal exists; not driven)
+SEAM A-conditional sensor.py:2132 valve_target_recommendation cells=10 (a producer literal exists; not driven)
+SEAM A-conditional sensor.py:2138 valve_target_recommendation cells=10 (a producer literal exists; not driven)
+SEAM A-conditional sensor.py:2205 contract_comparison.load_profile_value_per_kwh cells=10 (a producer literal exists; not driven)
+SEAM A-conditional sensor.py:2214 contract_comparison.load_profile_value_per_kwh cells=10 (a producer literal exists; not driven)
+SEAM A-conditional sensor.py:2808 wood_fuel.night_advice cells=10 (a producer literal exists; not driven)
+# arm B: entity ids referenced but never built
+# arm C: getattr/hasattr on a name no production code defines
+SEAM C boost.py:212 boost_calls
+RESULT cells=10 count
+RESULT distinct_reads=417 count
+RESULT p6_unproduced_reads=2 count
+RESULT p6_conditional_reads=8 count
+RESULT p6_dangling_entity_ids=0 count
+RESULT entity_ids_built=75 count
+RESULT p6_undefined_getattr=1 count
+RESULT thread_factor=1.000
+RESULT load1=0.41
+RESULT swapins=0
+
+real	0m11.181s
+user	0m10.174s
+sys	0m0.554s

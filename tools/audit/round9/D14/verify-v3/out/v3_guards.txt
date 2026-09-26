@@ -1,0 +1,5 @@
+RESULT guards_multiline_exit_if=46 count uncovered=46
+RESULT guards_np_clip=98 count uncovered=93
+RESULT thread_factor=1.000
+RESULT load1=2.91
+RESULT swapins=0

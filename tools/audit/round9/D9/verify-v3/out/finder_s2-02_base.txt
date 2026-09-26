@@ -1,0 +1,20 @@
+# none: [] counts={'finite': 0, 'unit': 0, 'no_default': 0, 'agreement': 0, 'cycle': 0, 'not_frozen': 0, 'cycle_cost': 0}
+RESULT none.cycle_cpu_ratio=2.5946 ref_solves
+RESULT none.offenders=0 count
+# cpu: ['cpu_ratio 4.591 over its budget 3.576'] counts={'finite': 0, 'unit': 0, 'no_default': 0, 'agreement': 0, 'cycle': 0, 'not_frozen': 0, 'cycle_cost': 1}
+RESULT cpu.cycle_cpu_ratio=4.5913 ref_solves
+RESULT cpu.offenders=1 count
+# loop: [] counts={'finite': 0, 'unit': 0, 'no_default': 0, 'agreement': 0, 'cycle': 0, 'not_frozen': 0, 'cycle_cost': 0}
+RESULT loop2x.cycle_cpu_ratio=3.0111 ref_solves
+RESULT loop2x.offenders=0 count
+RESULT cpu_ratio_budget=3.5760 ref_solves
+RESULT none.loop_share_of_budgeted_cycle=0.1488 ratio
+RESULT loop_over_none=1.1605 ratio
+RESULT cpu_over_none=1.7696 ratio
+# stress.build_case(winter/1z/space) ran files ['dhw_schedule.py', 'mixing_valve.py', 'optimizer.py', 'tariff.py', 'thermal_model.py', 'wood_fuel.py']
+RESULT stress_solve_functions=139 count
+RESULT stress_cycle_functions=0 count
+RESULT child_cpu_s=44.28 s_cpu
+RESULT thread_factor=1.0006
+RESULT load1=4.14
+RESULT swapins=0

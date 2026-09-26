@@ -1,0 +1,5 @@
+RESULT i4_ledger_ids=16 count
+RESULT i4_ledger_ids_absent_from_scopes_D14=1 count ['P11']
+RESULT thread_factor=1.001
+RESULT load1=3.27
+RESULT swapins=0

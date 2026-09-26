@@ -1,0 +1,28 @@
+RESULT stress_functions_entered.coordinator.py=0 count (exact)
+RESULT stress_functions_entered.sensor.py=0 count (exact)
+RESULT stress_functions_entered.topology.py=0 count (exact)
+RESULT stress_functions_entered.optimizer.py=123 count (exact)
+RESULT stress_functions_entered.thermal_model.py=48 count (exact)
+RESULT stress_files_reached=8 files
+RESULT replay_cpu_ratio_budget=3.576 ref_solves
+RESULT replay_clean_band_ok=True
+RESULT k_min_loop_multiple_to_trip=3.36 x loop share (L=0.1605, r0=2.5946)
+RESULT whole_cycle_multiple_to_trip=1.378 x whole cycle
+RESULT thread_factor=1.0006
+RESULT load1=1.63
+RESULT swapins=0
+# machine: x86_64 4cpu Linux py3.14.0rc2
+RESULT stress_functions_entered.coordinator.py=0 count (exact)
+RESULT stress_functions_entered.sensor.py=0 count (exact)
+RESULT stress_functions_entered.topology.py=0 count (exact)
+RESULT stress_functions_entered.optimizer.py=123 count (exact)
+RESULT stress_functions_entered.thermal_model.py=48 count (exact)
+RESULT stress_files_reached=8 files
+RESULT replay_cpu_ratio_budget=3.576 ref_solves
+RESULT replay_clean_band_ok=True
+RESULT k_min_loop_multiple_to_trip=1.76 x loop share (L=0.5, r0=2.5946)
+RESULT whole_cycle_multiple_to_trip=1.378 x whole cycle
+RESULT thread_factor=1.0006
+RESULT load1=1.69
+RESULT swapins=0
+# machine: x86_64 4cpu Linux py3.14.0rc2

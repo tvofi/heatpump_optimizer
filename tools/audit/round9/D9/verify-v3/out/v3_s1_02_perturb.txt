@@ -1,0 +1,5 @@
+RESULT mi0.02_two_zone_dhw_winter.grads=131 count
+RESULT mi0.02_two_zone_dhw_winter.fusable_evals=127 count
+RESULT mi0.02_two_zone_dhw_winter.fusable_share=0.1333 ratio
+RESULT thread_factor=1.0012
+RESULT load1=3.49

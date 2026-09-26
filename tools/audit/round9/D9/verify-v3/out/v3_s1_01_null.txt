@@ -1,0 +1,11 @@
+RESULT null_two_zone_dhw_winter.prod_solve_thread_ms=4055.6 ms (provisional)
+RESULT null_two_zone_dhw_winter.twin_solve_thread_ms=4227.1 ms (provisional)
+RESULT null_two_zone_dhw_winter.removable_share=-0.0423 ratio
+RESULT null_two_zone_dhw_winter.plan_sha_equal=True (['e55e6b6677dbfdc9'] vs ['e55e6b6677dbfdc9'])
+RESULT null_two_zone_dhw_winter.bit_mismatches=0 values over 501 calls (exact)
+RESULT null_two_zone_dhw_winter.thread_factor=1.0001
+RESULT synthetic_axis1_vs_rowloop_mismatches=0 of 72762 row values (exact)
+RESULT thread_factor=1.0001
+RESULT load1=4.01
+RESULT swapins=0
+# machine: x86_64 4cpu Linux py3.14.0rc2
