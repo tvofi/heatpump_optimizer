@@ -22244,6 +22244,196 @@ R.check(
     any(d.startswith("checkout") for d in _BRR_NULL),
     f"defects on the re-pointed copy: {_BRR_NULL}",
 )
+# --- D11-s1-03: a job holding a write grant on `pull_request` runs no program
+# the pull request controls, and leaves no token on disk for one to find. The
+# three autofix jobs in tests.yml ran the head's tests/closure.py (and
+# env_drift.py, mutation_table.py) with `contents: write` and the checkout's
+# token persisted in .git/config. The rule, per job reachable on
+# `pull_request` with any `write` grant: every checkout sets
+# `persist-credentials: false`; every repository script a step runs, by path
+# or by `import`, was restored from the base by an earlier step
+# (`git checkout <base> -- <paths>`); and every Python runs under `-I`, so
+# neither `PYTHONPATH`, a `sitecustomize` nor a module shadowing the standard
+# library from the working tree can run the pull request's code instead.
+# RESIDUAL, NOT CLOSED HERE: a same-repo `pull_request` run executes the pull
+# request's own copy of the workflow file, so an edit to this file's jobs
+# reaches the runner before review; this pin makes that edit a red check and
+# the file's code ownership a named review, which is what an in-tree check
+# can do (the judge's weakening of D11-s1-03).
+_PRW_EXEC = re.compile(
+    r"(?<![\w/.-])((?:tests|\.claude/workflows|tools)/[\w./-]+\.(?:py|mjs|js|sh))(?![\w])")
+_PRW_RESTORE = re.compile(r"git checkout\s+\S+\s+--\s+((?:\\\n|[^\n])+)")
+
+
+def _prw_live(run: str) -> str:
+    return "\n".join(ln for ln in run.splitlines() if not ln.lstrip().startswith("#"))
+
+
+def _prw_executed(run: str) -> "set[str]":
+    live = _prw_live(run)
+    out = {p for p in _PRW_EXEC.findall(live)}
+    for m in re.finditer(r"^\s*(?:import\s+([\w, ]+)|from\s+(\w+)\s+import)", live, re.M):
+        for mod in re.split(r"\s*,\s*", (m.group(1) or m.group(2) or "").strip()):
+            for d in ("tests", ".claude/workflows"):
+                if mod and Path(f"{d}/{mod}.py").is_file():
+                    out.add(f"{d}/{mod}.py")
+    return out
+
+
+def _prw_restored(run: str) -> "list[str]":
+    out: "list[str]" = []
+    for m in _PRW_RESTORE.finditer(_prw_live(run)):
+        out += [p.strip("'\" \\") for p in m.group(1).replace("\\\n", " ").split()
+                if p.strip("'\" \\")]
+    return out
+
+
+def _prw_defects(texts: "dict[str, str]") -> "list[str]":
+    out = []
+    for name, text in sorted(texts.items()):
+        doc = _yaml.safe_load(text) or {}
+        on = doc.get(True, doc.get("on")) or {}
+        events = set(on) if isinstance(on, (dict, list)) else {on}
+        if "pull_request" not in events:
+            continue
+        for jid, job in (doc.get("jobs") or {}).items():
+            perms = job.get("permissions", doc.get("permissions"))
+            writes = ([k for k, v in perms.items() if v == "write"] if isinstance(perms, dict)
+                      else [perms] if perms and "write" in str(perms) else [])
+            cond = str(job.get("if", ""))
+            if not writes or "github.event_name != 'pull_request'" in cond or (
+                    "github.event_name == '" in cond and "'pull_request'" not in cond):
+                continue
+            where = f"{name}:{jid}"
+            restored: "list[str]" = []
+            for s in job.get("steps") or []:
+                if str(s.get("uses", "")).startswith("actions/checkout@"):
+                    if (s.get("with") or {}).get("persist-credentials") is not False:
+                        out.append(f"{where} persists its checkout token")
+                run = str(s.get("run", ""))
+                own = set(_prw_restored(run))
+                for x in sorted(_prw_executed(run) - own):
+                    if not any(fnmatch.fnmatch(x, p) for p in restored):
+                        out.append(f"{where} runs {x} unrestored")
+                restored += own
+                for ln in _prw_live(run).splitlines():
+                    if re.search(r"(?:^|[\s|;&(])python3?\s", ln) and not re.search(
+                            r"(?:^|[\s|;&(])python3?\s+-I\s", ln):
+                        out.append(f"{where} runs Python without -I: {ln.strip()[:60]}")
+    return out
+
+
+_PRW_TEXTS = {p.name: p.read_text() for p in sorted(Path(".github/workflows").glob("*.yml"))}
+_PRW_DEFECTS = _prw_defects(_PRW_TEXTS)
+R.check(
+    "no job holding a write grant on pull_request runs the pull request's own "
+    "program or leaves its token on disk (D11-s1-03)",
+    _PRW_DEFECTS == [],
+    f"defects: {_PRW_DEFECTS}",
+)
+_PRW_SUBJECTS = sorted({d.split(" ", 1)[0] for d in _prw_defects({
+    "tests.yml": _PRW_TEXTS["tests.yml"].replace(
+        "persist-credentials: false", "persist-credentials: true").replace(
+        "git checkout \"$PINNED\" --", "true \"$PINNED\" --")})})
+R.check(
+    "and the same tests.yml with its restores and token hygiene undone is "
+    "refused on each of the three autofix jobs (null control)",
+    _PRW_SUBJECTS == ["tests.yml:claims-autofix", "tests.yml:closures-autofix",
+                      "tests.yml:mutation-autofix"],
+    f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
+)
+R.check(
+    "and an indented `import a, b` names both modules (null control: the "
+    "finder's reader missed mutation_table this way)",
+    _prw_executed("          import subprocess, mutation_table\n") == {"tests/mutation_table.py"},
+    f"read: {_prw_executed('          import subprocess, mutation_table')}",
+)
+# --- D13-s1-03: `pr-contract` lists the reds at the head when it runs, about
+# fifteen seconds after a push, and nothing re-ran it when a red it could not
+# yet see finished later (typing, fast, mutation). pr-contract-rerun.yml is
+# that trigger: when a run of any workflow that reports at a pull request's
+# head concludes `failure`, it asks GitHub to re-run the newest `pr-contract`
+# run at the same head if that run started before the red finished. Its
+# properties are budget-raise-gate-rerun.yml's (above) with two changes: it
+# fires on a FAILED run, and it watches every workflow that runs on a pull
+# request but the contract itself -- a watched list that misses one is the
+# gap again, so the list is derived here from the workflow files.
+_PR_WORKFLOW_NAMES = sorted(
+    str((_yaml.safe_load(t) or {}).get("name"))
+    for t in _PRW_TEXTS.values()
+    if {"pull_request", "pull_request_review"} & set(
+        (lambda d: d.get(True, d.get("on")) or {})(_yaml.safe_load(t) or {})))
+
+
+def _crr_defects(text: str, watched: "list[str]") -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    on = doc.get(True, doc.get("on")) or {}
+    jobs = doc.get("jobs") or {}
+    job = jobs.get("rerun-stale-contract") or {}
+    steps = job.get("steps") or []
+    runs = [str(s.get("run", "")) for s in steps]
+    prog = [i for i, r in enumerate(runs) if re.search(r"python3?\s+(?:-\w+\s+)*\S*contract_rerun\.py", r)]
+    restore = [i for i, r in enumerate(runs)
+               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+    out = []
+    if set(on) != {"workflow_run"}:
+        out.append(f"triggers {sorted(map(str, on))}")
+    wr = on.get("workflow_run") or {}
+    if sorted(wr.get("workflows") or []) != [w for w in watched if w != "PR contract"] \
+            or wr.get("types") != ["completed"]:
+        out.append(f"workflow_run {wr} does not watch {watched} less the contract")
+    if list(jobs) != ["rerun-stale-contract"]:
+        out.append(f"jobs {list(jobs)}")
+    if doc.get("permissions") != {} or job.get("permissions") != {
+            "actions": "write", "contents": "read"}:
+        out.append(f"permissions {doc.get('permissions')} / {job.get('permissions')}")
+    cond = str(job.get("if", ""))
+    if cond.strip() != "github.event.workflow_run.conclusion == 'failure'":
+        out.append(f"if: {cond!r}")
+    co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
+    if len(co) != 1 or (co[0].get("with") or {}).get("ref") != "${{ github.sha }}" \
+            or (co[0].get("with") or {}).get("persist-credentials") is not False:
+        out.append(f"checkout {[s.get('with') for s in co]}")
+    if re.search(r"head_branch|head_repository|pull_requests|display_title|head_commit",
+                 text.split("\njobs:", 1)[-1]):
+        out.append("a pull-request-controlled string reaches the job")
+    if not prog or not restore or prog[0] < restore[0] or not all(
+            re.search(r"python3 -I \.claude/workflows/contract_rerun\.py --rerun ", runs[i])
+            for i in prog):
+        out.append(f"restore at {restore}, program at {prog}")
+    return out
+
+
+_CRR_PATH = Path(".github/workflows/pr-contract-rerun.yml")
+_CRR_TEXT = _CRR_PATH.read_text() if _CRR_PATH.is_file() else ""
+_CRR_DEFECTS = _crr_defects(_CRR_TEXT, _PR_WORKFLOW_NAMES)
+R.check(
+    "a red that lands after pr-contract ran re-runs it: the follower watches every "
+    "pull-request workflow but the contract, fires on a failed run only, holds "
+    "`actions: write` and runs the default branch's program (D13-s1-03)",
+    _CRR_DEFECTS == [] and len(_PR_WORKFLOW_NAMES) >= 6,
+    f"defects: {_CRR_DEFECTS}; pull-request workflows: {_PR_WORKFLOW_NAMES}",
+)
+_CRR_NULL = _crr_defects(_CRR_TEXT.replace(
+    "ref: ${{ github.sha }}", "ref: ${{ github.event.workflow_run.head_sha }}"),
+    _PR_WORKFLOW_NAMES + ["A new pull-request workflow"])
+R.check(
+    "and the same file checking out the pull request's head, or missing a "
+    "pull-request workflow, is refused (null control)",
+    any(d.startswith("checkout") for d in _CRR_NULL)
+    and any(d.startswith("workflow_run") for d in _CRR_NULL),
+    f"defects on the altered copy: {_CRR_NULL}",
+)
+_CRR_SELF = subprocess.run(
+    [sys.executable, ".claude/workflows/contract_rerun.py", "--self-test"],
+    capture_output=True, text=True)
+R.check(
+    "contract_rerun.py's decision table and end-to-end arms pass",
+    _CRR_SELF.returncode == 0
+    and re.search(r"^contract_rerun self-test: [1-9]\d* checks, 0 failed$",
+                  _CRR_SELF.stdout, re.M) is not None,
+    f"rc={_CRR_SELF.returncode}: {(_CRR_SELF.stdout + _CRR_SELF.stderr)[-400:]}",
+)
 # D13-03 (#1240): the stats histogram's verdict arm reads the FULL grammar the
 # wave script teaches -- the verdict words from the reviewer prompt's string
 # literals, and the block classes from VERDICT_CLASSES -- instead of printing
