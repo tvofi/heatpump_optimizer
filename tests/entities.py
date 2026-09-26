@@ -5026,6 +5026,7 @@ for name in (
 coord = FakeCoordinator(DATA)
 force = button.ForceOptimizationButton(coord, ENTRY)
 R.check("the run button is available when idle", force.available)
+force.hass = EagerHass()
 asyncio.run(force.async_press())
 R.check("pressing it forces a run", coord.pressed == ["force_optimization"])
 
@@ -5042,10 +5043,16 @@ R.check(
 )
 
 reset = button.ResetComfortWeightButton(coord, ENTRY)
+reset.hass = EagerHass()
+coord.refreshes.clear()
+coord.on_refresh = lambda: "reset_comfort_weight" in coord.pressed
 asyncio.run(reset.async_press())
 R.check(
-    "the reset button reaches the coordinator",
-    "reset_comfort_weight" in coord.pressed,
+    "the reset button reaches the coordinator, then asks for one refresh",
+    "reset_comfort_weight" in coord.pressed and coord.refreshes == [True],
+    f"pressed={coord.pressed} refreshes={coord.refreshes} -- the setter no "
+    "longer refreshes, so a press without its own refresh leaves the reset "
+    "weight unpublished until the next cycle",
 )
 
 
@@ -25901,7 +25908,9 @@ def _pin_pip_refusal(cmd: str) -> "str | None":
             files.append(toks[i + 1])
             i += 2
             continue
-        if tok in ("--require-hashes", "-q", "--quiet"):
+        # --no-deps only narrows the install to the lock's own lines; the
+        # typing lock needs it to override a pin homeassistant carries.
+        if tok in ("--require-hashes", "--no-deps", "-q", "--quiet"):
             flags.add(tok)
         else:
             return f"argument {tok!r} is a package spec or an unvetted flag"
@@ -25988,6 +25997,7 @@ _PIN_ARMS = {
         'npm install --prefix "$RUNNER_TEMP/pw" playwright@1.49.0\n'
         "PW=1 \\\n  npx --yes playwright@1.49.0 install chromium", 2),
     "the hashed installs this workflow uses": (_PIN_OK + "\nnpm ci --prefix x", 0),
+    "a hashed install narrowed by --no-deps": (_PIN_OK + " --no-deps", 0),
     "an install named only in a comment": ("# pip install -r x\necho ok", 0),
 }
 for _arm, (_run, _want) in _PIN_ARMS.items():
