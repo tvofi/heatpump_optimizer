@@ -26035,4 +26035,129 @@ R.check(
 )
 
 
+# --- round 9's judge re-runner (PLAN R3) ---
+#
+# `tools/audit/judge_batch.py` is the judge's scripted measurement
+# (`tools/audit/briefs/judge.md`: "Scripted re-runs of the headers' commands are
+# your measurement"), so it decides what a round may call reproduced. Driven
+# here through the production code on fixture harnesses, with its control: a
+# harness whose perturbation does not move must come back void. The verify
+# driver that calls it is pinned where its round-8 shape was, in
+# `.claude/workflows/check-wave-script.mjs` ('the round-9 verification pass').
+R.section("Round 9: the judge's batch re-runner")
+import importlib.util as _importlib_util  # noqa: E402
+
+
+_JB_HARNESS = """\
+\"\"\"Fixture harness for judge_batch (entities.py).
+
+Metric: count of widgets.
+Expected at baseline:
+  RESULT count={base}
+JUDGE-RUN: {py} tools/audit/round9/D1/{name}.py
+{perturb}JUDGE-NULL: {py} tools/audit/round9/D1/{name}.py --null
+\"\"\"
+import os
+import sys
+from pathlib import Path
+
+lock = Path(os.environ.get("HPO_GATE_LOCK_DIR", "/nonexistent")) / "owner"
+label = os.environ.get("HPO_GATE_LOCK_LABEL", "")
+held = int(lock.is_file() and f"label={{label}}" in lock.read_text())
+n = {got}
+if "--perturb" in sys.argv:
+    n = {perturbed}
+if "--null" in sys.argv:
+    n = 0
+print(f"RESULT count={{n}}")
+print(f"RESULT held={{held}}")
+print("RESULT load1=0.25")
+print("RESULT thread_factor=1.00")
+"""
+
+
+def _jb_run() -> dict:
+    """Five fixture harnesses through ``judge_batch.run_batch``, one lease."""
+    spec = _importlib_util.spec_from_file_location(
+        "judge_batch", _closure.ROOT / "tools" / "audit" / "judge_batch.py")
+    judge_batch = _importlib_util.module_from_spec(spec)
+    spec.loader.exec_module(judge_batch)
+    with _tempfile.TemporaryDirectory() as td:
+        repo = Path(td) / "repo"
+        hdir = repo / "tools" / "audit" / "round9" / "D1"
+        hdir.mkdir(parents=True)
+        lock_dir = Path(td) / "lock"
+        cases = {
+            # name: (header base, printed base, printed under perturb, direction, perturb line?)
+            "moves": (3, 3, 0, "to_zero", True),
+            "flat": (3, 3, 3, "to_zero", True),
+            "wrongway": (3, 3, 7, "down", True),
+            "handonly": (3, 3, 0, "to_zero", False),
+            "drifted": (3, 5, 0, "to_zero", True),
+        }
+        findings = []
+        for name, (base, got, pert, direction, has_p) in cases.items():
+            perturb = (f"JUDGE-PERTURB: {sys.executable} tools/audit/round9/D1/{name}.py --perturb\n"
+                       if has_p else "")
+            (hdir / f"{name}.py").write_text(_JB_HARNESS.format(
+                base=base, got=got, perturbed=pert, perturb=perturb,
+                py=sys.executable, name=name))
+            findings.append({
+                "id": f"D1-s1-{name}",
+                "evidence": {"harness_path": f"tools/audit/round9/D1/{name}.py",
+                             "command": "false", "tolerance": "exact"},
+                "perturbation": {"change": "--perturb", "expected_direction": direction},
+            })
+        rows = judge_batch.run_batch(findings, repo=repo, lock_dir=lock_dir,
+                                      label="entities-jb", timeout=60)
+        after = _gate_lock.read_owner(lock_dir)
+        md = judge_batch.render_table(rows)
+    return {"rows": {r["id"].rsplit("-", 1)[1]: r for r in rows}, "after": after, "md": md}
+
+
+try:
+    _JB = _jb_run()
+except Exception as _jb_exc:  # a crash reports as a failure, never as a skipped block
+    _JB = {"rows": {}, "after": None, "md": "", "error": repr(_jb_exc)}
+_jbr = _JB["rows"]
+R.check(
+    "judge_batch: a harness whose perturbation moves in the stated direction is "
+    "reproduced and not void, measured under the gate lease",
+    _jbr.get("moves", {}).get("perturbation") == "moved"
+    and _jbr.get("moves", {}).get("void") is False
+    and _jbr.get("moves", {}).get("reproduced") == "yes"
+    and _jbr.get("moves", {}).get("held") == "1"
+    and _jbr.get("moves", {}).get("null_value") == "0",
+    f"row={_jbr.get('moves')!r} error={_JB.get('error')!r}",
+)
+R.check(
+    "judge_batch: the null control -- a harness whose perturbation does not move "
+    "is void (judge.md step 2), and one that moves the wrong way is void too",
+    _jbr.get("flat", {}).get("perturbation") == "not-moved"
+    and _jbr.get("flat", {}).get("void") is True
+    and _jbr.get("wrongway", {}).get("perturbation") == "wrong-direction"
+    and _jbr.get("wrongway", {}).get("void") is True,
+    f"flat={_jbr.get('flat')!r} wrongway={_jbr.get('wrongway')!r}",
+)
+R.check(
+    "judge_batch: no perturbation command is left to the judge by hand, never "
+    "passed; a number outside the header's tolerance is not reproduced",
+    _jbr.get("handonly", {}).get("perturbation") == "by-hand"
+    and _jbr.get("handonly", {}).get("void") is None
+    and _jbr.get("drifted", {}).get("reproduced") == "no"
+    and _jbr.get("drifted", {}).get("got") == "5",
+    f"handonly={_jbr.get('handonly')!r} drifted={_jbr.get('drifted')!r}",
+)
+R.check(
+    "judge_batch: every row carries the harness's load1 and thread_factor, one "
+    "table row per finding, and the lease is released after the batch",
+    len(_jbr) == 5
+    and all(r.get("load1") == "0.25" and r.get("thread_factor") == "1.00"
+            for r in _jbr.values())
+    and _JB["md"].count("\n| D1-s1-") == 5
+    and _JB["after"] is None,
+    f"rows={len(_jbr)} after={_JB['after']!r}",
+)
+
+
 sys.exit(R.close("ENTITY CHECKS"))
