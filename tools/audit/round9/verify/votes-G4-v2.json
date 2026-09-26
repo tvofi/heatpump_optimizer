@@ -203,6 +203,96 @@
     "class": null,
     "seam_rule_enumerates": null
    }
+  ],
+  "D11": [
+   {
+    "id": "D11-s1-01",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "1 of 12 (sample; #1621: owner APPROVED ecb7af8e not dismissed, owned tests/harness.py changed after, merged c182e1cb with 0 approvals at head); #1623 git side reproduced (edf38de0 after 0a1424cc touches owned tests/mutation_table.py); perturb dismiss-stale -> 0",
+    "metric_definition": "Snapshot PRs merged with no APPROVED review at the merged head, whose owner's last APPROVED (not DISMISSED) review is on an older commit, and a non-merge branch commit in approved..head ^parent1 touched a CODEOWNERS-owned path (last-match-wins at parent1).",
+    "method": "tools/audit/round9/D11/verify-v2/v2_stale_approval.py over D11-s2's committed reviews_snapshot.json (a separate API read) joined to local git; finder's harness not re-run (needs live GitHub, barred).",
+    "attacks": "In-tree ruleset snapshots (round5, round8 updated 2026-09-22) say dismiss_stale=true, but #1621 merged 2026-09-26 with an APPROVED, undismissed stale review after an owned-file push, which corroborates false at merge time; App approvals in the sample are 4 of 4 at head (null holds); population 2/201 not re-derivable offline; severity: governance bypass on test-infrastructure files, bounded, one-toggle fix, no product effect -> medium, not high.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s1-02",
+    "vote": "weaken",
+    "severity": "medium",
+    "value": "0 of 4 detector-by-arm pairs name the direct push (control two-parent: 2 of 2); perturb parents-ge-1 -> stamp names 2 of 2; finder's harness re-run: 0 of 2, control 1, history 0 of 16",
+    "metric_definition": "Of 2 in-tree first-parent enumerators (stamp rule4 via window_log_args/parse_window; delivery_status collect via LOG_FORMAT/parse_log) times 2 single-parent non-stamp arms on a real git history after a noted PR merge, pairs whose output names the direct push's sha.",
+    "method": "tools/audit/round9/D11/verify-v2/v2_direct_push.py (temporary git repository, production readers end to end)",
+    "attacks": "Real-log method confirms the mechanism beyond injected tuples; reach is limited to the DeployKey holder (always bypass, also in the in-tree round5 fixture); incidence 0 of 16; delivery_status docstring legitimises single-parent 'record:' commits, so a STAMP_WRITES-only fix would false-positive; the full gate still runs on main -> capability-only, medium not high.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s1-03",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "write_jobs_on_pr=4 (3 autofix + codeql analyze), same_repo_guarded=3 of 3 (drop-guard -> 0), pr_yaml_files=7, pull_request_target_files=0; finder's harness re-run: 3",
+    "metric_definition": "Jobs in pull_request-triggered workflows holding an explicit write permission, with whether a same-repo head guard gates them and which secrets they read; beside it, the number of PR-triggered workflow files whose YAML the PR itself supplies.",
+    "method": "tools/audit/round9/D11/verify-v2/v2_pr_write_jobs.py (YAML parse of .github/workflows)",
+    "attacks": "Reach and consequence: all 7 PR workflows run the PR's own YAML (decision 0013 says so) and the 3 jobs admit only same-repo branch pushers, so any such author can already grant write permissions or secrets by editing tests.yml pre-review; restoring the scripts removes no capability and would not satisfy the finding's own phenomenon property. The count is true; medium is not earned.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s1-04",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "6 of 6 sampled PRs: approval() accepts owner approvals at head that declare the orchestrator gave them; owner APPROVED reviews 10: 6 declared, 4 empty-body (all off-head)",
+    "metric_definition": "Snapshot PRs where budget_raise_gate.approval(reviews, merged_head) is True and every owner APPROVED review at head declares 'orchestrator' in its body.",
+    "method": "tools/audit/round9/D11/verify-v2/v2_stale_approval.py (sample arm, s2 snapshot); finder's 27/27 over 90 not re-derivable offline",
+    "attacks": "Title overstates 'indistinguishable': 6 of 10 owner approvals disclose it in the body, so only the identity key the gate uses cannot tell; delegation is the owner's choice; duplicates D11-s2-03; medium holds for a control that cannot prove human oversight.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s2-01",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "23 of 23 zero-line-headroom capped files accept +400 B joined with 0 new errors of any class; 23 of 23 refuse the same bytes as new lines; bound: first error at +900 B on CLAUDE.md (role band), +1000 B on gate-scoping.md (corpus band); finder re-run 7 of 7",
+    "metric_definition": "Of every capped policy file with lines == cap (derived from --budgets), how many accept +400 bytes appended to the last non-empty line with no new ERROR of any check versus the null run; plus the smallest joined size that draws any error.",
+    "method": "tools/audit/round9/D11/verify-v2/v2_caps_bytes.py (git archive copy, full default policy_lint runs, error-set diff)",
+    "attacks": "Wider population (23, not 7) confirms the mechanism; the null arm is live; the growth is bounded corpus-wide by the remaining aggregate band (about 245 tokens corpus, 186 role policy at baseline), which ratchet-budgets.md already treats as working room -> hygiene of the ratchet's unit, low.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s2-02",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "5 of 5 partial or blind PreToolUse matchers accepted (rc 0); tracked rc 0; event moved to PostToolUse refused (1); finder re-run 0 of 4 refused",
+    "metric_definition": "Of settings.json variants whose PreToolUse matcher misses at least one of Edit/Write/MultiEdit/NotebookEdit (case-sensitive full match computed by the harness), how many policy_lint --hooks accepts.",
+    "method": "tools/audit/round9/D11/verify-v2/v2_hooks_matcher.py (production cmdHooks via node, variants in a temp dir inside the harness dir)",
+    "attacks": "Partial matchers (Edit alone) are also blind, which widens the seam; reach: .claude/settings.json is code-owned (CODEOWNERS:70), so a matcher change needs owner review; the hook is a local early detector whose rules CI still gates -> bounded, low.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s2-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "6 of 6 owner approvals counted at head by approval() declare seat-given; 0 undeclared owner approvals at head; finder re-run 6/6, perturbed 0",
+    "metric_definition": "Snapshot PRs where budget_raise_gate.approval(reviews, merged_head) is True and every owner APPROVED review at head declares 'orchestrator' in its body.",
+    "method": "tools/audit/round9/D11/verify-v2/v2_stale_approval.py (own regex, all-at-head requirement) beside owner_review.py",
+    "attacks": "The classifier can only undercount (the 4 empty-body owner approvals are all off-head); same phenomenon as D11-s1-04; severity medium earned (the human-oversight control cannot separate the human from the delegate; workaround exists; no product effect).",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s2-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": "exact literals found 1 of 2; 2 of 2 after em-dash normalisation; full_output_has_zero=0; finder re-run 0 of 2 claims holding",
+    "metric_definition": "For each backticked MODE literal in CLAUDE.md rule 1, whether it is a byte-exact substring of tests/closure.py:print_plan output for a 0-run scoped plan and a full plan, and whether the FULL output carries a digit 0.",
+    "method": "tools/audit/round9/D11/verify-v2/v2_mode_line.py (production print_plan)",
+    "attacks": "Checked run.sh's final summary for a zero on a FULL run: it prints 'ALL TEST SCRIPTS PASSED' with no count, so 'both print zero' is false; the em dash is the only defect in the scoped literal; hygiene, low.",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
   ]
  }
 }
