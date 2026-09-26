@@ -429,6 +429,270 @@ R.check(
 
 
 # ===========================================================================
+# Round 9, F4.1: class-named blocks, sorted by class
+# ===========================================================================
+from dataclasses import replace as _r9f41_replace  # noqa: E402
+import ast as _r9f41_ast  # noqa: E402
+import re as _r9f41_re  # noqa: E402
+
+from heatpump_optimizer import const as _r9f41_const  # noqa: E402
+from heatpump_optimizer import sysid as _r9f41_sysid  # noqa: E402
+
+# --- R9 N-clamp-range (#1673): the flow-lift bias reaches the real supply ----
+R.section("R9 N-clamp-range: the flow-lift bias reaches the plant's supply (D2-s2-02)")
+
+# The model's own curve asks 22-28 C of a default house, so a plant at 50 C
+# sits 20-odd K above it; the priced supply must be able to get there.
+_r9f41_p = ThermalParameters(flow_curve_cop=True)
+_r9f41_curve = flow_lift.curve_supply_temp(
+    ThermalModel(_r9f41_p), -5.0, _r9f41_p.flow_curve_indoor_target
+)
+_r9f41_bias = flow_lift.FlowCurveBias()
+for _ in range(20):
+    _r9f41_bias.observe(50.0, _r9f41_curve)
+_r9f41_priced = ThermalModel(
+    _r9f41_replace(_r9f41_p, flow_curve_bias=_r9f41_bias.bias_k)
+).curve_flow_temp(-5.0)
+R.check(
+    "D2-s2-02: a 50 C plant against the model's curve is priced at 50 C, "
+    "not pinned 15 K over the curve",
+    _r9f41_curve is not None
+    and _r9f41_priced is not None
+    and abs(_r9f41_priced - 50.0) < 1e-9,
+    f"curve {_r9f41_curve}, bias {_r9f41_bias.bias_k}, priced {_r9f41_priced}",
+)
+_r9f41_under = flow_lift.FlowCurveBias()
+for _ in range(20):
+    _r9f41_under.observe(_r9f41_curve - 40.0, _r9f41_curve)
+R.check(
+    "D2-s2-02: the bias still stops FLOW_BIAS_CLAMP_K under the curve",
+    _r9f41_under.bias_k == -flow_lift.FLOW_BIAS_CLAMP_K,
+    f"bias {_r9f41_under.bias_k}",
+)
+_r9f41_hot = flow_lift.FlowCurveBias()
+_r9f41_hot.observe(flow_lift.FLOW_SUPPLY_MAX_C + 47.0, 25.0)
+R.check(
+    "D2-s2-02: a supply no direct plant runs at (degF adopted raw) is refused "
+    "as a sample, not absorbed",
+    _r9f41_hot.samples == 0 and _r9f41_hot.bias_k == 0.0,
+    f"samples {_r9f41_hot.samples}, bias {_r9f41_hot.bias_k}",
+)
+_r9f41_ceiling = flow_lift.FlowCurveBias()
+for _ in range(20):
+    _r9f41_ceiling.observe(flow_lift.FLOW_SUPPLY_MAX_C, 25.0)
+R.check(
+    "D2-s2-02: a plant at the supply ceiling is learned all the way up",
+    abs(_r9f41_ceiling.bias_k - (flow_lift.FLOW_SUPPLY_MAX_C - 25.0)) < 1e-9,
+    f"bias {_r9f41_ceiling.bias_k}",
+)
+_r9f41_loaded = flow_lift.FlowCurveBias.from_dict({"bias_k": 25.0, "samples": 9})
+_r9f41_wild = flow_lift.FlowCurveBias.from_dict({"bias_k": 500.0, "samples": 9})
+R.check(
+    "D2-s2-02: a stored bias this version learns loads as stored; a wild one "
+    "is re-clamped to the supply ceiling",
+    _r9f41_loaded.bias_k == 25.0
+    and _r9f41_wild.bias_k == flow_lift.FLOW_SUPPLY_MAX_C,
+    f"loaded {_r9f41_loaded.bias_k}, wild {_r9f41_wild.bias_k}",
+)
+
+# --- R9 N-staleness (#1684): a quiet store is not a dead probe ---------------
+R.section("R9 N-staleness: a report-on-change probe on a still store (D1-s5-51)")
+
+# The slow stores, each read through the one limit. A report-on-change probe
+# in a calm room sent nothing for 4 h 15 min in the field (the finding's own
+# evidence); the watchdog must still trip once the limit passes.
+_r9f41_quiet = (
+    "indoor_temp_entity",
+    "lower_floor_temp_entity",
+    "floor_return_temp_entity",
+    "buffer_tank_temp_entity",
+    "dhw_temp_entity",
+)
+for _r9f41_key in _r9f41_quiet:
+    _r9f41_limit = inputs_mod.max_age_for(_r9f41_key)
+    _r9f41_calm = InputReader(
+        FakeHass({"sensor.x": FakeState("21.3", last_updated=minutes_ago(255, NOW))}),
+        {_r9f41_key: "sensor.x"},
+        now=lambda: NOW,
+    ).read(_r9f41_key)
+    _r9f41_dead = InputReader(
+        FakeHass(
+            {
+                "sensor.x": FakeState(
+                    "21.3",
+                    last_updated=minutes_ago(
+                        _r9f41_const.QUIET_STORE_MAX_AGE_MINUTES + 1, NOW
+                    ),
+                )
+            }
+        ),
+        {_r9f41_key: "sensor.x"},
+        now=lambda: NOW,
+    ).read(_r9f41_key)
+    R.check(
+        f"D1-s5-51: {_r9f41_key} silent 255 min reads ok; past the quiet-store "
+        "limit it is stale",
+        _r9f41_limit == _r9f41_const.QUIET_STORE_MAX_AGE_MINUTES
+        and _r9f41_calm.ok
+        and _r9f41_dead.stale,
+        f"limit {_r9f41_limit}, calm {_r9f41_calm.problem}, "
+        f"dead {_r9f41_dead.problem}",
+    )
+
+# --- R9 P2 (#1644): one stamp owner, one window, one sizing bound ------------
+R.section("R9 P2: stamp owner, plausibility window, sizing bound (D1-s5-01/-52, D2-s4-02)")
+
+# D1-s5-01: age_of against the reader, on the same State at the same instant.
+# A live sensor re-reporting an unchanged value (last_reported recent,
+# last_updated old) and a stamp ahead of the clock were the two divergences.
+_r9f41_cells = []
+for _r9f41_rep, _r9f41_upd in (
+    (5, 5), (5, 480), (30, 900), (-5, -5), (-60, 30), (400, 400),
+):
+    _r9f41_state = FakeState(
+        "72.0",
+        last_updated=minutes_ago(_r9f41_upd, NOW),
+        last_reported=minutes_ago(_r9f41_rep, NOW),
+    )
+    _r9f41_age = inputs_mod.age_of(_r9f41_state, NOW)
+    _r9f41_reader_age = InputReader(FakeHass({}), {}, now=lambda: NOW)._age_minutes(
+        _r9f41_state
+    )
+    _r9f41_cells.append(
+        (
+            _r9f41_rep,
+            _r9f41_upd,
+            None if _r9f41_age is None else _r9f41_age.total_seconds() / 60.0,
+            _r9f41_reader_age,
+        )
+    )
+R.check(
+    "D1-s5-01: age_of reads the reader's stamp precedence and refuses a future "
+    "stamp, in every cell",
+    all(
+        (a is None and b is None)
+        or (a is not None and b is not None and abs(a - b) < 1e-9)
+        for _, _, a, b in _r9f41_cells
+    )
+    and _r9f41_cells[1][2] == 5.0
+    and _r9f41_cells[3][2] is None,
+    f"(reported, updated, age_of, reader): {_r9f41_cells}",
+)
+
+# One owner of the stamp chain (the P2 RCA's `state_stamp`): no other function
+# in inputs.py names a stamp attribute, so the three copies cannot diverge.
+_r9f41_tree = _r9f41_ast.parse(open(inputs_mod.__file__, encoding="utf-8").read())
+_r9f41_stamp_sites = sorted(
+    {
+        _r9f41_fn.name
+        for _r9f41_fn in _r9f41_ast.walk(_r9f41_tree)
+        if isinstance(_r9f41_fn, (_r9f41_ast.FunctionDef, _r9f41_ast.AsyncFunctionDef))
+        for _r9f41_node in _r9f41_ast.walk(_r9f41_fn)
+        if (
+            isinstance(_r9f41_node, _r9f41_ast.Constant)
+            and _r9f41_node.value in ("last_reported", "last_updated", "last_changed")
+        )
+        or (
+            isinstance(_r9f41_node, _r9f41_ast.Attribute)
+            and _r9f41_node.attr in ("last_reported", "last_updated", "last_changed")
+        )
+    }
+)
+R.check(
+    "D1-s5-01: state_stamp is the only function in inputs.py reading a stamp",
+    _r9f41_stamp_sites == ["state_stamp"],
+    f"functions reading a stamp: {_r9f41_stamp_sites}",
+)
+
+# D1-s5-52: every temperature key the reader serves refuses the DS18B20 fault
+# codes it cannot physically read, and passes an ordinary reading. The keys
+# are enumerated from const, by the finding's seam rule's name pattern.
+_r9f41_temp_keys = sorted(
+    getattr(_r9f41_const, _r9f41_name)
+    for _r9f41_name in dir(_r9f41_const)
+    if _r9f41_re.fullmatch(r"CONF_\w*TEMP\w*_ENTITY", _r9f41_name)
+)
+R.check(
+    "D1-s5-52: every CONF_*TEMP*_ENTITY key has a plausibility window",
+    bool(_r9f41_temp_keys)
+    and all(k in _r9f41_const.INPUT_PLAUSIBLE_RANGE_C for k in _r9f41_temp_keys),
+    f"without one: "
+    f"{[k for k in _r9f41_temp_keys if k not in _r9f41_const.INPUT_PLAUSIBLE_RANGE_C]}",
+)
+# Over the enumerated keys as well as the table's, so an empty table cannot
+# pass the sentinel checks below by walking nothing.
+_r9f41_all_keys = sorted(
+    set(_r9f41_temp_keys) | set(_r9f41_const.INPUT_PLAUSIBLE_RANGE_C)
+)
+_r9f41_sentinel = {}
+for _r9f41_key in _r9f41_all_keys:
+    for _r9f41_raw in ("-127", "85", "21.3"):
+        _r9f41_read = InputReader(
+            FakeHass({"sensor.x": FakeState(_r9f41_raw, last_updated=minutes_ago(1, NOW))}),
+            {_r9f41_key: "sensor.x"},
+            now=lambda: NOW,
+        ).read(_r9f41_key)
+        _r9f41_sentinel[(_r9f41_key, _r9f41_raw)] = (
+            _r9f41_read.problem,
+            _r9f41_read.value,
+        )
+_r9f41_room_like = (
+    "indoor_temp_entity",
+    "lower_floor_temp_entity",
+    "outdoor_temp_entity",
+    "floor_return_temp_entity",
+)
+R.check(
+    "D1-s5-52: -127 degC is refused as implausible on every temperature key, "
+    "with no value left to read",
+    all(_r9f41_sentinel[(k, "-127")] == ("implausible", None) for k in _r9f41_all_keys),
+    f"{ {k: v for (k, raw), v in _r9f41_sentinel.items() if raw == '-127'} }",
+)
+R.check(
+    "D1-s5-52: 85 degC is refused in a room, outdoors and in a floor circuit",
+    all(_r9f41_sentinel[(k, "85")][0] == "implausible" for k in _r9f41_room_like),
+    f"{ {k: _r9f41_sentinel[(k, '85')] for k in _r9f41_room_like} }",
+)
+R.check(
+    "D1-s5-52: an ordinary 21.3 degC passes on every key (the null control)",
+    all(_r9f41_sentinel[(k, "21.3")] == (None, 21.3) for k in _r9f41_all_keys),
+)
+_r9f41_health = InputReader(
+    FakeHass({"sensor.x": FakeState("-127", last_updated=minutes_ago(1, NOW))}),
+    {"indoor_temp_entity": "sensor.x"},
+    now=lambda: NOW,
+)
+_r9f41_health.read("indoor_temp_entity")
+R.check(
+    "D1-s5-52: an implausible reading is a missing input with words for it",
+    _r9f41_health.health.missing_keys == ["indoor_temp_entity"]
+    and _r9f41_health.health.problem_messages()
+    == ["sensor.x: outside its plausible range"],
+    f"{_r9f41_health.health.missing_keys} {_r9f41_health.health.problem_messages()}",
+)
+
+# D2-s4-02: the step is sized under the abort bound by the noise headroom, on
+# the heavy default house (#779's own cell), and still uses the rest of it.
+_r9f41_sid = SystemIdentification(SysIdConfig(enabled=True))
+_r9f41_el = _r9f41_sid._size_step_power(6.0, 3.0, 21.0, 2.0, 0.20, 8.0, 0.3)
+_r9f41_peak, _r9f41_final = _r9f41_sysid._predict_step_excursion_plant(
+    0.20, 8.0, 0.3, 21.0, 2.0, (_r9f41_el or 0.0) * 3.0, 2.0, 2.0
+)
+_r9f41_bound = (
+    _r9f41_sid.config.max_excursion_c - _r9f41_sysid.SIZING_NOISE_HEADROOM_C
+)
+R.check(
+    "D2-s4-02: the sized step's noiseless peak leaves the noise headroom under "
+    "the abort bound, and uses the allowance below it",
+    _r9f41_el is not None
+    and _r9f41_bound - 0.05 <= _r9f41_peak <= _r9f41_bound
+    and _r9f41_final <= _r9f41_bound,
+    f"Pel={_r9f41_el} peak={_r9f41_peak:.4f} final={_r9f41_final:.4f} "
+    f"bound={_r9f41_bound}",
+)
+
+
+# ===========================================================================
 # v5.3.0: strings and flags, guarded like numbers
 # ===========================================================================
 R.section("Non-numeric inputs (v5.3.0)")
@@ -23396,18 +23660,25 @@ R.check(
     f"{_fl_one.as_dict()}",
 )
 
+# D2-s2-02 (round 9) moved the hot side's bound from 15 K over the curve to
+# the supply ceiling: a plant at 50 C sits 20-odd K over the model's own curve,
+# so "past 15 K is a probe in the wrong pipe" refused real plants. What a
+# wrong pipe or a degF read produces is a supply past the ceiling.
 _fl_hot = flow_lift.FlowCurveBias()
 _fl_hot_worst = 0.0
 for _ in range(200):
-    _fl_hot.observe(75.0, 30.0)
+    _fl_hot.observe(flow_lift.FLOW_SUPPLY_MAX_C, 30.0)
+    _fl_hot.observe(flow_lift.FLOW_SUPPLY_MAX_C + 60.0, 30.0)
     _fl_hot_worst = max(_fl_hot_worst, abs(_fl_hot.bias_k))
 R.check(
-    "a stream of large one-sided residuals pins at the clamp, it does not run away",
-    _fl_hot.bias_k == flow_lift.FLOW_BIAS_CLAMP_K
-    and _fl_hot_worst == flow_lift.FLOW_BIAS_CLAMP_K,
-    f"bias {_fl_hot.bias_k} after {_fl_hot.samples} samples of +45 K, worst "
-    f"{_fl_hot_worst} — 45 K past the curve is a probe in the wrong pipe, "
-    "not an installer offset",
+    "a stream of large one-sided residuals pins at the supply ceiling, it does "
+    "not run away",
+    _fl_hot.bias_k == flow_lift.FLOW_SUPPLY_MAX_C - 30.0
+    and _fl_hot_worst == flow_lift.FLOW_SUPPLY_MAX_C - 30.0
+    and _fl_hot.samples == 200,
+    f"bias {_fl_hot.bias_k} after {_fl_hot.samples} samples at the ceiling "
+    f"and 200 past it, worst {_fl_hot_worst} — past the ceiling is a probe "
+    "in the wrong pipe, not a plant",
 )
 _fl_cold = flow_lift.FlowCurveBias()
 for _ in range(200):
@@ -23707,7 +23978,7 @@ R.check(
     and flow_lift.FlowCurveBias.from_dict(
         {"bias_k": 900.0, "samples": 3}
     ).bias_k
-    == flow_lift.FLOW_BIAS_CLAMP_K,
+    == flow_lift.FLOW_SUPPLY_MAX_C,
     "a store written by a build with a wider clamp must not reintroduce a "
     "bias this build would never have learned",
 )
