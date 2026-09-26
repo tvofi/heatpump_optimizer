@@ -20633,6 +20633,23 @@ R.check(
     f"solve calls: {_fr_calls}",
 )
 
+# A fixed-rule mode's action carries the price of the kWh it buys, as the
+# plan's does: the published current price and the settlement read it.
+_fr_fixed = {}
+for _fr_mode in ("comfort", "boost", "off"):
+    _fr_coord._mode = _fr_mode
+    _asyncio.run(_fr_coord._async_update_data())
+    _fr_fixed[_fr_mode] = (
+        _fr_coord._current_action.get("mode"),
+        _fr_coord._current_action.get("price") == _fr_coord._get_current_price(),
+    )
+_fr_coord._mode = "auto"
+R.check(
+    "each fixed-rule mode's action carries its own mode and the current price",
+    _fr_fixed == {m: (m, True) for m in ("comfort", "boost", "off")},
+    str(_fr_fixed),
+)
+
 
 # #1546: both refresh wrappers turn an unexpected error into an UpdateFailed
 # that carries its translation, so the frontend can render it in the user's
