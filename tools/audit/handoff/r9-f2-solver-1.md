@@ -87,7 +87,10 @@ All runs: CPython 3.14.0rc2, 4-core Linux cloud container, OMP/OpenBLAS pinned t
   - `mutate.py` applies M1–M6 to a copy of the head tree and runs it; its log is `ev/mutants.log`.
   - `dir.py` produces the golden degree-step and cost table: `ev/dir_base.json`, `ev/dir_fullprice.json`, `ev/dir_head.json`.
   - Every harness log above is `ev/<finding>_{base,base314,head,final}.log`.
-- Gate, scope derived per `fixer.md` step 5 on the head less the handoff files: `MODE: SCOPED -- 22 script(s) run, 4 scoped out`. Every scope.run entry was run except `tests/stress.py`, which is left to CI. `GOLDEN_MODE=drift` against the merge base: results below.
+- Gate, scope derived per `fixer.md` step 5 on the head less the handoff files: `MODE: SCOPED -- 22 script(s) run, 4 scoped out`. Every scope.run entry was run except `tests/stress.py`, which is left to CI. `GOLDEN_MODE=drift` against the merge base, on a full-history clone, Python 3.14:
+  - rc 0: backtest (25), config_flow_steps (454), deployment_shape, doc_claims (30), edge, entities (1958), features (3388), finite_boundary (41), golden, guard_pins (7), manual_plan (85), optimality (84), plan_view, card.mjs, card_drift.mjs (40 states), solar_alignment, structure, typing_ruler (11), validate, wood_advisor (7).
+  - `env_drift.py --all 6169b74c` (via golden.py): `NO UNCLAIMED DRIFT: 56 scenario(s)`, `NO STALE FIXTURE`; the 3 claimed scenarios moved as claimed and 10 may-drift scenarios moved, plan only.
+  - entities.py first read 3 failures on a shallow clone (HANDOVER `updated-for` ancestry, which it says a shallow clone cannot answer). After `git fetch --unshallow` it reads `ALL 1958 ENTITY CHECKS PASSED`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, no budget touched.
 
 ### Class sweeps (fixer.md step 8)
@@ -119,7 +122,7 @@ none: the branch has not run CI.
 
 ## Forward-carry
 
-To F1.10 (the P3 barrier), handed to the round-9 orchestrator for the F1.10 roster entry and `handoff/round9/fix/F1.md`, since the plan is generated from `handoff/round9/fix/src/data.py`.
+To F1.10 (the P3 barrier). The round-9 fix plan and its roster are not on main yet, so the carry was handed to the round-9 orchestrator, which owns the F1.10 roster entry and brief on the plan branch, before this PR merges.
 
 The modulation band's normalisation now lives in the power-fraction helper this PR adds to optimizer.py. The helper branches on a band narrower than 0.1 kW instead of flooring it, so arm (a) sees no group for the band (9 → 8 at this head).
 
@@ -127,5 +130,5 @@ Do not move it into a floored ThermalParameters property. A `max(band, 0.1)` flo
 
 ## Friction
 
-- fixer.md step 5: cost: the handoff branch's resume note is a tracked file no closure mentions, so `closure.py select` on the handoff head prints `MODE: FULL`. The scope was derived on a scratch commit without the handoff files.
+- fixer.md#5: cost: the handoff branch's resume note is a tracked file no closure mentions, so `closure.py select` on the handoff head prints `MODE: FULL`. The scope was derived on a scratch commit without the handoff files.
 - D2-s2-81: unclear: the finder's metric is non-monotone in the floor price. Raising the quadratic price as well moved several two-zone fixtures to basins with more breach, and everything_on breaches more under either form. That is the solver's multi-start basin sensitivity, class P4 (F2.4's D0-s2-02), not something this PR can price away.
