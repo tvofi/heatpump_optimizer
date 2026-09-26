@@ -10456,11 +10456,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         )
         self._apply_comfort_weight()
     async def async_reset_comfort_weight(self) -> None:
-        """Return the comfort weight to the configured value."""
+        """Return the comfort weight to the configured value; the button refreshes."""
+        await self._accuracy_store.async_wait_for_read()
         self._comfort_learner.reset()
         self._apply_comfort_weight()
         await self._async_save_accuracy()
-        await self.async_request_refresh()
 
     # ==================================================================
     # Active system identification (item 18)

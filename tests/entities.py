@@ -5026,6 +5026,7 @@ for name in (
 coord = FakeCoordinator(DATA)
 force = button.ForceOptimizationButton(coord, ENTRY)
 R.check("the run button is available when idle", force.available)
+force.hass = EagerHass()
 asyncio.run(force.async_press())
 R.check("pressing it forces a run", coord.pressed == ["force_optimization"])
 
@@ -5042,10 +5043,16 @@ R.check(
 )
 
 reset = button.ResetComfortWeightButton(coord, ENTRY)
+reset.hass = EagerHass()
+coord.refreshes.clear()
+coord.on_refresh = lambda: "reset_comfort_weight" in coord.pressed
 asyncio.run(reset.async_press())
 R.check(
-    "the reset button reaches the coordinator",
-    "reset_comfort_weight" in coord.pressed,
+    "the reset button reaches the coordinator, then asks for one refresh",
+    "reset_comfort_weight" in coord.pressed and coord.refreshes == [True],
+    f"pressed={coord.pressed} refreshes={coord.refreshes} -- the setter no "
+    "longer refreshes, so a press without its own refresh leaves the reset "
+    "weight unpublished until the next cycle",
 )
 
 
