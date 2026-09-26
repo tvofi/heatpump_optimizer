@@ -597,6 +597,17 @@ if [ "${1:-}" = "--self-test" ]; then
   node .claude/workflows/policy_lint.mjs --hooks >/dev/null 2>&1
   st $? 0 "this repository's own three wired hooks pass (null control)"
 
+  # A missing matcher, `""` and `"*"` are Claude Code's own "match every tool"
+  # spellings, not a pattern to compile -- `"*"` alone threw out of `RegExp`
+  # and read as MATCHER BLIND on a group that in fact fires on every edit
+  # (Cloud reviewer 2, PR #1692). Each fixture below is otherwise a complete,
+  # correctly-wired settings file, so a regression here shows up as this
+  # loop's REFUSE, not as the bad-matcher.json loop's silence.
+  for f in star-matcher no-matcher empty-matcher; do
+    node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1
+    st $? 0 "a settings file whose PreToolUse matcher is $f passes (null control)"
+  done
+
   # The push-order verdict, one fixture per branch shape. Named in a list rather
   # than globbed, for the same reason the two loops above are: a glob that
   # matches nothing runs no assertions and prints the same "0 failed" a passing
