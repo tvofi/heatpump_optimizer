@@ -1,0 +1,16 @@
+# D8 round 9 verifier V2 -- executed RESULT lines, baseline 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 + round-9 evidence
+# machine: G2-V2 cloud container, 4 CPU shared with D4/D10/D12 seats, CPython 3.14.0rc2 (/home/claude/venv); all counts, thread_factor 1.000 throughout
+v2_price_minutes.py            wrong_minutes=1425/1440 mean_abs_error=0.24757 SEK/kWh entries_ingested=96 load1=2.94
+v2_price_minutes.py --hourly   wrong_minutes=0/1440 (24 entries) load1=3.26
+v2_price_minutes.py --perturb  wrong_minutes=0/1440 load1=2.95
+v2_price_minutes.py --flat-quarters  wrong_minutes=270/1440 mean_abs_error=0.20937 (previous hour's price for 45 min after each of 6 hourly changes) load1=2.94
+v2_entities.py --only s1_02    s1_02_runs_mismatch=18/18 cycles (3 DHW cells x 6 cycles); null single-step-run cycles=0 available load1=5.62
+v2_entities.py --only s1_03    s1_03_power_vs_switch_min1_0=1/120 cycles worst 0.26 kW (coord_two_zone 11:05), drop_max_cell=0; min0_2 arm 0/120 load1=3.30
+v2_entities.py --only s2_01    no_indoor=5/5, indoor_reading=0/5, indoor_unavailable=5/5; current_temperature None in 5/5 no_indoor load1=5.34
+v2_entities.py --only s2_01 --perturb-s201   0/5, 0/5, 0/5; current_temperature still None 5/5
+v2_entities.py --only s2_02    off_while_on mode off=7/7 arms (switch turn_on, hvac_action off); mode auto=0/7 load1=6.85
+v2_entities.py --perturb-s202  mode off=0/7 load1=3.39
+v2_entities.py --only s2_03    split_writes=4/4; hvac_action_vs_actuator=0/4; solves in the refresh into mode off=0 load1=6.26
+v2_entities.py --only s2_03 --perturb-s203   split_writes=0/4; hvac_action_vs_actuator=4/4 load1=3.36
+v2_names.py                    accuracy global runs en=2 sv=2, section runs en=2 sv=2 over 2 sections (button: controls, sensor: diagnostic); meters global en=4 sv=5, section runs en=3 sv=4 in 1 section; s3_02 orphan qualifier=1 missing role=1 of 74; s3_03 same-source enabled pairs=1 (4 configs) load1=4.08
+v2_names.py --perturb-s301 --perturb-s303   accuracy global en 2->1, section runs en stay 2; s3_03 pairs 1->0 load1=3.84
