@@ -604,3 +604,68 @@
 # render the plan figure, and the space-blocked dim/banner moves no state
 # because no fixture this gate drives publishes `space_blocked`.
 #
+
+# F6.1 (D4-s1-01, D4-s1-02, D4-s1-03, D4-s1-05, P9-rca1, P9-rca2, P9-rca3):
+# round-9 dashboard-card layout/colour/hit-target fixes move nearly every
+# rendered state. Three production changes explain every diff:
+#  (1) the "now" label, the corner now-temp reading and the
+#      estimated-prices label each move to their own row
+#      (`plotT + font*{1,2,3}` instead of one shared `plotT + font`), so
+#      any state drawing the "now" marker moves even when neither of the
+#      other two labels renders (D4-s1-05, P9-rca3);
+#  (2) `.whatif` cheaper/dearer/warn text and the armed-clear/save-confirm
+#      buttons switch from the HA-var literal fallbacks (#e0544e/#2fae7a/
+#      #d98e00, which measure 3.79/2.82/2.69:1 on a light card) to
+#      WCAG-AA-safe light-theme literals (ERROR/SUCCESS/WARNING_READABLE),
+#      restoring the originals under `prefers-color-scheme: dark`
+#      (D4-s1-01, P9-rca1);
+#  (3) the setup picker's option labels put the entity id before the
+#      friendly name, not after (D4-s1-03).
+# draft_dirty_menu_open and picker_open_filtered additionally move because
+# the slot-menu's left/top are now clamped to its chart instead of the raw
+# client coordinates (D4-s1-02). history_panned, history_deep_panned and
+# history_no_power move by the now-temp row alone (their fixture publishes
+# a live indoor reading; #1495's corner label). No other production
+# behaviour changes; editor_schema, the only state this branch's diff
+# leaves unclaimed, renders the config editor's schema and no card
+# stylesheet or "now" marker.
+no_plan  # now-label row move
+no_plan_expanded  # now-label row move
+plan_inline  # now-label row move
+plan_inline_sv  # now-label row move
+plan_short_window  # now-label row move
+custom_title_currency  # now-label row move
+hidden_series  # now-label row move
+score_open  # now-label row move
+expanded_plan  # now-label row move
+what_if_off  # now-label row move
+expanded_zoomed  # now-label row move
+draft_dirty_menu_open  # now-label row move + slot-menu clamp
+draft_mid_drag  # now-label row move
+whatif_edited  # now-label row move + wi-result colour
+whatif_weekly  # now-label row move + wi-result colour
+override_active  # now-label row move
+shared_steps  # now-label row move
+shared_steps_hover  # now-label row move
+tooltip_hover  # now-label row move
+coarse_pointer  # now-label row move
+reduced_motion  # now-label row move
+setup_single_buffer  # picker option id-first label
+setup_two_tank  # picker option id-first label
+setup_coil  # picker option id-first label
+advisor_page  # now-label row move
+layout_editing_dragged  # now-label row move
+layout_editing_tidy  # now-label row move
+picker_open_filtered  # picker option id-first label + slot-menu clamp
+wood_alert  # now-label row move
+wood_lane  # now-label row move
+wood_whatif  # now-label row move + wi-result colour
+away_toggle  # now-label row move
+away_return  # now-label row move
+away_status  # now-label row move
+history_unavailable  # now-label row move
+history_pending  # now-label row move
+history_panned  # now-temp row move
+history_deep_panned  # now-temp row move
+history_no_power  # now-temp row move
+

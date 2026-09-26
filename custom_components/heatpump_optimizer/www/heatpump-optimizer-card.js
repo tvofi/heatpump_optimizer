@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "6.7.2";
+const CARD_VERSION = "6.7.1";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -19,6 +19,22 @@ const CARD_VERSION = "6.7.2";
 // or chart stroke (D4-05). #0277bd cleared card.mjs but measured 4.38:1 in
 // Chromium's bgOf walk; #026aa8 clears the 4.5:1 browser witness.
 const ACCENT_READABLE = "#026aa8";
+
+// D4-s1-01: the status/error colours HA themes fall back to when a theme
+// does not supply --success/--error/--warning-color (#2fae7a, #e0544e,
+// #d98e00) are text on the card's OWN background, which is #fff in the
+// light default theme and #1c1c1c in the dark one. No single literal clears
+// WCAG AA's 4.5:1 against both -- these already clear it on the dark card
+// (4.50, 6.05, 6.35:1) but not the light one (3.79, 2.82, 2.69:1), so the
+// light-safe variants below are the base rule and the originals are
+// restored under `prefers-color-scheme: dark`. As a solid button
+// background under white/`--text-primary-color` text (.sp-save.confirm,
+// .wi-save.confirm) the card's own theme never enters the ratio -- one
+// value clears 4.5:1 there regardless, so ERROR_READABLE alone is used for
+// backgrounds and needs no dark-mode counterpart.
+const ERROR_READABLE = "#ca4c46"; // 4.53:1 on #fff, white-on-it 4.53:1
+const SUCCESS_READABLE = "#24845d"; // 4.63:1 on #fff
+const WARNING_READABLE = "#a16900"; // 4.63:1 on #fff
 
 // The savings table's in-cell magnitude bar, as an opacity over currentColor.
 // Bounded both ways, and both bounds swept rather than argued: below 0.133 the
@@ -3594,8 +3610,8 @@ function cardStyleBlock() {
          any more, and it should not look like it. Same treatment as the
          what-if save's confirmation, which this flow is modelled on. */
       .sp-save.confirm {
-        border-color: var(--error-color, #e0544e) !important;
-        background: var(--error-color, #e0544e);
+        border-color: ${ERROR_READABLE} !important;
+        background: ${ERROR_READABLE};
         color: var(--text-primary-color, #fff); font-weight: 600;
       }
       .sp-note {
@@ -3774,7 +3790,7 @@ function cardStyleBlock() {
          error: nothing is broken, but the number on screen is not the number
          that was saved, and that must not pass unremarked. */
       .whatif .wi-hint.wi-warn {
-        color: var(--warning-color, #d98e00);
+        color: ${WARNING_READABLE};
       }
       .whatif .wi-windows {
         display: flex; flex-direction: column; gap: 0.4em;
@@ -3799,7 +3815,7 @@ function cardStyleBlock() {
         border: none; padding: 0 0.4em; font-size: 1.1em; line-height: 1;
         color: var(--secondary-text-color);
       }
-      .whatif .wi-remove:hover { color: var(--error-color, #e0544e); }
+      .whatif .wi-remove:hover { color: ${ERROR_READABLE}; }
       .whatif .wi-add { align-self: flex-start; font-size: 0.9em; }
       .whatif .wi-apply {
         border-color: var(--primary-color, #03a9f4);
@@ -3813,8 +3829,8 @@ function cardStyleBlock() {
         color: var(--text-primary-color, #fff); font-weight: 600;
       }
       .whatif .wi-save.confirm {
-        border-color: var(--error-color, #e0544e);
-        background: var(--error-color, #e0544e);
+        border-color: ${ERROR_READABLE};
+        background: ${ERROR_READABLE};
       }
       .whatif .wi-save[disabled] { opacity: 0.6; cursor: default; }
       ${htmlTargetFloor}
@@ -3846,10 +3862,24 @@ function cardStyleBlock() {
         font-size: 0.88em; margin-top: 2px;
       }
       .whatif .wi-result.cheaper, .whatif .cheaper {
-        color: var(--success-color, #2fae7a);
+        color: ${SUCCESS_READABLE};
       }
       .whatif .wi-result.dearer, .whatif .dearer {
-        color: var(--error-color, #e0544e);
+        color: ${ERROR_READABLE};
+      }
+      /* D4-s1-01: the readable variants above clear 4.5:1 on the light
+         default card (#fff); the originals they replace already cleared it
+         on the dark one (#1c1c1c) and read more like the theme's own accent
+         there, so they come back once the card is actually dark. */
+      @media (prefers-color-scheme: dark) {
+        .whatif .wi-hint.wi-warn { color: var(--warning-color, #d98e00); }
+        .whatif .wi-remove:hover { color: var(--error-color, #e0544e); }
+        .whatif .wi-result.cheaper, .whatif .cheaper {
+          color: var(--success-color, #2fae7a);
+        }
+        .whatif .wi-result.dearer, .whatif .dearer {
+          color: var(--error-color, #e0544e);
+        }
       }
       @media (max-width: 600px) {
         dialog.expanded { width: 96vw; padding: 12px; }
@@ -5773,13 +5803,24 @@ function renderChart(frame, opts) {
   // guarantees reads on the card in every theme (16.10:1 light, 13.03:1
   // dark). The dash is what keeps it reading as chrome rather than data,
   // and neutral also stops it colliding with the blue `space_slots` series.
+  // D4-s1-05 / P9-rca3: these top-strip annotations (the "now" label, the
+  // measured-now reading, and the estimated-prices label below) used to
+  // share one baseline, `plotT + font`. Both x's are data-derived (the
+  // "now" line's x is wherever "now" falls in the window; the estimated
+  // region's x is wherever published prices run out), so no fixed offset
+  // keeps them apart -- the default live view opens its window AT "now",
+  // putting the "now" label directly over the measured reading anchored at
+  // the plot's own left edge, and the RCA grid found the "now"/estimated
+  // pair sharing ink at a second, independent x. Given each other one row,
+  // rather than one shared row, no pair can collide regardless of x.
+  const labelRow = font + 4;
   if (now >= windowStart && now <= windowEnd) {
     const nx = scaleX(now);
     parts.push(
       `<line class="now" x1="${nx}" y1="${plotT}" x2="${nx}" y2="${plotB}" stroke="var(--primary-text-color,#212121)" stroke-width="1.5" stroke-dasharray="4 3"/>`
     );
     parts.push(
-      `<text class="now-label" x="${nx + 3}" y="${plotT + font + 1}" font-size="${font}" fill="var(--primary-text-color,#212121)">${esc(
+      `<text class="now-label" x="${nx + 3}" y="${plotT + labelRow}" font-size="${font}" fill="var(--primary-text-color,#212121)">${esc(
           L("plan.now")
         )}</text>`
     );
@@ -5793,7 +5834,7 @@ function renderChart(frame, opts) {
   // for an unknown/unavailable sensor).
   if (typeof nowTemp === "number" && Number.isFinite(nowTemp) && axes.temp) {
     parts.push(
-      `<text class="now-temp" x="${plotL + 6}" y="${plotT + font}" font-size="${font}" fill="var(--primary-text-color,#212121)">${esc(
+      `<text class="now-temp" x="${plotL + 6}" y="${plotT + labelRow * 2}" font-size="${font}" fill="var(--primary-text-color,#212121)">${esc(
         L("plan.now_temp", { temp: nowTemp.toFixed(1) })
       )}</text>`
     );
@@ -5832,12 +5873,17 @@ function renderChart(frame, opts) {
     }
     // D4-03: this used to sit at `plotB - 5`, directly on top of the
     // lane-row labels drawn near the bottom of the plot (`_laneGroupInner`),
-    // garbling both. Anchored just under the top margin instead -- a strip
-    // that is otherwise empty except for the "now" marker's label, which
-    // lives at a different x (by the current-time line, not the start of
-    // the estimated region) whenever both happen to be visible together.
+    // garbling both. Anchored just under the top margin instead, on its own
+    // row (P9-rca3): the claim that it "lives at a different x .. whenever
+    // both happen to be visible together" was false -- the RCA grid found
+    // it sharing ink with the "now" label at a second x, both anchored to
+    // the same row. `--secondary-text-color`'s literal FALLBACK (#888) also
+    // measured 3.94:1 (P9-rca2), under the 4.5:1 this text needs; the "now"
+    // label's own token, `--primary-text-color`, is what HA guarantees reads
+    // on the card in every theme (16.10:1 light, 13.03:1 dark -- see the
+    // "now" marker's own note above), so this label uses it too.
     parts.push(
-      `<text x="${ex + 4}" y="${plotT + font + 4}" font-size="${font}" fill="var(--secondary-text-color,#888)">${esc(
+      `<text class="estimated-label" x="${ex + 4}" y="${plotT + labelRow * 3}" font-size="${font}" fill="var(--primary-text-color,#212121)">${esc(
           L("plan.estimated_prices")
         )}</text>`
     );
@@ -8087,11 +8133,9 @@ class LaneEditor {
     if (!host) return;
     const rect = host.getBoundingClientRect
       ? host.getBoundingClientRect()
-      : { left: 0, top: 0 };
+      : { left: 0, top: 0, width: 0, height: 0 };
     const menu = document.createElement("div");
     menu.className = "slot-menu";
-    menu.style.left = `${clientX - (rect.left || 0)}px`;
-    menu.style.top = `${clientY - (rect.top || 0)}px`;
     // Whole sentences per channel rather than an interpolated noun: gendered
     // articles and compound nouns make "Remove this {channel} slot" untranslatable.
     const dhw = channel === "dhw";
@@ -8142,6 +8186,20 @@ class LaneEditor {
     };
     menu.addEventListener("keydown", onEscape);
     host.appendChild(menu);
+    // Clamped to the chart it is anchored to, both edges (D4-s1-02): opened
+    // near the right edge or the bottom of a short chart, the menu placed at
+    // the raw tap point spilled past its own chart and the viewport.
+    // `offsetWidth`/`offsetHeight` are 0 before layout and absent in the
+    // test DOM, hence the fallback this menu was originally sized for (one
+    // single-line button).
+    const menuW = menu.offsetWidth || 180;
+    const menuH = menu.offsetHeight || 40;
+    const maxLeft = Math.max(0, (rect.width || menuW) - menuW);
+    const maxTop = Math.max(0, (rect.height || menuH) - menuH);
+    const rawLeft = clientX - (rect.left || 0);
+    const rawTop = clientY - (rect.top || 0);
+    menu.style.left = `${Math.min(Math.max(0, rawLeft), maxLeft)}px`;
+    menu.style.top = `${Math.min(Math.max(0, rawTop), maxTop)}px`;
     this.menu = menu;
     this.menuOrigin = { channel, index: editable ? index : null, svgIndex };
     const escTarget = this.globalKeyTarget();
@@ -9390,7 +9448,12 @@ class SetupPage {
     const labelOf = (id) => {
       if (!states[id]) return `${id} — ${L("setup.picker_missing")}`;
       const friendly = nameOf(id);
-      return friendly === id ? id : `${friendly} — ${id}`;
+      // The id comes FIRST (D4-s1-03): two auto-generated names that collide
+      // ("Vedpanna temperatur" twice, one of them silently `..._2`) still
+      // distinguish themselves once the native listbox clips the trailing
+      // text at 375/768 px -- it is the friendly name that gets cut, never
+      // the id that makes the option choosable.
+      return friendly === id ? id : `${id} — ${friendly}`;
     };
     // A slot that wants a temperature says so; a matching device class is
     // ranked first so the probe the slot is for is near the top before a

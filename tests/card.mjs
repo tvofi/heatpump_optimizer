@@ -1283,6 +1283,39 @@ const editable = () => {
   }
 }
 
+// D4-s1-02: the slot-menu used to be placed at the raw tap point, unclamped
+// -- opened near the right edge or the bottom of a short chart it spilled
+// past its own chart and past the viewport. `offsetWidth`/`offsetHeight` are
+// absent from the stub (0 before layout in a real browser too), so they are
+// patched onto the prototype for this one measurement, the way the phone-
+// width chart test above patches `getBoundingClientRect`.
+{
+  drag.manual.reset();
+  drag._render();
+  const svg = svgOf(drag);
+  const [, hi] = drag.manual.bounds();
+  const realW = HTMLElement.prototype.offsetWidth;
+  const realH = HTMLElement.prototype.offsetHeight;
+  HTMLElement.prototype.offsetWidth = 220;
+  HTMLElement.prototype.offsetHeight = 60;
+  try {
+    fire(svg, "contextmenu", evAt(hi - 60000, { dataset: { channel: "space" } }));
+  } finally {
+    HTMLElement.prototype.offsetWidth = realW;
+    HTMLElement.prototype.offsetHeight = realH;
+  }
+  const menu = drag.shadowRoot.querySelector(".slot-menu");
+  check("right-clicking near the chart's right edge opens a menu", !!menu);
+  if (menu) {
+    const left = parseFloat(menu.style.left);
+    const top = parseFloat(menu.style.top);
+    check("the menu is clamped inside its chart, not placed at the raw tap point (D4-s1-02)",
+      Number.isFinite(left) && left >= 0 && left + 220 <= 900, `left=${menu.style.left}`);
+    check("and clamped vertically too",
+      Number.isFinite(top) && top >= 0 && top + 60 <= 400, `top=${menu.style.top}`);
+  }
+}
+
 // The price delta is the point of the exercise: it has to move, and in the
 // right direction, when the arrangement changes.
 {
@@ -5122,6 +5155,15 @@ const setupBox = (card, place) =>
     twins.length === 2 && twins[0].text !== twins[1].text &&
     twins.every((o) => /Vedpanna temperatur/.test(o.text)),
     twins.map((o) => o.text).join(" | "));
+  // D4-s1-03: the native listbox clips (never ellipsises) an option's
+  // trailing text at 375/768 px, and the id used to come LAST -- so the
+  // only part two same-named options ever differ by was exactly the part
+  // truncation cut off. The id leads every label now, so whatever survives
+  // clipping starts with the one thing guaranteed unique.
+  check("the entity id leads the label, not the (possibly duplicate) friendly name (D4-s1-03)",
+    p1.options.filter((o) => o.value).every((o) => o.text.startsWith(o.value)),
+    p1.options.filter((o) => o.value && !o.text.startsWith(o.value))
+      .slice(0, 3).map((o) => `${o.value} -> ${o.text}`).join("; "));
 
   // (b) Filtering. The cap is a RENDER bound applied after the filter, so
   //     anything on the install is reachable by typing, and the footnote
@@ -9075,12 +9117,70 @@ check("an unblocked plan shows no DHW-only banner and no dimming",
 const nowStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
 nowStates["sensor.heat_pump_optimizer_indoor_temperature_optimizer"] = {
   state: "16.8", attributes: { device_class: "temperature", unit_of_measurement: "°C" } };
+// Also half-publishes the horizon (D4-s1-05 / P9-rca3, below): the "now"
+// label, the now-temp reading and the estimated-prices label all draw in
+// the same card, which is exactly what put them on one shared row.
+nowStates[DEFAULT_SPACE].attributes.forecast =
+  plan.space_plan.forecast.map((p, i) => ({ ...p, price_known: i < 40 }));
 const nowCard = build(nowStates);
 const nowDump = collect(nowCard.shadowRoot).join("\n");
 check("a live indoor reading shows the corner now temperature",
   /now 16\.8/.test(nowDump));
 check("without an indoor reading the corner now label is absent",
   !/now-temp/.test(dump));
+
+// --- D4-s1-05 / P9-rca3: the "now" label, the now-temp reading, and the ---
+// estimated-prices label used to share one baseline (`plotT + font`), so
+// the default live view -- whose window opens AT "now" -- printed the "now"
+// label directly over the measured-now reading anchored at the plot's own
+// left edge; a card comment claimed the estimated-prices label "lives at a
+// different x .. whenever both happen to be visible together", which the
+// RCA grid found false at a second x. Each now gets its own row, so no pair
+// can collide regardless of x.
+{
+  const yOf = (re) => { const m = nowDump.match(re); return m ? +m[1] : null; };
+  const yNow = yOf(/<text class="now-label"[^>]*\sy="([\d.]+)"/);
+  const yTemp = yOf(/<text class="now-temp"[^>]*\sy="([\d.]+)"/);
+  const yEst = yOf(/<text class="estimated-label"[^>]*\sy="([\d.]+)"/);
+  check("the 'now' label, the now-temp reading and the estimated-prices label all render",
+    yNow !== null && yTemp !== null && yEst !== null,
+    `now=${yNow} temp=${yTemp} est=${yEst}`);
+  if (yNow !== null && yTemp !== null && yEst !== null) {
+    check("no two of the three top-strip labels share a row (D4-s1-05, P9-rca3)",
+      yNow !== yTemp && yNow !== yEst && yTemp !== yEst,
+      `now=${yNow} temp=${yTemp} est=${yEst}`);
+  }
+}
+
+// --- D4-s1-01 / P9-rca1: status text/button colours clear 4.5:1 on the ----
+// light default card (#fff); the HA-var fallbacks they replace (#e0544e,
+// #2fae7a, #d98e00) measured 3.79, 2.82 and 2.69:1 there. No literal clears
+// 4.5:1 against both #fff and #1c1c1c (the two constraints don't overlap),
+// so a `prefers-color-scheme: dark` block restores the originals, which
+// already cleared 4.5:1 on #1c1c1c.
+{
+  const hex = (h) => {
+    const n = parseInt(h.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const lum = (c) => {
+    const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+  };
+  const ratio = (a, b) => {
+    const la = lum(a), lb = lum(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  };
+  const white = hex("#ffffff");
+  for (const name of ["ERROR_READABLE", "SUCCESS_READABLE", "WARNING_READABLE"]) {
+    const c = hex(fn(name));
+    check(`${name} clears WCAG AA's 4.5:1 on a white card and as white-on-it`,
+      ratio(c, white) >= 4.5, `${fn(name)} measures ${ratio(c, white).toFixed(2)}:1`);
+  }
+  check("a prefers-color-scheme: dark override restores the dark-safe colours",
+    /@media \(prefers-color-scheme:\s*dark\)/.test(cardSrc) &&
+    /wi-hint\.wi-warn[\s\S]{0,40}var\(--warning-color,\s*#d98e00\)/.test(cardSrc));
+}
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
 process.exit(fails?1:0);
