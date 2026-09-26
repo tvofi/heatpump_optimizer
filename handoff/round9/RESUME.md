@@ -26,7 +26,7 @@ R (readiness). Baseline NOT cut.
 ## Readiness items
 | id | state | notes |
 |---|---|---|
-| R1 find driver | to dispatch | not in tree (no tools/audit/scopes.json, no check_scopes.py in-tree) |
+| R1 find driver | R1a MERGED #1633 c9453921; R1 driver fixing after block | not in tree (no tools/audit/scopes.json, no check_scopes.py in-tree) |
 | R2 policy | DONE | merged as #1627 (565ebf53; commits 1d38497a, d5b64834) |
 | R3 verify driver | to dispatch | tools/audit/judge_batch.py absent |
 | R4 instrument notes + stale docs | MERGED #1632 cb78e997 | round4-file keep already done in prepare_baseline.sh; folded in: playwright 1.49.0 refs (D4.md, prepare_baseline.sh), steward S6 + tools/audit/README.md vs gate-scoping.md. Policy files → code-owned approval |
@@ -38,18 +38,21 @@ All four run as Agent sub-seats inside the orchestrator container (lost if it is
 from the table and check the handoff branch on origin first). Scratch: /tmp/claude-0/-home-claude/1da41f8a-eb29-5a61-aca6-50a7738462b9/scratchpad/seats/<id>
 | seat | handoff branch | state |
 |---|---|---|
-| R1a checker | handoff/r9-r1a-find-checker | PR #1633; FIXED after block: code c6ca4132, body 2bb0f8e6 (was a897272a); re-review by Cloud reviewer 2; not code-owned; review brief reviews/R1a.md → Cloud reviewer 2; Mac relayed to push; merges before R1 |
-| R1 driver | handoff/r9-r1-find-driver | HANDED OFF: code 173061d3 (stacked on c6ca4132), body 7ca1ba6e; push only after R1a merges + main merged in; audit-find.js @tvofi-owned; review brief reviews/R1.md |
+| R1a checker | handoff/r9-r1a-find-checker | MERGED #1633 at c9453921 (05:28Z). PR #1633; FIXED after block: code c6ca4132, body 2bb0f8e6 (was a897272a); re-review by Cloud reviewer 2; not code-owned; review brief reviews/R1a.md → Cloud reviewer 2; Mac relayed to push; merges before R1 |
+| R1 driver | handoff/r9-r1-find-driver | FIXED after vacuous-pins block: code 2b1ddd10 (merges main c9453921), body c55db14e; sent to Mac 05:32Z; was 173061d3; push only after R1a merges + main merged in; audit-find.js @tvofi-owned; review brief reviews/R1.md |
 | R3a checker | handoff/r9-r3a-verify-checker | HANDED OFF: code 9fd82c91 (stacked on R1a c6ca4132), body 518c333a; not code-owned; brief reviews/R3a.md; push after #1633 merges |
 | R3 driver | handoff/r9-r3-verify-driver | HANDED OFF: code 241a480f (stacked on R3a), body e9459bbe; code-owned (audit-verify.js, tests/closure.py); MODE FULL; brief reviews/R3.md; push after R3a merges |
 | R4 fixer | handoff/r9-r4-instruments | MERGED #1632 at cb78e997 (05:10Z). Was: PR #1632 open at f493fec1 (2bf7faaf + delivery row); in review by Cloud compute helper; review brief reviews/R4.md → Cloud compute helper; Mac asked to push. Policy → tvofi approval (mandate 3) |
-| R4b fixer | handoff/r9-r4b-web-fragments | HANDED OFF: code 26b51272, body e3872880; policy (@tvofi); review brief reviews/R4b.md; sent to coordinator ~05:10Z |
+| R4b fixer | handoff/r9-r4b-web-fragments | MERGED #1634 at 16d811f1 (05:27Z). Was: code 26b51272, body e3872880; policy (@tvofi); review brief reviews/R4b.md; sent to coordinator ~05:10Z |
 | R6 fixer | handoff/r9-r6-reboot-toggles | running (04:50Z); RCA seat owed once cause named |
 Coordinator asked (04:50Z) to: warn the Mac seat; line up Cloud compute helper / Cloud reviewer 2 as reviewers;
 start 10 box threads for phase A from /mnt/project-files/audit-r9/briefs/B<n>.md when the baseline is cut.
 Coordinator ack 04:32Z: Mac warned; reviews R1+R4 -> Cloud compute helper, R3+R6 -> Cloud reviewer 2; send head SHAs and review briefs to the coordinator.
 
 ## Verdicts received
+- #1635 (R3a) @9534f5ec: MERGE (Cloud reviewer 2, 05:32Z). R1 2b1ddd10 pre-check clean (Cloud compute helper); merge verdict at PR head pending.
+- Pre-review (Cloud compute helper, 05:26Z): R1 173061d3 BLOCKED vacuous-pins (3 refusals unpinned in check-wave-script.mjs; test-only fix + 6 non-blocking pins + rotation.json text + leads-seat branch paths). R1 seat resumed.
+- Pre-review (Cloud reviewer 2, 05:23Z): R3a 9fd82c91 clean so far; R3 241a480f BLOCKING — judge_batch runs all commands in one tree without snapshot/restore (a perturbation leaks into the next finding's row). R3 seat resumed on the fix + nested-lease note; full list to follow.
 - #1633 (R1a) re-review @0c14689f: MERGE (Cloud reviewer 2, 05:06Z). Mac merges after #1632, then pushes R1 (173061d3).
 - #1634 (R4b) @9e9bad63: MERGE (Cloud compute helper, 05:12Z); may merge ahead of R1 (disjoint files).
 - #1632 (R4) @f493fec1: MERGE (Cloud compute helper, ~04:58Z); relayed to Mac for approval+merge. Non-blocking: orjson pin read from running checkout's lock not baseline SHA's; printed `$PYTHON -m pip` fix fails in pip-less uv venv; requirements file prints empty when pin line missing; one D4.md line over wrap width.
