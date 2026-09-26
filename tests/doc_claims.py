@@ -579,11 +579,20 @@ def check_simulate_plan_fields() -> None:
         f"schema={sorted(schema_fields)} documented={sorted(documented)} "
         f"missing={sorted(missing)}",
     )
-    # Null control: drop one real schema field from a copy of the documented
-    # set and confirm the missing-field check actually flags it, rather than
-    # passing on any input.
-    _dropped = sorted(schema_fields)[0]
-    _synthetic_missing = schema_fields - (documented - {_dropped})
+    # Null control: re-run the SAME extraction regex on a mutated copy of the
+    # actual doc text with one real, currently-documented field's backtick
+    # literal deleted from the simulate_plan sentence, and confirm the
+    # missing-field check fires on that mutation -- not on set algebra that
+    # cannot fail regardless of whether the regex extraction works at all.
+    _dropped = sorted(schema_fields & documented)[0]
+    _mutated_text = text.replace(m.group(0), m.group(0).replace(f"`{_dropped}`", ""), 1)
+    _mutated_span = re.search(
+        r"\*\*`simulate_plan`\*\*.*?Fields,\s*\n?all optional:\s*(.*?)\.\s*An empty",
+        _mutated_text,
+        re.S,
+    )
+    _mutated_documented = set(re.findall(r"`([a-z0-9_]+)`", _mutated_span.group(1)))
+    _synthetic_missing = schema_fields - _mutated_documented
     R.check(
         "the missing-field check fires when a field is undocumented (null "
         "control)",
