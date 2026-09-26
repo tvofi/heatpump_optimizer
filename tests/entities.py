@@ -3707,6 +3707,58 @@ def _p6_arm_f(catalogues, universe):
     return seams
 
 
+# --- arm B: an entity id a blueprint, the card or the package names is built
+#: The id shape this integration builds; a reference is a value handed to Home
+#: Assistant (a blueprint input default or entity_id, the card, the package),
+#: not prose. R6 D6-02 (#1392) shipped two blueprint defaults naming ids the
+#: sensor platform never builds, and its fix added no guard.
+_P6_ID = re.compile(
+    r"\b(sensor|binary_sensor|switch|climate|button|datetime)\.heat_pump_optimizer_[a-z0-9_]+\b"
+)
+
+
+def _p6_built_ids():
+    hass = FakeHass()
+    entry = FakeEntry(data={"indoor_temp_entity": "sensor.indoor",
+                            "outdoor_temp_entity": "sensor.outdoor",
+                            "dhw_tank_volume": 180.0})
+    coord = HeatPumpOptimizerCoordinator(hass, entry)
+    coord.data = coord._build_data_dict()
+    entry.runtime_data = coord
+    built = set()
+    for platform in integration.PLATFORM_LIST:
+        module = __import__(f"heatpump_optimizer.{platform}", fromlist=["_"])
+        added = []
+        asyncio.run(module.async_setup_entry(hass, entry, added.extend))
+        for entity in added:
+            eid = getattr(entity, "entity_id", None)
+            tkey = getattr(entity, "_attr_translation_key", None)
+            if not eid and tkey:
+                eid = f"{platform}.heat_pump_optimizer_{tkey}"
+            if eid:
+                built.add(str(eid))
+    return built
+
+
+def _p6_arm_b(built):
+    files = [p for p in (ROOT.parent.parent / "blueprints").rglob("*.yaml")]
+    files += [p for p in (ROOT / "www").rglob("*") if p.suffix in (".js", ".mjs")]
+    files += sorted(ROOT.glob("*.py"))
+    dangling = set()
+    for path in files:
+        text = path.read_text(errors="replace")
+        if path.suffix == ".yaml":
+            text = "\n".join(
+                line for line in text.splitlines()
+                if re.match(r"\s*(-\s*)?(default|entity_id)\s*:", line)
+            )
+        for m in _P6_ID.finditer(text):
+            ref = m.group(0)
+            if ref not in built and not any(b.startswith(ref) for b in built):
+                dangling.add(f"{path.name}: {ref}")
+    return sorted(dangling)
+
+
 # --- arm S: a solve seed is a producer's, not the constructor's -----------
 # D12-s1-01's shape. The flow's own install (no thermometer, hot water on),
 # the clock moving one plan step per cycle, a 6 h horizon because only the
@@ -3754,6 +3806,8 @@ _p6_k_reads, _p6_k = _p6_arm_k(_P6_WALKS)
 _p6_g_probes, _p6_g, _p6_g_stale = _p6_arm_g(_P6_WALKS)
 _p6_e_codes, _p6_e, _p6_e_owed = _p6_arm_e(_P6_TREES["config_flow.py"], _P6_WALKS, _P6_CATALOGUES)
 _p6_p_offered, _p6_p = _p6_arm_p(_P6_TREES, _P6_CATALOGUES, _P6_ICONS)
+_p6_built = _p6_built_ids()
+_p6_b = _p6_arm_b(_p6_built)
 _p6_universe = _p6_prefill_universe()
 _p6_f = _p6_arm_f(_P6_CATALOGUES, _p6_universe)
 _p6_seeds = _p6_seed_log()
@@ -3765,6 +3819,12 @@ R.check(
     "every coordinator.data key a platform reads is one production writes (P6 K)",
     _p6_k_reads > 0 and not _p6_k,
     f"{len(_p6_k)} of {_p6_k_reads} reads have no producer: {_p6_k[:6]}",
+)
+R.check(
+    "every entity id a blueprint, the card or the package names is one a platform "
+    "builds (P6 B)",
+    len(_p6_built) > 0 and not _p6_b,
+    f"{len(_p6_b)} dangling of {len(_p6_built)} built: {_p6_b[:6]}",
 )
 R.check(
     "every getattr/hasattr probe names what production or upstream defines (P6 G)",
@@ -3824,6 +3884,7 @@ R.check(
         _P6_TREES["config_flow.py"], _P6_WALKS, _p6_null_cat)[1])
     and any(_p6_null_key in s for s in _p6_arm_f(_p6_null_cat, _p6_universe))
     and any("p6_custom" in s for s in _p6_arm_p(_p6_null_p, _P6_CATALOGUES, _P6_ICONS)[1])
+    and len(_p6_arm_b(set())) > 0
     and "dhw_temperature" in _p6_seed_seams([_p6_default_seed, _p6_default_seed])
     and "dhw_temperature" not in _p6_seed_seams(
         [_p6_default_seed, {**_p6_default_seed, "dhw_temperature": 54.9}]
