@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:step_duty BOOLOP b6dd3d98",
+  "killed_by": "tests/features.py",
+  "old": "    s_on = i < len(space) and space[i] >= on_kw",
+  "reason": "pump-duty arbiter revision; `s_on = i < len(space) and space[i] >= on_kw` -> `s_on = i < len(space) or space[i] >= on_kw` fails 15 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

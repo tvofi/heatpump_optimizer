@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_audit_price_units GUARD_OFF e4df339e",
+  "killed_by": "tests/features.py",
+  "old": "        if state is None or normalize_price_per_kwh(1.0, unit) is not None:",
+  "reason": "#1513 (R8-P8): GUARD_OFF on a unit-aware price or temperature reader this diff added. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 2 failed, among them `an unparseable price unit raises one repair notice naming the entity and unit`; `and it clears once the unit is one the reader understands`. Measured at d6d79847, 2026-09-24."
+}

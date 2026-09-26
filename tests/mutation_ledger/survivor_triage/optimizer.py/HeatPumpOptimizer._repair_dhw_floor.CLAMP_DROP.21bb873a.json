@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._repair_dhw_floor CLAMP_DROP 21bb873a",
+  "old": "                room_kw = float(room_c[j_local]) * c_dhw / max(dt * cop_room, 1e-6)",
+  "reason": "drawn by the round-7 D2-03 diff's per-file sample over optimizer.py. In `_repair_dhw_floor`, `cop_room = max(cop_j, compute_cop_dhw(...))` and `cop_j = max(marginal_cop(...), 0.5)`, so `dt * cop_room >= 0.5 * dt`, which exceeds 1e-6 for any step longer than 2e-6 h. The planner's step is `time_step_minutes / 60` = 0.25 h. The max cannot select its second arm.",
+  "verdict": "equivalent"
+}

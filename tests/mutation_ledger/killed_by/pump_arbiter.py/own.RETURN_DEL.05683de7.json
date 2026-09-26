@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:own RETURN_DEL 05683de7",
+  "killed_by": "tests/features.py",
+  "old": "    return replace(signals, mode_owned=True)",
+  "reason": "pump-duty arbiter revision; `return replace(signals, mode_owned=True)` -> `pass` crashes the arbiter section in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

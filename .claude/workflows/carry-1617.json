@@ -1,0 +1,22 @@
+{
+  "_comment": [
+    "Carry destination for the follow-up to #1617 (the one-file-per-row mutation",
+    "ledger): retiring tools/merge/ledger_merge.py's `_rekey` pass for",
+    "tests/mutation_budgets.json. The stage has no roster group and no issue of",
+    "its own yet, so this file is its brief; the orchestrator may re-home it to a",
+    "carry file named for the issue that is eventually filed. Shape and required",
+    "fields: .claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1617,
+  "stage": "the follow-up that retires or narrows `_rekey` (and its call in `merge3`) in tools/merge/ledger_merge.py for tests/mutation_budgets.json, once the row ledger under tests/mutation_ledger/ is on main (design section 7 step 6)",
+  "carries": [
+    {
+      "from": "the pull request that gives the mutation ledger one file per disposition under tests/mutation_ledger/ (#1617, branch design/ledger-layout)",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control. After the split, tests/mutation_budgets.json carries no `survivor_triage` or `killed_by` map at the head, where `_rekey` finds its input, and `layout_problems()` refuses a row left there; the null control is origin/main's single file before the split, which carries both maps, non-empty. But a branch cut before the split still presents its rows on one side when it merges the split main, which is exactly the migration's one conflict, so the pass still has input until every such branch has migrated with `--carry-rows`.",
+      "remeasure": "Count the rows at your merge base: `python3 -c \"import json; d=json.load(open('tests/mutation_budgets.json')); print({m: len(d.get(m, {})) for m in ('survivor_triage', 'killed_by')})\"` prints zero for both once the split is on main. Then list the open pull requests whose three-dot diff still edits the ledger maps in tests/mutation_budgets.json, and re-run `python3 tools/merge/ledger_merge.py --replay <date>` on git 2.40 or later (it refuses on an older git) over the window since the split, with and without the pass.",
+      "brief": "Retire `_rekey` for tests/mutation_budgets.json only when both hold at your merge base: no open branch still carries pre-split rows in that file, and `--replay` over the window since the split shows the pass resolved nothing there. Measure it; do not assume it from the layout. The closures and structure ledgers never went through `_rekey` and are out of scope. Keep `ledger_merge.py --self-test`'s re-keyed-ledger arms until the pass itself is removed, and remove them with it, so no arm pins code that no longer exists."
+    }
+  ]
+}

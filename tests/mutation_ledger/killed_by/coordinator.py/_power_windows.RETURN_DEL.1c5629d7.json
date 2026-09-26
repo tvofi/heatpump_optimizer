@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_power_windows RETURN_DEL 1c5629d7",
+  "killed_by": "tests/entities.py",
+  "old": "    return pump, list(tracker.house_samples) if tracker is not None else []",
+  "reason": "This branch's `_power_windows`, the module-level window reader `_build_data_dict` calls (#1460). Deleting the return leaves the function answering None, and the caller's `data[\"heat_pump_power_series\"], data[\"house_power_series\"] = _power_windows(self)` raises `TypeError: cannot unpack non-iterable NoneType object`. Measured: tests/entities.py rc=1, in its D8-01 payload helper."
+}

@@ -743,7 +743,8 @@ jobs:
           out="$RUNNER_TEMP/mutation-pins"
           mkdir -p "$out"
           printf '%s\n' "$PR_HEAD" > "$out/head"
-          cp tests/mutation_budgets.json "$RUNNER_TEMP/ledger-before.json"
+          python3 -c 'import json, sys; sys.path.insert(0, "tests"); import mutation_table as m; print(json.dumps(m.load_budgets()))' \
+            > "$RUNNER_TEMP/ledger-before.json"
           rm -f "$RUNNER_TEMP/pin-run.txt"
           if grep -qE '^MUTATION TABLE REFUSED -- [0-9]+ unpinned site\(s\) against' \
                "$RUNNER_TEMP/mutation-table.txt" \
@@ -765,7 +766,7 @@ jobs:
               (tmp / "mutation-table.txt").read_text(),
               run.read_text() if run.exists() else None,
               json.loads((tmp / "ledger-before.json").read_text()),
-              json.loads(mutation_table.BUDGETS.read_text()))
+              mutation_table.load_budgets())
           (out / "pins.json").write_text(json.dumps(added, indent=2))
           (out / "status").write_text(status + "\n")
           print(f"measure: {status}, {len(added)} anchor(s)")
@@ -1955,7 +1956,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tests/mutation_budgets.json
+          git add tests/mutation_budgets.json tests/mutation_ledger/
           git diff --cached --quiet && {
             echo "ledger unchanged after the merge; not pushing"
             exit 0

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_step_humidity RETURN_DEL c560cbd8",
+  "killed_by": "tests/features.py",
+  "old": "    return None if humidity is None else float(humidity[i])",
+  "reason": "R8-P3 (#1520): the per-step humidity every planning seam passes. `pass` hands every seam None, the ambient fallback. Measured in a git-less copy of 7c50f736 (null 1 of 3192): 2 of 3192 FAILED, the new one `a finite humidity forecast plans the same DHW schedule and trajectory whatever the current humidity is (#1520)` (dhw 4.700 vs 5.640 kWh)."
+}

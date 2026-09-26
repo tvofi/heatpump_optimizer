@@ -17,6 +17,12 @@ process is a per-command shell (measured: it changes on every command), not the
 seat, so trusting it would read a live seat as dead. A seat holding the lease
 across commands passes the pid of a process that outlives them, e.g.
 ``--owner-pid $PPID``.
+
+The lease is first come, first served. A waiter holds a ticket
+(``ticket-<n>``); a free lease goes to the oldest LIVE ticket, and one whose
+process is gone or whose ticket expired is skipped and removed. ``renew``
+refuses (``RENEW_REFUSED_RC``) while another label's ticket waits: the holder
+finishes its current run, releases, and takes again behind the waiter.
 """
 from __future__ import annotations
 
@@ -40,6 +46,14 @@ OWNER_NAME = "owner"
 FLOCK_NAME = "flock"
 HOLDING_NAME = "holding"
 WAIT_POLL_SECS = 5
+TICKET_PREFIX = "ticket-"
+# A waiter rewrites its ticket every poll; one this far past it is dead.
+TICKET_SECONDS = 60
+RENEW_REFUSED_RC = 75
+
+
+class RenewRefused(RuntimeError):
+    """Another label waits for the lease, so the holder may not extend it."""
 
 
 @dataclass(frozen=True)
@@ -79,12 +93,17 @@ class Owner:
         return datetime.now(UTC) >= self.expires_at
 
 
-def parse_owner(text: str) -> Owner:
+def _fields(text: str) -> dict[str, str]:
     fields: dict[str, str] = {}
     for line in text.splitlines():
         if "=" in line:
             key, value = line.split("=", 1)
             fields[key.strip()] = value.strip()
+    return fields
+
+
+def parse_owner(text: str) -> Owner:
+    fields = _fields(text)
     missing = {"label", "expires_at", "taken_at"} - fields.keys()
     if missing:
         raise ValueError(f"owner file missing {sorted(missing)}")
@@ -227,6 +246,52 @@ def _steal(lock_dir: Path, seen: Owner) -> None:
     grave.unlink(missing_ok=True)
 
 
+def _ticket_tmp(lock_dir: Path, label: str) -> Path:
+    """A ticket's full text in a private file, so no reader sees half of it."""
+    tmp = lock_dir / f"tmp-{os.getpid()}-{time.monotonic_ns()}"
+    expires = datetime.now(UTC) + timedelta(seconds=TICKET_SECONDS)
+    tmp.write_text(f"label={label}\npid={os.getpid()}\nexpires_at={expires.isoformat()}\n")
+    return tmp
+
+
+def _enqueue(lock_dir: Path, label: str, ticket: Path | None) -> Path:
+    """Refresh ``ticket`` in place, or join the back of the queue."""
+    _ensure_lock_dir(lock_dir)
+    tmp = _ticket_tmp(lock_dir, label)
+    try:
+        if ticket is not None and ticket.exists():
+            os.replace(tmp, ticket)
+            return ticket
+        while True:
+            seqs = [int(p.name[len(TICKET_PREFIX):]) for p in lock_dir.glob(TICKET_PREFIX + "*")
+                    if p.name[len(TICKET_PREFIX):].isdigit()]
+            path = lock_dir / f"{TICKET_PREFIX}{max(seqs, default=0) + 1:012d}"
+            with contextlib.suppress(FileExistsError):
+                os.link(tmp, path)
+                return path
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def _queue(lock_dir: Path) -> list[tuple[Path, str]]:
+    """Live tickets, oldest first; a dead or expired one is removed."""
+    live = []
+    for path in sorted(lock_dir.glob(TICKET_PREFIX + "*")):
+        try:
+            f = _fields(path.read_text())
+            alive = (_pid_alive(int(f["pid"]))
+                     and datetime.now(UTC) < datetime.fromisoformat(f["expires_at"]))
+        except FileNotFoundError:
+            continue
+        except (OSError, KeyError, ValueError):
+            alive = False
+        if alive:
+            live.append((path, f["label"]))
+        else:
+            path.unlink(missing_ok=True)
+    return live
+
+
 def take(
     label: str,
     *,
@@ -235,39 +300,49 @@ def take(
     wait: bool = True,
     owner_pid: int | None = None,
 ) -> Owner:
-    """Acquire the gate lease for ``label``; wait while a live holder renews.
+    """Acquire the gate lease for ``label``, queueing behind older live tickets.
 
     ``owner_pid`` names a process that outlives the commands holding the lease
     (a seat's ``$PPID``). It is recorded in the owner file so a later take can
     steal an orphaned lease whose holder exited without releasing (#1143).
     """
-    said = False
-    while True:
-        owner = read_owner(lock_dir)
-        if owner is None:
-            _ensure_lock_dir(lock_dir)
-            fresh = _new_owner(label, lease_seconds, owner_pid)
-            if fresh.create(lock_dir / OWNER_NAME):
-                return fresh
-            continue
-        if owner.label == label:
-            (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
-            if owner.expired:
-                fresh = _new_owner(label, lease_seconds, owner_pid)
-                fresh.write(lock_dir / OWNER_NAME)
-                return fresh
-            return renew(label, lock_dir=lock_dir, lease_seconds=lease_seconds,
-                         owner_pid=owner_pid)
-        if owner.expired or _abandoned_hold(lock_dir) or _orphaned(lock_dir, owner):
-            _steal(lock_dir, owner)
-            continue
-        if not wait:
-            raise BlockingIOError(f"gate held by {owner.label} until {owner.expires_at}")
-        if not said:
-            print(f"gate_lock: waiting for the lease held by {owner.label}"
-                  " (yours? export HPO_GATE_LOCK_LABEL with that label)", file=sys.stderr)
-            said = True
-        time.sleep(WAIT_POLL_SECS)
+    said, ticket = False, None
+    try:
+        while True:
+            owner = read_owner(lock_dir)
+            if owner is None:
+                _ensure_lock_dir(lock_dir)
+                queue = _queue(lock_dir)
+                if not queue or queue[0][0] == ticket:
+                    fresh = _new_owner(label, lease_seconds, owner_pid)
+                    if fresh.create(lock_dir / OWNER_NAME):
+                        return fresh
+                    continue
+                held = f"{queue[0][1]}, queued first"
+            elif owner.label == label:
+                (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
+                if owner.expired:
+                    fresh = _new_owner(label, lease_seconds, owner_pid)
+                    fresh.write(lock_dir / OWNER_NAME)
+                    return fresh
+                return renew(label, lock_dir=lock_dir, lease_seconds=lease_seconds,
+                             owner_pid=owner_pid)
+            elif owner.expired or _abandoned_hold(lock_dir) or _orphaned(lock_dir, owner):
+                _steal(lock_dir, owner)
+                continue
+            else:
+                held = f"{owner.label} until {owner.expires_at}"
+            if not wait:
+                raise BlockingIOError(f"gate held by {held}")
+            ticket = _enqueue(lock_dir, label, ticket)
+            if not said:
+                print(f"gate_lock: waiting for the lease held by {held}"
+                      " (yours? export HPO_GATE_LOCK_LABEL with that label)", file=sys.stderr)
+                said = True
+            time.sleep(WAIT_POLL_SECS)
+    finally:
+        if ticket is not None:
+            ticket.unlink(missing_ok=True)
 
 
 def renew(
@@ -282,6 +357,11 @@ def renew(
         raise RuntimeError("no live gate lease to renew")
     if owner.label != label:
         raise RuntimeError(f"lease held by {owner.label}, not {label}")
+    waiting = [who for _, who in _queue(lock_dir) if who != label]
+    if waiting:
+        raise RenewRefused(
+            f"renew refused: {waiting[0]} waits for the lease. Finish the current "
+            f"stress.py run, release, and take again: you queue behind it")
     refreshed = Owner(
         label=label,
         taken_at=owner.taken_at,
@@ -304,7 +384,8 @@ def release(label: str, *, lock_dir: Path = DEFAULT_LOCK_DIR) -> bool:
         return False
     if owner.label != label:
         raise RuntimeError(f"lease held by {owner.label}, not {label}")
-    _clear_lock(lock_dir)
+    (lock_dir / OWNER_NAME).unlink(missing_ok=True)  # the queue stays
+    (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
     return True
 
 
@@ -313,13 +394,23 @@ def status(lock_dir: Path = DEFAULT_LOCK_DIR) -> dict[str, object]:
     return {
         "lock_dir": str(lock_dir),
         "owner": owner,
+        "queue": [who for _, who in _queue(lock_dir)] if lock_dir.exists() else [],
         "flock_available": flock_available(lock_dir) if lock_dir.exists() else True,
     }
 
 
 def flock_wrap(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR) -> int:
-    """Renew the lease, hold flock for ``argv``, release flock on exit."""
-    renew(label, lock_dir=lock_dir)
+    """Renew the lease, hold flock for ``argv``, release flock on exit.
+
+    A renew refused because another label waits releases and takes again, at
+    the back of the queue. A label that holds no lease fails at once: it means
+    *I hold it already*, and taking one here would leave it held after the run."""
+    try:
+        renew(label, lock_dir=lock_dir)
+    except RenewRefused as exc:
+        print(f"gate_lock: {exc}; {label} re-queues", file=sys.stderr)
+        release(label, lock_dir=lock_dir)
+        take(label, lock_dir=lock_dir)
     with flock_context(lock_dir, blocking=True) as fd:
         return run_group(argv, fd=fd)
 
@@ -354,16 +445,23 @@ def needs_lease(scope_run: str) -> bool:
     return "tests/stress.py" in Path(scope_run).read_text().split()
 
 
-def auto_lease(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR) -> int:
-    """Take the lease (waiting), hold flock for ``argv``, release on any exit."""
+@contextlib.contextmanager
+def leased(label: str, *, lock_dir: Path = DEFAULT_LOCK_DIR):
+    """Take the lease (queueing), hold flock inside, release on any exit."""
     take(label, lock_dir=lock_dir)
-    env = {**os.environ, "HPO_GATE_LOCK_LABEL": label, "HPO_GATE_FLOCK_CHILD": "1"}
     try:
         with flock_context(lock_dir, blocking=True) as fd:
-            return run_group(argv, env, fd)
+            yield fd
     finally:
         with contextlib.suppress(RuntimeError):
             release(label, lock_dir=lock_dir)
+
+
+def auto_lease(label: str, argv: list[str], *, lock_dir: Path = DEFAULT_LOCK_DIR) -> int:
+    """Take the lease (queueing), hold flock for ``argv``, release on any exit."""
+    env = {**os.environ, "HPO_GATE_LOCK_LABEL": label}
+    with leased(label, lock_dir=lock_dir) as fd:
+        return run_group(argv, env, fd)
 
 
 def _cmd_take(args: argparse.Namespace) -> int:
@@ -411,13 +509,18 @@ def _cmd_status(args: argparse.Namespace) -> int:
         print(
             f"{info['lock_dir']}: {state} label={owner.label}{pid} "
             f"expires_at={owner.expires_at.isoformat()} "
-            f"flock_available={info['flock_available']}"
+            f"flock_available={info['flock_available']} "
+            f"queue={','.join(info['queue']) or '-'}"
         )
     return 0
 
 
 def _cmd_flock_wrap(args: argparse.Namespace) -> int:
-    return flock_wrap(args.label, args.argv, lock_dir=args.lock_dir)
+    try:
+        return flock_wrap(args.label, args.argv, lock_dir=args.lock_dir)
+    except RuntimeError as exc:  # a label never taken: refuse, run nothing
+        print(f"gate_lock: flock-wrap refused, {args.label} holds no lease: {exc}", file=sys.stderr)
+        return 1
 
 
 def _cmd_auto_lease(args: argparse.Namespace) -> int:
@@ -483,6 +586,104 @@ def _parser() -> argparse.ArgumentParser:
 
 
 # --- acceptance (#404) -------------------------------------------------------
+
+
+def _queue_cases(g) -> list[tuple[str, bool, str]]:
+    """The queue's four cases, against module ``g`` -- this one, or origin/main's
+    copy loaded beside it, where the first three fail and the null control holds."""
+    import tempfile
+    import threading
+
+    dead = subprocess.Popen([sys.executable, "-c", "pass"])
+    dead.wait()
+    out, poll = [], g.WAIT_POLL_SECS
+    g.WAIT_POLL_SECS = 0.2
+
+    def ticket(d: Path, n: int, who: str, pid: int, secs: int) -> None:
+        g._ensure_lock_dir(d)
+        at = (datetime.now(UTC) + timedelta(seconds=secs)).isoformat()
+        (d / f"{TICKET_PREFIX}{n:012d}").write_text(f"label={who}\npid={pid}\nexpires_at={at}\n")
+
+    def waiters(d: Path, labels: list[str], got: list[str]) -> list[threading.Thread]:
+        def one(who: str) -> None:
+            g.take(who, lock_dir=d, lease_seconds=60)
+            got.append(who)
+            time.sleep(0.1)
+            g.release(who, lock_dir=d)
+        ts = []
+        for who in labels:  # each queues before the next starts
+            ts.append(threading.Thread(target=one, args=(who,), daemon=True))
+            ts[-1].start()
+            time.sleep(0.3)
+        return ts
+
+    def jumps(d: Path, got: list[str]) -> bool:
+        try:
+            g.take("jumper", lock_dir=d, lease_seconds=60, wait=False)
+        except BlockingIOError:
+            return False
+        got.append("jumper")
+        g.release("jumper", lock_dir=d)
+        return True
+
+    def fifo(d: Path, got: list[str]) -> tuple[bool, str]:
+        g.take("h", lock_dir=d, lease_seconds=60, wait=False)
+        ts = waiters(d, ["a", "b", "c"], got)
+        g.release("h", lock_dir=d)
+        jumps(d, got)
+        [t.join(10) for t in ts]
+        return got == ["a", "b", "c"], f"order={got}"
+
+    def renew_refused(d: Path, got: list[str]) -> tuple[bool, str]:
+        g.take("h", lock_dir=d, lease_seconds=60, wait=False)
+        ts = waiters(d, ["w"], got)
+        try:
+            g.renew("h", lock_dir=d, lease_seconds=60)
+            refused = False
+        except RuntimeError:
+            refused = True
+        g.release("h", lock_dir=d)
+        g.take("h", lock_dir=d, lease_seconds=60)
+        got.append("h")
+        [t.join(10) for t in ts]
+        g.release("h", lock_dir=d)
+        return refused and got == ["w", "h"], f"refused={refused} order={got}"
+
+    def dead_skipped(d: Path, got: list[str]) -> tuple[bool, str]:
+        g.take("h", lock_dir=d, lease_seconds=60, wait=False)
+        ticket(d, 1, "ghost", dead.pid, 600)
+        ticket(d, 2, "stale", os.getpid(), -10)
+        ts = waiters(d, ["a"], got)
+        g.release("h", lock_dir=d)
+        jumped = jumps(d, got)
+        [t.join(10) for t in ts]
+        return got == ["a"] and not jumped, f"order={got} jumped={jumped}"
+
+    def null(d: Path, got: list[str]) -> tuple[bool, str]:
+        first = g.take("h", lock_dir=d, lease_seconds=2, wait=False)
+        ticket(d, 1, "ghost", dead.pid, 600)
+        second = g.renew("h", lock_dir=d, lease_seconds=60)
+        g.release("h", lock_dir=d)
+        ticket(d, 1, "ghost", dead.pid, 600)
+        nxt = g.take("n", lock_dir=d, lease_seconds=60, wait=False).label
+        return second.expires_at > first.expires_at and nxt == "n", f"next={nxt}"
+
+    cases = [
+        ("FIFO: three waiters take in arrival order, no one jumps", fifo),
+        ("renew is refused while a ticket waits; the holder re-queues behind", renew_refused),
+        ("a dead or expired ticket is skipped, a live one behind it is not", dead_skipped),
+        ("null control: with no live waiter renew extends and a take succeeds", null),
+    ]
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            for i, (name, case) in enumerate(cases):
+                try:
+                    out.append((name, *case(Path(td) / str(i), [])))
+                except Exception as exc:  # a crash is a red case, not a lost one
+                    out.append((name, False, f"raised {exc!r}"))
+    finally:
+        g.WAIT_POLL_SECS = poll
+    return out
 
 
 def _acceptance() -> int:
@@ -619,6 +820,10 @@ def _acceptance() -> int:
     except BlockingIOError:
         R.check("waiter blocked after same-label return", True)
 
+    R.section("the queue")
+    for name, ok, detail in _queue_cases(sys.modules[__name__]):
+        R.check(name, ok, detail)
+
     for d in (d1, d2, d3, d4, d5, d6):
         if d.exists():
             _clear_lock(d)
@@ -634,4 +839,8 @@ if __name__ == "__main__":
     args = _parser().parse_args()
     if args.cmd == "flock-wrap" and args.argv[:1] == ["--"]:
         args.argv = args.argv[1:]
-    sys.exit(args.func(args))
+    try:
+        sys.exit(args.func(args))
+    except RenewRefused as exc:
+        print(f"gate_lock: {exc}", file=sys.stderr)
+        sys.exit(RENEW_REFUSED_RC)

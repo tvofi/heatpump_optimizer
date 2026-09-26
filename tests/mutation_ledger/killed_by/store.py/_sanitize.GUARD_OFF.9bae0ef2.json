@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:_sanitize GUARD_OFF 9bae0ef2",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "    if isinstance(value, float):",
+  "reason": "arrived with origin/main, the round-6 non-finite class fix (#1425, commit 8e5d1ace): `QuarantiningStore.async_load` scrubs non-finite numeric leaves to None before any loader sees them. `if isinstance(value, float):` -> `if False:` returns a non-finite float unscrubbed, so a poisoned leaf reaches the live model. Measured: tests/finite_boundary.py rc=0 failed=0 -> rc=1 failed=5 (\"5 of 25 FINITE BOUNDARY CHECKS FAILED\"). Re-measured at 467d3d9c, 2026-09-23."
+}

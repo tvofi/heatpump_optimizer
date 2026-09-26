@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_bounded RETURN_DEL 138085e7",
+  "killed_by": "tests/features.py",
+  "old": "    return round(value * 2.0) / 2.0",
+  "reason": "pump-duty arbiter revision; `return round(value * 2.0) / 2.0` -> `pass` fails 12 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._deferred_energy_cost CLAMP_DROP 666b8bb1",
+  "old": "        cop = max(self.model.compute_cop(out_mean, humidity=hum_mean), 1e-3)",
+  "reason": "R8-P3 re-anchored this line (it gained the humidity argument); it was unpinned at the merge base under its old text. `max(compute_cop(...), 1e-3)` -> `(compute_cop(...))` cannot select the second arm: `compute_cop` returns `_cop_law`, which returns `max(cop, 1.0)` (#928's resistive bound), so the COP is never below 1.0 and the 1e-3 floor never binds.",
+  "verdict": "equivalent"
+}

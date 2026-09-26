@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_path_error.error RETURN_DEL cf65eb62",
+  "killed_by": "tests/features.py",
+  "old": "        return np.asarray(predicted[1:] - rooms[1:])",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 5003d56f9d9f7617d5e4dc1372e49dbdbacd39bd: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Re-anchored when the return was wrapped in np.asarray for the mypy no-any-return ruler (same values, same site); the deletion is the same mutant."
+}

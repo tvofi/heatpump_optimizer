@@ -1,0 +1,70 @@
+# Re-runs the budget-raise gate's stale red after the owner approves.
+#
+# `budget-raise-gate.yml` runs on `pull_request` and on `pull_request_review`,
+# and each run writes a `budget-raise-gate` check run at the head. A raise is
+# refused by the `pull_request` run until the owner approves; the approval's
+# `pull_request_review` run then passes, but the earlier red stays on the pull
+# request until someone runs `gh run rerun`. This workflow does that one
+# thing: when a review run of the gate completes green, it asks GitHub to
+# re-run the newest `pull_request` run of the gate at the same head if that
+# run is red. The re-run re-grades from nothing, with the program restored from
+# the base and the reviews read live, so this job writes no verdict of its own.
+#
+# WHY ITS OWN FILE. `budget-raise-gate.yml` is one unguarded job with a
+# read-only grant, and `tests/entities.py` pins it that way: a second job
+# there writes a check run on every review event, and a write grant there
+# would run from the pull request's own workflow file. `workflow_run` runs
+# THIS file from the default branch, never the pull request's copy, and its
+# runs attach to the default branch's commit, not to the pull request's head,
+# so nothing here can be re-reported as a required context.
+#
+# NO PULL REQUEST CODE RUNS. The checkout is the default branch's own commit
+# (`github.sha` under `workflow_run`), the program is restored from it and run
+# under `python3 -I`; the only values taken from the triggering run are its id
+# (an integer) and, through the API, its head SHA. `head_branch` and every
+# other string the pull request controls stay out of the job.
+
+name: Budget raise gate re-run
+
+on:
+  workflow_run:
+    workflows: ["Budget raise gate"]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  rerun-stale-verdict:
+    if: >-
+      github.event.workflow_run.event == 'pull_request_review'
+      && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # `actions: write` is the re-run; `contents: read` is the checkout of the
+    # default branch's own copy of the program. Nothing else.
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Restore the program from the default branch's commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          git checkout "$PINNED" -- \
+            '.claude/workflows/*.py'
+          test -f .claude/workflows/budget_raise_gate.py
+
+      - name: Re-run the gate's stale pull_request verdict at this head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python3 -I .claude/workflows/budget_raise_gate.py --rerun-stale "$RUN_ID" --repo "$REPO"

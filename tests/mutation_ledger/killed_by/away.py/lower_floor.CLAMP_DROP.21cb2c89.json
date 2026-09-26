@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/away.py:lower_floor CLAMP_DROP 21cb2c89",
+  "killed_by": "tests/features.py",
+  "old": "    opt_config.min_temp = max(ECONOMY_ABSOLUTE_FLOOR, opt_config.min_temp - by)",
+  "reason": "R8-P12 (#1517): `away.lower_floor`, the envelope's own min_temp widening for economy and the open-window relax. Dropping the clamp to `(ECONOMY_ABSOLUTE_FLOOR)` pins the widened floor at 15.0 whatever it started from. Measured: tests/features.py rc=0 failed=0 -> rc=1 failed=3, among them `the envelope's own floor widening is recorded, so it still unwinds [(widened, restored) {'home': (15.0, 19.0), ...}]` and `economy mode widens the comfort floor FOR THE SOLVE and unwinds it after`. Re-keyed 343 -> 344 on the #1563 round-2 merge (one docstring line above it) and re-measured on a worktree of it: 3 of 3131 FAILED, the same three checks."
+}

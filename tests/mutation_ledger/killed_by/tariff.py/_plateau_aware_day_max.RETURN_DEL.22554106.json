@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_plateau_aware_day_max RETURN_DEL 22554106",
+  "killed_by": "tests/features.py",
+  "old": "    return peak",
+  "reason": "#1512 plan side: `_plateau_aware_day_max` returning None on the untied branch makes the day's excess NaN; tests/features.py prints 6 of 3142 FEATURE CHECKS FAILED against a 0 baseline, the #948 row parity among them. Measured at the #1512 round-2 branch head 4d1f3ea1, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3142 FEATURE CHECKS PASSED."
+}

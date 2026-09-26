@@ -52,6 +52,7 @@ cannot edit the gate that grades it; the workflow re-runs it on
 
     python3 -I .claude/workflows/budget_raise_gate.py --base SHA --head SHA --pr N [--repo O/R]
     python3 .claude/workflows/budget_raise_gate.py --self-test
+    python3 -I .claude/workflows/budget_raise_gate.py --rerun-stale RUN_ID [--repo O/R]
 """
 from __future__ import annotations
 
@@ -312,6 +313,91 @@ def gate(base: str, head: str, pr: str, repo: str) -> int:
     return rc
 
 
+# --- the stale verdict's re-run ----------------------------------------------
+#
+# Both events write a `budget-raise-gate` check run at the head. When the owner
+# approves a raise, the `pull_request_review` run passes, but the
+# `pull_request` run that refused before the approval keeps its red on the pull
+# request until someone runs `gh run rerun`. `budget-raise-gate-rerun.yml`
+# runs `--rerun-stale` on `workflow_run`, from main's copy of this file, and
+# asks GitHub to re-run that red run. A re-run re-grades from nothing -- the
+# program restored from the base, the reviews read live -- so this writes no
+# verdict: a real red re-runs red, and only a head the owner approved turns.
+
+GATE_WORKFLOW = ".github/workflows/budget-raise-gate.yml"
+RERUN_CONCLUSIONS = ("failure", "timed_out")
+
+
+def stale_run(trigger: dict, runs: list[dict]) -> tuple[str, int | None, str]:
+    """(action, run id, why): "rerun", "wait" or "none" for one completed run.
+
+    `trigger` is the completed run `workflow_run` names; `runs` the gate's
+    `pull_request` runs at its head. Only the NEWEST of those matters -- it is
+    the one the pull request shows -- and only when the trigger is a passing
+    review run of this very workflow. A trigger that is itself a
+    `pull_request` run is refused, which is also what stops a re-run's own
+    completion from starting another.
+    """
+    head = str(trigger.get("head_sha") or "")
+    if trigger.get("path") != GATE_WORKFLOW:
+        return "none", None, f"the completed run is {trigger.get('path')!r}, not {GATE_WORKFLOW}"
+    if trigger.get("event") != "pull_request_review":
+        return "none", None, f"the completed run is a {trigger.get('event')!r} run; only a review run re-grades"
+    if trigger.get("conclusion") != "success":
+        return "none", None, f"the review run concluded {trigger.get('conclusion')!r}; the red stands"
+    same = [r for r in runs
+            if r.get("workflow_id") == trigger.get("workflow_id")
+            and r.get("event") == "pull_request" and r.get("head_sha") == head
+            and r.get("id") != trigger.get("id")]
+    if not same:
+        return "none", None, f"no pull_request run of the gate at {head[:12]}"
+    newest = max(same, key=lambda r: (str(r.get("created_at") or ""), r.get("id") or 0))
+    if newest.get("status") != "completed":
+        return "wait", newest.get("id"), f"run {newest.get('id')} at {head[:12]} is {newest.get('status')}"
+    if newest.get("conclusion") in RERUN_CONCLUSIONS:
+        return "rerun", newest.get("id"), f"run {newest.get('id')} at {head[:12]} concluded {newest.get('conclusion')}"
+    return "none", None, f"run {newest.get('id')} at {head[:12]} concluded {newest.get('conclusion')}; nothing is stale"
+
+
+def _gh_json(*args: str):
+    out = subprocess.run(["gh", "api", *args], capture_output=True, text=True)
+    if out.returncode != 0:
+        raise RuntimeError(f"gh api {args[-1]} exited {out.returncode}: {out.stderr.strip()[:200]}")
+    return json.loads(out.stdout) if out.stdout.strip() else {}
+
+
+def rerun_stale(run_id: str, repo: str, api=_gh_json, sleep=None, polls: int = 30) -> int:
+    """Re-run the gate's stale red `pull_request` run after a passing review run.
+
+    Exit 0 when a re-run was requested or nothing is stale; 1 when the API
+    could not be read or refused, so the job is red and the stale verdict is
+    named rather than silently left. It is never a required context.
+    """
+    import time
+    sleep = sleep or time.sleep
+    try:
+        trigger = api(f"repos/{repo}/actions/runs/{int(run_id)}")
+        for _ in range(polls):
+            runs = api(f"repos/{repo}/actions/workflows/{int(trigger.get('workflow_id') or 0)}/runs"
+                       f"?event=pull_request&head_sha={trigger.get('head_sha')}&per_page=100")
+            action, rid, why = stale_run(trigger, runs.get("workflow_runs", []))
+            if action != "wait":
+                break
+            print(f"WAIT: {why}")
+            sleep(20)
+        print(f"{action.upper()}: {why}")
+        if action == "rerun":
+            api("-X", "POST", f"repos/{repo}/actions/runs/{int(rid)}/rerun")
+            print(f"RESULT rerun_requested={rid}")
+        elif action == "wait":
+            print("REFUSED: the pull_request run did not finish in time; re-run it by hand")
+            return 1
+        return 0
+    except (RuntimeError, ValueError, TypeError) as e:
+        print(f"REFUSED: {str(e).splitlines()[0][:200] if str(e) else type(e).__name__}")
+        return 1
+
+
 # --- the self-test ----------------------------------------------------------
 
 def _j(d) -> str:
@@ -533,6 +619,61 @@ def self_test() -> int:
     for name, got, want in _end_to_end():
         check(name, got, want)
 
+    # The stale verdict's re-run: every arm but the first leaves the red alone.
+    T0 = {"id": 9, "path": GATE_WORKFLOW, "event": "pull_request_review", "conclusion": "success",
+          "head_sha": H, "workflow_id": 5}
+
+    def pr_run(i, conclusion="failure", status="completed", sha=H, wf=5, event="pull_request", at="2026-09-25T0"):
+        return {"id": i, "event": event, "status": status, "conclusion": conclusion, "head_sha": sha,
+                "workflow_id": wf, "created_at": f"{at}{i}"}
+
+    check("rerun: a passing review run re-runs the red pull_request run at its head",
+          stale_run(T0, [pr_run(3)])[:2], ("rerun", 3))
+    check("rerun: only the newest pull_request run counts",
+          stale_run(T0, [pr_run(3), pr_run(4, "success")])[:2], ("none", None))
+    check("rerun: ... and it is the one re-run when it is red",
+          stale_run(T0, [pr_run(3, "success"), pr_run(4)])[:2], ("rerun", 4))
+    check("rerun: a failing review run re-runs nothing (the red stands)",
+          stale_run({**T0, "conclusion": "failure"}, [pr_run(3)])[:2], ("none", None))
+    check("rerun: a pull_request trigger re-runs nothing (no loop on the re-run's own completion)",
+          stale_run({**T0, "event": "pull_request"}, [pr_run(3)])[:2], ("none", None))
+    check("rerun: another workflow's run is not the gate",
+          stale_run({**T0, "path": ".github/workflows/tests.yml"}, [pr_run(3)])[:2], ("none", None))
+    check("rerun: a red run at another head is left alone",
+          stale_run(T0, [pr_run(3, sha=OLD)])[:2], ("none", None))
+    check("rerun: a red run of another workflow is left alone",
+          stale_run(T0, [pr_run(3, wf=6)])[:2], ("none", None))
+    check("rerun: a cancelled run is left alone", stale_run(T0, [pr_run(3, "cancelled")])[:2], ("none", None))
+    check("rerun: a run still going is waited for",
+          stale_run(T0, [pr_run(3, None, "in_progress")])[:2], ("wait", 3))
+
+    def fake(pages, fail_post=False):
+        calls = []
+
+        def api(*a):
+            calls.append(a)
+            if a[0] == "-X":
+                if fail_post:
+                    raise RuntimeError("HTTP 403")
+                return {}
+            if "/workflows/" in a[-1]:
+                return {"workflow_runs": pages.pop(0) if len(pages) > 1 else pages[0]}
+            return T0
+        return api, calls
+
+    api, calls = fake([[pr_run(3, None, "in_progress")], [pr_run(3)]])
+    check("rerun: end to end, waits for the run and then re-runs it",
+          (rerun_stale("9", "o/r", api, sleep=lambda s: None),
+           [c for c in calls if c[0] == "-X"]), (0, [("-X", "POST", "repos/o/r/actions/runs/3/rerun")]))
+    api, calls = fake([[pr_run(3, None, "in_progress")]])
+    check("rerun: a run that never finishes is a red job, not a silent pass",
+          rerun_stale("9", "o/r", api, sleep=lambda s: None, polls=3), 1)
+    api, calls = fake([[pr_run(3)]], fail_post=True)
+    check("rerun: a refused re-run request is a red job", rerun_stale("9", "o/r", api), 1)
+    api, calls = fake([[pr_run(3, "success")]])
+    check("rerun: nothing stale posts nothing (null control)",
+          (rerun_stale("9", "o/r", api), [c for c in calls if c[0] == "-X"]), (0, []))
+
     print(f"budget_raise_gate self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
@@ -687,6 +828,12 @@ def _end_to_end() -> list[tuple[str, object, object]]:
 def main(argv: list[str]) -> int:
     if argv == ["--self-test"]:
         return self_test()
+    if argv[:1] == ["--rerun-stale"]:
+        rest = dict(zip(argv[2::2], argv[3::2]))
+        if len(argv) < 2 or len(argv) % 2 or set(rest) - {"--repo"}:
+            print("usage: budget_raise_gate.py --rerun-stale RUN_ID [--repo O/R]", file=sys.stderr)
+            return 2
+        return rerun_stale(argv[1], rest.get("--repo") or os.environ.get("GITHUB_REPOSITORY") or DEFAULT_REPO)
     args = dict(zip(argv[::2], argv[1::2]))
     if len(argv) % 2 or not {"--base", "--head", "--pr"} <= set(args) or set(args) - {"--base", "--head", "--pr", "--repo"}:
         print(__doc__.strip().splitlines()[-2].strip(), file=sys.stderr)

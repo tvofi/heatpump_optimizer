@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/__init__.py:async_setup_entry BOOLOP 47200394",
+  "old": "        if task is not None and hasattr(task, \"cancel\"):",
+  "reason": "hass.async_create_task (homeassistant.core.HomeAssistant.async_create_task) returns an asyncio.Task, which always carries cancel; the OR form differs only for a non-None object without a cancel attribute, which that return cannot be -- round-5 D3-07.",
+  "verdict": "equivalent"
+}

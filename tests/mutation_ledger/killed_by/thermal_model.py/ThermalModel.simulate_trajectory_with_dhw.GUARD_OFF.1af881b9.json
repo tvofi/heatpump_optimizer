@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_with_dhw GUARD_OFF 1af881b9",
+  "killed_by": "tests/features.py",
+  "old": "                if coil_wood_read is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 29402b6179c89cb4de6e6cca3be78762a51ca63c: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

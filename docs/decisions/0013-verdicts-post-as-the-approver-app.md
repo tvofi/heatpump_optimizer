@@ -137,6 +137,13 @@ routine.
   count as a raise. With no raise it passes. With one, it passes only when
   `tvofi`'s latest decisive review, read from the API at run time, is APPROVED
   on the head SHA; it re-runs on `pull_request_review`.
+- **Its stale red re-runs itself.** `.github/workflows/budget-raise-gate-rerun.yml`
+  runs on `workflow_run` from the default branch: when a `pull_request_review`
+  run of the gate passes, it re-runs the newest red `pull_request` run at the
+  same head (`budget_raise_gate.py --rerun-stale`). It holds `actions: write`
+  and `contents: read`, checks out the default branch's commit, restores the
+  program from it and runs it under `python3 -I`; it writes no verdict, and a
+  re-run re-grades from nothing.
 - **Pinned, not owned**, on the pattern above: its one job restores
   `.claude/workflows/*.py` from the base before anything else runs, and runs
   the program under `python3 -I`. Its workflow file stays owned with the rest

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_valve_regulates GUARD_OFF a85b4a7b",
+  "killed_by": "tests/features.py",
+  "old": "    if plant is None or not is_throttling(plant.mixing_valve_mode):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 97207dd8fc42a65822c37894e11bc4b01b498042: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

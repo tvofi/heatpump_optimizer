@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_space_target RETURN_DEL d9aede3e",
+  "killed_by": "tests/features.py",
+  "old": "        return _bounded(state, coord._thermal_model.curve_flow_temp(outdoor), FLOW_GATE_C)",
+  "reason": "pump-duty arbiter revision; `return _bounded(state, coord._thermal_model.curve_flow_temp(outdoor), FLOW_GATE_C)` -> `pass` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_plateau_aware_day_max GUARD_OFF 82e36c62",
+  "killed_by": "tests/features.py",
+  "old": "    if int(np.sum(run >= peak - _PEAK_TIE_BAND)) > 1:",
+  "reason": "#1512 plan side: with the tie guard off a same-day plateau takes the hard max, which a one-window probe cannot move (#232 one level down); tests/features.py prints 1 of 3142 FEATURE CHECKS FAILED against a 0 baseline: `a same-day plateau keeps the solver's gradient`. Measured at the #1512 round-2 branch head 4d1f3ea1, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3142 FEATURE CHECKS PASSED."
+}

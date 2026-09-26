@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:step_duty BOOLOP 17ca3f91",
+  "killed_by": "tests/features.py",
+  "old": "    d_on = i < len(dhw) and dhw[i] > 0.1",
+  "reason": "pump-duty arbiter revision; `d_on = i < len(dhw) and dhw[i] > 0.1` -> `d_on = i < len(dhw) or dhw[i] > 0.1` fails 8 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}
