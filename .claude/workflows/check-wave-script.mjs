@@ -658,6 +658,16 @@ await block('group 14 -- the two readers of a blocked verdict deliver one class'
     J(rows))
 })
 
+// THE ROUND-9 DRIVER, ADMITTED BEFORE IT LANDS. This file is restored from the
+// pull request's BASE before `wave-script` grades (decision 0013), so the driver
+// that replaces planSeats with tools/audit/scopes.json is graded by whatever
+// checker is on main when it is proposed. This checker therefore knows both
+// shapes, keyed on the driver's own DISPATCH block: the planSeats driver keeps
+// its pins below until that block exists, and the scoped driver is held to
+// 'the scoped round driver' from then on. The driver's pull request drops the
+// planSeats arm; a driver with neither block fails both extractions.
+const SCOPED_DRIVER = /\/\/ DISPATCH:BEGIN/.test(fs.readFileSync(path.join(here, 'audit-find.js'), 'utf8'))
+if (!SCOPED_DRIVER) {
 console.log('-- The round driver: the schedule every dimension brief must be in')
 // R7-INSTR-01 (#1477). `.claude/workflows/audit-find.js` is the committed
 // workflow that runs a round, and its `DIMS` stopped at D12 through round 7 while
@@ -742,6 +752,8 @@ await block('the round driver', async () => {
     'a schedule read out of nothing reported no gap')
 })
 
+}
+
 console.log('-- The rotation: seats per round, and the coverage ledger every brief must agree with')
 // The round-8 convergence programme's rotation (design A). A brief's numbered
 // method steps are its step ids, D<k>.M<n>; tools/audit/rotation.json carries
@@ -789,7 +801,15 @@ await block('the rotation', async () => {
     ledgerGaps({ ...briefSteps, D2: briefSteps.D2.slice(0, -1) }, ledger).some((g) => /no longer has/.test(g)), 'a brief that lost its last step passed against the old ledger')
   t('and an empty extraction is refused rather than reported clean (null control)',
     ledgerGaps({}, {}).length > 0, 'a ledger read against no briefs reported no gap')
+})
 
+if (!SCOPED_DRIVER) await block('the rotation dispatch (planSeats)', async () => {
+  const root = path.join(here, '..', '..')
+  const rd = fs.readFileSync(path.join(here, 'audit-find.js'), 'utf8')
+  const briefsDir = path.join(root, 'tools', 'audit', 'briefs')
+  const briefSteps = Object.fromEntries(fs.readdirSync(briefsDir).filter((f) => /^D\d+\.md$/.test(f)).map((f) => [
+    f.slice(0, -3), [...fs.readFileSync(path.join(briefsDir, f), 'utf8').matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1]))]))
+  const ledger = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'rotation.json'), 'utf8'))
   // The dispatch rule, evaluated alone: the block between the markers uses
   // nothing outside itself, so a helper it grew would fail here, not in a round.
   const blk = rd.match(/\/\/ ROTATION:BEGIN[\s\S]*?\/\/ ROTATION:END/)
@@ -912,6 +932,246 @@ await block('the rotation', async () => {
   refused = ''
   try { await drive({ ...base, rotation: undefined }) } catch (e) { refused = e.message }
   t('and a round with no ledger at all is refused', /args\.rotation is required/.test(refused), refused || 'did not throw')
+})
+
+console.log('-- The finder report: scope, class_guess and leads (the round-9 scope wall)')
+// tools/audit/briefs/COMMON.md walls a finder into the cells tools/audit/scopes.json
+// gives its seat and has it write a LEAD for anything outside them. The schema a
+// finding is validated against at intake is what carries that: the seat it
+// measured (`scope`), the finder's class guess the verifier's third lens checks,
+// and the report's `leads`. Read from the file, never restated here.
+await block('the finder report schema', async () => {
+  const root = path.join(here, '..', '..')
+  const S = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'finding.schema.json'), 'utf8'))
+  const F = S.definitions?.finding ?? {}
+  const need = ['scope', 'class_guess']
+  t('a finding must carry its seat (scope) and a class guess', need.every((k) => (F.required ?? []).includes(k) && F.properties?.[k]), J(F.required))
+  t('a report must carry its leads, each {owner_seat, file, symbol, what}',
+    (S.required ?? []).includes('leads') && J([...(S.properties?.leads?.items?.required ?? [])].sort()) === J(['file', 'owner_seat', 'symbol', 'what']), J(S.properties?.leads))
+  const re = (k) => new RegExp(F.properties?.[k]?.pattern ?? '$^')
+  const idRe = re('id'), scopeRe = re('scope')
+  const ownerRe = new RegExp(S.properties?.leads?.items?.properties?.owner_seat?.pattern ?? '$^')
+  t('scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no)', scopeRe.test('D1-s3') && scopeRe.test('D14-s5') && !scopeRe.test('D1') && !scopeRe.test('D15-s1'), String(scopeRe))
+  t('a finding numbered under its seat is an id the schema admits (D13-s1-01, D1-s3-51)', idRe.test('D13-s1-01') && idRe.test('D1-s3-51'), String(idRe))
+  t("a lead's owner_seat admits a seat id or unknown, and refuses a bare dimension, a file, or anything else (null control)",
+    ownerRe.test('D1-s3') && ownerRe.test('D14-s5') && ownerRe.test('unknown') && !ownerRe.test('D1') && !ownerRe.test('D15-s1') && !ownerRe.test('boost.py') && !ownerRe.test('') && !ownerRe.test('D1-s3 '), String(ownerRe))
+  // A design choice, said so: the guess is refused unless it is a class the
+  // ledger HAS, so a class the judge adds is added to bugclasses.json and to
+  // this enum in one pull request -- this check fails until both carry it.
+  const classEnum = F.properties?.class_guess?.enum ?? []
+  t('class_guess is exactly the tools/audit/bugclasses.json ids plus "new": a well-formed id the ledger lacks (P99) is refused', (() => {
+    const ids = Object.keys(JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'bugclasses.json'), 'utf8'))).filter((k) => !k.startsWith('_'))
+    return ids.length > 0 && J([...classEnum].sort()) === J([...ids, 'new'].sort()) && !classEnum.includes('P99') && !classEnum.includes('')
+  })(), J(classEnum))
+})
+
+console.log('-- The scopes: every seat a finder is dispatched to, held to the briefs')
+// tools/audit/scopes.json gives every seat its cells; tools/audit/check_scopes.py
+// proves them disjoint and complete at a ref, and the driver runs it in Prepare.
+// What that checker cannot see is the briefs: a scope naming a step its brief no
+// longer numbers dispatches a seat to a step nobody wrote, and a brief step no
+// seat names is never measured (check_scopes.py compares a dimension's seats with
+// the dimension's own `steps`, which is the list that would be stale).
+await block('the scopes', async () => {
+  const root = path.join(here, '..', '..')
+  const scopes = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'scopes.json'), 'utf8'))
+  const ledger = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'rotation.json'), 'utf8'))
+  const briefs = fs.readdirSync(path.join(root, 'tools', 'audit', 'briefs')).filter((f) => /^D\d+\.md$/.test(f)).map((f) => f.slice(0, -3))
+  const scopeGaps = (sc, led, bs) => {
+    const gaps = []
+    if (!bs.length) gaps.push('no dimension brief found (an empty extraction is a gap)')
+    const dims = Object.keys(sc).filter((k) => !k.startsWith('_'))
+    for (const d of bs) if (!dims.includes(d)) gaps.push(`briefs/${d}.md has no scopes.json entry`)
+    for (const d of dims) {
+      if (!bs.includes(d)) { gaps.push(`scopes.json names ${d}, which has no brief`); continue }
+      const want = led[d]?.steps ?? []
+      const have = sc[d].steps ?? []
+      if (J(have) !== J(want)) gaps.push(`scopes.json ${d} steps ${J(have)} != the brief's ${J(want)} (rotation.json)`)
+      const named = new Set(Object.values(sc[d].seats ?? {}).flat().flatMap((b) => b.steps ?? []))
+      for (const m of want) if (!named.has(m)) gaps.push(`no ${d} seat names ${d}.${m}`)
+      for (const m of named) if (!want.includes(m)) gaps.push(`a ${d} seat names ${d}.${m}, which the brief does not number`)
+      for (const k of Object.keys(sc[d].seats ?? {})) if (!/^s\d+$/.test(k)) gaps.push(`${d} seat key ${k} is not s<n>`)
+    }
+    return gaps
+  }
+  const real = scopeGaps(scopes, ledger, briefs)
+  const nSeats = Object.entries(scopes).filter(([k]) => !k.startsWith('_')).reduce((n, [, d]) => n + Object.keys(d.seats).length, 0)
+  console.log(`  scope  ${Object.keys(scopes).filter((k) => !k.startsWith('_')).length} dimension(s), ${nSeats} seat(s), ${briefs.length} brief(s)`)
+  t('every brief has scopes, and every scopes step is exactly a step its brief numbers', real.length === 0, real.join('; '))
+  const clone = () => JSON.parse(JSON.stringify(scopes))
+  const extra = clone(); extra.D2.seats.s1[0].steps.push('M99')
+  t('the check fires: a seat naming a step the brief does not number is refused (positive control)', scopeGaps(extra, ledger, briefs).some((g) => /D2\.M99/.test(g)), 'M99 passed')
+  const orphan = clone(); for (const bl of Object.values(orphan.D2.seats)) for (const b of bl) b.steps = b.steps.filter((m) => m !== 'M3')
+  t('the check fires: a brief step no seat names is refused (positive control)', scopeGaps(orphan, ledger, briefs).some((g) => /no D2 seat names D2\.M3/.test(g)), 'an unowned M3 passed')
+  const { D13: _gone, ...noD13 } = scopes
+  t('the check fires: a brief with no scopes entry is refused (positive control)', scopeGaps(noD13, ledger, briefs).some((g) => /D13\.md has no scopes/.test(g)), 'no D13 passed')
+  t('and an empty extraction is refused rather than reported clean (null control)', scopeGaps({}, {}, []).length > 0, 'nothing read, nothing refused')
+})
+
+console.log('-- The round driver: seats from the scopes, boxes, and the Prepare refusal')
+// The round-9 driver (readiness PR R1). `audit-find.js` dispatches one finder per
+// seat of tools/audit/scopes.json -- not planSeats' rotation over the ledger --
+// on the box (cloud container) the DISPATCH block assigns it, and refuses the
+// round in Prepare unless tools/audit/check_scopes.py exits 0 at the baseline.
+// Driven, not grepped: the script body runs against stubbed agent()/pipeline().
+if (SCOPED_DRIVER) await block('the scoped round driver', async () => {
+  const root = path.join(here, '..', '..')
+  const rd = fs.readFileSync(path.join(here, 'audit-find.js'), 'utf8')
+  const scopes = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'scopes.json'), 'utf8'))
+  const ledger = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'rotation.json'), 'utf8'))
+  const dimsIn = (text) => [...text.matchAll(/'([A-Z]\d+)'/g)].map((m) => m[1])
+  const grab = (re) => { const m = re.exec(rd); return m ? dimsIn(m[1]) : [] }
+  const shell = fs.readFileSync(path.join(root, 'tools', 'audit', 'prepare_baseline.sh'), 'utf8')
+  const L = {
+    dims: grab(/const DIMS = \[([^\]]*)\]/),
+    isolated: grab(/const ISOLATED = new Set\(\[([^\]]*)\]/),
+    api: grab(/const API_DIMS = new Set\(\[([^\]]*)\]/),
+    baseline: ((/^ISOLATED_DIMS="([^"]*)"/m.exec(shell) ?? [, ''])[1]).split(/\s+/).filter(Boolean),
+    briefs: fs.readdirSync(path.join(root, 'tools', 'audit', 'briefs')).filter((f) => /^D\d+\.md$/.test(f)).map((f) => f.slice(0, -3)).sort(),
+  }
+  // R7-INSTR-01 (#1477): every brief is in DIMS, and the worktree lists agree
+  // with prepare_baseline.sh, whose own comment says a seat editing one edits both.
+  const listGaps = (s) => {
+    const gaps = []
+    for (const k of ['dims', 'isolated', 'api', 'baseline', 'briefs']) if (!s[k]?.length) gaps.push(`${k} not found (an empty extraction is a gap, never an exemption)`)
+    if (gaps.length) return gaps
+    for (const d of s.briefs) if (!s.dims.includes(d)) gaps.push(`briefs/${d}.md has no DIMS entry`)
+    for (const d of s.dims) if (!s.briefs.includes(d)) gaps.push(`DIMS names ${d}, which has no brief`)
+    for (const d of s.dims) if (s.dims.indexOf(d) !== s.dims.lastIndexOf(d)) gaps.push(`DIMS names ${d} twice`)
+    for (const d of s.isolated) if (!s.dims.includes(d)) gaps.push(`ISOLATED names ${d}, which DIMS does not`)
+    for (const d of s.api) if (!s.isolated.includes(d)) gaps.push(`API_DIMS names ${d}, which ISOLATED does not (its history needs a worktree with .git)`)
+    if ([...s.baseline].sort().join(',') !== [...s.isolated].sort().join(',')) gaps.push(`prepare_baseline.sh ISOLATED_DIMS [${s.baseline}] != audit-find.js ISOLATED [${s.isolated}]`)
+    return gaps
+  }
+  const lg = listGaps(L)
+  t("every dimension brief is in the round driver's DIMS, and its worktree lists agree", L.briefs.length >= 15 && lg.length === 0, lg.join('; '))
+  t('the check fires: a DIMS list that stops short of a brief is refused (positive control)', listGaps({ ...L, dims: L.dims.filter((d) => d !== 'D13') }).length > 0, 'a schedule missing D13 passed')
+  t('the check fires: the two worktree lists drifting apart is refused (positive control)', listGaps({ ...L, baseline: L.baseline.filter((d) => d !== 'D13') }).length > 0, 'the lists may disagree')
+  t('and an empty extraction is refused rather than reported clean (null control)', listGaps({ dims: [], isolated: [], api: [], baseline: [], briefs: [] }).length > 0, 'nothing read, nothing refused')
+
+  // The dispatch block, evaluated alone: it uses nothing outside itself.
+  const blk = rd.match(/\/\/ DISPATCH:BEGIN[\s\S]*?\/\/ DISPATCH:END/)
+  t('the dispatch block is delimited in audit-find.js', !!blk, 'no DISPATCH:BEGIN..END block')
+  if (!blk) return
+  t('the dispatch block draws on no randomness and no clock', !/Math\.random|Date\b|performance\.now|crypto/.test(blk[0]), 'found one')
+  t('and no planSeats: seats come from the scopes, not a rotation over the ledger', !/planSeats/.test(rd), 'audit-find.js still names planSeats')
+  const D = new Function(`${blk[0]}\nreturn { CADENCE, activeIn, seatsFromScopes, BOXES, CHROMIUM, boxGaps }`)()
+  t('round 9 runs all fifteen dimensions (the round-9 plan, section 2 default 1)', L.dims.every((d) => D.activeIn(9, d)), J(L.dims.filter((d) => !D.activeIn(9, d))))
+  t('...and the cadence is otherwise read from the round number (D11 off at 10 and on at 12, D5 on at 10 and off at 11)',
+    !D.activeIn(10, 'D11') && D.activeIn(12, 'D11') && D.activeIn(10, 'D5') && !D.activeIn(11, 'D5') && D.activeIn(11, 'D0'), 'the cadence is not derived from the round')
+  const ids = L.dims.flatMap((d) => D.seatsFromScopes(scopes, d).map((s) => s.id))
+  const fileSeats = Object.entries(scopes).filter(([k]) => !k.startsWith('_')).flatMap(([d, x]) => Object.keys(x.seats).map((k) => `${d}-${k}`))
+  t('one seat per scopes.json seat, id <dim>-s<n>, nothing added or dropped', J(ids) === J(fileSeats), `${ids.length} vs ${fileSeats.length}`)
+  const d10 = D.seatsFromScopes(scopes, 'D10').find((s) => s.key === 's2')
+  t("a seat's deep focus is every step its blocks name, in the brief's order (D10-s2 has two blocks)", J(d10?.steps) === J(['M1', 'M2', 'M3']), J(d10))
+  t('the same scopes dispatch the same seats (a relaunch replays)', J(D.seatsFromScopes(scopes, 'D1')) === J(D.seatsFromScopes(JSON.parse(JSON.stringify(scopes)), 'D1')), 'differs')
+  const bg = D.boxGaps(D.BOXES, ids)
+  const heavy = Object.values(D.BOXES).reduce((n, b) => n + b.heavy.length, 0)
+  console.log(`  boxes  ${Object.keys(D.BOXES).length} box(es), ${ids.length} seat(s), ${heavy} compute-heavy`)
+  t('every seat is on exactly one box, at most three compute-heavy per box, the Chromium seat alone', bg.length === 0, bg.join('; '))
+  const move = (from, to, seat, kind = 'heavy') => { const B = JSON.parse(JSON.stringify(D.BOXES)); B[from][kind] = B[from][kind].filter((s) => s !== seat); B[to][kind].push(seat); return B }
+  t('the check fires: a fourth heavy seat on a box is refused (positive control)', D.boxGaps(move('B6', 'B8', 'D12-s1'), ids).some((g) => /B8 runs 4/.test(g)), 'four heavy passed')
+  t('the check fires: a seat beside the Chromium seat is refused (positive control)', D.boxGaps(move('B9', 'B10', 'D4-s2', 'light'), ids).some((g) => /Chromium/.test(g)), 'Chromium shared')
+  t('the check fires: a seat on no box, or a box naming a seat the scopes lack, is refused (positive control)',
+    D.boxGaps(D.BOXES, ids.filter((s) => s !== 'D1-s5')).some((g) => /D1-s5, which the scopes/.test(g)) && D.boxGaps(D.BOXES, [...ids, 'D1-s6']).some((g) => /D1-s6 is in 0/.test(g)), 'passed')
+  t('and an empty extraction is refused rather than reported clean (null control)', D.boxGaps({}, []).length > 0, 'nothing read, nothing refused')
+
+  // The whole driver, stubbed.
+  const i0 = rd.indexOf('export const meta')
+  const rbody = rd.slice(0, i0) + rd.slice(rd.indexOf('\n}\n', i0) + 3)
+  const PREP = { exportDir: '/x', worktrees: {}, python: 'py', rotation_ok: true, scopes_ok: true, scopes_rc: 0, scopes_out: 'ok' }
+  const drive = async (args, { prep = {}, report = () => ({}) } = {}) => {
+    const calls = []
+    const agent = async (prompt, o) => {
+      calls.push({ label: o.label, prompt, schema: o.schema })
+      if (o.label === 'prepare') return { ...PREP, ...prep }
+      if (o.label === 'gather') return { reports: Object.fromEntries(fileSeats.map((id) => [id, { dimension: id.split('-')[0], report_path: `/r/${id}`, coverage: [], unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [] }])), absent_boxes: [] }
+      if (o.label === 'leads') return { report_path: '/r/leads', findings: [], non_findings: [], harnesses: [], converted: [], closed: [] }
+      if (o.label === 'intake') return { branch: 'b', registered: [], rejected: [] }
+      if (o.label === 'quiet') return { quiet_path: '/q', d3_confirmed: [] }
+      if (o.label.startsWith('collect-')) return { branch: 'b', commit: 'c' }
+      return { dimension: o.label.split('-')[0], report_path: `/r/${o.label}`, coverage: [], unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [], ...report(o.label) }
+    }
+    const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${rbody} })()`)
+    let out, error = ''
+    try { out = await fn(agent, () => {}, () => {}, (items, f) => Promise.all(items.map((x) => f(x))), args) } catch (e) { error = e.message }
+    return { out, error, calls, labels: calls.map((c) => c.label) }
+  }
+  const isFinder = (l) => /^D\d+-s\d+$/.test(l)
+  const base = { round: 9, baseline: 'b', repo: '/r', rotation: ledger, scopes }
+  const r9 = await drive(base)
+  const finders = r9.labels.filter(isFinder)
+  console.log(`  drive  round 9 dispatched ${finders.length} finder seat(s)`)
+  t('round 9 dispatches exactly the scopes.json seats, one agent each', J([...finders].sort()) === J([...fileSeats].sort()) && r9.error === '', r9.error || J(finders))
+  t('...after Prepare, which runs check_scopes.py at the baseline', r9.labels[0] === 'prepare' && /tools\/audit\/check_scopes\.py --repo \/r --ref b\b/.test(r9.calls[0].prompt), r9.calls[0]?.prompt?.slice(0, 120))
+  const refusedBy = async (prep) => { const r = await drive(base, { prep }); return { error: r.error, finders: r.labels.filter(isFinder).length } }
+  const rc1 = await refusedBy({ scopes_rc: 1, scopes_out: 'FAIL D1 mode=cells' })
+  t('Prepare refuses the round when check_scopes.py exits non-zero, before any finder', /check_scopes\.py --ref b exited 1/.test(rc1.error) && rc1.finders === 0, J(rc1))
+  const rcNone = await refusedBy({ scopes_rc: undefined })
+  t('...and when the exit status was not read at all (an absent rc is not a pass)', /exited undefined/.test(rcNone.error) && rcNone.finders === 0, J(rcNone))
+  const rcText = await refusedBy({ scopes_rc: '0' })
+  t('...and when it came back as text rather than the integer the shell returned', rcText.error !== '' && rcText.finders === 0, J(rcText))
+  const notOk = await refusedBy({ scopes_ok: false, scopes_note: 'differs' })
+  t('a scopes table that is not the committed file stops the round before any finder', /not the committed tools\/audit\/scopes\.json/.test(notOk.error) && notOk.finders === 0, J(notOk))
+  const rotBad = await refusedBy({ rotation_ok: false, rotation_note: 'differs' })
+  t('a ledger that is not the committed file stops the round before any finder', /not the committed tools\/audit\/rotation\.json/.test(rotBad.error) && rotBad.finders === 0, J(rotBad))
+  t('a round with no scopes, or no ledger, is refused', /args\.scopes is required/.test((await drive({ ...base, scopes: undefined })).error) && /args\.rotation is required/.test((await drive({ ...base, rotation: undefined })).error), 'did not throw')
+  const short = JSON.parse(JSON.stringify(scopes)); delete short.D1.seats.s5
+  const sh = await drive({ ...base, scopes: short })
+  t('scopes the boxes do not match are refused before Prepare', /boxes and args\.scopes disagree/.test(sh.error) && sh.labels.length === 0, sh.error || J(sh.labels))
+
+  // Per container: a box runs its own seats and pushes its evidence; intake
+  // gathers every box. B8 is D14's three compute-heavy seats.
+  const b8 = await drive({ ...base, box: 'B8' })
+  t('box B8 runs exactly its seats, collects, and does not run intake', J(b8.labels.filter(isFinder).sort()) === J(['D14-s1', 'D14-s2', 'D14-s3']) && b8.labels.includes('collect-B8') && !b8.labels.includes('intake'), J(b8.labels))
+  const b8prep = b8.calls[0]?.prompt ?? ''
+  t("...and Prepare makes a worktree for each of that box's isolated seats only", /D14-s1, D14-s2, D14-s3/.test(b8prep) && !/D0-s1/.test(b8prep), b8prep.slice(0, 300))
+  const gi = await drive({ ...base, from: 'intake' })
+  t('from "intake" runs no finder, gathers every box, then intake', gi.labels.filter(isFinder).length === 0 && gi.labels.includes('gather') && gi.labels.at(-1) === 'intake', J(gi.labels))
+  t('an unknown box is refused', /is not one of/.test((await drive({ ...base, box: 'B11' })).error), 'B11 accepted')
+
+  // The finder prompt: its cells, the wall, the fields.
+  const p = (l) => r9.calls.find((c) => c.label === l)?.prompt ?? ''
+  t("each finder is told its seat's cells, how to list them, and to write leads outside them",
+    finders.every((l) => p(l).includes(`--seat ${l}`) && p(l).includes(`finder seat ${l}`) && /record a lead/.test(p(l))), finders.filter((l) => !p(l).includes(`--seat ${l}`)).join(', '))
+  // Read off the file's blocks directly: D9-s2 owns M1 and M2 in two blocks.
+  const owns = (l) => { const [d, k] = l.split('-'); const named = new Set(scopes[d].seats[k].flatMap((b) => b.steps)); return scopes[d].steps.filter((m) => named.has(m)).map((m) => `${d}.${m}`).join(', ') }
+  t('and exactly the steps its blocks name, each a deep focus (D9-s2: two blocks)',
+    owns('D9-s2') === 'D9.M1, D9.M2' && finders.every((l) => p(l).includes(`Every step you own is a deep focus: ${owns(l)}.`)), finders.filter((l) => !p(l).includes(`deep focus: ${owns(l)}.`)).join(', '))
+  const walled = (q) => /must not go looking for earlier findings/.test(q)
+  const others = finders.filter((l) => !l.startsWith('D14-'))
+  t("D14's finders may read the class ledger and its instances' history, and are not told the wall forbids it",
+    ['D14-s1', 'D14-s5'].every((l) => !walled(p(l)) && /tools\/audit\/bugclasses\.json/.test(p(l)) && /pre-fix commits/.test(p(l))), p('D14-s1').slice(0, 200))
+  t('every other finder keeps the earlier-findings wall (null control)', others.length > 0 && others.every((l) => walled(p(l))), others.filter((l) => !walled(p(l))).join(', '))
+  // The schema the finder is held to by the runtime carries what the file does.
+  const S = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'finding.schema.json'), 'utf8'))
+  const fs0 = r9.calls.find((c) => isFinder(c.label))?.schema ?? {}
+  const missReq = [...S.required.filter((k) => !(fs0.required ?? []).includes(k)), ...S.definitions.finding.required.filter((k) => !(fs0.properties?.findings?.items?.required ?? []).includes(k))]
+  t("the finder's return schema requires every field finding.schema.json requires (scope, class_guess and leads among them)", fs0.required && missReq.length === 0, missReq.join(', '))
+
+  // Intake: registers, never merges; a finding outside its seat is rejected by
+  // the script with the reason; leads reach the one leads seat.
+  const ip = r9.calls.find((c) => c.label === 'intake')?.prompt ?? ''
+  t('intake registers without merging: no merge instruction, and it says the dedup is the judge\'s', !/Merge same-phenomenon|M-ids/.test(ip) && /do not merge/.test(ip) && /judge/.test(ip) && /finding\.schema\.json/.test(ip), ip.slice(0, 200))
+  const F = (id, scope, cg = 'P3') => ({ id, scope, class_guess: cg, step: 'D1.M1', severity: 'low', title: id })
+  const wrong = await drive(base, { report: (l) => (l === 'D1-s2' ? { findings: [F('D1-s2-01', 'D1-s2'), F('D1-s2-02', 'D1-s1'), F('D1-s2-03', 'D1-s2', 'X9')] } : {}) })
+  const rej = (wrong.out?.rejected ?? []).map((r) => r.id)
+  t('a finding carrying another seat as scope, or an unknown class guess, is rejected at intake; its sibling is registered',
+    J(rej) === J(['D1-s2-02', 'D1-s2-03']) && /"id":"D1-s2-01"/.test(wrong.calls.find((c) => c.label === 'intake')?.prompt ?? ''), J(wrong.out?.rejected))
+  const qp = r9.calls.find((c) => c.label === 'quiet')?.prompt ?? ''
+  t("D3's survivors are confirmed by a full gate under the lease before intake (D3.md step 3), once per round",
+    r9.labels.filter((l) => l === 'quiet').length === 1 && r9.labels.indexOf('quiet') < r9.labels.indexOf('intake') && /GATE_SCOPE=full/.test(qp) && /gate_lock\.py take/.test(qp) && /survived the full gate/.test(ip), J(r9.labels.slice(-4)))
+  t('...and never inside a box, which has not seen the other boxes (null control)', !b8.labels.includes('quiet'), J(b8.labels))
+  t('no lead, no leads seat (null control)', !r9.labels.includes('leads'), J(r9.labels))
+  // The lead's file is not a production path on purpose: codeowners_gap.py
+  // reads a path quoted in a file that calls new Function as one a workflow
+  // executes, so a production path here un-owns it (#1589's class).
+  const withLead = await drive(base, { report: (l) => (l === 'D7-s1' ? { leads: [{ owner_seat: 'D1-s3', file: 'pkg/lead_fixture.py', symbol: 'lead_fixture:x', what: 'w' }] } : {}) })
+  const lp = withLead.calls.find((c) => c.label === 'leads')?.prompt ?? ''
+  t('a raised lead reaches the one leads seat, keyed by its owner seat, and is counted in the ledger',
+    withLead.labels.filter((l) => l === 'leads').length === 1 && /"D1-s3":\[\{"owner_seat":"D1-s3"/.test(lp) && withLead.out?.rotation_round?.D7?.leads?.raised === 1, J(withLead.out?.rotation_round?.D7))
+  t('and the round\'s ledger entry names every active dimension, one step list per seat',
+    Object.keys(r9.out?.rotation_round ?? {}).length === L.dims.length && r9.out.rotation_round.D1.seats.length === Object.keys(scopes.D1.seats).length, J(Object.keys(r9.out?.rotation_round ?? {})))
 })
 
 console.log('-- The verification pass: one verifier per dimension, every finding to the judge')
