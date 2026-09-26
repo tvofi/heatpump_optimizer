@@ -47566,6 +47566,16 @@ R.check(
     f"{_si_errs}; taken_at={_si_ring.snapshots[0]['taken_at']!r}",
 )
 
+# A last step stamped after now (a clock stepped back) caps the step at or
+# below zero, so the curve holds its bias rather than warming it.
+_si_ahead = _SiCurve.from_dict(
+    {"bias": -1.0, "last_step_at": (_SI_NOW + timedelta(days=3)).isoformat()})
+_si_ahead._step_down(_SI_NOW)
+R.check(
+    "a last curve step stamped in the future moves the bias nowhere",
+    _si_ahead.bias == -1.0, f"bias={_si_ahead.bias!r}",
+)
+
 # D1-s1-02: best_restore must never raise on a stored bias leaf of any shape.
 _si_bias = {}
 for _si_leaf in ("0.3", "garbage", [0.3], {"v": 0.3}, float("nan"), 0.9):
