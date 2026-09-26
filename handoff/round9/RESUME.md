@@ -106,6 +106,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T14:36Z: SETTLED: runners use the judge's JUDGE-INPUT.json @7c7ef32 (46 findings, shards 1/2 and 2/2). The orchestrator's 55- and A2 files are withdrawn (renamed WITHDRAWN-*). R1 restarted 13:45Z; R2 told. Rows go to /mnt/project-files/audit-r9/judge/rows-{1,2} and to handoff/audit-r9-runner-{1,2}.
 
+- 2026-09-26T14:40Z: judge @212ee80: D3-CHECKS.md (all 9 D3 reproduce in memory, nulls hold; D3-s2-01 low). Quiet re-takes D9-s2-71, D9-s2-01. Batch B verdicts drafted (D1-s2-52 medium; D1-s5-52 high). Judge waits on rows-1/rows-2; orchestrator relays when they land.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
