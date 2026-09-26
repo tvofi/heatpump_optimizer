@@ -4,7 +4,7 @@ A fresh orchestrator resumes from this file alone. Read PLAN.md and START-PROMPT
 then CLAUDE.md, .claude/rules/ and tools/audit/briefs/orchestrator.md in the repo.
 Mirror: branch handoff/audit-r9-plan, handoff/round9/RESUME.md (when /mnt/project-files is unwritable).
 
-updated: 2026-09-26T04:52Z by orchestrator thread "Round 9 audit orchestrator"
+updated: 2026-09-26T06:10Z by orchestrator thread "Round 9 audit orchestrator"
 (thread cmsg_01EL5jLi4rokGBbkaevYXSJV2mBkzeKerzo5hWb5CAh44d, session cse_01WgT4h2uvK9kbxQbWc5MJis)
 
 ## Mandate
@@ -26,12 +26,12 @@ R (readiness). Baseline NOT cut.
 ## Readiness items
 | id | state | notes |
 |---|---|---|
-| R1 find driver | R1a MERGED #1633 c9453921; R1 driver fixing after block | not in tree (no tools/audit/scopes.json, no check_scopes.py in-tree) |
+| R1 find driver | DONE: R1a #1633 c9453921, R1 #1636 b9956289 | not in tree (no tools/audit/scopes.json, no check_scopes.py in-tree) |
 | R2 policy | DONE | merged as #1627 (565ebf53; commits 1d38497a, d5b64834) |
-| R3 verify driver | to dispatch | tools/audit/judge_batch.py absent |
+| R3 verify driver | R3a MERGED #1635 0454645f; R3 #1639 merge verdict, full CI | |
 | R4 instrument notes + stale docs | MERGED #1632 cb78e997 | round4-file keep already done in prepare_baseline.sh; folded in: playwright 1.49.0 refs (D4.md, prepare_baseline.sh), steward S6 + tools/audit/README.md vs gate-scoping.md. Policy files → code-owned approval |
 | R5 ledger preconditions | DONE | #1577 content anchors, ledgermerge in .gitattributes, #1617 ledger layout merged 7e75ebee |
-| R6 bug 5 reboot half + mode persistence (owed in docs/delivery/1621.md) | to dispatch | production fix; reached a release → RCA seat beside it |
+| R6 bug 5 reboot half + mode persistence (owed in docs/delivery/1621.md) | #1638 in review | production fix; reached a release → RCA seat beside it |
 
 ## Seats
 All four run as Agent sub-seats inside the orchestrator container (lost if it is reclaimed; re-dispatch
@@ -39,18 +39,22 @@ from the table and check the handoff branch on origin first). Scratch: /tmp/clau
 | seat | handoff branch | state |
 |---|---|---|
 | R1a checker | handoff/r9-r1a-find-checker | MERGED #1633 at c9453921 (05:28Z). PR #1633; FIXED after block: code c6ca4132, body 2bb0f8e6 (was a897272a); re-review by Cloud reviewer 2; not code-owned; review brief reviews/R1a.md → Cloud reviewer 2; Mac relayed to push; merges before R1 |
-| R1 driver | handoff/r9-r1-find-driver | FIXED after vacuous-pins block: code 2b1ddd10 (merges main c9453921), body c55db14e; sent to Mac 05:32Z; was 173061d3; push only after R1a merges + main merged in; audit-find.js @tvofi-owned; review brief reviews/R1.md |
-| R3a checker | handoff/r9-r3a-verify-checker | HANDED OFF: code 9fd82c91 (stacked on R1a c6ca4132), body 518c333a; not code-owned; brief reviews/R3a.md; push after #1633 merges |
-| R3 driver | handoff/r9-r3-verify-driver | FIXED + PUSHED 05:45Z: code 7934e6ce, body f317e45f (all review items); Mac merges main in after #1635, pushes; code-owned (audit-verify.js, tests/closure.py); MODE FULL; brief reviews/R3.md; push after R3a merges |
+| R1 driver | handoff/r9-r1-find-driver | MERGED #1636 at b9956289 (05:55Z). | FIXED after vacuous-pins block: code 2b1ddd10 (merges main c9453921), body c55db14e; sent to Mac 05:32Z; was 173061d3; push only after R1a merges + main merged in; audit-find.js @tvofi-owned; review brief reviews/R1.md |
+| R3a checker | handoff/r9-r3a-verify-checker | MERGED #1635 at 0454645f (05:50Z). Was: code 9fd82c91 (stacked on R1a c6ca4132), body 518c333a; not code-owned; brief reviews/R3a.md; push after #1633 merges |
+| R3 driver | handoff/r9-r3-verify-driver | PR #1639 @7078363b (bda239b8 + main 0454645f), full CI running, final re-check Cloud reviewer 2. B2 FIXED 06:00Z: code bda239b8 (one commit on 7934e6ce), body 1b8834f4; PR head was 5d6afe07; Mac merges main in after #1635, pushes; code-owned (audit-verify.js, tests/closure.py); MODE FULL; brief reviews/R3.md; push after R3a merges |
 | R4 fixer | handoff/r9-r4-instruments | MERGED #1632 at cb78e997 (05:10Z). Was: PR #1632 open at f493fec1 (2bf7faaf + delivery row); in review by Cloud compute helper; review brief reviews/R4.md → Cloud compute helper; Mac asked to push. Policy → tvofi approval (mandate 3) |
 | R4b fixer | handoff/r9-r4b-web-fragments | MERGED #1634 at 16d811f1 (05:27Z). Was: code 26b51272, body e3872880; policy (@tvofi); review brief reviews/R4b.md; sent to coordinator ~05:10Z |
 | RC1 countermeasure | handoff/r9-rc1-pinned-local | PR #1637 @8c7c1339 in review (compute helper); #1633 Root cause comment posted+read back (gh_comment.py, owner account). Was: code de347318, body a7ea0387; prepr.sh 3e/3f/3g; state (c); #1589-class claim refuted; review brief reviews/RC1.md; #1633 Root cause section at rca/RC1-root-cause-section.md for Mac to post; merge after R1 |
-| R6 fixer | handoff/r9-r6-reboot-toggles | HANDED OFF 05:50Z: code df50ab42, body 16ed158f; (b) fixed, (a) unexplained beyond Optimizer active; not code-owned; brief reviews/R6.md; RC2 brief rca/RC2-bug5-reboot.md → root-cause seat |
+| R6 fixer | handoff/r9-r6-reboot-toggles | PR #1638 @325c59a5 in review (Cloud reviewer 2). HANDED OFF 05:50Z: code df50ab42, body 16ed158f; (b) fixed, (a) unexplained beyond Optimizer active; not code-owned; brief reviews/R6.md; RC2 brief rca/RC2-bug5-reboot.md → root-cause seat |
 Coordinator asked (04:50Z) to: warn the Mac seat; line up Cloud compute helper / Cloud reviewer 2 as reviewers;
 start 10 box threads for phase A from /mnt/project-files/audit-r9/briefs/B<n>.md when the baseline is cut.
 Coordinator ack 04:32Z: Mac warned; reviews R1+R4 -> Cloud compute helper, R3+R6 -> Cloud reviewer 2; send head SHAs and review briefs to the coordinator.
 
 ## Verdicts received
+- RC1 #1637 fixed by root-cause seat at 8b6eb090 (ff on 8c7c1339); re-review pending. RC2 cause CONFIRMED (06:09Z): under HA 2026.5 switch PARALLEL_UPDATES=1 semaphore queued v6.6.12's turn-offs behind the solve; restart cancelled them (3/3 repro); R6 head leaves all four off. Barrier report pending.
+- #1637 (RC1) @8c7c1339: BLOCKED (Cloud compute helper, 05:58Z): class still open for check-wave-script.mjs reading prepare_baseline.sh; 3g parser passes 9/13 shape changes; 6/12 mutants survive. Back with the root-cause seat. DECISION: RC1 does not gate the baseline.
+- #1639 (R3) @7078363b: MERGE (Cloud reviewer 2, 05:51Z); Mac approves (mandate) + merges once full CI green.
+- R3 re-check @5d6afe07 (PR head = 7934e6ce + main c9453921), Cloud reviewer 2 05:43Z: B1/N1/N2/pins verified; BLOCKING B2 restore() (empty untracked file unnoticed; staged edit not restored). R3 seat resumed: one commit on 7934e6ce.
 - #1636 (R1) @5f7ca60d: MERGE (Cloud compute helper, 05:33Z), relayed to Mac for tvofi approval (mandate) + merge.
 - R3 full list (Cloud reviewer 2, 05:33Z): B1 tree restore; M1 to_zero, M2 tolerance, M3 _shard, M4 THREAD_FACTOR_MAX pins; N1 nested flock; N2 non-dict field. R3 seat resumed to add M1-M4, N2 on dd72e18a and push.
 - #1635 (R3a) @9534f5ec: MERGE (Cloud reviewer 2, 05:32Z). R1 2b1ddd10 pre-check clean (Cloud compute helper); merge verdict at PR head pending.
@@ -62,7 +66,10 @@ Coordinator ack 04:32Z: Mac warned; reviews R1+R4 -> Cloud compute helper, R3+R6
 - #1633 (R1a) @1a19dd9f: BLOCKED codeowners_gap (check-wave-script.mjs:1159 fixture quotes boost.py) — Cloud reviewer 2, 04:53Z. R1 seat resumed to fix both R1a and R1 heads (+2 optional nits). Mac holding #1633.
 
 ## Next step
-Dispatch R1, R3, R4, R6 fixers; reviewers via coordinator (Cloud compute helper / Cloud reviewer 2);
+06:21Z RC2 returned: handoff/r9-rc2-user-state-durable code f0396766, body 2dda53b4 (strip), stacks on R6 df50ab42, merges AFTER R6. R6 REGRESSION found by RC2 (mode set during startup saves before accuracy load; 7 comfort-learner overrides -> 0; repro tools/audit/handoff/r9-rc2/r6res.py). Coordinator told Mac to hold R6 and fix; Cloud reviewer 2 folds it into its verdict. Baseline waits on the R6 fix. Barrier (4 released instances: v2.4.1, v3.13.0, #1249, bug 5): action returns <0.5 s + state reads back after restart; 10 mutants killed, 1 survivor held by #1621 sweep. Closures will report UNDER-SCOPED (autofix records it).
+FORWARD-CARRY (finding-propagation): set_thermal_parameters runtime fields lost at restart -> lead for D1 seats; add to B4/B5/B6 box briefs when generating.
+BASELINE: after #1639 (R3) and #1638 (R6, with the RC2-found fix) merge, Mac stamps v6.7.1 (stamp.py); baseline = that stamp SHA (PLAN §1.3). Then check_scopes.py --ref <sha>, generate box briefs, start 10 box threads.
+(older:) Dispatch R1, R3, R4, R6 fixers; reviewers via coordinator (Cloud compute helper / Cloud reviewer 2);
 Mac seat pushes as hpo-author from handoff/<topic>, approves, merges one at a time. Then cut baseline.
 
 ## Transport
