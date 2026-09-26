@@ -361,6 +361,111 @@
     "class": null,
     "seam_rule_enumerates": null
    }
+  ],
+  "leads": [
+   {
+    "id": "D5-s2-51",
+    "vote": "verify",
+    "severity": "low",
+    "value": "warm_seeded_has_shift=0; buffer_stash_assignments=0; terminal_cost_takes_arg=1",
+    "metric_definition": "Static existence, in production source, of (a) any shift/offset code in coordinator._warm_seeded and (b) any assignment to last_buffer_trajectory plus whether the terminal-cost closure takes buffer_temps as a parameter.",
+    "method": "AST parse of coordinator.py and optimizer.py; no execution.",
+    "attacks": [
+     "contention: none, sub-second parse",
+     "reach: both symbols are live production call sites, confirmed by call-site grep",
+     "citation check: both docstring lines located verbatim"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s3-51",
+    "vote": "verify",
+    "severity": "low",
+    "value": "finally_early_exits=1 (nightly_ha.py:1274); swallowed_extra=3 of 3 (ValueError/TimeoutError/RuntimeError, recovery-fails arms)",
+    "metric_definition": "Count of return/break/continue statements lexically inside any finally: block in tests/nightly_ha.py (AST), plus arms with a different exception on the first refresh where the same finally-return path executes when the recovery refresh then fails.",
+    "method": "Whole-file AST walk + dynamic re-run with 3 exception types the finder did not use, plus a null-control variant with recovery succeeding.",
+    "attacks": [
+     "method nuance (non-refuting): the null-control variant (Exception subclasses with recovery succeeding) returns normally correctly, not as a swallow -- clarifies the defect is specific to BaseException subclasses the inner handler does not catch",
+     "test-gap step 4 not applicable: this is a direct instrument-code defect (tests/nightly_ha.py:1274), not a claim that the suite misses a production mutation",
+     "reach: this is CI/nightly infra, not custom_components production code"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s1-71",
+    "vote": "verify",
+    "severity": "low",
+    "value": "divergent_cells=1 of 3 (own probe set)",
+    "metric_definition": "Frontmatter cells where a from-scratch Python transcription of rules_sync.mjs:parse's path list differs from policy_lint.mjs:rulePaths's, on 3 probe shapes disjoint from the finder's 6.",
+    "method": "Regex transcription (not JS eval) with a verbatim-literal self-check, probed on new cells; live-corpus and well-formed-corpus null controls re-confirmed at 0.",
+    "attacks": [
+     "contention: none",
+     "reach: confirmed both functions are the actual production call sites via their callers",
+     "null control: 0 of 10 live rules diverge, matching finder exactly"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D11-s1-72",
+    "vote": "verify",
+    "severity": "low",
+    "value": "escaping_cells=3 of 3; live_uncovered_jobs_today=1 (rerun-stale-verdict)",
+    "metric_definition": "Workflow files named by GOV's own derivation comment whose job ids are never compared against GOV by entities.py's actual pin conjunct (_GOV_JOBS <= GOV, where _GOV_JOBS derives only from governance.yml).",
+    "method": "Direct import of governance_cost.py (no source-slice exec) plus an independent job-id regex applied to the live .github/workflows files in this tree; structural argument (no per-file mutation needed) corroborated by the finder's positive control.",
+    "attacks": [
+     "reach: pin genuinely executes at collection time per its own comment",
+     "contention: none, file reads only",
+     "did not re-run the positive-control mutation since the structural conjunct makes the escape a certainty, not a probabilistic re-measurement"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s1-71",
+    "vote": "verify",
+    "severity": "low",
+    "value": "sites_not_following=3 of 5 (mock.patch.object, patched before first import)",
+    "metric_definition": "Of 5 production sites resolving a cold-water inlet default, those whose delivered value does not move when const.DEFAULT_DHW_INLET_TEMP is patched 10.0->12.5.",
+    "method": "unittest.mock.patch.object instead of the finder's exec-recompile; static AST confirms two independent Final constants and a bare-literal field default.",
+    "attacks": [
+     "self-correcting method attack: patching AFTER import gave a false 4-of-5 due to config_flow._OPTION_FIELDS baking the constant at its own import time; patching BEFORE import (matching the finder's technique) reproduced 3 of 5 exactly -- recorded as a lesson in perturbation timing, not a refutation"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s3-72",
+    "vote": "verify",
+    "severity": "low",
+    "value": "write_only_members=4 of 5 (static AST census)",
+    "metric_definition": "ThermalModel._step_* members with a writer method (self.<attr>=/+= in method body) and no non-writer reader method, over the whole class body, source-only.",
+    "method": "Static AST walk of thermal_model.py -- no numpy import, no solve run, fully independent of the finder's runtime property-descriptor spy over 4 golden solves.",
+    "attacks": [
+     "contention: none, sub-second parse",
+     "reach: grep-confirmed simulate_trajectory collects self._step_buffer_refused via buffer_refused[i]=... but has no analogous line for _step_wood_refused, so the asymmetry is structural not a coverage gap of the 4 chosen scenarios",
+     "null control: the one live consumer correctly excluded by both methods"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D6-s1-81",
+    "vote": "verify",
+    "severity": "low",
+    "value": "fallback_reached=0 of 2 (regex-extracted Config.currency default='EUR' on both wheels)",
+    "metric_definition": "HA core versions whose Config.__init__ currency default, extracted from the wheel source, drives currency.resolve_currency to FALLBACK_CURRENCY.",
+    "method": "Regex-based extraction of Config.__init__ from the same two wheels (self-downloaded via the venv's Python 3.14 to satisfy HA's >=3.13 requirement), independent of the finder's AST walk; two iterations needed to get the regex right (class-name collision with ConfigSource, then the annotated `self.currency: str = ...` form), both documented in the harness.",
+    "attacks": [
+     "reachability: the defect IS that the path is reachable in real HA (unlike FakeHass) -- the null control confirms the SEK label's only real source is the test stub",
+     "contention: none, I/O-bound wheel download plus regex parse",
+     "generality: resolve_currency's `or FALLBACK_CURRENCY` makes ANY truthy core default unreachable to the fallback, not specifically 'EUR'"
+    ],
+    "class": null,
+    "seam_rule_enumerates": null
+   }
   ]
  }
 }
