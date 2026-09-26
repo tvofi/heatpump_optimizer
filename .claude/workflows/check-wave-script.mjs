@@ -846,19 +846,27 @@ await block('the scoped round driver', async () => {
   t('the check fires: a seat beside the Chromium seat is refused (positive control)', D.boxGaps(move('B9', 'B10', 'D4-s2', 'light'), ids).some((g) => /Chromium/.test(g)), 'Chromium shared')
   t('the check fires: a seat on no box, or a box naming a seat the scopes lack, is refused (positive control)',
     D.boxGaps(D.BOXES, ids.filter((s) => s !== 'D1-s5')).some((g) => /D1-s5, which the scopes/.test(g)) && D.boxGaps(D.BOXES, [...ids, 'D1-s6']).some((g) => /D1-s6 is in 0/.test(g)), 'passed')
+  const twice = JSON.parse(JSON.stringify(D.BOXES)); twice.B10.light.push('D1-s5')
+  t('the check fires: a seat listed on two boxes is refused (positive control)', D.boxGaps(twice, ids).some((g) => /D1-s5 is in 2 box/.test(g)), J(D.boxGaps(twice, ids)))
+  const dup = JSON.parse(JSON.stringify(D.BOXES)); dup.B5.light.push('D1-s5')
+  t('the check fires: a seat listed twice in one box is refused (positive control)', D.boxGaps(dup, ids).some((g) => /D1-s5 is in 2 box/.test(g)), J(D.boxGaps(dup, ids)))
   t('and an empty extraction is refused rather than reported clean (null control)', D.boxGaps({}, []).length > 0, 'nothing read, nothing refused')
 
   // The whole driver, stubbed.
   const i0 = rd.indexOf('export const meta')
   const rbody = rd.slice(0, i0) + rd.slice(rd.indexOf('\n}\n', i0) + 3)
-  const PREP = { exportDir: '/x', worktrees: {}, python: 'py', rotation_ok: true, scopes_ok: true, scopes_rc: 0, scopes_out: 'ok' }
-  const drive = async (args, { prep = {}, report = () => ({}) } = {}) => {
+  // One worktree per isolated seat, each its own path, so a seat handed the
+  // export (or another seat's tree) is visible in its prompt.
+  const isoDims = new Set(L.isolated)
+  const PREP = { exportDir: '/x', worktrees: Object.fromEntries(fileSeats.filter((id) => isoDims.has(id.split('-')[0])).map((id) => [id, `/w/${id}`])), python: 'py', rotation_ok: true, scopes_ok: true, scopes_rc: 0, scopes_out: 'ok' }
+  const drive = async (args, { prep = {}, report = () => ({}), nullSeats = [], leadsOut = {} } = {}) => {
     const calls = []
     const agent = async (prompt, o) => {
       calls.push({ label: o.label, prompt, schema: o.schema })
       if (o.label === 'prepare') return { ...PREP, ...prep }
-      if (o.label === 'gather') return { reports: Object.fromEntries(fileSeats.map((id) => [id, { dimension: id.split('-')[0], report_path: `/r/${id}`, coverage: [], unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [] }])), absent_boxes: [] }
-      if (o.label === 'leads') return { report_path: '/r/leads', findings: [], non_findings: [], harnesses: [], converted: [], closed: [] }
+      if (o.label === 'gather') return { reports: Object.fromEntries(fileSeats.map((id) => [id, { dimension: id.split('-')[0], report_path: `/r/${id}`, coverage: [], unfinished: [], findings: [], non_findings: [], harnesses: [], leads: [], ...report(id) }])), absent_boxes: [] }
+      if (o.label === 'leads') return { report_path: '/r/leads', findings: [], non_findings: [], harnesses: [], converted: [], closed: [], ...leadsOut }
+      if (nullSeats.includes(o.label)) return null
       if (o.label === 'intake') return { branch: 'b', registered: [], rejected: [] }
       if (o.label === 'quiet') return { quiet_path: '/q', d3_confirmed: [] }
       if (o.label.startsWith('collect-')) return { branch: 'b', commit: 'c' }
@@ -901,11 +909,22 @@ await block('the scoped round driver', async () => {
   const gi = await drive({ ...base, from: 'intake' })
   t('from "intake" runs no finder, gathers every box, then intake', gi.labels.filter(isFinder).length === 0 && gi.labels.includes('gather') && gi.labels.at(-1) === 'intake', J(gi.labels))
   t('an unknown box is refused', /is not one of/.test((await drive({ ...base, box: 'B11' })).error), 'B11 accepted')
+  const both = await drive({ ...base, box: 'B1', from: 'intake' })
+  t('box and from "intake" together are refused before Prepare', /exclusive/.test(both.error) && both.labels.length === 0, both.error || J(both.labels))
+  // Round 10 runs neither D11 nor D13 (cadence 3): B3 then carries only its
+  // two heavy seats, and the placement check is taken over the active seats.
+  const r10 = await drive({ ...base, round: 10, box: 'B3' })
+  t('a round that runs a subset places only the active seats (round 10, box B3: D0-s3 and D3-s3, no D11 or D13)',
+    r10.error === '' && J(r10.labels.filter(isFinder).sort()) === J(['D0-s3', 'D3-s3']), r10.error || J(r10.labels))
 
   // The finder prompt: its cells, the wall, the fields.
   const p = (l) => r9.calls.find((c) => c.label === l)?.prompt ?? ''
   t("each finder is told its seat's cells, how to list them, and to write leads outside them",
     finders.every((l) => p(l).includes(`--seat ${l}`) && p(l).includes(`finder seat ${l}`) && /record a lead/.test(p(l))), finders.filter((l) => !p(l).includes(`--seat ${l}`)).join(', '))
+  t("each finder's prompt carries its own seat's blocks from scopes.json",
+    finders.every((l) => { const [d, k] = l.split('-'); return p(l).includes(J(scopes[d].seats[k])) }), finders.filter((l) => { const [d, k] = l.split('-'); return !p(l).includes(J(scopes[d].seats[k])) }).join(', '))
+  t("an isolated seat works in its own worktree, and an export seat in the export (D0-s2 and D14-s3 vs D5-s1)",
+    p('D0-s2').includes('Work only in /w/D0-s2 ') && p('D14-s3').includes('Work only in /w/D14-s3 ') && p('D5-s1').includes('Work only in /x ') && !p('D0-s2').includes('/w/D0-s1'), [p('D0-s2'), p('D5-s1')].map((q) => (/Work only in (\S+)/.exec(q) ?? [])[1]).join(' | '))
   // Read off the file's blocks directly: D9-s2 owns M1 and M2 in two blocks.
   const owns = (l) => { const [d, k] = l.split('-'); const named = new Set(scopes[d].seats[k].flatMap((b) => b.steps)); return scopes[d].steps.filter((m) => named.has(m)).map((m) => `${d}.${m}`).join(', ') }
   t('and exactly the steps its blocks name, each a deep focus (D9-s2: two blocks)',
@@ -926,10 +945,20 @@ await block('the scoped round driver', async () => {
   const ip = r9.calls.find((c) => c.label === 'intake')?.prompt ?? ''
   t('intake registers without merging: no merge instruction, and it says the dedup is the judge\'s', !/Merge same-phenomenon|M-ids/.test(ip) && /do not merge/.test(ip) && /judge/.test(ip) && /finding\.schema\.json/.test(ip), ip.slice(0, 200))
   const F = (id, scope, cg = 'P3') => ({ id, scope, class_guess: cg, step: 'D1.M1', severity: 'low', title: id })
-  const wrong = await drive(base, { report: (l) => (l === 'D1-s2' ? { findings: [F('D1-s2-01', 'D1-s2'), F('D1-s2-02', 'D1-s1'), F('D1-s2-03', 'D1-s2', 'X9')] } : {}) })
+  // Each wrong finding is wrong in ONE way, so no predicate masks another:
+  // -02 another seat's scope; -03 an unknown class; D1-s1-03 its own scope but
+  // another seat's id; -04 and -05 a class id with junk after or before it.
+  const wrong = await drive(base, { report: (l) => (l === 'D1-s2' ? { findings: [F('D1-s2-01', 'D1-s2'), F('D1-s2-02', 'D1-s1'), F('D1-s2-03', 'D1-s2', 'X9'), F('D1-s1-03', 'D1-s2'), F('D1-s2-04', 'D1-s2', 'P3x'), F('D1-s2-05', 'D1-s2', 'xP3')] } : {}) })
   const rej = (wrong.out?.rejected ?? []).map((r) => r.id)
   t('a finding carrying another seat as scope, or an unknown class guess, is rejected at intake; its sibling is registered',
-    J(rej) === J(['D1-s2-02', 'D1-s2-03']) && /"id":"D1-s2-01"/.test(wrong.calls.find((c) => c.label === 'intake')?.prompt ?? ''), J(wrong.out?.rejected))
+    ['D1-s2-02', 'D1-s2-03'].every((id) => rej.includes(id)) && /"id":"D1-s2-01"/.test(wrong.calls.find((c) => c.label === 'intake')?.prompt ?? ''), J(wrong.out?.rejected))
+  t("a finding scoped to its own seat but numbered under another seat's id is rejected (D1-s1-03 returned by D1-s2)",
+    rej.includes('D1-s1-03') && /numbered under D1-s2/.test((wrong.out?.rejected ?? []).find((r) => r.id === 'D1-s1-03')?.reason ?? ''), J(wrong.out?.rejected))
+  t('class_guess is anchored at both ends (P3x and xP3 rejected)', rej.includes('D1-s2-04') && rej.includes('D1-s2-05'), J(rej))
+  t('...and exactly those five are rejected, the sibling registered (null control)', rej.length === 5 && !rej.includes('D1-s2-01'), J(rej))
+  const gone = await drive(base, { nullSeats: ['D8-s2'] })
+  t('a seat that never reports (null after one retry) refuses intake and is named missing',
+    !gone.labels.includes('intake') && J(gone.out?.missing) === J(['D8-s2']) && gone.labels.filter((l) => l === 'D8-s2').length === 2, J({ missing: gone.out?.missing, intake: gone.labels.includes('intake') }))
   const qp = r9.calls.find((c) => c.label === 'quiet')?.prompt ?? ''
   t("D3's survivors are confirmed by a full gate under the lease before intake (D3.md step 3), once per round",
     r9.labels.filter((l) => l === 'quiet').length === 1 && r9.labels.indexOf('quiet') < r9.labels.indexOf('intake') && /GATE_SCOPE=full/.test(qp) && /gate_lock\.py take/.test(qp) && /survived the full gate/.test(ip), J(r9.labels.slice(-4)))
@@ -942,6 +971,17 @@ await block('the scoped round driver', async () => {
   const lp = withLead.calls.find((c) => c.label === 'leads')?.prompt ?? ''
   t('a raised lead reaches the one leads seat, keyed by its owner seat, and is counted in the ledger',
     withLead.labels.filter((l) => l === 'leads').length === 1 && /"D1-s3":\[\{"owner_seat":"D1-s3"/.test(lp) && withLead.out?.rotation_round?.D7?.leads?.raised === 1, J(withLead.out?.rotation_round?.D7))
+  const LF = (id, scope) => ({ id, scope, class_guess: 'new', step: 'D1.M1', severity: 'low', title: id })
+  const conv = await drive(base, { report: (l) => (l === 'D7-s1' ? { leads: [{ owner_seat: 'D1-s3', file: 'pkg/lead_fixture.py', symbol: 'lead_fixture:x', what: 'w' }] } : {}),
+    leadsOut: { findings: [LF('D1-s3-51', 'D1-s3'), LF('D1-51', 'D1'), LF('D1-s4-51', 'D1-s3')], converted: [{ raised_by: 'D7-s1', file: 'pkg/lead_fixture.py', symbol: 'lead_fixture:x', finding_id: 'D1-s3-51' }] } })
+  const crej = (conv.out?.rejected ?? []).filter((r) => r.seat === 'leads').map((r) => r.id)
+  const cip = conv.calls.find((c) => c.label === 'intake')?.prompt ?? ''
+  t("a converted lead must carry a seat as scope and an id under it: D1-51 and D1-s4-51 rejected, D1-s3-51 registered from the lead",
+    J(crej) === J(['D1-51', 'D1-s4-51']) && /"id":"D1-s3-51","seat":"D1-s3","scope":"D1-s3"[^}]*"from_lead":true/.test(cip) && conv.out?.rotation_round?.D7?.leads?.converted === 1, J({ crej, D7: conv.out?.rotation_round?.D7 }))
+  const giLead = await drive({ ...base, from: 'intake' }, { report: (l) => (l === 'D7-s1' ? { leads: [{ owner_seat: 'D1-s3', file: 'pkg/lead_fixture.py', symbol: 'lead_fixture:x', what: 'w' }] } : {}) })
+  const glp = giLead.calls.find((c) => c.label === 'leads')?.prompt ?? ''
+  t('in a from "intake" run the leads seat is told the reports live on the box evidence branches, and a box run is not (null control)',
+    /handoff\/audit-r9-find-<box>/.test(glp) && !/handoff\/audit-r9-find-<box>/.test(lp), glp.slice(-400))
   t('and the round\'s ledger entry names every active dimension, one step list per seat',
     Object.keys(r9.out?.rotation_round ?? {}).length === L.dims.length && r9.out.rotation_round.D1.seats.length === Object.keys(scopes.D1.seats).length, J(Object.keys(r9.out?.rotation_round ?? {})))
 })
