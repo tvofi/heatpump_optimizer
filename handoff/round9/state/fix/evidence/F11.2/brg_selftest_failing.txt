@@ -1,0 +1,159 @@
+  ok   structure: null control
+  ok   structure: a metric re-recorded down is routine
+  ok   structure: a metric up is a raise
+  ok   structure: a metric deleted is a raise
+  ok   structure: a new metric is not a raise
+  ok   mutation: null control
+  ok   mutation: ledger rows re-keyed after a line shift are routine
+  ok   mutation: the unpinned count up is a raise
+  ok   mutation: a survivor fraction up is a raise
+  ok   mutation: the committed count removed is a raise
+  ok   coverage: null control
+  ok   coverage: a floor up, a pragma paid off, is routine
+  ok   coverage: a floor down is a raise
+  ok   coverage: the ceiling down is a raise
+  ok   coverage: a pragma added is a raise
+  ok   stress: null control
+  ok   stress: a scenario re-recorded cheaper is routine
+  ok   stress: a ratio up is a raise
+  ok   stress: a scenario dropped is a raise
+  ok   stress: the override lowered is a raise
+  ok   stress: the override withdrawn is routine (the literal is stricter)
+  ok   stress: an override granted is a raise
+  ok   typing: null control
+  ok   typing: a re-measured environment and a new record sha are routine
+  ok   typing: a type-ignore added is a raise
+  ok   typing: an error code appearing is a raise
+  ok   typing: the ruler's toolchain moved is a raise
+  ok   policy: null control
+  ok   policy: a cap down, a deleted file's cap dropped, a sample widened are routine
+  ok   policy: a per-file cap up is a raise
+  ok   policy: the band widened is a raise
+  ok   policy: a role's sample narrowed is a raise
+  ok   policy: a cap dropped while its file stays is a raise
+  ok   structure: a metric set to NaN is a raise
+  ok   coverage: a floor set to NaN is a raise
+  ok   structure: a metric set to +inf is a raise
+  ok   coverage: a floor set to +inf is a raise
+  ok   structure: a metric set to -inf is a raise
+  ok   coverage: a floor set to -inf is a raise
+  ok   structure: a metric set to a string is a raise
+  ok   coverage: a floor set to a string is a raise
+  ok   structure: a metric set to null is a raise
+  ok   coverage: a floor set to null is a raise
+  ok   structure: a metric set to a bool is a raise
+  ok   coverage: a floor set to a bool is a raise
+  ok   structure: a new metric at NaN is a raise
+  ok   structure: a new metric as a string is a raise
+  ok   mutation: the survivor fraction at +inf is a raise
+  ok   stress: a ratio at NaN is a raise
+  ok   stress: the override floor at -inf is a raise
+  ok   typing: a new error code at +inf is a raise
+  ok   policy: a per-file cap at NaN is a raise
+  ok   a NaN base lowered to a number is not a raise (null control)
+  ok   unknown file: a change with no schema is a raise
+  ok   unknown file: added is a raise
+  ok   a budget file deleted is a raise
+  ok   a head that does not parse is a raise
+  ok   no raise: passes with no review at all (null control)
+  ok   no raise: never reads the API
+  ok   an approved raise passes
+  ok   an unapproved raise fails
+  ok   a raise approved only by the approver App fails
+  ok   a stale approval on an older SHA fails
+  ok   an approval then changes requested fails
+  ok   an approval then dismissed fails
+  ok   an approval then a comment still passes
+  ok   a stale approval then a fresh one passes
+  ok   an account named tvofi with another id fails
+  ok   the owner's id under another login fails (a rename is re-pinned, not followed)
+  ok   the owner's id and login on a non-User account fails
+  ok   a reviews read that fails, fails closed
+  FAIL a raise approved at the head by an agent-declared review fails (the orchestrator's mandate wording): got 0, want 1
+  FAIL a raise approved at the head by an agent-declared review fails (the 'given by the orchestrator' wording): got 0, want 1
+  FAIL a raise approved at the head by an agent-declared review fails (a seat's wording): got 0, want 1
+  FAIL a raise approved at the head by an agent-declared review fails (a delegation's wording): got 0, want 1
+  FAIL a raise approved at the head by an agent-declared review fails (a mandate named alone): got 0, want 1
+  FAIL a raise approved at the head by an agent-declared review fails (the agent footer): got 0, want 1
+  ok   the owner's own approval at the head still passes beside an agent-declared one
+  FAIL an agent-declared approval does not revive the owner's stale one: got 0, want 1
+  ok   an owner approval with an empty body passes (null control)
+  ok   an owner approval whose body names no agent passes (null control)
+  FAIL the refusal names why: got False, want True
+  ok   the tree has budget files to read
+  ok   .claude/workflows/policy_budgets.json: has a schema
+  ok   .claude/workflows/policy_budgets.json: carries at least one cap the gate reads
+  ok   .claude/workflows/policy_budgets.json: null control, the file against itself
+  ok   .claude/workflows/policy_budgets.json: every cap moved the strict way is routine (47 cap(s))
+  ok   .claude/workflows/policy_budgets.json: every cap moved the loose way is a raise
+  ok   tests/coverage_budgets.json: has a schema
+  ok   tests/coverage_budgets.json: carries at least one cap the gate reads
+  ok   tests/coverage_budgets.json: null control, the file against itself
+  ok   tests/coverage_budgets.json: every cap moved the strict way is routine (5 cap(s))
+  ok   tests/coverage_budgets.json: every cap moved the loose way is a raise
+  ok   tests/mutation_budgets.json: has a schema
+  ok   tests/mutation_budgets.json: carries at least one cap the gate reads
+  ok   tests/mutation_budgets.json: null control, the file against itself
+  ok   tests/mutation_budgets.json: every cap moved the strict way is routine (2 cap(s))
+  ok   tests/mutation_budgets.json: every cap moved the loose way is a raise
+  ok   tests/stress_budgets.json: has a schema
+  ok   tests/stress_budgets.json: carries at least one cap the gate reads
+  ok   tests/stress_budgets.json: null control, the file against itself
+  ok   tests/stress_budgets.json: every cap moved the strict way is routine (204 cap(s))
+  ok   tests/stress_budgets.json: every cap moved the loose way is a raise
+  ok   tests/structure_budgets.json: has a schema
+  ok   tests/structure_budgets.json: carries at least one cap the gate reads
+  ok   tests/structure_budgets.json: null control, the file against itself
+  ok   tests/structure_budgets.json: every cap moved the strict way is routine (25 cap(s))
+  ok   tests/structure_budgets.json: every cap moved the loose way is a raise
+  ok   tests/typing_budgets.json: has a schema
+  ok   tests/typing_budgets.json: carries at least one cap the gate reads
+  ok   tests/typing_budgets.json: null control, the file against itself
+  ok   tests/typing_budgets.json: every cap moved the strict way is routine (2 cap(s))
+  ok   tests/typing_budgets.json: every cap moved the loose way is a raise
+  ok   e2e: a routine edit exits 0 (null control)
+  ok   e2e: ... reads no reviews
+  ok   e2e: ... compares at the fork point, not the moved base
+  ok   e2e: ... and reports every budget file it read
+  ok   e2e: an unapproved raise exits 1
+  ok   e2e: ... names the raise
+  ok   e2e: ... after asking for this PR's reviews, every page
+  ok   e2e: a raise approved on the head, on the second page, exits 0
+  ok   e2e: a raise whose latest approval is stale exits 1
+  ok   e2e: a reviews read that exits non-zero exits 1, whatever it printed
+  ok   e2e: a cap edited to NaN exits 1
+  ok   e2e: an added budget file with no schema exits 1
+  ok   e2e: a deleted budget file exits 1
+  ok   e2e: a per-file cap dropped while the file stays exits 1
+  ok   e2e: --repo is the repository asked
+  ok   e2e: without --repo, GITHUB_REPOSITORY is
+  ok   e2e: no --pr exits 2 and asks nothing
+  ok   e2e: an unknown flag exits 2 and asks nothing
+  ok   e2e: a trailing flag with no value exits 2 and asks nothing
+  ok   e2e: an unresolvable base fails closed
+  ok   rerun: a passing review run re-runs the red pull_request run at its head
+  ok   rerun: only the newest pull_request run counts
+  ok   rerun: ... and it is the one re-run when it is red
+  ok   rerun: a failing review run re-runs nothing (the red stands)
+  ok   rerun: a pull_request trigger re-runs nothing (no loop on the re-run's own completion)
+  ok   rerun: another workflow's run is not the gate
+  ok   rerun: a red run at another head is left alone
+  ok   rerun: a red run of another workflow is left alone
+  ok   rerun: a cancelled run is left alone
+  ok   rerun: a run still going is waited for
+WAIT: run 3 at hhhhhhhhhhhh is in_progress
+RERUN: run 3 at hhhhhhhhhhhh concluded failure
+RESULT rerun_requested=3
+  ok   rerun: end to end, waits for the run and then re-runs it
+WAIT: run 3 at hhhhhhhhhhhh is in_progress
+WAIT: run 3 at hhhhhhhhhhhh is in_progress
+WAIT: run 3 at hhhhhhhhhhhh is in_progress
+WAIT: run 3 at hhhhhhhhhhhh is in_progress
+REFUSED: the pull_request run did not finish in time; re-run it by hand
+  ok   rerun: a run that never finishes is a red job, not a silent pass
+RERUN: run 3 at hhhhhhhhhhhh concluded failure
+REFUSED: HTTP 403
+  ok   rerun: a refused re-run request is a red job
+NONE: run 3 at hhhhhhhhhhhh concluded success; nothing is stale
+  ok   rerun: nothing stale posts nothing (null control)
+budget_raise_gate self-test: 147 checks, 8 failed
