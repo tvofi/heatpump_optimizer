@@ -1,5 +1,18 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.1
+
+the round-9 audit baseline: the find and verify drivers and their checkers, instrument and lease-doc fixes, prepr running the pinned local checks a red CI would have caught, and the bug-5 remainder -- a mode change is now saved before the refresh, after the startup read has landed, so a restart keeps it without losing stored state.
+
+- #1632 — audit: round-9 readiness R4, instrument notes and stale lease/playwright docs
+- #1633 — audit: round-9 readiness R1a, the find-driver checker lands first
+- #1634 — audit: round-9 readiness R4b, current gate-lease text in web-fragments and its web-*.js copies
+- #1635 — audit: round-9 readiness R3a, the verify-driver checker lands first
+- #1636 — audit: round-9 readiness R1, the find driver
+- #1637 — audit: round-9 RC1, prepr runs the pinned local checks a red CI would have caught
+- #1638 — fix: save a mode change before the refresh, so a restart keeps it (bug 5 owed work)
+- #1639 — audit: round-9 readiness R3, the verify driver
+
 ## v6.7.0
 
 the v6.6.12 bug report closes out: the pump-duty arbiter becomes the pump's

@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 72.0,
+   "seconds": 106.8,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -555,6 +555,7 @@
    "tests/golden/config_flow.json",
    "tests/golden/winter_single_dhw.json",
    "tests/harness.py",
+   "tests/harness_headers.py",
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/components/binary_sensor.py",
@@ -609,6 +610,7 @@
    "tests/structure_budgets.json",
    "tests/typing_ruler.py",
    "tests/validate.py",
+   "tools/audit/judge_batch.py",
    "tools/audit/preflight.sh",
    "tools/audit/round4/D11/d11lib.py",
    "tools/audit/round4/D11/dora_keys.py",
