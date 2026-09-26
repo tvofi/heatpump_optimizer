@@ -65,7 +65,8 @@ import numpy as np  # noqa: E402
 from harness import Results, FakeHass, FakeEntry  # noqa: E402
 from heatpump_optimizer import const  # noqa: E402
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator  # noqa: E402
-from heatpump_optimizer.store import _sanitize  # noqa: E402
+from heatpump_optimizer.store import QuarantiningStore, _sanitize  # noqa: E402
+from homeassistant.util import dt as _dt_util  # noqa: E402
 from homeassistant.helpers import storage as _storage  # noqa: E402
 
 logging.disable(logging.CRITICAL)
@@ -500,6 +501,158 @@ def _no_rewrap_check() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Arm 5 -- the instant bound (round 9, persisted future instant)
+# ---------------------------------------------------------------------------
+
+def _instants(obj, path=()):
+    """Every string leaf that reads as a date AND a time (longer than a date)."""
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            yield from _instants(v, path + (k,))
+    elif isinstance(obj, list):
+        for i, v in enumerate(obj):
+            yield from _instants(v, path + (i,))
+    elif isinstance(obj, str) and len(obj) > 10:
+        try:
+            when = _dt.datetime.fromisoformat(obj)
+        except ValueError:
+            return
+        yield path, when
+
+
+def _utc(when):
+    return when if when.tzinfo is not None else when.replace(tzinfo=_dt.timezone.utc)
+
+
+def _with_instants(payload, when):
+    """The payload with every instant leaf, and two probes, set to ``when``."""
+    out = json.loads(json.dumps(payload))
+    for path, _w in list(_instants(out)):
+        _set_path(out, path, when.isoformat())
+    if isinstance(out, dict):
+        out["__instant_probe"] = when.isoformat()
+        out["__instant_probe_aware"] = _utc(when).isoformat()
+    return out
+
+
+#: Stores whose instants no system bound governs (``lead=None``), each with
+#: its reason. An opt-out not listed here, or a listed one that no longer
+#: opts out, fails the arm: an exemption is reviewed, never inferred.
+LEAD_OPT_OUTS = {
+    "away": "the user-set return time; no system maximum exists",
+    "manual_plan": "D1-s2-54 (F1.4) bounds the expiry; set the lead there and drop this",
+}
+
+
+def _instant_arm(by_name) -> None:
+    """No stored instant reaches a loader beyond the clock plus its store's lead.
+
+    Every store, through its real loader: each instant leaf -- and a probe leaf,
+    so a store with none is still driven -- written 400 days ahead of the clock
+    that reads it back. What ``QuarantiningStore.async_load`` hands the loader
+    is recorded, and none of its instants may lie beyond now plus that store's
+    declared lead. A lead of ``None`` is an opt-out, printed. Null controls: an
+    honest payload comes back byte-identical, and so does an instant one minute
+    inside a store's lead, so a lead cannot be dropped to zero unseen.
+    """
+    t0 = _dt.datetime(2026, 6, 1, 12, 0, 0)
+    seen: list = []
+    original = QuarantiningStore.async_load
+
+    async def _recording(self):
+        data = await original(self)
+        seen.append((str(getattr(self, "key", None) or getattr(self, "_key", "")),
+                     getattr(self, "_lead", _dt.timedelta(0)), data))
+        return data
+
+    def _load(name, key, payload):
+        seen.clear()
+        _storage._DISK.clear()
+        _storage._DISK[key] = json.dumps(payload)
+        asyncio.run(LOADERS[name](_build_coord()))
+        _storage._DISK.clear()
+        return [r for r in seen if r[0] == key]
+
+    escaped, opted_out, rewritten, lead_lost, driven, checked = [], [], [], [], 0, 0
+    QuarantiningStore.async_load = _recording
+    _dt_util.freeze(t0)
+    try:
+        for name in LOADERS:
+            if name not in by_name:
+                continue
+            key, healthy = by_name[name]
+            records = _load(name, key, _with_instants(healthy, t0 + _dt.timedelta(days=400)))
+            driven += bool(records)
+            for _key, lead, data in records:
+                if lead is None:
+                    opted_out.append(name)
+                    continue
+                bound = _utc(t0) + lead
+                for path, when in _instants(data):
+                    checked += 1
+                    if _utc(when) > bound:
+                        escaped.append(f"{name}:{'/'.join(map(str, path))}")
+            honest = _with_instants(healthy, t0 - _dt.timedelta(hours=1))
+            for _key, lead, data in _load(name, key, honest):
+                if json.dumps(data, sort_keys=True) != json.dumps(honest, sort_keys=True):
+                    rewritten.append(name)
+                if lead:
+                    inside = _with_instants(healthy, t0 + lead - _dt.timedelta(minutes=1))
+                    for _k, _l, kept in _load(name, key, inside):
+                        if json.dumps(kept, sort_keys=True) != json.dumps(inside, sort_keys=True):
+                            lead_lost.append(name)
+        # What an honest clock wrote, the same clock reads back unchanged: the
+        # real writers of the two stores that hold legitimate futures, at
+        # their longest lead, so a lead dropped to zero cannot go unseen.
+        _storage._DISK.clear()
+        writer = _build_coord()
+        from heatpump_optimizer import accuracy as _acc, boost as _boost
+        _boost.held_for(writer).set("dhw", True, t0)
+        asyncio.run(_boost.persist(writer))
+        _far = max(_acc.LEAD_BUCKETS)
+        writer._accuracy.note_lead_prediction(t0 + _dt.timedelta(hours=_far), _far, 21.0)
+        asyncio.run(writer._async_save_accuracy())
+        written = {n: by_name[n][0] for n in ("boost", "accuracy")}
+        wrote = {n: json.loads(_storage._DISK[k]) for n, k in written.items()}
+        for name, key in written.items():
+            for _k, _l, kept in _load(name, key, wrote[name]):
+                if json.dumps(kept, sort_keys=True) != json.dumps(wrote[name], sort_keys=True):
+                    lead_lost.append(f"{name} (writer round trip)")
+    finally:
+        QuarantiningStore.async_load = original
+        _dt_util.freeze(None)
+    R.check(
+        "no stored instant reaches a loader beyond the clock plus its store's lead",
+        not escaped,
+        f"escaped={escaped[:8]} of {len(escaped)}",
+    )
+    R.check(
+        "the instant sweep drove every loader and checked instants (not vacuous)",
+        driven == len(LOADERS) and checked >= 2 * (driven - len(LEAD_OPT_OUTS)),
+        f"driven={driven} loaders={len(LOADERS)} instants_checked={checked}",
+    )
+    R.check(
+        "every lead opt-out is a listed, reasoned one, and every listed one opts out",
+        set(opted_out) == set(LEAD_OPT_OUTS),
+        f"opted_out={sorted(set(opted_out))} listed={sorted(LEAD_OPT_OUTS)}",
+    )
+    R.check(
+        "an honest payload comes back byte-identical (null control)",
+        not rewritten,
+        f"rewritten={rewritten}",
+    )
+    R.check(
+        "an instant inside its store's lead survives the load (a lead is not lost)",
+        not lead_lost,
+        f"lead_lost={lead_lost}",
+    )
+    print(f"RESULT instant_escaped_total={len(escaped)} count")
+    print(f"RESULT instant_stores_driven={driven} count")
+    print(f"RESULT instant_leaves_checked={checked} count")
+    print(f"RESULT instant_lead_opt_outs={sorted(set(opted_out))}")
+
+
 def _main() -> int:
     disk = _healthy_payloads()
     by_name = {}
@@ -664,6 +817,7 @@ def _main() -> int:
     print(f"RESULT loader_escape_total={loader_escape} count")
     print(f"RESULT type_drift_total={type_drift} count")
     print(f"RESULT refresh_escape_total={refresh_escape} count")
+    _instant_arm(by_name)
     _publish_arm()
     _no_rewrap_check()
     return R.close("FINITE BOUNDARY CHECKS")

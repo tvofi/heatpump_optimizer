@@ -2281,9 +2281,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         self._dhw_accuracy = AccuracyTracker()
         self._pending_prediction: dict[str, Any] | None = None
         self._accuracy_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
-            hass,
-            ACCURACY_STORE_VERSION,
-            f"{DOMAIN}_{entry.entry_id}_accuracy",
+            hass, ACCURACY_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_accuracy",
+            lead=timedelta(hours=max(LEAD_BUCKETS)),
         )
         # Serialized form of the last payload each store accepted, keyed by
         # store name. An every-cycle save that rewrites unchanged content is
@@ -2348,9 +2347,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator):
         # the day it was set for.
         self._manual_override: ManualOverride | None = None
         self._manual_plan_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
-            hass,
-            MANUAL_PLAN_STORE_VERSION,
-            f"{DOMAIN}_{entry.entry_id}_manual_plan",
+            hass, MANUAL_PLAN_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_manual_plan",
+            lead=None,  # D1-s2-54 (F1.4) bounds the expiry; its lead lands there
         )
 
         # --- Active system identification (item 18) ------------------------
