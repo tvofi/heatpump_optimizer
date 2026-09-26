@@ -330,6 +330,140 @@
     "class": null,
     "seam_rule_enumerates": null
    }
+  ],
+  "leads": [
+   {
+    "id": "D1-s1-51",
+    "vote": "verify",
+    "severity": "low",
+    "value": "divergent=6/6; control_divergent=0/1; perturbed(--orjson) divergent=0/6",
+    "metric_definition": "of 6 stored documents (healthy leaf + one hostile number token each), count whose QuarantiningStore.async_load payload differs through the stub's stdlib-json codec vs Home Assistant's orjson decode-or-None codec",
+    "method": "verbatim re-run of tools/audit/round9/D1/leads/stub_store_codec.py with and without --orjson",
+    "attacks": "contention: negligible, load1=0.30, count-only metric; gate mode: n/a; grid artefact: n/a, 6 named discrete cells; null control: healthy control doc control_divergent=0, passes; reachability: correctly scoped as an instrument (test-double) defect, not claimed as production-reachable; severity: low is earned, no direct user-facing harm from this defect alone",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s1-52",
+    "vote": "verify",
+    "severity": "low",
+    "value": "divergent=6/6 (stub_now_naive=1); perturbed(HASTUB_TZ=UTC) divergent=0/6 (stub_now_naive=0)",
+    "metric_definition": "of 3 production seams x {aware, naive} stored stamps, cells whose TypeError-raise verdict under the stub's default now() differs from the verdict under an aware now",
+    "method": "verbatim re-run of tools/audit/round9/D1/leads/stub_naive_clock.py with and without HASTUB_TZ=UTC",
+    "attacks": "contention: negligible, load1=0.34, count-only metric; gate mode: n/a; grid artefact: n/a, all 6 named cells shown individually; null control: the HASTUB_TZ=UTC arm (aware stub vs aware HA agree); reachability: the three seams are named production methods (SnapshotRing.due, CurveLearner._step_down, ComfortLearner._decay) reached via real objects; severity: low fits, an instrument (test-double clock) defect that inverts suite verdicts rather than a direct product bug",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s2-51",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "quiet_solve_failed=3/3, quiet_plan_published=3/3, arbiter_cycles_failed=3/3, arbiter_skipped_steps=15/15; --fence and --no-inject both give 0/0 across all counters",
+    "metric_definition": "per arm over 3 cycles: cycles reported failed (solve_failed return / _async_update_data raise) and sibling cycle steps not reached, with a raise injected in a best-effort subsystem on the cycle path",
+    "method": "verbatim re-run of tools/audit/round9/D1/leads/cycle_fence.py default, --fence, and --no-inject",
+    "attacks": "contention: negligible, load1=0.63-0.71, count-only metric; gate mode: n/a; grid artefact: n/a; null control: --no-inject reproduces the --fence numbers exactly (0/0), isolating the injected raise as the cause; reachability: tracebacks show the raise crossing real production frames (coordinator.py:5096/10454/4653/6676) via asyncio.run, not a FakeHass executor artefact; severity: medium earned, a real producer (D1-s3-03) exists and the consequence (false failure, skipped actuation/saves) is recoverable next cycle",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s2-52",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "lost=5/5 stores (energy 1234.5->0.0, ledger 77->None, thermal 1.3->1.0, price 2->0, accuracy 7.5->5.0), mode_arm_lost=0/1; --after-read and --wait both give lost=0/5",
+    "metric_definition": "of 5 stores, count whose persisted learned marker differs from the value held after every startup load has landed, when each store's writer runs during its load",
+    "method": "verbatim re-run of tools/audit/round9/D1/leads/startup_clobber.py default, --after-read, and --wait",
+    "attacks": "contention: negligible, load1=0.63-0.71, deterministic outcome despite real asyncio timing; gate mode: n/a; grid artefact: n/a, 5 named stores each shown, same mechanism in each; null control: --after-read gives lost=0/5; the existing async_set_mode writer (which already waits) loses nothing (mode_arm_lost=0); reachability: LoopHass.async_create_task matches real HA's eager-start task semantics",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s2-53",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "changed_fields=26/28, lost=24/26 (survived: dhw_cooling_rate, buffer_cooling_rate); --persist gives lost=0/26",
+    "metric_definition": "of the set_thermal_parameters fields whose call changed coordinator state, count whose changed footprint (simple-typed attrs on _thermal_params/_opt_config/coordinator) is absent after a restart with every store load landed",
+    "method": "verbatim re-run of tools/audit/round9/D1/leads/runtime_params_restart.py default and --persist",
+    "attacks": "contention: negligible, load1=0.49-0.53, count-only metric; gate mode: n/a; leave-one-out: dropping any one of the 24 lost fields leaves the same mechanism demonstrated; null control: --persist gives lost=0/26; reachability: async_update_thermal_params is the real service-call write path over a real asyncio loop with eager task starts; severity: medium defensible (silent revert, workaround is re-issuing the call); a case for high exists but no evidence to override",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s2-54",
+    "vote": "verify",
+    "severity": "low",
+    "value": "default 48h expires_at: free_at_apply=0, free_at_23h=0 of 96; null control (20h default): free_at_apply=16, free_at_23h=96; --clamp perturbation: free_at_apply=16, free_at_23h=96",
+    "metric_definition": "PIN_FREE steps in the installed override's 96-step space-channel pins at apply time and 23h later",
+    "method": "re-ran tools/audit/round9/D1/leads/manual_plan_expiry.py (default, --clamp) exactly per header; cross-read services.py:864-892 (raw_expires parsed via dt_util.parse_datetime, no upper clamp; build_override only refuses a past expiry) and services.yaml:455-457 (expires_at is a free-text service field, user-reachable)",
+    "attacks": "contention: n/a (exact count, thread_factor=1.000); gate-mode: n/a; grid artefact: n/a (single scenario); null control: present, matches finder's value; real-HA reachability: confirmed via services.yaml field, not stub-only; severity: accepted as recorded, though a stricter reading is plausible",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s2-55",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "default: planned=0 of 3, fallback_notice=0; --wrap: planned=3 of 3, fallback_notice=1; --no-inject control: planned=3 of 3, fallback_notice=0",
+    "metric_definition": "of 3 cycles with the worker spawn failing, cycles whose async_run_optimization publishes a plan, plus count of solve_worker_fallback issues raised",
+    "method": "re-ran tools/audit/round9/D1/leads/worker_spawn.py (default, --wrap, --no-inject) exactly per header; cross-read coordinator.py:1091-1103 confirming _ensure_worker() executes before the inner try/except Exception block that maps transport failures to ProcessWorkerUnavailable, and :1214-1230 confirming _await_optimize catches only ProcessWorkerUnavailable",
+    "attacks": "contention: n/a (exact count); gate-mode: n/a; grid artefact: n/a (uniform 3-cycle result); null control: present, clean; real-HA reachability: subprocess.Popen and _ensure_worker are real production code, EAGAIN is a real errno under host resource pressure, not FakeHass-only; severity: medium as recorded is reasonable",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s5-51",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "default: unavailable=4 of 7 (61/90/240/480 min), rereport_unavailable=0 of 1; --scale 8: unavailable=0 of 7; --no-watchdog: unavailable=0 of 7",
+    "metric_definition": "of source-silence ages {5,30,59,61,90,240,480} min with a valid source state, cells whose IndoorTempSensor.available is False after one input cycle",
+    "method": "re-ran tools/audit/round9/D1/leads/indoor_silence.py (default, --scale 8, --no-watchdog) exactly per header; cross-read inputs.py:594-629 (_age_gate) confirming the stamp precedence last_reported > last_updated > last_changed and the age>limit stale rule",
+    "attacks": "contention: n/a (exact count); gate-mode: n/a; grid artefact: leave-one-out dropping the 480 min cell still leaves 3 of the remaining 6 cells (61/90/240) unavailable; null control: present (re-report arm and 5/30/59 min cells), clean; real-HA reachability: report-on-change Zigbee/BLE thermometers are an ordinary real device pattern; severity: medium accepted as recorded, arguably high, but the base rate is unmeasured here, as the finder itself flags",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s5-52",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "default: delivered_minus127=6 of 6, delivered_85=6 of 6, delivered_sentinels=12 of 12, control_21_3=6 of 6; --range: delivered_minus127=0 of 6, delivered_85=2 of 6, delivered_sentinels=2 of 12",
+    "metric_definition": "of 6 temperature input keys x {-127, 85} degC, cells InputReader.read returns ok with the sentinel value",
+    "method": "re-ran tools/audit/round9/D1/leads/sentinel_temps.py (default, --range) exactly per header; grepped inputs.py for any per-key range/plausibility check (none beyond _finite and normalize_temperature_c) and confirmed the only physical-range check is coordinator.py:1358 _dhw_inlet_c's single-consumer -5..35 clamp",
+    "attacks": "contention: n/a (exact count); gate-mode: n/a; grid artefact: leave-one-out dropping one 85 C survivor leaves 10 of 11 delivered by default and 1 of 11 under --range; null control: present (21.3 C, 6 of 6), clean; real-HA reachability: DS18B20 fault sentinels are documented real hardware behaviour; severity: medium as recorded is reasonable (silent corruption of solver inputs)",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s2-71",
+    "vote": "verify",
+    "severity": "low",
+    "value": "default: unreadable_cells=4 of 4, matching_cells=0 of 4, null_control_kept_attrs_readable=4 of 4, undeclared_in_ha_contract=1; --perturb store: unreadable_cells=0 of 4, matching_cells=4 of 4",
+    "metric_definition": "configured optimization_interval cells whose coordinator.update_interval is absent after the real coordinator __init__ over the hastub base class",
+    "method": "re-ran tools/audit/round9/D1/leads/l3_update_interval.py (default, --perturb store) exactly per header; read tests/hastub/homeassistant/helpers/update_coordinator.py:130-150 (update_interval kwarg accepted, never assigned) and tests/ha_contract.py:618-641 (absent tuple omits update_interval)",
+    "attacks": "contention: n/a (exact count); gate-mode: n/a; grid artefact: n/a (uniform 4-cell result); null control: present (name, config_entry readable 4 of 4), clean; test-gap mutation: coordinator.py:1830 (the one call site passing update_interval), and nothing in tests/ or custom_components/ outside the stub reads .update_interval back, so a wrong constant there is uncaught; instrument (hastub) defect per COMMON.md; severity: low as recorded",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D3-s2-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "M31 6/6, S17 12/288, S18 3/288, S05 1/3 (all in-domain divergence 0/60,0/10,0/10,0/4)",
+    "metric_definition": "Count of isfinite guards in the eight modules' persisted-state parsers whose GUARD_OFF mutant survives every measured closure driver, cross-checked by witness.py's in-domain-vs-corrupt-payload divergence count",
+    "method": "Confirmed all four production lines live at 96b89163 match storeguards.json/pool.json 'old' text; ran witness.py M31 S05 S17 S18 (wall 0.654s, thread_factor=1.000, load1=0.47), reproducing every RESULT exactly against REPORT.md and the finding's evidence/perturbation fields; no prescreen/mutant-pool/full-gate rerun and quiet window not run (tvofi rule)",
+    "attacks": "contention: clean (thread_factor 1.000, load1 0.47); gate mode: recorded env_drift --all in the 17-driver run (not re-run); grid artefact: n/a; null control: present (comment-only optimizer.py edit lives on all 17 drivers, three runs); real-HA reachability: yes, from_dict is the real Store-restore path at coordinator startup, not a FakeHass-only path; severity: medium earned (needs a corrupted store; crash or free-priced hour / inf billed peak)",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D3-s2-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "96/96 -> 0/96 (in-domain divergence 10/10)",
+    "metric_definition": "Guessed steps (of 96) with sigma > 0 from extend_price_series after a learned PriceShapeModel round-trips through as_dict/from_dict",
+    "method": "Confirmed price_model.py:368 live at 96b89163 matches storeguards.json S19 'old' text; ran witness.py S19 (wall 0.344s, thread_factor=1.000, load1=0.59), reproducing 96/96->0/96 and 10/10 in-domain divergence exactly; no prescreen/mutant-pool/full-gate rerun and quiet window not run (tvofi rule)",
+    "attacks": "contention: clean; gate mode: recorded all 15 drivers green including env_drift --all (not re-run); grid artefact: n/a; null control: the existing features.py:41446 check only feeds a corrupt 'x' payload against a fresh all-zero model, which the mutant also satisfies, shown directly by the round-trip result; real-HA reachability: yes, same Store-restore path; severity: low earned (price_risk_lambda defaults to 0.0, opt-in; other effect is a diagnostic silently resetting)",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
   ]
  }
 }
