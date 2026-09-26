@@ -23,6 +23,11 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 - 12:10Z LEADS SPLIT 4 WAYS (tvofi asked 12:04Z, cmsg_01EL5jLi4rokGBbkaevYXSJVWUMZMF2aJHNrX5SNCg16cr): L1 (original seat; D0/D1/D2/D3/D5 + 2 carried D1-s1, 34 leads, ids -51..59, branch handoff/audit-r9-leads), L2 (D4/D6/D8/D10/D12 + UI/doc unknowns, 25, ids -61..69, handoff/audit-r9-leads-l2), L3 (D7/D9/D11 + process unknowns, 32, ids -71..79, -l3), L4 (remaining production unknowns, 18, ids -81..89, -l4). Sets: handoff/round9/intake/leads_L*.json; brief template leads_brief.txt. Outputs scratchpad/intake/leads_result_L*.json (L1: leads_result.json) and progress_L*.txt (per-lead lines relayed to tvofi). All four are background Agents in the orchestrator session; relaunch any lost one from its brief.
 - Batch-1 run: Workflow scriptPath scratchpad/audit-find-r9.js, args {round:9, baseline:1936d5ca..., repo:/home/claude/heatpump_optimizer, rotation, scopes (origin/main), from:"intake", defer:["D3-s2","D3-s3","D7-s1"], judge_flags}.
 
+## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
+- Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
+- Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
+- The indoor-sensor lead (L1) has a D4 side: a source-id attribute so the card can draw the raw thermometer through a staleness gap.
+
 ## RESTART FROM COLD (standing rule, tvofi 2026-09-26T10:19Z: keep this doc current after every milestone)
 1. Read this file top to bottom; the mirror is handoff/round9/RESUME.md on branch handoff/audit-r9-plan (git fetch origin handoff/audit-r9-plan).
 2. Orchestrator = session_01WgT4h2uvK9kbxQbWc5MJis (thread cmsg_01EL5jLi4rokGBbkaevYXSJV2mBkzeKerzo5hWb5CAh44d). Coordinator (latest relay) = session_017qoFptNzSHonTu1SeV4qVa; if inactive, hearthbot get_channel_session_id.
