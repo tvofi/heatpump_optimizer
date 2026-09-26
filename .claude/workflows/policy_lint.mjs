@@ -1432,7 +1432,40 @@ function checkCitations(rel, text) {
       message: `symbol \`${inner}\`: not found in the tracked tree, and no tag SHA is cited in this file`,
     })
   }
+  // Quoted output lines (I5, round 9): a backticked `TAG: text` span claims a
+  // tool prints that line. The symbol pass above skips every span holding a
+  // space, so a misquoted mode line passed it; it is resolved here against the
+  // tracked sources, a `<placeholder>` or a number standing for an interpolation.
+  for (const b of backticked) {
+    const inner = b.slice(1, -1)
+    if (!QUOTED_LINE_RE.test(inner) || seen.has(inner)) continue
+    seen.add(inner)
+    if (printedPattern(inner).test(printerSource())) continue
+    out.push({
+      severity: 'error',
+      check: 'citations',
+      where: rel,
+      message: `quoted line \`${inner}\`: no tracked tool prints it -- quote the line the tool prints, placeholders as <name>`,
+    })
+  }
   return out
+}
+
+const QUOTED_LINE_RE = /^[A-Z][A-Z-]+(?: [A-Z-]+)*: \S/
+let _printerSource = null
+function printerSource() {
+  if (_printerSource == null) {
+    const policy = new Set(policyFiles())
+    _printerSource = git(['ls-files', '--', '*.py', '*.mjs', '*.js', '*.sh', ':!tools/audit/round*', ':!.cursor'])
+      .split('\n').filter((f) => f && !policy.has(f) && !f.startsWith('.claude/workflows/fixtures/'))
+      .map((f) => read(f) ?? '').join('\n')
+  }
+  return _printerSource
+}
+function printedPattern(span) {
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(span.split(/(<[^>]+>|\d+)/).filter(Boolean).map((part) =>
+    /^(<[^>]+>|\d+)$/.test(part) ? '(?:\\{[^}]*\\}|\\$\\{[^}]*\\}|%\\w|\\S+?)' : part.split(' ').map(esc).join('\\s+')).join(''))
 }
 
 // ---------------------------------------------------------------------------
@@ -3235,10 +3268,11 @@ function printFindings(findings) {
 // substring that must appear at least once.
 const REQUIRED_ROT = {
   citations: {
-    count: 4,
+    count: 5,
     must: [
       'not in the tree',                 // a path that does not resolve
       'runs past',                       // path:line beyond the file's length
+      'no tracked tool prints it',       // a quoted output line (I5)
     ],
   },
   counts: { count: 13, must: ['for the cap on'] },  // two literal counts, one stated cap per regex shape, one per glue word, the number-first form, and one in the loop fixture

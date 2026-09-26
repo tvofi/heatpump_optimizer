@@ -733,6 +733,231 @@ def check_quality_scale() -> None:
         R.check(f"{label} has an exceptions entry for every raised key", not absent, repr(absent))
 
 
+# ---------------------------------------------------------------------------
+# I5 class barrier (round 9): five shape-agnostic arms. Each derives its claim
+# set from a whole corpus and its fact set from code, so a new sentence,
+# table row or comment of the shape joins the check the moment it lands; none
+# is keyed to a round-9 sentence. Every arm carries an anchor.
+# ---------------------------------------------------------------------------
+
+def entity_census(extra: dict) -> list[dict]:
+    """Every entity the platforms' real ``async_setup_entry`` add for an entry."""
+    import asyncio
+    import importlib
+
+    import heatpump_optimizer as integ
+    from harness import FakeEntry, FakeHass
+    from heatpump_optimizer import const
+    from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+
+    names = json.loads((PKG / "strings.json").read_text())["entity"]
+    cfg = {const.CONF_TIBBER_TOKEN: "x", const.CONF_WEATHER_ENTITY: "weather.home", **extra}
+    hass, entry = FakeHass(), FakeEntry(data=cfg)
+    entry.runtime_data = HeatPumpOptimizerCoordinator(hass, entry)
+    out: list[dict] = []
+    for plat in integ.PLATFORM_LIST:
+        added: list = []
+        mod = importlib.import_module(f"heatpump_optimizer.{plat}")
+        asyncio.run(mod.async_setup_entry(hass, entry, lambda e, *a, **k: added.extend(e)))
+        for e in added:
+            key = getattr(e, "_attr_translation_key", None)
+            out.append({
+                "platform": str(plat),
+                "name": names.get(str(plat), {}).get(key, {}).get("name", f"<{plat}:{key}>"),
+                "enabled": getattr(e, "entity_registry_enabled_default", True),
+                "options": set(getattr(e, "_attr_options", None) or ()) - {"unknown"},
+            })
+    return out
+
+
+_HEADS = {"Sensors": "sensor", "Binary Sensors": "binary_sensor", "Buttons": "button",
+          "Switches": "switch"}
+
+
+def check_entity_prose() -> None:
+    R.section("entity prose vs the constructed entity set (I5)")
+    from heatpump_optimizer import const
+
+    with_dhw = entity_census({const.CONF_DHW_TANK_VOLUME: 200.0})
+    bare = entity_census({})
+    R.check("the census constructs entities (anchor)", len(with_dhw) > 0 and len(bare) > 0)
+    total = len(with_dhw)
+    counts = [(n, int(m.group(1))) for n, text in CORPUS.items()
+              for m in re.finditer(r"\b(\d{2,3}) entities\b", text)]
+    R.check("the corpus states an entity count (anchor)", bool(counts))
+    R.check("every '<N> entities' in the corpus equals the constructed total",
+            all(v == total for _, v in counts), f"total {total}: {counts}")
+    heads = [(h, int(n)) for h, n in re.findall(r"^### (.+?) \((\d+) total\)", README, re.M)
+             if h in _HEADS]
+    per = {p: sum(1 for e in with_dhw if e["platform"] == p) for p in _HEADS.values()}
+    R.check("README states per-platform totals (anchor)", bool(heads))
+    R.check("every README '### <platform> (N total)' equals that platform's count",
+            all(per[_HEADS[h]] == n for h, n in heads), f"{heads} vs {per}")
+    rows = {}
+    for line in README.splitlines():
+        if line.startswith("| ") and line.count("|") >= 4:
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            rows.setdefault(cells[0], " ".join(cells[1:]))
+    listed = []
+    omitted = {}
+    for e in with_dhw:
+        named = set(re.findall(r"`(\w+)`", rows.get(e["name"], "")))
+        if e["options"] and named & e["options"]:
+            listed.append(e["name"])
+            if e["options"] - named:
+                omitted[e["name"]] = sorted(e["options"] - named)
+    R.check("README lists an enum entity's states (anchor)", bool(listed))
+    R.check("every README row that lists an enum entity's states lists all of them",
+            not omitted, repr(omitted))
+    m = re.search(r"Disabled by default: (.*?)\.\n", README, re.S)
+    R.check("README keeps its 'Disabled by default:' list (anchor)", m is not None)
+    census_list = {x.strip() for x in re.split(r",| and ", m.group(1).replace("\n", " "))} if m else set()
+    prose = " ".join(l for l in README.splitlines() if not l.startswith("|"))
+    sentences = [s for s in re.split(r"(?<=\.)\s", prose) if "disabled by default" in s.lower()]
+
+    def documented(name: str) -> bool:
+        return (name in census_list or "disabled by default" in rows.get(name, "").lower()
+                or any(name in s for s in sentences))
+
+    undoc = sorted(e["name"] for e in bare if not e["enabled"] and not documented(e["name"]))
+    R.check("every entity a no-hot-water install disables is documented as disabled",
+            not undoc, repr(undoc))
+
+
+CARD = PKG / "www" / "heatpump-optimizer-card.js"
+_TICKED_PRIVATE = re.compile(r"`(?:this\.)?(_[A-Za-z][\w$]*)(?:\(\))?`")
+
+
+def _tokens(text: str) -> set[str]:
+    return set(re.findall(r"[A-Za-z_$][\w$]*", text))
+
+
+def check_private_mentions() -> None:
+    R.section("backticked private names in the card resolve (I5)")
+    src = CARD.read_text()
+    cited = set(_TICKED_PRIVATE.findall(src))
+    R.check("the card's comments cite private names (anchor)", bool(cited), f"{len(cited)}")
+    known = _tokens(_TICKED_PRIVATE.sub(" ", src))
+    for path in sorted(PKG.rglob("*")):
+        if path.suffix in (".py", ".json", ".yaml") and "__pycache__" not in path.parts:
+            known |= _tokens(path.read_text())
+    stale = sorted(n for n in cited if n not in known)
+    R.check("every backticked private name in the card names something that exists",
+            not stale, repr(stale))
+
+
+_BARE_UNIT = re.compile(r"(\d) C\b|\bm2\b")
+
+
+def check_unit_typography() -> None:
+    R.section("translated text writes units as the selectors do (I5)")
+    hits: list[str] = []
+    leaves = 0
+    for rel in ("strings.json", "translations/en.json", "translations/sv.json"):
+        stack = [((rel,), json.loads((PKG / rel).read_text()))]
+        while stack:
+            path, node = stack.pop()
+            if isinstance(node, dict):
+                stack.extend((path + (k,), v) for k, v in node.items())
+            elif isinstance(node, str):
+                leaves += 1
+                if _BARE_UNIT.search(node):
+                    hits.append(".".join(path))
+    R.check("the catalogs carry text (anchor)", leaves > 0, f"{leaves} leaves")
+    R.check("no translated string writes '<n> C' or 'm2' for °C / m²", not hits, repr(sorted(hits)))
+
+
+def registered_service_fields() -> dict[str, set[str]]:
+    """Service name -> the keys its registered voluptuous schema accepts."""
+    from harness import FakeHass
+    from heatpump_optimizer import services
+
+    hass = FakeHass()
+    services.async_register_services(hass)
+    out: dict[str, set[str]] = {}
+    for (_, name), schema in hass.services._schemas.items():
+        while schema is not None and not hasattr(schema, "schema"):
+            schema = next((v for v in getattr(schema, "validators", ()) if hasattr(v, "schema")), None)
+        out[name] = {str(getattr(k, "schema", k)) for k in (schema.schema if schema else {})}
+    return out
+
+
+def check_service_fields() -> None:
+    R.section("service paragraphs vs the registered schemas (I5)")
+    doc = DOCS["configuration.md"]
+    fields = registered_service_fields()
+    paras = {m.group(1): m.group(2) for m in
+             re.finditer(r"^\*\*`(\w+)`\*\*(.*?)(?=^\*\*`\w+`\*\*|^#|\Z)", doc, re.M | re.S)}
+    R.check("the registry and the Services paragraphs are both there (anchor)",
+            bool(fields) and bool(set(fields) & set(paras)), f"{sorted(fields)} / {sorted(paras)}")
+    wrong = {}
+    for name, keys in fields.items():
+        text = paras.get(name)
+        if text is None:
+            continue
+        stated = re.search(r"\b(?:All )?(\d+) fields\b", text)
+        named = set(re.findall(r"`(\w+)`", text)) & keys
+        if stated and int(stated.group(1)) != len(keys - {"entry_id"}):
+            wrong[name] = f"says {stated.group(1)} fields, schema has {len(keys - {'entry_id'})}"
+        elif not stated and len(named) > 1 and keys - named - {"entry_id"}:
+            wrong[name] = f"lists {len(named)}, omits {sorted(keys - named - {'entry_id'})}"
+    R.check("every service paragraph that lists or counts fields matches its schema",
+            not wrong, repr(wrong))
+
+
+def _label(s: str) -> str:
+    return re.sub(r"\s*\(.*?\)\s*", " ", s).strip().strip("*`").strip().lower()
+
+
+_LABEL_END = r"(?:temperature|sensor|source|switch|entity|enabled|mode|control|feedback|experiment|cycle|limit)"
+
+
+def check_option_labels() -> None:
+    R.section("option fields the docs name are fields the forms show (I5)")
+    en = json.loads((PKG / "translations" / "en.json").read_text())
+    steps = en["options"]["step"]
+    menu = {v: k for s in ("init", "advanced") for k, v in steps[s]["menu_options"].items()}
+
+    def labels(node, out):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k == "data" and isinstance(v, dict):
+                    out |= {_label(x) for x in v.values() if isinstance(x, str)}
+                labels(v, out)
+        return out
+
+    every: set[str] = set()
+    stack = [en]
+    while stack:
+        n = stack.pop()
+        if isinstance(n, dict):
+            stack.extend(n.values())
+        elif isinstance(n, str):
+            every.add(_label(n))
+    rows, bad = 0, []
+    for name, text in CORPUS.items():
+        page = hdr = None
+        for line in text.splitlines():
+            if (m := re.match(r"^###\s+(.*)", line)):
+                page, hdr = m.group(1).strip(), None
+            elif line.startswith("|"):
+                cells = [c.strip() for c in line.strip().strip("|").split("|")]
+                if hdr is None:
+                    hdr = cells
+                elif (hdr[0] == "Setting" and page in menu and not set(line) <= set("|-: ")
+                      and not re.search(r" / |, |^The |Monday", cells[0])):
+                    rows += 1
+                    if _label(cells[0]) not in labels(steps.get(menu[page], {}), set()):
+                        bad.append(f"{name} '{page}': {cells[0]}")
+            else:
+                hdr = None
+            for m in re.finditer(r"(?<![*\w])\*([A-Z][^*\n]{3,70}?" + _LABEL_END + r")\*(?!\*)", line):
+                if not m.group(1).startswith("HP ") and _label(m.group(1)) not in every:
+                    bad.append(f"{name}: *{m.group(1)}*")
+    R.check("the docs tabulate options-page fields (anchor)", rows > 0, f"{rows} rows")
+    R.check("every options field the docs name is a label the forms render", not bad, repr(bad))
+
+
 def main() -> int:
     check_figures()
     check_ecl110_defaults()
@@ -741,6 +966,11 @@ def main() -> int:
     check_quickstart_numbering()
     check_census_self_test()
     check_quality_scale()
+    check_entity_prose()
+    check_private_mentions()
+    check_unit_typography()
+    check_service_fields()
+    check_option_labels()
     return R.close("checks")
 
 
