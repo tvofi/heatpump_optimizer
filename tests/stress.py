@@ -2949,6 +2949,65 @@ def sweep_combinations() -> list[dict]:
     return combinations
 
 
+
+# ===========================================================================
+# Plant-axis coverage (round-9 RCA prototype, N-cpu-gate-blind / D9-s2-71)
+# ===========================================================================
+#
+# The sweep is a hand list, and a path it does not sample has no budget at
+# all -- the zero-range trio above was added by hand for exactly that reason,
+# and the throttling-valve plants (1.3-2.9x a same-family control's CPU) were
+# still sampled by none of 51. This derives the axis values from production
+# -- every selectable topology layout and every mixing-valve mode -- and
+# names each one no sweep scenario's built plant reaches. Read off the
+# ThermalParameters build_case hands optimize(), never off the spec text.
+
+
+class _PlantSeen(Exception):
+    pass
+
+
+def plant_axes(combos: list[dict]) -> dict[str, tuple[str, str]]:
+    """``{label: (mixing_valve_mode, topology_layout)}`` of each built plant.
+
+    optimize() is replaced by a sentinel for the duration, so nothing is
+    solved; a combo whose build never reaches optimize() raises, rather
+    than being left out of the population it was meant to cover.
+    """
+    real = optimizer_module.HeatPumpOptimizer.optimize
+
+    def sentinel(self, *args, **kwargs):
+        p = self.model.params
+        raise _PlantSeen((p.mixing_valve_mode, p.topology_layout))
+
+    seen: dict[str, tuple[str, str]] = {}
+    optimizer_module.HeatPumpOptimizer.optimize = sentinel
+    try:
+        for combo in combos:
+            spec = {k: v for k, v in combo.items() if k != "label"}
+            try:
+                build_case(**spec)
+            except _PlantSeen as hit:
+                seen[combo["label"]] = hit.args[0]
+            else:
+                raise AssertionError(f"{combo['label']} never reached optimize()")
+    finally:
+        optimizer_module.HeatPumpOptimizer.optimize = real
+    return seen
+
+
+def unsampled_plant_axes(seen: dict[str, tuple[str, str]]) -> list[str]:
+    """Production axis values no sampled plant reaches, by name."""
+    from heatpump_optimizer import mixing_valve, topology
+
+    required = {f"layout:{key}" for key, lay in topology.LAYOUTS.items()
+                if lay.selectable}
+    required |= {f"valve_mode:{mode}" for mode in mixing_valve.MODES}
+    reached = {f"layout:{layout}" for _, layout in seen.values()}
+    reached |= {f"valve_mode:{mode or mixing_valve.MODE_NONE}"
+                for mode, _ in seen.values()}
+    return sorted(required - reached)
+
 if __name__ == "__main__":
     # ===========================================================================
     # The single-scenario detection statistic (#346), compared in one
@@ -2961,6 +3020,24 @@ if __name__ == "__main__":
     # failure modes are a check that cannot fail and a check that
     # false-fails on the second machine -- and the second one is what
     # reverted the 1.4142 factor, closed #371, and then came back as #387.
+    R.section("Plant-axis coverage (round-9 RCA prototype)")
+    _axes_started = time.perf_counter()
+    _plants = plant_axes(sweep_combinations())
+    _unsampled = unsampled_plant_axes(_plants)
+    print(f"  {len(_plants)} built plants read in "
+          f"{time.perf_counter() - _axes_started:.1f} s")
+    R.check(
+        "every production plant axis value is sampled by the sweep",
+        not _unsampled,
+        f"unsampled: {', '.join(_unsampled)} -- a plant no scenario builds "
+        f"has no budget in this file at any factor",
+    )
+    R.check(
+        "plant-axis coverage: an axis nobody samples is named",
+        unsampled_plant_axes({"x": ("none", "no_valve")}) != [],
+        "a sweep of one no-valve plant must leave the valve axes unsampled",
+    )
+
     R.section("Single-scenario detection (#346, #387)")
 
     # The production-call channel can fail, and does not fail on flat or
