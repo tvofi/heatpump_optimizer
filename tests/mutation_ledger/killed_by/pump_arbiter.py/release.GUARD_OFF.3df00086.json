@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:release GUARD_OFF 3df00086",
-  "killed_by": "tests/features.py",
-  "old": "    if held.written and held.manual is None and duty_mode(coord._config) == DUTY_CONTROL:",
-  "reason": "pump-duty arbiter revision; `if held.written and held.manual is None and duty_mode(coord._config) == DUTY_CONTROL:` -> `if False:` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-}

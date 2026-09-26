@@ -187,8 +187,7 @@
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# (R8-P3 suspends wood_coil's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
@@ -714,4 +713,3 @@
 # #1588 (DHW arbiter): this branch's own diff claims the config_flow
 # fixture and nothing else, ADD-ONLY -- the pump_duty_mode select grows both
 # flows' schema; no values move.
-wood_coil # the coil priced at the wood temp the physics reads mid-step (stacks on R8-P3, which moved it first): DHW kWh, dhw_heating_cost and predicted_cost up over R8-P3, baseline_cost flat over it

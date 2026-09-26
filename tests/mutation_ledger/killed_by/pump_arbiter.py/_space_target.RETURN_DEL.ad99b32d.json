@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_space_target RETURN_DEL ad99b32d",
-  "killed_by": "tests/features.py",
-  "old": "    return _bounded(state, points[i] if 0 <= i < len(points) else None)",
-  "reason": "pump-duty arbiter revision; `return _bounded(state, points[i] if 0 <= i < len(points) else None)` -> `pass` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-}

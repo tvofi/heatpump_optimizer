@@ -81,7 +81,7 @@ not read as coverage:
   ``by_code``, so it can only mislead a local ``--mypy``. Closing it means
   ``--config-file=`` on the pinned invocation, which does work (measured), but
   that changes the command that produced the recorded census -- and the census
-  cannot be re-derived below Python 3.13.2 (#504). Recorded as an exclusion
+  cannot be re-derived below Python 3.14.2 (#504). Recorded as an exclusion
   rather than taken as an unverified flag.
 * A settings flag added to ``run_mypy`` itself. A guard cannot defend the file
   it lives in; review does that.
@@ -92,7 +92,7 @@ not read as coverage:
   ``by_module`` table both show it, and it is not a suppression.
 
 WHAT THIS DOES NOT DO. It does not annotate anything, and it does not close
-#303. It also cannot run on a box below Python 3.13.2: the pinned stubs will
+#303. It also cannot run on a box below Python 3.14.2: the pinned stubs will
 not install there, so ``--mypy`` refuses instead of quietly measuring
 something else. See #504 -- the ruler is authoritative in CI, and a local
 ``--mypy`` is available only where the pins install.
@@ -584,7 +584,7 @@ def measure(report: Report, budget: dict) -> dict | None:
         # REPORTED, never ratcheted, and never stored in the budget file. The
         # module tranches of #303 are scoped by module and would otherwise have
         # no way to size themselves -- the pinned ruler does not run below
-        # Python 3.13.2, so they cannot measure it locally (#504). A stored
+        # Python 3.14.2, so they cannot measure it locally (#504). A stored
         # snapshot would go stale between tranches and a ratchet on it would
         # fail an honest move of code between modules, so it rides the emitted
         # measurement and the job log, where it is always current.
@@ -679,7 +679,7 @@ def enabling_line() -> str:
     return (
         f"the mypy census is checked only by CI's `typing` job; point {PINNED_ENV} "
         "at a pinned interpreter to check it before pushing -- `uv venv --python "
-        "3.13 .venv-typing && uv pip install --python .venv-typing/bin/python -r "
+        "3.14 .venv-typing && uv pip install --python .venv-typing/bin/python -r "
         "<(python3 tests/typing_ruler.py --print-requirements)`"
     )
 

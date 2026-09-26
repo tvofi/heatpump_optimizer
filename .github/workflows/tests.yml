@@ -484,14 +484,14 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       # Not matrixed over the interpreters `fast` uses. The pin is a PAIR and
-      # the two halves constrain each other: homeassistant-stubs 2026.2.3
-      # refuses to install below Python 3.13.2, and every release after it
-      # requires 3.14.2, so exactly one interpreter line satisfies the pin
-      # this ruler is defined by (#504). A second leg would either fail to
-      # install or measure something else and call it the same number.
+      # the two halves constrain each other: homeassistant-stubs 2026.9.3
+      # refuses to install below Python 3.14.2, so exactly one interpreter
+      # line satisfies the pin this ruler is defined by (#504). A second leg
+      # would either fail to install or measure something else and call it
+      # the same number.
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
-          python-version: "3.13"
+          python-version: "3.14"
 
       # The versions are recorded in tests/typing_budgets.json and installed
       # from tests/requirements-typing.txt, the hash-pinned resolution of

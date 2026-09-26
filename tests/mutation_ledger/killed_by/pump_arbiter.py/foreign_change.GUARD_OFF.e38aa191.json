@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:foreign_change GUARD_OFF e38aa191",
-  "killed_by": "tests/features.py",
-  "old": "        if (now - at).total_seconds() < ECHO_GRACE_S:",
-  "reason": "pump-duty arbiter revision; `if (now - at).total_seconds() < ECHO_GRACE_S:` -> `if False:` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-}

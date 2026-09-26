@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:foreign_change GUARD_OFF b815beb6",
-  "killed_by": "tests/features.py",
-  "old": "        if slot in held.landed or prior is None or _differs(slot, observed, prior):",
-  "reason": "pump-duty arbiter revision; `if slot in held.landed or prior is None or _differs(slot, observed, prior):` -> `if False:` fails 5 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
-}

@@ -556,32 +556,30 @@ writes, at every 15-minute plan step:
   on space-only steps.
 - **Rails.** A hot-water-only stretch lasts at most 90 minutes (30 below
   -10 °C outdoors), idle steps after it included, then *Heating + DHW*
-  returns. A stale plan, the comfort, boost and off modes, a boost switch, a
-  system-identification experiment and unloading the integration all get the
-  fallback row.
-- **A write the pump ignores is retried.** If the entity still reads what it
-  read before the write, 20 seconds and more later, and never showed the new
-  value, the pump (or its cloud) dropped the write. A warning repair notice is
-  raised, the value is sent again every 5 minutes, the optimizer stays on, and
-  the notice clears on the first write that takes, or when *Control* is left.
-  An unavailable mode entity is no reading at all, and counts as neither.
-- **A change you make wins.** Any other change to those three entities —
-  made on the pump, in an app or by a schedule: a value that is neither the
-  optimizer's nor the one before, or any change after the optimizer's value
-  had been read back — turns **Optimizer active** off and raises a repair
-  notice. Nothing is written over your setting until you turn **Optimizer
-  active** back on, which hands control back and clears the notice. Readings in
-  the first 20 seconds after a write are not counted: the tuya_heat_pump
-  integration shows the value it sent for 8 seconds whatever the pump reports.
-- **Where the two cannot be told apart.** Setting a value back to exactly what
-  it was before the optimizer's write, before the optimizer ever read its own
-  value back, looks like an ignored write: it is overwritten once, five minutes
-  later. A pump that takes a write and reverts it within a minute looks the
-  same. After a restart the readings from before each write are gone, so any
-  difference counts as your change.
-- **Its own mode is not a pump limit.** A hot-water-only mode the optimizer
-  wrote does not stop the next plan from heating the house; one set by anybody
-  else still does, as before.
+  returns — unless the room is already at or above the step's planned room
+  temperature, when a warm house needs no space heat. A stale plan, the
+  comfort, boost and off modes, a boost switch, a system-identification
+  experiment and unloading the integration all get the fallback row.
+- **While Optimizer active is on, the optimizer holds what it wrote.** A
+  reading of those three entities that differs from what the optimizer wrote —
+  a change made on the pump, in an app, by a schedule, or the pump's own reset —
+  is written back at once. To change the pump by hand, turn **Optimizer
+  active** off first: the fallback row is written once, and then nothing is
+  written over your settings until you turn it back on. Readings in the first
+  20 seconds after a write are not counted: the tuya_heat_pump integration
+  shows the value it sent for about 8 seconds whatever the pump reports.
+- **A write the pump does not hold is retried.** If the value written back
+  still does not hold, a warning repair notice is raised and the value is sent
+  again every 5 minutes; the notice clears on the first write that holds, or
+  when *Control* is left. An unavailable mode entity is no reading at all.
+- **A pump switched off is left alone.** While the heat pump power switch
+  reads off, nothing is compared or written: switched off, a pump can report
+  set-points of its own (a Tuya pump reads 25 °C). Once it is on, a reset that
+  is still there is written back like any other difference.
+- **Its own mode is not a pump limit.** A mode the optimizer wrote does not
+  stop the next plan from heating the house or making hot water, even when the
+  pump has not shown it yet or after a restart; one set by anybody else still
+  does, as before.
 
 **Observe** writes nothing. In *Observe* and *Control* the optimizer keeps a
 ledger of the last 24 hours: per 15-minute step, the duty the plan wanted

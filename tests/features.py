@@ -46088,7 +46088,7 @@ R.check(
 )
 
 
-R.section("pump-duty arbiter — mode and set-points per plan step, never over a person")
+R.section("pump-duty arbiter — mode and set-points per plan step, held while the optimizer is active")
 
 import asyncio as _pa_aio  # noqa: E402
 from types import SimpleNamespace as _PaNS  # noqa: E402
@@ -46160,15 +46160,24 @@ def _pa_run(coord, minutes):
     _pa_aio.run(_pa.apply(coord, _PA_T0 + timedelta(minutes=minutes)))
 
 
+def _pa_own(coord, signals):
+    held = _pa.own(coord, signals)
+    return _pa_aio.run(held) if _pa_aio.iscoroutine(held) else held
+
+
 # The lock-in (P2): the arbiter's own DHW-only write must not reach the next
 # solve as "the pump cannot heat", or no plan ever writes Heating + DHW back.
 _pa_dhw = PumpSignals(mode=pump_mode.MODES[pump_mode.MODE_DHW], mode_observed=True)
 _pa_lock = _PaCoord(_PA_TUYA)
 _pa_run(_pa_lock, 1)
-_pa_owned = _pa.own(_pa_lock, _pa_dhw)
+_pa_owned = _pa_own(_pa_lock, _pa_dhw)
+_pa_offc = _PaCoord(_PA_TUYA)
+_pa_offc._mode = _PA_OFF
 R.check(
-    "a DHW-only mode nobody here wrote still blocks space heat (null control)",
-    _pa_dhw.space_blocked and not _pa.own(_PaCoord(_PA_TUYA), _pa_dhw).mode_owned,
+    "null control: a DHW-only mode blocks space heat in observe, and under control with the optimizer off",
+    _pa_dhw.space_blocked
+    and not _pa_own(_PaCoord(_PA_TUYA, duty="observe"), _pa_dhw).mode_owned
+    and not _pa_own(_pa_offc, _pa_dhw).mode_owned,
 )
 R.check(
     "the arbiter's own DHW-only write does not block space heat in the next solve",
@@ -46211,8 +46220,8 @@ R.check(
     f"{_pa_mb.writes()}",
 )
 
-# Manual change: a differing device report inside the echo window is ignored,
-# one past it stands the arbiter down until the user turns it back on.
+# While active the optimizer holds what it wrote (tvofi, 2026-09-25): a
+# differing reading past the fork's echo window is written again at once.
 _pa_man = _PaCoord(_PA_TUYA)
 _pa_run(_pa_man, 0)
 _pa_man.device("number.dhw_set", "48")
@@ -46221,28 +46230,45 @@ _pa_man.device("select.pump_mode", "Heating")
 _pa_man.hass.services.calls.clear()
 _pa_aio.run(_pa.apply(_pa_man, _PA_T0 + timedelta(seconds=5)))
 R.check(
-    "a differing reading inside the fork's echo window is not a manual change",
+    "a differing reading inside the fork's echo window is not rewritten yet",
     _pa_man.set_modes == [] and _pa_man.writes() == [],
+    f"{_pa_man.writes()=}",
 )
 _pa_aio.run(_pa.apply(_pa_man, _PA_T0 + timedelta(seconds=60)))
-_pa_issue = [i for i in getattr(_pa_man.hass, "issues", []) if i[1] == _pa.ISSUE_MANUAL]
 R.check(
-    "a change the arbiter did not make turns the optimizer off and raises a repair",
-    _pa_man.set_modes == [_PA_OFF] and len(_pa_issue) == 1 and _pa_man.writes() == [],
+    "a change the arbiter did not make is written back at once, and the optimizer stays on",
+    _pa_man.set_modes == [] and _pa_man.writes() == [("select", "select_option", "DHW (Hot Water)")]
+    and not getattr(_pa_man.hass, "issues", []),
     f"{_pa_man.set_modes=} {_pa_man.writes()=}",
 )
-_pa_run(_pa_man, 5)
+_pa_man.device("select.pump_mode", "DHW (Hot Water)")
+_pa_man.hass.services.calls.clear()
+_pa_run(_pa_man, 2)
 R.check(
-    "nothing is written over the manual setting while the optimizer is off",
-    _pa_man.writes() == [],
+    "a rewrite the pump holds is the end of it: no warning, nothing written again",
+    _pa_man.writes() == [] and not getattr(_pa_man.hass, "issues", []),
+    f"{_pa_man.writes()=}",
 )
-_pa_man._mode = _PA_AUTO
+_pa_man.device("select.pump_mode", "Heating")
+_pa_run(_pa_man, 3)
+R.check(
+    "a later change over a rewrite that held is written back again, still with no warning",
+    _pa_man.writes() == [("select", "select_option", "DHW (Hot Water)")]
+    and not getattr(_pa_man.hass, "issues", []),
+    f"{_pa_man.writes()=}",
+)
+_pa_man.device("select.pump_mode", "DHW (Hot Water)")
+_pa_man.hass.services.calls.clear()
+_pa_man._mode = _PA_OFF
+_pa_run(_pa_man, 5)
+_pa_man_base = list(_pa_man.writes())
+_pa_man.device("select.pump_mode", "Heating")
+_pa_man.hass.services.calls.clear()
 _pa_run(_pa_man, 6)
 R.check(
-    "turning the optimizer back on clears the repair and hands control back",
-    not [i for i in getattr(_pa_man.hass, "issues", []) if i[1] == _pa.ISSUE_MANUAL]
-    and ("select", "select_option", "DHW (Hot Water)") in _pa_man.writes(),
-    f"{_pa_man.writes()}",
+    "switching the optimizer off writes the baseline once, then nothing over a person's setting",
+    _pa_man_base == [("select", "select_option", "Heating + DHW")] and _pa_man.writes() == [],
+    f"{_pa_man_base=} {_pa_man.writes()=}",
 )
 
 # Rails: the lease, the cold rail, a stale plan and the unload.
@@ -46326,9 +46352,9 @@ _pa_settled(_pa_grace)
 _pa_grace.device("number.dhw_set", "55")
 _pa_aio.run(_pa.apply(_pa_grace, _PA_T0 + timedelta(seconds=25)))
 R.check(
-    "a set-point reading that differs 25 s after the write is a device report, and a manual change",
-    _pa_grace.set_modes == [_PA_OFF],
-    f"{_pa_grace.set_modes=}",
+    "a set-point reading that differs 25 s after the write is a device report, and is written back",
+    _pa_grace.set_modes == [] and _pa_grace.writes() == [("number", "set_value", 48.0)],
+    f"{_pa_grace.set_modes=} {_pa_grace.writes()=}",
 )
 R.check(
     "outside the plan's horizon there is no step, so no duty",
@@ -46336,9 +46362,11 @@ R.check(
     and _pa.step_duty(_pa_result("dd"), _PA_T0 + timedelta(minutes=45), 0.2) is None,
 )
 _pa_heat = PumpSignals(mode=pump_mode.MODES[pump_mode.MODE_HEAT], mode_observed=True)
+_pa_cool_sig = PumpSignals(mode=pump_mode.MODES[pump_mode.MODE_COOL], mode_observed=True)
 R.check(
-    "a mode the arbiter did not write is not marked owned, even while it owns another",
-    not _pa.own(_pa_lock, _pa_heat).mode_owned and _pa.own(_pa_lock, _pa_heat).dhw_blocked,
+    "a cooling mode is never the arbiter's, and a heating-only mode in observe still blocks hot water",
+    not _pa_own(_pa_lock, _pa_cool_sig).mode_owned
+    and _pa_own(_PaCoord(_PA_TUYA, duty="observe"), _pa_heat).dhw_blocked,
 )
 _pa_room = _PaCoord(_PA_TUYA, duties="ss", flow=False)
 _pa_room.hass.states.get("number.water_set").attributes = {"min": 5, "max": 30}
@@ -46399,18 +46427,18 @@ _pa_settled(_pa_half)
 _pa_half.device("number.dhw_set", "48.5")
 _pa_run(_pa_half, 2)
 R.check(
-    "a half-degree change by hand, one step of the pump's own set-point, is a manual change",
-    _pa_half.set_modes == [_PA_OFF],
-    f"{_pa_half.set_modes=}",
+    "a half-degree change, one step of the pump's own set-point, is written back",
+    _pa_half.set_modes == [] and _pa_half.writes() == [("number", "set_value", 48.0)],
+    f"{_pa_half.set_modes=} {_pa_half.writes()=}",
 )
 _pa_sp = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_sp)
 _pa_sp.device("number.water_set", "40")
 _pa_run(_pa_sp, 2)
 R.check(
-    "a space set-point changed by hand is a manual change too",
-    _pa_sp.set_modes == [_PA_OFF],
-    f"{_pa_sp.set_modes=}",
+    "a changed space set-point is written back too",
+    _pa_sp.set_modes == [] and _pa_sp.writes() == [("number", "set_value", 34.0)],
+    f"{_pa_sp.set_modes=} {_pa_sp.writes()=}",
 )
 _pa_user = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_user)
@@ -46447,7 +46475,7 @@ R.check(
 # tvofi 2026-09-24: space-only steps are heating only; idle writes no mode.
 _pa_heat_own = _PaCoord(_PA_TUYA, duties="s")
 _pa_run(_pa_heat_own, 1)
-_pa_heat_sig = _pa.own(_pa_heat_own, _pa_heat)
+_pa_heat_sig = _pa_own(_pa_heat_own, _pa_heat)
 R.check(
     "the arbiter's own heating-only write does not block hot water in the next solve",
     ("select", "select_option", "Heating") in _pa_heat_own.writes()
@@ -46498,11 +46526,12 @@ R.check(
     f"{_pa_idle.writes()}",
 )
 _pa_idle_d = _PaCoord(_PA_TUYA, duties="d" + "-" * 11)
+_pa_idle_d._current_state.room_temperature = 19.0
 _pa_settled(_pa_idle_d, 0)
 _pa_settled(_pa_idle_d, 89)
 _pa_run(_pa_idle_d, 91)
 R.check(
-    "the hot-water-only lease keeps counting across idle steps",
+    "below the plan's room temperature the hot-water-only lease keeps counting across idle steps",
     _pa_idle_d.writes() == [("select", "select_option", "Heating + DHW")],
     f"{_pa_idle_d.writes()}",
 )
@@ -46512,19 +46541,23 @@ _pa_ign = _PaCoord(_PA_TUYA)
 _pa_run(_pa_ign, 0)
 _pa_ign.hass.services.calls.clear()
 _pa_aio.run(_pa.apply(_pa_ign, _PA_T0 + timedelta(seconds=60)))
+_pa_ign_first = list(_pa_ign.writes())
+_pa_ign.hass.services.calls.clear()
+_pa_run(_pa_ign, 2)
 _pa_ign_issue = [i for i in getattr(_pa_ign.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED]
 R.check(
-    "a write the pump never took is a warning, not a manual change: the optimizer stays on",
-    _pa_ign.set_modes == [] and len(_pa_ign_issue) == 1 and _pa_ign.writes() == [],
-    f"{_pa_ign.set_modes=} {_pa_ign.writes()=}",
+    "a write the pump never took is sent again at once, and warned about when that does not hold either",
+    len(_pa_ign_first) == 3 and _pa_ign.set_modes == []
+    and len(_pa_ign_issue) == 1 and _pa_ign.writes() == [],
+    f"{_pa_ign_first=} {_pa_ign.set_modes=} {_pa_ign.writes()=}",
 )
-_pa_run(_pa_ign, 4)
+_pa_run(_pa_ign, 6)
 _pa_ign_wait = list(_pa_ign.writes())
-_pa_settled(_pa_ign, 6)
+_pa_settled(_pa_ign, 8)
 _pa_ign_retry = _pa_ign.hass.states.get("select.pump_mode").state
-_pa_run(_pa_ign, 7)
+_pa_run(_pa_ign, 9)
 R.check(
-    "an ignored write is sent again after five minutes, and the first one that lands clears the warning",
+    "a write the pump does not hold is sent again after five minutes, and the first one that holds clears the warning",
     _pa_ign_wait == [] and _pa_ign_retry == "DHW (Hot Water)"
     and not [i for i in getattr(_pa_ign.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED]
     and _pa_ign.set_modes == [],
@@ -46536,9 +46569,9 @@ _pa_run(_pa_back, 1)
 _pa_back.device("select.pump_mode", "Heating + DHW")
 _pa_run(_pa_back, 2)
 R.check(
-    "a return to the old value after our write was seen to land is a manual change",
-    _pa_back.set_modes == [_PA_OFF],
-    f"{_pa_back.set_modes=}",
+    "a return to the old value after our write held is written back",
+    _pa_back.set_modes == [] and _pa_back.writes() == [("select", "select_option", "DHW (Hot Water)")],
+    f"{_pa_back.set_modes=} {_pa_back.writes()=}",
 )
 _pa_two = _PaCoord(_PA_TUYA)
 _pa_run(_pa_two, 0)
@@ -46556,6 +46589,27 @@ R.check(
     and _pa.diagnostics_view(_pa_two)["retrying"] == [],
     f"{_pa_two_kept=} {_pa_two.set_modes=} {_pa.diagnostics_view(_pa_two)['retrying']=}",
 )
+# Two slots retry on different clocks: the mode's rewrite lands while the
+# DHW set-point is still stuck, so the warning must survive the mode's own
+# clear check -- it is not the last slot outstanding.
+_pa_multi = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_multi, 0)
+_pa_multi.device("select.pump_mode", "Heating")
+_pa_run(_pa_multi, 1)
+_pa_run(_pa_multi, 2)
+_pa_multi.device("number.dhw_set", "40")
+_pa_run(_pa_multi, 3)
+_pa_run(_pa_multi, 4)
+_pa_multi.device("select.pump_mode", "DHW (Hot Water)")
+_pa_run(_pa_multi, 7)
+_pa_run(_pa_multi, 8)
+_pa_multi_diag = _pa.diagnostics_view(_pa_multi)
+R.check(
+    "the warning stays while a second slot is still retrying, even once the mode's own rewrite holds",
+    bool([i for i in getattr(_pa_multi.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED])
+    and _pa_multi_diag["retrying"] == ["dhw_setpoint"],
+    f"{_pa_multi_diag=}",
+)
 _pa_unav = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_unav, 0)
 _pa_unav.device("select.pump_mode", "unavailable")
@@ -46565,6 +46619,141 @@ R.check(
     _pa_unav.set_modes == []
     and not [i for i in getattr(_pa_unav.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED],
     f"{_pa_unav.set_modes=}",
+)
+
+# v6.6.12 field report (tvofi): after one reboot the arbiter read its own
+# record as a person's change, and a solve read its own DHW-only as a block.
+
+
+def _pa_reboot(coord):
+    """The same install after a Home Assistant restart: same store, same pump."""
+    again = _PaCoord(_PA_TUYA, duties="dds-")
+    again.hass, again.entry = coord.hass, coord.entry
+    again._optimization_result = coord._optimization_result
+    again.hass.services.calls.clear()
+    return again
+
+
+
+_pa_rs = _PaCoord(_PA_TUYA)
+_pa_run(_pa_rs, 0)
+_pa_aio.run(_pa.apply(_pa_rs, _PA_T0 + timedelta(seconds=60)))
+_pa_rs2 = _pa_reboot(_pa_rs)
+_pa_run(_pa_rs2, 2)
+R.check(
+    "a write the pump ignored before a restart is retried after it, not read as a manual change",
+    _pa_rs2.set_modes == []
+    and not [i for i in getattr(_pa_rs2.hass, "issues", []) if i[1] == _pa.ISSUE_MANUAL],
+    f"{_pa_rs2.set_modes=}",
+)
+_pa_rm = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_rm, 0)
+_pa_run(_pa_rm, 1)
+_pa_rm.device("number.dhw_set", "55")
+_pa_rm2 = _pa_reboot(_pa_rm)
+_pa_run(_pa_rm2, 2)
+R.check(
+    "a change over a write that held before the restart is written back after it",
+    _pa_rm2.set_modes == [] and _pa_rm2.writes() == [("number", "set_value", 48.0)],
+    f"{_pa_rm2.set_modes=} {_pa_rm2.writes()=}",
+)
+_pa_echo = _PaCoord(_PA_TUYA)
+_pa_run(_pa_echo, 0)
+_pa_echo.device("select.pump_mode", "DHW (Hot Water)")
+_pa_echo.device("number.dhw_set", "48")
+_pa_echo.device("number.water_set", "34")
+_pa_aio.run(_pa.apply(_pa_echo, _PA_T0 + timedelta(seconds=5)))
+_pa_echo.device("number.water_set", "53")
+_pa_aio.run(_pa.apply(_pa_echo, _PA_T0 + timedelta(seconds=60)))
+_pa_echo_warned = [i for i in getattr(_pa_echo.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED]
+_pa_run(_pa_echo, 2)
+R.check(
+    "a set-point the fork echoes for a few seconds and the device never took is sent again, then warned about",
+    _pa_echo.set_modes == [] and _pa_echo_warned == []
+    and [i for i in getattr(_pa_echo.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED],
+    f"{_pa_echo.set_modes=} {_pa_echo_warned=}",
+)
+_pa_legacy = _PaCoord(_PA_TUYA)
+_pa_aio.run(_pa._store(_pa_legacy).async_save({
+    "manual": None,
+    "written": {"mode": ["DHW", (_PA_T0 - timedelta(hours=1)).isoformat()]},
+}))
+_pa_run(_pa_legacy, 2)
+R.check(
+    "a v6.6.12 record with no prior readings is written again, not read as a manual change",
+    _pa_legacy.set_modes == []
+    and ("select", "select_option", "DHW (Hot Water)") in _pa_legacy.writes(),
+    f"{_pa_legacy.set_modes=} {_pa_legacy.writes()}",
+)
+_pa_cb = _PaCoord(_PA_TUYA)
+_pa_run(_pa_cb, 0)
+R.check(
+    "the pump's state listener runs on the event loop: @callback, not an executor job",
+    all(getattr(action, "_hass_callback", False)
+        for _ids, action in getattr(_pa_cb.hass, "state_listeners", []))
+    and len(getattr(_pa_cb.hass, "state_listeners", [])) == 1,
+)
+_pa_pw = _PaCoord(_PA_TUYA, duties="ss")
+_pa_pw._config["heat_pump_switch_entity"] = "switch.hp"
+_pa_pw.hass.states.set("switch.hp", FakeState("on"))
+_pa_settled(_pa_pw, 0)
+_pa_pw.hass.states.set("switch.hp", FakeState("off"))
+_pa_pw.device("number.water_set", "25")
+_pa_run(_pa_pw, 2)
+_pa_pw_off = list(_pa_pw.writes())
+_pa_pw.hass.states.set("switch.hp", FakeState("on"))
+_pa_run(_pa_pw, 3)
+R.check(
+    "a set-point the pump resets while switched off is not a manual change, and is written again once it is on",
+    _pa_pw.set_modes == [] and _pa_pw_off == []
+    and _pa_pw.writes() == [("number", "set_value", 34.0)],
+    f"{_pa_pw.set_modes=} {_pa_pw_off=} {_pa_pw.writes()=}",
+)
+_pa_pwn = _PaCoord(_PA_TUYA, duties="ss")
+_pa_pwn._config["heat_pump_switch_entity"] = "switch.hp"
+_pa_pwn.hass.states.set("switch.hp", FakeState("on"))
+_pa_settled(_pa_pwn, 0)
+_pa_pwn.device("number.water_set", "25")
+_pa_run(_pa_pwn, 2)
+R.check(
+    "null control: the same reading with the pump on throughout is written back at once",
+    _pa_pwn.set_modes == [] and _pa_pwn.writes() == [("number", "set_value", 34.0)],
+    f"{_pa_pwn.set_modes=} {_pa_pwn.writes()=}",
+)
+_pa_ro = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_ro, 0)
+_pa_run(_pa_ro, 1)
+_pa_ro2 = _pa_reboot(_pa_ro)
+R.check(
+    "the first solve after a restart does not read the arbiter's own DHW-only as a block",
+    _pa_own(_pa_ro2, _pa_dhw).mode_owned and not _pa_own(_pa_ro2, _pa_dhw).space_blocked,
+)
+_pa_lag = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_lag, 1)
+_pa_run(_pa_lag, 31)
+R.check(
+    "a DHW-only the arbiter wrote is still its own while the pump has not yet shown the next mode",
+    ("select", "select_option", "Heating") in _pa_lag.writes()
+    and _pa_own(_pa_lag, _pa_dhw).mode_owned,
+    f"{_pa_lag.writes()}",
+)
+_pa_late = _PaCoord(_PA_TUYA)
+_pa_run(_pa_late, 0)
+_pa_aio.run(_pa.apply(_pa_late, _PA_T0 + timedelta(seconds=60)))
+_pa_late.device("select.pump_mode", "DHW (Hot Water)")
+R.check(
+    "a DHW-only write that lands after it was read as ignored is still the arbiter's own",
+    _pa_own(_pa_late, _pa_dhw).mode_owned,
+)
+_pa_warm = _PaCoord(_PA_TUYA, duties="d" + "-" * 11)
+_pa_warm._current_state.room_temperature = 23.0
+_pa_settled(_pa_warm, 0)
+_pa_settled(_pa_warm, 89)
+_pa_run(_pa_warm, 91)
+R.check(
+    "in a house above the plan's room temperature the DHW-only lease does not write Heating + DHW",
+    _pa_warm.writes() == [],
+    f"{_pa_warm.writes()}",
 )
 
 # Observe: a ledger of planned duty against what the pump did, per step.
@@ -46814,42 +47003,34 @@ _pa_keep_again.device("number.water_set", "34")
 _pa_keep_again.device("number.dhw_set", "55")
 _pa_run(_pa_keep_again, 2)
 R.check(
-    "after a restart the prior reading is gone, so a differing reading is a manual change",
-    _pa_keep_again.set_modes == [_PA_OFF],
-    f"{_pa_keep_again.set_modes=}",
+    "after a restart, a value that differs from the restored record is written back",
+    _pa_keep_again.set_modes == [] and _pa_keep_again.writes() == [("number", "set_value", 48.0)],
+    f"{_pa_keep_again.set_modes=} {_pa_keep_again.writes()=}",
 )
 _pa_sd = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_sd)
 _pa_sd.device("select.pump_mode", "Heating")
 _pa_run(_pa_sd, 2)
-_pa_sd_held = _pa.state_for(_pa_sd)
 _pa_sd_again = _pa_restart(_pa_sd)
 R.check(
-    "a manual change drops the ownership record, and the stand-down survives a restart",
-    _pa_sd.set_modes == [_PA_OFF] and _pa_sd_held.written == {}
-    and _pa_sd_held.manual is not None
-    and _pa.state_for(_pa_sd_again).manual == _pa_sd_held.manual
-    and _pa.state_for(_pa_sd_again).written == {},
-    f"{_pa_sd_held.written=} {_pa.state_for(_pa_sd_again).manual=}",
-)
-_pa_sd._mode = _PA_AUTO
-_pa_run(_pa_sd, 3)
-R.check(
-    "turning the optimizer back on clears the stand-down, on disk too",
-    _pa_sd_held.manual is None and _pa.state_for(_pa_restart(_pa_sd)).manual is None,
-    f"{_pa_sd_held.manual=}",
+    "a change the arbiter writes back keeps its record, on disk too",
+    _pa_sd.set_modes == [] and _pa.state_for(_pa_sd).written.get("mode", (None,))[0] == "DHW"
+    and _pa.state_for(_pa_sd_again).written.get("mode", (None,))[0] == "DHW",
+    f"{_pa.state_for(_pa_sd).written=} {_pa.state_for(_pa_sd_again).written=}",
 )
 _pa_stored = _PaCoord(_PA_TUYA)
+_p8_sp.create_issue(_pa_stored.hass, "heatpump_optimizer", _pa.ISSUE_MANUAL)
 _pa_aio.run(_pa._store(_pa_stored).async_save({
     "manual": "select.pump_mode: Heating (set by the optimizer: DHW)",
-    "written": {"mode": ["DHW", _PA_T0.isoformat()]},
+    "written": {},
 }))
 _pa_aio.run(_pa._load(_pa_stored))
 _pa_aio.run(_pa.release(_pa_stored))
 R.check(
-    "unloading while stood down writes nothing, even over a mode on record",
-    _pa_stored.writes() == [],
-    f"{_pa_stored.writes()}",
+    "a v6.6.12 stand-down on record clears its repair on load, and unloading writes nothing",
+    _pa_stored.writes() == []
+    and not [i for i in getattr(_pa_stored.hass, "issues", []) if i[1] == _pa.ISSUE_MANUAL],
+    f"{_pa_stored.writes()} {getattr(_pa_stored.hass, 'issues', [])}",
 )
 _pa_sw = _PaCoord(_PA_TUYA)
 _pa_run(_pa_sw, 1)
@@ -46858,7 +47039,7 @@ _pa_sw.hass.services.calls.clear()
 _pa_aio.run(_pa.release(_pa_sw))
 R.check(
     "once the option leaves control, its own mode is evidence again and unloading writes nothing",
-    not _pa.own(_pa_sw, _pa_dhw).mode_owned and _pa_sw.writes() == [],
+    not _pa_own(_pa_sw, _pa_dhw).mode_owned and _pa_sw.writes() == [],
     f"{_pa_sw.writes()}",
 )
 
@@ -46867,11 +47048,13 @@ _pa_settled(_pa_rw, 0)
 _pa_run(_pa_rw, 1)
 _pa_run(_pa_rw, 16)
 _pa_aio.run(_pa.apply(_pa_rw, _PA_T0 + timedelta(minutes=17)))
+_pa_rw_once = [i for i in getattr(_pa_rw.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED]
+_pa_run(_pa_rw, 19)
 R.check(
-    "a rewrite starts a fresh landing: a device that ignores it is a warning, not a manual change",
-    _pa_rw.set_modes == []
+    "a new step's write the pump ignores is sent again once, then warned about",
+    _pa_rw.set_modes == [] and _pa_rw_once == []
     and [i for i in getattr(_pa_rw.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED],
-    f"{_pa_rw.set_modes=}",
+    f"{_pa_rw.set_modes=} {_pa_rw_once=}",
 )
 _pa_tol = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_tol)
