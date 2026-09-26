@@ -127,6 +127,7 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 - 2026-09-26T17:08Z: coordinator is now session_01SM74NL5DhnznPZf1kK3REu (old 017qoF… inactive). Sweep threads started on sonnet: S1 session_01G5fqVeE2ECrdR2pB74m4kD, S2 session_01KS56ytnTCESpB9SjDMxCgw, S3 session_012vMzvm26Gi7oVXFwymzeCo, S4 session_01Y9R3TcoGD184yx9vSWgRZu, S5 session_01RgQ9vDA7g9wGTm65HHCC5t, S6 session_01DqB9ZJQTvQA97uuXCSg3n6, S7 session_015PoNcbaJ7vd5FE2oN5PZ5J. Next: the E issue drafts and the E2 FIX-PLAN draft from CLASSES-DRAFT.json while the sweeps run.
 
 - 2026-09-26T17:12Z: sweeps: S2 I5 done @38f1230 (N=19, no new); S1 P2 done @c44e7bcd (N=27, all instance, no new independent; barrier proposal: ~2 s AST lint from p2_facts.py with a canonical-predicate registry). Pending S3–S7.
+- 2026-09-26T17:16Z: S3 DONE @053c486 (handoff/audit-r9-sweep-s3): I1 N=11 rca=true (guard_inventory.py reused; 528/2313 guard seams invisible to the ratchet); P1 N=11 rca=true (9 findings + 2 NEW sweep instances in comfort_learning.py, fail at 1936d5ca and origin/main). Barrier proposals in each SWEEP.md. Pending S4-S7.
 
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
