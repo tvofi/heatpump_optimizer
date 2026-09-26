@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 6.7.1
+# claims-for: 6.7.2
 #
-# v6.7.1: round-9 audit baseline: find/verify drivers, pinned local checks, bug-5 remainder. The stamp empties the list; the
+# v6.7.2: card plan history looks like the plan; buttons return before the solve; cryptography 50. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -40,9 +40,6 @@
 # mode runs left of the editable window. No new chip
 # or series appears: the fixtures' states carry no tank or lower-floor
 # probe, so those two past traces do not render here (card.mjs pins them).
-history_panned  # recorded past on the plan's step grid, drawn in the forecast's style
-history_deep_panned  # recorded past on the plan's step grid, drawn in the forecast's style
-history_no_power  # recorded past on the plan's step grid, drawn in the forecast's style
 
 # Bug 7 (v6612-card-history, the card's history view). Exactly the three
 # states that render recorded rows move; card_drift reports the other 37
