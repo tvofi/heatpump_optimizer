@@ -1,0 +1,366 @@
+# D3-s3 finder report, audit round 9 (rendered)
+
+This file was rendered by the box B3 host from this seat's `report.json`, field by field and with no words added: the seat could not write a `.md` file on this host. `report.json` is the record; where the two differ, it wins.
+
+- Dimension: D3
+- Baseline: 1936d5ca72a06556eeed4e8e5bf3dea520e517e1
+
+## Exposure
+
+none. No docs/, no GitHub, no earlier-round evidence was read; the removed tools/audit/round3..round8 files were never opened. The only earlier-round text seen is tests/mutation_table.py's own header naming round3/D3 as prior art, without its content.
+
+## Coverage
+
+| step | depth | evidence |
+|---|---|---|
+| D3.M1 | deep | tools/audit/round9/D3/s3/pool.py: 3381 sites, ten operators, seed 20260926, 36 mutants <=4/module, weights in pool.json |
+| D3.M2 | deep | tools/audit/round9/D3/s3/prescreen.py: 36 mutants x measured closure (minus stress/edge/backtest and the instrument's DRIVER_EXCLUSIONS) + env_drift --all <baseline>; 297 driver runs in prescreen.jsonl |
+| D3.M3 | deep | prescreen.json: 6 survivors (M02, M11, M19, M20, M21, M24), each with patch, closure, scripts run and verdict |
+| D3.M4 | deep | tools/audit/round9/D3/s3/distinguish.py + probe.py: line, the check that should fail, equivalence test (M11 equivalent), stronger-mutant kills |
+| D3.M5 | spot | tools/audit/round9/D3/s3/solves_per_check.py (7 scripts) and prescreen.jsonl timing/kill table; duplication and line-level over-approximation not measured |
+
+## Findings
+
+### D3-s3-01: Every gate driver runs with process local time = UTC, so open_meteo's naive-stamp UTC guard is deletable
+
+```json
+{
+  "id": "D3-s3-01",
+  "scope": "D3-s3",
+  "step": "D3.M3",
+  "title": "Every gate driver runs with process local time = UTC, so open_meteo's naive-stamp UTC guard is deletable",
+  "severity": "medium",
+  "claim": "Deleting open_meteo._parse_block's `if parsed.tzinfo is None:` guard (open_meteo.py:209) leaves all 14 drivers of the file's measured closure green, because no lane runs with a non-UTC process TZ; under TZ=Europe/Stockholm tests/open_meteo.py fails 14 checks on the same mutant.",
+  "mechanism": "The guard makes Open-Meteo's naive ISO stamps explicit UTC; without it `.astimezone(timezone.utc)` reads them as process-local time. The gate's processes are UTC (CI runner, this box), where the two coincide; HASTUB_TZ sets only the stub's DEFAULT_TIME_ZONE, not the process TZ. A Home Assistant container whose TZ is the user's zone would shift every solar sample by the UTC offset.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/prescreen.py --workers 2 --only M02 --no-log",
+    "harness_path": "tools/audit/round9/D3/s3/prescreen.py",
+    "value": 0,
+    "unit": "closure drivers (of 14) that go red on mutant M02 under the gate's environment",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B3: 4 CPUs, 15 GiB, CPython 3.14.0rc2, numpy 2.4.6, scipy 1.17.1",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: one other compute-heavy seat (D0-s3, 3 processes) plus 3 light seats; load1 1.0-7.0 during the pre-screen; the value is a kill count, which contention cannot move except by a 3600 s timeout (none hit)",
+    "tolerance": "exact",
+    "load1": 1.03,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.open_meteo:_parse_block",
+  "perturbation": {
+    "change": "Run the same mutant with the process time zone set: PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/probe.py M02 tests/open_meteo.py --env TZ=Europe/Stockholm",
+    "expected_direction": "up",
+    "observed_value": "kills=1 (tests/open_meteo.py: 14 failing checks)"
+  },
+  "metric_definition": "Number of M02's closure drivers whose run is red with more failing checks than the unmutated run (mutation_table.killed).",
+  "phenomenon_property": "A production guard that normalises a naive datetime to UTC is distinguishable from its deletion only in a process whose local zone is not UTC; the gate never runs one.",
+  "seam_rule": "tools/audit/round9/D3/s3/distinguish.py M02 --tz=Europe/Stockholm  (demonstrated seam); enumerate the class with: grep -nE 'tzinfo is None|\\.astimezone\\(|fromtimestamp\\(' custom_components/heatpump_optimizer/*.py",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/probe.py M02 tests/open_meteo.py --identity --env TZ=Europe/Stockholm",
+    "value": "kills=0",
+    "note": "identity edit under the same TZ; and distinguish.py M02 --tz=UTC → differs=0 while --tz default (Europe/Stockholm) → differs=1: first instant 2026-01-15T00:00Z vs 2026-01-14T23:00Z"
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/probe.py M02 tests/open_meteo.py",
+    "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/probe.py M02 tests/open_meteo.py --env TZ=Europe/Stockholm",
+    "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/distinguish.py M02"
+  ],
+  "proposed_fix_scope": "Tests only: run tests/open_meteo.py (or the whole gate's fast lane) once with a non-UTC process TZ, e.g. a run.sh lane or a subprocess arm with TZ=Europe/Stockholm.",
+  "files": [
+    "custom_components/heatpump_optimizer/open_meteo.py",
+    "tests/open_meteo.py",
+    "tests/run.sh"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "I1"
+}
+```
+
+### D3-s3-02: DrawStats.from_dict can zero the open draw occurrence and no gate check notices
+
+```json
+{
+  "id": "D3-s3-02",
+  "scope": "D3-s3",
+  "step": "D3.M3",
+  "title": "DrawStats.from_dict can zero the open draw occurrence and no gate check notices",
+  "severity": "medium",
+  "claim": "Replacing dhw_draws.py:136 `stats._open_kwh = max(0.0, float(...))` with `stats._open_kwh = (0.0)` survives all 16 pre-screen drivers plus edge.py and backtest.py, while a shower in progress at 1.5 kWh then closes after a store round trip as a 0.0 kWh event instead of 1.5.",
+  "mechanism": "tests/features.py 'the statistics survive a store round trip' builds its fixture ending with fold('', 0.0), so the occurrence is closed and open_kwh is 0 on both sides of the round trip; the fuzz checks assert only >= 0 or == 0 for malformed input. The restore of a positive open_kwh — the restart-mid-shower case the adjacent comment names — is unpinned.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/prescreen.py --workers 2 --only M19 --no-log",
+    "harness_path": "tools/audit/round9/D3/s3/prescreen.py",
+    "value": 0,
+    "unit": "closure drivers (of 16) that go red on mutant M19",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B3: 4 CPUs, 15 GiB, CPython 3.14.0rc2, numpy 2.4.6, scipy 1.17.1",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: one other compute-heavy seat (D0-s3, 3 processes) plus 3 light seats; load1 1.0-7.0 during the pre-screen; the value is a kill count, which contention cannot move except by a 3600 s timeout (none hit)",
+    "tolerance": "exact",
+    "load1": 1.03,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_draws:DrawStats.from_dict",
+  "perturbation": {
+    "change": "A stronger mutant at the same line: PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/probe.py M19 tests/features.py --new '            stats._open_kwh = 1.0e9'",
+    "expected_direction": "up",
+    "observed_value": "kills=1 (tests/features.py: 3 failing checks)"
+  },
+  "metric_definition": "Number of M19's closure drivers whose run is red with more failing checks than the unmutated run (mutation_table.killed).",
+  "phenomenon_property": "A positive open draw occurrence persisted by DrawStats.as_dict must be restored by from_dict with its energy; no check drives the round trip with open_kwh > 0.",
+  "seam_rule": "tools/audit/round9/D3/s3/distinguish.py M19",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/distinguish.py M19 --identity",
+    "value": "differs=0",
+    "note": "the unmutated copy closes the event as [1.5]; the mutant as [0.0]"
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/distinguish.py M19",
+    "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/probe.py M19 tests/edge.py tests/backtest.py"
+  ],
+  "proposed_fix_scope": "Tests only: a features.py round-trip check with an open occurrence of positive energy.",
+  "files": [
+    "custom_components/heatpump_optimizer/dhw_draws.py",
+    "tests/features.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "I1"
+}
+```
+
+### D3-s3-03: MonthlyLedger.add's non-finite guard is unpinned; one NaN amount loses the month on reload
+
+```json
+{
+  "id": "D3-s3-03",
+  "scope": "D3-s3",
+  "step": "D3.M3",
+  "title": "MonthlyLedger.add's non-finite guard is unpinned; one NaN amount loses the month on reload",
+  "severity": "medium",
+  "claim": "Deleting ledger.py:117's `if not (np.isfinite(kwh) and np.isfinite(sek)): return` survives all 13 drivers, finite_boundary.py among them, while one NaN amount after a finite one leaves the month line at kwh=nan and the month is dropped whole by from_dict after an orjson store round trip (1 month kept unmutated, 0 mutated).",
+  "mechanism": "finite_boundary.py substitutes non-finite values into STORED leaves and checks the loader; no check drives a non-finite amount through the writer, whose guard is the only thing keeping it off disk, where _clean_month then refuses the whole month.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/prescreen.py --workers 2 --only M21 --no-log",
+    "harness_path": "tools/audit/round9/D3/s3/prescreen.py",
+    "value": 0,
+    "unit": "closure drivers (of 13) that go red on mutant M21",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B3: 4 CPUs, 15 GiB, CPython 3.14.0rc2, numpy 2.4.6, scipy 1.17.1",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: one other compute-heavy seat (D0-s3, 3 processes) plus 3 light seats; load1 1.0-7.0 during the pre-screen; the value is a kill count, which contention cannot move except by a 3600 s timeout (none hit)",
+    "tolerance": "exact",
+    "load1": 1.03,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.ledger:MonthlyLedger.add",
+  "perturbation": {
+    "change": "A stronger mutant at the same line: PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/probe.py M21 tests/finite_boundary.py tests/features.py --new '        if True:'",
+    "expected_direction": "up",
+    "observed_value": "kills=2 (finite_boundary 1 check, features 2 checks)"
+  },
+  "metric_definition": "Number of M21's closure drivers whose run is red with more failing checks than the unmutated run (mutation_table.killed).",
+  "phenomenon_property": "A non-finite amount handed to MonthlyLedger.add must leave the month's lines finite; no check hands one to the writer.",
+  "seam_rule": "tools/audit/round9/D3/s3/distinguish.py M21",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/distinguish.py M21 --identity",
+    "value": "differs=0",
+    "note": "unmutated [1 month, 1 after reload, kwh 10.0]; mutant [1, 0, kwh nan]"
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/distinguish.py M21"
+  ],
+  "proposed_fix_scope": "Tests only: a finite_boundary.py or features.py arm that calls add() with nan/inf and asserts the month survives a store round trip.",
+  "files": [
+    "custom_components/heatpump_optimizer/ledger.py",
+    "tests/finite_boundary.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "I1"
+}
+```
+
+### D3-s3-04: No gate check observes a positive draw folded by DhwProfileLearner.async_fold_draw_stats
+
+```json
+{
+  "id": "D3-s3-04",
+  "scope": "D3-s3",
+  "step": "D3.M4",
+  "title": "No gate check observes a positive draw folded by DhwProfileLearner.async_fold_draw_stats",
+  "severity": "medium",
+  "claim": "Both the seeded mutant (dhw_learning.py:379's external-heat skip deleted: 0.4396 kWh folded during a wood burn instead of 0.0) and a stronger one (`if True:`, so the method never folds anything) leave every driver green; features.py's two checks that drive the method pass on 0 == 0.",
+  "mechanism": "'a folded draw's energy is proportional to the tank's own capacity' compares fold_5 and fold_200 with abs(a-b) < 1e-9, and 'a drop that is all standby loss books no draw' asserts == 0.0; neither asserts a positive fold, so a method that folds nothing satisfies both. The external-heat sibling seam in _record_accuracy is pinned; this one is not.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/prescreen.py --workers 2 --only M24 --no-log",
+    "harness_path": "tools/audit/round9/D3/s3/prescreen.py",
+    "value": 0,
+    "unit": "closure drivers (of 14) that go red on mutant M24",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B3: 4 CPUs, 15 GiB, CPython 3.14.0rc2, numpy 2.4.6, scipy 1.17.1",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: one other compute-heavy seat (D0-s3, 3 processes) plus 3 light seats; load1 1.0-7.0 during the pre-screen; the value is a kill count, which contention cannot move except by a 3600 s timeout (none hit)",
+    "tolerance": "exact",
+    "load1": 1.03,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_learning:DhwProfileLearner.async_fold_draw_stats",
+  "perturbation": {
+    "change": "A raising mutant at the same line proves the site is reached: PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/probe.py M24 tests/features.py --new '        if self._external_heat_active() or 1 / 0:'",
+    "expected_direction": "up",
+    "observed_value": "kills=1 (features: ZeroDivisionError)"
+  },
+  "metric_definition": "Number of M24's closure drivers whose run is red with more failing checks than the unmutated run (mutation_table.killed).",
+  "phenomenon_property": "A check that drives async_fold_draw_stats must observe a positive folded energy for a beyond-standby drop, and none for an external-heat interval; today no check observes a positive fold at all.",
+  "seam_rule": "tools/audit/round9/D3/s3/probe.py M24 tests/features.py tests/finite_boundary.py tests/entities.py tests/env_drift.py --new '        if True:'",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/distinguish.py M24 --identity",
+    "value": "differs=0",
+    "note": "unmutated 0.0 kWh, mutant 0.4396 kWh; the `if True:` mutant: kills=0 over features, finite_boundary, entities, plan_view, wood_advisor, guard_pins, manual_plan, config_flow_steps, solar_alignment, env_drift (perturb_M24.out, perturb_M24_all.out)"
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/distinguish.py M24",
+    "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/probe.py M24 tests/features.py --new '        if True:'"
+  ],
+  "proposed_fix_scope": "Tests only: give the two features.py checks a positive control (fold_200 > 0) and add an external_heat_active=True arm expecting no fold.",
+  "files": [
+    "custom_components/heatpump_optimizer/dhw_learning.py",
+    "tests/features.py"
+  ],
+  "stop_rule_class": "bug",
+  "class_guess": "I1"
+}
+```
+
+### D3-s3-05: The disinfection write-failed notice memo is unpinned
+
+```json
+{
+  "id": "D3-s3-05",
+  "scope": "D3-s3",
+  "step": "D3.M3",
+  "title": "The disinfection write-failed notice memo is unpinned",
+  "severity": "low",
+  "claim": "Deleting legionella.py:453's `if switch.failed == self.write_failed_notice: return` survives all 14 drivers; five healthy observe cycles then issue 5 issue-registry deletes of dhw_disinfection_write_failed instead of 0.",
+  "mechanism": "The memo only suppresses repeat registry calls; no check counts them across cycles.",
+  "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/prescreen.py --workers 2 --only M20 --no-log",
+    "harness_path": "tools/audit/round9/D3/s3/prescreen.py",
+    "value": 0,
+    "unit": "closure drivers (of 14) that go red on mutant M20",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B3: 4 CPUs, 15 GiB, CPython 3.14.0rc2, numpy 2.4.6, scipy 1.17.1",
+    "cpu_or_wall": "count",
+    "contention_note": "fan-out: one other compute-heavy seat (D0-s3, 3 processes) plus 3 light seats; load1 1.0-7.0 during the pre-screen; the value is a kill count, which contention cannot move except by a 3600 s timeout (none hit)",
+    "tolerance": "exact",
+    "load1": 1.03,
+    "thread_factor": 1.0
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.legionella:LegionellaGuard._drive_switch",
+  "perturbation": {
+    "change": "A stronger mutant at the same line: PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/probe.py M20 tests/features.py --new '        if True:'",
+    "expected_direction": "up",
+    "observed_value": "kills=1 (features: 3 failing checks)"
+  },
+  "metric_definition": "Number of M20's closure drivers whose run is red with more failing checks than the unmutated run (mutation_table.killed).",
+  "phenomenon_property": "The write-failed notice is written to the issue registry only when switch.failed changes.",
+  "seam_rule": "tools/audit/round9/D3/s3/distinguish.py M20",
+  "null_control": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/distinguish.py M20 --identity",
+    "value": "differs=0",
+    "note": "unmutated 0 delete calls over 5 cycles; mutant 5"
+  },
+  "reproduction_steps": [
+    "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/distinguish.py M20"
+  ],
+  "proposed_fix_scope": "Tests only, or record it equivalent-in-effect under survivor_triage with this measurement.",
+  "files": [
+    "custom_components/heatpump_optimizer/legionella.py",
+    "tests/features.py"
+  ],
+  "stop_rule_class": "hygiene",
+  "class_guess": "I1"
+}
+```
+
+## Non-findings
+
+```json
+{
+  "claim": "30 of 36 seeded mutants are killed by their measured closure (killer and first failing check per mutant in prescreen.json)",
+  "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/prescreen.py --workers 3",
+  "value": "RESULT evaluated=36, survivors=6"
+}
+```
+
+```json
+{
+  "claim": "Every pre-screen driver is green on the unmutated baseline and lets the comment-only null control (accuracy.py:36) live",
+  "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/prescreen.py --workers 3",
+  "value": "17 baseline rc=0; 17 null rc=0 (prescreen.jsonl kinds baseline/null)"
+}
+```
+
+```json
+{
+  "claim": "M11 (open_meteo.py:125 empty-series guard deleted) is equivalent: IrradianceSeries.mean_over returns None on an empty series at all 36 probed (start, end) pairs either way",
+  "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/distinguish.py M11",
+  "value": "differs=0"
+}
+```
+
+```json
+{
+  "claim": "M33 (sensor.py:957, upper-floor temperature always None) is caught, but only by env_drift.py --all after entities and finite_boundary pass",
+  "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/prescreen.py --workers 2 --only M33 --no-log",
+  "value": "killed by tests/env_drift.py"
+}
+```
+
+```json
+{
+  "claim": "The slow lanes edge.py and backtest.py do not kill M19 either",
+  "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/probe.py M19 tests/edge.py tests/backtest.py",
+  "value": "kills=0"
+}
+```
+
+```json
+{
+  "claim": "The gate instrument's scheduler does not mis-price env_drift by its stub-recorded 0.3 s: tests/mutation_table.py main() orders drivers by measured baseline seconds",
+  "command": "grep -n 'seconds = {s: r.seconds for s, r in baseline.items()}' tests/mutation_table.py",
+  "value": "measured baseline env_drift 1241.9 s (provisional) vs recorded 0.3 s (disclosed stub, #934)"
+}
+```
+
+```json
+{
+  "claim": "Solves per harness check (in-process): no script solves more than it asserts except validate.py, which reports through its own ISSUES form",
+  "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 /home/claude/venv314/bin/python tools/audit/round9/D3/s3/solves_per_check.py tests/finite_boundary.py tests/manual_plan.py tests/config_flow_steps.py tests/validate.py tests/optimality.py tests/entities.py tests/features.py",
+  "value": "features 124/3369 (lower bound, rc=1 under the wrapper), optimality 23/84, manual_plan 21/85, validate 22/0, config_flow_steps 1/454, entities 0/1957, finite_boundary 0/41"
+}
+```
+
+```json
+{
+  "claim": "Kill yield per driver over 297 mutant driver runs: features 14 kills in 14063 of 19643 s (72 %, provisional); structure, typing_ruler, solar_alignment, deployment_shape, doc_claims, manual_plan, config_flow_steps, optimality, validate: 0 kills in 150 runs",
+  "command": "python3 -c \"import json,collections; ...\" over tools/audit/round9/D3/s3/prescreen.jsonl",
+  "value": "features 14, entities 6, finite_boundary 3, wood_advisor 2, open_meteo 2, guard_pins 1, plan_view 1, env_drift 1"
+}
+```
+
+## Unfinished
+
+- **D3.M3**: Quiet-window GATE_SCOPE=full GOLDEN_MODE=drift gate for the six survivors, including stress.py (M19's closure), card.mjs and card_drift.mjs, not run here.
+- **D3.M5**: Duplicated coverage (scripts killing the same mutants) needs an all-drivers sweep per killed mutant; closure over-approximation by executed lines per file not measured; all seconds provisional and owed a quiet re-take.
+
+## Harnesses
+
+- `tools/audit/round9/D3/s3/pool.py`
+- `tools/audit/round9/D3/s3/prescreen.py`
+- `tools/audit/round9/D3/s3/probe.py`
+- `tools/audit/round9/D3/s3/distinguish.py`
+- `tools/audit/round9/D3/s3/solves_per_check.py`
+
+## Leads
+
+- owner D3-s1, `custom_components/heatpump_optimizer/coordinator.py` `coordinator.py:586/588/6331/8112/8384 (tzinfo-is-None guards)`: The gate runs every driver with process TZ=UTC (D3-s3-01); these naive-datetime guards may be deletable for the same reason. Probe each GUARD_OFF under TZ=Europe/Stockholm with tools/audit/round9/D3/s3/probe.py.
+- owner D3-s2, `custom_components/heatpump_optimizer/optimizer.py` `optimizer.py:200 and defrost.py:643 (tzinfo-is-None guards)`: Same UTC-process blindness as D3-s3-01; worth a GUARD_OFF probe under a non-UTC TZ.
