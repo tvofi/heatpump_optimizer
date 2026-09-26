@@ -12795,8 +12795,19 @@ def _gl_run_sh_leases_stress() -> tuple[bool, str]:
         for jobs in ("1", "3"):  # serial streams, lanes log to a file: two call sites
             seen[jobs] = _gl_waits_then_runs(lambda: drive(jobs, "lane_stress"), td, lock, "stress.ran")
             (td / "stress.ran").unlink(missing_ok=True)
-    ok = other_ran and all(v == (False, True) for v in seen.values())
-    return ok, f"other.py_ran_unleased={other_ran} stress (ran while held, after release) by JOBS={seen}"
+        # The seat-label branch (#1617 round 3, R3): a label the seat never
+        # took, with another label holding the lease, refuses in one line and
+        # runs nothing -- it must not fall through to a bare run.
+        _gate_lock.take("other", lock_dir=lock, lease_seconds=60, wait=False)
+        seat = _subprocess.run(["bash", str(script), "lane_stress"], cwd=td, timeout=60,
+                               env={**env, "JOBS": "1", "HPO_GATE_LOCK_LABEL": "never-taken"},
+                               capture_output=True, text=True)
+        _gate_lock.release("other", lock_dir=lock)
+        refused = ("flock-wrap refused" in seat.stderr and "Traceback" not in seat.stderr
+                   and not (td / "stress.ran").exists())
+    ok = other_ran and all(v == (False, True) for v in seen.values()) and refused
+    return ok, (f"other.py_ran_unleased={other_ran} stress (ran while held, after release) "
+                f"by JOBS={seen} never-taken label refused cleanly={refused}")
 
 
 _gl_ok, _gl_detail = _gl_run_sh_leases_stress()

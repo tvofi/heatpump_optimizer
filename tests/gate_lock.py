@@ -516,7 +516,11 @@ def _cmd_status(args: argparse.Namespace) -> int:
 
 
 def _cmd_flock_wrap(args: argparse.Namespace) -> int:
-    return flock_wrap(args.label, args.argv, lock_dir=args.lock_dir)
+    try:
+        return flock_wrap(args.label, args.argv, lock_dir=args.lock_dir)
+    except RuntimeError as exc:  # a label never taken: refuse, run nothing
+        print(f"gate_lock: flock-wrap refused, {args.label} holds no lease: {exc}", file=sys.stderr)
+        return 1
 
 
 def _cmd_auto_lease(args: argparse.Namespace) -> int:
