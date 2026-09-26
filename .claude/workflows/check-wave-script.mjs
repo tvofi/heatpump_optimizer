@@ -1174,6 +1174,16 @@ if (SCOPED_DRIVER) await block('the scoped round driver', async () => {
     Object.keys(r9.out?.rotation_round ?? {}).length === L.dims.length && r9.out.rotation_round.D1.seats.length === Object.keys(scopes.D1.seats).length, J(Object.keys(r9.out?.rotation_round ?? {})))
 })
 
+// THE ROUND-9 VERIFY DRIVER, ADMITTED BEFORE IT LANDS -- R1a's route for the
+// find driver, one file over. `wave-script` grades a pull request with the
+// BASE's copy of this file (decision 0013), so the driver that replaces round
+// 8's one-verifier pass is graded by whatever checker is on main when it is
+// proposed. This checker knows both shapes, keyed on the driver's own
+// PANEL:BEGIN block: round 8's pins below run until that block exists, and
+// 'the round-9 verification pass' holds the driver from then on. The driver's
+// pull request may drop round 8's arm; a driver with neither shape fails both.
+const PANEL_DRIVER = /\/\/ PANEL:BEGIN/.test(fs.readFileSync(path.join(here, 'audit-verify.js'), 'utf8'))
+if (!PANEL_DRIVER) {
 console.log('-- The verification pass: one verifier per dimension, every finding to the judge')
 // Round 8, the owner's panel shape. `audit-verify.js` dispatched three verifiers
 // per panel of at most eight findings and dropped a majority-refuted finding
@@ -1252,12 +1262,123 @@ await block('the verification pass', async () => {
     verifiers(res).length === 0 && judgeSees(res).length === findings.length,
     `verifier calls ${verifiers(res).length}; judge sees ${judgeSees(res).length} of ${findings.length}`)
 })
+}
+
+console.log('-- The round-9 verification pass: three lenses per dimension, majority kill, one judge')
+// Round 9 (tools/audit/briefs/verifier.md and judge.md as #1627 merged them):
+// three verifiers per dimension, each owning a lens; two refutes, each with an
+// executed number, kill at panel and one sends the finding to the judge
+// disputed; a dimension over the shard size gets another triple, split at a
+// finder-seat boundary; the judge dedups first, then tools/audit/judge_batch.py
+// re-runs the canonical findings on `runners` boxes, then verdicts and classes;
+// one sweep per class, and RCA owed at three instances of a class or at any
+// instance of a barriered one (defect-root-cause.md). The rules are evaluated
+// alone from the PANEL block, then the body is driven against stubbed agents.
+if (PANEL_DRIVER) await block('the round-9 verification pass', async () => {
+  const vsrc = fs.readFileSync(path.join(here, 'audit-verify.js'), 'utf8')
+  const blk = vsrc.match(/\/\/ PANEL:BEGIN[\s\S]*?\/\/ PANEL:END/)
+  t('the panel rules are delimited in audit-verify.js', !!blk, 'no PANEL:BEGIN..END block')
+  const P = new Function(`${blk?.[0] ?? ''}\nreturn { seatOf, shardsFor, panelOf, rcaOwed }`)()
+  const V = (vote, value = '1') => ({ vote, value })
+  const panels = [
+    [[V('refute'), V('refute'), V('verify')], 'killed'],
+    [[V('refute'), V('verify'), V('verify')], 'disputed'],
+    [[V('refute'), V('refute', ''), V('verify')], 'disputed'],
+    [[V('refute'), V('refute', null), null], 'disputed'],
+    [[V('unresolved'), V('unresolved'), V('refute')], 'disputed'],
+    [[V('verify'), V('verify'), V('verify')], 'unanimous'],
+    [[V('verify'), V('weaken'), V('verify')], 'split'],
+    [[V('verify'), V('verify'), null], 'split'],
+  ]
+  const got = panels.map(([vs]) => P.panelOf(vs))
+  t('two refutes with executed numbers kill; one, or one plus a refute without a number, sends it disputed; nothing else kills',
+    J(got) === J(panels.map(([, w]) => w)), `got ${J(got)}`)
+  t('owes an RCA at three instances of a class or any instance of a barriered one, not at two or at none',
+    J([[2, false], [3, false], [1, true], [0, true]].map(([n, b]) => P.rcaOwed(n, b))) === J([false, true, true, false]), 'rcaOwed disagrees')
+  const Fs = (seat, n, dim = 'D2') => Array.from({ length: n }, (_, k) => ({ id: `${seat}-${String(k + 1).padStart(2, '0')}`, dimension: dim }))
+  const sixteen = [...Fs('D2-s1', 9), ...Fs('D2-s2', 7)]
+  const sh = P.shardsFor(sixteen, 15)
+  t('sixteen findings over two seats make two triples, each within one seat; fifteen make one',
+    sh.length === 2 && sh.every((s) => new Set(s.map(P.seatOf)).size === 1) && sh.flat().length === 16 && P.shardsFor(sixteen.slice(0, 15), 15).length === 1,
+    J(sh.map((s) => s.map((f) => f.id))))
+  t('a finding\'s scope wins over its id when naming its seat', P.seatOf({ id: 'D1-s1-01', scope: 'D1-s3' }) === 'D1-s3', P.seatOf({ id: 'D1-s1-01', scope: 'D1-s3' }))
+
+  const vbody = vsrc.slice(0, vsrc.indexOf('export const meta')) + vsrc.slice(vsrc.indexOf('\n}\n', vsrc.indexOf('export const meta')) + 3)
+  const F = (id, dimension) => ({ id, dimension, scope: id.replace(/-\d+$/, ''), step: `${dimension}.M1`, severity: 'low', title: id, claim: id, class_guess: 'new', report_path: 'r', harness_paths: [], attached_refutation: null })
+  const d1 = ['D1-s1-01', 'D1-s1-02', 'D1-s1-03'].map((x) => F(x, 'D1'))
+  const d2 = [...Fs('D2-s1', 9), ...Fs('D2-s2', 7)].map((f) => F(f.id, 'D2'))
+  const PLAN = { 'D1-s1-01': ['refute', 'refute', 'verify'], 'D1-s1-02': ['refute', 'verify', 'verify'] }
+  const drive = async (args, { nullLabel } = {}) => {
+    const calls = []
+    let judged = []
+    const agent = async (prompt, o) => {
+      const label = o?.label ?? '?'
+      calls.push({ label, prompt })
+      if (label === 'read') return { findings: [...d1, ...d2] }
+      const m = /^(D\d+)(?:#\d+)?\/v([123])$/.exec(label)
+      if (m) {
+        if (label === nullLabel) return null
+        const ids = [...d1, ...d2].filter((f) => prompt.includes(`"${f.id}"`)).map((f) => f.id)
+        return { votes: ids.map((id) => ({ id, vote: PLAN[id]?.[Number(m[2]) - 1] ?? 'verify', value: '1' })) }
+      }
+      if (label === 'judge/dedup') {
+        judged = [...d1, ...d2].filter((f) => prompt.includes(`"id":"${f.id}"`)).map((f) => f.id)
+        return { canonical: judged, merged: [], input_path: 'in.json' }
+      }
+      if (label.startsWith('judge/runner')) return { table: 't.md', rows: judged.length, rc: 0 }
+      if (label === 'judge') return { verdicts: judged.map((id) => ({ id, verdict: 'verified', class: id.startsWith('D1') ? 'P1' : 'P2' })) }
+      if (label.startsWith('sweep/')) return { instances: label === 'sweep/P1' ? 1 : 0, barriered: false, enumerator: 'e' }
+      return { issues: [] }
+    }
+    const pipeline = (items, ...stages) => Promise.all(items.map(async (it, i) => { let v = it; for (const s of stages) v = await s(v, it, i); return v }))
+    const parallel = (thunks) => Promise.all(thunks.map((th) => th().catch(() => null)))
+    const fn = new Function('agent', 'log', 'phase', 'parallel', 'pipeline', 'args', `return (async () => { ${vbody} })()`)
+    const out = await fn(agent, () => {}, () => {}, parallel, pipeline, { round: 9, repo: '/repo', ...args })
+    return { out, calls, judged }
+  }
+  const r = await drive({})
+  const vs = r.calls.filter((c) => /\/v[123]$/.test(c.label))
+  t('three verifiers per triple, one per lens, and D2\'s sixteen findings get two triples (9 calls in all)',
+    vs.length === 9 && ['v1', 'v2', 'v3'].every((v) => vs.filter((c) => c.label.endsWith(v)).length === 3)
+    && vs.every((c) => /verifier\.md/.test(c.prompt)) && /reproduce/.test(vs.find((c) => c.label === 'D1/v1')?.prompt) && /reach and class/.test(vs.find((c) => c.label === 'D1/v3')?.prompt),
+    J(vs.map((c) => c.label)))
+  t('the killed finding never reaches the judge; the disputed one does, marked',
+    J(r.out?.panel?.killed) === J(['D1-s1-01']) && !r.judged.includes('D1-s1-01') && r.judged.length === 18
+    && /"id":"D1-s1-02"[^}]*"panel":"disputed"/.test(r.calls.find((c) => c.label === 'judge/dedup')?.prompt ?? ''),
+    `killed ${J(r.out?.panel?.killed)}; judged ${r.judged.length}`)
+  const order = r.calls.map((c) => c.label).filter((l) => l.startsWith('judge'))
+  t('the judge dedups first, the batch re-runner measures next, the verdicts come last',
+    J(order) === J(['judge/dedup', 'judge/runner-1', 'judge']) && /tools\/audit\/judge_batch\.py --input in\.json/.test(r.calls.find((c) => c.label === 'judge/runner-1')?.prompt ?? ''),
+    J(order))
+  t('one sweep per surviving class, and the class count adds its swept instances (P1: 2 judged + 1 swept = 3, owed; P2: 16, owed)',
+    J(r.out?.classes?.map((c) => [c.class, c.n, c.rca])) === J([['P1', 3, true], ['P2', 16, true]]), J(r.out?.classes))
+  const w = r.calls.find((c) => c.label === 'register')?.prompt ?? ''
+  t('the writer drafts one issue per class and the roster, and files nothing unless args.file',
+    /ISSUES\.json/.test(w) && /wave-r9-groups\.json/.test(w) && /brief_lint\.mjs/.test(w) && /Do not file issues/.test(w) && !/gh issue list/.test(w), 'writer prompt')
+  const two = await drive({ runners: 2, file: true })
+  const runs = two.calls.filter((c) => c.label.startsWith('judge/runner'))
+  t('two runners split the batch with --shard 1/2 and 2/2; args.file lets the writer search before it files',
+    runs.length === 2 && /--shard 1\/2/.test(runs[0].prompt) && /--shard 2\/2/.test(runs[1].prompt)
+    && /gh issue list/.test(two.calls.find((c) => c.label === 'register')?.prompt ?? ''), J(runs.map((c) => c.label)))
+  // V2 carries one of D1-s1-01's two refutes; null twice, that refute is gone
+  // and the finding goes to the judge disputed, not killed. V3 null leaves the
+  // kill standing: the two refutes that remain are V1's and V2's.
+  const nul2 = await drive({}, { nullLabel: 'D1/v2' })
+  const nul3 = await drive({}, { nullLabel: 'D1/v3' })
+  t('a null verifier is re-run once, and a kill needs two refutes actually cast',
+    nul2.calls.filter((c) => c.label === 'D1/v2').length === 2 && J(nul2.out?.panel?.killed) === J([]) && nul2.judged.includes('D1-s1-01')
+    && J(nul3.out?.panel?.killed) === J(['D1-s1-01']),
+    `D1/v2 calls ${nul2.calls.filter((c) => c.label === 'D1/v2').length}; killed ${J(nul2.out?.panel?.killed)} / ${J(nul3.out?.panel?.killed)}`)
+  const res = await drive({ from: 'judge' })
+  t('from "judge" runs no verifier and hands the judge every registered finding, unvoted',
+    !res.calls.some((c) => /\/v[123]$/.test(c.label)) && res.judged.length === 19, `judged ${res.judged.length}`)
+})
 
 console.log('-- The verification pass feeds the rotation ledger its yield')
-// The dispatch rule's +1 term reads rounds[<round>][<dim>].yield, the
-// judge-surviving findings per step. audit-find.js writes a round's coverage
-// through its dedup agent onto the register branch; audit-verify.js writes the
-// yield the same way, computed here in the script from the judge's verdicts and
+// tools/audit/rotation.json keeps each round's judge-surviving findings per
+// method step beside the coverage, unfinished steps, findings per seat and leads
+// that audit-find.js's intake records. audit-verify.js writes the yield through
+// its register writer, computed here in the script from the judge's verdicts and
 // each finding's `step`, so the number is the script's and not an agent's count.
 await block('the rotation yield', async () => {
   const vsrc = fs.readFileSync(path.join(here, 'audit-verify.js'), 'utf8')
@@ -1275,8 +1396,10 @@ await block('the rotation yield', async () => {
       if (o.label === 'register') return { issues: [] }
       return { votes: [] }
     }
-    const fn = new Function('agent', 'log', 'phase', 'pipeline', 'args', `return (async () => { ${vbody} })()`)
-    const out = await fn(agent, () => {}, () => {}, (xs, f) => Promise.all(xs.map(f)), { round: 9, repo: '/repo', ...(from ? { from } : {}) })
+    // `parallel` too: round 9's driver runs its triples and runners through it.
+    const fn = new Function('agent', 'log', 'phase', 'pipeline', 'parallel', 'args', `return (async () => { ${vbody} })()`)
+    const out = await fn(agent, () => {}, () => {}, (xs, f) => Promise.all(xs.map(f)),
+      (thunks) => Promise.all(thunks.map((th) => th().catch(() => null))), { round: 9, repo: '/repo', ...(from ? { from } : {}) })
     return { out, calls }
   }
   const want = { D1: {}, D14: { M3: 1 }, D2: { M2: 2 } }
