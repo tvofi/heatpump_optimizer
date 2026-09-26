@@ -1,0 +1,187 @@
+states: 47 driven; card_drift --list has 40; missing=[] extra=[]
+cells=1626 wall=982s jsonl=/tmp/d4s1-vccy48/cells.jsonl
+
+== text overflow (unreachable ink): 0 instance(s), 0 distinct
+
+== text overlap: 1406 instance(s), 16 distinct
+  [316 cells] div.dlg-body > div.chartwrap.big.pannable > svg > text "60" x div.dlg-body > div.chartwrap.big.pannable > svg > text "°C"  e.g. expanded_plan/1280x800/light/en/normal 21.9x5.2px
+  [316 cells] div.dlg-body > div.chartwrap.big.pannable > svg > text "400" x div.dlg-body > div.chartwrap.big.pannable > svg > text "W/m²"  e.g. expanded_plan/1280x800/light/en/normal 32.9x5.2px
+  [292 cells] div.dlg-body > div.chartwrap.big.pannable > svg > text "6" x div.dlg-body > div.chartwrap.big.pannable > svg > text "kW"  e.g. expanded_plan/1280x800/light/en/normal 11x5.2px
+  [94 cells] ha-card.clickable > div.chartwrap.pannable > svg > text "60" x ha-card.clickable > div.chartwrap.pannable > svg > text "°C"  e.g. plan_inline/1280x800/light/en/normal 15.4x3.3px
+  [82 cells] ha-card.clickable > div.chartwrap.pannable > svg > text "6" x ha-card.clickable > div.chartwrap.pannable > svg > text "kW"  e.g. plan_inline/1280x800/light/en/normal 7.7x3.3px
+  [82 cells] ha-card.clickable > div.chartwrap.pannable > svg > text "400" x ha-card.clickable > div.chartwrap.pannable > svg > text "W/m²"  e.g. plan_inline/1280x800/light/en/normal 23.3x3.3px
+  [70 cells] ha-card.clickable > div.chartwrap.pannable > svg > text "3" x ha-card.clickable > div.chartwrap.pannable > svg > text "SEK/kWh"  e.g. plan_inline/1280x800/light/en/normal 8x3.3px
+  [24 cells] div.dlg-body > div.chartwrap.big.pannable > svg > text "4" x div.dlg-body > div.chartwrap.big.pannable > svg > text "kW"  e.g. history_panned/1280x800/light/en/normal 11x5.2px
+  [24 cells] div.dlg-body > div.chartwrap.big.pannable > svg > text "30" x div.dlg-body > div.chartwrap.big.pannable > svg > text "°C"  e.g. history_deep_panned/1280x800/light/en/normal 21.9x5.2px
+  [24 cells] div.dlg-body > div.chartwrap.big.pannable > svg > text "300" x div.dlg-body > div.chartwrap.big.pannable > svg > text "W/m²"  e.g. history_deep_panned/1280x800/light/en/normal 32.9x5.2px
+  [18 cells] div.dlg-body > div.chartwrap.big.pannable > svg > text.now-label "now" x div.dlg-body > div.chartwrap.big.pannable > svg > text.now-temp "now 21.1 °C"  e.g. history_unavailable/375x812/light/en/normal 13.8x8.6px
+  [18 cells] div.dlg-body > div.chartwrap.big.pannable > svg > text.now-label "nu" x div.dlg-body > div.chartwrap.big.pannable > svg > text.now-temp "nu 21.1 °C"  e.g. history_unavailable/375x812/light/sv-SE/normal 7.8x8.6px
+  [12 cells] ha-card.clickable > div.chartwrap.pannable > svg > text "1.5" x ha-card.clickable > div.chartwrap.pannable > svg > text "kW"  e.g. plan_short_window/1280x800/light/en/normal 19.1x3.3px
+  [12 cells] ha-card.clickable > div.chartwrap.pannable > svg > text "3" x ha-card.clickable > div.chartwrap.pannable > svg > text "EUR/kWh"  e.g. custom_title_currency/1280x800/light/en/normal 8x3.3px
+  [12 cells] div.dlg-body > div.chartwrap.big.pannable > svg > text "5" x div.dlg-body > div.chartwrap.big.pannable > svg > text "kW"  e.g. expanded_zoomed/1280x800/light/en/normal 11x5.2px
+  [10 cells] div.dlg-body > div.chartwrap.big.pannable > div.viewctl > button.vc-reset "↺" x div.dlg-body > div.chartwrap.big.pannable > svg > text.now-label "now"  e.g. history_panned/375x812/dark/en/normal 3.3x8.5px
+
+== contrast below AA: 306 instance(s), 13 distinct
+  [144 cells] div.whatif > div.wi-section > div.wi-row.wi-delta > span.delta.dearer "+0.51 SEK"  e.g. draft_dirty_menu_open/375x812/light/en/normal 4.29:1 need 4.5 fg219,68,55 bg255,255,255 15px
+  [18 cells] div.whatif > div.wi-section > div.wi-pin-result > span.dearer "Could not apply: Service call failed"  e.g. x_pin_fail/375x812/light/en/normal 4.29:1 need 4.5 fg219,68,55 bg255,255,255 12px
+  [18 cells] div.whatif > div.wi-section > div.wi-pin-result > span.dearer "Kunde inte tillämpa: Service call failed"  e.g. x_pin_fail/375x812/light/sv-SE/normal 4.29:1 need 4.5 fg219,68,55 bg255,255,255 12px
+  [18 cells] div.whatif > div.wi-section > div.wi-row.wi-actions > button.wi-save.confirm "Confirm: overwrite my schedule"  e.g. x_save_confirm/375x812/light/en/normal 4.29:1 need 4.5 fg255,255,255 bg219,68,55 12px
+  [18 cells] div.whatif > div.wi-section > div.wi-row.wi-actions > button.wi-save.confirm "Bekräfta: skriv över mitt schema"  e.g. x_save_confirm/375x812/light/sv-SE/normal 4.29:1 need 4.5 fg255,255,255 bg219,68,55 12px
+  [18 cells] div.dlg-body > div.whatif > div.wi-section > div.wi-result.dearer "Could not save: Service call failed"  e.g. x_save_fail/375x812/light/en/normal 4.29:1 need 4.5 fg219,68,55 bg255,255,255 12px
+  [18 cells] div.dlg-body > div.whatif > div.wi-section > div.wi-result.dearer "Kunde inte spara: Service call failed"  e.g. x_save_fail/375x812/light/sv-SE/normal 4.29:1 need 4.5 fg219,68,55 bg255,255,255 12px
+  [9 cells] div.whatif > div.wi-section > div.wi-pin-result > span.cheaper "Pinned until 11:00 AM. These slots will "  e.g. x_pin_ok/375x812/light/en/normal 3.3:1 need 4.5 fg67,160,71 bg255,255,255 12px
+  [9 cells] div.whatif > div.wi-section > div.wi-pin-result > span.cheaper "Låst till 11:00. De här passen behålls s"  e.g. x_pin_ok/375x812/light/sv-SE/normal 3.3:1 need 4.5 fg67,160,71 bg255,255,255 12px
+  [9 cells] div.dlg-body > div.whatif > div.wi-section > div.wi-result.cheaper "Saved. The optimizer is reloading and wi"  e.g. x_save_ok/375x812/light/en/normal 3.3:1 need 4.5 fg67,160,71 bg255,255,255 12px
+  [9 cells] div.dlg-body > div.whatif > div.wi-section > div.wi-result.cheaper "Sparat. Optimeraren laddar om och kommer"  e.g. x_save_ok/375x812/light/sv-SE/normal 3.3:1 need 4.5 fg67,160,71 bg255,255,255 12px
+  [9 cells] div.dlg-body > div.whatif > div.wi-section > div.wi-hint.wi-warn "Your saved minimum of 55 °C is above tha"  e.g. x_dhw_clamped/375x812/light/en/normal 1.96:1 need 4.5 fg255,166,0 bg255,255,255 10.2px
+  [9 cells] div.dlg-body > div.whatif > div.wi-section > div.wi-hint.wi-warn "Ditt sparade minimum på 55 °C ligger öve"  e.g. x_dhw_clamped/375x812/light/sv-SE/normal 1.96:1 need 4.5 fg255,166,0 bg255,255,255 10.2px
+
+== ellipsized text: 0 instance(s), 0 distinct
+
+== small targets (floor 24 / 44 coarse): 344 instance(s), 2 distinct
+  [116 cells] div.chartwrap.big.pannable > svg > g.lanes > rect.slot-hit  e.g. shared_steps/375x812/light/en/normal 15.6x24.5
+  [64 cells] div.setup-page.editing > div.setup-canvas > svg.setup-svg.editing > path.setup-pipe.layout-match  e.g. layout_editing_dragged/375x812/light/en/normal 52.9x18.3
+
+== small targets failing 2.5.8 spacing: 72 instance(s), 2 distinct
+  [24 cells] div.chartwrap.big.pannable > svg > g.lanes > rect.slot-hit  e.g. shared_steps/375x812/light/en/normal 15.6x24.5 clash rect.lane
+  [24 cells] div.setup-page.editing > div.setup-canvas > svg.setup-svg.editing > path.setup-pipe.layout-match  e.g. layout_editing_dragged/375x812/light/en/normal 52.9x18.3 clash path.setup-pipe.layout-match
+
+== pointer-only targets: 1662 instance(s), 9 distinct
+  [984 cells] dialog.expanded > div.dlg-body > div.chartwrap.big.pannable > svg  e.g. expanded_plan/375x812/light/en/normal 321x189.3
+  [282 cells] ha-card.clickable > div.chartwrap.pannable > svg  e.g. plan_inline/375x812/light/en/normal 333x140.6
+  [72 cells] div.setup-page.editing > div.setup-canvas > svg.setup-svg.editing > path.setup-pipe.layout-match  e.g. layout_editing_dragged/375x812/light/en/normal 52.9x18.3
+  [36 cells] div.setup-canvas > svg.setup-svg > g > rect.setup-hit[outdoor_temp_entity]  e.g. picker_open_filtered/375x812/light/en/normal 149.3x24.5
+  [36 cells] div.setup-canvas > svg.setup-svg > g > rect.setup-hit[heat_pump_switch_entity]  e.g. picker_open_filtered/375x812/light/en/normal 149.3x24.5
+  [36 cells] div.setup-canvas > svg.setup-svg > g > rect.setup-hit[wood_tank_top_entity]  e.g. picker_open_filtered/375x812/light/en/normal 149.3x24.5
+  [36 cells] div.setup-canvas > svg.setup-svg > g > rect.setup-hit[buffer_tank_temp_entity]  e.g. picker_open_filtered/375x812/light/en/normal 149.3x24.5
+  [36 cells] div.setup-canvas > svg.setup-svg > g > rect.setup-hit[indoor_temp_entity]  e.g. picker_open_filtered/375x812/light/en/normal 149.3x24.5
+  [36 cells] div.setup-canvas > svg.setup-svg > g > rect.setup-hit[lower_floor_temp_entity]  e.g. picker_open_filtered/375x812/light/en/normal 149.3x24.5
+
+== nameless targets: 180 instance(s), 1 distinct
+  [72 cells] div.setup-page.editing > div.setup-canvas > svg.setup-svg.editing > path.setup-pipe.layout-match  e.g. layout_editing_dragged/375x812/light/en/normal 
+
+== listbox options cut / indistinct
+  picker_open_filtered/375x812/light/en/normal: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=190 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.v"]
+  picker_open_filtered/375x812/light/sv-SE/normal: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=190 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.v"]
+  picker_open_filtered/375x812/dark/en/normal: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=190 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.v"]
+  picker_open_filtered/375x812/dark/sv-SE/normal: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=190 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.v"]
+  picker_open_filtered/768x1024/light/en/normal: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=322 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.vedpanna_temperatur_te"]
+  picker_open_filtered/768x1024/light/sv-SE/normal: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=322 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.vedpanna_temperatur_te"]
+  picker_open_filtered/768x1024/dark/en/normal: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=322 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.vedpanna_temperatur_te"]
+  picker_open_filtered/768x1024/dark/sv-SE/normal: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=322 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.vedpanna_temperatur_te"]
+  picker_open_filtered/375x812/light/en/coarse: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=190 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.v"]
+  picker_open_filtered/375x812/light/sv-SE/coarse: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=190 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.v"]
+  picker_open_filtered/375x812/dark/en/coarse: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=190 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.v"]
+  picker_open_filtered/375x812/dark/sv-SE/coarse: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=190 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.v"]
+  picker_open_filtered/768x1024/light/en/coarse: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=322 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.vedpanna_temperatur_te"]
+  picker_open_filtered/768x1024/light/sv-SE/coarse: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=322 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.vedpanna_temperatur_te"]
+  picker_open_filtered/768x1024/dark/en/coarse: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=322 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.vedpanna_temperatur_te"]
+  picker_open_filtered/768x1024/dark/sv-SE/coarse: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=322 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.vedpanna_temperatur_te"]
+  picker_open_filtered/375x812/light/en/reduced: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=190 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.v"]
+  picker_open_filtered/375x812/light/sv-SE/reduced: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=190 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.v"]
+  picker_open_filtered/375x812/dark/en/reduced: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=190 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.v"]
+  picker_open_filtered/375x812/dark/sv-SE/reduced: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=190 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.v"]
+  picker_open_filtered/768x1024/light/en/reduced: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=322 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.vedpanna_temperatur_te"]
+  picker_open_filtered/768x1024/light/sv-SE/reduced: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=322 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.vedpanna_temperatur_te"]
+  picker_open_filtered/768x1024/dark/en/reduced: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=322 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.vedpanna_temperatur_te"]
+  picker_open_filtered/768x1024/dark/sv-SE/reduced: div.dlg-body > div.setup-page > div.setup-picker > select.sp-select n=3 cut=2 indistinct=1 box=322 widest=377 ["Vedpanna temperatur — sensor.vedpanna_temperatur_temperature","Vedpanna temperatur — sensor.vedpanna_temperatur_temperature_2","Vedpanna temperatur — sensor.vedpanna_temperatur_te"]
+
+== pop-ups outside viewport / chart box
+  x_menu_right_edge/375x812/light/sv-SE/normal: div.slot-menu w=82.3 left=276.5 right=358.7 viewportOut=0 chartOut=18.2
+  x_menu_right_edge_dhw/375x812/light/sv-SE/normal: div.slot-menu w=108.3 left=276.5 right=384.7 viewportOut=9.7 chartOut=44.2
+  x_menu_right_edge/375x812/dark/sv-SE/normal: div.slot-menu w=82.3 left=276.5 right=358.7 viewportOut=0 chartOut=18.2
+  x_menu_right_edge_dhw/375x812/dark/sv-SE/normal: div.slot-menu w=108.3 left=276.5 right=384.7 viewportOut=9.7 chartOut=44.2
+  x_menu_right_edge_dhw/768x1024/light/sv-SE/normal: div.slot-menu w=108.3 left=622.7 right=730.9 viewportOut=0 chartOut=9.3
+  x_menu_right_edge_dhw/768x1024/dark/sv-SE/normal: div.slot-menu w=108.3 left=622.7 right=730.9 viewportOut=0 chartOut=9.3
+  x_menu_right_edge/375x812/light/sv-SE/coarse: div.slot-menu w=82.3 left=276.5 right=358.7 viewportOut=0 chartOut=18.2
+  x_menu_right_edge_dhw/375x812/light/sv-SE/coarse: div.slot-menu w=108.3 left=276.5 right=384.7 viewportOut=9.7 chartOut=44.2
+  x_menu_right_edge/375x812/dark/sv-SE/coarse: div.slot-menu w=82.3 left=276.5 right=358.7 viewportOut=0 chartOut=18.2
+  x_menu_right_edge_dhw/375x812/dark/sv-SE/coarse: div.slot-menu w=108.3 left=276.5 right=384.7 viewportOut=9.7 chartOut=44.2
+  x_menu_right_edge_dhw/768x1024/light/sv-SE/coarse: div.slot-menu w=108.3 left=622.7 right=730.9 viewportOut=0 chartOut=9.3
+  x_menu_right_edge_dhw/768x1024/dark/sv-SE/coarse: div.slot-menu w=108.3 left=622.7 right=730.9 viewportOut=0 chartOut=9.3
+  x_menu_right_edge/375x812/light/sv-SE/reduced: div.slot-menu w=82.3 left=276.5 right=358.7 viewportOut=0 chartOut=18.2
+  x_menu_right_edge_dhw/375x812/light/sv-SE/reduced: div.slot-menu w=108.3 left=276.5 right=384.7 viewportOut=9.7 chartOut=44.2
+  x_menu_right_edge/375x812/dark/sv-SE/reduced: div.slot-menu w=82.3 left=276.5 right=358.7 viewportOut=0 chartOut=18.2
+  x_menu_right_edge_dhw/375x812/dark/sv-SE/reduced: div.slot-menu w=108.3 left=276.5 right=384.7 viewportOut=9.7 chartOut=44.2
+  x_menu_right_edge_dhw/768x1024/light/sv-SE/reduced: div.slot-menu w=108.3 left=622.7 right=730.9 viewportOut=0 chartOut=9.3
+  x_menu_right_edge_dhw/768x1024/dark/sv-SE/reduced: div.slot-menu w=108.3 left=622.7 right=730.9 viewportOut=0 chartOut=9.3
+
+== keyboard: 132 cells
+
+== hover layout shift: 82 cells
+  expanded_plan/375x812: total=0.0654 [{"el":"slot-hit","v":0.0081,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]},{"el":"slot-hit","v":0.0046,"src":["?"]}]
+  expanded_zoomed/375x812: total=0.0348 [{"el":"slot-hit","v":0.0091,"src":["?"]},{"el":"slot-hit","v":0.0076,"src":["?"]},{"el":"slot-hit","v":0.0084,"src":["?"]}]
+  draft_dirty_menu_open/375x812: total=0.0323 [{"el":"slot-hit","v":0.0072,"src":["?"]},{"el":"slot-hit","v":0.0019,"src":["?"]},{"el":"slot-hit","v":0.0046,"src":["?"]}]
+  x_menu_right_edge/375x812: total=0.0654 [{"el":"slot-hit","v":0.0081,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]},{"el":"slot-hit","v":0.0046,"src":["?"]}]
+  x_menu_right_edge_dhw/375x812: total=0.0654 [{"el":"slot-hit","v":0.0081,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]},{"el":"slot-hit","v":0.0046,"src":["?"]}]
+  x_pin_ok/375x812: total=0.0637 [{"el":"slot-hit","v":0.0072,"src":["?"]},{"el":"slot-hit","v":0.0019,"src":["?"]},{"el":"slot-hit","v":0.0046,"src":["?"]}]
+  x_pin_fail/375x812: total=0.0637 [{"el":"slot-hit","v":0.0072,"src":["?"]},{"el":"slot-hit","v":0.0019,"src":["?"]},{"el":"slot-hit","v":0.0046,"src":["?"]}]
+  x_save_confirm/375x812: total=0.0636 [{"el":"lane","v":0.0011,"src":["?"]},{"el":"slot-hit","v":0.0081,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]}]
+  x_save_ok/375x812: total=0.0636 [{"el":"lane","v":0.0011,"src":["?"]},{"el":"slot-hit","v":0.0081,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]}]
+  x_save_fail/375x812: total=0.0636 [{"el":"lane","v":0.0011,"src":["?"]},{"el":"slot-hit","v":0.0081,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]}]
+  x_dhw_clamped/375x812: total=0.0654 [{"el":"slot-hit","v":0.0081,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]},{"el":"slot-hit","v":0.0046,"src":["?"]}]
+  whatif_edited/375x812: total=0.0636 [{"el":"lane","v":0.0011,"src":["?"]},{"el":"slot-hit","v":0.0081,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]}]
+  whatif_weekly/375x812: total=0.0654 [{"el":"slot-hit","v":0.0081,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]},{"el":"slot-hit","v":0.0046,"src":["?"]}]
+  override_active/375x812: total=0.0654 [{"el":"slot-hit","v":0.0081,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]},{"el":"slot-hit","v":0.0046,"src":["?"]}]
+  shared_steps/375x812: total=0.0732 [{"el":"slot-hit","v":0.0081,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]},{"el":"slot-hit","v":0.0046,"src":["?"]}]
+  wood_whatif/375x812: total=0.0654 [{"el":"slot-hit","v":0.0081,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]},{"el":"slot-hit","v":0.0046,"src":["?"]}]
+  away_toggle/375x812: total=0.0654 [{"el":"slot-hit","v":0.0081,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]},{"el":"slot-hit","v":0.0046,"src":["?"]}]
+  away_return/375x812: total=0.0654 [{"el":"slot-hit","v":0.0081,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]},{"el":"slot-hit","v":0.0046,"src":["?"]}]
+  away_status/375x812: total=0.0654 [{"el":"slot-hit","v":0.0081,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]},{"el":"slot-hit","v":0.0046,"src":["?"]}]
+  history_unavailable/375x812: total=0.0427 [{"el":"lane","v":0.0047,"src":["?"]},{"el":"slot-hit","v":0.0068,"src":["?"]},{"el":"slot-hit","v":0.0028,"src":["?"]}]
+  history_pending/375x812: total=0.0047 [{"el":"lane","v":0.0047,"src":["?"]}]
+  expanded_plan/1280x800: total=0.0648 [{"el":"slot-hit","v":0.0252,"src":["?"]},{"el":"slot-hit","v":0.0231,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  expanded_zoomed/1280x800: total=0.0712 [{"el":"slot-hit","v":0.0264,"src":["?"]},{"el":"slot-hit","v":0.019,"src":["?"]},{"el":"slot-hit","v":0.018,"src":["?"]}]
+  draft_dirty_menu_open/1280x800: total=0.057 [{"el":"slot-hit","v":0.0213,"src":["?"]},{"el":"slot-hit","v":0.0192,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  x_menu_right_edge/1280x800: total=0.0648 [{"el":"slot-hit","v":0.0252,"src":["?"]},{"el":"slot-hit","v":0.0231,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  x_menu_right_edge_dhw/1280x800: total=0.0648 [{"el":"slot-hit","v":0.0252,"src":["?"]},{"el":"slot-hit","v":0.0231,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  x_pin_ok/1280x800: total=0.057 [{"el":"slot-hit","v":0.0213,"src":["?"]},{"el":"slot-hit","v":0.0192,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  x_pin_fail/1280x800: total=0.057 [{"el":"slot-hit","v":0.0213,"src":["?"]},{"el":"slot-hit","v":0.0192,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  x_save_confirm/1280x800: total=0.0651 [{"el":"slot-hit","v":0.0252,"src":["?"]},{"el":"slot-hit","v":0.0231,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  x_save_ok/1280x800: total=0.0651 [{"el":"slot-hit","v":0.0252,"src":["?"]},{"el":"slot-hit","v":0.0231,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  x_save_fail/1280x800: total=0.0651 [{"el":"slot-hit","v":0.0252,"src":["?"]},{"el":"slot-hit","v":0.0231,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  x_dhw_clamped/1280x800: total=0.0648 [{"el":"slot-hit","v":0.0252,"src":["?"]},{"el":"slot-hit","v":0.0231,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  whatif_edited/1280x800: total=0.0651 [{"el":"slot-hit","v":0.0252,"src":["?"]},{"el":"slot-hit","v":0.0231,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  whatif_weekly/1280x800: total=0.0648 [{"el":"slot-hit","v":0.0252,"src":["?"]},{"el":"slot-hit","v":0.0231,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  override_active/1280x800: total=0.0648 [{"el":"slot-hit","v":0.0252,"src":["?"]},{"el":"slot-hit","v":0.0231,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  shared_steps/1280x800: total=0.0692 [{"el":"slot-hit","v":0.0252,"src":["?"]},{"el":"slot-hit","v":0.0231,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  wood_whatif/1280x800: total=0.0648 [{"el":"slot-hit","v":0.0252,"src":["?"]},{"el":"slot-hit","v":0.0231,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  away_toggle/1280x800: total=0.0648 [{"el":"slot-hit","v":0.0252,"src":["?"]},{"el":"slot-hit","v":0.0231,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  away_return/1280x800: total=0.0648 [{"el":"slot-hit","v":0.0252,"src":["?"]},{"el":"slot-hit","v":0.0231,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  away_status/1280x800: total=0.0648 [{"el":"slot-hit","v":0.0252,"src":["?"]},{"el":"slot-hit","v":0.0231,"src":["?"]},{"el":"slot-hit","v":0.003,"src":["?"]}]
+  history_panned/1280x800: total=0.0099 [{"el":"slot-hit","v":0.0048,"src":["?"]},{"el":"lane","v":0.0048,"src":["?"]}]
+  history_unavailable/1280x800: total=0.0922 [{"el":"slot-hit","v":0.025,"src":["?"]},{"el":"slot-hit","v":0.0312,"src":["?"]},{"el":"slot-hit","v":0.0043,"src":["?"]}]
+  history_pending/1280x800: total=0.0101 [{"el":"slot-hit","v":0.0049,"src":["?"]},{"el":"lane","v":0.0049,"src":["?"]}]
+
+== console errors
+RESULT cells=1626 count
+RESULT overflow_instances=0 count
+RESULT overflow_cells=0 count
+RESULT overlap_instances=1406 count
+RESULT overlap_cells=468 count
+RESULT contrast_instances=306 count
+RESULT contrast_cells=252 count
+RESULT ellipsized_instances=0 count
+RESULT ellipsized_cells=0 count
+RESULT small_instances=344 count
+RESULT small_cells=180 count
+RESULT small24_instances=72 count
+RESULT small24_cells=48 count
+RESULT pointerOnly_instances=1662 count
+RESULT pointerOnly_cells=1374 count
+RESULT nameless_instances=180 count
+RESULT nameless_cells=72 count
+RESULT max_overflow_px=0 px
+RESULT option_indistinct_pairs=24 count
+RESULT option_indistinct_cells=24 count
+RESULT option_cut=48 count
+RESULT popup_out_cells=18 count
+RESULT max_popup_viewport_out_px=9.7 px
+RESULT hscroll_cells=0 count
+RESULT kb_unreached=0 count
+RESULT kb_no_indicator=0 count
+RESULT hover_shift_cells=43 count
+RESULT console_error_cells=0 count
+RESULT thread_factor=1.00
+RESULT load1=1.24
+RESULT swapins=0
