@@ -469,6 +469,99 @@
     "class": "P4",
     "seam_rule_enumerates": "demonstrated-only: the command enumerates the shoulder and flat price shapes only, while the stated property covers every price shape; the tree's own claims show the same miss at summer_negative and winter_narrow"
    }
+  ],
+  "catchup": [
+   {
+    "id": "D3-s3-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "mutant_delta=2/2 timestamps under TZ=Europe/Stockholm, 0/2 under TZ=UTC, null 0 (production _parse_block source compiled with the guard removed, D3-s3-01_prod.py; load1 0.27, thread_factor 1.000)",
+    "metric_definition": "count of parsed timestamps (of 2) that differ between production open_meteo._parse_block and the M02 (guard-deleted) mutant compiled from the production source, for a fixed naive-ISO input block, under the process TZ",
+    "method": "sub-seat harness D3-s3-01_tz_reach.py (re-implementation of both arms) cross-checked by the box owner's D3-s3-01_prod.py, which compiles the mutant from production source in memory; real HA 2026.2.3 source read: core_config/util.dt/core never set os.environ[TZ] or call time.tzset()",
+    "attacks": [
+     "contention: load1 0.16-0.27, count metric",
+     "gate mode: recorded prescreen.py (line 116) runs env_drift.py --all, not the 5-fixture default",
+     "null control: 0 delta in both TZs",
+     "reachability: plain CPython naive.astimezone() reads the OS/container process TZ; HA's configured time zone never sets it, so a non-UTC host process reproduces it on real HA",
+     "severity: shifts solar sample timestamps by the UTC offset on a non-UTC host if the guard regresses; medium kept",
+     "quiet window not run (tvofi rule)"
+    ],
+    "class": "I1",
+    "seam_rule_enumerates": "all: the grep (tzinfo is None|.astimezone(|fromtimestamp() returns about 15 further production sites with the same naive-datetime pattern (accuracy, coordinator x5, defrost, inputs x2, manual_plan x2, optimizer, tariff x2, wood_fuel x2)"
+   },
+   {
+    "id": "D3-s3-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "mutant_delta=1.5 kWh, null_delta=0.0 kWh (thread_factor 0.999, load1 0.18)",
+    "metric_definition": "open_kwh recovered by DrawStats.from_dict({'open_kwh': 1.5, ...}) under baseline vs the M19 mutant",
+    "method": "mock.patch.object(DrawStats, 'from_dict', <M19 classmethod>) in memory; baseline and mutant in one process",
+    "attacks": [
+     "contention: load1 0.18",
+     "gate mode: recorded run used env_drift --all",
+     "null control: 0 delta",
+     "reachability: dhw_draws.py imports no homeassistant symbol, so stub and real HA cannot diverge; reach is a restart mid-draw",
+     "severity: one occurrence's energy lost on reload if the line regresses; medium kept",
+     "quiet window not run (tvofi rule)"
+    ],
+    "class": "I1",
+    "seam_rule_enumerates": "demonstrated-only: distinguish.py M19 exercises this one assignment; no command enumerates other from_dict recovery sites"
+   },
+   {
+    "id": "D3-s3-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "baseline 1 month survives reload, M21 mutant 0, delta=1 month; null 0 (thread_factor 0.987, load1 0.16; the real loader logged 'Quarantined 1 malformed ledger month(s)')",
+    "metric_definition": "months present in MonthlyLedger.from_dict(ledger.as_dict()) after one finite add() then one NaN add() to the same line",
+    "method": "mock.patch.object(MonthlyLedger, 'add', <guard removed>), then a real as_dict/from_dict round trip through the unmodified loader",
+    "attacks": [
+     "contention: load1 0.16",
+     "gate mode: recorded run used env_drift --all",
+     "null control: 0 delta",
+     "reachability: ledger.py imports no homeassistant symbol",
+     "severity: losing one month's ledger on reload if the guard regresses; medium kept",
+     "quiet window not run (tvofi rule)"
+    ],
+    "class": "I1",
+    "seam_rule_enumerates": "demonstrated-only: distinguish.py M21 exercises this one guard; no command enumerates other finite-guard call sites (e.g. observe_meta_mean)"
+   },
+   {
+    "id": "D3-s3-04",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "external_heat_active=True: baseline 0.0 kWh, M24 mutant 1.0904 kWh; external_heat_active=False: baseline 1.0904 kWh, 'folds nothing' mutant 0.0 kWh (thread_factor 0.968, load1 0.066)",
+    "metric_definition": "DhwProfileLearner.draw_stats._open_kwh after one async_fold_draw_stats call",
+    "method": "real DhwProfileLearner with ThermalParameters(dhw_enabled=True); mock.patch.object for M24 and for an unconditional no-fold mutant",
+    "attacks": [
+     "contention: load1 0.066",
+     "gate mode: recorded run used env_drift --all",
+     "null control: 0 delta",
+     "reachability: the fold arithmetic calls no homeassistant symbol (hass only builds the store)",
+     "magnitude differs from the finder's 0.4396 kWh because of different fixture inputs; direction and zero/non-zero shape match",
+     "severity: production folds correctly today; exposure is a silent regression of the DHW demand estimate; medium kept",
+     "quiet window not run (tvofi rule)"
+    ],
+    "class": "I1",
+    "seam_rule_enumerates": "demonstrated-only: probe.py runs the one mutation across more drivers (coverage of one seam), not other seams"
+   },
+   {
+    "id": "D3-s3-05",
+    "vote": "verify",
+    "severity": "low",
+    "value": "baseline 0 deletes over 5 healthy cycles, M20 mutant 5, null 0 (thread_factor 0.688-0.870 from subprocess startup, count metric; load1 0.10-0.40); real HA 2026.2.3 IssueRegistry.async_delete returns before any event or save when the issue is absent",
+    "metric_definition": "ir.async_delete_issue('dhw_disinfection_write_failed') calls across 5 consecutive switch.failed=False observe cycles",
+    "method": "real LegionellaGuard + DisinfectionSwitch with mock.patch.object(LegionellaGuard, '_drive_switch', <memo guard deleted>); real HA issue_registry source read under /root/venvha with tests/hastub stripped from PYTHONPATH",
+    "attacks": [
+     "contention: count metric",
+     "gate mode: recorded run used env_drift --all",
+     "null control: 0 delta",
+     "reachability: the extra deletes are no-ops in real HA (no event fire, no registry save)",
+     "severity: low/hygiene supported by the real-HA no-op",
+     "quiet window not run (tvofi rule)"
+    ],
+    "class": "I1",
+    "seam_rule_enumerates": "demonstrated-only: distinguish.py M20 exercises this one memo; no command enumerates other once-per-state-change memos"
+   }
   ]
  }
 }
