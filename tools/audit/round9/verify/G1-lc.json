@@ -3,10 +3,10 @@
   "id": "D1-s2-91",
   "scope": "D1-s2",
   "step": "D1.M5",
-  "title": "The flow-curve bias fold is not contained: a raise from FlowCurveBias.observe aborts the whole cycle's accuracy pipeline and fails the update",
+  "title": "FlowCurveBias.observe raise aborts the cycle's accuracy pipeline and fails the whole update",
   "severity": "medium",
-  "claim": "If FlowCurveBias.samples ever goes negative (the state flow_lift.py:210's `samples < 0` guard exists to refuse), coordinator._fold_flow_lift's call to FlowCurveBias.observe raises ZeroDivisionError uncaught, aborting HeatPumpOptimizerCoordinator._record_accuracy() before the accuracy-scoring calls that follow it in the same method, and propagating out of _async_update_data into its generic `except Exception` handler, which converts it to UpdateFailed for the whole cycle.",
-  "mechanism": "observe()'s low-sample branch divides by `self.samples + 1`; at samples=-1 that denominator is 0. _record_accuracy calls _fold_flow_lift (and therefore observe) before its own lead-time and DHW accuracy scoring, with no try/except around any of these per-cycle folds; _async_update_data's caller wraps only _command_frequency and _async_drive_pumps individually in try/except Exception (\"never allowed to break the cycle\"), but calls self._record_accuracy() with no such wrapper, so a raise there is caught only by the outer method's blanket except, which converts ANY exception into UpdateFailed -- the whole update, not just the fold, fails.",
+  "claim": "If FlowCurveBias.samples ever goes negative (the state flow_lift.py:210's `samples < 0` guard exists to refuse), coordinator._fold_flow_lift's call to FlowCurveBias.observe raises ZeroDivisionError uncaught, aborting HeatPumpOptimizerCoordinator._record_accuracy() before the accuracy-scoring calls that follow it in the same method, and propagating out of _async_update_data into its generic `except Exception` handler, which converts it to UpdateFailed for the whole cycle.\n\nFull original title (moved here by intake normalisation, tvofi decision 2026-09-26T13:02Z): The flow-curve bias fold is not contained: a raise from FlowCurveBias.observe aborts the whole cycle's accuracy pipeline and fails the update",
+  "mechanism": "observe()'s low-sample branch divides by `self.samples + 1`; at samples=-1 that denominator is 0. _record_accuracy calls _fold_flow_lift (and therefore observe) before its own lead-time and DHW accuracy scoring, with no try/except around any of these per-cycle folds; _async_update_data's caller wraps only _command_frequency and _async_drive_pumps individually in try/except Exception (\"never allowed to break the cycle\"), but calls self._record_accuracy() with no such wrapper, so a raise there is caught only by the outer method's blanket except, which converts ANY exception into UpdateFailed -- the whole update, not just the fold, fails.\n\nFull original metric_definition: Of 5 real coord._record_accuracy() calls (one fresh honest coordinator per call, _fold_flow_lift's five own gates satisfied), the count that raise ZeroDivisionError, and the count whose post-fold accuracy-scoring call still runs that same cycle.",
   "evidence": {
    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D1/s2/leads/lc_flow_bias_containment.py",
    "harness_path": "tools/audit/round9/D1/s2/leads/lc_flow_bias_containment.py",
@@ -31,7 +31,7 @@
    "value": "0/5 raises, 5/5 scored_after_fold",
    "note": "same five real cycles, same priming, only samples differs (0 vs -1); with the guard's own inert-at-zero state the fold never raises"
   },
-  "metric_definition": "Of 5 real coord._record_accuracy() calls (one fresh honest coordinator per call, _fold_flow_lift's five own gates satisfied), the count that raise ZeroDivisionError, and the count whose post-fold accuracy-scoring call still runs that same cycle.",
+  "metric_definition": "Of 5 real coord._record_accuracy() calls (one fresh honest coordinator per call, _fold_flow_lift's five own gates satisfied), the count that raise ZeroDivisionError, and the count whose post-fold ...",
   "phenomenon_property": "Every learner folded inside _record_accuracy (flow-curve bias, defrost window close, compressor start/frequency observation, lead-time and DHW accuracy scoring) shares one call site with no per-fold try/except; a raise from any of them is caught only by _async_update_data's blanket `except Exception`, which fails the entire cycle's update rather than skipping just that fold -- unlike _command_frequency and _async_drive_pumps, which _async_update_data's caller explicitly wraps so a failure there cannot break the cycle.",
   "seam_rule": "grep -n 'self\\._record_accuracy()\\|self\\._track_realised_peak()\\|self\\._async_save_accuracy()\\|self\\._async_save_energy_totals()' custom_components/heatpump_optimizer/coordinator.py; each of the calls _record_accuracy makes internally (_fold_flow_lift, _observe_compressor_start, _observe_frequency, defrost_window.close, score_lead_predictions, dhw score_lead_predictions) is an unwrapped seam of the same shape",
   "reproduction_steps": [
@@ -44,15 +44,16 @@
    "custom_components/heatpump_optimizer/flow_lift.py"
   ],
   "stop_rule_class": "bug",
-  "class_guess": "new"
+  "class_guess": "new",
+  "notes": ""
  },
  {
   "id": "D3-s1-91",
   "scope": "D3-s1",
   "step": "D3.M4",
-  "title": "coordinator.py's now.tzinfo-reconciliation guards (:8112, :8384) are dead under the gate's default clock and only crash, never silently drift, once unblinded",
+  "title": "coordinator.py tzinfo guards (:8112, :8384) are dead under the gate's naive clock; unblinded they crash",
   "severity": "medium",
-  "claim": "coordinator.py:8384's `if when.tzinfo is None and now.tzinfo is not None: when = when.replace(tzinfo=now.tzinfo)` (and, by identical shape, :8112's) is unreachable under the gate's default environment, because dt_util.now() there is naive (HASTUB_TZ unset) so `now.tzinfo is not None` is always false; deleting the guard is then byte-identical (0.0 vs 0.0) on a 3-event, one-config scenario. Only once the coordinator's own clock is made timezone-aware (HASTUB_TZ=Europe/Stockholm, which only tests/dst_checks.py's subprocess sets, for a different file) does the deleted guard diverge -- not silently, but with an uncaught TypeError comparing an offset-naive and an offset-aware datetime.",
+  "claim": "coordinator.py:8384's `if when.tzinfo is None and now.tzinfo is not None: when = when.replace(tzinfo=now.tzinfo)` (and, by identical shape, :8112's) is unreachable under the gate's default environment, because dt_util.now() there is naive (HASTUB_TZ unset) so `now.tzinfo is not None` is always false; deleting the guard is then byte-identical (0.0 vs 0.0) on a 3-event, one-config scenario. Only once the coordinator's own clock is made timezone-aware (HASTUB_TZ=Europe/Stockholm, which only tests/dst_checks.py's subprocess sets, for a different file) does the deleted guard diverge -- not silently, but with an uncaught TypeError comparing an offset-naive and an offset-aware datetime.\n\nFull original title (moved here by intake normalisation, tvofi decision 2026-09-26T13:02Z): coordinator.py's now.tzinfo-reconciliation guards (:8112, :8384) are dead under the gate's default clock and only crash, never silently drift, once unblinded",
   "mechanism": "Unlike open_meteo.py:209 (D3-s3-01), whose guard is blind to the *process* TZ because the gate always runs at TZ=UTC, this guard's live-or-dead state is governed by HASTUB_TZ (the stub's DEFAULT_TIME_ZONE), which the gate leaves unset by default: dt_util.now() is then always naive, so the `now.tzinfo is not None` half of the guard's condition never holds and the branch never executes, whatever the OS TZ is. This is the same family of finding (a guard the gate's default environment can never exercise) but a different governing knob.",
   "evidence": {
    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D3/s1/leads/lc_tz_probe_coordinator.py",
@@ -90,6 +91,7 @@
    "tests/dst_checks.py"
   ],
   "stop_rule_class": "bug",
-  "class_guess": "I1"
+  "class_guess": "I1",
+  "notes": ""
  }
 ]
