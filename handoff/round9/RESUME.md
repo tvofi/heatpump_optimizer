@@ -38,21 +38,33 @@ All four run as Agent sub-seats inside the orchestrator container (lost if it is
 from the table and check the handoff branch on origin first). Scratch: /tmp/claude-0/-home-claude/1da41f8a-eb29-5a61-aca6-50a7738462b9/scratchpad/seats/<id>
 | seat | handoff branch | state |
 |---|---|---|
-| R1 fixer | handoff/r9-r1-find-driver | running (04:50Z) |
+| R1a checker | handoff/r9-r1a-find-checker | HANDED OFF: code a897272a, body 14b9f803; not code-owned; review brief reviews/R1a.md → Cloud reviewer 2; Mac relayed to push; merges before R1 |
+| R1 driver | handoff/r9-r1-find-driver | HANDED OFF: code a87f1ce5 (stacked on R1a), body 06a918e7; push only after R1a merges + main merged in; audit-find.js @tvofi-owned; review brief reviews/R1.md |
 | R3 fixer | handoff/r9-r3-verify-driver | running (04:50Z) |
-| R4 fixer | handoff/r9-r4-instruments | HANDED OFF ~05:05Z: code head 2bf7faaf, body commit d8d3374d; review brief reviews/R4.md → Cloud compute helper; Mac asked to push. Policy → tvofi approval (mandate 3) |
+| R4 fixer | handoff/r9-r4-instruments | PR #1632 open at f493fec1 (2bf7faaf + delivery row); in review by Cloud compute helper; review brief reviews/R4.md → Cloud compute helper; Mac asked to push. Policy → tvofi approval (mandate 3) |
 | R6 fixer | handoff/r9-r6-reboot-toggles | running (04:50Z); RCA seat owed once cause named |
 Coordinator asked (04:50Z) to: warn the Mac seat; line up Cloud compute helper / Cloud reviewer 2 as reviewers;
 start 10 box threads for phase A from /mnt/project-files/audit-r9/briefs/B<n>.md when the baseline is cut.
 Coordinator ack 04:32Z: Mac warned; reviews R1+R4 -> Cloud compute helper, R3+R6 -> Cloud reviewer 2; send head SHAs and review briefs to the coordinator.
 
 ## Verdicts received
-(none)
+- #1633 (R1a) @1a19dd9f: BLOCKED codeowners_gap (check-wave-script.mjs:1159 fixture quotes boost.py) — Cloud reviewer 2, 04:53Z. R1 seat resumed to fix both R1a and R1 heads (+2 optional nits). Mac holding #1633.
 
 ## Next step
 Dispatch R1, R3, R4, R6 fixers; reviewers via coordinator (Cloud compute helper / Cloud reviewer 2);
 Mac seat pushes as hpo-author from handoff/<topic>, approves, merges one at a time. Then cut baseline.
 
+## Transport
+Other cloud seats get I/O errors on /mnt/project-files. Every seat/review brief is ALSO committed to branch
+handoff/audit-r9-plan under handoff/round9/ (reviews/*.md, briefs/B*.md, RESUME.md). Local worktree for it:
+scratchpad/plan-wt (branch r9-plan-transport). Verdicts come back as text via the coordinator.
+
+## Phase A mechanics (from R1)
+audit-find.js with args.box runs one box's seats and pushes to handoff/audit-r9-find-<box>; args.from:"intake"
+gathers all boxes, then runs the leads seat, the D3 confirmation and intake. Box briefs B1..B10 must tell each
+box thread to run it with args.box=<Bn> (round 9, baseline, repo, rotation, scopes).
+
 ## Owed (not blocking the baseline)
+- tools/audit/README.md toolkit list doesn't name scopes.json / check_scopes.py (policy).
 - .claude/workflows/web-fragments.md + synced web-*.js still describe the pre-v6.7.0 lease → dispatched as R4b fixer (handoff/r9-r4b-web-fragments), policy.
 - tests/card_browser.mjs coarse-pointer comment and carry-1320.json control measured on Playwright 1.49 Chromium; unmeasured on 1.56.1 (lead for D4-s1).
