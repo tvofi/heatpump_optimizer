@@ -1,0 +1,87 @@
+# unreached __init__.py:184 dt_util.as_utc(dt_util.now()) ± dt_util.as_utc(stamped_at)
+# unreached accuracy.py:182 now ± target_time
+# unreached away.py:465 return_time ± now
+# unreached away.py:552 last ± timedelta(days=1)
+# unreached boost.py:73 now ± timedelta(hours=BOOST_HOURS)
+# unreached coordinator.py:1441 start ± timedelta(hours=i)
+# unreached coordinator.py:2612 self._legionella.last_cycle ± timedelta(
+                days=float(params.dhw_legionella_
+# unreached coordinator.py:2616 now ± timedelta(days=1)
+# unreached coordinator.py:2619 day ± timedelta(days=1)
+# unreached coordinator.py:2777 now.hour ± now.minute / 60.0
+# unreached coordinator.py:3169 timestamps[-1] ± timedelta(hours=dt_hours)
+# unreached coordinator.py:4142 now ± previous_time
+# unreached coordinator.py:4251 now ± previous_time
+# unreached coordinator.py:4284 previous_time.hour ± previous_time.minute / 60.0
+# unreached coordinator.py:4440 now ± previous_time
+# unreached coordinator.py:4460 previous_time.hour ± previous_time.minute / 60.0
+# unreached coordinator.py:4557 now.hour ± now.minute / 60.0
+# unreached coordinator.py:4684 dt_util.now() ± timedelta(
+                minutes=ctx._config.get(
+                    CO
+# unreached coordinator.py:5937 now ± timedelta(hours=hours)
+# unreached coordinator.py:6034 starts[idx] ± timedelta(hours=1)
+# unreached coordinator.py:6207 now ± midnight
+# unreached coordinator.py:6294 now ± last
+# unreached coordinator.py:6306 now ± self._last_heavy_snow
+# unreached coordinator.py:6333 ts ± timedelta(hours=1)
+# unreached coordinator.py:8024 now ± self._fuse_advisor_at
+# unreached coordinator.py:8051 now ± timedelta(days=6)
+# unreached coordinator.py:8114 now ± last
+# unreached coordinator.py:8117 now ± timedelta(
+            hours=OUTAGE_RECOVERY_HOURS
+        )
+# unreached coordinator.py:8120 now ± timedelta(
+            minutes=OUTAGE_DHW_DELAY_MINUTES
+        )
+# unreached coordinator.py:8327 now.hour ± now.minute / 60.0
+# unreached coordinator.py:8377 now ± timedelta(days=14)
+# unreached coordinator.py:9034 now.hour ± now.minute / 60.0
+# unreached coordinator.py:9205 now ± pending["when"]
+# unreached coordinator.py:9405 solve_time ± timedelta(hours=lead)
+# unreached coordinator.py:9445 solve_time ± timedelta(hours=lead)
+# unreached coordinator.py:10045 now.hour ± now.minute / 60.0
+# unreached curve_learning.py:112 now ± last
+# unreached dhw_learning.py:347 now ± previous_time
+# unreached dhw_learning.py:393 now.hour ± now.minute / 60.0
+# unreached disinfection.py:190 now ± since
+# unreached grid_fee.py:158 when.hour ± when.minute / 60.0
+# unreached inputs.py:537 now ± stamp
+# unreached inputs.py:842 now ± stamp
+# unreached legionella.py:631 dt_util.as_utc(dt_util.now()) ± dt_util.as_utc(last)
+# unreached open_meteo.py:317 now ± timedelta(minutes=15)
+# unreached open_meteo.py:464 coarse.end ± timedelta(hours=6)
+# unreached optimizer.py:150 [(step_datetimes[0] - timedelta(hours=dt)).weekday()] ± [d.weekday() for d in step_datetim
+# unreached optimizer.py:150 step_datetimes[0] ± timedelta(hours=dt)
+# unreached optimizer.py:201 start ± timedelta(hours=i * dt_hours)
+# unreached optimizer.py:204 utc ± timedelta(hours=i * dt_hours)
+# unreached optimizer.py:2273 time.monotonic() ± h.t_start
+# unreached optimizer.py:2479 start_time.hour * 60 ± start_time.minute
+# unreached optimizer.py:4060 time.monotonic() ± t_start
+# unreached optimizer.py:5949 start_time.hour ± start_time.minute / 60.0
+# unreached optimizer.py:6229 time.monotonic() ± t_start
+# unreached price_model.py:242 (when.hour % HOURS_PER_DAY) * QUARTERS_PER_HOUR ± (
+            when.minute // 15
+        
+# unreached pump_arbiter.py:372 now ± held.dhw_since
+# unreached pump_arbiter.py:423 now ± timedelta(minutes=RETRY_MINUTES)
+# unreached pump_arbiter.py:480 now.minute ± now.minute % 15
+# unreached services.py:873 now ± timedelta(hours=MANUAL_PLAN_WINDOW_HOURS)
+# unreached snapshots.py:77 now ± last
+# unreached sysid.py:728 b.when ± a.when
+# unreached sysid.py:1510 current.when ± previous.when
+# unreached sysid.py:1605 usable[i].when ± usable[i - 1].when
+# unreached sysid.py:1840 last.room_temp ± last.outdoor_temp
+# unreached tariff.py:57 when.hour * 60 ± when.minute
+# unreached tariff.py:58 midnight ± timedelta(minutes=minutes)
+# unreached tariff.py:139 when.hour ± when.minute / 60.0
+# unreached tariff.py:582 base ± timedelta(minutes=window * i)
+# unreached tariff.py:605 base ± timedelta(minutes=window * i)
+# unreached wood_fuel.py:162 timestamps[0] ± timedelta(hours=48)
+# unreached wood_fuel.py:175 when.hour ± when.minute / 60.0
+# unreached wood_fuel.py:212 now ± timedelta(days=1)
+# unreached wood_fuel.py:349 anchor ± timedelta(hours=i * dt_hours)
+RESULT candidates=74 count
+RESULT reached=0 count
+RESULT reached_not_in_candidates=0 count
+RESULT load1=0 thread_factor=1.0 swapins=0 (static, no timing)

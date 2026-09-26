@@ -1,0 +1,6 @@
+RESULT handed_offset_steps=0
+RESULT elapsed_steps=2
+RESULT model_sequence_writes=0 (buffer_is_store=1, buffer_temp_trajectory len=97)
+RESULT thread_factor=1.000
+RESULT load1=2.97
+RESULT swapins=0
