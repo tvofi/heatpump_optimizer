@@ -33862,6 +33862,7 @@ from heatpump_optimizer import climate as _rc2_climate  # noqa: E402
 from heatpump_optimizer import datetime as _rc2_dt  # noqa: E402
 from heatpump_optimizer import switch as _rc2_switch  # noqa: E402
 import re as _rc2_re  # noqa: E402
+from operator import attrgetter as _rc2_attrgetter  # noqa: E402
 from datetime import datetime as _rc2_datetime, timedelta as _rc2_td  # noqa: E402
 from homeassistant.util import dt as _rc2_dt_util  # noqa: E402
 
@@ -33887,17 +33888,17 @@ _RC2_ROWS = [
     (_C.HeatPumpOptimizerClimate, "async_set_temperature", ({"temperature": 21.5},), ("mode", "auto"), ("target_temperature", 21.5)),
     (_rc2_dt.AwayReturnDateTime, "async_set_value", (_RC2_RETURN,), ("away", True), ("native_value", _RC2_RETURN)),
 ]
-# Buttons hold their own platform's slot, so a press never queues a toggle,
-# and none of them sets a state a restart must restore but the comfort-weight
-# reset, which persists before its refresh (the coordinator sweep below).
-_RC2_EXEMPT = {
-    (_rc2_button.ForceOptimizationButton, "async_press"): "a run, not a state",
-    (_rc2_button.DiagnoseIntervalButton, "async_press"): "a report, not a state",
-    (_rc2_button.SystemIdentificationButton, "async_press"):
-        "arms an experiment for tonight; in memory by design",
-    (_rc2_button.ResetComfortWeightButton, "async_press"):
-        "the setter saves the reset before it asks for the refresh",
-}
+# The buttons share one PARALLEL_UPDATES slot, so a press that awaits a solve
+# queues the reset behind it: every press must return, and only the reset sets
+# a state a restart must restore (None: no readout).
+_RC2_ROWS += [
+    (_rc2_button.ResetComfortWeightButton, "async_press", (), ("comfort", -1.9),
+     ("coordinator._comfort_learner.evidence", 0.0)),
+    (_rc2_button.ForceOptimizationButton, "async_press", (), ("mode", "auto"), None),
+    (_rc2_button.DiagnoseIntervalButton, "async_press", (), ("mode", "auto"), None),
+    (_rc2_button.SystemIdentificationButton, "async_press", (), ("mode", "auto"), None),
+]
+_RC2_EXEMPT = {}
 # The coordinator's own setters, which the services call with a refresh: each
 # is reached through a row above or says where its state lives.
 _RC2_SETTERS = {
@@ -33906,7 +33907,7 @@ _RC2_SETTERS = {
     "async_set_target_temperature": "row: the thermostat target, via entry options",
     "async_apply_manual_plan": "saves the plan before it asks for the refresh",
     "async_clear_manual_plan": "saves the clear before it asks for the refresh",
-    "async_reset_comfort_weight": "saves the reset before it asks for the refresh",
+    "async_reset_comfort_weight": "row: the reset button",
     "async_restore_learned_snapshot": "restores from the store it reads",
     "async_arm_system_identification": "in memory by design: arms tonight's run",
     "async_update_thermal_params": "an automation's runtime model override; only "
@@ -33954,6 +33955,9 @@ async def _rc2_prelude(coord, what, value):
         coord._away_state.override_active = value
         coord._away_state.override_return_iso = None
         await away_mode.persist_override(coord)
+    elif what == "comfort":
+        coord._comfort_learner.evidence = value
+        await coord._async_save_accuracy()
     else:
         boost_mod.held_for(coord).set(what, value, _rc2_dt_util.now())
         await boost_mod.persist(coord)
@@ -33964,6 +33968,7 @@ async def _rc2_boot(entry):
     coord.hass.config_entries.entries.append(entry)
     await coord._async_load_accuracy()
     await boost_mod.restore_session(coord)
+    await coord._async_load_manual_plan()
     return coord
 
 
@@ -33989,15 +33994,15 @@ async def _rc2_row(n, cls, action, args, before, after):
         returned = False
     for task in _asyncio.all_tasks() - {_asyncio.current_task()}:
         task.cancel()  # the restart: pending refreshes die unfinished
-    restored = getattr(cls(await _rc2_boot(entry), entry), after[0])
-    return returned, restored
+    fresh = cls(await _rc2_boot(entry), entry)
+    return returned, after and _rc2_attrgetter(after[0])(fresh)
 
 
 _rc2_seen = {}
 for _rc2_n, (_rc2_cls, _rc2_act, _rc2_args, _rc2_before, _rc2_after) in enumerate(_RC2_ROWS):
     _rc2_seen[f"{_rc2_cls.__name__}.{_rc2_act}{_rc2_args[:1]}"] = (
         _asyncio.run(_rc2_row(_rc2_n, _rc2_cls, _rc2_act, _rc2_args, _rc2_before, _rc2_after)),
-        _rc2_after[1],
+        _rc2_after and _rc2_after[1],
     )
 _rc2_slow = [k for k, ((ret, _), _e) in _rc2_seen.items() if not ret]
 _rc2_lost = [f"{k}: {got!r} != {want!r}" for k, ((_, got), want) in _rc2_seen.items() if got != want]
@@ -34011,6 +34016,37 @@ R.check(
     "every entity action's state survives a restart before any cycle completes",
     not _rc2_lost,
     f"lost at restart: {_rc2_lost}",
+)
+
+
+async def _rc2_manual_plan():
+    """The service setters with no entity: apply, then clear, each followed by
+    a restart that cancels the refresh it asked for."""
+    from heatpump_optimizer.manual_plan import ManualOverride
+    entry = FakeEntry(data=dict(_T1_DATA), entry_id="rc2_manual_plan")
+    seen = []
+    for setter, args in (
+        ("async_apply_manual_plan", (ManualOverride(
+            [], None, _rc2_dt_util.now() + _rc2_td(days=2)),)),
+        ("async_clear_manual_plan", ()),
+    ):
+        coord = await _rc2_boot(entry)
+        never = _asyncio.Event()
+        coord.async_request_refresh = never.wait
+        try:
+            await _asyncio.wait_for(getattr(coord, setter)(*args), timeout=0.1)
+        except TimeoutError:
+            pass
+        seen.append((await _rc2_boot(entry))._manual_override is not None)
+    return seen
+
+
+_rc2_mp = _asyncio.run(_rc2_manual_plan())
+R.check(
+    "a manual plan applied, then cleared, each survives a restart that "
+    "cancels its refresh",
+    _rc2_mp == [True, False],
+    f"a plan held after the restart following apply, then clear: {_rc2_mp}",
 )
 
 # -- the accuracy store: a corrupt read must not unseat what is in memory --
@@ -37777,13 +37813,14 @@ R.check(
     and _t4_reset._opt_config.comfort_weight == 5.0
     and _t4_reset._comfort_learner.evidence == 0.0
     and _t4_reset._t4_saves == 1
-    and _t4_reset._t4_refreshes == 1,
+    and _t4_reset._t4_refreshes == 0,
     f"learned 3.0 published as {_t4_reset_nudged!r}, reset to "
     f"{_t4_reset._opt_config.comfort_weight!r}, evidence "
     f"{_t4_reset._comfort_learner.evidence!r}, saves {_t4_reset._t4_saves}, "
     f"refreshes {_t4_reset._t4_refreshes} -- the save is the part that makes "
     "the reset survive a restart, and without it the learner reloads the "
-    "weight the user just rejected",
+    "weight the user just rejected; the button asks for the refresh, off its "
+    "press (RC2)",
 )
 
 
