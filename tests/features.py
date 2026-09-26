@@ -33806,7 +33806,7 @@ R.check(
 from homeassistant.helpers import storage as _t1_ms_storage  # noqa: E402
 
 
-async def _t1_ms_case(entry_id):
+async def _t1_ms_case(entry_id, setter=lambda c: c.async_set_mode("off", refresh=False)):
     entry = FakeEntry(data=dict(_T1_DATA), entry_id=entry_id)
     first = HeatPumpOptimizerCoordinator(FakeHass(), entry)
     await first._async_load_accuracy()
@@ -33824,7 +33824,7 @@ async def _t1_ms_case(entry_id):
     try:
         load = _asyncio.create_task(boot._async_load_accuracy())
         await _asyncio.sleep(0)
-        tap = _asyncio.create_task(boot.async_set_mode("off", refresh=False))
+        tap = _asyncio.create_task(setter(boot))
         await _asyncio.sleep(0.01)
         gate.set()
         await tap
@@ -33843,6 +33843,16 @@ R.check(
     _t1_ms_seen == ("off", 7, "off", 7),
     f"(live mode, live overrides, restored mode, restored overrides) {_t1_ms_seen}"
     " -- stored before the restart: economy, 7 overrides",
+)
+_t1_ms_reset = _asyncio.run(_t1_ms_case(
+    "t1_ms_reset", lambda c: c.async_reset_comfort_weight()))
+R.check(
+    "a comfort-weight reset while the accuracy load is in flight keeps the "
+    "stored mode",
+    _t1_ms_reset == ("economy", 0, "economy", 0),
+    f"(live mode, live overrides, restored mode, restored overrides) "
+    f"{_t1_ms_reset} -- stored before the restart: economy, 7 overrides; the "
+    "reset zeroes the overrides and must not write the fresh defaults' mode",
 )
 
 # RC2 (round 9): the class behind v6.6.12 bug 5 is "a user-set state that
