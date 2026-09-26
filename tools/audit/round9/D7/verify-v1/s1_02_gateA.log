@@ -1,0 +1,46 @@
+==========================================================================
+DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 from scratch
+  key       e098d81951e8c0e025652a7bec50293f422d45a6484e7c174ce4914f97e19c96
+  entry     /tmp/tmp.Fjm15dTQG4/cache/e098d81951e8c0e025652a7bec50293f422d45a6484e7c174ce4914f97e19c96.json
+    baseline_commit  d2fb16e811a6
+    baseline_tree    df9836e05568
+    cache_format     391552c099c1
+    driver_sha256    fcf1fab278c8
+    environment      7a38af4b8e92
+    interpreter      d14ab4b0536b
+    mode             294c1d09adfd
+    numeric_probe    cacff2cda4b5
+    numpy_build      6411f37f1299
+    packages         3f0d0c752c43
+    platform         489d0b7c4371
+    sensitive        541346c5f2b4
+==========================================================================
+  captured 5 scenarios from branch
+  captured 5 scenarios from baseline
+  cached   the 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 baseline under key e098d81951e8c0e0 in /tmp/tmp.Fjm15dTQG4/cache/e098d81951e8c0e025652a7bec50293f422d45a6484e7c174ce4914f97e19c96.json
+
+########## committed fixtures: staleness (#347) ##########
+  5 fixture(s) compared against this tree's capture; 0 of them float-free and compared exactly.
+
+  values (reported, never failed): 5 fixture(s), 4425 leaf/leaves differ from the committed files in value alone.
+  A float-bearing fixture can only be re-recorded honestly in the environment
+  that records them all; a dev box would poison it. Nothing here is failed on.
+  no committed fixture is stale
+  DRIFT valve_storage_smart_write: 1 judged leaf/leaves moved vs 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 (826 plan leaf/leaves exempt)
+         valve_storage_smart_write.baseline_cost: 144.765283 vs 152.501764
+  DRIFT valve_upper_direct_slab: 1 judged leaf/leaves moved vs 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 (760 plan leaf/leaves exempt)
+         valve_upper_direct_slab.baseline_cost: 124.088833 vs 124.988958
+  DRIFT wood_coil: 1 judged leaf/leaves moved vs 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 (925 plan leaf/leaves exempt)
+         wood_coil.baseline_cost: 157.190147 vs 164.941487
+  DRIFT wood_two_tank: 1 judged leaf/leaves moved vs 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 (887 plan leaf/leaves exempt)
+         wood_two_tank.baseline_cost: 147.909569 vs 155.660909
+  DRIFT wood_two_tank_smart_write: 1 judged leaf/leaves moved vs 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 (912 plan leaf/leaves exempt)
+         wood_two_tank_smart_write.baseline_cost: 147.909569 vs 155.660909
+
+5 UNCLAIMED DRIFT(S) vs 1936d5ca72a06556eeed4e8e5bf3dea520e517e1
+This branch moved scenarios the baseline does not move in
+this environment: a regression, or a change that must be
+claimed in tests/golden/claimed_drift.txt and justified in
+the PR. Never re-record the five sensitive fixtures on a
+machine where golden.py already reports them as DIFF.
+rc=1 wall=68

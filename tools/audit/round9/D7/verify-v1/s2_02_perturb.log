@@ -1,0 +1,16 @@
+RESULT derate_ingest_clean=1 count  # cop_fold_blocked=False
+RESULT cop_learner_ingest_clean=1 count
+RESULT derate_ingest_immersion_latch=0 count  # cop_fold_blocked=True
+RESULT cop_learner_ingest_immersion_latch=0 count
+RESULT derate_ingest_backup_heater=0 count  # cop_fold_blocked=True
+RESULT cop_learner_ingest_backup_heater=0 count
+RESULT derate_ingest_capacity_limited=0 count  # cop_fold_blocked=True
+RESULT cop_learner_ingest_capacity_limited=0 count
+RESULT derate_ingests_distorted=0 count  # of 3
+RESULT derate_factor_after_24_clean=1.0000 ratio  # published factor(); bucket raw=1.0000
+RESULT derate_factor_after_24_immersion_latch=1.0000 ratio  # published factor(); bucket raw=1.0000
+RESULT derate_factor_after_24_backup_heater=1.0000 ratio  # published factor(); bucket raw=1.0000
+RESULT derate_factor_after_24_capacity_limited=0.9208 ratio  # published factor(); bucket raw=0.8000
+RESULT thread_factor=1.000
+RESULT load1=3.15
+RESULT swapins=0

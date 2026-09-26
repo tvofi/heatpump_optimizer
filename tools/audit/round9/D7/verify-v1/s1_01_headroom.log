@@ -1,0 +1,28 @@
+RESULT headroom_attrbag_classes_over_30=0 count  # measured=1 budget=1
+RESULT headroom_classes_over_300=0 count  # measured=11 budget=11
+RESULT headroom_const_modules_over_50=0 count  # measured=3 budget=3
+RESULT headroom_coordinator_attrs=0 count  # measured=153 budget=153
+RESULT headroom_coordinator_loc=0 count  # measured=9034 budget=9034
+RESULT headroom_coordinator_methods=0 count  # measured=225 budget=225
+RESULT headroom_coordinator_multiassigned_attrs=0 count  # measured=116 budget=116
+RESULT headroom_cross_seam_edges=0 count  # measured=136 budget=136
+RESULT headroom_cut_dhw=0 count  # measured=73 budget=73
+RESULT headroom_cut_fetch=0 count  # measured=129 budget=129
+RESULT headroom_cut_grid=0 count  # measured=197 budget=197
+RESULT headroom_cut_learning=0 count  # measured=285 budget=285
+RESULT headroom_cut_views=0 count  # measured=110 budget=110
+RESULT headroom_dead_methods=0 count  # measured=0 budget=0
+RESULT headroom_dead_top_level_symbols=0 count  # measured=0 budget=0
+RESULT headroom_duplication_blocks=0 count  # measured=14 budget=14
+RESULT headroom_functions_cc_over_15=0 count  # measured=34 budget=34
+RESULT headroom_functions_cc_over_25=0 count  # measured=8 budget=8
+RESULT headroom_internal_call_edges=0 count  # measured=317 budget=317
+RESULT headroom_local_imports=0 count  # measured=7 budget=7
+RESULT headroom_max_cc=0 count  # measured=48 budget=48
+RESULT headroom_max_class_loc=0 count  # measured=9034 budget=9034
+RESULT headroom_max_method_loc=0 count  # measured=387 budget=387
+RESULT headroom_methods_over_150=0 count  # measured=18 budget=18
+RESULT headroom_methods_over_200=0 count  # measured=11 budget=11
+RESULT zero_headroom_rows=25 count  # attrbag_classes_over_30,classes_over_300,const_modules_over_50,coordinator_attrs,coordinator_loc,coordinator_methods,coordinator_multiassigned_attrs,cross_seam_edges,cut_dhw,cut_fetch,cut_grid,cut_learning,cut_views,dead_methods,dead_top_level_symbols,duplication_blocks,functions_cc_over_15,functions_cc_over_25,internal_call_edges,local_imports,max_cc,max_class_loc,max_method_loc,methods_over_150,methods_over_200
+RESULT thread_factor=1.000
+RESULT load1=1.80

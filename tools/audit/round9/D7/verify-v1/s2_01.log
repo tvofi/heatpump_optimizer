@@ -1,0 +1,27 @@
+
+=== Stress and economics ===
+RESULT slab_bias_light_new_sub1=+nan ratio  # completed=False fit_reason='room temperature drifted beyond the allowed excursion' admit=False weight=0.000 gate='room temperature drifted beyond the allowed excursion'
+RESULT slab_bias_light_new_sub2=-0.08878 ratio  # completed=True fit_reason='ok' admit=False weight=0.000 gate='heat-loss interval (unbounded) is wider than the +-10 % adoption bar'
+RESULT slab_bias_light_new_sub6=-0.14573 ratio  # completed=True fit_reason='ok' admit=False weight=0.000 gate='heat-loss interval (unbounded) is wider than the +-10 % adoption bar'
+RESULT slab_bias_light_new_sub30=-0.16823 ratio  # completed=True fit_reason='ok' admit=False weight=0.000 gate='heat-loss interval (unbounded) is wider than the +-10 % adoption bar'
+RESULT one_state_bias_light_new=+nan ratio  # completed=False reason='fitted parameters outside plausible bounds' admit=False
+RESULT twoexp_bias_light_new=+0.00000 ratio
+RESULT slab_bias_heavy_old_sub1=+0.00000 ratio  # completed=True fit_reason='ok' admit=True weight=0.682 gate='adopted'
+RESULT slab_bias_heavy_old_sub2=-0.10911 ratio  # completed=True fit_reason='ok' admit=False weight=0.000 gate='heat-loss interval (unbounded) is wider than the +-10 % adoption bar'
+RESULT slab_bias_heavy_old_sub6=-0.20714 ratio  # completed=True fit_reason='ok' admit=False weight=0.000 gate='heat-loss interval (unbounded) is wider than the +-10 % adoption bar'
+RESULT slab_bias_heavy_old_sub30=-0.25461 ratio  # completed=True fit_reason='ok' admit=False weight=0.000 gate='heat-loss interval (unbounded) is wider than the +-10 % adoption bar'
+RESULT one_state_bias_heavy_old=+nan ratio  # completed=False reason='fit gave implausible signs' admit=False
+RESULT twoexp_bias_heavy_old=-0.00000 ratio
+RESULT slab_bias_typical_slab_sub1=+0.00000 ratio  # completed=True fit_reason='ok' admit=True weight=0.428 gate='adopted'
+RESULT slab_bias_typical_slab_sub2=-0.23301 ratio  # completed=True fit_reason='ok' admit=False weight=0.000 gate='heat-loss interval (unbounded) is wider than the +-10 % adoption bar'
+RESULT slab_bias_typical_slab_sub6=+nan ratio  # completed=False fit_reason='fitted parameters outside plausible bounds' admit=False weight=0.000 gate='fitted parameters outside plausible bounds'
+RESULT slab_bias_typical_slab_sub30=+nan ratio  # completed=False fit_reason='fitted parameters outside plausible bounds' admit=False weight=0.000 gate='fitted parameters outside plausible bounds'
+RESULT one_state_bias_typical_slab=+nan ratio  # completed=False reason='fit gave implausible signs' admit=False
+RESULT twoexp_bias_typical_slab=+0.00000 ratio
+RESULT continuous_presets_bias_gt5pct=3 count  # of 3; bias nan (refused) counts
+RESULT continuous_presets_adopted=0 count  # of 3
+RESULT continuous_presets_adopted_biased=0 count
+RESULT thread_factor=1.000
+RESULT load1=3.22
+RESULT swapins=0
+wall=1

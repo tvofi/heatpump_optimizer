@@ -1,0 +1,24 @@
+  seam  coordinator.py:_cop_fold_blocked  self-arg#0  state_refs=2  coord_method_calls=0
+  seam  coordinator.py:_diagnose_payload  self-arg#0  state_refs=2  coord_method_calls=0
+  seam  coordinator.py:_fold_flow_lift  self-arg#0  state_refs=8  coord_method_calls=4
+  seam  coordinator.py:_freq_fold_blocked  self-arg#0  state_refs=2  coord_method_calls=1
+  seam  coordinator.py:_power_windows  self-arg#0  state_refs=2  coord_method_calls=0
+  seam  coordinator.py:_republish_handover_ages  self-arg#0  state_refs=1  coord_method_calls=2
+  seam  coordinator.py:_space_pump_to_drive  self-arg#0  state_refs=1  coord_method_calls=1
+  seam  coordinator.py:_store_diagnosis  self-arg#0  state_refs=1  coord_method_calls=0
+  seam  coordinator.py:_warm_seeded  self-arg#0  state_refs=1  coord_method_calls=0
+  seam  coordinator.py:_watch_lift  self-arg#0  state_refs=5  coord_method_calls=0
+  seam  wood_fuel.py:wood_fuel_from_coordinator  self-arg#0  state_refs=5  coord_method_calls=0
+RESULT helpers=11 count
+RESULT helper_state_refs=30 count
+RESULT helper_coord_method_calls=8 count
+  coordinator_loc                      9034 -> 9055  (+21)
+  coordinator_methods                  225 -> 226  (+1)
+  internal_call_edges                  317 -> 318  (+1)
+  max_class_loc                        9034 -> 9055  (+21)
+  rows rising (ratchet would exit 1 on each): ['internal_call_edges']
+RESULT inline__warm_seeded_rows_up=1 count
+RESULT inline__warm_seeded_cut_delta=0 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=2.56
+RESULT swapins=0

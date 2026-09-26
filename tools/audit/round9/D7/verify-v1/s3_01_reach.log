@@ -1,0 +1,19 @@
+DEAD property coordinator.py:2422 HeatPumpOptimizerCoordinator.current_action
+DEAD property coordinator.py:2543 HeatPumpOptimizerCoordinator.floor_return_temp
+DEAD property coordinator.py:2414 HeatPumpOptimizerCoordinator.last_optimization
+DEAD property coordinator.py:2418 HeatPumpOptimizerCoordinator.next_optimization
+DEAD method   defrost.py:327 DefrostDerate.measured
+DEAD property inputs.py:147 InputHealth.healthy
+DEAD property open_meteo.py:108 IrradianceSeries.start
+DEAD property open_meteo.py:273 OpenMeteoSolar.last_success
+DEAD property optimizer.py:1484 _Horizon.weather
+RESULT nodes_total=2649 count
+RESULT reached=2639 count
+RESULT dead_reachability_total=9 count
+RESULT dead_func=0 count
+RESULT dead_const=0 count
+RESULT dead_method=1 count
+RESULT dead_property=8 count
+RESULT thread_factor=1.000
+RESULT load1=3.09
+RESULT swapins=0

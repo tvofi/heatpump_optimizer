@@ -1,0 +1,10 @@
+RESULT nodes_total=2649 count
+RESULT reached=2640 count
+RESULT dead_reachability_total=8 count
+RESULT dead_func=0 count
+RESULT dead_const=0 count
+RESULT dead_method=1 count
+RESULT dead_property=7 count
+RESULT thread_factor=1.000
+RESULT load1=3.54
+RESULT swapins=0

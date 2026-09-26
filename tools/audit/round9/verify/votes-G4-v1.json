@@ -294,6 +294,74 @@
     "seam_rule_enumerates": null
    }
   ],
+  "D7": [
+   {
+    "id": "D7-s1-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "inline__fold_flow_lift_cut_delta=8 (rows_up=4); helpers=11, state_refs=30, coord_calls=8; --helper _warm_seeded -> 0; --all 10 cells sum=36 min=0 max=12 drop-max=24 nonzero=8 (finder same)",
+    "metric_definition": "Sum over cut_* and cross_seam_edges of structure.measure() with one f(self,...) helper inlined as a method, minus the same on the untouched tree",
+    "method": "Re-ran helper_escape.py base, --helper _warm_seeded, --all; own verify-v1/headroom.py (budget minus measured per row)",
+    "attacks": "Count; grid LOO holds (24 across 8/10); null 0; caveat: all 25 budget rows at zero headroom incl. coordinator_methods/loc, so inlining fails on those too; the unpriced refs/calls claim holds; low",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s1-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "survivors=2 (drift, stress survive entities.py and features.py; drift_leaf killed) (finder 2). Real gate: env_drift 5 fixtures on production-perturbed tree 5 UNCLAIMED DRIFT rc=1 vs drift mutant 0 rc=0; stress.py STRESS_SCENARIO_FACTOR=0.01 per-scenario check FAIL (51) vs stress mutant ok",
+    "metric_definition": "Count of gate-verdict deletion mutants that no runnable recorded driver kills under mutation_table.killed",
+    "method": "Re-ran train_mutations.py --only drift_leaf,drift,stress (~17 min); independent real-gate arms in a private worktree, stress under the gate lease",
+    "attacks": "Default 5 fixtures, not --all: deletion covers every scenario so --all cannot differ; drift_leaf null/perturbation killed as claimed; finder artefact inconsistency: harness header expects drift_leaf to survive without --pin-leaf (3), executed run and REPORT say killed (2); CI gate, not stub; medium earned",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s2-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "continuous_presets_bias_gt5pct=3, adopted=0; sub30 light_new -16.8%, heavy_old -25.5%, typical_slab refused; --substep-rollout -> 0, adopted 2 (finder same)",
+    "metric_definition": "Presets (of 3) whose production sysid UA, on a noise-free truth integrated at 30 substeps per 30-min sample, has |UA/UA_true-1|>5% or no completed fit",
+    "method": "Re-ran sysid_plant.py with and without --substep-rollout",
+    "attacks": "Null at shared step: bias 0.0 (heavy_old, typical_slab adopted); monotone dose-response over sub2/6/30; LOO (3 cells) leaves 2/2; caveat: light_new refused in both arms, so 2 of 3 adopt; biased UA published via data['system_identification'] even when refused; medium kept",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "derate_ingests_distorted=3 of 3; factors 0.8738/0.8738/0.9769; clean control 1.0000; --gate-derate -> 0 of 3 (finder same)",
+    "metric_definition": "Number of the 3 draw-distorting arms on which one settled interval increments DefrostDerate.counts while _cop_fold_blocked is True",
+    "method": "Re-ran learner_gates.py with and without --gate-derate",
+    "attacks": "Clean arm folds in both runs (gate not blanket); COP learner refuses all 3; LOO each arm 1; coordinator logic, V3 owns real-HA reach; medium",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s3-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "dead_reachability_total=9; --perturb-live next_optimization -> 8; sentinel 0 of 10 called from production (live controls 6/6); --perturb -> 1 (finder same)",
+    "metric_definition": "Members no load inside HA-rooted live production code reaches (reach.py), plus dead candidates whose caller frame is under custom_components/ during the drive (sentinel.py)",
+    "method": "Re-ran reach.py --list, --perturb-live, sentinel.py with/without --perturb; own grep of name references",
+    "attacks": "Positive control 6/6; dynamic dispatch ruled out by grep (names occur only as dict/entity keys); low",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s3-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "dead_methods=0 baseline; 5 --no-property-exclusion; 1 --attribute-only; 11 both (finder same)",
+    "metric_definition": "structure.measure()['metrics']['dead_methods']",
+    "method": "Re-ran screen.py in all four arms (in-memory mock.patch)",
+    "attacks": "Rules overlap (non-additive), consistent with claim; 11 includes HA-read climate hvac_mode/preset_mode which the fix must list (finding says so); budget 0/0; low",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ],
   "leads": [
    {
     "id": "D5-s2-51",

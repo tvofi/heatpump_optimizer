@@ -1,0 +1,125 @@
+
+=== Stress and economics ===
+
+-- Single-scenario detection (#346, #387)
+  ok   the live ceiling covers the measured CI ruler-vs-real expansion
+  ok   and the wobble still leaves a 2x detection floor on the recorded worst
+  ok   an unchanged sweep fires the work check on no scenario, on any channel, and covers all of them
+  ok   a 2x regression confined to one scenario is seen
+  FAIL ...and it is still under the per-scenario CPU factor, so this is the gap #346 records and not a different one  [1.99x against SCENARIO_BUDGET_FACTOR 0.01]
+  ok   a cost-only regression confined to one scenario is seen on the simulate channel, with the evaluation count flat (#1229)
+  ok   a per-call kernel slowdown confined to one scenario is seen on the kernel-cost channel, with both count channels flat (round-5 D9-07)
+  ok   ...and kernel seconds that grow only with the counts do not fire it: the vouching is what makes this a per-CALL channel
+  ok   a kernel reading between the doubt floor and the factor is sent to the re-solve and fails nothing on its own (round-5 D9-07)
+  ok   the per-call-cost arm solves one batch outside the kernel doubt band and up to KERNEL_ARM_BATCHES inside it, on the medians of every round (round-5 D9-07, stubbed readings)
+  ok   a runner whose basins are in no table changes no verdict at all
+  ok   ...and it still sees the one-scenario 2x from there, which is what makes it a check rather than a machine that always says yes
+  ok   ...and every scenario moving at once is still not a coverage collapse, however far the objectives move
+  ok   a scenario this branch re-planned is exempted and named, not judged
+  FAIL ...and 2.28x is still inside the loose per-scenario CPU factor, so the gate stays green on it rather than exempting it twice  [2.28x against SCENARIO_BUDGET_FACTOR 0.01]
+  ok   the basin tolerance sits between float drift and the smallest measured flip
+  ok   a missing or non-finite fingerprint is 'cannot tell', never 'agrees'
+  ok   a comparison with no baseline covers nothing, and says so
+  ok   a scenario on only one side is named, not judged against nothing
+  ok   a figure more than the stale factor cheaper is still caught
+  ok   ...and one less than the stale factor cheaper is still allowed
+  ok   a memory peak more than the stale factor cheaper is caught, on both axes (round-5 D9-08)
+  ok   ...and one less than the stale factor cheaper is still allowed on the memory axes
+  ok   ...and an attributable RSS at the instrument's floor reads nothing: a probe clamped to 0.00 MiB against the empty probe is the RSS arm's blindness, not a >3.5x cheaper tree, so it fires nothing against a positive record (round-5 D9-08)
+  ok   ...and a tick above that floor is the same blindness, not a third thing: the CI reading of 0.50 MiB against a 12.90 MiB record is the platform's import floor, because the probe did not fall below its own record's 82.3 MiB (round-5 D9-08, round-1 follow-up)
+  ok   ...and the same attributable with a fallen watermark DOES fire, which is what keeps this a check: a scenario whose own RSS fell lowers the probe watermark with it
+  ok   ...and a regression back to a stale record passes the over side, which is why the stale rule has to fire while the tree is cheap
+  ok   the solver-work counter sees a real solve, and doubles with it
+  ok   the simulate-work meter sees a real solve, and doubles on the cost-only arm the evaluation count is blind to (#1229)
+  ok   ...and the hook is restored, so nothing downstream is left wrapped
+  ok   the simulation surface is non-empty -- the source scan found the model's state-advancing methods to cut over
+  ok   every call-graph leaf of the simulation surface is metered, or reached only through metered seams (round-6 D9-02)
+  ok   ...and dropping a metered seam from the hook set moves its leaves to uncovered (green is not unconditional)
+  ok   ...and a leaf primitive added to the model is reported even with the DHW seam metered (it is a closure, not one seam)
+  ok   a real 2x on one scenario reaches the rule the sweep applies, and an unchanged one does not
+  ok   the cost-only arm reaches the rule the sweep applies, and an unchanged solve does not (#1229)
+  ok   the per-call-cost arm reaches the rule the sweep applies, with both count channels flat, and an unchanged solve does not (round-5 D9-07)
+  ok   a real per-call regression read once inside the kernel doubt band is re-solved on both trees and confirmed by the rule the sweep applies (round-5 D9-07)
+
+-- Combination sweep
+  solver-work baseline: solving 51 scenarios from 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 in a pristine worktree, to compare computed against computed (#387); this is the sweep's cost again
+  solver-work baseline: 51 scenarios from 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 (1936d5ca72a0), captured in 196 s on this machine
+  solve-time guard: reference solve 32.8 ms of CPU on this machine, budget 1630x that per scenario (= 53.5 s of CPU), sweep budget 134x, absolute wall ceiling 600000 ms
+  ok   all 51 combinations satisfy the invariants
+  ok   the comfort floor is never breached beyond what physics forces
+  ok   hot water is available when promised
+  ok   the solve-time guard calibrated against a reference solve per scenario
+  reference solve over the sweep: 22.7 / 32.2 / 73.9 ms of CPU (min/median/max of 58 samples); the same samples in wall clock: 22.7 / 32.3 / 74.0 ms -- the wall spread is the machine's load, the CPU spread is all the guard has to tolerate
+  calibration overhead: 2.0 s of wall clock for 58 samples
+  worst scenario: shoulder/tariff+cycle used 25765 ms of CPU = 778.3x its 33.1 ms reference; budget is 1630x
+  ok   every scenario's solve costs what it should, in CPU, for this machine
+  ok   every scenario has a per-scenario budget on record
+  ok   no scenario exceeds its own recorded cost by the budget factor
+  ok   no scenario got dramatically cheaper without a re-record
+  no scenario in the kernel doubt band
+  ok   every scenario in the kernel doubt band was re-measured on both trees (round-5 D9-07)
+  solver work: 51 of 51 scenarios judged against the baseline captured beside this run, at 1.80x; 0 re-planned by this branch, 0 new here, 0 dropped
+  ok   the solver-work counter counted something for every scenario
+  ok   the simulate-work meter and the kernel-cost meter counted something for every scenario (#1229, round-5 D9-07)
+  ok   this tree's solver work has a baseline to be judged against
+  ok   the baseline capture carries simulate counts and kernel seconds this meter can read (#1229, round-5 D9-07)
+  ok   no scenario's solver work grew on an unchanged plan
+  ok   no scenario's simulate work grew on an unchanged plan (#1229)
+  FAIL no scenario's simulate kernel got slower per call on an unchanged plan (round-5 D9-07)  [light_new/winter spent 1082 ms of kernel CPU against the baseline's 589 ms = 1.84x, over the 1.80x factor on work the counts vouch at 1.00x, on an unchanged plan (objective 31.41373478); this is the per-call-cost half -- a kernel that got slower PER CALL moves no count at all, and round-5 D9-07 measured both count channels at 1.0000x with the solve CPU at 1.49-1.54x passing every budget in this file, so the kernel's own CPU seconds against the baseline captured beside this run is the only channel that moves]
+  ok   the solver-work check still covers most of the sweep
+  ok   the solver-work floor is a literal, not an environment override
+
+-- Memory (D9-04)
+  empty-probe baseline (same imports, no scenario): 109.8 MiB of RSS, subtracted from every probe below
+  winter/cycle                       RSS peak   109.8 MiB, attributable   0.0 MiB, traced   3.4 MiB (recorded 84 / 9 / 3.5)
+  winter/pv+cycle                    RSS peak   109.8 MiB, attributable   0.0 MiB, traced   3.4 MiB (recorded 82 / 13 / 3.5)
+  heavy_old/shoulder                 RSS peak   109.8 MiB, attributable   0.0 MiB, traced   3.4 MiB (recorded 82 / 13 / 3.5)
+  typical_slab/winter                RSS peak   109.8 MiB, attributable   0.0 MiB, traced   3.4 MiB (recorded 92 / 17 / 3.4)
+  winter_extreme/1z/dhw              RSS peak   109.8 MiB, attributable   0.0 MiB, traced   3.4 MiB (recorded 88 / 12 / 3.4)
+  typical_slab/shoulder              RSS peak   109.8 MiB, attributable   0.0 MiB, traced   1.8 MiB (recorded 85 / 9 / 1.8)
+  parent RSS watermark growth over the memory pass: 0.0 MiB (ru_maxrss is a high-water mark; growth here means the pass itself retained memory)
+  coverage: this pass probed 6 of 51 recorded memory budgets; the unprobed ones are compared only at recording time
+  attributable RSS: 6 of 6 probe(s) read at this platform's import floor, so the stale arm says nothing about them (probe watermark not below the record): winter/cycle; winter/pv+cycle; heavy_old/shoulder; typical_slab/winter; winter_extreme/1z/dhw; typical_slab/shoulder
+  ok   the memory pass probes the recorded peak on each axis
+  ok   the probed scenarios' memory peaks stay within their recorded budgets
+  ok   no probed scenario's memory got dramatically cheaper without a re-record
+  ok   every memory-pass scenario has recorded peaks
+  ok   the memory pass retains less than 512 MiB of RSS in the parent
+  whole sweep: 198.9 s of solver CPU against 1.7 s of reference CPU = 114.58x; budget is 134.32x
+  ok   the sweep as a whole costs what it has always cost, relative to this machine
+  detection against the RECORDED costs: per-scenario ceiling 1.38x, sweep budget 1.03x, per-scenario table 0.01x -- the smallest of those is the smallest UNIFORM regression this gate can see where it was recorded; a regression confined to one scenario is seen at 1.80x of that scenario's recorded solver work instead, or at 1.80x of the kernel CPU the baseline spent beside it (round-5 D9-07)
+  detection for MEMORY: attributable-RSS budget 1.50x, traced budget 1.50x of the recorded peak, over the 6 scenario(s) this pass probes -- a regression smaller than these multiples passes the memory section green
+  detection on THIS machine: per-scenario ceiling 2.09x (1482x x 1.1 wobble), sweep budget 1.17x -- these move with the machine because the reference solve does not scale with the real ones (measured 1.7x of ratio compression between an M1 and a CI runner); re-record here to get the figures above
+  ok   the budgets are tight enough to see a 2x regression, uniform or confined to one scenario
+  thread factor (process CPU / this-thread CPU): reference 1.000, scenarios 1.000 -- these must match for the ratio above to be a pure work ratio that travels to another machine
+  ok   the reference and the scenarios are parallelised alike, so the thread factor cancels in the ratio
+  ok   no scenario hits the absolute pathological-solve ceiling
+
+-- Economics
+  ok   winter: cheaper than holding the setpoint
+  ok   winter_extreme: cheaper than holding the setpoint
+  ok   shoulder: cheaper than holding the setpoint
+  ok   a flat price curve produces no fictitious saving
+  ok   a flat price curve still respects comfort
+  ok   a wider price spread yields a larger saving
+  ok   a higher comfort weight is warmer, across the documented range
+  ok   a higher comfort weight saves less, across the documented range
+  ok   the README's comfort-weight table still holds
+  ok   solver noise under an economically nil perturbation stays small
+  ok   a capacity tariff lowers the projected peak
+  ok   and does not wreck comfort doing it
+  ok   a cycling cost reduces compressor starts
+  ok   PV surplus is self-consumed
+  ok   a more efficient heat pump is never worse, and is better somewhere
+  ok   a leakier, larger house costs more to heat
+
+-- Edge conditions
+  ok   all 17 edge conditions produce a sound plan
+  ok   an undersized pump runs flat out rather than giving up
+  ok   negative prices are exploited rather than ignored
+  ok   the baseline scenario plans electric hot water inside the 2 h horizon
+  ok   an external heat source suppresses electric hot water
+  ok   suppression lowers total electric DHW energy, not just moves it
+
+3 of 87 STRESS CHECKS FAILED
+rc=1 wall=617

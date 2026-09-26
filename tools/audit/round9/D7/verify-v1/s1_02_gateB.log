@@ -1,0 +1,37 @@
+==========================================================================
+DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 from scratch
+  key       1f24daa0ac6a5c05c7ad810587282a3091422ed5692f915a324d9cca2021782b
+  entry     /tmp/tmp.Fjm15dTQG4/cache/1f24daa0ac6a5c05c7ad810587282a3091422ed5692f915a324d9cca2021782b.json
+    baseline_commit  d2fb16e811a6
+    baseline_tree    df9836e05568
+    cache_format     391552c099c1
+    driver_sha256    c533ae56a0e6
+    environment      7a38af4b8e92
+    interpreter      d14ab4b0536b
+    mode             294c1d09adfd
+    numeric_probe    cacff2cda4b5
+    numpy_build      6411f37f1299
+    packages         3f0d0c752c43
+    platform         489d0b7c4371
+    sensitive        541346c5f2b4
+==========================================================================
+  captured 5 scenarios from branch
+  captured 5 scenarios from baseline
+  cached   the 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 baseline under key 1f24daa0ac6a5c05 in /tmp/tmp.Fjm15dTQG4/cache/1f24daa0ac6a5c05c7ad810587282a3091422ed5692f915a324d9cca2021782b.json
+
+########## committed fixtures: staleness (#347) ##########
+  5 fixture(s) compared against this tree's capture; 0 of them float-free and compared exactly.
+
+  values (reported, never failed): 5 fixture(s), 4425 leaf/leaves differ from the committed files in value alone.
+  A float-bearing fixture can only be re-recorded honestly in the environment
+  that records them all; a dev box would poison it. Nothing here is failed on.
+  no committed fixture is stale
+  may-drift valve_storage_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift valve_upper_direct_slab: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_coil: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+
+NO UNCLAIMED DRIFT: 5 scenario(s) checked against 1936d5ca72a06556eeed4e8e5bf3dea520e517e1
+NO STALE FIXTURE: 5 committed fixture(s) still match what this tree computes
+rc=0 wall=68

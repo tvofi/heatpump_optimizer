@@ -1,0 +1,32 @@
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+SENTINEL dead coordinator.HeatPumpOptimizerCoordinator.last_optimization: production_calls=0 all_calls=0
+SENTINEL dead coordinator.HeatPumpOptimizerCoordinator.next_optimization: production_calls=0 all_calls=0
+SENTINEL dead coordinator.HeatPumpOptimizerCoordinator.floor_return_temp: production_calls=0 all_calls=0
+SENTINEL dead coordinator.HeatPumpOptimizerCoordinator.current_action: production_calls=0 all_calls=0
+SENTINEL dead defrost.DefrostDerate.measured: production_calls=0 all_calls=0
+SENTINEL dead inputs.InputHealth.healthy: production_calls=0 all_calls=0
+SENTINEL dead open_meteo.IrradianceSeries.start: production_calls=0 all_calls=0
+SENTINEL dead open_meteo.OpenMeteoSolar.last_success: production_calls=0 all_calls=0
+SENTINEL dead optimizer._Horizon.weather: production_calls=0 all_calls=0
+SENTINEL dead defrost.DefrostDerate.samples: production_calls=0 all_calls=0
+SENTINEL live coordinator.HeatPumpOptimizerCoordinator.mode: production_calls=18 all_calls=18
+SENTINEL live coordinator.HeatPumpOptimizerCoordinator.optimization_running: production_calls=6 all_calls=6
+SENTINEL live inputs.InputHealth.stale_keys: production_calls=24 all_calls=24
+SENTINEL live open_meteo.IrradianceSeries.end: production_calls=8 all_calls=8
+SENTINEL live defrost.DefrostDerate.factor: production_calls=478494 all_calls=478494
+SENTINEL live optimizer._Horizon.timestamps: production_calls=12 all_calls=12
+RESULT scenarios=6 count
+RESULT update_cycles_completed=12 count
+RESULT entities_read=450 count
+RESULT entity_attribute_reads=2808 count
+RESULT dead_members_called_from_production=0 count
+RESULT dead_member_production_calls_total=0 count
+RESULT live_controls_called=6 of 6
+RESULT thread_factor=1.000
+RESULT load1=2.97
+RESULT swapins=0

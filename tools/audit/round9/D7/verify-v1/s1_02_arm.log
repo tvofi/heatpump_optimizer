@@ -1,0 +1,20 @@
+  baseline tests/entities.py: rc=1 failed=13 72s
+  drift tests/entities.py: rc=1 failed=13 survived 71s 
+  baseline tests/features.py: rc=1 failed=2 244s
+  drift tests/features.py: rc=1 failed=2 survived 247s 
+RESULT drift_killed=0 count
+  drift_leaf tests/entities.py: rc=1 failed=20 KILLED 72s ['and every one of those moves is still counted for the nightly', 'and says how many, how to re-record, and which need care']
+RESULT drift_leaf_killed=1 count
+  stress tests/entities.py: rc=1 failed=13 survived 72s 
+  stress tests/features.py: rc=1 failed=2 survived 240s 
+RESULT stress_killed=0 count
+
+| id | item | file | verdict | killer | drivers tried |
+| drift | drift gate (env_drift leaf comparison) | tests/env_drift.py | survived |  | tests/entities.py:live; tests/features.py:live |
+| drift_leaf | drift gate (the leaf comparator _diff_leaves) | tests/env_drift.py | killed | tests/entities.py | tests/entities.py:KILL |
+| stress | stress budgets (per-scenario comparison) | tests/stress.py | survived |  | tests/entities.py:live; tests/features.py:live |
+RESULT survivors=2 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.83
+RESULT swapins=0
+wall=1019 rc=0

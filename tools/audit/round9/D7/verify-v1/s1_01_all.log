@@ -1,0 +1,43 @@
+  seam  coordinator.py:_cop_fold_blocked  self-arg#0  state_refs=2  coord_method_calls=0
+  seam  coordinator.py:_diagnose_payload  self-arg#0  state_refs=2  coord_method_calls=0
+  seam  coordinator.py:_fold_flow_lift  self-arg#0  state_refs=8  coord_method_calls=4
+  seam  coordinator.py:_freq_fold_blocked  self-arg#0  state_refs=2  coord_method_calls=1
+  seam  coordinator.py:_power_windows  self-arg#0  state_refs=2  coord_method_calls=0
+  seam  coordinator.py:_republish_handover_ages  self-arg#0  state_refs=1  coord_method_calls=2
+  seam  coordinator.py:_space_pump_to_drive  self-arg#0  state_refs=1  coord_method_calls=1
+  seam  coordinator.py:_store_diagnosis  self-arg#0  state_refs=1  coord_method_calls=0
+  seam  coordinator.py:_warm_seeded  self-arg#0  state_refs=1  coord_method_calls=0
+  seam  coordinator.py:_watch_lift  self-arg#0  state_refs=5  coord_method_calls=0
+  seam  wood_fuel.py:wood_fuel_from_coordinator  self-arg#0  state_refs=5  coord_method_calls=0
+RESULT helpers=11 count
+RESULT helper_state_refs=30 count
+RESULT helper_coord_method_calls=8 count
+  cell _cop_fold_blocked: cut_delta=2
+  cell _diagnose_payload: cut_delta=5
+  cell _fold_flow_lift: cut_delta=8
+  cell _freq_fold_blocked: cut_delta=2
+  cell _power_windows: cut_delta=3
+  cell _republish_handover_ages: cut_delta=12
+  cell _space_pump_to_drive: cut_delta=0
+  cell _store_diagnosis: cut_delta=1
+  cell _warm_seeded: cut_delta=0
+  cell _watch_lift: cut_delta=3
+RESULT grid_cells=10 count
+RESULT grid_cut_delta_sum=36 count
+RESULT grid_cut_delta_min=0 count
+RESULT grid_cut_delta_max=12 count
+RESULT grid_cut_delta_sum_drop_max=24 count
+RESULT grid_cells_nonzero=8 count
+  coordinator_loc                      9034 -> 9098  (+64)
+  coordinator_methods                  225 -> 226  (+1)
+  cross_seam_edges                     136 -> 138  (+2)
+  cut_grid                             197 -> 198  (+1)
+  cut_learning                         285 -> 290  (+5)
+  internal_call_edges                  317 -> 321  (+4)
+  max_class_loc                        9034 -> 9098  (+64)
+  rows rising (ratchet would exit 1 on each): ['cross_seam_edges', 'cut_grid', 'cut_learning', 'internal_call_edges']
+RESULT inline__fold_flow_lift_rows_up=4 count
+RESULT inline__fold_flow_lift_cut_delta=8 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=3.54
+RESULT swapins=0

@@ -1,0 +1,10 @@
+LISTED custom_components/heatpump_optimizer/coordinator.py HeatPumpOptimizerCoordinator floor_return_temp 2543
+LISTED custom_components/heatpump_optimizer/coordinator.py HeatPumpOptimizerCoordinator last_optimization 2414
+LISTED custom_components/heatpump_optimizer/coordinator.py HeatPumpOptimizerCoordinator next_optimization 2418
+LISTED custom_components/heatpump_optimizer/open_meteo.py OpenMeteoSolar last_success 273
+LISTED custom_components/heatpump_optimizer/optimizer.py _Horizon weather 1484
+RESULT dead_methods=5 count
+RESULT dead_top_level_symbols=0 count
+RESULT thread_factor=1.000
+RESULT load1=2.17
+RESULT swapins=0
