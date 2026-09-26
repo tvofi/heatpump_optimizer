@@ -1819,11 +1819,13 @@ class HeatPumpOptimizer:
         Two-zone overshoot and pull are *averaged* over the zones rather than
         summed. Summing made a two-zone house behave as if ``comfort_weight``
         were set twice as high as configured, so it hugged the setpoint and gave
-        up most of the available savings. The floor is not averaged: each
-        zone's undershoot, quadratic and ``_COMFORT_FLOOR_L1`` alike, costs
-        what a single-zone room's does. Averaged, each zone's kelvin under
-        ``min_temp`` cost half, and the solver bought the breach back where
-        prices paid for it (R9 D2-s2-81).
+        up most of the available savings. The floor's linear price is not
+        averaged: each zone's kelvin under ``min_temp`` pays the full
+        ``_COMFORT_FLOOR_L1``, as a single-zone room's does. Averaged, it paid
+        half, and the solver bought the breach back where prices paid for it
+        (R9 D2-s2-81). The quadratic undershoot stays averaged: priced in full
+        too, it left more of the stock two-zone plans under the floor than the
+        linear term alone, measured on the goldens.
 
         **The pull is deliberately weak.** The user states a *band*, and the
         band is what the plan owes them; the target is a preference inside it.
@@ -1844,13 +1846,12 @@ class HeatPumpOptimizer:
             undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
             overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
 
-            penalty = weight * (
+            penalty = 0.5 * weight * (
                 np.sum(undershoot_u ** 2) * 10.0
+                + np.sum(overshoot_u ** 2) * 5.0
                 + np.sum(undershoot_l ** 2) * 10.0
-                + (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
-            ) + 0.5 * weight * (
-                np.sum(overshoot_u ** 2) * 5.0 + np.sum(overshoot_l ** 2) * 5.0
-            )
+                + np.sum(overshoot_l ** 2) * 5.0
+            ) + weight * (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
 
             comfort_dev_u = upper_t - comfort_targets
             comfort_dev_l = lower_t - comfort_targets
@@ -1922,15 +1923,12 @@ class HeatPumpOptimizer:
                 undershoot_l = np.maximum(0, temp_min_bounds - lower_t)
                 overshoot_l = np.maximum(0, lower_t - temp_max_bounds)
 
-                penalty[b] = weight * (
+                penalty[b] = 0.5 * weight * (
                     np.sum(undershoot_u ** 2) * 10.0
+                    + np.sum(overshoot_u ** 2) * 5.0
                     + np.sum(undershoot_l ** 2) * 10.0
-                    + (np.sum(undershoot_u) + np.sum(undershoot_l))
-                    * _COMFORT_FLOOR_L1
-                ) + 0.5 * weight * (
-                    np.sum(overshoot_u ** 2) * 5.0
                     + np.sum(overshoot_l ** 2) * 5.0
-                )
+                ) + weight * (np.sum(undershoot_u) + np.sum(undershoot_l)) * _COMFORT_FLOOR_L1
 
                 comfort_dev_u = upper_t - comfort_targets
                 comfort_dev_l = lower_t - comfort_targets
