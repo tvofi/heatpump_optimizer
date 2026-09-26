@@ -21,7 +21,7 @@ Companion files, all generated from one data file so they cannot disagree:
 
 ## 1. The numbers
 
-- **47 PRs in 11 lanes**, covering all 145 surviving findings (148 canonical less 3 refuted; the 7 merged
+- **48 PRs in 11 lanes**, covering all 145 surviving findings (148 canonical less 3 refuted; the 7 merged
   ids travel with their canonical), all 17 counted instances beyond them (the sweeps' and the RCA
   fold's, sections 9 and 10) and 2 latent seams an RCA placed. tvofi (17:44Z): the PR count does
   not matter; the reasons for each PR are below.
@@ -47,7 +47,7 @@ Companion files, all generated from one data file so they cannot disagree:
   drafted policy changes and landed none; the approved drafts need a PR, and it is tvofi-gated, so it is
   last in its lane and nothing waits on it). F1.9 stayed, shrunk: the future-instant barrier moved to
   F3.1, and F1.9 keeps the one seam no bound fixes plus the regression tests.
-- **Why 47 after tvofi's answers (section 13).** Two PRs left and four arrived: F6.1b merged back
+- **Why 48 after tvofi's answers (section 13).** Two PRs left and four arrived: F6.1b merged back
   into F6.1 (card D2, over the cap by recorded exception) and F7.3 dropped with D8-s2-01 refused (card
   C15); F9.3 (the P1 declared-domain barrier, card C1), F10.5 (the nightly kill-ledger writer, C5),
   F10.6 (the comparison-bound mutation operator, C6) and F11.6 (the verdict carry, C18, split from F11.3
@@ -121,7 +121,7 @@ when its last PR merges, and the first PR's body says which finding it leaves op
 - **RCA seats**: 15, one per `rca: true` class; fourteen ran before fixing (tvofi, 17:44Z) and
   have reported, and the fifteenth (the restart class) is RC2's, merged. Each named its barrier's form
   and left a prototype branch; the fixer of the PR that lands the barrier cherry-picks it (section 5).
-- **Startable at once (wave 1):** F2.1, F3.1, F4.1, F5.1, F6.1, F7.1, F8.1, F10.1, F11.1: 9 threads, one per lane (the PRs with no `after`
+- **Startable at once (wave 1):** F2.1, F3.1, F4.1, F5.1, F6.1, F7.1, F8.1, F11.1: 8 threads, one per lane (the PRs with no `after`
   edge unmet; the table and `WAVE1.json` are in section 13).
 
 ## 4. What needs tvofi, and why (answerable in one pass)
@@ -195,7 +195,7 @@ read; the generator refuses the plan otherwise and prints the residuals.
 - **I1** -> F10.3: a per-site mutation ratchet: refuse any unpinned site the diff added, by content (a multiset difference on file, operator and stripped text), not only a grown total; and widen the inventory to every single-line guard and clamp shape. The sweep's non-UTC lane was refused (the Europe/Stockholm suite already runs inside tests/features.py).
 - **P1** -> F1.6: the store-load boundary quarantines a leaf, numeric string or dict key of magnitude at or above 1e15 as it already does a non-finite one (extending the boundary predicate F3.1 widens, in the same module); Arm 4 in tests/finite_boundary.py seeds every store through its real saver at an aware clock, substitutes every leaf and container by kind, and scans everything the coordinator owns after the real loaders. The sweep's load helper was refused as the barrier (optional per call, reaches no instant, key, container or type).
 - **I3** -> F11.3: field coverage of every registered governance check's input: each leaf of the input is enumerated from the artifact, perturbed to a property-violating value, and the real check run; a leaf the check stays green on is BLIND unless ignored with a reason; DEAD ignores and REFUSED loads fail. Scoped to runs whose inputs changed, plus nightly. Residual: D11-s1-02, D11-s1-03, D11-s1-04, D13-s1-03.
-- **P11** -> F10.1: three arms in tests/ha_contract.py on the existing gate path: non-vacuity (a contract that reached none of its asserts fails), hook re-runs (each HOOK re-runs the FAITHFUL contracts it feeds in every hook state), declared drops (every accepted-and-unread stub parameter must be listed). Residual: D1-s1-51, D10-s1-03, D6-s1-81, D14-s4-02.
+- **P11** -> F10.1: three arms in tests/ha_contract.py on the existing gate path: non-vacuity (a contract that reached none of its asserts fails), hook re-runs (each HOOK re-runs the FAITHFUL contracts it feeds in every hook state), declared drops (every accepted-and-unread stub parameter must be listed). Residual: D1-s1-51, D1-s1-52, D10-s1-03, D6-s1-81, D14-s4-02.
 - **I4** -> F11.4: an agreement lane: each registered concept's real readers (imported, never copied) answer one corpus of live instances plus the findings' boundary cases, and any disagreement is refused; plus grammar discovery: a regex source in two or more governance code files must be registered with a disposition, and a stale entry is DEAD.
 - **P6** -> F1.11: one 'every read has a producer' section in tests/entities.py with seven arms (payload keys, built entity ids, getattr probes, flow error codes, offered modes, pre-fill preview fields, solve seeds), each taking its universe from production, each asserting a non-empty universe, and a planted-defect null control per arm.
 - **P9** -> F6.3: a property-keyed grid inside tests/card_browser.mjs: 31 states by 7 cells, WCAG AA contrast composited over what is underneath, zero shared glyph ink between text runs, pop-ups inside viewport and chart, distinct options, no unreachable clipped ink, 24 px targets or the 2.5.8 spacing exception; controls: every cell mounted and every driver step found, and reach (every colour-setting CSS rule matches a visible element in some cell). Reduced motion, frozen clock.
@@ -219,7 +219,7 @@ read; the generator refuses the plan otherwise and prints the residuals.
 | Judge/verifier notes carried to the fixer: D2-s2-01's missed coordinator seams (F1.7); D2-s2-03's baseline_end sibling (F2.3); refuted D0-s1-01's two-zone deep-anchor asymmetry as hygiene for the P4 fixer (F2.4); D8-s2-03's finder fix would reintroduce D8-s2-02 (F7.1); G1-V2's `boost.restore` naive-until observation (F3.1); every weakened or narrowed claim (in the finding's fix notes) | as listed |
 | L2 extra seams for existing findings (en.json → D5-s1-02; strings.json and README → D6-s2-03; README → D8-s3-03; climate.py → D8-s1-03; config_flow `async_step_dhw` → D12-s1-02; the card's datetime-local handler → D1-s3-01; the price-unit fields → D4-s2-02) | F5.1, F8.3, F7.2, F2.4, F1.2, F3.1, F1.8 respectively |
 | Owed round-9 driver fixes (Prepare rounds interpolation, earlier-rounds strip, env_drift warm step, Chromium path, the batch patch's defer and judge-flag arguments) and `tools/audit/README.md` naming `scopes.json`/`check_scopes.py` | optional fold into **F11.4**, tvofi's call |
-| The RCA seats' carries (34, `finding-propagation.md`), each delivered into its destination's roster brief and lane brief | section 10 |
+| The RCA seats' carries (35, `finding-propagation.md`), each delivered into its destination's roster brief and lane brief | section 10 |
 
 ## 7. Findings I could not place
 
@@ -238,7 +238,7 @@ F11.6), and D0-s2-02 may still end as a recorded refusal priced in money and CPU
 - **One merge at a time**, in the proposed queue below, which respects every `after` edge. When two PRs
   are ready together, the one on the longer remaining chain goes first: **F1 is the critical path**
   (eleven PRs, the coordinator), then F2.
-- **Critical path (inferred, not measured):** F2.1 -> F1.1 -> F1.2 -> F1.3 -> F1.4 -> F1.5 -> F1.6 -> F2.4 -> F1.7 -> F1.8 -> F1.9 -> F1.10 -> F1.11 -> F10.4 -> F10.5 -> F10.6, 16 PRs deep (the longest chain of
+- **Critical path (inferred, not measured):** F3.1 -> F10.1 -> F1.1 -> F1.2 -> F1.3 -> F1.4 -> F1.5 -> F1.6 -> F2.4 -> F1.7 -> F1.8 -> F1.9 -> F1.10 -> F1.11 -> F10.4 -> F10.5 -> F10.6, 17 PRs deep (the longest chain of
   `after` edges, derived by the generator). The high findings all sit in the first waves: D14-s4-01
   (F2.1, F1.1), D1-s3-01 (F3.1), D1-s5-52 (F4.1), D8-s2-02 (F7.1), D12-s1-01 (F1.2), D2-s3-01 (F1.3).
 - **Stamps.** The plan's standing rule holds: no new branch is cut between a fixture-mover's merge and
@@ -286,7 +286,7 @@ moved to a PR that waits on all its class's instance PRs:
 - I3: F11.2 → **F11.3** (D11-s2-01 is an I3 instance in F11.3, and the barrier's shape lives in its files).
 - I4: F11.4 stays, and now waits on F10.4 (D7-s3-02, the dead_methods census), so F11.4 is the round's last PR.
 
-The draft's critical path was 13 PRs deep and is now 16: F11.4 now follows F10.4. The new F1.9
+The draft's critical path was 13 PRs deep and is now 17: F11.4 now follows F10.4. The new F1.9
 sits between F1.8 and F1.10 at the depth F6.4 already had there, so it adds none.
 
 Leads placed as instructions, not instances:
@@ -335,7 +335,7 @@ P5 3 → 4 (the half slab mass); P9 5 → 8 (P9-sw1 out; three new and one candi
 class 5 → 7 (`peak_cost_batch`, the terminal closure); the future-instant class 7 → 8 (legionella).
 Latent seams (P1-rca1, P1-rca2) fill F1.6's freed slots and are not counted.
 
-**Carries** (34), delivered into each destination's roster brief (`carry`) and lane brief:
+**Carries** (35), delivered into each destination's roster brief (`carry`) and lane brief:
 
 | to PR | from RCA | carry |
 |---|---|---|
@@ -373,6 +373,7 @@ Latent seams (P1-rca1, P1-rca2) fill F1.6's freed slots and are not counted.
 | F11.3 | I5 | D11-s2-04: quote the line closure.py prints, MODE: SCOPED -- <n> script(s) run; the quoted-line pass this PR lands refuses any other spelling. |
 | F2.2 | N-solve-recompute | Accept a recomputation fix on the finding's cost metric re-measured on the fixed tree (share of solve, or the production-call count), not on the finding's proxy count: #985 met its proxy (97.02 to 1.02 entries per gradient) and left a per-row loop that is 62 percent of a tariff solve. Control: the fix must move the production-call count of the scenario the finding measured; the recompute RCA's call-count demo on its fixed arm is the shape. |
 | F2.5 | N-solve-recompute | Accept the fix on the cost metric re-measured on the fixed tree (share of solve, or the production-call count), not on a proxy count: #985 met its proxy and left the per-row loop this PR removes. Control: the fix must move the production-call count of the winter capacity-tariff scenario. |
+| F1.10 | P3 | Band normalisation now lives in optimizer.py, in the power-fraction helper F2.1/F2.4 land there (handoff/r9-f2-solver-1), which branches on band < 0.1 kW instead of flooring it. Do not move it into a floored ThermalParameters property: a plain max-against-0.1 floor there is D12-s2-03 itself, and mutant M2 is its control. The P3 RCA arm (a)'s 'one floor per thermal parameter, zero groups' reads 9 -> 8 groups: carve that helper's band branch out as the named exception, with its own fixture probe, rather than folding it into the general floor property. |
 
 ## 11. Resumability (tvofi, 2026-09-26 19:05Z)
 
@@ -431,7 +432,7 @@ without a reason, or a barrier PR routed below the strongest model.
 | runner | haiku: gate and stress re-runs, closure and budget re-records at the hand-off, build.sh rebuilds, report rendering and digests; reports numbers, decides nothing |
 | record | sonnet: delivery rows, issue text, the #201 draft, RESUME.md lines, roster resume upkeep and V1-style checks |
 
-Fixers per PR (15 sonnet, 32 strongest; no fixer is haiku, because every fix owes a
+Fixers per PR (15 sonnet, 33 strongest; no fixer is haiku, because every fix owes a
 failing test and a mutation proof that need judgement):
 
 | PR | fixer | why |
@@ -444,8 +445,6 @@ failing test and a mutation proof that need judgement):
 | F6.1 | sonnet | card layout, text and keyboard fixes, small and mechanical |
 | F8.1 | sonnet | documentation lane |
 | F11.1 | sonnet | non-code-owned parsers with the finder's harness as oracle |
-| F10.1 | opus | a class barrier carrying an RCA prototype (P11) in the Home Assistant stub |
-| F1.1 | opus | DST wall-clock arithmetic across six files plus the gate's clock; a wrong offset passes most pins |
 | F2.2 | opus | vectorising the solve while keeping its floats; golden drift claims |
 | F3.2 | opus | pump-duty arbiter state machine |
 | F4.2 | opus | a class barrier carrying an RCA prototype (P5) plus the fit integrator |
@@ -453,29 +452,32 @@ failing test and a mutation proof that need judgement):
 | F9.1 | sonnet | test-pin lane |
 | F11.2 | opus | required-check boundaries and identity (decision 0011); a wrong boundary silently ungates main |
 | F8.2 | sonnet | documentation lane |
-| F1.2 | opus | presence inference and the solve seed change what the solver sees; needs design judgement |
+| F10.1 | opus | a class barrier carrying an RCA prototype (P11) in the Home Assistant stub |
+| F1.1 | opus | DST wall-clock arithmetic across six files plus the gate's clock; a wrong offset passes most pins |
 | F3.3 | opus | five learner-store and feed-parser findings across four files |
 | F9.2 | sonnet | test-pin lane |
 | F11.3 | opus | a class barrier carrying an RCA prototype (I3) plus policy text |
 | F6.3 | opus | a class barrier carrying an RCA prototype (P9, +572 lines of browser harness) |
-| F1.3 | opus | cycle fencing and failure reporting are ordering and concurrency judgements |
-| F5.2 | sonnet | translated text and config UX, small and mechanical |
+| F1.2 | opus | presence inference and the solve seed change what the solver sees; needs design judgement |
 | F11.6 | opus | a verdict carry decides when a review stops being re-run; a wrong equivalence silently approves a changed tree |
 | F2.5 | opus | vectorising peak_cost_batch and its terminal twin with golden drift |
-| F1.4 | opus | a class barrier carrying an RCA prototype (N-restart) plus restart durability |
+| F1.3 | opus | cycle fencing and failure reporting are ordering and concurrency judgements |
 | F2.3 | opus | plant-model physics with golden drift |
+| F5.2 | sonnet | translated text and config UX, small and mechanical |
+| F1.4 | opus | a class barrier carrying an RCA prototype (N-restart) plus restart durability |
 | F8.3 | sonnet | documentation lane |
-| F10.2 | opus | a class barrier carrying an RCA prototype (solve-recompute and cpu-gate-blind) in code-owned gate scripts |
 | F1.5 | opus | error-path restructuring inside the cycle; a moved try changes which failures surface |
-| F10.3 | opus | a class barrier carrying an RCA prototype (I1) in code-owned gate scripts |
 | F7.2 | sonnet | small entity-attribute fixes |
 | F1.6 | opus | a class barrier carrying an RCA prototype (P1) plus two latent seams |
 | F2.4 | opus | on/off threshold semantics and multi-start seeds with golden drift |
 | F9.3 | opus | a class barrier tvofi commissioned (P1 declared domain, card C1) with no prototype: the domain table's design is open |
 | F1.7 | opus | cross-lane coordinator readers, the reauth route and a settlement scale with golden drift |
 | F1.8 | opus | currency and unit seams across eight sites and config-entry identity |
+| F10.1b | opus | the aware-default hastub clock's ripple across 46 tests/features.py statements |
 | F6.4 | sonnet | card layout, text and keyboard fixes, small and mechanical |
+| F10.2 | opus | a class barrier carrying an RCA prototype (solve-recompute and cpu-gate-blind) in code-owned gate scripts |
 | F1.9 | sonnet | regression tests for instances F3.1 closes plus one branch whose rule tvofi has decided (FI-sw3, card C13: outage) |
+| F10.3 | opus | a class barrier carrying an RCA prototype (I1) in code-owned gate scripts |
 | F1.10 | opus | a class barrier carrying an RCA prototype (P3) |
 | F1.11 | opus | a class barrier carrying an RCA prototype (P2 and P6) |
 | F10.4 | opus | a class barrier carrying an RCA prototype (I5) plus ratchet truth |
@@ -517,7 +519,7 @@ orchestrator's recommendation it is applied as given:
 
 **Owner-gated PRs** (11): F6.3, F10.2, F10.3, F10.4, F10.5, F10.6, F11.2, F11.3, F11.6, F11.4, F11.5.
 
-**Wave 1** (9 PRs, one per lane, none with an unmet `after` edge; also
+**Wave 1** (8 PRs, one per lane, none with an unmet `after` edge; also
 `/mnt/project-files/audit-r9/fix/WAVE1.json` and `handoff/round9/WAVE1.json`):
 
 | PR | lane | fixer | branch | brief | tvofi |
@@ -529,63 +531,63 @@ orchestrator's recommendation it is applied as given:
 | F6.1 | F6 (Dashboard card) | sonnet | `handoff/r9-f6-card-1` | `handoff/round9/fix/F6.md` | - |
 | F7.1 | F7 (Entities) | sonnet | `handoff/r9-f7-entities-1` | `handoff/round9/fix/F7.md` | - |
 | F8.1 | F8 (User documentation) | sonnet | `handoff/r9-f8-docs-1` | `handoff/round9/fix/F8.md` | - |
-| F10.1 | F10 (Gate, stub and ratchet infrastructure) | opus | `handoff/r9-f10-gate-infra-1` | `handoff/round9/fix/F10.md` | - |
 | F11.1 | F11 (Governance tooling and policy) | sonnet | `handoff/r9-f11-governance-1` | `handoff/round9/fix/F11.md` | - |
 
-Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1, F7.1), F9 (first PR F9.1, after F3.1).
+Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1, F7.1), F9 (first PR F9.1, after F3.1), F10 (first PR F10.1, after F3.1).
 
 ---
 ## PR table (merge order within each lane; `after` gives the cross-lane edges)
 
 | PR | lane | wave | findings | classes | sev | model | tvofi | RCA seat beside | barrier here | after |
 |---|---|---|---|---|---|---|---|---|---|---|
-| F1.1 | F1 | 2 | D14-s4-01*, D14-s4-02, D3-s1-91, D3-s3-01, D1-s3-04* | P7, P11, I1, N-shared-config | high | opus | - | - | - | F2.1, F10.1, F3.1, F7.1 |
-| F1.2 | F1 | 3 | D12-s1-01, D12-s3-01, D14-s2-01 | P6, P2 | high | opus | - | P6 | - | F1.1 |
-| F1.3 | F1 | 4 | D2-s3-01, D1-s2-51, D1-s2-91, D1-s4-02, D10-s1-02 | P2 | high | opus | - | - | - | F1.2 |
-| F1.4 | F1 | 5 | D1-s2-52, D1-s2-53, D1-s2-54, D1-s2-03 | N-restart, N-service-clamp, P1 | medium | opus | - | N-restart | N-restart | F1.3, F9.1 |
-| F1.5 | F1 | 6 | D1-s2-04, D1-s2-55, D1-s2-05, D2-s1-51, D7-s2-02 | N-debug-swallow, N-late-try, N-reap-lock, P6, P2 | medium | opus | - | - | - | F1.4 |
-| F1.6 | F1 | 7 | D1-s2-02, D1-s1-03, D14-s1-01, +P1-rca1, +P1-rca2 | N-plausibility, P1 | medium | opus | - | - | P1 | F1.5, F3.3, F4.1, F9.1 |
-| F1.7 | F1 | 9 | D9-s1-03, D9-s2-01, D10-s1-03, D2-s2-01 | N-loop-cpu, P11, P2 | medium | opus | - | - | - | F1.6, F2.4, F4.2, F5.2, F10.1 |
-| F1.8 | F1 | 10 | D14-s2-02, D12-s3-81, D10-s1-01 | P8, P2 | medium | opus | - | - | - | F1.7, F5.2, F6.2, F3.3 |
-| F1.9 | F1 | 11 | +FI-sw1, +FI-sw2, +FI-sw3, +FI-sw4, +FI-rca1 | N-future-instant | barrier | sonnet | - | - | - | F1.8, F3.1 |
-| F1.10 | F1 | 12 | D14-s3-01, D5-s2-02 | P3, I5 | low | opus | - | - | P3 | F1.9, F2.4 |
-| F1.11 | F1 | 13 | D14-s1-02 | P6 | low | opus | - | - | P2, P6 | F1.10, F6.4 |
+| F1.1 | F1 | 3 | D14-s4-01*, D14-s4-02, D3-s1-91, D3-s3-01, D1-s3-04* | P7, P11, I1, N-shared-config | high | opus | - | - | - | F2.1, F10.1, F3.1, F7.1 |
+| F1.2 | F1 | 4 | D12-s1-01, D12-s3-01, D14-s2-01 | P6, P2 | high | opus | - | P6 | - | F1.1 |
+| F1.3 | F1 | 5 | D2-s3-01, D1-s2-51, D1-s2-91, D1-s4-02, D10-s1-02 | P2 | high | opus | - | - | - | F1.2 |
+| F1.4 | F1 | 6 | D1-s2-52, D1-s2-53, D1-s2-54, D1-s2-03 | N-restart, N-service-clamp, P1 | medium | opus | - | N-restart | N-restart | F1.3, F9.1 |
+| F1.5 | F1 | 7 | D1-s2-04, D1-s2-55, D1-s2-05, D2-s1-51, D7-s2-02 | N-debug-swallow, N-late-try, N-reap-lock, P6, P2 | medium | opus | - | - | - | F1.4 |
+| F1.6 | F1 | 8 | D1-s2-02, D1-s1-03, D14-s1-01, +P1-rca1, +P1-rca2 | N-plausibility, P1 | medium | opus | - | - | P1 | F1.5, F3.3, F4.1, F9.1 |
+| F1.7 | F1 | 10 | D9-s1-03, D9-s2-01, D10-s1-03, D2-s2-01 | N-loop-cpu, P11, P2 | medium | opus | - | - | - | F1.6, F2.4, F4.2, F5.2, F10.1 |
+| F1.8 | F1 | 11 | D14-s2-02, D12-s3-81, D10-s1-01 | P8, P2 | medium | opus | - | - | - | F1.7, F5.2, F6.2, F3.3 |
+| F1.9 | F1 | 12 | +FI-sw1, +FI-sw2, +FI-sw3, +FI-sw4, +FI-rca1 | N-future-instant | barrier | sonnet | - | - | - | F1.8, F3.1 |
+| F1.10 | F1 | 13 | D14-s3-01, D5-s2-02 | P3, I5 | low | opus | - | - | P3 | F1.9, F2.4 |
+| F1.11 | F1 | 14 | D14-s1-02 | P6 | low | opus | - | - | P2, P6 | F1.10, F6.4 |
 | F2.1 | F2 | 1 | D14-s4-01*, D12-s2-03, D2-s2-81, D2-s3-02, D5-s2-51 | P7, P3, N-sign-floor, I5 | high | opus | - | P3 | - | - |
 | F2.2 | F2 | 2 | D9-s1-01, D9-s1-02, D9-s1-04, D9-s1-71, +RC-sw1 | N-solve-recompute | medium | opus | - | N-solve-recompute | - | F2.1 |
 | F2.5 | F2 | 4 | +RC-rca1, +RC-rca2 | N-solve-recompute | barrier | opus | - | - | - | F2.2, F3.3 |
 | F2.3 | F2 | 5 | D2-s1-01, D2-s1-02, D2-s2-03, D7-s1-71, D5-s2-03 | N-euler-coupled, P2, I5 | medium | opus | - | - | - | F2.5, F2.2, F4.1 |
-| F2.4 | F2 | 8 | D12-s2-01, D8-s1-03, D0-s2-02 | P2, P4 | medium | opus | - | - | - | F2.3, F1.6, F7.2, F5.2 |
+| F2.4 | F2 | 9 | D12-s2-01, D8-s1-03, D0-s2-02 | P2, P4 | medium | opus | - | - | - | F2.3, F1.6, F7.2, F5.2 |
 | F3.1 | F3 | 1 | D1-s3-01, D1-s1-01, D1-s1-04, D1-s3-05, D1-s1-02 | P2, P1, N-future-instant | high | opus | - | P2, P1, N-future-instant | N-future-instant | - |
 | F3.2 | F3 | 2 | D1-s3-02, D1-s3-03, D12-s2-02, D1-s3-06, +FI-sw5 | P2, P1, N-future-instant | medium | opus | - | - | - | F3.1 |
 | F3.3 | F3 | 3 | D1-s4-01, D1-s4-03, D1-s5-02, D1-s5-03, D1-s5-04 | P1, P2, N-min-gap | medium | opus | - | - | - | F3.2 |
 | F4.1 | F4 | 1 | D1-s5-52, D1-s5-01, D1-s5-51, D2-s2-02, D2-s4-02 | P2, N-staleness, N-clamp-range | high | opus | - | - | - | - |
 | F4.2 | F4 | 2 | D2-s4-01, D2-s4-81, D14-s3-03, D7-s2-01, +P5-rca1 | P5, N-fit-integrator | medium | opus | - | P5 | P5 | F4.1 |
 | F5.1 | F5 | 1 | D4-s2-03, D4-s2-08, D4-s2-09, D8-s3-02, D8-s3-01, D5-s1-02*, D6-s2-03* | N-escape, N-service-icons, I5, N-name-sort | medium | sonnet | - | - | - | - |
-| F5.2 | F5 | 4 | D4-s2-01, D4-s2-05, D4-s2-06, D4-s2-07, D10-s2-01 | P6, N-step-grid, P2, N-menu | medium | sonnet | - | - | - | F5.1, F1.2, F7.1 |
+| F5.2 | F5 | 5 | D4-s2-01, D4-s2-05, D4-s2-06, D4-s2-07, D10-s2-01 | P6, N-step-grid, P2, N-menu | medium | sonnet | - | - | - | F5.1, F1.2, F7.1 |
 | F6.1 (cap exception) | F6 | 1 | D4-s1-01, D4-s1-02, D4-s1-03, D4-s1-05, +P9-rca1, +P9-rca2, +P9-rca3, +P9-rca4 | P9 | medium | sonnet | - | P9 | - | - |
 | F6.2 | F6 | 2 | D4-s1-04, D5-s2-01, +P9-f61a, +P9-f61b, +P9-f61c | N-keyboard, I5, P9 | medium | sonnet | - | - | - | F6.1 |
 | F6.3 | F6 | 3 | (class barrier) | - | barrier | opus | **yes** | - | P9 | F6.2 |
-| F6.4 | F6 | 11 | D4-s2-81 | N-language | medium | sonnet | - | - | - | F6.3, F1.8 |
+| F6.4 | F6 | 12 | D4-s2-81 | N-language | medium | sonnet | - | - | - | F6.3, F1.8 |
 | F7.1 | F7 | 1 | D8-s2-02, D8-s2-03, D1-s3-04 | P2, N-shared-config | high | sonnet | - | - | - | - |
-| F7.2 | F7 | 6 | D8-s1-02, D8-s3-03, D8-s3-61 | P2, N-dup-entity | low | sonnet | - | - | - | F7.1, F8.3 |
+| F7.2 | F7 | 7 | D8-s1-02, D8-s3-03, D8-s3-61 | P2, N-dup-entity | low | sonnet | - | - | - | F7.1, F8.3 |
 | F8.1 | F8 | 1 | D5-s1-01, D6-s2-01, D6-s2-02, D5-s1-04, D6-s2-05 | I5, N-markdown | medium | sonnet | - | I5 | - | - |
 | F8.2 | F8 | 2 | D5-s1-05, D6-s1-02, D6-s2-04, D6-s1-01, D6-s1-03 | I5 | low | sonnet | - | - | - | F8.1 |
-| F8.3 | F8 | 5 | D5-s1-02*, D6-s2-03*, D6-s1-81, D5-s1-03, D6-s2-05*, D8-s3-01* | I5, P11, N-name-sort | medium | sonnet | - | - | - | F8.2, F5.1, F5.2 |
+| F8.3 | F8 | 6 | D5-s1-02*, D6-s2-03*, D6-s1-81, D5-s1-03, D6-s2-05*, D8-s3-01* | I5, P11, N-name-sort | medium | sonnet | - | - | - | F8.2, F5.1, F5.2 |
 | F9.1 | F9 | 2 | D3-s1-01, D3-s2-01, D3-s2-02, D3-s3-02, D3-s3-03 | I1 | medium | sonnet | - | I1 | - | F3.1 |
 | F9.2 | F9 | 3 | D3-s3-04, D3-s3-05, D7-s3-51 | I1, N-finally-return | medium | sonnet | - | - | - | F9.1 |
-| F9.3 | F9 | 8 | (barrier; covers D1-s3-06, D1-s4-01, D1-s5-02, D1-s4-03) | P1 | barrier | opus | - | - | - | F9.2, F1.6 |
-| F10.1 | F10 | 1 | D1-s1-51, D1-s1-52, D1-s2-71, D14-s4-02* | P11 | low | opus | - | P11 | P11 | - |
-| F10.2 | F10 | 5 | D9-s2-02, D9-s2-03, D9-s2-71 | N-cpu-gate-blind | medium | opus | **yes** | N-cpu-gate-blind | N-solve-recompute, N-cpu-gate-blind | F10.1, F1.1, F2.5 |
-| F10.3 | F10 | 6 | D7-s1-02, D14-s5-02, D14-s5-01 | I1, I2 | medium | opus | **yes** | - | I1 | F10.2, F9.2 |
-| F10.4 | F10 | 14 | D7-s3-01, D7-s3-72, D7-s3-02, D7-s1-01 | N-dead-member, I4, N-structure-blind | low | opus | **yes** | - | I5 | F10.3, F1.11, F11.3 |
-| F10.5 | F10 | 15 | (class barrier) | - | barrier | opus | **yes** | - | - | F10.4, F11.2 |
-| F10.6 | F10 | 16 | (class barrier) | - | barrier | opus | **yes** | - | - | F10.5 |
+| F9.3 | F9 | 9 | (barrier; covers D1-s3-06, D1-s4-01, D1-s5-02, D1-s4-03) | P1 | barrier | opus | - | - | - | F9.2, F1.6 |
+| F10.1 | F10 | 2 | D1-s1-51, D1-s2-71, D14-s4-02* | P11 | low | opus | - | P11 | P11 | F3.1 |
+| F10.1b | F10 | 11 | D1-s1-52 | P11 | low | opus | - | - | - | F3.1, F10.1, F1.7 |
+| F10.2 | F10 | 12 | D9-s2-02, D9-s2-03, D9-s2-71 | N-cpu-gate-blind | medium | opus | **yes** | N-cpu-gate-blind | N-solve-recompute, N-cpu-gate-blind | F10.1b, F1.1, F2.5 |
+| F10.3 | F10 | 13 | D7-s1-02, D14-s5-02, D14-s5-01 | I1, I2 | medium | opus | **yes** | - | I1 | F10.2, F9.2 |
+| F10.4 | F10 | 15 | D7-s3-01, D7-s3-72, D7-s3-02, D7-s1-01 | N-dead-member, I4, N-structure-blind | low | opus | **yes** | - | I5 | F10.3, F1.11, F11.3 |
+| F10.5 | F10 | 16 | (class barrier) | - | barrier | opus | **yes** | - | - | F10.4, F11.2 |
+| F10.6 | F10 | 17 | (class barrier) | - | barrier | opus | **yes** | - | - | F10.5 |
 | F11.1 | F11 | 1 | D11-s1-71, D13-s1-01, D11-s2-02, D11-s1-02, D11-s1-72 | I4, I3 | medium | sonnet | - | I3, I4 | - | - |
 | F11.2 | F11 | 2 | D11-s1-04, D11-s1-03, D13-s1-03 | I3 | medium | opus | **yes** | - | - | F11.1 |
 | F11.3 | F11 | 3 | D11-s2-01, D11-s2-04 | I3, I5 | low | opus | **yes** | - | I3 | F11.2 |
 | F11.6 | F11 | 4 | D13-s1-02 | N-approval-rebuy | medium | opus | **yes** | - | - | F11.3 |
-| F11.4 | F11 | 15 | D14-s2-03 | I4 | low | opus | **yes** | - | I4 | F11.6, F11.3, F10.4 |
-| F11.5 | F11 | 16 | (class barrier) | - | barrier | sonnet | **yes** | - | - | F11.4 |
+| F11.4 | F11 | 16 | D14-s2-03 | I4 | low | opus | **yes** | - | I4 | F11.6, F11.3, F10.4 |
+| F11.5 | F11 | 17 | (class barrier) | - | barrier | sonnet | **yes** | - | - | F11.4 |
 
 `*` = part of a finding; `(cap exception)` = over fixer.md's five-item cap by tvofi's recorded choice; the finding closes when every PR listing it has merged (see the split list). `+` = a Phase D sweep instance (table below).
 
@@ -629,6 +631,7 @@ Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1, F7.1), F
 | F9.2 | tests/nightly_ha.py | - | - |
 | F9.3 | tests/finite_boundary.py | store.py from F1 | - |
 | F10.1 | tests/hastub/homeassistant/helpers/storage.py, tests/hastub/homeassistant/util/dt.py, tests/hastub/homeassistant/helpers/update_coordinator.py, tests/ha_contract.py | - | - |
+| F10.1b | tests/hastub/homeassistant/util/dt.py | - | - |
 | F10.2 | tests/stress.py, tests/stress_budgets.json, tests/replay.py | - | tests/stress.py is code-owned; the loop_cpu_ratio entry and the valve rows are allowed (cards B1, B2) and still merge only on tvofi's approving review (budget-raise-gate) |
 | F10.3 | tests/env_drift.py, tests/stress.py, tests/mutation_table.py, tests/mutation_budgets.json, tests/closure.py, tests/derive_closures.sh, tests/deployment_shape.py, tests/doc_claims.py | - | tests/env_drift.py, tests/stress.py, tests/mutation_table.py, tests/closure.py and tests/derive_closures.sh are code-owned; the I1 prototype derives its counts at both ends and raises no mutation_budgets.json entry |
 | F10.4 | tests/structure.py, tests/doc_claims.py | coordinator.py from F1, defrost.py from F3, open_meteo.py from F3, inputs.py from F4, optimizer.py from F2, thermal_model.py from F2, tests/open_meteo.py from F1 | D7-s1-01 prices coordinator state reached through module-level helpers; tvofi allowed raising the coordinator structure budgets if the honest re-record raises them (card B5), to the measured value, and the raise merges only on tvofi's approving review |
@@ -651,7 +654,7 @@ Lanes with no PR in wave 1: F1 (first PR F1.1, after F2.1, F10.1, F3.1, F7.1), F
 | D1-s1-03 | medium | N-plausibility | F1.6 | One out-of-range DHW thermometer sample is booked as a physically impossible draw and inflates the published p90 |
 | D1-s1-04 | low | N-future-instant | F3.1 | A timestamp stored while the clock ran ahead is trusted verbatim and stretches stale timeouts by the clock error |
 | D1-s1-51 | low | P11 | F10.1 | hastub Store decodes with stdlib json: 6 of 6 hostile number tokens load where HA's orjson Store drops the file |
-| D1-s1-52 | low | P11 | F10.1 | hastub dt_util.now() is naive by default: the naive-vs-aware verdict of 6 of 6 stored-timestamp cells is inverted |
+| D1-s1-52 | low | P11 | F10.1b | hastub dt_util.now() is naive by default: the naive-vs-aware verdict of 6 of 6 stored-timestamp cells is inverted |
 | D1-s2-02 | medium | N-plausibility | F1.6 | Finite-but-absurd weather forecast values reach the solve unbounded: failed plans and a runaway solve |
 | D1-s2-03 | medium | P1 | F1.4 | A sample count past 2**64 in the thermal-learning store fails every cycle, across restarts |
 | D1-s2-04 | medium | N-debug-swallow | F1.5 | Five cycle-path guards swallow a persistent failure at DEBUG, including pump and frequency actuation |
@@ -830,7 +833,7 @@ Seams are the sweep's own dispositions (`instance`, `guarded`, `not applicable`)
 | I1 | #1646 | F10.3 | 11 | 11 | 11 | yes | S3 @ `053c4869ad` | 12 instance | F9.1, F1.1, F9.2, F10.3 | F10.3 |
 | P1 | #1647 | F9.3 | 9 | 11 | 9 | yes | S3 @ `053c4869ad` | 6 guarded, 14 instance, 2 not applicable | F3.1, F1.4, F3.2, F3.3, F1.6 | F1.6 |
 | I3 | #1648 | F11.3 | 7 | 7 | 7 | yes | S4 @ `b2e3560671` | 1 guarded, 26 instance, 3 not applicable | D11-s1-01 refused, F11.1, F11.2, F11.3 | F11.3 |
-| P11 | #1649 | F1.7 | 6 | 6 | 6 | yes | S4 @ `b2e3560671` | 6 instance, 2 not applicable | F10.1, F8.3, F1.7, F1.1 | F10.1 |
+| P11 | #1649 | F10.1b | 6 | 6 | 6 | yes | S4 @ `b2e3560671` | 6 instance, 2 not applicable | F10.1, F10.1b, F8.3, F1.7, F1.1 | F10.1 |
 | I4 | #1650 | F11.4 | 5 | 5 | 5 | yes | S4 @ `b2e3560671` | 2 guarded, 8 instance | F10.4, F11.1, F11.4 | F11.4 |
 | P6 | #1651 | F1.11 | 5 | 5 | 5 | yes | S4 @ `b2e3560671` | 1 guarded, 12 instance | F1.5, F5.2, F1.2, F1.11 | F1.11 |
 | P9 | #1652 | F6.3 | 4 | 5 | 11 | yes | S5 @ `51a2e98a86` | 5 instance, 1 not applicable | F6.1, F6.2 | F6.3 |
@@ -885,7 +888,7 @@ Seams are the sweep's own dispositions (`instance`, `guarded`, `not applicable`)
 | F7 | Entities | F7.1 sonnet, F7.2 sonnet | sensor.py, climate.py, switch.py, entity.py, binary_sensor.py |
 | F8 | User documentation | F8.1 sonnet, F8.2 sonnet, F8.3 sonnet | README.md, docs/configuration.md, docs/setup.md, docs/how-it-works.md, docs/dashboard-card.md, docs/ecl110.md |
 | F9 | Test pins for unpinned guards | F9.1 sonnet, F9.2 sonnet, F9.3 opus | tests/finite_boundary.py, tests/nightly_ha.py |
-| F10 | Gate, stub and ratchet infrastructure | F10.1 opus, F10.2 opus, F10.3 opus, F10.4 opus, F10.5 opus, F10.6 opus | tests/hastub/**, tests/ha_contract.py, tests/replay.py, tests/stress.py, tests/stress_budgets.json, tests/env_drift.py, tests/closure.py, tests/derive_closures.sh, tests/deployment_shape.py, tests/doc_claims.py, tests/mutation_table.py, tests/mutation_budgets.json, tests/structure.py, tests/harness.py |
+| F10 | Gate, stub and ratchet infrastructure | F10.1 opus, F10.1b opus, F10.2 opus, F10.3 opus, F10.4 opus, F10.5 opus, F10.6 opus | tests/hastub/**, tests/ha_contract.py, tests/replay.py, tests/stress.py, tests/stress_budgets.json, tests/env_drift.py, tests/closure.py, tests/derive_closures.sh, tests/deployment_shape.py, tests/doc_claims.py, tests/mutation_table.py, tests/mutation_budgets.json, tests/structure.py, tests/harness.py |
 | F11 | Governance tooling and policy | F11.1 sonnet, F11.2 opus, F11.3 opus, F11.6 opus, F11.4 opus, F11.5 sonnet | .claude/workflows/**, .github/**, CLAUDE.md, AGENTS.md, .claude/rules/**, .cursor/rules/**, .claude/settings.json, tools/audit/**, tools/release/**, docs/decisions/**, tests/README.md |
 
 ## Proposed merge queue (priority among PRs that are ready: review `merge`, CI green, `after` edges merged; one merge at a time)
@@ -900,42 +903,43 @@ Ordered by dependency depth, then severity, then non-owner-gated first. The orch
 6. F6.1 (medium) - Card layout, colour and hit targets (P9)
 7. F8.1 (medium) - configuration.md: initial setup, entity count, services
 8. F11.1 (medium) - Governance parsers and enumerators (not code-owned)
-9. F10.1 (low, fixture) - Home Assistant stub fidelity (P11) and its contracts
-10. F1.1 (high) - DST wall-clock seams and the gate's clock
-11. F2.2 (medium) - Interpreter-bound recomputation in the solve
-12. F3.2 (medium) - Pump-duty arbiter and the frequency map
-13. F4.2 (medium) - System identification: adoption gate and fit integrator (P5 and its barrier)
-14. F6.2 (medium) - Keyboard route in the layout editor; stale comments; #1643 surviving mutants
-15. F9.1 (medium) - Pins for deletable guards (I1), part 1
-16. F11.2 (medium, tvofi) - Required-check boundaries (I3, owner-gated)
-17. F8.2 (low) - Labels, pages and solver description
-18. F1.2 (high) - Presence inferred from untouched defaults; DHW start state
-19. F3.3 (medium) - Learner stores and feed parsers
-20. F9.2 (medium) - Pins for deletable guards (I1), part 2; return inside finally
-21. F11.3 (low, tvofi) - Policy text: per-file caps, CLAUDE.md rule 1, verdict carry on merges-only moves; I3 barrier
-22. F6.3 (barrier, tvofi) - P9 class barrier in the browser lane
-23. F1.3 (high, fixture) - Cycle outcome: stale spot price, unfenced cycle calls, failures reported as success
-24. F5.2 (medium) - Setup wizard and options UX
-25. F11.6 (medium, tvofi) - Verdict carry across diff-equivalent moves from main (D13-s1-02)
-26. F2.5 (barrier, fixture) - Recomputation the sweep missed: peak_cost_batch's row loop and the terminal-cost closure
-27. F1.4 (medium) - Restart durability (barriered class) and store bounds
-28. F2.3 (medium, fixture) - Plant-model physics and the thrice-held inlet default
+9. F2.2 (medium) - Interpreter-bound recomputation in the solve
+10. F3.2 (medium) - Pump-duty arbiter and the frequency map
+11. F4.2 (medium) - System identification: adoption gate and fit integrator (P5 and its barrier)
+12. F6.2 (medium) - Keyboard route in the layout editor; stale comments; #1643 surviving mutants
+13. F9.1 (medium) - Pins for deletable guards (I1), part 1
+14. F11.2 (medium, tvofi) - Required-check boundaries (I3, owner-gated)
+15. F8.2 (low) - Labels, pages and solver description
+16. F10.1 (low, fixture) - Home Assistant stub fidelity (P11) and its contracts
+17. F1.1 (high) - DST wall-clock seams and the gate's clock
+18. F3.3 (medium) - Learner stores and feed parsers
+19. F9.2 (medium) - Pins for deletable guards (I1), part 2; return inside finally
+20. F11.3 (low, tvofi) - Policy text: per-file caps, CLAUDE.md rule 1, verdict carry on merges-only moves; I3 barrier
+21. F6.3 (barrier, tvofi) - P9 class barrier in the browser lane
+22. F1.2 (high) - Presence inferred from untouched defaults; DHW start state
+23. F11.6 (medium, tvofi) - Verdict carry across diff-equivalent moves from main (D13-s1-02)
+24. F2.5 (barrier, fixture) - Recomputation the sweep missed: peak_cost_batch's row loop and the terminal-cost closure
+25. F1.3 (high, fixture) - Cycle outcome: stale spot price, unfenced cycle calls, failures reported as success
+26. F2.3 (medium, fixture) - Plant-model physics and the thrice-held inlet default
+27. F5.2 (medium) - Setup wizard and options UX
+28. F1.4 (medium) - Restart durability (barriered class) and store bounds
 29. F8.3 (medium) - Setup promises, curve-bias figure, currency fallback, card version
-30. F10.2 (medium, tvofi) - CPU gate blind spots; per-solve CPU budget
-31. F1.5 (medium) - Cycle failures: swallowed errors, late try, reap, P6 defaults, defrost fold
-32. F10.3 (medium, tvofi) - Owned gate scripts: verdict pins, mutation inventory, child-process closures; I1 and P11 barriers
-33. F7.2 (low) - Sensors: schedule count, duplicate entity, valve recommendation
-34. F1.6 (medium) - Plausibility bounds and the P1 load-layer barrier
-35. F2.4 (medium, fixture) - On/off pump threshold at both seams; multi-start seeds
-36. F9.3 (barrier) - P1 declared-domain barrier: stored fields held to their writers' domains
-37. F1.7 (medium, fixture) - Coordinator readers across lanes: loop CPU, auth, settlement scale
-38. F1.8 (medium) - Currency and unit (P8) and entry identity
-39. F6.4 (medium) - Language-aware setup text; raw-thermometer source for staleness gaps
+30. F1.5 (medium) - Cycle failures: swallowed errors, late try, reap, P6 defaults, defrost fold
+31. F7.2 (low) - Sensors: schedule count, duplicate entity, valve recommendation
+32. F1.6 (medium) - Plausibility bounds and the P1 load-layer barrier
+33. F2.4 (medium, fixture) - On/off pump threshold at both seams; multi-start seeds
+34. F9.3 (barrier) - P1 declared-domain barrier: stored fields held to their writers' domains
+35. F1.7 (medium, fixture) - Coordinator readers across lanes: loop CPU, auth, settlement scale
+36. F1.8 (medium) - Currency and unit (P8) and entry identity
+37. F10.1b (low) - Aware-default Home Assistant stub clock
+38. F6.4 (medium) - Language-aware setup text; raw-thermometer source for staleness gaps
+39. F10.2 (medium, tvofi) - CPU gate blind spots; per-solve CPU budget
 40. F1.9 (barrier) - Persisted future instants: the outage decision and the coordinator regressions
-41. F1.10 (low, fixture) - P3 class barrier: one floor per thermal parameter; comment drift; the fourth on-threshold copy
-42. F1.11 (low) - Class barriers P2 and P6; horizon_hours and the boost test hook
-43. F10.4 (low, tvofi) - Structural ratchet truth: dead members and uncounted helpers; I5 barrier
-44. F11.4 (low, tvofi) - Class roster readers agree (I4 barrier); owed driver fixes
-45. F10.5 (barrier, tvofi) - Nightly mutation-kill ledger writer: drain the pre-ratchet stock (I1 residual)
-46. F10.6 (barrier, tvofi) - Comparison-bound mutation operator (I1 residual), cost measured first
-47. F11.5 (barrier, tvofi) - Round-9 RCA policy text (each draft as tvofi approves it)
+41. F10.3 (medium, tvofi) - Owned gate scripts: verdict pins, mutation inventory, child-process closures; I1 and P11 barriers
+42. F1.10 (low, fixture) - P3 class barrier: one floor per thermal parameter; comment drift; the fourth on-threshold copy
+43. F1.11 (low) - Class barriers P2 and P6; horizon_hours and the boost test hook
+44. F10.4 (low, tvofi) - Structural ratchet truth: dead members and uncounted helpers; I5 barrier
+45. F11.4 (low, tvofi) - Class roster readers agree (I4 barrier); owed driver fixes
+46. F10.5 (barrier, tvofi) - Nightly mutation-kill ledger writer: drain the pre-ratchet stock (I1 residual)
+47. F10.6 (barrier, tvofi) - Comparison-bound mutation operator (I1 residual), cost measured first
+48. F11.5 (barrier, tvofi) - Round-9 RCA policy text (each draft as tvofi approves it)

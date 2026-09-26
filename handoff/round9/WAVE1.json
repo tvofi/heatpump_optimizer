@@ -49,13 +49,6 @@
   "brief_path": "handoff/round9/fix/F8.md"
  },
  {
-  "pr": "F10.1",
-  "lane": "F10",
-  "model": "opus",
-  "branch": "handoff/r9-f10-gate-infra-1",
-  "brief_path": "handoff/round9/fix/F10.md"
- },
- {
   "pr": "F11.1",
   "lane": "F11",
   "model": "sonnet",
