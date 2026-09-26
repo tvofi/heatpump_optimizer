@@ -494,6 +494,17 @@ R.check(
     and _r9f41_wild.bias_k == flow_lift.FLOW_SUPPLY_MAX_C,
     f"loaded {_r9f41_loaded.bias_k}, wild {_r9f41_wild.bias_k}",
 )
+# A restored or mild-day bias meets a colder day's curve: the priced supply is
+# held to the ceiling however the sum lands (D2-s2-02 fix review).
+_r9f41_cold = ThermalModel(
+    _r9f41_replace(_r9f41_p, flow_curve_bias=_r9f41_wild.bias_k)
+).curve_flow_temp(-20.0)
+R.check(
+    "D2-s2-02: a restored bias at the ceiling prices no supply past "
+    "FLOW_SUPPLY_MAX_C on the coldest curve",
+    _r9f41_cold == flow_lift.FLOW_SUPPLY_MAX_C,
+    f"priced {_r9f41_cold}",
+)
 
 # --- R9 N-staleness (#1684): a quiet store is not a dead probe ---------------
 R.section("R9 N-staleness: a report-on-change probe on a still store (D1-s5-51)")

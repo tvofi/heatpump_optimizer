@@ -107,7 +107,7 @@ from .const import (
     WOOD_TANK_MIN_MARGIN,
     topology_layout_valid,
 )
-from .flow_lift import curve_supply_temp
+from .flow_lift import FLOW_SUPPLY_MAX_C, curve_supply_temp
 from .wood_fuel import wood_furnace_on
 from .dhw_schedule import (
     DHWWindowError,
@@ -1455,11 +1455,16 @@ class ThermalModel:
 
         The weather curve through :func:`flow_lift.curve_supply_temp` -- the
         one expression of it the bias was learned against -- plus that bias.
-        ``None`` for a non-finite input, which prices no lift at all.
+        ``None`` for a non-finite input, which prices no lift at all. Capped
+        at :data:`flow_lift.FLOW_SUPPLY_MAX_C`: a bias learned on a mild day
+        lands on a colder day's curve, and a restored one on any curve, so
+        only this sum can hold the plant to its ceiling.
         """
         p = self.params
         curve = curve_supply_temp(self, outdoor_temp, p.flow_curve_indoor_target)
-        return None if curve is None else curve + p.flow_curve_bias
+        if curve is None:
+            return None
+        return min(curve + p.flow_curve_bias, FLOW_SUPPLY_MAX_C)
 
     def _cop_law(
         self,
