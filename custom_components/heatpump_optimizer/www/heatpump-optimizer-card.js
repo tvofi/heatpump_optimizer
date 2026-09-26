@@ -20,6 +20,31 @@ const CARD_VERSION = "6.7.2";
 // Chromium's bgOf walk; #026aa8 clears the 4.5:1 browser witness.
 const ACCENT_READABLE = "#026aa8";
 
+// D4-s1-01: the status/error text colours (.whatif's warn hint, the remove
+// button's hover, and the cheaper/dearer result colours) sit on the card's
+// OWN background, which is #fff when the card is light and #1c1c1c when it
+// is dark. No single literal clears WCAG AA's 4.5:1 against both (the
+// light-safe literals below measure 3.68-3.76:1 on #1c1c1c), so the two
+// sets are chosen independently and picked in JS by `_isDarkMode()` --
+// never by a `prefers-color-scheme` media query, which reads the OS's
+// setting rather than HA's: `hass.themes.darkMode` is a profile switch a
+// user can set opposite their OS (HA dark on a light OS or the reverse),
+// and only the JS-visible flag sees that. The dark-mode literals are their
+// own AA-clearing colours (4.58-5.88:1 on #1c1c1c), not the theme's
+// `--error-color` etc: HA's stock dark theme sets `--error-color` to
+// #db4437, which is only 3.97:1 on #1c1c1c, so deferring to the CSS
+// variable (even as a fallback default) cannot be made AA-safe this way.
+// As a solid button background under white/`--text-primary-color` text
+// (.sp-save.confirm, .wi-save.confirm) the card's own theme never enters
+// the ratio -- one value clears 4.5:1 there regardless, so ERROR_READABLE
+// alone is used for backgrounds and needs no dark-mode counterpart.
+const ERROR_READABLE = "#ca4c46"; // 4.53:1 on #fff, white-on-it 4.53:1
+const SUCCESS_READABLE = "#24845d"; // 4.63:1 on #fff
+const WARNING_READABLE = "#a16900"; // 4.63:1 on #fff
+const ERROR_READABLE_DARK = "#e0574d"; // 4.58:1 on #1c1c1c
+const SUCCESS_READABLE_DARK = "#1fad6b"; // 5.88:1 on #1c1c1c
+const WARNING_READABLE_DARK = "#ad7e1f"; // 4.69:1 on #1c1c1c
+
 // The savings table's in-cell magnitude bar, as an opacity over currentColor.
 // Bounded both ways, and both bounds swept rather than argued: below 0.133 the
 // bar stops clearing the 1.3:1 perceptibility floor (the light card binds;
@@ -2174,6 +2199,67 @@ function esc(str) {
     .replace(/"/g, "&quot;");
 }
 
+// D4-s1-03: a native <select>'s listbox clips an option's text at a fixed
+// PIXEL width (measured by the actual font, never a character count) and
+// never ellipsises it, so whatever the browser cuts is simply gone. Keeping
+// any visible head before an internal ellipsis just moves the guess: the
+// real-browser P9 grid proved a JS-computed "keep this many characters of
+// head" can itself sit past where the true pixel clip lands (this project's
+// OWN default plan-sensor ids, "...plan_SPACE_heating" / "...plan_DHW_heating",
+// clipped at 31 real characters -- short of the ~36-character head the prior
+// per-id budget assumed safe). The only placement immune to an unknown clip
+// width is putting the disambiguator FIRST: strip the prefix an id shares
+// with its riskiest sibling off the FRONT, replacing it with a single
+// leading "…", so whatever survives even a narrow clip starts with the part
+// that is actually unique. A leading ellipsis costs one character no matter
+// how wide the shared prefix was, unlike a kept head, which grows with it.
+const PICKER_LABEL_ID_BUDGET = 30;
+const PICKER_LABEL_ID_TAIL = 8;
+const PICKER_LABEL_RISK_THRESHOLD = 12;
+const PICKER_LABEL_STRIP_MIN_TAIL = 6;
+
+function commonPrefixLen(a, b) {
+  const n = Math.min(a.length, b.length);
+  let i = 0;
+  while (i < n && a[i] === b[i]) i += 1;
+  return i;
+}
+
+function middleEllipsis(s, max = PICKER_LABEL_ID_BUDGET, keepEnd = PICKER_LABEL_ID_TAIL) {
+  if (s.length <= max) return s;
+  const start = Math.max(0, max - keepEnd - 1);
+  return `${s.slice(0, start)}…${s.slice(s.length - keepEnd)}`;
+}
+
+function pickerLabelIds(ids) {
+  const out = {};
+  for (const id of ids) {
+    let risk = 0;
+    for (const other of ids) {
+      if (other === id) continue;
+      const shared = commonPrefixLen(id, other);
+      if (shared > risk) risk = shared;
+    }
+    if (risk >= PICKER_LABEL_RISK_THRESHOLD) {
+      // A sibling shares enough of this id's front that any head-preserving
+      // truncation risks landing before they part ways -- strip that shared
+      // run off the front instead, so the differentiator sits right after
+      // the leading "…" regardless of clip width. Always keep at least a
+      // handful of the id's own trailing characters, even when risk covers
+      // almost the whole id (an HA auto-suffix twin differing only by a
+      // trailing "_2").
+      const stripLen = Math.min(risk, Math.max(0, id.length - PICKER_LABEL_STRIP_MIN_TAIL));
+      out[id] = stripLen > 0 ? `…${id.slice(stripLen)}` : id;
+    } else {
+      // No sibling shares a risky prefix -- a plain length-budgeted
+      // middle-ellipsis is enough, and keeps more context for a merely-long
+      // but non-colliding id than stripping its front would.
+      out[id] = middleEllipsis(id);
+    }
+  }
+  return out;
+}
+
 function niceNum(range, round) {
   const exponent = Math.floor(Math.log10(range || 1));
   const fraction = range / Math.pow(10, exponent);
@@ -2979,7 +3065,10 @@ function setupSvgHtml(topo, ctx) {
 // self-contained string with no instance state, moved out of the class
 // so the largest pure member of a 7,900-line god class is a visible
 // seam instead of one method among one hundred and eighty.
-function cardStyleBlock() {
+function cardStyleBlock(darkMode) {
+  const warnColor = darkMode ? WARNING_READABLE_DARK : WARNING_READABLE;
+  const errorColor = darkMode ? ERROR_READABLE_DARK : ERROR_READABLE;
+  const successColor = darkMode ? SUCCESS_READABLE_DARK : SUCCESS_READABLE;
   /* #936 (D4-03): SC 2.5.8's 24 px target minimum is owed to every pointer,
      not only to touch -- under a mouse this floor used to be emitted solely
      inside @media (pointer: coarse), so the zoom pair laid out at 20.22 px
@@ -3594,8 +3683,8 @@ function cardStyleBlock() {
          any more, and it should not look like it. Same treatment as the
          what-if save's confirmation, which this flow is modelled on. */
       .sp-save.confirm {
-        border-color: var(--error-color, #e0544e) !important;
-        background: var(--error-color, #e0544e);
+        border-color: ${ERROR_READABLE} !important;
+        background: ${ERROR_READABLE};
         color: var(--text-primary-color, #fff); font-weight: 600;
       }
       .sp-note {
@@ -3774,7 +3863,7 @@ function cardStyleBlock() {
          error: nothing is broken, but the number on screen is not the number
          that was saved, and that must not pass unremarked. */
       .whatif .wi-hint.wi-warn {
-        color: var(--warning-color, #d98e00);
+        color: ${warnColor};
       }
       .whatif .wi-windows {
         display: flex; flex-direction: column; gap: 0.4em;
@@ -3799,7 +3888,7 @@ function cardStyleBlock() {
         border: none; padding: 0 0.4em; font-size: 1.1em; line-height: 1;
         color: var(--secondary-text-color);
       }
-      .whatif .wi-remove:hover { color: var(--error-color, #e0544e); }
+      .whatif .wi-remove:hover { color: ${errorColor}; }
       .whatif .wi-add { align-self: flex-start; font-size: 0.9em; }
       .whatif .wi-apply {
         border-color: var(--primary-color, #03a9f4);
@@ -3813,8 +3902,8 @@ function cardStyleBlock() {
         color: var(--text-primary-color, #fff); font-weight: 600;
       }
       .whatif .wi-save.confirm {
-        border-color: var(--error-color, #e0544e);
-        background: var(--error-color, #e0544e);
+        border-color: ${ERROR_READABLE};
+        background: ${ERROR_READABLE};
       }
       .whatif .wi-save[disabled] { opacity: 0.6; cursor: default; }
       ${htmlTargetFloor}
@@ -3846,10 +3935,10 @@ function cardStyleBlock() {
         font-size: 0.88em; margin-top: 2px;
       }
       .whatif .wi-result.cheaper, .whatif .cheaper {
-        color: var(--success-color, #2fae7a);
+        color: ${successColor};
       }
       .whatif .wi-result.dearer, .whatif .dearer {
-        color: var(--error-color, #e0544e);
+        color: ${errorColor};
       }
       @media (max-width: 600px) {
         dialog.expanded { width: 96vw; padding: 12px; }
@@ -5773,13 +5862,24 @@ function renderChart(frame, opts) {
   // guarantees reads on the card in every theme (16.10:1 light, 13.03:1
   // dark). The dash is what keeps it reading as chrome rather than data,
   // and neutral also stops it colliding with the blue `space_slots` series.
+  // D4-s1-05 / P9-rca3: these top-strip annotations (the "now" label, the
+  // measured-now reading, and the estimated-prices label below) used to
+  // share one baseline, `plotT + font`. Both x's are data-derived (the
+  // "now" line's x is wherever "now" falls in the window; the estimated
+  // region's x is wherever published prices run out), so no fixed offset
+  // keeps them apart -- the default live view opens its window AT "now",
+  // putting the "now" label directly over the measured reading anchored at
+  // the plot's own left edge, and the RCA grid found the "now"/estimated
+  // pair sharing ink at a second, independent x. Given each other one row,
+  // rather than one shared row, no pair can collide regardless of x.
+  const labelRow = font + 4;
   if (now >= windowStart && now <= windowEnd) {
     const nx = scaleX(now);
     parts.push(
       `<line class="now" x1="${nx}" y1="${plotT}" x2="${nx}" y2="${plotB}" stroke="var(--primary-text-color,#212121)" stroke-width="1.5" stroke-dasharray="4 3"/>`
     );
     parts.push(
-      `<text class="now-label" x="${nx + 3}" y="${plotT + font + 1}" font-size="${font}" fill="var(--primary-text-color,#212121)">${esc(
+      `<text class="now-label" x="${nx + 3}" y="${plotT + labelRow}" font-size="${font}" fill="var(--primary-text-color,#212121)">${esc(
           L("plan.now")
         )}</text>`
     );
@@ -5793,7 +5893,7 @@ function renderChart(frame, opts) {
   // for an unknown/unavailable sensor).
   if (typeof nowTemp === "number" && Number.isFinite(nowTemp) && axes.temp) {
     parts.push(
-      `<text class="now-temp" x="${plotL + 6}" y="${plotT + font}" font-size="${font}" fill="var(--primary-text-color,#212121)">${esc(
+      `<text class="now-temp" x="${plotL + 6}" y="${plotT + labelRow * 2}" font-size="${font}" fill="var(--primary-text-color,#212121)">${esc(
         L("plan.now_temp", { temp: nowTemp.toFixed(1) })
       )}</text>`
     );
@@ -5832,12 +5932,17 @@ function renderChart(frame, opts) {
     }
     // D4-03: this used to sit at `plotB - 5`, directly on top of the
     // lane-row labels drawn near the bottom of the plot (`_laneGroupInner`),
-    // garbling both. Anchored just under the top margin instead -- a strip
-    // that is otherwise empty except for the "now" marker's label, which
-    // lives at a different x (by the current-time line, not the start of
-    // the estimated region) whenever both happen to be visible together.
+    // garbling both. Anchored just under the top margin instead, on its own
+    // row (P9-rca3): the claim that it "lives at a different x .. whenever
+    // both happen to be visible together" was false -- the RCA grid found
+    // it sharing ink with the "now" label at a second x, both anchored to
+    // the same row. `--secondary-text-color`'s literal FALLBACK (#888) also
+    // measured 3.94:1 (P9-rca2), under the 4.5:1 this text needs; the "now"
+    // label's own token, `--primary-text-color`, is what HA guarantees reads
+    // on the card in every theme (16.10:1 light, 13.03:1 dark -- see the
+    // "now" marker's own note above), so this label uses it too.
     parts.push(
-      `<text x="${ex + 4}" y="${plotT + font + 4}" font-size="${font}" fill="var(--secondary-text-color,#888)">${esc(
+      `<text class="estimated-label" x="${ex + 4}" y="${plotT + labelRow * 3}" font-size="${font}" fill="var(--primary-text-color,#212121)">${esc(
           L("plan.estimated_prices")
         )}</text>`
     );
@@ -8087,11 +8192,9 @@ class LaneEditor {
     if (!host) return;
     const rect = host.getBoundingClientRect
       ? host.getBoundingClientRect()
-      : { left: 0, top: 0 };
+      : { left: 0, top: 0, width: 0, height: 0 };
     const menu = document.createElement("div");
     menu.className = "slot-menu";
-    menu.style.left = `${clientX - (rect.left || 0)}px`;
-    menu.style.top = `${clientY - (rect.top || 0)}px`;
     // Whole sentences per channel rather than an interpolated noun: gendered
     // articles and compound nouns make "Remove this {channel} slot" untranslatable.
     const dhw = channel === "dhw";
@@ -8142,6 +8245,20 @@ class LaneEditor {
     };
     menu.addEventListener("keydown", onEscape);
     host.appendChild(menu);
+    // Clamped to the chart it is anchored to, both edges (D4-s1-02): opened
+    // near the right edge or the bottom of a short chart, the menu placed at
+    // the raw tap point spilled past its own chart and the viewport.
+    // `offsetWidth`/`offsetHeight` are 0 before layout and absent in the
+    // test DOM, hence the fallback this menu was originally sized for (one
+    // single-line button).
+    const menuW = menu.offsetWidth || 180;
+    const menuH = menu.offsetHeight || 40;
+    const maxLeft = Math.max(0, (rect.width || menuW) - menuW);
+    const maxTop = Math.max(0, (rect.height || menuH) - menuH);
+    const rawLeft = clientX - (rect.left || 0);
+    const rawTop = clientY - (rect.top || 0);
+    menu.style.left = `${Math.min(Math.max(0, rawLeft), maxLeft)}px`;
+    menu.style.top = `${Math.min(Math.max(0, rawTop), maxTop)}px`;
     this.menu = menu;
     this.menuOrigin = { channel, index: editable ? index : null, svgIndex };
     const escTarget = this.globalKeyTarget();
@@ -9387,11 +9504,6 @@ class SetupPage {
       const st = states[id];
       return (st && st.attributes && st.attributes.friendly_name) || id;
     };
-    const labelOf = (id) => {
-      if (!states[id]) return `${id} — ${L("setup.picker_missing")}`;
-      const friendly = nameOf(id);
-      return friendly === id ? id : `${friendly} — ${id}`;
-    };
     // A slot that wants a temperature says so; a matching device class is
     // ranked first so the probe the slot is for is near the top before a
     // single character is typed. Ranking only -- nothing is hidden by it,
@@ -9411,8 +9523,16 @@ class SetupPage {
       domains.includes(id.split(".")[0])
     );
     const q = String(this.pickerFilter || "").trim().toLowerCase();
+    // Filtering matches the FULL id and friendly name, never the
+    // middle-ellipsised display label -- typing a substring that
+    // `labelOf` would have elided must still find the entity.
+    const searchTextOf = (id) => {
+      if (!states[id]) return id;
+      const friendly = nameOf(id);
+      return friendly === id ? id : `${id} — ${friendly}`;
+    };
     const matching = q
-      ? all.filter((id) => labelOf(id).toLowerCase().includes(q))
+      ? all.filter((id) => searchTextOf(id).toLowerCase().includes(q))
       : all;
     matching.sort((a, b) => {
       if (want) {
@@ -9430,6 +9550,22 @@ class SetupPage {
         ? slot.entity || ""
         : this.pickerChoice;
     const listed = new Set(shown);
+    // Truncation is chosen once, across every id this render will actually
+    // put on screen together (D4-s1-03): a fixed head/tail budget can
+    // collapse two unrelated ids that share a long prefix AND a long
+    // suffix (this project's own space/DHW plan sensors, which differ only
+    // in the word between them) onto one displayed string, exactly the
+    // failure mode the id-first fix was meant to prevent. `pickerLabelIds`
+    // grows the kept head for an id only as far as its actual siblings
+    // here require.
+    const renderIds = chosen && !listed.has(chosen) ? [chosen, ...shown] : shown;
+    const idLabels = pickerLabelIds(renderIds.filter((id) => states[id]));
+    const labelOf = (id) => {
+      if (!states[id]) return `${id} — ${L("setup.picker_missing")}`;
+      const friendly = nameOf(id);
+      const shortId = idLabels[id];
+      return friendly === id ? shortId : `${shortId} — ${friendly}`;
+    };
     const options = [
       `<option value=""${chosen ? "" : " selected"}>${esc(
         L("setup.picker_none")
@@ -11037,6 +11173,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
       headlineSignature(this.plan, this._config),
       JSON.stringify(this.plan.attrRaw("wood_fuel", null)),
       this.plan.awaySignature(),
+      // A dark-mode toggle redraws the whatif result colours (D4-s1-01)
+      // without any plan data changing.
+      !!(this._hass && this._hass.themes && this._hass.themes.darkMode),
     ].join("|");
   }
 
@@ -11106,7 +11245,14 @@ class HeatpumpOptimizerCard extends HTMLElement {
 
     const anyData = this._series.some((s) => s.hasData);
 
-    const style = cardStyleBlock();
+    // D4-s1-01: HA's dark mode is `hass.themes.darkMode`, a profile setting
+    // the user can flip independently of the OS's own light/dark preference
+    // -- so this is read here in JS rather than left to a CSS
+    // `prefers-color-scheme` media query, which would answer the OS
+    // question instead and disagree with the card's actual (light or dark)
+    // background on either mismatch.
+    const darkMode = !!(this._hass && this._hass.themes && this._hass.themes.darkMode);
+    const style = cardStyleBlock(darkMode);
 
     // Which page an expanded dialog opens on. Decided here, where `anyData`
     // is known, and only while the dialog is actually open, so a tab the user
