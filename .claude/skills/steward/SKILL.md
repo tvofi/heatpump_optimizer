@@ -71,12 +71,12 @@ the default branch. A branch that does not touch them cannot conflict with
 another branch over them, and the guard that catches an inherited list is
 satisfied by an empty one.
 
-## S6 Take the lease before a local run that measures the machine
+## S6 Take no lease by hand for a gate run
 
-IF a local run would select `tests/stress.py`, THEN take the gate lease first
-with `tests/gate_lock.py`. That script measures the machine while it solves,
-and its numbers are wrong if anything else is running. A scoped run that does
-not select it needs no lease.
+IF a local run selects `tests/stress.py`, THEN let `tests/run.sh` take the
+gate lease; it does, around that run alone. Holding it by hand is
+`.claude/rules/gate-scoping.md`'s; a `stress.py` run outside `run.sh` takes
+none, and `tools/audit/README.md` wraps it.
 
 ## S7 Merge, never rebase, and never force-push
 
