@@ -1,0 +1,534 @@
+{
+  "_meta": {
+    "thread": "S6",
+    "baseline": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "branch": "handoff/audit-r9-sweep-s6",
+    "cut_from": "handoff/audit-r9-judge",
+    "model": "sonnet",
+    "d3_heavy_reruns": "none (rule per tvofi 11:37Z/13:41Z)"
+  },
+  "classes": [
+    {
+      "class": "P8",
+      "N": 2,
+      "rca": false,
+      "seams": [
+        {
+          "path": "custom_components/heatpump_optimizer/config_flow.py:1645",
+          "disposition": "instance",
+          "probe": "p8_currency.py --seams",
+          "note": "literal 'SEK/m3' firewood widget"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py:1326,1344",
+          "disposition": "instance",
+          "probe": "p8_currency.py --seams",
+          "note": "price unit parsed; money code discarded"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/inputs.py:328",
+          "disposition": "instance",
+          "probe": "p8_currency.py --seams",
+          "note": "price unit parsed; money code discarded"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/price_model.py:700",
+          "disposition": "instance",
+          "probe": "p8_currency.py --seams",
+          "note": "price unit parsed; money code discarded"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:4481-11380",
+          "disposition": "instance",
+          "probe": "p8_currency.py --seams",
+          "note": "card currency()/savingsUnit() precedence chain"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/grid_fee.py:70,240",
+          "disposition": "instance",
+          "probe": "grep IMPLAUSIBLE_FEE_SEK_PER_KWH",
+          "note": "fixed SEK bound vs value of unknown currency"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py:6388",
+          "disposition": "instance",
+          "probe": "grep IMPLAUSIBLE_FEE_SEK_PER_KWH",
+          "note": "same bound comparison"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/config_flow.py:3596,3655",
+          "disposition": "instance",
+          "probe": "grep IMPLAUSIBLE_FEE_SEK_PER_KWH",
+          "note": "bound formatted into repair issue text"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/config_flow.py:1673,1720,1723,3595,3654; coordinator.py:1824,10009",
+          "disposition": "guarded",
+          "probe": "p8_currency.py --seams",
+          "note": "resolve_currency(hass) call sites -- the canonical resolution"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py:6403,6430,7141,8648,8663; sensor.py:437,460,523,539,558,1221,1473,1578,1825,2198,2750",
+          "disposition": "guarded",
+          "probe": "p8_currency.py --seams",
+          "note": "reads of the once-resolved coordinator.currency"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/strings.json; translations/en.json,sv.json",
+          "disposition": "not applicable",
+          "probe": "p8_currency.py --seams",
+          "note": "static service-field help text, not a resolved money figure"
+        }
+      ],
+      "barrier_proposal": "tests/structure.py metric: every money unit/widget and every plausibility bound compared against a price must be produced by or parametrised on resolve_currency(hass); flag literal currency codes/constants outside currency.py.",
+      "gate_seconds": 1
+    },
+    {
+      "class": "live-input-no-plausibility-bound",
+      "N": 2,
+      "rca": false,
+      "seams": [
+        {
+          "path": "custom_components/heatpump_optimizer/dhw_learning.py:389-390",
+          "disposition": "instance",
+          "probe": "grep temp_drop/energy_kwh",
+          "note": "max(0.0,...) floor only, no ceiling/finite check"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py+thermal_model.py (weather/ECL110 parsers)",
+          "disposition": "instance",
+          "probe": "tools/audit/round9/D1/s2/parsers.py",
+          "note": "poisoned_series=8/200 at baseline"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py:8245",
+          "disposition": "guarded",
+          "probe": "grep float(state.state)",
+          "note": "bound-checked: 0.0 < value <= 100.0, isfinite"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py:8957",
+          "disposition": "guarded",
+          "probe": "grep float(state.state)",
+          "note": "bound-checked: isfinite + max(0.0, converted)"
+        }
+      ],
+      "barrier_proposal": "Require every function parsing a live entity's .state to float, or folding two such parses, to be followed by an isfinite/range check before storage or use by a learner.",
+      "gate_seconds": 1
+    },
+    {
+      "class": "production-member-no-caller",
+      "N": 2,
+      "rca": false,
+      "seams": [
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py:2422,2543,2414,2418",
+          "disposition": "instance",
+          "probe": "reach.py --list + sentinel.py",
+          "note": "4 dead properties, static+dynamic"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/defrost.py:327",
+          "disposition": "instance",
+          "probe": "reach.py --list + sentinel.py",
+          "note": "DefrostDerate.measured dead"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/inputs.py:147",
+          "disposition": "instance",
+          "probe": "reach.py --list + sentinel.py",
+          "note": "InputHealth.healthy dead"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/open_meteo.py:108,273",
+          "disposition": "instance",
+          "probe": "reach.py --list + sentinel.py",
+          "note": "IrradianceSeries.start, OpenMeteoSolar.last_success dead"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/optimizer.py:1484",
+          "disposition": "instance",
+          "probe": "reach.py --list + sentinel.py",
+          "note": "_Horizon.weather dead"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/defrost.py (DefrostDerate.samples)",
+          "disposition": "instance",
+          "probe": "sentinel.py",
+          "note": "invisible to static reach.py due to name collision with AccuracyTracker.samples"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/thermal_model.py (_step_dhw_refused, _step_dhw_floor_injected, _step_dhw_draw_kw, _step_wood_refused)",
+          "disposition": "instance",
+          "probe": "l3_write_only_scratch.py",
+          "note": "write_only=True, zero consumer reads"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/thermal_model.py (_step_buffer_refused)",
+          "disposition": "not applicable",
+          "probe": "l3_write_only_scratch.py",
+          "note": "write_only=False -- read by simulate_trajectory"
+        }
+      ],
+      "barrier_proposal": "Fold reach.py's static scan plus a dynamic sentinel smoke pass into tests/structure.py's dead-code metric, replacing the property-skipping method screen; add the write-only-scratch check as a second metric.",
+      "gate_seconds": 5
+    },
+    {
+      "class": "P4",
+      "N": 1,
+      "rca": false,
+      "seams": [
+        {
+          "path": "custom_components/heatpump_optimizer/optimizer.py:3484",
+          "disposition": "instance",
+          "probe": "REPORT.md grid (with-DHW cells)",
+          "note": "shoulder gap 1.17-1.20% vs flat null 0.33%"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/optimizer.py:4019",
+          "disposition": "instance",
+          "probe": "REPORT.md grid (no-DHW cells)",
+          "note": "shoulder gap 1.20% vs flat null 0.33%"
+        }
+      ],
+      "barrier_proposal": "Not proposed at N=1 (heavy solver harness); flagged to the orchestrator as an RCA candidate given the ledger's 14 prior instances across 7 rounds.",
+      "gate_seconds": null
+    },
+    {
+      "class": "sign-floor-price-margin",
+      "N": 1,
+      "rca": false,
+      "seams": [
+        {
+          "path": "custom_components/heatpump_optimizer/pv.py:92-101",
+          "disposition": "instance",
+          "probe": "grep import_margin",
+          "note": "floors at 0 when export_price > import price"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/pv.py:123",
+          "disposition": "instance",
+          "probe": "grep import_margin",
+          "note": "blended_block_prices consumes the floored margin"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/optimizer.py:2428",
+          "disposition": "instance",
+          "probe": "grep import_margin",
+          "note": "production call site"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/pv.py:68; optimizer.py:2465,2819,3160,3205,3350,5186,5187",
+          "disposition": "not applicable",
+          "probe": "grep np.clip(...,0.0,None)",
+          "note": "non-negative physical/deficit quantities, not signed price margins"
+        }
+      ],
+      "barrier_proposal": "None at N=1.",
+      "gate_seconds": null
+    },
+    {
+      "class": "entity-family-name-sort-split",
+      "N": 1,
+      "rca": false,
+      "seams": [
+        {
+          "path": "custom_components/heatpump_optimizer/sensor.py,button.py (accuracy family)",
+          "disposition": "instance",
+          "probe": "m3_families.py",
+          "note": "SPLIT_UNEXPLAINED under both name orders"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/sensor.py (energy_meters family)",
+          "disposition": "instance",
+          "probe": "m3_families.py",
+          "note": "SPLIT_UNEXPLAINED under both name orders and entity_id"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/*.py (tariff, learning, pv, card_headline families)",
+          "disposition": "guarded",
+          "probe": "m3_families.py",
+          "note": "0 unexplained splits in every ordering"
+        }
+      ],
+      "barrier_proposal": "None at N=1; a lint rule needs a design decision on the canonical lead token per family.",
+      "gate_seconds": null
+    },
+    {
+      "class": "error-translating-try-after-call",
+      "N": 1,
+      "rca": false,
+      "seams": [
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py:1095",
+          "disposition": "instance",
+          "probe": "mock subprocess.Popen to raise OSError; call _run_in_process",
+          "note": "_ensure_worker() called one line before the try it should be covered by"
+        }
+      ],
+      "barrier_proposal": "None at N=1; generic call-before-try lint would have high false-positive rate.",
+      "gate_seconds": null
+    },
+    {
+      "class": "fit-integrator-differs-from-plant",
+      "N": 1,
+      "rca": false,
+      "seams": [
+        {
+          "path": "custom_components/heatpump_optimizer/sysid.py:576-800",
+          "disposition": "instance",
+          "probe": "tools/audit/round9/D7/s2/sysid_plant.py (REPORT.md)",
+          "note": "one Euler step per 30-min sample, coarser than the optimizer's own 0.25h step"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/sysid.py:1475 identify (one-state control)",
+          "disposition": "not applicable",
+          "probe": "grep identify",
+          "note": "closed-form comparator, not a production fit path"
+        }
+      ],
+      "barrier_proposal": "None at N=1.",
+      "gate_seconds": null
+    },
+    {
+      "class": "markdown-renderer-misplaces",
+      "N": 1,
+      "rca": false,
+      "seams": [
+        {
+          "path": "docs/configuration.md:181-187",
+          "disposition": "instance",
+          "probe": "md_tables.mjs",
+          "note": "anti-legionella rows orphaned"
+        },
+        {
+          "path": "docs/configuration.md:633-638",
+          "disposition": "instance",
+          "probe": "md_tables.mjs",
+          "note": "fuel-price prose swallowed into table"
+        },
+        {
+          "path": "README.md; docs/{architecture,automations,dashboard-card,ecl110,how-it-works,setup}.md; rest of configuration.md",
+          "disposition": "guarded",
+          "probe": "md_tables.mjs",
+          "note": "files_checked=8, misrendered_lines=9 -- nothing else misrenders"
+        }
+      ],
+      "barrier_proposal": "Add md_tables.mjs's misrendered_lines==0 check as a CI gate on doc changes.",
+      "gate_seconds": 1
+    },
+    {
+      "class": "persistent-failure-debug-swallow",
+      "N": 1,
+      "rca": false,
+      "seams": [
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py:4662,4667,4682,5087,5094",
+          "disposition": "instance",
+          "probe": "tools/audit/round9/D1/s2/guards.py",
+          "note": "silent_sites=5 of 5 on 3 cycles each"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py:2444,4525",
+          "disposition": "guarded",
+          "probe": "grep except Exception -> _LOGGER.debug",
+          "note": "explicitly best-effort, one-shot setup, not per-cycle"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py:2849,3128,4287,4463,7168,7192,7199,7259,7266,7321,7327,7366,7395,7423,8898,8911",
+          "disposition": "guarded",
+          "probe": "grep except Exception -> _LOGGER.debug",
+          "note": "storage I/O, explicitly 'never block setup on storage'"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py:10120",
+          "disposition": "guarded",
+          "probe": "grep except Exception -> _LOGGER.debug",
+          "note": "nested inside the already-counted :5094 guard"
+        }
+      ],
+      "barrier_proposal": "None class-wide; a targeted check on the 5 cycle-path guards specifically (log at WARNING or raise a repair issue after N consecutive failures).",
+      "gate_seconds": 3
+    },
+    {
+      "class": "return-inside-finally",
+      "N": 1,
+      "rca": false,
+      "seams": [
+        {
+          "path": "tests/nightly_ha.py:1274",
+          "disposition": "instance",
+          "probe": "AST walk (enumerate.py) + nightly_finally_return.py",
+          "note": "return in finally always escapes"
+        },
+        {
+          "path": "tests/gate_lock.py:433",
+          "disposition": "not applicable",
+          "probe": "AST walk (enumerate.py)",
+          "note": "break scoped to a for loop nested inside the finally, does not escape it"
+        },
+        {
+          "path": "tests/gate_lock.py:435",
+          "disposition": "not applicable",
+          "probe": "AST walk (enumerate.py)",
+          "note": "continue scoped to the same nested loop"
+        }
+      ],
+      "barrier_proposal": "AST check in tests/structure.py: fail on a return directly in Try.finalbody, or a break/continue in finally not caught by a loop nested inside that same finally.",
+      "gate_seconds": 1
+    },
+    {
+      "class": "series-resolution-min-gap",
+      "N": 1,
+      "rca": false,
+      "seams": [
+        {
+          "path": "custom_components/heatpump_optimizer/open_meteo.py:231",
+          "disposition": "instance",
+          "probe": "grep min(gaps)/resolution=",
+          "note": "single spurious small gap collapses the inferred resolution"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/config_flow.py:2394,3798; prefill_offer.py:100",
+          "disposition": "not applicable",
+          "probe": "grep resolution =",
+          "note": "device-identity conflict resolution, unrelated name collision"
+        }
+      ],
+      "barrier_proposal": "None at N=1.",
+      "gate_seconds": null
+    },
+    {
+      "class": "shutdown-reap-lock-held",
+      "N": 1,
+      "rca": false,
+      "seams": [
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py:968,1047,1094",
+          "disposition": "instance",
+          "probe": "grep _PROCESS_LOCK",
+          "note": "the package's only lock; shutdown reap waits behind a long-held solve"
+        }
+      ],
+      "barrier_proposal": "None at N=1; the package's only lock.",
+      "gate_seconds": null
+    },
+    {
+      "class": "staleness-limit-shorter-than-quiet-interval",
+      "N": 1,
+      "rca": false,
+      "seams": [
+        {
+          "path": "custom_components/heatpump_optimizer/sensor.py:647,944 (IndoorTempSensor / upper_floor_temperature)",
+          "disposition": "instance",
+          "probe": "tools/audit/round9/D1/leads/indoor_silence.py",
+          "note": "unavailable=4 of 7 silence cells (61/90/240/480 min)"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/sensor.py:753,982,1015,1080,1118,2350 (slab/lower-floor/floor-return/buffer-tank/dhw temperatures)",
+          "disposition": "instance",
+          "probe": "grep _reading_key",
+          "note": "same _age_gate mechanism, same class of 60-min-limited temperature entity"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/const.py (CONF_HEAT_PUMP_ONLINE_ENTITY)",
+          "disposition": "guarded",
+          "probe": "grep INPUT_MAX_AGE_MINUTES + doc comment",
+          "note": "explicitly documented as written every poll cycle, not report-on-change"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/const.py (outdoor temp, solar, energy, mode/fault horizons)",
+          "disposition": "not applicable",
+          "probe": "grep INPUT_MAX_AGE_MINUTES + doc comment",
+          "note": "each carries its own deliberate generous-horizon reasoning"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/const.py (defrost, backup heater, dhw booster, capacity limited, supply/return temp, PV production, power entities)",
+          "disposition": "not applicable",
+          "probe": "grep INPUT_MAX_AGE_MINUTES + doc comment",
+          "note": "documented as fast-moving signals, opposite regime from this class"
+        }
+      ],
+      "barrier_proposal": "None at N=1; fix is a design decision (honour last_reported for report-on-change sources).",
+      "gate_seconds": null
+    },
+    {
+      "class": "structure-metric-blind-to-shape",
+      "N": 1,
+      "rca": false,
+      "seams": [
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py (_republish_handover_ages)",
+          "disposition": "instance",
+          "probe": "helper_escape.py --all",
+          "note": "cut_delta=12"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py (_fold_flow_lift)",
+          "disposition": "instance",
+          "probe": "helper_escape.py --all",
+          "note": "cut_delta=8, the finding's headline cell"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py (_diagnose_payload)",
+          "disposition": "instance",
+          "probe": "helper_escape.py --all",
+          "note": "cut_delta=5"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py (_power_windows, _watch_lift)",
+          "disposition": "instance",
+          "probe": "helper_escape.py --all",
+          "note": "cut_delta=3 each"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py (_cop_fold_blocked, _freq_fold_blocked)",
+          "disposition": "instance",
+          "probe": "helper_escape.py --all",
+          "note": "cut_delta=2 each"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py (_store_diagnosis)",
+          "disposition": "instance",
+          "probe": "helper_escape.py --all",
+          "note": "cut_delta=1"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/coordinator.py (_space_pump_to_drive, _warm_seeded)",
+          "disposition": "guarded",
+          "probe": "helper_escape.py --all",
+          "note": "cut_delta=0, references cross no missed seam"
+        },
+        {
+          "path": "custom_components/heatpump_optimizer/wood_fuel.py (wood_fuel_from_coordinator)",
+          "disposition": "not applicable",
+          "probe": "helper_escape.py --all",
+          "note": "outside the coordinator-inlining transform's 10-cell grid"
+        }
+      ],
+      "barrier_proposal": "Extend tests/structure.py to resolve a module-level function's first self-like parameter to its class and count state refs/internal calls against that class's metrics.",
+      "gate_seconds": 2
+    },
+    {
+      "class": "translation-leaf-double-escaped",
+      "N": 1,
+      "rca": false,
+      "seams": [
+        {
+          "path": "custom_components/heatpump_optimizer/strings.json,translations/en.json,sv.json (config.error.dhw_min_too_close, options.error.dhw_min_too_close)",
+          "disposition": "instance",
+          "probe": "escaped_text.py",
+          "note": "escaped_error_texts_reached=4, garbled_chars_en=1, garbled_chars_sv=9, escaped_texts_all_files=6"
+        },
+        {
+          "path": "every other error text of both flows, both languages",
+          "disposition": "guarded",
+          "probe": "escaped_text.py",
+          "note": "escaped_other_error_texts=0"
+        }
+      ],
+      "barrier_proposal": "CI regex check: no translation leaf's string value (after json.loads) may match a literal backslash-u escape.",
+      "gate_seconds": 1
+    }
+  ]
+}
