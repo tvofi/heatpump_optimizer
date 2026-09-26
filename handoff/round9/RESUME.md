@@ -124,6 +124,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T17:00Z: JUDGE DONE @2f97b0a (handoff/audit-r9-judge; copies in /mnt/project-files/audit-r9/judge/): 148 canonical, 119 verified / 26 weakened / 3 refuted (D0-s1-01, D0-s2-01, D14-s3-02); 145 survivors = 6 high / 66 medium / 73 low. 46 classes, 14 with rca:true (P2 27, I5 19, I1 11, P1 9, I3 7, P11 6, I4 5, P6 5, P9 4, new solve-recompute 4, P3 3, P5 3, new CPU-gate-blind 3, new user-state-restart 2 = RC2 barriered). yield.json for rotation. Phase D: 7 sweep briefs /mnt/project-files/audit-r9/sweep/S1..S7.md (sonnet): S1 P2; S2 I5; S3 I1+P1; S4 I3+P11+I4+P6; S5 P9,solve-recompute,P3,P5,CPU-gate,restart; S6/S7 the 32 small classes split. Outputs handoff/audit-r9-sweep-s<n>. Sent to coordinator.
 
+- 2026-09-26T17:08Z: coordinator is now session_01SM74NL5DhnznPZf1kK3REu (old 017qoF… inactive). Sweep threads started on sonnet: S1 session_01G5fqVeE2ECrdR2pB74m4kD, S2 session_01KS56ytnTCESpB9SjDMxCgw, S3 session_012vMzvm26Gi7oVXFwymzeCo, S4 session_01Y9R3TcoGD184yx9vSWgRZu, S5 session_01RgQ9vDA7g9wGTm65HHCC5t, S6 session_01DqB9ZJQTvQA97uuXCSg3n6, S7 session_015PoNcbaJ7vd5FE2oN5PZ5J. Next: the E issue drafts and the E2 FIX-PLAN draft from CLASSES-DRAFT.json while the sweeps run.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
