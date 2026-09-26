@@ -13,6 +13,7 @@ until then the Mac seat may approve code-owned/policy files as tvofi (needs a cl
 merge verdict + green CI). After 09:35Z, ask tvofi.
 
 ## Phase
+PHASE A (finders) started 09:10Z.
 R (readiness). Baseline NOT cut.
 
 ## Entry criteria (§1), measured 04:40Z
@@ -66,6 +67,10 @@ Coordinator ack 04:32Z: Mac warned; reviews R1+R4 -> Cloud compute helper, R3+R6
 - #1633 (R1a) @1a19dd9f: BLOCKED codeowners_gap (check-wave-script.mjs:1159 fixture quotes boost.py) — Cloud reviewer 2, 04:53Z. R1 seat resumed to fix both R1a and R1 heads (+2 optional nits). Mac holding #1633.
 
 ## Next step
+
+09:10Z BASELINE CUT: v6.7.1 = 1936d5ca72a06556eeed4e8e5bf3dea520e517e1 (R6 #1638 merged 8cca77bc; main Tests green at 8cca77bc; delivery gate 8 rowed/0 pending). check_scopes --ref rc 0, 15 ok (scratchpad/cs-out.txt). Box briefs: /mnt/project-files/audit-r9/briefs/B1..B10.md and handoff/round9/briefs/ @ e99f670a. Asked coordinator to start 10 box threads (context cmsg_01EL5jLi4rokGBbkaevYXSJVTfeni8YJN5HdH97LdRCudt). RC2 review runs in parallel, does not gate Phase A.
+PHASE A: waiting for box threads to report (each sends branch handoff/audit-r9-find-Bn, commit, per-seat status). When all 10 have pushed: run Workflow audit-find.js with from:"intake" (leads seat on B10 role), then Phase B.
+MANDATE 3 expires 09:35Z: after that, policy/code-owned approvals go to tvofi.
 06:21Z RC2 returned: handoff/r9-rc2-user-state-durable code f0396766, body 2dda53b4 (strip), stacks on R6 df50ab42, merges AFTER R6. R6 REGRESSION found by RC2 (mode set during startup saves before accuracy load; 7 comfort-learner overrides -> 0; repro tools/audit/handoff/r9-rc2/r6res.py). Coordinator told Mac to hold R6 and fix; Cloud reviewer 2 folds it into its verdict. Baseline waits on the R6 fix. Barrier (4 released instances: v2.4.1, v3.13.0, #1249, bug 5): action returns <0.5 s + state reads back after restart; 10 mutants killed, 1 survivor held by #1621 sweep. Closures will report UNDER-SCOPED (autofix records it).
 06:27Z Cloud reviewer 2 BLOCKED #1638 R6 @325c59a5 on the RC2 startup-save regression (fix: await accuracy load handle in async_set_mode); rest sound. Mac fixing. RC2 review -> Cloud compute helper after RC1 re-review.
 06:33Z #1639 R3 MERGED at 2d248e8c (mandate approval after merge verdict + green CI). Baseline waits only on R6 fix. #1637 RC1 awaiting re-review.
