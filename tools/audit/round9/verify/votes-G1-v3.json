@@ -562,6 +562,194 @@
     "class": "I1",
     "seam_rule_enumerates": "demonstrated-only: distinguish.py M20 exercises this one memo; no command enumerates other once-per-state-change memos"
    }
+  ],
+  "leads": [
+   {
+    "id": "D1-s1-51",
+    "vote": "verify",
+    "severity": "low",
+    "value": "Real HA 2026.2.3 QuarantiningStore.async_load over a real Store/disk/orjson: healthy sibling kept 1 of 6, whole store lost 5 of 6 (nan/inf/-inf/1e400/10**400 -> None; 2**64 loses precision). Stub, same harness --stub: kept 6 of 6, lost 0 of 6. Divergent 6 of 6.",
+    "metric_definition": "of 6 hostile-token stored documents, count whose value read back through QuarantiningStore.async_load differs between real HA's orjson Store (genuine disk file) and the stub's json Store",
+    "method": "harness tools/audit/round9/D1/verify-v3-leads/D1-s1-51_realha_store_codec.py --real on /root/venvha and --stub on the stub venv through the identical class hierarchy",
+    "attacks": [
+     "contention: load1 0.06-0.07, count metric",
+     "null: control doc loads identically on both providers",
+     "reach: executed on real HA 2026.2.3",
+     "ha_contract.py: Store disposition claims parity only for write-time errors; load-time codec divergence undeclared"
+    ],
+    "class": "P11",
+    "seam_rule_enumerates": "all: grep 'json\\.' over the stub's storage.py covers every codec call site"
+   },
+   {
+    "id": "D1-s1-52",
+    "vote": "verify",
+    "severity": "low",
+    "value": "Real dt_util.now() aware: aware-stored raises 0/3, naive-stored raises 3/3. Stub default now() naive: aware-stored 3/3, naive-stored 0/3. Divergent 6 of 6.",
+    "metric_definition": "of 3 production seams (SnapshotRing.due, CurveLearner._step_down, ComfortLearner._decay) x {aware, naive} stored stamps, cells whose TypeError verdict differs between real HA's and the stub's executed dt_util.now()",
+    "method": "harness tools/audit/round9/D1/verify-v3-leads/D1-s1-52_realha_naive_clock.py --real / --stub driving the production seams",
+    "attacks": [
+     "contention: load1 0.06",
+     "reach: real HA now() is aware by execution",
+     "ha_contract.py: the dt.now() contract is gated on DEFAULT_TIME_ZONE is not None and passes vacuously on the stub; divergence declared (#577), the 3-seam consequence is new"
+    ],
+    "class": "P11",
+    "seam_rule_enumerates": "partial: enumerates the stub's now/utcnow definitions, not every production seam a naive now() hits"
+   },
+   {
+    "id": "D1-s2-51",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "Real coordinator on real HA: quiet-period fault fails the solve 3/3 cycles (plan published 3/3); arbiter fault fails 3/3 cycles and skips 15/15 sibling steps. Identical to the stub.",
+    "metric_definition": "cycles reported failed / sibling steps skipped when a fault is injected into ComfortLearner.record_quiet_period or pump_arbiter.apply on the cycle path of a real coordinator",
+    "method": "harness tools/audit/round9/D1/verify-v3-leads/D1-s2-51_realha_cycle_fence.py on a real HomeAssistant() via _realha_rig.py",
+    "attacks": [
+     "contention: load1 0.27, thread_factor 1.013",
+     "reach: identical on real HA, so no stub executor artefact",
+     "source: _apply_action() and _record_quiet_comfort_period() sit outside any try; siblings are fenced 'never allowed to break the cycle'",
+     "null: --no-inject 0/0 established by the finder, not re-run here"
+    ],
+    "class": "P2 (corrected from new): the fence is present on every comparable best-effort sibling call except these two",
+    "seam_rule_enumerates": "all: within the two functions' stated scope"
+   },
+   {
+    "id": "D1-s2-52",
+    "vote": "verify",
+    "severity": "high",
+    "value": "Real HA, real Store on disk, real eager tasks, a second HomeAssistant() as the restart: lost 5 of 5 stores (energy 1234.5->0.0; ledger 77->None; thermal 1.3->1.0; price dates->[]; accuracy 7.5->5.0); guarded async_set_mode arm lost 0 of 1.",
+    "metric_definition": "of 5 stores whose writer has no async_wait_for_read guard, count whose persisted learned marker is lost across a real restart when the writer runs during the startup Store.async_load (a real executor read, slowed to model contention)",
+    "method": "harness tools/audit/round9/D1/verify-v3-leads/D1-s2-52_realha_startup_clobber.py, no stub anywhere",
+    "attacks": [
+     "contention: load1 0.27-0.33",
+     "null: the guarded writer loses nothing on the same rig",
+     "reach: real executor read plus eager task scheduling, both genuine HA",
+     "severity: raised to high (data loss of persisted learned and energy state on a restart-timing race); below critical because the state re-accumulates and the window is timing-dependent"
+    ],
+    "class": "P2 (corrected from new): async_set_mode alone carries async_wait_for_read; the other five writers (energy, ledger, thermal, price, accuracy) do not",
+    "seam_rule_enumerates": "all: the grep over async_save/_async_save_if_changed writers of stores loaded at startup covers every such writer"
+   },
+   {
+    "id": "D1-s2-53",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "Two real coordinators over one on-disk config dir: changed 19 of a 20-field subset, lost 17 of changed; survivors dhw_cooling_rate and buffer_cooling_rate (the finder's same two).",
+    "metric_definition": "of set_thermal_parameters fields changed via a real async_update_thermal_params call, count absent from a second real coordinator built on the same Store after the saves landed",
+    "method": "harness tools/audit/round9/D1/verify-v3-leads/D1-s2-53_realha_runtime_params_restart.py",
+    "attacks": [
+     "contention: load1 0.27",
+     "reach: real Store and orjson; only the two fields with an explicit save survive",
+     "severity: silent revert of an explicit service call; workaround is to re-issue after restart"
+    ],
+    "class": "new: no persistence path for most set_thermal_parameters fields",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D1-s2-54",
+    "vote": "verify",
+    "severity": "low",
+    "value": "Real handle_apply_manual_plan on a real coordinator: expires_at now+48h gives 0/96 free steps at apply and at +23 h; default expiry control 16/96 and 96/96.",
+    "metric_definition": "PIN_FREE steps of 96 in the installed override at apply and 23 h later, expires_at +48 h vs default",
+    "method": "harness tools/audit/round9/D1/verify-v3-leads/D1-s2-54_realha_manual_plan_expiry.py; hass.config_entries given minimal passthroughs because a bare HomeAssistant() is not bootstrapped",
+    "attacks": [
+     "contention: load1 0.33",
+     "null: default-expiry arm in the same run",
+     "reach: the real handler never clamps expires_at against MANUAL_PLAN_WINDOW_HOURS",
+     "severity: needs an explicit out-of-spec call"
+    ],
+    "class": "new: missing upper-bound clamp on one service input",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D1-s2-55",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "Real coordinator on real HA, Popen raising OSError(EAGAIN): 0 of 3 cycles planned, 0 fallback notices.",
+    "metric_definition": "of 3 cycles with Popen raising inside the real _ensure_worker, cycles that publish a plan, plus solve_worker_fallback issue count",
+    "method": "harness tools/audit/round9/D1/verify-v3-leads/D1-s2-55_realha_worker_spawn.py; only subprocess.Popen swapped",
+    "attacks": [
+     "contention: load1 0.33",
+     "reach: traceback shows _ensure_worker() runs before the try that translates transport errors",
+     "null: working Popen 3/3 established by the finder, not re-run here",
+     "severity: transient, but a whole cycle's plan is lost"
+    ],
+    "class": "new: an error-translating try opened after the call it should cover",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D1-s5-51",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "Genuine core.State through the real InputReader into the real IndoorTempSensor: unavailable 4 of 7 ages (61, 90, 240, 480 min); available at 5/30/59; re-report arm unavailable 0 of 1.",
+    "metric_definition": "of 7 source-silence ages with a valid real HA State, cells where the real IndoorTempSensor.available is False after one real input cycle",
+    "method": "harness tools/audit/round9/D1/verify-v3-leads/D1-s5-51_realha_indoor_silence.py",
+    "attacks": [
+     "contention: load1 0.38",
+     "null: re-reported unchanged value stays available",
+     "reach: genuine State and entity",
+     "severity: config workaround exists (staleness_max_age_scale); no field data on report intervals"
+    ],
+    "class": "new: staleness limit shorter than a report-on-change sensor's quiet interval",
+    "seam_rule_enumerates": "all"
+   },
+   {
+    "id": "D1-s5-52",
+    "vote": "verify",
+    "severity": "high",
+    "value": "InputReader on real HA delivers 12 of 12 sentinel cells ok. Full real cycle with a genuine -127 State: IndoorTempSensor available, native_value -127.0; DHWTemperatureSensor available, native_value -127.0 (85 arm same at 85.0). Control 21.3 delivered 6 of 6.",
+    "metric_definition": "(a) of 6 temperature keys x {-127, 85} degC, InputReader.read cells delivered ok; (b) the real sensor entity's native_value and available after a real cycle sees the sentinel",
+    "method": "harness tools/audit/round9/D1/verify-v3-leads/D1-s5-52_realha_sentinel_temps.py",
+    "attacks": [
+     "contention: load1 0.38",
+     "null: plausible 21.3 control",
+     "reach: executed at InputReader and entity level",
+     "severity: raised to high: a wrong published value with no user workaround"
+    ],
+    "class": "P2 (corrected from new): _dhw_inlet_c already has a -5..35 plausibility guard; the other temperature paths at the same boundary do not",
+    "seam_rule_enumerates": "all: the grep covers every temperature key InputReader reads"
+   },
+   {
+    "id": "D1-s2-71",
+    "vote": "verify",
+    "severity": "low",
+    "value": "Real coordinator on real HA at 5/15/30/60 min: update_interval matches 4 of 4; stub 0 of 4 readable.",
+    "metric_definition": "configured optimization_interval cells whose coordinator.update_interval is readable and correct after __init__ over the real DataUpdateCoordinator",
+    "method": "harness tools/audit/round9/D1/verify-v3-leads/D1-s2-71_realha_update_interval.py",
+    "attacks": [
+     "contention: load1 0.06",
+     "null: name/config_entry readable 4 of 4",
+     "reach: executed on real HA",
+     "ha_contract.py: absent=(...) names only the scheduler internals, not update_interval"
+    ],
+    "class": "P11",
+    "seam_rule_enumerates": "demonstrated-only: only update_interval is exercised; other constructor kwargs not enumerated"
+   },
+   {
+    "id": "D3-s2-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "Recorded: S05, S17, S18 (results_store.jsonl) and M31 (results.jsonl) SURVIVED, with env_drift.py (checks 37) and features.py (checks 3420) among the drivers run.",
+    "metric_definition": "count of isfinite/negative-count guards in persisted-state parsers whose GUARD_OFF mutant no gate driver (env_drift --all included) kills",
+    "method": "Recorded evidence only; quiet window not run (tvofi rule). Source check that flow_lift.py:210, tariff.py:402, price_model.py:324 and :349 are the cited guards.",
+    "attacks": [
+     "gate mode: env_drift.py recorded among non-killing drivers",
+     "reach: source-level only (tvofi rule)"
+    ],
+    "class": "I1",
+    "seam_rule_enumerates": "all: storeguards.py enumerates this guard class across the eight parser modules"
+   },
+   {
+    "id": "D3-s2-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "Recorded: S19 SURVIVED across 15 drivers; finder's witness.py 96/96 non-zero sigma at baseline vs 0/96 on the mutant.",
+    "metric_definition": "guessed steps (of 96) with sigma>0 from extend_price_series after a learned PriceShapeModel round-trips through as_dict/from_dict",
+    "method": "Recorded evidence only; quiet window not run (tvofi rule). Source check of price_model.py:364-371.",
+    "attacks": [
+     "reach: source-level only; no round-trip positive control for residual_var in tests/features.py",
+     "severity: graceful degradation to point estimates"
+    ],
+    "class": "I1",
+    "seam_rule_enumerates": "all: same storeguards.py enumeration"
+   }
   ]
  }
 }
