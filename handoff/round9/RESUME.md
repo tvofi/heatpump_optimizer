@@ -76,6 +76,8 @@ tvofi: continue with intake, the leads seat and Phases B-F on the current findin
 
 - 2026-09-26T13:42Z: panel tally script /mnt/project-files/audit-r9/judge/panel.py (run: python3 panel.py <repo-worktree> PANEL.json). Draft: 154 findings; 99 unanimous, 51 split, 3 disputed (D0-s1-01, D0-s2-01, D8-s2-03), 1 killed (D1-s2-01); 12 G1 leads await G1-V2's vote, and the 2 'lc' findings await all three G1 votes.
 
+- 2026-09-26T13:45Z: G1-V1 lc @9e0a60f1: D1-s2-91 verify medium, D3-s1-91 verify medium (:8112 rests on grep only). Waiting: G1-V2 leads+lc, G1-V3 lc.
+
 ## FIX-PLAN CARRY-INS (put these in FIX-PLAN.md at E2)
 - Card-tests item (from #1643, merged db878b29): pin its 4 surviving mutants: ghi as a step mean; overlays() iterating covered; the null-stretch denominator in the step mean; askedThrough. Small single-group item.
 - Merged since baseline: #1642 (14b99f40), #1643 (db878b29). Fix groups branch from current main; findings measured at 1936d5ca must be re-checked against these merges before fixing.
