@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "Carry destination for the P1 class barrier stage of round 9 (#1647; roster group R9-F1.6, whose roster is not in this tree).",
+    "Shape and required fields: .claude/rules/finding-propagation.md. Linted by .claude/workflows/brief_lint.mjs."
+  ],
+  "issue": 1647,
+  "stage": "round-9 fix PR F1.6: the P1 class barrier (the validated-load rule and its Arm 4 in tests/finite_boundary.py) and the stored-instant rule at the two F1-owned seams, AccuracySample.from_dict and the immersion events",
+  "carries": [
+    {
+      "from": "the round-9 pull request F3.1 (stored instants; branch handoff/r9-f3-stores-1), which lands the N-future-instant store boundary and the stored-instant rule drift.stored_instant at the F3 lane's loaders",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control. With the rule attaching UTC to a naive stamp in boost._parse_until, the stub's default naive clock (HASTUB_TZ unset) made boost.restore raise TypeError comparing the aware stored end with the naive now, and tests/features.py and tests/finite_boundary.py both exited 1 on it at the branch's first cut; with the zone taken from dt_util.DEFAULT_TIME_ZONE (None in the stub) both pass (ALL 3380 FEATURE CHECKS PASSED, ALL 46 FINITE BOUNDARY CHECKS PASSED), and under a configured zone the value loads aware (the features.py pin 'boost, the pump-duty arbiter and legionella read a naive stored stamp in Home Assistant's zone, aware'; mutant boost reading UTC turns it red).",
+      "remeasure": "Do not trust these results: they are at F3.1's head. At your merge base, run `PYTHONPATH=tests/hastub python3 tests/features.py` and read the section 'P1/P2 — a stored instant loads aware, or not at all'; then edit the zone argument of one loader to UTC and confirm the stub-clock suite fails as described.",
+      "brief": "Use `drift.stored_instant` for every stored instant F1.6 loads: a loader that can see Home Assistant passes `dt_util.DEFAULT_TIME_ZONE`, which reads a naive value in Home Assistant's zone and leaves it naive under the stub's naive clock; a pure loader with no clock takes the UTC default, which is `Cusum`'s pre-existing rule. The P1 barrier's Arm 4 refuses a naive instant held live, so it must drive an aware clock (set HASTUB_TZ or freeze an aware instant), or it refuses the stub's own naive stamps rather than a defect."
+    }
+  ]
+}

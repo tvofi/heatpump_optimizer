@@ -26,6 +26,9 @@ from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from typing import Any, Protocol
 
+from homeassistant.util import dt as dt_util
+
+from .drift import stored_instant
 from .store import QuarantiningStore
 
 from .const import (
@@ -362,6 +365,7 @@ def _away_store(coord: _AwayCoord) -> QuarantiningStore[dict[str, Any]]:
         coord.hass,
         AWAY_STORE_VERSION,
         f"{DOMAIN}_{coord.entry.entry_id}_away",
+        lead=None,  # a user-set return time: no system bound governs it
     )
 
 
@@ -586,7 +590,6 @@ def _parse_return_time(raw: str | None) -> datetime | None:
     value = str(raw).strip()
     if value.lower() in ("unknown", "unavailable", ""):
         return None
-    try:
-        return datetime.fromisoformat(value)
-    except ValueError:
-        return None
+    # A typed time has no offset (the card's datetime-local, services.yaml's
+    # example): it is the user's wall clock, so it loads in their zone.
+    return stored_instant(value, dt_util.DEFAULT_TIME_ZONE)
