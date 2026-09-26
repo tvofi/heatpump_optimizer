@@ -315,6 +315,63 @@
     "class": null,
     "seam_rule_enumerates": null
    }
+  ],
+  "leads": [
+   {
+    "id": "D2-s1-51",
+    "vote": "verify",
+    "severity": "low",
+    "value": "finder re-run: off_total_cold=14 of 14 (worst rel err 0.527 at F=-15, 0.265 at F=-5, 0 at F=+5 control); --forecast zeroes every cell. Own: COP relative overstatement at the 5.0 C default vs forecast outdoor 1.111 at -15 C, 0.357 at -5 C, constant across DHW flow 45-65 C (load1 1.02, tf 1.001)",
+    "metric_definition": "|compute_cop_dhw(outdoor 5.0, flow) - compute_cop_dhw(forecast outdoor, flow)| / compute_cop_dhw(forecast outdoor, flow), flow in {45..65}, forecast in {-15,-5}, driven directly on ThermalModel.compute_cop_dhw",
+    "method": "tools/audit/round9/D2/verify-v2-leads/v2_dhw_cop_sensitivity.py; PYTHONPATH=tests/hastub /home/claude/venv/bin/python <path> (finder: tools/audit/round9/D2/leads/dhw_sweep_outdoor.py [--forecast])",
+    "attacks": "contention: load1 0.96-1.05, tf 1.000; gate mode and grid: n/a (identity, not aggregate); null: F=+5 (forecast == default) gives 0, reproduced; FakeHass: no executor path; severity: recommended setpoint unchanged in every run, only the published cost_per_day is wrong, so low.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D9-s1-71",
+    "vote": "verify",
+    "severity": "low",
+    "value": "finder re-run: calls/solve match exactly (e.g. summer_dhw_only 3989/11930/97, dhw_cold_tank 10316/30879/98, dhw_learned_windows 10426/31213/100); saved_share_mean 0.1005 (min -0.0008, max 0.2044) vs null mean -0.0206 (min -0.1265, max 0.0508) (load1 1.76-1.82, tf 1.000, provisional). Own on winter_two_zone_dhw (a cell the finder did not use): calls 8809/26364/98; single-cell CPU saved_share -0.0158 memo vs +0.0675 null (5-repeat median, load1 0.5-1.0)",
+    "metric_definition": "calls per solve of the three DHW helpers under an independently written counting wrapper; plus 1 - median(memoised thread_time)/median(plain thread_time), interleaved, 5 repeats, on golden.capture(winter_two_zone_dhw)",
+    "method": "tools/audit/round9/D9/verify-v2-leads/v2_dhw_helpers_calls.py; PYTHONPATH=tests/hastub /home/claude/venv/bin/python <path> (finder: tools/audit/round9/D9/leads/l3_dhw_helpers.py [--null])",
+    "attacks": "Call counts (contention-immune) reproduced exactly and independently on a fresh cell; the mechanism stands. CPU: the finder's cross-cell mean re-ran above its null, but the own single-cell ratio sits inside the null band with the opposite sign even at load1 < 1, so the stated 3-17 % share is noise-comparable per cell and should be read as order-of-magnitude, not precise. Not a refute (timing only). Null wrapper present in both harnesses. No executor path. Severity low.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D9-s2-71",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "finder re-run (box-level, load1 0.56/0.71, tf 1.000): stress_sweep_valve_cases=0 of 51; valve CPU/reference 184.0-410.7 vs control 100.4-119.6; valve step-equivalents 3,949,248-9,426,048 vs control 3,507,029-4,219,488; --perturb novalve: valve 112.6-135.2, step-equivalents 4,852,896-5,439,456. Own: 0 of 51 build_case() plants with a throttling mixing_valve_mode (read off the returned params, no sentinel); cProfile cumulative optimize() on golden valve_storage 8.527 s valve vs 5.658 s no-valve (1.51x, load1 0.99)",
+    "metric_definition": "count of stress.sweep_combinations() cases whose build_case() ThermalParameters.mixing_valve_mode is throttling; plus optimize() CPU with vs without mixing_valve_mode='none' on the golden valve plants",
+    "method": "tools/audit/round9/D9/verify-v2-leads/v2_valve_coverage.py (sub-seat); finder re-run PYTHONPATH=tests/hastub /home/claude/venv/bin/python tools/audit/round9/D9/leads/l3_valve_solve.py [--perturb novalve], outputs verify-v2-leads/out/f_valve*.txt",
+    "attacks": "Gate mode: sweep_combinations()/build_case() take no valve argument and house() leaves mixing_valve_mode='none', so this is the CI gate's own path. Coverage count exact by two mechanisms. CPU ratios provisional but direction and band reproduce (own 1.51x cProfile; finder re-run 1.5-3.4x on a quiet box). Test-gap lens (step 4): a single-line production mutation stress.py cannot see is any slowdown in custom_components/heatpump_optimizer/mixing_valve.py emitter_delivery (line 117, `return max(0.0, ua * (mix_temp - zone_temp))`), reached only from the throttled branch of ThermalModel.simulate_step (thermal_model.py:2052 `throttled = mixing_valve.is_throttling(...)`, calls at :2165/:2175), which 0 of 51 sweep cases enter; argued statically from the exact 0/51 count, no mutant run (tvofi rule). Severity medium: a CI blind spot over a real 1.3-3x CPU path, no wrong money or comfort by itself.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D2-s2-81",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "finder re-run exact: two_zone_floor_deg_steps_sum 2.4672 (max 1.3144), single_zone 0.1471, flat 0; --perturb 0.8574. Own 2-cell subgrid (winter_typical, winter_narrow, DHW on): two-zone 1.3144, single-zone 0.1471, perturbed 0.0016; source: exactly one '0.5 * weight * (' block (two-zone) vs 2 unhalved 'weight * (' blocks (single-zone scalar and batch) in _comfort_terms/_comfort_terms_batch",
+    "metric_definition": "floor_deg_steps = sum over plan steps of max(0, min_temp - T), on an independently chosen subgrid; plus a source-level count of halved vs unhalved comfort-floor weight blocks in the live module",
+    "method": "tools/audit/round9/D2/verify-v2-leads/v2_zone_floor_check.py; PYTHONPATH=tests/hastub /home/claude/venv/bin/python <path> (finder: tools/audit/round9/D2/leads/l4_zone_floor.py [--perturb])",
+    "attacks": "contention: load1 1.02-1.87, tf 1.000; grid: independently chosen subgrid reproduces the worst cell at the identical 1.3144; nulls (single-zone 0.1471, flat 0) reproduced; the _COMFORT_FLOOR_L1 comment ('tuned to the smallest value that removes the residual violations') corroborates tuning at the unhalved weight; no executor path. Severity medium: bounded (max ~0.46 K below min_temp, cold/DHW cells), cost correctly computed for the shipped plan.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D2-s4-81",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "finder re-run exact: null_refused 19, null_admitted 37, null_aborted 24 of 80 (by_structure timber_crawlspace 8, timber_slab 4, concrete_slab 5, masonry 2); --perturb null_refused 2. Own 8-cell subgrid (timber_slab/masonry x 1960_1980/low_energy x floor/radiators at 4.0 kW, a pump size the finder did not use): refused 0, admitted 4, aborted 4, unchanged under --perturb (load1 0.72)",
+    "metric_definition": "sysid.adoption_decision admit bit on a noise-free, zero-bias, exact-plant fit, per preset house",
+    "method": "tools/audit/round9/D2/verify-v2-leads/v2_sysid_refusal_subgrid.py; PYTHONPATH=tests/hastub /home/claude/venv/bin/python <path> (finder: tools/audit/round9/D2/leads/l4_sysid_null_refusal.py [--perturb])",
+    "attacks": "contention: load1 0.72-1.87, tf 1.000. The own subgrid's 0 refusals do not refute: it excludes timber_crawlspace (8 of 19) and the pre_1960/post_2005 eras, and the finder's own leave-one-out already shows the refusal is structure/era-concentrated. Weakness of this vote: the independent arm did not itself reproduce a refusal; the verify rests on the exact finder re-run plus the admit control (37). Title's 43 = 19 refused + 24 aborted. Severity medium: auto-adoption blocked on a real slice of housing stock, falls back to priors, no silently wrong value.",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
   ]
  }
 }

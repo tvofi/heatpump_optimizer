@@ -1,0 +1,20 @@
+
+=== Stress and economics ===
+cell valve_storage              step_equivalents=  4852896 evaluations=  1042 solve_cpu=3.86s ratio_to_ref=116.3
+cell valve_storage_smart_write  step_equivalents=  4852896 evaluations=  1042 solve_cpu=3.73s ratio_to_ref=112.6
+cell valve_upper_direct_slab    step_equivalents=  4852896 evaluations=  1042 solve_cpu=3.99s ratio_to_ref=120.3
+cell wood_two_tank              step_equivalents=  5439456 evaluations=  1168 solve_cpu=4.48s ratio_to_ref=135.2
+cell winter_two_zone_no_dhw     step_equivalents=  4219488 evaluations=   906 solve_cpu=3.12s ratio_to_ref=94.2
+cell shoulder_two_zone          step_equivalents=  3507029 evaluations=   752 solve_cpu=2.71s ratio_to_ref=81.6
+RESULT stress_sweep_valve_cases=0 of 51 count
+RESULT valve_step_equivalents_min=4852896 max=5439456 count
+RESULT control_step_equivalents_min=3507029 max=4219488 count
+RESULT valve_evaluations_min=1042 max=1168 count
+RESULT control_evaluations_min=752 max=906 count
+RESULT cpu_ratio_to_reference_valve_min=112.6 max=135.2 ratio
+RESULT cpu_ratio_to_reference_control_min=81.6 max=94.2 ratio
+RESULT reference_solve_cpu_s=0.0332
+RESULT perturbed=1
+RESULT thread_factor=1.000
+RESULT load1=0.71
+RESULT swapins=0
