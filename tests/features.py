@@ -33741,6 +33741,32 @@ R.check(
     str(_t1_rf_seen),
 )
 
+# v6.6.12 bug 5: a mode change reached the store only at the end of a
+# completed cycle, so a restart before one -- or a refresh that failed --
+# restored the old mode and "Optimizer active" came back on. The setter
+# persists it itself, before any refresh it asks for.
+_t1_mp_seen = []
+for _t1_mp_mode, _t1_mp_kw in (("off", {"refresh": False}), ("economy", {})):
+    _t1_mp_entry = FakeEntry(data=dict(_T1_DATA), entry_id=f"t1_mp_{_t1_mp_mode}")
+    _t1_mp = HeatPumpOptimizerCoordinator(FakeHass(), _t1_mp_entry)
+
+    async def _t1_mp_fail():
+        raise RuntimeError("the price fetch failed")
+
+    _t1_mp.async_request_refresh = _t1_mp_fail
+    try:
+        _asyncio.run(_t1_mp.async_set_mode(_t1_mp_mode, **_t1_mp_kw))
+    except RuntimeError:
+        pass
+    _t1_mp_boot = HeatPumpOptimizerCoordinator(FakeHass(), _t1_mp_entry)
+    _asyncio.run(_t1_mp_boot._async_load_accuracy())
+    _t1_mp_seen.append((_t1_mp_mode, _t1_mp_boot._mode))
+R.check(
+    "a mode change survives a restart with no completed cycle, and one whose refresh fails",
+    _t1_mp_seen == [("off", "off"), ("economy", "economy")],
+    f"(set, restored) {_t1_mp_seen} -- the restored mode must be the one set",
+)
+
 # -- the accuracy store: a corrupt read must not unseat what is in memory --
 _t1_acc_raise = _t1_coord()
 
