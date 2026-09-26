@@ -11973,6 +11973,12 @@ R.check(
     isinstance(getattr(_reg_entry, "runtime_data", None), HeatPumpOptimizerCoordinator),
 )
 R.check(
+    "an entry's setup defers the first solve to one entry background task, "
+    "which Home Assistant cancels at unload",
+    _reg_entry.background_tasks == ["heatpump_optimizer_first_solve"],
+    str(_reg_entry.background_tasks),
+)
+R.check(
     "an entry's setup registers nothing and replaces no handler",
     dict(_reg_hass.services.async_services().get(const.DOMAIN, {}))
     == _reg_after_setup,

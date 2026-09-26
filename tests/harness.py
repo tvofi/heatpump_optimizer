@@ -432,6 +432,8 @@ class FakeEntry:
         # have gone through that path rather than ``async_setup_entry`` alone.
         self.state = ConfigEntryState.NOT_LOADED
         self._on_unload = []
+        # The names of the background tasks handed to the entry, in order.
+        self.background_tasks: list[str] = []
 
     def add_update_listener(self, listener):
         return lambda: None
@@ -442,12 +444,16 @@ class FakeEntry:
     def async_create_background_task(self, hass, target, name, eager_start=True):
         """Upstream hands the task to ``hass`` (eagerly started) and cancels
         it at unload; this hands it to the fake hass's ``async_create_task``,
-        and closes it where there is none."""
+        closes it where there is none, and cancels a real task at unload."""
+        self.background_tasks.append(name)
         create = getattr(hass, "async_create_task", None)
         if create is None:
             target.close()
             return None
-        return create(target)
+        task = create(target)
+        if task is not None and hasattr(task, "cancel"):
+            self.async_on_unload(lambda: task.cancel() and None)
+        return task
 
 
 async def ha_setup_component(integration, hass, domain: str | None = None) -> bool:

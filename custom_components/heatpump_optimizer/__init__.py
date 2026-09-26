@@ -328,23 +328,13 @@ async def async_setup_entry(
     # above). Platforms are set up by now, so entities exist and publish the
     # light payload — the handover plan after a reload, live sensor readings
     # on a fresh start — while the cold solve runs here in the background and
-    # replaces it within the first update cycle.
-    if hasattr(entry, "async_create_background_task"):
-        entry.async_create_background_task(
-            hass,
-            coordinator.async_request_refresh(),
-            name="heatpump_optimizer_first_solve",
-        )
-    else:
-        task = hass.async_create_task(coordinator.async_request_refresh())
-        if task is not None and hasattr(task, "cancel"):
-            # Named rather than the bound method: `async_on_unload` takes a
-            # zero-argument callable returning None, and `Task.cancel`
-            # takes an optional message and returns bool.
-            def _cancel_first_solve() -> None:
-                task.cancel()
-
-            entry.async_on_unload(_cancel_first_solve)
+    # replaces it within the first update cycle. An entry background task is
+    # cancelled at unload by Home Assistant itself.
+    entry.async_create_background_task(
+        hass,
+        coordinator.async_request_refresh(),
+        name="heatpump_optimizer_first_solve",
+    )
 
     return True
 
