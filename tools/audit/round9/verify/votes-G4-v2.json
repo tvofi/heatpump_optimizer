@@ -293,6 +293,74 @@
     "class": null,
     "seam_rule_enumerates": null
    }
+  ],
+  "D7": [
+   {
+    "id": "D7-s1-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "extracting a coordinator method to module-level _m(coord,...) lowers sum(cut_*)+cross_seam_edges for 139 of 184 methods (total drop 1139, max 37); synthetic null 0; finder's harness reproduced cut_delta=8, rows_up=4",
+    "metric_definition": "Per plain coordinator method: change in sum(cut_*)+cross_seam_edges from production structure.seam_metrics when the method is moved out of the class as _m(self,...) (AST simulation, seam map entry dropped).",
+    "method": "Wrote extract_reward.py (reverse of the finder's inline direction, over the whole class) and re-ran helper_escape.py.",
+    "attacks": "contention n/a (counts); checked whether the refusal is enforced anywhere (HANDOVER refuses it, state_root_bindings guards only the _ctx handoff, not self); _fold_flow_lift docstring cites the ratchet as its reason for being module-level; grid of 184 cells agrees with the finder's 10-cell leave-one-out; severity hygiene -> low",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s1-02",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "under tests/entities.py: env_drift.py:2452 call site executed 0 times, stress.py:3664 verdict executed 0 times (inside __main__); control _diff_leaves 'elif a != b' executed 1622 times",
+    "metric_definition": "Executions of each gate verdict line during one run of the recorded driver tests/entities.py (sys.monitoring LINE); 0 means no mutant on that line can be killed by that driver.",
+    "method": "Wrote verdict_lines.py; cited the finder's recorded mutants (no mutation re-run, per tvofi's 2026-09-26 rule). Missed single-line mutations are in instrument files: tests/env_drift.py:2452 _diff_leaves(...)->pass; tests/stress.py:3664 if ratio > allowed -> if False.",
+    "attacks": "global slow ceiling 1630.2 is looser than the scenario's own budget for 48 of 51 scenarios, so the stress deletion is substantive; both files are CODEOWNERS @tvofi, so a deletion needs the owner's approving review; no user-facing consequence at baseline -> medium not earned; scenario_budget control also 0 under entities.py, so the finder's pin of it is not confirmed by this driver",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s2-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "open-loop fit with the production 0.5 h rollout on 30-substep truth: 2 of 3 presets >5% UA bias (+0.038, +0.381, +0.369); null (truth at 1 substep) and fine-rollout perturbation both <=1e-5; finder's harness reproduced (-0.168, -0.255, refused; 0 of 3 adopted)",
+    "metric_definition": "UA bias (fitted/true-1) of a free least-squares fit (UA, C_r, G; slab pair given) of production sysid._simulate_slab_path to a noise-free open-loop step series whose truth is the same candidate family integrated with N substeps per 30-min sample.",
+    "method": "Wrote sysid_openloop.py, which bypasses the state machine, sizer and adoption gate; re-ran sysid_plant.py.",
+    "attacks": "null control (shared discretization) gives 0; perturbation gives 0; the sign differs from the finder's because my fit has no G ridge, but the mechanism is the same; reachable via the armed experiment button; the adoption gate prevents wrong adoption, so the harm is an inert feature plus a biased diagnostic -> medium",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "9 of 9 (element 4/5/6 kW x outdoor 0.5/2.5/4.5 C) cells: latch set by the production _detect_immersion, derate folds while _cop_fold_blocked is True; null outside the frost band 0 of 3; factor after 24 latched intervals 0.8088; --gate-derate 9 -> 0; finder's harness reproduced 3 of 3, 0.8738",
+    "metric_definition": "Cells in which one settled _record_accuracy increments DefrostDerate.counts while coordinator._cop_fold_blocked is True, with the immersion latch set by the production detector through real input cycles.",
+    "method": "Wrote derate_latch_grid.py (latch reached through _update_current_state/_detect_immersion, not set directly); re-ran learner_gates.py.",
+    "attacks": "reachability through the real meter read path confirmed; _space_measured_power already refuses the same intervals, so this is not intended fallback behaviour; out-of-band null 0; bounded by DERATE_MIN and the frost band -> medium",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s3-01",
+    "vote": "verify",
+    "severity": "low",
+    "value": "during all of tests/entities.py: 0 of 10 members entered from a production frame (0 from tests either); live controls 4 of 6 reached from production; finder's reach.py 9 dead, sentinel 0 of 10 with 6 of 6 controls, reproduced",
+    "metric_definition": "Entries into each member's code object (property fget or method) whose immediate caller frame is under custom_components/, counted with sys.monitoring PY_START across one tests/entities.py run.",
+    "method": "Wrote member_callers.py (different driver from the finder's sentinel); re-ran reach.py --list and sentinel.py.",
+    "attacks": "grep for dynamic getattr literals, the _hub facade, diagnostics' getattr loop and the package __getattr__: none reaches the 10; the string hits are coordinator.data keys; entities.py does not drive IrradianceSeries.end or _Horizon.timestamps (sentinel covers those); hygiene -> low",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D7-s3-02",
+    "vote": "verify",
+    "severity": "low",
+    "value": "structure dead_methods=0 vs my attribute-only member screen=11 (9 genuine + 2 climate HA properties); hidden by property rule only 5, bare-name only 1 (DefrostDerate.measured), both 5; null +1/0; finder's screen.py reproduced 0/5/1/11",
+    "metric_definition": "Class-body functions (methods and properties, dunders and HA convention names excluded) whose name is never an ast.Attribute attr or getattr-family literal in the package, compared with structure.measure() dead_methods.",
+    "method": "Wrote member_screen.py independently of structure's reference set; re-ran screen.py in all four modes.",
+    "attacks": "the property exclusion is a documented scope boundary (is_property_getter docstring, structure.py:1095-1108), so part of the gap is by design; the bare-Name miss of a plain method (measured) is a real instrument defect against the screen's own #1395 purpose; hygiene -> low",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
   ]
  }
 }
