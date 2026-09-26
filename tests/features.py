@@ -33784,6 +33784,174 @@ R.check(
     f"(set, restored) {_t1_mp_seen} -- the restored mode must be the one set",
 )
 
+# RC2 (round 9): the class behind v6.6.12 bug 5 is "a user-set state that
+# reaches the store later than the action that set it". Two routes lose it at
+# a restart: the setter persisting only at the end of a completed cycle (the
+# mode, v3.13.0 and again v6.6.12), and the action awaiting the refresh that
+# runs the solve -- since Home Assistant 2026.5 a single-entity action holds
+# the platform's PARALLEL_UPDATES slot, so the taps behind it queue, and the
+# restart cancels them before their setters run. Each entity action below is
+# driven over a coordinator whose refresh never completes: it must return
+# anyway, and a second coordinator on the same entry, after the loads a
+# restart runs, must show what the action set. Every action the platforms
+# define is a row or an exemption with its reason, so a new one is refused
+# until someone says which it is.
+from heatpump_optimizer import button as _rc2_button  # noqa: E402
+from heatpump_optimizer import climate as _rc2_climate  # noqa: E402
+from heatpump_optimizer import datetime as _rc2_dt  # noqa: E402
+from heatpump_optimizer import switch as _rc2_switch  # noqa: E402
+import re as _rc2_re  # noqa: E402
+from datetime import datetime as _rc2_datetime, timedelta as _rc2_td  # noqa: E402
+from homeassistant.util import dt as _rc2_dt_util  # noqa: E402
+
+_RC2_ACTIONS = ("async_turn_on", "async_turn_off", "async_press",
+                "async_set_value", "async_set_temperature",
+                "async_set_hvac_mode", "async_set_preset_mode")
+_RC2_RETURN = (_rc2_dt_util.now() + _rc2_td(days=2)).replace(microsecond=0)
+_S, _C = _rc2_switch, _rc2_climate
+# (class, action, args, the state before it, the readout after the restart)
+_RC2_ROWS = [
+    (_S.OptimizerEnableSwitch, "async_turn_off", (), ("mode", "auto"), ("is_on", False)),
+    (_S.OptimizerEnableSwitch, "async_turn_on", (), ("mode", "off"), ("is_on", True)),
+    (_S.AwaySwitch, "async_turn_on", (), ("away", False), ("is_on", True)),
+    (_S.AwaySwitch, "async_turn_off", (), ("away", True), ("is_on", False)),
+    (_S.BoostDhwSwitch, "async_turn_on", (), ("dhw", False), ("is_on", True)),
+    (_S.BoostDhwSwitch, "async_turn_off", (), ("dhw", True), ("is_on", False)),
+    (_S.BoostSpaceSwitch, "async_turn_on", (), ("space", False), ("is_on", True)),
+    (_S.BoostSpaceSwitch, "async_turn_off", (), ("space", True), ("is_on", False)),
+    (_C.HeatPumpOptimizerClimate, "async_turn_off", (), ("mode", "auto"), ("hvac_mode", _C.HVACMode.OFF)),
+    (_C.HeatPumpOptimizerClimate, "async_turn_on", (), ("mode", "off"), ("hvac_mode", _C.HVACMode.AUTO)),
+    (_C.HeatPumpOptimizerClimate, "async_set_hvac_mode", (_C.HVACMode.HEAT,), ("mode", "auto"), ("hvac_mode", _C.HVACMode.HEAT)),
+    (_C.HeatPumpOptimizerClimate, "async_set_preset_mode", ("economy",), ("mode", "auto"), ("preset_mode", "economy")),
+    (_C.HeatPumpOptimizerClimate, "async_set_temperature", ({"temperature": 21.5},), ("mode", "auto"), ("target_temperature", 21.5)),
+    (_rc2_dt.AwayReturnDateTime, "async_set_value", (_RC2_RETURN,), ("away", True), ("native_value", _RC2_RETURN)),
+]
+# Buttons hold their own platform's slot, so a press never queues a toggle,
+# and none of them sets a state a restart must restore but the comfort-weight
+# reset, which persists before its refresh (the coordinator sweep below).
+_RC2_EXEMPT = {
+    (_rc2_button.ForceOptimizationButton, "async_press"): "a run, not a state",
+    (_rc2_button.DiagnoseIntervalButton, "async_press"): "a report, not a state",
+    (_rc2_button.SystemIdentificationButton, "async_press"):
+        "arms an experiment for tonight; in memory by design",
+    (_rc2_button.ResetComfortWeightButton, "async_press"):
+        "the setter saves the reset before it asks for the refresh",
+}
+# The coordinator's own setters, which the services call with a refresh: each
+# is reached through a row above or says where its state lives.
+_RC2_SETTERS = {
+    "async_set_mode": "rows: the switch and thermostat mode actions",
+    "async_set_away": "rows: the away switch and the return time",
+    "async_set_target_temperature": "row: the thermostat target, via entry options",
+    "async_apply_manual_plan": "saves the plan before it asks for the refresh",
+    "async_clear_manual_plan": "saves the clear before it asks for the refresh",
+    "async_reset_comfort_weight": "saves the reset before it asks for the refresh",
+    "async_restore_learned_snapshot": "restores from the store it reads",
+    "async_arm_system_identification": "in memory by design: arms tonight's run",
+    "async_update_thermal_params": "an automation's runtime model override; only "
+        "the three learner anchors persist (#86)",
+}
+
+
+def _rc2_defined(*mods):
+    """(class, action) for every action a platform class defines itself."""
+    return {
+        (cls, name)
+        for mod in mods for cls in vars(mod).values()
+        if isinstance(cls, type) and cls.__module__ == mod.__name__
+        for name in _RC2_ACTIONS if name in vars(cls)
+    }
+
+
+_rc2_covered = {(r[0], r[1]) for r in _RC2_ROWS} | set(_RC2_EXEMPT)
+_rc2_missing = _rc2_defined(_rc2_switch, _rc2_climate, _rc2_dt, _rc2_button) - _rc2_covered
+_rc2_missing_setters = {
+    name for name in vars(HeatPumpOptimizerCoordinator)
+    if _rc2_re.match(r"async_(set|apply|clear|reset|restore|arm|update)_", name)
+} ^ set(_RC2_SETTERS)
+R.check(
+    "every entity action and coordinator setter is a durability row or says "
+    "where its state lives",
+    not _rc2_missing and not _rc2_missing_setters,
+    f"unclassified: {sorted(f'{c.__name__}.{n}' for c, n in _rc2_missing)} "
+    f"setters: {sorted(_rc2_missing_setters)}",
+)
+
+
+class _RC2Hass(FakeHass):
+    """Upstream's background task: a real task, left pending here."""
+
+    def async_create_task(self, coro):
+        return _asyncio.get_running_loop().create_task(coro)
+
+
+async def _rc2_prelude(coord, what, value):
+    if what == "mode":
+        coord._mode = value
+        await coord._async_save_accuracy()
+    elif what == "away":
+        coord._away_state.override_active = value
+        coord._away_state.override_return_iso = None
+        await away_mode.persist_override(coord)
+    else:
+        boost_mod.held_for(coord).set(what, value, _rc2_dt_util.now())
+        await boost_mod.persist(coord)
+
+
+async def _rc2_boot(entry):
+    coord = HeatPumpOptimizerCoordinator(FakeHass(), entry)
+    coord.hass.config_entries.entries.append(entry)
+    await coord._async_load_accuracy()
+    await boost_mod.restore_session(coord)
+    return coord
+
+
+async def _rc2_row(n, cls, action, args, before, after):
+    entry = FakeEntry(data=dict(_T1_DATA), entry_id=f"rc2_{n}")
+    coord = await _rc2_boot(entry)
+    await _rc2_prelude(coord, *before)
+    coord = await _rc2_boot(entry)
+    never = _asyncio.Event()
+
+    async def _solve_that_never_ends():
+        await never.wait()
+
+    coord.async_request_refresh = _solve_that_never_ends
+    ent = cls(coord, entry)
+    ent.hass = _RC2Hass()
+    kwargs = args[0] if args and isinstance(args[0], dict) else None
+    call = getattr(ent, action)(**kwargs) if kwargs else getattr(ent, action)(*args)
+    try:
+        await _asyncio.wait_for(call, timeout=0.5)
+        returned = True
+    except TimeoutError:
+        returned = False
+    for task in _asyncio.all_tasks() - {_asyncio.current_task()}:
+        task.cancel()  # the restart: pending refreshes die unfinished
+    restored = getattr(cls(await _rc2_boot(entry), entry), after[0])
+    return returned, restored
+
+
+_rc2_seen = {}
+for _rc2_n, (_rc2_cls, _rc2_act, _rc2_args, _rc2_before, _rc2_after) in enumerate(_RC2_ROWS):
+    _rc2_seen[f"{_rc2_cls.__name__}.{_rc2_act}{_rc2_args[:1]}"] = (
+        _asyncio.run(_rc2_row(_rc2_n, _rc2_cls, _rc2_act, _rc2_args, _rc2_before, _rc2_after)),
+        _rc2_after[1],
+    )
+_rc2_slow = [k for k, ((ret, _), _e) in _rc2_seen.items() if not ret]
+_rc2_lost = [f"{k}: {got!r} != {want!r}" for k, ((_, got), want) in _rc2_seen.items() if got != want]
+R.check(
+    "every entity action returns before the solve it asks for completes",
+    not _rc2_slow,
+    f"awaited the solve: {_rc2_slow} -- under PARALLEL_UPDATES the next tap "
+    "queues behind it and a restart cancels the queue (v6.6.12 bug 5)",
+)
+R.check(
+    "every entity action's state survives a restart before any cycle completes",
+    not _rc2_lost,
+    f"lost at restart: {_rc2_lost}",
+)
+
 # -- the accuracy store: a corrupt read must not unseat what is in memory --
 _t1_acc_raise = _t1_coord()
 
