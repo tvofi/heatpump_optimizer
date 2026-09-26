@@ -1,0 +1,226 @@
+[
+ {
+  "owner_seat": "unknown",
+  "file": "tests/hastub/homeassistant/helpers/storage.py",
+  "symbol": "Store.async_save/async_load",
+  "what": "The stub codec is stdlib json: it decodes 10**400 as an exact int and 1e400 as inf, and it writes NaN tokens. Real HA's orjson refuses or converts these, so store-fuzz results over-report loader raises (19 of 250 accuracy mutants were stub-only).",
+  "raised_by": "D1-s1"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "tests/hastub/homeassistant/helpers/storage.py",
+  "symbol": "Store.async_load",
+  "what": "Parses with stdlib json, which accepts NaN/Infinity tokens and >64-bit integers that Home Assistant's orjson-based Store refuses (whole file quarantined). Fuzz results through the stub include failures that cannot occur in HA; energy 10**400 and defrost duty 10**400 were two.",
+  "raised_by": "D1-s2"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "tests/harness.py",
+  "symbol": "ha_unload_entry",
+  "what": "Calls each async_on_unload callback synchronously and drops a returned coroutine (RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited, registered by the stub DataUpdateCoordinator); Home Assistant awaits coroutine unload callbacks.",
+  "raised_by": "D1-s2"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "tests/hastub/homeassistant/util/dt.py",
+  "symbol": "now",
+  "what": "The stub's now() is naive unless HASTUB_TZ is set, while real HA is always aware. This hides every naive-vs-aware TypeError: store_fuzz.py --naive-clock loses all the naive_dt failures, and tests/finite_boundary.py seeds a naive datetime into the pump_duty record it fuzzes. Possible instrument finding.",
+  "raised_by": "D1-s3"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "tests/hastub/homeassistant/helpers/storage.py",
+  "symbol": "Store.async_save/async_load",
+  "what": "The stub round-trips through stdlib json, which writes and reads NaN; Home Assistant's Store serialises with orjson, which writes NaN as null. A NaN learner cell therefore survives a save/load in the stub but becomes null in production (for DefrostDerate that voids the whole duty grid on the next load, D1-s4-03's path). P11-shaped.",
+  "raised_by": "D1-s4"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "tests/golden/coord_dhw.json",
+  "symbol": "data.dhw_advisor",
+  "what": "Both coordinator goldens carrying dhw_advisor (coord_dhw, coord_all_features) sit in the degenerate regime where every candidate has meets_heaviest_window=false and the recommendation is the last candidate (60). As a result, env_drift --all cannot observe the advisor's cover and ranking logic: mutant C0086 left it green and was caught only by features.py.",
+  "raised_by": "D3-s1"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "tools/audit/round3..round8",
+  "symbol": "(tracked files)",
+  "what": "During this session (directory mtimes around 09:15 UTC), 498 tracked files under tools/audit/round3-8 were deleted from the D3-s1 worktree. No D3-s1 harness writes outside mkdtemp roots or round9/D3/s1. This is probably the orchestrator's pruning, but it should be confirmed that the gate does not read any of them.",
+  "raised_by": "D3-s1"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "tests/card_rig.mjs",
+  "symbol": "planStates",
+  "what": "The default-view plan states omit the integration's own measured sensors (withActuals), so card_drift/card_browser never render the live default view; D4-s1-05's collision passed every lane for that reason.",
+  "raised_by": "D4-s1"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "tests/card_browser.mjs",
+  "symbol": "contrastOf / REQUIRED",
+  "what": "The contrast lane measures four fixed sites on fixtures that never produce a status outcome (.cheaper/.dearer/.wi-warn/.confirm), so D4-s1-01 is outside every gate.",
+  "raised_by": "D4-s1"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "tests/hastub/homeassistant/helpers/update_coordinator.py",
+  "symbol": "DataUpdateCoordinator.__init__",
+  "what": "The stub accepts update_interval and drops it (no attribute), so no harness or test can read the cadence a coordinator was built with; comment_numbers.py had to spy on the base __init__. Upstream stores self.update_interval.",
+  "raised_by": "D5-s2"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "tests/entities.py",
+  "symbol": "README count pins (~lines 566-886)",
+  "what": "Entity/page counts are pinned against README.md only; docs/configuration.md's own count (D6-s2-01) has no pin",
+  "raised_by": "D6-s2"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "tests/nightly_ha.py",
+  "symbol": "line 1274 (return inside finally, A4 recovery block)",
+  "what": "A `return` inside a `finally` block (SyntaxWarning on Python 3.14) swallows any exception still in flight from the try, including CancelledError, whenever the recovery refresh raises. The nightly A4 check can then end without re-raising a failure.",
+  "raised_by": "D7-s3"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "tests/delivery_status.py",
+  "symbol": "collect",
+  "what": "Docstring: 'nothing else reaches main with two parents under the ruleset' - false under the DeployKey bypass; single-parent direct pushes are skipped silently (same class as D11-s1-02).",
+  "raised_by": "D11-s1"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "tools/audit/round9/D12/s1/",
+  "symbol": "REPORT.md",
+  "what": "The seat harness refused to write REPORT.md (a policy against subagent report files), so this JSON is the whole report. The orchestrator may need to render REPORT.md from it.",
+  "raised_by": "D12-s1"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "tests/entities.py",
+  "symbol": "_walk_flow_untouched / check 'and turns hot water on anyway, with the 200 L tank the page pre-fills'",
+  "what": "The suite pins the untouched full wizard enabling DHW as a passing check, so the gate defends the DHW half of D12-s3-01 instead of catching it (D3).",
+  "raised_by": "D12-s3"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "tests/hastub/homeassistant/util/dt.py",
+  "symbol": "now",
+  "what": "The stub returns a naive datetime.now() when no clock is frozen, while Home Assistant's dt_util.now() is always aware. Tests on the default clock therefore never compare an aware stored timestamp with an aware now, and never meet the naive-stored case that production meets (class P11, which no round-9 seat's axis holds).",
+  "raised_by": "D14-s1"
+ },
+ {
+  "owner_seat": "D7-s2",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "symbol": "ThermalParameters.dhw_inlet_temp",
+  "what": "Default is a bare literal 10.0 (thermal_model.py:469) beside const.DEFAULT_DHW_INLET_TEMP=10.0 and const.DHW_COLD_WATER_TEMP=10.0: three copies of the cold-water default, one of them (DHW_COLD_WATER_TEMP) now only a default argument of dhw_coil_draw_reduction.",
+  "raised_by": "D5-s2"
+ },
+ {
+  "owner_seat": "D7-s3",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "symbol": "ThermalModel._step_dhw_refused/_step_dhw_floor_injected/_step_dhw_draw_kw/_step_wood_refused",
+  "what": "Per-step scratch written by production step functions and read only by tests/features.py; no production reader (only _step_buffer_refused is read, by simulate_trajectory).",
+  "raised_by": "D7-s2"
+ },
+ {
+  "owner_seat": "D9-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "HeatPumpOptimizerCoordinator._run_system_identification",
+  "what": "Call site of D9-s1-03: sysid.step (and so the identify_slab fit) is called synchronously in _async_update_data on the event loop; the fit's cost is measured in tools/audit/round9/D9/s1/sysid_loop.py, the call-site fix is yours.",
+  "raised_by": "D9-s1"
+ },
+ {
+  "owner_seat": "D9-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "_maybe_run_fuse_advisor / _await_optimize",
+  "what": "Full solves per coordinator cycle by path (main, fuse-advisor what-if at coordinator.py ~10731, any shadow/diagnose) were not counted here: my cells stop at optimize(). The what-if is another full solve through the worker.",
+  "raised_by": "D9-s1"
+ },
+ {
+  "owner_seat": "D9-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "_solve_snapshot",
+  "what": "Loop-thread cost of the per-cycle optimizer/state snapshot taken before every solve was not measured (coordinator is outside my cells).",
+  "raised_by": "D9-s1"
+ },
+ {
+  "owner_seat": "D9-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "_await_optimize (in-process fallback)",
+  "what": "The in-process fallback solve starves the loop (starvation share 0.91-0.94, see non-findings, tools/audit/round9/D9/s1/gil_hold.py); whether WORKER_FALLBACK_CAP=N consecutive fallbacks is the right bound is a coordinator decision.",
+  "raised_by": "D9-s1"
+ },
+ {
+  "owner_seat": "D9-s1",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "HeatPumpOptimizer._build_dhw_requirements / _apply_dhw_min_run / _plan_dhw_min_cost",
+  "what": "DHW planning loops dominate the DHW-only replay's solve. Under cProfile over 48 real cycles, _build_dhw_requirements was 9.64 s of 16.5 s solve time (58 %), with thermal_model.extend_dhw_temps called 1383 times and simulate_dhw_step 106,595 times (~2,220 per solve). A candidate for the brief's DHW planning loop metric (simulate-step-equivalents per DHW loop).",
+  "raised_by": "D9-s2"
+ },
+ {
+  "owner_seat": "D9-s1",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "symbol": "ThermalModel.effective_dhw_draw_pattern / dhw_tank_heat_loss_coefficient / dhw_inlet_reference",
+  "what": "Per-step helpers called ~100k-320k times per day of solves: effective_dhw_draw_pattern 4,704 calls driving dhw_schedule.overlap_fraction 114,360 times (24 per call) for a window set that is constant within a solve; dhw_inlet_reference 321,602 calls; dhw_tank_heat_loss_coefficient 107,572 calls. These look cacheable per solve and are not metered by any stress.py count channel (see D9-s2-03).",
+  "raised_by": "D9-s2"
+ },
+ {
+  "owner_seat": "D9-s1",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "HeatPumpOptimizer.optimize",
+  "what": "One two-zone solve with a throttling valve (manual/smart_read; single_tank_valve, valve_upper_direct_slab, two_tank_4way) took 50-145 s of wall time per cycle on B6 at load1 ~5-6, against 1-7 s single-zone and 13-17 s two-zone without a valve (matrix.py per-cell wall_s, provisional, not evidence).",
+  "raised_by": "D12-s1"
+ },
+ {
+  "owner_seat": "D11-s1",
+  "file": ".github (ruleset on main)",
+  "symbol": "pull_request rule: require_last_push_approval / dismiss_stale_reviews_on_push",
+  "what": "PR #1621 merged at head 99fcc3f2 with its only approving review (tvofi) on ecb7af8e and no approval at the merged head; read the ruleset with both arms to see whether an approval on an earlier commit satisfies the required review",
+  "raised_by": "D11-s2"
+ },
+ {
+  "owner_seat": "D11-s1",
+  "file": ".claude/workflows/policy_lint.mjs",
+  "symbol": "cmdHooks",
+  "what": "D11-s2-02's fix lands in this file; also no fixture under fixtures/policy-rot/hooks/ carries a wrong matcher",
+  "raised_by": "D11-s2"
+ },
+ {
+  "owner_seat": "D11-s1",
+  "file": ".claude/workflows/rules_sync.mjs",
+  "symbol": "parse",
+  "what": "paths extraction regex requires `\"...\"\\s*$`, rulePaths in policy_lint uses `-\\s*\"([^\"]+)\"` inside a block: a paths entry with a trailing YAML comment is kept by policy_lint and dropped from the generated .mdc globs (two parsers of one frontmatter, class I4); not measured",
+  "raised_by": "D11-s2"
+ },
+ {
+  "owner_seat": "D11-s1",
+  "file": ".claude/workflows/budget_raise_gate.py",
+  "symbol": "approval",
+  "what": "D11-s2-03 hooks it; any identity-hardening fix (distinct App for seat approvals) touches this predicate and main-protect-checks",
+  "raised_by": "D11-s2"
+ },
+ {
+  "owner_seat": "D11-s1",
+  "file": ".github/workflows/governance.yml",
+  "symbol": "instrument-self-tests",
+  "what": "fails at 18 of 201 main merge commits (one 11.69 h red episode, 2026-09-25) while succeeding or absent at every PR head; a merge-surface-only red the PR gate never sees",
+  "raised_by": "D13-s1"
+ },
+ {
+  "owner_seat": "D11-s1",
+  "file": ".claude/workflows/web-fix-wave.js",
+  "symbol": "verdict poster identity",
+  "what": "166 of 239 `Fix review:` lines in window posted under the owner account tvofi, 73 by hpo-approver[bot]; decision 0011 says hpo-approver posts verdicts",
+  "raised_by": "D13-s1"
+ },
+ {
+  "owner_seat": "D11-s1",
+  "file": "tools/audit/round4/D11/governance_cost.py",
+  "symbol": "GOV",
+  "what": "misses rerun-stale-verdict (budget-raise-gate-rerun.yml); tests/entities.py pins GOV only against governance.yml jobs, so a governance job in another file escapes (64 s in window)",
+  "raised_by": "D13-s1"
+ }
+]

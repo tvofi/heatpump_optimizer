@@ -1,0 +1,128 @@
+[
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "HeatPumpOptimizer._comfort_terms",
+  "what": "D2 scope: on the default two-zone winter day, shipped two-zone plans breach the upper-zone floor by 1.34 degree-steps, a trade the soft penalty accepts. Whether that is intended belongs to the objective's owner.",
+  "raised_by": "D0-s1"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "HeatPumpOptimizer._comfort_terms",
+  "what": "Under summer_warm weather objective_value is a plan-independent overshoot constant (6435 single-zone, 10598 two-zone) from warmth no heater can remove; dominates objective_value (D2 objective shape).",
+  "raised_by": "D0-s2"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "HeatPumpOptimizer._terminal_cost",
+  "what": "Magnitude of the terminal credit (D2): the 24 h plan's tail buys 0.50-0.69x of a 48 h plan's energy in cold weather but 1.5-7.9x in shoulder weather (end slab +3.17 K above the 48 h plan, DHW on). The same at flat prices, so it is valuation, not price. out/term_one.log",
+  "raised_by": "D0-s3"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "HeatPumpOptimizer._warm_start_starts docstring / coordinator._warm_seeded",
+  "what": "The docstring says the handed plan is 'the same problem one step later', but coordinator._warm_seeded passes the previous power_schedule unshifted (misaligned by the elapsed re-plan steps). Measured effect on the plan is noise (non-finding), so this is a comment-accuracy lead (D5).",
+  "raised_by": "D0-s3"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "OptimizationResult.predicted_cost",
+  "what": "With a perfect model, the day-1 plan's energy (23.28 SEK, winter_typical single-zone) is not what the 30-min loop spends that day (38.61 SEK); the published per-plan predicted cost does not describe the executed day (D2/D6 reporting question). out/mpc4.log",
+  "raised_by": "D0-s3"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "async_diagnose_interval / _diagnose_payload",
+  "what": "Docstring says the worker 'gets copies, never this object (#1529)', but _diagnose_payload passes coord._last_interval_record by reference (only thermal params are deep-copied). Harmless today (the record is only rebound), but the comment is inaccurate - a D5 comment-accuracy lead.",
+  "raised_by": "D1-s2"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/external_heat.py",
+  "symbol": "ExternalHeatDetector.forecast_free_heat / optimizer.py HeatPumpOptimizer.optimize (np.clip of external_heat_kw)",
+  "what": "A NaN free_heat_kw passes `rate <= 0.0` and np.clip. The scalar step then drops it (max(0.0, nan) == 0.0), but simulate_trajectory_batch's np.maximum propagates NaN into the finite-difference gradient. The batch docstring's parity claim is scoped to finite values. Whether NaN can reach free_heat_kw has not been measured (D1/D8).",
+  "raised_by": "D2-s1"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/topology.py",
+  "symbol": "describe_setup slots / rank_sensor_advisor labels",
+  "what": "Slot and advisor labels reach the card as published strings; whether the backend localizes them for a Swedish UI was not checked (the fixture's are English).",
+  "raised_by": "D4-s1"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "Optimizer._idle_action",
+  "what": "The idle fallback action publishes power=min_electrical_power with heat_pump_on=False and no dhw_power. commanded_power_kw therefore reports a non-zero recommended power (climate recommended_power_kw, Recommended Power) while the pump is commanded off.",
+  "raised_by": "D8-s2"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/entity.py",
+  "symbol": "HeatPumpOptimizerSensorBase.__init_subclass__ scrub (_finite)",
+  "what": "The non-finite scrub walks every attribute of every entity at every write, including the unrecorded bulk series: 233,594 recursive _finite calls per 48 entity reads (~4.9k per read). Its CPU share of the 5.9 ms entity read was not isolated. A loop-thread cost that grows with payload size.",
+  "raised_by": "D9-s2"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "HeatPumpOptimizer.get_current_action",
+  "what": "On every install (modulating 1/6 kW), idle and sub-floor steps publish power_normalized = -min/range = -0.2 on the Heat Pump Action sensor attribute and the climate attribute: 585 of 864 steps in onoff_label.py's modulating arm. A wrong published value outside [0,1] (D2/D8).",
+  "raised_by": "D12-s2"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "HeatPumpOptimizer._idle_action",
+  "what": "The empty-plan and pre-horizon action carries power=min_electrical_power with heat_pump_on=False, so coordinator._commanded_power reports min kW commanded while the pump is off. The external-heat, COP and frequency consumers read it (D1/D2).",
+  "raised_by": "D12-s2"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "HeatPumpOptimizerCoordinator._build_data_dict",
+  "what": "On an install with no tank, buffer or slab sensor, the data dict publishes dhw_temperature 55.0, buffer_tank_temperature 40.0 and slab_temperature 22.0, which are the ThermalState constructor defaults. The entities stay unavailable, but any card or diagnostics reader of coordinator.data would show fabricated temperatures (D4/D8).",
+  "raised_by": "D12-s3"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/grid_fee.py",
+  "symbol": "grid_fee:IMPLAUSIBLE_FEE_SEK_PER_KWH",
+  "what": "The 10-per-kWh fee plausibility bound (config-flow refusal and repair notice) is one number for every currency; a high-denomination currency (HUF, JPY) fee would be refused as implausible. Not measured.",
+  "raised_by": "D14-s2"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/currency.py",
+  "symbol": "currency:FALLBACK_CURRENCY",
+  "what": "Real Home Assistant always sets hass.config.currency (core default EUR), so the SEK fallback the module and README describe fires only under stubs; an unconfigured instance labels in EUR, not SEK. Not measured against HA core.",
+  "raised_by": "D14-s2"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/quick_setup.py",
+  "symbol": "quick_setup:stored_answers",
+  "what": "The buffer-tank answer is read back as volume >= BUFFER_STORE_MIN_VOLUME while ThermalParameters.buffer_is_store also requires a throttling valve; read here as an answer read-back (not applicable to P2), left for a D12/D8 seat to judge.",
+  "raised_by": "D14-s2"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "_multi_start_minimize / _lbfgsb_restart",
+  "what": "L-BFGS-B exits with ABNORMAL line-search terminations at ftol 1e-12 on two|nodhw|winter_typical: FD-gradient (eps 1e-4) noise on a piecewise objective, relevant to any D0 convergence work",
+  "raised_by": "D14-s3"
+ },
+ {
+  "owner_seat": "unknown",
+  "file": "custom_components/heatpump_optimizer/sysid.py",
+  "symbol": "SystemIdentification (light_new preset)",
+  "what": "light_new: every completed experiment is refused at hw 0.1446 even with no bias, and any gains/drift/cap mismatch aborts on excursion, so the experiment can never adopt on this preset at MAX_KW 3.5",
+  "raised_by": "D14-s3"
+ }
+]
