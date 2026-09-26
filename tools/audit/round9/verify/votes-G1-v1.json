@@ -2,6 +2,173 @@
  "box": "G1-V1",
  "lens": 1,
  "votes": {
+  "D1-1": [
+   {
+    "id": "D1-s1-01",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "snapshot_raises=21 snapshot_taken=0 curve_raises=19 comfort_override_raises=21 comfort_quiet_raises=21 sibling_raises=0 (count; --aware and --fix: all 0, taken=3)",
+    "metric_definition": "Per seam, count of consumer calls over 21 aware-clock days raising after the store was loaded with that seam's timestamp leaf tz-naive.",
+    "method": "Re-ran naive_ts.py default, --aware (null) and --fix (perturbation) from the evidence-tree root, venv 3.14.",
+    "attacks": "Reach: every production writer emits aware isoformat, so a naive leaf needs a corrupt or foreign store (D1 store scope). Consequence: permanent and silent via the DEBUG heartbeat guard (coordinator.py:4679-4682). Count metric, so contention does not apply. Perturbation moves to 0 as stated.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s1-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "service_raises=4 missing_issue=4 (count of 4; --control 0/0; --fix 0/0)",
+    "metric_definition": "Of 4 non-numeric bias-leaf variants loaded via the real store: count where the restore service raises; count where 10 out-of-band days raise no accuracy_drift issue.",
+    "method": "Re-ran snap_restore.py default, --control, --fix.",
+    "attacks": "Reach: corruption-only (production writes a float). Null and perturbation both 0. Count metric.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s1-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "glitch-127 window p90 25.760 kWh vs control 1.073; max_event 42.218 kWh; 1e6: 231757.047/139054.657; --guard: 1.073",
+    "metric_definition": "After DAY+1 simulated days of 5-min ticks with one glitch sample on DAY, the largest folded occurrence and the window p90 (DrawStats.quantile 0.9), kWh.",
+    "method": "Re-ran dhw_glitch.py --day 4, --day 13, --day 4 --guard.",
+    "attacks": "Reach: coordinator.py:5526-5527 passes reader.read(...).value straight in, and InputReader's problems (inputs.py:579-762) include no range check, so -127 arrives. --day 13 shows p90 back at 1.073 (exposure is the first ~10 days); max_event persists in the reservoir. Perturbation moves down as stated; the 85 C row is unchanged, as the finder said.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s1-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": "cusum_release_day=33 snapshot_due_day=37 curve_step_day=31 (ahead 30); 369/373/366 (ahead 365); null 4/8/2; --clamp 4/8/2",
+    "metric_definition": "Per seam, first day index (1-day ticks, Europe/Stockholm across DST) at which the production call acts, for a stored stamp A days ahead of the corrected clock.",
+    "method": "Re-ran clock_jump.py --ahead 0/30/365 and --ahead 30 --clamp.",
+    "attacks": "Exact reproduction; perturbation restores the null values. Trigger is a large forward clock error later corrected, so low is appropriate.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s2-01",
+    "vote": "refute",
+    "severity": "low",
+    "value": "core_wedged=0 of 200 under HA-core response shaping (raw_wedged=35 of 200 in the same run; 27 rejected inside the service)",
+    "metric_definition": "Of the finder's 200 seeded get_forecasts payloads (seed 9), after the shaping HA core's weather service applies (dict(row) per row, [] for no forecast, raise otherwise), count whose second cycle with a healthy forecast restored still raises.",
+    "method": "Re-ran parsers.py (35/200; seed 11: 30; row_filter 0). Own forecast_wedge.py: mechanism confirmed in the stub, 36/36 later cycles raise (null 0, perturb 0). Own forecast_core_shape.py: the finder's generator through core-style shaping gives 0/200.",
+    "attacks": "Reach: all 35 wedging payloads are non-dict rows (27) or non-list forecasts (8), and the field mutations wedge 0. HA core builds the get_forecasts response itself with dict(_forecast_entry) (homeassistant 2025.4.4 components/weather/__init__.py:703, :1027), so the integration can never receive them. The ordering defect is real but stub-only. If kept as defence in depth: low.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s2-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "capped_cases=3 of 10 (wind 1e308/1e12/1e20 at 60.07 s, ratio 24.8; healthy 2.42 s); temp +-1e308 status failed with cycle_ok=True; --perturb clip: 0 of 10 (load1 3.10/2.66, thread_factor 1.000)",
+    "metric_definition": "Per poisoned-forecast case, whether one real cycle's solve is still running at the 60 s cap, and its plan status; count of capped cases.",
+    "method": "Re-ran solve_poison.py --cap 60, and with --perturb clip, sequentially under the load shown.",
+    "attacks": "Contention: 25x the healthy wall under the same load, so not a load artefact. No solve timeout exists (the only coordinator timeout is worker.wait(timeout=2)). Reach: core float-converts forecast values without bounds, so a buggy source passes through; the trigger is improbable, so medium.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s2-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "thermal_learning.huge_leaf_wedges=6 of 58 (other stores 0); --perturb 0; null 0 raises in 1400 mutants",
+    "metric_definition": "Number of (numeric store leaf, huge value in {1e20,1e308}) pairs, loaded through orjson and the real loader, whose second update cycle still raises.",
+    "method": "Re-ran store_fuzz.py --sweep-huge, --sweep-huge --perturb learning_view_float, and --n 200 --seed 9; independent orjson/numpy check.",
+    "attacks": "Checked independently: orjson.loads gives float 1e20; np.isfinite(int(1e20)) raises TypeError; orjson.dumps(int(1e20)) raises 'Integer exceeds 64-bit range', so the store is never overwritten. Corruption-only trigger, so medium.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s2-04",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "silent_sites=5 of 5 (each reached 3/3, debug_only 3); --perturb debug_to_warning: 0 of 5",
+    "metric_definition": "Per guarded callee raising a persistent TypeError, count of WARNING+ log records naming it plus repair issues over 3 cycles; silent_sites = reached sites with 0.",
+    "method": "Re-ran guards.py and its perturbation; read the five guard sites (coordinator.py:4659-4666, 4679-4682, 5084-5094).",
+    "attacks": "The perturbation is near-tautological and the finding has no null control. Consequence is independently demonstrated: D1-s1-01 drives a reachable persistent TypeError through the heartbeat guard every cycle, invisible at the default level.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s2-05",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "stop_latency_ratio=0.931 (min 0.856, max 1.008; solve 1.873 s, idle 0.008 s; load1 2.70, thread_factor 1.000); --perturb unlocked_reap 0.005",
+    "metric_definition": "Wall time for the stop listener to return when fired 0.1 s into a real coordinator solve, divided by that solve's own duration measured in the same session.",
+    "method": "Re-ran worker_stop.py --reps 5 and --perturb unlocked_reap; concurrent_stress_processes=0.",
+    "attacks": "Within the claimed 0.928 +-0.1; the ratio is load-robust, absolutes provisional. Code read confirms _stop -> _shutdown_process_pool takes _PROCESS_LOCK (coordinator.py:1047), held by _run_in_process for the full transport (:1094).",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s3-01",
+    "vote": "verify",
+    "severity": "high",
+    "value": "failed_cycles=6 of 6 (both orders), service_raised=1, solves_failed=2 of 2; --aware-input 0; --perturb 0",
+    "metric_definition": "Of 6 consecutive cycles after set_away(active, tz-less return_time), cycles in which _resolve_away raises; plus async_run_optimization calls returning solve_failed (of 2).",
+    "method": "Re-ran away_naive_return.py, --aware-input, --perturb.",
+    "attacks": "Reach through the product's own UI: card.js:4331-4333 sends the datetime-local value verbatim; the schema is cv.string (services.py:133); coordinator.async_set_away calls expire_override (coordinator.py:9063) before away._apply_return's naive normalisation (away.py:462). High is earned.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s3-02",
+    "vote": "verify",
+    "severity": "high",
+    "value": "live_registrations_after_unload=2, writes_after_unload=2 (finder's lazy arm); own eager-start arm 0; eager with the arbiter lock held mid-write 2 (null 0); finder's perturbation in that arm still 2",
+    "metric_definition": "Arbiter timers plus state listeners whose closure holds the coordinator, counted after async_shutdown returned and all tasks drained; plus pump service calls made after the unload.",
+    "method": "Re-ran arbiter_unload.py default, --null, --perturb. Own arbiter_eager.py with arms lazy, eager (asyncio.Task eager_start=True, the HA default per 2025.4.4 core.py:797), eager_lock and null.",
+    "attacks": "Reach: under real HA's eager task start the finder's exact interleaving does not leak (0). The leak survives when a tick's apply holds the arbiter lock mid-write as the state event arrives (2 live). The finder's apply-entry guard does not fix that arm (still 2); the fix needs a released check after the lock is acquired, or in _listen. The narrower window is noted, but the consequence (actuation after unload) keeps it at high.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s3-03",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "pump_duty_repeat_fail=8 of 200 (--naive-clock; 25 on the aware clock incl. 17 naive_dt); own per-cell: 8 of 18 non-numeric cells, 0 of 6 numeric; --perturb 0",
+    "metric_definition": "Seeded mutants of the healthy pump_duty payload (after the real loader) whose second pump_arbiter.apply call still raises.",
+    "method": "Re-ran s3/store_fuzz.py --naive-clock, default, --perturb, --naive-clock --perturb; own pump_setpoint_types.py (slot x value cells, aware clock, perturb isolating the non-numeric drop).",
+    "attacks": "Isolated the non-numeric cause from the finder's combined perturbation: str (including the numeric string '40'), list and dict on both set-point slots raise; mode slot, None and bool do not. pump_arbiter.apply is unguarded at the top of _apply_action (coordinator.py:6676), so primary actuation stops too. Corruption-only trigger, so medium.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s3-04",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "max_published_deviation=5.00 C (16.0 vs 21.0), after_solve 0.00; --null 0.00; --perturb 0.00",
+    "metric_definition": "Maximum |climate.target_temperature - configured target| over the listener state writes made while the solve is awaited.",
+    "method": "Re-ran climate_midsolve.py default, --null, --perturb.",
+    "attacks": "Method: the mid-solve write is injected by calling _async_peak_guard_transition inside a wrapped _await_optimize, not driven by a real event. It is reachable in real HA because any event-driven async_update_listeners during the seconds-to-minutes executor await publishes it. Transient wrong value, so medium.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s3-05",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "jump24_live_hours=26.00 h (jump0 2.00, jump1 3.00, jump6 8.00, restore_2099 72.00 = cap); --perturb 2.00/0/0/0/0",
+    "metric_definition": "Hours, sampled every 15 min to a 72 h cap, for which boost.apply still sets action['boost_space'] after the clock step or restore.",
+    "method": "Re-ran boost_unbounded.py and --perturb.",
+    "attacks": "Exact reproduction; null (jump0) is 2.0 h as designed. Triggers are a backward clock step or a corrupt store; manual boost-off is a workaround, so medium rather than high.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s3-06",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "stuck_after_day=10 of 200 (seed 9: huge_ratio 3, neg_key 7); seed 3: 9 of 200; --perturb 0; healthy_stuck 0",
+    "metric_definition": "Mutants whose clipped recommend(3 kW) after 96 folds of truthful plant kW (0.04 kW/Hz) gives plant power below 50 % of the target.",
+    "method": "Re-ran freq_map_store.py seed 9 and seed 3, each with and without --perturb.",
+    "attacks": "Seed leave-one-out holds (10 vs 9); perturbation moves to 0; healthy control 0. Corruption-only trigger, so medium.",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ],
   "D1-2": [
    {
     "id": "D1-s4-01",
