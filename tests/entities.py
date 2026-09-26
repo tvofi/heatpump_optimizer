@@ -8320,25 +8320,6 @@ R.check(
     _pkw == [4.8, 2.5, 2.0, None],
     repr(_pkw),
 )
-# ... and dhw_power_kw is the tank's share of it, which the card's recorded
-# past needs to split a step the tank SHARES with the house (a space mode
-# with DHW power) the way the plan's own slot series do (tvofi, 2026-09-26).
-def _action_dhw_kw(action):
-    return sensor.HeatPumpActionSensor(
-        FakeCoordinator({**DATA, "current_action": action}), clim._entry
-    ).extra_state_attributes.get("dhw_power_kw")
-
-
-_dkw = [
-    _action_dhw_kw({"power": 0.0, "dhw_power": 4.8, "mode": "hot_water"}),
-    _action_dhw_kw({"power": 2.0, "dhw_power": 0.5, "mode": "normal"}),
-    _action_dhw_kw({"power": 2.0, "mode": "normal"}),
-]
-R.check(
-    "Heat Pump Action dhw_power_kw is the tank's share, None when unplanned",
-    _dkw == [4.8, 0.5, None],
-    repr(_dkw),
-)
 # The same step's whole ask on the three other entities that publish it:
 # Recommended Power (README: "the electrical power the current plan step asks
 # for"), the climate's recommended_power_kw, and the recommended_power Measured
@@ -9721,9 +9702,9 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "recommended_hz", "reported_hz", "waiting_for"
     }),
     "HeatPumpActionSensor": frozenset({
-        "dhw_power_kw", "ecl110_displace", "heat_pump_on",
-        "lower_floor_setpoint", "power_kw", "power_normalized", "price",
-        "setpoint", "solar_gain_kw", "upper_floor_setpoint"
+        "ecl110_displace", "heat_pump_on", "lower_floor_setpoint", "power_kw",
+        "power_normalized", "price", "setpoint", "solar_gain_kw",
+        "upper_floor_setpoint"
     }),
     "HeatPumpOptimizerClimate": frozenset({
         "current_price", "dhw_enabled", "dhw_heating_active",

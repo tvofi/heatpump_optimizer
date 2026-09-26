@@ -4934,31 +4934,21 @@ class HistorySource {
     for (const [field, , source] of HISTORY_FIELDS) {
       if (source) add(field, per[source], (r) => num(r.state));
     }
-    // The recorded past's slot bars, split the way the plan's are: a
-    // heating row's power_kw is the whole commanded draw, of which
-    // dhw_power_kw is the tank's share where the sensor records it (a step
-    // the tank shares with the house). Without that attribute the mode
-    // decides: hot_water is the tank's run, every other heating mode the
-    // house's. A mode that is not heating draws zero on both. A row
-    // without power_kw draws nothing -- an install that records no power
-    // has no height to show, and a zero there would be invented -- while
-    // an unavailable row is still the hole that ends a bar.
+    // The recorded past's slot bars, split the way the plan's are (bug 7):
+    // hot_water is the tank's run, every other heating mode the house's,
+    // each at the row's power_kw; a mode that is not heating draws zero on
+    // both. power_kw is the whole commanded draw, so a step that ran both
+    // circuits under a space mode lands on the space series entire. A row
+    // without the attribute draws nothing -- an install that records no
+    // power has no height to show, and a zero there would be invented --
+    // while an unavailable row is still the hole that ends a bar.
     const powered = (per.action || []).filter(
       (r) => missing(r) || (r.attributes || {}).power_kw !== undefined
     );
-    const dhwKw = (r) => {
-      if (!ACTION_HEATING_MODES.has(r.state)) return 0;
-      const a = r.attributes || {};
-      if (a.dhw_power_kw !== undefined) return num(a.dhw_power_kw);
-      return r.state === "hot_water" ? num(a.power_kw) : 0;
-    };
-    add("dhw_power", powered, dhwKw);
-    add("space_power", powered, (r) => {
-      if (!ACTION_HEATING_MODES.has(r.state)) return 0;
-      const kw = num(r.attributes.power_kw);
-      const dhw = dhwKw(r);
-      return kw === null || dhw === null ? null : kw - dhw;
-    });
+    const kwIf = (r, on) => (on ? num(r.attributes.power_kw) : 0);
+    add("space_power", powered, (r) =>
+      kwIf(r, ACTION_HEATING_MODES.has(r.state) && r.state !== "hot_water"));
+    add("dhw_power", powered, (r) => kwIf(r, r.state === "hot_water"));
     // STATE-first: the mode log is the actioned record proper, and it does
     // not care whether the power attribute exists. The recorder writes one
     // row per state OR attribute change, so the same mode arrives many

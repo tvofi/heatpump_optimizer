@@ -382,9 +382,7 @@ export const flushHistory = async () => {
  */
 const MODE_CYCLE = ["off", "eco", "hot_water", "pre_heat", "normal"];
 const MODE_KW = { eco: 1.4, hot_water: 2.8, pre_heat: 3.4, normal: 2.4 };
-//   - with `split: true`, the action rows also carry `dhw_power_kw` (the
-//     tank's share of power_kw), including shared steps under a space mode.
-export function realisticHistory(endMs, { power = true, split = false, spanMs = 48 * HOUR } = {}) {
+export function realisticHistory(endMs, { power = true, spanMs = 48 * HOUR } = {}) {
   const entries = {
     [HISTORY_IDS.indoor]: [],
     [HISTORY_IDS.outdoor]: [],
@@ -435,13 +433,9 @@ export function realisticHistory(endMs, { power = true, split = false, spanMs = 
       // Attribute-only updates: state unchanged, power_kw republished --
       // and MOVING, as the commanded draw does from one solve to the next.
       const kw = mode === "off" ? 0 : MODE_KW[mode] + 0.1 * (phase % 4);
-      const attributes = { power_kw: kw, heat_pump_on: mode !== "off" };
-      if (split) {
-        // Every third row of a space mode shares its step with the tank.
-        attributes.dhw_power_kw = mode === "hot_water" ? kw
-          : mode !== "off" && phase % 3 === 0 ? 0.8 : 0;
-      }
-      entries[HISTORY_IDS.action].push({ t, stamp, state: mode, attributes });
+      entries[HISTORY_IDS.action].push({
+        t, stamp, state: mode,
+        attributes: { power_kw: kw, heat_pump_on: mode !== "off" } });
     } else if (phase % 17 === 0) {
       // No power attribute on this install: rows exist only where the
       // MODE changed, which is all the state-first series may depend on.

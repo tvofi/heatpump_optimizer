@@ -8507,11 +8507,11 @@ const STOCK_THEMES = {
     await flushHistory();
     const CH = 12 * HOUR;
     const b = (Math.floor(FROZEN / CH) + 1) * CH; // the chunk's own end
-    const before = (c.histSource.log.room || [])
+    const before = ((c.histSource.log || {}).room || [])
       .filter((p) => p.t > FROZEN && p.t < b).length;
     c.histSource.ensure(FROZEN - HOUR, FROZEN + 13 * HOUR);
     await flushHistory();
-    const after = (c.histSource.log.room || [])
+    const after = ((c.histSource.log || {}).room || [])
       .filter((p) => p.t > FROZEN && p.t < b).length;
     check("a stale live-edge chunk is fetched again, filling the seam hole",
       before === 0 && after > 0, `${before} -> ${after} points in the seam stretch`);
@@ -8659,16 +8659,14 @@ const STOCK_THEMES = {
 
 // --- The recorded past looks like the plan (tvofi, 2026-09-26) --------------
 // "The goal should be that the history should look as similar to the future
-// plan as possible." Four causes made it look different, each pinned here
+// plan as possible." Three causes made it look different, each pinned here
 // against the rig's recorder stub:
 //   - the price was never asked for on an install older than #1227, whose
 //     price sensor kept its pre-rename registry id;
 //   - a recorder state is written only on CHANGE, so a stable stretch left
 //     hours between samples, and the sample holding the value into the
 //     window's left edge was cut as out-of-window: traces started late;
-//   - the tank temperature and the lower floor had no past at all;
-//   - a shared step (tank and house in one step, under a space mode) drew
-//     all its power as space heating.
+//   - the tank temperature and the lower floor had no past at all.
 // The fix puts every recorded field on the plan's own step grid: a value
 // holds until the next recorded state (the recorder's semantics), power is
 // the step's time-weighted mean (the energy a plan bar means), and a step
@@ -8821,30 +8819,6 @@ const STOCK_THEMES = {
       past(c, "space_slots", "space_power").some((p) => p.v > 0) &&
         past(c, "dhw_slots", "dhw_power").some((p) => p.v > 0) && miss.length === 0,
       `${miss.length} step(s) off: ${miss.slice(0, 3).join(", ")}`);
-  }
-  {
-    // Root cause 4: a shared step. With dhw_power_kw recorded, the tank's
-    // share draws on the DHW series and the rest on the space series.
-    const es = realisticHistory(FROZEN, { split: true });
-    const s = await deep(es);
-    const rows = es[HISTORY_IDS.action];
-    const dhwOf = (r) => (heating(r) ? r.attributes.dhw_power_kw : 0);
-    const miss = [];
-    for (const [key, field, share] of [
-      ["dhw_slots", "dhw_power", dhwOf],
-      ["space_slots", "space_power", (r) => (heating(r) ? kwOf(r) - dhwOf(r) : 0)],
-    ]) {
-      for (const p of past(s.c, key, field)) {
-        const want = meanOver(rows, p.t, share);
-        if (want === null || Math.abs(p.v - want) > 1e-9) miss.push(`${field}@${p.t}`);
-      }
-    }
-    const shared = past(s.c, "dhw_slots", "dhw_power").filter((p) =>
-      rows.some((r) => r.t >= p.t && r.t < p.t + STEP && heating(r) &&
-        r.state !== "hot_water" && r.attributes.dhw_power_kw > 0));
-    check("a shared step draws the tank's recorded share on the DHW series",
-      shared.some((p) => p.v > 0) && miss.length === 0,
-      `${shared.length} shared step(s); ${miss.length} off: ${miss.slice(0, 3).join(", ")}`);
   }
   {
     // A hole is a step the entity was unavailable for throughout; a blip

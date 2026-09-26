@@ -246,10 +246,9 @@ on the plan's own 15-minute steps, in the same style and on the same axes. A
 recorded value holds until the sensor next changes, so a stable stretch is a
 continuous line rather than a gap; the line breaks only where a sensor was
 unavailable for at least a whole step. The heating slots draw from the action
-sensor's `power_kw`, each step the average of what was commanded across it,
-split between space heating and hot water by its `dhw_power_kw` attribute
-(hot-water mode alone decides, on history recorded before that attribute
-existed). The **Actioned power** series is a band along the base of the plot
+sensor's `power_kw`, each step the average of what was commanded across it:
+on the hot-water series while the pump was in hot-water mode, on the
+space-heating series in every other heating mode. The **Actioned power** series is a band along the base of the plot
 for the hours the pump was executing heating, drawn from the action sensor's
 own state history (the mode is the state, so every install has it) — the
 power bars are an overlay, never a prerequisite. Hovering the past names the
