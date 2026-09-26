@@ -1,0 +1,85 @@
+{
+ "box": "G1-V1",
+ "lens": 1,
+ "votes": {
+  "D1-2": [
+   {
+    "id": "D1-s4-01",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "finder harness 53 stuck / 42 pinned / nan bucket 0.5500 reproduced; through production store._sanitize (QuarantiningStore): 30 stuck / 23 pinned / nan bucket 1.0000; own: finite out-of-range cells recover in 201 (1.01) to 6932 (1e308) folds, non-finite in 0 via boundary",
+    "metric_definition": "Count of mutants/bucket cells whose loaded duty still derates the bucket below a healthy one after N zero-duty folds, with and without store._sanitize before DefrostDerate.from_dict",
+    "method": "Re-ran store_fuzz.py (+--perturb, null control); re-ran it with from_dict wrapped as from_dict(_sanitize(data)) (store_fuzz_via_boundary.py); own 12-scalar x 12-bucket folds-to-recover harness (indep_d1_2.py)",
+    "attacks": "Reach: QuarantiningStore scrubs non-finite leaves, including the strings 'nan'/'inf', to None, so the headline non-finite pin cannot happen in real HA and becomes the D1-s4-03 reset path. Remaining reachable defect: an unclamped finite duty >1 loaded silently, recovering only after 200-6900 folds. 'Never recovers' is false for finite values. Negative cells counted as stuck derate to 1.0, the same as healthy. Perturbation moves to 0 (valid). Null control 0.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s4-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "_solve_failures=0, issues=0, failed plans published 3/3 (finder harness, both configs); own injection at scipy minimize: optimize returns status 'failed (...)' without raising (space-only and DHW), coordinator 0 failures / 0 issues / 4 of 4 failed plans published after 4 cycles",
+    "metric_definition": "Coordinator _solve_failures and solve_failures repair-issue count after k cycles in which every L-BFGS-B call raises",
+    "method": "Re-ran solve_guard.py and --perturb; independent fault injected one level lower (optimizer-module minimize) through optimize directly and through async_run_optimization with the in-process transport",
+    "attacks": "Perturbation 0->3, issues 0->1 (valid). Null control (fault outside the guard) 3/1 reproduced. Code read confirms _multi_start_minimize raises only when all starts fail, and the guard swallows that raise. The fallback plan is a heuristic, not harmful, and an ERROR is logged, but the counter and issue built for this condition never fire, so medium stands.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s4-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": "226/250 flagged migrated, 2712 buckets discarded (finder); own: 96/96 one-bad-cell v2 payloads (through store._sanitize) migrated=True with the pre-v5.3.0 INFO line, 1152/1152 measured buckets discarded; controls healthy v2 = 0, true v1 = 1",
+    "metric_definition": "Of v2 payloads with one malformed duty/duty_counts cell, count loaded with migrated=True and the upgrade log line",
+    "method": "Re-ran store_fuzz.py and --perturb-label; own enumeration of 4 corruptions x 2 keys x 12 buckets through the production store boundary",
+    "attacks": "Perturbation 226->0 (valid). The store boundary makes this path more reachable, since every non-finite leaf lands here. The consequence is a misleading diagnostic plus loss of measured duty, so low is earned.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s5-01",
+    "vote": "weaken",
+    "severity": "low",
+    "value": "finder: reported 7/12, future 6/6, control 0/12 reproduced; own through the real consumers: dhw_inlet 4/10, indoor_humidity 5/10 divergent cells",
+    "metric_definition": "Cells where the value delivered through age_of (None vs number) disagrees with InputReader._age_minutes on the same State at the same limit",
+    "method": "Re-ran age_of_divergence.py and --perturb; own harness driving coordinator._dhw_inlet_c and _indoor_humidity_value at 1440/120 min against the reader",
+    "attacks": "Perturbation to 0 (valid); null control 0. Reach confirmed (min HA 2025.2 has last_reported). Consequence: a steady live sensor degrades to the configured no-sensor fallback (seasonal inlet model, no mould floor), which the code calls the fail-safe direction. The future stamp keeps a frozen value alive. Real, but consequence is at most low.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s5-02",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "seed 9: price 11 (9 persist), peak 8 (2 persist); seeds 1,2,3,4,5,9: price 8,10,8,9,13,11 (min 8), peak 2,5,3,0,5,8 (min 0); own through store._sanitize: shape bin 0 or -2 gives 1/24 bad tail steps silently; stored peak -2 gives threshold_kw -2.000 kW, [-1] gives billed -1.000 kW, 0 warnings",
+    "metric_definition": "Mutants whose loaded state makes the next cycle deliver a tail price <=0, non-finite or >1000x mean, or a negative threshold/billed peak, with no WARNING",
+    "method": "Re-ran store_domain_fuzz.py --n 300 --seed 9, --perturb and the default control; leave-one-out over 6 seeds; own hand-built payloads through the production store boundary",
+    "attacks": "Perturbation to 0/0 (valid); controls 0. The quarantine does not touch finite out-of-domain values, so the reach attack fails. The peak arm is seed-sensitive (0 at seed 4, mostly heals within one cycle); the price arm is robust (min 8).",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s5-03",
+    "vote": "verify",
+    "severity": "low",
+    "value": "entity/tibber/open_meteo huge_int rows 0/0/0 (controls 24/24/72), perturb 24/24/72; own: _raw_value 0/24 and _parse_block 0/24 with one 10**400 row, '1e999' control 24/24",
+    "metric_definition": "Rows delivered for valid rows plus one huge-integer row; a raise counts as 0",
+    "method": "Re-ran price_huge_int.py and --perturb; own direct calls of _raw_value and _parse_block",
+    "attacks": "Perturbation moves up (valid); null control 24/24/72. Reach implausible (needs a 309+ digit integer upstream), so low.",
+    "class": null,
+    "seam_rule_enumerates": null
+   },
+   {
+    "id": "D1-s5-04",
+    "vote": "verify",
+    "severity": "low",
+    "value": "finder: 1 min 192, 5 min 192, 30 min 94, healthy 0 of 192; own offsets: 1 min 192, 7 min 192, 20 min 143, 45 min 143, healthy 0 of 192",
+    "metric_definition": "Quarter-hour steps of 48 h for which irradiance_for returns None after one stray stamp in an hourly series",
+    "method": "Re-ran open_meteo_resolution.py and --perturb; own harness via _parse_block and OpenMeteoSolar.irradiance_for at different stray offsets",
+    "attacks": "Perturbation (median gap) to 0 (valid); null 0. Holds at every sub-hourly offset. Consequence is loss of solar data, not a wrong value, so low.",
+    "class": null,
+    "seam_rule_enumerates": null
+   }
+  ]
+ }
+}
