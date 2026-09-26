@@ -5926,8 +5926,17 @@ function cmdHooks(settingsPath) {
   for (const [event, groups] of Object.entries(parsed.hooks || {})) {
     for (const g of groups || []) {
       if (event === 'PreToolUse') {
-        let fires = false
-        try { fires = EDIT_TOOLS.some((t) => new RegExp(`^(?:${g.matcher})$`).test(t)) } catch { fires = false }
+        // A missing matcher, `""` and `"*"` are Claude Code's own "match every
+        // tool" spellings (docs/settings reference), not a pattern to compile
+        // -- feeding `"*"` to `RegExp` throws (an unquantified `*` at the
+        // start), which this used to read as MATCHER BLIND on a group that in
+        // fact fires on every edit. Claude Code itself tests a matcher
+        // unanchored, so this does too rather than requiring a whole-string
+        // match a real config was never written to satisfy.
+        let fires = g.matcher == null || g.matcher === '' || g.matcher === '*'
+        if (!fires) {
+          try { fires = EDIT_TOOLS.some((t) => new RegExp(g.matcher).test(t)) } catch { fires = false }
+        }
         if (!fires) rows.push({ event, script: '(matcher)', verdict: 'MATCHER BLIND', why: `matcher ${JSON.stringify(g.matcher)} cannot fire on Edit, Write, MultiEdit or NotebookEdit, so no hook in this group ever sees an edit` })
       }
       for (const h of g.hooks || []) {
