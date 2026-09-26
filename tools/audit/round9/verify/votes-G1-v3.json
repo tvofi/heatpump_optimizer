@@ -750,6 +750,43 @@
     "class": "I1",
     "seam_rule_enumerates": "all: same storeguards.py enumeration"
    }
+  ],
+  "lc": [
+   {
+    "id": "D1-s2-91",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "finder harness re-run 5/5 raises, 0/5 scored after fold (null 0/5, 5/5); own fold-patch harness 5/5 propagate, 0/5 scored (null 0/5, 5/5); real HA 2026.2.3 real coordinator 5/5 raises, 0/5 scored (load1 0.08, thread_factor 1.005)",
+    "metric_definition": "of 5 real coord._record_accuracy() calls, count whose fold exception escapes uncaught, and count where score_lead_predictions still runs that cycle after the fold",
+    "method": "re-ran lc_flow_bias_containment.py (stub venv, CPython 3.14.0rc2); own D1-s2-91_containment_via_fold_patch.py patches module-level _fold_flow_lift to raise and drives the real _record_accuracy; D1-s2-91_realha_reach.py on a real HeatPumpOptimizerCoordinator over a bare real HomeAssistant(), no hastub",
+    "attacks": [
+     "re-run exact",
+     "independent trigger (patched fold, not samples=-1) gives the same result, so the gap is the call shape",
+     "real HA reach: 5/5, identical to the stub",
+     "source: _command_frequency and _async_drive_pumps have local try/except; _record_accuracy has none and falls to the outer except -> UpdateFailed",
+     "trigger: samples<0 is rejected only in FlowCurveBias.from_dict; observe() never validates, so reach needs a corrupted or rolled-back store; once reached it repeats every cycle",
+     "severity: a loud, persistent whole-cycle failure with no self-recovery, bounded to store corruption: medium"
+    ],
+    "class": "P2 (box owner's correction of the sub-seat's 'new'): a per-cycle fence present on sibling calls (_command_frequency, _async_drive_pumps) and missing on _record_accuracy; same phenomenon as leads D1-s2-51 (unfenced cycle-path calls), which this box also classed P2",
+    "seam_rule_enumerates": "all: the greps return the 4 unfenced outer per-cycle calls (coordinator.py:4671-4674: _record_accuracy, _track_realised_peak, _async_save_accuracy, _async_save_energy_totals); every internal fold in _record_accuracy is likewise unfenced"
+   },
+   {
+    "id": "D3-s1-91",
+    "vote": "verify",
+    "severity": "medium",
+    "value": "finder harness re-run exact: :8384 differs 0 with HASTUB_TZ unset, 1 (TypeError) with HASTUB_TZ=Europe/Stockholm; :586/:588 differ at both. Real HA 2026.2.3 unmodified clock: now() aware; guard on returns 0.0, guard off raises TypeError (load1 0.07, thread_factor 1.0)",
+    "metric_definition": "GUARD_ON vs GUARD_OFF divergence of _immersion_dhw_margin with one naive stored immersion event, under the gate-default stub clock, the HASTUB_TZ stub clock, and real HA's own dt_util.now()",
+    "method": "re-ran lc_tz_probe_coordinator.py; own D3-s1-91_realha_reach.py on real HA with the guard toggled in memory. Quiet window not run (tvofi rule); no pre-screen, pool or full gate",
+    "attacks": [
+     "re-run exact on all 8 RESULT lines",
+     "real HA reach: the guard is live on every real install because now() is always aware; the gap is only the stub's naive default clock",
+     "null: HASTUB_TZ unset arm gives 0 divergence",
+     "precondition: a naive stored immersion event (store restored verbatim, coordinator.py:2945), a migration edge case; fails loudly",
+     "contention: load1 <=0.07"
+    ],
+    "class": "I1",
+    "seam_rule_enumerates": "partial: the first grep returns 586, 588, 6331, 8112, 8384; only 8112/8384 are gated on now.tzinfo and dead under the gate's naive clock. 6331 is unconditional and 586/588 diverge at UTC too, so the grep overcounts by 3 and needs the second grep plus driving to separate them"
+   }
   ]
  }
 }
