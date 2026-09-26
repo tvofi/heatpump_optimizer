@@ -1,8 +1,8 @@
 """Minimal stand-in for ``homeassistant.util.dt``.
 
-``now``/``utcnow`` are overridable so tests can freeze the clock. Both are
-aware, as upstream's are: ``now`` in ``DEFAULT_TIME_ZONE`` (UTC when none is
-configured, upstream's own default), ``utcnow`` in UTC. The golden
+``now``/``utcnow`` are overridable so tests can freeze the clock. ``utcnow``
+is aware in UTC, as upstream's is; ``now`` is aware in ``DEFAULT_TIME_ZONE``
+when one is configured and naive when none is (upstream: aware in UTC). The golden
 harness needs that: the coordinator publishes time-derived values such as
 "hours until the next hot water window", and without a fixed clock every
 recorded fixture would differ from every replay by however long the two runs
@@ -42,21 +42,33 @@ def freeze(when: datetime | None) -> None:
 
 
 def now():
-    # Aware always, as upstream: ``datetime.now(time_zone or
-    # DEFAULT_TIME_ZONE)``, whose default zone is UTC (round-9 D1-s1-52: a
-    # naive default inverted every naive-vs-aware verdict). A naive freeze is
-    # read as wall time in the zone, the way ``as_local`` reads one.
-    zone = DEFAULT_TIME_ZONE or timezone.utc
+    # A frozen value is normalised on the way out: an aware one is converted
+    # into the configured zone (UTC when none is, upstream's default zone),
+    # and a naive one is read as wall time in the zone, the way ``as_local``
+    # reads one (round-9 D14-s4-02: a fixed-offset freeze was handed out as
+    # a ``+01:00`` datetime upstream never returns).
+    #
+    # Still naive when no zone is configured, where upstream is aware in UTC
+    # (round-9 D1-s1-52, declared DIVERGENT in tests/ha_contract.py): making
+    # it aware reaches production's handling of a naive stored stamp and the
+    # fixtures that seed one, so it is its own pull request.
     if _FROZEN is not None:
-        if _FROZEN.tzinfo is None:
-            return _FROZEN.replace(tzinfo=zone)
-        return _FROZEN.astimezone(zone)
-    return datetime.now(zone)
+        if _FROZEN.tzinfo is not None:
+            return _FROZEN.astimezone(DEFAULT_TIME_ZONE or timezone.utc)
+        if DEFAULT_TIME_ZONE is not None:
+            return _FROZEN.replace(tzinfo=DEFAULT_TIME_ZONE)
+        return _FROZEN
+    if DEFAULT_TIME_ZONE is not None:
+        return datetime.now(DEFAULT_TIME_ZONE)
+    return datetime.now()
 
 
 def utcnow():
     if _FROZEN is not None:
-        return now().astimezone(timezone.utc)
+        frozen = _FROZEN
+        if frozen.tzinfo is None:
+            frozen = frozen.replace(tzinfo=DEFAULT_TIME_ZONE or timezone.utc)
+        return frozen.astimezone(timezone.utc)
     return datetime.now(timezone.utc)
 
 

@@ -678,9 +678,13 @@ INVENTORY: dict[str, Entry] = {
         "a test-facing clock pin with no upstream counterpart; the clocks "
         "normalise what it pins, and HOOKS re-runs their contracts under it"
     ),
-    "homeassistant.util.dt.now": F(
-        "returns an aware datetime in DEFAULT_TIME_ZONE, UTC when none is "
-        "configured, as upstream's default zone is"
+    "homeassistant.util.dt.now": D(
+        "aware in DEFAULT_TIME_ZONE when one is configured, and a frozen value "
+        "is normalised into it; naive when none is, where upstream is aware in "
+        "UTC (round-9 D1-s1-52). Split from F10.1: the aware default reaches "
+        "production's handling of naive stored stamps (D1-s3-01) and the "
+        "features.py fixtures that seed them",
+        issue="#1649",
     ),
     "homeassistant.util.dt.utcnow": F("returns an aware datetime in UTC, as upstream"),
     "homeassistant.util.dt.parse_datetime": F(
@@ -2036,17 +2040,39 @@ def _dt_utcnow():
     cite="util/dt.py -- `return dt.datetime.now(time_zone or DEFAULT_TIME_ZONE)`",
 )
 def _dt_now():
-    from datetime import timezone
+    from zoneinfo import ZoneInfo
 
     from homeassistant.util import dt as dt_util
 
-    got = dt_util.now()
-    # Aware whatever the zone: upstream's DEFAULT_TIME_ZONE is UTC until an
-    # instance configures one, so there is no naive case to skip (round-9
-    # D1-s1-52: the old guard made this contract vacuous on the stub).
-    zone = dt_util.DEFAULT_TIME_ZONE or timezone.utc
-    assert got.tzinfo is not None
+    # The zone is set here rather than read from the run, so the statement
+    # holds on every provider: the old form asserted only `if` a zone was
+    # configured, and the stub configures none, so it asserted nothing
+    # (round-9 D1-s1-52). Both providers read DEFAULT_TIME_ZONE at call time.
+    saved = dt_util.DEFAULT_TIME_ZONE
+    zone = ZoneInfo("Europe/Stockholm")
+    dt_util.DEFAULT_TIME_ZONE = zone
+    try:
+        got = dt_util.now()
+    finally:
+        dt_util.DEFAULT_TIME_ZONE = saved
+    assert got.tzinfo is zone
     assert got.utcoffset() == zone.utcoffset(got.replace(tzinfo=None))
+
+
+@contract(
+    "homeassistant.util.dt.now",
+    "returns an aware datetime when no zone has been configured",
+    cite="util/dt.py -- `DEFAULT_TIME_ZONE: dt.tzinfo = dt.UTC` at module level, "
+    "read by now()",
+    expect="real",
+)
+def _dt_now_default_aware():
+    import os
+
+    from homeassistant.util import dt as dt_util
+
+    assert os.environ.get("HASTUB_TZ") is None, "HASTUB_TZ is set: not the default case"
+    assert dt_util.now().tzinfo is not None
 
 
 @contract(
