@@ -48752,12 +48752,12 @@ R.check(
 )
 
 # D2-s2-81 (P3): averaging the two zones' penalties also halved each zone's
-# price for a kelvin under min_temp, the quadratic and the _COMFORT_FLOOR_L1
-# term, so the solver bought each zone's floor back at half the single-zone
-# price. Each zone's undershoot is now priced as a single-zone room's; the
-# overshoot stays averaged. Arm: one zone d under the floor, the other at the
-# target, against the single-zone room d under -- in the scalar and the batch
-# twin. Null arm: the overshoot keeps the averaged (half) price.
+# _COMFORT_FLOOR_L1 price for a kelvin under min_temp, so the solver bought each
+# zone's floor back at half the single-zone price. Each zone's linear floor
+# price is now a single-zone room's. Arm: one zone d under the floor, the other
+# at the target, against the single-zone room d under -- the slope at the
+# floor, in the scalar and the batch twin. Null arms: the quadratic part and
+# the overshoot keep the averaged (half) price.
 def _f21_penalties(two_zone, under, over=0.0):
     opt = _f21_Opt(_f21_Model(_f21_Params(two_zone_enabled=two_zone)), _f21_Cfg())
     n = 4
@@ -48765,7 +48765,7 @@ def _f21_penalties(two_zone, under, over=0.0):
     hi_b = np.full(n, 23.0)
     tgt = np.full(n, 21.5)
     band = np.full(n, 1.5)
-    hit = np.full(n + 1, 20.0 - under + over + (3.0 if over else 0.0))
+    hit = np.full(n + 1, 20.0 - under + (3.0 + over if over else 0.0))
     ok = np.full(n + 1, 21.5)
     room, upper, lower = (hit, hit, ok) if two_zone else (hit, ok, ok)
     scalar = opt._comfort_terms(room, upper, lower, tgt, lo_b, hi_b, band)[0]
@@ -48775,22 +48775,35 @@ def _f21_penalties(two_zone, under, over=0.0):
     return scalar, batch
 
 
-for _f21_d in (0.05, 0.5):
-    _f21_s1, _f21_b1 = _f21_penalties(False, _f21_d)
-    _f21_s2, _f21_b2 = _f21_penalties(True, _f21_d)
+_f21_h = 1e-7
+for _f21_twin in (0, 1):
+    _f21_slope = {
+        _z: _f21_penalties(_z, _f21_h)[_f21_twin] / _f21_h for _z in (False, True)
+    }
     R.check(
-        f"R9-F2.1 P3: one zone {_f21_d} K under min_temp costs what a "
-        "single-zone room that far under does, in both twins",
-        _f21_s1 > 0
-        and abs(_f21_s2 - _f21_s1) < 1e-12
-        and abs(_f21_b2 - _f21_b1) < 1e-12,
-        f"single {_f21_s1:.6f}/{_f21_b1:.6f}, two-zone {_f21_s2:.6f}/{_f21_b2:.6f}",
+        f"R9-F2.1 P3: one zone-kelvin under min_temp is priced at the "
+        f"single-zone room's linear floor price ({('scalar', 'batch')[_f21_twin]})",
+        _f21_slope[False] > 0
+        and abs(_f21_slope[True] / _f21_slope[False] - 1.0) < 1e-4,
+        f"slope two-zone {_f21_slope[True]:.6f}, single-zone {_f21_slope[False]:.6f}",
     )
+_f21_d = 0.25
+_f21_curv = {
+    _z: _f21_penalties(_z, 2 * _f21_d)[0] - 2 * _f21_penalties(_z, _f21_d)[0]
+    for _z in (False, True)
+}
+R.check(
+    "R9-F2.1 P3 (null arm): the quadratic undershoot stays averaged over the "
+    "zones -- half the single-zone curvature",
+    _f21_curv[False] > 0
+    and abs(_f21_curv[True] / _f21_curv[False] - 0.5) < 1e-9,
+    f"curvature two-zone {_f21_curv[True]:.6f}, single-zone {_f21_curv[False]:.6f}",
+)
 _f21_o1 = _f21_penalties(False, 0.0, over=0.4)[0]
 _f21_o2 = _f21_penalties(True, 0.0, over=0.4)[0]
 R.check(
     "R9-F2.1 P3 (null arm): one zone over max_temp still costs half the "
-    "single-zone overshoot -- only the floor's price changed",
+    "single-zone overshoot -- only the floor's linear price changed",
     _f21_o1 > 0 and abs(_f21_o2 - 0.5 * _f21_o1) < 1e-12,
     f"single {_f21_o1:.6f}, two-zone {_f21_o2:.6f}",
 )
