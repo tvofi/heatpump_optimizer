@@ -10,10 +10,11 @@ this page follows the same order the UI does.
 - [The hydronic layout catalog](#the-hydronic-layout-catalog) — which plumbing arrangements are modelled
 - [Services](#services) — every service and its fields
 
-Only two answers are genuinely required: a Tibber API token and a weather
-entity. Everything else has a working default. Skipping an optional sensor
-costs accuracy, or leaves the one feature that needs it dormant, but it never
-stops the integration from planning.
+Only two answers are genuinely required: a price source — a Tibber API token
+by default, or a price sensor entity instead — and a weather entity.
+Everything else has a working default. Skipping an optional sensor costs
+accuracy, or leaves the one feature that needs it dormant, but it never stops
+the integration from planning.
 
 ---
 
@@ -21,14 +22,19 @@ stops the integration from planning.
 
 **Settings → Devices & services → Add integration → Heat Pump Optimizer.**
 
-The flow is not a straight line. After the temperatures you choose how the
-thermal model gets its starting values, and the two branches ask different
-questions:
+The flow is not a straight line. After the two required screens, a menu asks
+how far to go now, and after the temperatures a second branch chooses how the
+thermal model gets its starting values:
 
 ```mermaid
 flowchart TD
-    A["1 · Basics<br/>name, Tibber token, weather entity<br/>+ optional sensors"] --> B["2 · Temperatures<br/>target, minimum, maximum,<br/>day and night comfort, day hours"]
-    B --> C{"3 · How do you want to<br/>describe your building?"}
+    A["1 · Basics<br/>name, price source (token or entity),<br/>weather entity"] --> B["Optional sensors<br/>indoor/outdoor temperature, on/off switch,<br/>solar, hot water, buffer, pump signals"]
+    B --> M{"Menu: Quick setup (recommended) ·<br/>Continue setup · Finish setup now"}
+    M -- "Quick setup (recommended)" --> Q["Five house questions,<br/>then entity pre-fill"]
+    Q --> R
+    M -- "Finish setup now" --> R["Review &amp; confirm<br/>(read-only summary)"]
+    M -- "Continue setup" --> C2["2 · Temperatures<br/>target, minimum, maximum,<br/>day and night comfort, day hours"]
+    C2 --> C{"3 · How do you want to<br/>describe your building?"}
     C -- "Describe my building<br/>(recommended)" --> D["Questionnaire<br/>structure, era, foundation,<br/>heated area, emitters"]
     D --> E["Your heat pump<br/>nominal COP,<br/>max power, min power"]
     C -- "Enter thermal values<br/>directly (expert)" --> F["Thermal model<br/>masses, heat loss, COP,<br/>power limits, interval, weights"]
@@ -36,8 +42,16 @@ flowchart TD
     E --> H["4 · Hot water<br/>tank, setpoint, minimum,<br/>time frames, anti-legionella"]
     G --> H
     H --> I["5 · Weather sensitivity<br/>wind and rain"]
-    I --> J(["Done — the first plan is solved<br/>within one optimization interval"])
+    I --> R
+    R --> J(["Confirming creates the entry —<br/>the first plan is solved within one optimization interval"])
 ```
+
+The menu's **Quick setup (recommended)** answers five house questions and then
+offers to read the heat pump's own entities off a detected device (see
+[setup.md](setup.md)); **Finish setup now** skips straight to the review with
+shipped defaults for everything past the two required screens; **Continue
+setup** walks the numbered screens below. All three paths end on the same
+read-only review screen, which is what actually creates the entry.
 
 ### 1 · Basics
 
@@ -48,7 +62,9 @@ reported as a connection problem rather than as a bad token.
 | Setting | Default | What it means |
 |---|---|---|
 | Name for this integration | Heat Pump Optimizer | Shown in front of every entity this integration creates. |
-| Tibber API token | — (**required**) | Reads your hourly electricity prices. Create one at developer.tibber.com. |
+| Price source | Tibber | Where hourly electricity prices come from: Tibber (needs the token below) or a price sensor entity you already have. |
+| Tibber API token | — (**required with the Tibber source**) | Reads your hourly electricity prices. Create one at developer.tibber.com. Not asked for, and not needed, when the price source is a price entity. |
+| Price entity | — (**required with the price-entity source**) | A `sensor` publishing the current electricity price, read instead of Tibber. |
 | Weather forecast | — (**required**) | A `weather` entity supplying outdoor temperature, wind and rain for the next 24 hours. The optimizer plans ahead, so a forecast is not optional. |
 | Indoor temperature sensor | none | The real room temperature. Without it the optimizer trusts its own model, which drifts over time — this is the sensor worth finding first. |
 | Outdoor temperature sensor | none | A local thermometer beats the forecast for the current hour. |
@@ -177,14 +193,14 @@ the saving comes from.
 | Only guarantee hot water at set times | on | on/off | Off keeps the tank hot around the clock, which costs noticeably more. |
 | When you need hot water | `06:00-08:30, 17:00-22:00` | 24-hour times, comma separated | The tank is heated in the cheapest hours before each period. Each period must be at least 15 minutes — one planning step; a shorter one can fall between two steps and never take effect. Leave empty to let the integration learn your habits from actual usage. |
 | Let the tank cool to | 20 °C | 10–55 | How cold the tank may get between periods. The default is roughly room temperature — nothing is spent at all. |
+| Run an anti-legionella cycle | on | on/off | Because the tank now spends long stretches cool, it is periodically heated hot enough to kill legionella. Strongly recommended. |
+| Anti-legionella temperature | 60 °C | 55–70 | The usual recommendation is 60 °C. Check what applies where you live. This applies only while a cycle is running: if it is above the charge limit above, the tank goes above that limit for the cycle and at no other time. |
+| Anti-legionella interval | 7 days | 1–30 | Placed in the cheapest hour before each deadline. |
 
 Per-weekday windows are an options-page feature (see
 [Hot water](#hot-water) under *Changing settings later*); the setup wizard's
 single field takes the same grammar, including day selectors such as
 `weekdays 06:00-08:30, weekend 08:00-09:30`.
-| Run an anti-legionella cycle | on | on/off | Because the tank now spends long stretches cool, it is periodically heated hot enough to kill legionella. Strongly recommended. |
-| Anti-legionella temperature | 60 °C | 55–70 | The usual recommendation is 60 °C. Check what applies where you live. This applies only while a cycle is running: if it is above the charge limit above, the tank goes above that limit for the cycle and at no other time. |
-| Anti-legionella interval | 7 days | 1–30 | Placed in the cheapest hour before each deadline. |
 
 ### 5 · Weather sensitivity
 
@@ -193,8 +209,9 @@ single field takes the same grammar, including day selectors such as
 | Wind sensitivity | 0.03 | 0.0–0.5, 0.01 steps | Extra heat loss per m/s of wind — 0.03 means 3 % more loss per m/s. Raise it if the house noticeably cools on windy days. |
 | Rain sensitivity | 1.15 | 1.0–1.5, 0.01 steps | Loss multiplier while it is raining. 1.0 means rain makes no difference. |
 
-Saving this page creates the entry. All 74 entities appear at once and the
-first plan is solved within one optimization interval.
+Saving this page moves to the read-only review screen — confirming there is
+what creates the entry. All 75 entities appear at once and the first plan is
+solved within one optimization interval.
 
 ---
 
@@ -630,6 +647,7 @@ catalog below keys off.
 | Price per cubic metre | none | 0–10 000, 10 steps | What you pay per billed cubic metre. **Empty keeps the cheaper-than-pump sensor unavailable — there is no silent default.** |
 | Furnace efficiency | 75 % | 10–95 | Share of the wood's energy that reaches the tank. |
 | Heating circulation pump switch | none | `switch` / `input_boolean` | Paused only in slots that are provably idle and warm — it always runs when heat is planned, when it is freezing outside, or when any room is near its comfort floor. |
+
 The four fuel-price fields and the external-heat detection group render only
 while **Wood furnace** is on. The
 *Wood Cheaper Than Heat Pump* sensor stays unavailable until the furnace is
@@ -953,7 +971,8 @@ forecast without disturbing operation, and returns the answer directly. Fields,
 all optional: `target_temp`, `min_temp`, `max_temp`, `comfort_weight`,
 `comfort_temp_day`, `comfort_temp_night`, `dhw_setpoint`,
 `dhw_min_temperature`, `day_start_hour` (0–23), `day_end_hour` (0–24),
-`dhw_windows`. An empty `dhw_windows` string is meaningful: it simulates having
+`dhw_windows`, `wood_type`, `wood_packing`, `wood_price_sek_m3`,
+`wood_furnace_efficiency`, `wood_slots`. An empty `dhw_windows` string is meaningful: it simulates having
 no guaranteed hot water periods at all. The underlying solve is rate-limited,
 so dragging a slider cannot trigger one solve per pixel — this is what the
 card's what-if panel calls. A what-if that cannot run fails with an error

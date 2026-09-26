@@ -445,6 +445,154 @@ def check_quickstart_numbering() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Round 9 F8.1 (#1645, class I5) -- configuration.md "Initial setup" against
+# the real ConfigFlow, and the simulate_plan field list against its schema.
+# D5-s1-01 / D6-s2-01 / D6-s2-02: the section documented the pre-v6.6.5
+# straight-line wizard -- no finish_setup menu, the Tibber token marked
+# unconditionally required, and a stale entity count. D6-s2-05: the
+# simulate_plan prose field list did not name the wood fields the schema
+# grew.
+# ---------------------------------------------------------------------------
+
+
+def check_initial_setup_menu() -> None:
+    R.section(
+        "Initial setup: the finish_setup menu and the token requirement "
+        "(#1645 D5-s1-01)"
+    )
+    import asyncio
+
+    from harness import FakeHass
+    from heatpump_optimizer import config_flow, const
+
+    text = DOCS["configuration.md"]
+    section = text.split("## Initial setup", 1)[1].split("\n## ", 1)[0]
+
+    async def _first_two_screens():
+        flow = config_flow.HeatPumpOptimizerConfigFlow()
+        flow.hass = FakeHass()
+        first = await flow.async_step_user(
+            {
+                "name": "Heat Pump Optimizer",
+                const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+                const.CONF_PRICE_ENTITY: "sensor.nordpool",
+                const.CONF_WEATHER_ENTITY: "weather.home",
+            }
+        )
+        second = await flow.async_step_user_sensors({})
+        return first, second
+
+    first, second = asyncio.run(_first_two_screens())
+    R.check(
+        "the first screen accepts a price entity with no Tibber token (anchor)",
+        first.get("step_id") == "user_sensors" and not first.get("errors"),
+        repr(first),
+    )
+    menu = dict(second.get("menu_options") or {})
+    R.check(
+        "async_step_finish_setup still shows a menu with these three options "
+        "(anchor)",
+        set(menu) == {"quick_setup", "temperature", "finish_now"},
+        repr(menu),
+    )
+    unnamed = [
+        label
+        for label in menu.values()
+        if re.sub(r"\s*\(.*?\)", "", label).lower() not in section.lower()
+    ]
+    R.check(
+        "every finish_setup menu option is named in the 'Initial setup' "
+        "section (D5-s1-01: the section drew the pre-v6.6.5 wizard, which "
+        "had no such menu)",
+        not unnamed,
+        f"menu={menu}, unnamed in section: {unnamed}",
+    )
+    token_required_claim = bool(
+        re.search(r"Tibber API token \| — \(\*\*required\*\*\)", section)
+    ) or "genuinely required: a tibber api token" in text.lower()
+    R.check(
+        "the section does not claim the Tibber token is unconditionally "
+        "required, now that a price-entity source clears the first screen "
+        "without one (D5-s1-01)",
+        not token_required_claim,
+        "token-required claim still present" if token_required_claim else "ok",
+    )
+    # Null control: the pre-v6.6.5 shape (no menu, token always required) is
+    # exactly what setup_section.py's --perturb arm re-creates, and it is
+    # what this check is written to catch.
+    _bad_section = (
+        "**Settings → Devices & services → Add integration → Heat Pump "
+        "Optimizer.**\n\n"
+        "| Setting | Default | What it means |\n"
+        "|---|---|---|\n"
+        "| Tibber API token | — (**required**) | Reads your hourly "
+        "electricity prices. |\n"
+    )
+    _bad_unnamed = [
+        label
+        for label in menu.values()
+        if re.sub(r"\s*\(.*?\)", "", label).lower() not in _bad_section.lower()
+    ]
+    _bad_token_claim = bool(
+        re.search(r"Tibber API token \| — \(\*\*required\*\*\)", _bad_section)
+    )
+    R.check(
+        "the check fires on the pre-v6.6.5 shape it was written for (null "
+        "control)",
+        bool(_bad_unnamed) and _bad_token_claim,
+        f"unnamed={_bad_unnamed} token_claim={_bad_token_claim}",
+    )
+
+
+def check_simulate_plan_fields() -> None:
+    R.section(
+        "simulate_plan's documented field list matches its schema "
+        "(#1645 D6-s2-05)"
+    )
+    from heatpump_optimizer.services import SERVICE_SCHEMA_SIMULATE_PLAN
+
+    schema_fields = {
+        str(getattr(key, "schema", key)) for key in SERVICE_SCHEMA_SIMULATE_PLAN.schema
+    }
+    R.check(
+        "the simulate_plan schema still has fields to document (anchor)",
+        bool(schema_fields),
+        repr(schema_fields),
+    )
+    text = DOCS["configuration.md"]
+    m = re.search(
+        r"\*\*`simulate_plan`\*\*.*?Fields,\s*\n?all optional:\s*(.*?)\.\s*An empty",
+        text,
+        re.S,
+    )
+    R.check(
+        "configuration.md still documents simulate_plan's field list (anchor)",
+        m is not None,
+    )
+    documented = set(re.findall(r"`([a-z0-9_]+)`", m.group(1))) if m else set()
+    missing = schema_fields - documented
+    R.check(
+        "configuration.md's simulate_plan field list names every schema "
+        "field, including the wood fields the schema grew without the "
+        "prose following (D6-s2-05)",
+        not missing,
+        f"schema={sorted(schema_fields)} documented={sorted(documented)} "
+        f"missing={sorted(missing)}",
+    )
+    # Null control: drop one real schema field from a copy of the documented
+    # set and confirm the missing-field check actually flags it, rather than
+    # passing on any input.
+    _dropped = sorted(schema_fields)[0]
+    _synthetic_missing = schema_fields - (documented - {_dropped})
+    R.check(
+        "the missing-field check fires when a field is undocumented (null "
+        "control)",
+        _dropped in _synthetic_missing,
+        f"dropped={_dropped!r} synthetic missing={sorted(_synthetic_missing)}",
+    )
+
+
+# ---------------------------------------------------------------------------
 # Arms 6 and 7 -- quality_scale.yaml censuses (#1545, #1546)
 # ---------------------------------------------------------------------------
 
@@ -739,6 +887,8 @@ def main() -> int:
     check_entity_prefix()
     check_requirements_claim()
     check_quickstart_numbering()
+    check_initial_setup_menu()
+    check_simulate_plan_fields()
     check_census_self_test()
     check_quality_scale()
     return R.close("checks")
