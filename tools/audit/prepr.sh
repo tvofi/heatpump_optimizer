@@ -93,6 +93,63 @@ pr_head_ref() { # branch name ('' or '-' when detached), remote ('' or '-' -> or
   esac
 }
 
+# Steps 3e-3g: the graders CI pins to the base, run on THIS head's copy.
+#
+# WHY THIS EXISTS. A job that restores its check source from the base --
+# `git checkout "$PINNED" --` with PINNED = base.sha || github.sha -- grades a
+# pull request with the BASE's copy of every pinned file, and main's push with
+# the HEAD's. The two verdicts differ exactly when the diff touches a pinned
+# path, and the pull request's own run cannot show the difference: at #1633
+# (R1a) head a897272a a leads fixture in `check-wave-script.mjs` quoted
+# `boost.py`, `codeowners_gap.py --check` refused 2 files on that head, and
+# `policy-docs` was green because it read the base's `check-wave-script.mjs`.
+# The push to main would have gone red; the fix reviewer running the check by
+# hand was the only detector. `graders-head-copy` in tests.yml answers this
+# shape for the tests/ graders, keyed on the GRADER changing; a pinned file
+# that another grader reads as DATA is outside that key, and nothing here ran
+# `codeowners_gap.py` at all.
+#
+# So both lists are read from the workflows, not written here: a grader added
+# to a pinned job, or a path added to a pin, reaches this script with no edit
+# to it, and `pinned_unrun` refuses a grader this script neither runs nor
+# names in PINNED_ELSEWHERE with the reason it cannot.
+PIN_JOBS_AWK='
+  /^  [A-Za-z0-9_-]+:[[:space:]]*$/ { both=0; pinned=0; inpin=0; next }
+  /PINNED:/ && /\|\| *github\.sha/  { both=1 }
+  /git checkout "\$PINNED" --/      { if (both) { pinned=1; inpin=1 }; next }
+  inpin { s=$0; while (match(s, /'"'"'[^'"'"']+'"'"'/)) { if (mode=="paths") print substr(s, RSTART+1, RLENGTH-2); s=substr(s, RSTART+RLENGTH) }
+          if ($0 !~ /\\[[:space:]]*$/) inpin=0; next }
+  pinned && mode=="graders" && !/^[[:space:]]*#/ {
+    s=$0
+    while (match(s, /(node|python3)( -[A-Za-z]+)* [A-Za-z0-9_.\/-]+\.(mjs|py)/)) {
+      m=substr(s, RSTART, RLENGTH); sub(/^.* /, "", m); print m; s=substr(s, RSTART+RLENGTH)
+    }
+  }'
+pinned_graders() { # workflow files -> each program a pinned job that also grades main runs
+  awk -v mode=graders "$PIN_JOBS_AWK" "$@" | sort -u
+}
+pinned_paths() { # workflow files -> each pathspec those jobs restore from the base
+  awk -v mode=paths "$PIN_JOBS_AWK" "$@" | sort -u
+}
+PINNED_ELSEWHERE='
+.claude/workflows/policy_lint_envmatrix.mjs builds the six environment shapes CI declares: 50 s here, and 8 of its 16 outcomes do not hold off CI
+.claude/workflows/budget_raise_gate.py reads a review off the GitHub API, not the tree; this script never reaches the network
+tests/coverage_ratchet.py needs the coverage payload of a full gate run; graders-head-copy runs the head copy on the pull request
+'
+# No `| grep -q` below: under `pipefail` a grep that exits on its first match
+# can SIGPIPE the writer, and the pipeline then reads as no match: the first
+# draft of this guard named a grader unrun on 27 of 200 runs. Here-strings
+# have no writer; this form named none in 200.
+pinned_unrun() { # this script, workflow files -> each pinned grader with no local path
+  local self=$1; shift
+  local g runs
+  runs=$(awk '/^rc=0$/ { f=1 } f && !/^[[:space:]]*#/' "$self")
+  for g in $(pinned_graders "$@"); do
+    grep -q "^$g " <<<"$PINNED_ELSEWHERE" && continue
+    grep -qE "(node|python3)( -[A-Za-z]+)* $g( |\$)" <<<"$runs" || printf '%s\n' "$g"
+  done
+}
+
 # Step 7a's whole body, so `--self-test` drives the code the step runs rather
 # than a second copy of the command. A step wired into the run and demonstrated
 # by a sibling command is a step nothing pins: the assertion passes while the
@@ -759,6 +816,23 @@ PY
   got=$(closures_at rec under); st "${got%%:*}" 3 "6b skips a diff that reaches no selectable script, recording nothing"
   rm -rf "$CLM"
 
+  # Steps 3e-3g, driven through the functions the steps call. The reader is
+  # demonstrated on this repository's own workflows (it must find the grader
+  # #1633 escaped through) and on a PR-only pin it must NOT count; the guard on
+  # a copy of this script with step 3e's call deleted, which must name it.
+  WF=$(mktemp -d)
+  grep -qx tools/audit/round6/D11/fix/codeowners_gap.py <<<"$(pinned_graders .github/workflows/*.yml)"
+  st $? 0 "the pin reader finds codeowners_gap.py in a pinned job that grades main"
+  printf 'jobs:\n  only-pr:\n    steps:\n      - env:\n          PINNED: ${{ github.event.pull_request.base.sha }}\n        run: |\n          git checkout "$PINNED" -- \\\n            %s\n      - run: node .claude/workflows/pr_only.mjs\n' "'x.mjs'" > "$WF/pr.yml"
+  [ -z "$(pinned_graders "$WF/pr.yml")$(pinned_paths "$WF/pr.yml")" ]
+  st $? 0 "a pin that never grades main is not counted (null control)"
+  grep -v 'codeowners_gap.py --check >/tmp/prepr-owners' tools/audit/prepr.sh > "$WF/prepr.sh"
+  [ "$(pinned_unrun "$WF/prepr.sh" .github/workflows/*.yml)" = tools/audit/round6/D11/fix/codeowners_gap.py ]
+  st $? 0 "a pinned grader with its local run deleted is named"
+  [ -z "$(pinned_unrun tools/audit/prepr.sh .github/workflows/*.yml)" ]
+  st $? 0 "every pinned grader has a local path or a reason (null control)"
+  rm -rf "$WF"
+
   printf 'Closes #999\n' | bash tools/audit/preflight.sh >/dev/null 2>&1
   st $? 1 "preflight refuses an unintended closing keyword"
   printf 'Closes #999\n' | bash tools/audit/preflight.sh 999 >/dev/null 2>&1
@@ -833,6 +907,31 @@ rm -f /tmp/prepr-frag.$$
 node .claude/workflows/policy_lint.mjs --hooks >/tmp/prepr-hooks.$$ 2>&1
 step "hooks" $? "$(tail -1 /tmp/prepr-hooks.$$)"
 rm -f /tmp/prepr-hooks.$$
+
+# --- 3e. no file a workflow executes lacks an owner, on this head's copy of
+# what the walk reads (`pinned_graders` above: #1633 R1a). 0.6 s, so always.
+python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check >/tmp/prepr-owners.$$ 2>&1
+step "codeowners_gap" $? "$(grep -E '^REFUSED|uncovered_files=' /tmp/prepr-owners.$$ | tr '\n' ' ')"
+rm -f /tmp/prepr-owners.$$
+
+# --- 3f. the roster citations, on this head's copy, when the diff touches a
+# pinned path -- the one case where CI's `briefs` job reads the base's copy.
+PINS=$(pinned_paths .github/workflows/*.yml)
+if [ -n "$PINS" ] && ! printf '%s\n' "$PINS" | xargs git diff --quiet "$BASE"...HEAD --; then
+  node .claude/workflows/brief_lint.mjs >/tmp/prepr-briefs.$$ 2>&1
+  step "brief_lint" $? "$(tail -1 /tmp/prepr-briefs.$$)"
+  rm -f /tmp/prepr-briefs.$$
+else
+  say skip "brief_lint" "no pinned path changed, so CI's briefs job reads this head's copy"
+fi
+
+# --- 3g. every grader a pinned job runs has a local path above, or a reason.
+UNRUN=$(pinned_unrun tools/audit/prepr.sh .github/workflows/*.yml)
+if [ -z "$(pinned_graders .github/workflows/*.yml)" ]; then
+  step "pinned graders" 1 "none found in .github/workflows -- the pin reader no longer matches the workflows"
+else
+  step "pinned graders" "$([ -z "$UNRUN" ]; echo $?)" "${UNRUN:+no local path for: $(echo $UNRUN) -- run it above, or name it in PINNED_ELSEWHERE with the reason}"
+fi
 
 # --- 4. the wave script's branching, when the branch touched any of its inputs.
 #
