@@ -256,7 +256,7 @@ class FrequencyMap:
                 count = int(entry[1])
             except (TypeError, ValueError, OverflowError, IndexError, KeyError):
                 continue
-            if not 0 < ratio <= FREQ_MAX_KW_PER_HZ or count < 0:
+            if not np.isfinite(ratio) or not 0 < ratio <= FREQ_MAX_KW_PER_HZ or count < 0:
                 continue
             try:
                 decile = int(key)
